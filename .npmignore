@@ -1,0 +1,15 @@
+pids
+logs
+results
+
+npm-debug.log
+node_modules
+coverage
+report
+
+.idea
+*.iml
+*~
+
+*.sublime-workspace
+*.sublime-project

@@ -1,0 +1,10 @@
+{
+    "evil": true,
+    "regexdash": true,
+    "browser": true,
+    "wsh": true,
+    "trailing": true,
+    "sub": true,
+    "laxcomma": true,
+    "node": true
+}

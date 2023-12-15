@@ -1,0 +1,42 @@
+{
+  "name": "argyll",
+  "description": "Asynchronous Result Gathering",
+  "version": "1.4.0",
+  "author": "Thomas S. Bradford",
+  "contributors": [
+    {
+      "name": "Thom Bradford",
+      "email": "thom@kode4food.it"
+    }
+  ],
+  "homepage": "http://argyll.io/",
+  "repository": "git@github.com:kode4food/argyll",
+  "keywords": [
+    "javascript",
+    "nodejs",
+    "asynchronous",
+    "result",
+    "gathering"
+  ],
+  "license": "MIT",
+  "scripts": {
+    "build": "gulp",
+    "test": "gulp test"
+  },
+  "dependencies": {
+    "byname": "~0.0.5"
+  },
+  "devDependencies": {
+    "gulp": "^3.9.1",
+    "gulp-istanbul": "^0.10.4",
+    "gulp-istanbul-enforcer": "^1.0.3",
+    "gulp-jshint": "^2.0.1",
+    "gulp-nodeunit": "0.0.5",
+    "istanbul": "^0.4.3",
+    "nodeunit": "^0.9.1",
+    "plato": "^1.5.0"
+  },
+  "engines": {
+    "node": "*"
+  }
+}
