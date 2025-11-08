@@ -50,13 +50,6 @@ POST       /webhook/{id}/{id}/{token}  # Async callbacks
 
 See `engine/docs/engine-api.yaml` for full OpenAPI specification.
 
-## Architecture
-
-- **Engine**: Go with Gin HTTP framework
-- **Storage**: Redis for event sourcing
-- **UI**: React 19 + TypeScript
-- **Scripts**: Embedded Ale and Lua interpreters
-
 ## Current Status
 
-This is a work in progress. The basics are solid, but not yet ready for production use. Use at your own risk.
+This is a work in progress. The basics are there, but not yet ready for production use. Use at your own risk.
