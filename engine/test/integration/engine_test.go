@@ -59,15 +59,15 @@ func TestStartWorkflowSimple(t *testing.T) {
 	assert.Equal(t, timebox.ID("wf-1"), workflow.ID)
 }
 
-func TestEnqueueStepResult(t *testing.T) {
+func TestWorkflowCompletion(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
 	env.Engine.Start()
 
 	step := &api.Step{
-		ID:      "enqueue-step",
-		Name:    "Enqueue",
+		ID:      "completion-step",
+		Name:    "Completion Step",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
 		Attributes: map[api.Name]*api.AttributeSpec{
@@ -81,41 +81,38 @@ func TestEnqueueStepResult(t *testing.T) {
 	err := env.Engine.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
 
+	env.MockClient.SetResponse("completion-step",
+		api.Args{"result": "completed"},
+	)
+
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"enqueue-step"},
+		GoalSteps: []timebox.ID{"completion-step"},
 		Steps:     []*api.Step{step},
 	}
 
 	err = env.Engine.StartWorkflow(
-		context.Background(), "wf-enqueue", plan, api.Args{}, api.Metadata{},
+		context.Background(), "wf-completion", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	err = env.Engine.StartStepExecution(
-		context.Background(), "wf-enqueue", "enqueue-step", api.Args{},
-	)
-	require.NoError(t, err)
-
-	outputs := api.Args{"result": "value"}
-	env.Engine.EnqueueStepResult("wf-enqueue", "enqueue-step", outputs, 50)
-
+	// Wait for workflow to complete
 	a := as.New(t)
 	var workflow *api.WorkflowState
 	a.Eventually(func() bool {
 		var err error
 		workflow, err = env.Engine.GetWorkflowState(
-			context.Background(), "wf-enqueue",
+			context.Background(), "wf-completion",
 		)
 		if err != nil {
 			return false
 		}
-		exec, ok := workflow.Executions["enqueue-step"]
-		return ok && exec.Status == api.StepCompleted
-	}, 500*time.Millisecond, "step should complete")
+		return workflow.Status == api.WorkflowCompleted
+	}, 500*time.Millisecond, "workflow should complete")
 
-	exec := workflow.Executions["enqueue-step"]
+	assert.Equal(t, api.WorkflowCompleted, workflow.Status)
+	exec := workflow.Executions["completion-step"]
 	assert.Equal(t, api.StepCompleted, exec.Status)
-	assert.Equal(t, "value", exec.Outputs["result"])
+	assert.Equal(t, "completed", exec.Outputs["result"])
 }
 
 func TestListWorkflows(t *testing.T) {
