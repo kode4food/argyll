@@ -2,7 +2,7 @@
 
 ### Goal-Oriented Workflow Engine
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds) [![Build Status](https://github.com/kode4food/spuds/workflows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![GitHub](https://img.shields.io/github/license/kode4food/spuds)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds/engine) [![Build Status](https://github.com/kode4food/spuds/workflows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![GitHub](https://img.shields.io/github/license/kode4food/spuds)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
 
 Spuds is a workflow engine that uses goal-oriented execution with lazy evaluation. Instead of running entire workflows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed.
 
