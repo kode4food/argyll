@@ -1,0 +1,380 @@
+package engine_test
+
+import (
+	"testing"
+
+	"github.com/kode4food/timebox"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/kode4food/spuds/engine/internal/engine"
+	"github.com/kode4food/spuds/engine/pkg/api"
+)
+
+func TestLuaCompile(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "test",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Script: "return {result = a + b}",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"a":      {Role: api.RoleRequired},
+			"b":      {Role: api.RoleRequired},
+			"result": {Role: api.RoleRequired},
+		},
+	}
+
+	names := step.SortedArgNames()
+	comp, err := env.Compile(step, step.Script.Script, names)
+	require.NoError(t, err)
+	assert.NotNil(t, comp)
+}
+
+func TestLuaExecuteScript(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "test",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Script: "return {result = a + b}",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"a":      {Role: api.RoleRequired},
+			"b":      {Role: api.RoleRequired},
+			"result": {Role: api.RoleRequired},
+		},
+	}
+
+	names := step.SortedArgNames()
+	comp, err := env.Compile(step, step.Script.Script, names)
+	require.NoError(t, err)
+
+	args := api.Args{
+		"a": 5,
+		"b": 10,
+	}
+
+	result, err := env.ExecuteScript(comp, step, args)
+	require.NoError(t, err)
+
+	assert.Contains(t, result, api.Name("result"))
+	assert.Equal(t, 15, result["result"])
+}
+
+func TestLuaEvaluatePredicate(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	tests := []struct {
+		name      string
+		predicate string
+		args      api.Args
+		expected  bool
+	}{
+		{
+			name:      "true_condition",
+			predicate: "return x > 10",
+			args:      api.Args{"x": 15},
+			expected:  true,
+		},
+		{
+			name:      "false_condition",
+			predicate: "return x > 10",
+			args:      api.Args{"x": 5},
+			expected:  false,
+		},
+		{
+			name:      "complex_condition",
+			predicate: "return x > 10 and y < 20",
+			args:      api.Args{"x": 15, "y": 15},
+			expected:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			step := &api.Step{
+				ID:   "test",
+				Type: api.StepTypeSync,
+				Predicate: &api.ScriptConfig{
+					Script: tt.predicate,
+				},
+				Attributes: map[api.Name]*api.AttributeSpec{
+					"x": {Role: api.RoleRequired},
+					"y": {Role: api.RoleRequired},
+				},
+			}
+
+			names := step.SortedArgNames()
+			comp, err := env.Compile(step, tt.predicate, names)
+			require.NoError(t, err)
+
+			result, err := env.EvaluatePredicate(comp, step, tt.args)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestLuaValidate(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	tests := []struct {
+		name        string
+		script      string
+		expectError bool
+	}{
+		{
+			name:        "valid_script",
+			script:      "return {result = 42}",
+			expectError: false,
+		},
+		{
+			name:        "invalid_syntax",
+			script:      "return {result =",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			step := &api.Step{ID: "test", Type: api.StepTypeScript}
+			err := env.Validate(step, tt.script)
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
+func TestLuaScriptCache(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "test",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Script: "return {result = a + b}",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"a":      {Role: api.RoleRequired},
+			"b":      {Role: api.RoleRequired},
+			"result": {Role: api.RoleRequired},
+		},
+	}
+
+	names := step.SortedArgNames()
+
+	proc1, err := env.Compile(step, step.Script.Script, names)
+	require.NoError(t, err)
+
+	proc2, err := env.Compile(step, step.Script.Script, names)
+	require.NoError(t, err)
+
+	assert.Equal(t, proc1, proc2)
+}
+
+func TestLuaCompileStepScript(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "test",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   "return {x = 42}",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"x": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.CompileStepScript(step)
+	require.NoError(t, err)
+	assert.NotNil(t, comp)
+}
+
+func TestLuaCompileStepPredicate(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "test",
+		Type: api.StepTypeSync,
+		Predicate: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   "return x > 10",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"x": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.CompileStepPredicate(step)
+	require.NoError(t, err)
+	assert.NotNil(t, comp)
+}
+
+func TestLuaComplexConversion(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "complex-types",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Script: `
+				return {
+					bool_val = is_active,
+					string_val = name,
+					int_val = count,
+					float_val = price
+				}
+			`,
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"is_active":  {Role: api.RoleRequired},
+			"name":       {Role: api.RoleRequired},
+			"count":      {Role: api.RoleRequired},
+			"price":      {Role: api.RoleRequired},
+			"bool_val":   {Role: api.RoleRequired},
+			"string_val": {Role: api.RoleRequired},
+			"int_val":    {Role: api.RoleRequired},
+			"float_val":  {Role: api.RoleRequired},
+		},
+	}
+
+	names := step.SortedArgNames()
+	comp, err := env.Compile(step, step.Script.Script, names)
+	require.NoError(t, err)
+
+	args := api.Args{
+		"is_active": true,
+		"name":      "test-item",
+		"count":     42,
+		"price":     99.99,
+	}
+
+	result, err := env.ExecuteScript(comp, step, args)
+	require.NoError(t, err)
+
+	assert.Equal(t, true, result["bool_val"])
+	assert.Equal(t, "test-item", result["string_val"])
+	assert.Equal(t, 42, result["int_val"])
+	assert.Equal(t, 99.99, result["float_val"])
+}
+
+func TestLuaArrayTableConversion(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "array-test",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Script: `return {numbers = {1, 2, 3, 4, 5}, count = 5}`,
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"numbers": {Role: api.RoleRequired},
+			"count":   {Role: api.RoleRequired},
+		},
+	}
+
+	names := step.SortedArgNames()
+	comp, err := env.Compile(step, step.Script.Script, names)
+	require.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	require.NoError(t, err)
+
+	numbers, ok := result["numbers"].([]any)
+	require.True(t, ok, "numbers should be an array")
+	assert.Equal(t, 5, len(numbers))
+	assert.Equal(t, 1, numbers[0])
+	assert.Equal(t, 5, numbers[4])
+
+	assert.Equal(t, 5, result["count"])
+}
+
+func TestLuaInputTypes(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	tests := []struct {
+		name     string
+		script   string
+		inputs   api.Args
+		expected map[api.Name]any
+	}{
+		{
+			name:   "int64_input",
+			script: "return {result = val}",
+			inputs: api.Args{"val": int64(123456789)},
+			expected: map[api.Name]any{
+				"result": 123456789,
+			},
+		},
+		{
+			name:   "float64_input",
+			script: "return {result = val * 2}",
+			inputs: api.Args{"val": 3.14},
+			expected: map[api.Name]any{
+				"result": 6.28,
+			},
+		},
+		{
+			name:   "nil_input",
+			script: "return {result = val == nil}",
+			inputs: api.Args{"val": nil},
+			expected: map[api.Name]any{
+				"result": true,
+			},
+		},
+		{
+			name:   "array_input",
+			script: "return {result = #items}",
+			inputs: api.Args{"items": []any{1, 2, 3}},
+			expected: map[api.Name]any{
+				"result": 3,
+			},
+		},
+		{
+			name:   "map_input",
+			script: "return {result = data.key}",
+			inputs: api.Args{"data": map[string]any{"key": "value"}},
+			expected: map[api.Name]any{
+				"result": "value",
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			step := &api.Step{
+				ID:   timebox.ID(tt.name),
+				Type: api.StepTypeScript,
+				Script: &api.ScriptConfig{
+					Script: tt.script,
+				},
+				Attributes: map[api.Name]*api.AttributeSpec{
+					"val":    {Role: api.RoleRequired},
+					"items":  {Role: api.RoleRequired},
+					"data":   {Role: api.RoleRequired},
+					"result": {Role: api.RoleRequired},
+				},
+			}
+
+			names := step.SortedArgNames()
+			comp, err := env.Compile(step, step.Script.Script, names)
+			require.NoError(t, err)
+
+			result, err := env.ExecuteScript(comp, step, tt.inputs)
+			require.NoError(t, err)
+
+			for key, expected := range tt.expected {
+				assert.Equal(t, expected, result[key])
+			}
+		})
+	}
+}

@@ -1,0 +1,33 @@
+.dot {
+  height: 0.75rem;
+  width: 0.75rem;
+  border-radius: var(--radius-round);
+  transition: var(--transition-slow);
+}
+
+.healthy {
+  background-color: var(--color-success);
+}
+
+.unhealthy {
+  background-color: var(--color-error);
+}
+
+.unknown {
+  background-color: var(--color-warning);
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.unconfigured {
+  background-color: var(--color-dark-border);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: var(--opacity-hover);
+  }
+}

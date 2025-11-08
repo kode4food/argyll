@@ -1,0 +1,120 @@
+package api
+
+import (
+	"time"
+
+	"github.com/kode4food/timebox"
+)
+
+type (
+	StepRegisteredEvent struct {
+		Step *Step `json:"step"`
+	}
+
+	StepUnregisteredEvent struct {
+		StepID timebox.ID `json:"step_id"`
+	}
+
+	StepHealthChangedEvent struct {
+		StepID      timebox.ID   `json:"step_id"`
+		Health      HealthStatus `json:"health_status"`
+		HealthError string       `json:"health_error,omitempty"`
+	}
+
+	WorkflowStartedEvent struct {
+		ExecutionPlan *ExecutionPlan `json:"execution_plan"`
+		InitialState  Args           `json:"initial_state"`
+		Metadata      Metadata       `json:"metadata,omitempty"`
+		WorkflowID    timebox.ID     `json:"workflow_id"`
+	}
+
+	WorkflowCompletedEvent struct {
+		Result     Args       `json:"result"`
+		WorkflowID timebox.ID `json:"workflow_id"`
+	}
+
+	WorkflowFailedEvent struct {
+		WorkflowID timebox.ID `json:"workflow_id"`
+		Error      string     `json:"error"`
+	}
+
+	StepStartedEvent struct {
+		Inputs     Args       `json:"inputs"`
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+	}
+
+	StepCompletedEvent struct {
+		Outputs    Args       `json:"outputs"`
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Duration   int64      `json:"duration"`
+	}
+
+	StepFailedEvent struct {
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Error      string     `json:"error"`
+	}
+
+	StepSkippedEvent struct {
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Reason     string     `json:"reason"`
+	}
+
+	AttributeSetEvent struct {
+		Value      any        `json:"value"`
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Key        Name       `json:"key"`
+	}
+
+	WorkStartedEvent struct {
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Token      Token      `json:"token"`
+		Inputs     Args       `json:"inputs"`
+	}
+
+	WorkCompletedEvent struct {
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Token      Token      `json:"token"`
+		Outputs    Args       `json:"outputs"`
+	}
+
+	WorkFailedEvent struct {
+		WorkflowID timebox.ID `json:"workflow_id"`
+		StepID     timebox.ID `json:"step_id"`
+		Token      Token      `json:"token"`
+		Error      string     `json:"error"`
+	}
+
+	RetryScheduledEvent struct {
+		WorkflowID  timebox.ID `json:"workflow_id"`
+		StepID      timebox.ID `json:"step_id"`
+		Token       Token      `json:"token"`
+		RetryCount  int        `json:"retry_count"`
+		NextRetryAt time.Time  `json:"next_retry_at"`
+		Error       string     `json:"error"`
+	}
+)
+
+const (
+	EventTypeStepRegistered     timebox.EventType = "step_registered"
+	EventTypeStepUnregistered   timebox.EventType = "step_unregistered"
+	EventTypeStepHealthChanged  timebox.EventType = "step_health_changed"
+	EventTypeWorkflowStarted    timebox.EventType = "workflow_started"
+	EventTypeWorkflowCompleted  timebox.EventType = "workflow_completed"
+	EventTypeWorkflowFailed     timebox.EventType = "workflow_failed"
+	EventTypeAttributeSet       timebox.EventType = "attribute_set"
+	EventTypeStepStarted       timebox.EventType = "step_started"
+	EventTypeStepCompleted     timebox.EventType = "step_completed"
+	EventTypeStepFailed        timebox.EventType = "step_failed"
+	EventTypeStepSkipped       timebox.EventType = "step_skipped"
+	EventTypeWorkStarted   timebox.EventType = "work_started"
+	EventTypeWorkCompleted timebox.EventType = "work_completed"
+	EventTypeWorkFailed    timebox.EventType = "work_failed"
+	EventTypeRetryScheduled    timebox.EventType = "retry_scheduled"
+)

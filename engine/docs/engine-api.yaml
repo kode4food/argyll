@@ -1,0 +1,988 @@
+openapi: 3.0.3
+info:
+  title: Spuds Engine REST API
+  description: |
+    REST API for the Spuds workflow engine, providing endpoints for:
+    - Registering and managing workflow steps
+    - Creating and monitoring workflows with goal-oriented execution
+    - Real-time event streaming via WebSocket
+    - Health monitoring and system status
+
+    ## Overview
+
+    The Spuds Engine is a goal-oriented workflow processing system that uses lazy evaluation
+    and event sourcing. Steps declare input/output dependencies and the engine orchestrates
+    execution based on state availability, only executing the minimal set of steps needed to
+    reach a specified goal.
+
+    ## Key Features
+
+    - **Goal-Oriented Execution**: Create workflows by specifying a goal step; the engine
+      automatically determines and executes only the necessary steps
+    - **Event Sourcing**: Complete audit trail with Valkey backend for recovery and debugging
+    - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
+    - **Real-Time Updates**: WebSocket streaming for live workflow monitoring
+    - **Three Step Types**: Sync HTTP, Async HTTP (with webhooks), and Script (Ale and Lua)
+
+    ## Step Implementation
+
+    If you're implementing workflow steps (HTTP endpoints or scripts that the engine calls),
+    see the separate **Step Interface Contract** specification in `step-interface.yaml`.
+    This document describes what you need to consume the engine's REST API.
+
+    ## Authentication
+
+    Currently, the API does not require authentication. For production deployments,
+    it's recommended to place the engine behind a reverse proxy with appropriate
+    authentication and authorization.
+
+  version: 1.0.0
+  contact:
+    name: Spuds Engine
+    url: https://github.com/kode4food/spuds
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+paths:
+  /health:
+    get:
+      summary: Engine Health Check
+      description: Returns the health status of the Spuds engine
+      operationId: getEngineHealth
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Engine is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthResponse"
+
+  /engine:
+    get:
+      summary: Engine State
+      description: Get complete engine state including all registered steps and health information
+      operationId: getEngineState
+      tags:
+        - Engine
+      responses:
+        "200":
+          description: Complete engine state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EngineStateResponse"
+
+  /engine/step:
+    get:
+      summary: List Registered Steps
+      description: Retrieve all steps currently registered with the engine
+      operationId: listSteps
+      tags:
+        - Steps
+      responses:
+        "200":
+          description: List of registered steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepsListResponse"
+    post:
+      summary: Register Step
+      description: |
+        Register a new workflow step with the engine. Steps can be:
+        - **Sync**: HTTP endpoints that return results immediately
+        - **Async**: HTTP endpoints that return immediately and complete via webhook
+        - **Script**: Ale and Lua scripts executed in-engine
+      operationId: registerStep
+      tags:
+        - Steps
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepRegistration"
+            examples:
+              syncStep:
+                summary: Synchronous HTTP Step
+                value:
+                  id: "text-processor"
+                  name: "Text Processor"
+                  type: "sync"
+                  required_args:
+                    input_text:
+                      type: "string"
+                  output_args:
+                    processed_text:
+                      type: "string"
+                  version: "1.0.0"
+                  http:
+                    endpoint: "http://localhost:8081/process-text"
+                    health_check: "http://localhost:8081/health"
+                    timeout: 30000
+              scriptStep:
+                summary: Script Step (Ale)
+                value:
+                  id: "greeter"
+                  name: "Greeter"
+                  type: "script"
+                  required_args:
+                    name:
+                      type: "string"
+                  output_args:
+                    greeting:
+                      type: "string"
+                  version: "1.0.0"
+                  script:
+                    language: "ale"
+                    script: "{:greeting (str \"Hello, \" name)}"
+      responses:
+        "201":
+          description: Step registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepRegisteredResponse"
+        "400":
+          description: Invalid step specification
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Step already exists with this ID
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/step/{stepId}:
+    get:
+      summary: Get Step Details
+      description: Retrieve details of a specific registered step
+      operationId: getStepDetails
+      tags:
+        - Steps
+      parameters:
+        - name: stepId
+          in: path
+          required: true
+          description: Unique identifier of the step
+          schema:
+            type: string
+          example: "text-processor"
+      responses:
+        "200":
+          description: Step details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepRegistration"
+        "404":
+          description: Step not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      summary: Update Step
+      description: |
+        Update an existing step registration. This creates a new version of the step.
+        Running workflows continue using their immutable execution plans (step snapshots).
+      operationId: updateStep
+      tags:
+        - Steps
+      parameters:
+        - name: stepId
+          in: path
+          required: true
+          description: Unique identifier of the step
+          schema:
+            type: string
+          example: "text-processor"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepRegistration"
+      responses:
+        "200":
+          description: Step updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepRegisteredResponse"
+        "400":
+          description: Invalid step specification or ID mismatch
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Step not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      summary: Unregister Step
+      description: |
+        Remove a step from the engine. Running workflows that reference this step
+        are unaffected as they use immutable execution plan snapshots.
+      operationId: unregisterStep
+      tags:
+        - Steps
+      parameters:
+        - name: stepId
+          in: path
+          required: true
+          description: Unique identifier of the step
+          schema:
+            type: string
+          example: "text-processor"
+      responses:
+        "200":
+          description: Step unregistered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "404":
+          description: Step not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/health:
+    get:
+      summary: Step Health Status
+      description: Get health status for all registered steps
+      operationId: getStepHealthStatus
+      tags:
+        - Health
+      responses:
+        "200":
+          description: Health status for all steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthListResponse"
+
+  /engine/health/{stepId}:
+    get:
+      summary: Step Health Details
+      description: Get detailed health information for a specific step
+      operationId: getStepHealthDetails
+      tags:
+        - Health
+      parameters:
+        - name: stepId
+          in: path
+          required: true
+          description: Unique identifier of the step
+          schema:
+            type: string
+          example: "text-processor"
+      responses:
+        "200":
+          description: Step health details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+        "404":
+          description: Health information not found for step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/plan:
+    post:
+      summary: Create Execution Plan (Preview)
+      description: |
+        Generate an execution plan for a goal step without starting the workflow.
+        This is useful for:
+        - Previewing which steps will execute
+        - Determining required inputs
+        - Validating goal step dependencies before execution
+      operationId: createExecutionPlan
+      tags:
+        - Workflows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutionPlanRequest"
+            example:
+              goal_steps: ["text-processor"]
+              initial_state:
+                user_id: "john.doe"
+      responses:
+        "200":
+          description: Execution plan generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ExecutionPlan"
+        "400":
+          description: Invalid request (missing goal steps, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Goal step not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/workflow:
+    get:
+      summary: List Workflows
+      description: Retrieve all workflows in the system (active, completed, and failed)
+      operationId: listWorkflows
+      tags:
+        - Workflows
+      responses:
+        "200":
+          description: List of workflows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowsListResponse"
+    post:
+      summary: Start Workflow
+      description: |
+        Create and start a new workflow execution with goal-oriented planning.
+
+        The engine will:
+        1. Create an execution plan containing only necessary steps
+        2. Validate that all required inputs are provided
+        3. Start the workflow in `active` state
+        4. Execute steps in dependency order until the goal is reached
+
+        **Note**: Currently, workflows are created and started in a single operation.
+        A future enhancement will separate creation (pending state) from starting (active state).
+      operationId: createWorkflow
+      tags:
+        - Workflows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateWorkflowRequest"
+            example:
+              id: "wf-text-processing-001"
+              goal_steps: ["text-processor"]
+              initial_state:
+                input_text: "Hello, Spuds!"
+      responses:
+        "201":
+          description: Workflow started successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowStartedResponse"
+        "400":
+          description: Invalid workflow request (missing inputs, invalid goal step, etc.)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Workflow ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/workflow/{workflowId}:
+    get:
+      summary: Get Workflow State
+      description: |
+        Retrieve the current state of a specific workflow, including:
+        - Status (pending, active, completed, failed)
+        - Execution plan (immutable step snapshots)
+        - Current workflow attributes
+        - Error information (if failed)
+      operationId: getWorkflowState
+      tags:
+        - Workflows
+      parameters:
+        - name: workflowId
+          in: path
+          required: true
+          description: Unique identifier of the workflow
+          schema:
+            type: string
+          example: "wf-text-processing-001"
+      responses:
+        "200":
+          description: Workflow state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkflowDigest"
+        "404":
+          description: Workflow not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /webhook/{workflowId}/{stepId}/{token}:
+    post:
+      summary: Webhook Callback for Async Steps
+      description: |
+        Receive asynchronous step completion results. This endpoint is called by
+        async steps when they complete processing.
+
+        The `token` parameter is a receipt token generated by the engine when the
+        async step was started. It validates that the webhook is for a legitimate
+        in-progress step execution.
+      operationId: handleWebhook
+      tags:
+        - Webhooks
+      parameters:
+        - name: workflowId
+          in: path
+          required: true
+          description: Workflow ID
+          schema:
+            type: string
+          example: "wf-async-processing-001"
+        - name: stepId
+          in: path
+          required: true
+          description: Step ID
+          schema:
+            type: string
+          example: "async-processor"
+        - name: token
+          in: path
+          required: true
+          description: Receipt token generated by the engine
+          schema:
+            type: string
+          example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepResponse"
+            examples:
+              success:
+                summary: Successful async completion
+                value:
+                  success: true
+                  outputs:
+                    processed_data: "Result from async processing"
+                    processing_duration_ms: 5000
+              failure:
+                summary: Async step failure
+                value:
+                  success: false
+                  error: "Processing failed due to invalid input format"
+      responses:
+        "200":
+          description: Webhook processed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MessageResponse"
+        "400":
+          description: Invalid webhook request or token
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Workflow or step not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/ws:
+    get:
+      summary: WebSocket Connection
+      description: |
+        Establish WebSocket connection for real-time event streaming.
+
+        The WebSocket streams all engine and workflow events, enabling:
+        - Real-time workflow monitoring
+        - Live step execution updates
+        - Health status changes
+        - Step registration/unregistration events
+
+        **Event Types:**
+        - Engine events: step_registered, step_unregistered, step_health_changed
+        - Workflow events: workflow_started, workflow_completed, workflow_failed,
+          step_started, step_completed, step_failed, attribute_set
+      operationId: connectWebSocket
+      tags:
+        - WebSocket
+      responses:
+        "101":
+          description: WebSocket connection established (protocol upgrade)
+
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required:
+        - service
+        - version
+        - status
+      properties:
+        service:
+          type: string
+          example: "spuds-engine"
+        version:
+          type: string
+          example: "1.0.0"
+        status:
+          type: string
+          enum: [healthy, degraded, unhealthy]
+          example: "healthy"
+
+    EngineStateResponse:
+      type: object
+      required:
+        - steps
+        - health
+        - last_sequence
+        - last_updated
+      properties:
+        steps:
+          type: object
+          description: Map of step ID to step registration
+          additionalProperties:
+            $ref: "#/components/schemas/StepRegistration"
+        health:
+          type: object
+          description: Map of step ID to health status
+          additionalProperties:
+            $ref: "#/components/schemas/HealthStatus"
+        last_sequence:
+          type: integer
+          format: int64
+          description: Last event sequence number in the engine event log
+          example: 42
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp of last engine state update
+
+    HealthListResponse:
+      type: object
+      required:
+        - health
+        - count
+      properties:
+        health:
+          type: object
+          description: Map of step ID to health status
+          additionalProperties:
+            $ref: "#/components/schemas/HealthStatus"
+        count:
+          type: integer
+          description: Number of steps with health information
+          example: 7
+
+    HealthStatus:
+      type: object
+      required:
+        - status
+      properties:
+        status:
+          type: string
+          enum: [healthy, unhealthy, unconfigured, unknown]
+          description: |
+            - `healthy`: Step's health check passed
+            - `unhealthy`: Step's health check failed
+            - `unconfigured`: Step has no health check configured
+            - `unknown`: Health check has not been performed yet
+        error:
+          type: string
+          description: Error message if status is unhealthy
+          example: "Connection refused"
+        last_check:
+          type: string
+          format: date-time
+          description: Timestamp of last health check
+
+    StepRegistration:
+      type: object
+      required:
+        - id
+        - name
+        - type
+        - version
+      properties:
+        id:
+          type: string
+          description: Unique identifier for this step
+          example: "text-processor"
+        name:
+          type: string
+          description: Human-readable name
+          example: "Text Processor"
+        type:
+          type: string
+          enum: ["sync", "async", "script"]
+          description: |
+            - `sync`: HTTP endpoint that returns results immediately
+            - `async`: HTTP endpoint that returns immediately and completes via webhook
+            - `script`: Ale or Lua script executed in-engine
+          example: "sync"
+        required_args:
+          type: object
+          description: Arguments that must be available before step execution (mapped by argument name)
+          additionalProperties:
+            $ref: "#/components/schemas/ArgumentSpec"
+          example:
+            input_text:
+              type: "string"
+        optional_args:
+          type: object
+          description: Arguments that may be provided with configurable timeouts (mapped by argument name)
+          additionalProperties:
+            $ref: "#/components/schemas/OptionalArgSpec"
+          example:
+            optional_field:
+              type: "string"
+              timeout: 5000
+        output_args:
+          type: object
+          description: Outputs this step produces (mapped by argument name)
+          additionalProperties:
+            $ref: "#/components/schemas/ArgumentSpec"
+          example:
+            processed_text:
+              type: "string"
+        version:
+          type: string
+          description: Step version (for tracking changes)
+          example: "1.0.0"
+        predicate:
+          $ref: "#/components/schemas/ScriptConfig"
+          description: Optional script-based predicate for conditional execution
+        http:
+          $ref: "#/components/schemas/HttpConfig"
+        script:
+          $ref: "#/components/schemas/ScriptConfig"
+
+    ArgumentSpec:
+      type: object
+      description: Argument specification (name is the map key, not stored in the value)
+      properties:
+        type:
+          type: string
+          description: Type hint (informational, not enforced)
+          example: "string"
+
+    OptionalArgSpec:
+      type: object
+      description: Optional argument specification with timeout (name is the map key)
+      required:
+        - timeout
+      properties:
+        type:
+          type: string
+          description: Type hint (informational, not enforced)
+          example: "string"
+        timeout:
+          type: integer
+              format: int64
+              minimum: 1
+              description: Maximum time to wait for this argument in milliseconds
+              example: 5000
+
+    HttpConfig:
+      type: object
+      description: Configuration for HTTP-based steps (sync/async)
+      required:
+        - endpoint
+        - timeout
+      properties:
+        endpoint:
+          type: string
+          format: uri
+          description: HTTP endpoint URL
+          example: "http://localhost:8081/process-text"
+        health_check:
+          type: string
+          format: uri
+          description: Optional health check endpoint
+          example: "http://localhost:8081/health"
+        timeout:
+          type: integer
+          format: int64
+          description: Timeout in milliseconds for HTTP requests
+          example: 30000
+
+    ScriptConfig:
+      type: object
+      description: Configuration for script-based steps
+      required:
+        - language
+        - script
+      properties:
+        language:
+          type: string
+          enum: ["ale", "lua"]
+          description: Script language (Ale or Lua)
+          example: "ale"
+        script:
+          type: string
+          description: The script code to execute
+          example: "{:greeting (str \"Hello, \" name)}"
+
+    StepRegisteredResponse:
+      type: object
+      required:
+        - message
+        - step
+      properties:
+        message:
+          type: string
+          example: "Step registered successfully"
+        step:
+          $ref: "#/components/schemas/StepRegistration"
+
+    StepsListResponse:
+      type: object
+      required:
+        - steps
+        - count
+      properties:
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/StepRegistration"
+        count:
+          type: integer
+          description: Total number of registered steps
+          example: 12
+
+    ExecutionPlanRequest:
+      type: object
+      required:
+        - goal_steps
+      properties:
+        goal_steps:
+          type: array
+          description: Array of goal step IDs (typically one, but multiple supported)
+          items:
+            type: string
+          minItems: 1
+          example: ["text-processor"]
+        initial_state:
+          type: object
+          description: Initial workflow state (arguments/attributes)
+          additionalProperties: true
+          example:
+            user_id: "john.doe"
+
+    ExecutionPlan:
+      type: object
+      required:
+        - goal_steps
+        - required_inputs
+        - steps
+      properties:
+        goal_steps:
+          type: array
+          description: Goal step IDs for this plan
+          items:
+            type: string
+          example: ["text-processor"]
+        required_inputs:
+          type: array
+          description: Inputs that must be provided in initial_state
+          items:
+            type: string
+          example: ["input_text"]
+        steps:
+          type: array
+          description: Immutable snapshots of step definitions in execution order
+          items:
+            $ref: "#/components/schemas/StepRegistration"
+        receipt_tokens:
+          type: object
+          description: Internal receipt tokens for async steps (not exposed to UI)
+          additionalProperties:
+            type: string
+
+    CreateWorkflowRequest:
+      type: object
+      required:
+        - id
+        - goal_steps
+      properties:
+        id:
+          type: string
+          description: Unique workflow identifier
+          example: "wf-text-processing-001"
+        goal_steps:
+          type: array
+          description: Goal step IDs (typically one, but multiple supported)
+          items:
+            type: string
+          minItems: 1
+          example: ["text-processor"]
+        initial_state:
+          type: object
+          description: Initial workflow state providing required inputs
+          additionalProperties: true
+          example:
+            input_text: "Hello, Spuds!"
+
+    WorkflowStartedResponse:
+      type: object
+      required:
+        - message
+        - workflow_id
+      properties:
+        message:
+          type: string
+          example: "Workflow started successfully"
+        workflow_id:
+          type: string
+          example: "wf-text-processing-001"
+
+    WorkflowsListResponse:
+      type: object
+      required:
+        - workflows
+        - count
+      properties:
+        workflows:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowDigest"
+        count:
+          type: integer
+          description: Total number of workflows
+          example: 3
+
+    WorkflowDigest:
+      type: object
+      required:
+        - id
+        - status
+        - created_at
+      properties:
+        id:
+          type: string
+          description: Workflow identifier
+          example: "wf-text-processing-001"
+        status:
+          type: string
+          enum: [pending, active, completed, failed, stopped]
+          description: |
+            - `pending`: Workflow created but not yet started (future feature)
+            - `active`: Workflow is currently executing
+            - `completed`: Workflow completed successfully
+            - `failed`: Workflow failed with an error
+            - `stopped`: Workflow was manually stopped
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          description: Workflow creation timestamp
+        completed_at:
+          type: string
+          format: date-time
+          description: Workflow completion timestamp (if completed or failed)
+        error:
+          type: string
+          description: Error message if status is failed
+          example: "Step execution failed: connection timeout"
+
+    StepResponse:
+      type: object
+      required:
+        - success
+      description: Response from a step execution (used for webhook callbacks)
+      properties:
+        success:
+          type: boolean
+          description: Whether the step executed successfully
+        outputs:
+          type: object
+          description: Output values to merge into workflow state
+          additionalProperties: true
+          example:
+            processed_text: "HELLO WORLD"
+            processing_time_ms: 42
+        error:
+          type: string
+          description: Error message for business logic failures
+          example: "Invalid input format"
+        exception:
+          description: Exception that should terminate the workflow
+          oneOf:
+            - type: string
+            - type: object
+        is_terminal_stop:
+          type: boolean
+          default: false
+          description: If true, this step intentionally completes the workflow
+
+    MessageResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          example: "Operation completed successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+          example: "Step not found"
+        status:
+          type: integer
+          description: HTTP status code
+          example: 404
+        details:
+          type: string
+          description: Additional error details
+
+security: []
+
+tags:
+  - name: Engine
+    description: Engine state and status
+  - name: Steps
+    description: Step registration and management
+  - name: Health
+    description: Health monitoring for steps and engine
+  - name: Workflows
+    description: Workflow creation, execution, and monitoring
+  - name: Webhooks
+    description: Webhook callbacks for async steps
+  - name: WebSocket
+    description: Real-time event streaming

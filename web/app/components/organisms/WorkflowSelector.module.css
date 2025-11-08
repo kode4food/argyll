@@ -1,0 +1,236 @@
+/* WorkflowSelector CSS Module */
+
+/* Buttons */
+.createButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  background-color: var(--color-info);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--spacing-xs);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: var(--transition-all);
+  aspect-ratio: 1;
+  height: calc(var(--text-sm) * 1.5 + var(--spacing-sm) * 2 + 2px);
+}
+
+.createButton:hover {
+  background-color: var(--color-processor-text);
+}
+
+.createButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-info);
+}
+
+.navButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-sm);
+  background-color: var(--color-neutral-bg-dark);
+  color: var(--color-neutral-text);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--spacing-xs);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: var(--transition-all);
+  aspect-ratio: 1;
+  height: calc(var(--text-sm) * 1.5 + var(--spacing-sm) * 2 + 2px);
+}
+
+.navButton:hover {
+  background-color: var(--color-neutral-border);
+}
+
+.navButton:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-neutral-border);
+}
+
+/* Dropdown Search */
+.dropdownSearch {
+  position: relative;
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-neutral-border);
+  background-color: var(--color-neutral-bg);
+}
+
+.dropdownSearchIcon {
+  position: absolute;
+  left: calc(var(--spacing-sm) + var(--spacing-sm));
+  top: 50%;
+  transform: translateY(-50%);
+  height: 1rem;
+  width: 1rem;
+  color: var(--color-pending);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.dropdownSearchInput {
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-sm) var(--spacing-xs) 2.25rem;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--spacing-xs);
+  font-size: var(--text-sm);
+  background: white;
+  transition: var(--transition-all);
+}
+
+.dropdownSearchInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-info);
+  border-color: var(--color-info);
+}
+
+.dropdownSearchInput::placeholder {
+  color: var(--color-pending);
+}
+
+/* Dropdown Menu */
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: white;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--spacing-xs);
+  box-shadow: var(--shadow-md);
+  max-height: 300px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  cursor: pointer;
+  transition: var(--transition-all);
+  border-left: 3px solid transparent;
+}
+
+.dropdownItem .progress-icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-right: var(--spacing-sm);
+  filter: brightness(0.8);
+}
+
+.dropdownItem:hover {
+  background-color: var(--overlay-dark-10);
+}
+
+.dropdownItem:first-child {
+  border-top-left-radius: var(--spacing-xs);
+  border-top-right-radius: var(--spacing-xs);
+}
+
+.dropdownItem:last-child {
+  border-bottom-left-radius: var(--spacing-xs);
+  border-bottom-right-radius: var(--spacing-xs);
+}
+
+.dropdownItemSelected {
+  border-left-color: var(--color-info) !important;
+  background-color: color-mix(in srgb, var(--color-info) 10%, transparent);
+}
+
+.dropdownItemSelected:hover {
+  background-color: color-mix(in srgb, var(--color-info) 15%, transparent);
+}
+
+.noResults {
+  color: var(--color-pending);
+  font-style: italic;
+  cursor: default !important;
+}
+
+.noResults:hover {
+  background-color: transparent !important;
+}
+
+/* Selector Layout */
+.selector {
+  position: relative;
+  background-color: var(--color-white);
+  border-bottom: 1px solid var(--color-neutral-border);
+  padding: var(--spacing-md) var(--spacing-lg);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-lg);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+}
+
+.icon {
+  height: 2rem;
+  width: auto;
+}
+
+.titleText {
+  margin-left: var(--spacing-sm);
+  font-size: var(--text-base);
+  font-weight: var(--font-bold);
+  color: var(--color-neutral-text);
+}
+
+.right {
+  display: flex;
+  align-items: center;
+}
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.select {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--spacing-xs);
+  padding: var(--spacing-sm) var(--spacing-md);
+  font-size: var(--text-sm);
+  background: white;
+  cursor: pointer;
+  min-width: 300px;
+  text-align: left;
+}
+
+.select .progress-icon {
+  flex-shrink: 0;
+  width: 1rem;
+  height: 1rem;
+  margin-right: var(--spacing-sm);
+  filter: brightness(0.8);
+}
+
+.select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-info);
+}
+
+.dropdown {
+  position: relative;
+}

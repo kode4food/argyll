@@ -1,0 +1,150 @@
+/* Design System Variables */
+:root {
+  /* Step Type Colors */
+  --color-resolver-bg: #f0fdf4;
+  --color-resolver-border: #10b981;
+  --color-resolver-text: #065f46;
+  --color-resolver-label: #dcfce7;
+
+  --color-processor-bg: #eff6ff;
+  --color-processor-border: #3b82f6;
+  --color-processor-text: #1e40af;
+  --color-processor-label: #dbeafe;
+
+  --color-collector-bg: #fef2f2;
+  --color-collector-border: #ef4444;
+  --color-collector-text: #991b1b;
+  --color-collector-label: #fee2e2;
+
+  --color-neutral-bg: #f9fafb;
+  --color-neutral-bg-dark: color-mix(
+    in srgb,
+    var(--color-neutral-bg) 85%,
+    black
+  );
+  --color-diagram-workflow: #d1d5db;
+  --color-neutral-border: #6b7280;
+  --color-neutral-text: #374151;
+  --color-neutral-label: #f3f4f6;
+
+  /* Status Colors */
+  --color-success: #10b981;
+  --color-error: #ef4444;
+  --color-warning: #f59e0b;
+  --color-info: #3b82f6;
+  --color-pending: #6b7280;
+
+  /* Edge Colors */
+  --color-edge-required: #374151;
+  --color-edge-optional: #f59e0b;
+  --color-edge-grayed: #e5e7eb;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem; /* 4px */
+  --spacing-sm: 0.5rem; /* 8px */
+  --spacing-md: 0.75rem; /* 12px */
+  --spacing-lg: 1rem; /* 16px */
+  --spacing-xl: 1.5rem; /* 24px */
+  --spacing-2xl: 2rem; /* 32px */
+  --spacing-padding-lg: 1.25rem; /* 20px - common for component padding */
+
+  /* Component Dimensions */
+  --step-widget-width: 16rem; /* 256px */
+  --step-border-width: 2px;
+  --step-border-radius: var(--spacing-sm);
+  --step-type-label-size: 24px;
+
+  /* Typography */
+  --text-xs: 0.75rem;
+  --text-sm: 0.875rem;
+  --text-base: 1rem;
+
+  /* Font Weights */
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  /* Font Families */
+  --font-sans:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  --font-mono:
+    ui-monospace, SFMono-Regular, "SF Mono", Monaco, "Cascadia Code",
+    "Roboto Mono", Menlo, Consolas, "Courier New", monospace;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg:
+    0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+
+  /* Border Radius */
+  --radius-sm: 3px;
+  --radius-md: 4px;
+  --radius-lg: 6px;
+  --radius-xl: 8px;
+  --radius-round: 9999px;
+  --radius-circle: 50%;
+
+  /* Transitions */
+  --transition-all: all 100ms ease;
+  --transition-fast: all 0.2s ease;
+  --transition-slow: all 0.5s ease-in-out;
+  --transition-opacity: opacity 0.2s ease;
+
+  /* Opacity */
+  --opacity-disabled: 0.3;
+  --opacity-hover: 0.5;
+  --opacity-muted: 0.6;
+  --opacity-soft: 0.7;
+  --opacity-high: 0.9;
+
+  /* Dark Theme (Modals/Editors) */
+  --color-dark-bg: #1e1e1e;
+  --color-dark-bg-secondary: #2d2d2d;
+  --color-dark-bg-lighter: #252525;
+  --color-dark-border: #3e3e3e;
+  --color-dark-border-light: #4e4e4e;
+  --color-dark-text: #d4d4d4;
+  --color-dark-hover: #3e3e3e;
+
+  /* Overlay Colors */
+  --overlay-dark-10: rgba(0, 0, 0, 0.1);
+  --overlay-dark-20: rgba(0, 0, 0, 0.2);
+  --overlay-dark-30: rgba(0, 0, 0, 0.3);
+  --overlay-dark-40: rgba(0, 0, 0, 0.4);
+  --overlay-dark-50: rgba(0, 0, 0, 0.5);
+  --overlay-dark-70: rgba(0, 0, 0, 0.7);
+  --overlay-dark-90: rgba(0, 0, 0, 0.9);
+  --overlay-light-10: rgba(255, 255, 255, 0.1);
+  --overlay-light-30: rgba(255, 255, 255, 0.3);
+  --overlay-light-40: rgba(255, 255, 255, 0.4);
+  --overlay-light-70: rgba(255, 255, 255, 0.7);
+
+  /* Semantic Colors */
+  --color-error-light: #ff6666;
+  --color-error-border: rgba(255, 68, 68, 0.4);
+  --color-error-bg: rgba(255, 68, 68, 0.2);
+  --color-error-bg-dark: #3d1a1a;
+  --color-info-light: #4a9eff;
+  --color-info-border: rgba(58, 160, 255, 0.4);
+  --color-info-bg: rgba(58, 160, 255, 0.2);
+  --color-warning-dark: #92400e;
+  --color-warning-light: #fbbf24;
+  --color-warning-bg: #fef3c7;
+
+  /* Neutral Grays */
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #555;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-muted: #666;
+
+  /* Other */
+  --color-purple-light: #a78bfa;
+  --color-code-bg: #282c34;
+  --color-white: white;
+}

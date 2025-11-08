@@ -1,0 +1,332 @@
+package config_test
+
+import (
+	"os"
+	"testing"
+
+	"github.com/kode4food/timebox"
+	testify "github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/spuds/engine/internal/assert"
+	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/config"
+)
+
+func TestConfigValidation(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("valid_default_config", func(t *testing.T) {
+		cfg := config.NewDefaultConfig()
+		as.ConfigValid(cfg)
+	})
+
+	t.Run("valid_test_config", func(t *testing.T) {
+		cfg := helpers.NewTestConfig()
+		as.ConfigValid(cfg)
+	})
+
+	tests := []struct {
+		name          string
+		configMod     func(*config.Config)
+		errorContains string
+	}{
+		{
+			name: "invalid_api_port_zero",
+			configMod: func(c *config.Config) {
+				c.APIPort = 0
+			},
+			errorContains: "invalid API port",
+		},
+		{
+			name: "invalid_api_port_negative",
+			configMod: func(c *config.Config) {
+				c.APIPort = -1
+			},
+			errorContains: "invalid API port",
+		},
+		{
+			name: "invalid_api_port_too_high",
+			configMod: func(c *config.Config) {
+				c.APIPort = 70000
+			},
+			errorContains: "invalid API port",
+		},
+		{
+			name: "zero_step_timeout",
+			configMod: func(c *config.Config) {
+				c.StepTimeout = 0
+			},
+			errorContains: "step timeout must be positive",
+		},
+		{
+			name: "zero_max_workflows",
+			configMod: func(c *config.Config) {
+				c.MaxWorkflows = 0
+			},
+			errorContains: "max workflows must be positive",
+		},
+		{
+			name: "zero_max_state_key_size",
+			configMod: func(c *config.Config) {
+				c.MaxStateKeySize = 0
+			},
+			errorContains: "max state key size must be positive",
+		},
+		{
+			name: "zero_max_state_value_size",
+			configMod: func(c *config.Config) {
+				c.MaxStateValueSize = 0
+			},
+			errorContains: "max state value size must be positive",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := helpers.NewTestConfig()
+			tt.configMod(cfg)
+			as.ConfigInvalid(cfg, tt.errorContains)
+		})
+	}
+}
+
+func TestDefaultConfigValues(t *testing.T) {
+	as := assert.New(t)
+
+	cfg := config.NewDefaultConfig()
+
+	as.Equal(config.DefaultAPIPort, cfg.APIPort)
+	as.Equal("0.0.0.0", cfg.APIHost)
+	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
+	as.Equal(config.DefaultMaxWorkflows, cfg.MaxWorkflows)
+	as.Equal(config.DefaultMaxStateKeySize, cfg.MaxStateKeySize)
+	as.Equal(config.DefaultMaxStateValueSize, cfg.MaxStateValueSize)
+	as.Equal(config.DefaultShutdownTimeout, cfg.ShutdownTimeout)
+	as.Equal("info", cfg.LogLevel)
+}
+
+func TestStoreLoadFromEnv(t *testing.T) {
+	tests := []struct {
+		envVars       map[string]string
+		name          string
+		envPrefix     string
+		checkAddr     string
+		checkPassword string
+		checkPrefix   string
+		checkDB       int
+	}{
+		{
+			name:      "load_all_fields",
+			envPrefix: "TEST",
+			envVars: map[string]string{
+				"TEST_REDIS_ADDR":     "redis.example.com:6379",
+				"TEST_REDIS_PASSWORD": "secret123",
+				"TEST_REDIS_DB":       "5",
+				"TEST_REDIS_PREFIX":   "custom-prefix",
+			},
+			checkAddr:     "redis.example.com:6379",
+			checkPassword: "secret123",
+			checkDB:       5,
+			checkPrefix:   "custom-prefix",
+		},
+		{
+			name:      "load_addr_only",
+			envPrefix: "APP",
+			envVars: map[string]string{
+				"APP_REDIS_ADDR": "localhost:9999",
+			},
+			checkAddr:     "localhost:9999",
+			checkPassword: "",
+			checkDB:       0,
+			checkPrefix:   "",
+		},
+		{
+			name:      "load_with_invalid_db",
+			envPrefix: "INVALID",
+			envVars: map[string]string{
+				"INVALID_REDIS_DB": "not_a_number",
+			},
+			checkDB: 0,
+		},
+		{
+			name:      "no_env_vars",
+			envPrefix: "NONE",
+			envVars:   map[string]string{},
+			checkAddr: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			as := assert.New(t)
+
+			for key, value := range tt.envVars {
+				_ = os.Setenv(key, value)
+				t.Cleanup(func() { _ = os.Unsetenv(key) })
+			}
+
+			storeConfig := &timebox.StoreConfig{}
+			config.LoadStoreConfigFromEnv(storeConfig, tt.envPrefix)
+
+			if tt.checkAddr != "" {
+				as.Equal(tt.checkAddr, storeConfig.Addr)
+			}
+			if tt.checkPassword != "" {
+				as.Equal(tt.checkPassword, storeConfig.Password)
+			}
+			if tt.envVars[tt.envPrefix+"_REDIS_DB"] != "" {
+				as.Equal(tt.checkDB, storeConfig.DB)
+			}
+			if tt.checkPrefix != "" {
+				as.Equal(tt.checkPrefix, storeConfig.Prefix)
+			}
+		})
+	}
+}
+
+func TestValidateValidEdgeCases(t *testing.T) {
+	tests := []struct {
+		name   string
+		modify func(*config.Config)
+	}{
+		{
+			name:   "min_valid_port",
+			modify: func(c *config.Config) { c.APIPort = 1 },
+		},
+		{
+			name:   "max_valid_port",
+			modify: func(c *config.Config) { c.APIPort = 65535 },
+		},
+		{
+			name:   "one_nanosecond_timeout",
+			modify: func(c *config.Config) { c.StepTimeout = 1 },
+		},
+		{
+			name:   "one_max_workflow",
+			modify: func(c *config.Config) { c.MaxWorkflows = 1 },
+		},
+		{
+			name:   "one_byte_key_size",
+			modify: func(c *config.Config) { c.MaxStateKeySize = 1 },
+		},
+		{
+			name:   "one_byte_value_size",
+			modify: func(c *config.Config) { c.MaxStateValueSize = 1 },
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := config.NewDefaultConfig()
+			tt.modify(cfg)
+
+			err := cfg.Validate()
+			testify.NoError(t, err)
+		})
+	}
+}
+
+func TestValidateNegativeTimeout(t *testing.T) {
+	cfg := config.NewDefaultConfig()
+	cfg.StepTimeout = -1
+
+	err := cfg.Validate()
+	testify.Error(t, err)
+	testify.ErrorIs(t, err, config.ErrInvalidStepTimeout)
+}
+
+func TestConfigLoadFromEnv(t *testing.T) {
+	tests := []struct {
+		name    string
+		envVars map[string]string
+		check   func(*testing.T, *config.Config)
+	}{
+		{
+			name: "load_api_port",
+			envVars: map[string]string{
+				"API_PORT": "9090",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, 9090, c.APIPort)
+			},
+		},
+		{
+			name: "load_api_host",
+			envVars: map[string]string{
+				"API_HOST": "127.0.0.1",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, "127.0.0.1", c.APIHost)
+			},
+		},
+		{
+			name: "load_webhook_base_url",
+			envVars: map[string]string{
+				"WEBHOOK_BASE_URL": "http://webhooks.example.com",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(
+					t, "http://webhooks.example.com", c.WebhookBaseURL,
+				)
+			},
+		},
+		{
+			name: "load_workflow_cache_size",
+			envVars: map[string]string{
+				"WORKFLOW_CACHE_SIZE": "8192",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, 8192, c.WorkflowCacheSize)
+			},
+		},
+		{
+			name: "load_log_level",
+			envVars: map[string]string{
+				"LOG_LEVEL": "debug",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, "debug", c.LogLevel)
+			},
+		},
+		{
+			name: "invalid_api_port_ignored",
+			envVars: map[string]string{
+				"API_PORT": "not_a_number",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, config.DefaultAPIPort, c.APIPort)
+			},
+		},
+		{
+			name: "invalid_cache_size_ignored",
+			envVars: map[string]string{
+				"WORKFLOW_CACHE_SIZE": "invalid",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, config.DefaultCacheSize, c.WorkflowCacheSize)
+			},
+		},
+		{
+			name: "zero_cache_size_ignored",
+			envVars: map[string]string{
+				"WORKFLOW_CACHE_SIZE": "0",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, config.DefaultCacheSize, c.WorkflowCacheSize)
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			for key, value := range tt.envVars {
+				_ = os.Setenv(key, value)
+				t.Cleanup(func() { _ = os.Unsetenv(key) })
+			}
+
+			cfg := config.NewDefaultConfig()
+			cfg.LoadFromEnv()
+			tt.check(t, cfg)
+		})
+	}
+}

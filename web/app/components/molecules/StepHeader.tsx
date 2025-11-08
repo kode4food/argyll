@@ -1,0 +1,29 @@
+import React from "react";
+import { Step } from "../../api";
+import StepTypeLabel from "../atoms/StepTypeLabel";
+import Tooltip from "../atoms/Tooltip";
+import TooltipSection from "../atoms/TooltipSection";
+
+interface StepHeaderProps {
+  step: Step;
+}
+
+const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
+  return (
+    <div className="step-header flex-between">
+      <Tooltip
+        trigger={
+          <div className="step-title-container">
+            <h3 className="step-title">{step.name}</h3>
+          </div>
+        }
+      >
+        <TooltipSection title="Step Name">{step.name}</TooltipSection>
+        <TooltipSection title="Step ID">{step.id}</TooltipSection>
+      </Tooltip>
+      <StepTypeLabel step={step} className="step-type-label-responsive" />
+    </div>
+  );
+};
+
+export default React.memo(StepHeader);

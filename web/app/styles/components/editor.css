@@ -1,0 +1,54 @@
+/* Editor Components */
+.script-editor {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  font-size: var(--text-base);
+  min-height: 0;
+  flex: 1;
+}
+
+.script-editor__codemirror {
+  width: 100%;
+  height: 100%;
+  flex: 1;
+  min-height: 0;
+}
+
+.editor-fallback {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-code-bg);
+}
+
+.lazy-code-editor__codemirror {
+  width: 100%;
+  height: 100%;
+}
+
+/* CodeMirror container adjustments */
+.script-editor .cm-editor {
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 0;
+}
+
+.script-editor .cm-scroller {
+  height: 100% !important;
+  flex: 1 !important;
+  min-height: 0;
+}
+
+.script-editor .cm-content {
+  min-height: 100% !important;
+}
+
+.script-editor .cm-focused {
+  outline: none !important;
+}
+
+.script-editor .cm-editor.cm-focused {
+  outline: 2px solid rgba(76, 175, 80, 0.5);
+  outline-offset: -2px;
+}

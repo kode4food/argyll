@@ -1,0 +1,1327 @@
+package server_test
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/kode4food/timebox"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/events"
+	"github.com/kode4food/spuds/engine/internal/server"
+	"github.com/kode4food/spuds/engine/pkg/api"
+)
+
+type testServerEnv struct {
+	Server *server.Server
+	*helpers.TestEngineEnv
+}
+
+func (env *testServerEnv) waitForWorkItem(flowID, stepID timebox.ID) {
+	for i := 0; i < 50; i++ {
+		flow, err := env.Engine.GetWorkflowState(context.Background(), flowID)
+		if err == nil {
+			exec := flow.Executions[stepID]
+			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {
+				return
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func testServer(t *testing.T) *testServerEnv {
+	t.Helper()
+
+	engineEnv := helpers.NewTestEngine(t)
+
+	srv := server.NewServer(
+		engineEnv.Engine,
+		engineEnv.Config,
+		*engineEnv.EventHub,
+		engineEnv.MockClient,
+	)
+
+	return &testServerEnv{
+		Server:        srv,
+		TestEngineEnv: engineEnv,
+	}
+}
+
+func TestHealthEndpoint(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	router := env.Server.SetupRoutes()
+	req := httptest.NewRequest("GET", "/engine/health", nil)
+	w := httptest.NewRecorder()
+
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestRegisterStep(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("test-step")
+
+	body, _ := json.Marshal(step)
+	req := httptest.NewRequest(
+		"POST", "/engine/step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestListSteps(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("list-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response api.StepsListResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, 1, response.Count)
+	assert.Len(t, response.Steps, 1)
+	assert.Equal(t, timebox.ID("list-step"), response.Steps[0].ID)
+}
+
+func TestGetStep(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("get-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/step/get-step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var retrieved *api.Step
+	err = json.Unmarshal(w.Body.Bytes(), &retrieved)
+	require.NoError(t, err)
+	assert.Equal(t, step.ID, retrieved.ID)
+}
+
+func TestDeleteStep(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("delete-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("DELETE", "/engine/step/delete-step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestStart(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("wf-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	reqBody := api.CreateWorkflowRequest{
+		ID:           "test-workflow",
+		GoalStepIDs:  []timebox.ID{"wf-step"},
+		InitialState: api.Args{},
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(
+		"POST", "/engine/workflow", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestListWorkflows(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/workflow", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestSuccess(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := &api.Step{
+		ID:      "async-step",
+		Name:    "Async Step",
+		Type:    api.StepTypeAsync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"result": {Role: api.RoleOutput},
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	// Configure mock to return immediately for async steps
+	env.MockClient.SetResponse("async-step", api.Args{})
+
+	err = env.Engine.StartWorkflow(
+		context.Background(), "webhook-wf",
+		&api.ExecutionPlan{
+			GoalSteps: []timebox.ID{"async-step"},
+			Steps:     []*api.Step{step},
+		},
+		api.Args{}, api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	// Wait for workflow to execute and create work item
+	env.waitForWorkItem("webhook-wf", "async-step")
+
+	// Get the actual token from the created work item
+	flow, err := env.Engine.GetWorkflowState(context.Background(), "webhook-wf")
+	require.NoError(t, err)
+
+	exec := flow.Executions["async-step"]
+	require.NotNil(t, exec)
+	require.NotNil(t, exec.WorkItems)
+	require.Len(t, exec.WorkItems, 1)
+
+	var token api.Token
+	for t := range exec.WorkItems {
+		token = t
+		break
+	}
+
+	// Now call webhook with the real token
+	result := api.StepResult{
+		Success: true,
+		Outputs: api.Args{"result": "completed"},
+	}
+
+	body, _ := json.Marshal(result)
+	req := httptest.NewRequest("POST",
+		"/webhook/webhook-wf/async-step/"+string(token),
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestWorkflowNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	result := api.StepResult{
+		Success: true,
+		Outputs: api.Args{"result": "completed"},
+	}
+
+	body, _ := json.Marshal(result)
+	req := httptest.NewRequest("POST",
+		"/webhook/nonexistent-wf/step-id/token",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestStepNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := &api.Step{
+		ID:      "async-step",
+		Name:    "Async Step",
+		Type:    api.StepTypeAsync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		GoalSteps: []timebox.ID{"async-step"},
+		Steps:     []*api.Step{step},
+	}
+
+	err = env.Engine.StartWorkflow(
+		context.Background(), "webhook-wf", plan, api.Args{}, api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	result := api.StepResult{
+		Success: true,
+		Outputs: api.Args{},
+	}
+
+	body, _ := json.Marshal(result)
+	req := httptest.NewRequest("POST",
+		"/webhook/webhook-wf/nonexistent-step/token",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestInvalidToken(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := &api.Step{
+		ID:      "async-step",
+		Name:    "Async Step",
+		Type:    api.StepTypeAsync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"result": {Role: api.RoleOutput},
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	// Configure mock to return immediately for async steps
+	env.MockClient.SetResponse("async-step", api.Args{})
+
+	err = env.Engine.StartWorkflow(
+		context.Background(), "webhook-wf",
+		&api.ExecutionPlan{
+			GoalSteps: []timebox.ID{"async-step"},
+			Steps:     []*api.Step{step},
+		},
+		api.Args{}, api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	// Wait for work item to be created
+	env.waitForWorkItem("webhook-wf", "async-step")
+
+	// Try with wrong token
+	result := api.StepResult{
+		Success: true,
+		Outputs: api.Args{},
+	}
+
+	body, _ := json.Marshal(result)
+	req := httptest.NewRequest("POST",
+		"/webhook/webhook-wf/async-step/wrong-token",
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestInvalidJSON(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := &api.Step{
+		ID:      "async-step",
+		Name:    "Async Step",
+		Type:    api.StepTypeAsync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	// Configure mock to return immediately for async steps
+	env.MockClient.SetResponse("async-step", api.Args{})
+
+	err = env.Engine.StartWorkflow(
+		context.Background(), "webhook-wf",
+		&api.ExecutionPlan{
+			GoalSteps: []timebox.ID{"async-step"},
+			Steps:     []*api.Step{step},
+		},
+		api.Args{}, api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	// Wait for work item to be created
+	env.waitForWorkItem("webhook-wf", "async-step")
+
+	// Get the real token
+	flow, err := env.Engine.GetWorkflowState(context.Background(), "webhook-wf")
+	require.NoError(t, err)
+
+	exec := flow.Executions["async-step"]
+	require.NotNil(t, exec)
+	require.NotNil(t, exec.WorkItems)
+
+	var token api.Token
+	for t := range exec.WorkItems {
+		token = t
+		break
+	}
+
+	// Send invalid JSON with real token
+	req := httptest.NewRequest("POST",
+		"/webhook/webhook-wf/async-step/"+string(token),
+		bytes.NewReader([]byte("invalid json")))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestGetWorkflow(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := helpers.NewSimpleStep("get-wf-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		GoalSteps: []timebox.ID{"get-wf-step"},
+		Steps:     []*api.Step{step},
+	}
+
+	err = env.Engine.StartWorkflow(
+		context.Background(), "test-wf-id", plan, api.Args{}, api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/workflow/test-wf-id", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var wf api.WorkflowState
+	err = json.Unmarshal(w.Body.Bytes(), &wf)
+	require.NoError(t, err)
+	assert.Equal(t, timebox.ID("test-wf-id"), wf.ID)
+}
+
+func TestGetWorkflowNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/workflow/nonexistent", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestUpdateStep(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("update-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	updatedStep := helpers.NewSimpleStep("update-step")
+
+	body, _ := json.Marshal(updatedStep)
+	req := httptest.NewRequest(
+		"PUT", "/engine/step/update-step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestEngineHealthEndpoint(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/health", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestEngineRootEndpoint(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestEngineRootSlashEndpoint(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestGetStepNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/step/nonexistent", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestDeleteStepNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("DELETE", "/engine/step/nonexistent", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestRegisterStepInvalidJSON(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest(
+		"POST", "/engine/step", bytes.NewReader([]byte("invalid json")),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestStartInvalidJSON(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest(
+		"POST", "/engine/workflow", bytes.NewReader([]byte("invalid json")),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func eventTypePtr(et timebox.EventType) *timebox.EventType {
+	return &et
+}
+
+func TestFilterEngineEvents(t *testing.T) {
+	sub := &api.ClientSubscription{
+		EngineEvents: true,
+	}
+
+	filter := server.BuildFilter(sub)
+	assert.NotNil(t, filter)
+
+	engineEvent := &timebox.Event{
+		AggregateID: events.EngineID,
+		Type:        api.EventTypeStepRegistered,
+	}
+	assert.True(t, filter(engineEvent))
+
+	workflowEvent := &timebox.Event{
+		AggregateID: timebox.AggregateID{timebox.ID("workflow-123")},
+		Type:        api.EventTypeWorkflowStarted,
+	}
+	assert.False(t, filter(workflowEvent))
+}
+
+func TestFilterEventTypes(t *testing.T) {
+	sub := &api.ClientSubscription{
+		EventTypes: []*timebox.EventType{
+			eventTypePtr(api.EventTypeStepRegistered),
+			eventTypePtr(api.EventTypeWorkflowStarted),
+		},
+	}
+
+	filter := server.BuildFilter(sub)
+
+	event1 := &timebox.Event{Type: api.EventTypeStepRegistered}
+	assert.True(t, filter(event1))
+
+	event2 := &timebox.Event{Type: api.EventTypeWorkflowStarted}
+	assert.True(t, filter(event2))
+
+	event3 := &timebox.Event{Type: api.EventTypeStepCompleted}
+	assert.False(t, filter(event3))
+}
+
+func TestFilterWorkflowID(t *testing.T) {
+	sub := &api.ClientSubscription{
+		WorkflowID: "test-workflow",
+	}
+
+	filter := server.BuildFilter(sub)
+
+	event1 := &timebox.Event{
+		AggregateID: timebox.AggregateID{
+			timebox.ID("workflow"), timebox.ID("test-workflow"),
+		},
+	}
+	assert.True(t, filter(event1))
+
+	event2 := &timebox.Event{
+		AggregateID: timebox.AggregateID{
+			timebox.ID("workflow"), timebox.ID("other-workflow"),
+		},
+	}
+	assert.False(t, filter(event2))
+
+	event3 := &timebox.Event{AggregateID: events.EngineID}
+	assert.False(t, filter(event3))
+}
+
+func TestFilterEmpty(t *testing.T) {
+	sub := &api.ClientSubscription{}
+
+	filter := server.BuildFilter(sub)
+
+	event := &timebox.Event{Type: api.EventTypeStepRegistered}
+	assert.False(t, filter(event))
+}
+
+func TestFilterCombined(t *testing.T) {
+	sub := &api.ClientSubscription{
+		EngineEvents: true,
+		EventTypes: []*timebox.EventType{
+			eventTypePtr(api.EventTypeStepRegistered),
+		},
+	}
+
+	filter := server.BuildFilter(sub)
+
+	engineEvent := &timebox.Event{
+		AggregateID: events.EngineID,
+		Type:        api.EventTypeWorkflowStarted,
+	}
+	assert.True(t, filter(engineEvent))
+
+	workflowEvent := &timebox.Event{
+		AggregateID: timebox.AggregateID{
+			timebox.ID("workflow"), timebox.ID("workflow-123"),
+		},
+		Type: api.EventTypeStepRegistered,
+	}
+	assert.True(t, filter(workflowEvent))
+
+	unmatchedEvent := &timebox.Event{
+		AggregateID: timebox.AggregateID{
+			timebox.ID("workflow"), timebox.ID("workflow-123"),
+		},
+		Type: api.EventTypeStepCompleted,
+	}
+	assert.False(t, filter(unmatchedEvent))
+}
+
+func TestHandleHealthByID(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("health-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/health/health-step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var health api.HealthState
+	err = json.Unmarshal(w.Body.Bytes(), &health)
+	require.NoError(t, err)
+	assert.Equal(t, api.HealthUnknown, health.Status)
+}
+
+func TestHandleHealthByIDNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/health/nonexistent-step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+}
+
+func TestCreateStepValidationError(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := &api.Step{
+		ID:   "",
+		Name: "Invalid Step",
+		Type: api.StepTypeSync,
+	}
+
+	body, _ := json.Marshal(step)
+	req := httptest.NewRequest(
+		"POST", "/engine/step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestUpdateStepIDMismatch(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("original-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	updatedStep := helpers.NewSimpleStep("different-id")
+
+	body, _ := json.Marshal(updatedStep)
+	req := httptest.NewRequest(
+		"PUT", "/engine/step/original-step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "does not match")
+}
+
+func TestStartEmptyID(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("test-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	reqData := map[string]interface{}{
+		"id":            "",
+		"goal_step_ids": []string{"test-step"},
+		"initial_state": map[string]interface{}{},
+	}
+
+	body, _ := json.Marshal(reqData)
+	req := httptest.NewRequest(
+		"POST", "/engine/workflow", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "Workflow ID is required")
+}
+
+func TestStartNoGoalSteps(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	reqData := map[string]interface{}{
+		"id":            "test-wf",
+		"goal_step_ids": []string{},
+		"initial_state": map[string]interface{}{},
+	}
+
+	body, _ := json.Marshal(reqData)
+	req := httptest.NewRequest(
+		"POST", "/engine/workflow", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "goal step")
+}
+
+func TestListWorkflowsEmpty(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/workflow", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response api.WorkflowsListResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, 0, response.Count)
+}
+
+func TestUpdateStepValidationError(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("update-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	invalidStep := &api.Step{
+		ID:      "update-step",
+		Name:    "",
+		Type:    api.StepTypeSync,
+		Version: "1.0.1",
+		HTTP:    &api.HTTPConfig{},
+	}
+
+	body, _ := json.Marshal(invalidStep)
+	req := httptest.NewRequest(
+		"PUT", "/engine/step/update-step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestBasicHealthEndpoint(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response api.HealthResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Equal(t, "spuds-engine", response.Service)
+	assert.Equal(t, "1.0.0", response.Version)
+	assert.Equal(t, api.HealthHealthy, response.Status)
+}
+
+func TestPlanPreview(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step1 := &api.Step{
+		ID:      "step-a",
+		Name:    "Step A",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"value": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+
+	step2 := &api.Step{
+		ID:      "step-b",
+		Name:    "Step B",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		Attributes: map[api.Name]*api.AttributeSpec{
+			"value":  {Role: api.RoleOutput, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step1)
+	require.NoError(t, err)
+	err = env.Engine.RegisterStep(context.Background(), step2)
+	require.NoError(t, err)
+
+	reqData := map[string]interface{}{
+		"goal_steps":    []string{"step-b"},
+		"initial_state": map[string]interface{}{},
+	}
+
+	body, _ := json.Marshal(reqData)
+	req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	t.Logf("Response: %s", w.Body.String())
+
+	var response api.ExecutionPlan
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	require.NoError(t, err)
+	assert.Len(t, response.GoalSteps, 1)
+	assert.Equal(t, timebox.ID("step-b"), response.GoalSteps[0])
+}
+
+func TestPlanPreviewInvalidJSON(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest(
+		"POST", "/engine/plan", bytes.NewReader([]byte("invalid")),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestPlanPreviewNoGoalSteps(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	reqData := map[string]interface{}{
+		"goal_step_ids": []string{},
+		"initial_state": map[string]interface{}{},
+	}
+
+	body, _ := json.Marshal(reqData)
+	req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), "goal step")
+}
+
+func TestPlanPreviewStepNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	reqData := map[string]interface{}{
+		"goal_steps":    []string{"nonexistent-step"},
+		"initial_state": map[string]interface{}{},
+	}
+
+	body, _ := json.Marshal(reqData)
+	req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "nonexistent-step")
+}
+
+func TestUpdateStepNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("nonexistent")
+
+	body, _ := json.Marshal(step)
+	req := httptest.NewRequest(
+		"PUT", "/engine/step/nonexistent", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "does not exist")
+}
+
+func TestUpdateStepInvalidJSON(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest(
+		"PUT",
+		"/engine/step/test-step",
+		bytes.NewReader([]byte("invalid json")),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestCreateStepDuplicate(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("duplicate-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	body, _ := json.Marshal(step)
+	req := httptest.NewRequest(
+		"POST", "/engine/step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusCreated, w.Code)
+}
+
+func TestCreateStepInvalidScript(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewScriptStep(
+		"invalid-script", api.ScriptLangLua, "return {invalid syntax", "result",
+	)
+
+	body, _ := json.Marshal(step)
+	req := httptest.NewRequest(
+		"POST", "/engine/step", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+	assert.Contains(t, w.Body.String(), "failed to register step")
+}
+
+func TestCreateStepInvalidJSON(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest(
+		"POST", "/engine/step", bytes.NewReader([]byte("not json")),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestStartDuplicate(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("dup-wf-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		GoalSteps: []timebox.ID{"dup-wf-step"},
+		Steps:     []*api.Step{step},
+	}
+
+	err = env.Engine.StartWorkflow(
+		context.Background(),
+		"duplicate-workflow",
+		plan,
+		api.Args{},
+		api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	reqBody := api.CreateWorkflowRequest{
+		ID:           "duplicate-workflow",
+		GoalStepIDs:  []timebox.ID{"dup-wf-step"},
+		InitialState: api.Args{},
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(
+		"POST", "/engine/workflow", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusConflict, w.Code)
+	assert.Contains(t, w.Body.String(), "duplicate-workflow")
+}
+
+func TestStartStepNotFound(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	reqBody := api.CreateWorkflowRequest{
+		ID:           "wf-no-step",
+		GoalStepIDs:  []timebox.ID{"nonexistent-step"},
+		InitialState: api.Args{},
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(
+		"POST", "/engine/workflow", bytes.NewReader(body),
+	)
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.Contains(t, w.Body.String(), "nonexistent-step")
+}
+
+func TestCORSOptions(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("OPTIONS", "/engine/step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
+	assert.Contains(t, w.Header().Get("Access-Control-Allow-Methods"), "GET")
+	assert.Contains(
+		t, w.Header().Get("Access-Control-Allow-Headers"), "Content-Type",
+	)
+}
+
+func TestWorkflowIDSanitization(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("test-step")
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	tests := []struct {
+		name           string
+		workflowID     string
+		expectedStatus int
+		shouldSucceed  bool
+	}{
+		{
+			name:           "uppercase_converted_to_lowercase",
+			workflowID:     "MyWorkFlow-ABC",
+			expectedStatus: http.StatusCreated,
+			shouldSucceed:  true,
+		},
+		{
+			name:           "spaces_converted_to_dashes",
+			workflowID:     "my workflow test",
+			expectedStatus: http.StatusCreated,
+			shouldSucceed:  true,
+		},
+		{
+			name:           "special_chars_removed",
+			workflowID:     "workflow@#$%123",
+			expectedStatus: http.StatusCreated,
+			shouldSucceed:  true,
+		},
+		{
+			name:           "only_special_chars_results_in_error",
+			workflowID:     "@#$%^&*()",
+			expectedStatus: http.StatusBadRequest,
+			shouldSucceed:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reqBody := api.CreateWorkflowRequest{
+				ID:           timebox.ID(tt.workflowID),
+				GoalStepIDs:  []timebox.ID{"test-step"},
+				InitialState: api.Args{},
+			}
+
+			body, _ := json.Marshal(reqBody)
+			req := httptest.NewRequest(
+				"POST", "/engine/workflow", bytes.NewReader(body),
+			)
+			req.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+
+			router := env.Server.SetupRoutes()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, tt.expectedStatus, w.Code)
+		})
+	}
+}
+
+func TestDeleteStepInternalError(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("test-delete-step")
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	req := httptest.NewRequest("DELETE", "/engine/step/test-delete-step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}

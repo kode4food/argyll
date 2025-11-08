@@ -1,0 +1,103 @@
+/* KeyboardShortcutsModal CSS Module */
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1000;
+  width: 500px;
+  max-height: 600px;
+  border-radius: var(--spacing-sm);
+  overflow: hidden;
+  border: 1px solid var(--color-dark-border);
+  background-color: var(--color-dark-bg);
+  color: var(--color-dark-text);
+  box-shadow:
+    0 20px 25px -5px rgb(0 0 0 / 0.1),
+    0 8px 10px -6px rgb(0 0 0 / 0.1);
+}
+
+.header {
+  padding: var(--spacing-lg);
+  border-bottom: 1px solid var(--color-dark-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.title {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  margin: 0;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-dark-text);
+  cursor: pointer;
+  padding: var(--spacing-xs);
+  display: flex;
+  align-items: center;
+}
+
+.body {
+  padding: var(--spacing-lg);
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+.section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.sectionTitle {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-neutral-text);
+  text-transform: uppercase;
+}
+
+.shortcutsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.shortcut {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-sm);
+  background-color: var(--color-dark-bg-lighter);
+  border-radius: var(--radius-md);
+}
+
+.shortcutDescription {
+  color: var(--color-dark-text);
+}
+
+.shortcutKeys {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.key {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  background-color: var(--color-dark-border);
+  color: var(--color-dark-text);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-dark-border-light);
+  min-width: 1.5rem;
+  text-align: center;
+}

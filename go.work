@@ -1,0 +1,12 @@
+go 1.25.3
+
+use (
+	./engine
+	./examples/inventory-resolver
+	./examples/notification-sender
+	./examples/order-creator
+	./examples/payment-processor
+	./examples/simple-step
+	./examples/stock-reservation
+	./examples/user-resolver
+)

@@ -1,0 +1,389 @@
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  height: 100%;
+  overflow-y: auto;
+  padding-right: var(--spacing-sm);
+}
+
+.row {
+  display: flex;
+  gap: var(--spacing-md);
+  align-items: flex-end;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.flex1 {
+  flex: 1;
+}
+
+.flex2 {
+  flex: 2;
+}
+
+.label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--color-dark-text);
+  opacity: var(--opacity-high);
+}
+
+.formControl {
+  height: 32px;
+  padding: 0 10px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+}
+
+.formControl:focus {
+  outline: none;
+  border-color: var(--color-info);
+  background-color: var(--overlay-dark-40);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-md);
+  background-color: var(--overlay-dark-20);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-dark-border);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.iconButton {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background-color: transparent;
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-sizing: border-box;
+}
+
+.addButtonStyle {
+  border-color: var(--color-info-border);
+  color: var(--color-info);
+}
+
+.addButtonStyle:hover {
+  background-color: var(--color-info-bg);
+  border-color: var(--color-info);
+}
+
+.argList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.argInput {
+  height: 32px;
+  padding: 0 10px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  flex: 2;
+}
+
+.argType {
+  height: 32px;
+  padding: 0 10px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  flex: 0 0 auto;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: var(--spacing-2xl);
+  width: max-content;
+  min-width: 110px;
+}
+
+.argType option {
+  background-color: var(--overlay-dark-90);
+  color: var(--color-dark-text);
+  padding: var(--spacing-xs);
+}
+
+.argType::-webkit-scrollbar {
+  width: 8px;
+}
+
+.argType::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.argType::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md);
+}
+
+.argType::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.removeButtonStyle {
+  border-color: var(--color-error-border);
+  color: var(--color-error-light);
+}
+
+.removeButtonStyle:hover {
+  background-color: var(--color-error-bg);
+  border-color: var(--color-error);
+}
+
+.attrRow {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.attrRowInputs {
+  display: flex;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+.attrValidationError {
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background-color: var(--color-error-bg);
+  border: 1px solid rgba(255, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  color: var(--color-error-light);
+  font-size: var(--text-xs);
+  margin-left: 40px;
+}
+
+.attrIconButtonStyle {
+  background-color: var(--overlay-dark-30);
+}
+
+.attrIconButtonStyle :global(.arg-icon) {
+  margin-right: 0;
+}
+
+.attrIconButtonStyle:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.scriptEditorContainer {
+  min-height: 200px;
+  height: 200px;
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.predicateEditorContainer {
+  min-height: 60px;
+  height: 60px;
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.httpFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.stepId {
+  font-size: var(--text-xs);
+  color: var(--overlay-light-40);
+  font-weight: var(--font-normal);
+  margin-left: var(--spacing-sm);
+}
+
+.errorMessage {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background-color: var(--color-error-bg);
+  border: 1px solid rgba(255, 68, 68, 0.4);
+  border-radius: var(--radius-md);
+  color: var(--color-error-light);
+  font-size: var(--text-xs);
+}
+
+.typeButtonGroup {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.typeButton {
+  height: 32px;
+  padding: 0 var(--spacing-sm);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.typeButton:focus {
+  outline: none;
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.typeButton:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.typeButtonActive {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.typeButtonActive:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.typeButtonActive:focus {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+.languageSelectorGroup {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.languageButton {
+  height: 24px;
+  padding: 0 var(--spacing-md);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  font-weight: var(--font-medium);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.languageButton:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.languageButton:focus {
+  outline: none;
+}
+
+.languageButtonActive {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.languageButtonActive:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.forEachToggleGroup {
+  display: flex;
+  gap: var(--spacing-xs);
+  flex-shrink: 0;
+}
+
+.forEachToggle {
+  height: 32px;
+  padding: 0 var(--spacing-sm);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  white-space: nowrap;
+  min-width: 70px;
+}
+
+.forEachToggle:focus {
+  outline: none;
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.forEachToggle:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.forEachToggleActive {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.forEachToggleActive:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.forEachToggleActive:focus {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+}
+
+.fieldNoFlex {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}

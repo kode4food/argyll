@@ -1,0 +1,65 @@
+/* Layout utilities */
+.flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Background colors using design system variables */
+.bg-neutral-label {
+  background-color: var(--color-neutral-label);
+}
+.bg-neutral-bg {
+  background-color: var(--color-neutral-bg);
+}
+.bg-neutral-bg-dark {
+  background-color: var(--color-neutral-bg-dark);
+}
+.bg-diagram-workflow {
+  background-color: var(--color-diagram-workflow) !important;
+}
+.bg-info {
+  background-color: var(--color-info);
+}
+
+/* Text colors using design system variables */
+.text-collector-text {
+  color: var(--color-collector-text);
+}
+.text-neutral-text {
+  color: var(--color-neutral-text);
+}
+
+/* Border colors using design system variables */
+.border-neutral-border {
+  border-color: var(--color-neutral-border);
+}
+
+/* Legend box styles - complex domain-specific components */
+.legend-box-resolver {
+  background-color: var(--color-resolver-bg);
+  border: 2px solid color-mix(in srgb, var(--color-resolver-border) 85%, black);
+}
+
+.legend-box-processor {
+  background-color: var(--color-processor-bg);
+  border: 2px solid color-mix(in srgb, var(--color-processor-border) 85%, black);
+}
+
+.legend-box-collector {
+  background-color: var(--color-collector-bg);
+  border: 2px solid color-mix(in srgb, var(--color-collector-border) 85%, black);
+}
+
+.legend-line-required {
+  border-top: 2px solid var(--color-edge-required);
+}
+
+.legend-line-optional {
+  border-top: 2px dashed var(--color-edge-optional);
+}
+
+/* Hover states using design system variables */
+.hover\:bg-processor-text:hover {
+  background-color: var(--color-processor-text);
+}

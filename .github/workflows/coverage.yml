@@ -1,0 +1,23 @@
+name: Coverage
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+jobs:
+  coverage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.25'
+      - name: Run tests with coverage
+        run: cd engine && go test -coverprofile=cover.out ./...
+      - name: Upload coverage to Qlty
+        uses: qltysh/qlty-action/coverage@v1
+        with:
+          token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          files: engine/cover.out

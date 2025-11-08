@@ -1,0 +1,51 @@
+.section {
+  margin-bottom: var(--spacing-sm);
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.label {
+  font-size: var(--text-xs);
+  color: var(--overlay-light-70);
+  margin-bottom: 2px;
+  font-weight: var(--font-medium);
+}
+
+.value {
+  font-size: var(--text-xs);
+  color: var(--color-white);
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.valueBold {
+  font-weight: var(--font-semibold);
+}
+
+.valueMonospace {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+}
+
+.valueCode {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  white-space: pre-wrap;
+  background: rgba(0, 0, 0, 0.05);
+  padding: var(--spacing-xs) 6px;
+  border-radius: var(--radius-sm);
+}
+
+.codeMore {
+  color: var(--color-gray-muted);
+  margin-top: var(--spacing-xs);
+}
+
+.valueWithIcon {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-xs);
+}

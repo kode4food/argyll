@@ -1,0 +1,230 @@
+services:
+  valkey:
+    image: valkey/valkey:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - valkey_data:/data
+    command: valkey-server --appendonly yes --appendfsync everysec
+    healthcheck:
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 10
+      start_period: 5s
+
+  spuds-engine:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+    environment:
+      - ENGINE_REDIS_ADDR=valkey:6379
+      - ENGINE_REDIS_PASSWORD=
+      - ENGINE_REDIS_DB=0
+      - WORKFLOW_REDIS_ADDR=valkey:6379
+      - WORKFLOW_REDIS_PASSWORD=
+      - WORKFLOW_REDIS_DB=0
+      - API_PORT=8080
+      - API_HOST=0.0.0.0
+      - WEBHOOK_BASE_URL=http://spuds-engine:8080
+      - DEV_MODE=true
+      - LOG_LEVEL=debug
+    depends_on:
+      valkey:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+
+  spuds-ui:
+    build:
+      context: ./web
+      dockerfile: Dockerfile.dev
+    volumes:
+      - ./web:/app
+      - /app/node_modules # Don't mount node_modules
+      - /app/.next # Don't mount .next directory
+    ports:
+      - "3001:3001"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_WS_URL=ws://localhost:8080/engine/ws
+      - CHOKIDAR_USEPOLLING=true # For better file watching in Docker
+      - WATCHPACK_POLLING=true # Next.js file watching in Docker
+      - NODE_ENV=development
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--no-verbose",
+          "--tries=1",
+          "--spider",
+          "http://localhost:3001",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+  # Example step services
+  text-processor:
+    build:
+      context: .
+      dockerfile: examples/simple-step/Dockerfile
+    environment:
+      - STEP_PORT=8081
+      - STEP_HOSTNAME=text-processor
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8081:8081"
+    restart: on-failure
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  user-resolver:
+    build:
+      context: .
+      dockerfile: examples/user-resolver/Dockerfile
+    environment:
+      - STEP_PORT=8082
+      - STEP_HOSTNAME=user-resolver
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  inventory-resolver:
+    build:
+      context: .
+      dockerfile: examples/inventory-resolver/Dockerfile
+    environment:
+      - STEP_PORT=8083
+      - STEP_HOSTNAME=inventory-resolver
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8083:8083"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  order-creator:
+    build:
+      context: .
+      dockerfile: examples/order-creator/Dockerfile
+    environment:
+      - STEP_PORT=8084
+      - STEP_HOSTNAME=order-creator
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8084:8084"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  payment-processor:
+    build:
+      context: .
+      dockerfile: examples/payment-processor/Dockerfile
+    environment:
+      - STEP_PORT=8085
+      - STEP_HOSTNAME=payment-processor
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  stock-reservation:
+    build:
+      context: .
+      dockerfile: examples/stock-reservation/Dockerfile
+    environment:
+      - STEP_PORT=8086
+      - STEP_HOSTNAME=stock-reservation
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8086:8086"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+  notification-sender:
+    build:
+      context: .
+      dockerfile: examples/notification-sender/Dockerfile
+    environment:
+      - STEP_PORT=8087
+      - STEP_HOSTNAME=notification-sender
+      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+    depends_on:
+      spuds-engine:
+        condition: service_healthy
+    ports:
+      - "8087:8087"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 8
+      start_period: 10s
+
+volumes:
+  valkey_data:
+    driver: local

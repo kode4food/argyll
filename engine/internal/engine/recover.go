@@ -1,0 +1,243 @@
+package engine
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"log/slog"
+	"math"
+	"strings"
+	"time"
+
+	"github.com/kode4food/timebox"
+
+	"github.com/kode4food/spuds/engine/pkg/api"
+)
+
+// Retry logic
+
+func (e *Engine) ShouldRetry(
+	step *api.Step, workItem *api.WorkState,
+) bool {
+	if !isRetryableError(workItem.Error) {
+		return false
+	}
+
+	workConfig := step.WorkConfig
+	if workConfig == nil {
+		workConfig = &e.config.WorkConfig
+	}
+
+	if workConfig.MaxRetries == 0 {
+		return false
+	}
+
+	if workConfig.MaxRetries < 0 {
+		return true
+	}
+
+	return workItem.RetryCount < workConfig.MaxRetries
+}
+
+func isRetryableError(errorStr string) bool {
+	if errorStr == "" {
+		return true
+	}
+
+	if strings.Contains(errorStr, "step returned success=false") {
+		return false
+	}
+
+	if strings.Contains(errorStr, "HTTP 4") {
+		return false
+	}
+
+	return true
+}
+
+func (e *Engine) CalculateNextRetry(
+	config *api.WorkConfig, retryCount int,
+) time.Time {
+	if config == nil {
+		config = &e.config.WorkConfig
+	}
+
+	var delayMs int64
+
+	switch config.BackoffType {
+	case api.BackoffTypeFixed:
+		delayMs = config.BackoffMs
+
+	case api.BackoffTypeLinear:
+		delayMs = config.BackoffMs * int64(retryCount+1)
+
+	case api.BackoffTypeExponential:
+		multiplier := math.Pow(2, float64(retryCount))
+		delayMs = int64(float64(config.BackoffMs) * multiplier)
+
+	default:
+		delayMs = config.BackoffMs
+	}
+
+	if delayMs > config.MaxBackoffMs {
+		delayMs = config.MaxBackoffMs
+	}
+
+	return time.Now().Add(time.Duration(delayMs) * time.Millisecond)
+}
+
+func (e *Engine) ScheduleRetry(
+	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
+	errMsg string,
+) error {
+	flow, err := e.GetWorkflowState(ctx, flowID)
+	if err != nil {
+		return fmt.Errorf("failed to get workflow state: %w", err)
+	}
+
+	step := flow.ExecutionPlan.GetStep(stepID)
+	if step == nil {
+		return fmt.Errorf("%s: %s", ErrStepNotInPlan, stepID)
+	}
+
+	exec, ok := flow.Executions[stepID]
+	if !ok {
+		return fmt.Errorf("execution state not found for step: %s", stepID)
+	}
+
+	workItem, ok := exec.WorkItems[token]
+	if !ok {
+		return fmt.Errorf("work item not found: %s", token)
+	}
+
+	newRetryCount := workItem.RetryCount + 1
+	nextRetryAt := e.CalculateNextRetry(step.WorkConfig, workItem.RetryCount)
+
+	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+		ev, err := json.Marshal(api.RetryScheduledEvent{
+			WorkflowID:  flowID,
+			StepID:      stepID,
+			Token:       token,
+			RetryCount:  newRetryCount,
+			NextRetryAt: nextRetryAt,
+			Error:       errMsg,
+		})
+		if err != nil {
+			return err
+		}
+		ag.Raise(api.EventTypeRetryScheduled, ev)
+		return nil
+	}
+
+	_, err = e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	if err != nil {
+		return fmt.Errorf("failed to schedule retry: %w", err)
+	}
+
+	slog.Info("Retry scheduled",
+		slog.Any("workflow_id", flowID),
+		slog.Any("step_id", stepID),
+		slog.Any("token", token),
+		slog.Int("retry_count", newRetryCount),
+		slog.Any("next_retry_at", nextRetryAt))
+
+	return nil
+}
+
+// Recovery orchestration
+
+func (e *Engine) RecoverWorkflows(ctx context.Context) error {
+	engineState, err := e.GetEngineState(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get engine state: %w", err)
+	}
+
+	if len(engineState.ActiveWorkflows) == 0 {
+		slog.Info("No workflows to recover")
+		return nil
+	}
+
+	slog.Info("Recovering workflows",
+		slog.Int("count", len(engineState.ActiveWorkflows)),
+	)
+
+	for flowID := range engineState.ActiveWorkflows {
+		if err := e.RecoverWorkflow(ctx, flowID); err != nil {
+			slog.Error("Failed to recover workflow",
+				slog.Any("workflow_id", flowID),
+				slog.Any("error", err))
+		}
+	}
+
+	return nil
+}
+
+func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
+	flow, err := e.GetWorkflowState(ctx, flowID)
+	if err != nil {
+		return fmt.Errorf("failed to get workflow state: %w", err)
+	}
+
+	if flow.Status != api.WorkflowActive {
+		return nil
+	}
+
+	retriableSteps := e.FindRetrySteps(flow)
+	if len(retriableSteps) == 0 {
+		return nil
+	}
+
+	slog.Info("Recovering workflow",
+		slog.Any("workflow_id", flowID),
+		slog.Int("retriable_steps", len(retriableSteps)))
+
+	now := time.Now()
+	for stepID := range retriableSteps {
+		exec := flow.Executions[stepID]
+		if exec.WorkItems == nil {
+			continue
+		}
+
+		step := flow.ExecutionPlan.GetStep(stepID)
+		if step == nil {
+			continue
+		}
+
+		for token, workItem := range exec.WorkItems {
+			if workItem.Status == api.WorkPending &&
+				!workItem.NextRetryAt.IsZero() &&
+				workItem.NextRetryAt.Before(now) {
+				slog.Info("Retrying work item",
+					slog.Any("workflow_id", flowID),
+					slog.Any("step_id", stepID),
+					slog.Any("token", token),
+					slog.Int("retry_count", workItem.RetryCount))
+
+				e.retryWork(ctx, flowID, stepID, step, workItem.Inputs)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (e *Engine) FindRetrySteps(state *api.WorkflowState) map[timebox.ID]bool {
+	retriableSteps := map[timebox.ID]bool{}
+
+	for stepID, exec := range state.Executions {
+		if exec.WorkItems == nil {
+			continue
+		}
+
+		for _, workItem := range exec.WorkItems {
+			if workItem.Status == api.WorkPending &&
+				!workItem.NextRetryAt.IsZero() &&
+				workItem.RetryCount > 0 {
+				retriableSteps[stepID] = true
+				break
+			}
+		}
+	}
+
+	return retriableSteps
+}

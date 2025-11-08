@@ -1,0 +1,41 @@
+.container {
+  width: 100%;
+}
+
+.portal {
+  background: var(--color-neutral-text);
+  opacity: 0;
+  color: var(--color-white);
+  padding: var(--spacing-md);
+  border-radius: var(--spacing-xs);
+  box-shadow: var(--shadow-md);
+  min-width: 200px;
+  max-width: 400px;
+  visibility: hidden;
+  transition:
+    opacity 100ms ease,
+    visibility 100ms ease;
+}
+
+.portal.visible {
+  opacity: 0.99;
+  visibility: visible;
+}
+
+.portal.above::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: var(--spacing-lg);
+  border: 6px solid transparent;
+  border-top-color: var(--color-neutral-text);
+}
+
+.portal.below::after {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  left: var(--spacing-lg);
+  border: 6px solid transparent;
+  border-bottom-color: var(--color-neutral-text);
+}

@@ -1,0 +1,107 @@
+/* ScriptStepModal CSS Module */
+
+.backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--overlay-dark-70);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.content {
+  background-color: var(--color-dark-bg);
+  border-radius: var(--radius-xl);
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.header {
+  padding: var(--spacing-padding-lg);
+  border-bottom: 1px solid var(--color-dark-border);
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-dark-text);
+}
+
+.language {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--color-dark-text);
+  opacity: var(--opacity-muted);
+}
+
+.body {
+  padding: var(--spacing-padding-lg);
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.editor {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+.error {
+  margin-top: var(--spacing-lg);
+  padding: var(--spacing-md);
+  background-color: var(--color-error-bg-dark);
+  border: 1px solid #ff4444;
+  border-radius: var(--radius-md);
+  color: var(--color-error-light);
+}
+
+.footer {
+  padding: var(--spacing-padding-lg);
+  border-top: 1px solid var(--color-dark-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--spacing-md);
+  flex-shrink: 0;
+}
+
+.buttonCancel {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  background-color: transparent;
+  color: var(--color-dark-text);
+  cursor: pointer;
+  font-size: var(--text-sm);
+}
+
+.buttonCancel:disabled {
+  cursor: not-allowed;
+}
+
+.buttonSave {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  border-radius: var(--radius-md);
+  background-color: var(--color-info);
+  color: var(--color-white);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.buttonSave:disabled {
+  background-color: var(--color-gray-600);
+  cursor: not-allowed;
+}

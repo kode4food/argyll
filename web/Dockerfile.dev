@@ -1,0 +1,19 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Expose port
+EXPOSE 3001
+
+# Install dependencies and start dev server
+# The npm install ensures we have the right packages even if volume mounts override
+CMD ["sh", "-c", "npm install && npm run dev"]

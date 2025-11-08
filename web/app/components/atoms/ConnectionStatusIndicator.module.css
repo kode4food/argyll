@@ -1,0 +1,49 @@
+/* ConnectionStatusIndicator CSS Module */
+
+.status {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border-radius: var(--spacing-sm);
+  border: 1px solid #d1d5db;
+  box-shadow:
+    0 4px 6px -1px rgb(0 0 0 / 0.1),
+    0 2px 4px -2px rgb(0 0 0 / 0.1);
+}
+
+.statusSemiTransparent {
+  opacity: var(--opacity-hover);
+}
+
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+
+.text {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.retryButton {
+  margin-left: var(--spacing-sm);
+  padding: var(--spacing-xs) var(--spacing-md);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-white);
+  background-color: var(--color-info);
+  border: none;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: var(--transition-opacity);
+}
+
+.retryButton:hover {
+  opacity: var(--opacity-high);
+}

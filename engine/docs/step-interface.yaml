@@ -1,0 +1,524 @@
+openapi: 3.0.3
+info:
+  title: Spuds Step Interface Contract
+  description: |
+    This specification defines the contract that external workflow steps must implement
+    to work with the Spuds workflow engine.
+
+    ## Overview
+
+    A "step" in Spuds is any HTTP endpoint that accepts workflow state, processes it
+    according to its business logic, and returns outputs. Steps can be:
+
+    - **Dedicated microservices** with a single endpoint
+    - **Multiple endpoints** on a larger service
+    - **Functions-as-a-Service** (AWS Lambda, Azure Functions, Google Cloud Functions, etc.)
+    - **Legacy systems** with interface adapters
+    - **Any HTTP endpoint** that conforms to this contract
+
+    ## Step Types
+
+    Steps can be classified into three execution patterns:
+
+    ### Sync Steps
+    - Return results immediately in the HTTP response
+    - Best for: Fast operations (< 30 seconds)
+    - Example: Text processing, validation, simple transformations
+
+    ### Async Steps
+    - Return immediately with HTTP 200
+    - Complete later via webhook callback to the engine
+    - Best for: Long-running operations (> 30 seconds)
+    - Example: Video encoding, batch processing, external API calls
+
+    ### Script Steps
+    - Ale or Lua scripts executed directly in the engine
+    - Not HTTP-based (no external endpoint required)
+    - Best for: Simple transformations, data mapping, conditional logic
+
+    **Note**: This specification covers only HTTP-based steps (sync and async).
+    Script steps are defined directly in the step registration.
+
+    ## Request/Response Contract
+
+    All HTTP steps must implement a `POST` endpoint that:
+
+    1. **Accepts** a JSON request with:
+       - `arguments`: Input arguments (from workflow state)
+       - `metadata`: Workflow context (workflow_id, step_id, etc.)
+
+    2. **Returns** a JSON response with:
+       - `success`: Boolean indicating execution success
+       - `outputs`: Key-value pairs to merge into workflow state
+       - `error`: Optional error message (if success=false)
+       - `exception`: Optional exception to terminate workflow
+       - `is_terminal_stop`: Optional flag for intentional completion
+
+    ## Error Handling
+
+    Steps should distinguish between:
+
+    - **Business logic errors** (`success: false`, `error: "message"`):
+      - The step executed correctly but the business logic failed
+      - Example: Validation failed, invalid input format, etc.
+      - The workflow may continue (depending on error handling strategy)
+
+    - **Exceptions** (`success: false`, `exception: "message" or object`):
+      - Critical errors that should terminate the entire workflow
+      - Example: Account suspended, fatal system error, etc.
+      - The workflow will stop and be marked as failed
+
+    - **HTTP errors** (4xx/5xx status codes):
+      - Infrastructure or request format errors
+      - Example: Missing required arguments, internal server error, etc.
+      - The engine will fail the step execution
+
+    ## Deployment Flexibility
+
+    Steps can be deployed anywhere that can receive HTTP requests:
+
+    - **Containers**: Docker, Kubernetes, ECS, etc.
+    - **Serverless**: AWS Lambda, Azure Functions, Google Cloud Functions
+    - **Traditional servers**: VMs, bare metal, etc.
+    - **Platform services**: Heroku, Render, Railway, etc.
+
+    The Spuds engine only requires that your step endpoint is reachable via HTTP/HTTPS.
+
+  version: 1.0.0
+  contact:
+    name: Spuds Engine
+    url: https://github.com/kode4food/spuds
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: "{protocol}://{host}:{port}"
+    description: Your step endpoint server (configurable)
+    variables:
+      protocol:
+        enum: [http, https]
+        default: http
+      host:
+        default: localhost
+        description: Your step server hostname or IP
+      port:
+        default: "8081"
+        description: Your step server port
+
+paths:
+  /{stepEndpoint}:
+    post:
+      summary: Execute Step
+      description: |
+        Execute this step with the provided arguments and workflow context.
+
+        ## Implementation Guidelines
+
+        Your step implementation should:
+
+        1. **Validate inputs**: Check that all required arguments are present
+        2. **Process the request**: Execute your business logic
+        3. **Return results**: Provide outputs or error information
+        4. **Handle timeouts**: Respect the timeout configured in step registration
+        5. **Use idempotency**: Use `workflow_id` + `step_id` from metadata as idempotency key
+
+        ## Execution Flow
+
+        **For Sync Steps:**
+        1. Receive request from engine
+        2. Process immediately
+        3. Return response with outputs
+        4. Engine merges outputs into workflow state
+
+        **For Async Steps:**
+        1. Receive request from engine
+        2. Return HTTP 200 immediately (engine provides webhook URL in request)
+        3. Process asynchronously in background
+        4. POST results to webhook when complete
+        5. Engine merges outputs into workflow state
+
+        ## Terminal Steps
+
+        Steps with no declared outputs are automatically terminal (stop the workflow
+        branch). You can also explicitly signal completion with `is_terminal_stop: true`.
+
+      operationId: executeStep
+      tags:
+        - Step Execution
+      parameters:
+        - name: stepEndpoint
+          in: path
+          required: true
+          description: Your step's endpoint path (configured in step registration)
+          schema:
+            type: string
+            example: process-text
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StepRequest"
+            examples:
+              simpleProcessor:
+                summary: Simple text processing
+                description: A step that transforms text to uppercase
+                value:
+                  arguments:
+                    input_text: "Hello World"
+                    format: "uppercase"
+                  metadata:
+                    workflow_id: "wf-123"
+                    step_id: "text-processor"
+              validationStep:
+                summary: User validation
+                description: A step that validates user permissions
+                value:
+                  arguments:
+                    user_id: "john.doe@company.com"
+                    required_role: "admin"
+                  metadata:
+                    workflow_id: "wf-onboarding-789"
+                    step_id: "user-validator"
+              dataEnrichment:
+                summary: Data enrichment
+                description: A step that enriches data with external API
+                value:
+                  arguments:
+                    user_id: "12345"
+                    enrich_fields: ["profile", "preferences", "activity"]
+                  metadata:
+                    workflow_id: "wf-analytics-456"
+                    step_id: "data-enricher"
+      responses:
+        "200":
+          description: Step executed successfully (or failed with business logic error)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StepResponse"
+              examples:
+                successWithOutputs:
+                  summary: Successful execution with outputs
+                  description: Step processed successfully and produced outputs
+                  value:
+                    success: true
+                    outputs:
+                      processed_text: "HELLO WORLD"
+                      character_count: 11
+                      processing_time_ms: 15
+                successMultipleOutputs:
+                  summary: Multiple outputs
+                  description: Step producing multiple named outputs
+                  value:
+                    success: true
+                    outputs:
+                      user_profile:
+                        user_id: "john.doe"
+                        email: "john@example.com"
+                        created_at: "2023-01-15"
+                      user_permissions: ["read", "write", "admin"]
+                      validation_status: "approved"
+                businessError:
+                  summary: Business logic error
+                  description: Step executed but business logic failed
+                  value:
+                    success: false
+                    error: "Invalid input format: 'format' must be one of [uppercase, lowercase, titlecase]"
+                criticalException:
+                  summary: Critical exception (terminates workflow)
+                  description: Exception that should stop the entire workflow
+                  value:
+                    success: false
+                    exception: "User account is suspended"
+                structuredException:
+                  summary: Structured exception
+                  description: Exception with additional context
+                  value:
+                    success: false
+                    exception:
+                      code: "ACCOUNT_SUSPENDED"
+                      message: "User account has been suspended due to policy violation"
+                      details:
+                        suspend_date: "2023-12-01T10:30:00Z"
+                        reason: "Terms of service violation"
+                        policy_id: "TOS-2023-001"
+                terminalStop:
+                  summary: Terminal completion
+                  description: Step intentionally completes the workflow (successful terminal)
+                  value:
+                    success: true
+                    outputs:
+                      final_result: "All processing completed successfully"
+                      total_items_processed: 1250
+                    is_terminal_stop: true
+        "400":
+          description: |
+            Bad request - Invalid request format or missing required arguments.
+            This indicates a problem with the request itself, not business logic.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                missingArgument:
+                  summary: Missing required argument
+                  value:
+                    error: "Missing required argument: input_text"
+                    code: "MISSING_REQUIRED_ARG"
+                invalidFormat:
+                  summary: Invalid request format
+                  value:
+                    error: "Invalid JSON in request body"
+                    code: "INVALID_JSON"
+        "500":
+          description: |
+            Internal server error - Unexpected error during step execution.
+            The engine will fail the step and may retry depending on configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                internalError:
+                  summary: Internal server error
+                  value:
+                    error: "Internal server error: database connection failed"
+                    code: "INTERNAL_ERROR"
+        "503":
+          description: |
+            Service unavailable - Step temporarily cannot process requests.
+            The engine will fail the step and may retry depending on configuration.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+              examples:
+                serviceUnavailable:
+                  summary: Service unavailable
+                  value:
+                    error: "Service temporarily unavailable: maintenance in progress"
+                    code: "SERVICE_UNAVAILABLE"
+
+components:
+  schemas:
+    StepRequest:
+      type: object
+      required:
+        - arguments
+        - metadata
+      properties:
+        arguments:
+          type: object
+          description: |
+            Input arguments for this step execution. This object contains:
+            - All **required arguments** (as defined in step registration)
+            - Any **optional arguments** that are available
+            - Values from the workflow state that match declared inputs
+
+            Your step should validate that all required arguments are present.
+          additionalProperties: true
+          example:
+            input_text: "Hello World"
+            format: "uppercase"
+            timeout_seconds: 30
+        metadata:
+          type: object
+          description: |
+            Additional workflow context and metadata. This provides contextual
+            information but should NOT be used for core business logic.
+
+            **Standard fields provided by the engine:**
+            - `workflow_id`: The executing workflow's ID (use for idempotency)
+            - `step_id`: The step identifier being executed
+            - `receipt_token`: Internal token for async callback validation (don't use)
+            - `webhook_url`: For async steps only, the URL to POST results to
+
+            **Best Practice**: Use `workflow_id` + `step_id` as an idempotency key.
+            The combination uniquely identifies a step execution within a workflow.
+            Do NOT depend on `metadata` for core step logic (use `arguments` instead).
+          additionalProperties: true
+          example:
+            workflow_id: "wf-123"
+            step_id: "text-processor"
+            receipt_token: "tok_abc123xyz"
+
+    StepResponse:
+      type: object
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: |
+            Whether the step executed successfully.
+            - `true`: Step completed successfully (outputs will be merged into workflow state)
+            - `false`: Step failed (check `error` or `exception` for details)
+        outputs:
+          type: object
+          description: |
+            Output values that will be merged into the workflow state.
+
+            **Key naming**: Keys should match the step's declared `output_args`
+            in the step registration. However, you can return any keys - the
+            engine will merge all outputs into the workflow state.
+
+            **Value types**: Outputs can be any JSON-serializable values:
+            - Primitives: strings, numbers, booleans
+            - Objects: nested structures
+            - Arrays: lists of values
+
+            **Required when**: `success: true` (optional if step has no outputs)
+          additionalProperties: true
+          example:
+            processed_text: "HELLO WORLD"
+            processing_time_ms: 42
+            result_metadata:
+              quality_score: 0.95
+              confidence: "high"
+        error:
+          type: string
+          description: |
+            Human-readable error message for business logic failures.
+
+            **When to use**:
+            - The step executed correctly but the business logic failed
+            - Examples: Validation errors, invalid input, expected failures
+
+            **Workflow behavior**:
+            - The step is marked as failed
+            - The workflow may continue depending on error handling strategy
+            - Error is logged in workflow state
+
+            **Required when**: `success: false` (alternative to `exception`)
+          example: "Invalid input format: must be one of [uppercase, lowercase, reverse]"
+        exception:
+          description: |
+            Exception value that should terminate the entire workflow.
+
+            **When to use**:
+            - Critical errors that make workflow continuation impossible
+            - Examples: Account suspended, fatal system error, security violation
+
+            **Workflow behavior**:
+            - The workflow is immediately stopped
+            - The workflow is marked as failed
+            - No further steps will execute
+
+            **Format**: Can be a string message or structured object
+          oneOf:
+            - type: string
+              example: "User account is suspended"
+            - type: object
+              properties:
+                code:
+                  type: string
+                  example: "ACCOUNT_SUSPENDED"
+                message:
+                  type: string
+                  example: "User account has been suspended due to policy violation"
+                details:
+                  type: object
+                  additionalProperties: true
+              example:
+                code: "ACCOUNT_SUSPENDED"
+                message: "User account has been suspended"
+                details:
+                  suspend_date: "2023-12-01T10:30:00Z"
+                  reason: "Terms of service violation"
+        is_terminal_stop:
+          type: boolean
+          default: false
+          description: |
+            If true, indicates this step intentionally completes the workflow.
+
+            **Difference from exception**:
+            - This is a **successful** terminal condition
+            - The workflow is marked as **completed** (not failed)
+
+            **Use cases**:
+            - Early completion based on business logic
+            - Conditional workflow paths that end early
+            - Steps that explicitly signal "workflow done"
+
+            **Note**: Steps with no declared `output_args` are automatically
+            terminal, so this flag is rarely needed.
+          example: false
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: |
+            Error message describing what went wrong.
+
+            This is used for HTTP-level errors (400, 500, 503), NOT for
+            business logic errors (which should return 200 with `success: false`).
+          example: "Missing required argument: input_text"
+        code:
+          type: string
+          description: |
+            Optional error code for programmatic handling.
+
+            Useful for clients to handle different error types without
+            parsing error messages.
+          example: "MISSING_REQUIRED_ARG"
+        details:
+          type: object
+          description: Additional error context (optional, any structure)
+          additionalProperties: true
+          example:
+            argument_name: "input_text"
+            received_arguments: ["format", "timeout_seconds"]
+
+security: []
+
+tags:
+  - name: Step Execution
+    description: Step execution endpoint contract
+
+x-implementation-notes: |
+  ## Implementation Checklist
+
+  When implementing a step endpoint, ensure you:
+
+  1. **Validate required arguments** are present in the request
+  2. **Process requests within timeout** configured in step registration
+  3. **Return proper HTTP status codes**:
+     - 200: Success or business logic error
+     - 400: Invalid request format
+     - 500: Internal server error
+     - 503: Service unavailable
+  4. **Use metadata for idempotency**: Use `workflow_id` + `step_id` as idempotency key
+  5. **Distinguish errors from exceptions**:
+     - `error`: Recoverable business logic failures
+     - `exception`: Critical failures that terminate workflow
+  6. **Return declared outputs** (keys matching `output_args` in registration)
+  7. **Handle async operations** properly (return 200 immediately, POST to `webhook_url` when done)
+
+  ## Testing Your Step
+
+  You can test your step implementation with:
+
+  ```bash
+  curl -X POST http://localhost:8081/your-step-endpoint \
+    -H "Content-Type: application/json" \
+    -d '{
+      "arguments": {
+        "input_arg": "test value"
+      },
+      "metadata": {
+        "workflow_id": "test-workflow",
+        "step_id": "your-step-id"
+      }
+    }'
+  ```
+
+  ## Example Implementations
+
+  See the `/examples` directory in the Spuds repository for reference
+  implementations in various languages and frameworks.
