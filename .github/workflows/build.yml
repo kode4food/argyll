@@ -5,7 +5,7 @@ on:
   pull_request:
     branches: [main]
 jobs:
-  build:
+  build-engine:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -14,5 +14,21 @@ jobs:
         uses: actions/setup-go@v4
         with:
           go-version: '1.25'
-      - name: Build and Test
+      - name: Build and Test Engine
         run: cd engine && make
+
+  build-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install dependencies
+        run: cd web && npm ci
+      - name: Build web app
+        run: cd web && npm run build
+      - name: Run tests
+        run: cd web && npm test
