@@ -332,7 +332,6 @@ components:
             **Standard fields provided by the engine:**
             - `workflow_id`: The executing workflow's ID (use for idempotency)
             - `step_id`: The step identifier being executed
-            - `receipt_token`: Internal token for async callback validation (don't use)
             - `webhook_url`: For async steps only, the URL to POST results to
 
             **Best Practice**: Use `workflow_id` + `step_id` as an idempotency key.
@@ -342,7 +341,7 @@ components:
           example:
             workflow_id: "wf-123"
             step_id: "text-processor"
-            receipt_token: "tok_abc123xyz"
+            webhook_url: "http://localhost:8080/webhook/wf-123/text-processor/tok_abc123xyz"
 
     StepResponse:
       type: object
@@ -360,9 +359,9 @@ components:
           description: |
             Output values that will be merged into the workflow state.
 
-            **Key naming**: Keys should match the step's declared `output_args`
-            in the step registration. However, you can return any keys - the
-            engine will merge all outputs into the workflow state.
+            **Key naming**: Keys should match the step's declared output attributes
+            in the step registration. However, you can return any keys - the engine
+            will merge all outputs into the workflow state.
 
             **Value types**: Outputs can be any JSON-serializable values:
             - Primitives: strings, numbers, booleans
@@ -442,7 +441,7 @@ components:
             - Conditional workflow paths that end early
             - Steps that explicitly signal "workflow done"
 
-            **Note**: Steps with no declared `output_args` are automatically
+            **Note**: Steps with no declared output attributes are automatically
             terminal, so this flag is rarely needed.
           example: false
 
@@ -497,7 +496,7 @@ x-implementation-notes: |
   5. **Distinguish errors from exceptions**:
      - `error`: Recoverable business logic failures
      - `exception`: Critical failures that terminate workflow
-  6. **Return declared outputs** (keys matching `output_args` in registration)
+  6. **Return declared outputs** (keys matching output attributes in registration)
   7. **Handle async operations** properly (return 200 immediately, POST to `webhook_url` when done)
 
   ## Testing Your Step

@@ -116,11 +116,12 @@ paths:
                   id: "text-processor"
                   name: "Text Processor"
                   type: "sync"
-                  required_args:
+                  attributes:
                     input_text:
+                      role: "required"
                       type: "string"
-                  output_args:
                     processed_text:
+                      role: "output"
                       type: "string"
                   version: "1.0.0"
                   http:
@@ -133,11 +134,12 @@ paths:
                   id: "greeter"
                   name: "Greeter"
                   type: "script"
-                  required_args:
+                  attributes:
                     name:
+                      role: "required"
                       type: "string"
-                  output_args:
                     greeting:
+                      role: "output"
                       type: "string"
                   version: "1.0.0"
                   script:
@@ -650,30 +652,21 @@ components:
             - `async`: HTTP endpoint that returns immediately and completes via webhook
             - `script`: Ale or Lua script executed in-engine
           example: "sync"
-        required_args:
+        attributes:
           type: object
-          description: Arguments that must be available before step execution (mapped by argument name)
+          description: Step attributes (inputs and outputs) mapped by attribute name
           additionalProperties:
-            $ref: "#/components/schemas/ArgumentSpec"
+            $ref: "#/components/schemas/AttributeSpec"
           example:
             input_text:
+              role: "required"
               type: "string"
-        optional_args:
-          type: object
-          description: Arguments that may be provided with configurable timeouts (mapped by argument name)
-          additionalProperties:
-            $ref: "#/components/schemas/OptionalArgSpec"
-          example:
             optional_field:
+              role: "optional"
               type: "string"
-              timeout: 5000
-        output_args:
-          type: object
-          description: Outputs this step produces (mapped by argument name)
-          additionalProperties:
-            $ref: "#/components/schemas/ArgumentSpec"
-          example:
+              default: '"default_value"'
             processed_text:
+              role: "output"
               type: "string"
         version:
           type: string
@@ -686,32 +679,54 @@ components:
           $ref: "#/components/schemas/HttpConfig"
         script:
           $ref: "#/components/schemas/ScriptConfig"
+        work_config:
+          $ref: "#/components/schemas/WorkConfig"
 
-    ArgumentSpec:
+    AttributeSpec:
       type: object
-      description: Argument specification (name is the map key, not stored in the value)
-      properties:
-        type:
-          type: string
-          description: Type hint (informational, not enforced)
-          example: "string"
-
-    OptionalArgSpec:
-      type: object
-      description: Optional argument specification with timeout (name is the map key)
+      description: Attribute specification defining input or output for a step
       required:
-        - timeout
+        - role
       properties:
+        role:
+          type: string
+          description: |
+            Attribute role:
+            - `required`: Input that must be available before execution
+            - `optional`: Input with default value or timeout
+            - `output`: Value produced by step execution
+          enum:
+            - required
+            - optional
+            - output
+          example: "required"
         type:
           type: string
-          description: Type hint (informational, not enforced)
+          description: |
+            Type hint for validation and documentation:
+            - `string`, `number`, `boolean`, `object`, `array`, `null`, `any`
+          enum:
+            - string
+            - number
+            - boolean
+            - object
+            - array
+            - null
+            - any
           example: "string"
-        timeout:
-          type: integer
-              format: int64
-              minimum: 1
-              description: Maximum time to wait for this argument in milliseconds
-              example: 5000
+        default:
+          type: string
+          description: |
+            Default value as JSON string (only for optional attributes).
+            Must be valid JSON matching the specified type.
+          example: '"default_value"'
+        for_each:
+          type: boolean
+          description: |
+            If true, this step will execute once for each element in an array input.
+            Only allowed for input attributes (required/optional) with array type.
+          default: false
+          example: false
 
     HttpConfig:
       type: object
@@ -752,6 +767,34 @@ components:
           type: string
           description: The script code to execute
           example: "{:greeting (str \"Hello, \" name)}"
+
+    WorkConfig:
+      type: object
+      description: Configuration for step execution behavior
+      properties:
+        max_retries:
+          type: integer
+          description: Maximum number of retries on failure
+          example: 3
+        backoff_ms:
+          type: integer
+          format: int64
+          description: Initial backoff delay in milliseconds
+          example: 1000
+        max_backoff_ms:
+          type: integer
+          format: int64
+          description: Maximum backoff delay in milliseconds
+          example: 30000
+        backoff_type:
+          type: string
+          enum: ["fixed", "linear", "exponential"]
+          description: Backoff strategy
+          example: "exponential"
+        parallelism:
+          type: integer
+          description: Maximum parallel executions for for_each steps
+          example: 10
 
     StepRegisteredResponse:
       type: object

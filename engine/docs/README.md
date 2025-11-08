@@ -50,14 +50,18 @@ curl -X POST http://localhost:8080/engine/step \
     "id": "text-processor",
     "name": "Text Processor",
     "type": "sync",
-    "required_args": {
-      "input_text": {"type": "string"}
-    },
-    "output_args": {
-      "processed_text": {}
+    "attributes": {
+      "input_text": {
+        "role": "required",
+        "type": "string"
+      },
+      "processed_text": {
+        "role": "output",
+        "type": "string"
+      }
     },
     "version": "1.0.0",
-    "http_config": {
+    "http": {
       "endpoint": "http://localhost:8081/process-text",
       "health_check": "http://localhost:8081/health",
       "timeout": 30000
@@ -122,7 +126,7 @@ Where `{step-endpoint}` is any path that implements the Step interface.
   "metadata": {
     "workflow_id": "wf-123",
     "step_id": "unique-step-identifier",
-    "receipt_token": "tok_abc123"
+    "webhook_url": "http://localhost:8080/webhook/wf-123/unique-step-identifier/tok_abc123"
   }
 }
 ```
@@ -130,7 +134,6 @@ Where `{step-endpoint}` is any path that implements the Step interface.
 **Note:** The `metadata` field contains:
 - `workflow_id` - The executing workflow's ID
 - `step_id` - The step identifier being executed
-- `receipt_token` - Internal token (don't use)
 - `webhook_url` - For async steps only, where to POST completion results
 
 **Idempotency:** Use `workflow_id` + `step_id` as a composite key to ensure each step execution is processed only once.
@@ -169,9 +172,8 @@ Steps are registered with the Spuds engine by providing:
 
 1. **Unique ID**: Identifies this step type
 2. **Type**: `sync`, `async`, or `script`
-3. **Input Arguments**: Required and optional arguments with types
-4. **Output Arguments**: What keys this step will produce
-5. **Configuration**: HTTP endpoint (for sync/async) or script code (for script steps)
+3. **Attributes**: Required inputs, optional inputs, and outputs with types
+4. **Configuration**: HTTP endpoint (for sync/async) or script code (for script steps)
 
 Example registration (sync HTTP step):
 ```json
@@ -179,17 +181,23 @@ Example registration (sync HTTP step):
   "id": "text-processor",
   "name": "Text Processing Step",
   "type": "sync",
-  "required_args": {
-    "input_text": {"type": "string"}
-  },
-  "optional_args": {
-    "format": {"type": "string", "timeout": 5000}
-  },
-  "output_args": {
-    "processed_text": {}
+  "attributes": {
+    "input_text": {
+      "role": "required",
+      "type": "string"
+    },
+    "format": {
+      "role": "optional",
+      "type": "string",
+      "default": "\"uppercase\""
+    },
+    "processed_text": {
+      "role": "output",
+      "type": "string"
+    }
   },
   "version": "1.0.0",
-  "http_config": {
+  "http": {
     "endpoint": "https://myservice.com/api/v1/process-text",
     "health_check": "https://myservice.com/health",
     "timeout": 30000
