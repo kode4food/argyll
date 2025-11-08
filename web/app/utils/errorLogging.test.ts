@@ -16,8 +16,8 @@ describe("errorLogger", () => {
       configurable: true,
     });
     jest.resetModules();
-    const module = require("./errorLogging");
-    errorLogger = module.errorLogger;
+    const errorLogging = require("./errorLogging");
+    errorLogger = errorLogging.errorLogger;
   });
 
   afterAll(() => {
