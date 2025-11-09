@@ -10,6 +10,10 @@
   pointer-events: all;
 }
 
+.react-flow__node.dragging:has(.step-widget) {
+  z-index: 1000 !important;
+}
+
 .step-widget.resolver {
   background-color: var(--color-resolver-bg);
   border-color: color-mix(in srgb, var(--color-resolver-border) 85%, black);
