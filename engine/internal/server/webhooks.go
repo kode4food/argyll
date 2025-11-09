@@ -19,7 +19,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	flow, err := s.engine.GetWorkflowState(c.Request.Context(), flowID)
 	if err != nil {
 		slog.Error("Workflow not found",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("Workflow not found: %v", err),
@@ -31,7 +31,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
 		slog.Error("Execution not found",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("step_id", stepID))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Step execution not found",
@@ -43,7 +43,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	// Check if token matches a work item
 	if exec.WorkItems == nil || exec.WorkItems[token] == nil {
 		slog.Error("Work item not found",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("step_id", stepID),
 			slog.Any("token", token))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -62,7 +62,7 @@ func (s *Server) handleWorkWebhook(
 	var result api.StepResult
 	if err := c.ShouldBindJSON(&result); err != nil {
 		slog.Error("Invalid JSON",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("step_id", stepID),
 			slog.Any("token", token),
 			slog.Any("error", err))
@@ -75,7 +75,7 @@ func (s *Server) handleWorkWebhook(
 
 	if !result.Success {
 		slog.Error("Work failed",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("step_id", stepID),
 			slog.Any("token", token),
 			slog.String("error", result.Error))
@@ -83,7 +83,7 @@ func (s *Server) handleWorkWebhook(
 			c.Request.Context(), flowID, stepID, token, result.Error,
 		); err != nil {
 			slog.Error("Failed to record work failure",
-				slog.Any("workflow_id", flowID),
+				slog.Any("flow_id", flowID),
 				slog.Any("step_id", stepID),
 				slog.Any("token", token),
 				slog.Any("error", err))
@@ -101,7 +101,7 @@ func (s *Server) handleWorkWebhook(
 		c.Request.Context(), flowID, stepID, token, result.Outputs,
 	); err != nil {
 		slog.Error("Failed to complete work",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("step_id", stepID),
 			slog.Any("token", token),
 			slog.Any("error", err))

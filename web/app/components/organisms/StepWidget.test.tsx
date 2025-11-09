@@ -233,7 +233,7 @@ describe("StepWidget", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",

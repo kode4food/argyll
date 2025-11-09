@@ -19,7 +19,7 @@ describe("useWorkflowFromUrl", () => {
   });
 
   test("selects workflow from URL params", () => {
-    mockUseParams.mockReturnValue({ workflowId: "wf-123" });
+    mockUseParams.mockReturnValue({ flowId: "wf-123" });
     mockUsePathname.mockReturnValue("/workflow/wf-123");
 
     const { result } = renderHook(() => useWorkflowFromUrl());
@@ -56,14 +56,14 @@ describe("useWorkflowFromUrl", () => {
   });
 
   test("updates when workflow ID changes", () => {
-    mockUseParams.mockReturnValue({ workflowId: "wf-123" });
+    mockUseParams.mockReturnValue({ flowId: "wf-123" });
     mockUsePathname.mockReturnValue("/workflow/wf-123");
 
     const { rerender } = renderHook(() => useWorkflowFromUrl());
 
     expect(mockSelectWorkflow).toHaveBeenCalledWith("wf-123");
 
-    mockUseParams.mockReturnValue({ workflowId: "wf-456" });
+    mockUseParams.mockReturnValue({ flowId: "wf-456" });
     mockUsePathname.mockReturnValue("/workflow/wf-456");
 
     rerender();

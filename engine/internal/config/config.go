@@ -151,7 +151,7 @@ func (c *Config) LoadFromEnv() {
 
 func (c *Config) Validate() error {
 	if c.APIPort <= 0 || c.APIPort > MaxTCPPort {
-		return fmt.Errorf("%s: %d", ErrInvalidAPIPort, c.APIPort)
+		return fmt.Errorf("%w: %d", ErrInvalidAPIPort, c.APIPort)
 	}
 
 	if c.StepTimeout <= 0 {

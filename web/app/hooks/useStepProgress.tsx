@@ -16,13 +16,13 @@ interface StepProgressState {
   status: StepProgressStatus;
   startTime?: number;
   endTime?: number;
-  workflowId?: string;
+  flowId?: string;
   workItems?: WorkItemProgress;
 }
 
 export const useStepProgress = (
   stepId: string,
-  workflowId?: string,
+  flowId?: string,
   execution?: ExecutionResult
 ) => {
   const { events } = useWebSocketContext();
@@ -33,11 +33,11 @@ export const useStepProgress = (
 
   // Calculate work item progress from executions
   const workItemProgress = useMemo(() => {
-    if (!workflowId || !executions) return undefined;
+    if (!flowId || !executions) return undefined;
 
     // Find the execution for this step
     const exec = executions.find(
-      (e: any) => e.step_id === stepId && e.workflow_id === workflowId
+      (e: any) => e.step_id === stepId && e.flow_id === flowId
     );
 
     if (!exec || !exec.work_items) return undefined;
@@ -54,22 +54,22 @@ export const useStepProgress = (
     };
 
     return progress;
-  }, [executions, stepId, workflowId]);
+  }, [executions, stepId, flowId]);
 
   useEffect(() => {
-    if (!workflowId) {
+    if (!flowId) {
       setProgressState({ status: "pending" });
       return;
     }
 
     if (
       execution &&
-      execution.workflow_id === workflowId &&
+      execution.flow_id === flowId &&
       execution.step_id === stepId
     ) {
       setProgressState({
         status: execution.status as StepProgressStatus,
-        workflowId,
+        flowId,
         workItems: workItemProgress,
       });
       return;
@@ -77,13 +77,13 @@ export const useStepProgress = (
 
     const stepEvents = events.filter(
       (event) =>
-        event.data?.step_id === stepId && event.data?.workflow_id === workflowId
+        event.data?.step_id === stepId && event.data?.flow_id === flowId
     );
 
     if (stepEvents.length === 0) {
       setProgressState({
         status: "pending",
-        workflowId,
+        flowId,
         workItems: workItemProgress,
       });
       return;
@@ -98,7 +98,7 @@ export const useStepProgress = (
         newState = {
           status: "active",
           startTime: latestEvent.data?.start_time,
-          workflowId,
+          flowId,
           workItems: workItemProgress,
         };
         break;
@@ -107,7 +107,7 @@ export const useStepProgress = (
           status: "completed",
           startTime: latestEvent.data?.start_time,
           endTime: latestEvent.data?.end_time,
-          workflowId,
+          flowId,
           workItems: workItemProgress,
         };
         break;
@@ -116,20 +116,20 @@ export const useStepProgress = (
           status: "failed",
           startTime: latestEvent.data?.start_time,
           endTime: latestEvent.data?.end_time,
-          workflowId,
+          flowId,
           workItems: workItemProgress,
         };
         break;
       default:
         newState = {
           status: "pending",
-          workflowId,
+          flowId,
           workItems: workItemProgress,
         };
     }
 
     setProgressState(newState);
-  }, [events, stepId, workflowId, execution, workItemProgress]);
+  }, [events, stepId, flowId, execution, workItemProgress]);
 
   return progressState;
 };

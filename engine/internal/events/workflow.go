@@ -49,12 +49,12 @@ func workflowStarted(
 	exec := createExecutions(ws.ExecutionPlan)
 
 	attributes := map[api.Name]*api.AttributeValue{}
-	for key, value := range ws.InitialState {
+	for key, value := range ws.Init {
 		attributes[key] = &api.AttributeValue{Value: value}
 	}
 
 	return &api.WorkflowState{
-		ID:            ws.WorkflowID,
+		ID:            ws.FlowID,
 		Status:        api.WorkflowActive,
 		ExecutionPlan: ws.ExecutionPlan,
 		Attributes:    attributes,
@@ -185,8 +185,8 @@ func createExecutions(p *api.ExecutionPlan) map[timebox.ID]*api.ExecutionState {
 		return exec
 	}
 
-	for _, step := range p.Steps {
-		exec[step.ID] = &api.ExecutionState{
+	for stepID := range p.Steps {
+		exec[stepID] = &api.ExecutionState{
 			Status:    api.StepPending,
 			Inputs:    api.Args{},
 			Outputs:   api.Args{},

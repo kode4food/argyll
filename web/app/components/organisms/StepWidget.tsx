@@ -20,7 +20,7 @@ interface StepWidgetProps {
   satisfiedArgs?: Set<string>;
   isInPreviewPlan?: boolean;
   isPreviewMode?: boolean;
-  workflowId?: string;
+  flowId?: string;
   attributeProvenance?: Map<string, string>;
   diagramContainerRef?: React.RefObject<HTMLDivElement>;
   disableEdit?: boolean;
@@ -37,7 +37,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
   satisfiedArgs = new Set(),
   isInPreviewPlan = true,
   isPreviewMode = false,
-  workflowId,
+  flowId,
   attributeProvenance = new Map(),
   diagramContainerRef,
   disableEdit = false,
@@ -64,7 +64,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
   const isGrayedOut = isPreviewMode && !isInPreviewPlan;
   const isEditable =
     !disableEdit &&
-    !workflowId &&
+    !flowId &&
     ((localStep.type === "script" && localStep.script) ||
       ((localStep.type === "sync" || localStep.type === "async") &&
         localStep.http));
@@ -92,7 +92,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
         <StepAttributesSection
           step={step}
           satisfiedArgs={satisfiedArgs}
-          showStatus={execution !== undefined || workflowId !== undefined}
+          showStatus={execution !== undefined || flowId !== undefined}
           execution={execution}
           attributeProvenance={attributeProvenance}
         />
@@ -101,7 +101,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
           step={step}
           healthStatus={healthStatus}
           healthError={healthError}
-          workflowId={workflowId}
+          flowId={flowId}
           execution={execution}
         />
       </div>

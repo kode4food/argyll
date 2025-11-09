@@ -144,7 +144,7 @@ paths:
                   version: "1.0.0"
                   script:
                     language: "ale"
-                    script: "{:greeting (str \"Hello, \" name)}"
+                    script: '{:greeting (str "Hello, " name)}'
       responses:
         "201":
           description: Step registered successfully
@@ -327,8 +327,8 @@ paths:
             schema:
               $ref: "#/components/schemas/ExecutionPlanRequest"
             example:
-              goal_steps: ["text-processor"]
-              initial_state:
+              goals: ["text-processor"]
+              init:
                 user_id: "john.doe"
       responses:
         "200":
@@ -388,8 +388,8 @@ paths:
               $ref: "#/components/schemas/CreateWorkflowRequest"
             example:
               id: "wf-text-processing-001"
-              goal_steps: ["text-processor"]
-              initial_state:
+              goals: ["text-processor"]
+              init:
                 input_text: "Hello, Spuds!"
       responses:
         "201":
@@ -411,7 +411,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/workflow/{workflowId}:
+  /engine/workflow/{flowId}:
     get:
       summary: Get Workflow State
       description: |
@@ -424,7 +424,7 @@ paths:
       tags:
         - Workflows
       parameters:
-        - name: workflowId
+        - name: flowId
           in: path
           required: true
           description: Unique identifier of the workflow
@@ -445,7 +445,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /webhook/{workflowId}/{stepId}/{token}:
+  /webhook/{flowId}/{stepId}/{token}:
     post:
       summary: Webhook Callback for Async Steps
       description: |
@@ -459,7 +459,7 @@ paths:
       tags:
         - Webhooks
       parameters:
-        - name: workflowId
+        - name: flowId
           in: path
           required: true
           description: Workflow ID
@@ -766,7 +766,7 @@ components:
         script:
           type: string
           description: The script code to execute
-          example: "{:greeting (str \"Hello, \" name)}"
+          example: '{:greeting (str "Hello, " name)}'
 
     WorkConfig:
       type: object
@@ -826,16 +826,16 @@ components:
     ExecutionPlanRequest:
       type: object
       required:
-        - goal_steps
+        - goals
       properties:
-        goal_steps:
+        goals:
           type: array
           description: Array of goal step IDs (typically one, but multiple supported)
           items:
             type: string
           minItems: 1
           example: ["text-processor"]
-        initial_state:
+        init:
           type: object
           description: Initial workflow state (arguments/attributes)
           additionalProperties: true
@@ -845,11 +845,11 @@ components:
     ExecutionPlan:
       type: object
       required:
-        - goal_steps
+        - goals
         - required_inputs
         - steps
       properties:
-        goal_steps:
+        goals:
           type: array
           description: Goal step IDs for this plan
           items:
@@ -857,7 +857,7 @@ components:
           example: ["text-processor"]
         required_inputs:
           type: array
-          description: Inputs that must be provided in initial_state
+          description: Inputs that must be provided in init
           items:
             type: string
           example: ["input_text"]
@@ -876,20 +876,20 @@ components:
       type: object
       required:
         - id
-        - goal_steps
+        - goals
       properties:
         id:
           type: string
           description: Unique workflow identifier
           example: "wf-text-processing-001"
-        goal_steps:
+        goals:
           type: array
           description: Goal step IDs (typically one, but multiple supported)
           items:
             type: string
           minItems: 1
           example: ["text-processor"]
-        initial_state:
+        init:
           type: object
           description: Initial workflow state providing required inputs
           additionalProperties: true
@@ -900,12 +900,12 @@ components:
       type: object
       required:
         - message
-        - workflow_id
+        - flow_id
       properties:
         message:
           type: string
           example: "Workflow started successfully"
-        workflow_id:
+        flow_id:
           type: string
           example: "wf-text-processing-001"
 

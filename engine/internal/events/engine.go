@@ -80,8 +80,8 @@ func engineWorkflowStarted(
 	}
 
 	return st.
-		SetActiveWorkflow(ws.WorkflowID, &api.ActiveWorkflowInfo{
-			WorkflowID: ws.WorkflowID,
+		SetActiveWorkflow(ws.FlowID, &api.ActiveWorkflowInfo{
+			FlowID:     ws.FlowID,
 			StartedAt:  ev.Timestamp,
 			LastActive: ev.Timestamp,
 		}).
@@ -97,7 +97,7 @@ func engineWorkflowCompleted(
 	}
 
 	return st.
-		DeleteActiveWorkflow(wc.WorkflowID).
+		DeleteActiveWorkflow(wc.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -110,6 +110,6 @@ func engineWorkflowFailed(
 	}
 
 	return st.
-		DeleteActiveWorkflow(wf.WorkflowID).
+		DeleteActiveWorkflow(wf.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }

@@ -45,7 +45,7 @@ info:
 
     1. **Accepts** a JSON request with:
        - `arguments`: Input arguments (from workflow state)
-       - `metadata`: Workflow context (workflow_id, step_id, etc.)
+       - `metadata`: Workflow context (flow_id, step_id, etc.)
 
     2. **Returns** a JSON response with:
        - `success`: Boolean indicating execution success
@@ -121,7 +121,7 @@ paths:
         2. **Process the request**: Execute your business logic
         3. **Return results**: Provide outputs or error information
         4. **Handle timeouts**: Respect the timeout configured in step registration
-        5. **Use idempotency**: Use `workflow_id` + `step_id` from metadata as idempotency key
+        5. **Use idempotency**: Use `flow_id` + `step_id` from metadata as idempotency key
 
         ## Execution Flow
 
@@ -169,7 +169,7 @@ paths:
                     input_text: "Hello World"
                     format: "uppercase"
                   metadata:
-                    workflow_id: "wf-123"
+                    flow_id: "wf-123"
                     step_id: "text-processor"
               validationStep:
                 summary: User validation
@@ -179,7 +179,7 @@ paths:
                     user_id: "john.doe@company.com"
                     required_role: "admin"
                   metadata:
-                    workflow_id: "wf-onboarding-789"
+                    flow_id: "wf-onboarding-789"
                     step_id: "user-validator"
               dataEnrichment:
                 summary: Data enrichment
@@ -189,7 +189,7 @@ paths:
                     user_id: "12345"
                     enrich_fields: ["profile", "preferences", "activity"]
                   metadata:
-                    workflow_id: "wf-analytics-456"
+                    flow_id: "wf-analytics-456"
                     step_id: "data-enricher"
       responses:
         "200":
@@ -330,16 +330,16 @@ components:
             information but should NOT be used for core business logic.
 
             **Standard fields provided by the engine:**
-            - `workflow_id`: The executing workflow's ID (use for idempotency)
+            - `flow_id`: The executing workflow's ID (use for idempotency)
             - `step_id`: The step identifier being executed
             - `webhook_url`: For async steps only, the URL to POST results to
 
-            **Best Practice**: Use `workflow_id` + `step_id` as an idempotency key.
+            **Best Practice**: Use `flow_id` + `step_id` as an idempotency key.
             The combination uniquely identifies a step execution within a workflow.
             Do NOT depend on `metadata` for core step logic (use `arguments` instead).
           additionalProperties: true
           example:
-            workflow_id: "wf-123"
+            flow_id: "wf-123"
             step_id: "text-processor"
             webhook_url: "http://localhost:8080/webhook/wf-123/text-processor/tok_abc123xyz"
 
@@ -492,7 +492,7 @@ x-implementation-notes: |
      - 400: Invalid request format
      - 500: Internal server error
      - 503: Service unavailable
-  4. **Use metadata for idempotency**: Use `workflow_id` + `step_id` as idempotency key
+  4. **Use metadata for idempotency**: Use `flow_id` + `step_id` as idempotency key
   5. **Distinguish errors from exceptions**:
      - `error`: Recoverable business logic failures
      - `exception`: Critical failures that terminate workflow
@@ -511,7 +511,7 @@ x-implementation-notes: |
         "input_arg": "test value"
       },
       "metadata": {
-        "workflow_id": "test-workflow",
+        "flow_id": "test-workflow",
         "step_id": "your-step-id"
       }
     }'

@@ -139,11 +139,11 @@ describe("StepFooter", () => {
 
     mockUseStepProgress.mockReturnValue({
       status: "active",
-      workflowId: "wf-1",
+      flowId: "wf-1",
     });
 
     const { container } = render(
-      <StepFooter step={step} healthStatus="healthy" workflowId="wf-1" />
+      <StepFooter step={step} healthStatus="healthy" flowId="wf-1" />
     );
 
     expect(container.querySelector(".progress-icon")).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe("StepFooter", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
@@ -162,14 +162,14 @@ describe("StepFooter", () => {
 
     mockUseStepProgress.mockReturnValue({
       status: "completed",
-      workflowId: "wf-1",
+      flowId: "wf-1",
     });
 
     render(
       <StepFooter
         step={step}
         healthStatus="healthy"
-        workflowId="wf-1"
+        flowId="wf-1"
         execution={execution}
       />
     );
@@ -182,7 +182,7 @@ describe("StepFooter", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "failed",
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
@@ -191,14 +191,14 @@ describe("StepFooter", () => {
 
     mockUseStepProgress.mockReturnValue({
       status: "failed",
-      workflowId: "wf-1",
+      flowId: "wf-1",
     });
 
     render(
       <StepFooter
         step={step}
         healthStatus="healthy"
-        workflowId="wf-1"
+        flowId="wf-1"
         execution={execution}
       />
     );
@@ -211,7 +211,7 @@ describe("StepFooter", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "skipped",
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
@@ -219,14 +219,14 @@ describe("StepFooter", () => {
 
     mockUseStepProgress.mockReturnValue({
       status: "skipped",
-      workflowId: "wf-1",
+      flowId: "wf-1",
     });
 
     render(
       <StepFooter
         step={step}
         healthStatus="healthy"
-        workflowId="wf-1"
+        flowId="wf-1"
         execution={execution}
       />
     );
@@ -241,7 +241,7 @@ describe("StepFooter", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
@@ -250,14 +250,14 @@ describe("StepFooter", () => {
 
     mockUseStepProgress.mockReturnValue({
       status: "completed",
-      workflowId: "wf-1",
+      flowId: "wf-1",
     });
 
     render(
       <StepFooter
         step={step}
         healthStatus="healthy"
-        workflowId="wf-1"
+        flowId="wf-1"
         execution={execution}
       />
     );
@@ -333,11 +333,11 @@ describe("StepFooter", () => {
 
     mockUseStepProgress.mockReturnValue({
       status: "active",
-      workflowId: "wf-2",
+      flowId: "wf-2",
     });
 
     const { container } = render(
-      <StepFooter step={step} healthStatus="healthy" workflowId="wf-1" />
+      <StepFooter step={step} healthStatus="healthy" flowId="wf-1" />
     );
 
     expect(container.querySelector(".progress-icon")).not.toBeInTheDocument();

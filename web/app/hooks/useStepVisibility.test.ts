@@ -43,9 +43,12 @@ describe("useStepVisibility", () => {
       state: {},
       started_at: "2024-01-01T00:00:00Z",
       execution_plan: {
-        goal_steps: ["step1"],
-        required_inputs: [],
-        steps: [step1],
+        goals: ["step1"],
+        required: [],
+        steps: {
+          step1: { step: step1 },
+        },
+        attributes: {},
       },
     };
 
@@ -63,9 +66,12 @@ describe("useStepVisibility", () => {
     const steps = [step1, step2];
 
     const previewPlan: ExecutionPlan = {
-      goal_steps: ["step1"],
-      required_inputs: [],
-      steps: [step1],
+      goals: ["step1"],
+      required: [],
+      steps: {
+        step1: { step: step1 },
+      },
+      attributes: {},
     };
 
     const { result } = renderHook(() =>
@@ -88,16 +94,22 @@ describe("useStepVisibility", () => {
       state: {},
       started_at: "2024-01-01T00:00:00Z",
       execution_plan: {
-        goal_steps: ["step1"],
-        required_inputs: [],
-        steps: [step1],
+        goals: ["step1"],
+        required: [],
+        steps: {
+          step1: { step: step1 },
+        },
+        attributes: {},
       },
     };
 
     const previewPlan: ExecutionPlan = {
-      goal_steps: ["step2"],
-      required_inputs: [],
-      steps: [step2],
+      goals: ["step2"],
+      required: [],
+      steps: {
+        step2: { step: step2 },
+      },
+      attributes: {},
     };
 
     const { result } = renderHook(() =>

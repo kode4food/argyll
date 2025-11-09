@@ -97,7 +97,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
 
   const included = React.useMemo(() => {
     if (!previewPlan?.steps) return new Set<string>();
-    return new Set(previewPlan.steps.map((s) => s.id));
+    return new Set(Object.keys(previewPlan.steps));
   }, [previewPlan?.steps]);
 
   const parsedState = React.useMemo(() => {

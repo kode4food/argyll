@@ -11,7 +11,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-func TestNoGoalSteps(t *testing.T) {
+func TestNoGoals(t *testing.T) {
 	eng := &engine.Engine{}
 	engState := &api.EngineState{
 		Steps: map[timebox.ID]*api.Step{},
@@ -61,13 +61,13 @@ func TestSimpleResolver(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Len(t, plan.GoalSteps, 1)
-	assert.Equal(t, timebox.ID("resolver"), plan.GoalSteps[0])
+	assert.Len(t, plan.Goals, 1)
+	assert.Equal(t, timebox.ID("resolver"), plan.Goals[0])
 
 	assert.Len(t, plan.Steps, 1)
-	assert.Equal(t, timebox.ID("resolver"), plan.Steps[0].ID)
+	assert.Contains(t, plan.Steps, timebox.ID("resolver"))
 
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }
 
 func TestProcessorWithInit(t *testing.T) {
@@ -101,7 +101,7 @@ func TestProcessorWithInit(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 1)
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }
 
 func TestProcessorNoInit(t *testing.T) {
@@ -133,8 +133,8 @@ func TestProcessorNoInit(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Len(t, plan.RequiredInputs, 1)
-	assert.Equal(t, api.Name("input"), plan.RequiredInputs[0])
+	assert.Len(t, plan.Required, 1)
+	assert.Equal(t, api.Name("input"), plan.Required[0])
 }
 
 func TestChained(t *testing.T) {
@@ -198,19 +198,14 @@ func TestChained(t *testing.T) {
 
 	assert.Len(t, plan.Steps, 3)
 
-	stepIDs := map[timebox.ID]bool{}
-	for _, step := range plan.Steps {
-		stepIDs[step.ID] = true
-	}
+	assert.Contains(t, plan.Steps, timebox.ID("resolver"))
+	assert.Contains(t, plan.Steps, timebox.ID("processor"))
+	assert.Contains(t, plan.Steps, timebox.ID("collector"))
 
-	assert.True(t, stepIDs["resolver"])
-	assert.True(t, stepIDs["processor"])
-	assert.True(t, stepIDs["collector"])
-
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }
 
-func TestMultipleGoalSteps(t *testing.T) {
+func TestMultipleGoals(t *testing.T) {
 	eng := &engine.Engine{}
 
 	step1 := &api.Step{
@@ -253,7 +248,7 @@ func TestMultipleGoalSteps(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Len(t, plan.GoalSteps, 2)
+	assert.Len(t, plan.Goals, 2)
 	assert.Len(t, plan.Steps, 2)
 }
 
@@ -367,19 +362,14 @@ func TestComplexGraph(t *testing.T) {
 
 	assert.Len(t, plan.Steps, 4)
 
-	stepIDs := map[timebox.ID]bool{}
-	for _, step := range plan.Steps {
-		stepIDs[step.ID] = true
-	}
-
 	requiredSteps := []timebox.ID{
 		"resolver1", "resolver2", "processor1", "processor2",
 	}
 	for _, stepID := range requiredSteps {
-		assert.True(t, stepIDs[stepID])
+		assert.Contains(t, plan.Steps, stepID)
 	}
 
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }
 
 func TestReceipts(t *testing.T) {
@@ -444,8 +434,8 @@ func TestMissingDependency(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	assert.Len(t, plan.RequiredInputs, 1)
-	assert.Equal(t, api.Name("nonexistent"), plan.RequiredInputs[0])
+	assert.Len(t, plan.Required, 1)
+	assert.Equal(t, api.Name("nonexistent"), plan.Required[0])
 }
 
 func TestOptionalInput(t *testing.T) {
@@ -494,15 +484,10 @@ func TestOptionalInput(t *testing.T) {
 
 	assert.Len(t, plan.Steps, 2)
 
-	stepIDs := map[timebox.ID]bool{}
-	for _, step := range plan.Steps {
-		stepIDs[step.ID] = true
-	}
+	assert.Contains(t, plan.Steps, timebox.ID("resolver"))
+	assert.Contains(t, plan.Steps, timebox.ID("processor"))
 
-	assert.True(t, stepIDs["resolver"])
-	assert.True(t, stepIDs["processor"])
-
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }
 
 func TestOptionalMissing(t *testing.T) {
@@ -535,9 +520,9 @@ func TestOptionalMissing(t *testing.T) {
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 1)
-	assert.Equal(t, timebox.ID("processor"), plan.Steps[0].ID)
+	assert.Contains(t, plan.Steps, timebox.ID("processor"))
 
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }
 
 func TestMixedInputs(t *testing.T) {
@@ -602,14 +587,9 @@ func TestMixedInputs(t *testing.T) {
 
 	assert.Len(t, plan.Steps, 3)
 
-	stepIDs := map[timebox.ID]bool{}
-	for _, step := range plan.Steps {
-		stepIDs[step.ID] = true
-	}
+	assert.Contains(t, plan.Steps, timebox.ID("resolver1"))
+	assert.Contains(t, plan.Steps, timebox.ID("resolver2"))
+	assert.Contains(t, plan.Steps, timebox.ID("processor"))
 
-	assert.True(t, stepIDs["resolver1"])
-	assert.True(t, stepIDs["resolver2"])
-	assert.True(t, stepIDs["processor"])
-
-	assert.Empty(t, plan.RequiredInputs)
+	assert.Empty(t, plan.Required)
 }

@@ -38,8 +38,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "user-lookup-test",
-    "goal_steps": ["user-resolver"],
-    "initial_state": {"user_id": "user-456"}
+    "goals": ["user-resolver"],
+    "init": {"user_id": "user-456"}
   }'
 ```
 
@@ -69,8 +69,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "inventory-check",
-    "goal_steps": ["inventory-resolver"],
-    "initial_state": {"product_id": "prod-headphones"}
+    "goals": ["inventory-resolver"],
+    "init": {"product_id": "prod-headphones"}
   }'
 ```
 
@@ -106,8 +106,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "create-order-success",
-    "goal_steps": ["order-creator"],
-    "initial_state": {
+    "goals": ["order-creator"],
+    "init": {
       "user_id": "user-123",
       "product_id": "prod-mouse",
       "quantity": 2
@@ -121,8 +121,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "create-order-credit-fail",
-    "goal_steps": ["order-creator"],
-    "initial_state": {
+    "goals": ["order-creator"],
+    "init": {
       "user_id": "user-456",
       "product_id": "prod-laptop",
       "quantity": 2
@@ -138,8 +138,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "create-order-oos",
-    "goal_steps": ["order-creator"],
-    "initial_state": {
+    "goals": ["order-creator"],
+    "init": {
       "user_id": "user-123",
       "product_id": "prod-headphones"
     }
@@ -169,8 +169,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "reserve-stock",
-    "goal_steps": ["stock-reservation"],
-    "initial_state": {
+    "goals": ["stock-reservation"],
+    "init": {
       "user_id": "user-123",
       "product_id": "prod-mouse",
       "quantity": 3
@@ -208,8 +208,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "notify-user",
-    "goal_steps": ["notification-sender"],
-    "initial_state": {
+    "goals": ["notification-sender"],
+    "init": {
       "user_id": "user-456",
       "product_id": "prod-keyboard"
     }
@@ -245,8 +245,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "process-payment",
-    "goal_steps": ["payment-processor"],
-    "initial_state": {
+    "goals": ["payment-processor"],
+    "init": {
       "user_id": "user-123",
       "product_id": "prod-laptop"
     }
@@ -278,8 +278,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "format-text",
-    "goal_steps": ["text-formatter"],
-    "initial_state": {
+    "goals": ["text-formatter"],
+    "init": {
       "text": "Welcome to Spuds!",
       "name": "Alice Johnson"
     }
@@ -300,8 +300,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "calc-price",
-    "goal_steps": ["price-calculator"],
-    "initial_state": {
+    "goals": ["price-calculator"],
+    "init": {
       "quantity": 3,
       "unit_price": 29.99
     }
@@ -322,8 +322,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "check-eligible-pass",
-    "goal_steps": ["eligibility-checker"],
-    "initial_state": {
+    "goals": ["eligibility-checker"],
+    "init": {
       "age": 35,
       "income": 75000,
       "credit_score": 720
@@ -339,8 +339,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "check-eligible-fail",
-    "goal_steps": ["eligibility-checker"],
-    "initial_state": {
+    "goals": ["eligibility-checker"],
+    "init": {
       "age": 17,
       "income": 50000,
       "credit_score": 700
@@ -361,8 +361,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "complete-order-flow",
-    "goal_steps": ["notification-sender"],
-    "initial_state": {
+    "goals": ["notification-sender"],
+    "init": {
       "user_id": "user-123",
       "product_id": "prod-laptop",
       "quantity": 1
@@ -391,7 +391,7 @@ Run the complete workflow multiple times. ~10% will fail at payment processing:
 for i in {1..10}; do
   curl -X POST http://localhost:8080/engine/workflow \
     -H "Content-Type: application/json" \
-    -d "{\"id\": \"order-$i\", \"goal_steps\": [\"payment-processor\"], \"initial_state\": {\"user_id\": \"user-123\", \"product_id\": \"prod-mouse\"}}"
+    -d "{\"id\": \"order-$i\", \"goals\": [\"payment-processor\"], \"init\": {\"user_id\": \"user-123\", \"product_id\": \"prod-mouse\"}}"
 done
 ```
 
@@ -405,7 +405,7 @@ Reserve all available stock of a product:
 for i in {1..35}; do
   curl -X POST http://localhost:8080/engine/workflow \
     -H "Content-Type: application/json" \
-    -d "{\"id\": \"reserve-$i\", \"goal_steps\": [\"stock-reservation\"], \"initial_state\": {\"user_id\": \"user-123\", \"product_id\": \"prod-monitor\", \"quantity\": 1}}"
+    -d "{\"id\": \"reserve-$i\", \"goals\": [\"stock-reservation\"], \"init\": {\"user_id\": \"user-123\", \"product_id\": \"prod-monitor\", \"quantity\": 1}}"
   echo "Reservation $i"
 done
 ```
@@ -422,8 +422,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "credit-fail",
-    "goal_steps": ["order-creator"],
-    "initial_state": {
+    "goals": ["order-creator"],
+    "init": {
       "user_id": "user-456",
       "product_id": "prod-laptop"
     }

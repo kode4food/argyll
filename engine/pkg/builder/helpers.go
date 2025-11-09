@@ -135,7 +135,7 @@ func executeStepWithRecovery(
 				slog.Any("step_id", id),
 				slog.Any("panic", r))
 			result = *api.NewResult().WithError(
-				fmt.Errorf("%s: %v", ErrHandlerPanic, r),
+				fmt.Errorf("%w: %v", ErrHandlerPanic, r),
 			)
 		}
 	}()

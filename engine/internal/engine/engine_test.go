@@ -71,8 +71,10 @@ func TestHTTPExecution(t *testing.T) {
 	env.MockClient.SetResponse("http-step", api.Args{"output": "success"})
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"http-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"http-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -95,8 +97,10 @@ func TestScriptExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"script-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"script-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -121,8 +125,10 @@ func TestPredicateExecution(t *testing.T) {
 	env.MockClient.SetResponse("predicate-step", api.Args{"output": "executed"})
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"predicate-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"predicate-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -150,8 +156,10 @@ func TestPredicateFalse(t *testing.T) {
 	)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"predicate-false-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"predicate-false-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -177,8 +185,10 @@ func TestLuaScriptExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"lua-script-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"lua-script-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -203,9 +213,11 @@ func TestAleScriptWithInputs(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps:      []timebox.ID{"ale-input-step"},
-		Steps:          []*api.Step{step},
-		RequiredInputs: []api.Name{"x"},
+		Goals: []timebox.ID{"ale-input-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
+		Required: []api.Name{"x"},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -232,8 +244,10 @@ func TestLuaPredicate(t *testing.T) {
 	env.MockClient.SetResponse("lua-pred-step", api.Args{"output": "executed"})
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"lua-pred-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"lua-pred-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -336,8 +350,10 @@ func TestGetWorkflowState(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"state-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"state-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(

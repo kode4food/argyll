@@ -14,12 +14,12 @@ func FilterEvents(eventTypes ...timebox.EventType) EventFilter {
 	}
 }
 
-func FilterWorkflow(workflowID timebox.ID) EventFilter {
+func FilterWorkflow(flowID timebox.ID) EventFilter {
 	return func(ev *timebox.Event) bool {
 		if !IsWorkflowEvent(ev) {
 			return false
 		}
-		return ev.AggregateID[1] == workflowID
+		return ev.AggregateID[1] == flowID
 	}
 }
 

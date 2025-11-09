@@ -36,8 +36,6 @@ type (
 	Aggregator         = timebox.Aggregator[*api.EngineState]
 	WorkflowExecutor   = timebox.Executor[*api.WorkflowState]
 	WorkflowAggregator = timebox.Aggregator[*api.WorkflowState]
-
-	compiledGetter func(*api.ExecutionPlan) map[timebox.ID]any
 )
 
 const doneChannelBufferSize = 100
@@ -217,7 +215,7 @@ func (e *Engine) checkPendingRetries() {
 					!workItem.NextRetryAt.IsZero() &&
 					workItem.NextRetryAt.Before(now) {
 					slog.Debug("Retrying work",
-						slog.Any("workflow_id", flowID),
+						slog.Any("flow_id", flowID),
 						slog.Any("step_id", stepID),
 						slog.Any("token", token),
 						slog.Int("retry_count", workItem.RetryCount))
@@ -306,47 +304,47 @@ func (e *Engine) maybeProcessWorkflow(
 	}(flowID)
 }
 
+func (e *Engine) getCompiledFromPlan(
+	flowID, stepID timebox.ID, getter func(*api.StepInfo) (any, error),
+) (any, error) {
+	flow, err := e.GetWorkflowState(e.ctx, flowID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !e.ensureScriptsCompiled(flowID, flow) {
+		return nil, ErrScriptCompileFailed
+	}
+
+	info, ok := flow.ExecutionPlan.Steps[stepID]
+	if !ok {
+		return nil, ErrStepNotInPlan
+	}
+
+	return getter(info)
+}
+
 func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
-	return e.GetCompiledFromPlan(
-		flowID, stepID, "predicate",
-		func(plan *api.ExecutionPlan) map[timebox.ID]any {
-			return plan.Predicates
+	return e.getCompiledFromPlan(flowID, stepID,
+		func(info *api.StepInfo) (any, error) {
+			if info.Predicate == nil {
+				return nil, fmt.Errorf("%w: predicate", ErrExecutionPlanMissing)
+			}
+			return info.Predicate, nil
 		},
 	)
 }
 
 func (e *Engine) GetCompiledScript(flowID, stepID timebox.ID) (any, error) {
-	return e.GetCompiledFromPlan(
-		flowID, stepID, "script",
-		func(plan *api.ExecutionPlan) map[timebox.ID]any {
-			return plan.Scripts
+	return e.getCompiledFromPlan(
+		flowID, stepID, func(info *api.StepInfo,
+		) (any, error) {
+			if info.Script == nil {
+				return nil, fmt.Errorf("%w: script", ErrExecutionPlanMissing)
+			}
+			return info.Script, nil
 		},
 	)
-}
-
-func (e *Engine) GetCompiledFromPlan(
-	flowID, stepID timebox.ID, name string, get compiledGetter,
-) (any, error) {
-	flow, err := e.GetWorkflowState(e.ctx, flowID)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrWorkflowStateFailed, err)
-	}
-
-	procMap := get(flow.ExecutionPlan)
-	if procMap == nil {
-		return nil, fmt.Errorf("%s: %s", ErrExecutionPlanMissing, name)
-	}
-
-	proc, ok := procMap[stepID]
-	if !ok {
-		if name == "predicate" {
-			return nil, nil
-		}
-		return nil, fmt.Errorf(
-			"%s: %s for step %s", ErrExecutionPlanMissing, name, stepID)
-	}
-
-	return proc, nil
 }
 
 func (e *Engine) saveEngineSnapshot() {

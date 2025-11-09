@@ -33,7 +33,7 @@ export const useNodeCalculation = (
     const activeStepIds =
       previewStepIds ||
       (workflowData?.execution_plan
-        ? new Set(workflowData.execution_plan.steps.map((step) => step.id))
+        ? new Set(Object.keys(workflowData.execution_plan.steps))
         : null);
     let startingPoints = new Set<string>();
 
@@ -191,8 +191,8 @@ export const useNodeCalculation = (
           executions,
           resolvedAttributes,
           isGoalStep:
-            workflowData?.execution_plan?.goal_steps?.includes(step.id) ||
-            previewPlan?.goal_steps?.includes(step.id),
+            workflowData?.execution_plan?.goals?.includes(step.id) ||
+            previewPlan?.goals?.includes(step.id),
           isInPreviewPlan,
           isPreviewMode,
           isStartingPoint: startingPoints.has(step.id),

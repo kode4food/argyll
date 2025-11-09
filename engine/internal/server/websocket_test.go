@@ -130,7 +130,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			WorkflowID: "wf-123",
+			FlowID: "wf-123",
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -187,7 +187,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "other",
 		Data: api.ClientSubscription{
-			WorkflowID: "wf-123",
+			FlowID: "wf-123",
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -239,7 +239,7 @@ func TestReplayWithEvents(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			WorkflowID: "wf-123",
+			FlowID: "wf-123",
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -268,7 +268,7 @@ func TestReplayWithError(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			WorkflowID: "wf-123",
+			FlowID: "wf-123",
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -357,7 +357,7 @@ func TestEventTypes(t *testing.T) {
 
 func TestWorkflow(t *testing.T) {
 	sub := &api.ClientSubscription{
-		WorkflowID: "wf-123",
+		FlowID: "wf-123",
 	}
 
 	filter := BuildFilter(sub)
@@ -416,7 +416,7 @@ func TestCombined(t *testing.T) {
 
 func TestEventTypesWithWorkflowID(t *testing.T) {
 	sub := &api.ClientSubscription{
-		WorkflowID: "wf-123",
+		FlowID:     "wf-123",
 		EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeWorkflowStarted)},
 	}
 

@@ -73,10 +73,20 @@ export interface Step {
   script?: ScriptConfig;
 }
 
+export interface StepInfo {
+  step: Step;
+}
+
+export interface Dependencies {
+  providers: string[];
+  consumers: string[];
+}
+
 export interface ExecutionPlan {
-  goal_steps: string[];
-  required_inputs: string[];
-  steps: Step[];
+  goals: string[];
+  required: string[];
+  steps: Record<string, StepInfo>;
+  attributes: Record<string, Dependencies>;
 }
 
 export interface WorkflowContext {
@@ -88,11 +98,7 @@ export interface WorkflowContext {
     step_id: string;
     timestamp: string;
   };
-  execution_plan?: {
-    goal_steps: string[];
-    required_inputs: string[];
-    steps: Step[];
-  };
+  execution_plan?: ExecutionPlan;
   started_at: string;
   completed_at?: string;
 }
@@ -109,7 +115,7 @@ export interface WorkState {
 
 export interface ExecutionResult {
   step_id: string;
-  workflow_id: string;
+  flow_id: string;
   status: StepStatus;
   inputs: Record<string, any>;
   outputs?: Record<string, any>;
@@ -133,11 +139,7 @@ export interface AttributeValue {
 export interface WorkflowProjection {
   id: string;
   status: WorkflowStatus;
-  execution_plan: {
-    goal_steps: string[];
-    required_inputs: string[];
-    steps: Step[];
-  };
+  execution_plan: ExecutionPlan;
   attributes: Record<string, AttributeValue>;
   executions: Record<string, ExecutionInfo>;
   created_at: string;

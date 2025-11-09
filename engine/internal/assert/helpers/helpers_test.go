@@ -136,8 +136,10 @@ func TestCanStartWorkflows(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{step.ID},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{step.ID},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(

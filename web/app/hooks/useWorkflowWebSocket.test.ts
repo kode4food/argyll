@@ -85,7 +85,7 @@ describe("useWorkflowWebSocket", () => {
 
       expect(mockSubscribe).toHaveBeenCalledWith({
         engine_events: true,
-        workflow_id: "test-workflow",
+        flow_id: "test-workflow",
         from_sequence: 42,
       });
     });
@@ -109,7 +109,7 @@ describe("useWorkflowWebSocket", () => {
 
       expect(mockSubscribe).toHaveBeenCalledWith({
         engine_events: true,
-        workflow_id: "test-workflow",
+        flow_id: "test-workflow",
         from_sequence: 0,
       });
     });
@@ -286,7 +286,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "workflow_started",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
               started_at: startedAt,
             },
             timestamp: Date.now(),
@@ -320,7 +320,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "attribute_set",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
               step_id: "producer-step",
               key: "result",
               value: "test-value",
@@ -377,7 +377,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "attribute_set",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
               step_id: "new-step",
               key: "new_attr",
               value: "new-value",
@@ -416,7 +416,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "workflow_completed",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
               completed_at: completedAt,
             },
             timestamp: Date.now(),
@@ -451,7 +451,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "workflow_failed",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
               error: "Test error",
               failed_at: failedAt,
             },
@@ -491,7 +491,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "step_completed",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
               step_id: "test-step",
             },
             timestamp: Date.now(),
@@ -527,7 +527,7 @@ describe("useWorkflowWebSocket", () => {
             {
               type: eventType,
               data: {
-                workflow_id: "test-workflow",
+                flow_id: "test-workflow",
                 step_id: "test-step",
               },
               timestamp: Date.now(),
@@ -595,7 +595,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "workflow_started",
             data: {
-              workflow_id: "test-workflow",
+              flow_id: "test-workflow",
             },
             timestamp: Date.now(),
             sequence: 1,
@@ -625,7 +625,7 @@ describe("useWorkflowWebSocket", () => {
           {
             type: "workflow_started",
             data: {
-              workflow_id: "other-workflow",
+              flow_id: "other-workflow",
             },
             timestamp: Date.now(),
             sequence: 1,

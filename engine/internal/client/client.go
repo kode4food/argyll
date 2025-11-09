@@ -48,7 +48,7 @@ func (c *HTTPClient) Invoke(
 	ctx context.Context, step *api.Step, args api.Args, meta api.Metadata,
 ) (api.Args, error) {
 	if step.HTTP == nil {
-		return nil, fmt.Errorf("%s: %s", ErrNoHTTPConfig, step.ID)
+		return nil, fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
 	}
 
 	request := api.StepRequest{

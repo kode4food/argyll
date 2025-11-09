@@ -163,9 +163,9 @@ func TestStart(t *testing.T) {
 	require.NoError(t, err)
 
 	reqBody := api.CreateWorkflowRequest{
-		ID:           "test-workflow",
-		GoalStepIDs:  []timebox.ID{"wf-step"},
-		InitialState: api.Args{},
+		ID:    "test-workflow",
+		Goals: []timebox.ID{"wf-step"},
+		Init:  api.Args{},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -223,8 +223,10 @@ func TestSuccess(t *testing.T) {
 	err = env.Engine.StartWorkflow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
-			GoalSteps: []timebox.ID{"async-step"},
-			Steps:     []*api.Step{step},
+			Goals: []timebox.ID{"async-step"},
+			Steps: map[timebox.ID]*api.StepInfo{
+				"async-step": {Step: step},
+			},
 		},
 		api.Args{}, api.Metadata{},
 	)
@@ -310,8 +312,10 @@ func TestStepNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"async-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"async-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"async-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -366,8 +370,10 @@ func TestInvalidToken(t *testing.T) {
 	err = env.Engine.StartWorkflow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
-			GoalSteps: []timebox.ID{"async-step"},
-			Steps:     []*api.Step{step},
+			Goals: []timebox.ID{"async-step"},
+			Steps: map[timebox.ID]*api.StepInfo{
+				"async-step": {Step: step},
+			},
 		},
 		api.Args{}, api.Metadata{},
 	)
@@ -421,8 +427,10 @@ func TestInvalidJSON(t *testing.T) {
 	err = env.Engine.StartWorkflow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
-			GoalSteps: []timebox.ID{"async-step"},
-			Steps:     []*api.Step{step},
+			Goals: []timebox.ID{"async-step"},
+			Steps: map[timebox.ID]*api.StepInfo{
+				"async-step": {Step: step},
+			},
 		},
 		api.Args{}, api.Metadata{},
 	)
@@ -471,8 +479,10 @@ func TestGetWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"get-wf-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"get-wf-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"get-wf-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -675,7 +685,7 @@ func TestFilterEventTypes(t *testing.T) {
 
 func TestFilterWorkflowID(t *testing.T) {
 	sub := &api.ClientSubscription{
-		WorkflowID: "test-workflow",
+		FlowID: "test-workflow",
 	}
 
 	filter := server.BuildFilter(sub)
@@ -834,9 +844,9 @@ func TestStartEmptyID(t *testing.T) {
 	require.NoError(t, err)
 
 	reqData := map[string]interface{}{
-		"id":            "",
-		"goal_step_ids": []string{"test-step"},
-		"initial_state": map[string]interface{}{},
+		"id":    "",
+		"goals": []string{"test-step"},
+		"init":  map[string]interface{}{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -853,14 +863,14 @@ func TestStartEmptyID(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "Workflow ID is required")
 }
 
-func TestStartNoGoalSteps(t *testing.T) {
+func TestStartNoGoals(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
 	reqData := map[string]interface{}{
-		"id":            "test-wf",
-		"goal_step_ids": []string{},
-		"initial_state": map[string]interface{}{},
+		"id":    "test-wf",
+		"goals": []string{},
+		"init":  map[string]interface{}{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -982,8 +992,8 @@ func TestPlanPreview(t *testing.T) {
 	require.NoError(t, err)
 
 	reqData := map[string]interface{}{
-		"goal_steps":    []string{"step-b"},
-		"initial_state": map[string]interface{}{},
+		"goals": []string{"step-b"},
+		"init":  map[string]interface{}{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -1001,8 +1011,8 @@ func TestPlanPreview(t *testing.T) {
 	var response api.ExecutionPlan
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
-	assert.Len(t, response.GoalSteps, 1)
-	assert.Equal(t, timebox.ID("step-b"), response.GoalSteps[0])
+	assert.Len(t, response.Goals, 1)
+	assert.Equal(t, timebox.ID("step-b"), response.Goals[0])
 }
 
 func TestPlanPreviewInvalidJSON(t *testing.T) {
@@ -1021,13 +1031,13 @@ func TestPlanPreviewInvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestPlanPreviewNoGoalSteps(t *testing.T) {
+func TestPlanPreviewNoGoals(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
 	reqData := map[string]interface{}{
-		"goal_step_ids": []string{},
-		"initial_state": map[string]interface{}{},
+		"goals": []string{},
+		"init":  map[string]interface{}{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -1047,8 +1057,8 @@ func TestPlanPreviewStepNotFound(t *testing.T) {
 	defer env.Cleanup()
 
 	reqData := map[string]interface{}{
-		"goal_steps":    []string{"nonexistent-step"},
-		"initial_state": map[string]interface{}{},
+		"goals": []string{"nonexistent-step"},
+		"init":  map[string]interface{}{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -1171,8 +1181,10 @@ func TestStartDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"dup-wf-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"dup-wf-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"dup-wf-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -1185,9 +1197,9 @@ func TestStartDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	reqBody := api.CreateWorkflowRequest{
-		ID:           "duplicate-workflow",
-		GoalStepIDs:  []timebox.ID{"dup-wf-step"},
-		InitialState: api.Args{},
+		ID:    "duplicate-workflow",
+		Goals: []timebox.ID{"dup-wf-step"},
+		Init:  api.Args{},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1209,9 +1221,9 @@ func TestStartStepNotFound(t *testing.T) {
 	defer env.Cleanup()
 
 	reqBody := api.CreateWorkflowRequest{
-		ID:           "wf-no-step",
-		GoalStepIDs:  []timebox.ID{"nonexistent-step"},
-		InitialState: api.Args{},
+		ID:    "wf-no-step",
+		Goals: []timebox.ID{"nonexistent-step"},
+		Init:  api.Args{},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1256,31 +1268,31 @@ func TestWorkflowIDSanitization(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		workflowID     string
+		flowID         string
 		expectedStatus int
 		shouldSucceed  bool
 	}{
 		{
 			name:           "uppercase_converted_to_lowercase",
-			workflowID:     "MyWorkFlow-ABC",
+			flowID:         "MyWorkFlow-ABC",
 			expectedStatus: http.StatusCreated,
 			shouldSucceed:  true,
 		},
 		{
 			name:           "spaces_converted_to_dashes",
-			workflowID:     "my workflow test",
+			flowID:         "my workflow test",
 			expectedStatus: http.StatusCreated,
 			shouldSucceed:  true,
 		},
 		{
 			name:           "special_chars_removed",
-			workflowID:     "workflow@#$%123",
+			flowID:         "workflow@#$%123",
 			expectedStatus: http.StatusCreated,
 			shouldSucceed:  true,
 		},
 		{
 			name:           "only_special_chars_results_in_error",
-			workflowID:     "@#$%^&*()",
+			flowID:         "@#$%^&*()",
 			expectedStatus: http.StatusBadRequest,
 			shouldSucceed:  false,
 		},
@@ -1289,9 +1301,9 @@ func TestWorkflowIDSanitization(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqBody := api.CreateWorkflowRequest{
-				ID:           timebox.ID(tt.workflowID),
-				GoalStepIDs:  []timebox.ID{"test-step"},
-				InitialState: api.Args{},
+				ID:    timebox.ID(tt.flowID),
+				Goals: []timebox.ID{"test-step"},
+				Init:  api.Args{},
 			}
 
 			body, _ := json.Marshal(reqBody)

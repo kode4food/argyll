@@ -1,5 +1,6 @@
 import { useMemo } from "react";
 import { Step, WorkflowContext, ExecutionPlan } from "../api";
+import { getStepsFromPlan } from "@/utils/planUtils";
 
 export interface StepVisibilityResult {
   visibleSteps: Step[];
@@ -13,9 +14,8 @@ export function useStepVisibility(
 ): StepVisibilityResult {
   return useMemo(() => {
     if (workflowData?.execution_plan?.steps) {
-      const planStepIds = new Set(
-        workflowData.execution_plan.steps.map((step) => step.id)
-      );
+      const planSteps = getStepsFromPlan(workflowData.execution_plan);
+      const planStepIds = new Set(planSteps.map((step) => step.id));
       return {
         visibleSteps: (steps || []).filter((step) => planStepIds.has(step.id)),
         previewStepIds: null,
@@ -23,7 +23,8 @@ export function useStepVisibility(
     }
 
     if (previewPlan?.steps) {
-      const planStepIds = new Set(previewPlan.steps.map((step) => step.id));
+      const planSteps = getStepsFromPlan(previewPlan);
+      const planStepIds = new Set(planSteps.map((step) => step.id));
       return {
         visibleSteps: steps || [],
         previewStepIds: planStepIds,

@@ -25,8 +25,10 @@ func TestRecoveryActivation(t *testing.T) {
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-1"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-1"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err := env.Engine.StartWorkflow(
@@ -54,9 +56,12 @@ func TestRecoveryDeactivation(t *testing.T) {
 	ctx := context.Background()
 	flowID := timebox.ID("test-workflow")
 
+	step := &api.Step{ID: "step-1"}
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-1"},
-		Steps:     []*api.Step{{ID: "step-1"}},
+		Goals: []timebox.ID{"step-1"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err := env.Engine.StartWorkflow(
@@ -309,8 +314,10 @@ func TestScheduleRetry(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"test-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"test-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	flowID := timebox.ID("retry-workflow")
@@ -363,8 +370,10 @@ func TestRetryExhaustion(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"failing-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"failing-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	flowID := timebox.ID("exhaustion-workflow")
@@ -472,8 +481,10 @@ func TestRecoverActiveWorkflows(t *testing.T) {
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-1"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-1"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err := env.Engine.StartWorkflow(
@@ -512,8 +523,10 @@ func TestConcurrentRecoveryState(t *testing.T) {
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-1"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-1"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	for i := 0; i < count; i++ {

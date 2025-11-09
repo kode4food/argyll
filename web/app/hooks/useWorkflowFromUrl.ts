@@ -5,16 +5,16 @@ import { useSelectWorkflow } from "../store/workflowStore";
 export const useWorkflowFromUrl = () => {
   const params = useParams();
   const pathname = usePathname();
-  const workflowId = params?.workflowId as string;
+  const flowId = params?.flowId as string;
   const selectWorkflow = useSelectWorkflow();
 
   useEffect(() => {
-    if (pathname.startsWith("/workflow/") && workflowId) {
-      selectWorkflow(workflowId);
+    if (pathname.startsWith("/workflow/") && flowId) {
+      selectWorkflow(flowId);
     } else if (pathname === "/") {
       selectWorkflow(null);
     }
-  }, [workflowId, pathname, selectWorkflow]);
+  }, [flowId, pathname, selectWorkflow]);
 
-  return workflowId || null;
+  return flowId || null;
 };

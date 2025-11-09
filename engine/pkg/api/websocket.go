@@ -18,7 +18,7 @@ type (
 
 	// ClientSubscription configures which events a WebSocket client receives
 	ClientSubscription struct {
-		WorkflowID   timebox.ID           `json:"workflow_id"`
+		FlowID       timebox.ID           `json:"flow_id"`
 		EventTypes   []*timebox.EventType `json:"event_types,omitempty"`
 		FromSequence int64                `json:"from_sequence,omitempty"`
 		EngineEvents bool                 `json:"engine_events,omitempty"`

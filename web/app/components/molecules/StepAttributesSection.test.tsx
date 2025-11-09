@@ -141,7 +141,7 @@ describe("StepAttributesSection", () => {
     const satisfiedArgs = new Set<string>();
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: { input1: "test value" },
       started_at: "2024-01-01T00:00:00Z",
@@ -163,7 +163,7 @@ describe("StepAttributesSection", () => {
     const satisfiedArgs = new Set<string>();
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {},
       outputs: { result: "output value" },
@@ -186,7 +186,7 @@ describe("StepAttributesSection", () => {
     const satisfiedArgs = new Set<string>();
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {
         str: "string",
@@ -249,7 +249,7 @@ describe("StepAttributesSection", () => {
     const satisfiedArgs = new Set<string>();
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "active",
       inputs: { input1: "value1" },
       started_at: "2024-01-01T00:00:00Z",
@@ -274,7 +274,7 @@ describe("StepAttributesSection", () => {
     const satisfiedArgs = new Set<string>();
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {
         config: { nested: { key: "value" }, array: [1, 2, 3] },
@@ -299,7 +299,7 @@ describe("StepAttributesSection", () => {
     const satisfiedArgs = new Set<string>();
     const execution: ExecutionResult = {
       step_id: "step-1",
-      workflow_id: "wf-1",
+      flow_id: "wf-1",
       status: "completed",
       inputs: {},
       outputs: { result: 42 },

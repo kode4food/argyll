@@ -41,13 +41,13 @@ interface WorkflowState {
   addStep: (step: Step) => void;
   removeStep: (stepId: string) => void;
   addWorkflow: (workflow: WorkflowContext) => void;
-  removeWorkflow: (workflowId: string) => void;
-  selectWorkflow: (workflowId: string | null) => void;
-  loadWorkflowData: (workflowId: string) => Promise<void>;
-  refreshExecutions: (workflowId: string) => Promise<void>;
+  removeWorkflow: (flowId: string) => void;
+  selectWorkflow: (flowId: string | null) => void;
+  loadWorkflowData: (flowId: string) => Promise<void>;
+  refreshExecutions: (flowId: string) => Promise<void>;
   updateWorkflowFromWebSocket: (update: Partial<WorkflowContext>) => void;
   updateWorkflowStatus: (
-    workflowId: string,
+    flowId: string,
     status: WorkflowContext["status"],
     completed_at?: string
   ) => void;
@@ -115,29 +115,29 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
       },
 
-      selectWorkflow: (workflowId: string | null) => {
+      selectWorkflow: (flowId: string | null) => {
         set({
-          selectedWorkflow: workflowId,
+          selectedWorkflow: flowId,
           workflowNotFound: false,
           error: null,
           workflowData: null,
           executions: [],
           resolvedAttributes: [],
-          isWorkflowMode: !!workflowId,
+          isWorkflowMode: !!flowId,
           nextSequence: 0,
         });
 
-        if (workflowId) {
-          get().loadWorkflowData(workflowId);
+        if (flowId) {
+          get().loadWorkflowData(flowId);
         }
       },
 
-      loadWorkflowData: async (workflowId: string) => {
+      loadWorkflowData: async (flowId: string) => {
         set({ loading: true, error: null, workflowNotFound: false });
 
         try {
           const { workflow, executions } =
-            await api.getWorkflowWithEvents(workflowId);
+            await api.getWorkflowWithEvents(flowId);
 
           const resolved = new Set<string>();
 
@@ -173,9 +173,9 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
       },
 
-      refreshExecutions: async (workflowId: string) => {
+      refreshExecutions: async (flowId: string) => {
         try {
-          const executions = await api.getExecutions(workflowId);
+          const executions = await api.getExecutions(flowId);
           set({ executions: executions || [] });
         } catch (error) {
           console.error("Failed to refresh executions:", error);
@@ -213,9 +213,9 @@ export const useWorkflowStore = create<WorkflowState>()(
         });
       },
 
-      removeWorkflow: (workflowId: string) => {
+      removeWorkflow: (flowId: string) => {
         const { workflows } = get();
-        set({ workflows: workflows.filter((w) => w.id !== workflowId) });
+        set({ workflows: workflows.filter((w) => w.id !== flowId) });
       },
 
       updateWorkflowFromWebSocket: (update: Partial<WorkflowContext>) => {
@@ -255,12 +255,12 @@ export const useWorkflowStore = create<WorkflowState>()(
       },
 
       updateWorkflowStatus: (
-        workflowId: string,
+        flowId: string,
         status: WorkflowContext["status"],
         completed_at?: string
       ) => {
         const { workflows } = get();
-        const workflowIndex = workflows.findIndex((w) => w.id === workflowId);
+        const workflowIndex = workflows.findIndex((w) => w.id === flowId);
 
         if (workflowIndex < 0) {
           return;

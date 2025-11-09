@@ -25,8 +25,10 @@ func TestStartDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-1"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-1"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -52,9 +54,11 @@ func TestStartMissingInput(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		GoalSteps:      []timebox.ID{"step-needs-input"},
-		Steps:          []*api.Step{step},
-		RequiredInputs: []api.Name{"required_value"},
+		Goals: []timebox.ID{"step-needs-input"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
+		Required: []api.Name{"required_value"},
 	}
 
 	err := env.Engine.StartWorkflow(
@@ -88,8 +92,10 @@ func TestSetAttribute(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"simple-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"simple-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -120,8 +126,10 @@ func TestGetAttributes(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-attrs"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-attrs"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -158,8 +166,10 @@ func TestSetDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-dup-attr"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-dup-attr"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -194,8 +204,10 @@ func TestCompleteWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"complete-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"complete-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -229,8 +241,10 @@ func TestFailWorkflow(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"fail-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"fail-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -261,8 +275,10 @@ func TestStartStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"exec-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"exec-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -298,8 +314,10 @@ func TestCompleteStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-complete-exec"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-complete-exec"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -344,8 +362,10 @@ func TestFailStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-fail-exec"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-fail-exec"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -387,8 +407,10 @@ func TestSkipStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-skip"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-skip"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -424,8 +446,10 @@ func TestGetWorkflowEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"simple"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"simple"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -452,8 +476,10 @@ func TestListWorkflows(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"test"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"test"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -479,8 +505,11 @@ func TestIsWorkflowFailed(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-b"},
-		Steps:     []*api.Step{stepA, stepB},
+		Goals: []timebox.ID{"step-b"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			stepA.ID: {Step: stepA},
+			stepB.ID: {Step: stepB},
+		},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
@@ -528,8 +557,10 @@ func TestIsWorkflowNotFailed(t *testing.T) {
 	step := helpers.NewSimpleStep("step-ok")
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-ok"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-ok"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
@@ -566,8 +597,17 @@ func TestHasInputProvider(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-b"},
-		Steps:     []*api.Step{stepA, stepB},
+		Goals: []timebox.ID{"step-b"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			stepA.ID: {Step: stepA},
+			stepB.ID: {Step: stepB},
+		},
+		Attributes: map[api.Name]*api.Dependencies{
+			"value": {
+				Providers: []timebox.ID{stepA.ID},
+				Consumers: []timebox.ID{stepB.ID},
+			},
+		},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
@@ -589,7 +629,7 @@ func TestHasInputProvider(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	hasProvider := env.Engine.HasInputProvider("step-b", "value", workflow)
+	hasProvider := env.Engine.HasInputProvider("value", workflow)
 	assert.True(t, hasProvider)
 }
 
@@ -604,8 +644,11 @@ func TestHasInputProviderNone(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-alone"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"step-alone"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
+		Attributes: map[api.Name]*api.Dependencies{},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
@@ -625,9 +668,7 @@ func TestHasInputProviderNone(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	hasProvider := env.Engine.HasInputProvider(
-		"step-alone", "missing", workflow,
-	)
+	hasProvider := env.Engine.HasInputProvider("missing", workflow)
 	assert.False(t, hasProvider)
 }
 
@@ -638,8 +679,10 @@ func TestStepProvidesInput(t *testing.T) {
 	stepA := helpers.NewStepWithOutputs("step-provider", "result")
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"step-provider"},
-		Steps:     []*api.Step{stepA},
+		Goals: []timebox.ID{"step-provider"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			stepA.ID: {Step: stepA},
+		},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)

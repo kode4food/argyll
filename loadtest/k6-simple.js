@@ -46,15 +46,15 @@ export function setup() {
 }
 
 export default function(data) {
-  const workflowId = `k6-${__VU}-${__ITER}-${Date.now()}`;
+  const flowId = `k6-${__VU}-${__ITER}-${Date.now()}`;
 
   // Start workflow
   const startRes = http.post(
     `${ENGINE_URL}/engine/workflow`,
     JSON.stringify({
-      id: workflowId,
-      goal_steps: [data.stepId],
-      initial_state: { input: 'test' },
+      id: flowId,
+      goals: [data.stepId],
+      init: { input: 'test' },
     }),
     {
       headers: { 'Content-Type': 'application/json' },
@@ -79,7 +79,7 @@ export default function(data) {
     sleep(0.1);
 
     const statusRes = http.get(
-      `${ENGINE_URL}/engine/workflow/${workflowId}`,
+      `${ENGINE_URL}/engine/workflow/${flowId}`,
       { tags: { name: 'GetWorkflowStatus' } }
     );
 

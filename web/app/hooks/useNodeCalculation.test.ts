@@ -114,9 +114,12 @@ describe("useNodeCalculation", () => {
       state: {},
       started_at: "",
       execution_plan: {
-        goal_steps: ["step1"],
-        steps: [step],
-        required_inputs: [],
+        goals: ["step1"],
+        steps: {
+          step1: { step: step },
+        },
+        required: [],
+        attributes: {},
       },
     };
 
@@ -130,9 +133,11 @@ describe("useNodeCalculation", () => {
   test("marks goal step in preview plan", () => {
     const step = createStep("step1");
     const previewPlan: any = {
-      goal_steps: ["step1"],
-      steps: [step],
-      required_inputs: [],
+      goals: ["step1"],
+      steps: {
+        step1: { step: step },
+      },
+      required: [],
     };
 
     const { result } = renderHook(() =>
@@ -168,9 +173,9 @@ describe("useNodeCalculation", () => {
   test("sets isPreviewMode when preview plan exists", () => {
     const step = createStep("step1");
     const previewPlan: any = {
-      goal_steps: [],
-      steps: [],
-      required_inputs: [],
+      goals: [],
+      steps: {},
+      required: [],
     };
 
     const { result } = renderHook(() =>
@@ -195,9 +200,13 @@ describe("useNodeCalculation", () => {
       state: {},
       started_at: "",
       execution_plan: {
-        goal_steps: ["step2"],
-        steps: [step1, step2],
-        required_inputs: [],
+        goals: ["step2"],
+        steps: {
+          step1: { step: step1 },
+          step2: { step: step2 },
+        },
+        required: [],
+        attributes: {},
       },
     };
 

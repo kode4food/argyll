@@ -67,7 +67,7 @@ describe("SpudsApi", () => {
 
   describe("startWorkflow", () => {
     test("starts workflow with correct parameters", async () => {
-      const mockResponse = { workflow_id: "wf-1" };
+      const mockResponse = { flow_id: "wf-1" };
       mockClient.post.mockResolvedValue({ data: mockResponse });
 
       const result = await api.startWorkflow("wf-1", ["step-1"], {
@@ -76,8 +76,8 @@ describe("SpudsApi", () => {
 
       expect(mockClient.post).toHaveBeenCalledWith("/engine/workflow", {
         id: "wf-1",
-        goal_steps: ["step-1"],
-        initial_state: { input: "value" },
+        goals: ["step-1"],
+        init: { input: "value" },
       });
       expect(result).toEqual(mockResponse);
     });
@@ -91,9 +91,10 @@ describe("SpudsApi", () => {
         attributes: { result: { value: "value" } },
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: ["step-1"],
-          required_inputs: [],
-          steps: [],
+          goals: ["step-1"],
+          required: [],
+          steps: {},
+          attributes: {},
         },
         executions: {
           "step-1": {
@@ -128,9 +129,10 @@ describe("SpudsApi", () => {
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: [],
-          required_inputs: [],
-          steps: [],
+          goals: [],
+          required: [],
+          steps: {},
+          attributes: {},
         },
         executions: {},
       };
@@ -146,32 +148,35 @@ describe("SpudsApi", () => {
     });
 
     test("handles workflow with execution plan", async () => {
+      const step1 = {
+        id: "step-1",
+        name: "Step 1",
+        type: "sync" as const,
+        attributes: {
+          input1: {
+            role: AttributeRole.Output,
+            type: AttributeType.String,
+          },
+        },
+        version: "1.0.0",
+        http: {
+          endpoint: "http://localhost:8080/test",
+          timeout: 5000,
+        },
+      };
+
       const mockProjection: WorkflowProjection = {
         id: "wf-1",
         status: "active",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: ["step-2"],
-          required_inputs: ["input1"],
-          steps: [
-            {
-              id: "step-1",
-              name: "Step 1",
-              type: "sync",
-              attributes: {
-                input1: {
-                  role: AttributeRole.Output,
-                  type: AttributeType.String,
-                },
-              },
-              version: "1.0.0",
-              http: {
-                endpoint: "http://localhost:8080/test",
-                timeout: 5000,
-              },
-            },
-          ],
+          goals: ["step-2"],
+          required: ["input1"],
+          steps: {
+            "step-1": { step: step1 },
+          },
+          attributes: {},
         },
         executions: {},
       };
@@ -181,11 +186,11 @@ describe("SpudsApi", () => {
       const result = await api.getWorkflowWithEvents("wf-1");
 
       expect(result.workflow.execution_plan).toBeDefined();
-      expect(result.workflow.execution_plan?.goal_steps).toEqual(["step-2"]);
-      expect(result.workflow.execution_plan?.required_inputs).toEqual([
-        "input1",
-      ]);
-      expect(result.workflow.execution_plan?.steps).toHaveLength(1);
+      expect(result.workflow.execution_plan?.goals).toEqual(["step-2"]);
+      expect(result.workflow.execution_plan?.required).toEqual(["input1"]);
+      expect(
+        Object.keys(result.workflow.execution_plan?.steps || {})
+      ).toHaveLength(1);
     });
 
     test("handles empty execution plan", async () => {
@@ -195,9 +200,10 @@ describe("SpudsApi", () => {
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: [],
-          required_inputs: [],
-          steps: [],
+          goals: [],
+          required: [],
+          steps: {},
+          attributes: {},
         },
         executions: {},
       };
@@ -219,9 +225,10 @@ describe("SpudsApi", () => {
           attributes: {},
           created_at: "2024-01-01T00:00:00Z",
           execution_plan: {
-            goal_steps: [],
-            required_inputs: [],
-            steps: [],
+            goals: [],
+            required: [],
+            steps: {},
+            attributes: {},
           },
           executions: {},
         },
@@ -232,9 +239,10 @@ describe("SpudsApi", () => {
           created_at: "2024-01-02T00:00:00Z",
           completed_at: "2024-01-02T00:05:00Z",
           execution_plan: {
-            goal_steps: [],
-            required_inputs: [],
-            steps: [],
+            goals: [],
+            required: [],
+            steps: {},
+            attributes: {},
           },
           executions: {},
         },
@@ -270,9 +278,10 @@ describe("SpudsApi", () => {
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: ["step-2"],
-          required_inputs: [],
-          steps: [],
+          goals: ["step-2"],
+          required: [],
+          steps: {},
+          attributes: {},
         },
         executions: {
           "step-1": {
@@ -298,7 +307,7 @@ describe("SpudsApi", () => {
       expect(result).toHaveLength(2);
       expect(result[0].step_id).toBe("step-1");
       expect(result[0].status).toBe("completed");
-      expect(result[0].workflow_id).toBe("wf-1");
+      expect(result[0].flow_id).toBe("wf-1");
       expect(result[1].step_id).toBe("step-2");
       expect(result[1].status).toBe("active");
     });
@@ -310,9 +319,10 @@ describe("SpudsApi", () => {
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: [],
-          required_inputs: [],
-          steps: [],
+          goals: [],
+          required: [],
+          steps: {},
+          attributes: {},
         },
         executions: {},
       };
@@ -331,9 +341,10 @@ describe("SpudsApi", () => {
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
         execution_plan: {
-          goal_steps: [],
-          required_inputs: [],
-          steps: [],
+          goals: [],
+          required: [],
+          steps: {},
+          attributes: {},
         },
         executions: {
           "step-1": {
@@ -381,24 +392,30 @@ describe("SpudsApi", () => {
 
   describe("getExecutionPlan", () => {
     test("fetches execution plan with goal steps", async () => {
-      const mockPlan = {
-        goal_steps: ["step-2"],
-        required_inputs: ["input1"],
-        steps: [
-          {
-            id: "step-1",
-            name: "Step 1",
-            type: "sync",
-            required: {},
-            optional: {},
-            output: { input1: { type: AttributeType.String } },
-            version: "1.0.0",
-            http: {
-              endpoint: "http://localhost:8080/test",
-              timeout: 5000,
-            },
+      const step1 = {
+        id: "step-1",
+        name: "Step 1",
+        type: "sync" as const,
+        attributes: {
+          input1: {
+            role: AttributeRole.Output,
+            type: AttributeType.String,
           },
-        ],
+        },
+        version: "1.0.0",
+        http: {
+          endpoint: "http://localhost:8080/test",
+          timeout: 5000,
+        },
+      };
+
+      const mockPlan = {
+        goals: ["step-2"],
+        required: ["input1"],
+        steps: {
+          "step-1": { step: step1 },
+        },
+        attributes: {},
       };
 
       mockClient.post.mockResolvedValue({ data: mockPlan });
@@ -408,8 +425,8 @@ describe("SpudsApi", () => {
       expect(mockClient.post).toHaveBeenCalledWith(
         "/engine/plan",
         {
-          goal_steps: ["step-2"],
-          initial_state: { input: "value" },
+          goals: ["step-2"],
+          init: { input: "value" },
         },
         {
           signal: undefined,
@@ -420,9 +437,9 @@ describe("SpudsApi", () => {
 
     test("fetches execution plan with empty initial state", async () => {
       const mockPlan = {
-        goal_steps: ["step-1"],
-        required_inputs: [],
-        steps: [],
+        goals: ["step-1"],
+        required: [],
+        steps: {},
       };
 
       mockClient.post.mockResolvedValue({ data: mockPlan });
@@ -432,8 +449,8 @@ describe("SpudsApi", () => {
       expect(mockClient.post).toHaveBeenCalledWith(
         "/engine/plan",
         {
-          goal_steps: ["step-1"],
-          initial_state: {},
+          goals: ["step-1"],
+          init: {},
         },
         {
           signal: undefined,

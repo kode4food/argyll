@@ -18,7 +18,7 @@ interface StepFooterProps {
   step: Step;
   healthStatus: HealthStatus;
   healthError?: string;
-  workflowId?: string;
+  flowId?: string;
   execution?: ExecutionResult;
 }
 
@@ -26,12 +26,12 @@ const StepFooter: React.FC<StepFooterProps> = ({
   step,
   healthStatus,
   healthError,
-  workflowId,
+  flowId,
   execution,
 }) => {
-  const progressState = useStepProgress(step.id, workflowId, execution);
+  const progressState = useStepProgress(step.id, flowId, execution);
 
-  const useProgress = workflowId && progressState.workflowId === workflowId;
+  const useProgress = flowId && progressState.flowId === flowId;
 
   const healthIconClass = getHealthIconClass(healthStatus, step.type);
   const healthText = getHealthStatusText(healthStatus, healthError);
@@ -66,7 +66,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
   const renderTooltipContent = () => {
     const sections = [];
 
-    if (execution && workflowId) {
+    if (execution && flowId) {
       const StatusIcon = getProgressIcon(execution.status);
       const iconClass = getProgressIconClass(execution.status);
 
@@ -121,7 +121,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
       }
     }
 
-    if (!workflowId) {
+    if (!flowId) {
       if (step.type === "script" && step.script) {
         const scriptPreview = step.script.script
           .split("\n")

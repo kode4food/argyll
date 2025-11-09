@@ -112,7 +112,7 @@ describe("errorLogger", () => {
       };
       const additionalContext = {
         userId: "user-123",
-        workflowId: "wf-456",
+        flowId: "wf-456",
       };
 
       errorLogger.logError(error, errorInfo, additionalContext);
@@ -128,7 +128,7 @@ describe("errorLogger", () => {
         expect.objectContaining({
           componentStack: "in TestComponent",
           userId: "user-123",
-          workflowId: "wf-456",
+          flowId: "wf-456",
           timestamp: expect.any(String),
         })
       );

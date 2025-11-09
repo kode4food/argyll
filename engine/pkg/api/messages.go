@@ -8,9 +8,9 @@ import (
 
 type (
 	CreateWorkflowRequest struct {
-		InitialState Args         `json:"initial_state"`
-		ID           timebox.ID   `json:"id"`
-		GoalStepIDs  []timebox.ID `json:"goal_steps"`
+		Init  Args         `json:"init"`
+		ID    timebox.ID   `json:"id"`
+		Goals []timebox.ID `json:"goals"`
 	}
 
 	UpdateStateRequest struct {
@@ -18,13 +18,13 @@ type (
 	}
 
 	ExecutionPlanRequest struct {
-		InitialState Args         `json:"initial_state"`
-		GoalStepIDs  []timebox.ID `json:"goal_steps"`
+		Init  Args         `json:"init"`
+		Goals []timebox.ID `json:"goals"`
 	}
 
 	WorkflowStartedResponse struct {
-		Message    string     `json:"message"`
-		WorkflowID timebox.ID `json:"workflow_id"`
+		Message string     `json:"message"`
+		FlowID  timebox.ID `json:"flow_id"`
 	}
 
 	WorkflowDigest struct {

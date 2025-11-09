@@ -97,7 +97,7 @@ func (e *Engine) ScheduleRetry(
 
 	step := flow.ExecutionPlan.GetStep(stepID)
 	if step == nil {
-		return fmt.Errorf("%s: %s", ErrStepNotInPlan, stepID)
+		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 	}
 
 	exec, ok := flow.Executions[stepID]
@@ -115,7 +115,7 @@ func (e *Engine) ScheduleRetry(
 
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.RetryScheduledEvent{
-			WorkflowID:  flowID,
+			FlowID:      flowID,
 			StepID:      stepID,
 			Token:       token,
 			RetryCount:  newRetryCount,
@@ -135,7 +135,7 @@ func (e *Engine) ScheduleRetry(
 	}
 
 	slog.Info("Retry scheduled",
-		slog.Any("workflow_id", flowID),
+		slog.Any("flow_id", flowID),
 		slog.Any("step_id", stepID),
 		slog.Any("token", token),
 		slog.Int("retry_count", newRetryCount),
@@ -164,7 +164,7 @@ func (e *Engine) RecoverWorkflows(ctx context.Context) error {
 	for flowID := range engineState.ActiveWorkflows {
 		if err := e.RecoverWorkflow(ctx, flowID); err != nil {
 			slog.Error("Failed to recover workflow",
-				slog.Any("workflow_id", flowID),
+				slog.Any("flow_id", flowID),
 				slog.Any("error", err))
 		}
 	}
@@ -188,7 +188,7 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 	}
 
 	slog.Info("Recovering workflow",
-		slog.Any("workflow_id", flowID),
+		slog.Any("flow_id", flowID),
 		slog.Int("retriable_steps", len(retriableSteps)))
 
 	now := time.Now()
@@ -208,7 +208,7 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 				!workItem.NextRetryAt.IsZero() &&
 				workItem.NextRetryAt.Before(now) {
 				slog.Info("Retrying work item",
-					slog.Any("workflow_id", flowID),
+					slog.Any("flow_id", flowID),
 					slog.Any("step_id", stepID),
 					slog.Any("token", token),
 					slog.Int("retry_count", workItem.RetryCount))

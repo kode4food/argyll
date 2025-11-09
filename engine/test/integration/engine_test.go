@@ -39,9 +39,11 @@ func TestStartWorkflowSimple(t *testing.T) {
 	env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
 	plan := &api.ExecutionPlan{
-		GoalSteps:      []timebox.ID{"goal-step"},
-		Steps:          []*api.Step{step},
-		RequiredInputs: []api.Name{},
+		Goals: []timebox.ID{"goal-step"},
+		Required:  []api.Name{},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"goal-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -86,8 +88,10 @@ func TestWorkflowCompletion(t *testing.T) {
 	)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"completion-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"completion-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"completion-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -127,8 +131,10 @@ func TestListWorkflows(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"list-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"list-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"list-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -165,8 +171,10 @@ func TestGetWorkflowEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"events-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"events-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"events-step": {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -224,9 +232,11 @@ func TestScriptStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps:      []timebox.ID{"script-1"},
-		Steps:          []*api.Step{scriptStep},
-		RequiredInputs: []api.Name{"name"},
+		Goals: []timebox.ID{"script-1"},
+		Required:  []api.Name{"name"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"script-1": {Step: scriptStep},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(

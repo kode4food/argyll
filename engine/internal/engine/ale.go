@@ -149,7 +149,7 @@ func (e *AleEnv) compile(
 			ns := e.env.GetAnonymous()
 			res, err := eval.String(ns, data.String(src))
 			if err != nil {
-				return nil, fmt.Errorf("%w: %w", ErrAleEvalFailed, err)
+				return nil, err
 			}
 
 			proc, ok := res.(data.Procedure)

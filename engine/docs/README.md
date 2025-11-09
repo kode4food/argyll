@@ -28,7 +28,7 @@ Application developers who want to:
 **Workflow Management:**
 - `POST /engine/workflow` - Create and start a workflow
 - `GET /engine/workflow` - List all workflows
-- `GET /engine/workflow/{workflowId}` - Get workflow state
+- `GET /engine/workflow/{flowId}` - Get workflow state
 - `POST /engine/plan` - Preview execution plan (without starting)
 
 **Monitoring:**
@@ -38,7 +38,7 @@ Application developers who want to:
 - `GET /engine/ws` - WebSocket for real-time events
 
 **Webhooks:**
-- `POST /webhook/{workflowId}/{stepId}/{token}` - Async step completion callback
+- `POST /webhook/{flowId}/{stepId}/{token}` - Async step completion callback
 
 ### Getting Started
 
@@ -75,8 +75,8 @@ curl -X POST http://localhost:8080/engine/workflow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "wf-001",
-    "goal_steps": ["text-processor"],
-    "initial_state": {
+    "goals": ["text-processor"],
+    "init": {
       "input_text": "Hello, Spuds!"
     }
   }'
@@ -124,7 +124,7 @@ Where `{step-endpoint}` is any path that implements the Step interface.
     "optional_arg2": "value2"
   },
   "metadata": {
-    "workflow_id": "wf-123",
+    "flow_id": "wf-123",
     "step_id": "unique-step-identifier",
     "webhook_url": "http://localhost:8080/webhook/wf-123/unique-step-identifier/tok_abc123"
   }
@@ -132,11 +132,11 @@ Where `{step-endpoint}` is any path that implements the Step interface.
 ```
 
 **Note:** The `metadata` field contains:
-- `workflow_id` - The executing workflow's ID
+- `flow_id` - The executing workflow's ID
 - `step_id` - The step identifier being executed
 - `webhook_url` - For async steps only, where to POST completion results
 
-**Idempotency:** Use `workflow_id` + `step_id` as a composite key to ensure each step execution is processed only once.
+**Idempotency:** Use `flow_id` + `step_id` as a composite key to ensure each step execution is processed only once.
 
 ### Response Format
 ```json

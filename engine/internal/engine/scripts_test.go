@@ -220,18 +220,21 @@ func TestCompilePlan(t *testing.T) {
 	)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"ale-step", "lua-step", "http-step"},
-		Steps:     []*api.Step{aleStep, luaStep, httpStepPred},
+		Goals: []timebox.ID{"ale-step", "lua-step", "http-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			aleStep.ID:      {Step: aleStep},
+			luaStep.ID:      {Step: luaStep},
+			httpStepPred.ID: {Step: httpStepPred},
+		},
 	}
 
 	err := registry.CompilePlan(plan)
 	require.NoError(t, err)
 
-	assert.NotNil(t, plan.Scripts)
-	assert.NotNil(t, plan.Predicates)
-	assert.Contains(t, plan.Scripts, timebox.ID("ale-step"))
-	assert.Contains(t, plan.Scripts, timebox.ID("lua-step"))
-	assert.Contains(t, plan.Predicates, timebox.ID("http-step"))
+	assert.NotNil(t, plan.Steps)
+	assert.NotNil(t, plan.Steps[aleStep.ID].Script)
+	assert.NotNil(t, plan.Steps[luaStep.ID].Script)
+	assert.NotNil(t, plan.Steps[httpStepPred.ID].Predicate)
 }
 
 func TestAleComplexScript(t *testing.T) {

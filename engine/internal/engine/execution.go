@@ -73,7 +73,7 @@ func (e *Engine) PrepareStepExecution(
 ) *ExecContext {
 	if err := e.validateStepExecution(ctx, flowID, stepID); err != nil {
 		slog.Error("Step validation failed",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("step_id", stepID),
 			slog.Any("error", err))
 		return nil
@@ -197,12 +197,12 @@ func (e *Engine) validateStepExecution(
 ) error {
 	flow, err := e.GetWorkflowState(ctx, flowID)
 	if err != nil {
-		return fmt.Errorf("%s: %w", ErrWorkflowStateFailed, err)
+		return err
 	}
 
 	step := flow.ExecutionPlan.GetStep(stepID)
 	if step == nil {
-		return fmt.Errorf("%s: %s", ErrStepNotInPlan, stepID)
+		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 	}
 
 	exec, ok := flow.Executions[stepID]
@@ -359,7 +359,7 @@ func (e *ExecContext) executeHTTPItem(
 
 func (e *ExecContext) buildHTTPMetadataWithToken(token api.Token) api.Metadata {
 	metadata := api.Metadata{
-		"workflow_id":   e.flowID,
+		"flow_id":       e.flowID,
 		"step_id":       e.stepID,
 		"receipt_token": token,
 	}

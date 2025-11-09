@@ -130,9 +130,10 @@ describe("useExecutionPlanPreview", () => {
 
   test("returns preview plan from context", () => {
     const mockPlan: ExecutionPlan = {
-      goal_steps: ["step-1"],
-      required_inputs: [],
-      steps: [],
+      goals: ["step-1"],
+      required: [],
+      steps: {},
+      attributes: {},
     };
 
     mockUseUI.mockReturnValue({

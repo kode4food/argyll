@@ -211,7 +211,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
           attributeProvenance={provenance}
           isInPreviewPlan={nodeData.isInPreviewPlan}
           isPreviewMode={nodeData.isPreviewMode}
-          workflowId={workflowData?.id}
+          flowId={workflowData?.id}
           diagramContainerRef={nodeData.diagramContainerRef}
           disableEdit={nodeData.disableEdit}
         />

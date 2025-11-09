@@ -104,7 +104,7 @@ const WorkflowSelector: React.FC = () => {
   const handleCreateWorkflow = async () => {
     if (!newId.trim() || goalStepIds.length === 0) return;
 
-    const workflowId = newId.trim();
+    const flowId = newId.trim();
     let parsedState: {};
     try {
       parsedState = JSON.parse(initialState);
@@ -113,7 +113,7 @@ const WorkflowSelector: React.FC = () => {
     }
 
     const optimisticWorkflow: any = {
-      id: workflowId,
+      id: flowId,
       status: "pending",
       goal_step_ids: goalStepIds,
       state: parsedState,
@@ -123,7 +123,7 @@ const WorkflowSelector: React.FC = () => {
 
     addWorkflow(optimisticWorkflow);
     setCreating(true);
-    router.push(`/workflow/${workflowId}`);
+    router.push(`/workflow/${flowId}`);
     setNewId("");
     setGoalStepIds([]);
     setSelectedStep(null);
@@ -131,7 +131,7 @@ const WorkflowSelector: React.FC = () => {
     setShowCreateForm(false);
 
     try {
-      await api.startWorkflow(workflowId, goalStepIds, parsedState);
+      await api.startWorkflow(flowId, goalStepIds, parsedState);
 
       await loadWorkflows();
     } catch (error: any) {
@@ -143,7 +143,7 @@ const WorkflowSelector: React.FC = () => {
         errorMessage = error.message;
       }
 
-      removeWorkflow(workflowId);
+      removeWorkflow(flowId);
       toast.error("Failed to create workflow: " + errorMessage);
       router.push("/");
     } finally {
@@ -182,7 +182,7 @@ const WorkflowSelector: React.FC = () => {
             }
           });
 
-          executionPlan.required_inputs.forEach((name) => {
+          executionPlan.required.forEach((name) => {
             if (!(name in mergedState)) {
               mergedState[name] = "";
             }
@@ -208,7 +208,7 @@ const WorkflowSelector: React.FC = () => {
             try {
               const lastGoalPlan = await api.getExecutionPlan([lastGoal], {});
               const lastGoalStepIds = new Set(
-                (lastGoalPlan.steps || []).map((s) => s.id)
+                Object.keys(lastGoalPlan.steps || {})
               );
 
               const remainingGoals = previousGoals.filter(
@@ -446,24 +446,24 @@ const WorkflowSelector: React.FC = () => {
     processedEventsRef.current.add(eventKey);
 
     const eventType = latestEvent.type;
-    const workflowId = aggregateId[1];
+    const flowId = aggregateId[1];
 
     if (eventType === "workflow_started") {
-      const workflowExists = workflows.some((w) => w.id === workflowId);
+      const workflowExists = workflows.some((w) => w.id === flowId);
       if (workflowExists) {
-        updateWorkflowStatus(workflowId, "active");
+        updateWorkflowStatus(flowId, "active");
       } else {
         loadWorkflows();
       }
     } else if (eventType === "workflow_completed") {
       updateWorkflowStatus(
-        workflowId,
+        flowId,
         "completed",
         new Date(latestEvent.timestamp).toISOString()
       );
     } else if (eventType === "workflow_failed") {
       updateWorkflowStatus(
-        workflowId,
+        flowId,
         "failed",
         new Date(latestEvent.timestamp).toISOString()
       );

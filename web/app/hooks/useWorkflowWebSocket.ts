@@ -38,7 +38,7 @@ export const useWorkflowWebSocket = () => {
     if (selectedWorkflow) {
       subscribe({
         engine_events: true,
-        workflow_id: selectedWorkflow,
+        flow_id: selectedWorkflow,
         from_sequence: nextSequence,
       });
     } else {
@@ -98,7 +98,7 @@ export const useWorkflowWebSocket = () => {
       }
 
       if (!selectedWorkflow) continue;
-      if (event.data?.workflow_id !== selectedWorkflow) continue;
+      if (event.data?.flow_id !== selectedWorkflow) continue;
       if (!workflowData) continue;
 
       if (event.type === "workflow_started") {

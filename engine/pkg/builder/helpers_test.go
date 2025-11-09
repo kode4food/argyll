@@ -82,7 +82,7 @@ func TestSuccess(t *testing.T) {
 
 	reqBody := api.StepRequest{
 		Arguments: api.Args{"input": "test-value"},
-		Metadata:  api.Metadata{"workflow_id": "wf-123"},
+		Metadata:  api.Metadata{"flow_id": "wf-123"},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -152,7 +152,7 @@ func TestWithMetadata(t *testing.T) {
 
 	reqBody := api.StepRequest{
 		Arguments: api.Args{},
-		Metadata:  api.Metadata{"workflow_id": "wf-123", "user_id": "user-456"},
+		Metadata:  api.Metadata{"flow_id": "wf-123", "user_id": "user-456"},
 	}
 	body, _ := json.Marshal(reqBody)
 
@@ -170,7 +170,7 @@ func TestWithMetadata(t *testing.T) {
 	require.NotNil(t, metadata)
 	meta, ok := metadata.(api.Metadata)
 	require.True(t, ok)
-	assert.Equal(t, "wf-123", meta["workflow_id"])
+	assert.Equal(t, "wf-123", meta["flow_id"])
 	assert.Equal(t, "user-456", meta["user_id"])
 }
 

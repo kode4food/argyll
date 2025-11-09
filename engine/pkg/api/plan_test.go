@@ -16,7 +16,11 @@ func TestGetStep(t *testing.T) {
 	step3 := &api.Step{ID: "step3", Name: "Step 3"}
 
 	plan := &api.ExecutionPlan{
-		Steps: []*api.Step{step1, step2, step3},
+		Steps: map[timebox.ID]*api.StepInfo{
+			"step1": {Step: step1},
+			"step2": {Step: step2},
+			"step3": {Step: step3},
+		},
 	}
 
 	t.Run("existing_step", func(t *testing.T) {
@@ -46,7 +50,7 @@ func TestGetStep(t *testing.T) {
 
 func TestGetStepEmptyPlan(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		Steps: []*api.Step{},
+		Steps: map[timebox.ID]*api.StepInfo{},
 	}
 
 	result := plan.GetStep("any")
@@ -55,7 +59,7 @@ func TestGetStepEmptyPlan(t *testing.T) {
 
 func TestValidateSuccess(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{"input1", "input2", "input3"},
+		Required: []api.Name{"input1", "input2", "input3"},
 	}
 
 	args := api.Args{
@@ -70,7 +74,7 @@ func TestValidateSuccess(t *testing.T) {
 
 func TestValidateExtraArgs(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{"input1"},
+		Required: []api.Name{"input1"},
 	}
 
 	args := api.Args{
@@ -85,7 +89,7 @@ func TestValidateExtraArgs(t *testing.T) {
 
 func TestValidateMissing(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{"required_input"},
+		Required: []api.Name{"required_input"},
 	}
 
 	args := api.Args{
@@ -101,7 +105,7 @@ func TestValidateMissing(t *testing.T) {
 
 func TestValidateMissingMulti(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{"input1", "input2", "input3"},
+		Required: []api.Name{"input1", "input2", "input3"},
 	}
 
 	args := api.Args{
@@ -119,7 +123,7 @@ func TestValidateMissingMulti(t *testing.T) {
 
 func TestValidateNoRequired(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{},
+		Required: []api.Name{},
 	}
 
 	args := api.Args{}
@@ -130,7 +134,7 @@ func TestValidateNoRequired(t *testing.T) {
 
 func TestValidateNilArgs(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{"input1"},
+		Required: []api.Name{"input1"},
 	}
 
 	err := plan.ValidateInputs(nil)
@@ -139,7 +143,7 @@ func TestValidateNilArgs(t *testing.T) {
 
 func TestValidateEmptyArgs(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		RequiredInputs: []api.Name{"input1", "input2"},
+		Required: []api.Name{"input1", "input2"},
 	}
 
 	args := api.Args{}
@@ -151,11 +155,13 @@ func TestValidateEmptyArgs(t *testing.T) {
 func TestNeedsCompilation(t *testing.T) {
 	t.Run("no_script_steps", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: []*api.Step{
-				{
-					ID:   "http-step",
-					Type: api.StepTypeSync,
-					HTTP: &api.HTTPConfig{Endpoint: "http://test:8080"},
+			Steps: map[timebox.ID]*api.StepInfo{
+				"http-step": {
+					Step: &api.Step{
+						ID:   "http-step",
+						Type: api.StepTypeSync,
+						HTTP: &api.HTTPConfig{Endpoint: "http://test:8080"},
+					},
 				},
 			},
 		}
@@ -164,35 +170,37 @@ func TestNeedsCompilation(t *testing.T) {
 
 	t.Run("script_step_not_compiled", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: []*api.Step{
-				{
-					ID:   "script-step",
-					Type: api.StepTypeScript,
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangAle,
-						Script:   "{:x 1}",
+			Steps: map[timebox.ID]*api.StepInfo{
+				"script-step": {
+					Step: &api.Step{
+						ID:   "script-step",
+						Type: api.StepTypeScript,
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangAle,
+							Script:   "{:x 1}",
+						},
 					},
+					Script: nil,
 				},
 			},
-			Scripts: nil,
 		}
 		assert.True(t, plan.NeedsCompilation())
 	})
 
 	t.Run("script_step_compiled", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: []*api.Step{
-				{
-					ID:   "script-step",
-					Type: api.StepTypeScript,
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangAle,
-						Script:   "{:x 1}",
+			Steps: map[timebox.ID]*api.StepInfo{
+				"script-step": {
+					Step: &api.Step{
+						ID:   "script-step",
+						Type: api.StepTypeScript,
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangAle,
+							Script:   "{:x 1}",
+						},
 					},
+					Script: struct{}{},
 				},
-			},
-			Scripts: map[timebox.ID]any{
-				"script-step": struct{}{},
 			},
 		}
 		assert.False(t, plan.NeedsCompilation())
@@ -200,25 +208,29 @@ func TestNeedsCompilation(t *testing.T) {
 
 	t.Run("script_step_missing_from_map", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: []*api.Step{
-				{
-					ID:   "script-step-1",
-					Type: api.StepTypeScript,
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangAle,
-						Script:   "{:x 1}",
+			Steps: map[timebox.ID]*api.StepInfo{
+				"script-step-1": {
+					Step: &api.Step{
+						ID:   "script-step-1",
+						Type: api.StepTypeScript,
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangAle,
+							Script:   "{:x 1}",
+						},
 					},
+					Script: struct{}{},
 				},
-				{
-					ID:   "script-step-2",
-					Type: api.StepTypeScript,
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangAle, Script: "{:y 2}",
+				"script-step-2": {
+					Step: &api.Step{
+						ID:   "script-step-2",
+						Type: api.StepTypeScript,
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangAle,
+							Script:   "{:y 2}",
+						},
 					},
+					Script: nil,
 				},
-			},
-			Scripts: map[timebox.ID]any{
-				"script-step-1": struct{}{},
 			},
 		}
 		assert.True(t, plan.NeedsCompilation())

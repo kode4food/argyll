@@ -33,7 +33,7 @@ interface WebSocketContextType {
   reconnectAttempt: number;
   subscribe: (subscription: {
     engine_events?: boolean;
-    workflow_id?: string; // Empty string = no workflow events
+    flow_id?: string; // Empty string = no workflow events
     event_types?: string[]; // Filter for specific event types
     from_sequence?: number; // Start replay from this sequence
   }) => void;
@@ -64,14 +64,14 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({
 
   const currentSubscriptionRef = useRef<{
     engine_events?: boolean;
-    workflow_id?: string;
+    flow_id?: string;
     event_types?: string[];
     from_sequence?: number;
   }>({});
 
   const [pendingSubscription, setPendingSubscription] = useState<{
     engine_events?: boolean;
-    workflow_id?: string;
+    flow_id?: string;
     event_types?: string[];
     from_sequence?: number;
   } | null>(null);
@@ -223,7 +223,7 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({
   const subscribe = useCallback(
     (subscription: {
       engine_events?: boolean;
-      workflow_id?: string;
+      flow_id?: string;
       event_types?: string[];
       from_sequence?: number;
     }) => {
@@ -234,10 +234,10 @@ export const WebSocketProvider: React.FC<{ children: ReactNode }> = ({
           subscription.engine_events !== undefined
             ? subscription.engine_events
             : current.engine_events,
-        workflow_id:
-          subscription.workflow_id !== undefined
-            ? subscription.workflow_id
-            : current.workflow_id,
+        flow_id:
+          subscription.flow_id !== undefined
+            ? subscription.flow_id
+            : current.flow_id,
         event_types:
           subscription.event_types !== undefined
             ? subscription.event_types

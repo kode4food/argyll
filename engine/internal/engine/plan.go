@@ -9,25 +9,26 @@ import (
 )
 
 type planBuilder struct {
-	engState  *api.EngineState
-	visited   map[timebox.ID]bool
-	available map[api.Name]bool
-	missing   map[api.Name]bool
-	steps     []*api.Step
+	engState   *api.EngineState
+	visited    map[timebox.ID]bool
+	available  map[api.Name]bool
+	missing    map[api.Name]bool
+	steps      map[timebox.ID]*api.StepInfo
+	attributes map[api.Name]*api.Dependencies
 }
 
 var (
-	ErrNoGoalSteps = errors.New("at least one goal step is required")
+	ErrNoGoals = errors.New("at least one goal step is required")
 )
 
 func (e *Engine) CreateExecutionPlan(
 	engState *api.EngineState, goalIDs []timebox.ID, initState api.Args,
 ) (*api.ExecutionPlan, error) {
 	if len(goalIDs) == 0 {
-		return nil, ErrNoGoalSteps
+		return nil, ErrNoGoals
 	}
 
-	if err := validateGoalSteps(engState, goalIDs); err != nil {
+	if err := validateGoals(engState, goalIDs); err != nil {
 		return nil, err
 	}
 
@@ -40,19 +41,21 @@ func (e *Engine) CreateExecutionPlan(
 	}
 
 	return &api.ExecutionPlan{
-		GoalSteps:      goalIDs,
-		RequiredInputs: pb.getRequiredInputs(),
-		Steps:          pb.steps,
+		Goals:      goalIDs,
+		Required:   pb.getRequiredInputs(),
+		Steps:      pb.steps,
+		Attributes: pb.attributes,
 	}, nil
 }
 
 func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 	pb := &planBuilder{
-		engState:  st,
-		steps:     []*api.Step{},
-		visited:   map[timebox.ID]bool{},
-		available: map[api.Name]bool{},
-		missing:   map[api.Name]bool{},
+		engState:   st,
+		visited:    map[timebox.ID]bool{},
+		available:  map[api.Name]bool{},
+		missing:    map[api.Name]bool{},
+		steps:      map[timebox.ID]*api.StepInfo{},
+		attributes: map[api.Name]*api.Dependencies{},
 	}
 
 	for key := range initState {
@@ -100,7 +103,10 @@ func (pb *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
 
 func (pb *planBuilder) addStepToPlan(stepID timebox.ID, step *api.Step) {
 	pb.visited[stepID] = true
-	pb.steps = append(pb.steps, step)
+
+	pb.steps[stepID] = &api.StepInfo{
+		Step: step,
+	}
 
 	for name, attr := range step.Attributes {
 		if attr.Role == api.RoleOutput {
@@ -125,9 +131,10 @@ func (pb *planBuilder) resolveDependencies(step *api.Step) error {
 
 	for _, name := range allInputs {
 		if pb.available[name] {
+			pb.trackConsumer(name, step.ID)
 			continue
 		}
-		if err := pb.resolveInput(name, requiredSet); err != nil {
+		if err := pb.resolveInput(name, step.ID, requiredSet); err != nil {
 			return err
 		}
 	}
@@ -136,7 +143,7 @@ func (pb *planBuilder) resolveDependencies(step *api.Step) error {
 }
 
 func (pb *planBuilder) resolveInput(
-	name api.Name, requiredSet map[api.Name]bool,
+	name api.Name, consumerID timebox.ID, requiredSet map[api.Name]bool,
 ) error {
 	providerID, found := pb.findProvider(name)
 	if !found {
@@ -145,6 +152,8 @@ func (pb *planBuilder) resolveInput(
 		}
 		return nil
 	}
+
+	pb.trackDependency(name, providerID, consumerID)
 
 	if err := pb.buildPlan(providerID); err != nil {
 		return err
@@ -179,6 +188,30 @@ func (pb *planBuilder) buildPlan(stepID timebox.ID) error {
 	return nil
 }
 
+func (pb *planBuilder) trackConsumer(name api.Name, consumerID timebox.ID) {
+	if pb.attributes[name] == nil {
+		pb.attributes[name] = &api.Dependencies{
+			Providers: []timebox.ID{},
+			Consumers: []timebox.ID{},
+		}
+	}
+	pb.attributes[name].Consumers = append(pb.attributes[name].Consumers, consumerID)
+}
+
+func (pb *planBuilder) trackDependency(
+	name api.Name, providerID, consumerID timebox.ID,
+) {
+	if pb.attributes[name] == nil {
+		pb.attributes[name] = &api.Dependencies{
+			Providers: []timebox.ID{},
+			Consumers: []timebox.ID{},
+		}
+	}
+
+	pb.attributes[name].Providers = append(pb.attributes[name].Providers, providerID)
+	pb.attributes[name].Consumers = append(pb.attributes[name].Consumers, consumerID)
+}
+
 func (pb *planBuilder) getRequiredInputs() []api.Name {
 	var requiredInputs []api.Name
 	for input := range pb.missing {
@@ -187,7 +220,7 @@ func (pb *planBuilder) getRequiredInputs() []api.Name {
 	return requiredInputs
 }
 
-func validateGoalSteps(engState *api.EngineState, goalIDs []timebox.ID) error {
+func validateGoals(engState *api.EngineState, goalIDs []timebox.ID) error {
 	for _, goalID := range goalIDs {
 		if _, ok := engState.Steps[goalID]; !ok {
 			return ErrStepNotFound

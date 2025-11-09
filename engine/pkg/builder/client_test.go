@@ -137,8 +137,8 @@ func TestStartWithRequest(t *testing.T) {
 	client := builder.NewClient(server.URL, 5*time.Second)
 	req := api.CreateWorkflowRequest{
 		ID:           "wf-1",
-		GoalStepIDs:  []timebox.ID{"goal1", "goal2"},
-		InitialState: api.Args{"input": "value"},
+		Goals:        []timebox.ID{"goal1", "goal2"},
+		Init: api.Args{"input": "value"},
 	}
 
 	err := client.StartWorkflowWithRequest(context.Background(), req)

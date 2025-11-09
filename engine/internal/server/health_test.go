@@ -218,9 +218,9 @@ func TestRecentSuccess(t *testing.T) {
 	defer producer.Close()
 
 	completedData, _ := json.Marshal(api.StepCompletedEvent{
-		StepID:     "recent-success-step",
-		WorkflowID: "wf-test",
-		Outputs:    api.Args{},
+		StepID:  "recent-success-step",
+		FlowID:  "wf-test",
+		Outputs: api.Args{},
 	})
 
 	event := &timebox.Event{

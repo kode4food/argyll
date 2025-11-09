@@ -37,8 +37,8 @@ func (e *Engine) CompleteWorkflow(
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkflowCompletedEvent{
-			WorkflowID: flowID,
-			Result:     result,
+			FlowID: flowID,
+			Result: result,
 		})
 		if err != nil {
 			return err
@@ -56,8 +56,8 @@ func (e *Engine) FailWorkflow(
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkflowFailedEvent{
-			WorkflowID: flowID,
-			Error:      errMsg,
+			FlowID: flowID,
+			Error:  errMsg,
 		})
 		if err != nil {
 			return err
@@ -77,9 +77,9 @@ func (e *Engine) StartStepExecution(
 		ctx, flowID, stepID, api.StepActive, "start",
 		api.EventTypeStepStarted,
 		api.StepStartedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Inputs:     inputs,
+			FlowID: flowID,
+			StepID: stepID,
+			Inputs: inputs,
 		},
 	)
 }
@@ -91,10 +91,10 @@ func (e *Engine) CompleteStepExecution(
 		ctx, flowID, stepID, api.StepCompleted, "complete",
 		api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Outputs:    outputs,
-			Duration:   dur,
+			FlowID:   flowID,
+			StepID:   stepID,
+			Outputs:  outputs,
+			Duration: dur,
 		},
 	)
 }
@@ -106,9 +106,9 @@ func (e *Engine) FailStepExecution(
 		ctx, flowID, stepID, api.StepFailed, "fail",
 		api.EventTypeStepFailed,
 		api.StepFailedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Error:      errMsg,
+			FlowID: flowID,
+			StepID: stepID,
+			Error:  errMsg,
 		},
 	)
 }
@@ -120,9 +120,9 @@ func (e *Engine) SkipStepExecution(
 		ctx, flowID, stepID, api.StepSkipped, "skip",
 		api.EventTypeStepSkipped,
 		api.StepSkippedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Reason:     reason,
+			FlowID: flowID,
+			StepID: stepID,
+			Reason: reason,
 		},
 	)
 }
@@ -133,10 +133,10 @@ func (e *Engine) StartWork(
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkStartedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Token:      token,
-			Inputs:     inputs,
+			FlowID: flowID,
+			StepID: stepID,
+			Token:  token,
+			Inputs: inputs,
 		})
 		if err != nil {
 			return err
@@ -155,10 +155,10 @@ func (e *Engine) CompleteWork(
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkCompletedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Token:      token,
-			Outputs:    outputs,
+			FlowID:  flowID,
+			StepID:  stepID,
+			Token:   token,
+			Outputs: outputs,
 		})
 		if err != nil {
 			return err
@@ -177,10 +177,10 @@ func (e *Engine) FailWork(
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkFailedEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Token:      token,
-			Error:      errMsg,
+			FlowID: flowID,
+			StepID: stepID,
+			Token:  token,
+			Error:  errMsg,
 		})
 		if err != nil {
 			return err
@@ -198,14 +198,14 @@ func (e *Engine) SetAttribute(
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		if _, ok := st.Attributes[attr]; ok {
-			return fmt.Errorf("%s: %s", ErrAttributeAlreadySet, attr)
+			return fmt.Errorf("%w: %s", ErrAttributeAlreadySet, attr)
 		}
 
 		ev, err := json.Marshal(api.AttributeSetEvent{
-			WorkflowID: flowID,
-			StepID:     stepID,
-			Key:        attr,
-			Value:      value,
+			FlowID: flowID,
+			StepID: stepID,
+			Key:    attr,
+			Value:  value,
 		})
 		if err != nil {
 			return err
@@ -420,14 +420,14 @@ func (e *Engine) startWorkflow(
 	}
 
 	if err := e.scripts.CompilePlan(plan); err != nil {
-		return fmt.Errorf("%s: %w", ErrScriptCompileFailed, err)
+		return err
 	}
 
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkflowStartedEvent{
-			WorkflowID:    flowID,
+			FlowID:        flowID,
 			ExecutionPlan: plan,
-			InitialState:  initState,
+			Init:          initState,
 			Metadata:      meta,
 		})
 		if err != nil {
@@ -447,7 +447,7 @@ func (e *Engine) GetActiveWorkflow(
 	flow, err := e.GetWorkflowState(e.ctx, flowID)
 	if err != nil {
 		slog.Error("Failed to get workflow state",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 		return nil, false
 	}
@@ -469,7 +469,7 @@ func (e *Engine) ensureScriptsCompiled(
 
 	if err := e.scripts.CompilePlan(flow.ExecutionPlan); err != nil {
 		slog.Error("Failed to compile scripts",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 		return false
 	}
@@ -502,9 +502,9 @@ func (e *Engine) launchReadySteps(flowID timebox.ID, ready []timebox.ID) {
 
 func (e *Engine) findReadySteps(flow *api.WorkflowState) []timebox.ID {
 	var res []timebox.ID
-	for _, step := range flow.ExecutionPlan.Steps {
-		if e.isStepReadyForExec(step.ID, flow) {
-			res = append(res, step.ID)
+	for stepID := range flow.ExecutionPlan.Steps {
+		if e.isStepReadyForExec(stepID, flow) {
+			res = append(res, stepID)
 		}
 	}
 	return res
@@ -533,8 +533,8 @@ func (e *Engine) isStepReady(stepID timebox.ID, flow *api.WorkflowState) bool {
 }
 
 func (e *Engine) isWorkflowComplete(flow *api.WorkflowState) bool {
-	for _, step := range flow.ExecutionPlan.Steps {
-		if !e.isStepComplete(step.ID, flow) {
+	for stepID := range flow.ExecutionPlan.Steps {
+		if !e.isStepComplete(stepID, flow) {
 			return false
 		}
 	}
@@ -554,12 +554,12 @@ func (e *Engine) isStepComplete(
 func (e *Engine) evaluateWorkflowState(
 	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
 ) {
-	for _, step := range flow.ExecutionPlan.Steps {
-		exec, ok := flow.Executions[step.ID]
+	for stepID := range flow.ExecutionPlan.Steps {
+		exec, ok := flow.Executions[stepID]
 		if !ok || exec.Status != api.StepPending {
 			continue
 		}
-		e.maybeSkipStep(ctx, flowID, step.ID, flow)
+		e.maybeSkipStep(ctx, flowID, stepID, flow)
 	}
 }
 
@@ -581,7 +581,7 @@ func (e *Engine) maybeSkipStep(
 }
 
 func (e *Engine) IsWorkflowFailed(flow *api.WorkflowState) bool {
-	for _, goalID := range flow.ExecutionPlan.GoalSteps {
+	for _, goalID := range flow.ExecutionPlan.Goals {
 		if !e.canStepComplete(goalID, flow) {
 			return true
 		}
@@ -611,7 +611,7 @@ func (e *Engine) canStepComplete(
 			if _, hasAttr := flow.Attributes[requiredInputName]; hasAttr {
 				continue
 			}
-			if !e.HasInputProvider(stepID, requiredInputName, flow) {
+			if !e.HasInputProvider(requiredInputName, flow) {
 				return false
 			}
 		}
@@ -627,7 +627,7 @@ func (e *Engine) transitionStepExecution(
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		exec, ok := st.Executions[stepID]
 		if !ok {
-			return fmt.Errorf("%s: %s", ErrStepNotInPlan, stepID)
+			return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 		}
 
 		if can, exp := canTransitionTo(exec.Status, toStatus); !can {
@@ -653,9 +653,9 @@ func (e *Engine) failWorkflow(
 ) {
 	var failed []string
 
-	for _, step := range flow.ExecutionPlan.Steps {
-		if exec, ok := flow.Executions[step.ID]; ok {
-			failed = e.appendFailedStep(failed, step.ID, exec)
+	for stepID := range flow.ExecutionPlan.Steps {
+		if exec, ok := flow.Executions[stepID]; ok {
+			failed = e.appendFailedStep(failed, stepID, exec)
 		}
 	}
 
@@ -689,7 +689,7 @@ func (e *Engine) completeWorkflow(
 ) {
 	result := api.Args{}
 
-	for _, goalID := range flow.ExecutionPlan.GoalSteps {
+	for _, goalID := range flow.ExecutionPlan.Goals {
 		if goal := flow.Executions[goalID]; goal != nil {
 			maps.Copy(result, goal.Outputs)
 		}
@@ -702,21 +702,18 @@ func (e *Engine) completeWorkflow(
 	}
 }
 
-func hasCompletableStatus(status api.StepStatus) bool {
-	return status != api.StepCompleted &&
-		status != api.StepFailed &&
-		status != api.StepSkipped
-}
+func (e *Engine) HasInputProvider(name api.Name, flow *api.WorkflowState) bool {
+	deps := flow.ExecutionPlan.Attributes[name]
+	if deps == nil {
+		return false
+	}
 
-func (e *Engine) HasInputProvider(
-	stepID timebox.ID, name api.Name, flow *api.WorkflowState,
-) bool {
-	for _, planStep := range flow.ExecutionPlan.Steps {
-		if planStep.ID == stepID {
-			continue
-		}
+	if len(deps.Providers) == 0 {
+		return true
+	}
 
-		if e.StepProvidesInput(planStep, name, flow) {
+	for _, providerID := range deps.Providers {
+		if e.canStepComplete(providerID, flow) {
 			return true
 		}
 	}
@@ -732,6 +729,12 @@ func (e *Engine) StepProvidesInput(
 		}
 	}
 	return false
+}
+
+func hasCompletableStatus(status api.StepStatus) bool {
+	return status != api.StepCompleted &&
+		status != api.StepFailed &&
+		status != api.StepSkipped
 }
 
 func workflowKey(flowID timebox.ID) timebox.AggregateID {

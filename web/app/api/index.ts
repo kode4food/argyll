@@ -9,6 +9,7 @@ export type {
   WorkConfig,
   Step,
   ExecutionPlan,
+  StepInfo,
   WorkflowContext,
   ExecutionResult,
   StepHealth,

@@ -148,7 +148,7 @@ func (e *LuaEnv) compile(
 	e.setupSandbox(L)
 
 	if err := lua.LoadString(L, src); err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrLuaSyntax, err)
+		return nil, err
 	}
 
 	return &CompiledLuaScript{
@@ -193,7 +193,7 @@ func executeLuaScript(
 
 	env.setupSandbox(L)
 	if err := lua.LoadString(L, c.source); err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrLuaLoad, err)
+		return nil, err
 	}
 
 	for _, name := range c.argNames {
@@ -201,7 +201,7 @@ func executeLuaScript(
 	}
 
 	if err := L.ProtectedCall(len(c.argNames), 1, 0); err != nil {
-		return nil, fmt.Errorf("%s: %w", ErrLuaExecution, err)
+		return nil, err
 	}
 
 	if !L.IsTable(-1) {
@@ -223,7 +223,7 @@ func evaluateLuaPredicate(
 	env.setupSandbox(L)
 
 	if err := lua.LoadString(L, c.source); err != nil {
-		return false, fmt.Errorf("%s: %w", ErrLuaLoad, err)
+		return false, fmt.Errorf("%w: %w", ErrLuaLoad, err)
 	}
 
 	for _, name := range c.argNames {
@@ -231,7 +231,7 @@ func evaluateLuaPredicate(
 	}
 
 	if err := L.ProtectedCall(len(c.argNames), 1, 0); err != nil {
-		return false, fmt.Errorf("%s: %w", ErrLuaExecution, err)
+		return false, fmt.Errorf("%w: %w", ErrLuaExecution, err)
 	}
 
 	result := L.ToBoolean(-1)

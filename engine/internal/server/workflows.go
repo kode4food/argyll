@@ -56,7 +56,7 @@ func (s *Server) startWorkflow(c *gin.Context) {
 		return
 	}
 
-	if len(req.GoalStepIDs) == 0 {
+	if len(req.Goals) == 0 {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "At least one goal step ID is required",
 			Status: http.StatusBadRequest,
@@ -64,18 +64,18 @@ func (s *Server) startWorkflow(c *gin.Context) {
 		return
 	}
 
-	plan, ok := s.createPlan(c, req.GoalStepIDs, req.InitialState)
+	plan, ok := s.createPlan(c, req.Goals, req.Init)
 	if !ok {
 		return
 	}
 
 	meta := api.Metadata{}
 	err := s.engine.StartWorkflow(
-		c.Request.Context(), flowID, plan, req.InitialState, meta,
+		c.Request.Context(), flowID, plan, req.Init, meta,
 	)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.WorkflowStartedResponse{
-			WorkflowID: flowID,
+			FlowID: flowID,
 		})
 		return
 	}
@@ -158,7 +158,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	if len(req.GoalStepIDs) == 0 {
+	if len(req.Goals) == 0 {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "At least one goal step ID is required",
 			Status: http.StatusBadRequest,
@@ -166,7 +166,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	if plan, ok := s.createPlan(c, req.GoalStepIDs, req.InitialState); ok {
+	if plan, ok := s.createPlan(c, req.Goals, req.Init); ok {
 		c.JSON(http.StatusOK, plan)
 	}
 }

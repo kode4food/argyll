@@ -35,13 +35,9 @@ export class SpudsApi {
     let executionPlan = undefined;
     if (
       projection.execution_plan &&
-      projection.execution_plan.steps.length > 0
+      Object.keys(projection.execution_plan.steps).length > 0
     ) {
-      executionPlan = {
-        goal_steps: projection.execution_plan.goal_steps,
-        steps: projection.execution_plan.steps,
-        required_inputs: projection.execution_plan.required_inputs,
-      };
+      executionPlan = projection.execution_plan;
     }
 
     return {
@@ -72,8 +68,8 @@ export class SpudsApi {
   ): Promise<any> {
     const response = await this.client.post("/engine/workflow", {
       id,
-      goal_steps: goalStepIds,
-      initial_state: initialState,
+      goals: goalStepIds,
+      init: initialState,
     });
     return response.data;
   }
@@ -100,16 +96,16 @@ export class SpudsApi {
     return projections.map((p) => this.convertProjection(p));
   }
 
-  async getExecutions(workflowId: string): Promise<ExecutionResult[]> {
-    const response = await this.client.get(`/engine/workflow/${workflowId}`);
+  async getExecutions(flowId: string): Promise<ExecutionResult[]> {
+    const response = await this.client.get(`/engine/workflow/${flowId}`);
     const projection: WorkflowProjection = response.data;
 
-    return this.extractExecutions(projection, workflowId);
+    return this.extractExecutions(projection, flowId);
   }
 
   private extractExecutions(
     projection: WorkflowProjection,
-    workflowId: string
+    flowId: string
   ): ExecutionResult[] {
     if (!projection.executions) {
       return [];
@@ -125,7 +121,7 @@ export class SpudsApi {
 
     return Object.entries(projection.executions).map(([stepId, exec]) => ({
       step_id: stepId,
-      workflow_id: workflowId,
+      flow_id: flowId,
       status: executionStatusMap[exec.status] || "pending",
       inputs: exec.inputs,
       outputs: exec.outputs,
@@ -144,8 +140,8 @@ export class SpudsApi {
     const response = await this.client.post(
       "/engine/plan",
       {
-        goal_steps: goalStepIds,
-        initial_state: initialState,
+        goals: goalStepIds,
+        init: initialState,
       },
       {
         signal,

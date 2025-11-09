@@ -71,25 +71,26 @@ func TestCompileForPlan(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"script-step"},
-		Steps:     []*api.Step{script, pred},
+		Goals: []timebox.ID{"script-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			script.ID: {Step: script},
+			pred.ID:   {Step: pred},
+		},
 	}
 
 	err := registry.CompilePlan(plan)
 	require.NoError(t, err)
 
-	assert.NotNil(t, plan.Scripts)
-	assert.NotNil(t, plan.Predicates)
+	assert.NotNil(t, plan.Steps[script.ID].Script)
+	assert.NotNil(t, plan.Steps[pred.ID].Predicate)
 
-	scriptProc, ok := plan.Scripts[script.ID]
+	scriptProc, ok := plan.Steps[script.ID].Script.(data.Procedure)
 	assert.True(t, ok)
-	_, ok = scriptProc.(data.Procedure)
-	assert.True(t, ok)
+	assert.NotNil(t, scriptProc)
 
-	predProc, ok := plan.Predicates[pred.ID]
+	predProc, ok := plan.Steps[pred.ID].Predicate.(data.Procedure)
 	assert.True(t, ok)
-	_, ok = predProc.(data.Procedure)
-	assert.True(t, ok)
+	assert.NotNil(t, predProc)
 }
 
 func TestCompiledIndependence(t *testing.T) {
@@ -110,13 +111,17 @@ func TestCompiledIndependence(t *testing.T) {
 	}
 
 	pl1 := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"test-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"test-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	pl2 := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"test-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"test-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err := registry.CompilePlan(pl1)
@@ -125,17 +130,17 @@ func TestCompiledIndependence(t *testing.T) {
 	err = registry.CompilePlan(pl2)
 	require.NoError(t, err)
 
-	proc1, ok1 := pl1.Scripts[step.ID].(data.Procedure)
-	proc2, ok2 := pl2.Scripts[step.ID].(data.Procedure)
+	proc1, ok1 := pl1.Steps[step.ID].Script.(data.Procedure)
+	proc2, ok2 := pl2.Steps[step.ID].Script.(data.Procedure)
 
 	assert.True(t, ok1)
 	assert.True(t, ok2)
 
 	assert.Equal(t, proc1, proc2)
 
-	pl1.Scripts = nil
+	pl1.Steps[step.ID].Script = nil
 
-	assert.NotNil(t, pl2.Scripts)
+	assert.NotNil(t, pl2.Steps[step.ID].Script)
 }
 
 func TestIsolatedUpdate(t *testing.T) {
@@ -157,14 +162,16 @@ func TestIsolatedUpdate(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"test-step"},
-		Steps:     []*api.Step{oldStep},
+		Goals: []timebox.ID{"test-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			oldStep.ID: {Step: oldStep},
+		},
 	}
 
 	err := registry.CompilePlan(plan)
 	require.NoError(t, err)
 
-	oldProc := plan.Scripts[oldStep.ID]
+	oldProc := plan.Steps[oldStep.ID].Script
 
 	newStep := &api.Step{
 		ID:   "test-step",
@@ -183,7 +190,7 @@ func TestIsolatedUpdate(t *testing.T) {
 	_, err = env.Compile(newStep, newStep.Script.Script, names)
 	require.NoError(t, err)
 
-	assert.Equal(t, oldProc, plan.Scripts[oldStep.ID])
+	assert.Equal(t, oldProc, plan.Steps[oldStep.ID].Script)
 }
 
 func TestExecuteScript(t *testing.T) {

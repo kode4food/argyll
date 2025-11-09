@@ -7,13 +7,25 @@ import (
 	"github.com/kode4food/timebox"
 )
 
-type ExecutionPlan struct {
-	Scripts        map[timebox.ID]any `json:"-"`
-	Predicates     map[timebox.ID]any `json:"-"`
-	GoalSteps      []timebox.ID       `json:"goal_steps"`
-	RequiredInputs []Name             `json:"required_inputs"`
-	Steps          []*Step            `json:"steps"`
-}
+type (
+	ExecutionPlan struct {
+		Goals      []timebox.ID             `json:"goals"`
+		Required   []Name                   `json:"required"`
+		Steps      map[timebox.ID]*StepInfo `json:"steps"`
+		Attributes map[Name]*Dependencies   `json:"attributes"`
+	}
+
+	StepInfo struct {
+		Step      *Step `json:"step"`
+		Script    any   `json:"-"`
+		Predicate any   `json:"-"`
+	}
+
+	Dependencies struct {
+		Providers []timebox.ID `json:"providers"`
+		Consumers []timebox.ID `json:"consumers"`
+	}
+)
 
 var (
 	ErrRequiredInput  = errors.New("required input not provided")
@@ -21,10 +33,8 @@ var (
 )
 
 func (ep *ExecutionPlan) GetStep(stepID timebox.ID) *Step {
-	for _, step := range ep.Steps {
-		if step.ID == stepID {
-			return step
-		}
+	if info, ok := ep.Steps[stepID]; ok {
+		return info.Step
 	}
 	return nil
 }
@@ -32,7 +42,7 @@ func (ep *ExecutionPlan) GetStep(stepID timebox.ID) *Step {
 func (ep *ExecutionPlan) ValidateInputs(args Args) error {
 	var missing []Name
 
-	for _, requiredInput := range ep.RequiredInputs {
+	for _, requiredInput := range ep.Required {
 		if _, ok := args[requiredInput]; !ok {
 			missing = append(missing, requiredInput)
 		}
@@ -42,42 +52,35 @@ func (ep *ExecutionPlan) ValidateInputs(args Args) error {
 		if len(missing) == 1 {
 			return fmt.Errorf("%s: '%s'", ErrRequiredInput, missing[0])
 		}
-		return fmt.Errorf("%s: %v", ErrRequiredInputs, missing)
+		return fmt.Errorf("%w: %v", ErrRequiredInputs, missing)
 	}
 
 	return nil
 }
 
 func (ep *ExecutionPlan) NeedsCompilation() bool {
-	for _, step := range ep.Steps {
-		if ep.stepNeedsCompile(step) {
+	for _, info := range ep.Steps {
+		if ep.stepNeedsCompile(info) {
 			return true
 		}
-		if ep.predNeedsCompile(step) {
+		if ep.predNeedsCompile(info) {
 			return true
 		}
 	}
 	return false
 }
 
-func (ep *ExecutionPlan) stepNeedsCompile(step *Step) bool {
+func (ep *ExecutionPlan) stepNeedsCompile(info *StepInfo) bool {
+	step := info.Step
 	if step.Type != StepTypeScript || step.Script == nil {
 		return false
 	}
-	if ep.Scripts == nil {
-		return true
-	}
-	_, comp := ep.Scripts[step.ID]
-	return !comp
+	return info.Script == nil
 }
 
-func (ep *ExecutionPlan) predNeedsCompile(step *Step) bool {
-	if step.Predicate == nil {
+func (ep *ExecutionPlan) predNeedsCompile(info *StepInfo) bool {
+	if info.Step.Predicate == nil {
 		return false
 	}
-	if ep.Predicates == nil {
-		return true
-	}
-	_, comp := ep.Predicates[step.ID]
-	return !comp
+	return info.Predicate == nil
 }

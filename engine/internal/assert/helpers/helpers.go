@@ -109,6 +109,7 @@ func NewStepWithOutputs(id timebox.ID, outputs ...api.Name) *api.Step {
 	for _, name := range outputs {
 		step.Attributes[name] = &api.AttributeSpec{
 			Role: api.RoleOutput,
+			Type: api.TypeString,
 		}
 	}
 	return step

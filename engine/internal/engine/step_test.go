@@ -24,8 +24,10 @@ func TestGetActive(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"active-test"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"active-test"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -75,8 +77,10 @@ func TestScript(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"script-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"script-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -109,8 +113,10 @@ func TestScriptMissing(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"no-script"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"no-script"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -142,8 +148,10 @@ func TestPredicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"predicate-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"predicate-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(

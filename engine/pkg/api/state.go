@@ -21,7 +21,7 @@ type (
 	}
 
 	ActiveWorkflowInfo struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
+		FlowID     timebox.ID `json:"flow_id"`
 		StartedAt  time.Time  `json:"started_at"`
 		LastActive time.Time  `json:"last_active"`
 	}

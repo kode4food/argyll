@@ -17,6 +17,7 @@ var (
 	ErrInvalidScript     = errors.New("invalid script")
 	ErrStepAlreadyExists = errors.New("step already exists")
 	ErrStepDoesNotExist  = errors.New("step does not exist")
+	ErrTypeConflict      = errors.New("attribute type conflict")
 )
 
 func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
@@ -30,6 +31,9 @@ func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
 				return nil
 			}
 			return fmt.Errorf("%w: %s", ErrStepAlreadyExists, step.ID)
+		}
+		if err := validateAttributeTypes(st, step); err != nil {
+			return err
 		}
 		return e.raiseStepRegisteredEvent(step, ag)
 	}
@@ -52,6 +56,9 @@ func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
 		if _, ok := st.Steps[step.ID]; !ok {
 			return fmt.Errorf("%w: %s", ErrStepDoesNotExist, step.ID)
+		}
+		if err := validateAttributeTypes(st, step); err != nil {
+			return err
 		}
 		return e.raiseStepRegisteredEvent(step, ag)
 	}
@@ -104,7 +111,7 @@ func (e *Engine) validateScriptStep(step *api.Step) error {
 	}
 
 	if err := env.Validate(step, step.Script.Script); err != nil {
-		return fmt.Errorf("%s: %w", ErrInvalidScript, err)
+		return err
 	}
 	return nil
 }
@@ -152,4 +159,33 @@ func (e *Engine) compileScript(
 	}
 
 	_ = e.UpdateStepHealth(ctx, step.ID, api.HealthHealthy, "")
+}
+
+func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
+	attributeTypes := make(map[api.Name]api.AttributeType)
+
+	for stepID, step := range st.Steps {
+		if stepID == newStep.ID {
+			continue
+		}
+		for name, attr := range step.Attributes {
+			if existingType, exists := attributeTypes[name]; exists {
+				if existingType != attr.Type {
+					return fmt.Errorf("%w: %s", ErrTypeConflict, name)
+				}
+			} else {
+				attributeTypes[name] = attr.Type
+			}
+		}
+	}
+
+	for name, attr := range newStep.Attributes {
+		if existingType, exists := attributeTypes[name]; exists {
+			if existingType != attr.Type {
+				return fmt.Errorf("%w: %s", ErrTypeConflict, name)
+			}
+		}
+	}
+
+	return nil
 }

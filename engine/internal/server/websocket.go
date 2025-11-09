@@ -146,8 +146,8 @@ func (c *Client) handleSubscribe(message []byte) {
 
 	c.filter = BuildFilter(&sub.Data)
 
-	if sub.Data.WorkflowID != "" && sub.Data.FromSequence >= 0 {
-		c.replayAndSend(sub.Data.WorkflowID, sub.Data.FromSequence)
+	if sub.Data.FlowID != "" && sub.Data.FromSequence >= 0 {
+		c.replayAndSend(sub.Data.FlowID, sub.Data.FromSequence)
 	}
 }
 
@@ -180,7 +180,7 @@ func (c *Client) replayAndSend(flowID timebox.ID, fromSeq int64) {
 	evs, err := c.replay(flowID, fromSeq)
 	if err != nil {
 		slog.Error("Failed to replay workflow events",
-			slog.Any("workflow_id", flowID),
+			slog.Any("flow_id", flowID),
 			slog.Int64("from_sequence", fromSeq),
 			slog.Any("error", err))
 		return
@@ -221,8 +221,8 @@ func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
 		filters = append(filters, events.FilterEvents(eventTypes...))
 	}
 
-	if len(sub.EventTypes) == 0 && sub.WorkflowID != "" {
-		filters = append(filters, events.FilterWorkflow(sub.WorkflowID))
+	if len(sub.EventTypes) == 0 && sub.FlowID != "" {
+		filters = append(filters, events.FilterWorkflow(sub.FlowID))
 	}
 
 	if len(filters) == 0 {

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -70,25 +68,18 @@ func NewScriptRegistry() *ScriptRegistry {
 func (r *ScriptRegistry) Get(language string) (ScriptEnvironment, error) {
 	env, ok := r.envs[language]
 	if !ok {
-		return nil, fmt.Errorf("%s: %s", ErrUnsupportedLanguage, language)
+		return nil, fmt.Errorf("%w: %s", ErrUnsupportedLanguage, language)
 	}
 	return env, nil
 }
 
 // CompilePlan compiles all scripts in the execution plan
 func (r *ScriptRegistry) CompilePlan(plan *api.ExecutionPlan) error {
-	if plan.Scripts == nil {
-		plan.Scripts = map[timebox.ID]any{}
-	}
-	if plan.Predicates == nil {
-		plan.Predicates = map[timebox.ID]any{}
-	}
-
-	for _, step := range plan.Steps {
-		if err := r.compileStepScript(plan, step); err != nil {
+	for _, info := range plan.Steps {
+		if err := r.compileStepScript(info); err != nil {
 			return err
 		}
-		if err := r.compileStepPredicate(plan, step); err != nil {
+		if err := r.compileStepPredicate(info); err != nil {
 			return err
 		}
 	}
@@ -96,9 +87,8 @@ func (r *ScriptRegistry) CompilePlan(plan *api.ExecutionPlan) error {
 	return nil
 }
 
-func (r *ScriptRegistry) compileStepScript(
-	plan *api.ExecutionPlan, step *api.Step,
-) error {
+func (r *ScriptRegistry) compileStepScript(info *api.StepInfo) error {
+	step := info.Step
 	if step.Type != api.StepTypeScript || step.Script == nil {
 		return nil
 	}
@@ -111,13 +101,12 @@ func (r *ScriptRegistry) compileStepScript(
 	if err != nil {
 		return err
 	}
-	plan.Scripts[step.ID] = comp
+	info.Script = comp
 	return nil
 }
 
-func (r *ScriptRegistry) compileStepPredicate(
-	plan *api.ExecutionPlan, step *api.Step,
-) error {
+func (r *ScriptRegistry) compileStepPredicate(info *api.StepInfo) error {
+	step := info.Step
 	if step.Predicate == nil {
 		return nil
 	}
@@ -130,6 +119,6 @@ func (r *ScriptRegistry) compileStepPredicate(
 	if err != nil {
 		return err
 	}
-	plan.Predicates[step.ID] = comp
+	info.Predicate = comp
 	return nil
 }

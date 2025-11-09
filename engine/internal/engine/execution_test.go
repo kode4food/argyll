@@ -24,8 +24,10 @@ func TestPrepareStepExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"prep-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"prep-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(
@@ -60,8 +62,10 @@ func TestPrepareStepExecution(t *testing.T) {
 		require.NoError(t, err)
 
 		plan2 := &api.ExecutionPlan{
-			GoalSteps: []timebox.ID{"active-step"},
-			Steps:     []*api.Step{step2},
+			Goals: []timebox.ID{"active-step"},
+			Steps: map[timebox.ID]*api.StepInfo{
+				step2.ID: {Step: step2},
+			},
 		}
 
 		err = env.Engine.StartWorkflow(
@@ -93,8 +97,10 @@ func TestEnqueueStepResult(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		GoalSteps: []timebox.ID{"enqueue-step"},
-		Steps:     []*api.Step{step},
+		Goals: []timebox.ID{"enqueue-step"},
+		Steps: map[timebox.ID]*api.StepInfo{
+			step.ID: {Step: step},
+		},
 	}
 
 	err = env.Engine.StartWorkflow(

@@ -76,8 +76,8 @@ func (c *Client) StartWorkflow(
 ) error {
 	flow := api.CreateWorkflowRequest{
 		ID:           flowID,
-		GoalStepIDs:  []timebox.ID{goalID},
-		InitialState: initState,
+		Goals:        []timebox.ID{goalID},
+		Init: initState,
 	}
 	return c.StartWorkflowWithRequest(ctx, flow)
 }

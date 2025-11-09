@@ -23,76 +23,76 @@ type (
 
 	WorkflowStartedEvent struct {
 		ExecutionPlan *ExecutionPlan `json:"execution_plan"`
-		InitialState  Args           `json:"initial_state"`
+		Init          Args           `json:"init"`
 		Metadata      Metadata       `json:"metadata,omitempty"`
-		WorkflowID    timebox.ID     `json:"workflow_id"`
+		FlowID        timebox.ID     `json:"flow_id"`
 	}
 
 	WorkflowCompletedEvent struct {
-		Result     Args       `json:"result"`
-		WorkflowID timebox.ID `json:"workflow_id"`
+		Result Args       `json:"result"`
+		FlowID timebox.ID `json:"flow_id"`
 	}
 
 	WorkflowFailedEvent struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
-		Error      string     `json:"error"`
+		FlowID timebox.ID `json:"flow_id"`
+		Error  string     `json:"error"`
 	}
 
 	StepStartedEvent struct {
-		Inputs     Args       `json:"inputs"`
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
+		Inputs Args       `json:"inputs"`
+		FlowID timebox.ID `json:"flow_id"`
+		StepID timebox.ID `json:"step_id"`
 	}
 
 	StepCompletedEvent struct {
-		Outputs    Args       `json:"outputs"`
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Duration   int64      `json:"duration"`
+		Outputs  Args       `json:"outputs"`
+		FlowID   timebox.ID `json:"flow_id"`
+		StepID   timebox.ID `json:"step_id"`
+		Duration int64      `json:"duration"`
 	}
 
 	StepFailedEvent struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Error      string     `json:"error"`
+		FlowID timebox.ID `json:"flow_id"`
+		StepID timebox.ID `json:"step_id"`
+		Error  string     `json:"error"`
 	}
 
 	StepSkippedEvent struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Reason     string     `json:"reason"`
+		FlowID timebox.ID `json:"flow_id"`
+		StepID timebox.ID `json:"step_id"`
+		Reason string     `json:"reason"`
 	}
 
 	AttributeSetEvent struct {
-		Value      any        `json:"value"`
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Key        Name       `json:"key"`
+		Value  any        `json:"value"`
+		FlowID timebox.ID `json:"flow_id"`
+		StepID timebox.ID `json:"step_id"`
+		Key    Name       `json:"key"`
 	}
 
 	WorkStartedEvent struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Token      Token      `json:"token"`
-		Inputs     Args       `json:"inputs"`
+		FlowID timebox.ID `json:"flow_id"`
+		StepID timebox.ID `json:"step_id"`
+		Token  Token      `json:"token"`
+		Inputs Args       `json:"inputs"`
 	}
 
 	WorkCompletedEvent struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Token      Token      `json:"token"`
-		Outputs    Args       `json:"outputs"`
+		FlowID  timebox.ID `json:"flow_id"`
+		StepID  timebox.ID `json:"step_id"`
+		Token   Token      `json:"token"`
+		Outputs Args       `json:"outputs"`
 	}
 
 	WorkFailedEvent struct {
-		WorkflowID timebox.ID `json:"workflow_id"`
-		StepID     timebox.ID `json:"step_id"`
-		Token      Token      `json:"token"`
-		Error      string     `json:"error"`
+		FlowID timebox.ID `json:"flow_id"`
+		StepID timebox.ID `json:"step_id"`
+		Token  Token      `json:"token"`
+		Error  string     `json:"error"`
 	}
 
 	RetryScheduledEvent struct {
-		WorkflowID  timebox.ID `json:"workflow_id"`
+		FlowID      timebox.ID `json:"flow_id"`
 		StepID      timebox.ID `json:"step_id"`
 		Token       Token      `json:"token"`
 		RetryCount  int        `json:"retry_count"`
