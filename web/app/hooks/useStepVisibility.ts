@@ -13,8 +13,8 @@ export function useStepVisibility(
   previewPlan?: ExecutionPlan | null
 ): StepVisibilityResult {
   return useMemo(() => {
-    if (workflowData?.execution_plan?.steps) {
-      const planSteps = getStepsFromPlan(workflowData.execution_plan);
+    if (workflowData?.plan?.steps) {
+      const planSteps = getStepsFromPlan(workflowData.plan);
       const planStepIds = new Set(planSteps.map((step) => step.id));
       return {
         visibleSteps: (steps || []).filter((step) => planStepIds.has(step.id)),

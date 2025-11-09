@@ -95,7 +95,7 @@ func (e *Engine) ScheduleRetry(
 		return fmt.Errorf("failed to get workflow state: %w", err)
 	}
 
-	step := flow.ExecutionPlan.GetStep(stepID)
+	step := flow.Plan.GetStep(stepID)
 	if step == nil {
 		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 	}
@@ -198,7 +198,7 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 			continue
 		}
 
-		step := flow.ExecutionPlan.GetStep(stepID)
+		step := flow.Plan.GetStep(stepID)
 		if step == nil {
 			continue
 		}

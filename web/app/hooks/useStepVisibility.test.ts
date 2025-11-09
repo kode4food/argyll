@@ -42,7 +42,7 @@ describe("useStepVisibility", () => {
       status: "active",
       state: {},
       started_at: "2024-01-01T00:00:00Z",
-      execution_plan: {
+      plan: {
         goals: ["step1"],
         required: [],
         steps: {
@@ -93,7 +93,7 @@ describe("useStepVisibility", () => {
       status: "active",
       state: {},
       started_at: "2024-01-01T00:00:00Z",
-      execution_plan: {
+      plan: {
         goals: ["step1"],
         required: [],
         steps: {

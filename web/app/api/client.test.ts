@@ -90,7 +90,7 @@ describe("SpudsApi", () => {
         status: "active",
         attributes: { result: { value: "value" } },
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: ["step-1"],
           required: [],
           steps: {},
@@ -128,7 +128,7 @@ describe("SpudsApi", () => {
         error: "Step execution failed",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: [],
           required: [],
           steps: {},
@@ -170,7 +170,7 @@ describe("SpudsApi", () => {
         status: "active",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: ["step-2"],
           required: ["input1"],
           steps: {
@@ -185,11 +185,11 @@ describe("SpudsApi", () => {
 
       const result = await api.getWorkflowWithEvents("wf-1");
 
-      expect(result.workflow.execution_plan).toBeDefined();
-      expect(result.workflow.execution_plan?.goals).toEqual(["step-2"]);
-      expect(result.workflow.execution_plan?.required).toEqual(["input1"]);
+      expect(result.workflow.plan).toBeDefined();
+      expect(result.workflow.plan?.goals).toEqual(["step-2"]);
+      expect(result.workflow.plan?.required).toEqual(["input1"]);
       expect(
-        Object.keys(result.workflow.execution_plan?.steps || {})
+        Object.keys(result.workflow.plan?.steps || {})
       ).toHaveLength(1);
     });
 
@@ -199,7 +199,7 @@ describe("SpudsApi", () => {
         status: "active",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: [],
           required: [],
           steps: {},
@@ -212,7 +212,7 @@ describe("SpudsApi", () => {
 
       const result = await api.getWorkflowWithEvents("wf-1");
 
-      expect(result.workflow.execution_plan).toBeUndefined();
+      expect(result.workflow.plan).toBeUndefined();
     });
   });
 
@@ -224,7 +224,7 @@ describe("SpudsApi", () => {
           status: "active",
           attributes: {},
           created_at: "2024-01-01T00:00:00Z",
-          execution_plan: {
+          plan: {
             goals: [],
             required: [],
             steps: {},
@@ -238,7 +238,7 @@ describe("SpudsApi", () => {
           attributes: { result: { value: "done" } },
           created_at: "2024-01-02T00:00:00Z",
           completed_at: "2024-01-02T00:05:00Z",
-          execution_plan: {
+          plan: {
             goals: [],
             required: [],
             steps: {},
@@ -277,7 +277,7 @@ describe("SpudsApi", () => {
         status: "active",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: ["step-2"],
           required: [],
           steps: {},
@@ -318,7 +318,7 @@ describe("SpudsApi", () => {
         status: "pending",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: [],
           required: [],
           steps: {},
@@ -340,7 +340,7 @@ describe("SpudsApi", () => {
         status: "active",
         attributes: {},
         created_at: "2024-01-01T00:00:00Z",
-        execution_plan: {
+        plan: {
           goals: [],
           required: [],
           steps: {},

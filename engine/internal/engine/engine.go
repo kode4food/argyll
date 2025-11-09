@@ -220,7 +220,7 @@ func (e *Engine) checkPendingRetries() {
 						slog.Any("token", token),
 						slog.Int("retry_count", workItem.RetryCount))
 
-					step := flow.ExecutionPlan.GetStep(stepID)
+					step := flow.Plan.GetStep(stepID)
 					if step != nil {
 						e.retryWork(ctx, flowID, stepID, step, workItem.Inputs)
 					}
@@ -316,7 +316,7 @@ func (e *Engine) getCompiledFromPlan(
 		return nil, ErrScriptCompileFailed
 	}
 
-	info, ok := flow.ExecutionPlan.Steps[stepID]
+	info, ok := flow.Plan.Steps[stepID]
 	if !ok {
 		return nil, ErrStepNotInPlan
 	}

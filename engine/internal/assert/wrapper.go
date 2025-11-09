@@ -93,7 +93,8 @@ func (w *Wrapper) WorkflowHasState(
 
 // WorkflowStateEquals asserts that a state key has the expected value
 func (w *Wrapper) WorkflowStateEquals(
-	ctx context.Context, get Getter, flowID timebox.ID, key api.Name, expected any,
+	ctx context.Context, get Getter, flowID timebox.ID, key api.Name,
+	expected any,
 ) {
 	w.Helper()
 	val, ok, err := get.GetAttribute(ctx, flowID, key)

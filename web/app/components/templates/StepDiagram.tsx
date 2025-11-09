@@ -307,7 +307,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
           icon={<Server className="text-neutral-text mx-auto mb-4 h-12 w-12" />}
           title="No Steps to Visualize"
           description={
-            workflowData?.execution_plan
+            workflowData?.plan
               ? "Select a workflow with an execution plan to view its step diagram."
               : "Register steps to see their dependency relationships in diagram form."
           }

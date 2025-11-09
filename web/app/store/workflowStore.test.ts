@@ -69,7 +69,7 @@ describe("workflowStore", () => {
       expect(state.steps).toHaveLength(3);
       expect(state.steps[0].name).toBe("Alpha Step");
       expect(state.steps[2].name).toBe("Zebra Step");
-      expect(state.stepHealth["step-1"]).toEqual({ health_status: "healthy" });
+      expect(state.stepHealth["step-1"]).toEqual({ status: "healthy" });
     });
 
     test("addStep creates new step", () => {

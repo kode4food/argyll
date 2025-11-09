@@ -118,7 +118,7 @@ const WorkflowSelector: React.FC = () => {
       goal_step_ids: goalStepIds,
       state: parsedState,
       started_at: new Date().toISOString(),
-      execution_plan: null,
+      plan: null,
     };
 
     addWorkflow(optimisticWorkflow);

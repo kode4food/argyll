@@ -27,15 +27,15 @@ type (
 	}
 
 	WorkflowState struct {
-		CreatedAt     time.Time                      `json:"created_at"`
-		CompletedAt   time.Time                      `json:"completed_at,omitempty"`
-		LastUpdated   time.Time                      `json:"last_updated"`
-		ExecutionPlan *ExecutionPlan                 `json:"execution_plan"`
-		Attributes    map[Name]*AttributeValue       `json:"attributes"`
-		Executions    map[timebox.ID]*ExecutionState `json:"executions"`
-		ID            timebox.ID                     `json:"id"`
-		Status        WorkflowStatus                 `json:"status"`
-		Error         string                         `json:"error,omitempty"`
+		CreatedAt   time.Time                      `json:"created_at"`
+		CompletedAt time.Time                      `json:"completed_at,omitempty"`
+		LastUpdated time.Time                      `json:"last_updated"`
+		Plan        *ExecutionPlan                 `json:"plan"`
+		Attributes  map[Name]*AttributeValue       `json:"attributes"`
+		Executions  map[timebox.ID]*ExecutionState `json:"executions"`
+		ID          timebox.ID                     `json:"id"`
+		Status      WorkflowStatus                 `json:"status"`
+		Error       string                         `json:"error,omitempty"`
 	}
 
 	AttributeValue struct {

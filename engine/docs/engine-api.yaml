@@ -300,7 +300,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/HealthStatus"
+                $ref: "#/components/schemas/HealthState"
         "404":
           description: Health information not found for step
           content:
@@ -433,11 +433,11 @@ paths:
           example: "wf-text-processing-001"
       responses:
         "200":
-          description: Workflow state
+          description: Complete workflow state with execution details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WorkflowDigest"
+                $ref: "#/components/schemas/WorkflowState"
         "404":
           description: Workflow not found
           content:
@@ -559,15 +559,19 @@ components:
           example: "1.0.0"
         status:
           type: string
-          enum: [healthy, degraded, unhealthy]
+          enum: [healthy, unhealthy, unknown]
+          description: Overall engine health status
           example: "healthy"
+        error:
+          type: string
+          description: Error message if status is unhealthy
 
     EngineStateResponse:
       type: object
       required:
         - steps
         - health
-        - last_sequence
+        - active_workflows
         - last_updated
       properties:
         steps:
@@ -579,12 +583,12 @@ components:
           type: object
           description: Map of step ID to health status
           additionalProperties:
-            $ref: "#/components/schemas/HealthStatus"
-        last_sequence:
-          type: integer
-          format: int64
-          description: Last event sequence number in the engine event log
-          example: 42
+            $ref: "#/components/schemas/HealthState"
+        active_workflows:
+          type: object
+          description: Map of workflow ID to active workflow information
+          additionalProperties:
+            $ref: "#/components/schemas/ActiveWorkflowInfo"
         last_updated:
           type: string
           format: date-time
@@ -600,33 +604,28 @@ components:
           type: object
           description: Map of step ID to health status
           additionalProperties:
-            $ref: "#/components/schemas/HealthStatus"
+            $ref: "#/components/schemas/HealthState"
         count:
           type: integer
           description: Number of steps with health information
           example: 7
 
-    HealthStatus:
+    HealthState:
       type: object
       required:
         - status
       properties:
         status:
           type: string
-          enum: [healthy, unhealthy, unconfigured, unknown]
+          enum: [healthy, unhealthy, unknown]
           description: |
             - `healthy`: Step's health check passed
             - `unhealthy`: Step's health check failed
-            - `unconfigured`: Step has no health check configured
             - `unknown`: Health check has not been performed yet
         error:
           type: string
           description: Error message if status is unhealthy
           example: "Connection refused"
-        last_check:
-          type: string
-          format: date-time
-          description: Timestamp of last health check
 
     StepRegistration:
       type: object
@@ -846,8 +845,9 @@ components:
       type: object
       required:
         - goals
-        - required_inputs
+        - required
         - steps
+        - attributes
       properties:
         goals:
           type: array
@@ -855,22 +855,50 @@ components:
           items:
             type: string
           example: ["text-processor"]
-        required_inputs:
+        required:
           type: array
-          description: Inputs that must be provided in init
+          description: Required inputs that must be provided in init
           items:
             type: string
           example: ["input_text"]
         steps:
-          type: array
-          description: Immutable snapshots of step definitions in execution order
-          items:
-            $ref: "#/components/schemas/StepRegistration"
-        receipt_tokens:
           type: object
-          description: Internal receipt tokens for async steps (not exposed to UI)
+          description: Map of step ID to step information (immutable snapshots)
           additionalProperties:
+            $ref: "#/components/schemas/StepInfo"
+        attributes:
+          type: object
+          description: Map of attribute names to their provider/consumer dependencies
+          additionalProperties:
+            $ref: "#/components/schemas/Dependencies"
+
+    StepInfo:
+      type: object
+      required:
+        - step
+      properties:
+        step:
+          $ref: "#/components/schemas/StepRegistration"
+          description: The step definition snapshot
+
+    Dependencies:
+      type: object
+      required:
+        - providers
+        - consumers
+      properties:
+        providers:
+          type: array
+          description: Step IDs that provide/produce this attribute
+          items:
             type: string
+          example: ["data-fetcher"]
+        consumers:
+          type: array
+          description: Step IDs that consume/require this attribute
+          items:
+            type: string
+          example: ["data-processor", "data-validator"]
 
     CreateWorkflowRequest:
       type: object
@@ -899,7 +927,6 @@ components:
     WorkflowStartedResponse:
       type: object
       required:
-        - message
         - flow_id
       properties:
         message:
@@ -958,6 +985,173 @@ components:
           description: Error message if status is failed
           example: "Step execution failed: connection timeout"
 
+    WorkflowState:
+      type: object
+      required:
+        - id
+        - status
+        - created_at
+        - last_updated
+        - plan
+        - attributes
+        - executions
+      properties:
+        id:
+          type: string
+          description: Workflow identifier
+          example: "wf-text-processing-001"
+        status:
+          type: string
+          enum: [pending, active, completed, failed]
+          description: Current workflow status
+          example: "active"
+        created_at:
+          type: string
+          format: date-time
+          description: Workflow creation timestamp
+        completed_at:
+          type: string
+          format: date-time
+          description: Workflow completion timestamp (if completed or failed)
+        last_updated:
+          type: string
+          format: date-time
+          description: Timestamp of last state update
+        plan:
+          $ref: "#/components/schemas/ExecutionPlan"
+          description: Immutable execution plan for this workflow
+        attributes:
+          type: object
+          description: Map of attribute name to attribute value with provenance
+          additionalProperties:
+            $ref: "#/components/schemas/AttributeValue"
+        executions:
+          type: object
+          description: Map of step ID to execution state
+          additionalProperties:
+            $ref: "#/components/schemas/ExecutionState"
+        error:
+          type: string
+          description: Error message if status is failed
+          example: "Step execution failed: connection timeout"
+
+    ActiveWorkflowInfo:
+      type: object
+      required:
+        - flow_id
+        - started_at
+        - last_active
+      properties:
+        flow_id:
+          type: string
+          description: Workflow identifier
+          example: "wf-text-processing-001"
+        started_at:
+          type: string
+          format: date-time
+          description: When the workflow started executing
+        last_active:
+          type: string
+          format: date-time
+          description: Last time the workflow had activity
+
+    AttributeValue:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          description: The attribute value (can be any JSON type)
+        step:
+          type: string
+          description: ID of the step that produced this value
+          example: "data-fetcher"
+
+    ExecutionState:
+      type: object
+      required:
+        - status
+        - started_at
+        - inputs
+      properties:
+        status:
+          type: string
+          enum: [pending, active, completed, skipped, failed]
+          description: Current execution status
+          example: "completed"
+        started_at:
+          type: string
+          format: date-time
+          description: When the step execution started
+        completed_at:
+          type: string
+          format: date-time
+          description: When the step execution completed (if finished)
+        inputs:
+          type: object
+          description: Input arguments provided to the step
+          additionalProperties: true
+        outputs:
+          type: object
+          description: Output values produced by the step
+          additionalProperties: true
+        error:
+          type: string
+          description: Error message if status is failed
+        duration:
+          type: integer
+          format: int64
+          description: Execution duration in milliseconds
+          example: 1234
+        work_items:
+          type: object
+          description: Map of token to work item state (for for_each steps)
+          additionalProperties:
+            $ref: "#/components/schemas/WorkState"
+
+    WorkState:
+      type: object
+      required:
+        - status
+        - started_at
+        - inputs
+      properties:
+        status:
+          type: string
+          enum: [pending, active, completed, failed]
+          description: Current work item status
+          example: "completed"
+        started_at:
+          type: string
+          format: date-time
+          description: When the work item started
+        completed_at:
+          type: string
+          format: date-time
+          description: When the work item completed (if finished)
+        inputs:
+          type: object
+          description: Input arguments for this work item
+          additionalProperties: true
+        outputs:
+          type: object
+          description: Output values from this work item
+          additionalProperties: true
+        error:
+          type: string
+          description: Error message if status is failed
+        retry_count:
+          type: integer
+          description: Number of retry attempts made
+          example: 2
+        next_retry_at:
+          type: string
+          format: date-time
+          description: When the next retry is scheduled
+        last_error:
+          type: string
+          description: Error message from the last failed attempt
+
     StepResponse:
       type: object
       required:
@@ -976,17 +1170,8 @@ components:
             processing_time_ms: 42
         error:
           type: string
-          description: Error message for business logic failures
+          description: Error message if success is false
           example: "Invalid input format"
-        exception:
-          description: Exception that should terminate the workflow
-          oneOf:
-            - type: string
-            - type: object
-        is_terminal_stop:
-          type: boolean
-          default: false
-          description: If true, this step intentionally completes the workflow
 
     MessageResponse:
       type: object

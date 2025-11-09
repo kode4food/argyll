@@ -16,16 +16,16 @@ type (
 	}
 
 	StepHealthChangedEvent struct {
-		StepID      timebox.ID   `json:"step_id"`
-		Health      HealthStatus `json:"health_status"`
-		HealthError string       `json:"health_error,omitempty"`
+		StepID timebox.ID   `json:"step_id"`
+		Status HealthStatus `json:"status"`
+		Error  string       `json:"error,omitempty"`
 	}
 
 	WorkflowStartedEvent struct {
-		ExecutionPlan *ExecutionPlan `json:"execution_plan"`
-		Init          Args           `json:"init"`
-		Metadata      Metadata       `json:"metadata,omitempty"`
-		FlowID        timebox.ID     `json:"flow_id"`
+		Plan     *ExecutionPlan `json:"plan"`
+		Init     Args           `json:"init"`
+		Metadata Metadata       `json:"metadata,omitempty"`
+		FlowID   timebox.ID     `json:"flow_id"`
 	}
 
 	WorkflowCompletedEvent struct {

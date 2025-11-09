@@ -86,7 +86,7 @@ func (e *Engine) PrepareStepExecution(
 		return nil
 	}
 
-	step := flow.ExecutionPlan.GetStep(stepID)
+	step := flow.Plan.GetStep(stepID)
 	if step == nil {
 		slog.Error("Step not found",
 			slog.Any("step_id", stepID))
@@ -200,7 +200,7 @@ func (e *Engine) validateStepExecution(
 		return err
 	}
 
-	step := flow.ExecutionPlan.GetStep(stepID)
+	step := flow.Plan.GetStep(stepID)
 	if step == nil {
 		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 	}

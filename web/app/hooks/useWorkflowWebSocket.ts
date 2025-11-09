@@ -89,8 +89,8 @@ export const useWorkflowWebSocket = () => {
 
       if (event.type === "step_health_changed") {
         const stepId = event.data?.step_id;
-        const health = event.data?.health_status;
-        const error = event.data?.health_error;
+        const health = event.data?.status;
+        const error = event.data?.error;
         if (stepId && health) {
           updateStepHealth(stepId, health, error);
         }

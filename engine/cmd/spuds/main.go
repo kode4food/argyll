@@ -49,26 +49,26 @@ func main() {
 	}
 }
 
-func (a *spuds) run() error {
-	a.setupLogging()
+func (s *spuds) run() error {
+	s.setupLogging()
 
-	if err := a.initializeStores(); err != nil {
+	if err := s.initializeStores(); err != nil {
 		return err
 	}
 
-	a.initializeEngine()
-	a.startServer()
+	s.initializeEngine()
+	s.startServer()
 
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	a.shutdown()
+	s.shutdown()
 	return nil
 }
 
-func (a *spuds) setupLogging() {
-	level, ok := logLevels[a.cfg.LogLevel]
+func (s *spuds) setupLogging() {
+	level, ok := logLevels[s.cfg.LogLevel]
 	if !ok {
 		level = slog.LevelInfo
 	}
@@ -82,67 +82,67 @@ func (a *spuds) setupLogging() {
 	slog.Info("Spuds Engine starting")
 
 	slog.Info("Configuration loaded",
-		slog.String("engine_redis_addr", a.cfg.EngineStore.Addr),
-		slog.Int("engine_redis_db", a.cfg.EngineStore.DB),
-		slog.String("workflow_redis_addr", a.cfg.WorkflowStore.Addr),
-		slog.Int("workflow_redis_db", a.cfg.WorkflowStore.DB),
-		slog.String("api_host", a.cfg.APIHost),
-		slog.Int("api_port", a.cfg.APIPort))
+		slog.String("engine_redis_addr", s.cfg.EngineStore.Addr),
+		slog.Int("engine_redis_db", s.cfg.EngineStore.DB),
+		slog.String("workflow_redis_addr", s.cfg.WorkflowStore.Addr),
+		slog.Int("workflow_redis_db", s.cfg.WorkflowStore.DB),
+		slog.String("api_host", s.cfg.APIHost),
+		slog.Int("api_port", s.cfg.APIPort))
 }
 
-func (a *spuds) initializeStores() error {
+func (s *spuds) initializeStores() error {
 	var err error
 
-	a.timebox, err = timebox.NewTimebox(timebox.Config{
+	s.timebox, err = timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
-		CacheSize:  a.cfg.WorkflowCacheSize,
+		CacheSize:  s.cfg.WorkflowCacheSize,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create timebox: %w", err)
 	}
 
-	a.engineStore, err = a.timebox.NewStore(a.cfg.EngineStore)
+	s.engineStore, err = s.timebox.NewStore(s.cfg.EngineStore)
 	if err != nil {
-		_ = a.timebox.Close()
+		_ = s.timebox.Close()
 		return fmt.Errorf("failed to create engine store: %w", err)
 	}
 
-	a.workflowStore, err = a.timebox.NewStore(a.cfg.WorkflowStore)
+	s.workflowStore, err = s.timebox.NewStore(s.cfg.WorkflowStore)
 	if err != nil {
-		_ = a.timebox.Close()
+		_ = s.timebox.Close()
 		return fmt.Errorf("failed to create workflow store: %w", err)
 	}
 
 	return nil
 }
 
-func (a *spuds) initializeEngine() {
-	a.stepClient = client.NewHTTPClient(
-		time.Duration(a.cfg.StepTimeout) * time.Millisecond,
+func (s *spuds) initializeEngine() {
+	s.stepClient = client.NewHTTPClient(
+		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
 
-	a.engine = engine.New(
-		a.engineStore, a.workflowStore, a.stepClient, a.timebox.GetHub(), a.cfg,
+	s.engine = engine.New(
+		s.engineStore, s.workflowStore, s.stepClient, s.timebox.GetHub(), s.cfg,
 	)
-	a.engine.Start()
+	s.engine.Start()
 }
 
-func (a *spuds) startServer() {
-	a.health = server.NewHealthChecker(a.engine, a.timebox.GetHub())
-	a.health.Start()
+func (s *spuds) startServer() {
+	s.health = server.NewHealthChecker(s.engine, s.timebox.GetHub())
+	s.health.Start()
 
-	srv := server.NewServer(a.engine, a.cfg, a.timebox.GetHub(), a.stepClient)
+	srv := server.NewServer(s.engine, s.cfg, s.timebox.GetHub(), s.stepClient)
 	mux := srv.SetupRoutes()
 
-	a.httpServer = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", a.cfg.APIHost, a.cfg.APIPort),
+	s.httpServer = &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", s.cfg.APIHost, s.cfg.APIPort),
 		Handler: mux,
 	}
 
 	go func() {
 		slog.Info("HTTP server starting",
-			slog.String("addr", a.httpServer.Addr))
-		if err := a.httpServer.ListenAndServe(); err != nil &&
+			slog.String("addr", s.httpServer.Addr))
+		if err := s.httpServer.ListenAndServe(); err != nil &&
 			!errors.Is(err, http.ErrServerClosed) {
 			slog.Error("HTTP server error",
 				slog.Any("error", err))
@@ -150,27 +150,27 @@ func (a *spuds) startServer() {
 	}()
 }
 
-func (a *spuds) shutdown() {
+func (s *spuds) shutdown() {
 	slog.Info("Shutting down")
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), a.cfg.ShutdownTimeout,
+		context.Background(), s.cfg.ShutdownTimeout,
 	)
 	defer cancel()
 
-	if err := a.httpServer.Shutdown(ctx); err != nil {
+	if err := s.httpServer.Shutdown(ctx); err != nil {
 		slog.Error("Shutdown failed",
 			slog.Any("error", err))
 	}
 
-	a.health.Stop()
+	s.health.Stop()
 
-	if err := a.engine.Stop(); err != nil {
+	if err := s.engine.Stop(); err != nil {
 		slog.Error("Engine shutdown failed",
 			slog.Any("error", err))
 	}
 
-	_ = a.timebox.Close()
+	_ = s.timebox.Close()
 
 	slog.Info("Server exited")
 }

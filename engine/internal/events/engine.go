@@ -65,8 +65,8 @@ func stepHealthChanged(
 	}
 	return st.
 		SetHealth(hc.StepID, &api.HealthState{
-			Status: hc.Health,
-			Error:  hc.HealthError,
+			Status: hc.Status,
+			Error:  hc.Error,
 		}).
 		SetLastUpdated(ev.Timestamp)
 }

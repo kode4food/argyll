@@ -354,7 +354,7 @@ func (e *Engine) checkCompletableSteps(
 			_ = e.FailStepExecution(ctx, flowID, stepID, failureError)
 		} else {
 			outputs := aggregateWorkItemOutputs(
-				exec.WorkItems, flow.ExecutionPlan.GetStep(stepID),
+				exec.WorkItems, flow.Plan.GetStep(stepID),
 			)
 			dur := time.Since(exec.StartedAt).Milliseconds()
 			e.EnqueueStepResult(flowID, stepID, outputs, dur)
@@ -425,10 +425,10 @@ func (e *Engine) startWorkflow(
 
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
 		ev, err := json.Marshal(api.WorkflowStartedEvent{
-			FlowID:        flowID,
-			ExecutionPlan: plan,
-			Init:          initState,
-			Metadata:      meta,
+			FlowID:   flowID,
+			Plan:     plan,
+			Init:     initState,
+			Metadata: meta,
 		})
 		if err != nil {
 			return err
@@ -463,11 +463,11 @@ func (e *Engine) GetActiveWorkflow(
 func (e *Engine) ensureScriptsCompiled(
 	flowID timebox.ID, flow *api.WorkflowState,
 ) bool {
-	if !flow.ExecutionPlan.NeedsCompilation() {
+	if !flow.Plan.NeedsCompilation() {
 		return true
 	}
 
-	if err := e.scripts.CompilePlan(flow.ExecutionPlan); err != nil {
+	if err := e.scripts.CompilePlan(flow.Plan); err != nil {
 		slog.Error("Failed to compile scripts",
 			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
@@ -502,7 +502,7 @@ func (e *Engine) launchReadySteps(flowID timebox.ID, ready []timebox.ID) {
 
 func (e *Engine) findReadySteps(flow *api.WorkflowState) []timebox.ID {
 	var res []timebox.ID
-	for stepID := range flow.ExecutionPlan.Steps {
+	for stepID := range flow.Plan.Steps {
 		if e.isStepReadyForExec(stepID, flow) {
 			res = append(res, stepID)
 		}
@@ -521,7 +521,7 @@ func (e *Engine) isStepReadyForExec(
 }
 
 func (e *Engine) isStepReady(stepID timebox.ID, flow *api.WorkflowState) bool {
-	step := flow.ExecutionPlan.GetStep(stepID)
+	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {
 		if attr.Role == api.RoleRequired {
 			if _, ok := flow.Attributes[name]; !ok {
@@ -533,7 +533,7 @@ func (e *Engine) isStepReady(stepID timebox.ID, flow *api.WorkflowState) bool {
 }
 
 func (e *Engine) isWorkflowComplete(flow *api.WorkflowState) bool {
-	for stepID := range flow.ExecutionPlan.Steps {
+	for stepID := range flow.Plan.Steps {
 		if !e.isStepComplete(stepID, flow) {
 			return false
 		}
@@ -554,7 +554,7 @@ func (e *Engine) isStepComplete(
 func (e *Engine) evaluateWorkflowState(
 	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
 ) {
-	for stepID := range flow.ExecutionPlan.Steps {
+	for stepID := range flow.Plan.Steps {
 		exec, ok := flow.Executions[stepID]
 		if !ok || exec.Status != api.StepPending {
 			continue
@@ -581,7 +581,7 @@ func (e *Engine) maybeSkipStep(
 }
 
 func (e *Engine) IsWorkflowFailed(flow *api.WorkflowState) bool {
-	for _, goalID := range flow.ExecutionPlan.Goals {
+	for _, goalID := range flow.Plan.Goals {
 		if !e.canStepComplete(goalID, flow) {
 			return true
 		}
@@ -601,7 +601,7 @@ func (e *Engine) canStepComplete(
 		return exec.Status == api.StepCompleted
 	}
 
-	step := flow.ExecutionPlan.GetStep(stepID)
+	step := flow.Plan.GetStep(stepID)
 	if step == nil {
 		return false
 	}
@@ -653,7 +653,7 @@ func (e *Engine) failWorkflow(
 ) {
 	var failed []string
 
-	for stepID := range flow.ExecutionPlan.Steps {
+	for stepID := range flow.Plan.Steps {
 		if exec, ok := flow.Executions[stepID]; ok {
 			failed = e.appendFailedStep(failed, stepID, exec)
 		}
@@ -689,7 +689,7 @@ func (e *Engine) completeWorkflow(
 ) {
 	result := api.Args{}
 
-	for _, goalID := range flow.ExecutionPlan.Goals {
+	for _, goalID := range flow.Plan.Goals {
 		if goal := flow.Executions[goalID]; goal != nil {
 			maps.Copy(result, goal.Outputs)
 		}
@@ -703,7 +703,7 @@ func (e *Engine) completeWorkflow(
 }
 
 func (e *Engine) HasInputProvider(name api.Name, flow *api.WorkflowState) bool {
-	deps := flow.ExecutionPlan.Attributes[name]
+	deps := flow.Plan.Attributes[name]
 	if deps == nil {
 		return false
 	}

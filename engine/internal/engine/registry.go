@@ -85,9 +85,9 @@ func (e *Engine) UpdateStepHealth(
 		}
 
 		data, err := json.Marshal(api.StepHealthChangedEvent{
-			StepID:      stepID,
-			Health:      health,
-			HealthError: errMsg,
+			StepID: stepID,
+			Status: health,
+			Error:  errMsg,
 		})
 		if err != nil {
 			return err

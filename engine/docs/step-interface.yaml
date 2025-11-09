@@ -49,10 +49,8 @@ info:
 
     2. **Returns** a JSON response with:
        - `success`: Boolean indicating execution success
-       - `outputs`: Key-value pairs to merge into workflow state
+       - `outputs`: Key-value pairs to merge into workflow state (if success=true)
        - `error`: Optional error message (if success=false)
-       - `exception`: Optional exception to terminate workflow
-       - `is_terminal_stop`: Optional flag for intentional completion
 
     ## Error Handling
 
@@ -61,17 +59,12 @@ info:
     - **Business logic errors** (`success: false`, `error: "message"`):
       - The step executed correctly but the business logic failed
       - Example: Validation failed, invalid input format, etc.
-      - The workflow may continue (depending on error handling strategy)
-
-    - **Exceptions** (`success: false`, `exception: "message" or object`):
-      - Critical errors that should terminate the entire workflow
-      - Example: Account suspended, fatal system error, etc.
-      - The workflow will stop and be marked as failed
+      - The step is marked as failed and the workflow is terminated
 
     - **HTTP errors** (4xx/5xx status codes):
       - Infrastructure or request format errors
       - Example: Missing required arguments, internal server error, etc.
-      - The engine will fail the step execution
+      - The engine will fail the step execution and may retry
 
     ## Deployment Flexibility
 
@@ -140,8 +133,9 @@ paths:
 
         ## Terminal Steps
 
-        Steps with no declared outputs are automatically terminal (stop the workflow
-        branch). You can also explicitly signal completion with `is_terminal_stop: true`.
+        Goal steps (steps that are specified as workflow goals) naturally complete
+        the workflow when they finish successfully. The workflow ends when all goal
+        steps have completed.
 
       operationId: executeStep
       tags:
@@ -226,33 +220,6 @@ paths:
                   value:
                     success: false
                     error: "Invalid input format: 'format' must be one of [uppercase, lowercase, titlecase]"
-                criticalException:
-                  summary: Critical exception (terminates workflow)
-                  description: Exception that should stop the entire workflow
-                  value:
-                    success: false
-                    exception: "User account is suspended"
-                structuredException:
-                  summary: Structured exception
-                  description: Exception with additional context
-                  value:
-                    success: false
-                    exception:
-                      code: "ACCOUNT_SUSPENDED"
-                      message: "User account has been suspended due to policy violation"
-                      details:
-                        suspend_date: "2023-12-01T10:30:00Z"
-                        reason: "Terms of service violation"
-                        policy_id: "TOS-2023-001"
-                terminalStop:
-                  summary: Terminal completion
-                  description: Step intentionally completes the workflow (successful terminal)
-                  value:
-                    success: true
-                    outputs:
-                      final_result: "All processing completed successfully"
-                      total_items_processed: 1250
-                    is_terminal_stop: true
         "400":
           description: |
             Bad request - Invalid request format or missing required arguments.
@@ -353,7 +320,7 @@ components:
           description: |
             Whether the step executed successfully.
             - `true`: Step completed successfully (outputs will be merged into workflow state)
-            - `false`: Step failed (check `error` or `exception` for details)
+            - `false`: Step failed (check `error` for details)
         outputs:
           type: object
           description: |
@@ -387,63 +354,11 @@ components:
 
             **Workflow behavior**:
             - The step is marked as failed
-            - The workflow may continue depending on error handling strategy
+            - The workflow is terminated
             - Error is logged in workflow state
 
-            **Required when**: `success: false` (alternative to `exception`)
+            **Required when**: `success: false`
           example: "Invalid input format: must be one of [uppercase, lowercase, reverse]"
-        exception:
-          description: |
-            Exception value that should terminate the entire workflow.
-
-            **When to use**:
-            - Critical errors that make workflow continuation impossible
-            - Examples: Account suspended, fatal system error, security violation
-
-            **Workflow behavior**:
-            - The workflow is immediately stopped
-            - The workflow is marked as failed
-            - No further steps will execute
-
-            **Format**: Can be a string message or structured object
-          oneOf:
-            - type: string
-              example: "User account is suspended"
-            - type: object
-              properties:
-                code:
-                  type: string
-                  example: "ACCOUNT_SUSPENDED"
-                message:
-                  type: string
-                  example: "User account has been suspended due to policy violation"
-                details:
-                  type: object
-                  additionalProperties: true
-              example:
-                code: "ACCOUNT_SUSPENDED"
-                message: "User account has been suspended"
-                details:
-                  suspend_date: "2023-12-01T10:30:00Z"
-                  reason: "Terms of service violation"
-        is_terminal_stop:
-          type: boolean
-          default: false
-          description: |
-            If true, indicates this step intentionally completes the workflow.
-
-            **Difference from exception**:
-            - This is a **successful** terminal condition
-            - The workflow is marked as **completed** (not failed)
-
-            **Use cases**:
-            - Early completion based on business logic
-            - Conditional workflow paths that end early
-            - Steps that explicitly signal "workflow done"
-
-            **Note**: Steps with no declared output attributes are automatically
-            terminal, so this flag is rarely needed.
-          example: false
 
     ErrorResponse:
       type: object

@@ -192,8 +192,8 @@ describe("useWorkflowWebSocket", () => {
             type: "step_health_changed",
             data: {
               step_id: "test-step",
-              health_status: "healthy",
-              health_error: undefined,
+              status: "healthy",
+              error: undefined,
             },
             timestamp: Date.now(),
             sequence: 1,
@@ -228,8 +228,8 @@ describe("useWorkflowWebSocket", () => {
             type: "step_health_changed",
             data: {
               step_id: "test-step",
-              health_status: "unhealthy",
-              health_error: "Connection failed",
+              status: "unhealthy",
+              error: "Connection failed",
             },
             timestamp: Date.now(),
             sequence: 1,

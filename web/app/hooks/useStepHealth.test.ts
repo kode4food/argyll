@@ -49,7 +49,7 @@ describe("useStepHealth", () => {
 
   test("returns health from store for sync step with health check", () => {
     mockUseWorkflowStore.mockReturnValue({
-      health_status: "healthy",
+      status: "healthy",
     });
     const step = createStep("sync", true);
     const { result } = renderHook(() => useStepHealth(step));
@@ -58,8 +58,8 @@ describe("useStepHealth", () => {
 
   test("returns health from store for async step with health check", () => {
     mockUseWorkflowStore.mockReturnValue({
-      health_status: "unhealthy",
-      health_error: "Connection failed",
+      status: "unhealthy",
+      error: "Connection failed",
     });
     const step = createStep("async", true);
     const { result } = renderHook(() => useStepHealth(step));
@@ -76,7 +76,7 @@ describe("useStepHealth", () => {
 
   test("returns health for script step", () => {
     mockUseWorkflowStore.mockReturnValue({
-      health_status: "healthy",
+      status: "healthy",
     });
     const step: Step = {
       id: "script-step",

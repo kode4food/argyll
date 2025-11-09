@@ -15,11 +15,11 @@ export const useStepHealth = (step: Step): StepHealth => {
 
     // Use health from store
     const status: HealthStatus =
-      (healthInfo?.health_status as HealthStatus) || "unknown";
+      (healthInfo?.status as HealthStatus) || "unknown";
 
     return {
       status,
-      error: healthInfo?.health_error,
+      error: healthInfo?.error,
     };
   }, [step.type, step.http?.health_check, healthInfo]);
 };

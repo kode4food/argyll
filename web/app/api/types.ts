@@ -98,7 +98,7 @@ export interface WorkflowContext {
     step_id: string;
     timestamp: string;
   };
-  execution_plan?: ExecutionPlan;
+  plan?: ExecutionPlan;
   started_at: string;
   completed_at?: string;
 }
@@ -139,7 +139,7 @@ export interface AttributeValue {
 export interface WorkflowProjection {
   id: string;
   status: WorkflowStatus;
-  execution_plan: ExecutionPlan;
+  plan: ExecutionPlan;
   attributes: Record<string, AttributeValue>;
   executions: Record<string, ExecutionInfo>;
   created_at: string;

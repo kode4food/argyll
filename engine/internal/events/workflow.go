@@ -46,7 +46,7 @@ func workflowStarted(
 		return st
 	}
 
-	exec := createExecutions(ws.ExecutionPlan)
+	exec := createExecutions(ws.Plan)
 
 	attributes := map[api.Name]*api.AttributeValue{}
 	for key, value := range ws.Init {
@@ -54,13 +54,13 @@ func workflowStarted(
 	}
 
 	return &api.WorkflowState{
-		ID:            ws.FlowID,
-		Status:        api.WorkflowActive,
-		ExecutionPlan: ws.ExecutionPlan,
-		Attributes:    attributes,
-		Executions:    exec,
-		CreatedAt:     ev.Timestamp,
-		LastUpdated:   ev.Timestamp,
+		ID:          ws.FlowID,
+		Status:      api.WorkflowActive,
+		Plan:        ws.Plan,
+		Attributes:  attributes,
+		Executions:  exec,
+		CreatedAt:   ev.Timestamp,
+		LastUpdated: ev.Timestamp,
 	}
 }
 

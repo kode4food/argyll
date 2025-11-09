@@ -3,8 +3,8 @@ import { devtools } from "zustand/middleware";
 import { api, WorkflowContext, ExecutionResult, Step } from "../api";
 
 interface StepHealthInfo {
-  health_status: string;
-  health_error?: string;
+  status: string;
+  error?: string;
 }
 
 const compareWorkflows = (a: WorkflowContext, b: WorkflowContext): number => {
@@ -79,8 +79,8 @@ export const useWorkflowStore = create<WorkflowState>()(
           Object.entries(engineState.health || {}).forEach(
             ([stepId, health]: [string, any]) => {
               healthMap[stepId] = {
-                health_status: health.status || "unknown",
-                health_error: health.error,
+                status: health.status || "unknown",
+                error: health.error,
               };
             }
           );
@@ -289,8 +289,8 @@ export const useWorkflowStore = create<WorkflowState>()(
           stepHealth: {
             ...stepHealth,
             [stepId]: {
-              health_status: health,
-              health_error: error,
+              status: health,
+              error: error,
             },
           },
         });

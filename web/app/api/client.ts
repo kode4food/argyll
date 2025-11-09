@@ -34,10 +34,10 @@ export class SpudsApi {
 
     let executionPlan = undefined;
     if (
-      projection.execution_plan &&
-      Object.keys(projection.execution_plan.steps).length > 0
+      projection.plan &&
+      Object.keys(projection.plan.steps).length > 0
     ) {
-      executionPlan = projection.execution_plan;
+      executionPlan = projection.plan;
     }
 
     return {
@@ -45,7 +45,7 @@ export class SpudsApi {
       status: projection.status,
       state: projection.attributes || {},
       error_state: errorState,
-      execution_plan: executionPlan,
+      plan: executionPlan,
       started_at: projection.created_at,
       completed_at: projection.completed_at,
     };

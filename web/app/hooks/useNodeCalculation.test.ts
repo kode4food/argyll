@@ -113,7 +113,7 @@ describe("useNodeCalculation", () => {
       status: "active",
       state: {},
       started_at: "",
-      execution_plan: {
+      plan: {
         goals: ["step1"],
         steps: {
           step1: { step: step },
@@ -199,7 +199,7 @@ describe("useNodeCalculation", () => {
       status: "active",
       state: {},
       started_at: "",
-      execution_plan: {
+      plan: {
         goals: ["step2"],
         steps: {
           step1: { step: step1 },
