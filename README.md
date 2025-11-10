@@ -38,12 +38,25 @@ All state changes are stored as immutable events in Redis, enabling complete aud
 ## API
 
 ```bash
-GET/POST   /engine/step          # Step CRUD
-GET/POST   /engine/workflow      # Workflow operations
-POST       /engine/plan          # Preview execution plan
-GET        /engine/health        # Health checks
-GET        /engine/ws            # WebSocket stream
-POST       /webhook/{id}/{id}/{token}  # Async callbacks
+# Steps
+GET     /engine                   # Engine state (all steps)
+GET     /engine/step/:stepID      # Get step
+POST    /engine/step              # Register step
+PUT     /engine/step/:stepID      # Update step
+DELETE  /engine/step/:stepID      # Delete step
+
+# Workflows
+GET     /engine/workflow          # List workflows
+POST    /engine/workflow          # Start workflow
+GET     /engine/workflow/:flowID  # Get workflow state
+
+# Planning & Health
+POST    /engine/plan              # Preview execution plan
+GET     /engine/health            # All step health
+GET     /engine/health/:stepID    # Step health
+
+# Real-time
+GET     /engine/ws                # WebSocket event stream
 ```
 
 See `engine/docs/engine-api.yaml` for full OpenAPI specification.
