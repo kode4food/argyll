@@ -127,9 +127,7 @@ func (e *Engine) raiseStepRegisteredEvent(
 	return nil
 }
 
-func (e *Engine) compileScript(
-	ctx context.Context, step *api.Step,
-) {
+func (e *Engine) compileScript(ctx context.Context, step *api.Step) {
 	if step.Type != api.StepTypeScript || step.Script == nil {
 		return
 	}

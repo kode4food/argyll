@@ -434,9 +434,7 @@ func asArray(value any) []any {
 	return arr
 }
 
-func cartesianProduct(
-	multiArgs MultiArgs, baseInputs api.Args,
-) []api.Args {
+func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 	if len(multiArgs) == 0 {
 		return nil
 	}

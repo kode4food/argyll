@@ -16,9 +16,7 @@ import (
 
 // Retry logic
 
-func (e *Engine) ShouldRetry(
-	step *api.Step, workItem *api.WorkState,
-) bool {
+func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
 	if !isRetryableError(workItem.Error) {
 		return false
 	}
