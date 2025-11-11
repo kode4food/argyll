@@ -39,21 +39,21 @@ func TestPrepareStepExecution(t *testing.T) {
 		execCtx := env.Engine.PrepareStepExecution(
 			context.Background(), "wf-prep", "prep-step",
 		)
-		assert.NotNil(t, execCtx, "should return execution context")
+		assert.NotNil(t, execCtx)
 	})
 
 	t.Run("invalid workflow id", func(t *testing.T) {
 		execCtx := env.Engine.PrepareStepExecution(
 			context.Background(), "invalid-flow-id", "prep-step",
 		)
-		assert.Nil(t, execCtx, "should return nil for invalid workflow")
+		assert.Nil(t, execCtx)
 	})
 
 	t.Run("invalid step id", func(t *testing.T) {
 		execCtx := env.Engine.PrepareStepExecution(
 			context.Background(), "wf-prep", "invalid-step-id",
 		)
-		assert.Nil(t, execCtx, "should return nil for invalid step")
+		assert.Nil(t, execCtx)
 	})
 
 	t.Run("step not in pending state", func(t *testing.T) {
@@ -81,7 +81,7 @@ func TestPrepareStepExecution(t *testing.T) {
 		execCtx := env.Engine.PrepareStepExecution(
 			context.Background(), "wf-prep-2", "active-step",
 		)
-		assert.Nil(t, execCtx, "should return nil for pending step")
+		assert.Nil(t, execCtx)
 	})
 }
 

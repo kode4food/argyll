@@ -79,7 +79,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 	require.NoError(t, err)
 
 	_, exists := engineState.ActiveWorkflows[flowID]
-	assert.False(t, exists, "workflow should not be in active workflows")
+	assert.False(t, exists)
 }
 
 func TestShouldRetryStep(t *testing.T) {
@@ -400,7 +400,7 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 	}
 
-	assert.True(t, hasRetrying, "at least one work item should have retried")
+	assert.True(t, hasRetrying)
 }
 
 func TestFindRetriableSteps(t *testing.T) {
@@ -463,7 +463,7 @@ func TestFindRetriableSteps(t *testing.T) {
 
 	retriable := env.Engine.FindRetrySteps(state)
 
-	assert.Len(t, retriable, 2, "should find exactly 2 retriable steps")
+	assert.Len(t, retriable, 2)
 	assert.Contains(t, retriable, timebox.ID("step-1"))
 	assert.Contains(t, retriable, timebox.ID("step-4"))
 }

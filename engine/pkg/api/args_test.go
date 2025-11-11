@@ -188,5 +188,5 @@ func TestChaining(t *testing.T) {
 	assert.Equal(t, "value1", result["key1"])
 	assert.Equal(t, 42, result["key2"])
 	assert.Equal(t, true, result["key3"])
-	assert.Empty(t, original, "chaining should not modify original")
+	assert.Empty(t, original)
 }
