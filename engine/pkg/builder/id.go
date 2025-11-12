@@ -8,9 +8,7 @@ import (
 	"github.com/kode4food/timebox"
 )
 
-// NewFlowID generates a unique flow ID with a readable prefix.
-// The generated ID is in the format: "prefix-XXXXXX" where XXXXXX is a
-// random 6-character hex string ensuring uniqueness.
+// NewFlowID generates a unique flow ID with a readable prefix
 func NewFlowID(prefix string) timebox.ID {
 	prefix = strings.ToLower(prefix)
 	prefix = strings.ReplaceAll(prefix, " ", "-")

@@ -73,20 +73,6 @@ if userID, ok := sctx.GetAttribute("user_id"); ok {
 }
 ```
 
-### Mutation
-
-```go
-// Update single attribute
-err := sctx.SetAttribute("processed_count", 42)
-
-// Update multiple attributes
-err = sctx.UpdateAttributes(map[api.Name]any{
-    "status": "processing",
-    "timestamp": time.Now().Unix(),
-    "items_processed": 100,
-})
-```
-
 ## Logging
 
 The logger is pre-configured with flow_id and step_id:
@@ -146,16 +132,6 @@ func handleOrderProcessor(sctx *builder.StepContext) (api.StepResult, error) {
 
     // Process
     totalAmount := calculateTotal(items)
-
-    // Update workflow state
-    err := sctx.UpdateAttributes(map[api.Name]any{
-        "order_" + api.Name(orderID): true,
-        "last_processed_at": time.Now().Unix(),
-    })
-    if err != nil {
-        sctx.Logger().Error("failed to update state", "error", err)
-        return api.StepResult{}, err
-    }
 
     sctx.Logger().Info("order processed",
         "order_id", orderID,

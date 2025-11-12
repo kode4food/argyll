@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	ErrInvalidScript     = errors.New("invalid script")
 	ErrStepAlreadyExists = errors.New("step already exists")
 	ErrStepDoesNotExist  = errors.New("step does not exist")
 	ErrTypeConflict      = errors.New("attribute type conflict")

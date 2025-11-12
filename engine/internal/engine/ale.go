@@ -29,7 +29,6 @@ const (
 
 var (
 	ErrAleBadCompiledType = errors.New("expected data.Procedure")
-	ErrAleEvalFailed      = errors.New("failed to evaluate lambda")
 	ErrAleNotProcedure    = errors.New("not a procedure")
 	ErrAleCompile         = errors.New("script compile error")
 	ErrAleCall            = errors.New("error calling procedure")

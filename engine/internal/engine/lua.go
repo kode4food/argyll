@@ -36,7 +36,6 @@ const (
 
 var (
 	ErrLuaBadCompiledType = errors.New("expected *CompiledLuaScript")
-	ErrLuaSyntax          = errors.New("lua syntax error")
 	ErrLuaLoad            = errors.New("lua load error")
 	ErrLuaExecution       = errors.New("lua execution error")
 	ErrLuaMustReturnTable = errors.New("lua script must return a table")

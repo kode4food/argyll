@@ -8,7 +8,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-// Workflow provides a builder for creating workflows.
+// Workflow provides a builder for creating workflows
 type Workflow struct {
 	client *Client
 	id     timebox.ID
@@ -16,7 +16,7 @@ type Workflow struct {
 	init   api.Args
 }
 
-// NewWorkflow creates a new workflow builder with the specified ID.
+// NewWorkflow creates a new workflow builder with the specified ID
 func (c *Client) NewWorkflow(id timebox.ID) *Workflow {
 	return &Workflow{
 		client: c,
@@ -26,7 +26,7 @@ func (c *Client) NewWorkflow(id timebox.ID) *Workflow {
 	}
 }
 
-// WithGoals sets the goal step IDs for the workflow.
+// WithGoals sets the goal step IDs for the workflow
 func (f *Workflow) WithGoals(goals ...timebox.ID) *Workflow {
 	res := *f
 	res.goals = make([]timebox.ID, len(goals))
@@ -34,7 +34,7 @@ func (f *Workflow) WithGoals(goals ...timebox.ID) *Workflow {
 	return &res
 }
 
-// WithGoal adds a single goal step ID to the workflow.
+// WithGoal adds a single goal step ID to the workflow
 func (f *Workflow) WithGoal(goal timebox.ID) *Workflow {
 	res := *f
 	res.goals = make([]timebox.ID, len(f.goals)+1)
@@ -43,7 +43,7 @@ func (f *Workflow) WithGoal(goal timebox.ID) *Workflow {
 	return &res
 }
 
-// WithInitialState sets the initial state for the workflow.
+// WithInitialState sets the initial state for the workflow
 func (f *Workflow) WithInitialState(init api.Args) *Workflow {
 	res := *f
 	res.init = make(api.Args, len(init))
@@ -53,7 +53,7 @@ func (f *Workflow) WithInitialState(init api.Args) *Workflow {
 	return &res
 }
 
-// Start creates and starts the workflow.
+// Start creates and starts the workflow
 func (f *Workflow) Start(ctx context.Context) error {
 	req := api.CreateWorkflowRequest{
 		ID:    f.id,
@@ -63,7 +63,7 @@ func (f *Workflow) Start(ctx context.Context) error {
 	return f.client.StartWorkflowWithRequest(ctx, req)
 }
 
-// Build returns the CreateWorkflowRequest without starting the workflow.
+// Build returns the CreateWorkflowRequest without starting the workflow
 func (f *Workflow) Build() api.CreateWorkflowRequest {
 	return api.CreateWorkflowRequest{
 		ID:    f.id,

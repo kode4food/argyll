@@ -47,7 +47,6 @@ var (
 	ErrStepNotFound         = errors.New("step not found")
 	ErrStepExists           = errors.New("step exists")
 	ErrScriptCompileFailed  = errors.New("failed to compile scripts for plan")
-	ErrWorkflowStateFailed  = errors.New("failed to get workflow state")
 	ErrExecutionPlanMissing = errors.New("execution plan missing required data")
 	ErrStepNotInPlan        = errors.New("step not in execution plan")
 	ErrInvalidTransition    = errors.New("invalid step status transition")

@@ -10,78 +10,57 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-// StepHandlerFunc is a step handler function that receives a rich StepContext.
-type StepHandlerFunc func(*StepContext) (api.StepResult, error)
+type (
 
-// StepContext provides a rich context for step execution with easy access
-// to workflow state, metadata, and operations.
-type StepContext struct {
-	ctx      context.Context
-	client   *Client
-	args     api.Args
-	metadata api.Metadata
-	logger   *slog.Logger
-}
-
-// newStepContext creates a new StepContext for a step execution.
-func newStepContext(
-	ctx context.Context,
-	client *Client,
-	args api.Args,
-	metadata api.Metadata,
-) *StepContext {
-	flowID := getMetadataID(metadata, "flow_id")
-	stepID := getMetadataID(metadata, "step_id")
-
-	logger := slog.With(
-		slog.Any("flow_id", flowID),
-		slog.Any("step_id", stepID),
-	)
-
-	return &StepContext{
-		ctx:      ctx,
-		client:   client,
-		args:     args,
-		metadata: metadata,
-		logger:   logger,
+	// StepContext provides a rich context for step execution with easy access
+	// to workflow state, metadata, and operations
+	StepContext struct {
+		ctx      context.Context
+		workflow *WorkflowClient
+		args     api.Args
+		metadata api.Metadata
+		logger   *slog.Logger
 	}
-}
 
-// Context returns the underlying context.Context for cancellation, deadlines, etc.
+	// StepHandlerFunc is a step handler function that receives a StepContext
+	StepHandlerFunc func(*StepContext) (api.StepResult, error)
+)
+
+// Context returns the underlying context.Context
 func (s *StepContext) Context() context.Context {
 	return s.ctx
 }
 
-// FlowID returns the workflow ID for this step execution.
+// FlowID returns the workflow ID for this step execution
 func (s *StepContext) FlowID() timebox.ID {
 	return getMetadataID(s.metadata, "flow_id")
 }
 
-// StepID returns the step definition ID.
+// StepID returns the step definition ID
 func (s *StepContext) StepID() timebox.ID {
 	return getMetadataID(s.metadata, "step_id")
 }
 
-// WorkToken returns the unique work item token for this execution.
+// WorkToken returns the unique work item token for this execution
 func (s *StepContext) WorkToken() api.Token {
 	if token, ok := s.metadata["receipt_token"].(api.Token); ok {
 		return token
 	}
-	return api.Token("")
+	return ""
 }
 
-// Args returns all step input arguments.
+// Args returns all step input arguments
 func (s *StepContext) Args() api.Args {
 	return s.args
 }
 
-// Get retrieves an argument value by name.
+// Get retrieves an argument value by name
 func (s *StepContext) Get(name api.Name) (any, bool) {
 	val, ok := s.args[name]
 	return val, ok
 }
 
-// GetString retrieves a string argument, returning empty string if not found.
+// GetString retrieves a string argument, returning empty string if not found
 func (s *StepContext) GetString(name api.Name) string {
 	if val, ok := s.args[name]; ok {
 		if str, ok := val.(string); ok {
@@ -91,7 +70,7 @@ func (s *StepContext) GetString(name api.Name) string {
 	return ""
 }
 
-// GetInt retrieves an integer argument, returning 0 if not found.
+// GetInt retrieves an integer argument, returning 0 if not found
 func (s *StepContext) GetInt(name api.Name) int {
 	if val, ok := s.args[name]; ok {
 		switch v := val.(type) {
@@ -106,7 +85,7 @@ func (s *StepContext) GetInt(name api.Name) int {
 	return 0
 }
 
-// GetFloat retrieves a float64 argument, returning 0.0 if not found.
+// GetFloat retrieves a float64 argument, returning 0.0 if not found
 func (s *StepContext) GetFloat(name api.Name) float64 {
 	if val, ok := s.args[name]; ok {
 		switch v := val.(type) {
@@ -121,7 +100,7 @@ func (s *StepContext) GetFloat(name api.Name) float64 {
 	return 0.0
 }
 
-// GetBool retrieves a boolean argument, returning false if not found.
+// GetBool retrieves a boolean argument, returning false if not found
 func (s *StepContext) GetBool(name api.Name) bool {
 	if val, ok := s.args[name]; ok {
 		if b, ok := val.(bool); ok {
@@ -131,17 +110,17 @@ func (s *StepContext) GetBool(name api.Name) bool {
 	return false
 }
 
-// Logger returns a structured logger pre-configured with flow and step context.
+// Logger returns a structured logger pre-configured with flow and step context
 func (s *StepContext) Logger() *slog.Logger {
 	return s.logger
 }
 
-// GetFlowState retrieves the current state of the flow.
+// GetFlowState retrieves the current state of the flow
 func (s *StepContext) GetFlowState() (*api.WorkflowState, error) {
-	return s.client.GetWorkflow(s.ctx, s.FlowID())
+	return s.workflow.GetState(s.ctx)
 }
 
-// GetStepExecution retrieves the execution state for a specific step.
+// GetStepExecution retrieves the execution state for a specific step
 func (s *StepContext) GetStepExecution(
 	stepID timebox.ID,
 ) (*api.ExecutionState, error) {
@@ -157,7 +136,7 @@ func (s *StepContext) GetStepExecution(
 	return nil, fmt.Errorf("step execution not found: %s", stepID)
 }
 
-// GetAttribute retrieves an attribute value from the flow state.
+// GetAttribute retrieves an attribute value from the flow state
 func (s *StepContext) GetAttribute(name api.Name) (any, bool) {
 	state, err := s.GetFlowState()
 	if err != nil {
@@ -168,22 +147,12 @@ func (s *StepContext) GetAttribute(name api.Name) (any, bool) {
 	return val, ok
 }
 
-// UpdateAttributes updates multiple attributes in the flow state.
-func (s *StepContext) UpdateAttributes(updates map[api.Name]any) error {
-	return s.client.UpdateState(s.ctx, s.FlowID(), updates)
-}
-
-// SetAttribute sets a single attribute in the flow state.
-func (s *StepContext) SetAttribute(name api.Name, value any) error {
-	return s.UpdateAttributes(map[api.Name]any{name: value})
-}
-
-// Metadata returns the raw metadata map for advanced use cases.
+// Metadata returns the raw metadata map for advanced use cases
 func (s *StepContext) Metadata() api.Metadata {
 	return s.metadata
 }
 
-// getMetadataID is a helper to safely extract timebox.ID from metadata.
+// getMetadataID is a helper to safely extract timebox.ID from metadata
 func getMetadataID(metadata api.Metadata, key string) timebox.ID {
 	if val, ok := metadata[key]; ok {
 		switch v := val.(type) {
@@ -193,5 +162,5 @@ func getMetadataID(metadata api.Metadata, key string) timebox.ID {
 			return timebox.ID(v)
 		}
 	}
-	return timebox.ID("")
+	return ""
 }

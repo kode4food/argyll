@@ -27,7 +27,7 @@ var (
 	delimiterRegex = regexp.MustCompile(`[\s_]+`)
 )
 
-// NewStep creates a new step builder with the specified name.
+// NewStep creates a new step builder with the specified name
 func NewStep(name api.Name) *Step {
 	id := timebox.ID(toSnakeCase(string(name)))
 	return &Step{
