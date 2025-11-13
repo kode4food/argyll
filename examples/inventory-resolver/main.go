@@ -88,19 +88,23 @@ var (
 )
 
 func main() {
-	if err := builder.SetupStep(
-		"Inventory Resolver", build, handle,
-	); err != nil {
+	engineURL := os.Getenv("SPUDS_ENGINE_URL")
+	if engineURL == "" {
+		engineURL = "http://localhost:8080"
+	}
+
+	client := builder.NewClient(engineURL, 30*time.Second)
+
+	err := client.NewStep("Inventory Resolver").
+		Optional("product_id", api.TypeString, `"prod-laptop"`).
+		Output("product_info", api.TypeObject).
+		Start(handle)
+
+	if err != nil {
 		slog.Error("Failed to setup inventory resolver",
 			slog.Any("error", err))
 		os.Exit(1)
 	}
-}
-
-func build(b *builder.Step) *builder.Step {
-	return b.
-		Optional("product_id", api.TypeString, `"prod-laptop"`).
-		Output("product_info", api.TypeObject)
 }
 
 func handle(ctx context.Context, args api.Args) (api.StepResult, error) {

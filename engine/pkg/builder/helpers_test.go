@@ -43,13 +43,10 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 
 	errChan := make(chan error, 1)
 	go func() {
-		err := builder.SetupStep(
-			"Test Step",
-			func(b *builder.Step) *builder.Step {
-				return b.WithSyncExecution()
-			},
-			handler,
-		)
+		client := builder.NewClient(mockEngine.URL, 5*time.Second)
+		err := client.NewStep("Test Step").
+			WithSyncExecution().
+			Start(handler)
 		errChan <- err
 	}()
 

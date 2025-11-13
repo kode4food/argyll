@@ -31,23 +31,11 @@ var (
 
 var MetadataKey ContextKey = "metadata"
 
-func SetupStep(
-	name api.Name, build func(*Step) *Step, handle api.StepHandler,
-) error {
-	step := build(NewStep(name))
-	id := step.id
-
+func setupStepServer(client *Client, step *Step, handle api.StepHandler) error {
 	port := os.Getenv("STEP_PORT")
 	if port == "" {
 		port = strconv.Itoa(DefaultStepPort)
 	}
-
-	engineURL := os.Getenv("SPUDS_ENGINE_URL")
-	if engineURL == "" {
-		engineURL = DefaultEngineURL
-	}
-
-	client := NewClient(engineURL, 30*time.Second)
 
 	portInt, _ := strconv.Atoi(port)
 
@@ -56,10 +44,11 @@ func SetupStep(
 		hostname = "localhost"
 	}
 
-	endpoint := fmt.Sprintf("http://%s:%d/%s", hostname, portInt, id)
+	endpoint := fmt.Sprintf("http://%s:%d/%s", hostname, portInt, step.id)
 	healthEndpoint := fmt.Sprintf("http://%s:%d/health", hostname, portInt)
 
 	step = step.WithEndpoint(endpoint).WithHealthCheck(healthEndpoint)
+
 	stepReq, err := step.Build()
 	if err != nil {
 		return err
@@ -67,14 +56,20 @@ func SetupStep(
 
 	var registered bool
 	for attempt := 1; attempt <= MaxRegistrationAttempts; attempt++ {
-		err := client.RegisterStep(context.Background(), stepReq)
+		var err error
+		if step.dirty {
+			err = client.updateStep(context.Background(), stepReq)
+		} else {
+			err = client.registerStep(context.Background(), stepReq)
+		}
+
 		if err == nil {
 			registered = true
 			break
 		}
 
-		slog.Warn("Failed to register step",
-			slog.Any("step_id", id),
+		slog.Warn("Failed to register/update step",
+			slog.Any("step_id", step.id),
 			slog.Int("attempt", attempt),
 			slog.Any("error", err))
 		if attempt >= MaxRegistrationAttempts {
@@ -92,14 +87,14 @@ func SetupStep(
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`, id)
+		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`, step.id)
 	})
 
-	http.HandleFunc("/"+string(id), makeStepHandler(id, handle))
+	http.HandleFunc("/"+string(step.id), makeStepHandler(step.id, handle))
 
 	slog.Info("Step server starting",
-		slog.Any("step_name", name),
-		slog.Any("step_id", id),
+		slog.Any("step_name", step.name),
+		slog.Any("step_id", step.id),
 		slog.String("port", port),
 		slog.String("endpoint", endpoint))
 	return http.ListenAndServe(":"+port, nil)

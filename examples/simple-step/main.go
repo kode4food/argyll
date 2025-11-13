@@ -21,29 +21,20 @@ func main() {
   :formatted_text (str "[" name "] " text)
 }`
 
-	textFormatter := &api.Step{
-		ID:   "text-formatter",
-		Name: "Text Formatter",
-		Type: api.StepTypeScript,
-		Attributes: map[api.Name]*api.AttributeSpec{
-			"text": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-			},
-			"name": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-			},
-			"formatted_text": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-			},
-		},
-		Version: "1.0.0",
-		Script: &api.ScriptConfig{
-			Language: "ale",
-			Script:   textFormatterScript,
-		},
+	client := builder.NewClient(engineURL, 30*time.Second)
+
+	err := client.NewStep("Text Formatter").
+		WithID("text-formatter").
+		Required("text", api.TypeString).
+		Required("name", api.TypeString).
+		Output("formatted_text", api.TypeString).
+		WithScript(textFormatterScript).
+		Register(context.Background())
+
+	if err != nil {
+		slog.Error("Failed to register text formatter",
+			slog.Any("error", err))
+		os.Exit(1)
 	}
 
 	// Example 2: Data transformation (Ale script)
@@ -56,41 +47,21 @@ func main() {
             (if (> quantity 5) 0.0 9.99))
 }`
 
-	priceCalculator := &api.Step{
-		ID:   "price-calculator",
-		Name: "Price Calculator",
-		Type: api.StepTypeScript,
-		Attributes: map[api.Name]*api.AttributeSpec{
-			"quantity": {
-				Role: api.RoleRequired,
-				Type: api.TypeNumber,
-			},
-			"unit_price": {
-				Role: api.RoleRequired,
-				Type: api.TypeNumber,
-			},
-			"subtotal": {
-				Role: api.RoleOutput,
-				Type: api.TypeNumber,
-			},
-			"tax": {
-				Role: api.RoleOutput,
-				Type: api.TypeNumber,
-			},
-			"shipping": {
-				Role: api.RoleOutput,
-				Type: api.TypeNumber,
-			},
-			"total": {
-				Role: api.RoleOutput,
-				Type: api.TypeNumber,
-			},
-		},
-		Version: "1.0.0",
-		Script: &api.ScriptConfig{
-			Language: "ale",
-			Script:   priceCalculatorScript,
-		},
+	err = client.NewStep("Price Calculator").
+		WithID("price-calculator").
+		Required("quantity", api.TypeNumber).
+		Required("unit_price", api.TypeNumber).
+		Output("subtotal", api.TypeNumber).
+		Output("tax", api.TypeNumber).
+		Output("shipping", api.TypeNumber).
+		Output("total", api.TypeNumber).
+		WithScript(priceCalculatorScript).
+		Register(context.Background())
+
+	if err != nil {
+		slog.Error("Failed to register price calculator",
+			slog.Any("error", err))
+		os.Exit(1)
 	}
 
 	// Example 3: Conditional logic (Lua script)
@@ -121,62 +92,22 @@ return {
 				(credit_score >= 650 and "medium" or "high")
 }`
 
-	eligibilityChecker := &api.Step{
-		ID:   "eligibility-checker",
-		Name: "Eligibility Checker",
-		Type: api.StepTypeScript,
-		Attributes: map[api.Name]*api.AttributeSpec{
-			"age": {
-				Role: api.RoleRequired,
-				Type: api.TypeNumber,
-			},
-			"income": {
-				Role: api.RoleRequired,
-				Type: api.TypeNumber,
-			},
-			"credit_score": {
-				Role: api.RoleRequired,
-				Type: api.TypeNumber,
-			},
-			"eligible": {
-				Role: api.RoleOutput,
-				Type: api.TypeBoolean,
-			},
-			"reason": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-			},
-			"risk_level": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-			},
-		},
-		Version: "1.0.0",
-		Script: &api.ScriptConfig{
-			Language: "lua",
-			Script:   eligibilityCheckerScript,
-		},
+	err = client.NewStep("Eligibility Checker").
+		WithID("eligibility-checker").
+		Required("age", api.TypeNumber).
+		Required("income", api.TypeNumber).
+		Required("credit_score", api.TypeNumber).
+		Output("eligible", api.TypeBoolean).
+		Output("reason", api.TypeString).
+		Output("risk_level", api.TypeString).
+		WithScriptLanguage("lua", eligibilityCheckerScript).
+		Register(context.Background())
+
+	if err != nil {
+		slog.Error("Failed to register eligibility checker",
+			slog.Any("error", err))
+		os.Exit(1)
 	}
 
-	// Register all example steps
-	client := builder.NewClient(engineURL, 30*time.Second)
-	steps := []*api.Step{textFormatter, priceCalculator, eligibilityChecker}
-
-	for _, step := range steps {
-		if err := client.RegisterStep(context.Background(), step); err != nil {
-			slog.Error("Failed to register script step",
-				slog.String("step_id", string(step.ID)),
-				slog.Any("error", err))
-			os.Exit(1)
-		}
-
-		slog.Info("Successfully registered script step",
-			slog.String("step_id", string(step.ID)),
-			slog.String("name", string(step.Name)),
-			slog.String("type", string(step.Type)),
-			slog.String("language", step.Script.Language))
-	}
-
-	slog.Info("All script-based steps registered successfully",
-		slog.Int("count", len(steps)))
+	slog.Info("All script-based steps registered successfully")
 }

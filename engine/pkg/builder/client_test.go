@@ -43,17 +43,11 @@ func TestRegisterStepSuccess(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	step := &api.Step{
-		ID:      "test-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-		},
-	}
 
-	err := client.RegisterStep(context.Background(), step)
+	err := client.NewStep("Test Step").
+		WithEndpoint("http://test").
+		Register(context.Background())
+
 	assert.NoError(t, err)
 }
 
@@ -66,17 +60,11 @@ func TestRegisterStepStatusCreated(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	step := &api.Step{
-		ID:      "test-step",
-		Name:    "Test",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-		},
-	}
 
-	err := client.RegisterStep(context.Background(), step)
+	err := client.NewStep("Test").
+		WithEndpoint("http://test").
+		Register(context.Background())
+
 	assert.NoError(t, err)
 }
 
@@ -90,17 +78,11 @@ func TestRegisterStepError(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	step := &api.Step{
-		ID:      "test-step",
-		Name:    "Test",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-		},
-	}
 
-	err := client.RegisterStep(context.Background(), step)
+	err := client.NewStep("Test").
+		WithEndpoint("http://test").
+		Register(context.Background())
+
 	assert.Error(t, err)
 }
 
@@ -121,28 +103,10 @@ func TestStartSuccess(t *testing.T) {
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 	ctx := context.Background()
-	err := client.StartWorkflow(
-		ctx, "wf-1", []timebox.ID{"goal-step"}, api.Args{"input": "value"},
-	)
-	assert.NoError(t, err)
-}
-
-func TestStartWithRequest(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusCreated)
-		},
-	))
-	defer server.Close()
-
-	client := builder.NewClient(server.URL, 5*time.Second)
-	req := api.CreateWorkflowRequest{
-		ID:    "wf-1",
-		Goals: []timebox.ID{"goal1", "goal2"},
-		Init:  api.Args{"input": "value"},
-	}
-
-	err := client.StartWorkflowWithRequest(context.Background(), req)
+	err := client.NewWorkflow("wf-1").
+		WithGoals("goal-step").
+		WithInitialState(api.Args{"input": "value"}).
+		Start(ctx)
 	assert.NoError(t, err)
 }
 
@@ -156,9 +120,9 @@ func TestStartError(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.StartWorkflow(
-		context.Background(), "wf-1", []timebox.ID{"goal-step"}, api.Args{},
-	)
+	err := client.NewWorkflow("wf-1").
+		WithGoals("goal-step").
+		Start(context.Background())
 	assert.Error(t, err)
 }
 
@@ -215,17 +179,10 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	step := &api.Step{
-		ID:      "test",
-		Name:    "Test",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-		},
-	}
+	err := client.NewStep("Test").
+		WithEndpoint("http://test").
+		Register(ctx)
 
-	err := client.RegisterStep(ctx, step)
 	assert.Error(t, err)
 }
 
@@ -233,54 +190,6 @@ func TestWorkflow(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
 	wc := client.Workflow("test-flow-123")
 	assert.Equal(t, timebox.ID("test-flow-123"), wc.FlowID())
-}
-
-func TestWorkflowFromCtx(t *testing.T) {
-	meta := api.Metadata{
-		"flow_id": "test-flow-789",
-	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
-
-	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	wc, err := client.WorkflowFromContext(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("test-flow-789"), wc.FlowID())
-}
-
-func TestWorkflowFromCtxMissing(t *testing.T) {
-	tests := []struct {
-		name     string
-		meta     api.Metadata
-		errMatch string
-	}{
-		{
-			name:     "no metadata",
-			meta:     nil,
-			errMatch: "metadata not found",
-		},
-		{
-			name:     "missing flow_id",
-			meta:     api.Metadata{"other_field": "value"},
-			errMatch: "flow_id not found",
-		},
-	}
-
-	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var ctx context.Context
-			if tt.meta != nil {
-				ctx = context.WithValue(
-					context.Background(), builder.MetadataKey, tt.meta,
-				)
-			} else {
-				ctx = context.Background()
-			}
-			_, err := client.WorkflowFromContext(ctx)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), tt.errMatch)
-		})
-	}
 }
 
 func TestWorkflowGetState(t *testing.T) {
@@ -306,155 +215,4 @@ func TestWorkflowGetState(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, timebox.ID("my-flow"), state.ID)
 	assert.Equal(t, api.WorkflowActive, state.Status)
-}
-
-func TestNewAsyncContext(t *testing.T) {
-	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": "http://localhost:8080/webhook/test-flow/test-step/t123",
-	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
-
-	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("test-flow"), ac.FlowID())
-	assert.Equal(t, timebox.ID("test-step"), ac.StepID())
-	assert.Equal(t,
-		"http://localhost:8080/webhook/test-flow/test-step/t123",
-		ac.WebhookURL(),
-	)
-}
-
-func TestAsyncContextMissingMeta(t *testing.T) {
-	tests := []struct {
-		name     string
-		meta     api.Metadata
-		errMatch string
-	}{
-		{
-			name:     "no metadata",
-			meta:     nil,
-			errMatch: "metadata not found",
-		},
-		{
-			name: "missing flow_id",
-			meta: api.Metadata{
-				"step_id":     "step",
-				"webhook_url": "http://test",
-			},
-			errMatch: "flow_id not found",
-		},
-		{
-			name: "missing step_id",
-			meta: api.Metadata{
-				"flow_id":     "flow",
-				"webhook_url": "http://test",
-			},
-			errMatch: "step_id not found",
-		},
-		{
-			name:     "missing webhook_url",
-			meta:     api.Metadata{"flow_id": "flow", "step_id": "step"},
-			errMatch: "webhook_url not found",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			var ctx context.Context
-			if tt.meta != nil {
-				ctx = context.WithValue(
-					context.Background(), builder.MetadataKey, tt.meta,
-				)
-			} else {
-				ctx = context.Background()
-			}
-			_, err := builder.NewAsyncContext(ctx)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), tt.errMatch)
-		})
-	}
-}
-
-func TestAsyncContextComplete(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, "POST", r.Method)
-
-			var result api.StepResult
-			err := json.NewDecoder(r.Body).Decode(&result)
-			require.NoError(t, err)
-			assert.True(t, result.Success)
-			assert.Equal(t, "result-value", result.Outputs["output_key"])
-
-			w.WriteHeader(http.StatusOK)
-		},
-	))
-	defer server.Close()
-
-	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
-	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
-
-	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
-
-	err = ac.Success(api.Args{"output_key": "result-value"})
-	assert.NoError(t, err)
-}
-
-func TestAsyncContextFail(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			var result api.StepResult
-			err := json.NewDecoder(r.Body).Decode(&result)
-			require.NoError(t, err)
-			assert.False(t, result.Success)
-			assert.Contains(t, result.Error, "general error")
-
-			w.WriteHeader(http.StatusOK)
-		},
-	))
-	defer server.Close()
-
-	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
-	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
-
-	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
-
-	err = ac.Fail(assert.AnError)
-	assert.NoError(t, err)
-}
-
-func TestAsyncContextWebhookError(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			w.WriteHeader(http.StatusInternalServerError)
-			_, _ = w.Write([]byte("internal error"))
-		},
-	))
-	defer server.Close()
-
-	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
-	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
-
-	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
-
-	err = ac.Success(api.Args{"key": "value"})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "webhook returned status 500")
 }

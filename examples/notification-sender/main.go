@@ -13,20 +13,24 @@ import (
 )
 
 func main() {
-	if err := builder.SetupStep(
-		"Notification Sender", build, handle,
-	); err != nil {
+	engineURL := os.Getenv("SPUDS_ENGINE_URL")
+	if engineURL == "" {
+		engineURL = "http://localhost:8080"
+	}
+
+	client := builder.NewClient(engineURL, 30*time.Second)
+
+	err := client.NewStep("Notification Sender").
+		Required("payment_result", api.TypeObject).
+		Required("reservation", api.TypeObject).
+		Required("user_info", api.TypeObject).
+		Start(handle)
+
+	if err != nil {
 		slog.Error("Failed to setup notification sender",
 			slog.Any("error", err))
 		os.Exit(1)
 	}
-}
-
-func build(step *builder.Step) *builder.Step {
-	return step.
-		Required("payment_result", api.TypeObject).
-		Required("reservation", api.TypeObject).
-		Required("user_info", api.TypeObject)
 }
 
 func handle(ctx context.Context, args api.Args) (api.StepResult, error) {

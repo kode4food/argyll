@@ -2,6 +2,7 @@ package builder_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
@@ -11,10 +12,15 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/builder"
 )
 
+func testClient() *builder.Client {
+	return builder.NewClient("http://localhost:8080", 30*time.Second)
+}
+
 func TestNewStep(t *testing.T) {
 	name := api.Name("Test Step")
+	client := testClient()
 
-	step, err := builder.NewStep(name).
+	step, err := client.NewStep(name).
 		WithEndpoint("http://example.com").
 		Build()
 
@@ -61,7 +67,7 @@ func TestNewStepIDGeneration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			step, err := builder.NewStep(tt.stepName).
+			step, err := testClient().NewStep(tt.stepName).
 				WithEndpoint("http://example.com").
 				Build()
 
@@ -73,7 +79,7 @@ func TestNewStepIDGeneration(t *testing.T) {
 
 func TestWithID(t *testing.T) {
 	customID := timebox.ID("custom-id")
-	step, err := builder.NewStep("Test Step").
+	step, err := testClient().NewStep("Test Step").
 		WithID(customID).
 		WithEndpoint("http://example.com").
 		Build()
@@ -84,7 +90,7 @@ func TestWithID(t *testing.T) {
 }
 
 func TestRequiredArg(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		Required("input1", api.TypeString).
 		Required("input2", api.TypeNumber).
@@ -98,7 +104,7 @@ func TestRequiredArg(t *testing.T) {
 }
 
 func TestOptionalArg(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		Optional("optional1", api.TypeString, "").
 		Optional("optional2", api.TypeNumber, "42").
@@ -112,7 +118,7 @@ func TestOptionalArg(t *testing.T) {
 }
 
 func TestOutputArg(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		Output("output1", api.TypeString).
 		Output("output2", api.TypeNumber).
@@ -126,7 +132,7 @@ func TestOutputArg(t *testing.T) {
 }
 
 func TestWithVersion(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithVersion("2.0.0").
 		Build()
@@ -137,7 +143,7 @@ func TestWithVersion(t *testing.T) {
 
 func TestWithEndpoint(t *testing.T) {
 	endpoint := "http://example.com/step"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint(endpoint).
 		Build()
 
@@ -149,7 +155,7 @@ func TestWithEndpoint(t *testing.T) {
 
 func TestWithScript(t *testing.T) {
 	script := "{:result (+ 1 2)}"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithScript(script).
 		Build()
 
@@ -163,7 +169,7 @@ func TestWithScript(t *testing.T) {
 func TestWithScriptLanguage(t *testing.T) {
 	script := "custom script"
 	lang := "custom-lang"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithScriptLanguage(lang, script).
 		Build()
 
@@ -176,7 +182,7 @@ func TestWithScriptLanguage(t *testing.T) {
 
 func TestWithHealthCheck(t *testing.T) {
 	healthCheck := "http://example.com/health"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com/step").
 		WithHealthCheck(healthCheck).
 		Build()
@@ -188,7 +194,7 @@ func TestWithHealthCheck(t *testing.T) {
 
 func TestWithTimeout(t *testing.T) {
 	timeout := api.Minute
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithTimeout(timeout).
 		Build()
@@ -198,7 +204,7 @@ func TestWithTimeout(t *testing.T) {
 }
 
 func TestWithType(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithType(api.StepTypeAsync).
 		Build()
@@ -208,7 +214,7 @@ func TestWithType(t *testing.T) {
 }
 
 func TestWithAsyncExecution(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithAsyncExecution().
 		Build()
@@ -218,7 +224,7 @@ func TestWithAsyncExecution(t *testing.T) {
 }
 
 func TestWithSyncExecution(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithSyncExecution().
 		Build()
@@ -228,7 +234,7 @@ func TestWithSyncExecution(t *testing.T) {
 }
 
 func TestWithScriptExecution(t *testing.T) {
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithScript("{:result 42}").
 		WithScriptExecution().
 		Build()
@@ -239,7 +245,7 @@ func TestWithScriptExecution(t *testing.T) {
 
 func TestWithPredicate(t *testing.T) {
 	predicate := "(> x 10)"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithPredicate(api.ScriptLangAle, predicate).
 		Build()
@@ -252,7 +258,7 @@ func TestWithPredicate(t *testing.T) {
 
 func TestWithAlePredicate(t *testing.T) {
 	predicate := "(> x 10)"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithAlePredicate(predicate).
 		Build()
@@ -265,7 +271,7 @@ func TestWithAlePredicate(t *testing.T) {
 
 func TestWithLuaPredicate(t *testing.T) {
 	predicate := "return x > 10"
-	step, err := builder.NewStep("Test").
+	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithLuaPredicate(predicate).
 		Build()
@@ -277,7 +283,7 @@ func TestWithLuaPredicate(t *testing.T) {
 }
 
 func TestBuildValidHTTPStep(t *testing.T) {
-	step, err := builder.NewStep("Test Step").
+	step, err := testClient().NewStep("Test Step").
 		WithEndpoint("http://example.com/step").
 		Required("input", api.TypeString).
 		Output("output", api.TypeString).
@@ -289,7 +295,7 @@ func TestBuildValidHTTPStep(t *testing.T) {
 }
 
 func TestBuildValidScriptStep(t *testing.T) {
-	step, err := builder.NewStep("Script Step").
+	step, err := testClient().NewStep("Script Step").
 		WithScript("{:result 42}").
 		Required("input", api.TypeString).
 		Output("result", api.TypeNumber).
@@ -301,13 +307,13 @@ func TestBuildValidScriptStep(t *testing.T) {
 }
 
 func TestBuildInvalidStep(t *testing.T) {
-	_, err := builder.NewStep("").Build()
+	_, err := testClient().NewStep("").Build()
 
 	assert.Error(t, err)
 }
 
 func TestChaining(t *testing.T) {
-	step, err := builder.NewStep("Chained Step").
+	step, err := testClient().NewStep("Chained Step").
 		WithEndpoint("http://example.com/step").
 		WithHealthCheck("http://example.com/health").
 		WithTimeout(45*api.Second).
@@ -333,7 +339,7 @@ func TestChaining(t *testing.T) {
 }
 
 func TestImmutability(t *testing.T) {
-	original := builder.NewStep("Test Step")
+	original := testClient().NewStep("Test Step")
 
 	modified := original.
 		WithID("custom-id").
@@ -357,7 +363,7 @@ func TestImmutability(t *testing.T) {
 }
 
 func TestImmutabilityMaps(t *testing.T) {
-	base := builder.NewStep("Test").WithEndpoint("http://example.com")
+	base := testClient().NewStep("Test").WithEndpoint("http://example.com")
 
 	builder1 := base.Required("arg1", api.TypeString)
 	builder2 := base.Required("arg2", api.TypeNumber)
@@ -378,7 +384,7 @@ func TestImmutabilityMaps(t *testing.T) {
 }
 
 func TestImmutabilityHTTPConfig(t *testing.T) {
-	base := builder.NewStep("Test").
+	base := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
 		WithHealthCheck("http://example.com/health")
 

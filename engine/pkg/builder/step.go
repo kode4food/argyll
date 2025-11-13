@@ -1,6 +1,8 @@
 package builder
 
 import (
+	"context"
+	"errors"
 	"maps"
 	"regexp"
 	"strings"
@@ -11,6 +13,7 @@ import (
 )
 
 type Step struct {
+	client     *Client
 	predicate  *api.ScriptConfig
 	http       *api.HTTPConfig
 	script     *api.ScriptConfig
@@ -20,6 +23,7 @@ type Step struct {
 	version    string
 	attributes map[api.Name]*api.AttributeSpec
 	timeout    int64
+	dirty      bool
 }
 
 var (
@@ -28,9 +32,10 @@ var (
 )
 
 // NewStep creates a new step builder with the specified name
-func NewStep(name api.Name) *Step {
+func (c *Client) NewStep(name api.Name) *Step {
 	id := timebox.ID(toSnakeCase(string(name)))
 	return &Step{
+		client:     c,
 		id:         id,
 		name:       name,
 		version:    "1.0.0",
@@ -40,64 +45,66 @@ func NewStep(name api.Name) *Step {
 	}
 }
 
-func (s *Step) WithID(id timebox.ID) *Step {
+func (s *Step) clone() *Step {
 	res := *s
-	res.id = id
+	res.attributes = maps.Clone(s.attributes)
 	return &res
 }
 
+func (s *Step) WithID(id timebox.ID) *Step {
+	res := s.clone()
+	res.id = id
+	return res
+}
+
 func (s *Step) Required(name api.Name, argType api.AttributeType) *Step {
-	res := *s
-	res.attributes = maps.Clone(s.attributes)
+	res := s.clone()
 	res.attributes[name] = &api.AttributeSpec{
 		Role: api.RoleRequired,
 		Type: argType,
 	}
-	return &res
+	return res
 }
 
 func (s *Step) Optional(
 	name api.Name, argType api.AttributeType, defaultValue string,
 ) *Step {
-	res := *s
-	res.attributes = maps.Clone(s.attributes)
+	res := s.clone()
 	res.attributes[name] = &api.AttributeSpec{
 		Role:    api.RoleOptional,
 		Type:    argType,
 		Default: defaultValue,
 	}
-	return &res
+	return res
 }
 
 func (s *Step) Output(name api.Name, argType api.AttributeType) *Step {
-	res := *s
-	res.attributes = maps.Clone(s.attributes)
+	res := s.clone()
 	res.attributes[name] = &api.AttributeSpec{
 		Role: api.RoleOutput,
 		Type: argType,
 	}
-	return &res
+	return res
 }
 
 // WithForEach marks an attribute as supporting multi work items (arrays)
 func (s *Step) WithForEach(name api.Name) *Step {
-	res := *s
-	res.attributes = maps.Clone(s.attributes)
+	res := s.clone()
 	if attr, ok := res.attributes[name]; ok {
 		newAttr := *attr
 		newAttr.ForEach = true
 		res.attributes[name] = &newAttr
 	}
-	return &res
+	return res
 }
 
 func (s *Step) WithPredicate(language, script string) *Step {
-	res := *s
+	res := s.clone()
 	res.predicate = &api.ScriptConfig{
 		Language: language,
 		Script:   script,
 	}
-	return &res
+	return res
 }
 
 func (s *Step) WithAlePredicate(script string) *Step {
@@ -109,13 +116,13 @@ func (s *Step) WithLuaPredicate(script string) *Step {
 }
 
 func (s *Step) WithVersion(version string) *Step {
-	res := *s
+	res := s.clone()
 	res.version = version
-	return &res
+	return res
 }
 
 func (s *Step) WithEndpoint(endpoint string) *Step {
-	res := *s
+	res := s.clone()
 	if res.http == nil {
 		res.http = &api.HTTPConfig{}
 	} else {
@@ -126,31 +133,31 @@ func (s *Step) WithEndpoint(endpoint string) *Step {
 	if res.stepType == "" {
 		res.stepType = api.StepTypeSync
 	}
-	return &res
+	return res
 }
 
 func (s *Step) WithScript(script string) *Step {
-	res := *s
+	res := s.clone()
 	res.script = &api.ScriptConfig{
 		Language: api.ScriptLangAle,
 		Script:   script,
 	}
 	res.stepType = api.StepTypeScript
-	return &res
+	return res
 }
 
 func (s *Step) WithScriptLanguage(lang, script string) *Step {
-	res := *s
+	res := s.clone()
 	res.script = &api.ScriptConfig{
 		Language: lang,
 		Script:   script,
 	}
 	res.stepType = api.StepTypeScript
-	return &res
+	return res
 }
 
 func (s *Step) WithHealthCheck(endpoint string) *Step {
-	res := *s
+	res := s.clone()
 	if res.http == nil {
 		res.http = &api.HTTPConfig{}
 	} else {
@@ -158,37 +165,37 @@ func (s *Step) WithHealthCheck(endpoint string) *Step {
 		res.http = &httpCopy
 	}
 	res.http.HealthCheck = endpoint
-	return &res
+	return res
 }
 
 func (s *Step) WithTimeout(timeout int64) *Step {
-	res := *s
+	res := s.clone()
 	res.timeout = timeout
-	return &res
+	return res
 }
 
 func (s *Step) WithType(stepType api.StepType) *Step {
-	res := *s
+	res := s.clone()
 	res.stepType = stepType
-	return &res
+	return res
 }
 
 func (s *Step) WithAsyncExecution() *Step {
-	res := *s
+	res := s.clone()
 	res.stepType = api.StepTypeAsync
-	return &res
+	return res
 }
 
 func (s *Step) WithSyncExecution() *Step {
-	res := *s
+	res := s.clone()
 	res.stepType = api.StepTypeSync
-	return &res
+	return res
 }
 
 func (s *Step) WithScriptExecution() *Step {
-	res := *s
+	res := s.clone()
 	res.stepType = api.StepTypeScript
-	return &res
+	return res
 }
 
 func (s *Step) Build() (*api.Step, error) {
@@ -215,6 +222,39 @@ func (s *Step) Build() (*api.Step, error) {
 	}
 
 	return step, nil
+}
+
+// Register builds and registers the step with the engine
+func (s *Step) Register(ctx context.Context) error {
+	step, err := s.Build()
+	if err != nil {
+		return err
+	}
+
+	if s.client == nil {
+		return errors.New("step not created from client")
+	}
+
+	return s.client.registerStep(ctx, step)
+}
+
+// Update marks this step as modified, so the next Start() will update
+// the existing step registration rather than creating a new one
+func (s *Step) Update() *Step {
+	res := s.clone()
+	res.dirty = true
+	return res
+}
+
+// Start builds the step, registers it with the engine, creates an HTTP server,
+// and starts handling requests. Automatically registers the step before
+// starting the server
+func (s *Step) Start(handler api.StepHandler) error {
+	if s.client == nil {
+		return errors.New("step not created from client")
+	}
+
+	return setupStepServer(s.client, s, handler)
 }
 
 func toSnakeCase(s string) string {

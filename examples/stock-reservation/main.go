@@ -37,19 +37,23 @@ var (
 )
 
 func main() {
-	if err := builder.SetupStep(
-		"Stock Reservation", build, handle,
-	); err != nil {
+	engineURL := os.Getenv("SPUDS_ENGINE_URL")
+	if engineURL == "" {
+		engineURL = "http://localhost:8080"
+	}
+
+	client := builder.NewClient(engineURL, 30*time.Second)
+
+	err := client.NewStep("Stock Reservation").
+		Required("order", api.TypeObject).
+		Output("reservation", api.TypeObject).
+		Start(handle)
+
+	if err != nil {
 		slog.Error("Failed to setup stock reservation",
 			slog.Any("error", err))
 		os.Exit(1)
 	}
-}
-
-func build(step *builder.Step) *builder.Step {
-	return step.
-		Required("order", api.TypeObject).
-		Output("reservation", api.TypeObject)
 }
 
 func handle(ctx context.Context, args api.Args) (api.StepResult, error) {

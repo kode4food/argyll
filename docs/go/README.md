@@ -8,6 +8,8 @@ The Go interface provides APIs for building workflows and implementing steps in 
 package main
 
 import (
+    "context"
+
     "github.com/kode4food/spuds/engine/pkg/api"
     "github.com/kode4food/spuds/engine/pkg/builder"
 )
@@ -22,8 +24,8 @@ func buildStep(s *builder.Step) *builder.Step {
         Output("greeting", api.TypeString)
 }
 
-func handleStep(sctx *builder.StepContext) (api.StepResult, error) {
-    name := sctx.GetString("name")
+func handleStep(ctx context.Context, args api.Args) (api.StepResult, error) {
+    name, _ := args["name"].(string)
     greeting := "Hello, " + name + "!"
 
     return *api.NewResult().WithOutput("greeting", greeting), nil
@@ -34,7 +36,6 @@ func handleStep(sctx *builder.StepContext) (api.StepResult, error) {
 
 - **[Workflow Builder](workflow-builder.md)** - Create and start workflows
 - **[Step Builder](step-builder.md)** - Define step specifications
-- **[Step Handler](step-handler.md)** - Implement step logic with StepContext
 
 ## Installation
 

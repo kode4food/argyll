@@ -8,7 +8,6 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-// Workflow provides a builder for creating workflows
 type Workflow struct {
 	client *Client
 	id     timebox.ID
@@ -55,19 +54,9 @@ func (f *Workflow) WithInitialState(init api.Args) *Workflow {
 
 // Start creates and starts the workflow
 func (f *Workflow) Start(ctx context.Context) error {
-	req := api.CreateWorkflowRequest{
+	return f.client.startWorkflow(ctx, &api.CreateWorkflowRequest{
 		ID:    f.id,
 		Goals: f.goals,
 		Init:  f.init,
-	}
-	return f.client.StartWorkflowWithRequest(ctx, req)
-}
-
-// Build returns the CreateWorkflowRequest without starting the workflow
-func (f *Workflow) Build() api.CreateWorkflowRequest {
-	return api.CreateWorkflowRequest{
-		ID:    f.id,
-		Goals: f.goals,
-		Init:  f.init,
-	}
+	})
 }

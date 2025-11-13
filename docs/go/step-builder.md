@@ -2,32 +2,85 @@
 
 ## Basic Usage
 
+#### Register Only (no server)
+
+For registering script steps or when you're running your own HTTP server:
+
 ```go
 package main
 
 import (
+    "context"
+    "log"
+    "time"
+
     "github.com/kode4food/spuds/engine/pkg/api"
     "github.com/kode4food/spuds/engine/pkg/builder"
 )
 
 func main() {
-    builder.SetupStep("User Resolver", buildStep, handleStep)
-}
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-func buildStep(s *builder.Step) *builder.Step {
-    return s.
+    // Script step - no server needed
+    err := client.NewStep("Text Formatter").
+        Required("text", api.TypeString).
+        Output("formatted_text", api.TypeString).
+        WithScript(`{:formatted_text (str "Hello, " text)}`).
+        Register(context.Background())
+
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    // HTTP step with external server
+    err = client.NewStep("User Resolver").
         Required("user_id", api.TypeString).
         Output("user_name", api.TypeString).
-        Output("user_email", api.TypeString)
+        WithEndpoint("http://localhost:8081/user-resolver").
+        Register(context.Background())
+
+    if err != nil {
+        log.Fatal(err)
+    }
 }
+```
 
-func handleStep(sctx *builder.StepContext) (api.StepResult, error) {
-    userID := sctx.GetString("user_id")
-    userName, userEmail := lookupUser(userID)
+#### Register + Start Server
 
-    return *api.NewResult().
-        WithOutput("user_name", userName).
-        WithOutput("user_email", userEmail), nil
+For HTTP steps where you want the builder to create and start the server:
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "time"
+
+    "github.com/kode4food/spuds/engine/pkg/api"
+    "github.com/kode4food/spuds/engine/pkg/builder"
+)
+
+func main() {
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
+
+    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
+        userID, _ := args["user_id"].(string)
+        // Lookup user...
+        return *api.NewResult().
+            WithOutput("user_name", "John Doe").
+            WithOutput("user_email", "john@example.com"), nil
+    }
+
+    err := client.NewStep("User Resolver").
+        Required("user_id", api.TypeString).
+        Output("user_name", api.TypeString).
+        Output("user_email", api.TypeString).
+        Start(handler)
+
+    if err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
@@ -91,13 +144,31 @@ s.WithAsyncExecution().
   Output("output", api.TypeString)
 ```
 
-Get webhook URL from metadata:
+Use client to create async context:
 
 ```go
-func handleStep(sctx *builder.StepContext) (api.StepResult, error) {
-    webhookURL := sctx.Metadata()["webhook_url"].(string)
-    go processAsync(webhookURL, sctx.Args())
-    return *api.NewResult(), nil
+func main() {
+    client := builder.NewClient(engineURL, 30*time.Second)
+    handler := makeHandler(client)
+    builder.SetupStep("Async Step", build, handler)
+}
+
+func makeHandler(client *builder.Client) api.StepHandler {
+    return func(ctx context.Context, args api.Args) (api.StepResult, error) {
+        async, err := client.NewAsyncContext(ctx)
+        if err != nil {
+            return *api.NewResult().WithError(err), nil
+        }
+
+        go func() {
+            result := processAsync(args)
+            if err := async.Success(api.Args{"output": result}); err != nil {
+                slog.Error("webhook failed", "error", err)
+            }
+        }()
+
+        return api.StepResult{Success: true}, nil
+    }
 }
 ```
 
@@ -205,11 +276,11 @@ func buildOrderProcessor(s *builder.Step) *builder.Step {
         WithAlePredicate(`(> (len items) 0)`)
 }
 
-func handleOrderProcessor(sctx *builder.StepContext) (api.StepResult, error) {
-    orderID := sctx.GetString("order_id")
-    items := sctx.Get("items")
+func handleOrderProcessor(ctx context.Context, args api.Args) (api.StepResult, error) {
+    orderID, _ := args["order_id"].(string)
+    items := args["items"]
 
-    sctx.Logger().Info("processing order", "order_id", orderID)
+    slog.Info("processing order", "order_id", orderID)
 
     total := calculateTotal(items)
 
