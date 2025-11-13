@@ -62,6 +62,8 @@ github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfh
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
 github.com/kode4food/timebox v0.0.0-20251113102004-6242b37777c1 h1:JYX/6uE+mcK5sifX//qHn90BCZYzxo0xyLoMJAzjFsA=
 github.com/kode4food/timebox v0.0.0-20251113102004-6242b37777c1/go.mod h1:376zyuGRsoxRQZsCh9b1hbpbB1pPmA821jjE6SMeCP0=
+github.com/kode4food/timebox v0.0.0-20251113165536-06ae147c256e h1:a9X/Gyf0jxg+FojpnpfdRjFMQKLvFXGjB1IKCUYfYIA=
+github.com/kode4food/timebox v0.0.0-20251113165536-06ae147c256e/go.mod h1:376zyuGRsoxRQZsCh9b1hbpbB1pPmA821jjE6SMeCP0=
 github.com/leodido/go-urn v1.4.0 h1:WT9HwE9SGECu3lg4d/dIA+jxlljEa1/ffXKmRjqdmIQ=
 github.com/leodido/go-urn v1.4.0/go.mod h1:bvxc+MVxLKB4z00jd1z+Dvzr47oO32F/QSNjSBOlFxI=
 github.com/mattn/go-isatty v0.0.20 h1:xfD0iDuEKnDkl03q4limB+vH+GxLEtL/jb4xVJSWWEY=
