@@ -6,6 +6,8 @@
 
 Spuds is a workflow engine that uses goal-oriented execution with lazy evaluation. Instead of running entire workflows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed.
 
+![Spuds UI Screenshot](./docs/img/screenshot.png)
+
 ## Installation
 
 ```bash

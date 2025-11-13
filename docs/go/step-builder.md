@@ -1,8 +1,10 @@
 # Step Builder
 
+The Step builder provides a fluent API for defining and registering steps.
+
 ## Basic Usage
 
-#### Register Only (no server)
+### Register Only (no server)
 
 For registering script steps or when you're running your own HTTP server:
 
@@ -45,7 +47,7 @@ func main() {
 }
 ```
 
-#### Register + Start Server
+### Register + Start Server
 
 For HTTP steps where you want the builder to create and start the server:
 
@@ -148,13 +150,9 @@ Use client to create async context:
 
 ```go
 func main() {
-    client := builder.NewClient(engineURL, 30*time.Second)
-    handler := makeHandler(client)
-    builder.SetupStep("Async Step", build, handler)
-}
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-func makeHandler(client *builder.Client) api.StepHandler {
-    return func(ctx context.Context, args api.Args) (api.StepResult, error) {
+    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
         async, err := client.NewAsyncContext(ctx)
         if err != nil {
             return *api.NewResult().WithError(err), nil
@@ -163,11 +161,21 @@ func makeHandler(client *builder.Client) api.StepHandler {
         go func() {
             result := processAsync(args)
             if err := async.Success(api.Args{"output": result}); err != nil {
-                slog.Error("webhook failed", "error", err)
+                log.Printf("webhook failed: %v", err)
             }
         }()
 
         return api.StepResult{Success: true}, nil
+    }
+
+    err := client.NewStep("Async Step").
+        WithAsyncExecution().
+        Required("input", api.TypeString).
+        Output("output", api.TypeString).
+        Start(handler)
+
+    if err != nil {
+        log.Fatal(err)
     }
 }
 ```
@@ -225,26 +233,22 @@ s.WithLuaPredicate(`return status == "active"`)
 s.WithPredicate("ale", `(> amount 100)`)
 ```
 
-## SetupStep
+### Updating Steps
+
+Mark a step as modified to update the existing registration:
 
 ```go
-func SetupStep(
-    name api.Name,
-    build func(*Step) *Step,
-    handle StepHandlerFunc,
-) error
+err := client.NewStep("User Resolver").
+    Required("user_id", api.TypeString).
+    Output("user_name", api.TypeString).
+    Output("user_email", api.TypeString).
+    Output("user_age", api.TypeNumber). // New output
+    Update(). // Mark as dirty
+    Start(handler)
 ```
 
-Automatically:
-1. Builds step definition
-2. Generates HTTP endpoint
-3. Registers with engine (with retry)
-4. Starts HTTP server
-5. Sets up panic recovery
+## Environment Variables
 
-### Environment Variables
-
-- `SPUDS_ENGINE_URL` - Engine URL (default: "http://localhost:8080")
 - `STEP_PORT` - Server port (default: "8081")
 - `STEP_HOSTNAME` - Hostname (default: "localhost")
 
@@ -254,6 +258,8 @@ Automatically:
 package main
 
 import (
+    "context"
+    "log"
     "time"
 
     "github.com/kode4food/spuds/engine/pkg/api"
@@ -261,11 +267,22 @@ import (
 )
 
 func main() {
-    builder.SetupStep("Order Processor", buildOrderProcessor, handleOrderProcessor)
-}
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-func buildOrderProcessor(s *builder.Step) *builder.Step {
-    return s.
+    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
+        orderID, _ := args["order_id"].(string)
+        items := args["items"]
+
+        log.Printf("processing order: %s", orderID)
+
+        total := calculateTotal(items)
+
+        return *api.NewResult().
+            WithOutput("total_amount", total).
+            WithOutput("processed_at", time.Now().Unix()), nil
+    }
+
+    err := client.NewStep("Order Processor").
         WithVersion("1.0.0").
         WithTimeout(30 * api.Second).
         Required("order_id", api.TypeString).
@@ -273,23 +290,57 @@ func buildOrderProcessor(s *builder.Step) *builder.Step {
         Optional("priority", api.TypeString, `"normal"`).
         Output("total_amount", api.TypeNumber).
         Output("processed_at", api.TypeNumber).
-        WithAlePredicate(`(> (len items) 0)`)
-}
+        WithAlePredicate(`(> (length items) 0)`).
+        Start(handler)
 
-func handleOrderProcessor(ctx context.Context, args api.Args) (api.StepResult, error) {
-    orderID, _ := args["order_id"].(string)
-    items := args["items"]
-
-    slog.Info("processing order", "order_id", orderID)
-
-    total := calculateTotal(items)
-
-    return *api.NewResult().
-        WithOutput("total_amount", total).
-        WithOutput("processed_at", time.Now().Unix()), nil
+    if err != nil {
+        log.Fatal(err)
+    }
 }
 
 func calculateTotal(items any) float64 {
     return 99.99
 }
 ```
+
+## API Reference
+
+### Client Methods
+
+#### `NewStep(name api.Name) *Step`
+Creates a new step builder with the specified name.
+
+### Step Builder Methods
+
+#### Attribute Definition
+- `Required(name api.Name, argType api.AttributeType) *Step` - Add required input
+- `Optional(name api.Name, argType api.AttributeType, defaultValue string) *Step` - Add optional input with default
+- `Output(name api.Name, argType api.AttributeType) *Step` - Add output
+
+#### Configuration
+- `WithID(id timebox.ID) *Step` - Set custom step ID
+- `WithVersion(version string) *Step` - Set step version
+- `WithTimeout(timeout int64) *Step` - Set execution timeout (milliseconds)
+- `WithEndpoint(endpoint string) *Step` - Set HTTP endpoint
+- `WithHealthCheck(endpoint string) *Step` - Set health check endpoint
+
+#### Execution Type
+- `WithSyncExecution() *Step` - Mark as synchronous
+- `WithAsyncExecution() *Step` - Mark as asynchronous
+- `WithScriptExecution() *Step` - Mark as script-based
+
+#### Scripts
+- `WithScript(script string) *Step` - Add Ale script
+- `WithScriptLanguage(lang, script string) *Step` - Add script with custom language
+- `WithAlePredicate(script string) *Step` - Add Ale predicate
+- `WithLuaPredicate(script string) *Step` - Add Lua predicate
+- `WithPredicate(language, script string) *Step` - Add custom predicate
+
+#### Advanced
+- `WithForEach(name api.Name) *Step` - Enable parallel array processing
+
+#### Registration
+- `Build() (*api.Step, error)` - Build step definition
+- `Register(ctx context.Context) error` - Register step with engine
+- `Update() *Step` - Mark step as modified (for updates)
+- `Start(handler api.StepHandler) error` - Register and start HTTP server

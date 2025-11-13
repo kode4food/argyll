@@ -9,26 +9,30 @@ package main
 
 import (
     "context"
+    "log"
+    "time"
 
     "github.com/kode4food/spuds/engine/pkg/api"
     "github.com/kode4food/spuds/engine/pkg/builder"
 )
 
 func main() {
-    builder.SetupStep("Greet User", buildStep, handleStep)
-}
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-func buildStep(s *builder.Step) *builder.Step {
-    return s.
+    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
+        name, _ := args["name"].(string)
+        greeting := "Hello, " + name + "!"
+        return *api.NewResult().WithOutput("greeting", greeting), nil
+    }
+
+    err := client.NewStep("Greet User").
         Required("name", api.TypeString).
-        Output("greeting", api.TypeString)
-}
+        Output("greeting", api.TypeString).
+        Start(handler)
 
-func handleStep(ctx context.Context, args api.Args) (api.StepResult, error) {
-    name, _ := args["name"].(string)
-    greeting := "Hello, " + name + "!"
-
-    return *api.NewResult().WithOutput("greeting", greeting), nil
+    if err != nil {
+        log.Fatal(err)
+    }
 }
 ```
 
@@ -46,6 +50,5 @@ go get github.com/kode4food/spuds/engine/pkg/api
 
 ## Environment Variables
 
-- `SPUDS_ENGINE_URL` - Engine URL (default: "http://localhost:8080")
 - `STEP_PORT` - HTTP server port (default: "8081")
 - `STEP_HOSTNAME` - Hostname for endpoint generation (default: "localhost")
