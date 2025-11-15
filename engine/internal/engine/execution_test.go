@@ -3,6 +3,7 @@ package engine_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
@@ -73,10 +74,16 @@ func TestPrepareStepExecution(t *testing.T) {
 		)
 		require.NoError(t, err)
 
-		err = env.Engine.StartStepExecution(
-			context.Background(), "wf-prep-2", "active-step", api.Args{},
-		)
-		require.NoError(t, err)
+		require.Eventually(t, func() bool {
+			flow, err := env.Engine.GetWorkflowState(
+				context.Background(), "wf-prep-2",
+			)
+			if err != nil {
+				return false
+			}
+			exec, ok := flow.Executions["active-step"]
+			return ok && exec.Status != api.StepPending
+		}, 5*time.Second, 100*time.Millisecond)
 
 		execCtx := env.Engine.PrepareStepExecution(
 			context.Background(), "wf-prep-2", "active-step",
@@ -116,6 +123,23 @@ func TestEnqueueStepResult(t *testing.T) {
 	env.Engine.EnqueueStepResult(
 		"wf-enqueue", "enqueue-step", api.Args{"result": 42}, 100,
 	)
+
+	require.Eventually(t, func() bool {
+		workflow, err := env.Engine.GetWorkflowState(
+			context.Background(), "wf-enqueue",
+		)
+		if err != nil {
+			return false
+		}
+
+		exec, ok := workflow.Executions["enqueue-step"]
+		if !ok || exec.Status != api.StepCompleted {
+			return false
+		}
+
+		_, hasAttr := workflow.Attributes[api.Name("result")]
+		return hasAttr
+	}, 5*time.Second, 100*time.Millisecond)
 
 	workflow, err := env.Engine.GetWorkflowState(
 		context.Background(), "wf-enqueue",
