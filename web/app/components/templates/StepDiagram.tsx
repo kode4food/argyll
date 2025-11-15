@@ -21,6 +21,7 @@ import { useExecutionPlanPreview } from "../../hooks/useExecutionPlanPreview";
 import { useStepVisibility } from "../../hooks/useStepVisibility";
 import { useNodeCalculation } from "../../hooks/useNodeCalculation";
 import { useEdgeCalculation } from "../../hooks/useEdgeCalculation";
+import { useAutoLayout } from "../../hooks/useAutoLayout";
 import { STEP_LAYOUT } from "@/constants/layout";
 import { saveNodePositions } from "@/utils/nodePositioning";
 import {
@@ -79,7 +80,15 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   const initialEdges = useEdgeCalculation(visibleSteps, previewStepIds);
 
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
+  const arrangedNodes = useAutoLayout(
+    initialNodes,
+    initialEdges,
+    workflowData?.plan
+  );
+
+  const [nodes, setNodes, onNodesChange] = useNodesState(
+    workflowData ? arrangedNodes : initialNodes
+  );
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const handleNodesChange = useCallback(
@@ -278,12 +287,14 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   }, [viewportKey]);
 
   React.useEffect(() => {
+    const nodesToUse = workflowData ? arrangedNodes : initialNodes;
+
     setNodes((currentNodes) => {
       const nodeMap = new Map(currentNodes.map((n) => [n.id, n]));
 
-      return initialNodes.map((newNode) => {
+      return nodesToUse.map((newNode) => {
         const existingNode = nodeMap.get(newNode.id);
-        if (existingNode) {
+        if (existingNode && !workflowData) {
           return {
             ...newNode,
             position: existingNode.position,
@@ -293,7 +304,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialNodes]);
+  }, [initialNodes, workflowData]);
 
   React.useEffect(() => {
     setEdges(initialEdges);

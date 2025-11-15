@@ -121,9 +121,7 @@ const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
                 {workflowData.plan?.steps && steps && (
                   <WorkflowStats
                     steps={steps}
-                    executionSequence={Object.keys(
-                      workflowData.plan.steps
-                    )}
+                    executionSequence={Object.keys(workflowData.plan.steps)}
                     resolvedAttributes={resolved}
                   />
                 )}

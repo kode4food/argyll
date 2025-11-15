@@ -188,9 +188,7 @@ describe("SpudsApi", () => {
       expect(result.workflow.plan).toBeDefined();
       expect(result.workflow.plan?.goals).toEqual(["step-2"]);
       expect(result.workflow.plan?.required).toEqual(["input1"]);
-      expect(
-        Object.keys(result.workflow.plan?.steps || {})
-      ).toHaveLength(1);
+      expect(Object.keys(result.workflow.plan?.steps || {})).toHaveLength(1);
     });
 
     test("handles empty execution plan", async () => {

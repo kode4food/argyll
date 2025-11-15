@@ -33,10 +33,7 @@ export class SpudsApi {
     }
 
     let executionPlan = undefined;
-    if (
-      projection.plan &&
-      Object.keys(projection.plan.steps).length > 0
-    ) {
+    if (projection.plan && Object.keys(projection.plan.steps).length > 0) {
       executionPlan = projection.plan;
     }
 
