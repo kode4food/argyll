@@ -168,6 +168,10 @@ func (as *AttributeSpec) IsOutput() bool {
 	return as.Role == RoleOutput
 }
 
+func (as *AttributeSpec) IsRequired() bool {
+	return as.Role == RoleRequired
+}
+
 func (as *AttributeSpec) Equal(other *AttributeSpec) bool {
 	if as == nil && other == nil {
 		return true

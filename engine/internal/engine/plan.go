@@ -68,7 +68,7 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 func (pb *planBuilder) allOutputsAvailable(step *api.Step) bool {
 	hasOutputs := false
 	for _, attr := range step.Attributes {
-		if attr.Role == api.RoleOutput {
+		if attr.IsOutput() {
 			hasOutputs = true
 			break
 		}
@@ -78,7 +78,7 @@ func (pb *planBuilder) allOutputsAvailable(step *api.Step) bool {
 	}
 
 	for name, attr := range step.Attributes {
-		if attr.Role == api.RoleOutput && !pb.available[name] {
+		if attr.IsOutput() && !pb.available[name] {
 			return false
 		}
 	}
@@ -96,7 +96,7 @@ func (pb *planBuilder) findProvider(name api.Name) (timebox.ID, bool) {
 
 func (pb *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
 	if attr, ok := step.Attributes[name]; ok {
-		return attr.Role == api.RoleOutput
+		return attr.IsOutput()
 	}
 	return false
 }
@@ -109,7 +109,7 @@ func (pb *planBuilder) addStepToPlan(stepID timebox.ID, step *api.Step) {
 	}
 
 	for name, attr := range step.Attributes {
-		if attr.Role == api.RoleOutput {
+		if attr.IsOutput() {
 			pb.available[name] = true
 		}
 	}
@@ -118,7 +118,7 @@ func (pb *planBuilder) addStepToPlan(stepID timebox.ID, step *api.Step) {
 func (pb *planBuilder) buildRequiredSet(step *api.Step) map[api.Name]bool {
 	requiredSet := map[api.Name]bool{}
 	for name, attr := range step.Attributes {
-		if attr.Role == api.RoleRequired {
+		if attr.IsRequired() {
 			requiredSet[name] = true
 		}
 	}

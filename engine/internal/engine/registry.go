@@ -229,7 +229,7 @@ func buildDependencyGraph(
 	for stepID, step := range allSteps {
 		graph[stepID] = []timebox.ID{}
 		for name, attr := range step.Attributes {
-			if attr.Role == api.RoleOutput {
+			if attr.IsOutput() {
 				attrProducers[name] = append(attrProducers[name], stepID)
 			}
 		}
@@ -237,7 +237,7 @@ func buildDependencyGraph(
 
 	for stepID, step := range allSteps {
 		for name, attr := range step.Attributes {
-			if attr.Role == api.RoleRequired || attr.Role == api.RoleOptional {
+			if attr.IsInput() {
 				if producers, ok := attrProducers[name]; ok {
 					graph[stepID] = append(graph[stepID], producers...)
 				}

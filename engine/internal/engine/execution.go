@@ -210,17 +210,14 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 	inputs := api.Args{}
 
 	for name, spec := range step.Attributes {
-		switch spec.Role {
-		case api.RoleRequired:
-			if value, ok := attrs[name]; ok {
-				inputs[name] = value
-			}
-		case api.RoleOptional:
-			if value, ok := attrs[name]; ok {
-				inputs[name] = value
-			} else if spec.Default != "" {
-				inputs[name] = gjson.Parse(spec.Default).Value()
-			}
+		if !spec.IsInput() {
+			continue
+		}
+
+		if value, ok := attrs[name]; ok {
+			inputs[name] = value
+		} else if !spec.IsRequired() && spec.Default != "" {
+			inputs[name] = gjson.Parse(spec.Default).Value()
 		}
 	}
 

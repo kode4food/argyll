@@ -235,7 +235,7 @@ func (wa *workflowActor) isStepReady(
 ) bool {
 	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {
-		if attr.Role == api.RoleRequired {
+		if attr.IsRequired() {
 			if _, ok := flow.Attributes[name]; !ok {
 				return false
 			}

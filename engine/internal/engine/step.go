@@ -147,7 +147,7 @@ func (e *Engine) canStepComplete(
 	}
 
 	for requiredInputName, attr := range step.Attributes {
-		if attr.Role == api.RoleRequired {
+		if attr.IsRequired() {
 			if _, hasAttr := flow.Attributes[requiredInputName]; hasAttr {
 				continue
 			}
@@ -164,7 +164,7 @@ func (e *Engine) StepProvidesInput(
 	step *api.Step, name api.Name, flow *api.WorkflowState,
 ) bool {
 	for attrName, attr := range step.Attributes {
-		if attrName == name && attr.Role == api.RoleOutput {
+		if attrName == name && attr.IsOutput() {
 			return e.canStepComplete(step.ID, flow)
 		}
 	}
