@@ -10,13 +10,14 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-var workflowTransitions = map[api.WorkflowStatus]map[api.WorkflowStatus]bool{
-	api.WorkflowActive: {
-		api.WorkflowCompleted: true,
-		api.WorkflowFailed:    true,
-	},
+var workflowTransitions = util.StateTransitions[api.WorkflowStatus]{
+	api.WorkflowActive: util.SetOf(
+		api.WorkflowCompleted,
+		api.WorkflowFailed,
+	),
 	api.WorkflowCompleted: {},
 	api.WorkflowFailed:    {},
 }
@@ -258,7 +259,7 @@ func (e *Engine) areOutputsNeeded(
 	}
 
 	for name, attr := range step.Attributes {
-		if attr.Role != api.RoleOutput {
+		if !attr.IsOutput() {
 			continue
 		}
 
@@ -413,7 +414,7 @@ func (e *Engine) GetActiveWorkflow(
 		return nil, false
 	}
 
-	if isWorkflowTerminal(flow.Status) {
+	if workflowTransitions.IsTerminal(flow.Status) {
 		return nil, false
 	}
 
@@ -437,7 +438,3 @@ func (e *Engine) ensureScriptsCompiled(
 	return true
 }
 
-func isWorkflowTerminal(status api.WorkflowStatus) bool {
-	transitions, ok := workflowTransitions[status]
-	return ok && len(transitions) == 0
-}

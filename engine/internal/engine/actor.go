@@ -7,6 +7,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type workflowActor struct {
@@ -93,7 +94,7 @@ func (wa *workflowActor) handleWorkCompleted(
 
 	allDone := true
 	for _, item := range exec.WorkItems {
-		if !isWorkTerminal(item.Status) {
+		if !workTransitions.IsTerminal(item.Status) {
 			allDone = false
 			break
 		}
@@ -164,7 +165,7 @@ func (wa *workflowActor) launchReadySteps(ready []timebox.ID) {
 }
 
 func (wa *workflowActor) findReadySteps(flow *api.WorkflowState) []timebox.ID {
-	visited := make(map[timebox.ID]bool)
+	visited := util.Set[timebox.ID]{}
 	var ready []timebox.ID
 
 	for _, goalID := range flow.Plan.Goals {
@@ -175,13 +176,13 @@ func (wa *workflowActor) findReadySteps(flow *api.WorkflowState) []timebox.ID {
 }
 
 func (wa *workflowActor) findReadyStepsFromGoal(
-	stepID timebox.ID, flow *api.WorkflowState, visited map[timebox.ID]bool,
+	stepID timebox.ID, flow *api.WorkflowState, visited util.Set[timebox.ID],
 	ready *[]timebox.ID,
 ) {
-	if visited[stepID] {
+	if visited.Contains(stepID) {
 		return
 	}
-	visited[stepID] = true
+	visited.Add(stepID)
 
 	exec, ok := flow.Executions[stepID]
 	if !ok || exec.Status != api.StepPending {
@@ -194,7 +195,7 @@ func (wa *workflowActor) findReadyStepsFromGoal(
 	}
 
 	for name, attr := range step.Attributes {
-		if attr.Role != api.RoleRequired {
+		if !attr.IsRequired() {
 			continue
 		}
 

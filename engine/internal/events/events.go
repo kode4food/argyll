@@ -1,16 +1,20 @@
 package events
 
-import "github.com/kode4food/timebox"
+import (
+	"github.com/kode4food/timebox"
+
+	"github.com/kode4food/spuds/engine/pkg/util"
+)
 
 type EventFilter func(*timebox.Event) bool
 
 func FilterEvents(eventTypes ...timebox.EventType) EventFilter {
-	lookup := map[timebox.EventType]bool{}
+	lookup := util.Set[timebox.EventType]{}
 	for _, et := range eventTypes {
-		lookup[et] = true
+		lookup.Add(et)
 	}
 	return func(ev *timebox.Event) bool {
-		return lookup[ev.Type]
+		return lookup.Contains(ev.Type)
 	}
 }
 

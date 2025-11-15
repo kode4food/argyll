@@ -80,8 +80,8 @@ func handle(ctx context.Context, args api.Args) (api.StepResult, error) {
 	stockMutex.Lock()
 	defer stockMutex.Unlock()
 
-	currentStock, exists := stockLevels[productID]
-	if !exists {
+	currentStock, ok := stockLevels[productID]
+	if !ok {
 		slog.Warn("Product not found in stock system",
 			slog.String("product_id", productID))
 		return *api.NewResult().WithError(

@@ -6,13 +6,14 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type planBuilder struct {
 	engState   *api.EngineState
-	visited    map[timebox.ID]bool
-	available  map[api.Name]bool
-	missing    map[api.Name]bool
+	visited    util.Set[timebox.ID]
+	available  util.Set[api.Name]
+	missing    util.Set[api.Name]
 	steps      map[timebox.ID]*api.StepInfo
 	attributes map[api.Name]*api.Dependencies
 }
@@ -51,15 +52,15 @@ func (e *Engine) CreateExecutionPlan(
 func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 	pb := &planBuilder{
 		engState:   st,
-		visited:    map[timebox.ID]bool{},
-		available:  map[api.Name]bool{},
-		missing:    map[api.Name]bool{},
+		visited:    util.Set[timebox.ID]{},
+		available:  util.Set[api.Name]{},
+		missing:    util.Set[api.Name]{},
 		steps:      map[timebox.ID]*api.StepInfo{},
 		attributes: map[api.Name]*api.Dependencies{},
 	}
 
 	for key := range initState {
-		pb.available[key] = true
+		pb.available.Add(key)
 	}
 
 	return pb
@@ -78,7 +79,7 @@ func (pb *planBuilder) allOutputsAvailable(step *api.Step) bool {
 	}
 
 	for name, attr := range step.Attributes {
-		if attr.IsOutput() && !pb.available[name] {
+		if attr.IsOutput() && !pb.available.Contains(name) {
 			return false
 		}
 	}
@@ -102,7 +103,7 @@ func (pb *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
 }
 
 func (pb *planBuilder) addStepToPlan(stepID timebox.ID, step *api.Step) {
-	pb.visited[stepID] = true
+	pb.visited.Add(stepID)
 
 	pb.steps[stepID] = &api.StepInfo{
 		Step: step,
@@ -110,16 +111,16 @@ func (pb *planBuilder) addStepToPlan(stepID timebox.ID, step *api.Step) {
 
 	for name, attr := range step.Attributes {
 		if attr.IsOutput() {
-			pb.available[name] = true
+			pb.available.Add(name)
 		}
 	}
 }
 
-func (pb *planBuilder) buildRequiredSet(step *api.Step) map[api.Name]bool {
-	requiredSet := map[api.Name]bool{}
+func (pb *planBuilder) buildRequiredSet(step *api.Step) util.Set[api.Name] {
+	requiredSet := util.Set[api.Name]{}
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
-			requiredSet[name] = true
+			requiredSet.Add(name)
 		}
 	}
 	return requiredSet
@@ -130,7 +131,7 @@ func (pb *planBuilder) resolveDependencies(step *api.Step) error {
 	requiredSet := pb.buildRequiredSet(step)
 
 	for _, name := range allInputs {
-		if pb.available[name] {
+		if pb.available.Contains(name) {
 			pb.trackConsumer(name, step.ID)
 			continue
 		}
@@ -143,12 +144,12 @@ func (pb *planBuilder) resolveDependencies(step *api.Step) error {
 }
 
 func (pb *planBuilder) resolveInput(
-	name api.Name, consumerID timebox.ID, requiredSet map[api.Name]bool,
+	name api.Name, consumerID timebox.ID, requiredSet util.Set[api.Name],
 ) error {
 	providerID, found := pb.findProvider(name)
 	if !found {
-		if requiredSet[name] {
-			pb.missing[name] = true
+		if requiredSet.Contains(name) {
+			pb.missing.Add(name)
 		}
 		return nil
 	}
@@ -158,12 +159,12 @@ func (pb *planBuilder) resolveInput(
 	if err := pb.buildPlan(providerID); err != nil {
 		return err
 	}
-	pb.available[name] = true
+	pb.available.Add(name)
 	return nil
 }
 
 func (pb *planBuilder) buildPlan(stepID timebox.ID) error {
-	if pb.visited[stepID] {
+	if pb.visited.Contains(stepID) {
 		return nil
 	}
 
@@ -173,7 +174,7 @@ func (pb *planBuilder) buildPlan(stepID timebox.ID) error {
 	}
 
 	if pb.allOutputsAvailable(step) {
-		pb.visited[stepID] = true
+		pb.visited.Add(stepID)
 		return nil
 	}
 
@@ -181,7 +182,7 @@ func (pb *planBuilder) buildPlan(stepID timebox.ID) error {
 		return err
 	}
 
-	if !pb.visited[stepID] {
+	if !pb.visited.Contains(stepID) {
 		pb.addStepToPlan(stepID, step)
 	}
 

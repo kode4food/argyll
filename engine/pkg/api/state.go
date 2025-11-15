@@ -12,6 +12,7 @@ type (
 	StepStatus     string
 	HealthStatus   string
 	WorkStatus     string
+	Token          string
 
 	EngineState struct {
 		LastUpdated     time.Time                          `json:"last_updated"`

@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"math/rand"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -26,66 +25,63 @@ type ProductInfo struct {
 }
 
 // Simulated inventory database with mutex for thread-safe access
-var (
-	inventoryDB = map[string]ProductInfo{
-		"prod-laptop": {
-			ProductID:       "prod-laptop",
-			Name:            "Professional Laptop",
-			Price:           1299.99,
-			AvailableStock:  50,
-			ReservedStock:   5,
-			MinimumOrderQty: 1,
-			MaximumOrderQty: 10,
-			Category:        "electronics",
-			ShippingWeight:  2.5,
-		},
-		"prod-mouse": {
-			ProductID:       "prod-mouse",
-			Name:            "Wireless Mouse",
-			Price:           29.99,
-			AvailableStock:  200,
-			ReservedStock:   10,
-			MinimumOrderQty: 1,
-			MaximumOrderQty: 50,
-			Category:        "accessories",
-			ShippingWeight:  0.2,
-		},
-		"prod-keyboard": {
-			ProductID:       "prod-keyboard",
-			Name:            "Mechanical Keyboard",
-			Price:           149.99,
-			AvailableStock:  75,
-			ReservedStock:   8,
-			MinimumOrderQty: 1,
-			MaximumOrderQty: 25,
-			Category:        "accessories",
-			ShippingWeight:  1.2,
-		},
-		"prod-monitor": {
-			ProductID:       "prod-monitor",
-			Name:            "4K Monitor 27\"",
-			Price:           449.99,
-			AvailableStock:  30,
-			ReservedStock:   3,
-			MinimumOrderQty: 1,
-			MaximumOrderQty: 5,
-			Category:        "electronics",
-			ShippingWeight:  6.5,
-		},
-		"prod-headphones": {
-			ProductID:       "prod-headphones",
-			Name:            "Noise-Canceling Headphones",
-			Price:           249.99,
-			AvailableStock:  0, // Out of stock
-			ReservedStock:   0,
-			MinimumOrderQty: 1,
-			MaximumOrderQty: 10,
-			Category:        "accessories",
-			ShippingWeight:  0.4,
-		},
-	}
-	inventoryMutex sync.RWMutex
-)
+var inventoryDB = map[string]ProductInfo{
+	"prod-laptop": {
+		ProductID:       "prod-laptop",
+		Name:            "Professional Laptop",
+		Price:           1299.99,
+		AvailableStock:  50,
+		ReservedStock:   5,
+		MinimumOrderQty: 1,
+		MaximumOrderQty: 10,
+		Category:        "electronics",
+		ShippingWeight:  2.5,
+	},
+	"prod-mouse": {
+		ProductID:       "prod-mouse",
+		Name:            "Wireless Mouse",
+		Price:           29.99,
+		AvailableStock:  200,
+		ReservedStock:   10,
+		MinimumOrderQty: 1,
+		MaximumOrderQty: 50,
+		Category:        "accessories",
+		ShippingWeight:  0.2,
+	},
+	"prod-keyboard": {
+		ProductID:       "prod-keyboard",
+		Name:            "Mechanical Keyboard",
+		Price:           149.99,
+		AvailableStock:  75,
+		ReservedStock:   8,
+		MinimumOrderQty: 1,
+		MaximumOrderQty: 25,
+		Category:        "accessories",
+		ShippingWeight:  1.2,
+	},
+	"prod-monitor": {
+		ProductID:       "prod-monitor",
+		Name:            "4K Monitor 27\"",
+		Price:           449.99,
+		AvailableStock:  30,
+		ReservedStock:   3,
+		MinimumOrderQty: 1,
+		MaximumOrderQty: 5,
+		Category:        "electronics",
+		ShippingWeight:  6.5,
+	},
+	"prod-headphones": {
+		ProductID:       "prod-headphones",
+		Name:            "Noise-Canceling Headphones",
+		Price:           249.99,
+		AvailableStock:  0, // Out of stock
+		ReservedStock:   0,
+		MinimumOrderQty: 1,
+		MaximumOrderQty: 10,
+		Category:        "accessories",
+		ShippingWeight:  0.4,
+	},
+}
 
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
@@ -118,11 +114,9 @@ func handle(ctx context.Context, args api.Args) (api.StepResult, error) {
 			slog.String("product_id", productID))
 	}
 
-	inventoryMutex.RLock()
-	productInfo, exists := inventoryDB[productID]
-	inventoryMutex.RUnlock()
+	productInfo, ok := inventoryDB[productID]
 
-	if !exists {
+	if !ok {
 		slog.Warn("Product not found in inventory",
 			slog.String("product_id", productID))
 		return *api.NewResult().WithError(

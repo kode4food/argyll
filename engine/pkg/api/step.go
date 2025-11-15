@@ -7,10 +7,13 @@ import (
 	"slices"
 
 	"github.com/kode4food/timebox"
+
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type (
 	StepType string
+	Metadata map[string]any
 
 	Step struct {
 		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
@@ -96,17 +99,17 @@ var (
 )
 
 var (
-	validStepTypes = map[StepType]struct{}{
-		StepTypeSync:   {},
-		StepTypeAsync:  {},
-		StepTypeScript: {},
-	}
+	validStepTypes = util.SetOf(
+		StepTypeSync,
+		StepTypeAsync,
+		StepTypeScript,
+	)
 
-	validBackoffTypes = map[string]struct{}{
-		BackoffTypeFixed:       {},
-		BackoffTypeLinear:      {},
-		BackoffTypeExponential: {},
-	}
+	validBackoffTypes = util.SetOf(
+		BackoffTypeFixed,
+		BackoffTypeLinear,
+		BackoffTypeExponential,
+	)
 )
 
 func NewResult() *StepResult {
@@ -127,7 +130,7 @@ func (s *Step) Validate() error {
 		return ErrStepVersionEmpty
 	}
 
-	if _, ok := validStepTypes[s.Type]; !ok {
+	if !validStepTypes.Contains(s.Type) {
 		return fmt.Errorf("%w: %s", ErrInvalidStepType, s.Type)
 	}
 
@@ -208,7 +211,7 @@ func (s *Step) validateWorkConfig() error {
 		if s.WorkConfig.BackoffType == "" {
 			return ErrInvalidRetryConfig
 		}
-		if _, ok := validBackoffTypes[s.WorkConfig.BackoffType]; !ok {
+		if !validBackoffTypes.Contains(s.WorkConfig.BackoffType) {
 			return ErrInvalidBackoffType
 		}
 	}
@@ -229,7 +232,7 @@ func (s *Step) GetAllInputArgs() []Name {
 func (s *Step) GetRequiredArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
-		if attr.Role == RoleRequired {
+		if attr.IsRequired() {
 			args = append(args, name)
 		}
 	}
@@ -239,7 +242,7 @@ func (s *Step) GetRequiredArgs() []Name {
 func (s *Step) GetOptionalArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
-		if attr.Role == RoleOptional {
+		if attr.IsOptional() {
 			args = append(args, name)
 		}
 	}
@@ -249,7 +252,7 @@ func (s *Step) GetOptionalArgs() []Name {
 func (s *Step) GetOutputArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
-		if attr.Role == RoleOutput {
+		if attr.IsOutput() {
 			args = append(args, name)
 		}
 	}
@@ -258,7 +261,7 @@ func (s *Step) GetOutputArgs() []Name {
 
 func (s *Step) IsOptionalArg(argName Name) bool {
 	if attr, ok := s.Attributes[argName]; ok {
-		return attr.Role == RoleOptional
+		return attr.IsOptional()
 	}
 	return false
 }

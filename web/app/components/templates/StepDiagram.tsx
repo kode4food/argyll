@@ -13,7 +13,12 @@ import {
   Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Step, WorkflowContext, ExecutionResult } from "../../api";
+import {
+  Step,
+  WorkflowContext,
+  ExecutionResult,
+  AttributeRole,
+} from "../../api";
 import { Server } from "lucide-react";
 import StepNode from "../organisms/StepNode";
 import EmptyState from "../molecules/EmptyState";
@@ -23,7 +28,7 @@ import { useNodeCalculation } from "../../hooks/useNodeCalculation";
 import { useEdgeCalculation } from "../../hooks/useEdgeCalculation";
 import { useAutoLayout } from "../../hooks/useAutoLayout";
 import { STEP_LAYOUT } from "@/constants/layout";
-import { saveNodePositions } from "@/utils/nodePositioning";
+import { saveNodePositions, loadNodePositions } from "@/utils/nodePositioning";
 import {
   saveViewportState,
   getViewportForKey,
@@ -80,14 +85,56 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   const initialEdges = useEdgeCalculation(visibleSteps, previewStepIds);
 
-  const arrangedNodes = useAutoLayout(
-    initialNodes,
-    initialEdges,
-    workflowData?.plan
-  );
+  // Generate a plan from visible steps for auto-layout in overview mode
+  // Only apply auto-layout if there are no saved positions
+  const overviewPlan = useMemo(() => {
+    if (workflowData) return null;
+
+    const savedPositions = loadNodePositions();
+    const hasSavedPositions = visibleSteps.some(
+      (step) => savedPositions[step.id]
+    );
+    if (hasSavedPositions) return null;
+
+    const attributes: Record<
+      string,
+      { providers: string[]; consumers: string[] }
+    > = {};
+
+    visibleSteps.forEach((step) => {
+      Object.entries(step.attributes || {}).forEach(([attrName, attr]) => {
+        if (!attributes[attrName]) {
+          attributes[attrName] = { providers: [], consumers: [] };
+        }
+
+        if (attr.role === AttributeRole.Output) {
+          attributes[attrName].providers.push(step.id);
+        } else if (
+          attr.role === AttributeRole.Required ||
+          attr.role === AttributeRole.Optional
+        ) {
+          attributes[attrName].consumers.push(step.id);
+        }
+      });
+    });
+
+    return {
+      attributes,
+      steps: visibleSteps.map((s) => s.id),
+    };
+  }, [visibleSteps, workflowData]);
+
+  const arrangedNodes = useAutoLayout(initialNodes, initialEdges, overviewPlan);
+
+  // Save auto-laid-out positions when they're first calculated
+  useEffect(() => {
+    if (!workflowData && overviewPlan && arrangedNodes.length > 0) {
+      saveNodePositions(arrangedNodes);
+    }
+  }, [arrangedNodes, workflowData, overviewPlan]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    workflowData ? arrangedNodes : initialNodes
+    workflowData ? initialNodes : arrangedNodes
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
@@ -287,14 +334,14 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   }, [viewportKey]);
 
   React.useEffect(() => {
-    const nodesToUse = workflowData ? arrangedNodes : initialNodes;
+    const nodesToUse = workflowData ? initialNodes : arrangedNodes;
 
     setNodes((currentNodes) => {
       const nodeMap = new Map(currentNodes.map((n) => [n.id, n]));
 
       return nodesToUse.map((newNode) => {
         const existingNode = nodeMap.get(newNode.id);
-        if (existingNode && !workflowData) {
+        if (existingNode) {
           return {
             ...newNode,
             position: existingNode.position,

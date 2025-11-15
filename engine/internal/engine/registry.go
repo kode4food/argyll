@@ -11,6 +11,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 var (
@@ -173,7 +174,7 @@ func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
 			continue
 		}
 		for name, attr := range step.Attributes {
-			if existingType, exists := attributeTypes[name]; exists {
+			if existingType, ok := attributeTypes[name]; ok {
 				if existingType != attr.Type {
 					return fmt.Errorf("%w: %s", ErrTypeConflict, name)
 				}
@@ -184,7 +185,7 @@ func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
 	}
 
 	for name, attr := range newStep.Attributes {
-		if existingType, exists := attributeTypes[name]; exists {
+		if existingType, ok := attributeTypes[name]; ok {
 			if existingType != attr.Type {
 				return fmt.Errorf("%w: %s", ErrTypeConflict, name)
 			}
@@ -196,11 +197,11 @@ func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
 
 func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
 	graph := buildDependencyGraph(st, newStep)
-	visited := make(map[timebox.ID]bool)
-	recStack := make(map[timebox.ID]bool)
+	visited := util.Set[timebox.ID]{}
+	recStack := util.Set[timebox.ID]{}
 
 	for stepID := range graph {
-		if !visited[stepID] {
+		if !visited.Contains(stepID) {
 			if cycle := findCycle(
 				stepID, graph, visited, recStack, nil,
 			); cycle != nil {
@@ -250,20 +251,20 @@ func buildDependencyGraph(
 
 func findCycle(
 	stepID timebox.ID, graph map[timebox.ID][]timebox.ID,
-	visited, recStack map[timebox.ID]bool, path []timebox.ID,
+	visited, recStack util.Set[timebox.ID], path []timebox.ID,
 ) []timebox.ID {
-	visited[stepID] = true
-	recStack[stepID] = true
+	visited.Add(stepID)
+	recStack.Add(stepID)
 	path = append(path, stepID)
 
 	for _, depID := range graph[stepID] {
-		if !visited[depID] {
+		if !visited.Contains(depID) {
 			if cycle := findCycle(
 				depID, graph, visited, recStack, path,
 			); cycle != nil {
 				return cycle
 			}
-		} else if recStack[depID] {
+		} else if recStack.Contains(depID) {
 			cycleStart := -1
 			for i, id := range path {
 				if id == depID {
@@ -277,6 +278,6 @@ func findCycle(
 		}
 	}
 
-	recStack[stepID] = false
+	recStack.Remove(stepID)
 	return nil
 }

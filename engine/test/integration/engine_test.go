@@ -12,6 +12,7 @@ import (
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 func TestStartWorkflowSimple(t *testing.T) {
@@ -151,12 +152,12 @@ func TestListWorkflows(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(workflows), 2)
 
-	ids := map[timebox.ID]bool{}
+	ids := util.Set[timebox.ID]{}
 	for _, wf := range workflows {
-		ids[wf.ID] = true
+		ids.Add(wf.ID)
 	}
-	assert.True(t, ids["wf-list-1"])
-	assert.True(t, ids["wf-list-2"])
+	assert.True(t, ids.Contains("wf-list-1"))
+	assert.True(t, ids.Contains("wf-list-2"))
 }
 
 func TestGetWorkflowEvents(t *testing.T) {

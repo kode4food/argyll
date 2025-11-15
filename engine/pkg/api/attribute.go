@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"github.com/tidwall/gjson"
+
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type (
@@ -52,30 +54,30 @@ var (
 )
 
 var (
-	validAttributeRoles = map[AttributeRole]struct{}{
-		RoleRequired: {},
-		RoleOptional: {},
-		RoleOutput:   {},
-	}
+	validAttributeRoles = util.SetOf(
+		RoleRequired,
+		RoleOptional,
+		RoleOutput,
+	)
 
-	validAttributeTypes = map[AttributeType]struct{}{
-		TypeString:  {},
-		TypeNumber:  {},
-		TypeBoolean: {},
-		TypeObject:  {},
-		TypeArray:   {},
-		TypeNull:    {},
-		TypeAny:     {},
-	}
+	validAttributeTypes = util.SetOf(
+		TypeString,
+		TypeNumber,
+		TypeBoolean,
+		TypeObject,
+		TypeArray,
+		TypeNull,
+		TypeAny,
+	)
 )
 
 func (as *AttributeSpec) Validate(name Name) error {
-	if _, ok := validAttributeRoles[as.Role]; !ok {
+	if !validAttributeRoles.Contains(as.Role) {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrInvalidAttributeRole, as.Role, name)
 	}
 
-	if as.Default != "" && as.Role != RoleOptional {
+	if as.Default != "" && !as.IsOptional() {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrDefaultNotAllowed, as.Role, name)
 	}
@@ -85,13 +87,13 @@ func (as *AttributeSpec) Validate(name Name) error {
 			return fmt.Errorf("%w: type %s for attribute %q",
 				ErrForEachRequiresArray, as.Type, name)
 		}
-		if as.Role == RoleOutput {
+		if as.IsOutput() {
 			return fmt.Errorf("%w: %q", ErrForEachNotAllowedOutput, name)
 		}
 	}
 
 	if as.Type != "" {
-		if _, ok := validAttributeTypes[as.Type]; !ok {
+		if !validAttributeTypes.Contains(as.Type) {
 			return fmt.Errorf("%w: %s for attribute %q",
 				ErrInvalidAttributeType, as.Type, name)
 		}
@@ -170,6 +172,10 @@ func (as *AttributeSpec) IsOutput() bool {
 
 func (as *AttributeSpec) IsRequired() bool {
 	return as.Role == RoleRequired
+}
+
+func (as *AttributeSpec) IsOptional() bool {
+	return as.Role == RoleOptional
 }
 
 func (as *AttributeSpec) Equal(other *AttributeSpec) bool {

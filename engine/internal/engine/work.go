@@ -7,18 +7,19 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-var workTransitions = map[api.WorkStatus]map[api.WorkStatus]bool{
-	api.WorkPending: {
-		api.WorkActive:    true,
-		api.WorkCompleted: true,
-		api.WorkFailed:    true,
-	},
-	api.WorkActive: {
-		api.WorkCompleted: true,
-		api.WorkFailed:    true,
-	},
+var workTransitions = util.StateTransitions[api.WorkStatus]{
+	api.WorkPending: util.SetOf(
+		api.WorkActive,
+		api.WorkCompleted,
+		api.WorkFailed,
+	),
+	api.WorkActive: util.SetOf(
+		api.WorkCompleted,
+		api.WorkFailed,
+	),
 	api.WorkCompleted: {},
 	api.WorkFailed:    {},
 }
@@ -114,7 +115,3 @@ func aggregateWorkItemOutputs(
 	}
 }
 
-func isWorkTerminal(status api.WorkStatus) bool {
-	transitions, ok := workTransitions[status]
-	return ok && len(transitions) == 0
-}

@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type backoffCalculator func(baseDelayMs int64, retryCount int) int64
@@ -181,18 +182,18 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 		return fmt.Errorf("failed to get workflow state: %w", err)
 	}
 
-	if isWorkflowTerminal(flow.Status) {
+	if workflowTransitions.IsTerminal(flow.Status) {
 		return nil
 	}
 
 	retriableSteps := e.FindRetrySteps(flow)
-	if len(retriableSteps) == 0 {
+	if retriableSteps.IsEmpty() {
 		return nil
 	}
 
 	slog.Info("Recovering workflow",
 		slog.Any("flow_id", flowID),
-		slog.Int("retriable_steps", len(retriableSteps)))
+		slog.Int("retriable_steps", retriableSteps.Len()))
 
 	now := time.Now()
 	for stepID := range retriableSteps {
@@ -224,8 +225,8 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 	return nil
 }
 
-func (e *Engine) FindRetrySteps(state *api.WorkflowState) map[timebox.ID]bool {
-	retriableSteps := map[timebox.ID]bool{}
+func (e *Engine) FindRetrySteps(state *api.WorkflowState) util.Set[timebox.ID] {
+	retriableSteps := util.Set[timebox.ID]{}
 
 	for stepID, exec := range state.Executions {
 		if exec.WorkItems == nil {
@@ -236,7 +237,7 @@ func (e *Engine) FindRetrySteps(state *api.WorkflowState) map[timebox.ID]bool {
 			if workItem.Status == api.WorkPending &&
 				!workItem.NextRetryAt.IsZero() &&
 				workItem.RetryCount > 0 {
-				retriableSteps[stepID] = true
+				retriableSteps.Add(stepID)
 				break
 			}
 		}

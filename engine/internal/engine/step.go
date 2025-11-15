@@ -8,27 +8,28 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 var (
-	stepTransitions = map[api.StepStatus]map[api.StepStatus]bool{
-		api.StepPending: {
-			api.StepActive:  true,
-			api.StepSkipped: true,
-			api.StepFailed:  true,
-		},
-		api.StepActive: {
-			api.StepCompleted: true,
-			api.StepFailed:    true,
-		},
+	stepTransitions = util.StateTransitions[api.StepStatus]{
+		api.StepPending: util.SetOf(
+			api.StepActive,
+			api.StepSkipped,
+			api.StepFailed,
+		),
+		api.StepActive: util.SetOf(
+			api.StepCompleted,
+			api.StepFailed,
+		),
 		api.StepCompleted: {},
 		api.StepFailed:    {},
 		api.StepSkipped:   {},
 	}
 
-	asyncStepTypes = map[api.StepType]bool{
-		api.StepTypeAsync: true,
-	}
+	asyncStepTypes = util.SetOf(
+		api.StepTypeAsync,
+	)
 )
 
 // Step state transition methods
@@ -100,7 +101,7 @@ func (e *Engine) transitionStepExecution(
 			return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 		}
 
-		if !canStepTransitionTo(exec.Status, toStatus) {
+		if !stepTransitions.CanTransition(exec.Status, toStatus) {
 			return fmt.Errorf("%s: step %s cannot %s from status %s",
 				ErrInvalidTransition, stepID, action, exec.Status)
 		}
@@ -137,7 +138,7 @@ func (e *Engine) canStepComplete(
 		return false
 	}
 
-	if isStepTerminal(exec.Status) {
+	if stepTransitions.IsTerminal(exec.Status) {
 		return exec.Status == api.StepCompleted
 	}
 
@@ -184,19 +185,6 @@ func (e *Engine) appendFailedStep(
 	return append(failed, fmt.Sprintf("%s (%s)", stepID, exec.Error))
 }
 
-func canStepTransitionTo(from, to api.StepStatus) bool {
-	allowed, ok := stepTransitions[from]
-	if !ok {
-		return false
-	}
-	return allowed[to]
-}
-
-func isStepTerminal(status api.StepStatus) bool {
-	allowed, ok := stepTransitions[status]
-	return ok && len(allowed) == 0
-}
-
 func isAsyncStep(stepType api.StepType) bool {
-	return asyncStepTypes[stepType]
+	return asyncStepTypes.Contains(stepType)
 }

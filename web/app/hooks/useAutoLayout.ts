@@ -14,8 +14,8 @@ interface LayoutConfig {
 const DEFAULT_CONFIG = {
   rankdir: "LR" as const,
   nodeWidth: 320,
-  rankSep: 250,
-  nodeSep: 120,
+  rankSep: 50,
+  nodeSep: 15,
 };
 
 const calculateNodeHeight = (node: Node): number => {

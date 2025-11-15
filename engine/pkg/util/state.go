@@ -1,0 +1,19 @@
+package util
+
+// StateTransitions maps states to their set of valid next states.
+type StateTransitions[T comparable] map[T]Set[T]
+
+// CanTransition returns true if the transition from one state to another is valid.
+func (st StateTransitions[T]) CanTransition(from, to T) bool {
+	allowed, ok := st[from]
+	if !ok {
+		return false
+	}
+	return allowed.Contains(to)
+}
+
+// IsTerminal returns true if the state has no valid transitions.
+func (st StateTransitions[T]) IsTerminal(state T) bool {
+	allowed, ok := st[state]
+	return ok && allowed.IsEmpty()
+}

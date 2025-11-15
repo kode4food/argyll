@@ -84,8 +84,8 @@ func handle(ctx context.Context, args api.Args) (api.StepResult, error) {
 			slog.String("user_id", userID))
 	}
 
-	userInfo, exists := userDatabase[userID]
-	if !exists {
+	userInfo, ok := userDatabase[userID]
+	if !ok {
 		slog.Warn("User not found", slog.String("user_id", userID))
 		return *api.NewResult().WithError(
 			fmt.Errorf("user not found: %s", userID),
