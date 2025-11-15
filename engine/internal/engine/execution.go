@@ -34,11 +34,19 @@ var (
 	ErrUnsupportedStepType = errors.New("unsupported step type")
 )
 
-var transitionsFrom = map[api.StepStatus]api.StepStatus{
-	api.StepActive:    api.StepPending,
-	api.StepCompleted: api.StepActive,
-	api.StepFailed:    api.StepActive,
-	api.StepSkipped:   api.StepPending,
+var allowedTransitions = map[api.StepStatus]map[api.StepStatus]bool{
+	api.StepPending: {
+		api.StepActive:  true,
+		api.StepSkipped: true,
+		api.StepFailed:  true,
+	},
+	api.StepActive: {
+		api.StepCompleted: true,
+		api.StepFailed:    true,
+	},
+	api.StepCompleted: {},
+	api.StepFailed:    {},
+	api.StepSkipped:   {},
 }
 
 func (e *Engine) EnqueueStepResult(
@@ -388,14 +396,6 @@ func (e *ExecContext) getScriptOutputsWithInputs(
 	}
 
 	return env.ExecuteScript(c, e.step, inputs)
-}
-
-func canTransitionTo(from, to api.StepStatus) (bool, api.StepStatus) {
-	expected, ok := transitionsFrom[to]
-	if !ok {
-		expected = api.StepPending
-	}
-	return from == expected, expected
 }
 
 // Helper functions for work item execution

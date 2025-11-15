@@ -1,8 +1,6 @@
 package events
 
 import (
-	"encoding/json"
-
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -13,14 +11,7 @@ const enginePrefix = "engine"
 var (
 	EngineID = timebox.NewAggregateID(enginePrefix)
 
-	EngineAppliers = timebox.Appliers[*api.EngineState]{
-		api.EventTypeStepRegistered:    stepRegistered,
-		api.EventTypeStepUnregistered:  stepUnregistered,
-		api.EventTypeStepHealthChanged: stepHealthChanged,
-		api.EventTypeWorkflowStarted:   engineWorkflowStarted,
-		api.EventTypeWorkflowCompleted: engineWorkflowCompleted,
-		api.EventTypeWorkflowFailed:    engineWorkflowFailed,
-	}
+	EngineAppliers = makeEngineAppliers()
 )
 
 func NewEngineState() *api.EngineState {
@@ -31,85 +22,71 @@ func NewEngineState() *api.EngineState {
 	}
 }
 
+// IsEngineEvent returns true if the event is for the engine aggregate
 func IsEngineEvent(ev *timebox.Event) bool {
 	return len(ev.AggregateID) >= 1 && ev.AggregateID[0] == enginePrefix
 }
 
-func stepRegistered(st *api.EngineState, ev *timebox.Event) *api.EngineState {
-	var sr api.StepRegisteredEvent
-	if err := json.Unmarshal(ev.Data, &sr); err != nil {
-		return st
+func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
+	stepRegisteredApplier := timebox.MakeApplier(stepRegistered)
+	stepUnregisteredApplier := timebox.MakeApplier(stepUnregistered)
+	stepHealthChangedApplier := timebox.MakeApplier(stepHealthChanged)
+	workflowActivatedApplier := timebox.MakeApplier(workflowActivated)
+	workflowDeactivatedApplier := timebox.MakeApplier(workflowDeactivated)
+
+	return timebox.Appliers[*api.EngineState]{
+		api.EventTypeStepRegistered:      stepRegisteredApplier,
+		api.EventTypeStepUnregistered:    stepUnregisteredApplier,
+		api.EventTypeStepHealthChanged:   stepHealthChangedApplier,
+		api.EventTypeWorkflowActivated:   workflowActivatedApplier,
+		api.EventTypeWorkflowDeactivated: workflowDeactivatedApplier,
 	}
+}
+
+func stepRegistered(
+	st *api.EngineState, ev *timebox.Event, data api.StepRegisteredEvent,
+) *api.EngineState {
 	return st.
-		SetStep(sr.Step.ID, sr.Step).
-		SetHealth(sr.Step.ID, &api.HealthState{Status: api.HealthUnknown}).
+		SetStep(data.Step.ID, data.Step).
+		SetHealth(data.Step.ID, &api.HealthState{Status: api.HealthUnknown}).
 		SetLastUpdated(ev.Timestamp)
 }
 
-func stepUnregistered(st *api.EngineState, ev *timebox.Event) *api.EngineState {
-	var su api.StepUnregisteredEvent
-	if err := json.Unmarshal(ev.Data, &su); err != nil {
-		return st
-	}
+func stepUnregistered(
+	st *api.EngineState, ev *timebox.Event, data api.StepUnregisteredEvent,
+) *api.EngineState {
 	return st.
-		DeleteStep(su.StepID).
+		DeleteStep(data.StepID).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepHealthChanged(
-	st *api.EngineState, ev *timebox.Event,
+	st *api.EngineState, ev *timebox.Event, data api.StepHealthChangedEvent,
 ) *api.EngineState {
-	var hc api.StepHealthChangedEvent
-	if err := json.Unmarshal(ev.Data, &hc); err != nil {
-		return st
-	}
 	return st.
-		SetHealth(hc.StepID, &api.HealthState{
-			Status: hc.Status,
-			Error:  hc.Error,
+		SetHealth(data.StepID, &api.HealthState{
+			Status: data.Status,
+			Error:  data.Error,
 		}).
 		SetLastUpdated(ev.Timestamp)
 }
 
-func engineWorkflowStarted(
-	st *api.EngineState, ev *timebox.Event,
+func workflowActivated(
+	st *api.EngineState, ev *timebox.Event, data api.WorkflowActivatedEvent,
 ) *api.EngineState {
-	var ws api.WorkflowStartedEvent
-	if err := json.Unmarshal(ev.Data, &ws); err != nil {
-		return st
-	}
-
 	return st.
-		SetActiveWorkflow(ws.FlowID, &api.ActiveWorkflowInfo{
-			FlowID:     ws.FlowID,
+		SetActiveWorkflow(data.FlowID, &api.ActiveWorkflowInfo{
+			FlowID:     data.FlowID,
 			StartedAt:  ev.Timestamp,
 			LastActive: ev.Timestamp,
 		}).
 		SetLastUpdated(ev.Timestamp)
 }
 
-func engineWorkflowCompleted(
-	st *api.EngineState, ev *timebox.Event,
+func workflowDeactivated(
+	st *api.EngineState, ev *timebox.Event, data api.WorkflowDeactivatedEvent,
 ) *api.EngineState {
-	var wc api.WorkflowCompletedEvent
-	if err := json.Unmarshal(ev.Data, &wc); err != nil {
-		return st
-	}
-
 	return st.
-		DeleteActiveWorkflow(wc.FlowID).
-		SetLastUpdated(ev.Timestamp)
-}
-
-func engineWorkflowFailed(
-	st *api.EngineState, ev *timebox.Event,
-) *api.EngineState {
-	var wf api.WorkflowFailedEvent
-	if err := json.Unmarshal(ev.Data, &wf); err != nil {
-		return st
-	}
-
-	return st.
-		DeleteActiveWorkflow(wf.FlowID).
+		DeleteActiveWorkflow(data.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }

@@ -29,6 +29,8 @@ type (
 		cancel       context.CancelFunc
 		scripts      *ScriptRegistry
 		wg           sync.WaitGroup
+		workflows    sync.Map // map[workflowID]*workflowActor
+		handler      timebox.Handler
 	}
 
 	EventConsumer      = topic.Consumer[*timebox.Event]
@@ -37,8 +39,6 @@ type (
 	WorkflowExecutor   = timebox.Executor[*api.WorkflowState]
 	WorkflowAggregator = timebox.Aggregator[*api.WorkflowState]
 )
-
-const doneChannelBufferSize = 100
 
 var (
 	ErrShutdownTimeout      = errors.New("shutdown timeout exceeded")
@@ -58,7 +58,7 @@ func New(
 	cfg *config.Config,
 ) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &Engine{
+	e := &Engine{
 		engineExec: timebox.NewExecutor(
 			engine, events.NewEngineState, events.EngineAppliers,
 		),
@@ -72,6 +72,20 @@ func New(
 		consumer:   hub.NewConsumer(),
 		scripts:    NewScriptRegistry(),
 	}
+	e.handler = e.createEventHandler()
+	return e
+}
+
+func (e *Engine) createEventHandler() timebox.Handler {
+	workflowStarted := timebox.MakeHandler(e.handleWorkflowStarted)
+	workflowCompleted := timebox.MakeHandler(e.handleWorkflowCompleted)
+	workflowFailed := timebox.MakeHandler(e.handleWorkflowFailed)
+
+	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
+		api.EventTypeWorkflowStarted:   workflowStarted,
+		api.EventTypeWorkflowCompleted: workflowCompleted,
+		api.EventTypeWorkflowFailed:    workflowFailed,
+	})
 }
 
 func (e *Engine) Start() {
@@ -113,7 +127,35 @@ func (e *Engine) StartWorkflow(
 	ctx context.Context, flowID timebox.ID, plan *api.ExecutionPlan,
 	initState api.Args, meta api.Metadata,
 ) error {
-	return e.startWorkflow(ctx, flowID, plan, initState, meta)
+	existing, err := e.GetWorkflowState(ctx, flowID)
+	if err == nil && existing.ID != "" {
+		return ErrWorkflowExists
+	}
+
+	if err := plan.ValidateInputs(initState); err != nil {
+		return err
+	}
+
+	if err := e.scripts.CompilePlan(plan); err != nil {
+		return err
+	}
+
+	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+		ev, err := json.Marshal(api.WorkflowStartedEvent{
+			FlowID:   flowID,
+			Plan:     plan,
+			Init:     initState,
+			Metadata: meta,
+		})
+		if err != nil {
+			return err
+		}
+		ag.Raise(api.EventTypeWorkflowStarted, ev)
+		return nil
+	}
+
+	_, err = e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	return err
 }
 
 func (e *Engine) UnregisterStep(ctx context.Context, stepID timebox.ID) error {
@@ -153,9 +195,6 @@ func (e *Engine) ListSteps(ctx context.Context) ([]*api.Step, error) {
 }
 
 func (e *Engine) eventLoop() {
-	pending := map[timebox.ID]bool{}
-	done := make(chan timebox.ID, doneChannelBufferSize)
-
 	for {
 		select {
 		case <-e.ctx.Done():
@@ -165,12 +204,40 @@ func (e *Engine) eventLoop() {
 			if !ok {
 				return
 			}
-			e.handleWorkflowEvent(event, pending, done)
-
-		case flowID := <-done:
-			delete(pending, flowID)
+			e.routeEvent(event)
 		}
 	}
+}
+
+func (e *Engine) routeEvent(event *timebox.Event) {
+	if err := e.handler(event); err != nil {
+		slog.Error("Failed to handle workflow lifecycle event",
+			slog.Any("event_type", event.Type),
+			slog.Any("error", err))
+	}
+
+	if !events.IsWorkflowEvent(event) {
+		return
+	}
+
+	flowID := event.AggregateID[1]
+
+	actor, loaded := e.workflows.Load(flowID)
+	if !loaded {
+		wa := &workflowActor{
+			Engine: e,
+			flowID: flowID,
+			events: make(chan *timebox.Event, 100),
+		}
+		wa.eventHandler = wa.createEventHandler()
+		actor, loaded = e.workflows.LoadOrStore(flowID, wa)
+		if !loaded {
+			e.wg.Add(1)
+			go wa.run()
+		}
+	}
+
+	actor.(*workflowActor).events <- event
 }
 
 func (e *Engine) retryLoop() {
@@ -245,64 +312,6 @@ func (e *Engine) retryWork(
 	execCtx.executeWorkItem(ctx, inputs)
 }
 
-func (e *Engine) handleWorkflowEvent(
-	event *timebox.Event, pending map[timebox.ID]bool, done chan timebox.ID,
-) {
-	if !events.IsWorkflowEvent(event) {
-		return
-	}
-
-	flowID := event.AggregateID[1]
-
-	// Apply workflow lifecycle events to engine state for recovery tracking
-	switch event.Type {
-	case api.EventTypeWorkflowStarted,
-		api.EventTypeWorkflowCompleted,
-		api.EventTypeWorkflowFailed:
-		e.applyLifecycleEvent(event)
-	}
-
-	// Trigger workflow processing for state-changing events
-	switch event.Type {
-	case api.EventTypeWorkflowStarted,
-		api.EventTypeStepCompleted,
-		api.EventTypeStepFailed,
-		api.EventTypeStepSkipped,
-		api.EventTypeAttributeSet,
-		api.EventTypeWorkCompleted,
-		api.EventTypeWorkFailed:
-		e.maybeProcessWorkflow(flowID, pending, done)
-	}
-}
-
-func (e *Engine) applyLifecycleEvent(event *timebox.Event) {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		// Raise the event on the engine aggregate so it's properly persisted
-		ag.Raise(event.Type, event.Data)
-		return nil
-	}
-
-	_, err := e.engineExec.Exec(e.ctx, events.EngineID, cmd)
-	if err != nil {
-		slog.Error("Failed to apply event",
-			slog.Any("event_type", event.Type),
-			slog.Any("error", err))
-	}
-}
-
-func (e *Engine) maybeProcessWorkflow(
-	flowID timebox.ID, pending map[timebox.ID]bool, done chan timebox.ID,
-) {
-	if pending[flowID] {
-		return
-	}
-	pending[flowID] = true
-	go func(flowID timebox.ID) {
-		e.processWorkflow(flowID)
-		done <- flowID
-	}(flowID)
-}
-
 func (e *Engine) getCompiledFromPlan(
 	flowID, stepID timebox.ID, getter func(*api.StepInfo) (any, error),
 ) (any, error) {
@@ -356,4 +365,61 @@ func (e *Engine) saveEngineSnapshot() {
 		return
 	}
 	slog.Info("Engine snapshot saved")
+}
+
+func (e *Engine) handleWorkflowStarted(
+	_ *timebox.Event, data api.WorkflowStartedEvent,
+) error {
+	cmd := func(st *api.EngineState, ag *Aggregator) error {
+		evData, err := json.Marshal(api.WorkflowActivatedEvent{
+			FlowID: data.FlowID,
+		})
+		if err != nil {
+			return err
+		}
+		ag.Raise(api.EventTypeWorkflowActivated, evData)
+		return nil
+	}
+
+	ctx := context.Background()
+	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
+	return err
+}
+
+func (e *Engine) handleWorkflowCompleted(
+	_ *timebox.Event, data api.WorkflowCompletedEvent,
+) error {
+	cmd := func(st *api.EngineState, ag *Aggregator) error {
+		evData, err := json.Marshal(api.WorkflowDeactivatedEvent{
+			FlowID: data.FlowID,
+		})
+		if err != nil {
+			return err
+		}
+		ag.Raise(api.EventTypeWorkflowDeactivated, evData)
+		return nil
+	}
+
+	ctx := context.Background()
+	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
+	return err
+}
+
+func (e *Engine) handleWorkflowFailed(
+	_ *timebox.Event, data api.WorkflowFailedEvent,
+) error {
+	cmd := func(st *api.EngineState, ag *Aggregator) error {
+		evData, err := json.Marshal(api.WorkflowDeactivatedEvent{
+			FlowID: data.FlowID,
+		})
+		if err != nil {
+			return err
+		}
+		ag.Raise(api.EventTypeWorkflowDeactivated, evData)
+		return nil
+	}
+
+	ctx := context.Background()
+	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
+	return err
 }

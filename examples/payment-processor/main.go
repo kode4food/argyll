@@ -74,7 +74,7 @@ func makeHandler(client *builder.Client) api.StepHandler {
 			processingTime := time.Duration(5+rand.Intn(10)) * time.Second
 			time.Sleep(processingTime)
 
-			success := rand.Float64() < 0.9
+			success := rand.Float64() < 0.5
 
 			if success {
 				paymentResult := PaymentResult{

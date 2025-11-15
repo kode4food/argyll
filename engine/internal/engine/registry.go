@@ -14,9 +14,10 @@ import (
 )
 
 var (
-	ErrStepAlreadyExists = errors.New("step already exists")
-	ErrStepDoesNotExist  = errors.New("step does not exist")
-	ErrTypeConflict      = errors.New("attribute type conflict")
+	ErrStepAlreadyExists  = errors.New("step already exists")
+	ErrStepDoesNotExist   = errors.New("step does not exist")
+	ErrTypeConflict       = errors.New("attribute type conflict")
+	ErrCircularDependency = errors.New("circular dependency detected")
 )
 
 func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
@@ -32,6 +33,9 @@ func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
 			return fmt.Errorf("%w: %s", ErrStepAlreadyExists, step.ID)
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
+			return err
+		}
+		if err := detectCircularDependencies(st, step); err != nil {
 			return err
 		}
 		return e.raiseStepRegisteredEvent(step, ag)
@@ -57,6 +61,9 @@ func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
 			return fmt.Errorf("%w: %s", ErrStepDoesNotExist, step.ID)
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
+			return err
+		}
+		if err := detectCircularDependencies(st, step); err != nil {
 			return err
 		}
 		return e.raiseStepRegisteredEvent(step, ag)
@@ -184,5 +191,92 @@ func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
 		}
 	}
 
+	return nil
+}
+
+func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
+	graph := buildDependencyGraph(st, newStep)
+	visited := make(map[timebox.ID]bool)
+	recStack := make(map[timebox.ID]bool)
+
+	for stepID := range graph {
+		if !visited[stepID] {
+			if cycle := findCycle(
+				stepID, graph, visited, recStack, nil,
+			); cycle != nil {
+				return fmt.Errorf("%w: %v", ErrCircularDependency, cycle)
+			}
+		}
+	}
+
+	return nil
+}
+
+func buildDependencyGraph(
+	st *api.EngineState, newStep *api.Step,
+) map[timebox.ID][]timebox.ID {
+	attrProducers := make(map[api.Name][]timebox.ID)
+	graph := make(map[timebox.ID][]timebox.ID)
+
+	allSteps := make(map[timebox.ID]*api.Step)
+	for id, step := range st.Steps {
+		if id != newStep.ID {
+			allSteps[id] = step
+		}
+	}
+	allSteps[newStep.ID] = newStep
+
+	for stepID, step := range allSteps {
+		graph[stepID] = []timebox.ID{}
+		for name, attr := range step.Attributes {
+			if attr.Role == api.RoleOutput {
+				attrProducers[name] = append(attrProducers[name], stepID)
+			}
+		}
+	}
+
+	for stepID, step := range allSteps {
+		for name, attr := range step.Attributes {
+			if attr.Role == api.RoleRequired || attr.Role == api.RoleOptional {
+				if producers, ok := attrProducers[name]; ok {
+					graph[stepID] = append(graph[stepID], producers...)
+				}
+			}
+		}
+	}
+
+	return graph
+}
+
+func findCycle(
+	stepID timebox.ID, graph map[timebox.ID][]timebox.ID,
+	visited, recStack map[timebox.ID]bool, path []timebox.ID,
+) []timebox.ID {
+	visited[stepID] = true
+	recStack[stepID] = true
+	path = append(path, stepID)
+
+	for _, depID := range graph[stepID] {
+		if !visited[depID] {
+			if cycle := findCycle(
+				depID, graph, visited, recStack, path,
+			); cycle != nil {
+				return cycle
+			}
+		} else if recStack[depID] {
+			cycleStart := -1
+			for i, id := range path {
+				if id == depID {
+					cycleStart = i
+					break
+				}
+			}
+			if cycleStart >= 0 {
+				return path[cycleStart:]
+			}
+		}
+	}
+
+	recStack[stepID] = false
 	return nil
 }
