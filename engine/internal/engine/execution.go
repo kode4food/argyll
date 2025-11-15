@@ -310,7 +310,7 @@ func (e *ExecContext) executeWorkItem(ctx context.Context, inputs api.Args) {
 		return
 	}
 
-	if e.step.Type == api.StepTypeSync || e.step.Type == api.StepTypeScript {
+	if !isAsyncStep(e.step.Type) {
 		_ = e.engine.CompleteWork(ctx, e.flowID, e.stepID, token, outputs)
 	}
 }
@@ -357,7 +357,7 @@ func (e *ExecContext) buildHTTPMetadataWithToken(token api.Token) api.Metadata {
 		"receipt_token": token,
 	}
 
-	if e.step.Type == api.StepTypeAsync {
+	if isAsyncStep(e.step.Type) {
 		metadata["webhook_url"] = fmt.Sprintf(
 			"%s/webhook/%s/%s/%s",
 			e.engine.config.WebhookBaseURL, e.flowID, e.stepID, token,

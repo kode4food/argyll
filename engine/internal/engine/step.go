@@ -10,20 +10,26 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-var allowedTransitions = map[api.StepStatus]map[api.StepStatus]bool{
-	api.StepPending: {
-		api.StepActive:  true,
-		api.StepSkipped: true,
-		api.StepFailed:  true,
-	},
-	api.StepActive: {
-		api.StepCompleted: true,
-		api.StepFailed:    true,
-	},
-	api.StepCompleted: {},
-	api.StepFailed:    {},
-	api.StepSkipped:   {},
-}
+var (
+	stepTransitions = map[api.StepStatus]map[api.StepStatus]bool{
+		api.StepPending: {
+			api.StepActive:  true,
+			api.StepSkipped: true,
+			api.StepFailed:  true,
+		},
+		api.StepActive: {
+			api.StepCompleted: true,
+			api.StepFailed:    true,
+		},
+		api.StepCompleted: {},
+		api.StepFailed:    {},
+		api.StepSkipped:   {},
+	}
+
+	asyncStepTypes = map[api.StepType]bool{
+		api.StepTypeAsync: true,
+	}
+)
 
 // Step state transition methods
 
@@ -94,7 +100,7 @@ func (e *Engine) transitionStepExecution(
 			return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 		}
 
-		if !canTransitionTo(exec.Status, toStatus) {
+		if !canStepTransitionTo(exec.Status, toStatus) {
 			return fmt.Errorf("%s: step %s cannot %s from status %s",
 				ErrInvalidTransition, stepID, action, exec.Status)
 		}
@@ -131,7 +137,7 @@ func (e *Engine) canStepComplete(
 		return false
 	}
 
-	if isTerminalStatus(exec.Status) {
+	if isStepTerminal(exec.Status) {
 		return exec.Status == api.StepCompleted
 	}
 
@@ -178,15 +184,19 @@ func (e *Engine) appendFailedStep(
 	return append(failed, fmt.Sprintf("%s (%s)", stepID, exec.Error))
 }
 
-func canTransitionTo(from, to api.StepStatus) bool {
-	allowed, ok := allowedTransitions[from]
+func canStepTransitionTo(from, to api.StepStatus) bool {
+	allowed, ok := stepTransitions[from]
 	if !ok {
 		return false
 	}
 	return allowed[to]
 }
 
-func isTerminalStatus(status api.StepStatus) bool {
-	allowed, ok := allowedTransitions[status]
+func isStepTerminal(status api.StepStatus) bool {
+	allowed, ok := stepTransitions[status]
 	return ok && len(allowed) == 0
+}
+
+func isAsyncStep(stepType api.StepType) bool {
+	return asyncStepTypes[stepType]
 }

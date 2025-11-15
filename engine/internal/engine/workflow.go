@@ -12,6 +12,15 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+var workflowTransitions = map[api.WorkflowStatus]map[api.WorkflowStatus]bool{
+	api.WorkflowActive: {
+		api.WorkflowCompleted: true,
+		api.WorkflowFailed:    true,
+	},
+	api.WorkflowCompleted: {},
+	api.WorkflowFailed:    {},
+}
+
 func (e *Engine) GetWorkflowState(
 	ctx context.Context, flowID timebox.ID,
 ) (*api.WorkflowState, error) {
@@ -234,7 +243,6 @@ func (e *Engine) buildWorkflowDigest(
 	}
 }
 
-
 func (e *Engine) areOutputsNeeded(
 	stepID timebox.ID, flow *api.WorkflowState,
 ) bool {
@@ -405,8 +413,7 @@ func (e *Engine) GetActiveWorkflow(
 		return nil, false
 	}
 
-	if flow.Status == api.WorkflowCompleted ||
-		flow.Status == api.WorkflowFailed {
+	if isWorkflowTerminal(flow.Status) {
 		return nil, false
 	}
 
@@ -428,4 +435,9 @@ func (e *Engine) ensureScriptsCompiled(
 	}
 
 	return true
+}
+
+func isWorkflowTerminal(status api.WorkflowStatus) bool {
+	transitions, ok := workflowTransitions[status]
+	return ok && len(transitions) == 0
 }

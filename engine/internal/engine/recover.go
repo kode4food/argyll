@@ -14,6 +14,21 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+type backoffCalculator func(baseDelayMs int64, retryCount int) int64
+
+var backoffCalculators = map[string]backoffCalculator{
+	api.BackoffTypeFixed: func(base int64, _ int) int64 {
+		return base
+	},
+	api.BackoffTypeLinear: func(base int64, count int) int64 {
+		return base * int64(count+1)
+	},
+	api.BackoffTypeExponential: func(base int64, count int) int64 {
+		multiplier := math.Pow(2, float64(count))
+		return int64(float64(base) * multiplier)
+	},
+}
+
 // Retry logic
 
 func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
@@ -60,22 +75,12 @@ func (e *Engine) CalculateNextRetry(
 		config = &e.config.WorkConfig
 	}
 
-	var delayMs int64
-
-	switch config.BackoffType {
-	case api.BackoffTypeFixed:
-		delayMs = config.BackoffMs
-
-	case api.BackoffTypeLinear:
-		delayMs = config.BackoffMs * int64(retryCount+1)
-
-	case api.BackoffTypeExponential:
-		multiplier := math.Pow(2, float64(retryCount))
-		delayMs = int64(float64(config.BackoffMs) * multiplier)
-
-	default:
-		delayMs = config.BackoffMs
+	calculator, ok := backoffCalculators[config.BackoffType]
+	if !ok {
+		calculator = backoffCalculators[api.BackoffTypeFixed]
 	}
+
+	delayMs := calculator(config.BackoffMs, retryCount)
 
 	if delayMs > config.MaxBackoffMs {
 		delayMs = config.MaxBackoffMs
@@ -176,7 +181,7 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 		return fmt.Errorf("failed to get workflow state: %w", err)
 	}
 
-	if flow.Status != api.WorkflowActive {
+	if isWorkflowTerminal(flow.Status) {
 		return nil
 	}
 
