@@ -9,6 +9,20 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+var workTransitions = map[api.WorkStatus]map[api.WorkStatus]bool{
+	api.WorkPending: {
+		api.WorkActive:    true,
+		api.WorkCompleted: true,
+		api.WorkFailed:    true,
+	},
+	api.WorkActive: {
+		api.WorkCompleted: true,
+		api.WorkFailed:    true,
+	},
+	api.WorkCompleted: {},
+	api.WorkFailed:    {},
+}
+
 func (e *Engine) checkCompletableSteps(
 	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
 ) {
@@ -98,4 +112,9 @@ func aggregateWorkItemOutputs(
 		}
 		return outputs
 	}
+}
+
+func isWorkTerminal(status api.WorkStatus) bool {
+	transitions, ok := workTransitions[status]
+	return ok && len(transitions) == 0
 }

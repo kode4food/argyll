@@ -93,7 +93,7 @@ func (wa *workflowActor) handleWorkCompleted(
 
 	allDone := true
 	for _, item := range exec.WorkItems {
-		if item.Status == api.WorkPending {
+		if !isWorkTerminal(item.Status) {
 			allDone = false
 			break
 		}
