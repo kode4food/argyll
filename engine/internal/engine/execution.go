@@ -34,21 +34,6 @@ var (
 	ErrUnsupportedStepType = errors.New("unsupported step type")
 )
 
-var allowedTransitions = map[api.StepStatus]map[api.StepStatus]bool{
-	api.StepPending: {
-		api.StepActive:  true,
-		api.StepSkipped: true,
-		api.StepFailed:  true,
-	},
-	api.StepActive: {
-		api.StepCompleted: true,
-		api.StepFailed:    true,
-	},
-	api.StepCompleted: {},
-	api.StepFailed:    {},
-	api.StepSkipped:   {},
-}
-
 func (e *Engine) EnqueueStepResult(
 	flowID, stepID timebox.ID, outputs api.Args, dur int64,
 ) {
