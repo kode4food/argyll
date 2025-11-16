@@ -97,7 +97,13 @@ describe("WorkflowCreateForm", () => {
       { ...mockStep, id: "step-2", name: "Alpha" },
     ];
 
-    render(<WorkflowCreateForm {...defaultProps} steps={steps} sortSteps={sortSteps} />);
+    render(
+      <WorkflowCreateForm
+        {...defaultProps}
+        steps={steps}
+        sortSteps={sortSteps}
+      />
+    );
 
     expect(sortSteps).toHaveBeenCalledWith(steps);
   });
@@ -133,7 +139,9 @@ describe("WorkflowCreateForm", () => {
   });
 
   test("displays initial state in code editor", () => {
-    render(<WorkflowCreateForm {...defaultProps} initialState='{"key": "value"}' />);
+    render(
+      <WorkflowCreateForm {...defaultProps} initialState='{"key": "value"}' />
+    );
 
     const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
     expect(editor.value).toBe('{"key": "value"}');
@@ -145,7 +153,9 @@ describe("WorkflowCreateForm", () => {
     const editor = screen.getByTestId("code-editor");
     fireEvent.change(editor, { target: { value: '{"new": "value"}' } });
 
-    expect(defaultProps.setInitialState).toHaveBeenCalledWith('{"new": "value"}');
+    expect(defaultProps.setInitialState).toHaveBeenCalledWith(
+      '{"new": "value"}'
+    );
   });
 
   test("shows JSON error when initialState is invalid JSON", () => {
@@ -155,7 +165,9 @@ describe("WorkflowCreateForm", () => {
   });
 
   test("does not show JSON error when initialState is valid JSON", () => {
-    render(<WorkflowCreateForm {...defaultProps} initialState='{"valid": true}' />);
+    render(
+      <WorkflowCreateForm {...defaultProps} initialState='{"valid": true}' />
+    );
 
     expect(screen.queryByText(/Invalid JSON/)).not.toBeInTheDocument();
   });
@@ -258,21 +270,21 @@ describe("WorkflowCreateForm", () => {
       <WorkflowCreateForm {...defaultProps} newID="test-id" creating={true} />
     );
 
-    expect(container.querySelector('.lucide-play')).not.toBeInTheDocument();
+    expect(container.querySelector(".lucide-play")).not.toBeInTheDocument();
   });
 
   test("shows warning when no steps are registered", () => {
     render(<WorkflowCreateForm {...defaultProps} steps={[]} />);
 
-    expect(
-      screen.getByText(/No steps are registered/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/No steps are registered/)).toBeInTheDocument();
   });
 
   test("does not show warning when steps are registered", () => {
     render(<WorkflowCreateForm {...defaultProps} steps={[mockStep]} />);
 
-    expect(screen.queryByText(/No steps are registered/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/No steps are registered/)
+    ).not.toBeInTheDocument();
   });
 
   test("selects step when clicked", async () => {
@@ -329,7 +341,9 @@ describe("WorkflowCreateForm", () => {
 
     const { container } = render(<WorkflowCreateForm {...defaultProps} />);
 
-    const stepItem = container.querySelector('[title="Already included in execution plan"]');
+    const stepItem = container.querySelector(
+      '[title="Already included in execution plan"]'
+    );
     expect(stepItem).toBeInTheDocument();
   });
 
@@ -341,7 +355,9 @@ describe("WorkflowCreateForm", () => {
       />
     );
 
-    const stepItem = screen.getByText("Test Step").closest('div[title="Outputs satisfied by initial state"]');
+    const stepItem = screen
+      .getByText("Test Step")
+      .closest('div[title="Outputs satisfied by initial state"]');
     expect(stepItem).toBeInTheDocument();
   });
 
