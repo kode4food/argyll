@@ -354,6 +354,10 @@
   background-color: var(--color-error);
 }
 
+.arg-status-badge.failed {
+  background-color: var(--color-error);
+}
+
 .arg-status-badge.skipped {
   background-color: var(--color-neutral-border);
   opacity: var(--opacity-muted);

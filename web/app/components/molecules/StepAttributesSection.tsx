@@ -79,10 +79,10 @@ const renderStatusBadge = (
         </div>
       );
     }
-    if (executionStatus === "skipped") {
+    if (executionStatus === "failed" || executionStatus === "skipped") {
       return (
-        <div className="arg-status-badge skipped">
-          <MinusCircle size={16} />
+        <div className="arg-status-badge failed">
+          <XCircle size={16} />
         </div>
       );
     }
