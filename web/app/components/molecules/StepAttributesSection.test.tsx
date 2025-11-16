@@ -14,6 +14,19 @@ jest.mock("../atoms/Tooltip", () => ({
   ),
 }));
 
+jest.mock("../atoms/TooltipSection", () => ({
+  __esModule: true,
+  default: ({ title, icon, children, monospace }: any) => (
+    <div data-testid="tooltip-section">
+      <div data-testid="tooltip-title">{title}</div>
+      {icon && <div data-testid="tooltip-icon">{icon}</div>}
+      <div data-testid="tooltip-value" className={monospace ? "monospace" : ""}>
+        {children}
+      </div>
+    </div>
+  ),
+}));
+
 describe("StepAttributesSection", () => {
   const createStep = (
     requiredArgs: string[],
@@ -320,5 +333,217 @@ describe("StepAttributesSection", () => {
     const winnerBadge = container.querySelector(".arg-status-badge.satisfied");
     expect(winnerBadge).toBeInTheDocument();
     expect(winnerBadge?.querySelector(".lucide-award")).toBeInTheDocument();
+  });
+
+  test("shows skipped badge for optional arg when execution is skipped", () => {
+    const step = createStep([], ["opt1"], []);
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "skipped",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        showStatus
+      />
+    );
+
+    const badge = container.querySelector(".arg-status-badge.skipped");
+    expect(badge).toBeInTheDocument();
+    expect(badge?.querySelector(".lucide-circle-slash")).toBeInTheDocument();
+  });
+
+  test("shows satisfied badge for optional arg when provided by upstream", () => {
+    const step = createStep([], ["opt1"], []);
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { opt1: "value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set(["opt1"])}
+        execution={execution}
+        showStatus
+      />
+    );
+
+    const badge = container.querySelector(".arg-status-badge.satisfied");
+    expect(badge).toBeInTheDocument();
+  });
+
+  test("shows defaulted badge for optional arg when using default value", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          default: "default-value",
+        },
+      },
+      version: "1.0.0",
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { opt1: "default-value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        showStatus
+      />
+    );
+
+    const badge = container.querySelector(".arg-status-badge.defaulted");
+    expect(badge).toBeInTheDocument();
+    expect(badge?.querySelector(".lucide-circle-dot")).toBeInTheDocument();
+  });
+
+  test("shows pending badge for optional arg when not satisfied", () => {
+    const step = createStep([], ["opt1"], []);
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "active",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        showStatus
+      />
+    );
+
+    const badge = container.querySelector(".arg-status-badge.pending");
+    expect(badge).toBeInTheDocument();
+    expect(badge?.querySelector(".lucide-circle-dashed")).toBeInTheDocument();
+  });
+
+  test("shows not-winner badge for output when completed but not winner", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        result: { role: AttributeRole.Output, type: AttributeType.String },
+      },
+      version: "1.0.0",
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: {},
+      outputs: { result: 42 },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+    // Not in attributeProvenance means not winner (another step produced this attribute first)
+    const attributeProvenance = new Map([["result", "step-0"]]);
+
+    const { container } = render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        attributeProvenance={attributeProvenance}
+        showStatus
+      />
+    );
+
+    const badge = container.querySelector(".arg-status-badge.not-winner");
+    expect(badge).toBeInTheDocument();
+  });
+
+  test("handles non-stringifiable object in formatValue", () => {
+    const step = createStep(["circular"], [], []);
+    const circularObj: any = {};
+    circularObj.self = circularObj; // Create circular reference
+
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { circular: circularObj },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+      />
+    );
+
+    // Should render without crashing, even though JSON.stringify would throw
+    expect(screen.getByText(/\[object Object\]/)).toBeInTheDocument();
+  });
+
+  test("shows 'Default Value' tooltip title for defaulted optional args", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          default: "default-value",
+        },
+      },
+      version: "1.0.0",
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { opt1: "default-value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    render(
+      <StepAttributesSection
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+      />
+    );
+
+    expect(screen.getByText("Default Value")).toBeInTheDocument();
   });
 });

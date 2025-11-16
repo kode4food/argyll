@@ -87,4 +87,9 @@ describe("ConnectionStatusIndicator", () => {
     render(<ConnectionStatusIndicator status="reconnecting" />);
     expect(screen.getByText("Reconnecting... (attempt 0)")).toBeInTheDocument();
   });
+
+  test("handles unknown status as connected", () => {
+    render(<ConnectionStatusIndicator status={"unknown" as any} />);
+    expect(screen.getByText("Connected")).toBeInTheDocument();
+  });
 });

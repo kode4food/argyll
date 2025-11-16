@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import Tooltip from "./Tooltip";
 
 describe("Tooltip", () => {
@@ -121,5 +121,27 @@ describe("Tooltip", () => {
     );
 
     removeEventListenerSpy.mockRestore();
+  });
+
+  test("hides tooltip when hideTooltips event is dispatched", async () => {
+    render(
+      <Tooltip trigger={<button>Hover me</button>}>
+        <div>Tooltip content</div>
+      </Tooltip>
+    );
+
+    const trigger = screen.getByText("Hover me").parentElement;
+    fireEvent.mouseEnter(trigger!);
+
+    const tooltip = document.querySelector(".portal");
+    expect(tooltip?.className).toContain("visible");
+
+    // Dispatch hideTooltips event
+    const event = new Event("hideTooltips");
+    document.dispatchEvent(event);
+
+    await waitFor(() => {
+      expect(tooltip?.className).not.toContain("visible");
+    });
   });
 });

@@ -3,10 +3,92 @@ import {
   getStepTypeLabel,
   sortStepsByType,
   validateDefaultValue,
+  getSortedAttributes,
 } from "./stepUtils";
 import { Step, AttributeRole, AttributeType } from "@/app/api";
 
 describe("stepUtils", () => {
+  describe("getSortedAttributes", () => {
+    test("returns attributes sorted by name within each role", () => {
+      const attributes = {
+        zebra: { role: AttributeRole.Required, type: AttributeType.String },
+        alpha: { role: AttributeRole.Required, type: AttributeType.String },
+        beta: { role: AttributeRole.Optional, type: AttributeType.Number },
+        gamma: { role: AttributeRole.Output, type: AttributeType.String },
+        delta: { role: AttributeRole.Output, type: AttributeType.Boolean },
+      };
+
+      const result = getSortedAttributes(attributes);
+
+      expect(result).toHaveLength(5);
+      // Required first
+      expect(result[0].name).toBe("alpha");
+      expect(result[1].name).toBe("zebra");
+      // Optional second
+      expect(result[2].name).toBe("beta");
+      // Outputs last
+      expect(result[3].name).toBe("delta");
+      expect(result[4].name).toBe("gamma");
+    });
+
+    test("handles empty attributes object", () => {
+      const result = getSortedAttributes({});
+      expect(result).toEqual([]);
+    });
+
+    test("handles only required attributes", () => {
+      const attributes = {
+        input2: { role: AttributeRole.Required, type: AttributeType.String },
+        input1: { role: AttributeRole.Required, type: AttributeType.Number },
+      };
+
+      const result = getSortedAttributes(attributes);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe("input1");
+      expect(result[1].name).toBe("input2");
+    });
+
+    test("handles only optional attributes", () => {
+      const attributes = {
+        opt2: { role: AttributeRole.Optional, type: AttributeType.String },
+        opt1: { role: AttributeRole.Optional, type: AttributeType.Number },
+      };
+
+      const result = getSortedAttributes(attributes);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe("opt1");
+      expect(result[1].name).toBe("opt2");
+    });
+
+    test("handles only output attributes", () => {
+      const attributes = {
+        result2: { role: AttributeRole.Output, type: AttributeType.String },
+        result1: { role: AttributeRole.Output, type: AttributeType.Number },
+      };
+
+      const result = getSortedAttributes(attributes);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe("result1");
+      expect(result[1].name).toBe("result2");
+    });
+
+    test("preserves attribute spec objects", () => {
+      const attributes = {
+        input: { role: AttributeRole.Required, type: AttributeType.String },
+      };
+
+      const result = getSortedAttributes(attributes);
+
+      expect(result[0]).toEqual({
+        name: "input",
+        spec: { role: AttributeRole.Required, type: AttributeType.String },
+      });
+    });
+  });
+
   describe("getStepType", () => {
     test("returns resolver when step has outputs but no inputs", () => {
       const step: Step = {
@@ -137,6 +219,21 @@ describe("stepUtils", () => {
       };
 
       expect(getStepType(step)).toBe("processor");
+    });
+
+    test("returns neutral when step has no attributes property", () => {
+      const step: Step = {
+        id: "step-8",
+        name: "Test Step",
+        type: "script",
+        version: "1.0.0",
+        script: {
+          language: "ale",
+          script: "{:result 1}",
+        },
+      };
+
+      expect(getStepType(step)).toBe("neutral");
     });
   });
 

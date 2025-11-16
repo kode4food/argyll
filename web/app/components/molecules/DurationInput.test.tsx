@@ -145,4 +145,127 @@ describe("DurationInput", () => {
 
     expect(input).toHaveClass("invalid");
   });
+
+  test("shows invalid state for negative duration", () => {
+    render(<DurationInput value={5000} onChange={jest.fn()} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "-5 seconds" } });
+
+    expect(input).toHaveClass("invalid");
+  });
+
+  test("handles focus event", () => {
+    render(<DurationInput value={5000} onChange={jest.fn()} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+
+    // Input should still have value when focused
+    expect(input).toHaveValue("5 seconds");
+  });
+
+  test("formats value on blur when valid", () => {
+    render(<DurationInput value={0} onChange={jest.fn()} />);
+
+    const input = screen.getByRole("textbox");
+
+    // Type a shorthand duration
+    fireEvent.change(input, { target: { value: "3h" } });
+    expect(input).toHaveValue("3h");
+
+    // Blur should format it
+    fireEvent.blur(input);
+    expect(input).toHaveValue("3 hours");
+  });
+
+  test("does not format value on blur when invalid", () => {
+    render(<DurationInput value={5000} onChange={jest.fn()} />);
+
+    const input = screen.getByRole("textbox");
+
+    fireEvent.change(input, { target: { value: "invalid" } });
+    expect(input).toHaveValue("invalid");
+
+    fireEvent.blur(input);
+    // Should still show invalid input, not formatted
+    expect(input).toHaveValue("invalid");
+  });
+
+  test("does not format empty value on blur", () => {
+    render(<DurationInput value={0} onChange={jest.fn()} />);
+
+    const input = screen.getByRole("textbox");
+
+    fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
+
+    expect(input).toHaveValue("");
+  });
+
+  test("updates input when value changes while not focused", () => {
+    const { rerender } = render(
+      <DurationInput value={5000} onChange={jest.fn()} />
+    );
+
+    const input = screen.getByRole("textbox");
+    expect(input).toHaveValue("5 seconds");
+
+    // Change value prop while not focused
+    rerender(<DurationInput value={10800000} onChange={jest.fn()} />);
+
+    expect(input).toHaveValue("3 hours");
+  });
+
+  test("does not update input when value changes while focused", () => {
+    const { rerender } = render(
+      <DurationInput value={5000} onChange={jest.fn()} />
+    );
+
+    const input = screen.getByRole("textbox");
+    fireEvent.focus(input);
+
+    // Change value prop while focused
+    rerender(<DurationInput value={10800000} onChange={jest.fn()} />);
+
+    // Should still show old value
+    expect(input).toHaveValue("5 seconds");
+  });
+
+  test("applies custom className", () => {
+    const { container } = render(
+      <DurationInput value={0} onChange={jest.fn()} className="custom-class" />
+    );
+
+    const wrapper = container.querySelector(".custom-class");
+    expect(wrapper).toBeInTheDocument();
+  });
+
+  test("handles whitespace-only input as zero", () => {
+    const onChange = jest.fn();
+    render(<DurationInput value={5000} onChange={onChange} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "   " } });
+
+    expect(onChange).toHaveBeenCalledWith(0);
+  });
+
+  test("handles exception from ms library", () => {
+    // Mock ms to throw an error
+    const originalMs = require("ms");
+    require("ms").default = jest.fn(() => {
+      throw new Error("Invalid format");
+    });
+
+    render(<DurationInput value={0} onChange={jest.fn()} />);
+
+    const input = screen.getByRole("textbox");
+    fireEvent.change(input, { target: { value: "invalid" } });
+
+    expect(input).toHaveClass("invalid");
+
+    // Restore original ms
+    require("ms").default = originalMs.default;
+  });
 });
