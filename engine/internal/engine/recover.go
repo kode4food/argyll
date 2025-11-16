@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"math"
@@ -11,8 +10,8 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type backoffCalculator func(baseDelayMs int64, retryCount int) int64
@@ -118,19 +117,16 @@ func (e *Engine) ScheduleRetry(
 	nextRetryAt := e.CalculateNextRetry(step.WorkConfig, workItem.RetryCount)
 
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.RetryScheduledEvent{
-			FlowID:      flowID,
-			StepID:      stepID,
-			Token:       token,
-			RetryCount:  newRetryCount,
-			NextRetryAt: nextRetryAt,
-			Error:       errMsg,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeRetryScheduled, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeRetryScheduled,
+			api.RetryScheduledEvent{
+				FlowID:      flowID,
+				StepID:      stepID,
+				Token:       token,
+				RetryCount:  newRetryCount,
+				NextRetryAt: nextRetryAt,
+				Error:       errMsg,
+			},
+		)
 	}
 
 	_, err = e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)

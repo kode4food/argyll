@@ -2,15 +2,14 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"maps"
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 var workflowTransitions = util.StateTransitions[api.WorkflowStatus]{
@@ -45,15 +44,12 @@ func (e *Engine) CompleteWorkflow(
 	ctx context.Context, flowID timebox.ID, result api.Args,
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.WorkflowCompletedEvent{
-			FlowID: flowID,
-			Result: result,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkflowCompleted, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkflowCompleted,
+			api.WorkflowCompletedEvent{
+				FlowID: flowID,
+				Result: result,
+			},
+		)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -64,15 +60,12 @@ func (e *Engine) FailWorkflow(
 	ctx context.Context, flowID timebox.ID, errMsg string,
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.WorkflowFailedEvent{
-			FlowID: flowID,
-			Error:  errMsg,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkflowFailed, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkflowFailed,
+			api.WorkflowFailedEvent{
+				FlowID: flowID,
+				Error:  errMsg,
+			},
+		)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -84,17 +77,14 @@ func (e *Engine) StartWork(
 	inputs api.Args,
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.WorkStartedEvent{
-			FlowID: flowID,
-			StepID: stepID,
-			Token:  token,
-			Inputs: inputs,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkStarted, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkStarted,
+			api.WorkStartedEvent{
+				FlowID: flowID,
+				StepID: stepID,
+				Token:  token,
+				Inputs: inputs,
+			},
+		)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -106,17 +96,14 @@ func (e *Engine) CompleteWork(
 	outputs api.Args,
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.WorkCompletedEvent{
-			FlowID:  flowID,
-			StepID:  stepID,
-			Token:   token,
-			Outputs: outputs,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkCompleted, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkCompleted,
+			api.WorkCompletedEvent{
+				FlowID:  flowID,
+				StepID:  stepID,
+				Token:   token,
+				Outputs: outputs,
+			},
+		)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -128,17 +115,14 @@ func (e *Engine) FailWork(
 	errMsg string,
 ) error {
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.WorkFailedEvent{
-			FlowID: flowID,
-			StepID: stepID,
-			Token:  token,
-			Error:  errMsg,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkFailed, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkFailed,
+			api.WorkFailedEvent{
+				FlowID: flowID,
+				StepID: stepID,
+				Token:  token,
+				Error:  errMsg,
+			},
+		)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -153,17 +137,14 @@ func (e *Engine) SetAttribute(
 			return fmt.Errorf("%w: %s", ErrAttributeAlreadySet, attr)
 		}
 
-		ev, err := json.Marshal(api.AttributeSetEvent{
-			FlowID: flowID,
-			StepID: stepID,
-			Key:    attr,
-			Value:  value,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeAttributeSet, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeAttributeSet,
+			api.AttributeSetEvent{
+				FlowID: flowID,
+				StepID: stepID,
+				Key:    attr,
+				Value:  value,
+			},
+		)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -437,4 +418,3 @@ func (e *Engine) ensureScriptsCompiled(
 
 	return true
 }
-

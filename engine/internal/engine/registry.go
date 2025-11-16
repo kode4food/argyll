@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -10,8 +9,8 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/internal/events"
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 var (
@@ -91,16 +90,13 @@ func (e *Engine) UpdateStepHealth(
 			}
 		}
 
-		data, err := json.Marshal(api.StepHealthChangedEvent{
-			StepID: stepID,
-			Status: health,
-			Error:  errMsg,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeStepHealthChanged, data)
-		return nil
+		return util.Raise(ag, api.EventTypeStepHealthChanged,
+			api.StepHealthChangedEvent{
+				StepID: stepID,
+				Status: health,
+				Error:  errMsg,
+			},
+		)
 	}
 
 	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
@@ -126,12 +122,9 @@ func (e *Engine) validateScriptStep(step *api.Step) error {
 func (e *Engine) raiseStepRegisteredEvent(
 	step *api.Step, ag *Aggregator,
 ) error {
-	data, err := json.Marshal(api.StepRegisteredEvent{Step: step})
-	if err != nil {
-		return err
-	}
-	ag.Raise(api.EventTypeStepRegistered, data)
-	return nil
+	return util.Raise(ag, api.EventTypeStepRegistered,
+		api.StepRegisteredEvent{Step: step},
+	)
 }
 
 func (e *Engine) compileScript(ctx context.Context, step *api.Step) {

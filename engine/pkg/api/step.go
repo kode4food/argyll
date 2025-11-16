@@ -8,7 +8,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/pkg/util"
+	"github.com/kode4food/spuds/engine/internal/util"
 )
 
 type (

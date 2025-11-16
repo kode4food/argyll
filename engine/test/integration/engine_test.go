@@ -11,8 +11,8 @@ import (
 
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 func TestStartWorkflowSimple(t *testing.T) {
@@ -40,8 +40,8 @@ func TestStartWorkflowSimple(t *testing.T) {
 	env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"goal-step"},
-		Required:  []api.Name{},
+		Goals:    []timebox.ID{"goal-step"},
+		Required: []api.Name{},
 		Steps: map[timebox.ID]*api.StepInfo{
 			"goal-step": {Step: step},
 		},
@@ -233,8 +233,8 @@ func TestScriptStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"script-1"},
-		Required:  []api.Name{"name"},
+		Goals:    []timebox.ID{"script-1"},
+		Required: []api.Name{"name"},
 		Steps: map[timebox.ID]*api.StepInfo{
 			"script-1": {Step: scriptStep},
 		},

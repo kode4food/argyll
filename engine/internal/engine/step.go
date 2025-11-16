@@ -2,13 +2,12 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 var (
@@ -106,12 +105,7 @@ func (e *Engine) transitionStepExecution(
 				ErrInvalidTransition, stepID, action, exec.Status)
 		}
 
-		ev, err := json.Marshal(eventData)
-		if err != nil {
-			return err
-		}
-		ag.Raise(eventType, ev)
-		return nil
+		return util.Raise(ag, eventType, eventData)
 	}
 
 	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)

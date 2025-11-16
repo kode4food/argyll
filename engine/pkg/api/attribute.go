@@ -6,7 +6,7 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"github.com/kode4food/spuds/engine/pkg/util"
+	"github.com/kode4food/spuds/engine/internal/util"
 )
 
 type (

@@ -15,8 +15,8 @@ const (
 
 func TestStateTransitionsCanTransition(t *testing.T) {
 	transitions := StateTransitions[TestState]{
-		StateInit: SetOf(StateRunning, StateFailed),
-		StateRunning: SetOf(StateComplete, StateFailed),
+		StateInit:     SetOf(StateRunning, StateFailed),
+		StateRunning:  SetOf(StateComplete, StateFailed),
 		StateComplete: {},
 		StateFailed:   {},
 	}
@@ -54,8 +54,8 @@ func TestStateTransitionsCanTransition(t *testing.T) {
 
 func TestStateTransitionsIsTerminal(t *testing.T) {
 	transitions := StateTransitions[TestState]{
-		StateInit: SetOf(StateRunning, StateFailed),
-		StateRunning: SetOf(StateComplete, StateFailed),
+		StateInit:     SetOf(StateRunning, StateFailed),
+		StateRunning:  SetOf(StateComplete, StateFailed),
 		StateComplete: {},
 		StateFailed:   {},
 	}

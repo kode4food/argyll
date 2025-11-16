@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -15,6 +14,7 @@ import (
 	"github.com/kode4food/spuds/engine/internal/client"
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/events"
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -141,17 +141,14 @@ func (e *Engine) StartWorkflow(
 	}
 
 	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		ev, err := json.Marshal(api.WorkflowStartedEvent{
-			FlowID:   flowID,
-			Plan:     plan,
-			Init:     initState,
-			Metadata: meta,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkflowStarted, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkflowStarted,
+			api.WorkflowStartedEvent{
+				FlowID:   flowID,
+				Plan:     plan,
+				Init:     initState,
+				Metadata: meta,
+			},
+		)
 	}
 
 	_, err = e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
@@ -160,12 +157,9 @@ func (e *Engine) StartWorkflow(
 
 func (e *Engine) UnregisterStep(ctx context.Context, stepID timebox.ID) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		ev, err := json.Marshal(api.StepUnregisteredEvent{StepID: stepID})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeStepUnregistered, ev)
-		return nil
+		return util.Raise(ag, api.EventTypeStepUnregistered,
+			api.StepUnregisteredEvent{StepID: stepID},
+		)
 	}
 
 	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
@@ -371,14 +365,9 @@ func (e *Engine) handleWorkflowStarted(
 	_ *timebox.Event, data api.WorkflowStartedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		evData, err := json.Marshal(api.WorkflowActivatedEvent{
-			FlowID: data.FlowID,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkflowActivated, evData)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkflowActivated,
+			api.WorkflowActivatedEvent{FlowID: data.FlowID},
+		)
 	}
 
 	ctx := context.Background()
@@ -390,14 +379,9 @@ func (e *Engine) handleWorkflowCompleted(
 	_ *timebox.Event, data api.WorkflowCompletedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		evData, err := json.Marshal(api.WorkflowDeactivatedEvent{
-			FlowID: data.FlowID,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkflowDeactivated, evData)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkflowDeactivated,
+			api.WorkflowDeactivatedEvent{FlowID: data.FlowID},
+		)
 	}
 
 	ctx := context.Background()
@@ -409,14 +393,9 @@ func (e *Engine) handleWorkflowFailed(
 	_ *timebox.Event, data api.WorkflowFailedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		evData, err := json.Marshal(api.WorkflowDeactivatedEvent{
-			FlowID: data.FlowID,
-		})
-		if err != nil {
-			return err
-		}
-		ag.Raise(api.EventTypeWorkflowDeactivated, evData)
-		return nil
+		return util.Raise(ag, api.EventTypeWorkflowDeactivated,
+			api.WorkflowDeactivatedEvent{FlowID: data.FlowID},
+		)
 	}
 
 	ctx := context.Background()
