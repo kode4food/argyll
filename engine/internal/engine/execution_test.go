@@ -19,7 +19,8 @@ func TestPrepareStepExecution(t *testing.T) {
 
 	env.Engine.Start()
 
-	step := helpers.NewSimpleStep("prep-step")
+	step := helpers.NewTestStepWithArgs([]api.Name{"required_input"}, nil)
+	step.ID = "prep-step"
 
 	err := env.Engine.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
