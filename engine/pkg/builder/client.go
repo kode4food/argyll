@@ -16,6 +16,8 @@ import (
 )
 
 type (
+	// Client provides functionality for interacting with the workflow engine
+	// API, including step registration, workflow management, and state queries
 	Client struct {
 		httpClient *http.Client
 		baseURL    string
@@ -42,6 +44,8 @@ const (
 	routeWorkflow = "/engine/workflow"
 )
 
+// NewClient creates a new workflow engine client with the specified base URL
+// and timeout
 func NewClient(baseURL string, timeout time.Duration) *Client {
 	return &Client{
 		baseURL: baseURL,
@@ -51,6 +55,7 @@ func NewClient(baseURL string, timeout time.Duration) *Client {
 	}
 }
 
+// ListSteps retrieves all registered steps from the workflow engine
 func (c *Client) ListSteps(
 	ctx context.Context,
 ) (*api.StepsListResponse, error) {

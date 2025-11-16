@@ -14,6 +14,9 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// AsyncContext provides functionality for managing asynchronous step
+// execution. It holds workflow and step IDs along with a webhook URL for
+// result delivery
 type AsyncContext struct {
 	client     *Client
 	flowID     timebox.ID
@@ -22,6 +25,9 @@ type AsyncContext struct {
 	httpClient *http.Client
 }
 
+// NewAsyncContext creates a new async context from the metadata in the
+// provided context. It extracts flow_id, step_id, and webhook_url from the
+// context metadata
 func (c *Client) NewAsyncContext(ctx context.Context) (*AsyncContext, error) {
 	meta, ok := ctx.Value(MetadataKey).(api.Metadata)
 	if !ok {
@@ -54,6 +60,8 @@ func (c *Client) NewAsyncContext(ctx context.Context) (*AsyncContext, error) {
 	}, nil
 }
 
+// Success marks the async step as successfully completed with the given
+// outputs
 func (ac *AsyncContext) Success(outputs api.Args) error {
 	result := api.StepResult{
 		Success: true,
@@ -62,10 +70,12 @@ func (ac *AsyncContext) Success(outputs api.Args) error {
 	return ac.sendWebhook(result)
 }
 
+// Complete sends the full step result to the workflow engine via webhook
 func (ac *AsyncContext) Complete(result api.StepResult) error {
 	return ac.sendWebhook(result)
 }
 
+// Fail marks the async step as failed with the given error
 func (ac *AsyncContext) Fail(err error) error {
 	result := api.StepResult{
 		Success: false,
@@ -74,18 +84,22 @@ func (ac *AsyncContext) Fail(err error) error {
 	return ac.sendWebhook(result)
 }
 
+// FlowID returns the workflow ID for this async context
 func (ac *AsyncContext) FlowID() timebox.ID {
 	return ac.flowID
 }
 
+// StepID returns the step ID for this async context
 func (ac *AsyncContext) StepID() timebox.ID {
 	return ac.stepID
 }
 
+// WebhookURL returns the webhook URL for delivering step results
 func (ac *AsyncContext) WebhookURL() string {
 	return ac.webhookURL
 }
 
+// Workflow returns a workflow client for interacting with this workflow
 func (ac *AsyncContext) Workflow() *WorkflowClient {
 	return ac.client.Workflow(ac.flowID)
 }

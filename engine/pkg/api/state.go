@@ -8,12 +8,22 @@ import (
 )
 
 type (
+	// WorkflowStatus represents the current state of a workflow
 	WorkflowStatus string
-	StepStatus     string
-	HealthStatus   string
-	WorkStatus     string
-	Token          string
 
+	// StepStatus represents the current state of a step execution
+	StepStatus string
+
+	// HealthStatus represents the health of a step service
+	HealthStatus string
+
+	// WorkStatus represents the state of a single work item
+	WorkStatus string
+
+	// Token uniquely identifies a work item within a step
+	Token string
+
+	// EngineState contains the global state of the workflow engine
 	EngineState struct {
 		LastUpdated     time.Time                          `json:"last_updated"`
 		Steps           map[timebox.ID]*Step               `json:"steps"`
@@ -21,12 +31,14 @@ type (
 		ActiveWorkflows map[timebox.ID]*ActiveWorkflowInfo `json:"active_workflows"`
 	}
 
+	// ActiveWorkflowInfo tracks basic metadata for active workflows
 	ActiveWorkflowInfo struct {
 		FlowID     timebox.ID `json:"flow_id"`
 		StartedAt  time.Time  `json:"started_at"`
 		LastActive time.Time  `json:"last_active"`
 	}
 
+	// WorkflowState contains the complete state of a workflow execution
 	WorkflowState struct {
 		CreatedAt   time.Time                      `json:"created_at"`
 		CompletedAt time.Time                      `json:"completed_at,omitempty"`
@@ -39,11 +51,13 @@ type (
 		Error       string                         `json:"error,omitempty"`
 	}
 
+	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
 		Value any        `json:"value"`
 		Step  timebox.ID `json:"step,omitempty"`
 	}
 
+	// ExecutionState contains the state of a step execution
 	ExecutionState struct {
 		StartedAt   time.Time            `json:"started_at"`
 		CompletedAt time.Time            `json:"completed_at,omitempty"`
@@ -55,6 +69,7 @@ type (
 		WorkItems   map[Token]*WorkState `json:"work_items,omitempty"`
 	}
 
+	// WorkState contains the state of a single work item
 	WorkState struct {
 		Status      WorkStatus `json:"status"`
 		StartedAt   time.Time  `json:"started_at"`
@@ -67,6 +82,7 @@ type (
 		LastError   string     `json:"last_error,omitempty"`
 	}
 
+	// HealthState contains the health status of a step service
 	HealthState struct {
 		Status HealthStatus `json:"status"`
 		Error  string       `json:"error,omitempty"`
@@ -276,6 +292,7 @@ func (st *WorkState) SetLastError(err string) *WorkState {
 	return &res
 }
 
+// GetAttributeArgs returns all attribute values as Args
 func (st *WorkflowState) GetAttributeArgs() Args {
 	result := make(Args, len(st.Attributes))
 	for key, attr := range st.Attributes {

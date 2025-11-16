@@ -1,6 +1,6 @@
 # Step Builder
 
-The Step builder provides a fluent API for defining and registering steps.
+The Step builder provides an API for defining and registering steps.
 
 ## Basic Usage
 

@@ -16,6 +16,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// ContextKey is a type for context keys to avoid collisions
 type ContextKey string
 
 const (
@@ -29,6 +30,7 @@ var (
 	ErrHandlerPanic     = errors.New("step handler panicked")
 )
 
+// MetadataKey is the context key used to store step execution metadata
 var MetadataKey ContextKey = "metadata"
 
 func setupStepServer(client *Client, step *Step, handle api.StepHandler) error {

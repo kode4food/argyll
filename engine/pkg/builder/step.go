@@ -12,6 +12,8 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// Step is a builder for creating and configuring workflow steps. It provides
+// an API for defining step attributes, predicates, and execution settings
 type Step struct {
 	client     *Client
 	predicate  *api.ScriptConfig
@@ -51,12 +53,14 @@ func (s *Step) clone() *Step {
 	return &res
 }
 
+// WithID sets the step ID, overriding the auto-generated ID from the step name
 func (s *Step) WithID(id timebox.ID) *Step {
 	res := s.clone()
 	res.id = id
 	return res
 }
 
+// Required declares a required input attribute for the step
 func (s *Step) Required(name api.Name, argType api.AttributeType) *Step {
 	res := s.clone()
 	res.attributes[name] = &api.AttributeSpec{
@@ -66,6 +70,7 @@ func (s *Step) Required(name api.Name, argType api.AttributeType) *Step {
 	return res
 }
 
+// Optional declares an optional input attribute with a default value
 func (s *Step) Optional(
 	name api.Name, argType api.AttributeType, defaultValue string,
 ) *Step {
@@ -78,6 +83,7 @@ func (s *Step) Optional(
 	return res
 }
 
+// Output declares an output attribute that the step will produce
 func (s *Step) Output(name api.Name, argType api.AttributeType) *Step {
 	res := s.clone()
 	res.attributes[name] = &api.AttributeSpec{
@@ -98,6 +104,8 @@ func (s *Step) WithForEach(name api.Name) *Step {
 	return res
 }
 
+// WithPredicate sets a predicate script that determines if the step should
+// execute
 func (s *Step) WithPredicate(language, script string) *Step {
 	res := s.clone()
 	res.predicate = &api.ScriptConfig{
@@ -107,20 +115,24 @@ func (s *Step) WithPredicate(language, script string) *Step {
 	return res
 }
 
+// WithAlePredicate sets an Ale language predicate script
 func (s *Step) WithAlePredicate(script string) *Step {
 	return s.WithPredicate(api.ScriptLangAle, script)
 }
 
+// WithLuaPredicate sets a Lua language predicate script
 func (s *Step) WithLuaPredicate(script string) *Step {
 	return s.WithPredicate(api.ScriptLangLua, script)
 }
 
+// WithVersion sets the step version
 func (s *Step) WithVersion(version string) *Step {
 	res := s.clone()
 	res.version = version
 	return res
 }
 
+// WithEndpoint sets the HTTP endpoint where the step handler is listening
 func (s *Step) WithEndpoint(endpoint string) *Step {
 	res := s.clone()
 	if res.http == nil {
@@ -136,6 +148,7 @@ func (s *Step) WithEndpoint(endpoint string) *Step {
 	return res
 }
 
+// WithScript sets an Ale script to execute for this step
 func (s *Step) WithScript(script string) *Step {
 	res := s.clone()
 	res.script = &api.ScriptConfig{
@@ -146,6 +159,8 @@ func (s *Step) WithScript(script string) *Step {
 	return res
 }
 
+// WithScriptLanguage sets a script with a specific language to execute for
+// this step
 func (s *Step) WithScriptLanguage(lang, script string) *Step {
 	res := s.clone()
 	res.script = &api.ScriptConfig{
@@ -156,6 +171,7 @@ func (s *Step) WithScriptLanguage(lang, script string) *Step {
 	return res
 }
 
+// WithHealthCheck sets the HTTP health check endpoint for the step
 func (s *Step) WithHealthCheck(endpoint string) *Step {
 	res := s.clone()
 	if res.http == nil {
@@ -168,36 +184,42 @@ func (s *Step) WithHealthCheck(endpoint string) *Step {
 	return res
 }
 
+// WithTimeout sets the execution timeout for the step in milliseconds
 func (s *Step) WithTimeout(timeout int64) *Step {
 	res := s.clone()
 	res.timeout = timeout
 	return res
 }
 
+// WithType sets the step execution type (sync, async, or script)
 func (s *Step) WithType(stepType api.StepType) *Step {
 	res := s.clone()
 	res.stepType = stepType
 	return res
 }
 
+// WithAsyncExecution configures the step to execute asynchronously
 func (s *Step) WithAsyncExecution() *Step {
 	res := s.clone()
 	res.stepType = api.StepTypeAsync
 	return res
 }
 
+// WithSyncExecution configures the step to execute synchronously
 func (s *Step) WithSyncExecution() *Step {
 	res := s.clone()
 	res.stepType = api.StepTypeSync
 	return res
 }
 
+// WithScriptExecution configures the step to execute via a script
 func (s *Step) WithScriptExecution() *Step {
 	res := s.clone()
 	res.stepType = api.StepTypeScript
 	return res
 }
 
+// Build validates and creates the final Step API object
 func (s *Step) Build() (*api.Step, error) {
 	var httpConfig *api.HTTPConfig
 	if s.http != nil {
@@ -238,8 +260,8 @@ func (s *Step) Register(ctx context.Context) error {
 	return s.client.registerStep(ctx, step)
 }
 
-// Update marks this step as modified, so the next Start() will update
-// the existing step registration rather than creating a new one
+// Update marks this step as modified, so the next Start() will update the
+// existing step registration rather than creating a new one
 func (s *Step) Update() *Step {
 	res := s.clone()
 	res.dirty = true

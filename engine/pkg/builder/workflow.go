@@ -8,6 +8,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// Workflow is a builder for creating and starting workflow executions
 type Workflow struct {
 	client *Client
 	id     timebox.ID

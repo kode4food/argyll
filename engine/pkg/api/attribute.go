@@ -10,6 +10,7 @@ import (
 )
 
 type (
+	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
 		Role    AttributeRole `json:"role"`
 		Type    AttributeType `json:"type,omitempty"`
@@ -17,9 +18,15 @@ type (
 		ForEach bool          `json:"for_each,omitempty"`
 	}
 
+	// AttributeSpecs is a map of attribute names to their specifications
 	AttributeSpecs map[Name]*AttributeSpec
-	AttributeRole  string
-	AttributeType  string
+
+	// AttributeRole defines whether an attribute is required, optional, or an
+	// output
+	AttributeRole string
+
+	// AttributeType defines the data type of an attribute
+	AttributeType string
 )
 
 const (
@@ -71,6 +78,7 @@ var (
 	)
 )
 
+// Validate checks if the attribute specification is valid
 func (as *AttributeSpec) Validate(name Name) error {
 	if !validAttributeRoles.Contains(as.Role) {
 		return fmt.Errorf("%w: %s for attribute %q",
@@ -162,22 +170,27 @@ func validateDefaultValue(value string, attrType AttributeType) error {
 	}
 }
 
+// IsInput returns true if the attribute is an input (required or optional)
 func (as *AttributeSpec) IsInput() bool {
 	return as.Role == RoleRequired || as.Role == RoleOptional
 }
 
+// IsOutput returns true if the attribute is an output
 func (as *AttributeSpec) IsOutput() bool {
 	return as.Role == RoleOutput
 }
 
+// IsRequired returns true if the attribute is required
 func (as *AttributeSpec) IsRequired() bool {
 	return as.Role == RoleRequired
 }
 
+// IsOptional returns true if the attribute is optional
 func (as *AttributeSpec) IsOptional() bool {
 	return as.Role == RoleOptional
 }
 
+// Equal returns true if two attribute specs are equal
 func (as *AttributeSpec) Equal(other *AttributeSpec) bool {
 	if as == nil && other == nil {
 		return true

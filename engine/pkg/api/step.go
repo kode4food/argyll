@@ -12,9 +12,14 @@ import (
 )
 
 type (
+	// StepType defines the execution mode for a step (sync, async, or script)
 	StepType string
+
+	// Metadata contains additional context passed to step handlers
 	Metadata map[string]any
 
+	// Step defines a workflow step with its configuration, attributes, and
+	// execution details
 	Step struct {
 		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
 		HTTP       *HTTPConfig    `json:"http,omitempty"`
@@ -27,17 +32,21 @@ type (
 		Attributes AttributeSpecs `json:"attributes"`
 	}
 
+	// HTTPConfig configures HTTP-based step execution
 	HTTPConfig struct {
 		Endpoint    string `json:"endpoint"`
 		HealthCheck string `json:"health_check,omitempty"`
 		Timeout     int64  `json:"timeout"`
 	}
 
+	// ScriptConfig configures script-based step execution
 	ScriptConfig struct {
 		Language string `json:"language"`
 		Script   string `json:"script"`
 	}
 
+	// WorkConfig configures retry and parallelism behavior for steps with
+	// multiple work items
 	WorkConfig struct {
 		MaxRetries   int    `json:"max_retries,omitempty"`
 		BackoffMs    int64  `json:"backoff_ms,omitempty"`
@@ -46,17 +55,20 @@ type (
 		Parallelism  int    `json:"parallelism,omitempty"`
 	}
 
+	// StepRequest is the request payload sent to step handlers
 	StepRequest struct {
 		Arguments Args     `json:"arguments"`
 		Metadata  Metadata `json:"metadata"`
 	}
 
+	// StepResult is the response returned by step handlers
 	StepResult struct {
 		Outputs Args   `json:"outputs,omitempty"`
 		Error   string `json:"error,omitempty"`
 		Success bool   `json:"success"`
 	}
 
+	// StepHandler is the function signature for step implementations
 	StepHandler func(context.Context, Args) (StepResult, error)
 )
 
@@ -112,6 +124,7 @@ var (
 	)
 )
 
+// NewResult creates a new successful step result with empty outputs
 func NewResult() *StepResult {
 	return &StepResult{
 		Success: true,
@@ -119,6 +132,7 @@ func NewResult() *StepResult {
 	}
 }
 
+// Validate checks if the step configuration is valid
 func (s *Step) Validate() error {
 	if s.ID == "" {
 		return ErrStepIDEmpty
@@ -219,6 +233,7 @@ func (s *Step) validateWorkConfig() error {
 	return nil
 }
 
+// GetAllInputArgs returns all input argument names (required and optional)
 func (s *Step) GetAllInputArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
@@ -229,6 +244,7 @@ func (s *Step) GetAllInputArgs() []Name {
 	return args
 }
 
+// GetRequiredArgs returns all required argument names
 func (s *Step) GetRequiredArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
@@ -239,6 +255,7 @@ func (s *Step) GetRequiredArgs() []Name {
 	return args
 }
 
+// GetOptionalArgs returns all optional argument names
 func (s *Step) GetOptionalArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
@@ -249,6 +266,7 @@ func (s *Step) GetOptionalArgs() []Name {
 	return args
 }
 
+// GetOutputArgs returns all output argument names
 func (s *Step) GetOutputArgs() []Name {
 	var args []Name
 	for name, attr := range s.Attributes {
@@ -259,6 +277,7 @@ func (s *Step) GetOutputArgs() []Name {
 	return args
 }
 
+// IsOptionalArg returns true if the argument is optional
 func (s *Step) IsOptionalArg(argName Name) bool {
 	if attr, ok := s.Attributes[argName]; ok {
 		return attr.IsOptional()
@@ -266,6 +285,7 @@ func (s *Step) IsOptionalArg(argName Name) bool {
 	return false
 }
 
+// SortedArgNames returns sorted input argument names
 func (s *Step) SortedArgNames() []string {
 	var all []string
 	for name, attr := range s.Attributes {
@@ -277,6 +297,8 @@ func (s *Step) SortedArgNames() []string {
 	return all
 }
 
+// MultiArgNames returns names of attributes that support multiple work items
+// (for_each)
 func (s *Step) MultiArgNames() []Name {
 	var names []Name
 	for name, attr := range s.Attributes {
@@ -288,17 +310,20 @@ func (s *Step) MultiArgNames() []Name {
 	return names
 }
 
+// WithOutput adds an output value to the step result
 func (sr *StepResult) WithOutput(name Name, value any) *StepResult {
 	sr.Outputs[name] = value
 	return sr
 }
 
+// WithError marks the step result as failed with the given error
 func (sr *StepResult) WithError(err error) *StepResult {
 	sr.Success = false
 	sr.Error = err.Error()
 	return sr
 }
 
+// Equal returns true if two steps are equal
 func (s *Step) Equal(other *Step) bool {
 	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
 		return false
@@ -324,6 +349,7 @@ func (s *Step) Equal(other *Step) bool {
 	return true
 }
 
+// Equal returns true if two HTTP configs are equal
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 	if h == nil && other == nil {
 		return true
@@ -336,6 +362,7 @@ func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 		h.Timeout == other.Timeout
 }
 
+// Equal returns true if two script configs are equal
 func (sc *ScriptConfig) Equal(other *ScriptConfig) bool {
 	if sc == nil && other == nil {
 		return true
@@ -346,6 +373,7 @@ func (sc *ScriptConfig) Equal(other *ScriptConfig) bool {
 	return sc.Language == other.Language && sc.Script == other.Script
 }
 
+// Equal returns true if two work configs are equal
 func (wc *WorkConfig) Equal(other *WorkConfig) bool {
 	if wc == nil && other == nil {
 		return true

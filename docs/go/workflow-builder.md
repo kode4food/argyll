@@ -1,6 +1,6 @@
 # Workflow Builder
 
-The Workflow builder provides a fluent API for creating and starting workflows.
+The Workflow builder provides an API for creating and starting workflows.
 
 ## Basic Usage
 

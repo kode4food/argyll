@@ -8,6 +8,7 @@ import (
 )
 
 type (
+	// ExecutionPlan represents the compiled execution plan for a workflow
 	ExecutionPlan struct {
 		Goals      []timebox.ID             `json:"goals"`
 		Required   []Name                   `json:"required"`
@@ -15,12 +16,14 @@ type (
 		Attributes map[Name]*Dependencies   `json:"attributes"`
 	}
 
+	// StepInfo contains step metadata and compiled scripts
 	StepInfo struct {
 		Step      *Step `json:"step"`
 		Script    any   `json:"-"`
 		Predicate any   `json:"-"`
 	}
 
+	// Dependencies tracks which steps provide and consume an attribute
 	Dependencies struct {
 		Providers []timebox.ID `json:"providers"`
 		Consumers []timebox.ID `json:"consumers"`
@@ -32,6 +35,7 @@ var (
 	ErrRequiredInputs = errors.New("required inputs not provided")
 )
 
+// GetStep retrieves a step from the plan by ID
 func (ep *ExecutionPlan) GetStep(stepID timebox.ID) *Step {
 	if info, ok := ep.Steps[stepID]; ok {
 		return info.Step
@@ -39,6 +43,7 @@ func (ep *ExecutionPlan) GetStep(stepID timebox.ID) *Step {
 	return nil
 }
 
+// ValidateInputs checks that all required inputs are provided
 func (ep *ExecutionPlan) ValidateInputs(args Args) error {
 	var missing []Name
 
@@ -58,6 +63,7 @@ func (ep *ExecutionPlan) ValidateInputs(args Args) error {
 	return nil
 }
 
+// NeedsCompilation returns true if any scripts need compilation
 func (ep *ExecutionPlan) NeedsCompilation() bool {
 	for _, info := range ep.Steps {
 		if ep.stepNeedsCompile(info) {

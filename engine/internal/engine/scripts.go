@@ -54,7 +54,8 @@ var (
 	ErrUnsupportedLanguage = errors.New("unsupported script language")
 )
 
-// NewScriptRegistry creates a new script registry with Ale and Lua environments
+// NewScriptRegistry creates a new script registry with Ale and Lua
+// environments
 func NewScriptRegistry() *ScriptRegistry {
 	return &ScriptRegistry{
 		envs: map[string]ScriptEnvironment{
