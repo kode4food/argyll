@@ -14,8 +14,8 @@ import (
 	"github.com/kode4food/spuds/engine/internal/client"
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/events"
-	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type (

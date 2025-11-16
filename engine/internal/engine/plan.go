@@ -5,8 +5,8 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type planBuilder struct {

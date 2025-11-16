@@ -11,8 +11,8 @@ import (
 
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
-	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 func TestStartWorkflowSimple(t *testing.T) {
