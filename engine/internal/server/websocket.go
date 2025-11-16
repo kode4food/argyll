@@ -53,6 +53,8 @@ func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
 	}
 }
 
+// HandleWebSocket upgrades an HTTP connection to WebSocket and starts
+// streaming events based on client subscriptions
 func HandleWebSocket(
 	hub timebox.EventHub, w http.ResponseWriter, r *http.Request,
 	replay ReplayFunc,
@@ -206,6 +208,8 @@ func (c *Client) writeEvent(ev *timebox.Event, context string) bool {
 	return true
 }
 
+// BuildFilter creates an event filter based on client subscription preferences
+// for event types, workflow IDs, or engine events
 func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
 	var filters []events.EventFilter
 

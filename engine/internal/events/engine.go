@@ -14,6 +14,8 @@ var (
 	EngineAppliers = makeEngineAppliers()
 )
 
+// NewEngineState creates an empty engine state with initialized maps for
+// steps, health status, and active workflows
 func NewEngineState() *api.EngineState {
 	return &api.EngineState{
 		Steps:           map[timebox.ID]*api.Step{},

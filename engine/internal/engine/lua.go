@@ -13,11 +13,13 @@ import (
 )
 
 type (
+	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
 		statePool chan *lua.State
 		scripts   sync.Map
 	}
 
+	// CompiledLuaScript represents a compiled Lua script
 	CompiledLuaScript struct {
 		source   string
 		argNames []string
@@ -45,12 +47,16 @@ var luaExclude = [...]string{
 	"io", "os", "debug", "package", "require", "dofile", "loadfile", "load",
 }
 
+// NewLuaEnv creates a new Lua script execution environment with a state pool
+// for efficient script reuse
 func NewLuaEnv() *LuaEnv {
 	return &LuaEnv{
 		statePool: make(chan *lua.State, luaStatePoolSize),
 	}
 }
 
+// Compile compiles a Lua script with the given argument names, returning the
+// compiled form or an error
 func (e *LuaEnv) Compile(
 	step *api.Step, script string, argNames []string,
 ) (Compiled, error) {
@@ -71,11 +77,15 @@ func (e *LuaEnv) Compile(
 	return c, err
 }
 
+// CompileStepScript compiles the main script for a step, extracting and
+// ordering argument names automatically
 func (e *LuaEnv) CompileStepScript(step *api.Step) (Compiled, error) {
 	names := step.SortedArgNames()
 	return e.compileScript(step.ID, scriptType, step.Script.Script, names)
 }
 
+// CompileStepPredicate compiles the predicate script for a step, which
+// determines if the step should execute
 func (e *LuaEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
 	names := step.SortedArgNames()
 	return e.compileScript(
@@ -101,12 +111,16 @@ func (e *LuaEnv) compileScript(
 	return c, nil
 }
 
+// Validate checks if a Lua script is syntactically correct without executing
+// it
 func (e *LuaEnv) Validate(step *api.Step, script string) error {
 	names := step.SortedArgNames()
 	_, err := e.compile(script, names)
 	return err
 }
 
+// ExecuteScript runs a compiled Lua script with the provided inputs and
+// returns the output arguments
 func (e *LuaEnv) ExecuteScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
@@ -118,6 +132,8 @@ func (e *LuaEnv) ExecuteScript(
 	return executeLuaScript(e, script, inputs)
 }
 
+// EvaluatePredicate executes a compiled Lua predicate with the provided inputs
+// and returns the boolean result
 func (e *LuaEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {

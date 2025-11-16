@@ -19,6 +19,7 @@ import (
 )
 
 type (
+	// Engine is the core workflow execution engine
 	Engine struct {
 		stepClient   client.Client
 		ctx          context.Context
@@ -33,10 +34,19 @@ type (
 		handler      timebox.Handler
 	}
 
-	EventConsumer      = topic.Consumer[*timebox.Event]
-	Executor           = timebox.Executor[*api.EngineState]
-	Aggregator         = timebox.Aggregator[*api.EngineState]
-	WorkflowExecutor   = timebox.Executor[*api.WorkflowState]
+	// EventConsumer consumes events from the event hub
+	EventConsumer = topic.Consumer[*timebox.Event]
+
+	// Executor manages engine state persistence and event sourcing
+	Executor = timebox.Executor[*api.EngineState]
+
+	// Aggregator aggregates engine state from events
+	Aggregator = timebox.Aggregator[*api.EngineState]
+
+	// WorkflowExecutor manages workflow state persistence and event sourcing
+	WorkflowExecutor = timebox.Executor[*api.WorkflowState]
+
+	// WorkflowAggregator aggregates workflow state from events
 	WorkflowAggregator = timebox.Aggregator[*api.WorkflowState]
 )
 
@@ -53,6 +63,8 @@ var (
 	ErrAttributeAlreadySet  = errors.New("attribute already set")
 )
 
+// New creates a new workflow engine instance with the specified stores,
+// client, event hub, and configuration
 func New(
 	engine, workflow *timebox.Store, client client.Client, hub timebox.EventHub,
 	cfg *config.Config,
@@ -88,6 +100,7 @@ func (e *Engine) createEventHandler() timebox.Handler {
 	})
 }
 
+// Start begins processing workflows and events
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
 
@@ -103,6 +116,7 @@ func (e *Engine) Start() {
 	go e.retryLoop()
 }
 
+// Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
 	e.cancel()
 	defer e.consumer.Close()
@@ -123,6 +137,8 @@ func (e *Engine) Stop() error {
 	}
 }
 
+// StartWorkflow begins a new workflow execution with the given plan and
+// initial state
 func (e *Engine) StartWorkflow(
 	ctx context.Context, flowID timebox.ID, plan *api.ExecutionPlan,
 	initState api.Args, meta api.Metadata,
@@ -155,6 +171,7 @@ func (e *Engine) StartWorkflow(
 	return err
 }
 
+// UnregisterStep removes a step from the engine registry
 func (e *Engine) UnregisterStep(ctx context.Context, stepID timebox.ID) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
 		return util.Raise(ag, api.EventTypeStepUnregistered,
@@ -166,6 +183,8 @@ func (e *Engine) UnregisterStep(ctx context.Context, stepID timebox.ID) error {
 	return err
 }
 
+// GetEngineState retrieves the current engine state including registered steps
+// and active workflows
 func (e *Engine) GetEngineState(ctx context.Context) (*api.EngineState, error) {
 	return e.engineExec.Exec(ctx, events.EngineID,
 		func(st *api.EngineState, ag *Aggregator) error {
@@ -174,6 +193,7 @@ func (e *Engine) GetEngineState(ctx context.Context) (*api.EngineState, error) {
 	)
 }
 
+// ListSteps returns all currently registered steps in the engine
 func (e *Engine) ListSteps(ctx context.Context) ([]*api.Step, error) {
 	engState, err := e.GetEngineState(ctx)
 	if err != nil {

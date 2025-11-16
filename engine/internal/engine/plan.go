@@ -22,6 +22,8 @@ var (
 	ErrNoGoals = errors.New("at least one goal step is required")
 )
 
+// CreateExecutionPlan builds an execution plan for the given goal steps,
+// resolving dependencies and determining required inputs
 func (e *Engine) CreateExecutionPlan(
 	engState *api.EngineState, goalIDs []timebox.ID, initState api.Args,
 ) (*api.ExecutionPlan, error) {

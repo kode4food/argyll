@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// Config holds configuration settings for the workflow engine
 type Config struct {
 	APIHost            string
 	WebhookBaseURL     string
@@ -64,6 +65,8 @@ var (
 	ErrInvalidMaxValue     = errors.New("max state value size must be positive")
 )
 
+// NewDefaultConfig creates a configuration with sensible defaults for all
+// engine settings, stores, and retry behavior
 func NewDefaultConfig() *Config {
 	return &Config{
 		APIPort:        DefaultAPIPort,
@@ -173,6 +176,8 @@ func (c *Config) Validate() error {
 	return nil
 }
 
+// LoadStoreConfigFromEnv loads Redis store configuration from environment
+// variables with the given prefix (e.g., "ENGINE" or "WORKFLOW")
 func LoadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
 	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
 		s.Addr = addr

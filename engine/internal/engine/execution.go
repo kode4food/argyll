@@ -16,6 +16,7 @@ import (
 )
 
 type (
+	// ExecContext holds the context for a single step execution
 	ExecContext struct {
 		start  time.Time
 		engine *Engine
@@ -25,6 +26,7 @@ type (
 		stepID timebox.ID
 	}
 
+	// MultiArgs maps attribute names to value arrays for parallel execution
 	MultiArgs map[api.Name][]any
 )
 
@@ -34,6 +36,8 @@ var (
 	ErrUnsupportedStepType = errors.New("unsupported step type")
 )
 
+// EnqueueStepResult completes a step execution with the provided outputs and
+// sets all output attributes in the workflow state
 func (e *Engine) EnqueueStepResult(
 	flowID, stepID timebox.ID, outputs api.Args, dur int64,
 ) {
@@ -61,6 +65,8 @@ func (e *Engine) executeStep(ctx context.Context, flowID, stepID timebox.ID) {
 	stepCtx.execute(ctx)
 }
 
+// PrepareStepExecution validates and prepares a step for execution, returning
+// an execution context or nil if preparation fails
 func (e *Engine) PrepareStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID,
 ) *ExecContext {

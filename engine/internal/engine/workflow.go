@@ -21,6 +21,7 @@ var workflowTransitions = util.StateTransitions[api.WorkflowStatus]{
 	api.WorkflowFailed:    {},
 }
 
+// GetWorkflowState retrieves the current state of a workflow by its ID
 func (e *Engine) GetWorkflowState(
 	ctx context.Context, flowID timebox.ID,
 ) (*api.WorkflowState, error) {
@@ -40,6 +41,8 @@ func (e *Engine) GetWorkflowState(
 	return state, nil
 }
 
+// CompleteWorkflow marks a workflow as successfully completed with the given
+// result outputs
 func (e *Engine) CompleteWorkflow(
 	ctx context.Context, flowID timebox.ID, result api.Args,
 ) error {
@@ -56,6 +59,7 @@ func (e *Engine) CompleteWorkflow(
 	return err
 }
 
+// FailWorkflow marks a workflow as failed with the specified error message
 func (e *Engine) FailWorkflow(
 	ctx context.Context, flowID timebox.ID, errMsg string,
 ) error {
@@ -72,6 +76,8 @@ func (e *Engine) FailWorkflow(
 	return err
 }
 
+// StartWork begins execution of a work item for a step with the given token
+// and input arguments
 func (e *Engine) StartWork(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	inputs api.Args,
@@ -91,6 +97,8 @@ func (e *Engine) StartWork(
 	return err
 }
 
+// CompleteWork marks a work item as successfully completed with the given
+// output values
 func (e *Engine) CompleteWork(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	outputs api.Args,
@@ -110,6 +118,7 @@ func (e *Engine) CompleteWork(
 	return err
 }
 
+// FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	errMsg string,
@@ -129,6 +138,8 @@ func (e *Engine) FailWork(
 	return err
 }
 
+// SetAttribute sets a named attribute value in the workflow state, returning
+// an error if the attribute is already set
 func (e *Engine) SetAttribute(
 	ctx context.Context, flowID, stepID timebox.ID, attr api.Name, value any,
 ) error {
@@ -151,6 +162,8 @@ func (e *Engine) SetAttribute(
 	return err
 }
 
+// GetAttribute retrieves a specific attribute value from the workflow state,
+// returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
 	ctx context.Context, flowID timebox.ID, attr api.Name,
 ) (any, bool, error) {
@@ -165,6 +178,8 @@ func (e *Engine) GetAttribute(
 	return nil, false, nil
 }
 
+// GetAttributes retrieves all attributes from the workflow state as a map of
+// names to values
 func (e *Engine) GetAttributes(
 	ctx context.Context, flowID timebox.ID,
 ) (api.Args, error) {
@@ -176,6 +191,8 @@ func (e *Engine) GetAttributes(
 	return flow.GetAttributeArgs(), nil
 }
 
+// GetWorkflowEvents retrieves all events for a workflow starting from the
+// specified sequence number
 func (e *Engine) GetWorkflowEvents(
 	ctx context.Context, flowID timebox.ID, fromSeq int64,
 ) ([]*timebox.Event, error) {
@@ -183,6 +200,7 @@ func (e *Engine) GetWorkflowEvents(
 	return e.workflowExec.GetStore().GetEvents(ctx, id, fromSeq)
 }
 
+// ListWorkflows returns summary information for all workflows in the system
 func (e *Engine) ListWorkflows(
 	ctx context.Context,
 ) ([]*api.WorkflowDigest, error) {
@@ -312,6 +330,8 @@ func (e *Engine) maybeSkipStep(
 	}
 }
 
+// IsWorkflowFailed determines if a workflow has failed by checking whether any
+// of its goal steps cannot be completed
 func (e *Engine) IsWorkflowFailed(flow *api.WorkflowState) bool {
 	for _, goalID := range flow.Plan.Goals {
 		if !e.canStepComplete(goalID, flow) {
@@ -362,6 +382,8 @@ func (e *Engine) completeWorkflow(
 	}
 }
 
+// HasInputProvider checks if a required attribute has at least one step that
+// can provide it in the workflow execution plan
 func (e *Engine) HasInputProvider(name api.Name, flow *api.WorkflowState) bool {
 	deps := flow.Plan.Attributes[name]
 	if deps == nil {
@@ -384,6 +406,8 @@ func workflowKey(flowID timebox.ID) timebox.AggregateID {
 	return timebox.NewAggregateID("workflow", flowID)
 }
 
+// GetActiveWorkflow retrieves a workflow if it is currently active, returning
+// nil if the workflow is in a terminal state or not found
 func (e *Engine) GetActiveWorkflow(
 	flowID timebox.ID,
 ) (*api.WorkflowState, bool) {

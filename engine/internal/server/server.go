@@ -16,6 +16,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// Server implements the HTTP API server for the workflow engine
 type Server struct {
 	engine     *engine.Engine
 	config     *config.Config
@@ -25,6 +26,8 @@ type Server struct {
 
 var ErrGetEngineState = errors.New("failed to get engine state")
 
+// NewServer creates a new HTTP API server with the specified engine, config,
+// event hub, and step client
 func NewServer(
 	eng *engine.Engine, cfg *config.Config, hub timebox.EventHub,
 	client client.Client,

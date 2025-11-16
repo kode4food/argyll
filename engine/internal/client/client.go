@@ -15,12 +15,14 @@ import (
 )
 
 type (
+	// Client defines the interface for invoking step handlers
 	Client interface {
 		Invoke(
 			context.Context, *api.Step, api.Args, api.Metadata,
 		) (api.Args, error)
 	}
 
+	// HTTPClient implements Client using HTTP requests
 	HTTPClient struct {
 		httpClient *http.Client
 		timeout    time.Duration
@@ -35,6 +37,7 @@ var (
 
 var _ Client = (*HTTPClient)(nil)
 
+// NewHTTPClient creates a new HTTP client with the specified request timeout
 func NewHTTPClient(timeout time.Duration) *HTTPClient {
 	return &HTTPClient{
 		httpClient: &http.Client{

@@ -20,6 +20,8 @@ var (
 	ErrCircularDependency = errors.New("circular dependency detected")
 )
 
+// RegisterStep registers a new step with the engine after validating its
+// configuration and checking for conflicts
 func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
 	if err := e.validateScriptStep(step); err != nil {
 		return err
@@ -51,6 +53,8 @@ func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
 	return nil
 }
 
+// UpdateStep updates an existing step registration with new configuration
+// after validation
 func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
 	if err := e.validateScriptStep(step); err != nil {
 		return err
@@ -79,6 +83,8 @@ func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
 	return nil
 }
 
+// UpdateStepHealth updates the health status of a registered step, used
+// primarily for tracking HTTP service availability and script errors
 func (e *Engine) UpdateStepHealth(
 	ctx context.Context, stepID timebox.ID, health api.HealthStatus,
 	errMsg string,

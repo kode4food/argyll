@@ -30,6 +30,8 @@ type (
 
 const DefaultRetryInterval = 100 * time.Millisecond
 
+// New creates a new test assertion wrapper with both assert and require
+// from testify plus Spuds-specific helpers
 func New(t *testing.T) *Wrapper {
 	return &Wrapper{
 		T:          t,

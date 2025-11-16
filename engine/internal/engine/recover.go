@@ -31,6 +31,8 @@ var backoffCalculators = map[string]backoffCalculator{
 
 // Retry logic
 
+// ShouldRetry determines if a failed work item should be retried based on the
+// error type and configured retry limits
 func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
 	if !isRetryableError(workItem.Error) {
 		return false
@@ -68,6 +70,8 @@ func isRetryableError(errorStr string) bool {
 	return true
 }
 
+// CalculateNextRetry calculates the next retry time using the configured
+// backoff strategy (fixed, linear, or exponential)
 func (e *Engine) CalculateNextRetry(
 	config *api.WorkConfig, retryCount int,
 ) time.Time {
@@ -89,6 +93,8 @@ func (e *Engine) CalculateNextRetry(
 	return time.Now().Add(time.Duration(delayMs) * time.Millisecond)
 }
 
+// ScheduleRetry schedules a failed work item for retry at a calculated future
+// time based on the backoff configuration
 func (e *Engine) ScheduleRetry(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	errMsg string,
@@ -146,6 +152,8 @@ func (e *Engine) ScheduleRetry(
 
 // Recovery orchestration
 
+// RecoverWorkflows initiates recovery for all active workflows during engine
+// startup
 func (e *Engine) RecoverWorkflows(ctx context.Context) error {
 	engineState, err := e.GetEngineState(ctx)
 	if err != nil {
@@ -172,6 +180,8 @@ func (e *Engine) RecoverWorkflows(ctx context.Context) error {
 	return nil
 }
 
+// RecoverWorkflow resumes execution of a specific workflow by retrying any
+// pending work items that are ready for retry
 func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 	flow, err := e.GetWorkflowState(ctx, flowID)
 	if err != nil {
@@ -221,6 +231,8 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 	return nil
 }
 
+// FindRetrySteps identifies all steps in a workflow that have work items
+// scheduled for retry
 func (e *Engine) FindRetrySteps(state *api.WorkflowState) util.Set[timebox.ID] {
 	retriableSteps := util.Set[timebox.ID]{}
 

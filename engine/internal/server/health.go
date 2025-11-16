@@ -17,6 +17,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// HealthChecker monitors the health of registered step services
 type HealthChecker struct {
 	engine      *engine.Engine
 	eventHub    timebox.EventHub
@@ -35,6 +36,8 @@ const (
 	httpErrorThreshold  = 400
 )
 
+// NewHealthChecker creates a health checker that periodically monitors HTTP
+// step service availability and updates their health status
 func NewHealthChecker(eng *engine.Engine, hub timebox.EventHub) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &HealthChecker{

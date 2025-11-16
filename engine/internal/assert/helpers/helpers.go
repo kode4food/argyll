@@ -36,7 +36,8 @@ type (
 	}
 )
 
-// NewTestStep creates a basic step for testing
+// NewTestStep creates a basic HTTP step for testing with required, optional,
+// and output attributes
 func NewTestStep() *api.Step {
 	return &api.Step{
 		ID:   timebox.ID("test-step-" + uuid.New().String()[:8]),
@@ -64,7 +65,8 @@ func NewTestStep() *api.Step {
 	}
 }
 
-// NewTestStepWithArgs creates a step with specific arguments
+// NewTestStepWithArgs creates an HTTP step with the specified required and
+// optional input arguments
 func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 	step := NewTestStep()
 
@@ -86,7 +88,8 @@ func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 	return step
 }
 
-// NewSimpleStep creates a minimal HTTP step with specific ID
+// NewSimpleStep creates a minimal HTTP step with the specified ID and no
+// attributes
 func NewSimpleStep(id timebox.ID) *api.Step {
 	return &api.Step{
 		ID:         id,
@@ -100,7 +103,8 @@ func NewSimpleStep(id timebox.ID) *api.Step {
 	}
 }
 
-// NewStepWithOutputs creates an HTTP step with specific outputs
+// NewStepWithOutputs creates an HTTP step that produces the specified output
+// attributes
 func NewStepWithOutputs(id timebox.ID, outputs ...api.Name) *api.Step {
 	step := NewSimpleStep(id)
 	if step.Attributes == nil {
@@ -115,7 +119,8 @@ func NewStepWithOutputs(id timebox.ID, outputs ...api.Name) *api.Step {
 	return step
 }
 
-// NewScriptStep creates a script-based step
+// NewScriptStep creates a script-based step with the specified language, code,
+// and output attributes
 func NewScriptStep(
 	id timebox.ID, language, script string, outputs ...api.Name,
 ) *api.Step {
@@ -138,7 +143,8 @@ func NewScriptStep(
 	return step
 }
 
-// NewStepWithPredicate creates an HTTP step with a predicate
+// NewStepWithPredicate creates an HTTP step with a predicate script that
+// determines whether the step should execute
 func NewStepWithPredicate(
 	id timebox.ID, predicateLang, predicateScript string, outputs ...api.Name,
 ) *api.Step {
@@ -158,14 +164,16 @@ func NewStepWithPredicate(
 	return step
 }
 
-// NewTestConfig creates a basic configuration for testing
+// NewTestConfig creates a default configuration with debug logging enabled for
+// testing
 func NewTestConfig() *config.Config {
 	cfg := config.NewDefaultConfig()
 	cfg.LogLevel = "debug"
 	return cfg
 }
 
-// NewMockClient creates a new mock HTTP client for testing
+// NewMockClient creates a mock HTTP client that allows setting responses and
+// errors for specific step IDs
 func NewMockClient() *MockClient {
 	return &MockClient{
 		responses: map[timebox.ID]api.Args{},
@@ -174,7 +182,8 @@ func NewMockClient() *MockClient {
 	}
 }
 
-// NewTestEngine creates a test engine with miniredis backend
+// NewTestEngine creates a fully configured test engine environment with an
+// in-memory Redis backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
 	t.Helper()
 

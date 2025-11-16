@@ -13,6 +13,8 @@ const workflowPrefix = "workflow"
 
 var WorkflowAppliers = makeWorkflowAppliers()
 
+// NewWorkflowState creates an empty workflow state with initialized maps for
+// attributes and step executions
 func NewWorkflowState() *api.WorkflowState {
 	return &api.WorkflowState{
 		Attributes: map[api.Name]*api.AttributeValue{},
@@ -20,6 +22,7 @@ func NewWorkflowState() *api.WorkflowState {
 	}
 }
 
+// IsWorkflowEvent returns true if the event belongs to a workflow aggregate
 func IsWorkflowEvent(ev *timebox.Event) bool {
 	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == workflowPrefix
 }

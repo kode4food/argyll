@@ -18,6 +18,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+// AleEnv provides an Ale script execution environment
 type AleEnv struct {
 	env     *env.Environment
 	scripts sync.Map
@@ -34,6 +35,8 @@ var (
 	ErrAleCall            = errors.New("error calling procedure")
 )
 
+// NewAleEnv creates a new Ale script execution environment with the standard
+// library bootstrapped
 func NewAleEnv() *AleEnv {
 	e := env.NewEnvironment()
 	bootstrap.Into(e)
@@ -42,6 +45,8 @@ func NewAleEnv() *AleEnv {
 	}
 }
 
+// Compile compiles an Ale script with the given argument names, returning a
+// procedure or an error
 func (e *AleEnv) Compile(
 	step *api.Step, script string, argNames []string,
 ) (Compiled, error) {
@@ -62,11 +67,15 @@ func (e *AleEnv) Compile(
 	return proc, err
 }
 
+// CompileStepScript compiles the main script for a step, extracting and
+// ordering argument names automatically
 func (e *AleEnv) CompileStepScript(step *api.Step) (Compiled, error) {
 	names := step.SortedArgNames()
 	return e.compileScript(step.ID, scriptType, step.Script.Script, names)
 }
 
+// CompileStepPredicate compiles the predicate script for a step, which
+// determines if the step should execute
 func (e *AleEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
 	names := step.SortedArgNames()
 	return e.compileScript(
@@ -92,12 +101,16 @@ func (e *AleEnv) compileScript(
 	return proc, nil
 }
 
+// Validate checks if an Ale script is syntactically correct without executing
+// it
 func (e *AleEnv) Validate(step *api.Step, script string) error {
 	names := step.SortedArgNames()
 	_, err := e.compile(script, names)
 	return err
 }
 
+// ExecuteScript runs a compiled Ale procedure with the provided inputs and
+// returns the output arguments
 func (e *AleEnv) ExecuteScript(
 	c Compiled, step *api.Step, inputs api.Args,
 ) (api.Args, error) {
@@ -125,6 +138,8 @@ func (e *AleEnv) ExecuteScript(
 	return args, nil
 }
 
+// EvaluatePredicate executes a compiled Ale predicate with the provided inputs
+// and returns the boolean result
 func (e *AleEnv) EvaluatePredicate(
 	c Compiled, step *api.Step, inputs api.Args,
 ) (bool, error) {

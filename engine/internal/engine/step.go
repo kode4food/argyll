@@ -33,6 +33,8 @@ var (
 
 // Step state transition methods
 
+// StartStepExecution transitions a step to the active state and begins its
+// execution with the provided input arguments
 func (e *Engine) StartStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID, inputs api.Args,
 ) error {
@@ -47,6 +49,8 @@ func (e *Engine) StartStepExecution(
 	)
 }
 
+// CompleteStepExecution transitions a step to the completed state with the
+// provided output values and execution duration
 func (e *Engine) CompleteStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID, outputs api.Args, dur int64,
 ) error {
@@ -62,6 +66,8 @@ func (e *Engine) CompleteStepExecution(
 	)
 }
 
+// FailStepExecution transitions a step to the failed state with the specified
+// error message
 func (e *Engine) FailStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID, errMsg string,
 ) error {
@@ -76,6 +82,8 @@ func (e *Engine) FailStepExecution(
 	)
 }
 
+// SkipStepExecution transitions a step to the skipped state with the provided
+// reason for skipping
 func (e *Engine) SkipStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID, reason string,
 ) error {
@@ -155,6 +163,8 @@ func (e *Engine) canStepComplete(
 	return true
 }
 
+// StepProvidesInput checks if a step provides a specific named attribute
+// as output and can complete successfully
 func (e *Engine) StepProvidesInput(
 	step *api.Step, name api.Name, flow *api.WorkflowState,
 ) bool {
