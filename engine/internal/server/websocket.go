@@ -15,6 +15,7 @@ import (
 )
 
 type (
+	// Client represents a WebSocket client connection for event streaming
 	Client struct {
 		hub      timebox.EventHub
 		conn     *websocket.Conn
@@ -23,6 +24,7 @@ type (
 		replay   ReplayFunc
 	}
 
+	// ReplayFunc is a function that retrieves historical events for a workflow
 	ReplayFunc func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error)
 )
 

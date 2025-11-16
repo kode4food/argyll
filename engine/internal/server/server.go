@@ -24,6 +24,7 @@ type Server struct {
 	stepClient client.Client
 }
 
+// ErrGetEngineState is returned when the engine state cannot be retrieved
 var ErrGetEngineState = errors.New("failed to get engine state")
 
 // NewServer creates a new HTTP API server with the specified engine, config,
@@ -40,6 +41,7 @@ func NewServer(
 	}
 }
 
+// SetupRoutes configures and returns the HTTP router with all API endpoints
 func (s *Server) SetupRoutes() *gin.Engine {
 	router := gin.New()
 	router.Use(gin.Recovery())

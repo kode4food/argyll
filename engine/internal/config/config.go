@@ -107,6 +107,7 @@ func NewDefaultConfig() *Config {
 	}
 }
 
+// LoadFromEnv populates configuration values from environment variables
 func (c *Config) LoadFromEnv() {
 	LoadStoreConfigFromEnv(&c.EngineStore, "ENGINE")
 	LoadStoreConfigFromEnv(&c.WorkflowStore, "WORKFLOW")
@@ -152,6 +153,7 @@ func (c *Config) LoadFromEnv() {
 	}
 }
 
+// Validate checks that all configuration values are valid
 func (c *Config) Validate() error {
 	if c.APIPort <= 0 || c.APIPort > MaxTCPPort {
 		return fmt.Errorf("%w: %d", ErrInvalidAPIPort, c.APIPort)

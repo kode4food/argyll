@@ -346,6 +346,7 @@ func (e *Engine) getCompiledFromPlan(
 	return getter(info)
 }
 
+// GetCompiledPredicate retrieves the compiled predicate for a workflow step
 func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
 	return e.getCompiledFromPlan(flowID, stepID,
 		func(info *api.StepInfo) (any, error) {
@@ -357,6 +358,7 @@ func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
 	)
 }
 
+// GetCompiledScript retrieves the compiled script for a step in a workflow
 func (e *Engine) GetCompiledScript(flowID, stepID timebox.ID) (any, error) {
 	return e.getCompiledFromPlan(
 		flowID, stepID, func(info *api.StepInfo,

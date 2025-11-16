@@ -53,17 +53,22 @@ func NewHealthChecker(eng *engine.Engine, hub timebox.EventHub) *HealthChecker {
 	}
 }
 
+// Start begins the health check loop and event processing
 func (h *HealthChecker) Start() {
 	go h.healthCheckLoop()
 	go h.eventLoop()
 }
 
+// Stop gracefully shuts down the health checker
 func (h *HealthChecker) Stop() {
 	h.cancel()
 	h.consumer.Close()
 }
 
-func (h *HealthChecker) GetStepHealth(stepID timebox.ID) (*api.HealthState, error) {
+// GetStepHealth retrieves the current health status for a registered step
+func (h *HealthChecker) GetStepHealth(
+	stepID timebox.ID,
+) (*api.HealthState, error) {
 	state, err := h.engine.GetEngineState(context.Background())
 	if err != nil {
 		return nil, err

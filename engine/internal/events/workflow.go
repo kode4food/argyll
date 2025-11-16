@@ -11,6 +11,7 @@ import (
 
 const workflowPrefix = "workflow"
 
+// WorkflowAppliers contains the event applier functions for workflow events
 var WorkflowAppliers = makeWorkflowAppliers()
 
 // NewWorkflowState creates an empty workflow state with initialized maps for

@@ -117,6 +117,7 @@ const (
 	HealthUnknown   HealthStatus = "unknown"
 )
 
+// SetStep returns a new EngineState with the specified step registered
 func (st *EngineState) SetStep(id timebox.ID, step *Step) *EngineState {
 	res := *st
 	res.Steps = maps.Clone(st.Steps)
@@ -124,6 +125,7 @@ func (st *EngineState) SetStep(id timebox.ID, step *Step) *EngineState {
 	return &res
 }
 
+// DeleteStep returns a new EngineState with the specified step removed
 func (st *EngineState) DeleteStep(i timebox.ID) *EngineState {
 	res := *st
 	res.Steps = maps.Clone(st.Steps)
@@ -131,6 +133,7 @@ func (st *EngineState) DeleteStep(i timebox.ID) *EngineState {
 	return &res
 }
 
+// SetHealth returns a new EngineState with updated health for a given step
 func (st *EngineState) SetHealth(id timebox.ID, h *HealthState) *EngineState {
 	res := *st
 	res.Health = maps.Clone(st.Health)
@@ -138,12 +141,14 @@ func (st *EngineState) SetHealth(id timebox.ID, h *HealthState) *EngineState {
 	return &res
 }
 
+// SetLastUpdated returns a new EngineState with the last updated timestamp set
 func (st *EngineState) SetLastUpdated(t time.Time) *EngineState {
 	res := *st
 	res.LastUpdated = t
 	return &res
 }
 
+// SetActiveWorkflow returns a new EngineState with the workflow as active
 func (st *EngineState) SetActiveWorkflow(
 	id timebox.ID, info *ActiveWorkflowInfo,
 ) *EngineState {
@@ -153,6 +158,7 @@ func (st *EngineState) SetActiveWorkflow(
 	return &res
 }
 
+// DeleteActiveWorkflow returns a new EngineState with the workflow inactive
 func (st *EngineState) DeleteActiveWorkflow(id timebox.ID) *EngineState {
 	res := *st
 	res.ActiveWorkflows = maps.Clone(st.ActiveWorkflows)
@@ -160,12 +166,14 @@ func (st *EngineState) DeleteActiveWorkflow(id timebox.ID) *EngineState {
 	return &res
 }
 
+// SetStatus returns a new WorkflowState with the updated status
 func (st *WorkflowState) SetStatus(s WorkflowStatus) *WorkflowState {
 	res := *st
 	res.Status = s
 	return &res
 }
 
+// SetAttribute returns a new WorkflowState with the specified attribute set
 func (st *WorkflowState) SetAttribute(
 	name Name, attr *AttributeValue,
 ) *WorkflowState {
@@ -175,6 +183,7 @@ func (st *WorkflowState) SetAttribute(
 	return &res
 }
 
+// SetExecution returns a new WorkflowState with updated execution for a step
 func (st *WorkflowState) SetExecution(
 	id timebox.ID, ex *ExecutionState,
 ) *WorkflowState {
@@ -184,66 +193,77 @@ func (st *WorkflowState) SetExecution(
 	return &res
 }
 
+// SetCompletedAt returns a new WorkflowState with the completion timestamp set
 func (st *WorkflowState) SetCompletedAt(t time.Time) *WorkflowState {
 	res := *st
 	res.CompletedAt = t
 	return &res
 }
 
+// SetError returns a new WorkflowState with the error message set
 func (st *WorkflowState) SetError(err string) *WorkflowState {
 	res := *st
 	res.Error = err
 	return &res
 }
 
+// SetLastUpdated returns a new WorkflowState with last updated time set
 func (st *WorkflowState) SetLastUpdated(t time.Time) *WorkflowState {
 	res := *st
 	res.LastUpdated = t
 	return &res
 }
 
+// SetStatus returns a new ExecutionState with the updated status
 func (st *ExecutionState) SetStatus(s StepStatus) *ExecutionState {
 	res := *st
 	res.Status = s
 	return &res
 }
 
+// SetStartedAt returns a new ExecutionState with the start timestamp set
 func (st *ExecutionState) SetStartedAt(t time.Time) *ExecutionState {
 	res := *st
 	res.StartedAt = t
 	return &res
 }
 
+// SetCompletedAt returns a new ExecutionState with completion time set
 func (st *ExecutionState) SetCompletedAt(t time.Time) *ExecutionState {
 	res := *st
 	res.CompletedAt = t
 	return &res
 }
 
+// SetInputs returns a new ExecutionState with the input arguments set
 func (st *ExecutionState) SetInputs(inputs Args) *ExecutionState {
 	res := *st
 	res.Inputs = maps.Clone(inputs)
 	return &res
 }
 
+// SetOutputs returns a new ExecutionState with the output arguments set
 func (st *ExecutionState) SetOutputs(outputs Args) *ExecutionState {
 	res := *st
 	res.Outputs = maps.Clone(outputs)
 	return &res
 }
 
+// SetDuration returns a new ExecutionState with the execution duration set
 func (st *ExecutionState) SetDuration(dur int64) *ExecutionState {
 	res := *st
 	res.Duration = dur
 	return &res
 }
 
+// SetError returns a new ExecutionState with the error message set
 func (st *ExecutionState) SetError(err string) *ExecutionState {
 	res := *st
 	res.Error = err
 	return &res
 }
 
+// SetWorkItem returns a new ExecutionState with the work item state updated
 func (st *ExecutionState) SetWorkItem(
 	token Token, item *WorkState,
 ) *ExecutionState {
@@ -256,36 +276,42 @@ func (st *ExecutionState) SetWorkItem(
 	return &res
 }
 
+// SetStatus returns a new HealthState with the updated status
 func (st *HealthState) SetStatus(s HealthStatus) *HealthState {
 	res := *st
 	res.Status = s
 	return &res
 }
 
+// SetError returns a new HealthState with the error message set
 func (st *HealthState) SetError(err string) *HealthState {
 	res := *st
 	res.Error = err
 	return &res
 }
 
+// SetStatus returns a new WorkState with the updated status
 func (st *WorkState) SetStatus(s WorkStatus) *WorkState {
 	res := *st
 	res.Status = s
 	return &res
 }
 
+// SetRetryCount returns a new WorkState with the retry count set
 func (st *WorkState) SetRetryCount(count int) *WorkState {
 	res := *st
 	res.RetryCount = count
 	return &res
 }
 
+// SetNextRetryAt returns a new WorkState with the next retry time set
 func (st *WorkState) SetNextRetryAt(t time.Time) *WorkState {
 	res := *st
 	res.NextRetryAt = t
 	return &res
 }
 
+// SetLastError returns a new WorkState with the last error message set
 func (st *WorkState) SetLastError(err string) *WorkState {
 	res := *st
 	res.LastError = err

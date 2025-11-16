@@ -248,6 +248,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	}
 }
 
+// Invoke records the invocation and returns the configured response or error
 func (m *MockClient) Invoke(
 	_ context.Context, step *api.Step, _ api.Args, _ api.Metadata,
 ) (api.Args, error) {
@@ -267,18 +268,21 @@ func (m *MockClient) Invoke(
 	return api.Args{}, nil
 }
 
+// SetResponse configures the mock to return specific outputs for a step
 func (m *MockClient) SetResponse(stepID timebox.ID, outputs api.Args) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.responses[stepID] = outputs
 }
 
+// SetError configures the mock to return an error for a step
 func (m *MockClient) SetError(stepID timebox.ID, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.errors[stepID] = err
 }
 
+// GetInvocations returns the list of step IDs that were invoked
 func (m *MockClient) GetInvocations() []timebox.ID {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -287,6 +291,7 @@ func (m *MockClient) GetInvocations() []timebox.ID {
 	return result
 }
 
+// WasInvoked returns whether a specific step was invoked
 func (m *MockClient) WasInvoked(stepID timebox.ID) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()

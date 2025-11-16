@@ -28,6 +28,7 @@ type (
 	}
 )
 
+// DefaultRetryInterval is the default polling interval for Eventually checks
 const DefaultRetryInterval = 100 * time.Millisecond
 
 // New creates a new test assertion wrapper with both assert and require
