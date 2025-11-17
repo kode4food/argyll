@@ -46,10 +46,7 @@ func (f *Workflow) WithGoal(goal timebox.ID) *Workflow {
 // WithInitialState sets the initial state for the workflow
 func (f *Workflow) WithInitialState(init api.Args) *Workflow {
 	res := *f
-	res.init = make(api.Args, len(init))
-	for k, v := range init {
-		res.init[k] = v
-	}
+	res.init = init
 	return &res
 }
 

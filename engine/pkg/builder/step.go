@@ -47,72 +47,70 @@ func (c *Client) NewStep(name api.Name) *Step {
 	}
 }
 
-func (s *Step) clone() *Step {
-	res := *s
-	res.attributes = maps.Clone(s.attributes)
-	return &res
-}
-
 // WithID sets the step ID, overriding the auto-generated ID from the step name
 func (s *Step) WithID(id timebox.ID) *Step {
-	res := s.clone()
+	res := *s
 	res.id = id
-	return res
+	return &res
 }
 
 // Required declares a required input attribute for the step
 func (s *Step) Required(name api.Name, argType api.AttributeType) *Step {
-	res := s.clone()
+	res := *s
+	res.attributes = maps.Clone(res.attributes)
 	res.attributes[name] = &api.AttributeSpec{
 		Role: api.RoleRequired,
 		Type: argType,
 	}
-	return res
+	return &res
 }
 
 // Optional declares an optional input attribute with a default value
 func (s *Step) Optional(
 	name api.Name, argType api.AttributeType, defaultValue string,
 ) *Step {
-	res := s.clone()
+	res := *s
+	res.attributes = maps.Clone(res.attributes)
 	res.attributes[name] = &api.AttributeSpec{
 		Role:    api.RoleOptional,
 		Type:    argType,
 		Default: defaultValue,
 	}
-	return res
+	return &res
 }
 
 // Output declares an output attribute that the step will produce
 func (s *Step) Output(name api.Name, argType api.AttributeType) *Step {
-	res := s.clone()
+	res := *s
+	res.attributes = maps.Clone(res.attributes)
 	res.attributes[name] = &api.AttributeSpec{
 		Role: api.RoleOutput,
 		Type: argType,
 	}
-	return res
+	return &res
 }
 
 // WithForEach marks an attribute as supporting multi work items (arrays)
 func (s *Step) WithForEach(name api.Name) *Step {
-	res := s.clone()
+	res := *s
+	res.attributes = maps.Clone(res.attributes)
 	if attr, ok := res.attributes[name]; ok {
 		newAttr := *attr
 		newAttr.ForEach = true
 		res.attributes[name] = &newAttr
 	}
-	return res
+	return &res
 }
 
 // WithPredicate sets a predicate script that determines if the step should
 // execute
 func (s *Step) WithPredicate(language, script string) *Step {
-	res := s.clone()
+	res := *s
 	res.predicate = &api.ScriptConfig{
 		Language: language,
 		Script:   script,
 	}
-	return res
+	return &res
 }
 
 // WithAlePredicate sets an Ale language predicate script
@@ -127,14 +125,14 @@ func (s *Step) WithLuaPredicate(script string) *Step {
 
 // WithVersion sets the step version
 func (s *Step) WithVersion(version string) *Step {
-	res := s.clone()
+	res := *s
 	res.version = version
-	return res
+	return &res
 }
 
 // WithEndpoint sets the HTTP endpoint where the step handler is listening
 func (s *Step) WithEndpoint(endpoint string) *Step {
-	res := s.clone()
+	res := *s
 	if res.http == nil {
 		res.http = &api.HTTPConfig{}
 	} else {
@@ -145,35 +143,35 @@ func (s *Step) WithEndpoint(endpoint string) *Step {
 	if res.stepType == "" {
 		res.stepType = api.StepTypeSync
 	}
-	return res
+	return &res
 }
 
 // WithScript sets an Ale script to execute for this step
 func (s *Step) WithScript(script string) *Step {
-	res := s.clone()
+	res := *s
 	res.script = &api.ScriptConfig{
 		Language: api.ScriptLangAle,
 		Script:   script,
 	}
 	res.stepType = api.StepTypeScript
-	return res
+	return &res
 }
 
 // WithScriptLanguage sets a script with a specific language to execute for
 // this step
 func (s *Step) WithScriptLanguage(lang, script string) *Step {
-	res := s.clone()
+	res := *s
 	res.script = &api.ScriptConfig{
 		Language: lang,
 		Script:   script,
 	}
 	res.stepType = api.StepTypeScript
-	return res
+	return &res
 }
 
 // WithHealthCheck sets the HTTP health check endpoint for the step
 func (s *Step) WithHealthCheck(endpoint string) *Step {
-	res := s.clone()
+	res := *s
 	if res.http == nil {
 		res.http = &api.HTTPConfig{}
 	} else {
@@ -181,42 +179,42 @@ func (s *Step) WithHealthCheck(endpoint string) *Step {
 		res.http = &httpCopy
 	}
 	res.http.HealthCheck = endpoint
-	return res
+	return &res
 }
 
 // WithTimeout sets the execution timeout for the step in milliseconds
 func (s *Step) WithTimeout(timeout int64) *Step {
-	res := s.clone()
+	res := *s
 	res.timeout = timeout
-	return res
+	return &res
 }
 
 // WithType sets the step execution type (sync, async, or script)
 func (s *Step) WithType(stepType api.StepType) *Step {
-	res := s.clone()
+	res := *s
 	res.stepType = stepType
-	return res
+	return &res
 }
 
 // WithAsyncExecution configures the step to execute asynchronously
 func (s *Step) WithAsyncExecution() *Step {
-	res := s.clone()
+	res := *s
 	res.stepType = api.StepTypeAsync
-	return res
+	return &res
 }
 
 // WithSyncExecution configures the step to execute synchronously
 func (s *Step) WithSyncExecution() *Step {
-	res := s.clone()
+	res := *s
 	res.stepType = api.StepTypeSync
-	return res
+	return &res
 }
 
 // WithScriptExecution configures the step to execute via a script
 func (s *Step) WithScriptExecution() *Step {
-	res := s.clone()
+	res := *s
 	res.stepType = api.StepTypeScript
-	return res
+	return &res
 }
 
 // Build validates and creates the final Step API object
@@ -263,9 +261,9 @@ func (s *Step) Register(ctx context.Context) error {
 // Update marks this step as modified, so the next Start() will update the
 // existing step registration rather than creating a new one
 func (s *Step) Update() *Step {
-	res := s.clone()
+	res := *s
 	res.dirty = true
-	return res
+	return &res
 }
 
 // Start builds the step, registers it with the engine, creates an HTTP server,

@@ -138,7 +138,7 @@ func TestEnqueueStepResult(t *testing.T) {
 			return false
 		}
 
-		_, hasAttr := workflow.Attributes[api.Name("result")]
+		_, hasAttr := workflow.Attributes["result"]
 		return hasAttr
 	}, 5*time.Second, 100*time.Millisecond)
 

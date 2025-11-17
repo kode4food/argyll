@@ -292,7 +292,7 @@ func (e *ExecContext) executeWorkItem(ctx context.Context, inputs api.Args) {
 		return
 	}
 
-	outputs, err := e.executeItemWork(ctx, inputs, token)
+	outputs, err := e.performWork(ctx, inputs, token)
 
 	if err != nil {
 		e.handleWorkItemFailure(ctx, token, err)
@@ -335,20 +335,20 @@ func (e *ExecContext) handleWorkItemFailure(
 	}
 }
 
-func (e *ExecContext) executeItemWork(
+func (e *ExecContext) performWork(
 	ctx context.Context, inputs api.Args, token api.Token,
 ) (api.Args, error) {
 	switch e.step.Type {
 	case api.StepTypeScript:
-		return e.executeScriptItem(ctx, inputs)
+		return e.performScriptWork(ctx, inputs)
 	case api.StepTypeSync, api.StepTypeAsync:
-		return e.executeHTTPItem(ctx, inputs, token)
+		return e.performHTTPWork(ctx, inputs, token)
 	default:
 		return nil, fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type)
 	}
 }
 
-func (e *ExecContext) executeScriptItem(
+func (e *ExecContext) performScriptWork(
 	_ context.Context, inputs api.Args,
 ) (api.Args, error) {
 	c, err := e.engine.GetCompiledScript(e.flowID, e.stepID)
@@ -360,10 +360,10 @@ func (e *ExecContext) executeScriptItem(
 		return nil, ErrScriptCompileNil
 	}
 
-	return e.getScriptOutputsWithInputs(c, inputs)
+	return e.executeScript(c, inputs)
 }
 
-func (e *ExecContext) executeHTTPItem(
+func (e *ExecContext) performHTTPWork(
 	ctx context.Context, inputs api.Args, token api.Token,
 ) (api.Args, error) {
 	metadata := e.buildHTTPMetadataWithToken(token)
@@ -387,7 +387,7 @@ func (e *ExecContext) buildHTTPMetadataWithToken(token api.Token) api.Metadata {
 	return metadata
 }
 
-func (e *ExecContext) getScriptOutputsWithInputs(
+func (e *ExecContext) executeScript(
 	c Compiled, inputs api.Args,
 ) (api.Args, error) {
 	language := api.ScriptLangAle
@@ -444,7 +444,7 @@ func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 		return nil
 	}
 
-	names, arrays := extractMultiArgsArrays(multiArgs)
+	names, arrays := extractMultiArgs(multiArgs)
 
 	var result []api.Args
 	var generate func(int, api.Args)
@@ -458,7 +458,7 @@ func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 
 		name := names[depth]
 		for _, val := range arrays[depth] {
-			next := cloneArgsWithValue(current, name, val)
+			next := current.Set(name, val)
 			generate(depth+1, next)
 		}
 	}
@@ -467,7 +467,7 @@ func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 	return result
 }
 
-func extractMultiArgsArrays(multiArgs MultiArgs) ([]api.Name, [][]any) {
+func extractMultiArgs(multiArgs MultiArgs) ([]api.Name, [][]any) {
 	var names []api.Name
 	var arrays [][]any
 	for name, arr := range multiArgs {
@@ -486,11 +486,4 @@ func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
 	}
 	maps.Copy(inputs, current)
 	return inputs
-}
-
-func cloneArgsWithValue(current api.Args, name api.Name, val any) api.Args {
-	next := api.Args{}
-	maps.Copy(next, current)
-	next[name] = val
-	return next
 }
