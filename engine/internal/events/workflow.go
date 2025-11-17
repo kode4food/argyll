@@ -2,7 +2,6 @@ package events
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/kode4food/timebox"
 
@@ -103,9 +102,6 @@ func stepStarted(
 ) *api.WorkflowState {
 	exec := &api.ExecutionState{
 		Status:    api.StepPending,
-		Inputs:    api.Args{},
-		Outputs:   api.Args{},
-		StartedAt: time.Time{},
 		WorkItems: map[api.Token]*api.WorkState{},
 	}
 
@@ -185,9 +181,6 @@ func createExecutions(p *api.ExecutionPlan) map[timebox.ID]*api.ExecutionState {
 	for stepID := range p.Steps {
 		exec[stepID] = &api.ExecutionState{
 			Status:    api.StepPending,
-			Inputs:    api.Args{},
-			Outputs:   api.Args{},
-			StartedAt: time.Time{},
 			WorkItems: map[api.Token]*api.WorkState{},
 		}
 	}
@@ -214,7 +207,6 @@ func workItemStarted(
 		Status:    api.WorkActive,
 		StartedAt: ev.Timestamp,
 		Inputs:    data.Inputs,
-		Outputs:   api.Args{},
 	}
 
 	return st.

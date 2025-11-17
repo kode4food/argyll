@@ -22,7 +22,6 @@ func (c *Client) NewWorkflow(id timebox.ID) *Workflow {
 		client: c,
 		id:     id,
 		goals:  []timebox.ID{},
-		init:   api.Args{},
 	}
 }
 

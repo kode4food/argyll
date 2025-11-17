@@ -83,7 +83,7 @@ func aggregateWorkItemOutputs(
 
 	switch len(completed) {
 	case 0:
-		return api.Args{}
+		return nil
 	case 1:
 		return completed[0].Outputs
 	default:

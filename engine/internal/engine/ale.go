@@ -101,8 +101,7 @@ func (e *AleEnv) compileScript(
 	return proc, nil
 }
 
-// Validate checks if an Ale script is syntactically correct without executing
-// it
+// Validate checks if an Ale script is syntactically correct without running it
 func (e *AleEnv) Validate(step *api.Step, script string) error {
 	names := step.SortedArgNames()
 	_, err := e.compile(script, names)
@@ -131,7 +130,7 @@ func (e *AleEnv) ExecuteScript(
 		return api.Args{"result": jsonValue}, nil
 	}
 
-	args := api.Args{}
+	args := make(api.Args, len(m))
 	for k, v := range m {
 		args[api.Name(k)] = v
 	}

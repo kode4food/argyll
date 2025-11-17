@@ -40,7 +40,6 @@ var (
 	ErrLuaBadCompiledType = errors.New("expected *CompiledLuaScript")
 	ErrLuaLoad            = errors.New("lua load error")
 	ErrLuaExecution       = errors.New("lua execution error")
-	ErrLuaMustReturnTable = errors.New("lua script must return a table")
 )
 
 var luaExclude = [...]string{
@@ -111,8 +110,7 @@ func (e *LuaEnv) compileScript(
 	return c, nil
 }
 
-// Validate checks if a Lua script is syntactically correct without executing
-// it
+// Validate checks if a Lua script is syntactically correct without running it
 func (e *LuaEnv) Validate(step *api.Step, script string) error {
 	names := step.SortedArgNames()
 	_, err := e.compile(script, names)
@@ -219,11 +217,13 @@ func executeLuaScript(
 		return nil, err
 	}
 
-	if !L.IsTable(-1) {
-		return nil, ErrLuaMustReturnTable
+	var result api.Args
+	if L.IsTable(-1) {
+		result = luaTableToMap(L, -1)
+	} else {
+		value := luaToGo(L, -1)
+		result = api.Args{"result": value}
 	}
-
-	result := luaTableToMap(L, -1)
 	L.Pop(1)
 
 	return result, nil

@@ -233,8 +233,7 @@ func TestEmptyOutputs(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
-	assert.NotNil(t, outputs)
-	assert.Empty(t, outputs)
+	assert.Nil(t, outputs)
 }
 
 func TestMultipleOutputs(t *testing.T) {

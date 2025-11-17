@@ -158,8 +158,5 @@ func (c *HTTPClient) parseResponse(
 		return nil, fmt.Errorf("%w: %s", ErrStepUnsuccessful, response.Error)
 	}
 
-	if response.Outputs == nil {
-		return api.Args{}, nil
-	}
 	return response.Outputs, nil
 }

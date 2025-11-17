@@ -463,7 +463,7 @@ func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 		}
 	}
 
-	generate(0, api.Args{})
+	generate(0, nil)
 	return result
 }
 

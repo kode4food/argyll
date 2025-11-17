@@ -165,7 +165,6 @@ func TestStart(t *testing.T) {
 	reqBody := api.CreateWorkflowRequest{
 		ID:    "test-workflow",
 		Goals: []timebox.ID{"wf-step"},
-		Init:  api.Args{},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -325,7 +324,6 @@ func TestStepNotFound(t *testing.T) {
 
 	result := api.StepResult{
 		Success: true,
-		Outputs: api.Args{},
 	}
 
 	body, _ := json.Marshal(result)
@@ -385,7 +383,6 @@ func TestInvalidToken(t *testing.T) {
 	// Try with wrong token
 	result := api.StepResult{
 		Success: true,
-		Outputs: api.Args{},
 	}
 
 	body, _ := json.Marshal(result)
@@ -1199,7 +1196,6 @@ func TestStartDuplicate(t *testing.T) {
 	reqBody := api.CreateWorkflowRequest{
 		ID:    "duplicate-workflow",
 		Goals: []timebox.ID{"dup-wf-step"},
-		Init:  api.Args{},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1223,7 +1219,6 @@ func TestStartStepNotFound(t *testing.T) {
 	reqBody := api.CreateWorkflowRequest{
 		ID:    "wf-no-step",
 		Goals: []timebox.ID{"nonexistent-step"},
-		Init:  api.Args{},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1303,7 +1298,6 @@ func TestWorkflowIDSanitization(t *testing.T) {
 			reqBody := api.CreateWorkflowRequest{
 				ID:    timebox.ID(tt.flowID),
 				Goals: []timebox.ID{"test-step"},
-				Init:  api.Args{},
 			}
 
 			body, _ := json.Marshal(reqBody)

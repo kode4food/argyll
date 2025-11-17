@@ -12,6 +12,9 @@ type (
 
 // Set creates a new Args with the specified name-value pair added
 func (a Args) Set(name Name, value any) Args {
+	if a == nil {
+		return Args{name: value}
+	}
 	res := maps.Clone(a)
 	res[name] = value
 	return res

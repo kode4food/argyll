@@ -128,7 +128,6 @@ var (
 func NewResult() *StepResult {
 	return &StepResult{
 		Success: true,
-		Outputs: Args{},
 	}
 }
 
@@ -324,6 +323,10 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 
 // WithOutput adds an output value to the step result
 func (sr *StepResult) WithOutput(name Name, value any) *StepResult {
+	if sr.Outputs == nil {
+		sr.Outputs = Args{name: value}
+		return sr
+	}
 	sr.Outputs[name] = value
 	return sr
 }

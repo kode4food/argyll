@@ -265,7 +265,7 @@ func (m *MockClient) Invoke(
 		return outputs, nil
 	}
 
-	return api.Args{}, nil
+	return nil, nil
 }
 
 // SetResponse configures the mock to return specific outputs for a step
