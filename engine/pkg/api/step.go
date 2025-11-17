@@ -233,50 +233,6 @@ func (s *Step) validateWorkConfig() error {
 	return nil
 }
 
-// GetAllInputArgs returns all input argument names (required and optional)
-func (s *Step) GetAllInputArgs() []Name {
-	var args []Name
-	for name, attr := range s.Attributes {
-		if attr.IsInput() {
-			args = append(args, name)
-		}
-	}
-	return args
-}
-
-// GetRequiredArgs returns all required argument names
-func (s *Step) GetRequiredArgs() []Name {
-	var args []Name
-	for name, attr := range s.Attributes {
-		if attr.IsRequired() {
-			args = append(args, name)
-		}
-	}
-	return args
-}
-
-// GetOptionalArgs returns all optional argument names
-func (s *Step) GetOptionalArgs() []Name {
-	var args []Name
-	for name, attr := range s.Attributes {
-		if attr.IsOptional() {
-			args = append(args, name)
-		}
-	}
-	return args
-}
-
-// GetOutputArgs returns all output argument names
-func (s *Step) GetOutputArgs() []Name {
-	var args []Name
-	for name, attr := range s.Attributes {
-		if attr.IsOutput() {
-			args = append(args, name)
-		}
-	}
-	return args
-}
-
 // IsOptionalArg returns true if the argument is optional
 func (s *Step) IsOptionalArg(argName Name) bool {
 	if attr, ok := s.Attributes[argName]; ok {
@@ -310,17 +266,24 @@ func (s *Step) MultiArgNames() []Name {
 	return names
 }
 
-// WithOutput adds an output value to the step result
-func (sr *StepResult) WithOutput(name Name, value any) *StepResult {
-	sr.Outputs[name] = value
-	return sr
+// GetAllInputArgs returns all input argument names (required and optional)
+func (s *Step) GetAllInputArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsInput)
 }
 
-// WithError marks the step result as failed with the given error
-func (sr *StepResult) WithError(err error) *StepResult {
-	sr.Success = false
-	sr.Error = err.Error()
-	return sr
+// GetRequiredArgs returns all required argument names
+func (s *Step) GetRequiredArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsRequired)
+}
+
+// GetOptionalArgs returns all optional argument names
+func (s *Step) GetOptionalArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsOptional)
+}
+
+// GetOutputArgs returns all output argument names
+func (s *Step) GetOutputArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsOutput)
 }
 
 // Equal returns true if two steps are equal
@@ -349,43 +312,64 @@ func (s *Step) Equal(other *Step) bool {
 	return true
 }
 
+func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
+	var args []Name
+	for name, attr := range s.Attributes {
+		if predicate(attr) {
+			args = append(args, name)
+		}
+	}
+	return args
+}
+
+// WithOutput adds an output value to the step result
+func (sr *StepResult) WithOutput(name Name, value any) *StepResult {
+	sr.Outputs[name] = value
+	return sr
+}
+
+// WithError marks the step result as failed with the given error
+func (sr *StepResult) WithError(err error) *StepResult {
+	sr.Success = false
+	sr.Error = err.Error()
+	return sr
+}
+
 // Equal returns true if two HTTP configs are equal
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
-	if h == nil && other == nil {
-		return true
-	}
-	if h == nil || other == nil {
-		return false
-	}
-	return h.Endpoint == other.Endpoint &&
-		h.HealthCheck == other.HealthCheck &&
-		h.Timeout == other.Timeout
+	return equalWithNilCheck(h, other, func() bool {
+		return h.Endpoint == other.Endpoint &&
+			h.HealthCheck == other.HealthCheck &&
+			h.Timeout == other.Timeout
+	})
 }
 
 // Equal returns true if two script configs are equal
 func (sc *ScriptConfig) Equal(other *ScriptConfig) bool {
-	if sc == nil && other == nil {
-		return true
-	}
-	if sc == nil || other == nil {
-		return false
-	}
-	return sc.Language == other.Language && sc.Script == other.Script
+	return equalWithNilCheck(sc, other, func() bool {
+		return sc.Language == other.Language && sc.Script == other.Script
+	})
 }
 
 // Equal returns true if two work configs are equal
 func (wc *WorkConfig) Equal(other *WorkConfig) bool {
-	if wc == nil && other == nil {
+	return equalWithNilCheck(wc, other, func() bool {
+		return wc.Parallelism == other.Parallelism &&
+			wc.MaxRetries == other.MaxRetries &&
+			wc.BackoffMs == other.BackoffMs &&
+			wc.MaxBackoffMs == other.MaxBackoffMs &&
+			wc.BackoffType == other.BackoffType
+	})
+}
+
+func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {
+	if a == nil && b == nil {
 		return true
 	}
-	if wc == nil || other == nil {
+	if a == nil || b == nil {
 		return false
 	}
-	return wc.Parallelism == other.Parallelism &&
-		wc.MaxRetries == other.MaxRetries &&
-		wc.BackoffMs == other.BackoffMs &&
-		wc.MaxBackoffMs == other.MaxBackoffMs &&
-		wc.BackoffType == other.BackoffType
+	return compare()
 }
 
 func attributeMapsEqual(a, b AttributeSpecs) bool {

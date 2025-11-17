@@ -13,6 +13,12 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
+type cycleDetector struct {
+	graph    map[timebox.ID][]timebox.ID
+	visited  util.Set[timebox.ID]
+	recStack util.Set[timebox.ID]
+}
+
 var (
 	ErrStepAlreadyExists  = errors.New("step already exists")
 	ErrStepDoesNotExist   = errors.New("step does not exist")
@@ -140,11 +146,8 @@ func (e *Engine) compileScript(ctx context.Context, step *api.Step) {
 
 	env, err := e.scripts.Get(step.Script.Language)
 	if err != nil {
-		slog.Warn("Failed to get script environment",
-			slog.Any("step_id", step.ID),
-			slog.Any("error", err))
-		_ = e.UpdateStepHealth(
-			ctx, step.ID, api.HealthUnhealthy, err.Error(),
+		e.handleCompileError(
+			ctx, step.ID, "Failed to get script environment", err,
 		)
 		return
 	}
@@ -153,57 +156,65 @@ func (e *Engine) compileScript(ctx context.Context, step *api.Step) {
 	_, err = env.Compile(step, step.Script.Script, names)
 
 	if err != nil {
-		slog.Warn("Failed to compile script",
-			slog.Any("step_id", step.ID),
-			slog.Any("error", err))
-		_ = e.UpdateStepHealth(
-			ctx, step.ID, api.HealthUnhealthy, err.Error(),
-		)
+		e.handleCompileError(ctx, step.ID, "Failed to compile script", err)
 		return
 	}
 
 	_ = e.UpdateStepHealth(ctx, step.ID, api.HealthHealthy, "")
 }
 
-func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
-	attributeTypes := make(map[api.Name]api.AttributeType)
+func (e *Engine) handleCompileError(
+	ctx context.Context, stepID timebox.ID, msg string, err error,
+) {
+	slog.Warn(msg,
+		slog.Any("step_id", stepID),
+		slog.Any("error", err))
+	_ = e.UpdateStepHealth(ctx, stepID, api.HealthUnhealthy, err.Error())
+}
 
+func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
+	attributeTypes := collectAttributeTypes(st, newStep.ID)
+	return checkAttributeConflicts(newStep.Attributes, attributeTypes)
+}
+
+func collectAttributeTypes(
+	st *api.EngineState, excludeStepID timebox.ID,
+) map[api.Name]api.AttributeType {
+	attributeTypes := make(map[api.Name]api.AttributeType)
 	for stepID, step := range st.Steps {
-		if stepID == newStep.ID {
+		if stepID == excludeStepID {
 			continue
 		}
 		for name, attr := range step.Attributes {
-			if existingType, ok := attributeTypes[name]; ok {
-				if existingType != attr.Type {
-					return fmt.Errorf("%w: %s", ErrTypeConflict, name)
-				}
-			} else {
-				attributeTypes[name] = attr.Type
-			}
+			attributeTypes[name] = attr.Type
 		}
 	}
+	return attributeTypes
+}
 
-	for name, attr := range newStep.Attributes {
-		if existingType, ok := attributeTypes[name]; ok {
+func checkAttributeConflicts(
+	attrs api.AttributeSpecs, types map[api.Name]api.AttributeType,
+) error {
+	for name, attr := range attrs {
+		if existingType, ok := types[name]; ok {
 			if existingType != attr.Type {
 				return fmt.Errorf("%w: %s", ErrTypeConflict, name)
 			}
 		}
 	}
-
 	return nil
 }
 
 func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
-	graph := buildDependencyGraph(st, newStep)
-	visited := util.Set[timebox.ID]{}
-	recStack := util.Set[timebox.ID]{}
+	detector := &cycleDetector{
+		graph:    buildDependencyGraph(st, newStep),
+		visited:  util.Set[timebox.ID]{},
+		recStack: util.Set[timebox.ID]{},
+	}
 
-	for stepID := range graph {
-		if !visited.Contains(stepID) {
-			if cycle := findCycle(
-				stepID, graph, visited, recStack, nil,
-			); cycle != nil {
+	for stepID := range detector.graph {
+		if !detector.visited.Contains(stepID) {
+			if cycle := detector.findCycle(stepID, nil); cycle != nil {
 				return fmt.Errorf("%w: %v", ErrCircularDependency, cycle)
 			}
 		}
@@ -215,68 +226,88 @@ func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
 func buildDependencyGraph(
 	st *api.EngineState, newStep *api.Step,
 ) map[timebox.ID][]timebox.ID {
-	attrProducers := make(map[api.Name][]timebox.ID)
-	graph := make(map[timebox.ID][]timebox.ID)
+	allSteps := stepsIncluding(st, newStep)
+	producerIndex := indexAttributeProducers(allSteps)
+	return graphFromStepDependencies(allSteps, producerIndex)
+}
 
-	allSteps := make(map[timebox.ID]*api.Step)
+func stepsIncluding(
+	st *api.EngineState, newStep *api.Step,
+) map[timebox.ID]*api.Step {
+	steps := make(map[timebox.ID]*api.Step, len(st.Steps))
 	for id, step := range st.Steps {
 		if id != newStep.ID {
-			allSteps[id] = step
+			steps[id] = step
 		}
 	}
-	allSteps[newStep.ID] = newStep
+	steps[newStep.ID] = newStep
+	return steps
+}
 
-	for stepID, step := range allSteps {
-		graph[stepID] = []timebox.ID{}
+func indexAttributeProducers(
+	steps map[timebox.ID]*api.Step,
+) map[api.Name][]timebox.ID {
+	index := make(map[api.Name][]timebox.ID)
+	for stepID, step := range steps {
 		for name, attr := range step.Attributes {
 			if attr.IsOutput() {
-				attrProducers[name] = append(attrProducers[name], stepID)
+				index[name] = append(index[name], stepID)
 			}
 		}
 	}
+	return index
+}
 
-	for stepID, step := range allSteps {
-		for name, attr := range step.Attributes {
-			if attr.IsInput() {
-				if producers, ok := attrProducers[name]; ok {
-					graph[stepID] = append(graph[stepID], producers...)
-				}
-			}
-		}
+func graphFromStepDependencies(
+	steps map[timebox.ID]*api.Step, producerIndex map[api.Name][]timebox.ID,
+) map[timebox.ID][]timebox.ID {
+	graph := make(map[timebox.ID][]timebox.ID)
+	for stepID, step := range steps {
+		graph[stepID] = dependenciesFor(step, producerIndex)
 	}
-
 	return graph
 }
 
-func findCycle(
-	stepID timebox.ID, graph map[timebox.ID][]timebox.ID,
-	visited, recStack util.Set[timebox.ID], path []timebox.ID,
+func dependenciesFor(
+	step *api.Step, producerIndex map[api.Name][]timebox.ID,
 ) []timebox.ID {
-	visited.Add(stepID)
-	recStack.Add(stepID)
-	path = append(path, stepID)
-
-	for _, depID := range graph[stepID] {
-		if !visited.Contains(depID) {
-			if cycle := findCycle(
-				depID, graph, visited, recStack, path,
-			); cycle != nil {
-				return cycle
-			}
-		} else if recStack.Contains(depID) {
-			cycleStart := -1
-			for i, id := range path {
-				if id == depID {
-					cycleStart = i
-					break
-				}
-			}
-			if cycleStart >= 0 {
-				return path[cycleStart:]
+	var deps []timebox.ID
+	for name, attr := range step.Attributes {
+		if attr.IsInput() {
+			if producers, ok := producerIndex[name]; ok {
+				deps = append(deps, producers...)
 			}
 		}
 	}
+	return deps
+}
 
-	recStack.Remove(stepID)
+func (d *cycleDetector) findCycle(
+	stepID timebox.ID, path []timebox.ID,
+) []timebox.ID {
+	d.visited.Add(stepID)
+	d.recStack.Add(stepID)
+	path = append(path, stepID)
+
+	for _, depID := range d.graph[stepID] {
+		if !d.visited.Contains(depID) {
+			if cycle := d.findCycle(depID, path); cycle != nil {
+				return cycle
+			}
+		} else if d.recStack.Contains(depID) {
+			return extractCyclePath(path, depID)
+		}
+	}
+
+	d.recStack.Remove(stepID)
+	return nil
+}
+
+func extractCyclePath(path []timebox.ID, cycleNode timebox.ID) []timebox.ID {
+	for i, id := range path {
+		if id == cycleNode {
+			return path[i:]
+		}
+	}
 	return nil
 }

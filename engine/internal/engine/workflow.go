@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"slices"
 
 	"github.com/kode4food/timebox"
 
@@ -251,38 +252,59 @@ func (e *Engine) areOutputsNeeded(
 		return false
 	}
 
-	for _, goalID := range flow.Plan.Goals {
-		if goalID == stepID {
+	if isGoalStep(stepID, flow.Plan.Goals) {
+		return true
+	}
+
+	return hasOutputNeededByPendingConsumers(step, flow)
+}
+
+func isGoalStep(stepID timebox.ID, goals []timebox.ID) bool {
+	return slices.Contains(goals, stepID)
+}
+
+func hasOutputNeededByPendingConsumers(
+	step *api.Step, flow *api.WorkflowState,
+) bool {
+	for name, attr := range step.Attributes {
+		if outputNeededByPendingConsumer(name, attr, flow) {
 			return true
 		}
 	}
+	return false
+}
 
-	for name, attr := range step.Attributes {
-		if !attr.IsOutput() {
-			continue
-		}
-
-		if _, alreadySatisfied := flow.Attributes[name]; alreadySatisfied {
-			continue
-		}
-
-		attrDeps, ok := flow.Plan.Attributes[name]
-		if !ok || len(attrDeps.Consumers) == 0 {
-			continue
-		}
-
-		for _, consumerID := range attrDeps.Consumers {
-			consumerExec, ok := flow.Executions[consumerID]
-			if !ok {
-				continue
-			}
-
-			if consumerExec.Status == api.StepPending {
-				return true
-			}
-		}
+func outputNeededByPendingConsumer(
+	name api.Name, attr *api.AttributeSpec, flow *api.WorkflowState,
+) bool {
+	if !attr.IsOutput() {
+		return false
 	}
 
+	if _, alreadySatisfied := flow.Attributes[name]; alreadySatisfied {
+		return false
+	}
+
+	attrDeps, ok := flow.Plan.Attributes[name]
+	if !ok || len(attrDeps.Consumers) == 0 {
+		return false
+	}
+
+	return hasPendingConsumer(attrDeps.Consumers, flow.Executions)
+}
+
+func hasPendingConsumer(
+	consumers []timebox.ID, executions map[timebox.ID]*api.ExecutionState,
+) bool {
+	for _, consumerID := range consumers {
+		consumerExec, ok := executions[consumerID]
+		if !ok {
+			continue
+		}
+		if consumerExec.Status == api.StepPending {
+			return true
+		}
+	}
 	return false
 }
 

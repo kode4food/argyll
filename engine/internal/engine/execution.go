@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,21 +79,10 @@ func (e *Engine) PrepareStepExecution(
 		return nil
 	}
 
-	flow, err := e.GetWorkflowState(ctx, flowID)
-	if err != nil {
-		slog.Error("Failed to get workflow state",
-			slog.Any("error", err))
-		return nil
-	}
-
-	step := flow.Plan.GetStep(stepID)
+	_, step, inputs := e.getStepExecutionData(ctx, flowID, stepID)
 	if step == nil {
-		slog.Error("Step not found",
-			slog.Any("step_id", stepID))
 		return nil
 	}
-
-	inputs := e.collectStepInputs(step, flow.GetAttributeArgs())
 
 	if !e.shouldExecuteStep(ctx, flowID, stepID, step, inputs) {
 		return nil
@@ -111,6 +101,27 @@ func (e *Engine) PrepareStepExecution(
 		step:   step,
 		inputs: inputs,
 	}
+}
+
+func (e *Engine) getStepExecutionData(
+	ctx context.Context, flowID, stepID timebox.ID,
+) (*api.WorkflowState, *api.Step, api.Args) {
+	flow, err := e.GetWorkflowState(ctx, flowID)
+	if err != nil {
+		slog.Error("Failed to get workflow state",
+			slog.Any("error", err))
+		return nil, nil, nil
+	}
+
+	step := flow.Plan.GetStep(stepID)
+	if step == nil {
+		slog.Error("Step not found",
+			slog.Any("step_id", stepID))
+		return nil, nil, nil
+	}
+
+	inputs := e.collectStepInputs(step, flow.GetAttributeArgs())
+	return flow, step, inputs
 }
 
 func (e *Engine) shouldExecuteStep(
@@ -284,37 +295,43 @@ func (e *ExecContext) executeWorkItem(ctx context.Context, inputs api.Args) {
 	outputs, err := e.executeItemWork(ctx, inputs, token)
 
 	if err != nil {
-		if err := e.engine.FailWork(
-			ctx, e.flowID, e.stepID, token, err.Error(),
-		); err != nil {
-			return
-		}
-
-		flow, ferr := e.engine.GetWorkflowState(ctx, e.flowID)
-		if ferr != nil {
-			return
-		}
-
-		exec := flow.Executions[e.stepID]
-		if exec == nil || exec.WorkItems == nil {
-			return
-		}
-
-		workItem := exec.WorkItems[token]
-		if workItem == nil {
-			return
-		}
-
-		if e.engine.ShouldRetry(e.step, workItem) {
-			_ = e.engine.ScheduleRetry(
-				ctx, e.flowID, e.stepID, token, err.Error(),
-			)
-		}
+		e.handleWorkItemFailure(ctx, token, err)
 		return
 	}
 
 	if !isAsyncStep(e.step.Type) {
 		_ = e.engine.CompleteWork(ctx, e.flowID, e.stepID, token, outputs)
+	}
+}
+
+func (e *ExecContext) handleWorkItemFailure(
+	ctx context.Context, token api.Token, err error,
+) {
+	if failErr := e.engine.FailWork(
+		ctx, e.flowID, e.stepID, token, err.Error(),
+	); failErr != nil {
+		return
+	}
+
+	flow, ferr := e.engine.GetWorkflowState(ctx, e.flowID)
+	if ferr != nil {
+		return
+	}
+
+	exec := flow.Executions[e.stepID]
+	if exec == nil || exec.WorkItems == nil {
+		return
+	}
+
+	workItem := exec.WorkItems[token]
+	if workItem == nil {
+		return
+	}
+
+	if e.engine.ShouldRetry(e.step, workItem) {
+		_ = e.engine.ScheduleRetry(
+			ctx, e.flowID, e.stepID, token, err.Error(),
+		)
 	}
 }
 
@@ -427,41 +444,53 @@ func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 		return nil
 	}
 
-	var names []api.Name
-	var arrays [][]any
-	for name, arr := range multiArgs {
-		names = append(names, name)
-		arrays = append(arrays, arr)
-	}
+	names, arrays := extractMultiArgsArrays(multiArgs)
 
 	var result []api.Args
 	var generate func(int, api.Args)
 	generate = func(depth int, current api.Args) {
 		if depth == len(arrays) {
-			inputs := api.Args{}
-			for k, v := range baseInputs {
-				if _, isMulti := multiArgs[k]; !isMulti {
-					inputs[k] = v
-				}
-			}
-			for k, v := range current {
-				inputs[k] = v
-			}
-			result = append(result, inputs)
+			result = append(result,
+				combineInputs(baseInputs, current, multiArgs),
+			)
 			return
 		}
 
 		name := names[depth]
 		for _, val := range arrays[depth] {
-			next := api.Args{}
-			for k, v := range current {
-				next[k] = v
-			}
-			next[name] = val
+			next := cloneArgsWithValue(current, name, val)
 			generate(depth+1, next)
 		}
 	}
 
 	generate(0, api.Args{})
 	return result
+}
+
+func extractMultiArgsArrays(multiArgs MultiArgs) ([]api.Name, [][]any) {
+	var names []api.Name
+	var arrays [][]any
+	for name, arr := range multiArgs {
+		names = append(names, name)
+		arrays = append(arrays, arr)
+	}
+	return names, arrays
+}
+
+func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
+	inputs := api.Args{}
+	for k, v := range baseInputs {
+		if _, isMulti := multiArgs[k]; !isMulti {
+			inputs[k] = v
+		}
+	}
+	maps.Copy(inputs, current)
+	return inputs
+}
+
+func cloneArgsWithValue(current api.Args, name api.Name, val any) api.Args {
+	next := api.Args{}
+	maps.Copy(next, current)
+	next[name] = val
+	return next
 }
