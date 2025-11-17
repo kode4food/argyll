@@ -238,14 +238,14 @@ func (st *ExecutionState) SetCompletedAt(t time.Time) *ExecutionState {
 // SetInputs returns a new ExecutionState with the input arguments set
 func (st *ExecutionState) SetInputs(inputs Args) *ExecutionState {
 	res := *st
-	res.Inputs = maps.Clone(inputs)
+	res.Inputs = inputs
 	return &res
 }
 
 // SetOutputs returns a new ExecutionState with the output arguments set
 func (st *ExecutionState) SetOutputs(outputs Args) *ExecutionState {
 	res := *st
-	res.Outputs = maps.Clone(outputs)
+	res.Outputs = outputs
 	return &res
 }
 
@@ -269,9 +269,6 @@ func (st *ExecutionState) SetWorkItem(
 ) *ExecutionState {
 	res := *st
 	res.WorkItems = maps.Clone(st.WorkItems)
-	if res.WorkItems == nil {
-		res.WorkItems = map[Token]*WorkState{}
-	}
 	res.WorkItems[token] = item
 	return &res
 }
