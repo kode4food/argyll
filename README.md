@@ -41,24 +41,24 @@ All state changes are stored as immutable events in Redis, enabling complete aud
 
 ```bash
 # Steps
-GET     /engine                   # Engine state (all steps)
-GET     /engine/step/:stepID      # Get step
-POST    /engine/step              # Register step
-PUT     /engine/step/:stepID      # Update step
-DELETE  /engine/step/:stepID      # Delete step
+GET     /engine                 # Engine state (all steps)
+GET     /engine/step/:stepID    # Get step
+POST    /engine/step            # Register step
+PUT     /engine/step/:stepID    # Update step
+DELETE  /engine/step/:stepID    # Delete step
 
 # Flows
-GET     /engine/flow          # List flows
-POST    /engine/flow          # Start flow
-GET     /engine/flow/:flowID  # Get flow state
+GET     /engine/flow            # List flows
+POST    /engine/flow            # Start flow
+GET     /engine/flow/:flowID    # Get flow state
 
 # Planning & Health
-POST    /engine/plan              # Preview execution plan
-GET     /engine/health            # All step health
-GET     /engine/health/:stepID    # Step health
+POST    /engine/plan            # Preview execution plan
+GET     /engine/health          # All step health
+GET     /engine/health/:stepID  # Step health
 
 # Real-time
-GET     /engine/ws                # WebSocket event stream
+GET     /engine/ws              # WebSocket event stream
 ```
 
 See `engine/docs/engine-api.yaml` for full OpenAPI specification.
