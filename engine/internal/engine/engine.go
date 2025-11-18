@@ -137,8 +137,7 @@ func (e *Engine) Stop() error {
 	}
 }
 
-// StartWorkflow begins a new workflow execution with the given plan and
-// initial state
+// StartWorkflow begins a new workflow execution with the given plan and state
 func (e *Engine) StartWorkflow(
 	ctx context.Context, flowID timebox.ID, plan *api.ExecutionPlan,
 	initState api.Args, meta api.Metadata,

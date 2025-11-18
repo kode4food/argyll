@@ -840,10 +840,10 @@ func TestStartEmptyID(t *testing.T) {
 	err := env.Engine.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
 
-	reqData := map[string]interface{}{
+	reqData := map[string]any{
 		"id":    "",
 		"goals": []string{"test-step"},
-		"init":  map[string]interface{}{},
+		"init":  map[string]any{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -864,10 +864,8 @@ func TestStartNoGoals(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	reqData := map[string]interface{}{
-		"id":    "test-wf",
-		"goals": []string{},
-		"init":  map[string]interface{}{},
+	reqData := map[string]any{
+		"id": "test-wf",
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -988,9 +986,9 @@ func TestPlanPreview(t *testing.T) {
 	err = env.Engine.RegisterStep(context.Background(), step2)
 	require.NoError(t, err)
 
-	reqData := map[string]interface{}{
+	reqData := map[string]any{
 		"goals": []string{"step-b"},
-		"init":  map[string]interface{}{},
+		"init":  map[string]any{},
 	}
 
 	body, _ := json.Marshal(reqData)
@@ -1032,10 +1030,7 @@ func TestPlanPreviewNoGoals(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	reqData := map[string]interface{}{
-		"goals": []string{},
-		"init":  map[string]interface{}{},
-	}
+	reqData := map[string]any{}
 
 	body, _ := json.Marshal(reqData)
 	req := httptest.NewRequest("POST", "/engine/plan", bytes.NewReader(body))
@@ -1053,9 +1048,9 @@ func TestPlanPreviewStepNotFound(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	reqData := map[string]interface{}{
+	reqData := map[string]any{
 		"goals": []string{"nonexistent-step"},
-		"init":  map[string]interface{}{},
+		"init":  map[string]any{},
 	}
 
 	body, _ := json.Marshal(reqData)
