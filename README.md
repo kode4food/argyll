@@ -2,7 +2,7 @@
 
 ### Goal-Driven Orchestrator
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds/engine) [![Build Status](https://github.com/kode4food/spuds/flows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds/engine) [![Build Status](https://github.com/kode4food/spuds/workflows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
 
 Spuds is an orchestrator that uses goal-driven execution with lazy evaluation. Instead of running entire flows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed.
 
