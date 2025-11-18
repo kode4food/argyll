@@ -8,29 +8,29 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-const workflowPrefix = "workflow"
+const flowPrefix = "flow"
 
-// WorkflowAppliers contains the event applier functions for workflow events
-var WorkflowAppliers = makeWorkflowAppliers()
+// FlowAppliers contains the event applier functions for flow events
+var FlowAppliers = makeFlowAppliers()
 
-// NewWorkflowState creates an empty workflow state with initialized maps for
+// NewFlowState creates an empty flow state with initialized maps for
 // attributes and step executions
-func NewWorkflowState() *api.WorkflowState {
-	return &api.WorkflowState{
+func NewFlowState() *api.FlowState {
+	return &api.FlowState{
 		Attributes: map[api.Name]*api.AttributeValue{},
 		Executions: map[timebox.ID]*api.ExecutionState{},
 	}
 }
 
-// IsWorkflowEvent returns true if the event belongs to a workflow aggregate
-func IsWorkflowEvent(ev *timebox.Event) bool {
-	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == workflowPrefix
+// IsFlowEvent returns true if the event belongs to a flow aggregate
+func IsFlowEvent(ev *timebox.Event) bool {
+	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == flowPrefix
 }
 
-func makeWorkflowAppliers() timebox.Appliers[*api.WorkflowState] {
-	workflowStartedApplier := timebox.MakeApplier(workflowStarted)
-	workflowCompletedApplier := timebox.MakeApplier(workflowCompleted)
-	workflowFailedApplier := timebox.MakeApplier(workflowFailed)
+func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
+	flowStartedApplier := timebox.MakeApplier(flowStarted)
+	flowCompletedApplier := timebox.MakeApplier(flowCompleted)
+	flowFailedApplier := timebox.MakeApplier(flowFailed)
 	stepStartedApplier := timebox.MakeApplier(stepStarted)
 	stepCompletedApplier := timebox.MakeApplier(stepCompleted)
 	stepFailedApplier := timebox.MakeApplier(stepFailed)
@@ -41,25 +41,25 @@ func makeWorkflowAppliers() timebox.Appliers[*api.WorkflowState] {
 	workItemFailedApplier := timebox.MakeApplier(workItemFailed)
 	retryScheduledApplier := timebox.MakeApplier(retryScheduled)
 
-	return timebox.Appliers[*api.WorkflowState]{
-		api.EventTypeWorkflowStarted:   workflowStartedApplier,
-		api.EventTypeWorkflowCompleted: workflowCompletedApplier,
-		api.EventTypeWorkflowFailed:    workflowFailedApplier,
-		api.EventTypeStepStarted:       stepStartedApplier,
-		api.EventTypeStepCompleted:     stepCompletedApplier,
-		api.EventTypeStepFailed:        stepFailedApplier,
-		api.EventTypeStepSkipped:       stepSkippedApplier,
-		api.EventTypeAttributeSet:      attributeSetApplier,
-		api.EventTypeWorkStarted:       workItemStartedApplier,
-		api.EventTypeWorkCompleted:     workItemCompletedApplier,
-		api.EventTypeWorkFailed:        workItemFailedApplier,
-		api.EventTypeRetryScheduled:    retryScheduledApplier,
+	return timebox.Appliers[*api.FlowState]{
+		api.EventTypeFlowStarted:    flowStartedApplier,
+		api.EventTypeFlowCompleted:  flowCompletedApplier,
+		api.EventTypeFlowFailed:     flowFailedApplier,
+		api.EventTypeStepStarted:    stepStartedApplier,
+		api.EventTypeStepCompleted:  stepCompletedApplier,
+		api.EventTypeStepFailed:     stepFailedApplier,
+		api.EventTypeStepSkipped:    stepSkippedApplier,
+		api.EventTypeAttributeSet:   attributeSetApplier,
+		api.EventTypeWorkStarted:    workItemStartedApplier,
+		api.EventTypeWorkCompleted:  workItemCompletedApplier,
+		api.EventTypeWorkFailed:     workItemFailedApplier,
+		api.EventTypeRetryScheduled: retryScheduledApplier,
 	}
 }
 
-func workflowStarted(
-	_ *api.WorkflowState, ev *timebox.Event, data api.WorkflowStartedEvent,
-) *api.WorkflowState {
+func flowStarted(
+	_ *api.FlowState, ev *timebox.Event, data api.FlowStartedEvent,
+) *api.FlowState {
 	exec := createExecutions(data.Plan)
 
 	attributes := map[api.Name]*api.AttributeValue{}
@@ -67,9 +67,9 @@ func workflowStarted(
 		attributes[key] = &api.AttributeValue{Value: value}
 	}
 
-	return &api.WorkflowState{
+	return &api.FlowState{
 		ID:          data.FlowID,
-		Status:      api.WorkflowActive,
+		Status:      api.FlowActive,
 		Plan:        data.Plan,
 		Attributes:  attributes,
 		Executions:  exec,
@@ -78,28 +78,28 @@ func workflowStarted(
 	}
 }
 
-func workflowCompleted(
-	st *api.WorkflowState, ev *timebox.Event, _ api.WorkflowCompletedEvent,
-) *api.WorkflowState {
+func flowCompleted(
+	st *api.FlowState, ev *timebox.Event, _ api.FlowCompletedEvent,
+) *api.FlowState {
 	return st.
-		SetStatus(api.WorkflowCompleted).
+		SetStatus(api.FlowCompleted).
 		SetCompletedAt(ev.Timestamp).
 		SetLastUpdated(ev.Timestamp)
 }
 
-func workflowFailed(
-	st *api.WorkflowState, ev *timebox.Event, data api.WorkflowFailedEvent,
-) *api.WorkflowState {
+func flowFailed(
+	st *api.FlowState, ev *timebox.Event, data api.FlowFailedEvent,
+) *api.FlowState {
 	return st.
-		SetStatus(api.WorkflowFailed).
+		SetStatus(api.FlowFailed).
 		SetError(data.Error).
 		SetCompletedAt(ev.Timestamp).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepStarted(
-	st *api.WorkflowState, ev *timebox.Event, data api.StepStartedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.StepStartedEvent,
+) *api.FlowState {
 	exec := &api.ExecutionState{
 		Status:    api.StepPending,
 		WorkItems: map[api.Token]*api.WorkState{},
@@ -116,8 +116,8 @@ func stepStarted(
 }
 
 func stepCompleted(
-	st *api.WorkflowState, ev *timebox.Event, data api.StepCompletedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.StepCompletedEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "stepCompleted")
 
 	updated := exec.
@@ -132,8 +132,8 @@ func stepCompleted(
 }
 
 func stepFailed(
-	st *api.WorkflowState, ev *timebox.Event, data api.StepFailedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.StepFailedEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "stepFailed")
 
 	return st.
@@ -147,8 +147,8 @@ func stepFailed(
 }
 
 func stepSkipped(
-	st *api.WorkflowState, ev *timebox.Event, data api.StepSkippedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.StepSkippedEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "stepSkipped")
 
 	return st.
@@ -162,8 +162,8 @@ func stepSkipped(
 }
 
 func attributeSet(
-	st *api.WorkflowState, ev *timebox.Event, data api.AttributeSetEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.AttributeSetEvent,
+) *api.FlowState {
 	return st.
 		SetAttribute(data.Key, &api.AttributeValue{
 			Value: data.Value,
@@ -188,7 +188,7 @@ func createExecutions(p *api.ExecutionPlan) map[timebox.ID]*api.ExecutionState {
 }
 
 func getExecution(
-	st *api.WorkflowState, stepID timebox.ID, fn string,
+	st *api.FlowState, stepID timebox.ID, fn string,
 ) *api.ExecutionState {
 	if exec, ok := st.Executions[stepID]; ok {
 		return exec
@@ -199,8 +199,8 @@ func getExecution(
 }
 
 func workItemStarted(
-	st *api.WorkflowState, ev *timebox.Event, data api.WorkStartedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "workItemStarted")
 
 	item := &api.WorkState{
@@ -215,8 +215,8 @@ func workItemStarted(
 }
 
 func workItemCompleted(
-	st *api.WorkflowState, ev *timebox.Event, data api.WorkCompletedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.WorkCompletedEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "workItemCompleted")
 
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
@@ -238,8 +238,8 @@ func workItemCompleted(
 }
 
 func workItemFailed(
-	st *api.WorkflowState, ev *timebox.Event, data api.WorkFailedEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "workItemFailed")
 
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
@@ -261,8 +261,8 @@ func workItemFailed(
 }
 
 func retryScheduled(
-	st *api.WorkflowState, ev *timebox.Event, data api.RetryScheduledEvent,
-) *api.WorkflowState {
+	st *api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
+) *api.FlowState {
 	exec := getExecution(st, data.StepID, "retryScheduled")
 
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {

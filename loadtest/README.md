@@ -1,6 +1,6 @@
 # Spuds Load Testing
 
-Simple k6 load test for Spuds workflow engine.
+Simple k6 load test for Spuds orchestrator.
 
 ## Prerequisites
 
@@ -48,8 +48,8 @@ k6 run --vus 100 --duration 30s --env ENGINE_URL=http://staging:8080 k6-simple.j
 
 The test:
 1. Registers a simple step that returns `{:result "hello"}`
-2. Each VU creates workflows with unique IDs
-3. Polls for workflow completion (max 5 seconds per workflow)
+2. Each VU creates flows with unique IDs
+3. Polls for flow completion (max 5 seconds per flow)
 4. Tracks success/failure rates and throughput
 
 ## Output
@@ -57,9 +57,9 @@ The test:
 The test reports:
 - **Duration** - Total test time
 - **VUs** - Virtual users used
-- **Started** - Workflows created
-- **Completed** - Workflows that finished successfully
-- **Failed** - Workflows that failed or timed out
-- **Throughput** - Workflows completed per second
-- **Error Rate** - Percentage of failed workflows
-- **Success Rate** - Percentage of successful workflows
+- **Started** - Flows created
+- **Completed** - Flows that finished successfully
+- **Failed** - Flows that failed or timed out
+- **Throughput** - Flows completed per second
+- **Error Rate** - Percentage of failed flows
+- **Success Rate** - Percentage of successful flows

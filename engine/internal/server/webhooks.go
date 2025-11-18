@@ -16,13 +16,13 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	stepID := timebox.ID(c.Param("stepID"))
 	token := api.Token(c.Param("token"))
 
-	flow, err := s.engine.GetWorkflowState(c.Request.Context(), flowID)
+	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
 	if err != nil {
-		slog.Error("Workflow not found",
+		slog.Error("Flow not found",
 			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("Workflow not found: %v", err),
+			Error:  fmt.Sprintf("Flow not found: %v", err),
 			Status: http.StatusBadRequest,
 		})
 		return
@@ -117,7 +117,7 @@ func (s *Server) handleWorkWebhook(
 
 func (s *Server) handleWebSocket(c *gin.Context) {
 	replayFunc := func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error) {
-		return s.engine.GetWorkflowEvents(c.Request.Context(), flowID, fromSeq)
+		return s.engine.GetFlowEvents(c.Request.Context(), flowID, fromSeq)
 	}
 	HandleWebSocket(s.eventHub, c.Writer, c.Request, replayFunc)
 }

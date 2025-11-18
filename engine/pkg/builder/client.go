@@ -16,35 +16,35 @@ import (
 )
 
 type (
-	// Client provides functionality for interacting with the workflow engine
-	// API, including step registration, workflow management, and state queries
+	// Client provides functionality for interacting with the orchestrator
+	// API, including step registration, flow management, and state queries
 	Client struct {
 		httpClient *http.Client
 		baseURL    string
 	}
 
-	// WorkflowClient provides access to a specific workflow
-	WorkflowClient struct {
+	// FlowClient provides access to a specific flow
+	FlowClient struct {
 		client *Client
 		flowID timebox.ID
 	}
 )
 
 var (
-	ErrRegisterStep  = errors.New("failed to register step")
-	ErrListSteps     = errors.New("failed to list steps")
-	ErrStartWorkflow = errors.New("failed to start workflow")
-	ErrGetWorkflow   = errors.New("failed to get workflow")
+	ErrRegisterStep = errors.New("failed to register step")
+	ErrListSteps    = errors.New("failed to list steps")
+	ErrStartFlow    = errors.New("failed to start flow")
+	ErrGetFlow      = errors.New("failed to get flow")
 )
 
 const (
 	DefaultStepPort = 8081
 
-	routeSteps    = "/engine/step"
-	routeWorkflow = "/engine/workflow"
+	routeSteps = "/engine/step"
+	routeFlow  = "/engine/flow"
 )
 
-// NewClient creates a new workflow engine client with the specified base URL
+// NewClient creates a new orchestrator client with the specified base URL
 // and timeout
 func NewClient(baseURL string, timeout time.Duration) *Client {
 	return &Client{
@@ -55,7 +55,7 @@ func NewClient(baseURL string, timeout time.Duration) *Client {
 	}
 }
 
-// ListSteps retrieves all registered steps from the workflow engine
+// ListSteps retrieves all registered steps from the orchestrator
 func (c *Client) ListSteps(
 	ctx context.Context,
 ) (*api.StepsListResponse, error) {
@@ -86,9 +86,9 @@ func (c *Client) ListSteps(
 	return &result, nil
 }
 
-// Workflow returns a client for accessing a specific workflow
-func (c *Client) Workflow(flowID timebox.ID) *WorkflowClient {
-	return &WorkflowClient{
+// Flow returns a client for accessing a specific flow
+func (c *Client) Flow(flowID timebox.ID) *FlowClient {
+	return &FlowClient{
 		client: c,
 		flowID: flowID,
 	}
@@ -158,8 +158,8 @@ func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
 	return nil
 }
 
-func (c *Client) startWorkflow(
-	ctx context.Context, req *api.CreateWorkflowRequest,
+func (c *Client) startFlow(
+	ctx context.Context, req *api.CreateFlowRequest,
 ) error {
 	data, err := json.Marshal(req)
 	if err != nil {
@@ -167,7 +167,7 @@ func (c *Client) startWorkflow(
 	}
 
 	httpReq, err := http.NewRequestWithContext(
-		ctx, "POST", c.url(routeWorkflow), bytes.NewBuffer(data),
+		ctx, "POST", c.url(routeFlow), bytes.NewBuffer(data),
 	)
 	if err != nil {
 		return err
@@ -184,17 +184,17 @@ func (c *Client) startWorkflow(
 		resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("%s: status %d, body: %s",
-			ErrStartWorkflow, resp.StatusCode, string(body))
+			ErrStartFlow, resp.StatusCode, string(body))
 	}
 
 	return nil
 }
 
-func (c *Client) getWorkflowState(
+func (c *Client) getFlowState(
 	ctx context.Context, flowID timebox.ID,
-) (*api.WorkflowState, error) {
+) (*api.FlowState, error) {
 	httpReq, err := http.NewRequestWithContext(
-		ctx, "GET", c.url("%s/%s", routeWorkflow, flowID), nil,
+		ctx, "GET", c.url("%s/%s", routeFlow, flowID), nil,
 	)
 	if err != nil {
 		return nil, err
@@ -209,10 +209,10 @@ func (c *Client) getWorkflowState(
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("%s: status %d, body: %s",
-			ErrGetWorkflow, resp.StatusCode, string(body))
+			ErrGetFlow, resp.StatusCode, string(body))
 	}
 
-	var result api.WorkflowState
+	var result api.FlowState
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
 	}
@@ -220,14 +220,12 @@ func (c *Client) getWorkflowState(
 	return &result, nil
 }
 
-// GetState retrieves the current state of the workflow
-func (wc *WorkflowClient) GetState(
-	ctx context.Context,
-) (*api.WorkflowState, error) {
-	return wc.client.getWorkflowState(ctx, wc.flowID)
+// GetState retrieves the current state of the flow
+func (wc *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
+	return wc.client.getFlowState(ctx, wc.flowID)
 }
 
-// FlowID returns the workflow ID for this client
-func (wc *WorkflowClient) FlowID() timebox.ID {
+// FlowID returns the flow ID for this client
+func (wc *FlowClient) FlowID() timebox.ID {
 	return wc.flowID
 }

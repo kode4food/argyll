@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Node } from "@xyflow/react";
 import {
   Step,
-  WorkflowContext,
+  FlowContext,
   ExecutionResult,
   ExecutionPlan,
   AttributeRole,
@@ -18,7 +18,7 @@ const calculateSectionHeight = (argCount: number): number => {
 export const useNodeCalculation = (
   visibleSteps: Step[],
   selectedStep: string | null,
-  workflowData?: WorkflowContext | null,
+  flowData?: FlowContext | null,
   executions?: ExecutionResult[],
   previewPlan?: ExecutionPlan | null,
   previewStepIds?: Set<string> | null,
@@ -32,8 +32,8 @@ export const useNodeCalculation = (
 
     const activeStepIds =
       previewStepIds ||
-      (workflowData?.plan
-        ? new Set(Object.keys(workflowData.plan.steps))
+      (flowData?.plan
+        ? new Set(Object.keys(flowData.plan.steps))
         : null);
     let startingPoints = new Set<string>();
 
@@ -187,11 +187,11 @@ export const useNodeCalculation = (
           step,
           selected: selectedStep === step.id,
           onStepClick,
-          workflowData,
+          flowData,
           executions,
           resolvedAttributes,
           isGoalStep:
-            workflowData?.plan?.goals?.includes(step.id) ||
+            flowData?.plan?.goals?.includes(step.id) ||
             previewPlan?.goals?.includes(step.id),
           isInPreviewPlan,
           isPreviewMode,
@@ -207,7 +207,7 @@ export const useNodeCalculation = (
   }, [
     visibleSteps,
     selectedStep,
-    workflowData,
+    flowData,
     executions,
     previewPlan,
     previewStepIds,

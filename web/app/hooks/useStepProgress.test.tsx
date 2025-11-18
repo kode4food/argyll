@@ -9,7 +9,7 @@ jest.mock("./useWebSocketContext", () => ({
   useWebSocketContext: () => mockUseWebSocketContext(),
 }));
 
-jest.mock("../store/workflowStore", () => ({
+jest.mock("../store/flowStore", () => ({
   useExecutions: () => mockUseExecutions(),
 }));
 
@@ -194,7 +194,7 @@ describe("useStepProgress", () => {
     expect(result.current.status).toBe("pending");
   });
 
-  test("ignores events for different workflow", () => {
+  test("ignores events for different flow", () => {
     const events = [
       {
         type: "step_completed",

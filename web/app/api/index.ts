@@ -1,5 +1,5 @@
 export type {
-  WorkflowStatus,
+  FlowStatus,
   StepStatus,
   HealthStatus,
   StepType,
@@ -10,7 +10,7 @@ export type {
   Step,
   ExecutionPlan,
   StepInfo,
-  WorkflowContext,
+  FlowContext,
   ExecutionResult,
   StepHealth,
 } from "./types";

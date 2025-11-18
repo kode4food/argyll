@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { ExecutionPlan, WorkflowContext } from "../api";
+import { ExecutionPlan, FlowContext } from "../api";
 import { useUI } from "../contexts/UIContext";
 
 export interface UseExecutionPlanPreviewReturn {
@@ -11,13 +11,13 @@ export interface UseExecutionPlanPreviewReturn {
 export function useExecutionPlanPreview(
   selectedStep: string | null,
   onSelectStep: (stepId: string | null) => void,
-  workflowData?: WorkflowContext | null
+  flowData?: FlowContext | null
 ): UseExecutionPlanPreviewReturn {
   const { previewPlan, updatePreviewPlan, clearPreviewPlan } = useUI();
 
   const handleStepClick = useCallback(
     async (stepId: string) => {
-      if (workflowData) {
+      if (flowData) {
         return;
       }
 
@@ -36,7 +36,7 @@ export function useExecutionPlanPreview(
       await updatePreviewPlan([stepId], {});
     },
     [
-      workflowData,
+      flowData,
       selectedStep,
       onSelectStep,
       updatePreviewPlan,
@@ -50,10 +50,10 @@ export function useExecutionPlanPreview(
   }, [onSelectStep, clearPreviewPlan]);
 
   useEffect(() => {
-    if (workflowData) {
+    if (flowData) {
       clearPreviewPlan();
     }
-  }, [workflowData, clearPreviewPlan]);
+  }, [flowData, clearPreviewPlan]);
 
   return {
     previewPlan,

@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useUI } from "../contexts/UIContext";
-import type { WorkflowContext, ExecutionPlan } from "../api";
+import type { FlowContext, ExecutionPlan } from "../api";
 
 jest.mock("../contexts/UIContext");
 const mockUseUI = useUI as jest.MockedFunction<typeof useUI>;
@@ -44,7 +44,7 @@ describe("useExecutionPlanPreview", () => {
     expect(typeof result.current.clearPreview).toBe("function");
   });
 
-  test("handleStepClick updates preview when no workflow", async () => {
+  test("handleStepClick updates preview when no flow", async () => {
     const onSelectStep = jest.fn();
     const { result } = renderHook(() =>
       useExecutionPlanPreview(null, onSelectStep)
@@ -58,9 +58,9 @@ describe("useExecutionPlanPreview", () => {
     expect(onSelectStep).toHaveBeenCalledWith("step-1");
   });
 
-  test("handleStepClick does nothing when workflow is active", async () => {
+  test("handleStepClick does nothing when flow is active", async () => {
     const onSelectStep = jest.fn();
-    const workflowData: WorkflowContext = {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       state: {},
@@ -68,7 +68,7 @@ describe("useExecutionPlanPreview", () => {
     };
 
     const { result } = renderHook(() =>
-      useExecutionPlanPreview(null, onSelectStep, workflowData)
+      useExecutionPlanPreview(null, onSelectStep, flowData)
     );
 
     await act(async () => {
@@ -108,22 +108,22 @@ describe("useExecutionPlanPreview", () => {
     expect(onSelectStep).toHaveBeenCalledWith(null);
   });
 
-  test("clears preview when workflow becomes active", () => {
+  test("clears preview when flow becomes active", () => {
     const onSelectStep = jest.fn();
     const { rerender } = renderHook(
-      ({ workflowData }) =>
-        useExecutionPlanPreview("step-1", onSelectStep, workflowData),
-      { initialProps: { workflowData: null as WorkflowContext | null } }
+      ({ flowData }) =>
+        useExecutionPlanPreview("step-1", onSelectStep, flowData),
+      { initialProps: { flowData: null as FlowContext | null } }
     );
 
-    const workflowData: WorkflowContext = {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       state: {},
       started_at: "2024-01-01T00:00:00Z",
     };
 
-    rerender({ workflowData });
+    rerender({ flowData });
 
     expect(mockClearPreviewPlan).toHaveBeenCalled();
   });

@@ -15,8 +15,8 @@
 .bg-neutral-bg-dark {
   background-color: var(--color-neutral-bg-dark);
 }
-.bg-diagram-workflow {
-  background-color: var(--color-diagram-workflow) !important;
+.bg-diagram-flow {
+  background-color: var(--color-diagram-flow) !important;
 }
 .bg-info {
   background-color: var(--color-info);

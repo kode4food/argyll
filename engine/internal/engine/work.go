@@ -25,7 +25,7 @@ var workTransitions = util.StateTransitions[api.WorkStatus]{
 }
 
 func (e *Engine) checkCompletableSteps(
-	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
+	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
 ) {
 	for stepID, exec := range flow.Executions {
 		if exec.Status != api.StepActive || exec.WorkItems == nil {

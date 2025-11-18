@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useWebSocketContext } from "./useWebSocketContext";
 import { ExecutionResult, StepStatus } from "../api";
-import { useExecutions } from "../store/workflowStore";
+import { useExecutions } from "../store/flowStore";
 
 export type StepProgressStatus = StepStatus;
 

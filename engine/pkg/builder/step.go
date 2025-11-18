@@ -12,7 +12,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-// Step is a builder for creating and configuring workflow steps. It provides
+// Step is a builder for creating and configuring flow steps. It provides
 // an API for defining step attributes, predicates, and execution settings
 type Step struct {
 	client     *Client

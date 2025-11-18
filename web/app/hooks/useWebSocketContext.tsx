@@ -33,7 +33,7 @@ interface WebSocketContextType {
   reconnectAttempt: number;
   subscribe: (subscription: {
     engine_events?: boolean;
-    flow_id?: string; // Empty string = no workflow events
+    flow_id?: string; // Empty string = no flow events
     event_types?: string[]; // Filter for specific event types
     from_sequence?: number; // Start replay from this sequence
   }) => void;

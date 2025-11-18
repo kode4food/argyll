@@ -1,6 +1,6 @@
 # Spuds Example Steps
 
-This directory contains example step implementations demonstrating different step types and workflow patterns.
+This directory contains example step implementations demonstrating different step types and flow patterns.
 
 ## Quick Start
 
@@ -32,9 +32,9 @@ Looks up user information from an in-memory database.
 - `user-456` - Bob Smith (standard, $1000 credit limit, SMS preferred)
 - `user-789` - Carol Williams (premium, $10000 credit limit, webhook preferred)
 
-**Example Workflow**:
+**Example Flow**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "user-lookup-test",
@@ -63,9 +63,9 @@ Retrieves product information and stock levels.
 - `prod-monitor` - 4K Monitor 27" ($449.99, 30 in stock)
 - `prod-headphones` - Noise-Canceling Headphones ($249.99, **OUT OF STOCK**)
 
-**Example Workflow**:
+**Example Flow**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "inventory-check",
@@ -74,7 +74,7 @@ curl -X POST http://localhost:8080/engine/workflow \
   }'
 ```
 
-**Expected Result**: Workflow will complete with out-of-stock product info.
+**Expected Result**: Flow will complete with out-of-stock product info.
 
 ---
 
@@ -100,9 +100,9 @@ Creates an order with comprehensive business logic validation.
 - Applies 8% tax
 - Checks credit limits for standard accounts
 
-**Example Workflow (Success)**:
+**Example Flow (Success)**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "create-order-success",
@@ -115,9 +115,9 @@ curl -X POST http://localhost:8080/engine/workflow \
   }'
 ```
 
-**Example Workflow (Credit Limit Exceeded)**:
+**Example Flow (Credit Limit Exceeded)**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "create-order-credit-fail",
@@ -130,11 +130,11 @@ curl -X POST http://localhost:8080/engine/workflow \
   }'
 ```
 
-**Expected Result**: Workflow will fail - Bob (standard account, $1000 limit) cannot afford 2 laptops ($2599.98 + tax + shipping).
+**Expected Result**: Flow will fail - Bob (standard account, $1000 limit) cannot afford 2 laptops ($2599.98 + tax + shipping).
 
-**Example Workflow (Out of Stock)**:
+**Example Flow (Out of Stock)**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "create-order-oos",
@@ -146,7 +146,7 @@ curl -X POST http://localhost:8080/engine/workflow \
   }'
 ```
 
-**Expected Result**: Workflow will fail - headphones are out of stock.
+**Expected Result**: Flow will fail - headphones are out of stock.
 
 ---
 
@@ -163,9 +163,9 @@ Reserves inventory with thread-safe stock tracking.
 
 **Important**: This step maintains shared state across invocations. Stock levels decrease with each reservation.
 
-**Example Workflow**:
+**Example Flow**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "reserve-stock",
@@ -179,7 +179,7 @@ curl -X POST http://localhost:8080/engine/workflow \
 ```
 
 **Testing Overselling**:
-Run the same workflow multiple times to deplete stock and trigger insufficient stock errors.
+Run the same flow multiple times to deplete stock and trigger insufficient stock errors.
 
 ---
 
@@ -202,9 +202,9 @@ Sends notifications via user's preferred method.
 - Webhook (Carol's preference)
 - Always sends backup email for audit trail
 
-**Example Workflow**:
+**Example Flow**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "notify-user",
@@ -239,9 +239,9 @@ Processes payment asynchronously with webhook callback.
 - 90% success rate, 10% failure rate
 - Fails with realistic reasons: insufficient funds, card declined, fraud detection, etc.
 
-**Example Workflow**:
+**Example Flow**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "process-payment",
@@ -274,7 +274,7 @@ Formats text with user name prefix.
 
 **Example**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "format-text",
@@ -296,7 +296,7 @@ Calculates pricing with tax and shipping.
 
 **Example**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "calc-price",
@@ -318,7 +318,7 @@ Checks loan eligibility based on age, income, and credit score.
 
 **Example (Eligible)**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "check-eligible-pass",
@@ -335,7 +335,7 @@ curl -X POST http://localhost:8080/engine/workflow \
 
 **Example (Ineligible - Too Young)**:
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "check-eligible-fail",
@@ -352,12 +352,12 @@ curl -X POST http://localhost:8080/engine/workflow \
 
 ---
 
-## Complete E-Commerce Workflow
+## Complete E-Commerce Flow
 
-Demonstrates goal-oriented execution with lazy evaluation:
+Demonstrates goal-driven execution with lazy evaluation:
 
 ```bash
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "complete-order-flow",
@@ -385,11 +385,11 @@ curl -X POST http://localhost:8080/engine/workflow \
 ## Testing Different Scenarios
 
 ### Test Payment Failure Recovery
-Run the complete workflow multiple times. ~10% will fail at payment processing:
+Run the complete flow multiple times. ~10% will fail at payment processing:
 
 ```bash
 for i in {1..10}; do
-  curl -X POST http://localhost:8080/engine/workflow \
+  curl -X POST http://localhost:8080/engine/flow \
     -H "Content-Type: application/json" \
     -d "{\"id\": \"order-$i\", \"goals\": [\"payment-processor\"], \"init\": {\"user_id\": \"user-123\", \"product_id\": \"prod-mouse\"}}"
 done
@@ -403,7 +403,7 @@ Reserve all available stock of a product:
 ```bash
 # Monitors have 30 in stock, reserve 35 to trigger failure
 for i in {1..35}; do
-  curl -X POST http://localhost:8080/engine/workflow \
+  curl -X POST http://localhost:8080/engine/flow \
     -H "Content-Type: application/json" \
     -d "{\"id\": \"reserve-$i\", \"goals\": [\"stock-reservation\"], \"init\": {\"user_id\": \"user-123\", \"product_id\": \"prod-monitor\", \"quantity\": 1}}"
   echo "Reservation $i"
@@ -418,7 +418,7 @@ Try ordering as a standard user (Bob) with limited credit:
 ```bash
 # Bob has $1000 credit limit
 # Try ordering expensive laptop ($1299.99 + tax + shipping = ~$1410)
-curl -X POST http://localhost:8080/engine/workflow \
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "credit-fail",
@@ -430,24 +430,24 @@ curl -X POST http://localhost:8080/engine/workflow \
   }'
 ```
 
-Workflow will fail at order-creator with "order total exceeds credit limit".
+Flow will fail at order-creator with "order total exceeds credit limit".
 
 ---
 
-## Monitoring Workflows
+## Monitoring Flows
 
-### View All Workflows
+### View All Flows
 ```bash
-curl http://localhost:8080/engine/workflow
+curl http://localhost:8080/engine/flow
 ```
 
-### View Specific Workflow
+### View Specific Flow
 ```bash
-curl http://localhost:8080/engine/workflow/complete-order-flow
+curl http://localhost:8080/engine/flow/complete-order-flow
 ```
 
 ### WebSocket Live Updates
-Open the Web UI at http://localhost:3001 to watch workflows execute in real-time.
+Open the Web UI at http://localhost:3001 to watch flows execute in real-time.
 
 ---
 
@@ -475,7 +475,7 @@ This registers all three script steps (text-formatter, price-calculator, eligibi
 2. **Processors** - Transform inputs to outputs (order-creator, stock-reservation, payment-processor)
 3. **Collectors** - Consume inputs, perform side effects (notification-sender)
 4. **Lazy Evaluation** - Only executes steps needed for the goal
-5. **Async Workflows** - Payment processor shows webhook-based async execution
+5. **Async Flows** - Payment processor shows webhook-based async execution
 6. **Error Handling** - Multiple failure scenarios (out of stock, credit limits, payment failures)
-7. **Shared State** - Stock reservation maintains inventory across workflows
+7. **Shared State** - Stock reservation maintains inventory across flows
 8. **Script Steps** - Ale and Lua for lightweight logic without HTTP services

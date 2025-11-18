@@ -1,3 +1,3 @@
-import WorkflowPage from "./components/templates/WorkflowPage";
+import FlowPage from "./components/templates/FlowPage";
 
-export default WorkflowPage;
+export default FlowPage;

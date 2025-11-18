@@ -19,19 +19,19 @@ import (
 )
 
 type (
-	// Engine is the core workflow execution engine
+	// Engine is the core flow execution engine
 	Engine struct {
-		stepClient   client.Client
-		ctx          context.Context
-		consumer     EventConsumer
-		engineExec   *Executor
-		workflowExec *WorkflowExecutor
-		config       *config.Config
-		cancel       context.CancelFunc
-		scripts      *ScriptRegistry
-		wg           sync.WaitGroup
-		workflows    sync.Map // map[workflowID]*workflowActor
-		handler      timebox.Handler
+		stepClient client.Client
+		ctx        context.Context
+		consumer   EventConsumer
+		engineExec *Executor
+		flowExec   *FlowExecutor
+		config     *config.Config
+		cancel     context.CancelFunc
+		scripts    *ScriptRegistry
+		wg         sync.WaitGroup
+		flows      sync.Map // map[flowID]*flowActor
+		handler    timebox.Handler
 	}
 
 	// EventConsumer consumes events from the event hub
@@ -43,17 +43,17 @@ type (
 	// Aggregator aggregates engine state from events
 	Aggregator = timebox.Aggregator[*api.EngineState]
 
-	// WorkflowExecutor manages workflow state persistence and event sourcing
-	WorkflowExecutor = timebox.Executor[*api.WorkflowState]
+	// FlowExecutor manages flow state persistence and event sourcing
+	FlowExecutor = timebox.Executor[*api.FlowState]
 
-	// WorkflowAggregator aggregates workflow state from events
-	WorkflowAggregator = timebox.Aggregator[*api.WorkflowState]
+	// FlowAggregator aggregates flow state from events
+	FlowAggregator = timebox.Aggregator[*api.FlowState]
 )
 
 var (
 	ErrShutdownTimeout      = errors.New("shutdown timeout exceeded")
-	ErrWorkflowNotFound     = errors.New("workflow not found")
-	ErrWorkflowExists       = errors.New("workflow exists")
+	ErrFlowNotFound         = errors.New("flow not found")
+	ErrFlowExists           = errors.New("flow exists")
 	ErrStepNotFound         = errors.New("step not found")
 	ErrStepExists           = errors.New("step exists")
 	ErrScriptCompileFailed  = errors.New("failed to compile scripts for plan")
@@ -63,10 +63,10 @@ var (
 	ErrAttributeAlreadySet  = errors.New("attribute already set")
 )
 
-// New creates a new workflow engine instance with the specified stores,
+// New creates a new orchestrator instance with the specified stores,
 // client, event hub, and configuration
 func New(
-	engine, workflow *timebox.Store, client client.Client, hub timebox.EventHub,
+	engine, flow *timebox.Store, client client.Client, hub timebox.EventHub,
 	cfg *config.Config,
 ) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -74,8 +74,8 @@ func New(
 		engineExec: timebox.NewExecutor(
 			engine, events.NewEngineState, events.EngineAppliers,
 		),
-		workflowExec: timebox.NewExecutor(
-			workflow, events.NewWorkflowState, events.WorkflowAppliers,
+		flowExec: timebox.NewExecutor(
+			flow, events.NewFlowState, events.FlowAppliers,
 		),
 		stepClient: client,
 		config:     cfg,
@@ -89,26 +89,26 @@ func New(
 }
 
 func (e *Engine) createEventHandler() timebox.Handler {
-	workflowStarted := timebox.MakeHandler(e.handleWorkflowStarted)
-	workflowCompleted := timebox.MakeHandler(e.handleWorkflowCompleted)
-	workflowFailed := timebox.MakeHandler(e.handleWorkflowFailed)
+	flowStarted := timebox.MakeHandler(e.handleFlowStarted)
+	flowCompleted := timebox.MakeHandler(e.handleFlowCompleted)
+	flowFailed := timebox.MakeHandler(e.handleFlowFailed)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		api.EventTypeWorkflowStarted:   workflowStarted,
-		api.EventTypeWorkflowCompleted: workflowCompleted,
-		api.EventTypeWorkflowFailed:    workflowFailed,
+		api.EventTypeFlowStarted:   flowStarted,
+		api.EventTypeFlowCompleted: flowCompleted,
+		api.EventTypeFlowFailed:    flowFailed,
 	})
 }
 
-// Start begins processing workflows and events
+// Start begins processing flows and events
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
 
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	if err := e.RecoverWorkflows(ctx); err != nil {
-		slog.Error("Failed to recover workflows",
+	if err := e.RecoverFlows(ctx); err != nil {
+		slog.Error("Failed to recover flows",
 			slog.Any("error", err))
 	}
 
@@ -137,14 +137,14 @@ func (e *Engine) Stop() error {
 	}
 }
 
-// StartWorkflow begins a new workflow execution with the given plan and state
-func (e *Engine) StartWorkflow(
+// StartFlow begins a new flow execution with the given plan and state
+func (e *Engine) StartFlow(
 	ctx context.Context, flowID timebox.ID, plan *api.ExecutionPlan,
 	initState api.Args, meta api.Metadata,
 ) error {
-	existing, err := e.GetWorkflowState(ctx, flowID)
+	existing, err := e.GetFlowState(ctx, flowID)
 	if err == nil && existing.ID != "" {
-		return ErrWorkflowExists
+		return ErrFlowExists
 	}
 
 	if err := plan.ValidateInputs(initState); err != nil {
@@ -155,9 +155,9 @@ func (e *Engine) StartWorkflow(
 		return err
 	}
 
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		return util.Raise(ag, api.EventTypeWorkflowStarted,
-			api.WorkflowStartedEvent{
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+		return util.Raise(ag, api.EventTypeFlowStarted,
+			api.FlowStartedEvent{
 				FlowID:   flowID,
 				Plan:     plan,
 				Init:     initState,
@@ -166,7 +166,7 @@ func (e *Engine) StartWorkflow(
 		)
 	}
 
-	_, err = e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err = e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
@@ -183,7 +183,7 @@ func (e *Engine) UnregisterStep(ctx context.Context, stepID timebox.ID) error {
 }
 
 // GetEngineState retrieves the current engine state including registered steps
-// and active workflows
+// and active flows
 func (e *Engine) GetEngineState(ctx context.Context) (*api.EngineState, error) {
 	return e.engineExec.Exec(ctx, events.EngineID,
 		func(st *api.EngineState, ag *Aggregator) error {
@@ -224,33 +224,33 @@ func (e *Engine) eventLoop() {
 
 func (e *Engine) routeEvent(event *timebox.Event) {
 	if err := e.handler(event); err != nil {
-		slog.Error("Failed to handle workflow lifecycle event",
+		slog.Error("Failed to handle flow lifecycle event",
 			slog.Any("event_type", event.Type),
 			slog.Any("error", err))
 	}
 
-	if !events.IsWorkflowEvent(event) {
+	if !events.IsFlowEvent(event) {
 		return
 	}
 
 	flowID := event.AggregateID[1]
 
-	actor, loaded := e.workflows.Load(flowID)
+	actor, loaded := e.flows.Load(flowID)
 	if !loaded {
-		wa := &workflowActor{
+		wa := &flowActor{
 			Engine: e,
 			flowID: flowID,
 			events: make(chan *timebox.Event, 100),
 		}
 		wa.eventHandler = wa.createEventHandler()
-		actor, loaded = e.workflows.LoadOrStore(flowID, wa)
+		actor, loaded = e.flows.LoadOrStore(flowID, wa)
 		if !loaded {
 			e.wg.Add(1)
 			go wa.run()
 		}
 	}
 
-	actor.(*workflowActor).events <- event
+	actor.(*flowActor).events <- event
 }
 
 func (e *Engine) retryLoop() {
@@ -278,8 +278,8 @@ func (e *Engine) checkPendingRetries() {
 	}
 
 	now := time.Now()
-	for flowID := range engineState.ActiveWorkflows {
-		flow, err := e.GetWorkflowState(ctx, flowID)
+	for flowID := range engineState.ActiveFlows {
+		flow, err := e.GetFlowState(ctx, flowID)
 		if err != nil {
 			continue
 		}
@@ -328,7 +328,7 @@ func (e *Engine) retryWork(
 func (e *Engine) getCompiledFromPlan(
 	flowID, stepID timebox.ID, getter func(*api.StepInfo) (any, error),
 ) (any, error) {
-	flow, err := e.GetWorkflowState(e.ctx, flowID)
+	flow, err := e.GetFlowState(e.ctx, flowID)
 	if err != nil {
 		return nil, err
 	}
@@ -345,7 +345,7 @@ func (e *Engine) getCompiledFromPlan(
 	return getter(info)
 }
 
-// GetCompiledPredicate retrieves the compiled predicate for a workflow step
+// GetCompiledPredicate retrieves the compiled predicate for a flow step
 func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
 	return e.getCompiledFromPlan(flowID, stepID,
 		func(info *api.StepInfo) (any, error) {
@@ -357,7 +357,7 @@ func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
 	)
 }
 
-// GetCompiledScript retrieves the compiled script for a step in a workflow
+// GetCompiledScript retrieves the compiled script for a step in a flow
 func (e *Engine) GetCompiledScript(flowID, stepID timebox.ID) (any, error) {
 	return e.getCompiledFromPlan(
 		flowID, stepID, func(info *api.StepInfo,
@@ -382,12 +382,12 @@ func (e *Engine) saveEngineSnapshot() {
 	slog.Info("Engine snapshot saved")
 }
 
-func (e *Engine) handleWorkflowStarted(
-	_ *timebox.Event, data api.WorkflowStartedEvent,
+func (e *Engine) handleFlowStarted(
+	_ *timebox.Event, data api.FlowStartedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeWorkflowActivated,
-			api.WorkflowActivatedEvent{FlowID: data.FlowID},
+		return util.Raise(ag, api.EventTypeFlowActivated,
+			api.FlowActivatedEvent{FlowID: data.FlowID},
 		)
 	}
 
@@ -396,12 +396,12 @@ func (e *Engine) handleWorkflowStarted(
 	return err
 }
 
-func (e *Engine) handleWorkflowCompleted(
-	_ *timebox.Event, data api.WorkflowCompletedEvent,
+func (e *Engine) handleFlowCompleted(
+	_ *timebox.Event, data api.FlowCompletedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeWorkflowDeactivated,
-			api.WorkflowDeactivatedEvent{FlowID: data.FlowID},
+		return util.Raise(ag, api.EventTypeFlowDeactivated,
+			api.FlowDeactivatedEvent{FlowID: data.FlowID},
 		)
 	}
 
@@ -410,12 +410,12 @@ func (e *Engine) handleWorkflowCompleted(
 	return err
 }
 
-func (e *Engine) handleWorkflowFailed(
-	_ *timebox.Event, data api.WorkflowFailedEvent,
+func (e *Engine) handleFlowFailed(
+	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeWorkflowDeactivated,
-			api.WorkflowDeactivatedEvent{FlowID: data.FlowID},
+		return util.Raise(ag, api.EventTypeFlowDeactivated,
+			api.FlowDeactivatedEvent{FlowID: data.FlowID},
 		)
 	}
 

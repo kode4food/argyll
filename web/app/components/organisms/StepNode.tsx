@@ -8,7 +8,7 @@ import React, {
 import { Position, NodeProps } from "@xyflow/react";
 import {
   Step,
-  WorkflowContext,
+  FlowContext,
   ExecutionResult,
   AttributeRole,
 } from "../../api";
@@ -19,7 +19,7 @@ interface StepNodeData {
   step: Step;
   selected: boolean;
   onStepClick?: (stepId: string) => void;
-  workflowData?: WorkflowContext | null;
+  flowData?: FlowContext | null;
   executions?: ExecutionResult[];
   resolvedAttributes?: string[];
   isGoalStep?: boolean;
@@ -34,7 +34,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
   const nodeData = data as unknown as StepNodeData;
   const {
     step,
-    workflowData,
+    flowData,
     executions = [],
     resolvedAttributes = [],
     onStepClick,
@@ -80,15 +80,15 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
 
   const provenance = useMemo(() => {
     const map = new Map<string, string>();
-    if (workflowData?.state) {
-      Object.entries(workflowData.state).forEach(([attrName, attrValue]) => {
+    if (flowData?.state) {
+      Object.entries(flowData.state).forEach(([attrName, attrValue]) => {
         if (attrValue.step) {
           map.set(attrName, attrValue.step);
         }
       });
     }
     return map;
-  }, [workflowData?.state]);
+  }, [flowData?.state]);
 
   const satisfied = useMemo(() => {
     const set = new Set<string>();
@@ -211,7 +211,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
           attributeProvenance={provenance}
           isInPreviewPlan={nodeData.isInPreviewPlan}
           isPreviewMode={nodeData.isPreviewMode}
-          flowId={workflowData?.id}
+          flowId={flowData?.id}
           diagramContainerRef={nodeData.diagramContainerRef}
           disableEdit={nodeData.disableEdit}
         />

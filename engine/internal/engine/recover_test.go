@@ -21,7 +21,7 @@ func TestRecoveryActivation(t *testing.T) {
 	env.Engine.Start()
 
 	ctx := context.Background()
-	flowID := timebox.ID("test-workflow")
+	flowID := timebox.ID("test-flow")
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
@@ -31,20 +31,20 @@ func TestRecoveryActivation(t *testing.T) {
 		},
 	}
 
-	err := env.Engine.StartWorkflow(
+	err := env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	// Wait a bit for the event loop to process the workflow started event
+	// Wait a bit for the event loop to process the flow started event
 	time.Sleep(100 * time.Millisecond)
 
-	// Check that workflow was created and started
-	workflow, err := env.Engine.GetWorkflowState(ctx, flowID)
+	// Check that flow was created and started
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
 	require.NoError(t, err)
-	assert.NotNil(t, workflow)
-	assert.Equal(t, flowID, workflow.ID)
-	assert.False(t, workflow.CreatedAt.IsZero())
+	assert.NotNil(t, flow)
+	assert.Equal(t, flowID, flow.ID)
+	assert.False(t, flow.CreatedAt.IsZero())
 }
 
 func TestRecoveryDeactivation(t *testing.T) {
@@ -54,7 +54,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 	env.Engine.Start()
 
 	ctx := context.Background()
-	flowID := timebox.ID("test-workflow")
+	flowID := timebox.ID("test-flow")
 
 	step := &api.Step{ID: "step-1"}
 	plan := &api.ExecutionPlan{
@@ -64,21 +64,21 @@ func TestRecoveryDeactivation(t *testing.T) {
 		},
 	}
 
-	err := env.Engine.StartWorkflow(
+	err := env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	err = env.Engine.CompleteWorkflow(ctx, flowID, api.Args{})
+	err = env.Engine.CompleteFlow(ctx, flowID, api.Args{})
 	require.NoError(t, err)
 
-	// Wait a bit for the event loop to process the workflow completed event
+	// Wait a bit for the event loop to process the flow completed event
 	time.Sleep(100 * time.Millisecond)
 
 	engineState, err := env.Engine.GetEngineState(ctx)
 	require.NoError(t, err)
 
-	_, exists := engineState.ActiveWorkflows[flowID]
+	_, exists := engineState.ActiveFlows[flowID]
 	assert.False(t, exists)
 }
 
@@ -320,8 +320,8 @@ func TestScheduleRetry(t *testing.T) {
 		},
 	}
 
-	flowID := timebox.ID("retry-workflow")
-	err = env.Engine.StartWorkflow(
+	flowID := timebox.ID("retry-flow")
+	err = env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -338,7 +338,7 @@ func TestScheduleRetry(t *testing.T) {
 	err = env.Engine.ScheduleRetry(ctx, flowID, "test-step", token, "test error")
 	require.NoError(t, err)
 
-	flow, err := env.Engine.GetWorkflowState(ctx, flowID)
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
 	require.NoError(t, err)
 
 	exec := flow.Executions["test-step"]
@@ -376,15 +376,15 @@ func TestRetryExhaustion(t *testing.T) {
 		},
 	}
 
-	flowID := timebox.ID("exhaustion-workflow")
-	err = env.Engine.StartWorkflow(
+	flowID := timebox.ID("exhaustion-flow")
+	err = env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
 	time.Sleep(1500 * time.Millisecond)
 
-	flow, err := env.Engine.GetWorkflowState(ctx, flowID)
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
 	require.NoError(t, err)
 
 	exec := flow.Executions["failing-step"]
@@ -407,7 +407,7 @@ func TestFindRetriableSteps(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	state := &api.WorkflowState{
+	state := &api.FlowState{
 		Executions: map[timebox.ID]*api.ExecutionState{
 			"step-1": {
 				Status: api.StepPending,
@@ -468,7 +468,7 @@ func TestFindRetriableSteps(t *testing.T) {
 	assert.Contains(t, retriable, timebox.ID("step-4"))
 }
 
-func TestRecoverActiveWorkflows(t *testing.T) {
+func TestRecoverActiveFlows(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -476,8 +476,8 @@ func TestRecoverActiveWorkflows(t *testing.T) {
 
 	ctx := context.Background()
 
-	flowID1 := timebox.ID("workflow-1")
-	flowID2 := timebox.ID("workflow-2")
+	flowID1 := timebox.ID("flow-1")
+	flowID2 := timebox.ID("flow-2")
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
@@ -487,12 +487,12 @@ func TestRecoverActiveWorkflows(t *testing.T) {
 		},
 	}
 
-	err := env.Engine.StartWorkflow(
+	err := env.Engine.StartFlow(
 		ctx, flowID1, plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		ctx, flowID2, plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -500,14 +500,14 @@ func TestRecoverActiveWorkflows(t *testing.T) {
 	// Wait for events to be processed
 	time.Sleep(100 * time.Millisecond)
 
-	// Workflows created successfully
-	workflow1, err := env.Engine.GetWorkflowState(ctx, flowID1)
+	// Flows created successfully
+	flow1, err := env.Engine.GetFlowState(ctx, flowID1)
 	require.NoError(t, err)
-	assert.NotNil(t, workflow1)
+	assert.NotNil(t, flow1)
 
-	workflow2, err := env.Engine.GetWorkflowState(ctx, flowID2)
+	flow2, err := env.Engine.GetFlowState(ctx, flowID2)
 	require.NoError(t, err)
-	assert.NotNil(t, workflow2)
+	assert.NotNil(t, flow2)
 }
 
 func TestConcurrentRecoveryState(t *testing.T) {
@@ -531,8 +531,8 @@ func TestConcurrentRecoveryState(t *testing.T) {
 
 	for i := 0; i < count; i++ {
 		go func(id int) {
-			flowID := timebox.ID(fmt.Sprintf("workflow-%d", id))
-			err := env.Engine.StartWorkflow(
+			flowID := timebox.ID(fmt.Sprintf("flow-%d", id))
+			err := env.Engine.StartFlow(
 				ctx, flowID, plan, api.Args{}, api.Metadata{},
 			)
 			assert.NoError(t, err)
@@ -547,12 +547,12 @@ func TestConcurrentRecoveryState(t *testing.T) {
 	// Wait for events to be processed
 	time.Sleep(100 * time.Millisecond)
 
-	// Verify all workflows were created
+	// Verify all flows were created
 	for i := 0; i < count; i++ {
-		flowID := timebox.ID(fmt.Sprintf("workflow-%d", i))
-		workflow, err := env.Engine.GetWorkflowState(ctx, flowID)
+		flowID := timebox.ID(fmt.Sprintf("flow-%d", i))
+		flow, err := env.Engine.GetFlowState(ctx, flowID)
 		assert.NoError(t, err)
-		assert.NotNil(t, workflow)
+		assert.NotNil(t, flow)
 	}
 }
 

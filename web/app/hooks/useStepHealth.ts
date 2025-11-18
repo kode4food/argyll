@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { Step, HealthStatus, StepHealth } from "../api";
-import { useWorkflowStore } from "../store/workflowStore";
+import { useFlowStore } from "../store/flowStore";
 
 export const useStepHealth = (step: Step): StepHealth => {
-  const healthInfo = useWorkflowStore((state) => state.stepHealth[step.id]);
+  const healthInfo = useFlowStore((state) => state.stepHealth[step.id]);
   return useMemo(() => {
     // For HTTP steps, check if health check is configured
     if (

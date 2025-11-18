@@ -1,4 +1,4 @@
-export type WorkflowStatus =
+export type FlowStatus =
   | "pending"
   | "active"
   | "completed"
@@ -89,9 +89,9 @@ export interface ExecutionPlan {
   attributes: Record<string, Dependencies>;
 }
 
-export interface WorkflowContext {
+export interface FlowContext {
   id: string;
-  status: WorkflowStatus;
+  status: FlowStatus;
   state: Record<string, AttributeValue>;
   error_state?: {
     message: string;
@@ -136,9 +136,9 @@ export interface AttributeValue {
   step?: string;
 }
 
-export interface WorkflowProjection {
+export interface FlowProjection {
   id: string;
-  status: WorkflowStatus;
+  status: FlowStatus;
   plan: ExecutionPlan;
   attributes: Record<string, AttributeValue>;
   executions: Record<string, ExecutionInfo>;

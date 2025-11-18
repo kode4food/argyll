@@ -1,13 +1,13 @@
 import { renderHook } from "@testing-library/react";
 import { useStepHealth } from "./useStepHealth";
-import { useWorkflowStore } from "../store/workflowStore";
+import { useFlowStore } from "../store/flowStore";
 import type { Step } from "../api";
 
-jest.mock("../store/workflowStore");
+jest.mock("../store/flowStore");
 
 describe("useStepHealth", () => {
-  const mockUseWorkflowStore = useWorkflowStore as jest.MockedFunction<
-    typeof useWorkflowStore
+  const mockUseFlowStore = useFlowStore as jest.MockedFunction<
+    typeof useFlowStore
   >;
 
   beforeEach(() => {
@@ -34,21 +34,21 @@ describe("useStepHealth", () => {
   });
 
   test("returns unconfigured for sync step without health check", () => {
-    mockUseWorkflowStore.mockReturnValue({});
+    mockUseFlowStore.mockReturnValue({});
     const step = createStep("sync", false);
     const { result } = renderHook(() => useStepHealth(step));
     expect(result.current.status).toBe("unconfigured");
   });
 
   test("returns unconfigured for async step without health check", () => {
-    mockUseWorkflowStore.mockReturnValue({});
+    mockUseFlowStore.mockReturnValue({});
     const step = createStep("async", false);
     const { result } = renderHook(() => useStepHealth(step));
     expect(result.current.status).toBe("unconfigured");
   });
 
   test("returns health from store for sync step with health check", () => {
-    mockUseWorkflowStore.mockReturnValue({
+    mockUseFlowStore.mockReturnValue({
       status: "healthy",
     });
     const step = createStep("sync", true);
@@ -57,7 +57,7 @@ describe("useStepHealth", () => {
   });
 
   test("returns health from store for async step with health check", () => {
-    mockUseWorkflowStore.mockReturnValue({
+    mockUseFlowStore.mockReturnValue({
       status: "unhealthy",
       error: "Connection failed",
     });
@@ -68,14 +68,14 @@ describe("useStepHealth", () => {
   });
 
   test("returns unknown status when no health info in store", () => {
-    mockUseWorkflowStore.mockReturnValue({});
+    mockUseFlowStore.mockReturnValue({});
     const step = createStep("sync", true);
     const { result } = renderHook(() => useStepHealth(step));
     expect(result.current.status).toBe("unknown");
   });
 
   test("returns health for script step", () => {
-    mockUseWorkflowStore.mockReturnValue({
+    mockUseFlowStore.mockReturnValue({
       status: "healthy",
     });
     const step: Step = {

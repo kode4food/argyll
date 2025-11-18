@@ -21,9 +21,9 @@ services:
       - ENGINE_REDIS_ADDR=valkey:6379
       - ENGINE_REDIS_PASSWORD=
       - ENGINE_REDIS_DB=0
-      - WORKFLOW_REDIS_ADDR=valkey:6379
-      - WORKFLOW_REDIS_PASSWORD=
-      - WORKFLOW_REDIS_DB=0
+      - FLOW_REDIS_ADDR=valkey:6379
+      - FLOW_REDIS_PASSWORD=
+      - FLOW_REDIS_DB=0
       - API_PORT=8080
       - API_HOST=0.0.0.0
       - WEBHOOK_BASE_URL=http://spuds-engine:8080

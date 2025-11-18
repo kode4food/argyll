@@ -26,7 +26,7 @@ describe("viewportPersistence", () => {
 
     test("loads viewport state from localStorage", () => {
       const viewports = {
-        "workflow-1": { x: 100, y: 200, zoom: 1.5 },
+        "flow-1": { x: 100, y: 200, zoom: 1.5 },
         overview: { x: 0, y: 0, zoom: 1 },
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(viewports));
@@ -61,37 +61,37 @@ describe("viewportPersistence", () => {
     test("saves viewport state to localStorage", () => {
       const viewport: Viewport = { x: 100, y: 200, zoom: 1.5 };
 
-      saveViewportState("workflow-1", viewport);
+      saveViewportState("flow-1", viewport);
 
       const stored = localStorage.getItem(STORAGE_KEY);
       expect(stored).toBeTruthy();
       const parsed = JSON.parse(stored!);
-      expect(parsed["workflow-1"]).toEqual(viewport);
+      expect(parsed["flow-1"]).toEqual(viewport);
     });
 
     test("preserves existing viewports when saving new one", () => {
       const viewport1: Viewport = { x: 100, y: 200, zoom: 1.5 };
       const viewport2: Viewport = { x: 300, y: 400, zoom: 2.0 };
 
-      saveViewportState("workflow-1", viewport1);
-      saveViewportState("workflow-2", viewport2);
+      saveViewportState("flow-1", viewport1);
+      saveViewportState("flow-2", viewport2);
 
       const stored = localStorage.getItem(STORAGE_KEY);
       const parsed = JSON.parse(stored!);
-      expect(parsed["workflow-1"]).toEqual(viewport1);
-      expect(parsed["workflow-2"]).toEqual(viewport2);
+      expect(parsed["flow-1"]).toEqual(viewport1);
+      expect(parsed["flow-2"]).toEqual(viewport2);
     });
 
     test("overwrites existing viewport for same key", () => {
       const viewport1: Viewport = { x: 100, y: 200, zoom: 1.5 };
       const viewport2: Viewport = { x: 300, y: 400, zoom: 2.0 };
 
-      saveViewportState("workflow-1", viewport1);
-      saveViewportState("workflow-1", viewport2);
+      saveViewportState("flow-1", viewport1);
+      saveViewportState("flow-1", viewport2);
 
       const stored = localStorage.getItem(STORAGE_KEY);
       const parsed = JSON.parse(stored!);
-      expect(parsed["workflow-1"]).toEqual(viewport2);
+      expect(parsed["flow-1"]).toEqual(viewport2);
     });
 
     test("handles overview key", () => {
@@ -107,21 +107,21 @@ describe("viewportPersistence", () => {
     test("handles fractional viewport values", () => {
       const viewport: Viewport = { x: 123.456, y: 789.012, zoom: 1.23 };
 
-      saveViewportState("workflow-1", viewport);
+      saveViewportState("flow-1", viewport);
 
       const stored = localStorage.getItem(STORAGE_KEY);
       const parsed = JSON.parse(stored!);
-      expect(parsed["workflow-1"]).toEqual(viewport);
+      expect(parsed["flow-1"]).toEqual(viewport);
     });
 
     test("handles negative viewport values", () => {
       const viewport: Viewport = { x: -100, y: -200, zoom: 0.5 };
 
-      saveViewportState("workflow-1", viewport);
+      saveViewportState("flow-1", viewport);
 
       const stored = localStorage.getItem(STORAGE_KEY);
       const parsed = JSON.parse(stored!);
-      expect(parsed["workflow-1"]).toEqual(viewport);
+      expect(parsed["flow-1"]).toEqual(viewport);
     });
 
     test("logs warning on storage error", () => {
@@ -130,7 +130,7 @@ describe("viewportPersistence", () => {
         throw new Error("Storage full");
       });
 
-      saveViewportState("workflow-1", viewport);
+      saveViewportState("flow-1", viewport);
 
       expect(console.warn).toHaveBeenCalledWith(
         "Failed to save viewport state to localStorage:",
@@ -144,24 +144,24 @@ describe("viewportPersistence", () => {
       const viewport: Viewport = { x: 100, y: 200, zoom: 1.5 };
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ "workflow-1": viewport })
+        JSON.stringify({ "flow-1": viewport })
       );
 
-      const result = getViewportForKey("workflow-1");
+      const result = getViewportForKey("flow-1");
 
       expect(result).toEqual(viewport);
     });
 
     test("returns null for non-existent key", () => {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ "workflow-1": {} }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ "flow-1": {} }));
 
-      const result = getViewportForKey("workflow-2");
+      const result = getViewportForKey("flow-2");
 
       expect(result).toBeNull();
     });
 
     test("returns null when no data stored", () => {
-      const result = getViewportForKey("workflow-1");
+      const result = getViewportForKey("flow-1");
 
       expect(result).toBeNull();
     });
@@ -180,8 +180,8 @@ describe("viewportPersistence", () => {
     test("saves and retrieves viewport correctly", () => {
       const viewport: Viewport = { x: 100, y: 200, zoom: 1.5 };
 
-      saveViewportState("workflow-1", viewport);
-      const retrieved = getViewportForKey("workflow-1");
+      saveViewportState("flow-1", viewport);
+      const retrieved = getViewportForKey("flow-1");
 
       expect(retrieved).toEqual(viewport);
     });
@@ -191,12 +191,12 @@ describe("viewportPersistence", () => {
       const viewport2: Viewport = { x: 300, y: 400, zoom: 2.0 };
       const overview: Viewport = { x: 0, y: 0, zoom: 1 };
 
-      saveViewportState("workflow-1", viewport1);
-      saveViewportState("workflow-2", viewport2);
+      saveViewportState("flow-1", viewport1);
+      saveViewportState("flow-2", viewport2);
       saveViewportState("overview", overview);
 
-      expect(getViewportForKey("workflow-1")).toEqual(viewport1);
-      expect(getViewportForKey("workflow-2")).toEqual(viewport2);
+      expect(getViewportForKey("flow-1")).toEqual(viewport1);
+      expect(getViewportForKey("flow-2")).toEqual(viewport2);
       expect(getViewportForKey("overview")).toEqual(overview);
     });
 
@@ -205,12 +205,12 @@ describe("viewportPersistence", () => {
       const viewport2: Viewport = { x: 300, y: 400, zoom: 2.0 };
       const viewport1Updated: Viewport = { x: 500, y: 600, zoom: 3.0 };
 
-      saveViewportState("workflow-1", viewport1);
-      saveViewportState("workflow-2", viewport2);
-      saveViewportState("workflow-1", viewport1Updated);
+      saveViewportState("flow-1", viewport1);
+      saveViewportState("flow-2", viewport2);
+      saveViewportState("flow-1", viewport1Updated);
 
-      expect(getViewportForKey("workflow-1")).toEqual(viewport1Updated);
-      expect(getViewportForKey("workflow-2")).toEqual(viewport2);
+      expect(getViewportForKey("flow-1")).toEqual(viewport1Updated);
+      expect(getViewportForKey("flow-2")).toEqual(viewport2);
     });
   });
 });

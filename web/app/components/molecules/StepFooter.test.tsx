@@ -126,7 +126,7 @@ describe("StepFooter", () => {
     expect(preview?.textContent).toBe("{   :result   (+ 1 2) }");
   });
 
-  test("shows health dot when no workflow", () => {
+  test("shows health dot when no flow", () => {
     const step = createStep("sync");
 
     render(<StepFooter step={step} healthStatus="healthy" />);
@@ -134,7 +134,7 @@ describe("StepFooter", () => {
     expect(screen.getByTestId("health-dot")).toBeInTheDocument();
   });
 
-  test("shows progress icon when workflow is active", () => {
+  test("shows progress icon when flow is active", () => {
     const step = createStep("sync");
 
     mockUseStepProgress.mockReturnValue({
@@ -297,7 +297,7 @@ describe("StepFooter", () => {
     expect(screen.getByText(/Script Preview/)).toBeInTheDocument();
   });
 
-  test("shows health status in tooltip when no workflow", () => {
+  test("shows health status in tooltip when no flow", () => {
     const step = createStep("sync");
 
     render(
@@ -328,7 +328,7 @@ describe("StepFooter", () => {
     expect(container.querySelector(".step-endpoint")).not.toBeInTheDocument();
   });
 
-  test("does not show progress icon when workflow IDs don't match", () => {
+  test("does not show progress icon when flow IDs don't match", () => {
     const step = createStep("sync");
 
     mockUseStepProgress.mockReturnValue({

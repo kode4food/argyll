@@ -16,7 +16,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-// Server implements the HTTP API server for the workflow engine
+// Server implements the HTTP API server for the orchestrator
 type Server struct {
 	engine     *engine.Engine
 	config     *config.Config
@@ -97,10 +97,10 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		// Plan preview
 		eng.POST("/plan", s.handlePlanPreview)
 
-		// Workflow endpoints
-		eng.GET("/workflow", s.listWorkflows)
-		eng.POST("/workflow", s.startWorkflow)
-		eng.GET("/workflow/:flowID", s.getWorkflow)
+		// Flow endpoints
+		eng.GET("/flow", s.listFlows)
+		eng.POST("/flow", s.startFlow)
+		eng.GET("/flow/:flowID", s.getFlow)
 
 		// WebSocket
 		eng.GET("/ws", s.handleWebSocket)
@@ -124,12 +124,12 @@ func (s *Server) handleEngine(c *gin.Context) {
 
 func isNotFoundError(err error) bool {
 	return errors.Is(err, engine.ErrStepDoesNotExist) ||
-		errors.Is(err, engine.ErrWorkflowNotFound) ||
+		errors.Is(err, engine.ErrFlowNotFound) ||
 		errors.Is(err, engine.ErrStepNotFound)
 }
 
 func existsError(err error) bool {
 	return errors.Is(err, engine.ErrStepAlreadyExists) ||
-		errors.Is(err, engine.ErrWorkflowExists) ||
+		errors.Is(err, engine.ErrFlowExists) ||
 		errors.Is(err, engine.ErrStepExists)
 }

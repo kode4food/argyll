@@ -27,7 +27,7 @@ func TestStartStop(t *testing.T) {
 
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = redis.Addr()
-	cfg.WorkflowStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
 
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
@@ -39,11 +39,11 @@ func TestStartStop(t *testing.T) {
 	engineStore, err := tb.NewStore(cfg.EngineStore)
 	require.NoError(t, err)
 
-	workflowStore, err := tb.NewStore(cfg.WorkflowStore)
+	flowStore, err := tb.NewStore(cfg.FlowStore)
 	require.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
-	eng := engine.New(engineStore, workflowStore, mockClient, tb.GetHub(), cfg)
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
 	assert.NotNil(t, checker)
@@ -59,7 +59,7 @@ func TestGetStepHealth(t *testing.T) {
 
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = redis.Addr()
-	cfg.WorkflowStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
 
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
@@ -71,11 +71,11 @@ func TestGetStepHealth(t *testing.T) {
 	engineStore, err := tb.NewStore(cfg.EngineStore)
 	require.NoError(t, err)
 
-	workflowStore, err := tb.NewStore(cfg.WorkflowStore)
+	flowStore, err := tb.NewStore(cfg.FlowStore)
 	require.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
-	eng := engine.New(engineStore, workflowStore, mockClient, tb.GetHub(), cfg)
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
 	step := helpers.NewSimpleStep("health-test-step")
 
@@ -97,7 +97,7 @@ func TestGetStepHealthNotFound(t *testing.T) {
 
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = redis.Addr()
-	cfg.WorkflowStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
 
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
@@ -109,11 +109,11 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	engineStore, err := tb.NewStore(cfg.EngineStore)
 	require.NoError(t, err)
 
-	workflowStore, err := tb.NewStore(cfg.WorkflowStore)
+	flowStore, err := tb.NewStore(cfg.FlowStore)
 	require.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
-	eng := engine.New(engineStore, workflowStore, mockClient, tb.GetHub(), cfg)
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
 
@@ -139,7 +139,7 @@ func TestWithRealHealthCheck(t *testing.T) {
 
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = redis.Addr()
-	cfg.WorkflowStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
 
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
@@ -151,11 +151,11 @@ func TestWithRealHealthCheck(t *testing.T) {
 	engineStore, err := tb.NewStore(cfg.EngineStore)
 	require.NoError(t, err)
 
-	workflowStore, err := tb.NewStore(cfg.WorkflowStore)
+	flowStore, err := tb.NewStore(cfg.FlowStore)
 	require.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
-	eng := engine.New(engineStore, workflowStore, mockClient, tb.GetHub(), cfg)
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
 	step := &api.Step{
 		ID:   "real-health-step",
@@ -187,7 +187,7 @@ func TestRecentSuccess(t *testing.T) {
 
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = redis.Addr()
-	cfg.WorkflowStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
 
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
@@ -199,11 +199,11 @@ func TestRecentSuccess(t *testing.T) {
 	engineStore, err := tb.NewStore(cfg.EngineStore)
 	require.NoError(t, err)
 
-	workflowStore, err := tb.NewStore(cfg.WorkflowStore)
+	flowStore, err := tb.NewStore(cfg.FlowStore)
 	require.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
-	eng := engine.New(engineStore, workflowStore, mockClient, tb.GetHub(), cfg)
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
 	step := helpers.NewSimpleStep("recent-success-step")
 
@@ -224,7 +224,7 @@ func TestRecentSuccess(t *testing.T) {
 
 	event := &timebox.Event{
 		Type:        api.EventTypeStepCompleted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-test"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-test"),
 		Timestamp:   time.Now(),
 		Data:        completedData,
 	}

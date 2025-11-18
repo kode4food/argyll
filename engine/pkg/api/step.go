@@ -18,7 +18,7 @@ type (
 	// Metadata contains additional context passed to step handlers
 	Metadata map[string]any
 
-	// Step defines a workflow step with its configuration, attributes, and
+	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
 		Predicate  *ScriptConfig  `json:"predicate,omitempty"`

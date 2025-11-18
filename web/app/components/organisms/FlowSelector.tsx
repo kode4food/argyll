@@ -9,31 +9,31 @@ import React, {
 import { Activity, Play, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { api, WorkflowStatus } from "../../api";
+import { api, FlowStatus } from "../../api";
 import toast from "react-hot-toast";
 import { sortStepsByType } from "@/utils/stepUtils";
 import {
-  generateWorkflowId,
+  generateFlowId,
   generatePadded,
-  sanitizeWorkflowID,
-} from "@/utils/workflowUtils";
+  sanitizeFlowID,
+} from "@/utils/flowUtils";
 
-const WorkflowCreateForm = lazy(() => import("./WorkflowCreateForm"));
+const FlowCreateForm = lazy(() => import("./FlowCreateForm"));
 const KeyboardShortcutsModal = lazy(
   () => import("../molecules/KeyboardShortcutsModal")
 );
 
 import {
-  useWorkflows,
-  useSelectedWorkflow,
+  useFlows,
+  useSelectedFlow,
   useSteps,
-  useLoadWorkflows,
-  useAddWorkflow,
-  useRemoveWorkflow,
-  useUpdateWorkflowStatus,
-} from "../../store/workflowStore";
+  useLoadFlows,
+  useAddFlow,
+  useRemoveFlow,
+  useUpdateFlowStatus,
+} from "../../store/flowStore";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
-import { useWorkflowFromUrl } from "../../hooks/useWorkflowFromUrl";
+import { useFlowFromUrl } from "../../hooks/useFlowFromUrl";
 import { useThrottledValue } from "../../hooks/useThrottledValue";
 import { useUI } from "../../contexts/UIContext";
 import { getProgressIcon, getProgressIconClass } from "@/utils/progressUtils";
@@ -41,10 +41,10 @@ import { StepProgressStatus } from "../../hooks/useStepProgress";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useWebSocketContext } from "../../hooks/useWebSocketContext";
 import ErrorBoundary from "./ErrorBoundary";
-import styles from "./WorkflowSelector.module.css";
+import styles from "./FlowSelector.module.css";
 
-const mapWorkflowStatusToProgressStatus = (
-  status: WorkflowStatus
+const mapFlowStatusToProgressStatus = (
+  status: FlowStatus
 ): StepProgressStatus => {
   switch (status) {
     case "pending":
@@ -60,16 +60,16 @@ const mapWorkflowStatusToProgressStatus = (
   }
 };
 
-const WorkflowSelector: React.FC = () => {
+const FlowSelector: React.FC = () => {
   const router = useRouter();
-  useWorkflowFromUrl();
-  const workflows = useWorkflows();
-  const selectedWorkflow = useSelectedWorkflow();
+  useFlowFromUrl();
+  const flows = useFlows();
+  const selectedFlow = useSelectedFlow();
   const steps = useSteps();
-  const loadWorkflows = useLoadWorkflows();
-  const addWorkflow = useAddWorkflow();
-  const removeWorkflow = useRemoveWorkflow();
-  const updateWorkflowStatus = useUpdateWorkflowStatus();
+  const loadFlows = useLoadFlows();
+  const addFlow = useAddFlow();
+  const removeFlow = useRemoveFlow();
+  const updateFlowStatus = useUpdateFlowStatus();
   const { subscribe, events } = useWebSocketContext();
   const {
     showCreateForm,
@@ -101,7 +101,7 @@ const WorkflowSelector: React.FC = () => {
   const processedEventsRef = useRef<Set<string>>(new Set());
   const initialStateRef = useRef<string>(initialState);
 
-  const handleCreateWorkflow = async () => {
+  const handleCreateFlow = async () => {
     if (!newId.trim() || goalStepIds.length === 0) return;
 
     const flowId = newId.trim();
@@ -112,7 +112,7 @@ const WorkflowSelector: React.FC = () => {
       parsedState = {};
     }
 
-    const optimisticWorkflow: any = {
+    const optimisticFlow: any = {
       id: flowId,
       status: "pending",
       goal_step_ids: goalStepIds,
@@ -121,9 +121,9 @@ const WorkflowSelector: React.FC = () => {
       plan: null,
     };
 
-    addWorkflow(optimisticWorkflow);
+    addFlow(optimisticFlow);
     setCreating(true);
-    router.push(`/workflow/${flowId}`);
+    router.push(`/flow/${flowId}`);
     setNewId("");
     setGoalStepIds([]);
     setSelectedStep(null);
@@ -131,9 +131,9 @@ const WorkflowSelector: React.FC = () => {
     setShowCreateForm(false);
 
     try {
-      await api.startWorkflow(flowId, goalStepIds, parsedState);
+      await api.startFlow(flowId, goalStepIds, parsedState);
 
-      await loadWorkflows();
+      await loadFlows();
     } catch (error: any) {
       let errorMessage = "Unknown error";
 
@@ -143,8 +143,8 @@ const WorkflowSelector: React.FC = () => {
         errorMessage = error.message;
       }
 
-      removeWorkflow(flowId);
-      toast.error("Failed to create workflow: " + errorMessage);
+      removeFlow(flowId);
+      toast.error("Failed to create flow: " + errorMessage);
       router.push("/");
     } finally {
       setCreating(false);
@@ -280,8 +280,8 @@ const WorkflowSelector: React.FC = () => {
     goalStepIds,
   ]);
 
-  const filteredWorkflows = workflows.filter((workflow) =>
-    workflow.id.includes(sanitizeWorkflowID(searchTerm))
+  const filteredFlows = flows.filter((flow) =>
+    flow.id.includes(sanitizeFlowID(searchTerm))
   );
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,7 +289,7 @@ const WorkflowSelector: React.FC = () => {
     setSelectedIndex(-1);
   };
 
-  const selectableItems = filteredWorkflows.map((w) => w.id);
+  const selectableItems = filteredFlows.map((w) => w.id);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (!showDropdown) return;
@@ -314,7 +314,7 @@ const WorkflowSelector: React.FC = () => {
           if (selectedItem === "Overview") {
             router.push("/");
           } else {
-            router.push(`/workflow/${selectedItem}`);
+            router.push(`/flow/${selectedItem}`);
           }
           setShowDropdown(false);
           setSearchTerm("");
@@ -328,7 +328,7 @@ const WorkflowSelector: React.FC = () => {
           if (selectedItem === "Overview") {
             router.push("/");
           } else {
-            router.push(`/workflow/${selectedItem}`);
+            router.push(`/flow/${selectedItem}`);
           }
           setShowDropdown(false);
           setSearchTerm("");
@@ -393,7 +393,7 @@ const WorkflowSelector: React.FC = () => {
       clearPreviewPlan();
       prevStepRef.current = null;
     } else {
-      router.prefetch("/workflow/placeholder");
+      router.prefetch("/flow/placeholder");
     }
   }, [
     showCreateForm,
@@ -413,12 +413,12 @@ const WorkflowSelector: React.FC = () => {
   }, [handleGoalStepChange, selectedStep, showCreateForm]);
 
   useEffect(() => {
-    if (showDropdown || !selectedWorkflow) {
+    if (showDropdown || !selectedFlow) {
       subscribe({
         event_types: [
-          "workflow_started",
-          "workflow_completed",
-          "workflow_failed",
+          "flow_started",
+          "flow_completed",
+          "flow_failed",
         ],
       });
     } else {
@@ -426,7 +426,7 @@ const WorkflowSelector: React.FC = () => {
         event_types: [],
       });
     }
-  }, [showDropdown, selectedWorkflow, subscribe]);
+  }, [showDropdown, selectedFlow, subscribe]);
 
   useEffect(() => {
     const latestEvent = events[events.length - 1];
@@ -448,27 +448,27 @@ const WorkflowSelector: React.FC = () => {
     const eventType = latestEvent.type;
     const flowId = aggregateId[1];
 
-    if (eventType === "workflow_started") {
-      const workflowExists = workflows.some((w) => w.id === flowId);
-      if (workflowExists) {
-        updateWorkflowStatus(flowId, "active");
+    if (eventType === "flow_started") {
+      const flowExists = flows.some((w) => w.id === flowId);
+      if (flowExists) {
+        updateFlowStatus(flowId, "active");
       } else {
-        loadWorkflows();
+        loadFlows();
       }
-    } else if (eventType === "workflow_completed") {
-      updateWorkflowStatus(
+    } else if (eventType === "flow_completed") {
+      updateFlowStatus(
         flowId,
         "completed",
         new Date(latestEvent.timestamp).toISOString()
       );
-    } else if (eventType === "workflow_failed") {
-      updateWorkflowStatus(
+    } else if (eventType === "flow_failed") {
+      updateFlowStatus(
         flowId,
         "failed",
         new Date(latestEvent.timestamp).toISOString()
       );
     }
-  }, [events, workflows, updateWorkflowStatus, loadWorkflows]);
+  }, [events, flows, updateFlowStatus, loadFlows]);
 
   return (
     <div className={styles.selector}>
@@ -493,14 +493,14 @@ const WorkflowSelector: React.FC = () => {
                 onClick={() => setShowDropdown(!showDropdown)}
                 className={styles.select}
               >
-                {selectedWorkflow ? (
+                {selectedFlow ? (
                   <>
                     {(() => {
-                      const workflow = workflows.find(
-                        (w) => w.id === selectedWorkflow
+                      const flow = flows.find(
+                        (w) => w.id === selectedFlow
                       );
-                      const progressStatus = mapWorkflowStatusToProgressStatus(
-                        workflow?.status || "pending"
+                      const progressStatus = mapFlowStatusToProgressStatus(
+                        flow?.status || "pending"
                       );
                       const StatusIcon = getProgressIcon(progressStatus);
                       const iconClass = getProgressIconClass(progressStatus);
@@ -508,10 +508,10 @@ const WorkflowSelector: React.FC = () => {
                         <StatusIcon className={`progress-icon ${iconClass}`} />
                       );
                     })()}
-                    {selectedWorkflow}
+                    {selectedFlow}
                   </>
                 ) : (
-                  "Select Workflow"
+                  "Select Flow"
                 )}
               </button>
               {showDropdown && (
@@ -521,7 +521,7 @@ const WorkflowSelector: React.FC = () => {
                     <input
                       ref={searchInputRef}
                       type="text"
-                      placeholder="Search workflows..."
+                      placeholder="Search flows..."
                       value={searchTerm}
                       onChange={handleSearchChange}
                       onKeyDown={handleKeyDown}
@@ -532,40 +532,40 @@ const WorkflowSelector: React.FC = () => {
                       autoFocus
                     />
                   </div>
-                  {filteredWorkflows.map((workflow, index) => {
-                    const progressStatus = mapWorkflowStatusToProgressStatus(
-                      workflow.status
+                  {filteredFlows.map((flow, index) => {
+                    const progressStatus = mapFlowStatusToProgressStatus(
+                      flow.status
                     );
                     const StatusIcon = getProgressIcon(progressStatus);
                     const iconClass = getProgressIconClass(progressStatus);
                     return (
                       <div
-                        key={workflow.id}
-                        className={`${styles.dropdownItem} ${selectedIndex === index ? "bg-neutral-bg-dark" : ""} ${selectedWorkflow === workflow.id ? styles.dropdownItemSelected : ""}`}
+                        key={flow.id}
+                        className={`${styles.dropdownItem} ${selectedIndex === index ? "bg-neutral-bg-dark" : ""} ${selectedFlow === flow.id ? styles.dropdownItemSelected : ""}`}
                         onMouseDown={(e) => {
                           e.preventDefault();
-                          router.push(`/workflow/${workflow.id}`);
+                          router.push(`/flow/${flow.id}`);
                           setShowDropdown(false);
                           setSearchTerm("");
                           setSelectedIndex(-1);
                         }}
                       >
                         <StatusIcon className={`progress-icon ${iconClass}`} />
-                        {workflow.id}
+                        {flow.id}
                       </div>
                     );
                   })}
-                  {filteredWorkflows.length === 0 && searchTerm && (
+                  {filteredFlows.length === 0 && searchTerm && (
                     <div
                       className={`${styles.dropdownItem} ${styles.noResults}`}
                     >
-                      No workflows found
+                      No flows found
                     </div>
                   )}
                 </div>
               )}
             </div>
-            {selectedWorkflow ? (
+            {selectedFlow ? (
               <button
                 onClick={() => router.push("/")}
                 className={styles.navButton}
@@ -578,15 +578,15 @@ const WorkflowSelector: React.FC = () => {
               <>
                 <button
                   onClick={async () => {
-                    setNewId(generateWorkflowId());
+                    setNewId(generateFlowId());
                     if (selectedStep && !showCreateForm) {
                       await handleGoalStepChange([selectedStep]);
                     }
                     setShowCreateForm(!showCreateForm);
                   }}
                   className={styles.createButton}
-                  title="New Workflow"
-                  aria-label="Create New Workflow"
+                  title="New Flow"
+                  aria-label="Create New Flow"
                 >
                   <Play className="h-4 w-4" aria-hidden="true" />
                 </button>
@@ -596,15 +596,15 @@ const WorkflowSelector: React.FC = () => {
         </div>
       </div>
       <ErrorBoundary
-        title="Workflow Form Error"
-        description="An error occurred in the workflow creation form. Try closing and reopening the form."
+        title="Flow Form Error"
+        description="An error occurred in the flow creation form. Try closing and reopening the form."
         onError={(error, errorInfo) => {
-          console.error("WorkflowCreateForm error:", error, errorInfo);
+          console.error("FlowCreateForm error:", error, errorInfo);
           setShowCreateForm(false);
         }}
       >
         <Suspense fallback={null}>
-          <WorkflowCreateForm
+          <FlowCreateForm
             newID={newId}
             setNewID={setNewId}
             setIDManuallyEdited={setIDManuallyEdited}
@@ -612,9 +612,9 @@ const WorkflowSelector: React.FC = () => {
             initialState={initialState}
             setInitialState={setInitialState}
             creating={creating}
-            handleCreateWorkflow={handleCreateWorkflow}
+            handleCreateFlow={handleCreateFlow}
             steps={steps}
-            generateID={generateWorkflowId}
+            generateID={generateFlowId}
             sortSteps={sortStepsByType}
           />
         </Suspense>
@@ -629,4 +629,4 @@ const WorkflowSelector: React.FC = () => {
   );
 };
 
-export default WorkflowSelector;
+export default FlowSelector;

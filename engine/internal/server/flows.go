@@ -14,31 +14,31 @@ import (
 )
 
 var (
-	ErrListWorkflows       = errors.New("failed to list workflows")
-	ErrGetWorkflow         = errors.New("failed to get workflow")
+	ErrListFlows           = errors.New("failed to list flows")
+	ErrGetFlow             = errors.New("failed to get flow")
 	ErrCreateExecutionPlan = errors.New("failed to create execution plan")
 )
 
-var invalidWorkflowIDChars = regexp.MustCompile(`[^a-zA-Z0-9_.\-+ ]`)
+var invalidFlowIDChars = regexp.MustCompile(`[^a-zA-Z0-9_.\-+ ]`)
 
-func (s *Server) listWorkflows(c *gin.Context) {
-	flows, err := s.engine.ListWorkflows(c.Request.Context())
+func (s *Server) listFlows(c *gin.Context) {
+	flows, err := s.engine.ListFlows(c.Request.Context())
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrListWorkflows, err),
+			Error:  fmt.Sprintf("%s: %v", ErrListFlows, err),
 			Status: http.StatusInternalServerError,
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, api.WorkflowsListResponse{
-		Workflows: flows,
-		Count:     len(flows),
+	c.JSON(http.StatusOK, api.FlowsListResponse{
+		Flows: flows,
+		Count: len(flows),
 	})
 }
 
-func (s *Server) startWorkflow(c *gin.Context) {
-	var req api.CreateWorkflowRequest
+func (s *Server) startFlow(c *gin.Context) {
+	var req api.CreateFlowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
@@ -47,10 +47,10 @@ func (s *Server) startWorkflow(c *gin.Context) {
 		return
 	}
 
-	flowID := timebox.ID(sanitizeWorkflowID(string(req.ID)))
+	flowID := timebox.ID(sanitizeFlowID(string(req.ID)))
 	if flowID == "" {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  "Valid Workflow ID is required",
+			Error:  "Valid Flow ID is required",
 			Status: http.StatusBadRequest,
 		})
 		return
@@ -70,11 +70,11 @@ func (s *Server) startWorkflow(c *gin.Context) {
 	}
 
 	meta := api.Metadata{}
-	err := s.engine.StartWorkflow(
+	err := s.engine.StartFlow(
 		c.Request.Context(), flowID, plan, req.Init, meta,
 	)
 	if err == nil {
-		c.JSON(http.StatusCreated, api.WorkflowStartedResponse{
+		c.JSON(http.StatusCreated, api.FlowStartedResponse{
 			FlowID: flowID,
 		})
 		return
@@ -93,10 +93,10 @@ func (s *Server) startWorkflow(c *gin.Context) {
 	})
 }
 
-func (s *Server) getWorkflow(c *gin.Context) {
+func (s *Server) getFlow(c *gin.Context) {
 	flowID := timebox.ID(c.Param("flowID"))
 
-	flow, err := s.engine.GetWorkflowState(c.Request.Context(), flowID)
+	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
 	if err == nil {
 		c.JSON(http.StatusOK, flow)
 		return
@@ -110,7 +110,7 @@ func (s *Server) getWorkflow(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-		Error:  fmt.Sprintf("%s: %v", ErrGetWorkflow, err),
+		Error:  fmt.Sprintf("%s: %v", ErrGetFlow, err),
 		Status: http.StatusInternalServerError,
 	})
 }
@@ -171,9 +171,9 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 	}
 }
 
-func sanitizeWorkflowID(id string) string {
+func sanitizeFlowID(id string) string {
 	id = strings.ToLower(id)
-	sanitized := invalidWorkflowIDChars.ReplaceAllString(id, "")
+	sanitized := invalidFlowIDChars.ReplaceAllString(id, "")
 	sanitized = strings.ReplaceAll(sanitized, " ", "-")
 	return strings.Trim(sanitized, "-")
 }

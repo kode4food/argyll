@@ -32,7 +32,7 @@ func TestPrepareStepExecution(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-prep", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -44,7 +44,7 @@ func TestPrepareStepExecution(t *testing.T) {
 		assert.NotNil(t, execCtx)
 	})
 
-	t.Run("invalid workflow id", func(t *testing.T) {
+	t.Run("invalid flow id", func(t *testing.T) {
 		execCtx := env.Engine.PrepareStepExecution(
 			context.Background(), "invalid-flow-id", "prep-step",
 		)
@@ -70,13 +70,13 @@ func TestPrepareStepExecution(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartWorkflow(
+		err = env.Engine.StartFlow(
 			context.Background(), "wf-prep-2", plan2, api.Args{}, api.Metadata{},
 		)
 		require.NoError(t, err)
 
 		require.Eventually(t, func() bool {
-			flow, err := env.Engine.GetWorkflowState(
+			flow, err := env.Engine.GetFlowState(
 				context.Background(), "wf-prep-2",
 			)
 			if err != nil {
@@ -111,7 +111,7 @@ func TestEnqueueStepResult(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-enqueue", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -126,32 +126,32 @@ func TestEnqueueStepResult(t *testing.T) {
 	)
 
 	require.Eventually(t, func() bool {
-		workflow, err := env.Engine.GetWorkflowState(
+		flow, err := env.Engine.GetFlowState(
 			context.Background(), "wf-enqueue",
 		)
 		if err != nil {
 			return false
 		}
 
-		exec, ok := workflow.Executions["enqueue-step"]
+		exec, ok := flow.Executions["enqueue-step"]
 		if !ok || exec.Status != api.StepCompleted {
 			return false
 		}
 
-		_, hasAttr := workflow.Attributes["result"]
+		_, hasAttr := flow.Attributes["result"]
 		return hasAttr
 	}, 5*time.Second, 100*time.Millisecond)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-enqueue",
 	)
 	require.NoError(t, err)
 
-	exec, ok := workflow.Executions["enqueue-step"]
+	exec, ok := flow.Executions["enqueue-step"]
 	require.True(t, ok)
 	assert.Equal(t, api.StepCompleted, exec.Status)
 
-	if assert.Contains(t, workflow.Attributes, api.Name("result")) {
-		assert.Equal(t, float64(42), workflow.Attributes["result"].Value)
+	if assert.Contains(t, flow.Attributes, api.Name("result")) {
+		assert.Equal(t, float64(42), flow.Attributes["result"].Value)
 	}
 }

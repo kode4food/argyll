@@ -106,9 +106,9 @@ describe("useNodeCalculation", () => {
     expect(node1?.position.x).toBeLessThan(node2?.position.x || 0);
   });
 
-  test("marks goal step in workflow data", () => {
+  test("marks goal step in flow data", () => {
     const step = createStep("step1");
-    const workflowData: any = {
+    const flowData: any = {
       id: "wf-1",
       status: "active",
       state: {},
@@ -124,7 +124,7 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step], null, workflowData)
+      useNodeCalculation([step], null, flowData)
     );
 
     expect(result.current[0].data.isGoalStep).toBe(true);
@@ -194,7 +194,7 @@ describe("useNodeCalculation", () => {
       },
     };
 
-    const workflowData: any = {
+    const flowData: any = {
       id: "wf-1",
       status: "active",
       state: {},
@@ -211,7 +211,7 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step1, step2], null, workflowData)
+      useNodeCalculation([step1, step2], null, flowData)
     );
 
     const node1 = result.current.find((n) => n.id === "step1");

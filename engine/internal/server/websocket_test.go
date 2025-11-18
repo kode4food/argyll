@@ -139,10 +139,10 @@ func TestClientReceivesEvent(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
+		Type:        api.EventTypeFlowStarted,
 		Data:        json.RawMessage(`{"test":"data"}`),
 		Timestamp:   time.Now(),
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	env.Hub.Send(event)
 
@@ -151,7 +151,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	err = env.Conn.ReadJSON(&wsEvent)
 	require.NoError(t, err)
 
-	assert.Equal(t, api.EventTypeWorkflowStarted, wsEvent.Type)
+	assert.Equal(t, api.EventTypeFlowStarted, wsEvent.Type)
 	assert.Equal(t, json.RawMessage(`{"test":"data"}`), wsEvent.Data)
 }
 
@@ -165,10 +165,10 @@ func TestMessageInvalid(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
+		Type:        api.EventTypeFlowStarted,
 		Data:        json.RawMessage(`{}`),
 		Timestamp:   time.Now(),
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	env.Hub.Send(event)
 
@@ -196,10 +196,10 @@ func TestMessageNonSubscribe(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
+		Type:        api.EventTypeFlowStarted,
 		Data:        json.RawMessage(`{}`),
 		Timestamp:   time.Now(),
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	env.Hub.Send(event)
 
@@ -214,16 +214,16 @@ func TestMessageNonSubscribe(t *testing.T) {
 func TestReplayWithEvents(t *testing.T) {
 	replayEvents := []*timebox.Event{
 		{
-			Type:        api.EventTypeWorkflowStarted,
+			Type:        api.EventTypeFlowStarted,
 			Data:        json.RawMessage(`{"replayed":true}`),
 			Timestamp:   time.Now(),
-			AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+			AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 		},
 		{
 			Type:        api.EventTypeStepCompleted,
 			Data:        json.RawMessage(`{"step":"test"}`),
 			Timestamp:   time.Now(),
-			AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+			AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 		},
 	}
 
@@ -249,7 +249,7 @@ func TestReplayWithEvents(t *testing.T) {
 	var wsEvent1 api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent1)
 	require.NoError(t, err)
-	assert.Equal(t, api.EventTypeWorkflowStarted, wsEvent1.Type)
+	assert.Equal(t, api.EventTypeFlowStarted, wsEvent1.Type)
 
 	var wsEvent2 api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent2)
@@ -283,7 +283,7 @@ func TestReplayWithError(t *testing.T) {
 	}
 }
 
-func TestReplayWithoutWorkflowID(t *testing.T) {
+func TestReplayWithoutFlowID(t *testing.T) {
 	replayCalled := false
 	replay := func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error) {
 		replayCalled = true
@@ -296,7 +296,7 @@ func TestReplayWithoutWorkflowID(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeWorkflowStarted)},
+			EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeFlowStarted)},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -318,19 +318,19 @@ func TestEngineEvents(t *testing.T) {
 		Type:        api.EventTypeStepRegistered,
 		AggregateID: timebox.NewAggregateID("engine", "engine"),
 	}
-	workflowEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+	flowEvent := &timebox.Event{
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
 	assert.True(t, filter(engineEvent))
-	assert.False(t, filter(workflowEvent))
+	assert.False(t, filter(flowEvent))
 }
 
 func TestEventTypes(t *testing.T) {
 	sub := &api.ClientSubscription{
 		EventTypes: []*timebox.EventType{
-			eventTypePtr(api.EventTypeWorkflowStarted),
+			eventTypePtr(api.EventTypeFlowStarted),
 			eventTypePtr(api.EventTypeStepCompleted),
 		},
 	}
@@ -338,16 +338,16 @@ func TestEventTypes(t *testing.T) {
 	filter := BuildFilter(sub)
 
 	createdEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	executedEvent := &timebox.Event{
 		Type:        api.EventTypeStepCompleted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	otherEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowCompleted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		Type:        api.EventTypeFlowCompleted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
 	assert.True(t, filter(createdEvent))
@@ -355,7 +355,7 @@ func TestEventTypes(t *testing.T) {
 	assert.False(t, filter(otherEvent))
 }
 
-func TestWorkflow(t *testing.T) {
+func TestFlow(t *testing.T) {
 	sub := &api.ClientSubscription{
 		FlowID: "wf-123",
 	}
@@ -363,12 +363,12 @@ func TestWorkflow(t *testing.T) {
 	filter := BuildFilter(sub)
 
 	matchingEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	otherEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-456"),
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-456"),
 	}
 
 	assert.True(t, filter(matchingEvent))
@@ -381,8 +381,8 @@ func TestNoFilters(t *testing.T) {
 	filter := BuildFilter(sub)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
 	assert.False(t, filter(event))
@@ -391,7 +391,7 @@ func TestNoFilters(t *testing.T) {
 func TestCombined(t *testing.T) {
 	sub := &api.ClientSubscription{
 		EngineEvents: true,
-		EventTypes:   []*timebox.EventType{eventTypePtr(api.EventTypeWorkflowStarted)},
+		EventTypes:   []*timebox.EventType{eventTypePtr(api.EventTypeFlowStarted)},
 	}
 
 	filter := BuildFilter(sub)
@@ -400,42 +400,42 @@ func TestCombined(t *testing.T) {
 		Type:        api.EventTypeStepRegistered,
 		AggregateID: timebox.NewAggregateID("engine", "engine"),
 	}
-	workflowEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+	flowEvent := &timebox.Event{
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	otherEvent := &timebox.Event{
 		Type:        api.EventTypeStepCompleted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
 	assert.True(t, filter(engineEvent))
-	assert.True(t, filter(workflowEvent))
+	assert.True(t, filter(flowEvent))
 	assert.False(t, filter(otherEvent))
 }
 
-func TestEventTypesWithWorkflowID(t *testing.T) {
+func TestEventTypesWithFlowID(t *testing.T) {
 	sub := &api.ClientSubscription{
 		FlowID:     "wf-123",
-		EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeWorkflowStarted)},
+		EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeFlowStarted)},
 	}
 
 	filter := BuildFilter(sub)
 
 	matchingEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	wrongTypeEvent := &timebox.Event{
 		Type:        api.EventTypeStepCompleted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
-	wrongWorkflowEvent := &timebox.Event{
-		Type:        api.EventTypeWorkflowStarted,
-		AggregateID: timebox.NewAggregateID("workflow", "wf-456"),
+	wrongFlowEvent := &timebox.Event{
+		Type:        api.EventTypeFlowStarted,
+		AggregateID: timebox.NewAggregateID("flow", "wf-456"),
 	}
 
 	assert.True(t, filter(matchingEvent))
 	assert.False(t, filter(wrongTypeEvent))
-	assert.True(t, filter(wrongWorkflowEvent))
+	assert.True(t, filter(wrongFlowEvent))
 }

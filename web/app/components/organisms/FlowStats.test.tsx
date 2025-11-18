@@ -1,10 +1,10 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import WorkflowStats from "./WorkflowStats";
+import FlowStats from "./FlowStats";
 import type { Step } from "../../api";
 import { AttributeRole, AttributeType } from "../../api";
 
-describe("WorkflowStats", () => {
+describe("FlowStats", () => {
   const createStep = (
     id: string,
     requiredArgs: string[],
@@ -47,7 +47,7 @@ describe("WorkflowStats", () => {
   test("shows required inputs stat", () => {
     const steps = [createStep("step1", ["input1", "input2"], [], [])];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={["input1"]}
@@ -59,7 +59,7 @@ describe("WorkflowStats", () => {
   test("shows optional inputs stat", () => {
     const steps = [createStep("step1", [], ["opt1", "opt2"], [])];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={["opt1"]}
@@ -71,7 +71,7 @@ describe("WorkflowStats", () => {
   test("shows outputs stat", () => {
     const steps = [createStep("step1", [], [], ["out1", "out2"])];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={["out1"]}
@@ -86,7 +86,7 @@ describe("WorkflowStats", () => {
       createStep("step2", ["in2"], [], ["out2"]),
     ];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1", "step2"]}
         resolvedAttributes={["in1", "in2", "out1"]}
@@ -102,7 +102,7 @@ describe("WorkflowStats", () => {
       createStep("step2", ["in2"], [], []),
     ];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={["in1", "in2"]}
@@ -114,7 +114,7 @@ describe("WorkflowStats", () => {
   test("hides stat when count is zero", () => {
     const steps = [createStep("step1", [], [], ["out1"])];
     const { container } = render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={[]}
@@ -127,7 +127,7 @@ describe("WorkflowStats", () => {
   test("shows all three stat types", () => {
     const steps = [createStep("step1", ["in1"], ["opt1"], ["out1"])];
     const { container } = render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={[]}
@@ -140,7 +140,7 @@ describe("WorkflowStats", () => {
   test("handles empty execution sequence", () => {
     const steps = [createStep("step1", ["in1"], [], ["out1"])];
     const { container } = render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={[]}
         resolvedAttributes={[]}
@@ -152,7 +152,7 @@ describe("WorkflowStats", () => {
 
   test("handles empty steps array", () => {
     const { container } = render(
-      <WorkflowStats
+      <FlowStats
         steps={[]}
         executionSequence={["step1"]}
         resolvedAttributes={[]}
@@ -165,7 +165,7 @@ describe("WorkflowStats", () => {
   test("calculates resolved percentage correctly", () => {
     const steps = [createStep("step1", ["in1", "in2", "in3"], [], [])];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={["in1", "in3"]}
@@ -177,7 +177,7 @@ describe("WorkflowStats", () => {
   test("handles all resolved attributes", () => {
     const steps = [createStep("step1", ["in1"], ["opt1"], ["out1"])];
     render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={["in1", "opt1", "out1"]}
@@ -190,13 +190,13 @@ describe("WorkflowStats", () => {
   test("applies correct CSS classes", () => {
     const steps = [createStep("step1", ["in1"], ["opt1"], ["out1"])];
     const { container } = render(
-      <WorkflowStats
+      <FlowStats
         steps={steps}
         executionSequence={["step1"]}
         resolvedAttributes={[]}
       />
     );
-    expect(container.querySelector(".workflow-stats")).toBeInTheDocument();
+    expect(container.querySelector(".flow-stats")).toBeInTheDocument();
     expect(
       container.querySelector(".stat-badge--required")
     ).toBeInTheDocument();

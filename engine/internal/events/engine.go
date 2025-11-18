@@ -15,12 +15,12 @@ var (
 )
 
 // NewEngineState creates an empty engine state with initialized maps for
-// steps, health status, and active workflows
+// steps, health status, and active flows
 func NewEngineState() *api.EngineState {
 	return &api.EngineState{
-		Steps:           map[timebox.ID]*api.Step{},
-		Health:          map[timebox.ID]*api.HealthState{},
-		ActiveWorkflows: map[timebox.ID]*api.ActiveWorkflowInfo{},
+		Steps:       map[timebox.ID]*api.Step{},
+		Health:      map[timebox.ID]*api.HealthState{},
+		ActiveFlows: map[timebox.ID]*api.ActiveFlowInfo{},
 	}
 }
 
@@ -33,15 +33,15 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 	stepRegisteredApplier := timebox.MakeApplier(stepRegistered)
 	stepUnregisteredApplier := timebox.MakeApplier(stepUnregistered)
 	stepHealthChangedApplier := timebox.MakeApplier(stepHealthChanged)
-	workflowActivatedApplier := timebox.MakeApplier(workflowActivated)
-	workflowDeactivatedApplier := timebox.MakeApplier(workflowDeactivated)
+	flowActivatedApplier := timebox.MakeApplier(flowActivated)
+	flowDeactivatedApplier := timebox.MakeApplier(flowDeactivated)
 
 	return timebox.Appliers[*api.EngineState]{
-		api.EventTypeStepRegistered:      stepRegisteredApplier,
-		api.EventTypeStepUnregistered:    stepUnregisteredApplier,
-		api.EventTypeStepHealthChanged:   stepHealthChangedApplier,
-		api.EventTypeWorkflowActivated:   workflowActivatedApplier,
-		api.EventTypeWorkflowDeactivated: workflowDeactivatedApplier,
+		api.EventTypeStepRegistered:    stepRegisteredApplier,
+		api.EventTypeStepUnregistered:  stepUnregisteredApplier,
+		api.EventTypeStepHealthChanged: stepHealthChangedApplier,
+		api.EventTypeFlowActivated:     flowActivatedApplier,
+		api.EventTypeFlowDeactivated:   flowDeactivatedApplier,
 	}
 }
 
@@ -73,11 +73,11 @@ func stepHealthChanged(
 		SetLastUpdated(ev.Timestamp)
 }
 
-func workflowActivated(
-	st *api.EngineState, ev *timebox.Event, data api.WorkflowActivatedEvent,
+func flowActivated(
+	st *api.EngineState, ev *timebox.Event, data api.FlowActivatedEvent,
 ) *api.EngineState {
 	return st.
-		SetActiveWorkflow(data.FlowID, &api.ActiveWorkflowInfo{
+		SetActiveFlow(data.FlowID, &api.ActiveFlowInfo{
 			FlowID:     data.FlowID,
 			StartedAt:  ev.Timestamp,
 			LastActive: ev.Timestamp,
@@ -85,10 +85,10 @@ func workflowActivated(
 		SetLastUpdated(ev.Timestamp)
 }
 
-func workflowDeactivated(
-	st *api.EngineState, ev *timebox.Event, data api.WorkflowDeactivatedEvent,
+func flowDeactivated(
+	st *api.EngineState, ev *timebox.Event, data api.FlowDeactivatedEvent,
 ) *api.EngineState {
 	return st.
-		DeleteActiveWorkflow(data.FlowID).
+		DeleteActiveFlow(data.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }

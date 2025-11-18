@@ -124,7 +124,7 @@ func TestCanRegisterSteps(t *testing.T) {
 	assert.Len(t, steps, 1)
 }
 
-func TestCanStartWorkflows(t *testing.T) {
+func TestCanStartFlows(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -142,12 +142,12 @@ func TestCanStartWorkflows(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "test-wf", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	wf, err := env.Engine.GetWorkflowState(context.Background(), "test-wf")
+	wf, err := env.Engine.GetFlowState(context.Background(), "test-wf")
 	require.NoError(t, err)
 	assert.Equal(t, timebox.ID("test-wf"), wf.ID)
 }

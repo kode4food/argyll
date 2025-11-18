@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import WorkflowCreateForm from "./WorkflowCreateForm";
+import FlowCreateForm from "./FlowCreateForm";
 import { useUI } from "../../contexts/UIContext";
 import { Step, AttributeRole, AttributeType } from "../../api";
 
@@ -20,7 +20,7 @@ jest.mock("../molecules/LazyCodeEditor", () => {
 
 const mockUseUI = useUI as jest.MockedFunction<typeof useUI>;
 
-describe("WorkflowCreateForm", () => {
+describe("FlowCreateForm", () => {
   const mockStep: Step = {
     id: "step-1",
     name: "Test Step",
@@ -37,14 +37,14 @@ describe("WorkflowCreateForm", () => {
   };
 
   const defaultProps = {
-    newID: "test-workflow",
+    newID: "test-flow",
     setNewID: jest.fn(),
     setIDManuallyEdited: jest.fn(),
     handleStepChange: jest.fn(),
     initialState: "{}",
     setInitialState: jest.fn(),
     creating: false,
-    handleCreateWorkflow: jest.fn(),
+    handleCreateFlow: jest.fn(),
     steps: [mockStep],
     generateID: jest.fn(() => "generated-id"),
     sortSteps: jest.fn((steps) => steps),
@@ -75,15 +75,15 @@ describe("WorkflowCreateForm", () => {
       showCreateForm: false,
     });
 
-    const { container } = render(<WorkflowCreateForm {...defaultProps} />);
+    const { container } = render(<FlowCreateForm {...defaultProps} />);
     expect(container.firstChild).toBeNull();
   });
 
   test("renders form when showCreateForm is true", () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     expect(screen.getByText("Select Goal Steps")).toBeInTheDocument();
-    expect(screen.getByText("Workflow ID")).toBeInTheDocument();
+    expect(screen.getByText("Flow ID")).toBeInTheDocument();
     expect(screen.getByText("Required Attributes")).toBeInTheDocument();
   });
 
@@ -98,7 +98,7 @@ describe("WorkflowCreateForm", () => {
     ];
 
     render(
-      <WorkflowCreateForm
+      <FlowCreateForm
         {...defaultProps}
         steps={steps}
         sortSteps={sortSteps}
@@ -108,17 +108,17 @@ describe("WorkflowCreateForm", () => {
     expect(sortSteps).toHaveBeenCalledWith(steps);
   });
 
-  test("displays workflow ID input with current value", () => {
-    render(<WorkflowCreateForm {...defaultProps} newID="my-workflow" />);
+  test("displays flow ID input with current value", () => {
+    render(<FlowCreateForm {...defaultProps} newID="my-flow" />);
 
     const input = screen.getByPlaceholderText(
       "e.g., order-processing-001"
     ) as HTMLInputElement;
-    expect(input.value).toBe("my-workflow");
+    expect(input.value).toBe("my-flow");
   });
 
   test("calls setNewID and setIDManuallyEdited when ID input changes", () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     const input = screen.getByPlaceholderText("e.g., order-processing-001");
     fireEvent.change(input, { target: { value: "new-id" } });
@@ -128,9 +128,9 @@ describe("WorkflowCreateForm", () => {
   });
 
   test("generates new ID when generate button clicked", () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
-    const button = screen.getByLabelText("Generate new workflow ID");
+    const button = screen.getByLabelText("Generate new flow ID");
     fireEvent.click(button);
 
     expect(defaultProps.generateID).toHaveBeenCalled();
@@ -140,7 +140,7 @@ describe("WorkflowCreateForm", () => {
 
   test("displays initial state in code editor", () => {
     render(
-      <WorkflowCreateForm {...defaultProps} initialState='{"key": "value"}' />
+      <FlowCreateForm {...defaultProps} initialState='{"key": "value"}' />
     );
 
     const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
@@ -148,7 +148,7 @@ describe("WorkflowCreateForm", () => {
   });
 
   test("calls setInitialState when code editor changes", () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     const editor = screen.getByTestId("code-editor");
     fireEvent.change(editor, { target: { value: '{"new": "value"}' } });
@@ -159,30 +159,30 @@ describe("WorkflowCreateForm", () => {
   });
 
   test("shows JSON error when initialState is invalid JSON", () => {
-    render(<WorkflowCreateForm {...defaultProps} initialState="{invalid" />);
+    render(<FlowCreateForm {...defaultProps} initialState="{invalid" />);
 
     expect(screen.getByText(/Invalid JSON/)).toBeInTheDocument();
   });
 
   test("does not show JSON error when initialState is valid JSON", () => {
     render(
-      <WorkflowCreateForm {...defaultProps} initialState='{"valid": true}' />
+      <FlowCreateForm {...defaultProps} initialState='{"valid": true}' />
     );
 
     expect(screen.queryByText(/Invalid JSON/)).not.toBeInTheDocument();
   });
 
   test("closes form when overlay is clicked", () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
-    const overlay = screen.getByLabelText("Close workflow form");
+    const overlay = screen.getByLabelText("Close flow form");
     fireEvent.click(overlay);
 
     expect(defaultUIContext.setShowCreateForm).toHaveBeenCalledWith(false);
   });
 
   test("closes form when Cancel button is clicked", () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     const cancelButton = screen.getByText("Cancel");
     fireEvent.click(cancelButton);
@@ -190,18 +190,18 @@ describe("WorkflowCreateForm", () => {
     expect(defaultUIContext.setShowCreateForm).toHaveBeenCalledWith(false);
   });
 
-  test("calls handleCreateWorkflow when Start button is clicked", () => {
+  test("calls handleCreateFlow when Start button is clicked", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       goalStepIds: ["step-1"],
     });
 
-    render(<WorkflowCreateForm {...defaultProps} newID="test-id" />);
+    render(<FlowCreateForm {...defaultProps} newID="test-id" />);
 
     const startButton = screen.getByText("Start");
     fireEvent.click(startButton);
 
-    expect(defaultProps.handleCreateWorkflow).toHaveBeenCalled();
+    expect(defaultProps.handleCreateFlow).toHaveBeenCalled();
   });
 
   test("disables Start button when creating", () => {
@@ -211,7 +211,7 @@ describe("WorkflowCreateForm", () => {
     });
 
     render(
-      <WorkflowCreateForm {...defaultProps} newID="test-id" creating={true} />
+      <FlowCreateForm {...defaultProps} newID="test-id" creating={true} />
     );
 
     const startButton = screen.getByText("Start");
@@ -224,7 +224,7 @@ describe("WorkflowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(<WorkflowCreateForm {...defaultProps} newID="" />);
+    render(<FlowCreateForm {...defaultProps} newID="" />);
 
     const startButton = screen.getByText("Start");
     expect(startButton).toBeDisabled();
@@ -236,7 +236,7 @@ describe("WorkflowCreateForm", () => {
       goalStepIds: [],
     });
 
-    render(<WorkflowCreateForm {...defaultProps} newID="test-id" />);
+    render(<FlowCreateForm {...defaultProps} newID="test-id" />);
 
     const startButton = screen.getByText("Start");
     expect(startButton).toBeDisabled();
@@ -249,7 +249,7 @@ describe("WorkflowCreateForm", () => {
     });
 
     render(
-      <WorkflowCreateForm
+      <FlowCreateForm
         {...defaultProps}
         newID="test-id"
         initialState="{invalid"
@@ -267,20 +267,20 @@ describe("WorkflowCreateForm", () => {
     });
 
     const { container } = render(
-      <WorkflowCreateForm {...defaultProps} newID="test-id" creating={true} />
+      <FlowCreateForm {...defaultProps} newID="test-id" creating={true} />
     );
 
     expect(container.querySelector(".lucide-play")).not.toBeInTheDocument();
   });
 
   test("shows warning when no steps are registered", () => {
-    render(<WorkflowCreateForm {...defaultProps} steps={[]} />);
+    render(<FlowCreateForm {...defaultProps} steps={[]} />);
 
     expect(screen.getByText(/No steps are registered/)).toBeInTheDocument();
   });
 
   test("does not show warning when steps are registered", () => {
-    render(<WorkflowCreateForm {...defaultProps} steps={[mockStep]} />);
+    render(<FlowCreateForm {...defaultProps} steps={[mockStep]} />);
 
     expect(
       screen.queryByText(/No steps are registered/)
@@ -288,7 +288,7 @@ describe("WorkflowCreateForm", () => {
   });
 
   test("selects step when clicked", async () => {
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);
@@ -304,7 +304,7 @@ describe("WorkflowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);
@@ -321,7 +321,7 @@ describe("WorkflowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    const { container } = render(<WorkflowCreateForm {...defaultProps} />);
+    const { container } = render(<FlowCreateForm {...defaultProps} />);
 
     const stepItem = container.querySelector('[class*="dropdownItemSelected"]');
     expect(stepItem).toBeInTheDocument();
@@ -339,7 +339,7 @@ describe("WorkflowCreateForm", () => {
       goalStepIds: [],
     });
 
-    const { container } = render(<WorkflowCreateForm {...defaultProps} />);
+    const { container } = render(<FlowCreateForm {...defaultProps} />);
 
     const stepItem = container.querySelector(
       '[title="Already included in execution plan"]'
@@ -349,7 +349,7 @@ describe("WorkflowCreateForm", () => {
 
   test("shows tooltip when outputs satisfied by initial state", () => {
     render(
-      <WorkflowCreateForm
+      <FlowCreateForm
         {...defaultProps}
         initialState='{"output1": "value"}'
       />
@@ -372,7 +372,7 @@ describe("WorkflowCreateForm", () => {
       },
     });
 
-    render(<WorkflowCreateForm {...defaultProps} />);
+    render(<FlowCreateForm {...defaultProps} />);
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);

@@ -10,16 +10,16 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-type workflowActor struct {
+type flowActor struct {
 	*Engine
 	flowID       timebox.ID
 	events       chan *timebox.Event
 	eventHandler timebox.Handler
 }
 
-func (wa *workflowActor) run() {
+func (wa *flowActor) run() {
 	defer wa.wg.Done()
-	defer wa.workflows.Delete(wa.flowID)
+	defer wa.flows.Delete(wa.flowID)
 
 	idleTimer := time.NewTimer(100 * time.Millisecond)
 	defer idleTimer.Stop()
@@ -51,38 +51,38 @@ func (wa *workflowActor) run() {
 	}
 }
 
-func (wa *workflowActor) createEventHandler() timebox.Handler {
+func (wa *flowActor) createEventHandler() timebox.Handler {
 	workCompleted := timebox.MakeHandler(wa.handleWorkCompleted)
 	workFailed := timebox.MakeHandler(wa.handleWorkFailed)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		api.EventTypeWorkflowStarted: wa.handleProcessWorkflow,
-		api.EventTypeAttributeSet:    wa.handleProcessWorkflow,
-		api.EventTypeStepCompleted:   wa.handleProcessWorkflow,
-		api.EventTypeStepFailed:      wa.handleProcessWorkflow,
-		api.EventTypeWorkCompleted:   workCompleted,
-		api.EventTypeWorkFailed:      workFailed,
+		api.EventTypeFlowStarted:   wa.handleProcessFlow,
+		api.EventTypeAttributeSet:  wa.handleProcessFlow,
+		api.EventTypeStepCompleted: wa.handleProcessFlow,
+		api.EventTypeStepFailed:    wa.handleProcessFlow,
+		api.EventTypeWorkCompleted: workCompleted,
+		api.EventTypeWorkFailed:    workFailed,
 	})
 }
 
-func (wa *workflowActor) handleEvent(event *timebox.Event) {
+func (wa *flowActor) handleEvent(event *timebox.Event) {
 	if err := wa.eventHandler(event); err != nil {
-		slog.Error("Failed to handle workflow event",
+		slog.Error("Failed to handle flow event",
 			slog.Any("flow_id", wa.flowID),
 			slog.Any("event_type", event.Type),
 			slog.Any("error", err))
 	}
 }
 
-func (wa *workflowActor) handleProcessWorkflow(_ *timebox.Event) error {
-	wa.processWorkflow()
+func (wa *flowActor) handleProcessFlow(_ *timebox.Event) error {
+	wa.processFlow()
 	return nil
 }
 
-func (wa *workflowActor) handleWorkCompleted(
+func (wa *flowActor) handleWorkCompleted(
 	_ *timebox.Event, data api.WorkCompletedEvent,
 ) error {
-	flow, err := wa.GetWorkflowState(wa.ctx, wa.flowID)
+	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
 	if err != nil {
 		return nil
 	}
@@ -106,7 +106,7 @@ func (wa *workflowActor) handleWorkCompleted(
 	return nil
 }
 
-func (wa *workflowActor) handleWorkFailed(
+func (wa *flowActor) handleWorkFailed(
 	_ *timebox.Event, data api.WorkFailedEvent,
 ) error {
 	return wa.handleWorkCompleted(nil, api.WorkCompletedEvent{
@@ -115,8 +115,8 @@ func (wa *workflowActor) handleWorkFailed(
 	})
 }
 
-func (wa *workflowActor) processWorkflow() {
-	flow, ok := wa.GetActiveWorkflow(wa.flowID)
+func (wa *flowActor) processFlow() {
+	flow, ok := wa.GetActiveFlow(wa.flowID)
 	if !ok {
 		return
 	}
@@ -125,10 +125,10 @@ func (wa *workflowActor) processWorkflow() {
 		return
 	}
 
-	wa.evaluateWorkflowState(wa.ctx, wa.flowID, flow)
+	wa.evaluateFlowState(wa.ctx, wa.flowID, flow)
 	wa.checkCompletableSteps(wa.ctx, wa.flowID, flow)
 
-	flow, ok = wa.GetActiveWorkflow(wa.flowID)
+	flow, ok = wa.GetActiveFlow(wa.flowID)
 	if !ok {
 		return
 	}
@@ -142,19 +142,19 @@ func (wa *workflowActor) processWorkflow() {
 	wa.launchReadySteps(ready)
 }
 
-func (wa *workflowActor) handleTerminalState(flow *api.WorkflowState) {
-	if wa.isWorkflowComplete(flow) {
-		wa.completeWorkflow(wa.ctx, wa.flowID, flow)
+func (wa *flowActor) handleTerminalState(flow *api.FlowState) {
+	if wa.isFlowComplete(flow) {
+		wa.completeFlow(wa.ctx, wa.flowID, flow)
 		return
 	}
 
-	if wa.IsWorkflowFailed(flow) {
-		wa.evaluateWorkflowState(wa.ctx, wa.flowID, flow)
-		wa.failWorkflow(wa.ctx, wa.flowID, flow)
+	if wa.IsFlowFailed(flow) {
+		wa.evaluateFlowState(wa.ctx, wa.flowID, flow)
+		wa.failFlow(wa.ctx, wa.flowID, flow)
 	}
 }
 
-func (wa *workflowActor) launchReadySteps(ready []timebox.ID) {
+func (wa *flowActor) launchReadySteps(ready []timebox.ID) {
 	for _, stepID := range ready {
 		wa.wg.Add(1)
 		go func(stepID timebox.ID) {
@@ -164,7 +164,7 @@ func (wa *workflowActor) launchReadySteps(ready []timebox.ID) {
 	}
 }
 
-func (wa *workflowActor) findReadySteps(flow *api.WorkflowState) []timebox.ID {
+func (wa *flowActor) findReadySteps(flow *api.FlowState) []timebox.ID {
 	visited := util.Set[timebox.ID]{}
 	var ready []timebox.ID
 
@@ -175,8 +175,8 @@ func (wa *workflowActor) findReadySteps(flow *api.WorkflowState) []timebox.ID {
 	return ready
 }
 
-func (wa *workflowActor) findReadyStepsFromGoal(
-	stepID timebox.ID, flow *api.WorkflowState, visited util.Set[timebox.ID],
+func (wa *flowActor) findReadyStepsFromGoal(
+	stepID timebox.ID, flow *api.FlowState, visited util.Set[timebox.ID],
 	ready *[]timebox.ID,
 ) {
 	if visited.Contains(stepID) {
@@ -218,8 +218,8 @@ func (wa *workflowActor) findReadyStepsFromGoal(
 	}
 }
 
-func (wa *workflowActor) isStepReadyForExec(
-	stepID timebox.ID, flow *api.WorkflowState,
+func (wa *flowActor) isStepReadyForExec(
+	stepID timebox.ID, flow *api.FlowState,
 ) bool {
 	exec, ok := flow.Executions[stepID]
 	if ok && exec.Status != api.StepPending {
@@ -231,8 +231,8 @@ func (wa *workflowActor) isStepReadyForExec(
 	return wa.areOutputsNeeded(stepID, flow)
 }
 
-func (wa *workflowActor) isStepReady(
-	stepID timebox.ID, flow *api.WorkflowState,
+func (wa *flowActor) isStepReady(
+	stepID timebox.ID, flow *api.FlowState,
 ) bool {
 	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {

@@ -1,6 +1,6 @@
 import axios from "axios";
 import { SpudsApi } from "./client";
-import type { WorkflowProjection } from "./types";
+import type { FlowProjection } from "./types";
 import { AttributeRole, AttributeType } from "./types";
 
 jest.mock("axios");
@@ -65,16 +65,16 @@ describe("SpudsApi", () => {
     });
   });
 
-  describe("startWorkflow", () => {
-    test("starts workflow with correct parameters", async () => {
+  describe("startFlow", () => {
+    test("starts flow with correct parameters", async () => {
       const mockResponse = { flow_id: "wf-1" };
       mockClient.post.mockResolvedValue({ data: mockResponse });
 
-      const result = await api.startWorkflow("wf-1", ["step-1"], {
+      const result = await api.startFlow("wf-1", ["step-1"], {
         input: "value",
       });
 
-      expect(mockClient.post).toHaveBeenCalledWith("/engine/workflow", {
+      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow", {
         id: "wf-1",
         goals: ["step-1"],
         init: { input: "value" },
@@ -83,9 +83,9 @@ describe("SpudsApi", () => {
     });
   });
 
-  describe("getWorkflowWithEvents", () => {
-    test("fetches workflow and converts projection", async () => {
-      const mockProjection: WorkflowProjection = {
+  describe("getFlowWithEvents", () => {
+    test("fetches flow and converts projection", async () => {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "active",
         attributes: { result: { value: "value" } },
@@ -110,19 +110,19 @@ describe("SpudsApi", () => {
 
       mockClient.get.mockResolvedValue({ data: mockProjection });
 
-      const result = await api.getWorkflowWithEvents("wf-1");
+      const result = await api.getFlowWithEvents("wf-1");
 
-      expect(mockClient.get).toHaveBeenCalledWith("/engine/workflow/wf-1");
-      expect(result.workflow.id).toBe("wf-1");
-      expect(result.workflow.status).toBe("active");
-      expect(result.workflow.state).toEqual({ result: { value: "value" } });
+      expect(mockClient.get).toHaveBeenCalledWith("/engine/flow/wf-1");
+      expect(result.flow.id).toBe("wf-1");
+      expect(result.flow.status).toBe("active");
+      expect(result.flow.state).toEqual({ result: { value: "value" } });
       expect(result.executions).toHaveLength(1);
       expect(result.executions[0].step_id).toBe("step-1");
       expect(result.executions[0].status).toBe("completed");
     });
 
-    test("handles workflow with error", async () => {
-      const mockProjection: WorkflowProjection = {
+    test("handles flow with error", async () => {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "failed",
         error: "Step execution failed",
@@ -139,15 +139,15 @@ describe("SpudsApi", () => {
 
       mockClient.get.mockResolvedValue({ data: mockProjection });
 
-      const result = await api.getWorkflowWithEvents("wf-1");
+      const result = await api.getFlowWithEvents("wf-1");
 
-      expect(result.workflow.error_state).toBeDefined();
-      expect(result.workflow.error_state?.message).toBe(
+      expect(result.flow.error_state).toBeDefined();
+      expect(result.flow.error_state?.message).toBe(
         "Step execution failed"
       );
     });
 
-    test("handles workflow with execution plan", async () => {
+    test("handles flow with execution plan", async () => {
       const step1 = {
         id: "step-1",
         name: "Step 1",
@@ -165,7 +165,7 @@ describe("SpudsApi", () => {
         },
       };
 
-      const mockProjection: WorkflowProjection = {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "active",
         attributes: {},
@@ -183,16 +183,16 @@ describe("SpudsApi", () => {
 
       mockClient.get.mockResolvedValue({ data: mockProjection });
 
-      const result = await api.getWorkflowWithEvents("wf-1");
+      const result = await api.getFlowWithEvents("wf-1");
 
-      expect(result.workflow.plan).toBeDefined();
-      expect(result.workflow.plan?.goals).toEqual(["step-2"]);
-      expect(result.workflow.plan?.required).toEqual(["input1"]);
-      expect(Object.keys(result.workflow.plan?.steps || {})).toHaveLength(1);
+      expect(result.flow.plan).toBeDefined();
+      expect(result.flow.plan?.goals).toEqual(["step-2"]);
+      expect(result.flow.plan?.required).toEqual(["input1"]);
+      expect(Object.keys(result.flow.plan?.steps || {})).toHaveLength(1);
     });
 
     test("handles empty execution plan", async () => {
-      const mockProjection: WorkflowProjection = {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "active",
         attributes: {},
@@ -208,15 +208,15 @@ describe("SpudsApi", () => {
 
       mockClient.get.mockResolvedValue({ data: mockProjection });
 
-      const result = await api.getWorkflowWithEvents("wf-1");
+      const result = await api.getFlowWithEvents("wf-1");
 
-      expect(result.workflow.plan).toBeUndefined();
+      expect(result.flow.plan).toBeUndefined();
     });
   });
 
-  describe("listWorkflows", () => {
-    test("fetches and converts workflow list", async () => {
-      const mockProjections: WorkflowProjection[] = [
+  describe("listFlows", () => {
+    test("fetches and converts flow list", async () => {
+      const mockProjections: FlowProjection[] = [
         {
           id: "wf-1",
           status: "active",
@@ -247,30 +247,30 @@ describe("SpudsApi", () => {
       ];
 
       mockClient.get.mockResolvedValue({
-        data: { workflows: mockProjections },
+        data: { flows: mockProjections },
       });
 
-      const result = await api.listWorkflows();
+      const result = await api.listFlows();
 
-      expect(mockClient.get).toHaveBeenCalledWith("/engine/workflow");
+      expect(mockClient.get).toHaveBeenCalledWith("/engine/flow");
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe("wf-1");
       expect(result[1].id).toBe("wf-2");
       expect(result[1].completed_at).toBe("2024-01-02T00:05:00Z");
     });
 
-    test("handles empty workflow list", async () => {
+    test("handles empty flow list", async () => {
       mockClient.get.mockResolvedValue({ data: {} });
 
-      const result = await api.listWorkflows();
+      const result = await api.listFlows();
 
       expect(result).toEqual([]);
     });
   });
 
   describe("getExecutions", () => {
-    test("extracts executions from workflow", async () => {
-      const mockProjection: WorkflowProjection = {
+    test("extracts executions from flow", async () => {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "active",
         attributes: {},
@@ -310,8 +310,8 @@ describe("SpudsApi", () => {
       expect(result[1].status).toBe("active");
     });
 
-    test("handles workflow with no executions", async () => {
-      const mockProjection: WorkflowProjection = {
+    test("handles flow with no executions", async () => {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "pending",
         attributes: {},
@@ -333,7 +333,7 @@ describe("SpudsApi", () => {
     });
 
     test("maps all execution statuses correctly", async () => {
-      const mockProjection: WorkflowProjection = {
+      const mockProjection: FlowProjection = {
         id: "wf-1",
         status: "active",
         attributes: {},

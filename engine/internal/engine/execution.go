@@ -38,7 +38,7 @@ var (
 )
 
 // EnqueueStepResult completes a step execution with the provided outputs and
-// sets all output attributes in the workflow state
+// sets all output attributes in the flow state
 func (e *Engine) EnqueueStepResult(
 	flowID, stepID timebox.ID, outputs api.Args, dur int64,
 ) {
@@ -105,10 +105,10 @@ func (e *Engine) PrepareStepExecution(
 
 func (e *Engine) getStepExecutionData(
 	ctx context.Context, flowID, stepID timebox.ID,
-) (*api.WorkflowState, *api.Step, api.Args) {
-	flow, err := e.GetWorkflowState(ctx, flowID)
+) (*api.FlowState, *api.Step, api.Args) {
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
-		slog.Error("Failed to get workflow state",
+		slog.Error("Failed to get flow state",
 			slog.Any("error", err))
 		return nil, nil, nil
 	}
@@ -205,7 +205,7 @@ func (e *Engine) failPredicateEvaluation(
 func (e *Engine) validateStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID,
 ) error {
-	flow, err := e.GetWorkflowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
 		return err
 	}
@@ -313,7 +313,7 @@ func (e *ExecContext) handleWorkItemFailure(
 		return
 	}
 
-	flow, ferr := e.engine.GetWorkflowState(ctx, e.flowID)
+	flow, ferr := e.engine.GetFlowState(ctx, e.flowID)
 	if ferr != nil {
 		return
 	}

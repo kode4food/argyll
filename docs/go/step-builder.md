@@ -220,7 +220,7 @@ Engine splits arrays into work items, executes in parallel, and aggregates resul
 
 ### Predicates
 
-Execute conditionally based on workflow state:
+Execute conditionally based on flow state:
 
 ```go
 // Ale

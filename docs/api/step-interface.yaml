@@ -2,12 +2,12 @@ openapi: 3.0.3
 info:
   title: Spuds Step Interface Contract
   description: |
-    This specification defines the contract that external workflow steps must implement
-    to work with the Spuds workflow engine.
+    This specification defines the contract that external flow steps must implement
+    to work with the Spuds orchestrator.
 
     ## Overview
 
-    A "step" in Spuds is any HTTP endpoint that accepts workflow state, processes it
+    A "step" in Spuds is any HTTP endpoint that accepts flow state, processes it
     according to its business logic, and returns outputs. Steps can be:
 
     - **Dedicated microservices** with a single endpoint
@@ -44,12 +44,12 @@ info:
     All HTTP steps must implement a `POST` endpoint that:
 
     1. **Accepts** a JSON request with:
-       - `arguments`: Input arguments (from workflow state)
-       - `metadata`: Workflow context (flow_id, step_id, etc.)
+       - `arguments`: Input arguments (from flow state)
+       - `metadata`: Flow context (flow_id, step_id, etc.)
 
     2. **Returns** a JSON response with:
        - `success`: Boolean indicating execution success
-       - `outputs`: Key-value pairs to merge into workflow state (if success=true)
+       - `outputs`: Key-value pairs to merge into flow state (if success=true)
        - `error`: Optional error message (if success=false)
 
     ## Error Handling
@@ -59,7 +59,7 @@ info:
     - **Business logic errors** (`success: false`, `error: "message"`):
       - The step executed correctly but the business logic failed
       - Example: Validation failed, invalid input format, etc.
-      - The step is marked as failed and the workflow is terminated
+      - The step is marked as failed and the flow is terminated
 
     - **HTTP errors** (4xx/5xx status codes):
       - Infrastructure or request format errors
@@ -104,7 +104,7 @@ paths:
     post:
       summary: Execute Step
       description: |
-        Execute this step with the provided arguments and workflow context.
+        Execute this step with the provided arguments and flow context.
 
         ## Implementation Guidelines
 
@@ -122,19 +122,19 @@ paths:
         1. Receive request from engine
         2. Process immediately
         3. Return response with outputs
-        4. Engine merges outputs into workflow state
+        4. Engine merges outputs into flow state
 
         **For Async Steps:**
         1. Receive request from engine
         2. Return HTTP 200 immediately (engine provides webhook URL in request)
         3. Process asynchronously in background
         4. POST results to webhook when complete
-        5. Engine merges outputs into workflow state
+        5. Engine merges outputs into flow state
 
         ## Terminal Steps
 
-        Goal steps (steps that are specified as workflow goals) naturally complete
-        the workflow when they finish successfully. The workflow ends when all goal
+        Goal steps (steps that are specified as flow goals) naturally complete
+        the flow when they finish successfully. The flow ends when all goal
         steps have completed.
 
       operationId: executeStep
@@ -282,7 +282,7 @@ components:
             Input arguments for this step execution. This object contains:
             - All **required arguments** (as defined in step registration)
             - Any **optional arguments** that are available
-            - Values from the workflow state that match declared inputs
+            - Values from the flow state that match declared inputs
 
             Your step should validate that all required arguments are present.
           additionalProperties: true
@@ -293,16 +293,16 @@ components:
         metadata:
           type: object
           description: |
-            Additional workflow context and metadata. This provides contextual
+            Additional flow context and metadata. This provides contextual
             information but should NOT be used for core business logic.
 
             **Standard fields provided by the engine:**
-            - `flow_id`: The executing workflow's ID (use for idempotency)
+            - `flow_id`: The executing flow's ID (use for idempotency)
             - `step_id`: The step identifier being executed
             - `webhook_url`: For async steps only, the URL to POST results to
 
             **Best Practice**: Use `flow_id` + `step_id` as an idempotency key.
-            The combination uniquely identifies a step execution within a workflow.
+            The combination uniquely identifies a step execution within a flow.
             Do NOT depend on `metadata` for core step logic (use `arguments` instead).
           additionalProperties: true
           example:
@@ -319,16 +319,16 @@ components:
           type: boolean
           description: |
             Whether the step executed successfully.
-            - `true`: Step completed successfully (outputs will be merged into workflow state)
+            - `true`: Step completed successfully (outputs will be merged into flow state)
             - `false`: Step failed (check `error` for details)
         outputs:
           type: object
           description: |
-            Output values that will be merged into the workflow state.
+            Output values that will be merged into the flow state.
 
             **Key naming**: Keys should match the step's declared output attributes
             in the step registration. However, you can return any keys - the engine
-            will merge all outputs into the workflow state.
+            will merge all outputs into the flow state.
 
             **Value types**: Outputs can be any JSON-serializable values:
             - Primitives: strings, numbers, booleans
@@ -352,10 +352,10 @@ components:
             - The step executed correctly but the business logic failed
             - Examples: Validation errors, invalid input, expected failures
 
-            **Workflow behavior**:
+            **Flow behavior**:
             - The step is marked as failed
-            - The workflow is terminated
-            - Error is logged in workflow state
+            - The flow is terminated
+            - Error is logged in flow state
 
             **Required when**: `success: false`
           example: "Invalid input format: must be one of [uppercase, lowercase, reverse]"
@@ -410,7 +410,7 @@ x-implementation-notes: |
   4. **Use metadata for idempotency**: Use `flow_id` + `step_id` as idempotency key
   5. **Distinguish errors from exceptions**:
      - `error`: Recoverable business logic failures
-     - `exception`: Critical failures that terminate workflow
+     - `exception`: Critical failures that terminate flow
   6. **Return declared outputs** (keys matching output attributes in registration)
   7. **Handle async operations** properly (return 200 immediately, POST to `webhook_url` when done)
 
@@ -426,7 +426,7 @@ x-implementation-notes: |
         "input_arg": "test value"
       },
       "metadata": {
-        "flow_id": "test-workflow",
+        "flow_id": "test-flow",
         "step_id": "your-step-id"
       }
     }'

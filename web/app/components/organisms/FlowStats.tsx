@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Step, AttributeRole } from "../../api";
 import { getArgIcon } from "@/utils/argIcons";
 
-interface WorkflowStatsProps {
+interface FlowStatsProps {
   steps: Step[];
   executionSequence: string[];
   resolvedAttributes: string[];
@@ -17,8 +17,8 @@ interface StepStats {
   resolvedOutputs: number;
 }
 
-const WorkflowStats: React.FC<WorkflowStatsProps> = React.memo(
-  function WorkflowStats({ steps, executionSequence, resolvedAttributes }) {
+const FlowStats: React.FC<FlowStatsProps> = React.memo(
+  function FlowStats({ steps, executionSequence, resolvedAttributes }) {
     const stats: StepStats = useMemo(() => {
       const planStepIds = new Set(executionSequence);
       const planSteps = steps.filter((step) => planStepIds.has(step.id));
@@ -76,7 +76,7 @@ const WorkflowStats: React.FC<WorkflowStatsProps> = React.memo(
     const OutputIcon = getArgIcon("output").Icon;
 
     return (
-      <div className="workflow-stats">
+      <div className="flow-stats">
         {stats.requiredInputs > 0 && (
           <span className="status-bubble stat-badge stat-badge--required">
             <RequiredIcon className="stat-badge__icon" />
@@ -100,4 +100,4 @@ const WorkflowStats: React.FC<WorkflowStatsProps> = React.memo(
   }
 );
 
-export default WorkflowStats;
+export default FlowStats;

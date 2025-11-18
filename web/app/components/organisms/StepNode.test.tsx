@@ -3,7 +3,7 @@ import { render } from "@testing-library/react";
 import StepNode from "./StepNode";
 import {
   Step,
-  WorkflowContext,
+  FlowContext,
   ExecutionResult,
   AttributeRole,
   AttributeType,
@@ -179,8 +179,8 @@ describe("StepNode", () => {
     // Component should create Set from array internally
   });
 
-  test("builds provenance map from workflow state", () => {
-    const workflowData: WorkflowContext = {
+  test("builds provenance map from flow state", () => {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       state: {
@@ -191,7 +191,7 @@ describe("StepNode", () => {
     };
 
     render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, workflowData }} />
+      <StepNode {...defaultProps} data={{ ...defaultNodeData, flowData }} />
     );
 
     // Component builds provenance map internally
@@ -427,8 +427,8 @@ describe("StepNode", () => {
     expect(onStepClick).toHaveBeenCalledTimes(2);
   });
 
-  test("handles workflow data with empty state", () => {
-    const workflowData: WorkflowContext = {
+  test("handles flow data with empty state", () => {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       state: {},
@@ -436,7 +436,7 @@ describe("StepNode", () => {
     };
 
     render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, workflowData }} />
+      <StepNode {...defaultProps} data={{ ...defaultNodeData, flowData }} />
     );
 
     expect(
@@ -444,15 +444,15 @@ describe("StepNode", () => {
     ).toBeInTheDocument();
   });
 
-  test("handles workflow data without state property", () => {
-    const workflowData: WorkflowContext = {
+  test("handles flow data without state property", () => {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       started_at: "2024-01-01T00:00:00Z",
     };
 
     render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, workflowData }} />
+      <StepNode {...defaultProps} data={{ ...defaultNodeData, flowData }} />
     );
 
     expect(

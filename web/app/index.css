@@ -4,7 +4,7 @@
 
 /* Component styles */
 @import "./styles/components/step.css";
-@import "./styles/components/workflow.css";
+@import "./styles/components/flow.css";
 @import "./styles/components/editor.css";
 
 body {

@@ -2,10 +2,10 @@ import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
 import {
   Step,
-  WorkflowContext,
+  FlowContext,
   ExecutionResult,
   ExecutionPlan,
-  WorkflowProjection,
+  FlowProjection,
   StepStatus,
 } from "./types";
 
@@ -22,7 +22,7 @@ export class SpudsApi {
     });
   }
 
-  private convertProjection(projection: WorkflowProjection): WorkflowContext {
+  private convertProjection(projection: FlowProjection): FlowContext {
     let errorState = undefined;
     if (projection.error) {
       errorState = {
@@ -58,12 +58,12 @@ export class SpudsApi {
     return response.data.step;
   }
 
-  async startWorkflow(
+  async startFlow(
     id: string,
     goalStepIds: string[],
     initialState: Record<string, any>
   ): Promise<any> {
-    const response = await this.client.post("/engine/workflow", {
+    const response = await this.client.post("/engine/flow", {
       id,
       goals: goalStepIds,
       init: initialState,
@@ -71,37 +71,37 @@ export class SpudsApi {
     return response.data;
   }
 
-  async getWorkflowWithEvents(id: string): Promise<{
-    workflow: WorkflowContext;
+  async getFlowWithEvents(id: string): Promise<{
+    flow: FlowContext;
     executions: ExecutionResult[];
   }> {
-    const response = await this.client.get(`/engine/workflow/${id}`);
-    const projection: WorkflowProjection = response.data;
+    const response = await this.client.get(`/engine/flow/${id}`);
+    const projection: FlowProjection = response.data;
 
-    const workflow = this.convertProjection(projection);
+    const flow = this.convertProjection(projection);
     const executions = this.extractExecutions(projection, id);
 
     return {
-      workflow,
+      flow,
       executions,
     };
   }
 
-  async listWorkflows(): Promise<WorkflowContext[]> {
-    const response = await this.client.get("/engine/workflow");
-    const projections: WorkflowProjection[] = response.data.workflows || [];
+  async listFlows(): Promise<FlowContext[]> {
+    const response = await this.client.get("/engine/flow");
+    const projections: FlowProjection[] = response.data.flows || [];
     return projections.map((p) => this.convertProjection(p));
   }
 
   async getExecutions(flowId: string): Promise<ExecutionResult[]> {
-    const response = await this.client.get(`/engine/workflow/${flowId}`);
-    const projection: WorkflowProjection = response.data;
+    const response = await this.client.get(`/engine/flow/${flowId}`);
+    const projection: FlowProjection = response.data;
 
     return this.extractExecutions(projection, flowId);
   }
 
   private extractExecutions(
-    projection: WorkflowProjection,
+    projection: FlowProjection,
     flowId: string
   ): ExecutionResult[] {
     if (!projection.executions) {

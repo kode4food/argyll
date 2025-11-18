@@ -7,14 +7,14 @@ import (
 )
 
 type (
-	// CreateWorkflowRequest contains parameters for starting a new workflow
-	CreateWorkflowRequest struct {
+	// CreateFlowRequest contains parameters for starting a new flow
+	CreateFlowRequest struct {
 		Init  Args         `json:"init"`
 		ID    timebox.ID   `json:"id"`
 		Goals []timebox.ID `json:"goals"`
 	}
 
-	// UpdateStateRequest contains attribute updates for a workflow
+	// UpdateStateRequest contains attribute updates for a flow
 	UpdateStateRequest struct {
 		Updates Args `json:"updates"`
 	}
@@ -25,25 +25,25 @@ type (
 		Goals []timebox.ID `json:"goals"`
 	}
 
-	// WorkflowStartedResponse is returned when a workflow start succeeds
-	WorkflowStartedResponse struct {
+	// FlowStartedResponse is returned when a flow start succeeds
+	FlowStartedResponse struct {
 		Message string     `json:"message"`
 		FlowID  timebox.ID `json:"flow_id"`
 	}
 
-	// WorkflowDigest provides summary information about a workflow
-	WorkflowDigest struct {
-		ID          timebox.ID     `json:"id"`
-		Status      WorkflowStatus `json:"status"`
-		CreatedAt   time.Time      `json:"created_at"`
-		CompletedAt time.Time      `json:"completed_at,omitempty"`
-		Error       string         `json:"error,omitempty"`
+	// FlowDigest provides summary information about a flow
+	FlowDigest struct {
+		ID          timebox.ID `json:"id"`
+		Status      FlowStatus `json:"status"`
+		CreatedAt   time.Time  `json:"created_at"`
+		CompletedAt time.Time  `json:"completed_at,omitempty"`
+		Error       string     `json:"error,omitempty"`
 	}
 
-	// WorkflowsListResponse contains a list of workflow summaries
-	WorkflowsListResponse struct {
-		Workflows []*WorkflowDigest `json:"workflows"`
-		Count     int               `json:"count"`
+	// FlowsListResponse contains a list of flow summaries
+	FlowsListResponse struct {
+		Flows []*FlowDigest `json:"flows"`
+		Count int           `json:"count"`
 	}
 
 	// StepRegisteredResponse is returned when a step registration succeeds
@@ -67,9 +67,9 @@ type (
 
 	// StatusResponse provides engine status and statistics
 	StatusResponse struct {
-		WorkflowFingerprint string `json:"workflow_fingerprint"`
-		StepCount           int    `json:"step_count"`
-		WorkflowCount       int    `json:"workflow_count"`
+		FlowFingerprint string `json:"flow_fingerprint"`
+		StepCount       int    `json:"step_count"`
+		FlowCount       int    `json:"flow_count"`
 	}
 
 	// HealthListResponse contains health status for all registered steps

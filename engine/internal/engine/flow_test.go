@@ -31,16 +31,16 @@ func TestStartDuplicate(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
 	)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "workflow exists")
+	assert.Contains(t, err.Error(), "flow exists")
 }
 
 func TestStartMissingInput(t *testing.T) {
@@ -61,7 +61,7 @@ func TestStartMissingInput(t *testing.T) {
 		Required: []api.Name{"required_value"},
 	}
 
-	err := env.Engine.StartWorkflow(
+	err := env.Engine.StartFlow(
 		context.Background(),
 		"wf-missing",
 		plan,
@@ -75,9 +75,9 @@ func TestGetStateNotFound(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	_, err := env.Engine.GetWorkflowState(context.Background(), "nonexistent")
+	_, err := env.Engine.GetFlowState(context.Background(), "nonexistent")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "workflow not found")
+	assert.Contains(t, err.Error(), "flow not found")
 }
 
 func TestSetAttribute(t *testing.T) {
@@ -98,7 +98,7 @@ func TestSetAttribute(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-attr", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -109,7 +109,7 @@ func TestSetAttribute(t *testing.T) {
 	require.NoError(t, err)
 
 	a := as.New(t)
-	a.WorkflowStateEquals(
+	a.FlowStateEquals(
 		context.Background(), env.Engine, "wf-attr", "test_key", "test_value",
 	)
 }
@@ -132,7 +132,7 @@ func TestGetAttributes(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-getattrs", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -172,7 +172,7 @@ func TestSetDuplicate(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup-attr", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestSetDuplicate(t *testing.T) {
 	assert.Contains(t, err.Error(), "attribute already set")
 }
 
-func TestCompleteWorkflow(t *testing.T) {
+func TestCompleteFlow(t *testing.T) {
 	a := as.New(t)
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
@@ -210,25 +210,25 @@ func TestCompleteWorkflow(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-complete", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
 	result := api.Args{"final": "result"}
-	err = env.Engine.CompleteWorkflow(
+	err = env.Engine.CompleteFlow(
 		context.Background(), "wf-complete", result,
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-complete",
 	)
 	require.NoError(t, err)
-	a.WorkflowStatus(workflow, api.WorkflowCompleted)
+	a.FlowStatus(flow, api.FlowCompleted)
 }
 
-func TestFailWorkflow(t *testing.T) {
+func TestFailFlow(t *testing.T) {
 	a := as.New(t)
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
@@ -247,20 +247,20 @@ func TestFailWorkflow(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-fail", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	err = env.Engine.FailWorkflow(context.Background(), "wf-fail", "test error")
+	err = env.Engine.FailFlow(context.Background(), "wf-fail", "test error")
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-fail",
 	)
 	require.NoError(t, err)
-	a.WorkflowStatus(workflow, api.WorkflowFailed)
-	a.Equal("test error", workflow.Error)
+	a.FlowStatus(flow, api.FlowFailed)
+	a.Equal("test error", flow.Error)
 }
 
 func TestStartStep(t *testing.T) {
@@ -281,7 +281,7 @@ func TestStartStep(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-exec", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -292,12 +292,12 @@ func TestStartStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-exec",
 	)
 	require.NoError(t, err)
 
-	exec, ok := workflow.Executions["exec-step"]
+	exec, ok := flow.Executions["exec-step"]
 	require.True(t, ok)
 	assert.Equal(t, api.StepActive, exec.Status)
 }
@@ -320,7 +320,7 @@ func TestCompleteStep(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-complete-exec", plan, api.Args{},
 		api.Metadata{},
 	)
@@ -339,12 +339,12 @@ func TestCompleteStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-complete-exec",
 	)
 	require.NoError(t, err)
 
-	exec, ok := workflow.Executions["step-complete-exec"]
+	exec, ok := flow.Executions["step-complete-exec"]
 	require.True(t, ok)
 	assert.Equal(t, api.StepCompleted, exec.Status)
 	assert.Equal(t, "result", exec.Outputs["output"])
@@ -368,7 +368,7 @@ func TestFailStep(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-fail-exec", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -384,12 +384,12 @@ func TestFailStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-fail-exec",
 	)
 	require.NoError(t, err)
 
-	exec, ok := workflow.Executions["step-fail-exec"]
+	exec, ok := flow.Executions["step-fail-exec"]
 	require.True(t, ok)
 	assert.Equal(t, api.StepFailed, exec.Status)
 	assert.Equal(t, "execution failed", exec.Error)
@@ -413,7 +413,7 @@ func TestSkipStep(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-skip", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -423,18 +423,18 @@ func TestSkipStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-skip",
 	)
 	require.NoError(t, err)
 
-	exec, ok := workflow.Executions["step-skip"]
+	exec, ok := flow.Executions["step-skip"]
 	require.True(t, ok)
 	assert.Equal(t, api.StepSkipped, exec.Status)
 	assert.Equal(t, "test skip reason", exec.Error)
 }
 
-func TestGetWorkflowEvents(t *testing.T) {
+func TestGetFlowEvents(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -452,19 +452,19 @@ func TestGetWorkflowEvents(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-events", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	events, err := env.Engine.GetWorkflowEvents(
+	events, err := env.Engine.GetFlowEvents(
 		context.Background(), "wf-events", 0,
 	)
 	require.NoError(t, err)
 	assert.NotEmpty(t, events)
 }
 
-func TestListWorkflows(t *testing.T) {
+func TestListFlows(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -482,17 +482,17 @@ func TestListWorkflows(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-list", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	workflows, err := env.Engine.ListWorkflows(context.Background())
+	flows, err := env.Engine.ListFlows(context.Background())
 	require.NoError(t, err)
-	assert.NotEmpty(t, workflows)
+	assert.NotEmpty(t, flows)
 }
 
-func TestIsWorkflowFailed(t *testing.T) {
+func TestIsFlowFailed(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -517,7 +517,7 @@ func TestIsWorkflowFailed(t *testing.T) {
 	err = env.Engine.RegisterStep(context.Background(), stepB)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-failed-test",
 		plan,
@@ -526,7 +526,7 @@ func TestIsWorkflowFailed(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = env.Engine.GetWorkflowState(
+	_, err = env.Engine.GetFlowState(
 		context.Background(), "wf-failed-test",
 	)
 	require.NoError(t, err)
@@ -541,16 +541,16 @@ func TestIsWorkflowFailed(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-failed-test",
 	)
 	require.NoError(t, err)
 
-	isFailed := env.Engine.IsWorkflowFailed(workflow)
+	isFailed := env.Engine.IsFlowFailed(flow)
 	assert.True(t, isFailed)
 }
 
-func TestIsWorkflowNotFailed(t *testing.T) {
+func TestIsFlowNotFailed(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -566,7 +566,7 @@ func TestIsWorkflowNotFailed(t *testing.T) {
 	err := env.Engine.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-ok-test",
 		plan,
@@ -575,12 +575,12 @@ func TestIsWorkflowNotFailed(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-ok-test",
 	)
 	require.NoError(t, err)
 
-	isFailed := env.Engine.IsWorkflowFailed(workflow)
+	isFailed := env.Engine.IsFlowFailed(flow)
 	assert.False(t, isFailed)
 }
 
@@ -615,7 +615,7 @@ func TestHasInputProvider(t *testing.T) {
 	err = env.Engine.RegisterStep(context.Background(), stepB)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-provider-test",
 		plan,
@@ -624,12 +624,12 @@ func TestHasInputProvider(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-provider-test",
 	)
 	require.NoError(t, err)
 
-	hasProvider := env.Engine.HasInputProvider("value", workflow)
+	hasProvider := env.Engine.HasInputProvider("value", flow)
 	assert.True(t, hasProvider)
 }
 
@@ -654,7 +654,7 @@ func TestHasInputProviderNone(t *testing.T) {
 	err := env.Engine.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-no-provider-test",
 		plan,
@@ -663,12 +663,12 @@ func TestHasInputProviderNone(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-no-provider-test",
 	)
 	require.NoError(t, err)
 
-	hasProvider := env.Engine.HasInputProvider("missing", workflow)
+	hasProvider := env.Engine.HasInputProvider("missing", flow)
 	assert.False(t, hasProvider)
 }
 
@@ -688,7 +688,7 @@ func TestStepProvidesInput(t *testing.T) {
 	err := env.Engine.RegisterStep(context.Background(), stepA)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-provides-test",
 		plan,
@@ -697,14 +697,14 @@ func TestStepProvidesInput(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(
+	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-provides-test",
 	)
 	require.NoError(t, err)
 
-	provides := env.Engine.StepProvidesInput(stepA, "result", workflow)
+	provides := env.Engine.StepProvidesInput(stepA, "result", flow)
 	assert.True(t, provides)
 
-	providesOther := env.Engine.StepProvidesInput(stepA, "other", workflow)
+	providesOther := env.Engine.StepProvidesInput(stepA, "other", flow)
 	assert.False(t, providesOther)
 }

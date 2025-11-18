@@ -99,9 +99,9 @@ func (e *Engine) ScheduleRetry(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	errMsg string,
 ) error {
-	flow, err := e.GetWorkflowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
-		return fmt.Errorf("failed to get workflow state: %w", err)
+		return fmt.Errorf("failed to get flow state: %w", err)
 	}
 
 	step := flow.Plan.GetStep(stepID)
@@ -122,7 +122,7 @@ func (e *Engine) ScheduleRetry(
 	newRetryCount := workItem.RetryCount + 1
 	nextRetryAt := e.CalculateNextRetry(step.WorkConfig, workItem.RetryCount)
 
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeRetryScheduled,
 			api.RetryScheduledEvent{
 				FlowID:      flowID,
@@ -135,7 +135,7 @@ func (e *Engine) ScheduleRetry(
 		)
 	}
 
-	_, err = e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err = e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	if err != nil {
 		return fmt.Errorf("failed to schedule retry: %w", err)
 	}
@@ -152,26 +152,26 @@ func (e *Engine) ScheduleRetry(
 
 // Recovery orchestration
 
-// RecoverWorkflows initiates recovery for all active workflows during engine
+// RecoverFlows initiates recovery for all active flows during engine
 // startup
-func (e *Engine) RecoverWorkflows(ctx context.Context) error {
+func (e *Engine) RecoverFlows(ctx context.Context) error {
 	engineState, err := e.GetEngineState(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get engine state: %w", err)
 	}
 
-	if len(engineState.ActiveWorkflows) == 0 {
-		slog.Info("No workflows to recover")
+	if len(engineState.ActiveFlows) == 0 {
+		slog.Info("No flows to recover")
 		return nil
 	}
 
-	slog.Info("Recovering workflows",
-		slog.Int("count", len(engineState.ActiveWorkflows)),
+	slog.Info("Recovering flows",
+		slog.Int("count", len(engineState.ActiveFlows)),
 	)
 
-	for flowID := range engineState.ActiveWorkflows {
-		if err := e.RecoverWorkflow(ctx, flowID); err != nil {
-			slog.Error("Failed to recover workflow",
+	for flowID := range engineState.ActiveFlows {
+		if err := e.RecoverFlow(ctx, flowID); err != nil {
+			slog.Error("Failed to recover flow",
 				slog.Any("flow_id", flowID),
 				slog.Any("error", err))
 		}
@@ -180,15 +180,15 @@ func (e *Engine) RecoverWorkflows(ctx context.Context) error {
 	return nil
 }
 
-// RecoverWorkflow resumes execution of a specific workflow by retrying any
+// RecoverFlow resumes execution of a specific flow by retrying any
 // pending work items that are ready for retry
-func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
-	flow, err := e.GetWorkflowState(ctx, flowID)
+func (e *Engine) RecoverFlow(ctx context.Context, flowID timebox.ID) error {
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
-		return fmt.Errorf("failed to get workflow state: %w", err)
+		return fmt.Errorf("failed to get flow state: %w", err)
 	}
 
-	if workflowTransitions.IsTerminal(flow.Status) {
+	if flowTransitions.IsTerminal(flow.Status) {
 		return nil
 	}
 
@@ -197,7 +197,7 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 		return nil
 	}
 
-	slog.Info("Recovering workflow",
+	slog.Info("Recovering flow",
 		slog.Any("flow_id", flowID),
 		slog.Int("retriable_steps", retriableSteps.Len()))
 
@@ -231,9 +231,9 @@ func (e *Engine) RecoverWorkflow(ctx context.Context, flowID timebox.ID) error {
 	return nil
 }
 
-// FindRetrySteps identifies all steps in a workflow that have work items
+// FindRetrySteps identifies all steps in a flow that have work items
 // scheduled for retry
-func (e *Engine) FindRetrySteps(state *api.WorkflowState) util.Set[timebox.ID] {
+func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[timebox.ID] {
 	retriableSteps := util.Set[timebox.ID]{}
 
 	for stepID, exec := range state.Executions {

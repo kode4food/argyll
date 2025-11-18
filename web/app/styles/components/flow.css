@@ -1,8 +1,8 @@
-/* Shared Workflow Components */
+/* Shared Flow Components */
 
 /* Badge Base Style */
 .stat-badge,
-.workflow-status-badge {
+.flow-status-badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -15,8 +15,8 @@
   line-height: 1.5rem;
 }
 
-/* Workflow Stats */
-.workflow-stats {
+/* Flow Stats */
+.flow-stats {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -46,36 +46,36 @@
   border-color: var(--color-resolver-border);
 }
 
-/* Workflow Header */
-.workflow-header {
+/* Flow Header */
+.flow-header {
   background-color: var(--color-neutral-bg);
   border-bottom: 1px solid var(--color-neutral-border);
   padding: var(--spacing-sm) var(--spacing-lg);
 }
 
-.workflow-header__content {
+.flow-header__content {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.workflow-header__left {
+.flow-header__left {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.workflow-header__title {
+.flow-header__title {
   font-size: var(--text-base);
   font-weight: var(--font-medium);
   color: var(--color-neutral-text);
 }
 
-.workflow-status-badge {
+.flow-status-badge {
   flex-shrink: 0;
 }
 
-.workflow-header__right {
+.flow-header__right {
   display: flex;
   align-items: center;
   gap: 0.25rem;
@@ -84,8 +84,8 @@
   white-space: nowrap;
 }
 
-/* Workflow Error */
-.workflow-error {
+/* Flow Error */
+.flow-error {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);
   background-color: var(--color-collector-label);
@@ -119,38 +119,38 @@
   color: var(--color-neutral-text);
 }
 
-/* Workflow Status Badges */
-.workflow-status-badge.pending {
+/* Flow Status Badges */
+.flow-status-badge.pending {
   background-color: var(--color-neutral-label);
   color: var(--color-pending);
   border-color: var(--color-neutral-border);
 }
 
-.workflow-status-badge.active {
+.flow-status-badge.active {
   background-color: var(--color-resolver-label);
   color: var(--color-resolver-text);
   border-color: var(--color-resolver-border);
 }
 
-.workflow-status-badge.completed {
+.flow-status-badge.completed {
   background-color: var(--color-processor-label);
   color: var(--color-processor-text);
   border-color: var(--color-processor-border);
 }
 
-.workflow-status-badge.failed {
+.flow-status-badge.failed {
   background-color: var(--color-collector-label);
   color: var(--color-collector-text);
   border-color: var(--color-collector-border);
 }
 
-.workflow-status-badge.stopped {
+.flow-status-badge.stopped {
   background-color: var(--color-neutral-label);
   color: var(--color-neutral-text);
   border-color: var(--color-neutral-border);
 }
 
-.workflow-status-badge.default {
+.flow-status-badge.default {
   background-color: var(--color-neutral-label);
   color: var(--color-neutral-text);
   border-color: var(--color-neutral-border);

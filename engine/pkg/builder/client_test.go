@@ -90,9 +90,9 @@ func TestStartSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "/engine/workflow", r.URL.Path)
+			assert.Equal(t, "/engine/flow", r.URL.Path)
 
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
@@ -103,7 +103,7 @@ func TestStartSuccess(t *testing.T) {
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 	ctx := context.Background()
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
 		WithInitialState(api.Args{"input": "value"}).
 		Start(ctx)
@@ -120,7 +120,7 @@ func TestStartError(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
 		Start(context.Background())
 	assert.Error(t, err)
@@ -186,33 +186,33 @@ func TestContextCancellation(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestWorkflow(t *testing.T) {
+func TestFlow(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	wc := client.Workflow("test-flow-123")
+	wc := client.Flow("test-flow-123")
 	assert.Equal(t, timebox.ID("test-flow-123"), wc.FlowID())
 }
 
-func TestWorkflowGetState(t *testing.T) {
+func TestFlowGetState(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "GET", r.Method)
-			assert.Equal(t, "/engine/workflow/my-flow", r.URL.Path)
+			assert.Equal(t, "/engine/flow/my-flow", r.URL.Path)
 
-			workflow := api.WorkflowState{
+			flow := api.FlowState{
 				ID:     "my-flow",
-				Status: api.WorkflowActive,
+				Status: api.FlowActive,
 			}
 			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(workflow)
+			_ = json.NewEncoder(w).Encode(flow)
 		},
 	))
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Workflow("my-flow")
+	wc := client.Flow("my-flow")
 
 	state, err := wc.GetState(context.Background())
 	require.NoError(t, err)
 	assert.Equal(t, timebox.ID("my-flow"), state.ID)
-	assert.Equal(t, api.WorkflowActive, state.Status)
+	assert.Equal(t, api.FlowActive, state.Status)
 }

@@ -6,9 +6,9 @@ import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { useUI } from "../../contexts/UIContext";
 import LazyCodeEditor from "../molecules/LazyCodeEditor";
 import StepTypeLabel from "../atoms/StepTypeLabel";
-import styles from "./WorkflowCreateForm.module.css";
+import styles from "./FlowCreateForm.module.css";
 
-interface WorkflowCreateFormProps {
+interface FlowCreateFormProps {
   newID: string;
   setNewID: (id: string) => void;
   setIDManuallyEdited: (edited: boolean) => void;
@@ -16,13 +16,13 @@ interface WorkflowCreateFormProps {
   initialState: string;
   setInitialState: (state: string) => void;
   creating: boolean;
-  handleCreateWorkflow: () => void;
+  handleCreateFlow: () => void;
   steps: Step[];
   generateID: () => string;
   sortSteps: (steps: Step[]) => Step[];
 }
 
-const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
+const FlowCreateForm: React.FC<FlowCreateFormProps> = ({
   newID,
   setNewID,
   setIDManuallyEdited,
@@ -30,7 +30,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
   initialState,
   setInitialState,
   creating,
-  handleCreateWorkflow,
+  handleCreateFlow,
   steps,
   generateID,
   sortSteps,
@@ -137,7 +137,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
       <div
         className={styles.overlay}
         onClick={() => setShowCreateForm(false)}
-        aria-label="Close workflow form"
+        aria-label="Close flow form"
       />
       <div className={`${styles.modal} shadow-lg`}>
         <div className={styles.container}>
@@ -203,7 +203,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
 
           <div className={styles.main}>
             <div>
-              <label className={styles.label}>Workflow ID</label>
+              <label className={styles.label}>Flow ID</label>
               <div className={styles.idGroup}>
                 <input
                   type="text"
@@ -223,7 +223,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
                   }}
                   className={styles.buttonGenerate}
                   title="Generate new ID"
-                  aria-label="Generate new workflow ID"
+                  aria-label="Generate new flow ID"
                 >
                   ↻
                 </button>
@@ -254,7 +254,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
                 Cancel
               </button>
               <button
-                onClick={handleCreateWorkflow}
+                onClick={handleCreateFlow}
                 disabled={
                   creating ||
                   !newID.trim() ||
@@ -275,7 +275,7 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
         </div>
         {steps.length === 0 && (
           <div className={styles.warning}>
-            ⚠️ No steps are registered. Workflows need registered steps to
+            ⚠️ No steps are registered. Flows need registered steps to
             function.
           </div>
         )}
@@ -284,4 +284,4 @@ const WorkflowCreateForm: React.FC<WorkflowCreateFormProps> = ({
   );
 };
 
-export default WorkflowCreateForm;
+export default FlowCreateForm;

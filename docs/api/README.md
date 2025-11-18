@@ -4,7 +4,7 @@ OpenAPI specifications for the Spuds HTTP APIs.
 
 ## Specifications
 
-- **[engine-api.yaml](engine-api.yaml)** - Engine HTTP API for managing workflows and steps
+- **[engine-api.yaml](engine-api.yaml)** - Engine HTTP API for managing flows and steps
 - **[step-interface.yaml](step-interface.yaml)** - HTTP contract for step implementations
 
 ## Viewing the Docs
@@ -22,7 +22,7 @@ Upload to [Swagger Editor](https://editor.swagger.io/) or [Redoc](https://redocl
 
 ### Engine API
 
-Register a step and start a workflow:
+Register a step and start a flow:
 
 ```bash
 # Register step
@@ -43,8 +43,8 @@ curl -X POST http://localhost:8080/engine/step \
     }
   }'
 
-# Start workflow
-curl -X POST http://localhost:8080/engine/workflow \
+# Start flow
+curl -X POST http://localhost:8080/engine/flow \
   -H "Content-Type: application/json" \
   -d '{
     "id": "wf-001",
@@ -53,7 +53,7 @@ curl -X POST http://localhost:8080/engine/workflow \
   }'
 
 # Check status
-curl http://localhost:8080/engine/workflow/wf-001
+curl http://localhost:8080/engine/flow/wf-001
 ```
 
 ### Step Interface

@@ -2,31 +2,31 @@ openapi: 3.0.3
 info:
   title: Spuds Engine REST API
   description: |
-    REST API for the Spuds workflow engine, providing endpoints for:
-    - Registering and managing workflow steps
-    - Creating and monitoring workflows with goal-oriented execution
+    REST API for the Spuds orchestrator, providing endpoints for:
+    - Registering and managing flow steps
+    - Creating and monitoring flows with goal-driven execution
     - Real-time event streaming via WebSocket
     - Health monitoring and system status
 
     ## Overview
 
-    The Spuds Engine is a goal-oriented workflow processing system that uses lazy evaluation
+    The Spuds Engine is a goal-driven flow processing system that uses lazy evaluation
     and event sourcing. Steps declare input/output dependencies and the engine orchestrates
     execution based on state availability, only executing the minimal set of steps needed to
     reach a specified goal.
 
     ## Key Features
 
-    - **Goal-Oriented Execution**: Create workflows by specifying a goal step; the engine
+    - **Goal-Driven Execution**: Create flows by specifying a goal step; the engine
       automatically determines and executes only the necessary steps
     - **Event Sourcing**: Complete audit trail with Valkey backend for recovery and debugging
     - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
-    - **Real-Time Updates**: WebSocket streaming for live workflow monitoring
+    - **Real-Time Updates**: WebSocket streaming for live flow monitoring
     - **Three Step Types**: Sync HTTP, Async HTTP (with webhooks), and Script (Ale and Lua)
 
     ## Step Implementation
 
-    If you're implementing workflow steps (HTTP endpoints or scripts that the engine calls),
+    If you're implementing flow steps (HTTP endpoints or scripts that the engine calls),
     see the separate **Step Interface Contract** specification in `step-interface.yaml`.
     This document describes what you need to consume the engine's REST API.
 
@@ -96,7 +96,7 @@ paths:
     post:
       summary: Register Step
       description: |
-        Register a new workflow step with the engine. Steps can be:
+        Register a new flow step with the engine. Steps can be:
         - **Sync**: HTTP endpoints that return results immediately
         - **Async**: HTTP endpoints that return immediately and complete via webhook
         - **Script**: Ale and Lua scripts executed in-engine
@@ -197,7 +197,7 @@ paths:
       summary: Update Step
       description: |
         Update an existing step registration. This creates a new version of the step.
-        Running workflows continue using their immutable execution plans (step snapshots).
+        Running flows continue using their immutable execution plans (step snapshots).
       operationId: updateStep
       tags:
         - Steps
@@ -237,7 +237,7 @@ paths:
     delete:
       summary: Unregister Step
       description: |
-        Remove a step from the engine. Running workflows that reference this step
+        Remove a step from the engine. Running flows that reference this step
         are unaffected as they use immutable execution plan snapshots.
       operationId: unregisterStep
       tags:
@@ -312,14 +312,14 @@ paths:
     post:
       summary: Create Execution Plan (Preview)
       description: |
-        Generate an execution plan for a goal step without starting the workflow.
+        Generate an execution plan for a goal step without starting the flow.
         This is useful for:
         - Previewing which steps will execute
         - Determining required inputs
         - Validating goal step dependencies before execution
       operationId: createExecutionPlan
       tags:
-        - Workflows
+        - Flows
       requestBody:
         required: true
         content:
@@ -350,42 +350,42 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/workflow:
+  /engine/flow:
     get:
-      summary: List Workflows
-      description: Retrieve all workflows in the system (active, completed, and failed)
-      operationId: listWorkflows
+      summary: List Flows
+      description: Retrieve all flows in the system (active, completed, and failed)
+      operationId: listFlows
       tags:
-        - Workflows
+        - Flows
       responses:
         "200":
-          description: List of workflows
+          description: List of flows
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WorkflowsListResponse"
+                $ref: "#/components/schemas/FlowsListResponse"
     post:
-      summary: Start Workflow
+      summary: Start Flow
       description: |
-        Create and start a new workflow execution with goal-oriented planning.
+        Create and start a new flow execution with goal-driven planning.
 
         The engine will:
         1. Create an execution plan containing only necessary steps
         2. Validate that all required inputs are provided
-        3. Start the workflow in `active` state
+        3. Start the flow in `active` state
         4. Execute steps in dependency order until the goal is reached
 
-        **Note**: Currently, workflows are created and started in a single operation.
+        **Note**: Currently, flows are created and started in a single operation.
         A future enhancement will separate creation (pending state) from starting (active state).
-      operationId: createWorkflow
+      operationId: createFlow
       tags:
-        - Workflows
+        - Flows
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateWorkflowRequest"
+              $ref: "#/components/schemas/CreateFlowRequest"
             example:
               id: "wf-text-processing-001"
               goals: ["text-processor"]
@@ -393,53 +393,53 @@ paths:
                 input_text: "Hello, Spuds!"
       responses:
         "201":
-          description: Workflow started successfully
+          description: Flow started successfully
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WorkflowStartedResponse"
+                $ref: "#/components/schemas/FlowStartedResponse"
         "400":
-          description: Invalid workflow request (missing inputs, invalid goal step, etc.)
+          description: Invalid flow request (missing inputs, invalid goal step, etc.)
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: Workflow ID already exists
+          description: Flow ID already exists
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
-  /engine/workflow/{flowId}:
+  /engine/flow/{flowId}:
     get:
-      summary: Get Workflow State
+      summary: Get Flow State
       description: |
-        Retrieve the current state of a specific workflow, including:
+        Retrieve the current state of a specific flow, including:
         - Status (pending, active, completed, failed)
         - Execution plan (immutable step snapshots)
-        - Current workflow attributes
+        - Current flow attributes
         - Error information (if failed)
-      operationId: getWorkflowState
+      operationId: getFlowState
       tags:
-        - Workflows
+        - Flows
       parameters:
         - name: flowId
           in: path
           required: true
-          description: Unique identifier of the workflow
+          description: Unique identifier of the flow
           schema:
             type: string
           example: "wf-text-processing-001"
       responses:
         "200":
-          description: Complete workflow state with execution details
+          description: Complete flow state with execution details
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/WorkflowState"
+                $ref: "#/components/schemas/FlowState"
         "404":
-          description: Workflow not found
+          description: Flow not found
           content:
             application/json:
               schema:
@@ -462,7 +462,7 @@ paths:
         - name: flowId
           in: path
           required: true
-          description: Workflow ID
+          description: Flow ID
           schema:
             type: string
           example: "wf-async-processing-001"
@@ -513,7 +513,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "404":
-          description: Workflow or step not found
+          description: Flow or step not found
           content:
             application/json:
               schema:
@@ -525,15 +525,15 @@ paths:
       description: |
         Establish WebSocket connection for real-time event streaming.
 
-        The WebSocket streams all engine and workflow events, enabling:
-        - Real-time workflow monitoring
+        The WebSocket streams all engine and flow events, enabling:
+        - Real-time flow monitoring
         - Live step execution updates
         - Health status changes
         - Step registration/unregistration events
 
         **Event Types:**
         - Engine events: step_registered, step_unregistered, step_health_changed
-        - Workflow events: workflow_started, workflow_completed, workflow_failed,
+        - Flow events: flow_started, flow_completed, flow_failed,
           step_started, step_completed, step_failed, attribute_set
       operationId: connectWebSocket
       tags:
@@ -571,7 +571,7 @@ components:
       required:
         - steps
         - health
-        - active_workflows
+        - active_flows
         - last_updated
       properties:
         steps:
@@ -584,11 +584,11 @@ components:
           description: Map of step ID to health status
           additionalProperties:
             $ref: "#/components/schemas/HealthState"
-        active_workflows:
+        active_flows:
           type: object
-          description: Map of workflow ID to active workflow information
+          description: Map of flow ID to active flow information
           additionalProperties:
-            $ref: "#/components/schemas/ActiveWorkflowInfo"
+            $ref: "#/components/schemas/ActiveFlowInfo"
         last_updated:
           type: string
           format: date-time
@@ -836,7 +836,7 @@ components:
           example: ["text-processor"]
         init:
           type: object
-          description: Initial workflow state (arguments/attributes)
+          description: Initial flow state (arguments/attributes)
           additionalProperties: true
           example:
             user_id: "john.doe"
@@ -900,7 +900,7 @@ components:
             type: string
           example: ["data-processor", "data-validator"]
 
-    CreateWorkflowRequest:
+    CreateFlowRequest:
       type: object
       required:
         - id
@@ -908,7 +908,7 @@ components:
       properties:
         id:
           type: string
-          description: Unique workflow identifier
+          description: Unique flow identifier
           example: "wf-text-processing-001"
         goals:
           type: array
@@ -919,39 +919,39 @@ components:
           example: ["text-processor"]
         init:
           type: object
-          description: Initial workflow state providing required inputs
+          description: Initial flow state providing required inputs
           additionalProperties: true
           example:
             input_text: "Hello, Spuds!"
 
-    WorkflowStartedResponse:
+    FlowStartedResponse:
       type: object
       required:
         - flow_id
       properties:
         message:
           type: string
-          example: "Workflow started successfully"
+          example: "Flow started successfully"
         flow_id:
           type: string
           example: "wf-text-processing-001"
 
-    WorkflowsListResponse:
+    FlowsListResponse:
       type: object
       required:
-        - workflows
+        - flows
         - count
       properties:
-        workflows:
+        flows:
           type: array
           items:
-            $ref: "#/components/schemas/WorkflowDigest"
+            $ref: "#/components/schemas/FlowDigest"
         count:
           type: integer
-          description: Total number of workflows
+          description: Total number of flows
           example: 3
 
-    WorkflowDigest:
+    FlowDigest:
       type: object
       required:
         - id
@@ -960,32 +960,32 @@ components:
       properties:
         id:
           type: string
-          description: Workflow identifier
+          description: Flow identifier
           example: "wf-text-processing-001"
         status:
           type: string
           enum: [pending, active, completed, failed, stopped]
           description: |
-            - `pending`: Workflow created but not yet started (future feature)
-            - `active`: Workflow is currently executing
-            - `completed`: Workflow completed successfully
-            - `failed`: Workflow failed with an error
-            - `stopped`: Workflow was manually stopped
+            - `pending`: Flow created but not yet started (future feature)
+            - `active`: Flow is currently executing
+            - `completed`: Flow completed successfully
+            - `failed`: Flow failed with an error
+            - `stopped`: Flow was manually stopped
           example: "active"
         created_at:
           type: string
           format: date-time
-          description: Workflow creation timestamp
+          description: Flow creation timestamp
         completed_at:
           type: string
           format: date-time
-          description: Workflow completion timestamp (if completed or failed)
+          description: Flow completion timestamp (if completed or failed)
         error:
           type: string
           description: Error message if status is failed
           example: "Step execution failed: connection timeout"
 
-    WorkflowState:
+    FlowState:
       type: object
       required:
         - id
@@ -998,28 +998,28 @@ components:
       properties:
         id:
           type: string
-          description: Workflow identifier
+          description: Flow identifier
           example: "wf-text-processing-001"
         status:
           type: string
           enum: [pending, active, completed, failed]
-          description: Current workflow status
+          description: Current flow status
           example: "active"
         created_at:
           type: string
           format: date-time
-          description: Workflow creation timestamp
+          description: Flow creation timestamp
         completed_at:
           type: string
           format: date-time
-          description: Workflow completion timestamp (if completed or failed)
+          description: Flow completion timestamp (if completed or failed)
         last_updated:
           type: string
           format: date-time
           description: Timestamp of last state update
         plan:
           $ref: "#/components/schemas/ExecutionPlan"
-          description: Immutable execution plan for this workflow
+          description: Immutable execution plan for this flow
         attributes:
           type: object
           description: Map of attribute name to attribute value with provenance
@@ -1035,7 +1035,7 @@ components:
           description: Error message if status is failed
           example: "Step execution failed: connection timeout"
 
-    ActiveWorkflowInfo:
+    ActiveFlowInfo:
       type: object
       required:
         - flow_id
@@ -1044,16 +1044,16 @@ components:
       properties:
         flow_id:
           type: string
-          description: Workflow identifier
+          description: Flow identifier
           example: "wf-text-processing-001"
         started_at:
           type: string
           format: date-time
-          description: When the workflow started executing
+          description: When the flow started executing
         last_active:
           type: string
           format: date-time
-          description: Last time the workflow had activity
+          description: Last time the flow had activity
 
     AttributeValue:
       type: object
@@ -1163,7 +1163,7 @@ components:
           description: Whether the step executed successfully
         outputs:
           type: object
-          description: Output values to merge into workflow state
+          description: Output values to merge into flow state
           additionalProperties: true
           example:
             processed_text: "HELLO WORLD"
@@ -1208,8 +1208,8 @@ tags:
     description: Step registration and management
   - name: Health
     description: Health monitoring for steps and engine
-  - name: Workflows
-    description: Workflow creation, execution, and monitoring
+  - name: Flows
+    description: Flow creation, execution, and monitoring
   - name: Webhooks
     description: Webhook callbacks for async steps
   - name: WebSocket

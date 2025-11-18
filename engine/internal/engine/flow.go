@@ -13,21 +13,21 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-var workflowTransitions = util.StateTransitions[api.WorkflowStatus]{
-	api.WorkflowActive: util.SetOf(
-		api.WorkflowCompleted,
-		api.WorkflowFailed,
+var flowTransitions = util.StateTransitions[api.FlowStatus]{
+	api.FlowActive: util.SetOf(
+		api.FlowCompleted,
+		api.FlowFailed,
 	),
-	api.WorkflowCompleted: {},
-	api.WorkflowFailed:    {},
+	api.FlowCompleted: {},
+	api.FlowFailed:    {},
 }
 
-// GetWorkflowState retrieves the current state of a workflow by its ID
-func (e *Engine) GetWorkflowState(
+// GetFlowState retrieves the current state of a flow by its ID
+func (e *Engine) GetFlowState(
 	ctx context.Context, flowID timebox.ID,
-) (*api.WorkflowState, error) {
-	state, err := e.workflowExec.Exec(ctx, workflowKey(flowID),
-		func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+) (*api.FlowState, error) {
+	state, err := e.flowExec.Exec(ctx, flowKey(flowID),
+		func(st *api.FlowState, ag *FlowAggregator) error {
 			return nil
 		},
 	)
@@ -36,44 +36,44 @@ func (e *Engine) GetWorkflowState(
 	}
 
 	if state.ID == "" {
-		return nil, ErrWorkflowNotFound
+		return nil, ErrFlowNotFound
 	}
 
 	return state, nil
 }
 
-// CompleteWorkflow marks a workflow as successfully completed with the given
+// CompleteFlow marks a flow as successfully completed with the given
 // result outputs
-func (e *Engine) CompleteWorkflow(
+func (e *Engine) CompleteFlow(
 	ctx context.Context, flowID timebox.ID, result api.Args,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		return util.Raise(ag, api.EventTypeWorkflowCompleted,
-			api.WorkflowCompletedEvent{
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+		return util.Raise(ag, api.EventTypeFlowCompleted,
+			api.FlowCompletedEvent{
 				FlowID: flowID,
 				Result: result,
 			},
 		)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
-// FailWorkflow marks a workflow as failed with the specified error message
-func (e *Engine) FailWorkflow(
+// FailFlow marks a flow as failed with the specified error message
+func (e *Engine) FailFlow(
 	ctx context.Context, flowID timebox.ID, errMsg string,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
-		return util.Raise(ag, api.EventTypeWorkflowFailed,
-			api.WorkflowFailedEvent{
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+		return util.Raise(ag, api.EventTypeFlowFailed,
+			api.FlowFailedEvent{
 				FlowID: flowID,
 				Error:  errMsg,
 			},
 		)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
@@ -83,7 +83,7 @@ func (e *Engine) StartWork(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	inputs api.Args,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeWorkStarted,
 			api.WorkStartedEvent{
 				FlowID: flowID,
@@ -94,7 +94,7 @@ func (e *Engine) StartWork(
 		)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
@@ -104,7 +104,7 @@ func (e *Engine) CompleteWork(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	outputs api.Args,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeWorkCompleted,
 			api.WorkCompletedEvent{
 				FlowID:  flowID,
@@ -115,7 +115,7 @@ func (e *Engine) CompleteWork(
 		)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
@@ -124,7 +124,7 @@ func (e *Engine) FailWork(
 	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
 	errMsg string,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeWorkFailed,
 			api.WorkFailedEvent{
 				FlowID: flowID,
@@ -135,16 +135,16 @@ func (e *Engine) FailWork(
 		)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
-// SetAttribute sets a named attribute value in the workflow state, returning
+// SetAttribute sets a named attribute value in the flow state, returning
 // an error if the attribute is already set
 func (e *Engine) SetAttribute(
 	ctx context.Context, flowID, stepID timebox.ID, attr api.Name, value any,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		if _, ok := st.Attributes[attr]; ok {
 			return fmt.Errorf("%w: %s", ErrAttributeAlreadySet, attr)
 		}
@@ -159,16 +159,16 @@ func (e *Engine) SetAttribute(
 		)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
-// GetAttribute retrieves a specific attribute value from the workflow state,
+// GetAttribute retrieves a specific attribute value from the flow state,
 // returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
 	ctx context.Context, flowID timebox.ID, attr api.Name,
 ) (any, bool, error) {
-	flow, err := e.GetWorkflowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -179,12 +179,12 @@ func (e *Engine) GetAttribute(
 	return nil, false, nil
 }
 
-// GetAttributes retrieves all attributes from the workflow state as a map of
+// GetAttributes retrieves all attributes from the flow state as a map of
 // names to values
 func (e *Engine) GetAttributes(
 	ctx context.Context, flowID timebox.ID,
 ) (api.Args, error) {
-	flow, err := e.GetWorkflowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
 		return nil, err
 	}
@@ -192,29 +192,27 @@ func (e *Engine) GetAttributes(
 	return flow.GetAttributeArgs(), nil
 }
 
-// GetWorkflowEvents retrieves all events for a workflow starting from the
+// GetFlowEvents retrieves all events for a flow starting from the
 // specified sequence number
-func (e *Engine) GetWorkflowEvents(
+func (e *Engine) GetFlowEvents(
 	ctx context.Context, flowID timebox.ID, fromSeq int64,
 ) ([]*timebox.Event, error) {
-	id := timebox.NewAggregateID("workflow", flowID)
-	return e.workflowExec.GetStore().GetEvents(ctx, id, fromSeq)
+	id := timebox.NewAggregateID("flow", flowID)
+	return e.flowExec.GetStore().GetEvents(ctx, id, fromSeq)
 }
 
-// ListWorkflows returns summary information for all workflows in the system
-func (e *Engine) ListWorkflows(
-	ctx context.Context,
-) ([]*api.WorkflowDigest, error) {
-	ids, err := e.workflowExec.GetStore().ListAggregates(
-		ctx, timebox.NewAggregateID("workflow", "*"),
+// ListFlows returns summary information for all flows in the system
+func (e *Engine) ListFlows(ctx context.Context) ([]*api.FlowDigest, error) {
+	ids, err := e.flowExec.GetStore().ListAggregates(
+		ctx, timebox.NewAggregateID("flow", "*"),
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	var digests []*api.WorkflowDigest
+	var digests []*api.FlowDigest
 	for _, id := range ids {
-		if digest := e.buildWorkflowDigest(ctx, id); digest != nil {
+		if digest := e.buildFlowDigest(ctx, id); digest != nil {
 			digests = append(digests, digest)
 		}
 	}
@@ -222,20 +220,20 @@ func (e *Engine) ListWorkflows(
 	return digests, nil
 }
 
-func (e *Engine) buildWorkflowDigest(
+func (e *Engine) buildFlowDigest(
 	ctx context.Context, id timebox.AggregateID,
-) *api.WorkflowDigest {
-	if len(id) < 2 || id[0] != "workflow" {
+) *api.FlowDigest {
+	if len(id) < 2 || id[0] != "flow" {
 		return nil
 	}
 
 	flowID := id[1]
-	flow, err := e.GetWorkflowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
 		return nil
 	}
 
-	return &api.WorkflowDigest{
+	return &api.FlowDigest{
 		ID:          flow.ID,
 		Status:      flow.Status,
 		CreatedAt:   flow.CreatedAt,
@@ -245,7 +243,7 @@ func (e *Engine) buildWorkflowDigest(
 }
 
 func (e *Engine) areOutputsNeeded(
-	stepID timebox.ID, flow *api.WorkflowState,
+	stepID timebox.ID, flow *api.FlowState,
 ) bool {
 	step := flow.Plan.GetStep(stepID)
 	if step == nil {
@@ -264,7 +262,7 @@ func isGoalStep(stepID timebox.ID, goals []timebox.ID) bool {
 }
 
 func hasOutputNeededByPendingConsumers(
-	step *api.Step, flow *api.WorkflowState,
+	step *api.Step, flow *api.FlowState,
 ) bool {
 	for name, attr := range step.Attributes {
 		if outputNeededByPendingConsumer(name, attr, flow) {
@@ -275,7 +273,7 @@ func hasOutputNeededByPendingConsumers(
 }
 
 func outputNeededByPendingConsumer(
-	name api.Name, attr *api.AttributeSpec, flow *api.WorkflowState,
+	name api.Name, attr *api.AttributeSpec, flow *api.FlowState,
 ) bool {
 	if !attr.IsOutput() {
 		return false
@@ -308,7 +306,7 @@ func hasPendingConsumer(
 	return false
 }
 
-func (e *Engine) isWorkflowComplete(flow *api.WorkflowState) bool {
+func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 	for stepID := range flow.Plan.Steps {
 		if !e.isStepComplete(stepID, flow) {
 			return false
@@ -317,8 +315,8 @@ func (e *Engine) isWorkflowComplete(flow *api.WorkflowState) bool {
 	return true
 }
 
-func (e *Engine) evaluateWorkflowState(
-	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
+func (e *Engine) evaluateFlowState(
+	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
 ) {
 	for stepID := range flow.Plan.Steps {
 		exec, ok := flow.Executions[stepID]
@@ -330,7 +328,7 @@ func (e *Engine) evaluateWorkflowState(
 }
 
 func (e *Engine) maybeSkipStep(
-	ctx context.Context, flowID, stepID timebox.ID, flow *api.WorkflowState,
+	ctx context.Context, flowID, stepID timebox.ID, flow *api.FlowState,
 ) {
 	if e.canStepComplete(stepID, flow) {
 		if !e.areOutputsNeeded(stepID, flow) {
@@ -352,9 +350,9 @@ func (e *Engine) maybeSkipStep(
 	}
 }
 
-// IsWorkflowFailed determines if a workflow has failed by checking whether any
+// IsFlowFailed determines if a flow has failed by checking whether any
 // of its goal steps cannot be completed
-func (e *Engine) IsWorkflowFailed(flow *api.WorkflowState) bool {
+func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
 	for _, goalID := range flow.Plan.Goals {
 		if !e.canStepComplete(goalID, flow) {
 			return true
@@ -363,8 +361,8 @@ func (e *Engine) IsWorkflowFailed(flow *api.WorkflowState) bool {
 	return false
 }
 
-func (e *Engine) failWorkflow(
-	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
+func (e *Engine) failFlow(
+	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
 ) {
 	var failed []string
 
@@ -379,15 +377,15 @@ func (e *Engine) failWorkflow(
 		failed,
 	)
 
-	if err := e.FailWorkflow(ctx, flowID, errMsg); err != nil {
+	if err := e.FailFlow(ctx, flowID, errMsg); err != nil {
 		slog.Error("Failed to record failure",
 			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 	}
 }
 
-func (e *Engine) completeWorkflow(
-	ctx context.Context, flowID timebox.ID, flow *api.WorkflowState,
+func (e *Engine) completeFlow(
+	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
 ) {
 	result := api.Args{}
 
@@ -397,16 +395,16 @@ func (e *Engine) completeWorkflow(
 		}
 	}
 
-	if err := e.CompleteWorkflow(ctx, flowID, result); err != nil {
-		slog.Error("Failed to complete workflow",
+	if err := e.CompleteFlow(ctx, flowID, result); err != nil {
+		slog.Error("Failed to complete flow",
 			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 	}
 }
 
 // HasInputProvider checks if a required attribute has at least one step that
-// can provide it in the workflow execution plan
-func (e *Engine) HasInputProvider(name api.Name, flow *api.WorkflowState) bool {
+// can provide it in the flow execution plan
+func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 	deps := flow.Plan.Attributes[name]
 	if deps == nil {
 		return false
@@ -424,24 +422,24 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.WorkflowState) bool {
 	return false
 }
 
-func workflowKey(flowID timebox.ID) timebox.AggregateID {
-	return timebox.NewAggregateID("workflow", flowID)
+func flowKey(flowID timebox.ID) timebox.AggregateID {
+	return timebox.NewAggregateID("flow", flowID)
 }
 
-// GetActiveWorkflow retrieves a workflow if it is currently active, returning
-// nil if the workflow is in a terminal state or not found
-func (e *Engine) GetActiveWorkflow(
+// GetActiveFlow retrieves a flow if it is currently active, returning
+// nil if the flow is in a terminal state or not found
+func (e *Engine) GetActiveFlow(
 	flowID timebox.ID,
-) (*api.WorkflowState, bool) {
-	flow, err := e.GetWorkflowState(e.ctx, flowID)
+) (*api.FlowState, bool) {
+	flow, err := e.GetFlowState(e.ctx, flowID)
 	if err != nil {
-		slog.Error("Failed to get workflow state",
+		slog.Error("Failed to get flow state",
 			slog.Any("flow_id", flowID),
 			slog.Any("error", err))
 		return nil, false
 	}
 
-	if workflowTransitions.IsTerminal(flow.Status) {
+	if flowTransitions.IsTerminal(flow.Status) {
 		return nil, false
 	}
 
@@ -449,7 +447,7 @@ func (e *Engine) GetActiveWorkflow(
 }
 
 func (e *Engine) ensureScriptsCompiled(
-	flowID timebox.ID, flow *api.WorkflowState,
+	flowID timebox.ID, flow *api.FlowState,
 ) bool {
 	if !flow.Plan.NeedsCompilation() {
 		return true

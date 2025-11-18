@@ -1,9 +1,9 @@
 import { useEffect, useRef } from "react";
 import { useWebSocketContext } from "./useWebSocketContext";
-import { useWorkflowStore } from "../store/workflowStore";
-import { WorkflowContext } from "../api";
+import { useFlowStore } from "../store/flowStore";
+import { FlowContext } from "../api";
 
-export const useWorkflowWebSocket = () => {
+export const useFlowWebSocket = () => {
   const {
     events,
     subscribe,
@@ -11,18 +11,18 @@ export const useWorkflowWebSocket = () => {
     unregisterConsumer,
     updateConsumerCursor,
   } = useWebSocketContext();
-  const selectedWorkflow = useWorkflowStore((state) => state.selectedWorkflow);
-  const nextSequence = useWorkflowStore((state) => state.nextSequence);
-  const workflowData = useWorkflowStore((state) => state.workflowData);
-  const refreshExecutions = useWorkflowStore(
+  const selectedFlow = useFlowStore((state) => state.selectedFlow);
+  const nextSequence = useFlowStore((state) => state.nextSequence);
+  const flowData = useFlowStore((state) => state.flowData);
+  const refreshExecutions = useFlowStore(
     (state) => state.refreshExecutions
   );
-  const updateWorkflow = useWorkflowStore(
-    (state) => state.updateWorkflowFromWebSocket
+  const updateFlow = useFlowStore(
+    (state) => state.updateFlowFromWebSocket
   );
-  const updateStepHealth = useWorkflowStore((state) => state.updateStepHealth);
-  const addStep = useWorkflowStore((state) => state.addStep);
-  const removeStep = useWorkflowStore((state) => state.removeStep);
+  const updateStepHealth = useFlowStore((state) => state.updateStepHealth);
+  const addStep = useFlowStore((state) => state.addStep);
+  const removeStep = useFlowStore((state) => state.removeStep);
 
   const consumerIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -35,16 +35,16 @@ export const useWorkflowWebSocket = () => {
   }, [registerConsumer, unregisterConsumer]);
 
   useEffect(() => {
-    if (selectedWorkflow) {
+    if (selectedFlow) {
       subscribe({
         engine_events: true,
-        flow_id: selectedWorkflow,
+        flow_id: selectedFlow,
         from_sequence: nextSequence,
       });
     } else {
       subscribe({ engine_events: true });
     }
-  }, [selectedWorkflow, nextSequence, subscribe]);
+  }, [selectedFlow, nextSequence, subscribe]);
 
   const lastProcessedEventIndex = useRef(-1);
   const seenSequences = useRef<Map<string, number>>(new Map());
@@ -57,7 +57,7 @@ export const useWorkflowWebSocket = () => {
 
     let needsExecutionRefresh = false;
     let stateUpdates: Record<string, { value: any; step: string }> = {};
-    let workflowUpdate: Partial<WorkflowContext> = {};
+    let flowUpdate: Partial<FlowContext> = {};
 
     for (const event of newEvents) {
       if (!event) {
@@ -97,13 +97,13 @@ export const useWorkflowWebSocket = () => {
         continue;
       }
 
-      if (!selectedWorkflow) continue;
-      if (event.data?.flow_id !== selectedWorkflow) continue;
-      if (!workflowData) continue;
+      if (!selectedFlow) continue;
+      if (event.data?.flow_id !== selectedFlow) continue;
+      if (!flowData) continue;
 
-      if (event.type === "workflow_started") {
-        workflowUpdate.status = "active";
-        workflowUpdate.started_at =
+      if (event.type === "flow_started") {
+        flowUpdate.status = "active";
+        flowUpdate.started_at =
           event.data?.started_at || new Date().toISOString();
       } else if (event.type === "step_started") {
         needsExecutionRefresh = true;
@@ -121,31 +121,31 @@ export const useWorkflowWebSocket = () => {
           stateUpdates[key] = { value, step: stepId };
         }
         needsExecutionRefresh = true;
-      } else if (event.type === "workflow_completed") {
-        workflowUpdate.status = "completed";
-        workflowUpdate.completed_at =
+      } else if (event.type === "flow_completed") {
+        flowUpdate.status = "completed";
+        flowUpdate.completed_at =
           event.data?.completed_at || new Date().toISOString();
-      } else if (event.type === "workflow_failed") {
-        workflowUpdate.status = "failed";
-        workflowUpdate.error_state = {
-          message: event.data?.error || "Workflow failed",
+      } else if (event.type === "flow_failed") {
+        flowUpdate.status = "failed";
+        flowUpdate.error_state = {
+          message: event.data?.error || "Flow failed",
           step_id: "",
           timestamp: event.data?.failed_at || new Date().toISOString(),
         };
-        workflowUpdate.completed_at =
+        flowUpdate.completed_at =
           event.data?.failed_at || new Date().toISOString();
       }
     }
 
-    if (Object.keys(stateUpdates).length > 0 && workflowData) {
-      workflowUpdate.state = {
-        ...workflowData.state,
+    if (Object.keys(stateUpdates).length > 0 && flowData) {
+      flowUpdate.state = {
+        ...flowData.state,
         ...stateUpdates,
       };
     }
 
-    if (Object.keys(workflowUpdate).length > 0) {
-      updateWorkflow(workflowUpdate);
+    if (Object.keys(flowUpdate).length > 0) {
+      updateFlow(flowUpdate);
     }
 
     lastProcessedEventIndex.current = events.length - 1;
@@ -157,14 +157,14 @@ export const useWorkflowWebSocket = () => {
       );
     }
 
-    if (needsExecutionRefresh && selectedWorkflow) {
-      refreshExecutions(selectedWorkflow);
+    if (needsExecutionRefresh && selectedFlow) {
+      refreshExecutions(selectedFlow);
     }
   }, [
     events,
-    selectedWorkflow,
-    workflowData,
-    updateWorkflow,
+    selectedFlow,
+    flowData,
+    updateFlow,
     updateStepHealth,
     addStep,
     removeStep,

@@ -102,7 +102,7 @@ func (e *Engine) transitionStepExecution(
 	ctx context.Context, flowID, stepID timebox.ID, toStatus api.StepStatus,
 	action string, eventType timebox.EventType, eventData any,
 ) error {
-	cmd := func(st *api.WorkflowState, ag *WorkflowAggregator) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		exec, ok := st.Executions[stepID]
 		if !ok {
 			return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
@@ -116,14 +116,14 @@ func (e *Engine) transitionStepExecution(
 		return util.Raise(ag, eventType, eventData)
 	}
 
-	_, err := e.workflowExec.Exec(ctx, workflowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 	return err
 }
 
 // Step state checking methods
 
 func (e *Engine) isStepComplete(
-	stepID timebox.ID, flow *api.WorkflowState,
+	stepID timebox.ID, flow *api.FlowState,
 ) bool {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
@@ -133,7 +133,7 @@ func (e *Engine) isStepComplete(
 }
 
 func (e *Engine) canStepComplete(
-	stepID timebox.ID, flow *api.WorkflowState,
+	stepID timebox.ID, flow *api.FlowState,
 ) bool {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
@@ -166,7 +166,7 @@ func (e *Engine) canStepComplete(
 // StepProvidesInput checks if a step provides a specific named attribute
 // as output and can complete successfully
 func (e *Engine) StepProvidesInput(
-	step *api.Step, name api.Name, flow *api.WorkflowState,
+	step *api.Step, name api.Name, flow *api.FlowState,
 ) bool {
 	for attrName, attr := range step.Attributes {
 		if attrName == name && attr.IsOutput() {

@@ -26,7 +26,7 @@ type testServerEnv struct {
 
 func (env *testServerEnv) waitForWorkItem(flowID, stepID timebox.ID) {
 	for i := 0; i < 50; i++ {
-		flow, err := env.Engine.GetWorkflowState(context.Background(), flowID)
+		flow, err := env.Engine.GetFlowState(context.Background(), flowID)
 		if err == nil {
 			exec := flow.Executions[stepID]
 			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {
@@ -162,14 +162,14 @@ func TestStart(t *testing.T) {
 	err := env.Engine.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
 
-	reqBody := api.CreateWorkflowRequest{
-		ID:    "test-workflow",
+	reqBody := api.CreateFlowRequest{
+		ID:    "test-flow",
 		Goals: []timebox.ID{"wf-step"},
 	}
 
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(
-		"POST", "/engine/workflow", bytes.NewReader(body),
+		"POST", "/engine/flow", bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -180,11 +180,11 @@ func TestStart(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
-func TestListWorkflows(t *testing.T) {
+func TestListFlows(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	req := httptest.NewRequest("GET", "/engine/workflow", nil)
+	req := httptest.NewRequest("GET", "/engine/flow", nil)
 	w := httptest.NewRecorder()
 
 	router := env.Server.SetupRoutes()
@@ -219,7 +219,7 @@ func TestSuccess(t *testing.T) {
 	// Configure mock to return immediately for async steps
 	env.MockClient.SetResponse("async-step", api.Args{})
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
 			Goals: []timebox.ID{"async-step"},
@@ -231,11 +231,11 @@ func TestSuccess(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	// Wait for workflow to execute and create work item
+	// Wait for flow to execute and create work item
 	env.waitForWorkItem("webhook-wf", "async-step")
 
 	// Get the actual token from the created work item
-	flow, err := env.Engine.GetWorkflowState(context.Background(), "webhook-wf")
+	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
 	require.NoError(t, err)
 
 	exec := flow.Executions["async-step"]
@@ -268,7 +268,7 @@ func TestSuccess(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestWorkflowNotFound(t *testing.T) {
+func TestFlowNotFound(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -317,7 +317,7 @@ func TestStepNotFound(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -365,7 +365,7 @@ func TestInvalidToken(t *testing.T) {
 	// Configure mock to return immediately for async steps
 	env.MockClient.SetResponse("async-step", api.Args{})
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
 			Goals: []timebox.ID{"async-step"},
@@ -421,7 +421,7 @@ func TestInvalidJSON(t *testing.T) {
 	// Configure mock to return immediately for async steps
 	env.MockClient.SetResponse("async-step", api.Args{})
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
 			Goals: []timebox.ID{"async-step"},
@@ -437,7 +437,7 @@ func TestInvalidJSON(t *testing.T) {
 	env.waitForWorkItem("webhook-wf", "async-step")
 
 	// Get the real token
-	flow, err := env.Engine.GetWorkflowState(context.Background(), "webhook-wf")
+	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
 	require.NoError(t, err)
 
 	exec := flow.Executions["async-step"]
@@ -463,7 +463,7 @@ func TestInvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestGetWorkflow(t *testing.T) {
+func TestGetFlow(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -482,12 +482,12 @@ func TestGetWorkflow(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "test-wf-id", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	req := httptest.NewRequest("GET", "/engine/workflow/test-wf-id", nil)
+	req := httptest.NewRequest("GET", "/engine/flow/test-wf-id", nil)
 	w := httptest.NewRecorder()
 
 	router := env.Server.SetupRoutes()
@@ -495,17 +495,17 @@ func TestGetWorkflow(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var wf api.WorkflowState
+	var wf api.FlowState
 	err = json.Unmarshal(w.Body.Bytes(), &wf)
 	require.NoError(t, err)
 	assert.Equal(t, timebox.ID("test-wf-id"), wf.ID)
 }
 
-func TestGetWorkflowNotFound(t *testing.T) {
+func TestGetFlowNotFound(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	req := httptest.NewRequest("GET", "/engine/workflow/nonexistent", nil)
+	req := httptest.NewRequest("GET", "/engine/flow/nonexistent", nil)
 	w := httptest.NewRecorder()
 
 	router := env.Server.SetupRoutes()
@@ -624,7 +624,7 @@ func TestStartInvalidJSON(t *testing.T) {
 	defer env.Cleanup()
 
 	req := httptest.NewRequest(
-		"POST", "/engine/workflow", bytes.NewReader([]byte("invalid json")),
+		"POST", "/engine/flow", bytes.NewReader([]byte("invalid json")),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -653,18 +653,18 @@ func TestFilterEngineEvents(t *testing.T) {
 	}
 	assert.True(t, filter(engineEvent))
 
-	workflowEvent := &timebox.Event{
-		AggregateID: timebox.AggregateID{timebox.ID("workflow-123")},
-		Type:        api.EventTypeWorkflowStarted,
+	flowEvent := &timebox.Event{
+		AggregateID: timebox.AggregateID{timebox.ID("flow-123")},
+		Type:        api.EventTypeFlowStarted,
 	}
-	assert.False(t, filter(workflowEvent))
+	assert.False(t, filter(flowEvent))
 }
 
 func TestFilterEventTypes(t *testing.T) {
 	sub := &api.ClientSubscription{
 		EventTypes: []*timebox.EventType{
 			eventTypePtr(api.EventTypeStepRegistered),
-			eventTypePtr(api.EventTypeWorkflowStarted),
+			eventTypePtr(api.EventTypeFlowStarted),
 		},
 	}
 
@@ -673,30 +673,30 @@ func TestFilterEventTypes(t *testing.T) {
 	event1 := &timebox.Event{Type: api.EventTypeStepRegistered}
 	assert.True(t, filter(event1))
 
-	event2 := &timebox.Event{Type: api.EventTypeWorkflowStarted}
+	event2 := &timebox.Event{Type: api.EventTypeFlowStarted}
 	assert.True(t, filter(event2))
 
 	event3 := &timebox.Event{Type: api.EventTypeStepCompleted}
 	assert.False(t, filter(event3))
 }
 
-func TestFilterWorkflowID(t *testing.T) {
+func TestFilterFlowID(t *testing.T) {
 	sub := &api.ClientSubscription{
-		FlowID: "test-workflow",
+		FlowID: "test-flow",
 	}
 
 	filter := server.BuildFilter(sub)
 
 	event1 := &timebox.Event{
 		AggregateID: timebox.AggregateID{
-			timebox.ID("workflow"), timebox.ID("test-workflow"),
+			timebox.ID("flow"), timebox.ID("test-flow"),
 		},
 	}
 	assert.True(t, filter(event1))
 
 	event2 := &timebox.Event{
 		AggregateID: timebox.AggregateID{
-			timebox.ID("workflow"), timebox.ID("other-workflow"),
+			timebox.ID("flow"), timebox.ID("other-flow"),
 		},
 	}
 	assert.False(t, filter(event2))
@@ -726,21 +726,21 @@ func TestFilterCombined(t *testing.T) {
 
 	engineEvent := &timebox.Event{
 		AggregateID: events.EngineID,
-		Type:        api.EventTypeWorkflowStarted,
+		Type:        api.EventTypeFlowStarted,
 	}
 	assert.True(t, filter(engineEvent))
 
-	workflowEvent := &timebox.Event{
+	flowEvent := &timebox.Event{
 		AggregateID: timebox.AggregateID{
-			timebox.ID("workflow"), timebox.ID("workflow-123"),
+			timebox.ID("flow"), timebox.ID("flow-123"),
 		},
 		Type: api.EventTypeStepRegistered,
 	}
-	assert.True(t, filter(workflowEvent))
+	assert.True(t, filter(flowEvent))
 
 	unmatchedEvent := &timebox.Event{
 		AggregateID: timebox.AggregateID{
-			timebox.ID("workflow"), timebox.ID("workflow-123"),
+			timebox.ID("flow"), timebox.ID("flow-123"),
 		},
 		Type: api.EventTypeStepCompleted,
 	}
@@ -848,7 +848,7 @@ func TestStartEmptyID(t *testing.T) {
 
 	body, _ := json.Marshal(reqData)
 	req := httptest.NewRequest(
-		"POST", "/engine/workflow", bytes.NewReader(body),
+		"POST", "/engine/flow", bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -857,7 +857,7 @@ func TestStartEmptyID(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusBadRequest, w.Code)
-	assert.Contains(t, w.Body.String(), "Workflow ID is required")
+	assert.Contains(t, w.Body.String(), "Flow ID is required")
 }
 
 func TestStartNoGoals(t *testing.T) {
@@ -870,7 +870,7 @@ func TestStartNoGoals(t *testing.T) {
 
 	body, _ := json.Marshal(reqData)
 	req := httptest.NewRequest(
-		"POST", "/engine/workflow", bytes.NewReader(body),
+		"POST", "/engine/flow", bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -882,11 +882,11 @@ func TestStartNoGoals(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "goal step")
 }
 
-func TestListWorkflowsEmpty(t *testing.T) {
+func TestListFlowsEmpty(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	req := httptest.NewRequest("GET", "/engine/workflow", nil)
+	req := httptest.NewRequest("GET", "/engine/flow", nil)
 	w := httptest.NewRecorder()
 
 	router := env.Server.SetupRoutes()
@@ -894,7 +894,7 @@ func TestListWorkflowsEmpty(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response api.WorkflowsListResponse
+	var response api.FlowsListResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Equal(t, 0, response.Count)
@@ -1179,23 +1179,23 @@ func TestStartDuplicate(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
-		"duplicate-workflow",
+		"duplicate-flow",
 		plan,
 		api.Args{},
 		api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	reqBody := api.CreateWorkflowRequest{
-		ID:    "duplicate-workflow",
+	reqBody := api.CreateFlowRequest{
+		ID:    "duplicate-flow",
 		Goals: []timebox.ID{"dup-wf-step"},
 	}
 
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(
-		"POST", "/engine/workflow", bytes.NewReader(body),
+		"POST", "/engine/flow", bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -1204,21 +1204,21 @@ func TestStartDuplicate(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusConflict, w.Code)
-	assert.Contains(t, w.Body.String(), "duplicate-workflow")
+	assert.Contains(t, w.Body.String(), "duplicate-flow")
 }
 
 func TestStartStepNotFound(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
-	reqBody := api.CreateWorkflowRequest{
+	reqBody := api.CreateFlowRequest{
 		ID:    "wf-no-step",
 		Goals: []timebox.ID{"nonexistent-step"},
 	}
 
 	body, _ := json.Marshal(reqBody)
 	req := httptest.NewRequest(
-		"POST", "/engine/workflow", bytes.NewReader(body),
+		"POST", "/engine/flow", bytes.NewReader(body),
 	)
 	req.Header.Set("Content-Type", "application/json")
 	w := httptest.NewRecorder()
@@ -1248,7 +1248,7 @@ func TestCORSOptions(t *testing.T) {
 	)
 }
 
-func TestWorkflowIDSanitization(t *testing.T) {
+func TestFlowIDSanitization(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -1270,13 +1270,13 @@ func TestWorkflowIDSanitization(t *testing.T) {
 		},
 		{
 			name:           "spaces_converted_to_dashes",
-			flowID:         "my workflow test",
+			flowID:         "my flow test",
 			expectedStatus: http.StatusCreated,
 			shouldSucceed:  true,
 		},
 		{
 			name:           "special_chars_removed",
-			flowID:         "workflow@#$%123",
+			flowID:         "flow@#$%123",
 			expectedStatus: http.StatusCreated,
 			shouldSucceed:  true,
 		},
@@ -1290,14 +1290,14 @@ func TestWorkflowIDSanitization(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			reqBody := api.CreateWorkflowRequest{
+			reqBody := api.CreateFlowRequest{
 				ID:    timebox.ID(tt.flowID),
 				Goals: []timebox.ID{"test-step"},
 			}
 
 			body, _ := json.Marshal(reqBody)
 			req := httptest.NewRequest(
-				"POST", "/engine/workflow", bytes.NewReader(body),
+				"POST", "/engine/flow", bytes.NewReader(body),
 			)
 			req.Header.Set("Content-Type", "application/json")
 			w := httptest.NewRecorder()

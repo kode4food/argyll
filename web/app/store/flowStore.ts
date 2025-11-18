@@ -1,13 +1,13 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { api, WorkflowContext, ExecutionResult, Step } from "../api";
+import { api, FlowContext, ExecutionResult, Step } from "../api";
 
 interface StepHealthInfo {
   status: string;
   error?: string;
 }
 
-const compareWorkflows = (a: WorkflowContext, b: WorkflowContext): number => {
+const compareFlows = (a: FlowContext, b: FlowContext): number => {
   const aIsActive = a.status === "active";
   const bIsActive = b.status === "active";
 
@@ -23,51 +23,51 @@ const compareWorkflows = (a: WorkflowContext, b: WorkflowContext): number => {
   }
 };
 
-interface WorkflowState {
+interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
-  workflows: WorkflowContext[];
-  selectedWorkflow: string | null;
-  workflowData: WorkflowContext | null;
+  flows: FlowContext[];
+  selectedFlow: string | null;
+  flowData: FlowContext | null;
   executions: ExecutionResult[];
   resolvedAttributes: string[];
   loading: boolean;
   error: string | null;
-  workflowNotFound: boolean;
-  isWorkflowMode: boolean;
+  flowNotFound: boolean;
+  isFlowMode: boolean;
   nextSequence: number;
   loadSteps: () => Promise<void>;
-  loadWorkflows: () => Promise<void>;
+  loadFlows: () => Promise<void>;
   addStep: (step: Step) => void;
   removeStep: (stepId: string) => void;
-  addWorkflow: (workflow: WorkflowContext) => void;
-  removeWorkflow: (flowId: string) => void;
-  selectWorkflow: (flowId: string | null) => void;
-  loadWorkflowData: (flowId: string) => Promise<void>;
+  addFlow: (flow: FlowContext) => void;
+  removeFlow: (flowId: string) => void;
+  selectFlow: (flowId: string | null) => void;
+  loadFlowData: (flowId: string) => Promise<void>;
   refreshExecutions: (flowId: string) => Promise<void>;
-  updateWorkflowFromWebSocket: (update: Partial<WorkflowContext>) => void;
-  updateWorkflowStatus: (
+  updateFlowFromWebSocket: (update: Partial<FlowContext>) => void;
+  updateFlowStatus: (
     flowId: string,
-    status: WorkflowContext["status"],
+    status: FlowContext["status"],
     completed_at?: string
   ) => void;
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
 }
 
-export const useWorkflowStore = create<WorkflowState>()(
+export const useFlowStore = create<FlowState>()(
   devtools(
     (set, get) => ({
       steps: [],
       stepHealth: {},
-      workflows: [],
-      selectedWorkflow: null,
-      workflowData: null,
+      flows: [],
+      selectedFlow: null,
+      flowData: null,
       executions: [],
       resolvedAttributes: [],
       loading: false,
       error: null,
-      workflowNotFound: false,
-      isWorkflowMode: false,
+      flowNotFound: false,
+      isFlowMode: false,
       nextSequence: 0,
 
       loadSteps: async () => {
@@ -98,51 +98,51 @@ export const useWorkflowStore = create<WorkflowState>()(
         }
       },
 
-      loadWorkflows: async () => {
+      loadFlows: async () => {
         try {
-          const workflows = await api.listWorkflows();
+          const flows = await api.listFlows();
           set({
-            workflows: (workflows || []).sort(compareWorkflows),
+            flows: (flows || []).sort(compareFlows),
           });
         } catch (error) {
-          console.error("Failed to load workflows:", error);
+          console.error("Failed to load flows:", error);
           set({
             error:
               error instanceof Error
                 ? error.message
-                : "Failed to load workflows",
+                : "Failed to load flows",
           });
         }
       },
 
-      selectWorkflow: (flowId: string | null) => {
+      selectFlow: (flowId: string | null) => {
         set({
-          selectedWorkflow: flowId,
-          workflowNotFound: false,
+          selectedFlow: flowId,
+          flowNotFound: false,
           error: null,
-          workflowData: null,
+          flowData: null,
           executions: [],
           resolvedAttributes: [],
-          isWorkflowMode: !!flowId,
+          isFlowMode: !!flowId,
           nextSequence: 0,
         });
 
         if (flowId) {
-          get().loadWorkflowData(flowId);
+          get().loadFlowData(flowId);
         }
       },
 
-      loadWorkflowData: async (flowId: string) => {
-        set({ loading: true, error: null, workflowNotFound: false });
+      loadFlowData: async (flowId: string) => {
+        set({ loading: true, error: null, flowNotFound: false });
 
         try {
-          const { workflow, executions } =
-            await api.getWorkflowWithEvents(flowId);
+          const { flow, executions } =
+            await api.getFlowWithEvents(flowId);
 
           const resolved = new Set<string>();
 
-          if (workflow?.state) {
-            Object.keys(workflow.state).forEach((attr) => {
+          if (flow?.state) {
+            Object.keys(flow.state).forEach((attr) => {
               resolved.add(attr);
             });
           }
@@ -156,18 +156,18 @@ export const useWorkflowStore = create<WorkflowState>()(
           });
 
           set({
-            workflowData: workflow,
+            flowData: flow,
             executions: executions || [],
             resolvedAttributes: Array.from(resolved),
             loading: false,
           });
         } catch (error) {
-          console.error("Failed to load workflow data:", error);
+          console.error("Failed to load flow data:", error);
           set({
-            workflowData: null,
+            flowData: null,
             executions: [],
             resolvedAttributes: [],
-            workflowNotFound: true,
+            flowNotFound: true,
             loading: false,
           });
         }
@@ -206,22 +206,22 @@ export const useWorkflowStore = create<WorkflowState>()(
         });
       },
 
-      addWorkflow: (workflow: WorkflowContext) => {
-        const { workflows } = get();
+      addFlow: (flow: FlowContext) => {
+        const { flows } = get();
         set({
-          workflows: [...workflows, workflow].sort(compareWorkflows),
+          flows: [...flows, flow].sort(compareFlows),
         });
       },
 
-      removeWorkflow: (flowId: string) => {
-        const { workflows } = get();
-        set({ workflows: workflows.filter((w) => w.id !== flowId) });
+      removeFlow: (flowId: string) => {
+        const { flows } = get();
+        set({ flows: flows.filter((w) => w.id !== flowId) });
       },
 
-      updateWorkflowFromWebSocket: (update: Partial<WorkflowContext>) => {
-        const { workflowData, workflows, resolvedAttributes } = get();
-        if (workflowData) {
-          const updatedWorkflow = { ...workflowData, ...update };
+      updateFlowFromWebSocket: (update: Partial<FlowContext>) => {
+        const { flowData, flows, resolvedAttributes } = get();
+        if (flowData) {
+          const updatedFlow = { ...flowData, ...update };
 
           let newResolvedAttrs = resolvedAttributes;
           if (update.state) {
@@ -236,50 +236,50 @@ export const useWorkflowStore = create<WorkflowState>()(
             }
           }
 
-          const workflowIndex = workflows.findIndex(
-            (w) => w.id === updatedWorkflow.id
+          const flowIndex = flows.findIndex(
+            (w) => w.id === updatedFlow.id
           );
-          const updatedWorkflows =
-            workflowIndex >= 0
-              ? workflows.map((w, i) =>
-                  i === workflowIndex ? updatedWorkflow : w
+          const updatedFlows =
+            flowIndex >= 0
+              ? flows.map((w, i) =>
+                  i === flowIndex ? updatedFlow : w
                 )
-              : workflows;
+              : flows;
 
           set({
-            workflowData: updatedWorkflow,
-            workflows: updatedWorkflows,
+            flowData: updatedFlow,
+            flows: updatedFlows,
             resolvedAttributes: newResolvedAttrs,
           });
         }
       },
 
-      updateWorkflowStatus: (
+      updateFlowStatus: (
         flowId: string,
-        status: WorkflowContext["status"],
+        status: FlowContext["status"],
         completed_at?: string
       ) => {
-        const { workflows } = get();
-        const workflowIndex = workflows.findIndex((w) => w.id === flowId);
+        const { flows } = get();
+        const flowIndex = flows.findIndex((w) => w.id === flowId);
 
-        if (workflowIndex < 0) {
+        if (flowIndex < 0) {
           return;
         }
 
-        const existingWorkflow = workflows[workflowIndex];
+        const existingFlow = flows[flowIndex];
 
-        if (existingWorkflow.status === status) {
+        if (existingFlow.status === status) {
           return;
         }
 
-        const updatedWorkflows = workflows.map((w, i) =>
-          i === workflowIndex
+        const updatedFlows = flows.map((w, i) =>
+          i === flowIndex
             ? { ...w, status, ...(completed_at && { completed_at }) }
             : w
         );
 
         set({
-          workflows: updatedWorkflows.sort(compareWorkflows),
+          flows: updatedFlows.sort(compareFlows),
         });
       },
 
@@ -296,56 +296,56 @@ export const useWorkflowStore = create<WorkflowState>()(
         });
       },
     }),
-    { name: "WorkflowStore" }
+    { name: "FlowStore" }
   )
 );
 
 // State selectors
-export const useSteps = () => useWorkflowStore((state) => state.steps);
-export const useWorkflows = () => useWorkflowStore((state) => state.workflows);
-export const useSelectedWorkflow = () =>
-  useWorkflowStore((state) => state.selectedWorkflow);
-export const useWorkflowData = () =>
-  useWorkflowStore((state) => state.workflowData);
+export const useSteps = () => useFlowStore((state) => state.steps);
+export const useFlows = () => useFlowStore((state) => state.flows);
+export const useSelectedFlow = () =>
+  useFlowStore((state) => state.selectedFlow);
+export const useFlowData = () =>
+  useFlowStore((state) => state.flowData);
 export const useExecutions = () =>
-  useWorkflowStore((state) => state.executions);
+  useFlowStore((state) => state.executions);
 export const useResolvedAttributes = () =>
-  useWorkflowStore((state) => state.resolvedAttributes);
-export const useWorkflowLoading = () =>
-  useWorkflowStore((state) => state.loading);
-export const useWorkflowError = () => useWorkflowStore((state) => state.error);
-export const useIsWorkflowMode = () =>
-  useWorkflowStore((state) => state.isWorkflowMode);
+  useFlowStore((state) => state.resolvedAttributes);
+export const useFlowLoading = () =>
+  useFlowStore((state) => state.loading);
+export const useFlowError = () => useFlowStore((state) => state.error);
+export const useIsFlowMode = () =>
+  useFlowStore((state) => state.isFlowMode);
 
 // Action selectors
 type ActionKeys =
   | "loadSteps"
-  | "loadWorkflows"
+  | "loadFlows"
   | "addStep"
   | "removeStep"
-  | "addWorkflow"
-  | "removeWorkflow"
-  | "selectWorkflow"
+  | "addFlow"
+  | "removeFlow"
+  | "selectFlow"
   | "refreshExecutions"
-  | "updateWorkflowFromWebSocket"
-  | "updateWorkflowStatus"
+  | "updateFlowFromWebSocket"
+  | "updateFlowStatus"
   | "updateStepHealth";
 
 const createActionHook =
   <K extends ActionKeys>(key: K) =>
   () =>
-    useWorkflowStore((state) => state[key]);
+    useFlowStore((state) => state[key]);
 
 export const useLoadSteps = createActionHook("loadSteps");
-export const useLoadWorkflows = createActionHook("loadWorkflows");
+export const useLoadFlows = createActionHook("loadFlows");
 export const useAddStep = createActionHook("addStep");
 export const useRemoveStep = createActionHook("removeStep");
-export const useAddWorkflow = createActionHook("addWorkflow");
-export const useRemoveWorkflow = createActionHook("removeWorkflow");
-export const useSelectWorkflow = createActionHook("selectWorkflow");
+export const useAddFlow = createActionHook("addFlow");
+export const useRemoveFlow = createActionHook("removeFlow");
+export const useSelectFlow = createActionHook("selectFlow");
 export const useRefreshExecutions = createActionHook("refreshExecutions");
-export const useUpdateWorkflowFromWebSocket = createActionHook(
-  "updateWorkflowFromWebSocket"
+export const useUpdateFlowFromWebSocket = createActionHook(
+  "updateFlowFromWebSocket"
 );
-export const useUpdateWorkflowStatus = createActionHook("updateWorkflowStatus");
+export const useUpdateFlowStatus = createActionHook("updateFlowStatus");
 export const useUpdateStepHealth = createActionHook("updateStepHealth");

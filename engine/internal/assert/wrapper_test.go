@@ -231,46 +231,46 @@ func TestStepInvalid(t *testing.T) {
 	}
 }
 
-func TestWorkflowStatus(t *testing.T) {
+func TestFlowStatus(t *testing.T) {
 	tests := []struct {
 		name           string
-		workflowStatus api.WorkflowStatus
-		expectedStatus api.WorkflowStatus
+		flowStatus     api.FlowStatus
+		expectedStatus api.FlowStatus
 		shouldPass     bool
 	}{
 		{
 			name:           "active matches active",
-			workflowStatus: api.WorkflowActive,
-			expectedStatus: api.WorkflowActive,
+			flowStatus:     api.FlowActive,
+			expectedStatus: api.FlowActive,
 			shouldPass:     true,
 		},
 		{
 			name:           "completed matches completed",
-			workflowStatus: api.WorkflowCompleted,
-			expectedStatus: api.WorkflowCompleted,
+			flowStatus:     api.FlowCompleted,
+			expectedStatus: api.FlowCompleted,
 			shouldPass:     true,
 		},
 		{
 			name:           "failed matches failed",
-			workflowStatus: api.WorkflowFailed,
-			expectedStatus: api.WorkflowFailed,
+			flowStatus:     api.FlowFailed,
+			expectedStatus: api.FlowFailed,
 			shouldPass:     true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			workflow := &api.WorkflowState{
-				Status: tt.workflowStatus,
+			flow := &api.FlowState{
+				Status: tt.flowStatus,
 			}
 
 			w := New(t)
-			w.WorkflowStatus(workflow, tt.expectedStatus)
+			w.FlowStatus(flow, tt.expectedStatus)
 		})
 	}
 }
 
-func TestWorkflowHasState(t *testing.T) {
+func TestFlowHasState(t *testing.T) {
 	tests := []struct {
 		name       string
 		getter     *mockGetter
@@ -319,12 +319,12 @@ func TestWorkflowHasState(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := New(t)
 			ctx := context.Background()
-			w.WorkflowHasState(ctx, tt.getter, tt.flowID, tt.keys...)
+			w.FlowHasState(ctx, tt.getter, tt.flowID, tt.keys...)
 		})
 	}
 }
 
-func TestWorkflowStateEquals(t *testing.T) {
+func TestFlowStateEquals(t *testing.T) {
 	tests := []struct {
 		name     string
 		getter   *mockGetter
@@ -377,7 +377,7 @@ func TestWorkflowStateEquals(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			w := New(t)
 			ctx := context.Background()
-			w.WorkflowStateEquals(
+			w.FlowStateEquals(
 				ctx, tt.getter, tt.flowID, tt.key, tt.expected,
 			)
 		})
@@ -398,7 +398,7 @@ func TestConfigValid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           9090,
 				StepTimeout:       60000,
-				MaxWorkflows:      500,
+				MaxFlows:          500,
 				MaxStateKeySize:   2048,
 				MaxStateValueSize: 20 * 1024 * 1024,
 			},
@@ -408,7 +408,7 @@ func TestConfigValid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           1,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
@@ -418,7 +418,7 @@ func TestConfigValid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           65535,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
@@ -444,7 +444,7 @@ func TestConfigInvalid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           0,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
@@ -455,7 +455,7 @@ func TestConfigInvalid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           -1,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
@@ -466,7 +466,7 @@ func TestConfigInvalid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           65536,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
@@ -477,7 +477,7 @@ func TestConfigInvalid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           8080,
 				StepTimeout:       0,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
@@ -488,40 +488,40 @@ func TestConfigInvalid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           8080,
 				StepTimeout:       -1,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
 			contains: "timeout",
 		},
 		{
-			name: "invalid max workflows zero",
+			name: "invalid max flows zero",
 			cfg: &config.Config{
 				APIPort:           8080,
 				StepTimeout:       1000,
-				MaxWorkflows:      0,
+				MaxFlows:          0,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
-			contains: "workflows",
+			contains: "flows",
 		},
 		{
-			name: "invalid max workflows negative",
+			name: "invalid max flows negative",
 			cfg: &config.Config{
 				APIPort:           8080,
 				StepTimeout:       1000,
-				MaxWorkflows:      -1,
+				MaxFlows:          -1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 1,
 			},
-			contains: "workflows",
+			contains: "flows",
 		},
 		{
 			name: "invalid max state key size zero",
 			cfg: &config.Config{
 				APIPort:           8080,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   0,
 				MaxStateValueSize: 1,
 			},
@@ -532,7 +532,7 @@ func TestConfigInvalid(t *testing.T) {
 			cfg: &config.Config{
 				APIPort:           8080,
 				StepTimeout:       1000,
-				MaxWorkflows:      1,
+				MaxFlows:          1,
 				MaxStateKeySize:   1,
 				MaxStateValueSize: 0,
 			},

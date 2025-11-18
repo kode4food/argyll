@@ -74,35 +74,33 @@ func (w *Wrapper) StepInvalid(t *api.Step, expectedErrorContains string) {
 	}
 }
 
-// WorkflowStatus asserts the status of a workflow
-func (w *Wrapper) WorkflowStatus(
-	flow *api.WorkflowState, expected api.WorkflowStatus,
-) {
+// FlowStatus asserts the status of a flow
+func (w *Wrapper) FlowStatus(flow *api.FlowState, expected api.FlowStatus) {
 	w.Helper()
 	w.Equal(expected, flow.Status)
 }
 
-// WorkflowHasState asserts that a workflow has specific state keys
-func (w *Wrapper) WorkflowHasState(
+// FlowHasState asserts that a flow has specific state keys
+func (w *Wrapper) FlowHasState(
 	ctx context.Context, get Getter, flowID timebox.ID, keys ...api.Name,
 ) {
 	w.Helper()
 	for _, key := range keys {
 		_, ok, err := get.GetAttribute(ctx, flowID, key)
 		w.NoError(err, "failed to check state key: %s", key)
-		w.True(ok, "workflow should have state key: %s", key)
+		w.True(ok, "flow should have state key: %s", key)
 	}
 }
 
-// WorkflowStateEquals asserts that a state key has the expected value
-func (w *Wrapper) WorkflowStateEquals(
+// FlowStateEquals asserts that a state key has the expected value
+func (w *Wrapper) FlowStateEquals(
 	ctx context.Context, get Getter, flowID timebox.ID, key api.Name,
 	expected any,
 ) {
 	w.Helper()
 	val, ok, err := get.GetAttribute(ctx, flowID, key)
 	w.NoError(err, "failed to get state key: %s", key)
-	w.True(ok, "workflow should have state key: %s", key)
+	w.True(ok, "flow should have state key: %s", key)
 	w.Equal(expected, val)
 }
 

@@ -64,17 +64,17 @@ func TestEngineSetUpdated(t *testing.T) {
 	assert.True(t, original.LastUpdated.Equal(time.Unix(1000, 0)))
 }
 
-func TestWorkflowSetStatus(t *testing.T) {
-	original := &api.WorkflowState{Status: api.WorkflowPending}
+func TestFlowSetStatus(t *testing.T) {
+	original := &api.FlowState{Status: api.FlowPending}
 
-	result := original.SetStatus(api.WorkflowActive)
+	result := original.SetStatus(api.FlowActive)
 
-	assert.Equal(t, api.WorkflowActive, result.Status)
-	assert.Equal(t, api.WorkflowPending, original.Status)
+	assert.Equal(t, api.FlowActive, result.Status)
+	assert.Equal(t, api.FlowPending, original.Status)
 }
 
-func TestWorkflowSetAttribute(t *testing.T) {
-	original := &api.WorkflowState{
+func TestFlowSetAttribute(t *testing.T) {
+	original := &api.FlowState{
 		Attributes: map[api.Name]*api.AttributeValue{
 			"existing": {Value: "value"},
 		},
@@ -92,8 +92,8 @@ func TestWorkflowSetAttribute(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestWorkflowSetExecution(t *testing.T) {
-	original := &api.WorkflowState{
+func TestFlowSetExecution(t *testing.T) {
+	original := &api.FlowState{
 		Executions: map[timebox.ID]*api.ExecutionState{
 			"existing": {Status: api.StepPending},
 		},
@@ -107,8 +107,8 @@ func TestWorkflowSetExecution(t *testing.T) {
 	assert.Len(t, original.Executions, 1)
 }
 
-func TestWorkflowSetCompleted(t *testing.T) {
-	original := &api.WorkflowState{}
+func TestFlowSetCompleted(t *testing.T) {
+	original := &api.FlowState{}
 	completedTime := time.Now()
 
 	result := original.SetCompletedAt(completedTime)
@@ -117,8 +117,8 @@ func TestWorkflowSetCompleted(t *testing.T) {
 	assert.True(t, original.CompletedAt.IsZero())
 }
 
-func TestWorkflowSetError(t *testing.T) {
-	original := &api.WorkflowState{Error: ""}
+func TestFlowSetError(t *testing.T) {
+	original := &api.FlowState{Error: ""}
 
 	result := original.SetError("test error")
 
@@ -126,8 +126,8 @@ func TestWorkflowSetError(t *testing.T) {
 	assert.Empty(t, original.Error)
 }
 
-func TestWorkflowSetUpdated(t *testing.T) {
-	original := &api.WorkflowState{LastUpdated: time.Unix(1000, 0)}
+func TestFlowSetUpdated(t *testing.T) {
+	original := &api.FlowState{LastUpdated: time.Unix(1000, 0)}
 	newTime := time.Unix(2000, 0)
 
 	result := original.SetLastUpdated(newTime)
@@ -227,27 +227,27 @@ func TestHealthSetError(t *testing.T) {
 	assert.Empty(t, original.Error)
 }
 
-func TestWorkflowChaining(t *testing.T) {
-	original := &api.WorkflowState{
-		ID:         "test-workflow",
-		Status:     api.WorkflowPending,
+func TestFlowChaining(t *testing.T) {
+	original := &api.FlowState{
+		ID:         "test-flow",
+		Status:     api.FlowPending,
 		Attributes: map[api.Name]*api.AttributeValue{},
 		Executions: map[timebox.ID]*api.ExecutionState{},
 	}
 
 	result := original.
-		SetStatus(api.WorkflowActive).
+		SetStatus(api.FlowActive).
 		SetAttribute(
 			"attr1", &api.AttributeValue{Value: "value1", Step: "step1"},
 		).
 		SetAttribute("attr2", &api.AttributeValue{Value: 42, Step: "step2"})
 
-	assert.Equal(t, api.WorkflowActive, result.Status)
+	assert.Equal(t, api.FlowActive, result.Status)
 	assert.Equal(t, "value1", result.Attributes["attr1"].Value)
 	assert.Equal(t, timebox.ID("step1"), result.Attributes["attr1"].Step)
 	assert.Equal(t, 42, result.Attributes["attr2"].Value)
 	assert.Equal(t, timebox.ID("step2"), result.Attributes["attr2"].Step)
-	assert.Equal(t, api.WorkflowPending, original.Status)
+	assert.Equal(t, api.FlowPending, original.Status)
 }
 
 func TestExecutionChaining(t *testing.T) {

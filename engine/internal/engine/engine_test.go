@@ -77,7 +77,7 @@ func TestHTTPExecution(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-http", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -103,7 +103,7 @@ func TestScriptExecution(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-script", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -131,7 +131,7 @@ func TestPredicateExecution(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-pred", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -162,7 +162,7 @@ func TestPredicateFalse(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-pred-false", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -191,7 +191,7 @@ func TestLuaScriptExecution(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-lua-script", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -220,7 +220,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 		Required: []api.Name{"x"},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-ale-input", plan,
 		api.Args{"x": float64(21)}, api.Metadata{},
 	)
@@ -250,7 +250,7 @@ func TestLuaPredicate(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-lua-pred", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
@@ -337,7 +337,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 	assert.Contains(t, err.Error(), "does not exist")
 }
 
-func TestGetWorkflowState(t *testing.T) {
+func TestGetFlowState(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -356,22 +356,22 @@ func TestGetWorkflowState(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-state", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	state, err := env.Engine.GetWorkflowState(context.Background(), "wf-state")
+	state, err := env.Engine.GetFlowState(context.Background(), "wf-state")
 	require.NoError(t, err)
 	assert.Equal(t, timebox.ID("wf-state"), state.ID)
 	assert.NotNil(t, state.Status)
 }
 
-func TestGetWorkflowStateNotFound(t *testing.T) {
+func TestGetFlowStateNotFound(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	_, err := env.Engine.GetWorkflowState(context.Background(), "nonexistent")
+	_, err := env.Engine.GetFlowState(context.Background(), "nonexistent")
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "not found")
 }

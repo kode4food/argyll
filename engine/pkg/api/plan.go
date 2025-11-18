@@ -8,7 +8,7 @@ import (
 )
 
 type (
-	// ExecutionPlan represents the compiled execution plan for a workflow
+	// ExecutionPlan represents the compiled execution plan for a flow
 	ExecutionPlan struct {
 		Goals      []timebox.ID             `json:"goals"`
 		Required   []Name                   `json:"required"`

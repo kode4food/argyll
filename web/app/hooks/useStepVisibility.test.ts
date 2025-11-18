@@ -1,6 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { useStepVisibility } from "./useStepVisibility";
-import type { Step, WorkflowContext, ExecutionPlan } from "../api";
+import type { Step, FlowContext, ExecutionPlan } from "../api";
 import { AttributeRole, AttributeType } from "../api";
 
 describe("useStepVisibility", () => {
@@ -21,7 +21,7 @@ describe("useStepVisibility", () => {
     },
   });
 
-  test("returns all steps when no workflow or preview", () => {
+  test("returns all steps when no flow or preview", () => {
     const steps = [
       createStep("step1", ["out1"]),
       createStep("step2", ["out2"]),
@@ -32,12 +32,12 @@ describe("useStepVisibility", () => {
     expect(result.current.previewStepIds).toBeNull();
   });
 
-  test("filters steps by workflow execution plan", () => {
+  test("filters steps by flow execution plan", () => {
     const step1 = createStep("step1", ["out1"]);
     const step2 = createStep("step2", ["out2"]);
     const steps = [step1, step2];
 
-    const workflowData: WorkflowContext = {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       state: {},
@@ -53,7 +53,7 @@ describe("useStepVisibility", () => {
     };
 
     const { result } = renderHook(() =>
-      useStepVisibility(steps, workflowData, null)
+      useStepVisibility(steps, flowData, null)
     );
 
     expect(result.current.visibleSteps).toEqual([step1]);
@@ -83,12 +83,12 @@ describe("useStepVisibility", () => {
     expect(result.current.previewStepIds?.has("step2")).toBe(false);
   });
 
-  test("workflow plan takes precedence over preview plan", () => {
+  test("flow plan takes precedence over preview plan", () => {
     const step1 = createStep("step1", ["out1"]);
     const step2 = createStep("step2", ["out2"]);
     const steps = [step1, step2];
 
-    const workflowData: WorkflowContext = {
+    const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
       state: {},
@@ -113,7 +113,7 @@ describe("useStepVisibility", () => {
     };
 
     const { result } = renderHook(() =>
-      useStepVisibility(steps, workflowData, previewPlan)
+      useStepVisibility(steps, flowData, previewPlan)
     );
 
     expect(result.current.visibleSteps).toEqual([step1]);

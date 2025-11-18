@@ -21,11 +21,11 @@ func FilterEvents(eventTypes ...timebox.EventType) EventFilter {
 	}
 }
 
-// FilterWorkflow creates a filter that matches events for a specific workflow
+// FilterFlow creates a filter that matches events for a specific flow
 // ID
-func FilterWorkflow(flowID timebox.ID) EventFilter {
+func FilterFlow(flowID timebox.ID) EventFilter {
 	return func(ev *timebox.Event) bool {
-		if !IsWorkflowEvent(ev) {
+		if !IsFlowEvent(ev) {
 			return false
 		}
 		return ev.AggregateID[1] == flowID

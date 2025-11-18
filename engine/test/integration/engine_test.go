@@ -15,7 +15,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-func TestStartWorkflowSimple(t *testing.T) {
+func TestStartFlowSimple(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -47,7 +47,7 @@ func TestStartWorkflowSimple(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-1",
 		plan,
@@ -56,13 +56,13 @@ func TestStartWorkflowSimple(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, err := env.Engine.GetWorkflowState(context.Background(), "wf-1")
+	flow, err := env.Engine.GetFlowState(context.Background(), "wf-1")
 	require.NoError(t, err)
-	assert.NotNil(t, workflow)
-	assert.Equal(t, timebox.ID("wf-1"), workflow.ID)
+	assert.NotNil(t, flow)
+	assert.Equal(t, timebox.ID("wf-1"), flow.ID)
 }
 
-func TestWorkflowCompletion(t *testing.T) {
+func TestFlowCompletion(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -95,32 +95,32 @@ func TestWorkflowCompletion(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-completion", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	// Wait for workflow to complete
+	// Wait for flow to complete
 	a := as.New(t)
-	var workflow *api.WorkflowState
+	var flow *api.FlowState
 	a.Eventually(func() bool {
 		var err error
-		workflow, err = env.Engine.GetWorkflowState(
+		flow, err = env.Engine.GetFlowState(
 			context.Background(), "wf-completion",
 		)
 		if err != nil {
 			return false
 		}
-		return workflow.Status == api.WorkflowCompleted
-	}, 500*time.Millisecond, "workflow should complete")
+		return flow.Status == api.FlowCompleted
+	}, 500*time.Millisecond, "flow should complete")
 
-	assert.Equal(t, api.WorkflowCompleted, workflow.Status)
-	exec := workflow.Executions["completion-step"]
+	assert.Equal(t, api.FlowCompleted, flow.Status)
+	exec := flow.Executions["completion-step"]
 	assert.Equal(t, api.StepCompleted, exec.Status)
 	assert.Equal(t, "completed", exec.Outputs["result"])
 }
 
-func TestListWorkflows(t *testing.T) {
+func TestListFlows(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -138,29 +138,29 @@ func TestListWorkflows(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-list-1", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-list-2", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	workflows, err := env.Engine.ListWorkflows(context.Background())
+	flows, err := env.Engine.ListFlows(context.Background())
 	require.NoError(t, err)
-	assert.GreaterOrEqual(t, len(workflows), 2)
+	assert.GreaterOrEqual(t, len(flows), 2)
 
 	ids := util.Set[timebox.ID]{}
-	for _, wf := range workflows {
+	for _, wf := range flows {
 		ids.Add(wf.ID)
 	}
 	assert.True(t, ids.Contains("wf-list-1"))
 	assert.True(t, ids.Contains("wf-list-2"))
 }
 
-func TestGetWorkflowEvents(t *testing.T) {
+func TestGetFlowEvents(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -178,18 +178,18 @@ func TestGetWorkflowEvents(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(), "wf-events", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	evs, err := env.Engine.GetWorkflowEvents(
+	evs, err := env.Engine.GetFlowEvents(
 		context.Background(), "wf-events", 0,
 	)
 	require.NoError(t, err)
 
 	if len(evs) > 0 {
-		assert.Equal(t, api.EventTypeWorkflowStarted, evs[0].Type)
+		assert.Equal(t, api.EventTypeFlowStarted, evs[0].Type)
 	}
 }
 
@@ -240,7 +240,7 @@ func TestScriptStep(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-script",
 		plan,
@@ -250,20 +250,20 @@ func TestScriptStep(t *testing.T) {
 	require.NoError(t, err)
 
 	a := as.New(t)
-	var workflow *api.WorkflowState
+	var flow *api.FlowState
 	a.Eventually(func() bool {
 		var err error
-		workflow, err = env.Engine.GetWorkflowState(
+		flow, err = env.Engine.GetFlowState(
 			context.Background(), "wf-script",
 		)
 		if err != nil {
 			return false
 		}
-		exec, ok := workflow.Executions["script-1"]
+		exec, ok := flow.Executions["script-1"]
 		return ok && exec.Status == api.StepCompleted
 	}, 500*time.Millisecond, "script step should complete")
 
-	exec := workflow.Executions["script-1"]
+	exec := flow.Executions["script-1"]
 	assert.Equal(t, api.StepCompleted, exec.Status)
 	assert.Equal(t, "Hello, World", exec.Outputs["greeting"])
 }

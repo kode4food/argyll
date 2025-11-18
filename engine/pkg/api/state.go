@@ -8,8 +8,8 @@ import (
 )
 
 type (
-	// WorkflowStatus represents the current state of a workflow
-	WorkflowStatus string
+	// FlowStatus represents the current state of a flow
+	FlowStatus string
 
 	// StepStatus represents the current state of a step execution
 	StepStatus string
@@ -23,23 +23,23 @@ type (
 	// Token uniquely identifies a work item within a step
 	Token string
 
-	// EngineState contains the global state of the workflow engine
+	// EngineState contains the global state of the orchestrator
 	EngineState struct {
-		LastUpdated     time.Time                          `json:"last_updated"`
-		Steps           map[timebox.ID]*Step               `json:"steps"`
-		Health          map[timebox.ID]*HealthState        `json:"health"`
-		ActiveWorkflows map[timebox.ID]*ActiveWorkflowInfo `json:"active_workflows"`
+		LastUpdated time.Time                      `json:"last_updated"`
+		Steps       map[timebox.ID]*Step           `json:"steps"`
+		Health      map[timebox.ID]*HealthState    `json:"health"`
+		ActiveFlows map[timebox.ID]*ActiveFlowInfo `json:"active_flows"`
 	}
 
-	// ActiveWorkflowInfo tracks basic metadata for active workflows
-	ActiveWorkflowInfo struct {
+	// ActiveFlowInfo tracks basic metadata for active flows
+	ActiveFlowInfo struct {
 		FlowID     timebox.ID `json:"flow_id"`
 		StartedAt  time.Time  `json:"started_at"`
 		LastActive time.Time  `json:"last_active"`
 	}
 
-	// WorkflowState contains the complete state of a workflow execution
-	WorkflowState struct {
+	// FlowState contains the complete state of a flow execution
+	FlowState struct {
 		CreatedAt   time.Time                      `json:"created_at"`
 		CompletedAt time.Time                      `json:"completed_at,omitempty"`
 		LastUpdated time.Time                      `json:"last_updated"`
@@ -47,7 +47,7 @@ type (
 		Attributes  map[Name]*AttributeValue       `json:"attributes"`
 		Executions  map[timebox.ID]*ExecutionState `json:"executions"`
 		ID          timebox.ID                     `json:"id"`
-		Status      WorkflowStatus                 `json:"status"`
+		Status      FlowStatus                     `json:"status"`
 		Error       string                         `json:"error,omitempty"`
 	}
 
@@ -90,10 +90,10 @@ type (
 )
 
 const (
-	WorkflowPending   WorkflowStatus = "pending"
-	WorkflowActive    WorkflowStatus = "active"
-	WorkflowCompleted WorkflowStatus = "completed"
-	WorkflowFailed    WorkflowStatus = "failed"
+	FlowPending   FlowStatus = "pending"
+	FlowActive    FlowStatus = "active"
+	FlowCompleted FlowStatus = "completed"
+	FlowFailed    FlowStatus = "failed"
 )
 
 const (
@@ -148,67 +148,65 @@ func (st *EngineState) SetLastUpdated(t time.Time) *EngineState {
 	return &res
 }
 
-// SetActiveWorkflow returns a new EngineState with the workflow as active
-func (st *EngineState) SetActiveWorkflow(
-	id timebox.ID, info *ActiveWorkflowInfo,
+// SetActiveFlow returns a new EngineState with the flow as active
+func (st *EngineState) SetActiveFlow(
+	id timebox.ID, info *ActiveFlowInfo,
 ) *EngineState {
 	res := *st
-	res.ActiveWorkflows = maps.Clone(st.ActiveWorkflows)
-	res.ActiveWorkflows[id] = info
+	res.ActiveFlows = maps.Clone(st.ActiveFlows)
+	res.ActiveFlows[id] = info
 	return &res
 }
 
-// DeleteActiveWorkflow returns a new EngineState with the workflow inactive
-func (st *EngineState) DeleteActiveWorkflow(id timebox.ID) *EngineState {
+// DeleteActiveFlow returns a new EngineState with the flow inactive
+func (st *EngineState) DeleteActiveFlow(id timebox.ID) *EngineState {
 	res := *st
-	res.ActiveWorkflows = maps.Clone(st.ActiveWorkflows)
-	delete(res.ActiveWorkflows, id)
+	res.ActiveFlows = maps.Clone(st.ActiveFlows)
+	delete(res.ActiveFlows, id)
 	return &res
 }
 
-// SetStatus returns a new WorkflowState with the updated status
-func (st *WorkflowState) SetStatus(s WorkflowStatus) *WorkflowState {
+// SetStatus returns a new FlowState with the updated status
+func (st *FlowState) SetStatus(s FlowStatus) *FlowState {
 	res := *st
 	res.Status = s
 	return &res
 }
 
-// SetAttribute returns a new WorkflowState with the specified attribute set
-func (st *WorkflowState) SetAttribute(
-	name Name, attr *AttributeValue,
-) *WorkflowState {
+// SetAttribute returns a new FlowState with the specified attribute set
+func (st *FlowState) SetAttribute(name Name, attr *AttributeValue) *FlowState {
 	res := *st
 	res.Attributes = maps.Clone(st.Attributes)
 	res.Attributes[name] = attr
 	return &res
 }
 
-// SetExecution returns a new WorkflowState with updated execution for a step
-func (st *WorkflowState) SetExecution(
+// SetExecution returns a new FlowState with updated execution for a step
+func (st *FlowState) SetExecution(
 	id timebox.ID, ex *ExecutionState,
-) *WorkflowState {
+) *FlowState {
 	res := *st
 	res.Executions = maps.Clone(st.Executions)
 	res.Executions[id] = ex
 	return &res
 }
 
-// SetCompletedAt returns a new WorkflowState with the completion timestamp set
-func (st *WorkflowState) SetCompletedAt(t time.Time) *WorkflowState {
+// SetCompletedAt returns a new FlowState with the completion timestamp set
+func (st *FlowState) SetCompletedAt(t time.Time) *FlowState {
 	res := *st
 	res.CompletedAt = t
 	return &res
 }
 
-// SetError returns a new WorkflowState with the error message set
-func (st *WorkflowState) SetError(err string) *WorkflowState {
+// SetError returns a new FlowState with the error message set
+func (st *FlowState) SetError(err string) *FlowState {
 	res := *st
 	res.Error = err
 	return &res
 }
 
-// SetLastUpdated returns a new WorkflowState with last updated time set
-func (st *WorkflowState) SetLastUpdated(t time.Time) *WorkflowState {
+// SetLastUpdated returns a new FlowState with last updated time set
+func (st *FlowState) SetLastUpdated(t time.Time) *FlowState {
 	res := *st
 	res.LastUpdated = t
 	return &res
@@ -316,7 +314,7 @@ func (st *WorkState) SetLastError(err string) *WorkState {
 }
 
 // GetAttributeArgs returns all attribute values as Args
-func (st *WorkflowState) GetAttributeArgs() Args {
+func (st *FlowState) GetAttributeArgs() Args {
 	result := make(Args, len(st.Attributes))
 	for key, attr := range st.Attributes {
 		result[key] = attr.Value

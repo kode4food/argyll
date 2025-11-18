@@ -24,7 +24,7 @@ type (
 		replay   ReplayFunc
 	}
 
-	// ReplayFunc is a function that retrieves historical events for a workflow
+	// ReplayFunc is a function that retrieves historical events for a flow
 	ReplayFunc func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error)
 )
 
@@ -183,7 +183,7 @@ func (c *Client) replayAndSend(flowID timebox.ID, fromSeq int64) {
 
 	evs, err := c.replay(flowID, fromSeq)
 	if err != nil {
-		slog.Error("Failed to replay workflow events",
+		slog.Error("Failed to replay flow events",
 			slog.Any("flow_id", flowID),
 			slog.Int64("from_sequence", fromSeq),
 			slog.Any("error", err))
@@ -211,7 +211,7 @@ func (c *Client) writeEvent(ev *timebox.Event, context string) bool {
 }
 
 // BuildFilter creates an event filter based on client subscription preferences
-// for event types, workflow IDs, or engine events
+// for event types, flow IDs, or engine events
 func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
 	var filters []events.EventFilter
 
@@ -228,7 +228,7 @@ func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
 	}
 
 	if len(sub.EventTypes) == 0 && sub.FlowID != "" {
-		filters = append(filters, events.FilterWorkflow(sub.FlowID))
+		filters = append(filters, events.FilterFlow(sub.FlowID))
 	}
 
 	if len(filters) == 0 {

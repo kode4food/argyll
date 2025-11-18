@@ -1,44 +1,44 @@
 import React, { useState } from "react";
 import StepDiagram from "./StepDiagram";
 import EmptyState from "../molecules/EmptyState";
-import { useWorkflowWebSocket } from "../../hooks/useWorkflowWebSocket";
-import WorkflowStats from "../organisms/WorkflowStats";
+import { useFlowWebSocket } from "../../hooks/useFlowWebSocket";
+import FlowStats from "../organisms/FlowStats";
 import { AlertCircle, Plus } from "lucide-react";
 import {
   useSteps,
-  useSelectedWorkflow,
-  useWorkflowData,
+  useSelectedFlow,
+  useFlowData,
   useExecutions,
   useResolvedAttributes,
-  useWorkflowLoading,
-  useIsWorkflowMode,
+  useFlowLoading,
+  useIsFlowMode,
   useLoadSteps,
-} from "../../store/workflowStore";
+} from "../../store/flowStore";
 import ErrorBoundary from "../organisms/ErrorBoundary";
 import StepEditor from "../organisms/StepEditor";
 import { isValidTimestamp } from "../../utils/dates";
 
-interface WorkflowDiagramProps {
+interface FlowDiagramProps {
   selectedStep?: string | null;
   onSelectStep?: (stepId: string | null) => void;
 }
 
-const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
+const FlowDiagram: React.FC<FlowDiagramProps> = ({
   selectedStep: externalSelectedStep,
   onSelectStep,
 }) => {
-  useWorkflowWebSocket();
+  useFlowWebSocket();
 
   const steps = useSteps();
-  const selectedWorkflow = useSelectedWorkflow();
-  const workflowData = useWorkflowData();
+  const selectedFlow = useSelectedFlow();
+  const flowData = useFlowData();
   const executions = useExecutions();
   const resolved = useResolvedAttributes();
-  const loading = useWorkflowLoading();
-  const isWorkflowMode = useIsWorkflowMode();
+  const loading = useFlowLoading();
+  const isFlowMode = useIsFlowMode();
   const loadSteps = useLoadSteps();
 
-  const workflowNotFound = false;
+  const flowNotFound = false;
   const [showCreateStepEditor, setShowCreateStepEditor] = useState(false);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -59,15 +59,15 @@ const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
     await loadSteps();
   };
 
-  if (selectedWorkflow && workflowNotFound && !loading) {
+  if (selectedFlow && flowNotFound && !loading) {
     return (
       <div className="flex h-full items-center justify-center bg-white">
         <EmptyState
           icon={
             <AlertCircle className="text-collector-text mx-auto mb-4 h-16 w-16" />
           }
-          title="Workflow Not Found"
-          description={`The workflow "${selectedWorkflow}" could not be found.`}
+          title="Flow Not Found"
+          description={`The flow "${selectedFlow}" could not be found.`}
         />
       </div>
     );
@@ -78,17 +78,17 @@ const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
       <div className="flex h-full items-center justify-center bg-white">
         <EmptyState
           title="No Steps Registered"
-          description="Register workflow steps with the Spuds engine to see the workflow diagram."
+          description="Register flow steps with the Spuds engine to see the flow diagram."
         />
       </div>
     );
   }
 
-  const showInfoBar = !isWorkflowMode;
+  const showInfoBar = !isFlowMode;
 
   return (
     <div
-      className={`flex h-full flex-col ${isWorkflowMode ? "bg-neutral-label" : "bg-white"}`}
+      className={`flex h-full flex-col ${isFlowMode ? "bg-neutral-label" : "bg-white"}`}
     >
       {showInfoBar ? (
         <div className="overview-header">
@@ -108,37 +108,37 @@ const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
           </div>
         </div>
       ) : (
-        workflowData && (
-          <div className="workflow-header">
-            <div className="workflow-header__content">
-              <div className="workflow-header__left">
-                <h2 className="workflow-header__title">{workflowData.id}</h2>
+        flowData && (
+          <div className="flow-header">
+            <div className="flow-header__content">
+              <div className="flow-header__left">
+                <h2 className="flow-header__title">{flowData.id}</h2>
                 <span
-                  className={`status-bubble workflow-status-badge ${workflowData.status}`}
+                  className={`status-bubble flow-status-badge ${flowData.status}`}
                 >
-                  {workflowData.status}
+                  {flowData.status}
                 </span>
-                {workflowData.plan?.steps && steps && (
-                  <WorkflowStats
+                {flowData.plan?.steps && steps && (
+                  <FlowStats
                     steps={steps}
-                    executionSequence={Object.keys(workflowData.plan.steps)}
+                    executionSequence={Object.keys(flowData.plan.steps)}
                     resolvedAttributes={resolved}
                   />
                 )}
               </div>
 
-              <div className="workflow-header__right">
-                {isValidTimestamp(workflowData.started_at) && (
+              <div className="flow-header__right">
+                {isValidTimestamp(flowData.started_at) && (
                   <span>
                     Started:{" "}
-                    {new Date(workflowData.started_at).toLocaleString()}
+                    {new Date(flowData.started_at).toLocaleString()}
                   </span>
                 )}
-                {workflowData.completed_at &&
-                  isValidTimestamp(workflowData.completed_at) && (
+                {flowData.completed_at &&
+                  isValidTimestamp(flowData.completed_at) && (
                     <span>
                       {" · "}Ended:{" "}
-                      {new Date(workflowData.completed_at).toLocaleString()}
+                      {new Date(flowData.completed_at).toLocaleString()}
                     </span>
                   )}
               </div>
@@ -158,9 +158,9 @@ const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
                 steps={steps || []}
                 selectedStep={selectedStep}
                 onSelectStep={setSelectedStep}
-                workflowData={workflowData}
-                executions={isWorkflowMode ? executions || [] : []}
-                resolvedAttributes={isWorkflowMode ? resolved : []}
+                flowData={flowData}
+                executions={isFlowMode ? executions || [] : []}
+                resolvedAttributes={isFlowMode ? resolved : []}
               />
             </ErrorBoundary>
           </div>
@@ -180,4 +180,4 @@ const WorkflowDiagram: React.FC<WorkflowDiagramProps> = ({
   );
 };
 
-export default WorkflowDiagram;
+export default FlowDiagram;

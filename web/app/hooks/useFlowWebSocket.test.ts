@@ -1,22 +1,22 @@
 import { renderHook } from "@testing-library/react";
-import { useWorkflowWebSocket } from "./useWorkflowWebSocket";
+import { useFlowWebSocket } from "./useFlowWebSocket";
 import { useWebSocketContext } from "./useWebSocketContext";
-import { useWorkflowStore } from "../store/workflowStore";
+import { useFlowStore } from "../store/flowStore";
 
 jest.mock("./useWebSocketContext");
-jest.mock("../store/workflowStore");
+jest.mock("../store/flowStore");
 
 const mockUseWebSocketContext = useWebSocketContext as jest.MockedFunction<
   typeof useWebSocketContext
 >;
-const mockUseWorkflowStore = useWorkflowStore as jest.MockedFunction<
-  typeof useWorkflowStore
+const mockUseFlowStore = useFlowStore as jest.MockedFunction<
+  typeof useFlowStore
 >;
 
-describe("useWorkflowWebSocket", () => {
+describe("useFlowWebSocket", () => {
   let mockSubscribe: jest.Mock;
   let mockRefreshExecutions: jest.Mock;
-  let mockUpdateWorkflow: jest.Mock;
+  let mockUpdateFlow: jest.Mock;
   let mockUpdateStepHealth: jest.Mock;
   let mockAddStep: jest.Mock;
   let mockRemoveStep: jest.Mock;
@@ -24,7 +24,7 @@ describe("useWorkflowWebSocket", () => {
   beforeEach(() => {
     mockSubscribe = jest.fn();
     mockRefreshExecutions = jest.fn();
-    mockUpdateWorkflow = jest.fn();
+    mockUpdateFlow = jest.fn();
     mockUpdateStepHealth = jest.fn();
     mockAddStep = jest.fn();
     mockRemoveStep = jest.fn();
@@ -41,13 +41,13 @@ describe("useWorkflowWebSocket", () => {
       updateConsumerCursor: jest.fn(),
     });
 
-    mockUseWorkflowStore.mockImplementation((selector: any) => {
+    mockUseFlowStore.mockImplementation((selector: any) => {
       const state = {
-        selectedWorkflow: null,
+        selectedFlow: null,
         nextSequence: 0,
-        workflowData: null,
+        flowData: null,
         refreshExecutions: mockRefreshExecutions,
-        updateWorkflowFromWebSocket: mockUpdateWorkflow,
+        updateFlowFromWebSocket: mockUpdateFlow,
         updateStepHealth: mockUpdateStepHealth,
         addStep: mockAddStep,
         removeStep: mockRemoveStep,
@@ -61,19 +61,19 @@ describe("useWorkflowWebSocket", () => {
   });
 
   describe("WebSocket subscription", () => {
-    test("subscribes to engine events when no workflow selected", () => {
-      renderHook(() => useWorkflowWebSocket());
+    test("subscribes to engine events when no flow selected", () => {
+      renderHook(() => useFlowWebSocket());
 
       expect(mockSubscribe).toHaveBeenCalledWith({ engine_events: true });
     });
 
-    test("subscribes to workflow events when workflow selected", () => {
-      mockUseWorkflowStore.mockImplementation((selector: any) => {
+    test("subscribes to flow events when flow selected", () => {
+      mockUseFlowStore.mockImplementation((selector: any) => {
         const state = {
-          selectedWorkflow: "test-workflow",
+          selectedFlow: "test-flow",
           nextSequence: 42,
           refreshExecutions: mockRefreshExecutions,
-          updateWorkflowFromWebSocket: mockUpdateWorkflow,
+          updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
@@ -81,23 +81,23 @@ describe("useWorkflowWebSocket", () => {
         return selector(state);
       });
 
-      renderHook(() => useWorkflowWebSocket());
+      renderHook(() => useFlowWebSocket());
 
       expect(mockSubscribe).toHaveBeenCalledWith({
         engine_events: true,
-        flow_id: "test-workflow",
+        flow_id: "test-flow",
         from_sequence: 42,
       });
     });
 
     test("uses sequence 0 when nextSequence is 0", () => {
-      mockUseWorkflowStore.mockImplementation((selector: any) => {
+      mockUseFlowStore.mockImplementation((selector: any) => {
         const state = {
-          selectedWorkflow: "test-workflow",
+          selectedFlow: "test-flow",
           nextSequence: 0,
-          workflowData: {},
+          flowData: {},
           refreshExecutions: mockRefreshExecutions,
-          updateWorkflowFromWebSocket: mockUpdateWorkflow,
+          updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
@@ -105,19 +105,19 @@ describe("useWorkflowWebSocket", () => {
         return selector(state);
       });
 
-      renderHook(() => useWorkflowWebSocket());
+      renderHook(() => useFlowWebSocket());
 
       expect(mockSubscribe).toHaveBeenCalledWith({
         engine_events: true,
-        flow_id: "test-workflow",
+        flow_id: "test-flow",
         from_sequence: 0,
       });
     });
   });
 
   describe("Engine events", () => {
-    test("processes step_registered event regardless of selected workflow", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+    test("processes step_registered event regardless of selected flow", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       const step = {
         id: "test-step",
@@ -156,7 +156,7 @@ describe("useWorkflowWebSocket", () => {
     });
 
     test("processes step_unregistered event", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
@@ -184,7 +184,7 @@ describe("useWorkflowWebSocket", () => {
     });
 
     test("processes step_health_changed event", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
@@ -220,7 +220,7 @@ describe("useWorkflowWebSocket", () => {
     });
 
     test("processes step_health_changed with error", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
@@ -256,19 +256,19 @@ describe("useWorkflowWebSocket", () => {
     });
   });
 
-  describe("Workflow events", () => {
+  describe("Flow events", () => {
     beforeEach(() => {
-      mockUseWorkflowStore.mockImplementation((selector: any) => {
+      mockUseFlowStore.mockImplementation((selector: any) => {
         const state = {
-          selectedWorkflow: "test-workflow",
+          selectedFlow: "test-flow",
           nextSequence: 0,
-          workflowData: {
-            id: "test-workflow",
+          flowData: {
+            id: "test-flow",
             status: "active",
             state: {},
           },
           refreshExecutions: mockRefreshExecutions,
-          updateWorkflowFromWebSocket: mockUpdateWorkflow,
+          updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
@@ -277,21 +277,21 @@ describe("useWorkflowWebSocket", () => {
       });
     });
 
-    test("processes workflow_started event", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+    test("processes flow_started event", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       const startedAt = new Date().toISOString();
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
-            type: "workflow_started",
+            type: "flow_started",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
               started_at: startedAt,
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -306,28 +306,28 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).toHaveBeenCalledWith({
+      expect(mockUpdateFlow).toHaveBeenCalledWith({
         status: "active",
         started_at: startedAt,
       });
     });
 
     test("processes attribute_set event with step provenance", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
             type: "attribute_set",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
               step_id: "producer-step",
               key: "result",
               value: "test-value",
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -342,7 +342,7 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).toHaveBeenCalledWith({
+      expect(mockUpdateFlow).toHaveBeenCalledWith({
         state: {
           result: { value: "test-value", step: "producer-step" },
         },
@@ -350,19 +350,19 @@ describe("useWorkflowWebSocket", () => {
     });
 
     test("processes attribute_set without overwriting existing state", () => {
-      mockUseWorkflowStore.mockImplementation((selector: any) => {
+      mockUseFlowStore.mockImplementation((selector: any) => {
         const state = {
-          selectedWorkflow: "test-workflow",
+          selectedFlow: "test-flow",
           nextSequence: 0,
-          workflowData: {
-            id: "test-workflow",
+          flowData: {
+            id: "test-flow",
             status: "active",
             state: {
               existing: { value: "existing-value", step: "existing-step" },
             },
           },
           refreshExecutions: mockRefreshExecutions,
-          updateWorkflowFromWebSocket: mockUpdateWorkflow,
+          updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
@@ -370,21 +370,21 @@ describe("useWorkflowWebSocket", () => {
         return selector(state);
       });
 
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
             type: "attribute_set",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
               step_id: "new-step",
               key: "new_attr",
               value: "new-value",
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -399,7 +399,7 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).toHaveBeenCalledWith({
+      expect(mockUpdateFlow).toHaveBeenCalledWith({
         state: {
           existing: { value: "existing-value", step: "existing-step" },
           new_attr: { value: "new-value", step: "new-step" },
@@ -407,21 +407,21 @@ describe("useWorkflowWebSocket", () => {
       });
     });
 
-    test("processes workflow_completed event", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+    test("processes flow_completed event", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       const completedAt = new Date().toISOString();
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
-            type: "workflow_completed",
+            type: "flow_completed",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
               completed_at: completedAt,
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -436,28 +436,28 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).toHaveBeenCalledWith({
+      expect(mockUpdateFlow).toHaveBeenCalledWith({
         status: "completed",
         completed_at: completedAt,
       });
     });
 
-    test("processes workflow_failed event", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+    test("processes flow_failed event", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       const failedAt = new Date().toISOString();
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
-            type: "workflow_failed",
+            type: "flow_failed",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
               error: "Test error",
               failed_at: failedAt,
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -472,7 +472,7 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).toHaveBeenCalledWith({
+      expect(mockUpdateFlow).toHaveBeenCalledWith({
         status: "failed",
         error_state: {
           message: "Test error",
@@ -484,19 +484,19 @@ describe("useWorkflowWebSocket", () => {
     });
 
     test("refreshes executions when step_completed", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
             type: "step_completed",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
               step_id: "test-step",
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -511,7 +511,7 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockRefreshExecutions).toHaveBeenCalledWith("test-workflow");
+      expect(mockRefreshExecutions).toHaveBeenCalledWith("test-flow");
     });
 
     test("refreshes executions for step_started, step_failed, step_skipped", () => {
@@ -520,19 +520,19 @@ describe("useWorkflowWebSocket", () => {
       eventTypes.forEach((eventType, index) => {
         mockRefreshExecutions.mockClear();
 
-        const { rerender } = renderHook(() => useWorkflowWebSocket());
+        const { rerender } = renderHook(() => useFlowWebSocket());
 
         mockUseWebSocketContext.mockReturnValue({
           events: [
             {
               type: eventType,
               data: {
-                flow_id: "test-workflow",
+                flow_id: "test-flow",
                 step_id: "test-step",
               },
               timestamp: Date.now(),
               sequence: index + 1,
-              aggregate_id: ["test-workflow"],
+              aggregate_id: ["test-flow"],
             },
           ],
           subscribe: mockSubscribe,
@@ -547,24 +547,24 @@ describe("useWorkflowWebSocket", () => {
 
         rerender();
 
-        expect(mockRefreshExecutions).toHaveBeenCalledWith("test-workflow");
+        expect(mockRefreshExecutions).toHaveBeenCalledWith("test-flow");
       });
     });
   });
 
   describe("Event filtering", () => {
     beforeEach(() => {
-      mockUseWorkflowStore.mockImplementation((selector: any) => {
+      mockUseFlowStore.mockImplementation((selector: any) => {
         const state = {
-          selectedWorkflow: "test-workflow",
+          selectedFlow: "test-flow",
           nextSequence: 0,
-          workflowData: {
-            id: "test-workflow",
+          flowData: {
+            id: "test-flow",
             status: "active",
             state: {},
           },
           refreshExecutions: mockRefreshExecutions,
-          updateWorkflowFromWebSocket: mockUpdateWorkflow,
+          updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
@@ -573,14 +573,14 @@ describe("useWorkflowWebSocket", () => {
       });
     });
 
-    test("ignores workflow events when no workflow selected", () => {
-      mockUseWorkflowStore.mockImplementation((selector: any) => {
+    test("ignores flow events when no flow selected", () => {
+      mockUseFlowStore.mockImplementation((selector: any) => {
         const state = {
-          selectedWorkflow: null,
+          selectedFlow: null,
           nextSequence: 0,
-          workflowData: null,
+          flowData: null,
           refreshExecutions: mockRefreshExecutions,
-          updateWorkflowFromWebSocket: mockUpdateWorkflow,
+          updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
@@ -588,18 +588,18 @@ describe("useWorkflowWebSocket", () => {
         return selector(state);
       });
 
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
-            type: "workflow_started",
+            type: "flow_started",
             data: {
-              flow_id: "test-workflow",
+              flow_id: "test-flow",
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["test-workflow"],
+            aggregate_id: ["test-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -614,22 +614,22 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).not.toHaveBeenCalled();
+      expect(mockUpdateFlow).not.toHaveBeenCalled();
     });
 
-    test("ignores events for different workflow", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+    test("ignores events for different flow", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
-            type: "workflow_started",
+            type: "flow_started",
             data: {
-              flow_id: "other-workflow",
+              flow_id: "other-flow",
             },
             timestamp: Date.now(),
             sequence: 1,
-            aggregate_id: ["other-workflow"],
+            aggregate_id: ["other-flow"],
           },
         ],
         subscribe: mockSubscribe,
@@ -644,13 +644,13 @@ describe("useWorkflowWebSocket", () => {
 
       rerender();
 
-      expect(mockUpdateWorkflow).not.toHaveBeenCalled();
+      expect(mockUpdateFlow).not.toHaveBeenCalled();
     });
   });
 
   describe("Event processing", () => {
     test("only processes new events", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
@@ -711,7 +711,7 @@ describe("useWorkflowWebSocket", () => {
     });
 
     test("handles empty events array", () => {
-      const { rerender } = renderHook(() => useWorkflowWebSocket());
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({
         events: [],
@@ -728,7 +728,7 @@ describe("useWorkflowWebSocket", () => {
       rerender();
 
       expect(mockAddStep).not.toHaveBeenCalled();
-      expect(mockUpdateWorkflow).not.toHaveBeenCalled();
+      expect(mockUpdateFlow).not.toHaveBeenCalled();
     });
   });
 });

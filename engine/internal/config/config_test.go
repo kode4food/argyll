@@ -59,11 +59,11 @@ func TestConfigValidation(t *testing.T) {
 			errorContains: "step timeout must be positive",
 		},
 		{
-			name: "zero_max_workflows",
+			name: "zero_max_flows",
 			configMod: func(c *config.Config) {
-				c.MaxWorkflows = 0
+				c.MaxFlows = 0
 			},
-			errorContains: "max workflows must be positive",
+			errorContains: "max flows must be positive",
 		},
 		{
 			name: "zero_max_state_key_size",
@@ -98,7 +98,7 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultAPIPort, cfg.APIPort)
 	as.Equal("0.0.0.0", cfg.APIHost)
 	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
-	as.Equal(config.DefaultMaxWorkflows, cfg.MaxWorkflows)
+	as.Equal(config.DefaultMaxFlows, cfg.MaxFlows)
 	as.Equal(config.DefaultMaxStateKeySize, cfg.MaxStateKeySize)
 	as.Equal(config.DefaultMaxStateValueSize, cfg.MaxStateValueSize)
 	as.Equal(config.DefaultShutdownTimeout, cfg.ShutdownTimeout)
@@ -202,8 +202,8 @@ func TestValidateValidEdgeCases(t *testing.T) {
 			modify: func(c *config.Config) { c.StepTimeout = 1 },
 		},
 		{
-			name:   "one_max_workflow",
-			modify: func(c *config.Config) { c.MaxWorkflows = 1 },
+			name:   "one_max_flow",
+			modify: func(c *config.Config) { c.MaxFlows = 1 },
 		},
 		{
 			name:   "one_byte_key_size",
@@ -271,12 +271,12 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "load_workflow_cache_size",
+			name: "load_flow_cache_size",
 			envVars: map[string]string{
-				"WORKFLOW_CACHE_SIZE": "8192",
+				"FLOW_CACHE_SIZE": "8192",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, 8192, c.WorkflowCacheSize)
+				testify.Equal(t, 8192, c.FlowCacheSize)
 			},
 		},
 		{
@@ -300,19 +300,19 @@ func TestConfigLoadFromEnv(t *testing.T) {
 		{
 			name: "invalid_cache_size_ignored",
 			envVars: map[string]string{
-				"WORKFLOW_CACHE_SIZE": "invalid",
+				"FLOW_CACHE_SIZE": "invalid",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultCacheSize, c.WorkflowCacheSize)
+				testify.Equal(t, config.DefaultCacheSize, c.FlowCacheSize)
 			},
 		},
 		{
 			name: "zero_cache_size_ignored",
 			envVars: map[string]string{
-				"WORKFLOW_CACHE_SIZE": "0",
+				"FLOW_CACHE_SIZE": "0",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultCacheSize, c.WorkflowCacheSize)
+				testify.Equal(t, config.DefaultCacheSize, c.FlowCacheSize)
 			},
 		},
 	}

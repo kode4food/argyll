@@ -203,11 +203,11 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	engineStore, err := tb.NewStore(engineConfig)
 	require.NoError(t, err)
 
-	workflowConfig := config.NewDefaultConfig().WorkflowStore
-	workflowConfig.Addr = server.Addr()
-	workflowConfig.Prefix = "test-workflow"
+	flowConfig := config.NewDefaultConfig().FlowStore
+	flowConfig.Addr = server.Addr()
+	flowConfig.Prefix = "test-flow"
 
-	workflowStore, err := tb.NewStore(workflowConfig)
+	flowStore, err := tb.NewStore(flowConfig)
 	require.NoError(t, err)
 
 	mockCli := NewMockClient()
@@ -217,8 +217,8 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		APIHost:            "localhost",
 		WebhookBaseURL:     "http://localhost:8080",
 		StepTimeout:        5 * api.Second,
-		MaxWorkflows:       100,
-		WorkflowCacheSize:  100,
+		MaxFlows:           100,
+		FlowCacheSize:      100,
 		ShutdownTimeout:    2 * time.Second,
 		RetryCheckInterval: 100 * time.Millisecond,
 		WorkConfig: api.WorkConfig{
@@ -229,7 +229,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		},
 	}
 
-	eng := engine.New(engineStore, workflowStore, mockCli, tb.GetHub(), cfg)
+	eng := engine.New(engineStore, flowStore, mockCli, tb.GetHub(), cfg)
 
 	cleanup := func() {
 		_ = eng.Stop()

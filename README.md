@@ -1,10 +1,10 @@
 # Spuds <img src="./web/public/logo512.png" align="right" height="100"/>
 
-### Goal-Oriented Workflow Engine
+### Goal-Driven Orchestrator
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds/engine) [![Build Status](https://github.com/kode4food/spuds/workflows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds/engine) [![Build Status](https://github.com/kode4food/spuds/flows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
 
-Spuds is a workflow engine that uses goal-oriented execution with lazy evaluation. Instead of running entire workflows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed.
+Spuds is an orchestrator that uses goal-driven execution with lazy evaluation. Instead of running entire flows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed.
 
 ![Spuds UI Screenshot](./docs/img/screenshot.png)
 
@@ -20,7 +20,7 @@ go install github.com/kode4food/spuds/cmd/spuds@latest
 
 ## How It Works
 
-Define steps that declare their input/output requirements. Create a workflow by specifying one or more Goal Steps. The engine automatically:
+Define steps that declare their input/output requirements. Create a flow by specifying one or more Goal Steps. The engine automatically:
 
 1. Walks backward from the goals to build an execution plan
 2. Determines which steps are actually needed
@@ -47,10 +47,10 @@ POST    /engine/step              # Register step
 PUT     /engine/step/:stepID      # Update step
 DELETE  /engine/step/:stepID      # Delete step
 
-# Workflows
-GET     /engine/workflow          # List workflows
-POST    /engine/workflow          # Start workflow
-GET     /engine/workflow/:flowID  # Get workflow state
+# Flows
+GET     /engine/flow          # List flows
+POST    /engine/flow          # Start flow
+GET     /engine/flow/:flowID  # Get flow state
 
 # Planning & Health
 POST    /engine/plan              # Preview execution plan

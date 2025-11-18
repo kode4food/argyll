@@ -1,6 +1,6 @@
 # Go Interface
 
-The Go interface provides APIs for building workflows and implementing steps in Spuds.
+The Go interface provides APIs for building flows and implementing steps in Spuds.
 
 ## Quick Start
 
@@ -38,7 +38,7 @@ func main() {
 
 ## Guides
 
-- **[Workflow Builder](workflow-builder.md)** - Create and start workflows
+- **[Flow Builder](flow-builder.md)** - Create and start flows
 - **[Step Builder](step-builder.md)** - Define step specifications
 
 ## Installation

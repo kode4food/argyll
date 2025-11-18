@@ -10,9 +10,9 @@ import (
 )
 
 func TestNewFlowID(t *testing.T) {
-	id := builder.NewFlowID("test-workflow")
+	id := builder.NewFlowID("test-flow")
 
-	assert.True(t, strings.HasPrefix(string(id), "test-workflow-"))
+	assert.True(t, strings.HasPrefix(string(id), "test-flow-"))
 
 	parts := strings.Split(string(id), "-")
 	assert.GreaterOrEqual(t, len(parts), 3)

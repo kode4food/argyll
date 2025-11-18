@@ -20,14 +20,14 @@ import (
 )
 
 type spuds struct {
-	cfg           *config.Config
-	timebox       *timebox.Timebox
-	engineStore   *timebox.Store
-	workflowStore *timebox.Store
-	stepClient    client.Client
-	engine        *engine.Engine
-	health        *server.HealthChecker
-	httpServer    *http.Server
+	cfg         *config.Config
+	timebox     *timebox.Timebox
+	engineStore *timebox.Store
+	flowStore   *timebox.Store
+	stepClient  client.Client
+	engine      *engine.Engine
+	health      *server.HealthChecker
+	httpServer  *http.Server
 }
 
 var logLevels = map[string]slog.Level{
@@ -84,8 +84,8 @@ func (s *spuds) setupLogging() {
 	slog.Info("Configuration loaded",
 		slog.String("engine_redis_addr", s.cfg.EngineStore.Addr),
 		slog.Int("engine_redis_db", s.cfg.EngineStore.DB),
-		slog.String("workflow_redis_addr", s.cfg.WorkflowStore.Addr),
-		slog.Int("workflow_redis_db", s.cfg.WorkflowStore.DB),
+		slog.String("flow_redis_addr", s.cfg.FlowStore.Addr),
+		slog.Int("flow_redis_db", s.cfg.FlowStore.DB),
 		slog.String("api_host", s.cfg.APIHost),
 		slog.Int("api_port", s.cfg.APIPort))
 }
@@ -95,7 +95,7 @@ func (s *spuds) initializeStores() error {
 
 	s.timebox, err = timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
-		CacheSize:  s.cfg.WorkflowCacheSize,
+		CacheSize:  s.cfg.FlowCacheSize,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create timebox: %w", err)
@@ -107,10 +107,10 @@ func (s *spuds) initializeStores() error {
 		return fmt.Errorf("failed to create engine store: %w", err)
 	}
 
-	s.workflowStore, err = s.timebox.NewStore(s.cfg.WorkflowStore)
+	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("failed to create workflow store: %w", err)
+		return fmt.Errorf("failed to create flow store: %w", err)
 	}
 
 	return nil
@@ -122,7 +122,7 @@ func (s *spuds) initializeEngine() {
 	)
 
 	s.engine = engine.New(
-		s.engineStore, s.workflowStore, s.stepClient, s.timebox.GetHub(), s.cfg,
+		s.engineStore, s.flowStore, s.stepClient, s.timebox.GetHub(), s.cfg,
 	)
 	s.engine.Start()
 }

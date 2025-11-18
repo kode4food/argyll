@@ -1,33 +1,33 @@
 "use client";
 
 import React from "react";
-import WorkflowDiagram from "./WorkflowDiagram";
-import WorkflowSelector from "../organisms/WorkflowSelector";
+import FlowDiagram from "./FlowDiagram";
+import FlowSelector from "../organisms/FlowSelector";
 import ErrorBoundary from "../organisms/ErrorBoundary";
 import {
-  useWorkflowError,
+  useFlowError,
   useLoadSteps,
-  useLoadWorkflows,
-} from "../../store/workflowStore";
+  useLoadFlows,
+} from "../../store/flowStore";
 import { UIProvider, useUI } from "../../contexts/UIContext";
 
-function WorkflowPageContent() {
+function FlowPageContent() {
   const { selectedStep, setSelectedStep } = useUI();
 
   return (
     <div className="bg-neutral-bg flex h-screen flex-col">
       <ErrorBoundary
-        title="Workflow Selector Error"
-        description="An error occurred in the workflow selector. Try refreshing the page."
+        title="Flow Selector Error"
+        description="An error occurred in the flow selector. Try refreshing the page."
       >
-        <WorkflowSelector />
+        <FlowSelector />
       </ErrorBoundary>
       <div className="flex-1">
         <ErrorBoundary
           title="Diagram Error"
-          description="An error occurred while rendering the diagram. Try selecting a different workflow."
+          description="An error occurred while rendering the diagram. Try selecting a different flow."
         >
-          <WorkflowDiagram
+          <FlowDiagram
             selectedStep={selectedStep}
             onSelectStep={setSelectedStep}
           />
@@ -37,15 +37,15 @@ function WorkflowPageContent() {
   );
 }
 
-export default function WorkflowPage() {
-  const error = useWorkflowError();
+export default function FlowPage() {
+  const error = useFlowError();
   const loadSteps = useLoadSteps();
-  const loadWorkflows = useLoadWorkflows();
+  const loadFlows = useLoadFlows();
 
   React.useEffect(() => {
     loadSteps();
-    loadWorkflows();
-  }, [loadSteps, loadWorkflows]);
+    loadFlows();
+  }, [loadSteps, loadFlows]);
 
   if (error) {
     return (
@@ -65,7 +65,7 @@ export default function WorkflowPage() {
 
   return (
     <UIProvider>
-      <WorkflowPageContent />
+      <FlowPageContent />
     </UIProvider>
   );
 }

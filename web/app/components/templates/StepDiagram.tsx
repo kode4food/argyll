@@ -15,7 +15,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import {
   Step,
-  WorkflowContext,
+  FlowContext,
   ExecutionResult,
   AttributeRole,
 } from "../../api";
@@ -40,7 +40,7 @@ interface StepDiagramProps {
   steps: Step[];
   selectedStep: string | null;
   onSelectStep: (stepId: string | null) => void;
-  workflowData?: WorkflowContext | null;
+  flowData?: FlowContext | null;
   executions?: ExecutionResult[];
   resolvedAttributes?: string[];
 }
@@ -53,27 +53,27 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   steps = [],
   selectedStep,
   onSelectStep,
-  workflowData,
+  flowData,
   executions = [],
   resolvedAttributes = [],
 }) => {
   const reactFlowInstance = useReactFlow();
-  const viewportKey = workflowData?.id || "overview";
+  const viewportKey = flowData?.id || "overview";
   const initialViewportSet = useRef(false);
   const { disableEdit, diagramContainerRef } = useUI();
   const { previewPlan, handleStepClick, clearPreview } =
-    useExecutionPlanPreview(selectedStep, onSelectStep, workflowData);
+    useExecutionPlanPreview(selectedStep, onSelectStep, flowData);
 
   const { visibleSteps, previewStepIds } = useStepVisibility(
     steps || [],
-    workflowData,
+    flowData,
     previewPlan
   );
 
   const initialNodes = useNodeCalculation(
     visibleSteps,
     selectedStep,
-    workflowData,
+    flowData,
     executions,
     previewPlan,
     previewStepIds,
@@ -88,7 +88,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   // Generate a plan from visible steps for auto-layout in overview mode
   // Only apply auto-layout if there are no saved positions
   const overviewPlan = useMemo(() => {
-    if (workflowData) return null;
+    if (flowData) return null;
 
     const savedPositions = loadNodePositions();
     const hasSavedPositions = visibleSteps.some(
@@ -124,19 +124,19 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
       goals: [],
       required: [],
     };
-  }, [visibleSteps, workflowData]);
+  }, [visibleSteps, flowData]);
 
   const arrangedNodes = useAutoLayout(initialNodes, initialEdges, overviewPlan);
 
   // Save auto-laid-out positions when they're first calculated
   useEffect(() => {
-    if (!workflowData && overviewPlan && arrangedNodes.length > 0) {
+    if (!flowData && overviewPlan && arrangedNodes.length > 0) {
       saveNodePositions(arrangedNodes);
     }
-  }, [arrangedNodes, workflowData, overviewPlan]);
+  }, [arrangedNodes, flowData, overviewPlan]);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(
-    workflowData ? initialNodes : arrangedNodes
+    flowData ? initialNodes : arrangedNodes
   );
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
@@ -160,10 +160,10 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   );
 
   const handlePaneClick = useCallback(() => {
-    if (!workflowData && previewPlan) {
+    if (!flowData && previewPlan) {
       clearPreview();
     }
-  }, [workflowData, previewPlan, clearPreview]);
+  }, [flowData, previewPlan, clearPreview]);
 
   const handleNodeDragStart = useCallback(() => {
     const event = new CustomEvent("hideTooltips");
@@ -308,13 +308,13 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         key: "Escape",
         description: "Deselect step",
         handler: () => {
-          if (selectedStep && !workflowData) {
+          if (selectedStep && !flowData) {
             onSelectStep(null);
           }
         },
       },
     ],
-    !workflowData
+    !flowData
   );
 
   useEffect(() => {
@@ -336,7 +336,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   }, [viewportKey]);
 
   React.useEffect(() => {
-    const nodesToUse = workflowData ? initialNodes : arrangedNodes;
+    const nodesToUse = flowData ? initialNodes : arrangedNodes;
 
     setNodes((currentNodes) => {
       const nodeMap = new Map(currentNodes.map((n) => [n.id, n]));
@@ -353,7 +353,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
       });
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialNodes, workflowData]);
+  }, [initialNodes, flowData]);
 
   React.useEffect(() => {
     setEdges(initialEdges);
@@ -367,8 +367,8 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
           icon={<Server className="text-neutral-text mx-auto mb-4 h-12 w-12" />}
           title="No Steps to Visualize"
           description={
-            workflowData?.plan
-              ? "Select a workflow with an execution plan to view its step diagram."
+            flowData?.plan
+              ? "Select a flow with an execution plan to view its step diagram."
               : "Register steps to see their dependency relationships in diagram form."
           }
           className="py-12"
@@ -383,18 +383,18 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         nodes={nodes}
         edges={edges}
         nodeTypes={nodeTypes}
-        onNodesChange={workflowData ? undefined : handleNodesChange}
+        onNodesChange={flowData ? undefined : handleNodesChange}
         onEdgesChange={onEdgesChange}
         onPaneClick={handlePaneClick}
         onNodeDragStart={handleNodeDragStart}
         nodesConnectable={false}
-        nodesDraggable={!workflowData && !disableEdit}
+        nodesDraggable={!flowData && !disableEdit}
         elementsSelectable={false}
         nodesFocusable={false}
         fitView={shouldFitView}
         fitViewOptions={{ padding: STEP_LAYOUT.FIT_VIEW_PADDING }}
         onViewportChange={handleViewportChange}
-        className={workflowData ? "bg-diagram-workflow" : "bg-neutral-bg"}
+        className={flowData ? "bg-diagram-flow" : "bg-neutral-bg"}
         proOptions={{ hideAttribution: true }}
       >
         <Controls showInteractive={false} className="!bottom-4 !left-4" />

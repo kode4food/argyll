@@ -5,10 +5,10 @@ export const API_CONFIG = {
 } as const;
 
 // Common constants
-export const WORKFLOW_ID_GENERATION = {
+export const FLOW_ID_GENERATION = {
   RANDOM_RANGE: 100000000,
   PADDING_LENGTH: 8,
-  PREFIX: "workflow",
+  PREFIX: "flow",
 } as const;
 
 // WebSocket

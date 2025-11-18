@@ -15,7 +15,7 @@ import (
 )
 
 // AsyncContext provides functionality for managing asynchronous step
-// execution. It holds workflow and step IDs along with a webhook URL for
+// execution. It holds flow and step IDs along with a webhook URL for
 // result delivery
 type AsyncContext struct {
 	client     *Client
@@ -70,7 +70,7 @@ func (ac *AsyncContext) Success(outputs api.Args) error {
 	return ac.sendWebhook(result)
 }
 
-// Complete sends the full step result to the workflow engine via webhook
+// Complete sends the full step result to the orchestrator via webhook
 func (ac *AsyncContext) Complete(result api.StepResult) error {
 	return ac.sendWebhook(result)
 }
@@ -84,7 +84,7 @@ func (ac *AsyncContext) Fail(err error) error {
 	return ac.sendWebhook(result)
 }
 
-// FlowID returns the workflow ID for this async context
+// FlowID returns the flow ID for this async context
 func (ac *AsyncContext) FlowID() timebox.ID {
 	return ac.flowID
 }
@@ -99,9 +99,9 @@ func (ac *AsyncContext) WebhookURL() string {
 	return ac.webhookURL
 }
 
-// Workflow returns a workflow client for interacting with this workflow
-func (ac *AsyncContext) Workflow() *WorkflowClient {
-	return ac.client.Workflow(ac.flowID)
+// Flow returns a flow client for interacting with this flow
+func (ac *AsyncContext) Flow() *FlowClient {
+	return ac.client.Flow(ac.flowID)
 }
 
 func (ac *AsyncContext) sendWebhook(result api.StepResult) error {

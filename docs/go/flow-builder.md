@@ -1,6 +1,6 @@
-# Workflow Builder
+# Flow Builder
 
-The Workflow builder provides an API for creating and starting workflows.
+The Flow builder provides an API for creating and starting flows.
 
 ## Basic Usage
 
@@ -16,7 +16,7 @@ import (
 
 client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-err := client.NewWorkflow("data-pipeline-123").
+err := client.NewFlow("data-pipeline-123").
     WithGoals("extract", "transform", "load").
     WithInitialState(api.Args{
         "source": "s3://bucket/data.csv",
@@ -25,14 +25,14 @@ err := client.NewWorkflow("data-pipeline-123").
     Start(context.Background())
 ```
 
-## Creating Workflows
+## Creating Flows
 
-### Simple Workflow
+### Simple Flow
 
 ```go
 client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-err := client.NewWorkflow("my-workflow").
+err := client.NewFlow("my-flow").
     WithGoals("final-step").
     Start(context.Background())
 ```
@@ -42,7 +42,7 @@ err := client.NewWorkflow("my-workflow").
 Provide initial arguments that steps can use:
 
 ```go
-err := client.NewWorkflow("user-signup").
+err := client.NewFlow("user-signup").
     WithGoals("send-welcome-email").
     WithInitialState(api.Args{
         "user_id": "12345",
@@ -57,7 +57,7 @@ err := client.NewWorkflow("user-signup").
 Specify multiple goal steps:
 
 ```go
-err := client.NewWorkflow("multi-goal").
+err := client.NewFlow("multi-goal").
     WithGoals("step-a", "step-b", "step-c").
     Start(context.Background())
 ```
@@ -65,19 +65,19 @@ err := client.NewWorkflow("multi-goal").
 Or add goals one at a time:
 
 ```go
-err := client.NewWorkflow("multi-goal").
+err := client.NewFlow("multi-goal").
     WithGoal("step-a").
     WithGoal("step-b").
     WithGoal("step-c").
     Start(context.Background())
 ```
 
-## Accessing Existing Workflows
+## Accessing Existing Flows
 
-Use `Workflow()` to get a client for an existing workflow:
+Use `Flow()` to get a client for an existing flow:
 
 ```go
-wc := client.Workflow("my-workflow-123")
+wc := client.Flow("my-flow-123")
 
 // Get current state
 state, err := wc.GetState(context.Background())
@@ -88,16 +88,16 @@ if err != nil {
 fmt.Printf("Status: %s\n", state.Status)
 fmt.Printf("Attributes: %+v\n", state.Attributes)
 
-// Get workflow ID
+// Get flow ID
 flowID := wc.FlowID()
 ```
 
 ## Builder Pattern
 
-The Workflow builder follows an immutable builder pattern:
+The Flow builder follows an immutable builder pattern:
 
 ```go
-base := client.NewWorkflow("my-workflow")
+base := client.NewFlow("my-flow")
 
 // Each method returns a new builder instance
 wf1 := base.WithGoals("goal-1")
@@ -109,7 +109,7 @@ wf2 := base.WithGoals("goal-2")
 Methods can be chained:
 
 ```go
-err := client.NewWorkflow("complex-workflow").
+err := client.NewFlow("complex-flow").
     WithGoals("final-step").
     WithInitialState(api.Args{
         "config": map[string]any{
@@ -138,8 +138,8 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    // Start a new workflow
-    err := client.NewWorkflow("data-pipeline-001").
+    // Start a new flow
+    err := client.NewFlow("data-pipeline-001").
         WithGoals("extract-data", "transform-data", "load-data").
         WithInitialState(api.Args{
             "source": "s3://bucket/data.csv",
@@ -149,19 +149,19 @@ func main() {
         Start(context.Background())
 
     if err != nil {
-        log.Fatalf("Failed to start workflow: %v", err)
+        log.Fatalf("Failed to start flow: %v", err)
     }
 
-    log.Println("Workflow started successfully")
+    log.Println("Flow started successfully")
 
-    // Query workflow state
-    wc := client.Workflow("data-pipeline-001")
+    // Query flow state
+    wc := client.Flow("data-pipeline-001")
     state, err := wc.GetState(context.Background())
     if err != nil {
-        log.Fatalf("Failed to get workflow state: %v", err)
+        log.Fatalf("Failed to get flow state: %v", err)
     }
 
-    log.Printf("Workflow status: %s", state.Status)
+    log.Printf("Flow status: %s", state.Status)
     log.Printf("Attributes: %+v", state.Attributes)
 }
 ```
@@ -170,30 +170,30 @@ func main() {
 
 ### Client Methods
 
-#### `NewWorkflow(id timebox.ID) *Workflow`
-Creates a new workflow builder with the specified ID.
+#### `NewFlow(id timebox.ID) *Flow`
+Creates a new flow builder with the specified ID.
 
-#### `Workflow(flowID timebox.ID) *WorkflowClient`
-Returns a client for accessing an existing workflow.
+#### `Flow(flowID timebox.ID) *FlowClient`
+Returns a client for accessing an existing flow.
 
-### Workflow Builder Methods
+### Flow Builder Methods
 
-#### `WithGoals(goals ...timebox.ID) *Workflow`
-Sets the goal step IDs for the workflow. Replaces any previously set goals.
+#### `WithGoals(goals ...timebox.ID) *Flow`
+Sets the goal step IDs for the flow. Replaces any previously set goals.
 
-#### `WithGoal(goal timebox.ID) *Workflow`
-Adds a single goal step ID to the workflow.
+#### `WithGoal(goal timebox.ID) *Flow`
+Adds a single goal step ID to the flow.
 
-#### `WithInitialState(init api.Args) *Workflow`
-Sets the initial state (arguments) for the workflow.
+#### `WithInitialState(init api.Args) *Flow`
+Sets the initial state (arguments) for the flow.
 
 #### `Start(ctx context.Context) error`
-Creates and starts the workflow on the engine.
+Creates and starts the flow on the engine.
 
-### WorkflowClient Methods
+### FlowClient Methods
 
-#### `GetState(ctx context.Context) (*api.WorkflowState, error)`
-Retrieves the current state of the workflow.
+#### `GetState(ctx context.Context) (*api.FlowState, error)`
+Retrieves the current state of the flow.
 
 #### `FlowID() timebox.ID`
-Returns the workflow ID for this client.
+Returns the flow ID for this client.

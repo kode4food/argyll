@@ -7,7 +7,7 @@ import ConnectionStatusWrapper from "./components/atoms/ConnectionStatusWrapper"
 
 export const metadata: Metadata = {
   title: "Spuds",
-  description: "Spuds Workflow Processing System",
+  description: "Spuds Flow Processing System",
   icons: {
     icon: "/favicon.ico",
   },

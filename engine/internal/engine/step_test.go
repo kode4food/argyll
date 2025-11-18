@@ -30,7 +30,7 @@ func TestGetActive(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-active-test",
 		plan,
@@ -39,17 +39,17 @@ func TestGetActive(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	workflow, ok := env.Engine.GetActiveWorkflow("wf-active-test")
+	flow, ok := env.Engine.GetActiveFlow("wf-active-test")
 	assert.True(t, ok)
-	assert.NotNil(t, workflow)
-	assert.Equal(t, timebox.ID("wf-active-test"), workflow.ID)
+	assert.NotNil(t, flow)
+	assert.Equal(t, timebox.ID("wf-active-test"), flow.ID)
 }
 
 func TestGetActiveNotFound(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	_, ok := env.Engine.GetActiveWorkflow("nonexistent")
+	_, ok := env.Engine.GetActiveFlow("nonexistent")
 	assert.False(t, ok)
 }
 
@@ -83,7 +83,7 @@ func TestScript(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-script",
 		plan,
@@ -119,7 +119,7 @@ func TestScriptMissing(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-no-script",
 		plan,
@@ -154,7 +154,7 @@ func TestPredicate(t *testing.T) {
 		},
 	}
 
-	err = env.Engine.StartWorkflow(
+	err = env.Engine.StartFlow(
 		context.Background(),
 		"wf-predicate",
 		plan,
@@ -178,11 +178,11 @@ func TestPredicate(t *testing.T) {
 	assert.NotNil(t, comp)
 }
 
-func TestPlanWorkflowNotFound(t *testing.T) {
+func TestPlanFlowNotFound(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	_, err := env.Engine.GetCompiledScript("nonexistent-workflow", "step-id")
+	_, err := env.Engine.GetCompiledScript("nonexistent-flow", "step-id")
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "workflow not found")
+	assert.Contains(t, err.Error(), "flow not found")
 }

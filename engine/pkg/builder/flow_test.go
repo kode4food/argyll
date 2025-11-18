@@ -16,19 +16,19 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/builder"
 )
 
-func TestNewWorkflow(t *testing.T) {
+func TestNewFlow(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	flowID := timebox.ID("test-workflow")
+	flowID := timebox.ID("test-flow")
 
-	wf := client.NewWorkflow(flowID)
+	wf := client.NewFlow(flowID)
 
 	assert.NotNil(t, wf)
 }
 
-func TestWorkflowWithGoals(t *testing.T) {
+func TestFlowWithGoals(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
@@ -43,17 +43,17 @@ func TestWorkflowWithGoals(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-1", "goal-2").
 		Start(context.Background())
 
 	assert.NoError(t, err)
 }
 
-func TestWorkflowWithGoal(t *testing.T) {
+func TestFlowWithGoal(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestWorkflowWithGoal(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoal("goal-1").
 		WithGoal("goal-2").
 		WithGoal("goal-3").
@@ -78,10 +78,10 @@ func TestWorkflowWithGoal(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestWorkflowWithInitialState(t *testing.T) {
+func TestFlowWithInitialState(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
@@ -95,7 +95,7 @@ func TestWorkflowWithInitialState(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
 		WithInitialState(api.Args{
 			"key1": "value1",
@@ -106,7 +106,7 @@ func TestWorkflowWithInitialState(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestWorkflowStartStatusCreated(t *testing.T) {
+func TestFlowStartStatusCreated(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusCreated)
@@ -115,14 +115,14 @@ func TestWorkflowStartStatusCreated(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
 		Start(context.Background())
 
 	assert.NoError(t, err)
 }
 
-func TestWorkflowStartError(t *testing.T) {
+func TestFlowStartError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusBadRequest)
@@ -132,21 +132,21 @@ func TestWorkflowStartError(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
 		Start(context.Background())
 
 	assert.Error(t, err)
 }
 
-func TestWorkflowChaining(t *testing.T) {
+func TestFlowChaining(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
-			assert.Equal(t, timebox.ID("complex-workflow"), req.ID)
+			assert.Equal(t, timebox.ID("complex-flow"), req.ID)
 			assert.Len(t, req.Goals, 2)
 			assert.Equal(t, timebox.ID("goal-1"), req.Goals[0])
 			assert.Equal(t, timebox.ID("goal-2"), req.Goals[1])
@@ -159,7 +159,7 @@ func TestWorkflowChaining(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("complex-workflow").
+	err := client.NewFlow("complex-flow").
 		WithGoals("goal-1", "goal-2").
 		WithInitialState(api.Args{
 			"arg1": "value1",
@@ -170,10 +170,10 @@ func TestWorkflowChaining(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestWorkflowImmutability(t *testing.T) {
+func TestFlowImmutability(t *testing.T) {
 	server1 := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Len(t, req.Goals, 1)
@@ -185,7 +185,7 @@ func TestWorkflowImmutability(t *testing.T) {
 
 	server2 := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Len(t, req.Goals, 1)
@@ -196,25 +196,25 @@ func TestWorkflowImmutability(t *testing.T) {
 	defer server2.Close()
 
 	client1 := builder.NewClient(server1.URL, 5*time.Second)
-	err1 := client1.NewWorkflow("base-wf").
+	err1 := client1.NewFlow("base-wf").
 		WithGoals("goal-1").
 		Start(context.Background())
 	assert.NoError(t, err1)
 
 	client2 := builder.NewClient(server2.URL, 5*time.Second)
-	err2 := client2.NewWorkflow("base-wf").
+	err2 := client2.NewFlow("base-wf").
 		WithGoals("goal-2").
 		Start(context.Background())
 	assert.NoError(t, err2)
 }
 
-func TestWorkflowImmutabilityInitState(t *testing.T) {
+func TestFlowImmutabilityInitState(t *testing.T) {
 	initState1 := api.Args{"key": "value1"}
 	initState2 := api.Args{"key": "value2"}
 
 	server1 := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Equal(t, "value1", req.Init["key"])
@@ -225,7 +225,7 @@ func TestWorkflowImmutabilityInitState(t *testing.T) {
 
 	server2 := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Equal(t, "value2", req.Init["key"])
@@ -235,24 +235,24 @@ func TestWorkflowImmutabilityInitState(t *testing.T) {
 	defer server2.Close()
 
 	client1 := builder.NewClient(server1.URL, 5*time.Second)
-	err1 := client1.NewWorkflow("test-wf").
+	err1 := client1.NewFlow("test-wf").
 		WithGoals("goal").
 		WithInitialState(initState1).
 		Start(context.Background())
 	assert.NoError(t, err1)
 
 	client2 := builder.NewClient(server2.URL, 5*time.Second)
-	err2 := client2.NewWorkflow("test-wf").
+	err2 := client2.NewFlow("test-wf").
 		WithGoals("goal").
 		WithInitialState(initState2).
 		Start(context.Background())
 	assert.NoError(t, err2)
 }
 
-func TestWorkflowEmptyGoals(t *testing.T) {
+func TestFlowEmptyGoals(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Len(t, req.Goals, 0)
@@ -262,14 +262,14 @@ func TestWorkflowEmptyGoals(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").Start(context.Background())
+	err := client.NewFlow("wf-1").Start(context.Background())
 	assert.NoError(t, err)
 }
 
-func TestWorkflowEmptyInitialState(t *testing.T) {
+func TestFlowEmptyInitialState(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var req api.CreateWorkflowRequest
+			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Empty(t, req.Init)
@@ -279,7 +279,7 @@ func TestWorkflowEmptyInitialState(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	err := client.NewWorkflow("wf-1").
+	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
 		Start(context.Background())
 	assert.NoError(t, err)

@@ -3,7 +3,7 @@ import { Viewport } from "@xyflow/react";
 const VIEWPORT_STORAGE_KEY = "spuds-viewport-state";
 
 export interface ViewportState {
-  [key: string]: Viewport; // key can be workflow ID or 'overview' for overview mode
+  [key: string]: Viewport; // key can be flow ID or 'overview' for overview mode
 }
 
 export const getStoredViewports = (): ViewportState => {

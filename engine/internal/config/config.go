@@ -12,20 +12,20 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-// Config holds configuration settings for the workflow engine
+// Config holds configuration settings for the orchestrator
 type Config struct {
 	APIHost            string
 	WebhookBaseURL     string
 	LogLevel           string
 	EngineStore        timebox.StoreConfig
-	WorkflowStore      timebox.StoreConfig
+	FlowStore          timebox.StoreConfig
 	WorkConfig         api.WorkConfig
 	APIPort            int
 	StepTimeout        int64
-	MaxWorkflows       int
+	MaxFlows           int
 	MaxStateKeySize    int
 	MaxStateValueSize  int
-	WorkflowCacheSize  int
+	FlowCacheSize      int
 	ShutdownTimeout    time.Duration
 	RetryCheckInterval time.Duration
 }
@@ -34,7 +34,7 @@ const (
 	DefaultStepTimeout     = 30 * api.Second
 	DefaultShutdownTimeout = 10 * time.Second
 
-	DefaultMaxWorkflows      = 1000
+	DefaultMaxFlows          = 1000
 	DefaultMaxStateKeySize   = 1024 * 1024
 	DefaultMaxStateValueSize = 10 * 1024 * 1024
 
@@ -58,11 +58,11 @@ const (
 )
 
 var (
-	ErrInvalidAPIPort      = errors.New("invalid API port")
-	ErrInvalidStepTimeout  = errors.New("step timeout must be positive")
-	ErrInvalidMaxWorkflows = errors.New("max workflows must be positive")
-	ErrInvalidMaxKey       = errors.New("max state key size must be positive")
-	ErrInvalidMaxValue     = errors.New("max state value size must be positive")
+	ErrInvalidAPIPort     = errors.New("invalid API port")
+	ErrInvalidStepTimeout = errors.New("step timeout must be positive")
+	ErrInvalidMaxFlows    = errors.New("max flows must be positive")
+	ErrInvalidMaxKey      = errors.New("max state key size must be positive")
+	ErrInvalidMaxValue    = errors.New("max state value size must be positive")
 )
 
 // NewDefaultConfig creates a configuration with sensible defaults for all
@@ -81,7 +81,7 @@ func NewDefaultConfig() *Config {
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
 		},
-		WorkflowStore: timebox.StoreConfig{
+		FlowStore: timebox.StoreConfig{
 			Addr:         DefaultRedisEndpoint,
 			Password:     "",
 			DB:           DefaultRedisDB,
@@ -97,10 +97,10 @@ func NewDefaultConfig() *Config {
 			BackoffType:  DefaultRetryBackoffType,
 		},
 		StepTimeout:        DefaultStepTimeout,
-		MaxWorkflows:       DefaultMaxWorkflows,
+		MaxFlows:           DefaultMaxFlows,
 		MaxStateKeySize:    DefaultMaxStateKeySize,
 		MaxStateValueSize:  DefaultMaxStateValueSize,
-		WorkflowCacheSize:  DefaultCacheSize,
+		FlowCacheSize:      DefaultCacheSize,
 		ShutdownTimeout:    DefaultShutdownTimeout,
 		RetryCheckInterval: DefaultRetryCheckInterval,
 		LogLevel:           "info",
@@ -110,7 +110,7 @@ func NewDefaultConfig() *Config {
 // LoadFromEnv populates configuration values from environment variables
 func (c *Config) LoadFromEnv() {
 	LoadStoreConfigFromEnv(&c.EngineStore, "ENGINE")
-	LoadStoreConfigFromEnv(&c.WorkflowStore, "WORKFLOW")
+	LoadStoreConfigFromEnv(&c.FlowStore, "FLOW")
 
 	if apiPort := os.Getenv("API_PORT"); apiPort != "" {
 		if port, err := strconv.Atoi(apiPort); err == nil {
@@ -123,10 +123,10 @@ func (c *Config) LoadFromEnv() {
 	if webhookBaseURL := os.Getenv("WEBHOOK_BASE_URL"); webhookBaseURL != "" {
 		c.WebhookBaseURL = webhookBaseURL
 	}
-	if cacheSizeStr := os.Getenv("WORKFLOW_CACHE_SIZE"); cacheSizeStr != "" {
+	if cacheSizeStr := os.Getenv("FLOW_CACHE_SIZE"); cacheSizeStr != "" {
 		cacheSize, err := strconv.Atoi(cacheSizeStr)
 		if err == nil && cacheSize > 0 {
-			c.WorkflowCacheSize = cacheSize
+			c.FlowCacheSize = cacheSize
 		}
 	}
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
@@ -163,8 +163,8 @@ func (c *Config) Validate() error {
 		return ErrInvalidStepTimeout
 	}
 
-	if c.MaxWorkflows <= 0 {
-		return ErrInvalidMaxWorkflows
+	if c.MaxFlows <= 0 {
+		return ErrInvalidMaxFlows
 	}
 
 	if c.MaxStateKeySize <= 0 {
@@ -179,7 +179,7 @@ func (c *Config) Validate() error {
 }
 
 // LoadStoreConfigFromEnv loads Redis store configuration from environment
-// variables with the given prefix (e.g., "ENGINE" or "WORKFLOW")
+// variables with the given prefix (e.g., "ENGINE" or "FLOW")
 func LoadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
 	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
 		s.Addr = addr
