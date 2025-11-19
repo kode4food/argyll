@@ -58,27 +58,6 @@ func TestConfigValidation(t *testing.T) {
 			},
 			errorContains: "step timeout must be positive",
 		},
-		{
-			name: "zero_max_flows",
-			configMod: func(c *config.Config) {
-				c.MaxFlows = 0
-			},
-			errorContains: "max flows must be positive",
-		},
-		{
-			name: "zero_max_state_key_size",
-			configMod: func(c *config.Config) {
-				c.MaxStateKeySize = 0
-			},
-			errorContains: "max state key size must be positive",
-		},
-		{
-			name: "zero_max_state_value_size",
-			configMod: func(c *config.Config) {
-				c.MaxStateValueSize = 0
-			},
-			errorContains: "max state value size must be positive",
-		},
 	}
 
 	for _, tt := range tests {
@@ -98,9 +77,6 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultAPIPort, cfg.APIPort)
 	as.Equal("0.0.0.0", cfg.APIHost)
 	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
-	as.Equal(config.DefaultMaxFlows, cfg.MaxFlows)
-	as.Equal(config.DefaultMaxStateKeySize, cfg.MaxStateKeySize)
-	as.Equal(config.DefaultMaxStateValueSize, cfg.MaxStateValueSize)
 	as.Equal(config.DefaultShutdownTimeout, cfg.ShutdownTimeout)
 	as.Equal("info", cfg.LogLevel)
 }
@@ -200,18 +176,6 @@ func TestValidateValidEdgeCases(t *testing.T) {
 		{
 			name:   "one_nanosecond_timeout",
 			modify: func(c *config.Config) { c.StepTimeout = 1 },
-		},
-		{
-			name:   "one_max_flow",
-			modify: func(c *config.Config) { c.MaxFlows = 1 },
-		},
-		{
-			name:   "one_byte_key_size",
-			modify: func(c *config.Config) { c.MaxStateKeySize = 1 },
-		},
-		{
-			name:   "one_byte_value_size",
-			modify: func(c *config.Config) { c.MaxStateValueSize = 1 },
 		},
 	}
 

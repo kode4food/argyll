@@ -14,17 +14,15 @@ import (
 
 // Config holds configuration settings for the orchestrator
 type Config struct {
-	APIHost            string
-	WebhookBaseURL     string
-	LogLevel           string
-	EngineStore        timebox.StoreConfig
-	FlowStore          timebox.StoreConfig
-	WorkConfig         api.WorkConfig
-	APIPort            int
-	StepTimeout        int64
-	MaxFlows           int
-	MaxStateKeySize    int
-	MaxStateValueSize  int
+	APIHost        string
+	WebhookBaseURL string
+	LogLevel       string
+	EngineStore    timebox.StoreConfig
+	FlowStore      timebox.StoreConfig
+	WorkConfig     api.WorkConfig
+	APIPort        int
+	StepTimeout    int64
+
 	FlowCacheSize      int
 	ShutdownTimeout    time.Duration
 	RetryCheckInterval time.Duration
@@ -33,10 +31,6 @@ type Config struct {
 const (
 	DefaultStepTimeout     = 30 * api.Second
 	DefaultShutdownTimeout = 10 * time.Second
-
-	DefaultMaxFlows          = 1000
-	DefaultMaxStateKeySize   = 1024 * 1024
-	DefaultMaxStateValueSize = 10 * 1024 * 1024
 
 	DefaultAPIPort = 8080
 	DefaultAPIHost = "0.0.0.0"
@@ -49,20 +43,17 @@ const (
 	DefaultSnapshotQueueSize   = 1000
 	DefaultSnapshotSaveTimeout = 30 * time.Second
 	DefaultCacheSize           = 4096
-	DefaultRetryCheckInterval  = 1 * time.Second
 
-	DefaultRetryMaxRetries   = 3
-	DefaultRetryBackoffMs    = 1000
-	DefaultRetryMaxBackoffMs = 60000
-	DefaultRetryBackoffType  = api.BackoffTypeExponential
+	DefaultRetryCheckInterval = 1 * time.Second
+	DefaultRetryMaxRetries    = 3
+	DefaultRetryBackoffMs     = 1000
+	DefaultRetryMaxBackoffMs  = 60000
+	DefaultRetryBackoffType   = api.BackoffTypeExponential
 )
 
 var (
 	ErrInvalidAPIPort     = errors.New("invalid API port")
 	ErrInvalidStepTimeout = errors.New("step timeout must be positive")
-	ErrInvalidMaxFlows    = errors.New("max flows must be positive")
-	ErrInvalidMaxKey      = errors.New("max state key size must be positive")
-	ErrInvalidMaxValue    = errors.New("max state value size must be positive")
 )
 
 // NewDefaultConfig creates a configuration with sensible defaults for all
@@ -97,9 +88,6 @@ func NewDefaultConfig() *Config {
 			BackoffType:  DefaultRetryBackoffType,
 		},
 		StepTimeout:        DefaultStepTimeout,
-		MaxFlows:           DefaultMaxFlows,
-		MaxStateKeySize:    DefaultMaxStateKeySize,
-		MaxStateValueSize:  DefaultMaxStateValueSize,
 		FlowCacheSize:      DefaultCacheSize,
 		ShutdownTimeout:    DefaultShutdownTimeout,
 		RetryCheckInterval: DefaultRetryCheckInterval,
@@ -161,18 +149,6 @@ func (c *Config) Validate() error {
 
 	if c.StepTimeout <= 0 {
 		return ErrInvalidStepTimeout
-	}
-
-	if c.MaxFlows <= 0 {
-		return ErrInvalidMaxFlows
-	}
-
-	if c.MaxStateKeySize <= 0 {
-		return ErrInvalidMaxKey
-	}
-
-	if c.MaxStateValueSize <= 0 {
-		return ErrInvalidMaxValue
 	}
 
 	return nil

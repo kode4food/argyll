@@ -217,7 +217,6 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		APIHost:            "localhost",
 		WebhookBaseURL:     "http://localhost:8080",
 		StepTimeout:        5 * api.Second,
-		MaxFlows:           100,
 		FlowCacheSize:      100,
 		ShutdownTimeout:    2 * time.Second,
 		RetryCheckInterval: 100 * time.Millisecond,

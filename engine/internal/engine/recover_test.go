@@ -433,9 +433,7 @@ func TestFindRetriableSteps(t *testing.T) {
 				Status: api.StepPending,
 				WorkItems: map[api.Token]*api.WorkState{
 					"token-3": {
-						Status:      api.WorkPending,
-						RetryCount:  0,
-						NextRetryAt: time.Time{},
+						Status: api.WorkPending,
 					},
 				},
 			},
