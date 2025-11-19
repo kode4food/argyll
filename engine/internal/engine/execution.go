@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
@@ -19,7 +18,6 @@ import (
 type (
 	// ExecContext holds the context for a single step execution
 	ExecContext struct {
-		start  time.Time
 		engine *Engine
 		step   *api.Step
 		inputs api.Args
@@ -242,8 +240,6 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 }
 
 func (e *ExecContext) execute(ctx context.Context) {
-	e.start = time.Now()
-
 	items := e.computeWorkItems()
 	e.executeWorkItems(ctx, items)
 }

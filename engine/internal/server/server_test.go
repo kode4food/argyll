@@ -42,12 +42,7 @@ func testServer(t *testing.T) *testServerEnv {
 
 	engineEnv := helpers.NewTestEngine(t)
 
-	srv := server.NewServer(
-		engineEnv.Engine,
-		engineEnv.Config,
-		*engineEnv.EventHub,
-		engineEnv.MockClient,
-	)
+	srv := server.NewServer(engineEnv.Engine, *engineEnv.EventHub)
 
 	return &testServerEnv{
 		Server:        srv,

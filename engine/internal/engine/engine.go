@@ -314,7 +314,6 @@ func (e *Engine) retryWork(
 	inputs api.Args,
 ) {
 	execCtx := &ExecContext{
-		start:  time.Now(),
 		engine: e,
 		step:   step,
 		inputs: inputs,

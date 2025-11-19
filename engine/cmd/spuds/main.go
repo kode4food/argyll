@@ -131,7 +131,7 @@ func (s *spuds) startServer() {
 	s.health = server.NewHealthChecker(s.engine, s.timebox.GetHub())
 	s.health.Start()
 
-	srv := server.NewServer(s.engine, s.cfg, s.timebox.GetHub(), s.stepClient)
+	srv := server.NewServer(s.engine, s.timebox.GetHub())
 	mux := srv.SetupRoutes()
 
 	s.httpServer = &http.Server{

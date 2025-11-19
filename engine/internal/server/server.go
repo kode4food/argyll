@@ -10,34 +10,24 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/internal/client"
-	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
 // Server implements the HTTP API server for the orchestrator
 type Server struct {
-	engine     *engine.Engine
-	config     *config.Config
-	eventHub   timebox.EventHub
-	stepClient client.Client
+	engine   *engine.Engine
+	eventHub timebox.EventHub
 }
 
 // ErrGetEngineState is returned when the engine state cannot be retrieved
 var ErrGetEngineState = errors.New("failed to get engine state")
 
-// NewServer creates a new HTTP API server with the specified engine, config,
-// event hub, and step client
-func NewServer(
-	eng *engine.Engine, cfg *config.Config, hub timebox.EventHub,
-	client client.Client,
-) *Server {
+// NewServer creates a new HTTP API server
+func NewServer(eng *engine.Engine, hub timebox.EventHub) *Server {
 	return &Server{
-		engine:     eng,
-		config:     cfg,
-		eventHub:   hub,
-		stepClient: client,
+		engine:   eng,
+		eventHub: hub,
 	}
 }
 

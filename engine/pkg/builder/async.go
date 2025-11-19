@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
 
 	"github.com/kode4food/timebox"
 
@@ -22,7 +21,6 @@ type AsyncContext struct {
 	flowID     timebox.ID
 	stepID     timebox.ID
 	webhookURL string
-	httpClient *http.Client
 }
 
 // NewAsyncContext creates a new async context from the metadata in the
@@ -54,9 +52,6 @@ func (c *Client) NewAsyncContext(ctx context.Context) (*AsyncContext, error) {
 		flowID:     timebox.ID(flowID),
 		stepID:     timebox.ID(stepID),
 		webhookURL: webhookURL,
-		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
-		},
 	}, nil
 }
 
