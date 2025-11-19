@@ -82,10 +82,10 @@ func TestGetStepHealth(t *testing.T) {
 	err = eng.RegisterStep(context.Background(), step)
 	require.NoError(t, err)
 
-	checker := server.NewHealthChecker(eng, tb.GetHub())
-
-	health, err := checker.GetStepHealth("health-test-step")
+	engineState, err := eng.GetEngineState(context.Background())
 	require.NoError(t, err)
+	health, ok := engineState.Health["health-test-step"]
+	require.True(t, ok, "expected step health to exist")
 	assert.NotNil(t, health)
 	assert.Equal(t, api.HealthUnknown, health.Status)
 }
@@ -115,11 +115,10 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
-	checker := server.NewHealthChecker(eng, tb.GetHub())
-
-	_, err = checker.GetStepHealth("nonexistent-step")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	engineState, err := eng.GetEngineState(context.Background())
+	require.NoError(t, err)
+	_, ok := engineState.Health["nonexistent-step"]
+	assert.False(t, ok, "expected step health not to exist")
 }
 
 func TestWithRealHealthCheck(t *testing.T) {
@@ -175,8 +174,10 @@ func TestWithRealHealthCheck(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	health, err := checker.GetStepHealth("real-health-step")
+	engineState, err := eng.GetEngineState(context.Background())
 	require.NoError(t, err)
+	health, ok := engineState.Health["real-health-step"]
+	require.True(t, ok, "expected step health to exist")
 	assert.NotNil(t, health)
 }
 
@@ -231,7 +232,9 @@ func TestRecentSuccess(t *testing.T) {
 
 	producer.Send() <- event
 
-	health, err := checker.GetStepHealth("recent-success-step")
+	engineState, err := eng.GetEngineState(context.Background())
 	require.NoError(t, err)
+	health, ok := engineState.Health["recent-success-step"]
+	require.True(t, ok, "expected step health to exist")
 	assert.NotNil(t, health)
 }

@@ -163,19 +163,6 @@ func (e *Engine) canStepComplete(
 	return true
 }
 
-// StepProvidesInput checks if a step provides a specific named attribute
-// as output and can complete successfully
-func (e *Engine) StepProvidesInput(
-	step *api.Step, name api.Name, flow *api.FlowState,
-) bool {
-	for attrName, attr := range step.Attributes {
-		if attrName == name && attr.IsOutput() {
-			return e.canStepComplete(step.ID, flow)
-		}
-	}
-	return false
-}
-
 func (e *Engine) appendFailedStep(
 	failed []string, stepID timebox.ID, exec *api.ExecutionState,
 ) []string {

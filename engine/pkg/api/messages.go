@@ -14,11 +14,6 @@ type (
 		Goals []timebox.ID `json:"goals"`
 	}
 
-	// UpdateStateRequest contains attribute updates for a flow
-	UpdateStateRequest struct {
-		Updates Args `json:"updates"`
-	}
-
 	// ExecutionPlanRequest contains parameters for creating an execution plan
 	ExecutionPlanRequest struct {
 		Init  Args         `json:"init"`
@@ -65,13 +60,6 @@ type (
 		HealthState
 	}
 
-	// StatusResponse provides engine status and statistics
-	StatusResponse struct {
-		FlowFingerprint string `json:"flow_fingerprint"`
-		StepCount       int    `json:"step_count"`
-		FlowCount       int    `json:"flow_count"`
-	}
-
 	// HealthListResponse contains health status for all registered steps
 	HealthListResponse struct {
 		Health map[timebox.ID]*HealthState `json:"health"`
@@ -85,8 +73,7 @@ type (
 
 	// ErrorResponse contains error details for failed requests
 	ErrorResponse struct {
-		Error   string `json:"error"`
-		Details string `json:"details,omitempty"`
-		Status  int    `json:"status,omitempty"`
+		Error  string `json:"error"`
+		Status int    `json:"status,omitempty"`
 	}
 )

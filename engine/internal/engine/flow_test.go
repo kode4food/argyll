@@ -697,14 +697,7 @@ func TestStepProvidesInput(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	flow, err := env.Engine.GetFlowState(
-		context.Background(), "wf-provides-test",
-	)
-	require.NoError(t, err)
-
-	provides := env.Engine.StepProvidesInput(stepA, "result", flow)
-	assert.True(t, provides)
-
-	providesOther := env.Engine.StepProvidesInput(stepA, "other", flow)
-	assert.False(t, providesOther)
+	outputArgs := stepA.GetOutputArgs()
+	assert.Contains(t, outputArgs, api.Name("result"), "step should provide 'result' output")
+	assert.NotContains(t, outputArgs, api.Name("other"), "step should not provide 'other' output")
 }

@@ -65,23 +65,6 @@ func (h *HealthChecker) Stop() {
 	h.consumer.Close()
 }
 
-// GetStepHealth retrieves the current health status for a registered step
-func (h *HealthChecker) GetStepHealth(
-	stepID timebox.ID,
-) (*api.HealthState, error) {
-	state, err := h.engine.GetEngineState(context.Background())
-	if err != nil {
-		return nil, err
-	}
-
-	health, ok := state.Health[stepID]
-	if !ok {
-		return nil, fmt.Errorf("step health not found: %s", stepID)
-	}
-
-	return health, nil
-}
-
 func (h *HealthChecker) eventLoop() {
 	for {
 		select {
