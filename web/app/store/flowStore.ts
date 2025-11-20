@@ -159,7 +159,7 @@ export const useFlowStore = create<FlowState>()(
             loading: false,
           });
         } catch (error) {
-          console.error("Failed to load flow data:", error);
+          console.error(`Failed to load flow data for ${flowId}:`, error);
           set({
             flowData: null,
             executions: [],
@@ -175,7 +175,7 @@ export const useFlowStore = create<FlowState>()(
           const executions = await api.getExecutions(flowId);
           set({ executions: executions || [] });
         } catch (error) {
-          console.error("Failed to refresh executions:", error);
+          console.error(`Failed to refresh executions for ${flowId}:`, error);
         }
       },
 

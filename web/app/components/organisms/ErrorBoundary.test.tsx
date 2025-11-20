@@ -1,13 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import ErrorBoundary from "./ErrorBoundary";
-import { errorLogger } from "../../utils/errorLogging";
-
-jest.mock("../../utils/errorLogging", () => ({
-  errorLogger: {
-    logError: jest.fn(),
-  },
-}));
 
 jest.mock("../molecules/ErrorFallback", () => ({
   __esModule: true,
@@ -59,16 +52,22 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("Error: Test error")).toBeInTheDocument();
   });
 
-  test("logs error with errorLogger", () => {
+  test("logs error with console.error", () => {
     render(
       <ErrorBoundary>
         <ThrowError shouldThrow={true} />
       </ErrorBoundary>
     );
 
-    expect(errorLogger.logError).toHaveBeenCalled();
-    const call = (errorLogger.logError as jest.Mock).mock.calls[0];
-    expect(call[0].message).toBe("Test error");
+    expect(console.error).toHaveBeenCalled();
+    const calls = (console.error as jest.Mock).mock.calls;
+    // Find the call that logs our error message
+    const errorCall = calls.find(
+      (call) =>
+        call[0] === "Error caught by ErrorBoundary:" &&
+        call[1]?.message === "Test error"
+    );
+    expect(errorCall).toBeDefined();
   });
 
   test("passes title and description to fallback", () => {
@@ -145,11 +144,15 @@ describe("ErrorBoundary", () => {
       </ErrorBoundary>
     );
 
-    expect(errorLogger.logError).toHaveBeenCalled();
-    const call = (errorLogger.logError as jest.Mock).mock.calls[0];
-    expect(call[2]).toEqual({
-      boundaryTitle: "Boundary Title",
-      boundaryDescription: "Boundary Description",
-    });
+    expect(console.error).toHaveBeenCalled();
+    const calls = (console.error as jest.Mock).mock.calls;
+    // Find the call that logs the boundary context
+    const contextCall = calls.find(
+      (call) =>
+        call[0] === "Boundary context:" &&
+        call[1]?.title === "Boundary Title" &&
+        call[1]?.description === "Boundary Description"
+    );
+    expect(contextCall).toBeDefined();
   });
 });

@@ -2,7 +2,6 @@
 
 import React, { Component, ReactNode } from "react";
 import ErrorFallback from "../molecules/ErrorFallback";
-import { errorLogger } from "../../utils/errorLogging";
 
 interface Props {
   children: ReactNode;
@@ -28,10 +27,14 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    errorLogger.logError(error, errorInfo, {
-      boundaryTitle: this.props.title,
-      boundaryDescription: this.props.description,
-    });
+    console.error("Error caught by ErrorBoundary:", error);
+    console.error("Component stack:", errorInfo.componentStack);
+    if (this.props.title || this.props.description) {
+      console.error("Boundary context:", {
+        title: this.props.title,
+        description: this.props.description,
+      });
+    }
 
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
