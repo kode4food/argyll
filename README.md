@@ -61,7 +61,7 @@ GET     /engine/health/:stepID  # Step health
 GET     /engine/ws              # WebSocket event stream
 ```
 
-See `engine/docs/engine-api.yaml` for full OpenAPI specification.
+See `docs/api/engine-api.yaml` for full OpenAPI specification.
 
 ## Current Status
 
