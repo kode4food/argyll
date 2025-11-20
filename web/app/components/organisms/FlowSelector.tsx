@@ -74,6 +74,7 @@ const FlowSelector: React.FC = () => {
   const {
     showCreateForm,
     setShowCreateForm,
+    previewPlan,
     updatePreviewPlan,
     clearPreviewPlan,
     selectedStep,
@@ -118,7 +119,7 @@ const FlowSelector: React.FC = () => {
       goal_step_ids: goalStepIds,
       state: parsedState,
       started_at: new Date().toISOString(),
-      plan: null,
+      plan: previewPlan,
     };
 
     addFlow(optimisticFlow);
