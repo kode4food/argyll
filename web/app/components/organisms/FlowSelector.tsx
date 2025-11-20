@@ -113,16 +113,14 @@ const FlowSelector: React.FC = () => {
       parsedState = {};
     }
 
-    const optimisticFlow: any = {
+    addFlow({
       id: flowId,
       status: "pending",
-      goal_step_ids: goalStepIds,
       state: parsedState,
       started_at: new Date().toISOString(),
-      plan: previewPlan,
-    };
+      plan: previewPlan || undefined,
+    });
 
-    addFlow(optimisticFlow);
     setCreating(true);
     router.push(`/flow/${flowId}`);
     setNewId("");

@@ -492,7 +492,7 @@ describe("useAutoLayout", () => {
     };
     const config = {};
 
-    const { result, rerender } = renderHook(
+    const { rerender } = renderHook(
       ({ n, p, c }) => useAutoLayout(n, [], p, c),
       { initialProps: { n: nodes, p: plan, c: config } }
     );
