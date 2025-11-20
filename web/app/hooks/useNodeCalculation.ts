@@ -32,9 +32,7 @@ export const useNodeCalculation = (
 
     const activeStepIds =
       previewStepIds ||
-      (flowData?.plan
-        ? new Set(Object.keys(flowData.plan.steps))
-        : null);
+      (flowData?.plan ? new Set(Object.keys(flowData.plan.steps)) : null);
     let startingPoints = new Set<string>();
 
     if (activeStepIds) {

@@ -6,12 +6,7 @@ import React, {
   useMemo,
 } from "react";
 import { Position, NodeProps } from "@xyflow/react";
-import {
-  Step,
-  FlowContext,
-  ExecutionResult,
-  AttributeRole,
-} from "../../api";
+import { Step, FlowContext, ExecutionResult, AttributeRole } from "../../api";
 import StepWidget from "./StepWidget";
 import InvisibleHandle from "../atoms/InvisibleHandle";
 

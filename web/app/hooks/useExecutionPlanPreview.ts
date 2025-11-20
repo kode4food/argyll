@@ -35,13 +35,7 @@ export function useExecutionPlanPreview(
       // The AbortController in UIContext will handle race conditions
       await updatePreviewPlan([stepId], {});
     },
-    [
-      flowData,
-      selectedStep,
-      onSelectStep,
-      updatePreviewPlan,
-      clearPreviewPlan,
-    ]
+    [flowData, selectedStep, onSelectStep, updatePreviewPlan, clearPreviewPlan]
   );
 
   const clearPreview = useCallback(() => {

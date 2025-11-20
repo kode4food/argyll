@@ -140,11 +140,7 @@ describe("FlowStats", () => {
   test("handles empty execution sequence", () => {
     const steps = [createStep("step1", ["in1"], [], ["out1"])];
     const { container } = render(
-      <FlowStats
-        steps={steps}
-        executionSequence={[]}
-        resolvedAttributes={[]}
-      />
+      <FlowStats steps={steps} executionSequence={[]} resolvedAttributes={[]} />
     );
     const badges = container.querySelectorAll(".stat-badge");
     expect(badges.length).toBe(0);

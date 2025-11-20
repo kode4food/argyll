@@ -14,12 +14,8 @@ export const useFlowWebSocket = () => {
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
   const nextSequence = useFlowStore((state) => state.nextSequence);
   const flowData = useFlowStore((state) => state.flowData);
-  const refreshExecutions = useFlowStore(
-    (state) => state.refreshExecutions
-  );
-  const updateFlow = useFlowStore(
-    (state) => state.updateFlowFromWebSocket
-  );
+  const refreshExecutions = useFlowStore((state) => state.refreshExecutions);
+  const updateFlow = useFlowStore((state) => state.updateFlowFromWebSocket);
   const updateStepHealth = useFlowStore((state) => state.updateStepHealth);
   const addStep = useFlowStore((state) => state.addStep);
   const removeStep = useFlowStore((state) => state.removeStep);

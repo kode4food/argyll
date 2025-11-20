@@ -130,8 +130,7 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
               <div className="flow-header__right">
                 {isValidTimestamp(flowData.started_at) && (
                   <span>
-                    Started:{" "}
-                    {new Date(flowData.started_at).toLocaleString()}
+                    Started: {new Date(flowData.started_at).toLocaleString()}
                   </span>
                 )}
                 {flowData.completed_at &&

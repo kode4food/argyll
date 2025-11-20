@@ -275,8 +275,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({
         </div>
         {steps.length === 0 && (
           <div className={styles.warning}>
-            ⚠️ No steps are registered. Flows need registered steps to
-            function.
+            ⚠️ No steps are registered. Flows need registered steps to function.
           </div>
         )}
       </div>

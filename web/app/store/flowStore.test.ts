@@ -261,9 +261,7 @@ describe("flowStore", () => {
     });
 
     test("loadFlowData handles any error", async () => {
-      mockApi.getFlowWithEvents.mockRejectedValue(
-        new Error("Network error")
-      );
+      mockApi.getFlowWithEvents.mockRejectedValue(new Error("Network error"));
 
       await useFlowStore.getState().loadFlowData("wf-1");
       const state = useFlowStore.getState();

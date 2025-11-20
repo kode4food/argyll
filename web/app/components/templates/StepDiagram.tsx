@@ -13,12 +13,7 @@ import {
   Viewport,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import {
-  Step,
-  FlowContext,
-  ExecutionResult,
-  AttributeRole,
-} from "../../api";
+import { Step, FlowContext, ExecutionResult, AttributeRole } from "../../api";
 import { Server } from "lucide-react";
 import StepNode from "../organisms/StepNode";
 import EmptyState from "../molecules/EmptyState";

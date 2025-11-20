@@ -142,10 +142,7 @@ describe("viewportPersistence", () => {
   describe("getViewportForKey", () => {
     test("returns viewport for existing key", () => {
       const viewport: Viewport = { x: 100, y: 200, zoom: 1.5 };
-      localStorage.setItem(
-        STORAGE_KEY,
-        JSON.stringify({ "flow-1": viewport })
-      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ "flow-1": viewport }));
 
       const result = getViewportForKey("flow-1");
 

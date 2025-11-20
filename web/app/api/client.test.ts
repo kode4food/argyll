@@ -142,9 +142,7 @@ describe("SpudsApi", () => {
       const result = await api.getFlowWithEvents("wf-1");
 
       expect(result.flow.error_state).toBeDefined();
-      expect(result.flow.error_state?.message).toBe(
-        "Step execution failed"
-      );
+      expect(result.flow.error_state?.message).toBe("Step execution failed");
     });
 
     test("handles flow with execution plan", async () => {

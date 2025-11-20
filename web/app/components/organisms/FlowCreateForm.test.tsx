@@ -98,11 +98,7 @@ describe("FlowCreateForm", () => {
     ];
 
     render(
-      <FlowCreateForm
-        {...defaultProps}
-        steps={steps}
-        sortSteps={sortSteps}
-      />
+      <FlowCreateForm {...defaultProps} steps={steps} sortSteps={sortSteps} />
     );
 
     expect(sortSteps).toHaveBeenCalledWith(steps);
@@ -165,9 +161,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("does not show JSON error when initialState is valid JSON", () => {
-    render(
-      <FlowCreateForm {...defaultProps} initialState='{"valid": true}' />
-    );
+    render(<FlowCreateForm {...defaultProps} initialState='{"valid": true}' />);
 
     expect(screen.queryByText(/Invalid JSON/)).not.toBeInTheDocument();
   });
@@ -349,10 +343,7 @@ describe("FlowCreateForm", () => {
 
   test("shows tooltip when outputs satisfied by initial state", () => {
     render(
-      <FlowCreateForm
-        {...defaultProps}
-        initialState='{"output1": "value"}'
-      />
+      <FlowCreateForm {...defaultProps} initialState='{"output1": "value"}' />
     );
 
     const stepItem = screen

@@ -108,9 +108,7 @@ export const useFlowStore = create<FlowState>()(
           console.error("Failed to load flows:", error);
           set({
             error:
-              error instanceof Error
-                ? error.message
-                : "Failed to load flows",
+              error instanceof Error ? error.message : "Failed to load flows",
           });
         }
       },
@@ -136,8 +134,7 @@ export const useFlowStore = create<FlowState>()(
         set({ loading: true, error: null, flowNotFound: false });
 
         try {
-          const { flow, executions } =
-            await api.getFlowWithEvents(flowId);
+          const { flow, executions } = await api.getFlowWithEvents(flowId);
 
           const resolved = new Set<string>();
 
@@ -236,14 +233,10 @@ export const useFlowStore = create<FlowState>()(
             }
           }
 
-          const flowIndex = flows.findIndex(
-            (w) => w.id === updatedFlow.id
-          );
+          const flowIndex = flows.findIndex((w) => w.id === updatedFlow.id);
           const updatedFlows =
             flowIndex >= 0
-              ? flows.map((w, i) =>
-                  i === flowIndex ? updatedFlow : w
-                )
+              ? flows.map((w, i) => (i === flowIndex ? updatedFlow : w))
               : flows;
 
           set({
@@ -305,17 +298,13 @@ export const useSteps = () => useFlowStore((state) => state.steps);
 export const useFlows = () => useFlowStore((state) => state.flows);
 export const useSelectedFlow = () =>
   useFlowStore((state) => state.selectedFlow);
-export const useFlowData = () =>
-  useFlowStore((state) => state.flowData);
-export const useExecutions = () =>
-  useFlowStore((state) => state.executions);
+export const useFlowData = () => useFlowStore((state) => state.flowData);
+export const useExecutions = () => useFlowStore((state) => state.executions);
 export const useResolvedAttributes = () =>
   useFlowStore((state) => state.resolvedAttributes);
-export const useFlowLoading = () =>
-  useFlowStore((state) => state.loading);
+export const useFlowLoading = () => useFlowStore((state) => state.loading);
 export const useFlowError = () => useFlowStore((state) => state.error);
-export const useIsFlowMode = () =>
-  useFlowStore((state) => state.isFlowMode);
+export const useIsFlowMode = () => useFlowStore((state) => state.isFlowMode);
 
 // Action selectors
 type ActionKeys =
@@ -338,14 +327,7 @@ const createActionHook =
 
 export const useLoadSteps = createActionHook("loadSteps");
 export const useLoadFlows = createActionHook("loadFlows");
-export const useAddStep = createActionHook("addStep");
-export const useRemoveStep = createActionHook("removeStep");
 export const useAddFlow = createActionHook("addFlow");
 export const useRemoveFlow = createActionHook("removeFlow");
 export const useSelectFlow = createActionHook("selectFlow");
-export const useRefreshExecutions = createActionHook("refreshExecutions");
-export const useUpdateFlowFromWebSocket = createActionHook(
-  "updateFlowFromWebSocket"
-);
 export const useUpdateFlowStatus = createActionHook("updateFlowStatus");
-export const useUpdateStepHealth = createActionHook("updateStepHealth");

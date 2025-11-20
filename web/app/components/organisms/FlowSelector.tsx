@@ -414,11 +414,7 @@ const FlowSelector: React.FC = () => {
   useEffect(() => {
     if (showDropdown || !selectedFlow) {
       subscribe({
-        event_types: [
-          "flow_started",
-          "flow_completed",
-          "flow_failed",
-        ],
+        event_types: ["flow_started", "flow_completed", "flow_failed"],
       });
     } else {
       subscribe({
@@ -495,9 +491,7 @@ const FlowSelector: React.FC = () => {
                 {selectedFlow ? (
                   <>
                     {(() => {
-                      const flow = flows.find(
-                        (w) => w.id === selectedFlow
-                      );
+                      const flow = flows.find((w) => w.id === selectedFlow);
                       const progressStatus = mapFlowStatusToProgressStatus(
                         flow?.status || "pending"
                       );

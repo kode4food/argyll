@@ -1,8 +1,4 @@
-import {
-  generatePadded,
-  generateFlowId,
-  sanitizeFlowID,
-} from "./flowUtils";
+import { generatePadded, generateFlowId, sanitizeFlowID } from "./flowUtils";
 
 describe("flowUtils", () => {
   describe("generatePadded", () => {
@@ -72,9 +68,7 @@ describe("flowUtils", () => {
     });
 
     test("preserves valid characters", () => {
-      expect(sanitizeFlowID("flow-123_test.v2+1")).toBe(
-        "flow-123_test.v2+1"
-      );
+      expect(sanitizeFlowID("flow-123_test.v2+1")).toBe("flow-123_test.v2+1");
     });
 
     test("removes leading hyphens", () => {
@@ -98,9 +92,7 @@ describe("flowUtils", () => {
     });
 
     test("handles complex mixed input", () => {
-      expect(sanitizeFlowID("  My Flow!! ID@123  ")).toBe(
-        "my-flow-id123"
-      );
+      expect(sanitizeFlowID("  My Flow!! ID@123  ")).toBe("my-flow-id123");
     });
 
     test("preserves dots and underscores", () => {
@@ -112,9 +104,7 @@ describe("flowUtils", () => {
     });
 
     test("handles consecutive spaces", () => {
-      expect(sanitizeFlowID("my   flow   id")).toBe(
-        "my---flow---id"
-      );
+      expect(sanitizeFlowID("my   flow   id")).toBe("my---flow---id");
     });
 
     test("handles unicode characters", () => {
