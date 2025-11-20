@@ -34,11 +34,16 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [previewPlan, setPreviewPlan] = useState<ExecutionPlan | null>(null);
-  const [selectedStep, setSelectedStep] = useState<string | null>(null);
   const [goalStepIds, setGoalStepIds] = useState<string[]>([]);
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const disableEdit = showCreateForm;
+
+  const selectedStep = goalStepIds.length === 1 ? goalStepIds[0] : null;
+
+  const setSelectedStep = useCallback((stepId: string | null) => {
+    setGoalStepIds(stepId ? [stepId] : []);
+  }, []);
 
   const updatePreviewPlan = useCallback(
     async (goalStepIds: string[], initialState: Record<string, any>) => {
@@ -118,6 +123,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       goalStepIds,
       updatePreviewPlan,
       clearPreviewPlan,
+      setSelectedStep,
     ]
   );
 

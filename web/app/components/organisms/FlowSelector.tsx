@@ -98,7 +98,6 @@ const FlowSelector: React.FC = () => {
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const prevStepRef = useRef<string | null>(null);
   const processedEventsRef = useRef<Set<string>>(new Set());
   const initialStateRef = useRef<string>(initialState);
 
@@ -268,16 +267,8 @@ const FlowSelector: React.FC = () => {
         parsedState = {};
       }
       updatePreviewPlan(goalStepIds, parsedState);
-    } else if (!showCreateForm) {
-      clearPreviewPlan();
     }
-  }, [
-    throttled,
-    showCreateForm,
-    updatePreviewPlan,
-    clearPreviewPlan,
-    goalStepIds,
-  ]);
+  }, [throttled, showCreateForm, updatePreviewPlan, goalStepIds]);
 
   const filteredFlows = flows.filter((flow) =>
     flow.id.includes(sanitizeFlowID(searchTerm))
@@ -390,7 +381,6 @@ const FlowSelector: React.FC = () => {
       setInitialState("{}");
       setIDManuallyEdited(false);
       clearPreviewPlan();
-      prevStepRef.current = null;
     } else {
       router.prefetch("/flow/placeholder");
     }
@@ -401,15 +391,6 @@ const FlowSelector: React.FC = () => {
     setSelectedStep,
     router,
   ]);
-
-  useEffect(() => {
-    if (!showCreateForm) return;
-    if (prevStepRef.current === selectedStep) return;
-
-    prevStepRef.current = selectedStep;
-    const newGoalStepIds = selectedStep ? [selectedStep] : [];
-    handleGoalStepChange(newGoalStepIds);
-  }, [handleGoalStepChange, selectedStep, showCreateForm]);
 
   useEffect(() => {
     if (showDropdown || !selectedFlow) {
@@ -570,11 +551,8 @@ const FlowSelector: React.FC = () => {
             ) : (
               <>
                 <button
-                  onClick={async () => {
+                  onClick={() => {
                     setNewId(generateFlowId());
-                    if (selectedStep && !showCreateForm) {
-                      await handleGoalStepChange([selectedStep]);
-                    }
                     setShowCreateForm(!showCreateForm);
                   }}
                   className={styles.createButton}
