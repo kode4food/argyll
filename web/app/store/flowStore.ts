@@ -310,15 +310,10 @@ export const useIsFlowMode = () => useFlowStore((state) => state.isFlowMode);
 type ActionKeys =
   | "loadSteps"
   | "loadFlows"
-  | "addStep"
-  | "removeStep"
   | "addFlow"
   | "removeFlow"
   | "selectFlow"
-  | "refreshExecutions"
-  | "updateFlowFromWebSocket"
-  | "updateFlowStatus"
-  | "updateStepHealth";
+  | "updateFlowStatus";
 
 const createActionHook =
   <K extends ActionKeys>(key: K) =>
