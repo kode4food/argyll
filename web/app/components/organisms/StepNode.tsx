@@ -1,6 +1,6 @@
 import React, {
   useRef,
-  useLayoutEffect,
+  useEffect,
   useState,
   useCallback,
   useMemo,
@@ -166,7 +166,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
     });
   }, [step.attributes]);
 
-  useLayoutEffect(() => {
+  useEffect(() => {
     updateHandlePositions();
   }, [updateHandlePositions]);
 
