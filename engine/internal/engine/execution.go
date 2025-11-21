@@ -6,9 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 
-	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
 	"github.com/tidwall/gjson"
 
@@ -38,25 +36,23 @@ var (
 // EnqueueStepResult completes a step execution with the provided outputs and
 // sets all output attributes in the flow state
 func (e *Engine) EnqueueStepResult(
-	flowID, stepID timebox.ID, outputs api.Args, dur int64,
+	fs FlowStep, outputs api.Args, dur int64,
 ) {
 	ctx := context.Background()
 
-	if err := e.CompleteStepExecution(
-		ctx, flowID, stepID, outputs, dur,
-	); err != nil {
+	if err := e.CompleteStepExecution(ctx, fs, outputs, dur); err != nil {
 		slog.Error("Failed to complete step",
 			slog.Any("error", err))
 		return
 	}
 
 	for key, value := range outputs {
-		_ = e.SetAttribute(ctx, flowID, stepID, key, value)
+		_ = e.SetAttribute(ctx, fs, key, value)
 	}
 }
 
-func (e *Engine) executeStep(ctx context.Context, flowID, stepID timebox.ID) {
-	stepCtx := e.PrepareStepExecution(ctx, flowID, stepID)
+func (e *Engine) executeStep(ctx context.Context, fs FlowStep) {
+	stepCtx := e.PrepareStepExecution(ctx, fs)
 	if stepCtx == nil {
 		return
 	}
@@ -67,26 +63,26 @@ func (e *Engine) executeStep(ctx context.Context, flowID, stepID timebox.ID) {
 // PrepareStepExecution validates and prepares a step for execution, returning
 // an execution context or nil if preparation fails
 func (e *Engine) PrepareStepExecution(
-	ctx context.Context, flowID, stepID timebox.ID,
+	ctx context.Context, fs FlowStep,
 ) *ExecContext {
-	if err := e.validateStepExecution(ctx, flowID, stepID); err != nil {
+	if err := e.validateStepExecution(ctx, fs); err != nil {
 		slog.Error("Step validation failed",
-			slog.Any("flow_id", flowID),
-			slog.Any("step_id", stepID),
+			slog.Any("flow_id", fs.FlowID),
+			slog.Any("step_id", fs.StepID),
 			slog.Any("error", err))
 		return nil
 	}
 
-	_, step, inputs := e.getStepExecutionData(ctx, flowID, stepID)
+	_, step, inputs := e.getStepExecutionData(ctx, fs)
 	if step == nil {
 		return nil
 	}
 
-	if !e.shouldExecuteStep(ctx, flowID, stepID, step, inputs) {
+	if !e.shouldExecuteStep(ctx, fs, step, inputs) {
 		return nil
 	}
 
-	if err := e.StartStepExecution(ctx, flowID, stepID, inputs); err != nil {
+	if err := e.StartStepExecution(ctx, fs, step, inputs); err != nil {
 		slog.Error("Failed to start step",
 			slog.Any("error", err))
 		return nil
@@ -94,27 +90,27 @@ func (e *Engine) PrepareStepExecution(
 
 	return &ExecContext{
 		engine: e,
-		flowID: flowID,
-		stepID: stepID,
+		flowID: fs.FlowID,
+		stepID: fs.StepID,
 		step:   step,
 		inputs: inputs,
 	}
 }
 
 func (e *Engine) getStepExecutionData(
-	ctx context.Context, flowID, stepID timebox.ID,
+	ctx context.Context, fs FlowStep,
 ) (*api.FlowState, *api.Step, api.Args) {
-	flow, err := e.GetFlowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, fs.FlowID)
 	if err != nil {
 		slog.Error("Failed to get flow state",
 			slog.Any("error", err))
 		return nil, nil, nil
 	}
 
-	step := flow.Plan.GetStep(stepID)
+	step := flow.Plan.GetStep(fs.StepID)
 	if step == nil {
 		slog.Error("Step not found",
-			slog.Any("step_id", stepID))
+			slog.Any("step_id", fs.StepID))
 		return nil, nil, nil
 	}
 
@@ -123,20 +119,19 @@ func (e *Engine) getStepExecutionData(
 }
 
 func (e *Engine) shouldExecuteStep(
-	ctx context.Context, flowID, stepID timebox.ID, step *api.Step,
-	inputs api.Args,
+	ctx context.Context, fs FlowStep, step *api.Step, inputs api.Args,
 ) bool {
-	if e.evaluateStepPredicate(ctx, flowID, stepID, step, inputs) {
+	if e.evaluateStepPredicate(ctx, fs, step, inputs) {
 		return true
 	}
 
 	reason := "predicate evaluated to false"
 	slog.Info("Step skipped",
-		slog.Any("step_id", stepID),
-		slog.Any("flow_id", flowID),
+		slog.Any("step_id", fs.StepID),
+		slog.Any("flow_id", fs.FlowID),
 		slog.String("reason", reason))
 
-	if err := e.SkipStepExecution(ctx, flowID, stepID, reason); err != nil {
+	if err := e.SkipStepExecution(ctx, fs, reason); err != nil {
 		slog.Error("Failed to skip step",
 			slog.Any("error", err))
 	}
@@ -145,16 +140,15 @@ func (e *Engine) shouldExecuteStep(
 }
 
 func (e *Engine) evaluateStepPredicate(
-	ctx context.Context, flowID, stepID timebox.ID, step *api.Step,
-	inputs api.Args,
+	ctx context.Context, fs FlowStep, step *api.Step, inputs api.Args,
 ) bool {
 	if step.Predicate == nil {
 		return true
 	}
 
-	comp, err := e.GetCompiledPredicate(flowID, stepID)
+	comp, err := e.GetCompiledPredicate(fs)
 	if err != nil {
-		e.failPredicateEvaluation(ctx, flowID, stepID,
+		e.failPredicateEvaluation(ctx, fs,
 			"Failed to get compiled predicate",
 			"predicate compilation failed", err)
 		return false
@@ -166,7 +160,7 @@ func (e *Engine) evaluateStepPredicate(
 
 	env, err := e.scripts.Get(step.Predicate.Language)
 	if err != nil {
-		e.failPredicateEvaluation(ctx, flowID, stepID,
+		e.failPredicateEvaluation(ctx, fs,
 			"Failed to get script environment for predicate",
 			"failed to get script environment", err)
 		return false
@@ -174,7 +168,7 @@ func (e *Engine) evaluateStepPredicate(
 
 	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
 	if err != nil {
-		e.failPredicateEvaluation(ctx, flowID, stepID,
+		e.failPredicateEvaluation(ctx, fs,
 			"Failed to evaluate predicate",
 			"predicate evaluation failed", err)
 		return false
@@ -184,39 +178,36 @@ func (e *Engine) evaluateStepPredicate(
 }
 
 func (e *Engine) failPredicateEvaluation(
-	ctx context.Context, flowID, stepID timebox.ID,
+	ctx context.Context, fs FlowStep,
 	logMsg, failMsg string, err error,
 ) {
 	slog.Error(logMsg,
-		slog.Any("step_id", stepID),
+		slog.Any("step_id", fs.StepID),
 		slog.Any("error", err))
 
 	if failErr := e.FailStepExecution(
-		ctx, flowID, stepID,
-		fmt.Sprintf("%s: %s", failMsg, err.Error()),
+		ctx, fs, fmt.Sprintf("%s: %s", failMsg, err.Error()),
 	); failErr != nil {
 		slog.Error("Failed to record predicate failure",
 			slog.Any("error", failErr))
 	}
 }
 
-func (e *Engine) validateStepExecution(
-	ctx context.Context, flowID, stepID timebox.ID,
-) error {
-	flow, err := e.GetFlowState(ctx, flowID)
+func (e *Engine) validateStepExecution(ctx context.Context, fs FlowStep) error {
+	flow, err := e.GetFlowState(ctx, fs.FlowID)
 	if err != nil {
 		return err
 	}
 
-	step := flow.Plan.GetStep(stepID)
+	step := flow.Plan.GetStep(fs.StepID)
 	if step == nil {
-		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+		return fmt.Errorf("%w: %s", ErrStepNotInPlan, fs.StepID)
 	}
 
-	exec, ok := flow.Executions[stepID]
+	exec, ok := flow.Executions[fs.StepID]
 	if ok && exec.Status != api.StepPending {
 		return fmt.Errorf("%s: %s (status=%s)",
-			ErrStepAlreadyPending, stepID, exec.Status)
+			ErrStepAlreadyPending, fs.StepID, exec.Status)
 	}
 	return nil
 }
@@ -240,22 +231,24 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 }
 
 func (e *ExecContext) execute(ctx context.Context) {
-	items := e.computeWorkItems()
-	e.executeWorkItems(ctx, items)
+	flow, err := e.engine.GetFlowState(ctx, e.flowID)
+	if err != nil {
+		return
+	}
+
+	exec, ok := flow.Executions[e.stepID]
+	if !ok || exec.WorkItems == nil {
+		return
+	}
+
+	e.executeWorkItems(ctx, exec.WorkItems)
 }
 
 // Work item execution functions
 
-func (e *ExecContext) computeWorkItems() []api.Args {
-	argNames := e.step.MultiArgNames()
-	multiArgs := getMultiArgs(argNames, e.inputs)
-	if len(multiArgs) == 0 {
-		return []api.Args{e.inputs}
-	}
-	return cartesianProduct(multiArgs, e.inputs)
-}
-
-func (e *ExecContext) executeWorkItems(ctx context.Context, items []api.Args) {
+func (e *ExecContext) executeWorkItems(
+	ctx context.Context, items map[api.Token]*api.WorkState,
+) {
 	parallelism := 0
 	if e.step.WorkConfig != nil {
 		parallelism = e.step.WorkConfig.Parallelism
@@ -263,32 +256,35 @@ func (e *ExecContext) executeWorkItems(ctx context.Context, items []api.Args) {
 
 	sem := make(chan struct{}, max(1, parallelism))
 
-	for _, inputs := range items {
-		go func(inputs api.Args) {
+	for token, workItem := range items {
+		if workItem.Status != api.WorkPending {
+			continue
+		}
+
+		go func(token api.Token, workItem *api.WorkState) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			e.executeWorkItem(ctx, inputs)
-		}(inputs)
+			e.executeWorkItem(ctx, token, workItem)
+		}(token, workItem)
 	}
 }
 
-func (e *ExecContext) executeWorkItem(ctx context.Context, inputs api.Args) {
+func (e *ExecContext) executeWorkItem(
+	ctx context.Context, token api.Token, workItem *api.WorkState,
+) {
+	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	if !e.engine.evaluateStepPredicate(
-		ctx, e.flowID, e.stepID, e.step, inputs,
+		ctx, fs, e.step, workItem.Inputs,
 	) {
 		return
 	}
 
-	token := api.Token(uuid.New().String())
-
-	if err := e.engine.StartWork(
-		ctx, e.flowID, e.stepID, token, inputs,
-	); err != nil {
+	if err := e.engine.StartWork(ctx, fs, token, workItem.Inputs); err != nil {
 		return
 	}
 
-	outputs, err := e.performWork(ctx, inputs, token)
+	outputs, err := e.performWork(ctx, workItem.Inputs, token)
 
 	if err != nil {
 		e.handleWorkItemFailure(ctx, token, err)
@@ -296,15 +292,16 @@ func (e *ExecContext) executeWorkItem(ctx context.Context, inputs api.Args) {
 	}
 
 	if !isAsyncStep(e.step.Type) {
-		_ = e.engine.CompleteWork(ctx, e.flowID, e.stepID, token, outputs)
+		_ = e.engine.CompleteWork(ctx, fs, token, outputs)
 	}
 }
 
 func (e *ExecContext) handleWorkItemFailure(
 	ctx context.Context, token api.Token, err error,
 ) {
+	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	if failErr := e.engine.FailWork(
-		ctx, e.flowID, e.stepID, token, err.Error(),
+		ctx, fs, token, err.Error(),
 	); failErr != nil {
 		return
 	}
@@ -325,9 +322,7 @@ func (e *ExecContext) handleWorkItemFailure(
 	}
 
 	if e.engine.ShouldRetry(e.step, workItem) {
-		_ = e.engine.ScheduleRetry(
-			ctx, e.flowID, e.stepID, token, err.Error(),
-		)
+		_ = e.engine.ScheduleRetry(ctx, fs, token, err.Error())
 	}
 }
 
@@ -347,7 +342,10 @@ func (e *ExecContext) performWork(
 func (e *ExecContext) performScriptWork(
 	_ context.Context, inputs api.Args,
 ) (api.Args, error) {
-	c, err := e.engine.GetCompiledScript(e.flowID, e.stepID)
+	c, err := e.engine.GetCompiledScript(FlowStep{
+		FlowID: e.flowID,
+		StepID: e.stepID,
+	})
 	if err != nil {
 		return nil, fmt.Errorf("script compilation failed: %w", err)
 	}
@@ -433,53 +431,4 @@ func asArray(value any) []any {
 		arr = append(arr, item.Value())
 	}
 	return arr
-}
-
-func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
-	if len(multiArgs) == 0 {
-		return nil
-	}
-
-	names, arrays := extractMultiArgs(multiArgs)
-
-	var result []api.Args
-	var generate func(int, api.Args)
-	generate = func(depth int, current api.Args) {
-		if depth == len(arrays) {
-			result = append(result,
-				combineInputs(baseInputs, current, multiArgs),
-			)
-			return
-		}
-
-		name := names[depth]
-		for _, val := range arrays[depth] {
-			next := current.Set(name, val)
-			generate(depth+1, next)
-		}
-	}
-
-	generate(0, nil)
-	return result
-}
-
-func extractMultiArgs(multiArgs MultiArgs) ([]api.Name, [][]any) {
-	var names []api.Name
-	var arrays [][]any
-	for name, arr := range multiArgs {
-		names = append(names, name)
-		arrays = append(arrays, arr)
-	}
-	return names, arrays
-}
-
-func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
-	inputs := api.Args{}
-	for k, v := range baseInputs {
-		if _, isMulti := multiArgs[k]; !isMulti {
-			inputs[k] = v
-		}
-	}
-	maps.Copy(inputs, current)
-	return inputs
 }

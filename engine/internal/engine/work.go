@@ -56,17 +56,18 @@ func (e *Engine) checkCompletableSteps(
 			continue
 		}
 
+		fs := FlowStep{FlowID: flowID, StepID: stepID}
 		if hasFailed {
 			if failureError == "" {
 				failureError = "work item failed"
 			}
-			_ = e.FailStepExecution(ctx, flowID, stepID, failureError)
+			_ = e.FailStepExecution(ctx, fs, failureError)
 		} else {
 			outputs := aggregateWorkItemOutputs(
 				exec.WorkItems, flow.Plan.GetStep(stepID),
 			)
 			dur := time.Since(exec.StartedAt).Milliseconds()
-			e.EnqueueStepResult(flowID, stepID, outputs, dur)
+			e.EnqueueStepResult(fs, outputs, dur)
 		}
 	}
 }

@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/internal/server"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -24,11 +25,11 @@ type testServerEnv struct {
 	*helpers.TestEngineEnv
 }
 
-func (env *testServerEnv) waitForWorkItem(flowID, stepID timebox.ID) {
-	for i := 0; i < 50; i++ {
-		flow, err := env.Engine.GetFlowState(context.Background(), flowID)
+func (env *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
+	for range 50 {
+		flow, err := env.Engine.GetFlowState(context.Background(), fs.FlowID)
 		if err == nil {
-			exec := flow.Executions[stepID]
+			exec := flow.Executions[fs.StepID]
 			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {
 				return
 			}
@@ -227,7 +228,8 @@ func TestSuccess(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for flow to execute and create work item
-	env.waitForWorkItem("webhook-wf", "async-step")
+	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
+	env.waitForWorkItem(fs)
 
 	// Get the actual token from the created work item
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
@@ -373,7 +375,8 @@ func TestInvalidToken(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for work item to be created
-	env.waitForWorkItem("webhook-wf", "async-step")
+	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
+	env.waitForWorkItem(fs)
 
 	// Try with wrong token
 	result := api.StepResult{
@@ -429,7 +432,8 @@ func TestInvalidJSON(t *testing.T) {
 	require.NoError(t, err)
 
 	// Wait for work item to be created
-	env.waitForWorkItem("webhook-wf", "async-step")
+	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
+	env.waitForWorkItem(fs)
 
 	// Get the real token
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")

@@ -80,69 +80,66 @@ func (e *Engine) FailFlow(
 // StartWork begins execution of a work item for a step with the given token
 // and input arguments
 func (e *Engine) StartWork(
-	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
-	inputs api.Args,
+	ctx context.Context, fs FlowStep, token api.Token, inputs api.Args,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeWorkStarted,
 			api.WorkStartedEvent{
-				FlowID: flowID,
-				StepID: stepID,
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
 				Token:  token,
 				Inputs: inputs,
 			},
 		)
 	}
 
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
 	return err
 }
 
 // CompleteWork marks a work item as successfully completed with the given
 // output values
 func (e *Engine) CompleteWork(
-	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
-	outputs api.Args,
+	ctx context.Context, fs FlowStep, token api.Token, outputs api.Args,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeWorkCompleted,
 			api.WorkCompletedEvent{
-				FlowID:  flowID,
-				StepID:  stepID,
+				FlowID:  fs.FlowID,
+				StepID:  fs.StepID,
 				Token:   token,
 				Outputs: outputs,
 			},
 		)
 	}
 
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
 	return err
 }
 
 // FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(
-	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
-	errMsg string,
+	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeWorkFailed,
 			api.WorkFailedEvent{
-				FlowID: flowID,
-				StepID: stepID,
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
 				Token:  token,
 				Error:  errMsg,
 			},
 		)
 	}
 
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
 	return err
 }
 
 // SetAttribute sets a named attribute value in the flow state, returning
 // an error if the attribute is already set
 func (e *Engine) SetAttribute(
-	ctx context.Context, flowID, stepID timebox.ID, attr api.Name, value any,
+	ctx context.Context, fs FlowStep, attr api.Name, value any,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		if _, ok := st.Attributes[attr]; ok {
@@ -151,15 +148,15 @@ func (e *Engine) SetAttribute(
 
 		return util.Raise(ag, api.EventTypeAttributeSet,
 			api.AttributeSetEvent{
-				FlowID: flowID,
-				StepID: stepID,
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
 				Key:    attr,
 				Value:  value,
 			},
 		)
 	}
 
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
 	return err
 }
 
@@ -323,29 +320,30 @@ func (e *Engine) evaluateFlowState(
 		if !ok || exec.Status != api.StepPending {
 			continue
 		}
-		e.maybeSkipStep(ctx, flowID, stepID, flow)
+		fs := FlowStep{FlowID: flowID, StepID: stepID}
+		e.maybeSkipStep(ctx, fs, flow)
 	}
 }
 
 func (e *Engine) maybeSkipStep(
-	ctx context.Context, flowID, stepID timebox.ID, flow *api.FlowState,
+	ctx context.Context, fs FlowStep, flow *api.FlowState,
 ) {
-	if e.canStepComplete(stepID, flow) {
-		if !e.areOutputsNeeded(stepID, flow) {
-			err := e.SkipStepExecution(ctx, flowID, stepID, "outputs not needed")
+	if e.canStepComplete(fs.StepID, flow) {
+		if !e.areOutputsNeeded(fs.StepID, flow) {
+			err := e.SkipStepExecution(ctx, fs, "outputs not needed")
 			if err != nil {
 				slog.Error("Failed to skip step",
-					slog.Any("step_id", stepID),
+					slog.Any("step_id", fs.StepID),
 					slog.Any("error", err))
 			}
 		}
 		return
 	}
 
-	err := e.FailStepExecution(ctx, flowID, stepID, "required inputs cannot be satisfied")
+	err := e.FailStepExecution(ctx, fs, "required inputs cannot be satisfied")
 	if err != nil {
 		slog.Error("Failed to fail step",
-			slog.Any("step_id", stepID),
+			slog.Any("step_id", fs.StepID),
 			slog.Any("error", err))
 	}
 }

@@ -159,7 +159,10 @@ func (wa *flowActor) launchReadySteps(ready []timebox.ID) {
 		wa.wg.Add(1)
 		go func(stepID timebox.ID) {
 			defer wa.wg.Done()
-			wa.executeStep(wa.ctx, wa.flowID, stepID)
+			wa.executeStep(wa.ctx, FlowStep{
+				FlowID: wa.flowID,
+				StepID: stepID,
+			})
 		}(stepID)
 	}
 }

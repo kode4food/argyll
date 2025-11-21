@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -329,13 +330,14 @@ func TestScheduleRetry(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	token := api.Token("test-token")
-	err = env.Engine.StartWork(ctx, flowID, "test-step", token, api.Args{})
+	fs := engine.FlowStep{FlowID: flowID, StepID: "test-step"}
+	err = env.Engine.StartWork(ctx, fs, token, api.Args{})
 	require.NoError(t, err)
 
-	err = env.Engine.FailWork(ctx, flowID, "test-step", token, "test error")
+	err = env.Engine.FailWork(ctx, fs, token, "test error")
 	require.NoError(t, err)
 
-	err = env.Engine.ScheduleRetry(ctx, flowID, "test-step", token, "test error")
+	err = env.Engine.ScheduleRetry(ctx, fs, token, "test error")
 	require.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(ctx, flowID)
@@ -527,7 +529,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 		},
 	}
 
-	for i := 0; i < count; i++ {
+	for i := range count {
 		go func(id int) {
 			flowID := timebox.ID(fmt.Sprintf("flow-%d", id))
 			err := env.Engine.StartFlow(
@@ -538,7 +540,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 		}(i)
 	}
 
-	for i := 0; i < count; i++ {
+	for range count {
 		<-done
 	}
 
@@ -546,7 +548,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Verify all flows were created
-	for i := 0; i < count; i++ {
+	for i := range count {
 		flowID := timebox.ID(fmt.Sprintf("flow-%d", i))
 		flow, err := env.Engine.GetFlowState(ctx, flowID)
 		assert.NoError(t, err)

@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -53,17 +54,18 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		return
 	}
 
-	s.handleWorkWebhook(c, flowID, stepID, token)
+	fs := engine.FlowStep{FlowID: flowID, StepID: stepID}
+	s.handleWorkWebhook(c, fs, token)
 }
 
 func (s *Server) handleWorkWebhook(
-	c *gin.Context, flowID, stepID timebox.ID, token api.Token,
+	c *gin.Context, fs engine.FlowStep, token api.Token,
 ) {
 	var result api.StepResult
 	if err := c.ShouldBindJSON(&result); err != nil {
 		slog.Error("Invalid JSON",
-			slog.Any("flow_id", flowID),
-			slog.Any("step_id", stepID),
+			slog.Any("flow_id", fs.FlowID),
+			slog.Any("step_id", fs.StepID),
 			slog.Any("token", token),
 			slog.Any("error", err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -75,16 +77,16 @@ func (s *Server) handleWorkWebhook(
 
 	if !result.Success {
 		slog.Error("Work failed",
-			slog.Any("flow_id", flowID),
-			slog.Any("step_id", stepID),
+			slog.Any("flow_id", fs.FlowID),
+			slog.Any("step_id", fs.StepID),
 			slog.Any("token", token),
 			slog.String("error", result.Error))
 		if err := s.engine.FailWork(
-			c.Request.Context(), flowID, stepID, token, result.Error,
+			c.Request.Context(), fs, token, result.Error,
 		); err != nil {
 			slog.Error("Failed to record work failure",
-				slog.Any("flow_id", flowID),
-				slog.Any("step_id", stepID),
+				slog.Any("flow_id", fs.FlowID),
+				slog.Any("step_id", fs.StepID),
 				slog.Any("token", token),
 				slog.Any("error", err))
 			c.JSON(http.StatusInternalServerError, api.ErrorResponse{
@@ -98,11 +100,11 @@ func (s *Server) handleWorkWebhook(
 	}
 
 	if err := s.engine.CompleteWork(
-		c.Request.Context(), flowID, stepID, token, result.Outputs,
+		c.Request.Context(), fs, token, result.Outputs,
 	); err != nil {
 		slog.Error("Failed to complete work",
-			slog.Any("flow_id", flowID),
-			slog.Any("step_id", stepID),
+			slog.Any("flow_id", fs.FlowID),
+			slog.Any("step_id", fs.StepID),
 			slog.Any("token", token),
 			slog.Any("error", err))
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{

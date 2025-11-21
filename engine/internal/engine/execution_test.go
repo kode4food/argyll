@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -38,22 +39,25 @@ func TestPrepareStepExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("successful preparation", func(t *testing.T) {
+		fs := engine.FlowStep{FlowID: "wf-prep", StepID: "prep-step"}
 		execCtx := env.Engine.PrepareStepExecution(
-			context.Background(), "wf-prep", "prep-step",
+			context.Background(), fs,
 		)
 		assert.NotNil(t, execCtx)
 	})
 
 	t.Run("invalid flow id", func(t *testing.T) {
+		fs := engine.FlowStep{FlowID: "invalid-flow-id", StepID: "prep-step"}
 		execCtx := env.Engine.PrepareStepExecution(
-			context.Background(), "invalid-flow-id", "prep-step",
+			context.Background(), fs,
 		)
 		assert.Nil(t, execCtx)
 	})
 
 	t.Run("invalid step id", func(t *testing.T) {
+		fs := engine.FlowStep{FlowID: "wf-prep", StepID: "invalid-step-id"}
 		execCtx := env.Engine.PrepareStepExecution(
-			context.Background(), "wf-prep", "invalid-step-id",
+			context.Background(), fs,
 		)
 		assert.Nil(t, execCtx)
 	})
@@ -71,7 +75,8 @@ func TestPrepareStepExecution(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "wf-prep-2", plan2, api.Args{}, api.Metadata{},
+			context.Background(), "wf-prep-2", plan2, api.Args{},
+			api.Metadata{},
 		)
 		require.NoError(t, err)
 
@@ -86,8 +91,9 @@ func TestPrepareStepExecution(t *testing.T) {
 			return ok && exec.Status != api.StepPending
 		}, 5*time.Second, 100*time.Millisecond)
 
+		fs := engine.FlowStep{FlowID: "wf-prep-2", StepID: "active-step"}
 		execCtx := env.Engine.PrepareStepExecution(
-			context.Background(), "wf-prep-2", "active-step",
+			context.Background(), fs,
 		)
 		assert.Nil(t, execCtx)
 	})
@@ -116,13 +122,14 @@ func TestEnqueueStepResult(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-enqueue", StepID: "enqueue-step"}
 	err = env.Engine.StartStepExecution(
-		context.Background(), "wf-enqueue", "enqueue-step", api.Args{},
+		context.Background(), fs, step, api.Args{},
 	)
 	require.NoError(t, err)
 
 	env.Engine.EnqueueStepResult(
-		"wf-enqueue", "enqueue-step", api.Args{"result": 42}, 100,
+		fs, api.Args{"result": 42}, 100,
 	)
 
 	require.Eventually(t, func() bool {

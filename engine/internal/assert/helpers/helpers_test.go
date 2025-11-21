@@ -80,7 +80,7 @@ func TestThreadSafe(t *testing.T) {
 	cl.SetResponse("step-1", api.Args{"result": "value"})
 
 	done := make(chan bool)
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			step := &api.Step{ID: "step-1"}
 			_, _ = cl.Invoke(
@@ -90,7 +90,7 @@ func TestThreadSafe(t *testing.T) {
 		}()
 	}
 
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 

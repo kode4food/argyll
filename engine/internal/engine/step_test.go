@@ -11,6 +11,7 @@ import (
 
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -93,12 +94,13 @@ func TestScript(t *testing.T) {
 	require.NoError(t, err)
 
 	a := as.New(t)
+	fs := engine.FlowStep{FlowID: "wf-script", StepID: "script-step"}
 	a.EventuallyWithError(func() error {
-		_, err := env.Engine.GetCompiledScript("wf-script", "script-step")
+		_, err := env.Engine.GetCompiledScript(fs)
 		return err
 	}, 500*time.Millisecond, "script should compile")
 
-	comp, err := env.Engine.GetCompiledScript("wf-script", "script-step")
+	comp, err := env.Engine.GetCompiledScript(fs)
 	require.NoError(t, err)
 	assert.NotNil(t, comp)
 }
@@ -128,7 +130,8 @@ func TestScriptMissing(t *testing.T) {
 	)
 	require.NoError(t, err)
 
-	_, err = env.Engine.GetCompiledScript("wf-no-script", "no-script")
+	fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
+	_, err = env.Engine.GetCompiledScript(fs)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "execution plan missing")
 }
@@ -164,16 +167,13 @@ func TestPredicate(t *testing.T) {
 	require.NoError(t, err)
 
 	a := as.New(t)
+	fs := engine.FlowStep{FlowID: "wf-predicate", StepID: "predicate-step"}
 	a.EventuallyWithError(func() error {
-		_, err := env.Engine.GetCompiledPredicate(
-			"wf-predicate", "predicate-step",
-		)
+		_, err := env.Engine.GetCompiledPredicate(fs)
 		return err
 	}, 500*time.Millisecond, "predicate should compile")
 
-	comp, err := env.Engine.GetCompiledPredicate(
-		"wf-predicate", "predicate-step",
-	)
+	comp, err := env.Engine.GetCompiledPredicate(fs)
 	require.NoError(t, err)
 	assert.NotNil(t, comp)
 }
@@ -182,7 +182,8 @@ func TestPlanFlowNotFound(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	_, err := env.Engine.GetCompiledScript("nonexistent-flow", "step-id")
+	fs := engine.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
+	_, err := env.Engine.GetCompiledScript(fs)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "flow not found")
 }

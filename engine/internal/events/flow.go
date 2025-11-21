@@ -100,9 +100,17 @@ func flowFailed(
 func stepStarted(
 	st *api.FlowState, ev *timebox.Event, data api.StepStartedEvent,
 ) *api.FlowState {
+	workItems := map[api.Token]*api.WorkState{}
+	for token, inputs := range data.WorkItems {
+		workItems[token] = &api.WorkState{
+			Status: api.WorkPending,
+			Inputs: inputs,
+		}
+	}
+
 	exec := &api.ExecutionState{
 		Status:    api.StepPending,
-		WorkItems: map[api.Token]*api.WorkState{},
+		WorkItems: workItems,
 	}
 
 	updated := exec.

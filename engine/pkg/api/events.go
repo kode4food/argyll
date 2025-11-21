@@ -46,9 +46,10 @@ type (
 
 	// StepStartedEvent is emitted when a step begins execution
 	StepStartedEvent struct {
-		Inputs Args       `json:"inputs"`
-		FlowID timebox.ID `json:"flow_id"`
-		StepID timebox.ID `json:"step_id"`
+		Inputs    Args           `json:"inputs"`
+		FlowID    timebox.ID     `json:"flow_id"`
+		StepID    timebox.ID     `json:"step_id"`
+		WorkItems map[Token]Args `json:"work_items,omitempty"`
 	}
 
 	// StepCompletedEvent is emitted when a step completes successfully

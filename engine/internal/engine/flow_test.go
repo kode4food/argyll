@@ -10,6 +10,7 @@ import (
 
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -103,8 +104,9 @@ func TestSetAttribute(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-attr", StepID: "step-attr"}
 	err = env.Engine.SetAttribute(
-		context.Background(), "wf-attr", "step-attr", "test_key", "test_value",
+		context.Background(), fs, "test_key", "test_value",
 	)
 	require.NoError(t, err)
 
@@ -137,13 +139,14 @@ func TestGetAttributes(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-getattrs", StepID: "step-attrs"}
 	err = env.Engine.SetAttribute(
-		context.Background(), "wf-getattrs", "step-attrs", "key1", "value1",
+		context.Background(), fs, "key1", "value1",
 	)
 	require.NoError(t, err)
 
 	err = env.Engine.SetAttribute(
-		context.Background(), "wf-getattrs", "step-attrs", "key2", 42,
+		context.Background(), fs, "key2", 42,
 	)
 	require.NoError(t, err)
 
@@ -177,15 +180,14 @@ func TestSetDuplicate(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-dup-attr", StepID: "step-dup-attr"}
 	err = env.Engine.SetAttribute(
-		context.Background(), "wf-dup-attr", "step-dup-attr", "dup_key",
-		"first",
+		context.Background(), fs, "dup_key", "first",
 	)
 	require.NoError(t, err)
 
 	err = env.Engine.SetAttribute(
-		context.Background(), "wf-dup-attr", "step-dup-attr", "dup_key",
-		"second",
+		context.Background(), fs, "dup_key", "second",
 	)
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "attribute already set")
@@ -287,8 +289,9 @@ func TestStartStep(t *testing.T) {
 	require.NoError(t, err)
 
 	inputs := api.Args{"input": "value"}
+	fs := engine.FlowStep{FlowID: "wf-exec", StepID: "exec-step"}
 	err = env.Engine.StartStepExecution(
-		context.Background(), "wf-exec", "exec-step", inputs,
+		context.Background(), fs, step, inputs,
 	)
 	require.NoError(t, err)
 
@@ -326,16 +329,18 @@ func TestCompleteStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{
+		FlowID: "wf-complete-exec",
+		StepID: "step-complete-exec",
+	}
 	err = env.Engine.StartStepExecution(
-		context.Background(), "wf-complete-exec", "step-complete-exec",
-		api.Args{},
+		context.Background(), fs, step, api.Args{},
 	)
 	require.NoError(t, err)
 
 	outputs := api.Args{"output": "result"}
 	err = env.Engine.CompleteStepExecution(
-		context.Background(), "wf-complete-exec", "step-complete-exec",
-		outputs, 100,
+		context.Background(), fs, outputs, 100,
 	)
 	require.NoError(t, err)
 
@@ -373,14 +378,14 @@ func TestFailStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-fail-exec", StepID: "step-fail-exec"}
 	err = env.Engine.StartStepExecution(
-		context.Background(), "wf-fail-exec", "step-fail-exec", api.Args{},
+		context.Background(), fs, step, api.Args{},
 	)
 	require.NoError(t, err)
 
 	err = env.Engine.FailStepExecution(
-		context.Background(), "wf-fail-exec", "step-fail-exec",
-		"execution failed",
+		context.Background(), fs, "execution failed",
 	)
 	require.NoError(t, err)
 
@@ -418,8 +423,9 @@ func TestSkipStep(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-skip", StepID: "step-skip"}
 	err = env.Engine.SkipStepExecution(
-		context.Background(), "wf-skip", "step-skip", "test skip reason",
+		context.Background(), fs, "test skip reason",
 	)
 	require.NoError(t, err)
 
@@ -531,13 +537,14 @@ func TestIsFlowFailed(t *testing.T) {
 	)
 	require.NoError(t, err)
 
+	fs := engine.FlowStep{FlowID: "wf-failed-test", StepID: "step-a"}
 	err = env.Engine.StartStepExecution(
-		context.Background(), "wf-failed-test", "step-a", api.Args{},
+		context.Background(), fs, stepA, api.Args{},
 	)
 	require.NoError(t, err)
 
 	err = env.Engine.FailStepExecution(
-		context.Background(), "wf-failed-test", "step-a", "test error",
+		context.Background(), fs, "test error",
 	)
 	require.NoError(t, err)
 

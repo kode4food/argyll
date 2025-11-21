@@ -301,7 +301,8 @@ func (e *Engine) checkPendingRetries() {
 
 					step := flow.Plan.GetStep(stepID)
 					if step != nil {
-						e.retryWork(ctx, flowID, stepID, step, workItem.Inputs)
+						fs := FlowStep{FlowID: flowID, StepID: stepID}
+						e.retryWork(ctx, fs, step, token, workItem)
 					}
 				}
 			}
@@ -310,33 +311,33 @@ func (e *Engine) checkPendingRetries() {
 }
 
 func (e *Engine) retryWork(
-	ctx context.Context, flowID, stepID timebox.ID, step *api.Step,
-	inputs api.Args,
+	ctx context.Context, fs FlowStep, step *api.Step, token api.Token,
+	workItem *api.WorkState,
 ) {
 	execCtx := &ExecContext{
 		engine: e,
 		step:   step,
-		inputs: inputs,
-		flowID: flowID,
-		stepID: stepID,
+		inputs: workItem.Inputs,
+		flowID: fs.FlowID,
+		stepID: fs.StepID,
 	}
 
-	execCtx.executeWorkItem(ctx, inputs)
+	execCtx.executeWorkItem(ctx, token, workItem)
 }
 
 func (e *Engine) getCompiledFromPlan(
-	flowID, stepID timebox.ID, getter func(*api.StepInfo) (any, error),
+	fs FlowStep, getter func(*api.StepInfo) (any, error),
 ) (any, error) {
-	flow, err := e.GetFlowState(e.ctx, flowID)
+	flow, err := e.GetFlowState(e.ctx, fs.FlowID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !e.ensureScriptsCompiled(flowID, flow) {
+	if !e.ensureScriptsCompiled(fs.FlowID, flow) {
 		return nil, ErrScriptCompileFailed
 	}
 
-	info, ok := flow.Plan.Steps[stepID]
+	info, ok := flow.Plan.Steps[fs.StepID]
 	if !ok {
 		return nil, ErrStepNotInPlan
 	}
@@ -345,8 +346,8 @@ func (e *Engine) getCompiledFromPlan(
 }
 
 // GetCompiledPredicate retrieves the compiled predicate for a flow step
-func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
-	return e.getCompiledFromPlan(flowID, stepID,
+func (e *Engine) GetCompiledPredicate(fs FlowStep) (any, error) {
+	return e.getCompiledFromPlan(fs,
 		func(info *api.StepInfo) (any, error) {
 			if info.Predicate == nil {
 				return nil, fmt.Errorf("%w: predicate", ErrExecutionPlanMissing)
@@ -357,10 +358,9 @@ func (e *Engine) GetCompiledPredicate(flowID, stepID timebox.ID) (any, error) {
 }
 
 // GetCompiledScript retrieves the compiled script for a step in a flow
-func (e *Engine) GetCompiledScript(flowID, stepID timebox.ID) (any, error) {
-	return e.getCompiledFromPlan(
-		flowID, stepID, func(info *api.StepInfo,
-		) (any, error) {
+func (e *Engine) GetCompiledScript(fs FlowStep) (any, error) {
+	return e.getCompiledFromPlan(fs,
+		func(info *api.StepInfo) (any, error) {
 			if info.Script == nil {
 				return nil, fmt.Errorf("%w: script", ErrExecutionPlanMissing)
 			}

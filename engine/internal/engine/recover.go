@@ -96,22 +96,21 @@ func (e *Engine) CalculateNextRetry(
 // ScheduleRetry schedules a failed work item for retry at a calculated future
 // time based on the backoff configuration
 func (e *Engine) ScheduleRetry(
-	ctx context.Context, flowID, stepID timebox.ID, token api.Token,
-	errMsg string,
+	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
 ) error {
-	flow, err := e.GetFlowState(ctx, flowID)
+	flow, err := e.GetFlowState(ctx, fs.FlowID)
 	if err != nil {
 		return fmt.Errorf("failed to get flow state: %w", err)
 	}
 
-	step := flow.Plan.GetStep(stepID)
+	step := flow.Plan.GetStep(fs.StepID)
 	if step == nil {
-		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+		return fmt.Errorf("%w: %s", ErrStepNotInPlan, fs.StepID)
 	}
 
-	exec, ok := flow.Executions[stepID]
+	exec, ok := flow.Executions[fs.StepID]
 	if !ok {
-		return fmt.Errorf("execution state not found for step: %s", stepID)
+		return fmt.Errorf("execution state not found for step: %s", fs.StepID)
 	}
 
 	workItem, ok := exec.WorkItems[token]
@@ -125,8 +124,8 @@ func (e *Engine) ScheduleRetry(
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return util.Raise(ag, api.EventTypeRetryScheduled,
 			api.RetryScheduledEvent{
-				FlowID:      flowID,
-				StepID:      stepID,
+				FlowID:      fs.FlowID,
+				StepID:      fs.StepID,
 				Token:       token,
 				RetryCount:  newRetryCount,
 				NextRetryAt: nextRetryAt,
@@ -135,14 +134,14 @@ func (e *Engine) ScheduleRetry(
 		)
 	}
 
-	_, err = e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err = e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
 	if err != nil {
 		return fmt.Errorf("failed to schedule retry: %w", err)
 	}
 
 	slog.Info("Retry scheduled",
-		slog.Any("flow_id", flowID),
-		slog.Any("step_id", stepID),
+		slog.Any("flow_id", fs.FlowID),
+		slog.Any("step_id", fs.StepID),
 		slog.Any("token", token),
 		slog.Int("retry_count", newRetryCount),
 		slog.Any("next_retry_at", nextRetryAt))
@@ -214,16 +213,35 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID timebox.ID) error {
 		}
 
 		for token, workItem := range exec.WorkItems {
-			if workItem.Status == api.WorkPending &&
-				!workItem.NextRetryAt.IsZero() &&
-				workItem.NextRetryAt.Before(now) {
+			shouldRetry := false
+
+			switch workItem.Status {
+			case api.WorkActive:
+				shouldRetry = true
+			case api.WorkPending:
+				if exec.Status == api.StepActive {
+					shouldRetry = true
+				} else if !workItem.NextRetryAt.IsZero() &&
+					workItem.NextRetryAt.Before(now) {
+					shouldRetry = true
+				}
+			case api.WorkFailed:
+				if !workItem.NextRetryAt.IsZero() &&
+					workItem.NextRetryAt.Before(now) {
+					shouldRetry = true
+				}
+			}
+
+			if shouldRetry {
 				slog.Info("Retrying work item",
 					slog.Any("flow_id", flowID),
 					slog.Any("step_id", stepID),
 					slog.Any("token", token),
+					slog.String("status", string(workItem.Status)),
 					slog.Int("retry_count", workItem.RetryCount))
 
-				e.retryWork(ctx, flowID, stepID, step, workItem.Inputs)
+				fs := FlowStep{FlowID: flowID, StepID: stepID}
+				e.retryWork(ctx, fs, step, token, workItem)
 			}
 		}
 	}
