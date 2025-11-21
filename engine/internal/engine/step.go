@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"fmt"
-	"maps"
 
 	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
@@ -55,8 +54,7 @@ func (e *Engine) StartStepExecution(
 	}
 
 	return e.transitionStepExecution(
-		ctx, fs.FlowID, fs.StepID, api.StepActive, "start",
-		api.EventTypeStepStarted,
+		ctx, fs, api.StepActive, "start", api.EventTypeStepStarted,
 		api.StepStartedEvent{
 			FlowID:    fs.FlowID,
 			StepID:    fs.StepID,
@@ -72,8 +70,7 @@ func (e *Engine) CompleteStepExecution(
 	ctx context.Context, fs FlowStep, outputs api.Args, dur int64,
 ) error {
 	return e.transitionStepExecution(
-		ctx, fs.FlowID, fs.StepID, api.StepCompleted, "complete",
-		api.EventTypeStepCompleted,
+		ctx, fs, api.StepCompleted, "complete", api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
 			FlowID:   fs.FlowID,
 			StepID:   fs.StepID,
@@ -89,8 +86,7 @@ func (e *Engine) FailStepExecution(
 	ctx context.Context, fs FlowStep, errMsg string,
 ) error {
 	return e.transitionStepExecution(
-		ctx, fs.FlowID, fs.StepID, api.StepFailed, "fail",
-		api.EventTypeStepFailed,
+		ctx, fs, api.StepFailed, "fail", api.EventTypeStepFailed,
 		api.StepFailedEvent{
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
@@ -105,8 +101,7 @@ func (e *Engine) SkipStepExecution(
 	ctx context.Context, fs FlowStep, reason string,
 ) error {
 	return e.transitionStepExecution(
-		ctx, fs.FlowID, fs.StepID, api.StepSkipped, "skip",
-		api.EventTypeStepSkipped,
+		ctx, fs, api.StepSkipped, "skip", api.EventTypeStepSkipped,
 		api.StepSkippedEvent{
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
@@ -116,24 +111,24 @@ func (e *Engine) SkipStepExecution(
 }
 
 func (e *Engine) transitionStepExecution(
-	ctx context.Context, flowID, stepID timebox.ID, toStatus api.StepStatus,
-	action string, eventType timebox.EventType, eventData any,
+	ctx context.Context, fs FlowStep, toStatus api.StepStatus, action string,
+	eventType timebox.EventType, eventData any,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		exec, ok := st.Executions[stepID]
+		exec, ok := st.Executions[fs.StepID]
 		if !ok {
-			return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+			return fmt.Errorf("%w: %s", ErrStepNotInPlan, fs.StepID)
 		}
 
 		if !stepTransitions.CanTransition(exec.Status, toStatus) {
 			return fmt.Errorf("%s: step %s cannot %s from status %s",
-				ErrInvalidTransition, stepID, action, exec.Status)
+				ErrInvalidTransition, fs.StepID, action, exec.Status)
 		}
 
 		return util.Raise(ag, eventType, eventData)
 	}
 
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
 	return err
 }
 
@@ -195,63 +190,4 @@ func (e *Engine) appendFailedStep(
 
 func isAsyncStep(stepType api.StepType) bool {
 	return asyncStepTypes.Contains(stepType)
-}
-
-// computeWorkItems determines all work items that a step needs to execute
-func computeWorkItems(step *api.Step, inputs api.Args) []api.Args {
-	argNames := step.MultiArgNames()
-	multiArgs := getMultiArgs(argNames, inputs)
-	if len(multiArgs) == 0 {
-		return []api.Args{inputs}
-	}
-	return cartesianProduct(multiArgs, inputs)
-}
-
-func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
-	if len(multiArgs) == 0 {
-		return nil
-	}
-
-	names, arrays := extractMultiArgs(multiArgs)
-
-	var result []api.Args
-	var generate func(int, api.Args)
-	generate = func(depth int, current api.Args) {
-		if depth == len(arrays) {
-			result = append(result,
-				combineInputs(baseInputs, current, multiArgs),
-			)
-			return
-		}
-
-		name := names[depth]
-		for _, val := range arrays[depth] {
-			next := current.Set(name, val)
-			generate(depth+1, next)
-		}
-	}
-
-	generate(0, nil)
-	return result
-}
-
-func extractMultiArgs(multiArgs MultiArgs) ([]api.Name, [][]any) {
-	var names []api.Name
-	var arrays [][]any
-	for name, arr := range multiArgs {
-		names = append(names, name)
-		arrays = append(arrays, arr)
-	}
-	return names, arrays
-}
-
-func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
-	inputs := api.Args{}
-	for k, v := range baseInputs {
-		if _, isMulti := multiArgs[k]; !isMulti {
-			inputs[k] = v
-		}
-	}
-	maps.Copy(inputs, current)
-	return inputs
 }
