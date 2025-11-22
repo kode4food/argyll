@@ -195,15 +195,12 @@ func (e *Engine) GetAttributes(
 func (e *Engine) GetFlowEvents(
 	ctx context.Context, flowID api.FlowID, fromSeq int64,
 ) ([]*timebox.Event, error) {
-	id := timebox.NewAggregateID("flow", timebox.ID(flowID))
-	return e.flowExec.GetStore().GetEvents(ctx, id, fromSeq)
+	return e.flowExec.GetStore().GetEvents(ctx, flowKey(flowID), fromSeq)
 }
 
 // ListFlows returns summary information for all flows in the system
 func (e *Engine) ListFlows(ctx context.Context) ([]*api.FlowDigest, error) {
-	ids, err := e.flowExec.GetStore().ListAggregates(
-		ctx, timebox.NewAggregateID("flow", "*"),
-	)
+	ids, err := e.flowExec.GetStore().ListAggregates(ctx, flowKey("*"))
 	if err != nil {
 		return nil, err
 	}
