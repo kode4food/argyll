@@ -13,8 +13,8 @@ import (
 )
 
 func (s *Server) handleWebhook(c *gin.Context) {
-	flowID := timebox.ID(c.Param("flowID"))
-	stepID := timebox.ID(c.Param("stepID"))
+	flowID := api.FlowID(c.Param("flowID"))
+	stepID := api.StepID(c.Param("stepID"))
 	token := api.Token(c.Param("token"))
 
 	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
@@ -118,8 +118,9 @@ func (s *Server) handleWorkWebhook(
 }
 
 func (s *Server) handleWebSocket(c *gin.Context) {
-	replayFunc := func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error) {
-		return s.engine.GetFlowEvents(c.Request.Context(), flowID, fromSeq)
-	}
-	HandleWebSocket(s.eventHub, c.Writer, c.Request, replayFunc)
+	HandleWebSocket(s.eventHub, c.Writer, c.Request,
+		func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
+			return s.engine.GetFlowEvents(c.Request.Context(), flowID, fromSeq)
+		},
+	)
 }

@@ -18,9 +18,9 @@ var (
 // steps, health status, and active flows
 func NewEngineState() *api.EngineState {
 	return &api.EngineState{
-		Steps:       map[timebox.ID]*api.Step{},
-		Health:      map[timebox.ID]*api.HealthState{},
-		ActiveFlows: map[timebox.ID]*api.ActiveFlowInfo{},
+		Steps:       map[api.StepID]*api.Step{},
+		Health:      map[api.StepID]*api.HealthState{},
+		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{},
 	}
 }
 
@@ -36,13 +36,13 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 	flowActivatedApplier := timebox.MakeApplier(flowActivated)
 	flowDeactivatedApplier := timebox.MakeApplier(flowDeactivated)
 
-	return timebox.Appliers[*api.EngineState]{
+	return MakeAppliers(map[api.EventType]timebox.Applier[*api.EngineState]{
 		api.EventTypeStepRegistered:    stepRegisteredApplier,
 		api.EventTypeStepUnregistered:  stepUnregisteredApplier,
 		api.EventTypeStepHealthChanged: stepHealthChangedApplier,
 		api.EventTypeFlowActivated:     flowActivatedApplier,
 		api.EventTypeFlowDeactivated:   flowDeactivatedApplier,
-	}
+	})
 }
 
 func stepRegistered(

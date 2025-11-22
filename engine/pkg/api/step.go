@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"slices"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
@@ -24,7 +22,7 @@ type (
 		HTTP       *HTTPConfig    `json:"http,omitempty"`
 		Script     *ScriptConfig  `json:"script,omitempty"`
 		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
-		ID         timebox.ID     `json:"id"`
+		ID         StepID         `json:"id"`
 		Name       Name           `json:"name"`
 		Type       StepType       `json:"type"`
 		Version    string         `json:"version"`

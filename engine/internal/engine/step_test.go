@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,8 +24,8 @@ func TestGetActive(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"active-test"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"active-test"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -43,7 +42,7 @@ func TestGetActive(t *testing.T) {
 	flow, ok := env.Engine.GetActiveFlow("wf-active-test")
 	assert.True(t, ok)
 	assert.NotNil(t, flow)
-	assert.Equal(t, timebox.ID("wf-active-test"), flow.ID)
+	assert.Equal(t, api.FlowID("wf-active-test"), flow.ID)
 }
 
 func TestGetActiveNotFound(t *testing.T) {
@@ -78,8 +77,8 @@ func TestScript(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"script-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"script-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -115,8 +114,8 @@ func TestScriptMissing(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"no-script"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"no-script"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -151,8 +150,8 @@ func TestPredicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"predicate-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"predicate-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}

@@ -108,10 +108,6 @@ func testWebSocket(t *testing.T, replay ReplayFunc) *testWebSocketEnv {
 	}
 }
 
-func eventTypePtr(et timebox.EventType) *timebox.EventType {
-	return &et
-}
-
 func TestHandleWebSocket(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
@@ -139,7 +135,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		Data:        json.RawMessage(`{"test":"data"}`),
 		Timestamp:   time.Now(),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
@@ -165,7 +161,7 @@ func TestMessageInvalid(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		Data:        json.RawMessage(`{}`),
 		Timestamp:   time.Now(),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
@@ -196,7 +192,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		Data:        json.RawMessage(`{}`),
 		Timestamp:   time.Now(),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
@@ -214,21 +210,21 @@ func TestMessageNonSubscribe(t *testing.T) {
 func TestReplayWithEvents(t *testing.T) {
 	replayEvents := []*timebox.Event{
 		{
-			Type:        api.EventTypeFlowStarted,
+			Type:        timebox.EventType(api.EventTypeFlowStarted),
 			Data:        json.RawMessage(`{"replayed":true}`),
 			Timestamp:   time.Now(),
 			AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 		},
 		{
-			Type:        api.EventTypeStepCompleted,
+			Type:        timebox.EventType(api.EventTypeStepCompleted),
 			Data:        json.RawMessage(`{"step":"test"}`),
 			Timestamp:   time.Now(),
 			AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 		},
 	}
 
-	replay := func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error) {
-		assert.Equal(t, timebox.ID("wf-123"), flowID)
+	replay := func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
+		assert.Equal(t, api.FlowID("wf-123"), flowID)
 		assert.Equal(t, int64(0), fromSeq)
 		return replayEvents, nil
 	}
@@ -258,7 +254,7 @@ func TestReplayWithEvents(t *testing.T) {
 }
 
 func TestReplayWithError(t *testing.T) {
-	replay := func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error) {
+	replay := func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
 		return nil, assert.AnError
 	}
 
@@ -285,7 +281,7 @@ func TestReplayWithError(t *testing.T) {
 
 func TestReplayWithoutFlowID(t *testing.T) {
 	replayCalled := false
-	replay := func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error) {
+	replay := func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
 		replayCalled = true
 		return nil, nil
 	}
@@ -296,7 +292,9 @@ func TestReplayWithoutFlowID(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeFlowStarted)},
+			EventTypes: []api.EventType{
+				api.EventTypeFlowStarted,
+			},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -315,11 +313,11 @@ func TestEngineEvents(t *testing.T) {
 	filter := BuildFilter(sub)
 
 	engineEvent := &timebox.Event{
-		Type:        api.EventTypeStepRegistered,
+		Type:        timebox.EventType(api.EventTypeStepRegistered),
 		AggregateID: timebox.NewAggregateID("engine", "engine"),
 	}
 	flowEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
@@ -329,24 +327,24 @@ func TestEngineEvents(t *testing.T) {
 
 func TestEventTypes(t *testing.T) {
 	sub := &api.ClientSubscription{
-		EventTypes: []*timebox.EventType{
-			eventTypePtr(api.EventTypeFlowStarted),
-			eventTypePtr(api.EventTypeStepCompleted),
+		EventTypes: []api.EventType{
+			api.EventTypeFlowStarted,
+			api.EventTypeStepCompleted,
 		},
 	}
 
 	filter := BuildFilter(sub)
 
 	createdEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	executedEvent := &timebox.Event{
-		Type:        api.EventTypeStepCompleted,
+		Type:        timebox.EventType(api.EventTypeStepCompleted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	otherEvent := &timebox.Event{
-		Type:        api.EventTypeFlowCompleted,
+		Type:        timebox.EventType(api.EventTypeFlowCompleted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
@@ -363,11 +361,11 @@ func TestFlow(t *testing.T) {
 	filter := BuildFilter(sub)
 
 	matchingEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	otherEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-456"),
 	}
 
@@ -381,7 +379,7 @@ func TestNoFilters(t *testing.T) {
 	filter := BuildFilter(sub)
 
 	event := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
@@ -391,21 +389,21 @@ func TestNoFilters(t *testing.T) {
 func TestCombined(t *testing.T) {
 	sub := &api.ClientSubscription{
 		EngineEvents: true,
-		EventTypes:   []*timebox.EventType{eventTypePtr(api.EventTypeFlowStarted)},
+		EventTypes:   []api.EventType{api.EventTypeFlowStarted},
 	}
 
 	filter := BuildFilter(sub)
 
 	engineEvent := &timebox.Event{
-		Type:        api.EventTypeStepRegistered,
+		Type:        timebox.EventType(api.EventTypeStepRegistered),
 		AggregateID: timebox.NewAggregateID("engine", "engine"),
 	}
 	flowEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	otherEvent := &timebox.Event{
-		Type:        api.EventTypeStepCompleted,
+		Type:        timebox.EventType(api.EventTypeStepCompleted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
@@ -417,21 +415,21 @@ func TestCombined(t *testing.T) {
 func TestEventTypesWithFlowID(t *testing.T) {
 	sub := &api.ClientSubscription{
 		FlowID:     "wf-123",
-		EventTypes: []*timebox.EventType{eventTypePtr(api.EventTypeFlowStarted)},
+		EventTypes: []api.EventType{api.EventTypeFlowStarted},
 	}
 
 	filter := BuildFilter(sub)
 
 	matchingEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	wrongTypeEvent := &timebox.Event{
-		Type:        api.EventTypeStepCompleted,
+		Type:        timebox.EventType(api.EventTypeStepCompleted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 	wrongFlowEvent := &timebox.Event{
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-456"),
 	}
 

@@ -7,7 +7,6 @@ import (
 	"sync"
 
 	"github.com/Shopify/go-lua"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -93,7 +92,7 @@ func (e *LuaEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
 }
 
 func (e *LuaEnv) compileScript(
-	stepID timebox.ID, scriptType, script string, argNames []string,
+	stepID api.StepID, scriptType, script string, argNames []string,
 ) (*CompiledLuaScript, error) {
 	key := scriptCacheKey(stepID, script)
 

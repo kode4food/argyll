@@ -3,7 +3,6 @@ package api_test
 import (
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +15,7 @@ func TestGetStep(t *testing.T) {
 	step3 := &api.Step{ID: "step3", Name: "Step 3"}
 
 	plan := &api.ExecutionPlan{
-		Steps: map[timebox.ID]*api.StepInfo{
+		Steps: map[api.StepID]*api.StepInfo{
 			"step1": {Step: step1},
 			"step2": {Step: step2},
 			"step3": {Step: step3},
@@ -50,7 +49,7 @@ func TestGetStep(t *testing.T) {
 
 func TestGetStepEmptyPlan(t *testing.T) {
 	plan := &api.ExecutionPlan{
-		Steps: map[timebox.ID]*api.StepInfo{},
+		Steps: map[api.StepID]*api.StepInfo{},
 	}
 
 	result := plan.GetStep("any")
@@ -155,7 +154,7 @@ func TestValidateEmptyArgs(t *testing.T) {
 func TestNeedsCompilation(t *testing.T) {
 	t.Run("no_script_steps", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: map[timebox.ID]*api.StepInfo{
+			Steps: map[api.StepID]*api.StepInfo{
 				"http-step": {
 					Step: &api.Step{
 						ID:   "http-step",
@@ -170,7 +169,7 @@ func TestNeedsCompilation(t *testing.T) {
 
 	t.Run("script_step_not_compiled", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: map[timebox.ID]*api.StepInfo{
+			Steps: map[api.StepID]*api.StepInfo{
 				"script-step": {
 					Step: &api.Step{
 						ID:   "script-step",
@@ -189,7 +188,7 @@ func TestNeedsCompilation(t *testing.T) {
 
 	t.Run("script_step_compiled", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: map[timebox.ID]*api.StepInfo{
+			Steps: map[api.StepID]*api.StepInfo{
 				"script-step": {
 					Step: &api.Step{
 						ID:   "script-step",
@@ -208,7 +207,7 @@ func TestNeedsCompilation(t *testing.T) {
 
 	t.Run("script_step_missing_from_map", func(t *testing.T) {
 		plan := &api.ExecutionPlan{
-			Steps: map[timebox.ID]*api.StepInfo{
+			Steps: map[api.StepID]*api.StepInfo{
 				"script-step-1": {
 					Step: &api.Step{
 						ID:   "script-step-1",

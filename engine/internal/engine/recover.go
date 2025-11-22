@@ -8,8 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kode4food/timebox"
-
+	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
@@ -122,7 +121,7 @@ func (e *Engine) ScheduleRetry(
 	nextRetryAt := e.CalculateNextRetry(step.WorkConfig, workItem.RetryCount)
 
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeRetryScheduled,
+		return events.Raise(ag, api.EventTypeRetryScheduled,
 			api.RetryScheduledEvent{
 				FlowID:      fs.FlowID,
 				StepID:      fs.StepID,
@@ -181,7 +180,7 @@ func (e *Engine) RecoverFlows(ctx context.Context) error {
 
 // RecoverFlow resumes execution of a specific flow by retrying any
 // pending work items that are ready for retry
-func (e *Engine) RecoverFlow(ctx context.Context, flowID timebox.ID) error {
+func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
 		return fmt.Errorf("failed to get flow state: %w", err)
@@ -251,8 +250,8 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID timebox.ID) error {
 
 // FindRetrySteps identifies all steps in a flow that have work items
 // scheduled for retry
-func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[timebox.ID] {
-	retriableSteps := util.Set[timebox.ID]{}
+func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
+	retriableSteps := util.Set[api.StepID]{}
 
 	for stepID, exec := range state.Executions {
 		if exec.WorkItems == nil {

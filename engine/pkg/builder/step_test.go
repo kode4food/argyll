@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -25,7 +24,7 @@ func TestNewStep(t *testing.T) {
 		Build()
 
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("test-step"), step.ID)
+	assert.Equal(t, api.StepID("test-step"), step.ID)
 	assert.Equal(t, name, step.Name)
 	assert.Equal(t, "1.0.0", step.Version)
 	assert.Equal(t, api.StepTypeSync, step.Type)
@@ -36,7 +35,7 @@ func TestNewStepIDGeneration(t *testing.T) {
 	tests := []struct {
 		name       string
 		stepName   api.Name
-		expectedID timebox.ID
+		expectedID api.StepID
 	}{
 		{
 			name:       "simple name",
@@ -85,7 +84,7 @@ func TestWithID(t *testing.T) {
 		Build()
 
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID(customID), step.ID)
+	assert.Equal(t, api.StepID(customID), step.ID)
 	assert.Equal(t, api.Name("Test Step"), step.Name)
 }
 
@@ -291,7 +290,7 @@ func TestBuildValidHTTPStep(t *testing.T) {
 
 	require.NoError(t, err)
 	require.NotNil(t, step)
-	assert.Equal(t, timebox.ID("test-step"), step.ID)
+	assert.Equal(t, api.StepID("test-step"), step.ID)
 }
 
 func TestBuildValidScriptStep(t *testing.T) {
@@ -356,7 +355,7 @@ func TestImmutability(t *testing.T) {
 	require.NoError(t, err2)
 	require.NotNil(t, step2)
 
-	assert.Equal(t, timebox.ID("custom-id"), step2.ID)
+	assert.Equal(t, api.StepID("custom-id"), step2.ID)
 	assert.Equal(t, "2.0.0", step2.Version)
 	assert.Len(t, step2.GetRequiredArgs(), 1)
 	assert.Len(t, step2.GetOutputArgs(), 1)

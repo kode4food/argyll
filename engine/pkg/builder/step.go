@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -19,7 +17,7 @@ type Step struct {
 	predicate  *api.ScriptConfig
 	http       *api.HTTPConfig
 	script     *api.ScriptConfig
-	id         StepID
+	id         api.StepID
 	name       api.Name
 	stepType   api.StepType
 	version    string
@@ -35,7 +33,7 @@ var (
 
 // NewStep creates a new step builder with the specified name
 func (c *Client) NewStep(name api.Name) *Step {
-	id := StepID(toSnakeCase(string(name)))
+	id := api.StepID(toSnakeCase(string(name)))
 	return &Step{
 		client:     c,
 		id:         id,
@@ -50,7 +48,7 @@ func (c *Client) NewStep(name api.Name) *Step {
 // WithID sets the step ID, overriding the auto-generated ID from the step name
 func (s *Step) WithID(id string) *Step {
 	res := *s
-	res.id = StepID(id)
+	res.id = api.StepID(id)
 	return &res
 }
 
@@ -227,7 +225,7 @@ func (s *Step) Build() (*api.Step, error) {
 	}
 
 	step := &api.Step{
-		ID:         timebox.ID(s.id),
+		ID:         s.id,
 		Name:       s.name,
 		Type:       s.stepType,
 		Attributes: s.attributes,

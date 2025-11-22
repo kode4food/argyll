@@ -29,9 +29,9 @@ type (
 
 	// MockClient is a simple mock implementation of client.Client for testing
 	MockClient struct {
-		responses map[timebox.ID]api.Args
-		errors    map[timebox.ID]error
-		invoked   []timebox.ID
+		responses map[api.StepID]api.Args
+		errors    map[api.StepID]error
+		invoked   []api.StepID
 		mu        sync.Mutex
 	}
 )
@@ -40,7 +40,7 @@ type (
 // and output attributes
 func NewTestStep() *api.Step {
 	return &api.Step{
-		ID:   timebox.ID("test-step-" + uuid.New().String()[:8]),
+		ID:   api.StepID("test-step-" + uuid.New().String()[:8]),
 		Name: "Test Step",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
@@ -90,7 +90,7 @@ func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 
 // NewSimpleStep creates a minimal HTTP step with the specified ID and no
 // attributes
-func NewSimpleStep(id timebox.ID) *api.Step {
+func NewSimpleStep(id api.StepID) *api.Step {
 	return &api.Step{
 		ID:         id,
 		Name:       "Test Step",
@@ -105,7 +105,7 @@ func NewSimpleStep(id timebox.ID) *api.Step {
 
 // NewStepWithOutputs creates an HTTP step that produces the specified output
 // attributes
-func NewStepWithOutputs(id timebox.ID, outputs ...api.Name) *api.Step {
+func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 	step := NewSimpleStep(id)
 	if step.Attributes == nil {
 		step.Attributes = map[api.Name]*api.AttributeSpec{}
@@ -122,7 +122,7 @@ func NewStepWithOutputs(id timebox.ID, outputs ...api.Name) *api.Step {
 // NewScriptStep creates a script-based step with the specified language, code,
 // and output attributes
 func NewScriptStep(
-	id timebox.ID, language, script string, outputs ...api.Name,
+	id api.StepID, language, script string, outputs ...api.Name,
 ) *api.Step {
 	step := &api.Step{
 		ID:      id,
@@ -146,7 +146,7 @@ func NewScriptStep(
 // NewStepWithPredicate creates an HTTP step with a predicate script that
 // determines whether the step should execute
 func NewStepWithPredicate(
-	id timebox.ID, predicateLang, predicateScript string, outputs ...api.Name,
+	id api.StepID, predicateLang, predicateScript string, outputs ...api.Name,
 ) *api.Step {
 	step := NewSimpleStep(id)
 	step.Predicate = &api.ScriptConfig{
@@ -176,9 +176,9 @@ func NewTestConfig() *config.Config {
 // errors for specific step IDs
 func NewMockClient() *MockClient {
 	return &MockClient{
-		responses: map[timebox.ID]api.Args{},
-		errors:    map[timebox.ID]error{},
-		invoked:   []timebox.ID{},
+		responses: map[api.StepID]api.Args{},
+		errors:    map[api.StepID]error{},
+		invoked:   []api.StepID{},
 	}
 }
 
@@ -268,30 +268,30 @@ func (m *MockClient) Invoke(
 }
 
 // SetResponse configures the mock to return specific outputs for a step
-func (m *MockClient) SetResponse(stepID timebox.ID, outputs api.Args) {
+func (m *MockClient) SetResponse(stepID api.StepID, outputs api.Args) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.responses[stepID] = outputs
 }
 
 // SetError configures the mock to return an error for a step
-func (m *MockClient) SetError(stepID timebox.ID, err error) {
+func (m *MockClient) SetError(stepID api.StepID, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.errors[stepID] = err
 }
 
 // GetInvocations returns the list of step IDs that were invoked
-func (m *MockClient) GetInvocations() []timebox.ID {
+func (m *MockClient) GetInvocations() []api.StepID {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	result := make([]timebox.ID, len(m.invoked))
+	result := make([]api.StepID, len(m.invoked))
 	copy(result, m.invoked)
 	return result
 }
 
 // WasInvoked returns whether a specific step was invoked
-func (m *MockClient) WasInvoked(stepID timebox.ID) bool {
+func (m *MockClient) WasInvoked(stepID api.StepID) bool {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	for _, id := range m.invoked {

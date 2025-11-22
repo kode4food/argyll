@@ -15,7 +15,6 @@ import (
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type (
@@ -89,14 +88,17 @@ func New(
 }
 
 func (e *Engine) createEventHandler() timebox.Handler {
+	flowStartedEvent := timebox.EventType(api.EventTypeFlowStarted)
 	flowStarted := timebox.MakeHandler(e.handleFlowStarted)
+	flowCompletedEvent := timebox.EventType(api.EventTypeFlowCompleted)
 	flowCompleted := timebox.MakeHandler(e.handleFlowCompleted)
+	flowFailedEvent := timebox.EventType(api.EventTypeFlowFailed)
 	flowFailed := timebox.MakeHandler(e.handleFlowFailed)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		api.EventTypeFlowStarted:   flowStarted,
-		api.EventTypeFlowCompleted: flowCompleted,
-		api.EventTypeFlowFailed:    flowFailed,
+		flowStartedEvent:   flowStarted,
+		flowCompletedEvent: flowCompleted,
+		flowFailedEvent:    flowFailed,
 	})
 }
 
@@ -139,7 +141,7 @@ func (e *Engine) Stop() error {
 
 // StartFlow begins a new flow execution with the given plan and state
 func (e *Engine) StartFlow(
-	ctx context.Context, flowID timebox.ID, plan *api.ExecutionPlan,
+	ctx context.Context, flowID api.FlowID, plan *api.ExecutionPlan,
 	initState api.Args, meta api.Metadata,
 ) error {
 	existing, err := e.GetFlowState(ctx, flowID)
@@ -156,7 +158,7 @@ func (e *Engine) StartFlow(
 	}
 
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeFlowStarted,
+		return events.Raise(ag, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
 				FlowID:   flowID,
 				Plan:     plan,
@@ -171,9 +173,9 @@ func (e *Engine) StartFlow(
 }
 
 // UnregisterStep removes a step from the engine registry
-func (e *Engine) UnregisterStep(ctx context.Context, stepID timebox.ID) error {
+func (e *Engine) UnregisterStep(ctx context.Context, stepID api.StepID) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeStepUnregistered,
+		return events.Raise(ag, api.EventTypeStepUnregistered,
 			api.StepUnregisteredEvent{StepID: stepID},
 		)
 	}
@@ -233,7 +235,7 @@ func (e *Engine) routeEvent(event *timebox.Event) {
 		return
 	}
 
-	flowID := event.AggregateID[1]
+	flowID := api.FlowID(event.AggregateID[1])
 
 	actor, loaded := e.flows.Load(flowID)
 	if !loaded {
@@ -385,7 +387,7 @@ func (e *Engine) handleFlowStarted(
 	_ *timebox.Event, data api.FlowStartedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeFlowActivated,
+		return events.Raise(ag, api.EventTypeFlowActivated,
 			api.FlowActivatedEvent{FlowID: data.FlowID},
 		)
 	}
@@ -399,7 +401,7 @@ func (e *Engine) handleFlowCompleted(
 	_ *timebox.Event, data api.FlowCompletedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeFlowDeactivated,
+		return events.Raise(ag, api.EventTypeFlowDeactivated,
 			api.FlowDeactivatedEvent{FlowID: data.FlowID},
 		)
 	}
@@ -413,7 +415,7 @@ func (e *Engine) handleFlowFailed(
 	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return util.Raise(ag, api.EventTypeFlowDeactivated,
+		return events.Raise(ag, api.EventTypeFlowDeactivated,
 			api.FlowDeactivatedEvent{FlowID: data.FlowID},
 		)
 	}

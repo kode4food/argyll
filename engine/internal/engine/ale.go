@@ -13,7 +13,6 @@ import (
 	"github.com/kode4food/ale/data"
 	"github.com/kode4food/ale/env"
 	"github.com/kode4food/ale/eval"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -84,7 +83,7 @@ func (e *AleEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
 }
 
 func (e *AleEnv) compileScript(
-	stepID timebox.ID, scriptType, script string, argNames []string,
+	stepID api.StepID, scriptType, script string, argNames []string,
 ) (data.Procedure, error) {
 	key := scriptCacheKey(stepID, script)
 
@@ -174,7 +173,7 @@ func (e *AleEnv) compile(
 	)
 }
 
-func scriptCacheKey(stepID timebox.ID, script string) string {
+func scriptCacheKey(stepID api.StepID, script string) string {
 	hash := sha256.Sum256([]byte(script))
 	scriptHash := hex.EncodeToString(hash[:8])
 	return fmt.Sprintf("%s:%s", stepID, scriptHash)

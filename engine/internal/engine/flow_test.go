@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -26,8 +25,8 @@ func TestStartDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-1"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-1"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -55,8 +54,8 @@ func TestStartMissingInput(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-needs-input"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-needs-input"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 		Required: []api.Name{"required_value"},
@@ -93,8 +92,8 @@ func TestSetAttribute(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"simple-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"simple-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -128,8 +127,8 @@ func TestGetAttributes(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-attrs"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-attrs"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -169,8 +168,8 @@ func TestSetDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-dup-attr"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-dup-attr"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -206,8 +205,8 @@ func TestCompleteFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"complete-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"complete-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -243,8 +242,8 @@ func TestFailFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"fail-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"fail-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -277,8 +276,8 @@ func TestStartStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"exec-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"exec-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -317,8 +316,8 @@ func TestCompleteStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-complete-exec"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-complete-exec"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -367,8 +366,8 @@ func TestFailStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-fail-exec"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-fail-exec"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -412,8 +411,8 @@ func TestSkipStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-skip"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-skip"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -452,8 +451,8 @@ func TestGetFlowEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"simple"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"simple"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -482,8 +481,8 @@ func TestListFlows(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"test"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"test"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -511,8 +510,8 @@ func TestIsFlowFailed(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-b"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-b"},
+		Steps: map[api.StepID]*api.StepInfo{
 			stepA.ID: {Step: stepA},
 			stepB.ID: {Step: stepB},
 		},
@@ -564,8 +563,8 @@ func TestIsFlowNotFailed(t *testing.T) {
 	step := helpers.NewSimpleStep("step-ok")
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-ok"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-ok"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -604,15 +603,15 @@ func TestHasInputProvider(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-b"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-b"},
+		Steps: map[api.StepID]*api.StepInfo{
 			stepA.ID: {Step: stepA},
 			stepB.ID: {Step: stepB},
 		},
 		Attributes: map[api.Name]*api.Dependencies{
 			"value": {
-				Providers: []timebox.ID{stepA.ID},
-				Consumers: []timebox.ID{stepB.ID},
+				Providers: []api.StepID{stepA.ID},
+				Consumers: []api.StepID{stepB.ID},
 			},
 		},
 	}
@@ -651,8 +650,8 @@ func TestHasInputProviderNone(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-alone"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-alone"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 		Attributes: map[api.Name]*api.Dependencies{},
@@ -686,8 +685,8 @@ func TestStepProvidesInput(t *testing.T) {
 	stepA := helpers.NewStepWithOutputs("step-provider", "result")
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-provider"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-provider"},
+		Steps: map[api.StepID]*api.StepInfo{
 			stepA.ID: {Step: stepA},
 		},
 	}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -36,7 +35,7 @@ func TestRegisterStep(t *testing.T) {
 	steps, err := env.Engine.ListSteps(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, steps, 1)
-	assert.Equal(t, timebox.ID("test-step"), steps[0].ID)
+	assert.Equal(t, api.StepID("test-step"), steps[0].ID)
 }
 
 func TestUpdateStepHealth(t *testing.T) {

@@ -25,7 +25,7 @@ type (
 	}
 
 	// ReplayFunc is a function that retrieves historical events for a flow
-	ReplayFunc func(flowID timebox.ID, fromSeq int64) ([]*timebox.Event, error)
+	ReplayFunc func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error)
 )
 
 const (
@@ -47,10 +47,10 @@ var upgrader = websocket.Upgrader{
 
 func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
 	return &api.WebSocketEvent{
-		Type:        ev.Type,
+		Type:        api.EventType(ev.Type),
 		Data:        ev.Data,
 		Timestamp:   ev.Timestamp.UnixMilli(),
-		AggregateID: ev.AggregateID,
+		AggregateID: aggregateIDStrings(ev.AggregateID),
 		Sequence:    ev.Sequence,
 	}
 }
@@ -176,7 +176,7 @@ func (c *Client) sendPing() bool {
 	return err == nil
 }
 
-func (c *Client) replayAndSend(flowID timebox.ID, fromSeq int64) {
+func (c *Client) replayAndSend(flowID api.FlowID, fromSeq int64) {
 	if c.replay == nil {
 		return
 	}
@@ -220,11 +220,11 @@ func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
 	}
 
 	if len(sub.EventTypes) > 0 {
-		eventTypes := make([]timebox.EventType, len(sub.EventTypes))
+		timeboxEventTypes := make([]timebox.EventType, len(sub.EventTypes))
 		for i, et := range sub.EventTypes {
-			eventTypes[i] = *et
+			timeboxEventTypes[i] = timebox.EventType(et)
 		}
-		filters = append(filters, events.FilterEvents(eventTypes...))
+		filters = append(filters, events.FilterEvents(timeboxEventTypes...))
 	}
 
 	if len(sub.EventTypes) == 0 && sub.FlowID != "" {
@@ -236,4 +236,12 @@ func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
 	}
 
 	return events.OrFilters(filters...)
+}
+
+func aggregateIDStrings(id timebox.AggregateID) []string {
+	res := make([]string, len(id))
+	for i, p := range id {
+		res[i] = string(p)
+	}
+	return res
 }

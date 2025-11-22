@@ -11,7 +11,8 @@ import (
 )
 
 // AsyncContext provides functionality for managing asynchronous step
-// execution. It embeds StepContext and adds the webhook URL for result delivery
+// execution. It embeds StepContext and adds the webhook URL for result
+// delivery
 type AsyncContext struct {
 	*StepContext
 	webhookURL string

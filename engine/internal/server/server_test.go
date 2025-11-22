@@ -105,7 +105,7 @@ func TestListSteps(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 1, response.Count)
 	assert.Len(t, response.Steps, 1)
-	assert.Equal(t, timebox.ID("list-step"), response.Steps[0].ID)
+	assert.Equal(t, api.StepID("list-step"), response.Steps[0].ID)
 }
 
 func TestGetStep(t *testing.T) {
@@ -160,7 +160,7 @@ func TestStart(t *testing.T) {
 
 	reqBody := api.CreateFlowRequest{
 		ID:    "test-flow",
-		Goals: []timebox.ID{"wf-step"},
+		Goals: []api.StepID{"wf-step"},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -218,8 +218,8 @@ func TestSuccess(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
-			Goals: []timebox.ID{"async-step"},
-			Steps: map[timebox.ID]*api.StepInfo{
+			Goals: []api.StepID{"async-step"},
+			Steps: map[api.StepID]*api.StepInfo{
 				"async-step": {Step: step},
 			},
 		},
@@ -308,8 +308,8 @@ func TestStepNotFound(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"async-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"async-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			"async-step": {Step: step},
 		},
 	}
@@ -365,8 +365,8 @@ func TestInvalidToken(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
-			Goals: []timebox.ID{"async-step"},
-			Steps: map[timebox.ID]*api.StepInfo{
+			Goals: []api.StepID{"async-step"},
+			Steps: map[api.StepID]*api.StepInfo{
 				"async-step": {Step: step},
 			},
 		},
@@ -422,8 +422,8 @@ func TestInvalidJSON(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
-			Goals: []timebox.ID{"async-step"},
-			Steps: map[timebox.ID]*api.StepInfo{
+			Goals: []api.StepID{"async-step"},
+			Steps: map[api.StepID]*api.StepInfo{
 				"async-step": {Step: step},
 			},
 		},
@@ -475,8 +475,8 @@ func TestGetFlow(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"get-wf-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"get-wf-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			"get-wf-step": {Step: step},
 		},
 	}
@@ -497,7 +497,7 @@ func TestGetFlow(t *testing.T) {
 	var wf api.FlowState
 	err = json.Unmarshal(w.Body.Bytes(), &wf)
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("test-wf-id"), wf.ID)
+	assert.Equal(t, api.FlowID("test-wf-id"), wf.ID)
 }
 
 func TestGetFlowNotFound(t *testing.T) {
@@ -634,10 +634,6 @@ func TestStartInvalidJSON(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func eventTypePtr(et timebox.EventType) *timebox.EventType {
-	return &et
-}
-
 func TestFilterEngineEvents(t *testing.T) {
 	sub := &api.ClientSubscription{
 		EngineEvents: true,
@@ -648,34 +644,40 @@ func TestFilterEngineEvents(t *testing.T) {
 
 	engineEvent := &timebox.Event{
 		AggregateID: events.EngineID,
-		Type:        api.EventTypeStepRegistered,
+		Type:        timebox.EventType(api.EventTypeStepRegistered),
 	}
 	assert.True(t, filter(engineEvent))
 
 	flowEvent := &timebox.Event{
 		AggregateID: timebox.AggregateID{timebox.ID("flow-123")},
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 	}
 	assert.False(t, filter(flowEvent))
 }
 
 func TestFilterEventTypes(t *testing.T) {
 	sub := &api.ClientSubscription{
-		EventTypes: []*timebox.EventType{
-			eventTypePtr(api.EventTypeStepRegistered),
-			eventTypePtr(api.EventTypeFlowStarted),
+		EventTypes: []api.EventType{
+			api.EventTypeStepRegistered,
+			api.EventTypeFlowStarted,
 		},
 	}
 
 	filter := server.BuildFilter(sub)
 
-	event1 := &timebox.Event{Type: api.EventTypeStepRegistered}
+	event1 := &timebox.Event{
+		Type: timebox.EventType(api.EventTypeStepRegistered),
+	}
 	assert.True(t, filter(event1))
 
-	event2 := &timebox.Event{Type: api.EventTypeFlowStarted}
+	event2 := &timebox.Event{
+		Type: timebox.EventType(api.EventTypeFlowStarted),
+	}
 	assert.True(t, filter(event2))
 
-	event3 := &timebox.Event{Type: api.EventTypeStepCompleted}
+	event3 := &timebox.Event{
+		Type: timebox.EventType(api.EventTypeStepCompleted),
+	}
 	assert.False(t, filter(event3))
 }
 
@@ -709,15 +711,17 @@ func TestFilterEmpty(t *testing.T) {
 
 	filter := server.BuildFilter(sub)
 
-	event := &timebox.Event{Type: api.EventTypeStepRegistered}
+	event := &timebox.Event{
+		Type: timebox.EventType(api.EventTypeStepRegistered),
+	}
 	assert.False(t, filter(event))
 }
 
 func TestFilterCombined(t *testing.T) {
 	sub := &api.ClientSubscription{
 		EngineEvents: true,
-		EventTypes: []*timebox.EventType{
-			eventTypePtr(api.EventTypeStepRegistered),
+		EventTypes: []api.EventType{
+			api.EventTypeStepRegistered,
 		},
 	}
 
@@ -725,7 +729,7 @@ func TestFilterCombined(t *testing.T) {
 
 	engineEvent := &timebox.Event{
 		AggregateID: events.EngineID,
-		Type:        api.EventTypeFlowStarted,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
 	}
 	assert.True(t, filter(engineEvent))
 
@@ -733,7 +737,7 @@ func TestFilterCombined(t *testing.T) {
 		AggregateID: timebox.AggregateID{
 			timebox.ID("flow"), timebox.ID("flow-123"),
 		},
-		Type: api.EventTypeStepRegistered,
+		Type: timebox.EventType(api.EventTypeStepRegistered),
 	}
 	assert.True(t, filter(flowEvent))
 
@@ -741,7 +745,7 @@ func TestFilterCombined(t *testing.T) {
 		AggregateID: timebox.AggregateID{
 			timebox.ID("flow"), timebox.ID("flow-123"),
 		},
-		Type: api.EventTypeStepCompleted,
+		Type: timebox.EventType(api.EventTypeStepCompleted),
 	}
 	assert.False(t, filter(unmatchedEvent))
 }
@@ -1006,7 +1010,7 @@ func TestPlanPreview(t *testing.T) {
 	err = json.Unmarshal(w.Body.Bytes(), &response)
 	require.NoError(t, err)
 	assert.Len(t, response.Goals, 1)
-	assert.Equal(t, timebox.ID("step-b"), response.Goals[0])
+	assert.Equal(t, api.StepID("step-b"), response.Goals[0])
 }
 
 func TestPlanPreviewInvalidJSON(t *testing.T) {
@@ -1172,8 +1176,8 @@ func TestStartDuplicate(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"dup-wf-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"dup-wf-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			"dup-wf-step": {Step: step},
 		},
 	}
@@ -1189,7 +1193,7 @@ func TestStartDuplicate(t *testing.T) {
 
 	reqBody := api.CreateFlowRequest{
 		ID:    "duplicate-flow",
-		Goals: []timebox.ID{"dup-wf-step"},
+		Goals: []api.StepID{"dup-wf-step"},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1212,7 +1216,7 @@ func TestStartStepNotFound(t *testing.T) {
 
 	reqBody := api.CreateFlowRequest{
 		ID:    "wf-no-step",
-		Goals: []timebox.ID{"nonexistent-step"},
+		Goals: []api.StepID{"nonexistent-step"},
 	}
 
 	body, _ := json.Marshal(reqBody)
@@ -1257,7 +1261,7 @@ func TestFlowIDSanitization(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		flowID         string
+		flowID         api.FlowID
 		expectedStatus int
 		shouldSucceed  bool
 	}{
@@ -1290,8 +1294,8 @@ func TestFlowIDSanitization(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			reqBody := api.CreateFlowRequest{
-				ID:    timebox.ID(tt.flowID),
-				Goals: []timebox.ID{"test-step"},
+				ID:    tt.flowID,
+				Goals: []api.StepID{"test-step"},
 			}
 
 			body, _ := json.Marshal(reqBody)

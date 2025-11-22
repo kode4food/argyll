@@ -5,20 +5,20 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
-	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 // FlowStep identifies a step execution within a workflow
 type FlowStep struct {
-	FlowID timebox.ID
-	StepID timebox.ID
+	FlowID api.FlowID
+	StepID api.StepID
 }
 
 var (
-	stepTransitions = util.StateTransitions[api.StepStatus]{
+	stepTransitions = StateTransitions[api.StepStatus]{
 		api.StepPending: util.SetOf(
 			api.StepActive,
 			api.StepSkipped,
@@ -112,7 +112,7 @@ func (e *Engine) SkipStepExecution(
 
 func (e *Engine) transitionStepExecution(
 	ctx context.Context, fs FlowStep, toStatus api.StepStatus, action string,
-	eventType timebox.EventType, eventData any,
+	eventType api.EventType, eventData any,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		exec, ok := st.Executions[fs.StepID]
@@ -125,7 +125,7 @@ func (e *Engine) transitionStepExecution(
 				ErrInvalidTransition, fs.StepID, action, exec.Status)
 		}
 
-		return util.Raise(ag, eventType, eventData)
+		return events.Raise(ag, eventType, eventData)
 	}
 
 	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
@@ -134,9 +134,7 @@ func (e *Engine) transitionStepExecution(
 
 // Step state checking methods
 
-func (e *Engine) isStepComplete(
-	stepID timebox.ID, flow *api.FlowState,
-) bool {
+func (e *Engine) isStepComplete(stepID api.StepID, flow *api.FlowState) bool {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
 		return false
@@ -144,9 +142,7 @@ func (e *Engine) isStepComplete(
 	return exec.Status == api.StepCompleted || exec.Status == api.StepSkipped
 }
 
-func (e *Engine) canStepComplete(
-	stepID timebox.ID, flow *api.FlowState,
-) bool {
+func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
 		return false
@@ -176,7 +172,7 @@ func (e *Engine) canStepComplete(
 }
 
 func (e *Engine) appendFailedStep(
-	failed []string, stepID timebox.ID, exec *api.ExecutionState,
+	failed []string, stepID api.StepID, exec *api.ExecutionState,
 ) []string {
 	if exec.Status != api.StepFailed {
 		return failed

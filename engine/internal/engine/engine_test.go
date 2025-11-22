@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -71,8 +70,8 @@ func TestHTTPExecution(t *testing.T) {
 	env.MockClient.SetResponse("http-step", api.Args{"output": "success"})
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"http-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"http-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -97,8 +96,8 @@ func TestScriptExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"script-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"script-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -125,8 +124,8 @@ func TestPredicateExecution(t *testing.T) {
 	env.MockClient.SetResponse("predicate-step", api.Args{"output": "executed"})
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"predicate-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"predicate-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -156,8 +155,8 @@ func TestPredicateFalse(t *testing.T) {
 	)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"predicate-false-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"predicate-false-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -185,8 +184,8 @@ func TestLuaScriptExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"lua-script-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"lua-script-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -213,8 +212,8 @@ func TestAleScriptWithInputs(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"ale-input-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"ale-input-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 		Required: []api.Name{"x"},
@@ -244,8 +243,8 @@ func TestLuaPredicate(t *testing.T) {
 	env.MockClient.SetResponse("lua-pred-step", api.Args{"output": "executed"})
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"lua-pred-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"lua-pred-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -268,7 +267,7 @@ func TestListSteps(t *testing.T) {
 	steps, err := env.Engine.ListSteps(context.Background())
 	require.NoError(t, err)
 	assert.Len(t, steps, 1)
-	assert.Equal(t, timebox.ID("list-step"), steps[0].ID)
+	assert.Equal(t, api.StepID("list-step"), steps[0].ID)
 }
 
 func TestListStepsEmpty(t *testing.T) {
@@ -350,8 +349,8 @@ func TestGetFlowState(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"state-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"state-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -363,7 +362,7 @@ func TestGetFlowState(t *testing.T) {
 
 	state, err := env.Engine.GetFlowState(context.Background(), "wf-state")
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("wf-state"), state.ID)
+	assert.Equal(t, api.FlowID("wf-state"), state.ID)
 	assert.NotNil(t, state.Status)
 }
 

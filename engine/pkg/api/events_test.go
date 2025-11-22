@@ -17,7 +17,7 @@ func TestEventJSONMarshaling(t *testing.T) {
 	data := json.RawMessage(`{"step": {"id": "test-step"}}`)
 
 	in := &timebox.Event{
-		Type:        api.EventTypeStepRegistered,
+		Type:        timebox.EventType(api.EventTypeStepRegistered),
 		AggregateID: timebox.NewAggregateID("engine"),
 		Timestamp:   now,
 		Data:        data,
@@ -42,7 +42,7 @@ func TestWebSocketEventMarshaling(t *testing.T) {
 		Data:        data,
 		Timestamp:   1234567890,
 		Sequence:    42,
-		AggregateID: timebox.NewAggregateID("wf-1", "step-1"),
+		AggregateID: []string{"wf-1", "step-1"},
 	}
 
 	jsonBytes, err := json.Marshal(in)
@@ -58,7 +58,7 @@ func TestWebSocketEventMarshaling(t *testing.T) {
 }
 
 func TestEventTypes(t *testing.T) {
-	eventTypes := []timebox.EventType{
+	eventTypes := []api.EventType{
 		api.EventTypeStepRegistered,
 		api.EventTypeStepUnregistered,
 		api.EventTypeStepHealthChanged,

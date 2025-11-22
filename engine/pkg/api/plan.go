@@ -3,17 +3,15 @@ package api
 import (
 	"errors"
 	"fmt"
-
-	"github.com/kode4food/timebox"
 )
 
 type (
 	// ExecutionPlan represents the compiled execution plan for a flow
 	ExecutionPlan struct {
-		Goals      []timebox.ID             `json:"goals"`
-		Required   []Name                   `json:"required"`
-		Steps      map[timebox.ID]*StepInfo `json:"steps"`
-		Attributes map[Name]*Dependencies   `json:"attributes"`
+		Goals      []StepID               `json:"goals"`
+		Required   []Name                 `json:"required"`
+		Steps      map[StepID]*StepInfo   `json:"steps"`
+		Attributes map[Name]*Dependencies `json:"attributes"`
 	}
 
 	// StepInfo contains step metadata and compiled scripts
@@ -25,8 +23,8 @@ type (
 
 	// Dependencies tracks which steps provide and consume an attribute
 	Dependencies struct {
-		Providers []timebox.ID `json:"providers"`
-		Consumers []timebox.ID `json:"consumers"`
+		Providers []StepID `json:"providers"`
+		Consumers []StepID `json:"consumers"`
 	}
 )
 
@@ -36,7 +34,7 @@ var (
 )
 
 // GetStep retrieves a step from the plan by ID
-func (ep *ExecutionPlan) GetStep(stepID timebox.ID) *Step {
+func (ep *ExecutionPlan) GetStep(stepID StepID) *Step {
 	if info, ok := ep.Steps[stepID]; ok {
 		return info.Step
 	}

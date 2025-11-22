@@ -6,19 +6,17 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
 type mockGetter struct {
-	attrs map[timebox.ID]map[api.Name]any
+	attrs map[api.FlowID]map[api.Name]any
 	err   error
 }
 
 func (m *mockGetter) GetAttribute(
-	_ context.Context, flowID timebox.ID, attr api.Name,
+	_ context.Context, flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {
 	if m.err != nil {
 		return nil, false, m.err
@@ -274,14 +272,14 @@ func TestFlowHasState(t *testing.T) {
 	tests := []struct {
 		name       string
 		getter     *mockGetter
-		flowID     timebox.ID
+		flowID     api.FlowID
 		keys       []api.Name
 		shouldFail bool
 	}{
 		{
 			name: "has all required keys",
 			getter: &mockGetter{
-				attrs: map[timebox.ID]map[api.Name]any{
+				attrs: map[api.FlowID]map[api.Name]any{
 					"flow-1": {
 						"key1": "value1",
 						"key2": "value2",
@@ -294,7 +292,7 @@ func TestFlowHasState(t *testing.T) {
 		{
 			name: "has single key",
 			getter: &mockGetter{
-				attrs: map[timebox.ID]map[api.Name]any{
+				attrs: map[api.FlowID]map[api.Name]any{
 					"flow-1": {
 						"key1": "value1",
 					},
@@ -306,7 +304,7 @@ func TestFlowHasState(t *testing.T) {
 		{
 			name: "empty keys list",
 			getter: &mockGetter{
-				attrs: map[timebox.ID]map[api.Name]any{
+				attrs: map[api.FlowID]map[api.Name]any{
 					"flow-1": {},
 				},
 			},
@@ -328,14 +326,14 @@ func TestFlowStateEquals(t *testing.T) {
 	tests := []struct {
 		name     string
 		getter   *mockGetter
-		flowID   timebox.ID
+		flowID   api.FlowID
 		key      api.Name
 		expected any
 	}{
 		{
 			name: "string value matches",
 			getter: &mockGetter{
-				attrs: map[timebox.ID]map[api.Name]any{
+				attrs: map[api.FlowID]map[api.Name]any{
 					"flow-1": {
 						"name": "test",
 					},
@@ -348,7 +346,7 @@ func TestFlowStateEquals(t *testing.T) {
 		{
 			name: "integer value matches",
 			getter: &mockGetter{
-				attrs: map[timebox.ID]map[api.Name]any{
+				attrs: map[api.FlowID]map[api.Name]any{
 					"flow-1": {
 						"count": 42,
 					},
@@ -361,7 +359,7 @@ func TestFlowStateEquals(t *testing.T) {
 		{
 			name: "boolean value matches",
 			getter: &mockGetter{
-				attrs: map[timebox.ID]map[api.Name]any{
+				attrs: map[api.FlowID]map[api.Name]any{
 					"flow-1": {
 						"active": true,
 					},

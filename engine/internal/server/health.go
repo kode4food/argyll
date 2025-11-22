@@ -25,7 +25,7 @@ type HealthChecker struct {
 	cancel      context.CancelFunc
 	client      *http.Client
 	consumer    topic.Consumer[*timebox.Event]
-	lastSuccess map[timebox.ID]time.Time
+	lastSuccess map[api.StepID]time.Time
 	mu          sync.RWMutex
 }
 
@@ -46,7 +46,7 @@ func NewHealthChecker(eng *engine.Engine, hub timebox.EventHub) *HealthChecker {
 		ctx:         ctx,
 		cancel:      cancel,
 		consumer:    hub.NewConsumer(),
-		lastSuccess: map[timebox.ID]time.Time{},
+		lastSuccess: map[api.StepID]time.Time{},
 		client: &http.Client{
 			Timeout: healthCheckTimeout,
 		},
@@ -81,7 +81,7 @@ func (h *HealthChecker) eventLoop() {
 }
 
 func (h *HealthChecker) handleStepCompleted(event *timebox.Event) {
-	if event.Type != api.EventTypeStepCompleted {
+	if event.Type != timebox.EventType(api.EventTypeStepCompleted) {
 		return
 	}
 
@@ -206,7 +206,7 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
-	stepID := timebox.ID(c.Param("stepID"))
+	stepID := api.StepID(c.Param("stepID"))
 
 	engState, err := s.engine.GetEngineState(c.Request.Context())
 	if err != nil {

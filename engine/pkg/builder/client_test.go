@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -189,7 +188,7 @@ func TestContextCancellation(t *testing.T) {
 func TestFlow(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
 	wc := client.Flow("test-flow-123")
-	assert.Equal(t, builder.FlowID("test-flow-123"), wc.FlowID())
+	assert.Equal(t, api.FlowID("test-flow-123"), wc.FlowID())
 }
 
 func TestFlowGetState(t *testing.T) {
@@ -213,6 +212,6 @@ func TestFlowGetState(t *testing.T) {
 
 	state, err := wc.GetState(context.Background())
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("my-flow"), state.ID)
+	assert.Equal(t, api.FlowID("my-flow"), state.ID)
 	assert.Equal(t, api.FlowActive, state.Status)
 }

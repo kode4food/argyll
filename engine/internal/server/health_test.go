@@ -224,7 +224,7 @@ func TestRecentSuccess(t *testing.T) {
 	})
 
 	event := &timebox.Event{
-		Type:        api.EventTypeStepCompleted,
+		Type:        timebox.EventType(api.EventTypeStepCompleted),
 		AggregateID: timebox.NewAggregateID("flow", "wf-test"),
 		Timestamp:   time.Now(),
 		Data:        completedData,

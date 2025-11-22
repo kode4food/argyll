@@ -3,7 +3,6 @@ package engine_test
 import (
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -14,21 +13,21 @@ import (
 func TestNoGoals(t *testing.T) {
 	eng := &engine.Engine{}
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{},
+		Steps: map[api.StepID]*api.Step{},
 	}
 
-	_, err := eng.CreateExecutionPlan(engState, []timebox.ID{}, api.Args{})
+	_, err := eng.CreateExecutionPlan(engState, []api.StepID{}, api.Args{})
 	assert.Error(t, err)
 }
 
 func TestGoalStepNotFound(t *testing.T) {
 	eng := &engine.Engine{}
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{},
+		Steps: map[api.StepID]*api.Step{},
 	}
 
 	_, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"nonexistent"}, api.Args{},
+		engState, []api.StepID{"nonexistent"}, api.Args{},
 	)
 	assert.Error(t, err)
 }
@@ -51,21 +50,21 @@ func TestSimpleResolver(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"resolver": resolverStep,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"resolver"}, api.Args{},
+		engState, []api.StepID{"resolver"}, api.Args{},
 	)
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Goals, 1)
-	assert.Equal(t, timebox.ID("resolver"), plan.Goals[0])
+	assert.Equal(t, api.StepID("resolver"), plan.Goals[0])
 
 	assert.Len(t, plan.Steps, 1)
-	assert.Contains(t, plan.Steps, timebox.ID("resolver"))
+	assert.Contains(t, plan.Steps, api.StepID("resolver"))
 
 	assert.Empty(t, plan.Required)
 }
@@ -89,14 +88,14 @@ func TestProcessorWithInit(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"processor": processorStep,
 		},
 	}
 
 	initState := api.Args{"input": "test-value"}
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"processor"}, initState,
+		engState, []api.StepID{"processor"}, initState,
 	)
 	require.NoError(t, err)
 
@@ -123,13 +122,13 @@ func TestProcessorNoInit(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"processor": processorStep,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"processor"}, api.Args{},
+		engState, []api.StepID{"processor"}, api.Args{},
 	)
 	require.NoError(t, err)
 
@@ -184,7 +183,7 @@ func TestChained(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"resolver":  resolverStep,
 			"processor": processorStep,
 			"collector": collectorStep,
@@ -192,15 +191,15 @@ func TestChained(t *testing.T) {
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"collector"}, api.Args{},
+		engState, []api.StepID{"collector"}, api.Args{},
 	)
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 3)
 
-	assert.Contains(t, plan.Steps, timebox.ID("resolver"))
-	assert.Contains(t, plan.Steps, timebox.ID("processor"))
-	assert.Contains(t, plan.Steps, timebox.ID("collector"))
+	assert.Contains(t, plan.Steps, api.StepID("resolver"))
+	assert.Contains(t, plan.Steps, api.StepID("processor"))
+	assert.Contains(t, plan.Steps, api.StepID("collector"))
 
 	assert.Empty(t, plan.Required)
 }
@@ -237,14 +236,14 @@ func TestMultipleGoals(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"step1": step1,
 			"step2": step2,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"step1", "step2"}, api.Args{},
+		engState, []api.StepID{"step1", "step2"}, api.Args{},
 	)
 	require.NoError(t, err)
 
@@ -270,14 +269,14 @@ func TestExistingOutputs(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"step": step,
 		},
 	}
 
 	initState := api.Args{"data": "already-available"}
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"step"}, initState,
+		engState, []api.StepID{"step"}, initState,
 	)
 	require.NoError(t, err)
 
@@ -347,7 +346,7 @@ func TestComplexGraph(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"resolver1":  resolver1,
 			"resolver2":  resolver2,
 			"processor1": processor1,
@@ -356,13 +355,13 @@ func TestComplexGraph(t *testing.T) {
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"processor2"}, api.Args{},
+		engState, []api.StepID{"processor2"}, api.Args{},
 	)
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 4)
 
-	requiredSteps := []timebox.ID{
+	requiredSteps := []api.StepID{
 		"resolver1", "resolver2", "processor1", "processor2",
 	}
 	for _, stepID := range requiredSteps {
@@ -390,13 +389,13 @@ func TestReceipts(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"step": step,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"step"}, api.Args{},
+		engState, []api.StepID{"step"}, api.Args{},
 	)
 	require.NoError(t, err)
 
@@ -424,13 +423,13 @@ func TestMissingDependency(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"step": step,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"step"}, api.Args{},
+		engState, []api.StepID{"step"}, api.Args{},
 	)
 	require.NoError(t, err)
 
@@ -471,21 +470,21 @@ func TestOptionalInput(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"resolver":  resolverStep,
 			"processor": processorStep,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"processor"}, api.Args{},
+		engState, []api.StepID{"processor"}, api.Args{},
 	)
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 2)
 
-	assert.Contains(t, plan.Steps, timebox.ID("resolver"))
-	assert.Contains(t, plan.Steps, timebox.ID("processor"))
+	assert.Contains(t, plan.Steps, api.StepID("resolver"))
+	assert.Contains(t, plan.Steps, api.StepID("processor"))
 
 	assert.Empty(t, plan.Required)
 }
@@ -509,18 +508,18 @@ func TestOptionalMissing(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"processor": processorStep,
 		},
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"processor"}, api.Args{},
+		engState, []api.StepID{"processor"}, api.Args{},
 	)
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 1)
-	assert.Contains(t, plan.Steps, timebox.ID("processor"))
+	assert.Contains(t, plan.Steps, api.StepID("processor"))
 
 	assert.Empty(t, plan.Required)
 }
@@ -573,7 +572,7 @@ func TestMixedInputs(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"resolver1": resolver1,
 			"resolver2": resolver2,
 			"processor": processorStep,
@@ -581,15 +580,15 @@ func TestMixedInputs(t *testing.T) {
 	}
 
 	plan, err := eng.CreateExecutionPlan(
-		engState, []timebox.ID{"processor"}, api.Args{},
+		engState, []api.StepID{"processor"}, api.Args{},
 	)
 	require.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 3)
 
-	assert.Contains(t, plan.Steps, timebox.ID("resolver1"))
-	assert.Contains(t, plan.Steps, timebox.ID("resolver2"))
-	assert.Contains(t, plan.Steps, timebox.ID("processor"))
+	assert.Contains(t, plan.Steps, api.StepID("resolver1"))
+	assert.Contains(t, plan.Steps, api.StepID("resolver2"))
+	assert.Contains(t, plan.Steps, api.StepID("processor"))
 
 	assert.Empty(t, plan.Required)
 }

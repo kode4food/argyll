@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -27,8 +26,8 @@ func TestPrepareStepExecution(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"prep-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"prep-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -68,8 +67,8 @@ func TestPrepareStepExecution(t *testing.T) {
 		require.NoError(t, err)
 
 		plan2 := &api.ExecutionPlan{
-			Goals: []timebox.ID{"active-step"},
-			Steps: map[timebox.ID]*api.StepInfo{
+			Goals: []api.StepID{"active-step"},
+			Steps: map[api.StepID]*api.StepInfo{
 				step2.ID: {Step: step2},
 			},
 		}
@@ -111,8 +110,8 @@ func TestEnqueueStepResult(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"enqueue-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"enqueue-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}

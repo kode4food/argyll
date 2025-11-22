@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -59,8 +58,8 @@ func TestTracksInvocations(t *testing.T) {
 
 	invocations := cl.GetInvocations()
 	assert.Len(t, invocations, 2)
-	assert.Equal(t, timebox.ID("step-1"), invocations[0])
-	assert.Equal(t, timebox.ID("step-2"), invocations[1])
+	assert.Equal(t, api.StepID("step-1"), invocations[0])
+	assert.Equal(t, api.StepID("step-2"), invocations[1])
 }
 
 func TestDefaultResponse(t *testing.T) {
@@ -136,8 +135,8 @@ func TestCanStartFlows(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{step.ID},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{step.ID},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -149,7 +148,7 @@ func TestCanStartFlows(t *testing.T) {
 
 	wf, err := env.Engine.GetFlowState(context.Background(), "test-wf")
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("test-wf"), wf.ID)
+	assert.Equal(t, api.FlowID("test-wf"), wf.ID)
 }
 
 func TestStep(t *testing.T) {
@@ -215,7 +214,7 @@ func TestSimpleStep(t *testing.T) {
 	step := helpers.NewSimpleStep("test-id")
 
 	assert.NotNil(t, step)
-	assert.Equal(t, timebox.ID("test-id"), step.ID)
+	assert.Equal(t, api.StepID("test-id"), step.ID)
 	assert.Equal(t, api.StepTypeSync, step.Type)
 	assert.NotNil(t, step.HTTP)
 	assert.Equal(t, "1.0.0", step.Version)
@@ -231,7 +230,7 @@ func TestStepWithOutput(t *testing.T) {
 	step := helpers.NewStepWithOutputs("output-step", "result1", "result2")
 
 	assert.NotNil(t, step)
-	assert.Equal(t, timebox.ID("output-step"), step.ID)
+	assert.Equal(t, api.StepID("output-step"), step.ID)
 	outputArgs := step.GetOutputArgs()
 	assert.Len(t, outputArgs, 2)
 	assert.Contains(t, outputArgs, api.Name("result1"))
@@ -247,7 +246,7 @@ func TestScriptStep(t *testing.T) {
 	)
 
 	assert.NotNil(t, step)
-	assert.Equal(t, timebox.ID("script-id"), step.ID)
+	assert.Equal(t, api.StepID("script-id"), step.ID)
 	assert.Equal(t, api.StepTypeScript, step.Type)
 	assert.NotNil(t, step.Script)
 	assert.Equal(t, api.ScriptLangAle, step.Script.Language)
@@ -275,7 +274,7 @@ func TestStepPredicate(t *testing.T) {
 	)
 
 	assert.NotNil(t, step)
-	assert.Equal(t, timebox.ID("pred-step"), step.ID)
+	assert.Equal(t, api.StepID("pred-step"), step.ID)
 	assert.Equal(t, api.StepTypeSync, step.Type)
 	assert.NotNil(t, step.HTTP)
 	assert.NotNil(t, step.Predicate)

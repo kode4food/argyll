@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -76,7 +75,7 @@ func (s *Server) createStep(c *gin.Context) {
 }
 
 func (s *Server) getStep(c *gin.Context) {
-	stepID := timebox.ID(c.Param("stepID"))
+	stepID := api.StepID(c.Param("stepID"))
 
 	engState, err := s.engine.GetEngineState(c.Request.Context())
 	if err != nil {
@@ -100,7 +99,7 @@ func (s *Server) getStep(c *gin.Context) {
 }
 
 func (s *Server) updateStep(c *gin.Context) {
-	stepID := timebox.ID(c.Param("stepID"))
+	stepID := api.StepID(c.Param("stepID"))
 
 	var step api.Step
 	if err := c.ShouldBindJSON(&step); err != nil {
@@ -150,7 +149,7 @@ func (s *Server) updateStep(c *gin.Context) {
 }
 
 func (s *Server) deleteStep(c *gin.Context) {
-	stepID := timebox.ID(c.Param("stepID"))
+	stepID := api.StepID(c.Param("stepID"))
 
 	err := s.engine.UnregisterStep(c.Request.Context(), stepID)
 	if err == nil {

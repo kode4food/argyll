@@ -5,13 +5,11 @@ import (
 	"maps"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-var workTransitions = util.StateTransitions[api.WorkStatus]{
+var workTransitions = StateTransitions[api.WorkStatus]{
 	api.WorkPending: util.SetOf(
 		api.WorkActive,
 		api.WorkCompleted,
@@ -26,7 +24,7 @@ var workTransitions = util.StateTransitions[api.WorkStatus]{
 }
 
 func (e *Engine) checkCompletableSteps(
-	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
+	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
 ) {
 	for stepID, exec := range flow.Executions {
 		if exec.Status != api.StepActive || exec.WorkItems == nil {

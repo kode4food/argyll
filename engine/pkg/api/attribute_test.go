@@ -1,8 +1,6 @@
 package api
 
-import (
-	"testing"
-)
+import "testing"
 
 func TestValidateDefaultValue(t *testing.T) {
 	tests := []struct {

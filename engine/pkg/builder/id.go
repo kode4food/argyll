@@ -4,22 +4,16 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"strings"
-)
 
-type (
-	// FlowID is a unique identifier for a flow
-	FlowID string
-
-	// StepID is a unique identifier for a step
-	StepID string
+	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
 // NewFlowID generates a unique flow ID with a readable prefix
-func NewFlowID(prefix string) FlowID {
+func NewFlowID(prefix string) api.FlowID {
 	prefix = strings.ToLower(prefix)
 	prefix = strings.ReplaceAll(prefix, " ", "-")
 	suffix := randomHex(6)
-	return FlowID(prefix + "-" + suffix)
+	return api.FlowID(prefix + "-" + suffix)
 }
 
 func randomHex(length int) string {

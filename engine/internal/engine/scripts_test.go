@@ -3,7 +3,6 @@ package engine_test
 import (
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -220,8 +219,8 @@ func TestCompilePlan(t *testing.T) {
 	)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"ale-step", "lua-step", "http-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"ale-step", "lua-step", "http-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			aleStep.ID:      {Step: aleStep},
 			luaStep.ID:      {Step: luaStep},
 			httpStepPred.ID: {Step: httpStepPred},

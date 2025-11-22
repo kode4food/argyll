@@ -1,7 +1,9 @@
-package util
+package engine
 
 import (
 	"testing"
+
+	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
 type TestState string
@@ -15,8 +17,8 @@ const (
 
 func TestStateTransitionsCanTransition(t *testing.T) {
 	transitions := StateTransitions[TestState]{
-		StateInit:     SetOf(StateRunning, StateFailed),
-		StateRunning:  SetOf(StateComplete, StateFailed),
+		StateInit:     util.SetOf(StateRunning, StateFailed),
+		StateRunning:  util.SetOf(StateComplete, StateFailed),
 		StateComplete: {},
 		StateFailed:   {},
 	}
@@ -54,8 +56,8 @@ func TestStateTransitionsCanTransition(t *testing.T) {
 
 func TestStateTransitionsIsTerminal(t *testing.T) {
 	transitions := StateTransitions[TestState]{
-		StateInit:     SetOf(StateRunning, StateFailed),
-		StateRunning:  SetOf(StateComplete, StateFailed),
+		StateInit:     util.SetOf(StateRunning, StateFailed),
+		StateRunning:  util.SetOf(StateComplete, StateFailed),
 		StateComplete: {},
 		StateFailed:   {},
 	}

@@ -1,34 +1,30 @@
 package api
 
-import (
-	"time"
-
-	"github.com/kode4food/timebox"
-)
+import "time"
 
 type (
 	// CreateFlowRequest contains parameters for starting a new flow
 	CreateFlowRequest struct {
-		Init  Args         `json:"init"`
-		ID    timebox.ID   `json:"id"`
-		Goals []timebox.ID `json:"goals"`
+		Init  Args     `json:"init"`
+		ID    FlowID   `json:"id"`
+		Goals []StepID `json:"goals"`
 	}
 
 	// ExecutionPlanRequest contains parameters for creating an execution plan
 	ExecutionPlanRequest struct {
-		Init  Args         `json:"init"`
-		Goals []timebox.ID `json:"goals"`
+		Init  Args     `json:"init"`
+		Goals []StepID `json:"goals"`
 	}
 
 	// FlowStartedResponse is returned when a flow start succeeds
 	FlowStartedResponse struct {
-		Message string     `json:"message"`
-		FlowID  timebox.ID `json:"flow_id"`
+		Message string `json:"message"`
+		FlowID  FlowID `json:"flow_id"`
 	}
 
 	// FlowDigest provides summary information about a flow
 	FlowDigest struct {
-		ID          timebox.ID `json:"id"`
+		ID          FlowID     `json:"id"`
 		Status      FlowStatus `json:"status"`
 		CreatedAt   time.Time  `json:"created_at"`
 		CompletedAt time.Time  `json:"completed_at,omitempty"`
@@ -62,8 +58,8 @@ type (
 
 	// HealthListResponse contains health status for all registered steps
 	HealthListResponse struct {
-		Health map[timebox.ID]*HealthState `json:"health"`
-		Count  int                         `json:"count"`
+		Health map[StepID]*HealthState `json:"health"`
+		Count  int                     `json:"count"`
 	}
 
 	// MessageResponse contains a simple message string

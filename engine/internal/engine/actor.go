@@ -12,7 +12,7 @@ import (
 
 type flowActor struct {
 	*Engine
-	flowID       timebox.ID
+	flowID       api.FlowID
 	events       chan *timebox.Event
 	eventHandler timebox.Handler
 }
@@ -52,16 +52,22 @@ func (wa *flowActor) run() {
 }
 
 func (wa *flowActor) createEventHandler() timebox.Handler {
+	flowStartedEvent := timebox.EventType(api.EventTypeFlowStarted)
+	attributeSetEvent := timebox.EventType(api.EventTypeAttributeSet)
+	stepCompletedEvent := timebox.EventType(api.EventTypeStepCompleted)
+	stepFailedEvent := timebox.EventType(api.EventTypeStepFailed)
+	workCompletedEvent := timebox.EventType(api.EventTypeWorkCompleted)
 	workCompleted := timebox.MakeHandler(wa.handleWorkCompleted)
+	workFailedEvent := timebox.EventType(api.EventTypeWorkFailed)
 	workFailed := timebox.MakeHandler(wa.handleWorkFailed)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		api.EventTypeFlowStarted:   wa.handleProcessFlow,
-		api.EventTypeAttributeSet:  wa.handleProcessFlow,
-		api.EventTypeStepCompleted: wa.handleProcessFlow,
-		api.EventTypeStepFailed:    wa.handleProcessFlow,
-		api.EventTypeWorkCompleted: workCompleted,
-		api.EventTypeWorkFailed:    workFailed,
+		flowStartedEvent:   wa.handleProcessFlow,
+		attributeSetEvent:  wa.handleProcessFlow,
+		stepCompletedEvent: wa.handleProcessFlow,
+		stepFailedEvent:    wa.handleProcessFlow,
+		workCompletedEvent: workCompleted,
+		workFailedEvent:    workFailed,
 	})
 }
 
@@ -154,10 +160,10 @@ func (wa *flowActor) handleTerminalState(flow *api.FlowState) {
 	}
 }
 
-func (wa *flowActor) launchReadySteps(ready []timebox.ID) {
+func (wa *flowActor) launchReadySteps(ready []api.StepID) {
 	for _, stepID := range ready {
 		wa.wg.Add(1)
-		go func(stepID timebox.ID) {
+		go func(stepID api.StepID) {
 			defer wa.wg.Done()
 			wa.executeStep(wa.ctx, FlowStep{
 				FlowID: wa.flowID,
@@ -167,9 +173,9 @@ func (wa *flowActor) launchReadySteps(ready []timebox.ID) {
 	}
 }
 
-func (wa *flowActor) findReadySteps(flow *api.FlowState) []timebox.ID {
-	visited := util.Set[timebox.ID]{}
-	var ready []timebox.ID
+func (wa *flowActor) findReadySteps(flow *api.FlowState) []api.StepID {
+	visited := util.Set[api.StepID]{}
+	var ready []api.StepID
 
 	for _, goalID := range flow.Plan.Goals {
 		wa.findReadyStepsFromGoal(goalID, flow, visited, &ready)
@@ -179,8 +185,8 @@ func (wa *flowActor) findReadySteps(flow *api.FlowState) []timebox.ID {
 }
 
 func (wa *flowActor) findReadyStepsFromGoal(
-	stepID timebox.ID, flow *api.FlowState, visited util.Set[timebox.ID],
-	ready *[]timebox.ID,
+	stepID api.StepID, flow *api.FlowState, visited util.Set[api.StepID],
+	ready *[]api.StepID,
 ) {
 	if visited.Contains(stepID) {
 		return
@@ -222,7 +228,7 @@ func (wa *flowActor) findReadyStepsFromGoal(
 }
 
 func (wa *flowActor) isStepReadyForExec(
-	stepID timebox.ID, flow *api.FlowState,
+	stepID api.StepID, flow *api.FlowState,
 ) bool {
 	exec, ok := flow.Executions[stepID]
 	if ok && exec.Status != api.StepPending {
@@ -235,7 +241,7 @@ func (wa *flowActor) isStepReadyForExec(
 }
 
 func (wa *flowActor) isStepReady(
-	stepID timebox.ID, flow *api.FlowState,
+	stepID api.StepID, flow *api.FlowState,
 ) bool {
 	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {

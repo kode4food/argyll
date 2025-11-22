@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -29,10 +28,10 @@ func TestFlowWithGoals(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
-			assert.Equal(t, timebox.ID("wf-1"), req.ID)
+			assert.Equal(t, api.FlowID("wf-1"), req.ID)
 			assert.Len(t, req.Goals, 2)
-			assert.Equal(t, timebox.ID("goal-1"), req.Goals[0])
-			assert.Equal(t, timebox.ID("goal-2"), req.Goals[1])
+			assert.Equal(t, api.StepID("goal-1"), req.Goals[0])
+			assert.Equal(t, api.StepID("goal-2"), req.Goals[1])
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -54,11 +53,11 @@ func TestFlowWithGoal(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
-			assert.Equal(t, timebox.ID("wf-1"), req.ID)
+			assert.Equal(t, api.FlowID("wf-1"), req.ID)
 			assert.Len(t, req.Goals, 3)
-			assert.Equal(t, timebox.ID("goal-1"), req.Goals[0])
-			assert.Equal(t, timebox.ID("goal-2"), req.Goals[1])
-			assert.Equal(t, timebox.ID("goal-3"), req.Goals[2])
+			assert.Equal(t, api.StepID("goal-1"), req.Goals[0])
+			assert.Equal(t, api.StepID("goal-2"), req.Goals[1])
+			assert.Equal(t, api.StepID("goal-3"), req.Goals[2])
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -82,7 +81,7 @@ func TestFlowWithInitialState(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
-			assert.Equal(t, timebox.ID("wf-1"), req.ID)
+			assert.Equal(t, api.FlowID("wf-1"), req.ID)
 			assert.Equal(t, "value1", req.Init["key1"])
 			assert.Equal(t, float64(42), req.Init["key2"])
 
@@ -143,10 +142,10 @@ func TestFlowChaining(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 
-			assert.Equal(t, timebox.ID("complex-flow"), req.ID)
+			assert.Equal(t, api.FlowID("complex-flow"), req.ID)
 			assert.Len(t, req.Goals, 2)
-			assert.Equal(t, timebox.ID("goal-1"), req.Goals[0])
-			assert.Equal(t, timebox.ID("goal-2"), req.Goals[1])
+			assert.Equal(t, api.StepID("goal-1"), req.Goals[0])
+			assert.Equal(t, api.StepID("goal-2"), req.Goals[1])
 			assert.Equal(t, "value1", req.Init["arg1"])
 			assert.Equal(t, float64(100), req.Init["arg2"])
 
@@ -174,7 +173,7 @@ func TestFlowImmutability(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Len(t, req.Goals, 1)
-			assert.Equal(t, timebox.ID("goal-1"), req.Goals[0])
+			assert.Equal(t, api.StepID("goal-1"), req.Goals[0])
 			w.WriteHeader(http.StatusOK)
 		},
 	))
@@ -186,7 +185,7 @@ func TestFlowImmutability(t *testing.T) {
 			err := json.NewDecoder(r.Body).Decode(&req)
 			require.NoError(t, err)
 			assert.Len(t, req.Goals, 1)
-			assert.Equal(t, timebox.ID("goal-2"), req.Goals[0])
+			assert.Equal(t, api.StepID("goal-2"), req.Goals[0])
 			w.WriteHeader(http.StatusOK)
 		},
 	))

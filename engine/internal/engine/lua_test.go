@@ -3,7 +3,6 @@ package engine_test
 import (
 	"testing"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -352,7 +351,7 @@ func TestLuaInputTypes(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			step := &api.Step{
-				ID:   timebox.ID(tt.name),
+				ID:   api.StepID(tt.name),
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Script: tt.script,

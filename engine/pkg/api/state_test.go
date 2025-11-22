@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -12,7 +11,7 @@ import (
 
 func TestEngineSetStep(t *testing.T) {
 	original := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"existing": {ID: "existing", Name: "Existing Step"},
 		},
 	}
@@ -28,7 +27,7 @@ func TestEngineSetStep(t *testing.T) {
 
 func TestEngineDeleteStep(t *testing.T) {
 	original := &api.EngineState{
-		Steps: map[timebox.ID]*api.Step{
+		Steps: map[api.StepID]*api.Step{
 			"step1": {ID: "step1"},
 			"step2": {ID: "step2"},
 		},
@@ -44,7 +43,7 @@ func TestEngineDeleteStep(t *testing.T) {
 
 func TestEngineSetHealth(t *testing.T) {
 	original := &api.EngineState{
-		Health: map[timebox.ID]*api.HealthState{},
+		Health: map[api.StepID]*api.HealthState{},
 	}
 
 	health := &api.HealthState{Status: api.HealthHealthy}
@@ -86,7 +85,7 @@ func TestFlowSetAttribute(t *testing.T) {
 	})
 
 	assert.Equal(t, "new_value", result.Attributes["new_attr"].Value)
-	assert.Equal(t, timebox.ID("test-step"), result.Attributes["new_attr"].Step)
+	assert.Equal(t, api.StepID("test-step"), result.Attributes["new_attr"].Step)
 	assert.Equal(t, "value", result.Attributes["existing"].Value)
 	_, ok := original.Attributes["new_attr"]
 	assert.False(t, ok)
@@ -94,7 +93,7 @@ func TestFlowSetAttribute(t *testing.T) {
 
 func TestFlowSetExecution(t *testing.T) {
 	original := &api.FlowState{
-		Executions: map[timebox.ID]*api.ExecutionState{
+		Executions: map[api.StepID]*api.ExecutionState{
 			"existing": {Status: api.StepPending},
 		},
 	}
@@ -232,7 +231,7 @@ func TestFlowChaining(t *testing.T) {
 		ID:         "test-flow",
 		Status:     api.FlowPending,
 		Attributes: map[api.Name]*api.AttributeValue{},
-		Executions: map[timebox.ID]*api.ExecutionState{},
+		Executions: map[api.StepID]*api.ExecutionState{},
 	}
 
 	result := original.
@@ -244,9 +243,9 @@ func TestFlowChaining(t *testing.T) {
 
 	assert.Equal(t, api.FlowActive, result.Status)
 	assert.Equal(t, "value1", result.Attributes["attr1"].Value)
-	assert.Equal(t, timebox.ID("step1"), result.Attributes["attr1"].Step)
+	assert.Equal(t, api.StepID("step1"), result.Attributes["attr1"].Step)
 	assert.Equal(t, 42, result.Attributes["attr2"].Value)
-	assert.Equal(t, timebox.ID("step2"), result.Attributes["attr2"].Step)
+	assert.Equal(t, api.StepID("step2"), result.Attributes["attr2"].Step)
 	assert.Equal(t, api.FlowPending, original.Status)
 }
 

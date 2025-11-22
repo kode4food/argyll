@@ -1,27 +1,23 @@
 package api
 
-import (
-	"encoding/json"
-
-	"github.com/kode4food/timebox"
-)
+import "encoding/json"
 
 type (
 	// WebSocketEvent is an event sent to WebSocket clients
 	WebSocketEvent struct {
-		Type        timebox.EventType   `json:"type"`
-		Data        json.RawMessage     `json:"data"`
-		AggregateID timebox.AggregateID `json:"aggregate_id"`
-		Timestamp   int64               `json:"timestamp"`
-		Sequence    int64               `json:"sequence"`
+		Type        EventType       `json:"type"`
+		Data        json.RawMessage `json:"data"`
+		AggregateID []string        `json:"aggregate_id"`
+		Timestamp   int64           `json:"timestamp"`
+		Sequence    int64           `json:"sequence"`
 	}
 
 	// ClientSubscription configures which events a WebSocket client receives
 	ClientSubscription struct {
-		FlowID       timebox.ID           `json:"flow_id"`
-		EventTypes   []*timebox.EventType `json:"event_types,omitempty"`
-		FromSequence int64                `json:"from_sequence,omitempty"`
-		EngineEvents bool                 `json:"engine_events,omitempty"`
+		FlowID       FlowID      `json:"flow_id"`
+		EventTypes   []EventType `json:"event_types,omitempty"`
+		FromSequence int64       `json:"from_sequence,omitempty"`
+		EngineEvents bool        `json:"engine_events,omitempty"`
 	}
 
 	// SubscribeMessage is sent by clients to subscribe to events

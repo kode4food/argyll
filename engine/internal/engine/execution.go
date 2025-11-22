@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"log/slog"
 
-	"github.com/kode4food/timebox"
 	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -19,8 +18,8 @@ type (
 		engine *Engine
 		step   *api.Step
 		inputs api.Args
-		flowID timebox.ID
-		stepID timebox.ID
+		flowID api.FlowID
+		stepID api.StepID
 	}
 
 	// MultiArgs maps attribute names to value arrays for parallel execution

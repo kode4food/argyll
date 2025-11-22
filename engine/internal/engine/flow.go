@@ -9,11 +9,12 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-var flowTransitions = util.StateTransitions[api.FlowStatus]{
+var flowTransitions = StateTransitions[api.FlowStatus]{
 	api.FlowActive: util.SetOf(
 		api.FlowCompleted,
 		api.FlowFailed,
@@ -24,7 +25,7 @@ var flowTransitions = util.StateTransitions[api.FlowStatus]{
 
 // GetFlowState retrieves the current state of a flow by its ID
 func (e *Engine) GetFlowState(
-	ctx context.Context, flowID timebox.ID,
+	ctx context.Context, flowID api.FlowID,
 ) (*api.FlowState, error) {
 	state, err := e.flowExec.Exec(ctx, flowKey(flowID),
 		func(st *api.FlowState, ag *FlowAggregator) error {
@@ -45,10 +46,10 @@ func (e *Engine) GetFlowState(
 // CompleteFlow marks a flow as successfully completed with the given
 // result outputs
 func (e *Engine) CompleteFlow(
-	ctx context.Context, flowID timebox.ID, result api.Args,
+	ctx context.Context, flowID api.FlowID, result api.Args,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeFlowCompleted,
+		return events.Raise(ag, api.EventTypeFlowCompleted,
 			api.FlowCompletedEvent{
 				FlowID: flowID,
 				Result: result,
@@ -62,10 +63,10 @@ func (e *Engine) CompleteFlow(
 
 // FailFlow marks a flow as failed with the specified error message
 func (e *Engine) FailFlow(
-	ctx context.Context, flowID timebox.ID, errMsg string,
+	ctx context.Context, flowID api.FlowID, errMsg string,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeFlowFailed,
+		return events.Raise(ag, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: flowID,
 				Error:  errMsg,
@@ -83,7 +84,7 @@ func (e *Engine) StartWork(
 	ctx context.Context, fs FlowStep, token api.Token, inputs api.Args,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeWorkStarted,
+		return events.Raise(ag, api.EventTypeWorkStarted,
 			api.WorkStartedEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
@@ -103,7 +104,7 @@ func (e *Engine) CompleteWork(
 	ctx context.Context, fs FlowStep, token api.Token, outputs api.Args,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeWorkCompleted,
+		return events.Raise(ag, api.EventTypeWorkCompleted,
 			api.WorkCompletedEvent{
 				FlowID:  fs.FlowID,
 				StepID:  fs.StepID,
@@ -122,7 +123,7 @@ func (e *Engine) FailWork(
 	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return util.Raise(ag, api.EventTypeWorkFailed,
+		return events.Raise(ag, api.EventTypeWorkFailed,
 			api.WorkFailedEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
@@ -146,7 +147,7 @@ func (e *Engine) SetAttribute(
 			return fmt.Errorf("%w: %s", ErrAttributeAlreadySet, attr)
 		}
 
-		return util.Raise(ag, api.EventTypeAttributeSet,
+		return events.Raise(ag, api.EventTypeAttributeSet,
 			api.AttributeSetEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
@@ -163,7 +164,7 @@ func (e *Engine) SetAttribute(
 // GetAttribute retrieves a specific attribute value from the flow state,
 // returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
-	ctx context.Context, flowID timebox.ID, attr api.Name,
+	ctx context.Context, flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {
 	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
@@ -179,7 +180,7 @@ func (e *Engine) GetAttribute(
 // GetAttributes retrieves all attributes from the flow state as a map of
 // names to values
 func (e *Engine) GetAttributes(
-	ctx context.Context, flowID timebox.ID,
+	ctx context.Context, flowID api.FlowID,
 ) (api.Args, error) {
 	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
@@ -192,9 +193,9 @@ func (e *Engine) GetAttributes(
 // GetFlowEvents retrieves all events for a flow starting from the
 // specified sequence number
 func (e *Engine) GetFlowEvents(
-	ctx context.Context, flowID timebox.ID, fromSeq int64,
+	ctx context.Context, flowID api.FlowID, fromSeq int64,
 ) ([]*timebox.Event, error) {
-	id := timebox.NewAggregateID("flow", flowID)
+	id := timebox.NewAggregateID("flow", timebox.ID(flowID))
 	return e.flowExec.GetStore().GetEvents(ctx, id, fromSeq)
 }
 
@@ -224,7 +225,7 @@ func (e *Engine) buildFlowDigest(
 		return nil
 	}
 
-	flowID := id[1]
+	flowID := api.FlowID(id[1])
 	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
 		return nil
@@ -239,9 +240,7 @@ func (e *Engine) buildFlowDigest(
 	}
 }
 
-func (e *Engine) areOutputsNeeded(
-	stepID timebox.ID, flow *api.FlowState,
-) bool {
+func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
 	step := flow.Plan.GetStep(stepID)
 	if step == nil {
 		return false
@@ -254,7 +253,7 @@ func (e *Engine) areOutputsNeeded(
 	return hasOutputNeededByPendingConsumers(step, flow)
 }
 
-func isGoalStep(stepID timebox.ID, goals []timebox.ID) bool {
+func isGoalStep(stepID api.StepID, goals []api.StepID) bool {
 	return slices.Contains(goals, stepID)
 }
 
@@ -289,7 +288,7 @@ func outputNeededByPendingConsumer(
 }
 
 func hasPendingConsumer(
-	consumers []timebox.ID, executions map[timebox.ID]*api.ExecutionState,
+	consumers []api.StepID, executions map[api.StepID]*api.ExecutionState,
 ) bool {
 	for _, consumerID := range consumers {
 		consumerExec, ok := executions[consumerID]
@@ -313,7 +312,7 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 }
 
 func (e *Engine) evaluateFlowState(
-	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
+	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
 ) {
 	for stepID := range flow.Plan.Steps {
 		exec, ok := flow.Executions[stepID]
@@ -360,7 +359,7 @@ func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
 }
 
 func (e *Engine) failFlow(
-	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
+	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
 ) {
 	var failed []string
 
@@ -383,7 +382,7 @@ func (e *Engine) failFlow(
 }
 
 func (e *Engine) completeFlow(
-	ctx context.Context, flowID timebox.ID, flow *api.FlowState,
+	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
 ) {
 	result := api.Args{}
 
@@ -420,14 +419,14 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 	return false
 }
 
-func flowKey(flowID timebox.ID) timebox.AggregateID {
-	return timebox.NewAggregateID("flow", flowID)
+func flowKey(flowID api.FlowID) timebox.AggregateID {
+	return timebox.NewAggregateID("flow", timebox.ID(flowID))
 }
 
 // GetActiveFlow retrieves a flow if it is currently active, returning
 // nil if the flow is in a terminal state or not found
 func (e *Engine) GetActiveFlow(
-	flowID timebox.ID,
+	flowID api.FlowID,
 ) (*api.FlowState, bool) {
 	flow, err := e.GetFlowState(e.ctx, flowID)
 	if err != nil {
@@ -445,7 +444,7 @@ func (e *Engine) GetActiveFlow(
 }
 
 func (e *Engine) ensureScriptsCompiled(
-	flowID timebox.ID, flow *api.FlowState,
+	flowID api.FlowID, flow *api.FlowState,
 ) bool {
 	if !flow.Plan.NeedsCompilation() {
 		return true

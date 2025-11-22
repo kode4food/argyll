@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/kode4food/ale/data"
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -71,8 +70,8 @@ func TestCompileForPlan(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"script-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"script-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			script.ID: {Step: script},
 			pred.ID:   {Step: pred},
 		},
@@ -111,15 +110,15 @@ func TestCompiledIndependence(t *testing.T) {
 	}
 
 	pl1 := &api.ExecutionPlan{
-		Goals: []timebox.ID{"test-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"test-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
 
 	pl2 := &api.ExecutionPlan{
-		Goals: []timebox.ID{"test-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"test-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -162,8 +161,8 @@ func TestIsolatedUpdate(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"test-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"test-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			oldStep.ID: {Step: oldStep},
 		},
 	}

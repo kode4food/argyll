@@ -81,7 +81,8 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`, string(step.id))
+		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`,
+			string(step.id))
 	})
 
 	handler := makeStepHandler(client, step.id, handle)
@@ -96,7 +97,7 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 }
 
 func makeStepHandler(
-	client *Client, id StepID, handler StepHandler,
+	client *Client, id api.StepID, handler StepHandler,
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -110,10 +111,10 @@ func makeStepHandler(
 			return
 		}
 
-		var flowID FlowID
+		var flowID api.FlowID
 		if req.Metadata != nil {
 			if fid, ok := req.Metadata["workflow_id"].(string); ok {
-				flowID = FlowID(fid)
+				flowID = api.FlowID(fid)
 			}
 		}
 
@@ -131,7 +132,7 @@ func makeStepHandler(
 }
 
 func executeStepWithRecovery(
-	ctx *StepContext, id StepID, handler StepHandler, args api.Args,
+	ctx *StepContext, id api.StepID, handler StepHandler, args api.Args,
 ) (result api.StepResult) {
 	defer func() {
 		if r := recover(); r != nil {

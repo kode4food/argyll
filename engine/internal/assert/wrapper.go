@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -16,7 +15,7 @@ import (
 type (
 	Getter interface {
 		GetAttribute(
-			ctx context.Context, flowID timebox.ID, attr api.Name,
+			ctx context.Context, flowID api.FlowID, attr api.Name,
 		) (any, bool, error)
 	}
 
@@ -82,7 +81,7 @@ func (w *Wrapper) FlowStatus(flow *api.FlowState, expected api.FlowStatus) {
 
 // FlowHasState asserts that a flow has specific state keys
 func (w *Wrapper) FlowHasState(
-	ctx context.Context, get Getter, flowID timebox.ID, keys ...api.Name,
+	ctx context.Context, get Getter, flowID api.FlowID, keys ...api.Name,
 ) {
 	w.Helper()
 	for _, key := range keys {
@@ -94,7 +93,7 @@ func (w *Wrapper) FlowHasState(
 
 // FlowStateEquals asserts that a state key has the expected value
 func (w *Wrapper) FlowStateEquals(
-	ctx context.Context, get Getter, flowID timebox.ID, key api.Name,
+	ctx context.Context, get Getter, flowID api.FlowID, key api.Name,
 	expected any,
 ) {
 	w.Helper()

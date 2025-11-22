@@ -40,9 +40,9 @@ func TestStartFlowSimple(t *testing.T) {
 	env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
 	plan := &api.ExecutionPlan{
-		Goals:    []timebox.ID{"goal-step"},
+		Goals:    []api.StepID{"goal-step"},
 		Required: []api.Name{},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Steps: map[api.StepID]*api.StepInfo{
 			"goal-step": {Step: step},
 		},
 	}
@@ -59,7 +59,7 @@ func TestStartFlowSimple(t *testing.T) {
 	flow, err := env.Engine.GetFlowState(context.Background(), "wf-1")
 	require.NoError(t, err)
 	assert.NotNil(t, flow)
-	assert.Equal(t, timebox.ID("wf-1"), flow.ID)
+	assert.Equal(t, api.FlowID("wf-1"), flow.ID)
 }
 
 func TestFlowCompletion(t *testing.T) {
@@ -89,8 +89,8 @@ func TestFlowCompletion(t *testing.T) {
 	)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"completion-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"completion-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			"completion-step": {Step: step},
 		},
 	}
@@ -132,8 +132,8 @@ func TestListFlows(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"list-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"list-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			"list-step": {Step: step},
 		},
 	}
@@ -152,7 +152,7 @@ func TestListFlows(t *testing.T) {
 	require.NoError(t, err)
 	assert.GreaterOrEqual(t, len(flows), 2)
 
-	ids := util.Set[timebox.ID]{}
+	ids := util.Set[api.FlowID]{}
 	for _, wf := range flows {
 		ids.Add(wf.ID)
 	}
@@ -172,8 +172,8 @@ func TestGetFlowEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"events-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"events-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			"events-step": {Step: step},
 		},
 	}
@@ -189,7 +189,10 @@ func TestGetFlowEvents(t *testing.T) {
 	require.NoError(t, err)
 
 	if len(evs) > 0 {
-		assert.Equal(t, api.EventTypeFlowStarted, evs[0].Type)
+		assert.Equal(t,
+			timebox.EventType(api.EventTypeFlowStarted),
+			evs[0].Type,
+		)
 	}
 }
 
@@ -233,9 +236,9 @@ func TestScriptStep(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals:    []timebox.ID{"script-1"},
+		Goals:    []api.StepID{"script-1"},
 		Required: []api.Name{"name"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Steps: map[api.StepID]*api.StepInfo{
 			"script-1": {Step: scriptStep},
 		},
 	}

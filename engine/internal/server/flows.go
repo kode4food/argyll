@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -47,7 +46,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	flowID := timebox.ID(sanitizeFlowID(string(req.ID)))
+	flowID := sanitizeFlowID(string(req.ID))
 	if flowID == "" {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Valid Flow ID is required",
@@ -94,7 +93,7 @@ func (s *Server) startFlow(c *gin.Context) {
 }
 
 func (s *Server) getFlow(c *gin.Context) {
-	flowID := timebox.ID(c.Param("flowID"))
+	flowID := api.FlowID(c.Param("flowID"))
 
 	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
 	if err == nil {
@@ -116,7 +115,7 @@ func (s *Server) getFlow(c *gin.Context) {
 }
 
 func (s *Server) createPlan(
-	c *gin.Context, goalStepIDs []timebox.ID, initialState api.Args,
+	c *gin.Context, goalStepIDs []api.StepID, initialState api.Args,
 ) (*api.ExecutionPlan, bool) {
 	engState, err := s.engine.GetEngineState(c.Request.Context())
 	if err != nil {
@@ -171,9 +170,9 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 	}
 }
 
-func sanitizeFlowID(id string) string {
+func sanitizeFlowID(id string) api.FlowID {
 	id = strings.ToLower(id)
 	sanitized := invalidFlowIDChars.ReplaceAllString(id, "")
 	sanitized = strings.ReplaceAll(sanitized, " ", "-")
-	return strings.Trim(sanitized, "-")
+	return api.FlowID(strings.Trim(sanitized, "-"))
 }

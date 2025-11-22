@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,12 +21,12 @@ func TestRecoveryActivation(t *testing.T) {
 	env.Engine.Start()
 
 	ctx := context.Background()
-	flowID := timebox.ID("test-flow")
+	flowID := api.FlowID("test-flow")
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-1"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-1"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -55,12 +54,12 @@ func TestRecoveryDeactivation(t *testing.T) {
 	env.Engine.Start()
 
 	ctx := context.Background()
-	flowID := timebox.ID("test-flow")
+	flowID := api.FlowID("test-flow")
 
 	step := &api.Step{ID: "step-1"}
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-1"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-1"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -315,13 +314,13 @@ func TestScheduleRetry(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"test-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"test-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
 
-	flowID := timebox.ID("retry-flow")
+	flowID := api.FlowID("retry-flow")
 	err = env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
@@ -372,13 +371,13 @@ func TestRetryExhaustion(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"failing-step"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"failing-step"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
 
-	flowID := timebox.ID("exhaustion-flow")
+	flowID := api.FlowID("exhaustion-flow")
 	err = env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
@@ -397,7 +396,8 @@ func TestRetryExhaustion(t *testing.T) {
 	for _, item := range exec.WorkItems {
 		if item.RetryCount >= 1 {
 			hasRetrying = true
-			t.Logf("Work item has retryCount=%d, status=%s", item.RetryCount, item.Status)
+			t.Logf("Work item has retryCount=%d, status=%s",
+				item.RetryCount, item.Status)
 			break
 		}
 	}
@@ -410,7 +410,7 @@ func TestFindRetriableSteps(t *testing.T) {
 	defer env.Cleanup()
 
 	state := &api.FlowState{
-		Executions: map[timebox.ID]*api.ExecutionState{
+		Executions: map[api.StepID]*api.ExecutionState{
 			"step-1": {
 				Status: api.StepPending,
 				WorkItems: map[api.Token]*api.WorkState{
@@ -464,8 +464,8 @@ func TestFindRetriableSteps(t *testing.T) {
 	retriable := env.Engine.FindRetrySteps(state)
 
 	assert.Len(t, retriable, 2)
-	assert.Contains(t, retriable, timebox.ID("step-1"))
-	assert.Contains(t, retriable, timebox.ID("step-4"))
+	assert.Contains(t, retriable, api.StepID("step-1"))
+	assert.Contains(t, retriable, api.StepID("step-4"))
 }
 
 func TestRecoverActiveFlows(t *testing.T) {
@@ -476,13 +476,13 @@ func TestRecoverActiveFlows(t *testing.T) {
 
 	ctx := context.Background()
 
-	flowID1 := timebox.ID("flow-1")
-	flowID2 := timebox.ID("flow-2")
+	flowID1 := api.FlowID("flow-1")
+	flowID2 := api.FlowID("flow-2")
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-1"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-1"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
@@ -523,15 +523,15 @@ func TestConcurrentRecoveryState(t *testing.T) {
 
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
-		Goals: []timebox.ID{"step-1"},
-		Steps: map[timebox.ID]*api.StepInfo{
+		Goals: []api.StepID{"step-1"},
+		Steps: map[api.StepID]*api.StepInfo{
 			step.ID: {Step: step},
 		},
 	}
 
 	for i := range count {
 		go func(id int) {
-			flowID := timebox.ID(fmt.Sprintf("flow-%d", id))
+			flowID := api.FlowID(fmt.Sprintf("flow-%d", id))
 			err := env.Engine.StartFlow(
 				ctx, flowID, plan, api.Args{}, api.Metadata{},
 			)
@@ -549,7 +549,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 
 	// Verify all flows were created
 	for i := range count {
-		flowID := timebox.ID(fmt.Sprintf("flow-%d", i))
+		flowID := api.FlowID(fmt.Sprintf("flow-%d", i))
 		flow, err := env.Engine.GetFlowState(ctx, flowID)
 		assert.NoError(t, err)
 		assert.NotNil(t, flow)

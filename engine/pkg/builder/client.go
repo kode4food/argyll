@@ -24,7 +24,7 @@ type (
 	// FlowClient provides access to a specific flow
 	FlowClient struct {
 		*Client
-		flowID FlowID
+		flowID api.FlowID
 	}
 )
 
@@ -85,7 +85,7 @@ func (c *Client) ListSteps(
 }
 
 // Flow returns a client for accessing a specific flow
-func (c *Client) Flow(id FlowID) *FlowClient {
+func (c *Client) Flow(id api.FlowID) *FlowClient {
 	return &FlowClient{
 		Client: c,
 		flowID: id,
@@ -218,6 +218,6 @@ func (wc *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 }
 
 // FlowID returns the flow ID for this client
-func (wc *FlowClient) FlowID() FlowID {
+func (wc *FlowClient) FlowID() api.FlowID {
 	return wc.flowID
 }

@@ -3,8 +3,6 @@ package api
 import (
 	"maps"
 	"time"
-
-	"github.com/kode4food/timebox"
 )
 
 type (
@@ -25,36 +23,36 @@ type (
 
 	// EngineState contains the global state of the orchestrator
 	EngineState struct {
-		LastUpdated time.Time                      `json:"last_updated"`
-		Steps       map[timebox.ID]*Step           `json:"steps"`
-		Health      map[timebox.ID]*HealthState    `json:"health"`
-		ActiveFlows map[timebox.ID]*ActiveFlowInfo `json:"active_flows"`
+		LastUpdated time.Time                  `json:"last_updated"`
+		Steps       map[StepID]*Step           `json:"steps"`
+		Health      map[StepID]*HealthState    `json:"health"`
+		ActiveFlows map[FlowID]*ActiveFlowInfo `json:"active_flows"`
 	}
 
 	// ActiveFlowInfo tracks basic metadata for active flows
 	ActiveFlowInfo struct {
-		FlowID     timebox.ID `json:"flow_id"`
-		StartedAt  time.Time  `json:"started_at"`
-		LastActive time.Time  `json:"last_active"`
+		FlowID     FlowID    `json:"flow_id"`
+		StartedAt  time.Time `json:"started_at"`
+		LastActive time.Time `json:"last_active"`
 	}
 
 	// FlowState contains the complete state of a flow execution
 	FlowState struct {
-		CreatedAt   time.Time                      `json:"created_at"`
-		CompletedAt time.Time                      `json:"completed_at,omitempty"`
-		LastUpdated time.Time                      `json:"last_updated"`
-		Plan        *ExecutionPlan                 `json:"plan"`
-		Attributes  map[Name]*AttributeValue       `json:"attributes"`
-		Executions  map[timebox.ID]*ExecutionState `json:"executions"`
-		ID          timebox.ID                     `json:"id"`
-		Status      FlowStatus                     `json:"status"`
-		Error       string                         `json:"error,omitempty"`
+		CreatedAt   time.Time                  `json:"created_at"`
+		CompletedAt time.Time                  `json:"completed_at,omitempty"`
+		LastUpdated time.Time                  `json:"last_updated"`
+		Plan        *ExecutionPlan             `json:"plan"`
+		Attributes  map[Name]*AttributeValue   `json:"attributes"`
+		Executions  map[StepID]*ExecutionState `json:"executions"`
+		ID          FlowID                     `json:"id"`
+		Status      FlowStatus                 `json:"status"`
+		Error       string                     `json:"error,omitempty"`
 	}
 
 	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
-		Value any        `json:"value"`
-		Step  timebox.ID `json:"step,omitempty"`
+		Value any    `json:"value"`
+		Step  StepID `json:"step,omitempty"`
 	}
 
 	// ExecutionState contains the state of a step execution
@@ -118,7 +116,7 @@ const (
 )
 
 // SetStep returns a new EngineState with the specified step registered
-func (st *EngineState) SetStep(id timebox.ID, step *Step) *EngineState {
+func (st *EngineState) SetStep(id StepID, step *Step) *EngineState {
 	res := *st
 	res.Steps = maps.Clone(st.Steps)
 	res.Steps[id] = step
@@ -126,7 +124,7 @@ func (st *EngineState) SetStep(id timebox.ID, step *Step) *EngineState {
 }
 
 // DeleteStep returns a new EngineState with the specified step removed
-func (st *EngineState) DeleteStep(i timebox.ID) *EngineState {
+func (st *EngineState) DeleteStep(i StepID) *EngineState {
 	res := *st
 	res.Steps = maps.Clone(st.Steps)
 	delete(res.Steps, i)
@@ -134,7 +132,7 @@ func (st *EngineState) DeleteStep(i timebox.ID) *EngineState {
 }
 
 // SetHealth returns a new EngineState with updated health for a given step
-func (st *EngineState) SetHealth(id timebox.ID, h *HealthState) *EngineState {
+func (st *EngineState) SetHealth(id StepID, h *HealthState) *EngineState {
 	res := *st
 	res.Health = maps.Clone(st.Health)
 	res.Health[id] = h
@@ -150,7 +148,7 @@ func (st *EngineState) SetLastUpdated(t time.Time) *EngineState {
 
 // SetActiveFlow returns a new EngineState with the flow as active
 func (st *EngineState) SetActiveFlow(
-	id timebox.ID, info *ActiveFlowInfo,
+	id FlowID, info *ActiveFlowInfo,
 ) *EngineState {
 	res := *st
 	res.ActiveFlows = maps.Clone(st.ActiveFlows)
@@ -159,7 +157,7 @@ func (st *EngineState) SetActiveFlow(
 }
 
 // DeleteActiveFlow returns a new EngineState with the flow inactive
-func (st *EngineState) DeleteActiveFlow(id timebox.ID) *EngineState {
+func (st *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
 	res := *st
 	res.ActiveFlows = maps.Clone(st.ActiveFlows)
 	delete(res.ActiveFlows, id)
@@ -182,9 +180,7 @@ func (st *FlowState) SetAttribute(name Name, attr *AttributeValue) *FlowState {
 }
 
 // SetExecution returns a new FlowState with updated execution for a step
-func (st *FlowState) SetExecution(
-	id timebox.ID, ex *ExecutionState,
-) *FlowState {
+func (st *FlowState) SetExecution(id StepID, ex *ExecutionState) *FlowState {
 	res := *st
 	res.Executions = maps.Clone(st.Executions)
 	res.Executions[id] = ex

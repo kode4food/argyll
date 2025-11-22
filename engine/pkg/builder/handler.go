@@ -20,7 +20,7 @@ type (
 		Client *FlowClient
 
 		// StepID is the ID of the current step being executed
-		StepID StepID
+		StepID api.StepID
 
 		// Metadata contains additional context passed to step handlers
 		Metadata api.Metadata
