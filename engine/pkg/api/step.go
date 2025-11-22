@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"slices"
@@ -67,9 +66,6 @@ type (
 		Error   string `json:"error,omitempty"`
 		Success bool   `json:"success"`
 	}
-
-	// StepHandler is the function signature for step implementations
-	StepHandler func(context.Context, Args) (StepResult, error)
 )
 
 const (
@@ -215,11 +211,13 @@ func (s *Step) validateWorkConfig() error {
 		return ErrNegativeBackoff
 	}
 
-	if s.WorkConfig.MaxBackoffMs != 0 && s.WorkConfig.MaxBackoffMs < s.WorkConfig.BackoffMs {
+	if s.WorkConfig.MaxBackoffMs != 0 &&
+		s.WorkConfig.MaxBackoffMs < s.WorkConfig.BackoffMs {
 		return ErrMaxBackoffTooSmall
 	}
 
-	hasRetryConfig := s.WorkConfig.MaxRetries != 0 || s.WorkConfig.BackoffMs != 0 || s.WorkConfig.MaxBackoffMs != 0
+	hasRetryConfig := s.WorkConfig.MaxRetries != 0 ||
+		s.WorkConfig.BackoffMs != 0 || s.WorkConfig.MaxBackoffMs != 0
 	if hasRetryConfig {
 		if s.WorkConfig.BackoffType == "" {
 			return ErrInvalidRetryConfig

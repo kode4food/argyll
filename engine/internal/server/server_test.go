@@ -1263,7 +1263,7 @@ func TestFlowIDSanitization(t *testing.T) {
 	}{
 		{
 			name:           "uppercase_converted_to_lowercase",
-			flowID:         "MyWorkFlow-ABC",
+			flowID:         "MyFlow-ABC",
 			expectedStatus: http.StatusCreated,
 			shouldSucceed:  true,
 		},

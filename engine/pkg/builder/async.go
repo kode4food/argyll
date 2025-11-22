@@ -2,56 +2,36 @@ package builder
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
 // AsyncContext provides functionality for managing asynchronous step
-// execution. It holds flow and step IDs along with a webhook URL for
-// result delivery
+// execution. It embeds StepContext and adds the webhook URL for result delivery
 type AsyncContext struct {
-	client     *Client
-	flowID     timebox.ID
-	stepID     timebox.ID
+	*StepContext
 	webhookURL string
 }
 
-// NewAsyncContext creates a new async context from the metadata in the
-// provided context. It extracts flow_id, step_id, and webhook_url from the
-// context metadata
-func (c *Client) NewAsyncContext(ctx context.Context) (*AsyncContext, error) {
-	meta, ok := ctx.Value(MetadataKey).(api.Metadata)
-	if !ok {
-		return nil, fmt.Errorf("metadata not found in context")
+// NewAsyncContext creates a new async context from a StepContext.
+// It extracts webhook_url from the StepContext metadata
+func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
+	if ctx.Metadata == nil {
+		return nil, fmt.Errorf("metadata not found in step context")
 	}
 
-	flowID, ok := meta["flow_id"].(string)
-	if !ok || flowID == "" {
-		return nil, fmt.Errorf("flow_id not found in metadata")
-	}
-
-	stepID, ok := meta["step_id"].(string)
-	if !ok || stepID == "" {
-		return nil, fmt.Errorf("step_id not found in metadata")
-	}
-
-	webhookURL, ok := meta["webhook_url"].(string)
+	webhookURL, ok := ctx.Metadata["webhook_url"].(string)
 	if !ok || webhookURL == "" {
 		return nil, fmt.Errorf("webhook_url not found in metadata")
 	}
 
 	return &AsyncContext{
-		client:     c,
-		flowID:     timebox.ID(flowID),
-		stepID:     timebox.ID(stepID),
-		webhookURL: webhookURL,
+		StepContext: ctx,
+		webhookURL:  webhookURL,
 	}, nil
 }
 
@@ -80,23 +60,18 @@ func (ac *AsyncContext) Fail(err error) error {
 }
 
 // FlowID returns the flow ID for this async context
-func (ac *AsyncContext) FlowID() timebox.ID {
-	return ac.flowID
+func (ac *AsyncContext) FlowID() string {
+	return string(ac.Client.FlowID())
 }
 
 // StepID returns the step ID for this async context
-func (ac *AsyncContext) StepID() timebox.ID {
-	return ac.stepID
+func (ac *AsyncContext) StepID() string {
+	return string(ac.StepContext.StepID)
 }
 
 // WebhookURL returns the webhook URL for delivering step results
 func (ac *AsyncContext) WebhookURL() string {
 	return ac.webhookURL
-}
-
-// Flow returns a flow client for interacting with this flow
-func (ac *AsyncContext) Flow() *FlowClient {
-	return ac.client.Flow(ac.flowID)
 }
 
 func (ac *AsyncContext) sendWebhook(result api.StepResult) error {

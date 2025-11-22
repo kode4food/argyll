@@ -66,9 +66,15 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
         userID, _ := args["user_id"].(string)
         // Lookup user...
+
+        // Access to flow context
+        // ctx.Client provides flow client for queries
+        // ctx.StepID contains the current step ID
+        // ctx.Metadata contains workflow metadata
+
         return *api.NewResult().
             WithOutput("user_name", "John Doe").
             WithOutput("user_email", "john@example.com"), nil
@@ -146,14 +152,14 @@ s.WithAsyncExecution().
   Output("output", api.TypeString)
 ```
 
-Use client to create async context:
+Use StepContext to create async context:
 
 ```go
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
-        async, err := client.NewAsyncContext(ctx)
+    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+        async, err := builder.NewAsyncContext(ctx)
         if err != nil {
             return *api.NewResult().WithError(err), nil
         }
@@ -269,11 +275,18 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
         orderID, _ := args["order_id"].(string)
         items := args["items"]
 
         log.Printf("processing order: %s", orderID)
+        log.Printf("step ID: %s", ctx.StepID)
+
+        // Can access flow state if needed
+        if ctx.Client.FlowID() != "" {
+            state, _ := ctx.Client.GetState(ctx)
+            log.Printf("flow status: %v", state.Status)
+        }
 
         total := calculateTotal(items)
 
@@ -318,7 +331,7 @@ Creates a new step builder with the specified name.
 - `Output(name api.Name, argType api.AttributeType) *Step` - Add output
 
 #### Configuration
-- `WithID(id timebox.ID) *Step` - Set custom step ID
+- `WithID(id string) *Step` - Set custom step ID
 - `WithVersion(version string) *Step` - Set step version
 - `WithTimeout(timeout int64) *Step` - Set execution timeout (milliseconds)
 - `WithEndpoint(endpoint string) *Step` - Set HTTP endpoint
@@ -343,4 +356,21 @@ Creates a new step builder with the specified name.
 - `Build() (*api.Step, error)` - Build step definition
 - `Register(ctx context.Context) error` - Register step with engine
 - `Update() *Step` - Mark step as modified (for updates)
-- `Start(handler api.StepHandler) error` - Register and start HTTP server
+- `Start(handler builder.StepHandler) error` - Register and start HTTP server
+
+### StepHandler Type
+
+```go
+type StepHandler func(*StepContext, api.Args) (api.StepResult, error)
+```
+
+### StepContext Type
+
+```go
+type StepContext struct {
+    context.Context                    // Standard Go context
+    Client   *FlowClient               // Flow client for queries
+    StepID   StepID                    // Current step ID
+    Metadata api.Metadata              // Workflow metadata
+}
+```

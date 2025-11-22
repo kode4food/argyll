@@ -19,9 +19,13 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx context.Context, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
         name, _ := args["name"].(string)
         greeting := "Hello, " + name + "!"
+
+        // Access to flow client through context
+        // ctx.Client can be used to query flow state or start new flows
+
         return *api.NewResult().WithOutput("greeting", greeting), nil
     }
 

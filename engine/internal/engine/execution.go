@@ -52,12 +52,12 @@ func (e *Engine) EnqueueStepResult(
 }
 
 func (e *Engine) executeStep(ctx context.Context, fs FlowStep) {
-	stepCtx := e.PrepareStepExecution(ctx, fs)
-	if stepCtx == nil {
+	execCtx := e.PrepareStepExecution(ctx, fs)
+	if execCtx == nil {
 		return
 	}
 
-	stepCtx.execute(ctx)
+	execCtx.execute(ctx)
 }
 
 // PrepareStepExecution validates and prepares a step for execution, returning

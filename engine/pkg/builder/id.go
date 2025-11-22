@@ -4,16 +4,22 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"strings"
+)
 
-	"github.com/kode4food/timebox"
+type (
+	// FlowID is a unique identifier for a flow
+	FlowID string
+
+	// StepID is a unique identifier for a step
+	StepID string
 )
 
 // NewFlowID generates a unique flow ID with a readable prefix
-func NewFlowID(prefix string) timebox.ID {
+func NewFlowID(prefix string) FlowID {
 	prefix = strings.ToLower(prefix)
 	prefix = strings.ReplaceAll(prefix, " ", "-")
 	suffix := randomHex(6)
-	return timebox.ID(prefix + "-" + suffix)
+	return FlowID(prefix + "-" + suffix)
 }
 
 func randomHex(length int) string {

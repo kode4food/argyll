@@ -78,14 +78,14 @@ func TestNewStepIDGeneration(t *testing.T) {
 }
 
 func TestWithID(t *testing.T) {
-	customID := timebox.ID("custom-id")
+	customID := "custom-id"
 	step, err := testClient().NewStep("Test Step").
 		WithID(customID).
 		WithEndpoint("http://example.com").
 		Build()
 
 	require.NoError(t, err)
-	assert.Equal(t, customID, step.ID)
+	assert.Equal(t, timebox.ID(customID), step.ID)
 	assert.Equal(t, api.Name("Test Step"), step.Name)
 }
 

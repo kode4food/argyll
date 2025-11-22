@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -103,7 +102,7 @@ func main() {
 	}
 }
 
-func handle(ctx context.Context, args api.Args) (api.StepResult, error) {
+func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 
 	productID, hasProductID := args["product_id"].(string)

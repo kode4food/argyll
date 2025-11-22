@@ -10,8 +10,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -25,8 +23,8 @@ type (
 
 	// FlowClient provides access to a specific flow
 	FlowClient struct {
-		client *Client
-		flowID timebox.ID
+		*Client
+		flowID FlowID
 	}
 )
 
@@ -87,10 +85,10 @@ func (c *Client) ListSteps(
 }
 
 // Flow returns a client for accessing a specific flow
-func (c *Client) Flow(flowID timebox.ID) *FlowClient {
+func (c *Client) Flow(id FlowID) *FlowClient {
 	return &FlowClient{
-		client: c,
-		flowID: flowID,
+		Client: c,
+		flowID: id,
 	}
 }
 
@@ -190,17 +188,16 @@ func (c *Client) startFlow(
 	return nil
 }
 
-func (c *Client) getFlowState(
-	ctx context.Context, flowID timebox.ID,
-) (*api.FlowState, error) {
+// GetState retrieves the current state of the flow
+func (wc *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 	httpReq, err := http.NewRequestWithContext(
-		ctx, "GET", c.url("%s/%s", routeFlow, flowID), nil,
+		ctx, "GET", wc.url("%s/%s", routeFlow, wc.flowID), nil,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := c.httpClient.Do(httpReq)
+	resp, err := wc.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
@@ -220,12 +217,7 @@ func (c *Client) getFlowState(
 	return &result, nil
 }
 
-// GetState retrieves the current state of the flow
-func (wc *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
-	return wc.client.getFlowState(ctx, wc.flowID)
-}
-
 // FlowID returns the flow ID for this client
-func (wc *FlowClient) FlowID() timebox.ID {
+func (wc *FlowClient) FlowID() FlowID {
 	return wc.flowID
 }

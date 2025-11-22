@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -50,7 +49,7 @@ func main() {
 	}
 }
 
-func handle(ctx context.Context, args api.Args) (api.StepResult, error) {
+func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 	// Extract and validate user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {

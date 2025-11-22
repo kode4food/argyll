@@ -9,7 +9,6 @@ import (
     "context"
     "time"
 
-    "github.com/kode4food/timebox"
     "github.com/kode4food/spuds/engine/pkg/api"
     "github.com/kode4food/spuds/engine/pkg/builder"
 )
@@ -92,6 +91,20 @@ fmt.Printf("Attributes: %+v\n", state.Attributes)
 flowID := wc.FlowID()
 ```
 
+## Flow ID Generation
+
+The builder provides a helper function to generate unique flow IDs:
+
+```go
+// Generate a unique flow ID with a prefix
+flowID := builder.NewFlowID("data-pipeline")
+// Returns something like: "data-pipeline-a1b2c3"
+
+err := client.NewFlow(flowID).
+    WithGoals("process-data").
+    Start(context.Background())
+```
+
 ## Builder Pattern
 
 The Flow builder follows an immutable builder pattern:
@@ -168,21 +181,28 @@ func main() {
 
 ## API Reference
 
+### Types
+
+```go
+type FlowID string  // Unique identifier for a flow
+type StepID string  // Unique identifier for a step
+```
+
 ### Client Methods
 
-#### `NewFlow(id timebox.ID) *Flow`
-Creates a new flow builder with the specified ID.
+#### `NewFlow(id FlowID) *Flow`
+Creates a new flow builder with the specified ID. String literals are automatically converted to `FlowID`.
 
-#### `Flow(flowID timebox.ID) *FlowClient`
-Returns a client for accessing an existing flow.
+#### `Flow(id FlowID) *FlowClient`
+Returns a client for accessing an existing flow. String literals are automatically converted to `FlowID`.
 
 ### Flow Builder Methods
 
-#### `WithGoals(goals ...timebox.ID) *Flow`
-Sets the goal step IDs for the flow. Replaces any previously set goals.
+#### `WithGoals(goals ...StepID) *Flow`
+Sets the goal step IDs for the flow. Replaces any previously set goals. String literals are automatically converted to `StepID`.
 
-#### `WithGoal(goal timebox.ID) *Flow`
-Adds a single goal step ID to the flow.
+#### `WithGoal(goal StepID) *Flow`
+Adds a single goal step ID to the flow. String literals are automatically converted to `StepID`.
 
 #### `WithInitialState(init api.Args) *Flow`
 Sets the initial state (arguments) for the flow.
@@ -195,5 +215,10 @@ Creates and starts the flow on the engine.
 #### `GetState(ctx context.Context) (*api.FlowState, error)`
 Retrieves the current state of the flow.
 
-#### `FlowID() timebox.ID`
+#### `FlowID() builder.FlowID`
 Returns the flow ID for this client.
+
+### Helper Functions
+
+#### `NewFlowID(prefix string) builder.FlowID`
+Generates a unique flow ID with the given prefix and a random suffix.

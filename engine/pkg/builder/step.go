@@ -19,7 +19,7 @@ type Step struct {
 	predicate  *api.ScriptConfig
 	http       *api.HTTPConfig
 	script     *api.ScriptConfig
-	id         timebox.ID
+	id         StepID
 	name       api.Name
 	stepType   api.StepType
 	version    string
@@ -35,7 +35,7 @@ var (
 
 // NewStep creates a new step builder with the specified name
 func (c *Client) NewStep(name api.Name) *Step {
-	id := timebox.ID(toSnakeCase(string(name)))
+	id := StepID(toSnakeCase(string(name)))
 	return &Step{
 		client:     c,
 		id:         id,
@@ -48,9 +48,9 @@ func (c *Client) NewStep(name api.Name) *Step {
 }
 
 // WithID sets the step ID, overriding the auto-generated ID from the step name
-func (s *Step) WithID(id timebox.ID) *Step {
+func (s *Step) WithID(id string) *Step {
 	res := *s
-	res.id = id
+	res.id = StepID(id)
 	return &res
 }
 
@@ -227,7 +227,7 @@ func (s *Step) Build() (*api.Step, error) {
 	}
 
 	step := &api.Step{
-		ID:         s.id,
+		ID:         timebox.ID(s.id),
 		Name:       s.name,
 		Type:       s.stepType,
 		Attributes: s.attributes,
@@ -269,7 +269,7 @@ func (s *Step) Update() *Step {
 // Start builds the step, registers it with the engine, creates an HTTP server,
 // and starts handling requests. Automatically registers the step before
 // starting the server
-func (s *Step) Start(handler api.StepHandler) error {
+func (s *Step) Start(handler StepHandler) error {
 	if s.client == nil {
 		return errors.New("step not created from client")
 	}

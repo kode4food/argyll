@@ -1,7 +1,6 @@
 package builder_test
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -36,7 +35,7 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 	}()
 
 	handler := func(
-		ctx context.Context, args api.Args,
+		ctx *builder.StepContext, args api.Args,
 	) (api.StepResult, error) {
 		return api.StepResult{Success: true}, nil
 	}

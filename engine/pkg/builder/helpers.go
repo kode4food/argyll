@@ -11,13 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
-
-// ContextKey is a type for context keys to avoid collisions
-type ContextKey string
 
 const (
 	MaxRegistrationAttempts = 5
@@ -30,10 +25,7 @@ var (
 	ErrHandlerPanic     = errors.New("step handler panicked")
 )
 
-// MetadataKey is the context key used to store step execution metadata
-var MetadataKey ContextKey = "metadata"
-
-func setupStepServer(client *Client, step *Step, handle api.StepHandler) error {
+func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 	port := os.Getenv("STEP_PORT")
 	if port == "" {
 		port = strconv.Itoa(DefaultStepPort)
@@ -89,10 +81,11 @@ func setupStepServer(client *Client, step *Step, handle api.StepHandler) error {
 	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`, step.id)
+		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`, string(step.id))
 	})
 
-	http.HandleFunc("/"+string(step.id), makeStepHandler(step.id, handle))
+	handler := makeStepHandler(client, step.id, handle)
+	http.HandleFunc("/"+string(step.id), handler)
 
 	slog.Info("Step server starting",
 		slog.Any("step_name", step.name),
@@ -102,7 +95,9 @@ func setupStepServer(client *Client, step *Step, handle api.StepHandler) error {
 	return http.ListenAndServe(":"+port, nil)
 }
 
-func makeStepHandler(id timebox.ID, handler api.StepHandler) http.HandlerFunc {
+func makeStepHandler(
+	client *Client, id StepID, handler StepHandler,
+) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
@@ -115,7 +110,19 @@ func makeStepHandler(id timebox.ID, handler api.StepHandler) http.HandlerFunc {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), MetadataKey, req.Metadata)
+		var flowID FlowID
+		if req.Metadata != nil {
+			if fid, ok := req.Metadata["workflow_id"].(string); ok {
+				flowID = FlowID(fid)
+			}
+		}
+
+		ctx := &StepContext{
+			Context:  r.Context(),
+			Client:   client.Flow(flowID),
+			StepID:   id,
+			Metadata: req.Metadata,
+		}
 		result := executeStepWithRecovery(ctx, id, handler, req.Arguments)
 
 		w.Header().Set("Content-Type", "application/json")
@@ -124,12 +131,12 @@ func makeStepHandler(id timebox.ID, handler api.StepHandler) http.HandlerFunc {
 }
 
 func executeStepWithRecovery(
-	ctx context.Context, id timebox.ID, handler api.StepHandler, args api.Args,
+	ctx *StepContext, id StepID, handler StepHandler, args api.Args,
 ) (result api.StepResult) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Step handler panicked",
-				slog.Any("step_id", id),
+				slog.Any("step_id", string(id)),
 				slog.Any("panic", r))
 			result = *api.NewResult().WithError(
 				fmt.Errorf("%w: %v", ErrHandlerPanic, r),

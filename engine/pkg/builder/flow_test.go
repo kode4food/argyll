@@ -18,10 +18,7 @@ import (
 
 func TestNewFlow(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	flowID := timebox.ID("test-flow")
-
-	wf := client.NewFlow(flowID)
-
+	wf := client.NewFlow("test-flow")
 	assert.NotNil(t, wf)
 }
 

@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -22,13 +21,19 @@ func TestNewAsyncContext(t *testing.T) {
 		"step_id":     "test-step",
 		"webhook_url": "http://localhost:8080/webhook/test-flow/test-step/t123",
 	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
 
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	ac, err := client.NewAsyncContext(ctx)
+	ctx := &builder.StepContext{
+		Context:  context.Background(),
+		Client:   client.Flow("test-flow"),
+		StepID:   "test-step",
+		Metadata: meta,
+	}
+
+	ac, err := builder.NewAsyncContext(ctx)
 	require.NoError(t, err)
-	assert.Equal(t, timebox.ID("test-flow"), ac.FlowID())
-	assert.Equal(t, timebox.ID("test-step"), ac.StepID())
+	assert.Equal(t, "test-flow", ac.FlowID())
+	assert.Equal(t, "test-step", ac.StepID())
 	assert.Equal(t,
 		"http://localhost:8080/webhook/test-flow/test-step/t123",
 		ac.WebhookURL(),
@@ -47,24 +52,8 @@ func TestAsyncContextMissingMeta(t *testing.T) {
 			errMatch: "metadata not found",
 		},
 		{
-			name: "missing flow_id",
-			meta: api.Metadata{
-				"step_id":     "step",
-				"webhook_url": "http://test",
-			},
-			errMatch: "flow_id not found",
-		},
-		{
-			name: "missing step_id",
-			meta: api.Metadata{
-				"flow_id":     "flow",
-				"webhook_url": "http://test",
-			},
-			errMatch: "step_id not found",
-		},
-		{
 			name:     "missing webhook_url",
-			meta:     api.Metadata{"flow_id": "flow", "step_id": "step"},
+			meta:     api.Metadata{},
 			errMatch: "webhook_url not found",
 		},
 	}
@@ -72,15 +61,13 @@ func TestAsyncContextMissingMeta(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			var ctx context.Context
-			if tt.meta != nil {
-				ctx = context.WithValue(
-					context.Background(), builder.MetadataKey, tt.meta,
-				)
-			} else {
-				ctx = context.Background()
+			ctx := &builder.StepContext{
+				Context:  context.Background(),
+				Client:   client.Flow("test-flow"),
+				StepID:   "test-step",
+				Metadata: tt.meta,
 			}
-			_, err := client.NewAsyncContext(ctx)
+			_, err := builder.NewAsyncContext(ctx)
 			assert.Error(t, err)
 			assert.Contains(t, err.Error(), tt.errMatch)
 		})
@@ -108,10 +95,15 @@ func TestAsyncContextComplete(t *testing.T) {
 		"step_id":     "test-step",
 		"webhook_url": server.URL,
 	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
 
 	client := builder.NewClient(server.URL, 30*time.Second)
-	ac, err := client.NewAsyncContext(ctx)
+	ctx := &builder.StepContext{
+		Context:  context.Background(),
+		Client:   client.Flow("test-flow"),
+		StepID:   "test-step",
+		Metadata: meta,
+	}
+	ac, err := builder.NewAsyncContext(ctx)
 	require.NoError(t, err)
 
 	err = ac.Success(api.Args{"output_key": "result-value"})
@@ -137,10 +129,15 @@ func TestAsyncContextFail(t *testing.T) {
 		"step_id":     "test-step",
 		"webhook_url": server.URL,
 	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
 
 	client := builder.NewClient(server.URL, 30*time.Second)
-	ac, err := client.NewAsyncContext(ctx)
+	ctx := &builder.StepContext{
+		Context:  context.Background(),
+		Client:   client.Flow("test-flow"),
+		StepID:   "test-step",
+		Metadata: meta,
+	}
+	ac, err := builder.NewAsyncContext(ctx)
 	require.NoError(t, err)
 
 	err = ac.Fail(assert.AnError)
@@ -161,10 +158,15 @@ func TestAsyncContextWebhookError(t *testing.T) {
 		"step_id":     "test-step",
 		"webhook_url": server.URL,
 	}
-	ctx := context.WithValue(context.Background(), builder.MetadataKey, meta)
 
 	client := builder.NewClient(server.URL, 30*time.Second)
-	ac, err := client.NewAsyncContext(ctx)
+	ctx := &builder.StepContext{
+		Context:  context.Background(),
+		Client:   client.Flow("test-flow"),
+		StepID:   "test-step",
+		Metadata: meta,
+	}
+	ac, err := builder.NewAsyncContext(ctx)
 	require.NoError(t, err)
 
 	err = ac.Success(api.Args{"key": "value"})
