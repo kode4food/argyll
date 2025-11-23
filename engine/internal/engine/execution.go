@@ -304,7 +304,7 @@ func (e *ExecContext) handleWorkItemFailure(
 		return
 	}
 
-	if errors.Is(err, api.ErrStepUnsuccessful) {
+	if !errors.Is(err, api.ErrRetryable) {
 		return
 	}
 
@@ -337,8 +337,7 @@ func (e *ExecContext) performWork(
 	case api.StepTypeSync, api.StepTypeAsync:
 		return e.performHTTPWork(ctx, inputs, token)
 	default:
-		return nil, fmt.Errorf("%w: %w",
-			api.ErrStepUnsuccessful, ErrUnsupportedStepType)
+		return nil, ErrUnsupportedStepType
 	}
 }
 
@@ -350,13 +349,11 @@ func (e *ExecContext) performScriptWork(
 		StepID: e.stepID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w: %w",
-			api.ErrStepUnsuccessful, ErrScriptCompileFailed, err)
+		return nil, fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
 	}
 
 	if c == nil {
-		return nil, fmt.Errorf("%w: %w",
-			api.ErrStepUnsuccessful, ErrScriptCompileFailed)
+		return nil, ErrScriptCompileFailed
 	}
 
 	return e.executeScript(c, inputs)

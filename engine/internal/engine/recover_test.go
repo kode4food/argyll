@@ -329,7 +329,8 @@ func TestRetryExhaustion(t *testing.T) {
 		BackoffType:  api.BackoffTypeFixed,
 	}
 
-	env.MockClient.SetError("failing-step", assert.AnError)
+	env.MockClient.SetError("failing-step",
+		fmt.Errorf("%w: %w", api.ErrRetryable, assert.AnError))
 
 	err := env.Engine.RegisterStep(ctx, step)
 	require.NoError(t, err)

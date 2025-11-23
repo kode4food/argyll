@@ -73,7 +73,7 @@ func main() {
         // Access to flow context
         // ctx.Client provides flow client for queries
         // ctx.StepID contains the current step ID
-        // ctx.Metadata contains workflow metadata
+        // ctx.Metadata contains flow metadata
 
         return *api.NewResult().
             WithOutput("user_name", "John Doe").

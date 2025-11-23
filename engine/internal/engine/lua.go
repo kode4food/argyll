@@ -124,13 +124,12 @@ func (e *LuaEnv) ExecuteScript(
 ) (api.Args, error) {
 	script, ok := c.(*CompiledLua)
 	if !ok {
-		return nil, fmt.Errorf("%w: %s, got %T",
-			api.ErrStepUnsuccessful, ErrLuaBadCompiledType, c)
+		return nil, fmt.Errorf("%w, got %T", ErrLuaBadCompiledType, c)
 	}
 
 	result, err := executeLuaScript(e, script, inputs)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", api.ErrStepUnsuccessful, err)
+		return nil, err
 	}
 	return result, nil
 }

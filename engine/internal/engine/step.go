@@ -11,7 +11,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-// FlowStep identifies a step execution within a workflow
+// FlowStep identifies a step execution within a flow
 type FlowStep struct {
 	FlowID api.FlowID
 	StepID api.StepID

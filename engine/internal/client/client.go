@@ -30,8 +30,9 @@ type (
 )
 
 var (
-	ErrHTTPError    = errors.New("step returned HTTP error")
-	ErrNoHTTPConfig = errors.New("step has no HTTP configuration")
+	ErrStepUnsuccessful = errors.New("step unsuccessful")
+	ErrHTTPError        = errors.New("step returned HTTP error")
+	ErrNoHTTPConfig     = errors.New("step has no HTTP configuration")
 )
 
 var _ Client = (*HTTPClient)(nil)
@@ -111,7 +112,7 @@ func (c *HTTPClient) sendRequest(
 			slog.Any("step_id", step.ID),
 			slog.Duration("duration", dur),
 			slog.Any("error", err))
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", api.ErrRetryable, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -131,12 +132,12 @@ func (c *HTTPClient) sendRequest(
 
 		// 4xx errors are permanent failures that should not be retried
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			return nil, fmt.Errorf("%w: %d",
-				api.ErrStepUnsuccessful, resp.StatusCode)
+			return nil, fmt.Errorf("%w: %d", ErrHTTPError, resp.StatusCode)
 		}
 
 		// 5xx errors are transient and can be retried
-		return nil, fmt.Errorf("%w: %d", ErrHTTPError, resp.StatusCode)
+		return nil, fmt.Errorf("%w: %w: %d",
+			api.ErrRetryable, ErrHTTPError, resp.StatusCode)
 	}
 
 	return respBody, nil
@@ -157,13 +158,12 @@ func (c *HTTPClient) parseResponse(
 		if response.Error == "" {
 			slog.Error("Step unsuccessful",
 				slog.Any("step_id", step.ID))
-			return nil, api.ErrStepUnsuccessful
+			return nil, ErrStepUnsuccessful
 		}
 		slog.Error("Step failed",
 			slog.Any("step_id", step.ID),
 			slog.String("error", response.Error))
-		return nil, fmt.Errorf("%w: %s",
-			api.ErrStepUnsuccessful, response.Error)
+		return nil, errors.New(response.Error)
 	}
 
 	return response.Outputs, nil

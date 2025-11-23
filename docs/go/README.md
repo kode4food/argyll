@@ -40,6 +40,37 @@ func main() {
 }
 ```
 
+## Common Operations
+
+### List Registered Steps
+
+Query all steps registered with the orchestrator:
+
+```go
+steps, err := client.ListSteps(context.Background())
+if err != nil {
+    log.Fatal(err)
+}
+
+for _, step := range steps.Steps {
+    log.Printf("Step: %s (ID: %s, Type: %s)",
+        step.Name, step.ID, step.Type)
+}
+```
+
+### Generate Unique Flow IDs
+
+Create flow IDs with a descriptive prefix and unique suffix:
+
+```go
+// Generates IDs like "order-processor-a3f2d9"
+flowID := builder.NewFlowID("Order Processor")
+
+flow := client.NewFlow(flowID).
+    WithGoal("process-order").
+    WithInitialState(api.Args{"order_id": "12345"})
+```
+
 ## Guides
 
 - **[Flow Builder](flow-builder.md)** - Create and start flows

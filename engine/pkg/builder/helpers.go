@@ -113,7 +113,7 @@ func makeStepHandler(
 
 		var flowID api.FlowID
 		if req.Metadata != nil {
-			if fid, ok := req.Metadata["workflow_id"].(string); ok {
+			if fid, ok := req.Metadata["flow_id"].(string); ok {
 				flowID = api.FlowID(fid)
 			}
 		}
