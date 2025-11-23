@@ -30,18 +30,12 @@ func IsEngineEvent(ev *timebox.Event) bool {
 }
 
 func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
-	stepRegisteredApplier := timebox.MakeApplier(stepRegistered)
-	stepUnregisteredApplier := timebox.MakeApplier(stepUnregistered)
-	stepHealthChangedApplier := timebox.MakeApplier(stepHealthChanged)
-	flowActivatedApplier := timebox.MakeApplier(flowActivated)
-	flowDeactivatedApplier := timebox.MakeApplier(flowDeactivated)
-
 	return MakeAppliers(map[api.EventType]timebox.Applier[*api.EngineState]{
-		api.EventTypeStepRegistered:    stepRegisteredApplier,
-		api.EventTypeStepUnregistered:  stepUnregisteredApplier,
-		api.EventTypeStepHealthChanged: stepHealthChangedApplier,
-		api.EventTypeFlowActivated:     flowActivatedApplier,
-		api.EventTypeFlowDeactivated:   flowDeactivatedApplier,
+		api.EventTypeStepRegistered:    timebox.MakeApplier(stepRegistered),
+		api.EventTypeStepUnregistered:  timebox.MakeApplier(stepUnregistered),
+		api.EventTypeStepHealthChanged: timebox.MakeApplier(stepHealthChanged),
+		api.EventTypeFlowActivated:     timebox.MakeApplier(flowActivated),
+		api.EventTypeFlowDeactivated:   timebox.MakeApplier(flowDeactivated),
 	})
 }
 

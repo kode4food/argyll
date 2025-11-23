@@ -28,45 +28,20 @@ func IsFlowEvent(ev *timebox.Event) bool {
 }
 
 func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
-	flowStartedEvent := timebox.EventType(api.EventTypeFlowStarted)
-	flowStartedApplier := timebox.MakeApplier(flowStarted)
-	flowCompletedEvent := timebox.EventType(api.EventTypeFlowCompleted)
-	flowCompletedApplier := timebox.MakeApplier(flowCompleted)
-	flowFailedEvent := timebox.EventType(api.EventTypeFlowFailed)
-	flowFailedApplier := timebox.MakeApplier(flowFailed)
-	stepStartedEvent := timebox.EventType(api.EventTypeStepStarted)
-	stepStartedApplier := timebox.MakeApplier(stepStarted)
-	stepCompletedEvent := timebox.EventType(api.EventTypeStepCompleted)
-	stepCompletedApplier := timebox.MakeApplier(stepCompleted)
-	stepFailedEvent := timebox.EventType(api.EventTypeStepFailed)
-	stepFailedApplier := timebox.MakeApplier(stepFailed)
-	stepSkippedEvent := timebox.EventType(api.EventTypeStepSkipped)
-	stepSkippedApplier := timebox.MakeApplier(stepSkipped)
-	attributeSetEvent := timebox.EventType(api.EventTypeAttributeSet)
-	attributeSetApplier := timebox.MakeApplier(attributeSet)
-	workItemStartedEvent := timebox.EventType(api.EventTypeWorkStarted)
-	workItemStartedApplier := timebox.MakeApplier(workItemStarted)
-	workItemCompletedEvent := timebox.EventType(api.EventTypeWorkCompleted)
-	workItemCompletedApplier := timebox.MakeApplier(workItemCompleted)
-	workItemFailedEvent := timebox.EventType(api.EventTypeWorkFailed)
-	workItemFailedApplier := timebox.MakeApplier(workItemFailed)
-	retryScheduledEvent := timebox.EventType(api.EventTypeRetryScheduled)
-	retryScheduledApplier := timebox.MakeApplier(retryScheduled)
-
-	return timebox.Appliers[*api.FlowState]{
-		flowStartedEvent:      flowStartedApplier,
-		flowCompletedEvent:    flowCompletedApplier,
-		flowFailedEvent:       flowFailedApplier,
-		stepStartedEvent:      stepStartedApplier,
-		stepCompletedEvent:    stepCompletedApplier,
-		stepFailedEvent:       stepFailedApplier,
-		stepSkippedEvent:      stepSkippedApplier,
-		attributeSetEvent:     attributeSetApplier,
-		workItemStartedEvent:  workItemStartedApplier,
-		workItemCompletedEvent: workItemCompletedApplier,
-		workItemFailedEvent:   workItemFailedApplier,
-		retryScheduledEvent:   retryScheduledApplier,
-	}
+	return MakeAppliers(map[api.EventType]timebox.Applier[*api.FlowState]{
+		api.EventTypeFlowStarted:    timebox.MakeApplier(flowStarted),
+		api.EventTypeFlowCompleted:  timebox.MakeApplier(flowCompleted),
+		api.EventTypeFlowFailed:     timebox.MakeApplier(flowFailed),
+		api.EventTypeStepStarted:    timebox.MakeApplier(stepStarted),
+		api.EventTypeStepCompleted:  timebox.MakeApplier(stepCompleted),
+		api.EventTypeStepFailed:     timebox.MakeApplier(stepFailed),
+		api.EventTypeStepSkipped:    timebox.MakeApplier(stepSkipped),
+		api.EventTypeAttributeSet:   timebox.MakeApplier(attributeSet),
+		api.EventTypeWorkStarted:    timebox.MakeApplier(workStarted),
+		api.EventTypeWorkCompleted:  timebox.MakeApplier(workCompleted),
+		api.EventTypeWorkFailed:     timebox.MakeApplier(workFailed),
+		api.EventTypeRetryScheduled: timebox.MakeApplier(retryScheduled),
+	})
 }
 
 func flowStarted(
@@ -218,7 +193,7 @@ func getExecution(
 	)
 }
 
-func workItemStarted(
+func workStarted(
 	st *api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
 ) *api.FlowState {
 	exec := getExecution(st, data.StepID, "workItemStarted")
@@ -234,7 +209,7 @@ func workItemStarted(
 		SetLastUpdated(ev.Timestamp)
 }
 
-func workItemCompleted(
+func workCompleted(
 	st *api.FlowState, ev *timebox.Event, data api.WorkCompletedEvent,
 ) *api.FlowState {
 	exec := getExecution(st, data.StepID, "workItemCompleted")
@@ -257,7 +232,7 @@ func workItemCompleted(
 		SetLastUpdated(ev.Timestamp)
 }
 
-func workItemFailed(
+func workFailed(
 	st *api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
 ) *api.FlowState {
 	exec := getExecution(st, data.StepID, "workItemFailed")
