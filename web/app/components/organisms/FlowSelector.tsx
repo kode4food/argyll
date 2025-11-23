@@ -393,6 +393,15 @@ const FlowSelector: React.FC = () => {
   ]);
 
   useEffect(() => {
+    if (!showCreateForm) return;
+    if (goalStepIds.length === 0) return;
+
+    if (initialState === "{}") {
+      handleGoalStepChange(goalStepIds);
+    }
+  }, [showCreateForm, goalStepIds, initialState, handleGoalStepChange]);
+
+  useEffect(() => {
     if (showDropdown || !selectedFlow) {
       subscribe({
         event_types: ["flow_started", "flow_completed", "flow_failed"],
