@@ -146,12 +146,12 @@ func NewScriptStep(
 // NewStepWithPredicate creates an HTTP step with a predicate script that
 // determines whether the step should execute
 func NewStepWithPredicate(
-	id api.StepID, predicateLang, predicateScript string, outputs ...api.Name,
+	id api.StepID, lang, script string, outputs ...api.Name,
 ) *api.Step {
 	step := NewSimpleStep(id)
 	step.Predicate = &api.ScriptConfig{
-		Language: predicateLang,
-		Script:   predicateScript,
+		Language: lang,
+		Script:   script,
 	}
 	if step.Attributes == nil {
 		step.Attributes = map[api.Name]*api.AttributeSpec{}

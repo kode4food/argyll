@@ -65,11 +65,7 @@ func main() {
 	}
 
 	// Example 3: Conditional logic (Lua script)
-	eligibilityCheckerScript := `local age = tonumber(args.age)
-local income = tonumber(args.income)
-local credit_score = tonumber(args.credit_score)
-
-local eligible = false
+	eligibilityCheckerScript := `local eligible = false
 local reason = ""
 
 if age < 18 then

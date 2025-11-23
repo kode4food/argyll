@@ -240,9 +240,7 @@ func (wa *flowActor) isStepReadyForExec(
 	return wa.areOutputsNeeded(stepID, flow)
 }
 
-func (wa *flowActor) isStepReady(
-	stepID api.StepID, flow *api.FlowState,
-) bool {
+func (wa *flowActor) isStepReady(stepID api.StepID, flow *api.FlowState) bool {
 	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {

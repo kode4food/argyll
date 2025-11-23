@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"strings"
@@ -18,9 +19,9 @@ type (
 		scripts   sync.Map
 	}
 
-	// CompiledLuaScript represents a compiled Lua script
-	CompiledLuaScript struct {
-		source   string
+	// CompiledLua represents a compiled Lua script
+	CompiledLua struct {
+		bytecode []byte
 		argNames []string
 	}
 )
@@ -36,7 +37,7 @@ const (
 )
 
 var (
-	ErrLuaBadCompiledType = errors.New("expected *CompiledLuaScript")
+	ErrLuaBadCompiledType = errors.New("expected *CompiledLua")
 	ErrLuaLoad            = errors.New("lua load error")
 	ErrLuaExecution       = errors.New("lua execution error")
 )
@@ -65,7 +66,7 @@ func (e *LuaEnv) Compile(
 	key := scriptCacheKey(step.ID, script)
 
 	if val, ok := e.scripts.Load(key); ok {
-		return val.(*CompiledLuaScript), nil
+		return val.(*CompiledLua), nil
 	}
 
 	c, err := e.compile(script, argNames)
@@ -93,11 +94,11 @@ func (e *LuaEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
 
 func (e *LuaEnv) compileScript(
 	stepID api.StepID, scriptType, script string, argNames []string,
-) (*CompiledLuaScript, error) {
+) (*CompiledLua, error) {
 	key := scriptCacheKey(stepID, script)
 
 	if val, ok := e.scripts.Load(key); ok {
-		return val.(*CompiledLuaScript), nil
+		return val.(*CompiledLua), nil
 	}
 
 	c, err := e.compile(script, argNames)
@@ -121,7 +122,7 @@ func (e *LuaEnv) Validate(step *api.Step, script string) error {
 func (e *LuaEnv) ExecuteScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
-	script, ok := c.(*CompiledLuaScript)
+	script, ok := c.(*CompiledLua)
 	if !ok {
 		return nil, fmt.Errorf("%s, got %T", ErrLuaBadCompiledType, c)
 	}
@@ -134,7 +135,7 @@ func (e *LuaEnv) ExecuteScript(
 func (e *LuaEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {
-	script, ok := c.(*CompiledLuaScript)
+	script, ok := c.(*CompiledLua)
 	if !ok {
 		return false, fmt.Errorf("%s, got %T", ErrLuaBadCompiledType, c)
 	}
@@ -144,15 +145,14 @@ func (e *LuaEnv) EvaluatePredicate(
 
 func (e *LuaEnv) compile(
 	script string, argNames []string,
-) (*CompiledLuaScript, error) {
+) (*CompiledLua, error) {
 	argLocals := make([]string, len(argNames))
 	for i, name := range argNames {
 		argLocals[i] = fmt.Sprintf(luaArgLocalTemplate, name, i+1)
 	}
 
 	src := strings.Join([]string{
-		strings.Join(argLocals, luaScriptSeparator),
-		script,
+		strings.Join(argLocals, luaScriptSeparator), script,
 	}, luaScriptSeparator)
 
 	L := lua.NewState()
@@ -163,8 +163,13 @@ func (e *LuaEnv) compile(
 		return nil, err
 	}
 
-	return &CompiledLuaScript{
-		source:   src,
+	var buf bytes.Buffer
+	if err := L.Dump(&buf); err != nil {
+		return nil, err
+	}
+
+	return &CompiledLua{
+		bytecode: buf.Bytes(),
 		argNames: argNames,
 	}, nil
 }
@@ -198,13 +203,13 @@ func (e *LuaEnv) returnState(L *lua.State) {
 }
 
 func executeLuaScript(
-	env *LuaEnv, c *CompiledLuaScript, inputs api.Args,
+	env *LuaEnv, c *CompiledLua, inputs api.Args,
 ) (api.Args, error) {
 	L := env.getState()
 	defer env.returnState(L)
 
 	env.setupSandbox(L)
-	if err := lua.LoadString(L, c.source); err != nil {
+	if err := L.Load(bytes.NewReader(c.bytecode), "chunk", "b"); err != nil {
 		return nil, err
 	}
 
@@ -229,14 +234,14 @@ func executeLuaScript(
 }
 
 func evaluateLuaPredicate(
-	env *LuaEnv, c *CompiledLuaScript, inputs api.Args,
+	env *LuaEnv, c *CompiledLua, inputs api.Args,
 ) (bool, error) {
 	L := env.getState()
 	defer env.returnState(L)
 
 	env.setupSandbox(L)
 
-	if err := lua.LoadString(L, c.source); err != nil {
+	if err := L.Load(bytes.NewReader(c.bytecode), "chunk", "b"); err != nil {
 		return false, fmt.Errorf("%w: %w", ErrLuaLoad, err)
 	}
 
