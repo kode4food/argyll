@@ -89,7 +89,7 @@ func TestHTTPError(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 	require.Error(t, err)
-	assert.Equal(t, "step returned HTTP error: HTTP 500", err.Error())
+	assert.Equal(t, "step returned HTTP error: 500", err.Error())
 }
 
 func TestSuccessFalse(t *testing.T) {
@@ -114,7 +114,7 @@ func TestSuccessFalse(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
+	assert.ErrorIs(t, err, api.ErrStepUnsuccessful)
 }
 
 func TestSuccessFalseWithError(t *testing.T) {
@@ -140,7 +140,7 @@ func TestSuccessFalseWithError(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
+	assert.ErrorIs(t, err, api.ErrStepUnsuccessful)
 	assert.Contains(t, err.Error(), "custom error message")
 }
 

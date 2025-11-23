@@ -145,42 +145,6 @@ func TestShouldRetryStep(t *testing.T) {
 			error:    "network timeout",
 			expected: true,
 		},
-		{
-			name: "permanent failure - success false",
-			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
-			},
-			retries:  0,
-			error:    "step returned success=false",
-			expected: false,
-		},
-		{
-			name: "permanent failure - success false with message",
-			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
-			},
-			retries:  0,
-			error:    "step returned success=false: payment denied",
-			expected: false,
-		},
-		{
-			name: "permanent failure - 4xx error",
-			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
-			},
-			retries:  0,
-			error:    "step returned HTTP error: HTTP 400",
-			expected: false,
-		},
 	}
 
 	env := helpers.NewTestEngine(t)

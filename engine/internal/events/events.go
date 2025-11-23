@@ -10,16 +10,6 @@ import (
 // EventFilter is a predicate function for filtering events
 type EventFilter func(*timebox.Event) bool
 
-func MakeAppliers[T any](
-	app map[api.EventType]timebox.Applier[T],
-) timebox.Appliers[T] {
-	res := map[timebox.EventType]timebox.Applier[T]{}
-	for et, fn := range app {
-		res[timebox.EventType(et)] = fn
-	}
-	return res
-}
-
 // FilterEvents creates a filter that matches events with any of the specified
 // event types
 func FilterEvents(eventTypes ...timebox.EventType) EventFilter {
@@ -53,4 +43,14 @@ func OrFilters(filters ...EventFilter) EventFilter {
 		}
 		return false
 	}
+}
+
+func MakeAppliers[T any](
+	app map[api.EventType]timebox.Applier[T],
+) timebox.Appliers[T] {
+	res := map[timebox.EventType]timebox.Applier[T]{}
+	for et, fn := range app {
+		res[timebox.EventType(et)] = fn
+	}
+	return res
 }

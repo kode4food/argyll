@@ -52,22 +52,22 @@ func (wa *flowActor) run() {
 }
 
 func (wa *flowActor) createEventHandler() timebox.Handler {
-	flowStartedEvent := timebox.EventType(api.EventTypeFlowStarted)
-	attributeSetEvent := timebox.EventType(api.EventTypeAttributeSet)
-	stepCompletedEvent := timebox.EventType(api.EventTypeStepCompleted)
-	stepFailedEvent := timebox.EventType(api.EventTypeStepFailed)
-	workCompletedEvent := timebox.EventType(api.EventTypeWorkCompleted)
-	workCompleted := timebox.MakeHandler(wa.handleWorkCompleted)
-	workFailedEvent := timebox.EventType(api.EventTypeWorkFailed)
-	workFailed := timebox.MakeHandler(wa.handleWorkFailed)
+	const (
+		flowStarted   = timebox.EventType(api.EventTypeFlowStarted)
+		stepCompleted = timebox.EventType(api.EventTypeStepCompleted)
+		workCompleted = timebox.EventType(api.EventTypeWorkCompleted)
+		attributeSet  = timebox.EventType(api.EventTypeAttributeSet)
+		stepFailed    = timebox.EventType(api.EventTypeStepFailed)
+		workFailed    = timebox.EventType(api.EventTypeWorkFailed)
+	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStartedEvent:   wa.handleProcessFlow,
-		attributeSetEvent:  wa.handleProcessFlow,
-		stepCompletedEvent: wa.handleProcessFlow,
-		stepFailedEvent:    wa.handleProcessFlow,
-		workCompletedEvent: workCompleted,
-		workFailedEvent:    workFailed,
+		flowStarted:   wa.handleProcessFlow,
+		attributeSet:  wa.handleProcessFlow,
+		stepCompleted: wa.handleProcessFlow,
+		stepFailed:    wa.handleProcessFlow,
+		workCompleted: timebox.MakeHandler(wa.handleWorkCompleted),
+		workFailed:    timebox.MakeHandler(wa.handleWorkFailed),
 	})
 }
 

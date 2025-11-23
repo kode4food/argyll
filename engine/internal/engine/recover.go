@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"strings"
 	"time"
 
 	"github.com/kode4food/spuds/engine/internal/events"
@@ -30,13 +29,9 @@ var backoffCalculators = map[string]backoffCalculator{
 
 // Retry logic
 
-// ShouldRetry determines if a failed work item should be retried based on the
-// error type and configured retry limits
+// ShouldRetry determines if a failed work item should be retried based on
+// configured retry limits
 func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
-	if !isRetryableError(workItem.Error) {
-		return false
-	}
-
 	workConfig := step.WorkConfig
 	if workConfig == nil {
 		workConfig = &e.config.WorkConfig
@@ -51,22 +46,6 @@ func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
 	}
 
 	return workItem.RetryCount < workConfig.MaxRetries
-}
-
-func isRetryableError(errorStr string) bool {
-	if errorStr == "" {
-		return true
-	}
-
-	if strings.Contains(errorStr, "step returned success=false") {
-		return false
-	}
-
-	if strings.Contains(errorStr, "HTTP 4") {
-		return false
-	}
-
-	return true
 }
 
 // CalculateNextRetry calculates the next retry time using the configured

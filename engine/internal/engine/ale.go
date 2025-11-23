@@ -114,12 +114,13 @@ func (e *AleEnv) ExecuteScript(
 ) (api.Args, error) {
 	proc, ok := c.(data.Procedure)
 	if !ok {
-		return nil, fmt.Errorf("%s, got %T", ErrAleBadCompiledType, c)
+		return nil, fmt.Errorf("%w: %s, got %T",
+			api.ErrStepUnsuccessful, ErrAleBadCompiledType, c)
 	}
 
 	result, err := executeScript(proc, step, inputs)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", api.ErrStepUnsuccessful, err)
 	}
 
 	jsonValue := aleToJSON(result)

@@ -88,17 +88,16 @@ func New(
 }
 
 func (e *Engine) createEventHandler() timebox.Handler {
-	flowStartedEvent := timebox.EventType(api.EventTypeFlowStarted)
-	flowStarted := timebox.MakeHandler(e.handleFlowStarted)
-	flowCompletedEvent := timebox.EventType(api.EventTypeFlowCompleted)
-	flowCompleted := timebox.MakeHandler(e.handleFlowCompleted)
-	flowFailedEvent := timebox.EventType(api.EventTypeFlowFailed)
-	flowFailed := timebox.MakeHandler(e.handleFlowFailed)
+	const (
+		flowStarted   = timebox.EventType(api.EventTypeFlowStarted)
+		flowCompleted = timebox.EventType(api.EventTypeFlowCompleted)
+		flowFailed    = timebox.EventType(api.EventTypeFlowFailed)
+	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStartedEvent:   flowStarted,
-		flowCompletedEvent: flowCompleted,
-		flowFailedEvent:    flowFailed,
+		flowStarted:   timebox.MakeHandler(e.handleFlowStarted),
+		flowCompleted: timebox.MakeHandler(e.handleFlowCompleted),
+		flowFailed:    timebox.MakeHandler(e.handleFlowFailed),
 	})
 }
 

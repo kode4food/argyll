@@ -27,7 +27,6 @@ type (
 )
 
 var (
-	ErrScriptCompileNil    = errors.New("script compilation returned nil")
 	ErrStepAlreadyPending  = errors.New("step not pending")
 	ErrUnsupportedStepType = errors.New("unsupported step type")
 )
@@ -305,6 +304,10 @@ func (e *ExecContext) handleWorkItemFailure(
 		return
 	}
 
+	if errors.Is(err, api.ErrStepUnsuccessful) {
+		return
+	}
+
 	flow, ferr := e.engine.GetFlowState(ctx, e.flowID)
 	if ferr != nil {
 		return
@@ -334,7 +337,8 @@ func (e *ExecContext) performWork(
 	case api.StepTypeSync, api.StepTypeAsync:
 		return e.performHTTPWork(ctx, inputs, token)
 	default:
-		return nil, fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type)
+		return nil, fmt.Errorf("%w: %w",
+			api.ErrStepUnsuccessful, ErrUnsupportedStepType)
 	}
 }
 
@@ -346,11 +350,13 @@ func (e *ExecContext) performScriptWork(
 		StepID: e.stepID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("script compilation failed: %w", err)
+		return nil, fmt.Errorf("%w: %w: %w",
+			api.ErrStepUnsuccessful, ErrScriptCompileFailed, err)
 	}
 
 	if c == nil {
-		return nil, ErrScriptCompileNil
+		return nil, fmt.Errorf("%w: %w",
+			api.ErrStepUnsuccessful, ErrScriptCompileFailed)
 	}
 
 	return e.executeScript(c, inputs)
