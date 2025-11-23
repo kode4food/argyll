@@ -88,16 +88,24 @@ type (
 		Inputs Args   `json:"inputs"`
 	}
 
-	// WorkCompletedEvent is emitted when a work item completes successfully
-	WorkCompletedEvent struct {
+	// WorkSucceededEvent is emitted when a work item succeeds
+	WorkSucceededEvent struct {
 		FlowID  FlowID `json:"flow_id"`
 		StepID  StepID `json:"step_id"`
 		Token   Token  `json:"token"`
 		Outputs Args   `json:"outputs"`
 	}
 
-	// WorkFailedEvent is emitted when a work item fails
+	// WorkFailedEvent is emitted when a work item fails permanently
 	WorkFailedEvent struct {
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+		Token  Token  `json:"token"`
+		Error  string `json:"error"`
+	}
+
+	// WorkNotCompletedEvent is emitted when a work item fails transiently
+	WorkNotCompletedEvent struct {
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`
 		Token  Token  `json:"token"`
@@ -142,7 +150,8 @@ const (
 	EventTypeStepFailed        EventType = "step_failed"
 	EventTypeStepSkipped       EventType = "step_skipped"
 	EventTypeWorkStarted       EventType = "work_started"
-	EventTypeWorkCompleted     EventType = "work_completed"
+	EventTypeWorkSucceeded     EventType = "work_succeeded"
 	EventTypeWorkFailed        EventType = "work_failed"
+	EventTypeWorkNotCompleted  EventType = "work_not_completed"
 	EventTypeRetryScheduled    EventType = "retry_scheduled"
 )

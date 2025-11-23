@@ -298,34 +298,13 @@ func (e *ExecContext) handleWorkItemFailure(
 	ctx context.Context, token api.Token, err error,
 ) {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	if failErr := e.engine.FailWork(
-		ctx, fs, token, err.Error(),
-	); failErr != nil {
+
+	if errors.Is(err, api.ErrWorkNotCompleted) {
+		_ = e.engine.NotCompleteWork(ctx, fs, token, err.Error())
 		return
 	}
 
-	if !errors.Is(err, api.ErrRetryable) {
-		return
-	}
-
-	flow, ferr := e.engine.GetFlowState(ctx, e.flowID)
-	if ferr != nil {
-		return
-	}
-
-	exec := flow.Executions[e.stepID]
-	if exec == nil || exec.WorkItems == nil {
-		return
-	}
-
-	workItem := exec.WorkItems[token]
-	if workItem == nil {
-		return
-	}
-
-	if e.engine.ShouldRetry(e.step, workItem) {
-		_ = e.engine.ScheduleRetry(ctx, fs, token, err.Error())
-	}
+	_ = e.engine.FailWork(ctx, fs, token, err.Error())
 }
 
 func (e *ExecContext) performWork(

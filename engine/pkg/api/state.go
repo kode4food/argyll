@@ -39,7 +39,7 @@ type (
 	// FlowState contains the complete state of a flow execution
 	FlowState struct {
 		CreatedAt   time.Time                  `json:"created_at"`
-		CompletedAt time.Time                  `json:"completed_at,omitempty"`
+		CompletedAt time.Time                  `json:"completed_at"`
 		LastUpdated time.Time                  `json:"last_updated"`
 		Plan        *ExecutionPlan             `json:"plan"`
 		Attributes  map[Name]*AttributeValue   `json:"attributes"`
@@ -58,7 +58,7 @@ type (
 	// ExecutionState contains the state of a step execution
 	ExecutionState struct {
 		StartedAt   time.Time            `json:"started_at"`
-		CompletedAt time.Time            `json:"completed_at,omitempty"`
+		CompletedAt time.Time            `json:"completed_at"`
 		Inputs      Args                 `json:"inputs"`
 		Outputs     Args                 `json:"outputs,omitempty"`
 		Status      StepStatus           `json:"status"`
@@ -71,13 +71,12 @@ type (
 	WorkState struct {
 		Status      WorkStatus `json:"status"`
 		StartedAt   time.Time  `json:"started_at"`
-		CompletedAt time.Time  `json:"completed_at,omitempty"`
+		CompletedAt time.Time  `json:"completed_at"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
 		Error       string     `json:"error,omitempty"`
 		RetryCount  int        `json:"retry_count,omitempty"`
-		NextRetryAt time.Time  `json:"next_retry_at,omitempty"`
-		LastError   string     `json:"last_error,omitempty"`
+		NextRetryAt time.Time  `json:"next_retry_at"`
 	}
 
 	// HealthState contains the health status of a step service
@@ -103,10 +102,11 @@ const (
 )
 
 const (
-	WorkPending   WorkStatus = "pending"
-	WorkActive    WorkStatus = "active"
-	WorkCompleted WorkStatus = "completed"
-	WorkFailed    WorkStatus = "failed"
+	WorkPending      WorkStatus = "pending"
+	WorkActive       WorkStatus = "active"
+	WorkSucceeded    WorkStatus = "succeeded"
+	WorkFailed       WorkStatus = "failed"
+	WorkNotCompleted WorkStatus = "not_completed"
 )
 
 const (
@@ -295,6 +295,13 @@ func (st *WorkState) SetStartedAt(t time.Time) *WorkState {
 	return &res
 }
 
+// SetStartedAt returns a new WorkState with the completed timestamp set
+func (st *WorkState) SetCompletedAt(t time.Time) *WorkState {
+	res := *st
+	res.CompletedAt = t
+	return &res
+}
+
 // SetRetryCount returns a new WorkState with the retry count set
 func (st *WorkState) SetRetryCount(count int) *WorkState {
 	res := *st
@@ -309,10 +316,17 @@ func (st *WorkState) SetNextRetryAt(t time.Time) *WorkState {
 	return &res
 }
 
-// SetLastError returns a new WorkState with the last error message set
-func (st *WorkState) SetLastError(err string) *WorkState {
+// SetError returns a new WorkState with the error message set
+func (st *WorkState) SetError(err string) *WorkState {
 	res := *st
-	res.LastError = err
+	res.Error = err
+	return &res
+}
+
+// SetOutputs returns a new WorkState with the outputs set
+func (st *WorkState) SetOutputs(outputs Args) *WorkState {
+	res := *st
+	res.Outputs = outputs
 	return &res
 }
 

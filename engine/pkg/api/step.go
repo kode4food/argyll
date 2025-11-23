@@ -102,7 +102,7 @@ var (
 	ErrAttributeNil        = errors.New("attribute has nil definition")
 	ErrNegativeBackoff     = errors.New("backoff_ms cannot be negative")
 	ErrMaxBackoffTooSmall  = errors.New("max_backoff_ms must be >= backoff_ms")
-	ErrRetryable           = errors.New("retryable error")
+	ErrWorkNotCompleted    = errors.New("work not completed")
 )
 
 var (

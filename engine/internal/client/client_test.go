@@ -89,8 +89,8 @@ func TestHTTPError(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 	require.Error(t, err)
-	assert.ErrorIs(t, err, api.ErrRetryable)
-	assert.Contains(t, err.Error(), "step returned HTTP error: 500")
+	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
+	assert.Contains(t, err.Error(), "step returned HTTP error: status 500")
 }
 
 func TestSuccessFalse(t *testing.T) {

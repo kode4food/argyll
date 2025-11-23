@@ -53,21 +53,23 @@ func (wa *flowActor) run() {
 
 func (wa *flowActor) createEventHandler() timebox.Handler {
 	const (
-		flowStarted   = timebox.EventType(api.EventTypeFlowStarted)
-		stepCompleted = timebox.EventType(api.EventTypeStepCompleted)
-		workCompleted = timebox.EventType(api.EventTypeWorkCompleted)
-		attributeSet  = timebox.EventType(api.EventTypeAttributeSet)
-		stepFailed    = timebox.EventType(api.EventTypeStepFailed)
-		workFailed    = timebox.EventType(api.EventTypeWorkFailed)
+		flowStarted      = timebox.EventType(api.EventTypeFlowStarted)
+		stepCompleted    = timebox.EventType(api.EventTypeStepCompleted)
+		stepFailed       = timebox.EventType(api.EventTypeStepFailed)
+		workSucceeded    = timebox.EventType(api.EventTypeWorkSucceeded)
+		workFailed       = timebox.EventType(api.EventTypeWorkFailed)
+		workNotCompleted = timebox.EventType(api.EventTypeWorkNotCompleted)
+		retryScheduled   = timebox.EventType(api.EventTypeRetryScheduled)
 	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStarted:   wa.handleProcessFlow,
-		attributeSet:  wa.handleProcessFlow,
-		stepCompleted: wa.handleProcessFlow,
-		stepFailed:    wa.handleProcessFlow,
-		workCompleted: timebox.MakeHandler(wa.handleWorkCompleted),
-		workFailed:    timebox.MakeHandler(wa.handleWorkFailed),
+		flowStarted:      wa.handleProcessFlow,
+		stepCompleted:    wa.handleProcessFlow,
+		stepFailed:       wa.handleProcessFlow,
+		workSucceeded:    timebox.MakeHandler(wa.handleWorkSucceeded),
+		workFailed:       timebox.MakeHandler(wa.handleWorkFailed),
+		workNotCompleted: timebox.MakeHandler(wa.handleWorkNotCompleted),
+		retryScheduled:   timebox.MakeHandler(wa.handleRetryScheduled),
 	})
 }
 
@@ -85,8 +87,22 @@ func (wa *flowActor) handleProcessFlow(_ *timebox.Event) error {
 	return nil
 }
 
-func (wa *flowActor) handleWorkCompleted(
-	_ *timebox.Event, data api.WorkCompletedEvent,
+func (wa *flowActor) handleWorkSucceeded(
+	_ *timebox.Event, data api.WorkSucceededEvent,
+) error {
+	wa.checkIfStepDone(data.StepID)
+	return nil
+}
+
+func (wa *flowActor) handleWorkFailed(
+	_ *timebox.Event, data api.WorkFailedEvent,
+) error {
+	wa.checkIfStepDone(data.StepID)
+	return nil
+}
+
+func (wa *flowActor) handleWorkNotCompleted(
+	_ *timebox.Event, data api.WorkNotCompletedEvent,
 ) error {
 	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
 	if err != nil {
@@ -94,8 +110,39 @@ func (wa *flowActor) handleWorkCompleted(
 	}
 
 	exec, ok := flow.Executions[data.StepID]
-	if !ok || exec.Status != api.StepActive {
+	if !ok {
 		return nil
+	}
+
+	workItem := exec.WorkItems[data.Token]
+	if workItem == nil {
+		return nil
+	}
+
+	step := flow.Plan.GetStep(data.StepID)
+	if step == nil {
+		return nil
+	}
+
+	fs := FlowStep{FlowID: wa.flowID, StepID: data.StepID}
+	if wa.ShouldRetry(step, workItem) {
+		_ = wa.ScheduleRetry(wa.ctx, fs, data.Token, data.Error)
+	} else {
+		_ = wa.FailWork(wa.ctx, fs, data.Token, data.Error)
+	}
+
+	return nil
+}
+
+func (wa *flowActor) checkIfStepDone(stepID api.StepID) {
+	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
+	if err != nil {
+		return
+	}
+
+	exec, ok := flow.Executions[stepID]
+	if !ok || exec.Status != api.StepActive {
+		return
 	}
 
 	allDone := true
@@ -109,16 +156,23 @@ func (wa *flowActor) handleWorkCompleted(
 	if allDone {
 		wa.checkCompletableSteps(wa.ctx, wa.flowID, flow)
 	}
-	return nil
 }
 
-func (wa *flowActor) handleWorkFailed(
-	_ *timebox.Event, data api.WorkFailedEvent,
+func (wa *flowActor) handleRetryScheduled(
+	_ *timebox.Event, data api.RetryScheduledEvent,
 ) error {
-	return wa.handleWorkCompleted(nil, api.WorkCompletedEvent{
-		FlowID: data.FlowID,
-		StepID: data.StepID,
-	})
+	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
+	if err != nil {
+		return nil
+	}
+
+	exec, ok := flow.Executions[data.StepID]
+	if !ok || exec.Status != api.StepActive {
+		return nil
+	}
+
+	wa.checkCompletableSteps(wa.ctx, wa.flowID, flow)
+	return nil
 }
 
 func (wa *flowActor) processFlow() {

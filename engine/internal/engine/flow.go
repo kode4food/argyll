@@ -104,8 +104,8 @@ func (e *Engine) CompleteWork(
 	ctx context.Context, fs FlowStep, token api.Token, outputs api.Args,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeWorkCompleted,
-			api.WorkCompletedEvent{
+		return events.Raise(ag, api.EventTypeWorkSucceeded,
+			api.WorkSucceededEvent{
 				FlowID:  fs.FlowID,
 				StepID:  fs.StepID,
 				Token:   token,
@@ -125,6 +125,25 @@ func (e *Engine) FailWork(
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return events.Raise(ag, api.EventTypeWorkFailed,
 			api.WorkFailedEvent{
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
+				Token:  token,
+				Error:  errMsg,
+			},
+		)
+	}
+
+	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
+	return err
+}
+
+// NotCompleteWork marks a work item as not completed with specified error
+func (e *Engine) NotCompleteWork(
+	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
+) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+		return events.Raise(ag, api.EventTypeWorkNotCompleted,
+			api.WorkNotCompletedEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
 				Token:  token,

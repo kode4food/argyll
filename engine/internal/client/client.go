@@ -112,7 +112,7 @@ func (c *HTTPClient) sendRequest(
 			slog.Any("step_id", step.ID),
 			slog.Duration("duration", dur),
 			slog.Any("error", err))
-		return nil, fmt.Errorf("%w: %w", api.ErrRetryable, err)
+		return nil, fmt.Errorf("%w: %w", api.ErrWorkNotCompleted, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -130,14 +130,15 @@ func (c *HTTPClient) sendRequest(
 			slog.Int("status_code", resp.StatusCode),
 			slog.String("response_body", string(respBody)))
 
-		// 4xx errors are permanent failures that should not be retried
+		// 4xx errors are permanent failures
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			return nil, fmt.Errorf("%w: %d", ErrHTTPError, resp.StatusCode)
+			return nil, fmt.Errorf("%w: status %d",
+				ErrHTTPError, resp.StatusCode)
 		}
 
-		// 5xx errors are transient and can be retried
-		return nil, fmt.Errorf("%w: %w: %d",
-			api.ErrRetryable, ErrHTTPError, resp.StatusCode)
+		// 5xx errors are transient
+		return nil, fmt.Errorf("%w: %w: status %d",
+			api.ErrWorkNotCompleted, ErrHTTPError, resp.StatusCode)
 	}
 
 	return respBody, nil

@@ -153,7 +153,8 @@ func executeStepWithRecovery(
 	var err error
 	result, err = handler(ctx, args)
 	if err != nil {
-		if he, ok := err.(*HTTPError); ok {
+		var he *HTTPError
+		if errors.As(err, &he) {
 			return api.StepResult{}, he
 		}
 		return *api.NewResult().WithError(err), nil

@@ -320,7 +320,7 @@ func TestScheduleRetry(t *testing.T) {
 	workItem := exec.WorkItems[token]
 	assert.Equal(t, 1, workItem.RetryCount)
 	assert.False(t, workItem.NextRetryAt.IsZero())
-	assert.Equal(t, "test error", workItem.LastError)
+	assert.Equal(t, "test error", workItem.Error)
 	assert.Equal(t, api.WorkPending, workItem.Status)
 }
 
@@ -340,7 +340,7 @@ func TestRetryExhaustion(t *testing.T) {
 	}
 
 	env.MockClient.SetError("failing-step",
-		fmt.Errorf("%w: %w", api.ErrRetryable, assert.AnError))
+		fmt.Errorf("%w: %w", api.ErrWorkNotCompleted, assert.AnError))
 
 	err := env.Engine.RegisterStep(ctx, step)
 	require.NoError(t, err)
@@ -428,7 +428,7 @@ func TestFindRetriableSteps(t *testing.T) {
 				Status: api.StepCompleted,
 				WorkItems: map[api.Token]*api.WorkState{
 					"token-5": {
-						Status:     api.WorkCompleted,
+						Status:     api.WorkSucceeded,
 						RetryCount: 1,
 					},
 				},

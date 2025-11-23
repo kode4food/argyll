@@ -12,22 +12,27 @@ import (
 var workTransitions = StateTransitions[api.WorkStatus]{
 	api.WorkPending: util.SetOf(
 		api.WorkActive,
-		api.WorkCompleted,
+		api.WorkSucceeded,
 		api.WorkFailed,
+		api.WorkNotCompleted,
 	),
 	api.WorkActive: util.SetOf(
-		api.WorkCompleted,
+		api.WorkSucceeded,
 		api.WorkFailed,
+		api.WorkNotCompleted,
 	),
-	api.WorkCompleted: {},
+	api.WorkSucceeded: {},
 	api.WorkFailed:    {},
+	api.WorkNotCompleted: util.SetOf(
+		api.WorkActive,
+	),
 }
 
 func (e *Engine) checkCompletableSteps(
 	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
 ) {
 	for stepID, exec := range flow.Executions {
-		if exec.Status != api.StepActive || exec.WorkItems == nil {
+		if exec.Status != api.StepActive {
 			continue
 		}
 
@@ -37,16 +42,16 @@ func (e *Engine) checkCompletableSteps(
 
 		for _, item := range exec.WorkItems {
 			switch item.Status {
+			case api.WorkSucceeded:
+				// Work succeeded, continue
 			case api.WorkFailed:
+				// Work failed permanently
 				hasFailed = true
 				if failureError == "" {
 					failureError = item.Error
 				}
-			case api.WorkPending:
-				if !item.NextRetryAt.IsZero() {
-					allDone = false
-				}
-			case api.WorkActive:
+			case api.WorkNotCompleted, api.WorkPending, api.WorkActive:
+				// Not done yet (not completed, pending retry, or still active)
 				allDone = false
 			}
 		}
@@ -62,9 +67,8 @@ func (e *Engine) checkCompletableSteps(
 			}
 			_ = e.FailStepExecution(ctx, fs, failureError)
 		} else {
-			outputs := aggregateWorkItemOutputs(
-				exec.WorkItems, flow.Plan.GetStep(stepID),
-			)
+			step := flow.Plan.GetStep(stepID)
+			outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
 			dur := time.Since(exec.StartedAt).Milliseconds()
 			e.EnqueueStepResult(fs, outputs, dur)
 		}
@@ -76,7 +80,7 @@ func aggregateWorkItemOutputs(
 ) api.Args {
 	completed := make([]*api.WorkState, 0, len(items))
 	for _, item := range items {
-		if item.Status == api.WorkCompleted {
+		if item.Status == api.WorkSucceeded {
 			completed = append(completed, item)
 		}
 	}
