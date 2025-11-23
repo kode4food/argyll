@@ -2,6 +2,7 @@ package builder
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -25,4 +26,23 @@ type (
 		// Metadata contains additional context passed to step handlers
 		Metadata api.Metadata
 	}
+
+	// HTTPError allows step handlers to return specific HTTP status codes
+	HTTPError struct {
+		StatusCode int
+		Message    string
+	}
 )
+
+// NewHTTPError creates a new HTTPError with the given status code and message
+func NewHTTPError(statusCode int, message string) *HTTPError {
+	return &HTTPError{
+		StatusCode: statusCode,
+		Message:    message,
+	}
+}
+
+// Error implements the error interface for HTTPError
+func (e *HTTPError) Error() string {
+	return fmt.Sprintf("HTTP %d: %s", e.StatusCode, e.Message)
+}

@@ -124,7 +124,11 @@ func makeStepHandler(
 			StepID:   id,
 			Metadata: req.Metadata,
 		}
-		result := executeStepWithRecovery(ctx, id, handler, req.Arguments)
+		result, err := executeStepWithRecovery(ctx, id, handler, req.Arguments)
+		if err != nil {
+			http.Error(w, err.Message, err.StatusCode)
+			return
+		}
 
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(result)
@@ -133,7 +137,7 @@ func makeStepHandler(
 
 func executeStepWithRecovery(
 	ctx *StepContext, id api.StepID, handler StepHandler, args api.Args,
-) (result api.StepResult) {
+) (result api.StepResult, httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Step handler panicked",
@@ -142,13 +146,17 @@ func executeStepWithRecovery(
 			result = *api.NewResult().WithError(
 				fmt.Errorf("%w: %v", ErrHandlerPanic, r),
 			)
+			httpErr = nil
 		}
 	}()
 
 	var err error
 	result, err = handler(ctx, args)
 	if err != nil {
-		return *api.NewResult().WithError(err)
+		if he, ok := err.(*HTTPError); ok {
+			return api.StepResult{}, he
+		}
+		return *api.NewResult().WithError(err), nil
 	}
-	return result
+	return result, nil
 }

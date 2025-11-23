@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 
@@ -28,6 +29,8 @@ type Order struct {
 }
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
@@ -50,6 +53,23 @@ func main() {
 }
 
 func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+	// Simulate random transient failures (50% chance)
+	if rand.Float64() < 0.5 {
+		errMsg := []string{
+			"database connection timeout",
+			"inventory service unavailable",
+			"rate limit exceeded",
+			"network timeout",
+		}
+		selectedErr := errMsg[rand.Intn(len(errMsg))]
+		slog.Warn("Simulating transient failure (will retry)",
+			slog.String("error", selectedErr),
+			slog.String("step_id", string(ctx.StepID)))
+		return api.StepResult{}, builder.NewHTTPError(
+			http.StatusServiceUnavailable, selectedErr,
+		)
+	}
+
 	// Extract and validate user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {

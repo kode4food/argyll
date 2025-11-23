@@ -292,8 +292,18 @@ func TestScheduleRetry(t *testing.T) {
 
 	time.Sleep(50 * time.Millisecond)
 
-	token := api.Token("test-token")
 	fs := engine.FlowStep{FlowID: flowID, StepID: "test-step"}
+
+	// Get the token from the work items created by StartFlow
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
+	require.NoError(t, err)
+	exec := flow.Executions["test-step"]
+	var token api.Token
+	for t := range exec.WorkItems {
+		token = t
+		break
+	}
+
 	err = env.Engine.StartWork(ctx, fs, token, api.Args{})
 	require.NoError(t, err)
 
@@ -303,10 +313,10 @@ func TestScheduleRetry(t *testing.T) {
 	err = env.Engine.ScheduleRetry(ctx, fs, token, "test error")
 	require.NoError(t, err)
 
-	flow, err := env.Engine.GetFlowState(ctx, flowID)
+	flow, err = env.Engine.GetFlowState(ctx, flowID)
 	require.NoError(t, err)
 
-	exec := flow.Executions["test-step"]
+	exec = flow.Executions["test-step"]
 	workItem := exec.WorkItems[token]
 	assert.Equal(t, 1, workItem.RetryCount)
 	assert.False(t, workItem.NextRetryAt.IsZero())

@@ -196,12 +196,12 @@ func getExecution(
 func workStarted(
 	st *api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID, "workItemStarted")
+	exec := getExecution(st, data.StepID, "workStarted")
 
-	item := &api.WorkState{
-		Status:    api.WorkActive,
-		StartedAt: ev.Timestamp,
-		Inputs:    data.Inputs,
+	item := exec.WorkItems[data.Token].SetStatus(api.WorkActive)
+
+	if item.StartedAt.IsZero() {
+		item = item.SetStartedAt(ev.Timestamp)
 	}
 
 	return st.

@@ -288,6 +288,13 @@ func (st *WorkState) SetStatus(s WorkStatus) *WorkState {
 	return &res
 }
 
+// SetStartedAt returns a new WorkState with the started timestamp set
+func (st *WorkState) SetStartedAt(t time.Time) *WorkState {
+	res := *st
+	res.StartedAt = t
+	return &res
+}
+
 // SetRetryCount returns a new WorkState with the retry count set
 func (st *WorkState) SetRetryCount(count int) *WorkState {
 	res := *st
