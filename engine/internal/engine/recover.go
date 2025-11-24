@@ -62,11 +62,10 @@ func (e *Engine) CalculateNextRetry(
 		calculator = backoffCalculators[api.BackoffTypeFixed]
 	}
 
-	delayMs := calculator(config.BackoffMs, retryCount)
-
-	if delayMs > config.MaxBackoffMs {
-		delayMs = config.MaxBackoffMs
-	}
+	delayMs := min(
+		calculator(config.BackoffMs, retryCount),
+		config.MaxBackoffMs,
+	)
 
 	return time.Now().Add(time.Duration(delayMs) * time.Millisecond)
 }

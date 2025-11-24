@@ -45,7 +45,7 @@ const (
 	DefaultCacheSize           = 4096
 
 	DefaultRetryCheckInterval = 1 * time.Second
-	DefaultRetryMaxRetries    = 3
+	DefaultRetryMaxRetries    = 10
 	DefaultRetryBackoffMs     = 1000
 	DefaultRetryMaxBackoffMs  = 60000
 	DefaultRetryBackoffType   = api.BackoffTypeExponential
