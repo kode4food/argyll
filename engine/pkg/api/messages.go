@@ -27,7 +27,7 @@ type (
 		ID          FlowID     `json:"id"`
 		Status      FlowStatus `json:"status"`
 		CreatedAt   time.Time  `json:"created_at"`
-		CompletedAt time.Time  `json:"completed_at,omitempty"`
+		CompletedAt time.Time  `json:"completed_at"`
 		Error       string     `json:"error,omitempty"`
 	}
 

@@ -60,12 +60,12 @@ export const useFlowWebSocket = () => {
         continue;
       }
 
-      const aggregateKey = event.aggregate_id?.join(":") || "";
-      const currentMax = seenSequences.current.get(aggregateKey) || 0;
+      const key = event.id?.join(":") || "";
+      const currentMax = seenSequences.current.get(key) || 0;
       if (event.sequence <= currentMax) {
         continue;
       }
-      seenSequences.current.set(aggregateKey, event.sequence);
+      seenSequences.current.set(key, event.sequence);
 
       if (event.type === "step_registered") {
         const step = event.data?.step;

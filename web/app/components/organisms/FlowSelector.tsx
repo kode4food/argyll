@@ -417,12 +417,12 @@ const FlowSelector: React.FC = () => {
     const latestEvent = events[events.length - 1];
     if (!latestEvent) return;
 
-    const aggregateId = latestEvent.aggregate_id;
-    if (!aggregateId || aggregateId.length < 2) {
+    const id = latestEvent.id;
+    if (!id || id.length < 2) {
       return;
     }
 
-    const eventKey = `${aggregateId.join(":")}:${latestEvent.sequence}`;
+    const eventKey = `${id.join(":")}:${latestEvent.sequence}`;
 
     if (processedEventsRef.current.has(eventKey)) {
       return;
@@ -431,7 +431,7 @@ const FlowSelector: React.FC = () => {
     processedEventsRef.current.add(eventKey);
 
     const eventType = latestEvent.type;
-    const flowId = aggregateId[1];
+    const flowId = id[1];
 
     if (eventType === "flow_started") {
       const flowExists = flows.some((w) => w.id === flowId);

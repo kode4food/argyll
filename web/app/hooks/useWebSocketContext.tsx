@@ -16,7 +16,7 @@ export interface WebSocketEvent {
   data: any;
   timestamp: number;
   sequence: number;
-  aggregate_id: string[];
+  id: string[];
 }
 
 export type ConnectionStatus =

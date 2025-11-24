@@ -13,7 +13,7 @@ type (
 	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
 		Role    AttributeRole `json:"role"`
-		Type    AttributeType `json:"type,omitempty"`
+		Type    AttributeType `json:"type"`
 		Default string        `json:"default,omitempty"`
 		ForEach bool          `json:"for_each,omitempty"`
 	}

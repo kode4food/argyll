@@ -7,7 +7,7 @@ type (
 	WebSocketEvent struct {
 		Type        EventType       `json:"type"`
 		Data        json.RawMessage `json:"data"`
-		AggregateID []string        `json:"aggregate_id"`
+		AggregateID []string        `json:"id"`
 		Timestamp   int64           `json:"timestamp"`
 		Sequence    int64           `json:"sequence"`
 	}

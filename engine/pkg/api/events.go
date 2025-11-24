@@ -47,7 +47,7 @@ type (
 		Inputs    Args           `json:"inputs"`
 		FlowID    FlowID         `json:"flow_id"`
 		StepID    StepID         `json:"step_id"`
-		WorkItems map[Token]Args `json:"work_items,omitempty"`
+		WorkItems map[Token]Args `json:"work_items"`
 	}
 
 	// StepCompletedEvent is emitted when a step completes successfully
