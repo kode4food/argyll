@@ -17,17 +17,17 @@ type flowActor struct {
 	eventHandler timebox.Handler
 }
 
-func (wa *flowActor) run() {
-	defer wa.wg.Done()
-	defer wa.flows.Delete(wa.flowID)
+func (a *flowActor) run() {
+	defer a.wg.Done()
+	defer a.flows.Delete(a.flowID)
 
 	idleTimer := time.NewTimer(100 * time.Millisecond)
 	defer idleTimer.Stop()
 
 	for {
 		select {
-		case event := <-wa.events:
-			wa.handleEvent(event)
+		case event := <-a.events:
+			a.handleEvent(event)
 			if !idleTimer.Stop() {
 				select {
 				case <-idleTimer.C:
@@ -38,20 +38,20 @@ func (wa *flowActor) run() {
 
 		case <-idleTimer.C:
 			select {
-			case event := <-wa.events:
-				wa.handleEvent(event)
+			case event := <-a.events:
+				a.handleEvent(event)
 				idleTimer.Reset(100 * time.Millisecond)
 			default:
 				return
 			}
 
-		case <-wa.ctx.Done():
+		case <-a.ctx.Done():
 			return
 		}
 	}
 }
 
-func (wa *flowActor) createEventHandler() timebox.Handler {
+func (a *flowActor) createEventHandler() timebox.Handler {
 	const (
 		flowStarted      = timebox.EventType(api.EventTypeFlowStarted)
 		stepCompleted    = timebox.EventType(api.EventTypeStepCompleted)
@@ -63,48 +63,48 @@ func (wa *flowActor) createEventHandler() timebox.Handler {
 	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStarted:      wa.handleProcessFlow,
-		stepCompleted:    wa.handleProcessFlow,
-		stepFailed:       wa.handleProcessFlow,
-		workSucceeded:    timebox.MakeHandler(wa.handleWorkSucceeded),
-		workFailed:       timebox.MakeHandler(wa.handleWorkFailed),
-		workNotCompleted: timebox.MakeHandler(wa.handleWorkNotCompleted),
-		retryScheduled:   timebox.MakeHandler(wa.handleRetryScheduled),
+		flowStarted:      a.handleProcessFlow,
+		stepCompleted:    a.handleProcessFlow,
+		stepFailed:       a.handleProcessFlow,
+		workSucceeded:    timebox.MakeHandler(a.handleWorkSucceeded),
+		workFailed:       timebox.MakeHandler(a.handleWorkFailed),
+		workNotCompleted: timebox.MakeHandler(a.handleWorkNotCompleted),
+		retryScheduled:   timebox.MakeHandler(a.handleRetryScheduled),
 	})
 }
 
-func (wa *flowActor) handleEvent(event *timebox.Event) {
-	if err := wa.eventHandler(event); err != nil {
+func (a *flowActor) handleEvent(event *timebox.Event) {
+	if err := a.eventHandler(event); err != nil {
 		slog.Error("Failed to handle flow event",
-			slog.Any("flow_id", wa.flowID),
+			slog.Any("flow_id", a.flowID),
 			slog.Any("event_type", event.Type),
 			slog.Any("error", err))
 	}
 }
 
-func (wa *flowActor) handleProcessFlow(_ *timebox.Event) error {
-	wa.processFlow()
+func (a *flowActor) handleProcessFlow(_ *timebox.Event) error {
+	a.processFlow()
 	return nil
 }
 
-func (wa *flowActor) handleWorkSucceeded(
+func (a *flowActor) handleWorkSucceeded(
 	_ *timebox.Event, data api.WorkSucceededEvent,
 ) error {
-	wa.checkIfStepDone(data.StepID)
+	a.checkIfStepDone(data.StepID)
 	return nil
 }
 
-func (wa *flowActor) handleWorkFailed(
+func (a *flowActor) handleWorkFailed(
 	_ *timebox.Event, data api.WorkFailedEvent,
 ) error {
-	wa.checkIfStepDone(data.StepID)
+	a.checkIfStepDone(data.StepID)
 	return nil
 }
 
-func (wa *flowActor) handleWorkNotCompleted(
+func (a *flowActor) handleWorkNotCompleted(
 	_ *timebox.Event, data api.WorkNotCompletedEvent,
 ) error {
-	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
 	if err != nil {
 		return nil
 	}
@@ -124,18 +124,18 @@ func (wa *flowActor) handleWorkNotCompleted(
 		return nil
 	}
 
-	fs := FlowStep{FlowID: wa.flowID, StepID: data.StepID}
-	if wa.ShouldRetry(step, workItem) {
-		_ = wa.ScheduleRetry(wa.ctx, fs, data.Token, data.Error)
+	fs := FlowStep{FlowID: a.flowID, StepID: data.StepID}
+	if a.ShouldRetry(step, workItem) {
+		_ = a.ScheduleRetry(a.ctx, fs, data.Token, data.Error)
 	} else {
-		_ = wa.FailWork(wa.ctx, fs, data.Token, data.Error)
+		_ = a.FailWork(a.ctx, fs, data.Token, data.Error)
 	}
 
 	return nil
 }
 
-func (wa *flowActor) checkIfStepDone(stepID api.StepID) {
-	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
+func (a *flowActor) checkIfStepDone(stepID api.StepID) {
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
 	if err != nil {
 		return
 	}
@@ -154,14 +154,14 @@ func (wa *flowActor) checkIfStepDone(stepID api.StepID) {
 	}
 
 	if allDone {
-		wa.checkCompletableSteps(wa.ctx, wa.flowID, flow)
+		a.checkCompletableSteps(a.ctx, a.flowID, flow)
 	}
 }
 
-func (wa *flowActor) handleRetryScheduled(
+func (a *flowActor) handleRetryScheduled(
 	_ *timebox.Event, data api.RetryScheduledEvent,
 ) error {
-	flow, err := wa.GetFlowState(wa.ctx, wa.flowID)
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
 	if err != nil {
 		return nil
 	}
@@ -171,74 +171,74 @@ func (wa *flowActor) handleRetryScheduled(
 		return nil
 	}
 
-	wa.checkCompletableSteps(wa.ctx, wa.flowID, flow)
+	a.checkCompletableSteps(a.ctx, a.flowID, flow)
 	return nil
 }
 
-func (wa *flowActor) processFlow() {
-	flow, ok := wa.GetActiveFlow(wa.flowID)
+func (a *flowActor) processFlow() {
+	flow, ok := a.GetActiveFlow(a.flowID)
 	if !ok {
 		return
 	}
 
-	if !wa.ensureScriptsCompiled(wa.flowID, flow) {
+	if !a.ensureScriptsCompiled(a.flowID, flow) {
 		return
 	}
 
-	wa.evaluateFlowState(wa.ctx, wa.flowID, flow)
-	wa.checkCompletableSteps(wa.ctx, wa.flowID, flow)
+	a.evaluateFlowState(a.ctx, a.flowID, flow)
+	a.checkCompletableSteps(a.ctx, a.flowID, flow)
 
-	flow, ok = wa.GetActiveFlow(wa.flowID)
+	flow, ok = a.GetActiveFlow(a.flowID)
 	if !ok {
 		return
 	}
 
-	ready := wa.findReadySteps(flow)
+	ready := a.findReadySteps(flow)
 	if len(ready) == 0 {
-		wa.handleTerminalState(flow)
+		a.handleTerminalState(flow)
 		return
 	}
 
-	wa.launchReadySteps(ready)
+	a.launchReadySteps(ready)
 }
 
-func (wa *flowActor) handleTerminalState(flow *api.FlowState) {
-	if wa.isFlowComplete(flow) {
-		wa.completeFlow(wa.ctx, wa.flowID, flow)
+func (a *flowActor) handleTerminalState(flow *api.FlowState) {
+	if a.isFlowComplete(flow) {
+		a.completeFlow(a.ctx, a.flowID, flow)
 		return
 	}
 
-	if wa.IsFlowFailed(flow) {
-		wa.evaluateFlowState(wa.ctx, wa.flowID, flow)
-		wa.failFlow(wa.ctx, wa.flowID, flow)
+	if a.IsFlowFailed(flow) {
+		a.evaluateFlowState(a.ctx, a.flowID, flow)
+		a.failFlow(a.ctx, a.flowID, flow)
 	}
 }
 
-func (wa *flowActor) launchReadySteps(ready []api.StepID) {
+func (a *flowActor) launchReadySteps(ready []api.StepID) {
 	for _, stepID := range ready {
-		wa.wg.Add(1)
+		a.wg.Add(1)
 		go func(stepID api.StepID) {
-			defer wa.wg.Done()
-			wa.executeStep(wa.ctx, FlowStep{
-				FlowID: wa.flowID,
+			defer a.wg.Done()
+			a.executeStep(a.ctx, FlowStep{
+				FlowID: a.flowID,
 				StepID: stepID,
 			})
 		}(stepID)
 	}
 }
 
-func (wa *flowActor) findReadySteps(flow *api.FlowState) []api.StepID {
+func (a *flowActor) findReadySteps(flow *api.FlowState) []api.StepID {
 	visited := util.Set[api.StepID]{}
 	var ready []api.StepID
 
 	for _, goalID := range flow.Plan.Goals {
-		wa.findReadyStepsFromGoal(goalID, flow, visited, &ready)
+		a.findReadyStepsFromGoal(goalID, flow, visited, &ready)
 	}
 
 	return ready
 }
 
-func (wa *flowActor) findReadyStepsFromGoal(
+func (a *flowActor) findReadyStepsFromGoal(
 	stepID api.StepID, flow *api.FlowState, visited util.Set[api.StepID],
 	ready *[]api.StepID,
 ) {
@@ -272,29 +272,29 @@ func (wa *flowActor) findReadyStepsFromGoal(
 		}
 
 		for _, providerID := range deps.Providers {
-			wa.findReadyStepsFromGoal(providerID, flow, visited, ready)
+			a.findReadyStepsFromGoal(providerID, flow, visited, ready)
 		}
 	}
 
-	if wa.isStepReadyForExec(stepID, flow) {
+	if a.isStepReadyForExec(stepID, flow) {
 		*ready = append(*ready, stepID)
 	}
 }
 
-func (wa *flowActor) isStepReadyForExec(
+func (a *flowActor) isStepReadyForExec(
 	stepID api.StepID, flow *api.FlowState,
 ) bool {
 	exec, ok := flow.Executions[stepID]
 	if ok && exec.Status != api.StepPending {
 		return false
 	}
-	if !wa.isStepReady(stepID, flow) {
+	if !a.isStepReady(stepID, flow) {
 		return false
 	}
-	return wa.areOutputsNeeded(stepID, flow)
+	return a.areOutputsNeeded(stepID, flow)
 }
 
-func (wa *flowActor) isStepReady(stepID api.StepID, flow *api.FlowState) bool {
+func (a *flowActor) isStepReady(stepID api.StepID, flow *api.FlowState) bool {
 	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {

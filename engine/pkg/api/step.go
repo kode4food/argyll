@@ -319,20 +319,20 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 }
 
 // WithOutput adds an output value to the step result
-func (sr *StepResult) WithOutput(name Name, value any) *StepResult {
-	if sr.Outputs == nil {
-		sr.Outputs = Args{name: value}
-		return sr
+func (r *StepResult) WithOutput(name Name, value any) *StepResult {
+	if r.Outputs == nil {
+		r.Outputs = Args{name: value}
+		return r
 	}
-	sr.Outputs[name] = value
-	return sr
+	r.Outputs[name] = value
+	return r
 }
 
 // WithError marks the step result as failed with the given error
-func (sr *StepResult) WithError(err error) *StepResult {
-	sr.Success = false
-	sr.Error = err.Error()
-	return sr
+func (r *StepResult) WithError(err error) *StepResult {
+	r.Success = false
+	r.Error = err.Error()
+	return r
 }
 
 // Equal returns true if two HTTP configs are equal

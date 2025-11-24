@@ -15,13 +15,13 @@ type mockGetter struct {
 	err   error
 }
 
-func (m *mockGetter) GetAttribute(
+func (g *mockGetter) GetAttribute(
 	_ context.Context, flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {
-	if m.err != nil {
-		return nil, false, m.err
+	if g.err != nil {
+		return nil, false, g.err
 	}
-	if flowAttrs, ok := m.attrs[flowID]; ok {
+	if flowAttrs, ok := g.attrs[flowID]; ok {
 		if val, ok := flowAttrs[attr]; ok {
 			return val, true, nil
 		}

@@ -66,7 +66,7 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 	return pb
 }
 
-func (pb *planBuilder) allOutputsAvailable(step *api.Step) bool {
+func (b *planBuilder) allOutputsAvailable(step *api.Step) bool {
 	hasOutputs := false
 	for _, attr := range step.Attributes {
 		if attr.IsOutput() {
@@ -79,44 +79,44 @@ func (pb *planBuilder) allOutputsAvailable(step *api.Step) bool {
 	}
 
 	for name, attr := range step.Attributes {
-		if attr.IsOutput() && !pb.available.Contains(name) {
+		if attr.IsOutput() && !b.available.Contains(name) {
 			return false
 		}
 	}
 	return true
 }
 
-func (pb *planBuilder) findProvider(name api.Name) (api.StepID, bool) {
-	for candidateID, candidate := range pb.engState.Steps {
-		if pb.stepProvidesOutput(candidate, name) {
+func (b *planBuilder) findProvider(name api.Name) (api.StepID, bool) {
+	for candidateID, candidate := range b.engState.Steps {
+		if b.stepProvidesOutput(candidate, name) {
 			return candidateID, true
 		}
 	}
 	return "", false
 }
 
-func (pb *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
+func (b *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
 	if attr, ok := step.Attributes[name]; ok {
 		return attr.IsOutput()
 	}
 	return false
 }
 
-func (pb *planBuilder) addStepToPlan(stepID api.StepID, step *api.Step) {
-	pb.visited.Add(stepID)
+func (b *planBuilder) addStepToPlan(stepID api.StepID, step *api.Step) {
+	b.visited.Add(stepID)
 
-	pb.steps[stepID] = &api.StepInfo{
+	b.steps[stepID] = &api.StepInfo{
 		Step: step,
 	}
 
 	for name, attr := range step.Attributes {
 		if attr.IsOutput() {
-			pb.available.Add(name)
+			b.available.Add(name)
 		}
 	}
 }
 
-func (pb *planBuilder) buildRequiredSet(step *api.Step) util.Set[api.Name] {
+func (b *planBuilder) buildRequiredSet(step *api.Step) util.Set[api.Name] {
 	requiredSet := util.Set[api.Name]{}
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
@@ -126,16 +126,16 @@ func (pb *planBuilder) buildRequiredSet(step *api.Step) util.Set[api.Name] {
 	return requiredSet
 }
 
-func (pb *planBuilder) resolveDependencies(step *api.Step) error {
+func (b *planBuilder) resolveDependencies(step *api.Step) error {
 	allInputs := step.GetAllInputArgs()
-	requiredSet := pb.buildRequiredSet(step)
+	requiredSet := b.buildRequiredSet(step)
 
 	for _, name := range allInputs {
-		if pb.available.Contains(name) {
-			pb.trackConsumer(name, step.ID)
+		if b.available.Contains(name) {
+			b.trackConsumer(name, step.ID)
 			continue
 		}
-		if err := pb.resolveInput(name, step.ID, requiredSet); err != nil {
+		if err := b.resolveInput(name, step.ID, requiredSet); err != nil {
 			return err
 		}
 	}
@@ -143,85 +143,85 @@ func (pb *planBuilder) resolveDependencies(step *api.Step) error {
 	return nil
 }
 
-func (pb *planBuilder) resolveInput(
+func (b *planBuilder) resolveInput(
 	name api.Name, consumerID api.StepID, requiredSet util.Set[api.Name],
 ) error {
-	providerID, found := pb.findProvider(name)
+	providerID, found := b.findProvider(name)
 	if !found {
 		if requiredSet.Contains(name) {
-			pb.missing.Add(name)
+			b.missing.Add(name)
 		}
 		return nil
 	}
 
-	pb.trackDependency(name, providerID, consumerID)
+	b.trackDependency(name, providerID, consumerID)
 
-	if err := pb.buildPlan(providerID); err != nil {
+	if err := b.buildPlan(providerID); err != nil {
 		return err
 	}
-	pb.available.Add(name)
+	b.available.Add(name)
 	return nil
 }
 
-func (pb *planBuilder) buildPlan(stepID api.StepID) error {
-	if pb.visited.Contains(stepID) {
+func (b *planBuilder) buildPlan(stepID api.StepID) error {
+	if b.visited.Contains(stepID) {
 		return nil
 	}
 
-	step, ok := pb.engState.Steps[stepID]
+	step, ok := b.engState.Steps[stepID]
 	if !ok {
 		return ErrStepNotFound
 	}
 
-	if pb.allOutputsAvailable(step) {
-		pb.visited.Add(stepID)
+	if b.allOutputsAvailable(step) {
+		b.visited.Add(stepID)
 		return nil
 	}
 
-	if err := pb.resolveDependencies(step); err != nil {
+	if err := b.resolveDependencies(step); err != nil {
 		return err
 	}
 
-	if !pb.visited.Contains(stepID) {
-		pb.addStepToPlan(stepID, step)
+	if !b.visited.Contains(stepID) {
+		b.addStepToPlan(stepID, step)
 	}
 
 	return nil
 }
 
-func (pb *planBuilder) trackConsumer(name api.Name, consumerID api.StepID) {
-	if pb.attributes[name] == nil {
-		pb.attributes[name] = &api.Dependencies{
+func (b *planBuilder) trackConsumer(name api.Name, consumerID api.StepID) {
+	if b.attributes[name] == nil {
+		b.attributes[name] = &api.Dependencies{
 			Providers: []api.StepID{},
 			Consumers: []api.StepID{},
 		}
 	}
-	pb.attributes[name].Consumers = append(
-		pb.attributes[name].Consumers, consumerID,
+	b.attributes[name].Consumers = append(
+		b.attributes[name].Consumers, consumerID,
 	)
 }
 
-func (pb *planBuilder) trackDependency(
+func (b *planBuilder) trackDependency(
 	name api.Name, providerID, consumerID api.StepID,
 ) {
-	if pb.attributes[name] == nil {
-		pb.attributes[name] = &api.Dependencies{
+	if b.attributes[name] == nil {
+		b.attributes[name] = &api.Dependencies{
 			Providers: []api.StepID{},
 			Consumers: []api.StepID{},
 		}
 	}
 
-	pb.attributes[name].Providers = append(
-		pb.attributes[name].Providers, providerID,
+	b.attributes[name].Providers = append(
+		b.attributes[name].Providers, providerID,
 	)
-	pb.attributes[name].Consumers = append(
-		pb.attributes[name].Consumers, consumerID,
+	b.attributes[name].Consumers = append(
+		b.attributes[name].Consumers, consumerID,
 	)
 }
 
-func (pb *planBuilder) getRequiredInputs() []api.Name {
+func (b *planBuilder) getRequiredInputs() []api.Name {
 	var requiredInputs []api.Name
-	for input := range pb.missing {
+	for input := range b.missing {
 		requiredInputs = append(requiredInputs, input)
 	}
 	return requiredInputs

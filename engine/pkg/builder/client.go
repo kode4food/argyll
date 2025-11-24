@@ -189,15 +189,15 @@ func (c *Client) startFlow(
 }
 
 // GetState retrieves the current state of the flow
-func (wc *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
+func (c *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 	httpReq, err := http.NewRequestWithContext(
-		ctx, "GET", wc.url("%s/%s", routeFlow, wc.flowID), nil,
+		ctx, "GET", c.url("%s/%s", routeFlow, c.flowID), nil,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	resp, err := wc.httpClient.Do(httpReq)
+	resp, err := c.httpClient.Do(httpReq)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +218,6 @@ func (wc *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 }
 
 // FlowID returns the flow ID for this client
-func (wc *FlowClient) FlowID() api.FlowID {
-	return wc.flowID
+func (c *FlowClient) FlowID() api.FlowID {
+	return c.flowID
 }

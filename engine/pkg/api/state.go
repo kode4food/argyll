@@ -116,225 +116,224 @@ const (
 )
 
 // SetStep returns a new EngineState with the specified step registered
-func (st *EngineState) SetStep(id StepID, step *Step) *EngineState {
-	res := *st
-	res.Steps = maps.Clone(st.Steps)
+func (e *EngineState) SetStep(id StepID, step *Step) *EngineState {
+	res := *e
+	res.Steps = maps.Clone(e.Steps)
 	res.Steps[id] = step
 	return &res
 }
 
 // DeleteStep returns a new EngineState with the specified step removed
-func (st *EngineState) DeleteStep(i StepID) *EngineState {
-	res := *st
-	res.Steps = maps.Clone(st.Steps)
+func (e *EngineState) DeleteStep(i StepID) *EngineState {
+	res := *e
+	res.Steps = maps.Clone(e.Steps)
 	delete(res.Steps, i)
 	return &res
 }
 
 // SetHealth returns a new EngineState with updated health for a given step
-func (st *EngineState) SetHealth(id StepID, h *HealthState) *EngineState {
-	res := *st
-	res.Health = maps.Clone(st.Health)
+func (e *EngineState) SetHealth(id StepID, h *HealthState) *EngineState {
+	res := *e
+	res.Health = maps.Clone(e.Health)
 	res.Health[id] = h
 	return &res
 }
 
 // SetLastUpdated returns a new EngineState with the last updated timestamp set
-func (st *EngineState) SetLastUpdated(t time.Time) *EngineState {
-	res := *st
+func (e *EngineState) SetLastUpdated(t time.Time) *EngineState {
+	res := *e
 	res.LastUpdated = t
 	return &res
 }
 
 // SetActiveFlow returns a new EngineState with the flow as active
-func (st *EngineState) SetActiveFlow(
+func (e *EngineState) SetActiveFlow(
 	id FlowID, info *ActiveFlowInfo,
 ) *EngineState {
-	res := *st
-	res.ActiveFlows = maps.Clone(st.ActiveFlows)
+	res := *e
+	res.ActiveFlows = maps.Clone(e.ActiveFlows)
 	res.ActiveFlows[id] = info
 	return &res
 }
 
 // DeleteActiveFlow returns a new EngineState with the flow inactive
-func (st *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
-	res := *st
-	res.ActiveFlows = maps.Clone(st.ActiveFlows)
+func (e *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
+	res := *e
+	res.ActiveFlows = maps.Clone(e.ActiveFlows)
 	delete(res.ActiveFlows, id)
 	return &res
 }
 
+// GetAttributeArgs returns all attribute values as Args
+func (f *FlowState) GetAttributeArgs() Args {
+	result := make(Args, len(f.Attributes))
+	for key, attr := range f.Attributes {
+		result[key] = attr.Value
+	}
+	return result
+}
+
 // SetStatus returns a new FlowState with the updated status
-func (st *FlowState) SetStatus(s FlowStatus) *FlowState {
-	res := *st
+func (f *FlowState) SetStatus(s FlowStatus) *FlowState {
+	res := *f
 	res.Status = s
 	return &res
 }
 
 // SetAttribute returns a new FlowState with the specified attribute set
-func (st *FlowState) SetAttribute(name Name, attr *AttributeValue) *FlowState {
-	res := *st
-	res.Attributes = maps.Clone(st.Attributes)
+func (f *FlowState) SetAttribute(name Name, attr *AttributeValue) *FlowState {
+	res := *f
+	res.Attributes = maps.Clone(f.Attributes)
 	res.Attributes[name] = attr
 	return &res
 }
 
-// SetExecution returns a new FlowState with updated execution for a step
-func (st *FlowState) SetExecution(id StepID, ex *ExecutionState) *FlowState {
-	res := *st
-	res.Executions = maps.Clone(st.Executions)
+func (f *FlowState) SetExecution(id StepID, ex *ExecutionState) *FlowState {
+	res := *f
+	res.Executions = maps.Clone(f.Executions)
 	res.Executions[id] = ex
 	return &res
 }
 
 // SetCompletedAt returns a new FlowState with the completion timestamp set
-func (st *FlowState) SetCompletedAt(t time.Time) *FlowState {
-	res := *st
+func (f *FlowState) SetCompletedAt(t time.Time) *FlowState {
+	res := *f
 	res.CompletedAt = t
 	return &res
 }
 
 // SetError returns a new FlowState with the error message set
-func (st *FlowState) SetError(err string) *FlowState {
-	res := *st
+func (f *FlowState) SetError(err string) *FlowState {
+	res := *f
 	res.Error = err
 	return &res
 }
 
 // SetLastUpdated returns a new FlowState with last updated time set
-func (st *FlowState) SetLastUpdated(t time.Time) *FlowState {
-	res := *st
+func (f *FlowState) SetLastUpdated(t time.Time) *FlowState {
+	res := *f
 	res.LastUpdated = t
 	return &res
 }
 
 // SetStatus returns a new ExecutionState with the updated status
-func (st *ExecutionState) SetStatus(s StepStatus) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetStatus(s StepStatus) *ExecutionState {
+	res := *e
 	res.Status = s
 	return &res
 }
 
 // SetStartedAt returns a new ExecutionState with the start timestamp set
-func (st *ExecutionState) SetStartedAt(t time.Time) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetStartedAt(t time.Time) *ExecutionState {
+	res := *e
 	res.StartedAt = t
 	return &res
 }
 
 // SetCompletedAt returns a new ExecutionState with completion time set
-func (st *ExecutionState) SetCompletedAt(t time.Time) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetCompletedAt(t time.Time) *ExecutionState {
+	res := *e
 	res.CompletedAt = t
 	return &res
 }
 
 // SetInputs returns a new ExecutionState with the input arguments set
-func (st *ExecutionState) SetInputs(inputs Args) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetInputs(inputs Args) *ExecutionState {
+	res := *e
 	res.Inputs = inputs
 	return &res
 }
 
 // SetOutputs returns a new ExecutionState with the output arguments set
-func (st *ExecutionState) SetOutputs(outputs Args) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetOutputs(outputs Args) *ExecutionState {
+	res := *e
 	res.Outputs = outputs
 	return &res
 }
 
 // SetDuration returns a new ExecutionState with the execution duration set
-func (st *ExecutionState) SetDuration(dur int64) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetDuration(dur int64) *ExecutionState {
+	res := *e
 	res.Duration = dur
 	return &res
 }
 
 // SetError returns a new ExecutionState with the error message set
-func (st *ExecutionState) SetError(err string) *ExecutionState {
-	res := *st
+func (e *ExecutionState) SetError(err string) *ExecutionState {
+	res := *e
 	res.Error = err
 	return &res
 }
 
 // SetWorkItem returns a new ExecutionState with the work item state updated
-func (st *ExecutionState) SetWorkItem(
+func (e *ExecutionState) SetWorkItem(
 	token Token, item *WorkState,
 ) *ExecutionState {
-	res := *st
-	res.WorkItems = maps.Clone(st.WorkItems)
+	res := *e
+	res.WorkItems = maps.Clone(e.WorkItems)
 	res.WorkItems[token] = item
 	return &res
 }
 
 // SetStatus returns a new HealthState with the updated status
-func (st *HealthState) SetStatus(s HealthStatus) *HealthState {
-	res := *st
+func (h *HealthState) SetStatus(s HealthStatus) *HealthState {
+	res := *h
 	res.Status = s
 	return &res
 }
 
 // SetError returns a new HealthState with the error message set
-func (st *HealthState) SetError(err string) *HealthState {
-	res := *st
+func (h *HealthState) SetError(err string) *HealthState {
+	res := *h
 	res.Error = err
 	return &res
 }
 
 // SetStatus returns a new WorkState with the updated status
-func (st *WorkState) SetStatus(s WorkStatus) *WorkState {
-	res := *st
+func (w *WorkState) SetStatus(s WorkStatus) *WorkState {
+	res := *w
 	res.Status = s
 	return &res
 }
 
 // SetStartedAt returns a new WorkState with the started timestamp set
-func (st *WorkState) SetStartedAt(t time.Time) *WorkState {
-	res := *st
+func (w *WorkState) SetStartedAt(t time.Time) *WorkState {
+	res := *w
 	res.StartedAt = t
 	return &res
 }
 
-// SetStartedAt returns a new WorkState with the completed timestamp set
-func (st *WorkState) SetCompletedAt(t time.Time) *WorkState {
-	res := *st
+// SetCompletedAt returns a new WorkState with the completed timestamp set
+func (w *WorkState) SetCompletedAt(t time.Time) *WorkState {
+	res := *w
 	res.CompletedAt = t
 	return &res
 }
 
 // SetRetryCount returns a new WorkState with the retry count set
-func (st *WorkState) SetRetryCount(count int) *WorkState {
-	res := *st
+func (w *WorkState) SetRetryCount(count int) *WorkState {
+	res := *w
 	res.RetryCount = count
 	return &res
 }
 
 // SetNextRetryAt returns a new WorkState with the next retry time set
-func (st *WorkState) SetNextRetryAt(t time.Time) *WorkState {
-	res := *st
+func (w *WorkState) SetNextRetryAt(t time.Time) *WorkState {
+	res := *w
 	res.NextRetryAt = t
 	return &res
 }
 
 // SetError returns a new WorkState with the error message set
-func (st *WorkState) SetError(err string) *WorkState {
-	res := *st
+func (w *WorkState) SetError(err string) *WorkState {
+	res := *w
 	res.Error = err
 	return &res
 }
 
 // SetOutputs returns a new WorkState with the outputs set
-func (st *WorkState) SetOutputs(outputs Args) *WorkState {
-	res := *st
+func (w *WorkState) SetOutputs(outputs Args) *WorkState {
+	res := *w
 	res.Outputs = outputs
 	return &res
-}
-
-// GetAttributeArgs returns all attribute values as Args
-func (st *FlowState) GetAttributeArgs() Args {
-	result := make(Args, len(st.Attributes))
-	for key, attr := range st.Attributes {
-		result[key] = attr.Value
-	}
-	return result
 }

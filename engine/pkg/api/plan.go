@@ -34,18 +34,18 @@ var (
 )
 
 // GetStep retrieves a step from the plan by ID
-func (ep *ExecutionPlan) GetStep(stepID StepID) *Step {
-	if info, ok := ep.Steps[stepID]; ok {
+func (p *ExecutionPlan) GetStep(stepID StepID) *Step {
+	if info, ok := p.Steps[stepID]; ok {
 		return info.Step
 	}
 	return nil
 }
 
 // ValidateInputs checks that all required inputs are provided
-func (ep *ExecutionPlan) ValidateInputs(args Args) error {
+func (p *ExecutionPlan) ValidateInputs(args Args) error {
 	var missing []Name
 
-	for _, requiredInput := range ep.Required {
+	for _, requiredInput := range p.Required {
 		if _, ok := args[requiredInput]; !ok {
 			missing = append(missing, requiredInput)
 		}
@@ -62,19 +62,19 @@ func (ep *ExecutionPlan) ValidateInputs(args Args) error {
 }
 
 // NeedsCompilation returns true if any scripts need compilation
-func (ep *ExecutionPlan) NeedsCompilation() bool {
-	for _, info := range ep.Steps {
-		if ep.stepNeedsCompile(info) {
+func (p *ExecutionPlan) NeedsCompilation() bool {
+	for _, info := range p.Steps {
+		if p.stepNeedsCompile(info) {
 			return true
 		}
-		if ep.predNeedsCompile(info) {
+		if p.predNeedsCompile(info) {
 			return true
 		}
 	}
 	return false
 }
 
-func (ep *ExecutionPlan) stepNeedsCompile(info *StepInfo) bool {
+func (p *ExecutionPlan) stepNeedsCompile(info *StepInfo) bool {
 	step := info.Step
 	if step.Type != StepTypeScript || step.Script == nil {
 		return false
@@ -82,7 +82,7 @@ func (ep *ExecutionPlan) stepNeedsCompile(info *StepInfo) bool {
 	return info.Script == nil
 }
 
-func (ep *ExecutionPlan) predNeedsCompile(info *StepInfo) bool {
+func (p *ExecutionPlan) predNeedsCompile(info *StepInfo) bool {
 	if info.Step.Predicate == nil {
 		return false
 	}

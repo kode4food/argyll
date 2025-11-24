@@ -79,36 +79,36 @@ var (
 )
 
 // Validate checks if the attribute specification is valid
-func (as *AttributeSpec) Validate(name Name) error {
-	if !validAttributeRoles.Contains(as.Role) {
+func (s *AttributeSpec) Validate(name Name) error {
+	if !validAttributeRoles.Contains(s.Role) {
 		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidAttributeRole, as.Role, name)
+			ErrInvalidAttributeRole, s.Role, name)
 	}
 
-	if as.Default != "" && !as.IsOptional() {
+	if s.Default != "" && !s.IsOptional() {
 		return fmt.Errorf("%w: %s for attribute %q",
-			ErrDefaultNotAllowed, as.Role, name)
+			ErrDefaultNotAllowed, s.Role, name)
 	}
 
-	if as.ForEach {
-		if as.Type != TypeArray && as.Type != TypeAny && as.Type != "" {
+	if s.ForEach {
+		if s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
 			return fmt.Errorf("%w: type %s for attribute %q",
-				ErrForEachRequiresArray, as.Type, name)
+				ErrForEachRequiresArray, s.Type, name)
 		}
-		if as.IsOutput() {
+		if s.IsOutput() {
 			return fmt.Errorf("%w: %q", ErrForEachNotAllowedOutput, name)
 		}
 	}
 
-	if as.Type != "" {
-		if !validAttributeTypes.Contains(as.Type) {
+	if s.Type != "" {
+		if !validAttributeTypes.Contains(s.Type) {
 			return fmt.Errorf("%w: %s for attribute %q",
-				ErrInvalidAttributeType, as.Type, name)
+				ErrInvalidAttributeType, s.Type, name)
 		}
 	}
 
-	if as.Default != "" && as.Type != "" {
-		if err := validateDefaultValue(as.Default, as.Type); err != nil {
+	if s.Default != "" && s.Type != "" {
+		if err := validateDefaultValue(s.Default, s.Type); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
 				ErrInvalidDefaultValue, name, err)
 		}
@@ -171,35 +171,35 @@ func validateDefaultValue(value string, attrType AttributeType) error {
 }
 
 // IsInput returns true if the attribute is an input (required or optional)
-func (as *AttributeSpec) IsInput() bool {
-	return as.Role == RoleRequired || as.Role == RoleOptional
+func (s *AttributeSpec) IsInput() bool {
+	return s.Role == RoleRequired || s.Role == RoleOptional
 }
 
 // IsOutput returns true if the attribute is an output
-func (as *AttributeSpec) IsOutput() bool {
-	return as.Role == RoleOutput
+func (s *AttributeSpec) IsOutput() bool {
+	return s.Role == RoleOutput
 }
 
 // IsRequired returns true if the attribute is required
-func (as *AttributeSpec) IsRequired() bool {
-	return as.Role == RoleRequired
+func (s *AttributeSpec) IsRequired() bool {
+	return s.Role == RoleRequired
 }
 
 // IsOptional returns true if the attribute is optional
-func (as *AttributeSpec) IsOptional() bool {
-	return as.Role == RoleOptional
+func (s *AttributeSpec) IsOptional() bool {
+	return s.Role == RoleOptional
 }
 
 // Equal returns true if two attribute specs are equal
-func (as *AttributeSpec) Equal(other *AttributeSpec) bool {
-	if as == nil && other == nil {
+func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
+	if s == nil && other == nil {
 		return true
 	}
-	if as == nil || other == nil {
+	if s == nil || other == nil {
 		return false
 	}
-	return as.Role == other.Role &&
-		as.Type == other.Type &&
-		as.ForEach == other.ForEach &&
-		as.Default == other.Default
+	return s.Role == other.Role &&
+		s.Type == other.Type &&
+		s.ForEach == other.ForEach &&
+		s.Default == other.Default
 }
