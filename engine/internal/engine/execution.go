@@ -259,11 +259,21 @@ func (e *ExecContext) executeWorkItems(
 			continue
 		}
 
+		fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+		if !e.engine.evaluateStepPredicate(ctx, fs, e.step, workItem.Inputs) {
+			continue
+		}
+
+		err := e.engine.StartWork(ctx, fs, token, workItem.Inputs)
+		if err != nil {
+			continue
+		}
+
 		go func(token api.Token, workItem *api.WorkState) {
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			e.executeWorkItem(ctx, token, workItem)
+			e.performWorkItem(ctx, token, workItem)
 		}(token, workItem)
 	}
 }
@@ -282,6 +292,13 @@ func (e *ExecContext) executeWorkItem(
 		return
 	}
 
+	e.performWorkItem(ctx, token, workItem)
+}
+
+func (e *ExecContext) performWorkItem(
+	ctx context.Context, token api.Token, workItem *api.WorkState,
+) {
+	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	outputs, err := e.performWork(ctx, workItem.Inputs, token)
 
 	if err != nil {

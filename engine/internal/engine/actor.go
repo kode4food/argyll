@@ -199,7 +199,15 @@ func (a *flowActor) processFlow() {
 		return
 	}
 
-	a.launchReadySteps(ready)
+	for _, stepID := range ready {
+		fs := FlowStep{FlowID: a.flowID, StepID: stepID}
+		execCtx := a.PrepareStepExecution(a.ctx, fs)
+		if execCtx == nil {
+			continue
+		}
+
+		execCtx.execute(a.ctx)
+	}
 }
 
 func (a *flowActor) handleTerminalState(flow *api.FlowState) {
@@ -211,19 +219,6 @@ func (a *flowActor) handleTerminalState(flow *api.FlowState) {
 	if a.IsFlowFailed(flow) {
 		a.evaluateFlowState(a.ctx, a.flowID, flow)
 		a.failFlow(a.ctx, a.flowID, flow)
-	}
-}
-
-func (a *flowActor) launchReadySteps(ready []api.StepID) {
-	for _, stepID := range ready {
-		a.wg.Add(1)
-		go func(stepID api.StepID) {
-			defer a.wg.Done()
-			a.executeStep(a.ctx, FlowStep{
-				FlowID: a.flowID,
-				StepID: stepID,
-			})
-		}(stepID)
 	}
 }
 
