@@ -338,18 +338,6 @@ func (a *flowActor) checkCompletableSteps(ag *FlowAggregator) error {
 			outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
 			dur := time.Since(exec.StartedAt).Milliseconds()
 
-			// Raise StepCompleted event via aggregator
-			if err := events.Raise(ag, api.EventTypeStepCompleted,
-				api.StepCompletedEvent{
-					FlowID:   a.flowID,
-					StepID:   stepID,
-					Outputs:  outputs,
-					Duration: dur,
-				},
-			); err != nil {
-				return err
-			}
-
 			// Raise AttributeSet events for each output
 			for key, value := range outputs {
 				// Check if attribute is already set
@@ -365,6 +353,18 @@ func (a *flowActor) checkCompletableSteps(ag *FlowAggregator) error {
 						return err
 					}
 				}
+			}
+
+			// Raise StepCompleted event via aggregator
+			if err := events.Raise(ag, api.EventTypeStepCompleted,
+				api.StepCompletedEvent{
+					FlowID:   a.flowID,
+					StepID:   stepID,
+					Outputs:  outputs,
+					Duration: dur,
+				},
+			); err != nil {
+				return err
 			}
 		}
 	}

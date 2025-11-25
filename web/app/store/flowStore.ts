@@ -52,6 +52,10 @@ interface FlowState {
     completed_at?: string
   ) => void;
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
+  updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
+  addOrUpdateExecution: (
+    execution: Partial<ExecutionResult> & { step_id: string; flow_id: string }
+  ) => void;
 }
 
 export const useFlowStore = create<FlowState>()(
@@ -286,6 +290,73 @@ export const useFlowStore = create<FlowState>()(
               error: error,
             },
           },
+        });
+      },
+
+      updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => {
+        const { executions, resolvedAttributes } = get();
+        const index = executions.findIndex((e) => e.step_id === stepId);
+        if (index >= 0) {
+          const updated = [...executions];
+          updated[index] = { ...updated[index], ...updates };
+
+          // Update resolved attributes if outputs are provided
+          let newResolvedAttrs = resolvedAttributes;
+          if (updates.outputs) {
+            const outputKeys = Object.keys(updates.outputs);
+            const hasNewAttrs = outputKeys.some(
+              (key) => !resolvedAttributes.includes(key)
+            );
+            if (hasNewAttrs) {
+              const resolved = new Set(resolvedAttributes);
+              outputKeys.forEach((key) => resolved.add(key));
+              newResolvedAttrs = Array.from(resolved);
+            }
+          }
+
+          set({ executions: updated, resolvedAttributes: newResolvedAttrs });
+        }
+      },
+
+      addOrUpdateExecution: (
+        execution: Partial<ExecutionResult> & {
+          step_id: string;
+          flow_id: string;
+        }
+      ) => {
+        const { executions, resolvedAttributes } = get();
+        const index = executions.findIndex(
+          (e) => e.step_id === execution.step_id
+        );
+
+        let newExecutions: ExecutionResult[];
+        if (index >= 0) {
+          newExecutions = [...executions];
+          newExecutions[index] = {
+            ...newExecutions[index],
+            ...execution,
+          } as ExecutionResult;
+        } else {
+          newExecutions = [...executions, execution as ExecutionResult];
+        }
+
+        // Update resolved attributes if outputs are provided
+        let newResolvedAttrs = resolvedAttributes;
+        if (execution.outputs) {
+          const outputKeys = Object.keys(execution.outputs);
+          const hasNewAttrs = outputKeys.some(
+            (key) => !resolvedAttributes.includes(key)
+          );
+          if (hasNewAttrs) {
+            const resolved = new Set(resolvedAttributes);
+            outputKeys.forEach((key) => resolved.add(key));
+            newResolvedAttrs = Array.from(resolved);
+          }
+        }
+
+        set({
+          executions: newExecutions,
+          resolvedAttributes: newResolvedAttrs,
         });
       },
     }),

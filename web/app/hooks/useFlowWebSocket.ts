@@ -14,11 +14,13 @@ export const useFlowWebSocket = () => {
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
   const nextSequence = useFlowStore((state) => state.nextSequence);
   const flowData = useFlowStore((state) => state.flowData);
-  const refreshExecutions = useFlowStore((state) => state.refreshExecutions);
   const updateFlow = useFlowStore((state) => state.updateFlowFromWebSocket);
   const updateStepHealth = useFlowStore((state) => state.updateStepHealth);
   const addStep = useFlowStore((state) => state.addStep);
   const removeStep = useFlowStore((state) => state.removeStep);
+  const addOrUpdateExecution = useFlowStore(
+    (state) => state.addOrUpdateExecution
+  );
 
   const consumerIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -51,7 +53,6 @@ export const useFlowWebSocket = () => {
     const newEvents = events.slice(lastProcessedEventIndex.current + 1);
     if (!newEvents.length) return;
 
-    let needsExecutionRefresh = false;
     let stateUpdates: Record<string, { value: any; step: string }> = {};
     let flowUpdate: Partial<FlowContext> = {};
 
@@ -102,13 +103,38 @@ export const useFlowWebSocket = () => {
         flowUpdate.started_at =
           event.data?.started_at || new Date().toISOString();
       } else if (event.type === "step_started") {
-        needsExecutionRefresh = true;
+        addOrUpdateExecution({
+          step_id: event.data?.step_id,
+          flow_id: selectedFlow,
+          status: "active",
+          inputs: event.data?.inputs,
+          work_items: event.data?.work_items || {},
+          started_at: new Date(event.timestamp).toISOString(),
+        });
       } else if (event.type === "step_completed") {
-        needsExecutionRefresh = true;
+        addOrUpdateExecution({
+          step_id: event.data?.step_id,
+          flow_id: selectedFlow,
+          status: "completed",
+          outputs: event.data?.outputs,
+          duration_ms: event.data?.duration,
+          completed_at: new Date(event.timestamp).toISOString(),
+        });
       } else if (event.type === "step_failed") {
-        needsExecutionRefresh = true;
+        addOrUpdateExecution({
+          step_id: event.data?.step_id,
+          flow_id: selectedFlow,
+          status: "failed",
+          error_message: event.data?.error,
+          completed_at: new Date(event.timestamp).toISOString(),
+        });
       } else if (event.type === "step_skipped") {
-        needsExecutionRefresh = true;
+        addOrUpdateExecution({
+          step_id: event.data?.step_id,
+          flow_id: selectedFlow,
+          status: "skipped",
+          completed_at: new Date(event.timestamp).toISOString(),
+        });
       } else if (event.type === "attribute_set") {
         const key = event.data?.key;
         const value = event.data?.value;
@@ -116,7 +142,6 @@ export const useFlowWebSocket = () => {
         if (key && value !== undefined) {
           stateUpdates[key] = { value, step: stepId };
         }
-        needsExecutionRefresh = true;
       } else if (event.type === "flow_completed") {
         flowUpdate.status = "completed";
         flowUpdate.completed_at =
@@ -152,10 +177,6 @@ export const useFlowWebSocket = () => {
         lastProcessedEventIndex.current + 1
       );
     }
-
-    if (needsExecutionRefresh && selectedFlow) {
-      refreshExecutions(selectedFlow);
-    }
   }, [
     events,
     selectedFlow,
@@ -164,7 +185,7 @@ export const useFlowWebSocket = () => {
     updateStepHealth,
     addStep,
     removeStep,
-    refreshExecutions,
+    addOrUpdateExecution,
     updateConsumerCursor,
   ]);
 };
