@@ -99,8 +99,11 @@ func (a *flowActor) drainEvents() {
 }
 
 func (a *flowActor) processFlow() {
-	flow, ok := a.GetActiveFlow(a.flowID)
-	if !ok {
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
+	if err != nil {
+		slog.Error("Failed to get flow state",
+			slog.Any("flow_id", a.flowID),
+			slog.Any("error", err))
 		return
 	}
 
@@ -122,11 +125,17 @@ func (a *flowActor) processFlow() {
 }
 
 // processFlowTransaction executes all flow processing in a single transaction,
-// returning deferred functions to execute after successful commit
+// returning deferred functions to execute after successful commit. Terminal
+// flows still process to record step completions for audit/compensation
 func (a *flowActor) processFlowTransaction() (enqueued, error) {
 	var fns enqueued
 
 	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+		// Terminal flows only record pending step completions
+		if flowTransitions.IsTerminal(ag.Value().Status) {
+			return a.checkCompletableSteps(ag)
+		}
+
 		// Loop until no new events are raised (handles cascading failures)
 		for {
 			before := len(ag.Enqueued())
