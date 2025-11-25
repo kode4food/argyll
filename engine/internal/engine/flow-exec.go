@@ -31,6 +31,7 @@ var flowProcessingEvents = util.SetOf(
 	timebox.EventType(api.EventTypeFlowStarted),
 	timebox.EventType(api.EventTypeStepCompleted),
 	timebox.EventType(api.EventTypeStepFailed),
+	timebox.EventType(api.EventTypeStepSkipped),
 	timebox.EventType(api.EventTypeWorkSucceeded),
 	timebox.EventType(api.EventTypeWorkFailed),
 	timebox.EventType(api.EventTypeWorkNotCompleted),
@@ -522,7 +523,16 @@ func (a *flowActor) prepareStep(
 	// Evaluate predicate
 	fs := FlowStep{FlowID: a.flowID, StepID: stepID}
 	if !a.evaluateStepPredicate(ctx, fs, step, inputs) {
-		// Predicate failed - don't start step, return nil closure
+		// Predicate failed - skip this step
+		if err := events.Raise(ag, api.EventTypeStepSkipped,
+			api.StepSkippedEvent{
+				FlowID: a.flowID,
+				StepID: stepID,
+				Reason: "predicate returned false",
+			},
+		); err != nil {
+			return nil, err
+		}
 		return nil, nil
 	}
 
