@@ -28,6 +28,8 @@ jobs:
           node-version: '20'
       - name: Install dependencies
         run: cd web && npm ci
+      - name: Type check
+        run: cd web && npm run type-check
       - name: Build web app
         run: cd web && npm run build
       - name: Run tests
