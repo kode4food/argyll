@@ -34,7 +34,6 @@ import {
 } from "../../store/flowStore";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { useFlowFromUrl } from "../../hooks/useFlowFromUrl";
-import { useThrottledValue } from "../../hooks/useThrottledValue";
 import { useUI } from "../../contexts/UIContext";
 import { getProgressIcon, getProgressIconClass } from "@/utils/progressUtils";
 import { StepProgressStatus } from "../../hooks/useStepProgress";
@@ -77,7 +76,6 @@ const FlowSelector: React.FC = () => {
     previewPlan,
     updatePreviewPlan,
     clearPreviewPlan,
-    selectedStep,
     setSelectedStep,
     goalStepIds,
     setGoalStepIds,
@@ -86,8 +84,6 @@ const FlowSelector: React.FC = () => {
   const [initialState, setInitialState] = useState("{}");
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
-
-  const throttled = useThrottledValue(initialState, 500);
 
   useEffect(() => {
     initialStateRef.current = initialState;
@@ -180,7 +176,7 @@ const FlowSelector: React.FC = () => {
             }
           });
 
-          executionPlan.required.forEach((name) => {
+          (executionPlan.required || []).forEach((name) => {
             if (!(name in mergedState)) {
               mergedState[name] = "";
             }
@@ -257,18 +253,6 @@ const FlowSelector: React.FC = () => {
       clearPreviewPlan,
     ]
   );
-
-  useEffect(() => {
-    if (goalStepIds.length > 0 && showCreateForm) {
-      let parsedState: Record<string, any>;
-      try {
-        parsedState = JSON.parse(throttled);
-      } catch {
-        parsedState = {};
-      }
-      updatePreviewPlan(goalStepIds, parsedState);
-    }
-  }, [throttled, showCreateForm, updatePreviewPlan, goalStepIds]);
 
   const filteredFlows = flows.filter((flow) =>
     flow.id.includes(sanitizeFlowID(searchTerm))
@@ -391,15 +375,6 @@ const FlowSelector: React.FC = () => {
     setSelectedStep,
     router,
   ]);
-
-  useEffect(() => {
-    if (!showCreateForm) return;
-    if (goalStepIds.length === 0) return;
-
-    if (initialState === "{}") {
-      handleGoalStepChange(goalStepIds);
-    }
-  }, [showCreateForm, goalStepIds, initialState, handleGoalStepChange]);
 
   useEffect(() => {
     if (showDropdown || !selectedFlow) {

@@ -369,6 +369,7 @@ describe("useAutoLayout", () => {
       steps: {},
       attributes: {
         attr1: {
+          providers: [],
           consumers: ["step-1"],
         },
       },
@@ -388,6 +389,7 @@ describe("useAutoLayout", () => {
       attributes: {
         attr1: {
           providers: ["step-1"],
+          consumers: [],
         },
       },
       goals: [],
@@ -509,13 +511,14 @@ describe("useAutoLayout", () => {
     expect(mockSetGraph.mock.calls.length).toBeGreaterThan(callCount);
   });
 
-  test("handles plan without attributes property", () => {
+  test("handles plan with empty attributes", () => {
     const nodes = [createNode("step-1")];
-    const plan = {
+    const plan: ExecutionPlan = {
       steps: {},
+      attributes: {},
       goals: [],
       required: [],
-    } as ExecutionPlan;
+    };
 
     const { result } = renderHook(() => useAutoLayout(nodes, [], plan));
 

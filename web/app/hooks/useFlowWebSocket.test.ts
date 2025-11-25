@@ -20,6 +20,7 @@ describe("useFlowWebSocket", () => {
   let mockUpdateStepHealth: jest.Mock;
   let mockAddStep: jest.Mock;
   let mockRemoveStep: jest.Mock;
+  let mockAddOrUpdateExecution: jest.Mock;
 
   beforeEach(() => {
     mockSubscribe = jest.fn();
@@ -28,6 +29,7 @@ describe("useFlowWebSocket", () => {
     mockUpdateStepHealth = jest.fn();
     mockAddStep = jest.fn();
     mockRemoveStep = jest.fn();
+    mockAddOrUpdateExecution = jest.fn();
 
     mockUseWebSocketContext.mockReturnValue({
       events: [],
@@ -51,6 +53,7 @@ describe("useFlowWebSocket", () => {
         updateStepHealth: mockUpdateStepHealth,
         addStep: mockAddStep,
         removeStep: mockRemoveStep,
+        addOrUpdateExecution: mockAddOrUpdateExecution,
       };
       return selector(state);
     });
@@ -77,6 +80,7 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
+          addOrUpdateExecution: mockAddOrUpdateExecution,
         };
         return selector(state);
       });
@@ -99,6 +103,7 @@ describe("useFlowWebSocket", () => {
           refreshExecutions: mockRefreshExecutions,
           updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
+          addOrUpdateExecution: mockAddOrUpdateExecution,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
         };
@@ -272,6 +277,7 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
+          addOrUpdateExecution: mockAddOrUpdateExecution,
         };
         return selector(state);
       });
@@ -366,6 +372,7 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
+          addOrUpdateExecution: mockAddOrUpdateExecution,
         };
         return selector(state);
       });
@@ -511,44 +518,119 @@ describe("useFlowWebSocket", () => {
 
       rerender();
 
-      expect(mockRefreshExecutions).toHaveBeenCalledWith("test-flow");
+      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          step_id: "test-step",
+          flow_id: "test-flow",
+          status: "completed",
+        })
+      );
     });
 
-    test("refreshes executions for step_started, step_failed, step_skipped", () => {
-      const eventTypes = ["step_started", "step_failed", "step_skipped"];
+    test("calls addOrUpdateExecution for step_started", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
 
-      eventTypes.forEach((eventType, index) => {
-        mockRefreshExecutions.mockClear();
-
-        const { rerender } = renderHook(() => useFlowWebSocket());
-
-        mockUseWebSocketContext.mockReturnValue({
-          events: [
-            {
-              type: eventType,
-              data: {
-                flow_id: "test-flow",
-                step_id: "test-step",
-              },
-              timestamp: Date.now(),
-              sequence: index + 1,
-              id: ["test-flow"],
-            },
-          ],
-          subscribe: mockSubscribe,
-          isConnected: true,
-          connectionStatus: "connected",
-          reconnectAttempt: 0,
-          reconnect: jest.fn(),
-          registerConsumer: jest.fn(() => "test-consumer-id"),
-          unregisterConsumer: jest.fn(),
-          updateConsumerCursor: jest.fn(),
-        });
-
-        rerender();
-
-        expect(mockRefreshExecutions).toHaveBeenCalledWith("test-flow");
+      mockUseWebSocketContext.mockReturnValue({
+        events: [
+          {
+            type: "step_started",
+            data: { flow_id: "test-flow", step_id: "test-step" },
+            timestamp: Date.now(),
+            sequence: 1,
+            id: ["test-flow"],
+          },
+        ],
+        subscribe: mockSubscribe,
+        isConnected: true,
+        connectionStatus: "connected",
+        reconnectAttempt: 0,
+        reconnect: jest.fn(),
+        registerConsumer: jest.fn(() => "test-consumer-id"),
+        unregisterConsumer: jest.fn(),
+        updateConsumerCursor: jest.fn(),
       });
+
+      rerender();
+
+      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          step_id: "test-step",
+          flow_id: "test-flow",
+          status: "active",
+        })
+      );
+    });
+
+    test("calls addOrUpdateExecution for step_failed", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
+
+      mockUseWebSocketContext.mockReturnValue({
+        events: [
+          {
+            type: "step_failed",
+            data: {
+              flow_id: "test-flow",
+              step_id: "test-step",
+              error: "test error",
+            },
+            timestamp: Date.now(),
+            sequence: 1,
+            id: ["test-flow"],
+          },
+        ],
+        subscribe: mockSubscribe,
+        isConnected: true,
+        connectionStatus: "connected",
+        reconnectAttempt: 0,
+        reconnect: jest.fn(),
+        registerConsumer: jest.fn(() => "test-consumer-id"),
+        unregisterConsumer: jest.fn(),
+        updateConsumerCursor: jest.fn(),
+      });
+
+      rerender();
+
+      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          step_id: "test-step",
+          flow_id: "test-flow",
+          status: "failed",
+        })
+      );
+    });
+
+    test("calls addOrUpdateExecution for step_skipped", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
+
+      mockUseWebSocketContext.mockReturnValue({
+        events: [
+          {
+            type: "step_skipped",
+            data: { flow_id: "test-flow", step_id: "test-step" },
+            timestamp: Date.now(),
+            sequence: 1,
+            id: ["test-flow"],
+          },
+        ],
+        subscribe: mockSubscribe,
+        isConnected: true,
+        connectionStatus: "connected",
+        reconnectAttempt: 0,
+        reconnect: jest.fn(),
+        registerConsumer: jest.fn(() => "test-consumer-id"),
+        unregisterConsumer: jest.fn(),
+        updateConsumerCursor: jest.fn(),
+      });
+
+      rerender();
+
+      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+        expect.objectContaining({
+          step_id: "test-step",
+          flow_id: "test-flow",
+          status: "skipped",
+        })
+      );
     });
   });
 
@@ -568,6 +650,7 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
+          addOrUpdateExecution: mockAddOrUpdateExecution,
         };
         return selector(state);
       });
@@ -584,6 +667,7 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
+          addOrUpdateExecution: mockAddOrUpdateExecution,
         };
         return selector(state);
       });

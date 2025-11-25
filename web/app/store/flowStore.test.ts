@@ -11,7 +11,7 @@ import {
   useFlowError,
   useIsFlowMode,
 } from "./flowStore";
-import type { Step, FlowContext } from "../api";
+import type { Step, FlowContext, ExecutionResult } from "../api";
 
 jest.mock("../api", () => ({
   ...jest.requireActual("../api"),
@@ -225,7 +225,7 @@ describe("flowStore", () => {
     const mockFlow: FlowContext = {
       id: "wf-1",
       status: "active",
-      state: { attr1: "value1" },
+      state: { attr1: { value: "value1", step: "step-1" } },
       started_at: "2024-01-01T00:00:00Z",
       plan: {
         steps: {},
@@ -236,10 +236,13 @@ describe("flowStore", () => {
     };
 
     test("loadFlowData fetches flow with executions", async () => {
-      const mockExecutions = [
+      const mockExecutions: ExecutionResult[] = [
         {
           step_id: "step-1",
+          flow_id: "wf-1",
           status: "completed",
+          inputs: {},
+          started_at: "2024-01-01T00:00:00Z",
           outputs: { result: "value" },
         },
       ];
@@ -273,13 +276,22 @@ describe("flowStore", () => {
     });
 
     test("loadFlowData calculates resolved attributes from state and executions", async () => {
-      const mockExecutions = [
+      const mockExecutions: ExecutionResult[] = [
         {
           step_id: "step-1",
+          flow_id: "wf-1",
           status: "completed",
+          inputs: {},
+          started_at: "2024-01-01T00:00:00Z",
           outputs: { attr2: "value2" },
         },
-        { step_id: "step-2", status: "active" },
+        {
+          step_id: "step-2",
+          flow_id: "wf-1",
+          status: "active",
+          inputs: {},
+          started_at: "2024-01-01T00:01:00Z",
+        },
       ];
 
       mockApi.getFlowWithEvents.mockResolvedValue({
@@ -298,10 +310,13 @@ describe("flowStore", () => {
 
   describe("Execution refresh", () => {
     test("refreshExecutions updates executions", async () => {
-      const mockExecutions = [
+      const mockExecutions: ExecutionResult[] = [
         {
           step_id: "step-1",
+          flow_id: "wf-1",
           status: "completed",
+          inputs: {},
+          started_at: "2024-01-01T00:00:00Z",
           outputs: { result: "value" },
         },
       ];
@@ -364,7 +379,7 @@ describe("flowStore", () => {
 
       const update: Partial<FlowContext> = {
         status: "completed",
-        state: { result: "final" },
+        state: { result: { value: "final", step: "final-step" } },
       };
 
       useFlowStore.getState().updateFlowFromWebSocket(update);
@@ -372,7 +387,9 @@ describe("flowStore", () => {
       const state = useFlowStore.getState();
 
       expect(state.flowData?.status).toBe("completed");
-      expect(state.flowData?.state).toEqual({ result: "final" });
+      expect(state.flowData?.state).toEqual({
+        result: { value: "final", step: "final-step" },
+      });
       expect(state.resolvedAttributes).toContain("result");
     });
 
@@ -490,7 +507,15 @@ describe("flowStore", () => {
     });
 
     test("useExecutions selector works", () => {
-      const executions = [{ step_id: "step-1", status: "completed" }];
+      const executions: ExecutionResult[] = [
+        {
+          step_id: "step-1",
+          flow_id: "wf-1",
+          status: "completed",
+          inputs: {},
+          started_at: "2024-01-01T00:00:00Z",
+        },
+      ];
       useFlowStore.setState({ executions });
       const { result } = renderHook(() => useExecutions());
       expect(result.current).toEqual(executions);

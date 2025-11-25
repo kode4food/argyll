@@ -221,12 +221,13 @@ describe("stepUtils", () => {
       expect(getStepType(step)).toBe("processor");
     });
 
-    test("returns neutral when step has no attributes property", () => {
+    test("returns neutral when step has empty attributes", () => {
       const step: Step = {
         id: "step-8",
         name: "Test Step",
         type: "script",
         version: "1.0.0",
+        attributes: {},
         script: {
           language: "ale",
           script: "{:result 1}",

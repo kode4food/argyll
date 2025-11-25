@@ -85,7 +85,12 @@ describe("StepNode", () => {
     zIndex: 0,
     xPos: 0,
     yPos: 0,
+    positionAbsoluteX: 0,
+    positionAbsoluteY: 0,
     dragging: false,
+    draggable: true,
+    selectable: true,
+    deletable: false,
   };
 
   test("renders StepWidget with step data", () => {
@@ -149,12 +154,18 @@ describe("StepNode", () => {
     const executions: ExecutionResult[] = [
       {
         step_id: "step-1",
+        flow_id: "wf-1",
         status: "completed",
+        inputs: {},
+        started_at: "2024-01-01T00:00:00Z",
         outputs: { result: "value" },
       },
       {
         step_id: "step-2",
+        flow_id: "wf-1",
         status: "active",
+        inputs: {},
+        started_at: "2024-01-01T00:01:00Z",
       },
     ];
 
@@ -351,10 +362,10 @@ describe("StepNode", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("handles undefined attributes", () => {
+  test("handles empty attributes", () => {
     const stepWithNoAttrs: Step = {
       ...mockStep,
-      attributes: undefined,
+      attributes: {},
     };
 
     const { container } = render(
@@ -444,10 +455,11 @@ describe("StepNode", () => {
     ).toBeInTheDocument();
   });
 
-  test("handles flow data without state property", () => {
+  test("handles flow data with empty state", () => {
     const flowData: FlowContext = {
       id: "wf-1",
       status: "active",
+      state: {},
       started_at: "2024-01-01T00:00:00Z",
     };
 

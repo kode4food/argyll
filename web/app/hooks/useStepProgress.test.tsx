@@ -37,6 +37,8 @@ describe("useStepProgress", () => {
       step_id: "step-1",
       flow_id: "flow-1",
       status: "completed",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
       outputs: { result: "value" },
     };
 
@@ -53,6 +55,8 @@ describe("useStepProgress", () => {
       step_id: "step-1",
       flow_id: "flow-different",
       status: "completed",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
     };
 
     const { result } = renderHook(() =>
@@ -68,6 +72,8 @@ describe("useStepProgress", () => {
       step_id: "step-different",
       flow_id: "flow-1",
       status: "completed",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
     };
 
     const { result } = renderHook(() =>
@@ -362,6 +368,8 @@ describe("useStepProgress", () => {
       step_id: "step-1",
       flow_id: "flow-1",
       status: "active",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
     };
 
     const { result } = renderHook(() =>
@@ -453,6 +461,8 @@ describe("useStepProgress", () => {
       step_id: "step-1",
       flow_id: "flow-1",
       status: "active",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
     };
 
     const { result, rerender } = renderHook(
@@ -466,6 +476,8 @@ describe("useStepProgress", () => {
       step_id: "step-1",
       flow_id: "flow-1",
       status: "completed",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
     };
 
     rerender({ exec: execution2 });
