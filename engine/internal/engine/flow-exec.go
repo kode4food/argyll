@@ -29,9 +29,12 @@ type (
 // Event types that should wake up the flow actor
 var flowProcessingEvents = util.SetOf(
 	timebox.EventType(api.EventTypeFlowStarted),
+	timebox.EventType(api.EventTypeStepStarted),
 	timebox.EventType(api.EventTypeStepCompleted),
 	timebox.EventType(api.EventTypeStepFailed),
 	timebox.EventType(api.EventTypeStepSkipped),
+	timebox.EventType(api.EventTypeAttributeSet),
+	timebox.EventType(api.EventTypeWorkStarted),
 	timebox.EventType(api.EventTypeWorkSucceeded),
 	timebox.EventType(api.EventTypeWorkFailed),
 	timebox.EventType(api.EventTypeWorkNotCompleted),
