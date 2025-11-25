@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/google/uuid"
-
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/util"
@@ -39,30 +37,6 @@ var (
 )
 
 // Step state transition methods
-
-// StartStepExecution transitions a step to the active state and begins its
-// execution with the provided input arguments
-func (e *Engine) StartStepExecution(
-	ctx context.Context, fs FlowStep, step *api.Step, inputs api.Args,
-) error {
-	workItems := computeWorkItems(step, inputs)
-
-	workItemsMap := make(map[api.Token]api.Args)
-	for _, workInputs := range workItems {
-		token := api.Token(uuid.New().String())
-		workItemsMap[token] = workInputs
-	}
-
-	return e.transitionStepExecution(
-		ctx, fs, api.StepActive, "start", api.EventTypeStepStarted,
-		api.StepStartedEvent{
-			FlowID:    fs.FlowID,
-			StepID:    fs.StepID,
-			Inputs:    inputs,
-			WorkItems: workItemsMap,
-		},
-	)
-}
 
 // CompleteStepExecution transitions a step to the completed state with the
 // provided output values and execution duration
@@ -169,19 +143,6 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
 	}
 
 	return true
-}
-
-func (e *Engine) appendFailedStep(
-	failed []string, stepID api.StepID, exec *api.ExecutionState,
-) []string {
-	if exec.Status != api.StepFailed {
-		return failed
-	}
-
-	if exec.Error == "" {
-		return append(failed, string(stepID))
-	}
-	return append(failed, fmt.Sprintf("%s (%s)", stepID, exec.Error))
 }
 
 func isAsyncStep(stepType api.StepType) bool {

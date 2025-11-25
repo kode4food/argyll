@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
-	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -257,71 +256,6 @@ func TestCalculateNextRetry(t *testing.T) {
 			assert.LessOrEqual(t, maxDelay, sc.expectedMs+10)
 		})
 	}
-}
-
-func TestScheduleRetry(t *testing.T) {
-	env := helpers.NewTestEngine(t)
-	defer env.Cleanup()
-
-	env.Engine.Start()
-	ctx := context.Background()
-
-	step := helpers.NewSimpleStep("test-step")
-	step.WorkConfig = &api.WorkConfig{
-		MaxRetries:   3,
-		BackoffMs:    100,
-		MaxBackoffMs: 1000,
-		BackoffType:  api.BackoffTypeFixed,
-	}
-
-	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
-
-	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"test-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
-	}
-
-	flowID := api.FlowID("retry-flow")
-	err = env.Engine.StartFlow(
-		ctx, flowID, plan, api.Args{}, api.Metadata{},
-	)
-	require.NoError(t, err)
-
-	time.Sleep(50 * time.Millisecond)
-
-	fs := engine.FlowStep{FlowID: flowID, StepID: "test-step"}
-
-	// Get the token from the work items created by StartFlow
-	flow, err := env.Engine.GetFlowState(ctx, flowID)
-	require.NoError(t, err)
-	exec := flow.Executions["test-step"]
-	var token api.Token
-	for t := range exec.WorkItems {
-		token = t
-		break
-	}
-
-	err = env.Engine.StartWork(ctx, fs, token, api.Args{})
-	require.NoError(t, err)
-
-	err = env.Engine.FailWork(ctx, fs, token, "test error")
-	require.NoError(t, err)
-
-	err = env.Engine.ScheduleRetry(ctx, fs, token, "test error")
-	require.NoError(t, err)
-
-	flow, err = env.Engine.GetFlowState(ctx, flowID)
-	require.NoError(t, err)
-
-	exec = flow.Executions["test-step"]
-	workItem := exec.WorkItems[token]
-	assert.Equal(t, 1, workItem.RetryCount)
-	assert.False(t, workItem.NextRetryAt.IsZero())
-	assert.Equal(t, "test error", workItem.Error)
-	assert.Equal(t, api.WorkPending, workItem.Status)
 }
 
 func TestRetryExhaustion(t *testing.T) {

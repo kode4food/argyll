@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
-	"maps"
 	"slices"
 
 	"github.com/kode4food/timebox"
@@ -327,42 +326,6 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 	return true
 }
 
-func (e *Engine) evaluateFlowState(
-	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
-) {
-	for stepID := range flow.Plan.Steps {
-		exec, ok := flow.Executions[stepID]
-		if !ok || exec.Status != api.StepPending {
-			continue
-		}
-		fs := FlowStep{FlowID: flowID, StepID: stepID}
-		e.maybeSkipStep(ctx, fs, flow)
-	}
-}
-
-func (e *Engine) maybeSkipStep(
-	ctx context.Context, fs FlowStep, flow *api.FlowState,
-) {
-	if e.canStepComplete(fs.StepID, flow) {
-		if !e.areOutputsNeeded(fs.StepID, flow) {
-			err := e.SkipStepExecution(ctx, fs, "outputs not needed")
-			if err != nil {
-				slog.Error("Failed to skip step",
-					slog.Any("step_id", fs.StepID),
-					slog.Any("error", err))
-			}
-		}
-		return
-	}
-
-	err := e.FailStepExecution(ctx, fs, "required inputs cannot be satisfied")
-	if err != nil {
-		slog.Error("Failed to fail step",
-			slog.Any("step_id", fs.StepID),
-			slog.Any("error", err))
-	}
-}
-
 // IsFlowFailed determines if a flow has failed by checking whether any
 // of its goal steps cannot be completed
 func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
@@ -372,47 +335,6 @@ func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
 		}
 	}
 	return false
-}
-
-func (e *Engine) failFlow(
-	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
-) {
-	var failed []string
-
-	for stepID := range flow.Plan.Steps {
-		if exec, ok := flow.Executions[stepID]; ok {
-			failed = e.appendFailedStep(failed, stepID, exec)
-		}
-	}
-
-	errMsg := fmt.Sprintf(
-		"goal unreachable: failed steps: %v",
-		failed,
-	)
-
-	if err := e.FailFlow(ctx, flowID, errMsg); err != nil {
-		slog.Error("Failed to record failure",
-			slog.Any("flow_id", flowID),
-			slog.Any("error", err))
-	}
-}
-
-func (e *Engine) completeFlow(
-	ctx context.Context, flowID api.FlowID, flow *api.FlowState,
-) {
-	result := api.Args{}
-
-	for _, goalID := range flow.Plan.Goals {
-		if goal := flow.Executions[goalID]; goal != nil {
-			maps.Copy(result, goal.Outputs)
-		}
-	}
-
-	if err := e.CompleteFlow(ctx, flowID, result); err != nil {
-		slog.Error("Failed to complete flow",
-			slog.Any("flow_id", flowID),
-			slog.Any("error", err))
-	}
 }
 
 // HasInputProvider checks if a required attribute has at least one step that
@@ -459,16 +381,14 @@ func (e *Engine) GetActiveFlow(
 	return flow, true
 }
 
-func (e *Engine) ensureScriptsCompiled(
-	flowID api.FlowID, flow *api.FlowState,
-) bool {
+func (e *Engine) ensureScriptsCompiled(flow *api.FlowState) bool {
 	if !flow.Plan.NeedsCompilation() {
 		return true
 	}
 
 	if err := e.scripts.CompilePlan(flow.Plan); err != nil {
 		slog.Error("Failed to compile scripts",
-			slog.Any("flow_id", flowID),
+			slog.Any("flow_id", flow.ID),
 			slog.Any("error", err))
 		return false
 	}

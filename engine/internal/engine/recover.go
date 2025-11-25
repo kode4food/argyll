@@ -7,7 +7,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
@@ -68,62 +67,6 @@ func (e *Engine) CalculateNextRetry(
 	)
 
 	return time.Now().Add(time.Duration(delayMs) * time.Millisecond)
-}
-
-// ScheduleRetry schedules a failed work item for retry at a calculated future
-// time based on the backoff configuration
-func (e *Engine) ScheduleRetry(
-	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
-) error {
-	flow, err := e.GetFlowState(ctx, fs.FlowID)
-	if err != nil {
-		return fmt.Errorf("failed to get flow state: %w", err)
-	}
-
-	step := flow.Plan.GetStep(fs.StepID)
-	if step == nil {
-		return fmt.Errorf("%w: %s", ErrStepNotInPlan, fs.StepID)
-	}
-
-	exec, ok := flow.Executions[fs.StepID]
-	if !ok {
-		return fmt.Errorf("execution state not found for step: %s", fs.StepID)
-	}
-
-	workItem, ok := exec.WorkItems[token]
-	if !ok {
-		return fmt.Errorf("work item not found: %s", token)
-	}
-
-	newRetryCount := workItem.RetryCount + 1
-	nextRetryAt := e.CalculateNextRetry(step.WorkConfig, workItem.RetryCount)
-
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeRetryScheduled,
-			api.RetryScheduledEvent{
-				FlowID:      fs.FlowID,
-				StepID:      fs.StepID,
-				Token:       token,
-				RetryCount:  newRetryCount,
-				NextRetryAt: nextRetryAt,
-				Error:       errMsg,
-			},
-		)
-	}
-
-	_, err = e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
-	if err != nil {
-		return fmt.Errorf("failed to schedule retry: %w", err)
-	}
-
-	slog.Info("Retry scheduled",
-		slog.Any("flow_id", fs.FlowID),
-		slog.Any("step_id", fs.StepID),
-		slog.Any("token", token),
-		slog.Int("retry_count", newRetryCount),
-		slog.Any("next_retry_at", nextRetryAt))
-
-	return nil
 }
 
 // Recovery orchestration

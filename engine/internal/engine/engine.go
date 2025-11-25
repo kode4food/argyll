@@ -243,7 +243,6 @@ func (e *Engine) routeEvent(event *timebox.Event) {
 			flowID: flowID,
 			events: make(chan *timebox.Event, 100),
 		}
-		wa.eventHandler = wa.createEventHandler()
 		actor, loaded = e.flows.LoadOrStore(flowID, wa)
 		if !loaded {
 			e.wg.Add(1)
@@ -334,7 +333,7 @@ func (e *Engine) getCompiledFromPlan(
 		return nil, err
 	}
 
-	if !e.ensureScriptsCompiled(fs.FlowID, flow) {
+	if !e.ensureScriptsCompiled(flow) {
 		return nil, ErrScriptCompileFailed
 	}
 
