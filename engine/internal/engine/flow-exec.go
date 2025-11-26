@@ -109,7 +109,7 @@ func (a *flowActor) processFlow() {
 	}
 
 	// Execute all state transitions in single transaction
-	enqueued, err := a.processFlowTransaction()
+	enqueued, err := a.processTransaction()
 	if err != nil {
 		slog.Error("Failed to process flow transaction",
 			slog.Any("flow_id", a.flowID),
@@ -121,10 +121,10 @@ func (a *flowActor) processFlow() {
 	enqueued.exec()
 }
 
-// processFlowTransaction executes all flow processing in a single transaction,
+// processTransaction executes all flow processing in a single transaction,
 // returning deferred functions to execute after successful commit. Terminal
 // flows still process to record step completions for audit/compensation
-func (a *flowActor) processFlowTransaction() (enqueued, error) {
+func (a *flowActor) processTransaction() (enqueued, error) {
 	var fns enqueued
 
 	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
@@ -137,7 +137,7 @@ func (a *flowActor) processFlowTransaction() (enqueued, error) {
 		for {
 			before := len(ag.Enqueued())
 
-			if err := a.evaluateFlowCascades(ag); err != nil {
+			if err := a.evaluateCascade(ag); err != nil {
 				return err
 			}
 
@@ -170,9 +170,9 @@ func (a *flowActor) processFlowTransaction() (enqueued, error) {
 	return fns, nil
 }
 
-// evaluateFlowState evaluates flow state and raises skip/fail events within
-// the provided transaction context via the aggregator
-func (a *flowActor) evaluateFlowState(ag *FlowAggregator) error {
+// evaluateState evaluates flow state and raises skip/fail events within the
+// provided transaction context via the aggregator
+func (a *flowActor) evaluateState(ag *FlowAggregator) error {
 	for stepID := range ag.Value().Plan.Steps {
 		exec, ok := ag.Value().Executions[stepID]
 		if !ok || exec.Status != api.StepPending {
@@ -328,12 +328,12 @@ func (a *flowActor) checkCompletableSteps(ag *FlowAggregator) error {
 	return nil
 }
 
-// evaluateFlowCascades handles cascading state changes until stable
-func (a *flowActor) evaluateFlowCascades(ag *FlowAggregator) error {
+// evaluateCascade handles cascading state changes until stable
+func (a *flowActor) evaluateCascade(ag *FlowAggregator) error {
 	for {
 		before := len(ag.Enqueued())
 
-		if err := a.evaluateFlowState(ag); err != nil {
+		if err := a.evaluateState(ag); err != nil {
 			return err
 		}
 		if err := a.handleWorkNotCompleted(ag); err != nil {
@@ -391,7 +391,7 @@ func (a *flowActor) checkTerminalState(ag *FlowAggregator) error {
 		return events.Raise(ag, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: a.flowID,
-				Error:  a.getFlowFailureReason(flow),
+				Error:  a.getFailureReason(flow),
 			},
 		)
 	}
@@ -424,8 +424,8 @@ func (a *flowActor) maybeSkipStep(ag *FlowAggregator, stepID api.StepID) error {
 	})
 }
 
-// getFlowFailureReason extracts a failure reason from flow state
-func (a *flowActor) getFlowFailureReason(flow *api.FlowState) string {
+// getFailureReason extracts a failure reason from flow state
+func (a *flowActor) getFailureReason(flow *api.FlowState) string {
 	for stepID, exec := range flow.Executions {
 		if exec.Status == api.StepFailed {
 			return fmt.Sprintf("step %s failed: %s", stepID, exec.Error)
