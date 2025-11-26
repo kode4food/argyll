@@ -133,78 +133,28 @@ func (a *flowActor) processFlowTransaction() (enqueued, error) {
 			return a.checkCompletableSteps(ag)
 		}
 
-		// Loop until no new events are raised (handles cascading failures)
+		// Outer loop: re-evaluate after startReadySteps may emit StepSkipped
 		for {
 			before := len(ag.Enqueued())
 
-			// 1. Evaluate flow state (skip/fail steps)
-			if err := a.evaluateFlowState(ag); err != nil {
+			if err := a.evaluateFlowCascades(ag); err != nil {
 				return err
 			}
 
-			// 2. Handle work items that didn't complete (retry decisions)
-			if err := a.handleWorkNotCompleted(ag); err != nil {
+			newFns, err := a.startReadySteps(ag)
+			if err != nil {
 				return err
 			}
+			fns = append(fns, newFns...)
 
-			// 3. Check completable steps
-			if err := a.checkCompletableSteps(ag); err != nil {
-				return err
+			// No ready steps - check for terminal state
+			if len(newFns) == 0 {
+				return a.checkTerminalState(ag)
 			}
 
-			// No new events raised, done evaluating
+			// If startReadySteps raised events (StepSkipped), re-evaluate
 			if len(ag.Enqueued()) == before {
 				break
-			}
-		}
-
-		// 4. Find ready steps
-		ready := a.findReadySteps(ag.Value())
-
-		// 5. Prepare ready steps and accumulate work
-		for _, stepID := range ready {
-			fn, err := a.prepareStep(a.ctx, stepID, ag)
-			if err != nil {
-				// Log but continue with other steps
-				slog.Warn("Failed to prepare step in transaction",
-					slog.Any("step_id", stepID),
-					slog.Any("error", err))
-				continue
-			}
-
-			if fn != nil {
-				fns = append(fns, fn)
-			}
-		}
-
-		// 6. Handle terminal state if no ready steps
-		if len(ready) == 0 {
-			flow := ag.Value()
-			if a.isFlowComplete(flow) {
-				// Flow completed successfully
-				result := api.Args{}
-				for _, goalID := range flow.Plan.Goals {
-					if goal := flow.Executions[goalID]; goal != nil {
-						for k, v := range goal.Outputs {
-							result[k] = v
-						}
-					}
-				}
-
-				return events.Raise(ag, api.EventTypeFlowCompleted,
-					api.FlowCompletedEvent{
-						FlowID: a.flowID,
-						Result: result,
-					},
-				)
-			} else if a.IsFlowFailed(flow) {
-				// Flow failed
-				return events.Raise(ag, api.EventTypeFlowFailed,
-					api.FlowFailedEvent{
-						FlowID: a.flowID,
-						Error:  a.getFlowFailureReason(flow),
-					},
-				)
 			}
 		}
 
@@ -375,6 +325,76 @@ func (a *flowActor) checkCompletableSteps(ag *FlowAggregator) error {
 		}
 	}
 
+	return nil
+}
+
+// evaluateFlowCascades handles cascading state changes until stable
+func (a *flowActor) evaluateFlowCascades(ag *FlowAggregator) error {
+	for {
+		before := len(ag.Enqueued())
+
+		if err := a.evaluateFlowState(ag); err != nil {
+			return err
+		}
+		if err := a.handleWorkNotCompleted(ag); err != nil {
+			return err
+		}
+		if err := a.checkCompletableSteps(ag); err != nil {
+			return err
+		}
+
+		if len(ag.Enqueued()) == before {
+			break
+		}
+	}
+	return nil
+}
+
+// startReadySteps finds and starts ready steps, returning deferred work
+func (a *flowActor) startReadySteps(ag *FlowAggregator) (enqueued, error) {
+	var fns enqueued
+	for _, stepID := range a.findReadySteps(ag.Value()) {
+		fn, err := a.prepareStep(a.ctx, stepID, ag)
+		if err != nil {
+			slog.Warn("Failed to prepare step",
+				slog.Any("step_id", stepID),
+				slog.Any("error", err))
+			continue
+		}
+		if fn != nil {
+			fns = append(fns, fn)
+		}
+	}
+	return fns, nil
+}
+
+// checkTerminalState checks for flow completion or failure
+func (a *flowActor) checkTerminalState(ag *FlowAggregator) error {
+	flow := ag.Value()
+	if a.isFlowComplete(flow) {
+		result := api.Args{}
+		for _, goalID := range flow.Plan.Goals {
+			if goal := flow.Executions[goalID]; goal != nil {
+				for k, v := range goal.Outputs {
+					result[k] = v
+				}
+			}
+		}
+		return events.Raise(ag, api.EventTypeFlowCompleted,
+			api.FlowCompletedEvent{
+				FlowID: a.flowID,
+				Result: result,
+			},
+		)
+	}
+	if a.IsFlowFailed(flow) {
+		return events.Raise(ag, api.EventTypeFlowFailed,
+			api.FlowFailedEvent{
+				FlowID: a.flowID,
+				Error:  a.getFlowFailureReason(flow),
+			},
+		)
+	}
 	return nil
 }
 
