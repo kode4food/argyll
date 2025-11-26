@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"slices"
 
@@ -40,41 +39,6 @@ func (e *Engine) GetFlowState(
 	}
 
 	return state, nil
-}
-
-// CompleteFlow marks a flow as successfully completed with the given
-// result outputs
-func (e *Engine) CompleteFlow(
-	ctx context.Context, flowID api.FlowID, result api.Args,
-) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeFlowCompleted,
-			api.FlowCompletedEvent{
-				FlowID: flowID,
-				Result: result,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
-	return err
-}
-
-// FailFlow marks a flow as failed with the specified error message
-func (e *Engine) FailFlow(
-	ctx context.Context, flowID api.FlowID, errMsg string,
-) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeFlowFailed,
-			api.FlowFailedEvent{
-				FlowID: flowID,
-				Error:  errMsg,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
-	return err
 }
 
 // StartWork begins execution of a work item for a step with the given token
@@ -155,30 +119,6 @@ func (e *Engine) NotCompleteWork(
 	return err
 }
 
-// SetAttribute sets a named attribute value in the flow state, returning
-// an error if the attribute is already set
-func (e *Engine) SetAttribute(
-	ctx context.Context, fs FlowStep, attr api.Name, value any,
-) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		if _, ok := st.Attributes[attr]; ok {
-			return fmt.Errorf("%w: %s", ErrAttributeAlreadySet, attr)
-		}
-
-		return events.Raise(ag, api.EventTypeAttributeSet,
-			api.AttributeSetEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Key:    attr,
-				Value:  value,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
-	return err
-}
-
 // GetAttribute retrieves a specific attribute value from the flow state,
 // returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
@@ -193,19 +133,6 @@ func (e *Engine) GetAttribute(
 		return av.Value, true, nil
 	}
 	return nil, false, nil
-}
-
-// GetAttributes retrieves all attributes from the flow state as a map of
-// names to values
-func (e *Engine) GetAttributes(
-	ctx context.Context, flowID api.FlowID,
-) (api.Args, error) {
-	flow, err := e.GetFlowState(ctx, flowID)
-	if err != nil {
-		return nil, err
-	}
-
-	return flow.GetAttributeArgs(), nil
 }
 
 // GetFlowEvents retrieves all events for a flow starting from the
@@ -359,26 +286,6 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 
 func flowKey(flowID api.FlowID) timebox.AggregateID {
 	return timebox.NewAggregateID("flow", timebox.ID(flowID))
-}
-
-// GetActiveFlow retrieves a flow if it is currently active, returning
-// nil if the flow is in a terminal state or not found
-func (e *Engine) GetActiveFlow(
-	flowID api.FlowID,
-) (*api.FlowState, bool) {
-	flow, err := e.GetFlowState(e.ctx, flowID)
-	if err != nil {
-		slog.Error("Failed to get flow state",
-			slog.Any("flow_id", flowID),
-			slog.Any("error", err))
-		return nil, false
-	}
-
-	if flowTransitions.IsTerminal(flow.Status) {
-		return nil, false
-	}
-
-	return flow, true
 }
 
 func (e *Engine) ensureScriptsCompiled(flow *api.FlowState) bool {

@@ -55,7 +55,11 @@ func TestRecoveryDeactivation(t *testing.T) {
 	ctx := context.Background()
 	flowID := api.FlowID("test-flow")
 
-	step := &api.Step{ID: "step-1"}
+	step := helpers.NewSimpleStep("step-1")
+
+	err := env.Engine.RegisterStep(ctx, step)
+	require.NoError(t, err)
+
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
 		Steps: map[api.StepID]*api.StepInfo{
@@ -63,22 +67,21 @@ func TestRecoveryDeactivation(t *testing.T) {
 		},
 	}
 
-	err := env.Engine.StartFlow(
-		ctx, flowID, plan, api.Args{}, api.Metadata{},
-	)
+	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
 	require.NoError(t, err)
 
-	err = env.Engine.CompleteFlow(ctx, flowID, api.Args{})
-	require.NoError(t, err)
+	// Wait for flow to complete naturally
+	env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
 
-	// Wait a bit for the event loop to process the flow completed event
-	time.Sleep(100 * time.Millisecond)
-
-	engineState, err := env.Engine.GetEngineState(ctx)
-	require.NoError(t, err)
-
-	_, exists := engineState.ActiveFlows[flowID]
-	assert.False(t, exists)
+	// Poll for flow to be removed from active flows (deactivation is async)
+	require.Eventually(t, func() bool {
+		engineState, err := env.Engine.GetEngineState(ctx)
+		if err != nil {
+			return false
+		}
+		_, exists := engineState.ActiveFlows[flowID]
+		return !exists
+	}, 5*time.Second, 10*time.Millisecond, "flow should be deactivated")
 }
 
 func TestShouldRetryStep(t *testing.T) {

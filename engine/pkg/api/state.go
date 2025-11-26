@@ -164,8 +164,8 @@ func (e *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
 	return &res
 }
 
-// GetAttributeArgs returns all attribute values as Args
-func (f *FlowState) GetAttributeArgs() Args {
+// GetAttributes returns all attribute values as Args
+func (f *FlowState) GetAttributes() Args {
 	result := make(Args, len(f.Attributes))
 	for key, attr := range f.Attributes {
 		result[key] = attr.Value

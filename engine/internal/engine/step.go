@@ -38,22 +38,6 @@ var (
 
 // Step state transition methods
 
-// CompleteStepExecution transitions a step to the completed state with the
-// provided output values and execution duration
-func (e *Engine) CompleteStepExecution(
-	ctx context.Context, fs FlowStep, outputs api.Args, dur int64,
-) error {
-	return e.transitionStepExecution(
-		ctx, fs, api.StepCompleted, "complete", api.EventTypeStepCompleted,
-		api.StepCompletedEvent{
-			FlowID:   fs.FlowID,
-			StepID:   fs.StepID,
-			Outputs:  outputs,
-			Duration: dur,
-		},
-	)
-}
-
 // FailStepExecution transitions a step to the failed state with the specified
 // error message
 func (e *Engine) FailStepExecution(
@@ -65,21 +49,6 @@ func (e *Engine) FailStepExecution(
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
 			Error:  errMsg,
-		},
-	)
-}
-
-// SkipStepExecution transitions a step to the skipped state with the provided
-// reason for skipping
-func (e *Engine) SkipStepExecution(
-	ctx context.Context, fs FlowStep, reason string,
-) error {
-	return e.transitionStepExecution(
-		ctx, fs, api.StepSkipped, "skip", api.EventTypeStepSkipped,
-		api.StepSkippedEvent{
-			FlowID: fs.FlowID,
-			StepID: fs.StepID,
-			Reason: reason,
 		},
 	)
 }

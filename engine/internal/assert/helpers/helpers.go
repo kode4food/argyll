@@ -2,6 +2,7 @@ package helpers
 
 import (
 	"context"
+	"encoding/json"
 	"sync"
 	"testing"
 	"time"
@@ -300,4 +301,130 @@ func (c *MockClient) WasInvoked(stepID api.StepID) bool {
 		}
 	}
 	return false
+}
+
+// WaitForFlowStatus waits for a flow to reach a terminal status (completed or
+// failed) by subscribing to events from the event hub. Returns the final flow
+// state
+func (env *TestEngineEnv) WaitForFlowStatus(
+	t *testing.T, ctx context.Context, flowID api.FlowID, timeout time.Duration,
+) *api.FlowState {
+	t.Helper()
+
+	consumer := (*env.EventHub).NewConsumer()
+	defer consumer.Close()
+
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case event := <-consumer.Receive():
+			if event == nil {
+				continue
+			}
+
+			eventType := api.EventType(event.Type)
+
+			// Check for flow completed event
+			if eventType == api.EventTypeFlowCompleted {
+				var fc api.FlowCompletedEvent
+				if err := json.Unmarshal(event.Data, &fc); err == nil &&
+					fc.FlowID == flowID {
+					flow, err := env.Engine.GetFlowState(ctx, flowID)
+					require.NoError(t, err)
+					return flow
+				}
+			}
+
+			// Check for flow failed event
+			if eventType == api.EventTypeFlowFailed {
+				var ff api.FlowFailedEvent
+				if err := json.Unmarshal(event.Data, &ff); err == nil &&
+					ff.FlowID == flowID {
+					flow, err := env.Engine.GetFlowState(ctx, flowID)
+					require.NoError(t, err)
+					return flow
+				}
+			}
+
+		case <-deadline:
+			// Timeout - get current state and return it
+			flow, err := env.Engine.GetFlowState(ctx, flowID)
+			require.NoError(t, err)
+			return flow
+
+		case <-ctx.Done():
+			t.Fatal("context cancelled while waiting for flow status")
+			return nil
+		}
+	}
+}
+
+// WaitForStepStatus waits for a specific step to reach a terminal status
+func (env *TestEngineEnv) WaitForStepStatus(
+	t *testing.T, ctx context.Context, flowID api.FlowID, stepID api.StepID,
+	timeout time.Duration,
+) *api.ExecutionState {
+	t.Helper()
+
+	consumer := (*env.EventHub).NewConsumer()
+	defer consumer.Close()
+
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case event := <-consumer.Receive():
+			if event == nil {
+				continue
+			}
+
+			eventType := api.EventType(event.Type)
+
+			// Check for step completed
+			if eventType == api.EventTypeStepCompleted {
+				var sc api.StepCompletedEvent
+				if err := json.Unmarshal(event.Data, &sc); err == nil {
+					if sc.FlowID == flowID && sc.StepID == stepID {
+						flow, err := env.Engine.GetFlowState(ctx, flowID)
+						require.NoError(t, err)
+						return flow.Executions[stepID]
+					}
+				}
+			}
+
+			// Check for step failed
+			if eventType == api.EventTypeStepFailed {
+				var sf api.StepFailedEvent
+				if err := json.Unmarshal(event.Data, &sf); err == nil {
+					if sf.FlowID == flowID && sf.StepID == stepID {
+						flow, err := env.Engine.GetFlowState(ctx, flowID)
+						require.NoError(t, err)
+						return flow.Executions[stepID]
+					}
+				}
+			}
+
+			// Check for step skipped
+			if eventType == api.EventTypeStepSkipped {
+				var ss api.StepSkippedEvent
+				if err := json.Unmarshal(event.Data, &ss); err == nil {
+					if ss.FlowID == flowID && ss.StepID == stepID {
+						flow, err := env.Engine.GetFlowState(ctx, flowID)
+						require.NoError(t, err)
+						return flow.Executions[stepID]
+					}
+				}
+			}
+
+		case <-deadline:
+			flow, err := env.Engine.GetFlowState(ctx, flowID)
+			require.NoError(t, err)
+			return flow.Executions[stepID]
+
+		case <-ctx.Done():
+			t.Fatal("context cancelled while waiting for step status")
+			return nil
+		}
+	}
 }

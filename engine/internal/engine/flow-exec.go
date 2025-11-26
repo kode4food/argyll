@@ -29,16 +29,9 @@ type (
 // Event types that should wake up the flow actor
 var flowProcessingEvents = util.SetOf(
 	timebox.EventType(api.EventTypeFlowStarted),
-	timebox.EventType(api.EventTypeStepStarted),
-	timebox.EventType(api.EventTypeStepCompleted),
-	timebox.EventType(api.EventTypeStepFailed),
-	timebox.EventType(api.EventTypeStepSkipped),
-	timebox.EventType(api.EventTypeAttributeSet),
-	timebox.EventType(api.EventTypeWorkStarted),
 	timebox.EventType(api.EventTypeWorkSucceeded),
 	timebox.EventType(api.EventTypeWorkFailed),
 	timebox.EventType(api.EventTypeWorkNotCompleted),
-	timebox.EventType(api.EventTypeRetryScheduled),
 )
 
 func (a *flowActor) run() {
@@ -521,7 +514,7 @@ func (a *flowActor) prepareStep(
 	}
 
 	// Collect inputs
-	inputs := a.collectStepInputs(step, flow.GetAttributeArgs())
+	inputs := a.collectStepInputs(step, flow.GetAttributes())
 
 	// Evaluate predicate
 	fs := FlowStep{FlowID: a.flowID, StepID: stepID}

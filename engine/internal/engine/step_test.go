@@ -14,13 +14,14 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-func TestGetActive(t *testing.T) {
+func TestGetActiveFlow(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
+	ctx := context.Background()
 	step := helpers.NewSimpleStep("active-test")
 
-	err := env.Engine.RegisterStep(context.Background(), step)
+	err := env.Engine.RegisterStep(ctx, step)
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
@@ -31,26 +32,25 @@ func TestGetActive(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(
-		context.Background(),
-		"wf-active-test",
-		plan,
-		api.Args{},
-		api.Metadata{},
+		ctx, "wf-active-test", plan, api.Args{}, api.Metadata{},
 	)
 	require.NoError(t, err)
 
-	flow, ok := env.Engine.GetActiveFlow("wf-active-test")
-	assert.True(t, ok)
+	flow, err := env.Engine.GetFlowState(ctx, "wf-active-test")
+	require.NoError(t, err)
 	assert.NotNil(t, flow)
 	assert.Equal(t, api.FlowID("wf-active-test"), flow.ID)
+	assert.Equal(t, api.FlowActive, flow.Status)
 }
 
-func TestGetActiveNotFound(t *testing.T) {
+func TestGetFlowNotFound(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
-	_, ok := env.Engine.GetActiveFlow("nonexistent")
-	assert.False(t, ok)
+	ctx := context.Background()
+	_, err := env.Engine.GetFlowState(ctx, "nonexistent")
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "flow not found")
 }
 
 func TestScript(t *testing.T) {
