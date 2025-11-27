@@ -26,34 +26,23 @@ type (
 	enqueued []deferred
 )
 
-// Event types that should wake up the flow actor
-var flowProcessingEvents = util.SetOf(
-	timebox.EventType(api.EventTypeFlowStarted),
-	timebox.EventType(api.EventTypeWorkSucceeded),
-	timebox.EventType(api.EventTypeWorkFailed),
-	timebox.EventType(api.EventTypeWorkNotCompleted),
-)
-
 func (a *flowActor) run() {
 	defer a.wg.Done()
 	defer a.flows.Delete(a.flowID)
 
+	handler := a.createEventHandler()
 	idleTimer := time.NewTimer(100 * time.Millisecond)
 	defer idleTimer.Stop()
 
 	for {
 		select {
 		case event := <-a.events:
-			// Only process if it's a relevant event type
-			if !flowProcessingEvents.Contains(event.Type) {
-				continue
+			if err := handler(event); err != nil {
+				slog.Error("Failed to handle event",
+					slog.Any("flow_id", a.flowID),
+					slog.Any("event_type", event.Type),
+					slog.Any("error", err))
 			}
-
-			// Drain all pending events (coalesce them)
-			a.drainEvents()
-
-			// Process flow once to handle all accumulated state changes
-			a.processFlow()
 
 			if !idleTimer.Stop() {
 				select {
@@ -66,12 +55,12 @@ func (a *flowActor) run() {
 		case <-idleTimer.C:
 			select {
 			case event := <-a.events:
-				if !flowProcessingEvents.Contains(event.Type) {
-					idleTimer.Reset(100 * time.Millisecond)
-					continue
+				if err := handler(event); err != nil {
+					slog.Error("Failed to handle event",
+						slog.Any("flow_id", a.flowID),
+						slog.Any("event_type", event.Type),
+						slog.Any("error", err))
 				}
-				a.drainEvents()
-				a.processFlow()
 				idleTimer.Reset(100 * time.Millisecond)
 			default:
 				return
@@ -83,293 +72,232 @@ func (a *flowActor) run() {
 	}
 }
 
-// drainEvents drains all pending events from the channel, coalescing them
-func (a *flowActor) drainEvents() {
-	for {
-		select {
-		case <-a.events:
-			// Just drain, don't process individually
-		default:
-			return
-		}
-	}
+func (a *flowActor) createEventHandler() timebox.Handler {
+	const (
+		flowStarted      = timebox.EventType(api.EventTypeFlowStarted)
+		workSucceeded    = timebox.EventType(api.EventTypeWorkSucceeded)
+		workFailed       = timebox.EventType(api.EventTypeWorkFailed)
+		workNotCompleted = timebox.EventType(api.EventTypeWorkNotCompleted)
+	)
+
+	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
+		flowStarted:      timebox.MakeHandler(a.processFlowStarted),
+		workSucceeded:    timebox.MakeHandler(a.processWorkSucceeded),
+		workFailed:       timebox.MakeHandler(a.processWorkFailed),
+		workNotCompleted: timebox.MakeHandler(a.processWorkNotCompleted),
+	})
 }
 
-func (a *flowActor) processFlow() {
+// processFlowStarted handles a FlowStarted event by finding and starting
+// initially ready steps
+func (a *flowActor) processFlowStarted(
+	_ *timebox.Event, _ api.FlowStartedEvent,
+) error {
 	flow, err := a.GetFlowState(a.ctx, a.flowID)
 	if err != nil {
-		slog.Error("Failed to get flow state",
-			slog.Any("flow_id", a.flowID),
-			slog.Any("error", err))
-		return
+		return err
 	}
 
 	if !a.ensureScriptsCompiled(flow) {
-		return
+		return ErrScriptCompileFailed
 	}
 
-	// Execute all state transitions in single transaction
-	enqueued, err := a.processTransaction()
-	if err != nil {
-		slog.Error("Failed to process flow transaction",
-			slog.Any("flow_id", a.flowID),
-			slog.Any("error", err))
-		return
-	}
-
-	// Transaction succeeded - execute deferred work
-	enqueued.exec()
-}
-
-// processTransaction executes all flow processing in a single transaction,
-// returning deferred functions to execute after successful commit. Terminal
-// flows still process to record step completions for audit/compensation
-func (a *flowActor) processTransaction() (enqueued, error) {
 	var fns enqueued
 
 	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
-		// Terminal flows only record pending step completions
 		if flowTransitions.IsTerminal(ag.Value().Status) {
-			return a.checkCompletableSteps(ag)
+			return nil
 		}
 
-		// Outer loop: re-evaluate after startReadySteps may emit StepSkipped
-		for {
-			before := len(ag.Enqueued())
-
-			if err := a.evaluateCascade(ag); err != nil {
-				return err
-			}
-
-			newFns, err := a.startReadySteps(ag)
+		// Find and start initially ready steps
+		for _, stepID := range a.findInitialSteps(ag.Value()) {
+			fn, err := a.prepareStep(a.ctx, stepID, ag)
 			if err != nil {
-				return err
+				slog.Warn("Failed to prepare step",
+					slog.Any("step_id", stepID),
+					slog.Any("error", err))
+				continue
 			}
-			fns = append(fns, newFns...)
-
-			// No ready steps - check for terminal state
-			if len(newFns) == 0 {
-				return a.checkTerminalState(ag)
-			}
-
-			// If startReadySteps raised events (StepSkipped), re-evaluate
-			if len(ag.Enqueued()) == before {
-				break
+			if fn != nil {
+				fns = append(fns, fn)
 			}
 		}
 
 		return nil
 	}
 
-	// Execute transaction
-	_, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd)
-	if err != nil {
-		return nil, err
+	if _, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd); err != nil {
+		return err
 	}
 
-	return fns, nil
-}
-
-// evaluateState evaluates flow state and raises skip/fail events within the
-// provided transaction context via the aggregator
-func (a *flowActor) evaluateState(ag *FlowAggregator) error {
-	for stepID := range ag.Value().Plan.Steps {
-		exec, ok := ag.Value().Executions[stepID]
-		if !ok || exec.Status != api.StepPending {
-			continue
-		}
-
-		if err := a.maybeSkipStep(ag, stepID); err != nil {
-			return err
-		}
-	}
-
+	fns.exec()
 	return nil
 }
 
-// handleWorkNotCompleted handles work items that didn't complete making retry
-// or fail decisions
-func (a *flowActor) handleWorkNotCompleted(ag *FlowAggregator) error {
-	for stepID, exec := range ag.Value().Executions {
-		if exec.Status != api.StepActive {
-			continue
+// processWorkSucceeded handles a WorkSucceeded event for a specific work item
+func (a *flowActor) processWorkSucceeded(
+	_ *timebox.Event, event api.WorkSucceededEvent,
+) error {
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
+	if err != nil {
+		return err
+	}
+
+	if !a.ensureScriptsCompiled(flow) {
+		return ErrScriptCompileFailed
+	}
+
+	var fns enqueued
+
+	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+		// Terminal flows only record step completions for audit
+		if flowTransitions.IsTerminal(ag.Value().Status) {
+			_, err := a.checkStepCompletion(ag, event.StepID)
+			return err
 		}
 
-		step := ag.Value().Plan.GetStep(stepID)
-		if step == nil {
-			continue
+		// Check if this step can now complete
+		completed, err := a.checkStepCompletion(ag, event.StepID)
+		if err != nil {
+			return err
 		}
 
-		for token, workItem := range exec.WorkItems {
-			if workItem.Status != api.WorkNotCompleted {
+		if !completed {
+			return nil
+		}
+
+		// Step completed - check if it was a goal step
+		if a.isGoalStep(event.StepID, ag.Value()) {
+			return a.checkTerminal(ag)
+		}
+
+		// Find and start downstream ready steps
+		for _, consumerID := range a.findReadySteps(event.StepID, ag.Value()) {
+			fn, err := a.prepareStep(a.ctx, consumerID, ag)
+			if err != nil {
+				slog.Warn("Failed to prepare step",
+					slog.Any("step_id", consumerID),
+					slog.Any("error", err))
 				continue
 			}
-
-			// Make retry decision
-			if a.ShouldRetry(step, workItem) {
-				// Raise RetryScheduled event
-				nextRetryAt := a.CalculateNextRetry(
-					step.WorkConfig, workItem.RetryCount,
-				)
-				if err := events.Raise(ag, api.EventTypeRetryScheduled,
-					api.RetryScheduledEvent{
-						FlowID:      a.flowID,
-						StepID:      stepID,
-						Token:       token,
-						RetryCount:  workItem.RetryCount + 1,
-						NextRetryAt: nextRetryAt,
-						Error:       workItem.Error,
-					},
-				); err != nil {
-					return err
-				}
-			} else {
-				// Raise WorkFailed event (permanent failure)
-				if err := events.Raise(ag, api.EventTypeWorkFailed,
-					api.WorkFailedEvent{
-						FlowID: a.flowID,
-						StepID: stepID,
-						Token:  token,
-						Error:  workItem.Error,
-					},
-				); err != nil {
-					return err
-				}
+			if fn != nil {
+				fns = append(fns, fn)
 			}
 		}
+
+		return nil
 	}
 
+	if _, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd); err != nil {
+		return err
+	}
+
+	fns.exec()
 	return nil
 }
 
-// checkCompletableSteps checks for completable steps and raises completion or
-// failure events via the aggregator
-func (a *flowActor) checkCompletableSteps(ag *FlowAggregator) error {
-	for stepID, exec := range ag.Value().Executions {
-		if exec.Status != api.StepActive {
-			continue
-		}
-
-		allDone := true
-		hasFailed := false
-		var failureError string
-
-		for _, item := range exec.WorkItems {
-			switch item.Status {
-			case api.WorkSucceeded:
-				// Work succeeded, continue
-			case api.WorkFailed:
-				// Work failed permanently
-				hasFailed = true
-				if failureError == "" {
-					failureError = item.Error
-				}
-			case api.WorkNotCompleted, api.WorkPending, api.WorkActive:
-				// Not done yet (not completed, pending retry, or still active)
-				allDone = false
-			}
-		}
-
-		if !allDone {
-			continue
-		}
-
-		if hasFailed {
-			if failureError == "" {
-				failureError = "work item failed"
-			}
-
-			// Raise StepFailed event via aggregator
-			if err := events.Raise(ag, api.EventTypeStepFailed,
-				api.StepFailedEvent{
-					FlowID: a.flowID,
-					StepID: stepID,
-					Error:  failureError,
-				},
-			); err != nil {
-				return err
-			}
-		} else {
-			step := ag.Value().Plan.GetStep(stepID)
-			outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
-			dur := time.Since(exec.StartedAt).Milliseconds()
-
-			// Raise AttributeSet events for each output
-			for key, value := range outputs {
-				// Check if attribute is already set
-				if _, ok := ag.Value().Attributes[key]; !ok {
-					if err := events.Raise(ag, api.EventTypeAttributeSet,
-						api.AttributeSetEvent{
-							FlowID: a.flowID,
-							StepID: stepID,
-							Key:    key,
-							Value:  value,
-						},
-					); err != nil {
-						return err
-					}
-				}
-			}
-
-			// Raise StepCompleted event via aggregator
-			if err := events.Raise(ag, api.EventTypeStepCompleted,
-				api.StepCompletedEvent{
-					FlowID:   a.flowID,
-					StepID:   stepID,
-					Outputs:  outputs,
-					Duration: dur,
-				},
-			); err != nil {
-				return err
-			}
-		}
+// processWorkFailed handles a WorkFailed event for a specific work item
+func (a *flowActor) processWorkFailed(
+	_ *timebox.Event, event api.WorkFailedEvent,
+) error {
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
+	if err != nil {
+		return err
 	}
 
-	return nil
-}
-
-// evaluateCascade handles cascading state changes until stable
-func (a *flowActor) evaluateCascade(ag *FlowAggregator) error {
-	for {
-		before := len(ag.Enqueued())
-
-		if err := a.evaluateState(ag); err != nil {
-			return err
-		}
-		if err := a.handleWorkNotCompleted(ag); err != nil {
-			return err
-		}
-		if err := a.checkCompletableSteps(ag); err != nil {
-			return err
-		}
-
-		if len(ag.Enqueued()) == before {
-			break
-		}
+	if !a.ensureScriptsCompiled(flow) {
+		return ErrScriptCompileFailed
 	}
-	return nil
-}
 
-// startReadySteps finds and starts ready steps, returning deferred work
-func (a *flowActor) startReadySteps(ag *FlowAggregator) (enqueued, error) {
-	var fns enqueued
-	for _, stepID := range a.findReadySteps(ag.Value()) {
-		fn, err := a.prepareStep(a.ctx, stepID, ag)
+	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+		// Terminal flows only record step completions for audit
+		if flowTransitions.IsTerminal(ag.Value().Status) {
+			_, err := a.checkStepCompletion(ag, event.StepID)
+			return err
+		}
+
+		// Check if step should fail (work item already marked as failed)
+		completed, err := a.checkStepCompletion(ag, event.StepID)
 		if err != nil {
-			slog.Warn("Failed to prepare step",
-				slog.Any("step_id", stepID),
-				slog.Any("error", err))
-			continue
+			return err
 		}
-		if fn != nil {
-			fns = append(fns, fn)
+
+		if completed {
+			// Step failed - propagate failure to downstream steps that can
+			// no longer complete
+			if err := a.failUnreachable(ag); err != nil {
+				return err
+			}
+			return a.checkTerminal(ag)
 		}
+
+		return nil
 	}
-	return fns, nil
+
+	_, err = a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd)
+	return err
 }
 
-// checkTerminalState checks for flow completion or failure
-func (a *flowActor) checkTerminalState(ag *FlowAggregator) error {
+// processWorkNotCompleted handles a WorkNotCompleted event for a specific work
+// item
+func (a *flowActor) processWorkNotCompleted(
+	_ *timebox.Event, event api.WorkNotCompletedEvent,
+) error {
+	flow, err := a.GetFlowState(a.ctx, a.flowID)
+	if err != nil {
+		return err
+	}
+
+	if !a.ensureScriptsCompiled(flow) {
+		return ErrScriptCompileFailed
+	}
+
+	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+		// Terminal flows - nothing to do
+		if flowTransitions.IsTerminal(ag.Value().Status) {
+			return nil
+		}
+
+		// Make retry decision for this specific work item
+		if err := a.handleWorkNotCompleted(
+			ag, event.StepID, event.Token,
+		); err != nil {
+			return err
+		}
+
+		// Check if step should now fail (if retry was denied)
+		completed, err := a.checkStepCompletion(ag, event.StepID)
+		if err != nil {
+			return err
+		}
+
+		if completed {
+			// Step failed - propagate failure to downstream steps
+			if err := a.failUnreachable(ag); err != nil {
+				return err
+			}
+			return a.checkTerminal(ag)
+		}
+
+		return nil
+	}
+
+	_, err = a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd)
+	return err
+}
+
+// isGoalStep returns true if the step is a goal step
+func (a *flowActor) isGoalStep(stepID api.StepID, flow *api.FlowState) bool {
+	for _, goalID := range flow.Plan.Goals {
+		if goalID == stepID {
+			return true
+		}
+	}
+	return false
+}
+
+// checkTerminal checks for flow completion or failure
+func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 	flow := ag.Value()
 	if a.isFlowComplete(flow) {
 		result := api.Args{}
@@ -398,30 +326,37 @@ func (a *flowActor) checkTerminalState(ag *FlowAggregator) error {
 	return nil
 }
 
-// maybeSkipStep checks if a step should be skipped or failed, raising
-// appropriate events via the aggregator
-func (a *flowActor) maybeSkipStep(ag *FlowAggregator, stepID api.StepID) error {
-	flow := ag.Value()
-	if a.canStepComplete(stepID, flow) {
-		if !a.areOutputsNeeded(stepID, flow) {
-			// Raise StepSkipped event via aggregator
-			return events.Raise(ag, api.EventTypeStepSkipped,
-				api.StepSkippedEvent{
+// failUnreachable finds and fails all pending steps that can no longer
+// complete because their required inputs cannot be satisfied
+func (a *flowActor) failUnreachable(ag *FlowAggregator) error {
+	for {
+		failedAny := false
+		flow := ag.Value()
+
+		for stepID, exec := range flow.Executions {
+			if exec.Status != api.StepPending {
+				continue
+			}
+			if a.canStepComplete(stepID, flow) {
+				continue
+			}
+
+			if err := events.Raise(ag, api.EventTypeStepFailed,
+				api.StepFailedEvent{
 					FlowID: a.flowID,
 					StepID: stepID,
-					Reason: "outputs not needed",
+					Error:  "required input no longer available",
 				},
-			)
+			); err != nil {
+				return err
+			}
+			failedAny = true
 		}
-		return nil
-	}
 
-	// Raise StepFailed event via aggregator
-	return events.Raise(ag, api.EventTypeStepFailed, api.StepFailedEvent{
-		FlowID: a.flowID,
-		StepID: stepID,
-		Error:  "required inputs cannot be satisfied",
-	})
+		if !failedAny {
+			return nil
+		}
+	}
 }
 
 // getFailureReason extracts a failure reason from flow state
@@ -434,74 +369,18 @@ func (a *flowActor) getFailureReason(flow *api.FlowState) string {
 	return "flow failed"
 }
 
-func (a *flowActor) findReadySteps(flow *api.FlowState) []api.StepID {
-	visited := util.Set[api.StepID]{}
-	var ready []api.StepID
-
-	for _, goalID := range flow.Plan.Goals {
-		a.findReadyStepsFromGoal(goalID, flow, visited, &ready)
-	}
-
-	return ready
-}
-
-func (a *flowActor) findReadyStepsFromGoal(
-	stepID api.StepID, flow *api.FlowState, visited util.Set[api.StepID],
-	ready *[]api.StepID,
-) {
-	if visited.Contains(stepID) {
-		return
-	}
-	visited.Add(stepID)
-
-	exec, ok := flow.Executions[stepID]
-	if !ok || exec.Status != api.StepPending {
-		return
-	}
-
-	step := flow.Plan.GetStep(stepID)
-	if step == nil {
-		return
-	}
-
-	for name, attr := range step.Attributes {
-		if !attr.IsRequired() {
-			continue
-		}
-
-		if _, hasAttr := flow.Attributes[name]; hasAttr {
-			continue
-		}
-
-		deps := flow.Plan.Attributes[name]
-		if deps == nil || len(deps.Providers) == 0 {
-			continue
-		}
-
-		for _, providerID := range deps.Providers {
-			a.findReadyStepsFromGoal(providerID, flow, visited, ready)
-		}
-	}
-
-	if a.isStepReadyForExec(stepID, flow) {
-		*ready = append(*ready, stepID)
-	}
-}
-
-func (a *flowActor) isStepReadyForExec(
-	stepID api.StepID, flow *api.FlowState,
-) bool {
+func (a *flowActor) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
 	exec, ok := flow.Executions[stepID]
 	if ok && exec.Status != api.StepPending {
 		return false
 	}
-	if !a.isStepReady(stepID, flow) {
+	if !a.hasRequired(stepID, flow) {
 		return false
 	}
 	return a.areOutputsNeeded(stepID, flow)
 }
 
-func (a *flowActor) isStepReady(stepID api.StepID, flow *api.FlowState) bool {
+func (a *flowActor) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
 	step := flow.Plan.GetStep(stepID)
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
@@ -590,6 +469,193 @@ func (e enqueued) exec() {
 	for _, fn := range e {
 		fn()
 	}
+}
+
+// findInitialSteps finds steps that can start when a flow begins
+func (a *flowActor) findInitialSteps(flow *api.FlowState) []api.StepID {
+	var ready []api.StepID
+
+	for stepID := range flow.Plan.Steps {
+		if a.canStartStep(stepID, flow) {
+			ready = append(ready, stepID)
+		}
+	}
+
+	return ready
+}
+
+// findReadySteps finds ready steps among downstream consumers of a completed
+// step
+func (a *flowActor) findReadySteps(
+	stepID api.StepID, flow *api.FlowState,
+) []api.StepID {
+	var ready []api.StepID
+
+	for _, consumerID := range a.getDownstreamConsumers(stepID, flow) {
+		if a.canStartStep(consumerID, flow) {
+			ready = append(ready, consumerID)
+		}
+	}
+
+	return ready
+}
+
+// checkStepCompletion checks if a specific step can complete (all work items
+// done) and raises appropriate completion or failure events
+func (a *flowActor) checkStepCompletion(
+	ag *FlowAggregator, stepID api.StepID,
+) (completed bool, err error) {
+	exec, ok := ag.Value().Executions[stepID]
+	if !ok || exec.Status != api.StepActive {
+		return false, nil
+	}
+
+	allDone := true
+	hasFailed := false
+	var failureError string
+
+	for _, item := range exec.WorkItems {
+		switch item.Status {
+		case api.WorkSucceeded:
+			// continue
+		case api.WorkFailed:
+			hasFailed = true
+			if failureError == "" {
+				failureError = item.Error
+			}
+		case api.WorkNotCompleted, api.WorkPending, api.WorkActive:
+			allDone = false
+		}
+	}
+
+	if !allDone {
+		return false, nil
+	}
+
+	if hasFailed {
+		if failureError == "" {
+			failureError = "work item failed"
+		}
+		err = events.Raise(ag, api.EventTypeStepFailed,
+			api.StepFailedEvent{
+				FlowID: a.flowID,
+				StepID: stepID,
+				Error:  failureError,
+			},
+		)
+		return true, err
+	}
+
+	// Step succeeded - set attributes and raise completion
+	step := ag.Value().Plan.GetStep(stepID)
+	outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
+	dur := time.Since(exec.StartedAt).Milliseconds()
+
+	for key, value := range outputs {
+		if _, ok := ag.Value().Attributes[key]; !ok {
+			if err := events.Raise(ag, api.EventTypeAttributeSet,
+				api.AttributeSetEvent{
+					FlowID: a.flowID,
+					StepID: stepID,
+					Key:    key,
+					Value:  value,
+				},
+			); err != nil {
+				return false, err
+			}
+		}
+	}
+
+	err = events.Raise(ag, api.EventTypeStepCompleted,
+		api.StepCompletedEvent{
+			FlowID:   a.flowID,
+			StepID:   stepID,
+			Outputs:  outputs,
+			Duration: dur,
+		},
+	)
+	return true, err
+}
+
+// handleWorkNotCompleted handles retry decision for a specific work item
+func (a *flowActor) handleWorkNotCompleted(
+	ag *FlowAggregator, stepID api.StepID, token api.Token,
+) error {
+	exec, ok := ag.Value().Executions[stepID]
+	if !ok || exec.Status != api.StepActive {
+		return nil
+	}
+
+	workItem, ok := exec.WorkItems[token]
+	if !ok || workItem.Status != api.WorkNotCompleted {
+		return nil
+	}
+
+	step := ag.Value().Plan.GetStep(stepID)
+	if step == nil {
+		return nil
+	}
+
+	if a.ShouldRetry(step, workItem) {
+		nextRetryAt := a.CalculateNextRetry(
+			step.WorkConfig, workItem.RetryCount,
+		)
+		return events.Raise(ag, api.EventTypeRetryScheduled,
+			api.RetryScheduledEvent{
+				FlowID:      a.flowID,
+				StepID:      stepID,
+				Token:       token,
+				RetryCount:  workItem.RetryCount + 1,
+				NextRetryAt: nextRetryAt,
+				Error:       workItem.Error,
+			},
+		)
+	}
+
+	// Permanent failure
+	return events.Raise(ag, api.EventTypeWorkFailed,
+		api.WorkFailedEvent{
+			FlowID: a.flowID,
+			StepID: stepID,
+			Token:  token,
+			Error:  workItem.Error,
+		},
+	)
+}
+
+// getDownstreamConsumers returns step IDs that consume any output from the
+// given step, using the ExecutionPlan's Attributes dependency map
+func (a *flowActor) getDownstreamConsumers(
+	stepID api.StepID, flow *api.FlowState,
+) []api.StepID {
+	step := flow.Plan.GetStep(stepID)
+	if step == nil {
+		return nil
+	}
+
+	seen := util.Set[api.StepID]{}
+	var consumers []api.StepID
+
+	for name, attr := range step.Attributes {
+		if !attr.IsOutput() {
+			continue
+		}
+
+		deps := flow.Plan.Attributes[name]
+		if deps == nil {
+			continue
+		}
+
+		for _, consumerID := range deps.Consumers {
+			if seen.Contains(consumerID) {
+				continue
+			}
+			seen.Add(consumerID)
+			consumers = append(consumers, consumerID)
+		}
+	}
+
+	return consumers
 }
 
 func aggregateWorkItemOutputs(
