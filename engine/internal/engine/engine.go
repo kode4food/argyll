@@ -293,8 +293,7 @@ func (e *Engine) checkPendingRetries() {
 						slog.Any("token", token),
 						slog.Int("retry_count", workItem.RetryCount))
 
-					step := flow.Plan.GetStep(stepID)
-					if step != nil {
+					if step, ok := flow.Plan.Steps[stepID]; ok {
 						fs := FlowStep{FlowID: flowID, StepID: stepID}
 						e.retryWork(ctx, fs, step, token, workItem)
 					}
@@ -325,11 +324,10 @@ func (e *Engine) getStepFromPlan(fs FlowStep) (*api.Step, error) {
 		return nil, err
 	}
 
-	step := flow.Plan.GetStep(fs.StepID)
-	if step == nil {
-		return nil, ErrStepNotInPlan
+	if step, ok := flow.Plan.Steps[fs.StepID]; ok {
+		return step, nil
 	}
-	return step, nil
+	return nil, ErrStepNotInPlan
 }
 
 // GetCompiledPredicate retrieves the compiled predicate for a flow step

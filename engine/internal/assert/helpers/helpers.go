@@ -48,7 +48,7 @@ func NewTestStep() *api.Step {
 			Endpoint: "http://localhost:8080/transform",
 			Timeout:  30 * api.Second,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"input": {
 				Role: api.RoleRequired,
 				Type: api.TypeString,
@@ -71,7 +71,7 @@ func NewTestStep() *api.Step {
 func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 	step := NewTestStep()
 
-	step.Attributes = map[api.Name]*api.AttributeSpec{}
+	step.Attributes = api.AttributeSpecs{}
 	for _, arg := range required {
 		step.Attributes[arg] = &api.AttributeSpec{
 			Role: api.RoleRequired,
@@ -97,7 +97,7 @@ func NewSimpleStep(id api.StepID) *api.Step {
 		Name:       "Test Step",
 		Type:       api.StepTypeSync,
 		Version:    "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{},
+		Attributes: api.AttributeSpecs{},
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
@@ -109,7 +109,7 @@ func NewSimpleStep(id api.StepID) *api.Step {
 func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 	step := NewSimpleStep(id)
 	if step.Attributes == nil {
-		step.Attributes = map[api.Name]*api.AttributeSpec{}
+		step.Attributes = api.AttributeSpecs{}
 	}
 	for _, name := range outputs {
 		step.Attributes[name] = &api.AttributeSpec{
@@ -134,7 +134,7 @@ func NewScriptStep(
 			Language: language,
 			Script:   script,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{},
+		Attributes: api.AttributeSpecs{},
 	}
 	for _, name := range outputs {
 		step.Attributes[name] = &api.AttributeSpec{
@@ -155,7 +155,7 @@ func NewStepWithPredicate(
 		Script:   script,
 	}
 	if step.Attributes == nil {
-		step.Attributes = map[api.Name]*api.AttributeSpec{}
+		step.Attributes = api.AttributeSpecs{}
 	}
 	for _, name := range outputs {
 		step.Attributes[name] = &api.AttributeSpec{

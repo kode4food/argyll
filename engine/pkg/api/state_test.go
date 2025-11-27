@@ -11,7 +11,7 @@ import (
 
 func TestEngineSetStep(t *testing.T) {
 	original := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"existing": {ID: "existing", Name: "Existing Step"},
 		},
 	}
@@ -27,7 +27,7 @@ func TestEngineSetStep(t *testing.T) {
 
 func TestEngineDeleteStep(t *testing.T) {
 	original := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"step1": {ID: "step1"},
 			"step2": {ID: "step2"},
 		},
@@ -74,7 +74,7 @@ func TestFlowSetStatus(t *testing.T) {
 
 func TestFlowSetAttribute(t *testing.T) {
 	original := &api.FlowState{
-		Attributes: map[api.Name]*api.AttributeValue{
+		Attributes: api.AttributeValues{
 			"existing": {Value: "value"},
 		},
 	}
@@ -93,7 +93,7 @@ func TestFlowSetAttribute(t *testing.T) {
 
 func TestFlowSetExecution(t *testing.T) {
 	original := &api.FlowState{
-		Executions: map[api.StepID]*api.ExecutionState{
+		Executions: api.Executions{
 			"existing": {Status: api.StepPending},
 		},
 	}
@@ -230,8 +230,8 @@ func TestFlowChaining(t *testing.T) {
 	original := &api.FlowState{
 		ID:         "test-flow",
 		Status:     api.FlowPending,
-		Attributes: map[api.Name]*api.AttributeValue{},
-		Executions: map[api.StepID]*api.ExecutionState{},
+		Attributes: api.AttributeValues{},
+		Executions: api.Executions{},
 	}
 
 	result := original.

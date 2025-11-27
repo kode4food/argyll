@@ -95,8 +95,8 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
 		return exec.Status == api.StepCompleted
 	}
 
-	step := flow.Plan.GetStep(stepID)
-	if step == nil {
+	step, ok := flow.Plan.Steps[stepID]
+	if !ok {
 		return false
 	}
 

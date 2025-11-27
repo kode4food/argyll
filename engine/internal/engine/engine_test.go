@@ -71,9 +71,7 @@ func TestHTTPExecution(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"http-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -97,9 +95,7 @@ func TestScriptExecution(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"script-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -125,9 +121,7 @@ func TestPredicateExecution(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"predicate-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -156,9 +150,7 @@ func TestPredicateFalse(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"predicate-false-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -185,9 +177,7 @@ func TestLuaScriptExecution(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"lua-script-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -212,10 +202,8 @@ func TestAleScriptWithInputs(t *testing.T) {
 	require.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"ale-input-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Goals:    []api.StepID{"ale-input-step"},
+		Steps:    api.Steps{step.ID: step},
 		Required: []api.Name{"x"},
 	}
 
@@ -244,9 +232,7 @@ func TestLuaPredicate(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"lua-pred-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -350,9 +336,7 @@ func TestGetFlowState(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"state-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(

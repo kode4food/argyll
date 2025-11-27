@@ -15,6 +15,9 @@ type (
 	// Metadata contains additional context passed to step handlers
 	Metadata map[string]any
 
+	// Steps constains a map of Steps by their ID
+	Steps map[StepID]*Step
+
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {

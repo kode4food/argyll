@@ -86,16 +86,15 @@ func (s *Server) getStep(c *gin.Context) {
 		return
 	}
 
-	step, ok := engState.Steps[stepID]
-	if !ok {
-		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, stepID),
-			Status: http.StatusNotFound,
-		})
+	if step, ok := engState.Steps[stepID]; ok {
+		c.JSON(http.StatusOK, step)
 		return
 	}
 
-	c.JSON(http.StatusOK, step)
+	c.JSON(http.StatusNotFound, api.ErrorResponse{
+		Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, stepID),
+		Status: http.StatusNotFound,
+	})
 }
 
 func (s *Server) updateStep(c *gin.Context) {

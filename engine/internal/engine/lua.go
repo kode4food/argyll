@@ -67,17 +67,9 @@ func (e *LuaEnv) Compile(
 	argNames := step.SortedArgNames()
 	src := e.buildSource(cfg.Script, argNames)
 
-	if c, ok := e.cache.Get(src); ok {
-		return c, nil
-	}
-
-	c, err := e.compileSource(src, argNames)
-	if err != nil {
-		return nil, err
-	}
-
-	e.cache.Set(src, c)
-	return c, nil
+	return e.cache.Get(src, func() (*CompiledLua, error) {
+		return e.compileSource(src, argNames)
+	})
 }
 
 // Validate checks if a Lua script is syntactically correct without running it

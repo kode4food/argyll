@@ -26,7 +26,7 @@ func TestStartFlowSimple(t *testing.T) {
 		Name:    "Goal",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -42,8 +42,8 @@ func TestStartFlowSimple(t *testing.T) {
 	plan := &api.ExecutionPlan{
 		Goals:    []api.StepID{"goal-step"},
 		Required: []api.Name{},
-		Steps: map[api.StepID]*api.StepInfo{
-			"goal-step": {Step: step},
+		Steps: api.Steps{
+			"goal-step": step,
 		},
 	}
 
@@ -73,7 +73,7 @@ func TestFlowCompletion(t *testing.T) {
 		Name:    "Completion Step",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -90,8 +90,8 @@ func TestFlowCompletion(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"completion-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"completion-step": {Step: step},
+		Steps: api.Steps{
+			"completion-step": step,
 		},
 	}
 
@@ -133,8 +133,8 @@ func TestListFlows(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"list-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"list-step": {Step: step},
+		Steps: api.Steps{
+			"list-step": step,
 		},
 	}
 
@@ -173,8 +173,8 @@ func TestGetFlowEvents(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"events-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"events-step": {Step: step},
+		Steps: api.Steps{
+			"events-step": step,
 		},
 	}
 
@@ -222,7 +222,7 @@ func TestScriptStep(t *testing.T) {
 		Name:    "Script Step",
 		Type:    api.StepTypeScript,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"name":     {Role: api.RoleOutput, Type: api.TypeString},
 			"greeting": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -238,8 +238,8 @@ func TestScriptStep(t *testing.T) {
 	plan := &api.ExecutionPlan{
 		Goals:    []api.StepID{"script-1"},
 		Required: []api.Name{"name"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"script-1": {Step: scriptStep},
+		Steps: api.Steps{
+			"script-1": scriptStep,
 		},
 	}
 

@@ -96,7 +96,7 @@ func TestStepValidation(t *testing.T) {
 					Endpoint: "http://localhost:8080",
 				},
 				Version: "1.0.0",
-				Attributes: map[api.Name]*api.AttributeSpec{
+				Attributes: api.AttributeSpecs{
 					"": {Role: api.RoleRequired, Type: api.TypeString},
 				},
 			},
@@ -113,7 +113,7 @@ func TestStepValidation(t *testing.T) {
 					Endpoint: "http://localhost:8080",
 				},
 				Version: "1.0.0",
-				Attributes: map[api.Name]*api.AttributeSpec{
+				Attributes: api.AttributeSpecs{
 					"": {Role: api.RoleOptional, Type: api.TypeString},
 				},
 			},
@@ -212,7 +212,7 @@ func TestStepOutputArgs(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			Version: "1.0.0",
-			Attributes: map[api.Name]*api.AttributeSpec{
+			Attributes: api.AttributeSpecs{
 				"result1":  {Role: api.RoleOutput, Type: api.TypeString},
 				"result2":  {Role: api.RoleOutput, Type: api.TypeNumber},
 				"metadata": {Role: api.RoleOutput, Type: api.TypeObject},
@@ -234,7 +234,7 @@ func TestStepOutputArgs(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			Version: "1.0.0",
-			Attributes: map[api.Name]*api.AttributeSpec{
+			Attributes: api.AttributeSpecs{
 				"data": {Role: api.RoleRequired, Type: api.TypeString},
 			},
 		}
@@ -253,7 +253,7 @@ func TestSortedArgNames(t *testing.T) {
 			Endpoint: "http://localhost:8080",
 		},
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"zebra":  {Role: api.RoleRequired, Type: api.TypeString},
 			"apple":  {Role: api.RoleRequired, Type: api.TypeString},
 			"mango":  {Role: api.RoleOptional, Type: api.TypeString},

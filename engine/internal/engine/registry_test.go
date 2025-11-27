@@ -20,7 +20,7 @@ func TestRegisterStep(t *testing.T) {
 		Name:    "Test Step",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
 		},

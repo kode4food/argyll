@@ -21,7 +21,7 @@ func TestAleCacheForSameScript(t *testing.T) {
 			Script:   "{:result (+ a b)}",
 			Language: api.ScriptLangAle,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":      {Role: api.RoleRequired},
 			"b":      {Role: api.RoleRequired},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -48,7 +48,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 			Script:   "{:result (* a b)}",
 			Language: api.ScriptLangAle,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":      {Role: api.RoleRequired},
 			"b":      {Role: api.RoleRequired},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -62,7 +62,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 			Language: api.ScriptLangAle,
 			Script:   "(> x 10)",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x":      {Role: api.RoleRequired},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -95,7 +95,7 @@ func TestAleExecuteScript(t *testing.T) {
 			Script:   "{:result (+ a b)}",
 			Language: api.ScriptLangAle,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":      {Role: api.RoleRequired},
 			"b":      {Role: api.RoleRequired},
 			"result": {Role: api.RoleRequired},
@@ -155,7 +155,7 @@ func TestAleEvaluatePredicate(t *testing.T) {
 					Script:   tt.predicate,
 					Language: api.ScriptLangAle,
 				},
-				Attributes: map[api.Name]*api.AttributeSpec{
+				Attributes: api.AttributeSpecs{
 					"x": {Role: api.RoleRequired},
 					"y": {Role: api.RoleRequired},
 				},
@@ -226,7 +226,7 @@ func TestAleComplexConversion(t *testing.T) {
 				:null_val optional
 			}`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"is_active":  {Role: api.RoleRequired},
 			"name":       {Role: api.RoleRequired},
 			"count":      {Role: api.RoleRequired},
@@ -291,7 +291,7 @@ func TestAleListConversion(t *testing.T) {
 			Language: api.ScriptLangAle,
 			Script:   `{:list_result (list 1 2 3 4 5)}`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"list_result": {Role: api.RoleRequired},
 		},
 	}

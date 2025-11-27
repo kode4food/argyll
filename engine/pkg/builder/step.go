@@ -21,7 +21,7 @@ type Step struct {
 	name       api.Name
 	stepType   api.StepType
 	version    string
-	attributes map[api.Name]*api.AttributeSpec
+	attributes api.AttributeSpecs
 	timeout    int64
 	dirty      bool
 }
@@ -41,7 +41,7 @@ func (c *Client) NewStep(name api.Name) *Step {
 		version:    "1.0.0",
 		stepType:   api.StepTypeSync,
 		timeout:    30 * api.Second,
-		attributes: map[api.Name]*api.AttributeSpec{},
+		attributes: api.AttributeSpecs{},
 	}
 }
 

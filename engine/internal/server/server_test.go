@@ -204,7 +204,7 @@ func TestSuccess(t *testing.T) {
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
 		},
 	}
@@ -219,8 +219,8 @@ func TestSuccess(t *testing.T) {
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
 			Goals: []api.StepID{"async-step"},
-			Steps: map[api.StepID]*api.StepInfo{
-				"async-step": {Step: step},
+			Steps: api.Steps{
+				"async-step": step,
 			},
 		},
 		api.Args{}, api.Metadata{},
@@ -309,8 +309,8 @@ func TestStepNotFound(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"async-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"async-step": {Step: step},
+		Steps: api.Steps{
+			"async-step": step,
 		},
 	}
 
@@ -351,7 +351,7 @@ func TestInvalidToken(t *testing.T) {
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
 		},
 	}
@@ -366,8 +366,8 @@ func TestInvalidToken(t *testing.T) {
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
 			Goals: []api.StepID{"async-step"},
-			Steps: map[api.StepID]*api.StepInfo{
-				"async-step": {Step: step},
+			Steps: api.Steps{
+				"async-step": step,
 			},
 		},
 		api.Args{}, api.Metadata{},
@@ -423,8 +423,8 @@ func TestInvalidJSON(t *testing.T) {
 		context.Background(), "webhook-wf",
 		&api.ExecutionPlan{
 			Goals: []api.StepID{"async-step"},
-			Steps: map[api.StepID]*api.StepInfo{
-				"async-step": {Step: step},
+			Steps: api.Steps{
+				"async-step": step,
 			},
 		},
 		api.Args{}, api.Metadata{},
@@ -476,8 +476,8 @@ func TestGetFlow(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"get-wf-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"get-wf-step": {Step: step},
+		Steps: api.Steps{
+			"get-wf-step": step,
 		},
 	}
 
@@ -962,7 +962,7 @@ func TestPlanPreview(t *testing.T) {
 		Name:    "Step A",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"value": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -975,7 +975,7 @@ func TestPlanPreview(t *testing.T) {
 		Name:    "Step B",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"value":  {Role: api.RoleOutput, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -1177,8 +1177,8 @@ func TestStartDuplicate(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"dup-wf-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			"dup-wf-step": {Step: step},
+		Steps: api.Steps{
+			"dup-wf-step": step,
 		},
 	}
 

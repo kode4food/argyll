@@ -24,7 +24,7 @@ type (
 	// EngineState contains the global state of the orchestrator
 	EngineState struct {
 		LastUpdated time.Time                  `json:"last_updated"`
-		Steps       map[StepID]*Step           `json:"steps"`
+		Steps       Steps                      `json:"steps"`
 		Health      map[StepID]*HealthState    `json:"health"`
 		ActiveFlows map[FlowID]*ActiveFlowInfo `json:"active_flows"`
 	}
@@ -38,16 +38,22 @@ type (
 
 	// FlowState contains the complete state of a flow execution
 	FlowState struct {
-		CreatedAt   time.Time                  `json:"created_at"`
-		CompletedAt time.Time                  `json:"completed_at"`
-		LastUpdated time.Time                  `json:"last_updated"`
-		Plan        *ExecutionPlan             `json:"plan"`
-		Attributes  map[Name]*AttributeValue   `json:"attributes"`
-		Executions  map[StepID]*ExecutionState `json:"executions"`
-		ID          FlowID                     `json:"id"`
-		Status      FlowStatus                 `json:"status"`
-		Error       string                     `json:"error,omitempty"`
+		CreatedAt   time.Time       `json:"created_at"`
+		CompletedAt time.Time       `json:"completed_at"`
+		LastUpdated time.Time       `json:"last_updated"`
+		Plan        *ExecutionPlan  `json:"plan"`
+		Attributes  AttributeValues `json:"attributes"`
+		Executions  Executions      `json:"executions"`
+		ID          FlowID          `json:"id"`
+		Status      FlowStatus      `json:"status"`
+		Error       string          `json:"error,omitempty"`
 	}
+
+	// Executions contains the execution progress of multiple steps
+	Executions map[StepID]*ExecutionState
+
+	// AttributeValues contains fulfilled attribute values and their sources
+	AttributeValues map[Name]*AttributeValue
 
 	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
@@ -57,15 +63,18 @@ type (
 
 	// ExecutionState contains the state of a step execution
 	ExecutionState struct {
-		StartedAt   time.Time            `json:"started_at"`
-		CompletedAt time.Time            `json:"completed_at"`
-		Inputs      Args                 `json:"inputs"`
-		Outputs     Args                 `json:"outputs,omitempty"`
-		Status      StepStatus           `json:"status"`
-		Error       string               `json:"error,omitempty"`
-		Duration    int64                `json:"duration,omitempty"`
-		WorkItems   map[Token]*WorkState `json:"work_items,omitempty"`
+		StartedAt   time.Time  `json:"started_at"`
+		CompletedAt time.Time  `json:"completed_at"`
+		Inputs      Args       `json:"inputs"`
+		Outputs     Args       `json:"outputs,omitempty"`
+		Status      StepStatus `json:"status"`
+		Error       string     `json:"error,omitempty"`
+		Duration    int64      `json:"duration,omitempty"`
+		WorkItems   WorkItems  `json:"work_items,omitempty"`
 	}
+
+	// WorkItems contains the state of multiple work items
+	WorkItems map[Token]*WorkState
 
 	// WorkState contains the state of a single work item
 	WorkState struct {

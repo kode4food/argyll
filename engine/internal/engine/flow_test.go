@@ -30,9 +30,7 @@ func TestStartDuplicate(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -58,10 +56,8 @@ func TestStartMissingInput(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"step-needs-input"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Goals:    []api.StepID{"step-needs-input"},
+		Steps:    api.Steps{step.ID: step},
 		Required: []api.Name{"required_value"},
 	}
 
@@ -104,9 +100,7 @@ func TestSetAttribute(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"output-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-attr", plan, api.Args{}, api.Metadata{})
@@ -140,9 +134,7 @@ func TestGetAttributes(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-attrs"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -182,9 +174,9 @@ func TestDuplicateAttributeFirstWins(t *testing.T) {
 	// Both steps are goals so both will execute
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-a", "step-b"},
-		Steps: map[api.StepID]*api.StepInfo{
-			stepA.ID: {Step: stepA},
-			stepB.ID: {Step: stepB},
+		Steps: api.Steps{
+			stepA.ID: stepA,
+			stepB.ID: stepB,
 		},
 	}
 
@@ -219,9 +211,7 @@ func TestCompleteFlow(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"complete-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -251,9 +241,7 @@ func TestFailFlow(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"fail-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-fail", plan, api.Args{}, api.Metadata{})
@@ -282,9 +270,7 @@ func TestSkipStep(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-skip"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-skip", plan, api.Args{}, api.Metadata{})
@@ -310,9 +296,7 @@ func TestGetFlowEvents(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"simple"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -340,9 +324,7 @@ func TestListFlows(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"test"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -369,9 +351,9 @@ func TestIsFlowFailed(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-b"},
-		Steps: map[api.StepID]*api.StepInfo{
-			stepA.ID: {Step: stepA},
-			stepB.ID: {Step: stepB},
+		Steps: api.Steps{
+			stepA.ID: stepA,
+			stepB.ID: stepB,
 		},
 	}
 
@@ -413,9 +395,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-ok"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
@@ -453,9 +433,9 @@ func TestHasInputProvider(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-b"},
-		Steps: map[api.StepID]*api.StepInfo{
-			stepA.ID: {Step: stepA},
-			stepB.ID: {Step: stepB},
+		Steps: api.Steps{
+			stepA.ID: stepA,
+			stepB.ID: stepB,
 		},
 		Attributes: map[api.Name]*api.Dependencies{
 			"value": {
@@ -499,10 +479,8 @@ func TestHasInputProviderNone(t *testing.T) {
 	}
 
 	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"step-alone"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Goals:      []api.StepID{"step-alone"},
+		Steps:      api.Steps{step.ID: step},
 		Attributes: map[api.Name]*api.Dependencies{},
 	}
 
@@ -535,8 +513,8 @@ func TestStepProvidesInput(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-provider"},
-		Steps: map[api.StepID]*api.StepInfo{
-			stepA.ID: {Step: stepA},
+		Steps: api.Steps{
+			stepA.ID: stepA,
 		},
 	}
 

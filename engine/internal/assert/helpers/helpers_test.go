@@ -136,9 +136,7 @@ func TestCanStartFlows(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{step.ID},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(

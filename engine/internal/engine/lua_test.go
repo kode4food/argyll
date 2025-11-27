@@ -20,7 +20,7 @@ func TestLuaCompile(t *testing.T) {
 			Script:   "return {result = a + b}",
 			Language: api.ScriptLangLua,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":      {Role: api.RoleRequired},
 			"b":      {Role: api.RoleRequired},
 			"result": {Role: api.RoleRequired},
@@ -42,7 +42,7 @@ func TestLuaExecuteScript(t *testing.T) {
 			Script:   "return {result = a + b}",
 			Language: api.ScriptLangLua,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":      {Role: api.RoleRequired},
 			"b":      {Role: api.RoleRequired},
 			"result": {Role: api.RoleRequired},
@@ -102,7 +102,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 					Script:   tt.predicate,
 					Language: api.ScriptLangLua,
 				},
-				Attributes: map[api.Name]*api.AttributeSpec{
+				Attributes: api.AttributeSpecs{
 					"x": {Role: api.RoleRequired},
 					"y": {Role: api.RoleRequired},
 				},
@@ -164,7 +164,7 @@ func TestLuaScriptCache(t *testing.T) {
 			Script:   "return {result = a + b}",
 			Language: api.ScriptLangLua,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":      {Role: api.RoleRequired},
 			"b":      {Role: api.RoleRequired},
 			"result": {Role: api.RoleRequired},
@@ -190,7 +190,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   "return {x = 42}",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x": {Role: api.RoleRequired},
 		},
 	}
@@ -202,7 +202,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   "return x > 10",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x": {Role: api.RoleRequired},
 		},
 	}
@@ -233,7 +233,7 @@ func TestLuaComplexConversion(t *testing.T) {
 				}
 			`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"is_active":  {Role: api.RoleRequired},
 			"name":       {Role: api.RoleRequired},
 			"count":      {Role: api.RoleRequired},
@@ -274,7 +274,7 @@ func TestLuaArrayTableConversion(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   `return {numbers = {1, 2, 3, 4, 5}, count = 5}`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"numbers": {Role: api.RoleRequired},
 			"count":   {Role: api.RoleRequired},
 		},
@@ -302,13 +302,13 @@ func TestLuaInputTypes(t *testing.T) {
 		name     string
 		script   string
 		inputs   api.Args
-		expected map[api.Name]any
+		expected api.Args
 	}{
 		{
 			name:   "int64_input",
 			script: "return {result = val}",
 			inputs: api.Args{"val": int64(123456789)},
-			expected: map[api.Name]any{
+			expected: api.Args{
 				"result": 123456789,
 			},
 		},
@@ -316,7 +316,7 @@ func TestLuaInputTypes(t *testing.T) {
 			name:   "float64_input",
 			script: "return {result = val * 2}",
 			inputs: api.Args{"val": 3.14},
-			expected: map[api.Name]any{
+			expected: api.Args{
 				"result": 6.28,
 			},
 		},
@@ -324,7 +324,7 @@ func TestLuaInputTypes(t *testing.T) {
 			name:   "nil_input",
 			script: "return {result = val == nil}",
 			inputs: api.Args{"val": nil},
-			expected: map[api.Name]any{
+			expected: api.Args{
 				"result": true,
 			},
 		},
@@ -332,7 +332,7 @@ func TestLuaInputTypes(t *testing.T) {
 			name:   "array_input",
 			script: "return {result = #items}",
 			inputs: api.Args{"items": []any{1, 2, 3}},
-			expected: map[api.Name]any{
+			expected: api.Args{
 				"result": 3,
 			},
 		},
@@ -340,7 +340,7 @@ func TestLuaInputTypes(t *testing.T) {
 			name:   "map_input",
 			script: "return {result = data.key}",
 			inputs: api.Args{"data": map[string]any{"key": "value"}},
-			expected: map[api.Name]any{
+			expected: api.Args{
 				"result": "value",
 			},
 		},
@@ -355,7 +355,7 @@ func TestLuaInputTypes(t *testing.T) {
 					Language: api.ScriptLangLua,
 					Script:   tt.script,
 				},
-				Attributes: map[api.Name]*api.AttributeSpec{
+				Attributes: api.AttributeSpecs{
 					"val":    {Role: api.RoleRequired},
 					"items":  {Role: api.RoleRequired},
 					"data":   {Role: api.RoleRequired},

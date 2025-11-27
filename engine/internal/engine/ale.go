@@ -57,17 +57,9 @@ func (e *AleEnv) Compile(
 		aleLambdaTemplate, strings.Join(argNames, " "), cfg.Script,
 	)
 
-	if proc, ok := e.cache.Get(src); ok {
-		return proc, nil
-	}
-
-	proc, err := e.compileSource(src)
-	if err != nil {
-		return nil, err
-	}
-
-	e.cache.Set(src, proc)
-	return proc, nil
+	return e.cache.Get(src, func() (data.Procedure, error) {
+		return e.compileSource(src)
+	})
 }
 
 // Validate checks if an Ale script is syntactically correct without running it

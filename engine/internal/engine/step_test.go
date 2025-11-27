@@ -26,9 +26,7 @@ func TestGetActiveFlow(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"active-test"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -68,7 +66,7 @@ func TestScript(t *testing.T) {
 			Language: api.ScriptLangAle,
 			Script:   `{:result "success"}`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 	}
@@ -78,9 +76,7 @@ func TestScript(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"script-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -115,9 +111,7 @@ func TestScriptMissing(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"no-script"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(
@@ -151,9 +145,7 @@ func TestPredicate(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"predicate-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(

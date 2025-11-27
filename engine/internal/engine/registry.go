@@ -167,8 +167,8 @@ func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
 
 func collectAttributeTypes(
 	st *api.EngineState, excludeStepID api.StepID,
-) map[api.Name]api.AttributeType {
-	attributeTypes := make(map[api.Name]api.AttributeType)
+) api.AttributeTypes {
+	attributeTypes := make(api.AttributeTypes)
 	for stepID, step := range st.Steps {
 		if stepID == excludeStepID {
 			continue
@@ -181,7 +181,7 @@ func collectAttributeTypes(
 }
 
 func checkAttributeConflicts(
-	attrs api.AttributeSpecs, types map[api.Name]api.AttributeType,
+	attrs api.AttributeSpecs, types api.AttributeTypes,
 ) error {
 	for name, attr := range attrs {
 		if existingType, ok := types[name]; ok {
@@ -221,8 +221,8 @@ func buildDependencyGraph(
 
 func stepsIncluding(
 	st *api.EngineState, newStep *api.Step,
-) map[api.StepID]*api.Step {
-	steps := make(map[api.StepID]*api.Step, len(st.Steps))
+) api.Steps {
+	steps := make(api.Steps, len(st.Steps))
 	for id, step := range st.Steps {
 		if id != newStep.ID {
 			steps[id] = step
@@ -232,9 +232,7 @@ func stepsIncluding(
 	return steps
 }
 
-func indexAttributeProducers(
-	steps map[api.StepID]*api.Step,
-) map[api.Name][]api.StepID {
+func indexAttributeProducers(steps api.Steps) map[api.Name][]api.StepID {
 	index := make(map[api.Name][]api.StepID)
 	for stepID, step := range steps {
 		for name, attr := range step.Attributes {
@@ -247,7 +245,7 @@ func indexAttributeProducers(
 }
 
 func graphFromStepDependencies(
-	steps map[api.StepID]*api.Step, producerIndex map[api.Name][]api.StepID,
+	steps api.Steps, producerIndex map[api.Name][]api.StepID,
 ) map[api.StepID][]api.StepID {
 	graph := make(map[api.StepID][]api.StepID)
 	for stepID, step := range steps {

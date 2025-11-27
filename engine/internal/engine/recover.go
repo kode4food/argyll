@@ -127,8 +127,8 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 			continue
 		}
 
-		step := flow.Plan.GetStep(stepID)
-		if step == nil {
+		step, ok := flow.Plan.Steps[stepID]
+		if !ok {
 			continue
 		}
 

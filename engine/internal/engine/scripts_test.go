@@ -22,7 +22,7 @@ func TestAleCompilation(t *testing.T) {
 			Language: api.ScriptLangAle,
 			Script:   "{:result (* x 2)}",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x":      {Role: api.RoleRequired, Type: api.TypeNumber},
 			"result": {Role: api.RoleOutput, Type: api.TypeNumber},
 		},
@@ -52,7 +52,7 @@ func TestLuaCompilation(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   "return {result = x * 2}",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x":      {Role: api.RoleRequired, Type: api.TypeNumber},
 			"result": {Role: api.RoleOutput, Type: api.TypeNumber},
 		},
@@ -85,7 +85,7 @@ func TestAlePredicateTrue(t *testing.T) {
 			Language: api.ScriptLangAle,
 			Script:   "(> x 10)",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x": {Role: api.RoleRequired, Type: api.TypeNumber},
 		},
 	}
@@ -116,7 +116,7 @@ func TestAlePredicateFalse(t *testing.T) {
 			Language: api.ScriptLangAle,
 			Script:   "(> x 10)",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x": {Role: api.RoleRequired, Type: api.TypeNumber},
 		},
 	}
@@ -147,7 +147,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   "return x > 10",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x": {Role: api.RoleRequired, Type: api.TypeNumber},
 		},
 	}
@@ -178,7 +178,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 			Language: api.ScriptLangLua,
 			Script:   "return x > 10",
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"x": {Role: api.RoleRequired, Type: api.TypeNumber},
 		},
 	}
@@ -246,7 +246,7 @@ func TestAleComplexScript(t *testing.T) {
 				:greeting (str "Hello " name)
 			}`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":        {Role: api.RoleRequired, Type: api.TypeNumber},
 			"b":        {Role: api.RoleRequired, Type: api.TypeNumber},
 			"name":     {Role: api.RoleRequired, Type: api.TypeString},
@@ -292,7 +292,7 @@ func TestLuaComplexScript(t *testing.T) {
 				}
 			`,
 		},
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a":        {Role: api.RoleRequired, Type: api.TypeNumber},
 			"b":        {Role: api.RoleRequired, Type: api.TypeNumber},
 			"name":     {Role: api.RoleRequired, Type: api.TypeString},

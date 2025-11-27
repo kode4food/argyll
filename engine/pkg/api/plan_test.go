@@ -9,53 +9,6 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-func TestGetStep(t *testing.T) {
-	step1 := &api.Step{ID: "step1", Name: "Step 1"}
-	step2 := &api.Step{ID: "step2", Name: "Step 2"}
-	step3 := &api.Step{ID: "step3", Name: "Step 3"}
-
-	plan := &api.ExecutionPlan{
-		Steps: map[api.StepID]*api.StepInfo{
-			"step1": {Step: step1},
-			"step2": {Step: step2},
-			"step3": {Step: step3},
-		},
-	}
-
-	t.Run("existing_step", func(t *testing.T) {
-		result := plan.GetStep("step2")
-		require.NotNil(t, result)
-		assert.EqualValues(t, "step2", result.ID)
-		assert.EqualValues(t, "Step 2", result.Name)
-	})
-
-	t.Run("non_existent_step", func(t *testing.T) {
-		result := plan.GetStep("nonexistent")
-		assert.Nil(t, result)
-	})
-
-	t.Run("first_step", func(t *testing.T) {
-		result := plan.GetStep("step1")
-		require.NotNil(t, result)
-		assert.EqualValues(t, "step1", result.ID)
-	})
-
-	t.Run("last_step", func(t *testing.T) {
-		result := plan.GetStep("step3")
-		require.NotNil(t, result)
-		assert.EqualValues(t, "step3", result.ID)
-	})
-}
-
-func TestGetStepEmptyPlan(t *testing.T) {
-	plan := &api.ExecutionPlan{
-		Steps: map[api.StepID]*api.StepInfo{},
-	}
-
-	result := plan.GetStep("any")
-	assert.Nil(t, result)
-}
-
 func TestValidateSuccess(t *testing.T) {
 	plan := &api.ExecutionPlan{
 		Required: []api.Name{"input1", "input2", "input3"},

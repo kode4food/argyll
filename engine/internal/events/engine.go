@@ -18,7 +18,7 @@ var (
 // steps, health status, and active flows
 func NewEngineState() *api.EngineState {
 	return &api.EngineState{
-		Steps:       map[api.StepID]*api.Step{},
+		Steps:       api.Steps{},
 		Health:      map[api.StepID]*api.HealthState{},
 		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{},
 	}

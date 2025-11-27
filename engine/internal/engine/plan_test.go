@@ -13,7 +13,7 @@ import (
 func TestNoGoals(t *testing.T) {
 	eng := &engine.Engine{}
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{},
+		Steps: api.Steps{},
 	}
 
 	_, err := eng.CreateExecutionPlan(engState, []api.StepID{}, api.Args{})
@@ -23,7 +23,7 @@ func TestNoGoals(t *testing.T) {
 func TestGoalStepNotFound(t *testing.T) {
 	eng := &engine.Engine{}
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{},
+		Steps: api.Steps{},
 	}
 
 	_, err := eng.CreateExecutionPlan(
@@ -40,7 +40,7 @@ func TestSimpleResolver(t *testing.T) {
 		Name:    "Resolver",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -50,7 +50,7 @@ func TestSimpleResolver(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"resolver": resolverStep,
 		},
 	}
@@ -77,7 +77,7 @@ func TestProcessorWithInit(t *testing.T) {
 		Name:    "Processor",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -88,7 +88,7 @@ func TestProcessorWithInit(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"processor": processorStep,
 		},
 	}
@@ -111,7 +111,7 @@ func TestProcessorNoInit(t *testing.T) {
 		Name:    "Processor",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -122,7 +122,7 @@ func TestProcessorNoInit(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"processor": processorStep,
 		},
 	}
@@ -144,7 +144,7 @@ func TestChained(t *testing.T) {
 		Name:    "Resolver",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -158,7 +158,7 @@ func TestChained(t *testing.T) {
 		Name:    "Processor",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"data":   {Role: api.RoleRequired, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -173,7 +173,7 @@ func TestChained(t *testing.T) {
 		Name:    "Collector",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleRequired, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -183,7 +183,7 @@ func TestChained(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"resolver":  resolverStep,
 			"processor": processorStep,
 			"collector": collectorStep,
@@ -212,7 +212,7 @@ func TestMultipleGoals(t *testing.T) {
 		Name:    "Step 1",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"output1": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -226,7 +226,7 @@ func TestMultipleGoals(t *testing.T) {
 		Name:    "Step 2",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"output2": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -236,7 +236,7 @@ func TestMultipleGoals(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"step1": step1,
 			"step2": step2,
 		},
@@ -259,7 +259,7 @@ func TestExistingOutputs(t *testing.T) {
 		Name:    "Step",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -269,7 +269,7 @@ func TestExistingOutputs(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"step": step,
 		},
 	}
@@ -291,7 +291,7 @@ func TestComplexGraph(t *testing.T) {
 		Name:    "Resolver 1",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -305,7 +305,7 @@ func TestComplexGraph(t *testing.T) {
 		Name:    "Resolver 2",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"b": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -319,7 +319,7 @@ func TestComplexGraph(t *testing.T) {
 		Name:    "Processor 1",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"a": {Role: api.RoleRequired, Type: api.TypeString},
 			"b": {Role: api.RoleRequired, Type: api.TypeString},
 			"c": {Role: api.RoleOutput, Type: api.TypeString},
@@ -335,7 +335,7 @@ func TestComplexGraph(t *testing.T) {
 		Name:    "Processor 2",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"c": {Role: api.RoleRequired, Type: api.TypeString},
 			"d": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -346,7 +346,7 @@ func TestComplexGraph(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"resolver1":  resolver1,
 			"resolver2":  resolver2,
 			"processor1": processor1,
@@ -379,7 +379,7 @@ func TestReceipts(t *testing.T) {
 		Name:    "Step",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -389,7 +389,7 @@ func TestReceipts(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"step": step,
 		},
 	}
@@ -412,7 +412,7 @@ func TestMissingDependency(t *testing.T) {
 		Name:    "Step",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"nonexistent": {Role: api.RoleRequired, Type: api.TypeString},
 			"output":      {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -423,7 +423,7 @@ func TestMissingDependency(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"step": step,
 		},
 	}
@@ -445,7 +445,7 @@ func TestOptionalInput(t *testing.T) {
 		Name:    "Resolver",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -459,7 +459,7 @@ func TestOptionalInput(t *testing.T) {
 		Name:    "Processor",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -470,7 +470,7 @@ func TestOptionalInput(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"resolver":  resolverStep,
 			"processor": processorStep,
 		},
@@ -497,7 +497,7 @@ func TestOptionalMissing(t *testing.T) {
 		Name:    "Processor",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -508,7 +508,7 @@ func TestOptionalMissing(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"processor": processorStep,
 		},
 	}
@@ -532,7 +532,7 @@ func TestMixedInputs(t *testing.T) {
 		Name:    "Resolver 1",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"required_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -546,7 +546,7 @@ func TestMixedInputs(t *testing.T) {
 		Name:    "Resolver 2",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
@@ -560,7 +560,7 @@ func TestMixedInputs(t *testing.T) {
 		Name:    "Processor",
 		Type:    api.StepTypeSync,
 		Version: "1.0.0",
-		Attributes: map[api.Name]*api.AttributeSpec{
+		Attributes: api.AttributeSpecs{
 			"required_data": {Role: api.RoleRequired, Type: api.TypeString},
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
@@ -572,7 +572,7 @@ func TestMixedInputs(t *testing.T) {
 	}
 
 	engState := &api.EngineState{
-		Steps: map[api.StepID]*api.Step{
+		Steps: api.Steps{
 			"resolver1": resolver1,
 			"resolver2": resolver2,
 			"processor": processorStep,

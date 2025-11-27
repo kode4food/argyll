@@ -296,7 +296,10 @@ func (a *flowActor) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
 }
 
 func (a *flowActor) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
-	step := flow.Plan.GetStep(stepID)
+	step, ok := flow.Plan.Steps[stepID]
+	if !ok {
+		return false
+	}
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
 			if _, ok := flow.Attributes[name]; !ok {
@@ -322,8 +325,8 @@ func (a *flowActor) prepareStep(
 			ErrStepAlreadyPending, stepID, exec.Status)
 	}
 
-	step := flow.Plan.GetStep(stepID)
-	if step == nil {
+	step, ok := flow.Plan.Steps[stepID]
+	if !ok {
 		return nil, fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 	}
 
@@ -486,7 +489,7 @@ func (a *flowActor) checkStepCompletion(
 	}
 
 	// Step succeeded - set attributes and raise completion
-	step := ag.Value().Plan.GetStep(stepID)
+	step := ag.Value().Plan.Steps[stepID]
 	outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
 	dur := time.Since(exec.StartedAt).Milliseconds()
 
@@ -530,8 +533,8 @@ func (a *flowActor) handleWorkNotCompleted(
 		return nil
 	}
 
-	step := ag.Value().Plan.GetStep(stepID)
-	if step == nil {
+	step, ok := ag.Value().Plan.Steps[stepID]
+	if !ok {
 		return nil
 	}
 
@@ -567,8 +570,8 @@ func (a *flowActor) handleWorkNotCompleted(
 func (a *flowActor) getDownstreamConsumers(
 	stepID api.StepID, flow *api.FlowState,
 ) []api.StepID {
-	step := flow.Plan.GetStep(stepID)
-	if step == nil {
+	step, ok := flow.Plan.Steps[stepID]
+	if !ok {
 		return nil
 	}
 
@@ -598,7 +601,7 @@ func (a *flowActor) getDownstreamConsumers(
 }
 
 func aggregateWorkItemOutputs(
-	items map[api.Token]*api.WorkState, step *api.Step,
+	items api.WorkItems, step *api.Step,
 ) api.Args {
 	completed := make([]*api.WorkState, 0, len(items))
 	for _, item := range items {

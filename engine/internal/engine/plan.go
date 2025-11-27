@@ -12,7 +12,7 @@ type planBuilder struct {
 	visited    util.Set[api.StepID]
 	available  util.Set[api.Name]
 	missing    util.Set[api.Name]
-	steps      map[api.StepID]*api.StepInfo
+	steps      api.Steps
 	attributes map[api.Name]*api.Dependencies
 }
 
@@ -55,7 +55,7 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 		visited:    util.Set[api.StepID]{},
 		available:  util.Set[api.Name]{},
 		missing:    util.Set[api.Name]{},
-		steps:      map[api.StepID]*api.StepInfo{},
+		steps:      api.Steps{},
 		attributes: map[api.Name]*api.Dependencies{},
 	}
 
@@ -105,9 +105,7 @@ func (b *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
 func (b *planBuilder) addStepToPlan(stepID api.StepID, step *api.Step) {
 	b.visited.Add(stepID)
 
-	b.steps[stepID] = &api.StepInfo{
-		Step: step,
-	}
+	b.steps[stepID] = step
 
 	for name, attr := range step.Attributes {
 		if attr.IsOutput() {

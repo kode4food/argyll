@@ -25,9 +25,7 @@ func TestRecoveryActivation(t *testing.T) {
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err := env.Engine.StartFlow(
@@ -62,9 +60,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
@@ -284,9 +280,7 @@ func TestRetryExhaustion(t *testing.T) {
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"failing-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	flowID := api.FlowID("exhaustion-flow")
@@ -322,10 +316,10 @@ func TestFindRetriableSteps(t *testing.T) {
 	defer env.Cleanup()
 
 	state := &api.FlowState{
-		Executions: map[api.StepID]*api.ExecutionState{
+		Executions: api.Executions{
 			"step-1": {
 				Status: api.StepPending,
-				WorkItems: map[api.Token]*api.WorkState{
+				WorkItems: api.WorkItems{
 					"token-1": {
 						Status:      api.WorkPending,
 						RetryCount:  1,
@@ -335,7 +329,7 @@ func TestFindRetriableSteps(t *testing.T) {
 			},
 			"step-2": {
 				Status: api.StepActive,
-				WorkItems: map[api.Token]*api.WorkState{
+				WorkItems: api.WorkItems{
 					"token-2": {
 						Status:      api.WorkActive,
 						RetryCount:  1,
@@ -345,7 +339,7 @@ func TestFindRetriableSteps(t *testing.T) {
 			},
 			"step-3": {
 				Status: api.StepPending,
-				WorkItems: map[api.Token]*api.WorkState{
+				WorkItems: api.WorkItems{
 					"token-3": {
 						Status: api.WorkPending,
 					},
@@ -353,7 +347,7 @@ func TestFindRetriableSteps(t *testing.T) {
 			},
 			"step-4": {
 				Status: api.StepPending,
-				WorkItems: map[api.Token]*api.WorkState{
+				WorkItems: api.WorkItems{
 					"token-4": {
 						Status:      api.WorkPending,
 						RetryCount:  2,
@@ -363,7 +357,7 @@ func TestFindRetriableSteps(t *testing.T) {
 			},
 			"step-5": {
 				Status: api.StepCompleted,
-				WorkItems: map[api.Token]*api.WorkState{
+				WorkItems: api.WorkItems{
 					"token-5": {
 						Status:     api.WorkSucceeded,
 						RetryCount: 1,
@@ -394,9 +388,7 @@ func TestRecoverActiveFlows(t *testing.T) {
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	err := env.Engine.StartFlow(
@@ -436,9 +428,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 	step := helpers.NewSimpleStep("step-1")
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
+		Steps: api.Steps{step.ID: step},
 	}
 
 	for i := range count {

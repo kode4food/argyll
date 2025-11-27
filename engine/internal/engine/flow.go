@@ -182,8 +182,8 @@ func (e *Engine) buildFlowDigest(
 }
 
 func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
-	step := flow.Plan.GetStep(stepID)
-	if step == nil {
+	step, ok := flow.Plan.Steps[stepID]
+	if !ok {
 		return false
 	}
 
@@ -229,7 +229,7 @@ func outputNeededByPendingConsumer(
 }
 
 func hasPendingConsumer(
-	consumers []api.StepID, executions map[api.StepID]*api.ExecutionState,
+	consumers []api.StepID, executions api.Executions,
 ) bool {
 	for _, consumerID := range consumers {
 		consumerExec, ok := executions[consumerID]

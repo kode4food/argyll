@@ -17,8 +17,8 @@ var FlowAppliers = makeFlowAppliers()
 // attributes and step executions
 func NewFlowState() *api.FlowState {
 	return &api.FlowState{
-		Attributes: map[api.Name]*api.AttributeValue{},
-		Executions: map[api.StepID]*api.ExecutionState{},
+		Attributes: api.AttributeValues{},
+		Executions: api.Executions{},
 	}
 }
 
@@ -50,7 +50,7 @@ func flowStarted(
 ) *api.FlowState {
 	exec := createExecutions(data.Plan)
 
-	attributes := map[api.Name]*api.AttributeValue{}
+	attributes := api.AttributeValues{}
 	for key, value := range data.Init {
 		attributes[key] = &api.AttributeValue{Value: value}
 	}
@@ -88,7 +88,7 @@ func flowFailed(
 func stepStarted(
 	st *api.FlowState, ev *timebox.Event, data api.StepStartedEvent,
 ) *api.FlowState {
-	workItems := map[api.Token]*api.WorkState{}
+	workItems := api.WorkItems{}
 	for token, inputs := range data.WorkItems {
 		workItems[token] = &api.WorkState{
 			Status: api.WorkPending,
@@ -166,12 +166,12 @@ func attributeSet(
 		SetLastUpdated(ev.Timestamp)
 }
 
-func createExecutions(p *api.ExecutionPlan) map[api.StepID]*api.ExecutionState {
-	exec := map[api.StepID]*api.ExecutionState{}
+func createExecutions(p *api.ExecutionPlan) api.Executions {
+	exec := api.Executions{}
 	for stepID := range p.Steps {
 		exec[stepID] = &api.ExecutionState{
 			Status:    api.StepPending,
-			WorkItems: map[api.Token]*api.WorkState{},
+			WorkItems: api.WorkItems{},
 		}
 	}
 	return exec

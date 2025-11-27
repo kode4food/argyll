@@ -105,7 +105,7 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 // Work item execution functions
 
 func (e *ExecContext) executeWorkItems(
-	ctx context.Context, items map[api.Token]*api.WorkState,
+	ctx context.Context, items api.WorkItems,
 ) {
 	parallelism := 0
 	if e.step.WorkConfig != nil {

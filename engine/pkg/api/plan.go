@@ -10,13 +10,8 @@ type (
 	ExecutionPlan struct {
 		Goals      []StepID               `json:"goals"`
 		Required   []Name                 `json:"required"`
-		Steps      map[StepID]*StepInfo   `json:"steps"`
+		Steps      Steps                  `json:"steps"`
 		Attributes map[Name]*Dependencies `json:"attributes"`
-	}
-
-	// StepInfo contains step metadata
-	StepInfo struct {
-		Step *Step `json:"step"`
 	}
 
 	// Dependencies tracks which steps provide and consume an attribute
@@ -30,14 +25,6 @@ var (
 	ErrRequiredInput  = errors.New("required input not provided")
 	ErrRequiredInputs = errors.New("required inputs not provided")
 )
-
-// GetStep retrieves a step from the plan by ID
-func (p *ExecutionPlan) GetStep(stepID StepID) *Step {
-	if info, ok := p.Steps[stepID]; ok {
-		return info.Step
-	}
-	return nil
-}
 
 // ValidateInputs checks that all required inputs are provided
 func (p *ExecutionPlan) ValidateInputs(args Args) error {
@@ -58,4 +45,3 @@ func (p *ExecutionPlan) ValidateInputs(args Args) error {
 
 	return nil
 }
-
