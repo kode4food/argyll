@@ -6,5 +6,5 @@ export function getStepsFromPlan(
   if (!plan?.steps) {
     return [];
   }
-  return Object.values(plan.steps).map((info) => info.step);
+  return Object.values(plan.steps);
 }

@@ -46,7 +46,7 @@ describe("useStepVisibility", () => {
         goals: ["step1"],
         required: [],
         steps: {
-          step1: { step: step1 },
+          step1: step1,
         },
         attributes: {},
       },
@@ -69,7 +69,7 @@ describe("useStepVisibility", () => {
       goals: ["step1"],
       required: [],
       steps: {
-        step1: { step: step1 },
+        step1: step1,
       },
       attributes: {},
     };
@@ -97,7 +97,7 @@ describe("useStepVisibility", () => {
         goals: ["step1"],
         required: [],
         steps: {
-          step1: { step: step1 },
+          step1: step1,
         },
         attributes: {},
       },
@@ -107,7 +107,7 @@ describe("useStepVisibility", () => {
       goals: ["step2"],
       required: [],
       steps: {
-        step2: { step: step2 },
+        step2: step2,
       },
       attributes: {},
     };

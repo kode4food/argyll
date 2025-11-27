@@ -325,7 +325,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan: {
-        steps: { "step-1": { step: mockStep } },
+        steps: { "step-1": mockStep },
         attributes: {},
         goals: [],
         required: [],
@@ -356,7 +356,7 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       previewPlan: {
-        steps: { "step-1": { step: mockStep } },
+        steps: { "step-1": mockStep },
         attributes: {},
         goals: [],
         required: [],

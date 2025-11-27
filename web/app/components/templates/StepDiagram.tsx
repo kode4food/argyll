@@ -115,7 +115,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
     return {
       attributes,
-      steps: Object.fromEntries(visibleSteps.map((s) => [s.id, { step: s }])),
+      steps: Object.fromEntries(visibleSteps.map((s) => [s.id, s])),
       goals: [],
       required: [],
     };

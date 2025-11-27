@@ -73,10 +73,6 @@ export interface Step {
   script?: ScriptConfig;
 }
 
-export interface StepInfo {
-  step: Step;
-}
-
 export interface Dependencies {
   providers: string[];
   consumers: string[];
@@ -85,7 +81,7 @@ export interface Dependencies {
 export interface ExecutionPlan {
   goals: string[];
   required: string[];
-  steps: Record<string, StepInfo>;
+  steps: Record<string, Step>;
   attributes: Record<string, Dependencies>;
 }
 

@@ -172,7 +172,7 @@ describe("SpudsApi", () => {
           goals: ["step-2"],
           required: ["input1"],
           steps: {
-            "step-1": { step: step1 },
+            "step-1": step1,
           },
           attributes: {},
         },

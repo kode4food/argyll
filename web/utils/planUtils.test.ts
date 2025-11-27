@@ -38,8 +38,8 @@ describe("planUtils", () => {
     test("returns steps from plan", () => {
       const plan: ExecutionPlan = {
         steps: {
-          "step-1": { step: mockStep },
-          "step-2": { step: { ...mockStep, id: "step-2", name: "Step 2" } },
+          "step-1": mockStep,
+          "step-2": { ...mockStep, id: "step-2", name: "Step 2" },
         },
         attributes: {},
         goals: [],
@@ -53,10 +53,10 @@ describe("planUtils", () => {
       expect(result[1].id).toBe("step-2");
     });
 
-    test("extracts step from StepInfo structure", () => {
+    test("returns steps directly without wrapper", () => {
       const plan: ExecutionPlan = {
         steps: {
-          "step-1": { step: mockStep },
+          "step-1": mockStep,
         },
         attributes: {},
         goals: [],
