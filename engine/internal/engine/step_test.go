@@ -130,9 +130,9 @@ func TestScriptMissing(t *testing.T) {
 	require.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
-	_, err = env.Engine.GetCompiledScript(fs)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "execution plan missing")
+	comp, err := env.Engine.GetCompiledScript(fs)
+	assert.NoError(t, err)
+	assert.Nil(t, comp)
 }
 
 func TestPredicate(t *testing.T) {

@@ -14,11 +14,9 @@ type (
 		Attributes map[Name]*Dependencies `json:"attributes"`
 	}
 
-	// StepInfo contains step metadata and compiled scripts
+	// StepInfo contains step metadata
 	StepInfo struct {
-		Step      *Step `json:"step"`
-		Script    any   `json:"-"`
-		Predicate any   `json:"-"`
+		Step *Step `json:"step"`
 	}
 
 	// Dependencies tracks which steps provide and consume an attribute
@@ -61,30 +59,3 @@ func (p *ExecutionPlan) ValidateInputs(args Args) error {
 	return nil
 }
 
-// NeedsCompilation returns true if any scripts need compilation
-func (p *ExecutionPlan) NeedsCompilation() bool {
-	for _, info := range p.Steps {
-		if p.stepNeedsCompile(info) {
-			return true
-		}
-		if p.predNeedsCompile(info) {
-			return true
-		}
-	}
-	return false
-}
-
-func (p *ExecutionPlan) stepNeedsCompile(info *StepInfo) bool {
-	step := info.Step
-	if step.Type != StepTypeScript || step.Script == nil {
-		return false
-	}
-	return info.Script == nil
-}
-
-func (p *ExecutionPlan) predNeedsCompile(info *StepInfo) bool {
-	if info.Step.Predicate == nil {
-		return false
-	}
-	return info.Predicate == nil
-}

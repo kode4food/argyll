@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"log/slog"
 	"slices"
 
 	"github.com/kode4food/timebox"
@@ -286,19 +285,4 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 
 func flowKey(flowID api.FlowID) timebox.AggregateID {
 	return timebox.NewAggregateID("flow", timebox.ID(flowID))
-}
-
-func (e *Engine) ensureScriptsCompiled(flow *api.FlowState) bool {
-	if !flow.Plan.NeedsCompilation() {
-		return true
-	}
-
-	if err := e.scripts.CompilePlan(flow.Plan); err != nil {
-		slog.Error("Failed to compile scripts",
-			slog.Any("flow_id", flow.ID),
-			slog.Any("error", err))
-		return false
-	}
-
-	return true
 }

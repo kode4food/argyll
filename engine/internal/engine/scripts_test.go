@@ -31,7 +31,7 @@ func TestAleCompilation(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangAle)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepScript(step)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 	assert.NotNil(t, comp)
 
@@ -61,7 +61,7 @@ func TestLuaCompilation(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangLua)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepScript(step)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 	assert.NotNil(t, comp)
 
@@ -93,7 +93,7 @@ func TestAlePredicateTrue(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangAle)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepPredicate(step)
+	comp, err := env.Compile(step, step.Predicate)
 	require.NoError(t, err)
 
 	inputs := api.Args{"x": float64(15)}
@@ -124,7 +124,7 @@ func TestAlePredicateFalse(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangAle)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepPredicate(step)
+	comp, err := env.Compile(step, step.Predicate)
 	require.NoError(t, err)
 
 	inputs := api.Args{"x": float64(5)}
@@ -155,7 +155,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangLua)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepPredicate(step)
+	comp, err := env.Compile(step, step.Predicate)
 	require.NoError(t, err)
 
 	inputs := api.Args{"x": float64(15)}
@@ -186,7 +186,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangLua)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepPredicate(step)
+	comp, err := env.Compile(step, step.Predicate)
 	require.NoError(t, err)
 
 	inputs := api.Args{"x": float64(5)}
@@ -203,7 +203,7 @@ func TestUnsupportedLanguage(t *testing.T) {
 	assert.Contains(t, err.Error(), "unsupported")
 }
 
-func TestCompilePlan(t *testing.T) {
+func TestCompileViaRegistry(t *testing.T) {
 	registry := engine.NewScriptRegistry()
 
 	aleStep := helpers.NewScriptStep(
@@ -218,22 +218,17 @@ func TestCompilePlan(t *testing.T) {
 		"http-step", api.ScriptLangAle, "true",
 	)
 
-	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"ale-step", "lua-step", "http-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			aleStep.ID:      {Step: aleStep},
-			luaStep.ID:      {Step: luaStep},
-			httpStepPred.ID: {Step: httpStepPred},
-		},
-	}
-
-	err := registry.CompilePlan(plan)
+	aleComp, err := registry.Compile(aleStep, aleStep.Script)
 	require.NoError(t, err)
+	assert.NotNil(t, aleComp)
 
-	assert.NotNil(t, plan.Steps)
-	assert.NotNil(t, plan.Steps[aleStep.ID].Script)
-	assert.NotNil(t, plan.Steps[luaStep.ID].Script)
-	assert.NotNil(t, plan.Steps[httpStepPred.ID].Predicate)
+	luaComp, err := registry.Compile(luaStep, luaStep.Script)
+	require.NoError(t, err)
+	assert.NotNil(t, luaComp)
+
+	predComp, err := registry.Compile(httpStepPred, httpStepPred.Predicate)
+	require.NoError(t, err)
+	assert.NotNil(t, predComp)
 }
 
 func TestAleComplexScript(t *testing.T) {
@@ -264,7 +259,7 @@ func TestAleComplexScript(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangAle)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepScript(step)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	inputs := api.Args{
@@ -310,7 +305,7 @@ func TestLuaComplexScript(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangLua)
 	require.NoError(t, err)
 
-	comp, err := env.CompileStepScript(step)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	inputs := api.Args{
@@ -336,7 +331,7 @@ func TestAleInvalidSyntax(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangAle)
 	require.NoError(t, err)
 
-	_, err = env.CompileStepScript(step)
+	_, err = env.Compile(step, step.Script)
 	assert.Error(t, err)
 }
 
@@ -350,6 +345,6 @@ func TestLuaInvalidSyntax(t *testing.T) {
 	env, err := registry.Get(api.ScriptLangLua)
 	require.NoError(t, err)
 
-	_, err = env.CompileStepScript(step)
+	_, err = env.Compile(step, step.Script)
 	assert.Error(t, err)
 }

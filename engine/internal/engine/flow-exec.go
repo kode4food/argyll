@@ -93,23 +93,12 @@ func (a *flowActor) createEventHandler() timebox.Handler {
 func (a *flowActor) processFlowStarted(
 	_ *timebox.Event, _ api.FlowStartedEvent,
 ) error {
-	flow, err := a.GetFlowState(a.ctx, a.flowID)
-	if err != nil {
-		return err
-	}
-
-	if !a.ensureScriptsCompiled(flow) {
-		return ErrScriptCompileFailed
-	}
-
-	var fns enqueued
-
-	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+	return a.execTransaction(func(ag *FlowAggregator) (enqueued, error) {
 		if flowTransitions.IsTerminal(ag.Value().Status) {
-			return nil
+			return nil, nil
 		}
 
-		// Find and start initially ready steps
+		var fns enqueued
 		for _, stepID := range a.findInitialSteps(ag.Value()) {
 			fn, err := a.prepareStep(a.ctx, stepID, ag)
 			if err != nil {
@@ -122,56 +111,36 @@ func (a *flowActor) processFlowStarted(
 				fns = append(fns, fn)
 			}
 		}
-
-		return nil
-	}
-
-	if _, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd); err != nil {
-		return err
-	}
-
-	fns.exec()
-	return nil
+		return fns, nil
+	})
 }
 
 // processWorkSucceeded handles a WorkSucceeded event for a specific work item
 func (a *flowActor) processWorkSucceeded(
 	_ *timebox.Event, event api.WorkSucceededEvent,
 ) error {
-	flow, err := a.GetFlowState(a.ctx, a.flowID)
-	if err != nil {
-		return err
-	}
-
-	if !a.ensureScriptsCompiled(flow) {
-		return ErrScriptCompileFailed
-	}
-
-	var fns enqueued
-
-	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+	return a.execTransaction(func(ag *FlowAggregator) (enqueued, error) {
 		// Terminal flows only record step completions for audit
 		if flowTransitions.IsTerminal(ag.Value().Status) {
 			_, err := a.checkStepCompletion(ag, event.StepID)
-			return err
+			return nil, err
 		}
 
-		// Check if this step can now complete
 		completed, err := a.checkStepCompletion(ag, event.StepID)
 		if err != nil {
-			return err
+			return nil, err
 		}
-
 		if !completed {
-			return nil
+			return nil, nil
 		}
 
 		// Step completed - check if it was a goal step
 		if a.isGoalStep(event.StepID, ag.Value()) {
-			return a.checkTerminal(ag)
+			return nil, a.checkTerminal(ag)
 		}
 
 		// Find and start downstream ready steps
+		var fns enqueued
 		for _, consumerID := range a.findReadySteps(event.StepID, ag.Value()) {
 			fn, err := a.prepareStep(a.ctx, consumerID, ag)
 			if err != nil {
@@ -184,58 +153,17 @@ func (a *flowActor) processWorkSucceeded(
 				fns = append(fns, fn)
 			}
 		}
-
-		return nil
-	}
-
-	if _, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd); err != nil {
-		return err
-	}
-
-	fns.exec()
-	return nil
+		return fns, nil
+	})
 }
 
 // processWorkFailed handles a WorkFailed event for a specific work item
 func (a *flowActor) processWorkFailed(
 	_ *timebox.Event, event api.WorkFailedEvent,
 ) error {
-	flow, err := a.GetFlowState(a.ctx, a.flowID)
-	if err != nil {
-		return err
-	}
-
-	if !a.ensureScriptsCompiled(flow) {
-		return ErrScriptCompileFailed
-	}
-
-	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
-		// Terminal flows only record step completions for audit
-		if flowTransitions.IsTerminal(ag.Value().Status) {
-			_, err := a.checkStepCompletion(ag, event.StepID)
-			return err
-		}
-
-		// Check if step should fail (work item already marked as failed)
-		completed, err := a.checkStepCompletion(ag, event.StepID)
-		if err != nil {
-			return err
-		}
-
-		if completed {
-			// Step failed - propagate failure to downstream steps that can
-			// no longer complete
-			if err := a.failUnreachable(ag); err != nil {
-				return err
-			}
-			return a.checkTerminal(ag)
-		}
-
-		return nil
-	}
-
-	_, err = a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd)
-	return err
+	return a.execTransaction(func(ag *FlowAggregator) (enqueued, error) {
+		return nil, a.handleStepFailure(ag, event.StepID)
+	})
 }
 
 // processWorkNotCompleted handles a WorkNotCompleted event for a specific work
@@ -243,47 +171,34 @@ func (a *flowActor) processWorkFailed(
 func (a *flowActor) processWorkNotCompleted(
 	_ *timebox.Event, event api.WorkNotCompletedEvent,
 ) error {
-	flow, err := a.GetFlowState(a.ctx, a.flowID)
-	if err != nil {
+	return a.execTransaction(func(ag *FlowAggregator) (enqueued, error) {
+		if flowTransitions.IsTerminal(ag.Value().Status) {
+			return nil, nil
+		}
+		err := a.handleWorkNotCompleted(ag, event.StepID, event.Token)
+		if err != nil {
+			return nil, err
+		}
+		return nil, a.handleStepFailure(ag, event.StepID)
+	})
+}
+
+// execTransaction executes a function within a flow transaction, handling the
+// common pattern of collecting deferred work and executing it after commit
+func (a *flowActor) execTransaction(
+	fn func(ag *FlowAggregator) (enqueued, error),
+) error {
+	var fns enqueued
+	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
+		var err error
+		fns, err = fn(ag)
 		return err
 	}
-
-	if !a.ensureScriptsCompiled(flow) {
-		return ErrScriptCompileFailed
+	if _, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd); err != nil {
+		return err
 	}
-
-	cmd := func(_ *api.FlowState, ag *FlowAggregator) error {
-		// Terminal flows - nothing to do
-		if flowTransitions.IsTerminal(ag.Value().Status) {
-			return nil
-		}
-
-		// Make retry decision for this specific work item
-		if err := a.handleWorkNotCompleted(
-			ag, event.StepID, event.Token,
-		); err != nil {
-			return err
-		}
-
-		// Check if step should now fail (if retry was denied)
-		completed, err := a.checkStepCompletion(ag, event.StepID)
-		if err != nil {
-			return err
-		}
-
-		if completed {
-			// Step failed - propagate failure to downstream steps
-			if err := a.failUnreachable(ag); err != nil {
-				return err
-			}
-			return a.checkTerminal(ag)
-		}
-
-		return nil
-	}
-
-	_, err = a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd)
-	return err
+	fns.exec()
+	return nil
 }
 
 // isGoalStep returns true if the step is a goal step
@@ -469,6 +384,30 @@ func (e enqueued) exec() {
 	for _, fn := range e {
 		fn()
 	}
+}
+
+// handleStepFailure handles common failure logic for processWorkFailed and
+// processWorkNotCompleted - checking step completion and propagating failures
+func (a *flowActor) handleStepFailure(
+	ag *FlowAggregator, stepID api.StepID,
+) error {
+	if flowTransitions.IsTerminal(ag.Value().Status) {
+		_, err := a.checkStepCompletion(ag, stepID)
+		return err
+	}
+
+	completed, err := a.checkStepCompletion(ag, stepID)
+	if err != nil {
+		return err
+	}
+
+	if completed {
+		if err := a.failUnreachable(ag); err != nil {
+			return err
+		}
+		return a.checkTerminal(ag)
+	}
+	return nil
 }
 
 // findInitialSteps finds steps that can start when a flow begins

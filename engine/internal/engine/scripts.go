@@ -13,21 +13,13 @@ type (
 		envs map[string]ScriptEnvironment
 	}
 
-	// ScriptEnvironment defines the interface for script execution environments
+	// ScriptEnvironment defines the interface for script environments
 	ScriptEnvironment interface {
 		// Validate checks if a script is syntactically valid
 		Validate(step *api.Step, script string) error
 
 		// Compile compiles a script and returns the compiled form
-		Compile(
-			step *api.Step, script string, argNames []string,
-		) (Compiled, error)
-
-		// CompileStepScript compiles a step's main script
-		CompileStepScript(step *api.Step) (Compiled, error)
-
-		// CompileStepPredicate compiles a step's predicate
-		CompileStepPredicate(step *api.Step) (Compiled, error)
+		Compile(step *api.Step, cfg *api.ScriptConfig) (Compiled, error)
 
 		// ExecuteScript executes a compiled script with the given inputs
 		ExecuteScript(
@@ -43,11 +35,6 @@ type (
 	// Compiled represents a compiled script for any supported language.
 	// Concrete types: data.Procedure (Ale), *CompiledLuaScript (Lua)
 	Compiled any
-)
-
-const (
-	scriptType    = "script"
-	predicateType = "predicate"
 )
 
 var (
@@ -74,52 +61,16 @@ func (r *ScriptRegistry) Get(language string) (ScriptEnvironment, error) {
 	return env, nil
 }
 
-// CompilePlan compiles all scripts in the execution plan
-func (r *ScriptRegistry) CompilePlan(plan *api.ExecutionPlan) error {
-	for _, info := range plan.Steps {
-		if err := r.compileStepScript(info); err != nil {
-			return err
-		}
-		if err := r.compileStepPredicate(info); err != nil {
-			return err
-		}
+// Compile compiles a script config
+func (r *ScriptRegistry) Compile(
+	step *api.Step, cfg *api.ScriptConfig,
+) (Compiled, error) {
+	if cfg == nil {
+		return nil, nil
 	}
-
-	return nil
-}
-
-func (r *ScriptRegistry) compileStepScript(info *api.StepInfo) error {
-	step := info.Step
-	if step.Type != api.StepTypeScript || step.Script == nil {
-		return nil
-	}
-
-	env, err := r.Get(step.Script.Language)
+	env, err := r.Get(cfg.Language)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	comp, err := env.CompileStepScript(step)
-	if err != nil {
-		return err
-	}
-	info.Script = comp
-	return nil
-}
-
-func (r *ScriptRegistry) compileStepPredicate(info *api.StepInfo) error {
-	step := info.Step
-	if step.Predicate == nil {
-		return nil
-	}
-
-	env, err := r.Get(step.Predicate.Language)
-	if err != nil {
-		return err
-	}
-	comp, err := env.CompileStepPredicate(step)
-	if err != nil {
-		return err
-	}
-	info.Predicate = comp
-	return nil
+	return env.Compile(step, cfg)
 }

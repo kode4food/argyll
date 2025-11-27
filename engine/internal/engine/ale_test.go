@@ -11,14 +11,15 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-func TestCacheForCurrentSteps(t *testing.T) {
+func TestAleCacheForSameScript(t *testing.T) {
 	env := engine.NewAleEnv()
 
 	step := &api.Step{
 		ID:   "test-step",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: "{:result (+ a b)}",
+			Script:   "{:result (+ a b)}",
+			Language: api.ScriptLangAle,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"a":      {Role: api.RoleRequired},
@@ -27,19 +28,17 @@ func TestCacheForCurrentSteps(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-
-	proc1, err := env.Compile(step, step.Script.Script, names)
+	proc1, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
-	proc2, err := env.Compile(step, step.Script.Script, names)
+	proc2, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	// Verify scripts are cached by checking same object returned
 	assert.Equal(t, proc1, proc2)
 }
 
-func TestCompileForPlan(t *testing.T) {
+func TestAleCompileViaRegistry(t *testing.T) {
 	registry := engine.NewScriptRegistry()
 
 	script := &api.Step{
@@ -69,137 +68,32 @@ func TestCompileForPlan(t *testing.T) {
 		},
 	}
 
-	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"script-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			script.ID: {Step: script},
-			pred.ID:   {Step: pred},
-		},
-	}
-
-	err := registry.CompilePlan(plan)
+	scriptComp, err := registry.Compile(script, script.Script)
 	require.NoError(t, err)
+	assert.NotNil(t, scriptComp)
 
-	assert.NotNil(t, plan.Steps[script.ID].Script)
-	assert.NotNil(t, plan.Steps[pred.ID].Predicate)
-
-	scriptProc, ok := plan.Steps[script.ID].Script.(data.Procedure)
+	scriptProc, ok := scriptComp.(data.Procedure)
 	assert.True(t, ok)
 	assert.NotNil(t, scriptProc)
 
-	predProc, ok := plan.Steps[pred.ID].Predicate.(data.Procedure)
+	predComp, err := registry.Compile(pred, pred.Predicate)
+	require.NoError(t, err)
+	assert.NotNil(t, predComp)
+
+	predProc, ok := predComp.(data.Procedure)
 	assert.True(t, ok)
 	assert.NotNil(t, predProc)
 }
 
-func TestCompiledIndependence(t *testing.T) {
-	registry := engine.NewScriptRegistry()
-
-	step := &api.Step{
-		ID:   "test-step",
-		Type: api.StepTypeScript,
-		Script: &api.ScriptConfig{
-			Script:   "{:result (+ a b)}",
-			Language: api.ScriptLangAle,
-		},
-		Attributes: map[api.Name]*api.AttributeSpec{
-			"a":      {Role: api.RoleRequired},
-			"b":      {Role: api.RoleRequired},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
-		},
-	}
-
-	pl1 := &api.ExecutionPlan{
-		Goals: []api.StepID{"test-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
-	}
-
-	pl2 := &api.ExecutionPlan{
-		Goals: []api.StepID{"test-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			step.ID: {Step: step},
-		},
-	}
-
-	err := registry.CompilePlan(pl1)
-	require.NoError(t, err)
-
-	err = registry.CompilePlan(pl2)
-	require.NoError(t, err)
-
-	proc1, ok1 := pl1.Steps[step.ID].Script.(data.Procedure)
-	proc2, ok2 := pl2.Steps[step.ID].Script.(data.Procedure)
-
-	assert.True(t, ok1)
-	assert.True(t, ok2)
-
-	assert.Equal(t, proc1, proc2)
-
-	pl1.Steps[step.ID].Script = nil
-
-	assert.NotNil(t, pl2.Steps[step.ID].Script)
-}
-
-func TestIsolatedUpdate(t *testing.T) {
-	registry := engine.NewScriptRegistry()
-	env, _ := registry.Get(api.ScriptLangAle)
-
-	oldStep := &api.Step{
-		ID:   "test-step",
-		Type: api.StepTypeScript,
-		Script: &api.ScriptConfig{
-			Script:   "{:result (+ a b)}",
-			Language: api.ScriptLangAle,
-		},
-		Attributes: map[api.Name]*api.AttributeSpec{
-			"a":      {Role: api.RoleRequired},
-			"b":      {Role: api.RoleRequired},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
-		},
-	}
-
-	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"test-step"},
-		Steps: map[api.StepID]*api.StepInfo{
-			oldStep.ID: {Step: oldStep},
-		},
-	}
-
-	err := registry.CompilePlan(plan)
-	require.NoError(t, err)
-
-	oldProc := plan.Steps[oldStep.ID].Script
-
-	newStep := &api.Step{
-		ID:   "test-step",
-		Type: api.StepTypeScript,
-		Script: &api.ScriptConfig{
-			Script: "{:result (* a b)}",
-		},
-		Attributes: map[api.Name]*api.AttributeSpec{
-			"a":      {Role: api.RoleRequired},
-			"b":      {Role: api.RoleRequired},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
-		},
-	}
-
-	names := newStep.SortedArgNames()
-	_, err = env.Compile(newStep, newStep.Script.Script, names)
-	require.NoError(t, err)
-
-	assert.Equal(t, oldProc, plan.Steps[oldStep.ID].Script)
-}
-
-func TestExecuteScript(t *testing.T) {
+func TestAleExecuteScript(t *testing.T) {
 	env := engine.NewAleEnv()
 
 	step := &api.Step{
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: "{:result (+ a b)}",
+			Script:   "{:result (+ a b)}",
+			Language: api.ScriptLangAle,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"a":      {Role: api.RoleRequired},
@@ -208,8 +102,7 @@ func TestExecuteScript(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-	proc, err := env.Compile(step, step.Script.Script, names)
+	proc, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	args := api.Args{
@@ -224,7 +117,7 @@ func TestExecuteScript(t *testing.T) {
 	assert.Equal(t, 15, result["result"])
 }
 
-func TestEvaluatePredicate(t *testing.T) {
+func TestAleEvaluatePredicate(t *testing.T) {
 	env := engine.NewAleEnv()
 
 	tests := []struct {
@@ -259,7 +152,8 @@ func TestEvaluatePredicate(t *testing.T) {
 				ID:   "test",
 				Type: api.StepTypeSync,
 				Predicate: &api.ScriptConfig{
-					Script: tt.predicate,
+					Script:   tt.predicate,
+					Language: api.ScriptLangAle,
 				},
 				Attributes: map[api.Name]*api.AttributeSpec{
 					"x": {Role: api.RoleRequired},
@@ -267,8 +161,11 @@ func TestEvaluatePredicate(t *testing.T) {
 				},
 			}
 
-			names := step.SortedArgNames()
-			comp, err := env.Compile(step, tt.predicate, names)
+			cfg := &api.ScriptConfig{
+				Script:   tt.predicate,
+				Language: api.ScriptLangAle,
+			}
+			comp, err := env.Compile(step, cfg)
 			require.NoError(t, err)
 
 			result, err := env.EvaluatePredicate(comp, step, tt.args)
@@ -278,7 +175,7 @@ func TestEvaluatePredicate(t *testing.T) {
 	}
 }
 
-func TestValidate(t *testing.T) {
+func TestAleValidate(t *testing.T) {
 	env := engine.NewAleEnv()
 
 	tests := []struct {
@@ -318,6 +215,7 @@ func TestAleComplexConversion(t *testing.T) {
 		ID:   "complex-types",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
+			Language: api.ScriptLangAle,
 			Script: `{
 				:bool_val is_active
 				:string_val name
@@ -346,8 +244,7 @@ func TestAleComplexConversion(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-	comp, err := env.Compile(step, step.Script.Script, names)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	args := api.Args{
@@ -391,15 +288,15 @@ func TestAleListConversion(t *testing.T) {
 		ID:   "list-test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: `{:list_result (list 1 2 3 4 5)}`,
+			Language: api.ScriptLangAle,
+			Script:   `{:list_result (list 1 2 3 4 5)}`,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"list_result": {Role: api.RoleRequired},
 		},
 	}
 
-	names := step.SortedArgNames()
-	comp, err := env.Compile(step, step.Script.Script, names)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	result, err := env.ExecuteScript(comp, step, api.Args{})

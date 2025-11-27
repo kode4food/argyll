@@ -3,7 +3,6 @@ package engine
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log/slog"
 	"sync"
 	"time"
@@ -148,10 +147,6 @@ func (e *Engine) StartFlow(
 	}
 
 	if err := plan.ValidateInputs(initState); err != nil {
-		return err
-	}
-
-	if err := e.scripts.CompilePlan(plan); err != nil {
 		return err
 	}
 
@@ -324,48 +319,35 @@ func (e *Engine) retryWork(
 	execCtx.executeWorkItem(ctx, token, workItem)
 }
 
-func (e *Engine) getCompiledFromPlan(
-	fs FlowStep, getter func(*api.StepInfo) (any, error),
-) (any, error) {
+func (e *Engine) getStepFromPlan(fs FlowStep) (*api.Step, error) {
 	flow, err := e.GetFlowState(e.ctx, fs.FlowID)
 	if err != nil {
 		return nil, err
 	}
 
-	if !e.ensureScriptsCompiled(flow) {
-		return nil, ErrScriptCompileFailed
-	}
-
-	info, ok := flow.Plan.Steps[fs.StepID]
-	if !ok {
+	step := flow.Plan.GetStep(fs.StepID)
+	if step == nil {
 		return nil, ErrStepNotInPlan
 	}
-
-	return getter(info)
+	return step, nil
 }
 
 // GetCompiledPredicate retrieves the compiled predicate for a flow step
 func (e *Engine) GetCompiledPredicate(fs FlowStep) (any, error) {
-	return e.getCompiledFromPlan(fs,
-		func(info *api.StepInfo) (any, error) {
-			if info.Predicate == nil {
-				return nil, fmt.Errorf("%w: predicate", ErrExecutionPlanMissing)
-			}
-			return info.Predicate, nil
-		},
-	)
+	step, err := e.getStepFromPlan(fs)
+	if err != nil {
+		return nil, err
+	}
+	return e.scripts.Compile(step, step.Predicate)
 }
 
 // GetCompiledScript retrieves the compiled script for a step in a flow
 func (e *Engine) GetCompiledScript(fs FlowStep) (any, error) {
-	return e.getCompiledFromPlan(fs,
-		func(info *api.StepInfo) (any, error) {
-			if info.Script == nil {
-				return nil, fmt.Errorf("%w: script", ErrExecutionPlanMissing)
-			}
-			return info.Script, nil
-		},
-	)
+	step, err := e.getStepFromPlan(fs)
+	if err != nil {
+		return nil, err
+	}
+	return e.scripts.Compile(step, step.Script)
 }
 
 func (e *Engine) saveEngineSnapshot() {

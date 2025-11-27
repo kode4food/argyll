@@ -142,17 +142,7 @@ func (e *Engine) compileScript(ctx context.Context, step *api.Step) {
 		return
 	}
 
-	env, err := e.scripts.Get(step.Script.Language)
-	if err != nil {
-		e.handleCompileError(
-			ctx, step.ID, "Failed to get script environment", err,
-		)
-		return
-	}
-
-	names := step.SortedArgNames()
-	_, err = env.Compile(step, step.Script.Script, names)
-
+	_, err := e.scripts.Compile(step, step.Script)
 	if err != nil {
 		e.handleCompileError(ctx, step.ID, "Failed to compile script", err)
 		return

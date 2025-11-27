@@ -1,12 +1,9 @@
 package engine
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/kode4food/ale"
 	"github.com/kode4food/ale/core/bootstrap"
@@ -14,17 +11,19 @@ import (
 	"github.com/kode4food/ale/env"
 	"github.com/kode4food/ale/eval"
 
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
 // AleEnv provides an Ale script execution environment
 type AleEnv struct {
-	env     *env.Environment
-	scripts sync.Map
+	env   *env.Environment
+	cache *util.LRUCache[data.Procedure]
 }
 
 const (
 	aleLambdaTemplate = "(lambda (%s) %s)"
+	aleCacheSize      = 1024
 )
 
 var (
@@ -40,70 +39,43 @@ func NewAleEnv() *AleEnv {
 	e := env.NewEnvironment()
 	bootstrap.Into(e)
 	return &AleEnv{
-		env: e,
+		env:   e,
+		cache: util.NewLRUCache[data.Procedure](aleCacheSize),
 	}
 }
 
-// Compile compiles an Ale script with the given argument names, returning a
-// procedure or an error
+// Compile compiles a script configuration
 func (e *AleEnv) Compile(
-	step *api.Step, script string, argNames []string,
+	step *api.Step, cfg *api.ScriptConfig,
 ) (Compiled, error) {
-	if script == "" {
+	if cfg.Script == "" {
 		return nil, nil
 	}
 
-	key := scriptCacheKey(step.ID, script)
-
-	if val, ok := e.scripts.Load(key); ok {
-		return val.(data.Procedure), nil
-	}
-
-	proc, err := e.compile(script, argNames)
-	if err == nil {
-		e.scripts.Store(key, proc)
-	}
-	return proc, err
-}
-
-// CompileStepScript compiles the main script for a step, extracting and
-// ordering argument names automatically
-func (e *AleEnv) CompileStepScript(step *api.Step) (Compiled, error) {
-	names := step.SortedArgNames()
-	return e.compileScript(step.ID, scriptType, step.Script.Script, names)
-}
-
-// CompileStepPredicate compiles the predicate script for a step, which
-// determines if the step should execute
-func (e *AleEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
-	names := step.SortedArgNames()
-	return e.compileScript(
-		step.ID, predicateType, step.Predicate.Script, names,
+	argNames := step.SortedArgNames()
+	src := fmt.Sprintf(
+		aleLambdaTemplate, strings.Join(argNames, " "), cfg.Script,
 	)
-}
 
-func (e *AleEnv) compileScript(
-	stepID api.StepID, scriptType, script string, argNames []string,
-) (data.Procedure, error) {
-	key := scriptCacheKey(stepID, script)
-
-	if val, ok := e.scripts.Load(key); ok {
-		return val.(data.Procedure), nil
+	if proc, ok := e.cache.Get(src); ok {
+		return proc, nil
 	}
 
-	proc, err := e.compile(script, argNames)
+	proc, err := e.compileSource(src)
 	if err != nil {
-		return nil, fmt.Errorf("step %s %s: %w", stepID, scriptType, err)
+		return nil, err
 	}
 
-	e.scripts.Store(key, proc)
+	e.cache.Set(src, proc)
 	return proc, nil
 }
 
 // Validate checks if an Ale script is syntactically correct without running it
 func (e *AleEnv) Validate(step *api.Step, script string) error {
-	names := step.SortedArgNames()
-	_, err := e.compile(script, names)
+	_, err := e.Compile(step, &api.ScriptConfig{
+		Script:   script,
+		Language: api.ScriptLangAle,
+	})
 	return err
 }
 
@@ -149,13 +121,7 @@ func (e *AleEnv) EvaluatePredicate(
 	return evaluatePredicate(proc, step, inputs)
 }
 
-func (e *AleEnv) compile(
-	script string, argNames []string,
-) (proc data.Procedure, err error) {
-	src := fmt.Sprintf(
-		aleLambdaTemplate, strings.Join(argNames, " "), script,
-	)
-
+func (e *AleEnv) compileSource(src string) (proc data.Procedure, err error) {
 	return catchPanic(ErrAleCompile,
 		func() (data.Procedure, error) {
 			ns := e.env.GetAnonymous()
@@ -171,12 +137,6 @@ func (e *AleEnv) compile(
 			return proc, nil
 		},
 	)
-}
-
-func scriptCacheKey(stepID api.StepID, script string) string {
-	hash := sha256.Sum256([]byte(script))
-	scriptHash := hex.EncodeToString(hash[:8])
-	return fmt.Sprintf("%s:%s", stepID, scriptHash)
 }
 
 func executeScript(

@@ -17,7 +17,8 @@ func TestLuaCompile(t *testing.T) {
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: "return {result = a + b}",
+			Script:   "return {result = a + b}",
+			Language: api.ScriptLangLua,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"a":      {Role: api.RoleRequired},
@@ -26,8 +27,7 @@ func TestLuaCompile(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-	comp, err := env.Compile(step, step.Script.Script, names)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 	assert.NotNil(t, comp)
 }
@@ -39,7 +39,8 @@ func TestLuaExecuteScript(t *testing.T) {
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: "return {result = a + b}",
+			Script:   "return {result = a + b}",
+			Language: api.ScriptLangLua,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"a":      {Role: api.RoleRequired},
@@ -48,8 +49,7 @@ func TestLuaExecuteScript(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-	comp, err := env.Compile(step, step.Script.Script, names)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	args := api.Args{
@@ -99,7 +99,8 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 				ID:   "test",
 				Type: api.StepTypeSync,
 				Predicate: &api.ScriptConfig{
-					Script: tt.predicate,
+					Script:   tt.predicate,
+					Language: api.ScriptLangLua,
 				},
 				Attributes: map[api.Name]*api.AttributeSpec{
 					"x": {Role: api.RoleRequired},
@@ -107,8 +108,10 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 				},
 			}
 
-			names := step.SortedArgNames()
-			comp, err := env.Compile(step, tt.predicate, names)
+			comp, err := env.Compile(step, &api.ScriptConfig{
+				Script:   tt.predicate,
+				Language: api.ScriptLangLua,
+			})
 			require.NoError(t, err)
 
 			result, err := env.EvaluatePredicate(comp, step, tt.args)
@@ -158,7 +161,8 @@ func TestLuaScriptCache(t *testing.T) {
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: "return {result = a + b}",
+			Script:   "return {result = a + b}",
+			Language: api.ScriptLangLua,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"a":      {Role: api.RoleRequired},
@@ -167,21 +171,19 @@ func TestLuaScriptCache(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-
-	proc1, err := env.Compile(step, step.Script.Script, names)
+	proc1, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
-	proc2, err := env.Compile(step, step.Script.Script, names)
+	proc2, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	assert.Equal(t, proc1, proc2)
 }
 
-func TestLuaCompileStepScript(t *testing.T) {
-	env := engine.NewLuaEnv()
+func TestLuaCompileViaRegistry(t *testing.T) {
+	registry := engine.NewScriptRegistry()
 
-	step := &api.Step{
+	script := &api.Step{
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -193,15 +195,7 @@ func TestLuaCompileStepScript(t *testing.T) {
 		},
 	}
 
-	comp, err := env.CompileStepScript(step)
-	require.NoError(t, err)
-	assert.NotNil(t, comp)
-}
-
-func TestLuaCompileStepPredicate(t *testing.T) {
-	env := engine.NewLuaEnv()
-
-	step := &api.Step{
+	pred := &api.Step{
 		ID:   "test",
 		Type: api.StepTypeSync,
 		Predicate: &api.ScriptConfig{
@@ -213,9 +207,13 @@ func TestLuaCompileStepPredicate(t *testing.T) {
 		},
 	}
 
-	comp, err := env.CompileStepPredicate(step)
+	scriptComp, err := registry.Compile(script, script.Script)
 	require.NoError(t, err)
-	assert.NotNil(t, comp)
+	assert.NotNil(t, scriptComp)
+
+	predComp, err := registry.Compile(pred, pred.Predicate)
+	require.NoError(t, err)
+	assert.NotNil(t, predComp)
 }
 
 func TestLuaComplexConversion(t *testing.T) {
@@ -225,6 +223,7 @@ func TestLuaComplexConversion(t *testing.T) {
 		ID:   "complex-types",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
 			Script: `
 				return {
 					bool_val = is_active,
@@ -246,8 +245,7 @@ func TestLuaComplexConversion(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-	comp, err := env.Compile(step, step.Script.Script, names)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	args := api.Args{
@@ -273,7 +271,8 @@ func TestLuaArrayTableConversion(t *testing.T) {
 		ID:   "array-test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Script: `return {numbers = {1, 2, 3, 4, 5}, count = 5}`,
+			Language: api.ScriptLangLua,
+			Script:   `return {numbers = {1, 2, 3, 4, 5}, count = 5}`,
 		},
 		Attributes: map[api.Name]*api.AttributeSpec{
 			"numbers": {Role: api.RoleRequired},
@@ -281,8 +280,7 @@ func TestLuaArrayTableConversion(t *testing.T) {
 		},
 	}
 
-	names := step.SortedArgNames()
-	comp, err := env.Compile(step, step.Script.Script, names)
+	comp, err := env.Compile(step, step.Script)
 	require.NoError(t, err)
 
 	result, err := env.ExecuteScript(comp, step, api.Args{})
@@ -354,7 +352,8 @@ func TestLuaInputTypes(t *testing.T) {
 				ID:   api.StepID(tt.name),
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
-					Script: tt.script,
+					Language: api.ScriptLangLua,
+					Script:   tt.script,
 				},
 				Attributes: map[api.Name]*api.AttributeSpec{
 					"val":    {Role: api.RoleRequired},
@@ -364,8 +363,7 @@ func TestLuaInputTypes(t *testing.T) {
 				},
 			}
 
-			names := step.SortedArgNames()
-			comp, err := env.Compile(step, step.Script.Script, names)
+			comp, err := env.Compile(step, step.Script)
 			require.NoError(t, err)
 
 			result, err := env.ExecuteScript(comp, step, tt.inputs)

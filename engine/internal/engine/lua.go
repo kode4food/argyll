@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
 
 	"github.com/Shopify/go-lua"
 
+	"github.com/kode4food/spuds/engine/internal/util"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -16,7 +16,7 @@ type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
 		statePool chan *lua.State
-		scripts   sync.Map
+		cache     *util.LRUCache[*CompiledLua]
 	}
 
 	// CompiledLua represents a compiled Lua script
@@ -27,6 +27,7 @@ type (
 )
 
 const (
+	luaCacheSize        = 1024
 	luaStatePoolSize    = 10
 	luaGlobalTableIndex = -2
 	luaArrayTableIndex  = -3
@@ -51,69 +52,38 @@ var luaExclude = [...]string{
 func NewLuaEnv() *LuaEnv {
 	return &LuaEnv{
 		statePool: make(chan *lua.State, luaStatePoolSize),
+		cache:     util.NewLRUCache[*CompiledLua](luaCacheSize),
 	}
 }
 
-// Compile compiles a Lua script with the given argument names, returning the
-// compiled form or an error
+// Compile compiles a script configuration
 func (e *LuaEnv) Compile(
-	step *api.Step, script string, argNames []string,
+	step *api.Step, cfg *api.ScriptConfig,
 ) (Compiled, error) {
-	if script == "" {
+	if cfg.Script == "" {
 		return nil, nil
 	}
 
-	key := scriptCacheKey(step.ID, script)
+	argNames := step.SortedArgNames()
+	src := e.buildSource(cfg.Script, argNames)
 
-	if val, ok := e.scripts.Load(key); ok {
-		return val.(*CompiledLua), nil
+	if c, ok := e.cache.Get(src); ok {
+		return c, nil
 	}
 
-	c, err := e.compile(script, argNames)
-	if err == nil {
-		e.scripts.Store(key, c)
-	}
-	return c, err
-}
-
-// CompileStepScript compiles the main script for a step, extracting and
-// ordering argument names automatically
-func (e *LuaEnv) CompileStepScript(step *api.Step) (Compiled, error) {
-	names := step.SortedArgNames()
-	return e.compileScript(step.ID, scriptType, step.Script.Script, names)
-}
-
-// CompileStepPredicate compiles the predicate script for a step, which
-// determines if the step should execute
-func (e *LuaEnv) CompileStepPredicate(step *api.Step) (Compiled, error) {
-	names := step.SortedArgNames()
-	return e.compileScript(
-		step.ID, predicateType, step.Predicate.Script, names,
-	)
-}
-
-func (e *LuaEnv) compileScript(
-	stepID api.StepID, scriptType, script string, argNames []string,
-) (*CompiledLua, error) {
-	key := scriptCacheKey(stepID, script)
-
-	if val, ok := e.scripts.Load(key); ok {
-		return val.(*CompiledLua), nil
-	}
-
-	c, err := e.compile(script, argNames)
+	c, err := e.compileSource(src, argNames)
 	if err != nil {
-		return nil, fmt.Errorf("step %s %s: %w", stepID, scriptType, err)
+		return nil, err
 	}
 
-	e.scripts.Store(key, c)
+	e.cache.Set(src, c)
 	return c, nil
 }
 
 // Validate checks if a Lua script is syntactically correct without running it
 func (e *LuaEnv) Validate(step *api.Step, script string) error {
-	names := step.SortedArgNames()
-	_, err := e.compile(script, names)
+	cfg := &api.ScriptConfig{Script: script, Language: api.ScriptLangLua}
+	_, err := e.Compile(step, cfg)
 	return err
 }
 
@@ -147,18 +117,19 @@ func (e *LuaEnv) EvaluatePredicate(
 	return evaluateLuaPredicate(e, script, inputs)
 }
 
-func (e *LuaEnv) compile(
-	script string, argNames []string,
-) (*CompiledLua, error) {
+func (e *LuaEnv) buildSource(script string, argNames []string) string {
 	argLocals := make([]string, len(argNames))
 	for i, name := range argNames {
 		argLocals[i] = fmt.Sprintf(luaArgLocalTemplate, name, i+1)
 	}
-
-	src := strings.Join([]string{
+	return strings.Join([]string{
 		strings.Join(argLocals, luaScriptSeparator), script,
 	}, luaScriptSeparator)
+}
 
+func (e *LuaEnv) compileSource(
+	src string, argNames []string,
+) (*CompiledLua, error) {
 	L := lua.NewState()
 
 	e.setupSandbox(L)
