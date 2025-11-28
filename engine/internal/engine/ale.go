@@ -27,7 +27,7 @@ const (
 )
 
 var (
-	ErrAleBadCompiledType = errors.New("expected data.Procedure")
+	ErrAleBadCompiledType = errors.New("expected ale procedure")
 	ErrAleNotProcedure    = errors.New("not a procedure")
 	ErrAleCompile         = errors.New("script compile error")
 	ErrAleCall            = errors.New("error calling procedure")

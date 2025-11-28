@@ -38,7 +38,7 @@ const (
 )
 
 var (
-	ErrLuaBadCompiledType = errors.New("expected *CompiledLua")
+	ErrLuaBadCompiledType = errors.New("expected compiled lua")
 	ErrLuaLoad            = errors.New("lua load error")
 	ErrLuaExecution       = errors.New("lua execution error")
 )
