@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"maps"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -203,12 +205,7 @@ func (a *flowActor) execTransaction(
 
 // isGoalStep returns true if the step is a goal step
 func (a *flowActor) isGoalStep(stepID api.StepID, flow *api.FlowState) bool {
-	for _, goalID := range flow.Plan.Goals {
-		if goalID == stepID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(flow.Plan.Goals, stepID)
 }
 
 // checkTerminal checks for flow completion or failure
@@ -218,9 +215,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		result := api.Args{}
 		for _, goalID := range flow.Plan.Goals {
 			if goal := flow.Executions[goalID]; goal != nil {
-				for k, v := range goal.Outputs {
-					result[k] = v
-				}
+				maps.Copy(result, goal.Outputs)
 			}
 		}
 		return events.Raise(ag, api.EventTypeFlowCompleted,
@@ -446,7 +441,7 @@ func (a *flowActor) findReadySteps(
 // done) and raises appropriate completion or failure events
 func (a *flowActor) checkStepCompletion(
 	ag *FlowAggregator, stepID api.StepID,
-) (completed bool, err error) {
+) (bool, error) {
 	exec, ok := ag.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
 		return false, nil
@@ -478,14 +473,13 @@ func (a *flowActor) checkStepCompletion(
 		if failureError == "" {
 			failureError = "work item failed"
 		}
-		err = events.Raise(ag, api.EventTypeStepFailed,
+		return true, events.Raise(ag, api.EventTypeStepFailed,
 			api.StepFailedEvent{
 				FlowID: a.flowID,
 				StepID: stepID,
 				Error:  failureError,
 			},
 		)
-		return true, err
 	}
 
 	// Step succeeded - set attributes and raise completion
@@ -508,7 +502,7 @@ func (a *flowActor) checkStepCompletion(
 		}
 	}
 
-	err = events.Raise(ag, api.EventTypeStepCompleted,
+	return true, events.Raise(ag, api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
 			FlowID:   a.flowID,
 			StepID:   stepID,
@@ -516,7 +510,6 @@ func (a *flowActor) checkStepCompletion(
 			Duration: dur,
 		},
 	)
-	return true, err
 }
 
 // handleWorkNotCompleted handles retry decision for a specific work item
@@ -600,9 +593,7 @@ func (a *flowActor) getDownstreamConsumers(
 	return consumers
 }
 
-func aggregateWorkItemOutputs(
-	items api.WorkItems, step *api.Step,
-) api.Args {
+func aggregateWorkItemOutputs(items api.WorkItems, step *api.Step) api.Args {
 	completed := make([]*api.WorkState, 0, len(items))
 	for _, item := range items {
 		if item.Status == api.WorkSucceeded {
