@@ -29,8 +29,6 @@ type Order struct {
 }
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
