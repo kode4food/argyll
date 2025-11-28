@@ -1085,7 +1085,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.Contains(t, w.Body.String(), "does not exist")
+	assert.Contains(t, w.Body.String(), "not found")
 }
 
 func TestUpdateStepInvalidJSON(t *testing.T) {

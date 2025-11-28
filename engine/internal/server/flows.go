@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -79,7 +80,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	if existsError(err) {
+	if errors.Is(err, engine.ErrFlowExists) {
 		c.JSON(http.StatusConflict, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", err.Error(), flowID),
 			Status: http.StatusConflict,
@@ -101,7 +102,7 @@ func (s *Server) getFlow(c *gin.Context) {
 		return
 	}
 
-	if isNotFoundError(err) {
+	if errors.Is(err, engine.ErrFlowNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", err.Error(), flowID),
 			Status: http.StatusNotFound,
@@ -133,7 +134,7 @@ func (s *Server) createPlan(
 		return plan, true
 	}
 
-	if isNotFoundError(err) {
+	if errors.Is(err, engine.ErrStepNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", err.Error(), goalStepIDs),
 			Status: http.StatusNotFound,

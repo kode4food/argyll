@@ -24,8 +24,6 @@ type (
 )
 
 var (
-	ErrStepAlreadyExists  = errors.New("step already exists")
-	ErrStepDoesNotExist   = errors.New("step does not exist")
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
 )
@@ -42,7 +40,7 @@ func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
 			if existing.Equal(step) {
 				return nil
 			}
-			return fmt.Errorf("%w: %s", ErrStepAlreadyExists, step.ID)
+			return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
 			return err
@@ -72,7 +70,7 @@ func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
 
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
 		if _, ok := st.Steps[step.ID]; !ok {
-			return fmt.Errorf("%w: %s", ErrStepDoesNotExist, step.ID)
+			return fmt.Errorf("%w: %s", ErrStepNotFound, step.ID)
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
 			return err

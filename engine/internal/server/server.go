@@ -112,14 +112,3 @@ func (s *Server) handleEngine(c *gin.Context) {
 	c.JSON(http.StatusOK, engState)
 }
 
-func isNotFoundError(err error) bool {
-	return errors.Is(err, engine.ErrStepDoesNotExist) ||
-		errors.Is(err, engine.ErrFlowNotFound) ||
-		errors.Is(err, engine.ErrStepNotFound)
-}
-
-func existsError(err error) bool {
-	return errors.Is(err, engine.ErrStepAlreadyExists) ||
-		errors.Is(err, engine.ErrFlowExists) ||
-		errors.Is(err, engine.ErrStepExists)
-}

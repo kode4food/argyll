@@ -51,7 +51,7 @@ func TestValidateMissing(t *testing.T) {
 	err := plan.ValidateInputs(args)
 	require.Error(t, err)
 
-	expected := "required input not provided: 'required_input'"
+	expected := "required inputs not provided: [required_input]"
 	assert.Equal(t, expected, err.Error())
 }
 

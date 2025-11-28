@@ -276,7 +276,7 @@ func TestRegisterDuplicateStep(t *testing.T) {
 
 	err = env.Engine.RegisterStep(context.Background(), step)
 	if err != nil {
-		assert.Contains(t, err.Error(), "already exists")
+		assert.Contains(t, err.Error(), "exists")
 		return
 	}
 	t.Skip(
@@ -319,7 +319,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 
 	err := env.Engine.UpdateStep(context.Background(), step)
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "does not exist")
+	assert.Contains(t, err.Error(), "not found")
 }
 
 func TestGetFlowState(t *testing.T) {

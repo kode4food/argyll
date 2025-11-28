@@ -21,25 +21,19 @@ type (
 	}
 )
 
-var (
-	ErrRequiredInput  = errors.New("required input not provided")
-	ErrRequiredInputs = errors.New("required inputs not provided")
-)
+var ErrRequiredInputs = errors.New("required inputs not provided")
 
 // ValidateInputs checks that all required inputs are provided
 func (p *ExecutionPlan) ValidateInputs(args Args) error {
 	var missing []Name
 
-	for _, requiredInput := range p.Required {
-		if _, ok := args[requiredInput]; !ok {
-			missing = append(missing, requiredInput)
+	for _, required := range p.Required {
+		if _, ok := args[required]; !ok {
+			missing = append(missing, required)
 		}
 	}
 
 	if len(missing) > 0 {
-		if len(missing) == 1 {
-			return fmt.Errorf("%s: '%s'", ErrRequiredInput, missing[0])
-		}
 		return fmt.Errorf("%w: %v", ErrRequiredInputs, missing)
 	}
 

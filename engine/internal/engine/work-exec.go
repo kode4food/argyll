@@ -87,15 +87,15 @@ func (e *Engine) failPredicateEvaluation(
 func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 	inputs := api.Args{}
 
-	for name, spec := range step.Attributes {
-		if !spec.IsInput() {
+	for name, attr := range step.Attributes {
+		if !attr.IsInput() {
 			continue
 		}
 
 		if value, ok := attrs[name]; ok {
 			inputs[name] = value
-		} else if !spec.IsRequired() && spec.Default != "" {
-			inputs[name] = gjson.Parse(spec.Default).Value()
+		} else if !attr.IsRequired() && attr.Default != "" {
+			inputs[name] = gjson.Parse(attr.Default).Value()
 		}
 	}
 

@@ -100,12 +100,12 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
 		return false
 	}
 
-	for requiredInputName, attr := range step.Attributes {
+	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
-			if _, hasAttr := flow.Attributes[requiredInputName]; hasAttr {
+			if _, hasAttr := flow.Attributes[name]; hasAttr {
 				continue
 			}
-			if !e.HasInputProvider(requiredInputName, flow) {
+			if !e.HasInputProvider(name, flow) {
 				return false
 			}
 		}
