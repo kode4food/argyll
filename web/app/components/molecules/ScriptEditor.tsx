@@ -19,7 +19,7 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
   value,
   onChange,
   readOnly = false,
-  language = "ale",
+  language = "lua",
 }) => {
   const extensions = useMemo(() => {
     const langExt =

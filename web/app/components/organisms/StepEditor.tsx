@@ -17,6 +17,7 @@ import {
   AttributeType,
   AttributeRole,
   SCRIPT_LANGUAGE_ALE,
+  SCRIPT_LANGUAGE_LUA,
   StepType,
 } from "@/app/api";
 import { SpudsApi } from "@/app/api";
@@ -67,7 +68,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   const [stepType, setStepType] = useState<StepType>(step?.type || "sync");
   const [predicate, setPredicate] = useState(step?.predicate?.script || "");
   const [predicateLanguage, setPredicateLanguage] = useState(
-    step?.predicate?.language || SCRIPT_LANGUAGE_ALE
+    step?.predicate?.language || SCRIPT_LANGUAGE_LUA
   );
 
   // HTTP config state
@@ -84,7 +85,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   // Script config state
   const [script, setScript] = useState(step?.script?.script || "");
   const [scriptLanguage, setScriptLanguage] = useState(
-    step?.script?.language || SCRIPT_LANGUAGE_ALE
+    step?.script?.language || SCRIPT_LANGUAGE_LUA
   );
 
   const [attributes, setAttributes] = useState<Attribute[]>(() => {
