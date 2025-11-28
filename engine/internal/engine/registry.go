@@ -18,9 +18,9 @@ type (
 		recStack stepSet
 	}
 
-	stepSet   = util.Set[api.StepID]
 	graph     map[api.StepID][]api.StepID
 	producers map[api.Name][]api.StepID
+	stepSet   = util.Set[api.StepID]
 )
 
 var (
@@ -219,8 +219,8 @@ func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
 
 func buildDependencyGraph(st *api.EngineState, newStep *api.Step) graph {
 	allSteps := stepsIncluding(st, newStep)
-	producerIndex := indexAttributeProducers(allSteps)
-	return graphFromStepDependencies(allSteps, producerIndex)
+	producers := indexAttributeProducers(allSteps)
+	return graphFromStepDependencies(allSteps, producers)
 }
 
 func stepsIncluding(st *api.EngineState, newStep *api.Step) api.Steps {
