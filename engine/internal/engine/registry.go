@@ -244,20 +244,20 @@ func indexAttributeProducers(steps api.Steps) producers {
 	return index
 }
 
-func graphFromStepDependencies(s api.Steps, p producers) graph {
+func graphFromStepDependencies(steps api.Steps, index producers) graph {
 	res := graph{}
-	for stepID, step := range s {
-		res[stepID] = dependenciesFor(step, p)
+	for stepID, step := range steps {
+		res[stepID] = dependenciesFor(step, index)
 	}
 	return res
 }
 
-func dependenciesFor(s *api.Step, p producers) []api.StepID {
+func dependenciesFor(step *api.Step, index producers) []api.StepID {
 	var deps []api.StepID
-	for name, attr := range s.Attributes {
+	for name, attr := range step.Attributes {
 		if attr.IsInput() {
-			if producers, ok := p[name]; ok {
-				deps = append(deps, producers...)
+			if prods, ok := index[name]; ok {
+				deps = append(deps, prods...)
 			}
 		}
 	}
