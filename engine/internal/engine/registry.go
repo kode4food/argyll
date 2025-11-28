@@ -11,11 +11,17 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
-type cycleDetector struct {
-	graph    map[api.StepID][]api.StepID
-	visited  util.Set[api.StepID]
-	recStack util.Set[api.StepID]
-}
+type (
+	cycleDetector struct {
+		graph    graph
+		visited  stepSet
+		recStack stepSet
+	}
+
+	stepSet   = util.Set[api.StepID]
+	graph     map[api.StepID][]api.StepID
+	producers map[api.Name][]api.StepID
+)
 
 var (
 	ErrStepAlreadyExists  = errors.New("step already exists")
@@ -166,11 +172,11 @@ func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
 }
 
 func collectAttributeTypes(
-	st *api.EngineState, excludeStepID api.StepID,
+	st *api.EngineState, excludeID api.StepID,
 ) api.AttributeTypes {
 	attributeTypes := make(api.AttributeTypes)
 	for stepID, step := range st.Steps {
-		if stepID == excludeStepID {
+		if stepID == excludeID {
 			continue
 		}
 		for name, attr := range step.Attributes {
@@ -196,8 +202,8 @@ func checkAttributeConflicts(
 func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
 	detector := &cycleDetector{
 		graph:    buildDependencyGraph(st, newStep),
-		visited:  util.Set[api.StepID]{},
-		recStack: util.Set[api.StepID]{},
+		visited:  stepSet{},
+		recStack: stepSet{},
 	}
 
 	for stepID := range detector.graph {
@@ -211,17 +217,13 @@ func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
 	return nil
 }
 
-func buildDependencyGraph(
-	st *api.EngineState, newStep *api.Step,
-) map[api.StepID][]api.StepID {
+func buildDependencyGraph(st *api.EngineState, newStep *api.Step) graph {
 	allSteps := stepsIncluding(st, newStep)
 	producerIndex := indexAttributeProducers(allSteps)
 	return graphFromStepDependencies(allSteps, producerIndex)
 }
 
-func stepsIncluding(
-	st *api.EngineState, newStep *api.Step,
-) api.Steps {
+func stepsIncluding(st *api.EngineState, newStep *api.Step) api.Steps {
 	steps := make(api.Steps, len(st.Steps))
 	for id, step := range st.Steps {
 		if id != newStep.ID {
@@ -232,8 +234,8 @@ func stepsIncluding(
 	return steps
 }
 
-func indexAttributeProducers(steps api.Steps) map[api.Name][]api.StepID {
-	index := make(map[api.Name][]api.StepID)
+func indexAttributeProducers(steps api.Steps) producers {
+	index := make(producers)
 	for stepID, step := range steps {
 		for name, attr := range step.Attributes {
 			if attr.IsOutput() {
@@ -244,23 +246,19 @@ func indexAttributeProducers(steps api.Steps) map[api.Name][]api.StepID {
 	return index
 }
 
-func graphFromStepDependencies(
-	steps api.Steps, producerIndex map[api.Name][]api.StepID,
-) map[api.StepID][]api.StepID {
-	graph := make(map[api.StepID][]api.StepID)
-	for stepID, step := range steps {
-		graph[stepID] = dependenciesFor(step, producerIndex)
+func graphFromStepDependencies(s api.Steps, p producers) graph {
+	res := graph{}
+	for stepID, step := range s {
+		res[stepID] = dependenciesFor(step, p)
 	}
-	return graph
+	return res
 }
 
-func dependenciesFor(
-	step *api.Step, producerIndex map[api.Name][]api.StepID,
-) []api.StepID {
+func dependenciesFor(s *api.Step, p producers) []api.StepID {
 	var deps []api.StepID
-	for name, attr := range step.Attributes {
+	for name, attr := range s.Attributes {
 		if attr.IsInput() {
-			if producers, ok := producerIndex[name]; ok {
+			if producers, ok := p[name]; ok {
 				deps = append(deps, producers...)
 			}
 		}

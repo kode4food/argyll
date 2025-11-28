@@ -346,7 +346,7 @@ func (a *flowActor) prepareStep(
 
 	// Compute work items
 	workItemsList := computeWorkItems(step, inputs)
-	workItemsMap := make(map[api.Token]api.Args)
+	workItemsMap := map[api.Token]api.Args{}
 	for _, workInputs := range workItemsList {
 		token := api.Token(uuid.New().String())
 		workItemsMap[token] = workInputs
