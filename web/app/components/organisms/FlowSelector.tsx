@@ -85,9 +85,6 @@ const FlowSelector: React.FC = () => {
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
 
-  useEffect(() => {
-    initialStateRef.current = initialState;
-  }, [initialState]);
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -95,7 +92,6 @@ const FlowSelector: React.FC = () => {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const processedEventsRef = useRef<Set<string>>(new Set());
-  const initialStateRef = useRef<string>(initialState);
 
   const handleCreateFlow = async () => {
     if (!newId.trim() || goalStepIds.length === 0) return;
@@ -151,7 +147,7 @@ const FlowSelector: React.FC = () => {
         try {
           let currentState: Record<string, any> = {};
           try {
-            currentState = JSON.parse(initialStateRef.current);
+            currentState = JSON.parse(initialState);
           } catch {
             currentState = {};
           }
@@ -228,7 +224,7 @@ const FlowSelector: React.FC = () => {
       } else {
         let currentState: Record<string, any> = {};
         try {
-          currentState = JSON.parse(initialStateRef.current);
+          currentState = JSON.parse(initialState);
         } catch {
           currentState = {};
         }
@@ -246,6 +242,7 @@ const FlowSelector: React.FC = () => {
       }
     },
     [
+      initialState,
       idManuallyEdited,
       steps,
       setGoalStepIds,
@@ -367,14 +364,13 @@ const FlowSelector: React.FC = () => {
       clearPreviewPlan();
     } else {
       router.prefetch("/flow/placeholder");
+      // If there are already goal steps selected, initialize the form
+      if (goalStepIds.length > 0) {
+        handleGoalStepChange(goalStepIds);
+      }
     }
-  }, [
-    showCreateForm,
-    clearPreviewPlan,
-    setGoalStepIds,
-    setSelectedStep,
-    router,
-  ]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showCreateForm]);
 
   useEffect(() => {
     if (showDropdown || !selectedFlow) {
