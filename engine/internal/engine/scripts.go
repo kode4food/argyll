@@ -74,3 +74,33 @@ func (r *ScriptRegistry) Compile(
 	}
 	return env.Compile(step, cfg)
 }
+
+// GetCompiledPredicate retrieves the compiled predicate for a flow step
+func (e *Engine) GetCompiledPredicate(fs FlowStep) (any, error) {
+	step, err := e.getStepFromPlan(fs)
+	if err != nil {
+		return nil, err
+	}
+	return e.scripts.Compile(step, step.Predicate)
+}
+
+// GetCompiledScript retrieves the compiled script for a step in a flow
+func (e *Engine) GetCompiledScript(fs FlowStep) (any, error) {
+	step, err := e.getStepFromPlan(fs)
+	if err != nil {
+		return nil, err
+	}
+	return e.scripts.Compile(step, step.Script)
+}
+
+func (e *Engine) getStepFromPlan(fs FlowStep) (*api.Step, error) {
+	flow, err := e.GetFlowState(e.ctx, fs.FlowID)
+	if err != nil {
+		return nil, err
+	}
+
+	if step, ok := flow.Plan.Steps[fs.StepID]; ok {
+		return step, nil
+	}
+	return nil, ErrStepNotInPlan
+}
