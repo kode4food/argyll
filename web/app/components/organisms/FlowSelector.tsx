@@ -9,7 +9,7 @@ import React, {
 import { Activity, Play, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { api, FlowStatus } from "../../api";
+import { api, FlowStatus, AttributeType } from "../../api";
 import toast from "react-hot-toast";
 import { sortStepsByType } from "@/utils/stepUtils";
 import {
@@ -57,6 +57,41 @@ const mapFlowStatusToProgressStatus = (
     default:
       return "pending";
   }
+};
+
+const getDefaultValueForType = (type?: AttributeType): any => {
+  if (!type) return "";
+
+  switch (type) {
+    case AttributeType.Boolean:
+      return false;
+    case AttributeType.Number:
+      return 0;
+    case AttributeType.String:
+      return "";
+    case AttributeType.Object:
+      return {};
+    case AttributeType.Array:
+      return [];
+    case AttributeType.Null:
+      return null;
+    case AttributeType.Any:
+    default:
+      return "";
+  }
+};
+
+const isDefaultValue = (value: any): boolean => {
+  if (value === "" || value === null) return true;
+  if (value === false) return true;
+  if (value === 0) return true;
+  if (typeof value === "object") {
+    if (Array.isArray(value)) {
+      return value.length === 0;
+    }
+    return Object.keys(value).length === 0;
+  }
+  return false;
 };
 
 const FlowSelector: React.FC = () => {
@@ -154,7 +189,7 @@ const FlowSelector: React.FC = () => {
 
           const nonEmptyState: Record<string, any> = {};
           Object.keys(currentState).forEach((key) => {
-            if (currentState[key] !== "") {
+            if (!isDefaultValue(currentState[key])) {
               nonEmptyState[key] = currentState[key];
             }
           });
@@ -167,14 +202,24 @@ const FlowSelector: React.FC = () => {
           const mergedState: Record<string, any> = {};
 
           Object.keys(currentState).forEach((key) => {
-            if (currentState[key] !== "") {
+            if (!isDefaultValue(currentState[key])) {
               mergedState[key] = currentState[key];
             }
           });
 
           (executionPlan.required || []).forEach((name) => {
             if (!(name in mergedState)) {
-              mergedState[name] = "";
+              let attributeType: AttributeType | undefined;
+
+              // Find any step in the plan that declares this attribute
+              for (const step of Object.values(executionPlan.steps || {})) {
+                if (step.attributes?.[name]) {
+                  attributeType = step.attributes[name].type;
+                  break;
+                }
+              }
+
+              mergedState[name] = getDefaultValueForType(attributeType);
             }
           });
 
@@ -231,7 +276,7 @@ const FlowSelector: React.FC = () => {
 
         const mergedState: Record<string, any> = {};
         Object.keys(currentState).forEach((key) => {
-          if (currentState[key] !== "") {
+          if (!isDefaultValue(currentState[key])) {
             mergedState[key] = currentState[key];
           }
         });
