@@ -2,7 +2,6 @@ package engine
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -251,40 +250,4 @@ func (e *ExecContext) executeScript(
 	}
 
 	return env.ExecuteScript(c, e.step, inputs)
-}
-
-// Helper functions for work item execution
-
-func getMultiArgs(argNames []api.Name, inputs api.Args) MultiArgs {
-	multiArgs := MultiArgs{}
-
-	for _, name := range argNames {
-		if arr := asArray(inputs[name]); arr != nil {
-			multiArgs[name] = arr
-		}
-	}
-
-	return multiArgs
-}
-
-func asArray(value any) []any {
-	if value == nil {
-		return nil
-	}
-
-	jsonBytes, err := json.Marshal(value)
-	if err != nil {
-		return nil
-	}
-
-	result := gjson.ParseBytes(jsonBytes)
-	if !result.IsArray() {
-		return nil
-	}
-
-	arr := make([]any, 0, len(result.Array()))
-	for _, item := range result.Array() {
-		arr = append(arr, item.Value())
-	}
-	return arr
 }
