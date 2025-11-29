@@ -40,7 +40,7 @@ import {
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { useFlowFromUrl } from "../../hooks/useFlowFromUrl";
 import { useUI } from "../../contexts/UIContext";
-import { getProgressIcon, getProgressIconClass } from "@/utils/progressUtils";
+import { getProgressIcon } from "@/utils/progressUtils";
 import { StepProgressStatus } from "../../hooks/useStepProgress";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useWebSocketContext } from "../../hooks/useWebSocketContext";
@@ -430,9 +430,10 @@ const FlowSelector: React.FC = () => {
                         flow?.status || "pending"
                       );
                       const StatusIcon = getProgressIcon(progressStatus);
-                      const iconClass = getProgressIconClass(progressStatus);
                       return (
-                        <StatusIcon className={`progress-icon ${iconClass}`} />
+                        <StatusIcon
+                          className={`progress-icon ${progressStatus || "pending"}`}
+                        />
                       );
                     })()}
                     {selectedFlow}
@@ -464,7 +465,6 @@ const FlowSelector: React.FC = () => {
                       flow.status
                     );
                     const StatusIcon = getProgressIcon(progressStatus);
-                    const iconClass = getProgressIconClass(progressStatus);
                     return (
                       <div
                         key={flow.id}
@@ -477,7 +477,9 @@ const FlowSelector: React.FC = () => {
                           setSelectedIndex(-1);
                         }}
                       >
-                        <StatusIcon className={`progress-icon ${iconClass}`} />
+                        <StatusIcon
+                          className={`progress-icon ${progressStatus || "pending"}`}
+                        />
                         {flow.id}
                       </div>
                     );

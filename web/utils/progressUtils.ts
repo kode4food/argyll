@@ -10,22 +10,16 @@ import { StepProgressStatus } from "@/app/hooks/useStepProgress";
 export const getProgressIcon = (status: StepProgressStatus) => {
   switch (status) {
     case "pending":
-      return Clock; // Clock for waiting
+      return Clock;
     case "active":
-      return Loader2; // Better spinning loader
+      return Loader2;
     case "completed":
-      return CheckCircle; // Success checkmark
+      return CheckCircle;
     case "failed":
-      return XCircle; // Error X
+      return XCircle;
     case "skipped":
-      return MinusCircle; // Skipped
+      return MinusCircle;
     default:
       return Clock;
   }
-};
-
-export const getProgressIconClass = (
-  status: StepProgressStatus | null | undefined
-) => {
-  return status || "pending";
 };

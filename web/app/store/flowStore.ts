@@ -23,6 +23,21 @@ const compareFlows = (a: FlowContext, b: FlowContext): number => {
   }
 };
 
+const mergeResolvedAttributes = (
+  current: string[],
+  newAttrs?: Record<string, any>
+): string[] => {
+  if (!newAttrs) return current;
+
+  const outputKeys = Object.keys(newAttrs);
+  const hasNewAttrs = outputKeys.some((key) => !current.includes(key));
+  if (!hasNewAttrs) return current;
+
+  const resolved = new Set(current);
+  outputKeys.forEach((key) => resolved.add(key));
+  return Array.from(resolved);
+};
+
 interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
@@ -223,19 +238,10 @@ export const useFlowStore = create<FlowState>()(
         const { flowData, flows, resolvedAttributes } = get();
         if (flowData) {
           const updatedFlow = { ...flowData, ...update };
-
-          let newResolvedAttrs = resolvedAttributes;
-          if (update.state) {
-            const stateKeys = Object.keys(update.state);
-            const hasNewAttrs = stateKeys.some(
-              (key) => !resolvedAttributes.includes(key)
-            );
-            if (hasNewAttrs) {
-              const resolved = new Set(resolvedAttributes);
-              stateKeys.forEach((key) => resolved.add(key));
-              newResolvedAttrs = Array.from(resolved);
-            }
-          }
+          const newResolvedAttrs = mergeResolvedAttributes(
+            resolvedAttributes,
+            update.state
+          );
 
           const flowIndex = flows.findIndex((w) => w.id === updatedFlow.id);
           const updatedFlows =
@@ -300,19 +306,10 @@ export const useFlowStore = create<FlowState>()(
           const updated = [...executions];
           updated[index] = { ...updated[index], ...updates };
 
-          // Update resolved attributes if outputs are provided
-          let newResolvedAttrs = resolvedAttributes;
-          if (updates.outputs) {
-            const outputKeys = Object.keys(updates.outputs);
-            const hasNewAttrs = outputKeys.some(
-              (key) => !resolvedAttributes.includes(key)
-            );
-            if (hasNewAttrs) {
-              const resolved = new Set(resolvedAttributes);
-              outputKeys.forEach((key) => resolved.add(key));
-              newResolvedAttrs = Array.from(resolved);
-            }
-          }
+          const newResolvedAttrs = mergeResolvedAttributes(
+            resolvedAttributes,
+            updates.outputs
+          );
 
           set({ executions: updated, resolvedAttributes: newResolvedAttrs });
         }
@@ -340,19 +337,10 @@ export const useFlowStore = create<FlowState>()(
           newExecutions = [...executions, execution as ExecutionResult];
         }
 
-        // Update resolved attributes if outputs are provided
-        let newResolvedAttrs = resolvedAttributes;
-        if (execution.outputs) {
-          const outputKeys = Object.keys(execution.outputs);
-          const hasNewAttrs = outputKeys.some(
-            (key) => !resolvedAttributes.includes(key)
-          );
-          if (hasNewAttrs) {
-            const resolved = new Set(resolvedAttributes);
-            outputKeys.forEach((key) => resolved.add(key));
-            newResolvedAttrs = Array.from(resolved);
-          }
-        }
+        const newResolvedAttrs = mergeResolvedAttributes(
+          resolvedAttributes,
+          execution.outputs
+        );
 
         set({
           executions: newExecutions,

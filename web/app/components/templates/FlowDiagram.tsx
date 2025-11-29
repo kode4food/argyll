@@ -16,7 +16,7 @@ import {
 } from "../../store/flowStore";
 import ErrorBoundary from "../organisms/ErrorBoundary";
 import StepEditor from "../organisms/StepEditor";
-import { isValidTimestamp } from "../../utils/dates";
+import { isValidTimestamp } from "@/utils/dates";
 
 interface FlowDiagramProps {
   selectedStep?: string | null;

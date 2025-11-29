@@ -1,4 +1,4 @@
-import { AttributeType, ExecutionPlan, Step } from "../api";
+import { AttributeType, ExecutionPlan, Step } from "@/app/api";
 
 export const getDefaultValueForType = (type?: AttributeType): any => {
   if (!type) return "";
@@ -29,15 +29,22 @@ export const isDefaultValue = (value: any, type?: AttributeType): boolean => {
 
   const defaultForType = getDefaultValueForType(type);
 
+  // Handle null explicitly (typeof null === "object" in JS)
+  if (defaultForType === null) {
+    return value === null;
+  }
+
   // For objects and arrays, need deep comparison
   if (typeof defaultForType === "object") {
     if (Array.isArray(defaultForType)) {
       return Array.isArray(value) && value.length === 0;
     }
-    return typeof value === "object" &&
-           value !== null &&
-           !Array.isArray(value) &&
-           Object.keys(value).length === 0;
+    return (
+      typeof value === "object" &&
+      value !== null &&
+      !Array.isArray(value) &&
+      Object.keys(value).length === 0
+    );
   }
 
   return value === defaultForType;

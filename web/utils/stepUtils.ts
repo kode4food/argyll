@@ -1,4 +1,5 @@
 import { Step, AttributeRole, AttributeSpec, AttributeType } from "@/app/api";
+import { STEP_TYPE_ORDER } from "@/app/constants";
 
 export type StepType = "resolver" | "processor" | "collector" | "neutral";
 
@@ -121,11 +122,10 @@ export const getStepTypeLabel = (stepType: StepType): string => {
 };
 
 export const sortStepsByType = (steps: Step[]): Step[] => {
-  const stepOrder = { collector: 1, processor: 2, resolver: 3, neutral: 4 };
   return [...steps].sort((a, b) => {
     const aType = getStepType(a);
     const bType = getStepType(b);
-    const orderDiff = stepOrder[aType] - stepOrder[bType];
+    const orderDiff = STEP_TYPE_ORDER[aType] - STEP_TYPE_ORDER[bType];
     if (orderDiff !== 0) return orderDiff;
     return a.name.localeCompare(b.name);
   });

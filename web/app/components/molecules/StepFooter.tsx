@@ -7,7 +7,7 @@ import {
   SCRIPT_LANGUAGE_ALE,
 } from "../../api";
 import { getHealthIconClass, getHealthStatusText } from "@/utils/healthUtils";
-import { getProgressIcon, getProgressIconClass } from "@/utils/progressUtils";
+import { getProgressIcon } from "@/utils/progressUtils";
 import { useStepProgress } from "../../hooks/useStepProgress";
 import Tooltip from "../atoms/Tooltip";
 import TooltipSection from "../atoms/TooltipSection";
@@ -37,7 +37,6 @@ const StepFooter: React.FC<StepFooterProps> = ({
   const healthText = getHealthStatusText(healthStatus, healthError);
 
   const ProgressIcon = getProgressIcon(progressState.status);
-  const progressIconClass = getProgressIconClass(progressState.status);
 
   const getStepInfoDisplay = () => {
     if (step.type === "script" && step.script) {
@@ -68,13 +67,16 @@ const StepFooter: React.FC<StepFooterProps> = ({
 
     if (execution && flowId) {
       const StatusIcon = getProgressIcon(execution.status);
-      const iconClass = getProgressIconClass(execution.status);
 
       sections.push(
         <TooltipSection
           key="execution-status"
           title="Execution Status"
-          icon={<StatusIcon className={`progress-icon ${iconClass}`} />}
+          icon={
+            <StatusIcon
+              className={`progress-icon ${execution.status || "pending"}`}
+            />
+          }
           bold
         >
           {execution.status.toUpperCase()}
@@ -184,7 +186,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
               {useProgress ? (
                 <div className="step-progress-container">
                   <ProgressIcon
-                    className={`progress-icon ${progressIconClass}`}
+                    className={`progress-icon ${progressState.status || "pending"}`}
                   />
                   {progressState.status === "active" &&
                     progressState.workItems &&
