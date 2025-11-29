@@ -9,7 +9,7 @@ import React, {
 import { Activity, Play, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { api, FlowStatus, AttributeType } from "../../api";
+import { api, FlowStatus } from "../../api";
 import toast from "react-hot-toast";
 import { sortStepsByType } from "@/utils/stepUtils";
 import {
@@ -17,6 +17,11 @@ import {
   generatePadded,
   sanitizeFlowID,
 } from "@/utils/flowUtils";
+import {
+  parseState,
+  filterDefaultValues,
+  addRequiredDefaults,
+} from "@/utils/stateUtils";
 
 const FlowCreateForm = lazy(() => import("./FlowCreateForm"));
 const KeyboardShortcutsModal = lazy(
@@ -57,41 +62,6 @@ const mapFlowStatusToProgressStatus = (
     default:
       return "pending";
   }
-};
-
-const getDefaultValueForType = (type?: AttributeType): any => {
-  if (!type) return "";
-
-  switch (type) {
-    case AttributeType.Boolean:
-      return false;
-    case AttributeType.Number:
-      return 0;
-    case AttributeType.String:
-      return "";
-    case AttributeType.Object:
-      return {};
-    case AttributeType.Array:
-      return [];
-    case AttributeType.Null:
-      return null;
-    case AttributeType.Any:
-    default:
-      return "";
-  }
-};
-
-const isDefaultValue = (value: any): boolean => {
-  if (value === "" || value === null) return true;
-  if (value === false) return true;
-  if (value === 0) return true;
-  if (typeof value === "object") {
-    if (Array.isArray(value)) {
-      return value.length === 0;
-    }
-    return Object.keys(value).length === 0;
-  }
-  return false;
 };
 
 const FlowSelector: React.FC = () => {
@@ -178,110 +148,68 @@ const FlowSelector: React.FC = () => {
 
   const handleGoalStepChange = useCallback(
     async (stepIds: string[]) => {
-      if (stepIds.length > 0) {
-        try {
-          let currentState: Record<string, any> = {};
+      const currentState = parseState(initialState);
+      const nonDefaultState = filterDefaultValues(currentState, steps);
+
+      if (stepIds.length === 0) {
+        setInitialState(JSON.stringify(nonDefaultState, null, 2));
+        clearPreviewPlan();
+        setGoalStepIds([]);
+        return;
+      }
+
+      try {
+        const executionPlan = await api.getExecutionPlan(
+          stepIds,
+          nonDefaultState
+        );
+
+        const stateWithDefaults = addRequiredDefaults(
+          nonDefaultState,
+          executionPlan
+        );
+
+        setInitialState(JSON.stringify(stateWithDefaults, null, 2));
+
+        if (!idManuallyEdited) {
+          const lastGoalId = stepIds[stepIds.length - 1];
+          const goalStep = steps.find((s) => s.id === lastGoalId);
+          const goalName = goalStep?.name || lastGoalId;
+          const kebabName = goalName
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "");
+          setNewId(`${kebabName}-${generatePadded()}`);
+        }
+
+        // Handle multiple goals - remove redundant ones
+        if (stepIds.length > 1) {
+          const lastGoal = stepIds[stepIds.length - 1];
+          const previousGoals = stepIds.slice(0, -1);
+
           try {
-            currentState = JSON.parse(initialState);
-          } catch {
-            currentState = {};
-          }
+            const lastGoalPlan = await api.getExecutionPlan([lastGoal], {});
+            const lastGoalStepIds = new Set(
+              Object.keys(lastGoalPlan.steps || {})
+            );
 
-          const nonEmptyState: Record<string, any> = {};
-          Object.keys(currentState).forEach((key) => {
-            if (!isDefaultValue(currentState[key])) {
-              nonEmptyState[key] = currentState[key];
+            const remainingGoals = previousGoals.filter(
+              (id) => !lastGoalStepIds.has(id)
+            );
+
+            const finalGoals = [...remainingGoals, lastGoal];
+
+            if (finalGoals.length !== stepIds.length) {
+              setGoalStepIds(finalGoals);
+              await updatePreviewPlan(finalGoals, stateWithDefaults);
+              return;
             }
-          });
-
-          const executionPlan = await api.getExecutionPlan(
-            stepIds,
-            nonEmptyState
-          );
-
-          const mergedState: Record<string, any> = {};
-
-          Object.keys(currentState).forEach((key) => {
-            if (!isDefaultValue(currentState[key])) {
-              mergedState[key] = currentState[key];
-            }
-          });
-
-          (executionPlan.required || []).forEach((name) => {
-            if (!(name in mergedState)) {
-              let attributeType: AttributeType | undefined;
-
-              // Find any step in the plan that declares this attribute
-              for (const step of Object.values(executionPlan.steps || {})) {
-                if (step.attributes?.[name]) {
-                  attributeType = step.attributes[name].type;
-                  break;
-                }
-              }
-
-              mergedState[name] = getDefaultValueForType(attributeType);
-            }
-          });
-
-          setInitialState(JSON.stringify(mergedState, null, 2));
-
-          if (!idManuallyEdited) {
-            const lastGoalId = stepIds[stepIds.length - 1];
-            const goalStep = steps.find((s) => s.id === lastGoalId);
-            const goalName = goalStep?.name || lastGoalId;
-            const kebabName = goalName
-              .toLowerCase()
-              .replace(/[^a-z0-9]+/g, "-")
-              .replace(/^-+|-+$/g, "");
-            setNewId(`${kebabName}-${generatePadded()}`);
-          }
-
-          if (stepIds.length > 1) {
-            const lastGoal = stepIds[stepIds.length - 1];
-            const previousGoals = stepIds.slice(0, -1);
-
-            try {
-              const lastGoalPlan = await api.getExecutionPlan([lastGoal], {});
-              const lastGoalStepIds = new Set(
-                Object.keys(lastGoalPlan.steps || {})
-              );
-
-              const remainingGoals = previousGoals.filter(
-                (id) => !lastGoalStepIds.has(id)
-              );
-
-              const finalGoals = [...remainingGoals, lastGoal];
-
-              if (finalGoals.length !== stepIds.length) {
-                setGoalStepIds(finalGoals);
-                await updatePreviewPlan(finalGoals, mergedState);
-                return;
-              }
-            } catch {}
-          }
-
-          setGoalStepIds(stepIds);
-          await updatePreviewPlan(stepIds, mergedState);
-        } catch (error) {
-          clearPreviewPlan();
-          setGoalStepIds(stepIds);
-        }
-      } else {
-        let currentState: Record<string, any> = {};
-        try {
-          currentState = JSON.parse(initialState);
-        } catch {
-          currentState = {};
+          } catch {}
         }
 
-        const mergedState: Record<string, any> = {};
-        Object.keys(currentState).forEach((key) => {
-          if (!isDefaultValue(currentState[key])) {
-            mergedState[key] = currentState[key];
-          }
-        });
-
-        setInitialState(JSON.stringify(mergedState, null, 2));
+        setGoalStepIds(stepIds);
+        await updatePreviewPlan(stepIds, stateWithDefaults);
+      } catch (error) {
         clearPreviewPlan();
         setGoalStepIds(stepIds);
       }
