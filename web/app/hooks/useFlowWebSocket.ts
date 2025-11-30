@@ -18,9 +18,10 @@ export const useFlowWebSocket = () => {
   const updateStepHealth = useFlowStore((state) => state.updateStepHealth);
   const addStep = useFlowStore((state) => state.addStep);
   const removeStep = useFlowStore((state) => state.removeStep);
-  const addOrUpdateExecution = useFlowStore(
-    (state) => state.addOrUpdateExecution
+  const initializeExecutions = useFlowStore(
+    (state) => state.initializeExecutions
   );
+  const updateExecution = useFlowStore((state) => state.updateExecution);
 
   const consumerIdRef = useRef<string | null>(null);
   useEffect(() => {
@@ -102,36 +103,31 @@ export const useFlowWebSocket = () => {
         flowUpdate.status = "active";
         flowUpdate.started_at =
           event.data?.started_at || new Date().toISOString();
+        if (event.data?.plan) {
+          initializeExecutions(selectedFlow, event.data.plan);
+        }
       } else if (event.type === "step_started") {
-        addOrUpdateExecution({
-          step_id: event.data?.step_id,
-          flow_id: selectedFlow,
+        updateExecution(event.data?.step_id, {
           status: "active",
           inputs: event.data?.inputs,
           work_items: event.data?.work_items || {},
           started_at: new Date(event.timestamp).toISOString(),
         });
       } else if (event.type === "step_completed") {
-        addOrUpdateExecution({
-          step_id: event.data?.step_id,
-          flow_id: selectedFlow,
+        updateExecution(event.data?.step_id, {
           status: "completed",
           outputs: event.data?.outputs,
           duration_ms: event.data?.duration,
           completed_at: new Date(event.timestamp).toISOString(),
         });
       } else if (event.type === "step_failed") {
-        addOrUpdateExecution({
-          step_id: event.data?.step_id,
-          flow_id: selectedFlow,
+        updateExecution(event.data?.step_id, {
           status: "failed",
           error_message: event.data?.error,
           completed_at: new Date(event.timestamp).toISOString(),
         });
       } else if (event.type === "step_skipped") {
-        addOrUpdateExecution({
-          step_id: event.data?.step_id,
-          flow_id: selectedFlow,
+        updateExecution(event.data?.step_id, {
           status: "skipped",
           completed_at: new Date(event.timestamp).toISOString(),
         });
@@ -185,7 +181,8 @@ export const useFlowWebSocket = () => {
     updateStepHealth,
     addStep,
     removeStep,
-    addOrUpdateExecution,
+    initializeExecutions,
+    updateExecution,
     updateConsumerCursor,
   ]);
 };

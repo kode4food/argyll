@@ -67,10 +67,8 @@ interface FlowState {
     completed_at?: string
   ) => void;
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
+  initializeExecutions: (flowId: string, plan: any) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
-  addOrUpdateExecution: (
-    execution: Partial<ExecutionResult> & { step_id: string; flow_id: string }
-  ) => void;
 }
 
 export const useFlowStore = create<FlowState>()(
@@ -299,6 +297,25 @@ export const useFlowStore = create<FlowState>()(
         });
       },
 
+      initializeExecutions: (flowId: string, plan: any) => {
+        if (!plan?.steps) {
+          set({ executions: [] });
+          return;
+        }
+
+        const executions: ExecutionResult[] = Object.keys(plan.steps).map(
+          (stepId) => ({
+            step_id: stepId,
+            flow_id: flowId,
+            status: "pending",
+            inputs: {},
+            started_at: "",
+          })
+        );
+
+        set({ executions });
+      },
+
       updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => {
         const { executions, resolvedAttributes } = get();
         const index = executions.findIndex((e) => e.step_id === stepId);
@@ -313,39 +330,6 @@ export const useFlowStore = create<FlowState>()(
 
           set({ executions: updated, resolvedAttributes: newResolvedAttrs });
         }
-      },
-
-      addOrUpdateExecution: (
-        execution: Partial<ExecutionResult> & {
-          step_id: string;
-          flow_id: string;
-        }
-      ) => {
-        const { executions, resolvedAttributes } = get();
-        const index = executions.findIndex(
-          (e) => e.step_id === execution.step_id
-        );
-
-        let newExecutions: ExecutionResult[];
-        if (index >= 0) {
-          newExecutions = [...executions];
-          newExecutions[index] = {
-            ...newExecutions[index],
-            ...execution,
-          } as ExecutionResult;
-        } else {
-          newExecutions = [...executions, execution as ExecutionResult];
-        }
-
-        const newResolvedAttrs = mergeResolvedAttributes(
-          resolvedAttributes,
-          execution.outputs
-        );
-
-        set({
-          executions: newExecutions,
-          resolvedAttributes: newResolvedAttrs,
-        });
       },
     }),
     { name: "FlowStore" }

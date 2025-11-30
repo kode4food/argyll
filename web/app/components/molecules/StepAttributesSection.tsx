@@ -1,7 +1,6 @@
 import React from "react";
 import {
   CheckCircle2,
-  MinusCircle,
   XCircle,
   Award,
   Ban,

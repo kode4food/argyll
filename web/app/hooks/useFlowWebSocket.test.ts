@@ -20,7 +20,8 @@ describe("useFlowWebSocket", () => {
   let mockUpdateStepHealth: jest.Mock;
   let mockAddStep: jest.Mock;
   let mockRemoveStep: jest.Mock;
-  let mockAddOrUpdateExecution: jest.Mock;
+  let mockInitializeExecutions: jest.Mock;
+  let mockUpdateExecution: jest.Mock;
 
   beforeEach(() => {
     mockSubscribe = jest.fn();
@@ -29,7 +30,8 @@ describe("useFlowWebSocket", () => {
     mockUpdateStepHealth = jest.fn();
     mockAddStep = jest.fn();
     mockRemoveStep = jest.fn();
-    mockAddOrUpdateExecution = jest.fn();
+    mockInitializeExecutions = jest.fn();
+    mockUpdateExecution = jest.fn();
 
     mockUseWebSocketContext.mockReturnValue({
       events: [],
@@ -53,7 +55,8 @@ describe("useFlowWebSocket", () => {
         updateStepHealth: mockUpdateStepHealth,
         addStep: mockAddStep,
         removeStep: mockRemoveStep,
-        addOrUpdateExecution: mockAddOrUpdateExecution,
+        initializeExecutions: mockInitializeExecutions,
+        updateExecution: mockUpdateExecution,
       };
       return selector(state);
     });
@@ -80,7 +83,8 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
-          addOrUpdateExecution: mockAddOrUpdateExecution,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
         };
         return selector(state);
       });
@@ -103,7 +107,8 @@ describe("useFlowWebSocket", () => {
           refreshExecutions: mockRefreshExecutions,
           updateFlowFromWebSocket: mockUpdateFlow,
           updateStepHealth: mockUpdateStepHealth,
-          addOrUpdateExecution: mockAddOrUpdateExecution,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
         };
@@ -277,7 +282,8 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
-          addOrUpdateExecution: mockAddOrUpdateExecution,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
         };
         return selector(state);
       });
@@ -287,6 +293,29 @@ describe("useFlowWebSocket", () => {
       const { rerender } = renderHook(() => useFlowWebSocket());
 
       const startedAt = new Date().toISOString();
+      const plan = {
+        steps: {
+          "step-1": { name: "Step 1" },
+          "step-2": { name: "Step 2" },
+        },
+      };
+
+      mockUseFlowStore.mockImplementation((selector: any) => {
+        const state = {
+          selectedFlow: "test-flow",
+          nextSequence: 0,
+          flowData: { id: "test-flow" },
+          refreshExecutions: mockRefreshExecutions,
+          updateFlowFromWebSocket: mockUpdateFlow,
+          updateStepHealth: mockUpdateStepHealth,
+          addStep: mockAddStep,
+          removeStep: mockRemoveStep,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
+        };
+        return selector(state);
+      });
+
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
@@ -294,6 +323,7 @@ describe("useFlowWebSocket", () => {
             data: {
               flow_id: "test-flow",
               started_at: startedAt,
+              plan,
             },
             timestamp: Date.now(),
             sequence: 1,
@@ -316,6 +346,7 @@ describe("useFlowWebSocket", () => {
         status: "active",
         started_at: startedAt,
       });
+      expect(mockInitializeExecutions).toHaveBeenCalledWith("test-flow", plan);
     });
 
     test("processes attribute_set event with step provenance", () => {
@@ -372,7 +403,8 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
-          addOrUpdateExecution: mockAddOrUpdateExecution,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
         };
         return selector(state);
       });
@@ -490,8 +522,25 @@ describe("useFlowWebSocket", () => {
       });
     });
 
-    test("refreshes executions when step_completed", () => {
+    test("calls updateExecution for step_completed", () => {
       const { rerender } = renderHook(() => useFlowWebSocket());
+
+      const timestamp = Date.now();
+      mockUseFlowStore.mockImplementation((selector: any) => {
+        const state = {
+          selectedFlow: "test-flow",
+          nextSequence: 0,
+          flowData: { id: "test-flow" },
+          refreshExecutions: mockRefreshExecutions,
+          updateFlowFromWebSocket: mockUpdateFlow,
+          updateStepHealth: mockUpdateStepHealth,
+          addStep: mockAddStep,
+          removeStep: mockRemoveStep,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
+        };
+        return selector(state);
+      });
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
@@ -501,7 +550,7 @@ describe("useFlowWebSocket", () => {
               flow_id: "test-flow",
               step_id: "test-step",
             },
-            timestamp: Date.now(),
+            timestamp,
             sequence: 1,
             id: ["test-flow"],
           },
@@ -518,24 +567,40 @@ describe("useFlowWebSocket", () => {
 
       rerender();
 
-      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+      expect(mockUpdateExecution).toHaveBeenCalledWith(
+        "test-step",
         expect.objectContaining({
-          step_id: "test-step",
-          flow_id: "test-flow",
           status: "completed",
         })
       );
     });
 
-    test("calls addOrUpdateExecution for step_started", () => {
+    test("calls updateExecution for step_started", () => {
       const { rerender } = renderHook(() => useFlowWebSocket());
+
+      const timestamp = Date.now();
+      mockUseFlowStore.mockImplementation((selector: any) => {
+        const state = {
+          selectedFlow: "test-flow",
+          nextSequence: 0,
+          flowData: { id: "test-flow" },
+          refreshExecutions: mockRefreshExecutions,
+          updateFlowFromWebSocket: mockUpdateFlow,
+          updateStepHealth: mockUpdateStepHealth,
+          addStep: mockAddStep,
+          removeStep: mockRemoveStep,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
+        };
+        return selector(state);
+      });
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
             type: "step_started",
             data: { flow_id: "test-flow", step_id: "test-step" },
-            timestamp: Date.now(),
+            timestamp,
             sequence: 1,
             id: ["test-flow"],
           },
@@ -552,17 +617,33 @@ describe("useFlowWebSocket", () => {
 
       rerender();
 
-      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+      expect(mockUpdateExecution).toHaveBeenCalledWith(
+        "test-step",
         expect.objectContaining({
-          step_id: "test-step",
-          flow_id: "test-flow",
           status: "active",
         })
       );
     });
 
-    test("calls addOrUpdateExecution for step_failed", () => {
+    test("calls updateExecution for step_failed", () => {
       const { rerender } = renderHook(() => useFlowWebSocket());
+
+      const timestamp = Date.now();
+      mockUseFlowStore.mockImplementation((selector: any) => {
+        const state = {
+          selectedFlow: "test-flow",
+          nextSequence: 0,
+          flowData: { id: "test-flow" },
+          refreshExecutions: mockRefreshExecutions,
+          updateFlowFromWebSocket: mockUpdateFlow,
+          updateStepHealth: mockUpdateStepHealth,
+          addStep: mockAddStep,
+          removeStep: mockRemoveStep,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
+        };
+        return selector(state);
+      });
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
@@ -573,7 +654,7 @@ describe("useFlowWebSocket", () => {
               step_id: "test-step",
               error: "test error",
             },
-            timestamp: Date.now(),
+            timestamp,
             sequence: 1,
             id: ["test-flow"],
           },
@@ -590,24 +671,41 @@ describe("useFlowWebSocket", () => {
 
       rerender();
 
-      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+      expect(mockUpdateExecution).toHaveBeenCalledWith(
+        "test-step",
         expect.objectContaining({
-          step_id: "test-step",
-          flow_id: "test-flow",
           status: "failed",
+          error_message: "test error",
         })
       );
     });
 
-    test("calls addOrUpdateExecution for step_skipped", () => {
+    test("calls updateExecution for step_skipped", () => {
       const { rerender } = renderHook(() => useFlowWebSocket());
+
+      const timestamp = Date.now();
+      mockUseFlowStore.mockImplementation((selector: any) => {
+        const state = {
+          selectedFlow: "test-flow",
+          nextSequence: 0,
+          flowData: { id: "test-flow" },
+          refreshExecutions: mockRefreshExecutions,
+          updateFlowFromWebSocket: mockUpdateFlow,
+          updateStepHealth: mockUpdateStepHealth,
+          addStep: mockAddStep,
+          removeStep: mockRemoveStep,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
+        };
+        return selector(state);
+      });
 
       mockUseWebSocketContext.mockReturnValue({
         events: [
           {
             type: "step_skipped",
             data: { flow_id: "test-flow", step_id: "test-step" },
-            timestamp: Date.now(),
+            timestamp,
             sequence: 1,
             id: ["test-flow"],
           },
@@ -624,10 +722,9 @@ describe("useFlowWebSocket", () => {
 
       rerender();
 
-      expect(mockAddOrUpdateExecution).toHaveBeenCalledWith(
+      expect(mockUpdateExecution).toHaveBeenCalledWith(
+        "test-step",
         expect.objectContaining({
-          step_id: "test-step",
-          flow_id: "test-flow",
           status: "skipped",
         })
       );
@@ -650,7 +747,8 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
-          addOrUpdateExecution: mockAddOrUpdateExecution,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
         };
         return selector(state);
       });
@@ -667,7 +765,8 @@ describe("useFlowWebSocket", () => {
           updateStepHealth: mockUpdateStepHealth,
           addStep: mockAddStep,
           removeStep: mockRemoveStep,
-          addOrUpdateExecution: mockAddOrUpdateExecution,
+          initializeExecutions: mockInitializeExecutions,
+          updateExecution: mockUpdateExecution,
         };
         return selector(state);
       });

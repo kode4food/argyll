@@ -16,7 +16,6 @@ import {
   AttributeSpec,
   AttributeType,
   AttributeRole,
-  SCRIPT_LANGUAGE_ALE,
   SCRIPT_LANGUAGE_LUA,
   StepType,
 } from "@/app/api";
