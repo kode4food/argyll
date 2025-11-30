@@ -17,6 +17,7 @@ export const useFlowWebSocket = () => {
   const updateFlow = useFlowStore((state) => state.updateFlowFromWebSocket);
   const updateStepHealth = useFlowStore((state) => state.updateStepHealth);
   const addStep = useFlowStore((state) => state.addStep);
+  const updateStep = useFlowStore((state) => state.updateStep);
   const removeStep = useFlowStore((state) => state.removeStep);
   const initializeExecutions = useFlowStore(
     (state) => state.initializeExecutions
@@ -81,6 +82,14 @@ export const useFlowWebSocket = () => {
         const stepId = event.data?.step_id;
         if (stepId) {
           removeStep(stepId);
+        }
+        continue;
+      }
+
+      if (event.type === "step_updated") {
+        const step = event.data?.step;
+        if (step) {
+          updateStep(step);
         }
         continue;
       }
@@ -180,6 +189,7 @@ export const useFlowWebSocket = () => {
     updateFlow,
     updateStepHealth,
     addStep,
+    updateStep,
     removeStep,
     initializeExecutions,
     updateExecution,

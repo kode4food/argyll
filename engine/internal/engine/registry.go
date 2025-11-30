@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -21,6 +20,9 @@ type (
 	graph     map[api.StepID][]api.StepID
 	producers map[api.Name][]api.StepID
 	stepSet   = util.Set[api.StepID]
+
+	stepValidate func(*api.EngineState, *api.Step) error
+	stepRaise    func(*api.Step, *Aggregator) error
 )
 
 var (
@@ -31,46 +33,48 @@ var (
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
 func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
-	if err := e.validateScriptStep(step); err != nil {
-		return err
-	}
-
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		if existing, ok := st.Steps[step.ID]; ok {
-			if existing.Equal(step) {
-				return nil
+	return e.upsertStep(ctx, step,
+		func(st *api.EngineState, s *api.Step) error {
+			if existing, ok := st.Steps[s.ID]; ok {
+				if existing.Equal(s) {
+					return nil
+				}
+				return fmt.Errorf("%w: %s", ErrStepExists, s.ID)
 			}
-			return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
-		}
-		if err := validateAttributeTypes(st, step); err != nil {
-			return err
-		}
-		if err := detectCircularDependencies(st, step); err != nil {
-			return err
-		}
-		return e.raiseStepRegisteredEvent(step, ag)
-	}
-
-	if _, err := e.engineExec.Exec(ctx, events.EngineID, cmd); err != nil {
-		return err
-	}
-
-	if step.Type == api.StepTypeScript {
-		e.compileScript(ctx, step)
-	}
-	return nil
+			return nil
+		},
+		e.raiseStepRegisteredEvent,
+	)
 }
 
 // UpdateStep updates an existing step registration with new configuration
 // after validation
 func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
-	if err := e.validateScriptStep(step); err != nil {
+	return e.upsertStep(ctx, step,
+		func(st *api.EngineState, s *api.Step) error {
+			existing, ok := st.Steps[s.ID]
+			if !ok {
+				return fmt.Errorf("%w: %s", ErrStepNotFound, s.ID)
+			}
+			if existing.Equal(s) {
+				return nil
+			}
+			return nil
+		},
+		e.raiseStepUpdatedEvent,
+	)
+}
+
+func (e *Engine) upsertStep(
+	ctx context.Context, step *api.Step, validate stepValidate, raise stepRaise,
+) error {
+	if err := e.validateStepScripts(step); err != nil {
 		return err
 	}
 
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		if _, ok := st.Steps[step.ID]; !ok {
-			return fmt.Errorf("%w: %s", ErrStepNotFound, step.ID)
+		if err := validate(st, step); err != nil {
+			return err
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
 			return err
@@ -78,15 +82,15 @@ func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
 		if err := detectCircularDependencies(st, step); err != nil {
 			return err
 		}
-		return e.raiseStepRegisteredEvent(step, ag)
+		return raise(step, ag)
 	}
 
 	if _, err := e.engineExec.Exec(ctx, events.EngineID, cmd); err != nil {
 		return err
 	}
 
-	if step.Type == api.StepTypeScript {
-		e.compileScript(ctx, step)
+	if stepHasScripts(step) {
+		_ = e.UpdateStepHealth(ctx, step.ID, api.HealthHealthy, "")
 	}
 	return nil
 }
@@ -117,20 +121,35 @@ func (e *Engine) UpdateStepHealth(
 	return err
 }
 
-func (e *Engine) validateScriptStep(step *api.Step) error {
-	if step.Type != api.StepTypeScript || step.Script == nil {
-		return nil
+func (e *Engine) validateStepScripts(step *api.Step) error {
+	if step.Type == api.StepTypeScript && step.Script != nil {
+		env, err := e.scripts.Get(step.Script.Language)
+		if err != nil {
+			return err
+		}
+
+		if err := env.Validate(step, step.Script.Script); err != nil {
+			return err
+		}
 	}
 
-	env, err := e.scripts.Get(step.Script.Language)
-	if err != nil {
-		return err
+	if step.Predicate != nil {
+		env, err := e.scripts.Get(step.Predicate.Language)
+		if err != nil {
+			return err
+		}
+
+		if err := env.Validate(step, step.Predicate.Script); err != nil {
+			return err
+		}
 	}
 
-	if err := env.Validate(step, step.Script.Script); err != nil {
-		return err
-	}
 	return nil
+}
+
+func stepHasScripts(step *api.Step) bool {
+	return (step.Type == api.StepTypeScript && step.Script != nil) ||
+		step.Predicate != nil
 }
 
 func (e *Engine) raiseStepRegisteredEvent(
@@ -141,27 +160,12 @@ func (e *Engine) raiseStepRegisteredEvent(
 	)
 }
 
-func (e *Engine) compileScript(ctx context.Context, step *api.Step) {
-	if step.Type != api.StepTypeScript || step.Script == nil {
-		return
-	}
-
-	_, err := e.scripts.Compile(step, step.Script)
-	if err != nil {
-		e.handleCompileError(ctx, step.ID, "Failed to compile script", err)
-		return
-	}
-
-	_ = e.UpdateStepHealth(ctx, step.ID, api.HealthHealthy, "")
-}
-
-func (e *Engine) handleCompileError(
-	ctx context.Context, stepID api.StepID, msg string, err error,
-) {
-	slog.Warn(msg,
-		slog.Any("step_id", stepID),
-		slog.Any("error", err))
-	_ = e.UpdateStepHealth(ctx, stepID, api.HealthUnhealthy, err.Error())
+func (e *Engine) raiseStepUpdatedEvent(
+	step *api.Step, ag *Aggregator,
+) error {
+	return events.Raise(ag, api.EventTypeStepUpdated,
+		api.StepUpdatedEvent{Step: step},
+	)
 }
 
 func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {

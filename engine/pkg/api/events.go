@@ -15,6 +15,11 @@ type (
 		StepID StepID `json:"step_id"`
 	}
 
+	// StepUpdatedEvent is emitted when a step definition is modified
+	StepUpdatedEvent struct {
+		Step *Step `json:"step"`
+	}
+
 	// StepHealthChangedEvent is emitted when a step's health status changes
 	StepHealthChangedEvent struct {
 		StepID StepID       `json:"step_id"`
@@ -138,6 +143,7 @@ type (
 const (
 	EventTypeStepRegistered    EventType = "step_registered"
 	EventTypeStepUnregistered  EventType = "step_unregistered"
+	EventTypeStepUpdated       EventType = "step_updated"
 	EventTypeStepHealthChanged EventType = "step_health_changed"
 	EventTypeFlowActivated     EventType = "flow_activated"
 	EventTypeFlowDeactivated   EventType = "flow_deactivated"

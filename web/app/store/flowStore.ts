@@ -54,6 +54,7 @@ interface FlowState {
   loadSteps: () => Promise<void>;
   loadFlows: () => Promise<void>;
   addStep: (step: Step) => void;
+  updateStep: (step: Step) => void;
   removeStep: (stepId: string) => void;
   addFlow: (flow: FlowContext) => void;
   removeFlow: (flowId: string) => void;
@@ -198,16 +199,19 @@ export const useFlowStore = create<FlowState>()(
 
       addStep: (step: Step) => {
         const { steps } = get();
+        const newSteps = [...steps, step];
+        newSteps.sort((a, b) => a.name.localeCompare(b.name));
+        set({ steps: newSteps });
+      },
+
+      updateStep: (step: Step) => {
+        const { steps } = get();
         const existingIndex = steps.findIndex((s) => s.id === step.id);
 
         if (existingIndex >= 0) {
           const updatedSteps = [...steps];
           updatedSteps[existingIndex] = step;
           set({ steps: updatedSteps });
-        } else {
-          const newSteps = [...steps, step];
-          newSteps.sort((a, b) => a.name.localeCompare(b.name));
-          set({ steps: newSteps });
         }
       },
 

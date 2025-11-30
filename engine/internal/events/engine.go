@@ -33,6 +33,7 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 	return MakeAppliers(map[api.EventType]timebox.Applier[*api.EngineState]{
 		api.EventTypeStepRegistered:    timebox.MakeApplier(stepRegistered),
 		api.EventTypeStepUnregistered:  timebox.MakeApplier(stepUnregistered),
+		api.EventTypeStepUpdated:       timebox.MakeApplier(stepUpdated),
 		api.EventTypeStepHealthChanged: timebox.MakeApplier(stepHealthChanged),
 		api.EventTypeFlowActivated:     timebox.MakeApplier(flowActivated),
 		api.EventTypeFlowDeactivated:   timebox.MakeApplier(flowDeactivated),
@@ -53,6 +54,14 @@ func stepUnregistered(
 ) *api.EngineState {
 	return st.
 		DeleteStep(data.StepID).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func stepUpdated(
+	st *api.EngineState, ev *timebox.Event, data api.StepUpdatedEvent,
+) *api.EngineState {
+	return st.
+		SetStep(data.Step.ID, data.Step).
 		SetLastUpdated(ev.Timestamp)
 }
 

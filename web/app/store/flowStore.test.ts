@@ -146,11 +146,11 @@ describe("flowStore", () => {
       expect(useFlowStore.getState().steps).toHaveLength(1);
     });
 
-    test("addStep updates existing step", () => {
+    test("updateStep updates existing step", () => {
       useFlowStore.setState({ steps: [mockStep] });
 
       const updatedStep = { ...mockStep, version: "2.0.0" };
-      useFlowStore.getState().addStep(updatedStep);
+      useFlowStore.getState().updateStep(updatedStep);
 
       const state = useFlowStore.getState();
       expect(state.steps).toHaveLength(1);

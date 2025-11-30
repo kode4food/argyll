@@ -19,6 +19,7 @@ describe("useFlowWebSocket", () => {
   let mockUpdateFlow: jest.Mock;
   let mockUpdateStepHealth: jest.Mock;
   let mockAddStep: jest.Mock;
+  let mockUpdateStep: jest.Mock;
   let mockRemoveStep: jest.Mock;
   let mockInitializeExecutions: jest.Mock;
   let mockUpdateExecution: jest.Mock;
@@ -29,6 +30,7 @@ describe("useFlowWebSocket", () => {
     mockUpdateFlow = jest.fn();
     mockUpdateStepHealth = jest.fn();
     mockAddStep = jest.fn();
+    mockUpdateStep = jest.fn();
     mockRemoveStep = jest.fn();
     mockInitializeExecutions = jest.fn();
     mockUpdateExecution = jest.fn();
@@ -54,6 +56,7 @@ describe("useFlowWebSocket", () => {
         updateFlowFromWebSocket: mockUpdateFlow,
         updateStepHealth: mockUpdateStepHealth,
         addStep: mockAddStep,
+        updateStep: mockUpdateStep,
         removeStep: mockRemoveStep,
         initializeExecutions: mockInitializeExecutions,
         updateExecution: mockUpdateExecution,
@@ -191,6 +194,40 @@ describe("useFlowWebSocket", () => {
       rerender();
 
       expect(mockRemoveStep).toHaveBeenCalledWith("test-step");
+    });
+
+    test("processes step_updated event", () => {
+      const { rerender } = renderHook(() => useFlowWebSocket());
+
+      const updatedStep = {
+        id: "test-step",
+        name: "Updated Step",
+        type: "http",
+      };
+
+      mockUseWebSocketContext.mockReturnValue({
+        events: [
+          {
+            type: "step_updated",
+            data: { step: updatedStep },
+            timestamp: Date.now(),
+            sequence: 1,
+            id: [],
+          },
+        ],
+        subscribe: mockSubscribe,
+        isConnected: true,
+        connectionStatus: "connected",
+        reconnectAttempt: 0,
+        reconnect: jest.fn(),
+        registerConsumer: jest.fn(() => "test-consumer-id"),
+        unregisterConsumer: jest.fn(),
+        updateConsumerCursor: jest.fn(),
+      });
+
+      rerender();
+
+      expect(mockUpdateStep).toHaveBeenCalledWith(updatedStep);
     });
 
     test("processes step_health_changed event", () => {
