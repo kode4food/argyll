@@ -6,7 +6,7 @@ import {
   filterDefaultValues,
   addRequiredDefaults,
 } from "./stateUtils";
-import { AttributeType, Step, ExecutionPlan } from "@/app/api";
+import { AttributeType, AttributeRole, Step, ExecutionPlan } from "@/app/api";
 
 describe("stateUtils", () => {
   describe("getDefaultValueForType", () => {
@@ -193,15 +193,15 @@ describe("stateUtils", () => {
           version: "1.0",
           attributes: {
             boolProp: {
-              role: 0,
+              role: AttributeRole.Required,
               type: AttributeType.Boolean,
             },
             numberProp: {
-              role: 0,
+              role: AttributeRole.Required,
               type: AttributeType.Number,
             },
             stringProp: {
-              role: 0,
+              role: AttributeRole.Required,
               type: AttributeType.String,
             },
           },
@@ -229,7 +229,7 @@ describe("stateUtils", () => {
           version: "1.0",
           attributes: {
             numberProp: {
-              role: 0,
+              role: AttributeRole.Required,
               type: AttributeType.Number,
             },
           },
@@ -257,15 +257,15 @@ describe("stateUtils", () => {
             version: "1.0",
             attributes: {
               boolProp: {
-                role: 0,
+                role: AttributeRole.Required,
                 type: AttributeType.Boolean,
               },
               numberProp: {
-                role: 0,
+                role: AttributeRole.Required,
                 type: AttributeType.Number,
               },
               stringProp: {
-                role: 0,
+                role: AttributeRole.Required,
                 type: AttributeType.String,
               },
             },
@@ -300,15 +300,15 @@ describe("stateUtils", () => {
             version: "1.0",
             attributes: {
               boolProp: {
-                role: 0,
+                role: AttributeRole.Required,
                 type: AttributeType.Boolean,
               },
               numberProp: {
-                role: 0,
+                role: AttributeRole.Required,
                 type: AttributeType.Number,
               },
               stringProp: {
-                role: 0,
+                role: AttributeRole.Required,
                 type: AttributeType.String,
               },
             },
