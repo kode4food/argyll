@@ -177,7 +177,12 @@ export const useFlowStore = create<FlowState>()(
             loading: false,
           });
         } catch (error) {
-          console.error(`Failed to load flow data for ${flowId}:`, error);
+          const isNotFound = (error as any)?.response?.status === 404;
+
+          if (!isNotFound) {
+            console.error(`Failed to load flow data for ${flowId}:`, error);
+          }
+
           set({
             flowData: null,
             executions: [],
@@ -351,6 +356,8 @@ export const useResolvedAttributes = () =>
   useFlowStore((state) => state.resolvedAttributes);
 export const useFlowLoading = () => useFlowStore((state) => state.loading);
 export const useFlowError = () => useFlowStore((state) => state.error);
+export const useFlowNotFound = () =>
+  useFlowStore((state) => state.flowNotFound);
 export const useIsFlowMode = () => useFlowStore((state) => state.isFlowMode);
 
 // Action selectors

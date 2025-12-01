@@ -11,6 +11,7 @@ import {
   useExecutions,
   useResolvedAttributes,
   useFlowLoading,
+  useFlowNotFound,
   useIsFlowMode,
   useLoadSteps,
 } from "../../store/flowStore";
@@ -35,10 +36,9 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
   const executions = useExecutions();
   const resolved = useResolvedAttributes();
   const loading = useFlowLoading();
+  const flowNotFound = useFlowNotFound();
   const isFlowMode = useIsFlowMode();
   const loadSteps = useLoadSteps();
-
-  const flowNotFound = false;
   const [showCreateStepEditor, setShowCreateStepEditor] = useState(false);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
 
