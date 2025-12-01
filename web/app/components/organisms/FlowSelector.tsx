@@ -44,6 +44,7 @@ import { getProgressIcon } from "@/utils/progressUtils";
 import { StepProgressStatus } from "../../hooks/useStepProgress";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useWebSocketContext } from "../../hooks/useWebSocketContext";
+import { useThrottledValue } from "../../hooks/useThrottledValue";
 import ErrorBoundary from "./ErrorBoundary";
 import styles from "./FlowSelector.module.css";
 
@@ -344,6 +345,27 @@ const FlowSelector: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [showCreateForm]);
+
+  const throttledInitialState = useThrottledValue(initialState, 500);
+
+  useEffect(() => {
+    if (!showCreateForm || goalStepIds.length === 0) {
+      return;
+    }
+
+    const currentState = parseState(throttledInitialState);
+    const nonDefaultState = filterDefaultValues(currentState, steps);
+
+    if (Object.keys(currentState).length >= 0) {
+      updatePreviewPlan(goalStepIds, nonDefaultState).catch(() => {});
+    }
+  }, [
+    throttledInitialState,
+    showCreateForm,
+    goalStepIds,
+    steps,
+    updatePreviewPlan,
+  ]);
 
   useEffect(() => {
     if (showDropdown || !selectedFlow) {
