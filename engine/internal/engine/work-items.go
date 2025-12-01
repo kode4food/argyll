@@ -130,7 +130,7 @@ func aggregateWorkItemOutputs(items api.WorkItems, step *api.Step) api.Args {
 						entry[string(argName)] = val
 					}
 				}
-				entry["value"] = outputValue
+				entry[string(outputName)] = outputValue
 
 				aggregated[outputName] = append(aggregated[outputName], entry)
 			}
