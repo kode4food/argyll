@@ -21,6 +21,7 @@ func NewEngineState() *api.EngineState {
 		Steps:       api.Steps{},
 		Health:      map[api.StepID]*api.HealthState{},
 		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{},
+		Attributes:  map[api.Name]*api.Dependencies{},
 	}
 }
 

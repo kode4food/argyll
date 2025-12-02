@@ -194,33 +194,9 @@ func checkAttributeConflicts(
 	return nil
 }
 
-func buildDependencies(steps api.Steps) map[api.Name]*api.Dependencies {
-	deps := make(map[api.Name]*api.Dependencies)
-
-	for stepID, step := range steps {
-		for name, attr := range step.Attributes {
-			if deps[name] == nil {
-				deps[name] = &api.Dependencies{
-					Providers: []api.StepID{},
-					Consumers: []api.StepID{},
-				}
-			}
-
-			if attr.IsOutput() {
-				deps[name].Providers = append(deps[name].Providers, stepID)
-			}
-			if attr.IsInput() {
-				deps[name].Consumers = append(deps[name].Consumers, stepID)
-			}
-		}
-	}
-
-	return deps
-}
-
 func detectStepCycles(st *api.EngineState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
-	deps := buildDependencies(steps)
+	deps := api.BuildDependencies(steps)
 
 	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
 }

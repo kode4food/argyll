@@ -10,11 +10,16 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
+func makeEngineState(steps api.Steps) *api.EngineState {
+	return &api.EngineState{
+		Steps:      steps,
+		Attributes: api.BuildDependencies(steps),
+	}
+}
+
 func TestNoGoals(t *testing.T) {
 	eng := &engine.Engine{}
-	engState := &api.EngineState{
-		Steps: api.Steps{},
-	}
+	engState := makeEngineState(api.Steps{})
 
 	_, err := eng.CreateExecutionPlan(engState, []api.StepID{}, api.Args{})
 	assert.Error(t, err)
@@ -22,9 +27,7 @@ func TestNoGoals(t *testing.T) {
 
 func TestGoalStepNotFound(t *testing.T) {
 	eng := &engine.Engine{}
-	engState := &api.EngineState{
-		Steps: api.Steps{},
-	}
+	engState := makeEngineState(api.Steps{})
 
 	_, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"nonexistent"}, api.Args{},
@@ -49,12 +52,9 @@ func TestSimpleResolver(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"resolver": resolverStep,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"resolver"}, api.Args{},
 	)
@@ -87,12 +87,9 @@ func TestProcessorWithInit(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"processor": processorStep,
-		},
-	}
-
+		})
 	initState := api.Args{"input": "test-value"}
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, initState,
@@ -121,12 +118,9 @@ func TestProcessorNoInit(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"processor": processorStep,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
@@ -182,14 +176,11 @@ func TestChained(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"resolver":  resolverStep,
 			"processor": processorStep,
 			"collector": collectorStep,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"collector"}, api.Args{},
 	)
@@ -235,13 +226,10 @@ func TestMultipleGoals(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"step1": step1,
 			"step2": step2,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step1", "step2"}, api.Args{},
 	)
@@ -268,12 +256,9 @@ func TestExistingOutputs(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"step": step,
-		},
-	}
-
+		})
 	initState := api.Args{"data": "already-available"}
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step"}, initState,
@@ -345,15 +330,12 @@ func TestComplexGraph(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"resolver1":  resolver1,
 			"resolver2":  resolver2,
 			"processor1": processor1,
 			"processor2": processor2,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor2"}, api.Args{},
 	)
@@ -388,12 +370,9 @@ func TestReceipts(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"step": step,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step"}, api.Args{},
 	)
@@ -422,12 +401,9 @@ func TestMissingDependency(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"step": step,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step"}, api.Args{},
 	)
@@ -469,13 +445,10 @@ func TestOptionalInput(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"resolver":  resolverStep,
 			"processor": processorStep,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
@@ -507,12 +480,9 @@ func TestOptionalMissing(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"processor": processorStep,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
@@ -571,14 +541,11 @@ func TestMixedInputs(t *testing.T) {
 		},
 	}
 
-	engState := &api.EngineState{
-		Steps: api.Steps{
+	engState := makeEngineState(api.Steps{
 			"resolver1": resolver1,
 			"resolver2": resolver2,
 			"processor": processorStep,
-		},
-	}
-
+		})
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)

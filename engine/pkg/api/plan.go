@@ -39,3 +39,29 @@ func (p *ExecutionPlan) ValidateInputs(args Args) error {
 
 	return nil
 }
+
+// BuildDependencies constructs a dependency graph from all step definitions,
+// tracking which steps provide and consume each attribute
+func BuildDependencies(steps Steps) map[Name]*Dependencies {
+	deps := make(map[Name]*Dependencies)
+
+	for stepID, step := range steps {
+		for name, attr := range step.Attributes {
+			if deps[name] == nil {
+				deps[name] = &Dependencies{
+					Providers: []StepID{},
+					Consumers: []StepID{},
+				}
+			}
+
+			if attr.IsOutput() {
+				deps[name].Providers = append(deps[name].Providers, stepID)
+			}
+			if attr.IsInput() {
+				deps[name].Consumers = append(deps[name].Consumers, stepID)
+			}
+		}
+	}
+
+	return deps
+}

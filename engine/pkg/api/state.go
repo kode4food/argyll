@@ -27,6 +27,7 @@ type (
 		Steps       Steps                      `json:"steps"`
 		Health      map[StepID]*HealthState    `json:"health"`
 		ActiveFlows map[FlowID]*ActiveFlowInfo `json:"active_flows"`
+		Attributes  map[Name]*Dependencies     `json:"attributes"`
 	}
 
 	// ActiveFlowInfo tracks basic metadata for active flows
@@ -129,6 +130,7 @@ func (e *EngineState) SetStep(id StepID, step *Step) *EngineState {
 	res := *e
 	res.Steps = maps.Clone(e.Steps)
 	res.Steps[id] = step
+	res.Attributes = BuildDependencies(res.Steps)
 	return &res
 }
 
@@ -137,6 +139,7 @@ func (e *EngineState) DeleteStep(i StepID) *EngineState {
 	res := *e
 	res.Steps = maps.Clone(e.Steps)
 	delete(res.Steps, i)
+	res.Attributes = BuildDependencies(res.Steps)
 	return &res
 }
 

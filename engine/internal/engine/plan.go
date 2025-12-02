@@ -14,7 +14,6 @@ type planBuilder struct {
 	missing    util.Set[api.Name]
 	steps      api.Steps
 	attributes map[api.Name]*api.Dependencies
-	allDeps    map[api.Name]*api.Dependencies
 }
 
 var (
@@ -58,7 +57,6 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 		missing:    util.Set[api.Name]{},
 		steps:      api.Steps{},
 		attributes: map[api.Name]*api.Dependencies{},
-		allDeps:    buildDependencies(st.Steps),
 	}
 
 	for key := range initState {
@@ -89,7 +87,7 @@ func (b *planBuilder) allOutputsAvailable(step *api.Step) bool {
 }
 
 func (b *planBuilder) findProviders(name api.Name) []api.StepID {
-	if deps, ok := b.allDeps[name]; ok {
+	if deps, ok := b.engState.Attributes[name]; ok {
 		return deps.Providers
 	}
 	return nil

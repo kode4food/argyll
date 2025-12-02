@@ -58,11 +58,11 @@ Once scripts pass validation, the engine enters a transaction to validate agains
 
 Here's how this works: The engine collects all attribute names and their types from every registered step. For each attribute in the new step, it checks if any other step has defined that attribute with a different type. If there's a mismatch, registration fails with a type conflict error.
 
-**Circular Dependency Detection**: The engine builds an attribute dependency map showing which steps provide (produce) and consume each attribute. This uses the same Producer→Attribute→Consumer structure used throughout the engine.
+**Circular Dependency Detection**: The engine uses an attribute dependency map showing which steps provide (produce) and consume each attribute. This uses the same Provider→Attribute→Consumer structure used throughout the engine.
 
 The algorithm works like this: Starting from the new step being registered, it recursively follows the dependency chain by looking at which steps provide its required inputs. If it encounters the original step again during traversal, that means there's a cycle. For example, if step A depends on step B, and step B depends on step C, and step C depends on step A, that's a circular dependency and registration fails.
 
-The dependency map is computed on-the-fly from all registered steps plus the new step. It maps each attribute name to a Dependencies struct containing the list of provider steps (which produce that attribute) and consumer steps (which require it as input). This structure is reused by the execution planner, ensuring consistency across validation and planning.
+For cycle detection, the dependency map is computed from all registered steps plus the new step being validated. It maps each attribute name to a Dependencies struct containing the list of provider steps (which produce that attribute) and consumer steps (which require it as input). This structure is identical to the one maintained in EngineState for execution planning, ensuring consistency across validation and planning.
 
 #### Event Emission
 
@@ -70,6 +70,7 @@ If all validations pass, the engine raises a "StepRegisteredEvent" within the tr
 
 When the transaction commits, the event is persisted to the event log. An event applier function then processes the event and updates the engine state by:
 - Adding the step to the steps registry
+- Rebuilding the attribute dependency graph (cached in EngineState.Attributes)
 - Initializing its health status as "unknown"
 - Updating the last-modified timestamp
 
@@ -87,7 +88,7 @@ The same script validation, type consistency checking, and circular dependency d
 
 If the new step definition is identical to the existing one, the update is a no-op (idempotent behavior).
 
-If validations pass and the definition has changed, a "StepUpdatedEvent" is raised, persisted, and applied to update the engine state with the new definition.
+If validations pass and the definition has changed, a "StepUpdatedEvent" is raised, persisted, and applied to update the engine state with the new definition and rebuild the cached dependency graph.
 
 ### Event Sourcing Pattern
 
@@ -449,7 +450,8 @@ The engine starts by creating a plan builder with:
 - A **visited set** to track steps that have already been processed (prevents infinite loops)
 - An **available set** of attribute names that are present in the initial state
 - A **missing set** to collect required inputs that couldn't be satisfied
-- An **attributes map** to build the provider-consumer relationships
+- An **attributes map** to build the provider-consumer relationships for this specific plan
+- A reference to **EngineState.Attributes** containing the pre-computed dependency graph
 
 #### Recursive Resolution
 
@@ -471,7 +473,7 @@ For each goal step, the engine calls a recursive function that:
 
 #### Provider Discovery
 
-When a step needs an input attribute, the engine looks up all providers for that attribute using the pre-built dependency map. This map is constructed once at the start of planning from all registered steps.
+When a step needs an input attribute, the engine looks up all providers for that attribute using the cached dependency graph from EngineState.Attributes. This map is maintained as a projection—automatically rebuilt whenever steps are registered, updated, or unregistered—ensuring O(1) lookup during plan generation.
 
 If multiple steps can provide the same attribute, **all of them are included in the plan**. During execution, these providers compete—whichever completes first provides the attribute value. This enables redundancy and allows the fastest provider to win.
 
@@ -495,11 +497,11 @@ When multiple steps can provide the same attribute, all providers are included t
 
 ### Cycle Prevention
 
-Circular dependencies are prevented at step registration time, so by the time plan generation runs, cycles are impossible. The registration-time validation uses the same `buildDependencies` function to construct the attribute dependency map, then performs depth-first search with a recursion stack starting from the new step to detect cycles.
+Circular dependencies are prevented at step registration time, so by the time plan generation runs, cycles are impossible. The registration-time validation uses `api.BuildDependencies` to construct a temporary attribute dependency map that includes all registered steps plus the new step being validated, then performs depth-first search with a recursion stack starting from the new step to detect cycles.
 
 If a cycle exists—for example, step A depends on B, B depends on C, and C depends on A—the registration of the step that closes the cycle will fail.
 
-This guarantee means plan generation doesn't need to worry about cycles; it can safely assume the dependency graph is acyclic.
+This guarantee means plan generation doesn't need to worry about cycles; it can safely assume the dependency graph is acyclic and can rely on the cached EngineState.Attributes for efficient provider lookups.
 
 ### How Plans Are Used During Execution
 
