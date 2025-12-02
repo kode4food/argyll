@@ -103,3 +103,101 @@ func TestValidateEmptyArgs(t *testing.T) {
 	err := plan.ValidateInputs(args)
 	assert.Error(t, err)
 }
+
+func TestBuildDependencies(t *testing.T) {
+	steps := api.Steps{
+		"step-a": &api.Step{
+			ID:   "step-a",
+			Name: "Step A",
+			Attributes: api.AttributeSpecs{
+				"input1": {Role: api.RoleRequired, Type: api.TypeString},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		},
+		"step-b": &api.Step{
+			ID:   "step-b",
+			Name: "Step B",
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleRequired, Type: api.TypeString},
+				"final":  {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		},
+		"step-c": &api.Step{
+			ID:   "step-c",
+			Name: "Step C",
+			Attributes: api.AttributeSpecs{
+				"input1": {Role: api.RoleRequired, Type: api.TypeString},
+				"data":   {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		},
+	}
+
+	deps := api.BuildDependencies(steps)
+
+	assert.Contains(t, deps, api.Name("input1"))
+	assert.Contains(t, deps, api.Name("result"))
+	assert.Contains(t, deps, api.Name("final"))
+	assert.Contains(t, deps, api.Name("data"))
+
+	assert.Len(t, deps["input1"].Providers, 0)
+	assert.Len(t, deps["input1"].Consumers, 2)
+	assert.Contains(t, deps["input1"].Consumers, api.StepID("step-a"))
+	assert.Contains(t, deps["input1"].Consumers, api.StepID("step-c"))
+
+	assert.Len(t, deps["result"].Providers, 1)
+	assert.Len(t, deps["result"].Consumers, 1)
+	assert.Contains(t, deps["result"].Providers, api.StepID("step-a"))
+	assert.Contains(t, deps["result"].Consumers, api.StepID("step-b"))
+
+	assert.Len(t, deps["final"].Providers, 1)
+	assert.Len(t, deps["final"].Consumers, 0)
+	assert.Contains(t, deps["final"].Providers, api.StepID("step-b"))
+
+	assert.Len(t, deps["data"].Providers, 1)
+	assert.Len(t, deps["data"].Consumers, 0)
+	assert.Contains(t, deps["data"].Providers, api.StepID("step-c"))
+}
+
+func TestMultipleProviders(t *testing.T) {
+	steps := api.Steps{
+		"step-a": &api.Step{
+			ID:   "step-a",
+			Name: "Step A",
+			Attributes: api.AttributeSpecs{
+				"data": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		},
+		"step-b": &api.Step{
+			ID:   "step-b",
+			Name: "Step B",
+			Attributes: api.AttributeSpecs{
+				"data": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		},
+	}
+
+	deps := api.BuildDependencies(steps)
+
+	assert.Len(t, deps["data"].Providers, 2)
+	assert.Contains(t, deps["data"].Providers, api.StepID("step-a"))
+	assert.Contains(t, deps["data"].Providers, api.StepID("step-b"))
+}
+
+func TestEmptySteps(t *testing.T) {
+	steps := api.Steps{}
+	deps := api.BuildDependencies(steps)
+	assert.Empty(t, deps)
+}
+
+func TestNoAttributes(t *testing.T) {
+	steps := api.Steps{
+		"step-a": &api.Step{
+			ID:         "step-a",
+			Name:       "Step A",
+			Attributes: api.AttributeSpecs{},
+		},
+	}
+
+	deps := api.BuildDependencies(steps)
+	assert.Empty(t, deps)
+}

@@ -75,7 +75,7 @@ func TestMultipleWorkItems(t *testing.T) {
 	result := aggregateWorkItemOutputs(items, step)
 
 	messageIds, ok := result["message_id"].([]map[string]any)
-	assert.True(t, ok, "message_id should be present in result")
+	assert.True(t, ok)
 	assert.Len(t, messageIds, 3)
 
 	users := map[string]string{}
@@ -231,15 +231,15 @@ func TestMultipleOutputAttributes(t *testing.T) {
 	output := aggregateWorkItemOutputs(items, step)
 
 	emails, ok := output["email"].([]map[string]any)
-	assert.True(t, ok, "email should be present in output")
+	assert.True(t, ok)
 	assert.Len(t, emails, 2)
 
 	messageIds, ok := output["message_id"].([]map[string]any)
-	assert.True(t, ok, "message_id should be present in output")
+	assert.True(t, ok)
 	assert.Len(t, messageIds, 2)
 
 	statuses, ok := output["status"].([]map[string]any)
-	assert.True(t, ok, "status should be present in output")
+	assert.True(t, ok)
 	assert.Len(t, statuses, 2)
 
 	for _, entry := range emails {
@@ -392,8 +392,8 @@ func TestPreventValueCollision(t *testing.T) {
 	assert.Len(t, results, 2)
 
 	for _, entry := range results {
-		assert.Contains(t, entry, "value", "metadata field should be present")
-		assert.Contains(t, entry, "result", "output field should be present")
+		assert.Contains(t, entry, "value")
+		assert.Contains(t, entry, "result")
 
 		inputValue := entry["value"].(string)
 		outputValue := entry["result"].(string)

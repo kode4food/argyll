@@ -268,3 +268,347 @@ func TestSortedArgNames(t *testing.T) {
 	as.Equal("mango", sorted[2])
 	as.Equal("zebra", sorted[3])
 }
+func TestMultiArgNames(t *testing.T) {
+	as := assert.New(t)
+
+	step := &api.Step{
+		ID:   "multi-args",
+		Name: "Multi Args Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Version: "1.0.0",
+		Attributes: api.AttributeSpecs{
+			"users": {
+				Role:    api.RoleRequired,
+				Type:    api.TypeArray,
+				ForEach: true,
+			},
+			"items": {
+				Role:    api.RoleOptional,
+				Type:    api.TypeArray,
+				ForEach: true,
+			},
+			"config": {
+				Role: api.RoleRequired,
+				Type: api.TypeObject,
+			},
+			"messages": {
+				Role:    api.RoleOptional,
+				Type:    api.TypeArray,
+				ForEach: true,
+			},
+		},
+	}
+
+	multiArgs := step.MultiArgNames()
+	as.Len(multiArgs, 3)
+	as.Contains(multiArgs, api.Name("users"))
+	as.Contains(multiArgs, api.Name("items"))
+	as.Contains(multiArgs, api.Name("messages"))
+	as.NotContains(multiArgs, api.Name("config"))
+}
+
+func TestGetRequiredArgs(t *testing.T) {
+	as := assert.New(t)
+
+	step := &api.Step{
+		ID:   "required-args",
+		Name: "Required Args Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Version: "1.0.0",
+		Attributes: api.AttributeSpecs{
+			"user_id": {Role: api.RoleRequired, Type: api.TypeString},
+			"email":   {Role: api.RoleRequired, Type: api.TypeString},
+			"name":    {Role: api.RoleOptional, Type: api.TypeString},
+			"result":  {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	requiredArgs := step.GetRequiredArgs()
+	as.Len(requiredArgs, 2)
+	as.Contains(requiredArgs, api.Name("user_id"))
+	as.Contains(requiredArgs, api.Name("email"))
+	as.NotContains(requiredArgs, api.Name("name"))
+	as.NotContains(requiredArgs, api.Name("result"))
+}
+
+func TestGetOptionalArgs(t *testing.T) {
+	as := assert.New(t)
+
+	step := &api.Step{
+		ID:   "optional-args",
+		Name: "Optional Args Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Version: "1.0.0",
+		Attributes: api.AttributeSpecs{
+			"user_id": {Role: api.RoleRequired, Type: api.TypeString},
+			"email":   {Role: api.RoleOptional, Type: api.TypeString},
+			"name":    {Role: api.RoleOptional, Type: api.TypeString},
+			"result":  {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	optionalArgs := step.GetOptionalArgs()
+	as.Len(optionalArgs, 2)
+	as.Contains(optionalArgs, api.Name("email"))
+	as.Contains(optionalArgs, api.Name("name"))
+	as.NotContains(optionalArgs, api.Name("user_id"))
+	as.NotContains(optionalArgs, api.Name("result"))
+}
+
+func TestNewResult(t *testing.T) {
+	as := assert.New(t)
+
+	result := api.NewResult()
+	as.True(result.Success)
+	as.Nil(result.Outputs)
+	as.Empty(result.Error)
+}
+
+func TestWithOutput(t *testing.T) {
+	as := assert.New(t)
+
+	result := &api.StepResult{Success: true}
+	result = result.WithOutput("key", "value")
+
+	as.NotNil(result.Outputs)
+	as.Equal("value", result.Outputs["key"])
+}
+
+func TestWithError(t *testing.T) {
+	as := assert.New(t)
+
+	result := &api.StepResult{Success: true}
+	result = result.WithError(api.ErrStepIDEmpty)
+
+	as.False(result.Success)
+	as.Contains(result.Error, "ID")
+}
+
+func TestEqualHTTP(t *testing.T) {
+	as := assert.New(t)
+
+	config1 := &api.HTTPConfig{
+		Endpoint:    "http://localhost:8080",
+		HealthCheck: "http://localhost:8080/health",
+		Timeout:     30,
+	}
+
+	config2 := &api.HTTPConfig{
+		Endpoint:    "http://localhost:8080",
+		HealthCheck: "http://localhost:8080/health",
+		Timeout:     30,
+	}
+
+	config3 := &api.HTTPConfig{
+		Endpoint:    "http://localhost:9090",
+		HealthCheck: "http://localhost:8080/health",
+		Timeout:     30,
+	}
+
+	as.True(config1.Equal(config2))
+	as.False(config1.Equal(config3))
+	as.True((*api.HTTPConfig)(nil).Equal(nil))
+	as.False(config1.Equal(nil))
+	as.False((*api.HTTPConfig)(nil).Equal(config1))
+}
+
+func TestEqualScript(t *testing.T) {
+	as := assert.New(t)
+
+	config1 := &api.ScriptConfig{
+		Language: api.ScriptLangAle,
+		Script:   "(+ 1 2)",
+	}
+
+	config2 := &api.ScriptConfig{
+		Language: api.ScriptLangAle,
+		Script:   "(+ 1 2)",
+	}
+
+	config3 := &api.ScriptConfig{
+		Language: api.ScriptLangLua,
+		Script:   "return 1 + 2",
+	}
+
+	as.True(config1.Equal(config2))
+	as.False(config1.Equal(config3))
+	as.True((*api.ScriptConfig)(nil).Equal(nil))
+	as.False(config1.Equal(nil))
+}
+
+func TestEqualWorkConfig(t *testing.T) {
+	as := assert.New(t)
+
+	config1 := &api.WorkConfig{
+		Parallelism:  5,
+		MaxRetries:   3,
+		BackoffMs:    1000,
+		MaxBackoffMs: 60000,
+		BackoffType:  api.BackoffTypeExponential,
+	}
+
+	config2 := &api.WorkConfig{
+		Parallelism:  5,
+		MaxRetries:   3,
+		BackoffMs:    1000,
+		MaxBackoffMs: 60000,
+		BackoffType:  api.BackoffTypeExponential,
+	}
+
+	config3 := &api.WorkConfig{
+		Parallelism:  10,
+		MaxRetries:   3,
+		BackoffMs:    1000,
+		MaxBackoffMs: 60000,
+		BackoffType:  api.BackoffTypeExponential,
+	}
+
+	as.True(config1.Equal(config2))
+	as.False(config1.Equal(config3))
+	as.True((*api.WorkConfig)(nil).Equal(nil))
+	as.False(config1.Equal(nil))
+}
+
+func TestEqualStep(t *testing.T) {
+	as := assert.New(t)
+
+	step1 := &api.Step{
+		ID:      "test-step",
+		Name:    "Test Step",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Attributes: api.AttributeSpecs{
+			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}
+
+	step2 := &api.Step{
+		ID:      "test-step",
+		Name:    "Test Step",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Attributes: api.AttributeSpecs{
+			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}
+
+	step3 := &api.Step{
+		ID:      "different-step",
+		Name:    "Test Step",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Attributes: api.AttributeSpecs{
+			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}
+
+	as.True(step1.Equal(step2))
+	as.False(step1.Equal(step3))
+}
+
+func TestValidateWorkConfig(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("negative_backoff", func(t *testing.T) {
+		step := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				BackoffMs: -1,
+			},
+		}
+		as.StepInvalid(step, "backoff_ms cannot be negative")
+	})
+
+	t.Run("max_backoff_too_small", func(t *testing.T) {
+		step := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				BackoffMs:    1000,
+				MaxBackoffMs: 500,
+			},
+		}
+		as.StepInvalid(step, "max_backoff_ms")
+	})
+
+	t.Run("missing_backoff_type", func(t *testing.T) {
+		step := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				MaxRetries: 3,
+			},
+		}
+		as.StepInvalid(step, "invalid retry config")
+	})
+
+	t.Run("invalid_backoff_type", func(t *testing.T) {
+		step := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				MaxRetries:  3,
+				BackoffType: "invalid",
+			},
+		}
+		as.StepInvalid(step, "invalid backoff type")
+	})
+
+	t.Run("valid_work_config", func(t *testing.T) {
+		step := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				MaxRetries:   3,
+				BackoffMs:    1000,
+				MaxBackoffMs: 60000,
+				BackoffType:  api.BackoffTypeExponential,
+			},
+		}
+		as.StepValid(step)
+	})
+}

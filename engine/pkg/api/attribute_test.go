@@ -1,6 +1,10 @@
 package api
 
-import "testing"
+import (
+	"testing"
+
+	"github.com/stretchr/testify/assert"
+)
 
 func TestValidateDefaultValue(t *testing.T) {
 	tests := []struct {
@@ -140,17 +144,16 @@ func TestValidateDefaultValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := validateDefaultValue(tt.value, tt.attrType)
-			if tt.expectErr && err == nil {
-				t.Errorf("expected error but got nil")
-			}
-			if !tt.expectErr && err != nil {
-				t.Errorf("unexpected error: %v", err)
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
 }
 
-func TestAttributeSpec_ValidateDefaultValue(t *testing.T) {
+func TestValidateDefault(t *testing.T) {
 	tests := []struct {
 		name      string
 		spec      *AttributeSpec
@@ -342,12 +345,57 @@ func TestAttributeSpec_ValidateDefaultValue(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.spec.Validate(tt.attrName)
-			if tt.expectErr && err == nil {
-				t.Errorf("expected error but got nil")
-			}
-			if !tt.expectErr && err != nil {
-				t.Errorf("unexpected error: %v", err)
+			if tt.expectErr {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
 		})
 	}
+}
+
+func TestIsRequired(t *testing.T) {
+	required := &AttributeSpec{
+		Role: RoleRequired,
+		Type: TypeString,
+	}
+	assert.True(t, required.IsRequired())
+
+	optional := &AttributeSpec{
+		Role: RoleOptional,
+		Type: TypeString,
+	}
+	assert.False(t, optional.IsRequired())
+
+	output := &AttributeSpec{
+		Role: RoleOutput,
+		Type: TypeString,
+	}
+	assert.False(t, output.IsRequired())
+}
+
+func TestEqual(t *testing.T) {
+	spec1 := &AttributeSpec{
+		Role:    RoleRequired,
+		Type:    TypeString,
+		Default: `"hello"`,
+		ForEach: false,
+	}
+
+	spec2 := &AttributeSpec{
+		Role:    RoleRequired,
+		Type:    TypeString,
+		Default: `"hello"`,
+		ForEach: false,
+	}
+
+	spec3 := &AttributeSpec{
+		Role:    RoleOptional,
+		Type:    TypeString,
+		Default: `"hello"`,
+		ForEach: false,
+	}
+
+	assert.True(t, spec1.Equal(spec2))
+	assert.False(t, spec1.Equal(spec3))
 }

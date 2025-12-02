@@ -85,7 +85,7 @@ func TestGetStepHealth(t *testing.T) {
 	engineState, err := eng.GetEngineState(context.Background())
 	require.NoError(t, err)
 	health, ok := engineState.Health["health-test-step"]
-	require.True(t, ok, "expected step health to exist")
+	require.True(t, ok)
 	assert.NotNil(t, health)
 	assert.Equal(t, api.HealthUnknown, health.Status)
 }
@@ -118,7 +118,7 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	engineState, err := eng.GetEngineState(context.Background())
 	require.NoError(t, err)
 	_, ok := engineState.Health["nonexistent-step"]
-	assert.False(t, ok, "expected step health not to exist")
+	assert.False(t, ok)
 }
 
 func TestWithRealHealthCheck(t *testing.T) {

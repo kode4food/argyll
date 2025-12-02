@@ -9,7 +9,7 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
-func TestEngineSetStep(t *testing.T) {
+func TestSetStep(t *testing.T) {
 	original := &api.EngineState{
 		Steps: api.Steps{
 			"existing": {ID: "existing", Name: "Existing Step"},
@@ -25,7 +25,7 @@ func TestEngineSetStep(t *testing.T) {
 	assert.Len(t, original.Steps, 1)
 }
 
-func TestEngineDeleteStep(t *testing.T) {
+func TestDeleteStep(t *testing.T) {
 	original := &api.EngineState{
 		Steps: api.Steps{
 			"step1": {ID: "step1"},
@@ -41,7 +41,7 @@ func TestEngineDeleteStep(t *testing.T) {
 	assert.Len(t, original.Steps, 2)
 }
 
-func TestEngineSetHealth(t *testing.T) {
+func TestSetHealth(t *testing.T) {
 	original := &api.EngineState{
 		Health: map[api.StepID]*api.HealthState{},
 	}
@@ -53,7 +53,7 @@ func TestEngineSetHealth(t *testing.T) {
 	assert.Empty(t, original.Health)
 }
 
-func TestEngineSetUpdated(t *testing.T) {
+func TestSetEngineUpdated(t *testing.T) {
 	original := &api.EngineState{LastUpdated: time.Unix(1000, 0)}
 	newTime := time.Unix(2000, 0)
 
@@ -63,7 +63,41 @@ func TestEngineSetUpdated(t *testing.T) {
 	assert.True(t, original.LastUpdated.Equal(time.Unix(1000, 0)))
 }
 
-func TestFlowSetStatus(t *testing.T) {
+func TestSetActiveFlow(t *testing.T) {
+	original := &api.EngineState{
+		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{},
+	}
+
+	flowInfo := &api.ActiveFlowInfo{
+		FlowID:     "flow-1",
+		StartedAt:  time.Now(),
+		LastActive: time.Now(),
+	}
+
+	result := original.SetActiveFlow("flow-1", flowInfo)
+
+	assert.Len(t, result.ActiveFlows, 1)
+	assert.Equal(t, flowInfo, result.ActiveFlows["flow-1"])
+	assert.Empty(t, original.ActiveFlows)
+}
+
+func TestDeleteActiveFlow(t *testing.T) {
+	original := &api.EngineState{
+		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{
+			"flow-1": {FlowID: "flow-1"},
+			"flow-2": {FlowID: "flow-2"},
+		},
+	}
+
+	result := original.DeleteActiveFlow("flow-1")
+
+	assert.Len(t, result.ActiveFlows, 1)
+	assert.Nil(t, result.ActiveFlows["flow-1"])
+	assert.NotNil(t, result.ActiveFlows["flow-2"])
+	assert.Len(t, original.ActiveFlows, 2)
+}
+
+func TestSetFlowStatus(t *testing.T) {
 	original := &api.FlowState{Status: api.FlowPending}
 
 	result := original.SetStatus(api.FlowActive)
@@ -72,7 +106,7 @@ func TestFlowSetStatus(t *testing.T) {
 	assert.Equal(t, api.FlowPending, original.Status)
 }
 
-func TestFlowSetAttribute(t *testing.T) {
+func TestSetAttribute(t *testing.T) {
 	original := &api.FlowState{
 		Attributes: api.AttributeValues{
 			"existing": {Value: "value"},
@@ -91,7 +125,7 @@ func TestFlowSetAttribute(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestFlowSetExecution(t *testing.T) {
+func TestSetExecution(t *testing.T) {
 	original := &api.FlowState{
 		Executions: api.Executions{
 			"existing": {Status: api.StepPending},
@@ -106,7 +140,7 @@ func TestFlowSetExecution(t *testing.T) {
 	assert.Len(t, original.Executions, 1)
 }
 
-func TestFlowSetCompleted(t *testing.T) {
+func TestSetFlowCompleted(t *testing.T) {
 	original := &api.FlowState{}
 	completedTime := time.Now()
 
@@ -116,7 +150,7 @@ func TestFlowSetCompleted(t *testing.T) {
 	assert.True(t, original.CompletedAt.IsZero())
 }
 
-func TestFlowSetError(t *testing.T) {
+func TestSetFlowError(t *testing.T) {
 	original := &api.FlowState{Error: ""}
 
 	result := original.SetError("test error")
@@ -125,7 +159,7 @@ func TestFlowSetError(t *testing.T) {
 	assert.Empty(t, original.Error)
 }
 
-func TestFlowSetUpdated(t *testing.T) {
+func TestSetFlowUpdated(t *testing.T) {
 	original := &api.FlowState{LastUpdated: time.Unix(1000, 0)}
 	newTime := time.Unix(2000, 0)
 
@@ -135,7 +169,24 @@ func TestFlowSetUpdated(t *testing.T) {
 	assert.True(t, original.LastUpdated.Equal(time.Unix(1000, 0)))
 }
 
-func TestExecutionSetStatus(t *testing.T) {
+func TestGetAttributes(t *testing.T) {
+	flow := &api.FlowState{
+		Attributes: api.AttributeValues{
+			"attr1": {Value: "value1", Step: "step-1"},
+			"attr2": {Value: 42, Step: "step-2"},
+			"attr3": {Value: true, Step: "step-3"},
+		},
+	}
+
+	args := flow.GetAttributes()
+
+	assert.Len(t, args, 3)
+	assert.Equal(t, "value1", args["attr1"])
+	assert.Equal(t, 42, args["attr2"])
+	assert.Equal(t, true, args["attr3"])
+}
+
+func TestSetExecStatus(t *testing.T) {
 	original := &api.ExecutionState{Status: api.StepPending}
 
 	result := original.SetStatus(api.StepActive)
@@ -144,7 +195,7 @@ func TestExecutionSetStatus(t *testing.T) {
 	assert.Equal(t, api.StepPending, original.Status)
 }
 
-func TestExecutionSetStarted(t *testing.T) {
+func TestSetStarted(t *testing.T) {
 	original := &api.ExecutionState{}
 	startTime := time.Now()
 
@@ -154,7 +205,7 @@ func TestExecutionSetStarted(t *testing.T) {
 	assert.True(t, original.StartedAt.IsZero())
 }
 
-func TestExecutionSetCompleted(t *testing.T) {
+func TestSetExecCompleted(t *testing.T) {
 	original := &api.ExecutionState{}
 	completedTime := time.Now()
 
@@ -164,7 +215,7 @@ func TestExecutionSetCompleted(t *testing.T) {
 	assert.True(t, original.CompletedAt.IsZero())
 }
 
-func TestExecutionSetInputs(t *testing.T) {
+func TestSetInputs(t *testing.T) {
 	original := &api.ExecutionState{
 		Inputs: api.Args{"existing": "value"},
 	}
@@ -177,7 +228,7 @@ func TestExecutionSetInputs(t *testing.T) {
 	assert.Len(t, original.Inputs, 1)
 }
 
-func TestExecutionSetOutputs(t *testing.T) {
+func TestSetOutputs(t *testing.T) {
 	original := &api.ExecutionState{
 		Outputs: api.Args{"existing": "value"},
 	}
@@ -190,7 +241,7 @@ func TestExecutionSetOutputs(t *testing.T) {
 	assert.Len(t, original.Outputs, 1)
 }
 
-func TestExecutionSetDuration(t *testing.T) {
+func TestSetDuration(t *testing.T) {
 	original := &api.ExecutionState{Duration: 100}
 
 	result := original.SetDuration(500)
@@ -199,7 +250,7 @@ func TestExecutionSetDuration(t *testing.T) {
 	assert.EqualValues(t, 100, original.Duration)
 }
 
-func TestExecutionSetError(t *testing.T) {
+func TestSetExecError(t *testing.T) {
 	original := &api.ExecutionState{Error: ""}
 
 	result := original.SetError("execution error")
@@ -208,7 +259,23 @@ func TestExecutionSetError(t *testing.T) {
 	assert.Empty(t, original.Error)
 }
 
-func TestHealthSetStatus(t *testing.T) {
+func TestSetWorkItem(t *testing.T) {
+	original := &api.ExecutionState{
+		WorkItems: map[api.Token]*api.WorkState{},
+	}
+
+	workItem := &api.WorkState{
+		Status: api.WorkPending,
+	}
+
+	result := original.SetWorkItem("work-1", workItem)
+
+	assert.Len(t, result.WorkItems, 1)
+	assert.Equal(t, workItem, result.WorkItems["work-1"])
+	assert.Empty(t, original.WorkItems)
+}
+
+func TestSetHealthStatus(t *testing.T) {
 	original := &api.HealthState{Status: api.HealthHealthy}
 
 	result := original.SetStatus(api.HealthUnhealthy)
@@ -217,7 +284,7 @@ func TestHealthSetStatus(t *testing.T) {
 	assert.Equal(t, api.HealthHealthy, original.Status)
 }
 
-func TestHealthSetError(t *testing.T) {
+func TestSetHealthError(t *testing.T) {
 	original := &api.HealthState{Error: ""}
 
 	result := original.SetError("health check failed")
@@ -226,7 +293,84 @@ func TestHealthSetError(t *testing.T) {
 	assert.Empty(t, original.Error)
 }
 
-func TestFlowChaining(t *testing.T) {
+func TestSetWorkStatus(t *testing.T) {
+	original := &api.WorkState{
+		Status: api.WorkPending,
+	}
+
+	result := original.SetStatus(api.WorkActive)
+
+	assert.Equal(t, api.WorkActive, result.Status)
+	assert.Equal(t, api.WorkPending, original.Status)
+}
+
+func TestSetWorkStarted(t *testing.T) {
+	original := &api.WorkState{}
+	startTime := time.Now()
+
+	result := original.SetStartedAt(startTime)
+
+	assert.True(t, result.StartedAt.Equal(startTime))
+	assert.True(t, original.StartedAt.IsZero())
+}
+
+func TestSetWorkCompleted(t *testing.T) {
+	original := &api.WorkState{}
+	completedTime := time.Now()
+
+	result := original.SetCompletedAt(completedTime)
+
+	assert.True(t, result.CompletedAt.Equal(completedTime))
+	assert.True(t, original.CompletedAt.IsZero())
+}
+
+func TestSetRetryCount(t *testing.T) {
+	original := &api.WorkState{
+		RetryCount: 0,
+	}
+
+	result := original.SetRetryCount(3)
+
+	assert.Equal(t, 3, result.RetryCount)
+	assert.Equal(t, 0, original.RetryCount)
+}
+
+func TestSetNextRetry(t *testing.T) {
+	original := &api.WorkState{}
+	nextRetry := time.Now().Add(time.Minute)
+
+	result := original.SetNextRetryAt(nextRetry)
+
+	assert.True(t, result.NextRetryAt.Equal(nextRetry))
+	assert.True(t, original.NextRetryAt.IsZero())
+}
+
+func TestSetWorkError(t *testing.T) {
+	original := &api.WorkState{
+		Error: "",
+	}
+
+	result := original.SetError("work item failed")
+
+	assert.Equal(t, "work item failed", result.Error)
+	assert.Empty(t, original.Error)
+}
+
+func TestSetWorkOutputs(t *testing.T) {
+	original := &api.WorkState{
+		Outputs: api.Args{},
+	}
+
+	outputs := api.Args{"result": "success", "count": 42}
+	result := original.SetOutputs(outputs)
+
+	assert.Len(t, result.Outputs, 2)
+	assert.Equal(t, "success", result.Outputs["result"])
+	assert.Equal(t, 42, result.Outputs["count"])
+	assert.Empty(t, original.Outputs)
+}
+
+func TestFlowChain(t *testing.T) {
 	original := &api.FlowState{
 		ID:         "test-flow",
 		Status:     api.FlowPending,
@@ -249,7 +393,7 @@ func TestFlowChaining(t *testing.T) {
 	assert.Equal(t, api.FlowPending, original.Status)
 }
 
-func TestExecutionChaining(t *testing.T) {
+func TestExecChain(t *testing.T) {
 	original := &api.ExecutionState{Status: api.StepPending}
 
 	startTime := time.Now()
@@ -268,4 +412,27 @@ func TestExecutionChaining(t *testing.T) {
 	assert.True(t, result.StartedAt.Equal(startTime))
 	assert.EqualValues(t, 1000, result.Duration)
 	assert.Equal(t, api.StepPending, original.Status)
+}
+
+func TestWorkChain(t *testing.T) {
+	original := &api.WorkState{
+		Status: api.WorkPending,
+	}
+
+	startTime := time.Now()
+	completedTime := startTime.Add(time.Second)
+	outputs := api.Args{"result": "success"}
+
+	result := original.
+		SetStatus(api.WorkActive).
+		SetStartedAt(startTime).
+		SetStatus(api.WorkSucceeded).
+		SetCompletedAt(completedTime).
+		SetOutputs(outputs)
+
+	assert.Equal(t, api.WorkSucceeded, result.Status)
+	assert.True(t, result.StartedAt.Equal(startTime))
+	assert.True(t, result.CompletedAt.Equal(completedTime))
+	assert.Equal(t, outputs, result.Outputs)
+	assert.Equal(t, api.WorkPending, original.Status)
 }

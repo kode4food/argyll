@@ -3,6 +3,8 @@ package engine
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
@@ -23,35 +25,16 @@ func TestStateTransitionsCanTransition(t *testing.T) {
 		StateFailed:   {},
 	}
 
-	// Valid transitions
-	if !transitions.CanTransition(StateInit, StateRunning) {
-		t.Error("should allow init -> running")
-	}
-	if !transitions.CanTransition(StateInit, StateFailed) {
-		t.Error("should allow init -> failed")
-	}
-	if !transitions.CanTransition(StateRunning, StateComplete) {
-		t.Error("should allow running -> complete")
-	}
-	if !transitions.CanTransition(StateRunning, StateFailed) {
-		t.Error("should allow running -> failed")
-	}
+	assert.True(t, transitions.CanTransition(StateInit, StateRunning))
+	assert.True(t, transitions.CanTransition(StateInit, StateFailed))
+	assert.True(t, transitions.CanTransition(StateRunning, StateComplete))
+	assert.True(t, transitions.CanTransition(StateRunning, StateFailed))
 
-	// Invalid transitions
-	if transitions.CanTransition(StateInit, StateComplete) {
-		t.Error("should not allow init -> complete")
-	}
-	if transitions.CanTransition(StateComplete, StateRunning) {
-		t.Error("should not allow complete -> running")
-	}
-	if transitions.CanTransition(StateFailed, StateRunning) {
-		t.Error("should not allow failed -> running")
-	}
+	assert.False(t, transitions.CanTransition(StateInit, StateComplete))
+	assert.False(t, transitions.CanTransition(StateComplete, StateRunning))
+	assert.False(t, transitions.CanTransition(StateFailed, StateRunning))
 
-	// Unknown state
-	if transitions.CanTransition("unknown", StateRunning) {
-		t.Error("should not allow transition from unknown state")
-	}
+	assert.False(t, transitions.CanTransition("unknown", StateRunning))
 }
 
 func TestStateTransitionsIsTerminal(t *testing.T) {
@@ -62,19 +45,9 @@ func TestStateTransitionsIsTerminal(t *testing.T) {
 		StateFailed:   {},
 	}
 
-	// Non-terminal states
-	if transitions.IsTerminal(StateInit) {
-		t.Error("init should not be terminal")
-	}
-	if transitions.IsTerminal(StateRunning) {
-		t.Error("running should not be terminal")
-	}
+	assert.False(t, transitions.IsTerminal(StateInit))
+	assert.False(t, transitions.IsTerminal(StateRunning))
 
-	// Terminal states
-	if !transitions.IsTerminal(StateComplete) {
-		t.Error("complete should be terminal")
-	}
-	if !transitions.IsTerminal(StateFailed) {
-		t.Error("failed should be terminal")
-	}
+	assert.True(t, transitions.IsTerminal(StateComplete))
+	assert.True(t, transitions.IsTerminal(StateFailed))
 }

@@ -531,6 +531,6 @@ func TestStepProvidesInput(t *testing.T) {
 	require.NoError(t, err)
 
 	outputArgs := stepA.GetOutputArgs()
-	assert.Contains(t, outputArgs, api.Name("result"), "step should provide 'result' output")
-	assert.NotContains(t, outputArgs, api.Name("other"), "step should not provide 'other' output")
+	assert.Contains(t, outputArgs, api.Name("result"))
+	assert.NotContains(t, outputArgs, api.Name("other"))
 }
