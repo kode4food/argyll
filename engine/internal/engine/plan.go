@@ -14,6 +14,7 @@ type planBuilder struct {
 	missing    util.Set[api.Name]
 	steps      api.Steps
 	attributes map[api.Name]*api.Dependencies
+	allDeps    map[api.Name]*api.Dependencies
 }
 
 var (
@@ -57,6 +58,7 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 		missing:    util.Set[api.Name]{},
 		steps:      api.Steps{},
 		attributes: map[api.Name]*api.Dependencies{},
+		allDeps:    buildDependencies(st.Steps),
 	}
 
 	for key := range initState {
@@ -86,20 +88,11 @@ func (b *planBuilder) allOutputsAvailable(step *api.Step) bool {
 	return true
 }
 
-func (b *planBuilder) findProvider(name api.Name) (api.StepID, bool) {
-	for candidateID, candidate := range b.engState.Steps {
-		if b.stepProvidesOutput(candidate, name) {
-			return candidateID, true
-		}
+func (b *planBuilder) findProviders(name api.Name) []api.StepID {
+	if deps, ok := b.allDeps[name]; ok {
+		return deps.Providers
 	}
-	return "", false
-}
-
-func (b *planBuilder) stepProvidesOutput(step *api.Step, name api.Name) bool {
-	if attr, ok := step.Attributes[name]; ok {
-		return attr.IsOutput()
-	}
-	return false
+	return nil
 }
 
 func (b *planBuilder) addStepToPlan(stepID api.StepID, step *api.Step) {
@@ -144,18 +137,20 @@ func (b *planBuilder) resolveDependencies(step *api.Step) error {
 func (b *planBuilder) resolveInput(
 	name api.Name, consumerID api.StepID, requiredSet util.Set[api.Name],
 ) error {
-	providerID, found := b.findProvider(name)
-	if !found {
+	providers := b.findProviders(name)
+	if len(providers) == 0 {
 		if requiredSet.Contains(name) {
 			b.missing.Add(name)
 		}
 		return nil
 	}
 
-	b.trackDependency(name, providerID, consumerID)
+	for _, providerID := range providers {
+		b.trackDependency(name, providerID, consumerID)
 
-	if err := b.buildPlan(providerID); err != nil {
-		return err
+		if err := b.buildPlan(providerID); err != nil {
+			return err
+		}
 	}
 	b.available.Add(name)
 	return nil

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"maps"
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -11,15 +12,7 @@ import (
 )
 
 type (
-	cycleDetector struct {
-		graph    graph
-		visited  stepSet
-		recStack stepSet
-	}
-
-	graph     map[api.StepID][]api.StepID
-	producers map[api.Name][]api.StepID
-	stepSet   = util.Set[api.StepID]
+	stepSet = util.Set[api.StepID]
 
 	stepValidate func(*api.EngineState, *api.Step) error
 	stepRaise    func(*api.Step, *Aggregator) error
@@ -79,7 +72,7 @@ func (e *Engine) upsertStep(
 		if err := validateAttributeTypes(st, step); err != nil {
 			return err
 		}
-		if err := detectCircularDependencies(st, step); err != nil {
+		if err := detectStepCycles(st, step); err != nil {
 			return err
 		}
 		return raise(step, ag)
@@ -201,99 +194,68 @@ func checkAttributeConflicts(
 	return nil
 }
 
-func detectCircularDependencies(st *api.EngineState, newStep *api.Step) error {
-	detector := &cycleDetector{
-		graph:    buildDependencyGraph(st, newStep),
-		visited:  stepSet{},
-		recStack: stepSet{},
-	}
+func buildDependencies(steps api.Steps) map[api.Name]*api.Dependencies {
+	deps := make(map[api.Name]*api.Dependencies)
 
-	for stepID := range detector.graph {
-		if !detector.visited.Contains(stepID) {
-			if cycle := detector.findCycle(stepID, nil); cycle != nil {
-				return fmt.Errorf("%w: %v", ErrCircularDependency, cycle)
-			}
-		}
-	}
-
-	return nil
-}
-
-func buildDependencyGraph(st *api.EngineState, newStep *api.Step) graph {
-	allSteps := stepsIncluding(st, newStep)
-	producers := indexAttributeProducers(allSteps)
-	return graphFromStepDependencies(allSteps, producers)
-}
-
-func stepsIncluding(st *api.EngineState, newStep *api.Step) api.Steps {
-	steps := make(api.Steps, len(st.Steps))
-	for id, step := range st.Steps {
-		if id != newStep.ID {
-			steps[id] = step
-		}
-	}
-	steps[newStep.ID] = newStep
-	return steps
-}
-
-func indexAttributeProducers(steps api.Steps) producers {
-	index := make(producers)
 	for stepID, step := range steps {
 		for name, attr := range step.Attributes {
+			if deps[name] == nil {
+				deps[name] = &api.Dependencies{
+					Providers: []api.StepID{},
+					Consumers: []api.StepID{},
+				}
+			}
+
 			if attr.IsOutput() {
-				index[name] = append(index[name], stepID)
+				deps[name].Providers = append(deps[name].Providers, stepID)
+			}
+			if attr.IsInput() {
+				deps[name].Consumers = append(deps[name].Consumers, stepID)
 			}
 		}
 	}
-	return index
-}
 
-func graphFromStepDependencies(steps api.Steps, index producers) graph {
-	res := graph{}
-	for stepID, step := range steps {
-		res[stepID] = dependenciesFor(step, index)
-	}
-	return res
-}
-
-func dependenciesFor(step *api.Step, index producers) []api.StepID {
-	var deps []api.StepID
-	for name, attr := range step.Attributes {
-		if attr.IsInput() {
-			if prods, ok := index[name]; ok {
-				deps = append(deps, prods...)
-			}
-		}
-	}
 	return deps
 }
 
-func (d *cycleDetector) findCycle(
-	stepID api.StepID, path []api.StepID,
-) []api.StepID {
-	d.visited.Add(stepID)
-	d.recStack.Add(stepID)
-	path = append(path, stepID)
+func detectStepCycles(st *api.EngineState, newStep *api.Step) error {
+	steps := stepsIncluding(st, newStep)
+	deps := buildDependencies(steps)
 
-	for _, depID := range d.graph[stepID] {
-		if !d.visited.Contains(depID) {
-			if cycle := d.findCycle(depID, path); cycle != nil {
-				return cycle
+	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
+}
+
+func checkCycleFromStep(
+	currentID api.StepID, deps map[api.Name]*api.Dependencies, steps api.Steps,
+	stack stepSet,
+) error {
+	if stack.Contains(currentID) {
+		return fmt.Errorf("%w: step %s", ErrCircularDependency, currentID)
+	}
+
+	stack.Add(currentID)
+	defer stack.Remove(currentID)
+
+	step := steps[currentID]
+	for name, attr := range step.Attributes {
+		if attr.IsInput() {
+			if depInfo := deps[name]; depInfo != nil {
+				for _, providerID := range depInfo.Providers {
+					if err := checkCycleFromStep(
+						providerID, deps, steps, stack,
+					); err != nil {
+						return err
+					}
+				}
 			}
-		} else if d.recStack.Contains(depID) {
-			return extractCyclePath(path, depID)
 		}
 	}
 
-	d.recStack.Remove(stepID)
 	return nil
 }
 
-func extractCyclePath(path []api.StepID, cycleNode api.StepID) []api.StepID {
-	for i, id := range path {
-		if id == cycleNode {
-			return path[i:]
-		}
-	}
-	return nil
+func stepsIncluding(st *api.EngineState, newStep *api.Step) api.Steps {
+	steps := maps.Clone(st.Steps)
+	steps[newStep.ID] = newStep
+	return steps
 }
