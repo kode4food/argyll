@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -276,7 +277,7 @@ func TestRegisterDuplicateStep(t *testing.T) {
 
 	err = env.Engine.RegisterStep(context.Background(), step)
 	if err != nil {
-		assert.Contains(t, err.Error(), "exists")
+		assert.ErrorIs(t, err, engine.ErrStepExists)
 		return
 	}
 	t.Skip(
@@ -318,8 +319,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 	step := helpers.NewSimpleStep("nonexistent")
 
 	err := env.Engine.UpdateStep(context.Background(), step)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	assert.ErrorIs(t, err, engine.ErrStepNotFound)
 }
 
 func TestGetFlowState(t *testing.T) {
@@ -355,8 +355,7 @@ func TestGetFlowStateNotFound(t *testing.T) {
 	defer env.Cleanup()
 
 	_, err := env.Engine.GetFlowState(context.Background(), "nonexistent")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "not found")
+	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
 
 func TestEngineStopGraceful(t *testing.T) {

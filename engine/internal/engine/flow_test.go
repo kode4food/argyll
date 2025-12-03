@@ -41,8 +41,7 @@ func TestStartDuplicate(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
 	)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "flow exists")
+	assert.ErrorIs(t, err, engine.ErrFlowExists)
 }
 
 func TestStartMissingInput(t *testing.T) {
@@ -76,8 +75,7 @@ func TestGetStateNotFound(t *testing.T) {
 	defer env.Cleanup()
 
 	_, err := env.Engine.GetFlowState(context.Background(), "nonexistent")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "flow not found")
+	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
 
 func TestSetAttribute(t *testing.T) {

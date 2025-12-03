@@ -612,3 +612,297 @@ func TestValidateWorkConfig(t *testing.T) {
 		as.StepValid(step)
 	})
 }
+
+func TestStepEqualEdgeCases(t *testing.T) {
+	as := assert.New(t)
+
+	baseStep := &api.Step{
+		ID:      "test",
+		Name:    "Test",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Attributes: api.AttributeSpecs{
+			"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}
+
+	t.Run("nil_http_configs", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeScript,
+			Version: "1.0.0",
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "(+ 1 2)",
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeScript,
+			Version: "1.0.0",
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "(+ 1 2)",
+			},
+		}
+		as.True(step1.Equal(step2))
+	})
+
+	t.Run("one_nil_http_one_not", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+		}
+		as.False(step1.Equal(step2))
+	})
+
+	t.Run("nil_script_configs", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		as.True(step1.Equal(step2))
+	})
+
+	t.Run("different_versions", func(t *testing.T) {
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "2.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		as.False(baseStep.Equal(step2))
+	})
+
+	t.Run("different_types", func(t *testing.T) {
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeAsync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		as.False(baseStep.Equal(step2))
+	})
+
+	t.Run("different_attribute_maps", func(t *testing.T) {
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			Attributes: api.AttributeSpecs{
+				"arg1": {Role: api.RoleOptional, Type: api.TypeString},
+			},
+		}
+		as.False(baseStep.Equal(step2))
+	})
+
+	t.Run("nil_predicate_configs", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		as.True(step1.Equal(step2))
+	})
+
+	t.Run("different_predicates", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			Predicate: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "(= status \"ready\")",
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			Predicate: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "(= status \"pending\")",
+			},
+		}
+		as.False(step1.Equal(step2))
+	})
+
+	t.Run("nil_work_configs", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+		}
+		as.True(step1.Equal(step2))
+	})
+
+	t.Run("different_work_configs", func(t *testing.T) {
+		step1 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				MaxRetries:  3,
+				BackoffType: api.BackoffTypeFixed,
+			},
+		}
+		step2 := &api.Step{
+			ID:      "test",
+			Name:    "Test",
+			Type:    api.StepTypeSync,
+			Version: "1.0.0",
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			WorkConfig: &api.WorkConfig{
+				MaxRetries:  5,
+				BackoffType: api.BackoffTypeExponential,
+			},
+		}
+		as.False(step1.Equal(step2))
+	})
+}
+
+func TestStepResultWithOutputEdgeCases(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("multiple_sequential_outputs", func(t *testing.T) {
+		result := &api.StepResult{Success: true}
+		result = result.
+			WithOutput("key1", "value1").
+			WithOutput("key2", 42).
+			WithOutput("key3", true)
+
+		as.NotNil(result.Outputs)
+		as.Len(result.Outputs, 3)
+		as.Equal("value1", result.Outputs["key1"])
+		as.Equal(42, result.Outputs["key2"])
+		as.Equal(true, result.Outputs["key3"])
+	})
+
+	t.Run("overwrite_existing_output", func(t *testing.T) {
+		result := &api.StepResult{Success: true}
+		result = result.
+			WithOutput("key", "original").
+			WithOutput("key", "updated")
+
+		as.Equal("updated", result.Outputs["key"])
+		as.Len(result.Outputs, 1)
+	})
+
+	t.Run("with_output_on_nil_outputs", func(t *testing.T) {
+		result := &api.StepResult{
+			Success: true,
+			Outputs: nil,
+		}
+		result = result.WithOutput("key", "value")
+
+		as.NotNil(result.Outputs)
+		as.Equal("value", result.Outputs["key"])
+	})
+
+	t.Run("with_output_complex_types", func(t *testing.T) {
+		result := &api.StepResult{Success: true}
+		complexData := map[string]interface{}{
+			"nested": map[string]interface{}{
+				"value": 123,
+			},
+		}
+		result = result.WithOutput("complex", complexData)
+
+		as.Equal(complexData, result.Outputs["complex"])
+	})
+
+	t.Run("with_output_array", func(t *testing.T) {
+		result := &api.StepResult{Success: true}
+		arrayData := []interface{}{"a", "b", "c"}
+		result = result.WithOutput("array", arrayData)
+
+		as.Equal(arrayData, result.Outputs["array"])
+	})
+
+	t.Run("with_output_preserves_success_state", func(t *testing.T) {
+		result := &api.StepResult{Success: true}
+		result = result.WithOutput("key", "value")
+
+		as.True(result.Success)
+	})
+}

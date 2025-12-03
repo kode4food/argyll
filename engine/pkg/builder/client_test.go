@@ -215,3 +215,79 @@ func TestFlowGetState(t *testing.T) {
 	assert.Equal(t, api.FlowID("my-flow"), state.ID)
 	assert.Equal(t, api.FlowActive, state.Status)
 }
+
+func TestFlowGetStateHTTP404(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("flow not found"))
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("nonexistent-flow")
+
+	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}
+
+func TestFlowGetStateHTTP500(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("internal server error"))
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("test-flow")
+
+	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}
+
+func TestFlowGetStateMalformedJSON(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("not valid json{"))
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("test-flow")
+
+	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}
+
+func TestFlowGetStateContextCancelled(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			time.Sleep(200 * time.Millisecond)
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(api.FlowState{})
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("test-flow")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := wc.GetState(ctx)
+	assert.Error(t, err)
+}
+
+func TestFlowGetStateNetworkError(t *testing.T) {
+	client := builder.NewClient("http://localhost:1", 1*time.Millisecond)
+	wc := client.Flow("test-flow")
+
+	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}

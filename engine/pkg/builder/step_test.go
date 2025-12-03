@@ -399,3 +399,121 @@ func TestImmutabilityHTTPConfig(t *testing.T) {
 	assert.Equal(t, "http://different.com", step2.HTTP.Endpoint)
 	assert.Equal(t, "http://example.com/health", step2.HTTP.HealthCheck)
 }
+
+func TestBuildValidationErrors(t *testing.T) {
+	t.Run("missing_endpoint_for_http_step", func(t *testing.T) {
+		_, err := testClient().NewStep("Test").
+			Build()
+		assert.ErrorIs(t, err, api.ErrHTTPRequired)
+	})
+
+	t.Run("missing_script_for_script_step", func(t *testing.T) {
+		_, err := testClient().NewStep("Test").
+			WithScriptExecution().
+			Build()
+		assert.ErrorIs(t, err, api.ErrScriptRequired)
+	})
+
+	t.Run("invalid_attribute_spec", func(t *testing.T) {
+		_, err := testClient().NewStep("Test").
+			WithEndpoint("http://example.com").
+			Required("", api.TypeString).
+			Build()
+		assert.Error(t, err)
+	})
+
+	t.Run("valid_script_step", func(t *testing.T) {
+		step, err := testClient().NewStep("Test").
+			WithScript("(+ 1 2)").
+			Build()
+		require.NoError(t, err)
+		assert.NotNil(t, step.Script)
+		assert.Equal(t, api.StepTypeScript, step.Type)
+	})
+
+	t.Run("ale_predicate", func(t *testing.T) {
+		step, err := testClient().NewStep("Test").
+			WithEndpoint("http://example.com").
+			WithAlePredicate("(> count 10)").
+			Build()
+		require.NoError(t, err)
+		assert.NotNil(t, step.Predicate)
+		assert.Equal(t, api.ScriptLangAle, step.Predicate.Language)
+	})
+
+	t.Run("lua_predicate", func(t *testing.T) {
+		step, err := testClient().NewStep("Test").
+			WithEndpoint("http://example.com").
+			WithLuaPredicate("return count > 10").
+			Build()
+		require.NoError(t, err)
+		assert.NotNil(t, step.Predicate)
+		assert.Equal(t, api.ScriptLangLua, step.Predicate.Language)
+	})
+}
+
+func TestStepBuilderChaining(t *testing.T) {
+	t.Run("complex_step_building", func(t *testing.T) {
+		step, err := testClient().NewStep("Complex Step").
+			WithID("complex").
+			WithVersion("2.0.0").
+			WithEndpoint("http://example.com/process").
+			WithHealthCheck("http://example.com/health").
+			WithTimeout(60000).
+			Required("user_id", api.TypeString).
+			Required("data", api.TypeObject).
+			Optional("metadata", api.TypeObject, "{}").
+			Output("result", api.TypeString).
+			Output("status", api.TypeNumber).
+			WithAsyncExecution().
+			Build()
+
+		require.NoError(t, err)
+		assert.Equal(t, api.StepID("complex"), step.ID)
+		assert.Equal(t, "2.0.0", step.Version)
+		assert.Equal(t, api.StepTypeAsync, step.Type)
+		assert.Equal(t, int64(60000), step.HTTP.Timeout)
+		assert.Len(t, step.Attributes, 5)
+		assert.Equal(t, api.RoleRequired, step.Attributes["user_id"].Role)
+		assert.Equal(t, api.RoleOptional, step.Attributes["metadata"].Role)
+		assert.Equal(t, api.RoleOutput, step.Attributes["result"].Role)
+	})
+
+	t.Run("step_type_transitions", func(t *testing.T) {
+		builder := testClient().NewStep("Test")
+
+		syncStep, err := builder.
+			WithEndpoint("http://example.com").
+			WithSyncExecution().
+			Build()
+		require.NoError(t, err)
+		assert.Equal(t, api.StepTypeSync, syncStep.Type)
+
+		asyncStep, err := builder.
+			WithEndpoint("http://example.com").
+			WithAsyncExecution().
+			Build()
+		require.NoError(t, err)
+		assert.Equal(t, api.StepTypeAsync, asyncStep.Type)
+
+		scriptStep, err := builder.
+			WithScript("(+ 1 2)").
+			WithScriptExecution().
+			Build()
+		require.NoError(t, err)
+		assert.Equal(t, api.StepTypeScript, scriptStep.Type)
+	})
+}
+
+func TestStepBuilderWithForEach(t *testing.T) {
+	t.Run("for_each_attribute", func(t *testing.T) {
+		step, err := testClient().NewStep("Batch Step").
+			WithEndpoint("http://example.com").
+			Required("users", api.TypeArray).
+			Output("results", api.TypeArray).
+			Build()
+
+		require.NoError(t, err)
+		assert.Equal(t, api.TypeArray, step.Attributes["users"].Type)
+	})
+}

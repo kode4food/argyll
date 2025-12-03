@@ -254,3 +254,200 @@ func TestEqual(t *testing.T) {
 	assert.True(t, spec1.Equal(spec2))
 	assert.False(t, spec1.Equal(spec3))
 }
+
+func TestEqualEdgeCases(t *testing.T) {
+	t.Run("both_nil", func(t *testing.T) {
+		var spec1 *api.AttributeSpec
+		var spec2 *api.AttributeSpec
+		assert.True(t, spec1.Equal(spec2))
+	})
+
+	t.Run("one_nil_one_not", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+		}
+		var spec2 *api.AttributeSpec
+		assert.False(t, spec1.Equal(spec2))
+		assert.False(t, spec2.Equal(spec1))
+	})
+
+	t.Run("different_for_each", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeArray,
+			ForEach: true,
+		}
+		spec2 := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeArray,
+			ForEach: false,
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("different_type", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+		}
+		spec2 := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeNumber,
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("different_default", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:    api.RoleOptional,
+			Type:    api.TypeString,
+			Default: `"value1"`,
+		}
+		spec2 := &api.AttributeSpec{
+			Role:    api.RoleOptional,
+			Type:    api.TypeString,
+			Default: `"value2"`,
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("all_fields_different", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			Default: "",
+			ForEach: false,
+		}
+		spec2 := &api.AttributeSpec{
+			Role:    api.RoleOptional,
+			Type:    api.TypeNumber,
+			Default: "42",
+			ForEach: true,
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("empty_defaults_equal", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			Default: "",
+		}
+		spec2 := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			Default: "",
+		}
+		assert.True(t, spec1.Equal(spec2))
+	})
+}
+
+func TestValidateEdgeCases(t *testing.T) {
+	t.Run("for_each_with_type_any", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeAny,
+			ForEach: true,
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
+	t.Run("for_each_with_empty_type", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    "",
+			ForEach: true,
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
+	t.Run("for_each_with_non_array_type", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			ForEach: true,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrForEachRequiresArray)
+	})
+
+	t.Run("for_each_with_output_role", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleOutput,
+			Type:    api.TypeArray,
+			ForEach: true,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrForEachNotAllowedOutput)
+	})
+
+	t.Run("invalid_role", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: "invalid_role",
+			Type: api.TypeString,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrInvalidAttributeRole)
+	})
+
+	t.Run("invalid_type", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: "invalid_type",
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrInvalidAttributeType)
+	})
+
+	t.Run("default_with_required_role", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			Default: `"value"`,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrDefaultNotAllowed)
+	})
+
+	t.Run("default_with_output_role", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleOutput,
+			Type:    api.TypeString,
+			Default: `"value"`,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrDefaultNotAllowed)
+	})
+
+	t.Run("empty_type_allowed", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: "",
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
+	t.Run("default_with_mismatched_type", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleOptional,
+			Type:    api.TypeNumber,
+			Default: `"not a number"`,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrInvalidDefaultValue)
+	})
+
+	t.Run("valid_optional_with_null_default", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleOptional,
+			Type:    api.TypeNull,
+			Default: "null",
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+}

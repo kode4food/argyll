@@ -47,8 +47,7 @@ func TestGetFlowNotFound(t *testing.T) {
 
 	ctx := context.Background()
 	_, err := env.Engine.GetFlowState(ctx, "nonexistent")
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "flow not found")
+	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
 
 func TestScript(t *testing.T) {
@@ -175,6 +174,5 @@ func TestPlanFlowNotFound(t *testing.T) {
 
 	fs := engine.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
 	_, err := env.Engine.GetCompiledScript(fs)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "flow not found")
+	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
