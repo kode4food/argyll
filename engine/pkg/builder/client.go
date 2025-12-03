@@ -30,6 +30,7 @@ type (
 
 var (
 	ErrRegisterStep = errors.New("failed to register step")
+	ErrUpdateStep   = errors.New("failed to update step")
 	ErrListSteps    = errors.New("failed to list steps")
 	ErrStartFlow    = errors.New("failed to start flow")
 	ErrGetFlow      = errors.New("failed to get flow")
@@ -72,7 +73,7 @@ func (c *Client) ListSteps(
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("%s: status %d, body: %s",
+		return nil, fmt.Errorf("%w: status %d, body: %s",
 			ErrListSteps, resp.StatusCode, string(body))
 	}
 
@@ -120,7 +121,7 @@ func (c *Client) registerStep(ctx context.Context, step *api.Step) error {
 	if resp.StatusCode != http.StatusOK &&
 		resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("%s: status %d, body: %s",
+		return fmt.Errorf("%w: status %d, body: %s",
 			ErrRegisterStep, resp.StatusCode, string(body))
 	}
 
@@ -149,8 +150,8 @@ func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("failed to update step: status %d, body: %s",
-			resp.StatusCode, string(body))
+		return fmt.Errorf("%w: status %d, body: %s",
+			ErrUpdateStep, resp.StatusCode, string(body))
 	}
 
 	return nil
@@ -181,7 +182,7 @@ func (c *Client) startFlow(
 	if resp.StatusCode != http.StatusOK &&
 		resp.StatusCode != http.StatusCreated {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("%s: status %d, body: %s",
+		return fmt.Errorf("%w: status %d, body: %s",
 			ErrStartFlow, resp.StatusCode, string(body))
 	}
 
@@ -205,7 +206,7 @@ func (c *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("%s: status %d, body: %s",
+		return nil, fmt.Errorf("%w: status %d, body: %s",
 			ErrGetFlow, resp.StatusCode, string(body))
 	}
 

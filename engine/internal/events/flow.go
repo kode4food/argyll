@@ -1,6 +1,7 @@
 package events
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/kode4food/timebox"
@@ -9,6 +10,10 @@ import (
 )
 
 const flowPrefix = "flow"
+
+var (
+	ErrExecutionNotFound = errors.New("execution does not exist for step")
+)
 
 // FlowAppliers contains the event applier functions for flow events
 var FlowAppliers = makeFlowAppliers()
@@ -182,7 +187,7 @@ func getExecution(st *api.FlowState, stepID api.StepID) *api.ExecutionState {
 		return exec
 	}
 	panic(
-		fmt.Errorf("execution does not exist for step %s", stepID),
+		fmt.Errorf("%w: %s", ErrExecutionNotFound, stepID),
 	)
 }
 

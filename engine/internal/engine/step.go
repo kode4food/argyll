@@ -64,7 +64,7 @@ func (e *Engine) transitionStepExecution(
 		}
 
 		if !stepTransitions.CanTransition(exec.Status, toStatus) {
-			return fmt.Errorf("%s: step %s cannot %s from status %s",
+			return fmt.Errorf("%w: step %s cannot %s from status %s",
 				ErrInvalidTransition, fs.StepID, action, exec.Status)
 		}
 

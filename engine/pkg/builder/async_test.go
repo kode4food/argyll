@@ -42,19 +42,19 @@ func TestNewAsyncContext(t *testing.T) {
 
 func TestAsyncContextMissingMeta(t *testing.T) {
 	tests := []struct {
-		name     string
-		meta     api.Metadata
-		errMatch string
+		name    string
+		meta    api.Metadata
+		wantErr error
 	}{
 		{
-			name:     "no metadata",
-			meta:     nil,
-			errMatch: "metadata not found",
+			name:    "no metadata",
+			meta:    nil,
+			wantErr: builder.ErrMetadataNotFound,
 		},
 		{
-			name:     "missing webhook_url",
-			meta:     api.Metadata{},
-			errMatch: "webhook_url not found",
+			name:    "missing webhook_url",
+			meta:    api.Metadata{},
+			wantErr: builder.ErrWebhookURLNotFound,
 		},
 	}
 
@@ -68,8 +68,7 @@ func TestAsyncContextMissingMeta(t *testing.T) {
 				Metadata: tt.meta,
 			}
 			_, err := builder.NewAsyncContext(ctx)
-			assert.Error(t, err)
-			assert.Contains(t, err.Error(), tt.errMatch)
+			assert.ErrorIs(t, err, tt.wantErr)
 		})
 	}
 }
@@ -170,6 +169,7 @@ func TestAsyncContextWebhookError(t *testing.T) {
 	require.NoError(t, err)
 
 	err = ac.Success(api.Args{"key": "value"})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "webhook returned status 500")
+	assert.ErrorIs(t, err, builder.ErrWebhookError)
+	assert.Contains(t, err.Error(), "500")
+	assert.Contains(t, err.Error(), "internal error")
 }

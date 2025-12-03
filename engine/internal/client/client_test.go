@@ -90,7 +90,8 @@ func TestHTTPError(t *testing.T) {
 	)
 	require.Error(t, err)
 	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
-	assert.Contains(t, err.Error(), "step returned HTTP error: status 500")
+	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.Contains(t, err.Error(), "500")
 }
 
 func TestSuccessFalse(t *testing.T) {
@@ -141,6 +142,7 @@ func TestSuccessFalseWithError(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 	require.Error(t, err)
+	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
 	assert.Contains(t, err.Error(), "custom error message")
 }
 

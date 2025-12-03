@@ -316,7 +316,7 @@ func (a *flowActor) prepareStep(
 	// Validate step exists and is pending
 	exec, ok := flow.Executions[stepID]
 	if ok && exec.Status != api.StepPending {
-		return nil, fmt.Errorf("%s: %s (status=%s)",
+		return nil, fmt.Errorf("%w: %s (status=%s)",
 			ErrStepAlreadyPending, stepID, exec.Status)
 	}
 

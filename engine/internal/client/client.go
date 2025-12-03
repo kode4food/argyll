@@ -164,7 +164,7 @@ func (c *HTTPClient) parseResponse(
 		slog.Error("Step failed",
 			slog.Any("step_id", step.ID),
 			slog.String("error", response.Error))
-		return nil, errors.New(response.Error)
+		return nil, fmt.Errorf("%w: %s", ErrStepUnsuccessful, response.Error)
 	}
 
 	return response.Outputs, nil

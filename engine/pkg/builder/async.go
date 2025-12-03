@@ -3,6 +3,7 @@ package builder
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,16 +19,22 @@ type AsyncContext struct {
 	webhookURL string
 }
 
+var (
+	ErrMetadataNotFound   = errors.New("metadata not found in step context")
+	ErrWebhookURLNotFound = errors.New("webhook_url not found in metadata")
+	ErrWebhookError       = errors.New("webhook returned error status")
+)
+
 // NewAsyncContext creates a new async context from a StepContext.
 // It extracts webhook_url from the StepContext metadata
 func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 	if ctx.Metadata == nil {
-		return nil, fmt.Errorf("metadata not found in step context")
+		return nil, ErrMetadataNotFound
 	}
 
 	webhookURL, ok := ctx.Metadata["webhook_url"].(string)
 	if !ok || webhookURL == "" {
-		return nil, fmt.Errorf("webhook_url not found in metadata")
+		return nil, ErrWebhookURLNotFound
 	}
 
 	return &AsyncContext{
@@ -91,8 +98,8 @@ func (ac *AsyncContext) sendWebhook(result api.StepResult) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("webhook returned status %d: %s",
-			resp.StatusCode, string(body))
+		return fmt.Errorf("%w: status %d: %s",
+			ErrWebhookError, resp.StatusCode, string(body))
 	}
 
 	return nil
