@@ -1,4 +1,4 @@
-package assert
+package assert_test
 
 import (
 	"context"
@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -30,7 +31,7 @@ func (g *mockGetter) GetAttribute(
 }
 
 func TestNew(t *testing.T) {
-	wrapper := New(t)
+	wrapper := assert.New(t)
 
 	if wrapper.T != t {
 		t.Error("Wrapper.T should be set to the testing.T instance")
@@ -104,7 +105,7 @@ func TestStepValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			w.StepValid(tt.step)
 		})
 	}
@@ -223,7 +224,7 @@ func TestStepInvalid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			w.StepInvalid(tt.step, tt.expectedErrorContain)
 		})
 	}
@@ -262,7 +263,7 @@ func TestFlowStatus(t *testing.T) {
 				Status: tt.flowStatus,
 			}
 
-			w := New(t)
+			w := assert.New(t)
 			w.FlowStatus(flow, tt.expectedStatus)
 		})
 	}
@@ -315,7 +316,7 @@ func TestFlowHasState(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			ctx := context.Background()
 			w.FlowHasState(ctx, tt.getter, tt.flowID, tt.keys...)
 		})
@@ -373,7 +374,7 @@ func TestFlowStateEquals(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			ctx := context.Background()
 			w.FlowStateEquals(
 				ctx, tt.getter, tt.flowID, tt.key, tt.expected,
@@ -416,7 +417,7 @@ func TestConfigValid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			w.ConfigValid(tt.cfg)
 		})
 	}
@@ -472,7 +473,7 @@ func TestConfigInvalid(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			w.ConfigInvalid(tt.cfg, tt.contains)
 		})
 	}
@@ -509,7 +510,7 @@ func TestEventually(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			w.Eventually(tt.condition, tt.timeout, "condition should pass")
 		})
 	}
@@ -549,7 +550,7 @@ func TestEventuallyWithError(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			w := New(t)
+			w := assert.New(t)
 			w.EventuallyWithError(
 				tt.condition, tt.timeout, "condition should succeed",
 			)

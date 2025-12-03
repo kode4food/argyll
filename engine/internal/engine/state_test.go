@@ -1,10 +1,11 @@
-package engine
+package engine_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
@@ -18,7 +19,7 @@ const (
 )
 
 func TestStateTransitionsCanTransition(t *testing.T) {
-	transitions := StateTransitions[TestState]{
+	transitions := engine.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
 		StateRunning:  util.SetOf(StateComplete, StateFailed),
 		StateComplete: {},
@@ -38,7 +39,7 @@ func TestStateTransitionsCanTransition(t *testing.T) {
 }
 
 func TestStateTransitionsIsTerminal(t *testing.T) {
-	transitions := StateTransitions[TestState]{
+	transitions := engine.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
 		StateRunning:  util.SetOf(StateComplete, StateFailed),
 		StateComplete: {},

@@ -1,4 +1,4 @@
-package server
+package server_test
 
 import (
 	"encoding/json"
@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/kode4food/spuds/engine/internal/server"
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
 
@@ -87,13 +88,13 @@ func (e *testWebSocketEnv) Cleanup() {
 	}
 }
 
-func testWebSocket(t *testing.T, replay ReplayFunc) *testWebSocketEnv {
+func testWebSocket(t *testing.T, replay server.ReplayFunc) *testWebSocketEnv {
 	t.Helper()
 	hub := &mockEventHub{}
 
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			HandleWebSocket(hub, w, r, replay)
+			server.HandleWebSocket(hub, w, r, replay)
 		},
 	))
 
@@ -310,7 +311,7 @@ func TestEngineEvents(t *testing.T) {
 		EngineEvents: true,
 	}
 
-	filter := BuildFilter(sub)
+	filter := server.BuildFilter(sub)
 
 	engineEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
@@ -333,7 +334,7 @@ func TestEventTypes(t *testing.T) {
 		},
 	}
 
-	filter := BuildFilter(sub)
+	filter := server.BuildFilter(sub)
 
 	createdEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -358,7 +359,7 @@ func TestFlow(t *testing.T) {
 		FlowID: "wf-123",
 	}
 
-	filter := BuildFilter(sub)
+	filter := server.BuildFilter(sub)
 
 	matchingEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -376,7 +377,7 @@ func TestFlow(t *testing.T) {
 func TestNoFilters(t *testing.T) {
 	sub := &api.ClientSubscription{}
 
-	filter := BuildFilter(sub)
+	filter := server.BuildFilter(sub)
 
 	event := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -392,7 +393,7 @@ func TestCombined(t *testing.T) {
 		EventTypes:   []api.EventType{api.EventTypeFlowStarted},
 	}
 
-	filter := BuildFilter(sub)
+	filter := server.BuildFilter(sub)
 
 	engineEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
@@ -418,7 +419,7 @@ func TestEventTypesWithFlowID(t *testing.T) {
 		EventTypes: []api.EventType{api.EventTypeFlowStarted},
 	}
 
-	filter := BuildFilter(sub)
+	filter := server.BuildFilter(sub)
 
 	matchingEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),

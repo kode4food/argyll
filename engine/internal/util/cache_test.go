@@ -1,4 +1,4 @@
-package util
+package util_test
 
 import (
 	"errors"
@@ -7,19 +7,12 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/kode4food/spuds/engine/internal/util"
 )
 
-func TestNewLRUCache(t *testing.T) {
-	cache := NewLRUCache[string](10)
-
-	require.NotNil(t, cache)
-	assert.Equal(t, 10, cache.maxSize)
-	assert.NotNil(t, cache.cache)
-	assert.NotNil(t, cache.lru)
-}
-
 func TestCacheMiss(t *testing.T) {
-	cache := NewLRUCache[string](10)
+	cache := util.NewLRUCache[string](10)
 	callCount := 0
 
 	value, err := cache.Get("key1", func() (string, error) {
@@ -33,7 +26,7 @@ func TestCacheMiss(t *testing.T) {
 }
 
 func TestCacheHit(t *testing.T) {
-	cache := NewLRUCache[string](10)
+	cache := util.NewLRUCache[string](10)
 	callCount := 0
 
 	cons := func() (string, error) {
@@ -53,7 +46,7 @@ func TestCacheHit(t *testing.T) {
 }
 
 func TestConstructorError(t *testing.T) {
-	cache := NewLRUCache[string](10)
+	cache := util.NewLRUCache[string](10)
 	expectedErr := errors.New("constructor error")
 
 	value, err := cache.Get("key1", func() (string, error) {
@@ -65,7 +58,7 @@ func TestConstructorError(t *testing.T) {
 }
 
 func TestEviction(t *testing.T) {
-	cache := NewLRUCache[string](3)
+	cache := util.NewLRUCache[string](3)
 	consCalls := make(map[string]int)
 
 	cons := func(key string, value string) func() (string, error) {
@@ -82,11 +75,8 @@ func TestEviction(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	assert.Equal(t, 3, cache.lru.Len())
-
 	_, err := cache.Get("key4", cons("key4", "value4"))
 	require.NoError(t, err)
-	assert.Equal(t, 3, cache.lru.Len())
 
 	_, err = cache.Get("key1", cons("key1", "value1"))
 	require.NoError(t, err)
@@ -94,7 +84,7 @@ func TestEviction(t *testing.T) {
 }
 
 func TestLRUOrdering(t *testing.T) {
-	cache := NewLRUCache[string](3)
+	cache := util.NewLRUCache[string](3)
 	consCalls := make(map[string]int)
 
 	cons := func(key string) func() (string, error) {

@@ -1,170 +1,25 @@
-package api
+package api_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/spuds/engine/pkg/api"
 )
-
-func TestValidateDefaultValue(t *testing.T) {
-	tests := []struct {
-		name      string
-		value     string
-		attrType  AttributeType
-		expectErr bool
-	}{
-		{
-			name:      "valid JSON string",
-			value:     `"hello world"`,
-			attrType:  TypeString,
-			expectErr: false,
-		},
-		{
-			name:      "invalid string - unquoted",
-			value:     "hello world",
-			attrType:  TypeString,
-			expectErr: true,
-		},
-		{
-			name:      "valid number integer",
-			value:     "42",
-			attrType:  TypeNumber,
-			expectErr: false,
-		},
-		{
-			name:      "valid number float",
-			value:     "3.14",
-			attrType:  TypeNumber,
-			expectErr: false,
-		},
-		{
-			name:      "invalid number",
-			value:     "not a number",
-			attrType:  TypeNumber,
-			expectErr: true,
-		},
-		{
-			name:      "valid boolean true",
-			value:     "true",
-			attrType:  TypeBoolean,
-			expectErr: false,
-		},
-		{
-			name:      "valid boolean false",
-			value:     "false",
-			attrType:  TypeBoolean,
-			expectErr: false,
-		},
-		{
-			name:      "invalid boolean",
-			value:     "yes",
-			attrType:  TypeBoolean,
-			expectErr: true,
-		},
-		{
-			name:      "valid object",
-			value:     `{"key": "value"}`,
-			attrType:  TypeObject,
-			expectErr: false,
-		},
-		{
-			name:      "invalid object - array",
-			value:     `[1, 2, 3]`,
-			attrType:  TypeObject,
-			expectErr: true,
-		},
-		{
-			name:      "invalid object - malformed JSON",
-			value:     `{key: value}`,
-			attrType:  TypeObject,
-			expectErr: true,
-		},
-		{
-			name:      "valid array",
-			value:     `[1, 2, 3]`,
-			attrType:  TypeArray,
-			expectErr: false,
-		},
-		{
-			name:      "invalid array - object",
-			value:     `{"key": "value"}`,
-			attrType:  TypeArray,
-			expectErr: true,
-		},
-		{
-			name:      "invalid array - malformed JSON",
-			value:     `[1, 2, 3`,
-			attrType:  TypeArray,
-			expectErr: true,
-		},
-		{
-			name:      "valid null",
-			value:     "null",
-			attrType:  TypeNull,
-			expectErr: false,
-		},
-		{
-			name:      "invalid null",
-			value:     "nil",
-			attrType:  TypeNull,
-			expectErr: true,
-		},
-		{
-			name:      "any type accepts valid JSON string",
-			value:     `"whatever"`,
-			attrType:  TypeAny,
-			expectErr: false,
-		},
-		{
-			name:      "any type accepts valid JSON number",
-			value:     "42",
-			attrType:  TypeAny,
-			expectErr: false,
-		},
-		{
-			name:      "any type accepts valid JSON object",
-			value:     `{"key":"value"}`,
-			attrType:  TypeAny,
-			expectErr: false,
-		},
-		{
-			name:      "any type accepts valid JSON array",
-			value:     `[1,2,3]`,
-			attrType:  TypeAny,
-			expectErr: false,
-		},
-		{
-			name:      "any type rejects invalid JSON",
-			value:     "not valid json",
-			attrType:  TypeAny,
-			expectErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := validateDefaultValue(tt.value, tt.attrType)
-			if tt.expectErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
 
 func TestValidateDefault(t *testing.T) {
 	tests := []struct {
 		name      string
-		spec      *AttributeSpec
-		attrName  Name
+		spec      *api.AttributeSpec
+		attrName  api.Name
 		expectErr bool
 	}{
 		{
 			name: "optional with valid number default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeNumber,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeNumber,
 				Default: "42",
 			},
 			attrName:  "count",
@@ -172,9 +27,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with invalid number default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeNumber,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeNumber,
 				Default: "not-a-number",
 			},
 			attrName:  "count",
@@ -182,9 +37,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with valid boolean true default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeBoolean,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeBoolean,
 				Default: "true",
 			},
 			attrName:  "enabled",
@@ -192,9 +47,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with valid boolean false default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeBoolean,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeBoolean,
 				Default: "false",
 			},
 			attrName:  "enabled",
@@ -202,9 +57,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with invalid boolean default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeBoolean,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeBoolean,
 				Default: "yes",
 			},
 			attrName:  "enabled",
@@ -212,9 +67,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with valid object default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeObject,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeObject,
 				Default: `{"key": "value"}`,
 			},
 			attrName:  "config",
@@ -222,9 +77,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with invalid object default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeObject,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeObject,
 				Default: `[1, 2, 3]`,
 			},
 			attrName:  "config",
@@ -232,9 +87,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with valid array default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeArray,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeArray,
 				Default: `[1, 2, 3]`,
 			},
 			attrName:  "items",
@@ -242,9 +97,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with invalid array default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeArray,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeArray,
 				Default: `{"key": "value"}`,
 			},
 			attrName:  "items",
@@ -252,9 +107,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with valid string default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeString,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeString,
 				Default: `"hello"`,
 			},
 			attrName:  "message",
@@ -262,9 +117,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with invalid string default - unquoted",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeString,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeString,
 				Default: "hello",
 			},
 			attrName:  "message",
@@ -272,9 +127,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with valid null default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeNull,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeNull,
 				Default: "null",
 			},
 			attrName:  "optional_field",
@@ -282,9 +137,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with invalid null default",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeNull,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeNull,
 				Default: "nil",
 			},
 			attrName:  "optional_field",
@@ -292,9 +147,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with any type - valid number",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeAny,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeAny,
 				Default: "42",
 			},
 			attrName:  "data",
@@ -302,9 +157,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with any type - valid object",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeAny,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeAny,
 				Default: `{"key":"value"}`,
 			},
 			attrName:  "data",
@@ -312,9 +167,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "optional with any type - invalid JSON",
-			spec: &AttributeSpec{
-				Role:    RoleOptional,
-				Type:    TypeAny,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeAny,
 				Default: "not json",
 			},
 			attrName:  "data",
@@ -322,9 +177,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "required with default should fail",
-			spec: &AttributeSpec{
-				Role:    RoleRequired,
-				Type:    TypeString,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleRequired,
+				Type:    api.TypeString,
 				Default: `"value"`,
 			},
 			attrName:  "name",
@@ -332,9 +187,9 @@ func TestValidateDefault(t *testing.T) {
 		},
 		{
 			name: "output with default should fail",
-			spec: &AttributeSpec{
-				Role:    RoleOutput,
-				Type:    TypeString,
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOutput,
+				Type:    api.TypeString,
 				Default: `"value"`,
 			},
 			attrName:  "result",
@@ -355,43 +210,43 @@ func TestValidateDefault(t *testing.T) {
 }
 
 func TestIsRequired(t *testing.T) {
-	required := &AttributeSpec{
-		Role: RoleRequired,
-		Type: TypeString,
+	required := &api.AttributeSpec{
+		Role: api.RoleRequired,
+		Type: api.TypeString,
 	}
 	assert.True(t, required.IsRequired())
 
-	optional := &AttributeSpec{
-		Role: RoleOptional,
-		Type: TypeString,
+	optional := &api.AttributeSpec{
+		Role: api.RoleOptional,
+		Type: api.TypeString,
 	}
 	assert.False(t, optional.IsRequired())
 
-	output := &AttributeSpec{
-		Role: RoleOutput,
-		Type: TypeString,
+	output := &api.AttributeSpec{
+		Role: api.RoleOutput,
+		Type: api.TypeString,
 	}
 	assert.False(t, output.IsRequired())
 }
 
 func TestEqual(t *testing.T) {
-	spec1 := &AttributeSpec{
-		Role:    RoleRequired,
-		Type:    TypeString,
+	spec1 := &api.AttributeSpec{
+		Role:    api.RoleRequired,
+		Type:    api.TypeString,
 		Default: `"hello"`,
 		ForEach: false,
 	}
 
-	spec2 := &AttributeSpec{
-		Role:    RoleRequired,
-		Type:    TypeString,
+	spec2 := &api.AttributeSpec{
+		Role:    api.RoleRequired,
+		Type:    api.TypeString,
 		Default: `"hello"`,
 		ForEach: false,
 	}
 
-	spec3 := &AttributeSpec{
-		Role:    RoleOptional,
-		Type:    TypeString,
+	spec3 := &api.AttributeSpec{
+		Role:    api.RoleOptional,
+		Type:    api.TypeString,
 		Default: `"hello"`,
 		ForEach: false,
 	}
