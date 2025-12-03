@@ -92,18 +92,18 @@ func testWebSocket(t *testing.T, replay server.ReplayFunc) *testWebSocketEnv {
 	t.Helper()
 	hub := &mockEventHub{}
 
-	server := httptest.NewServer(http.HandlerFunc(
+	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			server.HandleWebSocket(hub, w, r, replay)
 		},
 	))
 
-	wsURL := "ws" + strings.TrimPrefix(server.URL, "http")
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	require.NoError(t, err)
 
 	return &testWebSocketEnv{
-		Server: server,
+		Server: srv,
 		Hub:    hub,
 		Conn:   conn,
 	}

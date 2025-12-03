@@ -480,23 +480,23 @@ func TestStepBuilderChaining(t *testing.T) {
 	})
 
 	t.Run("step_type_transitions", func(t *testing.T) {
-		builder := testClient().NewStep("Test")
+		build := testClient().NewStep("Test")
 
-		syncStep, err := builder.
+		syncStep, err := build.
 			WithEndpoint("http://example.com").
 			WithSyncExecution().
 			Build()
 		require.NoError(t, err)
 		assert.Equal(t, api.StepTypeSync, syncStep.Type)
 
-		asyncStep, err := builder.
+		asyncStep, err := build.
 			WithEndpoint("http://example.com").
 			WithAsyncExecution().
 			Build()
 		require.NoError(t, err)
 		assert.Equal(t, api.StepTypeAsync, asyncStep.Type)
 
-		scriptStep, err := builder.
+		scriptStep, err := build.
 			WithScript("(+ 1 2)").
 			WithScriptExecution().
 			Build()

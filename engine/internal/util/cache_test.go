@@ -94,15 +94,15 @@ func TestLRUOrdering(t *testing.T) {
 		}
 	}
 
-	cache.Get("key1", cons("key1"))
-	cache.Get("key2", cons("key2"))
-	cache.Get("key3", cons("key3"))
+	_, _ = cache.Get("key1", cons("key1"))
+	_, _ = cache.Get("key2", cons("key2"))
+	_, _ = cache.Get("key3", cons("key3"))
 
-	cache.Get("key1", cons("key1"))
+	_, _ = cache.Get("key1", cons("key1"))
 
-	cache.Get("key4", cons("key4"))
+	_, _ = cache.Get("key4", cons("key4"))
 
-	cache.Get("key2", cons("key2"))
+	_, _ = cache.Get("key2", cons("key2"))
 
 	assert.Equal(t, 2, consCalls["key2"])
 }
