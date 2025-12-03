@@ -1,4 +1,4 @@
-import { ExecutionPlan, Step } from "../app/api";
+import { ExecutionPlan, Step } from "@/app/api";
 
 export function getStepsFromPlan(
   plan: ExecutionPlan | undefined | null

@@ -1,5 +1,5 @@
 import { getStepsFromPlan } from "./planUtils";
-import { ExecutionPlan, Step, AttributeRole, AttributeType } from "../app/api";
+import { ExecutionPlan, Step, AttributeRole, AttributeType } from "@/app/api";
 
 describe("planUtils", () => {
   describe("getStepsFromPlan", () => {
