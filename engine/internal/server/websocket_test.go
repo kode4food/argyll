@@ -88,27 +88,6 @@ func (e *testWebSocketEnv) Cleanup() {
 	}
 }
 
-func testWebSocket(t *testing.T, replay server.ReplayFunc) *testWebSocketEnv {
-	t.Helper()
-	hub := &mockEventHub{}
-
-	srv := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			server.HandleWebSocket(hub, w, r, replay)
-		},
-	))
-
-	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
-	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	require.NoError(t, err)
-
-	return &testWebSocketEnv{
-		Server: srv,
-		Hub:    hub,
-		Conn:   conn,
-	}
-}
-
 func TestHandleWebSocket(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
@@ -437,4 +416,25 @@ func TestEventTypesWithFlowID(t *testing.T) {
 	assert.True(t, filter(matchingEvent))
 	assert.False(t, filter(wrongTypeEvent))
 	assert.True(t, filter(wrongFlowEvent))
+}
+
+func testWebSocket(t *testing.T, replay server.ReplayFunc) *testWebSocketEnv {
+	t.Helper()
+	hub := &mockEventHub{}
+
+	srv := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			server.HandleWebSocket(hub, w, r, replay)
+		},
+	))
+
+	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	require.NoError(t, err)
+
+	return &testWebSocketEnv{
+		Server: srv,
+		Hub:    hub,
+		Conn:   conn,
+	}
 }

@@ -27,7 +27,7 @@ type (
 		Steps       Steps                      `json:"steps"`
 		Health      map[StepID]*HealthState    `json:"health"`
 		ActiveFlows map[FlowID]*ActiveFlowInfo `json:"active_flows"`
-		Attributes  map[Name]*Dependencies     `json:"attributes"`
+		Attributes  AttributeGraph             `json:"attributes"`
 	}
 
 	// ActiveFlowInfo tracks basic metadata for active flows
@@ -130,16 +130,28 @@ func (e *EngineState) SetStep(id StepID, step *Step) *EngineState {
 	res := *e
 	res.Steps = maps.Clone(e.Steps)
 	res.Steps[id] = step
-	res.Attributes = BuildDependencies(res.Steps)
+	res.Attributes = maps.Clone(e.Attributes)
+
+	if oldStep, ok := e.Steps[id]; ok {
+		res.Attributes.RemoveStep(id, oldStep)
+	}
+
+	res.Attributes.AddStep(id, step)
 	return &res
 }
 
 // DeleteStep returns a new EngineState with the specified step removed
-func (e *EngineState) DeleteStep(i StepID) *EngineState {
+func (e *EngineState) DeleteStep(id StepID) *EngineState {
+	step, ok := e.Steps[id]
+	if !ok {
+		return e
+	}
+
 	res := *e
 	res.Steps = maps.Clone(e.Steps)
-	delete(res.Steps, i)
-	res.Attributes = BuildDependencies(res.Steps)
+	delete(res.Steps, id)
+	res.Attributes = maps.Clone(e.Attributes)
+	res.Attributes.RemoveStep(id, step)
 	return &res
 }
 

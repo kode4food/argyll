@@ -3,19 +3,23 @@ package api
 import (
 	"errors"
 	"fmt"
+	"slices"
 )
 
 type (
 	// ExecutionPlan represents the compiled execution plan for a flow
 	ExecutionPlan struct {
-		Goals      []StepID               `json:"goals"`
-		Required   []Name                 `json:"required"`
-		Steps      Steps                  `json:"steps"`
-		Attributes map[Name]*Dependencies `json:"attributes"`
+		Goals      []StepID       `json:"goals"`
+		Required   []Name         `json:"required"`
+		Steps      Steps          `json:"steps"`
+		Attributes AttributeGraph `json:"attributes"`
 	}
 
-	// Dependencies tracks which steps provide and consume an attribute
-	Dependencies struct {
+	// AttributeGraph is a dependency graph of attribute producers/consumers
+	AttributeGraph map[Name]*AttributeEdges
+
+	// AttributeEdges tracks which steps provide and consume an attribute
+	AttributeEdges struct {
 		Providers []StepID `json:"providers"`
 		Consumers []StepID `json:"consumers"`
 	}
@@ -40,28 +44,67 @@ func (p *ExecutionPlan) ValidateInputs(args Args) error {
 	return nil
 }
 
-// BuildDependencies constructs a dependency graph from all step definitions,
-// tracking which steps provide and consume each attribute
-func BuildDependencies(steps Steps) map[Name]*Dependencies {
-	deps := make(map[Name]*Dependencies)
+// RemoveStep removes a step's contributions from the graph
+func (g AttributeGraph) RemoveStep(stepID StepID, step *Step) {
+	for name, attr := range step.Attributes {
+		existing, ok := g[name]
+		if !ok {
+			continue
+		}
 
-	for stepID, step := range steps {
-		for name, attr := range step.Attributes {
-			if deps[name] == nil {
-				deps[name] = &Dependencies{
-					Providers: []StepID{},
-					Consumers: []StepID{},
-				}
-			}
+		updated := &AttributeEdges{
+			Providers: existing.Providers,
+			Consumers: existing.Consumers,
+		}
 
-			if attr.IsOutput() {
-				deps[name].Providers = append(deps[name].Providers, stepID)
-			}
-			if attr.IsInput() {
-				deps[name].Consumers = append(deps[name].Consumers, stepID)
-			}
+		if attr.IsOutput() {
+			updated.Providers = slices.DeleteFunc(
+				slices.Clone(existing.Providers),
+				func(id StepID) bool { return id == stepID },
+			)
+		}
+
+		if attr.IsInput() {
+			updated.Consumers = slices.DeleteFunc(
+				slices.Clone(existing.Consumers),
+				func(id StepID) bool { return id == stepID },
+			)
+		}
+
+		if len(updated.Providers) == 0 && len(updated.Consumers) == 0 {
+			delete(g, name)
+		} else {
+			g[name] = updated
 		}
 	}
+}
 
-	return deps
+// AddStep adds a step's contributions to the graph
+func (g AttributeGraph) AddStep(stepID StepID, step *Step) {
+	for name, attr := range step.Attributes {
+		existing := g[name]
+
+		var updated *AttributeEdges
+		if existing == nil {
+			updated = &AttributeEdges{
+				Providers: []StepID{},
+				Consumers: []StepID{},
+			}
+		} else {
+			updated = &AttributeEdges{
+				Providers: slices.Clone(existing.Providers),
+				Consumers: slices.Clone(existing.Consumers),
+			}
+		}
+
+		if attr.IsOutput() {
+			updated.Providers = append(updated.Providers, stepID)
+		}
+
+		if attr.IsInput() {
+			updated.Consumers = append(updated.Consumers, stepID)
+		}
+
+		g[name] = updated
+	}
 }

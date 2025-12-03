@@ -11,10 +11,6 @@ import (
 	"github.com/kode4food/spuds/engine/pkg/builder"
 )
 
-func testClient() *builder.Client {
-	return builder.NewClient("http://localhost:8080", 30*time.Second)
-}
-
 func TestNewStep(t *testing.T) {
 	name := api.Name("Test Step")
 	client := testClient()
@@ -516,4 +512,8 @@ func TestStepBuilderWithForEach(t *testing.T) {
 		require.NoError(t, err)
 		assert.Equal(t, api.TypeArray, step.Attributes["users"].Type)
 	})
+}
+
+func testClient() *builder.Client {
+	return builder.NewClient("http://localhost:8080", 30*time.Second)
 }

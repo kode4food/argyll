@@ -435,7 +435,7 @@ func TestHasInputProvider(t *testing.T) {
 			stepA.ID: stepA,
 			stepB.ID: stepB,
 		},
-		Attributes: map[api.Name]*api.Dependencies{
+		Attributes: api.AttributeGraph{
 			"value": {
 				Providers: []api.StepID{stepA.ID},
 				Consumers: []api.StepID{stepB.ID},
@@ -479,7 +479,7 @@ func TestHasInputProviderNone(t *testing.T) {
 	plan := &api.ExecutionPlan{
 		Goals:      []api.StepID{"step-alone"},
 		Steps:      api.Steps{step.ID: step},
-		Attributes: map[api.Name]*api.Dependencies{},
+		Attributes: api.AttributeGraph{},
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)

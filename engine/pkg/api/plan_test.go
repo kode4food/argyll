@@ -132,7 +132,7 @@ func TestBuildDependencies(t *testing.T) {
 		},
 	}
 
-	deps := api.BuildDependencies(steps)
+	deps := buildGraph(steps)
 
 	assert.Contains(t, deps, api.Name("input1"))
 	assert.Contains(t, deps, api.Name("result"))
@@ -176,7 +176,7 @@ func TestMultipleProviders(t *testing.T) {
 		},
 	}
 
-	deps := api.BuildDependencies(steps)
+	deps := buildGraph(steps)
 
 	assert.Len(t, deps["data"].Providers, 2)
 	assert.Contains(t, deps["data"].Providers, api.StepID("step-a"))
@@ -185,7 +185,7 @@ func TestMultipleProviders(t *testing.T) {
 
 func TestEmptySteps(t *testing.T) {
 	steps := api.Steps{}
-	deps := api.BuildDependencies(steps)
+	deps := buildGraph(steps)
 	assert.Empty(t, deps)
 }
 
@@ -198,6 +198,143 @@ func TestNoAttributes(t *testing.T) {
 		},
 	}
 
-	deps := api.BuildDependencies(steps)
+	deps := buildGraph(steps)
 	assert.Empty(t, deps)
+}
+
+func TestAttributeGraphAddStep(t *testing.T) {
+	graph := api.AttributeGraph{}
+
+	stepA := &api.Step{
+		ID:   "step-a",
+		Name: "Step A",
+		Attributes: api.AttributeSpecs{
+			"input":  {Role: api.RoleRequired, Type: api.TypeString},
+			"output": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	graph.AddStep("step-a", stepA)
+
+	assert.Len(t, graph, 2)
+	assert.Contains(t, graph, api.Name("input"))
+	assert.Contains(t, graph, api.Name("output"))
+
+	assert.Len(t, graph["input"].Providers, 0)
+	assert.Len(t, graph["input"].Consumers, 1)
+	assert.Contains(t, graph["input"].Consumers, api.StepID("step-a"))
+
+	assert.Len(t, graph["output"].Providers, 1)
+	assert.Len(t, graph["output"].Consumers, 0)
+	assert.Contains(t, graph["output"].Providers, api.StepID("step-a"))
+}
+
+func TestAttributeGraphAddStepToExisting(t *testing.T) {
+	graph := api.AttributeGraph{
+		"data": &api.AttributeEdges{
+			Providers: []api.StepID{"step-a"},
+			Consumers: []api.StepID{},
+		},
+	}
+
+	stepB := &api.Step{
+		ID:   "step-b",
+		Name: "Step B",
+		Attributes: api.AttributeSpecs{
+			"data": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}
+
+	graph.AddStep("step-b", stepB)
+
+	assert.Len(t, graph["data"].Providers, 1)
+	assert.Len(t, graph["data"].Consumers, 1)
+	assert.Contains(t, graph["data"].Providers, api.StepID("step-a"))
+	assert.Contains(t, graph["data"].Consumers, api.StepID("step-b"))
+}
+
+func TestAttributeGraphRemoveStep(t *testing.T) {
+	graph := api.AttributeGraph{
+		"input": &api.AttributeEdges{
+			Providers: []api.StepID{},
+			Consumers: []api.StepID{"step-a", "step-b"},
+		},
+		"output": &api.AttributeEdges{
+			Providers: []api.StepID{"step-a"},
+			Consumers: []api.StepID{"step-c"},
+		},
+	}
+
+	stepA := &api.Step{
+		ID:   "step-a",
+		Name: "Step A",
+		Attributes: api.AttributeSpecs{
+			"input":  {Role: api.RoleRequired, Type: api.TypeString},
+			"output": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	graph.RemoveStep("step-a", stepA)
+
+	assert.Contains(t, graph, api.Name("input"))
+	assert.Contains(t, graph, api.Name("output"))
+
+	assert.Len(t, graph["input"].Consumers, 1)
+	assert.Contains(t, graph["input"].Consumers, api.StepID("step-b"))
+	assert.NotContains(t, graph["input"].Consumers, api.StepID("step-a"))
+
+	assert.Len(t, graph["output"].Providers, 0)
+	assert.Len(t, graph["output"].Consumers, 1)
+	assert.Contains(t, graph["output"].Consumers, api.StepID("step-c"))
+}
+
+func TestAttributeGraphRemoveStepDeletesEmptyEdges(t *testing.T) {
+	graph := api.AttributeGraph{
+		"data": &api.AttributeEdges{
+			Providers: []api.StepID{"step-a"},
+			Consumers: []api.StepID{},
+		},
+	}
+
+	stepA := &api.Step{
+		ID:   "step-a",
+		Name: "Step A",
+		Attributes: api.AttributeSpecs{
+			"data": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	graph.RemoveStep("step-a", stepA)
+
+	assert.NotContains(t, graph, api.Name("data"))
+}
+
+func TestAttributeGraphRemoveStepNotInGraph(t *testing.T) {
+	graph := api.AttributeGraph{
+		"existing": &api.AttributeEdges{
+			Providers: []api.StepID{"step-a"},
+			Consumers: []api.StepID{},
+		},
+	}
+
+	stepB := &api.Step{
+		ID:   "step-b",
+		Name: "Step B",
+		Attributes: api.AttributeSpecs{
+			"other": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+	}
+
+	graph.RemoveStep("step-b", stepB)
+
+	assert.Len(t, graph, 1)
+	assert.Contains(t, graph, api.Name("existing"))
+}
+
+func buildGraph(steps api.Steps) api.AttributeGraph {
+	graph := api.AttributeGraph{}
+	for id, step := range steps {
+		graph.AddStep(id, step)
+	}
+	return graph
 }

@@ -13,7 +13,7 @@ type planBuilder struct {
 	available  util.Set[api.Name]
 	missing    util.Set[api.Name]
 	steps      api.Steps
-	attributes map[api.Name]*api.Dependencies
+	attributes api.AttributeGraph
 }
 
 var (
@@ -56,7 +56,7 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 		available:  util.Set[api.Name]{},
 		missing:    util.Set[api.Name]{},
 		steps:      api.Steps{},
-		attributes: map[api.Name]*api.Dependencies{},
+		attributes: api.AttributeGraph{},
 	}
 
 	for key := range initState {
@@ -182,7 +182,7 @@ func (b *planBuilder) buildPlan(stepID api.StepID) error {
 
 func (b *planBuilder) trackConsumer(name api.Name, consumerID api.StepID) {
 	if b.attributes[name] == nil {
-		b.attributes[name] = &api.Dependencies{
+		b.attributes[name] = &api.AttributeEdges{
 			Providers: []api.StepID{},
 			Consumers: []api.StepID{},
 		}
@@ -196,7 +196,7 @@ func (b *planBuilder) trackDependency(
 	name api.Name, providerID, consumerID api.StepID,
 ) {
 	if b.attributes[name] == nil {
-		b.attributes[name] = &api.Dependencies{
+		b.attributes[name] = &api.AttributeEdges{
 			Providers: []api.StepID{},
 			Consumers: []api.StepID{},
 		}

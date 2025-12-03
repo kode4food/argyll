@@ -25,32 +25,6 @@ type testServerEnv struct {
 	*helpers.TestEngineEnv
 }
 
-func (env *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
-	for range 50 {
-		flow, err := env.Engine.GetFlowState(context.Background(), fs.FlowID)
-		if err == nil {
-			exec := flow.Executions[fs.StepID]
-			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {
-				return
-			}
-		}
-		time.Sleep(50 * time.Millisecond)
-	}
-}
-
-func testServer(t *testing.T) *testServerEnv {
-	t.Helper()
-
-	engineEnv := helpers.NewTestEngine(t)
-
-	srv := server.NewServer(engineEnv.Engine, *engineEnv.EventHub)
-
-	return &testServerEnv{
-		Server:        srv,
-		TestEngineEnv: engineEnv,
-	}
-}
-
 func TestHealthEndpoint(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
@@ -1328,4 +1302,30 @@ func TestDeleteStepInternalError(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func (env *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
+	for range 50 {
+		flow, err := env.Engine.GetFlowState(context.Background(), fs.FlowID)
+		if err == nil {
+			exec := flow.Executions[fs.StepID]
+			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {
+				return
+			}
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
+func testServer(t *testing.T) *testServerEnv {
+	t.Helper()
+
+	engineEnv := helpers.NewTestEngine(t)
+
+	srv := server.NewServer(engineEnv.Engine, *engineEnv.EventHub)
+
+	return &testServerEnv{
+		Server:        srv,
+		TestEngineEnv: engineEnv,
+	}
 }
