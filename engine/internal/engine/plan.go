@@ -35,10 +35,10 @@ func (e *Engine) CreateExecutionPlan(
 	}
 
 	pb := newPlanBuilder(engState, initState)
-	if err := pb.buildPlan(goalIDs); err != nil {
+	if err := pb.collectSteps(goalIDs); err != nil {
 		return nil, err
 	}
-	pb.buildPlanData()
+	pb.buildPlan()
 
 	return &api.ExecutionPlan{
 		Goals:      goalIDs,
@@ -66,80 +66,16 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 	return pb
 }
 
-func (b *planBuilder) allOutputsAvailable(step *api.Step) bool {
-	hasOutputs := false
-	for _, attr := range step.Attributes {
-		if attr.IsOutput() {
-			hasOutputs = true
-			break
+func validateGoals(engState *api.EngineState, goalIDs []api.StepID) error {
+	for _, goalID := range goalIDs {
+		if _, ok := engState.Steps[goalID]; !ok {
+			return ErrStepNotFound
 		}
-	}
-	if !hasOutputs {
-		return false
-	}
-
-	for name, attr := range step.Attributes {
-		if attr.IsOutput() && !b.satisfied.Contains(name) {
-			return false
-		}
-	}
-	return true
-}
-
-func (b *planBuilder) findProviders(name api.Name) []api.StepID {
-	if deps, ok := b.engState.Attributes[name]; ok {
-		return deps.Providers
 	}
 	return nil
 }
 
-func (b *planBuilder) buildRequiredSet(step *api.Step) util.Set[api.Name] {
-	requiredSet := util.Set[api.Name]{}
-	for name, attr := range step.Attributes {
-		if attr.IsRequired() {
-			requiredSet.Add(name)
-		}
-	}
-	return requiredSet
-}
-
-func (b *planBuilder) resolveDependencies(step *api.Step) error {
-	allInputs := step.GetAllInputArgs()
-	requiredSet := b.buildRequiredSet(step)
-
-	for _, name := range allInputs {
-		if b.satisfied.Contains(name) {
-			continue
-		}
-		if err := b.resolveInput(name, requiredSet); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (b *planBuilder) resolveInput(
-	name api.Name, requiredSet util.Set[api.Name],
-) error {
-	providers := b.findProviders(name)
-	if len(providers) == 0 {
-		if requiredSet.Contains(name) {
-			b.missing.Add(name)
-		}
-		return nil
-	}
-
-	for _, providerID := range providers {
-		if err := b.collectStep(providerID); err != nil {
-			return err
-		}
-	}
-	b.satisfied.Add(name)
-	return nil
-}
-
-func (b *planBuilder) buildPlan(goalIDs []api.StepID) error {
+func (b *planBuilder) collectSteps(goalIDs []api.StepID) error {
 	for _, goalID := range goalIDs {
 		if err := b.collectStep(goalID); err != nil {
 			return err
@@ -176,22 +112,95 @@ func (b *planBuilder) collectStep(stepID api.StepID) error {
 	return nil
 }
 
-func (b *planBuilder) buildPlanData() {
+func (b *planBuilder) buildPlan() {
 	for id := range b.included {
 		step := b.engState.Steps[id]
 		b.steps[id] = step
 		for name, attr := range step.Attributes {
 			if attr.IsOutput() {
-				b.addProviderEdge(name, id)
+				b.addProvider(name, id)
 			}
 			if attr.IsInput() && b.satisfied.Contains(name) {
-				b.addConsumerEdge(name, id)
+				b.addConsumer(name, id)
 			}
 		}
 	}
 }
 
-func (b *planBuilder) addProviderEdge(name api.Name, provider api.StepID) {
+func (b *planBuilder) resolveDependencies(step *api.Step) error {
+	allInputs := step.GetAllInputArgs()
+	required := b.buildRequired(step)
+
+	for _, name := range allInputs {
+		if b.satisfied.Contains(name) {
+			continue
+		}
+		if err := b.resolveInput(name, required); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (b *planBuilder) buildRequired(step *api.Step) util.Set[api.Name] {
+	required := util.Set[api.Name]{}
+	for name, attr := range step.Attributes {
+		if attr.IsRequired() {
+			required.Add(name)
+		}
+	}
+	return required
+}
+
+func (b *planBuilder) resolveInput(
+	name api.Name, required util.Set[api.Name],
+) error {
+	providers := b.findProviders(name)
+	if len(providers) == 0 {
+		if required.Contains(name) {
+			b.missing.Add(name)
+		}
+		return nil
+	}
+
+	for _, providerID := range providers {
+		if err := b.collectStep(providerID); err != nil {
+			return err
+		}
+	}
+	b.satisfied.Add(name)
+	return nil
+}
+
+func (b *planBuilder) findProviders(name api.Name) []api.StepID {
+	if deps, ok := b.engState.Attributes[name]; ok {
+		return deps.Providers
+	}
+	return nil
+}
+
+func (b *planBuilder) allOutputsAvailable(step *api.Step) bool {
+	hasOutputs := false
+	for _, attr := range step.Attributes {
+		if attr.IsOutput() {
+			hasOutputs = true
+			break
+		}
+	}
+	if !hasOutputs {
+		return false
+	}
+
+	for name, attr := range step.Attributes {
+		if attr.IsOutput() && !b.satisfied.Contains(name) {
+			return false
+		}
+	}
+	return true
+}
+
+func (b *planBuilder) addProvider(name api.Name, provider api.StepID) {
 	edges, ok := b.attributes[name]
 	if !ok {
 		edges = &api.AttributeEdges{}
@@ -200,7 +209,7 @@ func (b *planBuilder) addProviderEdge(name api.Name, provider api.StepID) {
 	b.attributes[name] = edges
 }
 
-func (b *planBuilder) addConsumerEdge(name api.Name, consumer api.StepID) {
+func (b *planBuilder) addConsumer(name api.Name, consumer api.StepID) {
 	edges, ok := b.attributes[name]
 	if !ok {
 		edges = &api.AttributeEdges{}
@@ -210,18 +219,9 @@ func (b *planBuilder) addConsumerEdge(name api.Name, consumer api.StepID) {
 }
 
 func (b *planBuilder) getRequiredInputs() []api.Name {
-	var requiredInputs []api.Name
+	var required []api.Name
 	for input := range b.missing {
-		requiredInputs = append(requiredInputs, input)
+		required = append(required, input)
 	}
-	return requiredInputs
-}
-
-func validateGoals(engState *api.EngineState, goalIDs []api.StepID) error {
-	for _, goalID := range goalIDs {
-		if _, ok := engState.Steps[goalID]; !ok {
-			return ErrStepNotFound
-		}
-	}
-	return nil
+	return required
 }
