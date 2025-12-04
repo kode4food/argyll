@@ -144,8 +144,8 @@ func (s *spuds) startServer() {
 	go func() {
 		slog.Info("HTTP server starting",
 			slog.String("addr", s.httpServer.Addr))
-		if err := s.httpServer.ListenAndServe(); err != nil &&
-			!errors.Is(err, http.ErrServerClosed) {
+		err := s.httpServer.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("HTTP server error",
 				log.Error(err))
 		}

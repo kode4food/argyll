@@ -328,8 +328,8 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 			// Check for flow completed event
 			if eventType == api.EventTypeFlowCompleted {
 				var fc api.FlowCompletedEvent
-				if err := json.Unmarshal(event.Data, &fc); err == nil &&
-					fc.FlowID == flowID {
+				err := json.Unmarshal(event.Data, &fc)
+				if err == nil && fc.FlowID == flowID {
 					flow, err := env.Engine.GetFlowState(ctx, flowID)
 					require.NoError(t, err)
 					return flow
@@ -339,8 +339,8 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 			// Check for flow failed event
 			if eventType == api.EventTypeFlowFailed {
 				var ff api.FlowFailedEvent
-				if err := json.Unmarshal(event.Data, &ff); err == nil &&
-					ff.FlowID == flowID {
+				err := json.Unmarshal(event.Data, &ff)
+				if err == nil && ff.FlowID == flowID {
 					flow, err := env.Engine.GetFlowState(ctx, flowID)
 					require.NoError(t, err)
 					return flow

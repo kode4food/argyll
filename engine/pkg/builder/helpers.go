@@ -63,10 +63,6 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 			break
 		}
 
-		slog.Warn("Failed to register/update step",
-			log.StepID(step.id),
-			slog.Int("attempt", attempt),
-			log.Error(err))
 		if attempt >= MaxRegistrationAttempts {
 			continue
 		}

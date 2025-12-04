@@ -111,20 +111,16 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 		return nil
 	}
 
-	retriableSteps := e.FindRetrySteps(flow)
-	if retriableSteps.IsEmpty() {
-		return nil
-	}
+		retriableSteps := e.FindRetrySteps(flow)
+		if retriableSteps.IsEmpty() {
+			return nil
+		}
 
-	slog.Info("Recovering flow",
-		log.FlowID(flowID),
-		slog.Int("retriable_steps", retriableSteps.Len()))
-
-	now := time.Now()
-	for stepID := range retriableSteps {
-		exec := flow.Executions[stepID]
-		if exec.WorkItems == nil {
-			continue
+		now := time.Now()
+		for stepID := range retriableSteps {
+			exec := flow.Executions[stepID]
+			if exec.WorkItems == nil {
+				continue
 		}
 
 		step, ok := flow.Plan.Steps[stepID]
@@ -152,19 +148,12 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 				}
 			}
 
-			if shouldRetry {
-				slog.Info("Retrying work item",
-					log.FlowID(flowID),
-					log.StepID(stepID),
-					log.Token(token),
-					log.Status(workItem.Status),
-					slog.Int("retry_count", workItem.RetryCount))
-
-				fs := FlowStep{FlowID: flowID, StepID: stepID}
-				e.retryWork(ctx, fs, step, token, workItem)
+				if shouldRetry {
+					fs := FlowStep{FlowID: flowID, StepID: stepID}
+					e.retryWork(ctx, fs, step, token, workItem)
+				}
 			}
 		}
-	}
 
 	return nil
 }
@@ -229,20 +218,14 @@ func (e *Engine) checkPendingRetries() {
 			}
 
 			for token, workItem := range exec.WorkItems {
-				if workItem.Status == api.WorkPending &&
-					!workItem.NextRetryAt.IsZero() &&
-					workItem.NextRetryAt.Before(now) {
-					slog.Debug("Retrying work",
-						log.FlowID(flowID),
-						log.StepID(stepID),
-						log.Token(token),
-						slog.Int("retry_count", workItem.RetryCount))
-
-					if step, ok := flow.Plan.Steps[stepID]; ok {
-						fs := FlowStep{FlowID: flowID, StepID: stepID}
-						e.retryWork(ctx, fs, step, token, workItem)
+					if workItem.Status == api.WorkPending &&
+						!workItem.NextRetryAt.IsZero() &&
+						workItem.NextRetryAt.Before(now) {
+						if step, ok := flow.Plan.Steps[stepID]; ok {
+							fs := FlowStep{FlowID: flowID, StepID: stepID}
+							e.retryWork(ctx, fs, step, token, workItem)
+						}
 					}
-				}
 			}
 		}
 	}
