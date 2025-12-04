@@ -15,6 +15,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 // HealthChecker monitors the health of registered step services
@@ -88,7 +89,7 @@ func (h *HealthChecker) handleStepCompleted(event *timebox.Event) {
 	var sc api.StepCompletedEvent
 	if err := json.Unmarshal(event.Data, &sc); err != nil {
 		slog.Error("Failed to unmarshal event",
-			slog.Any("error", err))
+			log.Error(err))
 		return
 	}
 
@@ -118,7 +119,7 @@ func (h *HealthChecker) checkAllSteps() {
 	engState, err := h.engine.GetEngineState(h.ctx)
 	if err != nil {
 		slog.Error("Failed to get engine state",
-			slog.Any("error", err))
+			log.Error(err))
 		return
 	}
 
@@ -161,8 +162,8 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 		status = api.HealthUnhealthy
 		errorMsg = err.Error()
 		slog.Error("Health check failed",
-			slog.Any("step_id", step.ID),
-			slog.String("error", err.Error()))
+			log.StepID(step.ID),
+			log.Error(err))
 		_ = h.engine.UpdateStepHealth(h.ctx, step.ID, status, errorMsg)
 		return
 	}
@@ -172,8 +173,8 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 		status = api.HealthUnhealthy
 		errorMsg = "HTTP " + resp.Status
 		slog.Error("Health check failed",
-			slog.Any("step_id", step.ID),
-			slog.String("status", resp.Status))
+			log.StepID(step.ID),
+			log.Status(resp.Status))
 	}
 
 	_ = h.engine.UpdateStepHealth(h.ctx, step.ID, status, errorMsg)

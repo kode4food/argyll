@@ -8,13 +8,19 @@ import (
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
+
+const version = "dev"
 
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}
+
+	logger := log.New("simple-step-example", os.Getenv("ENV"), version)
+	slog.SetDefault(logger)
 
 	// Example 1: Simple text transformation (Ale script)
 	textFormatterScript := `{
@@ -33,7 +39,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to register text formatter",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 
@@ -60,7 +66,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to register price calculator",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 
@@ -101,7 +107,7 @@ return {
 
 	if err != nil {
 		slog.Error("Failed to register eligibility checker",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 

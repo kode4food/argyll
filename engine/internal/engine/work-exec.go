@@ -9,6 +9,7 @@ import (
 	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type (
@@ -72,14 +73,15 @@ func (e *Engine) failPredicateEvaluation(
 	ctx context.Context, fs FlowStep, logMsg, failMsg string, err error,
 ) {
 	slog.Error(logMsg,
-		slog.Any("step_id", fs.StepID),
-		slog.Any("error", err))
+		log.StepID(fs.StepID),
+		log.Error(err))
 
 	if failErr := e.FailStepExecution(
 		ctx, fs, fmt.Sprintf("%s: %s", failMsg, err.Error()),
 	); failErr != nil {
 		slog.Error("Failed to record predicate failure",
-			slog.Any("error", failErr))
+			log.StepID(fs.StepID),
+			log.Error(failErr))
 	}
 }
 

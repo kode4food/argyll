@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type UserInfo struct {
@@ -52,11 +53,16 @@ var userDatabase = map[string]UserInfo{
 	},
 }
 
+const version = "dev"
+
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}
+
+	logger := log.New("user-resolver-example", os.Getenv("ENV"), version)
+	slog.SetDefault(logger)
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
@@ -67,7 +73,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to setup user resolver",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 }
@@ -85,7 +91,8 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 
 	userInfo, ok := userDatabase[userID]
 	if !ok {
-		slog.Warn("User not found", slog.String("user_id", userID))
+		slog.Warn("User not found",
+			slog.String("user_id", userID))
 		return *api.NewResult().WithError(
 			fmt.Errorf("user not found: %s", userID),
 		), nil

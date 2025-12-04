@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type (
@@ -78,8 +79,8 @@ func (c *HTTPClient) buildRequest(
 	})
 	if err != nil {
 		slog.Error("Failed to marshal step request",
-			slog.Any("step_id", step.ID),
-			slog.Any("error", err))
+			log.StepID(step.ID),
+			log.Error(err))
 		return nil, err
 	}
 
@@ -88,8 +89,8 @@ func (c *HTTPClient) buildRequest(
 	)
 	if err != nil {
 		slog.Error("Failed to create HTTP request",
-			slog.Any("step_id", step.ID),
-			slog.Any("error", err))
+			log.StepID(step.ID),
+			log.Error(err))
 		return nil, err
 	}
 
@@ -109,9 +110,9 @@ func (c *HTTPClient) sendRequest(
 
 	if err != nil {
 		slog.Error("HTTP request failed",
-			slog.Any("step_id", step.ID),
-			slog.Duration("duration", dur),
-			slog.Any("error", err))
+			log.StepID(step.ID),
+			slog.Int("duration_ms", int(dur.Milliseconds())),
+			log.Error(err))
 		return nil, fmt.Errorf("%w: %w", api.ErrWorkNotCompleted, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
@@ -119,14 +120,15 @@ func (c *HTTPClient) sendRequest(
 	respBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		slog.Error("Failed to read response body",
-			slog.Any("step_id", step.ID),
-			slog.Any("error", err))
+			log.StepID(step.ID),
+			log.Error(err))
 		return nil, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		slog.Error("HTTP error",
-			slog.Any("step_id", step.ID),
+			log.StepID(step.ID),
+			log.Error(fmt.Errorf("status %d", resp.StatusCode)),
 			slog.Int("status_code", resp.StatusCode),
 			slog.String("response_body", string(respBody)))
 
@@ -150,20 +152,21 @@ func (c *HTTPClient) parseResponse(
 	var response api.StepResult
 	if err := json.Unmarshal(respBody, &response); err != nil {
 		slog.Error("Failed to unmarshal response",
-			slog.Any("step_id", step.ID),
-			slog.Any("error", err))
+			log.StepID(step.ID),
+			log.Error(err))
 		return nil, err
 	}
 
 	if !response.Success {
 		if response.Error == "" {
 			slog.Error("Step unsuccessful",
-				slog.Any("step_id", step.ID))
+				log.StepID(step.ID),
+				log.Error(ErrStepUnsuccessful))
 			return nil, ErrStepUnsuccessful
 		}
 		slog.Error("Step failed",
-			slog.Any("step_id", step.ID),
-			slog.String("error", response.Error))
+			log.StepID(step.ID),
+			log.ErrorString(response.Error))
 		return nil, fmt.Errorf("%w: %s", ErrStepUnsuccessful, response.Error)
 	}
 

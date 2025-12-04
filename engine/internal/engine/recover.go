@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
@@ -85,14 +86,13 @@ func (e *Engine) RecoverFlows(ctx context.Context) error {
 	}
 
 	slog.Info("Recovering flows",
-		slog.Int("count", len(engineState.ActiveFlows)),
-	)
+		slog.Int("count", len(engineState.ActiveFlows)))
 
 	for flowID := range engineState.ActiveFlows {
 		if err := e.RecoverFlow(ctx, flowID); err != nil {
 			slog.Error("Failed to recover flow",
-				slog.Any("flow_id", flowID),
-				slog.Any("error", err))
+				log.FlowID(flowID),
+				log.Error(err))
 		}
 	}
 
@@ -117,7 +117,7 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 	}
 
 	slog.Info("Recovering flow",
-		slog.Any("flow_id", flowID),
+		log.FlowID(flowID),
 		slog.Int("retriable_steps", retriableSteps.Len()))
 
 	now := time.Now()
@@ -154,10 +154,10 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 
 			if shouldRetry {
 				slog.Info("Retrying work item",
-					slog.Any("flow_id", flowID),
-					slog.Any("step_id", stepID),
-					slog.Any("token", token),
-					slog.String("status", string(workItem.Status)),
+					log.FlowID(flowID),
+					log.StepID(stepID),
+					log.Token(token),
+					log.Status(workItem.Status),
 					slog.Int("retry_count", workItem.RetryCount))
 
 				fs := FlowStep{FlowID: flowID, StepID: stepID}
@@ -212,7 +212,7 @@ func (e *Engine) checkPendingRetries() {
 	engineState, err := e.GetEngineState(ctx)
 	if err != nil {
 		slog.Error("Failed to get engine state",
-			slog.Any("error", err))
+			log.Error(err))
 		return
 	}
 
@@ -233,9 +233,9 @@ func (e *Engine) checkPendingRetries() {
 					!workItem.NextRetryAt.IsZero() &&
 					workItem.NextRetryAt.Before(now) {
 					slog.Debug("Retrying work",
-						slog.Any("flow_id", flowID),
-						slog.Any("step_id", stepID),
-						slog.Any("token", token),
+						log.FlowID(flowID),
+						log.StepID(stepID),
+						log.Token(token),
 						slog.Int("retry_count", workItem.RetryCount))
 
 					if step, ok := flow.Plan.Steps[stepID]; ok {

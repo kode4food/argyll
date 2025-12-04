@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type PaymentResult struct {
@@ -19,11 +20,16 @@ type PaymentResult struct {
 	ProcessedAt string  `json:"processed_at"`
 }
 
+const version = "dev"
+
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}
+
+	logger := log.New("payment-processor-example", os.Getenv("ENV"), version)
+	slog.SetDefault(logger)
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
@@ -36,7 +42,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to setup payment processor",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 }
@@ -65,8 +71,8 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 	go func() {
 		slog.Info("Starting async payment processing",
 			slog.String("order_id", orderID),
-			slog.String("flow_id", async.FlowID()),
-			slog.String("step_id", async.StepID()))
+			log.FlowID(async.FlowID()),
+			log.StepID(async.StepID()))
 
 		processingTime := time.Duration(5+rand.Intn(10)) * time.Second
 		time.Sleep(processingTime)
@@ -91,7 +97,7 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 				"payment_result": paymentResult,
 			}); err != nil {
 				slog.Error("Failed to send webhook completion",
-					slog.Any("error", err))
+					log.Error(err))
 			}
 
 		} else {
@@ -112,7 +118,7 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 				fmt.Errorf("payment failed: %s", reason),
 			); err != nil {
 				slog.Error("Failed to send webhook failure",
-					slog.Any("error", err))
+					log.Error(err))
 			}
 		}
 	}()

@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type ProductInfo struct {
@@ -82,11 +83,16 @@ var inventoryDB = map[string]ProductInfo{
 	},
 }
 
+const version = "dev"
+
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}
+
+	logger := log.New("inventory-resolver-example", os.Getenv("ENV"), version)
+	slog.SetDefault(logger)
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
@@ -97,7 +103,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to setup inventory resolver",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 }

@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 func (s *Server) handleWebhook(c *gin.Context) {
@@ -20,8 +21,8 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
 	if err != nil {
 		slog.Error("Flow not found",
-			slog.Any("flow_id", flowID),
-			slog.Any("error", err))
+			log.FlowID(flowID),
+			log.Error(err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("Flow not found: %v", err),
 			Status: http.StatusBadRequest,
@@ -32,8 +33,9 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
 		slog.Error("Execution not found",
-			slog.Any("flow_id", flowID),
-			slog.Any("step_id", stepID))
+			log.FlowID(flowID),
+			log.StepID(stepID),
+			log.Error(fmt.Errorf("execution not found")))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Step execution not found",
 			Status: http.StatusBadRequest,
@@ -44,9 +46,10 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	// Check if token matches a work item
 	if exec.WorkItems == nil || exec.WorkItems[token] == nil {
 		slog.Error("Work item not found",
-			slog.Any("flow_id", flowID),
-			slog.Any("step_id", stepID),
-			slog.Any("token", token))
+			log.FlowID(flowID),
+			log.StepID(stepID),
+			log.Token(token),
+			log.Error(fmt.Errorf("work item not found")))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Work item not found for token",
 			Status: http.StatusBadRequest,
@@ -64,10 +67,10 @@ func (s *Server) handleWorkWebhook(
 	var result api.StepResult
 	if err := c.ShouldBindJSON(&result); err != nil {
 		slog.Error("Invalid JSON",
-			slog.Any("flow_id", fs.FlowID),
-			slog.Any("step_id", fs.StepID),
-			slog.Any("token", token),
-			slog.Any("error", err))
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(token),
+			log.Error(err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  fmt.Sprintf("Invalid JSON: %v", err),
 			Status: http.StatusBadRequest,
@@ -77,18 +80,18 @@ func (s *Server) handleWorkWebhook(
 
 	if !result.Success {
 		slog.Error("Work failed",
-			slog.Any("flow_id", fs.FlowID),
-			slog.Any("step_id", fs.StepID),
-			slog.Any("token", token),
-			slog.String("error", result.Error))
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(token),
+			log.ErrorString(result.Error))
 		if err := s.engine.FailWork(
 			c.Request.Context(), fs, token, result.Error,
 		); err != nil {
 			slog.Error("Failed to record work failure",
-				slog.Any("flow_id", fs.FlowID),
-				slog.Any("step_id", fs.StepID),
-				slog.Any("token", token),
-				slog.Any("error", err))
+				log.FlowID(fs.FlowID),
+				log.StepID(fs.StepID),
+				log.Token(token),
+				log.Error(err))
 			c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 				Error:  fmt.Sprintf("Failed to fail work: %v", err),
 				Status: http.StatusInternalServerError,
@@ -103,10 +106,10 @@ func (s *Server) handleWorkWebhook(
 		c.Request.Context(), fs, token, result.Outputs,
 	); err != nil {
 		slog.Error("Failed to complete work",
-			slog.Any("flow_id", fs.FlowID),
-			slog.Any("step_id", fs.StepID),
-			slog.Any("token", token),
-			slog.Any("error", err))
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(token),
+			log.Error(err))
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("Failed to complete work: %v", err),
 			Status: http.StatusInternalServerError,

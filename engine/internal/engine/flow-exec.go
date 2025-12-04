@@ -13,6 +13,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 	"github.com/kode4food/spuds/engine/pkg/util"
 )
 
@@ -41,9 +42,9 @@ func (a *flowActor) run() {
 		case event := <-a.events:
 			if err := handler(event); err != nil {
 				slog.Error("Failed to handle event",
-					slog.Any("flow_id", a.flowID),
-					slog.Any("event_type", event.Type),
-					slog.Any("error", err))
+					log.FlowID(a.flowID),
+					slog.String("event_type", string(event.Type)),
+					log.Error(err))
 			}
 
 			if !idleTimer.Stop() {
@@ -59,9 +60,9 @@ func (a *flowActor) run() {
 			case event := <-a.events:
 				if err := handler(event); err != nil {
 					slog.Error("Failed to handle event",
-						slog.Any("flow_id", a.flowID),
-						slog.Any("event_type", event.Type),
-						slog.Any("error", err))
+						log.FlowID(a.flowID),
+						slog.String("event_type", string(event.Type)),
+						log.Error(err))
 				}
 				idleTimer.Reset(100 * time.Millisecond)
 			default:
@@ -105,8 +106,8 @@ func (a *flowActor) processFlowStarted(
 			fn, err := a.prepareStep(a.ctx, stepID, ag)
 			if err != nil {
 				slog.Warn("Failed to prepare step",
-					slog.Any("step_id", stepID),
-					slog.Any("error", err))
+					log.StepID(stepID),
+					log.Error(err))
 				continue
 			}
 			if fn != nil {
@@ -147,8 +148,8 @@ func (a *flowActor) processWorkSucceeded(
 			fn, err := a.prepareStep(a.ctx, consumerID, ag)
 			if err != nil {
 				slog.Warn("Failed to prepare step",
-					slog.Any("step_id", consumerID),
-					slog.Any("error", err))
+					log.StepID(consumerID),
+					log.Error(err))
 				continue
 			}
 			if fn != nil {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type StockReservation struct {
@@ -35,11 +36,16 @@ var (
 	stockMutex   sync.Mutex
 )
 
+const version = "dev"
+
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}
+
+	logger := log.New("stock-reservation-example", os.Getenv("ENV"), version)
+	slog.SetDefault(logger)
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
@@ -50,7 +56,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to setup stock reservation",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 }

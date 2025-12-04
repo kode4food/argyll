@@ -13,10 +13,12 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	app "github.com/kode4food/spuds/engine"
 	"github.com/kode4food/spuds/engine/internal/client"
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/internal/server"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type spuds struct {
@@ -41,17 +43,17 @@ func main() {
 	cfg := config.NewDefaultConfig()
 	cfg.LoadFromEnv()
 
-	a := &spuds{cfg: cfg}
-	if err := a.run(); err != nil {
+	s := &spuds{cfg: cfg}
+	s.setupLogging()
+
+	if err := s.run(); err != nil {
 		slog.Error("Failed to start application",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 }
 
 func (s *spuds) run() error {
-	s.setupLogging()
-
 	if err := s.initializeStores(); err != nil {
 		return err
 	}
@@ -72,14 +74,14 @@ func (s *spuds) setupLogging() {
 	if !ok {
 		level = slog.LevelInfo
 	}
+
+	env := os.Getenv("ENV")
+	logger := log.NewWithLevel(app.Name, env, app.Version, level)
+	slog.SetDefault(logger)
 	slog.SetLogLoggerLevel(level)
 
-	handler := slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{
-		Level: level,
-	})
-	slog.SetDefault(slog.New(handler))
-
-	slog.Info("Spuds Engine starting")
+	slog.Info("Spuds Engine starting",
+		slog.String("log_level", s.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
 		slog.String("engine_redis_addr", s.cfg.EngineStore.Addr),
@@ -145,7 +147,7 @@ func (s *spuds) startServer() {
 		if err := s.httpServer.ListenAndServe(); err != nil &&
 			!errors.Is(err, http.ErrServerClosed) {
 			slog.Error("HTTP server error",
-				slog.Any("error", err))
+				log.Error(err))
 		}
 	}()
 }
@@ -160,14 +162,14 @@ func (s *spuds) shutdown() {
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {
 		slog.Error("Shutdown failed",
-			slog.Any("error", err))
+			log.Error(err))
 	}
 
 	s.health.Stop()
 
 	if err := s.engine.Stop(); err != nil {
 		slog.Error("Engine shutdown failed",
-			slog.Any("error", err))
+			log.Error(err))
 	}
 
 	_ = s.timebox.Close()

@@ -12,6 +12,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type (
@@ -64,7 +65,7 @@ func HandleWebSocket(
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		slog.Error("WebSocket upgrade failed",
-			slog.Any("error", err))
+			log.Error(err))
 		return
 	}
 
@@ -140,7 +141,7 @@ func (c *Client) handleSubscribe(message []byte) {
 	var sub api.SubscribeMessage
 	if err := json.Unmarshal(message, &sub); err != nil {
 		slog.Error("Failed to parse WebSocket message",
-			slog.Any("error", err))
+			log.Error(err))
 		return
 	}
 
@@ -164,7 +165,7 @@ func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	if err := c.conn.WriteJSON(wsEvent); err != nil {
 		slog.Error("WebSocket write failed",
-			slog.Any("error", err))
+			log.Error(err))
 		return false
 	}
 	return true
@@ -184,9 +185,9 @@ func (c *Client) replayAndSend(flowID api.FlowID, fromSeq int64) {
 	evs, err := c.replay(flowID, fromSeq)
 	if err != nil {
 		slog.Error("Failed to replay flow events",
-			slog.Any("flow_id", flowID),
-			slog.Int64("from_sequence", fromSeq),
-			slog.Any("error", err))
+			log.FlowID(flowID),
+			slog.Int("from_sequence", int(fromSeq)),
+			log.Error(err))
 		return
 	}
 
@@ -204,7 +205,7 @@ func (c *Client) writeEvent(ev *timebox.Event, context string) bool {
 	if err != nil {
 		slog.Error("WebSocket write failed",
 			slog.String("context", context),
-			slog.Any("error", err))
+			log.Error(err))
 		return false
 	}
 	return true

@@ -14,6 +14,7 @@ import (
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type (
@@ -107,7 +108,7 @@ func (e *Engine) Start() {
 
 	if err := e.RecoverFlows(ctx); err != nil {
 		slog.Error("Failed to recover flows",
-			slog.Any("error", err))
+			log.Error(err))
 	}
 
 	go e.eventLoop()
@@ -219,8 +220,8 @@ func (e *Engine) eventLoop() {
 func (e *Engine) routeEvent(event *timebox.Event) {
 	if err := e.handler(event); err != nil {
 		slog.Error("Failed to handle flow lifecycle event",
-			slog.Any("event_type", event.Type),
-			slog.Any("error", err))
+			slog.String("event_type", string(event.Type)),
+			log.Error(err))
 	}
 
 	if !events.IsFlowEvent(event) {
@@ -252,7 +253,7 @@ func (e *Engine) saveEngineSnapshot() {
 
 	if err := e.engineExec.SaveSnapshot(ctx, events.EngineID); err != nil {
 		slog.Error("Failed to save engine snapshot",
-			slog.Any("error", err))
+			log.Error(err))
 		return
 	}
 	slog.Info("Engine snapshot saved")

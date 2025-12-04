@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 type Order struct {
@@ -28,11 +29,16 @@ type Order struct {
 	CreatedAt      string  `json:"created_at"`
 }
 
+const version = "dev"
+
 func main() {
 	engineURL := os.Getenv("SPUDS_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}
+
+	logger := log.New("order-creator-example", os.Getenv("ENV"), version)
+	slog.SetDefault(logger)
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
@@ -45,7 +51,7 @@ func main() {
 
 	if err != nil {
 		slog.Error("Failed to setup order creator",
-			slog.Any("error", err))
+			log.Error(err))
 		os.Exit(1)
 	}
 }
@@ -61,8 +67,8 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 		}
 		selectedErr := errMsg[rand.Intn(len(errMsg))]
 		slog.Warn("Simulating transient failure (will retry)",
-			slog.String("error", selectedErr),
-			slog.String("step_id", string(ctx.StepID)))
+			log.Error(fmt.Errorf(selectedErr)),
+			log.StepID(ctx.StepID))
 		return api.StepResult{}, builder.NewHTTPError(
 			http.StatusServiceUnavailable, selectedErr,
 		)

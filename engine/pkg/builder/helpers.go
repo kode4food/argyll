@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/spuds/engine/pkg/log"
 )
 
 const (
@@ -63,9 +64,9 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 		}
 
 		slog.Warn("Failed to register/update step",
-			slog.Any("step_id", step.id),
+			log.StepID(step.id),
 			slog.Int("attempt", attempt),
-			slog.Any("error", err))
+			log.Error(err))
 		if attempt >= MaxRegistrationAttempts {
 			continue
 		}
@@ -89,8 +90,8 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 	http.HandleFunc("/"+string(step.id), handler)
 
 	slog.Info("Step server starting",
-		slog.Any("step_name", step.name),
-		slog.Any("step_id", step.id),
+		slog.String("step_name", string(step.name)),
+		log.StepID(step.id),
 		slog.String("port", port),
 		slog.String("endpoint", endpoint))
 	return http.ListenAndServe(":"+port, nil)
@@ -141,8 +142,9 @@ func executeStepWithRecovery(
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Step handler panicked",
-				slog.Any("step_id", string(id)),
-				slog.Any("panic", r))
+				log.StepID(id),
+				log.Error(ErrHandlerPanic),
+				slog.String("panic", fmt.Sprintf("%v", r)))
 			result = *api.NewResult().WithError(
 				fmt.Errorf("%w: %v", ErrHandlerPanic, r),
 			)
