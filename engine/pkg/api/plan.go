@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 )
 
@@ -44,67 +45,112 @@ func (p *ExecutionPlan) ValidateInputs(args Args) error {
 	return nil
 }
 
-// RemoveStep removes a step's contributions from the graph
-func (g AttributeGraph) RemoveStep(stepID StepID, step *Step) {
-	for name, attr := range step.Attributes {
-		existing, ok := g[name]
-		if !ok {
-			continue
-		}
-
-		updated := &AttributeEdges{
-			Providers: existing.Providers,
-			Consumers: existing.Consumers,
-		}
-
-		if attr.IsOutput() {
-			updated.Providers = slices.DeleteFunc(
-				slices.Clone(existing.Providers),
-				func(id StepID) bool { return id == stepID },
-			)
-		}
-
-		if attr.IsInput() {
-			updated.Consumers = slices.DeleteFunc(
-				slices.Clone(existing.Consumers),
-				func(id StepID) bool { return id == stepID },
-			)
-		}
-
-		if len(updated.Providers) == 0 && len(updated.Consumers) == 0 {
-			delete(g, name)
-		} else {
-			g[name] = updated
-		}
-	}
-}
-
 // AddStep adds a step's contributions to the graph
-func (g AttributeGraph) AddStep(stepID StepID, step *Step) {
-	for name, attr := range step.Attributes {
-		existing := g[name]
+func (g AttributeGraph) AddStep(step *Step) AttributeGraph {
+	res := maps.Clone(g)
 
-		var updated *AttributeEdges
-		if existing == nil {
-			updated = &AttributeEdges{
+	for name, attr := range step.Attributes {
+		edges, ok := res[name]
+		if !ok {
+			edges = &AttributeEdges{
 				Providers: []StepID{},
 				Consumers: []StepID{},
 			}
-		} else {
-			updated = &AttributeEdges{
-				Providers: slices.Clone(existing.Providers),
-				Consumers: slices.Clone(existing.Consumers),
-			}
 		}
 
 		if attr.IsOutput() {
-			updated.Providers = append(updated.Providers, stepID)
+			edges = edges.addProvider(step.ID)
 		}
 
 		if attr.IsInput() {
-			updated.Consumers = append(updated.Consumers, stepID)
+			edges = edges.addConsumer(step.ID)
 		}
 
-		g[name] = updated
+		res[name] = edges
 	}
+
+	return res
+}
+
+// RemoveStep removes a step's contributions from the graph
+func (g AttributeGraph) RemoveStep(step *Step) AttributeGraph {
+	res := maps.Clone(g)
+
+	for name, attr := range step.Attributes {
+		if _, ok := g[name]; !ok {
+			continue
+		}
+
+		edges := res[name]
+
+		if attr.IsOutput() {
+			edges = edges.removeProvider(step.ID)
+		}
+
+		if attr.IsInput() {
+			edges = edges.removeConsumer(step.ID)
+		}
+
+		if edges.isEmpty() {
+			delete(res, name)
+		} else {
+			res[name] = edges
+		}
+	}
+
+	return res
+}
+
+func (e *AttributeEdges) addProvider(stepID StepID) *AttributeEdges {
+	if slices.Contains(e.Providers, stepID) {
+		return e
+	}
+
+	return &AttributeEdges{
+		Providers: append(slices.Clone(e.Providers), stepID),
+		Consumers: e.Consumers,
+	}
+}
+
+func (e *AttributeEdges) addConsumer(stepID StepID) *AttributeEdges {
+	if slices.Contains(e.Consumers, stepID) {
+		return e
+	}
+
+	return &AttributeEdges{
+		Providers: e.Providers,
+		Consumers: append(slices.Clone(e.Consumers), stepID),
+	}
+}
+
+func (e *AttributeEdges) removeProvider(stepID StepID) *AttributeEdges {
+	if !slices.Contains(e.Providers, stepID) {
+		return e
+	}
+
+	return &AttributeEdges{
+		Providers: slices.DeleteFunc(
+			slices.Clone(e.Providers),
+			func(id StepID) bool { return id == stepID },
+		),
+		Consumers: e.Consumers,
+	}
+}
+
+func (e *AttributeEdges) removeConsumer(stepID StepID) *AttributeEdges {
+	if !slices.Contains(e.Consumers, stepID) {
+		return e
+	}
+
+	return &AttributeEdges{
+		Providers: e.Providers,
+		Consumers: slices.DeleteFunc(
+			slices.Clone(e.Consumers),
+			func(id StepID) bool { return id == stepID },
+		),
+	}
+}
+
+func (e *AttributeEdges) isEmpty() bool {
+	return len(e.Providers) == 0 && len(e.Consumers) == 0
 }

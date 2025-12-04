@@ -197,7 +197,7 @@ func checkAttributeConflicts(
 func detectStepCycles(st *api.EngineState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
 	deps := maps.Clone(st.Attributes)
-	deps.AddStep(newStep.ID, newStep)
+	deps = deps.AddStep(newStep)
 	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
 }
 

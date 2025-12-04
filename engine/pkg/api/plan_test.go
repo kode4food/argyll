@@ -214,7 +214,7 @@ func TestAttributeGraphAddStep(t *testing.T) {
 		},
 	}
 
-	graph.AddStep("step-a", stepA)
+	graph = graph.AddStep(stepA)
 
 	assert.Len(t, graph, 2)
 	assert.Contains(t, graph, api.Name("input"))
@@ -245,7 +245,7 @@ func TestAttributeGraphAddStepToExisting(t *testing.T) {
 		},
 	}
 
-	graph.AddStep("step-b", stepB)
+	graph = graph.AddStep(stepB)
 
 	assert.Len(t, graph["data"].Providers, 1)
 	assert.Len(t, graph["data"].Consumers, 1)
@@ -274,7 +274,7 @@ func TestAttributeGraphRemoveStep(t *testing.T) {
 		},
 	}
 
-	graph.RemoveStep("step-a", stepA)
+	graph = graph.RemoveStep(stepA)
 
 	assert.Contains(t, graph, api.Name("input"))
 	assert.Contains(t, graph, api.Name("output"))
@@ -304,7 +304,7 @@ func TestAttributeGraphRemoveStepDeletesEmptyEdges(t *testing.T) {
 		},
 	}
 
-	graph.RemoveStep("step-a", stepA)
+	graph = graph.RemoveStep(stepA)
 
 	assert.NotContains(t, graph, api.Name("data"))
 }
@@ -325,7 +325,7 @@ func TestAttributeGraphRemoveStepNotInGraph(t *testing.T) {
 		},
 	}
 
-	graph.RemoveStep("step-b", stepB)
+	graph = graph.RemoveStep(stepB)
 
 	assert.Len(t, graph, 1)
 	assert.Contains(t, graph, api.Name("existing"))
@@ -333,8 +333,8 @@ func TestAttributeGraphRemoveStepNotInGraph(t *testing.T) {
 
 func buildGraph(steps api.Steps) api.AttributeGraph {
 	graph := api.AttributeGraph{}
-	for id, step := range steps {
-		graph.AddStep(id, step)
+	for _, step := range steps {
+		graph = graph.AddStep(step)
 	}
 	return graph
 }

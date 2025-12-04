@@ -130,13 +130,12 @@ func (e *EngineState) SetStep(id StepID, step *Step) *EngineState {
 	res := *e
 	res.Steps = maps.Clone(e.Steps)
 	res.Steps[id] = step
-	res.Attributes = maps.Clone(e.Attributes)
 
 	if oldStep, ok := e.Steps[id]; ok {
-		res.Attributes.RemoveStep(id, oldStep)
+		res.Attributes = res.Attributes.RemoveStep(oldStep)
 	}
 
-	res.Attributes.AddStep(id, step)
+	res.Attributes = res.Attributes.AddStep(step)
 	return &res
 }
 
@@ -150,8 +149,7 @@ func (e *EngineState) DeleteStep(id StepID) *EngineState {
 	res := *e
 	res.Steps = maps.Clone(e.Steps)
 	delete(res.Steps, id)
-	res.Attributes = maps.Clone(e.Attributes)
-	res.Attributes.RemoveStep(id, step)
+	res.Attributes = res.Attributes.RemoveStep(step)
 	return &res
 }
 

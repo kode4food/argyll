@@ -555,8 +555,8 @@ func TestMixedInputs(t *testing.T) {
 
 func makeEngineState(steps api.Steps) *api.EngineState {
 	graph := api.AttributeGraph{}
-	for id, step := range steps {
-		graph.AddStep(id, step)
+	for _, step := range steps {
+		graph = graph.AddStep(step)
 	}
 	return &api.EngineState{
 		Steps:      steps,
