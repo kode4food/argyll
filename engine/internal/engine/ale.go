@@ -122,11 +122,10 @@ func (e *AleEnv) compileSource(src string) (proc data.Procedure, err error) {
 				return nil, err
 			}
 
-			proc, ok := res.(data.Procedure)
-			if !ok {
-				return nil, fmt.Errorf("%w, got: %T", ErrAleNotProcedure, res)
+			if proc, ok := res.(data.Procedure); ok {
+				return proc, nil
 			}
-			return proc, nil
+			return nil, fmt.Errorf("%w, got: %T", ErrAleNotProcedure, res)
 		},
 	)
 }
@@ -149,11 +148,10 @@ func executeScript(
 }
 
 func getArgValue(inputs api.Args, argName string) ale.Value {
-	value, ok := inputs[api.Name(argName)]
-	if !ok {
-		return data.Null
+	if value, ok := inputs[api.Name(argName)]; ok {
+		return jsonToAle(value)
 	}
-	return jsonToAle(value)
+	return data.Null
 }
 
 func evaluatePredicate(
@@ -219,11 +217,14 @@ func aleToJSON(value ale.Value) any {
 	case data.Vector:
 		return aleVectorToJSON(v)
 	case *data.List:
+		if v.IsEmpty() {
+			return nil
+		}
 		return aleListToJSON(v)
 	case *data.Object:
 		return aleObjectToJSON(v)
 	default:
-		return aleDefaultToJSON(value, v)
+		return fmt.Sprintf("%v", value)
 	}
 }
 
@@ -255,13 +256,6 @@ func aleObjectToJSON(obj *data.Object) map[string]any {
 		result[keyStr] = aleToJSON(pair.Cdr())
 	}
 	return result
-}
-
-func aleDefaultToJSON(value ale.Value, v any) any {
-	if value == data.Null {
-		return nil
-	}
-	return fmt.Sprintf("%v", v)
 }
 
 func catchPanic[T any](baseErr error, fn func() (T, error)) (res T, err error) {

@@ -123,16 +123,16 @@ func aggregateWorkItemOutputs(items api.WorkItems, step *api.Step) api.Args {
 		}
 
 		for _, item := range completed {
-			for outputName, outputValue := range item.Outputs {
+			for name, value := range item.Outputs {
 				entry := map[string]any{}
 				for _, argName := range multiArgNames {
 					if val, ok := item.Inputs[argName]; ok {
 						entry[string(argName)] = val
 					}
 				}
-				entry[string(outputName)] = outputValue
+				entry[string(name)] = value
 
-				aggregated[outputName] = append(aggregated[outputName], entry)
+				aggregated[name] = append(aggregated[name], entry)
 			}
 		}
 
