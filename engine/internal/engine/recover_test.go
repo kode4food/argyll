@@ -367,11 +367,11 @@ func TestFindRetriableSteps(t *testing.T) {
 		},
 	}
 
-	retriable := env.Engine.FindRetrySteps(state)
+	retryable := env.Engine.FindRetrySteps(state)
 
-	assert.Len(t, retriable, 2)
-	assert.Contains(t, retriable, api.StepID("step-1"))
-	assert.Contains(t, retriable, api.StepID("step-4"))
+	assert.Len(t, retryable, 2)
+	assert.Contains(t, retryable, api.StepID("step-1"))
+	assert.Contains(t, retryable, api.StepID("step-4"))
 }
 
 func TestRecoverActiveFlows(t *testing.T) {

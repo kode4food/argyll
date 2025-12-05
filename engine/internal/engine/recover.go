@@ -111,16 +111,16 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 		return nil
 	}
 
-		retriableSteps := e.FindRetrySteps(flow)
-		if retriableSteps.IsEmpty() {
-			return nil
-		}
+	retryableSteps := e.FindRetrySteps(flow)
+	if retryableSteps.IsEmpty() {
+		return nil
+	}
 
-		now := time.Now()
-		for stepID := range retriableSteps {
-			exec := flow.Executions[stepID]
-			if exec.WorkItems == nil {
-				continue
+	now := time.Now()
+	for stepID := range retryableSteps {
+		exec := flow.Executions[stepID]
+		if exec.WorkItems == nil {
+			continue
 		}
 
 		step, ok := flow.Plan.Steps[stepID]
@@ -137,23 +137,21 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 			case api.WorkPending:
 				if exec.Status == api.StepActive {
 					shouldRetry = true
-				} else if !workItem.NextRetryAt.IsZero() &&
-					workItem.NextRetryAt.Before(now) {
+				} else if isRetryable(workItem, now) {
 					shouldRetry = true
 				}
 			case api.WorkFailed:
-				if !workItem.NextRetryAt.IsZero() &&
-					workItem.NextRetryAt.Before(now) {
+				if isRetryable(workItem, now) {
 					shouldRetry = true
 				}
 			}
 
-				if shouldRetry {
-					fs := FlowStep{FlowID: flowID, StepID: stepID}
-					e.retryWork(ctx, fs, step, token, workItem)
-				}
+			if shouldRetry {
+				fs := FlowStep{FlowID: flowID, StepID: stepID}
+				e.retryWork(ctx, fs, step, token, workItem)
 			}
 		}
+	}
 
 	return nil
 }
@@ -161,7 +159,7 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 // FindRetrySteps identifies all steps in a flow that have work items
 // scheduled for retry
 func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
-	retriableSteps := util.Set[api.StepID]{}
+	retryableSteps := util.Set[api.StepID]{}
 
 	for stepID, exec := range state.Executions {
 		if exec.WorkItems == nil {
@@ -172,13 +170,13 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 			if workItem.Status == api.WorkPending &&
 				!workItem.NextRetryAt.IsZero() &&
 				workItem.RetryCount > 0 {
-				retriableSteps.Add(stepID)
+				retryableSteps.Add(stepID)
 				break
 			}
 		}
 	}
 
-	return retriableSteps
+	return retryableSteps
 }
 
 func (e *Engine) retryLoop() {
@@ -218,14 +216,13 @@ func (e *Engine) checkPendingRetries() {
 			}
 
 			for token, workItem := range exec.WorkItems {
-					if workItem.Status == api.WorkPending &&
-						!workItem.NextRetryAt.IsZero() &&
-						workItem.NextRetryAt.Before(now) {
-						if step, ok := flow.Plan.Steps[stepID]; ok {
-							fs := FlowStep{FlowID: flowID, StepID: stepID}
-							e.retryWork(ctx, fs, step, token, workItem)
-						}
+				if workItem.Status == api.WorkPending &&
+					isRetryable(workItem, now) {
+					if step, ok := flow.Plan.Steps[stepID]; ok {
+						fs := FlowStep{FlowID: flowID, StepID: stepID}
+						e.retryWork(ctx, fs, step, token, workItem)
 					}
+				}
 			}
 		}
 	}
@@ -244,4 +241,8 @@ func (e *Engine) retryWork(
 	}
 
 	execCtx.executeWorkItem(ctx, token, workItem)
+}
+
+func isRetryable(workItem *api.WorkState, now time.Time) bool {
+	return !workItem.NextRetryAt.IsZero() && workItem.NextRetryAt.Before(now)
 }
