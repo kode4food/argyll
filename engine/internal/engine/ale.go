@@ -188,20 +188,20 @@ func jsonToAle(value any) ale.Value {
 }
 
 func jsonArrayToAle(arr []any) data.Vector {
-	vec := make(data.Vector, len(arr))
-	for i, item := range arr {
-		vec[i] = jsonToAle(item)
+	res := make(data.Vector, len(arr))
+	for i, elem := range arr {
+		res[i] = jsonToAle(elem)
 	}
-	return vec
+	return res
 }
 
 func jsonMapToAle(m map[string]any) *data.Object {
-	obj := data.NewObject()
+	res := make(data.Pairs, 0, len(m))
 	for k, val := range m {
-		pair := data.NewCons(data.Keyword(k), jsonToAle(val))
-		obj = obj.Put(pair).(*data.Object)
+		p := data.NewCons(data.Keyword(k), jsonToAle(val))
+		res = append(res, p)
 	}
-	return obj
+	return data.NewObject(res...)
 }
 
 func aleToJSON(value ale.Value) any {
@@ -229,33 +229,28 @@ func aleToJSON(value ale.Value) any {
 }
 
 func aleVectorToJSON(v data.Vector) []any {
-	result := make([]any, len(v))
-	for i, item := range v {
-		result[i] = aleToJSON(item)
+	res := make([]any, len(v))
+	for i, elem := range v {
+		res[i] = aleToJSON(elem)
 	}
-	return result
+	return res
 }
 
-func aleListToJSON(list *data.List) []any {
-	var result []any
-	for l := list; !l.IsEmpty(); {
-		head, tail, ok := l.Split()
-		if !ok {
-			break
-		}
-		result = append(result, aleToJSON(head))
-		l = tail.(*data.List)
+func aleListToJSON(l *data.List) []any {
+	res := make([]any, 0, l.Count())
+	for f, r, ok := l.Split(); ok; f, r, ok = r.Split() {
+		res = append(res, aleToJSON(f))
 	}
-	return result
+	return res
 }
 
-func aleObjectToJSON(obj *data.Object) map[string]any {
-	result := map[string]any{}
-	for _, pair := range obj.Pairs() {
+func aleObjectToJSON(o *data.Object) map[string]any {
+	res := make(map[string]any, o.Count())
+	for _, pair := range o.Pairs() {
 		keyStr := fmt.Sprintf("%v", aleToJSON(pair.Car()))
-		result[keyStr] = aleToJSON(pair.Cdr())
+		res[keyStr] = aleToJSON(pair.Cdr())
 	}
-	return result
+	return res
 }
 
 func catchPanic[T any](baseErr error, fn func() (T, error)) (res T, err error) {
