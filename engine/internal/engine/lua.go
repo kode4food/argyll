@@ -89,11 +89,7 @@ func (e *LuaEnv) ExecuteScript(
 		return nil, fmt.Errorf("%w, got %T", ErrLuaBadCompiledType, c)
 	}
 
-	result, err := executeLuaScript(e, script, inputs)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return executeLuaScript(e, script, inputs)
 }
 
 // EvaluatePredicate executes a compiled Lua predicate with the provided inputs

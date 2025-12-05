@@ -130,11 +130,8 @@ func (a *flowActor) processWorkSucceeded(
 		}
 
 		completed, err := a.checkStepCompletion(ag, event.StepID)
-		if err != nil {
+		if err != nil || !completed {
 			return nil, err
-		}
-		if !completed {
-			return nil, nil
 		}
 
 		// Step completed - check if it was a goal step
@@ -396,17 +393,14 @@ func (a *flowActor) handleStepFailure(
 	}
 
 	completed, err := a.checkStepCompletion(ag, stepID)
-	if err != nil {
+	if err != nil || !completed {
 		return err
 	}
 
-	if completed {
-		if err := a.failUnreachable(ag); err != nil {
-			return err
-		}
-		return a.checkTerminal(ag)
+	if err := a.failUnreachable(ag); err != nil {
+		return err
 	}
-	return nil
+	return a.checkTerminal(ag)
 }
 
 // findInitialSteps finds steps that can start when a flow begins
