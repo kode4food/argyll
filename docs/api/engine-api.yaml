@@ -374,9 +374,6 @@ paths:
         2. Validate that all required inputs are provided
         3. Start the flow in `active` state
         4. Execute steps in dependency order until the goal is reached
-
-        **Note**: Currently, flows are created and started in a single operation.
-        A future enhancement will separate creation (pending state) from starting (active state).
       operationId: createFlow
       tags:
         - Flows
@@ -416,7 +413,7 @@ paths:
       summary: Get Flow State
       description: |
         Retrieve the current state of a specific flow, including:
-        - Status (pending, active, completed, failed)
+        - Status (active, completed, failed)
         - Execution plan (immutable step snapshots)
         - Current flow attributes
         - Error information (if failed)
@@ -964,13 +961,11 @@ components:
           example: "wf-text-processing-001"
         status:
           type: string
-          enum: [pending, active, completed, failed, stopped]
+          enum: [active, completed, failed]
           description: |
-            - `pending`: Flow created but not yet started (future feature)
             - `active`: Flow is currently executing
             - `completed`: Flow completed successfully
             - `failed`: Flow failed with an error
-            - `stopped`: Flow was manually stopped
           example: "active"
         created_at:
           type: string
@@ -1002,7 +997,7 @@ components:
           example: "wf-text-processing-001"
         status:
           type: string
-          enum: [pending, active, completed, failed]
+          enum: [active, completed, failed]
           description: Current flow status
           example: "active"
         created_at:

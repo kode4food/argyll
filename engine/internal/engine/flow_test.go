@@ -281,6 +281,53 @@ func TestSkipStep(t *testing.T) {
 	assert.Equal(t, "predicate returned false", exec.Error)
 }
 
+func TestStartFlowSimple(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+
+	step := &api.Step{
+		ID:      "goal-step",
+		Name:    "Goal",
+		Type:    api.StepTypeSync,
+		Version: "1.0.0",
+		Attributes: api.AttributeSpecs{
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	require.NoError(t, err)
+
+	env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
+
+	plan := &api.ExecutionPlan{
+		Goals:    []api.StepID{"goal-step"},
+		Required: []api.Name{},
+		Steps: api.Steps{
+			"goal-step": step,
+		},
+	}
+
+	err = env.Engine.StartFlow(
+		context.Background(),
+		"wf-simple",
+		plan,
+		api.Args{},
+		api.Metadata{},
+	)
+	require.NoError(t, err)
+
+	flow, err := env.Engine.GetFlowState(context.Background(), "wf-simple")
+	require.NoError(t, err)
+	assert.NotNil(t, flow)
+	assert.Equal(t, api.FlowID("wf-simple"), flow.ID)
+}
+
 func TestGetFlowEvents(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
