@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 
 import FlowDiagram from "./FlowDiagram";
+import { Step, FlowContext, ExecutionResult } from "../../api";
 
 jest.mock("../../hooks/useFlowWebSocket", () => ({
   useFlowWebSocket: jest.fn(),
@@ -42,17 +43,64 @@ jest.mock("../organisms/StepEditor", () => (props: any) => (
   <div data-testid="step-editor">Step Editor</div>
 ));
 
-const flowStore = require("../../store/flowStore");
+const flowStore = require("../../store/flowStore") as jest.Mocked<
+  typeof import("../../store/flowStore")
+>;
+
+const baseStep: Step = {
+  id: "a",
+  name: "A",
+  type: "script",
+  attributes: {},
+  version: "1",
+  script: { language: "python", script: "" },
+};
+
+const basePlan = {
+  goals: [baseStep.id],
+  required: [],
+  steps: { [baseStep.id]: baseStep },
+  attributes: {},
+};
+
+const makeFlow = (overrides: Partial<FlowContext>): FlowContext => ({
+  id: "wf-1",
+  status: "active",
+  state: {},
+  started_at: new Date().toISOString(),
+  ...overrides,
+});
+
+const makeExecutions = (
+  list: Partial<ExecutionResult>[] = []
+): ExecutionResult[] =>
+  list.map((exec) => ({
+    step_id: "a",
+    flow_id: "wf-1",
+    status: "pending",
+    inputs: {},
+    started_at: new Date().toISOString(),
+    ...exec,
+  }));
 
 function setStore({
   steps = [],
   selectedFlow = null,
   flowData = null,
-  executions = null,
+  executions = [],
   resolved = [],
   loading = false,
   flowNotFound = false,
   isFlowMode = false,
+}: {
+  steps?: Step[];
+  selectedFlow?: string | null;
+  flowData?: FlowContext | null;
+  executions?: ExecutionResult[];
+  resolved?: string[];
+  loading?: boolean;
+  flowNotFound?: boolean;
+  isFlowMode?: boolean;
 }) {
   flowStore.useSteps.mockReturnValue(steps);
   flowStore.useSelectedFlow.mockReturnValue(selectedFlow);
@@ -78,7 +126,7 @@ describe("FlowDiagram", () => {
 
   it("shows not found state when flow missing", () => {
     setStore({
-      steps: [{ id: "a", name: "A" }],
+      steps: [baseStep],
       selectedFlow: "wf-1",
       flowNotFound: true,
     });
@@ -88,13 +136,8 @@ describe("FlowDiagram", () => {
 
   it("renders header stats when not in flow mode", () => {
     setStore({
-      steps: [{ id: "a", name: "A" }],
-      flowData: {
-        id: "wf-1",
-        status: "active",
-        started_at: Date.now(),
-        plan: { steps: { a: {} } },
-      },
+      steps: [baseStep],
+      flowData: makeFlow({ plan: basePlan }),
       resolved: [],
       isFlowMode: false,
     });
@@ -105,17 +148,14 @@ describe("FlowDiagram", () => {
 
   it("renders flow header when in flow mode", () => {
     setStore({
-      steps: [{ id: "a", name: "A" }],
-      flowData: {
-        id: "wf-1",
-        status: "active",
-        started_at: Date.now(),
-        completed_at: Date.now(),
-        plan: { steps: { a: {} } },
-      },
+      steps: [baseStep],
+      flowData: makeFlow({
+        completed_at: new Date().toISOString(),
+        plan: basePlan,
+      }),
       resolved: [],
       isFlowMode: true,
-      executions: [],
+      executions: makeExecutions([]),
     });
     render(<FlowDiagram />);
     expect(screen.getByText("wf-1")).toBeInTheDocument();
@@ -124,7 +164,7 @@ describe("FlowDiagram", () => {
 
   it("opens create step editor", () => {
     setStore({
-      steps: [{ id: "a", name: "A" }],
+      steps: [baseStep],
       isFlowMode: false,
       flowData: null,
     });

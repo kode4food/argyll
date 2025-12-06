@@ -1,11 +1,22 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import FlowSelector from "./FlowSelector";
 
 const pushMock = jest.fn();
 const subscribeMock = jest.fn();
 let eventsMock: any[] = [];
+
+const uiState: any = {
+  showCreateForm: false,
+  setShowCreateForm: jest.fn(),
+  previewPlan: null,
+  updatePreviewPlan: jest.fn(),
+  clearPreviewPlan: jest.fn(),
+  setSelectedStep: jest.fn(),
+  goalStepIds: [],
+  setGoalStepIds: jest.fn(),
+};
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({
@@ -27,49 +38,68 @@ jest.mock("../../hooks/useWebSocketContext", () => ({
   }),
 }));
 
-jest.mock("../../contexts/UIContext", () => {
-  const actual = jest.requireActual("../../contexts/UIContext");
-  return {
-    ...actual,
-    useUI: () => ({
-      showCreateForm: false,
-      setShowCreateForm: jest.fn(),
-      previewPlan: null,
-      updatePreviewPlan: jest.fn(),
-      clearPreviewPlan: jest.fn(),
-      setSelectedStep: jest.fn(),
-      goalStepIds: [],
-      setGoalStepIds: jest.fn(),
-    }),
-    UIProvider: ({ children }: { children: React.ReactNode }) => (
-      <>{children}</>
-    ),
-  };
-});
+jest.mock("../../contexts/UIContext", () => ({
+  useUI: () => uiState,
+  UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
 
 jest.mock("../../store/flowStore", () => {
   const actual = jest.requireActual("../../store/flowStore");
+  const useFlows = jest.fn(() => []);
+  const useSteps = jest.fn(() => []);
+  const useLoadFlows = jest.fn(() => jest.fn());
+  const useAddFlow = jest.fn(() => jest.fn());
+  const useRemoveFlow = jest.fn(() => jest.fn());
+  const useUpdateFlowStatus = jest.fn(() => jest.fn());
+
   return {
     ...actual,
-    useFlows: jest.fn(() => []),
+    useFlows,
     useSelectedFlow: jest.fn(() => null),
-    useSteps: jest.fn(() => []),
-    useLoadFlows: jest.fn(() => jest.fn()),
-    useAddFlow: jest.fn(() => jest.fn()),
-    useRemoveFlow: jest.fn(() => jest.fn()),
-    useUpdateFlowStatus: jest.fn(() => jest.fn()),
+    useSteps,
+    useLoadFlows,
+    useAddFlow,
+    useRemoveFlow,
+    useUpdateFlowStatus,
   };
 });
 
+jest.mock("../../api", () => ({
+  api: {
+    getExecutionPlan: jest.fn(),
+    startFlow: jest.fn(),
+  },
+}));
+
+jest.mock("react-hot-toast", () => ({
+  error: jest.fn(),
+  success: jest.fn(),
+}));
+
+let capturedFormProps: any = null;
+jest.mock("./FlowCreateForm", () => (props: any) => {
+  capturedFormProps = props;
+  return <div>FlowCreateForm</div>;
+});
 jest.mock("../molecules/KeyboardShortcutsModal", () => () => (
   <div>Shortcuts</div>
 ));
-jest.mock("./FlowCreateForm", () => () => <div>FlowCreateForm</div>);
 
 describe("FlowSelector", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     eventsMock = [];
+    capturedFormProps = null;
+    Object.assign(uiState, {
+      showCreateForm: false,
+      previewPlan: null,
+      goalStepIds: [],
+      updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
+      setGoalStepIds: jest.fn(),
+      setShowCreateForm: jest.fn(),
+      setSelectedStep: jest.fn(),
+      clearPreviewPlan: jest.fn(),
+    });
   });
 
   it("renders and can open dropdown", () => {
@@ -124,5 +154,68 @@ describe("FlowSelector", () => {
       "completed",
       expect.any(String)
     );
+  });
+
+  it("handles goal step change and updates preview plan", async () => {
+    const { api } = require("../../api");
+    api.getExecutionPlan.mockResolvedValue({
+      steps: { goal: {} },
+      required: [],
+    });
+    uiState.showCreateForm = true;
+    uiState.goalStepIds = [];
+    const { useSteps } = require("../../store/flowStore");
+    useSteps.mockReturnValue([{ id: "goal", name: "Goal" }]);
+
+    render(<FlowSelector />);
+    expect(capturedFormProps).not.toBeNull();
+
+    await act(async () => {
+      await capturedFormProps.handleStepChange(["goal"]);
+    });
+
+    expect(uiState.setGoalStepIds).toHaveBeenCalledWith(["goal"]);
+    expect(uiState.updatePreviewPlan).toHaveBeenCalledWith(
+      ["goal"],
+      expect.any(Object)
+    );
+  });
+
+  it("handles create flow error and removes optimistic flow", async () => {
+    const { api } = require("../../api");
+    api.getExecutionPlan.mockResolvedValue({
+      steps: { goal: {} },
+      required: [],
+    });
+    api.startFlow.mockRejectedValue(new Error("fail"));
+    uiState.showCreateForm = true;
+    uiState.goalStepIds = ["goal"];
+    const {
+      useSteps,
+      useAddFlow,
+      useRemoveFlow,
+    } = require("../../store/flowStore");
+    useSteps.mockReturnValue([{ id: "goal", name: "Goal" }]);
+
+    const addFlow = jest.fn();
+    const removeFlow = jest.fn();
+    useAddFlow.mockReturnValue(addFlow);
+    useRemoveFlow.mockReturnValue(removeFlow);
+
+    render(<FlowSelector />);
+    expect(capturedFormProps).not.toBeNull();
+
+    await act(async () => {
+      capturedFormProps.setNewID("new-flow");
+    });
+    await act(async () => {
+      await capturedFormProps.handleStepChange(["goal"]);
+    });
+    await act(async () => {
+      await capturedFormProps.handleCreateFlow();
+    });
+
+    expect(addFlow).toHaveBeenCalled();
+    expect(removeFlow).toHaveBeenCalled();
   });
 });
