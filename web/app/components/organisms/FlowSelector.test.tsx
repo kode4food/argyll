@@ -77,13 +77,20 @@ jest.mock("react-hot-toast", () => ({
 }));
 
 let capturedFormProps: any = null;
-jest.mock("./FlowCreateForm", () => (props: any) => {
+const MockFlowCreateForm = (props: any) => {
   capturedFormProps = props;
   return <div>FlowCreateForm</div>;
-});
-jest.mock("../molecules/KeyboardShortcutsModal", () => () => (
-  <div>Shortcuts</div>
-));
+};
+MockFlowCreateForm.displayName = "MockFlowCreateForm";
+
+const MockKeyboardShortcutsModal = () => <div>Shortcuts</div>;
+MockKeyboardShortcutsModal.displayName = "MockKeyboardShortcutsModal";
+
+jest.mock("./FlowCreateForm", () => MockFlowCreateForm);
+jest.mock(
+  "../molecules/KeyboardShortcutsModal",
+  () => MockKeyboardShortcutsModal
+);
 
 describe("FlowSelector", () => {
   beforeEach(() => {

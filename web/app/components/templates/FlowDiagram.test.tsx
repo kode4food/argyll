@@ -38,10 +38,16 @@ jest.mock("../../contexts/UIContext", () => {
   };
 });
 
-jest.mock("./StepDiagram", () => () => <div data-testid="step-diagram" />);
-jest.mock("../organisms/StepEditor", () => (props: any) => (
+const MockStepDiagram = () => <div data-testid="step-diagram" />;
+MockStepDiagram.displayName = "MockStepDiagram";
+
+const MockStepEditor = (props: any) => (
   <div data-testid="step-editor">Step Editor</div>
-));
+);
+MockStepEditor.displayName = "MockStepEditor";
+
+jest.mock("./StepDiagram", () => MockStepDiagram);
+jest.mock("../organisms/StepEditor", () => MockStepEditor);
 
 const flowStore = require("../../store/flowStore") as jest.Mocked<
   typeof import("../../store/flowStore")

@@ -3,8 +3,14 @@ import { render, screen, fireEvent } from "@testing-library/react";
 
 import FlowPage from "./FlowPage";
 
-jest.mock("../organisms/FlowSelector", () => () => <div>FlowSelector</div>);
-jest.mock("./FlowDiagram", () => () => <div>FlowDiagram</div>);
+const MockFlowSelector = () => <div>FlowSelector</div>;
+MockFlowSelector.displayName = "MockFlowSelector";
+
+const MockFlowDiagram = () => <div>FlowDiagram</div>;
+MockFlowDiagram.displayName = "MockFlowDiagram";
+
+jest.mock("../organisms/FlowSelector", () => MockFlowSelector);
+jest.mock("./FlowDiagram", () => MockFlowDiagram);
 jest.mock("../../store/flowStore", () => {
   const actual = jest.requireActual("../../store/flowStore");
   return {
