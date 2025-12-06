@@ -124,8 +124,7 @@ describe("FlowSelector", () => {
   });
 
   it("pushes route when selecting a flow from dropdown", () => {
-    const useFlows = require("../../store/flowStore").useFlows;
-    useFlows.mockReturnValue([
+    require("../../store/flowStore").useFlows.mockReturnValue([
       { id: "wf-1", status: "pending" },
       { id: "wf-2", status: "completed" },
     ]);
@@ -139,9 +138,9 @@ describe("FlowSelector", () => {
 
   it("subscribes on mount and updates flow status from events", () => {
     const updateFlowStatus = jest.fn();
-    const useUpdateFlowStatus =
-      require("../../store/flowStore").useUpdateFlowStatus;
-    useUpdateFlowStatus.mockReturnValue(updateFlowStatus);
+    require("../../store/flowStore").useUpdateFlowStatus.mockReturnValue(
+      updateFlowStatus
+    );
     eventsMock = [
       {
         type: "flow_completed",
