@@ -65,87 +65,153 @@ const mapFlowStatusToProgressStatus = (
   }
 };
 
-const FlowSelector: React.FC = () => {
-  const router = useRouter();
-  useFlowFromUrl();
-  const flows = useFlows();
-  const selectedFlow = useSelectedFlow();
-  const steps = useSteps();
-  const loadFlows = useLoadFlows();
-  const addFlow = useAddFlow();
-  const removeFlow = useRemoveFlow();
-  const updateFlowStatus = useUpdateFlowStatus();
-  const { subscribe, events } = useWebSocketContext();
-  const {
-    showCreateForm,
-    setShowCreateForm,
-    previewPlan,
-    updatePreviewPlan,
-    clearPreviewPlan,
-    setSelectedStep,
-    goalStepIds,
-    setGoalStepIds,
-  } = useUI();
+const useFlowDropdown = (
+  flows: ReturnType<typeof useFlows>,
+  selectedFlow: string | null,
+  router: ReturnType<typeof useRouter>
+) => {
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedIndex, setSelectedIndex] = useState(-1);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const filteredFlows = flows.filter((flow) =>
+    flow.id.includes(sanitizeFlowID(searchTerm))
+  );
+  const selectableItems = filteredFlows.map((w) => w.id);
+
+  const closeDropdown = () => {
+    setShowDropdown(false);
+    setSearchTerm("");
+    setSelectedIndex(-1);
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+    setSelectedIndex(-1);
+  };
+
+  const navigateToFlow = (flowId: string) => {
+    if (flowId === "Overview") {
+      router.push("/");
+    } else {
+      router.push(`/flow/${flowId}`);
+    }
+    setShowDropdown(false);
+    setSearchTerm("");
+    setSelectedIndex(-1);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (!showDropdown) return;
+
+    switch (e.key) {
+      case "ArrowDown":
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev < selectableItems.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case "ArrowUp":
+        e.preventDefault();
+        setSelectedIndex((prev) =>
+          prev > 0 ? prev - 1 : selectableItems.length - 1
+        );
+        break;
+      case "Enter":
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
+          navigateToFlow(selectableItems[selectedIndex]);
+        }
+        break;
+      case "Tab":
+        e.preventDefault();
+        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
+          navigateToFlow(selectableItems[selectedIndex]);
+        } else {
+          setSelectedIndex(0);
+        }
+        break;
+    }
+  };
+
+  useEffect(() => {
+    if (selectedIndex >= 0 && dropdownRef.current) {
+      const selectedElement = dropdownRef.current.children[
+        selectedIndex + 1
+      ] as HTMLElement;
+      if (selectedElement) {
+        selectedElement.scrollIntoView({
+          behavior: "smooth",
+          block: "nearest",
+        });
+      }
+    }
+  }, [selectedIndex]);
+
+  useEscapeKey(showDropdown, closeDropdown);
+
+  return {
+    showDropdown,
+    setShowDropdown,
+    searchTerm,
+    selectedIndex,
+    searchInputRef,
+    dropdownRef,
+    filteredFlows,
+    handleSearchChange,
+    handleKeyDown,
+    navigateToFlow,
+    closeDropdown,
+  };
+};
+
+const useFlowCreationForm = ({
+  router,
+  steps,
+  loadFlows,
+  addFlow,
+  removeFlow,
+  updatePreviewPlan,
+  clearPreviewPlan,
+  setSelectedStep,
+  previewPlan,
+  goalStepIds,
+  setGoalStepIds,
+  showCreateForm,
+  setShowCreateForm,
+}: {
+  router: ReturnType<typeof useRouter>;
+  steps: ReturnType<typeof useSteps>;
+  loadFlows: ReturnType<typeof useLoadFlows>;
+  addFlow: ReturnType<typeof useAddFlow>;
+  removeFlow: ReturnType<typeof useRemoveFlow>;
+  updatePreviewPlan: ReturnType<typeof useUI>["updatePreviewPlan"];
+  clearPreviewPlan: ReturnType<typeof useUI>["clearPreviewPlan"];
+  setSelectedStep: ReturnType<typeof useUI>["setSelectedStep"];
+  previewPlan: ReturnType<typeof useUI>["previewPlan"];
+  goalStepIds: string[];
+  setGoalStepIds: ReturnType<typeof useUI>["setGoalStepIds"];
+  showCreateForm: boolean;
+  setShowCreateForm: ReturnType<typeof useUI>["setShowCreateForm"];
+}) => {
   const [newId, setNewId] = useState("");
   const [initialState, setInitialState] = useState("{}");
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
+  const initializedGoalsRef = useRef(false);
 
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const processedEventsRef = useRef<Set<string>>(new Set());
-
-  const handleCreateFlow = async () => {
-    if (!newId.trim() || goalStepIds.length === 0) return;
-
-    const flowId = newId.trim();
-    let parsedState: {};
-    try {
-      parsedState = JSON.parse(initialState);
-    } catch {
-      parsedState = {};
-    }
-
-    addFlow({
-      id: flowId,
-      status: "pending",
-      state: parsedState,
-      started_at: new Date().toISOString(),
-      plan: previewPlan || undefined,
-    });
-
-    setCreating(true);
-    router.push(`/flow/${flowId}`);
+  const resetForm = useCallback(() => {
     setNewId("");
     setGoalStepIds([]);
     setSelectedStep(null);
     setInitialState("{}");
+    setIDManuallyEdited(false);
+    clearPreviewPlan();
     setShowCreateForm(false);
-
-    try {
-      await api.startFlow(flowId, goalStepIds, parsedState);
-
-      await loadFlows();
-    } catch (error: any) {
-      let errorMessage = "Unknown error";
-
-      if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
-
-      removeFlow(flowId);
-      toast.error("Failed to create flow: " + errorMessage);
-      router.push("/");
-    } finally {
-      setCreating(false);
-    }
-  };
+    initializedGoalsRef.current = false;
+  }, [clearPreviewPlan, setGoalStepIds, setSelectedStep, setShowCreateForm]);
 
   const handleGoalStepChange = useCallback(
     async (stepIds: string[]) => {
@@ -183,7 +249,6 @@ const FlowSelector: React.FC = () => {
           setNewId(`${kebabName}-${generatePadded()}`);
         }
 
-        // Handle multiple goals - remove redundant ones
         if (stepIds.length > 1) {
           const lastGoal = stepIds[stepIds.length - 1];
           const previousGoals = stepIds.slice(0, -1);
@@ -225,127 +290,6 @@ const FlowSelector: React.FC = () => {
     ]
   );
 
-  const filteredFlows = flows.filter((flow) =>
-    flow.id.includes(sanitizeFlowID(searchTerm))
-  );
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setSelectedIndex(-1);
-  };
-
-  const selectableItems = filteredFlows.map((w) => w.id);
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < selectableItems.length - 1 ? prev + 1 : 0
-        );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : selectableItems.length - 1
-        );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-          const selectedItem = selectableItems[selectedIndex];
-          if (selectedItem === "Overview") {
-            router.push("/");
-          } else {
-            router.push(`/flow/${selectedItem}`);
-          }
-          setShowDropdown(false);
-          setSearchTerm("");
-          setSelectedIndex(-1);
-        }
-        break;
-      case "Tab":
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-          const selectedItem = selectableItems[selectedIndex];
-          if (selectedItem === "Overview") {
-            router.push("/");
-          } else {
-            router.push(`/flow/${selectedItem}`);
-          }
-          setShowDropdown(false);
-          setSearchTerm("");
-          setSelectedIndex(-1);
-        } else {
-          setSelectedIndex(0);
-        }
-        break;
-    }
-  };
-
-  useEffect(() => {
-    if (selectedIndex >= 0 && dropdownRef.current) {
-      const selectedElement = dropdownRef.current.children[
-        selectedIndex + 1
-      ] as HTMLElement;
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      }
-    }
-  }, [selectedIndex]);
-
-  useEscapeKey(showDropdown, () => {
-    setShowDropdown(false);
-    setSearchTerm("");
-    setSelectedIndex(-1);
-  });
-
-  useKeyboardShortcuts(
-    [
-      {
-        key: "/",
-        description: "Focus search",
-        handler: () => {
-          if (!showDropdown) {
-            setShowDropdown(true);
-            setTimeout(() => searchInputRef.current?.focus(), 100);
-          }
-        },
-      },
-      {
-        key: "?",
-        description: "Show keyboard shortcuts",
-        handler: () => {
-          setShowShortcutsModal(true);
-        },
-      },
-    ],
-    !showCreateForm && !showShortcutsModal
-  );
-
-  useEffect(() => {
-    if (!showCreateForm) {
-      setNewId("");
-      setGoalStepIds([]);
-      setSelectedStep(null);
-      setInitialState("{}");
-      setIDManuallyEdited(false);
-      clearPreviewPlan();
-    } else {
-      router.prefetch("/flow/placeholder");
-      // If there are already goal steps selected, initialize the form
-      if (goalStepIds.length > 0) {
-        handleGoalStepChange(goalStepIds);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showCreateForm]);
-
   const throttledInitialState = useThrottledValue(initialState, 500);
 
   useEffect(() => {
@@ -366,6 +310,116 @@ const FlowSelector: React.FC = () => {
     steps,
     updatePreviewPlan,
   ]);
+
+  useEffect(() => {
+    if (!showCreateForm) {
+      resetForm();
+      return;
+    }
+
+    router.prefetch("/flow/placeholder");
+
+    if (goalStepIds.length === 0) {
+      initializedGoalsRef.current = false;
+      return;
+    }
+
+    if (!initializedGoalsRef.current) {
+      initializedGoalsRef.current = true;
+      handleGoalStepChange(goalStepIds);
+    }
+  }, [showCreateForm, router, goalStepIds, handleGoalStepChange, resetForm]);
+
+  const handleCreateFlow = useCallback(async () => {
+    if (!newId.trim() || goalStepIds.length === 0) return;
+
+    const flowId = newId.trim();
+    let parsedState: {};
+    try {
+      parsedState = JSON.parse(initialState);
+    } catch {
+      parsedState = {};
+    }
+
+    addFlow({
+      id: flowId,
+      status: "pending",
+      state: parsedState,
+      started_at: new Date().toISOString(),
+      plan: previewPlan || undefined,
+    });
+
+    setCreating(true);
+    router.push(`/flow/${flowId}`);
+    setNewId("");
+    setGoalStepIds([]);
+    setSelectedStep(null);
+    setInitialState("{}");
+    setShowCreateForm(false);
+
+    try {
+      await api.startFlow(flowId, goalStepIds, parsedState);
+      await loadFlows();
+    } catch (error: any) {
+      let errorMessage = "Unknown error";
+
+      if (error?.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
+      removeFlow(flowId);
+      toast.error("Failed to create flow: " + errorMessage);
+      router.push("/");
+    } finally {
+      setCreating(false);
+    }
+  }, [
+    newId,
+    goalStepIds,
+    addFlow,
+    router,
+    setGoalStepIds,
+    setSelectedStep,
+    loadFlows,
+    removeFlow,
+    initialState,
+    setShowCreateForm,
+    previewPlan,
+  ]);
+
+  return {
+    newId,
+    setNewId,
+    initialState,
+    setInitialState,
+    creating,
+    idManuallyEdited,
+    setIDManuallyEdited,
+    handleGoalStepChange,
+    handleCreateFlow,
+  };
+};
+
+const useFlowEvents = ({
+  showDropdown,
+  selectedFlow,
+  subscribe,
+  events,
+  flows,
+  updateFlowStatus,
+  loadFlows,
+}: {
+  showDropdown: boolean;
+  selectedFlow: string | null;
+  subscribe: ReturnType<typeof useWebSocketContext>["subscribe"];
+  events: ReturnType<typeof useWebSocketContext>["events"];
+  flows: ReturnType<typeof useFlows>;
+  updateFlowStatus: ReturnType<typeof useUpdateFlowStatus>;
+  loadFlows: ReturnType<typeof useLoadFlows>;
+}) => {
+  const processedEventsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (showDropdown || !selectedFlow) {
@@ -420,6 +474,104 @@ const FlowSelector: React.FC = () => {
       );
     }
   }, [events, flows, updateFlowStatus, loadFlows]);
+};
+
+const FlowSelector: React.FC = () => {
+  const router = useRouter();
+  useFlowFromUrl();
+  const flows = useFlows();
+  const selectedFlow = useSelectedFlow();
+  const steps = useSteps();
+  const loadFlows = useLoadFlows();
+  const addFlow = useAddFlow();
+  const removeFlow = useRemoveFlow();
+  const updateFlowStatus = useUpdateFlowStatus();
+  const { subscribe, events } = useWebSocketContext();
+  const {
+    showCreateForm,
+    setShowCreateForm,
+    previewPlan,
+    updatePreviewPlan,
+    clearPreviewPlan,
+    setSelectedStep,
+    goalStepIds,
+    setGoalStepIds,
+  } = useUI();
+
+  const {
+    showDropdown,
+    setShowDropdown,
+    searchTerm,
+    selectedIndex,
+    searchInputRef,
+    dropdownRef,
+    filteredFlows,
+    handleSearchChange,
+    handleKeyDown,
+    navigateToFlow,
+    closeDropdown,
+  } = useFlowDropdown(flows, selectedFlow, router);
+
+  const {
+    newId,
+    setNewId,
+    initialState,
+    setInitialState,
+    creating,
+    idManuallyEdited,
+    setIDManuallyEdited,
+    handleGoalStepChange,
+    handleCreateFlow,
+  } = useFlowCreationForm({
+    router,
+    steps,
+    loadFlows,
+    addFlow,
+    removeFlow,
+    updatePreviewPlan,
+    clearPreviewPlan,
+    setSelectedStep,
+    previewPlan,
+    goalStepIds,
+    setGoalStepIds,
+    showCreateForm,
+    setShowCreateForm,
+  });
+
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  useKeyboardShortcuts(
+    [
+      {
+        key: "/",
+        description: "Focus search",
+        handler: () => {
+          if (!showDropdown) {
+            setShowDropdown(true);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+          }
+        },
+      },
+      {
+        key: "?",
+        description: "Show keyboard shortcuts",
+        handler: () => {
+          setShowShortcutsModal(true);
+        },
+      },
+    ],
+    !showCreateForm && !showShortcutsModal
+  );
+
+  useFlowEvents({
+    showDropdown,
+    selectedFlow,
+    subscribe,
+    events,
+    flows,
+    updateFlowStatus,
+    loadFlows,
+  });
 
   return (
     <div className={styles.selector}>
@@ -475,9 +627,7 @@ const FlowSelector: React.FC = () => {
                       value={searchTerm}
                       onChange={handleSearchChange}
                       onKeyDown={handleKeyDown}
-                      onBlur={() =>
-                        setTimeout(() => setShowDropdown(false), 100)
-                      }
+                      onBlur={() => setTimeout(() => closeDropdown(), 100)}
                       className={styles.dropdownSearchInput}
                       autoFocus
                     />
@@ -494,9 +644,7 @@ const FlowSelector: React.FC = () => {
                         onMouseDown={(e) => {
                           e.preventDefault();
                           router.push(`/flow/${flow.id}`);
-                          setShowDropdown(false);
-                          setSearchTerm("");
-                          setSelectedIndex(-1);
+                          closeDropdown();
                         }}
                       >
                         <StatusIcon

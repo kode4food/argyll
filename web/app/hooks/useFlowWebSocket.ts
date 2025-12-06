@@ -3,6 +3,151 @@ import { useWebSocketContext } from "./useWebSocketContext";
 import { useFlowStore } from "../store/flowStore";
 import { FlowContext } from "../api";
 
+type FlowEvent = {
+  type: string;
+  id?: string[];
+  sequence?: number;
+  timestamp?: string | number;
+  data?: Record<string, any>;
+};
+
+const isNewEvent = (event: FlowEvent, seenSequences: Map<string, number>) => {
+  const key = event.id?.join(":") || "";
+  const currentMax = seenSequences.get(key) || 0;
+  const sequence = event.sequence || 0;
+  if (sequence <= currentMax) {
+    return false;
+  }
+  seenSequences.set(key, sequence);
+  return true;
+};
+
+const handleStepCatalogEvent = (
+  event: FlowEvent,
+  handlers: {
+    addStep: (step: any) => void;
+    removeStep: (id: string) => void;
+    updateStep: (step: any) => void;
+    updateStepHealth: (id: string, health: string, error?: string) => void;
+  }
+) => {
+  switch (event.type) {
+    case "step_registered": {
+      const step = event.data?.step;
+      if (step) handlers.addStep(step);
+      return true;
+    }
+    case "step_unregistered": {
+      const stepId = event.data?.step_id;
+      if (stepId) handlers.removeStep(stepId);
+      return true;
+    }
+    case "step_updated": {
+      const step = event.data?.step;
+      if (step) handlers.updateStep(step);
+      return true;
+    }
+    case "step_health_changed": {
+      const stepId = event.data?.step_id;
+      const health = event.data?.status;
+      const error = event.data?.error;
+      if (stepId && health) {
+        handlers.updateStepHealth(stepId, health, error);
+      }
+      return true;
+    }
+    default:
+      return false;
+  }
+};
+
+const handleFlowEvent = (
+  event: FlowEvent,
+  context: {
+    selectedFlow: string | null;
+    flowData: FlowContext | null;
+    initializeExecutions: (flowId: string, plan: any) => void;
+    updateExecution: (stepId: string, update: any) => void;
+  }
+) => {
+  const { selectedFlow, flowData, initializeExecutions, updateExecution } =
+    context;
+  if (!selectedFlow || event.data?.flow_id !== selectedFlow || !flowData) {
+    return null;
+  }
+
+  const flowUpdate: Partial<FlowContext> = {};
+  const stateUpdates: Record<string, { value: any; step: string }> = {};
+
+  switch (event.type) {
+    case "flow_started":
+      flowUpdate.status = "active";
+      flowUpdate.started_at =
+        event.data?.started_at || new Date().toISOString();
+      if (event.data?.plan) {
+        initializeExecutions(selectedFlow, event.data.plan);
+      }
+      break;
+    case "step_started":
+      updateExecution(event.data?.step_id, {
+        status: "active",
+        inputs: event.data?.inputs,
+        work_items: event.data?.work_items || {},
+        started_at: new Date(event.timestamp || Date.now()).toISOString(),
+      });
+      break;
+    case "step_completed":
+      updateExecution(event.data?.step_id, {
+        status: "completed",
+        outputs: event.data?.outputs,
+        duration_ms: event.data?.duration,
+        completed_at: new Date(event.timestamp || Date.now()).toISOString(),
+      });
+      break;
+    case "step_failed":
+      updateExecution(event.data?.step_id, {
+        status: "failed",
+        error_message: event.data?.error,
+        completed_at: new Date(event.timestamp || Date.now()).toISOString(),
+      });
+      break;
+    case "step_skipped":
+      updateExecution(event.data?.step_id, {
+        status: "skipped",
+        completed_at: new Date(event.timestamp || Date.now()).toISOString(),
+      });
+      break;
+    case "attribute_set": {
+      const key = event.data?.key;
+      const value = event.data?.value;
+      const stepId = event.data?.step_id;
+      if (key && value !== undefined) {
+        stateUpdates[key] = { value, step: stepId };
+      }
+      break;
+    }
+    case "flow_completed":
+      flowUpdate.status = "completed";
+      flowUpdate.completed_at =
+        event.data?.completed_at || new Date().toISOString();
+      break;
+    case "flow_failed":
+      flowUpdate.status = "failed";
+      flowUpdate.error_state = {
+        message: event.data?.error || "Flow failed",
+        step_id: "",
+        timestamp: event.data?.failed_at || new Date().toISOString(),
+      };
+      flowUpdate.completed_at =
+        event.data?.failed_at || new Date().toISOString();
+      break;
+    default:
+      return null;
+  }
+
+  return { flowUpdate, stateUpdates };
+};
+
 export const useFlowWebSocket = () => {
   const {
     events,
@@ -59,107 +204,29 @@ export const useFlowWebSocket = () => {
     let flowUpdate: Partial<FlowContext> = {};
 
     for (const event of newEvents) {
-      if (!event) {
-        continue;
+      if (!event) continue;
+      if (!isNewEvent(event, seenSequences.current)) continue;
+
+      const handled = handleStepCatalogEvent(event, {
+        addStep,
+        removeStep,
+        updateStep,
+        updateStepHealth,
+      });
+      if (handled) continue;
+
+      const flowResult = handleFlowEvent(event, {
+        selectedFlow,
+        flowData,
+        initializeExecutions,
+        updateExecution,
+      });
+
+      if (flowResult?.flowUpdate) {
+        flowUpdate = { ...flowUpdate, ...flowResult.flowUpdate };
       }
-
-      const key = event.id?.join(":") || "";
-      const currentMax = seenSequences.current.get(key) || 0;
-      if (event.sequence <= currentMax) {
-        continue;
-      }
-      seenSequences.current.set(key, event.sequence);
-
-      if (event.type === "step_registered") {
-        const step = event.data?.step;
-        if (step) {
-          addStep(step);
-        }
-        continue;
-      }
-
-      if (event.type === "step_unregistered") {
-        const stepId = event.data?.step_id;
-        if (stepId) {
-          removeStep(stepId);
-        }
-        continue;
-      }
-
-      if (event.type === "step_updated") {
-        const step = event.data?.step;
-        if (step) {
-          updateStep(step);
-        }
-        continue;
-      }
-
-      if (event.type === "step_health_changed") {
-        const stepId = event.data?.step_id;
-        const health = event.data?.status;
-        const error = event.data?.error;
-        if (stepId && health) {
-          updateStepHealth(stepId, health, error);
-        }
-        continue;
-      }
-
-      if (!selectedFlow) continue;
-      if (event.data?.flow_id !== selectedFlow) continue;
-      if (!flowData) continue;
-
-      if (event.type === "flow_started") {
-        flowUpdate.status = "active";
-        flowUpdate.started_at =
-          event.data?.started_at || new Date().toISOString();
-        if (event.data?.plan) {
-          initializeExecutions(selectedFlow, event.data.plan);
-        }
-      } else if (event.type === "step_started") {
-        updateExecution(event.data?.step_id, {
-          status: "active",
-          inputs: event.data?.inputs,
-          work_items: event.data?.work_items || {},
-          started_at: new Date(event.timestamp).toISOString(),
-        });
-      } else if (event.type === "step_completed") {
-        updateExecution(event.data?.step_id, {
-          status: "completed",
-          outputs: event.data?.outputs,
-          duration_ms: event.data?.duration,
-          completed_at: new Date(event.timestamp).toISOString(),
-        });
-      } else if (event.type === "step_failed") {
-        updateExecution(event.data?.step_id, {
-          status: "failed",
-          error_message: event.data?.error,
-          completed_at: new Date(event.timestamp).toISOString(),
-        });
-      } else if (event.type === "step_skipped") {
-        updateExecution(event.data?.step_id, {
-          status: "skipped",
-          completed_at: new Date(event.timestamp).toISOString(),
-        });
-      } else if (event.type === "attribute_set") {
-        const key = event.data?.key;
-        const value = event.data?.value;
-        const stepId = event.data?.step_id;
-        if (key && value !== undefined) {
-          stateUpdates[key] = { value, step: stepId };
-        }
-      } else if (event.type === "flow_completed") {
-        flowUpdate.status = "completed";
-        flowUpdate.completed_at =
-          event.data?.completed_at || new Date().toISOString();
-      } else if (event.type === "flow_failed") {
-        flowUpdate.status = "failed";
-        flowUpdate.error_state = {
-          message: event.data?.error || "Flow failed",
-          step_id: "",
-          timestamp: event.data?.failed_at || new Date().toISOString(),
-        };
-        flowUpdate.completed_at =
-          event.data?.failed_at || new Date().toISOString();
+      if (flowResult?.stateUpdates) {
+        stateUpdates = { ...stateUpdates, ...flowResult.stateUpdates };
       }
     }
 

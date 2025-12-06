@@ -86,11 +86,14 @@ MockFlowCreateForm.displayName = "MockFlowCreateForm";
 const MockKeyboardShortcutsModal = () => <div>Shortcuts</div>;
 MockKeyboardShortcutsModal.displayName = "MockKeyboardShortcutsModal";
 
-jest.mock("./FlowCreateForm", () => MockFlowCreateForm);
-jest.mock(
-  "../molecules/KeyboardShortcutsModal",
-  () => MockKeyboardShortcutsModal
-);
+jest.mock("./FlowCreateForm", () => ({
+  __esModule: true,
+  default: MockFlowCreateForm,
+}));
+jest.mock("../molecules/KeyboardShortcutsModal", () => ({
+  __esModule: true,
+  default: MockKeyboardShortcutsModal,
+}));
 
 describe("FlowSelector", () => {
   beforeEach(() => {
@@ -174,6 +177,7 @@ describe("FlowSelector", () => {
     useSteps.mockReturnValue([{ id: "goal", name: "Goal" }]);
 
     render(<FlowSelector />);
+    await screen.findByText("FlowCreateForm");
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
@@ -209,6 +213,7 @@ describe("FlowSelector", () => {
     useRemoveFlow.mockReturnValue(removeFlow);
 
     render(<FlowSelector />);
+    await screen.findByText("FlowCreateForm");
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
