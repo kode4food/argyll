@@ -37,6 +37,8 @@ func startStepServer(
 ) string {
 	t.Helper()
 
+	http.DefaultServeMux = http.NewServeMux()
+
 	port := getFreePort(t)
 	host := "127.0.0.1"
 
@@ -69,8 +71,6 @@ func startStepServer(
 }
 
 func TestStepHandlerReturnsHTTPError(t *testing.T) {
-	t.Parallel()
-
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -111,8 +111,6 @@ func TestStepHandlerReturnsHTTPError(t *testing.T) {
 }
 
 func TestStepHandlerRecoversFromPanic(t *testing.T) {
-	t.Parallel()
-
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {

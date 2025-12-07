@@ -75,7 +75,9 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 			ErrStepRegistration, MaxRegistrationAttempts)
 	}
 
-	http.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+	mux := http.NewServeMux()
+
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`,
@@ -83,14 +85,19 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 	})
 
 	handler := makeStepHandler(client, step.id, handle)
-	http.HandleFunc("/"+string(step.id), handler)
+	mux.HandleFunc("/"+string(step.id), handler)
 
 	slog.Info("Step server starting",
 		slog.String("step_name", string(step.name)),
 		log.StepID(step.id),
 		slog.String("port", port),
 		slog.String("endpoint", endpoint))
-	return http.ListenAndServe(":"+port, nil)
+	server := &http.Server{
+		Addr:    ":" + port,
+		Handler: mux,
+	}
+
+	return server.ListenAndServe()
 }
 
 func makeStepHandler(
