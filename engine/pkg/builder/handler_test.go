@@ -21,7 +21,7 @@ func getFreePort(t *testing.T) string {
 
 	l, err := net.Listen("tcp", ":0")
 	assert.NoError(t, err)
-	defer l.Close()
+	defer func() { _ = l.Close() }()
 
 	_, port, err := net.SplitHostPort(l.Addr().String())
 	assert.NoError(t, err)
@@ -63,7 +63,7 @@ func startStepServer(
 		if err != nil {
 			return false
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 		return resp.StatusCode == http.StatusOK
 	}, time.Second, 20*time.Millisecond)
 
@@ -89,11 +89,7 @@ func TestStepHandlerReturnsHTTPError(t *testing.T) {
 	}
 
 	stepURL := startStepServer(
-		t,
-		engineServer.URL,
-		api.Name("test-step"),
-		api.StepID("test-step"),
-		handler,
+		t, engineServer.URL, "test-step", "test-step", handler,
 	)
 
 	req := api.StepRequest{
@@ -105,7 +101,7 @@ func TestStepHandlerReturnsHTTPError(t *testing.T) {
 
 	resp, err := http.Post(stepURL, "application/json", bytes.NewBuffer(body))
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusTeapot, resp.StatusCode)
 }
@@ -128,11 +124,7 @@ func TestStepHandlerRecoversFromPanic(t *testing.T) {
 	}
 
 	stepURL := startStepServer(
-		t,
-		engineServer.URL,
-		api.Name("panic-step"),
-		api.StepID("panic-step"),
-		handler,
+		t, engineServer.URL, "panic-step", "panic-step", handler,
 	)
 
 	req := api.StepRequest{
@@ -144,7 +136,7 @@ func TestStepHandlerRecoversFromPanic(t *testing.T) {
 
 	resp, err := http.Post(stepURL, "application/json", bytes.NewBuffer(body))
 	assert.NoError(t, err)
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 

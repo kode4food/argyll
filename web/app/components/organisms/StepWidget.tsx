@@ -99,10 +99,6 @@ const StepWidget: React.FC<StepWidgetProps> = ({
     });
   };
 
-  const handleStepUpdate = (updatedStep: Step) => {
-    setLocalStep(updatedStep);
-  };
-
   return (
     <>
       <div

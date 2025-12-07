@@ -28,7 +28,6 @@ const FlowDiagramContent: React.FC = () => {
     isFlowMode,
     loadSteps,
   } = useFlowSession();
-  const stepsList = steps || [];
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { selectedStep, setSelectedStep } = useUI();
   const { openEditor } = useStepEditorContext();
