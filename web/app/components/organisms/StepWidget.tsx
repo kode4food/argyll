@@ -7,6 +7,7 @@ import StepFooter from "../molecules/StepFooter";
 import { getStepType } from "@/utils/stepUtils";
 import { useStepHealth } from "../../hooks/useStepHealth";
 import { useStepEditorContext } from "../../contexts/StepEditorContext";
+import { useFlowSession } from "../../contexts/FlowSessionContext";
 
 interface StepWidgetProps {
   step: Step;
@@ -48,6 +49,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
 
   const [localStep, setLocalStep] = useState(step);
   const { openEditor } = useStepEditorContext();
+  const { loadSteps } = useFlowSession();
 
   React.useEffect(() => {
     const handleOpenEditor = (event: Event) => {
@@ -55,7 +57,10 @@ const StepWidget: React.FC<StepWidgetProps> = ({
       if (customEvent.detail?.stepId === step.id && !disableEdit) {
         openEditor({
           step: localStep,
-          onUpdate: setLocalStep,
+          onUpdate: async (updated) => {
+            setLocalStep(updated);
+            await loadSteps();
+          },
           diagramContainerRef,
         });
       }
@@ -64,7 +69,14 @@ const StepWidget: React.FC<StepWidgetProps> = ({
     document.addEventListener("openStepEditor", handleOpenEditor);
     return () =>
       document.removeEventListener("openStepEditor", handleOpenEditor);
-  }, [step.id, disableEdit, openEditor, localStep, diagramContainerRef]);
+  }, [
+    step.id,
+    disableEdit,
+    openEditor,
+    localStep,
+    diagramContainerRef,
+    loadSteps,
+  ]);
 
   const isGrayedOut = isPreviewMode && !isInPreviewPlan;
   const isEditable =
@@ -79,7 +91,10 @@ const StepWidget: React.FC<StepWidgetProps> = ({
     e.stopPropagation();
     openEditor({
       step: localStep,
-      onUpdate: setLocalStep,
+      onUpdate: async (updated) => {
+        setLocalStep(updated);
+        await loadSteps();
+      },
       diagramContainerRef,
     });
   };

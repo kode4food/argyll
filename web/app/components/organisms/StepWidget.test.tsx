@@ -21,6 +21,12 @@ jest.mock("../molecules/StepFooter", () => ({
   __esModule: true,
   default: ({ step }: any) => <div data-testid="step-footer">{step.id}</div>,
 }));
+jest.mock("../../contexts/FlowSessionContext", () => ({
+  __esModule: true,
+  useFlowSession: () => ({
+    loadSteps: jest.fn().mockResolvedValue(undefined),
+  }),
+}));
 jest.mock("../../contexts/StepEditorContext", () => {
   const openEditor = jest.fn();
   const closeEditor = jest.fn();
