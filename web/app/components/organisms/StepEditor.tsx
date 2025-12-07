@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  createContext,
+  useContext,
+} from "react";
 import { createPortal } from "react-dom";
 import {
   FileCode2,
@@ -31,7 +38,9 @@ interface StepEditorProps {
   step: Step | null;
   onClose: () => void;
   onUpdate: (updatedStep: Step) => void;
-  diagramContainerRef?: React.RefObject<HTMLDivElement>;
+  diagramContainerRef?:
+    | React.RefObject<HTMLDivElement | null>
+    | React.MutableRefObject<HTMLDivElement | null>;
 }
 
 type AttributeRoleType = "input" | "optional" | "output";
@@ -46,31 +55,25 @@ interface Attribute {
   validationError?: string;
 }
 
-interface AttributesSectionProps {
-  attributes: Attribute[];
-  onAdd: () => void;
-  onUpdate: (id: string, field: keyof Attribute, value: any) => void;
-  onRemove: (id: string) => void;
-  onCycleType: (id: string, currentType: AttributeRoleType) => void;
-}
-
-interface BasicFieldsProps {
+interface StepEditorContextValue {
   stepId: string;
   name: string;
   stepType: StepType;
   isCreateMode: boolean;
-  onStepIdChange: (value: string) => void;
-  onNameChange: (value: string) => void;
-  onStepTypeChange: (value: StepType) => void;
-}
-
-interface HttpConfigProps {
+  setStepId: (value: string) => void;
+  setName: (value: string) => void;
+  setStepType: (value: StepType) => void;
+  attributes: Attribute[];
+  addAttribute: () => void;
+  updateAttribute: (id: string, field: keyof Attribute, value: any) => void;
+  removeAttribute: (id: string) => void;
+  cycleAttributeType: (id: string, currentType: AttributeRoleType) => void;
   endpoint: string;
-  timeout: number;
+  setEndpoint: (value: string) => void;
   healthCheck: string;
-  onEndpointChange: (value: string) => void;
-  onTimeoutChange: (value: number) => void;
-  onHealthCheckChange: (value: string) => void;
+  setHealthCheck: (value: string) => void;
+  httpTimeout: number;
+  setHttpTimeout: (value: number) => void;
 }
 
 const ATTRIBUTE_TYPES: AttributeType[] = [
@@ -137,6 +140,18 @@ const getAttributeIcon = (attrType: AttributeRoleType) => {
   const argType = attrType === "input" ? "required" : attrType;
   const { Icon, className } = getArgIcon(argType);
   return <Icon size={16} className={className} />;
+};
+
+const StepEditorContext = createContext<StepEditorContextValue | null>(null);
+
+const useStepEditorContext = (): StepEditorContextValue => {
+  const ctx = useContext(StepEditorContext);
+  if (!ctx) {
+    throw new Error(
+      "useStepEditorContext must be used within a StepEditor provider"
+    );
+  }
+  return ctx;
 };
 
 const createStepAttributes = (
@@ -270,229 +285,247 @@ const buildStepPayload = ({
   return stepData;
 };
 
-const BasicFields: React.FC<BasicFieldsProps> = ({
-  stepId,
-  name,
-  stepType,
-  isCreateMode,
-  onStepIdChange,
-  onNameChange,
-  onStepTypeChange,
-}) => (
-  <div className={formStyles.row}>
-    <div className={`${formStyles.field} ${formStyles.flex1}`}>
-      <label className={formStyles.label}>Step ID</label>
-      <input
-        type="text"
-        value={stepId}
-        onChange={(e) => onStepIdChange(e.target.value)}
-        className={formStyles.formControl}
-        disabled={!isCreateMode}
-        placeholder="my-step"
-      />
+const BasicFields: React.FC = () => {
+  const {
+    stepId,
+    name,
+    stepType,
+    isCreateMode,
+    setStepId,
+    setName,
+    setStepType,
+  } = useStepEditorContext();
+
+  return (
+    <div className={formStyles.row}>
+      <div className={`${formStyles.field} ${formStyles.flex1}`}>
+        <label className={formStyles.label}>Step ID</label>
+        <input
+          type="text"
+          value={stepId}
+          onChange={(e) => setStepId(e.target.value)}
+          className={formStyles.formControl}
+          disabled={!isCreateMode}
+          placeholder="my-step"
+        />
+      </div>
+      <div className={`${formStyles.field} ${formStyles.flex2}`}>
+        <label className={formStyles.label}>Step Name</label>
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          className={formStyles.formControl}
+          placeholder="My Step"
+        />
+      </div>
+      <div className={`${formStyles.field} ${formStyles.flex1}`}>
+        <label className={formStyles.label}>Type</label>
+        <div className={formStyles.typeButtonGroup}>
+          {[
+            {
+              type: "sync" as StepType,
+              Icon: Globe,
+              label: "Sync",
+              title: "Synchronous HTTP",
+            },
+            {
+              type: "async" as StepType,
+              Icon: Webhook,
+              label: "Async",
+              title: "Asynchronous HTTP",
+            },
+            {
+              type: "script" as StepType,
+              Icon: FileCode2,
+              label: "Script",
+              title: "Script (Ale)",
+            },
+          ].map(({ type, Icon, label, title }) => (
+            <button
+              key={type}
+              type="button"
+              onClick={(e) => {
+                setStepType(type);
+                e.currentTarget.blur();
+              }}
+              className={`${formStyles.typeButton} ${stepType === type ? formStyles.typeButtonActive : ""}`}
+              title={title}
+            >
+              <Icon size={16} />
+              <span>{label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
     </div>
-    <div className={`${formStyles.field} ${formStyles.flex2}`}>
-      <label className={formStyles.label}>Step Name</label>
-      <input
-        type="text"
-        value={name}
-        onChange={(e) => onNameChange(e.target.value)}
-        className={formStyles.formControl}
-        placeholder="My Step"
-      />
-    </div>
-    <div className={`${formStyles.field} ${formStyles.flex1}`}>
-      <label className={formStyles.label}>Type</label>
-      <div className={formStyles.typeButtonGroup}>
-        {[
-          {
-            type: "sync" as StepType,
-            Icon: Globe,
-            label: "Sync",
-            title: "Synchronous HTTP",
-          },
-          {
-            type: "async" as StepType,
-            Icon: Webhook,
-            label: "Async",
-            title: "Asynchronous HTTP",
-          },
-          {
-            type: "script" as StepType,
-            Icon: FileCode2,
-            label: "Script",
-            title: "Script (Ale)",
-          },
-        ].map(({ type, Icon, label, title }) => (
-          <button
-            key={type}
-            type="button"
-            onClick={(e) => {
-              onStepTypeChange(type);
-              e.currentTarget.blur();
-            }}
-            className={`${formStyles.typeButton} ${stepType === type ? formStyles.typeButtonActive : ""}`}
-            title={title}
-          >
-            <Icon size={16} />
-            <span>{label}</span>
-          </button>
+  );
+};
+
+const AttributesSection: React.FC = () => {
+  const {
+    attributes,
+    addAttribute,
+    updateAttribute,
+    removeAttribute,
+    cycleAttributeType,
+  } = useStepEditorContext();
+
+  return (
+    <div className={formStyles.section}>
+      <div className={formStyles.sectionHeader}>
+        <label className={formStyles.label}>Attributes</label>
+        <button
+          onClick={addAttribute}
+          className={`${formStyles.iconButton} ${formStyles.addButtonStyle}`}
+          title="Add attribute"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+      <div className={formStyles.argList}>
+        {attributes.map((attr) => (
+          <div key={attr.id} className={formStyles.attrRow}>
+            <div className={formStyles.attrRowInputs}>
+              <button
+                type="button"
+                onClick={() => cycleAttributeType(attr.id, attr.attrType)}
+                className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
+                title={`Click to cycle type (current: ${attr.attrType})`}
+              >
+                {getAttributeIcon(attr.attrType)}
+              </button>
+              <select
+                value={attr.dataType}
+                onChange={(e) =>
+                  updateAttribute(attr.id, "dataType", e.target.value)
+                }
+                className={formStyles.argType}
+              >
+                {ATTRIBUTE_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="text"
+                value={attr.name}
+                onChange={(e) =>
+                  updateAttribute(attr.id, "name", e.target.value)
+                }
+                placeholder="name"
+                className={formStyles.argInput}
+              />
+              {attr.attrType === "optional" && (
+                <input
+                  type="text"
+                  value={attr.defaultValue || ""}
+                  onChange={(e) =>
+                    updateAttribute(attr.id, "defaultValue", e.target.value)
+                  }
+                  placeholder="default value"
+                  className={formStyles.argInput}
+                  title="Default value for optional argument"
+                />
+              )}
+              {attr.attrType !== "output" &&
+                attr.dataType === AttributeType.Array && (
+                  <div className={formStyles.forEachToggleGroup}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        updateAttribute(attr.id, "forEach", false);
+                        e.currentTarget.blur();
+                      }}
+                      className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
+                      title="Process array as single value"
+                    >
+                      <Square size={14} />
+                      <span>Single</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        updateAttribute(attr.id, "forEach", true);
+                        e.currentTarget.blur();
+                      }}
+                      className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
+                      title="Execute once per array element"
+                    >
+                      <Layers size={14} />
+                      <span>Multi</span>
+                    </button>
+                  </div>
+                )}
+              <button
+                onClick={() => removeAttribute(attr.id)}
+                className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
+                title="Remove attribute"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+            {attr.validationError && (
+              <div className={formStyles.attrValidationError}>
+                {attr.validationError}
+              </div>
+            )}
+          </div>
         ))}
       </div>
     </div>
-  </div>
-);
+  );
+};
 
-const AttributesSection: React.FC<AttributesSectionProps> = ({
-  attributes,
-  onAdd,
-  onUpdate,
-  onRemove,
-  onCycleType,
-}) => (
-  <div className={formStyles.section}>
-    <div className={formStyles.sectionHeader}>
-      <label className={formStyles.label}>Attributes</label>
-      <button
-        onClick={onAdd}
-        className={`${formStyles.iconButton} ${formStyles.addButtonStyle}`}
-        title="Add attribute"
-      >
-        <Plus size={16} />
-      </button>
-    </div>
-    <div className={formStyles.argList}>
-      {attributes.map((attr) => (
-        <div key={attr.id} className={formStyles.attrRow}>
-          <div className={formStyles.attrRowInputs}>
-            <button
-              type="button"
-              onClick={() => onCycleType(attr.id, attr.attrType)}
-              className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
-              title={`Click to cycle type (current: ${attr.attrType})`}
-            >
-              {getAttributeIcon(attr.attrType)}
-            </button>
-            <select
-              value={attr.dataType}
-              onChange={(e) => onUpdate(attr.id, "dataType", e.target.value)}
-              className={formStyles.argType}
-            >
-              {ATTRIBUTE_TYPES.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </select>
+const HttpConfiguration: React.FC = () => {
+  const {
+    endpoint,
+    httpTimeout,
+    healthCheck,
+    setEndpoint,
+    setHttpTimeout,
+    setHealthCheck,
+  } = useStepEditorContext();
+
+  return (
+    <div className={formStyles.section}>
+      <div className={formStyles.sectionHeader}>
+        <label className={formStyles.label}>HTTP Configuration</label>
+      </div>
+      <div className={formStyles.httpFields}>
+        <div className={formStyles.row}>
+          <div className={`${formStyles.field} ${formStyles.flex1}`}>
+            <label className={formStyles.label}>Endpoint URL</label>
             <input
               type="text"
-              value={attr.name}
-              onChange={(e) => onUpdate(attr.id, "name", e.target.value)}
-              placeholder="name"
-              className={formStyles.argInput}
+              value={endpoint}
+              onChange={(e) => setEndpoint(e.target.value)}
+              placeholder="http://localhost:8080/process"
+              className={formStyles.formControl}
             />
-            {attr.attrType === "optional" && (
-              <input
-                type="text"
-                value={attr.defaultValue || ""}
-                onChange={(e) =>
-                  onUpdate(attr.id, "defaultValue", e.target.value)
-                }
-                placeholder="default value"
-                className={formStyles.argInput}
-                title="Default value for optional argument"
-              />
-            )}
-            {attr.attrType !== "output" &&
-              attr.dataType === AttributeType.Array && (
-                <div className={formStyles.forEachToggleGroup}>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      onUpdate(attr.id, "forEach", false);
-                      e.currentTarget.blur();
-                    }}
-                    className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                    title="Process array as single value"
-                  >
-                    <Square size={14} />
-                    <span>Single</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      onUpdate(attr.id, "forEach", true);
-                      e.currentTarget.blur();
-                    }}
-                    className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                    title="Execute once per array element"
-                  >
-                    <Layers size={14} />
-                    <span>Multi</span>
-                  </button>
-                </div>
-              )}
-            <button
-              onClick={() => onRemove(attr.id)}
-              className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
-              title="Remove attribute"
-            >
-              <Trash2 size={14} />
-            </button>
           </div>
-          {attr.validationError && (
-            <div className={formStyles.attrValidationError}>
-              {attr.validationError}
-            </div>
-          )}
+          <div className={formStyles.fieldNoFlex}>
+            <label className={formStyles.label}>Timeout</label>
+            <DurationInput value={httpTimeout} onChange={setHttpTimeout} />
+          </div>
         </div>
-      ))}
-    </div>
-  </div>
-);
-
-const HttpConfiguration: React.FC<HttpConfigProps> = ({
-  endpoint,
-  timeout,
-  healthCheck,
-  onEndpointChange,
-  onTimeoutChange,
-  onHealthCheckChange,
-}) => (
-  <div className={formStyles.section}>
-    <div className={formStyles.sectionHeader}>
-      <label className={formStyles.label}>HTTP Configuration</label>
-    </div>
-    <div className={formStyles.httpFields}>
-      <div className={formStyles.row}>
-        <div className={`${formStyles.field} ${formStyles.flex1}`}>
-          <label className={formStyles.label}>Endpoint URL</label>
+        <div className={formStyles.field}>
+          <label className={formStyles.label}>
+            Health Check URL (optional)
+          </label>
           <input
             type="text"
-            value={endpoint}
-            onChange={(e) => onEndpointChange(e.target.value)}
-            placeholder="http://localhost:8080/process"
+            value={healthCheck}
+            onChange={(e) => setHealthCheck(e.target.value)}
+            placeholder="http://localhost:8080/health"
             className={formStyles.formControl}
           />
         </div>
-        <div className={formStyles.fieldNoFlex}>
-          <label className={formStyles.label}>Timeout</label>
-          <DurationInput value={timeout} onChange={onTimeoutChange} />
-        </div>
-      </div>
-      <div className={formStyles.field}>
-        <label className={formStyles.label}>Health Check URL (optional)</label>
-        <input
-          type="text"
-          value={healthCheck}
-          onChange={(e) => onHealthCheckChange(e.target.value)}
-          placeholder="http://localhost:8080/health"
-          className={formStyles.formControl}
-        />
       </div>
     </div>
-  </div>
-);
+  );
+};
 
 const StepEditor: React.FC<StepEditorProps> = ({
   step,
@@ -624,9 +657,9 @@ const StepEditor: React.FC<StepEditorProps> = ({
     }
   };
 
-  const addAttribute = () => {
-    setAttributes([
-      ...attributes,
+  const addAttribute = useCallback(() => {
+    setAttributes((current) => [
+      ...current,
       {
         id: `attr-${Date.now()}`,
         attrType: "input",
@@ -634,150 +667,180 @@ const StepEditor: React.FC<StepEditorProps> = ({
         dataType: AttributeType.String,
       },
     ]);
-  };
+  }, []);
 
-  const updateAttribute = (id: string, field: keyof Attribute, value: any) => {
-    setAttributes(
-      attributes.map((attr) => {
-        if (attr.id !== id) return attr;
+  const updateAttribute = useCallback(
+    (id: string, field: keyof Attribute, value: any) => {
+      setAttributes((current) =>
+        current.map((attr) => {
+          if (attr.id !== id) return attr;
 
-        const updated = { ...attr, [field]: value };
+          const updated = { ...attr, [field]: value };
 
-        if (
-          (field === "defaultValue" || field === "dataType") &&
-          updated.attrType === "optional" &&
-          updated.defaultValue
-        ) {
-          const validation = validateDefaultValue(
-            updated.defaultValue,
-            updated.dataType
-          );
-          updated.validationError = validation.valid
-            ? undefined
-            : validation.error;
-        }
+          if (
+            (field === "defaultValue" || field === "dataType") &&
+            updated.attrType === "optional" &&
+            updated.defaultValue
+          ) {
+            const validation = validateDefaultValue(
+              updated.defaultValue,
+              updated.dataType
+            );
+            updated.validationError = validation.valid
+              ? undefined
+              : validation.error;
+          }
 
-        if (field === "attrType" && value !== "optional") {
-          updated.validationError = undefined;
-        }
+          if (field === "attrType" && value !== "optional") {
+            updated.validationError = undefined;
+          }
 
-        return updated;
-      })
-    );
-  };
+          return updated;
+        })
+      );
+    },
+    []
+  );
 
-  const removeAttribute = (id: string) => {
-    setAttributes(attributes.filter((attr) => attr.id !== id));
-  };
+  const removeAttribute = useCallback((id: string) => {
+    setAttributes((current) => current.filter((attr) => attr.id !== id));
+  }, []);
 
-  const cycleAttributeType = (id: string, currentType: AttributeRoleType) => {
-    const types: AttributeRoleType[] = ["input", "optional", "output"];
-    const currentIndex = types.indexOf(currentType);
-    const nextIndex = (currentIndex + 1) % types.length;
-    updateAttribute(id, "attrType", types[nextIndex]);
-  };
+  const cycleAttributeType = useCallback(
+    (id: string, currentType: AttributeRoleType) => {
+      const types: AttributeRoleType[] = ["input", "optional", "output"];
+      const currentIndex = types.indexOf(currentType);
+      const nextIndex = (currentIndex + 1) % types.length;
+      updateAttribute(id, "attrType", types[nextIndex]);
+    },
+    [updateAttribute]
+  );
+
+  const contextValue = useMemo(
+    () => ({
+      stepId,
+      name,
+      stepType,
+      isCreateMode,
+      setStepId,
+      setName,
+      setStepType,
+      attributes,
+      addAttribute,
+      updateAttribute,
+      removeAttribute,
+      cycleAttributeType,
+      endpoint,
+      setEndpoint,
+      healthCheck,
+      setHealthCheck,
+      httpTimeout,
+      setHttpTimeout,
+    }),
+    [
+      stepId,
+      name,
+      stepType,
+      isCreateMode,
+      setStepId,
+      setName,
+      setStepType,
+      attributes,
+      addAttribute,
+      updateAttribute,
+      removeAttribute,
+      cycleAttributeType,
+      endpoint,
+      setEndpoint,
+      healthCheck,
+      setHealthCheck,
+      httpTimeout,
+      setHttpTimeout,
+    ]
+  );
 
   if (!mounted) return null;
 
   const modalContent = (
-    <div className={styles.backdrop} onClick={handleBackdropClick}>
-      <div
-        className={styles.content}
-        style={{
-          width: `${dimensions.width}px`,
-          minHeight: `${dimensions.minHeight}px`,
-        }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className={styles.header}>
-          <h2 className={styles.title}>
-            {isCreateMode ? "Create New Step" : `Edit Step: ${stepId}`}
-          </h2>
-        </div>
+    <StepEditorContext.Provider value={contextValue}>
+      <div className={styles.backdrop} onClick={handleBackdropClick}>
+        <div
+          className={styles.content}
+          style={{
+            width: `${dimensions.width}px`,
+            minHeight: `${dimensions.minHeight}px`,
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className={styles.header}>
+            <h2 className={styles.title}>
+              {isCreateMode ? "Create New Step" : `Edit Step: ${stepId}`}
+            </h2>
+          </div>
 
-        <div className={styles.body}>
-          <div className={formStyles.formContainer}>
-            {/* Basic Fields */}
-            <div className={formStyles.row}>
-              <BasicFields
-                stepId={stepId}
-                name={name}
-                stepType={stepType}
-                isCreateMode={isCreateMode}
-                onStepIdChange={setStepId}
-                onNameChange={setName}
-                onStepTypeChange={setStepType}
-              />
-            </div>
+          <div className={styles.body}>
+            <div className={formStyles.formContainer}>
+              {/* Basic Fields */}
+              <div className={formStyles.row}>
+                <BasicFields />
+              </div>
 
-            {/* Unified Attributes Section */}
-            <AttributesSection
-              attributes={attributes}
-              onAdd={addAttribute}
-              onUpdate={updateAttribute}
-              onRemove={removeAttribute}
-              onCycleType={cycleAttributeType}
-            />
+              {/* Unified Attributes Section */}
+              <AttributesSection />
 
-            {/* Predicate */}
-            <ScriptConfigEditor
-              label="Predicate (Optional)"
-              value={predicate}
-              onChange={setPredicate}
-              language={predicateLanguage}
-              onLanguageChange={setPredicateLanguage}
-              containerClassName={formStyles.predicateEditorContainer}
-            />
-
-            {/* Type-Specific Configuration */}
-            {stepType === "script" ? (
+              {/* Predicate */}
               <ScriptConfigEditor
-                label="Script Code"
-                value={script}
-                onChange={setScript}
-                language={scriptLanguage}
-                onLanguageChange={setScriptLanguage}
-                containerClassName={formStyles.scriptEditorContainer}
+                label="Predicate (Optional)"
+                value={predicate}
+                onChange={setPredicate}
+                language={predicateLanguage}
+                onLanguageChange={setPredicateLanguage}
+                containerClassName={formStyles.predicateEditorContainer}
               />
-            ) : (
-              <HttpConfiguration
-                endpoint={endpoint}
-                timeout={httpTimeout}
-                healthCheck={healthCheck}
-                onEndpointChange={setEndpoint}
-                onTimeoutChange={setHttpTimeout}
-                onHealthCheckChange={setHealthCheck}
-              />
-            )}
 
-            {error && <div className={formStyles.errorMessage}>{error}</div>}
+              {/* Type-Specific Configuration */}
+              {stepType === "script" ? (
+                <ScriptConfigEditor
+                  label="Script Code"
+                  value={script}
+                  onChange={setScript}
+                  language={scriptLanguage}
+                  onLanguageChange={setScriptLanguage}
+                  containerClassName={formStyles.scriptEditorContainer}
+                />
+              ) : (
+                <HttpConfiguration />
+              )}
+
+              {error && <div className={formStyles.errorMessage}>{error}</div>}
+            </div>
+          </div>
+
+          <div className={styles.footer}>
+            <button
+              onClick={onClose}
+              disabled={saving}
+              className={styles.buttonCancel}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={styles.buttonSave}
+            >
+              {saving
+                ? isCreateMode
+                  ? "Creating..."
+                  : "Saving..."
+                : isCreateMode
+                  ? "Create"
+                  : "Save"}
+            </button>
           </div>
         </div>
-
-        <div className={styles.footer}>
-          <button
-            onClick={onClose}
-            disabled={saving}
-            className={styles.buttonCancel}
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className={styles.buttonSave}
-          >
-            {saving
-              ? isCreateMode
-                ? "Creating..."
-                : "Saving..."
-              : isCreateMode
-                ? "Create"
-                : "Save"}
-          </button>
-        </div>
       </div>
-    </div>
+    </StepEditorContext.Provider>
   );
 
   return createPortal(modalContent, document.body);

@@ -2,6 +2,7 @@ import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
 import FlowSelector from "./FlowSelector";
+import { useFlowCreation } from "../../contexts/FlowCreationContext";
 
 const pushMock = jest.fn();
 const subscribeMock = jest.fn();
@@ -77,8 +78,8 @@ jest.mock("react-hot-toast", () => ({
 }));
 
 let capturedFormProps: any = null;
-const MockFlowCreateForm = (props: any) => {
-  capturedFormProps = props;
+const MockFlowCreateForm = () => {
+  capturedFormProps = useFlowCreation();
   return <div>FlowCreateForm</div>;
 };
 MockFlowCreateForm.displayName = "MockFlowCreateForm";

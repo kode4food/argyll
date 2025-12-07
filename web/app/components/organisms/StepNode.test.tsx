@@ -9,6 +9,20 @@ import {
   AttributeType,
 } from "../../api";
 import { Position } from "@xyflow/react";
+import {
+  DiagramSelectionProvider,
+  DiagramSelectionContextValue,
+} from "../../contexts/DiagramSelectionContext";
+import { UIProvider } from "../../contexts/UIContext";
+jest.mock("../../contexts/UIContext", () => ({
+  UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+  useUI: () => ({
+    selectedStep: null,
+    setSelectedStep: jest.fn(),
+    disableEdit: false,
+    diagramContainerRef: { current: null },
+  }),
+}));
 
 jest.mock("./StepWidget", () => {
   return function MockStepWidget({ step, onClick, className }: any) {
@@ -55,6 +69,23 @@ jest.mock("../atoms/InvisibleHandle", () => {
 });
 
 describe("StepNode", () => {
+  type TestStepNodeData = {
+    step: Step;
+    selected: boolean;
+    flowData?: FlowContext | null;
+    executions?: ExecutionResult[];
+    resolvedAttributes?: string[];
+    isGoalStep?: boolean;
+    isInPreviewPlan?: boolean;
+    isPreviewMode?: boolean;
+    isStartingPoint?: boolean;
+    onStepClick?: (stepId: string) => void;
+    diagramContainerRef?:
+      | React.RefObject<HTMLDivElement | null>
+      | React.MutableRefObject<HTMLDivElement | null>;
+    disableEdit?: boolean;
+  };
+
   const mockStep: Step = {
     id: "step-1",
     name: "Test Step",
@@ -71,7 +102,7 @@ describe("StepNode", () => {
     },
   };
 
-  const defaultNodeData = {
+  const defaultNodeData: TestStepNodeData = {
     step: mockStep,
     selected: false,
   };
@@ -93,8 +124,26 @@ describe("StepNode", () => {
     deletable: false,
   };
 
+  const renderWithProvider = (
+    nodeOverrides: Partial<typeof defaultProps> = {},
+    selectionOverrides: Partial<DiagramSelectionContextValue> = {}
+  ) =>
+    render(
+      <UIProvider>
+        <DiagramSelectionProvider
+          value={{
+            selectedStep: null,
+            setSelectedStep: jest.fn(),
+            ...selectionOverrides,
+          }}
+        >
+          <StepNode {...defaultProps} {...nodeOverrides} />
+        </DiagramSelectionProvider>
+      </UIProvider>
+    );
+
   test("renders StepWidget with step data", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
+    const { getByTestId } = renderWithProvider();
 
     const widget = getByTestId("step-widget");
     expect(widget).toBeInTheDocument();
@@ -102,7 +151,7 @@ describe("StepNode", () => {
   });
 
   test("renders handles for required, optional, and output attributes", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
+    const { getByTestId } = renderWithProvider();
 
     expect(getByTestId("handle-input-required-input1")).toBeInTheDocument();
     expect(getByTestId("handle-input-optional-input2")).toBeInTheDocument();
@@ -110,7 +159,7 @@ describe("StepNode", () => {
   });
 
   test("sets correct handle types for inputs and outputs", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
+    const { getByTestId } = renderWithProvider();
 
     expect(getByTestId("handle-input-required-input1").dataset.handleType).toBe(
       "target"
@@ -124,7 +173,7 @@ describe("StepNode", () => {
   });
 
   test("sets correct positions for inputs and outputs", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
+    const { getByTestId } = renderWithProvider();
 
     expect(getByTestId("handle-input-required-input1").dataset.position).toBe(
       Position.Left.toString()
@@ -135,18 +184,18 @@ describe("StepNode", () => {
   });
 
   test("calls onStepClick when StepWidget is clicked", () => {
-    const onStepClick = jest.fn();
-    const { getByTestId } = render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, onStepClick }} />
+    const setSelectedStep = jest.fn();
+    const { getByTestId } = renderWithProvider(
+      {},
+      { setSelectedStep, selectedStep: null }
     );
 
     getByTestId("step-widget").click();
-    expect(onStepClick).toHaveBeenCalledWith("step-1");
+    expect(setSelectedStep).toHaveBeenCalledWith("step-1");
   });
 
   test("does not call onStepClick when not provided", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
-
+    const { getByTestId } = renderWithProvider();
     expect(() => getByTestId("step-widget").click()).not.toThrow();
   });
 
@@ -169,9 +218,9 @@ describe("StepNode", () => {
       },
     ];
 
-    render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, executions }} />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, executions },
+    });
 
     // StepWidget should receive the execution prop (tested via mock)
     // The component finds the correct execution internally
@@ -180,12 +229,9 @@ describe("StepNode", () => {
   test("creates resolved attributes set", () => {
     const resolvedAttributes = ["input1", "input2"];
 
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, resolvedAttributes }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, resolvedAttributes },
+    });
 
     // Component should create Set from array internally
   });
@@ -201,9 +247,9 @@ describe("StepNode", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
 
-    render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, flowData }} />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, flowData },
+    });
 
     // Component builds provenance map internally
   });
@@ -211,12 +257,9 @@ describe("StepNode", () => {
   test("determines satisfied arguments from resolved attributes", () => {
     const resolvedAttributes = ["input1", "input2"];
 
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, resolvedAttributes }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, resolvedAttributes },
+    });
 
     // Satisfied arguments should include input1 and input2
     // (both required/optional inputs that are resolved)
@@ -225,51 +268,39 @@ describe("StepNode", () => {
   test("only includes required/optional in satisfied args, not outputs", () => {
     const resolvedAttributes = ["input1", "output1"];
 
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, resolvedAttributes }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, resolvedAttributes },
+    });
 
     // Satisfied should include input1 but not output1
   });
 
   test("renders with goal step styling", () => {
-    const { container } = render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, isGoalStep: true }}
-      />
-    );
+    const { container } = renderWithProvider({
+      data: { ...defaultNodeData, isGoalStep: true },
+    });
 
     const widget = container.querySelector('[data-testid="step-widget"]');
     expect(widget?.className).toContain("goal");
   });
 
   test("renders with starting point styling", () => {
-    const { container } = render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, isStartingPoint: true }}
-      />
-    );
+    const { container } = renderWithProvider({
+      data: { ...defaultNodeData, isStartingPoint: true },
+    });
 
     const widget = container.querySelector('[data-testid="step-widget"]');
     expect(widget?.className).toContain("start-point");
   });
 
   test("renders with both goal and starting point styling", () => {
-    const { container } = render(
-      <StepNode
-        {...defaultProps}
-        data={{
-          ...defaultNodeData,
-          isGoalStep: true,
-          isStartingPoint: true,
-        }}
-      />
-    );
+    const { container } = renderWithProvider({
+      data: {
+        ...defaultNodeData,
+        isGoalStep: true,
+        isStartingPoint: true,
+      },
+    });
 
     const widget = container.querySelector('[data-testid="step-widget"]');
     expect(widget?.className).toContain("goal");
@@ -277,21 +308,24 @@ describe("StepNode", () => {
   });
 
   test("passes selected state to StepWidget", () => {
-    const { rerender, container } = render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, selected: false }}
-      />
-    );
+    const { rerender, container } = renderWithProvider({
+      data: { ...defaultNodeData, selected: false },
+    });
 
     let widget = container.querySelector('[data-testid="step-widget"]');
     expect(widget).toBeInTheDocument();
 
     rerender(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, selected: true }}
-      />
+      <UIProvider>
+        <DiagramSelectionProvider
+          value={{ selectedStep: null, setSelectedStep: jest.fn() }}
+        >
+          <StepNode
+            {...defaultProps}
+            data={{ ...defaultNodeData, selected: true }}
+          />
+        </DiagramSelectionProvider>
+      </UIProvider>
     );
 
     widget = container.querySelector('[data-testid="step-widget"]');
@@ -299,16 +333,13 @@ describe("StepNode", () => {
   });
 
   test("passes preview mode flags to StepWidget", () => {
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{
-          ...defaultNodeData,
-          isInPreviewPlan: true,
-          isPreviewMode: true,
-        }}
-      />
-    );
+    renderWithProvider({
+      data: {
+        ...defaultNodeData,
+        isInPreviewPlan: true,
+        isPreviewMode: true,
+      },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -318,12 +349,9 @@ describe("StepNode", () => {
   test("passes diagramContainerRef to StepWidget", () => {
     const diagramContainerRef = React.createRef<HTMLDivElement>();
 
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, diagramContainerRef }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, diagramContainerRef },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -331,12 +359,9 @@ describe("StepNode", () => {
   });
 
   test("passes disableEdit flag to StepWidget", () => {
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, disableEdit: true }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, disableEdit: true },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -349,12 +374,9 @@ describe("StepNode", () => {
       attributes: {},
     };
 
-    const { container } = render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, step: stepWithNoAttrs }}
-      />
-    );
+    const { container } = renderWithProvider({
+      data: { ...defaultNodeData, step: stepWithNoAttrs },
+    });
 
     // Should render without handles
     expect(
@@ -368,12 +390,9 @@ describe("StepNode", () => {
       attributes: {},
     };
 
-    const { container } = render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, step: stepWithNoAttrs }}
-      />
-    );
+    const { container } = renderWithProvider({
+      data: { ...defaultNodeData, step: stepWithNoAttrs },
+    });
 
     expect(
       container.querySelector('[data-testid^="handle-"]')
@@ -390,12 +409,9 @@ describe("StepNode", () => {
       },
     };
 
-    const { getByTestId } = render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, step: stepWithUnsortedAttrs }}
-      />
-    );
+    const { getByTestId } = renderWithProvider({
+      data: { ...defaultNodeData, step: stepWithUnsortedAttrs },
+    });
 
     // All handles should exist regardless of original order
     expect(getByTestId("handle-input-required-alpha")).toBeInTheDocument();
@@ -404,7 +420,7 @@ describe("StepNode", () => {
   });
 
   test("creates different handle IDs for required vs optional inputs", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
+    const { getByTestId } = renderWithProvider();
 
     // Required input should have format: input-required-{name}
     expect(getByTestId("handle-input-required-input1")).toBeInTheDocument();
@@ -414,27 +430,43 @@ describe("StepNode", () => {
   });
 
   test("creates output handle IDs with output- prefix", () => {
-    const { getByTestId } = render(<StepNode {...defaultProps} />);
+    const { getByTestId } = renderWithProvider();
 
     // Output should have format: output-{name}
     expect(getByTestId("handle-output-output1")).toBeInTheDocument();
   });
 
   test("memoizes click handler", () => {
+    const setSelectedStep = jest.fn();
     const onStepClick = jest.fn();
-    const { rerender, getByTestId } = render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, onStepClick }} />
+    const { rerender, getByTestId } = renderWithProvider(
+      { data: { ...defaultNodeData, onStepClick } },
+      { setSelectedStep }
     );
 
     getByTestId("step-widget").click();
+    expect(setSelectedStep).toHaveBeenCalledTimes(1);
     expect(onStepClick).toHaveBeenCalledTimes(1);
 
     // Re-render with same props
     rerender(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, onStepClick }} />
+      <UIProvider>
+        <DiagramSelectionProvider
+          value={{
+            selectedStep: null,
+            setSelectedStep,
+          }}
+        >
+          <StepNode
+            {...defaultProps}
+            data={{ ...defaultNodeData, onStepClick }}
+          />
+        </DiagramSelectionProvider>
+      </UIProvider>
     );
 
     getByTestId("step-widget").click();
+    expect(setSelectedStep).toHaveBeenCalledTimes(2);
     expect(onStepClick).toHaveBeenCalledTimes(2);
   });
 
@@ -446,9 +478,9 @@ describe("StepNode", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
 
-    render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, flowData }} />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, flowData },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -463,9 +495,9 @@ describe("StepNode", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
 
-    render(
-      <StepNode {...defaultProps} data={{ ...defaultNodeData, flowData }} />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, flowData },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -473,12 +505,9 @@ describe("StepNode", () => {
   });
 
   test("handles empty executions array", () => {
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, executions: [] }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, executions: [] },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -486,12 +515,9 @@ describe("StepNode", () => {
   });
 
   test("handles undefined executions", () => {
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, executions: undefined }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, executions: undefined },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -499,12 +525,9 @@ describe("StepNode", () => {
   });
 
   test("handles empty resolvedAttributes array", () => {
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, resolvedAttributes: [] }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, resolvedAttributes: [] },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')
@@ -512,12 +535,9 @@ describe("StepNode", () => {
   });
 
   test("handles undefined resolvedAttributes", () => {
-    render(
-      <StepNode
-        {...defaultProps}
-        data={{ ...defaultNodeData, resolvedAttributes: undefined }}
-      />
-    );
+    renderWithProvider({
+      data: { ...defaultNodeData, resolvedAttributes: undefined },
+    });
 
     expect(
       document.querySelector('[data-testid="step-widget"]')

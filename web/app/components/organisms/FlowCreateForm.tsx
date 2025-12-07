@@ -1,40 +1,28 @@
 import React from "react";
 import { Play } from "lucide-react";
-import { Step, AttributeRole } from "../../api";
+import { AttributeRole } from "../../api";
 import Spinner from "../atoms/Spinner";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { useUI } from "../../contexts/UIContext";
 import LazyCodeEditor from "../molecules/LazyCodeEditor";
 import StepTypeLabel from "../atoms/StepTypeLabel";
 import styles from "./FlowCreateForm.module.css";
+import { useFlowCreation } from "../../contexts/FlowCreationContext";
 
-interface FlowCreateFormProps {
-  newID: string;
-  setNewID: (id: string) => void;
-  setIDManuallyEdited: (edited: boolean) => void;
-  handleStepChange: (stepIds: string[]) => void;
-  initialState: string;
-  setInitialState: (state: string) => void;
-  creating: boolean;
-  handleCreateFlow: () => void;
-  steps: Step[];
-  generateID: () => string;
-  sortSteps: (steps: Step[]) => Step[];
-}
-
-const FlowCreateForm: React.FC<FlowCreateFormProps> = ({
-  newID,
-  setNewID,
-  setIDManuallyEdited,
-  handleStepChange,
-  initialState,
-  setInitialState,
-  creating,
-  handleCreateFlow,
-  steps,
-  generateID,
-  sortSteps,
-}) => {
+const FlowCreateForm: React.FC = () => {
+  const {
+    newID,
+    setNewID,
+    setIDManuallyEdited,
+    handleStepChange,
+    initialState,
+    setInitialState,
+    creating,
+    handleCreateFlow,
+    steps,
+    generateID,
+    sortSteps,
+  } = useFlowCreation();
   const {
     showCreateForm,
     setShowCreateForm,

@@ -3,6 +3,10 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import FlowCreateForm from "./FlowCreateForm";
 import { useUI } from "../../contexts/UIContext";
 import { Step, AttributeRole, AttributeType } from "../../api";
+import {
+  FlowCreationProvider,
+  FlowCreationContextValue,
+} from "../../contexts/FlowCreationContext";
 
 jest.mock("../../contexts/UIContext");
 jest.mock("../../hooks/useEscapeKey");
@@ -47,7 +51,7 @@ describe("FlowCreateForm", () => {
     handleCreateFlow: jest.fn(),
     steps: [mockStep],
     generateID: jest.fn(() => "generated-id"),
-    sortSteps: jest.fn((steps) => steps),
+    sortSteps: jest.fn((steps: Step[]) => steps),
   };
 
   const defaultUIContext = {
@@ -69,18 +73,32 @@ describe("FlowCreateForm", () => {
     mockUseUI.mockReturnValue(defaultUIContext);
   });
 
+  const renderWithProvider = (
+    overrides: Partial<FlowCreationContextValue> = {}
+  ) => {
+    const value: FlowCreationContextValue = {
+      ...defaultProps,
+      ...overrides,
+    };
+    return render(
+      <FlowCreationProvider value={value}>
+        <FlowCreateForm />
+      </FlowCreationProvider>
+    );
+  };
+
   test("returns null when showCreateForm is false", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
       showCreateForm: false,
     });
 
-    const { container } = render(<FlowCreateForm {...defaultProps} />);
+    const { container } = renderWithProvider();
     expect(container.firstChild).toBeNull();
   });
 
   test("renders form when showCreateForm is true", () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     expect(screen.getByText("Select Goal Steps")).toBeInTheDocument();
     expect(screen.getByText("Flow ID")).toBeInTheDocument();
@@ -97,15 +115,13 @@ describe("FlowCreateForm", () => {
       { ...mockStep, id: "step-2", name: "Alpha" },
     ];
 
-    render(
-      <FlowCreateForm {...defaultProps} steps={steps} sortSteps={sortSteps} />
-    );
+    renderWithProvider({ steps, sortSteps });
 
     expect(sortSteps).toHaveBeenCalledWith(steps);
   });
 
   test("displays flow ID input with current value", () => {
-    render(<FlowCreateForm {...defaultProps} newID="my-flow" />);
+    renderWithProvider({ newID: "my-flow" });
 
     const input = screen.getByPlaceholderText(
       "e.g., order-processing-001"
@@ -114,7 +130,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("calls setNewID and setIDManuallyEdited when ID input changes", () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const input = screen.getByPlaceholderText("e.g., order-processing-001");
     fireEvent.change(input, { target: { value: "new-id" } });
@@ -124,7 +140,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("generates new ID when generate button clicked", () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const button = screen.getByLabelText("Generate new flow ID");
     fireEvent.click(button);
@@ -135,16 +151,14 @@ describe("FlowCreateForm", () => {
   });
 
   test("displays initial state in code editor", () => {
-    render(
-      <FlowCreateForm {...defaultProps} initialState='{"key": "value"}' />
-    );
+    renderWithProvider({ initialState: '{"key": "value"}' });
 
     const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
     expect(editor.value).toBe('{"key": "value"}');
   });
 
   test("calls setInitialState when code editor changes", () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const editor = screen.getByTestId("code-editor");
     fireEvent.change(editor, { target: { value: '{"new": "value"}' } });
@@ -155,19 +169,19 @@ describe("FlowCreateForm", () => {
   });
 
   test("shows JSON error when initialState is invalid JSON", () => {
-    render(<FlowCreateForm {...defaultProps} initialState="{invalid" />);
+    renderWithProvider({ initialState: "{invalid" });
 
     expect(screen.getByText(/Invalid JSON/)).toBeInTheDocument();
   });
 
   test("does not show JSON error when initialState is valid JSON", () => {
-    render(<FlowCreateForm {...defaultProps} initialState='{"valid": true}' />);
+    renderWithProvider({ initialState: '{"valid": true}' });
 
     expect(screen.queryByText(/Invalid JSON/)).not.toBeInTheDocument();
   });
 
   test("closes form when overlay is clicked", () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const overlay = screen.getByLabelText("Close flow form");
     fireEvent.click(overlay);
@@ -176,7 +190,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("closes form when Cancel button is clicked", () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const cancelButton = screen.getByText("Cancel");
     fireEvent.click(cancelButton);
@@ -190,7 +204,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(<FlowCreateForm {...defaultProps} newID="test-id" />);
+    renderWithProvider({ newID: "test-id" });
 
     const startButton = screen.getByText("Start");
     fireEvent.click(startButton);
@@ -204,9 +218,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(
-      <FlowCreateForm {...defaultProps} newID="test-id" creating={true} />
-    );
+    renderWithProvider({ newID: "test-id", creating: true });
 
     const startButton = screen.getByText("Start");
     expect(startButton).toBeDisabled();
@@ -218,7 +230,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(<FlowCreateForm {...defaultProps} newID="" />);
+    renderWithProvider({ newID: "" });
 
     const startButton = screen.getByText("Start");
     expect(startButton).toBeDisabled();
@@ -230,7 +242,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: [],
     });
 
-    render(<FlowCreateForm {...defaultProps} newID="test-id" />);
+    renderWithProvider({ newID: "test-id" });
 
     const startButton = screen.getByText("Start");
     expect(startButton).toBeDisabled();
@@ -242,13 +254,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(
-      <FlowCreateForm
-        {...defaultProps}
-        newID="test-id"
-        initialState="{invalid"
-      />
-    );
+    renderWithProvider({ newID: "test-id", initialState: "{invalid" });
 
     const startButton = screen.getByText("Start");
     expect(startButton).toBeDisabled();
@@ -260,21 +266,22 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    const { container } = render(
-      <FlowCreateForm {...defaultProps} newID="test-id" creating={true} />
-    );
+    const { container } = renderWithProvider({
+      newID: "test-id",
+      creating: true,
+    });
 
     expect(container.querySelector(".lucide-play")).not.toBeInTheDocument();
   });
 
   test("shows warning when no steps are registered", () => {
-    render(<FlowCreateForm {...defaultProps} steps={[]} />);
+    renderWithProvider({ steps: [] });
 
     expect(screen.getByText(/No steps are registered/)).toBeInTheDocument();
   });
 
   test("does not show warning when steps are registered", () => {
-    render(<FlowCreateForm {...defaultProps} steps={[mockStep]} />);
+    renderWithProvider({ steps: [mockStep] });
 
     expect(
       screen.queryByText(/No steps are registered/)
@@ -282,7 +289,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("selects step when clicked", async () => {
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);
@@ -298,7 +305,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);
@@ -315,7 +322,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: ["step-1"],
     });
 
-    const { container } = render(<FlowCreateForm {...defaultProps} />);
+    const { container } = renderWithProvider();
 
     const stepItem = container.querySelector('[class*="dropdownItemSelected"]');
     expect(stepItem).toBeInTheDocument();
@@ -333,7 +340,7 @@ describe("FlowCreateForm", () => {
       goalStepIds: [],
     });
 
-    const { container } = render(<FlowCreateForm {...defaultProps} />);
+    const { container } = renderWithProvider();
 
     const stepItem = container.querySelector(
       '[title="Already included in execution plan"]'
@@ -342,9 +349,7 @@ describe("FlowCreateForm", () => {
   });
 
   test("shows tooltip when outputs satisfied by initial state", () => {
-    render(
-      <FlowCreateForm {...defaultProps} initialState='{"output1": "value"}' />
-    );
+    renderWithProvider({ initialState: '{"output1": "value"}' });
 
     const stepItem = screen
       .getByText("Test Step")
@@ -363,7 +368,7 @@ describe("FlowCreateForm", () => {
       },
     });
 
-    render(<FlowCreateForm {...defaultProps} />);
+    renderWithProvider();
 
     const stepItem = screen.getByText("Test Step").closest("div");
     fireEvent.click(stepItem!);

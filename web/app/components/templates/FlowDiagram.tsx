@@ -18,16 +18,10 @@ import {
 import ErrorBoundary from "../organisms/ErrorBoundary";
 import StepEditor from "../organisms/StepEditor";
 import { isValidTimestamp } from "@/utils/dates";
+import { DiagramSelectionProvider } from "../../contexts/DiagramSelectionContext";
+import { useUI } from "../../contexts/UIContext";
 
-interface FlowDiagramProps {
-  selectedStep?: string | null;
-  onSelectStep?: (stepId: string | null) => void;
-}
-
-const FlowDiagram: React.FC<FlowDiagramProps> = ({
-  selectedStep: externalSelectedStep,
-  onSelectStep,
-}) => {
+const FlowDiagram: React.FC = () => {
   useFlowWebSocket();
 
   const steps = useSteps();
@@ -41,19 +35,7 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
   const loadSteps = useLoadSteps();
   const [showCreateStepEditor, setShowCreateStepEditor] = useState(false);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
-
-  const [internalSelectedStep, setInternalSelectedStep] = React.useState<
-    string | null
-  >(null);
-
-  // Use external state if both selectedStep and onSelectStep are provided (controlled mode)
-  // Otherwise use internal state (uncontrolled mode)
-  const isControlled =
-    externalSelectedStep !== undefined && onSelectStep !== undefined;
-  const selectedStep = isControlled
-    ? externalSelectedStep
-    : internalSelectedStep;
-  const setSelectedStep = isControlled ? onSelectStep : setInternalSelectedStep;
+  const { selectedStep, setSelectedStep } = useUI();
 
   const handleStepCreated = async () => {
     await loadSteps();
@@ -153,14 +135,16 @@ const FlowDiagram: React.FC<FlowDiagramProps> = ({
               title="Step Diagram Error"
               description="An error occurred while rendering the step diagram."
             >
-              <StepDiagram
-                steps={steps || []}
-                selectedStep={selectedStep}
-                onSelectStep={setSelectedStep}
-                flowData={flowData}
-                executions={isFlowMode ? executions || [] : []}
-                resolvedAttributes={isFlowMode ? resolved : []}
-              />
+              <DiagramSelectionProvider
+                value={{ selectedStep, setSelectedStep }}
+              >
+                <StepDiagram
+                  steps={steps || []}
+                  flowData={flowData}
+                  executions={isFlowMode ? executions || [] : []}
+                  resolvedAttributes={isFlowMode ? resolved : []}
+                />
+              </DiagramSelectionProvider>
             </ErrorBoundary>
           </div>
         )}

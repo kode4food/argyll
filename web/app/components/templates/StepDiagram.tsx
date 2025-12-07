@@ -30,11 +30,10 @@ import {
 } from "@/utils/viewportPersistence";
 import { useUI } from "../../contexts/UIContext";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
+import { useDiagramSelection } from "../../contexts/DiagramSelectionContext";
 
 interface StepDiagramProps {
   steps: Step[];
-  selectedStep: string | null;
-  onSelectStep: (stepId: string | null) => void;
   flowData?: FlowContext | null;
   executions?: ExecutionResult[];
   resolvedAttributes?: string[];
@@ -46,18 +45,17 @@ const nodeTypes: NodeTypes = {
 
 const StepDiagramInner: React.FC<StepDiagramProps> = ({
   steps = [],
-  selectedStep,
-  onSelectStep,
   flowData,
   executions = [],
   resolvedAttributes = [],
 }) => {
+  const { selectedStep, setSelectedStep } = useDiagramSelection();
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "overview";
   const initialViewportSet = useRef(false);
   const { disableEdit, diagramContainerRef } = useUI();
   const { previewPlan, handleStepClick, clearPreview } =
-    useExecutionPlanPreview(selectedStep, onSelectStep, flowData);
+    useExecutionPlanPreview(selectedStep, setSelectedStep, flowData);
 
   const { visibleSteps, previewStepIds } = useStepVisibility(
     steps || [],
@@ -304,7 +302,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         description: "Deselect step",
         handler: () => {
           if (selectedStep && !flowData) {
-            onSelectStep(null);
+            setSelectedStep(null);
           }
         },
       },

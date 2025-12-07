@@ -9,11 +9,9 @@ import {
   useLoadSteps,
   useLoadFlows,
 } from "../../store/flowStore";
-import { UIProvider, useUI } from "../../contexts/UIContext";
+import { UIProvider } from "../../contexts/UIContext";
 
 function FlowPageContent() {
-  const { selectedStep, setSelectedStep } = useUI();
-
   return (
     <div className="bg-neutral-bg flex h-screen flex-col">
       <ErrorBoundary
@@ -27,10 +25,7 @@ function FlowPageContent() {
           title="Diagram Error"
           description="An error occurred while rendering the diagram. Try selecting a different flow."
         >
-          <FlowDiagram
-            selectedStep={selectedStep}
-            onSelectStep={setSelectedStep}
-          />
+          <FlowDiagram />
         </ErrorBoundary>
       </div>
     </div>

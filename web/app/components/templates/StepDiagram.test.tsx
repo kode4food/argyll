@@ -2,6 +2,7 @@ import React from "react";
 import { render } from "@testing-library/react";
 
 import StepDiagram from "./StepDiagram";
+import { DiagramSelectionProvider } from "../../contexts/DiagramSelectionContext";
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: () => <div data-testid="react-flow" />,
@@ -46,16 +47,21 @@ jest.mock("../../contexts/UIContext", () => ({
 describe("StepDiagram", () => {
   it("renders diagram scaffolding", () => {
     const { getByTestId } = render(
-      <StepDiagram
-        steps={[
-          { id: "s1", name: "Step 1", type: "sync", attributes: {} } as any,
-        ]}
-        selectedStep={null}
-        onSelectStep={jest.fn()}
-        flowData={null}
-        executions={[]}
-        resolvedAttributes={[]}
-      />
+      <DiagramSelectionProvider
+        value={{
+          selectedStep: null,
+          setSelectedStep: jest.fn(),
+        }}
+      >
+        <StepDiagram
+          steps={[
+            { id: "s1", name: "Step 1", type: "sync", attributes: {} } as any,
+          ]}
+          flowData={null}
+          executions={[]}
+          resolvedAttributes={[]}
+        />
+      </DiagramSelectionProvider>
     );
 
     expect(getByTestId("react-flow")).toBeInTheDocument();

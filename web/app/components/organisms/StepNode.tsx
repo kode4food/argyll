@@ -9,11 +9,11 @@ import { Position, NodeProps } from "@xyflow/react";
 import { Step, FlowContext, ExecutionResult, AttributeRole } from "../../api";
 import StepWidget from "./StepWidget";
 import InvisibleHandle from "../atoms/InvisibleHandle";
+import { useDiagramSelection } from "../../contexts/DiagramSelectionContext";
 
 interface StepNodeData {
   step: Step;
   selected: boolean;
-  onStepClick?: (stepId: string) => void;
   flowData?: FlowContext | null;
   executions?: ExecutionResult[];
   resolvedAttributes?: string[];
@@ -21,7 +21,10 @@ interface StepNodeData {
   isInPreviewPlan?: boolean;
   isPreviewMode?: boolean;
   isStartingPoint?: boolean;
-  diagramContainerRef?: React.RefObject<HTMLDivElement>;
+  onStepClick?: (stepId: string) => void;
+  diagramContainerRef?:
+    | React.RefObject<HTMLDivElement | null>
+    | React.MutableRefObject<HTMLDivElement | null>;
   disableEdit?: boolean;
 }
 
@@ -34,14 +37,14 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
     resolvedAttributes = [],
     onStepClick,
   } = nodeData;
+  const { setSelectedStep } = useDiagramSelection();
   const stepWidgetRef = useRef<HTMLDivElement>(null);
 
   // Memoize the click handler to prevent unnecessary re-renders
   const handleClick = useCallback(() => {
-    if (onStepClick) {
-      onStepClick(step.id);
-    }
-  }, [onStepClick, step.id]);
+    setSelectedStep(step.id);
+    onStepClick?.(step.id);
+  }, [setSelectedStep, onStepClick, step.id]);
   const [handlePositions, setHandlePositions] = useState<{
     required: Array<{
       id: string;
