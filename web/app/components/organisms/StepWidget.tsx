@@ -1,4 +1,4 @@
-import React, { useState, lazy, Suspense } from "react";
+import React, { useState } from "react";
 import { ExecutionResult, Step } from "../../api";
 import StepHeader from "../molecules/StepHeader";
 import StepAttributesSection from "../molecules/StepAttributesSection";
@@ -6,8 +6,7 @@ import StepPredicate from "../molecules/StepPredicate";
 import StepFooter from "../molecules/StepFooter";
 import { getStepType } from "@/utils/stepUtils";
 import { useStepHealth } from "../../hooks/useStepHealth";
-
-const StepEditor = lazy(() => import("./StepEditor"));
+import { useStepEditorContext } from "../../contexts/StepEditorContext";
 
 interface StepWidgetProps {
   step: Step;
@@ -47,21 +46,25 @@ const StepWidget: React.FC<StepWidgetProps> = ({
   const { status: healthStatus, error: healthError } = useStepHealth(step);
   const stepType = getStepType(step);
 
-  const [showEditor, setShowEditor] = useState(false);
   const [localStep, setLocalStep] = useState(step);
+  const { openEditor } = useStepEditorContext();
 
   React.useEffect(() => {
     const handleOpenEditor = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail?.stepId === step.id && !disableEdit) {
-        setShowEditor(true);
+        openEditor({
+          step: localStep,
+          onUpdate: setLocalStep,
+          diagramContainerRef,
+        });
       }
     };
 
     document.addEventListener("openStepEditor", handleOpenEditor);
     return () =>
       document.removeEventListener("openStepEditor", handleOpenEditor);
-  }, [step.id, disableEdit]);
+  }, [step.id, disableEdit, openEditor, localStep, diagramContainerRef]);
 
   const isGrayedOut = isPreviewMode && !isInPreviewPlan;
   const isEditable =
@@ -74,7 +77,11 @@ const StepWidget: React.FC<StepWidgetProps> = ({
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (disableEdit || !isEditable) return;
     e.stopPropagation();
-    setShowEditor(true);
+    openEditor({
+      step: localStep,
+      onUpdate: setLocalStep,
+      diagramContainerRef,
+    });
   };
 
   const handleStepUpdate = (updatedStep: Step) => {
@@ -107,17 +114,6 @@ const StepWidget: React.FC<StepWidgetProps> = ({
           execution={execution}
         />
       </div>
-
-      {showEditor && (
-        <Suspense fallback={null}>
-          <StepEditor
-            step={localStep}
-            onClose={() => setShowEditor(false)}
-            onUpdate={handleStepUpdate}
-            diagramContainerRef={diagramContainerRef}
-          />
-        </Suspense>
-      )}
     </>
   );
 };

@@ -8,21 +8,46 @@ jest.mock("../../hooks/useFlowWebSocket", () => ({
   useFlowWebSocket: jest.fn(),
 }));
 
-jest.mock("../../store/flowStore", () => {
-  const actual = jest.requireActual("../../store/flowStore");
+jest.mock("../../contexts/StepEditorContext", () => {
+  const openEditor = jest.fn();
+  const closeEditor = jest.fn();
   return {
-    ...actual,
-    useSteps: jest.fn(),
-    useSelectedFlow: jest.fn(),
-    useFlowData: jest.fn(),
-    useExecutions: jest.fn(),
-    useResolvedAttributes: jest.fn(),
-    useFlowLoading: jest.fn(),
-    useFlowNotFound: jest.fn(),
-    useIsFlowMode: jest.fn(),
-    useLoadSteps: jest.fn(),
+    __esModule: true,
+    StepEditorProvider: ({ children }: { children: React.ReactNode }) =>
+      children,
+    useStepEditorContext: () => ({
+      openEditor,
+      closeEditor,
+      isOpen: false,
+      activeStep: null,
+    }),
+    __openEditor: openEditor,
   };
 });
+
+const sessionMock = {
+  selectedFlow: null as string | null,
+  selectFlow: jest.fn(),
+  loadFlows: jest.fn(),
+  loadSteps: jest.fn(),
+  steps: [] as Step[],
+  flows: [] as any[],
+  updateFlowStatus: jest.fn(),
+  flowData: null as FlowContext | null,
+  loading: false,
+  flowNotFound: false,
+  isFlowMode: false,
+  executions: [] as ExecutionResult[],
+  resolvedAttributes: [] as string[],
+  flowError: null as string | null,
+};
+
+jest.mock("../../contexts/FlowSessionContext", () => ({
+  __esModule: true,
+  FlowSessionProvider: ({ children }: { children: React.ReactNode }) =>
+    children,
+  useFlowSession: jest.fn(() => sessionMock),
+}));
 
 jest.mock("../../contexts/UIContext", () => {
   const actual = jest.requireActual("../../contexts/UIContext");
@@ -43,17 +68,6 @@ jest.mock("./StepDiagram", () => {
   MockStepDiagram.displayName = "MockStepDiagram";
   return MockStepDiagram;
 });
-jest.mock("../organisms/StepEditor", () => {
-  const MockStepEditor = (props: any) => (
-    <div data-testid="step-editor">Step Editor</div>
-  );
-  MockStepEditor.displayName = "MockStepEditor";
-  return MockStepEditor;
-});
-
-const flowStore = require("../../store/flowStore") as jest.Mocked<
-  typeof import("../../store/flowStore")
->;
 
 const baseStep: Step = {
   id: "a",
@@ -91,7 +105,7 @@ const makeExecutions = (
     ...exec,
   }));
 
-function setStore({
+function setSession({
   steps = [],
   selectedFlow = null,
   flowData = null,
@@ -110,30 +124,39 @@ function setStore({
   flowNotFound?: boolean;
   isFlowMode?: boolean;
 }) {
-  flowStore.useSteps.mockReturnValue(steps);
-  flowStore.useSelectedFlow.mockReturnValue(selectedFlow);
-  flowStore.useFlowData.mockReturnValue(flowData);
-  flowStore.useExecutions.mockReturnValue(executions);
-  flowStore.useResolvedAttributes.mockReturnValue(resolved);
-  flowStore.useFlowLoading.mockReturnValue(loading);
-  flowStore.useFlowNotFound.mockReturnValue(flowNotFound);
-  flowStore.useIsFlowMode.mockReturnValue(isFlowMode);
-  flowStore.useLoadSteps.mockReturnValue(jest.fn());
+  sessionMock.steps = steps;
+  sessionMock.selectedFlow = selectedFlow;
+  sessionMock.flowData = flowData;
+  sessionMock.executions = executions;
+  sessionMock.resolvedAttributes = resolved;
+  sessionMock.loading = loading;
+  sessionMock.flowNotFound = flowNotFound;
+  sessionMock.isFlowMode = isFlowMode;
 }
 
 describe("FlowDiagram", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    setSession({
+      steps: [],
+      selectedFlow: null,
+      flowData: null,
+      executions: [],
+      resolved: [],
+      loading: false,
+      flowNotFound: false,
+      isFlowMode: false,
+    });
   });
 
   it("shows empty state when no steps", () => {
-    setStore({ steps: [] });
+    setSession({ steps: [] });
     render(<FlowDiagram />);
     expect(screen.getByText("No Steps Registered")).toBeInTheDocument();
   });
 
   it("shows not found state when flow missing", () => {
-    setStore({
+    setSession({
       steps: [baseStep],
       selectedFlow: "wf-1",
       flowNotFound: true,
@@ -143,7 +166,7 @@ describe("FlowDiagram", () => {
   });
 
   it("renders header stats when not in flow mode", () => {
-    setStore({
+    setSession({
       steps: [baseStep],
       flowData: makeFlow({ plan: basePlan }),
       resolved: [],
@@ -155,7 +178,7 @@ describe("FlowDiagram", () => {
   });
 
   it("renders flow header when in flow mode", () => {
-    setStore({
+    setSession({
       steps: [baseStep],
       flowData: makeFlow({
         completed_at: new Date().toISOString(),
@@ -171,7 +194,7 @@ describe("FlowDiagram", () => {
   });
 
   it("opens create step editor", () => {
-    setStore({
+    setSession({
       steps: [baseStep],
       isFlowMode: false,
       flowData: null,
@@ -181,6 +204,7 @@ describe("FlowDiagram", () => {
     act(() => {
       fireEvent.click(button);
     });
-    expect(screen.getByTestId("step-editor")).toBeInTheDocument();
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    expect(__openEditor).toHaveBeenCalled();
   });
 });

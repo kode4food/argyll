@@ -55,7 +55,7 @@ interface Attribute {
   validationError?: string;
 }
 
-interface StepEditorContextValue {
+interface StepEditingContextValue {
   stepId: string;
   name: string;
   stepType: StepType;
@@ -142,13 +142,13 @@ const getAttributeIcon = (attrType: AttributeRoleType) => {
   return <Icon size={16} className={className} />;
 };
 
-const StepEditorContext = createContext<StepEditorContextValue | null>(null);
+const StepEditingContext = createContext<StepEditingContextValue | null>(null);
 
-const useStepEditorContext = (): StepEditorContextValue => {
-  const ctx = useContext(StepEditorContext);
+const useStepEditingContext = (): StepEditingContextValue => {
+  const ctx = useContext(StepEditingContext);
   if (!ctx) {
     throw new Error(
-      "useStepEditorContext must be used within a StepEditor provider"
+      "useStepEditingContext must be used within a StepEditor provider"
     );
   }
   return ctx;
@@ -294,7 +294,7 @@ const BasicFields: React.FC = () => {
     setStepId,
     setName,
     setStepType,
-  } = useStepEditorContext();
+  } = useStepEditingContext();
 
   return (
     <div className={formStyles.row}>
@@ -369,7 +369,7 @@ const AttributesSection: React.FC = () => {
     updateAttribute,
     removeAttribute,
     cycleAttributeType,
-  } = useStepEditorContext();
+  } = useStepEditingContext();
 
   return (
     <div className={formStyles.section}>
@@ -486,7 +486,7 @@ const HttpConfiguration: React.FC = () => {
     setEndpoint,
     setHttpTimeout,
     setHealthCheck,
-  } = useStepEditorContext();
+  } = useStepEditingContext();
 
   return (
     <div className={formStyles.section}>
@@ -762,7 +762,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   if (!mounted) return null;
 
   const modalContent = (
-    <StepEditorContext.Provider value={contextValue}>
+    <StepEditingContext.Provider value={contextValue}>
       <div className={styles.backdrop} onClick={handleBackdropClick}>
         <div
           className={styles.content}
@@ -840,7 +840,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
           </div>
         </div>
       </div>
-    </StepEditorContext.Provider>
+    </StepEditingContext.Provider>
   );
 
   return createPortal(modalContent, document.body);

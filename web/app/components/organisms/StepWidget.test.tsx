@@ -21,14 +21,23 @@ jest.mock("../molecules/StepFooter", () => ({
   __esModule: true,
   default: ({ step }: any) => <div data-testid="step-footer">{step.id}</div>,
 }));
-jest.mock("./StepEditor", () => ({
-  __esModule: true,
-  default: ({ onClose }: any) => (
-    <div data-testid="step-editor">
-      <button onClick={onClose}>Close Modal</button>
-    </div>
-  ),
-}));
+jest.mock("../../contexts/StepEditorContext", () => {
+  const openEditor = jest.fn();
+  const closeEditor = jest.fn();
+  return {
+    __esModule: true,
+    StepEditorProvider: ({ children }: { children: React.ReactNode }) =>
+      children,
+    useStepEditorContext: () => ({
+      openEditor,
+      closeEditor,
+      isOpen: false,
+      activeStep: null,
+    }),
+    __openEditor: openEditor,
+    __closeEditor: closeEditor,
+  };
+});
 
 const mockUseStepHealth = useStepHealth as jest.MockedFunction<
   typeof useStepHealth
@@ -65,6 +74,12 @@ describe("StepWidget", () => {
       status: "healthy",
       error: undefined,
     });
+    const {
+      __openEditor,
+      __closeEditor,
+    } = require("../../contexts/StepEditorContext");
+    __openEditor.mockClear();
+    __closeEditor.mockClear();
   });
 
   afterEach(() => {
@@ -142,9 +157,8 @@ describe("StepWidget", () => {
     const widget = container.querySelector(".step-widget");
     fireEvent.doubleClick(widget!);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("step-editor")).toBeInTheDocument();
-    });
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    expect(__openEditor).toHaveBeenCalled();
   });
 
   test("opens editor on double-click for HTTP steps", async () => {
@@ -155,9 +169,8 @@ describe("StepWidget", () => {
     const widget = container.querySelector(".step-widget");
     fireEvent.doubleClick(widget!);
 
-    await waitFor(() => {
-      expect(screen.getByTestId("step-editor")).toBeInTheDocument();
-    });
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    expect(__openEditor).toHaveBeenCalled();
   });
 
   test("does not open editor when disableEdit is true", () => {
@@ -168,27 +181,8 @@ describe("StepWidget", () => {
     const widget = container.querySelector(".step-widget");
     fireEvent.doubleClick(widget!);
 
-    expect(screen.queryByTestId("step-editor")).not.toBeInTheDocument();
-  });
-
-  test("closes editor when onClose called", async () => {
-    const step = createStep("script");
-
-    const { container } = render(<StepWidget step={step} />);
-
-    const widget = container.querySelector(".step-widget");
-    fireEvent.doubleClick(widget!);
-
-    await waitFor(() => {
-      expect(screen.getByTestId("step-editor")).toBeInTheDocument();
-    });
-
-    const closeButton = screen.getByText("Close Modal");
-    fireEvent.click(closeButton);
-
-    await waitFor(() => {
-      expect(screen.queryByTestId("step-editor")).not.toBeInTheDocument();
-    });
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    expect(__openEditor).not.toHaveBeenCalled();
   });
 
   test("applies custom className", () => {
@@ -289,9 +283,10 @@ describe("StepWidget", () => {
       detail: { stepId: "step-123" },
     });
 
+    const { __openEditor } = require("../../contexts/StepEditorContext");
     await waitFor(() => {
       document.dispatchEvent(event);
-      expect(screen.getByTestId("step-editor")).toBeInTheDocument();
+      expect(__openEditor).toHaveBeenCalled();
     });
   });
 
@@ -305,7 +300,8 @@ describe("StepWidget", () => {
     });
     document.dispatchEvent(event);
 
-    expect(screen.queryByTestId("step-editor")).not.toBeInTheDocument();
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    expect(__openEditor).not.toHaveBeenCalled();
   });
 
   test("ignores openStepEditor event when disabled", () => {
@@ -318,6 +314,7 @@ describe("StepWidget", () => {
     });
     document.dispatchEvent(event);
 
-    expect(screen.queryByTestId("step-editor")).not.toBeInTheDocument();
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    expect(__openEditor).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
-import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 
 import FlowPage from "./FlowPage";
+import React from "react";
 
 jest.mock("../organisms/FlowSelector", () => {
   const MockFlowSelector = () => <div>FlowSelector</div>;
@@ -14,17 +14,36 @@ jest.mock("./FlowDiagram", () => {
   MockFlowDiagram.displayName = "MockFlowDiagram";
   return MockFlowDiagram;
 });
-jest.mock("../../store/flowStore", () => {
-  const actual = jest.requireActual("../../store/flowStore");
+
+jest.mock("../../contexts/FlowSessionContext", () => {
+  const session = {
+    selectedFlow: null,
+    selectFlow: jest.fn(),
+    loadFlows: jest.fn(),
+    loadSteps: jest.fn(),
+    steps: [],
+    flows: [],
+    updateFlowStatus: jest.fn(),
+    flowData: null,
+    loading: false,
+    flowNotFound: false,
+    isFlowMode: false,
+    executions: [],
+    resolvedAttributes: [],
+    flowError: null as string | null,
+  };
   return {
-    ...actual,
-    useFlowError: jest.fn(),
-    useLoadSteps: jest.fn(() => jest.fn()),
-    useLoadFlows: jest.fn(() => jest.fn()),
+    __esModule: true,
+    FlowSessionProvider: ({ children }: { children: React.ReactNode }) =>
+      children,
+    useFlowSession: () => session,
+    __sessionMock: session,
   };
 });
 
-const flowStore = require("../../store/flowStore");
+const {
+  __sessionMock: flowSession,
+} = require("../../contexts/FlowSessionContext");
 
 describe("FlowPage", () => {
   beforeEach(() => {
@@ -32,24 +51,14 @@ describe("FlowPage", () => {
   });
 
   it("renders error state", () => {
-    flowStore.useFlowError.mockReturnValue("boom");
+    flowSession.flowError = "boom";
     render(<FlowPage />);
     expect(screen.getByText(/Error: boom/)).toBeInTheDocument();
-    const retry = screen.getByRole("button", { name: /Retry/ });
-    fireEvent.click(retry);
   });
 
-  it("loads flows and steps on mount", () => {
-    const loadSteps = jest.fn();
-    const loadFlows = jest.fn();
-    flowStore.useFlowError.mockReturnValue(null);
-    flowStore.useLoadSteps.mockReturnValue(loadSteps);
-    flowStore.useLoadFlows.mockReturnValue(loadFlows);
-
+  it("renders selector and diagram", () => {
+    flowSession.flowError = null;
     render(<FlowPage />);
-
-    expect(loadSteps).toHaveBeenCalled();
-    expect(loadFlows).toHaveBeenCalled();
     expect(screen.getByText("FlowSelector")).toBeInTheDocument();
     expect(screen.getByText("FlowDiagram")).toBeInTheDocument();
   });

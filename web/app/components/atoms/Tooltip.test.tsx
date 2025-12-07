@@ -1,5 +1,11 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import Tooltip from "./Tooltip";
 
 describe("Tooltip", () => {
@@ -138,7 +144,9 @@ describe("Tooltip", () => {
 
     // Dispatch hideTooltips event
     const event = new Event("hideTooltips");
-    document.dispatchEvent(event);
+    await act(async () => {
+      document.dispatchEvent(event);
+    });
 
     await waitFor(() => {
       expect(tooltip?.className).not.toContain("visible");

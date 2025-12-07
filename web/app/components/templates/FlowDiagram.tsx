@@ -1,41 +1,37 @@
-import React, { useState } from "react";
+import React from "react";
 import StepDiagram from "./StepDiagram";
 import EmptyState from "../molecules/EmptyState";
 import { useFlowWebSocket } from "../../hooks/useFlowWebSocket";
 import FlowStats from "../organisms/FlowStats";
 import { AlertCircle, Plus } from "lucide-react";
-import {
-  useSteps,
-  useSelectedFlow,
-  useFlowData,
-  useExecutions,
-  useResolvedAttributes,
-  useFlowLoading,
-  useFlowNotFound,
-  useIsFlowMode,
-  useLoadSteps,
-} from "../../store/flowStore";
 import ErrorBoundary from "../organisms/ErrorBoundary";
-import StepEditor from "../organisms/StepEditor";
 import { isValidTimestamp } from "@/utils/dates";
 import { DiagramSelectionProvider } from "../../contexts/DiagramSelectionContext";
 import { useUI } from "../../contexts/UIContext";
+import { useFlowSession } from "../../contexts/FlowSessionContext";
+import {
+  StepEditorProvider,
+  useStepEditorContext,
+} from "../../contexts/StepEditorContext";
 
-const FlowDiagram: React.FC = () => {
+const FlowDiagramContent: React.FC = () => {
   useFlowWebSocket();
 
-  const steps = useSteps();
-  const selectedFlow = useSelectedFlow();
-  const flowData = useFlowData();
-  const executions = useExecutions();
-  const resolved = useResolvedAttributes();
-  const loading = useFlowLoading();
-  const flowNotFound = useFlowNotFound();
-  const isFlowMode = useIsFlowMode();
-  const loadSteps = useLoadSteps();
-  const [showCreateStepEditor, setShowCreateStepEditor] = useState(false);
+  const {
+    selectedFlow,
+    flowData,
+    executions,
+    resolvedAttributes: resolved,
+    loading,
+    flowNotFound,
+    steps,
+    isFlowMode,
+    loadSteps,
+  } = useFlowSession();
+  const stepsList = steps || [];
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { selectedStep, setSelectedStep } = useUI();
+  const { openEditor } = useStepEditorContext();
 
   const handleStepCreated = async () => {
     await loadSteps();
@@ -79,7 +75,13 @@ const FlowDiagram: React.FC = () => {
             <div className="overview-header__stats">
               {steps.length} step{steps.length !== 1 ? "s" : ""} registered
               <button
-                onClick={() => setShowCreateStepEditor(true)}
+                onClick={() =>
+                  openEditor({
+                    step: null,
+                    diagramContainerRef,
+                    onUpdate: handleStepCreated,
+                  })
+                }
                 className="ml-2 inline-flex items-center justify-center rounded-full bg-blue-600/20 p-1 transition-colors hover:bg-blue-600/30"
                 title="Create New Step"
                 aria-label="Create New Step"
@@ -149,18 +151,14 @@ const FlowDiagram: React.FC = () => {
           </div>
         )}
       </div>
-      {showCreateStepEditor && (
-        <StepEditor
-          step={null}
-          onClose={() => setShowCreateStepEditor(false)}
-          onUpdate={handleStepCreated}
-          diagramContainerRef={
-            diagramContainerRef as React.RefObject<HTMLDivElement>
-          }
-        />
-      )}
     </div>
   );
 };
+
+const FlowDiagram: React.FC = () => (
+  <StepEditorProvider>
+    <FlowDiagramContent />
+  </StepEditorProvider>
+);
 
 export default FlowDiagram;

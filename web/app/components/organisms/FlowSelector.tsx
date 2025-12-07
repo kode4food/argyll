@@ -10,12 +10,6 @@ const KeyboardShortcutsModal = lazy(
   () => import("../molecules/KeyboardShortcutsModal")
 );
 
-import {
-  useFlows,
-  useSelectedFlow,
-  useLoadFlows,
-  useUpdateFlowStatus,
-} from "../../store/flowStore";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { useFlowFromUrl } from "../../hooks/useFlowFromUrl";
 import { useUI } from "../../contexts/UIContext";
@@ -33,6 +27,7 @@ import {
   FlowDropdownProvider,
   useFlowDropdownContext,
 } from "../../contexts/FlowDropdownContext";
+import { useFlowSession } from "../../contexts/FlowSessionContext";
 
 const mapFlowStatusToProgressStatus = (
   status: FlowStatus
@@ -144,7 +139,7 @@ const FlowSelectorDropdown = () => {
 };
 
 const useFlowDropdown = (
-  flows: ReturnType<typeof useFlows>,
+  flows: ReturnType<typeof useFlowSession>["flows"],
   selectedFlow: string | null,
   router: ReturnType<typeof useRouter>
 ) => {
@@ -260,9 +255,9 @@ const useFlowEvents = ({
   selectedFlow: string | null;
   subscribe: ReturnType<typeof useWebSocketContext>["subscribe"];
   events: ReturnType<typeof useWebSocketContext>["events"];
-  flows: ReturnType<typeof useFlows>;
-  updateFlowStatus: ReturnType<typeof useUpdateFlowStatus>;
-  loadFlows: ReturnType<typeof useLoadFlows>;
+  flows: ReturnType<typeof useFlowSession>["flows"];
+  updateFlowStatus: ReturnType<typeof useFlowSession>["updateFlowStatus"];
+  loadFlows: ReturnType<typeof useFlowSession>["loadFlows"];
 }) => {
   const processedEventsRef = useRef<Set<string>>(new Set());
 
@@ -324,10 +319,7 @@ const useFlowEvents = ({
 const FlowSelectorContent: React.FC = () => {
   const router = useRouter();
   useFlowFromUrl();
-  const flows = useFlows();
-  const selectedFlow = useSelectedFlow();
-  const loadFlows = useLoadFlows();
-  const updateFlowStatus = useUpdateFlowStatus();
+  const { flows, selectedFlow, loadFlows, updateFlowStatus } = useFlowSession();
   const { subscribe, events } = useWebSocketContext();
   const { showCreateForm, setShowCreateForm } = useUI();
   const { setNewID } = useFlowCreation();
