@@ -33,6 +33,7 @@ type (
 		responses map[api.StepID]api.Args
 		errors    map[api.StepID]error
 		invoked   []api.StepID
+		metadata  map[api.StepID][]api.Metadata
 		mu        sync.Mutex
 	}
 )
@@ -180,6 +181,7 @@ func NewMockClient() *MockClient {
 		responses: map[api.StepID]api.Args{},
 		errors:    map[api.StepID]error{},
 		invoked:   []api.StepID{},
+		metadata:  map[api.StepID][]api.Metadata{},
 	}
 }
 
@@ -250,12 +252,13 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 
 // Invoke records the invocation and returns the configured response or error
 func (c *MockClient) Invoke(
-	_ context.Context, step *api.Step, _ api.Args, _ api.Metadata,
+	_ context.Context, step *api.Step, _ api.Args, md api.Metadata,
 ) (api.Args, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
 	c.invoked = append(c.invoked, step.ID)
+	c.metadata[step.ID] = append(c.metadata[step.ID], md)
 
 	if err, ok := c.errors[step.ID]; ok {
 		return nil, err
@@ -301,6 +304,18 @@ func (c *MockClient) WasInvoked(stepID api.StepID) bool {
 		}
 	}
 	return false
+}
+
+// LastMetadata returns the most recent metadata passed for a step invocation
+func (c *MockClient) LastMetadata(stepID api.StepID) api.Metadata {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	entries := c.metadata[stepID]
+	if len(entries) == 0 {
+		return nil
+	}
+	return entries[len(entries)-1]
 }
 
 // WaitForFlowStatus waits for a flow to reach a terminal status (completed or
