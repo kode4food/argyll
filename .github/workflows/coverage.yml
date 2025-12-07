@@ -31,12 +31,14 @@ jobs:
         run: cd web && npm run test:coverage
 
       - name: Normalize web coverage paths
-        run: cd web && sed -i "s|SF:.*/web/|SF:web/|g" coverage/lcov.info
+        run: cd web && sed -i "s|^SF:|SF:web/|" coverage/lcov.info
 
       - name: Upload combined coverage to Qlty
         uses: qltysh/qlty-action/coverage@v1
         with:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
+          strip-prefix: |
+            github.com/kode4food/spuds/
           files: |
             engine/cover.out
             web/coverage/lcov.info
