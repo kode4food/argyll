@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
@@ -31,7 +30,7 @@ func TestRegisterStepSuccess(t *testing.T) {
 
 			var step api.Step
 			err := json.NewDecoder(r.Body).Decode(&step)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(map[string]string{
@@ -93,7 +92,7 @@ func TestStartSuccess(t *testing.T) {
 
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -146,7 +145,7 @@ func TestListStepsSuccess(t *testing.T) {
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 	result, err := client.ListSteps(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, result.Count)
 	assert.Len(t, result.Steps, 2)
 }
@@ -211,7 +210,7 @@ func TestFlowGetState(t *testing.T) {
 	wc := client.Flow("my-flow")
 
 	state, err := wc.GetState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("my-flow"), state.ID)
 	assert.Equal(t, api.FlowActive, state.Status)
 }

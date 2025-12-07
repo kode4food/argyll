@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -28,7 +27,7 @@ func TestLuaCompile(t *testing.T) {
 	}
 
 	comp, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, comp)
 }
 
@@ -50,7 +49,7 @@ func TestLuaExecuteScript(t *testing.T) {
 	}
 
 	comp, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	args := api.Args{
 		"a": 5,
@@ -58,7 +57,7 @@ func TestLuaExecuteScript(t *testing.T) {
 	}
 
 	result, err := env.ExecuteScript(comp, step, args)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Contains(t, result, api.Name("result"))
 	assert.Equal(t, 15, result["result"])
@@ -112,10 +111,10 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 				Script:   tt.predicate,
 				Language: api.ScriptLangLua,
 			})
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			result, err := env.EvaluatePredicate(comp, step, tt.args)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -172,10 +171,10 @@ func TestLuaScriptCache(t *testing.T) {
 	}
 
 	proc1, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	proc2, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, proc1, proc2)
 }
@@ -208,11 +207,11 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 	}
 
 	scriptComp, err := registry.Compile(script, script.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, scriptComp)
 
 	predComp, err := registry.Compile(pred, pred.Predicate)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, predComp)
 }
 
@@ -246,7 +245,7 @@ func TestLuaComplexConversion(t *testing.T) {
 	}
 
 	comp, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	args := api.Args{
 		"is_active": true,
@@ -256,7 +255,7 @@ func TestLuaComplexConversion(t *testing.T) {
 	}
 
 	result, err := env.ExecuteScript(comp, step, args)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, true, result["bool_val"])
 	assert.Equal(t, "test-item", result["string_val"])
@@ -281,13 +280,13 @@ func TestLuaArrayTableConversion(t *testing.T) {
 	}
 
 	comp, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	result, err := env.ExecuteScript(comp, step, api.Args{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	numbers, ok := result["numbers"].([]any)
-	require.True(t, ok, "numbers should be an array")
+	assert.True(t, ok, "numbers should be an array")
 	assert.Equal(t, 5, len(numbers))
 	assert.Equal(t, 1, numbers[0])
 	assert.Equal(t, 5, numbers[4])
@@ -364,10 +363,10 @@ func TestLuaInputTypes(t *testing.T) {
 			}
 
 			comp, err := env.Compile(step, step.Script)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			result, err := env.ExecuteScript(comp, step, tt.inputs)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			for key, expected := range tt.expected {
 				assert.Equal(t, expected, result[key])

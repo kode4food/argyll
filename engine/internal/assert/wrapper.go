@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -23,7 +22,7 @@ type (
 	Wrapper struct {
 		*testing.T
 		*assert.Assertions
-		Require *require.Assertions
+		Require *assert.Assertions
 	}
 )
 
@@ -36,7 +35,7 @@ func New(t *testing.T) *Wrapper {
 	return &Wrapper{
 		T:          t,
 		Assertions: assert.New(t),
-		Require:    require.New(t),
+		Require:    assert.New(t),
 	}
 }
 

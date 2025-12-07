@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -51,7 +50,7 @@ func TestSimpleResolver(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"resolver"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Goals, 1)
 	assert.Equal(t, api.StepID("resolver"), plan.Goals[0])
@@ -87,7 +86,7 @@ func TestProcessorWithInit(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, initState,
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 1)
 	assert.Empty(t, plan.Required)
@@ -117,7 +116,7 @@ func TestProcessorNoInit(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Required, 1)
 	assert.Equal(t, api.Name("input"), plan.Required[0])
@@ -177,7 +176,7 @@ func TestChained(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"collector"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 3)
 
@@ -226,7 +225,7 @@ func TestMultipleGoals(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step1", "step2"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Goals, 2)
 	assert.Len(t, plan.Steps, 2)
@@ -256,7 +255,7 @@ func TestExistingOutputs(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step"}, initState,
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Empty(t, plan.Steps)
 }
@@ -332,7 +331,7 @@ func TestComplexGraph(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor2"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 4)
 
@@ -369,7 +368,7 @@ func TestReceipts(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Verify plan was created successfully
 	assert.NotNil(t, plan)
@@ -400,7 +399,7 @@ func TestMissingDependency(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"step"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Required, 1)
 	assert.Equal(t, api.Name("nonexistent"), plan.Required[0])
@@ -445,7 +444,7 @@ func TestOptionalInput(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 2)
 
@@ -479,7 +478,7 @@ func TestOptionalMissing(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 1)
 	assert.Contains(t, plan.Steps, api.StepID("processor"))
@@ -542,7 +541,7 @@ func TestMixedInputs(t *testing.T) {
 	plan, err := eng.CreateExecutionPlan(
 		engState, []api.StepID{"processor"}, api.Args{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Len(t, plan.Steps, 3)
 

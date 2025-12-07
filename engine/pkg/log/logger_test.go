@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/log"
 )
@@ -30,7 +29,7 @@ func TestNewWithLevelOutputsBaseAttrs(t *testing.T) {
 	})
 
 	var got map[string]any
-	require.NoError(t, json.Unmarshal(output, &got))
+	assert.NoError(t, json.Unmarshal(output, &got))
 
 	assertAttr(t, got, "service", "svc-name")
 	assertAttr(t, got, "env", "prod")
@@ -64,6 +63,6 @@ func captureStdout(t *testing.T, fn func()) []byte {
 func assertAttr(t *testing.T, got map[string]any, key string, expected any) {
 	t.Helper()
 	val, ok := got[key]
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, expected, val)
 }

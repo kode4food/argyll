@@ -11,7 +11,6 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/internal/config"
@@ -22,7 +21,7 @@ import (
 
 func TestStartStop(t *testing.T) {
 	redis, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer redis.Close()
 
 	cfg := config.NewDefaultConfig()
@@ -33,14 +32,14 @@ func TestStartStop(t *testing.T) {
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
 
 	engineStore, err := tb.NewStore(cfg.EngineStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flowStore, err := tb.NewStore(cfg.FlowStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
@@ -54,7 +53,7 @@ func TestStartStop(t *testing.T) {
 
 func TestGetStepHealth(t *testing.T) {
 	redis, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer redis.Close()
 
 	cfg := config.NewDefaultConfig()
@@ -65,14 +64,14 @@ func TestGetStepHealth(t *testing.T) {
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
 
 	engineStore, err := tb.NewStore(cfg.EngineStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flowStore, err := tb.NewStore(cfg.FlowStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
@@ -80,19 +79,19 @@ func TestGetStepHealth(t *testing.T) {
 	step := helpers.NewSimpleStep("health-test-step")
 
 	err = eng.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	engineState, err := eng.GetEngineState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	health, ok := engineState.Health["health-test-step"]
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.NotNil(t, health)
 	assert.Equal(t, api.HealthUnknown, health.Status)
 }
 
 func TestGetStepHealthNotFound(t *testing.T) {
 	redis, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer redis.Close()
 
 	cfg := config.NewDefaultConfig()
@@ -103,20 +102,20 @@ func TestGetStepHealthNotFound(t *testing.T) {
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
 
 	engineStore, err := tb.NewStore(cfg.EngineStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flowStore, err := tb.NewStore(cfg.FlowStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
 	engineState, err := eng.GetEngineState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	_, ok := engineState.Health["nonexistent-step"]
 	assert.False(t, ok)
 }
@@ -133,7 +132,7 @@ func TestWithRealHealthCheck(t *testing.T) {
 	defer healthServer.Close()
 
 	redis, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer redis.Close()
 
 	cfg := config.NewDefaultConfig()
@@ -144,14 +143,14 @@ func TestWithRealHealthCheck(t *testing.T) {
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
 
 	engineStore, err := tb.NewStore(cfg.EngineStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flowStore, err := tb.NewStore(cfg.FlowStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
@@ -168,22 +167,22 @@ func TestWithRealHealthCheck(t *testing.T) {
 	}
 
 	err = eng.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
 	checker.Start()
 	defer checker.Stop()
 
 	engineState, err := eng.GetEngineState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	health, ok := engineState.Health["real-health-step"]
-	require.True(t, ok, "expected step health to exist")
+	assert.True(t, ok, "expected step health to exist")
 	assert.NotNil(t, health)
 }
 
 func TestRecentSuccess(t *testing.T) {
 	redis, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer redis.Close()
 
 	cfg := config.NewDefaultConfig()
@@ -194,14 +193,14 @@ func TestRecentSuccess(t *testing.T) {
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
 
 	engineStore, err := tb.NewStore(cfg.EngineStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flowStore, err := tb.NewStore(cfg.FlowStore)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
@@ -209,7 +208,7 @@ func TestRecentSuccess(t *testing.T) {
 	step := helpers.NewSimpleStep("recent-success-step")
 
 	err = eng.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
 	checker.Start()
@@ -233,8 +232,8 @@ func TestRecentSuccess(t *testing.T) {
 	producer.Send() <- event
 
 	engineState, err := eng.GetEngineState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	health, ok := engineState.Health["recent-success-step"]
-	require.True(t, ok, "expected step health to exist")
+	assert.True(t, ok, "expected step health to exist")
 	assert.NotNil(t, health)
 }

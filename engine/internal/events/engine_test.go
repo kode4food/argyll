@@ -7,7 +7,6 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -55,7 +54,7 @@ func TestStepRegistered(t *testing.T) {
 
 	eventData := api.StepRegisteredEvent{Step: step}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -93,7 +92,7 @@ func TestStepUnregistered(t *testing.T) {
 
 	eventData := api.StepUnregisteredEvent{StepID: "test-step"}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -136,7 +135,7 @@ func TestStepUpdated(t *testing.T) {
 
 	eventData := api.StepUpdatedEvent{Step: newStep}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -167,7 +166,7 @@ func TestStepHealthChanged(t *testing.T) {
 		Error:  "",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -197,7 +196,7 @@ func TestChangedWithError(t *testing.T) {
 		Error:  "connection refused",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -221,7 +220,7 @@ func TestFlowActivated(t *testing.T) {
 
 	eventData := api.FlowActivatedEvent{FlowID: "test-flow"}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -257,7 +256,7 @@ func TestFlowDeactivated(t *testing.T) {
 
 	eventData := api.FlowDeactivatedEvent{FlowID: "test-flow"}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,

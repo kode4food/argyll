@@ -12,7 +12,6 @@ import (
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/server"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -110,7 +109,7 @@ func TestClientReceivesEvent(t *testing.T) {
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -125,7 +124,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, api.EventTypeFlowStarted, wsEvent.Type)
 	assert.Equal(t, json.RawMessage(`{"test":"data"}`), wsEvent.Data)
@@ -136,7 +135,7 @@ func TestMessageInvalid(t *testing.T) {
 	defer env.Cleanup()
 
 	err := env.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json"))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -167,7 +166,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	time.Sleep(50 * time.Millisecond)
 
@@ -219,17 +218,17 @@ func TestReplayWithEvents(t *testing.T) {
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
 	var wsEvent1 api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent1)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.EventTypeFlowStarted, wsEvent1.Type)
 
 	var wsEvent2 api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent2)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.EventTypeStepCompleted, wsEvent2.Type)
 }
 
@@ -248,7 +247,7 @@ func TestReplayWithError(t *testing.T) {
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -278,7 +277,7 @@ func TestReplayWithoutFlowID(t *testing.T) {
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -430,7 +429,7 @@ func testWebSocket(t *testing.T, replay server.ReplayFunc) *testWebSocketEnv {
 
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	return &testWebSocketEnv{
 		Server: srv,

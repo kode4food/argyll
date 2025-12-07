@@ -1,6 +1,7 @@
 package builder_test
 
 import (
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -15,7 +16,7 @@ import (
 
 func TestSetupStepWithMockEngine(t *testing.T) {
 	attempts := 0
-	mockEngine := httptest.NewServer(http.HandlerFunc(
+	mockEngine := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			attempts++
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -25,7 +26,6 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 			w.WriteHeader(http.StatusNotFound)
 		},
 	))
-	defer mockEngine.Close()
 
 	_ = os.Setenv("SPUDS_ENGINE_URL", mockEngine.URL)
 	_ = os.Setenv("STEP_PORT", "0")
@@ -66,4 +66,17 @@ func TestSetupEnvironmentVariables(t *testing.T) {
 	defer unset()
 	unset()
 	assert.Equal(t, "http://localhost:8080", builder.DefaultEngineURL)
+}
+
+func newHTTPTestServer(t *testing.T, handler http.Handler) *httptest.Server {
+	t.Helper()
+
+	ln, err := net.Listen("tcp4", "127.0.0.1:0")
+	assert.NoError(t, err)
+
+	server := httptest.NewUnstartedServer(handler)
+	server.Listener = ln
+	server.Start()
+	t.Cleanup(server.Close)
+	return server
 }

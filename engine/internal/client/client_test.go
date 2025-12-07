@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/client"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -30,7 +29,7 @@ func TestSuccess(t *testing.T) {
 			assert.Equal(t, "Spuds-Engine/1.0", r.Header.Get("User-Agent"))
 
 			var req api.StepRequest
-			require.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+			assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
 
 			response := api.StepResult{
 				Success: true,
@@ -53,7 +52,7 @@ func TestSuccess(t *testing.T) {
 	meta := api.Metadata{"flow_id": "test-flow"}
 
 	out, err := cl.Invoke(context.Background(), step, args, meta)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "test-output", out["result"])
 }
 
@@ -88,7 +87,7 @@ func TestHTTPError(t *testing.T) {
 	_, err := cl.Invoke(
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
-	require.Error(t, err)
+	assert.Error(t, err)
 	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
 	assert.ErrorIs(t, err, client.ErrHTTPError)
 	assert.Contains(t, err.Error(), "500")
@@ -115,7 +114,7 @@ func TestSuccessFalse(t *testing.T) {
 	_, err := cl.Invoke(
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
-	require.Error(t, err)
+	assert.Error(t, err)
 	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
 }
 
@@ -141,7 +140,7 @@ func TestSuccessFalseWithError(t *testing.T) {
 	_, err := cl.Invoke(
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
-	require.Error(t, err)
+	assert.Error(t, err)
 	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
 	assert.Contains(t, err.Error(), "custom error message")
 }
@@ -234,7 +233,7 @@ func TestEmptyOutputs(t *testing.T) {
 	outputs, err := cl.Invoke(
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Nil(t, outputs)
 }
 
@@ -264,7 +263,7 @@ func TestMultipleOutputs(t *testing.T) {
 	outputs, err := cl.Invoke(
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, outputs, 3)
 	assert.Equal(t, "value1", outputs["result1"])
 }

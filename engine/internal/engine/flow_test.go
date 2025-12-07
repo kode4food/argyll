@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
@@ -26,7 +25,7 @@ func TestStartDuplicate(t *testing.T) {
 	step := helpers.NewSimpleStep("step-1")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
@@ -36,7 +35,7 @@ func TestStartDuplicate(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
@@ -89,7 +88,7 @@ func TestSetAttribute(t *testing.T) {
 	step := helpers.NewStepWithOutputs("output-step", "test_key")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock to return the output value
 	env.MockClient.SetResponse("output-step", api.Args{
@@ -102,7 +101,7 @@ func TestSetAttribute(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-attr", plan, api.Args{}, api.Metadata{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to complete
 	env.WaitForFlowStatus(t, ctx, "wf-attr", testTimeout)
@@ -122,7 +121,7 @@ func TestGetAttributes(t *testing.T) {
 	step := helpers.NewStepWithOutputs("step-attrs", "key1", "key2")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock to return multiple output values
 	env.MockClient.SetResponse("step-attrs", api.Args{
@@ -138,7 +137,7 @@ func TestGetAttributes(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-getattrs", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to complete
 	flow := env.WaitForFlowStatus(t, ctx, "wf-getattrs", testTimeout)
@@ -161,9 +160,9 @@ func TestDuplicateAttributeFirstWins(t *testing.T) {
 	stepB := helpers.NewStepWithOutputs("step-b", "shared_key")
 
 	err := env.Engine.RegisterStep(ctx, stepA)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = env.Engine.RegisterStep(ctx, stepB)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock responses - step-a runs first and sets "first"
 	env.MockClient.SetResponse("step-a", api.Args{"shared_key": "first"})
@@ -181,7 +180,7 @@ func TestDuplicateAttributeFirstWins(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-dup-attr", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to complete
 	flow := env.WaitForFlowStatus(t, ctx, "wf-dup-attr", testTimeout)
@@ -202,7 +201,7 @@ func TestCompleteFlow(t *testing.T) {
 	step := helpers.NewStepWithOutputs("complete-step", "result")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock to return a result
 	env.MockClient.SetResponse("complete-step", api.Args{"result": "final"})
@@ -215,7 +214,7 @@ func TestCompleteFlow(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-complete", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to complete automatically
 	flow := env.WaitForFlowStatus(t, ctx, "wf-complete", testTimeout)
@@ -233,7 +232,7 @@ func TestFailFlow(t *testing.T) {
 	step := helpers.NewSimpleStep("fail-step")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	env.MockClient.SetError("fail-step", errors.New("test error"))
 
@@ -243,7 +242,7 @@ func TestFailFlow(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-fail", plan, api.Args{}, api.Metadata{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to fail automatically
 	flow := env.WaitForFlowStatus(t, ctx, "wf-fail", testTimeout)
@@ -264,7 +263,7 @@ func TestSkipStep(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-skip"},
@@ -272,11 +271,11 @@ func TestSkipStep(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-skip", plan, api.Args{}, api.Metadata{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for step to be skipped
 	exec := env.WaitForStepStatus(t, ctx, "wf-skip", "step-skip", testTimeout)
-	require.NotNil(t, exec)
+	assert.NotNil(t, exec)
 	assert.Equal(t, api.StepSkipped, exec.Status)
 	assert.Equal(t, "predicate returned false", exec.Error)
 }
@@ -301,7 +300,7 @@ func TestStartFlowSimple(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
@@ -320,10 +319,10 @@ func TestStartFlowSimple(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(context.Background(), "wf-simple")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, flow)
 	assert.Equal(t, api.FlowID("wf-simple"), flow.ID)
 }
@@ -337,7 +336,7 @@ func TestGetFlowEvents(t *testing.T) {
 	step := helpers.NewSimpleStep("simple")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"simple"},
@@ -347,12 +346,12 @@ func TestGetFlowEvents(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-events", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	events, err := env.Engine.GetFlowEvents(
 		context.Background(), "wf-events", 0,
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, events)
 }
 
@@ -365,7 +364,7 @@ func TestListFlows(t *testing.T) {
 	step := helpers.NewSimpleStep("test")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"test"},
@@ -375,10 +374,10 @@ func TestListFlows(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-list", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flows, err := env.Engine.ListFlows(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotEmpty(t, flows)
 }
 
@@ -403,9 +402,9 @@ func TestIsFlowFailed(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = env.Engine.RegisterStep(context.Background(), stepB)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -414,19 +413,19 @@ func TestIsFlowFailed(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Fail step-a directly via FailStepExecution (step will be started by flow)
 	fs := engine.FlowStep{FlowID: "wf-failed-test", StepID: "step-a"}
 	err = env.Engine.FailStepExecution(
 		context.Background(), fs, "test error",
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-failed-test",
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	isFailed := env.Engine.IsFlowFailed(flow)
 	assert.True(t, isFailed)
@@ -444,7 +443,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -453,12 +452,12 @@ func TestIsFlowNotFailed(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-ok-test",
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	isFailed := env.Engine.IsFlowFailed(flow)
 	assert.False(t, isFailed)
@@ -491,9 +490,9 @@ func TestHasInputProvider(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = env.Engine.RegisterStep(context.Background(), stepB)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -502,12 +501,12 @@ func TestHasInputProvider(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-provider-test",
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	hasProvider := env.Engine.HasInputProvider("value", flow)
 	assert.True(t, hasProvider)
@@ -530,7 +529,7 @@ func TestHasInputProviderNone(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -539,12 +538,12 @@ func TestHasInputProviderNone(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-no-provider-test",
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	hasProvider := env.Engine.HasInputProvider("missing", flow)
 	assert.False(t, hasProvider)
@@ -564,7 +563,7 @@ func TestStepProvidesInput(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -573,7 +572,7 @@ func TestStepProvidesInput(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	outputArgs := stepA.GetOutputArgs()
 	assert.Contains(t, outputArgs, api.Name("result"))

@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/util"
 )
@@ -20,7 +19,7 @@ func TestCacheMiss(t *testing.T) {
 		return "value1", nil
 	})
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "value1", value)
 	assert.Equal(t, 1, callCount)
 }
@@ -35,12 +34,12 @@ func TestCacheHit(t *testing.T) {
 	}
 
 	value1, err := cache.Get("key1", cons)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "value1", value1)
 	assert.Equal(t, 1, callCount)
 
 	value2, err := cache.Get("key1", cons)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "value1", value2)
 	assert.Equal(t, 1, callCount)
 }
@@ -72,14 +71,14 @@ func TestEviction(t *testing.T) {
 		key := fmt.Sprintf("key%d", i)
 		value := fmt.Sprintf("value%d", i)
 		_, err := cache.Get(key, cons(key, value))
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	}
 
 	_, err := cache.Get("key4", cons("key4", "value4"))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	_, err = cache.Get("key1", cons("key1", "value1"))
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 2, consCalls["key1"])
 }
 

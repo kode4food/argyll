@@ -10,7 +10,7 @@ import (
 	"github.com/alicebob/miniredis/v2"
 	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/spuds/engine/internal/config"
 	"github.com/kode4food/spuds/engine/internal/engine"
@@ -189,27 +189,27 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	t.Helper()
 
 	server, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
 	})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	engineConfig := config.NewDefaultConfig().EngineStore
 	engineConfig.Addr = server.Addr()
 	engineConfig.Prefix = "test-engine"
 
 	engineStore, err := tb.NewStore(engineConfig)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flowConfig := config.NewDefaultConfig().FlowStore
 	flowConfig.Addr = server.Addr()
 	flowConfig.Prefix = "test-flow"
 
 	flowStore, err := tb.NewStore(flowConfig)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	mockCli := NewMockClient()
 
@@ -331,7 +331,7 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 				err := json.Unmarshal(event.Data, &fc)
 				if err == nil && fc.FlowID == flowID {
 					flow, err := env.Engine.GetFlowState(ctx, flowID)
-					require.NoError(t, err)
+					assert.NoError(t, err)
 					return flow
 				}
 			}
@@ -342,7 +342,7 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 				err := json.Unmarshal(event.Data, &ff)
 				if err == nil && ff.FlowID == flowID {
 					flow, err := env.Engine.GetFlowState(ctx, flowID)
-					require.NoError(t, err)
+					assert.NoError(t, err)
 					return flow
 				}
 			}
@@ -350,7 +350,7 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 		case <-deadline:
 			// Timeout - get current state and return it
 			flow, err := env.Engine.GetFlowState(ctx, flowID)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			return flow
 
 		case <-ctx.Done():
@@ -387,7 +387,7 @@ func (env *TestEngineEnv) WaitForStepStatus(
 				if err := json.Unmarshal(event.Data, &sc); err == nil {
 					if sc.FlowID == flowID && sc.StepID == stepID {
 						flow, err := env.Engine.GetFlowState(ctx, flowID)
-						require.NoError(t, err)
+						assert.NoError(t, err)
 						return flow.Executions[stepID]
 					}
 				}
@@ -399,7 +399,7 @@ func (env *TestEngineEnv) WaitForStepStatus(
 				if err := json.Unmarshal(event.Data, &sf); err == nil {
 					if sf.FlowID == flowID && sf.StepID == stepID {
 						flow, err := env.Engine.GetFlowState(ctx, flowID)
-						require.NoError(t, err)
+						assert.NoError(t, err)
 						return flow.Executions[stepID]
 					}
 				}
@@ -411,7 +411,7 @@ func (env *TestEngineEnv) WaitForStepStatus(
 				if err := json.Unmarshal(event.Data, &ss); err == nil {
 					if ss.FlowID == flowID && ss.StepID == stepID {
 						flow, err := env.Engine.GetFlowState(ctx, flowID)
-						require.NoError(t, err)
+						assert.NoError(t, err)
 						return flow.Executions[stepID]
 					}
 				}
@@ -419,7 +419,7 @@ func (env *TestEngineEnv) WaitForStepStatus(
 
 		case <-deadline:
 			flow, err := env.Engine.GetFlowState(ctx, flowID)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			return flow.Executions[stepID]
 
 		case <-ctx.Done():

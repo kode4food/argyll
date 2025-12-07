@@ -11,7 +11,6 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/internal/engine"
@@ -64,7 +63,7 @@ func TestListSteps(t *testing.T) {
 	step := helpers.NewSimpleStep("list-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/engine/step", nil)
 	w := httptest.NewRecorder()
@@ -76,7 +75,7 @@ func TestListSteps(t *testing.T) {
 
 	var response api.StepsListResponse
 	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 1, response.Count)
 	assert.Len(t, response.Steps, 1)
 	assert.Equal(t, api.StepID("list-step"), response.Steps[0].ID)
@@ -89,7 +88,7 @@ func TestGetStep(t *testing.T) {
 	step := helpers.NewSimpleStep("get-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/engine/step/get-step", nil)
 	w := httptest.NewRecorder()
@@ -101,7 +100,7 @@ func TestGetStep(t *testing.T) {
 
 	var retrieved *api.Step
 	err = json.Unmarshal(w.Body.Bytes(), &retrieved)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, step.ID, retrieved.ID)
 }
 
@@ -112,7 +111,7 @@ func TestDeleteStep(t *testing.T) {
 	step := helpers.NewSimpleStep("delete-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest("DELETE", "/engine/step/delete-step", nil)
 	w := httptest.NewRecorder()
@@ -130,7 +129,7 @@ func TestStart(t *testing.T) {
 	step := helpers.NewSimpleStep("wf-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	reqBody := api.CreateFlowRequest{
 		ID:    "test-flow",
@@ -184,7 +183,7 @@ func TestSuccess(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock to return immediately for async steps
 	env.MockClient.SetResponse("async-step", api.Args{})
@@ -199,7 +198,7 @@ func TestSuccess(t *testing.T) {
 		},
 		api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to execute and create work item
 	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
@@ -207,12 +206,12 @@ func TestSuccess(t *testing.T) {
 
 	// Get the actual token from the created work item
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	exec := flow.Executions["async-step"]
-	require.NotNil(t, exec)
-	require.NotNil(t, exec.WorkItems)
-	require.Len(t, exec.WorkItems, 1)
+	assert.NotNil(t, exec)
+	assert.NotNil(t, exec.WorkItems)
+	assert.Len(t, exec.WorkItems, 1)
 
 	var token api.Token
 	for t := range exec.WorkItems {
@@ -279,7 +278,7 @@ func TestStepNotFound(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"async-step"},
@@ -291,7 +290,7 @@ func TestStepNotFound(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "webhook-wf", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	result := api.StepResult{
 		Success: true,
@@ -331,7 +330,7 @@ func TestInvalidToken(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock to return immediately for async steps
 	env.MockClient.SetResponse("async-step", api.Args{})
@@ -346,7 +345,7 @@ func TestInvalidToken(t *testing.T) {
 		},
 		api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for work item to be created
 	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
@@ -388,7 +387,7 @@ func TestInvalidJSON(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Configure mock to return immediately for async steps
 	env.MockClient.SetResponse("async-step", api.Args{})
@@ -403,7 +402,7 @@ func TestInvalidJSON(t *testing.T) {
 		},
 		api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for work item to be created
 	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
@@ -411,11 +410,11 @@ func TestInvalidJSON(t *testing.T) {
 
 	// Get the real token
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	exec := flow.Executions["async-step"]
-	require.NotNil(t, exec)
-	require.NotNil(t, exec.WorkItems)
+	assert.NotNil(t, exec)
+	assert.NotNil(t, exec.WorkItems)
 
 	var token api.Token
 	for t := range exec.WorkItems {
@@ -446,7 +445,7 @@ func TestGetFlow(t *testing.T) {
 	step := helpers.NewSimpleStep("get-wf-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"get-wf-step"},
@@ -458,7 +457,7 @@ func TestGetFlow(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "test-wf-id", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/engine/flow/test-wf-id", nil)
 	w := httptest.NewRecorder()
@@ -470,7 +469,7 @@ func TestGetFlow(t *testing.T) {
 
 	var wf api.FlowState
 	err = json.Unmarshal(w.Body.Bytes(), &wf)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("test-wf-id"), wf.ID)
 }
 
@@ -494,7 +493,7 @@ func TestUpdateStep(t *testing.T) {
 	step := helpers.NewSimpleStep("update-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	updatedStep := helpers.NewSimpleStep("update-step")
 
@@ -731,7 +730,7 @@ func TestHandleHealthByID(t *testing.T) {
 	step := helpers.NewSimpleStep("health-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest("GET", "/engine/health/health-step", nil)
 	w := httptest.NewRecorder()
@@ -743,7 +742,7 @@ func TestHandleHealthByID(t *testing.T) {
 
 	var health api.HealthState
 	err = json.Unmarshal(w.Body.Bytes(), &health)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.HealthUnknown, health.Status)
 }
 
@@ -790,7 +789,7 @@ func TestUpdateStepIDMismatch(t *testing.T) {
 	step := helpers.NewSimpleStep("original-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	updatedStep := helpers.NewSimpleStep("different-id")
 
@@ -815,7 +814,7 @@ func TestStartEmptyID(t *testing.T) {
 	step := helpers.NewSimpleStep("test-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	reqData := map[string]any{
 		"id":    "",
@@ -873,7 +872,7 @@ func TestListFlowsEmpty(t *testing.T) {
 
 	var response api.FlowsListResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, 0, response.Count)
 }
 
@@ -884,7 +883,7 @@ func TestUpdateStepValidationError(t *testing.T) {
 	step := helpers.NewSimpleStep("update-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	invalidStep := &api.Step{
 		ID:      "update-step",
@@ -921,7 +920,7 @@ func TestBasicHealthEndpoint(t *testing.T) {
 
 	var response api.HealthResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "spuds-engine", response.Service)
 	assert.Equal(t, "1.0.0", response.Version)
 	assert.Equal(t, api.HealthHealthy, response.Status)
@@ -959,9 +958,9 @@ func TestPlanPreview(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step1)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	err = env.Engine.RegisterStep(context.Background(), step2)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	reqData := map[string]any{
 		"goals": []string{"step-b"},
@@ -982,7 +981,7 @@ func TestPlanPreview(t *testing.T) {
 
 	var response api.ExecutionPlan
 	err = json.Unmarshal(w.Body.Bytes(), &response)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, response.Goals, 1)
 	assert.Equal(t, api.StepID("step-b"), response.Goals[0])
 }
@@ -1087,7 +1086,7 @@ func TestCreateStepDuplicate(t *testing.T) {
 	step := helpers.NewSimpleStep("duplicate-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	body, _ := json.Marshal(step)
 	req := httptest.NewRequest(
@@ -1147,7 +1146,7 @@ func TestStartDuplicate(t *testing.T) {
 	step := helpers.NewSimpleStep("dup-wf-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"dup-wf-step"},
@@ -1163,7 +1162,7 @@ func TestStartDuplicate(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	reqBody := api.CreateFlowRequest{
 		ID:    "duplicate-flow",
@@ -1231,7 +1230,7 @@ func TestFlowIDSanitization(t *testing.T) {
 
 	step := helpers.NewSimpleStep("test-step")
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	tests := []struct {
 		name           string
@@ -1293,7 +1292,7 @@ func TestDeleteStepInternalError(t *testing.T) {
 
 	step := helpers.NewSimpleStep("test-delete-step")
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest("DELETE", "/engine/step/test-delete-step", nil)
 	w := httptest.NewRecorder()

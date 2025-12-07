@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
@@ -26,7 +25,7 @@ func TestFlowWithGoals(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			assert.Equal(t, api.FlowID("wf-1"), req.ID)
 			assert.Len(t, req.Goals, 2)
@@ -51,7 +50,7 @@ func TestFlowWithGoal(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			assert.Equal(t, api.FlowID("wf-1"), req.ID)
 			assert.Len(t, req.Goals, 3)
@@ -79,7 +78,7 @@ func TestFlowWithInitialState(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			assert.Equal(t, api.FlowID("wf-1"), req.ID)
 			assert.Equal(t, "value1", req.Init["key1"])
@@ -140,7 +139,7 @@ func TestFlowChaining(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			assert.Equal(t, api.FlowID("complex-flow"), req.ID)
 			assert.Len(t, req.Goals, 2)
@@ -171,7 +170,7 @@ func TestFlowImmutability(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Len(t, req.Goals, 1)
 			assert.Equal(t, api.StepID("goal-1"), req.Goals[0])
 			w.WriteHeader(http.StatusOK)
@@ -183,7 +182,7 @@ func TestFlowImmutability(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Len(t, req.Goals, 1)
 			assert.Equal(t, api.StepID("goal-2"), req.Goals[0])
 			w.WriteHeader(http.StatusOK)
@@ -212,7 +211,7 @@ func TestFlowImmutabilityInitState(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, "value1", req.Init["key"])
 			w.WriteHeader(http.StatusOK)
 		},
@@ -223,7 +222,7 @@ func TestFlowImmutabilityInitState(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, "value2", req.Init["key"])
 			w.WriteHeader(http.StatusOK)
 		},
@@ -250,7 +249,7 @@ func TestFlowEmptyGoals(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Len(t, req.Goals, 0)
 			w.WriteHeader(http.StatusOK)
 		},
@@ -267,7 +266,7 @@ func TestFlowEmptyInitialState(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Empty(t, req.Init)
 			w.WriteHeader(http.StatusOK)
 		},

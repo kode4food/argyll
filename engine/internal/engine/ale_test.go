@@ -5,7 +5,6 @@ import (
 
 	"github.com/kode4food/ale/data"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/engine"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -29,10 +28,10 @@ func TestAleCacheForSameScript(t *testing.T) {
 	}
 
 	proc1, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	proc2, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Verify scripts are cached by checking same object returned
 	assert.Equal(t, proc1, proc2)
@@ -69,7 +68,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 	}
 
 	scriptComp, err := registry.Compile(script, script.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, scriptComp)
 
 	scriptProc, ok := scriptComp.(data.Procedure)
@@ -77,7 +76,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 	assert.NotNil(t, scriptProc)
 
 	predComp, err := registry.Compile(pred, pred.Predicate)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, predComp)
 
 	predProc, ok := predComp.(data.Procedure)
@@ -103,7 +102,7 @@ func TestAleExecuteScript(t *testing.T) {
 	}
 
 	proc, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	args := api.Args{
 		"a": 5,
@@ -111,7 +110,7 @@ func TestAleExecuteScript(t *testing.T) {
 	}
 
 	result, err := env.ExecuteScript(proc, step, args)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Contains(t, result, api.Name("result"))
 	assert.Equal(t, 15, result["result"])
@@ -166,10 +165,10 @@ func TestAleEvaluatePredicate(t *testing.T) {
 				Language: api.ScriptLangAle,
 			}
 			comp, err := env.Compile(step, cfg)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 
 			result, err := env.EvaluatePredicate(comp, step, tt.args)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
 	}
@@ -245,7 +244,7 @@ func TestAleComplexConversion(t *testing.T) {
 	}
 
 	comp, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	args := api.Args{
 		"is_active": true,
@@ -261,7 +260,7 @@ func TestAleComplexConversion(t *testing.T) {
 	}
 
 	result, err := env.ExecuteScript(comp, step, args)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, true, result["bool_val"])
 	assert.Equal(t, "test-item", result["string_val"])
@@ -269,12 +268,12 @@ func TestAleComplexConversion(t *testing.T) {
 	assert.Equal(t, 99.99, result["float_val"])
 
 	arrVal, ok := result["array_val"].([]any)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Len(t, arrVal, 3)
 	assert.Equal(t, "item1", arrVal[0])
 
 	nested, ok := result["nested"].(map[string]any)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, "value1", nested["key1"])
 	assert.Equal(t, 123, nested["key2"])
 
@@ -297,13 +296,13 @@ func TestAleListConversion(t *testing.T) {
 	}
 
 	comp, err := env.Compile(step, step.Script)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	result, err := env.ExecuteScript(comp, step, api.Args{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	listVal, ok := result["list_result"].([]any)
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Len(t, listVal, 5)
 	assert.Equal(t, 1, listVal[0])
 	assert.Equal(t, 5, listVal[4])

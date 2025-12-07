@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -42,7 +42,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 		},
 	}
 
-	require.NoError(t, env.Engine.RegisterStep(ctx, step))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step))
 	env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
 
 	plan := &api.ExecutionPlan{
@@ -55,20 +55,20 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			"item": []any{"a", "b"},
 		}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow := env.WaitForFlowStatus(t, ctx, "wf-foreach", workItemTimeout)
-	require.Equal(t, api.FlowCompleted, flow.Status)
+	assert.Equal(t, api.FlowCompleted, flow.Status)
 
 	attrs := flow.GetAttributes()
 	rawResults, ok := attrs["result"].([]any)
-	require.True(t, ok)
-	require.Len(t, rawResults, 2)
+	assert.True(t, ok)
+	assert.Len(t, rawResults, 2)
 
 	results := make([]map[string]any, 0, len(rawResults))
 	for _, r := range rawResults {
 		entry, ok := r.(map[string]any)
-		require.True(t, ok)
+		assert.True(t, ok)
 		results = append(results, entry)
 	}
 

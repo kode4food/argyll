@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -27,7 +26,7 @@ func TestSetResponse(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "success", result["result"])
 }
 
@@ -70,7 +69,7 @@ func TestDefaultResponse(t *testing.T) {
 		context.Background(), step, api.Args{}, api.Metadata{},
 	)
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Empty(t, result)
 }
 
@@ -116,10 +115,10 @@ func TestCanRegisterSteps(t *testing.T) {
 
 	step := helpers.NewTestStep()
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	steps, err := env.Engine.ListSteps(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, steps, 1)
 }
 
@@ -132,7 +131,7 @@ func TestCanStartFlows(t *testing.T) {
 
 	step := helpers.NewTestStep()
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{step.ID},
@@ -142,10 +141,10 @@ func TestCanStartFlows(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "test-wf", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	wf, err := env.Engine.GetFlowState(context.Background(), "test-wf")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("test-wf"), wf.ID)
 }
 

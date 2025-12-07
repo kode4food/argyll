@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/internal/engine"
@@ -34,7 +33,7 @@ func TestGetEngineState(t *testing.T) {
 	defer env.Cleanup()
 
 	state, err := env.Engine.GetEngineState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, state)
 	assert.NotNil(t, state.Steps)
 	assert.NotNil(t, state.Health)
@@ -47,13 +46,13 @@ func TestUnregisterStep(t *testing.T) {
 	step := helpers.NewSimpleStep("test-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.UnregisterStep(context.Background(), "test-step")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	steps, err := env.Engine.ListSteps(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Empty(t, steps)
 }
 
@@ -66,7 +65,7 @@ func TestHTTPExecution(t *testing.T) {
 	step := helpers.NewStepWithOutputs("http-step", "output")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	env.MockClient.SetResponse("http-step", api.Args{"output": "success"})
 
@@ -78,7 +77,7 @@ func TestHTTPExecution(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-http", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestScriptExecution(t *testing.T) {
@@ -92,7 +91,7 @@ func TestScriptExecution(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"script-step"},
@@ -102,7 +101,7 @@ func TestScriptExecution(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-script", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestPredicateExecution(t *testing.T) {
@@ -116,7 +115,7 @@ func TestPredicateExecution(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	env.MockClient.SetResponse("predicate-step", api.Args{"output": "executed"})
 
@@ -128,7 +127,7 @@ func TestPredicateExecution(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-pred", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestPredicateFalse(t *testing.T) {
@@ -143,7 +142,7 @@ func TestPredicateFalse(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	env.MockClient.SetResponse(
 		"predicate-false-step", api.Args{"output": "should-not-execute"},
@@ -157,7 +156,7 @@ func TestPredicateFalse(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-pred-false", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.False(t, env.MockClient.WasInvoked("predicate-false-step"))
 }
@@ -174,7 +173,7 @@ func TestLuaScriptExecution(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"lua-script-step"},
@@ -184,7 +183,7 @@ func TestLuaScriptExecution(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-lua-script", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestAleScriptWithInputs(t *testing.T) {
@@ -200,7 +199,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 	step.Attributes["x"] = &api.AttributeSpec{Role: api.RoleRequired}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals:    []api.StepID{"ale-input-step"},
@@ -212,7 +211,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 		context.Background(), "wf-ale-input", plan,
 		api.Args{"x": float64(21)}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestLuaPredicate(t *testing.T) {
@@ -227,7 +226,7 @@ func TestLuaPredicate(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	env.MockClient.SetResponse("lua-pred-step", api.Args{"output": "executed"})
 
@@ -239,7 +238,7 @@ func TestLuaPredicate(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-lua-pred", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 }
 
 func TestListSteps(t *testing.T) {
@@ -249,10 +248,10 @@ func TestListSteps(t *testing.T) {
 	step := helpers.NewSimpleStep("list-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	steps, err := env.Engine.ListSteps(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, steps, 1)
 	assert.Equal(t, api.StepID("list-step"), steps[0].ID)
 }
@@ -262,7 +261,7 @@ func TestListStepsEmpty(t *testing.T) {
 	defer env.Cleanup()
 
 	steps, err := env.Engine.ListSteps(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Empty(t, steps)
 }
 
@@ -273,7 +272,7 @@ func TestRegisterDuplicateStep(t *testing.T) {
 	step := helpers.NewSimpleStep("dup-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.RegisterStep(context.Background(), step)
 	if err != nil {
@@ -293,7 +292,7 @@ func TestUpdateStepSuccess(t *testing.T) {
 	step.Name = "Original Name"
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	updatedStep := helpers.NewSimpleStep("update-step")
 	updatedStep.Name = "Updated Name"
@@ -301,13 +300,13 @@ func TestUpdateStepSuccess(t *testing.T) {
 	updatedStep.HTTP.Endpoint = "http://test:8080/v2"
 
 	err = env.Engine.UpdateStep(context.Background(), updatedStep)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	state, err := env.Engine.GetEngineState(context.Background())
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	updated, ok := state.Steps["update-step"]
-	require.True(t, ok)
+	assert.True(t, ok)
 	assert.Equal(t, api.Name("Updated Name"), updated.Name)
 	assert.Equal(t, "1.0.1", updated.Version)
 }
@@ -332,7 +331,7 @@ func TestGetFlowState(t *testing.T) {
 	step := helpers.NewSimpleStep("state-step")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"state-step"},
@@ -342,10 +341,10 @@ func TestGetFlowState(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-state", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	state, err := env.Engine.GetFlowState(context.Background(), "wf-state")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("wf-state"), state.ID)
 	assert.NotNil(t, state.Status)
 }

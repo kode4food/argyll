@@ -7,7 +7,6 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/events"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -55,7 +54,7 @@ func TestFlowStarted(t *testing.T) {
 		},
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -87,7 +86,7 @@ func TestFlowCompleted(t *testing.T) {
 
 	eventData := api.FlowCompletedEvent{FlowID: "test-flow"}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -115,7 +114,7 @@ func TestFlowFailed(t *testing.T) {
 		Error:  "execution failed",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -150,7 +149,7 @@ func TestStepStarted(t *testing.T) {
 		},
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -185,7 +184,7 @@ func TestStepCompleted(t *testing.T) {
 		Outputs:  api.Args{"result": "success"},
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -219,7 +218,7 @@ func TestStepFailed(t *testing.T) {
 		Error:  "step execution failed",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -251,7 +250,7 @@ func TestStepSkipped(t *testing.T) {
 		Reason: "predicate evaluated to false",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -282,7 +281,7 @@ func TestAttributeSet(t *testing.T) {
 		Value:  "test-value",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -323,7 +322,7 @@ func TestWorkStarted(t *testing.T) {
 		Token:  "token1",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -362,7 +361,7 @@ func TestWorkSucceeded(t *testing.T) {
 		Outputs: api.Args{"work_result": "success"},
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -402,7 +401,7 @@ func TestWorkFailed(t *testing.T) {
 		Error:  "work execution failed",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -441,7 +440,7 @@ func TestWorkNotCompleted(t *testing.T) {
 		Error:  "work not completed",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -487,7 +486,7 @@ func TestRetryScheduled(t *testing.T) {
 		Error:       "previous error",
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,
@@ -520,7 +519,7 @@ func TestMissingExecution(t *testing.T) {
 		Outputs:  api.Args{},
 	}
 	data, err := json.Marshal(eventData)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Timestamp:   now,

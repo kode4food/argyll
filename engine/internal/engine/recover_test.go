@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
 	"github.com/kode4food/spuds/engine/pkg/api"
@@ -31,14 +30,14 @@ func TestRecoveryActivation(t *testing.T) {
 	err := env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait a bit for the event loop to process the flow started event
 	time.Sleep(100 * time.Millisecond)
 
 	// Check that flow was created and started
 	flow, err := env.Engine.GetFlowState(ctx, flowID)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, flow)
 	assert.Equal(t, flowID, flow.ID)
 	assert.False(t, flow.CreatedAt.IsZero())
@@ -56,7 +55,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 	step := helpers.NewSimpleStep("step-1")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
@@ -64,13 +63,13 @@ func TestRecoveryDeactivation(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for flow to complete naturally
 	env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
 
 	// Poll for flow to be removed from active flows (deactivation is async)
-	require.Eventually(t, func() bool {
+	assert.Eventually(t, func() bool {
 		engineState, err := env.Engine.GetEngineState(ctx)
 		if err != nil {
 			return false
@@ -257,6 +256,24 @@ func TestCalculateNextRetry(t *testing.T) {
 	}
 }
 
+func TestCalculateNextRetryDefaultsToFixed(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	config := &api.WorkConfig{
+		BackoffMs:    750,
+		MaxBackoffMs: 1200,
+		BackoffType:  "unknown",
+	}
+
+	start := time.Now()
+	nextRetry := env.Engine.CalculateNextRetry(config, 5)
+	delay := nextRetry.Sub(start).Milliseconds()
+
+	assert.GreaterOrEqual(t, delay, int64(740))
+	assert.LessOrEqual(t, delay, int64(1210))
+}
+
 func TestRetryExhaustion(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
@@ -276,7 +293,7 @@ func TestRetryExhaustion(t *testing.T) {
 		fmt.Errorf("%w: %w", api.ErrWorkNotCompleted, assert.AnError))
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"failing-step"},
@@ -287,16 +304,16 @@ func TestRetryExhaustion(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, flowID, plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	time.Sleep(1500 * time.Millisecond)
 
 	flow, err := env.Engine.GetFlowState(ctx, flowID)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	exec := flow.Executions["failing-step"]
-	require.NotNil(t, exec.WorkItems)
-	require.NotEmpty(t, exec.WorkItems)
+	assert.NotNil(t, exec.WorkItems)
+	assert.NotEmpty(t, exec.WorkItems)
 
 	hasRetrying := false
 	for _, item := range exec.WorkItems {
@@ -394,23 +411,23 @@ func TestRecoverActiveFlows(t *testing.T) {
 	err := env.Engine.StartFlow(
 		ctx, flowID1, plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		ctx, flowID2, plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	// Wait for events to be processed
 	time.Sleep(100 * time.Millisecond)
 
 	// Flows created successfully
 	flow1, err := env.Engine.GetFlowState(ctx, flowID1)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, flow1)
 
 	flow2, err := env.Engine.GetFlowState(ctx, flowID2)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, flow2)
 }
 
@@ -540,4 +557,52 @@ func TestWorkConfigValidation(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestIsRetryableUtility(t *testing.T) {
+	now := time.Now()
+
+	tests := []struct {
+		name   string
+		state  *api.WorkState
+		expect bool
+	}{
+		{
+			name:   "zero time is not retryable",
+			state:  &api.WorkState{NextRetryAt: time.Time{}},
+			expect: false,
+		},
+		{
+			name:   "future retry not ready",
+			state:  &api.WorkState{NextRetryAt: now.Add(time.Second)},
+			expect: false,
+		},
+		{
+			name:   "past retry is ready",
+			state:  &api.WorkState{NextRetryAt: now.Add(-time.Second)},
+			expect: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.expect, isRetryable(tt.state, now))
+		})
+	}
+}
+
+func TestIsRetryable(t *testing.T) {
+	now := time.Now()
+
+	assert.False(t, isRetryable(&api.WorkState{}, now))
+	assert.False(t, isRetryable(&api.WorkState{
+		NextRetryAt: now.Add(time.Minute),
+	}, now))
+	assert.True(t, isRetryable(&api.WorkState{
+		NextRetryAt: now.Add(-time.Minute),
+	}, now))
+}
+
+func isRetryable(workItem *api.WorkState, now time.Time) bool {
+	return !workItem.NextRetryAt.IsZero() && workItem.NextRetryAt.Before(now)
 }

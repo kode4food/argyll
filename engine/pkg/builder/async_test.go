@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
@@ -31,7 +30,7 @@ func TestNewAsyncContext(t *testing.T) {
 	}
 
 	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "test-flow", ac.FlowID())
 	assert.Equal(t, "test-step", ac.StepID())
 	assert.Equal(t,
@@ -80,7 +79,7 @@ func TestAsyncContextComplete(t *testing.T) {
 
 			var result api.StepResult
 			err := json.NewDecoder(r.Body).Decode(&result)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.True(t, result.Success)
 			assert.Equal(t, "result-value", result.Outputs["output_key"])
 
@@ -103,7 +102,7 @@ func TestAsyncContextComplete(t *testing.T) {
 		Metadata: meta,
 	}
 	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = ac.Success(api.Args{"output_key": "result-value"})
 	assert.NoError(t, err)
@@ -114,7 +113,7 @@ func TestAsyncContextFail(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			var result api.StepResult
 			err := json.NewDecoder(r.Body).Decode(&result)
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.False(t, result.Success)
 			assert.Contains(t, result.Error, "general error")
 
@@ -137,7 +136,7 @@ func TestAsyncContextFail(t *testing.T) {
 		Metadata: meta,
 	}
 	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = ac.Fail(assert.AnError)
 	assert.NoError(t, err)
@@ -166,7 +165,7 @@ func TestAsyncContextWebhookError(t *testing.T) {
 		Metadata: meta,
 	}
 	ac, err := builder.NewAsyncContext(ctx)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	err = ac.Success(api.Args{"key": "value"})
 	assert.ErrorIs(t, err, builder.ErrWebhookError)

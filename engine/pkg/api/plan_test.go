@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -49,7 +48,7 @@ func TestValidateMissing(t *testing.T) {
 	}
 
 	err := plan.ValidateInputs(args)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	expected := "required inputs not provided: [required_input]"
 	assert.Equal(t, expected, err.Error())
@@ -65,7 +64,7 @@ func TestValidateMissingMulti(t *testing.T) {
 	}
 
 	err := plan.ValidateInputs(args)
-	require.Error(t, err)
+	assert.Error(t, err)
 
 	errorMsg := err.Error()
 	assert.True(t,

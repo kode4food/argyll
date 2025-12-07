@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	as "github.com/kode4food/spuds/engine/internal/assert"
 	"github.com/kode4food/spuds/engine/internal/assert/helpers"
@@ -22,7 +21,7 @@ func TestGetActiveFlow(t *testing.T) {
 	step := helpers.NewSimpleStep("active-test")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"active-test"},
@@ -32,10 +31,10 @@ func TestGetActiveFlow(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-active-test", plan, api.Args{}, api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(ctx, "wf-active-test")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, flow)
 	assert.Equal(t, api.FlowID("wf-active-test"), flow.ID)
 	assert.Equal(t, api.FlowActive, flow.Status)
@@ -71,7 +70,7 @@ func TestScript(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"script-step"},
@@ -85,7 +84,7 @@ func TestScript(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	a := as.New(t)
 	fs := engine.FlowStep{FlowID: "wf-script", StepID: "script-step"}
@@ -95,7 +94,7 @@ func TestScript(t *testing.T) {
 	}, 500*time.Millisecond, "script should compile")
 
 	comp, err := env.Engine.GetCompiledScript(fs)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, comp)
 }
 
@@ -106,7 +105,7 @@ func TestScriptMissing(t *testing.T) {
 	step := helpers.NewSimpleStep("no-script")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"no-script"},
@@ -120,7 +119,7 @@ func TestScriptMissing(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
 	comp, err := env.Engine.GetCompiledScript(fs)
@@ -140,7 +139,7 @@ func TestPredicate(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"predicate-step"},
@@ -154,7 +153,7 @@ func TestPredicate(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	a := as.New(t)
 	fs := engine.FlowStep{FlowID: "wf-predicate", StepID: "predicate-step"}
@@ -164,7 +163,7 @@ func TestPredicate(t *testing.T) {
 	}, 500*time.Millisecond, "predicate should compile")
 
 	comp, err := env.Engine.GetCompiledPredicate(fs)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.NotNil(t, comp)
 }
 

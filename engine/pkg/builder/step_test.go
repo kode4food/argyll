@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 	"github.com/kode4food/spuds/engine/pkg/builder"
@@ -19,7 +18,7 @@ func TestNewStep(t *testing.T) {
 		WithEndpoint("http://example.com").
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepID("test-step"), step.ID)
 	assert.Equal(t, name, step.Name)
 	assert.Equal(t, "1.0.0", step.Version)
@@ -66,7 +65,7 @@ func TestNewStepIDGeneration(t *testing.T) {
 				WithEndpoint("http://example.com").
 				Build()
 
-			require.NoError(t, err)
+			assert.NoError(t, err)
 			assert.Equal(t, tt.expectedID, step.ID)
 		})
 	}
@@ -79,7 +78,7 @@ func TestWithID(t *testing.T) {
 		WithEndpoint("http://example.com").
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepID(customID), step.ID)
 	assert.Equal(t, api.Name("Test Step"), step.Name)
 }
@@ -91,7 +90,7 @@ func TestRequiredArg(t *testing.T) {
 		Required("input2", api.TypeNumber).
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, step.Attributes, 2)
 	assert.Contains(t, step.Attributes, api.Name("input1"))
 	assert.EqualValues(t, api.TypeString, step.Attributes["input1"].Type)
@@ -105,7 +104,7 @@ func TestOptionalArg(t *testing.T) {
 		Optional("optional2", api.TypeNumber, "42").
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, step.Attributes, 2)
 	assert.Contains(t, step.Attributes, api.Name("optional1"))
 	assert.EqualValues(t, api.RoleOptional, step.Attributes["optional1"].Role)
@@ -119,7 +118,7 @@ func TestOutputArg(t *testing.T) {
 		Output("output2", api.TypeNumber).
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Len(t, step.Attributes, 2)
 	assert.Contains(t, step.Attributes, api.Name("output1"))
 	assert.EqualValues(t, api.TypeString, step.Attributes["output1"].Type)
@@ -132,7 +131,7 @@ func TestWithVersion(t *testing.T) {
 		WithVersion("2.0.0").
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, "2.0.0", step.Version)
 }
 
@@ -142,8 +141,8 @@ func TestWithEndpoint(t *testing.T) {
 		WithEndpoint(endpoint).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.HTTP)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.HTTP)
 	assert.Equal(t, endpoint, step.HTTP.Endpoint)
 	assert.Equal(t, api.StepTypeSync, step.Type)
 }
@@ -154,8 +153,8 @@ func TestWithScript(t *testing.T) {
 		WithScript(script).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.Script)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Script)
 	assert.Equal(t, script, step.Script.Script)
 	assert.Equal(t, api.ScriptLangAle, step.Script.Language)
 	assert.Equal(t, api.StepTypeScript, step.Type)
@@ -168,8 +167,8 @@ func TestWithScriptLanguage(t *testing.T) {
 		WithScriptLanguage(lang, script).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.Script)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Script)
 	assert.Equal(t, script, step.Script.Script)
 	assert.Equal(t, lang, step.Script.Language)
 	assert.Equal(t, api.StepTypeScript, step.Type)
@@ -182,8 +181,8 @@ func TestWithHealthCheck(t *testing.T) {
 		WithHealthCheck(healthCheck).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.HTTP)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.HTTP)
 	assert.Equal(t, healthCheck, step.HTTP.HealthCheck)
 }
 
@@ -194,7 +193,7 @@ func TestWithTimeout(t *testing.T) {
 		WithTimeout(timeout).
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, timeout, step.HTTP.Timeout)
 }
 
@@ -204,7 +203,7 @@ func TestWithType(t *testing.T) {
 		WithType(api.StepTypeAsync).
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeAsync, step.Type)
 }
 
@@ -214,7 +213,7 @@ func TestWithAsyncExecution(t *testing.T) {
 		WithAsyncExecution().
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeAsync, step.Type)
 }
 
@@ -224,7 +223,7 @@ func TestWithSyncExecution(t *testing.T) {
 		WithSyncExecution().
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeSync, step.Type)
 }
 
@@ -234,7 +233,7 @@ func TestWithScriptExecution(t *testing.T) {
 		WithScriptExecution().
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeScript, step.Type)
 }
 
@@ -245,8 +244,8 @@ func TestWithPredicate(t *testing.T) {
 		WithPredicate(api.ScriptLangAle, predicate).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.Predicate)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Predicate)
 	assert.Equal(t, api.ScriptLangAle, step.Predicate.Language)
 	assert.Equal(t, predicate, step.Predicate.Script)
 }
@@ -258,8 +257,8 @@ func TestWithAlePredicate(t *testing.T) {
 		WithAlePredicate(predicate).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.Predicate)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Predicate)
 	assert.Equal(t, api.ScriptLangAle, step.Predicate.Language)
 	assert.Equal(t, predicate, step.Predicate.Script)
 }
@@ -271,8 +270,8 @@ func TestWithLuaPredicate(t *testing.T) {
 		WithLuaPredicate(predicate).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step.Predicate)
+	assert.NoError(t, err)
+	assert.NotNil(t, step.Predicate)
 	assert.Equal(t, api.ScriptLangLua, step.Predicate.Language)
 	assert.Equal(t, predicate, step.Predicate.Script)
 }
@@ -284,8 +283,8 @@ func TestBuildValidHTTPStep(t *testing.T) {
 		Output("output", api.TypeString).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step)
+	assert.NoError(t, err)
+	assert.NotNil(t, step)
 	assert.Equal(t, api.StepID("test-step"), step.ID)
 }
 
@@ -296,8 +295,8 @@ func TestBuildValidScriptStep(t *testing.T) {
 		Output("result", api.TypeNumber).
 		Build()
 
-	require.NoError(t, err)
-	require.NotNil(t, step)
+	assert.NoError(t, err)
+	assert.NotNil(t, step)
 	assert.Equal(t, api.StepTypeScript, step.Type)
 }
 
@@ -321,7 +320,7 @@ func TestChaining(t *testing.T) {
 		WithAsyncExecution().
 		Build()
 
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeAsync, step.Type)
 	requiredArgs := step.GetRequiredArgs()
 	optionalArgs := step.GetOptionalArgs()
@@ -345,11 +344,11 @@ func TestImmutability(t *testing.T) {
 		WithTimeout(60 * api.Second)
 
 	_, err1 := original.Build()
-	require.Error(t, err1)
+	assert.Error(t, err1)
 
 	step2, err2 := modified.Build()
-	require.NoError(t, err2)
-	require.NotNil(t, step2)
+	assert.NoError(t, err2)
+	assert.NotNil(t, step2)
 
 	assert.Equal(t, api.StepID("custom-id"), step2.ID)
 	assert.Equal(t, "2.0.0", step2.Version)
@@ -364,14 +363,14 @@ func TestImmutabilityMaps(t *testing.T) {
 	builder2 := base.Required("arg2", api.TypeNumber)
 
 	step1, err1 := builder1.Build()
-	require.NoError(t, err1)
+	assert.NoError(t, err1)
 	requiredArgs1 := step1.GetRequiredArgs()
 	assert.Len(t, requiredArgs1, 1)
 	assert.Contains(t, requiredArgs1, api.Name("arg1"))
 	assert.NotContains(t, requiredArgs1, api.Name("arg2"))
 
 	step2, err2 := builder2.Build()
-	require.NoError(t, err2)
+	assert.NoError(t, err2)
 	requiredArgs2 := step2.GetRequiredArgs()
 	assert.Len(t, requiredArgs2, 1)
 	assert.Contains(t, requiredArgs2, api.Name("arg2"))
@@ -386,12 +385,12 @@ func TestImmutabilityHTTPConfig(t *testing.T) {
 	modified := base.WithEndpoint("http://different.com")
 
 	step1, err1 := base.Build()
-	require.NoError(t, err1)
+	assert.NoError(t, err1)
 	assert.Equal(t, "http://example.com", step1.HTTP.Endpoint)
 	assert.Equal(t, "http://example.com/health", step1.HTTP.HealthCheck)
 
 	step2, err2 := modified.Build()
-	require.NoError(t, err2)
+	assert.NoError(t, err2)
 	assert.Equal(t, "http://different.com", step2.HTTP.Endpoint)
 	assert.Equal(t, "http://example.com/health", step2.HTTP.HealthCheck)
 }
@@ -422,7 +421,7 @@ func TestBuildValidationErrors(t *testing.T) {
 		step, err := testClient().NewStep("Test").
 			WithScript("(+ 1 2)").
 			Build()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, step.Script)
 		assert.Equal(t, api.StepTypeScript, step.Type)
 	})
@@ -432,7 +431,7 @@ func TestBuildValidationErrors(t *testing.T) {
 			WithEndpoint("http://example.com").
 			WithAlePredicate("(> count 10)").
 			Build()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, step.Predicate)
 		assert.Equal(t, api.ScriptLangAle, step.Predicate.Language)
 	})
@@ -442,7 +441,7 @@ func TestBuildValidationErrors(t *testing.T) {
 			WithEndpoint("http://example.com").
 			WithLuaPredicate("return count > 10").
 			Build()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.NotNil(t, step.Predicate)
 		assert.Equal(t, api.ScriptLangLua, step.Predicate.Language)
 	})
@@ -464,7 +463,7 @@ func TestStepBuilderChaining(t *testing.T) {
 			WithAsyncExecution().
 			Build()
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, api.StepID("complex"), step.ID)
 		assert.Equal(t, "2.0.0", step.Version)
 		assert.Equal(t, api.StepTypeAsync, step.Type)
@@ -482,21 +481,21 @@ func TestStepBuilderChaining(t *testing.T) {
 			WithEndpoint("http://example.com").
 			WithSyncExecution().
 			Build()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeSync, syncStep.Type)
 
 		asyncStep, err := build.
 			WithEndpoint("http://example.com").
 			WithAsyncExecution().
 			Build()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeAsync, asyncStep.Type)
 
 		scriptStep, err := build.
 			WithScript("(+ 1 2)").
 			WithScriptExecution().
 			Build()
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeScript, scriptStep.Type)
 	})
 }
@@ -509,7 +508,7 @@ func TestStepBuilderWithForEach(t *testing.T) {
 			Output("results", api.TypeArray).
 			Build()
 
-		require.NoError(t, err)
+		assert.NoError(t, err)
 		assert.Equal(t, api.TypeArray, step.Attributes["users"].Type)
 	})
 }

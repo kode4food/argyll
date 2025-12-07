@@ -7,7 +7,6 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/spuds/engine/pkg/api"
 )
@@ -24,11 +23,11 @@ func TestEventJSONMarshaling(t *testing.T) {
 	}
 
 	jsonBytes, err := json.Marshal(in)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	var out timebox.Event
 	err = json.Unmarshal(jsonBytes, &out)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, in.Type, out.Type)
 	assert.Equal(t, in.Timestamp.Unix(), out.Timestamp.Unix())
@@ -46,11 +45,11 @@ func TestWebSocketEventMarshaling(t *testing.T) {
 	}
 
 	jsonBytes, err := json.Marshal(in)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	var out api.WebSocketEvent
 	err = json.Unmarshal(jsonBytes, &out)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	assert.Equal(t, in.Type, out.Type)
 	assert.Equal(t, in.Timestamp, out.Timestamp)
