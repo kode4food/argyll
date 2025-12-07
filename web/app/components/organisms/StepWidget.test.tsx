@@ -21,12 +21,16 @@ jest.mock("../molecules/StepFooter", () => ({
   __esModule: true,
   default: ({ step }: any) => <div data-testid="step-footer">{step.id}</div>,
 }));
-jest.mock("../../contexts/FlowSessionContext", () => ({
-  __esModule: true,
-  useFlowSession: () => ({
-    loadSteps: jest.fn().mockResolvedValue(undefined),
-  }),
-}));
+jest.mock("../../contexts/FlowSessionContext", () => {
+  const loadStepsMock = jest.fn().mockResolvedValue(undefined);
+  return {
+    __esModule: true,
+    useFlowSession: () => ({
+      loadSteps: loadStepsMock,
+    }),
+    __loadStepsMock: loadStepsMock,
+  };
+});
 jest.mock("../../contexts/StepEditorContext", () => {
   const openEditor = jest.fn();
   const closeEditor = jest.fn();
@@ -322,5 +326,23 @@ describe("StepWidget", () => {
 
     const { __openEditor } = require("../../contexts/StepEditorContext");
     expect(__openEditor).not.toHaveBeenCalled();
+  });
+
+  test("refreshes steps after editor update", async () => {
+    const step = createStep("script");
+    const { __openEditor } = require("../../contexts/StepEditorContext");
+    __openEditor.mockImplementation(({ onUpdate }: any) => {
+      onUpdate({ ...step, name: "Updated" });
+    });
+
+    const { __loadStepsMock } = require("../../contexts/FlowSessionContext");
+    render(<StepWidget step={step} />);
+
+    const widget = document.querySelector(".step-widget");
+    fireEvent.doubleClick(widget!);
+
+    await waitFor(() => {
+      expect(__loadStepsMock).toHaveBeenCalled();
+    });
   });
 });
