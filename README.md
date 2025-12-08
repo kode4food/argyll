@@ -1,4 +1,4 @@
-# Argyll <img src="./web/public/logo512.png" align="right" height="100"/>
+# Argyll <img src="./web/public/argyll-logo.png" align="right" height="100"/>
 
 ### Goal-Driven Orchestrator
 
