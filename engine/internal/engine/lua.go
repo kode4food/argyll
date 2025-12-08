@@ -280,17 +280,17 @@ func luaNumberToGo(L *lua.State, index int) any {
 }
 
 func luaToGo(L *lua.State, index int) any {
-	switch {
-	case L.IsNil(index):
+	switch L.TypeOf(index) {
+	case lua.TypeNil:
 		return nil
-	case L.IsBoolean(index):
+	case lua.TypeBoolean:
 		return L.ToBoolean(index)
-	case L.IsNumber(index):
+	case lua.TypeNumber:
 		return luaNumberToGo(L, index)
-	case L.IsString(index):
+	case lua.TypeString:
 		s, _ := L.ToString(index)
 		return s
-	case L.IsTable(index):
+	case lua.TypeTable:
 		return luaTableToAny(L, index)
 	default:
 		return nil
