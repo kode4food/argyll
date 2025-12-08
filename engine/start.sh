@@ -12,4 +12,4 @@ WEBHOOK_BASE_URL=http://localhost:8080
 DEV_MODE=true
 LOG_LEVEL=info
 
-go run cmd/spuds/main.go
+go run cmd/argyll/main.go

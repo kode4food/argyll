@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/builder"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 func TestSetupStepWithMockEngine(t *testing.T) {
@@ -27,10 +27,10 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 		},
 	))
 
-	_ = os.Setenv("SPUDS_ENGINE_URL", mockEngine.URL)
+	_ = os.Setenv("ARGYLL_ENGINE_URL", mockEngine.URL)
 	_ = os.Setenv("STEP_PORT", "0")
 	defer func() {
-		_ = os.Unsetenv("SPUDS_ENGINE_URL")
+		_ = os.Unsetenv("ARGYLL_ENGINE_URL")
 		_ = os.Unsetenv("STEP_PORT")
 	}()
 
@@ -56,11 +56,11 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 
 func TestSetupEnvironmentVariables(t *testing.T) {
 	_ = os.Setenv("STEP_PORT", "9876")
-	_ = os.Setenv("SPUDS_ENGINE_URL", "http://test-engine:8080")
+	_ = os.Setenv("ARGYLL_ENGINE_URL", "http://test-engine:8080")
 	_ = os.Setenv("STEP_HOSTNAME", "test-host")
 	unset := func() {
 		_ = os.Unsetenv("STEP_PORT")
-		_ = os.Unsetenv("SPUDS_ENGINE_URL")
+		_ = os.Unsetenv("ARGYLL_ENGINE_URL")
 		_ = os.Unsetenv("STEP_HOSTNAME")
 	}
 	defer unset()

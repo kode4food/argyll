@@ -13,9 +13,9 @@ import (
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/internal/engine"
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 // HealthChecker monitors the health of registered step services
@@ -182,7 +182,7 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 
 func (s *Server) handleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, api.HealthResponse{
-		Service: "spuds-engine",
+		Service: "argyll-engine",
 		Version: "1.0.0",
 		HealthState: api.HealthState{
 			Status: api.HealthHealthy,

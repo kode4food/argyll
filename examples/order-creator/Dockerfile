@@ -29,7 +29,7 @@ COPY --from=builder /build/order-creator .
 # Set default environment variables
 ENV STEP_PORT=8084
 ENV STEP_HOSTNAME=order-creator
-ENV SPUDS_ENGINE_URL=http://spuds-engine:8080
+ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
 
 EXPOSE 8084
 

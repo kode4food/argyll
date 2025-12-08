@@ -398,13 +398,13 @@ const FlowSelectorContent: React.FC = () => {
           <div className={styles.left}>
             <div className={styles.title}>
               <Image
-                src="/spuds-logo.svg"
-                alt="Spuds Logo"
+                src="/argyll-logo.png"
+                alt="Argyll Logo"
                 className={styles.icon}
                 width={123}
                 height={77}
               />
-              <h1 className={styles.titleText}>Spuds Engine</h1>
+              <h1 className={styles.titleText}>Argyll Engine</h1>
             </div>
           </div>
 

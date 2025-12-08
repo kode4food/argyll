@@ -1,12 +1,12 @@
-# Spuds <img src="./web/public/logo512.png" align="right" height="100"/>
+# Argyll <img src="./web/public/logo512.png" align="right" height="100"/>
 
 ### Goal-Driven Orchestrator
 
-[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/spuds/engine)](https://goreportcard.com/report/github.com/kode4food/spuds/engine) [![Build Status](https://github.com/kode4food/spuds/workflows/Build/badge.svg)](https://github.com/kode4food/spuds/actions) [![Code Coverage](https://qlty.sh/gh/kode4food/projects/spuds/coverage.svg)](https://qlty.sh/gh/kode4food/projects/spuds) [![Maintainability](https://qlty.sh/gh/kode4food/projects/spuds/maintainability.svg)](https://qlty.sh/gh/kode4food/projects/spuds) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/spuds/blob/main/LICENSE.md)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/argyll/engine)](https://goreportcard.com/report/github.com/kode4food/argyll/engine) [![Build Status](https://github.com/kode4food/argyll/workflows/Build/badge.svg)](https://github.com/kode4food/argyll/actions) [![Code Coverage](https://qlty.sh/gh/kode4food/projects/argyll/coverage.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![Maintainability](https://qlty.sh/gh/kode4food/projects/argyll/maintainability.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/argyll/blob/main/LICENSE.md)
 
-Spuds is an orchestrator that uses goal-driven execution with lazy evaluation. Instead of running entire workflows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed to accomplish its goals.
+Argyll is an orchestrator that uses goal-driven execution with lazy evaluation. Instead of running entire workflows, you specify what you want to achieve (one or more Goal Steps) and the engine automatically determines and executes only the minimal set of steps needed to accomplish its goals.
 
-![Spuds UI Screenshot](./docs/img/screenshot.png)
+![Argyll UI Screenshot](./docs/img/screenshot.png)
 
 ## Installation
 
@@ -15,7 +15,7 @@ Spuds is an orchestrator that uses goal-driven execution with lazy evaluation. I
 docker compose up
 
 # Manual installation
-go install github.com/kode4food/spuds/cmd/spuds@latest
+go install github.com/kode4food/argyll/cmd/argyll@latest
 ```
 
 ## How It Works

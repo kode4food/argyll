@@ -6,7 +6,7 @@ import (
 
 	"github.com/tidwall/gjson"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // computeWorkItems determines all work items that a step needs to execute

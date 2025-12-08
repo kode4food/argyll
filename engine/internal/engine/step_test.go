@@ -7,10 +7,10 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	as "github.com/kode4food/spuds/engine/internal/assert"
-	"github.com/kode4food/spuds/engine/internal/assert/helpers"
-	"github.com/kode4food/spuds/engine/internal/engine"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	as "github.com/kode4food/argyll/engine/internal/assert"
+	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestGetActiveFlow(t *testing.T) {

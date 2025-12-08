@@ -38,7 +38,7 @@ jobs:
         with:
           token: ${{ secrets.QLTY_COVERAGE_TOKEN }}
           strip-prefix: |
-            github.com/kode4food/spuds/
+            github.com/kode4food/argyll/
           files: |
             engine/cover.out
             web/coverage/lcov.info

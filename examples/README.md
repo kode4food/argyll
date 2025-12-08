@@ -1,4 +1,4 @@
-# Spuds Example Steps
+# Argyll Example Steps
 
 This directory contains example step implementations demonstrating different step types and flow patterns.
 
@@ -9,7 +9,7 @@ This directory contains example step implementations demonstrating different ste
 docker compose up
 
 # Or start just the engine and specific examples
-docker compose up valkey spuds-engine user-resolver inventory-resolver
+docker compose up valkey argyll-engine user-resolver inventory-resolver
 ```
 
 ## Example Steps Overview
@@ -280,13 +280,13 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "format-text",
     "goals": ["text-formatter"],
     "init": {
-      "text": "Welcome to Spuds!",
+      "text": "Welcome to Argyll!",
       "name": "Alice Johnson"
     }
   }'
 ```
 
-**Expected Output**: `"[ALICE] Welcome to Spuds!"`
+**Expected Output**: `"[ALICE] Welcome to Argyll!"`
 
 ##### b. **price-calculator** (Ale)
 Calculates pricing with tax and shipping.

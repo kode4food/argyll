@@ -1,4 +1,4 @@
-module github.com/kode4food/spuds/engine
+module github.com/kode4food/argyll/engine
 
 go 1.25.3
 

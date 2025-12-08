@@ -6,7 +6,7 @@ import {
 import { Viewport } from "@xyflow/react";
 
 describe("viewportPersistence", () => {
-  const STORAGE_KEY = "spuds-viewport-state";
+  const STORAGE_KEY = "argyll-viewport-state";
 
   beforeEach(() => {
     localStorage.clear();

@@ -9,7 +9,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // Config holds configuration settings for the orchestrator
@@ -38,7 +38,7 @@ const (
 	DefaultRedisDB = 0
 
 	DefaultRedisEndpoint       = "localhost:6379"
-	DefaultRedisPrefix         = "spuds"
+	DefaultRedisPrefix         = "argyll"
 	DefaultSnapshotWorkers     = 4
 	DefaultSnapshotQueueSize   = 1000
 	DefaultSnapshotSaveTimeout = 30 * time.Second

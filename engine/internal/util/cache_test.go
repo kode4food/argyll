@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/util"
+	"github.com/kode4food/argyll/engine/internal/util"
 )
 
 func TestCacheMiss(t *testing.T) {

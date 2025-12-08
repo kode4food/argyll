@@ -11,8 +11,8 @@ import (
 	"github.com/kode4food/ale/env"
 	"github.com/kode4food/ale/eval"
 
-	"github.com/kode4food/spuds/engine/internal/util"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/util"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // AleEnv provides an Ale script execution environment

@@ -10,11 +10,11 @@ import (
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/internal/client"
-	"github.com/kode4food/spuds/engine/internal/config"
-	"github.com/kode4food/spuds/engine/internal/events"
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/internal/client"
+	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/events"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type (

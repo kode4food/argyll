@@ -1,6 +1,6 @@
 import { Viewport } from "@xyflow/react";
 
-const VIEWPORT_STORAGE_KEY = "spuds-viewport-state";
+const VIEWPORT_STORAGE_KEY = "argyll-viewport-state";
 
 export interface ViewportState {
   [key: string]: Viewport; // key can be flow ID or 'overview' for overview mode

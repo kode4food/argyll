@@ -7,9 +7,9 @@ import (
 	"github.com/kode4food/timebox"
 	testify "github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/assert"
-	"github.com/kode4food/spuds/engine/internal/assert/helpers"
-	"github.com/kode4food/spuds/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/assert"
+	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/config"
 )
 
 func TestConfigValidation(t *testing.T) {

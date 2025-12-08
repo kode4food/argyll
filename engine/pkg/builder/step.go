@@ -7,7 +7,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // Step is a builder for creating and configuring flow steps. It provides

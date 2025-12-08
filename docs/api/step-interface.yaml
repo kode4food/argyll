@@ -1,13 +1,13 @@
 openapi: 3.0.3
 info:
-  title: Spuds Step Interface Contract
+  title: Argyll Step Interface Contract
   description: |
     This specification defines the contract that external flow steps must implement
-    to work with the Spuds orchestrator.
+    to work with the Argyll orchestrator.
 
     ## Overview
 
-    A "step" in Spuds is any HTTP endpoint that accepts flow state, processes it
+    A "step" in Argyll is any HTTP endpoint that accepts flow state, processes it
     according to its business logic, and returns outputs. Steps can be:
 
     - **Dedicated microservices** with a single endpoint
@@ -75,12 +75,12 @@ info:
     - **Traditional servers**: VMs, bare metal, etc.
     - **Platform services**: Heroku, Render, Railway, etc.
 
-    The Spuds engine only requires that your step endpoint is reachable via HTTP/HTTPS.
+    The Argyll engine only requires that your step endpoint is reachable via HTTP/HTTPS.
 
   version: 1.0.0
   contact:
-    name: Spuds Engine
-    url: https://github.com/kode4food/spuds
+    name: Argyll Engine
+    url: https://github.com/kode4food/argyll
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -434,5 +434,5 @@ x-implementation-notes: |
 
   ## Example Implementations
 
-  See the `/examples` directory in the Spuds repository for reference
+  See the `/examples` directory in the Argyll repository for reference
   implementations in various languages and frameworks.

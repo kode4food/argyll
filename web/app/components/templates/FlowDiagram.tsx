@@ -55,7 +55,7 @@ const FlowDiagramContent: React.FC = () => {
       <div className="flex h-full items-center justify-center bg-white">
         <EmptyState
           title="No Steps Registered"
-          description="Register flow steps with the Spuds engine to see the flow diagram."
+          description="Register flow steps with the Argyll engine to see the flow diagram."
         />
       </div>
     );

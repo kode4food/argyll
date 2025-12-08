@@ -12,11 +12,11 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/assert/helpers"
-	"github.com/kode4food/spuds/engine/internal/engine"
-	"github.com/kode4food/spuds/engine/internal/events"
-	"github.com/kode4food/spuds/engine/internal/server"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/events"
+	"github.com/kode4food/argyll/engine/internal/server"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type testServerEnv struct {
@@ -921,7 +921,7 @@ func TestBasicHealthEndpoint(t *testing.T) {
 	var response api.HealthResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
-	assert.Equal(t, "spuds-engine", response.Service)
+	assert.Equal(t, "argyll-engine", response.Service)
 	assert.Equal(t, "1.0.0", response.Version)
 	assert.Equal(t, api.HealthHealthy, response.Status)
 }

@@ -1,10 +1,10 @@
-module github.com/kode4food/spuds/examples/inventory-resolver
+module github.com/kode4food/argyll/examples/inventory-resolver
 
 go 1.25.3
 
-replace github.com/kode4food/spuds/engine => ../../engine
+replace github.com/kode4food/argyll/engine => ../../engine
 
-require github.com/kode4food/spuds/engine v0.0.0-00010101000000-000000000000
+require github.com/kode4food/argyll/engine v0.0.0-00010101000000-000000000000
 
 require (
 	github.com/tidwall/gjson v1.18.0 // indirect

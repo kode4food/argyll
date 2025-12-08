@@ -6,8 +6,8 @@ import (
 	"github.com/kode4food/ale/data"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/engine"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestAleCacheForSameScript(t *testing.T) {

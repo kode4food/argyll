@@ -6,11 +6,11 @@ jest.requireActual("../../api");
 
 jest.mock("../../api", () => ({
   ...jest.requireActual("../../api"),
-  SpudsApi: jest.fn(),
+  ArgyllApi: jest.fn(),
 }));
 
 import StepEditor from "./StepEditor";
-import { SpudsApi, AttributeRole, AttributeType } from "../../api";
+import { ArgyllApi, AttributeRole, AttributeType } from "../../api";
 
 jest.mock("../molecules/ScriptEditor", () => ({
   __esModule: true,
@@ -45,7 +45,7 @@ jest.mock("../molecules/DurationInput", () => ({
   ),
 }));
 
-const MockedSpudsApi = SpudsApi as jest.MockedClass<typeof SpudsApi>;
+const MockedArgyllApi = ArgyllApi as jest.MockedClass<typeof ArgyllApi>;
 
 describe("StepEditor", () => {
   const createHttpStep = (type: "sync" | "async" = "sync"): Step => ({
@@ -93,11 +93,11 @@ describe("StepEditor", () => {
   const mockUpdateStep = jest.fn();
 
   beforeEach(() => {
-    MockedSpudsApi.mockImplementation(
+    MockedArgyllApi.mockImplementation(
       () =>
         ({
           updateStep: mockUpdateStep,
-        }) as Partial<SpudsApi> as SpudsApi
+        }) as Partial<ArgyllApi> as ArgyllApi
     );
 
     document.body.innerHTML = "";

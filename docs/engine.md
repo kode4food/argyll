@@ -1,6 +1,6 @@
-# Spuds Engine: Architecture and Execution Model
+# Argyll Engine: Architecture and Execution Model
 
-This document explains how the Spuds engine works internally, covering the core mechanisms for step registration, script compilation, execution planning, and flow orchestration.
+This document explains how the Argyll engine works internally, covering the core mechanisms for step registration, script compilation, execution planning, and flow orchestration.
 
 ---
 
@@ -17,7 +17,7 @@ This document explains how the Spuds engine works internally, covering the core 
 
 ### What is a Step?
 
-A step is a unit of computation in Spuds. Think of it as a single task that can be performed, like "send email", "query database", or "calculate result". Each step has:
+A step is a unit of computation in Argyll. Think of it as a single task that can be performed, like "send email", "query database", or "calculate result". Each step has:
 
 - **An identity**: A unique ID and human-readable name
 - **A type**: Either a synchronous HTTP call, asynchronous HTTP call, or embedded script

@@ -29,7 +29,7 @@ COPY --from=builder /build/payment-processor .
 # Set default environment variables
 ENV STEP_PORT=8085
 ENV STEP_HOSTNAME=payment-processor
-ENV SPUDS_ENGINE_URL=http://spuds-engine:8080
+ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
 
 EXPOSE 8085
 

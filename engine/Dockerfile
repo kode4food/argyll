@@ -10,7 +10,7 @@ RUN go mod download
 COPY engine/ ./
 
 # Build the application
-RUN CGO_ENABLED=0 GOOS=linux go build -o spuds-engine ./cmd/spuds
+RUN CGO_ENABLED=0 GOOS=linux go build -o argyll-engine ./cmd/argyll
 
 # Production image
 FROM alpine:latest
@@ -19,8 +19,8 @@ RUN apk --no-cache add ca-certificates curl
 WORKDIR /root/
 
 # Copy the binary from builder stage
-COPY --from=0 /engine/spuds-engine .
+COPY --from=0 /engine/argyll-engine .
 
 EXPOSE 8080
 
-CMD ["./spuds-engine"]
+CMD ["./argyll-engine"]

@@ -3,8 +3,8 @@ package events
 import (
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // EventFilter is a predicate function for filtering events

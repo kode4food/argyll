@@ -1,5 +1,5 @@
 DIST_DIR ?= ./dist
-EXE = $(DIST_DIR)/spuds
+EXE = $(DIST_DIR)/argyll
 GO ?= go
 
 .PHONY: all install build test clean
@@ -7,12 +7,12 @@ GO ?= go
 all: build
 
 install: test
-	$(GO) install ./cmd/spuds
+	$(GO) install ./cmd/argyll
 
 build: test
 	@mkdir -p $(DIST_DIR)
 	@rm -f $(EXE)
-	$(GO) build -o $(EXE) ./cmd/spuds
+	$(GO) build -o $(EXE) ./cmd/argyll
 
 test:
 	$(GO) test ./...

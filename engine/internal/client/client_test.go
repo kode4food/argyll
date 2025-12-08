@@ -10,8 +10,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/client"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/client"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestNewHTTPClient(t *testing.T) {
@@ -26,7 +26,7 @@ func TestSuccess(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
-			assert.Equal(t, "Spuds-Engine/1.0", r.Header.Get("User-Agent"))
+			assert.Equal(t, "Argyll-Engine/1.0", r.Header.Get("User-Agent"))
 
 			var req api.StepRequest
 			assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))

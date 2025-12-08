@@ -1,6 +1,6 @@
 # API Documentation
 
-OpenAPI specifications for the Spuds HTTP APIs.
+OpenAPI specifications for the Argyll HTTP APIs.
 
 ## Specifications
 

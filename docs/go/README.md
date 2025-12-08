@@ -1,6 +1,6 @@
 # Go Interface
 
-The Go interface provides APIs for building flows and implementing steps in Spuds.
+The Go interface provides APIs for building flows and implementing steps in Argyll.
 
 ## Quick Start
 
@@ -12,8 +12,8 @@ import (
     "log"
     "time"
 
-    "github.com/kode4food/spuds/engine/pkg/api"
-    "github.com/kode4food/spuds/engine/pkg/builder"
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 func main() {
@@ -79,8 +79,8 @@ flow := client.NewFlow(flowID).
 ## Installation
 
 ```bash
-go get github.com/kode4food/spuds/engine/pkg/builder
-go get github.com/kode4food/spuds/engine/pkg/api
+go get github.com/kode4food/argyll/engine/pkg/builder
+go get github.com/kode4food/argyll/engine/pkg/api
 ```
 
 ## Environment Variables

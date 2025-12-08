@@ -26,7 +26,7 @@ What actually happened.
 
 ## Environment
 
-- Spuds Version:
+- Argyll Version:
 - Go Version:
 - OS:
 - Deployment: (single-instance / multi-instance / docker-compose)

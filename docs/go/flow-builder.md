@@ -9,8 +9,8 @@ import (
     "context"
     "time"
 
-    "github.com/kode4food/spuds/engine/pkg/api"
-    "github.com/kode4food/spuds/engine/pkg/builder"
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 client := builder.NewClient("http://localhost:8080", 30*time.Second)
@@ -144,8 +144,8 @@ import (
     "log"
     "time"
 
-    "github.com/kode4food/spuds/engine/pkg/api"
-    "github.com/kode4food/spuds/engine/pkg/builder"
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 func main() {

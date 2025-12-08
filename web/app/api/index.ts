@@ -21,7 +21,7 @@ export {
   AttributeRole,
 } from "./types";
 
-export { SpudsApi } from "./client";
-import { SpudsApi } from "./client";
+export { ArgyllApi } from "./client";
+import { ArgyllApi } from "./client";
 
-export const api = new SpudsApi();
+export const api = new ArgyllApi();

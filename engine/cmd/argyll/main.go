@@ -13,15 +13,15 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	app "github.com/kode4food/spuds/engine"
-	"github.com/kode4food/spuds/engine/internal/client"
-	"github.com/kode4food/spuds/engine/internal/config"
-	"github.com/kode4food/spuds/engine/internal/engine"
-	"github.com/kode4food/spuds/engine/internal/server"
-	"github.com/kode4food/spuds/engine/pkg/log"
+	app "github.com/kode4food/argyll/engine"
+	"github.com/kode4food/argyll/engine/internal/client"
+	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/server"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-type spuds struct {
+type argyll struct {
 	cfg         *config.Config
 	timebox     *timebox.Timebox
 	engineStore *timebox.Store
@@ -43,7 +43,7 @@ func main() {
 	cfg := config.NewDefaultConfig()
 	cfg.LoadFromEnv()
 
-	s := &spuds{cfg: cfg}
+	s := &argyll{cfg: cfg}
 	s.setupLogging()
 
 	if err := s.run(); err != nil {
@@ -53,7 +53,7 @@ func main() {
 	}
 }
 
-func (s *spuds) run() error {
+func (s *argyll) run() error {
 	if err := s.initializeStores(); err != nil {
 		return err
 	}
@@ -69,7 +69,7 @@ func (s *spuds) run() error {
 	return nil
 }
 
-func (s *spuds) setupLogging() {
+func (s *argyll) setupLogging() {
 	level, ok := logLevels[s.cfg.LogLevel]
 	if !ok {
 		level = slog.LevelInfo
@@ -80,7 +80,7 @@ func (s *spuds) setupLogging() {
 	slog.SetDefault(logger)
 	slog.SetLogLoggerLevel(level)
 
-	slog.Info("Spuds Engine starting",
+	slog.Info("Argyll Engine starting",
 		slog.String("log_level", s.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
@@ -92,7 +92,7 @@ func (s *spuds) setupLogging() {
 		slog.Int("api_port", s.cfg.APIPort))
 }
 
-func (s *spuds) initializeStores() error {
+func (s *argyll) initializeStores() error {
 	var err error
 
 	s.timebox, err = timebox.NewTimebox(timebox.Config{
@@ -118,7 +118,7 @@ func (s *spuds) initializeStores() error {
 	return nil
 }
 
-func (s *spuds) initializeEngine() {
+func (s *argyll) initializeEngine() {
 	s.stepClient = client.NewHTTPClient(
 		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
@@ -129,7 +129,7 @@ func (s *spuds) initializeEngine() {
 	s.engine.Start()
 }
 
-func (s *spuds) startServer() {
+func (s *argyll) startServer() {
 	s.health = server.NewHealthChecker(s.engine, s.timebox.GetHub())
 	s.health.Start()
 
@@ -152,7 +152,7 @@ func (s *spuds) startServer() {
 	}()
 }
 
-func (s *spuds) shutdown() {
+func (s *argyll) shutdown() {
 	slog.Info("Shutting down")
 
 	ctx, cancel := context.WithTimeout(

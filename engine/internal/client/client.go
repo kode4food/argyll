@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type (
@@ -96,7 +96,7 @@ func (c *HTTPClient) buildRequest(
 
 	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
-	httpReq.Header.Set("User-Agent", "Spuds-Engine/1.0")
+	httpReq.Header.Set("User-Agent", "Argyll-Engine/1.0")
 
 	return httpReq, nil
 }

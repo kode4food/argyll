@@ -29,7 +29,7 @@ COPY --from=builder /build/notification-sender .
 # Set default environment variables
 ENV STEP_PORT=8087
 ENV STEP_HOSTNAME=notification-sender
-ENV SPUDS_ENGINE_URL=http://spuds-engine:8080
+ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
 
 EXPOSE 8087
 

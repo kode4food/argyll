@@ -5,7 +5,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // Raise marshals an event and raises it through the aggregator

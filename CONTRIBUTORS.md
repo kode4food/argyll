@@ -2,10 +2,10 @@
 
 Five simple steps:
 
-1. Create a [GitHub Issue](https://github.com/kode4food/spuds/issues)
+1. Create a [GitHub Issue](https://github.com/kode4food/argyll/issues)
    to propose and discuss your potential contribution.
 
-2. Fork our [Git Repository](https://github.com/kode4food/spuds.git)
+2. Fork our [Git Repository](https://github.com/kode4food/argyll.git)
 
 3. Issue an empty pull request.
 

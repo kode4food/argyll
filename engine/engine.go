@@ -1,7 +1,7 @@
-// Package engine is the main package for the Spuds Orchestrator Engine
+// Package engine is the main package for the Argyll Orchestrator Engine
 package engine
 
 const (
-	Name    = "spuds-engine"
+	Name    = "argyll-engine"
 	Version = "0.0.1"
 )

@@ -16,8 +16,8 @@ import (
     "log"
     "time"
 
-    "github.com/kode4food/spuds/engine/pkg/api"
-    "github.com/kode4food/spuds/engine/pkg/builder"
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 func main() {
@@ -59,8 +59,8 @@ import (
     "log"
     "time"
 
-    "github.com/kode4food/spuds/engine/pkg/api"
-    "github.com/kode4food/spuds/engine/pkg/builder"
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 func main() {
@@ -268,8 +268,8 @@ import (
     "log"
     "time"
 
-    "github.com/kode4food/spuds/engine/pkg/api"
-    "github.com/kode4food/spuds/engine/pkg/builder"
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/engine/pkg/builder"
 )
 
 func main() {

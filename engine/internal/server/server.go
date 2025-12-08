@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/spuds/engine/internal/engine"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // Server implements the HTTP API server for the orchestrator
@@ -111,4 +111,3 @@ func (s *Server) handleEngine(c *gin.Context) {
 
 	c.JSON(http.StatusOK, engState)
 }
-

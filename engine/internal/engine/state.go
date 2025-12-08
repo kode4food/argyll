@@ -1,6 +1,6 @@
 package engine
 
-import "github.com/kode4food/spuds/engine/pkg/util"
+import "github.com/kode4food/argyll/engine/pkg/util"
 
 // StateTransitions maps states to their set of valid next states
 type StateTransitions[T comparable] map[T]util.Set[T]

@@ -6,8 +6,8 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/events"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/events"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestFilterEvents(t *testing.T) {

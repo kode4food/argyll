@@ -1,8 +1,8 @@
 openapi: 3.0.3
 info:
-  title: Spuds Engine REST API
+  title: Argyll Engine REST API
   description: |
-    REST API for the Spuds orchestrator, providing endpoints for:
+    REST API for the Argyll orchestrator, providing endpoints for:
     - Registering and managing flow steps
     - Creating and monitoring flows with goal-driven execution
     - Real-time event streaming via WebSocket
@@ -10,7 +10,7 @@ info:
 
     ## Overview
 
-    The Spuds Engine is a goal-driven flow processing system that uses lazy evaluation
+    The Argyll Engine is a goal-driven flow processing system that uses lazy evaluation
     and event sourcing. Steps declare input/output dependencies and the engine orchestrates
     execution based on state availability, only executing the minimal set of steps needed to
     reach a specified goal.
@@ -38,8 +38,8 @@ info:
 
   version: 1.0.0
   contact:
-    name: Spuds Engine
-    url: https://github.com/kode4food/spuds
+    name: Argyll Engine
+    url: https://github.com/kode4food/argyll
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
@@ -52,7 +52,7 @@ paths:
   /health:
     get:
       summary: Engine Health Check
-      description: Returns the health status of the Spuds engine
+      description: Returns the health status of the Argyll engine
       operationId: getEngineHealth
       tags:
         - Health
@@ -387,7 +387,7 @@ paths:
               id: "wf-text-processing-001"
               goals: ["text-processor"]
               init:
-                input_text: "Hello, Spuds!"
+                input_text: "Hello, Argyll!"
       responses:
         "201":
           description: Flow started successfully
@@ -550,7 +550,7 @@ components:
       properties:
         service:
           type: string
-          example: "spuds-engine"
+          example: "argyll-engine"
         version:
           type: string
           example: "1.0.0"
@@ -919,7 +919,7 @@ components:
           description: Initial flow state providing required inputs
           additionalProperties: true
           example:
-            input_text: "Hello, Spuds!"
+            input_text: "Hello, Argyll!"
 
     FlowStartedResponse:
       type: object

@@ -8,9 +8,9 @@ import (
 	"os"
 	"time"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/builder"
-	"github.com/kode4food/spuds/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/builder"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type Order struct {
@@ -32,7 +32,7 @@ type Order struct {
 const version = "dev"
 
 func main() {
-	engineURL := os.Getenv("SPUDS_ENGINE_URL")
+	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
 	if engineURL == "" {
 		engineURL = "http://localhost:8080"
 	}

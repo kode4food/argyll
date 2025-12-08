@@ -1,6 +1,6 @@
 import { Node } from "@xyflow/react";
 
-const STORAGE_KEY = "spuds-step-positions";
+const STORAGE_KEY = "argyll-step-positions";
 
 export const saveNodePositions = (nodes: Node[]) => {
   const positions: Record<string, { x: number; y: number }> = {};

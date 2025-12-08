@@ -26,7 +26,7 @@ import {
   SCRIPT_LANGUAGE_LUA,
   StepType,
 } from "@/app/api";
-import { SpudsApi } from "@/app/api";
+import { ArgyllApi } from "@/app/api";
 import ScriptConfigEditor from "../molecules/ScriptConfigEditor";
 import DurationInput from "../molecules/DurationInput";
 import styles from "./StepEditor.module.css";
@@ -617,7 +617,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setError(null);
 
     try {
-      const api = new SpudsApi();
+      const api = new ArgyllApi();
 
       const stepAttributes = createStepAttributes(attributes);
       const stepData = buildStepPayload({

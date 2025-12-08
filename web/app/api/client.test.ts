@@ -1,13 +1,13 @@
 import axios from "axios";
-import { SpudsApi } from "./client";
+import { ArgyllApi } from "./client";
 import type { FlowProjection } from "./types";
 import { AttributeRole, AttributeType } from "./types";
 
 jest.mock("axios");
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-describe("SpudsApi", () => {
-  let api: SpudsApi;
+describe("ArgyllApi", () => {
+  let api: ArgyllApi;
   let mockClient: any;
 
   beforeEach(() => {
@@ -18,7 +18,7 @@ describe("SpudsApi", () => {
       delete: jest.fn(),
     };
     mockedAxios.create.mockReturnValue(mockClient);
-    api = new SpudsApi("http://localhost:8080");
+    api = new ArgyllApi("http://localhost:8080");
   });
 
   afterEach(() => {

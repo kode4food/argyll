@@ -2,7 +2,7 @@ import { saveNodePositions, loadNodePositions } from "./nodePositioning";
 import { Node } from "@xyflow/react";
 
 describe("nodePositioning", () => {
-  const STORAGE_KEY = "spuds-step-positions";
+  const STORAGE_KEY = "argyll-step-positions";
 
   beforeEach(() => {
     localStorage.clear();

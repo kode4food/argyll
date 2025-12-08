@@ -7,8 +7,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/spuds/engine/internal/config"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (
@@ -18,7 +18,7 @@ type (
 		) (any, bool, error)
 	}
 
-	// Wrapper wraps testify assertions with Spuds-specific helpers
+	// Wrapper wraps testify assertions with Argyll-specific helpers
 	Wrapper struct {
 		*testing.T
 		*assert.Assertions
@@ -30,7 +30,7 @@ type (
 const DefaultRetryInterval = 100 * time.Millisecond
 
 // New creates a new test assertion wrapper with both assert and require
-// from testify plus Spuds-specific helpers
+// from testify plus Argyll-specific helpers
 func New(t *testing.T) *Wrapper {
 	return &Wrapper{
 		T:          t,

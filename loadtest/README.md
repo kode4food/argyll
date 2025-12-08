@@ -1,6 +1,6 @@
-# Spuds Load Testing
+# Argyll Load Testing
 
-Simple k6 load test for Spuds orchestrator.
+Simple k6 load test for Argyll orchestrator.
 
 ## Prerequisites
 

@@ -9,7 +9,7 @@ import {
   StepStatus,
 } from "./types";
 
-export class SpudsApi {
+export class ArgyllApi {
   private client: AxiosInstance;
 
   constructor(baseURL: string = API_CONFIG.BASE_URL) {

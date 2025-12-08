@@ -8,8 +8,8 @@ import (
 
 	"github.com/Shopify/go-lua"
 
-	"github.com/kode4food/spuds/engine/internal/util"
-	"github.com/kode4food/spuds/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/internal/util"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (

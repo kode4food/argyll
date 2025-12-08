@@ -7,9 +7,9 @@ import (
 	"math"
 	"time"
 
-	"github.com/kode4food/spuds/engine/pkg/api"
-	"github.com/kode4food/spuds/engine/pkg/log"
-	"github.com/kode4food/spuds/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type backoffCalculator func(baseDelayMs int64, retryCount int) int64

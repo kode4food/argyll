@@ -13,7 +13,7 @@ services:
       retries: 10
       start_period: 5s
 
-  spuds-engine:
+  argyll-engine:
     build:
       context: .
       dockerfile: engine/Dockerfile
@@ -26,7 +26,7 @@ services:
       - FLOW_REDIS_DB=0
       - API_PORT=8080
       - API_HOST=0.0.0.0
-      - WEBHOOK_BASE_URL=http://spuds-engine:8080
+      - WEBHOOK_BASE_URL=http://argyll-engine:8080
       - DEV_MODE=true
       - LOG_LEVEL=debug
     depends_on:
@@ -42,7 +42,7 @@ services:
       retries: 12
       start_period: 15s
 
-  spuds-ui:
+  argyll-ui:
     build:
       context: ./web
       dockerfile: Dockerfile.dev
@@ -59,7 +59,7 @@ services:
       - WATCHPACK_POLLING=true # Next.js file watching in Docker
       - NODE_ENV=development
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -85,9 +85,9 @@ services:
     environment:
       - STEP_PORT=8081
       - STEP_HOSTNAME=text-processor
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8081:8081"
@@ -106,9 +106,9 @@ services:
     environment:
       - STEP_PORT=8082
       - STEP_HOSTNAME=user-resolver
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8082:8082"
@@ -127,9 +127,9 @@ services:
     environment:
       - STEP_PORT=8083
       - STEP_HOSTNAME=inventory-resolver
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8083:8083"
@@ -148,9 +148,9 @@ services:
     environment:
       - STEP_PORT=8084
       - STEP_HOSTNAME=order-creator
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8084:8084"
@@ -169,9 +169,9 @@ services:
     environment:
       - STEP_PORT=8085
       - STEP_HOSTNAME=payment-processor
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8085:8085"
@@ -190,9 +190,9 @@ services:
     environment:
       - STEP_PORT=8086
       - STEP_HOSTNAME=stock-reservation
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8086:8086"
@@ -211,9 +211,9 @@ services:
     environment:
       - STEP_PORT=8087
       - STEP_HOSTNAME=notification-sender
-      - SPUDS_ENGINE_URL=http://spuds-engine:8080
+      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
     depends_on:
-      spuds-engine:
+      argyll-engine:
         condition: service_healthy
     ports:
       - "8087:8087"

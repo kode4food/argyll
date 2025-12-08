@@ -6,8 +6,8 @@ import { Toaster } from "react-hot-toast";
 import ConnectionStatusWrapper from "./components/atoms/ConnectionStatusWrapper";
 
 export const metadata: Metadata = {
-  title: "Spuds",
-  description: "Spuds Flow Processing System",
+  title: "Argyll",
+  description: "Argyll Flow Processing System",
   icons: {
     icon: "/favicon.ico",
   },
