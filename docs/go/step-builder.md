@@ -320,8 +320,11 @@ func calculateTotal(items any) float64 {
 
 ### Client Methods
 
-#### `NewStep(name api.Name) *Step`
+#### NewStep: Create a step builder
 Creates a new step builder with the specified name.
+```go
+NewStep(name api.Name) *Step
+```
 
 ### Step Builder Methods
 
