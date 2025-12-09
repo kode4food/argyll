@@ -76,8 +76,7 @@ jest.mock("../api", () => ({
 const apiMock = require("../api").api;
 
 const Consumer = () => {
-  const ctx = useFlowCreation();
-  (global as any).__flowCtx = ctx;
+  (global as any).__flowCtx = useFlowCreation();
   return null;
 };
 

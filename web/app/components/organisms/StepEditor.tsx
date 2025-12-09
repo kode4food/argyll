@@ -38,9 +38,7 @@ interface StepEditorProps {
   step: Step | null;
   onClose: () => void;
   onUpdate: (updatedStep: Step) => void;
-  diagramContainerRef?:
-    | React.RefObject<HTMLDivElement | null>
-    | React.MutableRefObject<HTMLDivElement | null>;
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
 }
 
 type AttributeRoleType = "input" | "optional" | "output";

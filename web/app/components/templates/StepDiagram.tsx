@@ -49,7 +49,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   executions = [],
   resolvedAttributes = [],
 }) => {
-  const { goalSteps, toggleGoalStep, setGoalSteps } = useDiagramSelection();
+  const { goalSteps, setGoalSteps } = useDiagramSelection();
   const activeGoalStepId =
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
   const reactFlowInstance = useReactFlow();

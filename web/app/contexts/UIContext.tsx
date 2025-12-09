@@ -2,13 +2,13 @@
 
 import React, {
   createContext,
-  useContext,
-  useState,
-  useRef,
   useCallback,
+  useContext,
   useMemo,
+  useRef,
+  useState,
 } from "react";
-import { ExecutionPlan, api } from "../api";
+import { api, ExecutionPlan } from "../api";
 
 interface UIContextType {
   showCreateForm: boolean;
@@ -45,8 +45,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   const toggleGoalStep = useCallback((stepId: string) => {
     setGoalStepsState((prev) => {
       if (prev.includes(stepId)) {
-        const next = prev.filter((id) => id !== stepId);
-        return next;
+        return prev.filter((id) => id !== stepId);
       }
 
       return [...prev, stepId];

@@ -22,9 +22,7 @@ interface StepNodeData {
   isPreviewMode?: boolean;
   isStartingPoint?: boolean;
   onStepClick?: (stepId: string, options?: { additive?: boolean }) => void;
-  diagramContainerRef?:
-    | React.RefObject<HTMLDivElement | null>
-    | React.MutableRefObject<HTMLDivElement | null>;
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
   disableEdit?: boolean;
 }
 

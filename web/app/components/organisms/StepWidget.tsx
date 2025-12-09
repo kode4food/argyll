@@ -22,9 +22,7 @@ interface StepWidgetProps {
   isPreviewMode?: boolean;
   flowId?: string;
   attributeProvenance?: Map<string, string>;
-  diagramContainerRef?:
-    | React.RefObject<HTMLDivElement | null>
-    | React.MutableRefObject<HTMLDivElement | null>;
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
   disableEdit?: boolean;
 }
 

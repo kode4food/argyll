@@ -2,10 +2,7 @@ import React, { createContext, useCallback, useContext, useState } from "react";
 import StepEditor from "../components/organisms/StepEditor";
 import { Step } from "../api";
 
-type DiagramRef =
-  | React.RefObject<HTMLDivElement | null>
-  | React.MutableRefObject<HTMLDivElement | null>
-  | undefined;
+type DiagramRef = React.RefObject<HTMLDivElement | null> | undefined;
 
 type EditorOptions = {
   step: Step | null;
