@@ -62,6 +62,7 @@ describe("FlowCreateForm", () => {
     previewPlan: null,
     selectedStep: null,
     goalStepIds: [],
+    toggleGoalStep: jest.fn(),
     updatePreviewPlan: jest.fn(),
     clearPreviewPlan: jest.fn(),
     setSelectedStep: jest.fn(),

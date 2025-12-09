@@ -12,12 +12,16 @@ let eventsMock: any[] = [];
 const uiState: any = {
   showCreateForm: false,
   setShowCreateForm: jest.fn(),
+  selectedStep: null,
   previewPlan: null,
   updatePreviewPlan: jest.fn(),
   clearPreviewPlan: jest.fn(),
   setSelectedStep: jest.fn(),
+  toggleGoalStep: jest.fn(),
   goalStepIds: [],
   setGoalStepIds: jest.fn(),
+  disableEdit: false,
+  diagramContainerRef: { current: null },
 };
 
 jest.mock("next/navigation", () => ({

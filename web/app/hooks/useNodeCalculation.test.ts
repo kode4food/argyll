@@ -48,7 +48,7 @@ describe("useNodeCalculation", () => {
   };
 
   test("returns empty array for no steps", () => {
-    const { result } = renderHook(() => useNodeCalculation([], null));
+    const { result } = renderHook(() => useNodeCalculation([], []));
 
     expect(result.current).toEqual([]);
   });
@@ -56,7 +56,7 @@ describe("useNodeCalculation", () => {
   test("creates nodes for all visible steps", () => {
     const steps = [createStep("step1"), createStep("step2")];
 
-    const { result } = renderHook(() => useNodeCalculation(steps, null));
+    const { result } = renderHook(() => useNodeCalculation(steps, []));
 
     expect(result.current).toHaveLength(2);
     expect(result.current[0].id).toBe("step1");
@@ -66,7 +66,7 @@ describe("useNodeCalculation", () => {
   test("assigns correct step data to nodes", () => {
     const step = createStep("step1");
 
-    const { result } = renderHook(() => useNodeCalculation([step], null));
+    const { result } = renderHook(() => useNodeCalculation([step], []));
 
     expect(result.current[0].data.step).toEqual(step);
   });
@@ -74,7 +74,7 @@ describe("useNodeCalculation", () => {
   test("sets selected state when step matches selectedStep", () => {
     const step = createStep("step1");
 
-    const { result } = renderHook(() => useNodeCalculation([step], "step1"));
+    const { result } = renderHook(() => useNodeCalculation([step], ["step1"]));
 
     expect(result.current[0].data.selected).toBe(true);
   });
@@ -82,7 +82,7 @@ describe("useNodeCalculation", () => {
   test("does not set selected when step does not match", () => {
     const step = createStep("step1");
 
-    const { result } = renderHook(() => useNodeCalculation([step], "step2"));
+    const { result } = renderHook(() => useNodeCalculation([step], ["step2"]));
 
     expect(result.current[0].data.selected).toBe(false);
   });
@@ -96,9 +96,7 @@ describe("useNodeCalculation", () => {
       },
     };
 
-    const { result } = renderHook(() =>
-      useNodeCalculation([step1, step2], null)
-    );
+    const { result } = renderHook(() => useNodeCalculation([step1, step2], []));
 
     const node1 = result.current.find((n) => n.id === "step1");
     const node2 = result.current.find((n) => n.id === "step2");
@@ -124,7 +122,7 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step], null, flowData)
+      useNodeCalculation([step], [], flowData)
     );
 
     expect(result.current[0].data.isGoalStep).toBe(true);
@@ -141,7 +139,7 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step], null, undefined, undefined, previewPlan)
+      useNodeCalculation([step], [], undefined, undefined, previewPlan)
     );
 
     expect(result.current[0].data.isGoalStep).toBe(true);
@@ -155,7 +153,7 @@ describe("useNodeCalculation", () => {
     const { result } = renderHook(() =>
       useNodeCalculation(
         [step1, step2],
-        null,
+        [],
         undefined,
         undefined,
         undefined,
@@ -179,7 +177,7 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step], null, undefined, undefined, previewPlan)
+      useNodeCalculation([step], [], undefined, undefined, previewPlan)
     );
 
     expect(result.current[0].data.isPreviewMode).toBe(true);
@@ -211,7 +209,7 @@ describe("useNodeCalculation", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step1, step2], null, flowData)
+      useNodeCalculation([step1, step2], [], flowData)
     );
 
     const node1 = result.current.find((n) => n.id === "step1");
@@ -228,7 +226,7 @@ describe("useNodeCalculation", () => {
     const { result } = renderHook(() =>
       useNodeCalculation(
         [step],
-        null,
+        [],
         undefined,
         undefined,
         undefined,
@@ -246,7 +244,7 @@ describe("useNodeCalculation", () => {
   test("does not crash when onStepClick is not provided", () => {
     const step = createStep("step1");
 
-    const { result } = renderHook(() => useNodeCalculation([step], null));
+    const { result } = renderHook(() => useNodeCalculation([step], []));
 
     const node = result.current[0] as any;
     expect(() => node.data.onStepClick?.("step1")).not.toThrow();
@@ -255,7 +253,7 @@ describe("useNodeCalculation", () => {
   test("sets node type to stepNode", () => {
     const step = createStep("step1");
 
-    const { result } = renderHook(() => useNodeCalculation([step], null));
+    const { result } = renderHook(() => useNodeCalculation([step], []));
 
     expect(result.current[0].type).toBe("stepNode");
   });
@@ -265,7 +263,7 @@ describe("useNodeCalculation", () => {
     const executions: any = [{ step_id: "step1", status: "completed" }];
 
     const { result } = renderHook(() =>
-      useNodeCalculation([step], null, undefined, executions)
+      useNodeCalculation([step], [], undefined, executions)
     );
 
     expect(result.current[0].data.executions).toEqual(executions);
@@ -278,7 +276,7 @@ describe("useNodeCalculation", () => {
     const { result } = renderHook(() =>
       useNodeCalculation(
         [step],
-        null,
+        [],
         undefined,
         undefined,
         undefined,
@@ -299,7 +297,7 @@ describe("useNodeCalculation", () => {
     const { result } = renderHook(() =>
       useNodeCalculation(
         [step],
-        null,
+        [],
         undefined,
         undefined,
         undefined,

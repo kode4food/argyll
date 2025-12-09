@@ -59,6 +59,9 @@ jest.mock("../../contexts/UIContext", () => {
     useUI: () => ({
       selectedStep: null,
       setSelectedStep: jest.fn(),
+      goalStepIds: [],
+      toggleGoalStep: jest.fn(),
+      setGoalStepIds: jest.fn(),
     }),
   };
 });

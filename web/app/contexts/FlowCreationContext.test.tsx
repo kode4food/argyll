@@ -44,6 +44,7 @@ const uiState = {
   updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
   clearPreviewPlan: jest.fn(),
   setSelectedStep: jest.fn(),
+  toggleGoalStep: jest.fn(),
   get goalStepIds() {
     return goalIds;
   },

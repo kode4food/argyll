@@ -39,6 +39,12 @@ jest.mock("../../contexts/UIContext", () => ({
   useUI: () => ({
     setSelectedStep: jest.fn(),
     selectedStep: null,
+    goalStepIds: [],
+    toggleGoalStep: jest.fn(),
+    setGoalStepIds: jest.fn(),
+    updatePreviewPlan: jest.fn(),
+    clearPreviewPlan: jest.fn(),
+    previewPlan: null,
     disableEdit: false,
     diagramContainerRef: { current: null },
   }),
@@ -51,6 +57,9 @@ describe("StepDiagram", () => {
         value={{
           selectedStep: null,
           setSelectedStep: jest.fn(),
+          goalStepIds: [],
+          toggleGoalStep: jest.fn(),
+          setGoalStepIds: jest.fn(),
         }}
       >
         <StepDiagram

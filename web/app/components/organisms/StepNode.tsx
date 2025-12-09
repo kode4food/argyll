@@ -21,7 +21,7 @@ interface StepNodeData {
   isInPreviewPlan?: boolean;
   isPreviewMode?: boolean;
   isStartingPoint?: boolean;
-  onStepClick?: (stepId: string) => void;
+  onStepClick?: (stepId: string, options?: { additive?: boolean }) => void;
   diagramContainerRef?:
     | React.RefObject<HTMLDivElement | null>
     | React.MutableRefObject<HTMLDivElement | null>;
@@ -41,10 +41,17 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
   const stepWidgetRef = useRef<HTMLDivElement>(null);
 
   // Memoize the click handler to prevent unnecessary re-renders
-  const handleClick = useCallback(() => {
-    setSelectedStep(step.id);
-    onStepClick?.(step.id);
-  }, [setSelectedStep, onStepClick, step.id]);
+  const handleClick = useCallback(
+    (event: React.MouseEvent) => {
+      const additive = event.ctrlKey || event.metaKey;
+      if (onStepClick) {
+        onStepClick(step.id, { additive });
+      } else if (!additive) {
+        setSelectedStep(step.id);
+      }
+    },
+    [onStepClick, setSelectedStep, step.id]
+  );
   const [handlePositions, setHandlePositions] = useState<{
     required: Array<{
       id: string;

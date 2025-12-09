@@ -49,13 +49,24 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   executions = [],
   resolvedAttributes = [],
 }) => {
-  const { selectedStep, setSelectedStep } = useDiagramSelection();
+  const {
+    selectedStep,
+    goalStepIds,
+    setSelectedStep,
+    toggleGoalStep,
+    setGoalStepIds,
+  } = useDiagramSelection();
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "overview";
   const initialViewportSet = useRef(false);
   const { disableEdit, diagramContainerRef } = useUI();
   const { previewPlan, handleStepClick, clearPreview } =
-    useExecutionPlanPreview(selectedStep, setSelectedStep, flowData);
+    useExecutionPlanPreview(
+      goalStepIds,
+      setSelectedStep,
+      toggleGoalStep,
+      flowData
+    );
 
   const { visibleSteps, previewStepIds } = useStepVisibility(
     steps || [],
@@ -65,7 +76,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   const initialNodes = useNodeCalculation(
     visibleSteps,
-    selectedStep,
+    goalStepIds,
     flowData,
     executions,
     previewPlan,
@@ -153,10 +164,11 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   );
 
   const handlePaneClick = useCallback(() => {
-    if (!flowData && previewPlan) {
-      clearPreview();
-    }
-  }, [flowData, previewPlan, clearPreview]);
+    if (flowData) return;
+    clearPreview();
+    setGoalStepIds([]);
+    setSelectedStep(null);
+  }, [flowData, clearPreview, setGoalStepIds, setSelectedStep]);
 
   const handleNodeDragStart = useCallback(() => {
     const event = new CustomEvent("hideTooltips");

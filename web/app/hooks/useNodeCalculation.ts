@@ -17,12 +17,12 @@ const calculateSectionHeight = (argCount: number): number => {
 
 export const useNodeCalculation = (
   visibleSteps: Step[],
-  selectedStep: string | null,
+  selectedStepIds: string[],
   flowData?: FlowContext | null,
   executions?: ExecutionResult[],
   previewPlan?: ExecutionPlan | null,
   previewStepIds?: Set<string> | null,
-  onStepClick?: (stepId: string) => void,
+  onStepClick?: (stepId: string, options?: { additive?: boolean }) => void,
   resolvedAttributes?: string[],
   diagramContainerRef?: React.RefObject<HTMLDivElement | null>,
   disableEdit?: boolean
@@ -183,7 +183,7 @@ export const useNodeCalculation = (
         position,
         data: {
           step,
-          selected: selectedStep === step.id,
+          selected: selectedStepIds.includes(step.id),
           onStepClick,
           flowData,
           executions,
@@ -204,7 +204,7 @@ export const useNodeCalculation = (
     });
   }, [
     visibleSteps,
-    selectedStep,
+    selectedStepIds,
     flowData,
     executions,
     previewPlan,

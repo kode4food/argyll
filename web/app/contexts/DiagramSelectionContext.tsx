@@ -4,6 +4,9 @@ import { useUI } from "./UIContext";
 export interface DiagramSelectionContextValue {
   selectedStep: string | null;
   setSelectedStep: (id: string | null) => void;
+  goalStepIds: string[];
+  toggleGoalStep: (id: string) => void;
+  setGoalStepIds: (ids: string[]) => void;
 }
 
 const DiagramSelectionContext =
@@ -22,6 +25,9 @@ export const DiagramSelectionProvider = ({
     ({
       selectedStep: ui.selectedStep ?? null,
       setSelectedStep: ui.setSelectedStep,
+      goalStepIds: ui.goalStepIds,
+      toggleGoalStep: ui.toggleGoalStep,
+      setGoalStepIds: ui.setGoalStepIds,
     } satisfies DiagramSelectionContextValue);
 
   return (

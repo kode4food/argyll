@@ -29,7 +29,13 @@ const FlowDiagramContent: React.FC = () => {
     loadSteps,
   } = useFlowSession();
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
-  const { selectedStep, setSelectedStep } = useUI();
+  const {
+    selectedStep,
+    setSelectedStep,
+    goalStepIds,
+    toggleGoalStep,
+    setGoalStepIds,
+  } = useUI();
   const { openEditor } = useStepEditorContext();
 
   const handleStepCreated = async () => {
@@ -137,7 +143,13 @@ const FlowDiagramContent: React.FC = () => {
               description="An error occurred while rendering the step diagram."
             >
               <DiagramSelectionProvider
-                value={{ selectedStep, setSelectedStep }}
+                value={{
+                  selectedStep,
+                  setSelectedStep,
+                  goalStepIds,
+                  toggleGoalStep,
+                  setGoalStepIds,
+                }}
               >
                 <StepDiagram
                   steps={steps || []}

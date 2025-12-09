@@ -60,6 +60,7 @@ describe("UIContext", () => {
     });
 
     expect(result.current.selectedStep).toBe("step-1");
+    expect(result.current.goalStepIds).toEqual(["step-1"]);
   });
 
   test("setGoalStepIds updates state", () => {
@@ -70,6 +71,29 @@ describe("UIContext", () => {
     });
 
     expect(result.current.goalStepIds).toEqual(["step-1", "step-2"]);
+    expect(result.current.selectedStep).toBe("step-2");
+  });
+
+  test("toggleGoalStep adds and removes ids while updating selectedStep", () => {
+    const { result } = renderHook(() => useUI(), { wrapper });
+
+    act(() => {
+      result.current.toggleGoalStep("step-1");
+    });
+    expect(result.current.goalStepIds).toEqual(["step-1"]);
+    expect(result.current.selectedStep).toBe("step-1");
+
+    act(() => {
+      result.current.toggleGoalStep("step-2");
+    });
+    expect(result.current.goalStepIds).toEqual(["step-1", "step-2"]);
+    expect(result.current.selectedStep).toBe("step-2");
+
+    act(() => {
+      result.current.toggleGoalStep("step-2");
+    });
+    expect(result.current.goalStepIds).toEqual(["step-1"]);
+    expect(result.current.selectedStep).toBe("step-1");
   });
 
   test("updatePreviewPlan calls API and updates state", async () => {

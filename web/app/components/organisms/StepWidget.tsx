@@ -12,7 +12,7 @@ import { useFlowSession } from "../../contexts/FlowSessionContext";
 interface StepWidgetProps {
   step: Step;
   selected?: boolean;
-  onClick?: () => void;
+  onClick?: (event: React.MouseEvent<HTMLDivElement>) => void;
   mode?: "list" | "diagram";
   style?: React.CSSProperties;
   className?: string;
