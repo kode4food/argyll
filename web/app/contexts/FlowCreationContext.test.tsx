@@ -43,12 +43,11 @@ const uiState = {
   previewPlan: null as any,
   updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
   clearPreviewPlan: jest.fn(),
-  setSelectedStep: jest.fn(),
   toggleGoalStep: jest.fn(),
-  get goalStepIds() {
+  get goalSteps() {
     return goalIds;
   },
-  setGoalStepIds: jest.fn((ids: string[]) => {
+  setGoalSteps: jest.fn((ids: string[]) => {
     goalIds = ids;
   }),
   get showCreateForm() {
@@ -105,7 +104,7 @@ describe("FlowCreationContext", () => {
       await ctx.handleStepChange(["goal"]);
     });
 
-    expect(uiState.setGoalStepIds).toHaveBeenCalledWith(["goal"]);
+    expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
     expect(uiState.updatePreviewPlan).toHaveBeenCalled();
     await act(async () => {});
     expect((global as any).__flowCtx.newID).toMatch(/goal-step-/);
@@ -120,7 +119,7 @@ describe("FlowCreationContext", () => {
     });
 
     expect(uiState.clearPreviewPlan).toHaveBeenCalled();
-    expect(uiState.setGoalStepIds).toHaveBeenCalledWith([]);
+    expect(uiState.setGoalSteps).toHaveBeenCalledWith([]);
   });
 
   it("creates flow successfully and reloads flows", async () => {

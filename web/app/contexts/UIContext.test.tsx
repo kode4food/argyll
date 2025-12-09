@@ -37,8 +37,7 @@ describe("UIContext", () => {
     expect(result.current.showCreateForm).toBe(false);
     expect(result.current.disableEdit).toBe(false);
     expect(result.current.previewPlan).toBeNull();
-    expect(result.current.selectedStep).toBeNull();
-    expect(result.current.goalStepIds).toEqual([]);
+    expect(result.current.goalSteps).toEqual([]);
   });
 
   test("setShowCreateForm updates state", () => {
@@ -52,48 +51,33 @@ describe("UIContext", () => {
     expect(result.current.disableEdit).toBe(true);
   });
 
-  test("setSelectedStep updates state", () => {
+  test("setGoalSteps updates state", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     act(() => {
-      result.current.setSelectedStep("step-1");
+      result.current.setGoalSteps(["step-1", "step-2"]);
     });
 
-    expect(result.current.selectedStep).toBe("step-1");
-    expect(result.current.goalStepIds).toEqual(["step-1"]);
+    expect(result.current.goalSteps).toEqual(["step-1", "step-2"]);
   });
 
-  test("setGoalStepIds updates state", () => {
-    const { result } = renderHook(() => useUI(), { wrapper });
-
-    act(() => {
-      result.current.setGoalStepIds(["step-1", "step-2"]);
-    });
-
-    expect(result.current.goalStepIds).toEqual(["step-1", "step-2"]);
-    expect(result.current.selectedStep).toBe("step-2");
-  });
-
-  test("toggleGoalStep adds and removes ids while updating selectedStep", () => {
+  test("toggleGoalStep adds and removes ids", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     act(() => {
       result.current.toggleGoalStep("step-1");
     });
-    expect(result.current.goalStepIds).toEqual(["step-1"]);
-    expect(result.current.selectedStep).toBe("step-1");
+    expect(result.current.goalSteps).toEqual(["step-1"]);
 
     act(() => {
       result.current.toggleGoalStep("step-2");
     });
-    expect(result.current.goalStepIds).toEqual(["step-1", "step-2"]);
-    expect(result.current.selectedStep).toBe("step-2");
+    expect(result.current.goalSteps).toEqual(["step-1", "step-2"]);
 
     act(() => {
       result.current.toggleGoalStep("step-2");
     });
-    expect(result.current.goalStepIds).toEqual(["step-1"]);
-    expect(result.current.selectedStep).toBe("step-1");
+    expect(result.current.goalSteps).toEqual(["step-1"]);
   });
 
   test("updatePreviewPlan calls API and updates state", async () => {
@@ -120,7 +104,7 @@ describe("UIContext", () => {
     expect(result.current.previewPlan).toEqual(mockPlan);
   });
 
-  test("updatePreviewPlan clears plan when goalStepIds is empty", async () => {
+  test("updatePreviewPlan clears plan when goalSteps is empty", async () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
     await act(async () => {

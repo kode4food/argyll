@@ -23,13 +23,7 @@ const FlowCreateForm: React.FC = () => {
     generateID,
     sortSteps,
   } = useFlowCreation();
-  const {
-    showCreateForm,
-    setShowCreateForm,
-    previewPlan,
-    goalStepIds,
-    setSelectedStep,
-  } = useUI();
+  const { showCreateForm, setShowCreateForm, previewPlan, goalSteps } = useUI();
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
   const [showTopFade, setShowTopFade] = React.useState(false);
@@ -140,7 +134,7 @@ const FlowCreateForm: React.FC = () => {
               } ${showBottomFade ? styles.fadeBottom : ""}`}
             >
               {sortedSteps.map((step) => {
-                const isSelected = goalStepIds.includes(step.id);
+                const isSelected = goalSteps.includes(step.id);
                 const isIncludedByOthers = included.has(step.id) && !isSelected;
                 const isSatisfiedByState =
                   satisfied.has(step.id) && !isSelected;
@@ -162,11 +156,8 @@ const FlowCreateForm: React.FC = () => {
                     onClick={async () => {
                       if (isDisabled) return;
                       const newGoalStepIds = isSelected
-                        ? goalStepIds.filter((id) => id !== step.id)
-                        : [...goalStepIds, step.id];
-                      if (isSelected) {
-                        setSelectedStep(null);
-                      }
+                        ? goalSteps.filter((id) => id !== step.id)
+                        : [...goalSteps, step.id];
                       await handleStepChange(newGoalStepIds);
                     }}
                   >
@@ -246,7 +237,7 @@ const FlowCreateForm: React.FC = () => {
                 disabled={
                   creating ||
                   !newID.trim() ||
-                  goalStepIds.length === 0 ||
+                  goalSteps.length === 0 ||
                   jsonError !== null
                 }
                 className={styles.buttonStart}

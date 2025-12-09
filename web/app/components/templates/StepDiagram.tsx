@@ -49,24 +49,15 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   executions = [],
   resolvedAttributes = [],
 }) => {
-  const {
-    selectedStep,
-    goalStepIds,
-    setSelectedStep,
-    toggleGoalStep,
-    setGoalStepIds,
-  } = useDiagramSelection();
+  const { goalSteps, toggleGoalStep, setGoalSteps } = useDiagramSelection();
+  const activeGoalStepId =
+    goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "overview";
   const initialViewportSet = useRef(false);
   const { disableEdit, diagramContainerRef } = useUI();
   const { previewPlan, handleStepClick, clearPreview } =
-    useExecutionPlanPreview(
-      goalStepIds,
-      setSelectedStep,
-      toggleGoalStep,
-      flowData
-    );
+    useExecutionPlanPreview(goalSteps, setGoalSteps, flowData);
 
   const { visibleSteps, previewStepIds } = useStepVisibility(
     steps || [],
@@ -76,7 +67,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   const initialNodes = useNodeCalculation(
     visibleSteps,
-    goalStepIds,
+    goalSteps,
     flowData,
     executions,
     previewPlan,
@@ -166,9 +157,8 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   const handlePaneClick = useCallback(() => {
     if (flowData) return;
     clearPreview();
-    setGoalStepIds([]);
-    setSelectedStep(null);
-  }, [flowData, clearPreview, setGoalStepIds, setSelectedStep]);
+    setGoalSteps([]);
+  }, [flowData, clearPreview, setGoalSteps]);
 
   const handleNodeDragStart = useCallback(() => {
     const event = new CustomEvent("hideTooltips");
@@ -204,19 +194,19 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   const findNextStep = useCallback(
     (direction: "up" | "down" | "left" | "right") => {
-      if (!selectedStep) {
+      if (!activeGoalStepId) {
         const firstLevel = Math.min(...Array.from(stepsByLevel.keys()));
         const stepsInLevel = stepsByLevel.get(firstLevel);
         return stepsInLevel?.[0]?.id || null;
       }
 
-      const currentNode = nodes.find((n) => n.id === selectedStep);
+      const currentNode = nodes.find((n) => n.id === activeGoalStepId);
       if (!currentNode) return null;
 
       const currentLevel = Math.round(currentNode.position.x / 400);
       const currentLevelSteps = stepsByLevel.get(currentLevel) || [];
       const currentIndex = currentLevelSteps.findIndex(
-        (s) => s.id === selectedStep
+        (s) => s.id === activeGoalStepId
       );
 
       switch (direction) {
@@ -260,7 +250,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
           return null;
       }
     },
-    [selectedStep, nodes, stepsByLevel]
+    [activeGoalStepId, nodes, stepsByLevel]
   );
 
   useKeyboardShortcuts(
@@ -301,9 +291,9 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         key: "Enter",
         description: "Open step editor",
         handler: () => {
-          if (selectedStep) {
+          if (activeGoalStepId) {
             const event = new CustomEvent("openStepEditor", {
-              detail: { stepId: selectedStep },
+              detail: { stepId: activeGoalStepId },
             });
             document.dispatchEvent(event);
           }
@@ -313,8 +303,8 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         key: "Escape",
         description: "Deselect step",
         handler: () => {
-          if (selectedStep && !flowData) {
-            setSelectedStep(null);
+          if (activeGoalStepId && !flowData) {
+            setGoalSteps([]);
           }
         },
       },

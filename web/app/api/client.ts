@@ -60,12 +60,12 @@ export class ArgyllApi {
 
   async startFlow(
     id: string,
-    goalStepIds: string[],
+    goalSteps: string[],
     initialState: Record<string, any>
   ): Promise<any> {
     const response = await this.client.post("/engine/flow", {
       id,
-      goals: goalStepIds,
+      goals: goalSteps,
       init: initialState,
     });
     return response.data;
@@ -130,14 +130,14 @@ export class ArgyllApi {
   }
 
   async getExecutionPlan(
-    goalStepIds: string[],
+    goalSteps: string[],
     initialState: Record<string, any> = {},
     signal?: AbortSignal
   ): Promise<ExecutionPlan> {
     const response = await this.client.post(
       "/engine/plan",
       {
-        goals: goalStepIds,
+        goals: goalSteps,
         init: initialState,
       },
       {

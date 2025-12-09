@@ -17,11 +17,9 @@ import { UIProvider } from "../../contexts/UIContext";
 jest.mock("../../contexts/UIContext", () => ({
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useUI: () => ({
-    selectedStep: null,
-    setSelectedStep: jest.fn(),
-    goalStepIds: [],
+    goalSteps: [],
     toggleGoalStep: jest.fn(),
-    setGoalStepIds: jest.fn(),
+    setGoalSteps: jest.fn(),
     disableEdit: false,
     diagramContainerRef: { current: null },
   }),
@@ -135,11 +133,9 @@ describe("StepNode", () => {
       <UIProvider>
         <DiagramSelectionProvider
           value={{
-            selectedStep: null,
-            setSelectedStep: jest.fn(),
-            goalStepIds: [],
+            goalSteps: [],
             toggleGoalStep: jest.fn(),
-            setGoalStepIds: jest.fn(),
+            setGoalSteps: jest.fn(),
             ...selectionOverrides,
           }}
         >
@@ -209,18 +205,17 @@ describe("StepNode", () => {
     expect(onStepClick).toHaveBeenCalledWith("step-1", { additive: true });
   });
 
-  test("falls back to setSelectedStep when onStepClick is not provided", () => {
-    const setSelectedStep = jest.fn();
+  test("falls back to setGoalSteps when onStepClick is not provided", () => {
+    const setGoalSteps = jest.fn();
     const { getByTestId } = renderWithProvider(
       {},
       {
-        setSelectedStep,
-        selectedStep: null,
+        setGoalSteps,
       }
     );
 
     getByTestId("step-widget").click();
-    expect(setSelectedStep).toHaveBeenCalledWith("step-1");
+    expect(setGoalSteps).toHaveBeenCalledWith(["step-1"]);
   });
 
   test("finds execution for current step", () => {
@@ -343,11 +338,9 @@ describe("StepNode", () => {
       <UIProvider>
         <DiagramSelectionProvider
           value={{
-            selectedStep: null,
-            setSelectedStep: jest.fn(),
-            goalStepIds: [],
+            goalSteps: [],
             toggleGoalStep: jest.fn(),
-            setGoalStepIds: jest.fn(),
+            setGoalSteps: jest.fn(),
           }}
         >
           <StepNode
@@ -467,15 +460,15 @@ describe("StepNode", () => {
   });
 
   test("memoizes click handler", () => {
-    const setSelectedStep = jest.fn();
+    const setGoalSteps = jest.fn();
     const onStepClick = jest.fn();
     const { rerender, getByTestId } = renderWithProvider(
       { data: { ...defaultNodeData, onStepClick } },
-      { setSelectedStep }
+      { setGoalSteps }
     );
 
     getByTestId("step-widget").click();
-    expect(setSelectedStep).not.toHaveBeenCalled();
+    expect(setGoalSteps).not.toHaveBeenCalled();
     expect(onStepClick).toHaveBeenCalledTimes(1);
 
     // Re-render with same props
@@ -483,11 +476,9 @@ describe("StepNode", () => {
       <UIProvider>
         <DiagramSelectionProvider
           value={{
-            selectedStep: null,
-            setSelectedStep,
-            goalStepIds: [],
+            goalSteps: [],
             toggleGoalStep: jest.fn(),
-            setGoalStepIds: jest.fn(),
+            setGoalSteps,
           }}
         >
           <StepNode
@@ -499,7 +490,7 @@ describe("StepNode", () => {
     );
 
     getByTestId("step-widget").click();
-    expect(setSelectedStep).not.toHaveBeenCalled();
+    expect(setGoalSteps).not.toHaveBeenCalled();
     expect(onStepClick).toHaveBeenCalledTimes(2);
   });
 

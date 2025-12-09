@@ -60,13 +60,11 @@ describe("FlowCreateForm", () => {
     disableEdit: false,
     diagramContainerRef: { current: null },
     previewPlan: null,
-    selectedStep: null,
-    goalStepIds: [],
+    goalSteps: [],
     toggleGoalStep: jest.fn(),
     updatePreviewPlan: jest.fn(),
     clearPreviewPlan: jest.fn(),
-    setSelectedStep: jest.fn(),
-    setGoalStepIds: jest.fn(),
+    setGoalSteps: jest.fn(),
   };
 
   beforeEach(() => {
@@ -202,7 +200,7 @@ describe("FlowCreateForm", () => {
   test("calls handleCreateFlow when Start button is clicked", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     renderWithProvider({ newID: "test-id" });
@@ -216,7 +214,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when creating", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     renderWithProvider({ newID: "test-id", creating: true });
@@ -228,7 +226,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when ID is empty", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     renderWithProvider({ newID: "" });
@@ -240,7 +238,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when no goal steps selected", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: [],
+      goalSteps: [],
     });
 
     renderWithProvider({ newID: "test-id" });
@@ -252,7 +250,7 @@ describe("FlowCreateForm", () => {
   test("disables Start button when JSON is invalid", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     renderWithProvider({ newID: "test-id", initialState: "{invalid" });
@@ -264,7 +262,7 @@ describe("FlowCreateForm", () => {
   test("does not show Play icon when creating", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     const { container } = renderWithProvider({
@@ -303,7 +301,7 @@ describe("FlowCreateForm", () => {
   test("deselects step when already selected", async () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     renderWithProvider();
@@ -313,14 +311,13 @@ describe("FlowCreateForm", () => {
 
     await waitFor(() => {
       expect(defaultProps.handleStepChange).toHaveBeenCalledWith([]);
-      expect(defaultUIContext.setSelectedStep).toHaveBeenCalledWith(null);
     });
   });
 
   test("marks step as selected with correct styling", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
-      goalStepIds: ["step-1"],
+      goalSteps: ["step-1"],
     });
 
     const { container } = renderWithProvider();
@@ -338,7 +335,7 @@ describe("FlowCreateForm", () => {
         goals: [],
         required: [],
       },
-      goalStepIds: [],
+      goalSteps: [],
     });
 
     const { container } = renderWithProvider();

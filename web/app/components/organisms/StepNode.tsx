@@ -37,7 +37,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
     resolvedAttributes = [],
     onStepClick,
   } = nodeData;
-  const { setSelectedStep } = useDiagramSelection();
+  const { setGoalSteps } = useDiagramSelection();
   const stepWidgetRef = useRef<HTMLDivElement>(null);
 
   // Memoize the click handler to prevent unnecessary re-renders
@@ -47,10 +47,10 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
       if (onStepClick) {
         onStepClick(step.id, { additive });
       } else if (!additive) {
-        setSelectedStep(step.id);
+        setGoalSteps([step.id]);
       }
     },
-    [onStepClick, setSelectedStep, step.id]
+    [onStepClick, setGoalSteps, step.id]
   );
   const [handlePositions, setHandlePositions] = useState<{
     required: Array<{

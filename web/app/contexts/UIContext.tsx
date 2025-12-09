@@ -16,16 +16,14 @@ interface UIContextType {
   disableEdit: boolean;
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
   previewPlan: ExecutionPlan | null;
-  selectedStep: string | null;
-  goalStepIds: string[];
+  goalSteps: string[];
   toggleGoalStep: (stepId: string) => void;
-  setGoalStepIds: (stepIds: string[]) => void;
+  setGoalSteps: (stepIds: string[]) => void;
   updatePreviewPlan: (
-    goalStepIds: string[],
+    goalSteps: string[],
     initialState: Record<string, any>
   ) => Promise<void>;
   clearPreviewPlan: () => void;
-  setSelectedStep: (stepId: string | null) => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -35,48 +33,34 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [previewPlan, setPreviewPlan] = useState<ExecutionPlan | null>(null);
-  const [goalStepIds, setGoalStepIdsState] = useState<string[]>([]);
-  const [selectedStep, setSelectedStepState] = useState<string | null>(null);
+  const [goalSteps, setGoalStepsState] = useState<string[]>([]);
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const disableEdit = showCreateForm;
 
-  const setSelectedStep = useCallback((stepId: string | null) => {
-    setSelectedStepState(stepId);
-    setGoalStepIdsState(stepId ? [stepId] : []);
-  }, []);
-
-  const setGoalStepIds = useCallback((stepIds: string[]) => {
-    setGoalStepIdsState(stepIds);
-    setSelectedStepState(stepIds[stepIds.length - 1] ?? null);
+  const setGoalSteps = useCallback((stepIds: string[]) => {
+    setGoalStepsState(stepIds);
   }, []);
 
   const toggleGoalStep = useCallback((stepId: string) => {
-    setGoalStepIdsState((prev) => {
+    setGoalStepsState((prev) => {
       if (prev.includes(stepId)) {
         const next = prev.filter((id) => id !== stepId);
-        setSelectedStepState((current) => {
-          if (current === stepId) {
-            return next[next.length - 1] ?? null;
-          }
-          return current ?? next[next.length - 1] ?? null;
-        });
         return next;
       }
 
-      setSelectedStepState(stepId);
       return [...prev, stepId];
     });
   }, []);
 
   const updatePreviewPlan = useCallback(
-    async (goalStepIds: string[], initialState: Record<string, any>) => {
+    async (goalSteps: string[], initialState: Record<string, any>) => {
       // Cancel any pending request
       if (abortControllerRef.current) {
         abortControllerRef.current.abort();
       }
 
-      if (goalStepIds.length === 0) {
+      if (goalSteps.length === 0) {
         setPreviewPlan(null);
         return;
       }
@@ -87,7 +71,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 
       try {
         const plan = await api.getExecutionPlan(
-          goalStepIds,
+          goalSteps,
           initialState,
           abortController.signal
         );
@@ -132,25 +116,21 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       disableEdit,
       diagramContainerRef,
       previewPlan,
-      selectedStep,
-      goalStepIds,
+      goalSteps,
       toggleGoalStep,
       updatePreviewPlan,
       clearPreviewPlan,
-      setSelectedStep,
-      setGoalStepIds,
+      setGoalSteps,
     }),
     [
       showCreateForm,
       disableEdit,
       previewPlan,
-      selectedStep,
-      goalStepIds,
+      goalSteps,
       toggleGoalStep,
       updatePreviewPlan,
       clearPreviewPlan,
-      setSelectedStep,
-      setGoalStepIds,
+      setGoalSteps,
     ]
   );
 

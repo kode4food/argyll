@@ -29,13 +29,7 @@ const FlowDiagramContent: React.FC = () => {
     loadSteps,
   } = useFlowSession();
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
-  const {
-    selectedStep,
-    setSelectedStep,
-    goalStepIds,
-    toggleGoalStep,
-    setGoalStepIds,
-  } = useUI();
+  const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
   const { openEditor } = useStepEditorContext();
 
   const handleStepCreated = async () => {
@@ -144,11 +138,9 @@ const FlowDiagramContent: React.FC = () => {
             >
               <DiagramSelectionProvider
                 value={{
-                  selectedStep,
-                  setSelectedStep,
-                  goalStepIds,
+                  goalSteps,
                   toggleGoalStep,
-                  setGoalStepIds,
+                  setGoalSteps,
                 }}
               >
                 <StepDiagram

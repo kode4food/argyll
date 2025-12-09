@@ -37,11 +37,9 @@ jest.mock("@/utils/stepUtils", () => ({
 jest.mock("../../contexts/UIContext", () => ({
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useUI: () => ({
-    setSelectedStep: jest.fn(),
-    selectedStep: null,
-    goalStepIds: [],
+    goalSteps: [],
     toggleGoalStep: jest.fn(),
-    setGoalStepIds: jest.fn(),
+    setGoalSteps: jest.fn(),
     updatePreviewPlan: jest.fn(),
     clearPreviewPlan: jest.fn(),
     previewPlan: null,
@@ -55,11 +53,9 @@ describe("StepDiagram", () => {
     const { getByTestId } = render(
       <DiagramSelectionProvider
         value={{
-          selectedStep: null,
-          setSelectedStep: jest.fn(),
-          goalStepIds: [],
+          goalSteps: [],
           toggleGoalStep: jest.fn(),
-          setGoalStepIds: jest.fn(),
+          setGoalSteps: jest.fn(),
         }}
       >
         <StepDiagram

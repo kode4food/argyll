@@ -12,9 +12,8 @@ export interface UseExecutionPlanPreviewReturn {
 }
 
 export function useExecutionPlanPreview(
-  goalStepIds: string[],
-  onSelectStep: (stepId: string | null) => void,
-  onToggleStep: (stepId: string) => void,
+  goalSteps: string[],
+  setGoalSteps: (stepIds: string[]) => void,
   flowData?: FlowContext | null
 ): UseExecutionPlanPreviewReturn {
   const { previewPlan, updatePreviewPlan, clearPreviewPlan } = useUI();
@@ -29,41 +28,41 @@ export function useExecutionPlanPreview(
 
       if (isAdditive) {
         const isIncludedByPlan =
-          !!previewPlan?.steps?.[stepId] && !goalStepIds.includes(stepId);
+          !!previewPlan?.steps?.[stepId] && !goalSteps.includes(stepId);
         if (isIncludedByPlan) {
           return;
         }
-        const nextGoals = goalStepIds.includes(stepId)
-          ? goalStepIds.filter((id) => id !== stepId)
-          : [...goalStepIds, stepId];
 
-        onToggleStep(stepId);
-        await updatePreviewPlan(nextGoals, {});
+        const nextGoals = goalSteps.includes(stepId)
+          ? goalSteps.filter((id) => id !== stepId)
+          : [...goalSteps, stepId];
+
+        setGoalSteps(nextGoals);
+        if (nextGoals.length === 0) {
+          clearPreviewPlan();
+        } else {
+          await updatePreviewPlan(nextGoals, {});
+        }
         return;
       }
 
       const isCurrentlySingleSelection =
-        goalStepIds.length === 1 && goalStepIds[0] === stepId;
+        goalSteps.length === 1 && goalSteps[0] === stepId;
 
       if (isCurrentlySingleSelection) {
-        // Deselect current step
-        onSelectStep(null);
+        setGoalSteps([]);
         clearPreviewPlan();
         return;
       }
 
-      // Set selected step immediately (optimistically) for instant visual feedback
-      onSelectStep(stepId);
-
-      // Then load the preview plan (async operation)
-      // The AbortController in UIContext will handle race conditions
-      await updatePreviewPlan([stepId], {});
+      const nextGoals = [stepId];
+      setGoalSteps(nextGoals);
+      await updatePreviewPlan(nextGoals, {});
     },
     [
       flowData,
-      goalStepIds,
-      onSelectStep,
-      onToggleStep,
+      goalSteps,
+      setGoalSteps,
       updatePreviewPlan,
       clearPreviewPlan,
       previewPlan,
@@ -72,8 +71,8 @@ export function useExecutionPlanPreview(
 
   const clearPreview = useCallback(() => {
     clearPreviewPlan();
-    onSelectStep(null);
-  }, [onSelectStep, clearPreviewPlan]);
+    setGoalSteps([]);
+  }, [setGoalSteps, clearPreviewPlan]);
 
   useEffect(() => {
     if (flowData) {

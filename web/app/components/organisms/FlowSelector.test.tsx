@@ -12,14 +12,12 @@ let eventsMock: any[] = [];
 const uiState: any = {
   showCreateForm: false,
   setShowCreateForm: jest.fn(),
-  selectedStep: null,
   previewPlan: null,
   updatePreviewPlan: jest.fn(),
   clearPreviewPlan: jest.fn(),
-  setSelectedStep: jest.fn(),
   toggleGoalStep: jest.fn(),
-  goalStepIds: [],
-  setGoalStepIds: jest.fn(),
+  goalSteps: [],
+  setGoalSteps: jest.fn(),
   disableEdit: false,
   diagramContainerRef: { current: null },
 };
@@ -157,17 +155,16 @@ describe("FlowSelector", () => {
     flowCreationMock.newID = "";
     flowCreationMock.handleCreateFlow = jest.fn();
     flowCreationMock.handleStepChange = jest.fn(async (ids: string[]) => {
-      uiState.setGoalStepIds(ids);
+      uiState.setGoalSteps(ids);
       await uiState.updatePreviewPlan(ids, {});
     });
     Object.assign(uiState, {
       showCreateForm: false,
       previewPlan: null,
-      goalStepIds: [],
+      goalSteps: [],
       updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
-      setGoalStepIds: jest.fn(),
+      setGoalSteps: jest.fn(),
       setShowCreateForm: jest.fn(),
-      setSelectedStep: jest.fn(),
       clearPreviewPlan: jest.fn(),
     });
   });
@@ -231,7 +228,7 @@ describe("FlowSelector", () => {
       required: [],
     });
     uiState.showCreateForm = true;
-    uiState.goalStepIds = [];
+    uiState.goalSteps = [];
     flowCreationMock.steps = [{ id: "goal", name: "Goal" }];
 
     await renderSelector();
@@ -242,7 +239,7 @@ describe("FlowSelector", () => {
       await capturedFormProps.handleStepChange(["goal"]);
     });
 
-    expect(uiState.setGoalStepIds).toHaveBeenCalledWith(["goal"]);
+    expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
     expect(uiState.updatePreviewPlan).toHaveBeenCalledWith(
       ["goal"],
       expect.any(Object)
@@ -257,7 +254,7 @@ describe("FlowSelector", () => {
     });
     api.startFlow.mockRejectedValue(new Error("fail"));
     uiState.showCreateForm = true;
-    uiState.goalStepIds = ["goal"];
+    uiState.goalSteps = ["goal"];
     flowCreationMock.steps = [{ id: "goal", name: "Goal" }];
     const addFlow = jest.fn();
     const removeFlow = jest.fn();

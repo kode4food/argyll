@@ -78,9 +78,8 @@ export const FlowCreationStateProvider = ({
     previewPlan,
     updatePreviewPlan,
     clearPreviewPlan,
-    setSelectedStep,
-    goalStepIds,
-    setGoalStepIds,
+    goalSteps,
+    setGoalSteps,
     showCreateForm,
     setShowCreateForm,
   } = useUI();
@@ -94,13 +93,12 @@ export const FlowCreationStateProvider = ({
 
   const resetForm = useCallback(() => {
     setNewID("");
-    setGoalStepIds([]);
-    setSelectedStep(null);
+    setGoalSteps([]);
     setInitialState("{}");
     setIDManuallyEdited(false);
     clearPreviewPlan();
     initializedGoalsRef.current = false;
-  }, [clearPreviewPlan, setGoalStepIds, setSelectedStep]);
+  }, [clearPreviewPlan, setGoalSteps]);
 
   const handleStepChange = useCallback(
     async (stepIds: string[]) => {
@@ -110,7 +108,7 @@ export const FlowCreationStateProvider = ({
       if (stepIds.length === 0) {
         setInitialState(JSON.stringify(nonDefaultState, null, 2));
         clearPreviewPlan();
-        setGoalStepIds([]);
+        setGoalSteps([]);
         return;
       }
 
@@ -155,25 +153,25 @@ export const FlowCreationStateProvider = ({
             const finalGoals = [...remainingGoals, lastGoal];
 
             if (finalGoals.length !== stepIds.length) {
-              setGoalStepIds(finalGoals);
+              setGoalSteps(finalGoals);
               await updatePreviewPlan(finalGoals, stateWithDefaults);
               return;
             }
           } catch {}
         }
 
-        setGoalStepIds(stepIds);
+        setGoalSteps(stepIds);
         await updatePreviewPlan(stepIds, stateWithDefaults);
       } catch (error) {
         clearPreviewPlan();
-        setGoalStepIds(stepIds);
+        setGoalSteps(stepIds);
       }
     },
     [
       initialState,
       idManuallyEdited,
       steps,
-      setGoalStepIds,
+      setGoalSteps,
       updatePreviewPlan,
       clearPreviewPlan,
     ]
@@ -182,7 +180,7 @@ export const FlowCreationStateProvider = ({
   const throttledInitialState = useThrottledValue(initialState, 500);
 
   useEffect(() => {
-    if (!showCreateForm || goalStepIds.length === 0) {
+    if (!showCreateForm || goalSteps.length === 0) {
       return;
     }
 
@@ -190,12 +188,12 @@ export const FlowCreationStateProvider = ({
     const nonDefaultState = filterDefaultValues(currentState, steps);
 
     if (Object.keys(currentState).length >= 0) {
-      updatePreviewPlan(goalStepIds, nonDefaultState).catch(() => {});
+      updatePreviewPlan(goalSteps, nonDefaultState).catch(() => {});
     }
   }, [
     throttledInitialState,
     showCreateForm,
-    goalStepIds,
+    goalSteps,
     steps,
     updatePreviewPlan,
   ]);
@@ -214,19 +212,19 @@ export const FlowCreationStateProvider = ({
 
     router.prefetch("/flow/placeholder");
 
-    if (goalStepIds.length === 0) {
+    if (goalSteps.length === 0) {
       initializedGoalsRef.current = false;
       return;
     }
 
     if (!initializedGoalsRef.current) {
       initializedGoalsRef.current = true;
-      handleStepChange(goalStepIds);
+      handleStepChange(goalSteps);
     }
-  }, [showCreateForm, router, goalStepIds, handleStepChange]);
+  }, [showCreateForm, router, goalSteps, handleStepChange]);
 
   const handleCreateFlow = useCallback(async () => {
-    if (!newID.trim() || goalStepIds.length === 0) return;
+    if (!newID.trim() || goalSteps.length === 0) return;
 
     const flowId = newID.trim();
     let parsedState: {};
@@ -247,13 +245,12 @@ export const FlowCreationStateProvider = ({
     setCreating(true);
     router.push(`/flow/${flowId}`);
     setNewID("");
-    setGoalStepIds([]);
-    setSelectedStep(null);
+    setGoalSteps([]);
     setInitialState("{}");
     setShowCreateForm(false);
 
     try {
-      await api.startFlow(flowId, goalStepIds, parsedState);
+      await api.startFlow(flowId, goalSteps, parsedState);
       await loadFlows();
     } catch (error: any) {
       let errorMessage = "Unknown error";
@@ -272,11 +269,10 @@ export const FlowCreationStateProvider = ({
     }
   }, [
     newID,
-    goalStepIds,
+    goalSteps,
     addFlow,
     router,
-    setGoalStepIds,
-    setSelectedStep,
+    setGoalSteps,
     loadFlows,
     removeFlow,
     initialState,
