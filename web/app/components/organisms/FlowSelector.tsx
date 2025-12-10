@@ -396,7 +396,13 @@ const FlowSelectorContent: React.FC = () => {
       <div className={styles.selector}>
         <div className={styles.header}>
           <div className={styles.left}>
-            <div className={styles.title}>
+            <a
+              href="https://www.argyll.app/"
+              target="_blank"
+              rel="noreferrer"
+              className={`${styles.title} ${styles.titleLink}`}
+              aria-label="Argyll Web Site"
+            >
               <Image
                 src="/argyll-logo.png"
                 alt="Argyll Logo"
@@ -405,7 +411,7 @@ const FlowSelectorContent: React.FC = () => {
                 height={77}
               />
               <h1 className={styles.titleText}>Argyll Engine</h1>
-            </div>
+            </a>
           </div>
 
           <div className={styles.right}>
