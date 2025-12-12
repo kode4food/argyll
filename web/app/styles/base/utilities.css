@@ -41,6 +41,70 @@
   align-items: center;
 }
 
+/* Width utilities */
+.w-3\.5 {
+  width: 0.875rem;
+}
+.w-4 {
+  width: 1rem;
+}
+.w-5 {
+  width: 1.25rem;
+}
+.w-6 {
+  width: 1.5rem;
+}
+.w-12 {
+  width: 3rem;
+}
+.w-16 {
+  width: 4rem;
+}
+.w-full {
+  width: 100%;
+}
+
+/* Min width utilities */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Max width utilities */
+.max-w-md {
+  max-width: 28rem;
+}
+
+/* Height utilities */
+.h-0 {
+  height: 0;
+}
+.h-3\.5 {
+  height: 0.875rem;
+}
+.h-4 {
+  height: 1rem;
+}
+.h-5 {
+  height: 1.25rem;
+}
+.h-12 {
+  height: 3rem;
+}
+.h-16 {
+  height: 4rem;
+}
+.h-full {
+  height: 100%;
+}
+.h-screen {
+  height: 100vh;
+}
+
+/* Min height utilities */
+.min-h-screen {
+  min-height: 100vh;
+}
+
 /* Background colors using design system variables */
 .bg-neutral-label {
   background-color: var(--color-neutral-label);

@@ -27,6 +27,12 @@ module.exports = {
     flexShrink: false,
     alignItems: false,
     justifyContent: false,
+    width: false,
+    height: false,
+    minWidth: false,
+    maxWidth: false,
+    minHeight: false,
+    maxHeight: false,
   },
   plugins: [],
 };
