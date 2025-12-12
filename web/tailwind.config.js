@@ -16,6 +16,8 @@ module.exports = {
     margin: false,
     padding: false,
     gap: false,
+    borderRadius: false,
+    borderWidth: false,
   },
   plugins: [],
 };

@@ -106,6 +106,37 @@
   gap: var(--spacing-sm);
 }
 
+/* Border radius utilities */
+.rounded {
+  border-radius: var(--radius-md);
+}
+.rounded-md {
+  border-radius: var(--radius-md);
+}
+.rounded-lg {
+  border-radius: var(--radius-lg);
+}
+.rounded-full {
+  border-radius: var(--radius-round);
+}
+
+/* Responsive border radius */
+@media (min-width: 640px) {
+  .sm\:rounded-md {
+    border-radius: var(--radius-md);
+  }
+}
+
+/* Border utilities */
+.border {
+  border-width: 1px;
+  border-style: solid;
+}
+.border-t {
+  border-top-width: 1px;
+  border-top-style: solid;
+}
+
 /* Legend box styles - complex domain-specific components */
 .legend-box-resolver {
   background-color: var(--step-resolver-bg);
