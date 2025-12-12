@@ -368,7 +368,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
               ? "Select a flow with an execution plan to view its step diagram."
               : "Register steps to see their dependency relationships in diagram form."
           }
-          className="py-12"
+          className={styles.emptyStatePadding}
         />
       </div>
     );
@@ -391,15 +391,15 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         fitView={shouldFitView}
         fitViewOptions={{ padding: STEP_LAYOUT.FIT_VIEW_PADDING }}
         onViewportChange={handleViewportChange}
-        className={flowData ? "bg-diagram-flow" : "bg-neutral-bg"}
+        className={flowData ? "flow-mode-bg" : "overview-mode-bg"}
         proOptions={{ hideAttribution: true }}
       >
-        <Controls showInteractive={false} className="!bottom-4 !left-4" />
+        <Controls showInteractive={false} className="diagram-controls" />
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}
           size={1}
-          className="opacity-30"
+          className="diagram-background"
         />
       </ReactFlow>
 

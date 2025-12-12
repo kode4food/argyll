@@ -42,20 +42,4 @@ describe("Spinner", () => {
     const spinner = container.querySelector("div");
     expect(spinner?.className).toContain(styles.spinnerWhite);
   });
-
-  test("applies custom className", () => {
-    const { container } = render(<Spinner className="custom-spinner" />);
-    const spinner = container.querySelector("div");
-    expect(spinner?.className).toContain("custom-spinner");
-  });
-
-  test("combines size, color, and custom className", () => {
-    const { container } = render(
-      <Spinner size="lg" color="white" className="custom" />
-    );
-    const spinner = container.querySelector("div");
-    expect(spinner?.className).toContain(styles.spinnerLg);
-    expect(spinner?.className).toContain(styles.spinnerWhite);
-    expect(spinner?.className).toContain("custom");
-  });
 });

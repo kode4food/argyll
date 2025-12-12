@@ -13,6 +13,11 @@
   }
 }
 
+.emptyStatePadding {
+  padding-top: var(--spacing-3xl);
+  padding-bottom: var(--spacing-3xl);
+}
+
 .diagramWrapper {
   position: relative;
   height: 100%;

@@ -182,3 +182,21 @@
   color: var(--color-neutral-text);
   border-color: var(--color-neutral-border);
 }
+
+/* ReactFlow component overrides */
+.react-flow__renderer.flow-mode-bg {
+  background-color: var(--color-diagram-flow) !important;
+}
+
+.react-flow__renderer.overview-mode-bg {
+  background-color: var(--color-neutral-bg);
+}
+
+.react-flow__controls.diagram-controls {
+  bottom: 1rem !important;
+  left: 1rem !important;
+}
+
+.react-flow__background.diagram-background {
+  opacity: 0.3;
+}

@@ -21,7 +21,7 @@ const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
         <TooltipSection title="Step Name">{step.name}</TooltipSection>
         <TooltipSection title="Step ID">{step.id}</TooltipSection>
       </Tooltip>
-      <StepTypeLabel step={step} className="step-type-label-responsive" />
+      <StepTypeLabel step={step} />
     </div>
   );
 };

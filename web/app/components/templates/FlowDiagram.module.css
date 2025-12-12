@@ -1,5 +1,19 @@
 /* Flow Diagram Layout */
 
+.container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.containerFlowMode {
+  background-color: var(--color-neutral-label);
+}
+
+.containerOverviewMode {
+  background-color: var(--color-white);
+}
+
 .emptyStateContainer {
   display: flex;
   align-items: center;

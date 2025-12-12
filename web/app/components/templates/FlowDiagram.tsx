@@ -64,7 +64,7 @@ const FlowDiagramContent: React.FC = () => {
 
   return (
     <div
-      className={`flex h-full flex-col ${isFlowMode ? "bg-neutral-label" : "bg-white"}`}
+      className={`${styles.container} ${isFlowMode ? styles.containerFlowMode : styles.containerOverviewMode}`}
     >
       {showInfoBar ? (
         <div className="overview-header">

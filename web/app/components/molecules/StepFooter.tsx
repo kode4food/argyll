@@ -167,7 +167,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
         <TooltipSection
           key="health"
           title="Health Status"
-          icon={<HealthDot className={healthIconClass} />}
+          icon={<HealthDot status={healthIconClass as HealthStatus} />}
         >
           {healthText}
         </TooltipSection>
@@ -201,7 +201,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
                     )}
                 </div>
               ) : (
-                <HealthDot className={healthIconClass} />
+                <HealthDot status={healthIconClass as HealthStatus} />
               )}
             </div>
           </div>

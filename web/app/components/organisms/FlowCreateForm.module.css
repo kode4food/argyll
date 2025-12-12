@@ -103,6 +103,10 @@
   composes: buttonPrimary from "../styles/Button.module.css";
 }
 
+.buttonIcon {
+  margin-right: var(--spacing-sm);
+}
+
 .warning {
   margin-top: var(--spacing-md);
   padding: var(--spacing-md);

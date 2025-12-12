@@ -242,11 +242,13 @@ const FlowCreateForm: React.FC = () => {
                 }
                 className={styles.buttonStart}
               >
-                {creating ? (
-                  <Spinner size="sm" color="white" className="mr-2" />
-                ) : (
-                  <Play className="mr-2 icon" />
-                )}
+                <span className={styles.buttonIcon}>
+                  {creating ? (
+                    <Spinner size="sm" color="white" />
+                  ) : (
+                    <Play className="icon" />
+                  )}
+                </span>
                 Start
               </button>
             </div>

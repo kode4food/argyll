@@ -57,13 +57,4 @@ describe("StepTypeLabel", () => {
     expect(label?.className).toContain("step-type-label");
     expect(label?.className).toContain("processor");
   });
-
-  test("applies custom className", () => {
-    const step = createStep(true, true);
-    const { container } = render(
-      <StepTypeLabel step={step} className="custom-class" />
-    );
-    const label = container.querySelector("span");
-    expect(label?.className).toContain("custom-class");
-  });
 });

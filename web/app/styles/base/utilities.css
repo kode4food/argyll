@@ -33,11 +33,6 @@
   height: 100%;
 }
 
-/* Max width utilities */
-.max-w-sm {
-  max-width: 24rem;
-}
-
 /* Position utilities */
 .fixed {
   position: fixed;
@@ -49,20 +44,6 @@
 
 .static {
   position: static;
-}
-
-/* Inset utilities */
-.bottom-4 {
-  bottom: 1rem;
-}
-
-.left-4 {
-  left: 1rem;
-}
-
-/* Opacity utilities */
-.opacity-30 {
-  opacity: 0.3;
 }
 
 /* Shadow utilities */
@@ -78,11 +59,6 @@
     0 4px 6px -4px rgb(0 0 0 / 0.1);
 }
 
-/* Space between utilities */
-.space-y-2 > * + * {
-  margin-top: var(--spacing-sm);
-}
-
 /* Background colors using design system variables */
 .bg-neutral-label {
   background-color: var(--color-neutral-label);
@@ -96,29 +72,6 @@
   background-color: var(--color-neutral-bg-dark);
 }
 
-.bg-diagram-flow {
-  background-color: var(--color-diagram-flow) !important;
-}
-
 .bg-white {
   background-color: var(--color-white);
-}
-
-/* Spacing utilities */
-.mr-2 {
-  margin-right: var(--spacing-sm);
-}
-
-.mt-0\.5 {
-  margin-top: var(--spacing-2xs);
-}
-
-.py-12 {
-  padding-top: var(--spacing-3xl);
-  padding-bottom: var(--spacing-3xl);
-}
-
-/* Hover states using design system variables */
-.hover\:bg-processor-text:hover {
-  background-color: var(--color-primary-dark);
 }
