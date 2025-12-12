@@ -25,7 +25,7 @@ const TooltipSection: React.FC<TooltipSectionProps> = ({
       <div className={styles.label}>{title}:</div>
       {icon ? (
         <div
-          className={`${valueClass} ${styles.valueWithIcon} flex items-start gap-2`}
+          className={`${valueClass} ${styles.valueWithIcon} gap-2 flex items-start`}
         >
           <div className="mt-0.5 flex-shrink-0">{icon}</div>
           <span className="flex-1">{children}</span>

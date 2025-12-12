@@ -38,7 +38,7 @@ const FlowDiagramContent: React.FC = () => {
 
   if (selectedFlow && flowNotFound && !loading) {
     return (
-      <div className="flex h-full items-center justify-center bg-white">
+      <div className="bg-white flex h-full items-center justify-center">
         <EmptyState
           icon={
             <AlertCircle className="text-collector-text mx-auto mb-4 h-16 w-16" />
@@ -52,7 +52,7 @@ const FlowDiagramContent: React.FC = () => {
 
   if (!steps || steps.length === 0) {
     return (
-      <div className="flex h-full items-center justify-center bg-white">
+      <div className="bg-white flex h-full items-center justify-center">
         <EmptyState
           title="No Steps Registered"
           description="Register flow steps with the Argyll engine to see the flow diagram."
@@ -74,14 +74,15 @@ const FlowDiagramContent: React.FC = () => {
             <div className="overview-header__stats">
               {steps.length} step{steps.length !== 1 ? "s" : ""} registered
               <button
-                onClick={() =>
+                onClick={(e) => {
                   openEditor({
                     step: null,
                     diagramContainerRef,
                     onUpdate: handleStepCreated,
-                  })
-                }
-                className="ml-2 inline-flex items-center justify-center rounded-full p-1 transition-colors"
+                  });
+                  e.currentTarget.blur();
+                }}
+                className="ml-2 rounded-full p-1 overview-header__add-step inline-flex items-center justify-center transition-colors"
                 style={{
                   backgroundColor:
                     "color-mix(in srgb, var(--color-primary) 20%, transparent)",

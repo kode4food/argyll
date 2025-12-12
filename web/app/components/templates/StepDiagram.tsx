@@ -357,7 +357,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   if (!visibleSteps || visibleSteps.length === 0) {
     return (
-      <div className="overflow-hidden bg-white shadow sm:rounded-md">
+      <div className="bg-white sm:rounded-md overflow-hidden shadow">
         <EmptyState
           icon={<Server className="text-neutral-text mx-auto mb-4 h-12 w-12" />}
           title="No Steps to Visualize"
@@ -401,21 +401,21 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         />
       </ReactFlow>
 
-      <div className="absolute bottom-4 right-4 rounded-lg border bg-white p-4 text-sm shadow-lg">
+      <div className="rounded-lg border bg-white p-4 text-sm absolute bottom-4 right-4 shadow-lg">
         <div className="space-y-2">
           <div className="flex items-center">
-            <div className="legend-box-resolver mr-2 h-4 w-4 rounded"></div>
+            <div className="legend-box-resolver mr-2 rounded h-4 w-4"></div>
             <span className="text-neutral-text">Resolver Steps</span>
           </div>
           <div className="flex items-center">
-            <div className="legend-box-processor mr-2 h-4 w-4 rounded"></div>
+            <div className="legend-box-processor mr-2 rounded h-4 w-4"></div>
             <span className="text-neutral-text">Processor Steps</span>
           </div>
           <div className="flex items-center">
-            <div className="legend-box-collector mr-2 h-4 w-4 rounded"></div>
+            <div className="legend-box-collector mr-2 rounded h-4 w-4"></div>
             <span className="text-neutral-text">Collector Steps</span>
           </div>
-          <div className="border-neutral-border mt-3 flex items-center border-t pt-2">
+          <div className="border-neutral-border mt-3 border-t pt-2 flex items-center">
             <div className="legend-line-required mr-2 h-0 w-6"></div>
             <span className="text-neutral-text">Required</span>
           </div>

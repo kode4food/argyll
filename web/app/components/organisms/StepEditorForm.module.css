@@ -111,6 +111,13 @@
   flex: 2;
 }
 
+.argInput:focus,
+.argType:focus {
+  outline: none;
+  border-color: var(--color-info);
+  background-color: var(--overlay-dark-40);
+}
+
 .argType {
   height: 32px;
   padding: 0 10px;
@@ -154,6 +161,12 @@
 
 .argType::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.3);
+}
+
+.iconButton:focus-visible {
+  outline: none;
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 .removeButtonStyle {

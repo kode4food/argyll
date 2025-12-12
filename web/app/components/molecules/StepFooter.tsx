@@ -44,7 +44,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
         step.script.language === SCRIPT_LANGUAGE_ALE ? FileCode2 : Code2;
       const scriptPreview = step.script.script.replace(/\n/g, " ");
       return (
-        <div className="flex min-w-0 flex-1 items-center gap-1">
+        <div className="gap-1 flex min-w-0 flex-1 items-center">
           <ScriptIcon className="step-type-icon h-3.5 w-3.5 flex-shrink-0" />
           <span className="step-endpoint script">{scriptPreview}</span>
         </div>
@@ -53,7 +53,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
     if (step.http) {
       const HttpIcon = step.type === "async" ? Webhook : Globe;
       return (
-        <div className="flex min-w-0 flex-1 items-center gap-1">
+        <div className="gap-1 flex min-w-0 flex-1 items-center">
           <HttpIcon className="step-type-icon h-3.5 w-3.5 flex-shrink-0" />
           <span className="step-endpoint">{step.http.endpoint}</span>
         </div>

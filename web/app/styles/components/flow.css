@@ -121,6 +121,27 @@
   color: var(--color-neutral-text);
 }
 
+.overview-header__add-step {
+  border: none;
+  color: color-mix(in srgb, var(--color-primary) 60%, var(--color-darken));
+}
+
+.overview-header__add-step:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--color-primary) 50%, transparent);
+}
+
+/* Soften the hover/focus background transitions to stay on-brand */
+.overview-header__add-step:hover,
+.overview-header__add-step:focus-visible {
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary) 30%,
+    transparent
+  ) !important;
+}
+
 /* Flow Status Badges */
 .flow-status-badge.pending {
   background-color: var(--color-neutral-label);
