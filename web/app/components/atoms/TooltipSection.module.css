@@ -47,5 +47,14 @@
 .valueWithIcon {
   display: flex;
   align-items: flex-start;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
+}
+
+.iconWrapper {
+  margin-top: var(--spacing-2xs);
+  flex-shrink: 0;
+}
+
+.textContent {
+  flex: 1;
 }

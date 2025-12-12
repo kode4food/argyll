@@ -9,17 +9,18 @@ import {
   FlowSessionProvider,
   useFlowSession,
 } from "../../contexts/FlowSessionContext";
+import styles from "./FlowPage.module.css";
 
 function FlowPageContent() {
   return (
-    <div className="bg-neutral-bg flex h-screen flex-col">
+    <div className={styles.page}>
       <ErrorBoundary
         title="Flow Selector Error"
         description="An error occurred in the flow selector. Try refreshing the page."
       >
         <FlowSelector />
       </ErrorBoundary>
-      <div className="flex-1">
+      <div className={styles.mainContent}>
         <ErrorBoundary
           title="Diagram Error"
           description="An error occurred while rendering the diagram. Try selecting a different flow."
@@ -36,12 +37,12 @@ function FlowPageWithSession() {
 
   if (flowError) {
     return (
-      <div className="bg-neutral-bg flex min-h-screen items-center justify-center">
-        <div className="text-center">
-          <p className="text-collector-text mb-4">Error: {flowError}</p>
+      <div className={styles.errorPage}>
+        <div className={styles.errorContent}>
+          <p className={styles.errorMessage}>Error: {flowError}</p>
           <button
             onClick={() => window.location.reload()}
-            className="bg-info hover:bg-processor-text rounded px-4 py-2 text-white"
+            className={styles.retryButton}
           >
             Retry
           </button>

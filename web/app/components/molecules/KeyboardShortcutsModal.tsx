@@ -57,7 +57,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
       <div className={styles.modal}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <Command className="h-5 w-5" />
+            <Command className="icon-md" />
             <h2 className={styles.title}>Keyboard Shortcuts</h2>
           </div>
           <button
@@ -65,7 +65,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
             className={styles.closeButton}
             aria-label="Close"
           >
-            <X className="h-5 w-5" />
+            <X className="icon-md" />
           </button>
         </div>
 

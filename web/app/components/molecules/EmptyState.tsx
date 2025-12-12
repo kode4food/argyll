@@ -1,5 +1,6 @@
 import React from "react";
 import { Server } from "lucide-react";
+import styles from "./EmptyState.module.css";
 
 interface EmptyStateProps {
   icon?: React.ReactNode;
@@ -10,18 +11,18 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = <Server className="text-neutral-text mx-auto mb-4 h-16 w-16" />,
+  icon = <Server className={styles.icon} />,
   title,
   description,
   action,
   className = "",
 }) => {
   return (
-    <div className={`text-center ${className}`}>
+    <div className={`${styles.container} ${className}`}>
       {icon}
-      <h3 className="text-neutral-text mb-2 text-xl font-medium">{title}</h3>
-      <p className="text-neutral-text mx-auto max-w-sm">{description}</p>
-      {action && <div className="mt-4">{action}</div>}
+      <h3 className={styles.title}>{title}</h3>
+      <p className={styles.description}>{description}</p>
+      {action && <div className={styles.action}>{action}</div>}
     </div>
   );
 };

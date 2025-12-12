@@ -72,14 +72,13 @@ describe("EmptyState", () => {
     render(<EmptyState title="My Title" description="Description" />);
     const title = screen.getByText("My Title");
     expect(title.tagName).toBe("H3");
-    expect(title.className).toContain("text-xl");
-    expect(title.className).toContain("font-medium");
+    expect(title.className).toContain("title");
   });
 
   test("renders description with correct styling", () => {
     render(<EmptyState title="Title" description="My description" />);
     const description = screen.getByText("My description");
     expect(description.tagName).toBe("P");
-    expect(description.className).toContain("max-w-sm");
+    expect(description.className).toContain("description");
   });
 });

@@ -13,6 +13,7 @@ import Tooltip from "../atoms/Tooltip";
 import TooltipSection from "../atoms/TooltipSection";
 import tooltipStyles from "../atoms/TooltipSection.module.css";
 import HealthDot from "../atoms/HealthDot";
+import styles from "./StepFooter.module.css";
 
 interface StepFooterProps {
   step: Step;
@@ -44,8 +45,8 @@ const StepFooter: React.FC<StepFooterProps> = ({
         step.script.language === SCRIPT_LANGUAGE_ALE ? FileCode2 : Code2;
       const scriptPreview = step.script.script.replace(/\n/g, " ");
       return (
-        <div className="gap-1 flex min-w-0 flex-1 items-center">
-          <ScriptIcon className="step-type-icon h-3.5 w-3.5 flex-shrink-0" />
+        <div className={styles.infoDisplay}>
+          <ScriptIcon className={`step-type-icon ${styles.icon}`} />
           <span className="step-endpoint script">{scriptPreview}</span>
         </div>
       );
@@ -53,8 +54,8 @@ const StepFooter: React.FC<StepFooterProps> = ({
     if (step.http) {
       const HttpIcon = step.type === "async" ? Webhook : Globe;
       return (
-        <div className="gap-1 flex min-w-0 flex-1 items-center">
-          <HttpIcon className="step-type-icon h-3.5 w-3.5 flex-shrink-0" />
+        <div className={styles.infoDisplay}>
+          <HttpIcon className={`step-type-icon ${styles.icon}`} />
           <span className="step-endpoint">{step.http.endpoint}</span>
         </div>
       );

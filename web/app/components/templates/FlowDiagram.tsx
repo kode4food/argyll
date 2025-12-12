@@ -1,6 +1,7 @@
 import React from "react";
 import StepDiagram from "./StepDiagram";
 import EmptyState from "../molecules/EmptyState";
+import styles from "./FlowDiagram.module.css";
 import { useFlowWebSocket } from "../../hooks/useFlowWebSocket";
 import FlowStats from "../organisms/FlowStats";
 import { AlertCircle, Plus } from "lucide-react";
@@ -38,11 +39,9 @@ const FlowDiagramContent: React.FC = () => {
 
   if (selectedFlow && flowNotFound && !loading) {
     return (
-      <div className="bg-white flex h-full items-center justify-center">
+      <div className={styles.emptyStateContainer}>
         <EmptyState
-          icon={
-            <AlertCircle className="text-collector-text mx-auto mb-4 h-16 w-16" />
-          }
+          icon={<AlertCircle />}
           title="Flow Not Found"
           description={`The flow "${selectedFlow}" could not be found.`}
         />
@@ -52,7 +51,7 @@ const FlowDiagramContent: React.FC = () => {
 
   if (!steps || steps.length === 0) {
     return (
-      <div className="bg-white flex h-full items-center justify-center">
+      <div className={styles.emptyStateContainer}>
         <EmptyState
           title="No Steps Registered"
           description="Register flow steps with the Argyll engine to see the flow diagram."
@@ -82,11 +81,11 @@ const FlowDiagramContent: React.FC = () => {
                   });
                   e.currentTarget.blur();
                 }}
-                className="ml-2 rounded-full p-1 overview-header__add-step inline-flex items-center justify-center transition-colors"
+                className="overview-header__add-step"
                 title="Create New Step"
                 aria-label="Create New Step"
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="icon" />
               </button>
             </div>
           </div>
@@ -130,9 +129,9 @@ const FlowDiagramContent: React.FC = () => {
         )
       )}
 
-      <div className="relative flex-1" ref={diagramContainerRef}>
+      <div className={styles.diagramContainer} ref={diagramContainerRef}>
         {loading ? null : (
-          <div className="h-full w-full">
+          <div className={styles.diagramContent}>
             <ErrorBoundary
               title="Step Diagram Error"
               description="An error occurred while rendering the step diagram."

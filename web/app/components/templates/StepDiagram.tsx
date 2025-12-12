@@ -16,6 +16,8 @@ import "@xyflow/react/dist/style.css";
 import { Step, FlowContext, ExecutionResult, AttributeRole } from "../../api";
 import { Server } from "lucide-react";
 import StepNode from "../organisms/StepNode";
+import legendStyles from "./Legend.module.css";
+import styles from "./StepDiagram.module.css";
 import EmptyState from "../molecules/EmptyState";
 import { useExecutionPlanPreview } from "../../hooks/useExecutionPlanPreview";
 import { useStepVisibility } from "../../hooks/useStepVisibility";
@@ -357,9 +359,9 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   if (!visibleSteps || visibleSteps.length === 0) {
     return (
-      <div className="bg-white sm:rounded-md overflow-hidden shadow">
+      <div className={styles.emptyStateWrapper}>
         <EmptyState
-          icon={<Server className="text-neutral-text mx-auto mb-4 h-12 w-12" />}
+          icon={<Server />}
           title="No Steps to Visualize"
           description={
             flowData?.plan
@@ -373,7 +375,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
   }
 
   return (
-    <div className="relative h-full w-full" ref={diagramContainerRef}>
+    <div className={styles.diagramWrapper} ref={diagramContainerRef}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -401,27 +403,37 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         />
       </ReactFlow>
 
-      <div className="rounded-lg border bg-white p-4 text-sm absolute bottom-4 right-4 shadow-lg">
-        <div className="space-y-2">
-          <div className="flex items-center">
-            <div className="legend-box-resolver mr-2 rounded h-4 w-4"></div>
-            <span className="text-neutral-text">Resolver Steps</span>
+      <div className={legendStyles.legend}>
+        <div className={legendStyles.legendContent}>
+          <div className={legendStyles.legendItem}>
+            <div
+              className={`${legendStyles.legendBox} legend-box-resolver`}
+            ></div>
+            <span className={legendStyles.legendLabel}>Resolver Steps</span>
           </div>
-          <div className="flex items-center">
-            <div className="legend-box-processor mr-2 rounded h-4 w-4"></div>
-            <span className="text-neutral-text">Processor Steps</span>
+          <div className={legendStyles.legendItem}>
+            <div
+              className={`${legendStyles.legendBox} legend-box-processor`}
+            ></div>
+            <span className={legendStyles.legendLabel}>Processor Steps</span>
           </div>
-          <div className="flex items-center">
-            <div className="legend-box-collector mr-2 rounded h-4 w-4"></div>
-            <span className="text-neutral-text">Collector Steps</span>
+          <div className={legendStyles.legendItem}>
+            <div
+              className={`${legendStyles.legendBox} legend-box-collector`}
+            ></div>
+            <span className={legendStyles.legendLabel}>Collector Steps</span>
           </div>
-          <div className="border-neutral-border mt-3 border-t pt-2 flex items-center">
-            <div className="legend-line-required mr-2 h-0 w-6"></div>
-            <span className="text-neutral-text">Required</span>
+          <div className={legendStyles.legendDivider}>
+            <div
+              className={`${legendStyles.legendLine} legend-line-required`}
+            ></div>
+            <span className={legendStyles.legendLabel}>Required</span>
           </div>
-          <div className="flex items-center">
-            <div className="legend-line-optional mr-2 h-0 w-6"></div>
-            <span className="text-neutral-text">Optional</span>
+          <div className={legendStyles.legendItem}>
+            <div
+              className={`${legendStyles.legendLine} legend-line-optional`}
+            ></div>
+            <span className={legendStyles.legendLabel}>Optional</span>
           </div>
         </div>
       </div>

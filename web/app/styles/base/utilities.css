@@ -41,6 +41,23 @@
   align-items: center;
 }
 
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.flex-row {
+  display: flex;
+  align-items: center;
+}
+
+.flex-row-gap-1 {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
 /* Width utilities */
 .w-3\.5 {
   width: 0.875rem;
@@ -98,6 +115,28 @@
 }
 .h-screen {
   height: 100vh;
+}
+
+/* Icon sizing utilities - Multi-property (for composition) */
+.icon-sm {
+  height: 0.875rem;
+  width: 0.875rem;
+}
+.icon {
+  height: 1rem;
+  width: 1rem;
+}
+.icon-md {
+  height: 1.25rem;
+  width: 1.25rem;
+}
+.icon-lg {
+  height: 3rem;
+  width: 3rem;
+}
+.icon-xl {
+  height: 4rem;
+  width: 4rem;
 }
 
 /* Min height utilities */

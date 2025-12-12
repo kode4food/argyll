@@ -245,7 +245,7 @@ const FlowCreateForm: React.FC = () => {
                 {creating ? (
                   <Spinner size="sm" color="white" className="mr-2" />
                 ) : (
-                  <Play className="mr-2 h-4 w-4" />
+                  <Play className="mr-2 icon" />
                 )}
                 Start
               </button>

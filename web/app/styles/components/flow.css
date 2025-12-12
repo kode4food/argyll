@@ -122,9 +122,17 @@
 }
 
 .overview-header__add-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: var(--spacing-sm);
+  padding: var(--spacing-xs);
   border: none;
+  border-radius: 9999px;
   background-color: #e6bd8c;
   color: #6a5d53;
+  transition: background-color 0.2s;
+  cursor: pointer;
 }
 
 .overview-header__add-step:focus-visible {
