@@ -16,7 +16,7 @@ import "@xyflow/react/dist/style.css";
 import { Step, FlowContext, ExecutionResult, AttributeRole } from "../../api";
 import { Server } from "lucide-react";
 import StepNode from "../organisms/StepNode";
-import legendStyles from "./Legend.module.css";
+import Legend from "../molecules/Legend";
 import styles from "./StepDiagram.module.css";
 import EmptyState from "../molecules/EmptyState";
 import { useExecutionPlanPreview } from "../../hooks/useExecutionPlanPreview";
@@ -403,40 +403,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         />
       </ReactFlow>
 
-      <div className={legendStyles.legend}>
-        <div className={legendStyles.legendContent}>
-          <div className={legendStyles.legendItem}>
-            <div
-              className={`${legendStyles.legendBox} legend-box-resolver`}
-            ></div>
-            <span className={legendStyles.legendLabel}>Resolver Steps</span>
-          </div>
-          <div className={legendStyles.legendItem}>
-            <div
-              className={`${legendStyles.legendBox} legend-box-processor`}
-            ></div>
-            <span className={legendStyles.legendLabel}>Processor Steps</span>
-          </div>
-          <div className={legendStyles.legendItem}>
-            <div
-              className={`${legendStyles.legendBox} legend-box-collector`}
-            ></div>
-            <span className={legendStyles.legendLabel}>Collector Steps</span>
-          </div>
-          <div className={legendStyles.legendDivider}>
-            <div
-              className={`${legendStyles.legendLine} legend-line-required`}
-            ></div>
-            <span className={legendStyles.legendLabel}>Required</span>
-          </div>
-          <div className={legendStyles.legendItem}>
-            <div
-              className={`${legendStyles.legendLine} legend-line-optional`}
-            ></div>
-            <span className={legendStyles.legendLabel}>Optional</span>
-          </div>
-        </div>
-      </div>
+      <Legend />
     </div>
   );
 };

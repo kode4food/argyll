@@ -1,6 +1,6 @@
 /* Step Diagram Legend */
 
-.legend {
+.root {
   position: absolute;
   bottom: 1rem;
   right: 1rem;
@@ -12,18 +12,18 @@
   box-shadow: var(--shadow-lg);
 }
 
-.legendContent {
+.content {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-sm);
 }
 
-.legendItem {
+.item {
   display: flex;
   align-items: center;
 }
 
-.legendDivider {
+.divider {
   display: flex;
   align-items: center;
   margin-top: var(--spacing-md);
@@ -31,7 +31,7 @@
   border-top: 1px solid var(--color-neutral-border);
 }
 
-.legendBox {
+.box {
   height: 1rem;
   width: 1rem;
   border-radius: var(--radius-md);
@@ -39,13 +39,39 @@
   flex-shrink: 0;
 }
 
-.legendLine {
+.line {
   height: 0;
   width: 1.5rem;
   margin-right: var(--spacing-sm);
   flex-shrink: 0;
 }
 
-.legendLabel {
+.label {
   color: var(--color-neutral-text);
+}
+
+.boxResolver {
+  background-color: var(--step-resolver-bg);
+  border: 2px solid
+    color-mix(in srgb, var(--step-resolver-border) 85%, var(--color-darken));
+}
+
+.boxProcessor {
+  background-color: var(--step-processor-bg);
+  border: 2px solid
+    color-mix(in srgb, var(--step-processor-border) 85%, var(--color-darken));
+}
+
+.boxCollector {
+  background-color: var(--step-collector-bg);
+  border: 2px solid
+    color-mix(in srgb, var(--step-collector-border) 85%, var(--color-darken));
+}
+
+.lineRequired {
+  border-top: 2px solid var(--color-edge-required);
+}
+
+.lineOptional {
+  border-top: 2px dashed var(--color-edge-optional);
 }

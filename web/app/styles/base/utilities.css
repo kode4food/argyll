@@ -4,34 +4,10 @@
 .flex {
   display: flex;
 }
-.inline-flex {
-  display: inline-flex;
-}
 
 /* Flex direction */
 .flex-col {
   flex-direction: column;
-}
-
-/* Flex sizing */
-.flex-1 {
-  flex: 1 1 0;
-}
-.flex-shrink-0 {
-  flex-shrink: 0;
-}
-
-/* Align items */
-.items-start {
-  align-items: flex-start;
-}
-.items-center {
-  align-items: center;
-}
-
-/* Justify content */
-.justify-center {
-  justify-content: center;
 }
 
 /* Combined layouts */
@@ -41,152 +17,47 @@
   align-items: center;
 }
 
-.flex-center {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.flex-row {
-  display: flex;
-  align-items: center;
-}
-
-.flex-row-gap-1 {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-xs);
-}
-
-/* Width utilities */
-.w-3\.5 {
-  width: 0.875rem;
-}
-.w-4 {
-  width: 1rem;
-}
-.w-5 {
-  width: 1.25rem;
-}
-.w-6 {
-  width: 1.5rem;
-}
-.w-12 {
-  width: 3rem;
-}
-.w-16 {
-  width: 4rem;
-}
-.w-full {
-  width: 100%;
-}
-
-/* Min width utilities */
-.min-w-0 {
-  min-width: 0;
-}
-
-/* Max width utilities */
-.max-w-md {
-  max-width: 28rem;
-}
-
-/* Height utilities */
-.h-0 {
-  height: 0;
-}
-.h-3\.5 {
-  height: 0.875rem;
-}
-.h-4 {
-  height: 1rem;
-}
-.h-5 {
-  height: 1.25rem;
-}
-.h-12 {
-  height: 3rem;
-}
-.h-16 {
-  height: 4rem;
-}
-.h-full {
-  height: 100%;
-}
-.h-screen {
-  height: 100vh;
-}
-
 /* Icon sizing utilities - Multi-property (for composition) */
-.icon-sm {
-  height: 0.875rem;
-  width: 0.875rem;
-}
 .icon {
   height: 1rem;
   width: 1rem;
 }
+
 .icon-md {
   height: 1.25rem;
   width: 1.25rem;
 }
-.icon-lg {
-  height: 3rem;
-  width: 3rem;
-}
-.icon-xl {
-  height: 4rem;
-  width: 4rem;
+
+/* Height utilities */
+.h-full {
+  height: 100%;
 }
 
-/* Min height utilities */
-.min-h-screen {
-  min-height: 100vh;
+/* Max width utilities */
+.max-w-sm {
+  max-width: 24rem;
 }
 
 /* Position utilities */
-.static {
-  position: static;
-}
 .fixed {
   position: fixed;
 }
-.absolute {
-  position: absolute;
-}
+
 .relative {
   position: relative;
 }
-.sticky {
-  position: sticky;
+
+.static {
+  position: static;
 }
 
 /* Inset utilities */
-.top-4 {
-  top: 1rem;
-}
-.right-4 {
-  right: 1rem;
-}
 .bottom-4 {
   bottom: 1rem;
 }
+
 .left-4 {
   left: 1rem;
-}
-
-/* Overflow utilities */
-.overflow-hidden {
-  overflow: hidden;
-}
-.overflow-auto {
-  overflow: auto;
-}
-.overflow-visible {
-  overflow: visible;
-}
-.overflow-scroll {
-  overflow: scroll;
 }
 
 /* Opacity utilities */
@@ -200,29 +71,11 @@
     0 1px 3px 0 rgb(0 0 0 / 0.1),
     0 1px 2px -1px rgb(0 0 0 / 0.1);
 }
+
 .shadow-lg {
   box-shadow:
     0 10px 15px -3px rgb(0 0 0 / 0.1),
     0 4px 6px -4px rgb(0 0 0 / 0.1);
-}
-
-/* Text alignment utilities */
-.text-left {
-  text-align: left;
-}
-.text-center {
-  text-align: center;
-}
-.text-right {
-  text-align: right;
-}
-
-/* Transition utilities */
-.transition-colors {
-  transition-property:
-    color, background-color, border-color, text-decoration-color, fill, stroke;
-  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 150ms;
 }
 
 /* Space between utilities */
@@ -234,186 +87,35 @@
 .bg-neutral-label {
   background-color: var(--color-neutral-label);
 }
+
 .bg-neutral-bg {
   background-color: var(--color-neutral-bg);
 }
+
 .bg-neutral-bg-dark {
   background-color: var(--color-neutral-bg-dark);
 }
+
 .bg-diagram-flow {
   background-color: var(--color-diagram-flow) !important;
 }
-.bg-info {
-  background-color: var(--color-info);
-}
+
 .bg-white {
   background-color: var(--color-white);
 }
 
-/* Text colors using design system variables */
-.text-collector-text {
-  color: var(--step-collector-text);
-}
-.text-neutral-text {
-  color: var(--color-neutral-text);
-}
-.text-white {
-  color: var(--color-white);
-}
-
-/* Border colors using design system variables */
-.border-neutral-border {
-  border-color: var(--color-neutral-border);
-}
-
 /* Spacing utilities */
-
-/* Margin */
 .mr-2 {
   margin-right: var(--spacing-sm);
 }
-.mx-auto {
-  margin-left: auto;
-  margin-right: auto;
-}
-.mb-4 {
-  margin-bottom: var(--spacing-lg);
-}
-.mb-2 {
-  margin-bottom: var(--spacing-sm);
-}
-.mb-6 {
-  margin-bottom: var(--spacing-xl);
-}
-.mt-4 {
-  margin-top: var(--spacing-lg);
-}
-.mt-3 {
-  margin-top: var(--spacing-md);
-}
+
 .mt-0\.5 {
   margin-top: var(--spacing-2xs);
 }
-.ml-2 {
-  margin-left: var(--spacing-sm);
-}
 
-/* Padding */
-.p-1 {
-  padding: var(--spacing-xs);
-}
-.p-4 {
-  padding: var(--spacing-lg);
-}
-.px-4 {
-  padding-left: var(--spacing-lg);
-  padding-right: var(--spacing-lg);
-}
-.px-6 {
-  padding-left: var(--spacing-xl);
-  padding-right: var(--spacing-xl);
-}
-.py-2 {
-  padding-top: var(--spacing-sm);
-  padding-bottom: var(--spacing-sm);
-}
-.py-3 {
-  padding-top: var(--spacing-md);
-  padding-bottom: var(--spacing-md);
-}
 .py-12 {
   padding-top: var(--spacing-3xl);
   padding-bottom: var(--spacing-3xl);
-}
-.pt-2 {
-  padding-top: var(--spacing-sm);
-}
-
-/* Gap */
-.gap-1 {
-  gap: var(--spacing-xs);
-}
-.gap-2 {
-  gap: var(--spacing-sm);
-}
-
-/* Border radius utilities */
-.rounded {
-  border-radius: var(--radius-md);
-}
-.rounded-md {
-  border-radius: var(--radius-md);
-}
-.rounded-lg {
-  border-radius: var(--radius-lg);
-}
-.rounded-full {
-  border-radius: var(--radius-round);
-}
-
-/* Responsive border radius */
-@media (min-width: 640px) {
-  .sm\:rounded-md {
-    border-radius: var(--radius-md);
-  }
-}
-
-/* Border utilities */
-.border {
-  border-width: 1px;
-  border-style: solid;
-}
-.border-t {
-  border-top-width: 1px;
-  border-top-style: solid;
-}
-
-/* Typography utilities */
-
-/* Font sizes */
-.text-sm {
-  font-size: var(--text-sm);
-}
-.text-xl {
-  font-size: var(--text-xl);
-}
-.text-3xl {
-  font-size: var(--text-3xl);
-}
-
-/* Font weights */
-.font-medium {
-  font-weight: var(--font-medium);
-}
-.font-bold {
-  font-weight: var(--font-bold);
-}
-
-/* Legend box styles - complex domain-specific components */
-.legend-box-resolver {
-  background-color: var(--step-resolver-bg);
-  border: 2px solid
-    color-mix(in srgb, var(--step-resolver-border) 85%, var(--color-darken));
-}
-
-.legend-box-processor {
-  background-color: var(--step-processor-bg);
-  border: 2px solid
-    color-mix(in srgb, var(--step-processor-border) 85%, var(--color-darken));
-}
-
-.legend-box-collector {
-  background-color: var(--step-collector-bg);
-  border: 2px solid
-    color-mix(in srgb, var(--step-collector-border) 85%, var(--color-darken));
-}
-
-.legend-line-required {
-  border-top: 2px solid var(--color-edge-required);
-}
-
-.legend-line-optional {
-  border-top: 2px dashed var(--color-edge-optional);
 }
 
 /* Hover states using design system variables */
