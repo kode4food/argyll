@@ -1,0 +1,30 @@
+/* Empty State Component */
+
+.container {
+  text-align: center;
+}
+
+.icon {
+  height: 4rem;
+  width: 4rem;
+  color: var(--color-neutral-text);
+  margin: 0 auto var(--spacing-lg);
+}
+
+.title {
+  font-size: var(--text-xl);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-text);
+  margin-bottom: var(--spacing-sm);
+}
+
+.description {
+  color: var(--color-neutral-text);
+  max-width: 32rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.action {
+  margin-top: var(--spacing-lg);
+}

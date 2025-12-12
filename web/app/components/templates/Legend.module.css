@@ -1,0 +1,51 @@
+/* Step Diagram Legend */
+
+.legend {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background-color: var(--color-white);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  font-size: var(--text-sm);
+  box-shadow: var(--shadow-lg);
+}
+
+.legendContent {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+}
+
+.legendDivider {
+  display: flex;
+  align-items: center;
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-neutral-border);
+}
+
+.legendBox {
+  height: 1rem;
+  width: 1rem;
+  border-radius: var(--radius-md);
+  margin-right: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.legendLine {
+  height: 0;
+  width: 1.5rem;
+  margin-right: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.legendLabel {
+  color: var(--color-neutral-text);
+}

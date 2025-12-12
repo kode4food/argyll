@@ -1,0 +1,52 @@
+/* 404 Not Found Page */
+
+.page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: var(--color-neutral-bg);
+}
+
+.content {
+  text-align: center;
+  max-width: 28rem;
+  padding: var(--spacing-lg);
+}
+
+.icon {
+  height: 4rem;
+  width: 4rem;
+  color: var(--step-collector-text);
+  margin: 0 auto var(--spacing-lg);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  color: var(--color-neutral-text);
+  margin-bottom: var(--spacing-sm);
+}
+
+.description {
+  font-size: var(--text-base);
+  color: var(--color-neutral-text);
+  margin-bottom: var(--spacing-xl);
+  max-width: 28rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.button {
+  display: inline-block;
+  background-color: var(--color-info);
+  color: var(--color-white);
+  font-weight: var(--font-medium);
+  padding: var(--spacing-md) var(--spacing-xl);
+  border-radius: var(--radius-md);
+  transition: var(--transition-all);
+}
+
+.button:hover {
+  background-color: var(--color-primary-dark);
+}

@@ -1,0 +1,15 @@
+/* Step Footer Styles */
+
+.infoDisplay {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  flex: 1;
+}
+
+.icon {
+  height: 0.875rem;
+  width: 0.875rem;
+  flex-shrink: 0;
+}

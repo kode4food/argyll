@@ -1,0 +1,19 @@
+/* Flow Diagram Layout */
+
+.emptyStateContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: var(--color-white);
+}
+
+.diagramContainer {
+  position: relative;
+  flex: 1;
+}
+
+.diagramContent {
+  height: 100%;
+  width: 100%;
+}
