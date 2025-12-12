@@ -9,5 +9,10 @@ module.exports = {
   theme: {
     extend: {},
   },
+  corePlugins: {
+    backgroundColor: false,
+    textColor: false,
+    borderColor: false,
+  },
   plugins: [],
 };

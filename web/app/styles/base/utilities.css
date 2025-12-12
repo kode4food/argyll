@@ -21,6 +21,9 @@
 .bg-info {
   background-color: var(--color-info);
 }
+.bg-white {
+  background-color: var(--color-white);
+}
 
 /* Text colors using design system variables */
 .text-collector-text {
@@ -28,6 +31,9 @@
 }
 .text-neutral-text {
   color: var(--color-neutral-text);
+}
+.text-white {
+  color: var(--color-white);
 }
 
 /* Border colors using design system variables */
