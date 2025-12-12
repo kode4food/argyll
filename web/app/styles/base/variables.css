@@ -49,12 +49,14 @@
   --color-edge-grayed: #e5e7eb;
 
   /* Spacing */
+  --spacing-2xs: 0.125rem; /* 2px */
   --spacing-xs: 0.25rem; /* 4px */
   --spacing-sm: 0.5rem; /* 8px */
   --spacing-md: 0.75rem; /* 12px */
   --spacing-lg: 1rem; /* 16px */
   --spacing-xl: 1.5rem; /* 24px */
   --spacing-2xl: 2rem; /* 32px */
+  --spacing-3xl: 3rem; /* 48px */
   --spacing-padding-lg: 1.25rem; /* 20px - common for component padding */
 
   /* Component Dimensions */

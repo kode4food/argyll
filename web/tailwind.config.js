@@ -13,6 +13,9 @@ module.exports = {
     backgroundColor: false,
     textColor: false,
     borderColor: false,
+    margin: false,
+    padding: false,
+    gap: false,
   },
   plugins: [],
 };
