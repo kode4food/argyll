@@ -18,6 +18,8 @@ module.exports = {
     gap: false,
     borderRadius: false,
     borderWidth: false,
+    fontSize: false,
+    fontWeight: false,
   },
   plugins: [],
 };

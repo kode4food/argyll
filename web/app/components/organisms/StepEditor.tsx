@@ -779,9 +779,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
           <div className={styles.body}>
             <div className={formStyles.formContainer}>
               {/* Basic Fields */}
-              <div className={formStyles.row}>
-                <BasicFields />
-              </div>
+              <BasicFields />
 
               {/* Unified Attributes Section */}
               <AttributesSection />

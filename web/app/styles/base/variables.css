@@ -69,6 +69,8 @@
   --text-xs: 0.75rem;
   --text-sm: 0.875rem;
   --text-base: 1rem;
+  --text-xl: 1.25rem;
+  --text-3xl: 1.875rem;
 
   /* Font Weights */
   --font-normal: 400;

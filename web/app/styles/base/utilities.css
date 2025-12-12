@@ -143,6 +143,27 @@
   border-top-style: solid;
 }
 
+/* Typography utilities */
+
+/* Font sizes */
+.text-sm {
+  font-size: var(--text-sm);
+}
+.text-xl {
+  font-size: var(--text-xl);
+}
+.text-3xl {
+  font-size: var(--text-3xl);
+}
+
+/* Font weights */
+.font-medium {
+  font-weight: var(--font-medium);
+}
+.font-bold {
+  font-weight: var(--font-bold);
+}
+
 /* Legend box styles - complex domain-specific components */
 .legend-box-resolver {
   background-color: var(--step-resolver-bg);
