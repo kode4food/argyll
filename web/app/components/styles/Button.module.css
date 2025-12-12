@@ -1,0 +1,45 @@
+/* Shared button styles for dialogs */
+
+.buttonBase {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  transition: var(--transition-all);
+}
+
+.buttonCancel {
+  composes: buttonBase;
+  border: 1px solid var(--color-dark-border);
+  background-color: transparent;
+  color: var(--color-dark-text);
+}
+
+.buttonCancel:hover:not(:disabled) {
+  background-color: var(--color-dark-hover);
+}
+
+.buttonCancel:disabled {
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}
+
+.buttonPrimary {
+  composes: buttonBase;
+  display: flex;
+  align-items: center;
+  border: none;
+  background-color: var(--color-info);
+  color: var(--color-white);
+  font-weight: var(--font-medium);
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.buttonPrimary:disabled {
+  background-color: var(--color-neutral-bg-dark);
+  cursor: not-allowed;
+  opacity: var(--opacity-disabled);
+}

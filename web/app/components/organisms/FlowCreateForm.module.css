@@ -96,38 +96,11 @@
 }
 
 .buttonCancel {
-  border-radius: var(--spacing-xs);
-  border: 1px solid var(--color-dark-border);
-  background-color: transparent;
-  padding: var(--spacing-xs) var(--spacing-md);
-  color: var(--color-dark-text);
-  cursor: pointer;
-  transition: var(--transition-all);
-}
-
-.buttonCancel:hover {
-  background-color: var(--color-dark-hover);
+  composes: buttonCancel from "../styles/Button.module.css";
 }
 
 .buttonStart {
-  display: flex;
-  align-items: center;
-  border-radius: var(--spacing-xs);
-  background-color: var(--color-info);
-  padding: var(--spacing-xs) var(--spacing-md);
-  color: var(--color-white);
-  border: none;
-  cursor: pointer;
-  transition: var(--transition-all);
-}
-
-.buttonStart:hover {
-  background-color: var(--color-primary-dark);
-}
-
-.buttonStart:disabled {
-  background-color: var(--color-neutral-bg-dark);
-  cursor: not-allowed;
+  composes: buttonPrimary from "../styles/Button.module.css";
 }
 
 .warning {

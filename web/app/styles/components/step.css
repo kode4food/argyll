@@ -1,6 +1,7 @@
 /* Step Components */
 .step-widget {
   border-width: var(--step-border-width);
+  border-style: solid;
   border-radius: var(--step-border-radius);
   box-shadow: var(--shadow-sm);
   cursor: pointer;
