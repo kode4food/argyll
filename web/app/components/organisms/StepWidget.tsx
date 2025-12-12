@@ -97,10 +97,22 @@ const StepWidget: React.FC<StepWidgetProps> = ({
     });
   };
 
+  const widgetClassName = [
+    "step-widget",
+    stepType,
+    mode,
+    selected && "selected",
+    onClick && "clickable",
+    isGrayedOut && "grayed-out",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <>
       <div
-        className={`step-widget ${stepType} ${mode} ${selected ? "selected" : ""} ${onClick ? "clickable" : ""} ${isGrayedOut ? "grayed-out" : ""} ${className}`}
+        className={widgetClassName}
         style={style}
         onClick={onClick}
         onDoubleClick={handleDoubleClick}

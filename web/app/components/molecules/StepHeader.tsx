@@ -10,7 +10,7 @@ interface StepHeaderProps {
 
 const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
   return (
-    <div className="step-header flex-between">
+    <div className="step-header">
       <Tooltip
         trigger={
           <div className="step-title-container">

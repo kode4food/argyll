@@ -50,7 +50,13 @@ const Tooltip: React.FC<TooltipProps> = ({ trigger, children }) => {
 
   const tooltip = (
     <div
-      className={`${styles.portal} ${isVisible ? styles.visible : ""} ${showBelow ? styles.below : styles.above}`}
+      className={[
+        styles.portal,
+        isVisible && styles.visible,
+        showBelow ? styles.below : styles.above,
+      ]
+        .filter(Boolean)
+        .join(" ")}
       style={{
         position: "fixed",
         top: tooltipPosition.top,

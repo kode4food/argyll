@@ -75,6 +75,5 @@ describe("StepHeader", () => {
     const { container } = render(<StepHeader step={step} />);
     const header = container.querySelector(".step-header");
     expect(header).toBeInTheDocument();
-    expect(header?.className).toContain("flex-between");
   });
 });

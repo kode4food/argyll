@@ -128,6 +128,10 @@
   background-color: var(--overlay-dark-10);
 }
 
+.dropdownItemHighlighted {
+  background-color: var(--color-neutral-bg-dark);
+}
+
 .dropdownItem:first-child {
   border-top-left-radius: var(--spacing-xs);
   border-top-right-radius: var(--spacing-xs);

@@ -1,6 +1,5 @@
 /* Base styles */
 @import "./styles/base/variables.css";
-@import "./styles/base/utilities.css";
 
 /* Component styles */
 @import "./styles/components/step.css";

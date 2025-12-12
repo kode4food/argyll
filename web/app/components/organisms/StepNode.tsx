@@ -188,7 +188,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
   );
 
   return (
-    <div className="step-node relative">
+    <div>
       {allHandles.map((handle) => (
         <InvisibleHandle
           key={handle.id}
@@ -208,7 +208,12 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
           selected={nodeData.selected}
           onClick={handleClick}
           mode="diagram"
-          className={`${nodeData.isGoalStep ? "goal" : ""} ${nodeData.isStartingPoint ? "start-point" : ""}`}
+          className={[
+            nodeData.isGoalStep && "goal",
+            nodeData.isStartingPoint && "start-point",
+          ]
+            .filter(Boolean)
+            .join(" ")}
           execution={execution}
           satisfiedArgs={satisfied}
           attributeProvenance={provenance}

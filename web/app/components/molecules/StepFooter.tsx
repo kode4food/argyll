@@ -180,7 +180,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
   return (
     <Tooltip
       trigger={
-        <div className="step-footer flex-between">
+        <div className="step-footer">
           {getStepInfoDisplay()}
           <div className="step-footer-actions">
             <div className="step-health-status">

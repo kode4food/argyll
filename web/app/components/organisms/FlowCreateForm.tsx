@@ -121,7 +121,7 @@ const FlowCreateForm: React.FC = () => {
         onClick={() => setShowCreateForm(false)}
         aria-label="Close flow form"
       />
-      <div className={`${styles.modal} shadow-lg`}>
+      <div className={styles.modal}>
         <div className={styles.container}>
           <div className={styles.sidebar}>
             <div className={styles.sidebarHeader}>
@@ -145,13 +145,18 @@ const FlowCreateForm: React.FC = () => {
                   : isSatisfiedByState
                     ? "Outputs satisfied by initial state"
                     : undefined;
+                const itemClassName = [
+                  styles.dropdownItem,
+                  isSelected && styles.dropdownItemSelected,
+                  isDisabled && styles.dropdownItemDisabled,
+                ]
+                  .filter(Boolean)
+                  .join(" ");
 
                 return (
                   <div
                     key={step.id}
-                    className={`${styles.dropdownItem} ${
-                      isSelected ? styles.dropdownItemSelected : ""
-                    } ${isDisabled ? styles.dropdownItemDisabled : ""}`}
+                    className={itemClassName}
                     title={tooltipText}
                     onClick={async () => {
                       if (isDisabled) return;

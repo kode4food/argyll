@@ -110,10 +110,19 @@ const FlowSelectorDropdown = () => {
               flow.status as FlowStatus
             );
             const StatusIcon = getProgressIcon(progressStatus);
+            const isHighlighted = selectedIndex === index;
+            const isSelected = selectedFlow === flow.id;
+            const dropdownItemClassName = [
+              styles.dropdownItem,
+              isHighlighted && styles.dropdownItemHighlighted,
+              isSelected && styles.dropdownItemSelected,
+            ]
+              .filter(Boolean)
+              .join(" ");
             return (
               <div
                 key={flow.id}
-                className={`${styles.dropdownItem} ${selectedIndex === index ? "bg-neutral-bg-dark" : ""} ${selectedFlow === flow.id ? styles.dropdownItemSelected : ""}`}
+                className={dropdownItemClassName}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   selectFlow(flow.id);
