@@ -1,20 +1,25 @@
 /* Design System Variables */
 :root {
-  /* Step Type Colors */
-  --color-resolver-bg: #f0fdf4;
-  --color-resolver-border: #10b981;
-  --color-resolver-text: #065f46;
-  --color-resolver-label: #dcfce7;
+  /* Step Type Colors - Fixed colors independent of theming */
+  --step-resolver-bg: #f0fdf4;
+  --step-resolver-border: #10b981;
+  --step-resolver-text: #065f46;
+  --step-resolver-label: #dcfce7;
 
-  --color-processor-bg: #eff6ff;
-  --color-processor-border: #3b82f6;
-  --color-processor-text: #1e40af;
-  --color-processor-label: #dbeafe;
+  --step-processor-bg: #eff6ff;
+  --step-processor-border: #3b82f6;
+  --step-processor-text: #1e40af;
+  --step-processor-label: #dbeafe;
 
-  --color-collector-bg: #fef2f2;
-  --color-collector-border: #ef4444;
-  --color-collector-text: #991b1b;
-  --color-collector-label: #fee2e2;
+  --step-collector-bg: #fef2f2;
+  --step-collector-border: #ef4444;
+  --step-collector-text: #991b1b;
+  --step-collector-label: #fee2e2;
+
+  /* Primary Theme Colors - Used for UI elements, can be changed for branding */
+  --color-primary: #3b82f6;
+  --color-primary-light: #dbeafe;
+  --color-primary-dark: #1e40af;
 
   --color-neutral-bg: #f9fafb;
   --color-neutral-bg-dark: color-mix(

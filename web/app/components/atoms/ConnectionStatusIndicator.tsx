@@ -24,46 +24,46 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
         return {
           icon: RefreshCw,
           text: "Connecting...",
-          color: "text-amber-900",
+          colorClass: styles.colorWarning,
           animate: true,
           semiTransparent: false,
-          bgColor: "bg-amber-100",
+          bgClass: styles.bgWarning,
         };
       case "reconnecting":
         return {
           icon: RefreshCw,
           text: `Reconnecting... (attempt ${reconnectAttempt})`,
-          color: "text-amber-900",
+          colorClass: styles.colorWarning,
           animate: true,
           semiTransparent: false,
-          bgColor: "bg-amber-100",
+          bgClass: styles.bgWarning,
         };
       case "disconnected":
         return {
           icon: WifiOff,
           text: "Disconnected",
-          color: "text-gray-500",
+          colorClass: styles.colorNeutral,
           animate: false,
           semiTransparent: false,
-          bgColor: "bg-white",
+          bgClass: styles.bgWhite,
         };
       case "failed":
         return {
           icon: AlertCircle,
           text: "Connection failed",
-          color: "text-red-500",
+          colorClass: styles.colorError,
           animate: false,
           semiTransparent: false,
-          bgColor: "bg-white",
+          bgClass: styles.bgWhite,
         };
       default:
         return {
           icon: Wifi,
           text: "Connected",
-          color: "text-green-500",
+          colorClass: styles.colorSuccess,
           animate: false,
           semiTransparent: false,
-          bgColor: "bg-white",
+          bgClass: styles.bgWhite,
         };
     }
   };
@@ -75,12 +75,14 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
 
   return (
     <div
-      className={`${styles.status} ${config.bgColor} ${config.semiTransparent ? styles.statusSemiTransparent : ""}`}
+      className={`${styles.status} ${config.bgClass} ${config.semiTransparent ? styles.statusSemiTransparent : ""}`}
     >
       <Icon
-        className={`${styles.icon} ${config.color} ${config.animate ? "animate-spin" : ""}`}
+        className={`${styles.icon} ${config.colorClass} ${config.animate ? "animate-spin" : ""}`}
       />
-      <span className={`${styles.text} ${config.color}`}>{config.text}</span>
+      <span className={`${styles.text} ${config.colorClass}`}>
+        {config.text}
+      </span>
       {showReconnect && (
         <button onClick={onReconnect} className={styles.retryButton}>
           Retry

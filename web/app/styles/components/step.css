@@ -15,18 +15,18 @@
 }
 
 .step-widget.resolver {
-  background-color: var(--color-resolver-bg);
-  border-color: color-mix(in srgb, var(--color-resolver-border) 85%, black);
+  background-color: var(--step-resolver-bg);
+  border-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
 }
 
 .step-widget.processor {
-  background-color: var(--color-processor-bg);
-  border-color: color-mix(in srgb, var(--color-processor-border) 85%, black);
+  background-color: var(--step-processor-bg);
+  border-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
 }
 
 .step-widget.collector {
-  background-color: var(--color-collector-bg);
-  border-color: color-mix(in srgb, var(--color-collector-border) 85%, black);
+  background-color: var(--step-collector-bg);
+  border-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
 }
 
 .step-widget.neutral {
@@ -73,15 +73,15 @@
 }
 
 .step-widget.resolver.goal::before {
-  border-color: color-mix(in srgb, var(--color-resolver-border) 85%, black);
+  border-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
 }
 
 .step-widget.processor.goal::before {
-  border-color: color-mix(in srgb, var(--color-processor-border) 85%, black);
+  border-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
 }
 
 .step-widget.collector.goal::before {
-  border-color: color-mix(in srgb, var(--color-collector-border) 85%, black);
+  border-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
 }
 
 .step-widget.start-point {
@@ -101,15 +101,15 @@
 }
 
 .step-widget.resolver.start-point::before {
-  border-color: color-mix(in srgb, var(--color-resolver-border) 85%, black);
+  border-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
 }
 
 .step-widget.processor.start-point::before {
-  border-color: color-mix(in srgb, var(--color-processor-border) 85%, black);
+  border-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
 }
 
 .step-widget.collector.start-point::before {
-  border-color: color-mix(in srgb, var(--color-collector-border) 85%, black);
+  border-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
 }
 
 /* Step Header */
@@ -121,7 +121,7 @@
 .step-widget.resolver .step-header {
   border-bottom-color: color-mix(
     in srgb,
-    var(--color-resolver-border) 85%,
+    var(--step-resolver-border) 85%,
     black
   );
 }
@@ -129,7 +129,7 @@
 .step-widget.processor .step-header {
   border-bottom-color: color-mix(
     in srgb,
-    var(--color-processor-border) 85%,
+    var(--step-processor-border) 85%,
     black
   );
 }
@@ -137,7 +137,7 @@
 .step-widget.collector .step-header {
   border-bottom-color: color-mix(
     in srgb,
-    var(--color-collector-border) 85%,
+    var(--step-collector-border) 85%,
     black
   );
 }
@@ -186,18 +186,18 @@
 }
 
 .step-type-label.resolver {
-  background-color: var(--color-resolver-label);
-  color: var(--color-resolver-border);
+  background-color: var(--step-resolver-label);
+  color: var(--step-resolver-border);
 }
 
 .step-type-label.processor {
-  background-color: var(--color-processor-label);
-  color: var(--color-processor-border);
+  background-color: var(--step-processor-label);
+  color: var(--step-processor-border);
 }
 
 .step-type-label.collector {
-  background-color: var(--color-collector-label);
-  color: var(--color-collector-border);
+  background-color: var(--step-collector-label);
+  color: var(--step-collector-border);
 }
 
 /* Step Arguments */
@@ -209,7 +209,7 @@
 .step-widget.resolver .step-args-section {
   border-bottom-color: color-mix(
     in srgb,
-    var(--color-resolver-border) 85%,
+    var(--step-resolver-border) 85%,
     black
   );
 }
@@ -217,7 +217,7 @@
 .step-widget.processor .step-args-section {
   border-bottom-color: color-mix(
     in srgb,
-    var(--color-processor-border) 85%,
+    var(--step-processor-border) 85%,
     black
   );
 }
@@ -225,7 +225,7 @@
 .step-widget.collector .step-args-section {
   border-bottom-color: color-mix(
     in srgb,
-    var(--color-collector-border) 85%,
+    var(--step-collector-border) 85%,
     black
   );
 }
@@ -461,15 +461,15 @@
 
 /* Step type icon colors */
 .step-widget.resolver .step-type-icon {
-  color: var(--color-resolver-border);
+  color: var(--step-resolver-border);
 }
 
 .step-widget.processor .step-type-icon {
-  color: var(--color-processor-border);
+  color: var(--step-processor-border);
 }
 
 .step-widget.collector .step-type-icon {
-  color: var(--color-collector-border);
+  color: var(--step-collector-border);
 }
 
 .step-widget.neutral .step-type-icon {

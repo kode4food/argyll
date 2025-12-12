@@ -29,9 +29,9 @@
 }
 
 .stat-badge--required {
-  background-color: var(--color-processor-label);
-  color: var(--color-processor-text);
-  border-color: var(--color-processor-border);
+  background-color: var(--step-processor-label);
+  color: var(--step-processor-text);
+  border-color: var(--step-processor-border);
 }
 
 .stat-badge--optional {
@@ -41,9 +41,9 @@
 }
 
 .stat-badge--output {
-  background-color: var(--color-resolver-label);
-  color: var(--color-resolver-text);
-  border-color: var(--color-resolver-border);
+  background-color: var(--step-resolver-label);
+  color: var(--step-resolver-text);
+  border-color: var(--step-resolver-border);
 }
 
 /* Flow Header */
@@ -88,15 +88,15 @@
 .flow-error {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);
-  background-color: var(--color-collector-label);
+  background-color: var(--step-collector-label);
   border-radius: var(--spacing-xs);
   font-size: var(--text-sm);
 }
 
 /* Overview Header */
 .overview-header {
-  background-color: var(--color-processor-label);
-  border-bottom: 1px solid var(--color-processor-border);
+  background-color: var(--color-primary-light);
+  border-bottom: 1px solid var(--color-primary);
   padding: var(--spacing-sm) var(--spacing-lg);
 }
 
@@ -127,21 +127,21 @@
 }
 
 .flow-status-badge.active {
-  background-color: var(--color-resolver-label);
-  color: var(--color-resolver-text);
-  border-color: var(--color-resolver-border);
+  background-color: var(--step-resolver-label);
+  color: var(--step-resolver-text);
+  border-color: var(--step-resolver-border);
 }
 
 .flow-status-badge.completed {
-  background-color: var(--color-processor-label);
-  color: var(--color-processor-text);
-  border-color: var(--color-processor-border);
+  background-color: var(--step-processor-label);
+  color: var(--step-processor-text);
+  border-color: var(--step-processor-border);
 }
 
 .flow-status-badge.failed {
-  background-color: var(--color-collector-label);
-  color: var(--color-collector-text);
-  border-color: var(--color-collector-border);
+  background-color: var(--step-collector-label);
+  color: var(--step-collector-text);
+  border-color: var(--step-collector-border);
 }
 
 .flow-status-badge.stopped {

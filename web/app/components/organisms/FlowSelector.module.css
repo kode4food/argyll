@@ -18,7 +18,7 @@
 }
 
 .createButton:hover {
-  background-color: var(--color-processor-text);
+  background-color: var(--color-primary-dark);
 }
 
 .createButton:focus {

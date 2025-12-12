@@ -84,10 +84,16 @@
   color: var(--color-dark-text);
   cursor: pointer;
   font-size: var(--text-sm);
+  transition: var(--transition-all);
+}
+
+.buttonCancel:hover:not(:disabled) {
+  background-color: var(--color-dark-hover);
 }
 
 .buttonCancel:disabled {
   cursor: not-allowed;
+  opacity: var(--opacity-disabled);
 }
 
 .buttonSave {
@@ -99,9 +105,15 @@
   cursor: pointer;
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
+  transition: var(--transition-all);
+}
+
+.buttonSave:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
 }
 
 .buttonSave:disabled {
   background-color: var(--color-gray-600);
   cursor: not-allowed;
+  opacity: var(--opacity-disabled);
 }

@@ -24,7 +24,7 @@
 
 /* Text colors using design system variables */
 .text-collector-text {
-  color: var(--color-collector-text);
+  color: var(--step-collector-text);
 }
 .text-neutral-text {
   color: var(--color-neutral-text);
@@ -37,18 +37,18 @@
 
 /* Legend box styles - complex domain-specific components */
 .legend-box-resolver {
-  background-color: var(--color-resolver-bg);
-  border: 2px solid color-mix(in srgb, var(--color-resolver-border) 85%, black);
+  background-color: var(--step-resolver-bg);
+  border: 2px solid color-mix(in srgb, var(--step-resolver-border) 85%, black);
 }
 
 .legend-box-processor {
-  background-color: var(--color-processor-bg);
-  border: 2px solid color-mix(in srgb, var(--color-processor-border) 85%, black);
+  background-color: var(--step-processor-bg);
+  border: 2px solid color-mix(in srgb, var(--step-processor-border) 85%, black);
 }
 
 .legend-box-collector {
-  background-color: var(--color-collector-bg);
-  border: 2px solid color-mix(in srgb, var(--color-collector-border) 85%, black);
+  background-color: var(--step-collector-bg);
+  border: 2px solid color-mix(in srgb, var(--step-collector-border) 85%, black);
 }
 
 .legend-line-required {
@@ -61,5 +61,5 @@
 
 /* Hover states using design system variables */
 .hover\:bg-processor-text:hover {
-  background-color: var(--color-processor-text);
+  background-color: var(--color-primary-dark);
 }

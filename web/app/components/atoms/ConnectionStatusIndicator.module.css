@@ -47,3 +47,28 @@
 .retryButton:hover {
   opacity: var(--opacity-high);
 }
+
+/* Color classes using CSS variables */
+.colorWarning {
+  color: var(--color-warning-dark);
+}
+
+.colorNeutral {
+  color: var(--color-pending);
+}
+
+.colorError {
+  color: var(--color-error);
+}
+
+.colorSuccess {
+  color: var(--color-success);
+}
+
+.bgWarning {
+  background-color: var(--color-warning-bg);
+}
+
+.bgWhite {
+  background-color: var(--color-white);
+}
