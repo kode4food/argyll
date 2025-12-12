@@ -33,6 +33,8 @@ module.exports = {
     maxWidth: false,
     minHeight: false,
     maxHeight: false,
+    position: false,
+    inset: false,
   },
   plugins: [],
 };
