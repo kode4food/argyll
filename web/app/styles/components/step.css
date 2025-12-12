@@ -491,7 +491,7 @@
 
 .step-progress-counter {
   font-size: 0.75rem;
-  color: var(--color-text-secondary);
+  color: var(--color-neutral-text);
   font-weight: 500;
 }
 
