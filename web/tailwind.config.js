@@ -20,6 +20,13 @@ module.exports = {
     borderWidth: false,
     fontSize: false,
     fontWeight: false,
+    flexbox: false,
+    flexDirection: false,
+    flex: false,
+    flexGrow: false,
+    flexShrink: false,
+    alignItems: false,
+    justifyContent: false,
   },
   plugins: [],
 };

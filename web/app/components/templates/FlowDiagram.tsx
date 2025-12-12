@@ -83,18 +83,6 @@ const FlowDiagramContent: React.FC = () => {
                   e.currentTarget.blur();
                 }}
                 className="ml-2 rounded-full p-1 overview-header__add-step inline-flex items-center justify-center transition-colors"
-                style={{
-                  backgroundColor:
-                    "color-mix(in srgb, var(--color-primary) 20%, transparent)",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "color-mix(in srgb, var(--color-primary) 30%, transparent)";
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor =
-                    "color-mix(in srgb, var(--color-primary) 20%, transparent)";
-                }}
                 title="Create New Step"
                 aria-label="Create New Step"
               >
