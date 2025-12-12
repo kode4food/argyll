@@ -35,6 +35,12 @@ module.exports = {
     maxHeight: false,
     position: false,
     inset: false,
+    overflow: false,
+    opacity: false,
+    boxShadow: false,
+    textAlign: false,
+    transitionProperty: false,
+    space: false,
   },
   plugins: [],
 };

@@ -136,6 +136,56 @@
   left: 1rem;
 }
 
+/* Overflow utilities */
+.overflow-hidden {
+  overflow: hidden;
+}
+.overflow-auto {
+  overflow: auto;
+}
+.overflow-visible {
+  overflow: visible;
+}
+.overflow-scroll {
+  overflow: scroll;
+}
+
+/* Opacity utilities */
+.opacity-30 {
+  opacity: 0.3;
+}
+
+/* Shadow utilities */
+.shadow {
+  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+}
+.shadow-lg {
+  box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* Text alignment utilities */
+.text-left {
+  text-align: left;
+}
+.text-center {
+  text-align: center;
+}
+.text-right {
+  text-align: right;
+}
+
+/* Transition utilities */
+.transition-colors {
+  transition-property: color, background-color, border-color, text-decoration-color, fill, stroke;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+/* Space between utilities */
+.space-y-2 > * + * {
+  margin-top: var(--spacing-sm);
+}
+
 /* Background colors using design system variables */
 .bg-neutral-label {
   background-color: var(--color-neutral-label);
