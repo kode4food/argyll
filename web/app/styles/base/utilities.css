@@ -38,17 +38,20 @@
 /* Legend box styles - complex domain-specific components */
 .legend-box-resolver {
   background-color: var(--step-resolver-bg);
-  border: 2px solid color-mix(in srgb, var(--step-resolver-border) 85%, black);
+  border: 2px solid
+    color-mix(in srgb, var(--step-resolver-border) 85%, var(--color-darken));
 }
 
 .legend-box-processor {
   background-color: var(--step-processor-bg);
-  border: 2px solid color-mix(in srgb, var(--step-processor-border) 85%, black);
+  border: 2px solid
+    color-mix(in srgb, var(--step-processor-border) 85%, var(--color-darken));
 }
 
 .legend-box-collector {
   background-color: var(--step-collector-bg);
-  border: 2px solid color-mix(in srgb, var(--step-collector-border) 85%, black);
+  border: 2px solid
+    color-mix(in srgb, var(--step-collector-border) 85%, var(--color-darken));
 }
 
 .legend-line-required {

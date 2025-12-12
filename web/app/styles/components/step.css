@@ -16,22 +16,38 @@
 
 .step-widget.resolver {
   background-color: var(--step-resolver-bg);
-  border-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-resolver-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.processor {
   background-color: var(--step-processor-bg);
-  border-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-processor-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.collector {
   background-color: var(--step-collector-bg);
-  border-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-collector-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.neutral {
   background-color: var(--color-neutral-bg);
-  border-color: color-mix(in srgb, var(--color-neutral-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.diagram {
@@ -73,15 +89,27 @@
 }
 
 .step-widget.resolver.goal::before {
-  border-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-resolver-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.processor.goal::before {
-  border-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-processor-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.collector.goal::before {
-  border-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-collector-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.start-point {
@@ -101,15 +129,27 @@
 }
 
 .step-widget.resolver.start-point::before {
-  border-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-resolver-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.processor.start-point::before {
-  border-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-processor-border) 85%,
+    var(--color-darken)
+  );
 }
 
 .step-widget.collector.start-point::before {
-  border-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
+  border-color: color-mix(
+    in srgb,
+    var(--step-collector-border) 85%,
+    var(--color-darken)
+  );
 }
 
 /* Step Header */

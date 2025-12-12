@@ -1,5 +1,8 @@
 /* Design System Variables */
 :root {
+  /* Utility Colors */
+  --color-darken: #1a1a1a; /* Used for darkening colors via color-mix (not pure black) */
+
   /* Step Type Colors - Fixed colors independent of theming */
   --step-resolver-bg: #f0fdf4;
   --step-resolver-border: #10b981;
@@ -17,15 +20,16 @@
   --step-collector-label: #fee2e2;
 
   /* Primary Theme Colors - Used for UI elements, can be changed for branding */
-  --color-primary: #3b82f6;
-  --color-primary-light: #dbeafe;
-  --color-primary-dark: #1e40af;
+  /* Colors from argyll-logo.svg */
+  --color-primary: #e4751e;
+  --color-primary-light: #e5cda3;
+  --color-primary-dark: #da8c4b;
 
   --color-neutral-bg: #f9fafb;
   --color-neutral-bg-dark: color-mix(
     in srgb,
     var(--color-neutral-bg) 85%,
-    black
+    var(--color-darken)
   );
   --color-diagram-flow: #d1d5db;
   --color-neutral-border: #6b7280;
@@ -36,11 +40,11 @@
   --color-success: #10b981;
   --color-error: #ef4444;
   --color-warning: #f59e0b;
-  --color-info: #3b82f6;
+  --color-info: var(--color-primary);
   --color-pending: #6b7280;
 
   /* Edge Colors */
-  --color-edge-required: #374151;
+  --color-edge-required: #6b7280;
   --color-edge-optional: #f59e0b;
   --color-edge-grayed: #e5e7eb;
 
@@ -132,9 +136,13 @@
   --color-error-border: rgba(255, 68, 68, 0.4);
   --color-error-bg: rgba(255, 68, 68, 0.2);
   --color-error-bg-dark: #3d1a1a;
-  --color-info-light: #4a9eff;
-  --color-info-border: rgba(58, 160, 255, 0.4);
-  --color-info-bg: rgba(58, 160, 255, 0.2);
+  --color-info-light: var(--color-primary-dark);
+  --color-info-border: color-mix(
+    in srgb,
+    var(--color-primary) 40%,
+    transparent
+  );
+  --color-info-bg: color-mix(in srgb, var(--color-primary) 20%, transparent);
   --color-warning-dark: #92400e;
   --color-warning-light: #fbbf24;
   --color-warning-bg: #fef3c7;
