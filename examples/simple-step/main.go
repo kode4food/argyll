@@ -47,12 +47,10 @@ func main() {
 	priceCalculatorScript := `(let* ([subtotal (* quantity unit_price)]
        [tax      (* subtotal 0.08)]
        [shipping (if (> quantity 5) 0.0 9.99)])
-  {
-    :subtotal subtotal
-    :tax      tax
-    :shipping shipping
-    :total    (+ subtotal tax shipping)
-  })`
+  {:subtotal subtotal
+   :tax      tax
+   :shipping shipping
+   :total    (+ subtotal tax shipping)})`
 
 	err = client.NewStep("Price Calculator").
 		WithID("price-calculator").
