@@ -3,7 +3,6 @@
 
 /* Component styles */
 @import "./styles/components/step.css";
-@import "./styles/components/editor.css";
 
 body {
   margin: 0;

@@ -6,7 +6,7 @@ import { javascript } from "@codemirror/lang-javascript";
 import { StreamLanguage } from "@codemirror/language";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
 import { EditorView } from "@codemirror/view";
-import "../../styles/components/editor.css";
+import styles from "./ScriptEditor.module.css";
 
 interface ScriptEditorProps {
   value: string;
@@ -28,10 +28,10 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
   }, [language]);
 
   return (
-    <div className="script-editor">
+    <div className={styles.editor}>
       <CodeMirror
         value={value}
-        className="script-editor__codemirror"
+        className={styles.codemirror}
         extensions={extensions}
         onChange={onChange}
         readOnly={readOnly}

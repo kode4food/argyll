@@ -1,5 +1,5 @@
 import React, { Suspense, lazy } from "react";
-import "../../styles/components/editor.css";
+import styles from "./LazyCodeEditor.module.css";
 
 const CodeMirror = lazy(() => import("@uiw/react-codemirror"));
 
@@ -9,7 +9,7 @@ interface LazyCodeEditorProps {
   height?: string;
 }
 
-const EditorFallback = () => <div className="editor-fallback" />;
+const EditorFallback = () => <div className={styles.fallback} />;
 
 const LazyCodeEditor: React.FC<LazyCodeEditorProps> = ({
   value,
@@ -49,7 +49,7 @@ const CodeMirrorEditor: React.FC<LazyCodeEditorProps> = ({
     <CodeMirror
       value={value}
       height={height}
-      className="lazy-code-editor__codemirror"
+      className={styles.codemirror}
       extensions={[json(), EditorView.lineWrapping]}
       onChange={onChange}
       theme="dark"
