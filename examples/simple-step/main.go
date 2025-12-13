@@ -44,14 +44,15 @@ func main() {
 	}
 
 	// Example 2: Data transformation (Ale script)
-	priceCalculatorScript := `{
-  :subtotal (* quantity unit_price)
-  :tax (* quantity unit_price 0.08)
-  :shipping (if (> quantity 5) 0.0 9.99)
-  :total (+ (* quantity unit_price)
-            (* quantity unit_price 0.08)
-            (if (> quantity 5) 0.0 9.99))
-}`
+	priceCalculatorScript := `(let* ([subtotal (* quantity unit_price)]
+       [tax      (* subtotal 0.08)]
+       [shipping (if (> quantity 5) 0.0 9.99)])
+  {
+    :subtotal subtotal
+    :tax      tax
+    :shipping shipping
+    :total    (+ subtotal tax shipping)
+  })`
 
 	err = client.NewStep("Price Calculator").
 		WithID("price-calculator").
