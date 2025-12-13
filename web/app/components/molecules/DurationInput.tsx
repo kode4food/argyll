@@ -69,7 +69,7 @@ const DurationInput: React.FC<DurationInputProps> = ({
 
   return (
     <div className={`${styles.durationInput} ${className || ""}`}>
-      <Clock size={14} className={styles.icon} />
+      <Clock className={styles.icon} />
       <input
         type="text"
         value={inputValue}

@@ -85,7 +85,7 @@ const FlowDiagramContent: React.FC = () => {
                 title="Create New Step"
                 aria-label="Create New Step"
               >
-                <Plus className="icon" size={16} />
+                <Plus className={`${styles.iconMd} icon`} />
               </button>
             </div>
           </div>

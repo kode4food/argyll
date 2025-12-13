@@ -48,7 +48,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
         >
-          <CircleSlash size={16} />
+          <CircleSlash className={styles.statusIcon} />
         </div>
       );
     }
@@ -57,7 +57,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
         >
-          <CheckCircle size={16} />
+          <CheckCircle className={styles.statusIcon} />
         </div>
       );
     }
@@ -66,7 +66,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
         >
-          <CircleDot size={16} />
+          <CircleDot className={styles.statusIcon} />
         </div>
       );
     }
@@ -74,7 +74,7 @@ const renderStatusBadge = (
       <div
         className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
       >
-        <CircleDashed size={16} />
+        <CircleDashed className={styles.statusIcon} />
       </div>
     );
   }
@@ -85,7 +85,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
         >
-          <CheckCircle2 size={16} />
+          <CheckCircle2 className={styles.statusIcon} />
         </div>
       );
     }
@@ -94,7 +94,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.failed} arg-status-badge failed`}
         >
-          <XCircle size={16} />
+          <XCircle className={styles.statusIcon} />
         </div>
       );
     }
@@ -102,7 +102,7 @@ const renderStatusBadge = (
       <div
         className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
       >
-        <CircleDashed size={16} />
+        <CircleDashed className={styles.statusIcon} />
       </div>
     );
   }
@@ -113,7 +113,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
         >
-          <Ban size={16} />
+          <Ban className={styles.statusIcon} />
         </div>
       );
     }
@@ -122,7 +122,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
         >
-          <CircleDashed size={16} />
+          <CircleDashed className={styles.statusIcon} />
         </div>
       );
     }
@@ -131,7 +131,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
         >
-          <Award size={16} />
+          <Award className={styles.statusIcon} />
         </div>
       );
     }
@@ -140,7 +140,7 @@ const renderStatusBadge = (
         <div
           className={`${styles.argStatusBadge} ${styles.notWinner} arg-status-badge not-winner`}
         >
-          <XCircle size={16} />
+          <XCircle className={styles.statusIcon} />
         </div>
       );
     }
@@ -287,7 +287,7 @@ const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
         const tooltipContent = hasValue
           ? {
               title: getTooltipTitle(arg.argType, wasDefaulted),
-              icon: <Icon className={className} size={14} />,
+              icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
               content: formatValue(value),
               monospace: true,
             }

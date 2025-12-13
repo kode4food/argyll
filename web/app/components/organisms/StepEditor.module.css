@@ -1,5 +1,16 @@
 /* ScriptStepModal CSS Module */
 
+/* Icon sizes */
+.iconSm {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.iconMd {
+  width: 1rem;
+  height: 1rem;
+}
+
 .backdrop {
   position: fixed;
   top: 0;

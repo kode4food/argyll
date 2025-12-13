@@ -107,6 +107,11 @@
   margin-right: var(--spacing-sm);
 }
 
+.startIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
 .warning {
   margin-top: var(--spacing-md);
   padding: var(--spacing-md);

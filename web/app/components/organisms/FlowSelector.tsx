@@ -433,7 +433,7 @@ const FlowSelectorContent: React.FC = () => {
                   title="Back to Overview"
                   aria-label="Back to Overview"
                 >
-                  <Activity className="icon" aria-hidden="true" />
+                  <Activity className={styles.buttonIcon} aria-hidden="true" />
                 </button>
               ) : (
                 <>
@@ -446,7 +446,7 @@ const FlowSelectorContent: React.FC = () => {
                     title="New Flow"
                     aria-label="Create New Flow"
                   >
-                    <Play className="icon" aria-hidden="true" />
+                    <Play className={styles.buttonIcon} aria-hidden="true" />
                   </button>
                 </>
               )}

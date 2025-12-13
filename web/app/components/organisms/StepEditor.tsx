@@ -137,7 +137,7 @@ const validateAttributesList = (attributes: Attribute[]): string | null => {
 const getAttributeIcon = (attrType: AttributeRoleType) => {
   const argType = attrType === "input" ? "required" : attrType;
   const { Icon, className } = getArgIcon(argType);
-  return <Icon size={16} className={className} />;
+  return <Icon className={`${styles.iconMd} ${className}`} />;
 };
 
 const StepEditingContext = createContext<StepEditingContextValue | null>(null);
@@ -350,7 +350,7 @@ const BasicFields: React.FC = () => {
               className={`${formStyles.typeButton} ${stepType === type ? formStyles.typeButtonActive : ""}`}
               title={title}
             >
-              <Icon size={16} />
+              <Icon className={styles.iconSm} />
               <span>{label}</span>
             </button>
           ))}
@@ -378,7 +378,7 @@ const AttributesSection: React.FC = () => {
           className={`${formStyles.iconButton} ${formStyles.addButtonStyle}`}
           title="Add attribute"
         >
-          <Plus size={16} />
+          <Plus className={styles.iconMd} />
         </button>
       </div>
       <div className={formStyles.argList}>
@@ -439,7 +439,7 @@ const AttributesSection: React.FC = () => {
                       className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
                       title="Process array as single value"
                     >
-                      <Square size={14} />
+                      <Square className={styles.iconSm} />
                       <span>Single</span>
                     </button>
                     <button
@@ -451,7 +451,7 @@ const AttributesSection: React.FC = () => {
                       className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
                       title="Execute once per array element"
                     >
-                      <Layers size={14} />
+                      <Layers className={styles.iconSm} />
                       <span>Multi</span>
                     </button>
                   </div>
@@ -461,7 +461,7 @@ const AttributesSection: React.FC = () => {
                 className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
                 title="Remove attribute"
               >
-                <Trash2 size={14} />
+                <Trash2 className={styles.iconSm} />
               </button>
             </div>
             {attr.validationError && (

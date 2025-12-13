@@ -1,11 +1,16 @@
 /* FlowSelector CSS Module */
 
 /* Buttons */
+.buttonIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
 .createButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-md);
   background-color: var(--color-info);
   color: var(--color-white);
   border: none;
@@ -14,7 +19,6 @@
   cursor: pointer;
   transition: var(--transition-all);
   aspect-ratio: 1;
-  height: calc(var(--text-sm) * 1.5 + var(--spacing-sm) * 2 + 2px);
 }
 
 .createButton:hover {
@@ -30,7 +34,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-sm);
+  padding: var(--spacing-md);
   background-color: var(--color-neutral-bg-dark);
   color: var(--color-neutral-text);
   border: 1px solid var(--color-neutral-border);
@@ -39,7 +43,6 @@
   cursor: pointer;
   transition: var(--transition-all);
   aspect-ratio: 1;
-  height: calc(var(--text-sm) * 1.5 + var(--spacing-sm) * 2 + 2px);
 }
 
 .navButton:hover {
@@ -109,7 +112,7 @@
 .dropdownItem {
   display: flex;
   align-items: center;
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md);
   font-size: var(--text-sm);
   cursor: pointer;
   transition: var(--transition-all);
@@ -223,7 +226,7 @@
   align-items: center;
   border: 1px solid var(--color-neutral-border);
   border-radius: var(--spacing-xs);
-  padding: var(--spacing-sm) var(--spacing-md);
+  padding: var(--spacing-md) var(--spacing-md);
   font-size: var(--text-sm);
   background: white;
   cursor: pointer;

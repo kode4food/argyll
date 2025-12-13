@@ -1,5 +1,10 @@
 /* Flow Diagram Layout */
 
+.iconMd {
+  width: 1rem;
+  height: 1rem;
+}
+
 .container {
   display: flex;
   height: 100%;
