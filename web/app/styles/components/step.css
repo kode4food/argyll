@@ -11,8 +11,26 @@
   pointer-events: all;
 }
 
+/* ReactFlow Diagram Overrides */
 .react-flow__node.dragging:has(.step-widget) {
   z-index: 1000 !important;
+}
+
+.react-flow__renderer.flow-mode-bg {
+  background-color: var(--color-diagram-flow) !important;
+}
+
+.react-flow__renderer.overview-mode-bg {
+  background-color: var(--color-neutral-bg);
+}
+
+.react-flow__controls.diagram-controls {
+  bottom: 1rem !important;
+  left: 1rem !important;
+}
+
+.react-flow__background.diagram-background {
+  opacity: 0.3;
 }
 
 .step-widget.resolver {

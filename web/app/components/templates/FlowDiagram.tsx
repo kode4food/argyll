@@ -67,10 +67,10 @@ const FlowDiagramContent: React.FC = () => {
       className={`${styles.container} ${isFlowMode ? styles.containerFlowMode : styles.containerOverviewMode}`}
     >
       {showInfoBar ? (
-        <div className="overview-header">
-          <div className="overview-header__content">
-            <h2 className="overview-header__title">Step Dependencies</h2>
-            <div className="overview-header__stats">
+        <div className={styles.overviewHeader}>
+          <div className={styles.overviewContent}>
+            <h2 className={styles.overviewTitle}>Step Dependencies</h2>
+            <div className={styles.overviewStats}>
               {steps.length} step{steps.length !== 1 ? "s" : ""} registered
               <button
                 onClick={(e) => {
@@ -81,7 +81,7 @@ const FlowDiagramContent: React.FC = () => {
                   });
                   e.currentTarget.blur();
                 }}
-                className="overview-header__add-step"
+                className={styles.overviewAddStep}
                 title="Create New Step"
                 aria-label="Create New Step"
               >
@@ -92,12 +92,12 @@ const FlowDiagramContent: React.FC = () => {
         </div>
       ) : (
         flowData && (
-          <div className="flow-header">
-            <div className="flow-header__content">
-              <div className="flow-header__left">
-                <h2 className="flow-header__title">{flowData.id}</h2>
+          <div className={styles.flowHeader}>
+            <div className={styles.flowContent}>
+              <div className={styles.flowLeft}>
+                <h2 className={styles.flowTitle}>{flowData.id}</h2>
                 <span
-                  className={`status-bubble flow-status-badge ${flowData.status}`}
+                  className={`status-bubble ${styles.flowStatusBadge} ${flowData.status}`}
                 >
                   {flowData.status}
                 </span>
@@ -110,7 +110,7 @@ const FlowDiagramContent: React.FC = () => {
                 )}
               </div>
 
-              <div className="flow-header__right">
+              <div className={styles.flowRight}>
                 {isValidTimestamp(flowData.started_at) && (
                   <span>
                     Started: {new Date(flowData.started_at).toLocaleString()}

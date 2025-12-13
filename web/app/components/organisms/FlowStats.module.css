@@ -1,0 +1,45 @@
+/* Flow Statistics Component */
+
+.root {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Badge Base Style */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-round);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border: 1px solid;
+  height: 1.5rem;
+  line-height: 1.5rem;
+}
+
+.badgeIcon {
+  height: 0.75rem;
+  width: 0.75rem;
+  margin-right: var(--spacing-xs);
+}
+
+.badgeRequired {
+  background-color: var(--step-processor-label);
+  color: var(--step-processor-text);
+  border-color: var(--step-processor-border);
+}
+
+.badgeOptional {
+  background-color: var(--color-neutral-label);
+  color: var(--color-neutral-text);
+  border-color: var(--color-neutral-border);
+}
+
+.badgeOutput {
+  background-color: var(--step-resolver-label);
+  color: var(--step-resolver-text);
+  border-color: var(--step-resolver-border);
+}

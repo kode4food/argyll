@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Step, AttributeRole } from "../../api";
 import { getArgIcon } from "@/utils/argIcons";
+import styles from "./FlowStats.module.css";
 
 interface FlowStatsProps {
   steps: Step[];
@@ -79,22 +80,22 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
   const OutputIcon = getArgIcon("output").Icon;
 
   return (
-    <div className="flow-stats">
+    <div className={styles.root}>
       {stats.requiredInputs > 0 && (
-        <span className="status-bubble stat-badge stat-badge--required">
-          <RequiredIcon className="stat-badge__icon" />
+        <span className={`status-bubble ${styles.badge} ${styles.badgeRequired}`}>
+          <RequiredIcon className={styles.badgeIcon} />
           {stats.resolvedRequired} of {stats.requiredInputs}
         </span>
       )}
       {stats.optionalInputs > 0 && (
-        <span className="status-bubble stat-badge stat-badge--optional">
-          <OptionalIcon className="stat-badge__icon" />
+        <span className={`status-bubble ${styles.badge} ${styles.badgeOptional}`}>
+          <OptionalIcon className={styles.badgeIcon} />
           {stats.resolvedOptional} of {stats.optionalInputs}
         </span>
       )}
       {stats.outputs > 0 && (
-        <span className="status-bubble stat-badge stat-badge--output">
-          <OutputIcon className="stat-badge__icon" />
+        <span className={`status-bubble ${styles.badge} ${styles.badgeOutput}`}>
+          <OutputIcon className={styles.badgeIcon} />
           {stats.resolvedOutputs} of {stats.outputs}
         </span>
       )}
