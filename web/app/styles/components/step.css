@@ -268,6 +268,7 @@
   height: 24px;
   width: 24px;
   border-radius: 50%;
+  border: 1px solid transparent;
   flex-shrink: 0;
   display: flex;
   align-items: center;
@@ -276,17 +277,20 @@
 
 .step-type-label.resolver {
   background-color: var(--step-resolver-label);
-  color: var(--step-resolver-text);
+  color: color-mix(in srgb, var(--step-resolver-text) 75%, white);
+  border-color: color-mix(in srgb, var(--step-resolver-text) 75%, white);
 }
 
 .step-type-label.processor {
   background-color: var(--step-processor-label);
-  color: var(--step-processor-text);
+  color: color-mix(in srgb, var(--step-processor-text) 75%, white);
+  border-color: color-mix(in srgb, var(--step-processor-text) 75%, white);
 }
 
 .step-type-label.collector {
   background-color: var(--step-collector-label);
-  color: var(--step-collector-text);
+  color: color-mix(in srgb, var(--step-collector-text) 75%, white);
+  border-color: color-mix(in srgb, var(--step-collector-text) 75%, white);
 }
 
 /* Progress Icon Status Colors */

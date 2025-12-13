@@ -27,19 +27,31 @@
 }
 
 .badgeRequired {
-  background-color: var(--step-processor-label);
-  color: var(--step-processor-text);
-  border-color: var(--step-processor-border);
+  background-color: color-mix(in srgb, var(--arg-icon-required) 20%, white);
+  color: color-mix(in srgb, var(--arg-icon-required) 55%, var(--color-darken));
+  border-color: color-mix(
+    in srgb,
+    var(--arg-icon-required) 55%,
+    var(--color-darken)
+  );
 }
 
 .badgeOptional {
-  background-color: var(--color-neutral-label);
-  color: var(--color-neutral-text);
-  border-color: var(--color-neutral-border);
+  background-color: color-mix(in srgb, var(--arg-icon-optional) 20%, white);
+  color: color-mix(in srgb, var(--arg-icon-optional) 55%, var(--color-darken));
+  border-color: color-mix(
+    in srgb,
+    var(--arg-icon-optional) 55%,
+    var(--color-darken)
+  );
 }
 
 .badgeOutput {
-  background-color: var(--step-resolver-label);
-  color: var(--step-resolver-text);
-  border-color: var(--step-resolver-border);
+  background-color: color-mix(in srgb, var(--arg-icon-output) 20%, white);
+  color: color-mix(in srgb, var(--arg-icon-output) 55%, var(--color-darken));
+  border-color: color-mix(
+    in srgb,
+    var(--arg-icon-output) 55%,
+    var(--color-darken)
+  );
 }

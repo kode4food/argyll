@@ -97,7 +97,7 @@ const FlowDiagramContent: React.FC = () => {
               <div className={styles.flowLeft}>
                 <h2 className={styles.flowTitle}>{flowData.id}</h2>
                 <span
-                  className={`status-bubble ${styles.flowStatusBadge} ${flowData.status}`}
+                  className={`status-bubble ${styles.flowStatusBadge} ${styles[flowData.status]}`}
                 >
                   {flowData.status}
                 </span>

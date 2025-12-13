@@ -139,37 +139,78 @@
 }
 
 .flowStatusBadge.pending {
-  background-color: var(--color-neutral-label);
-  color: var(--color-pending);
-  border-color: var(--color-neutral-border);
+  background-color: color-mix(in srgb, var(--color-warning-light) 20%, white);
+  color: color-mix(
+    in srgb,
+    var(--color-warning-light) 55%,
+    var(--color-darken)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-warning-light) 55%,
+    var(--color-darken)
+  );
 }
 
 .flowStatusBadge.active {
-  background-color: var(--step-resolver-label);
-  color: var(--step-resolver-text);
-  border-color: var(--step-resolver-border);
+  background-color: color-mix(in srgb, var(--color-info) 20%, white);
+  color: color-mix(in srgb, var(--color-info) 55%, var(--color-darken));
+  border-color: color-mix(in srgb, var(--color-info) 55%, var(--color-darken));
+  animation: flowStatusPulse 1.5s ease-in-out infinite;
 }
 
 .flowStatusBadge.completed {
-  background-color: var(--step-processor-label);
-  color: var(--step-processor-text);
-  border-color: var(--step-processor-border);
+  background-color: color-mix(in srgb, var(--color-success) 20%, white);
+  color: color-mix(in srgb, var(--color-success) 55%, var(--color-darken));
+  border-color: color-mix(
+    in srgb,
+    var(--color-success) 55%,
+    var(--color-darken)
+  );
 }
 
 .flowStatusBadge.failed {
-  background-color: var(--step-collector-label);
-  color: var(--step-collector-text);
-  border-color: var(--step-collector-border);
+  background-color: color-mix(in srgb, var(--color-error) 20%, white);
+  color: color-mix(in srgb, var(--color-error) 55%, var(--color-darken));
+  border-color: color-mix(in srgb, var(--color-error) 55%, var(--color-darken));
 }
 
 .flowStatusBadge.stopped {
-  background-color: var(--color-neutral-label);
-  color: var(--color-neutral-text);
-  border-color: var(--color-neutral-border);
+  background-color: color-mix(in srgb, var(--color-neutral-border) 20%, white);
+  color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
 }
 
 .flowStatusBadge.default {
-  background-color: var(--color-neutral-label);
-  color: var(--color-neutral-text);
-  border-color: var(--color-neutral-border);
+  background-color: color-mix(in srgb, var(--color-neutral-border) 20%, white);
+  color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+}
+
+@keyframes flowStatusPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-info) 25%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-info) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-info) 0%, transparent);
+  }
 }
