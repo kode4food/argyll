@@ -47,7 +47,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
       return (
         <div className={styles.infoDisplay}>
           <ScriptIcon className={`step-type-icon ${styles.icon}`} />
-          <span className="step-endpoint script">{scriptPreview}</span>
+          <span className={`${styles.endpoint} ${styles.endpointScript}`}>{scriptPreview}</span>
         </div>
       );
     }
@@ -56,7 +56,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
       return (
         <div className={styles.infoDisplay}>
           <HttpIcon className={`step-type-icon ${styles.icon}`} />
-          <span className="step-endpoint">{step.http.endpoint}</span>
+          <span className={styles.endpoint}>{step.http.endpoint}</span>
         </div>
       );
     }
@@ -82,7 +82,7 @@ const StepFooter: React.FC<StepFooterProps> = ({
         >
           {execution.status.toUpperCase()}
           {progressState.workItems && progressState.workItems.total > 1 && (
-            <div className="step-progress-details">
+            <div className={styles.progressDetails}>
               Work Items: {progressState.workItems.completed} completed,{" "}
               {progressState.workItems.failed} failed,{" "}
               {progressState.workItems.active} active (
@@ -180,19 +180,19 @@ const StepFooter: React.FC<StepFooterProps> = ({
   return (
     <Tooltip
       trigger={
-        <div className="step-footer">
+        <div className={`${styles.footer} step-footer`}>
           {getStepInfoDisplay()}
-          <div className="step-footer-actions">
-            <div className="step-health-status">
+          <div className={styles.actions}>
+            <div className={styles.healthStatus}>
               {useProgress ? (
-                <div className="step-progress-container">
+                <div className={styles.progressContainer}>
                   <ProgressIcon
                     className={`progress-icon ${progressState.status || "pending"}`}
                   />
                   {progressState.status === "active" &&
                     progressState.workItems &&
                     progressState.workItems.total > 1 && (
-                      <span className="step-progress-counter">
+                      <span className={styles.progressCounter}>
                         (
                         {progressState.workItems.completed +
                           progressState.workItems.failed}

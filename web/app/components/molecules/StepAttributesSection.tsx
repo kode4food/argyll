@@ -14,6 +14,7 @@ import Tooltip from "../atoms/Tooltip";
 import TooltipSection from "../atoms/TooltipSection";
 import { getArgIcon } from "@/utils/argIcons";
 import { getSortedAttributes } from "@/utils/stepUtils";
+import styles from "./StepAttributesSection.module.css";
 
 interface StepAttributesSectionProps {
   step: Step;
@@ -44,27 +45,27 @@ const renderStatusBadge = (
   if (argType === "optional" && executionStatus) {
     if (executionStatus === "skipped") {
       return (
-        <div className="arg-status-badge skipped">
+        <div className={`${styles.argStatusBadge} ${styles.skipped}`}>
           <CircleSlash size={16} />
         </div>
       );
     }
     if (isProvidedByUpstream) {
       return (
-        <div className="arg-status-badge satisfied">
+        <div className={`${styles.argStatusBadge} ${styles.satisfied}`}>
           <CheckCircle size={16} />
         </div>
       );
     }
     if (wasDefaulted) {
       return (
-        <div className="arg-status-badge defaulted">
+        <div className={`${styles.argStatusBadge} ${styles.defaulted}`}>
           <CircleDot size={16} />
         </div>
       );
     }
     return (
-      <div className="arg-status-badge pending">
+      <div className={`${styles.argStatusBadge} ${styles.pending}`}>
         <CircleDashed size={16} />
       </div>
     );
@@ -73,20 +74,20 @@ const renderStatusBadge = (
   if (argType === "required") {
     if (isSatisfied) {
       return (
-        <div className="arg-status-badge satisfied">
+        <div className={`${styles.argStatusBadge} ${styles.satisfied}`}>
           <CheckCircle2 size={16} />
         </div>
       );
     }
     if (executionStatus === "failed" || executionStatus === "skipped") {
       return (
-        <div className="arg-status-badge failed">
+        <div className={`${styles.argStatusBadge} ${styles.failed}`}>
           <XCircle size={16} />
         </div>
       );
     }
     return (
-      <div className="arg-status-badge pending">
+      <div className={`${styles.argStatusBadge} ${styles.pending}`}>
         <CircleDashed size={16} />
       </div>
     );
@@ -95,33 +96,33 @@ const renderStatusBadge = (
   if (argType === "output") {
     if (executionStatus === "skipped" || executionStatus === "failed") {
       return (
-        <div className="arg-status-badge skipped">
+        <div className={`${styles.argStatusBadge} ${styles.skipped}`}>
           <Ban size={16} />
         </div>
       );
     }
     if (executionStatus === "active") {
       return (
-        <div className="arg-status-badge pending">
+        <div className={`${styles.argStatusBadge} ${styles.pending}`}>
           <CircleDashed size={16} />
         </div>
       );
     }
     if (isWinner) {
       return (
-        <div className="arg-status-badge satisfied">
+        <div className={`${styles.argStatusBadge} ${styles.satisfied}`}>
           <Award size={16} />
         </div>
       );
     }
     if (executionStatus === "completed") {
       return (
-        <div className="arg-status-badge not-winner">
+        <div className={`${styles.argStatusBadge} ${styles.notWinner}`}>
           <XCircle size={16} />
         </div>
       );
     }
-    return <div className="arg-status-badge placeholder" />;
+    return <div className={`${styles.argStatusBadge} ${styles.placeholder}`} />;
   }
 
   return null;
@@ -212,7 +213,7 @@ const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
   }
 
   return (
-    <div className="step-args-section" data-testid="step-args">
+    <div className={`${styles.argsSection} step-args-section`} data-testid="step-args">
       {unifiedArgs.map((arg) => {
         const { hasValue, value } = getArgValue(arg, execution);
         const isWinner = attributeProvenance.get(arg.name) === step.id;
@@ -237,16 +238,16 @@ const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
 
         const argItem = (
           <div
-            className="step-arg-item"
+            className={styles.argItem}
             data-arg-type={arg.argType}
             data-arg-name={arg.name}
           >
-            <span className="step-arg-name">
+            <span className={styles.argName}>
               <Icon className={className} />
               {arg.name}
             </span>
-            <div className="step-arg-type-container">
-              <span className="step-arg-type">{arg.type}</span>
+            <div className={styles.argTypeContainer}>
+              <span className={styles.argType}>{arg.type}</span>
               {statusBadge}
             </div>
           </div>

@@ -3,6 +3,7 @@ import { Step } from "../../api";
 import StepTypeLabel from "../atoms/StepTypeLabel";
 import Tooltip from "../atoms/Tooltip";
 import TooltipSection from "../atoms/TooltipSection";
+import styles from "./StepHeader.module.css";
 
 interface StepHeaderProps {
   step: Step;
@@ -10,11 +11,11 @@ interface StepHeaderProps {
 
 const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
   return (
-    <div className="step-header">
+    <div className={`${styles.header} step-header`}>
       <Tooltip
         trigger={
-          <div className="step-title-container">
-            <h3 className="step-title">{step.name}</h3>
+          <div className={styles.titleContainer}>
+            <h3 className={styles.title}>{step.name}</h3>
           </div>
         }
       >

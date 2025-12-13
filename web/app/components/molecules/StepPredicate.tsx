@@ -3,6 +3,7 @@ import { Step } from "../../api";
 import Tooltip from "../atoms/Tooltip";
 import TooltipSection from "../atoms/TooltipSection";
 import tooltipStyles from "../atoms/TooltipSection.module.css";
+import styles from "./StepPredicate.module.css";
 
 interface StepPredicateProps {
   step: Step;
@@ -20,11 +21,11 @@ const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
   const lineCount = step.predicate.script.split("\n").length;
 
   return (
-    <div className="step-args-section">
+    <div className={`${styles.argsSection} step-args-section`}>
       <Tooltip
         trigger={
-          <div className="section-content">
-            <div className="predicate-code">{step.predicate.script}</div>
+          <div className={styles.content}>
+            <div className={styles.code}>{step.predicate.script}</div>
           </div>
         }
       >
