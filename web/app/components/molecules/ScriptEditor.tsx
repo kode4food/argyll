@@ -2,9 +2,9 @@
 
 import React, { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
-import { javascript } from "@codemirror/lang-javascript";
 import { StreamLanguage } from "@codemirror/language";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
+import { scheme } from "@codemirror/legacy-modes/mode/scheme";
 import { EditorView } from "@codemirror/view";
 import styles from "./ScriptEditor.module.css";
 
@@ -22,8 +22,8 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
   language = "lua",
 }) => {
   const extensions = useMemo(() => {
-    const langExt =
-      language === "lua" ? StreamLanguage.define(lua) : javascript();
+    const langMode = language === "lua" ? lua : scheme;
+    const langExt = StreamLanguage.define(langMode);
     return [langExt, EditorView.lineWrapping];
   }, [language]);
 
