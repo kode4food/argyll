@@ -1,0 +1,94 @@
+/* Step Attributes Section Component */
+
+.argsSection {
+  padding: var(--spacing-sm) var(--spacing-md);
+  border-bottom: 1px solid var(--color-neutral-border);
+}
+
+.argItem {
+  font-size: var(--text-xs);
+  padding: 2px 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 24px;
+  max-height: 24px;
+}
+
+.argName {
+  display: flex;
+  align-items: center;
+  font-size: var(--text-xs);
+  color: inherit;
+}
+
+.argIcon {
+  height: 1rem;
+  width: 1rem;
+  margin-right: var(--spacing-xs);
+}
+
+.argTypeContainer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.argType {
+  color: var(--color-pending);
+  font-size: var(--text-xs);
+}
+
+.argStatusBadge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-circle);
+  flex-shrink: 0;
+}
+
+.argStatusBadge :global(svg) {
+  color: var(--color-white);
+  stroke-width: 2.5;
+}
+
+.argStatusBadge.satisfied {
+  background-color: var(--color-success);
+}
+
+.argStatusBadge.defaulted {
+  background-color: color-mix(in srgb, var(--color-success) 60%, white);
+}
+
+.argStatusBadge.pending {
+  background-color: var(--color-warning);
+}
+
+.argStatusBadge.waiting {
+  background-color: var(--color-warning);
+}
+
+.argStatusBadge.waiting .spinner {
+  animation: spin 2s linear infinite;
+}
+
+.argStatusBadge.notWinner {
+  background-color: var(--color-error);
+}
+
+.argStatusBadge.failed {
+  background-color: var(--color-error);
+}
+
+.argStatusBadge.skipped {
+  background-color: var(--color-neutral-border);
+  opacity: var(--opacity-muted);
+}
+
+.argStatusBadge.placeholder {
+  border: 2px dotted var(--color-neutral-border);
+  background-color: transparent;
+  opacity: var(--opacity-disabled);
+}

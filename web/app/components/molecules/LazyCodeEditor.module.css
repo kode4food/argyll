@@ -1,0 +1,12 @@
+/* Lazy Code Editor Component */
+
+.fallback {
+  width: 100%;
+  height: 100%;
+  background-color: var(--color-code-bg);
+}
+
+.codemirror {
+  width: 100%;
+  height: 100%;
+}
