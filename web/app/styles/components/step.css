@@ -243,35 +243,19 @@
 }
 
 .step-widget.resolver .step-footer {
-  border-top-color: color-mix(
-    in srgb,
-    var(--step-resolver-border) 85%,
-    black
-  );
+  border-top-color: color-mix(in srgb, var(--step-resolver-border) 85%, black);
 }
 
 .step-widget.processor .step-footer {
-  border-top-color: color-mix(
-    in srgb,
-    var(--step-processor-border) 85%,
-    black
-  );
+  border-top-color: color-mix(in srgb, var(--step-processor-border) 85%, black);
 }
 
 .step-widget.collector .step-footer {
-  border-top-color: color-mix(
-    in srgb,
-    var(--step-collector-border) 85%,
-    black
-  );
+  border-top-color: color-mix(in srgb, var(--step-collector-border) 85%, black);
 }
 
 .step-widget.neutral .step-footer {
-  border-top-color: color-mix(
-    in srgb,
-    var(--color-neutral-border) 85%,
-    black
-  );
+  border-top-color: color-mix(in srgb, var(--color-neutral-border) 85%, black);
 }
 
 /* Step Type Label */

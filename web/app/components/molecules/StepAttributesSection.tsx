@@ -45,27 +45,35 @@ const renderStatusBadge = (
   if (argType === "optional" && executionStatus) {
     if (executionStatus === "skipped") {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.skipped}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
+        >
           <CircleSlash size={16} />
         </div>
       );
     }
     if (isProvidedByUpstream) {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.satisfied}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
+        >
           <CheckCircle size={16} />
         </div>
       );
     }
     if (wasDefaulted) {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.defaulted}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
+        >
           <CircleDot size={16} />
         </div>
       );
     }
     return (
-      <div className={`${styles.argStatusBadge} ${styles.pending}`}>
+      <div
+        className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
+      >
         <CircleDashed size={16} />
       </div>
     );
@@ -74,20 +82,26 @@ const renderStatusBadge = (
   if (argType === "required") {
     if (isSatisfied) {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.satisfied}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
+        >
           <CheckCircle2 size={16} />
         </div>
       );
     }
     if (executionStatus === "failed" || executionStatus === "skipped") {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.failed}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.failed} arg-status-badge failed`}
+        >
           <XCircle size={16} />
         </div>
       );
     }
     return (
-      <div className={`${styles.argStatusBadge} ${styles.pending}`}>
+      <div
+        className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
+      >
         <CircleDashed size={16} />
       </div>
     );
@@ -96,33 +110,45 @@ const renderStatusBadge = (
   if (argType === "output") {
     if (executionStatus === "skipped" || executionStatus === "failed") {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.skipped}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
+        >
           <Ban size={16} />
         </div>
       );
     }
     if (executionStatus === "active") {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.pending}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
+        >
           <CircleDashed size={16} />
         </div>
       );
     }
     if (isWinner) {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.satisfied}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
+        >
           <Award size={16} />
         </div>
       );
     }
     if (executionStatus === "completed") {
       return (
-        <div className={`${styles.argStatusBadge} ${styles.notWinner}`}>
+        <div
+          className={`${styles.argStatusBadge} ${styles.notWinner} arg-status-badge not-winner`}
+        >
           <XCircle size={16} />
         </div>
       );
     }
-    return <div className={`${styles.argStatusBadge} ${styles.placeholder}`} />;
+    return (
+      <div
+        className={`${styles.argStatusBadge} ${styles.placeholder} arg-status-badge placeholder`}
+      />
+    );
   }
 
   return null;
@@ -213,7 +239,10 @@ const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
   }
 
   return (
-    <div className={`${styles.argsSection} step-args-section`} data-testid="step-args">
+    <div
+      className={`${styles.argsSection} step-args-section`}
+      data-testid="step-args"
+    >
       {unifiedArgs.map((arg) => {
         const { hasValue, value } = getArgValue(arg, execution);
         const isWinner = attributeProvenance.get(arg.name) === step.id;

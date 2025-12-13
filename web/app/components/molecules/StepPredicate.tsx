@@ -25,7 +25,9 @@ const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
       <Tooltip
         trigger={
           <div className={styles.content}>
-            <div className={styles.code}>{step.predicate.script}</div>
+            <div className={`${styles.code} predicate-code`}>
+              {step.predicate.script}
+            </div>
           </div>
         }
       >

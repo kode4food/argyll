@@ -80,21 +80,27 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
   const OutputIcon = getArgIcon("output").Icon;
 
   return (
-    <div className={styles.root}>
+    <div className={`${styles.root} flow-stats`}>
       {stats.requiredInputs > 0 && (
-        <span className={`status-bubble ${styles.badge} ${styles.badgeRequired}`}>
+        <span
+          className={`status-bubble ${styles.badge} ${styles.badgeRequired} stat-badge stat-badge--required`}
+        >
           <RequiredIcon className={styles.badgeIcon} />
           {stats.resolvedRequired} of {stats.requiredInputs}
         </span>
       )}
       {stats.optionalInputs > 0 && (
-        <span className={`status-bubble ${styles.badge} ${styles.badgeOptional}`}>
+        <span
+          className={`status-bubble ${styles.badge} ${styles.badgeOptional} stat-badge stat-badge--optional`}
+        >
           <OptionalIcon className={styles.badgeIcon} />
           {stats.resolvedOptional} of {stats.optionalInputs}
         </span>
       )}
       {stats.outputs > 0 && (
-        <span className={`status-bubble ${styles.badge} ${styles.badgeOutput}`}>
+        <span
+          className={`status-bubble ${styles.badge} ${styles.badgeOutput} stat-badge stat-badge--output`}
+        >
           <OutputIcon className={styles.badgeIcon} />
           {stats.resolvedOutputs} of {stats.outputs}
         </span>

@@ -47,7 +47,11 @@ const StepFooter: React.FC<StepFooterProps> = ({
       return (
         <div className={styles.infoDisplay}>
           <ScriptIcon className={`step-type-icon ${styles.icon}`} />
-          <span className={`${styles.endpoint} ${styles.endpointScript}`}>{scriptPreview}</span>
+          <span
+            className={`${styles.endpoint} ${styles.endpointScript} step-endpoint`}
+          >
+            {scriptPreview}
+          </span>
         </div>
       );
     }
@@ -56,7 +60,9 @@ const StepFooter: React.FC<StepFooterProps> = ({
       return (
         <div className={styles.infoDisplay}>
           <HttpIcon className={`step-type-icon ${styles.icon}`} />
-          <span className={styles.endpoint}>{step.http.endpoint}</span>
+          <span className={`${styles.endpoint} step-endpoint`}>
+            {step.http.endpoint}
+          </span>
         </div>
       );
     }
