@@ -182,6 +182,20 @@ describe("StepEditor", () => {
     });
   });
 
+  test("shows placeholder row when no attributes exist", async () => {
+    render(
+      <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(
+          /Attributes describe how steps share data with each other/i
+        )
+      ).toBeInTheDocument();
+    });
+  });
+
   test("updates step name", async () => {
     const step = createHttpStep();
 

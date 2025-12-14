@@ -382,6 +382,33 @@ const AttributesSection: React.FC = () => {
         </button>
       </div>
       <div className={formStyles.argList}>
+        {attributes.length === 0 && (
+          <div
+            className={`${formStyles.attrRow} ${formStyles.attrPlaceholder}`}
+            aria-hidden
+          >
+            <div className={formStyles.attrRowInputs}>
+              <div
+                className={`${formStyles.placeholderControl} ${formStyles.placeholderIcon}`}
+              />
+              <div
+                className={`${formStyles.placeholderControl} ${formStyles.placeholderSelect}`}
+              />
+              <div
+                className={`${formStyles.placeholderControl} ${formStyles.placeholderInput}`}
+              />
+              <div
+                className={`${formStyles.placeholderControl} ${formStyles.placeholderSmall}`}
+              />
+              <div
+                className={`${formStyles.placeholderControl} ${formStyles.placeholderButton}`}
+              />
+            </div>
+            <div className={formStyles.placeholderHint}>
+              Attributes describe how steps share data with each other
+            </div>
+          </div>
+        )}
         {attributes.map((attr) => (
           <div key={attr.id} className={formStyles.attrRow}>
             <div className={formStyles.attrRowInputs}>

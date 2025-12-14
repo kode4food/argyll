@@ -184,6 +184,14 @@
   gap: var(--spacing-xs);
 }
 
+.attrPlaceholder {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  position: relative;
+  overflow: hidden;
+}
+
 .attrRowInputs {
   display: flex;
   gap: var(--spacing-sm);
@@ -211,6 +219,62 @@
 .attrIconButtonStyle:hover {
   background-color: var(--overlay-dark-40);
   border-color: var(--color-info);
+}
+
+.placeholderControl {
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: linear-gradient(
+    90deg,
+    var(--overlay-dark-30) 25%,
+    var(--overlay-dark-40) 50%,
+    var(--overlay-dark-30) 75%
+  );
+  border: 1px dashed var(--color-dark-border);
+}
+
+.placeholderIcon {
+  width: 32px;
+}
+
+.placeholderSelect {
+  width: 120px;
+}
+
+.placeholderInput {
+  flex: 2 1 160px;
+  min-width: 160px;
+}
+
+.placeholderSmall {
+  flex: 1 1 140px;
+  min-width: 140px;
+}
+
+.placeholderButton {
+  width: 32px;
+}
+
+.placeholderHint {
+  color: var(--color-info);
+  font-size: var(--text-xs);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  padding: 4px 10px;
+  background: color-mix(
+    in srgb,
+    var(--color-dark-bg) 85%,
+    var(--color-info) 15%
+  );
+  border: 1px solid color-mix(in srgb, var(--color-info) 50%, transparent);
+  border-radius: var(--radius-sm);
+  pointer-events: none;
+  text-align: center;
+  font-weight: var(--font-medium);
+  white-space: nowrap;
+  display: inline-flex;
 }
 
 .scriptEditorContainer {
