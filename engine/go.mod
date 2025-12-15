@@ -11,7 +11,7 @@ require (
 	github.com/gorilla/websocket v1.5.0
 	github.com/kode4food/ale v0.3.0
 	github.com/kode4food/caravan v0.0.0-20251025080141-10eee0f8ea05
-	github.com/kode4food/timebox v0.0.0-20251115173251-2628c344d6f6
+	github.com/kode4food/timebox v0.0.0-20251215152913-5227ad96abac
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.38.0
