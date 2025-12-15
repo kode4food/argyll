@@ -20,7 +20,6 @@ type Step struct {
 	id         api.StepID
 	name       api.Name
 	stepType   api.StepType
-	version    string
 	attributes api.AttributeSpecs
 	timeout    int64
 	dirty      bool
@@ -38,7 +37,6 @@ func (c *Client) NewStep(name api.Name) *Step {
 		client:     c,
 		id:         id,
 		name:       name,
-		version:    "1.0.0",
 		stepType:   api.StepTypeSync,
 		timeout:    30 * api.Second,
 		attributes: api.AttributeSpecs{},
@@ -119,13 +117,6 @@ func (s *Step) WithAlePredicate(script string) *Step {
 // WithLuaPredicate sets a Lua language predicate script
 func (s *Step) WithLuaPredicate(script string) *Step {
 	return s.WithPredicate(api.ScriptLangLua, script)
-}
-
-// WithVersion sets the step version
-func (s *Step) WithVersion(version string) *Step {
-	res := *s
-	res.version = version
-	return &res
 }
 
 // WithEndpoint sets the HTTP endpoint where the step handler is listening
@@ -230,7 +221,6 @@ func (s *Step) Build() (*api.Step, error) {
 		Type:       s.stepType,
 		Attributes: s.attributes,
 		Predicate:  s.predicate,
-		Version:    s.version,
 		HTTP:       httpConfig,
 		Script:     s.script,
 	}

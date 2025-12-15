@@ -196,12 +196,6 @@ Default: generated from name ("User Resolver" → "user-resolver")
 s.WithID("custom-step-id")
 ```
 
-### Version
-
-```go
-s.WithVersion("2.1.0")
-```
-
 ### Timeout
 
 In milliseconds:
@@ -296,7 +290,6 @@ func main() {
     }
 
     err := client.NewStep("Order Processor").
-        WithVersion("1.0.0").
         WithTimeout(30 * api.Second).
         Required("order_id", api.TypeString).
         Required("items", api.TypeArray).
@@ -335,7 +328,6 @@ NewStep(name api.Name) *Step
 
 #### Configuration
 - `WithID(id string) *Step` - Set custom step ID
-- `WithVersion(version string) *Step` - Set step version
 - `WithTimeout(timeout int64) *Step` - Set execution timeout (milliseconds)
 - `WithEndpoint(endpoint string) *Step` - Set HTTP endpoint
 - `WithHealthCheck(endpoint string) *Step` - Set health check endpoint

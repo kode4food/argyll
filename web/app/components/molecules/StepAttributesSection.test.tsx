@@ -58,7 +58,6 @@ describe("StepAttributesSection", () => {
       name: "Test Step",
       type: "sync",
       attributes,
-      version: "1.0.0",
       http: {
         endpoint: "http://test",
         timeout: 5000,
@@ -231,7 +230,6 @@ describe("StepAttributesSection", () => {
       attributes: {
         opt1: { role: AttributeRole.Optional, type: AttributeType.String },
       },
-      version: "1.0.0",
       http: {
         endpoint: "http://test",
         timeout: 5000,
@@ -394,7 +392,6 @@ describe("StepAttributesSection", () => {
           default: "default-value",
         },
       },
-      version: "1.0.0",
       http: {
         endpoint: "http://test",
         timeout: 5000,
@@ -454,7 +451,6 @@ describe("StepAttributesSection", () => {
       attributes: {
         result: { role: AttributeRole.Output, type: AttributeType.String },
       },
-      version: "1.0.0",
       http: {
         endpoint: "http://test",
         timeout: 5000,
@@ -522,7 +518,6 @@ describe("StepAttributesSection", () => {
           default: "default-value",
         },
       },
-      version: "1.0.0",
       http: {
         endpoint: "http://test",
         timeout: 5000,

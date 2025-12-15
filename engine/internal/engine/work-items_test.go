@@ -21,10 +21,9 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 	ctx := context.Background()
 
 	step := &api.Step{
-		ID:      "foreach-step",
-		Name:    "For Each Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "foreach-step",
+		Name: "For Each Step",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://example.com",
 			Timeout:  30 * api.Second,

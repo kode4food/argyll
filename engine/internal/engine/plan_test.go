@@ -31,10 +31,9 @@ func TestSimpleResolver(t *testing.T) {
 	eng := &engine.Engine{}
 
 	resolverStep := &api.Step{
-		ID:      "resolver",
-		Name:    "Resolver",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver",
+		Name: "Resolver",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -65,10 +64,9 @@ func TestProcessorWithInit(t *testing.T) {
 	eng := &engine.Engine{}
 
 	processorStep := &api.Step{
-		ID:      "processor",
-		Name:    "Processor",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
@@ -96,10 +94,9 @@ func TestProcessorNoInit(t *testing.T) {
 	eng := &engine.Engine{}
 
 	processorStep := &api.Step{
-		ID:      "processor",
-		Name:    "Processor",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
@@ -126,10 +123,9 @@ func TestChained(t *testing.T) {
 	eng := &engine.Engine{}
 
 	resolverStep := &api.Step{
-		ID:      "resolver",
-		Name:    "Resolver",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver",
+		Name: "Resolver",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -140,10 +136,9 @@ func TestChained(t *testing.T) {
 	}
 
 	processorStep := &api.Step{
-		ID:      "processor",
-		Name:    "Processor",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"data":   {Role: api.RoleRequired, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -155,10 +150,9 @@ func TestChained(t *testing.T) {
 	}
 
 	collectorStep := &api.Step{
-		ID:      "collector",
-		Name:    "Collector",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "collector",
+		Name: "Collector",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleRequired, Type: api.TypeString},
 		},
@@ -191,10 +185,9 @@ func TestMultipleGoals(t *testing.T) {
 	eng := &engine.Engine{}
 
 	step1 := &api.Step{
-		ID:      "step1",
-		Name:    "Step 1",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step1",
+		Name: "Step 1",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"output1": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -205,10 +198,9 @@ func TestMultipleGoals(t *testing.T) {
 	}
 
 	step2 := &api.Step{
-		ID:      "step2",
-		Name:    "Step 2",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step2",
+		Name: "Step 2",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"output2": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -235,10 +227,9 @@ func TestExistingOutputs(t *testing.T) {
 	eng := &engine.Engine{}
 
 	step := &api.Step{
-		ID:      "step",
-		Name:    "Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step",
+		Name: "Step",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -264,10 +255,9 @@ func TestComplexGraph(t *testing.T) {
 	eng := &engine.Engine{}
 
 	resolver1 := &api.Step{
-		ID:      "resolver1",
-		Name:    "Resolver 1",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver1",
+		Name: "Resolver 1",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"a": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -278,10 +268,9 @@ func TestComplexGraph(t *testing.T) {
 	}
 
 	resolver2 := &api.Step{
-		ID:      "resolver2",
-		Name:    "Resolver 2",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver2",
+		Name: "Resolver 2",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"b": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -292,10 +281,9 @@ func TestComplexGraph(t *testing.T) {
 	}
 
 	processor1 := &api.Step{
-		ID:      "processor1",
-		Name:    "Processor 1",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor1",
+		Name: "Processor 1",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"a": {Role: api.RoleRequired, Type: api.TypeString},
 			"b": {Role: api.RoleRequired, Type: api.TypeString},
@@ -308,10 +296,9 @@ func TestComplexGraph(t *testing.T) {
 	}
 
 	processor2 := &api.Step{
-		ID:      "processor2",
-		Name:    "Processor 2",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor2",
+		Name: "Processor 2",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"c": {Role: api.RoleRequired, Type: api.TypeString},
 			"d": {Role: api.RoleOutput, Type: api.TypeString},
@@ -349,10 +336,9 @@ func TestReceipts(t *testing.T) {
 	eng := &engine.Engine{}
 
 	step := &api.Step{
-		ID:      "step",
-		Name:    "Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step",
+		Name: "Step",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -379,10 +365,9 @@ func TestMissingDependency(t *testing.T) {
 	eng := &engine.Engine{}
 
 	step := &api.Step{
-		ID:      "step",
-		Name:    "Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step",
+		Name: "Step",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"nonexistent": {Role: api.RoleRequired, Type: api.TypeString},
 			"output":      {Role: api.RoleOutput, Type: api.TypeString},
@@ -409,10 +394,9 @@ func TestOptionalInput(t *testing.T) {
 	eng := &engine.Engine{}
 
 	resolverStep := &api.Step{
-		ID:      "resolver",
-		Name:    "Resolver",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver",
+		Name: "Resolver",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -423,10 +407,9 @@ func TestOptionalInput(t *testing.T) {
 	}
 
 	processorStep := &api.Step{
-		ID:      "processor",
-		Name:    "Processor",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
@@ -458,10 +441,9 @@ func TestOptionalMissing(t *testing.T) {
 	eng := &engine.Engine{}
 
 	processorStep := &api.Step{
-		ID:      "processor",
-		Name:    "Processor",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
@@ -490,10 +472,9 @@ func TestMixedInputs(t *testing.T) {
 	eng := &engine.Engine{}
 
 	resolver1 := &api.Step{
-		ID:      "resolver1",
-		Name:    "Resolver 1",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver1",
+		Name: "Resolver 1",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"required_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -504,10 +485,9 @@ func TestMixedInputs(t *testing.T) {
 	}
 
 	resolver2 := &api.Step{
-		ID:      "resolver2",
-		Name:    "Resolver 2",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "resolver2",
+		Name: "Resolver 2",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -518,10 +498,9 @@ func TestMixedInputs(t *testing.T) {
 	}
 
 	processorStep := &api.Step{
-		ID:      "processor",
-		Name:    "Processor",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"required_data": {Role: api.RoleRequired, Type: api.TypeString},
 			"optional_data": {Role: api.RoleOptional, Type: api.TypeString},

@@ -14,7 +14,6 @@ describe("useStepVisibility", () => {
         { role: AttributeRole.Output, type: AttributeType.String },
       ])
     ),
-    version: "1.0.0",
     http: {
       endpoint: "http://test",
       timeout: 5000,

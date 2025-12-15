@@ -13,7 +13,6 @@ describe("StepPredicate", () => {
     type: "sync",
     attributes: {},
 
-    version: "1.0.0",
     http: {
       endpoint: "http://localhost:8080/test",
       timeout: 5000,

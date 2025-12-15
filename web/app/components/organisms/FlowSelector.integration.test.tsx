@@ -37,7 +37,6 @@ jest.mock("../../store/flowStore", () => {
         type: "script",
         attributes: {},
         script: { language: "lua", script: "" },
-        version: "1.0.0",
       },
     ]),
     useFlows: jest.fn(() => [

@@ -43,10 +43,9 @@ func TestStepRegistered(t *testing.T) {
 	now := time.Now()
 
 	step := &api.Step{
-		ID:      "test-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test-step",
+		Name: "Test Step",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -75,10 +74,9 @@ func TestStepRegistered(t *testing.T) {
 
 func TestStepUnregistered(t *testing.T) {
 	step := &api.Step{
-		ID:      "test-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test-step",
+		Name: "Test Step",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -111,20 +109,18 @@ func TestStepUnregistered(t *testing.T) {
 
 func TestStepUpdated(t *testing.T) {
 	oldStep := &api.Step{
-		ID:      "test-step",
-		Name:    "Old Name",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test-step",
+		Name: "Old Name",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
 	}
 
 	newStep := &api.Step{
-		ID:      "test-step",
-		Name:    "New Name",
-		Type:    api.StepTypeSync,
-		Version: "2.0.0",
+		ID:   "test-step",
+		Name: "New Name",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:9090",
 		},
@@ -150,7 +146,6 @@ func TestStepUpdated(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, newStep, result.Steps["test-step"])
 	assert.Equal(t, api.Name("New Name"), result.Steps["test-step"].Name)
-	assert.Equal(t, "2.0.0", result.Steps["test-step"].Version)
 	assert.True(t, result.LastUpdated.Equal(now))
 }
 

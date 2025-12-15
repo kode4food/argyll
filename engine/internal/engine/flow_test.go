@@ -287,10 +287,9 @@ func TestStartFlowSimple(t *testing.T) {
 	env.Engine.Start()
 
 	step := &api.Step{
-		ID:      "goal-step",
-		Name:    "Goal",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "goal-step",
+		Name: "Goal",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},

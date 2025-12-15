@@ -112,7 +112,6 @@ The engine uses event sourcing, which means all state changes are recorded as im
       "id": "send-email",
       "name": "Send Email",
       "type": "async",
-      "version": "1.0.0",
       "http": {
         "url": "https://api.example.com/send-email",
         "method": "POST"
@@ -149,7 +148,6 @@ The engine uses event sourcing, which means all state changes are recorded as im
   "data": {
     "step": {
       "id": "send-email",
-      "version": "1.1.0",
       "attributes": {
         "sent_at": {"role": "output", "type": "string"}
       }

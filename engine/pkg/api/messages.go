@@ -49,10 +49,9 @@ type (
 		Count int     `json:"count"`
 	}
 
-	// HealthResponse provides service health and version information
+	// HealthResponse provides service health information
 	HealthResponse struct {
 		Service string `json:"service"`
-		Version string `json:"version"`
 		HealthState
 	}
 

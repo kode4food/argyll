@@ -212,10 +212,9 @@ func TestScriptWorkExecutes(t *testing.T) {
 	ctx := context.Background()
 
 	step := &api.Step{
-		ID:      "script-work",
-		Name:    "Script Work",
-		Type:    api.StepTypeScript,
-		Version: "1.0.0",
+		ID:   "script-work",
+		Name: "Script Work",
+		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   "return { result = (x or 0) * 3 }",

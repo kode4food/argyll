@@ -57,7 +57,6 @@ describe("StepEditor", () => {
       input2: { role: AttributeRole.Optional, type: AttributeType.Number },
       result: { role: AttributeRole.Output, type: AttributeType.String },
     },
-    version: "1.0.0",
     http: {
       endpoint: "http://localhost:8080/test",
       health_check: "http://localhost:8080/health",
@@ -77,7 +76,6 @@ describe("StepEditor", () => {
       input1: { role: AttributeRole.Required, type: AttributeType.String },
       result: { role: AttributeRole.Output, type: AttributeType.String },
     },
-    version: "1.0.0",
     script: {
       language: "ale",
       script: "{:result 42}",

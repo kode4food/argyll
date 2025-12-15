@@ -228,7 +228,6 @@ const buildStepPayload = ({
   stepId,
   name,
   stepType,
-  version,
   attributes,
   predicate,
   predicateLanguage,
@@ -241,7 +240,6 @@ const buildStepPayload = ({
   stepId: string;
   name: string;
   stepType: StepType;
-  version: string;
   attributes: Record<string, AttributeSpec>;
   predicate: string;
   predicateLanguage: string;
@@ -255,7 +253,6 @@ const buildStepPayload = ({
     id: stepId.trim(),
     name,
     type: stepType,
-    version,
     attributes,
     predicate: predicate.trim()
       ? {
@@ -649,7 +646,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
         stepId,
         name,
         stepType,
-        version: step?.version || "1.0.0",
         attributes: stepAttributes,
         predicate,
         predicateLanguage,

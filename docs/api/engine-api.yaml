@@ -123,7 +123,6 @@ paths:
                     processed_text:
                       role: "output"
                       type: "string"
-                  version: "1.0.0"
                   http:
                     endpoint: "http://localhost:8081/process-text"
                     health_check: "http://localhost:8081/health"
@@ -141,7 +140,6 @@ paths:
                     greeting:
                       role: "output"
                       type: "string"
-                  version: "1.0.0"
                   script:
                     language: "ale"
                     script: '{:greeting (str "Hello, " name)}'
@@ -196,8 +194,8 @@ paths:
     put:
       summary: Update Step
       description: |
-        Update an existing step registration. This creates a new version of the step.
-        Running flows continue using their immutable execution plans (step snapshots).
+        Update an existing step registration. Running flows continue using their
+        immutable execution plans (step snapshots).
       operationId: updateStep
       tags:
         - Steps
@@ -545,15 +543,11 @@ components:
       type: object
       required:
         - service
-        - version
         - status
       properties:
         service:
           type: string
           example: "argyll-engine"
-        version:
-          type: string
-          example: "1.0.0"
         status:
           type: string
           enum: [healthy, unhealthy, unknown]
@@ -630,7 +624,6 @@ components:
         - id
         - name
         - type
-        - version
       properties:
         id:
           type: string
@@ -664,10 +657,6 @@ components:
             processed_text:
               role: "output"
               type: "string"
-        version:
-          type: string
-          description: Step version (for tracking changes)
-          example: "1.0.0"
         predicate:
           $ref: "#/components/schemas/ScriptConfig"
           description: Optional script-based predicate for conditional execution

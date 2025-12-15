@@ -44,7 +44,6 @@ describe("ArgyllApi", () => {
         name: "Test Step",
         type: "sync" as const,
         attributes: {},
-        version: "1.0.0",
         http: {
           endpoint: "http://localhost:8080/test",
           timeout: 5000,
@@ -156,7 +155,6 @@ describe("ArgyllApi", () => {
             type: AttributeType.String,
           },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://localhost:8080/test",
           timeout: 5000,
@@ -398,7 +396,6 @@ describe("ArgyllApi", () => {
             type: AttributeType.String,
           },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://localhost:8080/test",
           timeout: 5000,
@@ -467,7 +464,6 @@ describe("ArgyllApi", () => {
             required: {},
             optional: {},
             output: {},
-            version: "1.0.0",
             http: {
               endpoint: "http://localhost:8080/test",
               timeout: 5000,

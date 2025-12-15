@@ -190,7 +190,6 @@ describe("stateUtils", () => {
           id: "step1",
           name: "Step 1",
           type: "sync",
-          version: "1.0",
           attributes: {
             boolProp: {
               role: AttributeRole.Required,
@@ -226,7 +225,6 @@ describe("stateUtils", () => {
           id: "step1",
           name: "Step 1",
           type: "sync",
-          version: "1.0",
           attributes: {
             numberProp: {
               role: AttributeRole.Required,
@@ -254,7 +252,6 @@ describe("stateUtils", () => {
             id: "step1",
             name: "Step 1",
             type: "sync",
-            version: "1.0",
             attributes: {
               boolProp: {
                 role: AttributeRole.Required,
@@ -297,7 +294,6 @@ describe("stateUtils", () => {
             id: "step1",
             name: "Step 1",
             type: "sync",
-            version: "1.0",
             attributes: {
               boolProp: {
                 role: AttributeRole.Required,

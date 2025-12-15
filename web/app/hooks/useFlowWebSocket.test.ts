@@ -139,7 +139,6 @@ describe("useFlowWebSocket", () => {
         required: {},
         optional: {},
         output: {},
-        version: "1.0.0",
         http: { endpoint: "http://test", timeout: 5000 },
       };
 

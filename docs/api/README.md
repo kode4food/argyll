@@ -36,7 +36,6 @@ curl -X POST http://localhost:8080/engine/step \
       "input_text": {"role": "required", "type": "string"},
       "output_text": {"role": "output", "type": "string"}
     },
-    "version": "1.0.0",
     "http": {
       "endpoint": "http://localhost:8081/process",
       "timeout": 30000

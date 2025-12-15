@@ -28,7 +28,6 @@ type (
 		ID         StepID         `json:"id"`
 		Name       Name           `json:"name"`
 		Type       StepType       `json:"type"`
-		Version    string         `json:"version"`
 		Attributes AttributeSpecs `json:"attributes"`
 	}
 
@@ -93,7 +92,6 @@ var (
 	ErrStepIDEmpty         = errors.New("step ID empty")
 	ErrStepNameEmpty       = errors.New("step name empty")
 	ErrStepEndpointEmpty   = errors.New("step endpoint empty")
-	ErrStepVersionEmpty    = errors.New("step version empty")
 	ErrArgNameEmpty        = errors.New("argument name empty")
 	ErrInvalidStepType     = errors.New("invalid step type")
 	ErrHTTPRequired        = errors.New("http required")
@@ -136,9 +134,6 @@ func (s *Step) Validate() error {
 	}
 	if s.Name == "" {
 		return ErrStepNameEmpty
-	}
-	if s.Version == "" {
-		return ErrStepVersionEmpty
 	}
 
 	if !validStepTypes.Contains(s.Type) {
@@ -288,9 +283,6 @@ func (s *Step) GetOutputArgs() []Name {
 // Equal returns true if two steps are equal
 func (s *Step) Equal(other *Step) bool {
 	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
-		return false
-	}
-	if s.Version != other.Version {
 		return false
 	}
 	if !attributeMapsEqual(s.Attributes, other.Attributes) {

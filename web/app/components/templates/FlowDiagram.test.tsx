@@ -75,7 +75,6 @@ const baseStep: Step = {
   name: "A",
   type: "script",
   attributes: {},
-  version: "1",
   script: { language: "python", script: "" },
 };
 

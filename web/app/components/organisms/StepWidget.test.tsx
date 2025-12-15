@@ -63,7 +63,6 @@ describe("StepWidget", () => {
     type,
     attributes: {},
 
-    version: "1.0.0",
     ...(type === "script"
       ? {
           script: {

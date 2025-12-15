@@ -103,7 +103,6 @@ describe("flowStore", () => {
         input1: { role: AttributeRole.Required, type: AttributeType.String },
         result: { role: AttributeRole.Output, type: AttributeType.String },
       },
-      version: "1.0.0",
       http: {
         endpoint: "http://localhost:8080/test",
         timeout: 5000,
@@ -144,17 +143,6 @@ describe("flowStore", () => {
     test("addStep creates new step", () => {
       useFlowStore.getState().addStep(mockStep);
       expect(useFlowStore.getState().steps).toHaveLength(1);
-    });
-
-    test("updateStep updates existing step", () => {
-      useFlowStore.setState({ steps: [mockStep] });
-
-      const updatedStep = { ...mockStep, version: "2.0.0" };
-      useFlowStore.getState().updateStep(updatedStep);
-
-      const state = useFlowStore.getState();
-      expect(state.steps).toHaveLength(1);
-      expect(state.steps[0].version).toBe("2.0.0");
     });
 
     test("removeStep deletes step", () => {
@@ -463,7 +451,6 @@ describe("flowStore", () => {
         type: "sync",
         attributes: {},
 
-        version: "1.0.0",
         http: {
           endpoint: "http://localhost:8080/test",
           timeout: 5000,

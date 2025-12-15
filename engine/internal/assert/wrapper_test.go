@@ -52,10 +52,9 @@ func TestStepValid(t *testing.T) {
 		{
 			name: "valid sync step",
 			step: &api.Step{
-				ID:      "test-sync",
-				Name:    "Test Sync",
-				Version: "1.0.0",
-				Type:    api.StepTypeSync,
+				ID:   "test-sync",
+				Name: "Test Sync",
+				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost/test",
 					Timeout:  1000,
@@ -65,10 +64,9 @@ func TestStepValid(t *testing.T) {
 		{
 			name: "valid async step",
 			step: &api.Step{
-				ID:      "test-async",
-				Name:    "Test Async",
-				Version: "1.0.0",
-				Type:    api.StepTypeAsync,
+				ID:   "test-async",
+				Name: "Test Async",
+				Type: api.StepTypeAsync,
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost/test",
 					Timeout:  1000,
@@ -78,10 +76,9 @@ func TestStepValid(t *testing.T) {
 		{
 			name: "valid script step with Ale",
 			step: &api.Step{
-				ID:      "test-script",
-				Name:    "Test Script",
-				Version: "1.0.0",
-				Type:    api.StepTypeScript,
+				ID:   "test-script",
+				Name: "Test Script",
+				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangAle,
 					Script:   "(+ 1 2)",
@@ -91,10 +88,9 @@ func TestStepValid(t *testing.T) {
 		{
 			name: "valid script step with Lua",
 			step: &api.Step{
-				ID:      "test-lua",
-				Name:    "Test Lua",
-				Version: "1.0.0",
-				Type:    api.StepTypeScript,
+				ID:   "test-lua",
+				Name: "Test Lua",
+				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangLua,
 					Script:   "return {result = 42}",
@@ -120,9 +116,8 @@ func TestStepInvalid(t *testing.T) {
 		{
 			name: "missing ID",
 			step: &api.Step{
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    api.StepTypeSync,
+				Name: "Test",
+				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost/test",
 				},
@@ -132,9 +127,8 @@ func TestStepInvalid(t *testing.T) {
 		{
 			name: "missing Name",
 			step: &api.Step{
-				ID:      "test-id",
-				Version: "1.0.0",
-				Type:    api.StepTypeSync,
+				ID:   "test-id",
+				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost/test",
 				},
@@ -142,55 +136,39 @@ func TestStepInvalid(t *testing.T) {
 			expectedErrorContain: "name",
 		},
 		{
-			name: "missing Version",
+			name: "HTTP step missing HTTPConfig",
 			step: &api.Step{
 				ID:   "test-id",
 				Name: "Test",
 				Type: api.StepTypeSync,
-				HTTP: &api.HTTPConfig{
-					Endpoint: "http://localhost/test",
-				},
-			},
-			expectedErrorContain: "version",
-		},
-		{
-			name: "HTTP step missing HTTPConfig",
-			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    api.StepTypeSync,
 			},
 			expectedErrorContain: "http",
 		},
 		{
 			name: "HTTP step missing endpoint",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    api.StepTypeSync,
-				HTTP:    &api.HTTPConfig{},
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeSync,
+				HTTP: &api.HTTPConfig{},
 			},
 			expectedErrorContain: "endpoint",
 		},
 		{
 			name: "script step missing ScriptConfig",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    api.StepTypeScript,
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeScript,
 			},
 			expectedErrorContain: "script",
 		},
 		{
 			name: "script step missing language",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    api.StepTypeScript,
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Script: "(+ 1 2)",
 				},
@@ -200,10 +178,9 @@ func TestStepInvalid(t *testing.T) {
 		{
 			name: "script step missing script",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    api.StepTypeScript,
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangAle,
 				},
@@ -213,10 +190,9 @@ func TestStepInvalid(t *testing.T) {
 		{
 			name: "invalid step type",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Version: "1.0.0",
-				Type:    "invalid",
+				ID:   "test-id",
+				Name: "Test",
+				Type: "invalid",
 			},
 			expectedErrorContain: "invalid",
 		},

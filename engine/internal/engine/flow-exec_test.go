@@ -18,20 +18,18 @@ func TestLinearFlowCompletes(t *testing.T) {
 	ctx := context.Background()
 
 	producer := &api.Step{
-		ID:      "producer",
-		Name:    "Producer",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "producer",
+		Name: "Producer",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"value": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
 	}
 	consumer := &api.Step{
-		ID:      "consumer",
-		Name:    "Consumer",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "consumer",
+		Name: "Consumer",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"value":  {Role: api.RoleRequired, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},

@@ -21,7 +21,6 @@ func TestNewStep(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepID("test-step"), step.ID)
 	assert.Equal(t, name, step.Name)
-	assert.Equal(t, "1.0.0", step.Version)
 	assert.Equal(t, api.StepTypeSync, step.Type)
 	assert.Equal(t, int64(30000), step.HTTP.Timeout)
 }
@@ -123,16 +122,6 @@ func TestOutputArg(t *testing.T) {
 	assert.Contains(t, step.Attributes, api.Name("output1"))
 	assert.EqualValues(t, api.TypeString, step.Attributes["output1"].Type)
 	assert.EqualValues(t, api.RoleOutput, step.Attributes["output1"].Role)
-}
-
-func TestWithVersion(t *testing.T) {
-	step, err := testClient().NewStep("Test").
-		WithEndpoint("http://example.com").
-		WithVersion("2.0.0").
-		Build()
-
-	assert.NoError(t, err)
-	assert.Equal(t, "2.0.0", step.Version)
 }
 
 func TestWithEndpoint(t *testing.T) {
@@ -311,7 +300,6 @@ func TestChaining(t *testing.T) {
 		WithEndpoint("http://example.com/step").
 		WithHealthCheck("http://example.com/health").
 		WithTimeout(45*api.Second).
-		WithVersion("2.1.0").
 		Required("req1", api.TypeString).
 		Required("req2", api.TypeNumber).
 		Optional("opt1", api.TypeBoolean, "").
@@ -329,7 +317,6 @@ func TestChaining(t *testing.T) {
 	assert.Len(t, optionalArgs, 1)
 	assert.Len(t, outputArgs, 2)
 	assert.Equal(t, 45*api.Second, step.HTTP.Timeout)
-	assert.Equal(t, "2.1.0", step.Version)
 }
 
 func TestImmutability(t *testing.T) {
@@ -337,7 +324,6 @@ func TestImmutability(t *testing.T) {
 
 	modified := original.
 		WithID("custom-id").
-		WithVersion("2.0.0").
 		Required("input", api.TypeString).
 		Output("output", api.TypeString).
 		WithEndpoint("http://example.com").
@@ -351,7 +337,6 @@ func TestImmutability(t *testing.T) {
 	assert.NotNil(t, step2)
 
 	assert.Equal(t, api.StepID("custom-id"), step2.ID)
-	assert.Equal(t, "2.0.0", step2.Version)
 	assert.Len(t, step2.GetRequiredArgs(), 1)
 	assert.Len(t, step2.GetOutputArgs(), 1)
 }
@@ -451,7 +436,6 @@ func TestStepBuilderChaining(t *testing.T) {
 	t.Run("complex_step_building", func(t *testing.T) {
 		step, err := testClient().NewStep("Complex Step").
 			WithID("complex").
-			WithVersion("2.0.0").
 			WithEndpoint("http://example.com/process").
 			WithHealthCheck("http://example.com/health").
 			WithTimeout(60000).
@@ -465,7 +449,6 @@ func TestStepBuilderChaining(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepID("complex"), step.ID)
-		assert.Equal(t, "2.0.0", step.Version)
 		assert.Equal(t, api.StepTypeAsync, step.Type)
 		assert.Equal(t, int64(60000), step.HTTP.Timeout)
 		assert.Len(t, step.Attributes, 5)

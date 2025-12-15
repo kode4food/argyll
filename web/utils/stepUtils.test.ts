@@ -98,7 +98,6 @@ describe("stepUtils", () => {
         attributes: {
           result: { role: AttributeRole.Output, type: AttributeType.String },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://test",
           timeout: 1000,
@@ -116,7 +115,6 @@ describe("stepUtils", () => {
         attributes: {
           input1: { role: AttributeRole.Required, type: AttributeType.String },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://test",
           timeout: 1000,
@@ -135,7 +133,6 @@ describe("stepUtils", () => {
           input1: { role: AttributeRole.Required, type: AttributeType.String },
           result: { role: AttributeRole.Output, type: AttributeType.String },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://test",
           timeout: 1000,
@@ -151,7 +148,6 @@ describe("stepUtils", () => {
         name: "Test Step",
         type: "script",
         attributes: {},
-        version: "1.0.0",
         script: {
           language: "ale",
           script: "{:result 1}",
@@ -170,7 +166,6 @@ describe("stepUtils", () => {
           opt1: { role: AttributeRole.Optional, type: AttributeType.String },
           result: { role: AttributeRole.Output, type: AttributeType.String },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://test",
           timeout: 1000,
@@ -188,7 +183,6 @@ describe("stepUtils", () => {
         attributes: {
           opt1: { role: AttributeRole.Optional, type: AttributeType.String },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://test",
           timeout: 1000,
@@ -211,7 +205,6 @@ describe("stepUtils", () => {
           result1: { role: AttributeRole.Output, type: AttributeType.String },
           result2: { role: AttributeRole.Output, type: AttributeType.String },
         },
-        version: "1.0.0",
         http: {
           endpoint: "http://test",
           timeout: 1000,
@@ -226,7 +219,6 @@ describe("stepUtils", () => {
         id: "step-8",
         name: "Test Step",
         type: "script",
-        version: "1.0.0",
         attributes: {},
         script: {
           language: "ale",
@@ -284,7 +276,6 @@ describe("stepUtils", () => {
             }
           : {}),
       },
-      version: "1.0.0",
       http: {
         endpoint: "http://test",
         timeout: 1000,

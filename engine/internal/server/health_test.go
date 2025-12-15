@@ -163,7 +163,6 @@ func TestWithRealHealthCheck(t *testing.T) {
 			Endpoint:    healthServer.URL + "/execute",
 			HealthCheck: healthServer.URL + "/health",
 		},
-		Version: "1.0.0",
 	}
 
 	err = eng.RegisterStep(context.Background(), step)

@@ -157,7 +157,6 @@ func TestStep(t *testing.T) {
 	assert.Equal(t, api.StepTypeSync, step.Type)
 	assert.NotNil(t, step.HTTP)
 	assert.NotEmpty(t, step.HTTP.Endpoint)
-	assert.Equal(t, "1.0.0", step.Version)
 
 	err := step.Validate()
 	assert.NoError(t, err)
@@ -214,7 +213,6 @@ func TestSimpleStep(t *testing.T) {
 	assert.Equal(t, api.StepID("test-id"), step.ID)
 	assert.Equal(t, api.StepTypeSync, step.Type)
 	assert.NotNil(t, step.HTTP)
-	assert.Equal(t, "1.0.0", step.Version)
 	assert.Empty(t, step.GetRequiredArgs())
 	assert.Empty(t, step.GetOptionalArgs())
 	assert.Empty(t, step.GetOutputArgs())

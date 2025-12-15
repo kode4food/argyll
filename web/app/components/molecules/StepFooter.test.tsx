@@ -44,7 +44,6 @@ describe("StepFooter", () => {
     type,
     attributes: {},
 
-    version: "1.0.0",
     ...(type === "script"
       ? {
           script: config || {
@@ -317,8 +316,6 @@ describe("StepFooter", () => {
       name: "Test",
       type: "sync",
       attributes: {},
-
-      version: "1.0.0",
     };
 
     const { container } = render(

@@ -29,7 +29,6 @@ describe("FlowCreateForm", () => {
     id: "step-1",
     name: "Test Step",
     type: "sync",
-    version: "1.0.0",
     attributes: {
       input1: { role: AttributeRole.Required, type: AttributeType.String },
       output1: { role: AttributeRole.Output, type: AttributeType.String },

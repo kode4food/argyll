@@ -15,10 +15,9 @@ func TestRegisterStep(t *testing.T) {
 	defer env.Cleanup()
 
 	step := &api.Step{
-		ID:      "test-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test-step",
+		Name: "Test Step",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"input":  {Role: api.RoleRequired, Type: api.TypeString},
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
@@ -94,7 +93,6 @@ func TestUpdateStep(t *testing.T) {
 
 	updated := helpers.NewSimpleStep("update-step")
 	updated.Name = "Updated"
-	updated.Version = "2.0.0"
 
 	err = env.Engine.UpdateStep(context.Background(), updated)
 	assert.NoError(t, err)
@@ -105,5 +103,4 @@ func TestUpdateStep(t *testing.T) {
 	retrievedStep, ok := state.Steps["update-step"]
 	assert.True(t, ok)
 	assert.Equal(t, api.Name("Updated"), retrievedStep.Name)
-	assert.Equal(t, "2.0.0", retrievedStep.Version)
 }

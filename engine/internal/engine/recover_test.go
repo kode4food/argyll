@@ -544,7 +544,6 @@ func TestWorkConfigValidation(t *testing.T) {
 				ID:         "test-step",
 				Name:       "Test Step",
 				Type:       api.StepTypeSync,
-				Version:    "1.0.0",
 				HTTP:       &api.HTTPConfig{Endpoint: "http://test"},
 				WorkConfig: sc.config,
 			}

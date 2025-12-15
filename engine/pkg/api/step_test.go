@@ -30,7 +30,6 @@ func TestStepValidation(t *testing.T) {
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost:8080",
 				},
-				Version: "1.0.0",
 			},
 			expectError:   true,
 			errorContains: "ID empty",
@@ -43,7 +42,6 @@ func TestStepValidation(t *testing.T) {
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost:8080",
 				},
-				Version: "1.0.0",
 			},
 			expectError:   true,
 			errorContains: "name empty",
@@ -51,10 +49,9 @@ func TestStepValidation(t *testing.T) {
 		{
 			name: "missing_http_config",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test",
-				Type:    api.StepTypeSync,
-				Version: "1.0.0",
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeSync,
 			},
 			expectError:   true,
 			errorContains: "http required",
@@ -68,23 +65,9 @@ func TestStepValidation(t *testing.T) {
 				HTTP: &api.HTTPConfig{
 					Endpoint: "",
 				},
-				Version: "1.0.0",
 			},
 			expectError:   true,
 			errorContains: "endpoint empty",
-		},
-		{
-			name: "missing_version",
-			step: &api.Step{
-				ID:   "test-id",
-				Name: "Test",
-				Type: api.StepTypeSync,
-				HTTP: &api.HTTPConfig{
-					Endpoint: "http://localhost:8080",
-				},
-			},
-			expectError:   true,
-			errorContains: "version empty",
 		},
 		{
 			name: "empty_required_arg_name",
@@ -95,7 +78,6 @@ func TestStepValidation(t *testing.T) {
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost:8080",
 				},
-				Version: "1.0.0",
 				Attributes: api.AttributeSpecs{
 					"": {Role: api.RoleRequired, Type: api.TypeString},
 				},
@@ -112,7 +94,6 @@ func TestStepValidation(t *testing.T) {
 				HTTP: &api.HTTPConfig{
 					Endpoint: "http://localhost:8080",
 				},
-				Version: "1.0.0",
 				Attributes: api.AttributeSpecs{
 					"": {Role: api.RoleOptional, Type: api.TypeString},
 				},
@@ -123,10 +104,9 @@ func TestStepValidation(t *testing.T) {
 		{
 			name: "missing_script_config",
 			step: &api.Step{
-				ID:      "test-id",
-				Name:    "Test Script",
-				Type:    api.StepTypeScript,
-				Version: "1.0.0",
+				ID:   "test-id",
+				Name: "Test Script",
+				Type: api.StepTypeScript,
 			},
 			expectError:   true,
 			errorContains: "script required",
@@ -141,7 +121,6 @@ func TestStepValidation(t *testing.T) {
 					Language: api.ScriptLangAle,
 					Script:   "",
 				},
-				Version: "1.0.0",
 			},
 			expectError:   true,
 			errorContains: "script empty",
@@ -156,7 +135,6 @@ func TestStepValidation(t *testing.T) {
 					Language: "",
 					Script:   "(+ 1 2)",
 				},
-				Version: "1.0.0",
 			},
 			expectError:   true,
 			errorContains: "script language empty",
@@ -211,7 +189,6 @@ func TestStepOutputArgs(t *testing.T) {
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
-			Version: "1.0.0",
 			Attributes: api.AttributeSpecs{
 				"result1":  {Role: api.RoleOutput, Type: api.TypeString},
 				"result2":  {Role: api.RoleOutput, Type: api.TypeNumber},
@@ -233,7 +210,6 @@ func TestStepOutputArgs(t *testing.T) {
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
-			Version: "1.0.0",
 			Attributes: api.AttributeSpecs{
 				"data": {Role: api.RoleRequired, Type: api.TypeString},
 			},
@@ -252,7 +228,6 @@ func TestSortedArgNames(t *testing.T) {
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
-		Version: "1.0.0",
 		Attributes: api.AttributeSpecs{
 			"zebra":  {Role: api.RoleRequired, Type: api.TypeString},
 			"apple":  {Role: api.RoleRequired, Type: api.TypeString},
@@ -278,7 +253,6 @@ func TestMultiArgNames(t *testing.T) {
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
-		Version: "1.0.0",
 		Attributes: api.AttributeSpecs{
 			"users": {
 				Role:    api.RoleRequired,
@@ -320,7 +294,6 @@ func TestGetRequiredArgs(t *testing.T) {
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
-		Version: "1.0.0",
 		Attributes: api.AttributeSpecs{
 			"user_id": {Role: api.RoleRequired, Type: api.TypeString},
 			"email":   {Role: api.RoleRequired, Type: api.TypeString},
@@ -347,7 +320,6 @@ func TestGetOptionalArgs(t *testing.T) {
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
-		Version: "1.0.0",
 		Attributes: api.AttributeSpecs{
 			"user_id": {Role: api.RoleRequired, Type: api.TypeString},
 			"email":   {Role: api.RoleOptional, Type: api.TypeString},
@@ -482,10 +454,9 @@ func TestEqualStep(t *testing.T) {
 	as := assert.New(t)
 
 	step1 := &api.Step{
-		ID:      "test-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test-step",
+		Name: "Test Step",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -495,10 +466,9 @@ func TestEqualStep(t *testing.T) {
 	}
 
 	step2 := &api.Step{
-		ID:      "test-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test-step",
+		Name: "Test Step",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -508,10 +478,9 @@ func TestEqualStep(t *testing.T) {
 	}
 
 	step3 := &api.Step{
-		ID:      "different-step",
-		Name:    "Test Step",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "different-step",
+		Name: "Test Step",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -529,10 +498,9 @@ func TestValidateWorkConfig(t *testing.T) {
 
 	t.Run("negative_backoff", func(t *testing.T) {
 		step := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -545,10 +513,9 @@ func TestValidateWorkConfig(t *testing.T) {
 
 	t.Run("max_backoff_too_small", func(t *testing.T) {
 		step := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -562,10 +529,9 @@ func TestValidateWorkConfig(t *testing.T) {
 
 	t.Run("missing_backoff_type", func(t *testing.T) {
 		step := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -578,10 +544,9 @@ func TestValidateWorkConfig(t *testing.T) {
 
 	t.Run("invalid_backoff_type", func(t *testing.T) {
 		step := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -595,10 +560,9 @@ func TestValidateWorkConfig(t *testing.T) {
 
 	t.Run("valid_work_config", func(t *testing.T) {
 		step := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -617,10 +581,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 	as := assert.New(t)
 
 	baseStep := &api.Step{
-		ID:      "test",
-		Name:    "Test",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "test",
+		Name: "Test",
+		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -631,20 +594,18 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("nil_http_configs", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeScript,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangAle,
 				Script:   "(+ 1 2)",
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeScript,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
 				Language: api.ScriptLangAle,
 				Script:   "(+ 1 2)",
@@ -655,38 +616,34 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("one_nil_http_one_not", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 		}
 		as.False(step1.Equal(step2))
 	})
 
 	t.Run("nil_script_configs", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -696,10 +653,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("different_versions", func(t *testing.T) {
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "2.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -709,10 +665,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("different_types", func(t *testing.T) {
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeAsync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -722,10 +677,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("different_attribute_maps", func(t *testing.T) {
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -738,19 +692,17 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("nil_predicate_configs", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -760,10 +712,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("different_predicates", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -773,10 +724,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -790,19 +740,17 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("nil_work_configs", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -812,10 +760,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 
 	t.Run("different_work_configs", func(t *testing.T) {
 		step1 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},
@@ -825,10 +772,9 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 		}
 		step2 := &api.Step{
-			ID:      "test",
-			Name:    "Test",
-			Type:    api.StepTypeSync,
-			Version: "1.0.0",
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
 				Endpoint: "http://localhost:8080",
 			},

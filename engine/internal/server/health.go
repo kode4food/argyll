@@ -183,7 +183,6 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 func (s *Server) handleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, api.HealthResponse{
 		Service: "argyll-engine",
-		Version: "1.0.0",
 		HealthState: api.HealthState{
 			Status: api.HealthHealthy,
 		},

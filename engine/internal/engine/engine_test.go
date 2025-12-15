@@ -296,7 +296,6 @@ func TestUpdateStepSuccess(t *testing.T) {
 
 	updatedStep := helpers.NewSimpleStep("update-step")
 	updatedStep.Name = "Updated Name"
-	updatedStep.Version = "1.0.1"
 	updatedStep.HTTP.Endpoint = "http://test:8080/v2"
 
 	err = env.Engine.UpdateStep(context.Background(), updatedStep)
@@ -308,7 +307,6 @@ func TestUpdateStepSuccess(t *testing.T) {
 	updated, ok := state.Steps["update-step"]
 	assert.True(t, ok)
 	assert.Equal(t, api.Name("Updated Name"), updated.Name)
-	assert.Equal(t, "1.0.1", updated.Version)
 }
 
 func TestUpdateStepNotFound(t *testing.T) {

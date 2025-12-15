@@ -50,7 +50,6 @@ func TestCompletableProvider(t *testing.T) {
 					Attributes: api.AttributeSpecs{
 						"input": {Role: api.RoleOutput, Type: api.TypeString},
 					},
-					Version: "1.0.0",
 				},
 			},
 		},
@@ -77,7 +76,6 @@ func TestFailedProvider(t *testing.T) {
 					Attributes: api.AttributeSpecs{
 						"input": {Role: api.RoleOutput, Type: api.TypeString},
 					},
-					Version: "1.0.0",
 				},
 			},
 		},
@@ -106,13 +104,11 @@ func TestFlowFailureWhenGoalBlocked(t *testing.T) {
 							Type: api.TypeString,
 						},
 					},
-					Version: "1.0.0",
 				},
 				"provider": {
-					ID:      "provider",
-					Name:    "Provider",
-					Type:    api.StepTypeSync,
-					Version: "1.0.0",
+					ID:   "provider",
+					Name: "Provider",
+					Type: api.StepTypeSync,
 					Attributes: api.AttributeSpecs{
 						"required": {
 							Role: api.RoleOutput,
@@ -143,10 +139,9 @@ func TestFlowFailureWhenGoalCompleted(t *testing.T) {
 			Goals: []api.StepID{"goal"},
 			Steps: api.Steps{
 				"goal": {
-					ID:      "goal",
-					Name:    "Goal",
-					Type:    api.StepTypeSync,
-					Version: "1.0.0",
+					ID:   "goal",
+					Name: "Goal",
+					Type: api.StepTypeSync,
 				},
 			},
 		},

@@ -22,7 +22,6 @@ const mockSteps: Step[] = [
     type: "script",
     attributes: {},
     script: { language: "lua", script: "" },
-    version: "1.0.0",
   },
 ];
 

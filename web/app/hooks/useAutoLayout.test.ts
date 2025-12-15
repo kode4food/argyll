@@ -52,7 +52,6 @@ describe("useAutoLayout", () => {
         id,
         name: `Step ${id}`,
         type: "sync",
-        version: "1.0.0",
         attributes,
         http: { endpoint: "http://test", timeout: 5000 },
       },

@@ -65,7 +65,6 @@ export interface Step {
   type: StepType;
   attributes: Record<string, AttributeSpec>;
   predicate?: ScriptConfig;
-  version: string;
   work_config?: WorkConfig;
 
   // Type-specific configurations

@@ -42,6 +42,7 @@ const FlowDiagramContent: React.FC = () => {
       <div className={styles.emptyStateContainer}>
         <EmptyState
           icon={<AlertCircle />}
+          iconClassName={styles.notFoundIcon}
           title="Flow Not Found"
           description={`The flow "${selectedFlow}" could not be found.`}
         />

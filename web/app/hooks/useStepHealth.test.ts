@@ -23,7 +23,6 @@ describe("useStepHealth", () => {
     type,
     attributes: {},
 
-    version: "1.0.0",
     ...(type !== "script" && {
       http: {
         endpoint: "http://test.com",
@@ -84,7 +83,6 @@ describe("useStepHealth", () => {
       type: "script",
       attributes: {},
 
-      version: "1.0.0",
       script: {
         language: "ale",
         script: "{}",

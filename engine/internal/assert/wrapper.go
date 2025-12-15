@@ -45,7 +45,6 @@ func (w *Wrapper) StepValid(t *api.Step) {
 	w.NoError(t.Validate())
 	w.NotEmpty(t.ID)
 	w.NotEmpty(t.Name)
-	w.NotEmpty(t.Version)
 
 	switch t.Type {
 	case api.StepTypeSync, api.StepTypeAsync:

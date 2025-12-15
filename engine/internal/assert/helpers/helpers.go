@@ -63,7 +63,6 @@ func NewTestStep() *api.Step {
 				Type: api.TypeString,
 			},
 		},
-		Version: "1.0.0",
 	}
 }
 
@@ -97,7 +96,6 @@ func NewSimpleStep(id api.StepID) *api.Step {
 		ID:         id,
 		Name:       "Test Step",
 		Type:       api.StepTypeSync,
-		Version:    "1.0.0",
 		Attributes: api.AttributeSpecs{},
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
@@ -127,10 +125,9 @@ func NewScriptStep(
 	id api.StepID, language, script string, outputs ...api.Name,
 ) *api.Step {
 	step := &api.Step{
-		ID:      id,
-		Name:    "Script Step",
-		Type:    api.StepTypeScript,
-		Version: "1.0.0",
+		ID:   id,
+		Name: "Script Step",
+		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
 			Language: language,
 			Script:   script,

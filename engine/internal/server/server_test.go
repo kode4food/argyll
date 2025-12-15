@@ -170,10 +170,9 @@ func TestSuccess(t *testing.T) {
 	defer func() { _ = env.Engine.Stop() }()
 
 	step := &api.Step{
-		ID:      "async-step",
-		Name:    "Async Step",
-		Type:    api.StepTypeAsync,
-		Version: "1.0.0",
+		ID:   "async-step",
+		Name: "Async Step",
+		Type: api.StepTypeAsync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
@@ -268,10 +267,9 @@ func TestStepNotFound(t *testing.T) {
 	defer func() { _ = env.Engine.Stop() }()
 
 	step := &api.Step{
-		ID:      "async-step",
-		Name:    "Async Step",
-		Type:    api.StepTypeAsync,
-		Version: "1.0.0",
+		ID:   "async-step",
+		Name: "Async Step",
+		Type: api.StepTypeAsync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
@@ -317,10 +315,9 @@ func TestInvalidToken(t *testing.T) {
 	defer func() { _ = env.Engine.Stop() }()
 
 	step := &api.Step{
-		ID:      "async-step",
-		Name:    "Async Step",
-		Type:    api.StepTypeAsync,
-		Version: "1.0.0",
+		ID:   "async-step",
+		Name: "Async Step",
+		Type: api.StepTypeAsync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
@@ -377,10 +374,9 @@ func TestInvalidJSON(t *testing.T) {
 	defer func() { _ = env.Engine.Stop() }()
 
 	step := &api.Step{
-		ID:      "async-step",
-		Name:    "Async Step",
-		Type:    api.StepTypeAsync,
-		Version: "1.0.0",
+		ID:   "async-step",
+		Name: "Async Step",
+		Type: api.StepTypeAsync,
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://test:8080",
 		},
@@ -886,11 +882,10 @@ func TestUpdateStepValidationError(t *testing.T) {
 	assert.NoError(t, err)
 
 	invalidStep := &api.Step{
-		ID:      "update-step",
-		Name:    "",
-		Type:    api.StepTypeSync,
-		Version: "1.0.1",
-		HTTP:    &api.HTTPConfig{},
+		ID:   "update-step",
+		Name: "",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{},
 	}
 
 	body, _ := json.Marshal(invalidStep)
@@ -922,7 +917,6 @@ func TestBasicHealthEndpoint(t *testing.T) {
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, "argyll-engine", response.Service)
-	assert.Equal(t, "1.0.0", response.Version)
 	assert.Equal(t, api.HealthHealthy, response.Status)
 }
 
@@ -931,10 +925,9 @@ func TestPlanPreview(t *testing.T) {
 	defer env.Cleanup()
 
 	step1 := &api.Step{
-		ID:      "step-a",
-		Name:    "Step A",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step-a",
+		Name: "Step A",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"value": {Role: api.RoleOutput, Type: api.TypeString},
 		},
@@ -944,10 +937,9 @@ func TestPlanPreview(t *testing.T) {
 	}
 
 	step2 := &api.Step{
-		ID:      "step-b",
-		Name:    "Step B",
-		Type:    api.StepTypeSync,
-		Version: "1.0.0",
+		ID:   "step-b",
+		Name: "Step B",
+		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"value":  {Role: api.RoleOutput, Type: api.TypeString},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
