@@ -277,20 +277,20 @@
 
 .step-type-label.resolver {
   background-color: var(--step-resolver-label);
-  color: color-mix(in srgb, var(--step-resolver-text) 75%, white);
-  border-color: color-mix(in srgb, var(--step-resolver-text) 75%, white);
+  color: color-mix(in srgb, var(--step-resolver-text) 55%, white);
+  border-color: color-mix(in srgb, var(--step-resolver-text) 45%, white);
 }
 
 .step-type-label.processor {
   background-color: var(--step-processor-label);
-  color: color-mix(in srgb, var(--step-processor-text) 75%, white);
-  border-color: color-mix(in srgb, var(--step-processor-text) 75%, white);
+  color: color-mix(in srgb, var(--step-processor-text) 55%, white);
+  border-color: color-mix(in srgb, var(--step-processor-text) 45%, white);
 }
 
 .step-type-label.collector {
   background-color: var(--step-collector-label);
-  color: color-mix(in srgb, var(--step-collector-text) 75%, white);
-  border-color: color-mix(in srgb, var(--step-collector-text) 75%, white);
+  color: color-mix(in srgb, var(--step-collector-text) 55%, white);
+  border-color: color-mix(in srgb, var(--step-collector-text) 45%, white);
 }
 
 /* Progress Icon Status Colors */

@@ -72,8 +72,7 @@ func (e *Engine) CalculateNextRetry(
 
 // Recovery orchestration
 
-// RecoverFlows initiates recovery for all active flows during engine
-// startup
+// RecoverFlows initiates recovery for all active flows during engine startup
 func (e *Engine) RecoverFlows(ctx context.Context) error {
 	engineState, err := e.GetEngineState(ctx)
 	if err != nil {
@@ -99,8 +98,8 @@ func (e *Engine) RecoverFlows(ctx context.Context) error {
 	return nil
 }
 
-// RecoverFlow resumes execution of a specific flow by retrying any
-// pending work items that are ready for retry
+// RecoverFlow resumes execution of a specific flow by retrying any pending
+// work items that are ready for retry
 func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 	flow, err := e.GetFlowState(ctx, flowID)
 	if err != nil {
@@ -156,8 +155,8 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 	return nil
 }
 
-// FindRetrySteps identifies all steps in a flow that have work items
-// scheduled for retry
+// FindRetrySteps identifies all steps in a flow that have work items scheduled
+// for retry
 func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	retryableSteps := util.Set[api.StepID]{}
 

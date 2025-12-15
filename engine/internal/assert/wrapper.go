@@ -29,8 +29,8 @@ type (
 // DefaultRetryInterval is the default polling interval for Eventually checks
 const DefaultRetryInterval = 100 * time.Millisecond
 
-// New creates a new test assertion wrapper with both assert and require
-// from testify plus Argyll-specific helpers
+// New creates a new test assertion wrapper with both assert and require from
+// testify plus Argyll-specific helpers
 func New(t *testing.T) *Wrapper {
 	return &Wrapper{
 		T:          t,

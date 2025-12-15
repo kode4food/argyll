@@ -2,6 +2,6 @@
 // flows
 //
 // The builder package offers client functionality for interacting with the
-// orchestrator, including step registration, flow execution, and async
-// step management
+// orchestrator, including step registration, flow execution, and async step
+// management
 package builder

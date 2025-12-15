@@ -60,8 +60,8 @@ var (
 	ErrInvalidTransition   = errors.New("invalid step status transition")
 )
 
-// New creates a new orchestrator instance with the specified stores,
-// client, event hub, and configuration
+// New creates a new orchestrator instance with the specified stores, client,
+// event hub, and configuration
 func New(
 	engine, flow *timebox.Store, client client.Client, hub timebox.EventHub,
 	cfg *config.Config,

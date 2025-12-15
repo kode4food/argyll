@@ -25,8 +25,8 @@ var (
 	ErrWebhookError       = errors.New("webhook returned error status")
 )
 
-// NewAsyncContext creates a new async context from a StepContext.
-// It extracts webhook_url from the StepContext metadata
+// NewAsyncContext creates a new async context from a StepContext. It extracts
+// webhook_url from the StepContext metadata
 func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 	if ctx.Metadata == nil {
 		return nil, ErrMetadataNotFound

@@ -134,8 +134,8 @@ func (e *Engine) GetAttribute(
 	return nil, false, nil
 }
 
-// GetFlowEvents retrieves all events for a flow starting from the
-// specified sequence number
+// GetFlowEvents retrieves all events for a flow starting from the specified
+// sequence number
 func (e *Engine) GetFlowEvents(
 	ctx context.Context, flowID api.FlowID, fromSeq int64,
 ) ([]*timebox.Event, error) {
@@ -252,8 +252,8 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 	return true
 }
 
-// IsFlowFailed determines if a flow has failed by checking whether any
-// of its goal steps cannot be completed
+// IsFlowFailed determines if a flow has failed by checking whether any of its
+// goal steps cannot be completed
 func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
 	for _, goalID := range flow.Plan.Goals {
 		if !e.canStepComplete(goalID, flow) {

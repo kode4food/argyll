@@ -43,8 +43,8 @@ const (
 	routeFlow  = "/engine/flow"
 )
 
-// NewClient creates a new orchestrator client with the specified base URL
-// and timeout
+// NewClient creates a new orchestrator client with the specified base URL and
+// timeout
 func NewClient(baseURL string, timeout time.Duration) *Client {
 	return &Client{
 		baseURL: baseURL,
