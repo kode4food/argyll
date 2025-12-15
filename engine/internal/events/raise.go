@@ -8,7 +8,7 @@ import (
 
 // Raise raises an event through the aggregator
 func Raise[T, E any](
-	ag *timebox.Aggregator[T], eventType api.EventType, event E,
+	ag *timebox.Aggregator[T], typ api.EventType, value E,
 ) error {
-	return ag.Raise(timebox.EventType(eventType), event)
+	return timebox.Raise(ag, timebox.EventType(typ), value)
 }
