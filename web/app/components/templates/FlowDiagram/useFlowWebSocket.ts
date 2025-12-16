@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
-import { useWebSocketContext } from "./useWebSocketContext";
-import { useFlowStore } from "../store/flowStore";
-import { FlowContext } from "../api";
+import { useWebSocketContext } from "@/app/hooks/useWebSocketContext";
+import { useFlowStore } from "@/app/store/flowStore";
+import { FlowContext } from "@/app/api";
 
 type FlowEvent = {
   type: string;

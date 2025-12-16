@@ -1,10 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { useFlowWebSocket } from "./useFlowWebSocket";
-import { useWebSocketContext } from "./useWebSocketContext";
-import { useFlowStore } from "../store/flowStore";
+import { useWebSocketContext } from "@/app/hooks/useWebSocketContext";
+import { useFlowStore } from "@/app/store/flowStore";
 
-jest.mock("./useWebSocketContext");
-jest.mock("../store/flowStore");
+jest.mock("@/app/hooks/useWebSocketContext");
+jest.mock("@/app/store/flowStore");
 
 const mockUseWebSocketContext = useWebSocketContext as jest.MockedFunction<
   typeof useWebSocketContext

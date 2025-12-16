@@ -1,9 +1,9 @@
 import { renderHook } from "@testing-library/react";
 import { useNodeCalculation } from "./useNodeCalculation";
-import type { Step } from "../api";
-import { AttributeRole, AttributeType } from "../api";
+import type { Step } from "@/app/api";
+import { AttributeRole, AttributeType } from "@/app/api";
 
-jest.mock("@/utils/nodePositioning", () => ({
+jest.mock("./nodePositioning", () => ({
   loadNodePositions: jest.fn(() => ({})),
 }));
 
@@ -234,8 +234,8 @@ describe("useNodeCalculation", () => {
       )
     );
 
-    const node = result.current[0] as any;
-    node.data.onStepClick("step1");
+    const node = result.current[0];
+    (node.data as any).onStepClick("step1");
 
     expect(onStepClick).toHaveBeenCalledWith("step1");
   });
@@ -245,8 +245,11 @@ describe("useNodeCalculation", () => {
 
     const { result } = renderHook(() => useNodeCalculation([step], []));
 
-    const node = result.current[0] as any;
-    expect(() => node.data.onStepClick?.("step1")).not.toThrow();
+    const node = result.current[0];
+    const onClick = (node.data as any).onStepClick as
+      | ((id: string, options?: { additive?: boolean }) => void)
+      | undefined;
+    expect(() => onClick?.("step1")).not.toThrow();
   });
 
   test("sets node type to stepNode", () => {

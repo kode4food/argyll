@@ -2,7 +2,7 @@ import React from "react";
 import StepDiagram from "./StepDiagram";
 import EmptyState from "../molecules/EmptyState";
 import styles from "./FlowDiagram.module.css";
-import { useFlowWebSocket } from "../../hooks/useFlowWebSocket";
+import { useFlowWebSocket } from "./FlowDiagram/useFlowWebSocket";
 import FlowStats from "../organisms/FlowStats";
 import { AlertCircle, Plus } from "lucide-react";
 import ErrorBoundary from "../organisms/ErrorBoundary";
@@ -14,6 +14,7 @@ import {
   StepEditorProvider,
   useStepEditorContext,
 } from "../../contexts/StepEditorContext";
+import { useStepEditorIntegration } from "./FlowDiagram/useStepEditorIntegration";
 
 const FlowDiagramContent: React.FC = () => {
   useFlowWebSocket();
@@ -33,9 +34,11 @@ const FlowDiagramContent: React.FC = () => {
   const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
   const { openEditor } = useStepEditorContext();
 
-  const handleStepCreated = async () => {
-    await loadSteps();
-  };
+  const { handleStepCreated } = useStepEditorIntegration(
+    (step) =>
+      openEditor({ step, diagramContainerRef, onUpdate: handleStepCreated }),
+    loadSteps
+  );
 
   if (selectedFlow && flowNotFound && !loading) {
     return (

@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useAutoLayout } from "./useAutoLayout";
 import { Node, Edge } from "@xyflow/react";
-import { ExecutionPlan, AttributeRole, AttributeType } from "../api";
+import { ExecutionPlan, AttributeRole, AttributeType } from "@/app/api";
 import { STEP_LAYOUT } from "@/constants/layout";
 
 // Mock dagre
@@ -405,7 +405,7 @@ describe("useAutoLayout", () => {
     const plan: ExecutionPlan = {
       steps: {},
       attributes: {
-        attr1: null as any,
+        attr1: null as unknown as ExecutionPlan["attributes"][string],
       },
       goals: [],
       required: [],

@@ -4,7 +4,7 @@ import {
   FlowCreationStateProvider,
   useFlowCreation,
 } from "./FlowCreationContext";
-import { Step } from "../api";
+import { ExecutionPlan, Step } from "../api";
 
 const mockRouter = {
   push: jest.fn(),
@@ -38,8 +38,9 @@ jest.mock("../store/flowStore", () => ({
 
 let goalIds: string[] = [];
 let showCreateForm = true;
+let previewPlan: ExecutionPlan | null = null;
 const uiState = {
-  previewPlan: null as any,
+  previewPlan,
   updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
   clearPreviewPlan: jest.fn(),
   toggleGoalStep: jest.fn(),
@@ -74,8 +75,10 @@ jest.mock("../api", () => ({
 
 const apiMock = require("../api").api;
 
+let flowCtx: ReturnType<typeof useFlowCreation> | null = null;
+
 const Consumer = () => {
-  (global as any).__flowCtx = useFlowCreation();
+  flowCtx = useFlowCreation();
   return null;
 };
 
@@ -89,14 +92,16 @@ const renderProvider = () =>
 describe("FlowCreationContext", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    uiState.previewPlan = null;
+    previewPlan = null;
+    uiState.previewPlan = previewPlan;
     goalIds = [];
     showCreateForm = true;
+    flowCtx = null;
   });
 
   it("handles step change and sets derived flow id", async () => {
     renderProvider();
-    const ctx = (global as any).__flowCtx;
+    const ctx = flowCtx!;
 
     await act(async () => {
       await ctx.handleStepChange(["goal"]);
@@ -105,12 +110,12 @@ describe("FlowCreationContext", () => {
     expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
     expect(uiState.updatePreviewPlan).toHaveBeenCalled();
     await act(async () => {});
-    expect((global as any).__flowCtx.newID).toMatch(/goal-step-/);
+    expect(flowCtx?.newID).toMatch(/goal-step-/);
   });
 
   it("handles empty step change and clears preview", async () => {
     renderProvider();
-    const ctx = (global as any).__flowCtx;
+    const ctx = flowCtx!;
 
     await act(async () => {
       await ctx.handleStepChange([]);
@@ -124,11 +129,11 @@ describe("FlowCreationContext", () => {
     goalIds = ["goal"];
     showCreateForm = false;
     renderProvider();
-    let ctx = (global as any).__flowCtx;
+    let ctx = flowCtx!;
     await act(async () => {
       ctx.setNewID("flow-1");
     });
-    ctx = (global as any).__flowCtx;
+    ctx = flowCtx!;
 
     await act(async () => {
       await ctx.handleCreateFlow();
@@ -145,11 +150,11 @@ describe("FlowCreationContext", () => {
     goalIds = ["goal"];
     showCreateForm = false;
     renderProvider();
-    let ctx = (global as any).__flowCtx;
+    let ctx = flowCtx!;
     await act(async () => {
       ctx.setNewID("flow-err");
     });
-    ctx = (global as any).__flowCtx;
+    ctx = flowCtx!;
 
     await act(async () => {
       await ctx.handleCreateFlow();

@@ -6,9 +6,9 @@ import {
   ExecutionResult,
   ExecutionPlan,
   AttributeRole,
-} from "../api";
+} from "@/app/api";
 import { STEP_LAYOUT } from "@/constants/layout";
-import { loadNodePositions } from "@/utils/nodePositioning";
+import { loadNodePositions } from "./nodePositioning";
 
 const calculateSectionHeight = (argCount: number): number => {
   if (argCount === 0) return 0;

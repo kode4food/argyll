@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Step, FlowContext, ExecutionPlan } from "../api";
+import { Step, FlowContext, ExecutionPlan } from "@/app/api";
 import { getStepsFromPlan } from "@/utils/planUtils";
 
 export interface StepVisibilityResult {

@@ -15,7 +15,7 @@ import {
   useRemoveFlow,
 } from "../store/flowStore";
 import { useUI } from "../contexts/UIContext";
-import { useThrottledValue } from "../hooks/useThrottledValue";
+import { useThrottledValue } from "./useThrottledValue";
 import { api } from "../api";
 import {
   parseState,

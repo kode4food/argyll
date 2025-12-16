@@ -1,6 +1,6 @@
 import { useCallback, useEffect } from "react";
-import { ExecutionPlan, FlowContext } from "../api";
-import { useUI } from "../contexts/UIContext";
+import { ExecutionPlan, FlowContext } from "@/app/api";
+import { useUI } from "@/app/contexts/UIContext";
 
 export interface UseExecutionPlanPreviewReturn {
   previewPlan: ExecutionPlan | null;

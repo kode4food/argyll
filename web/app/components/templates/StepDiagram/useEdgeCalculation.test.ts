@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useEdgeCalculation } from "./useEdgeCalculation";
-import type { Step } from "../api";
-import { AttributeRole, AttributeType } from "../api";
+import type { Step } from "@/app/api";
+import { AttributeRole, AttributeType } from "@/app/api";
 
 describe("useEdgeCalculation", () => {
   const createStep = (

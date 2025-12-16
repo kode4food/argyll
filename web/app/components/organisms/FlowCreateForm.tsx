@@ -1,6 +1,5 @@
 import React from "react";
 import { Play } from "lucide-react";
-import { AttributeRole } from "../../api";
 import Spinner from "../atoms/Spinner";
 import { useEscapeKey } from "../../hooks/useEscapeKey";
 import { useUI } from "../../contexts/UIContext";
@@ -8,6 +7,12 @@ import LazyCodeEditor from "../molecules/LazyCodeEditor";
 import StepTypeLabel from "../atoms/StepTypeLabel";
 import styles from "./FlowCreateForm.module.css";
 import { useFlowCreation } from "../../contexts/FlowCreationContext";
+import { useFlowFormScrollFade } from "../molecules/FlowCreateForm/useFlowFormScrollFade";
+import { useFlowFormStepFiltering } from "../molecules/FlowCreateForm/useFlowFormStepFiltering";
+import {
+  validateJsonString,
+  buildItemClassName,
+} from "../molecules/FlowCreateForm/flowFormUtils";
 
 const FlowCreateForm: React.FC = () => {
   const {
@@ -26,91 +31,23 @@ const FlowCreateForm: React.FC = () => {
   const { showCreateForm, setShowCreateForm, previewPlan, goalSteps } = useUI();
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
-  const [showTopFade, setShowTopFade] = React.useState(false);
-  const [showBottomFade, setShowBottomFade] = React.useState(false);
-  const sidebarListRef = React.useRef<HTMLDivElement>(null);
 
   useEscapeKey(showCreateForm, () => setShowCreateForm(false));
 
   React.useEffect(() => {
-    try {
-      JSON.parse(initialState);
-      setJsonError(null);
-    } catch (error: any) {
-      setJsonError(error.message);
-    }
+    setJsonError(validateJsonString(initialState));
   }, [initialState]);
 
   const sortedSteps = React.useMemo(() => sortSteps(steps), [steps, sortSteps]);
 
-  React.useEffect(() => {
-    if (!showCreateForm) return;
+  const { sidebarListRef, showTopFade, showBottomFade } =
+    useFlowFormScrollFade(showCreateForm);
 
-    const el = sidebarListRef.current;
-    if (!el) return;
-
-    const handleScroll = () => {
-      const { scrollTop, scrollHeight, clientHeight } = el;
-      const hasOverflow = scrollHeight > clientHeight;
-
-      if (!hasOverflow) {
-        setShowTopFade(false);
-        setShowBottomFade(false);
-        return;
-      }
-
-      const atTop = scrollTop <= 1;
-      const atBottom = scrollTop >= scrollHeight - clientHeight - 1;
-
-      setShowTopFade(!atTop);
-      setShowBottomFade(!atBottom);
-    };
-
-    handleScroll();
-
-    el.addEventListener("scroll", handleScroll, { passive: true });
-    window.addEventListener("resize", handleScroll);
-
-    return () => {
-      el.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-    };
-  }, [showCreateForm, sortedSteps]);
-
-  const included = React.useMemo(() => {
-    if (!previewPlan?.steps) return new Set<string>();
-    return new Set(Object.keys(previewPlan.steps));
-  }, [previewPlan?.steps]);
-
-  const parsedState = React.useMemo(() => {
-    try {
-      return JSON.parse(initialState);
-    } catch {
-      return {};
-    }
-  }, [initialState]);
-
-  const satisfied = React.useMemo(() => {
-    const satisfied = new Set<string>();
-    const availableAttrs = new Set(Object.keys(parsedState));
-
-    steps.forEach((step) => {
-      const outputKeys = Object.entries(step.attributes || {})
-        .filter(([_, spec]) => spec.role === AttributeRole.Output)
-        .map(([name]) => name);
-
-      if (outputKeys.length > 0) {
-        const allOutputsAvailable = outputKeys.every((outputName) =>
-          availableAttrs.has(outputName)
-        );
-        if (allOutputsAvailable) {
-          satisfied.add(step.id);
-        }
-      }
-    });
-
-    return satisfied;
-  }, [parsedState, steps]);
+  const { included, satisfied } = useFlowFormStepFiltering(
+    steps,
+    initialState,
+    previewPlan
+  );
 
   if (!showCreateForm) return null;
 
@@ -145,13 +82,13 @@ const FlowCreateForm: React.FC = () => {
                   : isSatisfiedByState
                     ? "Outputs satisfied by initial state"
                     : undefined;
-                const itemClassName = [
+                const itemClassName = buildItemClassName(
+                  isSelected,
+                  isDisabled,
                   styles.dropdownItem,
-                  isSelected && styles.dropdownItemSelected,
-                  isDisabled && styles.dropdownItemDisabled,
-                ]
-                  .filter(Boolean)
-                  .join(" ");
+                  styles.dropdownItemSelected,
+                  styles.dropdownItemDisabled
+                );
 
                 return (
                   <div

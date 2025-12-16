@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useStepVisibility } from "./useStepVisibility";
-import type { Step, FlowContext, ExecutionPlan } from "../api";
-import { AttributeRole, AttributeType } from "../api";
+import type { Step, FlowContext, ExecutionPlan } from "@/app/api";
+import { AttributeRole, AttributeType } from "@/app/api";
 
 describe("useStepVisibility", () => {
   const createStep = (id: string, outputs: string[]): Step => ({

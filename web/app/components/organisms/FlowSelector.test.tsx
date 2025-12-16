@@ -4,12 +4,27 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import FlowSelector from "./FlowSelector";
 import { useFlowCreation } from "../../contexts/FlowCreationContext";
 import { FlowSessionProvider } from "../../contexts/FlowSessionContext";
+import { FlowContext, Step } from "../../api";
+import { WebSocketEvent } from "../../hooks/useWebSocketContext";
+
+type UIStateMock = {
+  showCreateForm: boolean;
+  setShowCreateForm: jest.Mock;
+  previewPlan: unknown;
+  updatePreviewPlan: jest.Mock;
+  clearPreviewPlan: jest.Mock;
+  toggleGoalStep: jest.Mock;
+  goalSteps: string[];
+  setGoalSteps: jest.Mock;
+  disableEdit: boolean;
+  diagramContainerRef: { current: null };
+};
 
 const pushMock = jest.fn();
 const subscribeMock = jest.fn();
-let eventsMock: any[] = [];
+let eventsMock: WebSocketEvent[] = [];
 
-const uiState: any = {
+const uiState: UIStateMock = {
   showCreateForm: false,
   setShowCreateForm: jest.fn(),
   previewPlan: null,
@@ -31,7 +46,7 @@ jest.mock("next/navigation", () => ({
   usePathname: () => "/",
 }));
 
-jest.mock("../../hooks/useFlowFromUrl", () => ({
+jest.mock("./FlowSelector/useFlowFromUrl", () => ({
   useFlowFromUrl: jest.fn(),
 }));
 
@@ -65,8 +80,8 @@ jest.mock("../../contexts/FlowSessionContext", () => {
     selectFlow: jest.fn(),
     loadFlows: jest.fn(),
     loadSteps: jest.fn(),
-    steps: [] as any[],
-    flows: [] as any[],
+    steps: [] as Step[],
+    flows: [] as FlowContext[],
     updateFlowStatus: jest.fn(),
     flowData: null,
     loading: false,
@@ -97,9 +112,9 @@ jest.mock("../../contexts/FlowCreationContext", () => {
     setInitialState: jest.fn(),
     creating: false,
     handleCreateFlow: jest.fn(),
-    steps: [] as any[],
+    steps: [] as Step[],
     generateID: jest.fn(() => "generated-id"),
-    sortSteps: jest.fn((steps: any[]) => steps),
+    sortSteps: jest.fn((steps: Step[]) => steps),
   };
 
   return {
@@ -118,7 +133,7 @@ const {
   __flowCreationValue: flowCreationMock,
 } = require("../../contexts/FlowCreationContext");
 
-let capturedFormProps: any = null;
+let capturedFormProps: ReturnType<typeof useFlowCreation> | null = null;
 const MockFlowCreateForm = () => {
   capturedFormProps = useFlowCreation();
   return <div>FlowCreateForm</div>;
@@ -206,6 +221,7 @@ describe("FlowSelector", () => {
         timestamp: Date.now(),
         sequence: 1,
         id: ["flow", "wf-123"],
+        data: {},
       },
     ];
 
@@ -236,7 +252,7 @@ describe("FlowSelector", () => {
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
-      await capturedFormProps.handleStepChange(["goal"]);
+      await capturedFormProps!.handleStepChange(["goal"]);
     });
 
     expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
@@ -268,13 +284,13 @@ describe("FlowSelector", () => {
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
-      capturedFormProps.setNewID("new-flow");
+      capturedFormProps!.setNewID("new-flow");
     });
     await act(async () => {
-      await capturedFormProps.handleStepChange(["goal"]);
+      await capturedFormProps!.handleStepChange(["goal"]);
     });
     await act(async () => {
-      await capturedFormProps.handleCreateFlow();
+      await capturedFormProps!.handleCreateFlow();
     });
 
     expect(addFlow).toHaveBeenCalled();

@@ -1,6 +1,6 @@
 import { useParams, usePathname } from "next/navigation";
 import { useEffect } from "react";
-import { useSelectFlow } from "../store/flowStore";
+import { useSelectFlow } from "@/app/store/flowStore";
 
 export const useFlowFromUrl = () => {
   const params = useParams();

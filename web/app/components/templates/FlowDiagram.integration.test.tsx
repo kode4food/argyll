@@ -10,7 +10,7 @@ import FlowDiagram from "./FlowDiagram";
 import { UIProvider } from "../../contexts/UIContext";
 import { FlowSessionProvider } from "../../contexts/FlowSessionContext";
 
-jest.mock("../../hooks/useFlowWebSocket", () => ({
+jest.mock("./FlowDiagram/useFlowWebSocket", () => ({
   useFlowWebSocket: jest.fn(),
 }));
 

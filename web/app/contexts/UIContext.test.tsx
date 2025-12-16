@@ -1,7 +1,7 @@
 import React from "react";
 import { renderHook, act, waitFor } from "@testing-library/react";
 import { UIProvider, useUI } from "./UIContext";
-import { api } from "../api";
+import { api, ExecutionPlan } from "../api";
 
 jest.mock("../api", () => ({
   ...jest.requireActual("../api"),
@@ -153,8 +153,9 @@ describe("UIContext", () => {
 
   test("updatePreviewPlan ignores canceled errors", async () => {
     const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
-    const cancelError: any = new Error("Canceled");
-    cancelError.code = "ERR_CANCELED";
+    const cancelError = Object.assign(new Error("Canceled"), {
+      code: "ERR_CANCELED",
+    });
     mockApi.getExecutionPlan.mockRejectedValue(cancelError);
 
     const { result } = renderHook(() => useUI(), { wrapper });
@@ -169,12 +170,12 @@ describe("UIContext", () => {
   });
 
   test("updatePreviewPlan aborts previous request", async () => {
-    let resolveFirst: any;
-    const firstPromise = new Promise((resolve) => {
+    let resolveFirst: (value: ExecutionPlan) => void = () => {};
+    const firstPromise = new Promise<ExecutionPlan>((resolve) => {
       resolveFirst = resolve;
     });
 
-    mockApi.getExecutionPlan.mockImplementation(() => firstPromise as any);
+    mockApi.getExecutionPlan.mockImplementation(() => firstPromise);
 
     const { result } = renderHook(() => useUI(), { wrapper });
 
@@ -188,7 +189,7 @@ describe("UIContext", () => {
       attributes: {},
       goals: ["step-2"],
       required: [],
-    };
+    } as ExecutionPlan;
 
     // Start second request (should abort first)
     mockApi.getExecutionPlan.mockResolvedValue(mockPlan2);

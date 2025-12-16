@@ -21,12 +21,8 @@ jest.mock("@xyflow/react", () => ({
   }),
 }));
 
-jest.mock("@/utils/nodePositioning", () => ({
-  calculateNodePositions: jest.fn(() => ({
-    nodes: [],
-    edges: [],
-  })),
-  loadNodePositions: jest.fn(() => ({ nodes: [], edges: [] })),
+jest.mock("./StepDiagram/nodePositioning", () => ({
+  loadNodePositions: jest.fn(() => ({})),
   saveNodePositions: jest.fn(),
 }));
 
@@ -59,9 +55,7 @@ describe("StepDiagram", () => {
         }}
       >
         <StepDiagram
-          steps={[
-            { id: "s1", name: "Step 1", type: "sync", attributes: {} } as any,
-          ]}
+          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
           flowData={null}
           executions={[]}
           resolvedAttributes={[]}

@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import dagre from "@dagrejs/dagre";
 import { Node, Edge } from "@xyflow/react";
-import { ExecutionPlan, AttributeRole } from "../api";
+import { ExecutionPlan, AttributeRole } from "@/app/api";
 import { STEP_LAYOUT } from "@/constants/layout";
 
 interface LayoutConfig {
@@ -11,6 +11,16 @@ interface LayoutConfig {
   nodeSep?: number;
 }
 
+type StepAttributeSpec = {
+  role?: AttributeRole;
+};
+
+interface StepNodeData {
+  step?: {
+    attributes?: Record<string, StepAttributeSpec>;
+  };
+}
+
 const DEFAULT_CONFIG = {
   rankdir: "LR" as const,
   nodeWidth: 320,
@@ -18,20 +28,27 @@ const DEFAULT_CONFIG = {
   nodeSep: 15,
 };
 
+const getStepAttributes = (
+  node: Node
+): Record<string, StepAttributeSpec> | undefined => {
+  const data = node.data as StepNodeData | undefined;
+  return data?.step?.attributes;
+};
+
 const calculateNodeHeight = (node: Node): number => {
-  const step = node.data?.step as any;
-  if (!step?.attributes) {
+  const attributes = getStepAttributes(node);
+  if (!attributes) {
     return STEP_LAYOUT.WIDGET_BASE_HEIGHT;
   }
 
-  const requiredCount = Object.values(step.attributes).filter(
-    (spec: any) => spec.role === AttributeRole.Required
+  const requiredCount = Object.values(attributes).filter(
+    (spec) => spec?.role === AttributeRole.Required
   ).length;
-  const optionalCount = Object.values(step.attributes).filter(
-    (spec: any) => spec.role === AttributeRole.Optional
+  const optionalCount = Object.values(attributes).filter(
+    (spec) => spec?.role === AttributeRole.Optional
   ).length;
-  const outputCount = Object.values(step.attributes).filter(
-    (spec: any) => spec.role === AttributeRole.Output
+  const outputCount = Object.values(attributes).filter(
+    (spec) => spec?.role === AttributeRole.Output
   ).length;
 
   const calculateSectionHeight = (argCount: number): number => {

@@ -1,10 +1,10 @@
 import { renderHook } from "@testing-library/react";
 import { useFlowFromUrl } from "./useFlowFromUrl";
 import { useParams, usePathname } from "next/navigation";
-import { useSelectFlow } from "../store/flowStore";
+import { useSelectFlow } from "@/app/store/flowStore";
 
 jest.mock("next/navigation");
-jest.mock("../store/flowStore");
+jest.mock("@/app/store/flowStore");
 
 describe("useFlowFromUrl", () => {
   const mockUseParams = useParams as jest.MockedFunction<typeof useParams>;

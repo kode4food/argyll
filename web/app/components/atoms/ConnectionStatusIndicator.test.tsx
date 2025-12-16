@@ -89,7 +89,15 @@ describe("ConnectionStatusIndicator", () => {
   });
 
   test("handles unknown status as connected", () => {
-    render(<ConnectionStatusIndicator status={"unknown" as any} />);
+    render(
+      <ConnectionStatusIndicator
+        status={
+          "unknown" as unknown as Parameters<
+            typeof ConnectionStatusIndicator
+          >[0]["status"]
+        }
+      />
+    );
     expect(screen.getByText("Connected")).toBeInTheDocument();
   });
 });

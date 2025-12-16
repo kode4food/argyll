@@ -1,20 +1,20 @@
-import React, { useState, useRef, useEffect, lazy, Suspense } from "react";
+import React, { useState, lazy, Suspense } from "react";
 import { Activity, Play, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { FlowStatus } from "../../api";
-import { generateFlowId, sanitizeFlowID } from "@/utils/flowUtils";
+import { generateFlowId } from "@/utils/flowUtils";
+import { mapFlowStatusToProgressStatus } from "./FlowSelector/flowSelectorUtils";
+import { useFlowDropdownManagement } from "./FlowSelector/useFlowDropdownManagement";
+import { useFlowStatusUpdates } from "./FlowSelector/useFlowStatusUpdates";
 
 const FlowCreateForm = lazy(() => import("./FlowCreateForm"));
 const KeyboardShortcutsModal = lazy(
   () => import("../molecules/KeyboardShortcutsModal")
 );
 
-import { useEscapeKey } from "../../hooks/useEscapeKey";
-import { useFlowFromUrl } from "../../hooks/useFlowFromUrl";
+import { useFlowFromUrl } from "./FlowSelector/useFlowFromUrl";
 import { useUI } from "../../contexts/UIContext";
 import { getProgressIcon } from "@/utils/progressUtils";
-import { StepProgressStatus } from "../../hooks/useStepProgress";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
 import { useWebSocketContext } from "../../hooks/useWebSocketContext";
 import ErrorBoundary from "./ErrorBoundary";
@@ -26,25 +26,9 @@ import {
 import {
   FlowDropdownProvider,
   useFlowDropdownContext,
+  FlowDropdownContextValue,
 } from "../../contexts/FlowDropdownContext";
 import { useFlowSession } from "../../contexts/FlowSessionContext";
-
-const mapFlowStatusToProgressStatus = (
-  status: FlowStatus
-): StepProgressStatus => {
-  switch (status) {
-    case "pending":
-      return "pending";
-    case "active":
-      return "active";
-    case "completed":
-      return "completed";
-    case "failed":
-      return "failed";
-    default:
-      return "pending";
-  }
-};
 
 const FlowSelectorDropdown = () => {
   const {
@@ -74,7 +58,7 @@ const FlowSelectorDropdown = () => {
             {(() => {
               const flow = flows.find((w) => w.id === selectedFlow);
               const progressStatus = mapFlowStatusToProgressStatus(
-                flow?.status || "pending"
+                flow?.status ?? "pending"
               );
               const StatusIcon = getProgressIcon(progressStatus);
               return (
@@ -106,9 +90,7 @@ const FlowSelectorDropdown = () => {
             />
           </div>
           {filteredFlows.map((flow, index) => {
-            const progressStatus = mapFlowStatusToProgressStatus(
-              flow.status as FlowStatus
-            );
+            const progressStatus = mapFlowStatusToProgressStatus(flow.status);
             const StatusIcon = getProgressIcon(progressStatus);
             const isHighlighted = selectedIndex === index;
             const isSelected = selectedFlow === flow.id;
@@ -147,184 +129,6 @@ const FlowSelectorDropdown = () => {
   );
 };
 
-const useFlowDropdown = (
-  flows: ReturnType<typeof useFlowSession>["flows"],
-  selectedFlow: string | null,
-  router: ReturnType<typeof useRouter>
-) => {
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedIndex, setSelectedIndex] = useState(-1);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const filteredFlows = flows.filter((flow) =>
-    flow.id.includes(sanitizeFlowID(searchTerm))
-  );
-  const selectableItems = filteredFlows.map((w) => w.id);
-
-  const closeDropdown = () => {
-    setShowDropdown(false);
-    setSearchTerm("");
-    setSelectedIndex(-1);
-  };
-
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchTerm(e.target.value);
-    setSelectedIndex(-1);
-  };
-
-  const navigateToFlow = (flowId: string) => {
-    if (flowId === "Overview") {
-      router.push("/");
-    } else {
-      router.push(`/flow/${flowId}`);
-    }
-    setShowDropdown(false);
-    setSearchTerm("");
-    setSelectedIndex(-1);
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (!showDropdown) return;
-
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev < selectableItems.length - 1 ? prev + 1 : 0
-        );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex((prev) =>
-          prev > 0 ? prev - 1 : selectableItems.length - 1
-        );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-          navigateToFlow(selectableItems[selectedIndex]);
-        }
-        break;
-      case "Tab":
-        e.preventDefault();
-        if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
-          navigateToFlow(selectableItems[selectedIndex]);
-        } else {
-          setSelectedIndex(0);
-        }
-        break;
-    }
-  };
-
-  useEffect(() => {
-    if (selectedIndex >= 0 && dropdownRef.current) {
-      const selectedElement = dropdownRef.current.children[
-        selectedIndex + 1
-      ] as HTMLElement;
-      if (selectedElement) {
-        selectedElement.scrollIntoView({
-          behavior: "smooth",
-          block: "nearest",
-        });
-      }
-    }
-  }, [selectedIndex]);
-
-  useEscapeKey(showDropdown, closeDropdown);
-
-  return {
-    showDropdown,
-    setShowDropdown,
-    searchTerm,
-    selectedIndex,
-    searchInputRef,
-    dropdownRef,
-    filteredFlows,
-    handleSearchChange,
-    handleKeyDown,
-    selectFlow: navigateToFlow,
-    closeDropdown,
-    selectedFlow,
-    flows,
-  };
-};
-
-const useFlowEvents = ({
-  showDropdown,
-  selectedFlow,
-  subscribe,
-  events,
-  flows,
-  updateFlowStatus,
-  loadFlows,
-}: {
-  showDropdown: boolean;
-  selectedFlow: string | null;
-  subscribe: ReturnType<typeof useWebSocketContext>["subscribe"];
-  events: ReturnType<typeof useWebSocketContext>["events"];
-  flows: ReturnType<typeof useFlowSession>["flows"];
-  updateFlowStatus: ReturnType<typeof useFlowSession>["updateFlowStatus"];
-  loadFlows: ReturnType<typeof useFlowSession>["loadFlows"];
-}) => {
-  const processedEventsRef = useRef<Set<string>>(new Set());
-
-  useEffect(() => {
-    if (showDropdown || !selectedFlow) {
-      subscribe({
-        event_types: ["flow_started", "flow_completed", "flow_failed"],
-      });
-    } else {
-      subscribe({
-        event_types: [],
-      });
-    }
-  }, [showDropdown, selectedFlow, subscribe]);
-
-  useEffect(() => {
-    const latestEvent = events[events.length - 1];
-    if (!latestEvent) return;
-
-    const id = latestEvent.id;
-    if (!id || id.length < 2) {
-      return;
-    }
-
-    const eventKey = `${id.join(":")}:${latestEvent.sequence}`;
-
-    if (processedEventsRef.current.has(eventKey)) {
-      return;
-    }
-
-    processedEventsRef.current.add(eventKey);
-
-    const eventType = latestEvent.type;
-    const flowId = id[1];
-
-    if (eventType === "flow_started") {
-      const flowExists = flows.some((w) => w.id === flowId);
-      if (flowExists) {
-        updateFlowStatus(flowId, "active");
-      } else {
-        loadFlows();
-      }
-    } else if (eventType === "flow_completed") {
-      updateFlowStatus(
-        flowId,
-        "completed",
-        new Date(latestEvent.timestamp).toISOString()
-      );
-    } else if (eventType === "flow_failed") {
-      updateFlowStatus(
-        flowId,
-        "failed",
-        new Date(latestEvent.timestamp).toISOString()
-      );
-    }
-  }, [events, flows, updateFlowStatus, loadFlows]);
-};
-
 const FlowSelectorContent: React.FC = () => {
   const router = useRouter();
   useFlowFromUrl();
@@ -347,7 +151,7 @@ const FlowSelectorContent: React.FC = () => {
     closeDropdown,
     selectedFlow: dropdownSelectedFlow,
     flows: dropdownFlows,
-  } = useFlowDropdown(flows, selectedFlow, router);
+  } = useFlowDropdownManagement(flows, selectedFlow);
 
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
@@ -374,7 +178,7 @@ const FlowSelectorContent: React.FC = () => {
     !showCreateForm && !showShortcutsModal
   );
 
-  useFlowEvents({
+  useFlowStatusUpdates({
     showDropdown,
     selectedFlow,
     subscribe,
@@ -384,7 +188,7 @@ const FlowSelectorContent: React.FC = () => {
     loadFlows,
   });
 
-  const dropdownValue: Parameters<typeof FlowDropdownProvider>[0]["value"] = {
+  const dropdownValue: FlowDropdownContextValue = {
     showDropdown,
     setShowDropdown,
     searchTerm,

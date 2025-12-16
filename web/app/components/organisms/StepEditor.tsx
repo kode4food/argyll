@@ -1,13 +1,6 @@
 "use client";
 
-import React, {
-  useState,
-  useEffect,
-  useCallback,
-  useMemo,
-  createContext,
-  useContext,
-} from "react";
+import React, { useEffect, createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import {
   FileCode2,
@@ -18,39 +11,20 @@ import {
   Layers,
   Square,
 } from "lucide-react";
-import {
-  Step,
-  AttributeSpec,
-  AttributeType,
-  AttributeRole,
-  SCRIPT_LANGUAGE_LUA,
-  StepType,
-} from "@/app/api";
-import { ArgyllApi } from "@/app/api";
+import { Step, AttributeType, StepType } from "@/app/api";
 import ScriptConfigEditor from "../molecules/ScriptConfigEditor";
 import DurationInput from "../molecules/DurationInput";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
-import { getArgIcon } from "@/utils/argIcons";
-import { getSortedAttributes, validateDefaultValue } from "@/utils/stepUtils";
+import { useStepEditorForm } from "./StepEditor/useStepEditorForm";
+import { useModalDimensions } from "./StepEditor/useModalDimensions";
+import { Attribute, getAttributeIconProps } from "./StepEditor/stepEditorUtils";
 
 interface StepEditorProps {
   step: Step | null;
   onClose: () => void;
   onUpdate: (updatedStep: Step) => void;
   diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
-}
-
-type AttributeRoleType = "input" | "optional" | "output";
-
-interface Attribute {
-  id: string;
-  attrType: AttributeRoleType;
-  name: string;
-  dataType: AttributeType;
-  defaultValue?: string;
-  forEach?: boolean;
-  validationError?: string;
 }
 
 interface StepEditingContextValue {
@@ -65,7 +39,10 @@ interface StepEditingContextValue {
   addAttribute: () => void;
   updateAttribute: (id: string, field: keyof Attribute, value: any) => void;
   removeAttribute: (id: string) => void;
-  cycleAttributeType: (id: string, currentType: AttributeRoleType) => void;
+  cycleAttributeType: (
+    id: string,
+    currentType: "input" | "optional" | "output"
+  ) => void;
   endpoint: string;
   setEndpoint: (value: string) => void;
   healthCheck: string;
@@ -83,63 +60,6 @@ const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.Any,
 ];
 
-const buildAttributesFromStep = (step: Step | null): Attribute[] => {
-  if (!step) return [];
-
-  const timestamp = Date.now();
-
-  return getSortedAttributes(step.attributes || {}).map(
-    ({ name, spec }, index) => {
-      const attrType =
-        spec.role === AttributeRole.Required
-          ? "input"
-          : spec.role === AttributeRole.Optional
-            ? "optional"
-            : ("output" as AttributeRoleType);
-      const prefix = spec.role === AttributeRole.Output ? "output" : "input";
-
-      return {
-        id: `${prefix}-${index}-${timestamp}`,
-        attrType,
-        name,
-        dataType: spec.type || AttributeType.String,
-        defaultValue:
-          spec.role === AttributeRole.Optional && spec.default !== undefined
-            ? String(spec.default)
-            : undefined,
-        forEach: spec.for_each || false,
-      };
-    }
-  );
-};
-
-const validateAttributesList = (attributes: Attribute[]): string | null => {
-  const names = new Set<string>();
-  for (const attr of attributes) {
-    if (!attr.name.trim()) {
-      return "All attribute names are required";
-    }
-    if (names.has(attr.name)) {
-      return `Duplicate attribute name: ${attr.name}`;
-    }
-    names.add(attr.name);
-
-    if (attr.attrType === "optional" && attr.defaultValue) {
-      const validation = validateDefaultValue(attr.defaultValue, attr.dataType);
-      if (!validation.valid) {
-        return `Invalid default value for "${attr.name}": ${validation.error}`;
-      }
-    }
-  }
-  return null;
-};
-
-const getAttributeIcon = (attrType: AttributeRoleType) => {
-  const argType = attrType === "input" ? "required" : attrType;
-  const { Icon, className } = getArgIcon(argType);
-  return <Icon className={`${styles.iconMd} ${className}`} />;
-};
-
 const StepEditingContext = createContext<StepEditingContextValue | null>(null);
 
 const useStepEditingContext = (): StepEditingContextValue => {
@@ -150,134 +70,6 @@ const useStepEditingContext = (): StepEditingContextValue => {
     );
   }
   return ctx;
-};
-
-const createStepAttributes = (
-  attributes: Attribute[]
-): Record<string, AttributeSpec> => {
-  const stepAttributes: Record<string, AttributeSpec> = {};
-  attributes.forEach((a) => {
-    const role =
-      a.attrType === "input"
-        ? AttributeRole.Required
-        : a.attrType === "optional"
-          ? AttributeRole.Optional
-          : AttributeRole.Output;
-
-    const spec: AttributeSpec = {
-      role,
-      type: a.dataType,
-    };
-
-    if (a.attrType === "optional" && a.defaultValue?.trim()) {
-      spec.default = a.defaultValue.trim();
-    }
-
-    if (a.forEach) {
-      spec.for_each = true;
-    }
-
-    stepAttributes[a.name] = spec;
-  });
-  return stepAttributes;
-};
-
-const getValidationError = ({
-  isCreateMode,
-  stepId,
-  attributes,
-  stepType,
-  script,
-  endpoint,
-  httpTimeout,
-}: {
-  isCreateMode: boolean;
-  stepId: string;
-  attributes: Attribute[];
-  stepType: StepType;
-  script: string;
-  endpoint: string;
-  httpTimeout: number;
-}): string | null => {
-  if (isCreateMode && !stepId.trim()) {
-    return "Step ID is required";
-  }
-
-  const attrError = validateAttributesList(attributes);
-  if (attrError) {
-    return attrError;
-  }
-
-  if (stepType === "script") {
-    if (!script.trim()) {
-      return "Script code is required";
-    }
-  } else {
-    if (!endpoint.trim()) {
-      return "HTTP endpoint is required";
-    }
-    if (!httpTimeout || httpTimeout <= 0) {
-      return "Timeout must be a positive number";
-    }
-  }
-
-  return null;
-};
-
-const buildStepPayload = ({
-  stepId,
-  name,
-  stepType,
-  attributes,
-  predicate,
-  predicateLanguage,
-  script,
-  scriptLanguage,
-  endpoint,
-  healthCheck,
-  httpTimeout,
-}: {
-  stepId: string;
-  name: string;
-  stepType: StepType;
-  attributes: Record<string, AttributeSpec>;
-  predicate: string;
-  predicateLanguage: string;
-  script: string;
-  scriptLanguage: string;
-  endpoint: string;
-  healthCheck: string;
-  httpTimeout: number;
-}): Step => {
-  const stepData: Step = {
-    id: stepId.trim(),
-    name,
-    type: stepType,
-    attributes,
-    predicate: predicate.trim()
-      ? {
-          language: predicateLanguage,
-          script: predicate.trim(),
-        }
-      : undefined,
-  };
-
-  if (stepType === "script") {
-    stepData.script = {
-      language: scriptLanguage,
-      script: script.trim(),
-    };
-    stepData.http = undefined;
-  } else {
-    stepData.http = {
-      endpoint: endpoint.trim(),
-      health_check: healthCheck.trim() || undefined,
-      timeout: httpTimeout,
-    };
-    stepData.script = undefined;
-  }
-
-  return stepData;
 };
 
 const BasicFields: React.FC = () => {
@@ -415,7 +207,12 @@ const AttributesSection: React.FC = () => {
                 className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
                 title={`Click to cycle type (current: ${attr.attrType})`}
               >
-                {getAttributeIcon(attr.attrType)}
+                {(() => {
+                  const { Icon, className } = getAttributeIconProps(
+                    attr.attrType
+                  );
+                  return <Icon className={`${styles.iconMd} ${className}`} />;
+                })()}
               </button>
               <select
                 value={attr.dataType}
@@ -555,58 +352,25 @@ const StepEditor: React.FC<StepEditorProps> = ({
   onUpdate,
   diagramContainerRef,
 }) => {
-  const isCreateMode = step === null;
-  const [stepId, setStepId] = useState(step?.id || "");
-  const [name, setName] = useState(step?.name || "");
-  const [stepType, setStepType] = useState<StepType>(step?.type || "sync");
-  const [predicate, setPredicate] = useState(step?.predicate?.script || "");
-  const [predicateLanguage, setPredicateLanguage] = useState(
-    step?.predicate?.language || SCRIPT_LANGUAGE_LUA
-  );
+  const {
+    stepId,
+    stepType,
+    predicate,
+    setPredicate,
+    predicateLanguage,
+    setPredicateLanguage,
+    script,
+    setScript,
+    scriptLanguage,
+    setScriptLanguage,
+    saving,
+    error,
+    handleSave,
+    isCreateMode,
+    contextValue,
+  } = useStepEditorForm(step, onUpdate, onClose);
 
-  // HTTP config state
-  const [endpoint, setEndpoint] = useState(step?.http?.endpoint || "");
-  const [healthCheck, setHealthCheck] = useState(
-    step?.http?.health_check || ""
-  );
-  const [httpTimeout, setHttpTimeout] = useState(
-    step && step.type !== "script" && step.http?.timeout
-      ? step.http.timeout
-      : 5000
-  );
-
-  // Script config state
-  const [script, setScript] = useState(step?.script?.script || "");
-  const [scriptLanguage, setScriptLanguage] = useState(
-    step?.script?.language || SCRIPT_LANGUAGE_LUA
-  );
-
-  const [attributes, setAttributes] = useState<Attribute[]>(() =>
-    buildAttributesFromStep(step)
-  );
-
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  const getDimensions = useCallback(() => {
-    if (diagramContainerRef?.current) {
-      const rect = diagramContainerRef.current.getBoundingClientRect();
-      return {
-        width: Math.min(rect.width * 0.8, 1000),
-        minHeight: rect.height * 0.9,
-      };
-    }
-    return { width: 1000, minHeight: 800 };
-  }, [diagramContainerRef]);
-
-  const [dimensions, setDimensions] = useState(getDimensions);
-
-  useEffect(() => {
-    setMounted(true);
-    const dims = getDimensions();
-    setDimensions(dims);
-  }, [getDimensions]);
+  const { dimensions, mounted } = useModalDimensions(diagramContainerRef);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -619,166 +383,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
-  const handleSave = async () => {
-    const validationError = getValidationError({
-      isCreateMode,
-      stepId,
-      attributes,
-      stepType,
-      script,
-      endpoint,
-      httpTimeout,
-    });
-
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setSaving(true);
-    setError(null);
-
-    try {
-      const api = new ArgyllApi();
-
-      const stepAttributes = createStepAttributes(attributes);
-      const stepData = buildStepPayload({
-        stepId,
-        name,
-        stepType,
-        attributes: stepAttributes,
-        predicate,
-        predicateLanguage,
-        script,
-        scriptLanguage,
-        endpoint,
-        healthCheck,
-        httpTimeout,
-      });
-
-      let resultStep: Step;
-      if (isCreateMode) {
-        resultStep = await api.registerStep(stepData);
-      } else {
-        resultStep = await api.updateStep(stepId, stepData);
-      }
-
-      onUpdate(resultStep);
-      onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Failed to save");
-    } finally {
-      setSaving(false);
-    }
-  };
-
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
     }
   };
-
-  const addAttribute = useCallback(() => {
-    setAttributes((current) => [
-      ...current,
-      {
-        id: `attr-${Date.now()}`,
-        attrType: "input",
-        name: "",
-        dataType: AttributeType.String,
-      },
-    ]);
-  }, []);
-
-  const updateAttribute = useCallback(
-    (id: string, field: keyof Attribute, value: any) => {
-      setAttributes((current) =>
-        current.map((attr) => {
-          if (attr.id !== id) return attr;
-
-          const updated = { ...attr, [field]: value };
-
-          if (
-            (field === "defaultValue" || field === "dataType") &&
-            updated.attrType === "optional" &&
-            updated.defaultValue
-          ) {
-            const validation = validateDefaultValue(
-              updated.defaultValue,
-              updated.dataType
-            );
-            updated.validationError = validation.valid
-              ? undefined
-              : validation.error;
-          }
-
-          if (field === "attrType" && value !== "optional") {
-            updated.validationError = undefined;
-          }
-
-          return updated;
-        })
-      );
-    },
-    []
-  );
-
-  const removeAttribute = useCallback((id: string) => {
-    setAttributes((current) => current.filter((attr) => attr.id !== id));
-  }, []);
-
-  const cycleAttributeType = useCallback(
-    (id: string, currentType: AttributeRoleType) => {
-      const types: AttributeRoleType[] = ["input", "optional", "output"];
-      const currentIndex = types.indexOf(currentType);
-      const nextIndex = (currentIndex + 1) % types.length;
-      updateAttribute(id, "attrType", types[nextIndex]);
-    },
-    [updateAttribute]
-  );
-
-  const contextValue = useMemo(
-    () => ({
-      stepId,
-      name,
-      stepType,
-      isCreateMode,
-      setStepId,
-      setName,
-      setStepType,
-      attributes,
-      addAttribute,
-      updateAttribute,
-      removeAttribute,
-      cycleAttributeType,
-      endpoint,
-      setEndpoint,
-      healthCheck,
-      setHealthCheck,
-      httpTimeout,
-      setHttpTimeout,
-    }),
-    [
-      stepId,
-      name,
-      stepType,
-      isCreateMode,
-      setStepId,
-      setName,
-      setStepType,
-      attributes,
-      addAttribute,
-      updateAttribute,
-      removeAttribute,
-      cycleAttributeType,
-      endpoint,
-      setEndpoint,
-      healthCheck,
-      setHealthCheck,
-      httpTimeout,
-      setHttpTimeout,
-    ]
-  );
 
   if (!mounted) return null;
 

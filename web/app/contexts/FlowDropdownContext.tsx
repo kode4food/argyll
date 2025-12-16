@@ -1,20 +1,20 @@
 import React, { createContext, useContext } from "react";
-import { FlowStatus } from "../api";
+import { FlowContext } from "../api";
 
-interface FlowDropdownContextValue {
+export interface FlowDropdownContextValue {
   showDropdown: boolean;
-  setShowDropdown: (open: boolean) => void;
+  setShowDropdown: React.Dispatch<React.SetStateAction<boolean>>;
   searchTerm: string;
   selectedIndex: number;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
-  filteredFlows: { id: string; status: FlowStatus }[];
+  filteredFlows: FlowContext[];
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   selectFlow: (flowId: string) => void;
   closeDropdown: () => void;
   selectedFlow: string | null;
-  flows: { id: string; status: FlowStatus }[];
+  flows: FlowContext[];
 }
 
 const FlowDropdownContext = createContext<FlowDropdownContextValue | null>(

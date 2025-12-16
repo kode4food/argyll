@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Edge } from "@xyflow/react";
-import { Step, AttributeRole } from "../api";
+import { Step, AttributeRole } from "@/app/api";
 import { STEP_LAYOUT, EDGE_COLORS } from "@/constants/layout";
 
 export const useEdgeCalculation = (

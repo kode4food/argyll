@@ -38,6 +38,13 @@ const mergeResolvedAttributes = (
   return Array.from(resolved);
 };
 
+const isHttpStatus = (error: unknown, status: number): boolean => {
+  if (typeof error !== "object" || error === null) return false;
+  if (!("response" in error)) return false;
+  const response = (error as { response?: { status?: number } }).response;
+  return typeof response?.status === "number" && response.status === status;
+};
+
 interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
@@ -177,7 +184,7 @@ export const useFlowStore = create<FlowState>()(
             loading: false,
           });
         } catch (error) {
-          const isNotFound = (error as any)?.response?.status === 404;
+          const isNotFound = isHttpStatus(error, 404);
 
           if (!isNotFound) {
             console.error(`Failed to load flow data for ${flowId}:`, error);

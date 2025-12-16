@@ -10,7 +10,7 @@ import FlowSelector from "./FlowSelector";
 import { UIProvider } from "../../contexts/UIContext";
 import { FlowSessionProvider } from "../../contexts/FlowSessionContext";
 
-jest.mock("../../hooks/useFlowFromUrl", () => ({
+jest.mock("./FlowSelector/useFlowFromUrl", () => ({
   useFlowFromUrl: jest.fn(),
 }));
 

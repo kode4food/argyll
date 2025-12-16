@@ -1,9 +1,9 @@
 import { renderHook, act } from "@testing-library/react";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
-import { useUI } from "../contexts/UIContext";
-import type { FlowContext, ExecutionPlan } from "../api";
+import { useUI } from "@/app/contexts/UIContext";
+import type { FlowContext, ExecutionPlan, Step } from "@/app/api";
 
-jest.mock("../contexts/UIContext");
+jest.mock("@/app/contexts/UIContext");
 const mockUseUI = useUI as jest.MockedFunction<typeof useUI>;
 
 describe("useExecutionPlanPreview", () => {
@@ -115,7 +115,7 @@ describe("useExecutionPlanPreview", () => {
 
     mockUseUI.mockReturnValueOnce({
       previewPlan: {
-        steps: { "in-plan": {} as any },
+        steps: { "in-plan": {} as Step },
         goals: ["goal"],
         required: [],
         attributes: {},
@@ -148,7 +148,7 @@ describe("useExecutionPlanPreview", () => {
 
     mockUseUI.mockReturnValueOnce({
       previewPlan: {
-        steps: { "blocked-step": {} as any },
+        steps: { "blocked-step": {} as Step },
         goals: ["goal"],
         attributes: {},
         required: [],

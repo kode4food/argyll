@@ -4,7 +4,7 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import FlowDiagram from "./FlowDiagram";
 import { Step, FlowContext, ExecutionResult } from "../../api";
 
-jest.mock("../../hooks/useFlowWebSocket", () => ({
+jest.mock("./FlowDiagram/useFlowWebSocket", () => ({
   useFlowWebSocket: jest.fn(),
 }));
 
@@ -31,7 +31,7 @@ const sessionMock = {
   loadFlows: jest.fn(),
   loadSteps: jest.fn(),
   steps: [] as Step[],
-  flows: [] as any[],
+  flows: [] as FlowContext[],
   updateFlowStatus: jest.fn(),
   flowData: null as FlowContext | null,
   loading: false,
