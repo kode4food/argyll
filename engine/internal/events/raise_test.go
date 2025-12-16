@@ -12,7 +12,9 @@ import (
 func TestRaiseEnqueuesEvent(t *testing.T) {
 	ag := &timebox.Aggregator[int]{}
 
-	err := events.Raise(ag, api.EventTypeFlowStarted, api.FlowStartedEvent{FlowID: "flow-1"})
+	err := events.Raise(
+		ag, api.EventTypeFlowStarted, api.FlowStartedEvent{FlowID: "flow-1"},
+	)
 	if err != nil {
 		t.Fatalf("raise returned error: %v", err)
 	}
