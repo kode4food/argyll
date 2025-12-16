@@ -203,7 +203,7 @@ func TestFlowImmutability(t *testing.T) {
 	assert.NoError(t, err2)
 }
 
-func TestFlowImmutabilityInitState(t *testing.T) {
+func TestImmutabilityInitState(t *testing.T) {
 	initState1 := api.Args{"key": "value1"}
 	initState2 := api.Args{"key": "value2"}
 

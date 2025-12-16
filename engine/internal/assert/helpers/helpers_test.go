@@ -310,14 +310,14 @@ func TestLastMetadata(t *testing.T) {
 	assert.Equal(t, "3", last["attempt"])
 }
 
-func TestLastMetadataNoInvocations(t *testing.T) {
+func TestMetadataEmpty(t *testing.T) {
 	cl := helpers.NewMockClient()
 
 	last := cl.LastMetadata("never-invoked")
 	assert.Nil(t, last)
 }
 
-func TestWaitForFlowStatusCompleted(t *testing.T) {
+func TestWaitFlowCompleted(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -345,7 +345,7 @@ func TestWaitForFlowStatusCompleted(t *testing.T) {
 	assert.Equal(t, api.FlowCompleted, finalState.Status)
 }
 
-func TestWaitForFlowStatusFailed(t *testing.T) {
+func TestWaitFlowFailed(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -373,7 +373,7 @@ func TestWaitForFlowStatusFailed(t *testing.T) {
 	assert.Equal(t, api.FlowFailed, finalState.Status)
 }
 
-func TestWaitForStepStatusCompleted(t *testing.T) {
+func TestWaitStepCompleted(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -401,7 +401,7 @@ func TestWaitForStepStatusCompleted(t *testing.T) {
 	assert.Equal(t, api.StepCompleted, execState.Status)
 }
 
-func TestWaitForStepStatusFailed(t *testing.T) {
+func TestWaitStepFailed(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -429,7 +429,7 @@ func TestWaitForStepStatusFailed(t *testing.T) {
 	assert.Equal(t, api.StepFailed, execState.Status)
 }
 
-func TestWaitForStepStatusSkipped(t *testing.T) {
+func TestWaitStepSkipped(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 

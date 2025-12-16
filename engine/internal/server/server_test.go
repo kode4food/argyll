@@ -755,7 +755,7 @@ func TestHandleHealthByIDNotFound(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func TestCreateStepValidationError(t *testing.T) {
+func TestCreateValidationError(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -872,7 +872,7 @@ func TestListFlowsEmpty(t *testing.T) {
 	assert.Equal(t, 0, response.Count)
 }
 
-func TestUpdateStepValidationError(t *testing.T) {
+func TestUpdateValidationError(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -1306,6 +1306,206 @@ func (env *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
 		}
 		time.Sleep(50 * time.Millisecond)
 	}
+}
+
+func TestListStepsRunning(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step1 := helpers.NewSimpleStep("step-1")
+	step2 := helpers.NewSimpleStep("step-2")
+
+	err := env.Engine.RegisterStep(context.Background(), step1)
+	assert.NoError(t, err)
+	err = env.Engine.RegisterStep(context.Background(), step2)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/step", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response api.StepsListResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, response.Count)
+}
+
+func TestListMultipleFlows(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := helpers.NewSimpleStep("test-step")
+	err := env.Engine.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"test-step"},
+		Steps: api.Steps{"test-step": step},
+	}
+
+	err = env.Engine.StartFlow(
+		context.Background(), "flow-1", plan, api.Args{}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	err = env.Engine.StartFlow(
+		context.Background(), "flow-2", plan, api.Args{}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/flow", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response api.FlowsListResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Equal(t, 2, response.Count)
+}
+
+func TestEngineState(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := helpers.NewSimpleStep("test-step")
+	err := env.Engine.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var state api.EngineState
+	err = json.Unmarshal(w.Body.Bytes(), &state)
+	assert.NoError(t, err)
+	assert.Equal(t, 1, len(state.Steps))
+}
+
+func TestHealthList(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := helpers.NewSimpleStep("health-test-step")
+	err := env.Engine.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest("GET", "/engine/health", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var response api.HealthListResponse
+	err = json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, response.Count, 0)
+}
+
+func TestWebhookSuccess(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	step := &api.Step{
+		ID:   "webhook-step",
+		Name: "Webhook Step",
+		Type: api.StepTypeAsync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+		Attributes: api.AttributeSpecs{
+			"output": {Role: api.RoleOutput},
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	env.MockClient.SetResponse(step.ID, api.Args{})
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{step.ID},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err = env.Engine.StartFlow(
+		context.Background(), "webhook-flow", plan, api.Args{}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	fs := engine.FlowStep{FlowID: "webhook-flow", StepID: step.ID}
+	env.waitForWorkItem(fs)
+
+	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-flow")
+	assert.NoError(t, err)
+
+	exec := flow.Executions[step.ID]
+	assert.NotNil(t, exec)
+	assert.NotEmpty(t, exec.WorkItems)
+
+	var token api.Token
+	for t := range exec.WorkItems {
+		token = t
+		break
+	}
+
+	result := api.StepResult{
+		Success: true,
+		Outputs: api.Args{"output": "value"},
+	}
+
+	body, _ := json.Marshal(result)
+	req := httptest.NewRequest("POST",
+		"/webhook/webhook-flow/"+string(step.ID)+"/"+string(token),
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestWebSocketEndpoint(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/ws", nil)
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func testServer(t *testing.T) *testServerEnv {

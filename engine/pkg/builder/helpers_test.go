@@ -54,7 +54,7 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 	assert.Greater(t, attempts, 0)
 }
 
-func TestSetupEnvironmentVariables(t *testing.T) {
+func TestSetupEnvVars(t *testing.T) {
 	_ = os.Setenv("STEP_PORT", "9876")
 	_ = os.Setenv("ARGYLL_ENGINE_URL", "http://test-engine:8080")
 	_ = os.Setenv("STEP_HOSTNAME", "test-host")

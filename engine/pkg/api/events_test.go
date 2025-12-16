@@ -34,7 +34,7 @@ func TestEventJSONMarshaling(t *testing.T) {
 	assert.Equal(t, in.AggregateID, out.AggregateID)
 }
 
-func TestWebSocketEventMarshaling(t *testing.T) {
+func TestEventMarshaling(t *testing.T) {
 	data := json.RawMessage(`{"key": "value"}`)
 	in := &api.WebSocketEvent{
 		Type:        api.EventTypeStepCompleted,

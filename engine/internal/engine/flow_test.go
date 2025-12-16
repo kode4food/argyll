@@ -148,7 +148,7 @@ func TestGetAttributes(t *testing.T) {
 	assert.Equal(t, float64(42), attrs["key2"])
 }
 
-func TestDuplicateAttributeFirstWins(t *testing.T) {
+func TestDuplicateFirstWins(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 

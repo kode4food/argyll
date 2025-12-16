@@ -201,7 +201,7 @@ func TestNoAttributes(t *testing.T) {
 	assert.Empty(t, deps)
 }
 
-func TestAttributeGraphAddStep(t *testing.T) {
+func TestAddStep(t *testing.T) {
 	graph := api.AttributeGraph{}
 
 	stepA := &api.Step{
@@ -228,7 +228,7 @@ func TestAttributeGraphAddStep(t *testing.T) {
 	assert.Contains(t, graph["output"].Providers, api.StepID("step-a"))
 }
 
-func TestAttributeGraphAddStepToExisting(t *testing.T) {
+func TestAddStepExisting(t *testing.T) {
 	graph := api.AttributeGraph{
 		"data": &api.AttributeEdges{
 			Providers: []api.StepID{"step-a"},
@@ -252,7 +252,7 @@ func TestAttributeGraphAddStepToExisting(t *testing.T) {
 	assert.Contains(t, graph["data"].Consumers, api.StepID("step-b"))
 }
 
-func TestAttributeGraphRemoveStep(t *testing.T) {
+func TestRemoveStep(t *testing.T) {
 	graph := api.AttributeGraph{
 		"input": &api.AttributeEdges{
 			Providers: []api.StepID{},
@@ -287,7 +287,7 @@ func TestAttributeGraphRemoveStep(t *testing.T) {
 	assert.Contains(t, graph["output"].Consumers, api.StepID("step-c"))
 }
 
-func TestAttributeGraphRemoveStepDeletesEmptyEdges(t *testing.T) {
+func TestRemoveStepDeletesEdges(t *testing.T) {
 	graph := api.AttributeGraph{
 		"data": &api.AttributeEdges{
 			Providers: []api.StepID{"step-a"},
@@ -308,7 +308,7 @@ func TestAttributeGraphRemoveStepDeletesEmptyEdges(t *testing.T) {
 	assert.NotContains(t, graph, api.Name("data"))
 }
 
-func TestAttributeGraphRemoveStepNotInGraph(t *testing.T) {
+func TestRemoveStepNotFound(t *testing.T) {
 	graph := api.AttributeGraph{
 		"existing": &api.AttributeEdges{
 			Providers: []api.StepID{"step-a"},

@@ -87,7 +87,7 @@ func TestFailedProvider(t *testing.T) {
 	assert.False(t, e.HasInputProvider("input", flow))
 }
 
-func TestFlowFailureWhenGoalBlocked(t *testing.T) {
+func TestGoalBlocked(t *testing.T) {
 	e := &engine.Engine{}
 
 	flow := &api.FlowState{
@@ -131,7 +131,7 @@ func TestFlowFailureWhenGoalBlocked(t *testing.T) {
 	assert.True(t, e.IsFlowFailed(flow))
 }
 
-func TestFlowFailureWhenGoalCompleted(t *testing.T) {
+func TestGoalCompleted(t *testing.T) {
 	e := &engine.Engine{}
 
 	flow := &api.FlowState{

@@ -256,7 +256,7 @@ func TestCalculateNextRetry(t *testing.T) {
 	}
 }
 
-func TestCalculateNextRetryDefaultsToFixed(t *testing.T) {
+func TestRetryDefaults(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 

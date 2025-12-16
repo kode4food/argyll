@@ -49,7 +49,7 @@ func TestRegisterStepSuccess(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestRegisterStepStatusCreated(t *testing.T) {
+func TestRegisterCreated(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusCreated)
@@ -215,7 +215,7 @@ func TestFlowGetState(t *testing.T) {
 	assert.Equal(t, api.FlowActive, state.Status)
 }
 
-func TestFlowGetStateHTTP404(t *testing.T) {
+func TestGetState404(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusNotFound)
@@ -231,7 +231,7 @@ func TestFlowGetStateHTTP404(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFlowGetStateHTTP500(t *testing.T) {
+func TestGetState500(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)
@@ -247,7 +247,7 @@ func TestFlowGetStateHTTP500(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFlowGetStateMalformedJSON(t *testing.T) {
+func TestGetStateMalformed(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -263,7 +263,7 @@ func TestFlowGetStateMalformedJSON(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFlowGetStateContextCancelled(t *testing.T) {
+func TestGetStateCancelled(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			time.Sleep(200 * time.Millisecond)
@@ -283,7 +283,7 @@ func TestFlowGetStateContextCancelled(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestFlowGetStateNetworkError(t *testing.T) {
+func TestGetStateNetworkError(t *testing.T) {
 	client := builder.NewClient("http://localhost:1", 1*time.Millisecond)
 	wc := client.Flow("test-flow")
 

@@ -787,7 +787,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 	})
 }
 
-func TestStepResultWithOutputEdgeCases(t *testing.T) {
+func TestResultEdgeCases(t *testing.T) {
 	as := assert.New(t)
 
 	t.Run("multiple_sequential_outputs", func(t *testing.T) {

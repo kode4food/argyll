@@ -18,7 +18,7 @@ const (
 	StateFailed   TestState = "failed"
 )
 
-func TestStateTransitionsCanTransition(t *testing.T) {
+func TestCanTransition(t *testing.T) {
 	transitions := engine.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
 		StateRunning:  util.SetOf(StateComplete, StateFailed),
@@ -38,7 +38,7 @@ func TestStateTransitionsCanTransition(t *testing.T) {
 	assert.False(t, transitions.CanTransition("unknown", StateRunning))
 }
 
-func TestStateTransitionsIsTerminal(t *testing.T) {
+func TestIsTerminal(t *testing.T) {
 	transitions := engine.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
 		StateRunning:  util.SetOf(StateComplete, StateFailed),

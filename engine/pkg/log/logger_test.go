@@ -22,7 +22,7 @@ func TestNewUsesInfoLevel(t *testing.T) {
 	assert.True(t, logger.Handler().Enabled(ctx, slog.LevelInfo))
 }
 
-func TestNewWithLevelOutputsBaseAttrs(t *testing.T) {
+func TestLoggerOutputsAttrs(t *testing.T) {
 	output := captureStdout(t, func() {
 		logger := log.NewWithLevel("svc-name", "prod", "2.3.4", slog.LevelDebug)
 		logger.Info("hello", slog.Int("count", 1))

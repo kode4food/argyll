@@ -70,7 +70,7 @@ func startStepServer(
 	return fmt.Sprintf("http://%s:%s/%s", host, port, stepID)
 }
 
-func TestStepHandlerReturnsHTTPError(t *testing.T) {
+func TestHandlerHTTPError(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
@@ -106,7 +106,7 @@ func TestStepHandlerReturnsHTTPError(t *testing.T) {
 	assert.Equal(t, http.StatusTeapot, resp.StatusCode)
 }
 
-func TestStepHandlerRecoversFromPanic(t *testing.T) {
+func TestHandlerPanic(t *testing.T) {
 	engineServer := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {

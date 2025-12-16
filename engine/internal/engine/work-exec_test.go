@@ -15,7 +15,7 @@ import (
 
 const workExecTimeout = 5 * time.Second
 
-func TestCollectsOptionalDefaults(t *testing.T) {
+func TestOptionalDefaults(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
@@ -60,7 +60,7 @@ func TestCollectsOptionalDefaults(t *testing.T) {
 	assert.Equal(t, "fallback", exec.Inputs["optional"])
 }
 
-func TestWorkNotCompletedFailsImmediately(t *testing.T) {
+func TestIncompleteWorkFails(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
@@ -95,7 +95,7 @@ func TestWorkNotCompletedFailsImmediately(t *testing.T) {
 	}
 }
 
-func TestWorkFailureMarksStepFailed(t *testing.T) {
+func TestWorkFailure(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
@@ -130,7 +130,7 @@ func TestWorkFailureMarksStepFailed(t *testing.T) {
 	}
 }
 
-func TestHTTPMetadataIncludesFlowAndToken(t *testing.T) {
+func TestHTTPMetadata(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
@@ -164,7 +164,7 @@ func TestHTTPMetadataIncludesFlowAndToken(t *testing.T) {
 	}
 }
 
-func TestAsyncHTTPIncludesWebhookMetadata(t *testing.T) {
+func TestAsyncMetadata(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
@@ -245,7 +245,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 	assert.Equal(t, float64(6), exec.Outputs["result"])
 }
 
-func TestPredicateFailureMarksStepFailed(t *testing.T) {
+func TestPredicateFailure(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
