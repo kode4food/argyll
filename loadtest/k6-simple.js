@@ -1,6 +1,6 @@
-import http from "k6/http";
-import { sleep } from "k6";
-import { Counter } from "k6/metrics";
+import http from 'k6/http';
+import { sleep } from 'k6';
+import { Counter, Rate } from 'k6/metrics';
 
 // Custom metrics
 const flowsStarted = new Counter("flows_started");
@@ -56,7 +56,7 @@ export default function (data) {
     {
       headers: { "Content-Type": "application/json" },
       tags: { name: "StartFlow" },
-    }
+    },
   );
 
   if (startRes.status !== 201) {
