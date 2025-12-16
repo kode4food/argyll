@@ -64,7 +64,7 @@ describe("stateUtils", () => {
       expect(isDefaultValue("", AttributeType.String)).toBe(true);
     });
 
-    it("returns false for non-empty string with String type", () => {
+    it("non-empty string not default for String", () => {
       expect(isDefaultValue("hello", AttributeType.String)).toBe(false);
     });
 
@@ -72,7 +72,7 @@ describe("stateUtils", () => {
       expect(isDefaultValue({}, AttributeType.Object)).toBe(true);
     });
 
-    it("returns false for non-empty object with Object type", () => {
+    it("non-empty object not default for Object", () => {
       expect(isDefaultValue({ a: 1 }, AttributeType.Object)).toBe(false);
     });
 
@@ -80,7 +80,7 @@ describe("stateUtils", () => {
       expect(isDefaultValue([], AttributeType.Array)).toBe(true);
     });
 
-    it("returns false for non-empty array with Array type", () => {
+    it("non-empty array not default for Array", () => {
       expect(isDefaultValue([1, 2], AttributeType.Array)).toBe(false);
     });
 
@@ -88,15 +88,15 @@ describe("stateUtils", () => {
       expect(isDefaultValue(null, AttributeType.Null)).toBe(true);
     });
 
-    it("returns false for false with Number type (wrong type)", () => {
+    it("treats false as non-default for Number", () => {
       expect(isDefaultValue(false, AttributeType.Number)).toBe(false);
     });
 
-    it("returns false for 0 with Boolean type (wrong type)", () => {
+    it("treats 0 as non-default for Boolean", () => {
       expect(isDefaultValue(0, AttributeType.Boolean)).toBe(false);
     });
 
-    it("falls back to untyped check when type is undefined", () => {
+    it("uses untyped defaults when type missing", () => {
       expect(isDefaultValue("", undefined)).toBe(true);
       expect(isDefaultValue(false, undefined)).toBe(true);
       expect(isDefaultValue(0, undefined)).toBe(true);
@@ -154,7 +154,7 @@ describe("stateUtils", () => {
   });
 
   describe("filterDefaultValues", () => {
-    it("filters out default values without type info", () => {
+    it("filters defaults without type info", () => {
       const state = {
         empty: "",
         zero: 0,
@@ -176,7 +176,7 @@ describe("stateUtils", () => {
       });
     });
 
-    it("filters out type-specific defaults with step info", () => {
+    it("filters typed defaults using step info", () => {
       const state = {
         boolProp: false,
         numberProp: 0,

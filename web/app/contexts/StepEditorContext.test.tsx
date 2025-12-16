@@ -51,7 +51,7 @@ describe("StepEditorContext", () => {
     renderSpy.mockClear();
   });
 
-  it("opens, updates, and closes editor, exposing active step", () => {
+  it("opens and closes editor with active step", () => {
     render(
       <StepEditorProvider>
         <Consumer />

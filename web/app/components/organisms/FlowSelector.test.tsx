@@ -173,6 +173,8 @@ describe("FlowSelector", () => {
       uiState.setGoalSteps(ids);
       await uiState.updatePreviewPlan(ids, {});
     });
+    flowSessionMock.selectedFlow = null;
+    flowSessionMock.flows = [];
     Object.assign(uiState, {
       showCreateForm: false,
       previewPlan: null,
@@ -198,7 +200,27 @@ describe("FlowSelector", () => {
     ).toBeInTheDocument();
   });
 
-  it("pushes route when selecting a flow from dropdown", async () => {
+  it("shows back button when flow selected", async () => {
+    flowSessionMock.selectedFlow = "flow-1";
+    flowSessionMock.flows = [
+      {
+        id: "flow-1",
+        status: "completed",
+        state: {},
+        started_at: "2024-01-01T00:00:00Z",
+        completed_at: "2024-01-02T00:00:00Z",
+      },
+    ];
+
+    await renderSelector();
+
+    const backButton = screen.getByLabelText(/Back to Overview/i);
+    fireEvent.click(backButton);
+
+    expect(pushMock).toHaveBeenCalledWith("/");
+  });
+
+  it("navigates when selecting a flow", async () => {
     flowSessionMock.flows = [
       { id: "wf-1", status: "pending" },
       { id: "wf-2", status: "completed" },
@@ -212,7 +234,7 @@ describe("FlowSelector", () => {
     expect(pushMock).toHaveBeenCalledWith("/flow/wf-1");
   });
 
-  it("subscribes on mount and updates flow status from events", async () => {
+  it("subscribes and updates flow status", async () => {
     const updateFlowStatus = jest.fn();
     flowSessionMock.updateFlowStatus = updateFlowStatus;
     eventsMock = [
@@ -237,7 +259,7 @@ describe("FlowSelector", () => {
     );
   });
 
-  it("handles goal step change and updates preview plan", async () => {
+  it("updates preview when goal changes", async () => {
     const { api } = require("../../api");
     api.getExecutionPlan.mockResolvedValue({
       steps: { goal: {} },
@@ -262,7 +284,7 @@ describe("FlowSelector", () => {
     );
   });
 
-  it("handles create flow error and removes optimistic flow", async () => {
+  it("removes optimistic flow on create error", async () => {
     const { api } = require("../../api");
     api.getExecutionPlan.mockResolvedValue({
       steps: { goal: {} },

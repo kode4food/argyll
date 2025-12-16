@@ -41,7 +41,7 @@ describe("FlowPage integration", () => {
     jest.clearAllMocks();
   });
 
-  it("renders main content and triggers initial loads", async () => {
+  it("renders main content and loads data", async () => {
     render(<FlowPage />);
 
     expect(await waitFor(() => loadSteps)).toHaveBeenCalled();

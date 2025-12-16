@@ -24,7 +24,7 @@ const makeEvent = (
 });
 
 describe("useFlowStatusUpdates", () => {
-  it("subscribes based on dropdown visibility and selection", () => {
+  it("subscribes per dropdown state", () => {
     const subscribe = jest.fn();
     const props = {
       showDropdown: true,
@@ -56,7 +56,7 @@ describe("useFlowStatusUpdates", () => {
     expect(subscribe).toHaveBeenLastCalledWith({ event_types: [] });
   });
 
-  it("handles incoming flow events and deduplicates processing", () => {
+  it("processes flow events once", () => {
     const updateFlowStatus = jest.fn();
     const props = {
       showDropdown: false,
@@ -106,7 +106,7 @@ describe("useFlowStatusUpdates", () => {
     expect(updateFlowStatus).toHaveBeenCalledTimes(3);
   });
 
-  it("loads flows when a start event references an unknown flow", () => {
+  it("loads flows for unknown start event", () => {
     const updateFlowStatus = jest.fn();
     const loadFlows = jest.fn();
     const startEvent = makeEvent("flow_started", 1, 1_730_000_000_000, "new");

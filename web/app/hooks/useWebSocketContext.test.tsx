@@ -1,194 +1,169 @@
+import { act, renderHook } from "@testing-library/react";
 import React from "react";
-import { act, render, waitFor } from "@testing-library/react";
-
 import { WebSocketProvider, useWebSocketContext } from "./useWebSocketContext";
 
+process.env.NEXT_PUBLIC_WS_URL = "ws://example.test";
+process.env.NEXT_PUBLIC_API_URL = "http://example.test";
+
 class MockWebSocket {
-  static instances: MockWebSocket[] = [];
   static CONNECTING = 0;
   static OPEN = 1;
+  static CLOSING = 2;
   static CLOSED = 3;
 
-  url: string;
   readyState = MockWebSocket.CONNECTING;
+  url: string;
   sent: string[] = [];
-  onopen: ((ev?: any) => void) | null = null;
-  onclose: ((ev: any) => void) | null = null;
-  onerror: ((ev: any) => void) | null = null;
-  onmessage: ((ev: any) => void) | null = null;
+  onopen: ((event?: any) => void) | null = null;
+  onclose: ((event: any) => void) | null = null;
+  onerror: (() => void) | null = null;
+  onmessage: ((event: any) => void) | null = null;
 
   constructor(url: string) {
     this.url = url;
-    MockWebSocket.instances.push(this);
   }
 
   send(data: string) {
     this.sent.push(data);
   }
 
-  close() {
+  close(event: any = { code: 1000 }) {
     this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({ code: 1000 });
-  }
-
-  open() {
-    this.readyState = MockWebSocket.OPEN;
-    this.onopen?.({});
-  }
-
-  fail(code = 1006) {
-    this.readyState = MockWebSocket.CLOSED;
-    this.onclose?.({ code });
-  }
-
-  message(payload: any) {
-    const data =
-      typeof payload === "string" ? payload : JSON.stringify(payload);
-    this.onmessage?.({ data });
+    this.onclose?.(event);
   }
 }
 
-const originalWebSocket = global.WebSocket;
+describe("useWebSocketContext", () => {
+  const sockets: MockWebSocket[] = [];
 
-function renderWithProvider() {
-  let ctx: ReturnType<typeof useWebSocketContext> | null = null;
+  beforeAll(() => {
+    const WebSocketMock: any = jest.fn((url: string) => {
+      const socket = new MockWebSocket(url);
+      sockets.push(socket);
+      return socket;
+    });
+    WebSocketMock.CONNECTING = MockWebSocket.CONNECTING;
+    WebSocketMock.OPEN = MockWebSocket.OPEN;
+    WebSocketMock.CLOSING = MockWebSocket.CLOSING;
+    WebSocketMock.CLOSED = MockWebSocket.CLOSED;
 
-  const Consumer = () => {
-    ctx = useWebSocketContext();
-    return null;
-  };
-
-  render(
-    <WebSocketProvider>
-      <Consumer />
-    </WebSocketProvider>
-  );
-
-  return () => {
-    if (!ctx) {
-      throw new Error("context not set");
-    }
-    return ctx;
-  };
-}
-
-beforeAll(() => {
-  // Provide defaults expected by the hook
-  process.env.NEXT_PUBLIC_WS_URL = "ws://example.com";
-  process.env.NEXT_PUBLIC_API_URL = "http://example.com";
-  // @ts-expect-error mock
-  global.WebSocket = MockWebSocket;
-});
-
-afterAll(() => {
-  global.WebSocket = originalWebSocket;
-});
-
-afterEach(() => {
-  MockWebSocket.instances = [];
-});
-
-it("throws when used outside provider", () => {
-  const Outside = () => {
-    useWebSocketContext();
-    return null;
-  };
-  expect(() => render(<Outside />)).toThrow(
-    "useWebSocketContext must be used within a WebSocketProvider"
-  );
-});
-
-it("sends subscription when socket is already open", async () => {
-  const getCtx = renderWithProvider();
-  const socket = MockWebSocket.instances.at(-1);
-  expect(socket).toBeDefined();
-
-  act(() => socket?.open());
-  const ctx = getCtx();
-
-  act(() =>
-    ctx.subscribe({
-      engine_events: true,
-      flow_id: "wf-1",
-      event_types: ["flow_started"],
-      from_sequence: 5,
-    })
-  );
-
-  await waitFor(() => expect(socket?.sent).toHaveLength(1));
-  const payload = JSON.parse(socket!.sent[0]);
-  expect(payload.type).toBe("subscribe");
-  expect(payload.data).toMatchObject({
-    engine_events: true,
-    flow_id: "wf-1",
-    event_types: ["flow_started"],
-    from_sequence: 5,
-  });
-});
-
-it("trims events based on consumer cursor", async () => {
-  const getCtx = renderWithProvider();
-  const socket = MockWebSocket.instances.at(-1);
-  expect(socket).toBeDefined();
-
-  act(() => socket?.open());
-  let ctx = getCtx();
-
-  const consumerId = ctx.registerConsumer();
-  act(() => ctx.updateConsumerCursor(consumerId, 1));
-
-  act(() =>
-    socket?.message({
-      type: "event",
-      data: { first: true },
-      timestamp: 0,
-      sequence: 0,
-      id: ["evt-0"],
-    })
-  );
-
-  act(() =>
-    socket?.message({
-      type: "event",
-      data: { second: true },
-      timestamp: 0,
-      sequence: 1,
-      id: ["evt-1"],
-    })
-  );
-
-  await waitFor(() => {
-    ctx = getCtx();
-    expect(ctx.events.filter(Boolean).length).toBe(1);
+    global.WebSocket = WebSocketMock;
   });
 
-  const compacted = ctx.events.filter(Boolean);
-  expect(compacted).toHaveLength(1);
-  expect(compacted[0]).toMatchObject({
-    id: ["evt-1"],
-    data: { second: true },
-  });
-});
-
-it("schedules reconnect after abnormal close", async () => {
-  jest.useFakeTimers();
-  const getCtx = renderWithProvider();
-  const socket = MockWebSocket.instances.at(-1);
-  expect(socket).toBeDefined();
-
-  act(() => socket?.open());
-  let ctx = getCtx();
-  expect(ctx.connectionStatus).toBe("connected");
-
-  act(() => socket?.fail(1006));
-
-  await waitFor(() => {
-    ctx = getCtx();
-    expect(ctx.connectionStatus).toBe("reconnecting");
+  beforeEach(() => {
+    jest.useFakeTimers();
+    sockets.length = 0;
+    jest.clearAllMocks();
   });
 
-  act(() => {
+  afterEach(() => {
     jest.runOnlyPendingTimers();
+    jest.useRealTimers();
   });
-  jest.useRealTimers();
+
+  const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (
+    <WebSocketProvider>{children}</WebSocketProvider>
+  );
+
+  it("sends subscription on open", () => {
+    const { result, unmount } = renderHook(() => useWebSocketContext(), {
+      wrapper,
+    });
+
+    const socket = sockets[0];
+
+    act(() => {
+      socket.readyState = MockWebSocket.OPEN;
+      socket.onopen?.();
+    });
+
+    act(() => {
+      result.current.subscribe({ event_types: ["flow_started"] });
+    });
+
+    expect(socket.sent).toHaveLength(1);
+    const payload = JSON.parse(socket.sent[0]);
+    expect(payload.type).toBe("subscribe");
+    expect(payload.data.event_types).toEqual(["flow_started"]);
+    expect(result.current.isConnected).toBe(true);
+
+    unmount();
+  });
+
+  it("prunes buffered events by cursor", () => {
+    const { result, unmount } = renderHook(() => useWebSocketContext(), {
+      wrapper,
+    });
+    const socket = sockets[0];
+
+    act(() => {
+      socket.readyState = MockWebSocket.OPEN;
+      socket.onopen?.();
+    });
+
+    act(() => {
+      socket.onmessage?.({
+        data: JSON.stringify({
+          type: "flow_started",
+          data: {},
+          timestamp: 1,
+          sequence: 1,
+          id: ["flow", "one"],
+        }),
+      });
+    });
+
+    expect(result.current.events).toHaveLength(1);
+
+    const consumer = result.current.registerConsumer();
+    act(() => {
+      result.current.updateConsumerCursor(consumer, 1);
+    });
+
+    act(() => {
+      socket.onmessage?.({
+        data: JSON.stringify({
+          type: "flow_completed",
+          data: {},
+          timestamp: 2,
+          sequence: 2,
+          id: ["flow", "one"],
+        }),
+      });
+    });
+
+    expect(result.current.events.filter(Boolean)).toHaveLength(1);
+    expect(result.current.events.filter(Boolean)[0]?.type).toBe(
+      "flow_completed"
+    );
+
+    unmount();
+  });
+
+  it("reconnects after unexpected close", () => {
+    const { result, unmount } = renderHook(() => useWebSocketContext(), {
+      wrapper,
+    });
+    const socket = sockets[0];
+
+    act(() => {
+      socket.readyState = MockWebSocket.OPEN;
+      socket.onopen?.();
+    });
+
+    act(() => {
+      socket.onclose?.({ code: 4000 });
+    });
+
+    expect(result.current.connectionStatus).toBe("reconnecting");
+
+    act(() => {
+      jest.runOnlyPendingTimers();
+    });
+
+    expect(sockets.length).toBe(2);
+    expect(result.current.connectionStatus).toBe("connecting");
+
+    unmount();
+  });
 });

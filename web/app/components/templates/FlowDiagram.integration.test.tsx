@@ -67,7 +67,7 @@ describe("FlowDiagram integration", () => {
     jest.clearAllMocks();
   });
 
-  it("opens editor and triggers step reload on create", async () => {
+  it("opens editor and reloads steps on create", async () => {
     render(
       <UIProvider>
         <FlowSessionProvider>

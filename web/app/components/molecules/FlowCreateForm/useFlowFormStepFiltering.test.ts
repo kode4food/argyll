@@ -34,7 +34,7 @@ describe("useFlowFormStepFiltering", () => {
     attributes: {},
   };
 
-  it("builds included and satisfied sets from preview plan and state", () => {
+  it("builds included/satisfied sets from plan", () => {
     const initialState = '{"outputA":"value","outputB":"value","extra":"data"}';
     const { result } = renderHook(() =>
       useFlowFormStepFiltering(steps, initialState, previewPlan)
@@ -53,7 +53,7 @@ describe("useFlowFormStepFiltering", () => {
     expect(result.current.satisfied.has("step-3")).toBe(false);
   });
 
-  it("returns empty sets when preview plan is missing", () => {
+  it("returns empty sets without preview plan", () => {
     const { result } = renderHook(() =>
       useFlowFormStepFiltering(steps, "{}", null)
     );
@@ -62,7 +62,7 @@ describe("useFlowFormStepFiltering", () => {
     expect(result.current.satisfied.size).toBe(0);
   });
 
-  it("handles invalid initial state by falling back to empty object", () => {
+  it("falls back on invalid initial state", () => {
     const { result } = renderHook(() =>
       useFlowFormStepFiltering(steps, "{invalid", previewPlan)
     );

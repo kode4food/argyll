@@ -42,7 +42,7 @@ describe("FlowSessionContext", () => {
     jest.clearAllMocks();
   });
 
-  it("provides session values and triggers initial loads", async () => {
+  it("exposes session values and loads data", async () => {
     render(
       <FlowSessionProvider>
         <Consumer />
