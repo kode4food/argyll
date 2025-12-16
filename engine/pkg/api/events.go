@@ -1,8 +1,6 @@
 package api
 
-import (
-	"time"
-)
+import "time"
 
 type (
 	// StepRegisteredEvent is emitted when a step is registered with the engine

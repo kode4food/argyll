@@ -492,6 +492,21 @@ func TestEventually(t *testing.T) {
 	}
 }
 
+func TestEventuallyTimeout(t *testing.T) {
+	mockT := &testing.T{}
+	w := assert.New(mockT)
+
+	condition := func() bool {
+		return false
+	}
+
+	w.Eventually(condition, 200*time.Millisecond, "should timeout")
+
+	if !mockT.Failed() {
+		t.Error("Eventually should have failed")
+	}
+}
+
 func TestEventuallyWithError(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -531,5 +546,22 @@ func TestEventuallyWithError(t *testing.T) {
 				tt.condition, tt.timeout, "condition should succeed",
 			)
 		})
+	}
+}
+
+func TestEventuallyWithErrorTimeout(t *testing.T) {
+	mockT := &testing.T{}
+	w := assert.New(mockT)
+
+	condition := func() error {
+		return errors.New("persistent error")
+	}
+
+	w.EventuallyWithError(
+		condition, 200*time.Millisecond, "should timeout with error",
+	)
+
+	if !mockT.Failed() {
+		t.Error("EventuallyWithError should have failed when condition keeps returning error")
 	}
 }
