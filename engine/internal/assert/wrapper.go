@@ -61,17 +61,14 @@ func (w *Wrapper) StepValid(t *api.Step) {
 	}
 }
 
-// StepInvalid asserts that a step is invalid and returns the validation error
-func (w *Wrapper) StepInvalid(
-	t *api.Step, expectedErrorContains string,
-) error {
+// StepInvalid asserts that a step is invalid
+func (w *Wrapper) StepInvalid(t *api.Step, expectedErrorContains string) {
 	w.Helper()
 	err := t.Validate()
 	w.Error(err)
 	if err != nil && expectedErrorContains != "" {
 		w.Contains(err.Error(), expectedErrorContains)
 	}
-	return err
 }
 
 // FlowStatus asserts the status of a flow

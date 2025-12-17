@@ -197,8 +197,7 @@ func TestStepInvalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			err := w.StepInvalid(tt.step, tt.expectedErrorContain)
-			testify.NotNil(t, err)
+			w.StepInvalid(tt.step, tt.expectedErrorContain)
 		})
 	}
 }
