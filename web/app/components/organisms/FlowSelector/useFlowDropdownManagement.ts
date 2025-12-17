@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { FlowContext } from "@/app/api";
 import { filterFlowsBySearch } from "./flowSelectorUtils";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
@@ -9,7 +9,7 @@ export function useFlowDropdownManagement(
   flows: FlowContext[],
   selectedFlow: string | null
 ): FlowDropdownContextValue {
-  const router = useRouter();
+  const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -32,9 +32,9 @@ export function useFlowDropdownManagement(
 
   const navigateToFlow = (flowId: string) => {
     if (flowId === "Overview") {
-      router.push("/");
+      navigate("/");
     } else {
-      router.push(`/flow/${flowId}`);
+      navigate(`/flow/${flowId}`);
     }
     setShowDropdown(false);
     setSearchTerm("");

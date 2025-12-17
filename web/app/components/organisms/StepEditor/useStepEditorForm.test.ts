@@ -9,10 +9,10 @@ jest.mock("@/app/api", () => {
   const actual = jest.requireActual("@/app/api");
   return {
     ...actual,
-    ArgyllApi: jest.fn().mockImplementation(() => ({
-      registerStep,
-      updateStep,
-    })),
+    ArgyllApi: class MockArgyllApi {
+      registerStep = registerStep;
+      updateStep = updateStep;
+    },
   };
 });
 

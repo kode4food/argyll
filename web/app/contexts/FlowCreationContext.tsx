@@ -6,7 +6,7 @@ import React, {
   useCallback,
   useEffect,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigate } from "react-router-dom";
 import { Step } from "../api";
 import {
   useSteps,
@@ -69,7 +69,7 @@ export const FlowCreationStateProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const steps = useSteps();
   const loadFlows = useLoadFlows();
   const addFlow = useAddFlow();
@@ -210,8 +210,6 @@ export const FlowCreationStateProvider = ({
       return;
     }
 
-    router.prefetch("/flow/placeholder");
-
     if (goalSteps.length === 0) {
       initializedGoalsRef.current = false;
       return;
@@ -221,7 +219,7 @@ export const FlowCreationStateProvider = ({
       initializedGoalsRef.current = true;
       handleStepChange(goalSteps);
     }
-  }, [showCreateForm, router, goalSteps, handleStepChange]);
+  }, [showCreateForm, goalSteps, handleStepChange]);
 
   const handleCreateFlow = useCallback(async () => {
     if (!newID.trim() || goalSteps.length === 0) return;
@@ -243,7 +241,7 @@ export const FlowCreationStateProvider = ({
     });
 
     setCreating(true);
-    router.push(`/flow/${flowId}`);
+    navigate(`/flow/${flowId}`);
     setNewID("");
     setGoalSteps([]);
     setInitialState("{}");
@@ -263,7 +261,7 @@ export const FlowCreationStateProvider = ({
 
       removeFlow(flowId);
       toast.error("Failed to create flow: " + errorMessage);
-      router.push("/");
+      navigate("/");
     } finally {
       setCreating(false);
     }
@@ -271,7 +269,7 @@ export const FlowCreationStateProvider = ({
     newID,
     goalSteps,
     addFlow,
-    router,
+    navigate,
     setGoalSteps,
     loadFlows,
     removeFlow,

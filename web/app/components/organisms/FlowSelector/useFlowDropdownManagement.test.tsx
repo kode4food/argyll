@@ -1,13 +1,13 @@
 import { act, renderHook } from "@testing-library/react";
 import { FlowContext } from "@/app/api";
 import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
+import React from "react";
 
 const pushMock = jest.fn();
 
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: pushMock,
-  }),
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => pushMock,
 }));
 
 jest.mock("@/app/hooks/useEscapeKey", () => ({

@@ -1,14 +1,15 @@
-const nextJest = require("next/jest");
-
-const createJestConfig = nextJest({
-  dir: "./",
-});
-
-const customJestConfig = {
+module.exports = {
+  preset: "ts-jest",
+  testEnvironment: "jsdom",
+  globals: {
+    "ts-jest": {
+      isolatedModules: true,
+    },
+  },
   setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
-  testEnvironment: "jest-environment-jsdom",
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "\\.(css|less|scss|sass)$": "identity-obj-proxy",
   },
   testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"],
   collectCoverageFrom: [
@@ -16,9 +17,6 @@ const customJestConfig = {
     "utils/**/*.{js,jsx,ts,tsx}",
     "!app/**/*.d.ts",
     "!app/**/_*.{js,jsx,ts,tsx}",
-    "!**/.next/**",
     "!**/node_modules/**",
   ],
 };
-
-module.exports = createJestConfig(customJestConfig);

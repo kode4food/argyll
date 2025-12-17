@@ -1,7 +1,6 @@
 import React, { useState, lazy, Suspense } from "react";
 import { Activity, Play, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
-import Image from "next/image";
+import { useNavigate } from "react-router-dom";
 import { generateFlowId } from "@/utils/flowUtils";
 import { mapFlowStatusToProgressStatus } from "./FlowSelector/flowSelectorUtils";
 import { useFlowDropdownManagement } from "./FlowSelector/useFlowDropdownManagement";
@@ -130,7 +129,7 @@ const FlowSelectorDropdown = () => {
 };
 
 const FlowSelectorContent: React.FC = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   useFlowFromUrl();
   const { flows, selectedFlow, loadFlows, updateFlowStatus } = useFlowSession();
   const { subscribe, events } = useWebSocketContext();
@@ -216,7 +215,7 @@ const FlowSelectorContent: React.FC = () => {
               className={`${styles.title} ${styles.titleLink}`}
               aria-label="Argyll Web Site"
             >
-              <Image
+              <img
                 src="/argyll-logo.png"
                 alt="Argyll Logo"
                 className={styles.icon}
@@ -232,7 +231,7 @@ const FlowSelectorContent: React.FC = () => {
               <FlowSelectorDropdown />
               {selectedFlow ? (
                 <button
-                  onClick={() => router.push("/")}
+                  onClick={() => navigate("/")}
                   className={styles.navButton}
                   title="Back to Overview"
                   aria-label="Back to Overview"

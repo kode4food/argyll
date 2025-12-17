@@ -10,7 +10,7 @@
 
 # production
 /build
-/.next/
+/dist/
 /out/
 
 # misc

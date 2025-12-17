@@ -49,14 +49,13 @@ services:
     volumes:
       - ./web:/app
       - /app/node_modules # Don't mount node_modules
-      - /app/.next # Don't mount .next directory
+      - /app/dist # Don't mount dist directory
     ports:
       - "3001:3001"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
-      - NEXT_PUBLIC_WS_URL=ws://localhost:8080/engine/ws
+      - VITE_API_URL=http://localhost:8080
+      - VITE_WS_URL=ws://localhost:8080/engine/ws
       - CHOKIDAR_USEPOLLING=true # For better file watching in Docker
-      - WATCHPACK_POLLING=true # Next.js file watching in Docker
       - NODE_ENV=development
     depends_on:
       argyll-engine:

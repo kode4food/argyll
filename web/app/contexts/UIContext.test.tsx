@@ -22,7 +22,7 @@ describe("UIContext", () => {
   );
 
   test("throws error when used outside provider", () => {
-    const consoleSpy = jest.spyOn(console, "error").mockImplementation();
+    const consoleSpy = jest.spyOn(console, "error");
 
     expect(() => {
       renderHook(() => useUI());
@@ -116,7 +116,7 @@ describe("UIContext", () => {
   });
 
   test("updatePreviewPlan handles errors", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    const consoleErrorSpy = jest.spyOn(console, "error");
     mockApi.getExecutionPlan.mockRejectedValue(new Error("Network error"));
 
     const { result } = renderHook(() => useUI(), { wrapper });
@@ -135,7 +135,7 @@ describe("UIContext", () => {
   });
 
   test("updatePreviewPlan ignores abort errors", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    const consoleErrorSpy = jest.spyOn(console, "error");
     const abortError = new Error("Aborted");
     abortError.name = "AbortError";
     mockApi.getExecutionPlan.mockRejectedValue(abortError);
@@ -152,7 +152,7 @@ describe("UIContext", () => {
   });
 
   test("updatePreviewPlan ignores canceled errors", async () => {
-    const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+    const consoleErrorSpy = jest.spyOn(console, "error");
     const cancelError = Object.assign(new Error("Canceled"), {
       code: "ERR_CANCELED",
     });

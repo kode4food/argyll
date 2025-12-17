@@ -72,13 +72,9 @@ jest.mock("../../api", () => ({
   },
 }));
 
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: jest.fn(),
-    prefetch: jest.fn(),
-  }),
-  useParams: () => ({}),
-  usePathname: () => "/",
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => jest.fn(),
 }));
 
 jest.mock("./FlowCreateForm", () => ({

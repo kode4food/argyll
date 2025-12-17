@@ -37,13 +37,9 @@ const uiState: UIStateMock = {
   diagramContainerRef: { current: null },
 };
 
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    push: pushMock,
-    prefetch: jest.fn(),
-  }),
-  useParams: () => ({}),
-  usePathname: () => "/",
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => pushMock,
 }));
 
 jest.mock("./FlowSelector/useFlowFromUrl", () => ({

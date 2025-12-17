@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertTriangle } from "lucide-react";
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import styles from "./NotFoundPage.module.css";
 
 const NotFoundPage: React.FC = () => {
@@ -13,7 +13,7 @@ const NotFoundPage: React.FC = () => {
           The page you&apos;re looking for doesn&apos;t exist. Check the URL or
           return to the overview.
         </p>
-        <Link href="/" className={styles.button}>
+        <Link to="/" className={styles.button}>
           Back to Overview
         </Link>
       </div>

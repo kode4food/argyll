@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { hasScrollOverflow } from "./flowFormUtils";
 
 export function useFlowFormScrollFade(showForm: boolean): {

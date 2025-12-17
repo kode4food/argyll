@@ -1,10 +1,11 @@
-import { useParams, usePathname } from "next/navigation";
+import { useParams, useLocation } from "react-router-dom";
 import { useEffect } from "react";
 import { useSelectFlow } from "@/app/store/flowStore";
 
 export const useFlowFromUrl = () => {
   const params = useParams();
-  const pathname = usePathname();
+  const location = useLocation();
+  const pathname = location.pathname;
   const flowId = params?.flowId as string;
   const selectFlow = useSelectFlow();
 

@@ -2,9 +2,6 @@ import { act, renderHook } from "@testing-library/react";
 import React from "react";
 import { WebSocketProvider, useWebSocketContext } from "./useWebSocketContext";
 
-process.env.NEXT_PUBLIC_WS_URL = "ws://example.test";
-process.env.NEXT_PUBLIC_API_URL = "http://example.test";
-
 class MockWebSocket {
   static CONNECTING = 0;
   static OPEN = 1;

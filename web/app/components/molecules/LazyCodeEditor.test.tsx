@@ -7,9 +7,7 @@ jest.mock("@uiw/react-codemirror", () => ({
   default: jest.fn(() => <div data-testid="codemirror" />),
 }));
 
-const consoleErrorSpy = jest
-  .spyOn(console, "error")
-  .mockImplementation(() => {});
+const consoleErrorSpy = jest.spyOn(console, "error");
 
 describe("LazyCodeEditor", () => {
   afterAll(() => {

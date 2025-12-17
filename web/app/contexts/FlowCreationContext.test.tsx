@@ -6,13 +6,11 @@ import {
 } from "./FlowCreationContext";
 import { ExecutionPlan, Step } from "../api";
 
-const mockRouter = {
-  push: jest.fn(),
-  prefetch: jest.fn(),
-};
+const mockNavigate = jest.fn();
 
-jest.mock("next/navigation", () => ({
-  useRouter: () => mockRouter,
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
 }));
 
 const mockSteps: Step[] = [
@@ -141,7 +139,7 @@ describe("FlowCreationContext", () => {
 
     expect(addFlow).toHaveBeenCalled();
     expect(loadFlows).toHaveBeenCalled();
-    expect(mockRouter.push).toHaveBeenCalledWith("/flow/flow-1");
+    expect(mockNavigate).toHaveBeenCalledWith("/flow/flow-1");
     expect(uiState.setShowCreateForm).toHaveBeenCalledWith(false);
   });
 
@@ -161,6 +159,6 @@ describe("FlowCreationContext", () => {
     });
 
     expect(removeFlow).toHaveBeenCalledWith("flow-err");
-    expect(mockRouter.push).toHaveBeenCalledWith("/");
+    expect(mockNavigate).toHaveBeenCalledWith("/");
   });
 });
