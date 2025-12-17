@@ -172,9 +172,8 @@ func LoadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
 	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
 		s.Prefix = envPrefix
 	}
-	workerCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS")
-	if workerCount != "" {
-		if wc, err := strconv.Atoi(workerCount); err == nil && wc >= 0 {
+	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
+		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {
 			s.WorkerCount = wc
 		}
 	}

@@ -83,27 +83,30 @@ func TestDefaultConfigValues(t *testing.T) {
 
 func TestStoreLoadFromEnv(t *testing.T) {
 	tests := []struct {
-		envVars       map[string]string
-		name          string
-		envPrefix     string
-		checkAddr     string
-		checkPassword string
-		checkPrefix   string
-		checkDB       int
+		envVars          map[string]string
+		name             string
+		envPrefix        string
+		checkAddr        string
+		checkPassword    string
+		checkPrefix      string
+		checkDB          int
+		checkWorkerCount *int
 	}{
 		{
 			name:      "load_all_fields",
 			envPrefix: "TEST",
 			envVars: map[string]string{
-				"TEST_REDIS_ADDR":     "redis.example.com:6379",
-				"TEST_REDIS_PASSWORD": "secret123",
-				"TEST_REDIS_DB":       "5",
-				"TEST_REDIS_PREFIX":   "custom-prefix",
+				"TEST_REDIS_ADDR":       "redis.example.com:6379",
+				"TEST_REDIS_PASSWORD":   "secret123",
+				"TEST_REDIS_DB":         "5",
+				"TEST_REDIS_PREFIX":     "custom-prefix",
+				"TEST_SNAPSHOT_WORKERS": "6",
 			},
-			checkAddr:     "redis.example.com:6379",
-			checkPassword: "secret123",
-			checkDB:       5,
-			checkPrefix:   "custom-prefix",
+			checkAddr:        "redis.example.com:6379",
+			checkPassword:    "secret123",
+			checkDB:          5,
+			checkPrefix:      "custom-prefix",
+			checkWorkerCount: func() *int { v := 6; return &v }(),
 		},
 		{
 			name:      "load_addr_only",
@@ -117,12 +120,27 @@ func TestStoreLoadFromEnv(t *testing.T) {
 			checkPrefix:   "",
 		},
 		{
+			name:      "load_worker_zero",
+			envPrefix: "ZERO",
+			envVars: map[string]string{
+				"ZERO_SNAPSHOT_WORKERS": "0",
+			},
+			checkWorkerCount: func() *int { v := 0; return &v }(),
+		},
+		{
 			name:      "load_with_invalid_db",
 			envPrefix: "INVALID",
 			envVars: map[string]string{
 				"INVALID_REDIS_DB": "not_a_number",
 			},
 			checkDB: 0,
+		},
+		{
+			name:      "invalid_worker_ignored",
+			envPrefix: "BADWORKER",
+			envVars: map[string]string{
+				"BADWORKER_SNAPSHOT_WORKERS": "not_a_number",
+			},
 		},
 		{
 			name:      "no_env_vars",
@@ -155,6 +173,9 @@ func TestStoreLoadFromEnv(t *testing.T) {
 			}
 			if tt.checkPrefix != "" {
 				as.Equal(tt.checkPrefix, storeConfig.Prefix)
+			}
+			if tt.checkWorkerCount != nil {
+				as.Equal(*tt.checkWorkerCount, storeConfig.WorkerCount)
 			}
 		})
 	}
