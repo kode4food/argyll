@@ -42,9 +42,7 @@ func captureStdout(t *testing.T, fn func()) []byte {
 
 	old := os.Stdout
 	r, w, err := os.Pipe()
-	if err != nil {
-		t.Fatalf("pipe creation failed: %v", err)
-	}
+	assert.NoError(t, err)
 	os.Stdout = w
 
 	fn()
@@ -53,9 +51,8 @@ func captureStdout(t *testing.T, fn func()) []byte {
 	os.Stdout = old
 
 	var buf bytes.Buffer
-	if _, err := io.Copy(&buf, r); err != nil {
-		t.Fatalf("failed to read captured output: %v", err)
-	}
+	_, err = io.Copy(&buf, r)
+	assert.NoError(t, err)
 	_ = r.Close()
 	return bytes.TrimSpace(buf.Bytes())
 }

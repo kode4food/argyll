@@ -6,9 +6,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	testify "github.com/stretchr/testify/assert"
 
-	as "github.com/kode4food/argyll/engine/internal/assert"
+	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -25,7 +25,7 @@ func TestStartDuplicate(t *testing.T) {
 	step := helpers.NewSimpleStep("step-1")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-1"},
@@ -35,12 +35,12 @@ func TestStartDuplicate(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-dup", plan, api.Args{}, api.Metadata{},
 	)
-	assert.ErrorIs(t, err, engine.ErrFlowExists)
+	testify.ErrorIs(t, err, engine.ErrFlowExists)
 }
 
 func TestStartMissingInput(t *testing.T) {
@@ -66,7 +66,7 @@ func TestStartMissingInput(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.Error(t, err)
+	testify.Error(t, err)
 }
 
 func TestGetStateNotFound(t *testing.T) {
@@ -74,7 +74,7 @@ func TestGetStateNotFound(t *testing.T) {
 	defer env.Cleanup()
 
 	_, err := env.Engine.GetFlowState(context.Background(), "nonexistent")
-	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+	testify.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
 
 func TestSetAttribute(t *testing.T) {
@@ -88,7 +88,7 @@ func TestSetAttribute(t *testing.T) {
 	step := helpers.NewStepWithOutputs("output-step", "test_key")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Configure mock to return the output value
 	env.MockClient.SetResponse("output-step", api.Args{
@@ -101,12 +101,12 @@ func TestSetAttribute(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-attr", plan, api.Args{}, api.Metadata{})
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Wait for flow to complete
 	env.WaitForFlowStatus(t, ctx, "wf-attr", testTimeout)
 
-	a := as.New(t)
+	a := assert.New(t)
 	a.FlowStateEquals(ctx, env.Engine, "wf-attr", "test_key", "test_value")
 }
 
@@ -121,7 +121,7 @@ func TestGetAttributes(t *testing.T) {
 	step := helpers.NewStepWithOutputs("step-attrs", "key1", "key2")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Configure mock to return multiple output values
 	env.MockClient.SetResponse("step-attrs", api.Args{
@@ -137,15 +137,15 @@ func TestGetAttributes(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-getattrs", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Wait for flow to complete
 	flow := env.WaitForFlowStatus(t, ctx, "wf-getattrs", testTimeout)
 
 	attrs := flow.GetAttributes()
-	assert.Len(t, attrs, 2)
-	assert.Equal(t, "value1", attrs["key1"])
-	assert.Equal(t, float64(42), attrs["key2"])
+	testify.Len(t, attrs, 2)
+	testify.Equal(t, "value1", attrs["key1"])
+	testify.Equal(t, float64(42), attrs["key2"])
 }
 
 func TestDuplicateFirstWins(t *testing.T) {
@@ -160,9 +160,9 @@ func TestDuplicateFirstWins(t *testing.T) {
 	stepB := helpers.NewStepWithOutputs("step-b", "shared_key")
 
 	err := env.Engine.RegisterStep(ctx, stepA)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 	err = env.Engine.RegisterStep(ctx, stepB)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Configure mock responses - step-a runs first and sets "first"
 	env.MockClient.SetResponse("step-a", api.Args{"shared_key": "first"})
@@ -180,18 +180,18 @@ func TestDuplicateFirstWins(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-dup-attr", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Wait for flow to complete
 	flow := env.WaitForFlowStatus(t, ctx, "wf-dup-attr", testTimeout)
 
 	// First value wins - duplicates are silently ignored
 	attrs := flow.GetAttributes()
-	assert.Contains(t, []string{"first", "second"}, attrs["shared_key"])
+	testify.Contains(t, []string{"first", "second"}, attrs["shared_key"])
 }
 
 func TestCompleteFlow(t *testing.T) {
-	a := as.New(t)
+	a := assert.New(t)
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -201,7 +201,7 @@ func TestCompleteFlow(t *testing.T) {
 	step := helpers.NewStepWithOutputs("complete-step", "result")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Configure mock to return a result
 	env.MockClient.SetResponse("complete-step", api.Args{"result": "final"})
@@ -214,7 +214,7 @@ func TestCompleteFlow(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-complete", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Wait for flow to complete automatically
 	flow := env.WaitForFlowStatus(t, ctx, "wf-complete", testTimeout)
@@ -222,7 +222,7 @@ func TestCompleteFlow(t *testing.T) {
 }
 
 func TestFailFlow(t *testing.T) {
-	a := as.New(t)
+	a := assert.New(t)
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -232,7 +232,7 @@ func TestFailFlow(t *testing.T) {
 	step := helpers.NewSimpleStep("fail-step")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	env.MockClient.SetError("fail-step", errors.New("test error"))
 
@@ -242,12 +242,12 @@ func TestFailFlow(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-fail", plan, api.Args{}, api.Metadata{})
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Wait for flow to fail automatically
 	flow := env.WaitForFlowStatus(t, ctx, "wf-fail", testTimeout)
 	a.FlowStatus(flow, api.FlowFailed)
-	assert.Contains(t, flow.Error, "test error")
+	testify.Contains(t, flow.Error, "test error")
 }
 
 func TestSkipStep(t *testing.T) {
@@ -263,7 +263,7 @@ func TestSkipStep(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(ctx, step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"step-skip"},
@@ -271,13 +271,13 @@ func TestSkipStep(t *testing.T) {
 	}
 
 	err = env.Engine.StartFlow(ctx, "wf-skip", plan, api.Args{}, api.Metadata{})
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Wait for step to be skipped
 	exec := env.WaitForStepStatus(t, ctx, "wf-skip", "step-skip", testTimeout)
-	assert.NotNil(t, exec)
-	assert.Equal(t, api.StepSkipped, exec.Status)
-	assert.Equal(t, "predicate returned false", exec.Error)
+	testify.NotNil(t, exec)
+	testify.Equal(t, api.StepSkipped, exec.Status)
+	testify.Equal(t, "predicate returned false", exec.Error)
 }
 
 func TestStartFlowSimple(t *testing.T) {
@@ -299,7 +299,7 @@ func TestStartFlowSimple(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
@@ -318,12 +318,12 @@ func TestStartFlowSimple(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(context.Background(), "wf-simple")
-	assert.NoError(t, err)
-	assert.NotNil(t, flow)
-	assert.Equal(t, api.FlowID("wf-simple"), flow.ID)
+	testify.NoError(t, err)
+	testify.NotNil(t, flow)
+	testify.Equal(t, api.FlowID("wf-simple"), flow.ID)
 }
 
 func TestGetFlowEvents(t *testing.T) {
@@ -335,7 +335,7 @@ func TestGetFlowEvents(t *testing.T) {
 	step := helpers.NewSimpleStep("simple")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"simple"},
@@ -345,13 +345,13 @@ func TestGetFlowEvents(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-events", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	events, err := env.Engine.GetFlowEvents(
 		context.Background(), "wf-events", 0,
 	)
-	assert.NoError(t, err)
-	assert.NotEmpty(t, events)
+	testify.NoError(t, err)
+	testify.NotEmpty(t, events)
 }
 
 func TestListFlows(t *testing.T) {
@@ -363,7 +363,7 @@ func TestListFlows(t *testing.T) {
 	step := helpers.NewSimpleStep("test")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"test"},
@@ -373,11 +373,11 @@ func TestListFlows(t *testing.T) {
 	err = env.Engine.StartFlow(
 		context.Background(), "wf-list", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flows, err := env.Engine.ListFlows(context.Background())
-	assert.NoError(t, err)
-	assert.NotEmpty(t, flows)
+	testify.NoError(t, err)
+	testify.NotEmpty(t, flows)
 }
 
 func TestIsFlowFailed(t *testing.T) {
@@ -401,9 +401,9 @@ func TestIsFlowFailed(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 	err = env.Engine.RegisterStep(context.Background(), stepB)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -412,22 +412,22 @@ func TestIsFlowFailed(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	// Fail step-a directly via FailStepExecution (step will be started by flow)
 	fs := engine.FlowStep{FlowID: "wf-failed-test", StepID: "step-a"}
 	err = env.Engine.FailStepExecution(
 		context.Background(), fs, "test error",
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-failed-test",
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	isFailed := env.Engine.IsFlowFailed(flow)
-	assert.True(t, isFailed)
+	testify.True(t, isFailed)
 }
 
 func TestIsFlowNotFailed(t *testing.T) {
@@ -442,7 +442,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -451,15 +451,15 @@ func TestIsFlowNotFailed(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-ok-test",
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	isFailed := env.Engine.IsFlowFailed(flow)
-	assert.False(t, isFailed)
+	testify.False(t, isFailed)
 }
 
 func TestHasInputProvider(t *testing.T) {
@@ -489,9 +489,9 @@ func TestHasInputProvider(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 	err = env.Engine.RegisterStep(context.Background(), stepB)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -500,15 +500,15 @@ func TestHasInputProvider(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-provider-test",
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	hasProvider := env.Engine.HasInputProvider("value", flow)
-	assert.True(t, hasProvider)
+	testify.True(t, hasProvider)
 }
 
 func TestHasInputProviderNone(t *testing.T) {
@@ -528,7 +528,7 @@ func TestHasInputProviderNone(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -537,15 +537,15 @@ func TestHasInputProviderNone(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "wf-no-provider-test",
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	hasProvider := env.Engine.HasInputProvider("missing", flow)
-	assert.False(t, hasProvider)
+	testify.False(t, hasProvider)
 }
 
 func TestStepProvidesInput(t *testing.T) {
@@ -562,7 +562,7 @@ func TestStepProvidesInput(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), stepA)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	err = env.Engine.StartFlow(
 		context.Background(),
@@ -571,9 +571,9 @@ func TestStepProvidesInput(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	outputArgs := stepA.GetOutputArgs()
-	assert.Contains(t, outputArgs, api.Name("result"))
-	assert.NotContains(t, outputArgs, api.Name("other"))
+	testify.Contains(t, outputArgs, api.Name("result"))
+	testify.NotContains(t, outputArgs, api.Name("other"))
 }

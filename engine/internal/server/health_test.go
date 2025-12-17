@@ -175,7 +175,7 @@ func TestWithRealHealthCheck(t *testing.T) {
 	engineState, err := eng.GetEngineState(context.Background())
 	assert.NoError(t, err)
 	health, ok := engineState.Health["real-health-step"]
-	assert.True(t, ok, "expected step health to exist")
+	assert.True(t, ok)
 	assert.NotNil(t, health)
 }
 
@@ -233,6 +233,67 @@ func TestRecentSuccess(t *testing.T) {
 	engineState, err := eng.GetEngineState(context.Background())
 	assert.NoError(t, err)
 	health, ok := engineState.Health["recent-success-step"]
-	assert.True(t, ok, "expected step health to exist")
+	assert.True(t, ok)
 	assert.NotNil(t, health)
+}
+
+func TestHealthCheckMarksUnhealthy(t *testing.T) {
+	healthServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}),
+	)
+	defer healthServer.Close()
+
+	redis, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redis.Close()
+
+	cfg := config.NewDefaultConfig()
+	cfg.EngineStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
+
+	tb, err := timebox.NewTimebox(timebox.Config{
+		MaxRetries: timebox.DefaultMaxRetries,
+		CacheSize:  100,
+	})
+	assert.NoError(t, err)
+	defer func() { _ = tb.Close() }()
+
+	engineStore, err := tb.NewStore(cfg.EngineStore)
+	assert.NoError(t, err)
+
+	flowStore, err := tb.NewStore(cfg.FlowStore)
+	assert.NoError(t, err)
+
+	mockClient := helpers.NewMockClient()
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
+
+	step := &api.Step{
+		ID:   "unhealthy-step",
+		Name: "Unhealthy Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint:    healthServer.URL + "/execute",
+			HealthCheck: healthServer.URL + "/health",
+		},
+	}
+
+	err = eng.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	checker := server.NewHealthChecker(eng, tb.GetHub())
+	checker.Start()
+	defer checker.Stop()
+
+	for range 20 {
+		time.Sleep(50 * time.Millisecond)
+		state, err := eng.GetEngineState(context.Background())
+		assert.NoError(t, err)
+		health, ok := state.Health["unhealthy-step"]
+		if ok && health.Status == api.HealthUnhealthy {
+			return
+		}
+	}
+	t.Fail()
 }

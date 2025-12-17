@@ -93,9 +93,7 @@ func TestHandleWebSocket(t *testing.T) {
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	_, _, err := env.Conn.ReadMessage()
-	if err == nil {
-		t.Fatal("Expected timeout reading message")
-	}
+	assert.Error(t, err)
 }
 
 func TestClientReceivesEvent(t *testing.T) {
@@ -150,9 +148,7 @@ func TestMessageInvalid(t *testing.T) {
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
-	if err == nil {
-		t.Fatal("Should not receive event with invalid subscription")
-	}
+	assert.Error(t, err)
 }
 
 func TestMessageNonSubscribe(t *testing.T) {
@@ -181,9 +177,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
-	if err == nil {
-		t.Fatal("Should not receive event without valid subscription")
-	}
+	assert.Error(t, err)
 }
 
 func TestReplayWithEvents(t *testing.T) {
@@ -253,9 +247,7 @@ func TestReplayWithError(t *testing.T) {
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
-	if err == nil {
-		t.Fatal("Should not receive events when replay fails")
-	}
+	assert.Error(t, err)
 }
 
 func TestReplayWithoutFlowID(t *testing.T) {

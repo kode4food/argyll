@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
+	testify "github.com/stretchr/testify/assert"
 
-	as "github.com/kode4food/argyll/engine/internal/assert"
+	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -21,7 +21,7 @@ func TestGetActiveFlow(t *testing.T) {
 	step := helpers.NewSimpleStep("active-test")
 
 	err := env.Engine.RegisterStep(ctx, step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"active-test"},
@@ -31,13 +31,13 @@ func TestGetActiveFlow(t *testing.T) {
 	err = env.Engine.StartFlow(
 		ctx, "wf-active-test", plan, api.Args{}, api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	flow, err := env.Engine.GetFlowState(ctx, "wf-active-test")
-	assert.NoError(t, err)
-	assert.NotNil(t, flow)
-	assert.Equal(t, api.FlowID("wf-active-test"), flow.ID)
-	assert.Equal(t, api.FlowActive, flow.Status)
+	testify.NoError(t, err)
+	testify.NotNil(t, flow)
+	testify.Equal(t, api.FlowID("wf-active-test"), flow.ID)
+	testify.Equal(t, api.FlowActive, flow.Status)
 }
 
 func TestGetFlowNotFound(t *testing.T) {
@@ -46,7 +46,7 @@ func TestGetFlowNotFound(t *testing.T) {
 
 	ctx := context.Background()
 	_, err := env.Engine.GetFlowState(ctx, "nonexistent")
-	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+	testify.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
 
 func TestScript(t *testing.T) {
@@ -70,7 +70,7 @@ func TestScript(t *testing.T) {
 	}
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"script-step"},
@@ -84,9 +84,9 @@ func TestScript(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
-	a := as.New(t)
+	a := assert.New(t)
 	fs := engine.FlowStep{FlowID: "wf-script", StepID: "script-step"}
 	a.EventuallyWithError(func() error {
 		_, err := env.Engine.GetCompiledScript(fs)
@@ -94,8 +94,8 @@ func TestScript(t *testing.T) {
 	}, 500*time.Millisecond, "script should compile")
 
 	comp, err := env.Engine.GetCompiledScript(fs)
-	assert.NoError(t, err)
-	assert.NotNil(t, comp)
+	testify.NoError(t, err)
+	testify.NotNil(t, comp)
 }
 
 func TestScriptMissing(t *testing.T) {
@@ -105,7 +105,7 @@ func TestScriptMissing(t *testing.T) {
 	step := helpers.NewSimpleStep("no-script")
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"no-script"},
@@ -119,12 +119,12 @@ func TestScriptMissing(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
 	comp, err := env.Engine.GetCompiledScript(fs)
-	assert.NoError(t, err)
-	assert.Nil(t, comp)
+	testify.NoError(t, err)
+	testify.Nil(t, comp)
 }
 
 func TestPredicate(t *testing.T) {
@@ -139,7 +139,7 @@ func TestPredicate(t *testing.T) {
 	)
 
 	err := env.Engine.RegisterStep(context.Background(), step)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
 	plan := &api.ExecutionPlan{
 		Goals: []api.StepID{"predicate-step"},
@@ -153,9 +153,9 @@ func TestPredicate(t *testing.T) {
 		api.Args{},
 		api.Metadata{},
 	)
-	assert.NoError(t, err)
+	testify.NoError(t, err)
 
-	a := as.New(t)
+	a := assert.New(t)
 	fs := engine.FlowStep{FlowID: "wf-predicate", StepID: "predicate-step"}
 	a.EventuallyWithError(func() error {
 		_, err := env.Engine.GetCompiledPredicate(fs)
@@ -163,8 +163,8 @@ func TestPredicate(t *testing.T) {
 	}, 500*time.Millisecond, "predicate should compile")
 
 	comp, err := env.Engine.GetCompiledPredicate(fs)
-	assert.NoError(t, err)
-	assert.NotNil(t, comp)
+	testify.NoError(t, err)
+	testify.NotNil(t, comp)
 }
 
 func TestPlanFlowNotFound(t *testing.T) {
@@ -173,5 +173,5 @@ func TestPlanFlowNotFound(t *testing.T) {
 
 	fs := engine.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
 	_, err := env.Engine.GetCompiledScript(fs)
-	assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+	testify.ErrorIs(t, err, engine.ErrFlowNotFound)
 }

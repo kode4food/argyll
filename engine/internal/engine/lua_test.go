@@ -286,7 +286,7 @@ func TestLuaArrayTableConversion(t *testing.T) {
 	assert.NoError(t, err)
 
 	numbers, ok := result["numbers"].([]any)
-	assert.True(t, ok, "numbers should be an array")
+	assert.True(t, ok)
 	assert.Equal(t, 5, len(numbers))
 	assert.Equal(t, 1, numbers[0])
 	assert.Equal(t, 5, numbers[4])

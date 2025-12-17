@@ -6,6 +6,8 @@ import (
 	"testing"
 	"time"
 
+	testify "github.com/stretchr/testify/assert"
+
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -33,15 +35,9 @@ func (g *mockGetter) GetAttribute(
 func TestNew(t *testing.T) {
 	wrapper := assert.New(t)
 
-	if wrapper.T != t {
-		t.Error("Wrapper.T should be set to the testing.T instance")
-	}
-	if wrapper.Assertions == nil {
-		t.Error("Wrapper.Assertions should be initialized")
-	}
-	if wrapper.Require == nil {
-		t.Error("Wrapper.Require should be initialized")
-	}
+	testify.Equal(t, t, wrapper.T)
+	testify.NotNil(t, wrapper.Assertions)
+	testify.NotNil(t, wrapper.Require)
 }
 
 func TestStepValid(t *testing.T) {
@@ -201,7 +197,8 @@ func TestStepInvalid(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			w.StepInvalid(tt.step, tt.expectedErrorContain)
+			err := w.StepInvalid(tt.step, tt.expectedErrorContain)
+			testify.NotNil(t, err)
 		})
 	}
 }
@@ -501,10 +498,7 @@ func TestEventuallyTimeout(t *testing.T) {
 	}
 
 	w.Eventually(condition, 200*time.Millisecond, "should timeout")
-
-	if !mockT.Failed() {
-		t.Error("Eventually should have failed")
-	}
+	testify.True(t, mockT.Failed())
 }
 
 func TestEventuallyWithError(t *testing.T) {
@@ -545,6 +539,7 @@ func TestEventuallyWithError(t *testing.T) {
 			w.EventuallyWithError(
 				tt.condition, tt.timeout, "condition should succeed",
 			)
+			testify.False(t, t.Failed())
 		})
 	}
 }
@@ -560,8 +555,5 @@ func TestEventuallyWithErrorTimeout(t *testing.T) {
 	w.EventuallyWithError(
 		condition, 200*time.Millisecond, "should timeout with error",
 	)
-
-	if !mockT.Failed() {
-		t.Error("EventuallyWithError should have failed when condition keeps returning error")
-	}
+	testify.True(t, mockT.Failed())
 }

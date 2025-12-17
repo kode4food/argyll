@@ -85,11 +85,13 @@ func assertContainsEntry(
 	t *testing.T, entries []map[string]any, expected map[string]any,
 ) {
 	t.Helper()
+	found := false
 	for _, entry := range entries {
 		if entry["item"] == expected["item"] &&
 			entry["result"] == expected["result"] {
-			return
+			found = true
+			break
 		}
 	}
-	t.Fatalf("expected entry %v not found in %v", expected, entries)
+	assert.True(t, found)
 }

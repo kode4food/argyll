@@ -366,8 +366,7 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 			return flow
 
 		case <-ctx.Done():
-			t.Fatal("context cancelled while waiting for flow status")
-			return nil
+			t.FailNow()
 		}
 	}
 }
@@ -435,8 +434,7 @@ func (env *TestEngineEnv) WaitForStepStatus(
 			return flow.Executions[stepID]
 
 		case <-ctx.Done():
-			t.Fatal("context cancelled while waiting for step status")
-			return nil
+			t.FailNow()
 		}
 	}
 }

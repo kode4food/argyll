@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 func TestMainExitsOnStoreError(t *testing.T) {
@@ -18,11 +20,7 @@ func TestMainExitsOnStoreError(t *testing.T) {
 		"FLOW_REDIS_ADDR=127.0.0.1:0",
 	)
 
-	if err := cmd.Run(); err == nil {
-		t.Fatalf("expected process to exit with error")
-	}
-
-	if ctx.Err() == context.DeadlineExceeded {
-		t.Fatalf("process did not exit within timeout")
-	}
+	err := cmd.Run()
+	assert.Error(t, err)
+	assert.NotEqual(t, context.DeadlineExceeded, ctx.Err())
 }
