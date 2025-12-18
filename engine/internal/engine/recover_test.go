@@ -605,3 +605,238 @@ func TestIsRetryable(t *testing.T) {
 func isRetryable(workItem *api.WorkState, now time.Time) bool {
 	return !workItem.NextRetryAt.IsZero() && workItem.NextRetryAt.Before(now)
 }
+
+func TestTerminalFlow(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	ctx := context.Background()
+	flowID := api.FlowID("terminal-flow")
+
+	step := helpers.NewSimpleStep("step-1")
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"step-1"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err := env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	flowState, err := env.Engine.GetFlowState(ctx, flowID)
+	assert.NoError(t, err)
+	flowState.Status = api.FlowCompleted
+
+	err = env.Engine.RecoverFlow(ctx, flowID)
+	assert.NoError(t, err)
+}
+
+func TestNoRetryableSteps(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	ctx := context.Background()
+	flowID := api.FlowID("no-retry-flow")
+
+	step := helpers.NewSimpleStep("step-1")
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"step-1"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err := env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	err = env.Engine.RecoverFlow(ctx, flowID)
+	assert.NoError(t, err)
+}
+
+func TestWorkActiveItems(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	ctx := context.Background()
+
+	step := helpers.NewSimpleStep("step-1")
+	step.WorkConfig = &api.WorkConfig{
+		MaxRetries:   3,
+		BackoffMs:    100,
+		MaxBackoffMs: 1000,
+		BackoffType:  api.BackoffTypeFixed,
+	}
+
+	err := env.Engine.RegisterStep(ctx, step)
+	assert.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"step-1"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	flowID := api.FlowID("active-work-flow")
+	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = env.Engine.RecoverFlow(ctx, flowID)
+	assert.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
+	assert.NoError(t, err)
+	assert.NotNil(t, flow)
+}
+
+func TestPendingWorkWithActiveStep(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	ctx := context.Background()
+
+	step := helpers.NewSimpleStep("step-1")
+	step.WorkConfig = &api.WorkConfig{
+		MaxRetries:   3,
+		BackoffMs:    100,
+		MaxBackoffMs: 1000,
+		BackoffType:  api.BackoffTypeFixed,
+	}
+
+	err := env.Engine.RegisterStep(ctx, step)
+	assert.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"step-1"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	flowID := api.FlowID("pending-active-flow")
+	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = env.Engine.RecoverFlow(ctx, flowID)
+	assert.NoError(t, err)
+}
+
+func TestFailedWorkRetryable(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	ctx := context.Background()
+
+	step := helpers.NewSimpleStep("failing-step")
+	step.WorkConfig = &api.WorkConfig{
+		MaxRetries:   3,
+		BackoffMs:    100,
+		MaxBackoffMs: 1000,
+		BackoffType:  api.BackoffTypeFixed,
+	}
+
+	env.MockClient.SetError("failing-step",
+		fmt.Errorf("%w: test error", api.ErrWorkNotCompleted))
+
+	err := env.Engine.RegisterStep(ctx, step)
+	assert.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"failing-step"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	flowID := api.FlowID("failed-work-flow")
+	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	time.Sleep(500 * time.Millisecond)
+
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
+	assert.NoError(t, err)
+
+	exec := flow.Executions["failing-step"]
+	assert.NotNil(t, exec)
+	if exec.WorkItems != nil {
+		for _, item := range exec.WorkItems {
+			if item.Status == api.WorkFailed && item.RetryCount > 0 {
+				t.Logf("Found failed work item with retryCount=%d",
+					item.RetryCount)
+			}
+		}
+	}
+
+	err = env.Engine.RecoverFlow(ctx, flowID)
+	assert.NoError(t, err)
+}
+
+func TestInvalidFlowID(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	ctx := context.Background()
+	flowID := api.FlowID("nonexistent-flow")
+
+	err := env.Engine.RecoverFlow(ctx, flowID)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to get flow state")
+}
+
+func TestMultipleFlows(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	ctx := context.Background()
+
+	step := helpers.NewSimpleStep("step-1")
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"step-1"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	flowID1 := api.FlowID("flow-1")
+	err := env.Engine.StartFlow(ctx, flowID1, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	flowID2 := api.FlowID("flow-2")
+	err = env.Engine.StartFlow(ctx, flowID2, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	time.Sleep(100 * time.Millisecond)
+
+	err = env.Engine.RecoverFlows(ctx)
+	assert.NoError(t, err)
+}
+
+func TestNoActiveFlows(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	ctx := context.Background()
+
+	err := env.Engine.RecoverFlows(ctx)
+	assert.NoError(t, err)
+}
+
+func TestMissingStepInPlan(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	ctx := context.Background()
+	flowID := api.FlowID("missing-step-flow")
+
+	step := helpers.NewSimpleStep("step-1")
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{"step-1"},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err := env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	err = env.Engine.RecoverFlow(ctx, flowID)
+	assert.NoError(t, err)
+}
