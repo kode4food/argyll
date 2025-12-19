@@ -149,4 +149,229 @@ describe("useStepEditorForm", () => {
     expect(onUpdate).toHaveBeenCalledWith(updatedStep);
     expect(onClose).toHaveBeenCalled();
   });
+
+  describe("attribute type cycling", () => {
+    it("cycles attribute type from input to optional", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "test");
+        result.current.updateAttribute(attrId, "attrType", "input");
+      });
+
+      expect(result.current.attributes[0].attrType).toBe("input");
+
+      act(() => {
+        result.current.cycleAttributeType(attrId, "input");
+      });
+
+      expect(result.current.attributes[0].attrType).toBe("optional");
+    });
+
+    it("cycles attribute type from optional to output", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "test");
+        result.current.updateAttribute(attrId, "attrType", "optional");
+      });
+
+      act(() => {
+        result.current.cycleAttributeType(attrId, "optional");
+      });
+
+      expect(result.current.attributes[0].attrType).toBe("output");
+    });
+
+    it("cycles attribute type from output back to input", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "test");
+        result.current.updateAttribute(attrId, "attrType", "output");
+      });
+
+      act(() => {
+        result.current.cycleAttributeType(attrId, "output");
+      });
+
+      expect(result.current.attributes[0].attrType).toBe("input");
+    });
+  });
+
+  describe("validation error clearing", () => {
+    it("clears validation error when changing to non-optional type", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "test");
+        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(
+          attrId,
+          "dataType",
+          AttributeType.Number
+        );
+        result.current.updateAttribute(attrId, "defaultValue", "invalid");
+      });
+
+      expect(result.current.attributes[0].validationError).toBeDefined();
+
+      act(() => {
+        result.current.updateAttribute(attrId, "attrType", "input");
+      });
+
+      expect(result.current.attributes[0].validationError).toBeUndefined();
+    });
+
+    it("validates default value when attrType is optional", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "count");
+        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(
+          attrId,
+          "dataType",
+          AttributeType.Number
+        );
+        result.current.updateAttribute(
+          attrId,
+          "defaultValue",
+          '"not-a-number"'
+        );
+      });
+
+      expect(result.current.attributes[0].validationError).toBeDefined();
+    });
+
+    it("accepts valid default value for optional attribute", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "count");
+        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(
+          attrId,
+          "dataType",
+          AttributeType.Number
+        );
+        result.current.updateAttribute(attrId, "defaultValue", "42");
+      });
+
+      expect(result.current.attributes[0].validationError).toBeUndefined();
+    });
+  });
+
+  describe("attribute removal", () => {
+    it("removes attribute by id", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      expect(result.current.attributes).toHaveLength(1);
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.removeAttribute(attrId);
+      });
+
+      expect(result.current.attributes).toHaveLength(0);
+    });
+
+    it("removes correct attribute when multiple exist", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      const attrIds: string[] = [];
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+        result.current.addAttribute();
+        result.current.addAttribute();
+      });
+
+      expect(result.current.attributes).toHaveLength(3);
+      attrIds.push(result.current.attributes[0].id);
+      attrIds.push(result.current.attributes[1].id);
+      attrIds.push(result.current.attributes[2].id);
+
+      act(() => {
+        result.current.removeAttribute(attrIds[1]);
+      });
+
+      expect(result.current.attributes).toHaveLength(2);
+      expect(result.current.attributes[0].id).toBe(attrIds[0]);
+      expect(result.current.attributes[1].id).toBe(attrIds[2]);
+    });
+  });
 });

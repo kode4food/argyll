@@ -133,4 +133,64 @@ describe("useFlowStatusUpdates", () => {
     expect(loadFlows).toHaveBeenCalledTimes(1);
     expect(updateFlowStatus).not.toHaveBeenCalled();
   });
+
+  it("ignores events with malformed IDs", () => {
+    const updateFlowStatus = jest.fn();
+    const loadFlows = jest.fn();
+    const malformedEvent: WebSocketEvent = {
+      id: ["invalid"],
+      sequence: 1,
+      type: "flow_started",
+      timestamp: 1_730_000_000_000,
+      data: {},
+    };
+
+    const props = {
+      showDropdown: false,
+      selectedFlow: null as string | null,
+      subscribe: jest.fn(),
+      events: [] as WebSocketEvent[],
+      flows: [baseFlow],
+      updateFlowStatus,
+      loadFlows,
+    };
+
+    const { rerender } = renderHook(
+      (hookProps) => useFlowStatusUpdates(hookProps),
+      { initialProps: props }
+    );
+
+    act(() => {
+      rerender({ ...props, events: [malformedEvent] });
+    });
+
+    expect(updateFlowStatus).not.toHaveBeenCalled();
+    expect(loadFlows).not.toHaveBeenCalled();
+  });
+
+  it("ignores unhandled event types", () => {
+    const updateFlowStatus = jest.fn();
+    const unknownEvent = makeEvent("unknown_type", 1, 1_730_000_000_000);
+
+    const props = {
+      showDropdown: false,
+      selectedFlow: null as string | null,
+      subscribe: jest.fn(),
+      events: [] as WebSocketEvent[],
+      flows: [baseFlow],
+      updateFlowStatus,
+      loadFlows: jest.fn(),
+    };
+
+    const { rerender } = renderHook(
+      (hookProps) => useFlowStatusUpdates(hookProps),
+      { initialProps: props }
+    );
+
+    act(() => {
+      rerender({ ...props, events: [unknownEvent] });
+    });
+
+    expect(updateFlowStatus).not.toHaveBeenCalled();
+  });
 });

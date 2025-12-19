@@ -183,4 +183,56 @@ describe("useStepNodeData", () => {
 
     expect(result.current.provenance.get("input1")).toBe("step-2");
   });
+
+  it("handles default parameters for executions and resolvedAttributes", () => {
+    const { result } = renderHook(() => useStepNodeData(mockStep as any, null));
+
+    expect(result.current.execution).toBeUndefined();
+    expect(result.current.resolved).toBeInstanceOf(Set);
+    expect(result.current.resolved.size).toBe(0);
+    expect(result.current.satisfied).toBeInstanceOf(Set);
+  });
+
+  it("handles null flow data with attributes", () => {
+    const { result } = renderHook(() => useStepNodeData(mockStep as any, null));
+
+    expect(result.current.provenance).toBeInstanceOf(Map);
+    expect(result.current.satisfied.size).toBeGreaterThanOrEqual(0);
+  });
+
+  it("handles satisfied args with multiple attributes", () => {
+    const stepWithMultipleAttrs = {
+      ...mockStep,
+      attributes: {
+        input1: {
+          role: AttributeRole.Required,
+          type: AttributeType.String,
+          description: "",
+        },
+        input2: {
+          role: AttributeRole.Required,
+          type: AttributeType.String,
+          description: "",
+        },
+        optional1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          description: "",
+        },
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useStepNodeData(
+        stepWithMultipleAttrs as any,
+        null,
+        [],
+        ["input1", "optional1"]
+      )
+    );
+
+    expect(result.current.satisfied.has("input1")).toBe(true);
+    expect(result.current.satisfied.has("input2")).toBe(false);
+    expect(result.current.satisfied.has("optional1")).toBe(true);
+  });
 });

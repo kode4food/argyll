@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo, useRef } from "react";
 import { Step, StepType, SCRIPT_LANGUAGE_LUA, AttributeType } from "@/app/api";
 import { ArgyllApi } from "@/app/api";
 import {
@@ -47,11 +47,13 @@ export function useStepEditorForm(
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const attributeCounterRef = useRef(0);
+
   const addAttribute = useCallback(() => {
     setAttributes((current) => [
       ...current,
       {
-        id: `attr-${Date.now()}`,
+        id: `attr-${++attributeCounterRef.current}`,
         attrType: "input",
         name: "",
         dataType: AttributeType.String,

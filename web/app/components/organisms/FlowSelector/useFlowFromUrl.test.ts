@@ -74,4 +74,22 @@ describe("useFlowFromUrl", () => {
 
     expect(mockSelectFlow).toHaveBeenCalledWith("wf-456");
   });
+
+  test("does not select flow when on flow path without flowId", () => {
+    mockUseParams.mockReturnValue({});
+    mockUseLocation.mockReturnValue({ pathname: "/flow/" });
+
+    renderHook(() => useFlowFromUrl());
+
+    expect(mockSelectFlow).not.toHaveBeenCalled();
+  });
+
+  test("handles missing params gracefully", () => {
+    mockUseParams.mockReturnValue(undefined as any);
+    mockUseLocation.mockReturnValue({ pathname: "/" });
+
+    const { result } = renderHook(() => useFlowFromUrl());
+
+    expect(result.current).toBeNull();
+  });
 });
