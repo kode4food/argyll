@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-import ms from "ms";
-import type { StringValue } from "ms";
+import React from "react";
 import { Clock } from "lucide-react";
+import { useDurationInput } from "./DurationInput/useDurationInput";
 import styles from "./DurationInput.module.css";
 
 interface DurationInputProps {
@@ -15,57 +14,7 @@ const DurationInput: React.FC<DurationInputProps> = ({
   onChange,
   className,
 }) => {
-  const [inputValue, setInputValue] = useState("");
-  const [isValid, setIsValid] = useState(true);
-  const [isFocused, setIsFocused] = useState(false);
-
-  useEffect(() => {
-    if (!isFocused) {
-      if (value) {
-        setInputValue(ms(value, { long: true }));
-      } else {
-        setInputValue("");
-      }
-      setIsValid(true);
-    }
-  }, [value, isFocused]);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const input = e.target.value;
-    setInputValue(input);
-
-    if (!input.trim()) {
-      setIsValid(true);
-      onChange(0);
-      return;
-    }
-
-    try {
-      const parsed = ms(input as StringValue);
-      if (parsed >= 0) {
-        setIsValid(true);
-        onChange(parsed);
-      } else {
-        setIsValid(false);
-      }
-    } catch (err) {
-      setIsValid(false);
-    }
-  };
-
-  const handleFocus = () => {
-    setIsFocused(true);
-  };
-
-  const handleBlur = () => {
-    setIsFocused(false);
-    if (isValid && inputValue.trim()) {
-      const parsed = ms(inputValue as StringValue);
-      if (parsed >= 0) {
-        setInputValue(ms(parsed, { long: true }));
-      }
-    }
-  };
+  const { inputValue, isValid, handlers } = useDurationInput(value, onChange);
 
   return (
     <div className={`${styles.durationInput} ${className || ""}`}>
@@ -73,9 +22,9 @@ const DurationInput: React.FC<DurationInputProps> = ({
       <input
         type="text"
         value={inputValue}
-        onChange={handleChange}
-        onFocus={handleFocus}
-        onBlur={handleBlur}
+        onChange={handlers.onChange}
+        onFocus={handlers.onFocus}
+        onBlur={handlers.onBlur}
         className={`${styles.input} ${!isValid ? styles.invalid : ""}`}
         placeholder="e.g. 5d, 2 days 3h, 1.5 days"
         title="Examples: 5d, 2 days, 1 day 3 hrs, 1.5 days, 2d 7h"

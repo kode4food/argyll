@@ -1,15 +1,11 @@
-import React, {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
-  useMemo,
-} from "react";
+import React, { useRef, useCallback } from "react";
 import { Position, NodeProps } from "@xyflow/react";
-import { Step, FlowContext, ExecutionResult, AttributeRole } from "../../api";
+import { Step, FlowContext, ExecutionResult } from "../../api";
 import StepWidget from "./StepWidget";
 import InvisibleHandle from "../atoms/InvisibleHandle";
 import { useDiagramSelection } from "../../contexts/DiagramSelectionContext";
+import { useStepNodeData } from "./StepNode/useStepNodeData";
+import { useHandlePositions } from "./StepNode/useHandlePositions";
 
 interface StepNodeData {
   step: Step;
@@ -36,7 +32,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
     onStepClick,
   } = nodeData;
   const { setGoalSteps } = useDiagramSelection();
-  const stepWidgetRef = useRef<HTMLDivElement>(null);
+  const stepWidgetRef = useRef<HTMLDivElement | null>(null);
 
   // Memoize the click handler to prevent unnecessary re-renders
   const handleClick = useCallback(
@@ -50,142 +46,16 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
     },
     [onStepClick, setGoalSteps, step.id]
   );
-  const [handlePositions, setHandlePositions] = useState<{
-    required: Array<{
-      id: string;
-      top: number;
-      argName: string;
-      handleType: "input" | "output";
-    }>;
-    optional: Array<{
-      id: string;
-      top: number;
-      argName: string;
-      handleType: "input" | "output";
-    }>;
-    output: Array<{
-      id: string;
-      top: number;
-      argName: string;
-      handleType: "input" | "output";
-    }>;
-  }>({ required: [], optional: [], output: [] });
 
-  const execution = useMemo(
-    () => executions.find((exec) => exec.step_id === step.id),
-    [executions, step.id]
+  // Extract derived data from custom hooks
+  const { execution, provenance, satisfied } = useStepNodeData(
+    step,
+    flowData || null,
+    executions,
+    resolvedAttributes
   );
 
-  const resolved = useMemo(
-    () => new Set(resolvedAttributes),
-    [resolvedAttributes]
-  );
-
-  const provenance = useMemo(() => {
-    const map = new Map<string, string>();
-    if (flowData?.state) {
-      Object.entries(flowData.state).forEach(([attrName, attrValue]) => {
-        if (attrValue.step) {
-          map.set(attrName, attrValue.step);
-        }
-      });
-    }
-    return map;
-  }, [flowData?.state]);
-
-  const satisfied = useMemo(() => {
-    const set = new Set<string>();
-    Object.entries(step.attributes || {}).forEach(([argName, spec]) => {
-      if (
-        (spec.role === AttributeRole.Required ||
-          spec.role === AttributeRole.Optional) &&
-        resolved.has(argName)
-      ) {
-        set.add(argName);
-      }
-    });
-    return set;
-  }, [step.attributes, resolved]);
-
-  const updateHandlePositions = useCallback(() => {
-    const sortedAttrs = Object.entries(step.attributes || {}).sort(([a], [b]) =>
-      a.localeCompare(b)
-    );
-
-    const requiredArgs = sortedAttrs
-      .filter(([_, spec]) => spec.role === AttributeRole.Required)
-      .map(([name]) => name);
-    const optionalArgs = sortedAttrs
-      .filter(([_, spec]) => spec.role === AttributeRole.Optional)
-      .map(([name]) => name);
-    const outputArgs = sortedAttrs
-      .filter(([_, spec]) => spec.role === AttributeRole.Output)
-      .map(([name]) => name);
-
-    if (!stepWidgetRef.current) return;
-
-    const getHandlePosition = (
-      element: Element,
-      type: string,
-      name: string,
-      handleType: "input" | "output"
-    ) => {
-      const relativeTop =
-        (element as HTMLElement).offsetTop +
-        (element as HTMLElement).offsetHeight / 2;
-      return {
-        id: type === "output" ? `output-${name}` : `input-${type}-${name}`,
-        top: relativeTop,
-        argName: name,
-        handleType,
-      };
-    };
-
-    const findHandles = (
-      argType: string,
-      argNames: string[],
-      handleType: "input" | "output"
-    ) => {
-      return argNames
-        .map((name) => {
-          const element = stepWidgetRef.current?.querySelector(
-            `[data-arg-type="${argType}"][data-arg-name="${name}"]`
-          );
-          return element
-            ? getHandlePosition(element, argType, name, handleType)
-            : null;
-        })
-        .filter(
-          (
-            handle
-          ): handle is {
-            id: string;
-            top: number;
-            argName: string;
-            handleType: "input" | "output";
-          } => handle !== null
-        );
-    };
-
-    setHandlePositions({
-      required: findHandles("required", requiredArgs, "input"),
-      optional: findHandles("optional", optionalArgs, "input"),
-      output: findHandles("output", outputArgs, "output"),
-    });
-  }, [step.attributes]);
-
-  useEffect(() => {
-    updateHandlePositions();
-  }, [updateHandlePositions]);
-
-  const allHandles = useMemo(
-    () => [
-      ...handlePositions.required,
-      ...handlePositions.optional,
-      ...handlePositions.output,
-    ],
-    [handlePositions]
-  );
+  const { allHandles } = useHandlePositions(step, stepWidgetRef);
 
   return (
     <div>
