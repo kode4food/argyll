@@ -143,9 +143,7 @@ func (e *ExecContext) executeWorkItem(
 	ctx context.Context, token api.Token, workItem *api.WorkState,
 ) {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	if !e.engine.evaluateStepPredicate(
-		ctx, fs, e.step, workItem.Inputs,
-	) {
+	if !e.engine.evaluateStepPredicate(ctx, fs, e.step, workItem.Inputs) {
 		return
 	}
 
@@ -159,7 +157,6 @@ func (e *ExecContext) executeWorkItem(
 func (e *ExecContext) performWorkItem(
 	ctx context.Context, token api.Token, workItem *api.WorkState,
 ) {
-	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	outputs, err := e.performWork(ctx, workItem.Inputs, token)
 
 	if err != nil {
@@ -168,6 +165,7 @@ func (e *ExecContext) performWorkItem(
 	}
 
 	if !isAsyncStep(e.step.Type) {
+		fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 		_ = e.engine.CompleteWork(ctx, fs, token, outputs)
 	}
 }
