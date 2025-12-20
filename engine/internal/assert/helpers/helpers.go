@@ -20,12 +20,15 @@ import (
 type (
 	// TestEngineEnv holds all the components needed for engine testing
 	TestEngineEnv struct {
-		Engine     *engine.Engine
-		Redis      *miniredis.Miniredis
-		MockClient *MockClient
-		Config     *config.Config
-		EventHub   *timebox.EventHub
-		Cleanup    func()
+		Engine      *engine.Engine
+		Redis       *miniredis.Miniredis
+		MockClient  *MockClient
+		Config      *config.Config
+		EventHub    *timebox.EventHub
+		Cleanup     func()
+		engineStore *timebox.Store
+		flowStore   *timebox.Store
+		timebox     *timebox.Timebox
 	}
 
 	// MockClient is a simple mock implementation of client.Client for testing
@@ -238,13 +241,25 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 
 	hub := tb.GetHub()
 	return &TestEngineEnv{
-		Engine:     eng,
-		Redis:      server,
-		MockClient: mockCli,
-		Config:     cfg,
-		EventHub:   &hub,
-		Cleanup:    cleanup,
+		Engine:      eng,
+		Redis:       server,
+		MockClient:  mockCli,
+		Config:      cfg,
+		EventHub:    &hub,
+		Cleanup:     cleanup,
+		engineStore: engineStore,
+		flowStore:   flowStore,
+		timebox:     tb,
 	}
+}
+
+// NewEngineInstance creates a new engine instance sharing the same stores
+// and mock client. Used to simulate process restart after crash.
+func (env *TestEngineEnv) NewEngineInstance() *engine.Engine {
+	hub := env.timebox.GetHub()
+	return engine.New(
+		env.engineStore, env.flowStore, env.MockClient, hub, env.Config,
+	)
 }
 
 // Invoke records the invocation and returns the configured response or error
@@ -280,6 +295,13 @@ func (c *MockClient) SetError(stepID api.StepID, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.errors[stepID] = err
+}
+
+// ClearError removes any configured error for a step
+func (c *MockClient) ClearError(stepID api.StepID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.errors, stepID)
 }
 
 // GetInvocations returns the list of step IDs that were invoked
