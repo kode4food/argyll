@@ -150,31 +150,19 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeFlowStarted,
-			api.FlowStartedEvent{
-				FlowID:   flowID,
-				Plan:     plan,
-				Init:     initState,
-				Metadata: meta,
-			},
-		)
-	}
-
-	_, err = e.flowExec.Exec(ctx, flowKey(flowID), cmd)
-	return err
+	return e.raiseFlowEvent(ctx, flowID, api.EventTypeFlowStarted,
+		api.FlowStartedEvent{
+			FlowID:   flowID,
+			Plan:     plan,
+			Init:     initState,
+			Metadata: meta,
+		})
 }
 
 // UnregisterStep removes a step from the engine registry
 func (e *Engine) UnregisterStep(ctx context.Context, stepID api.StepID) error {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return events.Raise(ag, api.EventTypeStepUnregistered,
-			api.StepUnregisteredEvent{StepID: stepID},
-		)
-	}
-
-	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
-	return err
+	return e.raiseEngineEvent(ctx, api.EventTypeStepUnregistered,
+		api.StepUnregisteredEvent{StepID: stepID})
 }
 
 // GetEngineState retrieves the current engine state including registered steps
@@ -262,41 +250,33 @@ func (e *Engine) saveEngineSnapshot() {
 func (e *Engine) handleFlowStarted(
 	_ *timebox.Event, data api.FlowStartedEvent,
 ) error {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return events.Raise(ag, api.EventTypeFlowActivated,
-			api.FlowActivatedEvent{FlowID: data.FlowID},
-		)
-	}
-
-	ctx := context.Background()
-	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
-	return err
+	return e.raiseEngineEvent(context.Background(),
+		api.EventTypeFlowActivated,
+		api.FlowActivatedEvent{FlowID: data.FlowID})
 }
 
 func (e *Engine) handleFlowCompleted(
 	_ *timebox.Event, data api.FlowCompletedEvent,
 ) error {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return events.Raise(ag, api.EventTypeFlowDeactivated,
-			api.FlowDeactivatedEvent{FlowID: data.FlowID},
-		)
-	}
-
-	ctx := context.Background()
-	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
-	return err
+	return e.raiseEngineEvent(context.Background(),
+		api.EventTypeFlowDeactivated,
+		api.FlowDeactivatedEvent{FlowID: data.FlowID})
 }
 
 func (e *Engine) handleFlowFailed(
 	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return events.Raise(ag, api.EventTypeFlowDeactivated,
-			api.FlowDeactivatedEvent{FlowID: data.FlowID},
-		)
-	}
+	return e.raiseEngineEvent(context.Background(),
+		api.EventTypeFlowDeactivated,
+		api.FlowDeactivatedEvent{FlowID: data.FlowID})
+}
 
-	ctx := context.Background()
+func (e *Engine) raiseEngineEvent(
+	ctx context.Context, eventType api.EventType, data any,
+) error {
+	cmd := func(st *api.EngineState, ag *Aggregator) error {
+		return events.Raise(ag, eventType, data)
+	}
 	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
 	return err
 }

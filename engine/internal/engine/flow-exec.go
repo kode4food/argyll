@@ -40,12 +40,7 @@ func (a *flowActor) run() {
 	for {
 		select {
 		case event := <-a.events:
-			if err := handler(event); err != nil {
-				slog.Error("Failed to handle event",
-					log.FlowID(a.flowID),
-					slog.String("event_type", string(event.Type)),
-					log.Error(err))
-			}
+			a.handleEvent(event, handler)
 
 			if !idleTimer.Stop() {
 				select {
@@ -58,12 +53,7 @@ func (a *flowActor) run() {
 		case <-idleTimer.C:
 			select {
 			case event := <-a.events:
-				if err := handler(event); err != nil {
-					slog.Error("Failed to handle event",
-						log.FlowID(a.flowID),
-						slog.String("event_type", string(event.Type)),
-						log.Error(err))
-				}
+				a.handleEvent(event, handler)
 				idleTimer.Reset(100 * time.Millisecond)
 			default:
 				return
@@ -586,4 +576,13 @@ func (a *flowActor) getDownstreamConsumers(
 	}
 
 	return consumers
+}
+
+func (a *flowActor) handleEvent(ev *timebox.Event, handler timebox.Handler) {
+	if err := handler(ev); err != nil {
+		slog.Error("Failed to handle event",
+			log.FlowID(a.flowID),
+			slog.String("event_type", string(ev.Type)),
+			log.Error(err))
+	}
 }

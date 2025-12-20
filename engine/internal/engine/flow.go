@@ -45,19 +45,13 @@ func (e *Engine) GetFlowState(
 func (e *Engine) StartWork(
 	ctx context.Context, fs FlowStep, token api.Token, inputs api.Args,
 ) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeWorkStarted,
-			api.WorkStartedEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Token:  token,
-				Inputs: inputs,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
-	return err
+	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkStarted,
+		api.WorkStartedEvent{
+			FlowID: fs.FlowID,
+			StepID: fs.StepID,
+			Token:  token,
+			Inputs: inputs,
+		})
 }
 
 // CompleteWork marks a work item as successfully completed with the given
@@ -65,57 +59,39 @@ func (e *Engine) StartWork(
 func (e *Engine) CompleteWork(
 	ctx context.Context, fs FlowStep, token api.Token, outputs api.Args,
 ) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeWorkSucceeded,
-			api.WorkSucceededEvent{
-				FlowID:  fs.FlowID,
-				StepID:  fs.StepID,
-				Token:   token,
-				Outputs: outputs,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
-	return err
+	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkSucceeded,
+		api.WorkSucceededEvent{
+			FlowID:  fs.FlowID,
+			StepID:  fs.StepID,
+			Token:   token,
+			Outputs: outputs,
+		})
 }
 
 // FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(
 	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
 ) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeWorkFailed,
-			api.WorkFailedEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Token:  token,
-				Error:  errMsg,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
-	return err
+	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkFailed,
+		api.WorkFailedEvent{
+			FlowID: fs.FlowID,
+			StepID: fs.StepID,
+			Token:  token,
+			Error:  errMsg,
+		})
 }
 
 // NotCompleteWork marks a work item as not completed with specified error
 func (e *Engine) NotCompleteWork(
 	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
 ) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, api.EventTypeWorkNotCompleted,
-			api.WorkNotCompletedEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Token:  token,
-				Error:  errMsg,
-			},
-		)
-	}
-
-	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
-	return err
+	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkNotCompleted,
+		api.WorkNotCompletedEvent{
+			FlowID: fs.FlowID,
+			StepID: fs.StepID,
+			Token:  token,
+			Error:  errMsg,
+		})
 }
 
 // GetAttribute retrieves a specific attribute value from the flow state,
@@ -285,4 +261,14 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 
 func flowKey(flowID api.FlowID) timebox.AggregateID {
 	return timebox.NewAggregateID("flow", timebox.ID(flowID))
+}
+
+func (e *Engine) raiseFlowEvent(
+	ctx context.Context, flowID api.FlowID, eventType api.EventType, data any,
+) error {
+	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+		return events.Raise(ag, eventType, data)
+	}
+	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	return err
 }
