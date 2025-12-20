@@ -488,12 +488,23 @@ func TestStepBuilderWithForEach(t *testing.T) {
 		step, err := testClient().NewStep("Batch Step").
 			WithEndpoint("http://example.com").
 			Required("users", api.TypeArray).
+			WithForEach("users").
 			Output("results", api.TypeArray).
 			Build()
 
 		assert.NoError(t, err)
 		assert.Equal(t, api.TypeArray, step.Attributes["users"].Type)
+		assert.True(t, step.Attributes["users"].ForEach)
 	})
+}
+
+func TestUpdate(t *testing.T) {
+	step := testClient().NewStep("Test").
+		WithEndpoint("http://example.com")
+
+	updated := step.Update()
+
+	assert.NotNil(t, updated)
 }
 
 func testClient() *builder.Client {

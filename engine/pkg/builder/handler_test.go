@@ -145,3 +145,8 @@ func TestHandlerPanic(t *testing.T) {
 	assert.False(t, result.Success)
 	assert.Contains(t, result.Error, builder.ErrHandlerPanic.Error())
 }
+
+func TestHTTPErrorMessage(t *testing.T) {
+	err := builder.NewHTTPError(418, "I'm a teapot")
+	assert.Equal(t, "HTTP 418: I'm a teapot", err.Error())
+}

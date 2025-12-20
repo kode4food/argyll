@@ -172,3 +172,47 @@ func TestAsyncContextWebhookError(t *testing.T) {
 	assert.Contains(t, err.Error(), "500")
 	assert.Contains(t, err.Error(), "internal error")
 }
+
+func TestComplete(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "POST", r.Method)
+
+			var result api.StepResult
+			err := json.NewDecoder(r.Body).Decode(&result)
+			assert.NoError(t, err)
+			assert.True(t, result.Success)
+			assert.Equal(t, "value1", result.Outputs["key1"])
+			assert.Equal(t, "value2", result.Outputs["key2"])
+
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer server.Close()
+
+	meta := api.Metadata{
+		"flow_id":     "test-flow",
+		"step_id":     "test-step",
+		"webhook_url": server.URL,
+	}
+
+	client := builder.NewClient(server.URL, 30*time.Second)
+	ctx := &builder.StepContext{
+		Context:  context.Background(),
+		Client:   client.Flow("test-flow"),
+		StepID:   "test-step",
+		Metadata: meta,
+	}
+	ac, err := builder.NewAsyncContext(ctx)
+	assert.NoError(t, err)
+
+	result := api.StepResult{
+		Success: true,
+		Outputs: api.Args{
+			"key1": "value1",
+			"key2": "value2",
+		},
+	}
+	err = ac.Complete(result)
+	assert.NoError(t, err)
+}
