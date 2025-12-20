@@ -297,3 +297,145 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 	}
 	t.Fail()
 }
+
+func TestEventLoopUnmarshalError(t *testing.T) {
+	redis, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redis.Close()
+
+	cfg := config.NewDefaultConfig()
+	cfg.EngineStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
+
+	tb, err := timebox.NewTimebox(timebox.Config{
+		MaxRetries: timebox.DefaultMaxRetries,
+		CacheSize:  100,
+	})
+	assert.NoError(t, err)
+	defer func() { _ = tb.Close() }()
+
+	engineStore, err := tb.NewStore(cfg.EngineStore)
+	assert.NoError(t, err)
+
+	flowStore, err := tb.NewStore(cfg.FlowStore)
+	assert.NoError(t, err)
+
+	mockClient := helpers.NewMockClient()
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
+
+	checker := server.NewHealthChecker(eng, tb.GetHub())
+	checker.Start()
+	defer checker.Stop()
+
+	producer := tb.GetHub().NewProducer()
+	defer producer.Close()
+
+	invalidEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeStepCompleted),
+		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		Timestamp:   time.Now(),
+		Data:        []byte("invalid json"),
+	}
+
+	producer.Send() <- invalidEvent
+
+	time.Sleep(50 * time.Millisecond)
+}
+
+func TestCheckMultipleHTTPSteps(t *testing.T) {
+	healthServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
+	defer healthServer.Close()
+
+	redis, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redis.Close()
+
+	cfg := config.NewDefaultConfig()
+	cfg.EngineStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
+
+	tb, err := timebox.NewTimebox(timebox.Config{
+		MaxRetries: timebox.DefaultMaxRetries,
+		CacheSize:  100,
+	})
+	assert.NoError(t, err)
+	defer func() { _ = tb.Close() }()
+
+	engineStore, err := tb.NewStore(cfg.EngineStore)
+	assert.NoError(t, err)
+
+	flowStore, err := tb.NewStore(cfg.FlowStore)
+	assert.NoError(t, err)
+
+	mockClient := helpers.NewMockClient()
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
+
+	for i := 0; i < 3; i++ {
+		step := &api.Step{
+			ID:   api.StepID("multi-health-" + string(rune('a'+i))),
+			Name: "Multi Health Step",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint:    healthServer.URL + "/execute",
+				HealthCheck: healthServer.URL + "/health",
+			},
+		}
+
+		err = eng.RegisterStep(context.Background(), step)
+		assert.NoError(t, err)
+	}
+
+	checker := server.NewHealthChecker(eng, tb.GetHub())
+	checker.Start()
+	defer checker.Stop()
+
+	time.Sleep(100 * time.Millisecond)
+}
+
+func TestNonStepCompletedEvent(t *testing.T) {
+	redis, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redis.Close()
+
+	cfg := config.NewDefaultConfig()
+	cfg.EngineStore.Addr = redis.Addr()
+	cfg.FlowStore.Addr = redis.Addr()
+
+	tb, err := timebox.NewTimebox(timebox.Config{
+		MaxRetries: timebox.DefaultMaxRetries,
+		CacheSize:  100,
+	})
+	assert.NoError(t, err)
+	defer func() { _ = tb.Close() }()
+
+	engineStore, err := tb.NewStore(cfg.EngineStore)
+	assert.NoError(t, err)
+
+	flowStore, err := tb.NewStore(cfg.FlowStore)
+	assert.NoError(t, err)
+
+	mockClient := helpers.NewMockClient()
+	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
+
+	checker := server.NewHealthChecker(eng, tb.GetHub())
+	checker.Start()
+	defer checker.Stop()
+
+	producer := tb.GetHub().NewProducer()
+	defer producer.Close()
+
+	event := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		Timestamp:   time.Now(),
+		Data:        []byte("{}"),
+	}
+
+	producer.Send() <- event
+
+	time.Sleep(50 * time.Millisecond)
+}
