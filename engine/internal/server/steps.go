@@ -150,23 +150,33 @@ func (s *Server) updateStep(c *gin.Context) {
 func (s *Server) deleteStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	err := s.engine.UnregisterStep(c.Request.Context(), stepID)
-	if err == nil {
-		c.JSON(http.StatusOK, api.MessageResponse{
-			Message: "Step unregistered",
+	engState, err := s.engine.GetEngineState(c.Request.Context())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),
+			Status: http.StatusInternalServerError,
 		})
 		return
 	}
 
-	if errors.Is(err, engine.ErrStepNotFound) {
+	if _, ok := engState.Steps[stepID]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, stepID),
 			Status: http.StatusNotFound,
 		})
 		return
 	}
-	c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-		Error:  fmt.Sprintf("%s: %v", ErrUnregisterStep, err),
-		Status: http.StatusInternalServerError,
+
+	err = s.engine.UnregisterStep(c.Request.Context(), stepID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrUnregisterStep, err),
+			Status: http.StatusInternalServerError,
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, api.MessageResponse{
+		Message: "Step unregistered",
 	})
 }

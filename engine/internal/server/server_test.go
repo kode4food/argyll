@@ -618,7 +618,12 @@ func TestDeleteStepNotFound(t *testing.T) {
 	router := env.Server.SetupRoutes()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response api.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Contains(t, response.Error, "not found")
 }
 
 func TestUpdateStep(t *testing.T) {
@@ -731,7 +736,12 @@ func TestDeleteMissingStepReturns404(t *testing.T) {
 	router := env.Server.SetupRoutes()
 	router.ServeHTTP(w, req)
 
-	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response api.ErrorResponse
+	err := json.Unmarshal(w.Body.Bytes(), &response)
+	assert.NoError(t, err)
+	assert.Contains(t, response.Error, "not found")
 }
 
 func TestRegisterStepInvalidJSON(t *testing.T) {

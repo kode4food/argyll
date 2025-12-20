@@ -300,6 +300,79 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				testify.Equal(t, config.DefaultCacheSize, c.FlowCacheSize)
 			},
 		},
+		{
+			name: "load_retry_max_retries",
+			envVars: map[string]string{
+				"RETRY_MAX_RETRIES": "5",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, 5, c.WorkConfig.MaxRetries)
+			},
+		},
+		{
+			name: "load_retry_backoff_ms",
+			envVars: map[string]string{
+				"RETRY_BACKOFF_MS": "2000",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, int64(2000), c.WorkConfig.BackoffMs)
+			},
+		},
+		{
+			name: "load_retry_max_backoff_ms",
+			envVars: map[string]string{
+				"RETRY_MAX_BACKOFF_MS": "60000",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, int64(60000), c.WorkConfig.MaxBackoffMs)
+			},
+		},
+		{
+			name: "load_retry_backoff_type",
+			envVars: map[string]string{
+				"RETRY_BACKOFF_TYPE": "exponential",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, "exponential", c.WorkConfig.BackoffType)
+			},
+		},
+		{
+			name: "invalid_retry_max_retries_ignored",
+			envVars: map[string]string{
+				"RETRY_MAX_RETRIES": "not_a_number",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(
+					t, config.DefaultRetryMaxRetries, c.WorkConfig.MaxRetries,
+				)
+			},
+		},
+		{
+			name: "invalid_retry_backoff_ms_ignored",
+			envVars: map[string]string{
+				"RETRY_BACKOFF_MS": "invalid",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(
+					t,
+					int64(config.DefaultRetryBackoffMs),
+					c.WorkConfig.BackoffMs,
+				)
+			},
+		},
+		{
+			name: "invalid_retry_max_backoff_ms_ignored",
+			envVars: map[string]string{
+				"RETRY_MAX_BACKOFF_MS": "bad_value",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(
+					t,
+					int64(config.DefaultRetryMaxBackoffMs),
+					c.WorkConfig.MaxBackoffMs,
+				)
+			},
+		},
 	}
 
 	for _, tt := range tests {

@@ -267,3 +267,27 @@ func TestMultipleOutputs(t *testing.T) {
 	assert.Len(t, outputs, 3)
 	assert.Equal(t, "value1", outputs["result1"])
 }
+
+func TestHTTP4xxError(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusBadRequest)
+			_, _ = w.Write([]byte("bad request"))
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(5 * time.Second)
+	step := &api.Step{
+		ID:   "test-step",
+		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+	}
+
+	_, err := cl.Invoke(
+		context.Background(), step, api.Args{}, api.Metadata{},
+	)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
+	assert.Contains(t, err.Error(), "400")
+}

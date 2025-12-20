@@ -374,3 +374,99 @@ func TestLuaInputTypes(t *testing.T) {
 		})
 	}
 }
+
+
+func TestLuaEmptyArray(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "empty-array",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return {items = {}}`,
+		},
+		Attributes: api.AttributeSpecs{
+			"items": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.Compile(step, step.Script)
+	assert.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	assert.NoError(t, err)
+
+	items, ok := result["items"].(map[string]any)
+	assert.True(t, ok)
+	assert.Empty(t, items)
+}
+
+func TestLuaNestedArrays(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "nested-arrays",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script: `
+				return {
+					matrix = {{1, 2}, {3, 4}, {5, 6}}
+				}
+			`,
+		},
+		Attributes: api.AttributeSpecs{
+			"matrix": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.Compile(step, step.Script)
+	assert.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	assert.NoError(t, err)
+
+	matrix, ok := result["matrix"].([]any)
+	assert.True(t, ok)
+	assert.Len(t, matrix, 3)
+
+	row1, ok := matrix[0].([]any)
+	assert.True(t, ok)
+	assert.Equal(t, 1, row1[0])
+	assert.Equal(t, 2, row1[1])
+}
+
+func TestLuaLargeArray(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "large-array",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script: `
+				local arr = {}
+				for i = 1, 10 do
+					arr[i] = i * 10
+				end
+				return {numbers = arr}
+			`,
+		},
+		Attributes: api.AttributeSpecs{
+			"numbers": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.Compile(step, step.Script)
+	assert.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	assert.NoError(t, err)
+
+	numbers, ok := result["numbers"].([]any)
+	assert.True(t, ok)
+	assert.Len(t, numbers, 10)
+	assert.Equal(t, 10, numbers[0])
+	assert.Equal(t, 100, numbers[9])
+}
