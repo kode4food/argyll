@@ -25,7 +25,7 @@ jobs:
         run: cd web && npm ci
 
       - name: Run Go tests with coverage
-        run: cd engine && go test -coverprofile=cover.out ./...
+        run: cd engine && go test ./... -coverpkg=./... -coverprofile=cover.out
 
       - name: Run web tests with coverage
         run: cd web && npm run test:coverage
