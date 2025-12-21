@@ -30,6 +30,7 @@ type argyll struct {
 	engine      *engine.Engine
 	health      *server.HealthChecker
 	httpServer  *http.Server
+	quit        chan os.Signal
 }
 
 var logLevels = map[string]slog.Level{
@@ -43,7 +44,10 @@ func main() {
 	cfg := config.NewDefaultConfig()
 	cfg.LoadFromEnv()
 
-	s := &argyll{cfg: cfg}
+	s := &argyll{
+		cfg:  cfg,
+		quit: make(chan os.Signal, 1),
+	}
 	s.setupLogging()
 
 	if err := s.run(); err != nil {
@@ -61,9 +65,9 @@ func (s *argyll) run() error {
 	s.initializeEngine()
 	s.startServer()
 
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	signal.Notify(s.quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(s.quit)
+	<-s.quit
 
 	s.shutdown()
 	return nil
