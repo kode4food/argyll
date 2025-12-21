@@ -254,7 +254,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 }
 
 // NewEngineInstance creates a new engine instance sharing the same stores
-// and mock client. Used to simulate process restart after crash.
+// and mock client. Used to simulate process restart after crash
 func (env *TestEngineEnv) NewEngineInstance() *engine.Engine {
 	hub := env.timebox.GetHub()
 	return engine.New(
