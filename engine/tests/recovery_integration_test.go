@@ -184,6 +184,16 @@ func TestMultipleWorkflowRecovery(t *testing.T) {
 
 	wg.Wait()
 
+	if recovered1 == nil {
+		t.Fatal("flow-1 timed out during recovery")
+	}
+	if recovered2 == nil {
+		t.Fatal("flow-2 timed out during recovery")
+	}
+	if recovered3 == nil {
+		t.Fatal("flow-3 timed out during recovery")
+	}
+
 	assert.Equal(t, api.FlowCompleted, recovered1.Status)
 	assert.Equal(t, api.FlowCompleted, recovered2.Status)
 	assert.Equal(t, api.FlowCompleted, recovered3.Status)

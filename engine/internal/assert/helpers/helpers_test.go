@@ -354,6 +354,7 @@ func TestWaitFlowFailed(t *testing.T) {
 
 	ctx := context.Background()
 	step := helpers.NewSimpleStep("failing-step")
+	step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 	err := env.Engine.RegisterStep(ctx, step)
 	assert.NoError(t, err)
 
@@ -410,6 +411,7 @@ func TestWaitStepFailed(t *testing.T) {
 
 	ctx := context.Background()
 	step := helpers.NewSimpleStep("step-fail")
+	step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 	err := env.Engine.RegisterStep(ctx, step)
 	assert.NoError(t, err)
 
