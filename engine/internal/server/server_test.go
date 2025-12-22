@@ -1684,12 +1684,11 @@ func TestWebSocketEndpoint(t *testing.T) {
 func testServer(t *testing.T) *testServerEnv {
 	t.Helper()
 
-	engineEnv := helpers.NewTestEngine(t)
-
-	srv := server.NewServer(engineEnv.Engine, *engineEnv.EventHub)
+	env := helpers.NewTestEngine(t)
+	srv := server.NewServer(env.Engine, env.EventHub)
 
 	return &testServerEnv{
 		Server:        srv,
-		TestEngineEnv: engineEnv,
+		TestEngineEnv: env,
 	}
 }

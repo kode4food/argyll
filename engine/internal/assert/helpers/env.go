@@ -19,7 +19,7 @@ type TestEngineEnv struct {
 	Redis       *miniredis.Miniredis
 	MockClient  *MockClient
 	Config      *config.Config
-	EventHub    *timebox.EventHub
+	EventHub    timebox.EventHub
 	Cleanup     func()
 	engineStore *timebox.Store
 	flowStore   *timebox.Store
@@ -94,7 +94,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		Redis:       server,
 		MockClient:  mockCli,
 		Config:      cfg,
-		EventHub:    &hub,
+		EventHub:    hub,
 		Cleanup:     cleanup,
 		engineStore: engineStore,
 		flowStore:   flowStore,
