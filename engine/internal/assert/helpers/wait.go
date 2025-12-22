@@ -41,12 +41,8 @@ func (w *EventWaiter[T]) Wait(
 			}
 		case <-deadline:
 			t.Fatalf("timeout waiting for %s", w.desc)
-			var zero T
-			return zero
 		case <-ctx.Done():
 			t.FailNow()
-			var zero T
-			return zero
 		}
 	}
 }
