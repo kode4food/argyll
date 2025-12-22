@@ -1,19 +1,12 @@
 package events
 
 import (
-	"errors"
-	"fmt"
-
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 const flowPrefix = "flow"
-
-var (
-	ErrExecutionNotFound = errors.New("execution does not exist for step")
-)
 
 // FlowAppliers contains the event applier functions for flow events
 var FlowAppliers = makeFlowAppliers()
@@ -53,7 +46,7 @@ func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
 func flowStarted(
 	_ *api.FlowState, ev *timebox.Event, data api.FlowStartedEvent,
 ) *api.FlowState {
-	exec := createExecutions(data.Plan)
+	execs := createExecutions(data.Plan)
 
 	attributes := api.AttributeValues{}
 	for key, value := range data.Init {
@@ -65,7 +58,7 @@ func flowStarted(
 		Status:      api.FlowActive,
 		Plan:        data.Plan,
 		Attributes:  attributes,
-		Executions:  exec,
+		Executions:  execs,
 		CreatedAt:   ev.Timestamp,
 		LastUpdated: ev.Timestamp,
 	}
@@ -119,11 +112,9 @@ func stepStarted(
 func stepCompleted(
 	st *api.FlowState, ev *timebox.Event, data api.StepCompletedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
-
 	return st.
 		SetExecution(data.StepID,
-			exec.
+			st.Executions[data.StepID].
 				SetStatus(api.StepCompleted).
 				SetCompletedAt(ev.Timestamp).
 				SetDuration(data.Duration).
@@ -135,10 +126,9 @@ func stepCompleted(
 func stepFailed(
 	st *api.FlowState, ev *timebox.Event, data api.StepFailedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
 	return st.
 		SetExecution(data.StepID,
-			exec.
+			st.Executions[data.StepID].
 				SetStatus(api.StepFailed).
 				SetError(data.Error).
 				SetCompletedAt(ev.Timestamp),
@@ -149,10 +139,9 @@ func stepFailed(
 func stepSkipped(
 	st *api.FlowState, ev *timebox.Event, data api.StepSkippedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
 	return st.
 		SetExecution(data.StepID,
-			exec.
+			st.Executions[data.StepID].
 				SetStatus(api.StepSkipped).
 				SetError(data.Reason).
 				SetCompletedAt(ev.Timestamp),
@@ -182,19 +171,10 @@ func createExecutions(p *api.ExecutionPlan) api.Executions {
 	return exec
 }
 
-func getExecution(st *api.FlowState, stepID api.StepID) *api.ExecutionState {
-	if exec, ok := st.Executions[stepID]; ok {
-		return exec
-	}
-	panic(
-		fmt.Errorf("%w: %s", ErrExecutionNotFound, stepID),
-	)
-}
-
 func workStarted(
 	st *api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
+	exec := st.Executions[data.StepID]
 	item := exec.WorkItems[data.Token].SetStatus(api.WorkActive)
 
 	if item.StartedAt.IsZero() {
@@ -209,7 +189,7 @@ func workStarted(
 func workSucceeded(
 	st *api.FlowState, ev *timebox.Event, data api.WorkSucceededEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
+	exec := st.Executions[data.StepID]
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
 		return st
 	}
@@ -227,7 +207,7 @@ func workSucceeded(
 func workFailed(
 	st *api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
+	exec := st.Executions[data.StepID]
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
 		return st
 	}
@@ -245,7 +225,7 @@ func workFailed(
 func workNotCompleted(
 	st *api.FlowState, ev *timebox.Event, data api.WorkNotCompletedEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
+	exec := st.Executions[data.StepID]
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
 		return st
 	}
@@ -263,7 +243,7 @@ func workNotCompleted(
 func retryScheduled(
 	st *api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
 ) *api.FlowState {
-	exec := getExecution(st, data.StepID)
+	exec := st.Executions[data.StepID]
 	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
 		return st
 	}
