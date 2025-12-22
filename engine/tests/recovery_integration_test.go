@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"sync"
 	"testing"
 	"time"
 
@@ -43,8 +44,8 @@ func TestBasicWorkflowRecovery(t *testing.T) {
 	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
 	assert.NoError(t, err)
 
-	// Wait for work to be in NotCompleted state
-	time.Sleep(200 * time.Millisecond)
+	// Wait for step to start via event hub
+	env.WaitForStepStarted(t, ctx, flowID, step.ID, workflowTimeout)
 
 	// Verify workflow is active with pending work
 	flow, err := env.Engine.GetFlowState(ctx, flowID)
@@ -61,6 +62,11 @@ func TestBasicWorkflowRecovery(t *testing.T) {
 
 	// Create new engine instance (simulates process restart)
 	env.Engine = env.NewEngineInstance()
+
+	// Re-register step on new engine instance
+	err = env.Engine.RegisterStep(ctx, step)
+	assert.NoError(t, err)
+
 	env.Engine.Start()
 
 	// Verify workflow recovers and completes
@@ -117,8 +123,10 @@ func TestMultipleWorkflowRecovery(t *testing.T) {
 	assert.NoError(t, env.Engine.StartFlow(ctx, flowID2, plan2, api.Args{}, api.Metadata{}))
 	assert.NoError(t, env.Engine.StartFlow(ctx, flowID3, plan3, api.Args{}, api.Metadata{}))
 
-	// Wait for all workflows to have work items created
-	time.Sleep(500 * time.Millisecond)
+	// Wait for all steps to start via event hub
+	env.WaitForStepStarted(t, ctx, flowID1, step1.ID, workflowTimeout)
+	env.WaitForStepStarted(t, ctx, flowID2, step2.ID, workflowTimeout)
+	env.WaitForStepStarted(t, ctx, flowID3, step3.ID, workflowTimeout)
 
 	// Verify all workflows are active with work in progress
 	flow1, err := env.Engine.GetFlowState(ctx, flowID1)
@@ -143,12 +151,34 @@ func TestMultipleWorkflowRecovery(t *testing.T) {
 	env.MockClient.SetResponse(step3.ID, api.Args{})
 
 	env.Engine = env.NewEngineInstance()
+
+	// Re-register steps on new engine instance
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step1))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step2))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step3))
+
 	env.Engine.Start()
 
 	// Verify all workflows recover and complete
-	recovered1 := env.WaitForFlowStatus(t, ctx, flowID1, recoveryTimeout)
-	recovered2 := env.WaitForFlowStatus(t, ctx, flowID2, recoveryTimeout)
-	recovered3 := env.WaitForFlowStatus(t, ctx, flowID3, recoveryTimeout)
+	// Wait concurrently to avoid missing events
+	var recovered1, recovered2, recovered3 *api.FlowState
+	var wg sync.WaitGroup
+	wg.Add(3)
+
+	go func() {
+		defer wg.Done()
+		recovered1 = env.WaitForFlowStatus(t, ctx, flowID1, recoveryTimeout)
+	}()
+	go func() {
+		defer wg.Done()
+		recovered2 = env.WaitForFlowStatus(t, ctx, flowID2, recoveryTimeout)
+	}()
+	go func() {
+		defer wg.Done()
+		recovered3 = env.WaitForFlowStatus(t, ctx, flowID3, recoveryTimeout)
+	}()
+
+	wg.Wait()
 
 	assert.Equal(t, api.FlowCompleted, recovered1.Status)
 	assert.Equal(t, api.FlowCompleted, recovered2.Status)
@@ -214,16 +244,18 @@ func TestRecoveryWithDifferentWorkStates(t *testing.T) {
 		ctx, failedFlowID, plan3, api.Args{}, api.Metadata{},
 	))
 
-	// Wait for these to process
-	time.Sleep(500 * time.Millisecond)
+	// Wait for notCompleted to start via event hub
+	env.WaitForStepStarted(
+		t, ctx, notCompletedFlowID, notCompletedStep.ID, workflowTimeout,
+	)
+
+	// Wait for failed flow to fail
+	env.WaitForFlowStatus(t, ctx, failedFlowID, workflowTimeout)
 
 	// Start pending flow just before shutdown
 	assert.NoError(t, env.Engine.StartFlow(
 		ctx, pendingFlowID, plan1, api.Args{}, api.Metadata{},
 	))
-
-	// Small delay to let event be recorded
-	time.Sleep(100 * time.Millisecond)
 
 	err := env.Engine.Stop()
 	assert.NoError(t, err)
@@ -232,6 +264,12 @@ func TestRecoveryWithDifferentWorkStates(t *testing.T) {
 	env.MockClient.SetResponse(notCompletedStep.ID, api.Args{})
 
 	env.Engine = env.NewEngineInstance()
+
+	// Re-register steps on new engine instance
+	assert.NoError(t, env.Engine.RegisterStep(ctx, pendingStep))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, notCompletedStep))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, failedStep))
+
 	env.Engine.Start()
 
 	// Verify recovery behavior:
@@ -279,8 +317,8 @@ func TestRecoveryPreservesWorkflowState(t *testing.T) {
 	err := env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
 	assert.NoError(t, err)
 
-	// Wait for work to be in retry state
-	time.Sleep(300 * time.Millisecond)
+	// Wait for step to start via event hub
+	env.WaitForStepStarted(t, ctx, flowID, step.ID, workflowTimeout)
 
 	// Get state before restart
 	beforeRestart, err := env.Engine.GetFlowState(ctx, flowID)
@@ -299,6 +337,10 @@ func TestRecoveryPreservesWorkflowState(t *testing.T) {
 	env.MockClient.SetResponse(step.ID, api.Args{})
 
 	env.Engine = env.NewEngineInstance()
+
+	// Re-register step on new engine instance
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+
 	env.Engine.Start()
 
 	// Wait for completion

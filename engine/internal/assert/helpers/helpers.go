@@ -233,13 +233,14 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 
 	eng := engine.New(engineStore, flowStore, mockCli, tb.GetHub(), cfg)
 
+	hub := tb.GetHub()
+
 	cleanup := func() {
 		_ = eng.Stop()
 		_ = tb.Close()
 		server.Close()
 	}
 
-	hub := tb.GetHub()
 	return &TestEngineEnv{
 		Engine:      eng,
 		Redis:       server,
@@ -393,7 +394,61 @@ func (env *TestEngineEnv) WaitForFlowStatus(
 	}
 }
 
-// WaitForStepStatus waits for a specific step to reach a terminal status
+// WaitForStepStarted waits for a step to start (become active) by subscribing
+// to events from the event hub
+func (env *TestEngineEnv) WaitForStepStarted(
+	t *testing.T, ctx context.Context, flowID api.FlowID, stepID api.StepID,
+	timeout time.Duration,
+) *api.ExecutionState {
+	t.Helper()
+
+	// Check if step has already started (avoid race condition)
+	flow, err := env.Engine.GetFlowState(ctx, flowID)
+	if err == nil && flow != nil {
+		exec, ok := flow.Executions[stepID]
+		if ok && exec.Status != api.StepPending {
+			return exec
+		}
+	}
+
+	consumer := (*env.EventHub).NewConsumer()
+	defer consumer.Close()
+
+	deadline := time.After(timeout)
+
+	for {
+		select {
+		case event := <-consumer.Receive():
+			if event == nil {
+				continue
+			}
+
+			eventType := api.EventType(event.Type)
+
+			// Check for step started event
+			if eventType == api.EventTypeStepStarted {
+				var ss api.StepStartedEvent
+				if err := json.Unmarshal(event.Data, &ss); err == nil {
+					if ss.FlowID == flowID && ss.StepID == stepID {
+						flow, err := env.Engine.GetFlowState(ctx, flowID)
+						assert.NoError(t, err)
+						return flow.Executions[stepID]
+					}
+				}
+			}
+
+		case <-deadline:
+			t.Fatalf("timeout waiting for step %s to start", stepID)
+			return nil
+
+		case <-ctx.Done():
+			t.FailNow()
+		}
+	}
+}
+
+// WaitForStepStatus waits for a specific step to reach a terminal status by
+// subscribing to events from the event hub
 func (env *TestEngineEnv) WaitForStepStatus(
 	t *testing.T, ctx context.Context, flowID api.FlowID, stepID api.StepID,
 	timeout time.Duration,

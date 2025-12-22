@@ -386,8 +386,13 @@ func TestFindRetriableSteps(t *testing.T) {
 
 	retryable := env.Engine.FindRetrySteps(state)
 
-	assert.Len(t, retryable, 2)
+	// Should include:
+	// - step-1: WorkPending with NextRetryAt
+	// - step-2: WorkActive (always retryable during recovery)
+	// - step-4: WorkPending with NextRetryAt
+	assert.Len(t, retryable, 3)
 	assert.Contains(t, retryable, api.StepID("step-1"))
+	assert.Contains(t, retryable, api.StepID("step-2"))
 	assert.Contains(t, retryable, api.StepID("step-4"))
 }
 

@@ -155,8 +155,9 @@ func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
 	return nil
 }
 
-// FindRetrySteps identifies all steps in a flow that have work items scheduled
-// for retry
+// FindRetrySteps identifies all steps in a flow that have work items that
+// might need recovery (Active, Pending with NextRetryAt, or Failed with
+// NextRetryAt)
 func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	retryableSteps := util.Set[api.StepID]{}
 
@@ -166,9 +167,13 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 		}
 
 		for _, workItem := range exec.WorkItems {
-			if workItem.Status == api.WorkPending &&
-				!workItem.NextRetryAt.IsZero() &&
-				workItem.RetryCount > 0 {
+			if workItem.Status == api.WorkActive {
+				retryableSteps.Add(stepID)
+				break
+			}
+			if (workItem.Status == api.WorkPending ||
+				workItem.Status == api.WorkFailed) &&
+				!workItem.NextRetryAt.IsZero() {
 				retryableSteps.Add(stepID)
 				break
 			}
