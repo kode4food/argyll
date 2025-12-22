@@ -157,25 +157,29 @@ func TestMultipleWorkflowRecovery(t *testing.T) {
 	assert.NoError(t, env.Engine.RegisterStep(ctx, step2))
 	assert.NoError(t, env.Engine.RegisterStep(ctx, step3))
 
+	// Subscribe BEFORE starting engine to avoid race condition
+	waiter1 := env.SubscribeToFlowStatus(flowID1)
+	waiter2 := env.SubscribeToFlowStatus(flowID2)
+	waiter3 := env.SubscribeToFlowStatus(flowID3)
+
 	env.Engine.Start()
 
-	// Verify all workflows recover and complete
-	// Wait concurrently to avoid missing events
+	// Wait concurrently for all workflows to recover and complete
 	var recovered1, recovered2, recovered3 *api.FlowState
 	var wg sync.WaitGroup
 	wg.Add(3)
 
 	go func() {
 		defer wg.Done()
-		recovered1 = env.WaitForFlowStatus(t, ctx, flowID1, recoveryTimeout)
+		recovered1 = waiter1.Wait(t, ctx, recoveryTimeout)
 	}()
 	go func() {
 		defer wg.Done()
-		recovered2 = env.WaitForFlowStatus(t, ctx, flowID2, recoveryTimeout)
+		recovered2 = waiter2.Wait(t, ctx, recoveryTimeout)
 	}()
 	go func() {
 		defer wg.Done()
-		recovered3 = env.WaitForFlowStatus(t, ctx, flowID3, recoveryTimeout)
+		recovered3 = waiter3.Wait(t, ctx, recoveryTimeout)
 	}()
 
 	wg.Wait()
