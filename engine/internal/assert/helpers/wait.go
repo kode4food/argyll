@@ -48,30 +48,30 @@ func (w *EventWaiter[T]) Wait(
 }
 
 // SubscribeToFlowStatus creates a waiter for flow completion/failure
-func (env *TestEngineEnv) SubscribeToFlowStatus(
+func (e *TestEngineEnv) SubscribeToFlowStatus(
 	flowID api.FlowID,
 ) *EventWaiter[*api.FlowState] {
 	return &EventWaiter[*api.FlowState]{
-		consumer: env.EventHub.NewConsumer(),
+		consumer: e.EventHub.NewConsumer(),
 		filter: filterFlowEvents(
 			flowID, api.EventTypeFlowCompleted, api.EventTypeFlowFailed,
 		),
 		getState: func(ctx context.Context) (*api.FlowState, error) {
-			return env.Engine.GetFlowState(ctx, flowID)
+			return e.Engine.GetFlowState(ctx, flowID)
 		},
 		desc: string(flowID),
 	}
 }
 
 // SubscribeToStepStarted creates a waiter for step start events
-func (env *TestEngineEnv) SubscribeToStepStarted(
+func (e *TestEngineEnv) SubscribeToStepStarted(
 	flowID api.FlowID, stepID api.StepID,
 ) *EventWaiter[*api.ExecutionState] {
 	return &EventWaiter[*api.ExecutionState]{
-		consumer: env.EventHub.NewConsumer(),
+		consumer: e.EventHub.NewConsumer(),
 		filter:   filterStepEvents(flowID, stepID, api.EventTypeStepStarted),
 		getState: func(ctx context.Context) (*api.ExecutionState, error) {
-			flow, err := env.Engine.GetFlowState(ctx, flowID)
+			flow, err := e.Engine.GetFlowState(ctx, flowID)
 			if err != nil {
 				return nil, err
 			}
@@ -82,17 +82,17 @@ func (env *TestEngineEnv) SubscribeToStepStarted(
 }
 
 // SubscribeToStepStatus creates a waiter for step completion/failure/skip
-func (env *TestEngineEnv) SubscribeToStepStatus(
+func (e *TestEngineEnv) SubscribeToStepStatus(
 	flowID api.FlowID, stepID api.StepID,
 ) *EventWaiter[*api.ExecutionState] {
 	return &EventWaiter[*api.ExecutionState]{
-		consumer: env.EventHub.NewConsumer(),
+		consumer: e.EventHub.NewConsumer(),
 		filter: filterStepEvents(
 			flowID, stepID, api.EventTypeStepCompleted,
 			api.EventTypeStepFailed, api.EventTypeStepSkipped,
 		),
 		getState: func(ctx context.Context) (*api.ExecutionState, error) {
-			flow, err := env.Engine.GetFlowState(ctx, flowID)
+			flow, err := e.Engine.GetFlowState(ctx, flowID)
 			if err != nil {
 				return nil, err
 			}
@@ -104,27 +104,27 @@ func (env *TestEngineEnv) SubscribeToStepStatus(
 
 // Convenience methods that subscribe and wait in one call
 
-func (env *TestEngineEnv) WaitForFlowStatus(
+func (e *TestEngineEnv) WaitForFlowStatus(
 	t *testing.T, ctx context.Context, flowID api.FlowID, timeout time.Duration,
 ) *api.FlowState {
 	t.Helper()
-	return env.SubscribeToFlowStatus(flowID).Wait(t, ctx, timeout)
+	return e.SubscribeToFlowStatus(flowID).Wait(t, ctx, timeout)
 }
 
-func (env *TestEngineEnv) WaitForStepStarted(
+func (e *TestEngineEnv) WaitForStepStarted(
 	t *testing.T, ctx context.Context, flowID api.FlowID, stepID api.StepID,
 	timeout time.Duration,
 ) *api.ExecutionState {
 	t.Helper()
-	return env.SubscribeToStepStarted(flowID, stepID).Wait(t, ctx, timeout)
+	return e.SubscribeToStepStarted(flowID, stepID).Wait(t, ctx, timeout)
 }
 
-func (env *TestEngineEnv) WaitForStepStatus(
+func (e *TestEngineEnv) WaitForStepStatus(
 	t *testing.T, ctx context.Context, flowID api.FlowID, stepID api.StepID,
 	timeout time.Duration,
 ) *api.ExecutionState {
 	t.Helper()
-	return env.SubscribeToStepStatus(flowID, stepID).Wait(t, ctx, timeout)
+	return e.SubscribeToStepStatus(flowID, stepID).Wait(t, ctx, timeout)
 }
 
 // Filter helpers

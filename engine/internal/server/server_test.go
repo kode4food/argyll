@@ -1468,9 +1468,9 @@ func TestDeleteStepInternalError(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func (env *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
+func (e *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
 	for range 50 {
-		flow, err := env.Engine.GetFlowState(context.Background(), fs.FlowID)
+		flow, err := e.Engine.GetFlowState(context.Background(), fs.FlowID)
 		if err == nil {
 			exec := flow.Executions[fs.StepID]
 			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {

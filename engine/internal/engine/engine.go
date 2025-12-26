@@ -31,6 +31,7 @@ type (
 		wg         sync.WaitGroup
 		flows      sync.Map // map[flowID]*flowActor
 		handler    timebox.Handler
+		retryQueue *RetryQueue
 	}
 
 	// EventConsumer consumes events from the event hub
@@ -80,6 +81,7 @@ func New(
 		cancel:     cancel,
 		consumer:   hub.NewConsumer(),
 		scripts:    NewScriptRegistry(),
+		retryQueue: NewRetryQueue(),
 	}
 	e.handler = e.createEventHandler()
 	return e
@@ -87,15 +89,19 @@ func New(
 
 func (e *Engine) createEventHandler() timebox.Handler {
 	const (
-		flowStarted   = timebox.EventType(api.EventTypeFlowStarted)
-		flowCompleted = timebox.EventType(api.EventTypeFlowCompleted)
-		flowFailed    = timebox.EventType(api.EventTypeFlowFailed)
+		flowStarted    = timebox.EventType(api.EventTypeFlowStarted)
+		flowCompleted  = timebox.EventType(api.EventTypeFlowCompleted)
+		flowFailed     = timebox.EventType(api.EventTypeFlowFailed)
+		retryScheduled = timebox.EventType(api.EventTypeRetryScheduled)
+		workSucceeded  = timebox.EventType(api.EventTypeWorkSucceeded)
 	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStarted:   timebox.MakeHandler(e.handleFlowStarted),
-		flowCompleted: timebox.MakeHandler(e.handleFlowCompleted),
-		flowFailed:    timebox.MakeHandler(e.handleFlowFailed),
+		flowStarted:    timebox.MakeHandler(e.handleFlowStarted),
+		flowCompleted:  timebox.MakeHandler(e.handleFlowCompleted),
+		flowFailed:     timebox.MakeHandler(e.handleFlowFailed),
+		retryScheduled: timebox.MakeHandler(e.handleRetryScheduled),
+		workSucceeded:  timebox.MakeHandler(e.handleWorkSucceeded),
 	})
 }
 
@@ -118,6 +124,7 @@ func (e *Engine) Start() {
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
 	e.cancel()
+	e.retryQueue.Stop()
 	defer e.consumer.Close()
 
 	done := make(chan struct{})
@@ -258,6 +265,7 @@ func (e *Engine) handleFlowStarted(
 func (e *Engine) handleFlowCompleted(
 	_ *timebox.Event, data api.FlowCompletedEvent,
 ) error {
+	e.retryQueue.RemoveFlow(data.FlowID)
 	return e.raiseEngineEvent(context.Background(),
 		api.EventTypeFlowDeactivated,
 		api.FlowDeactivatedEvent{FlowID: data.FlowID})
@@ -266,9 +274,29 @@ func (e *Engine) handleFlowCompleted(
 func (e *Engine) handleFlowFailed(
 	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
+	e.retryQueue.RemoveFlow(data.FlowID)
 	return e.raiseEngineEvent(context.Background(),
 		api.EventTypeFlowDeactivated,
 		api.FlowDeactivatedEvent{FlowID: data.FlowID})
+}
+
+func (e *Engine) handleRetryScheduled(
+	_ *timebox.Event, data api.RetryScheduledEvent,
+) error {
+	e.retryQueue.Push(&RetryItem{
+		FlowID:      data.FlowID,
+		StepID:      data.StepID,
+		Token:       data.Token,
+		NextRetryAt: data.NextRetryAt,
+	})
+	return nil
+}
+
+func (e *Engine) handleWorkSucceeded(
+	_ *timebox.Event, data api.WorkSucceededEvent,
+) error {
+	e.retryQueue.Remove(data.FlowID, data.StepID, data.Token)
+	return nil
 }
 
 func (e *Engine) raiseEngineEvent(

@@ -45,51 +45,51 @@ func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 
 // Success marks the async step as successfully completed with the given
 // outputs
-func (ac *AsyncContext) Success(outputs api.Args) error {
+func (c *AsyncContext) Success(outputs api.Args) error {
 	result := api.StepResult{
 		Success: true,
 		Outputs: outputs,
 	}
-	return ac.sendWebhook(result)
+	return c.sendWebhook(result)
 }
 
 // Complete sends the full step result to the orchestrator via webhook
-func (ac *AsyncContext) Complete(result api.StepResult) error {
-	return ac.sendWebhook(result)
+func (c *AsyncContext) Complete(result api.StepResult) error {
+	return c.sendWebhook(result)
 }
 
 // Fail marks the async step as failed with the given error
-func (ac *AsyncContext) Fail(err error) error {
+func (c *AsyncContext) Fail(err error) error {
 	result := api.StepResult{
 		Success: false,
 		Error:   err.Error(),
 	}
-	return ac.sendWebhook(result)
+	return c.sendWebhook(result)
 }
 
 // FlowID returns the flow ID for this async context
-func (ac *AsyncContext) FlowID() string {
-	return string(ac.Client.FlowID())
+func (c *AsyncContext) FlowID() string {
+	return string(c.Client.FlowID())
 }
 
 // StepID returns the step ID for this async context
-func (ac *AsyncContext) StepID() string {
-	return string(ac.StepContext.StepID)
+func (c *AsyncContext) StepID() string {
+	return string(c.StepContext.StepID)
 }
 
 // WebhookURL returns the webhook URL for delivering step results
-func (ac *AsyncContext) WebhookURL() string {
-	return ac.webhookURL
+func (c *AsyncContext) WebhookURL() string {
+	return c.webhookURL
 }
 
-func (ac *AsyncContext) sendWebhook(result api.StepResult) error {
+func (c *AsyncContext) sendWebhook(result api.StepResult) error {
 	jsonData, err := json.Marshal(result)
 	if err != nil {
 		return fmt.Errorf("failed to marshal result: %w", err)
 	}
 
 	resp, err := http.Post(
-		ac.webhookURL, "application/json", bytes.NewBuffer(jsonData),
+		c.webhookURL, "application/json", bytes.NewBuffer(jsonData),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to send webhook: %w", err)

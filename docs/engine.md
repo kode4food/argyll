@@ -668,7 +668,7 @@ After recovery completes, the engine starts two background goroutines:
 
 **Event loop**: Continuously reads events from the event consumer and routes them to flow actors.
 
-**Retry loop**: Every second, checks all active flows for work items with scheduled retries whose retry time has arrived, and re-executes them.
+**Retry loop**: Uses a timer-based queue that wakes at the exact time of the next scheduled retry. When a `RetryScheduledEvent` is received, the retry is added to the queue. The loop sleeps until the earliest retry time, then executes all ready retries.
 
 ### Starting a Flow
 
@@ -903,7 +903,7 @@ When a work item fails, the engine must decide whether to retry or fail permanen
 
 **Retry scheduling**: A "RetryScheduledEvent" is emitted with the next retry time. The work item's status becomes "pending" again, and its retry count is incremented.
 
-**Retry execution**: The retry loop (a background goroutine) wakes up every second and scans all active flows for work items whose retry time has arrived. For each one, it re-executes the work (same as initial execution, but with incremented retry count).
+**Retry execution**: When a `RetryScheduledEvent` is received, it's added to the retry queue. The retry loop sleeps until the earliest retry time arrives, then executes all ready work. This timer-based approach is more efficient than polling.
 
 **Permanent failure**: If a work item exceeds the maximum retry count, it's marked as permanently failed. This causes the step to fail, which may cascade to dependent steps.
 

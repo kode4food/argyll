@@ -340,20 +340,20 @@ func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 }
 
 // Equal returns true if two script configs are equal
-func (sc *ScriptConfig) Equal(other *ScriptConfig) bool {
-	return equalWithNilCheck(sc, other, func() bool {
-		return sc.Language == other.Language && sc.Script == other.Script
+func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
+	return equalWithNilCheck(c, other, func() bool {
+		return c.Language == other.Language && c.Script == other.Script
 	})
 }
 
 // Equal returns true if two work configs are equal
-func (wc *WorkConfig) Equal(other *WorkConfig) bool {
-	return equalWithNilCheck(wc, other, func() bool {
-		return wc.Parallelism == other.Parallelism &&
-			wc.MaxRetries == other.MaxRetries &&
-			wc.BackoffMs == other.BackoffMs &&
-			wc.MaxBackoffMs == other.MaxBackoffMs &&
-			wc.BackoffType == other.BackoffType
+func (c *WorkConfig) Equal(other *WorkConfig) bool {
+	return equalWithNilCheck(c, other, func() bool {
+		return c.Parallelism == other.Parallelism &&
+			c.MaxRetries == other.MaxRetries &&
+			c.BackoffMs == other.BackoffMs &&
+			c.MaxBackoffMs == other.MaxBackoffMs &&
+			c.BackoffType == other.BackoffType
 	})
 }
 

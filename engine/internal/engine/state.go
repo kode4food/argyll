@@ -6,8 +6,8 @@ import "github.com/kode4food/argyll/engine/pkg/util"
 type StateTransitions[T comparable] map[T]util.Set[T]
 
 // CanTransition returns whether transition from one state to another is valid
-func (st StateTransitions[T]) CanTransition(from, to T) bool {
-	allowed, ok := st[from]
+func (t StateTransitions[T]) CanTransition(from, to T) bool {
+	allowed, ok := t[from]
 	if !ok {
 		return false
 	}
@@ -15,7 +15,7 @@ func (st StateTransitions[T]) CanTransition(from, to T) bool {
 }
 
 // IsTerminal returns true if the state has no valid transitions
-func (st StateTransitions[T]) IsTerminal(state T) bool {
-	allowed, ok := st[state]
+func (t StateTransitions[T]) IsTerminal(state T) bool {
+	allowed, ok := t[state]
 	return ok && allowed.IsEmpty()
 }
