@@ -868,7 +868,7 @@ describe("useFlowWebSocket", () => {
   });
 
   describe("Event processing", () => {
-    test("only processes new events", () => {
+    test("only processes appended events", () => {
       const { rerender } = renderHook(() => useFlowWebSocket());
 
       mockUseWebSocketContext.mockReturnValue({

@@ -11,17 +11,6 @@ type FlowEvent = {
   data?: Record<string, any>;
 };
 
-const isNewEvent = (event: FlowEvent, seenSequences: Map<string, number>) => {
-  const key = event.id?.join(":") || "";
-  const currentMax = seenSequences.get(key) || 0;
-  const sequence = event.sequence || 0;
-  if (sequence <= currentMax) {
-    return false;
-  }
-  seenSequences.set(key, sequence);
-  return true;
-};
-
 const handleStepCatalogEvent = (
   event: FlowEvent,
   handlers: {
@@ -192,8 +181,6 @@ export const useFlowWebSocket = () => {
   }, [selectedFlow, nextSequence, subscribe]);
 
   const lastProcessedEventIndex = useRef(-1);
-  const seenSequences = useRef<Map<string, number>>(new Map());
-
   useEffect(() => {
     if (!events.length) return;
 
@@ -205,7 +192,6 @@ export const useFlowWebSocket = () => {
 
     for (const event of newEvents) {
       if (!event) continue;
-      if (!isNewEvent(event, seenSequences.current)) continue;
 
       const handled = handleStepCatalogEvent(event, {
         addStep,

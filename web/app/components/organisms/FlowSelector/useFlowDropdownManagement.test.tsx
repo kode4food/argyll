@@ -346,9 +346,6 @@ describe("useFlowDropdownManagement", () => {
 
     it("does not scroll when selected element is not found", () => {
       const scrollIntoView = jest.fn();
-      const mockElement = {
-        scrollIntoView: scrollIntoView,
-      };
 
       const { result } = renderHook(() =>
         useFlowDropdownManagement(flows, null)
