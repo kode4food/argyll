@@ -24,6 +24,7 @@ const mockSteps: Step[] = [
 ];
 
 const loadFlows = jest.fn().mockResolvedValue(undefined);
+const loadFlowData = jest.fn().mockResolvedValue(undefined);
 const addFlow = jest.fn();
 const removeFlow = jest.fn();
 
@@ -32,6 +33,9 @@ jest.mock("../store/flowStore", () => ({
   useLoadFlows: jest.fn(() => loadFlows),
   useAddFlow: jest.fn(() => addFlow),
   useRemoveFlow: jest.fn(() => removeFlow),
+  useFlowStore: jest.fn((selector: any) =>
+    selector({ loadFlowData: loadFlowData })
+  ),
 }));
 
 let goalIds: string[] = [];
@@ -138,6 +142,7 @@ describe("FlowCreationContext", () => {
     });
 
     expect(addFlow).toHaveBeenCalled();
+    expect(loadFlowData).toHaveBeenCalledWith("flow-1");
     expect(loadFlows).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/flow/flow-1");
     expect(uiState.setShowCreateForm).toHaveBeenCalledWith(false);
@@ -159,6 +164,7 @@ describe("FlowCreationContext", () => {
     });
 
     expect(removeFlow).toHaveBeenCalledWith("flow-err");
+    expect(loadFlowData).not.toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/");
   });
 });

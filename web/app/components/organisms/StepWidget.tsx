@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ExecutionResult, Step } from "../../api";
+import { AttributeValue, ExecutionResult, Step } from "../../api";
 import StepHeader from "../molecules/StepHeader";
 import StepAttributesSection from "../molecules/StepAttributesSection";
 import StepPredicate from "../molecules/StepPredicate";
@@ -22,6 +22,7 @@ interface StepWidgetProps {
   isPreviewMode?: boolean;
   flowId?: string;
   attributeProvenance?: Map<string, string>;
+  attributeValues?: Record<string, AttributeValue>;
   diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
   disableEdit?: boolean;
 }
@@ -39,6 +40,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
   isPreviewMode = false,
   flowId,
   attributeProvenance = new Map(),
+  attributeValues,
   diagramContainerRef,
   disableEdit = false,
 }) => {
@@ -125,6 +127,7 @@ const StepWidget: React.FC<StepWidgetProps> = ({
           showStatus={execution !== undefined || flowId !== undefined}
           execution={execution}
           attributeProvenance={attributeProvenance}
+          attributeValues={attributeValues}
         />
         <StepPredicate step={step} />
         <StepFooter

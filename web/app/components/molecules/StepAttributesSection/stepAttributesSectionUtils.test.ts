@@ -84,7 +84,7 @@ describe("stepAttributesSectionUtils", () => {
       error_message: null,
     };
 
-    it("extracts input values from execution inputs", () => {
+    it("extracts input values from flow state values", () => {
       const arg = {
         name: "input1",
         type: "string",
@@ -96,7 +96,10 @@ describe("stepAttributesSectionUtils", () => {
         },
       };
 
-      const result = getAttributeValue(arg, mockExecution);
+      const attributeValues = {
+        input1: { value: "value1", step: "step-0" },
+      };
+      const result = getAttributeValue(arg, mockExecution, attributeValues);
       expect(result.hasValue).toBe(true);
       expect(result.value).toBe("value1");
     });
@@ -150,6 +153,37 @@ describe("stepAttributesSectionUtils", () => {
       const result = getAttributeValue(arg, undefined);
       expect(result.hasValue).toBe(false);
       expect(result.value).toBeUndefined();
+    });
+
+    it("uses flow state values when execution inputs are missing", () => {
+      const arg = {
+        name: "input1",
+        type: "string",
+        argType: "required" as const,
+        spec: {
+          type: AttributeType.String,
+          role: AttributeRole.Required,
+          description: "",
+        },
+      };
+
+      const emptyExecution: ExecutionResult = {
+        id: "exec-1",
+        step_id: "step-1",
+        status: "skipped",
+        inputs: {},
+        outputs: undefined,
+        duration_ms: 0,
+        error_message: null,
+      };
+
+      const attributeValues = {
+        input1: { value: "state-value", step: "step-0" },
+      };
+
+      const result = getAttributeValue(arg, emptyExecution, attributeValues);
+      expect(result.hasValue).toBe(true);
+      expect(result.value).toBe("state-value");
     });
 
     it("returns no value when execution has no inputs/outputs", () => {

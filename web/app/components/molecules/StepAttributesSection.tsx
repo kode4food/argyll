@@ -1,5 +1,10 @@
 import React from "react";
-import { Step, ExecutionResult, AttributeRole } from "../../api";
+import {
+  Step,
+  ExecutionResult,
+  AttributeRole,
+  AttributeValue,
+} from "../../api";
 import Tooltip from "../atoms/Tooltip";
 import TooltipSection from "../atoms/TooltipSection";
 import { getArgIcon } from "@/utils/argIcons";
@@ -19,6 +24,7 @@ interface StepAttributesSectionProps {
   showStatus?: boolean;
   execution?: ExecutionResult;
   attributeProvenance?: Map<string, string>; // attribute name -> step ID that produced it
+  attributeValues?: Record<string, AttributeValue>;
 }
 
 const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
@@ -27,6 +33,7 @@ const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
   showStatus = false,
   execution,
   attributeProvenance = new Map(),
+  attributeValues,
 }) => {
   const renderStatusBadge = useAttributeStatusBadge();
 
@@ -54,7 +61,11 @@ const StepAttributesSection: React.FC<StepAttributesSectionProps> = ({
       data-testid="step-args"
     >
       {unifiedArgs.map((arg) => {
-        const { hasValue, value } = getAttributeValue(arg, execution);
+        const { hasValue, value } = getAttributeValue(
+          arg,
+          execution,
+          attributeValues
+        );
         const isWinner = attributeProvenance.get(arg.name) === step.id;
         const isSatisfied = satisfiedArgs.has(arg.name);
 

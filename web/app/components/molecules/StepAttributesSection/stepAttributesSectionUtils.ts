@@ -1,4 +1,4 @@
-import { ExecutionResult, AttributeSpec } from "../../../api";
+import { ExecutionResult, AttributeSpec, AttributeValue } from "../../../api";
 
 export interface ArgValueResult {
   hasValue: boolean;
@@ -63,7 +63,8 @@ export const getAttributeTooltipTitle = (
  */
 export const getAttributeValue = (
   arg: UnifiedArg,
-  execution?: ExecutionResult
+  execution?: ExecutionResult,
+  attributeValues?: Record<string, AttributeValue>
 ): ArgValueResult => {
   if (arg.argType === "output") {
     const hasValue = !!execution?.outputs && arg.name in execution.outputs;
@@ -73,9 +74,12 @@ export const getAttributeValue = (
     };
   }
 
-  const hasValue = !!execution?.inputs && arg.name in execution.inputs;
+  const hasStateValue =
+    !!attributeValues &&
+    Object.prototype.hasOwnProperty.call(attributeValues, arg.name);
+
   return {
-    hasValue,
-    value: hasValue ? execution?.inputs?.[arg.name] : undefined,
+    hasValue: hasStateValue,
+    value: hasStateValue ? attributeValues?.[arg.name]?.value : undefined,
   };
 };

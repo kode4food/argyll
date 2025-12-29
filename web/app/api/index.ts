@@ -12,6 +12,7 @@ export type {
   FlowContext,
   ExecutionResult,
   StepHealth,
+  AttributeValue,
 } from "./types";
 
 export {

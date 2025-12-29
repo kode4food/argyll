@@ -158,12 +158,16 @@ describe("StepAttributesSection", () => {
       inputs: { input1: "test value" },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      input1: { value: "test value" },
+    };
 
     render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
+        attributeValues={attributeValues}
       />
     );
 
@@ -208,12 +212,19 @@ describe("StepAttributesSection", () => {
       },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      str: { value: "string" },
+      num: { value: 42 },
+      obj: { value: { key: "value" } },
+      nullVal: { value: null },
+    };
 
     render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
+        attributeValues={attributeValues}
       />
     );
 
@@ -265,12 +276,16 @@ describe("StepAttributesSection", () => {
       inputs: { input1: "value1" },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      input1: { value: "value1" },
+    };
 
     const { container } = render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
+        attributeValues={attributeValues}
       />
     );
 
@@ -292,12 +307,16 @@ describe("StepAttributesSection", () => {
       },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      config: { value: { nested: { key: "value" }, array: [1, 2, 3] } },
+    };
 
     render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
+        attributeValues={attributeValues}
       />
     );
 
@@ -404,12 +423,16 @@ describe("StepAttributesSection", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      opt1: { value: "default-value" },
+    };
 
     const { container } = render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={new Set()}
         execution={execution}
+        attributeValues={attributeValues}
         showStatus
       />
     );
@@ -493,12 +516,16 @@ describe("StepAttributesSection", () => {
       inputs: { circular: circularObj },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      circular: { value: circularObj },
+    };
 
     render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={new Set()}
         execution={execution}
+        attributeValues={attributeValues}
       />
     );
 
@@ -530,12 +557,16 @@ describe("StepAttributesSection", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeValues = {
+      opt1: { value: "default-value" },
+    };
 
     render(
       <StepAttributesSection
         step={step}
         satisfiedArgs={new Set()}
         execution={execution}
+        attributeValues={attributeValues}
       />
     );
 

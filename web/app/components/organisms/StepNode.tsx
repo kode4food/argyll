@@ -87,6 +87,7 @@ const StepNode: React.FC<NodeProps> = ({ data }) => {
           execution={execution}
           satisfiedArgs={satisfied}
           attributeProvenance={provenance}
+          attributeValues={flowData?.state}
           isInPreviewPlan={nodeData.isInPreviewPlan}
           isPreviewMode={nodeData.isPreviewMode}
           flowId={flowData?.id}
