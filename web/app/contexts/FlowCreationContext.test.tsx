@@ -106,7 +106,7 @@ describe("FlowCreationContext", () => {
     const ctx = flowCtx!;
 
     await act(async () => {
-      await ctx.handleStepChange(["goal"]);
+      ctx.handleStepChange(["goal"]);
     });
 
     expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
@@ -120,7 +120,7 @@ describe("FlowCreationContext", () => {
     const ctx = flowCtx!;
 
     await act(async () => {
-      await ctx.handleStepChange([]);
+      ctx.handleStepChange([]);
     });
 
     expect(uiState.clearPreviewPlan).toHaveBeenCalled();
@@ -138,7 +138,7 @@ describe("FlowCreationContext", () => {
     ctx = flowCtx!;
 
     await act(async () => {
-      await ctx.handleCreateFlow();
+      ctx.handleCreateFlow();
     });
 
     expect(addFlow).toHaveBeenCalled();
@@ -160,7 +160,7 @@ describe("FlowCreationContext", () => {
     ctx = flowCtx!;
 
     await act(async () => {
-      await ctx.handleCreateFlow();
+      ctx.handleCreateFlow();
     });
 
     expect(removeFlow).toHaveBeenCalledWith("flow-err");

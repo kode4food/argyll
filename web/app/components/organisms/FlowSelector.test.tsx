@@ -233,7 +233,7 @@ describe("FlowSelector", () => {
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
-      await capturedFormProps!.handleStepChange(["goal"]);
+      capturedFormProps!.handleStepChange(["goal"]);
     });
 
     expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
@@ -268,10 +268,10 @@ describe("FlowSelector", () => {
       capturedFormProps!.setNewID("new-flow");
     });
     await act(async () => {
-      await capturedFormProps!.handleStepChange(["goal"]);
+      capturedFormProps!.handleStepChange(["goal"]);
     });
     await act(async () => {
-      await capturedFormProps!.handleCreateFlow();
+      capturedFormProps!.handleCreateFlow();
     });
 
     expect(addFlow).toHaveBeenCalled();

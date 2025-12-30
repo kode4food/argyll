@@ -100,7 +100,7 @@ const FlowCreateForm: React.FC = () => {
                       const newGoalStepIds = isSelected
                         ? goalSteps.filter((id) => id !== step.id)
                         : [...goalSteps, step.id];
-                      await handleStepChange(newGoalStepIds);
+                      handleStepChange(newGoalStepIds);
                     }}
                   >
                     <table className={styles.stepTable}>
