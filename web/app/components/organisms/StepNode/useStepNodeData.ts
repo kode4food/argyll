@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Step, FlowContext, ExecutionResult } from "../../../api";
+import { Step, FlowContext, ExecutionResult } from "@/app/api";
 import { buildProvenanceMap, calculateSatisfiedArgs } from "./stepNodeUtils";
 
 export interface StepNodeDataResult {

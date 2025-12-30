@@ -1,4 +1,4 @@
-import { Step, SCRIPT_LANGUAGE_ALE } from "../../../api";
+import { Step, SCRIPT_LANGUAGE_ALE } from "@/app/api";
 import { Code2, FileCode2, Globe, Webhook } from "lucide-react";
 import React from "react";
 

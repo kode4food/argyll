@@ -1,4 +1,4 @@
-import { ExecutionResult, AttributeSpec, AttributeValue } from "../../../api";
+import { ExecutionResult, AttributeSpec, AttributeValue } from "@/app/api";
 
 export interface ArgValueResult {
   hasValue: boolean;

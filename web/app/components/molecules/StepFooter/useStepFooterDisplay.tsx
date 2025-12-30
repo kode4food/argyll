@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import React from "react";
-import { Step, ExecutionResult, HealthStatus } from "../../../api";
+import { Step, ExecutionResult, HealthStatus } from "@/app/api";
 import { getProgressIcon } from "@/utils/progressUtils";
 import {
   formatScriptPreview,

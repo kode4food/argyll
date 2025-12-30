@@ -1,4 +1,4 @@
-import { AttributeSpec, AttributeRole } from "../../../api";
+import { AttributeSpec, AttributeRole } from "@/app/api";
 
 export interface HandlePosition {
   id: string;

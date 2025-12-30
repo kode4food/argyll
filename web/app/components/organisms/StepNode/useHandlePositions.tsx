@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect } from "react";
-import { Step } from "../../../api";
+import { Step } from "@/app/api";
 import {
   groupAttributesByRole,
   generateHandleId,
