@@ -5,7 +5,6 @@ import FlowSelector from "./FlowSelector";
 import { useFlowCreation } from "../../contexts/FlowCreationContext";
 import { FlowSessionProvider } from "../../contexts/FlowSessionContext";
 import { FlowContext, Step } from "../../api";
-import { WebSocketEvent } from "../../hooks/useWebSocketContext";
 
 type UIStateMock = {
   showCreateForm: boolean;
@@ -21,8 +20,6 @@ type UIStateMock = {
 };
 
 const pushMock = jest.fn();
-const subscribeMock = jest.fn();
-let eventsMock: WebSocketEvent[] = [];
 
 const uiState: UIStateMock = {
   showCreateForm: false,
@@ -44,13 +41,6 @@ jest.mock("react-router-dom", () => ({
 
 jest.mock("./FlowSelector/useFlowFromUrl", () => ({
   useFlowFromUrl: jest.fn(),
-}));
-
-jest.mock("../../hooks/useWebSocketContext", () => ({
-  useWebSocketContext: () => ({
-    subscribe: subscribeMock,
-    events: eventsMock,
-  }),
 }));
 
 jest.mock("../../contexts/UIContext", () => ({
@@ -78,7 +68,6 @@ jest.mock("../../contexts/FlowSessionContext", () => {
     loadSteps: jest.fn(),
     steps: [] as Step[],
     flows: [] as FlowContext[],
-    updateFlowStatus: jest.fn(),
     flowData: null,
     loading: false,
     flowNotFound: false,
@@ -161,7 +150,6 @@ describe("FlowSelector", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    eventsMock = [];
     capturedFormProps = null;
     flowCreationMock.newID = "";
     flowCreationMock.handleCreateFlow = jest.fn();
@@ -228,31 +216,6 @@ describe("FlowSelector", () => {
     fireEvent.mouseDown(screen.getByText("wf-1"));
 
     expect(pushMock).toHaveBeenCalledWith("/flow/wf-1");
-  });
-
-  it("subscribes and updates flow status", async () => {
-    const updateFlowStatus = jest.fn();
-    flowSessionMock.updateFlowStatus = updateFlowStatus;
-    eventsMock = [
-      {
-        type: "flow_completed",
-        timestamp: Date.now(),
-        sequence: 1,
-        id: ["flow", "wf-123"],
-        data: {},
-      },
-    ];
-
-    await renderSelector();
-
-    expect(subscribeMock).toHaveBeenCalledWith({
-      event_types: ["flow_started", "flow_completed", "flow_failed"],
-    });
-    expect(updateFlowStatus).toHaveBeenCalledWith(
-      "wf-123",
-      "completed",
-      expect.any(String)
-    );
   });
 
   it("updates preview when goal changes", async () => {

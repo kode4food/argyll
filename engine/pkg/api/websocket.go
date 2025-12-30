@@ -14,10 +14,9 @@ type (
 
 	// ClientSubscription configures which events a WebSocket client receives
 	ClientSubscription struct {
-		FlowID       FlowID      `json:"flow_id"`
+		AggregateID  []string    `json:"aggregate_id"`
 		EventTypes   []EventType `json:"event_types,omitempty"`
 		FromSequence int64       `json:"from_sequence,omitempty"`
-		EngineEvents bool        `json:"engine_events,omitempty"`
 	}
 
 	// SubscribeMessage is sent by clients to subscribe to events

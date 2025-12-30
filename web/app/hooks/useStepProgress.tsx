@@ -1,5 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
-import { useWebSocketContext } from "./useWebSocketContext";
+import { useMemo } from "react";
 import { ExecutionResult, StepStatus } from "../api";
 import { useExecutions } from "../store/flowStore";
 
@@ -14,8 +13,6 @@ interface WorkItemProgress {
 
 interface StepProgressState {
   status: StepProgressStatus;
-  startTime?: number;
-  endTime?: number;
   flowId?: string;
   workItems?: WorkItemProgress;
 }
@@ -25,11 +22,7 @@ export const useStepProgress = (
   flowId?: string,
   execution?: ExecutionResult
 ) => {
-  const { events } = useWebSocketContext();
   const executions = useExecutions();
-  const [progressState, setProgressState] = useState<StepProgressState>({
-    status: "pending",
-  });
 
   // Calculate work item progress from executions
   const workItemProgress = useMemo(() => {
@@ -56,80 +49,29 @@ export const useStepProgress = (
     return progress;
   }, [executions, stepId, flowId]);
 
-  useEffect(() => {
-    if (!flowId) {
-      setProgressState({ status: "pending" });
-      return;
-    }
-
+  const effectiveExecution = useMemo(() => {
     if (
       execution &&
       execution.flow_id === flowId &&
       execution.step_id === stepId
     ) {
-      setProgressState({
-        status: execution.status as StepProgressStatus,
-        flowId,
-        workItems: workItemProgress,
-      });
-      return;
+      return execution;
     }
-
-    const stepEvents = events.filter(
-      (event) =>
-        event.data?.step_id === stepId && event.data?.flow_id === flowId
+    if (!flowId) return undefined;
+    return executions.find(
+      (e: any) => e.step_id === stepId && e.flow_id === flowId
     );
+  }, [execution, executions, flowId, stepId]);
 
-    if (stepEvents.length === 0) {
-      setProgressState({
-        status: "pending",
-        flowId,
-        workItems: workItemProgress,
-      });
-      return;
-    }
+  const status = effectiveExecution?.status
+    ? (effectiveExecution.status as StepProgressStatus)
+    : "pending";
 
-    const latestEvent = stepEvents[stepEvents.length - 1];
-
-    let newState: StepProgressState;
-
-    switch (latestEvent.type) {
-      case "step_started":
-        newState = {
-          status: "active",
-          startTime: latestEvent.data?.start_time,
-          flowId,
-          workItems: workItemProgress,
-        };
-        break;
-      case "step_completed":
-        newState = {
-          status: "completed",
-          startTime: latestEvent.data?.start_time,
-          endTime: latestEvent.data?.end_time,
-          flowId,
-          workItems: workItemProgress,
-        };
-        break;
-      case "step_failed":
-        newState = {
-          status: "failed",
-          startTime: latestEvent.data?.start_time,
-          endTime: latestEvent.data?.end_time,
-          flowId,
-          workItems: workItemProgress,
-        };
-        break;
-      default:
-        newState = {
-          status: "pending",
-          flowId,
-          workItems: workItemProgress,
-        };
-    }
-
-    setProgressState(newState);
-  }, [events, stepId, flowId, execution, workItemProgress]);
+  const progressState: StepProgressState = {
+    status,
+    flowId,
+    workItems: workItemProgress,
+  };
 
   return progressState;
 };

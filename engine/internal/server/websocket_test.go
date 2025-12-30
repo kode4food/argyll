@@ -103,7 +103,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			FlowID: "wf-123",
+			AggregateID: []string{"flow", "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -158,7 +158,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "other",
 		Data: api.ClientSubscription{
-			FlowID: "wf-123",
+			AggregateID: []string{"flow", "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -196,8 +196,10 @@ func TestReplayWithEvents(t *testing.T) {
 		},
 	}
 
-	replay := func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
-		assert.Equal(t, api.FlowID("wf-123"), flowID)
+	replay := func(
+		id timebox.AggregateID, fromSeq int64,
+	) ([]*timebox.Event, error) {
+		assert.Equal(t, timebox.NewAggregateID("flow", "wf-123"), id)
 		assert.Equal(t, int64(0), fromSeq)
 		return replayEvents, nil
 	}
@@ -208,7 +210,7 @@ func TestReplayWithEvents(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			FlowID: "wf-123",
+			AggregateID: []string{"flow", "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -227,7 +229,9 @@ func TestReplayWithEvents(t *testing.T) {
 }
 
 func TestReplayWithError(t *testing.T) {
-	replay := func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
+	replay := func(
+		id timebox.AggregateID, fromSeq int64,
+	) ([]*timebox.Event, error) {
 		return nil, assert.AnError
 	}
 
@@ -237,7 +241,7 @@ func TestReplayWithError(t *testing.T) {
 	sub := api.SubscribeMessage{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			FlowID: "wf-123",
+			AggregateID: []string{"flow", "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -250,9 +254,11 @@ func TestReplayWithError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestReplayWithoutFlowID(t *testing.T) {
+func TestReplayWithoutAggregateID(t *testing.T) {
 	replayCalled := false
-	replay := func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
+	replay := func(
+		id timebox.AggregateID, fromSeq int64,
+	) ([]*timebox.Event, error) {
 		replayCalled = true
 		return nil, nil
 	}
@@ -278,14 +284,14 @@ func TestReplayWithoutFlowID(t *testing.T) {
 
 func TestEngineEvents(t *testing.T) {
 	sub := &api.ClientSubscription{
-		EngineEvents: true,
+		AggregateID: []string{"engine"},
 	}
 
 	filter := server.BuildFilter(sub)
 
 	engineEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
-		AggregateID: timebox.NewAggregateID("engine", "engine"),
+		AggregateID: timebox.NewAggregateID("engine"),
 	}
 	flowEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -326,7 +332,7 @@ func TestEventTypes(t *testing.T) {
 
 func TestFlow(t *testing.T) {
 	sub := &api.ClientSubscription{
-		FlowID: "wf-123",
+		AggregateID: []string{"flow", "wf-123"},
 	}
 
 	filter := server.BuildFilter(sub)
@@ -359,15 +365,15 @@ func TestNoFilters(t *testing.T) {
 
 func TestCombined(t *testing.T) {
 	sub := &api.ClientSubscription{
-		EngineEvents: true,
-		EventTypes:   []api.EventType{api.EventTypeFlowStarted},
+		AggregateID: []string{"engine"},
+		EventTypes:  []api.EventType{api.EventTypeFlowStarted},
 	}
 
 	filter := server.BuildFilter(sub)
 
 	engineEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
-		AggregateID: timebox.NewAggregateID("engine", "engine"),
+		AggregateID: timebox.NewAggregateID("engine"),
 	}
 	flowEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -385,8 +391,8 @@ func TestCombined(t *testing.T) {
 
 func TestEventTypesWithFlowID(t *testing.T) {
 	sub := &api.ClientSubscription{
-		FlowID:     "wf-123",
-		EventTypes: []api.EventType{api.EventTypeFlowStarted},
+		AggregateID: []string{"flow", "wf-123"},
+		EventTypes:  []api.EventType{api.EventTypeFlowStarted},
 	}
 
 	filter := server.BuildFilter(sub)
@@ -405,7 +411,7 @@ func TestEventTypesWithFlowID(t *testing.T) {
 	}
 
 	assert.True(t, filter(matchingEvent))
-	assert.False(t, filter(wrongTypeEvent))
+	assert.True(t, filter(wrongTypeEvent))
 	assert.True(t, filter(wrongFlowEvent))
 }
 

@@ -2,7 +2,6 @@ import React from "react";
 import StepDiagram from "./StepDiagram";
 import EmptyState from "../molecules/EmptyState";
 import styles from "./FlowDiagram.module.css";
-import { useFlowWebSocket } from "./FlowDiagram/useFlowWebSocket";
 import FlowStats from "../organisms/FlowStats";
 import { AlertCircle, Plus } from "lucide-react";
 import ErrorBoundary from "../organisms/ErrorBoundary";
@@ -17,8 +16,6 @@ import {
 import { useStepEditorIntegration } from "./FlowDiagram/useStepEditorIntegration";
 
 const FlowDiagramContent: React.FC = () => {
-  useFlowWebSocket();
-
   const {
     selectedFlow,
     flowData,

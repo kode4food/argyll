@@ -22,13 +22,10 @@ func FilterEvents(eventTypes ...timebox.EventType) EventFilter {
 	}
 }
 
-// FilterFlow creates a filter that matches events for a specific flow ID
-func FilterFlow(flowID api.FlowID) EventFilter {
+// FilterAggregate matches events for a specific aggregate ID
+func FilterAggregate(id timebox.AggregateID) EventFilter {
 	return func(ev *timebox.Event) bool {
-		if !IsFlowEvent(ev) {
-			return false
-		}
-		return ev.AggregateID[1] == timebox.ID(flowID)
+		return ev.AggregateID.Equal(id)
 	}
 }
 

@@ -1,7 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
-import { WebSocketProvider } from "./hooks/useWebSocketContext";
+import WebSocketProvider from "./contexts/WebSocketProvider";
 import ConnectionStatusWrapper from "./components/atoms/ConnectionStatusWrapper";
 import FlowPage from "./components/templates/FlowPage";
 import NotFoundPage from "./components/organisms/NotFoundPage";

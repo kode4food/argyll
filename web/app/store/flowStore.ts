@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
 import { api, FlowContext, ExecutionResult, Step } from "../api";
+import { ConnectionStatus } from "../types/websocket";
 
 interface StepHealthInfo {
   status: string;
@@ -57,7 +58,9 @@ interface FlowState {
   error: string | null;
   flowNotFound: boolean;
   isFlowMode: boolean;
-  nextSequence: number;
+  engineConnectionStatus: ConnectionStatus;
+  engineReconnectAttempt: number;
+  engineReconnectRequest: number;
   loadSteps: () => Promise<void>;
   loadFlows: () => Promise<void>;
   addStep: (step: Step) => void;
@@ -77,6 +80,11 @@ interface FlowState {
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
   initializeExecutions: (flowId: string, plan: any) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
+  setEngineSocketStatus: (
+    status: ConnectionStatus,
+    reconnectAttempt: number
+  ) => void;
+  requestEngineReconnect: () => void;
 }
 
 export const useFlowStore = create<FlowState>()(
@@ -93,7 +101,9 @@ export const useFlowStore = create<FlowState>()(
       error: null,
       flowNotFound: false,
       isFlowMode: false,
-      nextSequence: 0,
+      engineConnectionStatus: "connecting",
+      engineReconnectAttempt: 0,
+      engineReconnectRequest: 0,
 
       loadSteps: async () => {
         try {
@@ -147,7 +157,6 @@ export const useFlowStore = create<FlowState>()(
           executions: [],
           resolvedAttributes: [],
           isFlowMode: !!flowId,
-          nextSequence: 0,
         });
 
         if (flowId) {
@@ -347,6 +356,22 @@ export const useFlowStore = create<FlowState>()(
           set({ executions: updated, resolvedAttributes: newResolvedAttrs });
         }
       },
+
+      setEngineSocketStatus: (
+        status: ConnectionStatus,
+        reconnectAttempt: number
+      ) => {
+        set({
+          engineConnectionStatus: status,
+          engineReconnectAttempt: reconnectAttempt,
+        });
+      },
+
+      requestEngineReconnect: () => {
+        set((state) => ({
+          engineReconnectRequest: state.engineReconnectRequest + 1,
+        }));
+      },
     }),
     { name: "FlowStore" }
   )
@@ -366,6 +391,12 @@ export const useFlowError = () => useFlowStore((state) => state.error);
 export const useFlowNotFound = () =>
   useFlowStore((state) => state.flowNotFound);
 export const useIsFlowMode = () => useFlowStore((state) => state.isFlowMode);
+export const useEngineConnectionStatus = () =>
+  useFlowStore((state) => state.engineConnectionStatus);
+export const useEngineReconnectAttempt = () =>
+  useFlowStore((state) => state.engineReconnectAttempt);
+export const useRequestEngineReconnect = () =>
+  useFlowStore((state) => state.requestEngineReconnect);
 
 // Action selectors
 type ActionKeys =

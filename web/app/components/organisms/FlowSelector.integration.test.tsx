@@ -14,13 +14,6 @@ jest.mock("./FlowSelector/useFlowFromUrl", () => ({
   useFlowFromUrl: jest.fn(),
 }));
 
-jest.mock("../../hooks/useWebSocketContext", () => ({
-  useWebSocketContext: () => ({
-    subscribe: jest.fn(),
-    events: [],
-  }),
-}));
-
 jest.mock("../../store/flowStore", () => {
   const loadFlows = jest.fn().mockResolvedValue(undefined);
   const loadSteps = jest.fn().mockResolvedValue(undefined);

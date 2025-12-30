@@ -182,6 +182,13 @@ func (e *Engine) GetEngineState(ctx context.Context) (*api.EngineState, error) {
 	)
 }
 
+// GetEngineEvents retrieves engine events starting from the specified sequence
+func (e *Engine) GetEngineEvents(
+	ctx context.Context, fromSeq int64,
+) ([]*timebox.Event, error) {
+	return e.engineExec.GetStore().GetEvents(ctx, events.EngineID, fromSeq)
+}
+
 // ListSteps returns all currently registered steps in the engine
 func (e *Engine) ListSteps(ctx context.Context) ([]*api.Step, error) {
 	engState, err := e.GetEngineState(ctx)

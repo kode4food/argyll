@@ -4,7 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { generateFlowId } from "@/utils/flowUtils";
 import { mapFlowStatusToProgressStatus } from "./FlowSelector/flowSelectorUtils";
 import { useFlowDropdownManagement } from "./FlowSelector/useFlowDropdownManagement";
-import { useFlowStatusUpdates } from "./FlowSelector/useFlowStatusUpdates";
 
 const FlowCreateForm = lazy(() => import("./FlowCreateForm"));
 const KeyboardShortcutsModal = lazy(
@@ -15,7 +14,6 @@ import { useFlowFromUrl } from "./FlowSelector/useFlowFromUrl";
 import { useUI } from "../../contexts/UIContext";
 import { getProgressIcon } from "@/utils/progressUtils";
 import { useKeyboardShortcuts } from "../../hooks/useKeyboardShortcuts";
-import { useWebSocketContext } from "../../hooks/useWebSocketContext";
 import ErrorBoundary from "./ErrorBoundary";
 import styles from "./FlowSelector.module.css";
 import {
@@ -131,8 +129,7 @@ const FlowSelectorDropdown = () => {
 const FlowSelectorContent: React.FC = () => {
   const navigate = useNavigate();
   useFlowFromUrl();
-  const { flows, selectedFlow, loadFlows, updateFlowStatus } = useFlowSession();
-  const { subscribe, events } = useWebSocketContext();
+  const { flows, selectedFlow } = useFlowSession();
   const { showCreateForm, setShowCreateForm } = useUI();
   const { setNewID } = useFlowCreation();
 
@@ -176,16 +173,6 @@ const FlowSelectorContent: React.FC = () => {
     ],
     !showCreateForm && !showShortcutsModal
   );
-
-  useFlowStatusUpdates({
-    showDropdown,
-    selectedFlow,
-    subscribe,
-    events,
-    flows,
-    updateFlowStatus,
-    loadFlows,
-  });
 
   const dropdownValue: FlowDropdownContextValue = {
     showDropdown,

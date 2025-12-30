@@ -1,6 +1,6 @@
 import React from "react";
 import { Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
-import { ConnectionStatus } from "../../hooks/useWebSocketContext";
+import { ConnectionStatus } from "../../types/websocket";
 import styles from "./ConnectionStatusIndicator.module.css";
 
 interface ConnectionStatusIndicatorProps {

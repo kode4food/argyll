@@ -1,12 +1,17 @@
 "use client";
 
 import React from "react";
-import { useWebSocketContext } from "../../hooks/useWebSocketContext";
+import {
+  useEngineConnectionStatus,
+  useEngineReconnectAttempt,
+  useRequestEngineReconnect,
+} from "../../store/flowStore";
 import ConnectionStatusIndicator from "./ConnectionStatusIndicator";
 
 const ConnectionStatusWrapper: React.FC = () => {
-  const { connectionStatus, reconnectAttempt, reconnect } =
-    useWebSocketContext();
+  const connectionStatus = useEngineConnectionStatus();
+  const reconnectAttempt = useEngineReconnectAttempt();
+  const reconnect = useRequestEngineReconnect();
 
   return (
     <ConnectionStatusIndicator

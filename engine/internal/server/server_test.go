@@ -778,7 +778,7 @@ func TestStartInvalidJSON(t *testing.T) {
 
 func TestFilterEngineEvents(t *testing.T) {
 	sub := &api.ClientSubscription{
-		EngineEvents: true,
+		AggregateID: []string{"engine"},
 	}
 
 	filter := server.BuildFilter(sub)
@@ -791,8 +791,10 @@ func TestFilterEngineEvents(t *testing.T) {
 	assert.True(t, filter(engineEvent))
 
 	flowEvent := &timebox.Event{
-		AggregateID: timebox.AggregateID{timebox.ID("flow-123")},
-		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		AggregateID: timebox.AggregateID{
+			timebox.ID("flow"), timebox.ID("flow-123"),
+		},
+		Type: timebox.EventType(api.EventTypeFlowStarted),
 	}
 	assert.False(t, filter(flowEvent))
 }
@@ -825,7 +827,7 @@ func TestFilterEventTypes(t *testing.T) {
 
 func TestFilterFlowID(t *testing.T) {
 	sub := &api.ClientSubscription{
-		FlowID: "test-flow",
+		AggregateID: []string{"flow", "test-flow"},
 	}
 
 	filter := server.BuildFilter(sub)
@@ -861,7 +863,7 @@ func TestFilterEmpty(t *testing.T) {
 
 func TestFilterCombined(t *testing.T) {
 	sub := &api.ClientSubscription{
-		EngineEvents: true,
+		AggregateID: []string{"engine"},
 		EventTypes: []api.EventType{
 			api.EventTypeStepRegistered,
 		},

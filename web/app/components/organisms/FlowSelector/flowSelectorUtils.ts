@@ -28,18 +28,3 @@ export function filterFlowsBySearch<T extends SelectableFlow>(
   const sanitized = sanitizeFlowID(searchTerm);
   return flows.filter((flow) => flow.id.includes(sanitized));
 }
-
-export function createEventKey(id: string[], sequence: number): string {
-  return `${id.join(":")}:${sequence}`;
-}
-
-export function extractFlowIdFromEvent(eventId: string[]): string | null {
-  if (!eventId || eventId.length < 2) {
-    return null;
-  }
-  return eventId[1];
-}
-
-export function flowExists(flows: SelectableFlow[], flowId: string): boolean {
-  return flows.some((flow) => flow.id === flowId);
-}

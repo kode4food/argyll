@@ -31,9 +31,10 @@ func TestFilterEvents(t *testing.T) {
 	assert.False(t, filter(event3))
 }
 
-func TestFilterFlow(t *testing.T) {
-	flowID := api.FlowID("test-flow-123")
-	filter := events.FilterFlow(flowID)
+func TestFilterAggregate(t *testing.T) {
+	filter := events.FilterAggregate(
+		timebox.NewAggregateID("flow", "test-flow-123"),
+	)
 
 	flowEvent := &timebox.Event{
 		AggregateID: timebox.NewAggregateID("flow", "test-flow-123"),

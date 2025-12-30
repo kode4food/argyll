@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestRetryQueueBasicOperations(t *testing.T) {

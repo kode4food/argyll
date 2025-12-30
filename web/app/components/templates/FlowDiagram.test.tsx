@@ -4,10 +4,6 @@ import { render, screen, fireEvent, act } from "@testing-library/react";
 import FlowDiagram from "./FlowDiagram";
 import { Step, FlowContext, ExecutionResult } from "../../api";
 
-jest.mock("./FlowDiagram/useFlowWebSocket", () => ({
-  useFlowWebSocket: jest.fn(),
-}));
-
 jest.mock("../../contexts/StepEditorContext", () => {
   const openEditor = jest.fn();
   const closeEditor = jest.fn();

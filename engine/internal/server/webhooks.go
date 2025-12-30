@@ -1,6 +1,7 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -122,8 +123,23 @@ func (s *Server) handleWorkWebhook(
 
 func (s *Server) handleWebSocket(c *gin.Context) {
 	HandleWebSocket(s.eventHub, c.Writer, c.Request,
-		func(flowID api.FlowID, fromSeq int64) ([]*timebox.Event, error) {
-			return s.engine.GetFlowEvents(c.Request.Context(), flowID, fromSeq)
+		func(id timebox.AggregateID, fromSeq int64) ([]*timebox.Event, error) {
+			if len(id) == 0 {
+				return nil, nil
+			}
+			ctx := c.Request.Context()
+			switch id[0] {
+			case "engine":
+				return s.engine.GetEngineEvents(ctx, fromSeq)
+			case "flow":
+				if len(id) < 2 {
+					return nil, errors.New("invalid aggregate_id")
+				}
+				flowID := api.FlowID(id[1])
+				return s.engine.GetFlowEvents(ctx, flowID, fromSeq)
+			default:
+				return nil, errors.New("invalid aggregate_id")
+			}
 		},
 	)
 }
