@@ -520,11 +520,67 @@ paths:
       description: |
         Establish WebSocket connection for real-time event streaming.
 
-        The WebSocket streams all engine and flow events, enabling:
-        - Real-time flow monitoring
-        - Live step execution updates
-        - Health status changes
-        - Step registration/unregistration events
+        ## Subscription Protocol
+
+        After connecting, send a subscribe message to receive events:
+
+        ```json
+        {
+          "type": "subscribe",
+          "data": {
+            "aggregate_id": ["flow", "my-flow-id"]
+          }
+        }
+        ```
+
+        The server responds with a `subscribed` message containing the current
+        state and sequence number:
+
+        ```json
+        {
+          "type": "subscribed",
+          "id": ["flow", "my-flow-id"],
+          "data": { ... current flow state ... },
+          "sequence": 42
+        }
+        ```
+
+        After subscription, the server streams events matching your filter.
+        The server filters out stale events (sequence < subscription sequence)
+        to prevent race conditions.
+
+        ## Aggregate IDs
+
+        - **Engine events**: `["engine"]` - step registration, health changes
+        - **Flow events**: `["flow", "flow-id"]` - flow and step execution events
+
+        ## Event Filtering
+
+        You can also filter by event types:
+
+        ```json
+        {
+          "type": "subscribe",
+          "data": {
+            "aggregate_id": ["flow", "my-flow-id"],
+            "event_types": ["step_completed", "step_failed"]
+          }
+        }
+        ```
+
+        ## Event Message Format
+
+        Events include aggregate ID and sequence for ordering:
+
+        ```json
+        {
+          "type": "flow_started",
+          "timestamp": 1733151600000,
+          "id": ["flow", "my-flow-id"],
+          "data": { ... event payload ... },
+          "sequence": 43
+        }
+        ```
 
         **Event Types:**
         - Engine events: step_registered, step_unregistered, step_health_changed

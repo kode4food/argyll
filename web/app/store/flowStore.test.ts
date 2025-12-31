@@ -143,6 +143,25 @@ describe("flowStore", () => {
       expect(useFlowStore.getState().steps).toHaveLength(1);
     });
 
+    test("updateStep updates existing step", () => {
+      useFlowStore.setState({ steps: [mockStep] });
+      const updatedStep = { ...mockStep, name: "Updated Step" };
+      useFlowStore.getState().updateStep(updatedStep);
+
+      const state = useFlowStore.getState();
+      expect(state.steps[0].name).toBe("Updated Step");
+    });
+
+    test("updateStep does nothing if step not found", () => {
+      useFlowStore.setState({ steps: [mockStep] });
+      const nonexistentStep = { ...mockStep, id: "step-999", name: "Unknown" };
+      useFlowStore.getState().updateStep(nonexistentStep);
+
+      const state = useFlowStore.getState();
+      expect(state.steps).toHaveLength(1);
+      expect(state.steps[0].name).toBe("Test Step");
+    });
+
     test("removeStep deletes step", () => {
       useFlowStore.setState({ steps: [mockStep] });
       useFlowStore.getState().removeStep("step-1");
@@ -204,6 +223,89 @@ describe("flowStore", () => {
 
       expect(state.selectedFlow).toBeNull();
       expect(state.isFlowMode).toBe(false);
+    });
+
+    test("selectFlow skips if same flow already selected with data", () => {
+      useFlowStore.setState({
+        selectedFlow: "wf-1",
+        flowData: mockFlow,
+        loading: false,
+      });
+
+      useFlowStore.getState().selectFlow("wf-1");
+      const state = useFlowStore.getState();
+
+      expect(state.loading).toBe(false);
+    });
+  });
+
+  describe("Execution management", () => {
+    test("initializeExecutions creates executions from plan", () => {
+      const plan = {
+        steps: {
+          "step-1": {},
+          "step-2": {},
+        },
+      };
+
+      useFlowStore.getState().initializeExecutions("wf-1", plan);
+      const state = useFlowStore.getState();
+
+      expect(state.executions).toHaveLength(2);
+      expect(state.executions[0].status).toBe("pending");
+    });
+
+    test("initializeExecutions handles empty plan", () => {
+      useFlowStore.getState().initializeExecutions("wf-1", null);
+      const state = useFlowStore.getState();
+
+      expect(state.executions).toHaveLength(0);
+    });
+
+    test("updateExecution updates execution status", () => {
+      useFlowStore.setState({
+        executions: [
+          {
+            step_id: "step-1",
+            flow_id: "wf-1",
+            status: "pending",
+            inputs: {},
+            started_at: "",
+          },
+        ],
+        resolvedAttributes: [],
+      });
+
+      useFlowStore.getState().updateExecution("step-1", {
+        status: "completed",
+        outputs: { result: "value" },
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.executions[0].status).toBe("completed");
+      expect(state.resolvedAttributes).toContain("result");
+    });
+
+    test("updateExecution does nothing if step not found", () => {
+      useFlowStore.setState({
+        executions: [
+          {
+            step_id: "step-1",
+            flow_id: "wf-1",
+            status: "pending",
+            inputs: {},
+            started_at: "",
+          },
+        ],
+        resolvedAttributes: [],
+      });
+
+      useFlowStore.getState().updateExecution("step-999", {
+        status: "completed",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.executions[0].status).toBe("pending");
     });
   });
 
@@ -320,6 +422,118 @@ describe("flowStore", () => {
       const state = useFlowStore.getState();
 
       expect(state.flows[0]).toEqual(mockFlow);
+    });
+  });
+
+  describe("WebSocket state handling", () => {
+    test("setEngineState updates steps and health from WebSocket", () => {
+      const mockStep: Step = {
+        id: "step-1",
+        name: "Test Step",
+        type: "sync",
+        attributes: {},
+        http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
+      };
+
+      useFlowStore.getState().setEngineState({
+        steps: { "step-1": mockStep },
+        health: { "step-1": { status: "healthy" } },
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.steps).toHaveLength(1);
+      expect(state.steps[0].id).toBe("step-1");
+      expect(state.stepHealth["step-1"]).toEqual({
+        status: "healthy",
+        error: undefined,
+      });
+    });
+
+    test("setEngineState handles empty state", () => {
+      useFlowStore.getState().setEngineState({});
+
+      const state = useFlowStore.getState();
+      expect(state.steps).toHaveLength(0);
+    });
+
+    test("setFlowState sets flow data from WebSocket", () => {
+      useFlowStore.setState({ selectedFlow: "wf-1" });
+
+      useFlowStore.getState().setFlowState({
+        id: "wf-1",
+        status: "active",
+        attributes: { result: "value" },
+        plan: { steps: { "step-1": {} } },
+        executions: {
+          "step-1": {
+            status: "completed",
+            inputs: { arg: "val" },
+            outputs: { out: "result" },
+          },
+        },
+        created_at: "2024-01-01T00:00:00Z",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.flowData?.id).toBe("wf-1");
+      expect(state.flowData?.status).toBe("active");
+      expect(state.flowData?.state).toEqual({ result: "value" });
+      expect(state.executions).toHaveLength(1);
+      expect(state.executions[0].status).toBe("completed");
+      expect(state.resolvedAttributes).toContain("result");
+      expect(state.resolvedAttributes).toContain("out");
+      expect(state.loading).toBe(false);
+    });
+
+    test("setFlowState ignores unselected flow", () => {
+      useFlowStore.setState({ selectedFlow: "wf-2" });
+
+      useFlowStore.getState().setFlowState({
+        id: "wf-1",
+        status: "active",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.flowData).toBeNull();
+    });
+
+    test("setFlowState handles error state", () => {
+      useFlowStore.setState({ selectedFlow: "wf-1" });
+
+      useFlowStore.getState().setFlowState({
+        id: "wf-1",
+        status: "failed",
+        error: "Something went wrong",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.flowData?.status).toBe("failed");
+      expect(state.flowData?.error_state?.message).toBe("Something went wrong");
+    });
+
+    test("setEngineSocketStatus updates connection status", () => {
+      useFlowStore.getState().setEngineSocketStatus("connected", 0);
+
+      const state = useFlowStore.getState();
+      expect(state.engineConnectionStatus).toBe("connected");
+      expect(state.engineReconnectAttempt).toBe(0);
+    });
+
+    test("setEngineSocketStatus tracks reconnect attempts", () => {
+      useFlowStore.getState().setEngineSocketStatus("connecting", 3);
+
+      const state = useFlowStore.getState();
+      expect(state.engineConnectionStatus).toBe("connecting");
+      expect(state.engineReconnectAttempt).toBe(3);
+    });
+
+    test("requestEngineReconnect increments request counter", () => {
+      const initialRequest = useFlowStore.getState().engineReconnectRequest;
+
+      useFlowStore.getState().requestEngineReconnect();
+
+      const state = useFlowStore.getState();
+      expect(state.engineReconnectRequest).toBe(initialRequest + 1);
     });
   });
 
