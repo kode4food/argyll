@@ -28,6 +28,7 @@ export const useWebSocketClient = ({
   const enabledRef = useRef(enabled);
   const onEventRef = useRef(onEvent);
   const pendingSubscriptionRef = useRef<WebSocketSubscription | null>(null);
+  const currentSubscriptionRef = useRef<WebSocketSubscription | null>(null);
 
   useEffect(() => {
     enabledRef.current = enabled;
@@ -138,11 +139,14 @@ export const useWebSocketClient = ({
         startHeartbeat();
 
         const pending = pendingSubscriptionRef.current;
-        if (pending) {
+        const current = currentSubscriptionRef.current;
+
+        const subToSend = pending || current;
+        if (subToSend) {
           ws.send(
             JSON.stringify({
               type: "subscribe",
-              data: pending,
+              data: subToSend,
             })
           );
           pendingSubscriptionRef.current = null;
@@ -191,6 +195,8 @@ export const useWebSocketClient = ({
   connectRef.current = connect;
 
   const subscribe = useCallback((subscription: WebSocketSubscription) => {
+    currentSubscriptionRef.current = subscription;
+
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(
         JSON.stringify({

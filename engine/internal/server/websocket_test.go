@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -180,31 +181,20 @@ func TestMessageNonSubscribe(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestReplayWithEvents(t *testing.T) {
-	replayEvents := []*timebox.Event{
-		{
-			Type:        timebox.EventType(api.EventTypeFlowStarted),
-			Data:        json.RawMessage(`{"replayed":true}`),
-			Timestamp:   time.Now(),
-			AggregateID: timebox.NewAggregateID("flow", "wf-123"),
-		},
-		{
-			Type:        timebox.EventType(api.EventTypeStepCompleted),
-			Data:        json.RawMessage(`{"step":"test"}`),
-			Timestamp:   time.Now(),
-			AggregateID: timebox.NewAggregateID("flow", "wf-123"),
-		},
+func TestSubscribeStateSendsState(t *testing.T) {
+	flowState := &api.FlowState{
+		ID:     "wf-123",
+		Status: api.FlowActive,
 	}
 
-	replay := func(
-		id timebox.AggregateID, fromSeq int64,
-	) ([]*timebox.Event, error) {
+	getState := func(
+		ctx context.Context, id timebox.AggregateID,
+	) (any, int64, error) {
 		assert.Equal(t, timebox.NewAggregateID("flow", "wf-123"), id)
-		assert.Equal(t, int64(0), fromSeq)
-		return replayEvents, nil
+		return flowState, 5, nil
 	}
 
-	env := testWebSocket(t, replay)
+	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
 	sub := api.SubscribeMessage{
@@ -217,25 +207,81 @@ func TestReplayWithEvents(t *testing.T) {
 	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
-	var wsEvent1 api.WebSocketEvent
-	err = env.Conn.ReadJSON(&wsEvent1)
+	var stateMsg api.SubscribeState
+	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
-	assert.Equal(t, api.EventTypeFlowStarted, wsEvent1.Type)
+	assert.Equal(t, "subscribe_state", stateMsg.Type)
+	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+	assert.Equal(t, int64(5), stateMsg.Sequence)
 
-	var wsEvent2 api.WebSocketEvent
-	err = env.Conn.ReadJSON(&wsEvent2)
+	var receivedState api.FlowState
+	err = json.Unmarshal(stateMsg.Data, &receivedState)
 	assert.NoError(t, err)
-	assert.Equal(t, api.EventTypeStepCompleted, wsEvent2.Type)
+	assert.Equal(t, api.FlowID("wf-123"), receivedState.ID)
+	assert.Equal(t, api.FlowActive, receivedState.Status)
 }
 
-func TestReplayWithError(t *testing.T) {
-	replay := func(
-		id timebox.AggregateID, fromSeq int64,
-	) ([]*timebox.Event, error) {
-		return nil, assert.AnError
+func TestStaleEventsFiltered(t *testing.T) {
+	getState := func(
+		ctx context.Context, id timebox.AggregateID,
+	) (any, int64, error) {
+		return &api.FlowState{ID: "wf-123"}, 10, nil
 	}
 
-	env := testWebSocket(t, replay)
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+
+	sub := api.SubscribeMessage{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			AggregateID: []string{"flow", "wf-123"},
+		},
+	}
+	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	var stateMsg api.SubscribeState
+	err = env.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(10), stateMsg.Sequence)
+
+	// Send stale event (sequence 5 < minSequence 10)
+	staleEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		Data:        json.RawMessage(`{"stale":true}`),
+		Timestamp:   time.Now(),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
+		Sequence:    5,
+	}
+	env.Hub.Send(staleEvent)
+
+	// Send fresh event (sequence 10 >= minSequence 10)
+	freshEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeStepStarted),
+		Data:        json.RawMessage(`{"fresh":true}`),
+		Timestamp:   time.Now(),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
+		Sequence:    10,
+	}
+	env.Hub.Send(freshEvent)
+
+	// Should only receive the fresh event
+	var wsEvent api.WebSocketEvent
+	err = env.Conn.ReadJSON(&wsEvent)
+	assert.NoError(t, err)
+	assert.Equal(t, api.EventTypeStepStarted, wsEvent.Type)
+	assert.Equal(t, json.RawMessage(`{"fresh":true}`), wsEvent.Data)
+}
+
+func TestSubscribeStateWithError(t *testing.T) {
+	getState := func(
+		ctx context.Context, id timebox.AggregateID,
+	) (any, int64, error) {
+		return nil, 0, assert.AnError
+	}
+
+	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
 	sub := api.SubscribeMessage{
@@ -254,16 +300,16 @@ func TestReplayWithError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestReplayWithoutAggregateID(t *testing.T) {
-	replayCalled := false
-	replay := func(
-		id timebox.AggregateID, fromSeq int64,
-	) ([]*timebox.Event, error) {
-		replayCalled = true
-		return nil, nil
+func TestSubscribeStateNotCalledWithoutAggregateID(t *testing.T) {
+	getStateCalled := false
+	getState := func(
+		ctx context.Context, id timebox.AggregateID,
+	) (any, int64, error) {
+		getStateCalled = true
+		return nil, 0, nil
 	}
 
-	env := testWebSocket(t, replay)
+	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
 	sub := api.SubscribeMessage{
@@ -279,7 +325,7 @@ func TestReplayWithoutAggregateID(t *testing.T) {
 
 	time.Sleep(100 * time.Millisecond)
 
-	assert.False(t, replayCalled)
+	assert.False(t, getStateCalled)
 }
 
 func TestEngineEvents(t *testing.T) {
@@ -363,33 +409,33 @@ func TestNoFilters(t *testing.T) {
 	assert.False(t, filter(event))
 }
 
-func TestCombined(t *testing.T) {
+func TestCombinedFiltersUseAndLogic(t *testing.T) {
 	sub := &api.ClientSubscription{
 		AggregateID: []string{"engine"},
-		EventTypes:  []api.EventType{api.EventTypeFlowStarted},
+		EventTypes:  []api.EventType{api.EventTypeStepRegistered},
 	}
 
 	filter := server.BuildFilter(sub)
 
-	engineEvent := &timebox.Event{
+	matchingEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
 		AggregateID: timebox.NewAggregateID("engine"),
 	}
-	flowEvent := &timebox.Event{
+	wrongTypeEvent := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
-		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
+		AggregateID: timebox.NewAggregateID("engine"),
 	}
-	otherEvent := &timebox.Event{
-		Type:        timebox.EventType(api.EventTypeStepCompleted),
+	wrongAggregateEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeStepRegistered),
 		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
 	}
 
-	assert.True(t, filter(engineEvent))
-	assert.True(t, filter(flowEvent))
-	assert.False(t, filter(otherEvent))
+	assert.True(t, filter(matchingEvent))
+	assert.False(t, filter(wrongTypeEvent))
+	assert.False(t, filter(wrongAggregateEvent))
 }
 
-func TestEventTypesWithFlowID(t *testing.T) {
+func TestEventTypesWithFlowIDUseAndLogic(t *testing.T) {
 	sub := &api.ClientSubscription{
 		AggregateID: []string{"flow", "wf-123"},
 		EventTypes:  []api.EventType{api.EventTypeFlowStarted},
@@ -411,17 +457,17 @@ func TestEventTypesWithFlowID(t *testing.T) {
 	}
 
 	assert.True(t, filter(matchingEvent))
-	assert.True(t, filter(wrongTypeEvent))
-	assert.True(t, filter(wrongFlowEvent))
+	assert.False(t, filter(wrongTypeEvent))
+	assert.False(t, filter(wrongFlowEvent))
 }
 
-func testWebSocket(t *testing.T, replay server.ReplayFunc) *testWebSocketEnv {
+func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 	t.Helper()
 	hub := &mockEventHub{}
 
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			server.HandleWebSocket(hub, w, r, replay)
+			server.HandleWebSocket(hub, w, r, getState)
 		},
 	))
 

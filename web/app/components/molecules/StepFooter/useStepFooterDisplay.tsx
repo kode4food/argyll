@@ -25,15 +25,6 @@ export interface ProgressState {
   };
 }
 
-export interface TooltipSectionData {
-  key: string;
-  title: string;
-  content: React.ReactNode;
-  icon?: React.ReactNode;
-  monospace?: boolean;
-  bold?: boolean;
-}
-
 export interface StepFooterDisplayData {
   displayInfo: StepDisplayInfo | null;
   tooltipSections: React.ReactElement[];

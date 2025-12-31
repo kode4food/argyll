@@ -71,62 +71,10 @@ export class ArgyllApi {
     return response.data;
   }
 
-  async getFlowWithEvents(id: string): Promise<{
-    flow: FlowContext;
-    executions: ExecutionResult[];
-  }> {
-    const response = await this.client.get(`/engine/flow/${id}`);
-    const projection: FlowProjection = response.data;
-
-    const flow = this.convertProjection(projection);
-    const executions = this.extractExecutions(projection, id);
-
-    return {
-      flow,
-      executions,
-    };
-  }
-
   async listFlows(): Promise<FlowContext[]> {
     const response = await this.client.get("/engine/flow");
     const projections: FlowProjection[] = response.data.flows || [];
     return projections.map((p) => this.convertProjection(p));
-  }
-
-  async getExecutions(flowId: string): Promise<ExecutionResult[]> {
-    const response = await this.client.get(`/engine/flow/${flowId}`);
-    const projection: FlowProjection = response.data;
-
-    return this.extractExecutions(projection, flowId);
-  }
-
-  private extractExecutions(
-    projection: FlowProjection,
-    flowId: string
-  ): ExecutionResult[] {
-    if (!projection.executions) {
-      return [];
-    }
-
-    const executionStatusMap: Record<string, StepStatus> = {
-      pending: "pending",
-      active: "active",
-      completed: "completed",
-      failed: "failed",
-      skipped: "skipped",
-    };
-
-    return Object.entries(projection.executions).map(([stepId, exec]) => ({
-      step_id: stepId,
-      flow_id: flowId,
-      status: executionStatusMap[exec.status] || "pending",
-      inputs: exec.inputs,
-      outputs: exec.outputs,
-      error_message: exec.error,
-      started_at: exec.started_at,
-      completed_at: exec.completed_at,
-      duration_ms: exec.duration,
-    }));
   }
 
   async getExecutionPlan(

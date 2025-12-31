@@ -18,8 +18,6 @@ jest.mock("../api", () => ({
   api: {
     getEngineState: jest.fn(),
     listFlows: jest.fn(),
-    getFlowWithEvents: jest.fn(),
-    getExecutions: jest.fn(),
   },
 }));
 
@@ -206,124 +204,6 @@ describe("flowStore", () => {
 
       expect(state.selectedFlow).toBeNull();
       expect(state.isFlowMode).toBe(false);
-    });
-  });
-
-  describe("Flow data loading", () => {
-    const mockFlow: FlowContext = {
-      id: "wf-1",
-      status: "active",
-      state: { attr1: { value: "value1", step: "step-1" } },
-      started_at: "2024-01-01T00:00:00Z",
-      plan: {
-        steps: {},
-        attributes: {},
-        goals: [],
-        required: [],
-      },
-    };
-
-    test("loadFlowData fetches flow with executions", async () => {
-      const mockExecutions: ExecutionResult[] = [
-        {
-          step_id: "step-1",
-          flow_id: "wf-1",
-          status: "completed",
-          inputs: {},
-          started_at: "2024-01-01T00:00:00Z",
-          outputs: { result: "value" },
-        },
-      ];
-
-      mockApi.getFlowWithEvents.mockResolvedValue({
-        flow: mockFlow,
-        executions: mockExecutions,
-      });
-
-      await useFlowStore.getState().loadFlowData("wf-1");
-      const state = useFlowStore.getState();
-
-      expect(state.flowData).toEqual(mockFlow);
-      expect(state.executions).toEqual(mockExecutions);
-      expect(state.flowNotFound).toBe(false);
-      expect(state.loading).toBe(false);
-      expect(state.resolvedAttributes).toContain("attr1");
-      expect(state.resolvedAttributes).toContain("result");
-    });
-
-    test("loadFlowData handles any error", async () => {
-      mockApi.getFlowWithEvents.mockRejectedValue(new Error("Network error"));
-
-      await useFlowStore.getState().loadFlowData("wf-1");
-      const state = useFlowStore.getState();
-
-      expect(state.flowNotFound).toBe(true);
-      expect(state.loading).toBe(false);
-      expect(state.flowData).toBeNull();
-      expect(state.executions).toEqual([]);
-    });
-
-    test("loadFlowData calculates resolved attributes from state and executions", async () => {
-      const mockExecutions: ExecutionResult[] = [
-        {
-          step_id: "step-1",
-          flow_id: "wf-1",
-          status: "completed",
-          inputs: {},
-          started_at: "2024-01-01T00:00:00Z",
-          outputs: { attr2: "value2" },
-        },
-        {
-          step_id: "step-2",
-          flow_id: "wf-1",
-          status: "active",
-          inputs: {},
-          started_at: "2024-01-01T00:01:00Z",
-        },
-      ];
-
-      mockApi.getFlowWithEvents.mockResolvedValue({
-        flow: mockFlow,
-        executions: mockExecutions,
-      });
-
-      await useFlowStore.getState().loadFlowData("wf-1");
-      const state = useFlowStore.getState();
-
-      expect(state.resolvedAttributes).toContain("attr1");
-      expect(state.resolvedAttributes).toContain("attr2");
-      expect(state.resolvedAttributes).toHaveLength(2);
-    });
-  });
-
-  describe("Execution refresh", () => {
-    test("refreshExecutions updates executions", async () => {
-      const mockExecutions: ExecutionResult[] = [
-        {
-          step_id: "step-1",
-          flow_id: "wf-1",
-          status: "completed",
-          inputs: {},
-          started_at: "2024-01-01T00:00:00Z",
-          outputs: { result: "value" },
-        },
-      ];
-
-      mockApi.getExecutions.mockResolvedValue(mockExecutions);
-
-      await useFlowStore.getState().refreshExecutions("wf-1");
-      const state = useFlowStore.getState();
-
-      expect(state.executions).toEqual(mockExecutions);
-    });
-
-    test("refreshExecutions handles error", async () => {
-      mockApi.getExecutions.mockRejectedValue(new Error("Network error"));
-
-      await useFlowStore.getState().refreshExecutions("wf-1");
-      const state = useFlowStore.getState();
-
-      expect(state.executions).toEqual([]);
     });
   });
 

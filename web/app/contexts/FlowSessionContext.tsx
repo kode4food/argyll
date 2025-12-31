@@ -56,9 +56,10 @@ export const FlowSessionProvider = ({
   const flowError = useFlowError();
 
   useEffect(() => {
-    loadSteps?.();
+    // Steps are loaded via engine WebSocket subscribe_state
+    // Flows list still needs HTTP API since engine only tracks active flows
     loadFlows?.();
-  }, [loadSteps, loadFlows]);
+  }, [loadFlows]);
 
   const value = useMemo(
     () => ({

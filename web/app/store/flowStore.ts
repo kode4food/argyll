@@ -39,13 +39,6 @@ const mergeResolvedAttributes = (
   return Array.from(resolved);
 };
 
-const isHttpStatus = (error: unknown, status: number): boolean => {
-  if (typeof error !== "object" || error === null) return false;
-  if (!("response" in error)) return false;
-  const response = (error as { response?: { status?: number } }).response;
-  return typeof response?.status === "number" && response.status === status;
-};
-
 interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
@@ -69,8 +62,6 @@ interface FlowState {
   addFlow: (flow: FlowContext) => void;
   removeFlow: (flowId: string) => void;
   selectFlow: (flowId: string | null) => void;
-  loadFlowData: (flowId: string) => Promise<void>;
-  refreshExecutions: (flowId: string) => Promise<void>;
   updateFlowFromWebSocket: (update: Partial<FlowContext>) => void;
   updateFlowStatus: (
     flowId: string,
@@ -85,6 +76,20 @@ interface FlowState {
     reconnectAttempt: number
   ) => void;
   requestEngineReconnect: () => void;
+  setEngineState: (state: {
+    steps?: Record<string, Step>;
+    health?: Record<string, StepHealthInfo>;
+  }) => void;
+  setFlowState: (state: {
+    id: string;
+    status: FlowContext["status"];
+    attributes?: Record<string, any>;
+    plan?: any;
+    executions?: Record<string, any>;
+    created_at?: string;
+    completed_at?: string;
+    error?: string;
+  }) => void;
 }
 
 export const useFlowStore = create<FlowState>()(
@@ -149,6 +154,17 @@ export const useFlowStore = create<FlowState>()(
       },
 
       selectFlow: (flowId: string | null) => {
+        const { selectedFlow: currentSelected, flowData: currentFlowData } =
+          get();
+
+        if (
+          flowId &&
+          flowId === currentSelected &&
+          currentFlowData?.id === flowId
+        ) {
+          return;
+        }
+
         set({
           selectedFlow: flowId,
           flowNotFound: false,
@@ -157,65 +173,8 @@ export const useFlowStore = create<FlowState>()(
           executions: [],
           resolvedAttributes: [],
           isFlowMode: !!flowId,
+          loading: !!flowId,
         });
-
-        if (flowId) {
-          get().loadFlowData(flowId);
-        }
-      },
-
-      loadFlowData: async (flowId: string) => {
-        set({ loading: true, error: null, flowNotFound: false });
-
-        try {
-          const { flow, executions } = await api.getFlowWithEvents(flowId);
-
-          const resolved = new Set<string>();
-
-          if (flow?.state) {
-            Object.keys(flow.state).forEach((attr) => {
-              resolved.add(attr);
-            });
-          }
-
-          executions.forEach((exec) => {
-            if (exec.status === "completed" && exec.outputs) {
-              Object.keys(exec.outputs).forEach((attr) => {
-                resolved.add(attr);
-              });
-            }
-          });
-
-          set({
-            flowData: flow,
-            executions: executions || [],
-            resolvedAttributes: Array.from(resolved),
-            loading: false,
-          });
-        } catch (error) {
-          const isNotFound = isHttpStatus(error, 404);
-
-          if (!isNotFound) {
-            console.error(`Failed to load flow data for ${flowId}:`, error);
-          }
-
-          set({
-            flowData: null,
-            executions: [],
-            resolvedAttributes: [],
-            flowNotFound: true,
-            loading: false,
-          });
-        }
-      },
-
-      refreshExecutions: async (flowId: string) => {
-        try {
-          const executions = await api.getExecutions(flowId);
-          set({ executions: executions || [] });
-        } catch (error) {
-          console.error(`Failed to refresh executions for ${flowId}:`, error);
-        }
       },
 
       addStep: (step: Step) => {
@@ -371,6 +330,89 @@ export const useFlowStore = create<FlowState>()(
         set((state) => ({
           engineReconnectRequest: state.engineReconnectRequest + 1,
         }));
+      },
+
+      setEngineState: (state) => {
+        const steps = Object.values(state.steps || {});
+        const healthMap: Record<string, StepHealthInfo> = {};
+
+        Object.entries(state.health || {}).forEach(
+          ([stepId, health]: [string, any]) => {
+            healthMap[stepId] = {
+              status: health.status || "unknown",
+              error: health.error,
+            };
+          }
+        );
+
+        set({
+          steps: steps.sort((a, b) => a.name.localeCompare(b.name)),
+          stepHealth: healthMap,
+        });
+      },
+
+      setFlowState: (state) => {
+        const { selectedFlow } = get();
+        if (!selectedFlow || state.id !== selectedFlow) {
+          return;
+        }
+
+        let errorState = undefined;
+        if (state.error) {
+          errorState = {
+            message: state.error,
+            step_id: "",
+            timestamp: new Date().toISOString(),
+          };
+        }
+
+        let executionPlan = undefined;
+        if (state.plan && Object.keys(state.plan.steps || {}).length > 0) {
+          executionPlan = state.plan;
+        }
+
+        const flowData: FlowContext = {
+          id: state.id,
+          status: state.status,
+          state: state.attributes || {},
+          error_state: errorState,
+          plan: executionPlan,
+          started_at: state.created_at || new Date().toISOString(),
+          completed_at: state.completed_at,
+        };
+
+        const executions: ExecutionResult[] = Object.entries(
+          state.executions || {}
+        ).map(([stepId, exec]: [string, any]) => ({
+          step_id: stepId,
+          flow_id: state.id,
+          status: exec.status || "pending",
+          inputs: exec.inputs || {},
+          outputs: exec.outputs,
+          error_message: exec.error,
+          started_at: exec.started_at || "",
+          completed_at: exec.completed_at,
+          duration_ms: exec.duration,
+          work_items: exec.work_items,
+        }));
+
+        const resolved = new Set<string>();
+        if (state.attributes) {
+          Object.keys(state.attributes).forEach((attr) => resolved.add(attr));
+        }
+        executions.forEach((exec) => {
+          if (exec.status === "completed" && exec.outputs) {
+            Object.keys(exec.outputs).forEach((attr) => resolved.add(attr));
+          }
+        });
+
+        set({
+          flowData,
+          executions,
+          resolvedAttributes: Array.from(resolved),
+          loading: false,
+          flowNotFound: false,
+        });
       },
     }),
     { name: "FlowStore" }

@@ -16,5 +16,11 @@ export interface WebSocketEvent {
 export interface WebSocketSubscription {
   aggregate_id?: string[];
   event_types?: string[];
-  from_sequence?: number;
+}
+
+export interface WebSocketSubscribeState {
+  type: "subscribe_state";
+  id: string[];
+  data: unknown;
+  sequence: number;
 }

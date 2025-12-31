@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 import { useFlowStore } from "@/app/store/flowStore";
 import { FlowContext } from "@/app/api";
-import { WebSocketEvent } from "@/app/types/websocket";
+import { WebSocketEvent, WebSocketSubscribeState } from "@/app/types/websocket";
 
 const ENGINE_EVENT_TYPES = [
   "step_registered",
@@ -13,6 +13,17 @@ const ENGINE_EVENT_TYPES = [
   "step_health_changed",
   "flow_activated",
   "flow_deactivated",
+];
+
+const FLOW_EVENT_TYPES = [
+  "flow_started",
+  "step_started",
+  "step_completed",
+  "step_failed",
+  "step_skipped",
+  "attribute_set",
+  "flow_completed",
+  "flow_failed",
 ];
 
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
@@ -30,27 +41,34 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const handleEngineEvent = useCallback(
-    (event: WebSocketEvent) => {
-      switch (event.type) {
+    (event: WebSocketEvent | WebSocketSubscribeState) => {
+      if (event.type === "subscribe_state") {
+        const { setEngineState } = useFlowStore.getState();
+        setEngineState((event as WebSocketSubscribeState).data as any);
+        return;
+      }
+
+      const wsEvent = event as WebSocketEvent;
+      switch (wsEvent.type) {
         case "step_registered": {
-          const step = event.data?.step;
+          const step = wsEvent.data?.step;
           if (step) addStep(step);
           break;
         }
         case "step_unregistered": {
-          const stepId = event.data?.step_id;
+          const stepId = wsEvent.data?.step_id;
           if (stepId) removeStep(stepId);
           break;
         }
         case "step_updated": {
-          const step = event.data?.step;
+          const step = wsEvent.data?.step;
           if (step) updateStep(step);
           break;
         }
         case "step_health_changed": {
-          const stepId = event.data?.step_id;
-          const health = event.data?.status;
-          const error = event.data?.error;
+          const stepId = wsEvent.data?.step_id;
+          const health = wsEvent.data?.status;
+          const error = wsEvent.data?.error;
           if (stepId && health) {
             updateStepHealth(stepId, health, error);
           }
@@ -67,94 +85,114 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     [addStep, removeStep, updateStep, updateStepHealth, loadFlows]
   );
 
-  const handleFlowEvent = useCallback((event: WebSocketEvent) => {
-    const {
-      selectedFlow: activeFlowId,
-      flowData,
-      initializeExecutions,
-      updateExecution,
-      updateFlowFromWebSocket,
-    } = useFlowStore.getState();
-
-    if (!activeFlowId || event.data?.flow_id !== activeFlowId || !flowData) {
-      return;
-    }
-
-    const flowUpdate: Partial<FlowContext> = {};
-
-    switch (event.type) {
-      case "flow_started":
-        flowUpdate.status = "active";
-        flowUpdate.started_at =
-          event.data?.started_at || new Date().toISOString();
-        if (event.data?.plan) {
-          initializeExecutions(activeFlowId, event.data.plan);
-        }
-        break;
-      case "step_started":
-        updateExecution(event.data?.step_id, {
-          status: "active",
-          inputs: event.data?.inputs,
-          work_items: event.data?.work_items || {},
-          started_at: new Date(event.timestamp || Date.now()).toISOString(),
-        });
-        break;
-      case "step_completed":
-        updateExecution(event.data?.step_id, {
-          status: "completed",
-          outputs: event.data?.outputs,
-          duration_ms: event.data?.duration,
-          completed_at: new Date(event.timestamp || Date.now()).toISOString(),
-        });
-        break;
-      case "step_failed":
-        updateExecution(event.data?.step_id, {
-          status: "failed",
-          error_message: event.data?.error,
-          completed_at: new Date(event.timestamp || Date.now()).toISOString(),
-        });
-        break;
-      case "step_skipped":
-        updateExecution(event.data?.step_id, {
-          status: "skipped",
-          completed_at: new Date(event.timestamp || Date.now()).toISOString(),
-        });
-        break;
-      case "attribute_set": {
-        const key = event.data?.key;
-        const value = event.data?.value;
-        const stepId = event.data?.step_id;
-        if (key && value !== undefined) {
-          flowUpdate.state = {
-            ...(flowData.state || {}),
-            [key]: { value, step: stepId },
-          };
-        }
-        break;
+  const handleFlowEvent = useCallback(
+    (event: WebSocketEvent | WebSocketSubscribeState) => {
+      if (event.type === "subscribe_state") {
+        const { setFlowState } = useFlowStore.getState();
+        setFlowState((event as WebSocketSubscribeState).data as any);
+        return;
       }
-      case "flow_completed":
-        flowUpdate.status = "completed";
-        flowUpdate.completed_at =
-          event.data?.completed_at || new Date().toISOString();
-        break;
-      case "flow_failed":
-        flowUpdate.status = "failed";
-        flowUpdate.error_state = {
-          message: event.data?.error || "Flow failed",
-          step_id: "",
-          timestamp: event.data?.failed_at || new Date().toISOString(),
-        };
-        flowUpdate.completed_at =
-          event.data?.failed_at || new Date().toISOString();
-        break;
-      default:
-        break;
-    }
 
-    if (Object.keys(flowUpdate).length > 0) {
-      updateFlowFromWebSocket(flowUpdate);
-    }
-  }, []);
+      const wsEvent = event as WebSocketEvent;
+      const {
+        selectedFlow: activeFlowId,
+        flowData,
+        initializeExecutions,
+        updateExecution,
+        updateFlowFromWebSocket,
+      } = useFlowStore.getState();
+
+      if (
+        !activeFlowId ||
+        wsEvent.data?.flow_id !== activeFlowId ||
+        !flowData
+      ) {
+        return;
+      }
+
+      const flowUpdate: Partial<FlowContext> = {};
+
+      switch (wsEvent.type) {
+        case "flow_started":
+          flowUpdate.status = "active";
+          flowUpdate.started_at =
+            wsEvent.data?.started_at || new Date().toISOString();
+          if (wsEvent.data?.plan) {
+            initializeExecutions(activeFlowId, wsEvent.data.plan);
+          }
+          break;
+        case "step_started":
+          updateExecution(wsEvent.data?.step_id, {
+            status: "active",
+            inputs: wsEvent.data?.inputs,
+            work_items: wsEvent.data?.work_items || {},
+            started_at: new Date(wsEvent.timestamp || Date.now()).toISOString(),
+          });
+          break;
+        case "step_completed":
+          updateExecution(wsEvent.data?.step_id, {
+            status: "completed",
+            outputs: wsEvent.data?.outputs,
+            duration_ms: wsEvent.data?.duration,
+            completed_at: new Date(
+              wsEvent.timestamp || Date.now()
+            ).toISOString(),
+          });
+          break;
+        case "step_failed":
+          updateExecution(wsEvent.data?.step_id, {
+            status: "failed",
+            error_message: wsEvent.data?.error,
+            completed_at: new Date(
+              wsEvent.timestamp || Date.now()
+            ).toISOString(),
+          });
+          break;
+        case "step_skipped":
+          updateExecution(wsEvent.data?.step_id, {
+            status: "skipped",
+            completed_at: new Date(
+              wsEvent.timestamp || Date.now()
+            ).toISOString(),
+          });
+          break;
+        case "attribute_set": {
+          const key = wsEvent.data?.key;
+          const value = wsEvent.data?.value;
+          const stepId = wsEvent.data?.step_id;
+          if (key && value !== undefined) {
+            flowUpdate.state = {
+              ...(flowData.state || {}),
+              [key]: { value, step: stepId },
+            };
+          }
+          break;
+        }
+        case "flow_completed":
+          flowUpdate.status = "completed";
+          flowUpdate.completed_at =
+            wsEvent.data?.completed_at || new Date().toISOString();
+          break;
+        case "flow_failed":
+          flowUpdate.status = "failed";
+          flowUpdate.error_state = {
+            message: wsEvent.data?.error || "Flow failed",
+            step_id: "",
+            timestamp: wsEvent.data?.failed_at || new Date().toISOString(),
+          };
+          flowUpdate.completed_at =
+            wsEvent.data?.failed_at || new Date().toISOString();
+          break;
+        default:
+          break;
+      }
+
+      if (Object.keys(flowUpdate).length > 0) {
+        updateFlowFromWebSocket(flowUpdate);
+      }
+    },
+    []
+  );
 
   const engineClient = useWebSocketClient({
     enabled: true,
@@ -176,6 +214,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     if (selectedFlow) {
       flowClient.subscribe({
         aggregate_id: ["flow", selectedFlow],
+        event_types: FLOW_EVENT_TYPES,
       });
     }
   }, [selectedFlow, flowClient.subscribe]);

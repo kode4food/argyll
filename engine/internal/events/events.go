@@ -42,6 +42,19 @@ func OrFilters(filters ...EventFilter) EventFilter {
 	}
 }
 
+// AndFilters combines multiple filters using AND logic, matching only if all
+// filters match the event
+func AndFilters(filters ...EventFilter) EventFilter {
+	return func(ev *timebox.Event) bool {
+		for _, filter := range filters {
+			if !filter(ev) {
+				return false
+			}
+		}
+		return true
+	}
+}
+
 func MakeAppliers[T any](
 	app map[api.EventType]timebox.Applier[T],
 ) timebox.Appliers[T] {

@@ -24,20 +24,30 @@ var flowTransitions = StateTransitions[api.FlowStatus]{
 func (e *Engine) GetFlowState(
 	ctx context.Context, flowID api.FlowID,
 ) (*api.FlowState, error) {
+	state, _, err := e.GetFlowStateSeq(ctx, flowID)
+	return state, err
+}
+
+// GetFlowStateSeq retrieves the current state and next sequence for a flow
+func (e *Engine) GetFlowStateSeq(
+	ctx context.Context, flowID api.FlowID,
+) (*api.FlowState, int64, error) {
+	var nextSeq int64
 	state, err := e.flowExec.Exec(ctx, flowKey(flowID),
 		func(st *api.FlowState, ag *FlowAggregator) error {
+			nextSeq = ag.NextSequence()
 			return nil
 		},
 	)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	if state.ID == "" {
-		return nil, ErrFlowNotFound
+		return nil, 0, ErrFlowNotFound
 	}
 
-	return state, nil
+	return state, nextSeq, nil
 }
 
 // StartWork begins execution of a work item for a step with the given token
@@ -108,14 +118,6 @@ func (e *Engine) GetAttribute(
 		return av.Value, true, nil
 	}
 	return nil, false, nil
-}
-
-// GetFlowEvents retrieves all events for a flow starting from the specified
-// sequence number
-func (e *Engine) GetFlowEvents(
-	ctx context.Context, flowID api.FlowID, fromSeq int64,
-) ([]*timebox.Event, error) {
-	return e.flowExec.GetStore().GetEvents(ctx, flowKey(flowID), fromSeq)
 }
 
 // ListFlows returns summary information for all flows in the system

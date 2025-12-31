@@ -86,6 +86,16 @@ describe("WebSocketProvider", () => {
 
     expect(flowSubscribe).toHaveBeenCalledWith({
       aggregate_id: ["flow", "flow-1"],
+      event_types: [
+        "flow_started",
+        "step_started",
+        "step_completed",
+        "step_failed",
+        "step_skipped",
+        "attribute_set",
+        "flow_completed",
+        "flow_failed",
+      ],
     });
   });
 

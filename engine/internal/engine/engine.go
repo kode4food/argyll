@@ -175,18 +175,22 @@ func (e *Engine) UnregisterStep(ctx context.Context, stepID api.StepID) error {
 // GetEngineState retrieves the current engine state including registered steps
 // and active flows
 func (e *Engine) GetEngineState(ctx context.Context) (*api.EngineState, error) {
-	return e.engineExec.Exec(ctx, events.EngineID,
+	state, _, err := e.GetEngineStateSeq(ctx)
+	return state, err
+}
+
+// GetEngineStateSeq retrieves the current engine state and next sequence
+func (e *Engine) GetEngineStateSeq(
+	ctx context.Context,
+) (*api.EngineState, int64, error) {
+	var nextSeq int64
+	state, err := e.engineExec.Exec(ctx, events.EngineID,
 		func(st *api.EngineState, ag *Aggregator) error {
+			nextSeq = ag.NextSequence()
 			return nil
 		},
 	)
-}
-
-// GetEngineEvents retrieves engine events starting from the specified sequence
-func (e *Engine) GetEngineEvents(
-	ctx context.Context, fromSeq int64,
-) ([]*timebox.Event, error) {
-	return e.engineExec.GetStore().GetEvents(ctx, events.EngineID, fromSeq)
+	return state, nextSeq, err
 }
 
 // ListSteps returns all currently registered steps in the engine

@@ -1,11 +1,14 @@
 package server
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
 	"net/http"
 	"time"
 
+	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
@@ -22,13 +25,13 @@ type (
 		conn     *websocket.Conn
 		consumer topic.Consumer[*timebox.Event]
 		filter   events.EventFilter
-		replay   ReplayFunc
+		getState StateFunc
+		minSeq   int64
 	}
 
-	// ReplayFunc retrieves historical events for an aggregate
-	ReplayFunc func(
-		id timebox.AggregateID, fromSeq int64,
-	) ([]*timebox.Event, error)
+	// StateFunc retrieves the current projected state and next sequence for an
+	// aggregate. The next sequence is used by clients to detect sequence skew
+	StateFunc func(context.Context, timebox.AggregateID) (any, int64, error)
 )
 
 const (
@@ -48,21 +51,10 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
-	return &api.WebSocketEvent{
-		Type:        api.EventType(ev.Type),
-		Data:        ev.Data,
-		Timestamp:   ev.Timestamp.UnixMilli(),
-		AggregateID: idToStrings(ev.AggregateID),
-		Sequence:    ev.Sequence,
-	}
-}
-
 // HandleWebSocket upgrades an HTTP connection to WebSocket and starts
 // streaming events based on client subscriptions
 func HandleWebSocket(
-	hub timebox.EventHub, w http.ResponseWriter, r *http.Request,
-	replay ReplayFunc,
+	hub timebox.EventHub, w http.ResponseWriter, r *http.Request, st StateFunc,
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -77,10 +69,32 @@ func HandleWebSocket(
 		conn:     conn,
 		consumer: hub.NewConsumer(),
 		filter:   noopFilter,
-		replay:   replay,
+		getState: st,
 	}
 
 	go client.run()
+}
+
+func (s *Server) handleWebSocket(c *gin.Context) {
+	HandleWebSocket(s.eventHub, c.Writer, c.Request,
+		func(ctx context.Context, id timebox.AggregateID) (any, int64, error) {
+			if len(id) == 0 {
+				return nil, 0, nil
+			}
+			switch string(id[0]) {
+			case "engine":
+				return s.engine.GetEngineStateSeq(ctx)
+			case "flow":
+				if len(id) < 2 {
+					return nil, 0, errors.New("invalid aggregate_id")
+				}
+				flowID := api.FlowID(id[1])
+				return s.engine.GetFlowStateSeq(ctx, flowID)
+			default:
+				return nil, 0, errors.New("invalid aggregate_id")
+			}
+		},
+	)
 }
 
 func (c *Client) run() {
@@ -153,14 +167,51 @@ func (c *Client) handleSubscribe(message []byte) {
 
 	c.filter = BuildFilter(&sub.Data)
 
-	if len(sub.Data.AggregateID) > 0 && sub.Data.FromSequence >= 0 {
-		id := stringsToID(sub.Data.AggregateID)
-		c.replayAndSend(id, sub.Data.FromSequence)
+	if len(sub.Data.AggregateID) > 0 {
+		c.sendSubscribeState(stringsToID(sub.Data.AggregateID))
+	}
+}
+
+func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
+	if c.getState == nil {
+		return
+	}
+
+	state, nextSeq, err := c.getState(context.Background(), aggregateID)
+	if err != nil {
+		slog.Error("Failed to get state for subscription",
+			slog.Any("aggregate_id", aggregateID),
+			log.Error(err))
+		return
+	}
+
+	data, err := json.Marshal(state)
+	if err != nil {
+		slog.Error("Failed to marshal state",
+			slog.Any("aggregate_id", aggregateID),
+			log.Error(err))
+		return
+	}
+
+	c.minSeq = nextSeq
+
+	msg := api.SubscribeState{
+		Type:        "subscribe_state",
+		AggregateID: idToStrings(aggregateID),
+		Data:        data,
+		Sequence:    nextSeq,
+	}
+
+	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	if err := c.conn.WriteJSON(msg); err != nil {
+		slog.Error("WebSocket write failed",
+			slog.String("context", "subscribe_state"),
+			log.Error(err))
 	}
 }
 
 func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
-	if !c.filter(event) {
+	if event.Sequence < c.minSeq || !c.filter(event) {
 		return true
 	}
 
@@ -174,69 +225,50 @@ func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
 	return true
 }
 
+func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
+	return &api.WebSocketEvent{
+		Type:        api.EventType(ev.Type),
+		Data:        ev.Data,
+		Timestamp:   ev.Timestamp.UnixMilli(),
+		AggregateID: idToStrings(ev.AggregateID),
+		Sequence:    ev.Sequence,
+	}
+}
+
 func (c *Client) sendPing() bool {
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	err := c.conn.WriteMessage(websocket.PingMessage, nil)
 	return err == nil
 }
 
-func (c *Client) replayAndSend(id timebox.AggregateID, fromSeq int64) {
-	if c.replay == nil {
-		return
-	}
-
-	evs, err := c.replay(id, fromSeq)
-	if err != nil {
-		slog.Error("Failed to replay events",
-			slog.Any("aggregate_id", id),
-			slog.Int("from_sequence", int(fromSeq)),
-			log.Error(err))
-		return
-	}
-
-	for _, ev := range evs {
-		if !c.writeEvent(ev, "replay") {
-			return
-		}
-	}
-}
-
-func (c *Client) writeEvent(ev *timebox.Event, context string) bool {
-	wsEvent := c.transformEvent(ev)
-	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	err := c.conn.WriteJSON(wsEvent)
-	if err != nil {
-		slog.Error("WebSocket write failed",
-			slog.String("context", context),
-			log.Error(err))
-		return false
-	}
-	return true
-}
-
 // BuildFilter creates an event filter based on client subscription preferences
-// for event types, flow IDs, or engine events
+// for event types and aggregate IDs
 func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
-	var filters []events.EventFilter
+	var aggregateFilter events.EventFilter
+	if len(sub.AggregateID) > 0 {
+		id := stringsToID(sub.AggregateID)
+		aggregateFilter = events.FilterAggregate(id)
+	}
 
+	var eventTypeFilter events.EventFilter
 	if len(sub.EventTypes) > 0 {
 		timeboxEventTypes := make([]timebox.EventType, len(sub.EventTypes))
 		for i, et := range sub.EventTypes {
 			timeboxEventTypes[i] = timebox.EventType(et)
 		}
-		filters = append(filters, events.FilterEvents(timeboxEventTypes...))
+		eventTypeFilter = events.FilterEvents(timeboxEventTypes...)
 	}
 
-	if len(sub.AggregateID) > 0 {
-		id := stringsToID(sub.AggregateID)
-		filters = append(filters, events.FilterAggregate(id))
-	}
-
-	if len(filters) == 0 {
+	switch {
+	case aggregateFilter != nil && eventTypeFilter != nil:
+		return events.AndFilters(aggregateFilter, eventTypeFilter)
+	case aggregateFilter != nil:
+		return aggregateFilter
+	case eventTypeFilter != nil:
+		return eventTypeFilter
+	default:
 		return func(*timebox.Event) bool { return false }
 	}
-
-	return events.OrFilters(filters...)
 }
 
 func idToStrings(id timebox.AggregateID) []string {

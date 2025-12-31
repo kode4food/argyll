@@ -13,7 +13,6 @@ import {
   useLoadFlows,
   useAddFlow,
   useRemoveFlow,
-  useFlowStore,
 } from "../store/flowStore";
 import { useUI } from "../contexts/UIContext";
 import { useThrottledValue } from "./useThrottledValue";
@@ -75,7 +74,6 @@ export const FlowCreationStateProvider = ({
   const loadFlows = useLoadFlows();
   const addFlow = useAddFlow();
   const removeFlow = useRemoveFlow();
-  const loadFlowData = useFlowStore((state) => state.loadFlowData);
   const {
     previewPlan,
     updatePreviewPlan,
@@ -250,7 +248,6 @@ export const FlowCreationStateProvider = ({
 
     try {
       await api.startFlow(flowId, goalSteps, parsedState);
-      await loadFlowData(flowId);
       await loadFlows();
       navigate(`/flow/${flowId}`);
     } catch (error: any) {
@@ -279,7 +276,6 @@ export const FlowCreationStateProvider = ({
     initialState,
     setShowCreateForm,
     previewPlan,
-    loadFlowData,
   ]);
 
   const value: FlowCreationContextValue = {

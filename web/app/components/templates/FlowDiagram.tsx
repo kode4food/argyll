@@ -131,29 +131,27 @@ const FlowDiagramContent: React.FC = () => {
       )}
 
       <div className={styles.diagramContainer} ref={diagramContainerRef}>
-        {loading ? null : (
-          <div className={styles.diagramContent}>
-            <ErrorBoundary
-              title="Step Diagram Error"
-              description="An error occurred while rendering the step diagram."
+        <div className={styles.diagramContent}>
+          <ErrorBoundary
+            title="Step Diagram Error"
+            description="An error occurred while rendering the step diagram."
+          >
+            <DiagramSelectionProvider
+              value={{
+                goalSteps,
+                toggleGoalStep,
+                setGoalSteps,
+              }}
             >
-              <DiagramSelectionProvider
-                value={{
-                  goalSteps,
-                  toggleGoalStep,
-                  setGoalSteps,
-                }}
-              >
-                <StepDiagram
-                  steps={steps || []}
-                  flowData={flowData}
-                  executions={isFlowMode ? executions || [] : []}
-                  resolvedAttributes={isFlowMode ? resolved : []}
-                />
-              </DiagramSelectionProvider>
-            </ErrorBoundary>
-          </div>
-        )}
+              <StepDiagram
+                steps={steps || []}
+                flowData={flowData}
+                executions={isFlowMode ? executions || [] : []}
+                resolvedAttributes={isFlowMode ? resolved : []}
+              />
+            </DiagramSelectionProvider>
+          </ErrorBoundary>
+        </div>
       </div>
     </div>
   );

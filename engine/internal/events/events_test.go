@@ -76,7 +76,7 @@ func TestOrFilters(t *testing.T) {
 	assert.False(t, combined(event3))
 }
 
-func TestNoFilters(t *testing.T) {
+func TestOrFiltersEmpty(t *testing.T) {
 	combined := events.OrFilters()
 
 	event := &timebox.Event{
@@ -84,6 +84,44 @@ func TestNoFilters(t *testing.T) {
 	}
 
 	assert.False(t, combined(event))
+}
+
+func TestAndFilters(t *testing.T) {
+	typeFilter := events.FilterEvents(
+		timebox.EventType(api.EventTypeFlowStarted),
+	)
+	aggregateFilter := events.FilterAggregate(
+		timebox.NewAggregateID("flow", "wf-123"),
+	)
+
+	combined := events.AndFilters(typeFilter, aggregateFilter)
+
+	matchingEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
+	}
+	wrongTypeEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeFlowCompleted),
+		AggregateID: timebox.NewAggregateID("flow", "wf-123"),
+	}
+	wrongAggregateEvent := &timebox.Event{
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		AggregateID: timebox.NewAggregateID("flow", "wf-456"),
+	}
+
+	assert.True(t, combined(matchingEvent))
+	assert.False(t, combined(wrongTypeEvent))
+	assert.False(t, combined(wrongAggregateEvent))
+}
+
+func TestAndFiltersEmpty(t *testing.T) {
+	combined := events.AndFilters()
+
+	event := &timebox.Event{
+		Type: timebox.EventType(api.EventTypeFlowStarted),
+	}
+
+	assert.True(t, combined(event))
 }
 
 func TestMakeAppliers(t *testing.T) {

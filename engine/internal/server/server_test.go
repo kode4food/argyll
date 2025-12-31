@@ -861,7 +861,7 @@ func TestFilterEmpty(t *testing.T) {
 	assert.False(t, filter(event))
 }
 
-func TestFilterCombined(t *testing.T) {
+func TestFilterCombinedUsesAndLogic(t *testing.T) {
 	sub := &api.ClientSubscription{
 		AggregateID: []string{"engine"},
 		EventTypes: []api.EventType{
@@ -871,27 +871,25 @@ func TestFilterCombined(t *testing.T) {
 
 	filter := server.BuildFilter(sub)
 
-	engineEvent := &timebox.Event{
+	matchingEvent := &timebox.Event{
+		AggregateID: events.EngineID,
+		Type:        timebox.EventType(api.EventTypeStepRegistered),
+	}
+	assert.True(t, filter(matchingEvent))
+
+	wrongTypeEvent := &timebox.Event{
 		AggregateID: events.EngineID,
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
 	}
-	assert.True(t, filter(engineEvent))
+	assert.False(t, filter(wrongTypeEvent))
 
-	flowEvent := &timebox.Event{
+	wrongAggregateEvent := &timebox.Event{
 		AggregateID: timebox.AggregateID{
 			timebox.ID("flow"), timebox.ID("flow-123"),
 		},
 		Type: timebox.EventType(api.EventTypeStepRegistered),
 	}
-	assert.True(t, filter(flowEvent))
-
-	unmatchedEvent := &timebox.Event{
-		AggregateID: timebox.AggregateID{
-			timebox.ID("flow"), timebox.ID("flow-123"),
-		},
-		Type: timebox.EventType(api.EventTypeStepCompleted),
-	}
-	assert.False(t, filter(unmatchedEvent))
+	assert.False(t, filter(wrongAggregateEvent))
 }
 
 func TestHandleHealthByID(t *testing.T) {

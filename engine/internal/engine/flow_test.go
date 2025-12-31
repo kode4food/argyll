@@ -326,34 +326,6 @@ func TestStartFlowSimple(t *testing.T) {
 	testify.Equal(t, api.FlowID("wf-simple"), flow.ID)
 }
 
-func TestGetFlowEvents(t *testing.T) {
-	env := helpers.NewTestEngine(t)
-	defer env.Cleanup()
-
-	env.Engine.Start()
-
-	step := helpers.NewSimpleStep("simple")
-
-	err := env.Engine.RegisterStep(context.Background(), step)
-	testify.NoError(t, err)
-
-	plan := &api.ExecutionPlan{
-		Goals: []api.StepID{"simple"},
-		Steps: api.Steps{step.ID: step},
-	}
-
-	err = env.Engine.StartFlow(
-		context.Background(), "wf-events", plan, api.Args{}, api.Metadata{},
-	)
-	testify.NoError(t, err)
-
-	events, err := env.Engine.GetFlowEvents(
-		context.Background(), "wf-events", 0,
-	)
-	testify.NoError(t, err)
-	testify.NotEmpty(t, events)
-}
-
 func TestListFlows(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
