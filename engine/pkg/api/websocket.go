@@ -12,8 +12,8 @@ type (
 		Sequence    int64           `json:"sequence"`
 	}
 
-	// SubscribeMessage is sent by clients to subscribe to events
-	SubscribeMessage struct {
+	// SubscribeRequest is sent by clients to subscribe to events
+	SubscribeRequest struct {
 		Type string             `json:"type"`
 		Data ClientSubscription `json:"data"`
 	}
@@ -24,8 +24,8 @@ type (
 		EventTypes  []EventType `json:"event_types,omitempty"`
 	}
 
-	// SubscribeState is sent to clients with current state on subscribe
-	SubscribeState struct {
+	// SubscribedResult is sent to clients with current state on subscribe
+	SubscribedResult struct {
 		Type        string          `json:"type"`
 		AggregateID []string        `json:"id"`
 		Data        json.RawMessage `json:"data"`

@@ -154,7 +154,7 @@ func (c *Client) readMessages(incoming chan []byte) {
 }
 
 func (c *Client) handleSubscribe(message []byte) {
-	var sub api.SubscribeMessage
+	var sub api.SubscribeRequest
 	if err := json.Unmarshal(message, &sub); err != nil {
 		slog.Error("Failed to parse WebSocket message",
 			log.Error(err))
@@ -195,8 +195,8 @@ func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
 
 	c.minSeq = nextSeq
 
-	msg := api.SubscribeState{
-		Type:        "subscribe_state",
+	msg := api.SubscribedResult{
+		Type:        "subscribed",
 		AggregateID: idToStrings(aggregateID),
 		Data:        data,
 		Sequence:    nextSeq,
@@ -205,7 +205,7 @@ func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	if err := c.conn.WriteJSON(msg); err != nil {
 		slog.Error("WebSocket write failed",
-			slog.String("context", "subscribe_state"),
+			slog.String("context", "subscribed"),
 			log.Error(err))
 	}
 }

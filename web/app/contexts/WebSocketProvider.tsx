@@ -4,7 +4,7 @@ import React, { useCallback, useEffect, useRef } from "react";
 import { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 import { useFlowStore } from "@/app/store/flowStore";
 import { FlowContext } from "@/app/api";
-import { WebSocketEvent, WebSocketSubscribeState } from "@/app/types/websocket";
+import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 
 const ENGINE_EVENT_TYPES = [
   "step_registered",
@@ -41,10 +41,10 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const handleEngineEvent = useCallback(
-    (event: WebSocketEvent | WebSocketSubscribeState) => {
-      if (event.type === "subscribe_state") {
+    (event: WebSocketEvent | WebSocketSubscribed) => {
+      if (event.type === "subscribed") {
         const { setEngineState } = useFlowStore.getState();
-        setEngineState((event as WebSocketSubscribeState).data as any);
+        setEngineState((event as WebSocketSubscribed).data as any);
         return;
       }
 
@@ -86,10 +86,10 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   );
 
   const handleFlowEvent = useCallback(
-    (event: WebSocketEvent | WebSocketSubscribeState) => {
-      if (event.type === "subscribe_state") {
+    (event: WebSocketEvent | WebSocketSubscribed) => {
+      if (event.type === "subscribed") {
         const { setFlowState } = useFlowStore.getState();
-        setFlowState((event as WebSocketSubscribeState).data as any);
+        setFlowState((event as WebSocketSubscribed).data as any);
         return;
       }
 

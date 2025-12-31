@@ -49,7 +49,7 @@ describe("FlowSessionContext", () => {
       </FlowSessionProvider>
     );
 
-    // Steps are loaded via WebSocket subscribe_state, not HTTP API
+    // Steps are loaded via WebSocket subscribed, not HTTP API
     expect(await waitFor(() => flowStore.__loadFlows)).toHaveBeenCalled();
   });
 });

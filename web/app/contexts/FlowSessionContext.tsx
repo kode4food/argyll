@@ -56,8 +56,6 @@ export const FlowSessionProvider = ({
   const flowError = useFlowError();
 
   useEffect(() => {
-    // Steps are loaded via engine WebSocket subscribe_state
-    // Flows list still needs HTTP API since engine only tracks active flows
     loadFlows?.();
   }, [loadFlows]);
 

@@ -13,13 +13,13 @@ export interface WebSocketEvent {
   id: string[];
 }
 
-export interface WebSocketSubscription {
+export interface WebSocketSubscribe {
   aggregate_id?: string[];
   event_types?: string[];
 }
 
-export interface WebSocketSubscribeState {
-  type: "subscribe_state";
+export interface WebSocketSubscribed {
+  type: "subscribed";
   id: string[];
   data: unknown;
   sequence: number;

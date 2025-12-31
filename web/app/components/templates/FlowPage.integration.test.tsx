@@ -44,7 +44,7 @@ describe("FlowPage integration", () => {
   it("renders main content and loads data", async () => {
     render(<FlowPage />);
 
-    // Steps are loaded via WebSocket subscribe_state, not HTTP API
+    // Steps are loaded via WebSocket subscribed, not HTTP API
     expect(await waitFor(() => loadFlows)).toHaveBeenCalled();
   });
 });

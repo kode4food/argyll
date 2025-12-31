@@ -5,7 +5,7 @@ import { API_CONFIG, WEBSOCKET } from "@/constants/common";
 import {
   ConnectionStatus,
   WebSocketEvent,
-  WebSocketSubscription,
+  WebSocketSubscribe,
 } from "@/app/types/websocket";
 
 interface UseWebSocketClientOptions {
@@ -27,8 +27,8 @@ export const useWebSocketClient = ({
   const connectRef = useRef<(() => void) | undefined>(undefined);
   const enabledRef = useRef(enabled);
   const onEventRef = useRef(onEvent);
-  const pendingSubscriptionRef = useRef<WebSocketSubscription | null>(null);
-  const currentSubscriptionRef = useRef<WebSocketSubscription | null>(null);
+  const pendingSubscriptionRef = useRef<WebSocketSubscribe | null>(null);
+  const currentSubscriptionRef = useRef<WebSocketSubscribe | null>(null);
 
   useEffect(() => {
     enabledRef.current = enabled;
@@ -194,7 +194,7 @@ export const useWebSocketClient = ({
 
   connectRef.current = connect;
 
-  const subscribe = useCallback((subscription: WebSocketSubscription) => {
+  const subscribe = useCallback((subscription: WebSocketSubscribe) => {
     currentSubscriptionRef.current = subscription;
 
     if (wsRef.current?.readyState === WebSocket.OPEN) {

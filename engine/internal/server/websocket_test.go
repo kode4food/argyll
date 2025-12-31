@@ -101,7 +101,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
 
-	sub := api.SubscribeMessage{
+	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			AggregateID: []string{"flow", "wf-123"},
@@ -156,7 +156,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
 
-	sub := api.SubscribeMessage{
+	sub := api.SubscribeRequest{
 		Type: "other",
 		Data: api.ClientSubscription{
 			AggregateID: []string{"flow", "wf-123"},
@@ -197,7 +197,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
-	sub := api.SubscribeMessage{
+	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			AggregateID: []string{"flow", "wf-123"},
@@ -207,10 +207,10 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
-	var stateMsg api.SubscribeState
+	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
-	assert.Equal(t, "subscribe_state", stateMsg.Type)
+	assert.Equal(t, "subscribed", stateMsg.Type)
 	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
 	assert.Equal(t, int64(5), stateMsg.Sequence)
 
@@ -231,7 +231,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
-	sub := api.SubscribeMessage{
+	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			AggregateID: []string{"flow", "wf-123"},
@@ -241,7 +241,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
-	var stateMsg api.SubscribeState
+	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(10), stateMsg.Sequence)
@@ -284,7 +284,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
-	sub := api.SubscribeMessage{
+	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			AggregateID: []string{"flow", "wf-123"},
@@ -312,7 +312,7 @@ func TestSubscribeStateNotCalledWithoutAggregateID(t *testing.T) {
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
-	sub := api.SubscribeMessage{
+	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			EventTypes: []api.EventType{
