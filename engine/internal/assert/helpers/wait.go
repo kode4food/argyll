@@ -108,7 +108,27 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 	t *testing.T, ctx context.Context, flowID api.FlowID, timeout time.Duration,
 ) *api.FlowState {
 	t.Helper()
-	return e.SubscribeToFlowStatus(flowID).Wait(t, ctx, timeout)
+	start := time.Now()
+	state := e.SubscribeToFlowStatus(flowID).Wait(t, ctx, timeout)
+	if state.Status == api.FlowCompleted || state.Status == api.FlowFailed {
+		return state
+	}
+
+	remaining := timeout - time.Since(start)
+	if remaining <= 0 {
+		return state
+	}
+
+	deadline := time.Now().Add(remaining)
+	for time.Now().Before(deadline) {
+		cur, err := e.Engine.GetFlowState(ctx, flowID)
+		assert.NoError(t, err)
+		if cur.Status == api.FlowCompleted || cur.Status == api.FlowFailed {
+			return cur
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	return state
 }
 
 func (e *TestEngineEnv) WaitForStepStarted(
