@@ -67,7 +67,13 @@ export const useStepFooterDisplay = (
       const StatusIcon = getProgressIcon(execution.status);
 
       const workItemSuffix = progressState.workItems
-        ? ` (${progressState.workItems.completed + progressState.workItems.failed} of ${progressState.workItems.total})`
+        ? (() => {
+            const done = progressState.workItems.completed;
+            const failed = progressState.workItems.failed;
+            const total = progressState.workItems.total;
+            const base = `${done} of ${total}`;
+            return failed > 0 ? ` (${base}, ${failed} failed)` : ` (${base})`;
+          })()
         : "";
 
       sections.push(
