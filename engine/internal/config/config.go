@@ -26,6 +26,9 @@ type Config struct {
 	FlowCacheSize      int
 	ShutdownTimeout    time.Duration
 	RetryCheckInterval time.Duration
+
+	HibernatorURL    string
+	HibernatorPrefix string
 }
 
 const (
@@ -138,6 +141,13 @@ func (c *Config) LoadFromEnv() {
 	}
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
 		c.WorkConfig.BackoffType = backoffType
+	}
+
+	if hibernatorURL := os.Getenv("HIBERNATOR_URL"); hibernatorURL != "" {
+		c.HibernatorURL = hibernatorURL
+	}
+	if hibernatorPfx := os.Getenv("HIBERNATOR_PREFIX"); hibernatorPfx != "" {
+		c.HibernatorPrefix = hibernatorPfx
 	}
 }
 

@@ -89,19 +89,21 @@ func New(
 
 func (e *Engine) createEventHandler() timebox.Handler {
 	const (
-		flowStarted    = timebox.EventType(api.EventTypeFlowStarted)
-		flowCompleted  = timebox.EventType(api.EventTypeFlowCompleted)
-		flowFailed     = timebox.EventType(api.EventTypeFlowFailed)
-		retryScheduled = timebox.EventType(api.EventTypeRetryScheduled)
-		workSucceeded  = timebox.EventType(api.EventTypeWorkSucceeded)
+		flowStarted     = timebox.EventType(api.EventTypeFlowStarted)
+		flowCompleted   = timebox.EventType(api.EventTypeFlowCompleted)
+		flowFailed      = timebox.EventType(api.EventTypeFlowFailed)
+		flowDeactivated = timebox.EventType(api.EventTypeFlowDeactivated)
+		retryScheduled  = timebox.EventType(api.EventTypeRetryScheduled)
+		workSucceeded   = timebox.EventType(api.EventTypeWorkSucceeded)
 	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStarted:    timebox.MakeHandler(e.handleFlowStarted),
-		flowCompleted:  timebox.MakeHandler(e.handleFlowCompleted),
-		flowFailed:     timebox.MakeHandler(e.handleFlowFailed),
-		retryScheduled: timebox.MakeHandler(e.handleRetryScheduled),
-		workSucceeded:  timebox.MakeHandler(e.handleWorkSucceeded),
+		flowStarted:     timebox.MakeHandler(e.handleFlowStarted),
+		flowCompleted:   timebox.MakeHandler(e.handleFlowCompleted),
+		flowFailed:      timebox.MakeHandler(e.handleFlowFailed),
+		flowDeactivated: timebox.MakeHandler(e.handleFlowDeactivated),
+		retryScheduled:  timebox.MakeHandler(e.handleRetryScheduled),
+		workSucceeded:   timebox.MakeHandler(e.handleWorkSucceeded),
 	})
 }
 
@@ -277,18 +279,34 @@ func (e *Engine) handleFlowCompleted(
 	_ *timebox.Event, data api.FlowCompletedEvent,
 ) error {
 	e.retryQueue.RemoveFlow(data.FlowID)
-	return e.raiseEngineEvent(context.Background(),
-		api.EventTypeFlowDeactivated,
-		api.FlowDeactivatedEvent{FlowID: data.FlowID})
+	return nil
 }
 
 func (e *Engine) handleFlowFailed(
 	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
 	e.retryQueue.RemoveFlow(data.FlowID)
-	return e.raiseEngineEvent(context.Background(),
-		api.EventTypeFlowDeactivated,
-		api.FlowDeactivatedEvent{FlowID: data.FlowID})
+	return nil
+}
+
+func (e *Engine) handleFlowDeactivated(
+	_ *timebox.Event, data api.FlowDeactivatedEvent,
+) error {
+	e.hibernateFlow(data.FlowID)
+	return nil
+}
+
+func (e *Engine) hibernateFlow(flowID api.FlowID) {
+	store := e.flowExec.GetStore()
+	err := store.Hibernate(context.Background(), flowKey(flowID))
+	if err == nil {
+		slog.Info("Flow hibernated", log.FlowID(flowID))
+		return
+	}
+	if errors.Is(err, timebox.ErrNoHibernator) {
+		return
+	}
+	slog.Warn("Failed to hibernate flow", log.FlowID(flowID), log.Error(err))
 }
 
 func (e *Engine) handleRetryScheduled(

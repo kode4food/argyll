@@ -173,15 +173,15 @@ func (t *retryTimer) Reset(nextTime time.Time) <-chan time.Time {
 	delay := max(time.Until(nextTime), 0)
 	if t.timer == nil {
 		t.timer = time.NewTimer(delay)
-	} else {
-		if !t.timer.Stop() {
-			select {
-			case <-t.timer.C:
-			default:
-			}
-		}
-		t.timer.Reset(delay)
+		return t.timer.C
 	}
+	if !t.timer.Stop() {
+		select {
+		case <-t.timer.C:
+		default:
+		}
+	}
+	t.timer.Reset(delay)
 	return t.timer.C
 }
 

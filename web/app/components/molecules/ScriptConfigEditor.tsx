@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import { SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import ScriptEditor from "./ScriptEditor";

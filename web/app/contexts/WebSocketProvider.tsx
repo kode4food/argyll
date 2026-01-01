@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useCallback, useEffect, useRef } from "react";
 import { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 import { useFlowStore } from "@/app/store/flowStore";

@@ -300,7 +300,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestSubscribeStateNotCalledWithoutAggregateID(t *testing.T) {
+func TestSubscribeNoID(t *testing.T) {
 	getStateCalled := false
 	getState := func(
 		ctx context.Context, id timebox.AggregateID,
@@ -435,7 +435,7 @@ func TestCombinedFiltersUseAndLogic(t *testing.T) {
 	assert.False(t, filter(wrongAggregateEvent))
 }
 
-func TestEventTypesWithFlowIDUseAndLogic(t *testing.T) {
+func TestBuildFilter(t *testing.T) {
 	sub := &api.ClientSubscription{
 		AggregateID: []string{"flow", "wf-123"},
 		EventTypes:  []api.EventType{api.EventTypeFlowStarted},

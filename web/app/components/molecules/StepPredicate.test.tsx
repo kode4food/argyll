@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import StepPredicate from "./StepPredicate";
 import { Step, SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "../../api";

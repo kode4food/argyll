@@ -1,7 +1,7 @@
+import React from "react";
 import { renderHook } from "@testing-library/react";
 import { useHandlePositions } from "./useHandlePositions";
 import { AttributeRole, AttributeType } from "../../../api";
-import React from "react";
 
 describe("useHandlePositions", () => {
   it("initializes with empty handle positions", () => {

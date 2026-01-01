@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { StreamLanguage } from "@codemirror/language";

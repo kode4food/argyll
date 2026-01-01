@@ -1,4 +1,3 @@
-import React from "react";
 import { render } from "@testing-library/react";
 import { Position } from "@xyflow/react";
 import InvisibleHandle from "./InvisibleHandle";

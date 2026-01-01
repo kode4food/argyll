@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import FlowStats from "./FlowStats";
 import type { Step } from "../../api";

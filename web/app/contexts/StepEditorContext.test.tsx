@@ -1,4 +1,3 @@
-import React from "react";
 import { act, render, screen } from "@testing-library/react";
 import { StepEditorProvider, useStepEditorContext } from "./StepEditorContext";
 import { Step } from "../api";

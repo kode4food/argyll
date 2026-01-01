@@ -1,6 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { api, FlowContext, ExecutionResult, Step } from "../api";
+import { api, FlowContext, ExecutionPlan, ExecutionResult, Step } from "../api";
 import { ConnectionStatus } from "../types/websocket";
 
 interface StepHealthInfo {
@@ -69,7 +69,7 @@ interface FlowState {
     completed_at?: string
   ) => void;
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
-  initializeExecutions: (flowId: string, plan: any) => void;
+  initializeExecutions: (flowId: string, plan: ExecutionPlan) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
   setEngineSocketStatus: (
     status: ConnectionStatus,
@@ -84,7 +84,7 @@ interface FlowState {
     id: string;
     status: FlowContext["status"];
     attributes?: Record<string, any>;
-    plan?: any;
+    plan?: ExecutionPlan;
     executions?: Record<string, any>;
     created_at?: string;
     completed_at?: string;
@@ -281,7 +281,7 @@ export const useFlowStore = create<FlowState>()(
         });
       },
 
-      initializeExecutions: (flowId: string, plan: any) => {
+      initializeExecutions: (flowId: string, plan: ExecutionPlan) => {
         if (!plan?.steps) {
           set({ executions: [] });
           return;

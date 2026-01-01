@@ -1,4 +1,3 @@
-import React from "react";
 import { render, screen } from "@testing-library/react";
 import StepAttributesSection from "./StepAttributesSection";
 import type { Step, ExecutionResult } from "../../api";

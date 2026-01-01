@@ -116,7 +116,13 @@ func (a *flowActor) processWorkSucceeded(
 		// Terminal flows only record step completions for audit
 		if flowTransitions.IsTerminal(ag.Value().Status) {
 			_, err := a.checkStepCompletion(ag, event.StepID)
-			return nil, err
+			if err != nil {
+				return nil, err
+			}
+			if fn := a.maybeDeactivate(ag.Value()); fn != nil {
+				return enqueued{fn}, nil
+			}
+			return nil, nil
 		}
 
 		completed, err := a.checkStepCompletion(ag, event.StepID)
@@ -126,7 +132,13 @@ func (a *flowActor) processWorkSucceeded(
 
 		// Step completed - check if it was a goal step
 		if a.isGoalStep(event.StepID, ag.Value()) {
-			return nil, a.checkTerminal(ag)
+			if err := a.checkTerminal(ag); err != nil {
+				return nil, err
+			}
+			if fn := a.maybeDeactivate(ag.Value()); fn != nil {
+				return enqueued{fn}, nil
+			}
+			return nil, nil
 		}
 
 		// Find and start downstream ready steps
@@ -152,7 +164,14 @@ func (a *flowActor) processWorkFailed(
 	_ *timebox.Event, event api.WorkFailedEvent,
 ) error {
 	return a.execTransaction(func(ag *FlowAggregator) (enqueued, error) {
-		return nil, a.handleStepFailure(ag, event.StepID)
+		fn, err := a.handleStepFailure(ag, event.StepID)
+		if err != nil {
+			return nil, err
+		}
+		if fn != nil {
+			return enqueued{fn}, nil
+		}
+		return nil, nil
 	})
 }
 
@@ -163,13 +182,23 @@ func (a *flowActor) processWorkNotCompleted(
 ) error {
 	return a.execTransaction(func(ag *FlowAggregator) (enqueued, error) {
 		if flowTransitions.IsTerminal(ag.Value().Status) {
+			if fn := a.maybeDeactivate(ag.Value()); fn != nil {
+				return enqueued{fn}, nil
+			}
 			return nil, nil
 		}
 		err := a.handleWorkNotCompleted(ag, event.StepID, event.Token)
 		if err != nil {
 			return nil, err
 		}
-		return nil, a.handleStepFailure(ag, event.StepID)
+		fn, err := a.handleStepFailure(ag, event.StepID)
+		if err != nil {
+			return nil, err
+		}
+		if fn != nil {
+			return enqueued{fn}, nil
+		}
+		return nil, nil
 	})
 }
 
@@ -373,24 +402,28 @@ func (e enqueued) exec() {
 }
 
 // handleStepFailure handles common failure logic for processWorkFailed and
-// processWorkNotCompleted - checking step completion and propagating failures
+// processWorkNotCompleted - checking step completion and propagating failures.
+// Returns a deferred hibernation function if the flow becomes ready to archive.
 func (a *flowActor) handleStepFailure(
 	ag *FlowAggregator, stepID api.StepID,
-) error {
+) (deferred, error) {
 	if flowTransitions.IsTerminal(ag.Value().Status) {
 		_, err := a.checkStepCompletion(ag, stepID)
-		return err
+		if err != nil {
+			return nil, err
+		}
+		return a.maybeDeactivate(ag.Value()), nil
 	}
 
 	completed, err := a.checkStepCompletion(ag, stepID)
 	if err != nil || !completed {
-		return err
+		return nil, err
 	}
 
 	if err := a.failUnreachable(ag); err != nil {
-		return err
+		return nil, err
 	}
-	return a.checkTerminal(ag)
+	return nil, a.checkTerminal(ag)
 }
 
 // findInitialSteps finds steps that can start when a flow begins
@@ -585,4 +618,36 @@ func (a *flowActor) handleEvent(ev *timebox.Event, handler timebox.Handler) {
 			slog.String("event_type", string(ev.Type)),
 			log.Error(err))
 	}
+}
+
+// maybeDeactivate returns a deferred function that emits FlowDeactivated
+// if the flow is terminal and has no active work items remaining
+func (a *flowActor) maybeDeactivate(flow *api.FlowState) deferred {
+	if !flowTransitions.IsTerminal(flow.Status) {
+		return nil
+	}
+	if hasActiveWork(flow) {
+		return nil
+	}
+	return func() {
+		if err := a.raiseEngineEvent(context.Background(),
+			api.EventTypeFlowDeactivated,
+			api.FlowDeactivatedEvent{FlowID: a.flowID},
+		); err != nil {
+			slog.Error("Failed to emit FlowDeactivated",
+				log.FlowID(a.flowID),
+				log.Error(err))
+		}
+	}
+}
+
+func hasActiveWork(flow *api.FlowState) bool {
+	for _, exec := range flow.Executions {
+		for _, item := range exec.WorkItems {
+			if item.Status == api.WorkPending || item.Status == api.WorkActive {
+				return true
+			}
+		}
+	}
+	return false
 }

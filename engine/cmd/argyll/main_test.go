@@ -9,7 +9,6 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/argyll/engine/internal/config"
 )
@@ -124,7 +123,7 @@ func TestShutdown(t *testing.T) {
 
 func TestRun(t *testing.T) {
 	server, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
@@ -147,7 +146,7 @@ func TestRun(t *testing.T) {
 
 	select {
 	case err := <-done:
-		require.NoError(t, err)
+		assert.NoError(t, err)
 	case <-time.After(time.Second):
 		t.Fatal("timed out waiting for run to exit")
 	}
@@ -168,7 +167,7 @@ func setupServerTest(t *testing.T) (*argyll, func()) {
 	t.Helper()
 
 	server, err := miniredis.Run()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = server.Addr()
@@ -177,7 +176,7 @@ func setupServerTest(t *testing.T) (*argyll, func()) {
 
 	s := &argyll{cfg: cfg}
 	err = s.initializeStores()
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	s.initializeEngine()
 	s.startServer()

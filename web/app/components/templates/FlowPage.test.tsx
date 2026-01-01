@@ -1,7 +1,6 @@
 import { render, screen } from "@testing-library/react";
 
 import FlowPage from "./FlowPage";
-import React from "react";
 
 jest.mock("../organisms/FlowSelector", () => {
   const MockFlowSelector = () => <div>FlowSelector</div>;

@@ -1,5 +1,3 @@
-"use client";
-
 import React from "react";
 import FlowDiagram from "./FlowDiagram";
 import FlowSelector from "../organisms/FlowSelector";

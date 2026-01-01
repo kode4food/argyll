@@ -17,6 +17,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/hibernate"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -26,6 +27,7 @@ type argyll struct {
 	timebox     *timebox.Timebox
 	engineStore *timebox.Store
 	flowStore   *timebox.Store
+	hibernator  *hibernate.BlobHibernator
 	stepClient  client.Client
 	engine      *engine.Engine
 	health      *server.HealthChecker
@@ -113,13 +115,35 @@ func (s *argyll) initializeStores() error {
 		return fmt.Errorf("failed to create engine store: %w", err)
 	}
 
-	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
+	flowStoreConfig := s.cfg.FlowStore
+	if s.cfg.HibernatorURL != "" {
+		s.hibernator, err = hibernate.NewBlobHibernator(
+			context.Background(), s.cfg.HibernatorURL, s.cfg.HibernatorPrefix,
+		)
+		if err != nil {
+			_ = s.timebox.Close()
+			return fmt.Errorf("failed to create hibernator: %w", err)
+		}
+		flowStoreConfig.Hibernator = s.hibernator
+		slog.Info("Hibernator configured",
+			slog.String("url", s.cfg.HibernatorURL),
+			slog.String("prefix", s.cfg.HibernatorPrefix))
+	}
+
+	s.flowStore, err = s.timebox.NewStore(flowStoreConfig)
 	if err != nil {
+		s.closeHibernator()
 		_ = s.timebox.Close()
 		return fmt.Errorf("failed to create flow store: %w", err)
 	}
 
 	return nil
+}
+
+func (s *argyll) closeHibernator() {
+	if s.hibernator != nil {
+		_ = s.hibernator.Close()
+	}
 }
 
 func (s *argyll) initializeEngine() {
@@ -177,6 +201,7 @@ func (s *argyll) shutdown() {
 	}
 
 	_ = s.timebox.Close()
+	s.closeHibernator()
 
 	slog.Info("Server exited")
 }

@@ -1,5 +1,3 @@
-"use client";
-
 import { useCallback, useEffect, useRef, useState } from "react";
 import { API_CONFIG, WEBSOCKET } from "@/constants/common";
 import {

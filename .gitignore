@@ -30,7 +30,6 @@ dist
 cover.out
 *.coverprofile
 
-.claude
 .idea
 .settings
 .vscode
