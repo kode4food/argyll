@@ -22,6 +22,9 @@ const FLOW_EVENT_TYPES = [
   "attribute_set",
   "flow_completed",
   "flow_failed",
+  "work_started",
+  "work_succeeded",
+  "work_failed",
 ];
 
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
@@ -97,6 +100,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         flowData,
         initializeExecutions,
         updateExecution,
+        updateWorkItem,
         updateFlowFromWebSocket,
       } = useFlowStore.getState();
 
@@ -180,6 +184,24 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           };
           flowUpdate.completed_at =
             wsEvent.data?.failed_at || new Date().toISOString();
+          break;
+        case "work_started":
+          updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+            status: "active",
+            inputs: wsEvent.data?.inputs,
+          });
+          break;
+        case "work_succeeded":
+          updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+            status: "completed",
+            outputs: wsEvent.data?.outputs,
+          });
+          break;
+        case "work_failed":
+          updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+            status: "failed",
+            error: wsEvent.data?.error,
+          });
           break;
         default:
           break;

@@ -66,16 +66,6 @@ const StepFooter: React.FC<StepFooterProps> = ({
                   <ProgressIcon
                     className={`progress-icon ${progressState.status || "pending"}`}
                   />
-                  {progressState.status === "active" &&
-                    progressState.workItems &&
-                    progressState.workItems.total > 1 && (
-                      <span className={styles.progressCounter}>
-                        (
-                        {progressState.workItems.completed +
-                          progressState.workItems.failed}
-                        /{progressState.workItems.total})
-                      </span>
-                    )}
                 </div>
               ) : (
                 <HealthDot status={healthIconClass as HealthStatus} />

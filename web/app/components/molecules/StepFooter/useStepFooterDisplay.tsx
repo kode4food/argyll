@@ -66,6 +66,10 @@ export const useStepFooterDisplay = (
     if (execution && flowId) {
       const StatusIcon = getProgressIcon(execution.status);
 
+      const workItemSuffix = progressState.workItems
+        ? ` (${progressState.workItems.completed + progressState.workItems.failed} of ${progressState.workItems.total})`
+        : "";
+
       sections.push(
         <TooltipSection
           key="execution-status"
@@ -78,17 +82,7 @@ export const useStepFooterDisplay = (
           bold
         >
           {execution.status.toUpperCase()}
-          {progressState.workItems && progressState.workItems.total > 1 && (
-            <div style={{ marginTop: "8px", fontSize: "0.875rem" }}>
-              Work Items: {progressState.workItems.completed} completed,{" "}
-              {progressState.workItems.failed} failed,{" "}
-              {progressState.workItems.active} active (
-              {progressState.workItems.completed +
-                progressState.workItems.failed +
-                progressState.workItems.active}
-              /{progressState.workItems.total})
-            </div>
-          )}
+          {workItemSuffix}
         </TooltipSection>
       );
 

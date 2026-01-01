@@ -1,6 +1,13 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
-import { api, FlowContext, ExecutionPlan, ExecutionResult, Step } from "../api";
+import {
+  api,
+  FlowContext,
+  ExecutionPlan,
+  ExecutionResult,
+  Step,
+  WorkState,
+} from "../api";
 import { ConnectionStatus } from "../types/websocket";
 
 interface StepHealthInfo {
@@ -71,6 +78,11 @@ interface FlowState {
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
   initializeExecutions: (flowId: string, plan: ExecutionPlan) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
+  updateWorkItem: (
+    stepId: string,
+    token: string,
+    updates: Partial<WorkState>
+  ) => void;
   setEngineSocketStatus: (
     status: ConnectionStatus,
     reconnectAttempt: number
@@ -314,6 +326,36 @@ export const useFlowStore = create<FlowState>()(
 
           set({ executions: updated, resolvedAttributes: newResolvedAttrs });
         }
+      },
+
+      updateWorkItem: (
+        stepId: string,
+        token: string,
+        updates: Partial<WorkState>
+      ) => {
+        const { executions } = get();
+        const index = executions.findIndex((e) => e.step_id === stepId);
+        if (index < 0) return;
+
+        const execution = executions[index];
+        const workItems = execution.work_items || {};
+        const existingItem = workItems[token] || {
+          token,
+          status: "pending",
+          inputs: {},
+          retry_count: 0,
+        };
+
+        const updated = [...executions];
+        updated[index] = {
+          ...execution,
+          work_items: {
+            ...workItems,
+            [token]: { ...existingItem, ...updates },
+          },
+        };
+
+        set({ executions: updated });
       },
 
       setEngineSocketStatus: (

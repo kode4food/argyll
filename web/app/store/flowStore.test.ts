@@ -307,6 +307,91 @@ describe("flowStore", () => {
       const state = useFlowStore.getState();
       expect(state.executions[0].status).toBe("pending");
     });
+
+    test("updateWorkItem creates work item if not exists", () => {
+      useFlowStore.setState({
+        executions: [
+          {
+            step_id: "step-1",
+            flow_id: "wf-1",
+            status: "active",
+            inputs: {},
+            started_at: "2024-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      useFlowStore.getState().updateWorkItem("step-1", "token-1", {
+        status: "active",
+        inputs: { key: "value" },
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.executions[0].work_items).toBeDefined();
+      expect(state.executions[0].work_items?.["token-1"]).toEqual({
+        token: "token-1",
+        status: "active",
+        inputs: { key: "value" },
+        retry_count: 0,
+      });
+    });
+
+    test("updateWorkItem updates existing work item", () => {
+      useFlowStore.setState({
+        executions: [
+          {
+            step_id: "step-1",
+            flow_id: "wf-1",
+            status: "active",
+            inputs: {},
+            started_at: "2024-01-01T00:00:00Z",
+            work_items: {
+              "token-1": {
+                token: "token-1",
+                status: "active",
+                inputs: { key: "value" },
+                retry_count: 0,
+              },
+            },
+          },
+        ],
+      });
+
+      useFlowStore.getState().updateWorkItem("step-1", "token-1", {
+        status: "completed",
+        outputs: { result: "done" },
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.executions[0].work_items?.["token-1"]).toEqual({
+        token: "token-1",
+        status: "completed",
+        inputs: { key: "value" },
+        outputs: { result: "done" },
+        retry_count: 0,
+      });
+    });
+
+    test("updateWorkItem does nothing if step not found", () => {
+      useFlowStore.setState({
+        executions: [
+          {
+            step_id: "step-1",
+            flow_id: "wf-1",
+            status: "active",
+            inputs: {},
+            started_at: "2024-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      useFlowStore.getState().updateWorkItem("step-999", "token-1", {
+        status: "completed",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.executions[0].work_items).toBeUndefined();
+    });
   });
 
   describe("Step health updates", () => {

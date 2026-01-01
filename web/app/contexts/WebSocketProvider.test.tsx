@@ -31,6 +31,7 @@ jest.mock("@/app/store/flowStore", () => ({
     updateStepHealth: jest.fn(),
     initializeExecutions: jest.fn(),
     updateExecution: jest.fn(),
+    updateWorkItem: jest.fn(),
     updateFlowFromWebSocket: jest.fn(),
     setEngineSocketStatus: jest.fn(),
     engineReconnectRequest: 0,
@@ -95,6 +96,9 @@ describe("WebSocketProvider", () => {
         "attribute_set",
         "flow_completed",
         "flow_failed",
+        "work_started",
+        "work_succeeded",
+        "work_failed",
       ],
     });
   });
@@ -297,6 +301,83 @@ describe("WebSocketProvider", () => {
     );
     expect(flowStore.__storeState.updateFlowFromWebSocket).toHaveBeenCalledWith(
       expect.objectContaining({ status: "failed" })
+    );
+  });
+
+  test("dispatches work item events to updateWorkItem", () => {
+    const engineClient = {
+      connectionStatus: "connected",
+      reconnectAttempt: 0,
+      subscribe: jest.fn(),
+      reconnect: jest.fn(),
+    };
+    const flowClient = {
+      connectionStatus: "connected",
+      reconnectAttempt: 0,
+      subscribe: jest.fn(),
+      reconnect: jest.fn(),
+    };
+
+    const clientOptions: Array<{ onEvent?: (event: any) => void }> = [];
+    useWebSocketClientMock
+      .mockImplementationOnce((options) => {
+        clientOptions.push(options || {});
+        return engineClient;
+      })
+      .mockImplementationOnce((options) => {
+        clientOptions.push(options || {});
+        return flowClient;
+      });
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    clientOptions[1].onEvent?.({
+      type: "work_started",
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-1",
+        token: "token-1",
+        inputs: { key: "value" },
+      },
+    });
+    clientOptions[1].onEvent?.({
+      type: "work_succeeded",
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-1",
+        token: "token-2",
+        outputs: { result: "done" },
+      },
+    });
+    clientOptions[1].onEvent?.({
+      type: "work_failed",
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-1",
+        token: "token-3",
+        error: "something went wrong",
+      },
+    });
+
+    const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
+      "step-1",
+      "token-1",
+      { status: "active", inputs: { key: "value" } }
+    );
+    expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
+      "step-1",
+      "token-2",
+      { status: "completed", outputs: { result: "done" } }
+    );
+    expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
+      "step-1",
+      "token-3",
+      { status: "failed", error: "something went wrong" }
     );
   });
 

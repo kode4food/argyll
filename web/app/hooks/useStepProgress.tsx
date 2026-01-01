@@ -67,11 +67,12 @@ export const useStepProgress = (
     ? (effectiveExecution.status as StepProgressStatus)
     : "pending";
 
-  const progressState: StepProgressState = {
-    status,
-    flowId,
-    workItems: workItemProgress,
-  };
-
-  return progressState;
+  return useMemo<StepProgressState>(
+    () => ({
+      status,
+      flowId,
+      workItems: workItemProgress,
+    }),
+    [status, flowId, workItemProgress]
+  );
 };

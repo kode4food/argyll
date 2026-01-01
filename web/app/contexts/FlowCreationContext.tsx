@@ -5,6 +5,7 @@ import React, {
   useRef,
   useCallback,
   useEffect,
+  useMemo,
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { Step } from "../api";
@@ -278,19 +279,30 @@ export const FlowCreationStateProvider = ({
     previewPlan,
   ]);
 
-  const value: FlowCreationContextValue = {
-    newID,
-    setNewID,
-    setIDManuallyEdited,
-    handleStepChange,
-    initialState,
-    setInitialState,
-    creating,
-    handleCreateFlow,
-    steps,
-    generateID: generateFlowId,
-    sortSteps: sortStepsByType,
-  };
+  const value = useMemo<FlowCreationContextValue>(
+    () => ({
+      newID,
+      setNewID,
+      setIDManuallyEdited,
+      handleStepChange,
+      initialState,
+      setInitialState,
+      creating,
+      handleCreateFlow,
+      steps,
+      generateID: generateFlowId,
+      sortSteps: sortStepsByType,
+    }),
+    [
+      newID,
+      setIDManuallyEdited,
+      handleStepChange,
+      initialState,
+      creating,
+      handleCreateFlow,
+      steps,
+    ]
+  );
 
   return (
     <FlowCreationContext.Provider value={value}>

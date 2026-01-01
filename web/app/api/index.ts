@@ -13,6 +13,7 @@ export type {
   ExecutionResult,
   StepHealth,
   AttributeValue,
+  WorkState,
 } from "./types";
 
 export {

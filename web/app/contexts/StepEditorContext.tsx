@@ -1,4 +1,10 @@
-import React, { createContext, useCallback, useContext, useState } from "react";
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  useMemo,
+} from "react";
 import StepEditor from "../components/organisms/StepEditor";
 import { Step } from "../api";
 
@@ -34,8 +40,9 @@ export const StepEditorProvider = ({
 
   const closeEditor = useCallback(() => {
     setState((prev) => {
-      prev?.onClose?.();
-      return prev ? { ...prev, open: false } : prev;
+      if (!prev || !prev.open) return prev;
+      prev.onClose?.();
+      return { ...prev, open: false };
     });
   }, []);
 
@@ -53,15 +60,18 @@ export const StepEditorProvider = ({
     [state]
   );
 
+  const contextValue = useMemo(
+    () => ({
+      openEditor,
+      closeEditor,
+      isOpen: state.open,
+      activeStep: state.step,
+    }),
+    [openEditor, closeEditor, state.open, state.step]
+  );
+
   return (
-    <StepEditorContext.Provider
-      value={{
-        openEditor,
-        closeEditor,
-        isOpen: state.open,
-        activeStep: state.step,
-      }}
-    >
+    <StepEditorContext.Provider value={contextValue}>
       {children}
       {state.open && (
         <StepEditor
