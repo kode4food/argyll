@@ -418,6 +418,8 @@ cloud.google.com/go/trace v1.10.1 h1:EwGdOLCNfYOOPtgqo+D2sDLZmRCEO1AagRTJCU6ztdg
 cloud.google.com/go/trace v1.10.1/go.mod h1:gbtL94KE5AJLH3y+WVpfWILmqgc6dXcqgNXdOPAQTYk=
 cloud.google.com/go/translate v1.8.2 h1:PQHamiOzlehqLBJMnM72lXk/OsMQewZB12BKJ8zXrU0=
 cloud.google.com/go/translate v1.8.2/go.mod h1:d1ZH5aaOA0CNhWeXeC8ujd4tdCFw8XoNWRljklu5RHs=
+cloud.google.com/go/translate v1.10.3 h1:g+B29z4gtRGsiKDoTF+bNeH25bLRokAaElygX2FcZkE=
+cloud.google.com/go/translate v1.10.3/go.mod h1:GW0vC1qvPtd3pgtypCv4k4U8B7EdgK9/QEF2aJEUovs=
 cloud.google.com/go/translate v1.12.6 h1:QHcszWZvBLEZHM2WJ6IDg2BUTWzEPMiHhbJAd15yKGU=
 cloud.google.com/go/translate v1.12.6/go.mod h1:nB3AXuX+iHbV8ZURmElcW85qkEDWZw68sf4kqMT/E5o=
 cloud.google.com/go/video v1.19.0 h1:BRyyS+wU+Do6VOXnb8WfPr42ZXti9hzmLKLUCkggeK4=

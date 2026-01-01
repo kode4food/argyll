@@ -193,10 +193,13 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
       const nodeMap = new Map(currentNodes.map((n) => [n.id, n]));
 
       return nodesToUse.map((newNode) => {
-        const existingNode = nodeMap.get(newNode.id);
-        if (existingNode) {
+        const oldNode = nodeMap.get(newNode.id);
+        if (oldNode) {
+          if (oldNode.data === newNode.data && oldNode.type === newNode.type) {
+            return oldNode;
+          }
           return {
-            ...existingNode,
+            ...oldNode,
             data: newNode.data,
             type: newNode.type,
           };

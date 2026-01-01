@@ -1,13 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
-import {
-  Step,
-  FlowContext,
-  ExecutionResult,
-  ExecutionPlan,
-  FlowProjection,
-  StepStatus,
-} from "./types";
+import { Step, FlowContext, ExecutionPlan, FlowProjection } from "./types";
 
 export class ArgyllApi {
   private client: AxiosInstance;

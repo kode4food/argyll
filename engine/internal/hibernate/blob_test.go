@@ -19,7 +19,7 @@ func TestBlobHibernator(t *testing.T) {
 
 	h, err := hibernate.NewBlobHibernator(ctx, "mem://", "test/")
 	assert.NoError(t, err)
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	id := timebox.NewAggregateID("flow", "wf-123")
 
@@ -74,7 +74,7 @@ func TestBlobHibernatorKeyFormat(t *testing.T) {
 
 	h, err := hibernate.NewBlobHibernator(ctx, "mem://", "archived/")
 	assert.NoError(t, err)
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	record := &timebox.HibernateRecord{
 		Events: []json.RawMessage{json.RawMessage(`{}`)},
@@ -95,7 +95,7 @@ func TestBlobHibernatorFileURL(t *testing.T) {
 
 	h, err := hibernate.NewBlobHibernator(ctx, "file://"+tmpDir, "")
 	assert.NoError(t, err)
-	defer h.Close()
+	defer func() { _ = h.Close() }()
 
 	id := timebox.NewAggregateID("flow", "file-test")
 	record := &timebox.HibernateRecord{

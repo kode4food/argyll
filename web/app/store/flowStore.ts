@@ -352,7 +352,7 @@ export const useFlowStore = create<FlowState>()(
       },
 
       setFlowState: (state) => {
-        const { selectedFlow, flowData: currentFlowData } = get();
+        const { selectedFlow } = get();
         if (!selectedFlow || state.id !== selectedFlow) {
           return;
         }

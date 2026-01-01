@@ -1,3 +1,6 @@
+import React from "react";
+import StepEditor from "./StepEditor";
+import { ArgyllApi, AttributeRole, AttributeType } from "../../api";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Step } from "../../api";
 
@@ -7,9 +10,6 @@ jest.mock("../../api", () => ({
   ...jest.requireActual("../../api"),
   ArgyllApi: jest.fn(),
 }));
-
-import StepEditor from "./StepEditor";
-import { ArgyllApi, AttributeRole, AttributeType } from "../../api";
 
 jest.mock("../molecules/ScriptEditor", () => ({
   __esModule: true,
