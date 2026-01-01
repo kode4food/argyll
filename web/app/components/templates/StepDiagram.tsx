@@ -196,8 +196,9 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         const existingNode = nodeMap.get(newNode.id);
         if (existingNode) {
           return {
-            ...newNode,
-            position: existingNode.position,
+            ...existingNode,
+            data: newNode.data,
+            type: newNode.type,
           };
         }
         return newNode;

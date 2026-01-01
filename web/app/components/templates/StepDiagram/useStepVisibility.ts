@@ -15,9 +15,8 @@ export function useStepVisibility(
   return useMemo(() => {
     if (flowData?.plan?.steps && Object.keys(flowData.plan.steps).length > 0) {
       const planSteps = getStepsFromPlan(flowData.plan);
-      const planStepIds = new Set(planSteps.map((step) => step.id));
       return {
-        visibleSteps: (steps || []).filter((step) => planStepIds.has(step.id)),
+        visibleSteps: planSteps,
         previewStepIds: null,
       };
     }
