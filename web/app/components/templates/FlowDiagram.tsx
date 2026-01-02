@@ -144,6 +144,7 @@ const FlowDiagramContent: React.FC = () => {
               }}
             >
               <StepDiagram
+                key={flowData?.id ?? "overview"}
                 steps={steps || []}
                 flowData={flowData}
                 executions={isFlowMode ? executions || [] : []}

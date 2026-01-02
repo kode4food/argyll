@@ -212,8 +212,7 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
 
   React.useEffect(() => {
     setEdges(initialEdges);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialEdges]);
+  }, [initialEdges, setEdges]);
 
   if (!visibleSteps || visibleSteps.length === 0) {
     return (
