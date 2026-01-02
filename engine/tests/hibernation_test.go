@@ -21,7 +21,7 @@ import (
 // testHibernationEnv creates a test environment with hibernation enabled
 type testHibernationEnv struct {
 	Engine     *engine.Engine
-	Worker     *engine.HibernationWorker
+	Worker     *engine.HibernateWorker
 	MockClient *helpers.MockClient
 	Hibernator *hibernate.BlobHibernator
 	Cleanup    func()
@@ -62,9 +62,9 @@ func newHibernationTestEnv(t *testing.T) *testHibernationEnv {
 	mockCli := helpers.NewMockClient()
 
 	cfg := &config.Config{
-		APIPort:            8080,
-		APIHost:            "localhost",
-		WebhookBaseURL:     "http://localhost:8080",
+		APIPort:         8080,
+		APIHost:         "localhost",
+		WebhookBaseURL:  "http://localhost:8080",
 		StepTimeout:     5 * api.Second,
 		FlowCacheSize:   100,
 		ShutdownTimeout: 2 * time.Second,
@@ -83,7 +83,7 @@ func newHibernationTestEnv(t *testing.T) *testHibernationEnv {
 
 	hub := tb.GetHub()
 	eng := engine.New(engineStore, flowStore, mockCli, hub, cfg)
-	hibWorker := engine.NewHibernationWorker(eng, cfg)
+	hibWorker := engine.NewHibernateWorker(eng, cfg)
 
 	cleanup := func() {
 		hibWorker.Stop()

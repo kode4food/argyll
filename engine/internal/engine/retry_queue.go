@@ -8,13 +8,6 @@ import (
 )
 
 type (
-	// RetryItem represents a scheduled retry
-	RetryItem struct {
-		FlowID      api.FlowID
-		StepID      api.StepID
-		Token       api.Token
-		NextRetryAt time.Time
-	}
 
 	// RetryQueue is a thread-safe queue for scheduled retries
 	RetryQueue struct {
@@ -23,6 +16,14 @@ type (
 		next    *RetryItem
 		notify  chan struct{}
 		stopped bool
+	}
+
+	// RetryItem represents a scheduled retry
+	RetryItem struct {
+		FlowID      api.FlowID
+		StepID      api.StepID
+		Token       api.Token
+		NextRetryAt time.Time
 	}
 
 	retryTimer struct {
@@ -53,7 +54,11 @@ func (q *RetryQueue) Push(item *RetryItem) {
 		return
 	}
 
-	key := retryKey{FlowID: item.FlowID, StepID: item.StepID, Token: item.Token}
+	key := retryKey{
+		FlowID: item.FlowID,
+		StepID: item.StepID,
+		Token:  item.Token,
+	}
 	q.items[key] = item
 
 	if q.next == nil || item.NextRetryAt.Before(q.next.NextRetryAt) {
@@ -63,11 +68,17 @@ func (q *RetryQueue) Push(item *RetryItem) {
 }
 
 // Remove removes a retry item from the queue
-func (q *RetryQueue) Remove(flowID api.FlowID, stepID api.StepID, token api.Token) {
+func (q *RetryQueue) Remove(
+	flowID api.FlowID, stepID api.StepID, token api.Token,
+) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
-	key := retryKey{FlowID: flowID, StepID: stepID, Token: token}
+	key := retryKey{
+		FlowID: flowID,
+		StepID: stepID,
+		Token:  token,
+	}
 	item, ok := q.items[key]
 	if !ok {
 		return

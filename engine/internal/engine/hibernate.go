@@ -15,8 +15,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-// HibernationWorker monitors memory pressure and age to hibernate flows
-type HibernationWorker struct {
+// HibernateWorker monitors memory pressure and age to hibernate flows
+type HibernateWorker struct {
 	engine      *Engine
 	redisClient *redis.Client
 	config      *config.Config
@@ -25,11 +25,9 @@ type HibernationWorker struct {
 	wg          sync.WaitGroup
 }
 
-// NewHibernationWorker creates a worker that monitors the flows Redis for
-// memory pressure and hibernates deactivated flows accordingly
-func NewHibernationWorker(
-	e *Engine, cfg *config.Config,
-) *HibernationWorker {
+// NewHibernateWorker creates a worker that monitors the flows Redis for memory
+// pressure and hibernates deactivated flows accordingly
+func NewHibernateWorker(e *Engine, cfg *config.Config) *HibernateWorker {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	client := redis.NewClient(&redis.Options{
@@ -38,7 +36,7 @@ func NewHibernationWorker(
 		DB:       cfg.FlowStore.DB,
 	})
 
-	return &HibernationWorker{
+	return &HibernateWorker{
 		engine:      e,
 		redisClient: client,
 		config:      cfg,
@@ -48,19 +46,19 @@ func NewHibernationWorker(
 }
 
 // Start begins the hibernation monitoring loop
-func (w *HibernationWorker) Start() {
+func (w *HibernateWorker) Start() {
 	w.wg.Add(1)
 	go w.run()
 }
 
 // Stop gracefully shuts down the hibernation worker
-func (w *HibernationWorker) Stop() {
+func (w *HibernateWorker) Stop() {
 	w.cancel()
 	w.wg.Wait()
 	_ = w.redisClient.Close()
 }
 
-func (w *HibernationWorker) run() {
+func (w *HibernateWorker) run() {
 	defer w.wg.Done()
 
 	ticker := time.NewTicker(w.config.Hibernate.CheckInterval)
@@ -76,7 +74,7 @@ func (w *HibernationWorker) run() {
 	}
 }
 
-func (w *HibernationWorker) checkAndHibernate() {
+func (w *HibernateWorker) checkAndHibernate() {
 	memoryPressure := w.checkMemoryPressure()
 	now := time.Now()
 
@@ -111,7 +109,7 @@ func (w *HibernationWorker) checkAndHibernate() {
 	}
 }
 
-func (w *HibernationWorker) checkMemoryPressure() bool {
+func (w *HibernateWorker) checkMemoryPressure() bool {
 	info, err := w.redisClient.Info(w.ctx, "memory").Result()
 	if err != nil {
 		slog.Warn("Failed to get Redis memory info", log.Error(err))
@@ -127,22 +125,7 @@ func (w *HibernationWorker) checkMemoryPressure() bool {
 	return usedPercent >= w.config.Hibernate.MemoryPercent
 }
 
-func parseMemoryInfo(info string) (used, max int64) {
-	lines := strings.SplitSeq(info, "\n")
-	for line := range lines {
-		line = strings.TrimSpace(line)
-		if after, ok := strings.CutPrefix(line, "used_memory:"); ok {
-			val := after
-			used, _ = strconv.ParseInt(val, 10, 64)
-		} else if after, ok := strings.CutPrefix(line, "maxmemory:"); ok {
-			val := after
-			max, _ = strconv.ParseInt(val, 10, 64)
-		}
-	}
-	return
-}
-
-func (w *HibernationWorker) hibernateFlow(flowID api.FlowID, reason string) {
+func (w *HibernateWorker) hibernateFlow(flowID api.FlowID, reason string) {
 	w.engine.hibernateFlow(flowID)
 
 	err := w.engine.raiseEngineEvent(
@@ -159,4 +142,19 @@ func (w *HibernationWorker) hibernateFlow(flowID api.FlowID, reason string) {
 	slog.Info("Flow hibernated by worker",
 		log.FlowID(flowID),
 		slog.String("reason", reason))
+}
+
+func parseMemoryInfo(info string) (used, max int64) {
+	lines := strings.SplitSeq(info, "\n")
+	for line := range lines {
+		line = strings.TrimSpace(line)
+		if after, ok := strings.CutPrefix(line, "used_memory:"); ok {
+			val := after
+			used, _ = strconv.ParseInt(val, 10, 64)
+		} else if after, ok := strings.CutPrefix(line, "maxmemory:"); ok {
+			val := after
+			max, _ = strconv.ParseInt(val, 10, 64)
+		}
+	}
+	return
 }

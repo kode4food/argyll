@@ -32,7 +32,7 @@ type (
 		flows      sync.Map // map[flowID]*flowActor
 		handler    timebox.Handler
 		retryQueue *RetryQueue
-		hibernate  *HibernationWorker
+		hibernate  *HibernateWorker
 	}
 
 	// EventConsumer consumes events from the event hub
@@ -87,7 +87,7 @@ func New(
 	e.handler = e.createEventHandler()
 
 	if cfg.FlowStore.Hibernator != nil {
-		e.hibernate = NewHibernationWorker(e, cfg)
+		e.hibernate = NewHibernateWorker(e, cfg)
 	}
 
 	return e
