@@ -132,14 +132,12 @@ func TestHibernateCompletedFlow(t *testing.T) {
 		return flowErr == nil && flow.Status == api.FlowCompleted
 	}, 5*time.Second, 50*time.Millisecond)
 
-	// Give time for hibernation to occur
-	time.Sleep(200 * time.Millisecond)
-
 	// Verify flow was hibernated by checking the hibernator directly
 	flowKey := timebox.NewAggregateID("flow", timebox.ID(flowID))
-	rec, err := env.Hibernator.Get(ctx, flowKey)
-	assert.NoError(t, err)
-	assert.NotNil(t, rec)
+	assert.Eventually(t, func() bool {
+		rec, err := env.Hibernator.Get(ctx, flowKey)
+		return err == nil && rec != nil
+	}, 5*time.Second, 50*time.Millisecond)
 }
 
 func TestRetrieveHibernatedFlow(t *testing.T) {
@@ -170,14 +168,12 @@ func TestRetrieveHibernatedFlow(t *testing.T) {
 		return flowErr == nil && flow.Status == api.FlowCompleted
 	}, 5*time.Second, 50*time.Millisecond)
 
-	// Give time for hibernation to occur
-	time.Sleep(200 * time.Millisecond)
-
 	// Verify it's in hibernation storage
 	flowKey := timebox.NewAggregateID("flow", timebox.ID(flowID))
-	rec, err := env.Hibernator.Get(ctx, flowKey)
-	assert.NoError(t, err)
-	assert.NotNil(t, rec)
+	assert.Eventually(t, func() bool {
+		rec, err := env.Hibernator.Get(ctx, flowKey)
+		return err == nil && rec != nil
+	}, 5*time.Second, 50*time.Millisecond)
 
 	// Now retrieve the flow - it should be restored from hibernation
 	flow, err := env.Engine.GetFlowState(ctx, flowID)
@@ -220,14 +216,12 @@ func TestHibernateFailedFlow(t *testing.T) {
 		return flowErr == nil && flow.Status == api.FlowFailed
 	}, 5*time.Second, 50*time.Millisecond)
 
-	// Give time for hibernation to occur
-	time.Sleep(200 * time.Millisecond)
-
 	// Verify failed flow was also hibernated
 	flowKey := timebox.NewAggregateID("flow", timebox.ID(flowID))
-	rec, err := env.Hibernator.Get(ctx, flowKey)
-	assert.NoError(t, err)
-	assert.NotNil(t, rec)
+	assert.Eventually(t, func() bool {
+		rec, err := env.Hibernator.Get(ctx, flowKey)
+		return err == nil && rec != nil
+	}, 5*time.Second, 50*time.Millisecond)
 
 	// Retrieve and verify state
 	flow, err := env.Engine.GetFlowState(ctx, flowID)

@@ -255,7 +255,7 @@ func TestSuccess(t *testing.T) {
 
 	// Wait for flow to execute and create work item
 	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	// Get the actual token from the created work item
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
@@ -400,7 +400,7 @@ func TestInvalidToken(t *testing.T) {
 
 	// Wait for work item to be created
 	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	// Try with wrong token
 	result := api.StepResult{
@@ -456,7 +456,7 @@ func TestInvalidJSON(t *testing.T) {
 
 	// Wait for work item to be created
 	fs := engine.FlowStep{FlowID: "webhook-wf", StepID: "async-step"}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	// Get the real token
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-wf")
@@ -522,7 +522,7 @@ func TestWebhookFailurePath(t *testing.T) {
 	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "wf-fail-path", StepID: "async-step"}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	flow, err := env.Engine.GetFlowState(context.Background(), "wf-fail-path")
 	assert.NoError(t, err)
@@ -1468,17 +1468,16 @@ func TestDeleteStepInternalError(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func (e *testServerEnv) waitForWorkItem(fs engine.FlowStep) {
-	for range 50 {
+func (e *testServerEnv) waitForWorkItem(t *testing.T, fs engine.FlowStep) {
+	t.Helper()
+	assert.Eventually(t, func() bool {
 		flow, err := e.Engine.GetFlowState(context.Background(), fs.FlowID)
-		if err == nil {
-			exec := flow.Executions[fs.StepID]
-			if exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0 {
-				return
-			}
+		if err != nil {
+			return false
 		}
-		time.Sleep(50 * time.Millisecond)
-	}
+		exec := flow.Executions[fs.StepID]
+		return exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0
+	}, 5*time.Second, 50*time.Millisecond)
 }
 
 func TestListStepsRunning(t *testing.T) {
@@ -1635,7 +1634,7 @@ func TestWebhookSuccess(t *testing.T) {
 	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "webhook-flow", StepID: step.ID}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	flow, err := env.Engine.GetFlowState(context.Background(), "webhook-flow")
 	assert.NoError(t, err)

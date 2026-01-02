@@ -165,13 +165,18 @@ func TestListStepsError(t *testing.T) {
 }
 
 func TestContextCancellation(t *testing.T) {
+	serverDone := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(200 * time.Millisecond)
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
 			w.WriteHeader(http.StatusOK)
 		},
 	))
 	defer server.Close()
+	defer close(serverDone)
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 	ctx, cancel := context.WithCancel(context.Background())
@@ -264,14 +269,19 @@ func TestGetStateMalformed(t *testing.T) {
 }
 
 func TestGetStateCancelled(t *testing.T) {
+	serverDone := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(200 * time.Millisecond)
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
 			w.WriteHeader(http.StatusOK)
 			_ = json.NewEncoder(w).Encode(api.FlowState{})
 		},
 	))
 	defer server.Close()
+	defer close(serverDone)
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 	wc := client.Flow("test-flow")

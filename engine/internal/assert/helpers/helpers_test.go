@@ -2,9 +2,11 @@ package helpers_test
 
 import (
 	"context"
+	"encoding/json"
 	"testing"
 	"time"
 
+	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -372,6 +374,57 @@ func TestWaitFlowFailed(t *testing.T) {
 	finalState := env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
 	assert.NotNil(t, finalState)
 	assert.Equal(t, api.FlowFailed, finalState.Status)
+}
+
+func TestWaitFlowStatusPollsUntilTerminal(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	defer func() { _ = env.Engine.Stop() }()
+
+	ctx := context.Background()
+	step := helpers.NewSimpleStep("polling-step")
+	step.WorkConfig = &api.WorkConfig{
+		MaxRetries:   -1,
+		BackoffMs:    200,
+		MaxBackoffMs: 200,
+		BackoffType:  api.BackoffTypeFixed,
+	}
+	err := env.Engine.RegisterStep(ctx, step)
+	assert.NoError(t, err)
+
+	env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{step.ID},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	flowID := api.FlowID("test-flow-polling")
+	err = env.Engine.StartFlow(ctx, flowID, plan, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+
+	env.WaitForStepStarted(t, ctx, flowID, step.ID, 5*time.Second)
+
+	producer := env.EventHub.NewProducer()
+	defer producer.Close()
+
+	data, err := json.Marshal(api.FlowCompletedEvent{FlowID: flowID})
+	assert.NoError(t, err)
+	producer.Send() <- &timebox.Event{
+		Timestamp:   time.Now(),
+		Type:        timebox.EventType(api.EventTypeFlowCompleted),
+		AggregateID: timebox.NewAggregateID("flow", timebox.ID(flowID)),
+		Data:        data,
+	}
+
+	env.MockClient.ClearError(step.ID)
+	env.MockClient.SetResponse(step.ID, api.Args{})
+
+	finalState := env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
+	assert.NotNil(t, finalState)
+	assert.Equal(t, api.FlowCompleted, finalState.Status)
 }
 
 func TestWaitStepCompleted(t *testing.T) {

@@ -98,7 +98,13 @@ func TestHandleWebSocket(t *testing.T) {
 }
 
 func TestClientReceivesEvent(t *testing.T) {
-	env := testWebSocket(t, nil)
+	getState := func(
+		ctx context.Context, id timebox.AggregateID,
+	) (any, int64, error) {
+		return &api.FlowState{ID: "wf-123"}, 0, nil
+	}
+
+	env := testWebSocket(t, getState)
 	defer env.Cleanup()
 
 	sub := api.SubscribeRequest{
@@ -110,7 +116,10 @@ func TestClientReceivesEvent(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	time.Sleep(50 * time.Millisecond)
+	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	var stateMsg api.SubscribedResult
+	err = env.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
 
 	event := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -135,8 +144,6 @@ func TestMessageInvalid(t *testing.T) {
 
 	err := env.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json"))
 	assert.NoError(t, err)
-
-	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -164,8 +171,6 @@ func TestMessageNonSubscribe(t *testing.T) {
 	}
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
-
-	time.Sleep(50 * time.Millisecond)
 
 	event := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
@@ -293,8 +298,6 @@ func TestSubscribeStateWithError(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	time.Sleep(100 * time.Millisecond)
-
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
 	assert.Error(t, err)
@@ -322,8 +325,6 @@ func TestSubscribeNoID(t *testing.T) {
 	}
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
-
-	time.Sleep(100 * time.Millisecond)
 
 	assert.False(t, getStateCalled)
 }

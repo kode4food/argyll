@@ -16,10 +16,15 @@ import (
 
 func TestSetupStepWithMockEngine(t *testing.T) {
 	attempts := 0
+	requested := make(chan struct{}, 1)
 	mockEngine := newHTTPTestServer(t, http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			attempts++
 			if r.URL.Path == "/engine/step" && r.Method == http.MethodPost {
+				select {
+				case requested <- struct{}{}:
+				default:
+				}
 				w.WriteHeader(http.StatusCreated)
 				return
 			}
@@ -49,7 +54,11 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 		errChan <- err
 	}()
 
-	time.Sleep(100 * time.Millisecond)
+	select {
+	case <-requested:
+	case <-time.After(2 * time.Second):
+		t.Fatal("timed out waiting for step registration request")
+	}
 
 	assert.Greater(t, attempts, 0)
 }

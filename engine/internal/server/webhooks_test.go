@@ -94,7 +94,7 @@ func TestWebhookCompleteTwice(t *testing.T) {
 	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "double-complete-flow", StepID: step.ID}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "double-complete-flow",
@@ -123,8 +123,16 @@ func TestWebhookCompleteTwice(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 200, w.Code)
-
-	time.Sleep(100 * time.Millisecond)
+	assert.Eventually(t, func() bool {
+		flow, err := env.Engine.GetFlowState(
+			context.Background(), "double-complete-flow",
+		)
+		if err != nil {
+			return false
+		}
+		exec := flow.Executions[step.ID]
+		return exec != nil && exec.Status == api.StepCompleted
+	}, 5*time.Second, 50*time.Millisecond)
 
 	result = api.StepResult{
 		Success: true,
@@ -177,7 +185,7 @@ func TestWebhookSuccessPath(t *testing.T) {
 	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "webhook-success-flow", StepID: step.ID}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "webhook-success-flow",
@@ -241,7 +249,7 @@ func TestWebhookWorkFailure(t *testing.T) {
 	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "webhook-fail-flow", StepID: step.ID}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "webhook-fail-flow",
@@ -305,7 +313,7 @@ func TestWebhookInvalidJSON(t *testing.T) {
 	assert.NoError(t, err)
 
 	fs := engine.FlowStep{FlowID: "webhook-badjson-flow", StepID: step.ID}
-	env.waitForWorkItem(fs)
+	env.waitForWorkItem(t, fs)
 
 	flow, err := env.Engine.GetFlowState(
 		context.Background(), "webhook-badjson-flow",

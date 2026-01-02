@@ -167,14 +167,17 @@ func TestInvalidJSON(t *testing.T) {
 }
 
 func TestTimeout(t *testing.T) {
+	serverDone := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(200 * time.Millisecond)
-			response := api.StepResult{Success: true}
-			_ = json.NewEncoder(w).Encode(response)
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
 		},
 	))
 	defer server.Close()
+	defer close(serverDone)
 
 	cl := client.NewHTTPClient(50 * time.Millisecond)
 	step := &api.Step{
@@ -189,14 +192,17 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestContextCanceled(t *testing.T) {
+	serverDone := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			time.Sleep(200 * time.Millisecond)
-			response := api.StepResult{Success: true}
-			_ = json.NewEncoder(w).Encode(response)
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
 		},
 	))
 	defer server.Close()
+	defer close(serverDone)
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	step := &api.Step{

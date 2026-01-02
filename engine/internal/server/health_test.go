@@ -286,16 +286,14 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	for range 20 {
-		time.Sleep(50 * time.Millisecond)
+	assert.Eventually(t, func() bool {
 		state, err := eng.GetEngineState(context.Background())
-		assert.NoError(t, err)
-		health, ok := state.Health["unhealthy-step"]
-		if ok && health.Status == api.HealthUnhealthy {
-			return
+		if err != nil {
+			return false
 		}
-	}
-	t.Fail()
+		health, ok := state.Health["unhealthy-step"]
+		return ok && health.Status == api.HealthUnhealthy
+	}, 5*time.Second, 50*time.Millisecond)
 }
 
 func TestEventLoopUnmarshalError(t *testing.T) {
@@ -338,8 +336,6 @@ func TestEventLoopUnmarshalError(t *testing.T) {
 	}
 
 	producer.Send() <- invalidEvent
-
-	time.Sleep(50 * time.Millisecond)
 }
 
 func TestCheckMultipleHTTPSteps(t *testing.T) {
@@ -393,7 +389,9 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	time.Sleep(100 * time.Millisecond)
+	engineState, err := eng.GetEngineState(context.Background())
+	assert.NoError(t, err)
+	assert.GreaterOrEqual(t, len(engineState.Health), 3)
 }
 
 func TestNonStepCompletedEvent(t *testing.T) {
@@ -436,6 +434,4 @@ func TestNonStepCompletedEvent(t *testing.T) {
 	}
 
 	producer.Send() <- event
-
-	time.Sleep(50 * time.Millisecond)
 }
