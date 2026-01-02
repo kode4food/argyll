@@ -119,16 +119,25 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 		return state
 	}
 
-	deadline := time.Now().Add(remaining)
-	for time.Now().Before(deadline) {
-		cur, err := e.Engine.GetFlowState(ctx, flowID)
-		assert.NoError(t, err)
-		if cur.Status == api.FlowCompleted || cur.Status == api.FlowFailed {
-			return cur
+	deadline := time.NewTimer(remaining)
+	ticker := time.NewTicker(10 * time.Millisecond)
+	defer deadline.Stop()
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			cur, err := e.Engine.GetFlowState(ctx, flowID)
+			assert.NoError(t, err)
+			if cur.Status == api.FlowCompleted || cur.Status == api.FlowFailed {
+				return cur
+			}
+		case <-deadline.C:
+			return state
+		case <-ctx.Done():
+			t.FailNow()
 		}
-		time.Sleep(10 * time.Millisecond)
 	}
-	return state
 }
 
 func (e *TestEngineEnv) WaitForStepStarted(
