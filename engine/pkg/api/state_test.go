@@ -65,10 +65,10 @@ func TestSetEngineUpdated(t *testing.T) {
 
 func TestSetActiveFlow(t *testing.T) {
 	original := &api.EngineState{
-		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{},
+		Active: map[api.FlowID]*api.ActiveFlow{},
 	}
 
-	flowInfo := &api.ActiveFlowInfo{
+	flowInfo := &api.ActiveFlow{
 		FlowID:     "flow-1",
 		StartedAt:  time.Now(),
 		LastActive: time.Now(),
@@ -76,14 +76,14 @@ func TestSetActiveFlow(t *testing.T) {
 
 	result := original.SetActiveFlow("flow-1", flowInfo)
 
-	assert.Len(t, result.ActiveFlows, 1)
-	assert.Equal(t, flowInfo, result.ActiveFlows["flow-1"])
-	assert.Empty(t, original.ActiveFlows)
+	assert.Len(t, result.Active, 1)
+	assert.Equal(t, flowInfo, result.Active["flow-1"])
+	assert.Empty(t, original.Active)
 }
 
 func TestDeleteActiveFlow(t *testing.T) {
 	original := &api.EngineState{
-		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{
+		Active: map[api.FlowID]*api.ActiveFlow{
 			"flow-1": {FlowID: "flow-1"},
 			"flow-2": {FlowID: "flow-2"},
 		},
@@ -91,10 +91,60 @@ func TestDeleteActiveFlow(t *testing.T) {
 
 	result := original.DeleteActiveFlow("flow-1")
 
-	assert.Len(t, result.ActiveFlows, 1)
-	assert.Nil(t, result.ActiveFlows["flow-1"])
-	assert.NotNil(t, result.ActiveFlows["flow-2"])
-	assert.Len(t, original.ActiveFlows, 2)
+	assert.Len(t, result.Active, 1)
+	assert.Nil(t, result.Active["flow-1"])
+	assert.NotNil(t, result.Active["flow-2"])
+	assert.Len(t, original.Active, 2)
+}
+
+func TestAddDeactivated(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Deactivated: []*api.DeactivatedFlow{
+			{FlowID: "flow-1", DeactivatedAt: now.Add(-time.Hour)},
+		},
+	}
+
+	result := original.AddDeactivated(&api.DeactivatedFlow{
+		FlowID:        "flow-2",
+		DeactivatedAt: now,
+	})
+
+	assert.Len(t, result.Deactivated, 2)
+	assert.Equal(t, api.FlowID("flow-1"), result.Deactivated[0].FlowID)
+	assert.Equal(t, api.FlowID("flow-2"), result.Deactivated[1].FlowID)
+	assert.Len(t, original.Deactivated, 1)
+}
+
+func TestRemoveDeactivated(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Deactivated: []*api.DeactivatedFlow{
+			{FlowID: "flow-1", DeactivatedAt: now.Add(-2 * time.Hour)},
+			{FlowID: "flow-2", DeactivatedAt: now.Add(-time.Hour)},
+			{FlowID: "flow-3", DeactivatedAt: now},
+		},
+	}
+
+	result := original.RemoveDeactivated("flow-2")
+
+	assert.Len(t, result.Deactivated, 2)
+	assert.Equal(t, api.FlowID("flow-1"), result.Deactivated[0].FlowID)
+	assert.Equal(t, api.FlowID("flow-3"), result.Deactivated[1].FlowID)
+	assert.Len(t, original.Deactivated, 3)
+}
+
+func TestRemoveDeactivatedNotFound(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Deactivated: []*api.DeactivatedFlow{
+			{FlowID: "flow-1", DeactivatedAt: now},
+		},
+	}
+
+	result := original.RemoveDeactivated("flow-missing")
+
+	assert.Same(t, original, result)
 }
 
 func TestSetFlowStatus(t *testing.T) {

@@ -207,7 +207,6 @@ const StepDiagramInner: React.FC<StepDiagramProps> = ({
         return newNode;
       });
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialNodes, flowData]);
 
   React.useEffect(() => {

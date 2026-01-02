@@ -15,12 +15,13 @@ var (
 )
 
 // NewEngineState creates an empty engine state with initialized maps for
-// steps, health status, and active flows
+// steps, health status, active flows, and deactivated flows
 func NewEngineState() *api.EngineState {
 	return &api.EngineState{
 		Steps:       api.Steps{},
 		Health:      map[api.StepID]*api.HealthState{},
-		ActiveFlows: map[api.FlowID]*api.ActiveFlowInfo{},
+		Active:      map[api.FlowID]*api.ActiveFlow{},
+		Deactivated: []*api.DeactivatedFlow{},
 		Attributes:  api.AttributeGraph{},
 	}
 }
@@ -38,6 +39,7 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 		api.EventTypeStepHealthChanged: timebox.MakeApplier(stepHealthChanged),
 		api.EventTypeFlowActivated:     timebox.MakeApplier(flowActivated),
 		api.EventTypeFlowDeactivated:   timebox.MakeApplier(flowDeactivated),
+		api.EventTypeFlowHibernated:    timebox.MakeApplier(flowHibernated),
 	})
 }
 
@@ -81,7 +83,7 @@ func flowActivated(
 	st *api.EngineState, ev *timebox.Event, data api.FlowActivatedEvent,
 ) *api.EngineState {
 	return st.
-		SetActiveFlow(data.FlowID, &api.ActiveFlowInfo{
+		SetActiveFlow(data.FlowID, &api.ActiveFlow{
 			FlowID:     data.FlowID,
 			StartedAt:  ev.Timestamp,
 			LastActive: ev.Timestamp,
@@ -94,5 +96,17 @@ func flowDeactivated(
 ) *api.EngineState {
 	return st.
 		DeleteActiveFlow(data.FlowID).
+		AddDeactivated(&api.DeactivatedFlow{
+			FlowID:        data.FlowID,
+			DeactivatedAt: ev.Timestamp,
+		}).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func flowHibernated(
+	st *api.EngineState, ev *timebox.Event, data api.FlowHibernatedEvent,
+) *api.EngineState {
+	return st.
+		RemoveDeactivated(data.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }

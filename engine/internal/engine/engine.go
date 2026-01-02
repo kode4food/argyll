@@ -32,6 +32,7 @@ type (
 		flows      sync.Map // map[flowID]*flowActor
 		handler    timebox.Handler
 		retryQueue *RetryQueue
+		hibernate  *HibernationWorker
 	}
 
 	// EventConsumer consumes events from the event hub
@@ -84,26 +85,29 @@ func New(
 		retryQueue: NewRetryQueue(),
 	}
 	e.handler = e.createEventHandler()
+
+	if cfg.FlowStore.Hibernator != nil {
+		e.hibernate = NewHibernationWorker(e, cfg)
+	}
+
 	return e
 }
 
 func (e *Engine) createEventHandler() timebox.Handler {
 	const (
-		flowStarted     = timebox.EventType(api.EventTypeFlowStarted)
-		flowCompleted   = timebox.EventType(api.EventTypeFlowCompleted)
-		flowFailed      = timebox.EventType(api.EventTypeFlowFailed)
-		flowDeactivated = timebox.EventType(api.EventTypeFlowDeactivated)
-		retryScheduled  = timebox.EventType(api.EventTypeRetryScheduled)
-		workSucceeded   = timebox.EventType(api.EventTypeWorkSucceeded)
+		flowStarted    = timebox.EventType(api.EventTypeFlowStarted)
+		flowCompleted  = timebox.EventType(api.EventTypeFlowCompleted)
+		flowFailed     = timebox.EventType(api.EventTypeFlowFailed)
+		retryScheduled = timebox.EventType(api.EventTypeRetryScheduled)
+		workSucceeded  = timebox.EventType(api.EventTypeWorkSucceeded)
 	)
 
 	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStarted:     timebox.MakeHandler(e.handleFlowStarted),
-		flowCompleted:   timebox.MakeHandler(e.handleFlowCompleted),
-		flowFailed:      timebox.MakeHandler(e.handleFlowFailed),
-		flowDeactivated: timebox.MakeHandler(e.handleFlowDeactivated),
-		retryScheduled:  timebox.MakeHandler(e.handleRetryScheduled),
-		workSucceeded:   timebox.MakeHandler(e.handleWorkSucceeded),
+		flowStarted:    timebox.MakeHandler(e.handleFlowStarted),
+		flowCompleted:  timebox.MakeHandler(e.handleFlowCompleted),
+		flowFailed:     timebox.MakeHandler(e.handleFlowFailed),
+		retryScheduled: timebox.MakeHandler(e.handleRetryScheduled),
+		workSucceeded:  timebox.MakeHandler(e.handleWorkSucceeded),
 	})
 }
 
@@ -121,12 +125,20 @@ func (e *Engine) Start() {
 
 	go e.eventLoop()
 	go e.retryLoop()
+
+	if e.hibernate != nil {
+		e.hibernate.Start()
+		slog.Info("Hibernation worker started")
+	}
 }
 
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
 	e.cancel()
 	e.retryQueue.Stop()
+	if e.hibernate != nil {
+		e.hibernate.Stop()
+	}
 	defer e.consumer.Close()
 
 	done := make(chan struct{})
@@ -286,13 +298,6 @@ func (e *Engine) handleFlowFailed(
 	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
 	e.retryQueue.RemoveFlow(data.FlowID)
-	return nil
-}
-
-func (e *Engine) handleFlowDeactivated(
-	_ *timebox.Event, data api.FlowDeactivatedEvent,
-) error {
-	e.hibernateFlow(data.FlowID)
 	return nil
 }
 

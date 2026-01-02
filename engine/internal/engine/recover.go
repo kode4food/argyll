@@ -34,7 +34,7 @@ var backoffCalculators = map[string]backoffCalculator{
 func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
 	workConfig := step.WorkConfig
 	if workConfig == nil {
-		workConfig = &e.config.WorkConfig
+		workConfig = &e.config.Work
 	}
 
 	if workConfig.MaxRetries == 0 {
@@ -54,7 +54,7 @@ func (e *Engine) CalculateNextRetry(
 	config *api.WorkConfig, retryCount int,
 ) time.Time {
 	if config == nil {
-		config = &e.config.WorkConfig
+		config = &e.config.Work
 	}
 
 	calculator, ok := backoffCalculators[config.BackoffType]
@@ -79,15 +79,15 @@ func (e *Engine) RecoverFlows(ctx context.Context) error {
 		return fmt.Errorf("failed to get engine state: %w", err)
 	}
 
-	if len(engineState.ActiveFlows) == 0 {
+	if len(engineState.Active) == 0 {
 		slog.Info("No flows to recover")
 		return nil
 	}
 
 	slog.Info("Recovering flows",
-		slog.Int("count", len(engineState.ActiveFlows)))
+		slog.Int("count", len(engineState.Active)))
 
-	for flowID := range engineState.ActiveFlows {
+	for flowID := range engineState.Active {
 		if err := e.RecoverFlow(ctx, flowID); err != nil {
 			slog.Error("Failed to recover flow",
 				log.FlowID(flowID),

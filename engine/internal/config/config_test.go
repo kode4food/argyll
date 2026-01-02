@@ -306,7 +306,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_MAX_RETRIES": "5",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, 5, c.WorkConfig.MaxRetries)
+				testify.Equal(t, 5, c.Work.MaxRetries)
 			},
 		},
 		{
@@ -315,7 +315,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_BACKOFF_MS": "2000",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, int64(2000), c.WorkConfig.BackoffMs)
+				testify.Equal(t, int64(2000), c.Work.BackoffMs)
 			},
 		},
 		{
@@ -324,7 +324,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_MAX_BACKOFF_MS": "60000",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, int64(60000), c.WorkConfig.MaxBackoffMs)
+				testify.Equal(t, int64(60000), c.Work.MaxBackoffMs)
 			},
 		},
 		{
@@ -333,7 +333,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_BACKOFF_TYPE": "exponential",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, "exponential", c.WorkConfig.BackoffType)
+				testify.Equal(t, "exponential", c.Work.BackoffType)
 			},
 		},
 		{
@@ -343,7 +343,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 			check: func(t *testing.T, c *config.Config) {
 				testify.Equal(
-					t, config.DefaultRetryMaxRetries, c.WorkConfig.MaxRetries,
+					t, config.DefaultRetryMaxRetries, c.Work.MaxRetries,
 				)
 			},
 		},
@@ -356,7 +356,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				testify.Equal(
 					t,
 					int64(config.DefaultRetryBackoffMs),
-					c.WorkConfig.BackoffMs,
+					c.Work.BackoffMs,
 				)
 			},
 		},
@@ -369,7 +369,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				testify.Equal(
 					t,
 					int64(config.DefaultRetryMaxBackoffMs),
-					c.WorkConfig.MaxBackoffMs,
+					c.Work.MaxBackoffMs,
 				)
 			},
 		},

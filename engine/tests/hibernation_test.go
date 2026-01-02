@@ -20,15 +20,11 @@ import (
 
 // testHibernationEnv creates a test environment with hibernation enabled
 type testHibernationEnv struct {
-	Engine      *engine.Engine
-	Redis       *miniredis.Miniredis
-	MockClient  *helpers.MockClient
-	Hibernator  *hibernate.BlobHibernator
-	Cleanup     func()
-	flowStore   *timebox.Store
-	engineStore *timebox.Store
-	timebox     *timebox.Timebox
-	hub         timebox.EventHub
+	Engine     *engine.Engine
+	Worker     *engine.HibernationWorker
+	MockClient *helpers.MockClient
+	Hibernator *hibernate.BlobHibernator
+	Cleanup    func()
 }
 
 func newHibernationTestEnv(t *testing.T) *testHibernationEnv {
@@ -69,22 +65,28 @@ func newHibernationTestEnv(t *testing.T) *testHibernationEnv {
 		APIPort:            8080,
 		APIHost:            "localhost",
 		WebhookBaseURL:     "http://localhost:8080",
-		StepTimeout:        5 * api.Second,
-		FlowCacheSize:      100,
-		ShutdownTimeout:    2 * time.Second,
-		RetryCheckInterval: 100 * time.Millisecond,
-		WorkConfig: api.WorkConfig{
+		StepTimeout:     5 * api.Second,
+		FlowCacheSize:   100,
+		ShutdownTimeout: 2 * time.Second,
+		Work: api.WorkConfig{
 			MaxRetries:   3,
 			BackoffMs:    100,
 			MaxBackoffMs: 1000,
 			BackoffType:  api.BackoffTypeFixed,
 		},
+		FlowStore: flowConfig,
+		Hibernate: config.HibernateConfig{
+			CheckInterval: 50 * time.Millisecond,
+			MemoryPercent: 80.0,
+		},
 	}
 
 	hub := tb.GetHub()
 	eng := engine.New(engineStore, flowStore, mockCli, hub, cfg)
+	hibWorker := engine.NewHibernationWorker(eng, cfg)
 
 	cleanup := func() {
+		hibWorker.Stop()
 		_ = eng.Stop()
 		_ = hibernator.Close()
 		_ = tb.Close()
@@ -92,15 +94,11 @@ func newHibernationTestEnv(t *testing.T) *testHibernationEnv {
 	}
 
 	return &testHibernationEnv{
-		Engine:      eng,
-		Redis:       server,
-		MockClient:  mockCli,
-		Hibernator:  hibernator,
-		Cleanup:     cleanup,
-		flowStore:   flowStore,
-		engineStore: engineStore,
-		timebox:     tb,
-		hub:         hub,
+		Engine:     eng,
+		Worker:     hibWorker,
+		MockClient: mockCli,
+		Hibernator: hibernator,
+		Cleanup:    cleanup,
 	}
 }
 
@@ -109,6 +107,7 @@ func TestHibernateCompletedFlow(t *testing.T) {
 	defer env.Cleanup()
 
 	env.Engine.Start()
+	env.Worker.Start()
 	ctx := context.Background()
 
 	step := helpers.NewSimpleStep("hibernate-step")
@@ -145,6 +144,7 @@ func TestRetrieveHibernatedFlow(t *testing.T) {
 	defer env.Cleanup()
 
 	env.Engine.Start()
+	env.Worker.Start()
 	ctx := context.Background()
 
 	step := helpers.NewSimpleStep("retrieve-step")
@@ -192,6 +192,7 @@ func TestHibernateFailedFlow(t *testing.T) {
 	defer env.Cleanup()
 
 	env.Engine.Start()
+	env.Worker.Start()
 	ctx := context.Background()
 
 	step := helpers.NewSimpleStep("fail-step")

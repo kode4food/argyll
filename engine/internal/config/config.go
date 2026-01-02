@@ -12,24 +12,38 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// Config holds configuration settings for the orchestrator
-type Config struct {
-	APIHost        string
-	WebhookBaseURL string
-	LogLevel       string
-	EngineStore    timebox.StoreConfig
-	FlowStore      timebox.StoreConfig
-	WorkConfig     api.WorkConfig
-	APIPort        int
-	StepTimeout    int64
+type (
+	// Config holds configuration settings for the orchestrator
+	Config struct {
+		// API Server
+		APIHost        string
+		APIPort        int
+		WebhookBaseURL string
+		LogLevel       string
 
-	FlowCacheSize      int
-	ShutdownTimeout    time.Duration
-	RetryCheckInterval time.Duration
+		// Stores & Hibernation
+		EngineStore timebox.StoreConfig
+		FlowStore   timebox.StoreConfig
+		Hibernate   HibernateConfig
 
-	HibernatorURL    string
-	HibernatorPrefix string
-}
+		// Work & Retry
+		Work api.WorkConfig
+
+		// Engine
+		StepTimeout     int64
+		FlowCacheSize   int
+		ShutdownTimeout time.Duration
+	}
+
+	// HibernateConfig holds hibernation settings
+	HibernateConfig struct {
+		URL           string
+		Prefix        string
+		CheckInterval time.Duration
+		MemoryPercent float64
+		MaxAge        time.Duration
+	}
+)
 
 const (
 	DefaultStepTimeout     = 30 * api.Second
@@ -47,11 +61,14 @@ const (
 	DefaultSnapshotSaveTimeout = 30 * time.Second
 	DefaultCacheSize           = 4096
 
-	DefaultRetryCheckInterval = 1 * time.Second
-	DefaultRetryMaxRetries    = 10
-	DefaultRetryBackoffMs     = 1000
-	DefaultRetryMaxBackoffMs  = 60000
-	DefaultRetryBackoffType   = api.BackoffTypeExponential
+	DefaultRetryMaxRetries   = 10
+	DefaultRetryBackoffMs    = 1000
+	DefaultRetryMaxBackoffMs = 60000
+	DefaultRetryBackoffType  = api.BackoffTypeExponential
+
+	DefaultHibernateCheckInterval = 30 * time.Second
+	DefaultHibernateMemoryPercent = 80.0
+	DefaultHibernateMaxAge        = 24 * time.Hour
 )
 
 var (
@@ -84,17 +101,21 @@ func NewDefaultConfig() *Config {
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
 		},
-		WorkConfig: api.WorkConfig{
+		Work: api.WorkConfig{
 			MaxRetries:   DefaultRetryMaxRetries,
 			BackoffMs:    DefaultRetryBackoffMs,
 			MaxBackoffMs: DefaultRetryMaxBackoffMs,
 			BackoffType:  DefaultRetryBackoffType,
 		},
-		StepTimeout:        DefaultStepTimeout,
-		FlowCacheSize:      DefaultCacheSize,
-		ShutdownTimeout:    DefaultShutdownTimeout,
-		RetryCheckInterval: DefaultRetryCheckInterval,
-		LogLevel:           "info",
+		StepTimeout:     DefaultStepTimeout,
+		FlowCacheSize:   DefaultCacheSize,
+		ShutdownTimeout: DefaultShutdownTimeout,
+		LogLevel:        "info",
+		Hibernate: HibernateConfig{
+			CheckInterval: DefaultHibernateCheckInterval,
+			MemoryPercent: DefaultHibernateMemoryPercent,
+			MaxAge:        DefaultHibernateMaxAge,
+		},
 	}
 }
 
@@ -126,28 +147,43 @@ func (c *Config) LoadFromEnv() {
 
 	if maxRetries := os.Getenv("RETRY_MAX_RETRIES"); maxRetries != "" {
 		if retries, err := strconv.Atoi(maxRetries); err == nil {
-			c.WorkConfig.MaxRetries = retries
+			c.Work.MaxRetries = retries
 		}
 	}
 	if backoffMs := os.Getenv("RETRY_BACKOFF_MS"); backoffMs != "" {
 		if ms, err := strconv.ParseInt(backoffMs, 10, 64); err == nil {
-			c.WorkConfig.BackoffMs = ms
+			c.Work.BackoffMs = ms
 		}
 	}
 	if maxBackoffMs := os.Getenv("RETRY_MAX_BACKOFF_MS"); maxBackoffMs != "" {
 		if ms, err := strconv.ParseInt(maxBackoffMs, 10, 64); err == nil {
-			c.WorkConfig.MaxBackoffMs = ms
+			c.Work.MaxBackoffMs = ms
 		}
 	}
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
-		c.WorkConfig.BackoffType = backoffType
+		c.Work.BackoffType = backoffType
 	}
 
-	if hibernatorURL := os.Getenv("HIBERNATOR_URL"); hibernatorURL != "" {
-		c.HibernatorURL = hibernatorURL
+	if url := os.Getenv("HIBERNATE_URL"); url != "" {
+		c.Hibernate.URL = url
 	}
-	if hibernatorPfx := os.Getenv("HIBERNATOR_PREFIX"); hibernatorPfx != "" {
-		c.HibernatorPrefix = hibernatorPfx
+	if prefix := os.Getenv("HIBERNATE_PREFIX"); prefix != "" {
+		c.Hibernate.Prefix = prefix
+	}
+	if interval := os.Getenv("HIBERNATE_CHECK_INTERVAL"); interval != "" {
+		if d, err := time.ParseDuration(interval); err == nil {
+			c.Hibernate.CheckInterval = d
+		}
+	}
+	if pct := os.Getenv("HIBERNATE_MEMORY_PERCENT"); pct != "" {
+		if f, err := strconv.ParseFloat(pct, 64); err == nil {
+			c.Hibernate.MemoryPercent = f
+		}
+	}
+	if maxAge := os.Getenv("HIBERNATE_MAX_AGE"); maxAge != "" {
+		if d, err := time.ParseDuration(maxAge); err == nil {
+			c.Hibernate.MaxAge = d
+		}
 	}
 }
 

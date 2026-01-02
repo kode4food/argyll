@@ -18,11 +18,11 @@ func TestNewEngineState(t *testing.T) {
 	assert.NotNil(t, state)
 	assert.NotNil(t, state.Steps)
 	assert.NotNil(t, state.Health)
-	assert.NotNil(t, state.ActiveFlows)
+	assert.NotNil(t, state.Active)
 	assert.NotNil(t, state.Attributes)
 	assert.Empty(t, state.Steps)
 	assert.Empty(t, state.Health)
-	assert.Empty(t, state.ActiveFlows)
+	assert.Empty(t, state.Active)
 	assert.Empty(t, state.Attributes)
 }
 
@@ -228,20 +228,20 @@ func TestFlowActivated(t *testing.T) {
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
-	assert.NotNil(t, result.ActiveFlows["test-flow"])
+	assert.NotNil(t, result.Active["test-flow"])
 	assert.Equal(
 		t,
 		api.FlowID("test-flow"),
-		result.ActiveFlows["test-flow"].FlowID,
+		result.Active["test-flow"].FlowID,
 	)
-	assert.True(t, result.ActiveFlows["test-flow"].StartedAt.Equal(now))
-	assert.True(t, result.ActiveFlows["test-flow"].LastActive.Equal(now))
+	assert.True(t, result.Active["test-flow"].StartedAt.Equal(now))
+	assert.True(t, result.Active["test-flow"].LastActive.Equal(now))
 	assert.True(t, result.LastUpdated.Equal(now))
 }
 
 func TestFlowDeactivated(t *testing.T) {
 	initialState := events.NewEngineState().
-		SetActiveFlow("test-flow", &api.ActiveFlowInfo{
+		SetActiveFlow("test-flow", &api.ActiveFlow{
 			FlowID:     "test-flow",
 			StartedAt:  time.Now(),
 			LastActive: time.Now(),
@@ -264,6 +264,6 @@ func TestFlowDeactivated(t *testing.T) {
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
-	assert.Nil(t, result.ActiveFlows["test-flow"])
+	assert.Nil(t, result.Active["test-flow"])
 	assert.True(t, result.LastUpdated.Equal(now))
 }

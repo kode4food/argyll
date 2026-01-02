@@ -2,6 +2,7 @@ package api
 
 import (
 	"maps"
+	"slices"
 	"time"
 )
 
@@ -23,18 +24,25 @@ type (
 
 	// EngineState contains the global state of the orchestrator
 	EngineState struct {
-		LastUpdated time.Time                  `json:"last_updated"`
-		Steps       Steps                      `json:"steps"`
-		Health      map[StepID]*HealthState    `json:"health"`
-		ActiveFlows map[FlowID]*ActiveFlowInfo `json:"active_flows"`
-		Attributes  AttributeGraph             `json:"attributes"`
+		LastUpdated time.Time               `json:"last_updated"`
+		Steps       Steps                   `json:"steps"`
+		Health      map[StepID]*HealthState `json:"health"`
+		Active      map[FlowID]*ActiveFlow  `json:"active"`
+		Deactivated []*DeactivatedFlow      `json:"deactivated"`
+		Attributes  AttributeGraph          `json:"attributes"`
 	}
 
-	// ActiveFlowInfo tracks basic metadata for active flows
-	ActiveFlowInfo struct {
+	// ActiveFlow tracks basic metadata for active flows
+	ActiveFlow struct {
 		FlowID     FlowID    `json:"flow_id"`
 		StartedAt  time.Time `json:"started_at"`
 		LastActive time.Time `json:"last_active"`
+	}
+
+	// DeactivatedFlow tracks when a flow was deactivated for hibernation
+	DeactivatedFlow struct {
+		FlowID        FlowID    `json:"flow_id"`
+		DeactivatedAt time.Time `json:"deactivated_at"`
 	}
 
 	// FlowState contains the complete state of a flow execution
@@ -170,19 +178,45 @@ func (e *EngineState) SetLastUpdated(t time.Time) *EngineState {
 
 // SetActiveFlow returns a new EngineState with the flow as active
 func (e *EngineState) SetActiveFlow(
-	id FlowID, info *ActiveFlowInfo,
+	id FlowID, info *ActiveFlow,
 ) *EngineState {
 	res := *e
-	res.ActiveFlows = maps.Clone(e.ActiveFlows)
-	res.ActiveFlows[id] = info
+	res.Active = maps.Clone(e.Active)
+	res.Active[id] = info
 	return &res
 }
 
 // DeleteActiveFlow returns a new EngineState with the flow inactive
 func (e *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
 	res := *e
-	res.ActiveFlows = maps.Clone(e.ActiveFlows)
-	delete(res.ActiveFlows, id)
+	res.Active = maps.Clone(e.Active)
+	delete(res.Active, id)
+	return &res
+}
+
+// AddDeactivated returns a new EngineState with the flow added to the
+// deactivated list. The list maintains time order (oldest first).
+func (e *EngineState) AddDeactivated(info *DeactivatedFlow) *EngineState {
+	res := *e
+	res.Deactivated = append(slices.Clone(e.Deactivated), info)
+	return &res
+}
+
+// RemoveDeactivated returns a new EngineState with the flow removed from
+// the deactivated list (typically after hibernation).
+func (e *EngineState) RemoveDeactivated(id FlowID) *EngineState {
+	idx := -1
+	for i, info := range e.Deactivated {
+		if info.FlowID == id {
+			idx = i
+			break
+		}
+	}
+	if idx < 0 {
+		return e
+	}
+	res := *e
+	res.Deactivated = slices.Delete(slices.Clone(e.Deactivated), idx, idx+1)
 	return &res
 }
 

@@ -76,7 +76,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 		if err != nil {
 			return false
 		}
-		_, exists := engineState.ActiveFlows[flowID]
+		_, exists := engineState.Active[flowID]
 		return !exists
 	}, 5*time.Second, 10*time.Millisecond, "flow should be deactivated")
 }

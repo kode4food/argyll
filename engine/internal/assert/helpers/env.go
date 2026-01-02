@@ -64,14 +64,13 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	mockCli := NewMockClient()
 
 	cfg := &config.Config{
-		APIPort:            8080,
-		APIHost:            "localhost",
-		WebhookBaseURL:     "http://localhost:8080",
-		StepTimeout:        5 * api.Second,
-		FlowCacheSize:      100,
-		ShutdownTimeout:    2 * time.Second,
-		RetryCheckInterval: 100 * time.Millisecond,
-		WorkConfig: api.WorkConfig{
+		APIPort:         8080,
+		APIHost:         "localhost",
+		WebhookBaseURL:  "http://localhost:8080",
+		StepTimeout:     5 * api.Second,
+		FlowCacheSize:   100,
+		ShutdownTimeout: 2 * time.Second,
+		Work: api.WorkConfig{
 			MaxRetries:   3,
 			BackoffMs:    1000,
 			MaxBackoffMs: 60000,

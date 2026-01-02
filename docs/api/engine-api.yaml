@@ -618,7 +618,8 @@ components:
       required:
         - steps
         - health
-        - active_flows
+        - active
+        - deactivated
         - last_updated
       properties:
         steps:
@@ -631,11 +632,16 @@ components:
           description: Map of step ID to health status
           additionalProperties:
             $ref: "#/components/schemas/HealthState"
-        active_flows:
+        active:
           type: object
           description: Map of flow ID to active flow information
           additionalProperties:
             $ref: "#/components/schemas/ActiveFlowInfo"
+        deactivated:
+          type: array
+          description: List of deactivated flows pending hibernation
+          items:
+            $ref: "#/components/schemas/DeactivatedFlowInfo"
         last_updated:
           type: string
           format: date-time
@@ -1094,6 +1100,21 @@ components:
           type: string
           format: date-time
           description: Last time the flow had activity
+
+    DeactivatedFlowInfo:
+      type: object
+      required:
+        - flow_id
+        - deactivated_at
+      properties:
+        flow_id:
+          type: string
+          description: Flow identifier
+          example: "wf-text-processing-001"
+        deactivated_at:
+          type: string
+          format: date-time
+          description: When the flow was deactivated
 
     AttributeValue:
       type: object

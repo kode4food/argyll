@@ -135,6 +135,11 @@ type (
 		FlowID FlowID `json:"flow_id"`
 	}
 
+	// FlowHibernatedEvent is emitted when a flow is hibernated to cold storage
+	FlowHibernatedEvent struct {
+		FlowID FlowID `json:"flow_id"`
+	}
+
 	EventType string
 )
 
@@ -145,6 +150,7 @@ const (
 	EventTypeStepHealthChanged EventType = "step_health_changed"
 	EventTypeFlowActivated     EventType = "flow_activated"
 	EventTypeFlowDeactivated   EventType = "flow_deactivated"
+	EventTypeFlowHibernated    EventType = "flow_hibernated"
 	EventTypeFlowStarted       EventType = "flow_started"
 	EventTypeFlowCompleted     EventType = "flow_completed"
 	EventTypeFlowFailed        EventType = "flow_failed"

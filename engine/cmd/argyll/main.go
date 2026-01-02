@@ -116,18 +116,18 @@ func (s *argyll) initializeStores() error {
 	}
 
 	flowStoreConfig := s.cfg.FlowStore
-	if s.cfg.HibernatorURL != "" {
+	if s.cfg.Hibernate.URL != "" {
 		s.hibernator, err = hibernate.NewBlobHibernator(
-			context.Background(), s.cfg.HibernatorURL, s.cfg.HibernatorPrefix,
+			context.Background(), s.cfg.Hibernate.URL, s.cfg.Hibernate.Prefix,
 		)
 		if err != nil {
 			_ = s.timebox.Close()
 			return fmt.Errorf("failed to create hibernator: %w", err)
 		}
 		flowStoreConfig.Hibernator = s.hibernator
-		slog.Info("Hibernator configured",
-			slog.String("url", s.cfg.HibernatorURL),
-			slog.String("prefix", s.cfg.HibernatorPrefix))
+		slog.Info("Hibernation configured",
+			slog.String("url", s.cfg.Hibernate.URL),
+			slog.String("prefix", s.cfg.Hibernate.Prefix))
 	}
 
 	s.flowStore, err = s.timebox.NewStore(flowStoreConfig)
