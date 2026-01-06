@@ -11,9 +11,7 @@ needed to reach specified goals.
 
 ```bash
 # Go
-go build ./cmd/argyll
-go test ./...
-go test -race -cover ./...
+cd engine && make test
 
 # TypeScript
 cd web && npm run format && npm test && npm run lint && npm run type-check
@@ -126,7 +124,7 @@ goal selection and required input detection.
 
 ```bash
 # Go
-go test ./...
+cd engine && make test
 
 # TypeScript
 cd web && npm run format && npm test && npm run lint && npm run type-check
