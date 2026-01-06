@@ -1,0 +1,276 @@
+import React, { useState, lazy, Suspense } from "react";
+import { Activity, Play, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { generateFlowId } from "@/utils/flowUtils";
+import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
+import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
+
+const FlowCreateForm = lazy(() => import("../FlowCreateForm/FlowCreateForm"));
+const KeyboardShortcutsModal = lazy(
+  () => import("@/app/components/molecules/KeyboardShortcutsModal")
+);
+
+import { useFlowFromUrl } from "./useFlowFromUrl";
+import { useUI } from "@/app/contexts/UIContext";
+import { getProgressIcon } from "@/utils/progressUtils";
+import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
+import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
+import styles from "./FlowSelector.module.css";
+import {
+  FlowCreationStateProvider,
+  useFlowCreation,
+} from "@/app/contexts/FlowCreationContext";
+import {
+  FlowDropdownProvider,
+  useFlowDropdownContext,
+  FlowDropdownContextValue,
+} from "@/app/contexts/FlowDropdownContext";
+import { useFlowSession } from "@/app/contexts/FlowSessionContext";
+
+const FlowSelectorDropdown = () => {
+  const {
+    showDropdown,
+    setShowDropdown,
+    searchTerm,
+    selectedIndex,
+    searchInputRef,
+    dropdownRef,
+    filteredFlows,
+    handleSearchChange,
+    handleKeyDown,
+    selectedFlow,
+    selectFlow,
+    flows,
+    closeDropdown,
+  } = useFlowDropdownContext();
+
+  return (
+    <div className={styles.dropdown}>
+      <button
+        onClick={() => setShowDropdown(!showDropdown)}
+        className={styles.select}
+      >
+        {selectedFlow ? (
+          <>
+            {(() => {
+              const flow = flows.find((w) => w.id === selectedFlow);
+              const progressStatus = mapFlowStatusToProgressStatus(
+                flow?.status ?? "pending"
+              );
+              const StatusIcon = getProgressIcon(progressStatus);
+              return (
+                <StatusIcon
+                  className={`progress-icon ${progressStatus || "pending"}`}
+                />
+              );
+            })()}
+            {selectedFlow}
+          </>
+        ) : (
+          "Select Flow"
+        )}
+      </button>
+      {showDropdown && (
+        <div className={styles.dropdownMenu} ref={dropdownRef}>
+          <div className={styles.dropdownSearch}>
+            <Search className={styles.dropdownSearchIcon} />
+            <input
+              ref={searchInputRef}
+              type="text"
+              placeholder="Search flows..."
+              value={searchTerm}
+              onChange={handleSearchChange}
+              onKeyDown={handleKeyDown}
+              onBlur={() => setTimeout(() => closeDropdown(), 100)}
+              className={styles.dropdownSearchInput}
+              autoFocus
+            />
+          </div>
+          {filteredFlows.map((flow, index) => {
+            const progressStatus = mapFlowStatusToProgressStatus(flow.status);
+            const StatusIcon = getProgressIcon(progressStatus);
+            const isHighlighted = selectedIndex === index;
+            const isSelected = selectedFlow === flow.id;
+            const dropdownItemClassName = [
+              styles.dropdownItem,
+              isHighlighted && styles.dropdownItemHighlighted,
+              isSelected && styles.dropdownItemSelected,
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <div
+                key={flow.id}
+                className={dropdownItemClassName}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  selectFlow(flow.id);
+                  closeDropdown();
+                }}
+              >
+                <StatusIcon
+                  className={`progress-icon ${progressStatus || "pending"}`}
+                />
+                {flow.id}
+              </div>
+            );
+          })}
+          {filteredFlows.length === 0 && searchTerm && (
+            <div className={`${styles.dropdownItem} ${styles.noResults}`}>
+              No flows found
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FlowSelectorContent: React.FC = () => {
+  const navigate = useNavigate();
+  useFlowFromUrl();
+  const { flows, selectedFlow } = useFlowSession();
+  const { showCreateForm, setShowCreateForm } = useUI();
+  const { setNewID } = useFlowCreation();
+
+  const {
+    showDropdown,
+    setShowDropdown,
+    searchTerm,
+    selectedIndex,
+    searchInputRef,
+    dropdownRef,
+    filteredFlows,
+    handleSearchChange,
+    handleKeyDown,
+    selectFlow,
+    closeDropdown,
+    selectedFlow: dropdownSelectedFlow,
+    flows: dropdownFlows,
+  } = useFlowDropdownManagement(flows, selectedFlow);
+
+  const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  useKeyboardShortcuts(
+    [
+      {
+        key: "/",
+        description: "Focus search",
+        handler: () => {
+          if (!showDropdown) {
+            setShowDropdown(true);
+            setTimeout(() => searchInputRef.current?.focus(), 100);
+          }
+        },
+      },
+      {
+        key: "?",
+        description: "Show keyboard shortcuts",
+        handler: () => {
+          setShowShortcutsModal(true);
+        },
+      },
+    ],
+    !showCreateForm && !showShortcutsModal
+  );
+
+  const dropdownValue: FlowDropdownContextValue = {
+    showDropdown,
+    setShowDropdown,
+    searchTerm,
+    selectedIndex,
+    searchInputRef,
+    dropdownRef,
+    filteredFlows,
+    handleSearchChange,
+    handleKeyDown,
+    selectFlow,
+    closeDropdown,
+    selectedFlow: dropdownSelectedFlow,
+    flows: dropdownFlows,
+  };
+
+  return (
+    <FlowDropdownProvider value={dropdownValue}>
+      <div className={styles.selector}>
+        <div className={styles.header}>
+          <div className={styles.left}>
+            <a
+              href="https://www.argyll.app/"
+              target="_blank"
+              rel="noreferrer"
+              className={`${styles.title} ${styles.titleLink}`}
+              aria-label="Argyll Web Site"
+            >
+              <img
+                src="/argyll-logo.png"
+                alt="Argyll Logo"
+                className={styles.icon}
+                width={123}
+                height={77}
+              />
+              <h1 className={styles.titleText}>Argyll Engine</h1>
+            </a>
+          </div>
+
+          <div className={styles.right}>
+            <div className={styles.controls}>
+              <FlowSelectorDropdown />
+              {selectedFlow ? (
+                <button
+                  onClick={() => navigate("/")}
+                  className={styles.navButton}
+                  title="Back to Overview"
+                  aria-label="Back to Overview"
+                >
+                  <Activity className={styles.buttonIcon} aria-hidden="true" />
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => {
+                      setNewID(generateFlowId());
+                      setShowCreateForm(!showCreateForm);
+                    }}
+                    className={styles.createButton}
+                    title="New Flow"
+                    aria-label="Create New Flow"
+                  >
+                    <Play className={styles.buttonIcon} aria-hidden="true" />
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+        <ErrorBoundary
+          title="Flow Form Error"
+          description="An error occurred in the flow creation form. Try closing and reopening the form."
+          onError={(error, errorInfo) => {
+            console.error("Error in FlowCreateForm:", error);
+            console.error("Component stack:", errorInfo.componentStack);
+            setShowCreateForm(false);
+          }}
+        >
+          <Suspense fallback={null}>
+            <FlowCreateForm />
+          </Suspense>
+        </ErrorBoundary>
+        <Suspense fallback={null}>
+          <KeyboardShortcutsModal
+            isOpen={showShortcutsModal}
+            onClose={() => setShowShortcutsModal(false)}
+          />
+        </Suspense>
+      </div>
+    </FlowDropdownProvider>
+  );
+};
+
+const FlowSelector: React.FC = () => (
+  <FlowCreationStateProvider>
+    <FlowSelectorContent />
+  </FlowCreationStateProvider>
+);
+
+export default FlowSelector;

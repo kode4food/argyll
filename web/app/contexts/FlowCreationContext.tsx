@@ -41,26 +41,15 @@ export interface FlowCreationContextValue {
   sortSteps: (steps: Step[]) => Step[];
 }
 
-const FlowCreationContext = createContext<FlowCreationContextValue | null>(
-  null
-);
-
-export const FlowCreationProvider = ({
-  value,
-  children,
-}: {
-  value: FlowCreationContextValue;
-  children: React.ReactNode;
-}) => (
-  <FlowCreationContext.Provider value={value}>
-    {children}
-  </FlowCreationContext.Provider>
-);
+export const FlowCreationContext =
+  createContext<FlowCreationContextValue | null>(null);
 
 export const useFlowCreation = (): FlowCreationContextValue => {
   const ctx = useContext(FlowCreationContext);
   if (!ctx) {
-    throw new Error("useFlowCreation must be used within FlowCreationProvider");
+    throw new Error(
+      "useFlowCreation must be used within FlowCreationContext.Provider"
+    );
   }
   return ctx;
 };
