@@ -197,7 +197,10 @@ const OverviewStepDiagramInner: React.FC<OverviewStepDiagramProps> = ({
         return initialEdges;
       }
       for (let i = 0; i < currentEdges.length; i += 1) {
-        if (currentEdges[i].id !== initialEdges[i].id) {
+        if (
+          currentEdges[i].id !== initialEdges[i].id ||
+          currentEdges[i].style?.stroke !== initialEdges[i].style?.stroke
+        ) {
           return initialEdges;
         }
       }
