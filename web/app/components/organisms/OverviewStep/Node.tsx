@@ -22,7 +22,7 @@ const Node: React.FC<NodeProps> = ({ data }) => {
   const nodeData = data as unknown as NodeData;
   const { step, onStepClick } = nodeData;
   const { setGoalSteps } = useDiagramSelection();
-  const stepWidgetRef = useRef<HTMLDivElement | null>(null);
+  const widgetRef = useRef<HTMLDivElement | null>(null);
 
   // Memoize the click handler to prevent unnecessary re-renders
   const handleClick = useCallback(
@@ -37,7 +37,7 @@ const Node: React.FC<NodeProps> = ({ data }) => {
     [onStepClick, setGoalSteps, step.id]
   );
 
-  const { allHandles } = useHandlePositions(step, stepWidgetRef);
+  const { allHandles } = useHandlePositions(step, widgetRef);
 
   return (
     <div>
@@ -54,7 +54,7 @@ const Node: React.FC<NodeProps> = ({ data }) => {
         />
       ))}
 
-      <div ref={stepWidgetRef}>
+      <div ref={widgetRef}>
         <Widget
           step={step}
           selected={nodeData.selected}

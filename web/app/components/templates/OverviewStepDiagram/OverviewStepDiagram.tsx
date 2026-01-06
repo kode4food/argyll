@@ -28,7 +28,7 @@ import { saveNodePositions } from "@/utils/nodePositioning";
 import { useUI } from "@/app/contexts/UIContext";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
-import { useDiagramKeyboardNavigation } from "./useDiagramKeyboardNavigation";
+import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useLayoutPlan } from "./useLayoutPlan";
 
@@ -119,7 +119,7 @@ const OverviewStepDiagramInner: React.FC<OverviewStepDiagramProps> = ({
     handleArrowRight,
     handleEnter,
     handleEscape,
-  } = useDiagramKeyboardNavigation(nodes, activeGoalStepId, handleStepClick);
+  } = useKeyboardNavigation(nodes, activeGoalStepId, handleStepClick);
 
   useKeyboardShortcuts([
     {

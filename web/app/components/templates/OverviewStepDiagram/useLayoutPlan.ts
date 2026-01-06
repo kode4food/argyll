@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from "react";
 import { Node } from "@xyflow/react";
 import { Step } from "@/app/api";
-import { generateOverviewPlan, shouldApplyAutoLayout } from "./diagramUtils";
+import { generateOverviewPlan, shouldApplyAutoLayout } from "./layoutUtils";
 import { saveNodePositions } from "@/utils/nodePositioning";
 
 export function useLayoutPlan(visibleSteps: Step[], arrangedNodes: Node[]) {

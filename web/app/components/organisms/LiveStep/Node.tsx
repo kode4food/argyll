@@ -19,7 +19,7 @@ interface NodeData {
 const Node: React.FC<NodeProps> = ({ data }) => {
   const nodeData = data as unknown as NodeData;
   const { step, flowData, executions = [], resolvedAttributes = [] } = nodeData;
-  const stepWidgetRef = useRef<HTMLDivElement | null>(null);
+  const widgetRef = useRef<HTMLDivElement | null>(null);
 
   const { execution, provenance, satisfied } = useNodeData(
     step,
@@ -28,7 +28,7 @@ const Node: React.FC<NodeProps> = ({ data }) => {
     resolvedAttributes
   );
 
-  const { allHandles } = useHandlePositions(step, stepWidgetRef);
+  const { allHandles } = useHandlePositions(step, widgetRef);
 
   return (
     <div>
@@ -45,7 +45,7 @@ const Node: React.FC<NodeProps> = ({ data }) => {
         />
       ))}
 
-      <div ref={stepWidgetRef}>
+      <div ref={widgetRef}>
         <Widget
           step={step}
           selected={nodeData.selected ?? false}

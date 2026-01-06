@@ -1,11 +1,8 @@
 import { useMemo, useCallback } from "react";
 import { Node } from "@xyflow/react";
-import {
-  groupNodesByLevel,
-  findNextStepInDirection,
-} from "./diagramNavigationUtils";
+import { groupNodesByLevel, findNextStepInDirection } from "./navigationUtils";
 
-export function useDiagramKeyboardNavigation(
+export function useKeyboardNavigation(
   nodes: Node[],
   activeGoalStepId: string | null,
   handleStepClick: (stepId: string) => void

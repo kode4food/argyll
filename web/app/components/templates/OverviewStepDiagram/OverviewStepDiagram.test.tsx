@@ -43,12 +43,105 @@ jest.mock("@/app/contexts/UIContext", () => ({
   }),
 }));
 
+jest.mock("@/app/hooks/useKeyboardShortcuts", () => ({
+  useKeyboardShortcuts: jest.fn(),
+}));
+
+jest.mock("./useKeyboardNavigation", () => ({
+  useKeyboardNavigation: () => ({
+    handleArrowUp: jest.fn(),
+    handleArrowDown: jest.fn(),
+    handleArrowLeft: jest.fn(),
+    handleArrowRight: jest.fn(),
+    handleEnter: jest.fn(),
+    handleEscape: jest.fn(),
+  }),
+}));
+
+jest.mock("@/app/hooks/useDiagramViewport", () => ({
+  useDiagramViewport: () => ({
+    handleViewportChange: jest.fn(),
+    shouldFitView: true,
+    savedViewport: null,
+    markRestored: jest.fn(),
+  }),
+}));
+
+jest.mock("./useExecutionPlanPreview", () => ({
+  useExecutionPlanPreview: () => ({
+    previewPlan: null,
+    handleStepClick: jest.fn(),
+    clearPreview: jest.fn(),
+  }),
+}));
+
+jest.mock("./useStepVisibility", () => ({
+  useStepVisibility: (steps: any) => ({
+    visibleSteps: steps,
+    previewStepIds: new Set(),
+  }),
+}));
+
+jest.mock("./useNodeCalculation", () => ({
+  useNodeCalculation: () => [],
+}));
+
+jest.mock("@/app/hooks/useEdgeCalculation", () => ({
+  useEdgeCalculation: () => [],
+}));
+
+jest.mock("./useAutoLayout", () => ({
+  useAutoLayout: (nodes: any) => nodes,
+}));
+
+jest.mock("./useLayoutPlan", () => ({
+  useLayoutPlan: () => ({ plan: [] }),
+}));
+
 describe("OverviewStepDiagram", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   it("renders diagram scaffolding", () => {
     const { getByTestId } = render(
       <DiagramSelectionProvider
         value={{
           goalSteps: [],
+          toggleGoalStep: jest.fn(),
+          setGoalSteps: jest.fn(),
+        }}
+      >
+        <OverviewStepDiagram
+          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+        />
+      </DiagramSelectionProvider>
+    );
+
+    expect(getByTestId("react-flow")).toBeInTheDocument();
+  });
+
+  it("renders empty state when no steps", () => {
+    const { getByText } = render(
+      <DiagramSelectionProvider
+        value={{
+          goalSteps: [],
+          toggleGoalStep: jest.fn(),
+          setGoalSteps: jest.fn(),
+        }}
+      >
+        <OverviewStepDiagram steps={[]} />
+      </DiagramSelectionProvider>
+    );
+
+    expect(getByText("No Steps to Visualize")).toBeInTheDocument();
+  });
+
+  it("renders with goal steps selected", () => {
+    const { getByTestId } = render(
+      <DiagramSelectionProvider
+        value={{
+          goalSteps: ["s1"],
           toggleGoalStep: jest.fn(),
           setGoalSteps: jest.fn(),
         }}
