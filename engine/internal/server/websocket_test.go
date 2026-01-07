@@ -14,6 +14,7 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -33,6 +34,18 @@ type (
 		Hub    *mockEventHub
 		Conn   *websocket.Conn
 	}
+
+	serverWebSocketEnv struct {
+		Server *httptest.Server
+		Conn   *websocket.Conn
+	}
+)
+
+const (
+	wsReadTimeout  = 500 * time.Millisecond
+	wsCloseTimeout = 200 * time.Millisecond
+	wsStateTimeout = 500 * time.Millisecond
+	wsErrorTimeout = 100 * time.Millisecond
 )
 
 func (m *mockEventHub) Length() uint64 {
@@ -80,6 +93,15 @@ func (m *mockConsumer) Close() {
 }
 
 func (e *testWebSocketEnv) Cleanup() {
+	if e.Conn != nil {
+		_ = e.Conn.Close()
+	}
+	if e.Server != nil {
+		e.Server.Close()
+	}
+}
+
+func (e *serverWebSocketEnv) Cleanup() {
 	if e.Conn != nil {
 		_ = e.Conn.Close()
 	}
@@ -329,6 +351,140 @@ func TestSubscribeNoID(t *testing.T) {
 	assert.False(t, getStateCalled)
 }
 
+func TestClientPongHandler(t *testing.T) {
+	getState := func(
+		ctx context.Context, id timebox.AggregateID,
+	) (any, int64, error) {
+		return &api.FlowState{ID: "wf-123"}, 0, nil
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+
+	err := env.Conn.WriteMessage(websocket.PongMessage, []byte("pong"))
+	assert.NoError(t, err)
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			AggregateID: []string{"flow", "wf-123"},
+		},
+	}
+	err = env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	var stateMsg api.SubscribedResult
+	err = env.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+}
+
+func TestClientConsumerClosed(t *testing.T) {
+	env := testWebSocket(t, nil)
+	defer env.Cleanup()
+
+	assert.Len(t, env.Hub.consumers, 1)
+	env.Hub.consumers[0].Close()
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsCloseTimeout))
+	_, _, err := env.Conn.ReadMessage()
+	assert.Error(t, err)
+}
+
+func TestHandleWebSocketCallbackEngine(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	srv := server.NewServer(env.Engine, env.EventHub)
+	ws := testServerWebSocket(t, srv)
+	defer ws.Cleanup()
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			AggregateID: []string{"engine"},
+		},
+	}
+	err := ws.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+	var stateMsg api.SubscribedResult
+	err = ws.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"engine"}, stateMsg.AggregateID)
+
+	var engState api.EngineState
+	err = json.Unmarshal(stateMsg.Data, &engState)
+	assert.NoError(t, err)
+}
+
+func TestHandleWebSocketCallbackFlow(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	err := env.Engine.StartFlow(
+		context.Background(),
+		"wf-123",
+		&api.ExecutionPlan{Steps: api.Steps{}},
+		api.Args{},
+		api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	srv := server.NewServer(env.Engine, env.EventHub)
+	ws := testServerWebSocket(t, srv)
+	defer ws.Cleanup()
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			AggregateID: []string{"flow", "wf-123"},
+		},
+	}
+	err = ws.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+	var stateMsg api.SubscribedResult
+	err = ws.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+
+	var flowState api.FlowState
+	err = json.Unmarshal(stateMsg.Data, &flowState)
+	assert.NoError(t, err)
+	assert.Equal(t, api.FlowID("wf-123"), flowState.ID)
+}
+
+func TestHandleWebSocketCallbackInvalidAggregate(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	srv := server.NewServer(env.Engine, env.EventHub)
+	ws := testServerWebSocket(t, srv)
+	defer ws.Cleanup()
+
+	for _, aggregateID := range [][]string{
+		{"flow"},
+		{"invalid"},
+	} {
+		sub := api.SubscribeRequest{
+			Type: "subscribe",
+			Data: api.ClientSubscription{
+				AggregateID: aggregateID,
+			},
+		}
+		err := ws.Conn.WriteJSON(sub)
+		assert.NoError(t, err)
+
+		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsErrorTimeout))
+		_, _, err = ws.Conn.ReadMessage()
+		assert.Error(t, err)
+	}
+}
+
 func TestEngineEvents(t *testing.T) {
 	sub := &api.ClientSubscription{
 		AggregateID: []string{"engine"},
@@ -479,6 +635,24 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 	return &testWebSocketEnv{
 		Server: srv,
 		Hub:    hub,
+		Conn:   conn,
+	}
+}
+
+func testServerWebSocket(
+	t *testing.T, srv *server.Server,
+) *serverWebSocketEnv {
+	t.Helper()
+
+	router := srv.SetupRoutes()
+	httpServer := httptest.NewServer(router)
+
+	wsURL := "ws" + strings.TrimPrefix(httpServer.URL, "http") + "/engine/ws"
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	assert.NoError(t, err)
+
+	return &serverWebSocketEnv{
+		Server: httpServer,
 		Conn:   conn,
 	}
 }
