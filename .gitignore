@@ -38,6 +38,7 @@ cover.out
 *~
 \#*#
 
+*.code-workspace
 *.sublime-workspace
 *.sublime-project
 
