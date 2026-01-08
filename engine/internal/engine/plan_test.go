@@ -90,7 +90,7 @@ func TestProcessorWithInit(t *testing.T) {
 	assert.Empty(t, plan.Required)
 }
 
-func TestExcludedSatisfiedByInitState(t *testing.T) {
+func TestInitSatisfiedExcluded(t *testing.T) {
 	eng := &engine.Engine{}
 
 	providerStep := &api.Step{

@@ -74,7 +74,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 	assert.Equal(t, "ok", flow.Attributes["result"].Value)
 }
 
-func TestUndeclaredOutputsAreIgnored(t *testing.T) {
+func TestUndeclaredOutputsIgnored(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
@@ -150,7 +150,7 @@ func TestUndeclaredOutputsAreIgnored(t *testing.T) {
 	assert.NotContains(t, flow.Attributes, api.Name("extra2"))
 }
 
-func TestPendingProvidersSkippedWhenOutputsSatisfied(t *testing.T) {
+func TestPendingUnusedSkip(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 	env.Engine.Start()
