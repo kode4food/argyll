@@ -506,6 +506,9 @@ func (a *flowActor) checkStepCompletion(
 	dur := time.Since(exec.StartedAt).Milliseconds()
 
 	for key, value := range outputs {
+		if !isOutputAttribute(step, key) {
+			continue
+		}
 		if _, ok := ag.Value().Attributes[key]; !ok {
 			if err := events.Raise(ag, api.EventTypeAttributeSet,
 				api.AttributeSetEvent{
@@ -650,4 +653,9 @@ func hasActiveWork(flow *api.FlowState) bool {
 		}
 	}
 	return false
+}
+
+func isOutputAttribute(step *api.Step, name api.Name) bool {
+	attr, ok := step.Attributes[name]
+	return ok && attr.IsOutput()
 }

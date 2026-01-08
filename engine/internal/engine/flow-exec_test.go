@@ -73,3 +73,79 @@ func TestLinearFlowCompletes(t *testing.T) {
 	assert.Equal(t, api.StepCompleted, flow.Executions[consumer.ID].Status)
 	assert.Equal(t, "ok", flow.Attributes["result"].Value)
 }
+
+func TestUndeclaredOutputsAreIgnored(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+	env.Engine.Start()
+
+	ctx := context.Background()
+
+	producer := &api.Step{
+		ID:   "producer",
+		Name: "Producer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"value": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	consumer := &api.Step{
+		ID:   "consumer",
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"value":  {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+
+	assert.NoError(t, env.Engine.RegisterStep(ctx, producer))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, consumer))
+
+	env.MockClient.SetResponse(producer.ID, api.Args{
+		"value": "abc",
+		"extra": "ignore-me",
+	})
+	env.MockClient.SetResponse(consumer.ID, api.Args{
+		"result": "ok",
+		"extra2": "ignore-me-too",
+	})
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{consumer.ID},
+		Steps: api.Steps{
+			producer.ID: producer,
+			consumer.ID: consumer,
+		},
+		Attributes: api.AttributeGraph{
+			"value": {
+				Providers: []api.StepID{producer.ID},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"result": {
+				Providers: []api.StepID{consumer.ID},
+				Consumers: []api.StepID{},
+			},
+		},
+	}
+
+	err := env.Engine.StartFlow(
+		ctx, "wf-undeclared-outputs", plan, api.Args{}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	flow := env.WaitForFlowStatus(
+		t,
+		ctx,
+		"wf-undeclared-outputs",
+		testTimeout,
+	)
+	assert.Equal(t, api.FlowCompleted, flow.Status)
+
+	assert.NotNil(t, flow.Attributes["value"])
+	assert.NotNil(t, flow.Attributes["result"])
+	assert.NotContains(t, flow.Attributes, api.Name("extra"))
+	assert.NotContains(t, flow.Attributes, api.Name("extra2"))
+}

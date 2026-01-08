@@ -110,7 +110,7 @@ func TestHibernateCompletedFlow(t *testing.T) {
 	env.Worker.Start()
 	ctx := context.Background()
 
-	step := helpers.NewSimpleStep("hibernate-step")
+	step := helpers.NewStepWithOutputs("hibernate-step", "result")
 	err := env.Engine.RegisterStep(ctx, step)
 	assert.NoError(t, err)
 
@@ -147,7 +147,7 @@ func TestRetrieveHibernatedFlow(t *testing.T) {
 	env.Worker.Start()
 	ctx := context.Background()
 
-	step := helpers.NewSimpleStep("retrieve-step")
+	step := helpers.NewStepWithOutputs("retrieve-step", "output")
 	err := env.Engine.RegisterStep(ctx, step)
 	assert.NoError(t, err)
 
