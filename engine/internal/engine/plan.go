@@ -139,15 +139,12 @@ func (b *planBuilder) collectStep(stepID api.StepID) error {
 	}
 	b.visited.Add(stepID)
 
-	step, ok := b.engState.Steps[stepID]
-	if !ok {
-		return ErrStepNotFound
-	}
-
+	step := b.engState.Steps[stepID]
 	allInputs := step.GetAllInputArgs()
 	required := b.buildRequired(step)
 	for _, name := range allInputs {
 		if b.satisfied.Contains(name) {
+			b.markSatisfied(name)
 			continue
 		}
 		hasProvider, err := b.includeProviders(name)
@@ -174,6 +171,15 @@ func (b *planBuilder) buildRequired(step *api.Step) util.Set[api.Name] {
 		}
 	}
 	return required
+}
+
+func (b *planBuilder) markSatisfied(name api.Name) {
+	for _, providerID := range b.findProviders(name) {
+		step := b.engState.Steps[providerID]
+		if b.outputsAvailable(step) {
+			b.visited.Add(providerID)
+		}
+	}
 }
 
 func (b *planBuilder) includeProviders(name api.Name) (bool, error) {
@@ -286,10 +292,7 @@ func (b *planBuilder) buildExcluded() api.ExcludedSteps {
 		Missing:   map[api.StepID][]api.Name{},
 	}
 	for stepID := range b.visited {
-		step, ok := b.engState.Steps[stepID]
-		if !ok {
-			continue
-		}
+		step := b.engState.Steps[stepID]
 		if b.included.Contains(stepID) {
 			continue
 		}

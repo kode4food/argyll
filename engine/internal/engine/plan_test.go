@@ -90,6 +90,63 @@ func TestProcessorWithInit(t *testing.T) {
 	assert.Empty(t, plan.Required)
 }
 
+func TestExcludedSatisfiedByInitState(t *testing.T) {
+	eng := &engine.Engine{}
+
+	providerStep := &api.Step{
+		ID:   "provider",
+		Name: "Provider",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"seed": {Role: api.RoleRequired, Type: api.TypeString},
+			"data": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	consumerStep := &api.Step{
+		ID:   "consumer",
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"data":   {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	engState := makeEngineState(api.Steps{
+		"provider": providerStep,
+		"consumer": consumerStep,
+	})
+
+	plan, err := eng.CreateExecutionPlan(
+		engState, []api.StepID{"consumer"}, api.Args{"data": "ready"},
+	)
+	assert.NoError(t, err)
+
+	assert.Len(t, plan.Steps, 1)
+	assert.NotContains(t, plan.Steps, api.StepID("provider"))
+	assert.Contains(t, plan.Steps, api.StepID("consumer"))
+
+	excluded := plan.Excluded
+	if assert.NotNil(t, excluded) {
+		if assert.Contains(t, excluded.Satisfied, api.StepID("provider")) {
+			assert.Equal(
+				t,
+				[]api.Name{api.Name("data")},
+				excluded.Satisfied["provider"],
+			)
+		}
+	}
+}
+
 func TestProcessorNoInit(t *testing.T) {
 	eng := &engine.Engine{}
 
