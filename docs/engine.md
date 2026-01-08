@@ -439,7 +439,7 @@ A plan contains:
 
 ### How Plan Generation Works
 
-Plan generation is a recursive, depth-first traversal of the dependency graph.
+Plan generation uses a two-pass approach over the dependency graph.
 
 #### Initialization
 
@@ -451,47 +451,47 @@ The engine starts by creating a plan builder with:
 - An **attributes map** to build the provider-consumer relationships for this specific plan
 - A reference to **EngineState.Attributes** containing the pre-computed dependency graph
 
-#### Recursive Resolution
+#### Pass 1: Satisfiable Steps
 
-For each goal step, the engine calls a recursive function that:
+The engine first computes which steps are satisfiable given the initial state and any outputs that can be produced by other satisfiable steps. This pass does not build the plan; it only determines which steps could run if needed.
+
+#### Pass 2: Goal Traversal
+
+For each goal step, the engine walks upstream to find providers for required and optional inputs:
 
 1. **Checks if already visited**: If this step was already processed, return immediately to avoid duplicate work.
 
-2. **Checks if outputs are available**: If all of the step's outputs are already in the available set (provided in initial state), mark it as visited and return. There's no need to include this step in the plan because its outputs are already available.
+2. **Processes inputs**: For each required or optional input:
+   - If the attribute is already in the initial state, no provider is needed
+   - Otherwise, the engine looks up providers for that attribute
+   - Only providers deemed satisfiable in pass 1 are included
+   - If a required input has no satisfiable provider, it is added to the missing set
 
-3. **Processes inputs**: For each input attribute the step requires:
-   - If the attribute is in the available set, record this step as a consumer of that attribute
-   - Otherwise, search all registered steps to find one that produces this attribute
-   - If found, recursively process that provider step (ensuring it gets included in the plan)
-   - If not found, add the attribute to the missing set (it must be provided externally)
-
-4. **Adds the step to the plan**: After processing all dependencies, add this step to the plan's step collection.
-
-5. **Marks outputs as available**: Add all of this step's output attributes to the available set, so downstream steps know they're available.
+3. **Includes or excludes the step**: A step is included if any of its output attributes are not already present in the initial state. Steps whose outputs are fully satisfied by the initial state are excluded.
 
 #### Provider Discovery
 
 When a step needs an input attribute, the engine looks up all providers for that attribute using the cached dependency graph from EngineState.Attributes. This map is maintained as a projection—automatically rebuilt whenever steps are registered, updated, or unregistered—ensuring O(1) lookup during plan generation.
 
-If multiple steps can provide the same attribute, **all of them are included in the plan**. During execution, these providers compete—whichever completes first provides the attribute value. This enables redundancy and allows the fastest provider to win.
+If multiple steps can provide the same attribute, **all satisfiable providers are included in the plan**. During execution, these providers compete—whichever completes first provides the attribute value. This enables redundancy and allows the fastest provider to win.
 
 The dependency relationship is bidirectional: the consuming step is added to the attribute's consumers list, and all providing steps are added to the attribute's providers list.
 
 #### Handling Optional Inputs
 
-Optional inputs are treated differently from required inputs. If an optional input isn't available and no provider exists, that's fine—the step will use its default value. The attribute isn't added to the missing set.
+Optional inputs are treated differently from required inputs. If an optional input isn't available and no provider exists, that's fine—the step will use its default value if one is defined, otherwise the input is omitted. The attribute isn't added to the missing set.
 
 However, if a provider *does* exist for an optional input, the provider is included in the plan just like for required inputs. This ensures that if the data can be computed, it will be.
 
 ### Plan Completeness
 
-The plan generation algorithm includes all steps needed to reach the goals, including all possible providers for each required attribute.
+The plan generation algorithm includes all steps needed to reach the goals, including all satisfiable providers for each required attribute.
 
 If a step's outputs are already available in the initial state, the step is excluded from the plan. For example, if you provide `{"user_id": 123}` in the initial state, any step that produces "user_id" won't be included in the plan.
 
-If a step is in the graph but none of its outputs are consumed by any other step in the plan, it's excluded. Dead-end steps that don't contribute to the goals are pruned.
+Steps are only included if they are reachable from the goals via provider traversal. Steps outside that traversal are not part of the plan.
 
-When multiple steps can provide the same attribute, all providers are included to enable competition during execution. This is not strictly minimal, but ensures redundancy and allows the fastest provider to satisfy the dependency.
+When multiple steps can provide the same attribute, all satisfiable providers are included to enable competition during execution. This is not strictly minimal, but ensures redundancy and allows the fastest provider to satisfy the dependency.
 
 ### Cycle Prevention
 
@@ -511,9 +511,9 @@ The flow state contains the plan, and throughout execution, the engine uses the 
 
 **Finding ready steps**: After a step completes, the engine looks at which attributes it produced, then uses the plan's attribute map to find downstream consumers of those attributes. Those consumers become candidates for execution if their other inputs are also satisfied.
 
-**Determining necessity**: Before executing a step, the engine checks if it's a goal step or if its outputs are needed by any pending downstream steps. If neither is true, the step is skipped (optimization).
+**Determining necessity**: Before executing a step, the engine checks if it's a goal step or if its outputs are needed by any pending downstream steps. If neither is true, the step is skipped with the reason "outputs not needed".
 
-**Completion detection**: The flow is complete when all goal steps have either completed successfully or been skipped (because their outputs weren't needed).
+**Completion detection**: The flow is complete when all steps in the plan have either completed successfully or been skipped.
 
 ### What is Plan Preview?
 
@@ -610,6 +610,13 @@ If instead the initial state was `{"customer_id": 123}`:
 Final plan:
 - **Goals**: [D]
 - **Steps**: {B, C, D}  (A excluded)
+- **Required**: []  (already provided in initial state)
+
+If no step provides "customer_id" and the initial state is `{}`:
+
+Final plan:
+- **Goals**: [D]
+- **Steps**: {B, C, D}
 - **Required**: ["customer_id"]  (must be provided in initial state)
 
 ---
@@ -704,23 +711,21 @@ The engine finds ready steps in two scenarios:
 
 **Downstream steps**: When a step completes, the engine looks at which attributes it produced, then uses the plan's dependency graph to find steps that consume those attributes. Those steps become candidates for execution.
 
-### Step Preparation and Execution
+### Step Lifecycle
 
-When a step is ready to execute, the engine performs several preparation tasks before the actual work begins.
+When a step is ready to execute, the engine walks it through the lifecycle below.
 
 #### Input Collection
 
-The engine gathers all the step's input attributes from the flow's attribute map. This includes both required and optional inputs. If an optional input is missing, the step's default value is used (or null if no default is specified).
+The engine gathers all the step's input attributes from the flow's attribute map. This includes both required and optional inputs. If an optional input is missing, the step's default value is used if one is specified. Otherwise the input is omitted.
+
+#### Output Necessity Check
+
+Before executing, the engine checks whether the step is a goal step or whether any pending downstream steps still need one of its outputs. If neither is true, the step is skipped with the reason "outputs not needed".
 
 #### Predicate Evaluation
 
-If the step has a predicate, it's evaluated now with the collected inputs. The predicate is a boolean expression that determines whether the step should execute.
-
-If the predicate returns false, the step is marked as "skipped" and the engine immediately looks for downstream steps that might be ready (skipping is not the same as failing—downstream steps can still execute if their other inputs are satisfied).
-
-If the predicate returns true, or if there's no predicate, execution continues.
-
-If the predicate throws an error, the step is marked as failed.
+If the step has a predicate, it's evaluated with the collected inputs. If the predicate returns false, the step is skipped with reason "predicate returned false". If predicate evaluation throws an error, the step fails.
 
 #### Work Item Computation
 
@@ -745,9 +750,9 @@ Each work item gets a unique token (UUID) to identify it.
 
 #### Event Emission and Deferred Execution
 
-All the above preparation happens inside a database transaction to ensure atomicity. Once preparation completes, a "StepStartedEvent" is emitted within the transaction.
+All the above preparation happens inside a database transaction to ensure atomicity. Once preparation completes, a StepStartedEvent is emitted within the transaction.
 
-The transaction also returns a "deferred function"—a callback that will execute the actual work after the transaction commits.
+The transaction also returns a deferred function—a callback that will execute the actual work after the transaction commits.
 
 Why deferred? Because step execution can be long-running (HTTP calls, scripts that take time), and we don't want to hold database locks during that time. By deferring the work until after the transaction commits, we keep transactions short and avoid blocking other flows.
 
@@ -871,17 +876,21 @@ The aggregated outputs are then added to the flow's attribute map via "Attribute
 
 Once attributes are set, downstream steps that consume them may become ready to execute.
 
-### Step Completion and Downstream Discovery
+### Step Completion, Failure, and Downstream Discovery
 
-When all work items for a step have reached terminal states (succeeded, failed, or skipped), the step itself transitions to a terminal state:
+When all work items for a step have reached terminal states (succeeded or failed), the step itself transitions to a terminal state:
 
 **Completed**: If all work items succeeded.
 
 **Failed**: If any work item failed permanently.
 
-**Skipped**: If all work items were skipped (predicate returned false for all).
+A StepCompletedEvent or StepFailedEvent is emitted.
 
-A "StepCompletedEvent" or "StepFailedEvent" is emitted.
+Additional failure cases:
+- **Predicate evaluation error**: The predicate threw an error during evaluation.
+- **Required inputs become unreachable**: A pending step loses all viable providers for a required input, producing the error "required input no longer available".
+
+Steps excluded during plan generation are not skipped; they simply never appear in the plan.
 
 The engine then looks for downstream steps by:
 
@@ -1103,7 +1112,7 @@ Every operation that changes flow state emits one or more events. Here are examp
 }
 ```
 
-**StepSkippedEvent** - Emitted when a step's predicate returns false:
+**StepSkippedEvent** - Emitted when a step is skipped (predicate returned false or outputs not needed):
 ```json
 {
   "type": "step_skipped",
@@ -1116,7 +1125,7 @@ Every operation that changes flow state emits one or more events. Here are examp
 }
 ```
 
-**FlowCompletedEvent** - Emitted when all goal steps complete successfully:
+**FlowCompletedEvent** - Emitted when all plan steps complete successfully or are skipped:
 ```json
 {
   "type": "flow_completed",

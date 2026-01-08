@@ -130,6 +130,10 @@ func (a *flowActor) processWorkSucceeded(
 			return nil, err
 		}
 
+		if err := a.skipPendingUnused(ag); err != nil {
+			return nil, err
+		}
+
 		// Step completed - check if it was a goal step
 		if a.isGoalStep(event.StepID, ag.Value()) {
 			if err := a.checkTerminal(ag); err != nil {
@@ -281,6 +285,37 @@ func (a *flowActor) failUnreachable(ag *FlowAggregator) error {
 		}
 
 		if !failedAny {
+			return nil
+		}
+	}
+}
+
+func (a *flowActor) skipPendingUnused(ag *FlowAggregator) error {
+	for {
+		skip := false
+		flow := ag.Value()
+
+		for stepID, exec := range flow.Executions {
+			if exec.Status != api.StepPending {
+				continue
+			}
+			if a.areOutputsNeeded(stepID, flow) {
+				continue
+			}
+
+			if err := events.Raise(ag, api.EventTypeStepSkipped,
+				api.StepSkippedEvent{
+					FlowID: a.flowID,
+					StepID: stepID,
+					Reason: "outputs not needed",
+				},
+			); err != nil {
+				return err
+			}
+			skip = true
+		}
+
+		if !skip {
 			return nil
 		}
 	}

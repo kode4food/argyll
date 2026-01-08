@@ -149,3 +149,84 @@ func TestUndeclaredOutputsAreIgnored(t *testing.T) {
 	assert.NotContains(t, flow.Attributes, api.Name("extra"))
 	assert.NotContains(t, flow.Attributes, api.Name("extra2"))
 }
+
+func TestPendingProvidersSkippedWhenOutputsSatisfied(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+	env.Engine.Start()
+
+	ctx := context.Background()
+
+	providerA := &api.Step{
+		ID:   "provider-a",
+		Name: "Provider A",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"opt": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	providerB := &api.Step{
+		ID:   "provider-b",
+		Name: "Provider B",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"seed": {Role: api.RoleRequired, Type: api.TypeString},
+			"opt":  {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	consumer := &api.Step{
+		ID:   "consumer",
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"opt":    {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+
+	assert.NoError(t, env.Engine.RegisterStep(ctx, providerA))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, providerB))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, consumer))
+
+	env.MockClient.SetResponse(providerA.ID, api.Args{"opt": "value"})
+	env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{consumer.ID},
+		Steps: api.Steps{
+			providerA.ID: providerA,
+			providerB.ID: providerB,
+			consumer.ID:  consumer,
+		},
+		Attributes: api.AttributeGraph{
+			"opt": {
+				Providers: []api.StepID{providerA.ID, providerB.ID},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"result": {
+				Providers: []api.StepID{consumer.ID},
+				Consumers: []api.StepID{},
+			},
+		},
+	}
+
+	err := env.Engine.StartFlow(
+		ctx, "wf-skip-unneeded", plan, api.Args{}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	flow := env.WaitForFlowStatus(
+		t,
+		ctx,
+		"wf-skip-unneeded",
+		testTimeout,
+	)
+	assert.Equal(t, api.FlowCompleted, flow.Status)
+	assert.Equal(t, api.StepCompleted, flow.Executions[providerA.ID].Status)
+	assert.Equal(t, api.StepSkipped, flow.Executions[providerB.ID].Status)
+	assert.Equal(t, "outputs not needed", flow.Executions[providerB.ID].Error)
+	assert.Equal(t, api.StepCompleted, flow.Executions[consumer.ID].Status)
+}
