@@ -919,6 +919,27 @@ components:
           description: Map of attribute names to their provider/consumer dependencies
           additionalProperties:
             $ref: "#/components/schemas/Dependencies"
+        excluded:
+          $ref: "#/components/schemas/ExcludedSteps"
+          description: Excluded steps grouped by reason
+
+    ExcludedSteps:
+      type: object
+      properties:
+        missing:
+          type: object
+          description: Steps excluded due to missing required inputs
+          additionalProperties:
+            type: array
+            items:
+              type: string
+        satisfied:
+          type: object
+          description: Steps excluded due to init-provided outputs
+          additionalProperties:
+            type: array
+            items:
+              type: string
 
     StepInfo:
       type: object

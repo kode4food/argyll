@@ -40,7 +40,7 @@ const FlowCreateForm: React.FC = () => {
   const { sidebarListRef, showTopFade, showBottomFade } =
     useFlowFormScrollFade(showCreateForm);
 
-  const { included, satisfied } = useFlowFormStepFiltering(
+  const { included, satisfied, missingByStep } = useFlowFormStepFiltering(
     steps,
     initialState,
     previewPlan
@@ -72,13 +72,17 @@ const FlowCreateForm: React.FC = () => {
                 const isIncludedByOthers = included.has(step.id) && !isSelected;
                 const isSatisfiedByState =
                   satisfied.has(step.id) && !isSelected;
+                const missingRequired = missingByStep.get(step.id) || [];
+                const isMissing = missingRequired.length > 0;
                 const isDisabled = isIncludedByOthers || isSatisfiedByState;
 
                 const tooltipText = isIncludedByOthers
                   ? "Already included in execution plan"
                   : isSatisfiedByState
                     ? "Outputs satisfied by initial state"
-                    : undefined;
+                    : isMissing
+                      ? `Missing required: ${missingRequired.join(", ")}`
+                      : undefined;
                 const itemClassName = buildItemClassName(
                   isSelected,
                   isDisabled,

@@ -353,6 +353,31 @@ describe("FlowCreateForm", () => {
     expect(stepItem).toBeInTheDocument();
   });
 
+  test("shows tooltip when step has missing requirements", () => {
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan: {
+        steps: {},
+        attributes: {},
+        goals: [],
+        required: [],
+        excluded: {
+          missing: {
+            "step-1": ["input1"],
+          },
+        },
+      },
+      goalSteps: [],
+    });
+
+    renderWithProvider();
+
+    const stepItem = screen
+      .getByText("Test Step")
+      .closest('div[title="Missing required: input1"]');
+    expect(stepItem).toBeInTheDocument();
+  });
+
   test("does not trigger step change when disabled step clicked", async () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,

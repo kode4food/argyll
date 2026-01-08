@@ -468,6 +468,89 @@ func TestOptionalMissing(t *testing.T) {
 	assert.Empty(t, plan.Required)
 }
 
+func TestMultipleProvidersWithInitState(t *testing.T) {
+	eng := &engine.Engine{}
+
+	providerWithInput := &api.Step{
+		ID:   "provider-with-input",
+		Name: "Provider With Input",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"product_id":   {Role: api.RoleRequired, Type: api.TypeString},
+			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	providerWithoutInput := &api.Step{
+		ID:   "provider-without-input",
+		Name: "Provider Without Input",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	consumer := &api.Step{
+		ID:   "consumer",
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"product_info": {Role: api.RoleRequired, Type: api.TypeString},
+			"result":       {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	engState := makeEngineState(api.Steps{
+		"provider-with-input":    providerWithInput,
+		"provider-without-input": providerWithoutInput,
+		"consumer":               consumer,
+	})
+
+	withInit, err := eng.CreateExecutionPlan(
+		engState, []api.StepID{"consumer"}, api.Args{"product_id": "123"},
+	)
+	assert.NoError(t, err)
+	assert.Len(t, withInit.Steps, 3)
+	assert.Contains(t, withInit.Steps, api.StepID("provider-with-input"))
+	assert.Contains(t, withInit.Steps, api.StepID("provider-without-input"))
+	assert.Contains(t, withInit.Steps, api.StepID("consumer"))
+	assert.Empty(t, withInit.Required)
+
+	withInitExcluded := withInit.Excluded
+	if assert.NotNil(t, withInitExcluded) {
+		assert.Empty(t, withInitExcluded.Missing)
+		assert.Empty(t, withInitExcluded.Satisfied)
+	}
+
+	withoutInit, err := eng.CreateExecutionPlan(
+		engState, []api.StepID{"consumer"}, api.Args{},
+	)
+	assert.NoError(t, err)
+	assert.Len(t, withoutInit.Steps, 2)
+	assert.NotContains(t, withoutInit.Steps, api.StepID("provider-with-input"))
+	assert.Contains(t, withoutInit.Steps, api.StepID("provider-without-input"))
+	assert.Contains(t, withoutInit.Steps, api.StepID("consumer"))
+	assert.Empty(t, withoutInit.Required)
+
+	withoutInitExcluded := withoutInit.Excluded
+	if assert.NotNil(t, withoutInitExcluded) {
+		assert.Empty(t, withoutInitExcluded.Missing)
+		assert.Empty(t, withoutInitExcluded.Satisfied)
+	}
+}
+
 func TestMixedInputs(t *testing.T) {
 	eng := &engine.Engine{}
 

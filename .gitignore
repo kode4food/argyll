@@ -30,6 +30,7 @@ dist
 cover.out
 *.coverprofile
 
+.serena
 .idea
 .settings
 .vscode

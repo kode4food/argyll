@@ -7,6 +7,7 @@ export function useFlowFormStepFiltering(
   initialState: string,
   previewPlan: ExecutionPlan | null
 ) {
+  const excluded = previewPlan?.excluded;
   const included = useMemo(() => {
     if (!previewPlan?.steps) return new Set<string>();
     return new Set(Object.keys(previewPlan.steps));
@@ -17,8 +18,22 @@ export function useFlowFormStepFiltering(
     [initialState]
   );
 
-  const satisfied = useMemo(() => {
-    const result = new Set<string>();
+  const { satisfied, missingByStep } = useMemo(() => {
+    const missing = new Map<string, string[]>();
+    if (excluded) {
+      const satisfiedSteps = new Set<string>();
+      const satisfiedMap = excluded.satisfied || {};
+      Object.keys(satisfiedMap).forEach((stepId) => {
+        satisfiedSteps.add(stepId);
+      });
+      const missingMap = excluded.missing || {};
+      Object.entries(missingMap).forEach(([stepId, names]) => {
+        missing.set(stepId, names);
+      });
+      return { satisfied: satisfiedSteps, missingByStep: missing };
+    }
+
+    const fallbackSatisfied = new Set<string>();
     const availableAttrs = new Set(Object.keys(parsedState));
 
     steps.forEach((step) => {
@@ -31,13 +46,13 @@ export function useFlowFormStepFiltering(
           availableAttrs.has(name)
         );
         if (allOutputsAvailable) {
-          result.add(step.id);
+          fallbackSatisfied.add(step.id);
         }
       }
     });
 
-    return result;
-  }, [parsedState, steps]);
+    return { satisfied: fallbackSatisfied, missingByStep: missing };
+  }, [parsedState, excluded, steps]);
 
-  return { included, satisfied, parsedState };
+  return { included, satisfied, missingByStep, parsedState };
 }

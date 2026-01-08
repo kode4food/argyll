@@ -14,6 +14,12 @@ type (
 		Required   []Name         `json:"required"`
 		Steps      Steps          `json:"steps"`
 		Attributes AttributeGraph `json:"attributes"`
+		Excluded   ExcludedSteps  `json:"excluded,omitempty"`
+	}
+
+	ExcludedSteps struct {
+		Satisfied map[StepID][]Name `json:"satisfied,omitempty"`
+		Missing   map[StepID][]Name `json:"missing,omitempty"`
 	}
 
 	// AttributeGraph is a dependency graph of attribute producers/consumers

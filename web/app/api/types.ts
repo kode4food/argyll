@@ -77,11 +77,17 @@ export interface Dependencies {
   consumers: string[];
 }
 
+export interface ExcludedSteps {
+  satisfied?: Record<string, string[]>;
+  missing?: Record<string, string[]>;
+}
+
 export interface ExecutionPlan {
   goals: string[];
   required: string[];
   steps: Record<string, Step>;
   attributes: Record<string, Dependencies>;
+  excluded?: ExcludedSteps;
 }
 
 export interface FlowContext {

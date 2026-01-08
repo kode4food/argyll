@@ -521,6 +521,8 @@ Plan preview is a read-only operation that generates a plan without executing it
 
 When you click a step in the UI, the frontend calls the plan API with that step as the goal and (optionally) some initial state. The engine generates the plan and returns it as JSON.
 
+Plan preview responses include an `excluded` map for steps omitted due to missing required inputs or outputs already present in the initial state. The map groups excluded steps under `missing` (with required inputs) and `satisfied` (with outputs already in the initial state).
+
 The UI then uses this plan to visually highlight:
 - The goal step (what you clicked)
 - All steps that would execute to reach the goal

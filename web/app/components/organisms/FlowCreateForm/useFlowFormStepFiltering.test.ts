@@ -53,6 +53,32 @@ describe("useFlowFormStepFiltering", () => {
     expect(result.current.satisfied.has("step-3")).toBe(false);
   });
 
+  it("uses excluded steps when available", () => {
+    const resolvedPlan: ExecutionPlan = {
+      goals: [],
+      required: [],
+      steps: {
+        "step-1": steps[0],
+      },
+      attributes: {},
+      excluded: {
+        satisfied: {
+          "step-2": ["outputB"],
+        },
+        missing: {
+          "step-3": ["optional"],
+        },
+      },
+    };
+
+    const { result } = renderHook(() =>
+      useFlowFormStepFiltering(steps, "{}", resolvedPlan)
+    );
+
+    expect(result.current.satisfied.has("step-2")).toBe(true);
+    expect(result.current.missingByStep.get("step-3")).toEqual(["optional"]);
+  });
+
   it("returns empty sets without preview plan", () => {
     const { result } = renderHook(() =>
       useFlowFormStepFiltering(steps, "{}", null)
@@ -60,6 +86,7 @@ describe("useFlowFormStepFiltering", () => {
 
     expect(result.current.included.size).toBe(0);
     expect(result.current.satisfied.size).toBe(0);
+    expect(result.current.missingByStep.size).toBe(0);
   });
 
   it("falls back on invalid initial state", () => {
@@ -69,5 +96,6 @@ describe("useFlowFormStepFiltering", () => {
 
     expect(result.current.parsedState).toEqual({});
     expect(result.current.satisfied.size).toBe(0);
+    expect(result.current.missingByStep.size).toBe(0);
   });
 });
