@@ -77,7 +77,7 @@ func TestRegisterStepConflict(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, w.Code)
 }
 
-func TestCreateStepInvalidJSONReturns400(t *testing.T) {
+func TestCreateStepInvalidJSONBody(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -93,7 +93,7 @@ func TestCreateStepInvalidJSONReturns400(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestCreateStepValidationErrorReturns400(t *testing.T) {
+func TestCreateStepValidationError(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -650,7 +650,7 @@ func TestUpdateStep(t *testing.T) {
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
-func TestUpdateStepIDMismatchReturns400(t *testing.T) {
+func TestUpdateStepIDMismatchStatus(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -951,7 +951,7 @@ func TestCreateValidationError(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
-func TestUpdateStepIDMismatch(t *testing.T) {
+func TestUpdateStepIDMismatchMessage(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -1288,7 +1288,7 @@ func TestCreateStepInvalidScript(t *testing.T) {
 	assert.Contains(t, w.Body.String(), "failed to register step")
 }
 
-func TestCreateStepInvalidJSON(t *testing.T) {
+func TestCreateStepInvalidJSONText(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 

@@ -376,7 +376,7 @@ func TestWaitFlowFailed(t *testing.T) {
 	assert.Equal(t, api.FlowFailed, finalState.Status)
 }
 
-func TestWaitFlowStatusPollsUntilTerminal(t *testing.T) {
+func TestWaitFlowStatusTerminal(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 

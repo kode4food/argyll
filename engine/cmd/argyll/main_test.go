@@ -13,7 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/config"
 )
 
-func TestInitializeStoresWithInvalidAddress(t *testing.T) {
+func TestInitStoresInvalidAddr(t *testing.T) {
 	cfg := config.NewDefaultConfig()
 	cfg.EngineStore.Addr = "127.0.0.1:0"
 	cfg.FlowStore.Addr = "127.0.0.1:0"

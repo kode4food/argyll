@@ -392,7 +392,7 @@ func TestClientConsumerClosed(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestHandleWebSocketCallbackEngine(t *testing.T) {
+func TestWebSocketEngine(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -420,7 +420,7 @@ func TestHandleWebSocketCallbackEngine(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestHandleWebSocketCallbackFlow(t *testing.T) {
+func TestHandleWebSocketFlow(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 
@@ -458,7 +458,7 @@ func TestHandleWebSocketCallbackFlow(t *testing.T) {
 	assert.Equal(t, api.FlowID("wf-123"), flowState.ID)
 }
 
-func TestHandleWebSocketCallbackInvalidAggregate(t *testing.T) {
+func TestWebSocketInvalidAggregate(t *testing.T) {
 	env := helpers.NewTestEngine(t)
 	defer env.Cleanup()
 

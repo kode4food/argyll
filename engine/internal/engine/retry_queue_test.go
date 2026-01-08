@@ -197,7 +197,7 @@ func TestRetryQueueUpdate(t *testing.T) {
 	assert.Equal(t, now.Unix(), peekTime.Unix())
 }
 
-func TestRetryQueueStopPreventsNewPushes(t *testing.T) {
+func TestRetryQueueStopPreventsPush(t *testing.T) {
 	rq := NewRetryQueue()
 
 	now := time.Now()

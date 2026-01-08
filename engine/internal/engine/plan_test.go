@@ -525,7 +525,7 @@ func TestOptionalMissing(t *testing.T) {
 	assert.Empty(t, plan.Required)
 }
 
-func TestMultipleProvidersWithInitState(t *testing.T) {
+func TestProvidersWithInit(t *testing.T) {
 	eng := &engine.Engine{}
 
 	providerWithInput := &api.Step{
