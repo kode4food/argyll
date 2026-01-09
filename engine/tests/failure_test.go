@@ -2,6 +2,7 @@ package tests
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -131,4 +132,62 @@ func TestPartialWorkflowFailure(t *testing.T) {
 	assert.Contains(t, invocations, api.StepID("step-b"))
 	assert.Contains(t, invocations, api.StepID("step-c"))
 	assert.NotContains(t, invocations, api.StepID("step-d"))
+}
+
+func TestUnreachableStep(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	ctx := context.Background()
+
+	stepA := helpers.NewStepWithOutputs("provider-step", "value")
+	stepA.WorkConfig = &api.WorkConfig{MaxRetries: 0}
+
+	stepB := helpers.NewTestStepWithArgs([]api.Name{"value"}, nil)
+	stepB.ID = "consumer-step"
+	stepB.Attributes["result"] = &api.AttributeSpec{
+		Role: api.RoleOutput,
+		Type: api.TypeString,
+	}
+
+	assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
+	assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
+
+	env.MockClient.SetError(stepA.ID, errors.New("boom"))
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{stepB.ID},
+		Steps: api.Steps{
+			stepA.ID: stepA,
+			stepB.ID: stepB,
+		},
+		Attributes: api.AttributeGraph{
+			"value": &api.AttributeEdges{
+				Providers: []api.StepID{stepA.ID},
+				Consumers: []api.StepID{stepB.ID},
+			},
+			"result": &api.AttributeEdges{
+				Providers: []api.StepID{stepB.ID},
+				Consumers: []api.StepID{},
+			},
+		},
+	}
+
+	err := env.Engine.StartFlow(
+		ctx, "wf-unreachable", plan, api.Args{}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	flow := env.WaitForFlowStatus(t, ctx, "wf-unreachable", workflowTimeout)
+	assert.Equal(t, api.FlowFailed, flow.Status)
+
+	assert.Equal(t, api.StepFailed, flow.Executions[stepA.ID].Status)
+	assert.Equal(t, api.StepFailed, flow.Executions[stepB.ID].Status)
+	assert.Equal(
+		t,
+		"required input no longer available",
+		flow.Executions[stepB.ID].Error,
+	)
+	assert.NotContains(t, env.MockClient.GetInvocations(), stepB.ID)
 }

@@ -281,3 +281,38 @@ func TestPredicateFailure(t *testing.T) {
 			strings.Contains(exec.Error, "predicate")
 	}, workExecTimeout, 50*time.Millisecond)
 }
+
+func TestParallelWorkItems(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+	env.Engine.Start()
+
+	ctx := context.Background()
+
+	step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+	step.ID = "parallel-items"
+	step.WorkConfig = &api.WorkConfig{Parallelism: 2}
+	step.Attributes["items"].ForEach = true
+	step.Attributes["items"].Type = api.TypeArray
+	step.Attributes["result"] = &api.AttributeSpec{
+		Role: api.RoleOutput,
+		Type: api.TypeString,
+	}
+
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+	env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{step.ID},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err := env.Engine.StartFlow(ctx, "wf-parallel", plan, api.Args{
+		"items": []any{"a", "b", "c"},
+	}, api.Metadata{})
+	assert.NoError(t, err)
+
+	flow := env.WaitForFlowStatus(t, ctx, "wf-parallel", workExecTimeout)
+	assert.Equal(t, api.FlowCompleted, flow.Status)
+	assert.Equal(t, api.StepCompleted, flow.Executions[step.ID].Status)
+}

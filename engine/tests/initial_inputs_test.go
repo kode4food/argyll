@@ -102,3 +102,31 @@ func TestInitialWorkflowInputs(t *testing.T) {
 	// Verify step A's output has correct provenance
 	assert.Equal(t, api.StepID("step-a"), flow.Attributes["result"].Step)
 }
+
+func TestRequiredInputsMissing(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	env.Engine.Start()
+	ctx := context.Background()
+
+	step := helpers.NewTestStepWithArgs([]api.Name{"customer_id"}, nil)
+	step.ID = "requires-input"
+	step.Attributes["result"] = &api.AttributeSpec{
+		Role: api.RoleOutput,
+		Type: api.TypeString,
+	}
+
+	assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+
+	plan := &api.ExecutionPlan{
+		Goals:    []api.StepID{step.ID},
+		Steps:    api.Steps{step.ID: step},
+		Required: []api.Name{"customer_id"},
+	}
+
+	err := env.Engine.StartFlow(
+		ctx, "wf-missing-required", plan, api.Args{}, api.Metadata{},
+	)
+	assert.ErrorIs(t, err, api.ErrRequiredInputs)
+}

@@ -175,3 +175,62 @@ func TestPlanFlowNotFound(t *testing.T) {
 	_, err := env.Engine.GetCompiledScript(fs)
 	testify.ErrorIs(t, err, engine.ErrFlowNotFound)
 }
+
+func TestStepMissingPlan(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+	env.Engine.Start()
+
+	ctx := context.Background()
+	step := helpers.NewSimpleStep("plan-step")
+
+	err := env.Engine.RegisterStep(ctx, step)
+	testify.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{step.ID},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err = env.Engine.StartFlow(
+		ctx, "wf-missing-plan-step", plan, api.Args{}, api.Metadata{},
+	)
+	testify.NoError(t, err)
+
+	err = env.Engine.FailStepExecution(ctx,
+		engine.FlowStep{FlowID: "wf-missing-plan-step", StepID: "nope"},
+		"boom",
+	)
+	testify.ErrorIs(t, err, engine.ErrStepNotInPlan)
+}
+
+func TestStepInvalidTransition(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+	env.Engine.Start()
+
+	ctx := context.Background()
+	step := helpers.NewSimpleStep("transition-step")
+
+	err := env.Engine.RegisterStep(ctx, step)
+	testify.NoError(t, err)
+	env.MockClient.SetResponse(step.ID, api.Args{})
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{step.ID},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err = env.Engine.StartFlow(
+		ctx, "wf-transition", plan, api.Args{}, api.Metadata{},
+	)
+	testify.NoError(t, err)
+
+	env.WaitForStepStatus(t, ctx, "wf-transition", step.ID, 5*time.Second)
+
+	err = env.Engine.FailStepExecution(ctx,
+		engine.FlowStep{FlowID: "wf-transition", StepID: step.ID},
+		"late",
+	)
+	testify.ErrorIs(t, err, engine.ErrInvalidTransition)
+}
