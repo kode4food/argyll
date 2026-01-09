@@ -20,7 +20,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hot-toast": "^2.6.0",
-    "react-router-dom": "^6.24.0",
+    "react-router-dom": "^6.30.3",
     "typescript": "^5.0.0",
     "vite": "^7.3.0",
     "zustand": "^5.0.8"
