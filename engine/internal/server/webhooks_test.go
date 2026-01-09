@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
@@ -56,6 +57,61 @@ func TestHookInvalidWorkItem(t *testing.T) {
 	router.ServeHTTP(w, req)
 
 	assert.Equal(t, 400, w.Code)
+}
+
+func TestHookFlowMissing(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	req := httptest.NewRequest("POST",
+		"/webhook/missing-flow/step/token",
+		bytes.NewReader([]byte(`{"success":true}`)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+}
+
+func TestHookExecutionMissing(t *testing.T) {
+	env := testServer(t)
+	defer env.Cleanup()
+
+	step := &api.Step{
+		ID:   "known-step",
+		Name: "Known Step",
+		Type: api.StepTypeAsync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	plan := &api.ExecutionPlan{
+		Goals: []api.StepID{step.ID},
+		Steps: api.Steps{step.ID: step},
+	}
+
+	err = env.Engine.StartFlow(
+		context.Background(), "missing-exec-flow", plan, api.Args{},
+		api.Metadata{},
+	)
+	assert.NoError(t, err)
+
+	req := httptest.NewRequest("POST",
+		"/webhook/missing-exec-flow/unknown-step/token",
+		bytes.NewReader([]byte(`{"success":true}`)))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	router := env.Server.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusBadRequest, w.Code)
 }
 
 func TestHookCompleteTwice(t *testing.T) {
