@@ -9,7 +9,6 @@ import {
   useFlowData,
   useFlowLoading,
   useFlowNotFound,
-  useIsFlowMode,
   useExecutions,
   useResolvedAttributes,
   useFlowStore,
@@ -27,7 +26,6 @@ type FlowSessionValue = {
   flowData: ReturnType<typeof useFlowData>;
   loading: boolean;
   flowNotFound: boolean;
-  isFlowMode: boolean;
   executions: ReturnType<typeof useExecutions>;
   resolvedAttributes: ReturnType<typeof useResolvedAttributes>;
   flowError: string | null;
@@ -50,7 +48,6 @@ export const FlowSessionProvider = ({
   const flowData = useFlowData();
   const loading = useFlowLoading();
   const flowNotFound = useFlowNotFound();
-  const isFlowMode = useIsFlowMode();
   const executions = useExecutions();
   const resolvedAttributes = useResolvedAttributes();
   const flowError = useFlowError();
@@ -71,7 +68,6 @@ export const FlowSessionProvider = ({
       flowData,
       loading,
       flowNotFound,
-      isFlowMode,
       executions,
       resolvedAttributes,
       flowError,
@@ -87,7 +83,6 @@ export const FlowSessionProvider = ({
       flowData,
       loading,
       flowNotFound,
-      isFlowMode,
       executions,
       resolvedAttributes,
       flowError,

@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import LiveFlowStepDiagram from "./LiveFlowStepDiagram";
+import LiveDiagramView from "./LiveDiagramView";
 import { Step, FlowContext, ExecutionResult } from "@/app/api";
 
 jest.mock("@xyflow/react", () => ({
@@ -59,11 +59,19 @@ const makeFlowData = (overrides?: Partial<FlowContext>): FlowContext => ({
   id: "wf-1",
   status: "active",
   state: {},
+  plan: {
+    goals: ["a"],
+    required: [],
+    steps: {
+      a: baseStep,
+    },
+    attributes: {},
+  },
   started_at: new Date().toISOString(),
   ...overrides,
 });
 
-describe("LiveFlowStepDiagram", () => {
+describe("LiveDiagramView", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseStepVisibility.mockReturnValue({
@@ -79,7 +87,7 @@ describe("LiveFlowStepDiagram", () => {
     });
 
     render(
-      <LiveFlowStepDiagram
+      <LiveDiagramView
         steps={[]}
         flowData={makeFlowData()}
         executions={[]}
@@ -87,17 +95,12 @@ describe("LiveFlowStepDiagram", () => {
       />
     );
 
-    expect(screen.getByText("No Steps to Visualize")).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        "Select a flow with an execution plan to view its step diagram."
-      )
-    ).toBeInTheDocument();
+    expect(screen.queryByTestId("react-flow")).not.toBeInTheDocument();
   });
 
   test("renders ReactFlow when visible steps exist", () => {
     render(
-      <LiveFlowStepDiagram
+      <LiveDiagramView
         steps={[baseStep]}
         flowData={makeFlowData()}
         executions={[]}
@@ -122,7 +125,7 @@ describe("LiveFlowStepDiagram", () => {
     const resolvedAttributes = ["attr1"];
 
     render(
-      <LiveFlowStepDiagram
+      <LiveDiagramView
         steps={[baseStep]}
         flowData={flowData}
         executions={executions}
@@ -142,7 +145,7 @@ describe("LiveFlowStepDiagram", () => {
 
   test("passes correct props to useEdgeCalculation", () => {
     render(
-      <LiveFlowStepDiagram
+      <LiveDiagramView
         steps={[baseStep]}
         flowData={makeFlowData()}
         executions={[]}
@@ -158,8 +161,21 @@ describe("LiveFlowStepDiagram", () => {
       visibleSteps: [],
     });
 
-    render(<LiveFlowStepDiagram steps={[]} flowData={null} />);
+    render(<LiveDiagramView steps={[]} flowData={null} />);
 
-    expect(screen.getByText("No Steps to Visualize")).toBeInTheDocument();
+    expect(screen.queryByTestId("react-flow")).not.toBeInTheDocument();
+  });
+
+  test("renders empty state when flow has no plan", () => {
+    render(
+      <LiveDiagramView
+        steps={[baseStep]}
+        flowData={makeFlowData({ plan: undefined })}
+        executions={[]}
+        resolvedAttributes={[]}
+      />
+    );
+
+    expect(screen.queryByTestId("react-flow")).not.toBeInTheDocument();
   });
 });

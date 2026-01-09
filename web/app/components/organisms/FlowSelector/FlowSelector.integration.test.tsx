@@ -41,7 +41,6 @@ jest.mock("@/app/store/flowStore", () => {
     useFlowData: jest.fn(() => null),
     useFlowLoading: jest.fn(() => false),
     useFlowNotFound: jest.fn(() => false),
-    useIsFlowMode: jest.fn(() => false),
     useExecutions: jest.fn(() => []),
     useResolvedAttributes: jest.fn(() => []),
     useFlowError: jest.fn(() => null),

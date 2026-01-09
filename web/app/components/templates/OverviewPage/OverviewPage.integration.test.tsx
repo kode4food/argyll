@@ -1,14 +1,14 @@
 import { render, waitFor } from "@testing-library/react";
-import FlowPage from "./FlowPage";
+import OverviewPage from "./OverviewPage";
 
 jest.mock("@/app/components/organisms/FlowSelector", () => ({
   __esModule: true,
   default: () => <div>FlowSelectorMock</div>,
 }));
 
-jest.mock("@/app/components/templates/FlowDiagram", () => ({
+jest.mock("@/app/components/templates/OverviewDiagram", () => ({
   __esModule: true,
-  default: () => <div>FlowDiagramMock</div>,
+  default: () => <div>OverviewDiagramMock</div>,
 }));
 
 const loadSteps = jest.fn().mockResolvedValue(undefined);
@@ -29,19 +29,18 @@ jest.mock("@/app/store/flowStore", () => {
     useFlowData: jest.fn(() => null),
     useFlowLoading: jest.fn(() => false),
     useFlowNotFound: jest.fn(() => false),
-    useIsFlowMode: jest.fn(() => false),
     useExecutions: jest.fn(() => []),
     useResolvedAttributes: jest.fn(() => []),
   };
 });
 
-describe("FlowPage integration", () => {
+describe("OverviewPage integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("renders main content and loads data", async () => {
-    render(<FlowPage />);
+    render(<OverviewPage />);
 
     // Steps are loaded via WebSocket subscribed, not HTTP API
     expect(await waitFor(() => loadFlows)).toHaveBeenCalled();

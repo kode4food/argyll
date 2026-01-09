@@ -74,12 +74,27 @@ export const getAttributeValue = (
     };
   }
 
-  const hasStateValue =
-    !!attributeValues &&
-    Object.prototype.hasOwnProperty.call(attributeValues, arg.name);
+  if (hasAttribute(execution?.inputs, arg.name)) {
+    return {
+      hasValue: true,
+      value: execution?.inputs?.[arg.name],
+    };
+  }
+
+  const hasStateValue = hasAttribute(attributeValues, arg.name);
 
   return {
     hasValue: hasStateValue,
     value: hasStateValue ? attributeValues?.[arg.name]?.value : undefined,
   };
+};
+
+const hasAttribute = <T extends object>(
+  obj: T | null | undefined,
+  key: PropertyKey
+): boolean => {
+  if (!obj) {
+    return false;
+  }
+  return Object.prototype.hasOwnProperty.call(obj, key);
 };

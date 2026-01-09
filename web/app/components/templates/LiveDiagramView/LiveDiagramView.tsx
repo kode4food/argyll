@@ -10,11 +10,10 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
-import { Server } from "lucide-react";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import Legend from "@/app/components/molecules/Legend";
 import styles from "@/app/components/templates/StepDiagram/StepDiagram.module.css";
-import EmptyState from "@/app/components/molecules/EmptyState";
+import Spinner from "@/app/components/atoms/Spinner";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { STEP_LAYOUT } from "@/constants/layout";
@@ -22,7 +21,7 @@ import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useStepVisibility } from "./useStepVisibility";
 
-interface LiveFlowStepDiagramProps {
+interface LiveDiagramViewProps {
   steps: Step[];
   flowData: FlowContext | null;
   executions?: ExecutionResult[];
@@ -33,7 +32,7 @@ const nodeTypes: NodeTypes = {
   stepNode: Node,
 };
 
-const LiveFlowStepDiagramInner: React.FC<LiveFlowStepDiagramProps> = ({
+const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   steps = [],
   flowData,
   executions = [],
@@ -44,9 +43,13 @@ const LiveFlowStepDiagramInner: React.FC<LiveFlowStepDiagramProps> = ({
   const { disableEdit, diagramContainerRef } = useUI();
 
   const { visibleSteps } = useStepVisibility(steps, flowData);
+  const hasPlan =
+    !!flowData?.plan?.steps && Object.keys(flowData.plan.steps).length > 0;
+  const stepsToRender = hasPlan ? visibleSteps : [];
+  const isLoadingPlan = !flowData || !hasPlan;
 
   const nodes = useNodeCalculation(
-    visibleSteps,
+    stepsToRender,
     flowData,
     executions,
     resolvedAttributes,
@@ -54,7 +57,7 @@ const LiveFlowStepDiagramInner: React.FC<LiveFlowStepDiagramProps> = ({
     disableEdit
   );
 
-  const edges = useEdgeCalculation(visibleSteps, null);
+  const edges = useEdgeCalculation(stepsToRender, null);
 
   const handleNodeDragStart = useCallback(() => {
     const event = new CustomEvent("hideTooltips");
@@ -75,15 +78,10 @@ const LiveFlowStepDiagramInner: React.FC<LiveFlowStepDiagramProps> = ({
     }
   }, [reactFlowInstance, savedViewport, markRestored]);
 
-  if (visibleSteps.length === 0) {
+  if (isLoadingPlan || stepsToRender.length === 0) {
     return (
       <div className={styles.emptyStateWrapper}>
-        <EmptyState
-          icon={<Server />}
-          title="No Steps to Visualize"
-          description="Select a flow with an execution plan to view its step diagram."
-          className={styles.emptyStatePadding}
-        />
+        <Spinner />
       </div>
     );
   }
@@ -119,12 +117,12 @@ const LiveFlowStepDiagramInner: React.FC<LiveFlowStepDiagramProps> = ({
   );
 };
 
-const LiveFlowStepDiagram: React.FC<LiveFlowStepDiagramProps> = (props) => {
+const LiveDiagramView: React.FC<LiveDiagramViewProps> = (props) => {
   return (
     <ReactFlowProvider>
-      <LiveFlowStepDiagramInner {...props} />
+      <LiveDiagramViewInner {...props} />
     </ReactFlowProvider>
   );
 };
 
-export default LiveFlowStepDiagram;
+export default LiveDiagramView;

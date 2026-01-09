@@ -1,5 +1,5 @@
 import React from "react";
-import FlowDiagram from "@/app/components/templates/FlowDiagram";
+import LiveDiagram from "@/app/components/templates/LiveDiagram";
 import FlowSelector from "@/app/components/organisms/FlowSelector";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { UIProvider } from "@/app/contexts/UIContext";
@@ -7,9 +7,9 @@ import {
   FlowSessionProvider,
   useFlowSession,
 } from "@/app/contexts/FlowSessionContext";
-import styles from "./FlowPage.module.css";
+import styles from "@/app/components/templates/OverviewPage/OverviewPage.module.css";
 
-function FlowPageContent() {
+function LivePageContent() {
   return (
     <div className={styles.page}>
       <ErrorBoundary
@@ -23,14 +23,14 @@ function FlowPageContent() {
           title="Diagram Error"
           description="An error occurred while rendering the diagram. Try selecting a different flow."
         >
-          <FlowDiagram />
+          <LiveDiagram />
         </ErrorBoundary>
       </div>
     </div>
   );
 }
 
-function FlowPageWithSession() {
+function LivePageWithSession() {
   const { flowError } = useFlowSession();
 
   if (flowError) {
@@ -49,14 +49,14 @@ function FlowPageWithSession() {
     );
   }
 
-  return <FlowPageContent />;
+  return <LivePageContent />;
 }
 
-export default function FlowPage() {
+export default function LivePage() {
   return (
     <UIProvider>
       <FlowSessionProvider>
-        <FlowPageWithSession />
+        <LivePageWithSession />
       </FlowSessionProvider>
     </UIProvider>
   );

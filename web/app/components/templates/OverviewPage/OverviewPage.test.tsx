@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import FlowPage from "./FlowPage";
+import OverviewPage from "./OverviewPage";
 
 jest.mock("@/app/components/organisms/FlowSelector", () => {
   const MockFlowSelector = () => <div>FlowSelector</div>;
@@ -8,10 +8,10 @@ jest.mock("@/app/components/organisms/FlowSelector", () => {
   return MockFlowSelector;
 });
 
-jest.mock("@/app/components/templates/FlowDiagram", () => {
-  const MockFlowDiagram = () => <div>FlowDiagram</div>;
-  MockFlowDiagram.displayName = "MockFlowDiagram";
-  return MockFlowDiagram;
+jest.mock("@/app/components/templates/OverviewDiagram", () => {
+  const MockOverviewDiagram = () => <div>OverviewDiagram</div>;
+  MockOverviewDiagram.displayName = "MockOverviewDiagram";
+  return MockOverviewDiagram;
 });
 
 jest.mock("@/app/contexts/FlowSessionContext", () => {
@@ -26,7 +26,6 @@ jest.mock("@/app/contexts/FlowSessionContext", () => {
     flowData: null,
     loading: false,
     flowNotFound: false,
-    isFlowMode: false,
     executions: [],
     resolvedAttributes: [],
     flowError: null as string | null,
@@ -44,21 +43,21 @@ const {
   __sessionMock: flowSession,
 } = require("@/app/contexts/FlowSessionContext");
 
-describe("FlowPage", () => {
+describe("OverviewPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
 
   it("renders error state", () => {
     flowSession.flowError = "boom";
-    render(<FlowPage />);
+    render(<OverviewPage />);
     expect(screen.getByText(/Error: boom/)).toBeInTheDocument();
   });
 
   it("renders selector and diagram", () => {
     flowSession.flowError = null;
-    render(<FlowPage />);
+    render(<OverviewPage />);
     expect(screen.getByText("FlowSelector")).toBeInTheDocument();
-    expect(screen.getByText("FlowDiagram")).toBeInTheDocument();
+    expect(screen.getByText("OverviewDiagram")).toBeInTheDocument();
   });
 });

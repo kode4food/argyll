@@ -57,7 +57,6 @@ interface FlowState {
   loading: boolean;
   error: string | null;
   flowNotFound: boolean;
-  isFlowMode: boolean;
   engineConnectionStatus: ConnectionStatus;
   engineReconnectAttempt: number;
   engineReconnectRequest: number;
@@ -117,7 +116,6 @@ export const useFlowStore = create<FlowState>()(
       loading: false,
       error: null,
       flowNotFound: false,
-      isFlowMode: false,
       engineConnectionStatus: "connecting",
       engineReconnectAttempt: 0,
       engineReconnectRequest: 0,
@@ -184,7 +182,6 @@ export const useFlowStore = create<FlowState>()(
           flowData: null,
           executions: [],
           resolvedAttributes: [],
-          isFlowMode: !!flowId,
           loading: !!flowId,
         });
       },
@@ -474,7 +471,6 @@ export const useFlowLoading = () => useFlowStore((state) => state.loading);
 export const useFlowError = () => useFlowStore((state) => state.error);
 export const useFlowNotFound = () =>
   useFlowStore((state) => state.flowNotFound);
-export const useIsFlowMode = () => useFlowStore((state) => state.isFlowMode);
 export const useEngineConnectionStatus = () =>
   useFlowStore((state) => state.engineConnectionStatus);
 export const useEngineReconnectAttempt = () =>

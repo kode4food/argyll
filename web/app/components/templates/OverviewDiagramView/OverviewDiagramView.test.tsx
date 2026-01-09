@@ -1,6 +1,6 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react";
-import OverviewStepDiagram from ".";
+import OverviewDiagramView from ".";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useEdgesState } from "@xyflow/react";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
@@ -100,7 +100,7 @@ jest.mock("./useLayoutPlan", () => ({
   useLayoutPlan: () => ({ plan: [] }),
 }));
 
-describe("OverviewStepDiagram", () => {
+describe("OverviewDiagramView", () => {
   const useEdgesStateMock = useEdgesState as jest.Mock;
   const useEdgeCalculationMock = useEdgeCalculation as jest.Mock;
 
@@ -123,7 +123,7 @@ describe("OverviewStepDiagram", () => {
           setGoalSteps: jest.fn(),
         }}
       >
-        <OverviewStepDiagram
+        <OverviewDiagramView
           steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
         />
       </DiagramSelectionProvider>
@@ -141,7 +141,7 @@ describe("OverviewStepDiagram", () => {
           setGoalSteps: jest.fn(),
         }}
       >
-        <OverviewStepDiagram steps={[]} />
+        <OverviewDiagramView steps={[]} />
       </DiagramSelectionProvider>
     );
 
@@ -157,7 +157,7 @@ describe("OverviewStepDiagram", () => {
           setGoalSteps: jest.fn(),
         }}
       >
-        <OverviewStepDiagram
+        <OverviewDiagramView
           steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
         />
       </DiagramSelectionProvider>
@@ -184,7 +184,7 @@ describe("OverviewStepDiagram", () => {
           setGoalSteps: jest.fn(),
         }}
       >
-        <OverviewStepDiagram
+        <OverviewDiagramView
           steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
         />
       </DiagramSelectionProvider>

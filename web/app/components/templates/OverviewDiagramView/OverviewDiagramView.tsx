@@ -32,7 +32,7 @@ import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useLayoutPlan } from "./useLayoutPlan";
 
-interface OverviewStepDiagramProps {
+interface OverviewDiagramViewProps {
   steps: Step[];
 }
 
@@ -40,7 +40,7 @@ const nodeTypes: NodeTypes = {
   stepNode: Node,
 };
 
-const OverviewStepDiagramInner: React.FC<OverviewStepDiagramProps> = ({
+const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   steps = [],
 }) => {
   const { goalSteps, setGoalSteps } = useDiagramSelection();
@@ -255,12 +255,12 @@ const OverviewStepDiagramInner: React.FC<OverviewStepDiagramProps> = ({
   );
 };
 
-const OverviewStepDiagram: React.FC<OverviewStepDiagramProps> = (props) => {
+const OverviewDiagramView: React.FC<OverviewDiagramViewProps> = (props) => {
   return (
     <ReactFlowProvider>
-      <OverviewStepDiagramInner {...props} />
+      <OverviewDiagramViewInner {...props} />
     </ReactFlowProvider>
   );
 };
 
-export default OverviewStepDiagram;
+export default OverviewDiagramView;

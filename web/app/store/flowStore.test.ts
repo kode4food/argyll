@@ -9,7 +9,6 @@ import {
   useResolvedAttributes,
   useFlowLoading,
   useFlowError,
-  useIsFlowMode,
 } from "./flowStore";
 import type { Step, FlowContext, ExecutionResult } from "../api";
 
@@ -38,7 +37,6 @@ describe("flowStore", () => {
       loading: false,
       error: null,
       flowNotFound: false,
-      isFlowMode: false,
     });
     jest.clearAllMocks();
   });
@@ -203,26 +201,21 @@ describe("flowStore", () => {
       expect(useFlowStore.getState().flows).toHaveLength(0);
     });
 
-    test("selectFlow sets selected flow and mode", () => {
+    test("selectFlow sets selected flow", () => {
       useFlowStore.getState().selectFlow("wf-1");
       const state = useFlowStore.getState();
 
       expect(state.selectedFlow).toBe("wf-1");
-      expect(state.isFlowMode).toBe(true);
       expect(state.flowData).toBeNull();
     });
 
     test("selectFlow with null clears selection", () => {
-      useFlowStore.setState({
-        selectedFlow: "wf-1",
-        isFlowMode: true,
-      });
+      useFlowStore.setState({ selectedFlow: "wf-1" });
 
       useFlowStore.getState().selectFlow(null);
       const state = useFlowStore.getState();
 
       expect(state.selectedFlow).toBeNull();
-      expect(state.isFlowMode).toBe(false);
     });
 
     test("selectFlow skips if same flow already selected with data", () => {
@@ -704,12 +697,6 @@ describe("flowStore", () => {
       useFlowStore.setState({ error: "Test error" });
       const { result } = renderHook(() => useFlowError());
       expect(result.current).toBe("Test error");
-    });
-
-    test("useIsFlowMode selector works", () => {
-      useFlowStore.setState({ isFlowMode: true });
-      const { result } = renderHook(() => useIsFlowMode());
-      expect(result.current).toBe(true);
     });
   });
 });

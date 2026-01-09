@@ -3,7 +3,8 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import WebSocketProvider from "./contexts/WebSocketProvider";
 import ConnectionStatusWrapper from "./components/atoms/ConnectionStatusWrapper";
-import FlowPage from "./components/templates/FlowPage";
+import OverviewPage from "./components/templates/OverviewPage";
+import LivePage from "./components/templates/LivePage";
 import NotFoundPage from "./components/organisms/NotFoundPage";
 
 const App: React.FC = () => {
@@ -11,8 +12,8 @@ const App: React.FC = () => {
     <Router>
       <WebSocketProvider>
         <Routes>
-          <Route path="/" element={<FlowPage />} />
-          <Route path="/flow/:flowId" element={<FlowPage />} />
+          <Route path="/" element={<OverviewPage />} />
+          <Route path="/flow/:flowId" element={<LivePage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
         <ConnectionStatusWrapper />

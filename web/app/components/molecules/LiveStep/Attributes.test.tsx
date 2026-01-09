@@ -538,17 +538,8 @@ describe("Attributes", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
-    const attributeValues = {
-      opt1: { value: "default-value" },
-    };
-
     render(
-      <Attributes
-        step={step}
-        satisfiedArgs={new Set()}
-        execution={execution}
-        attributeValues={attributeValues}
-      />
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
     );
 
     expect(screen.getByText("Default Value")).toBeInTheDocument();

@@ -6,7 +6,7 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import FlowDiagram from "./FlowDiagram";
+import OverviewDiagram from "./OverviewDiagram";
 import { UIProvider } from "@/app/contexts/UIContext";
 import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 
@@ -35,7 +35,6 @@ jest.mock("@/app/store/flowStore", () => {
     useFlowData: jest.fn(() => null),
     useFlowLoading: jest.fn(() => false),
     useFlowNotFound: jest.fn(() => false),
-    useIsFlowMode: jest.fn(() => false),
     useExecutions: jest.fn(() => []),
     useResolvedAttributes: jest.fn(() => []),
     useFlowError: jest.fn(() => null),
@@ -58,7 +57,7 @@ jest.mock("@/app/components/organisms/StepEditor", () => {
   return { __esModule: true, default: Mock };
 });
 
-describe("FlowDiagram integration", () => {
+describe("OverviewDiagram integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -67,7 +66,7 @@ describe("FlowDiagram integration", () => {
     render(
       <UIProvider>
         <FlowSessionProvider>
-          <FlowDiagram />
+          <OverviewDiagram />
         </FlowSessionProvider>
       </UIProvider>
     );

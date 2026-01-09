@@ -14,9 +14,14 @@ jest.mock("./components/atoms/ConnectionStatusWrapper", () => ({
   default: () => <div data-testid="connection-status-wrapper" />,
 }));
 
-jest.mock("./components/templates/FlowPage", () => ({
+jest.mock("./components/templates/OverviewPage", () => ({
   __esModule: true,
-  default: () => <div data-testid="flow-page" />,
+  default: () => <div data-testid="overview-page" />,
+}));
+
+jest.mock("./components/templates/LivePage", () => ({
+  __esModule: true,
+  default: () => <div data-testid="live-page" />,
 }));
 
 jest.mock("./components/organisms/NotFoundPage", () => ({
@@ -38,16 +43,16 @@ describe("App", () => {
     window.history.pushState({}, "", "/");
   });
 
-  test("renders FlowPage for root route", () => {
+  test("renders OverviewPage for root route", () => {
     renderAt("/");
-    expect(screen.getByTestId("flow-page")).toBeInTheDocument();
+    expect(screen.getByTestId("overview-page")).toBeInTheDocument();
     expect(screen.getByTestId("connection-status-wrapper")).toBeInTheDocument();
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
   });
 
-  test("renders FlowPage for flow route", () => {
+  test("renders LivePage for flow route", () => {
     renderAt("/flow/flow-123");
-    expect(screen.getByTestId("flow-page")).toBeInTheDocument();
+    expect(screen.getByTestId("live-page")).toBeInTheDocument();
   });
 
   test("renders NotFoundPage for unknown route", () => {

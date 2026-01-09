@@ -70,7 +70,6 @@ jest.mock("@/app/contexts/FlowSessionContext", () => {
     flowData: null,
     loading: false,
     flowNotFound: false,
-    isFlowMode: false,
     executions: [],
     resolvedAttributes: [],
     flowError: null as string | null,
