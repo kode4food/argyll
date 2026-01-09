@@ -14,7 +14,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestWebhookWithInvalidWorkItem(t *testing.T) {
+func TestHookInvalidWorkItem(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -58,7 +58,7 @@ func TestWebhookWithInvalidWorkItem(t *testing.T) {
 	assert.Equal(t, 400, w.Code)
 }
 
-func TestWebhookCompleteTwice(t *testing.T) {
+func TestHookCompleteTwice(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -149,7 +149,7 @@ func TestWebhookCompleteTwice(t *testing.T) {
 	router.ServeHTTP(w, req)
 }
 
-func TestWebhookSuccessPath(t *testing.T) {
+func TestHookSuccess(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -216,7 +216,7 @@ func TestWebhookSuccessPath(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 
-func TestWebhookWorkFailure(t *testing.T) {
+func TestHookWorkFailure(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
@@ -280,7 +280,7 @@ func TestWebhookWorkFailure(t *testing.T) {
 	assert.Equal(t, 200, w.Code)
 }
 
-func TestWebhookInvalidJSON(t *testing.T) {
+func TestHookInvalidJSON(t *testing.T) {
 	env := testServer(t)
 	defer env.Cleanup()
 
