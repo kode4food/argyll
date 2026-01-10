@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { devtools } from "zustand/middleware";
+import { devtools, persist, createJSONStorage } from "zustand/middleware";
 
 const supportedLocales = ["en-US", "de-CH", "fr-CH", "it-CH"] as const;
 type Locale = (typeof supportedLocales)[number];
@@ -17,10 +17,16 @@ declare global {
 
 const useI18nStore = create<I18nState>()(
   devtools(
-    (set) => ({
-      locale: "en-US",
-      setLocale: (locale) => set({ locale }, false, "i18n/setLocale"),
-    }),
+    persist(
+      (set) => ({
+        locale: "en-US",
+        setLocale: (locale) => set({ locale }, false, "i18n/setLocale"),
+      }),
+      {
+        name: "i18nStore",
+        storage: createJSONStorage(() => localStorage),
+      }
+    ),
     { name: "i18nStore" }
   )
 );
