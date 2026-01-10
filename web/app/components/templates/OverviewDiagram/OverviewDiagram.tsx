@@ -1,5 +1,6 @@
 import React, { useEffect } from "react";
 import OverviewDiagramView from "@/app/components/templates/OverviewDiagramView";
+import DiagramLayout from "@/app/components/templates/DiagramLayout";
 import EmptyState from "@/app/components/molecules/EmptyState";
 import styles from "./OverviewDiagram.module.css";
 import { Plus } from "lucide-react";
@@ -41,50 +42,50 @@ const OverviewDiagramContent: React.FC = () => {
   }
 
   return (
-    <div className={`${styles.container} ${styles.containerOverviewMode}`}>
-      <div className={styles.overviewHeader}>
-        <div className={styles.overviewContent}>
-          <h2 className={styles.overviewTitle}>Step Dependencies</h2>
-          <div className={styles.overviewStats}>
-            {steps.length} step{steps.length !== 1 ? "s" : ""} registered
-            <button
-              onClick={(e) => {
-                openEditor({
-                  step: null,
-                  diagramContainerRef,
-                  onUpdate: handleStepCreated,
-                });
-                e.currentTarget.blur();
-              }}
-              className={styles.overviewAddStep}
-              title="Create New Step"
-              aria-label="Create New Step"
-            >
-              <Plus className={`${styles.iconMd} icon`} />
-            </button>
+    <DiagramLayout
+      className={styles.containerOverviewMode}
+      containerRef={diagramContainerRef}
+      header={
+        <div className={styles.overviewHeader}>
+          <div className={styles.overviewContent}>
+            <h2 className={styles.overviewTitle}>Step Dependencies</h2>
+            <div className={styles.overviewStats}>
+              {steps.length} step{steps.length !== 1 ? "s" : ""} registered
+              <button
+                onClick={(e) => {
+                  openEditor({
+                    step: null,
+                    diagramContainerRef,
+                    onUpdate: handleStepCreated,
+                  });
+                  e.currentTarget.blur();
+                }}
+                className={styles.overviewAddStep}
+                title="Create New Step"
+                aria-label="Create New Step"
+              >
+                <Plus className={`${styles.iconMd} icon`} />
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-
-      <div className={styles.diagramContainer} ref={diagramContainerRef}>
-        <div className={styles.diagramContent}>
-          <ErrorBoundary
-            title="Step Diagram Error"
-            description="An error occurred while rendering the step diagram."
-          >
-            <DiagramSelectionProvider
-              value={{
-                goalSteps,
-                toggleGoalStep,
-                setGoalSteps,
-              }}
-            >
-              <OverviewDiagramView steps={steps || []} />
-            </DiagramSelectionProvider>
-          </ErrorBoundary>
-        </div>
-      </div>
-    </div>
+      }
+    >
+      <ErrorBoundary
+        title="Step Diagram Error"
+        description="An error occurred while rendering the step diagram."
+      >
+        <DiagramSelectionProvider
+          value={{
+            goalSteps,
+            toggleGoalStep,
+            setGoalSteps,
+          }}
+        >
+          <OverviewDiagramView steps={steps || []} />
+        </DiagramSelectionProvider>
+      </ErrorBoundary>
+    </DiagramLayout>
   );
 };
 

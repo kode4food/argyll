@@ -16,7 +16,7 @@ import { Step } from "@/app/api";
 import { Server } from "lucide-react";
 import Node from "@/app/components/organisms/OverviewStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import styles from "@/app/components/templates/StepDiagram/StepDiagram.module.css";
+import styles from "./OverviewDiagramView.module.css";
 import EmptyState from "@/app/components/molecules/EmptyState";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useStepVisibility } from "./useStepVisibility";

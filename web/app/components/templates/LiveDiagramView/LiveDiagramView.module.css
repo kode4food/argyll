@@ -1,4 +1,4 @@
-/* Step Diagram Styles */
+/* Live Diagram View */
 
 .emptyStateWrapper {
   background-color: var(--color-white);
@@ -11,11 +11,6 @@
   .emptyStateWrapper {
     border-radius: var(--radius-md);
   }
-}
-
-.emptyStatePadding {
-  padding-top: var(--spacing-3xl);
-  padding-bottom: var(--spacing-3xl);
 }
 
 .diagramWrapper {

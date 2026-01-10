@@ -1,0 +1,25 @@
+/* Overview Diagram View */
+
+.emptyStateWrapper {
+  background-color: var(--color-white);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+@media (min-width: 640px) {
+  .emptyStateWrapper {
+    border-radius: var(--radius-md);
+  }
+}
+
+.emptyStatePadding {
+  padding-top: var(--spacing-3xl);
+  padding-bottom: var(--spacing-3xl);
+}
+
+.diagramWrapper {
+  position: relative;
+  height: 100%;
+  width: 100%;
+}

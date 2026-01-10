@@ -12,7 +12,7 @@ import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import styles from "@/app/components/templates/StepDiagram/StepDiagram.module.css";
+import styles from "./LiveDiagramView.module.css";
 import Spinner from "@/app/components/atoms/Spinner";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";

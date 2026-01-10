@@ -1,7 +1,8 @@
 import React, { useEffect } from "react";
 import LiveDiagramView from "@/app/components/templates/LiveDiagramView";
+import DiagramLayout from "@/app/components/templates/DiagramLayout";
 import EmptyState from "@/app/components/molecules/EmptyState";
-import styles from "@/app/components/templates/OverviewDiagram/OverviewDiagram.module.css";
+import styles from "./LiveDiagram.module.css";
 import FlowStats from "@/app/components/organisms/FlowStats";
 import { AlertCircle } from "lucide-react";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
@@ -41,60 +42,59 @@ const LiveDiagramContent: React.FC = () => {
   }
 
   return (
-    <div className={`${styles.container} ${styles.containerFlowMode}`}>
-      {flowData && (
-        <div className={styles.flowHeader}>
-          <div className={styles.flowContent}>
-            <div className={styles.flowLeft}>
-              <h2 className={styles.flowTitle}>{flowData.id}</h2>
-              <span
-                className={`status-bubble ${styles.flowStatusBadge} ${styles[flowData.status]}`}
-              >
-                {flowData.status}
-              </span>
-              {flowData.plan?.steps && steps && (
-                <FlowStats
-                  steps={steps}
-                  executionSequence={Object.keys(flowData.plan.steps)}
-                  resolvedAttributes={resolved}
-                />
-              )}
-            </div>
-
-            <div className={styles.flowRight}>
-              {isValidTimestamp(flowData.started_at) && (
-                <span>
-                  Started: {new Date(flowData.started_at).toLocaleString()}
+    <DiagramLayout
+      className={styles.containerLiveMode}
+      header={
+        flowData && (
+          <div className={styles.flowHeader}>
+            <div className={styles.flowContent}>
+              <div className={styles.flowLeft}>
+                <h2 className={styles.flowTitle}>{flowData.id}</h2>
+                <span
+                  className={`status-bubble ${styles.flowStatusBadge} ${styles[flowData.status]}`}
+                >
+                  {flowData.status}
                 </span>
-              )}
-              {flowData.completed_at &&
-                isValidTimestamp(flowData.completed_at) && (
+                {flowData.plan?.steps && steps && (
+                  <FlowStats
+                    steps={steps}
+                    executionSequence={Object.keys(flowData.plan.steps)}
+                    resolvedAttributes={resolved}
+                  />
+                )}
+              </div>
+
+              <div className={styles.flowRight}>
+                {isValidTimestamp(flowData.started_at) && (
                   <span>
-                    {" · "}Ended:{" "}
-                    {new Date(flowData.completed_at).toLocaleString()}
+                    Started: {new Date(flowData.started_at).toLocaleString()}
                   </span>
                 )}
+                {flowData.completed_at &&
+                  isValidTimestamp(flowData.completed_at) && (
+                    <span>
+                      {" · "}Ended:{" "}
+                      {new Date(flowData.completed_at).toLocaleString()}
+                    </span>
+                  )}
+              </div>
             </div>
           </div>
-        </div>
-      )}
-
-      <div className={styles.diagramContainer}>
-        <div className={styles.diagramContent}>
-          <ErrorBoundary
-            title="Step Diagram Error"
-            description="An error occurred while rendering the step diagram."
-          >
-            <LiveDiagramView
-              steps={steps || []}
-              flowData={flowData}
-              executions={executions || []}
-              resolvedAttributes={resolved}
-            />
-          </ErrorBoundary>
-        </div>
-      </div>
-    </div>
+        )
+      }
+    >
+      <ErrorBoundary
+        title="Step Diagram Error"
+        description="An error occurred while rendering the step diagram."
+      >
+        <LiveDiagramView
+          steps={steps || []}
+          flowData={flowData}
+          executions={executions || []}
+          resolvedAttributes={resolved}
+        />
+      </ErrorBoundary>
+    </DiagramLayout>
   );
 };
 

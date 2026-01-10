@@ -1,0 +1,146 @@
+/* Live Diagram */
+
+.notFoundIcon {
+  width: 4rem;
+  height: 4rem;
+  display: block;
+  margin: 0 auto var(--spacing-lg);
+  color: var(--color-error);
+}
+
+.containerLiveMode {
+  background-color: var(--color-neutral-label);
+}
+
+.emptyStateContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background-color: var(--color-white);
+}
+
+.flowHeader {
+  background-color: var(--color-neutral-bg);
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-neutral-bg) 70%, var(--color-darken));
+  padding: var(--spacing-2xs) var(--spacing-lg);
+}
+
+.flowContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flowLeft {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flowTitle {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--color-neutral-text);
+}
+
+.flowRight {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  color: var(--color-neutral-text);
+  white-space: nowrap;
+}
+
+.flowStatusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-round);
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  border: 1px solid;
+  height: 1.5rem;
+  line-height: 1.5rem;
+  flex-shrink: 0;
+}
+
+.flowStatusBadge.pending {
+  background-color: color-mix(in srgb, var(--color-warning-light) 20%, white);
+  color: color-mix(
+    in srgb,
+    var(--color-warning-light) 55%,
+    var(--color-darken)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-warning-light) 55%,
+    var(--color-darken)
+  );
+}
+
+.flowStatusBadge.active {
+  background-color: color-mix(in srgb, var(--color-info) 20%, white);
+  color: color-mix(in srgb, var(--color-info) 55%, var(--color-darken));
+  border-color: color-mix(in srgb, var(--color-info) 55%, var(--color-darken));
+  animation: flowStatusPulse 1.5s ease-in-out infinite;
+}
+
+.flowStatusBadge.completed {
+  background-color: color-mix(in srgb, var(--color-success) 20%, white);
+  color: color-mix(in srgb, var(--color-success) 55%, var(--color-darken));
+  border-color: color-mix(
+    in srgb,
+    var(--color-success) 55%,
+    var(--color-darken)
+  );
+}
+
+.flowStatusBadge.failed {
+  background-color: color-mix(in srgb, var(--color-error) 20%, white);
+  color: color-mix(in srgb, var(--color-error) 55%, var(--color-darken));
+  border-color: color-mix(in srgb, var(--color-error) 55%, var(--color-darken));
+}
+
+.flowStatusBadge.stopped {
+  background-color: color-mix(in srgb, var(--color-neutral-border) 20%, white);
+  color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+}
+
+.flowStatusBadge.default {
+  background-color: color-mix(in srgb, var(--color-neutral-border) 20%, white);
+  color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+  border-color: color-mix(
+    in srgb,
+    var(--color-neutral-border) 55%,
+    var(--color-darken)
+  );
+}
+
+@keyframes flowStatusPulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-info) 25%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 10px color-mix(in srgb, var(--color-info) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-info) 0%, transparent);
+  }
+}

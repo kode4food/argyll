@@ -1,0 +1,27 @@
+/* Diagram Layout */
+
+.container {
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+}
+
+.header {
+  flex: 0 0 auto;
+  min-height: 2.5rem;
+  width: 100%;
+}
+
+.header > * {
+  width: 100%;
+}
+
+.diagramContainer {
+  position: relative;
+  flex: 1;
+}
+
+.diagramContent {
+  height: 100%;
+  width: 100%;
+}
