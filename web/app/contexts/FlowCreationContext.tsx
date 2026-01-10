@@ -25,6 +25,7 @@ import {
 } from "@/utils/stateUtils";
 import { generateFlowId, generatePadded } from "@/utils/flowUtils";
 import { sortStepsByType } from "@/utils/stepUtils";
+import { snapshotFlowPositions } from "@/utils/nodePositioning";
 import toast from "react-hot-toast";
 import { useT } from "@/app/i18n";
 
@@ -224,6 +225,7 @@ export const FlowCreationStateProvider = ({
       parsedState = {};
     }
 
+    snapshotFlowPositions(flowId);
     addFlow({
       id: flowId,
       status: "pending",

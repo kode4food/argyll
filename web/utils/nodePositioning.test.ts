@@ -1,9 +1,13 @@
-import { saveNodePositions, loadNodePositions } from "./nodePositioning";
+import {
+  saveNodePositions,
+  loadNodePositions,
+  OVERVIEW_STORAGE_KEY,
+  getFlowStorageKey,
+  snapshotFlowPositions,
+} from "./nodePositioning";
 import { Node } from "@xyflow/react";
 
 describe("nodePositioning", () => {
-  const STORAGE_KEY = "argyll-step-positions";
-
   beforeEach(() => {
     localStorage.clear();
   });
@@ -29,7 +33,7 @@ describe("nodePositioning", () => {
 
       saveNodePositions(nodes);
 
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
       expect(stored).toBeTruthy();
       const parsed = JSON.parse(stored!);
       expect(parsed).toEqual({
@@ -41,7 +45,7 @@ describe("nodePositioning", () => {
     test("handles empty node array", () => {
       saveNodePositions([]);
 
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
       expect(stored).toBe("{}");
     });
 
@@ -56,7 +60,7 @@ describe("nodePositioning", () => {
       saveNodePositions(nodes1);
       saveNodePositions(nodes2);
 
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
       const parsed = JSON.parse(stored!);
       expect(parsed["node-1"]).toEqual({ x: 500, y: 600 });
     });
@@ -68,7 +72,7 @@ describe("nodePositioning", () => {
 
       saveNodePositions(nodes);
 
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
       const parsed = JSON.parse(stored!);
       expect(parsed["node-1"]).toEqual({ x: 123.456, y: 789.012 });
     });
@@ -80,7 +84,7 @@ describe("nodePositioning", () => {
 
       saveNodePositions(nodes);
 
-      const stored = localStorage.getItem(STORAGE_KEY);
+      const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
       const parsed = JSON.parse(stored!);
       expect(parsed["node-1"]).toEqual({ x: -100, y: -200 });
     });
@@ -92,7 +96,7 @@ describe("nodePositioning", () => {
         "node-1": { x: 100, y: 200 },
         "node-2": { x: 300, y: 400 },
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+      localStorage.setItem(OVERVIEW_STORAGE_KEY, JSON.stringify(positions));
 
       const result = loadNodePositions();
 
@@ -106,7 +110,7 @@ describe("nodePositioning", () => {
     });
 
     test("returns empty object on parse error", () => {
-      localStorage.setItem(STORAGE_KEY, "invalid json");
+      localStorage.setItem(OVERVIEW_STORAGE_KEY, "invalid json");
 
       const result = loadNodePositions();
 
@@ -114,7 +118,7 @@ describe("nodePositioning", () => {
     });
 
     test("handles empty stored object", () => {
-      localStorage.setItem(STORAGE_KEY, "{}");
+      localStorage.setItem(OVERVIEW_STORAGE_KEY, "{}");
 
       const result = loadNodePositions();
 
@@ -125,7 +129,7 @@ describe("nodePositioning", () => {
       const positions = {
         "node-1": { x: 123.456, y: -789.012 },
       };
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(positions));
+      localStorage.setItem(OVERVIEW_STORAGE_KEY, JSON.stringify(positions));
 
       const result = loadNodePositions();
 
@@ -146,6 +150,20 @@ describe("nodePositioning", () => {
 
       expect(loaded["node-1"]).toEqual({ x: 100, y: 200 });
       expect(loaded["node-2"]).toEqual({ x: 300, y: 400 });
+    });
+  });
+
+  describe("snapshotFlowPositions", () => {
+    test("copies overview positions into flow storage", () => {
+      const positions = {
+        "node-1": { x: 100, y: 200 },
+      };
+      localStorage.setItem(OVERVIEW_STORAGE_KEY, JSON.stringify(positions));
+
+      snapshotFlowPositions("flow-1");
+
+      const stored = localStorage.getItem(getFlowStorageKey("flow-1"));
+      expect(stored).toEqual(JSON.stringify(positions));
     });
   });
 });

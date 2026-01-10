@@ -49,6 +49,10 @@ describe("useNodeCalculation", () => {
 
     const { result } = renderHook(() => useNodeCalculation(steps, flowData));
 
+    expect(loadNodePositionsMock).toHaveBeenCalledWith({
+      type: "flow",
+      flowId: "flow-1",
+    });
     expect(result.current[0].position).toEqual(savedPosition);
   });
 
@@ -79,6 +83,10 @@ describe("useNodeCalculation", () => {
       )
     );
 
+    expect(loadNodePositionsMock).toHaveBeenCalledWith({
+      type: "flow",
+      flowId: "flow-1",
+    });
     const [first, second] = result.current;
 
     expect(first.data.isStartingPoint).toBe(true);

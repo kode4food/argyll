@@ -275,13 +275,28 @@ func TestRegisterDuplicateStep(t *testing.T) {
 	assert.NoError(t, err)
 
 	err = env.Engine.RegisterStep(context.Background(), step)
-	if err != nil {
-		assert.ErrorIs(t, err, engine.ErrStepExists)
-		return
-	}
-	t.Skip(
-		"Engine allows duplicate step registration - this is current behavior",
-	)
+	assert.NoError(t, err)
+
+	steps, err := env.Engine.ListSteps(context.Background())
+	assert.NoError(t, err)
+	assert.Len(t, steps, 1)
+	assert.Equal(t, api.StepID("dup-step"), steps[0].ID)
+}
+
+func TestRegisterConflictingStep(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	defer env.Cleanup()
+
+	step := helpers.NewSimpleStep("dup-step")
+
+	err := env.Engine.RegisterStep(context.Background(), step)
+	assert.NoError(t, err)
+
+	updatedStep := helpers.NewSimpleStep("dup-step")
+	updatedStep.Name = "Updated Name"
+
+	err = env.Engine.RegisterStep(context.Background(), updatedStep)
+	assert.ErrorIs(t, err, engine.ErrStepExists)
 }
 
 func TestUpdateStepSuccess(t *testing.T) {

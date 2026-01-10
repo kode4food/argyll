@@ -5,6 +5,7 @@ import {
   useFlowCreation,
 } from "./FlowCreationContext";
 import { ExecutionPlan, Step } from "../api";
+import { snapshotFlowPositions } from "@/utils/nodePositioning";
 
 const mockNavigate = jest.fn();
 
@@ -69,6 +70,10 @@ jest.mock("../api", () => ({
     }),
     startFlow: jest.fn().mockResolvedValue(undefined),
   },
+}));
+
+jest.mock("@/utils/nodePositioning", () => ({
+  snapshotFlowPositions: jest.fn(),
 }));
 
 const apiMock = require("../api").api;
@@ -137,6 +142,7 @@ describe("FlowCreationContext", () => {
       ctx.handleCreateFlow();
     });
 
+    expect(snapshotFlowPositions).toHaveBeenCalledWith("flow-1");
     expect(addFlow).toHaveBeenCalled();
     expect(loadFlows).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/flow/flow-1");

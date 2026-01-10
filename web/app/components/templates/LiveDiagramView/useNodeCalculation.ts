@@ -18,7 +18,9 @@ export const useNodeCalculation = (
   disableEdit?: boolean
 ) => {
   return useMemo(() => {
-    const savedPositions = loadNodePositions();
+    const savedPositions = flowData?.id
+      ? loadNodePositions({ type: "flow", flowId: flowData.id })
+      : loadNodePositions();
     const activeStepIds = new Set(visibleSteps.map((step) => step.id));
     const startingPoints = new Set<string>();
 
