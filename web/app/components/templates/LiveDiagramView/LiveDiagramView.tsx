@@ -15,6 +15,7 @@ import Legend from "@/app/components/molecules/Legend";
 import { Server } from "lucide-react";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
+import { useT } from "@/app/i18n";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { STEP_LAYOUT } from "@/constants/layout";
@@ -39,6 +40,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   executions = [],
   resolvedAttributes = [],
 }) => {
+  const t = useT();
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "flow";
   const { disableEdit, diagramContainerRef } = useUI();
@@ -83,8 +85,8 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     return (
       <DiagramEmptyState
         icon={<Server />}
-        title="Loading Diagram"
-        description="Waiting for the flow plan to be available"
+        title={t("live.loadingTitle")}
+        description={t("live.loadingDescription")}
       />
     );
   }

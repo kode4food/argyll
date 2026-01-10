@@ -366,13 +366,13 @@ describe("stepUtils", () => {
       test("rejects unquoted string", () => {
         const result = validateDefaultValue("hello", AttributeType.String);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be valid JSON");
+        expect(result.errorKey).toBe("validation.jsonInvalid");
       });
 
       test("rejects number as string", () => {
         const result = validateDefaultValue("42", AttributeType.String);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be a valid JSON string");
+        expect(result.errorKey).toBe("validation.jsonString");
       });
     });
 
@@ -393,13 +393,13 @@ describe("stepUtils", () => {
           AttributeType.Number
         );
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be a valid number");
+        expect(result.errorKey).toBe("validation.jsonNumber");
       });
 
       test("rejects invalid JSON", () => {
         const result = validateDefaultValue("abc", AttributeType.Number);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be valid JSON");
+        expect(result.errorKey).toBe("validation.jsonInvalid");
       });
     });
 
@@ -417,7 +417,7 @@ describe("stepUtils", () => {
       test("rejects string 'yes'", () => {
         const result = validateDefaultValue('"yes"', AttributeType.Boolean);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe('Must be "true" or "false"');
+        expect(result.errorKey).toBe("validation.jsonBoolean");
       });
     });
 
@@ -433,7 +433,7 @@ describe("stepUtils", () => {
       test("rejects array", () => {
         const result = validateDefaultValue("[1, 2, 3]", AttributeType.Object);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be a valid JSON object");
+        expect(result.errorKey).toBe("validation.jsonObject");
       });
 
       test("rejects malformed JSON", () => {
@@ -442,7 +442,7 @@ describe("stepUtils", () => {
           AttributeType.Object
         );
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be valid JSON");
+        expect(result.errorKey).toBe("validation.jsonInvalid");
       });
     });
 
@@ -458,13 +458,13 @@ describe("stepUtils", () => {
           AttributeType.Array
         );
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be a valid JSON array");
+        expect(result.errorKey).toBe("validation.jsonArray");
       });
 
       test("rejects malformed JSON", () => {
         const result = validateDefaultValue("[1, 2, 3", AttributeType.Array);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be valid JSON");
+        expect(result.errorKey).toBe("validation.jsonInvalid");
       });
     });
 
@@ -477,13 +477,13 @@ describe("stepUtils", () => {
       test("rejects 'nil'", () => {
         const result = validateDefaultValue("nil", AttributeType.Null);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be valid JSON");
+        expect(result.errorKey).toBe("validation.jsonInvalid");
       });
 
       test("rejects string 'null'", () => {
         const result = validateDefaultValue('"null"', AttributeType.Null);
         expect(result.valid).toBe(false);
-        expect(result.error).toBe('Must be "null"');
+        expect(result.errorKey).toBe("validation.jsonNull");
       });
     });
 
@@ -517,7 +517,7 @@ describe("stepUtils", () => {
           AttributeType.Any
         );
         expect(result.valid).toBe(false);
-        expect(result.error).toBe("Must be valid JSON");
+        expect(result.errorKey).toBe("validation.jsonInvalid");
       });
     });
 

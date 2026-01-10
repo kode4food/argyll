@@ -10,6 +10,7 @@ import { isValidTimestamp } from "@/utils/dates";
 import { useUI } from "@/app/contexts/UIContext";
 import { useFlowSession } from "@/app/contexts/FlowSessionContext";
 import { StepEditorProvider } from "@/app/contexts/StepEditorContext";
+import { useT } from "@/app/i18n";
 
 const LiveDiagramContent: React.FC = () => {
   const {
@@ -22,6 +23,7 @@ const LiveDiagramContent: React.FC = () => {
     steps,
   } = useFlowSession();
   const { clearPreviewPlan, setGoalSteps } = useUI();
+  const t = useT();
 
   useEffect(() => {
     clearPreviewPlan();
@@ -34,8 +36,10 @@ const LiveDiagramContent: React.FC = () => {
         <EmptyState
           icon={<AlertCircle />}
           iconClassName={styles.notFoundIcon}
-          title="Flow Not Found"
-          description={`The flow "${selectedFlow}" could not be found`}
+          title={t("live.flowNotFoundTitle")}
+          description={t("live.flowNotFoundDescription", {
+            id: selectedFlow,
+          })}
         />
       </div>
     );
@@ -67,13 +71,15 @@ const LiveDiagramContent: React.FC = () => {
               <div className={styles.flowRight}>
                 {isValidTimestamp(flowData.started_at) && (
                   <span>
-                    Started: {new Date(flowData.started_at).toLocaleString()}
+                    {t("common.started")}:{" "}
+                    {new Date(flowData.started_at).toLocaleString()}
                   </span>
                 )}
                 {flowData.completed_at &&
                   isValidTimestamp(flowData.completed_at) && (
                     <span>
-                      {" · "}Ended:{" "}
+                      {" · "}
+                      {t("common.ended")}:{" "}
                       {new Date(flowData.completed_at).toLocaleString()}
                     </span>
                   )}
@@ -84,8 +90,8 @@ const LiveDiagramContent: React.FC = () => {
       }
     >
       <ErrorBoundary
-        title="Step Diagram Error"
-        description="An error occurred while rendering the step diagram"
+        title={t("diagram.errorTitle")}
+        description={t("diagram.errorDescription")}
       >
         <LiveDiagramView
           steps={steps || []}

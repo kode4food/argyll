@@ -4,12 +4,15 @@ import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
 import styles from "./StepPredicate.module.css";
+import { useT } from "@/app/i18n";
 
 interface StepPredicateProps {
   step: Step;
 }
 
 const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
+  const t = useT();
+
   if (!step.predicate) {
     return null;
   }
@@ -31,12 +34,16 @@ const StepPredicate: React.FC<StepPredicateProps> = ({ step }) => {
           </div>
         }
       >
-        <TooltipSection title={`Predicate (${step.predicate.language})`}>
+        <TooltipSection
+          title={t("stepPredicate.title", {
+            language: step.predicate.language,
+          })}
+        >
           <div className={tooltipStyles.valueCode}>
             {scriptPreview}
             {lineCount > 5 && (
               <div className={tooltipStyles.codeMore}>
-                ... ({lineCount - 5} more lines)
+                {t("stepPredicate.moreLines", { count: lineCount - 5 })}
               </div>
             )}
           </div>

@@ -8,20 +8,23 @@ import {
   useFlowSession,
 } from "@/app/contexts/FlowSessionContext";
 import styles from "./OverviewPage.module.css";
+import { useT } from "@/app/i18n";
 
 function OverviewPageContent() {
+  const t = useT();
+
   return (
     <div className={styles.page}>
       <ErrorBoundary
-        title="Flow Selector Error"
-        description="An error occurred in the flow selector. Try refreshing the page"
+        title={t("diagram.selectorErrorTitle")}
+        description={t("diagram.selectorErrorDescription")}
       >
         <FlowSelector />
       </ErrorBoundary>
       <div className={styles.mainContent}>
         <ErrorBoundary
-          title="Diagram Error"
-          description="An error occurred while rendering the diagram. Try selecting a different flow"
+          title={t("diagram.diagramErrorTitle")}
+          description={t("diagram.diagramErrorDescription")}
         >
           <OverviewDiagram />
         </ErrorBoundary>
@@ -32,17 +35,20 @@ function OverviewPageContent() {
 
 function OverviewPageWithSession() {
   const { flowError } = useFlowSession();
+  const t = useT();
 
   if (flowError) {
     return (
       <div className={styles.errorPage}>
         <div className={styles.errorContent}>
-          <p className={styles.errorMessage}>Error: {flowError}</p>
+          <p className={styles.errorMessage}>
+            {t("common.errorMessage", { message: flowError })}
+          </p>
           <button
             onClick={() => window.location.reload()}
             className={styles.retryButton}
           >
-            Retry
+            {t("common.retry")}
           </button>
         </div>
       </div>

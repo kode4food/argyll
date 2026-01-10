@@ -10,6 +10,7 @@ import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
 import { useFlowFormScrollFade } from "./useFlowFormScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 import { validateJsonString, buildItemClassName } from "./flowFormUtils";
+import { useT } from "@/app/i18n";
 
 const FlowCreateForm: React.FC = () => {
   const {
@@ -26,6 +27,7 @@ const FlowCreateForm: React.FC = () => {
     sortSteps,
   } = useFlowCreation();
   const { showCreateForm, setShowCreateForm, previewPlan, goalSteps } = useUI();
+  const t = useT();
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
 
@@ -53,13 +55,15 @@ const FlowCreateForm: React.FC = () => {
       <div
         className={styles.overlay}
         onClick={() => setShowCreateForm(false)}
-        aria-label="Close flow form"
+        aria-label={t("flowCreate.closeForm")}
       />
       <div className={styles.modal}>
         <div className={styles.container}>
           <div className={styles.sidebar}>
             <div className={styles.sidebarHeader}>
-              <label className={styles.label}>Select Goal Steps</label>
+              <label className={styles.label}>
+                {t("flowCreate.selectGoalSteps")}
+              </label>
             </div>
             <div
               ref={sidebarListRef}
@@ -77,11 +81,13 @@ const FlowCreateForm: React.FC = () => {
                 const isDisabled = isIncludedByOthers || isSatisfiedByState;
 
                 const tooltipText = isIncludedByOthers
-                  ? "Already included in execution plan"
+                  ? t("flowCreate.tooltipAlreadyIncluded")
                   : isSatisfiedByState
-                    ? "Outputs satisfied by initial state"
+                    ? t("flowCreate.tooltipSatisfiedByState")
                     : isMissing
-                      ? `Missing required: ${missingRequired.join(", ")}`
+                      ? t("flowCreate.tooltipMissingRequired", {
+                          attrs: missingRequired.join(", "),
+                        })
                       : undefined;
                 const itemClassName = buildItemClassName(
                   isSelected,
@@ -125,7 +131,9 @@ const FlowCreateForm: React.FC = () => {
 
           <div className={styles.main}>
             <div>
-              <label className={styles.label}>Flow ID</label>
+              <label className={styles.label}>
+                {t("flowCreate.flowIdLabel")}
+              </label>
               <div className={styles.idGroup}>
                 <input
                   type="text"
@@ -134,7 +142,7 @@ const FlowCreateForm: React.FC = () => {
                     setNewID(e.target.value);
                     setIDManuallyEdited(true);
                   }}
-                  placeholder="e.g., order-processing-001"
+                  placeholder={t("flowCreate.flowIdPlaceholder")}
                   className={`${styles.input} ${styles.idInputFlex}`}
                 />
                 <button
@@ -144,8 +152,8 @@ const FlowCreateForm: React.FC = () => {
                     setIDManuallyEdited(false);
                   }}
                   className={styles.buttonGenerate}
-                  title="Generate new ID"
-                  aria-label="Generate new flow ID"
+                  title={t("flowCreate.generateIdTitle")}
+                  aria-label={t("flowCreate.generateIdAria")}
                 >
                   ↻
                 </button>
@@ -153,7 +161,9 @@ const FlowCreateForm: React.FC = () => {
             </div>
 
             <div className={styles.editorContainer}>
-              <label className={styles.label}>Required Attributes</label>
+              <label className={styles.label}>
+                {t("flowCreate.requiredAttributesLabel")}
+              </label>
               <div className={styles.editorWrapper}>
                 <LazyCodeEditor
                   value={initialState}
@@ -163,7 +173,7 @@ const FlowCreateForm: React.FC = () => {
               </div>
               {jsonError && (
                 <div className={styles.jsonError}>
-                  Invalid JSON: {jsonError}
+                  {t("flowCreate.invalidJson", { error: jsonError })}
                 </div>
               )}
             </div>
@@ -173,7 +183,7 @@ const FlowCreateForm: React.FC = () => {
                 onClick={() => setShowCreateForm(false)}
                 className={styles.buttonCancel}
               >
-                Cancel
+                {t("common.cancel")}
               </button>
               <button
                 onClick={handleCreateFlow}
@@ -192,15 +202,13 @@ const FlowCreateForm: React.FC = () => {
                     <Play className={styles.startIcon} />
                   )}
                 </span>
-                Start
+                {t("common.start")}
               </button>
             </div>
           </div>
         </div>
         {steps.length === 0 && (
-          <div className={styles.warning}>
-            ⚠️ No steps are registered. Flows need registered steps to function.
-          </div>
+          <div className={styles.warning}>{t("flowCreate.warningNoSteps")}</div>
         )}
       </div>
     </>

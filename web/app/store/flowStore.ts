@@ -15,6 +15,12 @@ interface StepHealthInfo {
   error?: string;
 }
 
+declare global {
+  interface Window {
+    flowStore?: typeof useFlowStore;
+  }
+}
+
 const compareFlows = (a: FlowContext, b: FlowContext): number => {
   const aIsActive = a.status === "active";
   const bIsActive = b.status === "active";
@@ -457,6 +463,15 @@ export const useFlowStore = create<FlowState>()(
     { name: "FlowStore" }
   )
 );
+
+const isDevHost =
+  typeof window !== "undefined" &&
+  (window.location.hostname === "localhost" ||
+    window.location.hostname === "127.0.0.1");
+
+if (isDevHost) {
+  window.flowStore = useFlowStore;
+}
 
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);

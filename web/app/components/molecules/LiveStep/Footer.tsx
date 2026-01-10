@@ -9,9 +9,9 @@ import {
   formatScriptPreview,
   getScriptIcon,
   getHttpIcon,
-  getSkipReason,
 } from "@/utils/stepFooterUtils";
 import { useMemo } from "react";
+import { useT } from "@/app/i18n";
 
 interface FooterProps {
   step: Step;
@@ -20,6 +20,7 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
+  const t = useT();
   const progressState = useStepProgress(step.id, flowId, execution);
   const { displayInfo, tooltipSections } = useMemo(() => {
     let displayInfo: {
@@ -55,15 +56,22 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
           const done = progressState.workItems.completed;
           const failed = progressState.workItems.failed;
           const total = progressState.workItems.total;
-          const base = `${done} of ${total}`;
-          return failed > 0 ? ` (${base}, ${failed} failed)` : ` (${base})`;
+          const base =
+            failed > 0
+              ? t("liveStep.workItemsSummaryFailed", {
+                  done,
+                  total,
+                  failed,
+                })
+              : t("liveStep.workItemsSummary", { done, total });
+          return ` (${base})`;
         })()
       : "";
 
     sections.push(
       <TooltipSection
         key="execution-status"
-        title="Execution Status"
+        title={t("liveStep.executionStatus")}
         icon={
           <StatusIcon
             className={`progress-icon ${execution.status || "pending"}`}
@@ -78,16 +86,18 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
 
     if (execution.status === "failed" && execution.error_message) {
       sections.push(
-        <TooltipSection key="error" title="Error" monospace>
+        <TooltipSection key="error" title={t("liveStep.errorTitle")} monospace>
           {execution.error_message}
         </TooltipSection>
       );
     }
 
     if (execution.status === "skipped") {
-      const skipReason = getSkipReason(step);
+      const skipReason = step.predicate
+        ? t("liveStep.skipPredicate")
+        : t("liveStep.skipMissingInputs");
       sections.push(
-        <TooltipSection key="reason" title="Reason">
+        <TooltipSection key="reason" title={t("liveStep.reasonTitle")}>
           {skipReason}
         </TooltipSection>
       );
@@ -95,14 +105,14 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
 
     if (execution.status === "completed" && execution.duration_ms) {
       sections.push(
-        <TooltipSection key="duration" title="Duration">
-          {execution.duration_ms}ms
+        <TooltipSection key="duration" title={t("liveStep.durationTitle")}>
+          {t("common.durationMs", { duration: execution.duration_ms })}
         </TooltipSection>
       );
     }
 
     return { displayInfo, tooltipSections: sections };
-  }, [execution, flowId, progressState, step]);
+  }, [execution, flowId, progressState, step, t]);
 
   const useProgress = flowId && progressState.flowId === flowId;
   const ProgressIcon = getProgressIcon(progressState.status);

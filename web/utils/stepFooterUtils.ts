@@ -1,5 +1,5 @@
 import React from "react";
-import { Step, SCRIPT_LANGUAGE_ALE } from "@/app/api";
+import { SCRIPT_LANGUAGE_ALE } from "@/app/api";
 import { Code2, FileCode2, Globe, Webhook } from "lucide-react";
 
 export interface ScriptPreviewData {
@@ -26,15 +26,6 @@ export const getScriptIcon = (language: string): React.ComponentType => {
  */
 export const getHttpIcon = (stepType: string): React.ComponentType => {
   return stepType === "async" ? Webhook : Globe;
-};
-
-/**
- * Generates the skip reason message based on step configuration
- */
-export const getSkipReason = (step: Step): string => {
-  return step.predicate
-    ? "Step skipped because predicate evaluated to false"
-    : "Step skipped because required inputs are unavailable due to failed or skipped upstream steps";
 };
 
 /**

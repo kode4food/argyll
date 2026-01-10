@@ -52,24 +52,28 @@ describe("attributeUtils", () => {
   });
 
   describe("getAttributeTooltipTitle", () => {
-    it("returns 'Input Value' for required attributes", () => {
-      expect(getAttributeTooltipTitle("required")).toBe("Input Value");
+    it("returns key for required attributes", () => {
+      expect(getAttributeTooltipTitle("required")).toBe("liveStep.inputValue");
     });
 
-    it("returns 'Output Value' for output attributes", () => {
-      expect(getAttributeTooltipTitle("output")).toBe("Output Value");
+    it("returns key for output attributes", () => {
+      expect(getAttributeTooltipTitle("output")).toBe("liveStep.outputValue");
     });
 
-    it("returns 'Input Value' for optional attributes that were not defaulted", () => {
-      expect(getAttributeTooltipTitle("optional", false)).toBe("Input Value");
+    it("returns key for optional attributes that were not defaulted", () => {
+      expect(getAttributeTooltipTitle("optional", false)).toBe(
+        "liveStep.inputValue"
+      );
     });
 
-    it("returns 'Default Value' for optional attributes that were defaulted", () => {
-      expect(getAttributeTooltipTitle("optional", true)).toBe("Default Value");
+    it("returns key for optional attributes that were defaulted", () => {
+      expect(getAttributeTooltipTitle("optional", true)).toBe(
+        "liveStep.defaultValue"
+      );
     });
 
-    it("returns 'Input Value' for optional attributes without defaulted info", () => {
-      expect(getAttributeTooltipTitle("optional")).toBe("Input Value");
+    it("returns key for optional attributes without defaulted info", () => {
+      expect(getAttributeTooltipTitle("optional")).toBe("liveStep.inputValue");
     });
   });
 

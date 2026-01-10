@@ -18,6 +18,7 @@ import Node from "@/app/components/organisms/OverviewStep/Node";
 import Legend from "@/app/components/molecules/Legend";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
+import { useT } from "@/app/i18n";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useStepVisibility } from "./useStepVisibility";
 import { useNodeCalculation } from "./useNodeCalculation";
@@ -43,6 +44,7 @@ const nodeTypes: NodeTypes = {
 const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   steps = [],
 }) => {
+  const t = useT();
   const { goalSteps, setGoalSteps } = useDiagramSelection();
   const activeGoalStepId =
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
@@ -124,32 +126,32 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   useKeyboardShortcuts([
     {
       key: "ArrowUp",
-      description: "Navigate up within level",
+      description: t("keyboardShortcuts.navigateUp"),
       handler: handleArrowUp,
     },
     {
       key: "ArrowDown",
-      description: "Navigate down within level",
+      description: t("keyboardShortcuts.navigateDown"),
       handler: handleArrowDown,
     },
     {
       key: "ArrowLeft",
-      description: "Navigate to earlier dependency level",
+      description: t("keyboardShortcuts.navigateLeft"),
       handler: handleArrowLeft,
     },
     {
       key: "ArrowRight",
-      description: "Navigate to later dependency level",
+      description: t("keyboardShortcuts.navigateRight"),
       handler: handleArrowRight,
     },
     {
       key: "Enter",
-      description: "Open step editor",
+      description: t("keyboardShortcuts.openEditor"),
       handler: handleEnter,
     },
     {
       key: "Escape",
-      description: "Deselect step",
+      description: t("keyboardShortcuts.deselectStep"),
       handler: handleEscape,
     },
   ]);
@@ -212,8 +214,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     return (
       <DiagramEmptyState
         icon={<Server />}
-        title="No Steps to Visualize"
-        description="Register steps to see their dependency relationships in diagram form"
+        title={t("overview.noVisibleTitle")}
+        description={t("overview.noVisibleDescription")}
       />
     );
   }

@@ -4,12 +4,15 @@ import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import styles from "./StepHeader.module.css";
+import { useT } from "@/app/i18n";
 
 interface StepHeaderProps {
   step: Step;
 }
 
 const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
+  const t = useT();
+
   return (
     <div className={`${styles.header} step-header`}>
       <Tooltip
@@ -19,8 +22,10 @@ const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
           </div>
         }
       >
-        <TooltipSection title="Step Name">{step.name}</TooltipSection>
-        <TooltipSection title="Step ID">{step.id}</TooltipSection>
+        <TooltipSection title={t("tooltip.stepName")}>
+          {step.name}
+        </TooltipSection>
+        <TooltipSection title={t("tooltip.stepId")}>{step.id}</TooltipSection>
       </Tooltip>
       <StepTypeLabel step={step} />
     </div>

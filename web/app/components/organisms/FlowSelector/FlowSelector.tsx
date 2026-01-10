@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { generateFlowId } from "@/utils/flowUtils";
 import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
 import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
+import { useT } from "@/app/i18n";
 
 const FlowCreateForm = lazy(() => import("../FlowCreateForm/FlowCreateForm"));
 const KeyboardShortcutsModal = lazy(
@@ -28,6 +29,7 @@ import {
 import { useFlowSession } from "@/app/contexts/FlowSessionContext";
 
 const FlowSelectorDropdown = () => {
+  const t = useT();
   const {
     showDropdown,
     setShowDropdown,
@@ -67,7 +69,7 @@ const FlowSelectorDropdown = () => {
             {selectedFlow}
           </>
         ) : (
-          "Select Flow"
+          t("flowSelector.selectFlow")
         )}
       </button>
       {showDropdown && (
@@ -77,7 +79,7 @@ const FlowSelectorDropdown = () => {
             <input
               ref={searchInputRef}
               type="text"
-              placeholder="Search flows..."
+              placeholder={t("flowSelector.searchPlaceholder")}
               value={searchTerm}
               onChange={handleSearchChange}
               onKeyDown={handleKeyDown}
@@ -117,7 +119,7 @@ const FlowSelectorDropdown = () => {
           })}
           {filteredFlows.length === 0 && searchTerm && (
             <div className={`${styles.dropdownItem} ${styles.noResults}`}>
-              No flows found
+              {t("flowSelector.noFlowsFound")}
             </div>
           )}
         </div>
@@ -127,6 +129,7 @@ const FlowSelectorDropdown = () => {
 };
 
 const FlowSelectorContent: React.FC = () => {
+  const t = useT();
   const navigate = useNavigate();
   useFlowFromUrl();
   const { flows, selectedFlow } = useFlowSession();
@@ -155,7 +158,7 @@ const FlowSelectorContent: React.FC = () => {
     [
       {
         key: "/",
-        description: "Focus search",
+        description: t("flowSelector.focusSearch"),
         handler: () => {
           if (!showDropdown) {
             setShowDropdown(true);
@@ -165,7 +168,7 @@ const FlowSelectorContent: React.FC = () => {
       },
       {
         key: "?",
-        description: "Show keyboard shortcuts",
+        description: t("flowSelector.showShortcuts"),
         handler: () => {
           setShowShortcutsModal(true);
         },
@@ -200,16 +203,16 @@ const FlowSelectorContent: React.FC = () => {
               target="_blank"
               rel="noreferrer"
               className={`${styles.title} ${styles.titleLink}`}
-              aria-label="Argyll Web Site"
+              aria-label={t("flowSelector.siteLabel")}
             >
               <img
                 src="/argyll-logo.png"
-                alt="Argyll Logo"
+                alt={t("flowSelector.logoAlt")}
                 className={styles.icon}
                 width={123}
                 height={77}
               />
-              <h1 className={styles.titleText}>Argyll Engine</h1>
+              <h1 className={styles.titleText}>{t("flowSelector.title")}</h1>
             </a>
           </div>
 
@@ -220,8 +223,8 @@ const FlowSelectorContent: React.FC = () => {
                 <button
                   onClick={() => navigate("/")}
                   className={styles.navButton}
-                  title="Back to Overview"
-                  aria-label="Back to Overview"
+                  title={t("flowSelector.backToOverview")}
+                  aria-label={t("flowSelector.backToOverview")}
                 >
                   <Activity className={styles.buttonIcon} aria-hidden="true" />
                 </button>
@@ -233,8 +236,8 @@ const FlowSelectorContent: React.FC = () => {
                       setShowCreateForm(!showCreateForm);
                     }}
                     className={styles.createButton}
-                    title="New Flow"
-                    aria-label="Create New Flow"
+                    title={t("flowSelector.newFlow")}
+                    aria-label={t("flowSelector.createNewFlow")}
                   >
                     <Play className={styles.buttonIcon} aria-hidden="true" />
                   </button>
@@ -244,8 +247,8 @@ const FlowSelectorContent: React.FC = () => {
           </div>
         </div>
         <ErrorBoundary
-          title="Flow Form Error"
-          description="An error occurred in the flow creation form. Try closing and reopening the form"
+          title={t("flowSelector.formErrorTitle")}
+          description={t("flowSelector.formErrorDescription")}
           onError={(error, errorInfo) => {
             console.error("Error in FlowCreateForm:", error);
             console.error("Component stack:", errorInfo.componentStack);

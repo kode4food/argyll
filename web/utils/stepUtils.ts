@@ -31,7 +31,11 @@ const getJsonType = (parsed: any): string => {
 export const validateDefaultValue = (
   value: string,
   type: AttributeType
-): { valid: boolean; error?: string } => {
+): {
+  valid: boolean;
+  errorKey?: string;
+  errorVars?: Record<string, string>;
+} => {
   if (!value.trim()) {
     return { valid: true };
   }
@@ -42,7 +46,7 @@ export const validateDefaultValue = (
   try {
     parsed = JSON.parse(trimmed);
   } catch {
-    return { valid: false, error: "Must be valid JSON" };
+    return { valid: false, errorKey: "validation.jsonInvalid" };
   }
 
   if (type === AttributeType.Any) {
@@ -54,37 +58,37 @@ export const validateDefaultValue = (
   switch (type) {
     case AttributeType.String:
       if (jsonType !== "string") {
-        return { valid: false, error: "Must be a valid JSON string" };
+        return { valid: false, errorKey: "validation.jsonString" };
       }
       break;
 
     case AttributeType.Number:
       if (jsonType !== "number") {
-        return { valid: false, error: "Must be a valid number" };
+        return { valid: false, errorKey: "validation.jsonNumber" };
       }
       break;
 
     case AttributeType.Boolean:
       if (jsonType !== "boolean") {
-        return { valid: false, error: 'Must be "true" or "false"' };
+        return { valid: false, errorKey: "validation.jsonBoolean" };
       }
       break;
 
     case AttributeType.Object:
       if (jsonType !== "object") {
-        return { valid: false, error: "Must be a valid JSON object" };
+        return { valid: false, errorKey: "validation.jsonObject" };
       }
       break;
 
     case AttributeType.Array:
       if (jsonType !== "array") {
-        return { valid: false, error: "Must be a valid JSON array" };
+        return { valid: false, errorKey: "validation.jsonArray" };
       }
       break;
 
     case AttributeType.Null:
       if (jsonType !== "null") {
-        return { valid: false, error: 'Must be "null"' };
+        return { valid: false, errorKey: "validation.jsonNull" };
       }
       break;
   }

@@ -17,6 +17,7 @@ import formStyles from "./StepEditorForm.module.css";
 import { useStepEditorForm } from "./useStepEditorForm";
 import { useModalDimensions } from "./useModalDimensions";
 import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
+import { useT } from "@/app/i18n";
 
 interface StepEditorProps {
   step: Step | null;
@@ -71,6 +72,7 @@ const useStepEditingContext = (): StepEditingContextValue => {
 };
 
 const BasicFields: React.FC = () => {
+  const t = useT();
   const {
     stepId,
     name,
@@ -84,47 +86,51 @@ const BasicFields: React.FC = () => {
   return (
     <div className={formStyles.row}>
       <div className={`${formStyles.field} ${formStyles.flex1}`}>
-        <label className={formStyles.label}>Step ID</label>
+        <label className={formStyles.label}>
+          {t("stepEditor.stepIdLabel")}
+        </label>
         <input
           type="text"
           value={stepId}
           onChange={(e) => setStepId(e.target.value)}
           className={formStyles.formControl}
           disabled={!isCreateMode}
-          placeholder="my-step"
+          placeholder={t("stepEditor.stepIdPlaceholder")}
         />
       </div>
       <div className={`${formStyles.field} ${formStyles.flex2}`}>
-        <label className={formStyles.label}>Step Name</label>
+        <label className={formStyles.label}>
+          {t("stepEditor.stepNameLabel")}
+        </label>
         <input
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={formStyles.formControl}
-          placeholder="My Step"
+          placeholder={t("stepEditor.stepNamePlaceholder")}
         />
       </div>
       <div className={`${formStyles.field} ${formStyles.flex1}`}>
-        <label className={formStyles.label}>Type</label>
+        <label className={formStyles.label}>{t("stepEditor.typeLabel")}</label>
         <div className={formStyles.typeButtonGroup}>
           {[
             {
               type: "sync" as StepType,
               Icon: Globe,
-              label: "Sync",
-              title: "Synchronous HTTP",
+              label: t("stepEditor.typeSyncLabel"),
+              title: t("stepEditor.typeSyncTitle"),
             },
             {
               type: "async" as StepType,
               Icon: Webhook,
-              label: "Async",
-              title: "Asynchronous HTTP",
+              label: t("stepEditor.typeAsyncLabel"),
+              title: t("stepEditor.typeAsyncTitle"),
             },
             {
               type: "script" as StepType,
               Icon: FileCode2,
-              label: "Script",
-              title: "Script (Ale)",
+              label: t("stepEditor.typeScriptLabel"),
+              title: t("stepEditor.typeScriptTitle"),
             },
           ].map(({ type, Icon, label, title }) => (
             <button
@@ -148,6 +154,7 @@ const BasicFields: React.FC = () => {
 };
 
 const AttributesSection: React.FC = () => {
+  const t = useT();
   const {
     attributes,
     addAttribute,
@@ -159,11 +166,13 @@ const AttributesSection: React.FC = () => {
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
-        <label className={formStyles.label}>Attributes</label>
+        <label className={formStyles.label}>
+          {t("stepEditor.attributesLabel")}
+        </label>
         <button
           onClick={addAttribute}
           className={`${formStyles.iconButton} ${formStyles.addButtonStyle}`}
-          title="Add attribute"
+          title={t("stepEditor.addAttribute")}
         >
           <Plus className={styles.iconMd} />
         </button>
@@ -192,7 +201,7 @@ const AttributesSection: React.FC = () => {
               />
             </div>
             <div className={formStyles.placeholderHint}>
-              Attributes describe how steps share data with each other
+              {t("stepEditor.attributesHint")}
             </div>
           </div>
         )}
@@ -203,7 +212,9 @@ const AttributesSection: React.FC = () => {
                 type="button"
                 onClick={() => cycleAttributeType(attr.id, attr.attrType)}
                 className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
-                title={`Click to cycle type (current: ${attr.attrType})`}
+                title={t("stepEditor.cycleAttributeType", {
+                  type: attr.attrType,
+                })}
               >
                 {(() => {
                   const { Icon, className } = getAttributeIconProps(
@@ -231,7 +242,7 @@ const AttributesSection: React.FC = () => {
                 onChange={(e) =>
                   updateAttribute(attr.id, "name", e.target.value)
                 }
-                placeholder="name"
+                placeholder={t("stepEditor.attributeNamePlaceholder")}
                 className={formStyles.argInput}
               />
               {attr.attrType === "optional" && (
@@ -241,9 +252,9 @@ const AttributesSection: React.FC = () => {
                   onChange={(e) =>
                     updateAttribute(attr.id, "defaultValue", e.target.value)
                   }
-                  placeholder="default value"
+                  placeholder={t("stepEditor.attributeDefaultPlaceholder")}
                   className={formStyles.argInput}
-                  title="Default value for optional argument"
+                  title={t("stepEditor.attributeDefaultTitle")}
                 />
               )}
               {attr.attrType !== "output" &&
@@ -256,10 +267,10 @@ const AttributesSection: React.FC = () => {
                         e.currentTarget.blur();
                       }}
                       className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                      title="Process array as single value"
+                      title={t("stepEditor.arraySingleTitle")}
                     >
                       <Square className={styles.iconSm} />
-                      <span>Single</span>
+                      <span>{t("stepEditor.arraySingleLabel")}</span>
                     </button>
                     <button
                       type="button"
@@ -268,17 +279,17 @@ const AttributesSection: React.FC = () => {
                         e.currentTarget.blur();
                       }}
                       className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                      title="Execute once per array element"
+                      title={t("stepEditor.arrayMultiTitle")}
                     >
                       <Layers className={styles.iconSm} />
-                      <span>Multi</span>
+                      <span>{t("stepEditor.arrayMultiLabel")}</span>
                     </button>
                   </div>
                 )}
               <button
                 onClick={() => removeAttribute(attr.id)}
                 className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
-                title="Remove attribute"
+                title={t("stepEditor.removeAttribute")}
               >
                 <Trash2 className={styles.iconSm} />
               </button>
@@ -296,6 +307,7 @@ const AttributesSection: React.FC = () => {
 };
 
 const HttpConfiguration: React.FC = () => {
+  const t = useT();
   const {
     endpoint,
     httpTimeout,
@@ -308,34 +320,40 @@ const HttpConfiguration: React.FC = () => {
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
-        <label className={formStyles.label}>HTTP Configuration</label>
+        <label className={formStyles.label}>
+          {t("stepEditor.httpConfigLabel")}
+        </label>
       </div>
       <div className={formStyles.httpFields}>
         <div className={formStyles.row}>
           <div className={`${formStyles.field} ${formStyles.flex1}`}>
-            <label className={formStyles.label}>Endpoint URL</label>
+            <label className={formStyles.label}>
+              {t("stepEditor.endpointLabel")}
+            </label>
             <input
               type="text"
               value={endpoint}
               onChange={(e) => setEndpoint(e.target.value)}
-              placeholder="http://localhost:8080/process"
+              placeholder={t("stepEditor.endpointPlaceholder")}
               className={formStyles.formControl}
             />
           </div>
           <div className={formStyles.fieldNoFlex}>
-            <label className={formStyles.label}>Timeout</label>
+            <label className={formStyles.label}>
+              {t("stepEditor.timeoutLabel")}
+            </label>
             <DurationInput value={httpTimeout} onChange={setHttpTimeout} />
           </div>
         </div>
         <div className={formStyles.field}>
           <label className={formStyles.label}>
-            Health Check URL (optional)
+            {t("stepEditor.healthCheckLabel")}
           </label>
           <input
             type="text"
             value={healthCheck}
             onChange={(e) => setHealthCheck(e.target.value)}
-            placeholder="http://localhost:8080/health"
+            placeholder={t("stepEditor.healthCheckPlaceholder")}
             className={formStyles.formControl}
           />
         </div>
@@ -350,6 +368,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   onUpdate,
   diagramContainerRef,
 }) => {
+  const t = useT();
   const {
     stepId,
     stepType,
@@ -402,7 +421,9 @@ const StepEditor: React.FC<StepEditorProps> = ({
         >
           <div className={styles.header}>
             <h2 className={styles.title}>
-              {isCreateMode ? "Create New Step" : `Edit Step: ${stepId}`}
+              {isCreateMode
+                ? t("stepEditor.modalCreateTitle")
+                : t("stepEditor.modalEditTitle", { id: stepId })}
             </h2>
           </div>
 
@@ -416,7 +437,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
 
               {/* Predicate */}
               <ScriptConfigEditor
-                label="Predicate (Optional)"
+                label={t("stepEditor.predicateLabel")}
                 value={predicate}
                 onChange={setPredicate}
                 language={predicateLanguage}
@@ -427,7 +448,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
               {/* Type-Specific Configuration */}
               {stepType === "script" ? (
                 <ScriptConfigEditor
-                  label="Script Code"
+                  label={t("stepEditor.scriptLabel")}
                   value={script}
                   onChange={setScript}
                   language={scriptLanguage}
@@ -448,7 +469,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
               disabled={saving}
               className={styles.buttonCancel}
             >
-              Cancel
+              {t("stepEditor.cancel")}
             </button>
             <button
               onClick={handleSave}
@@ -457,11 +478,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
             >
               {saving
                 ? isCreateMode
-                  ? "Creating..."
-                  : "Saving..."
+                  ? t("stepEditor.creating")
+                  : t("stepEditor.saving")
                 : isCreateMode
-                  ? "Create"
-                  : "Save"}
+                  ? t("stepEditor.create")
+                  : t("stepEditor.save")}
             </button>
           </div>
         </div>

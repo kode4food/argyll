@@ -9,12 +9,14 @@ import {
   buildStepPayload,
 } from "./stepEditorUtils";
 import { validateDefaultValue } from "@/utils/stepUtils";
+import { useT } from "@/app/i18n";
 
 export function useStepEditorForm(
   step: Step | null,
   onUpdate: (updatedStep: Step) => void,
   onClose: () => void
 ) {
+  const t = useT();
   const isCreateMode = step === null;
 
   const [stepId, setStepId] = useState(step?.id || "");
@@ -49,6 +51,22 @@ export function useStepEditorForm(
 
   const attributeCounterRef = useRef(0);
 
+  const formatValidationError = useCallback(
+    (validationError: ReturnType<typeof getValidationError> | null) => {
+      if (!validationError) {
+        return null;
+      }
+      const vars = validationError.vars
+        ? { ...validationError.vars }
+        : undefined;
+      if (vars?.reason && typeof vars.reason === "string") {
+        vars.reason = t(vars.reason);
+      }
+      return t(validationError.key, vars);
+    },
+    [t]
+  );
+
   const addAttribute = useCallback(() => {
     setAttributes((current) => [
       ...current,
@@ -80,7 +98,7 @@ export function useStepEditorForm(
             );
             updated.validationError = validation.valid
               ? undefined
-              : validation.error;
+              : t(validation.errorKey ?? "");
           }
 
           if (field === "attrType" && value !== "optional") {
@@ -91,7 +109,7 @@ export function useStepEditorForm(
         })
       );
     },
-    []
+    [t]
   );
 
   const removeAttribute = useCallback((id: string) => {
@@ -124,7 +142,7 @@ export function useStepEditorForm(
     });
 
     if (validationError) {
-      setError(validationError);
+      setError(formatValidationError(validationError));
       return;
     }
 
@@ -159,7 +177,9 @@ export function useStepEditorForm(
       onUpdate(resultStep);
       onClose();
     } catch (err: any) {
-      setError(err.response?.data?.error || err.message || "Failed to save");
+      setError(
+        err.response?.data?.error || err.message || t("stepEditor.saveFailed")
+      );
     } finally {
       setSaving(false);
     }

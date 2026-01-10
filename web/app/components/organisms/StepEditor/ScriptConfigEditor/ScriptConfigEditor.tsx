@@ -2,6 +2,7 @@ import React from "react";
 import { SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import formStyles from "../StepEditorForm.module.css";
+import { useT } from "@/app/i18n";
 
 interface ScriptConfigEditorProps {
   label: string;
@@ -26,6 +27,8 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
   readOnly = false,
   containerClassName = formStyles.scriptEditorContainer,
 }) => {
+  const t = useT();
+
   return (
     <div className={formStyles.section}>
       <div className={formStyles.sectionHeader}>
@@ -39,9 +42,9 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
                 e.currentTarget.blur();
               }}
               className={`${formStyles.languageButton} ${language === SCRIPT_LANGUAGE_ALE ? formStyles.languageButtonActive : ""}`}
-              title="Ale"
+              title={t("script.language.ale")}
             >
-              Ale
+              {t("script.language.ale")}
             </button>
             <button
               type="button"
@@ -50,9 +53,9 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
                 e.currentTarget.blur();
               }}
               className={`${formStyles.languageButton} ${language === SCRIPT_LANGUAGE_LUA ? formStyles.languageButtonActive : ""}`}
-              title="Lua"
+              title={t("script.language.lua")}
             >
-              Lua
+              {t("script.language.lua")}
             </button>
           </div>
         )}

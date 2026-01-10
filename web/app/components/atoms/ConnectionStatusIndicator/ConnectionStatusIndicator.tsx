@@ -2,6 +2,7 @@ import React from "react";
 import { Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
 import { ConnectionStatus } from "@/app/types/websocket";
 import styles from "./ConnectionStatusIndicator.module.css";
+import { useT } from "@/app/i18n";
 
 interface ConnectionStatusIndicatorProps {
   status: ConnectionStatus;
@@ -14,6 +15,8 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
   reconnectAttempt = 0,
   onReconnect,
 }) => {
+  const t = useT();
+
   if (status === "connected") {
     return null;
   }
@@ -23,7 +26,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
       case "connecting":
         return {
           icon: RefreshCw,
-          text: "Connecting...",
+          text: t("connectionStatus.connecting"),
           colorClass: styles.colorWarning,
           animate: true,
           semiTransparent: false,
@@ -32,7 +35,9 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
       case "reconnecting":
         return {
           icon: RefreshCw,
-          text: `Reconnecting... (attempt ${reconnectAttempt})`,
+          text: t("connectionStatus.reconnecting", {
+            attempt: reconnectAttempt,
+          }),
           colorClass: styles.colorWarning,
           animate: true,
           semiTransparent: false,
@@ -41,7 +46,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
       case "disconnected":
         return {
           icon: WifiOff,
-          text: "Disconnected",
+          text: t("connectionStatus.disconnected"),
           colorClass: styles.colorNeutral,
           animate: false,
           semiTransparent: false,
@@ -50,7 +55,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
       case "failed":
         return {
           icon: AlertCircle,
-          text: "Connection failed",
+          text: t("connectionStatus.failed"),
           colorClass: styles.colorError,
           animate: false,
           semiTransparent: false,
@@ -59,7 +64,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
       default:
         return {
           icon: Wifi,
-          text: "Connected",
+          text: t("connectionStatus.connected"),
           colorClass: styles.colorSuccess,
           animate: false,
           semiTransparent: false,
@@ -85,7 +90,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
       </span>
       {showReconnect && (
         <button onClick={onReconnect} className={styles.retryButton}>
-          Retry
+          {t("common.retry")}
         </button>
       )}
     </div>

@@ -20,6 +20,11 @@ export interface Attribute {
   validationError?: string;
 }
 
+export interface ValidationError {
+  key: string;
+  vars?: Record<string, string>;
+}
+
 export function buildAttributesFromStep(step: Step | null): Attribute[] {
   if (!step) return [];
 
@@ -50,21 +55,32 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
   );
 }
 
-export function validateAttributesList(attributes: Attribute[]): string | null {
+export function validateAttributesList(
+  attributes: Attribute[]
+): ValidationError | null {
   const names = new Set<string>();
   for (const attr of attributes) {
     if (!attr.name.trim()) {
-      return "All attribute names are required";
+      return { key: "stepEditor.attributeNameRequired" };
     }
     if (names.has(attr.name)) {
-      return `Duplicate attribute name: ${attr.name}`;
+      return {
+        key: "stepEditor.duplicateAttributeName",
+        vars: { name: attr.name },
+      };
     }
     names.add(attr.name);
 
     if (attr.attrType === "optional" && attr.defaultValue) {
       const validation = validateDefaultValue(attr.defaultValue, attr.dataType);
       if (!validation.valid) {
-        return `Invalid default value for "${attr.name}": ${validation.error}`;
+        return {
+          key: "stepEditor.invalidDefaultValue",
+          vars: {
+            name: attr.name,
+            reason: validation.errorKey ?? "",
+          },
+        };
       }
     }
   }
@@ -122,9 +138,9 @@ export function getValidationError({
   script: string;
   endpoint: string;
   httpTimeout: number;
-}): string | null {
+}): ValidationError | null {
   if (isCreateMode && !stepId.trim()) {
-    return "Step ID is required";
+    return { key: "stepEditor.stepIdRequired" };
   }
 
   const attrError = validateAttributesList(attributes);
@@ -134,14 +150,14 @@ export function getValidationError({
 
   if (stepType === "script") {
     if (!script.trim()) {
-      return "Script code is required";
+      return { key: "stepEditor.scriptRequired" };
     }
   } else {
     if (!endpoint.trim()) {
-      return "HTTP endpoint is required";
+      return { key: "stepEditor.endpointRequired" };
     }
     if (!httpTimeout || httpTimeout <= 0) {
-      return "Timeout must be a positive number";
+      return { key: "stepEditor.timeoutPositive" };
     }
   }
 

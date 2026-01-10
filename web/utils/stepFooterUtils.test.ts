@@ -2,7 +2,6 @@ import {
   formatScriptPreview,
   getScriptIcon,
   getHttpIcon,
-  getSkipReason,
   formatScriptForTooltip,
 } from "./stepFooterUtils";
 import { SCRIPT_LANGUAGE_ALE } from "@/app/api";
@@ -55,31 +54,6 @@ describe("stepFooterUtils", () => {
     it("returns Globe for other step types", () => {
       expect(getHttpIcon("custom")).toBe(Globe);
       expect(getHttpIcon("")).toBe(Globe);
-    });
-  });
-
-  describe("getSkipReason", () => {
-    it("returns predicate reason when step has predicate", () => {
-      const step = {
-        id: "step-1",
-        name: "Test Step",
-        type: "sync" as const,
-        predicate: "x > 0",
-      };
-      expect(getSkipReason(step as any)).toBe(
-        "Step skipped because predicate evaluated to false"
-      );
-    });
-
-    it("returns input unavailable reason when step has no predicate", () => {
-      const step = {
-        id: "step-1",
-        name: "Test Step",
-        type: "sync" as const,
-      };
-      expect(getSkipReason(step as any)).toBe(
-        "Step skipped because required inputs are unavailable due to failed or skipped upstream steps"
-      );
     });
   });
 

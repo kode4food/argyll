@@ -7,6 +7,7 @@ import Footer from "@/app/components/molecules/OverviewStep/Footer";
 import { getStepType } from "@/utils/stepUtils";
 import { useStepHealth } from "@/app/hooks/useStepHealth";
 import { useStepEditorContext } from "@/app/contexts/StepEditorContext";
+import { useT } from "@/app/i18n";
 
 interface WidgetProps {
   step: Step;
@@ -38,6 +39,7 @@ const Widget: React.FC<WidgetProps> = ({
 
   const [localStep, setLocalStep] = useState(step);
   const { openEditor } = useStepEditorContext();
+  const t = useT();
 
   React.useEffect(() => {
     const handleOpenEditor = (event: Event) => {
@@ -96,7 +98,7 @@ const Widget: React.FC<WidgetProps> = ({
         style={style}
         onClick={onClick}
         onDoubleClick={handleDoubleClick}
-        title={isEditable ? "Double-click to edit step" : undefined}
+        title={isEditable ? t("overviewStep.doubleClickEdit") : undefined}
       >
         <StepHeader step={step} />
         <Attributes step={step} />

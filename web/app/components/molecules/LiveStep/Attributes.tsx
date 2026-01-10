@@ -17,6 +17,7 @@ import {
 } from "./attributeUtils";
 import { useAttributeStatusBadge } from "./useAttributeDisplay";
 import styles from "../StepShared/StepAttributesSection.module.css";
+import { useT } from "@/app/i18n";
 
 interface AttributesProps {
   step: Step;
@@ -33,6 +34,7 @@ const Attributes: React.FC<AttributesProps> = ({
   attributeProvenance = new Map(),
   attributeValues,
 }) => {
+  const t = useT();
   const renderStatusBadge = useAttributeStatusBadge();
 
   const unifiedArgs: UnifiedArg[] = getSortedAttributes(
@@ -103,7 +105,7 @@ const Attributes: React.FC<AttributesProps> = ({
 
         const tooltipContent = hasValue
           ? {
-              title: getAttributeTooltipTitle(arg.argType, wasDefaulted),
+              title: t(getAttributeTooltipTitle(arg.argType, wasDefaulted)),
               icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
               content: formatAttributeValue(value),
               monospace: true,

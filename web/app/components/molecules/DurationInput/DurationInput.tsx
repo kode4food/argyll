@@ -2,6 +2,7 @@ import React from "react";
 import { Clock } from "lucide-react";
 import { useDurationInput } from "./useDurationInput";
 import styles from "./DurationInput.module.css";
+import { useT } from "@/app/i18n";
 
 interface DurationInputProps {
   value: number; // milliseconds
@@ -14,6 +15,7 @@ const DurationInput: React.FC<DurationInputProps> = ({
   onChange,
   className,
 }) => {
+  const t = useT();
   const { inputValue, isValid, handlers } = useDurationInput(value, onChange);
 
   return (
@@ -26,8 +28,8 @@ const DurationInput: React.FC<DurationInputProps> = ({
         onFocus={handlers.onFocus}
         onBlur={handlers.onBlur}
         className={`${styles.input} ${!isValid ? styles.invalid : ""}`}
-        placeholder="e.g. 5d, 2 days 3h, 1.5 days"
-        title="Examples: 5d, 2 days, 1 day 3 hrs, 1.5 days, 2d 7h"
+        placeholder={t("durationInput.placeholder")}
+        title={t("durationInput.title")}
       />
     </div>
   );

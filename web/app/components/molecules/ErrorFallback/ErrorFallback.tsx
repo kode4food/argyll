@@ -1,6 +1,7 @@
 import React from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import styles from "./ErrorFallback.module.css";
+import { useT } from "@/app/i18n";
 
 interface ErrorFallbackProps {
   error: Error;
@@ -12,17 +13,23 @@ interface ErrorFallbackProps {
 const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   error,
   resetError,
-  title = "Something went wrong",
-  description = "An unexpected error occurred. You can try reloading this section",
+  title,
+  description,
 }) => {
+  const t = useT();
+  const fallbackTitle = title ?? t("errorFallback.title");
+  const fallbackDescription = description ?? t("errorFallback.description");
+
   return (
     <div className={styles.fallback}>
       <div className={styles.content}>
         <AlertCircle className={styles.icon} />
-        <h2 className={styles.title}>{title}</h2>
-        <p className={styles.description}>{description}</p>
+        <h2 className={styles.title}>{fallbackTitle}</h2>
+        <p className={styles.description}>{fallbackDescription}</p>
         <details className={styles.details}>
-          <summary className={styles.detailsSummary}>Error details</summary>
+          <summary className={styles.detailsSummary}>
+            {t("errorFallback.details")}
+          </summary>
           <pre className={styles.detailsPre}>
             {error.message}
             {error.stack && `\n\n${error.stack}`}
@@ -30,7 +37,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
         </details>
         <button onClick={resetError} className={styles.button}>
           <RefreshCw className={styles.buttonIcon} />
-          Try again
+          {t("common.tryAgain")}
         </button>
       </div>
     </div>

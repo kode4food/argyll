@@ -2,6 +2,7 @@ import React from "react";
 import { X, Command } from "lucide-react";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import styles from "./KeyboardShortcutsModal.module.css";
+import { useT } from "@/app/i18n";
 
 interface KeyboardShortcut {
   keys: string[];
@@ -14,43 +15,51 @@ interface KeyboardShortcutsModalProps {
   onClose: () => void;
 }
 
-const shortcuts: KeyboardShortcut[] = [
-  { keys: ["?"], description: "Show keyboard shortcuts", section: "General" },
-  { keys: ["/"], description: "Focus search", section: "General" },
-  {
-    keys: ["Esc"],
-    description: "Close modals / Deselect step",
-    section: "General",
-  },
-
-  {
-    keys: ["↑", "↓"],
-    description: "Navigate within dependency level",
-    section: "Navigation",
-  },
-  {
-    keys: ["←", "→"],
-    description: "Navigate between dependency levels",
-    section: "Navigation",
-  },
-  {
-    keys: ["Enter"],
-    description: "Open step editor (script steps)",
-    section: "Navigation",
-  },
-];
-
 const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const t = useT();
+  const generalSection = t("keyboardShortcuts.sectionGeneral");
+  const navigationSection = t("keyboardShortcuts.sectionNavigation");
+  const shortcuts: KeyboardShortcut[] = [
+    {
+      keys: ["?"],
+      description: t("keyboardShortcuts.showShortcuts"),
+      section: generalSection,
+    },
+    {
+      keys: ["/"],
+      description: t("keyboardShortcuts.focusSearch"),
+      section: generalSection,
+    },
+    {
+      keys: ["Esc"],
+      description: t("keyboardShortcuts.closeModals"),
+      section: generalSection,
+    },
+    {
+      keys: ["↑", "↓"],
+      description: t("keyboardShortcuts.navigateWithinLevel"),
+      section: navigationSection,
+    },
+    {
+      keys: ["←", "→"],
+      description: t("keyboardShortcuts.navigateBetweenLevels"),
+      section: navigationSection,
+    },
+    {
+      keys: ["Enter"],
+      description: t("keyboardShortcuts.openStepEditor"),
+      section: navigationSection,
+    },
+  ];
+
   useEscapeKey(isOpen, onClose);
 
   if (!isOpen) return null;
 
-  const sections = Array.from(
-    new Set(shortcuts.map((s) => s.section || "General"))
-  );
+  const sections = Array.from(new Set(shortcuts.map((s) => s.section)));
 
   return (
     <>
@@ -58,12 +67,12 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
         <div className={styles.header}>
           <div className={styles.headerContent}>
             <Command className={styles.headerIcon} />
-            <h2 className={styles.title}>Keyboard Shortcuts</h2>
+            <h2 className={styles.title}>{t("keyboardShortcuts.title")}</h2>
           </div>
           <button
             onClick={onClose}
             className={styles.closeButton}
-            aria-label="Close"
+            aria-label={t("keyboardShortcuts.close")}
           >
             <X className={styles.headerIcon} />
           </button>
@@ -75,7 +84,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
               <h3 className={styles.sectionTitle}>{section}</h3>
               <div className={styles.shortcutsList}>
                 {shortcuts
-                  .filter((s) => (s.section || "General") === section)
+                  .filter((s) => s.section === section)
                   .map((shortcut, index) => (
                     <div key={index} className={styles.shortcut}>
                       <span className={styles.shortcutDescription}>

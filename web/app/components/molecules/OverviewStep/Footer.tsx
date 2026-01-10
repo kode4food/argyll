@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Step, HealthStatus } from "@/app/api";
-import { getHealthIconClass, getHealthStatusText } from "@/utils/healthUtils";
+import { getHealthIconClass } from "@/utils/healthUtils";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import HealthDot from "@/app/components/atoms/HealthDot";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
@@ -12,6 +12,7 @@ import {
   formatScriptForTooltip,
 } from "@/utils/stepFooterUtils";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
+import { useT } from "@/app/i18n";
 
 interface FooterProps {
   step: Step;
@@ -20,8 +21,16 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
+  const t = useT();
   const healthIconClass = getHealthIconClass(healthStatus, step.type);
-  const healthText = getHealthStatusText(healthStatus, healthError);
+  const healthText =
+    healthStatus === "healthy"
+      ? t("healthStatus.healthy")
+      : healthStatus === "unhealthy"
+        ? healthError || t("healthStatus.unhealthy")
+        : healthStatus === "unconfigured"
+          ? t("healthStatus.unconfigured")
+          : t("healthStatus.unknown");
 
   const { displayInfo, tooltipSections } = useMemo(() => {
     let displayInfo: {
@@ -57,13 +66,15 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
       sections.push(
         <TooltipSection
           key="script"
-          title={`Script Preview (${step.script.language})`}
+          title={t("overviewStep.scriptPreview", {
+            language: step.script.language,
+          })}
         >
           <div className={tooltipStyles.valueCode}>
             {preview}
             {lineCount > 5 && (
               <div className={tooltipStyles.codeMore}>
-                ... ({lineCount - 5} more lines)
+                {t("overviewStep.moreLines", { count: lineCount - 5 })}
               </div>
             )}
           </div>
@@ -71,14 +82,17 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
       );
     } else if (step.http) {
       sections.push(
-        <TooltipSection key="endpoint" title="Endpoint URL">
+        <TooltipSection key="endpoint" title={t("overviewStep.endpointUrl")}>
           {step.http.endpoint}
         </TooltipSection>
       );
 
       if (step.http.health_check) {
         sections.push(
-          <TooltipSection key="health-check" title="Health Check URL">
+          <TooltipSection
+            key="health-check"
+            title={t("overviewStep.healthCheckUrl")}
+          >
             {step.http.health_check}
           </TooltipSection>
         );
@@ -88,7 +102,7 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
     sections.push(
       <TooltipSection
         key="health"
-        title="Health Status"
+        title={t("overviewStep.healthStatus")}
         icon={<HealthDot status={healthStatus} />}
       >
         {healthText}
@@ -96,7 +110,7 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
     );
 
     return { displayInfo, tooltipSections: sections };
-  }, [step, healthStatus, healthText]);
+  }, [step, healthStatus, healthText, t]);
 
   return (
     <Tooltip

@@ -89,9 +89,9 @@ describe("stepEditorUtils", () => {
         },
       ];
 
-      expect(validateAttributesList(attributes)).toBe(
-        "All attribute names are required"
-      );
+      expect(validateAttributesList(attributes)).toEqual({
+        key: "stepEditor.attributeNameRequired",
+      });
     });
 
     it("detects duplicate attribute names", () => {
@@ -110,9 +110,10 @@ describe("stepEditorUtils", () => {
         },
       ];
 
-      expect(validateAttributesList(attributes)).toBe(
-        "Duplicate attribute name: param"
-      );
+      expect(validateAttributesList(attributes)).toEqual({
+        key: "stepEditor.duplicateAttributeName",
+        vars: { name: "param" },
+      });
     });
 
     it("validates default values for optional attributes", () => {
@@ -127,8 +128,13 @@ describe("stepEditorUtils", () => {
       ];
 
       const error = validateAttributesList(attributes);
-      expect(error).toContain("Invalid default value");
-      expect(error).toContain("count");
+      expect(error).toEqual({
+        key: "stepEditor.invalidDefaultValue",
+        vars: {
+          name: "count",
+          reason: "validation.jsonInvalid",
+        },
+      });
     });
 
     it("allows optional attributes without default values", () => {
@@ -274,7 +280,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: 5000,
       });
 
-      expect(error).toBe("Step ID is required");
+      expect(error).toEqual({ key: "stepEditor.stepIdRequired" });
     });
 
     it("does not require step ID in edit mode", () => {
@@ -288,7 +294,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: 5000,
       });
 
-      expect(error).not.toBe("Step ID is required");
+      expect(error).not.toEqual({ key: "stepEditor.stepIdRequired" });
     });
 
     it("validates attributes using validateAttributesList", () => {
@@ -309,7 +315,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: 5000,
       });
 
-      expect(error).toBe("All attribute names are required");
+      expect(error).toEqual({ key: "stepEditor.attributeNameRequired" });
     });
 
     it("requires script content for script type", () => {
@@ -323,7 +329,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: 5000,
       });
 
-      expect(error).toBe("Script code is required");
+      expect(error).toEqual({ key: "stepEditor.scriptRequired" });
     });
 
     it("requires endpoint for http type", () => {
@@ -337,7 +343,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: 5000,
       });
 
-      expect(error).toBe("HTTP endpoint is required");
+      expect(error).toEqual({ key: "stepEditor.endpointRequired" });
     });
 
     it("validates timeout is positive for http type", () => {
@@ -351,7 +357,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: 0,
       });
 
-      expect(error).toBe("Timeout must be a positive number");
+      expect(error).toEqual({ key: "stepEditor.timeoutPositive" });
 
       error = getValidationError({
         isCreateMode: false,
@@ -363,7 +369,7 @@ describe("stepEditorUtils", () => {
         httpTimeout: -1000,
       });
 
-      expect(error).toBe("Timeout must be a positive number");
+      expect(error).toEqual({ key: "stepEditor.timeoutPositive" });
     });
 
     it("returns null for valid configuration", () => {

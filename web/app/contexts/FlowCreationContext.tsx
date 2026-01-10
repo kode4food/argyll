@@ -26,6 +26,7 @@ import {
 import { generateFlowId, generatePadded } from "@/utils/flowUtils";
 import { sortStepsByType } from "@/utils/stepUtils";
 import toast from "react-hot-toast";
+import { useT } from "@/app/i18n";
 
 export interface FlowCreationContextValue {
   newID: string;
@@ -59,6 +60,7 @@ export const FlowCreationStateProvider = ({
 }: {
   children: React.ReactNode;
 }) => {
+  const t = useT();
   const navigate = useNavigate();
   const steps = useSteps();
   const loadFlows = useLoadFlows();
@@ -241,7 +243,7 @@ export const FlowCreationStateProvider = ({
       await loadFlows();
       navigate(`/flow/${flowId}`);
     } catch (error: any) {
-      let errorMessage = "Unknown error";
+      let errorMessage = t("flowCreate.unknownError");
 
       if (error?.response?.data?.error) {
         errorMessage = error.response.data.error;
@@ -250,7 +252,7 @@ export const FlowCreationStateProvider = ({
       }
 
       removeFlow(flowId);
-      toast.error("Failed to create flow: " + errorMessage);
+      toast.error(t("flowCreate.createFailed", { error: errorMessage }));
       navigate("/");
     } finally {
       setCreating(false);
@@ -266,6 +268,7 @@ export const FlowCreationStateProvider = ({
     initialState,
     setShowCreateForm,
     previewPlan,
+    t,
   ]);
 
   const value = useMemo<FlowCreationContextValue>(

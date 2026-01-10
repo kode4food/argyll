@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Step, AttributeRole } from "@/app/api";
 import { getArgIcon } from "@/utils/argIcons";
 import styles from "./FlowStats.module.css";
+import { useT } from "@/app/i18n";
 
 interface FlowStatsProps {
   steps: Step[];
@@ -23,6 +24,7 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
   executionSequence,
   resolvedAttributes,
 }) {
+  const t = useT();
   const stats: StepStats = useMemo(() => {
     const planStepIds = new Set(executionSequence);
     const planSteps = steps.filter((step) => planStepIds.has(step.id));
@@ -86,7 +88,10 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
           className={`status-bubble ${styles.badge} ${styles.badgeRequired} stat-badge stat-badge--required`}
         >
           <RequiredIcon className={styles.badgeIcon} />
-          {stats.resolvedRequired} of {stats.requiredInputs}
+          {t("common.countOf", {
+            resolved: stats.resolvedRequired,
+            total: stats.requiredInputs,
+          })}
         </span>
       )}
       {stats.optionalInputs > 0 && (
@@ -94,7 +99,10 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
           className={`status-bubble ${styles.badge} ${styles.badgeOptional} stat-badge stat-badge--optional`}
         >
           <OptionalIcon className={styles.badgeIcon} />
-          {stats.resolvedOptional} of {stats.optionalInputs}
+          {t("common.countOf", {
+            resolved: stats.resolvedOptional,
+            total: stats.optionalInputs,
+          })}
         </span>
       )}
       {stats.outputs > 0 && (
@@ -102,7 +110,10 @@ const FlowStats: React.FC<FlowStatsProps> = React.memo(function FlowStats({
           className={`status-bubble ${styles.badge} ${styles.badgeOutput} stat-badge stat-badge--output`}
         >
           <OutputIcon className={styles.badgeIcon} />
-          {stats.resolvedOutputs} of {stats.outputs}
+          {t("common.countOf", {
+            resolved: stats.resolvedOutputs,
+            total: stats.outputs,
+          })}
         </span>
       )}
     </div>

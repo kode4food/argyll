@@ -3,6 +3,7 @@ import { useWebSocketClient } from "@/app/hooks/useWebSocketClient";
 import { useFlowStore } from "@/app/store/flowStore";
 import { FlowContext } from "@/app/api";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
+import { useT } from "@/app/i18n";
 
 const ENGINE_EVENT_TYPES = [
   "step_registered",
@@ -28,6 +29,7 @@ const FLOW_EVENT_TYPES = [
 ];
 
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
+  const t = useT();
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
   const loadFlows = useFlowStore((state) => state.loadFlows);
   const addStep = useFlowStore((state) => state.addStep);
@@ -178,7 +180,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         case "flow_failed":
           flowUpdate.status = "failed";
           flowUpdate.error_state = {
-            message: wsEvent.data?.error || "Flow failed",
+            message: wsEvent.data?.error || t("flow.failed"),
             step_id: "",
             timestamp: wsEvent.data?.failed_at || new Date().toISOString(),
           };
@@ -211,7 +213,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         updateFlowFromWebSocket(flowUpdate);
       }
     },
-    []
+    [t]
   );
 
   const engineClient = useWebSocketClient({

@@ -13,12 +13,14 @@ import {
   useStepEditorContext,
 } from "@/app/contexts/StepEditorContext";
 import { useStepEditorIntegration } from "./useStepEditorIntegration";
+import { useT } from "@/app/i18n";
 
 const OverviewDiagramContent: React.FC = () => {
   const { steps, loadSteps } = useFlowSession();
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
   const { openEditor } = useStepEditorContext();
+  const t = useT();
 
   const { handleStepCreated } = useStepEditorIntegration(
     (step) =>
@@ -34,8 +36,8 @@ const OverviewDiagramContent: React.FC = () => {
     return (
       <div className={styles.emptyStateContainer}>
         <EmptyState
-          title="No Steps Registered"
-          description="Register flow steps with the Argyll engine to see the flow diagram"
+          title={t("overview.noStepsTitle")}
+          description={t("overview.noStepsDescription")}
         />
       </div>
     );
@@ -48,9 +50,12 @@ const OverviewDiagramContent: React.FC = () => {
       header={
         <div className={styles.overviewHeader}>
           <div className={styles.overviewContent}>
-            <h2 className={styles.overviewTitle}>Step Dependencies</h2>
+            <h2 className={styles.overviewTitle}>{t("overview.title")}</h2>
             <div className={styles.overviewStats}>
-              {steps.length} step{steps.length !== 1 ? "s" : ""} registered
+              {t("overview.stepsRegistered", {
+                count: steps.length,
+                suffix: steps.length !== 1 ? "s" : "",
+              })}
               <button
                 onClick={(e) => {
                   openEditor({
@@ -61,8 +66,8 @@ const OverviewDiagramContent: React.FC = () => {
                   e.currentTarget.blur();
                 }}
                 className={styles.overviewAddStep}
-                title="Create New Step"
-                aria-label="Create New Step"
+                title={t("overview.addStep")}
+                aria-label={t("overview.addStep")}
               >
                 <Plus className={`${styles.iconMd} icon`} />
               </button>
@@ -72,8 +77,8 @@ const OverviewDiagramContent: React.FC = () => {
       }
     >
       <ErrorBoundary
-        title="Step Diagram Error"
-        description="An error occurred while rendering the step diagram"
+        title={t("diagram.errorTitle")}
+        description={t("diagram.errorDescription")}
       >
         <DiagramSelectionProvider
           value={{

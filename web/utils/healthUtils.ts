@@ -15,16 +15,3 @@ export const getHealthIconClass = (
       return "unknown";
   }
 };
-
-export const getHealthStatusText = (status: HealthStatus, error?: string) => {
-  switch (status) {
-    case "healthy":
-      return "Healthy";
-    case "unhealthy":
-      return error || "Unhealthy";
-    case "unconfigured":
-      return "No health check configured";
-    default:
-      return "Unknown";
-  }
-};

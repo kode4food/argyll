@@ -49,11 +49,11 @@ export const getAttributeTooltipTitle = (
 ): string => {
   switch (argType) {
     case "required":
-      return "Input Value";
+      return "liveStep.inputValue";
     case "optional":
-      return wasDefaulted ? "Default Value" : "Input Value";
+      return wasDefaulted ? "liveStep.defaultValue" : "liveStep.inputValue";
     case "output":
-      return "Output Value";
+      return "liveStep.outputValue";
   }
 };
 
