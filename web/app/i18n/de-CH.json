@@ -104,7 +104,11 @@
   "overview.noStepsTitle": "Keine Steps registriert",
   "overview.noVisibleDescription": "Registrieren Sie Steps, um ihre Abhängigkeitsbeziehungen im Diagramm zu sehen",
   "overview.noVisibleTitle": "Keine Steps zu visualisieren",
-  "overview.stepsRegistered": "{count} Step{suffix} registriert",
+  "overview.stepsRegistered": {
+    "zero": "Kein Step registriert",
+    "one": "1 Step registriert",
+    "other": "{count} Steps registriert"
+  },
   "overview.title": "Step-Abhängigkeiten",
   "overviewStep.doubleClickEdit": "Doppelklicken Sie, um Step zu bearbeiten",
   "overviewStep.endpointUrl": "Endpoint-URL",

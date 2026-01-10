@@ -104,7 +104,11 @@
   "overview.noStepsTitle": "No Steps Registered",
   "overview.noVisibleDescription": "Register steps to see their dependency relationships in diagram form",
   "overview.noVisibleTitle": "No Steps to Visualize",
-  "overview.stepsRegistered": "{count} step{suffix} registered",
+  "overview.stepsRegistered": {
+    "zero": "No steps registered",
+    "one": "1 step registered",
+    "other": "{count} steps registered"
+  },
   "overview.title": "Step Dependencies",
   "overviewStep.doubleClickEdit": "Double-click to edit step",
   "overviewStep.endpointUrl": "Endpoint URL",

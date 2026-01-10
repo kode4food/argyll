@@ -2,7 +2,14 @@ import React, { createContext, useCallback, useContext, useMemo } from "react";
 import commonMessages from "./common.json";
 import defaultMessages from "./en-US.json";
 
-type Messages = Record<string, string>;
+type PluralForms = {
+  zero?: string;
+  one?: string;
+  other: string;
+};
+
+type MessageValue = string | PluralForms;
+type Messages = Record<string, MessageValue>;
 type Vars = Record<string, string | number>;
 
 interface I18nContextValue {
@@ -31,6 +38,25 @@ const interpolate = (template: string, vars?: Vars) => {
   });
 };
 
+const isPluralForms = (value: MessageValue): value is PluralForms => {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    "other" in value &&
+    typeof value.other === "string"
+  );
+};
+
+const selectPluralForm = (forms: PluralForms, count: number): string => {
+  if (count === 0 && forms.zero !== undefined) {
+    return forms.zero;
+  }
+  if (count === 1 && forms.one !== undefined) {
+    return forms.one;
+  }
+  return forms.other;
+};
+
 const I18nProvider: React.FC<I18nProviderProps> = ({
   children,
   locale = "en-US",
@@ -43,8 +69,28 @@ const I18nProvider: React.FC<I18nProviderProps> = ({
 
   const t = useCallback(
     (key: string, vars?: Vars) => {
-      const template = mergedMessages[key] ?? key;
-      return interpolate(template, vars);
+      const message = mergedMessages[key];
+
+      // If message not found, return the key
+      if (!message) {
+        return key;
+      }
+
+      // Handle plural forms
+      if (isPluralForms(message)) {
+        const count = vars?.count;
+        if (typeof count !== "number") {
+          console.warn(
+            `Plural message "${key}" requires a numeric 'count' variable`
+          );
+          return key;
+        }
+        const template = selectPluralForm(message, count);
+        return interpolate(template, vars);
+      }
+
+      // Handle simple string messages
+      return interpolate(message, vars);
     },
     [mergedMessages]
   );

@@ -54,7 +54,6 @@ const OverviewDiagramContent: React.FC = () => {
             <div className={styles.overviewStats}>
               {t("overview.stepsRegistered", {
                 count: steps.length,
-                suffix: steps.length !== 1 ? "s" : "",
               })}
               <button
                 onClick={(e) => {

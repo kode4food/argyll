@@ -13,13 +13,20 @@ import frCH from "./i18n/fr-CH.json";
 import itCH from "./i18n/it-CH.json";
 import { useLocale } from "./store/i18nStore";
 
-type Messages = Record<string, string>;
+type PluralForms = {
+  zero?: string;
+  one?: string;
+  other: string;
+};
+
+type MessageValue = string | PluralForms;
+type Messages = Record<string, MessageValue>;
 
 const messagesByLocale: Record<string, Messages> = {
-  "en-US": enUS,
-  "de-CH": deCH,
-  "fr-CH": frCH,
-  "it-CH": itCH,
+  "en-US": enUS as Messages,
+  "de-CH": deCH as Messages,
+  "fr-CH": frCH as Messages,
+  "it-CH": itCH as Messages,
 };
 
 const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({
