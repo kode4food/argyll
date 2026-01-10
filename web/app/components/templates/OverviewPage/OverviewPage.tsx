@@ -14,14 +14,14 @@ function OverviewPageContent() {
     <div className={styles.page}>
       <ErrorBoundary
         title="Flow Selector Error"
-        description="An error occurred in the flow selector. Try refreshing the page."
+        description="An error occurred in the flow selector. Try refreshing the page"
       >
         <FlowSelector />
       </ErrorBoundary>
       <div className={styles.mainContent}>
         <ErrorBoundary
           title="Diagram Error"
-          description="An error occurred while rendering the diagram. Try selecting a different flow."
+          description="An error occurred while rendering the diagram. Try selecting a different flow"
         >
           <OverviewDiagram />
         </ErrorBoundary>

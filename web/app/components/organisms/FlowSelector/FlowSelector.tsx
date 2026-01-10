@@ -245,7 +245,7 @@ const FlowSelectorContent: React.FC = () => {
         </div>
         <ErrorBoundary
           title="Flow Form Error"
-          description="An error occurred in the flow creation form. Try closing and reopening the form."
+          description="An error occurred in the flow creation form. Try closing and reopening the form"
           onError={(error, errorInfo) => {
             console.error("Error in FlowCreateForm:", error);
             console.error("Component stack:", errorInfo.componentStack);

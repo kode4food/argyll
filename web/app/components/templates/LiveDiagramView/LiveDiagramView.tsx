@@ -12,8 +12,9 @@ import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import styles from "./LiveDiagramView.module.css";
-import Spinner from "@/app/components/atoms/Spinner";
+import { Server } from "lucide-react";
+import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
+import DiagramView from "@/app/components/molecules/DiagramView";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { STEP_LAYOUT } from "@/constants/layout";
@@ -80,14 +81,16 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
 
   if (isLoadingPlan || stepsToRender.length === 0) {
     return (
-      <div className={styles.emptyStateWrapper}>
-        <Spinner />
-      </div>
+      <DiagramEmptyState
+        icon={<Server />}
+        title="Loading Diagram"
+        description="Waiting for the flow plan to be available"
+      />
     );
   }
 
   return (
-    <div className={styles.diagramWrapper} ref={diagramContainerRef}>
+    <DiagramView ref={diagramContainerRef}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -113,7 +116,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
       </ReactFlow>
 
       <Legend />
-    </div>
+    </DiagramView>
   );
 };
 

@@ -16,8 +16,8 @@ import { Step } from "@/app/api";
 import { Server } from "lucide-react";
 import Node from "@/app/components/organisms/OverviewStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import styles from "./OverviewDiagramView.module.css";
-import EmptyState from "@/app/components/molecules/EmptyState";
+import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
+import DiagramView from "@/app/components/molecules/DiagramView";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useStepVisibility } from "./useStepVisibility";
 import { useNodeCalculation } from "./useNodeCalculation";
@@ -210,19 +210,16 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 
   if (!visibleSteps || visibleSteps.length === 0) {
     return (
-      <div className={styles.emptyStateWrapper}>
-        <EmptyState
-          icon={<Server />}
-          title="No Steps to Visualize"
-          description="Register steps to see their dependency relationships in diagram form."
-          className={styles.emptyStatePadding}
-        />
-      </div>
+      <DiagramEmptyState
+        icon={<Server />}
+        title="No Steps to Visualize"
+        description="Register steps to see their dependency relationships in diagram form"
+      />
     );
   }
 
   return (
-    <div className={styles.diagramWrapper} ref={diagramContainerRef}>
+    <DiagramView ref={diagramContainerRef}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -251,7 +248,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
       </ReactFlow>
 
       <Legend />
-    </div>
+    </DiagramView>
   );
 };
 

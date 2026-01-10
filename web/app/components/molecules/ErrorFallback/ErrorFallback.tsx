@@ -13,7 +13,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   error,
   resetError,
   title = "Something went wrong",
-  description = "An unexpected error occurred. You can try reloading this section.",
+  description = "An unexpected error occurred. You can try reloading this section",
 }) => {
   return (
     <div className={styles.fallback}>

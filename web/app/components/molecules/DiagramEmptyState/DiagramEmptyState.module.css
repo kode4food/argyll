@@ -1,25 +1,23 @@
-/* Overview Diagram View */
+/* Diagram Empty State */
 
-.emptyStateWrapper {
+.wrapper {
   background-color: var(--color-white);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-md);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 @media (min-width: 640px) {
-  .emptyStateWrapper {
+  .wrapper {
     border-radius: var(--radius-md);
   }
 }
 
-.emptyStatePadding {
+.padding {
   padding-top: var(--spacing-3xl);
   padding-bottom: var(--spacing-3xl);
-}
-
-.diagramWrapper {
-  position: relative;
-  height: 100%;
-  width: 100%;
 }

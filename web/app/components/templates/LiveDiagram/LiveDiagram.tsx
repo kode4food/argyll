@@ -35,7 +35,7 @@ const LiveDiagramContent: React.FC = () => {
           icon={<AlertCircle />}
           iconClassName={styles.notFoundIcon}
           title="Flow Not Found"
-          description={`The flow "${selectedFlow}" could not be found.`}
+          description={`The flow "${selectedFlow}" could not be found`}
         />
       </div>
     );
@@ -85,7 +85,7 @@ const LiveDiagramContent: React.FC = () => {
     >
       <ErrorBoundary
         title="Step Diagram Error"
-        description="An error occurred while rendering the step diagram."
+        description="An error occurred while rendering the step diagram"
       >
         <LiveDiagramView
           steps={steps || []}

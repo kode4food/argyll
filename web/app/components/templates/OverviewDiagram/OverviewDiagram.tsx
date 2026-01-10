@@ -35,7 +35,7 @@ const OverviewDiagramContent: React.FC = () => {
       <div className={styles.emptyStateContainer}>
         <EmptyState
           title="No Steps Registered"
-          description="Register flow steps with the Argyll engine to see the flow diagram."
+          description="Register flow steps with the Argyll engine to see the flow diagram"
         />
       </div>
     );
@@ -73,7 +73,7 @@ const OverviewDiagramContent: React.FC = () => {
     >
       <ErrorBoundary
         title="Step Diagram Error"
-        description="An error occurred while rendering the step diagram."
+        description="An error occurred while rendering the step diagram"
       >
         <DiagramSelectionProvider
           value={{
