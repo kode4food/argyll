@@ -178,7 +178,7 @@ describe("DurationInput", () => {
     expect(input).toHaveValue("3 hours");
   });
 
-  test("does not format value on blur when invalid", () => {
+  test("syncs back to value on blur when invalid", () => {
     render(<DurationInput value={5000} onChange={jest.fn()} />);
 
     const input = screen.getByRole("textbox");
@@ -187,8 +187,7 @@ describe("DurationInput", () => {
     expect(input).toHaveValue("invalid");
 
     fireEvent.blur(input);
-    // Should still show invalid input, not formatted
-    expect(input).toHaveValue("invalid");
+    expect(input).toHaveValue("5 seconds");
   });
 
   test("does not format empty value on blur", () => {
@@ -216,19 +215,20 @@ describe("DurationInput", () => {
     expect(input).toHaveValue("3 hours");
   });
 
-  test("does not update input when value changes while focused", () => {
+  test("does not update input when value changes while focused after local edit", () => {
     const { rerender } = render(
       <DurationInput value={5000} onChange={jest.fn()} />
     );
 
     const input = screen.getByRole("textbox");
     fireEvent.focus(input);
+    fireEvent.change(input, { target: { value: "2h" } });
 
     // Change value prop while focused
     rerender(<DurationInput value={10800000} onChange={jest.fn()} />);
 
     // Should still show old value
-    expect(input).toHaveValue("5 seconds");
+    expect(input).toHaveValue("2h");
   });
 
   test("applies custom className", () => {

@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { devtools, persist, createJSONStorage } from "zustand/middleware";
 
 const supportedLocales = ["en-US", "de-CH", "fr-CH", "it-CH"] as const;
+const defaultLocale = supportedLocales[0];
+const defaultLanguage = defaultLocale.split("-")[0] ?? "en";
 type Locale = (typeof supportedLocales)[number];
 
 interface I18nState {
@@ -19,7 +21,7 @@ const useI18nStore = create<I18nState>()(
   devtools(
     persist(
       (set) => ({
-        locale: "en-US",
+        locale: defaultLocale,
         setLocale: (locale) => set({ locale }, false, "i18n/setLocale"),
       }),
       {
@@ -43,4 +45,11 @@ if (isDevHost) {
 const useLocale = () => useI18nStore((state) => state.locale);
 const useSetLocale = () => useI18nStore((state) => state.setLocale);
 
-export { supportedLocales, useI18nStore, useLocale, useSetLocale };
+export {
+  defaultLanguage,
+  defaultLocale,
+  supportedLocales,
+  useI18nStore,
+  useLocale,
+  useSetLocale,
+};

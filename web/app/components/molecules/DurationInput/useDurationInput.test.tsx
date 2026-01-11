@@ -1,7 +1,14 @@
 import { renderHook, act } from "@testing-library/react";
 import { useDurationInput } from "./useDurationInput";
+import { useI18nStore } from "@/app/store/i18nStore";
 
 describe("useDurationInput", () => {
+  afterEach(() => {
+    act(() => {
+      useI18nStore.setState({ locale: "en-US" });
+    });
+  });
+
   it("initializes with empty input when value is 0", () => {
     const { result } = renderHook(() => useDurationInput(0, jest.fn()));
 
@@ -106,6 +113,21 @@ describe("useDurationInput", () => {
       expect(onChange).toHaveBeenCalledWith(7200000); // 2h in ms
     });
 
+    it("parses localized duration strings", () => {
+      useI18nStore.setState({ locale: "fr-CH" });
+      const onChange = jest.fn();
+      const { result } = renderHook(() => useDurationInput(0, onChange));
+
+      act(() => {
+        result.current.handlers.onChange({
+          target: { value: "2 heures" },
+        } as any);
+      });
+
+      expect(result.current.isValid).toBe(true);
+      expect(onChange).toHaveBeenCalledWith(7200000);
+    });
+
     it("handles negative durations as invalid", () => {
       const onChange = jest.fn();
       const { result } = renderHook(() => useDurationInput(0, onChange));
@@ -181,31 +203,30 @@ describe("useDurationInput", () => {
       expect(result.current.inputValue).toBe("2 hours");
     });
 
-    it("does not reformat invalid input on blur", () => {
+    it("syncs back to value on blur when input is invalid", () => {
       const onChange = jest.fn();
       const { result } = renderHook(() => useDurationInput(0, onChange));
 
       act(() => {
+        result.current.handlers.onFocus();
         result.current.handlers.onChange({
           target: { value: "invalid" },
         } as any);
       });
 
-      const invalidValue = result.current.inputValue;
-
       act(() => {
         result.current.handlers.onBlur();
       });
 
-      // Should keep invalid input as is
-      expect(result.current.inputValue).toBe(invalidValue);
+      expect(result.current.inputValue).toBe("");
     });
 
-    it("does not reformat empty input on blur", () => {
+    it("syncs back to value on blur when input is cleared", () => {
       const onChange = jest.fn();
       const { result } = renderHook(() => useDurationInput(60000, onChange));
 
       act(() => {
+        result.current.handlers.onFocus();
         result.current.handlers.onChange({
           target: { value: "" },
         } as any);
@@ -215,7 +236,7 @@ describe("useDurationInput", () => {
         result.current.handlers.onBlur();
       });
 
-      expect(result.current.inputValue).toBe("");
+      expect(result.current.inputValue).toBe("1 minute");
     });
   });
 
@@ -233,7 +254,7 @@ describe("useDurationInput", () => {
       expect(result.current.inputValue).toBe("1 hour");
     });
 
-    it("does not sync value when focused", () => {
+    it("does not sync value when focused after local edit", () => {
       const { result, rerender } = renderHook(
         ({ value }) => useDurationInput(value, jest.fn()),
         { initialProps: { value: 60000 } }
@@ -241,6 +262,9 @@ describe("useDurationInput", () => {
 
       act(() => {
         result.current.handlers.onFocus();
+        result.current.handlers.onChange({
+          target: { value: "2h" },
+        } as any);
       });
 
       const focusedValue = result.current.inputValue;
