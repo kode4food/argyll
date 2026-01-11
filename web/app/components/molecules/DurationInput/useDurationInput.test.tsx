@@ -128,6 +128,23 @@ describe("useDurationInput", () => {
       expect(onChange).toHaveBeenCalledWith(7200000);
     });
 
+    it("parses numeric input with comma decimal for locale", () => {
+      act(() => {
+        useI18nStore.setState({ locale: "fr-CH" as any });
+      });
+      const onChange = jest.fn();
+      const { result } = renderHook(() => useDurationInput(0, onChange));
+
+      act(() => {
+        result.current.handlers.onChange({
+          target: { value: "1,5" },
+        } as any);
+      });
+
+      expect(result.current.isValid).toBe(true);
+      expect(onChange).toHaveBeenCalledWith(1.5);
+    });
+
     it("handles negative durations as invalid", () => {
       const onChange = jest.fn();
       const { result } = renderHook(() => useDurationInput(0, onChange));
@@ -241,6 +258,15 @@ describe("useDurationInput", () => {
   });
 
   describe("value synchronization", () => {
+    it("falls back to default language for unsupported locale", () => {
+      act(() => {
+        useI18nStore.setState({ locale: "xx-XX" as any });
+      });
+      const { result } = renderHook(() => useDurationInput(60000, jest.fn()));
+
+      expect(result.current.inputValue).toBe("1 minute");
+    });
+
     it("syncs value when not focused", () => {
       const { result, rerender } = renderHook(
         ({ value }) => useDurationInput(value, jest.fn()),

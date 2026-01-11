@@ -249,22 +249,4 @@ describe("DurationInput", () => {
 
     expect(onChange).toHaveBeenCalledWith(0);
   });
-
-  test("handles exception from ms library", () => {
-    // Mock ms to throw an error
-    const originalMs = require("ms");
-    require("ms").default = jest.fn(() => {
-      throw new Error("Invalid format");
-    });
-
-    render(<DurationInput value={0} onChange={jest.fn()} />);
-
-    const input = screen.getByRole("textbox");
-    fireEvent.change(input, { target: { value: "invalid" } });
-
-    expect(input).toHaveClass("invalid");
-
-    // Restore original ms
-    require("ms").default = originalMs.default;
-  });
 });

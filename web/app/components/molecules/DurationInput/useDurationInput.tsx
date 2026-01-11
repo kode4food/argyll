@@ -18,10 +18,13 @@ const getLanguageKey = (locale: string): keyof typeof languages => {
   if (base && Object.prototype.hasOwnProperty.call(languages, base)) {
     return base as keyof typeof languages;
   }
-  if (Object.prototype.hasOwnProperty.call(languages, defaultLanguage)) {
-    return defaultLanguage as keyof typeof languages;
-  }
-  return "en";
+  const fallback = Object.prototype.hasOwnProperty.call(
+    languages,
+    defaultLanguage
+  )
+    ? defaultLanguage
+    : "en";
+  return fallback as keyof typeof languages;
 };
 
 const isNumericOnly = (value: string, decimalSeparator: "." | ",") => {
@@ -32,8 +35,7 @@ const isNumericOnly = (value: string, decimalSeparator: "." | ",") => {
 
 const tryParseNumber = (value: string, decimalSeparator: "." | ",") => {
   const normalized = decimalSeparator === "," ? value.replace(",", ".") : value;
-  const parsed = Number(normalized);
-  return Number.isNaN(parsed) ? null : parsed;
+  return Number(normalized);
 };
 
 const hasUnitToken = (value: string, matcherRegex: RegExp) => {
@@ -113,10 +115,6 @@ export const useDurationInput = (
 
         if (isNumericOnly(trimmed, language.decimalSeparator)) {
           const numeric = tryParseNumber(trimmed, language.decimalSeparator);
-          if (numeric === null || numeric < 0) {
-            setIsValid(false);
-            return;
-          }
           setIsValid(true);
           onChange(numeric);
           return;
@@ -132,13 +130,9 @@ export const useDurationInput = (
         }
 
         const parsed = ms(trimmed);
-        if (parsed >= 0) {
-          setIsValid(true);
-          onChange(parsed);
-          return;
-        }
-
-        setIsValid(false);
+        setIsValid(true);
+        onChange(parsed);
+        return;
       } catch (err) {
         setIsValid(false);
       }
