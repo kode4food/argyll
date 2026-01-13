@@ -190,6 +190,8 @@ github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfh
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
 github.com/kode4food/timebox v0.0.0-20260102084608-c6685bd1d991 h1:R5smOeivZUyQ1cgsEcChqPyJGZDO4yPi+gW9Bg8v3h4=
 github.com/kode4food/timebox v0.0.0-20260102084608-c6685bd1d991/go.mod h1:cOp/VmepuETggsn02KClU1ibloZrZQDWl8ZmPfWuWM0=
+github.com/kode4food/timebox v0.0.0-20260113121026-eef46f61520e h1:N7WgXLTfJ6Fr03fXye4Fr7yC3XzC3qAWrwyIGqelbPM=
+github.com/kode4food/timebox v0.0.0-20260113121026-eef46f61520e/go.mod h1:tB7LwYv7eFCJkeaGbwW8S6v/kLC9Ho2EHD82/5XcG60=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=

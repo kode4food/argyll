@@ -39,7 +39,7 @@ type (
 		LastActive time.Time `json:"last_active"`
 	}
 
-	// DeactivatedFlow tracks when a flow was deactivated for hibernation
+	// DeactivatedFlow tracks when a flow was deactivated for archiving
 	DeactivatedFlow struct {
 		FlowID        FlowID    `json:"flow_id"`
 		DeactivatedAt time.Time `json:"deactivated_at"`
@@ -195,7 +195,7 @@ func (e *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
 }
 
 // AddDeactivated returns a new EngineState with the flow added to the
-// deactivated list. The list maintains time order (oldest first).
+// deactivated list. The list maintains time order (oldest first)
 func (e *EngineState) AddDeactivated(info *DeactivatedFlow) *EngineState {
 	res := *e
 	res.Deactivated = append(slices.Clone(e.Deactivated), info)
@@ -203,7 +203,7 @@ func (e *EngineState) AddDeactivated(info *DeactivatedFlow) *EngineState {
 }
 
 // RemoveDeactivated returns a new EngineState with the flow removed from
-// the deactivated list (typically after hibernation).
+// the deactivated list (typically after archiving)
 func (e *EngineState) RemoveDeactivated(id FlowID) *EngineState {
 	idx := -1
 	for i, info := range e.Deactivated {

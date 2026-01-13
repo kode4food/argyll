@@ -47,7 +47,6 @@ engine/
   internal/
     engine/      # Core orchestration (engine.go, flow.go, flow-exec.go, step.go, work-exec.go)
     events/      # Event sourcing types and projections
-    hibernate/   # Flow archival to blob storage
     client/      # HTTP client for step invocation
     config/      # Configuration management
     server/      # HTTP/WebSocket API (Gin-based)
@@ -73,7 +72,7 @@ examples/        # Sample step implementations
 7. Health monitoring
 8. Separate engine/workflow stores
 9. Step retry with configurable backoff
-10. Flow hibernation (S3, GCS, Azure archival)
+10. Flow archiving (Redis stream consumption)
 
 ### ⚠️ Partial
 

@@ -9,15 +9,19 @@ ENGINE_REDIS_PASSWORD=
 ENGINE_REDIS_DB=0
 ENGINE_REDIS_PREFIX=argyll:engine
 
-# Workflow store (workflow execution state)
-WORKFLOW_REDIS_ADDR=localhost:6379
-WORKFLOW_REDIS_PASSWORD=
-WORKFLOW_REDIS_DB=0
-WORKFLOW_REDIS_PREFIX=argyll:workflow
+# Flow store (flow execution state)
+FLOW_REDIS_ADDR=localhost:6379
+FLOW_REDIS_PASSWORD=
+FLOW_REDIS_DB=0
+FLOW_REDIS_PREFIX=argyll:flow
 
-# Hibernation (optional - archives completed flows to blob storage)
-HIBERNATOR_URL=s3://bucket-name?region=us-east-1  # or gs://, azblob://
-HIBERNATOR_PREFIX=archived/
+# Archiving (flows only)
+ARCHIVE_ENABLED=true
+
+# Archiving policy (for deactivated flows)
+ARCHIVE_CHECK_INTERVAL=30s
+ARCHIVE_MEMORY_PERCENT=80
+ARCHIVE_MAX_AGE=24h
 ```
 
 ## Store Separation
@@ -47,7 +51,7 @@ Engine and workflow stores can use different Valkey instances:
 2. Use dedicated Valkey instances for engine vs workflow state
 3. Limit who can create script steps
 4. Add external monitoring (no built-in metrics)
-5. Configure hibernation for long-term flow archival
+5. Configure archiving and an external consumer for long-term deactivated flow storage
 
 **Performance:**
 - Peak throughput: 6000+ workflows/second per instance

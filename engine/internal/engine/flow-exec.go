@@ -438,7 +438,7 @@ func (e enqueued) exec() {
 
 // handleStepFailure handles common failure logic for processWorkFailed and
 // processWorkNotCompleted - checking step completion and propagating failures.
-// Returns a deferred hibernation function if the flow becomes ready to archive.
+// Returns a deferred archiving function if the flow becomes ready to archive
 func (a *flowActor) handleStepFailure(
 	ag *FlowAggregator, stepID api.StepID,
 ) (deferred, error) {

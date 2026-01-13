@@ -63,7 +63,7 @@ Remaining work items complete (recorded for audit)
   ↓
 flow_deactivated event (when terminal + no active work)
   ↓
-Hibernation triggered
+Archiving triggered
 ```
 
 ## Flow Lifecycle Events
@@ -88,13 +88,13 @@ immediately deactivate. Work items may still be in-flight:
 3. Reservation still running, completes 100ms later
 4. work_succeeded recorded (outputs available for compensation)
 5. No more active work → flow_deactivated emitted
-6. Hibernation triggered by handleFlowDeactivated
+6. Archiving triggered by handleFlowDeactivated
 ```
 
 This separation enables:
 - Complete audit trail of all step executions
 - Outputs available for compensation/reversal
-- Policy-based hibernation (future: memory pressure, etc.)
+- Policy-based archiving (memory pressure, age, etc.)
 
 ## Multi-Instance Coordination
 

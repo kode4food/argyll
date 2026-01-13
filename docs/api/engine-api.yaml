@@ -639,7 +639,7 @@ components:
             $ref: "#/components/schemas/ActiveFlowInfo"
         deactivated:
           type: array
-          description: List of deactivated flows pending hibernation
+          description: List of deactivated flows pending archiving
           items:
             $ref: "#/components/schemas/DeactivatedFlowInfo"
         last_updated:

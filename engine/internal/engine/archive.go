@@ -15,8 +15,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-// HibernateWorker monitors memory pressure and age to hibernate flows
-type HibernateWorker struct {
+// ArchiveWorker monitors memory pressure and age to archive flows
+type ArchiveWorker struct {
 	engine      *Engine
 	redisClient *redis.Client
 	config      *config.Config
@@ -25,9 +25,9 @@ type HibernateWorker struct {
 	wg          sync.WaitGroup
 }
 
-// NewHibernateWorker creates a worker that monitors the flows Redis for memory
-// pressure and hibernates deactivated flows accordingly
-func NewHibernateWorker(e *Engine, cfg *config.Config) *HibernateWorker {
+// NewArchiveWorker creates a worker that monitors the flows Redis for memory
+// pressure and archives deactivated flows accordingly
+func NewArchiveWorker(e *Engine, cfg *config.Config) *ArchiveWorker {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	client := redis.NewClient(&redis.Options{
@@ -36,7 +36,7 @@ func NewHibernateWorker(e *Engine, cfg *config.Config) *HibernateWorker {
 		DB:       cfg.FlowStore.DB,
 	})
 
-	return &HibernateWorker{
+	return &ArchiveWorker{
 		engine:      e,
 		redisClient: client,
 		config:      cfg,
@@ -45,23 +45,23 @@ func NewHibernateWorker(e *Engine, cfg *config.Config) *HibernateWorker {
 	}
 }
 
-// Start begins the hibernation monitoring loop
-func (w *HibernateWorker) Start() {
+// Start begins the archiving monitoring loop
+func (w *ArchiveWorker) Start() {
 	w.wg.Add(1)
 	go w.run()
 }
 
-// Stop gracefully shuts down the hibernation worker
-func (w *HibernateWorker) Stop() {
+// Stop gracefully shuts down the archiving worker
+func (w *ArchiveWorker) Stop() {
 	w.cancel()
 	w.wg.Wait()
 	_ = w.redisClient.Close()
 }
 
-func (w *HibernateWorker) run() {
+func (w *ArchiveWorker) run() {
 	defer w.wg.Done()
 
-	ticker := time.NewTicker(w.config.Hibernate.CheckInterval)
+	ticker := time.NewTicker(w.config.Archive.CheckInterval)
 	defer ticker.Stop()
 
 	for {
@@ -69,12 +69,12 @@ func (w *HibernateWorker) run() {
 		case <-w.ctx.Done():
 			return
 		case <-ticker.C:
-			w.checkAndHibernate()
+			w.checkAndArchive()
 		}
 	}
 }
 
-func (w *HibernateWorker) checkAndHibernate() {
+func (w *ArchiveWorker) checkAndArchive() {
 	memoryPressure := w.checkMemoryPressure()
 	now := time.Now()
 
@@ -88,19 +88,19 @@ func (w *HibernateWorker) checkAndHibernate() {
 			continue
 		}
 
-		shouldHibernate := false
+		shouldArchive := false
 		reason := ""
 
 		if memoryPressure {
-			shouldHibernate = true
+			shouldArchive = true
 			reason = "memory pressure"
-		} else if now.Sub(info.DeactivatedAt) > w.config.Hibernate.MaxAge {
-			shouldHibernate = true
+		} else if now.Sub(info.DeactivatedAt) > w.config.Archive.MaxAge {
+			shouldArchive = true
 			reason = "max age exceeded"
 		}
 
-		if shouldHibernate {
-			w.hibernateFlow(info.FlowID, reason)
+		if shouldArchive {
+			w.archiveFlow(info.FlowID, reason)
 		}
 
 		if memoryPressure {
@@ -109,7 +109,7 @@ func (w *HibernateWorker) checkAndHibernate() {
 	}
 }
 
-func (w *HibernateWorker) checkMemoryPressure() bool {
+func (w *ArchiveWorker) checkMemoryPressure() bool {
 	info, err := w.redisClient.Info(w.ctx, "memory").Result()
 	if err != nil {
 		slog.Warn("Failed to get Redis memory info", log.Error(err))
@@ -122,24 +122,24 @@ func (w *HibernateWorker) checkMemoryPressure() bool {
 	}
 
 	usedPercent := (float64(usedMemory) / float64(maxMemory)) * 100
-	return usedPercent >= w.config.Hibernate.MemoryPercent
+	return usedPercent >= w.config.Archive.MemoryPercent
 }
 
-func (w *HibernateWorker) hibernateFlow(flowID api.FlowID, reason string) {
-	w.engine.hibernateFlow(flowID)
+func (w *ArchiveWorker) archiveFlow(flowID api.FlowID, reason string) {
+	w.engine.archiveFlow(flowID)
 
 	err := w.engine.raiseEngineEvent(
 		w.ctx,
-		api.EventTypeFlowHibernated,
-		api.FlowHibernatedEvent{FlowID: flowID},
+		api.EventTypeFlowArchived,
+		api.FlowArchivedEvent{FlowID: flowID},
 	)
 	if err != nil {
-		slog.Warn("Failed to raise flow hibernated event",
+		slog.Warn("Failed to raise flow archived event",
 			log.FlowID(flowID), log.Error(err))
 		return
 	}
 
-	slog.Info("Flow hibernated by worker",
+	slog.Info("Flow archived by worker",
 		log.FlowID(flowID),
 		slog.String("reason", reason))
 }

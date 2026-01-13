@@ -32,7 +32,7 @@ type (
 		flows      sync.Map // map[flowID]*flowActor
 		handler    timebox.Handler
 		retryQueue *RetryQueue
-		hibernate  *HibernateWorker
+		archiver   *ArchiveWorker
 	}
 
 	// EventConsumer consumes events from the event hub
@@ -86,8 +86,8 @@ func New(
 	}
 	e.handler = e.createEventHandler()
 
-	if cfg.FlowStore.Hibernator != nil {
-		e.hibernate = NewHibernateWorker(e, cfg)
+	if cfg.Archive.Enabled {
+		e.archiver = NewArchiveWorker(e, cfg)
 	}
 
 	return e
@@ -126,9 +126,9 @@ func (e *Engine) Start() {
 	go e.eventLoop()
 	go e.retryLoop()
 
-	if e.hibernate != nil {
-		e.hibernate.Start()
-		slog.Info("Hibernation worker started")
+	if e.archiver != nil {
+		e.archiver.Start()
+		slog.Info("Archive worker started")
 	}
 }
 
@@ -136,8 +136,8 @@ func (e *Engine) Start() {
 func (e *Engine) Stop() error {
 	e.cancel()
 	e.retryQueue.Stop()
-	if e.hibernate != nil {
-		e.hibernate.Stop()
+	if e.archiver != nil {
+		e.archiver.Stop()
 	}
 	defer e.consumer.Close()
 
@@ -301,17 +301,17 @@ func (e *Engine) handleFlowFailed(
 	return nil
 }
 
-func (e *Engine) hibernateFlow(flowID api.FlowID) {
+func (e *Engine) archiveFlow(flowID api.FlowID) {
 	store := e.flowExec.GetStore()
-	err := store.Hibernate(context.Background(), flowKey(flowID))
+	err := store.Archive(context.Background(), flowKey(flowID))
 	if err == nil {
-		slog.Info("Flow hibernated", log.FlowID(flowID))
+		slog.Info("Flow archived", log.FlowID(flowID))
 		return
 	}
-	if errors.Is(err, timebox.ErrNoHibernator) {
+	if errors.Is(err, timebox.ErrArchivingDisabled) {
 		return
 	}
-	slog.Warn("Failed to hibernate flow", log.FlowID(flowID), log.Error(err))
+	slog.Warn("Failed to archive flow", log.FlowID(flowID), log.Error(err))
 }
 
 func (e *Engine) handleRetryScheduled(

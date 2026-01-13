@@ -113,7 +113,7 @@ func (c *Client) GetStepFromAPI(id StepID)      // Use Fetch
 ```go
 // Good
 func NewEngine(store Store) *Engine
-func NewBlobHibernator(ctx context.Context, url string) (*BlobHibernator, error)
+func NewArchiveWorker(ctx context.Context, url string) (*ArchiveWorker, error)
 
 // Bad
 func CreateEngine(store Store) *Engine
@@ -126,8 +126,8 @@ Single-method interfaces use `-er` suffix. Capabilities, not implementations:
 
 ```go
 // Good - describes what it does
-type Hibernator interface {
-    Hibernate(ctx context.Context, key string) error
+type Archiver interface {
+    Archive(ctx context.Context, key string) error
 }
 
 type EventConsumer interface {
@@ -135,8 +135,8 @@ type EventConsumer interface {
 }
 
 // Bad - describes what it is
-type HibernatorInterface interface { ... }
-type IHibernator interface { ... }
+type ArchiverInterface interface { ... }
+type IArchiver interface { ... }
 ```
 
 ### Constant Names
@@ -214,9 +214,9 @@ Maximum 80 characters per line (tabs count as 4 spaces). Break long signatures
 after opening paren:
 
 ```go
-func NewBlobHibernator(
+func NewArchiveWorker(
 	ctx context.Context, bucketURL, prefix string,
-) (*BlobHibernator, error) {
+) (*ArchiveWorker, error) {
 ```
 
 ## File Organization
@@ -332,8 +332,8 @@ Minimum 90% test coverage.
 All tests use `package_test` suffix:
 
 ```go
-package hibernate_test  // Good
-package hibernate       // Bad
+package archive_test  // Good
+package archive       // Bad
 ```
 
 ### Test Naming
@@ -342,7 +342,7 @@ Function names short, subtests can be longer:
 
 ```go
 // Good - short function name
-func TestHibernate(t *testing.T) {
+func TestArchive(t *testing.T) {
     t.Run("returns error when bucket unavailable", func(t *testing.T) {
         // ...
     })
@@ -355,7 +355,7 @@ func TestStore_Get(t *testing.T) { ... }
 func TestEngine_Start(t *testing.T) { ... }
 
 // Bad - function name is a novel
-func TestHibernateReturnsErrorWhenBucketIsUnavailable(t *testing.T) { ... }
+func TestArchiveReturnsErrorWhenBucketIsUnavailable(t *testing.T) { ... }
 func TestEngineShouldStartCorrectlyWhenConfigIsValid(t *testing.T) { ... }
 ```
 
@@ -390,15 +390,15 @@ assert.Equal(t, expected, actual, "values should match")
 Exported symbols need godoc that adds value beyond the name:
 
 ```go
-// BlobHibernator implements timebox.Hibernator using gocloud.dev/blob,
-// supporting S3, GCS, Azure Blob Storage, and S3-compatible stores
-type BlobHibernator struct {
+// ArchiveWorker implements flow archiving policy using timebox.Store,
+// supporting external consumers for long-term storage
+type ArchiveWorker struct {
 ```
 
 Skip godoc when the name is self-documenting:
 
 ```go
-func NewBlobHibernator(...) (*BlobHibernator, error) {
+func NewArchiveWorker(...) (*ArchiveWorker, error) {
 ```
 
 ### Inline Comments
@@ -411,7 +411,7 @@ bucket, err := blob.OpenBucket(ctx, url)  // Open the bucket
 return err                                 // Return the error
 
 // Good - explains WHY
-// Delete succeeds on missing key to make hibernation idempotent
+// Delete succeeds on missing key to make archiving idempotent
 if gcerrors.Code(err) == gcerrors.NotFound {
 	return nil
 }
@@ -422,7 +422,7 @@ if gcerrors.Code(err) == gcerrors.NotFound {
 Compile-time interface checks:
 
 ```go
-var _ timebox.Hibernator = (*BlobHibernator)(nil)
+var _ Archiver = (*ArchiveWorker)(nil)
 ```
 
 ## Error Handling

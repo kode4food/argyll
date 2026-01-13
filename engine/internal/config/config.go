@@ -21,10 +21,10 @@ type (
 		WebhookBaseURL string
 		LogLevel       string
 
-		// Stores & Hibernation
+		// Stores & Archiving
 		EngineStore timebox.StoreConfig
 		FlowStore   timebox.StoreConfig
-		Hibernate   HibernateConfig
+		Archive     ArchiveConfig
 
 		// Work & Retry
 		Work api.WorkConfig
@@ -35,10 +35,9 @@ type (
 		ShutdownTimeout time.Duration
 	}
 
-	// HibernateConfig holds hibernation settings
-	HibernateConfig struct {
-		URL           string
-		Prefix        string
+	// ArchiveConfig holds archive settings for deactivated flows
+	ArchiveConfig struct {
+		Enabled       bool
 		CheckInterval time.Duration
 		MemoryPercent float64
 		MaxAge        time.Duration
@@ -66,9 +65,9 @@ const (
 	DefaultRetryMaxBackoffMs = 60000
 	DefaultRetryBackoffType  = api.BackoffTypeExponential
 
-	DefaultHibernateCheckInterval = 30 * time.Second
-	DefaultHibernateMemoryPercent = 80.0
-	DefaultHibernateMaxAge        = 24 * time.Hour
+	DefaultArchiveCheckInterval = 30 * time.Second
+	DefaultArchiveMemoryPercent = 80.0
+	DefaultArchiveMaxAge        = 24 * time.Hour
 )
 
 var (
@@ -111,10 +110,10 @@ func NewDefaultConfig() *Config {
 		FlowCacheSize:   DefaultCacheSize,
 		ShutdownTimeout: DefaultShutdownTimeout,
 		LogLevel:        "info",
-		Hibernate: HibernateConfig{
-			CheckInterval: DefaultHibernateCheckInterval,
-			MemoryPercent: DefaultHibernateMemoryPercent,
-			MaxAge:        DefaultHibernateMaxAge,
+		Archive: ArchiveConfig{
+			CheckInterval: DefaultArchiveCheckInterval,
+			MemoryPercent: DefaultArchiveMemoryPercent,
+			MaxAge:        DefaultArchiveMaxAge,
 		},
 	}
 }
@@ -164,25 +163,24 @@ func (c *Config) LoadFromEnv() {
 		c.Work.BackoffType = backoffType
 	}
 
-	if url := os.Getenv("HIBERNATE_URL"); url != "" {
-		c.Hibernate.URL = url
+	if enabled := os.Getenv("ARCHIVE_ENABLED"); enabled != "" {
+		if val, err := strconv.ParseBool(enabled); err == nil {
+			c.Archive.Enabled = val
+		}
 	}
-	if prefix := os.Getenv("HIBERNATE_PREFIX"); prefix != "" {
-		c.Hibernate.Prefix = prefix
-	}
-	if interval := os.Getenv("HIBERNATE_CHECK_INTERVAL"); interval != "" {
+	if interval := os.Getenv("ARCHIVE_CHECK_INTERVAL"); interval != "" {
 		if d, err := time.ParseDuration(interval); err == nil {
-			c.Hibernate.CheckInterval = d
+			c.Archive.CheckInterval = d
 		}
 	}
-	if pct := os.Getenv("HIBERNATE_MEMORY_PERCENT"); pct != "" {
+	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {
-			c.Hibernate.MemoryPercent = f
+			c.Archive.MemoryPercent = f
 		}
 	}
-	if maxAge := os.Getenv("HIBERNATE_MAX_AGE"); maxAge != "" {
+	if maxAge := os.Getenv("ARCHIVE_MAX_AGE"); maxAge != "" {
 		if d, err := time.ParseDuration(maxAge); err == nil {
-			c.Hibernate.MaxAge = d
+			c.Archive.MaxAge = d
 		}
 	}
 }
