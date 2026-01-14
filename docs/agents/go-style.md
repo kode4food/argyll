@@ -227,9 +227,9 @@ Run `goimports` on all files. It handles grouping and sorting automatically.
 
 ### Top-Level Declaration Order
 
-1. `type` block (structs, interfaces, type aliases)
-2. `const` block
-3. `var` block (errors, package-level state)
+1. `type` declarations (use a block only when declaring multiple types). Ordering rule: if a type uses another type, the using type goes first.
+2. `const` declarations (use a block only when declaring multiple constants)
+3. `var` declarations (use a block only when declaring multiple vars; exception: errors always use a `var` block)
 4. Constructor function (`New...`)
 5. Exported methods
 6. Unexported methods and helpers
@@ -242,9 +242,7 @@ type (
 	EventConsumer = topic.Consumer[*timebox.Event]
 )
 
-const (
-	DefaultTimeout = 30 * time.Second
-)
+const DefaultTimeout = 30 * time.Second
 
 var (
 	ErrNotFound = errors.New("not found")
@@ -400,6 +398,8 @@ Skip godoc when the name is self-documenting:
 ```go
 func NewArchiveWorker(...) (*ArchiveWorker, error) {
 ```
+
+Godoc rule: the last sentence of a comment should not end with a period.
 
 ### Inline Comments
 
