@@ -198,7 +198,7 @@ func TestUnsupportedLanguage(t *testing.T) {
 	registry := engine.NewScriptRegistry()
 
 	_, err := registry.Get("python")
-	assert.ErrorIs(t, err, engine.ErrUnsupportedLanguage)
+	assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
 }
 
 func TestCompileViaRegistry(t *testing.T) {

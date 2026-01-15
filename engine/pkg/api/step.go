@@ -89,21 +89,22 @@ const (
 )
 
 var (
-	ErrStepIDEmpty         = errors.New("step ID empty")
-	ErrStepNameEmpty       = errors.New("step name empty")
-	ErrStepEndpointEmpty   = errors.New("step endpoint empty")
-	ErrArgNameEmpty        = errors.New("argument name empty")
-	ErrInvalidStepType     = errors.New("invalid step type")
-	ErrHTTPRequired        = errors.New("http required")
-	ErrScriptRequired      = errors.New("script required")
-	ErrScriptLanguageEmpty = errors.New("script language empty")
-	ErrScriptEmpty         = errors.New("script empty")
-	ErrInvalidRetryConfig  = errors.New("invalid retry config")
-	ErrInvalidBackoffType  = errors.New("invalid backoff type")
-	ErrAttributeNil        = errors.New("attribute has nil definition")
-	ErrNegativeBackoff     = errors.New("backoff_ms cannot be negative")
-	ErrMaxBackoffTooSmall  = errors.New("max_backoff_ms must be >= backoff_ms")
-	ErrWorkNotCompleted    = errors.New("work not completed")
+	ErrStepIDEmpty           = errors.New("step ID empty")
+	ErrStepNameEmpty         = errors.New("step name empty")
+	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
+	ErrArgNameEmpty          = errors.New("argument name empty")
+	ErrInvalidStepType       = errors.New("invalid step type")
+	ErrHTTPRequired          = errors.New("http required")
+	ErrScriptRequired        = errors.New("script required")
+	ErrScriptLanguageEmpty   = errors.New("script language empty")
+	ErrInvalidScriptLanguage = errors.New("invalid script language")
+	ErrScriptEmpty           = errors.New("script empty")
+	ErrInvalidRetryConfig    = errors.New("invalid retry config")
+	ErrInvalidBackoffType    = errors.New("invalid backoff type")
+	ErrAttributeNil          = errors.New("attribute has nil definition")
+	ErrNegativeBackoff       = errors.New("backoff_ms cannot be negative")
+	ErrMaxBackoffTooSmall    = errors.New("max_backoff_ms must be >= backoff_ms")
+	ErrWorkNotCompleted      = errors.New("work not completed")
 )
 
 var (
@@ -117,6 +118,11 @@ var (
 		BackoffTypeFixed,
 		BackoffTypeLinear,
 		BackoffTypeExponential,
+	)
+
+	validScriptLanguages = util.SetOf(
+		ScriptLangAle,
+		ScriptLangLua,
 	)
 )
 
@@ -192,6 +198,9 @@ func (s *Step) validateScriptConfig() error {
 	}
 	if s.Script.Language == "" {
 		return ErrScriptLanguageEmpty
+	}
+	if !validScriptLanguages.Contains(s.Script.Language) {
+		return fmt.Errorf("%w: %s", ErrInvalidScriptLanguage, s.Script.Language)
 	}
 	if s.Script.Script == "" {
 		return ErrScriptEmpty

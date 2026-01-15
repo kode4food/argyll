@@ -63,7 +63,9 @@ Remaining work items complete (recorded for audit)
   ↓
 flow_deactivated event (when terminal + no active work)
   ↓
-Archiving triggered
+Archive worker evaluates deactivated flows
+  ↓
+flow_archiving event + archive flow started
 ```
 
 ## Flow Lifecycle Events
@@ -71,6 +73,7 @@ Archiving triggered
 **Engine-Level Events** (affect engine state):
 - `flow_activated` - Emitted when flow starts, adds to active flows
 - `flow_deactivated` - Emitted when flow is terminal AND no active work items
+- `flow_archiving` - Emitted when a deactivated flow is selected for archiving
 
 **Flow-Level Events** (affect flow state):
 - `flow_started` - Flow begins execution
@@ -88,7 +91,8 @@ immediately deactivate. Work items may still be in-flight:
 3. Reservation still running, completes 100ms later
 4. work_succeeded recorded (outputs available for compensation)
 5. No more active work → flow_deactivated emitted
-6. Archiving triggered by handleFlowDeactivated
+6. Archive worker selects deactivated flows
+7. flow_archiving emitted and archive flow started
 ```
 
 This separation enables:

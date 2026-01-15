@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -38,7 +37,7 @@ type (
 )
 
 var (
-	ErrUnsupportedLanguage = errors.New("unsupported script language")
+	ErrUnsupportedLanguage = api.ErrInvalidScriptLanguage
 )
 
 // NewScriptRegistry creates a new script registry with Ale and Lua execution
@@ -50,6 +49,10 @@ func NewScriptRegistry() *ScriptRegistry {
 			api.ScriptLangLua: NewLuaEnv(),
 		},
 	}
+}
+
+func (r *ScriptRegistry) Register(language string, env ScriptEnvironment) {
+	r.envs[language] = env
 }
 
 // Get returns the script environment for the given language
@@ -91,6 +94,17 @@ func (e *Engine) GetCompiledScript(fs FlowStep) (any, error) {
 		return nil, err
 	}
 	return e.scripts.Compile(step, step.Script)
+}
+
+func (e *Engine) registerInternalScripts() {
+	base, ok := e.scripts.envs[api.ScriptLangAle].(*AleEnv)
+	if !ok || base == nil {
+		return
+	}
+	e.scripts.Register(
+		internalScriptLanguage,
+		NewInternalAleEnv(e, base.env),
+	)
 }
 
 func (e *Engine) getStepFromPlan(fs FlowStep) (*api.Step, error) {

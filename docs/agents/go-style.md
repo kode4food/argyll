@@ -230,9 +230,10 @@ Run `goimports` on all files. It handles grouping and sorting automatically.
 1. `type` declarations (use a block only when declaring multiple types). Ordering rule: if a type uses another type, the using type goes first.
 2. `const` declarations (use a block only when declaring multiple constants)
 3. `var` declarations (use a block only when declaring multiple vars; exception: errors always use a `var` block)
-4. Constructor function (`New...`)
+4. Exported functions (including constructors like `New...`)
 5. Exported methods
-6. Unexported methods and helpers
+6. Unexported methods
+7. Unexported helper functions
 
 ```go
 package engine
@@ -265,8 +266,10 @@ func helperFunc(...) { ... }               // unexported helper
 3. Unexported methods that support the exported ones
 4. Pure helper functions (non-methods) at the bottom
 
-Related methods stay together. Unexported helpers appear after the
-exported methods that use them.
+Related methods stay together. Within each group, order by call chain or
+first use. Unexported helpers appear after the exported methods that use
+them.
+
 
 ## Control Flow
 

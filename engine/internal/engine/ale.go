@@ -38,10 +38,7 @@ var (
 func NewAleEnv() *AleEnv {
 	e := env.NewEnvironment()
 	bootstrap.Into(e)
-	return &AleEnv{
-		env:   e,
-		cache: util.NewLRUCache[data.Procedure](aleCacheSize),
-	}
+	return newAleEnv(e)
 }
 
 // Compile compiles a script configuration
@@ -128,6 +125,13 @@ func (e *AleEnv) compileSource(src string) (proc data.Procedure, err error) {
 			return nil, fmt.Errorf("%w, got: %T", ErrAleNotProcedure, res)
 		},
 	)
+}
+
+func newAleEnv(e *env.Environment) *AleEnv {
+	return &AleEnv{
+		env:   e,
+		cache: util.NewLRUCache[data.Procedure](aleCacheSize),
+	}
 }
 
 func executeScript(

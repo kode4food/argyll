@@ -39,6 +39,7 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 		api.EventTypeStepHealthChanged: timebox.MakeApplier(stepHealthChanged),
 		api.EventTypeFlowActivated:     timebox.MakeApplier(flowActivated),
 		api.EventTypeFlowDeactivated:   timebox.MakeApplier(flowDeactivated),
+		api.EventTypeFlowArchiving:     timebox.MakeApplier(flowArchiving),
 		api.EventTypeFlowArchived:      timebox.MakeApplier(flowArchived),
 	})
 }
@@ -103,10 +104,17 @@ func flowDeactivated(
 		SetLastUpdated(ev.Timestamp)
 }
 
+func flowArchiving(
+	st *api.EngineState, ev *timebox.Event, data api.FlowArchivingEvent,
+) *api.EngineState {
+	return st.
+		RemoveDeactivated(data.FlowID).
+		SetLastUpdated(ev.Timestamp)
+}
+
 func flowArchived(
 	st *api.EngineState, ev *timebox.Event, data api.FlowArchivedEvent,
 ) *api.EngineState {
 	return st.
-		RemoveDeactivated(data.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }

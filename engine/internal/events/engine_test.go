@@ -267,3 +267,57 @@ func TestFlowDeactivated(t *testing.T) {
 	assert.Nil(t, result.Active["test-flow"])
 	assert.True(t, result.LastUpdated.Equal(now))
 }
+
+func TestFlowArchiving(t *testing.T) {
+	initialState := events.NewEngineState().
+		AddDeactivated(&api.DeactivatedFlow{
+			FlowID:        "test-flow",
+			DeactivatedAt: time.Now(),
+		})
+	now := time.Now()
+
+	eventData := api.FlowArchivingEvent{FlowID: "test-flow"}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	event := &timebox.Event{
+		Timestamp:   now,
+		AggregateID: events.EngineID,
+		Type:        timebox.EventType(api.EventTypeFlowArchiving),
+		Data:        data,
+	}
+
+	applier := events.EngineAppliers[event.Type]
+	result := applier(initialState, event)
+
+	assert.NotNil(t, result)
+	assert.Len(t, result.Deactivated, 0)
+	assert.True(t, result.LastUpdated.Equal(now))
+}
+
+func TestFlowArchived(t *testing.T) {
+	initialState := events.NewEngineState().
+		AddDeactivated(&api.DeactivatedFlow{
+			FlowID:        "test-flow",
+			DeactivatedAt: time.Now(),
+		})
+
+	now := time.Now()
+
+	eventData := api.FlowArchivedEvent{FlowID: "test-flow"}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	event := &timebox.Event{
+		Timestamp:   now,
+		AggregateID: events.EngineID,
+		Type:        timebox.EventType(api.EventTypeFlowArchived),
+		Data:        data,
+	}
+
+	applier := events.EngineAppliers[event.Type]
+	result := applier(initialState, event)
+
+	assert.NotNil(t, result)
+	assert.True(t, result.LastUpdated.Equal(now))
+}

@@ -34,6 +34,7 @@ AI-specific development guides are in `docs/agents/`:
 - **[Event Sourcing](docs/agents/event-sourcing.md)** - Event-driven architecture, flow lifecycle
 - **[Deployment](docs/agents/deployment.md)** - Environment variables, store separation, production setup
 - **[Go Style Guide](docs/agents/go-style.md)** - Naming conventions, testing, error handling
+- **[Markdown Style Guide](docs/agents/style-markdown.md)** - Line wrapping and formatting rules
 - **[TypeScript Style Guide](docs/agents/typescript-style.md)** - React patterns, naming, testing
 
 Other documentation:

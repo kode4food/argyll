@@ -84,6 +84,7 @@ func New(
 		scripts:    NewScriptRegistry(),
 		retryQueue: NewRetryQueue(),
 	}
+	e.registerInternalScripts()
 	e.handler = e.createEventHandler()
 
 	if cfg.Archive.Enabled {
@@ -301,17 +302,15 @@ func (e *Engine) handleFlowFailed(
 	return nil
 }
 
-func (e *Engine) archiveFlow(flowID api.FlowID) {
+func (e *Engine) archiveFlow(flowID api.FlowID) error {
 	store := e.flowExec.GetStore()
-	err := store.Archive(context.Background(), flowKey(flowID))
-	if err == nil {
-		slog.Info("Flow archived", log.FlowID(flowID))
-		return
+	if err := store.Archive(context.Background(), flowKey(flowID)); err != nil {
+		slog.Warn("Failed to archive flow",
+			log.FlowID(flowID), log.Error(err))
+		return err
 	}
-	if errors.Is(err, timebox.ErrArchivingDisabled) {
-		return
-	}
-	slog.Warn("Failed to archive flow", log.FlowID(flowID), log.Error(err))
+	slog.Info("Flow archived", log.FlowID(flowID))
+	return nil
 }
 
 func (e *Engine) handleRetryScheduled(

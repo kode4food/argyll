@@ -135,6 +135,11 @@ type (
 		FlowID FlowID `json:"flow_id"`
 	}
 
+	// FlowArchivingEvent is emitted when a flow is scheduled for archiving
+	FlowArchivingEvent struct {
+		FlowID FlowID `json:"flow_id"`
+	}
+
 	// FlowArchivedEvent is emitted when a flow is archived
 	FlowArchivedEvent struct {
 		FlowID FlowID `json:"flow_id"`
@@ -150,6 +155,7 @@ const (
 	EventTypeStepHealthChanged EventType = "step_health_changed"
 	EventTypeFlowActivated     EventType = "flow_activated"
 	EventTypeFlowDeactivated   EventType = "flow_deactivated"
+	EventTypeFlowArchiving     EventType = "flow_archiving"
 	EventTypeFlowArchived      EventType = "flow_archived"
 	EventTypeFlowStarted       EventType = "flow_started"
 	EventTypeFlowCompleted     EventType = "flow_completed"

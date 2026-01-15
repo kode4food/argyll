@@ -151,7 +151,7 @@ func TestWithScript(t *testing.T) {
 
 func TestWithScriptLanguage(t *testing.T) {
 	script := "custom script"
-	lang := "custom-lang"
+	lang := api.ScriptLangLua
 	step, err := testClient().NewStep("Test").
 		WithScriptLanguage(lang, script).
 		Build()
@@ -161,6 +161,16 @@ func TestWithScriptLanguage(t *testing.T) {
 	assert.Equal(t, script, step.Script.Script)
 	assert.Equal(t, lang, step.Script.Language)
 	assert.Equal(t, api.StepTypeScript, step.Type)
+}
+
+func TestWithScriptLanguageInvalid(t *testing.T) {
+	script := "custom script"
+	step, err := testClient().NewStep("Test").
+		WithScriptLanguage("custom-lang", script).
+		Build()
+
+	assert.Error(t, err)
+	assert.Nil(t, step)
 }
 
 func TestWithHealthCheck(t *testing.T) {

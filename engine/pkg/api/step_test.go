@@ -139,6 +139,20 @@ func TestStepValidation(t *testing.T) {
 			expectError:   true,
 			errorContains: "script language empty",
 		},
+		{
+			name: "invalid_script_language",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Script",
+				Type: api.StepTypeScript,
+				Script: &api.ScriptConfig{
+					Language: "internal",
+					Script:   "(+ 1 2)",
+				},
+			},
+			expectError:   true,
+			errorContains: "invalid script language",
+		},
 	}
 
 	for _, tt := range tests {
