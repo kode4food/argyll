@@ -58,9 +58,7 @@ for index, currentStep := range steps {
 ```go
 // Good - clear at API boundaries
 func (e *Engine) StartFlow(
-    flowID api.FlowID,
-    goalSteps []api.StepID,
-    initState api.Args,
+    flowID api.FlowID, goalSteps []api.StepID, initState api.Args,
 ) (*api.FlowState, error)
 
 // Good - descriptive struct fields

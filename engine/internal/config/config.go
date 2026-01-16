@@ -24,7 +24,6 @@ type (
 		// Stores & Archiving
 		EngineStore timebox.StoreConfig
 		FlowStore   timebox.StoreConfig
-		Archive     ArchiveConfig
 
 		// Work & Retry
 		Work api.WorkConfig
@@ -33,14 +32,6 @@ type (
 		StepTimeout     int64
 		FlowCacheSize   int
 		ShutdownTimeout time.Duration
-	}
-
-	// ArchiveConfig holds archive settings for deactivated flows
-	ArchiveConfig struct {
-		Enabled       bool
-		CheckInterval time.Duration
-		MemoryPercent float64
-		MaxAge        time.Duration
 	}
 )
 
@@ -64,10 +55,6 @@ const (
 	DefaultRetryBackoffMs    = 1000
 	DefaultRetryMaxBackoffMs = 60000
 	DefaultRetryBackoffType  = api.BackoffTypeExponential
-
-	DefaultArchiveCheckInterval = 30 * time.Second
-	DefaultArchiveMemoryPercent = 80.0
-	DefaultArchiveMaxAge        = 24 * time.Hour
 )
 
 var (
@@ -110,11 +97,6 @@ func NewDefaultConfig() *Config {
 		FlowCacheSize:   DefaultCacheSize,
 		ShutdownTimeout: DefaultShutdownTimeout,
 		LogLevel:        "info",
-		Archive: ArchiveConfig{
-			CheckInterval: DefaultArchiveCheckInterval,
-			MemoryPercent: DefaultArchiveMemoryPercent,
-			MaxAge:        DefaultArchiveMaxAge,
-		},
 	}
 }
 
@@ -163,26 +145,6 @@ func (c *Config) LoadFromEnv() {
 		c.Work.BackoffType = backoffType
 	}
 
-	if enabled := os.Getenv("ARCHIVE_ENABLED"); enabled != "" {
-		if val, err := strconv.ParseBool(enabled); err == nil {
-			c.Archive.Enabled = val
-		}
-	}
-	if interval := os.Getenv("ARCHIVE_CHECK_INTERVAL"); interval != "" {
-		if d, err := time.ParseDuration(interval); err == nil {
-			c.Archive.CheckInterval = d
-		}
-	}
-	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
-		if f, err := strconv.ParseFloat(pct, 64); err == nil {
-			c.Archive.MemoryPercent = f
-		}
-	}
-	if maxAge := os.Getenv("ARCHIVE_MAX_AGE"); maxAge != "" {
-		if d, err := time.ParseDuration(maxAge); err == nil {
-			c.Archive.MaxAge = d
-		}
-	}
 }
 
 // Validate checks that all configuration values are valid

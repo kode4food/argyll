@@ -147,6 +147,71 @@ func TestRemoveDeactivatedNotFound(t *testing.T) {
 	assert.Same(t, original, result)
 }
 
+func TestAddArchiving(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Archiving: map[api.FlowID]time.Time{
+			"flow-1": now.Add(-time.Hour),
+		},
+	}
+
+	result := original.AddArchiving("flow-2", now)
+
+	assert.Len(t, result.Archiving, 2)
+	assert.True(t, result.Archiving["flow-1"].Equal(now.Add(-time.Hour)))
+	assert.True(t, result.Archiving["flow-2"].Equal(now))
+	assert.Len(t, original.Archiving, 1)
+}
+
+func TestAddArchivingReplacesExisting(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Archiving: map[api.FlowID]time.Time{
+			"flow-1": now.Add(-time.Hour),
+		},
+	}
+
+	result := original.AddArchiving("flow-1", now)
+
+	assert.Len(t, result.Archiving, 1)
+	assert.True(t, result.Archiving["flow-1"].Equal(now))
+	assert.True(t, original.Archiving["flow-1"].Equal(now.Add(-time.Hour)))
+	assert.Len(t, original.Archiving, 1)
+}
+
+func TestRemoveArchiving(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Archiving: map[api.FlowID]time.Time{
+			"flow-1": now.Add(-2 * time.Hour),
+			"flow-2": now.Add(-time.Hour),
+			"flow-3": now,
+		},
+	}
+
+	result := original.RemoveArchiving("flow-2")
+
+	assert.Len(t, result.Archiving, 2)
+	assert.True(t, result.Archiving["flow-1"].Equal(now.Add(-2*time.Hour)))
+	_, ok := result.Archiving["flow-2"]
+	assert.False(t, ok)
+	assert.True(t, result.Archiving["flow-3"].Equal(now))
+	assert.Len(t, original.Archiving, 3)
+}
+
+func TestRemoveArchivingNotFound(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		Archiving: map[api.FlowID]time.Time{
+			"flow-1": now,
+		},
+	}
+
+	result := original.RemoveArchiving("flow-missing")
+
+	assert.Same(t, original, result)
+}
+
 func TestSetFlowStatus(t *testing.T) {
 	original := &api.FlowState{Status: api.FlowPending}
 

@@ -29,6 +29,7 @@ type (
 		Health      map[StepID]*HealthState `json:"health"`
 		Active      map[FlowID]*ActiveFlow  `json:"active"`
 		Deactivated []*DeactivatedFlow      `json:"deactivated"`
+		Archiving   map[FlowID]time.Time    `json:"archiving"`
 		Attributes  AttributeGraph          `json:"attributes"`
 	}
 
@@ -217,6 +218,30 @@ func (e *EngineState) RemoveDeactivated(id FlowID) *EngineState {
 	}
 	res := *e
 	res.Deactivated = slices.Delete(slices.Clone(e.Deactivated), idx, idx+1)
+	return &res
+}
+
+// AddArchiving returns a new EngineState with the flow added to the
+// archiving map. Existing entries for the flow are replaced
+func (e *EngineState) AddArchiving(id FlowID, at time.Time) *EngineState {
+	if existing, ok := e.Archiving[id]; ok && existing.Equal(at) {
+		return e
+	}
+	res := *e
+	res.Archiving = maps.Clone(e.Archiving)
+	res.Archiving[id] = at
+	return &res
+}
+
+// RemoveArchiving returns a new EngineState with the flow removed from
+// the archiving map
+func (e *EngineState) RemoveArchiving(id FlowID) *EngineState {
+	if _, ok := e.Archiving[id]; !ok {
+		return e
+	}
+	res := *e
+	res.Archiving = maps.Clone(e.Archiving)
+	delete(res.Archiving, id)
 	return &res
 }
 

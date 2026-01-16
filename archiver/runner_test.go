@@ -52,7 +52,12 @@ func TestRunnerWritesArchiveRecord(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "archived")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"archived",
+	)
 	assert.NoError(t, err)
 
 	p := &fakePoller{records: make(chan *timebox.ArchiveRecord, 1)}
@@ -93,7 +98,12 @@ func TestRunnerStopsOnPollerError(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"",
+	)
 	assert.NoError(t, err)
 
 	p := &fakePoller{err: errors.New("boom")}
@@ -111,7 +121,12 @@ func TestNewRunnerValidation(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"",
+	)
 	assert.NoError(t, err)
 
 	_, err = archiver.NewRunner(nil, w, testPollInterval)
@@ -132,7 +147,12 @@ func TestWriterRejectsNilRecord(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"",
+	)
 	assert.NoError(t, err)
 
 	err = w.Write(ctx, nil)
@@ -151,7 +171,12 @@ func TestWriterWritesWithNoPrefix(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"",
+	)
 	assert.NoError(t, err)
 
 	rec := &timebox.ArchiveRecord{
@@ -177,7 +202,12 @@ func TestWriterWritesWithTrailingSlashPrefix(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "archived/")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"archived/",
+	)
 	assert.NoError(t, err)
 
 	rec := &timebox.ArchiveRecord{
@@ -203,7 +233,12 @@ func TestWriterFiltersEmptyEventMessages(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "archived")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"archived",
+	)
 	assert.NoError(t, err)
 
 	rec := &timebox.ArchiveRecord{
@@ -240,7 +275,12 @@ func TestWriterFailsOnInvalidSnapshotJSON(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "archived")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"archived",
+	)
 	assert.NoError(t, err)
 
 	rec := &timebox.ArchiveRecord{
@@ -265,7 +305,12 @@ func TestRunnerRunTerminatesOnCancel(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"",
+	)
 	assert.NoError(t, err)
 
 	p := &fakePoller{records: make(chan *timebox.ArchiveRecord)}
@@ -298,7 +343,12 @@ func TestRunnerRunTreatsContextCanceledAsSuccess(t *testing.T) {
 	assert.NoError(t, err)
 	defer b.Close()
 
-	w, err := archiver.NewWriter(b, "")
+	w, err := archiver.NewWriter(
+		func(ctx context.Context, key string, data []byte) error {
+			return b.WriteAll(ctx, key, data, nil)
+		},
+		"",
+	)
 	assert.NoError(t, err)
 
 	p := &fakePoller{err: context.Canceled}

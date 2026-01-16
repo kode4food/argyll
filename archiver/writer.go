@@ -7,18 +7,17 @@ import (
 	"strings"
 
 	"github.com/kode4food/timebox"
-	"gocloud.dev/blob"
 )
 
 type (
 	Writer struct {
-		bucket BucketWriter
+		write  BucketWriteFunc
 		prefix string
 	}
 
-	BucketWriter interface {
-		WriteAll(context.Context, string, []byte, *blob.WriterOptions) error
-	}
+	// BucketWriteFunc stores data at the provided key, replacing any existing
+	// object for that key
+	BucketWriteFunc func(ctx context.Context, key string, data []byte) error
 
 	archiveObject struct {
 		StreamID         string            `json:"stream_id"`
@@ -34,12 +33,12 @@ var (
 	ErrArchiveRecordRequired = errors.New("archive record is required")
 )
 
-func NewWriter(bucket BucketWriter, prefix string) (*Writer, error) {
-	if bucket == nil {
+func NewWriter(write BucketWriteFunc, prefix string) (*Writer, error) {
+	if write == nil {
 		return nil, ErrBucketRequired
 	}
 	return &Writer{
-		bucket: bucket,
+		write:  write,
 		prefix: prefix,
 	}, nil
 }
@@ -65,7 +64,7 @@ func (w *Writer) Write(
 	}
 
 	key := buildArchiveKey(w.prefix, record.AggregateID)
-	return w.bucket.WriteAll(ctx, key, data, nil)
+	return w.write(ctx, key, data)
 }
 
 func buildArchiveKey(prefix string, id timebox.AggregateID) string {

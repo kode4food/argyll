@@ -15,14 +15,22 @@ FLOW_REDIS_PASSWORD=
 FLOW_REDIS_DB=0
 FLOW_REDIS_PREFIX=argyll:flow
 
-# Archiving (flows only)
-ARCHIVE_ENABLED=true
-
-# Archiving policy (for deactivated flows)
-ARCHIVE_CHECK_INTERVAL=30s
+# Archiving policy (external archiver)
 ARCHIVE_MEMORY_PERCENT=80
 ARCHIVE_MAX_AGE=24h
+ARCHIVE_MEMORY_CHECK_INTERVAL=5s
+ARCHIVE_SWEEP_INTERVAL=1h
+ARCHIVE_LEASE_TIMEOUT=15m
+ARCHIVE_PRESSURE_BATCH=10
+ARCHIVE_SWEEP_BATCH=100
+
+# Archiver backend (argyll-s3)
+ARCHIVE_BUCKET_URL=s3://bucket-name
+ARCHIVE_PREFIX=archived/
+ARCHIVE_POLL_INTERVAL=500ms
 ```
+
+Archiving runs in the `argyll-s3` service.
 
 ## Store Separation
 

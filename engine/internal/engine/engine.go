@@ -12,8 +12,8 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
-	"github.com/kode4food/argyll/engine/internal/events"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
@@ -32,7 +32,6 @@ type (
 		flows      sync.Map // map[flowID]*flowActor
 		handler    timebox.Handler
 		retryQueue *RetryQueue
-		archiver   *ArchiveWorker
 	}
 
 	// EventConsumer consumes events from the event hub
@@ -86,10 +85,6 @@ func New(
 	e.scripts = NewScriptRegistry(e)
 	e.handler = CreateEventHandler(e)
 
-	if cfg.Archive.Enabled {
-		e.archiver = NewArchiveWorker(e, cfg)
-	}
-
 	return e
 }
 
@@ -125,20 +120,12 @@ func (e *Engine) Start() {
 
 	go e.eventLoop()
 	go e.retryLoop()
-
-	if e.archiver != nil {
-		e.archiver.Start()
-		slog.Info("Archive worker started")
-	}
 }
 
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
 	e.cancel()
 	e.retryQueue.Stop()
-	if e.archiver != nil {
-		e.archiver.Stop()
-	}
 	defer e.consumer.Close()
 
 	done := make(chan struct{})
@@ -298,17 +285,6 @@ func (e *Engine) handleFlowFailed(
 	_ *timebox.Event, data api.FlowFailedEvent,
 ) error {
 	e.retryQueue.RemoveFlow(data.FlowID)
-	return nil
-}
-
-func (e *Engine) archiveFlow(flowID api.FlowID) error {
-	store := e.flowExec.GetStore()
-	if err := store.Archive(context.Background(), flowKey(flowID)); err != nil {
-		slog.Warn("Failed to archive flow",
-			log.FlowID(flowID), log.Error(err))
-		return err
-	}
-	slog.Info("Flow archived", log.FlowID(flowID))
 	return nil
 }
 

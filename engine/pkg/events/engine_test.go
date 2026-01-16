@@ -8,8 +8,8 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/events"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestNewEngineState(t *testing.T) {
@@ -292,17 +292,19 @@ func TestFlowArchiving(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.Len(t, result.Deactivated, 0)
+	assert.Len(t, result.Archiving, 1)
+	assert.True(t, result.Archiving["test-flow"].Equal(now))
 	assert.True(t, result.LastUpdated.Equal(now))
 }
 
 func TestFlowArchived(t *testing.T) {
+	now := time.Now()
 	initialState := events.NewEngineState().
 		AddDeactivated(&api.DeactivatedFlow{
 			FlowID:        "test-flow",
-			DeactivatedAt: time.Now(),
-		})
-
-	now := time.Now()
+			DeactivatedAt: now.Add(-time.Minute),
+		}).
+		AddArchiving("test-flow", now)
 
 	eventData := api.FlowArchivedEvent{FlowID: "test-flow"}
 	data, err := json.Marshal(eventData)
@@ -319,5 +321,7 @@ func TestFlowArchived(t *testing.T) {
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
+	assert.Len(t, result.Archiving, 0)
+	assert.Len(t, result.Deactivated, 1)
 	assert.True(t, result.LastUpdated.Equal(now))
 }

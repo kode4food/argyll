@@ -1,6 +1,8 @@
 package events
 
 import (
+	"time"
+
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -22,6 +24,7 @@ func NewEngineState() *api.EngineState {
 		Health:      map[api.StepID]*api.HealthState{},
 		Active:      map[api.FlowID]*api.ActiveFlow{},
 		Deactivated: []*api.DeactivatedFlow{},
+		Archiving:   map[api.FlowID]time.Time{},
 		Attributes:  api.AttributeGraph{},
 	}
 }
@@ -109,6 +112,7 @@ func flowArchiving(
 ) *api.EngineState {
 	return st.
 		RemoveDeactivated(data.FlowID).
+		AddArchiving(data.FlowID, ev.Timestamp).
 		SetLastUpdated(ev.Timestamp)
 }
 
@@ -116,5 +120,6 @@ func flowArchived(
 	st *api.EngineState, ev *timebox.Event, data api.FlowArchivedEvent,
 ) *api.EngineState {
 	return st.
+		RemoveArchiving(data.FlowID).
 		SetLastUpdated(ev.Timestamp)
 }

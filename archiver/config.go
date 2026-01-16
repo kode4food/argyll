@@ -11,54 +11,98 @@ import (
 
 // Config configures the archiver runtime behavior
 type Config struct {
-	FlowStore    timebox.StoreConfig
-	BucketURL    string
-	Prefix       string
-	PollInterval time.Duration
-	LogLevel     string
+	EngineStore         timebox.StoreConfig
+	FlowStore           timebox.StoreConfig
+	MemoryPercent       float64
+	MaxAge              time.Duration
+	MemoryCheckInterval time.Duration
+	SweepInterval       time.Duration
+	LeaseTimeout        time.Duration
+	PressureBatchSize   int
+	SweepBatchSize      int
+	LogLevel            string
 }
 
 const (
-	DefaultPollInterval = 500 * time.Millisecond
+	DefaultMemoryPercent       = 80.0
+	DefaultMaxAge              = 24 * time.Hour
+	DefaultMemoryCheckInterval = 5 * time.Second
+	DefaultSweepInterval       = 1 * time.Hour
+	DefaultLeaseTimeout        = 15 * time.Minute
+	DefaultPressureBatchSize   = 10
+	DefaultSweepBatchSize      = 100
 
 	defaultLogLevel = "info"
 )
 
 var (
-	ErrBucketURLRequired = errors.New("ARCHIVE_BUCKET_URL is required")
+	ErrMemoryCheckIntervalInvalid = errors.New(
+		"ARCHIVE_MEMORY_CHECK_INTERVAL must be positive",
+	)
+	ErrSweepIntervalInvalid = errors.New(
+		"ARCHIVE_SWEEP_INTERVAL must be positive",
+	)
+	ErrLeaseTimeoutInvalid = errors.New(
+		"ARCHIVE_LEASE_TIMEOUT must be positive",
+	)
+	ErrPressureBatchInvalid = errors.New(
+		"ARCHIVE_PRESSURE_BATCH must be positive",
+	)
+	ErrSweepBatchInvalid = errors.New(
+		"ARCHIVE_SWEEP_BATCH must be positive",
+	)
 )
 
 func LoadFromEnv() (Config, error) {
 	cfg := Config{
-		FlowStore:    timebox.DefaultStoreConfig(),
-		PollInterval: DefaultPollInterval,
-		LogLevel:     defaultLogLevel,
+		EngineStore:         timebox.DefaultStoreConfig(),
+		FlowStore:           timebox.DefaultStoreConfig(),
+		MemoryPercent:       DefaultMemoryPercent,
+		MaxAge:              DefaultMaxAge,
+		MemoryCheckInterval: DefaultMemoryCheckInterval,
+		SweepInterval:       DefaultSweepInterval,
+		LeaseTimeout:        DefaultLeaseTimeout,
+		PressureBatchSize:   DefaultPressureBatchSize,
+		SweepBatchSize:      DefaultSweepBatchSize,
+		LogLevel:            defaultLogLevel,
 	}
 
-	if addr := os.Getenv("FLOW_REDIS_ADDR"); addr != "" {
-		cfg.FlowStore.Addr = addr
-	}
-	if password := os.Getenv("FLOW_REDIS_PASSWORD"); password != "" {
-		cfg.FlowStore.Password = password
-	}
-	if dbStr := os.Getenv("FLOW_REDIS_DB"); dbStr != "" {
-		if db, err := strconv.Atoi(dbStr); err == nil {
-			cfg.FlowStore.DB = db
+	loadStoreConfigFromEnv(&cfg.EngineStore, "ENGINE")
+	loadStoreConfigFromEnv(&cfg.FlowStore, "FLOW")
+
+	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
+		if f, err := strconv.ParseFloat(pct, 64); err == nil {
+			cfg.MemoryPercent = f
 		}
 	}
-	if prefix := os.Getenv("FLOW_REDIS_PREFIX"); prefix != "" {
-		cfg.FlowStore.Prefix = prefix
+	if maxAge := os.Getenv("ARCHIVE_MAX_AGE"); maxAge != "" {
+		if d, err := time.ParseDuration(maxAge); err == nil {
+			cfg.MaxAge = d
+		}
 	}
-
-	if bucketURL := os.Getenv("ARCHIVE_BUCKET_URL"); bucketURL != "" {
-		cfg.BucketURL = bucketURL
+	if interval := os.Getenv("ARCHIVE_MEMORY_CHECK_INTERVAL"); interval != "" {
+		if d, err := time.ParseDuration(interval); err == nil {
+			cfg.MemoryCheckInterval = d
+		}
 	}
-	if prefix := os.Getenv("ARCHIVE_PREFIX"); prefix != "" {
-		cfg.Prefix = prefix
+	if interval := os.Getenv("ARCHIVE_SWEEP_INTERVAL"); interval != "" {
+		if d, err := time.ParseDuration(interval); err == nil {
+			cfg.SweepInterval = d
+		}
 	}
-	if val := os.Getenv("ARCHIVE_POLL_INTERVAL"); val != "" {
-		if d, err := time.ParseDuration(val); err == nil {
-			cfg.PollInterval = d
+	if timeout := os.Getenv("ARCHIVE_LEASE_TIMEOUT"); timeout != "" {
+		if d, err := time.ParseDuration(timeout); err == nil {
+			cfg.LeaseTimeout = d
+		}
+	}
+	if val := os.Getenv("ARCHIVE_PRESSURE_BATCH"); val != "" {
+		if size, err := strconv.Atoi(val); err == nil {
+			cfg.PressureBatchSize = size
+		}
+	}
+	if val := os.Getenv("ARCHIVE_SWEEP_BATCH"); val != "" {
+		if size, err := strconv.Atoi(val); err == nil {
+			cfg.SweepBatchSize = size
 		}
 	}
 	if level := os.Getenv("LOG_LEVEL"); level != "" {
@@ -72,8 +116,42 @@ func LoadFromEnv() (Config, error) {
 }
 
 func (c Config) Validate() error {
-	if c.BucketURL == "" {
-		return ErrBucketURLRequired
+	if c.MemoryCheckInterval <= 0 {
+		return ErrMemoryCheckIntervalInvalid
+	}
+	if c.SweepInterval <= 0 {
+		return ErrSweepIntervalInvalid
+	}
+	if c.LeaseTimeout <= 0 {
+		return ErrLeaseTimeoutInvalid
+	}
+	if c.PressureBatchSize <= 0 {
+		return ErrPressureBatchInvalid
+	}
+	if c.SweepBatchSize <= 0 {
+		return ErrSweepBatchInvalid
 	}
 	return nil
+}
+
+func loadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
+	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
+		s.Addr = addr
+	}
+	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
+		s.Password = password
+	}
+	if dbStr := os.Getenv(prefix + "_REDIS_DB"); dbStr != "" {
+		if db, err := strconv.Atoi(dbStr); err == nil {
+			s.DB = db
+		}
+	}
+	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
+		s.Prefix = envPrefix
+	}
+	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
+		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {
+			s.WorkerCount = wc
+		}
+	}
 }

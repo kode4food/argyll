@@ -10,8 +10,8 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/events"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 // EventWaiter waits for events matching a filter. Create before triggering the

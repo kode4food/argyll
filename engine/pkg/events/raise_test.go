@@ -6,8 +6,8 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/events"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestRaiseEnqueuesEvent(t *testing.T) {

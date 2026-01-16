@@ -109,7 +109,7 @@ func (e *TestEngineEnv) NewEngineInstance() *engine.Engine {
 }
 
 // WithTestEnv creates a test engine environment, executes the provided
-// function with it, and ensures cleanup happens automatically.
+// function with it, and ensures cleanup happens automatically
 func WithTestEnv(t *testing.T, fn func(*TestEngineEnv)) {
 	t.Helper()
 	testEnv := NewTestEngine(t)
@@ -118,7 +118,7 @@ func WithTestEnv(t *testing.T, fn func(*TestEngineEnv)) {
 }
 
 // WithEngine creates a test engine, executes the provided function with it,
-// and ensures cleanup happens automatically.
+// and ensures cleanup happens automatically
 func WithEngine(t *testing.T, fn func(*engine.Engine)) {
 	t.Helper()
 	WithTestEnv(t, func(env *TestEngineEnv) {
@@ -127,7 +127,7 @@ func WithEngine(t *testing.T, fn func(*engine.Engine)) {
 }
 
 // WithStartedEngine creates a test engine, starts it, executes the provided
-// function with the engine, and ensures cleanup happens automatically.
+// function with the engine, and ensures cleanup happens automatically
 func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 	t.Helper()
 	WithEngine(t, func(eng *engine.Engine) {

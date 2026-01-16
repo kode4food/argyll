@@ -113,13 +113,7 @@ func (s *argyll) initializeStores() error {
 		return fmt.Errorf("failed to create engine store: %w", err)
 	}
 
-	flowStoreConfig := s.cfg.FlowStore
-	flowStoreConfig.Archiving = s.cfg.Archive.Enabled
-	if flowStoreConfig.Archiving {
-		slog.Info("Flow archiving enabled")
-	}
-
-	s.flowStore, err = s.timebox.NewStore(flowStoreConfig)
+	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
 	if err != nil {
 		_ = s.timebox.Close()
 		return fmt.Errorf("failed to create flow store: %w", err)

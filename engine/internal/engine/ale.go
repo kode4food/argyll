@@ -38,7 +38,6 @@ var (
 func NewAleEnv(engine *Engine) *AleEnv {
 	e := env.NewEnvironment()
 	bootstrap.Into(e)
-	bootstrapInternal(e, engine)
 	return &AleEnv{
 		env:   e,
 		cache: util.NewLRUCache[data.Procedure](aleCacheSize),
