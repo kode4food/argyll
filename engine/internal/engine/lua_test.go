@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -180,39 +181,41 @@ func TestLuaScriptCache(t *testing.T) {
 }
 
 func TestLuaCompileViaRegistry(t *testing.T) {
-	registry := engine.NewScriptRegistry()
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		registry := engine.NewScriptRegistry(eng)
 
-	script := &api.Step{
-		ID:   "test",
-		Type: api.StepTypeScript,
-		Script: &api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   "return {x = 42}",
-		},
-		Attributes: api.AttributeSpecs{
-			"x": {Role: api.RoleRequired},
-		},
-	}
+		script := &api.Step{
+			ID:   "test",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return {x = 42}",
+			},
+			Attributes: api.AttributeSpecs{
+				"x": {Role: api.RoleRequired},
+			},
+		}
 
-	pred := &api.Step{
-		ID:   "test",
-		Type: api.StepTypeSync,
-		Predicate: &api.ScriptConfig{
-			Language: api.ScriptLangLua,
-			Script:   "return x > 10",
-		},
-		Attributes: api.AttributeSpecs{
-			"x": {Role: api.RoleRequired},
-		},
-	}
+		pred := &api.Step{
+			ID:   "test",
+			Type: api.StepTypeSync,
+			Predicate: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return x > 10",
+			},
+			Attributes: api.AttributeSpecs{
+				"x": {Role: api.RoleRequired},
+			},
+		}
 
-	scriptComp, err := registry.Compile(script, script.Script)
-	assert.NoError(t, err)
-	assert.NotNil(t, scriptComp)
+		scriptComp, err := registry.Compile(script, script.Script)
+		assert.NoError(t, err)
+		assert.NotNil(t, scriptComp)
 
-	predComp, err := registry.Compile(pred, pred.Predicate)
-	assert.NoError(t, err)
-	assert.NotNil(t, predComp)
+		predComp, err := registry.Compile(pred, pred.Predicate)
+		assert.NoError(t, err)
+		assert.NotNil(t, predComp)
+	})
 }
 
 func TestLuaComplexConversion(t *testing.T) {
@@ -374,7 +377,6 @@ func TestLuaInputTypes(t *testing.T) {
 		})
 	}
 }
-
 
 func TestLuaEmptyArray(t *testing.T) {
 	env := engine.NewLuaEnv()

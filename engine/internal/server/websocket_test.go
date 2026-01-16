@@ -14,7 +14,6 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -393,96 +392,90 @@ func TestClientConsumerClosed(t *testing.T) {
 }
 
 func TestSocketCallbackEngine(t *testing.T) {
-	env := helpers.NewTestEngine(t)
-	defer env.Cleanup()
+	withTestServerEnv(t, func(env *testServerEnv) {
+		ws := testServerWebSocket(t, env.Server)
+		defer ws.Cleanup()
 
-	srv := server.NewServer(env.Engine, env.EventHub)
-	ws := testServerWebSocket(t, srv)
-	defer ws.Cleanup()
-
-	sub := api.SubscribeRequest{
-		Type: "subscribe",
-		Data: api.ClientSubscription{
-			AggregateID: []string{"engine"},
-		},
-	}
-	err := ws.Conn.WriteJSON(sub)
-	assert.NoError(t, err)
-
-	_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
-	var stateMsg api.SubscribedResult
-	err = ws.Conn.ReadJSON(&stateMsg)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"engine"}, stateMsg.AggregateID)
-
-	var engState api.EngineState
-	err = json.Unmarshal(stateMsg.Data, &engState)
-	assert.NoError(t, err)
-}
-
-func TestSocketCallbackFlow(t *testing.T) {
-	env := helpers.NewTestEngine(t)
-	defer env.Cleanup()
-
-	err := env.Engine.StartFlow(
-		context.Background(),
-		"wf-123",
-		&api.ExecutionPlan{Steps: api.Steps{}},
-		api.Args{},
-		api.Metadata{},
-	)
-	assert.NoError(t, err)
-
-	srv := server.NewServer(env.Engine, env.EventHub)
-	ws := testServerWebSocket(t, srv)
-	defer ws.Cleanup()
-
-	sub := api.SubscribeRequest{
-		Type: "subscribe",
-		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
-		},
-	}
-	err = ws.Conn.WriteJSON(sub)
-	assert.NoError(t, err)
-
-	_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
-	var stateMsg api.SubscribedResult
-	err = ws.Conn.ReadJSON(&stateMsg)
-	assert.NoError(t, err)
-	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
-
-	var flowState api.FlowState
-	err = json.Unmarshal(stateMsg.Data, &flowState)
-	assert.NoError(t, err)
-	assert.Equal(t, api.FlowID("wf-123"), flowState.ID)
-}
-
-func TestSocketCallbackInvalidAggregate(t *testing.T) {
-	env := helpers.NewTestEngine(t)
-	defer env.Cleanup()
-
-	srv := server.NewServer(env.Engine, env.EventHub)
-	ws := testServerWebSocket(t, srv)
-	defer ws.Cleanup()
-
-	for _, aggregateID := range [][]string{
-		{"flow"},
-		{"invalid"},
-	} {
 		sub := api.SubscribeRequest{
 			Type: "subscribe",
 			Data: api.ClientSubscription{
-				AggregateID: aggregateID,
+				AggregateID: []string{"engine"},
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
 		assert.NoError(t, err)
 
-		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsErrorTimeout))
-		_, _, err = ws.Conn.ReadMessage()
-		assert.Error(t, err)
-	}
+		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+		var stateMsg api.SubscribedResult
+		err = ws.Conn.ReadJSON(&stateMsg)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"engine"}, stateMsg.AggregateID)
+
+		var engState api.EngineState
+		err = json.Unmarshal(stateMsg.Data, &engState)
+		assert.NoError(t, err)
+	})
+}
+
+func TestSocketCallbackFlow(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		err := env.Engine.StartFlow(
+			context.Background(),
+			"wf-123",
+			&api.ExecutionPlan{Steps: api.Steps{}},
+			api.Args{},
+			api.Metadata{},
+		)
+		assert.NoError(t, err)
+
+		ws := testServerWebSocket(t, env.Server)
+		defer ws.Cleanup()
+
+		sub := api.SubscribeRequest{
+			Type: "subscribe",
+			Data: api.ClientSubscription{
+				AggregateID: []string{"flow", "wf-123"},
+			},
+		}
+		err = ws.Conn.WriteJSON(sub)
+		assert.NoError(t, err)
+
+		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+		var stateMsg api.SubscribedResult
+		err = ws.Conn.ReadJSON(&stateMsg)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+
+		var flowState api.FlowState
+		err = json.Unmarshal(stateMsg.Data, &flowState)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowID("wf-123"), flowState.ID)
+	})
+}
+
+func TestSocketCallbackInvalidAggregate(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		ws := testServerWebSocket(t, env.Server)
+		defer ws.Cleanup()
+
+		for _, aggregateID := range [][]string{
+			{"flow"},
+			{"invalid"},
+		} {
+			sub := api.SubscribeRequest{
+				Type: "subscribe",
+				Data: api.ClientSubscription{
+					AggregateID: aggregateID,
+				},
+			}
+			err := ws.Conn.WriteJSON(sub)
+			assert.NoError(t, err)
+
+			_ = ws.Conn.SetReadDeadline(time.Now().Add(wsErrorTimeout))
+			_, _, err = ws.Conn.ReadMessage()
+			assert.Error(t, err)
+		}
+	})
 }
 
 func TestEngineEvents(t *testing.T) {

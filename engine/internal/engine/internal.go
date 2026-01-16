@@ -10,16 +10,14 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const internalScriptLanguage = "internal"
+const (
+	ArgyllNamespace = data.Local("argyll")
+	ArchiveFlow     = data.Local("archive-flow")
+)
 
-func NewInternalAleEnv(engine *Engine, base *env.Environment) *AleEnv {
-	snapshot := base.Snapshot()
-	bindInternalFunctions(snapshot.GetRoot(), engine)
-	return newAleEnv(snapshot)
-}
-
-func bindInternalFunctions(ns env.Namespace, engine *Engine) {
-	_ = env.BindPublic(ns, "archive-flow", makeArchiveFlow(engine))
+func bootstrapInternal(e *env.Environment, engine *Engine) {
+	ns, _ := e.NewQualified(ArgyllNamespace)
+	_ = env.BindPublic(ns, ArchiveFlow, makeArchiveFlow(engine))
 }
 
 func makeArchiveFlow(engine *Engine) data.Procedure {

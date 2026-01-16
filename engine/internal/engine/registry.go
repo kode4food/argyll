@@ -115,14 +115,6 @@ func (e *Engine) UpdateStepHealth(
 }
 
 func (e *Engine) validateStepScripts(step *api.Step) error {
-	if step.Type == api.StepTypeScript && step.Script != nil &&
-		step.Script.Language == internalScriptLanguage {
-		return fmt.Errorf("%w: %s",
-			api.ErrInvalidScriptLanguage,
-			step.Script.Language,
-		)
-	}
-
 	if step.Type == api.StepTypeScript && step.Script != nil {
 		env, err := e.scripts.Get(step.Script.Language)
 		if err != nil {

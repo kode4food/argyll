@@ -104,7 +104,34 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 // and mock client. Used to simulate process restart after crash
 func (e *TestEngineEnv) NewEngineInstance() *engine.Engine {
 	return engine.New(
-		e.engineStore, e.flowStore, e.MockClient, e.EventHub,
-		e.Config,
+		e.engineStore, e.flowStore, e.MockClient, e.EventHub, e.Config,
 	)
+}
+
+// WithTestEnv creates a test engine environment, executes the provided
+// function with it, and ensures cleanup happens automatically.
+func WithTestEnv(t *testing.T, fn func(*TestEngineEnv)) {
+	t.Helper()
+	testEnv := NewTestEngine(t)
+	defer testEnv.Cleanup()
+	fn(testEnv)
+}
+
+// WithEngine creates a test engine, executes the provided function with it,
+// and ensures cleanup happens automatically.
+func WithEngine(t *testing.T, fn func(*engine.Engine)) {
+	t.Helper()
+	WithTestEnv(t, func(env *TestEngineEnv) {
+		fn(env.Engine)
+	})
+}
+
+// WithStartedEngine creates a test engine, starts it, executes the provided
+// function with the engine, and ensures cleanup happens automatically.
+func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
+	t.Helper()
+	WithEngine(t, func(eng *engine.Engine) {
+		eng.Start()
+		fn(eng)
+	})
 }

@@ -33,7 +33,7 @@ const (
 	archiveStepID       = api.StepID("archive-flow")
 	archiveStepName     = api.Name("Archive Flow")
 	archiveFlowIDArg    = api.Name("flow_id")
-	archiveStepScript   = "(archive-flow flow_id)"
+	archiveStepScript   = "(argyll/archive-flow flow_id)"
 )
 
 // NewArchiveWorker creates a worker that monitors the flows Redis for memory
@@ -195,7 +195,8 @@ func (w *ArchiveWorker) startArchiveFlow(flowIDs []api.FlowID) {
 		archiveFlowIDArg: toFlowIDArgs(flowIDs),
 	}
 
-	if err := w.engine.StartFlow(w.ctx, flowID, plan, init, api.Metadata{}); err != nil {
+	err := w.engine.StartFlow(w.ctx, flowID, plan, init, api.Metadata{})
+	if err != nil {
 		slog.Warn("Failed to start archive flow",
 			log.FlowID(flowID), log.Error(err))
 	}
@@ -222,7 +223,7 @@ func buildArchivePlan() *api.ExecutionPlan {
 		Name: archiveStepName,
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: internalScriptLanguage,
+			Language: api.ScriptLangAle,
 			Script:   archiveStepScript,
 		},
 		Attributes: api.AttributeSpecs{

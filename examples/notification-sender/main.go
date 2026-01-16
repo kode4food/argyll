@@ -147,7 +147,7 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 	return *api.NewResult(), nil
 }
 
-func sendWebhook(userID, orderID string, payload map[string]any) (string, error) {
+func sendWebhook(userID, _ string, _ map[string]any) (string, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 	messageID := fmt.Sprintf("webhook-%d", time.Now().UnixNano())
 	slog.Info("Webhook delivered",
@@ -156,7 +156,7 @@ func sendWebhook(userID, orderID string, payload map[string]any) (string, error)
 	return messageID, nil
 }
 
-func sendEmail(userEmail, orderID string, amount float64) (string, error) {
+func sendEmail(userEmail, _ string, _ float64) (string, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 	messageID := fmt.Sprintf("email-%d", time.Now().UnixNano())
 	slog.Info("Email sent",
@@ -165,7 +165,7 @@ func sendEmail(userEmail, orderID string, amount float64) (string, error) {
 	return messageID, nil
 }
 
-func sendSMS(userID, orderID string) (string, error) {
+func sendSMS(userID, _ string) (string, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 	messageID := fmt.Sprintf("sms-%d", time.Now().UnixNano())
 	slog.Info("SMS sent",

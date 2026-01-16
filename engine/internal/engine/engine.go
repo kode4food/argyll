@@ -81,11 +81,10 @@ func New(
 		ctx:        ctx,
 		cancel:     cancel,
 		consumer:   hub.NewConsumer(),
-		scripts:    NewScriptRegistry(),
 		retryQueue: NewRetryQueue(),
 	}
-	e.registerInternalScripts()
-	e.handler = e.createEventHandler()
+	e.scripts = NewScriptRegistry(e)
+	e.handler = CreateEventHandler(e)
 
 	if cfg.Archive.Enabled {
 		e.archiver = NewArchiveWorker(e, cfg)
@@ -94,7 +93,7 @@ func New(
 	return e
 }
 
-func (e *Engine) createEventHandler() timebox.Handler {
+func CreateEventHandler(e *Engine) timebox.Handler {
 	const (
 		flowStarted    = timebox.EventType(api.EventTypeFlowStarted)
 		flowCompleted  = timebox.EventType(api.EventTypeFlowCompleted)
