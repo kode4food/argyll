@@ -35,6 +35,8 @@ All state changes are stored as immutable events in Redis, enabling complete aud
 - Real-time UI with WebSocket updates
 - Automatic health checks for HTTP steps
 - Step retry with configurable backoff
+- Flow archiver for persisting completed flows
+- MCP server for programmatic access to engine state
 - Multi-instance support
 
 ## API

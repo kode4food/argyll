@@ -20,6 +20,7 @@ type Step struct {
 	id         api.StepID
 	name       api.Name
 	stepType   api.StepType
+	labels     api.Labels
 	attributes api.AttributeSpecs
 	timeout    int64
 	dirty      bool
@@ -38,6 +39,7 @@ func (c *Client) NewStep(name api.Name) *Step {
 		id:         id,
 		name:       name,
 		stepType:   api.StepTypeSync,
+		labels:     api.Labels{},
 		timeout:    30 * api.Second,
 		attributes: api.AttributeSpecs{},
 	}
@@ -95,6 +97,21 @@ func (s *Step) WithForEach(name api.Name) *Step {
 		newAttr.ForEach = true
 		res.attributes[name] = &newAttr
 	}
+	return &res
+}
+
+// WithLabel sets a single label for the step
+func (s *Step) WithLabel(key, value string) *Step {
+	return s.WithLabels(api.Labels{key: value})
+}
+
+// WithLabels merges the provided labels into the step's labels
+func (s *Step) WithLabels(labels api.Labels) *Step {
+	if len(labels) == 0 {
+		return s
+	}
+	res := *s
+	res.labels = res.labels.Apply(labels)
 	return &res
 }
 
@@ -220,6 +237,7 @@ func (s *Step) Build() (*api.Step, error) {
 		Name:       s.name,
 		Type:       s.stepType,
 		Attributes: s.attributes,
+		Labels:     s.labels,
 		Predicate:  s.predicate,
 		HTTP:       httpConfig,
 		Script:     s.script,

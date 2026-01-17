@@ -331,6 +331,8 @@ NewStep(name api.Name) *Step
 - `WithTimeout(timeout int64) *Step` - Set execution timeout (milliseconds)
 - `WithEndpoint(endpoint string) *Step` - Set HTTP endpoint
 - `WithHealthCheck(endpoint string) *Step` - Set health check endpoint
+- `WithLabel(key, value string) *Step` - Set a single label
+- `WithLabels(labels api.Labels) *Step` - Merge labels with the current set
 
 #### Execution Type
 - `WithSyncExecution() *Step` - Mark as synchronous

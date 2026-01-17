@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"maps"
 	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -381,6 +382,21 @@ func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {
 		return false
 	}
 	return compare()
+}
+
+// Apply will merge the keys/values of the other label set into this one
+func (l Labels) Apply(other Labels) Labels {
+	if len(other) == 0 {
+		return l
+	}
+	if l == nil {
+		return other
+	}
+	res := maps.Clone(l)
+	for k, v := range other {
+		res[k] = v
+	}
+	return res
 }
 
 // Equal returns true if two label sets are equal

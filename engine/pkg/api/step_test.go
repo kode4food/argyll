@@ -515,6 +515,37 @@ func TestEqualStep(t *testing.T) {
 	as.False(step1.Equal(step3))
 }
 
+func TestLabelsApply(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("empty_other", func(t *testing.T) {
+		base := api.Labels{"team": "core"}
+		applied := base.Apply(nil)
+
+		as.Equal(api.Labels{"team": "core"}, applied)
+	})
+
+	t.Run("nil_base", func(t *testing.T) {
+		applied := api.Labels(nil).Apply(api.Labels{"team": "core"})
+
+		as.Equal(api.Labels{"team": "core"}, applied)
+	})
+
+	t.Run("merge_override", func(t *testing.T) {
+		base := api.Labels{"team": "core", "env": "dev"}
+		applied := base.Apply(api.Labels{"team": "other"})
+
+		as.Equal(api.Labels{"team": "other", "env": "dev"}, applied)
+	})
+
+	t.Run("base_unchanged", func(t *testing.T) {
+		base := api.Labels{"team": "core"}
+		_ = base.Apply(api.Labels{"env": "dev"})
+
+		as.Equal(api.Labels{"team": "core"}, base)
+	})
+}
+
 func TestValidateWorkConfig(t *testing.T) {
 	as := assert.New(t)
 

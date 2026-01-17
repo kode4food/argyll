@@ -508,6 +508,34 @@ func TestStepBuilderWithForEach(t *testing.T) {
 	})
 }
 
+func TestStepBuilderWithLabels(t *testing.T) {
+	t.Run("with_label", func(t *testing.T) {
+		step, err := testClient().NewStep("Labeled Step").
+			WithEndpoint("http://example.com").
+			WithLabel("team", "core").
+			WithLabel("env", "dev").
+			Build()
+
+		assert.NoError(t, err)
+		assert.Equal(t, api.Labels{"team": "core", "env": "dev"}, step.Labels)
+	})
+
+	t.Run("with_labels_clone", func(t *testing.T) {
+		labels := api.Labels{"team": "core"}
+		step, err := testClient().NewStep("Labeled Step").
+			WithEndpoint("http://example.com").
+			WithLabel("env", "dev").
+			WithLabels(labels).
+			Build()
+
+		assert.NoError(t, err)
+		assert.Equal(t, api.Labels{"env": "dev", "team": "core"}, step.Labels)
+
+		labels["team"] = "other"
+		assert.Equal(t, api.Labels{"env": "dev", "team": "core"}, step.Labels)
+	})
+}
+
 func TestUpdate(t *testing.T) {
 	step := testClient().NewStep("Test").
 		WithEndpoint("http://example.com")
