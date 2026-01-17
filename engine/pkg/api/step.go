@@ -18,6 +18,9 @@ type (
 	// Steps contains a map of Steps by their ID
 	Steps map[StepID]*Step
 
+	// Labels contains optional step metadata used for discovery and grouping
+	Labels map[string]string
+
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
@@ -25,6 +28,7 @@ type (
 		HTTP       *HTTPConfig    `json:"http,omitempty"`
 		Script     *ScriptConfig  `json:"script,omitempty"`
 		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
+		Labels     Labels         `json:"labels,omitempty"`
 		ID         StepID         `json:"id"`
 		Name       Name           `json:"name"`
 		Type       StepType       `json:"type"`
@@ -294,7 +298,7 @@ func (s *Step) Equal(other *Step) bool {
 	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
 		return false
 	}
-	if !attributeMapsEqual(s.Attributes, other.Attributes) {
+	if !s.Attributes.Equal(other.Attributes) {
 		return false
 	}
 	if !s.HTTP.Equal(other.HTTP) {
@@ -307,6 +311,9 @@ func (s *Step) Equal(other *Step) bool {
 		return false
 	}
 	if !s.WorkConfig.Equal(other.WorkConfig) {
+		return false
+	}
+	if !s.Labels.Equal(other.Labels) {
 		return false
 	}
 	return true
@@ -376,13 +383,14 @@ func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {
 	return compare()
 }
 
-func attributeMapsEqual(a, b AttributeSpecs) bool {
-	if len(a) != len(b) {
+// Equal returns true if two label sets are equal
+func (l Labels) Equal(other Labels) bool {
+	if len(l) != len(other) {
 		return false
 	}
-	for name, attrA := range a {
-		attrB, ok := b[name]
-		if !ok || !attrA.Equal(attrB) {
+	for key, val := range l {
+		otherVal, ok := other[key]
+		if !ok || otherVal != val {
 			return false
 		}
 	}

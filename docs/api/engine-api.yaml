@@ -719,6 +719,11 @@ components:
             processed_text:
               role: "output"
               type: "string"
+        labels:
+          type: object
+          description: Optional labels for categorization and discovery
+          additionalProperties:
+            type: string
         predicate:
           $ref: "#/components/schemas/ScriptConfig"
           description: Optional script-based predicate for conditional execution

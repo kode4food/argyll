@@ -343,6 +343,24 @@ func TestEqualEdgeCases(t *testing.T) {
 	})
 }
 
+func TestAttributeSpecsEqual(t *testing.T) {
+	specs1 := api.AttributeSpecs{
+		"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		"arg2": {Role: api.RoleOptional, Type: api.TypeNumber},
+	}
+	specs2 := api.AttributeSpecs{
+		"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		"arg2": {Role: api.RoleOptional, Type: api.TypeNumber},
+	}
+	specs3 := api.AttributeSpecs{
+		"arg1": {Role: api.RoleRequired, Type: api.TypeString},
+		"arg2": {Role: api.RoleOptional, Type: api.TypeBoolean},
+	}
+
+	assert.True(t, specs1.Equal(specs2))
+	assert.False(t, specs1.Equal(specs3))
+}
+
 func TestValidateEdgeCases(t *testing.T) {
 	t.Run("for_each_with_type_any", func(t *testing.T) {
 		spec := &api.AttributeSpec{

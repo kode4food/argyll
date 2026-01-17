@@ -206,3 +206,17 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		s.ForEach == other.ForEach &&
 		s.Default == other.Default
 }
+
+// Equal returns true if two attribute spec maps are equal
+func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
+	if len(a) != len(other) {
+		return false
+	}
+	for name, spec := range a {
+		otherSpec, ok := other[name]
+		if !ok || !spec.Equal(otherSpec) {
+			return false
+		}
+	}
+	return true
+}

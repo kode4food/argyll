@@ -64,6 +64,7 @@ export interface Step {
   name: string;
   type: StepType;
   attributes: Record<string, AttributeSpec>;
+  labels?: Record<string, string>;
   predicate?: ScriptConfig;
   work_config?: WorkConfig;
 

@@ -43,7 +43,9 @@ func TestNewArchiverValidation(t *testing.T) {
 	})
 	defer redisClient.Close()
 
-	_, err = archiver.NewArchiver(&timebox.Store{}, &timebox.Store{}, redisClient, cfg)
+	_, err = archiver.NewArchiver(
+		&timebox.Store{}, &timebox.Store{}, redisClient, cfg,
+	)
 	assert.Error(t, err)
 }
 
@@ -174,7 +176,9 @@ func TestArchiverRunPressureCycleArchivesFlows(t *testing.T) {
 	assert.Empty(t, state.Archiving)
 }
 
-func setupStores(t *testing.T, redisAddr string) (*timebox.Store, *timebox.Store) {
+func setupStores(
+	t *testing.T, redisAddr string,
+) (*timebox.Store, *timebox.Store) {
 	tbCfg := timebox.DefaultConfig()
 	tbCfg.Workers = false
 	tb, err := timebox.NewTimebox(tbCfg)
@@ -207,7 +211,9 @@ func setupStores(t *testing.T, redisAddr string) (*timebox.Store, *timebox.Store
 func seedDeactivatedFlow(
 	t *testing.T, store *timebox.Store, flowID api.FlowID,
 ) {
-	exec := timebox.NewExecutor(store, events.NewEngineState, events.EngineAppliers)
+	exec := timebox.NewExecutor(
+		store, events.NewEngineState, events.EngineAppliers,
+	)
 	cmd := func(
 		st *api.EngineState,
 		ag *timebox.Aggregator[*api.EngineState],
@@ -237,7 +243,9 @@ func seedFlowEvents(
 }
 
 func loadEngineState(t *testing.T, store *timebox.Store) *api.EngineState {
-	exec := timebox.NewExecutor(store, events.NewEngineState, events.EngineAppliers)
+	exec := timebox.NewExecutor(
+		store, events.NewEngineState, events.EngineAppliers,
+	)
 	state, err := exec.Exec(
 		context.Background(),
 		events.EngineID,
@@ -364,7 +372,9 @@ func readRespBulk(reader *bufio.Reader) (string, error) {
 }
 
 func writeRespBulk(writer *bufio.Writer, value string) error {
-	if _, err := fmt.Fprintf(writer, "$%d\r\n%s\r\n", len(value), value); err != nil {
+	if _, err := fmt.Fprintf(
+		writer, "$%d\r\n%s\r\n", len(value), value,
+	); err != nil {
 		return err
 	}
 	return writer.Flush()

@@ -471,6 +471,10 @@ func TestEqualStep(t *testing.T) {
 		ID:   "test-step",
 		Name: "Test Step",
 		Type: api.StepTypeSync,
+		Labels: api.Labels{
+			"description": "test step",
+			"team":        "core",
+		},
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
@@ -483,6 +487,10 @@ func TestEqualStep(t *testing.T) {
 		ID:   "test-step",
 		Name: "Test Step",
 		Type: api.StepTypeSync,
+		Labels: api.Labels{
+			"description": "test step",
+			"team":        "core",
+		},
 		HTTP: &api.HTTPConfig{
 			Endpoint: "http://localhost:8080",
 		},
