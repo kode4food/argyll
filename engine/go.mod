@@ -8,11 +8,10 @@ require (
 	github.com/gin-contrib/slog v1.1.0
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
-	github.com/gorilla/websocket v1.5.0
+	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/ale v0.3.1-0.20251229093255-bc7281283d14
 	github.com/kode4food/caravan v0.0.0-20251025080141-10eee0f8ea05
 	github.com/kode4food/timebox v0.0.0-20260114065154-ed3684df7fda
-	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.40.0
@@ -46,6 +45,7 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.57.0 // indirect
+	github.com/redis/go-redis/v9 v9.8.0 // indirect
 	github.com/rogpeppe/go-internal v1.13.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

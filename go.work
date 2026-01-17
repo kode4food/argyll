@@ -3,7 +3,6 @@ go 1.25.3
 use (
 	./archiver
 	./engine
-	./mcp
 	./examples/inventory-resolver
 	./examples/notification-sender
 	./examples/order-creator
@@ -11,4 +10,5 @@ use (
 	./examples/simple-step
 	./examples/stock-reservation
 	./examples/user-resolver
+	./mcp
 )
