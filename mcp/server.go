@@ -1,11 +1,9 @@
 package mcp
 
 import (
-	"context"
-	"io"
 	"net/http"
 
-	"github.com/deinstapel/go-jsonrpc"
+	"github.com/localrivet/gomcp/server"
 )
 
 type Server struct {
@@ -13,12 +11,13 @@ type Server struct {
 	client  *http.Client
 }
 
-const defaultBaseURL = "http://localhost:8080"
+// DefaultBaseURL is used when no engine URL is provided
+const DefaultBaseURL = "http://localhost:8080"
 
-// NewServer constructs an MCP server with the provided base URL.
+// NewServer constructs an MCP server with the provided base URL
 func NewServer(baseURL string, client *http.Client) *Server {
 	if baseURL == "" {
-		baseURL = defaultBaseURL
+		baseURL = DefaultBaseURL
 	}
 	if client == nil {
 		client = http.DefaultClient
@@ -29,31 +28,14 @@ func NewServer(baseURL string, client *http.Client) *Server {
 	}
 }
 
-// Run starts the MCP server over the provided streams.
-func Run(in io.Reader, out io.Writer) {
-	NewServer("", nil).ServeContext(context.Background(), in, out)
+// Run starts the MCP server over stdio and blocks until exit
+func (s *Server) Run() error {
+	return s.MCPServer().AsStdio().Run()
 }
 
-// Serve starts the MCP server over the provided streams.
-func (s *Server) Serve(in io.Reader, out io.Writer) {
-	s.ServeContext(context.Background(), in, out)
-}
-
-// ServeContext starts the MCP server over the provided streams.
-func (s *Server) ServeContext(
-	ctx context.Context, in io.Reader, out io.Writer,
-) {
-	tr := newStdioTransport(in, out)
-	peer := jsonrpc.NewPeer(ctx, tr)
-
-	_ = peer.RegisterRPC("initialize", s.handleInitialize)
-	_ = peer.RegisterRPC("tools/list", s.handleToolsList)
-	_ = peer.RegisterRPC("tools/call", s.handleToolsCall)
-
-	select {
-	case <-tr.done:
-	case <-ctx.Done():
-		tr.Close()
-		peer.Close()
-	}
+// MCPServer builds a configured gomcp server for advanced usage and tests
+func (s *Server) MCPServer() server.Server {
+	srv := server.NewServer("argyll-mcp")
+	s.registerTools(srv)
+	return srv
 }

@@ -29,7 +29,9 @@ Override the engine URL:
 make build
 ```
 
-## Example JSON-RPC
+## Example JSON-RPC (stdio framing)
+
+Messages are newline-delimited JSON (one JSON-RPC object per line).
 
 ```json
 {"jsonrpc":"2.0","id":1,"method":"initialize"}

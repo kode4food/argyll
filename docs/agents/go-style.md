@@ -208,13 +208,16 @@ type FlowId string
 
 ### Line Width
 
-Maximum 80 characters per line (tabs count as 4 spaces). Break long signatures
-after opening paren:
+Maximum 80 characters per line (tabs count as 4 spaces). Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When you must wrap, break after the opening paren and align arguments on new lines:
 
 ```go
 func NewArchiveWorker(
 	ctx context.Context, bucketURL, prefix string,
 ) (*ArchiveWorker, error) {
+```
+
+```go
+c, err := client.NewClient("embedded://", client.WithEmbedded(tr))
 ```
 
 ## File Organization

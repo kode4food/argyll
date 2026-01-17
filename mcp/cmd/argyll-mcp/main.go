@@ -16,5 +16,8 @@ func main() {
 	flag.Parse()
 
 	server := mcp.NewServer(*engine, nil)
-	server.Serve(os.Stdin, os.Stdout)
+	if err := server.Run(); err != nil {
+		_, _ = os.Stderr.WriteString(err.Error() + "\n")
+		os.Exit(1)
+	}
 }
