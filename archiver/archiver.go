@@ -9,10 +9,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/timebox"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 type (
