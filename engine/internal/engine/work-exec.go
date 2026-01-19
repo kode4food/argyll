@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"maps"
 
 	"github.com/tidwall/gjson"
 
@@ -20,6 +21,7 @@ type (
 		inputs api.Args
 		flowID api.FlowID
 		stepID api.StepID
+		meta   api.Metadata
 	}
 
 	// MultiArgs maps attribute names to value arrays for parallel execution
@@ -220,14 +222,17 @@ func (e *ExecContext) performHTTPWork(
 }
 
 func (e *ExecContext) buildHTTPMetadataWithToken(token api.Token) api.Metadata {
-	metadata := api.Metadata{
-		"flow_id":       e.flowID,
-		"step_id":       e.stepID,
-		"receipt_token": token,
+	metadata := maps.Clone(e.meta)
+	if metadata == nil {
+		metadata = api.Metadata{}
 	}
 
+	metadata[api.MetaFlowID] = e.flowID
+	metadata[api.MetaStepID] = e.stepID
+	metadata[api.MetaReceiptToken] = token
+
 	if isAsyncStep(e.step.Type) {
-		metadata["webhook_url"] = fmt.Sprintf(
+		metadata[api.MetaWebhookURL] = fmt.Sprintf(
 			"%s/webhook/%s/%s/%s",
 			e.engine.config.WebhookBaseURL, e.flowID, e.stepID, token,
 		)

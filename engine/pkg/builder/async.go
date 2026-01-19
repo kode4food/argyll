@@ -32,7 +32,7 @@ func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 		return nil, ErrMetadataNotFound
 	}
 
-	webhookURL, ok := ctx.Metadata["webhook_url"].(string)
+	webhookURL, ok := ctx.Metadata[api.MetaWebhookURL].(string)
 	if !ok || webhookURL == "" {
 		return nil, ErrWebhookURLNotFound
 	}

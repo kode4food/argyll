@@ -16,9 +16,9 @@ import (
 
 func TestNewAsyncContext(t *testing.T) {
 	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": "http://localhost:8080/webhook/test-flow/test-step/t123",
+		api.MetaFlowID:     "test-flow",
+		api.MetaStepID:     "test-step",
+		api.MetaWebhookURL: "http://localhost:8080/webhook/test-flow/test-step/t123",
 	}
 
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
@@ -89,9 +89,9 @@ func TestAsyncContextComplete(t *testing.T) {
 	defer server.Close()
 
 	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
+		api.MetaFlowID:     "test-flow",
+		api.MetaStepID:     "test-step",
+		api.MetaWebhookURL: server.URL,
 	}
 
 	client := builder.NewClient(server.URL, 30*time.Second)
@@ -123,9 +123,9 @@ func TestAsyncContextFail(t *testing.T) {
 	defer server.Close()
 
 	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
+		api.MetaFlowID:     "test-flow",
+		api.MetaStepID:     "test-step",
+		api.MetaWebhookURL: server.URL,
 	}
 
 	client := builder.NewClient(server.URL, 30*time.Second)
@@ -152,9 +152,9 @@ func TestAsyncContextWebhookError(t *testing.T) {
 	defer server.Close()
 
 	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
+		api.MetaFlowID:     "test-flow",
+		api.MetaStepID:     "test-step",
+		api.MetaWebhookURL: server.URL,
 	}
 
 	client := builder.NewClient(server.URL, 30*time.Second)
@@ -191,9 +191,9 @@ func TestComplete(t *testing.T) {
 	defer server.Close()
 
 	meta := api.Metadata{
-		"flow_id":     "test-flow",
-		"step_id":     "test-step",
-		"webhook_url": server.URL,
+		api.MetaFlowID:     "test-flow",
+		api.MetaStepID:     "test-step",
+		api.MetaWebhookURL: server.URL,
 	}
 
 	client := builder.NewClient(server.URL, 30*time.Second)

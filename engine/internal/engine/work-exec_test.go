@@ -137,6 +137,11 @@ func TestHTTPMetadata(t *testing.T) {
 		env.Engine.Start()
 
 		ctx := context.Background()
+		flowMetadata := api.Metadata{
+			"correlation_id": "cid-123",
+			api.MetaFlowID:   "wrong-flow",
+			api.MetaStepID:   "wrong-step",
+		}
 
 		step := helpers.NewSimpleStep("meta-step")
 		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
@@ -148,7 +153,7 @@ func TestHTTPMetadata(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-meta", plan, api.Args{}, api.Metadata{},
+			ctx, "wf-meta", plan, api.Args{}, flowMetadata,
 		)
 		assert.NoError(t, err)
 
@@ -157,10 +162,11 @@ func TestHTTPMetadata(t *testing.T) {
 
 		md := env.MockClient.LastMetadata(step.ID)
 		if assert.NotNil(t, md) {
-			assert.Equal(t, api.FlowID("wf-meta"), md["flow_id"])
-			assert.Equal(t, api.StepID("meta-step"), md["step_id"])
-			assert.NotEmpty(t, md["receipt_token"])
-			_, hasWebhook := md["webhook_url"]
+			assert.Equal(t, "cid-123", md["correlation_id"])
+			assert.Equal(t, api.FlowID("wf-meta"), md[api.MetaFlowID])
+			assert.Equal(t, api.StepID("meta-step"), md[api.MetaStepID])
+			assert.NotEmpty(t, md[api.MetaReceiptToken])
+			_, hasWebhook := md[api.MetaWebhookURL]
 			assert.False(t, hasWebhook)
 		}
 	})
@@ -171,6 +177,9 @@ func TestAsyncMetadata(t *testing.T) {
 		env.Engine.Start()
 
 		ctx := context.Background()
+		flowMetadata := api.Metadata{
+			"correlation_id": "cid-async-123",
+		}
 
 		step := helpers.NewSimpleStep("async-meta")
 		step.Type = api.StepTypeAsync
@@ -185,7 +194,7 @@ func TestAsyncMetadata(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-async-meta", plan, api.Args{}, api.Metadata{},
+			ctx, "wf-async-meta", plan, api.Args{}, flowMetadata,
 		)
 		assert.NoError(t, err)
 
@@ -195,7 +204,11 @@ func TestAsyncMetadata(t *testing.T) {
 				return false
 			}
 
-			webhook, ok := md["webhook_url"].(string)
+			if md["correlation_id"] != "cid-async-123" {
+				return false
+			}
+
+			webhook, ok := md[api.MetaWebhookURL].(string)
 			if !ok {
 				return false
 			}

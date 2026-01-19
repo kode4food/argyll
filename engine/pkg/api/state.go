@@ -52,6 +52,7 @@ type (
 		CompletedAt time.Time       `json:"completed_at"`
 		LastUpdated time.Time       `json:"last_updated"`
 		Plan        *ExecutionPlan  `json:"plan"`
+		Metadata    Metadata        `json:"metadata,omitempty"`
 		Attributes  AttributeValues `json:"attributes"`
 		Executions  Executions      `json:"executions"`
 		ID          FlowID          `json:"id"`

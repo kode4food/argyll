@@ -422,6 +422,7 @@ func (a *flowActor) prepareStep(
 			stepID: stepID,
 			step:   step,
 			inputs: inputs,
+			meta:   ag.Value().Metadata,
 		}
 
 		// Execute work items

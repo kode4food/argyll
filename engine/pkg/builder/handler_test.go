@@ -92,10 +92,10 @@ func TestHTTPError(t *testing.T) {
 		t, engineServer.URL, "test-step", "test-step", handler,
 	)
 
-	req := api.StepRequest{
-		Arguments: api.Args{"foo": "bar"},
-		Metadata:  api.Metadata{"flow_id": "flow-1"},
-	}
+		req := api.StepRequest{
+			Arguments: api.Args{"foo": "bar"},
+			Metadata:  api.Metadata{api.MetaFlowID: "flow-1"},
+		}
 	body, err := json.Marshal(req)
 	assert.NoError(t, err)
 
@@ -127,10 +127,10 @@ func TestPanic(t *testing.T) {
 		t, engineServer.URL, "panic-step", "panic-step", handler,
 	)
 
-	req := api.StepRequest{
-		Arguments: api.Args{},
-		Metadata:  api.Metadata{"flow_id": "flow-2"},
-	}
+		req := api.StepRequest{
+			Arguments: api.Args{},
+			Metadata:  api.Metadata{api.MetaFlowID: "flow-2"},
+		}
 	body, err := json.Marshal(req)
 	assert.NoError(t, err)
 

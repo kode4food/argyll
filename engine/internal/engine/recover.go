@@ -253,13 +253,13 @@ func (e *Engine) executeReadyRetries() {
 		}
 
 		fs := FlowStep{FlowID: item.FlowID, StepID: item.StepID}
-		e.retryWork(ctx, fs, step, item.Token, workItem)
+		e.retryWork(ctx, fs, step, item.Token, workItem, flow.Metadata)
 	}
 }
 
 func (e *Engine) retryWork(
 	ctx context.Context, fs FlowStep, step *api.Step, token api.Token,
-	workItem *api.WorkState,
+	workItem *api.WorkState, meta api.Metadata,
 ) {
 	execCtx := &ExecContext{
 		engine: e,
@@ -267,6 +267,7 @@ func (e *Engine) retryWork(
 		inputs: workItem.Inputs,
 		flowID: fs.FlowID,
 		stepID: fs.StepID,
+		meta:   meta,
 	}
 
 	execCtx.executeWorkItem(ctx, token, workItem)

@@ -49,7 +49,7 @@ func TestSuccess(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 	args := api.Args{"input": "test-input"}
-	meta := api.Metadata{"flow_id": "test-flow"}
+	meta := api.Metadata{api.MetaFlowID: "test-flow"}
 
 	out, err := cl.Invoke(context.Background(), step, args, meta)
 	assert.NoError(t, err)
