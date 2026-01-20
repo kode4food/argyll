@@ -90,6 +90,85 @@ describe("useStepEditorForm", () => {
     expect(registerStep).not.toHaveBeenCalled();
   });
 
+  it("requires flow goals for flow type", async () => {
+    const { result } = renderHook(() =>
+      useStepEditorForm(null, onUpdate, onClose)
+    );
+
+    act(() => {
+      result.current.setStepType("flow");
+      result.current.setStepId("flow-step");
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(result.current.error).toBe("Flow goals are required");
+    expect(registerStep).not.toHaveBeenCalled();
+  });
+
+  it("creates flow step when valid", async () => {
+    const createdStep = buildStep({
+      id: "flow-step",
+      name: "Flow Step",
+      type: "flow",
+      http: undefined,
+      script: undefined,
+      flow: {
+        goals: ["goal-1", "goal-2"],
+        input_map: { input: "child_input" },
+        output_map: { child_output: "output" },
+      },
+    });
+    registerStep.mockResolvedValue(createdStep);
+
+    const { result } = renderHook(() =>
+      useStepEditorForm(null, onUpdate, onClose)
+    );
+
+    act(() => {
+      result.current.setStepId("flow-step");
+      result.current.setName("Flow Step");
+      result.current.setStepType("flow");
+      result.current.setFlowGoals("goal-1, goal-2");
+      result.current.addAttribute();
+      result.current.addAttribute();
+    });
+
+    const inputAttrId = result.current.attributes[0].id;
+    const outputAttrId = result.current.attributes[1].id;
+
+    act(() => {
+      result.current.updateAttribute(inputAttrId, "name", "input");
+      result.current.updateAttribute(inputAttrId, "attrType", "input");
+      result.current.updateAttribute(inputAttrId, "flowMap", "child_input");
+      result.current.updateAttribute(outputAttrId, "name", "output");
+      result.current.updateAttribute(outputAttrId, "attrType", "output");
+      result.current.updateAttribute(outputAttrId, "flowMap", "child_output");
+    });
+
+    await act(async () => {
+      await result.current.handleSave();
+    });
+
+    expect(registerStep).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "flow",
+        flow: {
+          goals: ["goal-1", "goal-2"],
+          input_map: { input: "child_input" },
+          output_map: { child_output: "output" },
+        },
+        http: undefined,
+        script: undefined,
+      })
+    );
+    expect(onUpdate).toHaveBeenCalledWith(createdStep);
+    expect(onClose).toHaveBeenCalled();
+    expect(result.current.error).toBeNull();
+  });
+
   it("reports invalid attribute defaults", async () => {
     const { result } = renderHook(() =>
       useStepEditorForm(null, onUpdate, onClose)
@@ -178,7 +257,7 @@ describe("useStepEditorForm", () => {
       expect(result.current.attributes[0].attrType).toBe("optional");
     });
 
-    it("cycles attribute type from optional to output", () => {
+    it("cycles attribute type from optional to const", () => {
       const { result } = renderHook(() =>
         useStepEditorForm(null, onUpdate, onClose)
       );
@@ -198,6 +277,31 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.cycleAttributeType(attrId, "optional");
+      });
+
+      expect(result.current.attributes[0].attrType).toBe("const");
+    });
+
+    it("cycles attribute type from const to output", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.setStepId("step-1");
+        result.current.setEndpoint("https://api.example.com");
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "name", "test");
+        result.current.updateAttribute(attrId, "attrType", "const");
+      });
+
+      act(() => {
+        result.current.cycleAttributeType(attrId, "const");
       });
 
       expect(result.current.attributes[0].attrType).toBe("output");

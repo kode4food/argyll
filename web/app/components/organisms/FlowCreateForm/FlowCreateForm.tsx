@@ -96,11 +96,14 @@ const FlowCreateForm: React.FC = () => {
                   styles.dropdownItemSelected,
                   styles.dropdownItemDisabled
                 );
+                const includedClassName = isIncludedByOthers
+                  ? styles.dropdownItemIncluded
+                  : "";
 
                 return (
                   <div
                     key={step.id}
-                    className={itemClassName}
+                    className={`${itemClassName} ${includedClassName}`}
                     title={tooltipText}
                     onClick={async () => {
                       if (isDisabled) return;
@@ -118,7 +121,12 @@ const FlowCreateForm: React.FC = () => {
                           </td>
                           <td className={styles.stepCellName}>
                             <div>{step.name}</div>
-                            <div className={styles.stepId}>({step.id})</div>
+                            <div className={styles.stepId}>
+                              ({step.id})
+                              {isIncludedByOthers && (
+                                <span className={styles.includedCheck}>✓</span>
+                              )}
+                            </div>
                           </td>
                         </tr>
                       </tbody>

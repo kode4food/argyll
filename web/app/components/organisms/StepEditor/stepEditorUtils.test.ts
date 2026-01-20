@@ -5,6 +5,7 @@ import {
   createStepAttributes,
   getAttributeIconProps,
   getValidationError,
+  buildFlowMaps,
 } from "./stepEditorUtils";
 import { AttributeRole, AttributeType, Step } from "@/app/api";
 
@@ -25,6 +26,12 @@ describe("stepEditorUtils", () => {
             type: AttributeType.String,
             description: "",
           },
+          const_arg: {
+            role: AttributeRole.Const,
+            type: AttributeType.String,
+            default: '"fixed"',
+            description: "",
+          },
           optional_arg: {
             role: AttributeRole.Optional,
             type: AttributeType.Number,
@@ -37,18 +44,28 @@ describe("stepEditorUtils", () => {
             description: "",
           },
         },
+        flow: {
+          goals: ["goal-1"],
+          input_map: { required_arg: "child_in" },
+          output_map: { child_out: "output_arg" },
+        },
       };
 
       const result = buildAttributesFromStep(step);
 
-      expect(result).toHaveLength(3);
+      expect(result).toHaveLength(4);
 
       const inputAttrs = result.filter((a) => a.attrType === "input");
+      const constAttrs = result.filter((a) => a.attrType === "const");
       const optionalAttrs = result.filter((a) => a.attrType === "optional");
       const outputAttrs = result.filter((a) => a.attrType === "output");
 
       expect(inputAttrs).toHaveLength(1);
       expect(inputAttrs[0].name).toBe("required_arg");
+
+      expect(constAttrs).toHaveLength(1);
+      expect(constAttrs[0].name).toBe("const_arg");
+      expect(constAttrs[0].defaultValue).toBe('"fixed"');
 
       expect(optionalAttrs).toHaveLength(1);
       expect(optionalAttrs[0].name).toBe("optional_arg");
@@ -56,6 +73,8 @@ describe("stepEditorUtils", () => {
 
       expect(outputAttrs).toHaveLength(1);
       expect(outputAttrs[0].name).toBe("output_arg");
+      expect(inputAttrs[0].flowMap).toBe("child_in");
+      expect(outputAttrs[0].flowMap).toBe("child_out");
     });
   });
 
@@ -137,6 +156,23 @@ describe("stepEditorUtils", () => {
       });
     });
 
+    it("requires default values for const attributes", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "const",
+          name: "flag",
+          dataType: AttributeType.Boolean,
+        },
+      ];
+
+      const error = validateAttributesList(attributes);
+      expect(error).toEqual({
+        key: "stepEditor.constDefaultRequired",
+        vars: { name: "flag" },
+      });
+    });
+
     it("allows optional attributes without default values", () => {
       const attributes: Attribute[] = [
         {
@@ -169,6 +205,13 @@ describe("stepEditorUtils", () => {
         },
         {
           id: "attr-3",
+          attrType: "const",
+          name: "const_param",
+          dataType: AttributeType.String,
+          defaultValue: '"fixed"',
+        },
+        {
+          id: "attr-4",
           attrType: "output",
           name: "output_result",
           dataType: AttributeType.String,
@@ -180,6 +223,8 @@ describe("stepEditorUtils", () => {
       expect(result.input_param.role).toBe(AttributeRole.Required);
       expect(result.optional_param.role).toBe(AttributeRole.Optional);
       expect(result.optional_param.default).toBe("10");
+      expect(result.const_param.role).toBe(AttributeRole.Const);
+      expect(result.const_param.default).toBe('"fixed"');
       expect(result.output_result.role).toBe(AttributeRole.Output);
     });
 
@@ -248,6 +293,32 @@ describe("stepEditorUtils", () => {
     });
   });
 
+  describe("buildFlowMaps", () => {
+    it("builds input and output maps from attributes", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "input",
+          name: "input",
+          dataType: AttributeType.String,
+          flowMap: "child_in",
+        },
+        {
+          id: "attr-2",
+          attrType: "output",
+          name: "output",
+          dataType: AttributeType.String,
+          flowMap: "child_out",
+        },
+      ];
+
+      const { inputMap, outputMap } = buildFlowMaps(attributes);
+
+      expect(inputMap).toEqual({ input: "child_in" });
+      expect(outputMap).toEqual({ child_out: "output" });
+    });
+  });
+
   describe("getAttributeIconProps", () => {
     it("returns icon props for input attribute", () => {
       const props = getAttributeIconProps("input");
@@ -266,6 +337,12 @@ describe("stepEditorUtils", () => {
       expect(props).toBeDefined();
       expect(props.Icon).toBeDefined();
     });
+
+    it("returns icon props for const attribute", () => {
+      const props = getAttributeIconProps("const");
+      expect(props).toBeDefined();
+      expect(props.Icon).toBeDefined();
+    });
   });
 
   describe("getValidationError", () => {
@@ -278,6 +355,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "https://example.com",
         httpTimeout: 5000,
+        flowGoals: "",
       });
 
       expect(error).toEqual({ key: "stepEditor.stepIdRequired" });
@@ -292,6 +370,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "https://example.com",
         httpTimeout: 5000,
+        flowGoals: "",
       });
 
       expect(error).not.toEqual({ key: "stepEditor.stepIdRequired" });
@@ -313,6 +392,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "https://example.com",
         httpTimeout: 5000,
+        flowGoals: "",
       });
 
       expect(error).toEqual({ key: "stepEditor.attributeNameRequired" });
@@ -327,9 +407,40 @@ describe("stepEditorUtils", () => {
         script: "  ",
         endpoint: "",
         httpTimeout: 5000,
+        flowGoals: "",
       });
 
       expect(error).toEqual({ key: "stepEditor.scriptRequired" });
+    });
+
+    it("requires flow goals for flow type", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [],
+        stepType: "flow",
+        script: "",
+        endpoint: "",
+        httpTimeout: 0,
+        flowGoals: "   ",
+      });
+
+      expect(error).toEqual({ key: "stepEditor.flowGoalsRequired" });
+    });
+
+    it("allows flow type without http or script config", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [],
+        stepType: "flow",
+        script: "",
+        endpoint: "",
+        httpTimeout: 0,
+        flowGoals: "goal-a, goal-b",
+      });
+
+      expect(error).toBeNull();
     });
 
     it("requires endpoint for http type", () => {
@@ -341,6 +452,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "  ",
         httpTimeout: 5000,
+        flowGoals: "",
       });
 
       expect(error).toEqual({ key: "stepEditor.endpointRequired" });
@@ -355,6 +467,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "https://example.com",
         httpTimeout: 0,
+        flowGoals: "",
       });
 
       expect(error).toEqual({ key: "stepEditor.timeoutPositive" });
@@ -367,6 +480,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "https://example.com",
         httpTimeout: -1000,
+        flowGoals: "",
       });
 
       expect(error).toEqual({ key: "stepEditor.timeoutPositive" });
@@ -388,6 +502,7 @@ describe("stepEditorUtils", () => {
         script: "",
         endpoint: "https://example.com",
         httpTimeout: 5000,
+        flowGoals: "",
       });
 
       expect(error).toBeNull();

@@ -336,6 +336,10 @@
   color: var(--arg-icon-optional);
 }
 
+.arg-icon.const {
+  color: var(--arg-icon-const);
+}
+
 .arg-icon.output {
   color: var(--arg-icon-output);
 }

@@ -140,7 +140,7 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 		if assert.Contains(t, excluded.Satisfied, api.StepID("provider")) {
 			assert.Equal(
 				t,
-				[]api.Name{api.Name("data")},
+				[]api.Name{"data"},
 				excluded.Satisfied["provider"],
 			)
 		}

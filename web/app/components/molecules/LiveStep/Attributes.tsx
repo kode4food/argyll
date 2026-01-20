@@ -23,7 +23,8 @@ interface AttributesProps {
   step: Step;
   satisfiedArgs: Set<string>;
   execution?: ExecutionResult;
-  attributeProvenance?: Map<string, string>; // attribute name -> step ID that produced it
+  // attribute name -> step ID that produced it
+  attributeProvenance?: Map<string, string>;
   attributeValues?: Record<string, AttributeValue>;
 }
 
@@ -47,7 +48,9 @@ const Attributes: React.FC<AttributesProps> = ({
         ? ("required" as const)
         : spec.role === AttributeRole.Optional
           ? ("optional" as const)
-          : ("output" as const),
+          : spec.role === AttributeRole.Const
+            ? ("const" as const)
+            : ("output" as const),
     spec,
   }));
 
@@ -67,14 +70,19 @@ const Attributes: React.FC<AttributesProps> = ({
           attributeValues
         );
         const isWinner = attributeProvenance.get(arg.name) === step.id;
-        const isSatisfied = satisfiedArgs.has(arg.name);
+        const isConst = arg.argType === "const";
+        const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
 
         const { Icon, className } = getArgIcon(arg.argType);
 
         const isProvidedByUpstream =
           arg.argType === "optional" ? isSatisfied : undefined;
         const wasDefaulted =
-          arg.argType === "optional" ? hasValue && !isSatisfied : undefined;
+          arg.argType === "optional"
+            ? hasValue && !isSatisfied
+            : isConst
+              ? hasValue
+              : undefined;
 
         const statusBadge = renderStatusBadge(arg.argType, {
           isSatisfied,

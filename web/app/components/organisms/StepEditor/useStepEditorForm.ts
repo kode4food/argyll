@@ -5,6 +5,7 @@ import {
   Attribute,
   buildAttributesFromStep,
   createStepAttributes,
+  buildFlowMaps,
   getValidationError,
   buildStepPayload,
 } from "./stepEditorUtils";
@@ -32,7 +33,9 @@ export function useStepEditorForm(
     step?.http?.health_check || ""
   );
   const [httpTimeout, setHttpTimeout] = useState(
-    step && step.type !== "script" && step.http?.timeout
+    step &&
+      (step.type === "sync" || step.type === "async") &&
+      step.http?.timeout
       ? step.http.timeout
       : 5000
   );
@@ -40,6 +43,10 @@ export function useStepEditorForm(
   const [script, setScript] = useState(step?.script?.script || "");
   const [scriptLanguage, setScriptLanguage] = useState(
     step?.script?.language || SCRIPT_LANGUAGE_LUA
+  );
+
+  const [flowGoals, setFlowGoals] = useState(
+    step?.flow?.goals?.join(", ") || ""
   );
 
   const [attributes, setAttributes] = useState<Attribute[]>(() =>
@@ -89,7 +96,7 @@ export function useStepEditorForm(
 
           if (
             (field === "defaultValue" || field === "dataType") &&
-            updated.attrType === "optional" &&
+            (updated.attrType === "optional" || updated.attrType === "const") &&
             updated.defaultValue
           ) {
             const validation = validateDefaultValue(
@@ -101,8 +108,16 @@ export function useStepEditorForm(
               : t(validation.errorKey ?? "");
           }
 
-          if (field === "attrType" && value !== "optional") {
+          if (
+            field === "attrType" &&
+            value !== "optional" &&
+            value !== "const"
+          ) {
             updated.validationError = undefined;
+          }
+
+          if (field === "attrType" && value === "const") {
+            updated.forEach = false;
           }
 
           return updated;
@@ -117,10 +132,11 @@ export function useStepEditorForm(
   }, []);
 
   const cycleAttributeType = useCallback(
-    (id: string, currentType: "input" | "optional" | "output") => {
-      const types: ("input" | "optional" | "output")[] = [
+    (id: string, currentType: "input" | "optional" | "const" | "output") => {
+      const types: ("input" | "optional" | "const" | "output")[] = [
         "input",
         "optional",
+        "const",
         "output",
       ];
       const currentIndex = types.indexOf(currentType);
@@ -139,6 +155,7 @@ export function useStepEditorForm(
       script,
       endpoint,
       httpTimeout,
+      flowGoals,
     });
 
     if (validationError) {
@@ -153,6 +170,7 @@ export function useStepEditorForm(
       const api = new ArgyllApi();
 
       const stepAttributes = createStepAttributes(attributes);
+      const { inputMap, outputMap } = buildFlowMaps(attributes);
       const stepData = buildStepPayload({
         stepId,
         name,
@@ -165,6 +183,9 @@ export function useStepEditorForm(
         endpoint,
         healthCheck,
         httpTimeout,
+        flowGoals,
+        flowInputMap: inputMap,
+        flowOutputMap: outputMap,
       });
 
       let resultStep: Step;
@@ -205,6 +226,8 @@ export function useStepEditorForm(
       setHealthCheck,
       httpTimeout,
       setHttpTimeout,
+      flowGoals,
+      setFlowGoals,
     }),
     [
       stepId,
@@ -219,6 +242,7 @@ export function useStepEditorForm(
       endpoint,
       healthCheck,
       httpTimeout,
+      flowGoals,
     ]
   );
 
@@ -243,6 +267,8 @@ export function useStepEditorForm(
     setScript,
     scriptLanguage,
     setScriptLanguage,
+    flowGoals,
+    setFlowGoals,
     attributes,
     addAttribute,
     updateAttribute,

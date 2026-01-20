@@ -99,6 +99,71 @@
   gap: var(--spacing-sm);
 }
 
+.flowGoalList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.flowGoalChip {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 var(--spacing-sm);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.flowGoalChip:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.flowGoalChipSelected {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.flowGoalChipSelected:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.flowGoalChipIncluded {
+  border-color: var(--color-info);
+  background-color: color-mix(in srgb, var(--color-info) 55%, transparent);
+  color: var(--color-white);
+}
+
+.flowGoalChipIncluded:hover {
+  background-color: color-mix(in srgb, var(--color-info) 55%, transparent);
+  border-color: var(--color-info);
+}
+
+.flowGoalChipDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.flowGoalChipCheck {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+  font-size: 12px;
+  line-height: 1;
+}
+
 .argInput {
   height: 32px;
   padding: 0 10px;
@@ -116,6 +181,39 @@
   outline: none;
   border-color: var(--color-info);
   background-color: var(--overlay-dark-40);
+}
+
+.flowMapSelect {
+  height: 32px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  flex: 0 0 160px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding: 0 var(--spacing-2xl) 0 10px;
+}
+
+.flowMapSelect:focus {
+  outline: none;
+  border-color: var(--color-info);
+  background-color: var(--overlay-dark-40);
+}
+
+.flowMapSelect option {
+  background-color: var(--overlay-dark-90);
+  color: var(--color-dark-text);
+}
+
+.flowMapOptionRequired {
+  font-weight: var(--font-semibold);
 }
 
 .argType {

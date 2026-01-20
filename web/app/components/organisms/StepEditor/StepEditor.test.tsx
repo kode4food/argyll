@@ -6,9 +6,23 @@ import type { Step } from "@/app/api";
 
 jest.requireActual("@/app/api");
 
+let stepsInStore: Step[] = [];
+
+jest.mock("@/app/store/flowStore", () => ({
+  useSteps: () => stepsInStore,
+}));
+
 jest.mock("@/app/api", () => ({
   ...jest.requireActual("@/app/api"),
   ArgyllApi: jest.fn(),
+  api: {
+    getExecutionPlan: jest.fn().mockResolvedValue({
+      steps: {},
+      required: [],
+      attributes: {},
+      goals: [],
+    }),
+  },
 }));
 
 jest.mock("@/app/components/molecules/ScriptEditor", () => ({
@@ -90,6 +104,7 @@ describe("StepEditor", () => {
   const mockUpdateStep = jest.fn();
 
   beforeEach(() => {
+    stepsInStore = [];
     MockedArgyllApi.mockImplementation(
       () =>
         ({
@@ -102,6 +117,38 @@ describe("StepEditor", () => {
 
   afterEach(() => {
     jest.clearAllMocks();
+  });
+
+  const createFlowStep = (): Step => ({
+    id: "step-flow",
+    name: "Test Flow Step",
+    type: "flow",
+    attributes: {
+      input1: { role: AttributeRole.Required, type: AttributeType.String },
+      output1: { role: AttributeRole.Output, type: AttributeType.String },
+    },
+    flow: {
+      goals: [],
+      input_map: {},
+      output_map: {},
+    },
+  });
+
+  const createConstStep = (): Step => ({
+    id: "step-const",
+    name: "Const Step",
+    type: "sync",
+    attributes: {
+      color: {
+        role: AttributeRole.Const,
+        type: AttributeType.String,
+        default: "blue",
+      },
+    },
+    http: {
+      endpoint: "http://localhost:8080/test",
+      timeout: 5000,
+    },
   });
 
   test("renders modal with HTTP step data", async () => {
@@ -179,6 +226,18 @@ describe("StepEditor", () => {
     });
   });
 
+  test("renders const default value input", async () => {
+    const step = createConstStep();
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByDisplayValue("blue")).toBeInTheDocument();
+    });
+  });
+
   test("shows placeholder row when no attributes exist", async () => {
     render(
       <StepEditor step={null} onClose={mockOnClose} onUpdate={mockOnUpdate} />
@@ -219,6 +278,96 @@ describe("StepEditor", () => {
       fireEvent.click(asyncButton);
       expect(asyncButton.className).toContain("typeButtonActive");
     });
+  });
+
+  test("shows flow type button and flow goals when selected", async () => {
+    const step = createHttpStep("sync");
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      const flowButton = screen.getByTitle("Flow");
+      fireEvent.click(flowButton);
+      expect(flowButton.className).toContain("typeButtonActive");
+      expect(screen.getByText("Flow Goals")).toBeInTheDocument();
+    });
+  });
+
+  test("renders flow mapping dropdown options", async () => {
+    const step = createFlowStep();
+    stepsInStore = [
+      {
+        id: "child-step",
+        name: "Child Step",
+        type: "sync",
+        attributes: {},
+        http: { endpoint: "http://localhost:8080/child", timeout: 5000 },
+      },
+    ];
+
+    const { api } = jest.requireMock("@/app/api");
+    const plan = {
+      steps: {
+        "child-step": {
+          id: "child-step",
+          name: "Child Step",
+          type: "sync",
+          attributes: {
+            in1: { role: AttributeRole.Required, type: AttributeType.String },
+            out1: { role: AttributeRole.Output, type: AttributeType.String },
+          },
+        },
+      },
+      required: [],
+      attributes: {},
+      goals: ["child-step"],
+    };
+    api.getExecutionPlan.mockResolvedValue(plan);
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      const flowButton = screen.getByTitle("Flow");
+      fireEvent.click(flowButton);
+    });
+
+    await waitFor(() => {
+      const goalChip = screen.getByText("child-step");
+      fireEvent.click(goalChip);
+    });
+
+    expect(
+      await screen.findByRole("option", { name: "in1" })
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("option", { name: "out1" })
+    ).toBeInTheDocument();
+  });
+
+  test("excludes current step from flow goal selector", () => {
+    const step = createFlowStep();
+    const otherStep: Step = {
+      id: "other-step",
+      name: "Other Step",
+      type: "sync",
+      attributes: {},
+    };
+    stepsInStore = [step, otherStep];
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "step-flow" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "other-step" })
+    ).toBeInTheDocument();
   });
 
   test("updates timeout", async () => {

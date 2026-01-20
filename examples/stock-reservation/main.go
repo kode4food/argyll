@@ -67,7 +67,7 @@ func main() {
 	}
 }
 
-func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 	order, ok := args["order"].(map[string]any)
 	if !ok {
 		return *api.NewResult().WithError(

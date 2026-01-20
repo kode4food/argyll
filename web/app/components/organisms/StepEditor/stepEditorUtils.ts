@@ -8,7 +8,7 @@ import {
 import { getSortedAttributes, validateDefaultValue } from "@/utils/stepUtils";
 import { getArgIcon } from "@/utils/argIcons";
 
-export type AttributeRoleType = "input" | "optional" | "output";
+export type AttributeRoleType = "input" | "optional" | "const" | "output";
 
 export interface Attribute {
   id: string;
@@ -17,6 +17,7 @@ export interface Attribute {
   dataType: AttributeType;
   defaultValue?: string;
   forEach?: boolean;
+  flowMap?: string;
   validationError?: string;
 }
 
@@ -29,6 +30,7 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
   if (!step) return [];
 
   const timestamp = Date.now();
+  const flowConfig = step.flow;
 
   return getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }, index) => {
@@ -37,8 +39,31 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
           ? "input"
           : spec.role === AttributeRole.Optional
             ? "optional"
-            : ("output" as AttributeRoleType);
-      const prefix = spec.role === AttributeRole.Output ? "output" : "input";
+            : spec.role === AttributeRole.Const
+              ? "const"
+              : ("output" as AttributeRoleType);
+      const prefix =
+        spec.role === AttributeRole.Output
+          ? "output"
+          : spec.role === AttributeRole.Const
+            ? "const"
+            : "input";
+
+      let flowMap: string | undefined;
+      if (flowConfig) {
+        if (spec.role === AttributeRole.Output && flowConfig.output_map) {
+          for (const [childName, outputName] of Object.entries(
+            flowConfig.output_map
+          )) {
+            if (outputName === name) {
+              flowMap = childName;
+              break;
+            }
+          }
+        } else if (flowConfig.input_map) {
+          flowMap = flowConfig.input_map[name] ?? undefined;
+        }
+      }
 
       return {
         id: `${prefix}-${index}-${timestamp}`,
@@ -46,10 +71,14 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
         name,
         dataType: spec.type || AttributeType.String,
         defaultValue:
-          spec.role === AttributeRole.Optional && spec.default !== undefined
-            ? String(spec.default)
+          spec.role === AttributeRole.Optional ||
+          spec.role === AttributeRole.Const
+            ? spec.default !== undefined
+              ? String(spec.default)
+              : undefined
             : undefined,
         forEach: spec.for_each || false,
+        flowMap,
       };
     }
   );
@@ -71,7 +100,10 @@ export function validateAttributesList(
     }
     names.add(attr.name);
 
-    if (attr.attrType === "optional" && attr.defaultValue) {
+    if (
+      (attr.attrType === "optional" || attr.attrType === "const") &&
+      attr.defaultValue
+    ) {
       const validation = validateDefaultValue(attr.defaultValue, attr.dataType);
       if (!validation.valid) {
         return {
@@ -82,6 +114,13 @@ export function validateAttributesList(
           },
         };
       }
+    }
+
+    if (attr.attrType === "const" && !attr.defaultValue?.trim()) {
+      return {
+        key: "stepEditor.constDefaultRequired",
+        vars: { name: attr.name },
+      };
     }
   }
   return null;
@@ -102,14 +141,19 @@ export function createStepAttributes(
         ? AttributeRole.Required
         : a.attrType === "optional"
           ? AttributeRole.Optional
-          : AttributeRole.Output;
+          : a.attrType === "const"
+            ? AttributeRole.Const
+            : AttributeRole.Output;
 
     const spec: AttributeSpec = {
       role,
       type: a.dataType,
     };
 
-    if (a.attrType === "optional" && a.defaultValue?.trim()) {
+    if (
+      (a.attrType === "optional" || a.attrType === "const") &&
+      a.defaultValue?.trim()
+    ) {
       spec.default = a.defaultValue.trim();
     }
 
@@ -122,6 +166,27 @@ export function createStepAttributes(
   return stepAttributes;
 }
 
+export function buildFlowMaps(attributes: Attribute[]): {
+  inputMap: Record<string, string>;
+  outputMap: Record<string, string>;
+} {
+  const inputMap: Record<string, string> = {};
+  const outputMap: Record<string, string> = {};
+
+  attributes.forEach((attr) => {
+    if (!attr.flowMap?.trim() || !attr.name.trim()) {
+      return;
+    }
+    if (attr.attrType === "output") {
+      outputMap[attr.flowMap.trim()] = attr.name;
+      return;
+    }
+    inputMap[attr.name] = attr.flowMap.trim();
+  });
+
+  return { inputMap, outputMap };
+}
+
 export function getValidationError({
   isCreateMode,
   stepId,
@@ -130,6 +195,7 @@ export function getValidationError({
   script,
   endpoint,
   httpTimeout,
+  flowGoals,
 }: {
   isCreateMode: boolean;
   stepId: string;
@@ -138,6 +204,7 @@ export function getValidationError({
   script: string;
   endpoint: string;
   httpTimeout: number;
+  flowGoals: string;
 }): ValidationError | null {
   if (isCreateMode && !stepId.trim()) {
     return { key: "stepEditor.stepIdRequired" };
@@ -146,6 +213,13 @@ export function getValidationError({
   const attrError = validateAttributesList(attributes);
   if (attrError) {
     return attrError;
+  }
+
+  if (stepType === "flow") {
+    if (parseFlowGoals(flowGoals).length === 0) {
+      return { key: "stepEditor.flowGoalsRequired" };
+    }
+    return null;
   }
 
   if (stepType === "script") {
@@ -164,6 +238,13 @@ export function getValidationError({
   return null;
 }
 
+export function parseFlowGoals(value: string): string[] {
+  return value
+    .split(/[\n,]+/)
+    .map((goal) => goal.trim())
+    .filter((goal) => goal.length > 0);
+}
+
 export function buildStepPayload({
   stepId,
   name,
@@ -176,6 +257,9 @@ export function buildStepPayload({
   endpoint,
   healthCheck,
   httpTimeout,
+  flowGoals,
+  flowInputMap,
+  flowOutputMap,
 }: {
   stepId: string;
   name: string;
@@ -188,6 +272,9 @@ export function buildStepPayload({
   endpoint: string;
   healthCheck: string;
   httpTimeout: number;
+  flowGoals: string;
+  flowInputMap: Record<string, string>;
+  flowOutputMap: Record<string, string>;
 }): Step {
   const stepData: Step = {
     id: stepId.trim(),
@@ -202,12 +289,21 @@ export function buildStepPayload({
       : undefined,
   };
 
-  if (stepType === "script") {
+  if (stepType === "flow") {
+    stepData.flow = {
+      goals: parseFlowGoals(flowGoals),
+      input_map: flowInputMap,
+      output_map: flowOutputMap,
+    };
+    stepData.http = undefined;
+    stepData.script = undefined;
+  } else if (stepType === "script") {
     stepData.script = {
       language: scriptLanguage,
       script: script.trim(),
     };
     stepData.http = undefined;
+    stepData.flow = undefined;
   } else {
     stepData.http = {
       endpoint: endpoint.trim(),
@@ -215,6 +311,7 @@ export function buildStepPayload({
       timeout: httpTimeout,
     };
     stepData.script = undefined;
+    stepData.flow = undefined;
   }
 
   return stepData;

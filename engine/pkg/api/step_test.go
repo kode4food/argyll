@@ -70,6 +70,39 @@ func TestStepValidation(t *testing.T) {
 			errorContains: "endpoint empty",
 		},
 		{
+			name: "http_with_flow_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeSync,
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://localhost:8080",
+				},
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{"goal"},
+				},
+			},
+			expectError:   true,
+			errorContains: "flow not allowed",
+		},
+		{
+			name: "http_with_script_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test",
+				Type: api.StepTypeSync,
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://localhost:8080",
+				},
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   "return {}",
+				},
+			},
+			expectError:   true,
+			errorContains: "script not allowed",
+		},
+		{
 			name: "empty_required_arg_name",
 			step: &api.Step{
 				ID:   "test-id",
@@ -110,6 +143,128 @@ func TestStepValidation(t *testing.T) {
 			},
 			expectError:   true,
 			errorContains: "script required",
+		},
+		{
+			name: "script_with_http_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Script",
+				Type: api.StepTypeScript,
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   "return {}",
+				},
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://localhost:8080",
+				},
+			},
+			expectError:   true,
+			errorContains: "http not allowed",
+		},
+		{
+			name: "script_with_flow_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Script",
+				Type: api.StepTypeScript,
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   "return {}",
+				},
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{"goal"},
+				},
+			},
+			expectError:   true,
+			errorContains: "flow not allowed",
+		},
+		{
+			name: "missing_flow_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+			},
+			expectError:   true,
+			errorContains: "flow required",
+		},
+		{
+			name: "missing_flow_goals",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{},
+			},
+			expectError:   true,
+			errorContains: "flow goals required",
+		},
+		{
+			name: "flow_with_http_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{"goal"},
+				},
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://localhost:8080",
+				},
+			},
+			expectError:   true,
+			errorContains: "http not allowed",
+		},
+		{
+			name: "flow_with_script_config",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{"goal"},
+				},
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangLua,
+					Script:   "return {}",
+				},
+			},
+			expectError:   true,
+			errorContains: "script not allowed",
+		},
+		{
+			name: "flow_with_invalid_input_map",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals:    []api.StepID{"goal"},
+					InputMap: map[api.Name]api.Name{"missing": "target"},
+				},
+				Attributes: api.AttributeSpecs{
+					"output": {Role: api.RoleOutput},
+				},
+			},
+			expectError:   true,
+			errorContains: "flow input map invalid",
+		},
+		{
+			name: "flow_with_invalid_output_map",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals:     []api.StepID{"goal"},
+					OutputMap: map[api.Name]api.Name{"child": "missing"},
+				},
+				Attributes: api.AttributeSpecs{
+					"input": {Role: api.RoleRequired},
+				},
+			},
+			expectError:   true,
+			errorContains: "flow output map invalid",
 		},
 		{
 			name: "empty_script",
@@ -247,15 +402,21 @@ func TestSortedArgNames(t *testing.T) {
 			"apple":  {Role: api.RoleRequired, Type: api.TypeString},
 			"mango":  {Role: api.RoleOptional, Type: api.TypeString},
 			"banana": {Role: api.RoleOptional, Type: api.TypeString},
+			"carrot": {
+				Role:    api.RoleConst,
+				Type:    api.TypeString,
+				Default: `"fixed"`,
+			},
 		},
 	}
 
 	sorted := step.SortedArgNames()
-	as.Len(sorted, 4)
+	as.Len(sorted, 5)
 	as.Equal("apple", sorted[0])
 	as.Equal("banana", sorted[1])
-	as.Equal("mango", sorted[2])
-	as.Equal("zebra", sorted[3])
+	as.Equal("carrot", sorted[2])
+	as.Equal("mango", sorted[3])
+	as.Equal("zebra", sorted[4])
 }
 func TestMultiArgNames(t *testing.T) {
 	as := assert.New(t)
@@ -428,6 +589,45 @@ func TestEqualScript(t *testing.T) {
 	as.True(config1.Equal(config2))
 	as.False(config1.Equal(config3))
 	as.True((*api.ScriptConfig)(nil).Equal(nil))
+	as.False(config1.Equal(nil))
+}
+
+func TestEqualFlowConfig(t *testing.T) {
+	as := assert.New(t)
+
+	config1 := &api.FlowConfig{
+		Goals: []api.StepID{"goal-1"},
+		InputMap: map[api.Name]api.Name{
+			"input": "child-input",
+		},
+		OutputMap: map[api.Name]api.Name{
+			"child-output": "output",
+		},
+	}
+
+	config2 := &api.FlowConfig{
+		Goals: []api.StepID{"goal-1"},
+		InputMap: map[api.Name]api.Name{
+			"input": "child-input",
+		},
+		OutputMap: map[api.Name]api.Name{
+			"child-output": "output",
+		},
+	}
+
+	config3 := &api.FlowConfig{
+		Goals: []api.StepID{"goal-2"},
+		InputMap: map[api.Name]api.Name{
+			"input": "child-input",
+		},
+		OutputMap: map[api.Name]api.Name{
+			"child-output": "output",
+		},
+	}
+
+	as.True(config1.Equal(config2))
+	as.False(config1.Equal(config3))
+	as.True((*api.FlowConfig)(nil).Equal(nil))
 	as.False(config1.Equal(nil))
 }
 

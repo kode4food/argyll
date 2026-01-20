@@ -10,6 +10,7 @@ import {
   getScriptIcon,
   getHttpIcon,
   formatScriptForTooltip,
+  getFlowIcon,
 } from "@/utils/stepFooterUtils";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
 import { useT } from "@/app/i18n";
@@ -47,6 +48,12 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
         text: scriptPreview,
         className: "endpoint-script",
       };
+    } else if (step.type === "flow" && step.flow?.goals?.length) {
+      const FlowIcon = getFlowIcon();
+      displayInfo = {
+        icon: FlowIcon,
+        text: step.flow.goals.join(", "),
+      };
     } else if (step.http) {
       const HttpIcon = getHttpIcon(step.type);
       displayInfo = {
@@ -78,6 +85,12 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
               </div>
             )}
           </div>
+        </TooltipSection>
+      );
+    } else if (step.type === "flow" && step.flow?.goals?.length) {
+      sections.push(
+        <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
+          {step.flow.goals.join(", ")}
         </TooltipSection>
       );
     } else if (step.http) {

@@ -1,6 +1,6 @@
 import React from "react";
 import { SCRIPT_LANGUAGE_ALE } from "@/app/api";
-import { Code2, FileCode2, Globe, Webhook } from "lucide-react";
+import { Code2, FileCode2, Globe, Webhook, Workflow } from "lucide-react";
 
 export interface ScriptPreviewData {
   preview: string;
@@ -26,6 +26,13 @@ export const getScriptIcon = (language: string): React.ComponentType => {
  */
 export const getHttpIcon = (stepType: string): React.ComponentType => {
   return stepType === "async" ? Webhook : Globe;
+};
+
+/**
+ * Gets the appropriate flow icon
+ */
+export const getFlowIcon = (): React.ComponentType => {
+  return Workflow;
 };
 
 /**

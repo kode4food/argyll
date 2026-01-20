@@ -18,7 +18,9 @@ const Attributes: React.FC<AttributesProps> = ({ step }) => {
           ? ("required" as const)
           : spec.role === AttributeRole.Optional
             ? ("optional" as const)
-            : ("output" as const),
+            : spec.role === AttributeRole.Const
+              ? ("const" as const)
+              : ("output" as const),
     })
   );
 

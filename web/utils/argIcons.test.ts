@@ -1,5 +1,5 @@
 import { getArgIcon } from "./argIcons";
-import { ArrowRight, ArrowLeft, CircleHelp } from "lucide-react";
+import { ArrowRight, ArrowLeft, CircleHelp, Lock } from "lucide-react";
 
 describe("argIcons", () => {
   describe("getArgIcon", () => {
@@ -15,6 +15,13 @@ describe("argIcons", () => {
 
       expect(result.Icon).toBe(CircleHelp);
       expect(result.className).toBe("arg-icon optional");
+    });
+
+    test('returns Lock icon for "const" type', () => {
+      const result = getArgIcon("const");
+
+      expect(result.Icon).toBe(Lock);
+      expect(result.className).toBe("arg-icon const");
     });
 
     test('returns ArrowLeft icon for "output" type', () => {

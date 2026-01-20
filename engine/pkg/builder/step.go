@@ -5,6 +5,7 @@ import (
 	"errors"
 	"maps"
 	"regexp"
+	"slices"
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -16,6 +17,7 @@ type Step struct {
 	client     *Client
 	predicate  *api.ScriptConfig
 	http       *api.HTTPConfig
+	flow       *api.FlowConfig
 	script     *api.ScriptConfig
 	id         api.StepID
 	name       api.Name
@@ -71,6 +73,20 @@ func (s *Step) Optional(
 	res.attributes = maps.Clone(res.attributes)
 	res.attributes[name] = &api.AttributeSpec{
 		Role:    api.RoleOptional,
+		Type:    argType,
+		Default: defaultValue,
+	}
+	return &res
+}
+
+// Const declares a const input attribute with a default value
+func (s *Step) Const(
+	name api.Name, argType api.AttributeType, defaultValue string,
+) *Step {
+	res := *s
+	res.attributes = maps.Clone(res.attributes)
+	res.attributes[name] = &api.AttributeSpec{
+		Role:    api.RoleConst,
 		Type:    argType,
 		Default: defaultValue,
 	}
@@ -149,6 +165,33 @@ func (s *Step) WithEndpoint(endpoint string) *Step {
 	if res.stepType == "" {
 		res.stepType = api.StepTypeSync
 	}
+	return &res
+}
+
+// WithFlowGoals configures a flow step with child flow goal IDs
+func (s *Step) WithFlowGoals(goals ...api.StepID) *Step {
+	res := *s
+	res.flow = cloneFlowConfig(res.flow)
+	res.flow.Goals = goals
+	res.stepType = api.StepTypeFlow
+	return &res
+}
+
+// WithFlowInputMap configures input arg mapping for a flow step
+func (s *Step) WithFlowInputMap(mapping map[api.Name]api.Name) *Step {
+	res := *s
+	res.flow = cloneFlowConfig(res.flow)
+	res.flow.InputMap = maps.Clone(mapping)
+	res.stepType = api.StepTypeFlow
+	return &res
+}
+
+// WithFlowOutputMap configures output arg mapping for a flow step
+func (s *Step) WithFlowOutputMap(mapping map[api.Name]api.Name) *Step {
+	res := *s
+	res.flow = cloneFlowConfig(res.flow)
+	res.flow.OutputMap = maps.Clone(mapping)
+	res.stepType = api.StepTypeFlow
 	return &res
 }
 
@@ -240,6 +283,7 @@ func (s *Step) Build() (*api.Step, error) {
 		Labels:     s.labels,
 		Predicate:  s.predicate,
 		HTTP:       httpConfig,
+		Flow:       s.flow,
 		Script:     s.script,
 	}
 
@@ -287,4 +331,16 @@ func toSnakeCase(s string) string {
 	s = camelCaseRegex.ReplaceAllString(s, "$1-$2")
 	s = delimiterRegex.ReplaceAllString(s, "-")
 	return strings.ToLower(s)
+}
+
+func cloneFlowConfig(flow *api.FlowConfig) *api.FlowConfig {
+	if flow == nil {
+		return &api.FlowConfig{}
+	}
+
+	copyFlow := *flow
+	copyFlow.InputMap = maps.Clone(flow.InputMap)
+	copyFlow.OutputMap = maps.Clone(flow.OutputMap)
+	copyFlow.Goals = slices.Clone(flow.Goals)
+	return &copyFlow
 }

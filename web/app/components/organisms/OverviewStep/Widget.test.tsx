@@ -45,7 +45,7 @@ const mockUseStepHealth = useStepHealth as jest.MockedFunction<
 
 describe("Widget", () => {
   const createStep = (
-    type: "sync" | "async" | "script",
+    type: "sync" | "async" | "script" | "flow",
     id: string = "step-1"
   ): Step => ({
     id,
@@ -60,12 +60,20 @@ describe("Widget", () => {
             script: "{:result 42}",
           },
         }
-      : {
-          http: {
-            endpoint: "http://localhost:8080/test",
-            timeout: 5000,
-          },
-        }),
+      : type === "flow"
+        ? {
+            flow: {
+              goals: ["goal-a"],
+              input_map: {},
+              output_map: {},
+            },
+          }
+        : {
+            http: {
+              endpoint: "http://localhost:8080/test",
+              timeout: 5000,
+            },
+          }),
   });
 
   beforeEach(() => {
@@ -162,6 +170,18 @@ describe("Widget", () => {
 
   test("opens editor on double-click for HTTP steps", async () => {
     const step = createStep("sync");
+
+    const { container } = render(<Widget step={step} />);
+
+    const widget = container.querySelector(".step-widget");
+    fireEvent.doubleClick(widget!);
+
+    const { __openEditor } = require("@/app/contexts/StepEditorContext");
+    expect(__openEditor).toHaveBeenCalled();
+  });
+
+  test("opens editor on double-click for flow steps", async () => {
+    const step = createStep("flow");
 
     const { container } = render(<Widget step={step} />);
 

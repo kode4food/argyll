@@ -5,12 +5,12 @@ export interface ArgValueResult {
   value: any;
 }
 
-export type ArgType = "required" | "optional" | "output";
+export type ArgType = "required" | "optional" | "const" | "output";
 
 export interface UnifiedArg {
   name: string;
   type: string;
-  argType: "required" | "optional" | "output";
+  argType: "required" | "optional" | "const" | "output";
   spec: AttributeSpec;
 }
 
@@ -52,6 +52,8 @@ export const getAttributeTooltipTitle = (
       return "liveStep.inputValue";
     case "optional":
       return wasDefaulted ? "liveStep.defaultValue" : "liveStep.inputValue";
+    case "const":
+      return "liveStep.defaultValue";
     case "output":
       return "liveStep.outputValue";
   }

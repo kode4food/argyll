@@ -45,7 +45,7 @@ func main() {
 	}
 }
 
-func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 	// Extract payment result
 	paymentResult, ok := args["payment_result"].(map[string]any)
 	if !ok {

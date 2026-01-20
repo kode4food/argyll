@@ -12,7 +12,7 @@ export type StepStatus =
   | "skipped"
   | "failed";
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
-export type StepType = "sync" | "async" | "script";
+export type StepType = "sync" | "async" | "script" | "flow";
 
 export const SCRIPT_LANGUAGE_ALE = "ale";
 export const SCRIPT_LANGUAGE_LUA = "lua";
@@ -20,6 +20,7 @@ export const SCRIPT_LANGUAGE_LUA = "lua";
 export enum AttributeRole {
   Required = "required",
   Optional = "optional",
+  Const = "const",
   Output = "output",
 }
 
@@ -51,6 +52,12 @@ export interface ScriptConfig {
   script: string;
 }
 
+export interface FlowConfig {
+  goals: string[];
+  input_map?: Record<string, string>;
+  output_map?: Record<string, string>;
+}
+
 export interface WorkConfig {
   max_retries?: number;
   backoff_ms?: number;
@@ -71,6 +78,7 @@ export interface Step {
   // Type-specific configurations
   http?: HTTPConfig;
   script?: ScriptConfig;
+  flow?: FlowConfig;
 }
 
 export interface Dependencies {

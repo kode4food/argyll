@@ -24,8 +24,8 @@ type (
 	// AttributeTypes is a map of attribute names to their data types
 	AttributeTypes map[Name]AttributeType
 
-	// AttributeRole defines whether an attribute is required, optional, or an
-	// output
+	// AttributeRole defines whether an attribute is required, optional, const,
+	// or an output
 	AttributeRole string
 
 	// AttributeType defines the data type of an attribute
@@ -35,6 +35,7 @@ type (
 const (
 	RoleRequired AttributeRole = "required"
 	RoleOptional AttributeRole = "optional"
+	RoleConst    AttributeRole = "const"
 	RoleOutput   AttributeRole = "output"
 )
 
@@ -54,6 +55,9 @@ var (
 	ErrDefaultNotAllowed    = errors.New(
 		"default value requires an optional attribute",
 	)
+	ErrDefaultRequired = errors.New(
+		"default value required for const attribute",
+	)
 	ErrForEachRequiresArray = errors.New(
 		"for_each processing requires an array attribute type",
 	)
@@ -67,6 +71,7 @@ var (
 	validAttributeRoles = util.SetOf(
 		RoleRequired,
 		RoleOptional,
+		RoleConst,
 		RoleOutput,
 	)
 
@@ -88,7 +93,12 @@ func (s *AttributeSpec) Validate(name Name) error {
 			ErrInvalidAttributeRole, s.Role, name)
 	}
 
-	if s.Default != "" && !s.IsOptional() {
+	if s.IsConst() && s.Default == "" {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrDefaultRequired, s.Role, name)
+	}
+
+	if s.Default != "" && !s.IsOptional() && !s.IsConst() {
 		return fmt.Errorf("%w: %s for attribute %q",
 			ErrDefaultNotAllowed, s.Role, name)
 	}
@@ -178,6 +188,11 @@ func (s *AttributeSpec) IsInput() bool {
 	return s.Role == RoleRequired || s.Role == RoleOptional
 }
 
+// IsRuntimeInput returns true if the attribute is passed into a step
+func (s *AttributeSpec) IsRuntimeInput() bool {
+	return s.IsInput() || s.IsConst()
+}
+
 // IsOutput returns true if the attribute is an output
 func (s *AttributeSpec) IsOutput() bool {
 	return s.Role == RoleOutput
@@ -191,6 +206,11 @@ func (s *AttributeSpec) IsRequired() bool {
 // IsOptional returns true if the attribute is optional
 func (s *AttributeSpec) IsOptional() bool {
 	return s.Role == RoleOptional
+}
+
+// IsConst returns true if the attribute is a constant input
+func (s *AttributeSpec) IsConst() bool {
+	return s.Role == RoleConst
 }
 
 // Equal returns true if two attribute specs are equal

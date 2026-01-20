@@ -22,13 +22,13 @@ import (
 func main() {
 	cfg, err := archiver.LoadFromEnv()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	s3Cfg, err := loadS3Config()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -48,46 +48,46 @@ func main() {
 
 	bucket, err := blob.OpenBucket(ctx, s3Cfg.BucketURL)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	defer bucket.Close()
+	defer func() { _ = bucket.Close() }()
 
 	tbCfg := timebox.DefaultConfig()
 	tbCfg.Workers = false
 	tb, err := timebox.NewTimebox(tbCfg)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	defer tb.Close()
+	defer func() { _ = tb.Close() }()
 
 	engineStore, err := tb.NewStore(cfg.EngineStore)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	defer engineStore.Close()
+	defer func() { _ = engineStore.Close() }()
 
 	storeCfg := cfg.FlowStore
 	storeCfg.Archiving = true
 	store, err := tb.NewStore(storeCfg)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
-	defer store.Close()
+	defer func() { _ = store.Close() }()
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     storeCfg.Addr,
 		Password: storeCfg.Password,
 		DB:       storeCfg.DB,
 	})
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }()
 
 	arch, err := archiver.NewArchiver(engineStore, store, redisClient, cfg)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
@@ -98,25 +98,25 @@ func main() {
 		s3Cfg.Prefix,
 	)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	runner, err := archiver.NewRunner(store, writer, s3Cfg.PollInterval)
 	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	go func() {
 		if err := arch.Run(ctx); err != nil {
-			fmt.Fprintln(os.Stderr, err)
+			_, _ = fmt.Fprintln(os.Stderr, err)
 			cancel()
 		}
 	}()
 
 	if err := runner.Run(ctx); err != nil {
-		fmt.Fprintln(os.Stderr, err)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 }

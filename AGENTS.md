@@ -27,7 +27,9 @@ docker compose logs -f argyll-engine   # Follow logs
 
 ## Documentation
 
-AI-specific development guides are in `docs/agents/`:
+All AI agents (including Codex and Claude) MUST read and follow every guide in
+`docs/agents/` at the start of the task (before making changes), and treat
+them as always-in-scope instructions for this repo:
 
 - **[Architecture & Design](docs/agents/architecture.md)** - Core principles, constraints, non-goals
 - **[Core Concepts](docs/agents/concepts.md)** - Args vs Attributes, goal-oriented execution, step types

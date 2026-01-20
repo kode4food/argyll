@@ -65,7 +65,8 @@ const Widget: React.FC<WidgetProps> = ({
     !disableEdit &&
     ((localStep.type === "script" && localStep.script) ||
       ((localStep.type === "sync" || localStep.type === "async") &&
-        localStep.http));
+        localStep.http) ||
+      (localStep.type === "flow" && localStep.flow));
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (disableEdit || !isEditable) return;

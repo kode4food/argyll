@@ -17,6 +17,7 @@ export const getSortedAttributes = (
 
   return [
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Required),
+    ...sortedByName.filter((a) => a.spec.role === AttributeRole.Const),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Optional),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Output),
   ];

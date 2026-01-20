@@ -35,7 +35,7 @@ const mockUseStepProgress = useStepProgress as jest.MockedFunction<
 
 describe("Footer", () => {
   const createStep = (
-    type: "sync" | "async" | "script",
+    type: "sync" | "async" | "script" | "flow",
     config?: any
   ): Step => ({
     id: "step-1",
@@ -50,13 +50,21 @@ describe("Footer", () => {
             script: "{:result (+ 1 2)}",
           },
         }
-      : {
-          http: {
-            endpoint: "http://localhost:8080/test",
-            timeout: 5000,
-            ...config,
-          },
-        }),
+      : type === "flow"
+        ? {
+            flow: {
+              goals: config?.goals || ["goal-a", "goal-b"],
+              input_map: {},
+              output_map: {},
+            },
+          }
+        : {
+            http: {
+              endpoint: "http://localhost:8080/test",
+              timeout: 5000,
+              ...config,
+            },
+          }),
   });
 
   beforeEach(() => {
@@ -102,6 +110,16 @@ describe("Footer", () => {
     const preview = container.querySelector(".step-endpoint");
     expect(preview).toBeInTheDocument();
     expect(preview?.textContent).toBe('{:greeting (str "Hello" name)}');
+  });
+
+  test("renders flow goals for flow step", () => {
+    const step = createStep("flow", { goals: ["goal-a", "goal-b"] });
+
+    const { container } = render(<Footer step={step} />);
+
+    const endpoint = container.querySelector(".step-endpoint");
+    expect(endpoint?.textContent).toBe("goal-a, goal-b");
+    expect(screen.getByText("Flow Goals")).toBeInTheDocument();
   });
 
   test("replaces newlines in script preview", () => {

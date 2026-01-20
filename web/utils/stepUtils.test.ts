@@ -13,6 +13,7 @@ describe("stepUtils", () => {
       const attributes = {
         zebra: { role: AttributeRole.Required, type: AttributeType.String },
         alpha: { role: AttributeRole.Required, type: AttributeType.String },
+        const1: { role: AttributeRole.Const, type: AttributeType.String },
         beta: { role: AttributeRole.Optional, type: AttributeType.Number },
         gamma: { role: AttributeRole.Output, type: AttributeType.String },
         delta: { role: AttributeRole.Output, type: AttributeType.Boolean },
@@ -20,15 +21,17 @@ describe("stepUtils", () => {
 
       const result = getSortedAttributes(attributes);
 
-      expect(result).toHaveLength(5);
+      expect(result).toHaveLength(6);
       // Required first
       expect(result[0].name).toBe("alpha");
       expect(result[1].name).toBe("zebra");
-      // Optional second
-      expect(result[2].name).toBe("beta");
+      // Const next
+      expect(result[2].name).toBe("const1");
+      // Optional after const
+      expect(result[3].name).toBe("beta");
       // Outputs last
-      expect(result[3].name).toBe("delta");
-      expect(result[4].name).toBe("gamma");
+      expect(result[4].name).toBe("delta");
+      expect(result[5].name).toBe("gamma");
     });
 
     test("handles empty attributes object", () => {
@@ -73,6 +76,19 @@ describe("stepUtils", () => {
       expect(result).toHaveLength(2);
       expect(result[0].name).toBe("result1");
       expect(result[1].name).toBe("result2");
+    });
+
+    test("handles const attributes", () => {
+      const attributes = {
+        const2: { role: AttributeRole.Const, type: AttributeType.String },
+        const1: { role: AttributeRole.Const, type: AttributeType.Number },
+      };
+
+      const result = getSortedAttributes(attributes);
+
+      expect(result).toHaveLength(2);
+      expect(result[0].name).toBe("const1");
+      expect(result[1].name).toBe("const2");
     });
 
     test("preserves attribute spec objects", () => {

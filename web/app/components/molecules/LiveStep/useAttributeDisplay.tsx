@@ -14,7 +14,7 @@ import styles from "../StepShared/StepAttributesSection.module.css";
 
 /**
  * Hook that returns a function to render status badges for attributes
- * Encapsulates complex conditional logic for different attribute types and statuses
+ * Encapsulates conditional logic for different attribute types and statuses
  */
 export const useAttributeStatusBadge = () => {
   return useMemo(() => {
@@ -50,6 +50,34 @@ export const useAttributeStatusBadge = () => {
           );
         }
         if (wasDefaulted) {
+          return (
+            <div
+              className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
+            >
+              <CircleDot className={styles.statusIcon} />
+            </div>
+          );
+        }
+        return (
+          <div
+            className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
+          >
+            <CircleDashed className={styles.statusIcon} />
+          </div>
+        );
+      }
+
+      if (argType === "const" && executionStatus) {
+        if (executionStatus === "skipped") {
+          return (
+            <div
+              className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
+            >
+              <CircleSlash className={styles.statusIcon} />
+            </div>
+          );
+        }
+        if (wasDefaulted || isSatisfied) {
           return (
             <div
               className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}

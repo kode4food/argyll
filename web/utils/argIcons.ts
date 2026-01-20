@@ -1,6 +1,12 @@
-import { ArrowRight, ArrowLeft, CircleHelp, LucideIcon } from "lucide-react";
+import {
+  ArrowRight,
+  ArrowLeft,
+  CircleHelp,
+  Lock,
+  LucideIcon,
+} from "lucide-react";
 
-export type ArgType = "required" | "optional" | "output";
+export type ArgType = "required" | "optional" | "const" | "output";
 
 export interface ArgIconConfig {
   Icon: LucideIcon;
@@ -13,6 +19,8 @@ export const getArgIcon = (argType: ArgType): ArgIconConfig => {
       return { Icon: ArrowRight, className: "arg-icon input" };
     case "optional":
       return { Icon: CircleHelp, className: "arg-icon optional" };
+    case "const":
+      return { Icon: Lock, className: "arg-icon const" };
     case "output":
       return { Icon: ArrowLeft, className: "arg-icon output" };
   }

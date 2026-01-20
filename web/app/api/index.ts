@@ -6,6 +6,7 @@ export type {
   AttributeSpec,
   HTTPConfig,
   ScriptConfig,
+  FlowConfig,
   WorkConfig,
   Step,
   ExecutionPlan,

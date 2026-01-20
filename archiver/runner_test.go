@@ -67,7 +67,7 @@ func TestRunnerWritesArchiveRecord(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", timebox.ID("abc123")),
+		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
 		SnapshotSequence: 0,
 		SnapshotData:     json.RawMessage{},
 		Events: []json.RawMessage{
@@ -96,7 +96,7 @@ func TestRunnerStopsOnPollerError(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -119,7 +119,7 @@ func TestNewRunnerValidation(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -145,7 +145,7 @@ func TestWriterRejectsNilRecord(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -169,7 +169,7 @@ func TestWriterWritesWithNoPrefix(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -181,7 +181,7 @@ func TestWriterWritesWithNoPrefix(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", timebox.ID("abc123")),
+		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
 		SnapshotSequence: 0,
 		Events: []json.RawMessage{
 			json.RawMessage(`{"type":"flow_completed"}`),
@@ -200,7 +200,7 @@ func TestWriterWritesWithTrailingSlashPrefix(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -212,7 +212,7 @@ func TestWriterWritesWithTrailingSlashPrefix(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", timebox.ID("abc123")),
+		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
 		SnapshotSequence: 0,
 		Events: []json.RawMessage{
 			json.RawMessage(`{"type":"flow_completed"}`),
@@ -231,7 +231,7 @@ func TestWriterFiltersEmptyEventMessages(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -243,7 +243,7 @@ func TestWriterFiltersEmptyEventMessages(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", timebox.ID("abc123")),
+		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
 		SnapshotSequence: 0,
 		SnapshotData:     json.RawMessage(" "),
 		Events: []json.RawMessage{
@@ -273,7 +273,7 @@ func TestWriterFailsOnInvalidSnapshotJSON(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -285,7 +285,7 @@ func TestWriterFailsOnInvalidSnapshotJSON(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", timebox.ID("abc123")),
+		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
 		SnapshotSequence: 0,
 		SnapshotData:     json.RawMessage("{"),
 		Events: []json.RawMessage{
@@ -303,7 +303,7 @@ func TestRunnerRunTerminatesOnCancel(t *testing.T) {
 
 	b, err := blob.OpenBucket(context.Background(), "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
@@ -341,7 +341,7 @@ func TestRunnerRunTreatsContextCanceledAsSuccess(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {

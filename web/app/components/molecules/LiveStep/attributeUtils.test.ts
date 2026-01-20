@@ -60,6 +60,10 @@ describe("attributeUtils", () => {
       expect(getAttributeTooltipTitle("output")).toBe("liveStep.outputValue");
     });
 
+    it("returns key for const attributes", () => {
+      expect(getAttributeTooltipTitle("const")).toBe("liveStep.defaultValue");
+    });
+
     it("returns key for optional attributes that were not defaulted", () => {
       expect(getAttributeTooltipTitle("optional", false)).toBe(
         "liveStep.inputValue"

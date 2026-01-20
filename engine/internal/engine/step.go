@@ -33,6 +33,7 @@ var (
 
 	asyncStepTypes = util.SetOf(
 		api.StepTypeAsync,
+		api.StepTypeFlow,
 	)
 )
 

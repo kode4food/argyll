@@ -42,7 +42,7 @@ func TestNewArchiverValidation(t *testing.T) {
 		Protocol:        2,
 		DisableIdentity: true,
 	})
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }()
 
 	_, err = archiver.NewArchiver(
 		&timebox.Store{}, &timebox.Store{}, redisClient, cfg,
@@ -78,7 +78,7 @@ func TestArchiverRunSweepsDeactivatedFlows(t *testing.T) {
 		Protocol:        2,
 		DisableIdentity: true,
 	})
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }()
 
 	arch, err := archiver.NewArchiver(engineStore, flowStore, redisClient, cfg)
 	assert.NoError(t, err)
@@ -143,7 +143,7 @@ func TestArchiverRunPressureCycleArchivesFlows(t *testing.T) {
 		Protocol:        2,
 		DisableIdentity: true,
 	})
-	defer redisClient.Close()
+	defer func() { _ = redisClient.Close() }()
 
 	arch, err := archiver.NewArchiver(engineStore, flowStore, redisClient, cfg)
 	assert.NoError(t, err)
@@ -286,7 +286,7 @@ func startInfoServer(t *testing.T, info string) (string, func()) {
 }
 
 func handleInfoConn(conn net.Conn, info string) {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	reader := bufio.NewReader(conn)
 	writer := bufio.NewWriter(conn)

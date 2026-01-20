@@ -31,7 +31,7 @@ jest.mock("@/app/components/atoms/HealthDot", () => ({
 
 describe("Footer", () => {
   const createStep = (
-    type: "sync" | "async" | "script",
+    type: "sync" | "async" | "script" | "flow",
     config?: any
   ): Step => ({
     id: "step-1",
@@ -46,13 +46,21 @@ describe("Footer", () => {
             script: "{:result (+ 1 2)}",
           },
         }
-      : {
-          http: {
-            endpoint: "http://localhost:8080/test",
-            timeout: 5000,
-            ...config,
-          },
-        }),
+      : type === "flow"
+        ? {
+            flow: {
+              goals: config?.goals || ["goal-a", "goal-b"],
+              input_map: {},
+              output_map: {},
+            },
+          }
+        : {
+            http: {
+              endpoint: "http://localhost:8080/test",
+              timeout: 5000,
+              ...config,
+            },
+          }),
   });
 
   test("renders HTTP endpoint for sync step", () => {
@@ -73,5 +81,15 @@ describe("Footer", () => {
 
     expect(screen.getByTestId("health-dot")).toBeInTheDocument();
     expect(screen.getByText("Health Status")).toBeInTheDocument();
+  });
+
+  test("renders flow goals for flow step", () => {
+    const step = createStep("flow", { goals: ["goal-a", "goal-b"] });
+
+    const { container } = render(<Footer step={step} healthStatus="healthy" />);
+
+    const endpoint = container.querySelector(".step-endpoint");
+    expect(endpoint?.textContent).toBe("goal-a, goal-b");
+    expect(screen.getByText("Flow Goals")).toBeInTheDocument();
   });
 });

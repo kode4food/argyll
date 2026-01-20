@@ -75,6 +75,15 @@
   background-color: color-mix(in srgb, var(--color-info) 90%, white);
 }
 
+.dropdownItemIncluded {
+  background-color: color-mix(in srgb, var(--color-info) 35%, transparent);
+  color: var(--color-white);
+}
+
+.dropdownItemIncluded:hover:not(.dropdownItemDisabled) {
+  background-color: color-mix(in srgb, var(--color-info) 35%, transparent);
+}
+
 .stepTable {
   width: 100%;
   table-layout: auto;
@@ -205,6 +214,13 @@
 .stepId {
   font-size: var(--text-xs);
   opacity: var(--opacity-soft);
+}
+
+.includedCheck {
+  margin-left: var(--spacing-xs);
+  font-size: 12px;
+  line-height: 1;
+  opacity: 0.9;
 }
 
 .main {

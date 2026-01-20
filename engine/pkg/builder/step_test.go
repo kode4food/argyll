@@ -110,6 +110,19 @@ func TestOptionalArg(t *testing.T) {
 	assert.EqualValues(t, "42", step.Attributes["optional2"].Default)
 }
 
+func TestConstArg(t *testing.T) {
+	step, err := testClient().NewStep("Test").
+		WithEndpoint("http://example.com").
+		Const("const1", api.TypeString, "\"fixed\"").
+		Build()
+
+	assert.NoError(t, err)
+	assert.Len(t, step.Attributes, 1)
+	assert.Contains(t, step.Attributes, api.Name("const1"))
+	assert.EqualValues(t, api.RoleConst, step.Attributes["const1"].Role)
+	assert.EqualValues(t, "\"fixed\"", step.Attributes["const1"].Default)
+}
+
 func TestOutputArg(t *testing.T) {
 	step, err := testClient().NewStep("Test").
 		WithEndpoint("http://example.com").
@@ -234,6 +247,40 @@ func TestWithScriptExecution(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeScript, step.Type)
+}
+
+func TestWithFlowGoals(t *testing.T) {
+	step, err := testClient().NewStep("Flow Step").
+		WithFlowGoals("goal-a", "goal-b").
+		Build()
+
+	assert.NoError(t, err)
+	assert.Equal(t, api.StepTypeFlow, step.Type)
+	assert.Equal(t, []api.StepID{"goal-a", "goal-b"}, step.Flow.Goals)
+}
+
+func TestWithFlowMaps(t *testing.T) {
+	step, err := testClient().NewStep("Flow Step").
+		Required("input", api.TypeString).
+		Output("output", api.TypeString).
+		WithFlowGoals("goal-a").
+		WithFlowInputMap(map[api.Name]api.Name{"input": "child-input"}).
+		WithFlowOutputMap(map[api.Name]api.Name{"child-output": "output"}).
+		Build()
+
+	assert.NoError(t, err)
+	assert.Equal(t, api.StepTypeFlow, step.Type)
+	assert.Equal(t, []api.StepID{"goal-a"}, step.Flow.Goals)
+	assert.Equal(
+		t,
+		map[api.Name]api.Name{"input": "child-input"},
+		step.Flow.InputMap,
+	)
+	assert.Equal(
+		t,
+		map[api.Name]api.Name{"child-output": "output"},
+		step.Flow.OutputMap,
+	)
 }
 
 func TestWithPredicate(t *testing.T) {
@@ -490,6 +537,12 @@ func TestStepBuilderChaining(t *testing.T) {
 			Build()
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepTypeScript, scriptStep.Type)
+
+		flowStep, err := build.
+			WithFlowGoals("goal-a").
+			Build()
+		assert.NoError(t, err)
+		assert.Equal(t, api.StepTypeFlow, flowStep.Type)
 	})
 }
 

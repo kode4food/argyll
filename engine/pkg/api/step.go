@@ -13,9 +13,6 @@ type (
 	// StepType defines the execution mode for a step (sync, async, or script)
 	StepType string
 
-	// Metadata contains additional context passed to step handlers
-	Metadata map[string]any
-
 	// Steps contains a map of Steps by their ID
 	Steps map[StepID]*Step
 
@@ -27,6 +24,7 @@ type (
 	Step struct {
 		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
 		HTTP       *HTTPConfig    `json:"http,omitempty"`
+		Flow       *FlowConfig    `json:"flow,omitempty"`
 		Script     *ScriptConfig  `json:"script,omitempty"`
 		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
 		Labels     Labels         `json:"labels,omitempty"`
@@ -47,6 +45,13 @@ type (
 	ScriptConfig struct {
 		Language string `json:"language"`
 		Script   string `json:"script"`
+	}
+
+	// FlowConfig configures flow-based step execution
+	FlowConfig struct {
+		Goals     []StepID      `json:"goals"`
+		InputMap  map[Name]Name `json:"input_map,omitempty"`
+		OutputMap map[Name]Name `json:"output_map,omitempty"`
 	}
 
 	// WorkConfig configures retry and parallelism behavior for steps with
@@ -77,6 +82,7 @@ const (
 	StepTypeSync   StepType = "sync"
 	StepTypeAsync  StepType = "async"
 	StepTypeScript StepType = "script"
+	StepTypeFlow   StepType = "flow"
 
 	ScriptLangAle = "ale"
 	ScriptLangLua = "lua"
@@ -101,6 +107,13 @@ var (
 	ErrInvalidStepType       = errors.New("invalid step type")
 	ErrHTTPRequired          = errors.New("http required")
 	ErrScriptRequired        = errors.New("script required")
+	ErrFlowRequired          = errors.New("flow required")
+	ErrFlowGoalsRequired     = errors.New("flow goals required")
+	ErrFlowInputMapInvalid   = errors.New("flow input map invalid")
+	ErrFlowOutputMapInvalid  = errors.New("flow output map invalid")
+	ErrHTTPNotAllowed        = errors.New("http not allowed for step type")
+	ErrScriptNotAllowed      = errors.New("script not allowed for step type")
+	ErrFlowNotAllowed        = errors.New("flow not allowed for step type")
 	ErrScriptLanguageEmpty   = errors.New("script language empty")
 	ErrInvalidScriptLanguage = errors.New("invalid script language")
 	ErrScriptEmpty           = errors.New("script empty")
@@ -117,6 +130,7 @@ var (
 		StepTypeSync,
 		StepTypeAsync,
 		StepTypeScript,
+		StepTypeFlow,
 	)
 
 	validBackoffTypes = util.SetOf(
@@ -156,6 +170,10 @@ func (s *Step) Validate() error {
 		if err := s.validateHTTPConfig(); err != nil {
 			return err
 		}
+	case StepTypeFlow:
+		if err := s.validateFlowConfig(); err != nil {
+			return err
+		}
 	case StepTypeScript:
 		if err := s.validateScriptConfig(); err != nil {
 			return err
@@ -191,6 +209,12 @@ func (s *Step) validateHTTPConfig() error {
 	if s.HTTP == nil {
 		return ErrHTTPRequired
 	}
+	if s.Flow != nil {
+		return ErrFlowNotAllowed
+	}
+	if s.Script != nil {
+		return ErrScriptNotAllowed
+	}
 	if s.HTTP.Endpoint == "" {
 		return ErrStepEndpointEmpty
 	}
@@ -201,6 +225,12 @@ func (s *Step) validateScriptConfig() error {
 	if s.Script == nil {
 		return ErrScriptRequired
 	}
+	if s.HTTP != nil {
+		return ErrHTTPNotAllowed
+	}
+	if s.Flow != nil {
+		return ErrFlowNotAllowed
+	}
 	if s.Script.Language == "" {
 		return ErrScriptLanguageEmpty
 	}
@@ -209,6 +239,67 @@ func (s *Step) validateScriptConfig() error {
 	}
 	if s.Script.Script == "" {
 		return ErrScriptEmpty
+	}
+	return nil
+}
+
+func (s *Step) validateFlowConfig() error {
+	if s.Flow == nil {
+		return ErrFlowRequired
+	}
+	if s.HTTP != nil {
+		return ErrHTTPNotAllowed
+	}
+	if s.Script != nil {
+		return ErrScriptNotAllowed
+	}
+	if len(s.Flow.Goals) == 0 {
+		return ErrFlowGoalsRequired
+	}
+	if err := s.validateFlowMappings(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Step) validateFlowMappings() error {
+	if s.Flow == nil {
+		return nil
+	}
+	if err := s.validateFlowInputMap(); err != nil {
+		return err
+	}
+	return s.validateFlowOutputMap()
+}
+
+func (s *Step) validateFlowInputMap() error {
+	if len(s.Flow.InputMap) == 0 {
+		return nil
+	}
+	for inputName, childName := range s.Flow.InputMap {
+		if inputName == "" || childName == "" {
+			return ErrFlowInputMapInvalid
+		}
+		attr, ok := s.Attributes[inputName]
+		if !ok || !attr.IsInput() {
+			return ErrFlowInputMapInvalid
+		}
+	}
+	return nil
+}
+
+func (s *Step) validateFlowOutputMap() error {
+	if len(s.Flow.OutputMap) == 0 {
+		return nil
+	}
+	for childName, outputName := range s.Flow.OutputMap {
+		if childName == "" || outputName == "" {
+			return ErrFlowOutputMapInvalid
+		}
+		attr, ok := s.Attributes[outputName]
+		if !ok || !attr.IsOutput() {
+			return ErrFlowOutputMapInvalid
+		}
 	}
 	return nil
 }
@@ -249,11 +340,11 @@ func (s *Step) IsOptionalArg(argName Name) bool {
 	return false
 }
 
-// SortedArgNames returns sorted input argument names
+// SortedArgNames returns sorted runtime input argument names
 func (s *Step) SortedArgNames() []string {
 	var all []string
 	for name, attr := range s.Attributes {
-		if attr.IsInput() {
+		if attr.IsRuntimeInput() {
 			all = append(all, string(name))
 		}
 	}
@@ -303,6 +394,9 @@ func (s *Step) Equal(other *Step) bool {
 		return false
 	}
 	if !s.HTTP.Equal(other.HTTP) {
+		return false
+	}
+	if !s.Flow.Equal(other.Flow) {
 		return false
 	}
 	if !s.Script.Equal(other.Script) {
@@ -360,6 +454,19 @@ func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
 	return equalWithNilCheck(c, other, func() bool {
 		return c.Language == other.Language && c.Script == other.Script
+	})
+}
+
+// Equal returns true if two flow configs are equal
+func (c *FlowConfig) Equal(other *FlowConfig) bool {
+	return equalWithNilCheck(c, other, func() bool {
+		if !slices.Equal(c.Goals, other.Goals) {
+			return false
+		}
+		if !maps.Equal(c.InputMap, other.InputMap) {
+			return false
+		}
+		return maps.Equal(c.OutputMap, other.OutputMap)
 	})
 }
 

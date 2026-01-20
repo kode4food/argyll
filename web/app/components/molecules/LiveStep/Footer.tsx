@@ -9,6 +9,7 @@ import {
   formatScriptPreview,
   getScriptIcon,
   getHttpIcon,
+  getFlowIcon,
 } from "@/utils/stepFooterUtils";
 import { useMemo } from "react";
 import { useT } from "@/app/i18n";
@@ -37,6 +38,12 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
         text: scriptPreview,
         className: "endpoint-script",
       };
+    } else if (step.type === "flow" && step.flow?.goals?.length) {
+      const FlowIcon = getFlowIcon();
+      displayInfo = {
+        icon: FlowIcon,
+        text: step.flow.goals.join(", "),
+      };
     } else if (step.http) {
       const HttpIcon = getHttpIcon(step.type);
       displayInfo = {
@@ -46,6 +53,13 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
     }
 
     const sections: React.ReactElement[] = [];
+    if (step.type === "flow" && step.flow?.goals?.length) {
+      sections.push(
+        <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
+          {step.flow.goals.join(", ")}
+        </TooltipSection>
+      );
+    }
     if (!execution || !flowId) {
       return { displayInfo, tooltipSections: sections };
     }

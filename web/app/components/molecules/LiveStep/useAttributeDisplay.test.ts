@@ -80,6 +80,29 @@ describe("useAttributeStatusBadge", () => {
     expect(badge?.props.className).toContain("pending");
   });
 
+  it("renders const defaulted status", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("const", {
+      isSatisfied: true,
+      executionStatus: "active",
+      wasDefaulted: true,
+    });
+
+    expect(badge).not.toBeNull();
+    expect(badge?.props.className).toContain("defaulted");
+  });
+
+  it("renders const skipped status", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("const", {
+      isSatisfied: false,
+      executionStatus: "skipped",
+    });
+
+    expect(badge).not.toBeNull();
+    expect(badge?.props.className).toContain("skipped");
+  });
+
   it("renders output winner status", () => {
     const { result } = renderHook(() => useAttributeStatusBadge());
     const badge = result.current("output", {

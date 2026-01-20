@@ -16,6 +16,35 @@ func TestValidateDefault(t *testing.T) {
 		expectErr bool
 	}{
 		{
+			name: "const with valid string default",
+			spec: &api.AttributeSpec{
+				Role:    api.RoleConst,
+				Type:    api.TypeString,
+				Default: `"fixed"`,
+			},
+			attrName:  "mode",
+			expectErr: false,
+		},
+		{
+			name: "const with invalid string default",
+			spec: &api.AttributeSpec{
+				Role:    api.RoleConst,
+				Type:    api.TypeString,
+				Default: "fixed",
+			},
+			attrName:  "mode",
+			expectErr: true,
+		},
+		{
+			name: "const with missing default",
+			spec: &api.AttributeSpec{
+				Role: api.RoleConst,
+				Type: api.TypeString,
+			},
+			attrName:  "mode",
+			expectErr: true,
+		},
+		{
 			name: "optional with valid number default",
 			spec: &api.AttributeSpec{
 				Role:    api.RoleOptional,
@@ -229,6 +258,17 @@ func TestIsRequired(t *testing.T) {
 	assert.False(t, output.IsRequired())
 }
 
+func TestIsConst(t *testing.T) {
+	spec := &api.AttributeSpec{
+		Role: api.RoleConst,
+		Type: api.TypeString,
+	}
+	assert.True(t, spec.IsConst())
+	assert.False(t, spec.IsOptional())
+	assert.False(t, spec.IsRequired())
+	assert.False(t, spec.IsOutput())
+}
+
 func TestEqual(t *testing.T) {
 	spec1 := &api.AttributeSpec{
 		Role:    api.RoleRequired,
@@ -402,6 +442,17 @@ func TestValidateEdgeCases(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrForEachNotAllowedOutput)
 	})
 
+	t.Run("for_each_with_const_role", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleConst,
+			Type:    api.TypeArray,
+			ForEach: true,
+			Default: `["a", "b"]`,
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
 	t.Run("invalid_role", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: "invalid_role",
@@ -438,6 +489,15 @@ func TestValidateEdgeCases(t *testing.T) {
 		}
 		err := spec.Validate("test_arg")
 		assert.ErrorIs(t, err, api.ErrDefaultNotAllowed)
+	})
+
+	t.Run("const_requires_default", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleConst,
+			Type: api.TypeString,
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrDefaultRequired)
 	})
 
 	t.Run("empty_type_allowed", func(t *testing.T) {

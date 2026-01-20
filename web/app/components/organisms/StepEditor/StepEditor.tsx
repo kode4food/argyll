@@ -8,16 +8,31 @@ import {
   Plus,
   Layers,
   Square,
+  Workflow,
 } from "lucide-react";
-import { Step, AttributeType, StepType } from "@/app/api";
+import {
+  Step,
+  AttributeType,
+  StepType,
+  ExecutionPlan,
+  AttributeRole,
+} from "@/app/api";
 import ScriptConfigEditor from "./ScriptConfigEditor";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import { useStepEditorForm } from "./useStepEditorForm";
 import { useModalDimensions } from "./useModalDimensions";
-import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
+import {
+  Attribute,
+  getAttributeIconProps,
+  parseFlowGoals,
+} from "./stepEditorUtils";
 import { useT } from "@/app/i18n";
+import { useSteps } from "@/app/store/flowStore";
+import { useFlowFormStepFiltering } from "../FlowCreateForm/useFlowFormStepFiltering";
+import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
+import { api } from "@/app/api";
 
 interface StepEditorProps {
   step: Step | null;
@@ -40,7 +55,7 @@ interface StepEditingContextValue {
   removeAttribute: (id: string) => void;
   cycleAttributeType: (
     id: string,
-    currentType: "input" | "optional" | "output"
+    currentType: "input" | "optional" | "const" | "output"
   ) => void;
   endpoint: string;
   setEndpoint: (value: string) => void;
@@ -48,7 +63,16 @@ interface StepEditingContextValue {
   setHealthCheck: (value: string) => void;
   httpTimeout: number;
   setHttpTimeout: (value: number) => void;
+  flowGoals: string;
+  setFlowGoals: (value: string) => void;
+  flowInputOptions: FlowInputOption[];
+  flowOutputOptions: string[];
 }
+
+type FlowInputOption = {
+  name: string;
+  required: boolean;
+};
 
 const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.String,
@@ -132,6 +156,12 @@ const BasicFields: React.FC = () => {
               label: t("stepEditor.typeScriptLabel"),
               title: t("stepEditor.typeScriptTitle"),
             },
+            {
+              type: "flow" as StepType,
+              Icon: Workflow,
+              label: t("stepEditor.typeFlowLabel"),
+              title: t("stepEditor.typeFlowTitle"),
+            },
           ].map(({ type, Icon, label, title }) => (
             <button
               key={type}
@@ -161,7 +191,13 @@ const AttributesSection: React.FC = () => {
     updateAttribute,
     removeAttribute,
     cycleAttributeType,
+    stepType,
+    flowInputOptions,
+    flowOutputOptions,
   } = useStepEditingContext();
+
+  const flowInputList = flowInputOptions;
+  const flowOutputList = flowOutputOptions;
 
   return (
     <div className={formStyles.section}>
@@ -245,7 +281,7 @@ const AttributesSection: React.FC = () => {
                 placeholder={t("stepEditor.attributeNamePlaceholder")}
                 className={formStyles.argInput}
               />
-              {attr.attrType === "optional" && (
+              {(attr.attrType === "optional" || attr.attrType === "const") && (
                 <input
                   type="text"
                   value={attr.defaultValue || ""}
@@ -286,6 +322,41 @@ const AttributesSection: React.FC = () => {
                     </button>
                   </div>
                 )}
+              {stepType === "flow" && (
+                <select
+                  value={attr.flowMap || ""}
+                  onChange={(e) =>
+                    updateAttribute(attr.id, "flowMap", e.target.value)
+                  }
+                  className={formStyles.flowMapSelect}
+                  disabled={
+                    attr.attrType === "output"
+                      ? flowOutputList.length === 0
+                      : flowInputList.length === 0
+                  }
+                >
+                  <option value="">{t("stepEditor.flowMapPlaceholder")}</option>
+                  {attr.attrType === "output"
+                    ? flowOutputList.map((option) => (
+                        <option key={option} value={option}>
+                          {option}
+                        </option>
+                      ))
+                    : flowInputList.map((option) => (
+                        <option
+                          key={option.name}
+                          value={option.name}
+                          className={
+                            option.required
+                              ? formStyles.flowMapOptionRequired
+                              : undefined
+                          }
+                        >
+                          {option.name}
+                        </option>
+                      ))}
+                </select>
+              )}
               <button
                 onClick={() => removeAttribute(attr.id)}
                 className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
@@ -301,6 +372,190 @@ const AttributesSection: React.FC = () => {
             )}
           </div>
         ))}
+      </div>
+    </div>
+  );
+};
+
+const FlowConfiguration: React.FC<{
+  previewPlan: ExecutionPlan | null;
+  flowInitialState: string;
+  setFlowInitialState: (value: string) => void;
+  updatePreviewPlan: (
+    goalSteps: string[],
+    initialState: Record<string, any>
+  ) => Promise<void>;
+  clearPreviewPlan: () => void;
+}> = ({
+  previewPlan,
+  flowInitialState,
+  setFlowInitialState,
+  updatePreviewPlan,
+  clearPreviewPlan,
+}) => {
+  const t = useT();
+  const steps = useSteps();
+  const { flowGoals, setFlowGoals, stepId } = useStepEditingContext();
+
+  const goalList = React.useMemo(() => parseFlowGoals(flowGoals), [flowGoals]);
+
+  const sortedSteps = React.useMemo(
+    () => [...steps].sort((a, b) => a.name.localeCompare(b.name)),
+    [steps]
+  );
+
+  const initializedGoalsRef = React.useRef(false);
+
+  const displaySteps = React.useMemo(
+    () => sortedSteps.filter((step) => step.id !== stepId),
+    [sortedSteps, stepId]
+  );
+
+  React.useEffect(() => {
+    if (goalList.length === 0) {
+      initializedGoalsRef.current = false;
+      return;
+    }
+
+    if (initializedGoalsRef.current) {
+      return;
+    }
+
+    initializedGoalsRef.current = true;
+    void applyFlowGoalSelectionChange({
+      stepIds: goalList,
+      initialState: flowInitialState,
+      steps: sortedSteps,
+      setInitialState: setFlowInitialState,
+      setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
+      updatePreviewPlan,
+      clearPreviewPlan,
+      getExecutionPlan: (goalStepIds, init) =>
+        api.getExecutionPlan(goalStepIds, init),
+    });
+  }, [
+    clearPreviewPlan,
+    flowInitialState,
+    goalList,
+    setFlowGoals,
+    setFlowInitialState,
+    sortedSteps,
+    updatePreviewPlan,
+  ]);
+
+  React.useEffect(() => {
+    if (!goalList.includes(stepId)) {
+      return;
+    }
+
+    const nextGoals = goalList.filter((id) => id !== stepId);
+    void applyFlowGoalSelectionChange({
+      stepIds: nextGoals,
+      initialState: flowInitialState,
+      steps: sortedSteps,
+      setInitialState: setFlowInitialState,
+      setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
+      updatePreviewPlan,
+      clearPreviewPlan,
+      getExecutionPlan: (goalStepIds, init) =>
+        api.getExecutionPlan(goalStepIds, init),
+    });
+  }, [
+    clearPreviewPlan,
+    flowInitialState,
+    goalList,
+    setFlowGoals,
+    setFlowInitialState,
+    sortedSteps,
+    stepId,
+    updatePreviewPlan,
+  ]);
+
+  const { included, satisfied, missingByStep } = useFlowFormStepFiltering(
+    displaySteps,
+    flowInitialState,
+    previewPlan
+  );
+
+  const handleGoalToggle = React.useCallback(
+    async (goalId: string) => {
+      const isSelected = goalList.includes(goalId);
+      const nextGoals = isSelected
+        ? goalList.filter((id) => id !== goalId)
+        : [...goalList, goalId];
+
+      await applyFlowGoalSelectionChange({
+        stepIds: nextGoals,
+        initialState: flowInitialState,
+        steps: sortedSteps,
+        setInitialState: setFlowInitialState,
+        setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
+        updatePreviewPlan,
+        clearPreviewPlan,
+        getExecutionPlan: (goalStepIds, init) =>
+          api.getExecutionPlan(goalStepIds, init),
+      });
+    },
+    [
+      goalList,
+      flowInitialState,
+      sortedSteps,
+      setFlowInitialState,
+      setFlowGoals,
+      updatePreviewPlan,
+      clearPreviewPlan,
+    ]
+  );
+
+  return (
+    <div className={formStyles.section}>
+      <div className={formStyles.sectionHeader}>
+        <label className={formStyles.label}>
+          {t("stepEditor.flowGoalsLabel")}
+        </label>
+      </div>
+      <div className={formStyles.flowGoalList}>
+        {displaySteps.map((step) => {
+          const isSelected = goalList.includes(step.id);
+          const isIncludedByOthers = included.has(step.id) && !isSelected;
+          const isSatisfiedByState = satisfied.has(step.id) && !isSelected;
+          const missingRequired = missingByStep.get(step.id) || [];
+          const isMissing = missingRequired.length > 0;
+          const isDisabled = isIncludedByOthers || isSatisfiedByState;
+
+          const tooltipText = isIncludedByOthers
+            ? t("flowCreate.tooltipAlreadyIncluded")
+            : isSatisfiedByState
+              ? t("flowCreate.tooltipSatisfiedByState")
+              : isMissing
+                ? t("flowCreate.tooltipMissingRequired", {
+                    attrs: missingRequired.join(", "),
+                  })
+                : undefined;
+
+          return (
+            <button
+              key={step.id}
+              type="button"
+              title={tooltipText}
+              onClick={() => {
+                if (isDisabled) return;
+                void handleGoalToggle(step.id);
+              }}
+              disabled={isDisabled}
+              className={`${formStyles.flowGoalChip} ${
+                isSelected ? formStyles.flowGoalChipSelected : ""
+              } ${isIncludedByOthers ? formStyles.flowGoalChipIncluded : ""} ${
+                isDisabled ? formStyles.flowGoalChipDisabled : ""
+              }`}
+            >
+              {step.id}
+              {isIncludedByOthers && (
+                <span className={formStyles.flowGoalChipCheck}>✓</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -387,6 +642,63 @@ const StepEditor: React.FC<StepEditorProps> = ({
     contextValue,
   } = useStepEditorForm(step, onUpdate, onClose);
 
+  const [flowPreviewPlan, setFlowPreviewPlan] =
+    React.useState<ExecutionPlan | null>(null);
+  const [flowInitialState, setFlowInitialState] = React.useState("{}");
+
+  const updateFlowPreviewPlan = React.useCallback(
+    async (goalSteps: string[], initialState: Record<string, any>) => {
+      const plan = await api.getExecutionPlan(goalSteps, initialState);
+      setFlowPreviewPlan(plan);
+    },
+    []
+  );
+
+  const clearFlowPreviewPlan = React.useCallback(() => {
+    setFlowPreviewPlan(null);
+  }, []);
+
+  const { flowInputOptions, flowOutputOptions } = React.useMemo(() => {
+    if (!flowPreviewPlan?.steps) {
+      return { flowInputOptions: [], flowOutputOptions: [] };
+    }
+
+    const inputMap = new Map<string, FlowInputOption>();
+    const outputSet = new Set<string>();
+
+    Object.values(flowPreviewPlan.steps).forEach((planStep) => {
+      Object.entries(planStep.attributes || {}).forEach(([name, spec]) => {
+        if (spec.role === AttributeRole.Required) {
+          inputMap.set(name, { name, required: true });
+        }
+        if (spec.role === AttributeRole.Optional && !inputMap.has(name)) {
+          inputMap.set(name, { name, required: false });
+        }
+        if (spec.role === AttributeRole.Output) {
+          outputSet.add(name);
+        }
+      });
+    });
+
+    return {
+      flowInputOptions: Array.from(inputMap.values()).sort((a, b) =>
+        a.name.localeCompare(b.name)
+      ),
+      flowOutputOptions: Array.from(outputSet).sort((a, b) =>
+        a.localeCompare(b)
+      ),
+    };
+  }, [flowPreviewPlan]);
+
+  const extendedContextValue = React.useMemo(
+    () => ({
+      ...contextValue,
+      flowInputOptions,
+      flowOutputOptions,
+    }),
+    [contextValue, flowInputOptions, flowOutputOptions]
+  );
+
   const { dimensions, mounted } = useModalDimensions(diagramContainerRef);
 
   useEffect(() => {
@@ -409,7 +721,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   if (!mounted) return null;
 
   const modalContent = (
-    <StepEditingContext.Provider value={contextValue}>
+    <StepEditingContext.Provider value={extendedContextValue}>
       <div className={styles.backdrop} onClick={handleBackdropClick}>
         <div
           className={styles.content}
@@ -431,6 +743,16 @@ const StepEditor: React.FC<StepEditorProps> = ({
             <div className={formStyles.formContainer}>
               {/* Basic Fields */}
               <BasicFields />
+
+              {stepType === "flow" && (
+                <FlowConfiguration
+                  previewPlan={flowPreviewPlan}
+                  flowInitialState={flowInitialState}
+                  setFlowInitialState={setFlowInitialState}
+                  updatePreviewPlan={updateFlowPreviewPlan}
+                  clearPreviewPlan={clearFlowPreviewPlan}
+                />
+              )}
 
               {/* Unified Attributes Section */}
               <AttributesSection />
@@ -455,7 +777,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   onLanguageChange={setScriptLanguage}
                   containerClassName={formStyles.scriptEditorContainer}
                 />
-              ) : (
+              ) : stepType === "flow" ? null : (
                 <HttpConfiguration />
               )}
 

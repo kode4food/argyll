@@ -91,7 +91,12 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 	inputs := api.Args{}
 
 	for name, attr := range step.Attributes {
-		if !attr.IsInput() {
+		if !attr.IsRuntimeInput() {
+			continue
+		}
+
+		if attr.IsConst() {
+			inputs[name] = gjson.Parse(attr.Default).Value()
 			continue
 		}
 
@@ -193,6 +198,8 @@ func (e *ExecContext) performWork(
 		return e.performScriptWork(inputs)
 	case api.StepTypeSync, api.StepTypeAsync:
 		return e.performHTTPWork(ctx, inputs, token)
+	case api.StepTypeFlow:
+		return e.performFlowWork(ctx, inputs, token)
 	default:
 		return nil, ErrUnsupportedStepType
 	}
@@ -219,6 +226,18 @@ func (e *ExecContext) performHTTPWork(
 ) (api.Args, error) {
 	metadata := e.buildHTTPMetadataWithToken(token)
 	return e.engine.stepClient.Invoke(ctx, e.step, inputs, metadata)
+}
+
+func (e *ExecContext) performFlowWork(
+	ctx context.Context, initState api.Args, token api.Token,
+) (api.Args, error) {
+	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	mappedState := mapFlowInputs(e.step, initState)
+	_, err := e.engine.StartChildFlow(ctx, fs, token, e.step, mappedState)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (e *ExecContext) buildHTTPMetadataWithToken(token api.Token) api.Metadata {
