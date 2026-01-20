@@ -48,3 +48,7 @@ System correctness must be explainable via event replay alone:
 - Any workflow state can be reconstructed by replaying its event log
 - No runtime state exists that isn't derived from persisted events
 - Recovery requires no external coordination or distributed consensus
+
+## Notes
+
+- Current ListFlows filtering that hides sub-flows does so by loading each flow and checking parent metadata; this will be too slow at scale and should be replaced with a more efficient index or query strategy.

@@ -150,6 +150,13 @@ func (e *Engine) buildFlowDigest(
 		return nil
 	}
 
+	if _, ok := api.GetMetaString[api.FlowID](
+		flow.Metadata,
+		api.MetaParentFlowID,
+	); ok {
+		return nil
+	}
+
 	return &api.FlowDigest{
 		ID:          flow.ID,
 		Status:      flow.Status,
