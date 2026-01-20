@@ -43,6 +43,12 @@ func main() {
 	client := builder.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep("Order Creator").
+		WithLabels(api.Labels{
+			"description": "create order records and validate business rules",
+			"domain":      "orders",
+			"capability":  "create",
+			"example":     "true",
+		}).
 		Required("user_info", api.TypeObject).
 		Required("product_info", api.TypeObject).
 		Optional("quantity", api.TypeNumber, "1").

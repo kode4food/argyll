@@ -34,6 +34,13 @@ func main() {
 	client := builder.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep("Payment Processor").
+		WithLabels(api.Labels{
+			"description": "process payment asynchronously",
+			"domain":      "payments",
+			"capability":  "process",
+			"execution":   "async",
+			"example":     "true",
+		}).
 		Required("order", api.TypeObject).
 		Output("payment_result", api.TypeObject).
 		WithAsyncExecution().

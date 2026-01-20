@@ -31,6 +31,13 @@ func main() {
 
 	err := client.NewStep("Text Formatter").
 		WithID("text-formatter").
+		WithLabels(api.Labels{
+			"description": "format text with a label",
+			"domain":      "text",
+			"capability":  "transform",
+			"language":    "ale",
+			"example":     "true",
+		}).
 		Required("text", api.TypeString).
 		Required("name", api.TypeString).
 		Output("formatted_text", api.TypeString).
@@ -54,6 +61,13 @@ func main() {
 
 	err = client.NewStep("Price Calculator").
 		WithID("price-calculator").
+		WithLabels(api.Labels{
+			"description": "calculate pricing totals",
+			"domain":      "pricing",
+			"capability":  "calculate",
+			"language":    "ale",
+			"example":     "true",
+		}).
 		Required("quantity", api.TypeNumber).
 		Required("unit_price", api.TypeNumber).
 		Output("subtotal", api.TypeNumber).
@@ -95,6 +109,13 @@ return {
 
 	err = client.NewStep("Eligibility Checker").
 		WithID("eligibility-checker").
+		WithLabels(api.Labels{
+			"description": "evaluate eligibility based on risk inputs",
+			"domain":      "risk",
+			"capability":  "decision",
+			"language":    "lua",
+			"example":     "true",
+		}).
 		Required("age", api.TypeNumber).
 		Required("income", api.TypeNumber).
 		Required("credit_score", api.TypeNumber).

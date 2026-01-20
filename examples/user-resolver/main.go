@@ -67,6 +67,12 @@ func main() {
 	client := builder.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep("User Resolver").
+		WithLabels(api.Labels{
+			"description": "resolve user profile by user_id",
+			"domain":      "users",
+			"capability":  "lookup",
+			"example":     "true",
+		}).
 		Optional("user_id", api.TypeString, `"user-123"`).
 		Output("user_info", api.TypeObject).
 		Start(handle)

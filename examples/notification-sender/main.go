@@ -27,6 +27,12 @@ func main() {
 	client := builder.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep("Notification Sender").
+		WithLabels(api.Labels{
+			"description": "send order confirmation notifications",
+			"domain":      "notifications",
+			"capability":  "send",
+			"example":     "true",
+		}).
 		Required("payment_result", api.TypeObject).
 		Required("reservation", api.TypeObject).
 		Required("user_info", api.TypeObject).

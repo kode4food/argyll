@@ -50,6 +50,12 @@ func main() {
 	client := builder.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep("Stock Reservation").
+		WithLabels(api.Labels{
+			"description": "reserve inventory for an order",
+			"domain":      "inventory",
+			"capability":  "reserve",
+			"example":     "true",
+		}).
 		Required("order", api.TypeObject).
 		Output("reservation", api.TypeObject).
 		Start(handle)
