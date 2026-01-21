@@ -104,7 +104,7 @@ describe("useStepEditorForm", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe("Flow goals are required");
+    expect(result.current.error).toBe("Goal Steps are required");
     expect(registerStep).not.toHaveBeenCalled();
   });
 

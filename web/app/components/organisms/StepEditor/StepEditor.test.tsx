@@ -291,7 +291,7 @@ describe("StepEditor", () => {
       const flowButton = screen.getByTitle("Flow");
       fireEvent.click(flowButton);
       expect(flowButton.className).toContain("typeButtonActive");
-      expect(screen.getByText("Flow Goals")).toBeInTheDocument();
+      expect(screen.getByText("Goal Steps")).toBeInTheDocument();
     });
   });
 

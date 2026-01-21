@@ -121,9 +121,7 @@ const FlowCreateForm: React.FC = () => {
                           </td>
                           <td className={styles.stepCellName}>
                             <div>{step.name}</div>
-                            <div className={styles.stepId}>
-                              ({step.id})
-                            </div>
+                            <div className={styles.stepId}>({step.id})</div>
                           </td>
                         </tr>
                       </tbody>

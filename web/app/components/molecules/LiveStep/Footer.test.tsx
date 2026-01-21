@@ -119,7 +119,7 @@ describe("Footer", () => {
 
     const endpoint = container.querySelector(".step-endpoint");
     expect(endpoint?.textContent).toBe("goal-a, goal-b");
-    expect(screen.getByText("Flow Goals")).toBeInTheDocument();
+    expect(screen.getByText("Goal Steps")).toBeInTheDocument();
   });
 
   test("replaces newlines in script preview", () => {
