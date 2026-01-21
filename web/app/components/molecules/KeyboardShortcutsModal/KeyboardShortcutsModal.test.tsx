@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/hooks/useEscapeKey", () => ({
   useEscapeKey: jest.fn((isActive, callback) => {
@@ -17,22 +18,28 @@ describe("KeyboardShortcutsModal", () => {
   test("does not render when closed", () => {
     render(<KeyboardShortcutsModal isOpen={false} onClose={jest.fn()} />);
 
-    expect(screen.queryByText("Keyboard Shortcuts")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(t("keyboardShortcuts.title"))
+    ).not.toBeInTheDocument();
   });
 
   test("renders when open", () => {
     render(<KeyboardShortcutsModal isOpen={true} onClose={jest.fn()} />);
 
-    expect(screen.getByText("Keyboard Shortcuts")).toBeInTheDocument();
+    expect(screen.getByText(t("keyboardShortcuts.title"))).toBeInTheDocument();
   });
 
   test("renders General section shortcuts", () => {
     render(<KeyboardShortcutsModal isOpen={true} onClose={jest.fn()} />);
 
-    expect(screen.getByText("Show keyboard shortcuts")).toBeInTheDocument();
-    expect(screen.getByText("Focus search")).toBeInTheDocument();
     expect(
-      screen.getByText("Close modals / Deselect step")
+      screen.getByText(t("keyboardShortcuts.showShortcuts"))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("keyboardShortcuts.focusSearch"))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("keyboardShortcuts.closeModals"))
     ).toBeInTheDocument();
   });
 
@@ -40,21 +47,25 @@ describe("KeyboardShortcutsModal", () => {
     render(<KeyboardShortcutsModal isOpen={true} onClose={jest.fn()} />);
 
     expect(
-      screen.getByText("Navigate within dependency level")
+      screen.getByText(t("keyboardShortcuts.navigateWithinLevel"))
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Navigate between dependency levels")
+      screen.getByText(t("keyboardShortcuts.navigateBetweenLevels"))
     ).toBeInTheDocument();
     expect(
-      screen.getByText("Open step editor (script steps)")
+      screen.getByText(t("keyboardShortcuts.openStepEditor"))
     ).toBeInTheDocument();
   });
 
   test("renders section titles", () => {
     render(<KeyboardShortcutsModal isOpen={true} onClose={jest.fn()} />);
 
-    expect(screen.getByText("General")).toBeInTheDocument();
-    expect(screen.getByText("Navigation")).toBeInTheDocument();
+    expect(
+      screen.getByText(t("keyboardShortcuts.sectionGeneral"))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("keyboardShortcuts.sectionNavigation"))
+    ).toBeInTheDocument();
   });
 
   test("calls onClose when close button clicked", () => {
@@ -62,7 +73,9 @@ describe("KeyboardShortcutsModal", () => {
 
     render(<KeyboardShortcutsModal isOpen={true} onClose={onClose} />);
 
-    const closeButton = screen.getByRole("button", { name: "Close" });
+    const closeButton = screen.getByRole("button", {
+      name: t("keyboardShortcuts.close"),
+    });
     fireEvent.click(closeButton);
 
     expect(onClose).toHaveBeenCalledTimes(1);

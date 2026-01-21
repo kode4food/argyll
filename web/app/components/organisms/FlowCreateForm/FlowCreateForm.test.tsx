@@ -1,5 +1,7 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import FlowCreateForm from "./FlowCreateForm";
+import styles from "./FlowCreateForm.module.css";
+import { t } from "@/app/testUtils/i18n";
 import { useUI } from "@/app/contexts/UIContext";
 import { Step, AttributeRole, AttributeType } from "@/app/api";
 import {
@@ -95,11 +97,18 @@ describe("FlowCreateForm", () => {
   });
 
   test("renders form when showCreateForm is true", () => {
-    renderWithProvider();
+    const { container } = renderWithProvider();
 
-    expect(screen.getByText("Select Goal Steps")).toBeInTheDocument();
-    expect(screen.getByText("Flow ID")).toBeInTheDocument();
-    expect(screen.getByText("Required Attributes")).toBeInTheDocument();
+    expect(container.querySelector(`.${styles.modal}`)).toBeInTheDocument();
+    expect(container.querySelector(`.${styles.sidebar}`)).toBeInTheDocument();
+    expect(container.querySelector(`.${styles.main}`)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("flowCreate.selectGoalSteps"))
+    ).toBeInTheDocument();
+    expect(screen.getByText(t("flowCreate.flowIdLabel"))).toBeInTheDocument();
+    expect(
+      screen.getByText(t("flowCreate.requiredAttributesLabel"))
+    ).toBeInTheDocument();
   });
 
   test("renders steps in sorted list", () => {
@@ -121,7 +130,7 @@ describe("FlowCreateForm", () => {
     renderWithProvider({ newID: "my-flow" });
 
     const input = screen.getByPlaceholderText(
-      "e.g., order-processing-001"
+      t("flowCreate.flowIdPlaceholder")
     ) as HTMLInputElement;
     expect(input.value).toBe("my-flow");
   });
@@ -168,19 +177,27 @@ describe("FlowCreateForm", () => {
   test("shows JSON error when initialState is invalid JSON", () => {
     renderWithProvider({ initialState: "{invalid" });
 
-    expect(screen.getByText(/Invalid JSON/)).toBeInTheDocument();
+    expect(
+      screen.getByText((content) =>
+        content.startsWith(t("flowCreate.invalidJson", { error: "" }))
+      )
+    ).toBeInTheDocument();
   });
 
   test("does not show JSON error when initialState is valid JSON", () => {
     renderWithProvider({ initialState: '{"valid": true}' });
 
-    expect(screen.queryByText(/Invalid JSON/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText((content) =>
+        content.startsWith(t("flowCreate.invalidJson", { error: "" }))
+      )
+    ).not.toBeInTheDocument();
   });
 
   test("closes form when overlay is clicked", () => {
     renderWithProvider();
 
-    const overlay = screen.getByLabelText("Close flow form");
+    const overlay = screen.getByLabelText(t("flowCreate.closeForm"));
     fireEvent.click(overlay);
 
     expect(defaultUIContext.setShowCreateForm).toHaveBeenCalledWith(false);
@@ -189,7 +206,7 @@ describe("FlowCreateForm", () => {
   test("closes form when Cancel button is clicked", () => {
     renderWithProvider();
 
-    const cancelButton = screen.getByText("Cancel");
+    const cancelButton = screen.getByText(t("common.cancel"));
     fireEvent.click(cancelButton);
 
     expect(defaultUIContext.setShowCreateForm).toHaveBeenCalledWith(false);
@@ -203,7 +220,7 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id" });
 
-    const startButton = screen.getByText("Start");
+    const startButton = screen.getByText(t("common.start"));
     fireEvent.click(startButton);
 
     expect(defaultProps.handleCreateFlow).toHaveBeenCalled();
@@ -217,7 +234,7 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id", creating: true });
 
-    const startButton = screen.getByText("Start");
+    const startButton = screen.getByText(t("common.start"));
     expect(startButton).toBeDisabled();
   });
 
@@ -229,7 +246,7 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "" });
 
-    const startButton = screen.getByText("Start");
+    const startButton = screen.getByText(t("common.start"));
     expect(startButton).toBeDisabled();
   });
 
@@ -241,7 +258,7 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id" });
 
-    const startButton = screen.getByText("Start");
+    const startButton = screen.getByText(t("common.start"));
     expect(startButton).toBeDisabled();
   });
 
@@ -253,7 +270,7 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id", initialState: "{invalid" });
 
-    const startButton = screen.getByText("Start");
+    const startButton = screen.getByText(t("common.start"));
     expect(startButton).toBeDisabled();
   });
 
@@ -274,14 +291,16 @@ describe("FlowCreateForm", () => {
   test("shows warning when no steps are registered", () => {
     renderWithProvider({ steps: [] });
 
-    expect(screen.getByText(/No steps are registered/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("flowCreate.warningNoSteps"))
+    ).toBeInTheDocument();
   });
 
   test("does not show warning when steps are registered", () => {
     renderWithProvider({ steps: [mockStep] });
 
     expect(
-      screen.queryByText(/No steps are registered/)
+      screen.queryByText(t("flowCreate.warningNoSteps"))
     ).not.toBeInTheDocument();
   });
 

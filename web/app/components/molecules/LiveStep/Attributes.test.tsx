@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import Attributes from "./Attributes";
 import type { Step, ExecutionResult } from "@/app/api";
 import { AttributeRole, AttributeType } from "@/app/api";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/atoms/Tooltip", () => ({
   __esModule: true,
@@ -542,6 +543,6 @@ describe("Attributes", () => {
       <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
     );
 
-    expect(screen.getByText("Default Value")).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
   });
 });

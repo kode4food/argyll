@@ -1,6 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import ScriptConfigEditor from "./ScriptConfigEditor";
 import { SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/molecules/ScriptEditor", () => {
   return function MockScriptEditor({
@@ -42,21 +43,25 @@ describe("ScriptConfigEditor", () => {
 
   test("renders language buttons when not readOnly", () => {
     render(<ScriptConfigEditor {...defaultProps} />);
-    expect(screen.getByText("Ale")).toBeInTheDocument();
-    expect(screen.getByText("Lua")).toBeInTheDocument();
+    expect(screen.getByText(t("script.language.ale"))).toBeInTheDocument();
+    expect(screen.getByText(t("script.language.lua"))).toBeInTheDocument();
   });
 
   test("does not render language buttons when readOnly", () => {
     render(<ScriptConfigEditor {...defaultProps} readOnly />);
-    expect(screen.queryByText("Ale")).not.toBeInTheDocument();
-    expect(screen.queryByText("Lua")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(t("script.language.ale"))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(t("script.language.lua"))
+    ).not.toBeInTheDocument();
   });
 
   test("calls onLanguageChange with Ale when Ale button clicked", () => {
     render(
       <ScriptConfigEditor {...defaultProps} language={SCRIPT_LANGUAGE_LUA} />
     );
-    const aleButton = screen.getByText("Ale");
+    const aleButton = screen.getByText(t("script.language.ale"));
     fireEvent.click(aleButton);
     expect(defaultProps.onLanguageChange).toHaveBeenCalledWith(
       SCRIPT_LANGUAGE_ALE
@@ -65,7 +70,7 @@ describe("ScriptConfigEditor", () => {
 
   test("calls onLanguageChange with Lua when Lua button clicked", () => {
     render(<ScriptConfigEditor {...defaultProps} />);
-    const luaButton = screen.getByText("Lua");
+    const luaButton = screen.getByText(t("script.language.lua"));
     fireEvent.click(luaButton);
     expect(defaultProps.onLanguageChange).toHaveBeenCalledWith(
       SCRIPT_LANGUAGE_LUA
@@ -76,7 +81,7 @@ describe("ScriptConfigEditor", () => {
     render(
       <ScriptConfigEditor {...defaultProps} language={SCRIPT_LANGUAGE_ALE} />
     );
-    const aleButton = screen.getByText("Ale");
+    const aleButton = screen.getByText(t("script.language.ale"));
     expect(aleButton.className).toContain("languageButtonActive");
   });
 
@@ -84,7 +89,7 @@ describe("ScriptConfigEditor", () => {
     render(
       <ScriptConfigEditor {...defaultProps} language={SCRIPT_LANGUAGE_LUA} />
     );
-    const luaButton = screen.getByText("Lua");
+    const luaButton = screen.getByText(t("script.language.lua"));
     expect(luaButton.className).toContain("languageButtonActive");
   });
 

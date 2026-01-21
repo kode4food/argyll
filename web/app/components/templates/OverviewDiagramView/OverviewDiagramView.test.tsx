@@ -1,6 +1,7 @@
 import React from "react";
 import { render, waitFor } from "@testing-library/react";
 import OverviewDiagramView from ".";
+import { t } from "@/app/testUtils/i18n";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useEdgesState } from "@xyflow/react";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
@@ -145,7 +146,7 @@ describe("OverviewDiagramView", () => {
       </DiagramSelectionProvider>
     );
 
-    expect(getByText("No Steps to Visualize")).toBeInTheDocument();
+    expect(getByText(t("overview.noVisibleTitle"))).toBeInTheDocument();
   });
 
   it("renders with goal steps selected", () => {

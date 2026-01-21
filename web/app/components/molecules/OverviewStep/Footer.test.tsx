@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { t } from "@/app/testUtils/i18n";
 import Footer from "./Footer";
 import type { Step } from "@/app/api";
 
@@ -80,7 +81,9 @@ describe("Footer", () => {
     render(<Footer step={step} healthStatus="healthy" />);
 
     expect(screen.getByTestId("health-dot")).toBeInTheDocument();
-    expect(screen.getByText("Health Status")).toBeInTheDocument();
+    expect(
+      screen.getByText(t("overviewStep.healthStatus"))
+    ).toBeInTheDocument();
   });
 
   test("renders flow goals for flow step", () => {
@@ -90,6 +93,11 @@ describe("Footer", () => {
 
     const endpoint = container.querySelector(".step-endpoint");
     expect(endpoint?.textContent).toBe("goal-a, goal-b");
-    expect(screen.getByText("Goal Steps")).toBeInTheDocument();
+    expect(screen.getByText(t("stepFooter.flowGoals"))).toBeInTheDocument();
+    const tooltipSections = screen.getAllByTestId("tooltip-section");
+    const hasGoalsSection = tooltipSections.some((section) =>
+      section.textContent?.includes("goal-a, goal-b")
+    );
+    expect(hasGoalsSection).toBe(true);
   });
 });

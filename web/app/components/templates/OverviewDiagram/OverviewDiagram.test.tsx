@@ -2,6 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import OverviewDiagram from "./OverviewDiagram";
 import { Step } from "@/app/api";
+import { t, tPlural } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/contexts/StepEditorContext", () => {
   const openEditor = jest.fn();
@@ -90,7 +91,7 @@ describe("OverviewDiagram", () => {
   it("shows empty state when no steps", () => {
     setSession({ steps: [] });
     render(<OverviewDiagram />);
-    expect(screen.getByText("No Steps Registered")).toBeInTheDocument();
+    expect(screen.getByText(t("overview.noStepsTitle"))).toBeInTheDocument();
   });
 
   it("shows not found state when flow missing", () => {
@@ -102,14 +103,18 @@ describe("OverviewDiagram", () => {
   it("renders header stats when not in flow mode", () => {
     setSession({ steps: [baseStep] });
     render(<OverviewDiagram />);
-    expect(screen.getByText("Step Dependencies")).toBeInTheDocument();
-    expect(screen.getByText(/1 step registered/)).toBeInTheDocument();
+    expect(screen.getByText(t("overview.title"))).toBeInTheDocument();
+    expect(
+      screen.getByText(tPlural("overview.stepsRegistered", 1))
+    ).toBeInTheDocument();
   });
 
   it("opens create step editor", () => {
     setSession({ steps: [baseStep] });
     render(<OverviewDiagram />);
-    const button = screen.getByRole("button", { name: /Create New Step/i });
+    const button = screen.getByRole("button", {
+      name: t("overview.addStep"),
+    });
     act(() => {
       fireEvent.click(button);
     });

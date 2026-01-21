@@ -1,6 +1,7 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import LiveDiagram from "./LiveDiagram";
+import { t } from "@/app/testUtils/i18n";
 
 const sessionMock = {
   selectedFlow: "wf-1" as string | null,
@@ -50,7 +51,7 @@ describe("LiveDiagram", () => {
   it("shows not found state when flow missing", () => {
     sessionMock.flowNotFound = true;
     render(<LiveDiagram />);
-    expect(screen.getByText(/Flow Not Found/)).toBeInTheDocument();
+    expect(screen.getByText(t("live.flowNotFoundTitle"))).toBeInTheDocument();
   });
 
   it("renders header and stats when flow data is available", () => {

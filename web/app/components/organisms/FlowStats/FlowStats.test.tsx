@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import FlowStats from "./FlowStats";
 import type { Step } from "@/app/api";
 import { AttributeRole, AttributeType } from "@/app/api";
+import { t } from "@/app/testUtils/i18n";
 
 describe("FlowStats", () => {
   const createStep = (
@@ -51,7 +52,9 @@ describe("FlowStats", () => {
         resolvedAttributes={["input1"]}
       />
     );
-    expect(screen.getByText(/1 of 2/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 1, total: 2 }))
+    ).toBeInTheDocument();
   });
 
   test("shows optional inputs stat", () => {
@@ -63,7 +66,9 @@ describe("FlowStats", () => {
         resolvedAttributes={["opt1"]}
       />
     );
-    expect(screen.getByText(/1 of 2/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 1, total: 2 }))
+    ).toBeInTheDocument();
   });
 
   test("shows outputs stat", () => {
@@ -75,7 +80,9 @@ describe("FlowStats", () => {
         resolvedAttributes={["out1"]}
       />
     );
-    expect(screen.getByText(/1 of 2/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 1, total: 2 }))
+    ).toBeInTheDocument();
   });
 
   test("aggregates stats from multiple steps", () => {
@@ -90,8 +97,12 @@ describe("FlowStats", () => {
         resolvedAttributes={["in1", "in2", "out1"]}
       />
     );
-    expect(screen.getByText(/2 of 2/)).toBeInTheDocument(); // required inputs
-    expect(screen.getByText(/1 of 2/)).toBeInTheDocument(); // outputs
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 2, total: 2 }))
+    ).toBeInTheDocument(); // required inputs
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 1, total: 2 }))
+    ).toBeInTheDocument(); // outputs
   });
 
   test("only includes steps in execution sequence", () => {
@@ -106,7 +117,9 @@ describe("FlowStats", () => {
         resolvedAttributes={["in1", "in2"]}
       />
     );
-    expect(screen.getByText(/1 of 1/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 1, total: 1 }))
+    ).toBeInTheDocument();
   });
 
   test("hides stat when count is zero", () => {
@@ -165,7 +178,9 @@ describe("FlowStats", () => {
         resolvedAttributes={["in1", "in3"]}
       />
     );
-    expect(screen.getByText(/2 of 3/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.countOf", { resolved: 2, total: 3 }))
+    ).toBeInTheDocument();
   });
 
   test("handles all resolved attributes", () => {
@@ -177,7 +192,9 @@ describe("FlowStats", () => {
         resolvedAttributes={["in1", "opt1", "out1"]}
       />
     );
-    const badges = screen.getAllByText(/1 of 1/);
+    const badges = screen.getAllByText(
+      t("common.countOf", { resolved: 1, total: 1 })
+    );
     expect(badges.length).toBe(3);
   });
 

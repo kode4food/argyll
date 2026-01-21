@@ -3,12 +3,12 @@ import OverviewPage from "./OverviewPage";
 
 jest.mock("@/app/components/organisms/FlowSelector", () => ({
   __esModule: true,
-  default: () => <div>FlowSelectorMock</div>,
+  default: () => <div data-testid="flow-selector" />,
 }));
 
 jest.mock("@/app/components/templates/OverviewDiagram", () => ({
   __esModule: true,
-  default: () => <div>OverviewDiagramMock</div>,
+  default: () => <div data-testid="overview-diagram" />,
 }));
 
 const loadSteps = jest.fn().mockResolvedValue(undefined);

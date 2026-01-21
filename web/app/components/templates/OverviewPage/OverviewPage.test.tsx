@@ -1,15 +1,16 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import OverviewPage from "./OverviewPage";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/organisms/FlowSelector", () => {
-  const MockFlowSelector = () => <div>FlowSelector</div>;
+  const MockFlowSelector = () => <div data-testid="flow-selector" />;
   MockFlowSelector.displayName = "MockFlowSelector";
   return MockFlowSelector;
 });
 
 jest.mock("@/app/components/templates/OverviewDiagram", () => {
-  const MockOverviewDiagram = () => <div>OverviewDiagram</div>;
+  const MockOverviewDiagram = () => <div data-testid="overview-diagram" />;
   MockOverviewDiagram.displayName = "MockOverviewDiagram";
   return MockOverviewDiagram;
 });
@@ -51,13 +52,15 @@ describe("OverviewPage", () => {
   it("renders error state", () => {
     flowSession.flowError = "boom";
     render(<OverviewPage />);
-    expect(screen.getByText(/Error: boom/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.errorMessage", { message: "boom" }))
+    ).toBeInTheDocument();
   });
 
   it("renders selector and diagram", () => {
     flowSession.flowError = null;
     render(<OverviewPage />);
-    expect(screen.getByText("FlowSelector")).toBeInTheDocument();
-    expect(screen.getByText("OverviewDiagram")).toBeInTheDocument();
+    expect(screen.getByTestId("flow-selector")).toBeInTheDocument();
+    expect(screen.getByTestId("overview-diagram")).toBeInTheDocument();
   });
 });

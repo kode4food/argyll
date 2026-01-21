@@ -1,5 +1,7 @@
 import React from "react";
 import StepEditor from "./StepEditor";
+import formStyles from "./StepEditorForm.module.css";
+import { t } from "@/app/testUtils/i18n";
 import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Step } from "@/app/api";
@@ -159,7 +161,9 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Edit Step:.*step-1/)).toBeInTheDocument();
+      expect(
+        screen.getByText(t("stepEditor.modalEditTitle", { id: "step-1" }))
+      ).toBeInTheDocument();
       expect(screen.getByDisplayValue("Test HTTP Step")).toBeInTheDocument();
       expect(
         screen.getByDisplayValue("http://localhost:8080/test")
@@ -181,7 +185,9 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/Edit Step:.*step-2/)).toBeInTheDocument();
+      expect(
+        screen.getByText(t("stepEditor.modalEditTitle", { id: "step-2" }))
+      ).toBeInTheDocument();
       expect(screen.getByDisplayValue("Test Script Step")).toBeInTheDocument();
       expect(screen.getByDisplayValue("{:result 42}")).toBeInTheDocument();
       expect(screen.getByDisplayValue("(> value 10)")).toBeInTheDocument();
@@ -274,7 +280,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const asyncButton = screen.getByTitle("Asynchronous HTTP");
+      const asyncButton = screen.getByTitle(t("stepEditor.typeAsyncTitle"));
       fireEvent.click(asyncButton);
       expect(asyncButton.className).toContain("typeButtonActive");
     });
@@ -282,17 +288,31 @@ describe("StepEditor", () => {
 
   test("shows flow type button and flow goals when selected", async () => {
     const step = createHttpStep("sync");
+    stepsInStore = [
+      {
+        ...createHttpStep("sync"),
+        id: "step-2",
+        name: "Second Step",
+      },
+    ];
 
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
     await waitFor(() => {
-      const flowButton = screen.getByTitle("Flow");
+      const flowButton = screen.getByTitle(t("stepEditor.typeFlowTitle"));
       fireEvent.click(flowButton);
       expect(flowButton.className).toContain("typeButtonActive");
-      expect(screen.getByText("Goal Steps")).toBeInTheDocument();
     });
+
+    expect(
+      screen.getByText(t("stepEditor.flowGoalsLabel"))
+    ).toBeInTheDocument();
+    const goalChips = document.body.querySelectorAll(
+      `.${formStyles.flowGoalChip}`
+    );
+    expect(goalChips.length).toBeGreaterThan(0);
   });
 
   test("renders flow mapping dropdown options", async () => {
@@ -331,7 +351,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const flowButton = screen.getByTitle("Flow");
+      const flowButton = screen.getByTitle(t("stepEditor.typeFlowTitle"));
       fireEvent.click(flowButton);
     });
 
@@ -451,7 +471,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const addButton = screen.getByTitle("Add attribute");
+      const addButton = screen.getByTitle(t("stepEditor.addAttribute"));
       fireEvent.click(addButton);
     });
 
@@ -489,7 +509,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -528,12 +548,14 @@ describe("StepEditor", () => {
       );
       fireEvent.change(endpointInput, { target: { value: "" } });
 
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
-      expect(screen.getByText("HTTP endpoint is required")).toBeInTheDocument();
+      expect(
+        screen.getByText(t("stepEditor.endpointRequired"))
+      ).toBeInTheDocument();
       expect(mockUpdateStep).not.toHaveBeenCalled();
     });
   });
@@ -550,13 +572,13 @@ describe("StepEditor", () => {
       const httpTimeoutInput = durationInputs[durationInputs.length - 1];
       fireEvent.change(httpTimeoutInput, { target: { value: "0" } });
 
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
       expect(
-        screen.getByText("Timeout must be a positive number")
+        screen.getByText(t("stepEditor.timeoutPositive"))
       ).toBeInTheDocument();
       expect(mockUpdateStep).not.toHaveBeenCalled();
     });
@@ -574,13 +596,13 @@ describe("StepEditor", () => {
       const httpTimeoutInput = durationInputs[durationInputs.length - 1];
       fireEvent.change(httpTimeoutInput, { target: { value: "" } });
 
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
       expect(
-        screen.getByText("Timeout must be a positive number")
+        screen.getByText(t("stepEditor.timeoutPositive"))
       ).toBeInTheDocument();
       expect(mockUpdateStep).not.toHaveBeenCalled();
     });
@@ -597,7 +619,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -617,7 +639,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -634,7 +656,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const cancelButton = screen.getByText("Cancel");
+      const cancelButton = screen.getByText(t("stepEditor.cancel"));
       fireEvent.click(cancelButton);
       expect(mockOnClose).toHaveBeenCalled();
     });
@@ -692,13 +714,13 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Saving...")).toBeInTheDocument();
-      const cancelButton = screen.getByText("Cancel");
+      expect(screen.getByText(t("stepEditor.saving"))).toBeInTheDocument();
+      const cancelButton = screen.getByText(t("stepEditor.cancel"));
       expect(cancelButton).toBeDisabled();
     });
   });
@@ -715,7 +737,7 @@ describe("StepEditor", () => {
       const predicateInput = screen.getByDisplayValue("(> temperature 100)");
       fireEvent.change(predicateInput, { target: { value: "" } });
 
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -743,7 +765,7 @@ describe("StepEditor", () => {
       );
       fireEvent.change(healthInput, { target: { value: "" } });
 
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -862,7 +884,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -896,12 +918,14 @@ describe("StepEditor", () => {
       ) as HTMLTextAreaElement;
       fireEvent.change(scriptCodeEditor, { target: { value: "" } });
 
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Script code is required")).toBeInTheDocument();
+      expect(
+        screen.getByText(t("stepEditor.scriptRequired"))
+      ).toBeInTheDocument();
       expect(mockUpdateStep).not.toHaveBeenCalled();
     });
   });
@@ -914,12 +938,12 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const scriptButton = screen.getByTitle("Script (Ale)");
+      const scriptButton = screen.getByTitle(t("stepEditor.typeScriptTitle"));
       fireEvent.click(scriptButton);
     });
 
     await waitFor(() => {
-      expect(screen.getByText("Script Code")).toBeInTheDocument();
+      expect(screen.getByText(t("stepEditor.scriptLabel"))).toBeInTheDocument();
       expect(
         screen.queryByPlaceholderText("http://localhost:8080/process")
       ).not.toBeInTheDocument();
@@ -934,7 +958,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const syncButton = screen.getByTitle("Synchronous HTTP");
+      const syncButton = screen.getByTitle(t("stepEditor.typeSyncTitle"));
       fireEvent.click(syncButton);
     });
 
@@ -942,7 +966,9 @@ describe("StepEditor", () => {
       expect(
         screen.getByPlaceholderText("http://localhost:8080/process")
       ).toBeInTheDocument();
-      expect(screen.queryByText("Script Code")).not.toBeInTheDocument();
+      expect(
+        screen.queryByText(t("stepEditor.scriptLabel"))
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -955,7 +981,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 
@@ -978,7 +1004,7 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const saveButton = screen.getByText("Save");
+      const saveButton = screen.getByText(t("stepEditor.save"));
       fireEvent.click(saveButton);
     });
 

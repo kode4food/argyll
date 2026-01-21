@@ -1,15 +1,16 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
 import LivePage from "./LivePage";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/organisms/FlowSelector", () => {
-  const Mock = () => <div>FlowSelector</div>;
+  const Mock = () => <div data-testid="flow-selector" />;
   Mock.displayName = "MockFlowSelector";
   return Mock;
 });
 
 jest.mock("@/app/components/templates/LiveDiagram", () => {
-  const Mock = () => <div>LiveDiagram</div>;
+  const Mock = () => <div data-testid="live-diagram" />;
   Mock.displayName = "MockLiveDiagram";
   return Mock;
 });
@@ -51,13 +52,15 @@ describe("LivePage", () => {
   it("renders error state", () => {
     flowSession.flowError = "boom";
     render(<LivePage />);
-    expect(screen.getByText(/Error: boom/)).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.errorMessage", { message: "boom" }))
+    ).toBeInTheDocument();
   });
 
   it("renders selector and diagram", () => {
     flowSession.flowError = null;
     render(<LivePage />);
-    expect(screen.getByText("FlowSelector")).toBeInTheDocument();
-    expect(screen.getByText("LiveDiagram")).toBeInTheDocument();
+    expect(screen.getByTestId("flow-selector")).toBeInTheDocument();
+    expect(screen.getByTestId("live-diagram")).toBeInTheDocument();
   });
 });

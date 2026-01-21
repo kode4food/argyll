@@ -8,6 +8,7 @@ import {
 import FlowSelector from "./FlowSelector";
 import { UIProvider } from "@/app/contexts/UIContext";
 import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("./useFlowFromUrl", () => ({
   useFlowFromUrl: jest.fn(),
@@ -70,7 +71,7 @@ jest.mock("react-router-dom", () => ({
 
 jest.mock("../FlowCreateForm/FlowCreateForm", () => ({
   __esModule: true,
-  default: () => <div>FlowCreateForm</div>,
+  default: () => <div data-testid="flow-create-form" />,
 }));
 
 describe("FlowSelector integration", () => {
@@ -87,9 +88,11 @@ describe("FlowSelector integration", () => {
     await waitFor(() => expect(flowStore.__loadFlows).toHaveBeenCalled());
 
     act(() => {
-      fireEvent.click(screen.getByRole("button", { name: /Create New Flow/i }));
+      fireEvent.click(
+        screen.getByRole("button", { name: t("flowSelector.createNewFlow") })
+      );
     });
 
-    expect(await screen.findByText(/FlowCreateForm/i)).toBeInTheDocument();
+    expect(await screen.findByTestId("flow-create-form")).toBeInTheDocument();
   });
 });

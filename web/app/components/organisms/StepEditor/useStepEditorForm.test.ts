@@ -1,6 +1,7 @@
 import { act, renderHook } from "@testing-library/react";
 import { AttributeType, SCRIPT_LANGUAGE_LUA, Step } from "@/app/api";
 import { useStepEditorForm } from "./useStepEditorForm";
+import { t } from "@/app/testUtils/i18n";
 
 const registerStep = jest.fn();
 const updateStep = jest.fn();
@@ -42,7 +43,7 @@ describe("useStepEditorForm", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe("Step ID is required");
+    expect(result.current.error).toBe(t("stepEditor.stepIdRequired"));
     expect(registerStep).not.toHaveBeenCalled();
   });
 
@@ -86,7 +87,7 @@ describe("useStepEditorForm", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe("Script code is required");
+    expect(result.current.error).toBe(t("stepEditor.scriptRequired"));
     expect(registerStep).not.toHaveBeenCalled();
   });
 
@@ -104,7 +105,7 @@ describe("useStepEditorForm", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe("Goal Steps are required");
+    expect(result.current.error).toBe(t("stepEditor.flowGoalsRequired"));
     expect(registerStep).not.toHaveBeenCalled();
   });
 
@@ -193,9 +194,11 @@ describe("useStepEditorForm", () => {
       await result.current.handleSave();
     });
 
-    expect(result.current.error).toBe(
-      'Invalid default value for "value": Must be a valid number'
-    );
+    const expectedError = t("stepEditor.invalidDefaultValue", {
+      name: "value",
+      reason: t("validation.jsonNumber"),
+    });
+    expect(result.current.error).toBe(expectedError);
     expect(registerStep).not.toHaveBeenCalled();
   });
 

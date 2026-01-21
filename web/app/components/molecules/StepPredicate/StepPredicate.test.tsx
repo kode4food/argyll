@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import StepPredicate from "./StepPredicate";
 import { Step, SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { t } from "@/app/testUtils/i18n";
 
 describe("StepPredicate", () => {
   const createStep = (
@@ -29,7 +30,11 @@ describe("StepPredicate", () => {
     const step = createStep("(> temperature 100)", SCRIPT_LANGUAGE_ALE);
     const { container } = render(<StepPredicate step={step} />);
 
-    expect(screen.getByText(/Predicate \(ale\)/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((content) =>
+        content.startsWith(t("stepPredicate.title", { language: "ale" }))
+      )
+    ).toBeInTheDocument();
     expect(container.querySelector(".predicate-code")?.textContent).toBe(
       "(> temperature 100)"
     );
@@ -39,7 +44,11 @@ describe("StepPredicate", () => {
     const step = createStep("return temperature > 100", SCRIPT_LANGUAGE_LUA);
     const { container } = render(<StepPredicate step={step} />);
 
-    expect(screen.getByText(/Predicate \(lua\)/i)).toBeInTheDocument();
+    expect(
+      screen.getByText((content) =>
+        content.startsWith(t("stepPredicate.title", { language: "lua" }))
+      )
+    ).toBeInTheDocument();
     expect(container.querySelector(".predicate-code")?.textContent).toBe(
       "return temperature > 100"
     );

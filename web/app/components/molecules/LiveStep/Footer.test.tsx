@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { t } from "@/app/testUtils/i18n";
 import Footer from "./Footer";
 import type { Step, ExecutionResult } from "@/app/api";
 import { useStepProgress } from "@/app/hooks/useStepProgress";
@@ -119,7 +120,12 @@ describe("Footer", () => {
 
     const endpoint = container.querySelector(".step-endpoint");
     expect(endpoint?.textContent).toBe("goal-a, goal-b");
-    expect(screen.getByText("Goal Steps")).toBeInTheDocument();
+    expect(screen.getByText(t("stepFooter.flowGoals"))).toBeInTheDocument();
+    const tooltipSections = screen.getAllByTestId("tooltip-section");
+    const hasGoalsSection = tooltipSections.some((section) =>
+      section.textContent?.includes("goal-a, goal-b")
+    );
+    expect(hasGoalsSection).toBe(true);
   });
 
   test("replaces newlines in script preview", () => {
@@ -165,7 +171,7 @@ describe("Footer", () => {
 
     render(<Footer step={step} flowId="wf-1" execution={execution} />);
 
-    expect(screen.getByText("Execution Status")).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.executionStatus"))).toBeInTheDocument();
     expect(screen.getByText("COMPLETED")).toBeInTheDocument();
   });
 
@@ -187,7 +193,7 @@ describe("Footer", () => {
 
     render(<Footer step={step} flowId="wf-1" execution={execution} />);
 
-    expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.errorTitle"))).toBeInTheDocument();
     expect(screen.getByText("Connection timeout")).toBeInTheDocument();
   });
 
@@ -208,9 +214,9 @@ describe("Footer", () => {
 
     render(<Footer step={step} flowId="wf-1" execution={execution} />);
 
-    expect(screen.getByText("Reason")).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.reasonTitle"))).toBeInTheDocument();
     expect(
-      screen.getByText(/Step skipped because required inputs are unavailable/)
+      screen.getByText(t("liveStep.skipMissingInputs"))
     ).toBeInTheDocument();
   });
 
@@ -232,8 +238,10 @@ describe("Footer", () => {
 
     render(<Footer step={step} flowId="wf-1" execution={execution} />);
 
-    expect(screen.getByText("Duration")).toBeInTheDocument();
-    expect(screen.getByText("2500ms")).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.durationTitle"))).toBeInTheDocument();
+    expect(
+      screen.getByText(t("common.durationMs", { duration: 2500 }))
+    ).toBeInTheDocument();
   });
 
   test("handles step with no http or script", () => {

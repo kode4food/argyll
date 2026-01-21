@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import ErrorFallback from "./ErrorFallback";
+import { t } from "@/app/testUtils/i18n";
 
 describe("ErrorFallback", () => {
   const mockResetError = jest.fn();
@@ -12,9 +13,9 @@ describe("ErrorFallback", () => {
 
   test("renders default title and description", () => {
     render(<ErrorFallback error={mockError} resetError={mockResetError} />);
-    expect(screen.getByText("Something went wrong")).toBeInTheDocument();
+    expect(screen.getByText(t("errorFallback.title"))).toBeInTheDocument();
     expect(
-      screen.getByText(/An unexpected error occurred/)
+      screen.getByText(t("errorFallback.description"))
     ).toBeInTheDocument();
   });
 
@@ -53,19 +54,19 @@ describe("ErrorFallback", () => {
   test("renders try again button", () => {
     render(<ErrorFallback error={mockError} resetError={mockResetError} />);
     expect(
-      screen.getByRole("button", { name: /Try again/i })
+      screen.getByRole("button", { name: t("common.tryAgain") })
     ).toBeInTheDocument();
   });
 
   test("calls resetError when button clicked", () => {
     render(<ErrorFallback error={mockError} resetError={mockResetError} />);
-    fireEvent.click(screen.getByRole("button", { name: /Try again/i }));
+    fireEvent.click(screen.getByRole("button", { name: t("common.tryAgain") }));
     expect(mockResetError).toHaveBeenCalledTimes(1);
   });
 
   test("renders error details summary", () => {
     render(<ErrorFallback error={mockError} resetError={mockResetError} />);
-    expect(screen.getByText("Error details")).toBeInTheDocument();
+    expect(screen.getByText(t("errorFallback.details"))).toBeInTheDocument();
   });
 
   test("handles error without stack", () => {

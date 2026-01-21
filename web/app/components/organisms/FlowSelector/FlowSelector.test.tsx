@@ -1,6 +1,7 @@
 import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import FlowSelector from "./FlowSelector";
+import { t } from "@/app/testUtils/i18n";
 import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
 import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 import { FlowContext, Step } from "@/app/api";
@@ -119,7 +120,7 @@ const {
 let capturedFormProps: ReturnType<typeof useFlowCreation> | null = null;
 const MockFlowCreateForm = () => {
   capturedFormProps = useFlowCreation();
-  return <div>FlowCreateForm</div>;
+  return <div data-testid="flow-create-form" />;
 };
 MockFlowCreateForm.displayName = "MockFlowCreateForm";
 
@@ -170,15 +171,19 @@ describe("FlowSelector", () => {
 
   it("renders and can open dropdown", async () => {
     await renderSelector();
-    const button = screen.getByRole("button", { name: /Select Flow/i });
+    const button = screen.getByRole("button", {
+      name: t("flowSelector.selectFlow"),
+    });
     fireEvent.click(button);
-    expect(screen.getByPlaceholderText(/Search flows/)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(t("flowSelector.searchPlaceholder"))
+    ).toBeInTheDocument();
   });
 
   it("shows new flow button when no selection", async () => {
     await renderSelector();
     expect(
-      screen.getByRole("button", { name: /Create New Flow/i })
+      screen.getByRole("button", { name: t("flowSelector.createNewFlow") })
     ).toBeInTheDocument();
   });
 
@@ -196,7 +201,7 @@ describe("FlowSelector", () => {
 
     await renderSelector();
 
-    const backButton = screen.getByLabelText(/Back to Overview/i);
+    const backButton = screen.getByLabelText(t("flowSelector.backToOverview"));
     fireEvent.click(backButton);
 
     expect(pushMock).toHaveBeenCalledWith("/");
@@ -210,7 +215,9 @@ describe("FlowSelector", () => {
     flowSessionMock.selectedFlow = null;
 
     await renderSelector();
-    fireEvent.click(screen.getByRole("button", { name: /Select Flow/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowSelector.selectFlow") })
+    );
     fireEvent.mouseDown(screen.getByText("wf-1"));
 
     expect(pushMock).toHaveBeenCalledWith("/flow/wf-1");
@@ -227,7 +234,7 @@ describe("FlowSelector", () => {
     flowCreationMock.steps = [{ id: "goal", name: "Goal" }];
 
     await renderSelector();
-    await screen.findByText("FlowCreateForm");
+    await screen.findByTestId("flow-create-form");
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
@@ -259,7 +266,7 @@ describe("FlowSelector", () => {
     };
 
     await renderSelector();
-    await screen.findByText("FlowCreateForm");
+    await screen.findByTestId("flow-create-form");
     expect(capturedFormProps).not.toBeNull();
 
     await act(async () => {
