@@ -546,9 +546,6 @@ const FlowConfiguration: React.FC<{
               }`}
             >
               {step.id}
-              {isIncludedByOthers && (
-                <span className={formStyles.flowGoalChipCheck}>✓</span>
-              )}
             </button>
           );
         })}

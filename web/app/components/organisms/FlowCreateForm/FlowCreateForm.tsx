@@ -123,9 +123,6 @@ const FlowCreateForm: React.FC = () => {
                             <div>{step.name}</div>
                             <div className={styles.stepId}>
                               ({step.id})
-                              {isIncludedByOthers && (
-                                <span className={styles.includedCheck}>✓</span>
-                              )}
                             </div>
                           </td>
                         </tr>
