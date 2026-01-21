@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Step, AttributeRole } from "@/app/api";
-import { getArgIcon } from "@/utils/argIcons";
+import { getArgIcon } from "@/utils/iconRegistry";
 import styles from "./FlowStats.module.css";
 import { useT } from "@/app/i18n";
 

@@ -1,5 +1,9 @@
 import React, { useState, lazy, Suspense } from "react";
-import { Activity, Play, Search } from "lucide-react";
+import {
+  IconCreateFlow,
+  IconNavigateOverview,
+  IconSearch,
+} from "@/utils/iconRegistry";
 import { useNavigate } from "react-router-dom";
 import { generateFlowId } from "@/utils/flowUtils";
 import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
@@ -75,7 +79,7 @@ const FlowSelectorDropdown = () => {
       {showDropdown && (
         <div className={styles.dropdownMenu} ref={dropdownRef}>
           <div className={styles.dropdownSearch}>
-            <Search className={styles.dropdownSearchIcon} />
+            <IconSearch className={styles.dropdownSearchIcon} />
             <input
               ref={searchInputRef}
               type="text"
@@ -226,7 +230,10 @@ const FlowSelectorContent: React.FC = () => {
                   title={t("flowSelector.backToOverview")}
                   aria-label={t("flowSelector.backToOverview")}
                 >
-                  <Activity className={styles.buttonIcon} aria-hidden="true" />
+                  <IconNavigateOverview
+                    className={styles.buttonIcon}
+                    aria-hidden="true"
+                  />
                 </button>
               ) : (
                 <>
@@ -239,7 +246,10 @@ const FlowSelectorContent: React.FC = () => {
                     title={t("flowSelector.newFlow")}
                     aria-label={t("flowSelector.createNewFlow")}
                   >
-                    <Play className={styles.buttonIcon} aria-hidden="true" />
+                    <IconCreateFlow
+                      className={styles.buttonIcon}
+                      aria-hidden="true"
+                    />
                   </button>
                 </>
               )}

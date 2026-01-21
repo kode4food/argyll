@@ -3,7 +3,7 @@ import OverviewDiagramView from "@/app/components/templates/OverviewDiagramView"
 import DiagramLayout from "@/app/components/templates/DiagramLayout";
 import EmptyState from "@/app/components/molecules/EmptyState";
 import styles from "./OverviewDiagram.module.css";
-import { Plus } from "lucide-react";
+import { IconAddStep } from "@/utils/iconRegistry";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useUI } from "@/app/contexts/UIContext";
@@ -68,7 +68,7 @@ const OverviewDiagramContent: React.FC = () => {
                 title={t("overview.addStep")}
                 aria-label={t("overview.addStep")}
               >
-                <Plus className={`${styles.iconMd} icon`} />
+                <IconAddStep className={`${styles.iconMd} icon`} />
               </button>
             </div>
           </div>

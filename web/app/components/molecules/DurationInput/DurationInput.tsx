@@ -1,5 +1,5 @@
 import React from "react";
-import { Clock } from "lucide-react";
+import { IconDuration } from "@/utils/iconRegistry";
 import { useDurationInput } from "./useDurationInput";
 import styles from "./DurationInput.module.css";
 import { useT } from "@/app/i18n";
@@ -20,7 +20,7 @@ const DurationInput: React.FC<DurationInputProps> = ({
 
   return (
     <div className={`${styles.durationInput} ${className || ""}`}>
-      <Clock className={styles.icon} />
+      <IconDuration className={styles.icon} />
       <input
         type="text"
         value={inputValue}

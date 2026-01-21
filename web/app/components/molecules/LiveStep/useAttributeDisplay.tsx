@@ -1,14 +1,15 @@
 import React, { useMemo } from "react";
 import {
-  CheckCircle2,
-  XCircle,
-  Award,
-  Ban,
-  CircleDashed,
-  CheckCircle,
-  CircleDot,
-  CircleSlash,
-} from "lucide-react";
+  IconAttributeStatusBlocked,
+  IconAttributeStatusDefaulted,
+  IconAttributeStatusFailed,
+  IconAttributeStatusNotWinner,
+  IconAttributeStatusPending,
+  IconAttributeStatusProvided,
+  IconAttributeStatusSatisfied,
+  IconAttributeStatusSkipped,
+  IconAttributeStatusWinner,
+} from "@/utils/iconRegistry";
 import { ArgType, StatusBadgeContext } from "./attributeUtils";
 import styles from "../StepShared/StepAttributesSection.module.css";
 
@@ -36,7 +37,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
             >
-              <CircleSlash className={styles.statusIcon} />
+              <IconAttributeStatusSkipped className={styles.statusIcon} />
             </div>
           );
         }
@@ -45,7 +46,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
             >
-              <CheckCircle className={styles.statusIcon} />
+              <IconAttributeStatusProvided className={styles.statusIcon} />
             </div>
           );
         }
@@ -54,7 +55,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
             >
-              <CircleDot className={styles.statusIcon} />
+              <IconAttributeStatusDefaulted className={styles.statusIcon} />
             </div>
           );
         }
@@ -62,7 +63,7 @@ export const useAttributeStatusBadge = () => {
           <div
             className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
           >
-            <CircleDashed className={styles.statusIcon} />
+            <IconAttributeStatusPending className={styles.statusIcon} />
           </div>
         );
       }
@@ -73,7 +74,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
             >
-              <CircleSlash className={styles.statusIcon} />
+              <IconAttributeStatusSkipped className={styles.statusIcon} />
             </div>
           );
         }
@@ -82,7 +83,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
             >
-              <CircleDot className={styles.statusIcon} />
+              <IconAttributeStatusDefaulted className={styles.statusIcon} />
             </div>
           );
         }
@@ -90,7 +91,7 @@ export const useAttributeStatusBadge = () => {
           <div
             className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
           >
-            <CircleDashed className={styles.statusIcon} />
+            <IconAttributeStatusPending className={styles.statusIcon} />
           </div>
         );
       }
@@ -101,7 +102,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
             >
-              <CheckCircle2 className={styles.statusIcon} />
+              <IconAttributeStatusSatisfied className={styles.statusIcon} />
             </div>
           );
         }
@@ -110,7 +111,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.failed} arg-status-badge failed`}
             >
-              <XCircle className={styles.statusIcon} />
+              <IconAttributeStatusFailed className={styles.statusIcon} />
             </div>
           );
         }
@@ -118,7 +119,7 @@ export const useAttributeStatusBadge = () => {
           <div
             className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
           >
-            <CircleDashed className={styles.statusIcon} />
+            <IconAttributeStatusPending className={styles.statusIcon} />
           </div>
         );
       }
@@ -129,7 +130,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
             >
-              <Ban className={styles.statusIcon} />
+              <IconAttributeStatusBlocked className={styles.statusIcon} />
             </div>
           );
         }
@@ -138,7 +139,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
             >
-              <CircleDashed className={styles.statusIcon} />
+              <IconAttributeStatusPending className={styles.statusIcon} />
             </div>
           );
         }
@@ -147,7 +148,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
             >
-              <Award className={styles.statusIcon} />
+              <IconAttributeStatusWinner className={styles.statusIcon} />
             </div>
           );
         }
@@ -156,7 +157,7 @@ export const useAttributeStatusBadge = () => {
             <div
               className={`${styles.argStatusBadge} ${styles.notWinner} arg-status-badge not-winner`}
             >
-              <XCircle className={styles.statusIcon} />
+              <IconAttributeStatusNotWinner className={styles.statusIcon} />
             </div>
           );
         }

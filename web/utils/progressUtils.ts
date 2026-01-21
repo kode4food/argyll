@@ -1,25 +1,25 @@
 import {
-  Clock,
-  Loader2,
-  CheckCircle,
-  XCircle,
-  MinusCircle,
-} from "lucide-react";
+  IconProgressActive,
+  IconProgressCompleted,
+  IconProgressFailed,
+  IconProgressPending,
+  IconProgressSkipped,
+} from "./iconRegistry";
 import { StepProgressStatus } from "@/app/hooks/useStepProgress";
 
 export const getProgressIcon = (status: StepProgressStatus) => {
   switch (status) {
     case "pending":
-      return Clock;
+      return IconProgressPending;
     case "active":
-      return Loader2;
+      return IconProgressActive;
     case "completed":
-      return CheckCircle;
+      return IconProgressCompleted;
     case "failed":
-      return XCircle;
+      return IconProgressFailed;
     case "skipped":
-      return MinusCircle;
+      return IconProgressSkipped;
     default:
-      return Clock;
+      return IconProgressPending;
   }
 };

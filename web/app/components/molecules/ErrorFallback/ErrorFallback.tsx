@@ -1,5 +1,5 @@
 import React from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { IconError, IconRetry } from "@/utils/iconRegistry";
 import styles from "./ErrorFallback.module.css";
 import { useT } from "@/app/i18n";
 
@@ -23,7 +23,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
   return (
     <div className={styles.fallback}>
       <div className={styles.content}>
-        <AlertCircle className={styles.icon} />
+        <IconError className={styles.icon} />
         <h2 className={styles.title}>{fallbackTitle}</h2>
         <p className={styles.description}>{fallbackDescription}</p>
         <details className={styles.details}>
@@ -36,7 +36,7 @@ const ErrorFallback: React.FC<ErrorFallbackProps> = ({
           </pre>
         </details>
         <button onClick={resetError} className={styles.button}>
-          <RefreshCw className={styles.buttonIcon} />
+          <IconRetry className={styles.buttonIcon} />
           {t("common.tryAgain")}
         </button>
       </div>

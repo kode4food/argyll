@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Command } from "lucide-react";
+import { IconClose, IconCommandKey } from "@/utils/iconRegistry";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import styles from "./KeyboardShortcutsModal.module.css";
 import { useT } from "@/app/i18n";
@@ -66,7 +66,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
       <div className={styles.modal}>
         <div className={styles.header}>
           <div className={styles.headerContent}>
-            <Command className={styles.headerIcon} />
+            <IconCommandKey className={styles.headerIcon} />
             <h2 className={styles.title}>{t("keyboardShortcuts.title")}</h2>
           </div>
           <button
@@ -74,7 +74,7 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
             className={styles.closeButton}
             aria-label={t("keyboardShortcuts.close")}
           >
-            <X className={styles.headerIcon} />
+            <IconClose className={styles.headerIcon} />
           </button>
         </div>
 

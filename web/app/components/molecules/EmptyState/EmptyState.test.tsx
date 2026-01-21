@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import EmptyState from "./EmptyState";
-import { CheckCircle } from "lucide-react";
+import { IconInfo } from "@/utils/iconRegistry";
 
 describe("EmptyState", () => {
   test("renders with title and description", () => {
@@ -27,7 +27,7 @@ describe("EmptyState", () => {
   test("renders with custom icon", () => {
     render(
       <EmptyState
-        icon={<CheckCircle data-testid="custom-icon" />}
+        icon={<IconInfo data-testid="custom-icon" />}
         title="Success"
         description="Operation completed"
       />

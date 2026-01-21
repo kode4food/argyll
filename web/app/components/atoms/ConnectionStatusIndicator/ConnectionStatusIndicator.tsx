@@ -1,5 +1,10 @@
 import React from "react";
-import { Wifi, WifiOff, RefreshCw, AlertCircle } from "lucide-react";
+import {
+  IconConnectionError,
+  IconConnectionOffline,
+  IconConnectionOnline,
+  IconConnectionReconnecting,
+} from "@/utils/iconRegistry";
 import { ConnectionStatus } from "@/app/types/websocket";
 import styles from "./ConnectionStatusIndicator.module.css";
 import { useT } from "@/app/i18n";
@@ -25,7 +30,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
     switch (status) {
       case "connecting":
         return {
-          icon: RefreshCw,
+          icon: IconConnectionReconnecting,
           text: t("connectionStatus.connecting"),
           colorClass: styles.colorWarning,
           animate: true,
@@ -34,7 +39,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
         };
       case "reconnecting":
         return {
-          icon: RefreshCw,
+          icon: IconConnectionReconnecting,
           text: t("connectionStatus.reconnecting", {
             attempt: reconnectAttempt,
           }),
@@ -45,7 +50,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
         };
       case "disconnected":
         return {
-          icon: WifiOff,
+          icon: IconConnectionOffline,
           text: t("connectionStatus.disconnected"),
           colorClass: styles.colorNeutral,
           animate: false,
@@ -54,7 +59,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
         };
       case "failed":
         return {
-          icon: AlertCircle,
+          icon: IconConnectionError,
           text: t("connectionStatus.failed"),
           colorClass: styles.colorError,
           animate: false,
@@ -63,7 +68,7 @@ const ConnectionStatusIndicator: React.FC<ConnectionStatusIndicatorProps> = ({
         };
       default:
         return {
-          icon: Wifi,
+          icon: IconConnectionOnline,
           text: t("connectionStatus.connected"),
           colorClass: styles.colorSuccess,
           animate: false,

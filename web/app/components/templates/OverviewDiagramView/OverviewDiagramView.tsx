@@ -13,7 +13,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
-import { Server } from "lucide-react";
+import { IconDiagramEmptyState } from "@/utils/iconRegistry";
 import Node from "@/app/components/organisms/OverviewStep/Node";
 import Legend from "@/app/components/molecules/Legend";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
@@ -213,7 +213,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   if (!visibleSteps || visibleSteps.length === 0) {
     return (
       <DiagramEmptyState
-        icon={<Server />}
+        icon={<IconDiagramEmptyState />}
         title={t("overview.noVisibleTitle")}
         description={t("overview.noVisibleDescription")}
       />

@@ -1,15 +1,11 @@
 import React, { useEffect, createContext, useContext } from "react";
 import { createPortal } from "react-dom";
 import {
-  FileCode2,
-  Globe,
-  Webhook,
-  Trash2,
-  Plus,
-  Layers,
-  Square,
-  Workflow,
-} from "lucide-react";
+  IconAdd,
+  IconArrayMultiple,
+  IconArraySingle,
+  IconRemove,
+} from "@/utils/iconRegistry";
 import {
   Step,
   AttributeType,
@@ -33,6 +29,7 @@ import { useSteps } from "@/app/store/flowStore";
 import { useFlowFormStepFiltering } from "../FlowCreateForm/useFlowFormStepFiltering";
 import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
 import { api } from "@/app/api";
+import { getStepTypeIcon } from "@/utils/iconRegistry";
 
 interface StepEditorProps {
   step: Step | null;
@@ -140,43 +137,42 @@ const BasicFields: React.FC = () => {
           {[
             {
               type: "sync" as StepType,
-              Icon: Globe,
               label: t("stepEditor.typeSyncLabel"),
               title: t("stepEditor.typeSyncTitle"),
             },
             {
               type: "async" as StepType,
-              Icon: Webhook,
               label: t("stepEditor.typeAsyncLabel"),
               title: t("stepEditor.typeAsyncTitle"),
             },
             {
               type: "script" as StepType,
-              Icon: FileCode2,
               label: t("stepEditor.typeScriptLabel"),
               title: t("stepEditor.typeScriptTitle"),
             },
             {
               type: "flow" as StepType,
-              Icon: Workflow,
               label: t("stepEditor.typeFlowLabel"),
               title: t("stepEditor.typeFlowTitle"),
             },
-          ].map(({ type, Icon, label, title }) => (
-            <button
-              key={type}
-              type="button"
-              onClick={(e) => {
-                setStepType(type);
-                e.currentTarget.blur();
-              }}
-              className={`${formStyles.typeButton} ${stepType === type ? formStyles.typeButtonActive : ""}`}
-              title={title}
-            >
-              <Icon className={styles.iconSm} />
-              <span>{label}</span>
-            </button>
-          ))}
+          ].map(({ type, label, title }) => {
+            const Icon = getStepTypeIcon(type);
+            return (
+              <button
+                key={type}
+                type="button"
+                onClick={(e) => {
+                  setStepType(type);
+                  e.currentTarget.blur();
+                }}
+                className={`${formStyles.typeButton} ${stepType === type ? formStyles.typeButtonActive : ""}`}
+                title={title}
+              >
+                <Icon className={styles.iconSm} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -210,7 +206,7 @@ const AttributesSection: React.FC = () => {
           className={`${formStyles.iconButton} ${formStyles.addButtonStyle}`}
           title={t("stepEditor.addAttribute")}
         >
-          <Plus className={styles.iconMd} />
+          <IconAdd className={styles.iconMd} />
         </button>
       </div>
       <div className={formStyles.argList}>
@@ -305,7 +301,7 @@ const AttributesSection: React.FC = () => {
                       className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
                       title={t("stepEditor.arraySingleTitle")}
                     >
-                      <Square className={styles.iconSm} />
+                      <IconArraySingle className={styles.iconSm} />
                       <span>{t("stepEditor.arraySingleLabel")}</span>
                     </button>
                     <button
@@ -317,7 +313,7 @@ const AttributesSection: React.FC = () => {
                       className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
                       title={t("stepEditor.arrayMultiTitle")}
                     >
-                      <Layers className={styles.iconSm} />
+                      <IconArrayMultiple className={styles.iconSm} />
                       <span>{t("stepEditor.arrayMultiLabel")}</span>
                     </button>
                   </div>
@@ -362,7 +358,7 @@ const AttributesSection: React.FC = () => {
                 className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
                 title={t("stepEditor.removeAttribute")}
               >
-                <Trash2 className={styles.iconSm} />
+                <IconRemove className={styles.iconSm} />
               </button>
             </div>
             {attr.validationError && (

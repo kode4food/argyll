@@ -1,5 +1,5 @@
 import React from "react";
-import { Server } from "lucide-react";
+import { IconEmptyState } from "@/utils/iconRegistry";
 import styles from "./EmptyState.module.css";
 
 interface EmptyStateProps {
@@ -12,7 +12,7 @@ interface EmptyStateProps {
 }
 
 const EmptyState: React.FC<EmptyStateProps> = ({
-  icon = <Server className={styles.icon} />,
+  icon = <IconEmptyState className={styles.icon} />,
   title,
   description,
   action,

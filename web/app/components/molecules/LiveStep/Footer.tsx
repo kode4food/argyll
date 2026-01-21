@@ -5,12 +5,8 @@ import { useStepProgress } from "@/app/hooks/useStepProgress";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
-import {
-  formatScriptPreview,
-  getScriptIcon,
-  getHttpIcon,
-  getFlowIcon,
-} from "@/utils/stepFooterUtils";
+import { formatScriptPreview } from "@/utils/stepFooterUtils";
+import { getStepTypeIcon } from "@/utils/iconRegistry";
 import { useMemo } from "react";
 import { useT } from "@/app/i18n";
 
@@ -30,24 +26,23 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
       className?: string;
     } | null = null;
 
+    const TypeIcon = getStepTypeIcon(step.type);
+
     if (step.type === "script" && step.script) {
-      const ScriptIcon = getScriptIcon(step.script.language);
       const scriptPreview = formatScriptPreview(step.script.script);
       displayInfo = {
-        icon: ScriptIcon,
+        icon: TypeIcon,
         text: scriptPreview,
         className: "endpoint-script",
       };
     } else if (step.type === "flow" && step.flow?.goals?.length) {
-      const FlowIcon = getFlowIcon();
       displayInfo = {
-        icon: FlowIcon,
+        icon: TypeIcon,
         text: step.flow.goals.join(", "),
       };
     } else if (step.http) {
-      const HttpIcon = getHttpIcon(step.type);
       displayInfo = {
-        icon: HttpIcon,
+        icon: TypeIcon,
         text: step.http.endpoint,
       };
     }

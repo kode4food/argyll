@@ -4,7 +4,7 @@ import DiagramLayout from "@/app/components/templates/DiagramLayout";
 import EmptyState from "@/app/components/molecules/EmptyState";
 import styles from "./LiveDiagram.module.css";
 import FlowStats from "@/app/components/organisms/FlowStats";
-import { AlertCircle } from "lucide-react";
+import { IconFlowNotFound } from "@/utils/iconRegistry";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { isValidTimestamp } from "@/utils/dates";
 import { useUI } from "@/app/contexts/UIContext";
@@ -34,7 +34,7 @@ const LiveDiagramContent: React.FC = () => {
     return (
       <div className={styles.emptyStateContainer}>
         <EmptyState
-          icon={<AlertCircle />}
+          icon={<IconFlowNotFound />}
           iconClassName={styles.notFoundIcon}
           title={t("live.flowNotFoundTitle")}
           description={t("live.flowNotFoundDescription", {

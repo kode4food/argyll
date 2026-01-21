@@ -1,11 +1,4 @@
-import {
-  formatScriptPreview,
-  getScriptIcon,
-  getHttpIcon,
-  formatScriptForTooltip,
-} from "./stepFooterUtils";
-import { SCRIPT_LANGUAGE_ALE } from "@/app/api";
-import { FileCode2, Code2, Webhook, Globe } from "lucide-react";
+import { formatScriptPreview, formatScriptForTooltip } from "./stepFooterUtils";
 
 describe("stepFooterUtils", () => {
   describe("formatScriptPreview", () => {
@@ -27,33 +20,6 @@ describe("stepFooterUtils", () => {
     it("handles scripts with multiple consecutive newlines", () => {
       const script = "line1\n\n\nline4";
       expect(formatScriptPreview(script)).toBe("line1   line4");
-    });
-  });
-
-  describe("getScriptIcon", () => {
-    it("returns FileCode2 for ALE language", () => {
-      expect(getScriptIcon(SCRIPT_LANGUAGE_ALE)).toBe(FileCode2);
-    });
-
-    it("returns Code2 for other languages", () => {
-      expect(getScriptIcon("python")).toBe(Code2);
-      expect(getScriptIcon("javascript")).toBe(Code2);
-      expect(getScriptIcon("")).toBe(Code2);
-    });
-  });
-
-  describe("getHttpIcon", () => {
-    it("returns Webhook for async steps", () => {
-      expect(getHttpIcon("async")).toBe(Webhook);
-    });
-
-    it("returns Globe for sync steps", () => {
-      expect(getHttpIcon("sync")).toBe(Globe);
-    });
-
-    it("returns Globe for other step types", () => {
-      expect(getHttpIcon("custom")).toBe(Globe);
-      expect(getHttpIcon("")).toBe(Globe);
     });
   });
 

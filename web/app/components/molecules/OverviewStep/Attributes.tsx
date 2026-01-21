@@ -1,6 +1,6 @@
 import React from "react";
 import { Step, AttributeRole } from "@/app/api";
-import { getArgIcon } from "@/utils/argIcons";
+import { getArgIcon } from "@/utils/iconRegistry";
 import { getSortedAttributes } from "@/utils/stepUtils";
 import styles from "../StepShared/StepAttributesSection.module.css";
 

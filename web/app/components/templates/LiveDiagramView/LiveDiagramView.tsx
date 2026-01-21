@@ -12,7 +12,7 @@ import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import { Server } from "lucide-react";
+import { IconDiagramLoading } from "@/utils/iconRegistry";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
@@ -84,7 +84,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   if (isLoadingPlan || stepsToRender.length === 0) {
     return (
       <DiagramEmptyState
-        icon={<Server />}
+        icon={<IconDiagramLoading />}
         title={t("live.loadingTitle")}
         description={t("live.loadingDescription")}
       />

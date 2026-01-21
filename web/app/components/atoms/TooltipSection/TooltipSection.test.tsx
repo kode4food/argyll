@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { Info } from "lucide-react";
+import { IconInfo } from "@/utils/iconRegistry";
 import TooltipSection from "./TooltipSection";
 
 describe("TooltipSection", () => {
@@ -18,7 +18,7 @@ describe("TooltipSection", () => {
 
   test("renders with icon", () => {
     render(
-      <TooltipSection title="Title" icon={<Info data-testid="icon" />}>
+      <TooltipSection title="Title" icon={<IconInfo data-testid="icon" />}>
         Content
       </TooltipSection>
     );

@@ -1,5 +1,5 @@
 import React from "react";
-import { Play } from "lucide-react";
+import { IconStartFlow } from "@/utils/iconRegistry";
 import Spinner from "@/app/components/atoms/Spinner";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import { useUI } from "@/app/contexts/UIContext";
@@ -207,7 +207,7 @@ const FlowCreateForm: React.FC = () => {
                   {creating ? (
                     <Spinner size="sm" color="white" />
                   ) : (
-                    <Play className={styles.startIcon} />
+                    <IconStartFlow className={styles.startIcon} />
                   )}
                 </span>
                 {t("common.start")}

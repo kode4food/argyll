@@ -7,7 +7,7 @@ import {
 } from "@/app/api";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
-import { getArgIcon } from "@/utils/argIcons";
+import { getArgIcon } from "@/utils/iconRegistry";
 import { getSortedAttributes } from "@/utils/stepUtils";
 import {
   formatAttributeValue,

@@ -6,7 +6,7 @@ import {
   StepType,
 } from "@/app/api";
 import { getSortedAttributes, validateDefaultValue } from "@/utils/stepUtils";
-import { getArgIcon } from "@/utils/argIcons";
+import { getArgIcon } from "@/utils/iconRegistry";
 
 export type AttributeRoleType = "input" | "optional" | "const" | "output";
 
