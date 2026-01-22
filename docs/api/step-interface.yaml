@@ -18,7 +18,7 @@ info:
 
     ## Step Types
 
-    Steps can be classified into three execution patterns:
+    Steps can be classified into four execution patterns:
 
     ### Sync Steps
     - Return results immediately in the HTTP response
@@ -36,8 +36,13 @@ info:
     - Not HTTP-based (no external endpoint required)
     - Best for: Simple transformations, data mapping, conditional logic
 
+    ### Flow Steps
+    - Sub-flows executed by the engine with child flow goals
+    - Not HTTP-based (no external endpoint required)
+    - Best for: Encapsulating reusable sub-workflows with input/output mapping
+
     **Note**: This specification covers only HTTP-based steps (sync and async).
-    Script steps are defined directly in the step registration.
+    Script and flow steps are defined directly in the step registration.
 
     ## Request/Response Contract
 

@@ -31,7 +31,7 @@ All state changes are stored as immutable events in Redis, enabling complete aud
 
 ## Features
 
-- Three step types: HTTP sync, HTTP async, or embedded scripts (Ale/Lua)
+- Four step types: HTTP sync, HTTP async, embedded scripts (Ale/Lua), or Flow (sub-flow execution)
 - Real-time UI with WebSocket updates
 - Automatic health checks for HTTP steps
 - Step retry with configurable backoff

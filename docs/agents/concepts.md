@@ -45,6 +45,7 @@ Workflows specify **Goal Steps** - the targets to reach. The engine:
 - **Sync Steps**: HTTP endpoints returning results immediately
 - **Async Steps**: HTTP endpoints with webhook callback for completion
 - **Script Steps**: Ale or Lua scripts executed in-engine
+- **Flow Steps**: Sub-flows executed by the engine using child flow goals and optional input/output mapping
 
 **Step Declaration:**
 - Required inputs: Must be available before execution

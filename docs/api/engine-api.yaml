@@ -22,7 +22,7 @@ info:
     - **Event Sourcing**: Complete audit trail with Valkey backend for recovery and debugging
     - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
     - **Real-Time Updates**: WebSocket streaming for live flow monitoring
-    - **Three Step Types**: Sync HTTP, Async HTTP (with webhooks), and Script (Ale and Lua)
+    - **Four Step Types**: Sync HTTP, Async HTTP (with webhooks), Script (Ale and Lua), and Flow (sub-flow execution)
 
     ## Step Implementation
 
@@ -100,6 +100,7 @@ paths:
         - **Sync**: HTTP endpoints that return results immediately
         - **Async**: HTTP endpoints that return immediately and complete via webhook
         - **Script**: Ale and Lua scripts executed in-engine
+        - **Flow**: Sub-flow execution using child flow goals with optional input/output mapping
       operationId: registerStep
       tags:
         - Steps
@@ -697,11 +698,12 @@ components:
           example: "Text Processor"
         type:
           type: string
-          enum: ["sync", "async", "script"]
+          enum: ["sync", "async", "script", "flow"]
           description: |
             - `sync`: HTTP endpoint that returns results immediately
             - `async`: HTTP endpoint that returns immediately and completes via webhook
             - `script`: Ale or Lua script executed in-engine
+            - `flow`: Sub-flow executed by the engine using child flow goals
           example: "sync"
         attributes:
           type: object
@@ -729,6 +731,8 @@ components:
           description: Optional script-based predicate for conditional execution
         http:
           $ref: "#/components/schemas/HttpConfig"
+        flow:
+          $ref: "#/components/schemas/FlowConfig"
         script:
           $ref: "#/components/schemas/ScriptConfig"
         work_config:
@@ -819,6 +823,34 @@ components:
           type: string
           description: The script code to execute
           example: '{:greeting (str "Hello, " name)}'
+
+    FlowConfig:
+      type: object
+      description: Configuration for flow-based steps (sub-flows)
+      required:
+        - goals
+      properties:
+        goals:
+          type: array
+          description: Goal step IDs for the child flow
+          items:
+            type: string
+          minItems: 1
+          example: ["child-goal"]
+        input_map:
+          type: object
+          description: Optional mapping from parent input attribute names to child input names
+          additionalProperties:
+            type: string
+          example:
+            parent_input: "child_input"
+        output_map:
+          type: object
+          description: Optional mapping from child output names to parent output attribute names
+          additionalProperties:
+            type: string
+          example:
+            child_output: "parent_output"
 
     WorkConfig:
       type: object
