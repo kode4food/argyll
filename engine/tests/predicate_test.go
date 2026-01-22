@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -16,7 +15,6 @@ import (
 func TestPredicateSkipping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -51,27 +49,23 @@ func TestPredicateSkipping(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-predicate-skip")
-		err := env.Engine.RegisterStep(ctx, stepA)
+		err := env.Engine.RegisterStep(stepA)
 		assert.NoError(t, err)
-		err = env.Engine.RegisterStep(ctx, stepB)
+		err = env.Engine.RegisterStep(stepB)
 		assert.NoError(t, err)
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for step A to complete
-		env.WaitForStepStatus(t, ctx, flowID, "step-a", workflowTimeout)
+		env.WaitForStepStatus(t, flowID, "step-a", workflowTimeout)
 
 		// Wait for step B to be skipped
-		execB := env.WaitForStepStatus(
-			t, ctx, flowID, "step-b", workflowTimeout,
-		)
+		execB := env.WaitForStepStatus(t, flowID, "step-b", workflowTimeout)
 		assert.Equal(t, api.StepSkipped, execB.Status)
 		assert.Equal(t, "predicate returned false", execB.Error)
 
 		// Get final flow state
-		flow, err := env.Engine.GetFlowState(ctx, flowID)
+		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
 
 		// Verify step A completed

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -41,11 +40,9 @@ var (
 
 // FailStepExecution transitions a step to the failed state with the specified
 // error message
-func (e *Engine) FailStepExecution(
-	ctx context.Context, fs FlowStep, errMsg string,
-) error {
+func (e *Engine) FailStepExecution(fs FlowStep, errMsg string) error {
 	return e.transitionStepExecution(
-		ctx, fs, api.StepFailed, "fail", api.EventTypeStepFailed,
+		fs, api.StepFailed, "fail", api.EventTypeStepFailed,
 		api.StepFailedEvent{
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
@@ -55,7 +52,7 @@ func (e *Engine) FailStepExecution(
 }
 
 func (e *Engine) transitionStepExecution(
-	ctx context.Context, fs FlowStep, toStatus api.StepStatus, action string,
+	fs FlowStep, toStatus api.StepStatus, action string,
 	eventType api.EventType, eventData any,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
@@ -72,7 +69,7 @@ func (e *Engine) transitionStepExecution(
 		return events.Raise(ag, eventType, eventData)
 	}
 
-	_, err := e.flowExec.Exec(ctx, flowKey(fs.FlowID), cmd)
+	_, err := e.execFlow(flowKey(fs.FlowID), cmd)
 	return err
 }
 

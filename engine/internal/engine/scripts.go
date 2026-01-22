@@ -42,10 +42,10 @@ var (
 
 // NewScriptRegistry creates a new script registry with Ale and Lua execution
 // environments
-func NewScriptRegistry(e *Engine) *ScriptRegistry {
+func NewScriptRegistry() *ScriptRegistry {
 	return &ScriptRegistry{
 		envs: map[string]ScriptEnvironment{
-			api.ScriptLangAle: NewAleEnv(e),
+			api.ScriptLangAle: NewAleEnv(),
 			api.ScriptLangLua: NewLuaEnv(),
 		},
 	}
@@ -97,7 +97,7 @@ func (e *Engine) GetCompiledScript(fs FlowStep) (any, error) {
 }
 
 func (e *Engine) getStepFromPlan(fs FlowStep) (*api.Step, error) {
-	flow, err := e.GetFlowState(e.ctx, fs.FlowID)
+	flow, err := e.GetFlowState(fs.FlowID)
 	if err != nil {
 		return nil, err
 	}

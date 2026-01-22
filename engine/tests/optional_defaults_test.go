@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func TestOptionalInputsWithDefaults(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -34,8 +32,8 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
 
 		// Set mock responses - Step A produces valueA
 		// Step B will receive valueA and default config value
@@ -65,12 +63,10 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-optional-defaults")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 
 		// Verify workflow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)

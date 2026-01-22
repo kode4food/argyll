@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -50,7 +49,7 @@ func TestStartFlow(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step := helpers.NewSimpleStep("wf-step")
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		reqBody := api.CreateFlowRequest{
@@ -101,22 +100,18 @@ func TestSuccess(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		// Configure mock to return immediately for async steps
 		testEnv.MockClient.SetResponse("async-step", api.Args{})
 
-		err = testEnv.Engine.StartFlow(
-			context.Background(), "webhook-wf",
-			&api.ExecutionPlan{
-				Goals: []api.StepID{"async-step"},
-				Steps: api.Steps{
-					"async-step": step,
-				},
+		err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
+			Goals: []api.StepID{"async-step"},
+			Steps: api.Steps{
+				"async-step": step,
 			},
-			api.Args{}, api.Metadata{},
-		)
+		}, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for flow to execute and create work item
@@ -124,9 +119,7 @@ func TestSuccess(t *testing.T) {
 		testEnv.waitForWorkItem(t, fs)
 
 		// Get the actual token from the created work item
-		flow, err := testEnv.Engine.GetFlowState(
-			context.Background(), "webhook-wf",
-		)
+		flow, err := testEnv.Engine.GetFlowState("webhook-wf")
 		assert.NoError(t, err)
 
 		exec := flow.Executions["async-step"]
@@ -195,7 +188,7 @@ func TestHookStepNotFound(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -206,8 +199,7 @@ func TestHookStepNotFound(t *testing.T) {
 		}
 
 		err = testEnv.Engine.StartFlow(
-			context.Background(), "webhook-wf", plan, api.Args{},
-			api.Metadata{},
+			"webhook-wf", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
@@ -246,22 +238,18 @@ func TestHookInvalidToken(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		// Configure mock to return immediately for async steps
 		testEnv.MockClient.SetResponse("async-step", api.Args{})
 
-		err = testEnv.Engine.StartFlow(
-			context.Background(), "webhook-wf",
-			&api.ExecutionPlan{
-				Goals: []api.StepID{"async-step"},
-				Steps: api.Steps{
-					"async-step": step,
-				},
+		err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
+			Goals: []api.StepID{"async-step"},
+			Steps: api.Steps{
+				"async-step": step,
 			},
-			api.Args{}, api.Metadata{},
-		)
+		}, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for work item to be created
@@ -301,22 +289,18 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		// Configure mock to return immediately for async steps
 		testEnv.MockClient.SetResponse("async-step", api.Args{})
 
-		err = testEnv.Engine.StartFlow(
-			context.Background(), "webhook-wf",
-			&api.ExecutionPlan{
-				Goals: []api.StepID{"async-step"},
-				Steps: api.Steps{
-					"async-step": step,
-				},
+		err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
+			Goals: []api.StepID{"async-step"},
+			Steps: api.Steps{
+				"async-step": step,
 			},
-			api.Args{}, api.Metadata{},
-		)
+		}, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for work item to be created
@@ -324,9 +308,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 		testEnv.waitForWorkItem(t, fs)
 
 		// Get the real token
-		flow, err := testEnv.Engine.GetFlowState(
-			context.Background(), "webhook-wf",
-		)
+		flow, err := testEnv.Engine.GetFlowState("webhook-wf")
 		assert.NoError(t, err)
 
 		exec := flow.Executions["async-step"]
@@ -370,29 +352,23 @@ func TestHookFailurePath(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		testEnv.MockClient.SetResponse("async-step", api.Args{})
 
-		err = testEnv.Engine.StartFlow(
-			context.Background(), "wf-fail-path",
-			&api.ExecutionPlan{
-				Goals: []api.StepID{"async-step"},
-				Steps: api.Steps{
-					"async-step": step,
-				},
+		err = testEnv.Engine.StartFlow("wf-fail-path", &api.ExecutionPlan{
+			Goals: []api.StepID{"async-step"},
+			Steps: api.Steps{
+				"async-step": step,
 			},
-			api.Args{}, api.Metadata{},
-		)
+		}, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "wf-fail-path", StepID: "async-step"}
 		testEnv.waitForWorkItem(t, fs)
 
-		flow, err := testEnv.Engine.GetFlowState(
-			context.Background(), "wf-fail-path",
-		)
+		flow, err := testEnv.Engine.GetFlowState("wf-fail-path")
 		assert.NoError(t, err)
 
 		var token api.Token
@@ -418,9 +394,7 @@ func TestHookFailurePath(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		updated, err := testEnv.Engine.GetFlowState(
-			context.Background(), "wf-fail-path",
-		)
+		updated, err := testEnv.Engine.GetFlowState("wf-fail-path")
 		assert.NoError(t, err)
 		work := updated.Executions["async-step"].WorkItems[token]
 		assert.Equal(t, api.WorkFailed, work.Status)
@@ -435,7 +409,7 @@ func TestGetFlow(t *testing.T) {
 
 		step := helpers.NewSimpleStep("get-wf-step")
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -446,8 +420,7 @@ func TestGetFlow(t *testing.T) {
 		}
 
 		err = testEnv.Engine.StartFlow(
-			context.Background(), "test-wf-id", plan, api.Args{},
-			api.Metadata{},
+			"test-wf-id", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
@@ -649,7 +622,7 @@ func TestEngineHealthByID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step := helpers.NewSimpleStep("health-step")
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/health/health-step", nil)
@@ -685,7 +658,7 @@ func TestStartFlowEmptyID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step := helpers.NewSimpleStep("test-step")
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		reqData := map[string]any{
@@ -792,9 +765,9 @@ func TestPlanPreview(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step1)
+		err := testEnv.Engine.RegisterStep(step1)
 		assert.NoError(t, err)
-		err = testEnv.Engine.RegisterStep(context.Background(), step2)
+		err = testEnv.Engine.RegisterStep(step2)
 		assert.NoError(t, err)
 
 		reqData := map[string]any{
@@ -884,7 +857,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step := helpers.NewSimpleStep("dup-wf-step")
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -895,11 +868,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 		}
 
 		err = testEnv.Engine.StartFlow(
-			context.Background(),
-			"duplicate-flow",
-			plan,
-			api.Args{},
-			api.Metadata{},
+			"duplicate-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
@@ -967,7 +936,7 @@ func TestCORSOptions(t *testing.T) {
 func TestSanitizeFlowID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step := helpers.NewSimpleStep("test-step")
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		tests := []struct {
@@ -1028,7 +997,7 @@ func TestSanitizeFlowID(t *testing.T) {
 func (e *testServerEnv) waitForWorkItem(t *testing.T, fs engine.FlowStep) {
 	t.Helper()
 	assert.Eventually(t, func() bool {
-		flow, err := e.Engine.GetFlowState(context.Background(), fs.FlowID)
+		flow, err := e.Engine.GetFlowState(fs.FlowID)
 		if err != nil {
 			return false
 		}
@@ -1043,7 +1012,7 @@ func TestListFlowsMultiple(t *testing.T) {
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("test-step")
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -1051,14 +1020,10 @@ func TestListFlowsMultiple(t *testing.T) {
 			Steps: api.Steps{"test-step": step},
 		}
 
-		err = testEnv.Engine.StartFlow(
-			context.Background(), "flow-1", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("flow-1", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		err = testEnv.Engine.StartFlow(
-			context.Background(), "flow-2", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("flow-2", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
@@ -1082,7 +1047,7 @@ func TestEngineState(t *testing.T) {
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("test-step")
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine", nil)
@@ -1106,7 +1071,7 @@ func TestHealthList(t *testing.T) {
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("health-test-step")
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/health", nil)
@@ -1141,7 +1106,7 @@ func TestHookSuccessRoute(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(context.Background(), step)
+		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		testEnv.MockClient.SetResponse(step.ID, api.Args{})
@@ -1152,17 +1117,14 @@ func TestHookSuccessRoute(t *testing.T) {
 		}
 
 		err = testEnv.Engine.StartFlow(
-			context.Background(), "webhook-flow", plan, api.Args{},
-			api.Metadata{},
+			"webhook-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-flow", StepID: step.ID}
 		testEnv.waitForWorkItem(t, fs)
 
-		flow, err := testEnv.Engine.GetFlowState(
-			context.Background(), "webhook-flow",
-		)
+		flow, err := testEnv.Engine.GetFlowState("webhook-flow")
 		assert.NoError(t, err)
 
 		exec := flow.Executions[step.ID]

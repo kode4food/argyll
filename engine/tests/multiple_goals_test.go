@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func TestMultipleGoals(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: Produces both "valueB" and "valueD"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueB", "valueD")
@@ -47,11 +45,11 @@ func TestMultipleGoals(t *testing.T) {
 		// Step E: Unrelated step (should NOT execute)
 		stepE := helpers.NewStepWithOutputs("step-e", "valueE")
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepD))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepE))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepD))
+		assert.NoError(t, env.Engine.RegisterStep(stepE))
 
 		env.MockClient.SetResponse("step-a", api.Args{
 			"valueB": "from-A-B",
@@ -95,12 +93,10 @@ func TestMultipleGoals(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-multiple-goals")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 
 		// Verify workflow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)

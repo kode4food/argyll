@@ -100,7 +100,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 }
 
 func (s *Server) handleEngine(c *gin.Context) {
-	engState, err := s.engine.GetEngineState(c.Request.Context())
+	engState, err := s.engine.GetEngineState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),

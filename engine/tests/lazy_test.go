@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func TestLazyEvaluation(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Create 10 steps, but only A→B→C form path to goal
 		// Step A: No inputs, produces "valueA"
@@ -47,16 +45,16 @@ func TestLazyEvaluation(t *testing.T) {
 		stepJ := helpers.NewStepWithOutputs("step-j", "valueJ")
 
 		// Register all 10 steps in the engine
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepD))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepE))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepF))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepG))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepH))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepI))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepJ))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepD))
+		assert.NoError(t, env.Engine.RegisterStep(stepE))
+		assert.NoError(t, env.Engine.RegisterStep(stepF))
+		assert.NoError(t, env.Engine.RegisterStep(stepG))
+		assert.NoError(t, env.Engine.RegisterStep(stepH))
+		assert.NoError(t, env.Engine.RegisterStep(stepI))
+		assert.NoError(t, env.Engine.RegisterStep(stepJ))
 
 		// Set responses for all steps (even though only A,B,C should invoke)
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
@@ -93,13 +91,11 @@ func TestLazyEvaluation(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-lazy-eval")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// CRITICAL: Verify only 3 steps exist in executions (lazy evaluation)

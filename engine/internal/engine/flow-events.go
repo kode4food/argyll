@@ -41,7 +41,7 @@ func (a *flowActor) processFlowStarted(
 
 		var fns enqueued
 		for _, stepID := range a.findInitialSteps(ag.Value()) {
-			fn, err := a.prepareStep(a.ctx, stepID, ag)
+			fn, err := a.prepareStep(stepID, ag)
 			if err != nil {
 				slog.Warn("Failed to prepare step",
 					log.StepID(stepID),
@@ -118,7 +118,7 @@ func (a *flowActor) processWorkSucceeded(
 		// Find and start downstream ready steps
 		var fns enqueued
 		for _, consumerID := range a.findReadySteps(event.StepID, ag.Value()) {
-			fn, err := a.prepareStep(a.ctx, consumerID, ag)
+			fn, err := a.prepareStep(consumerID, ag)
 			if err != nil {
 				slog.Warn("Failed to prepare step",
 					log.StepID(consumerID),
@@ -187,7 +187,7 @@ func (a *flowActor) execTransaction(
 		fns, err = fn(ag)
 		return err
 	}
-	if _, err := a.flowExec.Exec(a.ctx, flowKey(a.flowID), cmd); err != nil {
+	if _, err := a.execFlow(flowKey(a.flowID), cmd); err != nil {
 		return err
 	}
 	fns.exec()

@@ -12,7 +12,7 @@ import (
 
 func TestAleCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "ale-step",
@@ -44,7 +44,7 @@ func TestAleCompilation(t *testing.T) {
 
 func TestLuaCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "lua-step",
@@ -76,7 +76,7 @@ func TestLuaCompilation(t *testing.T) {
 
 func TestAlePredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "pred-step",
@@ -109,7 +109,7 @@ func TestAlePredicateTrue(t *testing.T) {
 
 func TestAlePredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "pred-step",
@@ -142,7 +142,7 @@ func TestAlePredicateFalse(t *testing.T) {
 
 func TestLuaPredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "lua-pred-step",
@@ -175,7 +175,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 
 func TestLuaPredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "lua-pred-step",
@@ -208,7 +208,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 
 func TestUnsupportedLanguage(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		_, err := registry.Get("python")
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
@@ -217,7 +217,7 @@ func TestUnsupportedLanguage(t *testing.T) {
 
 func TestCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		aleStep := helpers.NewScriptStep(
 			"ale-step", api.ScriptLangAle, "{:result 42}", "result",
@@ -247,7 +247,7 @@ func TestCompileViaRegistry(t *testing.T) {
 
 func TestAleComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "complex-ale",
@@ -293,7 +293,7 @@ func TestAleComplexScript(t *testing.T) {
 
 func TestLuaComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := &api.Step{
 			ID:   "complex-lua",
@@ -341,7 +341,7 @@ func TestLuaComplexScript(t *testing.T) {
 
 func TestAleInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := helpers.NewScriptStep(
 			"invalid-ale", api.ScriptLangAle, "{:result (+ 1 2",
@@ -357,7 +357,7 @@ func TestAleInvalidSyntax(t *testing.T) {
 
 func TestLuaInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		step := helpers.NewScriptStep(
 			"invalid-lua", api.ScriptLangLua, "return {result = ",

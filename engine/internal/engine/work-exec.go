@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -34,7 +33,7 @@ var (
 )
 
 func (e *Engine) evaluateStepPredicate(
-	ctx context.Context, fs FlowStep, step *api.Step, inputs api.Args,
+	fs FlowStep, step *api.Step, inputs api.Args,
 ) bool {
 	if step.Predicate == nil {
 		return true
@@ -42,7 +41,7 @@ func (e *Engine) evaluateStepPredicate(
 
 	comp, err := e.GetCompiledPredicate(fs)
 	if err != nil {
-		e.failPredicateEvaluation(ctx, fs,
+		e.failPredicateEvaluation(fs,
 			"Failed to get compiled predicate",
 			"predicate compilation failed", err)
 		return false
@@ -54,7 +53,7 @@ func (e *Engine) evaluateStepPredicate(
 
 	env, err := e.scripts.Get(step.Predicate.Language)
 	if err != nil {
-		e.failPredicateEvaluation(ctx, fs,
+		e.failPredicateEvaluation(fs,
 			"Failed to get script environment for predicate",
 			"failed to get script environment", err)
 		return false
@@ -62,7 +61,7 @@ func (e *Engine) evaluateStepPredicate(
 
 	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
 	if err != nil {
-		e.failPredicateEvaluation(ctx, fs,
+		e.failPredicateEvaluation(fs,
 			"Failed to evaluate predicate",
 			"predicate evaluation failed", err)
 		return false
@@ -72,14 +71,14 @@ func (e *Engine) evaluateStepPredicate(
 }
 
 func (e *Engine) failPredicateEvaluation(
-	ctx context.Context, fs FlowStep, logMsg, failMsg string, err error,
+	fs FlowStep, logMsg, failMsg string, err error,
 ) {
 	slog.Error(logMsg,
 		log.StepID(fs.StepID),
 		log.Error(err))
 
 	if failErr := e.FailStepExecution(
-		ctx, fs, fmt.Sprintf("%s: %s", failMsg, err.Error()),
+		fs, fmt.Sprintf("%s: %s", failMsg, err.Error()),
 	); failErr != nil {
 		slog.Error("Failed to record predicate failure",
 			log.StepID(fs.StepID),
@@ -112,9 +111,7 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 
 // Work item execution functions
 
-func (e *ExecContext) executeWorkItems(
-	ctx context.Context, items api.WorkItems,
-) {
+func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 	parallelism := 0
 	if e.step.WorkConfig != nil {
 		parallelism = e.step.WorkConfig.Parallelism
@@ -128,11 +125,11 @@ func (e *ExecContext) executeWorkItems(
 		}
 
 		fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-		if !e.engine.evaluateStepPredicate(ctx, fs, e.step, workItem.Inputs) {
+		if !e.engine.evaluateStepPredicate(fs, e.step, workItem.Inputs) {
 			continue
 		}
 
-		err := e.engine.StartWork(ctx, fs, token, workItem.Inputs)
+		err := e.engine.StartWork(fs, token, workItem.Inputs)
 		if err != nil {
 			continue
 		}
@@ -141,65 +138,63 @@ func (e *ExecContext) executeWorkItems(
 			sem <- struct{}{}
 			defer func() { <-sem }()
 
-			e.performWorkItem(ctx, token, workItem)
+			e.performWorkItem(token, workItem)
 		}(token, workItem)
 	}
 }
 
 func (e *ExecContext) executeWorkItem(
-	ctx context.Context, token api.Token, workItem *api.WorkState,
+	token api.Token, workItem *api.WorkState,
 ) {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	if !e.engine.evaluateStepPredicate(ctx, fs, e.step, workItem.Inputs) {
+	if !e.engine.evaluateStepPredicate(fs, e.step, workItem.Inputs) {
 		return
 	}
 
-	if err := e.engine.StartWork(ctx, fs, token, workItem.Inputs); err != nil {
+	if err := e.engine.StartWork(fs, token, workItem.Inputs); err != nil {
 		return
 	}
 
-	e.performWorkItem(ctx, token, workItem)
+	e.performWorkItem(token, workItem)
 }
 
 func (e *ExecContext) performWorkItem(
-	ctx context.Context, token api.Token, workItem *api.WorkState,
+	token api.Token, workItem *api.WorkState,
 ) {
-	outputs, err := e.performWork(ctx, workItem.Inputs, token)
+	outputs, err := e.performWork(workItem.Inputs, token)
 
 	if err != nil {
-		e.handleWorkItemFailure(ctx, token, err)
+		e.handleWorkItemFailure(token, err)
 		return
 	}
 
 	if !isAsyncStep(e.step.Type) {
 		fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-		_ = e.engine.CompleteWork(ctx, fs, token, outputs)
+		_ = e.engine.CompleteWork(fs, token, outputs)
 	}
 }
 
-func (e *ExecContext) handleWorkItemFailure(
-	ctx context.Context, token api.Token, err error,
-) {
+func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 
 	if errors.Is(err, api.ErrWorkNotCompleted) {
-		_ = e.engine.NotCompleteWork(ctx, fs, token, err.Error())
+		_ = e.engine.NotCompleteWork(fs, token, err.Error())
 		return
 	}
 
-	_ = e.engine.FailWork(ctx, fs, token, err.Error())
+	_ = e.engine.FailWork(fs, token, err.Error())
 }
 
 func (e *ExecContext) performWork(
-	ctx context.Context, inputs api.Args, token api.Token,
+	inputs api.Args, token api.Token,
 ) (api.Args, error) {
 	switch e.step.Type {
 	case api.StepTypeScript:
 		return e.performScriptWork(inputs)
 	case api.StepTypeSync, api.StepTypeAsync:
-		return e.performHTTPWork(ctx, inputs, token)
+		return e.performHTTPWork(inputs, token)
 	case api.StepTypeFlow:
-		return e.performFlowWork(ctx, inputs, token)
+		return e.performFlowWork(inputs, token)
 	default:
 		return nil, ErrUnsupportedStepType
 	}
@@ -222,18 +217,18 @@ func (e *ExecContext) performScriptWork(inputs api.Args) (api.Args, error) {
 }
 
 func (e *ExecContext) performHTTPWork(
-	ctx context.Context, inputs api.Args, token api.Token,
+	inputs api.Args, token api.Token,
 ) (api.Args, error) {
 	metadata := e.buildHTTPMetadataWithToken(token)
-	return e.engine.stepClient.Invoke(ctx, e.step, inputs, metadata)
+	return e.engine.stepClient.Invoke(e.step, inputs, metadata)
 }
 
 func (e *ExecContext) performFlowWork(
-	ctx context.Context, initState api.Args, token api.Token,
+	initState api.Args, token api.Token,
 ) (api.Args, error) {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	mappedState := mapFlowInputs(e.step, initState)
-	_, err := e.engine.StartChildFlow(ctx, fs, token, e.step, mappedState)
+	_, err := e.engine.StartChildFlow(fs, token, e.step, mappedState)
 	if err != nil {
 		return nil, err
 	}

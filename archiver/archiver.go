@@ -66,7 +66,7 @@ func (a *Archiver) Run(ctx context.Context) error {
 	defer ageTicker.Stop()
 
 	a.runPressureCycle(ctx)
-	a.runAgeSweep(ctx)
+	a.runAgeSweep()
 
 	for {
 		select {
@@ -75,7 +75,7 @@ func (a *Archiver) Run(ctx context.Context) error {
 		case <-pressureTicker.C:
 			a.runPressureCycle(ctx)
 		case <-ageTicker.C:
-			a.runAgeSweep(ctx)
+			a.runAgeSweep()
 		}
 	}
 }
@@ -89,7 +89,7 @@ func (a *Archiver) runPressureCycle(ctx context.Context) {
 		return
 	}
 
-	flowIDs, err := a.reserveFlows(ctx, reserveOptions{
+	flowIDs, err := a.reserveFlows(reserveOptions{
 		limit:        a.config.PressureBatchSize,
 		leaseTimeout: a.config.LeaseTimeout,
 	})
@@ -99,14 +99,14 @@ func (a *Archiver) runPressureCycle(ctx context.Context) {
 		return
 	}
 
-	a.archiveFlows(ctx, flowIDs)
+	a.archiveFlows(flowIDs)
 }
 
-func (a *Archiver) runAgeSweep(ctx context.Context) {
+func (a *Archiver) runAgeSweep() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 
-	flowIDs, err := a.reserveFlows(ctx, reserveOptions{
+	flowIDs, err := a.reserveFlows(reserveOptions{
 		limit:        a.config.SweepBatchSize,
 		maxAge:       a.config.MaxAge,
 		leaseTimeout: a.config.LeaseTimeout,
@@ -117,25 +117,23 @@ func (a *Archiver) runAgeSweep(ctx context.Context) {
 		return
 	}
 
-	a.archiveFlows(ctx, flowIDs)
+	a.archiveFlows(flowIDs)
 }
 
-func (a *Archiver) archiveFlows(ctx context.Context, flowIDs []api.FlowID) {
+func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 	if len(flowIDs) == 0 {
 		return
 	}
 
+	bg := context.Background()
 	for _, flowID := range flowIDs {
-		if err := a.flowStore.Archive(ctx, flowKey(flowID)); err != nil {
+		if err := a.flowStore.Archive(bg, flowKey(flowID)); err != nil {
 			slog.Warn("Failed to archive flow",
 				slog.String("flow_id", string(flowID)),
 				slog.String("error", err.Error()))
 			continue
 		}
-		if err := a.raiseEngineEvent(ctx,
-			api.EventTypeFlowArchived,
-			api.FlowArchivedEvent{FlowID: flowID},
-		); err != nil {
+		if err := a.raiseEngineEvent(api.EventTypeFlowArchived, api.FlowArchivedEvent{FlowID: flowID}); err != nil {
 			slog.Warn("Failed to emit flow archived event",
 				slog.String("flow_id", string(flowID)),
 				slog.String("error", err.Error()))
@@ -163,9 +161,7 @@ func (a *Archiver) checkMemoryPressure(ctx context.Context) float64 {
 	return usedPercent / 100
 }
 
-func (a *Archiver) reserveFlows(
-	ctx context.Context, opts reserveOptions,
-) ([]api.FlowID, error) {
+func (a *Archiver) reserveFlows(opts reserveOptions, ) ([]api.FlowID, error) {
 	now := time.Now()
 	var flowIDs []api.FlowID
 
@@ -190,20 +186,20 @@ func (a *Archiver) reserveFlows(
 		return nil
 	}
 
-	_, err := a.engineExec.Exec(ctx, events.EngineID, cmd)
+	bg := context.Background()
+	_, err := a.engineExec.Exec(bg, events.EngineID, cmd)
 	return flowIDs, err
 }
 
-func (a *Archiver) raiseEngineEvent(
-	ctx context.Context, eventType api.EventType, data any,
-) error {
+func (a *Archiver) raiseEngineEvent(eventType api.EventType, data any, ) error {
 	cmd := func(
 		st *api.EngineState,
 		ag *timebox.Aggregator[*api.EngineState],
 	) error {
 		return timebox.Raise(ag, timebox.EventType(eventType), data)
 	}
-	_, err := a.engineExec.Exec(ctx, events.EngineID, cmd)
+	bg := context.Background()
+	_, err := a.engineExec.Exec(bg, events.EngineID, cmd)
 	return err
 }
 

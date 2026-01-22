@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -16,8 +15,6 @@ const workItemTimeout = 5 * time.Second
 func TestForEachAggregatesOutputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		step := &api.Step{
 			ID:   "foreach-step",
@@ -40,7 +37,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
 
 		plan := &api.ExecutionPlan{
@@ -48,14 +45,12 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "wf-foreach", plan, api.Args{
-				"item": []any{"a", "b"},
-			}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-foreach", plan, api.Args{
+			"item": []any{"a", "b"},
+		}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-foreach", workItemTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-foreach", workItemTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		attrs := flow.GetAttributes()

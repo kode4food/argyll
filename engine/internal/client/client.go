@@ -2,7 +2,6 @@ package client
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,9 +17,7 @@ import (
 type (
 	// Client defines the interface for invoking step handlers
 	Client interface {
-		Invoke(
-			context.Context, *api.Step, api.Args, api.Metadata,
-		) (api.Args, error)
+		Invoke(*api.Step, api.Args, api.Metadata) (api.Args, error)
 	}
 
 	// HTTPClient implements Client using HTTP requests
@@ -51,13 +48,13 @@ func NewHTTPClient(timeout time.Duration) *HTTPClient {
 // Invoke sends an HTTP POST request to the step's endpoint with the provided
 // arguments and metadata, returning the step's output arguments or an error
 func (c *HTTPClient) Invoke(
-	ctx context.Context, step *api.Step, args api.Args, meta api.Metadata,
+	step *api.Step, args api.Args, meta api.Metadata,
 ) (api.Args, error) {
 	if step.HTTP == nil {
 		return nil, fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
 	}
 
-	httpReq, err := c.buildRequest(ctx, step, args, meta)
+	httpReq, err := c.buildRequest(step, args, meta)
 	if err != nil {
 		return nil, err
 	}
@@ -71,7 +68,7 @@ func (c *HTTPClient) Invoke(
 }
 
 func (c *HTTPClient) buildRequest(
-	ctx context.Context, step *api.Step, args api.Args, meta api.Metadata,
+	step *api.Step, args api.Args, meta api.Metadata,
 ) (*http.Request, error) {
 	body, err := json.Marshal(api.StepRequest{
 		Arguments: args,
@@ -84,8 +81,8 @@ func (c *HTTPClient) buildRequest(
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequestWithContext(
-		ctx, "POST", step.HTTP.Endpoint, bytes.NewBuffer(body),
+	httpReq, err := http.NewRequest(
+		"POST", step.HTTP.Endpoint, bytes.NewBuffer(body),
 	)
 	if err != nil {
 		slog.Error("Failed to create HTTP request",

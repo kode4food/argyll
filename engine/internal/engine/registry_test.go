@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,10 +25,10 @@ func TestRegisterStep(t *testing.T) {
 			},
 		}
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		steps, err := eng.ListSteps(context.Background())
+		steps, err := eng.ListSteps()
 		assert.NoError(t, err)
 		assert.Len(t, steps, 1)
 		assert.Equal(t, api.StepID("test-step"), steps[0].ID)
@@ -40,15 +39,13 @@ func TestUpdateStepHealth(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("health-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		err = eng.UpdateStepHealth(
-			context.Background(), "health-step", api.HealthHealthy, "",
-		)
+		err = eng.UpdateStepHealth("health-step", api.HealthHealthy, "")
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState(context.Background())
+		state, err := eng.GetEngineState()
 		assert.NoError(t, err)
 
 		health, ok := state.Health["health-step"]
@@ -61,16 +58,15 @@ func TestUpdateUnhealthy(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("unhealthy-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		err = eng.UpdateStepHealth(
-			context.Background(), "unhealthy-step", api.HealthUnhealthy,
-			"connection refused",
+			"unhealthy-step", api.HealthUnhealthy, "connection refused",
 		)
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState(context.Background())
+		state, err := eng.GetEngineState()
 		assert.NoError(t, err)
 
 		health, ok := state.Health["unhealthy-step"]
@@ -84,16 +80,16 @@ func TestUpdateStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("update-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		updated := helpers.NewSimpleStep("update-step")
 		updated.Name = "Updated"
 
-		err = eng.UpdateStep(context.Background(), updated)
+		err = eng.UpdateStep(updated)
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState(context.Background())
+		state, err := eng.GetEngineState()
 		assert.NoError(t, err)
 
 		retrievedStep, ok := state.Steps["update-step"]

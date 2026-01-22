@@ -1,7 +1,6 @@
 package helpers_test
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 	"time"
@@ -26,9 +25,7 @@ func TestSetResponse(t *testing.T) {
 	cl.SetResponse("step-1", out)
 
 	step := &api.Step{ID: "step-1"}
-	result, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	result, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "success", result["result"])
@@ -41,7 +38,7 @@ func TestSetError(t *testing.T) {
 	cl.SetError("step-error", expectedErr)
 
 	step := &api.Step{ID: "step-error"}
-	_, err := cl.Invoke(context.Background(), step, api.Args{}, api.Metadata{})
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -52,8 +49,8 @@ func TestTracksInvocations(t *testing.T) {
 	step1 := &api.Step{ID: "step-1"}
 	step2 := &api.Step{ID: "step-2"}
 
-	_, _ = cl.Invoke(context.Background(), step1, api.Args{}, api.Metadata{})
-	_, _ = cl.Invoke(context.Background(), step2, api.Args{}, api.Metadata{})
+	_, _ = cl.Invoke(step1, api.Args{}, api.Metadata{})
+	_, _ = cl.Invoke(step2, api.Args{}, api.Metadata{})
 
 	assert.True(t, cl.WasInvoked("step-1"))
 	assert.True(t, cl.WasInvoked("step-2"))
@@ -69,9 +66,7 @@ func TestDefaultResponse(t *testing.T) {
 	cl := helpers.NewMockClient()
 
 	step := &api.Step{ID: "unconfigured-step"}
-	result, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	result, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 
 	assert.NoError(t, err)
 	assert.Empty(t, result)
@@ -85,9 +80,7 @@ func TestThreadSafe(t *testing.T) {
 	for range 10 {
 		go func() {
 			step := &api.Step{ID: "step-1"}
-			_, _ = cl.Invoke(
-				context.Background(), step, api.Args{}, api.Metadata{},
-			)
+			_, _ = cl.Invoke(step, api.Args{}, api.Metadata{})
 			done <- true
 		}()
 	}
@@ -115,10 +108,10 @@ func TestEngine(t *testing.T) {
 func TestCanRegisterSteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewTestStep()
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		steps, err := eng.ListSteps(context.Background())
+		steps, err := eng.ListSteps()
 		assert.NoError(t, err)
 		assert.Len(t, steps, 1)
 	})
@@ -127,7 +120,7 @@ func TestCanRegisterSteps(t *testing.T) {
 func TestCanStartFlows(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewTestStep()
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -135,12 +128,10 @@ func TestCanStartFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(), "test-wf", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("test-wf", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		wf, err := eng.GetFlowState(context.Background(), "test-wf")
+		wf, err := eng.GetFlowState("test-wf")
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowID("test-wf"), wf.ID)
 	})
@@ -294,9 +285,9 @@ func TestLastMetadata(t *testing.T) {
 	md2 := api.Metadata{"attempt": "2"}
 	md3 := api.Metadata{"attempt": "3"}
 
-	_, _ = cl.Invoke(context.Background(), step, api.Args{}, md1)
-	_, _ = cl.Invoke(context.Background(), step, api.Args{}, md2)
-	_, _ = cl.Invoke(context.Background(), step, api.Args{}, md3)
+	_, _ = cl.Invoke(step, api.Args{}, md1)
+	_, _ = cl.Invoke(step, api.Args{}, md2)
+	_, _ = cl.Invoke(step, api.Args{}, md3)
 
 	last := cl.LastMetadata("step-with-metadata")
 	assert.NotNil(t, last)
@@ -315,9 +306,8 @@ func TestWaitFlowCompleted(t *testing.T) {
 		env.Engine.Start()
 		defer func() { _ = env.Engine.Stop() }()
 
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("simple-step")
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -328,12 +318,10 @@ func TestWaitFlowCompleted(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-flow-completed")
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		finalState := env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
+		finalState := env.WaitForFlowStatus(t, flowID, 5*time.Second)
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowCompleted, finalState.Status)
 	})
@@ -344,10 +332,9 @@ func TestWaitFlowFailed(t *testing.T) {
 		env.Engine.Start()
 		defer func() { _ = env.Engine.Stop() }()
 
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("failing-step")
 		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetError(step.ID, assert.AnError)
@@ -358,12 +345,10 @@ func TestWaitFlowFailed(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-flow-failed")
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		finalState := env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
+		finalState := env.WaitForFlowStatus(t, flowID, 5*time.Second)
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowFailed, finalState.Status)
 	})
@@ -374,7 +359,6 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		env.Engine.Start()
 		defer func() { _ = env.Engine.Stop() }()
 
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("polling-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:   -1,
@@ -382,7 +366,7 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 			MaxBackoffMs: 200,
 			BackoffType:  api.BackoffTypeFixed,
 		}
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
@@ -393,12 +377,10 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-flow-polling")
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		env.WaitForStepStarted(t, ctx, flowID, step.ID, 5*time.Second)
+		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
 
 		producer := env.EventHub.NewProducer()
 		defer producer.Close()
@@ -415,7 +397,7 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		env.MockClient.ClearError(step.ID)
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		finalState := env.WaitForFlowStatus(t, ctx, flowID, 5*time.Second)
+		finalState := env.WaitForFlowStatus(t, flowID, 5*time.Second)
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowCompleted, finalState.Status)
 	})
@@ -426,9 +408,8 @@ func TestWaitStepCompleted(t *testing.T) {
 		env.Engine.Start()
 		defer func() { _ = env.Engine.Stop() }()
 
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("step-complete")
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(step.ID, api.Args{"result": "done"})
@@ -439,14 +420,10 @@ func TestWaitStepCompleted(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-step-complete")
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		execState := env.WaitForStepStatus(
-			t, ctx, flowID, step.ID, 5*time.Second,
-		)
+		execState := env.WaitForStepStatus(t, flowID, step.ID, 5*time.Second)
 		assert.NotNil(t, execState)
 		assert.Equal(t, api.StepCompleted, execState.Status)
 	})
@@ -457,10 +434,9 @@ func TestWaitStepFailed(t *testing.T) {
 		env.Engine.Start()
 		defer func() { _ = env.Engine.Stop() }()
 
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("step-fail")
 		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetError(step.ID, assert.AnError)
@@ -471,14 +447,10 @@ func TestWaitStepFailed(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-step-fail")
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		execState := env.WaitForStepStatus(
-			t, ctx, flowID, step.ID, 5*time.Second,
-		)
+		execState := env.WaitForStepStatus(t, flowID, step.ID, 5*time.Second)
 		assert.NotNil(t, execState)
 		assert.Equal(t, api.StepFailed, execState.Status)
 	})
@@ -489,11 +461,10 @@ func TestWaitStepSkipped(t *testing.T) {
 		env.Engine.Start()
 		defer func() { _ = env.Engine.Stop() }()
 
-		ctx := context.Background()
 		step := helpers.NewStepWithPredicate(
 			"skip-step", api.ScriptLangAle, "false",
 		)
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -502,14 +473,10 @@ func TestWaitStepSkipped(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-step-skipped")
-		err = env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		execState := env.WaitForStepStatus(
-			t, ctx, flowID, step.ID, 5*time.Second,
-		)
+		execState := env.WaitForStepStatus(t, flowID, step.ID, 5*time.Second)
 		assert.NotNil(t, execState)
 		assert.Equal(t, api.StepSkipped, execState.Status)
 	})

@@ -17,7 +17,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 	token := api.Token(c.Param("token"))
 
-	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
+	flow, err := s.engine.GetFlowState(flowID)
 	if err != nil {
 		slog.Error("Flow not found",
 			log.FlowID(flowID),
@@ -83,9 +83,7 @@ func (s *Server) handleWorkWebhook(
 			log.StepID(fs.StepID),
 			log.Token(token),
 			log.ErrorString(result.Error))
-		if err := s.engine.FailWork(
-			c.Request.Context(), fs, token, result.Error,
-		); err != nil {
+		if err := s.engine.FailWork(fs, token, result.Error); err != nil {
 			slog.Error("Failed to record work failure",
 				log.FlowID(fs.FlowID),
 				log.StepID(fs.StepID),
@@ -101,9 +99,7 @@ func (s *Server) handleWorkWebhook(
 		return
 	}
 
-	if err := s.engine.CompleteWork(
-		c.Request.Context(), fs, token, result.Outputs,
-	); err != nil {
+	if err := s.engine.CompleteWork(fs, token, result.Outputs); err != nil {
 		slog.Error("Failed to complete work",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),

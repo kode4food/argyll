@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -26,7 +25,7 @@ func TestStartStop(t *testing.T) {
 
 func TestGetEngineState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, err := eng.GetEngineState(context.Background())
+		state, err := eng.GetEngineState()
 		assert.NoError(t, err)
 		assert.NotNil(t, state)
 		assert.NotNil(t, state.Steps)
@@ -38,13 +37,13 @@ func TestUnregisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("test-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		err = eng.UnregisterStep(context.Background(), "test-step")
+		err = eng.UnregisterStep("test-step")
 		assert.NoError(t, err)
 
-		steps, err := eng.ListSteps(context.Background())
+		steps, err := eng.ListSteps()
 		assert.NoError(t, err)
 		assert.Empty(t, steps)
 	})
@@ -56,7 +55,7 @@ func TestHTTPExecution(t *testing.T) {
 
 		step := helpers.NewStepWithOutputs("http-step", "output")
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse("http-step", api.Args{"output": "success"})
@@ -66,9 +65,7 @@ func TestHTTPExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			context.Background(), "wf-http", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-http", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 	})
 }
@@ -79,7 +76,7 @@ func TestScriptExecution(t *testing.T) {
 			"script-step", api.ScriptLangAle, "{:result 42}", "result",
 		)
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -87,9 +84,7 @@ func TestScriptExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(), "wf-script", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("wf-script", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 	})
 }
@@ -102,7 +97,7 @@ func TestPredicateExecution(t *testing.T) {
 			"predicate-step", api.ScriptLangAle, "true", "output",
 		)
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(
@@ -114,9 +109,7 @@ func TestPredicateExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			context.Background(), "wf-pred", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-pred", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 	})
 }
@@ -130,7 +123,7 @@ func TestPredicateFalse(t *testing.T) {
 			"predicate-false-step", api.ScriptLangAle, "false", "output",
 		)
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(
@@ -143,8 +136,7 @@ func TestPredicateFalse(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "wf-pred-false", plan, api.Args{},
-			api.Metadata{},
+			"wf-pred-false", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
@@ -159,7 +151,7 @@ func TestLuaScriptExecution(t *testing.T) {
 			"result",
 		)
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -167,10 +159,7 @@ func TestLuaScriptExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(), "wf-lua-script", plan, api.Args{},
-			api.Metadata{},
-		)
+		err = eng.StartFlow("wf-lua-script", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 	})
 }
@@ -183,7 +172,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 		)
 		step.Attributes["x"] = &api.AttributeSpec{Role: api.RoleRequired}
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -193,8 +182,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 		}
 
 		err = eng.StartFlow(
-			context.Background(), "wf-ale-input", plan,
-			api.Args{"x": float64(21)}, api.Metadata{},
+			"wf-ale-input", plan, api.Args{"x": float64(21)}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 	})
@@ -209,7 +197,7 @@ func TestLuaPredicate(t *testing.T) {
 			"lua-pred-step", api.ScriptLangLua, "return true", "output",
 		)
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(
@@ -221,10 +209,7 @@ func TestLuaPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			context.Background(), "wf-lua-pred", plan, api.Args{},
-			api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-lua-pred", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 	})
 }
@@ -233,10 +218,10 @@ func TestListSteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("list-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		steps, err := eng.ListSteps(context.Background())
+		steps, err := eng.ListSteps()
 		assert.NoError(t, err)
 		assert.Len(t, steps, 1)
 		assert.Equal(t, api.StepID("list-step"), steps[0].ID)
@@ -245,7 +230,7 @@ func TestListSteps(t *testing.T) {
 
 func TestListStepsEmpty(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		steps, err := eng.ListSteps(context.Background())
+		steps, err := eng.ListSteps()
 		assert.NoError(t, err)
 		assert.Empty(t, steps)
 	})
@@ -255,13 +240,13 @@ func TestRegisterDuplicateStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("dup-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		err = eng.RegisterStep(context.Background(), step)
+		err = eng.RegisterStep(step)
 		assert.NoError(t, err)
 
-		steps, err := eng.ListSteps(context.Background())
+		steps, err := eng.ListSteps()
 		assert.NoError(t, err)
 		assert.Len(t, steps, 1)
 		assert.Equal(t, api.StepID("dup-step"), steps[0].ID)
@@ -272,13 +257,13 @@ func TestRegisterConflictingStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("dup-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("dup-step")
 		updatedStep.Name = "Updated Name"
 
-		err = eng.RegisterStep(context.Background(), updatedStep)
+		err = eng.RegisterStep(updatedStep)
 		assert.ErrorIs(t, err, engine.ErrStepExists)
 	})
 }
@@ -288,17 +273,17 @@ func TestUpdateStepSuccess(t *testing.T) {
 		step := helpers.NewSimpleStep("update-step")
 		step.Name = "Original Name"
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("update-step")
 		updatedStep.Name = "Updated Name"
 		updatedStep.HTTP.Endpoint = "http://test:8080/v2"
 
-		err = eng.UpdateStep(context.Background(), updatedStep)
+		err = eng.UpdateStep(updatedStep)
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState(context.Background())
+		state, err := eng.GetEngineState()
 		assert.NoError(t, err)
 
 		updated, ok := state.Steps["update-step"]
@@ -311,7 +296,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("nonexistent")
 
-		err := eng.UpdateStep(context.Background(), step)
+		err := eng.UpdateStep(step)
 		assert.ErrorIs(t, err, engine.ErrStepNotFound)
 	})
 }
@@ -320,7 +305,7 @@ func TestGetFlowState(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("state-step")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -328,12 +313,10 @@ func TestGetFlowState(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(), "wf-state", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("wf-state", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		state, err := eng.GetFlowState(context.Background(), "wf-state")
+		state, err := eng.GetFlowState("wf-state")
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowID("wf-state"), state.ID)
 		assert.NotNil(t, state.Status)
@@ -342,7 +325,7 @@ func TestGetFlowState(t *testing.T) {
 
 func TestGetFlowStateNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		_, err := eng.GetFlowState(context.Background(), "nonexistent")
+		_, err := eng.GetFlowState("nonexistent")
 		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
 	})
 }

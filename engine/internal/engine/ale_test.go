@@ -13,7 +13,7 @@ import (
 
 func TestAleCacheForSameScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv(eng)
+		env := engine.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "test-step",
@@ -42,7 +42,7 @@ func TestAleCacheForSameScript(t *testing.T) {
 
 func TestAleCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		script := &api.Step{
 			ID:   "script-step",
@@ -91,7 +91,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 
 func TestAleExecuteScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv(eng)
+		env := engine.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "test",
@@ -125,7 +125,7 @@ func TestAleExecuteScript(t *testing.T) {
 
 func TestAleEvaluatePredicate(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv(eng)
+		env := engine.NewAleEnv()
 
 		tests := []struct {
 			name      string
@@ -185,7 +185,7 @@ func TestAleEvaluatePredicate(t *testing.T) {
 
 func TestAleValidate(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv(eng)
+		env := engine.NewAleEnv()
 
 		tests := []struct {
 			name        string
@@ -220,7 +220,7 @@ func TestAleValidate(t *testing.T) {
 
 func TestAleComplexConversion(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv(eng)
+		env := engine.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "complex-types",
@@ -295,7 +295,7 @@ func TestAleComplexConversion(t *testing.T) {
 
 func TestAleListConversion(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv(eng)
+		env := engine.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "list-test",

@@ -2,7 +2,6 @@ package server_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -29,7 +28,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -38,8 +37,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "invalid-work-flow", plan, api.Args{},
-			api.Metadata{},
+			"invalid-work-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
@@ -84,7 +82,7 @@ func TestHookExecutionMissing(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -93,8 +91,7 @@ func TestHookExecutionMissing(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "missing-exec-flow", plan, api.Args{},
-			api.Metadata{},
+			"missing-exec-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
@@ -128,7 +125,7 @@ func TestHookCompleteTwice(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -139,17 +136,14 @@ func TestHookCompleteTwice(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "double-complete-flow", plan, api.Args{},
-			api.Metadata{},
+			"double-complete-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "double-complete-flow", StepID: step.ID}
 		env.waitForWorkItem(t, fs)
 
-		flow, err := env.Engine.GetFlowState(
-			context.Background(), "double-complete-flow",
-		)
+		flow, err := env.Engine.GetFlowState("double-complete-flow")
 		assert.NoError(t, err)
 
 		var token api.Token
@@ -175,9 +169,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		assert.Equal(t, 200, w.Code)
 		assert.Eventually(t, func() bool {
-			flow, err := env.Engine.GetFlowState(
-				context.Background(), "double-complete-flow",
-			)
+			flow, err := env.Engine.GetFlowState("double-complete-flow")
 			if err != nil {
 				return false
 			}
@@ -218,7 +210,7 @@ func TestHookSuccess(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -229,17 +221,14 @@ func TestHookSuccess(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "webhook-success-flow", plan, api.Args{},
-			api.Metadata{},
+			"webhook-success-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-success-flow", StepID: step.ID}
 		env.waitForWorkItem(t, fs)
 
-		flow, err := env.Engine.GetFlowState(
-			context.Background(), "webhook-success-flow",
-		)
+		flow, err := env.Engine.GetFlowState("webhook-success-flow")
 		assert.NoError(t, err)
 
 		var token api.Token
@@ -281,7 +270,7 @@ func TestHookWorkFailure(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -292,17 +281,14 @@ func TestHookWorkFailure(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "webhook-fail-flow", plan, api.Args{},
-			api.Metadata{},
+			"webhook-fail-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-fail-flow", StepID: step.ID}
 		env.waitForWorkItem(t, fs)
 
-		flow, err := env.Engine.GetFlowState(
-			context.Background(), "webhook-fail-flow",
-		)
+		flow, err := env.Engine.GetFlowState("webhook-fail-flow")
 		assert.NoError(t, err)
 
 		var token api.Token
@@ -344,7 +330,7 @@ func TestHookInvalidJSON(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(context.Background(), step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -355,17 +341,14 @@ func TestHookInvalidJSON(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			context.Background(), "webhook-badjson-flow", plan, api.Args{},
-			api.Metadata{},
+			"webhook-badjson-flow", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-badjson-flow", StepID: step.ID}
 		env.waitForWorkItem(t, fs)
 
-		flow, err := env.Engine.GetFlowState(
-			context.Background(), "webhook-badjson-flow",
-		)
+		flow, err := env.Engine.GetFlowState("webhook-badjson-flow")
 		assert.NoError(t, err)
 
 		var token api.Token

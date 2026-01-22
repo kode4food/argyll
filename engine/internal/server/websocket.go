@@ -1,7 +1,6 @@
 package server
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -31,7 +30,7 @@ type (
 
 	// StateFunc retrieves the current projected state and next sequence for an
 	// aggregate. The next sequence is used by clients to detect sequence skew
-	StateFunc func(context.Context, timebox.AggregateID) (any, int64, error)
+	StateFunc func(timebox.AggregateID) (any, int64, error)
 )
 
 const (
@@ -77,19 +76,19 @@ func HandleWebSocket(
 
 func (s *Server) handleWebSocket(c *gin.Context) {
 	HandleWebSocket(s.eventHub, c.Writer, c.Request,
-		func(ctx context.Context, id timebox.AggregateID) (any, int64, error) {
+		func(id timebox.AggregateID) (any, int64, error) {
 			if len(id) == 0 {
 				return nil, 0, nil
 			}
 			switch string(id[0]) {
 			case "engine":
-				return s.engine.GetEngineStateSeq(ctx)
+				return s.engine.GetEngineStateSeq()
 			case "flow":
 				if len(id) < 2 {
 					return nil, 0, errors.New("invalid aggregate_id")
 				}
 				flowID := api.FlowID(id[1])
-				return s.engine.GetFlowStateSeq(ctx, flowID)
+				return s.engine.GetFlowStateSeq(flowID)
 			default:
 				return nil, 0, errors.New("invalid aggregate_id")
 			}
@@ -177,7 +176,7 @@ func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
 		return
 	}
 
-	state, nextSeq, err := c.getState(context.Background(), aggregateID)
+	state, nextSeq, err := c.getState(aggregateID)
 	if err != nil {
 		slog.Error("Failed to get state for subscription",
 			slog.Any("aggregate_id", aggregateID),

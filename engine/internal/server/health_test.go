@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -78,10 +77,10 @@ func TestGetStepHealth(t *testing.T) {
 
 	step := helpers.NewSimpleStep("health-test-step")
 
-	err = eng.RegisterStep(context.Background(), step)
+	err = eng.RegisterStep(step)
 	assert.NoError(t, err)
 
-	engineState, err := eng.GetEngineState(context.Background())
+	engineState, err := eng.GetEngineState()
 	assert.NoError(t, err)
 	health, ok := engineState.Health["health-test-step"]
 	assert.True(t, ok)
@@ -114,7 +113,7 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	mockClient := helpers.NewMockClient()
 	eng := engine.New(engineStore, flowStore, mockClient, tb.GetHub(), cfg)
 
-	engineState, err := eng.GetEngineState(context.Background())
+	engineState, err := eng.GetEngineState()
 	assert.NoError(t, err)
 	_, ok := engineState.Health["nonexistent-step"]
 	assert.False(t, ok)
@@ -165,14 +164,14 @@ func TestWithRealHealthCheck(t *testing.T) {
 		},
 	}
 
-	err = eng.RegisterStep(context.Background(), step)
+	err = eng.RegisterStep(step)
 	assert.NoError(t, err)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
 	checker.Start()
 	defer checker.Stop()
 
-	engineState, err := eng.GetEngineState(context.Background())
+	engineState, err := eng.GetEngineState()
 	assert.NoError(t, err)
 	health, ok := engineState.Health["real-health-step"]
 	assert.True(t, ok)
@@ -206,7 +205,7 @@ func TestRecentSuccess(t *testing.T) {
 
 	step := helpers.NewSimpleStep("recent-success-step")
 
-	err = eng.RegisterStep(context.Background(), step)
+	err = eng.RegisterStep(step)
 	assert.NoError(t, err)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
@@ -230,7 +229,7 @@ func TestRecentSuccess(t *testing.T) {
 
 	producer.Send() <- event
 
-	engineState, err := eng.GetEngineState(context.Background())
+	engineState, err := eng.GetEngineState()
 	assert.NoError(t, err)
 	health, ok := engineState.Health["recent-success-step"]
 	assert.True(t, ok)
@@ -279,7 +278,7 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 		},
 	}
 
-	err = eng.RegisterStep(context.Background(), step)
+	err = eng.RegisterStep(step)
 	assert.NoError(t, err)
 
 	checker := server.NewHealthChecker(eng, tb.GetHub())
@@ -287,7 +286,7 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 	defer checker.Stop()
 
 	assert.Eventually(t, func() bool {
-		state, err := eng.GetEngineState(context.Background())
+		state, err := eng.GetEngineState()
 		if err != nil {
 			return false
 		}
@@ -381,7 +380,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 			},
 		}
 
-		err = eng.RegisterStep(context.Background(), step)
+		err = eng.RegisterStep(step)
 		assert.NoError(t, err)
 	}
 
@@ -389,7 +388,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	engineState, err := eng.GetEngineState(context.Background())
+	engineState, err := eng.GetEngineState()
 	assert.NoError(t, err)
 	assert.GreaterOrEqual(t, len(engineState.Health), 3)
 }

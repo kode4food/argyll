@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,8 +12,6 @@ import (
 func TestLinearFlowCompletes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		producer := &api.Step{
 			ID:   "producer",
@@ -36,8 +33,8 @@ func TestLinearFlowCompletes(t *testing.T) {
 			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, producer))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, consumer))
+		assert.NoError(t, env.Engine.RegisterStep(producer))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
@@ -60,12 +57,10 @@ func TestLinearFlowCompletes(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "wf-linear", plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-linear", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-linear", testTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-linear", testTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		assert.Equal(t, api.StepCompleted, flow.Executions[producer.ID].Status)
@@ -77,8 +72,6 @@ func TestLinearFlowCompletes(t *testing.T) {
 func TestUndeclaredOutputsIgnored(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		producer := &api.Step{
 			ID:   "producer",
@@ -100,8 +93,8 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, producer))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, consumer))
+		assert.NoError(t, env.Engine.RegisterStep(producer))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		env.MockClient.SetResponse(producer.ID, api.Args{
 			"value": "abc",
@@ -131,16 +124,11 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-undeclared-outputs", plan, api.Args{}, api.Metadata{},
+			"wf-undeclared-outputs", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(
-			t,
-			ctx,
-			"wf-undeclared-outputs",
-			testTimeout,
-		)
+		flow := env.WaitForFlowStatus(t, "wf-undeclared-outputs", testTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		assert.NotNil(t, flow.Attributes["value"])
@@ -153,8 +141,6 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 func TestPendingUnusedSkip(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		providerA := &api.Step{
 			ID:   "provider-a",
@@ -186,9 +172,9 @@ func TestPendingUnusedSkip(t *testing.T) {
 			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, providerA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, providerB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, consumer))
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		env.MockClient.SetResponse(providerA.ID, api.Args{"opt": "value"})
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
@@ -213,16 +199,11 @@ func TestPendingUnusedSkip(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-skip-unneeded", plan, api.Args{}, api.Metadata{},
+			"wf-skip-unneeded", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(
-			t,
-			ctx,
-			"wf-skip-unneeded",
-			testTimeout,
-		)
+		flow := env.WaitForFlowStatus(t, "wf-skip-unneeded", testTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, api.StepCompleted, flow.Executions[providerA.ID].Status)
 		assert.Equal(t, api.StepSkipped, flow.Executions[providerB.ID].Status)

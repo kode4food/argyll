@@ -21,19 +21,17 @@ var flowTransitions = StateTransitions[api.FlowStatus]{
 }
 
 // GetFlowState retrieves the current state of a flow by its ID
-func (e *Engine) GetFlowState(
-	ctx context.Context, flowID api.FlowID,
-) (*api.FlowState, error) {
-	state, _, err := e.GetFlowStateSeq(ctx, flowID)
+func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
+	state, _, err := e.GetFlowStateSeq(flowID)
 	return state, err
 }
 
 // GetFlowStateSeq retrieves the current state and next sequence for a flow
 func (e *Engine) GetFlowStateSeq(
-	ctx context.Context, flowID api.FlowID,
+	flowID api.FlowID,
 ) (*api.FlowState, int64, error) {
 	var nextSeq int64
-	state, err := e.flowExec.Exec(ctx, flowKey(flowID),
+	state, err := e.execFlow(flowKey(flowID),
 		func(st *api.FlowState, ag *FlowAggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil
@@ -53,63 +51,65 @@ func (e *Engine) GetFlowStateSeq(
 // StartWork begins execution of a work item for a step with the given token
 // and input arguments
 func (e *Engine) StartWork(
-	ctx context.Context, fs FlowStep, token api.Token, inputs api.Args,
+	fs FlowStep, token api.Token, inputs api.Args,
 ) error {
-	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkStarted,
+	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
 			Token:  token,
 			Inputs: inputs,
-		})
+		},
+	)
 }
 
 // CompleteWork marks a work item as successfully completed with the given
 // output values
 func (e *Engine) CompleteWork(
-	ctx context.Context, fs FlowStep, token api.Token, outputs api.Args,
+	fs FlowStep, token api.Token, outputs api.Args,
 ) error {
-	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkSucceeded,
+	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkSucceeded,
 		api.WorkSucceededEvent{
 			FlowID:  fs.FlowID,
 			StepID:  fs.StepID,
 			Token:   token,
 			Outputs: outputs,
-		})
+		},
+	)
 }
 
 // FailWork marks a work item as failed with the specified error message
-func (e *Engine) FailWork(
-	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
-) error {
-	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkFailed,
+func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
+	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkFailed,
 		api.WorkFailedEvent{
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
 			Token:  token,
 			Error:  errMsg,
-		})
+		},
+	)
 }
 
 // NotCompleteWork marks a work item as not completed with specified error
 func (e *Engine) NotCompleteWork(
-	ctx context.Context, fs FlowStep, token api.Token, errMsg string,
+	fs FlowStep, token api.Token, errMsg string,
 ) error {
-	return e.raiseFlowEvent(ctx, fs.FlowID, api.EventTypeWorkNotCompleted,
+	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkNotCompleted,
 		api.WorkNotCompletedEvent{
 			FlowID: fs.FlowID,
 			StepID: fs.StepID,
 			Token:  token,
 			Error:  errMsg,
-		})
+		},
+	)
 }
 
 // GetAttribute retrieves a specific attribute value from the flow state,
 // returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
-	ctx context.Context, flowID api.FlowID, attr api.Name,
+	flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {
-	flow, err := e.GetFlowState(ctx, flowID)
+	flow, err := e.GetFlowState(flowID)
 	if err != nil {
 		return nil, false, err
 	}
@@ -121,15 +121,16 @@ func (e *Engine) GetAttribute(
 }
 
 // ListFlows returns summary information for all flows in the system
-func (e *Engine) ListFlows(ctx context.Context) ([]*api.FlowDigest, error) {
-	ids, err := e.flowExec.GetStore().ListAggregates(ctx, flowKey("*"))
+func (e *Engine) ListFlows() ([]*api.FlowDigest, error) {
+	bg := context.Background()
+	ids, err := e.flowExec.GetStore().ListAggregates(bg, flowKey("*"))
 	if err != nil {
 		return nil, err
 	}
 
 	var digests []*api.FlowDigest
 	for _, id := range ids {
-		if digest := e.buildFlowDigest(ctx, id); digest != nil {
+		if digest := e.buildFlowDigest(id); digest != nil {
 			digests = append(digests, digest)
 		}
 	}
@@ -137,15 +138,13 @@ func (e *Engine) ListFlows(ctx context.Context) ([]*api.FlowDigest, error) {
 	return digests, nil
 }
 
-func (e *Engine) buildFlowDigest(
-	ctx context.Context, id timebox.AggregateID,
-) *api.FlowDigest {
+func (e *Engine) buildFlowDigest(id timebox.AggregateID) *api.FlowDigest {
 	if len(id) < 2 || id[0] != "flow" {
 		return nil
 	}
 
 	flowID := api.FlowID(id[1])
-	flow, err := e.GetFlowState(ctx, flowID)
+	flow, err := e.GetFlowState(flowID)
 	if err != nil {
 		return nil
 	}
@@ -273,11 +272,17 @@ func flowKey(flowID api.FlowID) timebox.AggregateID {
 }
 
 func (e *Engine) raiseFlowEvent(
-	ctx context.Context, flowID api.FlowID, eventType api.EventType, data any,
+	flowID api.FlowID, eventType api.EventType, data any,
 ) error {
 	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 		return events.Raise(ag, eventType, data)
 	}
-	_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
+	_, err := e.execFlow(flowKey(flowID), cmd)
 	return err
+}
+
+func (e *Engine) execFlow(
+	flowID timebox.AggregateID, cmd timebox.Command[*api.FlowState],
+) (*api.FlowState, error) {
+	return e.flowExec.Exec(e.ctx, flowID, cmd)
 }

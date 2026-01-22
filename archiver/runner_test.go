@@ -50,7 +50,7 @@ func TestRunnerWritesArchiveRecord(t *testing.T) {
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
 	assert.NoError(t, err)
-	defer b.Close()
+	defer func() { _ = b.Close() }()
 
 	w, err := archiver.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {

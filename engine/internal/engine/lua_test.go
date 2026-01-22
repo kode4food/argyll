@@ -182,7 +182,7 @@ func TestLuaScriptCache(t *testing.T) {
 
 func TestLuaCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry(eng)
+		registry := engine.NewScriptRegistry()
 
 		script := &api.Step{
 			ID:   "test",

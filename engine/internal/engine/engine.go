@@ -82,7 +82,7 @@ func New(
 		consumer:   hub.NewConsumer(),
 		retryQueue: NewRetryQueue(),
 	}
-	e.scripts = NewScriptRegistry(e)
+	e.scripts = NewScriptRegistry()
 	e.handler = CreateEventHandler(e)
 
 	return e
@@ -110,10 +110,7 @@ func CreateEventHandler(e *Engine) timebox.Handler {
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-	defer cancel()
-
-	if err := e.RecoverFlows(ctx); err != nil {
+	if err := e.RecoverFlows(); err != nil {
 		slog.Error("Failed to recover flows",
 			log.Error(err))
 	}
@@ -146,10 +143,10 @@ func (e *Engine) Stop() error {
 
 // StartFlow begins a new flow execution with the given plan and state
 func (e *Engine) StartFlow(
-	ctx context.Context, flowID api.FlowID, plan *api.ExecutionPlan,
-	initState api.Args, meta api.Metadata,
+	flowID api.FlowID, plan *api.ExecutionPlan, initState api.Args,
+	meta api.Metadata,
 ) error {
-	existing, err := e.GetFlowState(ctx, flowID)
+	existing, err := e.GetFlowState(flowID)
 	if err == nil && existing.ID != "" {
 		return ErrFlowExists
 	}
@@ -158,34 +155,35 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	return e.raiseFlowEvent(ctx, flowID, api.EventTypeFlowStarted,
+	return e.raiseFlowEvent(flowID, api.EventTypeFlowStarted,
 		api.FlowStartedEvent{
 			FlowID:   flowID,
 			Plan:     plan,
 			Init:     initState,
 			Metadata: meta,
-		})
+		},
+	)
 }
 
 // UnregisterStep removes a step from the engine registry
-func (e *Engine) UnregisterStep(ctx context.Context, stepID api.StepID) error {
-	return e.raiseEngineEvent(ctx, api.EventTypeStepUnregistered,
-		api.StepUnregisteredEvent{StepID: stepID})
+func (e *Engine) UnregisterStep(stepID api.StepID) error {
+	return e.raiseEngineEvent(
+		api.EventTypeStepUnregistered,
+		api.StepUnregisteredEvent{StepID: stepID},
+	)
 }
 
 // GetEngineState retrieves the current engine state including registered steps
 // and active flows
-func (e *Engine) GetEngineState(ctx context.Context) (*api.EngineState, error) {
-	state, _, err := e.GetEngineStateSeq(ctx)
+func (e *Engine) GetEngineState() (*api.EngineState, error) {
+	state, _, err := e.GetEngineStateSeq()
 	return state, err
 }
 
 // GetEngineStateSeq retrieves the current engine state and next sequence
-func (e *Engine) GetEngineStateSeq(
-	ctx context.Context,
-) (*api.EngineState, int64, error) {
+func (e *Engine) GetEngineStateSeq() (*api.EngineState, int64, error) {
 	var nextSeq int64
-	state, err := e.engineExec.Exec(ctx, events.EngineID,
+	state, err := e.execEngine(
 		func(st *api.EngineState, ag *Aggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil
@@ -195,8 +193,8 @@ func (e *Engine) GetEngineStateSeq(
 }
 
 // ListSteps returns all currently registered steps in the engine
-func (e *Engine) ListSteps(ctx context.Context) ([]*api.Step, error) {
-	engState, err := e.GetEngineState(ctx)
+func (e *Engine) ListSteps() ([]*api.Step, error) {
+	engState, err := e.GetEngineState()
 	if err != nil {
 		return nil, err
 	}
@@ -269,9 +267,10 @@ func (e *Engine) saveEngineSnapshot() {
 func (e *Engine) handleFlowStarted(
 	_ *timebox.Event, data api.FlowStartedEvent,
 ) error {
-	return e.raiseEngineEvent(context.Background(),
+	return e.raiseEngineEvent(
 		api.EventTypeFlowActivated,
-		api.FlowActivatedEvent{FlowID: data.FlowID})
+		api.FlowActivatedEvent{FlowID: data.FlowID},
+	)
 }
 
 func (e *Engine) handleFlowCompleted(
@@ -307,12 +306,16 @@ func (e *Engine) handleWorkSucceeded(
 	return nil
 }
 
-func (e *Engine) raiseEngineEvent(
-	ctx context.Context, eventType api.EventType, data any,
-) error {
+func (e *Engine) raiseEngineEvent(eventType api.EventType, data any) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
 		return events.Raise(ag, eventType, data)
 	}
-	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
+	_, err := e.execEngine(cmd)
 	return err
+}
+
+func (e *Engine) execEngine(
+	cmd timebox.Command[*api.EngineState],
+) (*api.EngineState, error) {
+	return e.engineExec.Exec(e.ctx, events.EngineID, cmd)
 }

@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -25,41 +24,35 @@ var (
 
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
-func (e *Engine) RegisterStep(ctx context.Context, step *api.Step) error {
-	return e.upsertStep(ctx, step,
-		func(st *api.EngineState, s *api.Step) error {
-			if existing, ok := st.Steps[s.ID]; ok {
-				if existing.Equal(s) {
-					return nil
-				}
-				return fmt.Errorf("%w: %s", ErrStepExists, s.ID)
+func (e *Engine) RegisterStep(step *api.Step) error {
+	return e.upsertStep(step, func(st *api.EngineState, s *api.Step) error {
+		if existing, ok := st.Steps[s.ID]; ok {
+			if existing.Equal(s) {
+				return nil
 			}
-			return nil
-		},
-		e.raiseStepRegisteredEvent,
-	)
+			return fmt.Errorf("%w: %s", ErrStepExists, s.ID)
+		}
+		return nil
+	}, e.raiseStepRegisteredEvent)
 }
 
 // UpdateStep updates an existing step registration with new configuration
 // after validation
-func (e *Engine) UpdateStep(ctx context.Context, step *api.Step) error {
-	return e.upsertStep(ctx, step,
-		func(st *api.EngineState, s *api.Step) error {
-			existing, ok := st.Steps[s.ID]
-			if !ok {
-				return fmt.Errorf("%w: %s", ErrStepNotFound, s.ID)
-			}
-			if existing.Equal(s) {
-				return nil
-			}
+func (e *Engine) UpdateStep(step *api.Step) error {
+	return e.upsertStep(step, func(st *api.EngineState, s *api.Step) error {
+		existing, ok := st.Steps[s.ID]
+		if !ok {
+			return fmt.Errorf("%w: %s", ErrStepNotFound, s.ID)
+		}
+		if existing.Equal(s) {
 			return nil
-		},
-		e.raiseStepUpdatedEvent,
-	)
+		}
+		return nil
+	}, e.raiseStepUpdatedEvent)
 }
 
 func (e *Engine) upsertStep(
-	ctx context.Context, step *api.Step, validate stepValidate, raise stepRaise,
+	step *api.Step, validate stepValidate, raise stepRaise,
 ) error {
 	if err := e.validateStepScripts(step); err != nil {
 		return err
@@ -78,12 +71,12 @@ func (e *Engine) upsertStep(
 		return raise(step, ag)
 	}
 
-	if _, err := e.engineExec.Exec(ctx, events.EngineID, cmd); err != nil {
+	if _, err := e.execEngine(cmd); err != nil {
 		return err
 	}
 
 	if stepHasScripts(step) {
-		_ = e.UpdateStepHealth(ctx, step.ID, api.HealthHealthy, "")
+		_ = e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
 	}
 	return nil
 }
@@ -91,8 +84,7 @@ func (e *Engine) upsertStep(
 // UpdateStepHealth updates the health status of a registered step, used
 // primarily for tracking HTTP service availability and script errors
 func (e *Engine) UpdateStepHealth(
-	ctx context.Context, stepID api.StepID, health api.HealthStatus,
-	errMsg string,
+	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
 	cmd := func(st *api.EngineState, ag *Aggregator) error {
 		if stepHealth, ok := st.Health[stepID]; ok {
@@ -110,7 +102,7 @@ func (e *Engine) UpdateStepHealth(
 		)
 	}
 
-	_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
+	_, err := e.execEngine(cmd)
 	return err
 }
 

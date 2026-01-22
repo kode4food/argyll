@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -15,10 +14,9 @@ import (
 
 func TestGetActiveFlow(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("active-test")
 
-		err := eng.RegisterStep(ctx, step)
+		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -26,12 +24,10 @@ func TestGetActiveFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			ctx, "wf-active-test", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("wf-active-test", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
-		flow, err := eng.GetFlowState(ctx, "wf-active-test")
+		flow, err := eng.GetFlowState("wf-active-test")
 		testify.NoError(t, err)
 		testify.NotNil(t, flow)
 		testify.Equal(t, api.FlowID("wf-active-test"), flow.ID)
@@ -41,8 +37,7 @@ func TestGetActiveFlow(t *testing.T) {
 
 func TestGetFlowNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		ctx := context.Background()
-		_, err := eng.GetFlowState(ctx, "nonexistent")
+		_, err := eng.GetFlowState("nonexistent")
 		testify.ErrorIs(t, err, engine.ErrFlowNotFound)
 	})
 }
@@ -62,7 +57,7 @@ func TestScript(t *testing.T) {
 			},
 		}
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -70,13 +65,7 @@ func TestScript(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(),
-			"wf-script",
-			plan,
-			api.Args{},
-			api.Metadata{},
-		)
+		err = eng.StartFlow("wf-script", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
 		a := assert.New(t)
@@ -96,7 +85,7 @@ func TestScriptMissing(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("no-script")
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -104,13 +93,7 @@ func TestScriptMissing(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(),
-			"wf-no-script",
-			plan,
-			api.Args{},
-			api.Metadata{},
-		)
+		err = eng.StartFlow("wf-no-script", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
@@ -126,7 +109,7 @@ func TestPredicate(t *testing.T) {
 			"predicate-step", api.ScriptLangLua, "return true",
 		)
 
-		err := eng.RegisterStep(context.Background(), step)
+		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -134,13 +117,7 @@ func TestPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow(
-			context.Background(),
-			"wf-predicate",
-			plan,
-			api.Args{},
-			api.Metadata{},
-		)
+		err = eng.StartFlow("wf-predicate", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
 		a := assert.New(t)
@@ -166,10 +143,9 @@ func TestPlanFlowNotFound(t *testing.T) {
 
 func TestStepMissingPlan(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("plan-step")
 
-		err := eng.RegisterStep(ctx, step)
+		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -178,13 +154,12 @@ func TestStepMissingPlan(t *testing.T) {
 		}
 
 		err = eng.StartFlow(
-			ctx, "wf-missing-plan-step", plan, api.Args{}, api.Metadata{},
+			"wf-missing-plan-step", plan, api.Args{}, api.Metadata{},
 		)
 		testify.NoError(t, err)
 
-		err = eng.FailStepExecution(ctx,
-			engine.FlowStep{FlowID: "wf-missing-plan-step", StepID: "nope"},
-			"boom",
+		err = eng.FailStepExecution(
+			engine.FlowStep{FlowID: "wf-missing-plan-step", StepID: "nope"}, "boom",
 		)
 		testify.ErrorIs(t, err, engine.ErrStepNotInPlan)
 	})
@@ -194,10 +169,9 @@ func TestStepInvalidTransition(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
 		step := helpers.NewSimpleStep("transition-step")
 
-		err := env.Engine.RegisterStep(ctx, step)
+		err := env.Engine.RegisterStep(step)
 		testify.NoError(t, err)
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
@@ -207,15 +181,14 @@ func TestStepInvalidTransition(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow(
-			ctx, "wf-transition", plan, api.Args{}, api.Metadata{},
+			"wf-transition", plan, api.Args{}, api.Metadata{},
 		)
 		testify.NoError(t, err)
 
-		env.WaitForStepStatus(t, ctx, "wf-transition", step.ID, 5*time.Second)
+		env.WaitForStepStatus(t, "wf-transition", step.ID, 5*time.Second)
 
-		err = env.Engine.FailStepExecution(ctx,
-			engine.FlowStep{FlowID: "wf-transition", StepID: step.ID},
-			"late",
+		err = env.Engine.FailStepExecution(
+			engine.FlowStep{FlowID: "wf-transition", StepID: step.ID}, "late",
 		)
 		testify.ErrorIs(t, err, engine.ErrInvalidTransition)
 	})

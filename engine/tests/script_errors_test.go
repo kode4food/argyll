@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func TestScriptStepErrorAle(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: Produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -44,9 +42,9 @@ func TestScriptStepErrorAle(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
 
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
@@ -75,12 +73,10 @@ func TestScriptStepErrorAle(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-script-error-ale")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 
 		// Verify workflow failed
 		assert.Equal(t, api.FlowFailed, flow.Status)
@@ -107,7 +103,6 @@ func TestScriptStepErrorAle(t *testing.T) {
 func TestScriptStepErrorLua(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: Produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -136,9 +131,9 @@ func TestScriptStepErrorLua(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
 
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
@@ -167,12 +162,10 @@ func TestScriptStepErrorLua(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-script-error-lua")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 
 		// Verify workflow failed
 		assert.Equal(t, api.FlowFailed, flow.Status)

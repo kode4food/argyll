@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"maps"
@@ -202,7 +201,7 @@ func (a *flowActor) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
 // transaction, raising the StepStarted event via aggregator and returning a
 // deferred function to be executed after transaction commit
 func (a *flowActor) prepareStep(
-	ctx context.Context, stepID api.StepID, ag *FlowAggregator,
+	stepID api.StepID, ag *FlowAggregator,
 ) (deferred, error) {
 	flow := ag.Value()
 
@@ -223,7 +222,7 @@ func (a *flowActor) prepareStep(
 
 	// Evaluate predicate
 	fs := FlowStep{FlowID: a.flowID, StepID: stepID}
-	if !a.evaluateStepPredicate(ctx, fs, step, inputs) {
+	if !a.evaluateStepPredicate(fs, step, inputs) {
 		// Predicate failed - skip this step
 		if err := events.Raise(ag, api.EventTypeStepSkipped,
 			api.StepSkippedEvent{
@@ -268,7 +267,7 @@ func (a *flowActor) prepareStep(
 
 		// Execute work items
 		items := ag.Value().Executions[stepID].WorkItems
-		execCtx.executeWorkItems(ctx, items)
+		execCtx.executeWorkItems(items)
 	}, nil
 }
 
@@ -502,7 +501,7 @@ func (a *flowActor) maybeDeactivate(flow *api.FlowState) deferred {
 	}
 	return func() {
 		a.completeParentWork(flow)
-		if err := a.raiseEngineEvent(context.Background(),
+		if err := a.raiseEngineEvent(
 			api.EventTypeFlowDeactivated,
 			api.FlowDeactivatedEvent{FlowID: a.flowID},
 		); err != nil {

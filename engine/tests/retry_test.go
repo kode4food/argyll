@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func TestRetryExhaustion(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Create a step that will always fail
 		step := helpers.NewStepWithOutputs("failing-step", "result")
@@ -25,7 +23,7 @@ func TestRetryExhaustion(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 
 		// Make the step always fail with a retryable error
 		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
@@ -36,13 +34,11 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-retry-exhaustion")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for workflow to fail (step exhausts retries)
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step failed after exhausting retries

@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -17,8 +16,6 @@ const childFlowTimeout = 5 * time.Second
 func TestFlowStepChildSuccess(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		child := &api.Step{
 			ID:   "child-step",
@@ -41,22 +38,18 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, child))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, parent))
+		assert.NoError(t, env.Engine.RegisterStep(child))
+		assert.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "parent-flow", plan, api.Args{}, nil,
-		)
+		err := env.Engine.StartFlow("parent-flow", plan, api.Args{}, nil)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(
-			t, ctx, "parent-flow", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus(t, "parent-flow", childFlowTimeout)
 		assert.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
@@ -70,7 +63,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			childID := api.FlowID(fmt.Sprintf(
 				"%s:%s:%s", "parent-flow", parent.ID, token,
 			))
-			childState, err := env.Engine.GetFlowState(ctx, childID)
+			childState, err := env.Engine.GetFlowState(childID)
 			assert.NoError(t, err)
 			assert.Equal(t, api.FlowCompleted, childState.Status)
 
@@ -97,8 +90,6 @@ func TestFlowStepChildFailureFailsParent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
-
 		child := &api.Step{
 			ID:   "child-fail",
 			Name: "Child Fail",
@@ -120,22 +111,18 @@ func TestFlowStepChildFailureFailsParent(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, child))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, parent))
+		assert.NoError(t, env.Engine.RegisterStep(child))
+		assert.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "parent-fail", plan, api.Args{}, nil,
-		)
+		err := env.Engine.StartFlow("parent-fail", plan, api.Args{}, nil)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(
-			t, ctx, "parent-fail", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus(t, "parent-fail", childFlowTimeout)
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
@@ -143,8 +130,6 @@ func TestFlowStepChildFailureFailsParent(t *testing.T) {
 func TestFlowStepMissingGoalFailsParent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		parent := &api.Step{
 			ID:   "subflow-missing",
@@ -156,21 +141,17 @@ func TestFlowStepMissingGoalFailsParent(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, parent))
+		assert.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "parent-missing", plan, api.Args{}, nil,
-		)
+		err := env.Engine.StartFlow("parent-missing", plan, api.Args{}, nil)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(
-			t, ctx, "parent-missing", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus(t, "parent-missing", childFlowTimeout)
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
@@ -178,8 +159,6 @@ func TestFlowStepMissingGoalFailsParent(t *testing.T) {
 func TestFlowStepMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		child := &api.Step{
 			ID:   "child-mapped",
@@ -214,8 +193,8 @@ func TestFlowStepMapping(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, child))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, parent))
+		assert.NoError(t, env.Engine.RegisterStep(child))
+		assert.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals:    []api.StepID{parent.ID},
@@ -224,14 +203,11 @@ func TestFlowStepMapping(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "parent-mapped", plan, api.Args{"input": float64(7)},
-			nil,
+			"parent-mapped", plan, api.Args{"input": float64(7)}, nil,
 		)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(
-			t, ctx, "parent-mapped", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus(t, "parent-mapped", childFlowTimeout)
 		assert.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
@@ -244,8 +220,6 @@ func TestFlowStepMapping(t *testing.T) {
 func TestListFlowsSkipsChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		child := &api.Step{
 			ID:   "child-list",
@@ -268,22 +242,18 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, child))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, parent))
+		assert.NoError(t, env.Engine.RegisterStep(child))
+		assert.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "parent-list", plan, api.Args{}, nil,
-		)
+		err := env.Engine.StartFlow("parent-list", plan, api.Args{}, nil)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(
-			t, ctx, "parent-list", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus(t, "parent-list", childFlowTimeout)
 		assert.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
@@ -301,7 +271,7 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 			"%s:%s:%s", "parent-list", parent.ID, token,
 		))
 
-		flows, err := env.Engine.ListFlows(ctx)
+		flows, err := env.Engine.ListFlows()
 		assert.NoError(t, err)
 
 		var ids []api.FlowID
@@ -317,8 +287,6 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 func TestFlowStepMissingMappedOutputFailsParent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		child := &api.Step{
 			ID:   "child-empty",
@@ -348,21 +316,19 @@ func TestFlowStepMissingMappedOutputFailsParent(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, child))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, parent))
+		assert.NoError(t, env.Engine.RegisterStep(child))
+		assert.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "parent-missing-output", plan, api.Args{}, nil,
-		)
+		err := env.Engine.StartFlow("parent-missing-output", plan, api.Args{}, nil)
 		assert.NoError(t, err)
 
 		parentState := env.WaitForFlowStatus(
-			t, ctx, "parent-missing-output", childFlowTimeout,
+			t, "parent-missing-output", childFlowTimeout,
 		)
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})

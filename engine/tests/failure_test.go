@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -16,7 +15,6 @@ import (
 func TestPartialWorkflowFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: No inputs, produces "valueB" and "valueC"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueB", "valueC")
@@ -48,10 +46,10 @@ func TestPartialWorkflowFailure(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepD))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepD))
 
 		// Set mock responses
 		env.MockClient.SetResponse("step-a", api.Args{
@@ -92,19 +90,17 @@ func TestPartialWorkflowFailure(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-partial-failure")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for step C to complete (independent branch)
-		env.WaitForStepStatus(t, ctx, flowID, "step-c", workflowTimeout)
+		env.WaitForStepStatus(t, flowID, "step-c", workflowTimeout)
 
 		// Wait for step B to fail
-		env.WaitForStepStatus(t, ctx, flowID, "step-b", workflowTimeout)
+		env.WaitForStepStatus(t, flowID, "step-b", workflowTimeout)
 
 		// Now wait for workflow to fail
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step A completed (no dependencies, no errors)
@@ -138,7 +134,6 @@ func TestPartialWorkflowFailure(t *testing.T) {
 func TestUnreachableStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		stepA := helpers.NewStepWithOutputs("provider-step", "value")
 		stepA.WorkConfig = &api.WorkConfig{MaxRetries: 0}
@@ -150,8 +145,8 @@ func TestUnreachableStep(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
 
 		env.MockClient.SetError(stepA.ID, errors.New("boom"))
 
@@ -174,11 +169,11 @@ func TestUnreachableStep(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-unreachable", plan, api.Args{}, api.Metadata{},
+			"wf-unreachable", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-unreachable", workflowTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-unreachable", workflowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		assert.Equal(t, api.StepFailed, flow.Executions[stepA.ID].Status)

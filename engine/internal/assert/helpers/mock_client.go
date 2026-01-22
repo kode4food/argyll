@@ -1,7 +1,6 @@
 package helpers
 
 import (
-	"context"
 	"sync"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -29,7 +28,7 @@ func NewMockClient() *MockClient {
 
 // Invoke records the invocation and returns the configured response or error
 func (c *MockClient) Invoke(
-	_ context.Context, step *api.Step, _ api.Args, md api.Metadata,
+	step *api.Step, _ api.Args, md api.Metadata,
 ) (api.Args, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -17,7 +16,6 @@ import (
 func TestInitialWorkflowInputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A (Goal): Requires "initialValue" and "configValue", produces
 		// "result". Neither initialValue nor configValue are produced by any
@@ -32,7 +30,7 @@ func TestInitialWorkflowInputs(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-a"},
@@ -67,13 +65,11 @@ func TestInitialWorkflowInputs(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-initial-inputs")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, initialInputs, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, initialInputs, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 
 		// Verify workflow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)
@@ -106,8 +102,6 @@ func TestInitialWorkflowInputs(t *testing.T) {
 
 func TestRequiredInputsMissing(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		ctx := context.Background()
-
 		step := helpers.NewTestStepWithArgs([]api.Name{"customer_id"}, nil)
 		step.ID = "requires-input"
 		step.Attributes["result"] = &api.AttributeSpec{
@@ -115,7 +109,7 @@ func TestRequiredInputsMissing(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, eng.RegisterStep(ctx, step))
+		assert.NoError(t, eng.RegisterStep(step))
 
 		plan := &api.ExecutionPlan{
 			Goals:    []api.StepID{step.ID},
@@ -124,7 +118,7 @@ func TestRequiredInputsMissing(t *testing.T) {
 		}
 
 		err := eng.StartFlow(
-			ctx, "wf-missing-required", plan, api.Args{}, api.Metadata{},
+			"wf-missing-required", plan, api.Args{}, api.Metadata{},
 		)
 		assert.ErrorIs(t, err, api.ErrRequiredInputs)
 	})

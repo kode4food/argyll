@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,7 +13,6 @@ import (
 func TestConstAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		step := helpers.NewScriptStep(
 			"step-const",
@@ -29,7 +27,7 @@ func TestConstAttribute(t *testing.T) {
 		}
 		step.Attributes["result"].Type = api.TypeString
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
@@ -44,15 +42,11 @@ func TestConstAttribute(t *testing.T) {
 
 		flowID := api.FlowID("test-const-attribute")
 		err := env.Engine.StartFlow(
-			ctx,
-			flowID,
-			plan,
-			api.Args{"const_value": "override"},
-			api.Metadata{},
+			flowID, plan, api.Args{"const_value": "override"}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, "fixed", flow.Attributes["result"].Value)
 	})

@@ -1,7 +1,6 @@
 package assert_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -19,7 +18,7 @@ type mockGetter struct {
 }
 
 func (g *mockGetter) GetAttribute(
-	_ context.Context, flowID api.FlowID, attr api.Name,
+	flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {
 	if g.err != nil {
 		return nil, false, g.err
@@ -289,8 +288,7 @@ func TestFlowHasState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			ctx := context.Background()
-			w.FlowHasState(ctx, tt.getter, tt.flowID, tt.keys...)
+			w.FlowHasState(tt.getter, tt.flowID, tt.keys...)
 		})
 	}
 }
@@ -347,10 +345,7 @@ func TestFlowStateEquals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			ctx := context.Background()
-			w.FlowStateEquals(
-				ctx, tt.getter, tt.flowID, tt.key, tt.expected,
-			)
+			w.FlowStateEquals(tt.getter, tt.flowID, tt.key, tt.expected)
 		})
 	}
 }

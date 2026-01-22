@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"fmt"
 	"log/slog"
 	"math"
@@ -73,8 +72,8 @@ func (e *Engine) CalculateNextRetry(
 // Recovery orchestration
 
 // RecoverFlows initiates recovery for all active flows during engine startup
-func (e *Engine) RecoverFlows(ctx context.Context) error {
-	engineState, err := e.GetEngineState(ctx)
+func (e *Engine) RecoverFlows() error {
+	engineState, err := e.GetEngineState()
 	if err != nil {
 		return fmt.Errorf("failed to get engine state: %w", err)
 	}
@@ -88,7 +87,7 @@ func (e *Engine) RecoverFlows(ctx context.Context) error {
 		slog.Int("count", len(engineState.Active)))
 
 	for flowID := range engineState.Active {
-		if err := e.RecoverFlow(ctx, flowID); err != nil {
+		if err := e.RecoverFlow(flowID); err != nil {
 			slog.Error("Failed to recover flow",
 				log.FlowID(flowID),
 				log.Error(err))
@@ -100,8 +99,8 @@ func (e *Engine) RecoverFlows(ctx context.Context) error {
 
 // RecoverFlow resumes execution of a specific flow by queuing any pending
 // work items for retry
-func (e *Engine) RecoverFlow(ctx context.Context, flowID api.FlowID) error {
-	flow, err := e.GetFlowState(ctx, flowID)
+func (e *Engine) RecoverFlow(flowID api.FlowID) error {
+	flow, err := e.GetFlowState(flowID)
 	if err != nil {
 		return fmt.Errorf("failed to get flow state: %w", err)
 	}
@@ -224,12 +223,11 @@ func (e *Engine) retryLoop() {
 }
 
 func (e *Engine) executeReadyRetries() {
-	ctx := context.Background()
 	now := time.Now()
 
 	items := e.retryQueue.PopReady(now)
 	for _, item := range items {
-		flow, err := e.GetFlowState(ctx, item.FlowID)
+		flow, err := e.GetFlowState(item.FlowID)
 		if err != nil {
 			slog.Error("Failed to get flow state for retry",
 				log.FlowID(item.FlowID),
@@ -253,13 +251,13 @@ func (e *Engine) executeReadyRetries() {
 		}
 
 		fs := FlowStep{FlowID: item.FlowID, StepID: item.StepID}
-		e.retryWork(ctx, fs, step, item.Token, workItem, flow.Metadata)
+		e.retryWork(fs, step, item.Token, workItem, flow.Metadata)
 	}
 }
 
 func (e *Engine) retryWork(
-	ctx context.Context, fs FlowStep, step *api.Step, token api.Token,
-	workItem *api.WorkState, meta api.Metadata,
+	fs FlowStep, step *api.Step, token api.Token, workItem *api.WorkState,
+	meta api.Metadata,
 ) {
 	execCtx := &ExecContext{
 		engine: e,
@@ -270,5 +268,5 @@ func (e *Engine) retryWork(
 		meta:   meta,
 	}
 
-	execCtx.executeWorkItem(ctx, token, workItem)
+	execCtx.executeWorkItem(token, workItem)
 }

@@ -19,7 +19,7 @@ var (
 )
 
 func (s *Server) listSteps(c *gin.Context) {
-	steps, err := s.engine.ListSteps(c.Request.Context())
+	steps, err := s.engine.ListSteps()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrListSteps, err),
@@ -52,7 +52,7 @@ func (s *Server) createStep(c *gin.Context) {
 		return
 	}
 
-	err := s.engine.RegisterStep(c.Request.Context(), &step)
+	err := s.engine.RegisterStep(&step)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.StepRegisteredResponse{
 			Message: "Step registered",
@@ -77,7 +77,7 @@ func (s *Server) createStep(c *gin.Context) {
 func (s *Server) getStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	engState, err := s.engine.GetEngineState(c.Request.Context())
+	engState, err := s.engine.GetEngineState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),
@@ -125,7 +125,7 @@ func (s *Server) updateStep(c *gin.Context) {
 		return
 	}
 
-	err := s.engine.UpdateStep(c.Request.Context(), &step)
+	err := s.engine.UpdateStep(&step)
 	if err == nil {
 		c.JSON(http.StatusOK, api.StepRegisteredResponse{
 			Message: "Step updated",
@@ -150,7 +150,7 @@ func (s *Server) updateStep(c *gin.Context) {
 func (s *Server) deleteStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	engState, err := s.engine.GetEngineState(c.Request.Context())
+	engState, err := s.engine.GetEngineState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),
@@ -167,7 +167,7 @@ func (s *Server) deleteStep(c *gin.Context) {
 		return
 	}
 
-	err = s.engine.UnregisterStep(c.Request.Context(), stepID)
+	err = s.engine.UnregisterStep(stepID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrUnregisterStep, err),

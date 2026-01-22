@@ -35,7 +35,7 @@ var (
 
 // NewAleEnv creates a new Ale script execution environment with the standard
 // library bootstrapped
-func NewAleEnv(engine *Engine) *AleEnv {
+func NewAleEnv() *AleEnv {
 	e := env.NewEnvironment()
 	bootstrap.Into(e)
 	return &AleEnv{

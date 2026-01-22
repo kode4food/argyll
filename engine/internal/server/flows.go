@@ -22,7 +22,7 @@ var (
 var invalidFlowIDChars = regexp.MustCompile(`[^a-zA-Z0-9_.\-+ ]`)
 
 func (s *Server) listFlows(c *gin.Context) {
-	flows, err := s.engine.ListFlows(c.Request.Context())
+	flows, err := s.engine.ListFlows()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrListFlows, err),
@@ -70,9 +70,7 @@ func (s *Server) startFlow(c *gin.Context) {
 	}
 
 	meta := api.Metadata{}
-	err := s.engine.StartFlow(
-		c.Request.Context(), flowID, plan, req.Init, meta,
-	)
+	err := s.engine.StartFlow(flowID, plan, req.Init, meta)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FlowStartedResponse{
 			FlowID: flowID,
@@ -96,7 +94,7 @@ func (s *Server) startFlow(c *gin.Context) {
 func (s *Server) getFlow(c *gin.Context) {
 	flowID := api.FlowID(c.Param("flowID"))
 
-	flow, err := s.engine.GetFlowState(c.Request.Context(), flowID)
+	flow, err := s.engine.GetFlowState(flowID)
 	if err == nil {
 		c.JSON(http.StatusOK, flow)
 		return
@@ -118,7 +116,7 @@ func (s *Server) getFlow(c *gin.Context) {
 func (s *Server) createPlan(
 	c *gin.Context, goalStepIDs []api.StepID, initialState api.Args,
 ) (*api.ExecutionPlan, bool) {
-	engState, err := s.engine.GetEngineState(c.Request.Context())
+	engState, err := s.engine.GetEngineState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),

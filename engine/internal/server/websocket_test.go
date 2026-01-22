@@ -1,7 +1,6 @@
 package server_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -119,9 +118,7 @@ func TestSocket(t *testing.T) {
 }
 
 func TestClientReceivesEvent(t *testing.T) {
-	getState := func(
-		ctx context.Context, id timebox.AggregateID,
-	) (any, int64, error) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
@@ -213,9 +210,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 		Status: api.FlowActive,
 	}
 
-	getState := func(
-		ctx context.Context, id timebox.AggregateID,
-	) (any, int64, error) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
 		assert.Equal(t, timebox.NewAggregateID("flow", "wf-123"), id)
 		return flowState, 5, nil
 	}
@@ -248,9 +243,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 }
 
 func TestStaleEventsFiltered(t *testing.T) {
-	getState := func(
-		ctx context.Context, id timebox.AggregateID,
-	) (any, int64, error) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 10, nil
 	}
 
@@ -301,9 +294,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 }
 
 func TestSubscribeStateWithError(t *testing.T) {
-	getState := func(
-		ctx context.Context, id timebox.AggregateID,
-	) (any, int64, error) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
 		return nil, 0, assert.AnError
 	}
 
@@ -326,9 +317,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 
 func TestSubscribeNoID(t *testing.T) {
 	getStateCalled := false
-	getState := func(
-		ctx context.Context, id timebox.AggregateID,
-	) (any, int64, error) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
 		getStateCalled = true
 		return nil, 0, nil
 	}
@@ -351,9 +340,7 @@ func TestSubscribeNoID(t *testing.T) {
 }
 
 func TestClientPongHandler(t *testing.T) {
-	getState := func(
-		ctx context.Context, id timebox.AggregateID,
-	) (any, int64, error) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
@@ -420,10 +407,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 func TestSocketCallbackFlow(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		err := env.Engine.StartFlow(
-			context.Background(),
-			"wf-123",
-			&api.ExecutionPlan{Steps: api.Steps{}},
-			api.Args{},
+			"wf-123", &api.ExecutionPlan{Steps: api.Steps{}}, api.Args{},
 			api.Metadata{},
 		)
 		assert.NoError(t, err)

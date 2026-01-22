@@ -81,10 +81,6 @@ threshold = 4
 threshold = 35
 enabled = true
 
-[smells.duplication]
-enabled = true
-threshold = 20
-
 [[source]]
 name = "default"
 default = true

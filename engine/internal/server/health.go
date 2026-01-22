@@ -116,7 +116,7 @@ func (h *HealthChecker) healthCheckLoop() {
 }
 
 func (h *HealthChecker) checkAllSteps() {
-	engState, err := h.engine.GetEngineState(h.ctx)
+	engState, err := h.engine.GetEngineState()
 	if err != nil {
 		slog.Error("Failed to get engine state",
 			log.Error(err))
@@ -150,7 +150,7 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 	h.mu.RUnlock()
 
 	if hasRecent && time.Since(lastSuccess) < successWindow {
-		_ = h.engine.UpdateStepHealth(h.ctx, step.ID, api.HealthHealthy, "")
+		_ = h.engine.UpdateStepHealth(step.ID, api.HealthHealthy, "")
 		return
 	}
 
@@ -164,7 +164,7 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 		slog.Error("Health check failed",
 			log.StepID(step.ID),
 			log.Error(err))
-		_ = h.engine.UpdateStepHealth(h.ctx, step.ID, status, errorMsg)
+		_ = h.engine.UpdateStepHealth(step.ID, status, errorMsg)
 		return
 	}
 
@@ -177,7 +177,7 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 			log.Status(resp.Status))
 	}
 
-	_ = h.engine.UpdateStepHealth(h.ctx, step.ID, status, errorMsg)
+	_ = h.engine.UpdateStepHealth(step.ID, status, errorMsg)
 }
 
 func (s *Server) handleHealth(c *gin.Context) {
@@ -190,7 +190,7 @@ func (s *Server) handleHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealth(c *gin.Context) {
-	engState, err := s.engine.GetEngineState(c.Request.Context())
+	engState, err := s.engine.GetEngineState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),
@@ -208,7 +208,7 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	engState, err := s.engine.GetEngineState(c.Request.Context())
+	engState, err := s.engine.GetEngineState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),

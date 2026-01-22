@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"errors"
 	"strings"
 	"testing"
@@ -18,8 +17,6 @@ const workExecTimeout = 5 * time.Second
 func TestOptionalDefaults(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-
-		ctx := context.Background()
 
 		step := helpers.NewSimpleStep("default-step")
 		step.Attributes = api.AttributeSpecs{
@@ -38,7 +35,7 @@ func TestOptionalDefaults(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
 
 		plan := &api.ExecutionPlan{
@@ -46,12 +43,12 @@ func TestOptionalDefaults(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(ctx, "wf-defaults", plan, api.Args{
+		err := env.Engine.StartFlow("wf-defaults", plan, api.Args{
 			"input": "value",
 		}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-defaults", workExecTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-defaults", workExecTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -64,12 +61,10 @@ func TestIncompleteWorkFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
-
 		step := helpers.NewSimpleStep("retry-stop")
 		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
 
 		plan := &api.ExecutionPlan{
@@ -78,13 +73,11 @@ func TestIncompleteWorkFails(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-not-complete", plan, api.Args{}, api.Metadata{},
+			"wf-not-complete", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(
-			t, ctx, "wf-not-complete", workExecTimeout,
-		)
+		flow := env.WaitForFlowStatus(t, "wf-not-complete", workExecTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -101,12 +94,10 @@ func TestWorkFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
-
 		step := helpers.NewSimpleStep("failure-step")
 		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetError(step.ID, errors.New("boom"))
 
 		plan := &api.ExecutionPlan{
@@ -114,12 +105,10 @@ func TestWorkFailure(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "wf-failure", plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-failure", plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-failure", workExecTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-failure", workExecTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -136,7 +125,6 @@ func TestHTTPMetadata(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
 		flowMetadata := api.Metadata{
 			"correlation_id": "cid-123",
 			api.MetaFlowID:   "wrong-flow",
@@ -144,7 +132,7 @@ func TestHTTPMetadata(t *testing.T) {
 		}
 
 		step := helpers.NewSimpleStep("meta-step")
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
 		plan := &api.ExecutionPlan{
@@ -152,12 +140,10 @@ func TestHTTPMetadata(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "wf-meta", plan, api.Args{}, flowMetadata,
-		)
+		err := env.Engine.StartFlow("wf-meta", plan, api.Args{}, flowMetadata)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-meta", workExecTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-meta", workExecTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		md := env.MockClient.LastMetadata(step.ID)
@@ -176,7 +162,6 @@ func TestAsyncMetadata(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
 		flowMetadata := api.Metadata{
 			"correlation_id": "cid-async-123",
 		}
@@ -185,7 +170,7 @@ func TestAsyncMetadata(t *testing.T) {
 		step.Type = api.StepTypeAsync
 		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
 		plan := &api.ExecutionPlan{
@@ -193,9 +178,7 @@ func TestAsyncMetadata(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(
-			ctx, "wf-async-meta", plan, api.Args{}, flowMetadata,
-		)
+		err := env.Engine.StartFlow("wf-async-meta", plan, api.Args{}, flowMetadata)
 		assert.NoError(t, err)
 
 		assert.Eventually(t, func() bool {
@@ -223,8 +206,6 @@ func TestScriptWorkExecutes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
-
 		step := &api.Step{
 			ID:   "script-work",
 			Name: "Script Work",
@@ -239,19 +220,19 @@ func TestScriptWorkExecutes(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(ctx, "wf-script", plan, api.Args{
+		err := env.Engine.StartFlow("wf-script", plan, api.Args{
 			"x": float64(2),
 		}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-script", workExecTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-script", workExecTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -264,13 +245,11 @@ func TestPredicateFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
-
 		step := helpers.NewStepWithPredicate(
 			"pred-fail", api.ScriptLangLua, "error('boom')",
 		)
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
@@ -278,12 +257,12 @@ func TestPredicateFailure(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow(
-			ctx, "wf-pred-fail", plan, api.Args{}, api.Metadata{},
+			"wf-pred-fail", plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
 		assert.Eventually(t, func() bool {
-			flow, flowErr := env.Engine.GetFlowState(ctx, "wf-pred-fail")
+			flow, flowErr := env.Engine.GetFlowState("wf-pred-fail")
 			if flowErr != nil || flow == nil {
 				return false
 			}
@@ -301,8 +280,6 @@ func TestParallelWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
-		ctx := context.Background()
-
 		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		step.ID = "parallel-items"
 		step.WorkConfig = &api.WorkConfig{Parallelism: 2}
@@ -313,7 +290,7 @@ func TestParallelWorkItems(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, step))
+		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
 
 		plan := &api.ExecutionPlan{
@@ -321,12 +298,12 @@ func TestParallelWorkItems(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow(ctx, "wf-parallel", plan, api.Args{
+		err := env.Engine.StartFlow("wf-parallel", plan, api.Args{
 			"items": []any{"a", "b", "c"},
 		}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, ctx, "wf-parallel", workExecTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-parallel", workExecTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, api.StepCompleted, flow.Executions[step.ID].Status)
 	})

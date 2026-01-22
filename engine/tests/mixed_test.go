@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -15,7 +14,6 @@ import (
 func TestMixedStepTypes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A (Sync HTTP): No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -40,9 +38,9 @@ func TestMixedStepTypes(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
 
 		// Set mock responses (only for HTTP steps - script executes inline)
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "data"})
@@ -69,13 +67,11 @@ func TestMixedStepTypes(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-mixed-types")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed

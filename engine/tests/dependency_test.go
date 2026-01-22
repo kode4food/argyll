@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -18,7 +17,6 @@ const workflowTimeout = 5 * time.Second
 func TestDependencyChain(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -39,9 +37,9 @@ func TestDependencyChain(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
 
 		// Set mock responses
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
@@ -69,13 +67,11 @@ func TestDependencyChain(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-dependency-chain")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed
@@ -102,7 +98,6 @@ func TestDependencyChain(t *testing.T) {
 func TestDiamondDependencies(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		ctx := context.Background()
 
 		// Step A: Produces both "valueB" and "valueC"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueB", "valueC")
@@ -133,10 +128,10 @@ func TestDiamondDependencies(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepA))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepB))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepC))
-		assert.NoError(t, env.Engine.RegisterStep(ctx, stepD))
+		assert.NoError(t, env.Engine.RegisterStep(stepA))
+		assert.NoError(t, env.Engine.RegisterStep(stepB))
+		assert.NoError(t, env.Engine.RegisterStep(stepC))
+		assert.NoError(t, env.Engine.RegisterStep(stepD))
 
 		// Set mock responses
 		env.MockClient.SetResponse("step-a", api.Args{
@@ -177,13 +172,11 @@ func TestDiamondDependencies(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-diamond")
-		err := env.Engine.StartFlow(
-			ctx, flowID, plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, ctx, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed

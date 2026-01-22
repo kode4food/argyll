@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"maps"
@@ -18,8 +17,7 @@ var (
 var ErrFlowOutputMissing = errors.New("flow output missing")
 
 func (e *Engine) StartChildFlow(
-	ctx context.Context, parent FlowStep, token api.Token, step *api.Step,
-	initState api.Args,
+	parent FlowStep, token api.Token, step *api.Step, initState api.Args,
 ) (api.FlowID, error) {
 	if step.Flow == nil || len(step.Flow.Goals) == 0 {
 		return "", api.ErrFlowGoalsRequired
@@ -27,7 +25,7 @@ func (e *Engine) StartChildFlow(
 
 	childID := childFlowID(parent, token)
 
-	engState, err := e.GetEngineState(ctx)
+	engState, err := e.GetEngineState()
 	if err != nil {
 		return "", err
 	}
@@ -37,7 +35,7 @@ func (e *Engine) StartChildFlow(
 		return "", err
 	}
 
-	parentFlow, err := e.GetFlowState(ctx, parent.FlowID)
+	parentFlow, err := e.GetFlowState(parent.FlowID)
 	if err != nil {
 		return "", err
 	}
@@ -50,7 +48,7 @@ func (e *Engine) StartChildFlow(
 	meta[api.MetaParentStepID] = parent.StepID
 	meta[api.MetaParentWorkItemToken] = token
 
-	if err := e.StartFlow(ctx, childID, plan, initState, meta); err != nil {
+	if err := e.StartFlow(childID, plan, initState, meta); err != nil {
 		if errors.Is(err, ErrFlowExists) {
 			return childID, nil
 		}
@@ -80,7 +78,7 @@ func (a *flowActor) completeParentWork(flow *api.FlowState) {
 		return
 	}
 
-	parentFlow, err := a.GetFlowState(context.Background(), parentFlowID)
+	parentFlow, err := a.GetFlowState(parentFlowID)
 	if err != nil {
 		return
 	}
@@ -110,16 +108,16 @@ func (a *flowActor) completeParentWork(flow *api.FlowState) {
 		childAttrs := flow.GetAttributes()
 		outputs, err := mapFlowOutputs(step, childAttrs)
 		if err != nil {
-			_ = a.FailWork(context.Background(), fs, parentToken, err.Error())
+			_ = a.FailWork(fs, parentToken, err.Error())
 			return
 		}
-		_ = a.CompleteWork(context.Background(), fs, parentToken, outputs)
+		_ = a.CompleteWork(fs, parentToken, outputs)
 	case api.FlowFailed:
 		errMsg := flow.Error
 		if errMsg == "" {
 			errMsg = "child flow failed"
 		}
-		_ = a.FailWork(context.Background(), fs, parentToken, errMsg)
+		_ = a.FailWork(fs, parentToken, errMsg)
 	}
 }
 

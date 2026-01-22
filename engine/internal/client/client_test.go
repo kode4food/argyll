@@ -1,7 +1,6 @@
 package client_test
 
 import (
-	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -51,7 +50,7 @@ func TestSuccess(t *testing.T) {
 	args := api.Args{"input": "test-input"}
 	meta := api.Metadata{api.MetaFlowID: "test-flow"}
 
-	out, err := cl.Invoke(context.Background(), step, args, meta)
+	out, err := cl.Invoke(step, args, meta)
 	assert.NoError(t, err)
 	assert.Equal(t, "test-output", out["result"])
 }
@@ -63,9 +62,7 @@ func TestNoHTTPConfig(t *testing.T) {
 		HTTP: nil,
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 }
 
@@ -84,9 +81,7 @@ func TestHTTPError(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
 	assert.ErrorIs(t, err, client.ErrHTTPError)
@@ -111,9 +106,7 @@ func TestSuccessFalse(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
 }
@@ -137,9 +130,7 @@ func TestSuccessFalseWithError(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
 	assert.Contains(t, err.Error(), "custom error message")
@@ -160,9 +151,7 @@ func TestInvalidJSON(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 }
 
@@ -185,35 +174,7 @@ func TestTimeout(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
-	assert.Error(t, err)
-}
-
-func TestContextCanceled(t *testing.T) {
-	serverDone := make(chan struct{})
-	server := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			select {
-			case <-r.Context().Done():
-			case <-serverDone:
-			}
-		},
-	))
-	defer server.Close()
-	defer close(serverDone)
-
-	cl := client.NewHTTPClient(5 * time.Second)
-	step := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
-	}
-
-	ctx, cancel := context.WithCancel(context.Background())
-	cancel()
-
-	_, err := cl.Invoke(ctx, step, api.Args{}, api.Metadata{})
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 }
 
@@ -236,9 +197,7 @@ func TestEmptyOutputs(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	outputs, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	outputs, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.NoError(t, err)
 	assert.Nil(t, outputs)
 }
@@ -266,9 +225,7 @@ func TestMultipleOutputs(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	outputs, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	outputs, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.NoError(t, err)
 	assert.Len(t, outputs, 3)
 	assert.Equal(t, "value1", outputs["result1"])
@@ -289,9 +246,7 @@ func TestHTTP4xxError(t *testing.T) {
 		HTTP: &api.HTTPConfig{Endpoint: server.URL},
 	}
 
-	_, err := cl.Invoke(
-		context.Background(), step, api.Args{}, api.Metadata{},
-	)
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, client.ErrHTTPError)
 	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
