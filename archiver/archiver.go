@@ -163,7 +163,7 @@ func (a *Archiver) checkMemoryPressure(ctx context.Context) float64 {
 	return usedPercent / 100
 }
 
-func (a *Archiver) reserveFlows(opts reserveOptions, ) ([]api.FlowID, error) {
+func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	now := time.Now()
 	var flowIDs []api.FlowID
 
@@ -193,15 +193,15 @@ func (a *Archiver) reserveFlows(opts reserveOptions, ) ([]api.FlowID, error) {
 	return flowIDs, err
 }
 
-func (a *Archiver) raiseEngineEvent(eventType api.EventType, data any, ) error {
-	cmd := func(
-		st *api.EngineState,
-		ag *timebox.Aggregator[*api.EngineState],
-	) error {
-		return timebox.Raise(ag, timebox.EventType(eventType), data)
-	}
+func (a *Archiver) raiseEngineEvent(eventType api.EventType, data any) error {
 	bg := context.Background()
-	_, err := a.engineExec.Exec(bg, events.EngineID, cmd)
+	_, err := a.engineExec.Exec(bg, events.EngineID,
+		func(
+			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
+		) error {
+			return timebox.Raise(ag, timebox.EventType(eventType), data)
+		},
+	)
 	return err
 }
 

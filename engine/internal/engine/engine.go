@@ -307,10 +307,11 @@ func (e *Engine) handleWorkSucceeded(
 }
 
 func (e *Engine) raiseEngineEvent(eventType api.EventType, data any) error {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
-		return events.Raise(ag, eventType, data)
-	}
-	_, err := e.execEngine(cmd)
+	_, err := e.execEngine(
+		func(st *api.EngineState, ag *Aggregator) error {
+			return events.Raise(ag, eventType, data)
+		},
+	)
 	return err
 }
 

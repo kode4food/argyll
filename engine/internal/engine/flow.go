@@ -1,7 +1,6 @@
 package engine
 
 import (
-	"context"
 	"slices"
 
 	"github.com/kode4food/timebox"
@@ -122,8 +121,7 @@ func (e *Engine) GetAttribute(
 
 // ListFlows returns summary information for all flows in the system
 func (e *Engine) ListFlows() ([]*api.FlowDigest, error) {
-	bg := context.Background()
-	ids, err := e.flowExec.GetStore().ListAggregates(bg, flowKey("*"))
+	ids, err := e.flowExec.GetStore().ListAggregates(e.ctx, flowKey("*"))
 	if err != nil {
 		return nil, err
 	}
@@ -267,17 +265,14 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 	return false
 }
 
-func flowKey(flowID api.FlowID) timebox.AggregateID {
-	return timebox.NewAggregateID("flow", timebox.ID(flowID))
-}
-
 func (e *Engine) raiseFlowEvent(
 	flowID api.FlowID, eventType api.EventType, data any,
 ) error {
-	cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-		return events.Raise(ag, eventType, data)
-	}
-	_, err := e.execFlow(flowKey(flowID), cmd)
+	_, err := e.execFlow(flowKey(flowID),
+		func(st *api.FlowState, ag *FlowAggregator) error {
+			return events.Raise(ag, eventType, data)
+		},
+	)
 	return err
 }
 
@@ -285,4 +280,8 @@ func (e *Engine) execFlow(
 	flowID timebox.AggregateID, cmd timebox.Command[*api.FlowState],
 ) (*api.FlowState, error) {
 	return e.flowExec.Exec(e.ctx, flowID, cmd)
+}
+
+func flowKey(flowID api.FlowID) timebox.AggregateID {
+	return timebox.NewAggregateID("flow", timebox.ID(flowID))
 }
