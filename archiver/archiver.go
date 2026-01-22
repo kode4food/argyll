@@ -133,7 +133,9 @@ func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 				slog.String("error", err.Error()))
 			continue
 		}
-		if err := a.raiseEngineEvent(api.EventTypeFlowArchived, api.FlowArchivedEvent{FlowID: flowID}); err != nil {
+		if err := a.raiseEngineEvent(
+			api.EventTypeFlowArchived, api.FlowArchivedEvent{FlowID: flowID},
+		); err != nil {
 			slog.Warn("Failed to emit flow archived event",
 				slog.String("flow_id", string(flowID)),
 				slog.String("error", err.Error()))
