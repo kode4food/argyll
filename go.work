@@ -12,3 +12,5 @@ use (
 	./examples/user-resolver
 	./mcp
 )
+
+replace github.com/kode4food/argyll/engine v0.0.0 => ./engine

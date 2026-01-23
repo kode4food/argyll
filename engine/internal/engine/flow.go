@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"slices"
-
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -67,40 +65,58 @@ func (e *Engine) StartWork(
 func (e *Engine) CompleteWork(
 	fs FlowStep, token api.Token, outputs api.Args,
 ) error {
-	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkSucceeded,
-		api.WorkSucceededEvent{
-			FlowID:  fs.FlowID,
-			StepID:  fs.StepID,
-			Token:   token,
-			Outputs: outputs,
-		},
-	)
+	a := &flowActor{Engine: e, flowID: fs.FlowID}
+	return a.execTransaction(func(ag *FlowAggregator) error {
+		if err := events.Raise(ag, api.EventTypeWorkSucceeded,
+			api.WorkSucceededEvent{
+				FlowID:  fs.FlowID,
+				StepID:  fs.StepID,
+				Token:   token,
+				Outputs: outputs,
+			},
+		); err != nil {
+			return err
+		}
+		return a.handleWorkSucceeded(ag, fs.StepID)
+	})
 }
 
 // FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
-	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkFailed,
-		api.WorkFailedEvent{
-			FlowID: fs.FlowID,
-			StepID: fs.StepID,
-			Token:  token,
-			Error:  errMsg,
-		},
-	)
+	a := &flowActor{Engine: e, flowID: fs.FlowID}
+	return a.execTransaction(func(ag *FlowAggregator) error {
+		if err := events.Raise(ag, api.EventTypeWorkFailed,
+			api.WorkFailedEvent{
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
+				Token:  token,
+				Error:  errMsg,
+			},
+		); err != nil {
+			return err
+		}
+		return a.handleWorkFailed(ag, fs.StepID)
+	})
 }
 
 // NotCompleteWork marks a work item as not completed with specified error
 func (e *Engine) NotCompleteWork(
 	fs FlowStep, token api.Token, errMsg string,
 ) error {
-	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkNotCompleted,
-		api.WorkNotCompletedEvent{
-			FlowID: fs.FlowID,
-			StepID: fs.StepID,
-			Token:  token,
-			Error:  errMsg,
-		},
-	)
+	a := &flowActor{Engine: e, flowID: fs.FlowID}
+	return a.execTransaction(func(ag *FlowAggregator) error {
+		if err := events.Raise(ag, api.EventTypeWorkNotCompleted,
+			api.WorkNotCompletedEvent{
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
+				Token:  token,
+				Error:  errMsg,
+			},
+		); err != nil {
+			return err
+		}
+		return a.handleWorkNotCompleted(ag, fs.StepID, token)
+	})
 }
 
 // GetAttribute retrieves a specific attribute value from the flow state,
@@ -161,108 +177,6 @@ func (e *Engine) buildFlowDigest(id timebox.AggregateID) *api.FlowDigest {
 		CompletedAt: flow.CompletedAt,
 		Error:       flow.Error,
 	}
-}
-
-func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
-	step, ok := flow.Plan.Steps[stepID]
-	if !ok {
-		return false
-	}
-
-	if isGoalStep(stepID, flow.Plan.Goals) {
-		return true
-	}
-
-	return hasOutputNeededByPendingConsumers(step, flow)
-}
-
-func isGoalStep(stepID api.StepID, goals []api.StepID) bool {
-	return slices.Contains(goals, stepID)
-}
-
-func hasOutputNeededByPendingConsumers(
-	step *api.Step, flow *api.FlowState,
-) bool {
-	for name, attr := range step.Attributes {
-		if outputNeededByPendingConsumer(name, attr, flow) {
-			return true
-		}
-	}
-	return false
-}
-
-func outputNeededByPendingConsumer(
-	name api.Name, attr *api.AttributeSpec, flow *api.FlowState,
-) bool {
-	if !attr.IsOutput() {
-		return false
-	}
-
-	if _, alreadySatisfied := flow.Attributes[name]; alreadySatisfied {
-		return false
-	}
-
-	attrDeps, ok := flow.Plan.Attributes[name]
-	if !ok || len(attrDeps.Consumers) == 0 {
-		return false
-	}
-
-	return hasPendingConsumer(attrDeps.Consumers, flow.Executions)
-}
-
-func hasPendingConsumer(
-	consumers []api.StepID, executions api.Executions,
-) bool {
-	for _, consumerID := range consumers {
-		consumerExec, ok := executions[consumerID]
-		if !ok {
-			continue
-		}
-		if consumerExec.Status == api.StepPending {
-			return true
-		}
-	}
-	return false
-}
-
-func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
-	for stepID := range flow.Plan.Steps {
-		if !e.isStepComplete(stepID, flow) {
-			return false
-		}
-	}
-	return true
-}
-
-// IsFlowFailed determines if a flow has failed by checking whether any of its
-// goal steps cannot be completed
-func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
-	for _, goalID := range flow.Plan.Goals {
-		if !e.canStepComplete(goalID, flow) {
-			return true
-		}
-	}
-	return false
-}
-
-// HasInputProvider checks if a required attribute has at least one step that
-// can provide it in the flow execution plan
-func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
-	deps := flow.Plan.Attributes[name]
-	if deps == nil {
-		return false
-	}
-
-	if len(deps.Providers) == 0 {
-		return true
-	}
-
-	for _, providerID := range deps.Providers {
-		if e.canStepComplete(providerID, flow) {
-			return true
-		}
-	}
-	return false
 }
 
 func (e *Engine) raiseFlowEvent(

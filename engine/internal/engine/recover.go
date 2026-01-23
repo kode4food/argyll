@@ -73,20 +73,34 @@ func (e *Engine) CalculateNextRetry(
 
 // RecoverFlows initiates recovery for all active flows during engine startup
 func (e *Engine) RecoverFlows() error {
-	engineState, err := e.GetEngineState()
+	ids, err := e.flowExec.GetStore().ListAggregates(e.ctx, flowKey("*"))
 	if err != nil {
-		return fmt.Errorf("failed to get engine state: %w", err)
+		return fmt.Errorf("failed to list flows: %w", err)
 	}
 
-	if len(engineState.Active) == 0 {
+	if len(ids) == 0 {
 		slog.Info("No flows to recover")
 		return nil
 	}
 
 	slog.Info("Recovering flows",
-		slog.Int("count", len(engineState.Active)))
+		slog.Int("count", len(ids)))
 
-	for flowID := range engineState.Active {
+	for _, id := range ids {
+		if len(id) < 2 || id[0] != "flow" {
+			continue
+		}
+		flowID := api.FlowID(id[1])
+		flow, err := e.GetFlowState(flowID)
+		if err != nil {
+			slog.Error("Failed to load flow for recovery",
+				log.FlowID(flowID),
+				log.Error(err))
+			continue
+		}
+		if flow.Status != api.FlowActive {
+			continue
+		}
 		if err := e.RecoverFlow(flowID); err != nil {
 			slog.Error("Failed to recover flow",
 				log.FlowID(flowID),

@@ -35,6 +35,35 @@ func TestStartDuplicate(t *testing.T) {
 	})
 }
 
+func TestStartFlowSchedulesInitialWork(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		step := helpers.NewSimpleStep("step-start")
+		step.Type = api.StepTypeAsync
+		step.HTTP.Timeout = 30 * api.Second
+
+		err := env.Engine.RegisterStep(step)
+		testify.NoError(t, err)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		err = env.Engine.StartFlow("wf-start", plan, api.Args{}, api.Metadata{})
+		testify.NoError(t, err)
+
+		flow, err := env.Engine.GetFlowState("wf-start")
+		testify.NoError(t, err)
+
+		exec := flow.Executions[step.ID]
+		testify.Equal(t, api.StepActive, exec.Status)
+		testify.Len(t, exec.WorkItems, 1)
+		for _, item := range exec.WorkItems {
+			testify.Equal(t, api.WorkActive, item.Status)
+		}
+	})
+}
+
 func TestStartMissingInput(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("step-needs-input")

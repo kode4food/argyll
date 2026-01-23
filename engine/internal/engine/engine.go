@@ -155,14 +155,33 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	return e.raiseFlowEvent(flowID, api.EventTypeFlowStarted,
-		api.FlowStartedEvent{
-			FlowID:   flowID,
-			Plan:     plan,
-			Init:     initState,
-			Metadata: meta,
-		},
-	)
+	a := &flowActor{Engine: e, flowID: flowID}
+	return a.execTransaction(func(ag *FlowAggregator) error {
+		if err := events.Raise(ag, api.EventTypeFlowStarted,
+			api.FlowStartedEvent{
+				FlowID:   flowID,
+				Plan:     plan,
+				Init:     initState,
+				Metadata: meta,
+			},
+		); err != nil {
+			return err
+		}
+		if flowTransitions.IsTerminal(ag.Value().Status) {
+			return nil
+		}
+
+		for _, stepID := range a.findInitialSteps(ag.Value()) {
+			err := a.prepareStep(stepID, ag)
+			if err != nil {
+				slog.Warn("Failed to prepare step",
+					log.StepID(stepID),
+					log.Error(err))
+				continue
+			}
+		}
+		return nil
+	})
 }
 
 // UnregisterStep removes a step from the engine registry

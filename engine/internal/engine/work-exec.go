@@ -3,13 +3,11 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"log/slog"
 	"maps"
 
 	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type (
@@ -33,57 +31,28 @@ var (
 )
 
 func (e *Engine) evaluateStepPredicate(
-	fs FlowStep, step *api.Step, inputs api.Args,
-) bool {
+	step *api.Step, inputs api.Args,
+) (bool, error) {
 	if step.Predicate == nil {
-		return true
+		return true, nil
 	}
 
-	comp, err := e.GetCompiledPredicate(fs)
+	comp, err := e.scripts.Compile(step, step.Predicate)
 	if err != nil {
-		e.failPredicateEvaluation(fs,
-			"Failed to get compiled predicate",
-			"predicate compilation failed", err)
-		return false
-	}
-
-	if comp == nil {
-		return true
+		return false, fmt.Errorf("predicate compilation failed: %w", err)
 	}
 
 	env, err := e.scripts.Get(step.Predicate.Language)
 	if err != nil {
-		e.failPredicateEvaluation(fs,
-			"Failed to get script environment for predicate",
-			"failed to get script environment", err)
-		return false
+		return false, fmt.Errorf("failed to get script environment: %w", err)
 	}
 
 	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
 	if err != nil {
-		e.failPredicateEvaluation(fs,
-			"Failed to evaluate predicate",
-			"predicate evaluation failed", err)
-		return false
+		return false, fmt.Errorf("predicate evaluation failed: %w", err)
 	}
 
-	return shouldExecute
-}
-
-func (e *Engine) failPredicateEvaluation(
-	fs FlowStep, logMsg, failMsg string, err error,
-) {
-	slog.Error(logMsg,
-		log.StepID(fs.StepID),
-		log.Error(err))
-
-	if failErr := e.FailStepExecution(
-		fs, fmt.Sprintf("%s: %s", failMsg, err.Error()),
-	); failErr != nil {
-		slog.Error("Failed to record predicate failure",
-			log.StepID(fs.StepID),
-			log.Error(failErr))
-	}
+	return shouldExecute, nil
 }
 
 func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
@@ -120,17 +89,7 @@ func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 	sem := make(chan struct{}, max(1, parallelism))
 
 	for token, workItem := range items {
-		if workItem.Status != api.WorkPending {
-			continue
-		}
-
-		fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-		if !e.engine.evaluateStepPredicate(fs, e.step, workItem.Inputs) {
-			continue
-		}
-
-		err := e.engine.StartWork(fs, token, workItem.Inputs)
-		if err != nil {
+		if workItem.Status != api.WorkActive {
 			continue
 		}
 
@@ -147,12 +106,20 @@ func (e *ExecContext) executeWorkItem(
 	token api.Token, workItem *api.WorkState,
 ) {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	if !e.engine.evaluateStepPredicate(fs, e.step, workItem.Inputs) {
-		return
-	}
-
-	if err := e.engine.StartWork(fs, token, workItem.Inputs); err != nil {
-		return
+	if workItem.Status != api.WorkActive {
+		shouldExecute, err := e.engine.evaluateStepPredicate(
+			e.step, workItem.Inputs,
+		)
+		if err != nil {
+			_ = e.engine.FailStepExecution(fs, err.Error())
+			return
+		}
+		if !shouldExecute {
+			return
+		}
+		if err := e.engine.StartWork(fs, token, workItem.Inputs); err != nil {
+			return
+		}
 	}
 
 	e.performWorkItem(token, workItem)
@@ -219,7 +186,7 @@ func (e *ExecContext) performScriptWork(inputs api.Args) (api.Args, error) {
 func (e *ExecContext) performHTTPWork(
 	inputs api.Args, token api.Token,
 ) (api.Args, error) {
-	metadata := e.buildHTTPMetadataWithToken(token)
+	metadata := e.httpMetaForToken(token)
 	return e.engine.stepClient.Invoke(e.step, inputs, metadata)
 }
 
@@ -235,7 +202,7 @@ func (e *ExecContext) performFlowWork(
 	return nil, nil
 }
 
-func (e *ExecContext) buildHTTPMetadataWithToken(token api.Token) api.Metadata {
+func (e *ExecContext) httpMetaForToken(token api.Token) api.Metadata {
 	metadata := maps.Clone(e.meta)
 	if metadata == nil {
 		metadata = api.Metadata{}
