@@ -86,6 +86,10 @@ type FlowState struct {
 | `pfx`, `sfx` | Prefix, suffix |
 | `cfg` | Config struct |
 | `opts` | Options struct |
+
+### Function Signature Wrapping
+
+When a function signature is too long for one line, keep as many parameters as fit on the first line and wrap the remainder on the next line(s). Do not put one parameter per line unless the line would still exceed the limit.
 | `ev` | Event |
 
 ### Function Names

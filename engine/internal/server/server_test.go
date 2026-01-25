@@ -1033,13 +1033,10 @@ func TestListFlowsMultiple(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			state, err := testEnv.Engine.GetEngineState()
-			if err != nil {
-				return false
-			}
-			return len(state.Active)+len(state.Deactivated) == 2
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForFlowActivated(
+			t, testEnv.EventHub, []api.FlowID{"flow-1", "flow-2"},
+			5*time.Second,
+		)
 
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
 		w := httptest.NewRecorder()

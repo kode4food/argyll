@@ -147,6 +147,88 @@ func (e *TestEngineEnv) WaitForStepStatus(
 	return e.SubscribeToStepStatus(flowID, stepID).Wait(t, timeout)
 }
 
+func WaitForEvents(
+	t *testing.T, hub timebox.EventHub, filter events.EventFilter, count int,
+	timeout time.Duration,
+) {
+	t.Helper()
+
+	consumer := hub.NewConsumer()
+	defer consumer.Close()
+
+	deadline := time.After(timeout)
+	for seen := 0; seen < count; {
+		select {
+		case ev, ok := <-consumer.Receive():
+			if !ok {
+				t.Fatalf(
+					"event consumer closed before receiving %d events",
+					count,
+				)
+			}
+			if ev == nil || !filter(ev) {
+				continue
+			}
+			seen++
+		case <-deadline:
+			t.Fatalf("timeout waiting for %d events", count)
+		}
+	}
+}
+
+func WaitForEventData[T any](
+	t *testing.T,
+	hub timebox.EventHub,
+	filter events.EventFilter,
+	predicate func(T) bool,
+	count int,
+	timeout time.Duration,
+) {
+	t.Helper()
+
+	if predicate == nil {
+		predicate = func(T) bool { return true }
+	}
+
+	WaitForEvents(t, hub, func(ev *timebox.Event) bool {
+		if !filter(ev) {
+			return false
+		}
+		var data T
+		if json.Unmarshal(ev.Data, &data) != nil {
+			return false
+		}
+		return predicate(data)
+	}, count, timeout)
+}
+
+func WaitForFlowActivated(
+	t *testing.T, hub timebox.EventHub, flowIDs []api.FlowID,
+	timeout time.Duration,
+) {
+	t.Helper()
+
+	expected := make(map[api.FlowID]struct{}, len(flowIDs))
+	for _, flowID := range flowIDs {
+		expected[flowID] = struct{}{}
+	}
+
+	typeFilter := events.FilterEvents(
+		timebox.EventType(api.EventTypeFlowActivated),
+	)
+	predicate := func(data api.FlowActivatedEvent) bool {
+		if _, ok := expected[data.FlowID]; ok {
+			delete(expected, data.FlowID)
+			return true
+		}
+		return false
+	}
+
+	WaitForEventData(
+		t, hub, typeFilter, predicate, len(flowIDs), timeout,
+	)
+}
+
 // Filter helpers
 
 func filterFlowEvents(
