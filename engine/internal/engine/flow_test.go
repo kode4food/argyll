@@ -35,7 +35,7 @@ func TestStartDuplicate(t *testing.T) {
 	})
 }
 
-func TestStartFlowSchedulesInitialWork(t *testing.T) {
+func TestStartFlowSchedulesWork(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		step := helpers.NewSimpleStep("step-start")
 		step.Type = api.StepTypeAsync

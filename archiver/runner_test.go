@@ -195,7 +195,7 @@ func TestWriterWritesWithNoPrefix(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestWriterWritesWithTrailingSlashPrefix(t *testing.T) {
+func TestWriterTrailingSlash(t *testing.T) {
 	ctx := context.Background()
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
@@ -226,7 +226,7 @@ func TestWriterWritesWithTrailingSlashPrefix(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestWriterFiltersEmptyEventMessages(t *testing.T) {
+func TestWriterFiltersEmptyEvents(t *testing.T) {
 	ctx := context.Background()
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
@@ -268,7 +268,7 @@ func TestWriterFiltersEmptyEventMessages(t *testing.T) {
 	assert.Len(t, evs, 1)
 }
 
-func TestWriterFailsOnInvalidSnapshotJSON(t *testing.T) {
+func TestWriterInvalidSnapshot(t *testing.T) {
 	ctx := context.Background()
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")
@@ -297,7 +297,7 @@ func TestWriterFailsOnInvalidSnapshotJSON(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestRunnerRunTerminatesOnCancel(t *testing.T) {
+func TestRunnerCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
@@ -336,7 +336,7 @@ func TestRunnerRunTerminatesOnCancel(t *testing.T) {
 	}
 }
 
-func TestRunnerRunTreatsContextCanceledAsSuccess(t *testing.T) {
+func TestRunnerContextCanceledSuccess(t *testing.T) {
 	ctx := context.Background()
 
 	b, err := blob.OpenBucket(ctx, "mem://archiver-test")

@@ -50,7 +50,7 @@ func TestNewArchiverValidation(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestArchiverRunSweepsDeactivatedFlows(t *testing.T) {
+func TestArchiverSweepDeactivated(t *testing.T) {
 	redisServer, err := miniredis.Run()
 	assert.NoError(t, err)
 	defer redisServer.Close()
@@ -112,7 +112,7 @@ func TestArchiverRunSweepsDeactivatedFlows(t *testing.T) {
 	assert.Empty(t, state.Archiving)
 }
 
-func TestArchiverRunPressureCycleArchivesFlows(t *testing.T) {
+func TestArchiverPressureArchives(t *testing.T) {
 	redisServer, err := miniredis.Run()
 	assert.NoError(t, err)
 	defer redisServer.Close()

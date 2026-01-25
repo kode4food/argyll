@@ -437,7 +437,7 @@ func TestSocketCallbackFlow(t *testing.T) {
 	})
 }
 
-func TestSocketCallbackInvalidAggregate(t *testing.T) {
+func TestSocketCallbackInvalidAgg(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		ws := testServerWebSocket(t, env.Server)
 		defer ws.Cleanup()

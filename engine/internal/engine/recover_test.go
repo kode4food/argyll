@@ -839,7 +839,7 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 	})
 }
 
-func TestRecoverFlowWithNilWorkItems(t *testing.T) {
+func TestRecoverFlowNilWorkItems(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		flowID := api.FlowID("nil-work-flow")
 
@@ -922,7 +922,7 @@ func TestWorkItemNoNextRetry(t *testing.T) {
 	})
 }
 
-func TestCalculateNextRetryNilConfig(t *testing.T) {
+func TestNextRetryNilConfig(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		nextRetry := eng.CalculateNextRetry(nil, 0)
 		assert.False(t, nextRetry.IsZero())

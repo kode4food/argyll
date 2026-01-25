@@ -76,7 +76,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 	})
 }
 
-func TestFlowStepChildFailureFailsParent(t *testing.T) {
+func TestFlowStepChildFailureParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
@@ -117,7 +117,7 @@ func TestFlowStepChildFailureFailsParent(t *testing.T) {
 	})
 }
 
-func TestFlowStepMissingGoalFailsParent(t *testing.T) {
+func TestFlowStepMissingGoalParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
@@ -274,7 +274,7 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 	})
 }
 
-func TestFlowStepMissingMappedOutputFailsParent(t *testing.T) {
+func TestFlowStepMissingOutputParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 

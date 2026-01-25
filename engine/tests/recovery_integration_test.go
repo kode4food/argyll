@@ -202,7 +202,7 @@ func TestMultipleWorkflowRecovery(t *testing.T) {
 
 // TestRecoveryWithDifferentWorkStates tests recovery of workflows with
 // different work item states: Pending, NotCompleted, and Failed
-func TestRecoveryDifferentWorkStates(t *testing.T) {
+func TestRecoveryWorkStates(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 

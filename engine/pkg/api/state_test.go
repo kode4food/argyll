@@ -197,7 +197,7 @@ func TestAddArchiving(t *testing.T) {
 	assert.Len(t, original.Archiving, 1)
 }
 
-func TestAddArchivingReplacesExisting(t *testing.T) {
+func TestAddArchivingReplaces(t *testing.T) {
 	now := time.Now()
 	original := &api.EngineState{
 		Archiving: map[api.FlowID]time.Time{
