@@ -271,15 +271,11 @@ func TestWithFlowMaps(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, api.StepTypeFlow, step.Type)
 	assert.Equal(t, []api.StepID{"goal-a"}, step.Flow.Goals)
-	assert.Equal(
-		t,
-		map[api.Name]api.Name{"input": "child-input"},
-		step.Flow.InputMap,
+	assert.Equal(t,
+		map[api.Name]api.Name{"input": "child-input"}, step.Flow.InputMap,
 	)
-	assert.Equal(
-		t,
-		map[api.Name]api.Name{"child-output": "output"},
-		step.Flow.OutputMap,
+	assert.Equal(t,
+		map[api.Name]api.Name{"child-output": "output"}, step.Flow.OutputMap,
 	)
 }
 

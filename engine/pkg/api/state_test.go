@@ -97,6 +97,40 @@ func TestDeleteActiveFlow(t *testing.T) {
 	assert.Len(t, original.Active, 2)
 }
 
+func TestSetFlowDigest(t *testing.T) {
+	now := time.Now()
+	original := &api.EngineState{
+		FlowDigests: map[api.FlowID]*api.FlowDigest{},
+	}
+
+	digest := &api.FlowDigest{
+		ID:        "flow-1",
+		Status:    api.FlowActive,
+		CreatedAt: now,
+	}
+	result := original.SetFlowDigest("flow-1", digest)
+
+	assert.Len(t, result.FlowDigests, 1)
+	assert.Equal(t, digest, result.FlowDigests["flow-1"])
+	assert.Empty(t, original.FlowDigests)
+}
+
+func TestDeleteFlowDigest(t *testing.T) {
+	original := &api.EngineState{
+		FlowDigests: map[api.FlowID]*api.FlowDigest{
+			"flow-1": {ID: "flow-1"},
+			"flow-2": {ID: "flow-2"},
+		},
+	}
+
+	result := original.DeleteFlowDigest("flow-1")
+
+	assert.Len(t, result.FlowDigests, 1)
+	assert.Nil(t, result.FlowDigests["flow-1"])
+	assert.NotNil(t, result.FlowDigests["flow-2"])
+	assert.Len(t, original.FlowDigests, 2)
+}
+
 func TestAddDeactivated(t *testing.T) {
 	now := time.Now()
 	original := &api.EngineState{

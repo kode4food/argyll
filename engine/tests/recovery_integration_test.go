@@ -360,8 +360,8 @@ func TestRecoveryPreservesState(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, afterRestart.Status)
 
 		// Verify step completed after recovery
-		assert.Equal(
-			t, api.StepCompleted, afterRestart.Executions[step.ID].Status,
+		assert.Equal(t,
+			api.StepCompleted, afterRestart.Executions[step.ID].Status,
 		)
 	})
 }

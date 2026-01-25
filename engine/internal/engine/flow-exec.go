@@ -150,18 +150,25 @@ func (a *flowActor) prepareStep(
 	items := flow.Executions[stepID].WorkItems
 
 	ag.OnSuccess(func() {
-		execCtx := &ExecContext{
-			engine: a.Engine,
-			flowID: a.flowID,
-			stepID: stepID,
-			step:   step,
-			inputs: inputs,
-			meta:   flow.Metadata,
-		}
-		execCtx.executeWorkItems(items)
+		a.handleWorkItemsExecution(stepID, step, inputs, flow.Metadata, items)
 	})
 
 	return nil
+}
+
+func (a *flowActor) handleWorkItemsExecution(
+	stepID api.StepID, step *api.Step, inputs api.Args, meta api.Metadata,
+	items api.WorkItems,
+) {
+	execCtx := &ExecContext{
+		engine: a.Engine,
+		flowID: a.flowID,
+		stepID: stepID,
+		step:   step,
+		inputs: inputs,
+		meta:   meta,
+	}
+	execCtx.executeWorkItems(items)
 }
 
 // checkTerminal checks for flow completion or failure
@@ -174,22 +181,61 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 				maps.Copy(result, goal.Outputs)
 			}
 		}
-		return events.Raise(ag, api.EventTypeFlowCompleted,
+		if err := events.Raise(ag, api.EventTypeFlowCompleted,
 			api.FlowCompletedEvent{
 				FlowID: a.flowID,
 				Result: result,
 			},
-		)
+		); err != nil {
+			return err
+		}
+		ag.OnSuccess(a.handleFlowCompletedOnSuccess)
+		return nil
 	}
 	if a.IsFlowFailed(flow) {
-		return events.Raise(ag, api.EventTypeFlowFailed,
+		errMsg := a.getFailureReason(flow)
+		if err := events.Raise(ag, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: a.flowID,
-				Error:  a.getFailureReason(flow),
+				Error:  errMsg,
 			},
-		)
+		); err != nil {
+			return err
+		}
+		ag.OnSuccess(func() {
+			a.handleFlowFailedOnSuccess(errMsg)
+		})
+		return nil
 	}
 	return nil
+}
+
+func (a *flowActor) handleFlowCompletedOnSuccess() {
+	a.raiseFlowDigestUpdated(api.FlowCompleted, "")
+	a.retryQueue.RemoveFlow(a.flowID)
+}
+
+func (a *flowActor) handleFlowFailedOnSuccess(errMsg string) {
+	a.raiseFlowDigestUpdated(api.FlowFailed, errMsg)
+	a.retryQueue.RemoveFlow(a.flowID)
+}
+
+func (a *flowActor) raiseFlowDigestUpdated(
+	status api.FlowStatus, errMsg string,
+) {
+	if err := a.raiseEngineEvent(
+		api.EventTypeFlowDigestUpdated,
+		api.FlowDigestUpdatedEvent{
+			FlowID:      a.flowID,
+			Status:      status,
+			CompletedAt: time.Now(),
+			Error:       errMsg,
+		},
+	); err != nil {
+		slog.Error("Failed to emit FlowDigestUpdated",
+			log.FlowID(a.flowID),
+			log.Error(err))
+	}
 }
 
 // failUnreachable finds and fails all pending steps that can no longer
@@ -417,7 +463,7 @@ func (a *flowActor) scheduleRetry(
 		nextRetryAt := a.CalculateNextRetry(
 			step.WorkConfig, workItem.RetryCount,
 		)
-		return events.Raise(ag, api.EventTypeRetryScheduled,
+		if err := events.Raise(ag, api.EventTypeRetryScheduled,
 			api.RetryScheduledEvent{
 				FlowID:      a.flowID,
 				StepID:      stepID,
@@ -426,7 +472,13 @@ func (a *flowActor) scheduleRetry(
 				NextRetryAt: nextRetryAt,
 				Error:       workItem.Error,
 			},
-		)
+		); err != nil {
+			return err
+		}
+		ag.OnSuccess(func() {
+			a.handleRetryScheduledOnSuccess(stepID, token, nextRetryAt)
+		})
+		return nil
 	}
 
 	// Permanent failure
@@ -514,14 +566,29 @@ func (a *flowActor) maybeDeactivate(ag *FlowAggregator) {
 		return
 	}
 	ag.OnSuccess(func() {
-		a.completeParentWork(flow)
-		if err := a.raiseEngineEvent(
-			api.EventTypeFlowDeactivated,
-			api.FlowDeactivatedEvent{FlowID: a.flowID},
-		); err != nil {
-			slog.Error("Failed to emit FlowDeactivated",
-				log.FlowID(a.flowID),
-				log.Error(err))
-		}
+		a.handleFlowDeactivated(flow)
 	})
+}
+
+func (a *flowActor) handleRetryScheduledOnSuccess(
+	stepID api.StepID, token api.Token, nextRetryAt time.Time,
+) {
+	a.retryQueue.Push(&RetryItem{
+		FlowID:      a.flowID,
+		StepID:      stepID,
+		Token:       token,
+		NextRetryAt: nextRetryAt,
+	})
+}
+
+func (a *flowActor) handleFlowDeactivated(flow *api.FlowState) {
+	a.completeParentWork(flow)
+	if err := a.raiseEngineEvent(
+		api.EventTypeFlowDeactivated,
+		api.FlowDeactivatedEvent{FlowID: a.flowID},
+	); err != nil {
+		slog.Error("Failed to emit FlowDeactivated",
+			log.FlowID(a.flowID),
+			log.Error(err))
+	}
 }

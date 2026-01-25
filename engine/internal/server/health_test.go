@@ -30,6 +30,7 @@ func TestStartStop(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -62,6 +63,7 @@ func TestGetStepHealth(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -100,6 +102,7 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -141,6 +144,7 @@ func TestWithRealHealthCheck(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -190,6 +194,7 @@ func TestRecentSuccess(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -255,6 +260,7 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -307,6 +313,7 @@ func TestEventLoopUnmarshalError(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -356,6 +363,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()
@@ -405,6 +413,7 @@ func TestNonStepCompletedEvent(t *testing.T) {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 	defer func() { _ = tb.Close() }()

@@ -102,6 +102,7 @@ func (s *argyll) initializeStores() error {
 	s.timebox, err = timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  s.cfg.FlowCacheSize,
+		Workers:    true,
 	})
 	if err != nil {
 		return fmt.Errorf("failed to create timebox: %w", err)

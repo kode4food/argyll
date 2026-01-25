@@ -30,19 +30,22 @@ type (
 		Active      map[FlowID]*ActiveFlow  `json:"active"`
 		Deactivated []*DeactivatedFlow      `json:"deactivated"`
 		Archiving   map[FlowID]time.Time    `json:"archiving"`
+		FlowDigests map[FlowID]*FlowDigest  `json:"flow_digests"`
 		Attributes  AttributeGraph          `json:"attributes"`
 	}
 
 	// ActiveFlow tracks basic metadata for active flows
 	ActiveFlow struct {
-		FlowID     FlowID    `json:"flow_id"`
-		StartedAt  time.Time `json:"started_at"`
-		LastActive time.Time `json:"last_active"`
+		FlowID       FlowID    `json:"flow_id"`
+		ParentFlowID FlowID    `json:"parent_flow_id,omitempty"`
+		StartedAt    time.Time `json:"started_at"`
+		LastActive   time.Time `json:"last_active"`
 	}
 
 	// DeactivatedFlow tracks when a flow was deactivated for archiving
 	DeactivatedFlow struct {
 		FlowID        FlowID    `json:"flow_id"`
+		ParentFlowID  FlowID    `json:"parent_flow_id,omitempty"`
 		DeactivatedAt time.Time `json:"deactivated_at"`
 	}
 
@@ -193,6 +196,28 @@ func (e *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
 	res := *e
 	res.Active = maps.Clone(e.Active)
 	delete(res.Active, id)
+	return &res
+}
+
+// SetFlowDigest returns a new EngineState with the flow digest updated
+func (e *EngineState) SetFlowDigest(id FlowID, d *FlowDigest) *EngineState {
+	res := *e
+	res.FlowDigests = maps.Clone(e.FlowDigests)
+	if res.FlowDigests == nil {
+		res.FlowDigests = map[FlowID]*FlowDigest{}
+	}
+	res.FlowDigests[id] = d
+	return &res
+}
+
+// DeleteFlowDigest returns a new EngineState with the flow digest removed
+func (e *EngineState) DeleteFlowDigest(id FlowID) *EngineState {
+	if e.FlowDigests == nil {
+		return e
+	}
+	res := *e
+	res.FlowDigests = maps.Clone(e.FlowDigests)
+	delete(res.FlowDigests, id)
 	return &res
 }
 

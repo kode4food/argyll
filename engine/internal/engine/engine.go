@@ -30,7 +30,6 @@ type (
 		scripts    *ScriptRegistry
 		wg         sync.WaitGroup
 		flows      sync.Map // map[flowID]*flowActor
-		handler    timebox.Handler
 		retryQueue *RetryQueue
 	}
 
@@ -83,27 +82,8 @@ func New(
 		retryQueue: NewRetryQueue(),
 	}
 	e.scripts = NewScriptRegistry()
-	e.handler = CreateEventHandler(e)
 
 	return e
-}
-
-func CreateEventHandler(e *Engine) timebox.Handler {
-	const (
-		flowStarted    = timebox.EventType(api.EventTypeFlowStarted)
-		flowCompleted  = timebox.EventType(api.EventTypeFlowCompleted)
-		flowFailed     = timebox.EventType(api.EventTypeFlowFailed)
-		retryScheduled = timebox.EventType(api.EventTypeRetryScheduled)
-		workSucceeded  = timebox.EventType(api.EventTypeWorkSucceeded)
-	)
-
-	return timebox.MakeDispatcher(map[timebox.EventType]timebox.Handler{
-		flowStarted:    timebox.MakeHandler(e.handleFlowStarted),
-		flowCompleted:  timebox.MakeHandler(e.handleFlowCompleted),
-		flowFailed:     timebox.MakeHandler(e.handleFlowFailed),
-		retryScheduled: timebox.MakeHandler(e.handleRetryScheduled),
-		workSucceeded:  timebox.MakeHandler(e.handleWorkSucceeded),
-	})
 }
 
 // Start begins processing flows and events
@@ -167,6 +147,9 @@ func (e *Engine) StartFlow(
 		); err != nil {
 			return err
 		}
+		ag.OnSuccess(func() {
+			e.handleFlowActivated(flowID, meta)
+		})
 		if flowTransitions.IsTerminal(ag.Value().Status) {
 			return nil
 		}
@@ -182,6 +165,23 @@ func (e *Engine) StartFlow(
 		}
 		return nil
 	})
+}
+
+func (e *Engine) handleFlowActivated(flowID api.FlowID, meta api.Metadata) {
+	parentID, _ := api.GetMetaString[api.FlowID](
+		meta, api.MetaParentFlowID,
+	)
+	if err := e.raiseEngineEvent(
+		api.EventTypeFlowActivated,
+		api.FlowActivatedEvent{
+			FlowID:       flowID,
+			ParentFlowID: parentID,
+		},
+	); err != nil {
+		slog.Error("Failed to emit FlowActivated",
+			log.FlowID(flowID),
+			log.Error(err))
+	}
 }
 
 // UnregisterStep removes a step from the engine registry
@@ -242,12 +242,6 @@ func (e *Engine) eventLoop() {
 }
 
 func (e *Engine) routeEvent(event *timebox.Event) {
-	if err := e.handler(event); err != nil {
-		slog.Error("Failed to handle flow lifecycle event",
-			slog.String("event_type", string(event.Type)),
-			log.Error(err))
-	}
-
 	if !events.IsFlowEvent(event) {
 		return
 	}
@@ -281,48 +275,6 @@ func (e *Engine) saveEngineSnapshot() {
 		return
 	}
 	slog.Info("Engine snapshot saved")
-}
-
-func (e *Engine) handleFlowStarted(
-	_ *timebox.Event, data api.FlowStartedEvent,
-) error {
-	return e.raiseEngineEvent(
-		api.EventTypeFlowActivated,
-		api.FlowActivatedEvent{FlowID: data.FlowID},
-	)
-}
-
-func (e *Engine) handleFlowCompleted(
-	_ *timebox.Event, data api.FlowCompletedEvent,
-) error {
-	e.retryQueue.RemoveFlow(data.FlowID)
-	return nil
-}
-
-func (e *Engine) handleFlowFailed(
-	_ *timebox.Event, data api.FlowFailedEvent,
-) error {
-	e.retryQueue.RemoveFlow(data.FlowID)
-	return nil
-}
-
-func (e *Engine) handleRetryScheduled(
-	_ *timebox.Event, data api.RetryScheduledEvent,
-) error {
-	e.retryQueue.Push(&RetryItem{
-		FlowID:      data.FlowID,
-		StepID:      data.StepID,
-		Token:       data.Token,
-		NextRetryAt: data.NextRetryAt,
-	})
-	return nil
-}
-
-func (e *Engine) handleWorkSucceeded(
-	_ *timebox.Event, data api.WorkSucceededEvent,
-) error {
-	e.retryQueue.Remove(data.FlowID, data.StepID, data.Token)
-	return nil
 }
 
 func (e *Engine) raiseEngineEvent(eventType api.EventType, data any) error {

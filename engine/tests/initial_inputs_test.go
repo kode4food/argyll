@@ -87,8 +87,8 @@ func TestInitialWorkflowInputs(t *testing.T) {
 		// Verify final attributes contain initial values plus step A's output
 		assert.Equal(t, "user-provided", flow.Attributes["initialValue"].Value)
 		assert.Equal(t, float64(42), flow.Attributes["configValue"].Value)
-		assert.Equal(
-			t, "computed from initial inputs", flow.Attributes["result"].Value,
+		assert.Equal(t,
+			"computed from initial inputs", flow.Attributes["result"].Value,
 		)
 
 		// Verify initial attributes have no producing step (provenance = empty)

@@ -77,6 +77,7 @@ func NewDefaultConfig() *Config {
 			WorkerCount:  DefaultSnapshotWorkers,
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
+			TrimEvents:   true,
 		},
 		FlowStore: timebox.StoreConfig{
 			Addr:         DefaultRedisEndpoint,

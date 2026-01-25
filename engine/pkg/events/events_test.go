@@ -138,9 +138,5 @@ func TestMakeAppliers(t *testing.T) {
 	result := events.MakeAppliers(appMap)
 
 	assert.Len(t, result, 1)
-	assert.Contains(
-		t,
-		result,
-		timebox.EventType(api.EventTypeFlowStarted),
-	)
+	assert.Contains(t, result, timebox.EventType(api.EventTypeFlowStarted))
 }

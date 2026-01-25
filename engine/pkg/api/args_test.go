@@ -17,8 +17,8 @@ func TestSet(t *testing.T) {
 
 	assert.Equal(t, "new_value", result["new_key"])
 	assert.Equal(t, "value", result["existing"])
-	assert.NotContains(
-		t, original, "new_key", "Set should not modify original Args",
+	assert.NotContains(t,
+		original, "new_key", "Set should not modify original Args",
 	)
 }
 

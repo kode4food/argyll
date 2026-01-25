@@ -127,7 +127,16 @@ type (
 
 	// FlowActivatedEvent is emitted when a flow becomes active
 	FlowActivatedEvent struct {
-		FlowID FlowID `json:"flow_id"`
+		FlowID       FlowID `json:"flow_id"`
+		ParentFlowID FlowID `json:"parent_flow_id,omitempty"`
+	}
+
+	// FlowDigestUpdatedEvent is emitted when a flow summary changes
+	FlowDigestUpdatedEvent struct {
+		FlowID      FlowID     `json:"flow_id"`
+		Status      FlowStatus `json:"status"`
+		CompletedAt time.Time  `json:"completed_at"`
+		Error       string     `json:"error,omitempty"`
 	}
 
 	// FlowDeactivatedEvent is emitted when a flow becomes inactive
@@ -157,6 +166,7 @@ const (
 	EventTypeFlowDeactivated   EventType = "flow_deactivated"
 	EventTypeFlowArchiving     EventType = "flow_archiving"
 	EventTypeFlowArchived      EventType = "flow_archived"
+	EventTypeFlowDigestUpdated EventType = "flow_digest_updated"
 	EventTypeFlowStarted       EventType = "flow_started"
 	EventTypeFlowCompleted     EventType = "flow_completed"
 	EventTypeFlowFailed        EventType = "flow_failed"

@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kode4food/timebox"
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
@@ -317,10 +318,13 @@ func TestStartFlowSimple(t *testing.T) {
 }
 
 func TestListFlows(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
 		step := helpers.NewSimpleStep("test")
 
-		err := eng.RegisterStep(step)
+		err := env.Engine.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -328,10 +332,15 @@ func TestListFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-list", plan, api.Args{}, api.Metadata{})
+		c := env.EventHub.NewConsumer()
+		defer c.Close()
+
+		err = env.Engine.StartFlow("wf-list", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
-		flows, err := eng.ListFlows()
+		waitForFlowActivated(t, c, 1)
+
+		flows, err := env.Engine.ListFlows()
 		testify.NoError(t, err)
 		testify.NotEmpty(t, flows)
 	})
@@ -397,6 +406,38 @@ func TestIsFlowNotFailed(t *testing.T) {
 		isFailed := eng.IsFlowFailed(flow)
 		testify.False(t, isFailed)
 	})
+}
+
+func waitForFlowActivated(
+	t *testing.T,
+	c interface {
+	Receive() <-chan *timebox.Event
+},
+	count int,
+) {
+	t.Helper()
+
+	seen := 0
+	timeout := time.After(testTimeout)
+	for seen < count {
+		select {
+		case <-timeout:
+			t.Fatalf(
+				"timed out waiting for %d flow_activated events", count,
+			)
+		case ev, ok := <-c.Receive():
+			if !ok {
+				t.Fatalf(
+					"event consumer closed before receiving %d "+
+						"flow_activated events",
+					count,
+				)
+			}
+			if ev.Type == timebox.EventType(api.EventTypeFlowActivated) {
+				seen++
+			}
+		}
+	}
 }
 
 func TestHasInputProvider(t *testing.T) {

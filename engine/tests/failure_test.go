@@ -178,8 +178,7 @@ func TestUnreachableStep(t *testing.T) {
 
 		assert.Equal(t, api.StepFailed, flow.Executions[stepA.ID].Status)
 		assert.Equal(t, api.StepFailed, flow.Executions[stepB.ID].Status)
-		assert.Equal(
-			t,
+		assert.Equal(t,
 			"required input no longer available",
 			flow.Executions[stepB.ID].Error,
 		)

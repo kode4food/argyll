@@ -44,6 +44,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	tb, err := timebox.NewTimebox(timebox.Config{
 		MaxRetries: timebox.DefaultMaxRetries,
 		CacheSize:  100,
+		Workers:    true,
 	})
 	assert.NoError(t, err)
 

@@ -25,6 +25,7 @@ func NewEngineState() *api.EngineState {
 		Active:      map[api.FlowID]*api.ActiveFlow{},
 		Deactivated: []*api.DeactivatedFlow{},
 		Archiving:   map[api.FlowID]time.Time{},
+		FlowDigests: map[api.FlowID]*api.FlowDigest{},
 		Attributes:  api.AttributeGraph{},
 	}
 }
@@ -44,6 +45,7 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 		api.EventTypeFlowDeactivated:   timebox.MakeApplier(flowDeactivated),
 		api.EventTypeFlowArchiving:     timebox.MakeApplier(flowArchiving),
 		api.EventTypeFlowArchived:      timebox.MakeApplier(flowArchived),
+		api.EventTypeFlowDigestUpdated: timebox.MakeApplier(flowDigestUpdated),
 	})
 }
 
@@ -86,22 +88,34 @@ func stepHealthChanged(
 func flowActivated(
 	st *api.EngineState, ev *timebox.Event, data api.FlowActivatedEvent,
 ) *api.EngineState {
+	digest := &api.FlowDigest{
+		ID:        data.FlowID,
+		Status:    api.FlowActive,
+		CreatedAt: ev.Timestamp,
+	}
 	return st.
 		SetActiveFlow(data.FlowID, &api.ActiveFlow{
-			FlowID:     data.FlowID,
-			StartedAt:  ev.Timestamp,
-			LastActive: ev.Timestamp,
+			FlowID:       data.FlowID,
+			ParentFlowID: data.ParentFlowID,
+			StartedAt:    ev.Timestamp,
+			LastActive:   ev.Timestamp,
 		}).
+		SetFlowDigest(data.FlowID, digest).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func flowDeactivated(
 	st *api.EngineState, ev *timebox.Event, data api.FlowDeactivatedEvent,
 ) *api.EngineState {
+	var parentID api.FlowID
+	if active, ok := st.Active[data.FlowID]; ok {
+		parentID = active.ParentFlowID
+	}
 	return st.
 		DeleteActiveFlow(data.FlowID).
 		AddDeactivated(&api.DeactivatedFlow{
 			FlowID:        data.FlowID,
+			ParentFlowID:  parentID,
 			DeactivatedAt: ev.Timestamp,
 		}).
 		SetLastUpdated(ev.Timestamp)
@@ -121,5 +135,27 @@ func flowArchived(
 ) *api.EngineState {
 	return st.
 		RemoveArchiving(data.FlowID).
+		DeleteFlowDigest(data.FlowID).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func flowDigestUpdated(
+	st *api.EngineState, ev *timebox.Event, data api.FlowDigestUpdatedEvent,
+) *api.EngineState {
+	digest := &api.FlowDigest{
+		ID:          data.FlowID,
+		Status:      data.Status,
+		CompletedAt: data.CompletedAt,
+		Error:       data.Error,
+	}
+
+	if existing, ok := st.FlowDigests[data.FlowID]; ok {
+		digest.CreatedAt = existing.CreatedAt
+	} else if active, ok := st.Active[data.FlowID]; ok {
+		digest.CreatedAt = active.StartedAt
+	}
+
+	return st.
+		SetFlowDigest(data.FlowID, digest).
 		SetLastUpdated(ev.Timestamp)
 }

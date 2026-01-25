@@ -207,8 +207,8 @@ func TestPendingUnusedSkip(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, api.StepCompleted, flow.Executions[providerA.ID].Status)
 		assert.Equal(t, api.StepSkipped, flow.Executions[providerB.ID].Status)
-		assert.Equal(
-			t, "outputs not needed", flow.Executions[providerB.ID].Error,
+		assert.Equal(t,
+			"outputs not needed", flow.Executions[providerB.ID].Error,
 		)
 		assert.Equal(t, api.StepCompleted, flow.Executions[consumer.ID].Status)
 	})

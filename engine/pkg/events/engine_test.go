@@ -19,10 +19,12 @@ func TestNewEngineState(t *testing.T) {
 	assert.NotNil(t, state.Steps)
 	assert.NotNil(t, state.Health)
 	assert.NotNil(t, state.Active)
+	assert.NotNil(t, state.FlowDigests)
 	assert.NotNil(t, state.Attributes)
 	assert.Empty(t, state.Steps)
 	assert.Empty(t, state.Health)
 	assert.Empty(t, state.Active)
+	assert.Empty(t, state.FlowDigests)
 	assert.Empty(t, state.Attributes)
 }
 
@@ -213,7 +215,10 @@ func TestFlowActivated(t *testing.T) {
 	initialState := events.NewEngineState()
 	now := time.Now()
 
-	eventData := api.FlowActivatedEvent{FlowID: "test-flow"}
+	eventData := api.FlowActivatedEvent{
+		FlowID:       "test-flow",
+		ParentFlowID: "parent-flow",
+	}
 	data, err := json.Marshal(eventData)
 	assert.NoError(t, err)
 
@@ -229,22 +234,27 @@ func TestFlowActivated(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.NotNil(t, result.Active["test-flow"])
-	assert.Equal(
-		t,
-		api.FlowID("test-flow"),
-		result.Active["test-flow"].FlowID,
+	assert.Equal(t,
+		api.FlowID("test-flow"), result.Active["test-flow"].FlowID,
 	)
 	assert.True(t, result.Active["test-flow"].StartedAt.Equal(now))
 	assert.True(t, result.Active["test-flow"].LastActive.Equal(now))
+	assert.Equal(t,
+		api.FlowID("parent-flow"), result.Active["test-flow"].ParentFlowID,
+	)
+	assert.NotNil(t, result.FlowDigests["test-flow"])
+	assert.Equal(t, api.FlowActive, result.FlowDigests["test-flow"].Status)
+	assert.True(t, result.FlowDigests["test-flow"].CreatedAt.Equal(now))
 	assert.True(t, result.LastUpdated.Equal(now))
 }
 
 func TestFlowDeactivated(t *testing.T) {
 	initialState := events.NewEngineState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
-			FlowID:     "test-flow",
-			StartedAt:  time.Now(),
-			LastActive: time.Now(),
+			FlowID:       "test-flow",
+			ParentFlowID: "parent-flow",
+			StartedAt:    time.Now(),
+			LastActive:   time.Now(),
 		})
 
 	now := time.Now()
@@ -265,6 +275,9 @@ func TestFlowDeactivated(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.Nil(t, result.Active["test-flow"])
+	assert.Equal(t,
+		api.FlowID("parent-flow"), result.Deactivated[0].ParentFlowID,
+	)
 	assert.True(t, result.LastUpdated.Equal(now))
 }
 
@@ -304,7 +317,12 @@ func TestFlowArchived(t *testing.T) {
 			FlowID:        "test-flow",
 			DeactivatedAt: now.Add(-time.Minute),
 		}).
-		AddArchiving("test-flow", now)
+		AddArchiving("test-flow", now).
+		SetFlowDigest("test-flow", &api.FlowDigest{
+			ID:        "test-flow",
+			Status:    api.FlowCompleted,
+			CreatedAt: now.Add(-time.Hour),
+		})
 
 	eventData := api.FlowArchivedEvent{FlowID: "test-flow"}
 	data, err := json.Marshal(eventData)
@@ -323,5 +341,48 @@ func TestFlowArchived(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Len(t, result.Archiving, 0)
 	assert.Len(t, result.Deactivated, 1)
+	assert.Nil(t, result.FlowDigests["test-flow"])
+	assert.True(t, result.LastUpdated.Equal(now))
+}
+
+func TestFlowDigestUpdated(t *testing.T) {
+	now := time.Now()
+	initialState := events.NewEngineState().
+		SetActiveFlow("test-flow", &api.ActiveFlow{
+			FlowID:     "test-flow",
+			StartedAt:  now.Add(-time.Minute),
+			LastActive: now.Add(-time.Minute),
+		}).
+		SetFlowDigest("test-flow", &api.FlowDigest{
+			ID:        "test-flow",
+			Status:    api.FlowActive,
+			CreatedAt: now.Add(-time.Minute),
+		})
+
+	eventData := api.FlowDigestUpdatedEvent{
+		FlowID:      "test-flow",
+		Status:      api.FlowCompleted,
+		CompletedAt: now,
+		Error:       "",
+	}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	event := &timebox.Event{
+		Timestamp:   now,
+		AggregateID: events.EngineID,
+		Type:        timebox.EventType(api.EventTypeFlowDigestUpdated),
+		Data:        data,
+	}
+
+	applier := events.EngineAppliers[event.Type]
+	result := applier(initialState, event)
+
+	assert.NotNil(t, result)
+	assert.Equal(t, api.FlowCompleted, result.FlowDigests["test-flow"].Status)
+	assert.True(t, result.FlowDigests["test-flow"].CompletedAt.Equal(now))
+	assert.True(t,
+		result.FlowDigests["test-flow"].CreatedAt.Equal(now.Add(-time.Minute)),
+	)
 	assert.True(t, result.LastUpdated.Equal(now))
 }

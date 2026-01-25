@@ -67,21 +67,11 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Equal(t, api.FlowCompleted, childState.Status)
 
-			assert.Equal(
-				t,
-				api.FlowID("parent-flow"),
-				metaFlowID(childState.Metadata),
+			assert.Equal(t,
+				api.FlowID("parent-flow"), metaFlowID(childState.Metadata),
 			)
-			assert.Equal(
-				t,
-				parent.ID,
-				metaStepID(childState.Metadata),
-			)
-			assert.Equal(
-				t,
-				token,
-				metaToken(childState.Metadata),
-			)
+			assert.Equal(t, parent.ID, metaStepID(childState.Metadata))
+			assert.Equal(t, token, metaToken(childState.Metadata))
 		}
 	})
 }

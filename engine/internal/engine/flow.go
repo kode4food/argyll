@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"sort"
+
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -77,8 +79,15 @@ func (e *Engine) CompleteWork(
 		); err != nil {
 			return err
 		}
+		ag.OnSuccess(func() {
+			a.handleWorkSucceededCleanup(fs, token)
+		})
 		return a.handleWorkSucceeded(ag, fs.StepID)
 	})
+}
+
+func (a *flowActor) handleWorkSucceededCleanup(fs FlowStep, token api.Token) {
+	a.retryQueue.Remove(fs.FlowID, fs.StepID, token)
 }
 
 // FailWork marks a work item as failed with the specified error message
@@ -135,48 +144,48 @@ func (e *Engine) GetAttribute(
 	return nil, false, nil
 }
 
-// ListFlows returns summary information for all flows in the system
+// ListFlows returns summary information for active and deactivated flows
 func (e *Engine) ListFlows() ([]*api.FlowDigest, error) {
-	ids, err := e.flowExec.GetStore().ListAggregates(e.ctx, flowKey("*"))
+	engState, err := e.GetEngineState()
 	if err != nil {
 		return nil, err
 	}
 
-	var digests []*api.FlowDigest
-	for _, id := range ids {
-		if digest := e.buildFlowDigest(id); digest != nil {
-			digests = append(digests, digest)
+	count := len(engState.Active) + len(engState.Deactivated)
+	flowIDs := make([]api.FlowID, 0, count)
+	seen := make(map[api.FlowID]struct{}, count)
+	for id, info := range engState.Active {
+		if info != nil && info.ParentFlowID != "" {
+			continue
 		}
+		seen[id] = struct{}{}
+		flowIDs = append(flowIDs, id)
+	}
+	for _, info := range engState.Deactivated {
+		if info.ParentFlowID != "" {
+			continue
+		}
+		if _, ok := seen[info.FlowID]; ok {
+			continue
+		}
+		seen[info.FlowID] = struct{}{}
+		flowIDs = append(flowIDs, info.FlowID)
+	}
+
+	sort.Slice(flowIDs, func(i, j int) bool {
+		return flowIDs[i] < flowIDs[j]
+	})
+
+	digests := make([]*api.FlowDigest, 0, len(flowIDs))
+	for _, flowID := range flowIDs {
+		digest, ok := engState.FlowDigests[flowID]
+		if !ok || digest == nil {
+			continue
+		}
+		digests = append(digests, digest)
 	}
 
 	return digests, nil
-}
-
-func (e *Engine) buildFlowDigest(id timebox.AggregateID) *api.FlowDigest {
-	if len(id) < 2 || id[0] != "flow" {
-		return nil
-	}
-
-	flowID := api.FlowID(id[1])
-	flow, err := e.GetFlowState(flowID)
-	if err != nil {
-		return nil
-	}
-
-	if _, ok := api.GetMetaString[api.FlowID](
-		flow.Metadata,
-		api.MetaParentFlowID,
-	); ok {
-		return nil
-	}
-
-	return &api.FlowDigest{
-		ID:          flow.ID,
-		Status:      flow.Status,
-		CreatedAt:   flow.CreatedAt,
-		CompletedAt: flow.CompletedAt,
-		Error:       flow.Error,
-	}
 }
 
 func (e *Engine) raiseFlowEvent(

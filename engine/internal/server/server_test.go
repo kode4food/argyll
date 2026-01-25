@@ -73,6 +73,9 @@ func TestStartFlow(t *testing.T) {
 
 func TestListFlows(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		testEnv.Engine.Start()
+		defer func() { _ = testEnv.Engine.Stop() }()
+
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
 		w := httptest.NewRecorder()
 
@@ -924,11 +927,11 @@ func TestCORSOptions(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 		assert.Equal(t, "*", w.Header().Get("Access-Control-Allow-Origin"))
-		assert.Contains(
-			t, w.Header().Get("Access-Control-Allow-Methods"), "GET",
+		assert.Contains(t,
+			w.Header().Get("Access-Control-Allow-Methods"), "GET",
 		)
-		assert.Contains(
-			t, w.Header().Get("Access-Control-Allow-Headers"), "Content-Type",
+		assert.Contains(t,
+			w.Header().Get("Access-Control-Allow-Headers"), "Content-Type",
 		)
 	})
 }
@@ -1020,11 +1023,23 @@ func TestListFlowsMultiple(t *testing.T) {
 			Steps: api.Steps{"test-step": step},
 		}
 
-		err = testEnv.Engine.StartFlow("flow-1", plan, api.Args{}, api.Metadata{})
+		err = testEnv.Engine.StartFlow(
+			"flow-1", plan, api.Args{}, api.Metadata{},
+		)
 		assert.NoError(t, err)
 
-		err = testEnv.Engine.StartFlow("flow-2", plan, api.Args{}, api.Metadata{})
+		err = testEnv.Engine.StartFlow(
+			"flow-2", plan, api.Args{}, api.Metadata{},
+		)
 		assert.NoError(t, err)
+
+		assert.Eventually(t, func() bool {
+			state, err := testEnv.Engine.GetEngineState()
+			if err != nil {
+				return false
+			}
+			return len(state.Active)+len(state.Deactivated) == 2
+		}, 5*time.Second, 50*time.Millisecond)
 
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
 		w := httptest.NewRecorder()
