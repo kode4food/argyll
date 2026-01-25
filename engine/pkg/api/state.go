@@ -36,7 +36,6 @@ type (
 
 	// ActiveFlow tracks basic metadata for active flows
 	ActiveFlow struct {
-		FlowID       FlowID    `json:"flow_id"`
 		ParentFlowID FlowID    `json:"parent_flow_id,omitempty"`
 		StartedAt    time.Time `json:"started_at"`
 		LastActive   time.Time `json:"last_active"`

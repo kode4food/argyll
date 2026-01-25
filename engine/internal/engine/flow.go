@@ -145,7 +145,7 @@ func (e *Engine) GetAttribute(
 }
 
 // ListFlows returns summary information for active and deactivated flows
-func (e *Engine) ListFlows() ([]*api.FlowDigest, error) {
+func (e *Engine) ListFlows() ([]*api.FlowsListItem, error) {
 	engState, err := e.GetEngineState()
 	if err != nil {
 		return nil, err
@@ -176,13 +176,16 @@ func (e *Engine) ListFlows() ([]*api.FlowDigest, error) {
 		return flowIDs[i] < flowIDs[j]
 	})
 
-	digests := make([]*api.FlowDigest, 0, len(flowIDs))
+	digests := make([]*api.FlowsListItem, 0, len(flowIDs))
 	for _, flowID := range flowIDs {
 		digest, ok := engState.FlowDigests[flowID]
 		if !ok || digest == nil {
 			continue
 		}
-		digests = append(digests, digest)
+		digests = append(digests, &api.FlowsListItem{
+			ID:     flowID,
+			Digest: digest,
+		})
 	}
 
 	return digests, nil

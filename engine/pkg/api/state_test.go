@@ -69,7 +69,6 @@ func TestSetActiveFlow(t *testing.T) {
 	}
 
 	flowInfo := &api.ActiveFlow{
-		FlowID:     "flow-1",
 		StartedAt:  time.Now(),
 		LastActive: time.Now(),
 	}
@@ -84,8 +83,8 @@ func TestSetActiveFlow(t *testing.T) {
 func TestDeleteActiveFlow(t *testing.T) {
 	original := &api.EngineState{
 		Active: map[api.FlowID]*api.ActiveFlow{
-			"flow-1": {FlowID: "flow-1"},
-			"flow-2": {FlowID: "flow-2"},
+			"flow-1": {},
+			"flow-2": {},
 		},
 	}
 
@@ -104,7 +103,6 @@ func TestSetFlowDigest(t *testing.T) {
 	}
 
 	digest := &api.FlowDigest{
-		ID:        "flow-1",
 		Status:    api.FlowActive,
 		CreatedAt: now,
 	}
@@ -118,8 +116,8 @@ func TestSetFlowDigest(t *testing.T) {
 func TestDeleteFlowDigest(t *testing.T) {
 	original := &api.EngineState{
 		FlowDigests: map[api.FlowID]*api.FlowDigest{
-			"flow-1": {ID: "flow-1"},
-			"flow-2": {ID: "flow-2"},
+			"flow-1": {Status: api.FlowActive},
+			"flow-2": {Status: api.FlowActive},
 		},
 	}
 

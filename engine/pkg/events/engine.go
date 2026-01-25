@@ -89,13 +89,11 @@ func flowActivated(
 	st *api.EngineState, ev *timebox.Event, data api.FlowActivatedEvent,
 ) *api.EngineState {
 	digest := &api.FlowDigest{
-		ID:        data.FlowID,
 		Status:    api.FlowActive,
 		CreatedAt: ev.Timestamp,
 	}
 	return st.
 		SetActiveFlow(data.FlowID, &api.ActiveFlow{
-			FlowID:       data.FlowID,
 			ParentFlowID: data.ParentFlowID,
 			StartedAt:    ev.Timestamp,
 			LastActive:   ev.Timestamp,
@@ -143,7 +141,6 @@ func flowDigestUpdated(
 	st *api.EngineState, ev *timebox.Event, data api.FlowDigestUpdatedEvent,
 ) *api.EngineState {
 	digest := &api.FlowDigest{
-		ID:          data.FlowID,
 		Status:      data.Status,
 		CompletedAt: data.CompletedAt,
 		Error:       data.Error,

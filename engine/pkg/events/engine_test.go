@@ -234,9 +234,6 @@ func TestFlowActivated(t *testing.T) {
 
 	assert.NotNil(t, result)
 	assert.NotNil(t, result.Active["test-flow"])
-	assert.Equal(t,
-		api.FlowID("test-flow"), result.Active["test-flow"].FlowID,
-	)
 	assert.True(t, result.Active["test-flow"].StartedAt.Equal(now))
 	assert.True(t, result.Active["test-flow"].LastActive.Equal(now))
 	assert.Equal(t,
@@ -251,7 +248,6 @@ func TestFlowActivated(t *testing.T) {
 func TestFlowDeactivated(t *testing.T) {
 	initialState := events.NewEngineState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
-			FlowID:       "test-flow",
 			ParentFlowID: "parent-flow",
 			StartedAt:    time.Now(),
 			LastActive:   time.Now(),
@@ -319,7 +315,6 @@ func TestFlowArchived(t *testing.T) {
 		}).
 		AddArchiving("test-flow", now).
 		SetFlowDigest("test-flow", &api.FlowDigest{
-			ID:        "test-flow",
 			Status:    api.FlowCompleted,
 			CreatedAt: now.Add(-time.Hour),
 		})
@@ -349,12 +344,10 @@ func TestFlowDigestUpdated(t *testing.T) {
 	now := time.Now()
 	initialState := events.NewEngineState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
-			FlowID:     "test-flow",
 			StartedAt:  now.Add(-time.Minute),
 			LastActive: now.Add(-time.Minute),
 		}).
 		SetFlowDigest("test-flow", &api.FlowDigest{
-			ID:        "test-flow",
 			Status:    api.FlowActive,
 			CreatedAt: now.Add(-time.Minute),
 		})

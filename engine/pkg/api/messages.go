@@ -24,17 +24,22 @@ type (
 
 	// FlowDigest provides summary information about a flow
 	FlowDigest struct {
-		ID          FlowID     `json:"id"`
 		Status      FlowStatus `json:"status"`
 		CreatedAt   time.Time  `json:"created_at"`
 		CompletedAt time.Time  `json:"completed_at"`
 		Error       string     `json:"error,omitempty"`
 	}
 
+	// FlowsListItem provides a flow ID with its summary information
+	FlowsListItem struct {
+		ID     FlowID      `json:"id"`
+		Digest *FlowDigest `json:"digest"`
+	}
+
 	// FlowsListResponse contains a list of flow summaries
 	FlowsListResponse struct {
-		Flows []*FlowDigest `json:"flows"`
-		Count int           `json:"count"`
+		Flows []*FlowsListItem `json:"flows"`
+		Count int              `json:"count"`
 	}
 
 	// StepRegisteredResponse is returned when a step registration succeeds
