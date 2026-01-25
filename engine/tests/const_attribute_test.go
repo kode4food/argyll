@@ -9,7 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestConstAttribute verifies const attributes always use their default value.
+// TestConstAttribute verifies const attributes always use their default value
 func TestConstAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()

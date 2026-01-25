@@ -168,14 +168,10 @@ func TestHookCompleteTwice(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, 200, w.Code)
-		assert.Eventually(t, func() bool {
-			flow, err := env.Engine.GetFlowState("double-complete-flow")
-			if err != nil {
-				return false
-			}
-			exec := flow.Executions[step.ID]
-			return exec != nil && exec.Status == api.StepCompleted
-		}, 5*time.Second, 50*time.Millisecond)
+		exec := env.WaitForStepStatus(t,
+			"double-complete-flow", step.ID, 5*time.Second,
+		)
+		assert.Equal(t, api.StepCompleted, exec.Status)
 
 		result = api.StepResult{
 			Success: true,

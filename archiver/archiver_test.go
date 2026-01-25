@@ -91,12 +91,13 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := flowStore.PollArchive(context.Background(), 5*time.Millisecond, func(
-			ctx context.Context, rec *timebox.ArchiveRecord,
-		) error {
-			record = rec
-			return nil
-		})
+		err := flowStore.PollArchive(
+			context.Background(), 5*time.Millisecond,
+			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
+				record = rec
+				return nil
+			},
+		)
 		assert.NoError(t, err)
 		return record != nil
 	}, testTimeout, testPollInterval)
@@ -156,12 +157,13 @@ func TestArchiverPressureArchives(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := flowStore.PollArchive(context.Background(), 5*time.Millisecond, func(
-			ctx context.Context, rec *timebox.ArchiveRecord,
-		) error {
-			record = rec
-			return nil
-		})
+		err := flowStore.PollArchive(
+			context.Background(), 5*time.Millisecond,
+			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
+				record = rec
+				return nil
+			},
+		)
 		assert.NoError(t, err)
 		return record != nil
 	}, testTimeout, testPollInterval)
@@ -216,8 +218,7 @@ func seedDeactivatedFlow(
 		store, events.NewEngineState, events.EngineAppliers,
 	)
 	cmd := func(
-		st *api.EngineState,
-		ag *timebox.Aggregator[*api.EngineState],
+		st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
 	) error {
 		return timebox.Raise(
 			ag,
@@ -250,7 +251,9 @@ func loadEngineState(t *testing.T, store *timebox.Store) *api.EngineState {
 	state, err := exec.Exec(
 		context.Background(),
 		events.EngineID,
-		func(st *api.EngineState, ag *timebox.Aggregator[*api.EngineState]) error {
+		func(
+			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
+		) error {
 			return nil
 		},
 	)

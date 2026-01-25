@@ -88,14 +88,14 @@ func TestHTTPError(t *testing.T) {
 			builder.NewHTTPError(http.StatusTeapot, "teapot")
 	}
 
-	stepURL := startStepServer(
-		t, engineServer.URL, "test-step", "test-step", handler,
+	stepURL := startStepServer(t,
+		engineServer.URL, "test-step", "test-step", handler,
 	)
 
-		req := api.StepRequest{
-			Arguments: api.Args{"foo": "bar"},
-			Metadata:  api.Metadata{api.MetaFlowID: "flow-1"},
-		}
+	req := api.StepRequest{
+		Arguments: api.Args{"foo": "bar"},
+		Metadata:  api.Metadata{api.MetaFlowID: "flow-1"},
+	}
 	body, err := json.Marshal(req)
 	assert.NoError(t, err)
 
@@ -123,14 +123,14 @@ func TestPanic(t *testing.T) {
 		panic("boom")
 	}
 
-	stepURL := startStepServer(
-		t, engineServer.URL, "panic-step", "panic-step", handler,
+	stepURL := startStepServer(t,
+		engineServer.URL, "panic-step", "panic-step", handler,
 	)
 
-		req := api.StepRequest{
-			Arguments: api.Args{},
-			Metadata:  api.Metadata{api.MetaFlowID: "flow-2"},
-		}
+	req := api.StepRequest{
+		Arguments: api.Args{},
+		Metadata:  api.Metadata{api.MetaFlowID: "flow-2"},
+	}
 	body, err := json.Marshal(req)
 	assert.NoError(t, err)
 

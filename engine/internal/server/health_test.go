@@ -287,18 +287,20 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 	err = eng.RegisterStep(step)
 	assert.NoError(t, err)
 
+	consumer := tb.GetHub().NewConsumer()
 	checker := server.NewHealthChecker(eng, tb.GetHub())
 	checker.Start()
 	defer checker.Stop()
 
-	assert.Eventually(t, func() bool {
-		state, err := eng.GetEngineState()
-		if err != nil {
-			return false
-		}
-		health, ok := state.Health["unhealthy-step"]
-		return ok && health.Status == api.HealthUnhealthy
-	}, 5*time.Second, 50*time.Millisecond)
+	helpers.WaitForStepHealth(t,
+		consumer, "unhealthy-step", api.HealthUnhealthy, 5*time.Second,
+	)
+
+	state, err := eng.GetEngineState()
+	assert.NoError(t, err)
+	health, ok := state.Health["unhealthy-step"]
+	assert.True(t, ok)
+	assert.Equal(t, api.HealthUnhealthy, health.Status)
 }
 
 func TestEventLoopUnmarshalError(t *testing.T) {

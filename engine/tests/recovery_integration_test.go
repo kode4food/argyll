@@ -1,7 +1,6 @@
 package tests
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -157,42 +156,18 @@ func TestMultipleWorkflowRecovery(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(step2))
 		assert.NoError(t, env.Engine.RegisterStep(step3))
 
-		// Subscribe BEFORE starting engine to avoid race condition
-		waiter1 := env.SubscribeToFlowStatus(flowID1)
-		waiter2 := env.SubscribeToFlowStatus(flowID2)
-		waiter3 := env.SubscribeToFlowStatus(flowID3)
-
+		consumer := env.EventHub.NewConsumer()
 		env.Engine.Start()
+		helpers.WaitForFlowTerminal(t,
+			consumer, recoveryTimeout, flowID1, flowID2, flowID3,
+		)
 
-		// Wait concurrently for all workflows to recover and complete
-		var recovered1, recovered2, recovered3 *api.FlowState
-		var wg sync.WaitGroup
-		wg.Add(3)
-
-		go func() {
-			defer wg.Done()
-			recovered1 = waiter1.Wait(t, recoveryTimeout)
-		}()
-		go func() {
-			defer wg.Done()
-			recovered2 = waiter2.Wait(t, recoveryTimeout)
-		}()
-		go func() {
-			defer wg.Done()
-			recovered3 = waiter3.Wait(t, recoveryTimeout)
-		}()
-
-		wg.Wait()
-
-		if recovered1 == nil {
-			t.Fatal("flow-1 timed out during recovery")
-		}
-		if recovered2 == nil {
-			t.Fatal("flow-2 timed out during recovery")
-		}
-		if recovered3 == nil {
-			t.Fatal("flow-3 timed out during recovery")
-		}
+		recovered1, err := env.Engine.GetFlowState(flowID1)
+		assert.NoError(t, err)
+		recovered2, err := env.Engine.GetFlowState(flowID2)
+		assert.NoError(t, err)
+		recovered3, err := env.Engine.GetFlowState(flowID3)
+		assert.NoError(t, err)
 
 		assert.Equal(t, api.FlowCompleted, recovered1.Status)
 		assert.Equal(t, api.FlowCompleted, recovered2.Status)
@@ -257,8 +232,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 		))
 
 		// Wait for notCompleted to start via event hub
-		env.WaitForStepStarted(
-			t, notCompletedFlowID, notCompletedStep.ID, workflowTimeout,
+		env.WaitForStepStarted(t,
+			notCompletedFlowID, notCompletedStep.ID, workflowTimeout,
 		)
 
 		// Wait for failed flow to fail
@@ -291,8 +266,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, pendingFlow.Status)
 
 		// 2. NotCompleted workflow should complete (recover & retry success)
-		notCompletedFlow := env.WaitForFlowStatus(
-			t, notCompletedFlowID, recoveryTimeout,
+		notCompletedFlow := env.WaitForFlowStatus(t,
+			notCompletedFlowID, recoveryTimeout,
 		)
 		assert.Equal(t, api.FlowCompleted, notCompletedFlow.Status)
 

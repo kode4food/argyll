@@ -105,7 +105,9 @@ func TestWorkFailure(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-failure", plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(
+			"wf-failure", plan, api.Args{}, api.Metadata{},
+		)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-failure", workExecTimeout)
@@ -178,27 +180,29 @@ func TestAsyncMetadata(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-async-meta", plan, api.Args{}, flowMetadata)
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(
+			"wf-async-meta", plan, api.Args{}, flowMetadata,
+		)
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			md := env.MockClient.LastMetadata(step.ID)
-			if md == nil {
-				return false
-			}
+		helpers.WaitForWorkEvents(t,
+			consumer, "wf-async-meta", step.ID, 1,
+			workExecTimeout, api.EventTypeWorkStarted,
+		)
 
-			if md["correlation_id"] != "cid-async-123" {
-				return false
-			}
+		assert.True(t, env.MockClient.WaitForInvocation(
+			step.ID, workExecTimeout,
+		))
 
-			webhook, ok := md[api.MetaWebhookURL].(string)
-			if !ok {
-				return false
-			}
+		md := env.MockClient.LastMetadata(step.ID)
+		assert.NotNil(t, md)
+		assert.Equal(t, "cid-async-123", md["correlation_id"])
 
-			return strings.Contains(webhook, "wf-async-meta") &&
-				strings.Contains(webhook, "async-meta")
-		}, workExecTimeout, 50*time.Millisecond)
+		webhook, ok := md[api.MetaWebhookURL].(string)
+		assert.True(t, ok)
+		assert.True(t, strings.Contains(webhook, "wf-async-meta"))
+		assert.True(t, strings.Contains(webhook, "async-meta"))
 	})
 }
 
@@ -261,18 +265,11 @@ func TestPredicateFailure(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, flowErr := env.Engine.GetFlowState("wf-pred-fail")
-			if flowErr != nil || flow == nil {
-				return false
-			}
-			exec := flow.Executions[step.ID]
-			if exec == nil {
-				return false
-			}
-			return exec.Status == api.StepFailed &&
-				strings.Contains(exec.Error, "predicate")
-		}, workExecTimeout, 50*time.Millisecond)
+		exec := env.WaitForStepStatus(t,
+			"wf-pred-fail", step.ID, workExecTimeout,
+		)
+		assert.Equal(t, api.StepFailed, exec.Status)
+		assert.True(t, strings.Contains(exec.Error, "predicate"))
 	})
 }
 

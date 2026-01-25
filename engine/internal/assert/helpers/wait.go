@@ -7,196 +7,61 @@ import (
 
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-// EventWaiter waits for events matching a filter. Create before triggering the
-// action
-type EventWaiter[T any] struct {
-	consumer topic.Consumer[*timebox.Event]
-	filter   events.EventFilter
-	getState func() (T, error)
-	desc     string // for error messages
-}
-
-// Wait blocks until a matching event and returns the state
-func (w *EventWaiter[T]) Wait(t *testing.T, timeout time.Duration) T {
-	t.Helper()
-	defer w.consumer.Close()
-
-	deadline := time.After(timeout)
-	for {
-		select {
-		case event := <-w.consumer.Receive():
-			if event != nil && w.filter(event) {
-				state, err := w.getState()
-				assert.NoError(t, err)
-				return state
-			}
-		case <-deadline:
-			t.Fatalf("timeout waiting for %s", w.desc)
-		}
-	}
-}
-
-// SubscribeToFlowStatus creates a waiter for flow completion/failure
-func (e *TestEngineEnv) SubscribeToFlowStatus(
-	flowID api.FlowID,
-) *EventWaiter[*api.FlowState] {
-	return &EventWaiter[*api.FlowState]{
-		consumer: e.EventHub.NewConsumer(),
-		filter: filterFlowEvents(
-			flowID, api.EventTypeFlowCompleted, api.EventTypeFlowFailed,
-		),
-		getState: func() (*api.FlowState, error) {
-			return e.Engine.GetFlowState(flowID)
-		},
-		desc: string(flowID),
-	}
-}
-
-// SubscribeToStepStarted creates a waiter for step start events
-func (e *TestEngineEnv) SubscribeToStepStarted(
-	flowID api.FlowID, stepID api.StepID,
-) *EventWaiter[*api.ExecutionState] {
-	return &EventWaiter[*api.ExecutionState]{
-		consumer: e.EventHub.NewConsumer(),
-		filter:   filterStepEvents(flowID, stepID, api.EventTypeStepStarted),
-		getState: func() (*api.ExecutionState, error) {
-			flow, err := e.Engine.GetFlowState(flowID)
-			if err != nil {
-				return nil, err
-			}
-			return flow.Executions[stepID], nil
-		},
-		desc: string(stepID),
-	}
-}
-
-// SubscribeToStepStatus creates a waiter for step completion/failure/skip
-func (e *TestEngineEnv) SubscribeToStepStatus(
-	flowID api.FlowID, stepID api.StepID,
-) *EventWaiter[*api.ExecutionState] {
-	return &EventWaiter[*api.ExecutionState]{
-		consumer: e.EventHub.NewConsumer(),
-		filter: filterStepEvents(
-			flowID, stepID, api.EventTypeStepCompleted,
-			api.EventTypeStepFailed, api.EventTypeStepSkipped,
-		),
-		getState: func() (*api.ExecutionState, error) {
-			flow, err := e.Engine.GetFlowState(flowID)
-			if err != nil {
-				return nil, err
-			}
-			return flow.Executions[stepID], nil
-		},
-		desc: string(stepID),
-	}
-}
-
-// Convenience methods that subscribe and wait in one call
-
-func (e *TestEngineEnv) WaitForFlowStatus(
-	t *testing.T, flowID api.FlowID, timeout time.Duration,
-) *api.FlowState {
-	t.Helper()
-	start := time.Now()
-	state := e.SubscribeToFlowStatus(flowID).Wait(t, timeout)
-	if state.Status == api.FlowCompleted || state.Status == api.FlowFailed {
-		return state
+type (
+	flowEvent struct {
+		FlowID api.FlowID `json:"flow_id"`
 	}
 
-	remaining := timeout - time.Since(start)
-	if remaining <= 0 {
-		return state
+	stepEvent struct {
+		FlowID api.FlowID `json:"flow_id"`
+		StepID api.StepID `json:"step_id"`
 	}
+)
 
-	deadline := time.NewTimer(remaining)
-	ticker := time.NewTicker(10 * time.Millisecond)
-	defer deadline.Stop()
-	defer ticker.Stop()
-
-	for {
-		select {
-		case <-ticker.C:
-			cur, err := e.Engine.GetFlowState(flowID)
-			assert.NoError(t, err)
-			if cur.Status == api.FlowCompleted || cur.Status == api.FlowFailed {
-				return cur
-			}
-		case <-deadline.C:
-			return state
-		}
-	}
-}
-
-func (e *TestEngineEnv) WaitForStepStarted(
-	t *testing.T, flowID api.FlowID, stepID api.StepID, timeout time.Duration,
-) *api.ExecutionState {
-	t.Helper()
-	return e.SubscribeToStepStarted(flowID, stepID).Wait(t, timeout)
-}
-
-func (e *TestEngineEnv) WaitForStepStatus(
-	t *testing.T, flowID api.FlowID, stepID api.StepID, timeout time.Duration,
-) *api.ExecutionState {
-	t.Helper()
-	return e.SubscribeToStepStatus(flowID, stepID).Wait(t, timeout)
-}
-
+// WaitForEvents waits for matching events from the consumer
 func WaitForEvents(
-	t *testing.T, hub timebox.EventHub, filter events.EventFilter,
-	count int, timeout time.Duration,
-) {
-	t.Helper()
-
-	consumer := hub.NewConsumer()
-	defer consumer.Close()
-
-	WaitForEventsFromConsumer(t, consumer, filter, count, timeout)
-}
-
-func WaitForEventsFromConsumer(
 	t *testing.T, consumer topic.Consumer[*timebox.Event],
 	filter events.EventFilter, count int, timeout time.Duration,
 ) {
 	t.Helper()
+	defer consumer.Close()
 
-	deadline := time.After(timeout)
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+
 	for seen := 0; seen < count; {
 		select {
 		case ev, ok := <-consumer.Receive():
 			if !ok {
 				t.Fatalf(
-					"event consumer closed before receiving %d events",
-					count,
+					"event consumer closed before receiving %d events", count,
 				)
 			}
 			if ev == nil || !filter(ev) {
 				continue
 			}
 			seen++
-		case <-deadline:
+		case <-deadline.C:
 			t.Fatalf("timeout waiting for %d events", count)
 		}
 	}
 }
 
-func WaitForEventData[T any](
-	t *testing.T, hub timebox.EventHub, filter events.EventFilter,
-	predicate func(T) bool, count int, timeout time.Duration,
-) {
-	t.Helper()
-
+// EventDataFilter creates a filter that unmarshals event data into T
+func EventDataFilter[T any](
+	typeFilter events.EventFilter, predicate func(T) bool,
+) events.EventFilter {
 	if predicate == nil {
 		predicate = func(T) bool { return true }
 	}
 
-	WaitForEvents(t, hub, func(ev *timebox.Event) bool {
-		if !filter(ev) {
+	return func(ev *timebox.Event) bool {
+		if !typeFilter(ev) {
 			return false
 		}
 		var data T
@@ -204,118 +69,293 @@ func WaitForEventData[T any](
 			return false
 		}
 		return predicate(data)
-	}, count, timeout)
+	}
 }
 
-func WaitForEventDataFromConsumer[T any](
+// WaitForFlowEvents waits for one event per flow ID for the given types
+func WaitForFlowEvents(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowIDs []api.FlowID,
+	timeout time.Duration, eventTypes ...api.EventType,
+) {
+	t.Helper()
+
+	expected := make(map[api.FlowID]struct{}, len(flowIDs))
+	for _, flowID := range flowIDs {
+		expected[flowID] = struct{}{}
+	}
+
+	filter := EventDataFilter(
+		events.FilterEvents(toTimeboxTypes(eventTypes)...),
+		func(data flowEvent) bool {
+			if _, ok := expected[data.FlowID]; ok {
+				delete(expected, data.FlowID)
+				return true
+			}
+			return false
+		},
+	)
+
+	WaitForEvents(t, consumer, filter, len(flowIDs), timeout)
+}
+
+// WaitForFlowStarted waits for flow start events for the given IDs
+func WaitForFlowStarted(
 	t *testing.T, consumer topic.Consumer[*timebox.Event],
-	filter events.EventFilter, predicate func(T) bool, count int,
-	timeout time.Duration,
+	timeout time.Duration, flowIDs ...api.FlowID,
 ) {
 	t.Helper()
-
-	if predicate == nil {
-		predicate = func(T) bool { return true }
-	}
-
-	WaitForEventsFromConsumer(t, consumer, func(ev *timebox.Event) bool {
-		if !filter(ev) {
-			return false
-		}
-		var data T
-		if json.Unmarshal(ev.Data, &data) != nil {
-			return false
-		}
-		return predicate(data)
-	}, count, timeout)
+	WaitForFlowEvents(t,
+		consumer, flowIDs, timeout, api.EventTypeFlowStarted,
+	)
 }
 
+// WaitForFlowActivated waits for flow activation events for the given IDs
 func WaitForFlowActivated(
-	t *testing.T, hub timebox.EventHub, flowIDs []api.FlowID,
-	timeout time.Duration,
-) {
-	t.Helper()
-
-	expected := make(map[api.FlowID]struct{}, len(flowIDs))
-	for _, flowID := range flowIDs {
-		expected[flowID] = struct{}{}
-	}
-
-	typeFilter := events.FilterEvents(
-		timebox.EventType(api.EventTypeFlowActivated),
-	)
-	predicate := func(data api.FlowActivatedEvent) bool {
-		if _, ok := expected[data.FlowID]; ok {
-			delete(expected, data.FlowID)
-			return true
-		}
-		return false
-	}
-
-	WaitForEventData(
-		t, hub, typeFilter, predicate, len(flowIDs), timeout,
-	)
-}
-
-func WaitForFlowActivatedFromConsumer(
 	t *testing.T, consumer topic.Consumer[*timebox.Event],
-	flowIDs []api.FlowID, timeout time.Duration,
+	timeout time.Duration, flowIDs ...api.FlowID,
 ) {
 	t.Helper()
-
-	expected := make(map[api.FlowID]struct{}, len(flowIDs))
-	for _, flowID := range flowIDs {
-		expected[flowID] = struct{}{}
-	}
-
-	typeFilter := events.FilterEvents(
-		timebox.EventType(api.EventTypeFlowActivated),
-	)
-	predicate := func(data api.FlowActivatedEvent) bool {
-		if _, ok := expected[data.FlowID]; ok {
-			delete(expected, data.FlowID)
-			return true
-		}
-		return false
-	}
-
-	WaitForEventDataFromConsumer(
-		t, consumer, typeFilter, predicate, len(flowIDs), timeout,
+	WaitForFlowEvents(t,
+		consumer, flowIDs, timeout, api.EventTypeFlowActivated,
 	)
 }
 
-// Filter helpers
+// WaitForFlowDeactivated waits for flow deactivation events for the given IDs
+func WaitForFlowDeactivated(
+	t *testing.T, consumer topic.Consumer[*timebox.Event],
+	timeout time.Duration, flowIDs ...api.FlowID,
+) {
+	t.Helper()
+	WaitForFlowEvents(t,
+		consumer, flowIDs, timeout, api.EventTypeFlowDeactivated,
+	)
+}
+
+// WaitForFlowTerminal waits for flow completion or failure events
+func WaitForFlowTerminal(
+	t *testing.T, consumer topic.Consumer[*timebox.Event],
+	timeout time.Duration, flowIDs ...api.FlowID,
+) {
+	t.Helper()
+	WaitForFlowEvents(t,
+		consumer, flowIDs, timeout, api.EventTypeFlowCompleted,
+		api.EventTypeFlowFailed,
+	)
+}
+
+// WaitForStepEvents waits for matching step events for the given flow/step
+func WaitForStepEvents(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+	eventTypes ...api.EventType,
+) {
+	t.Helper()
+
+	filter := EventDataFilter(
+		events.FilterEvents(toTimeboxTypes(eventTypes)...),
+		func(data stepEvent) bool {
+			return data.FlowID == flowID && data.StepID == stepID
+		},
+	)
+
+	WaitForEvents(t, consumer, filter, count, timeout)
+}
+
+// WaitForWorkEvents waits for matching work events for the given flow/step
+func WaitForWorkEvents(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+	eventTypes ...api.EventType,
+) {
+	t.Helper()
+	WaitForStepEvents(t,
+		consumer, flowID, stepID, count, timeout, eventTypes...,
+	)
+}
+
+// WaitForStepHealth waits for a step health change to the target status
+func WaitForStepHealth(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], stepID api.StepID,
+	status api.HealthStatus, timeout time.Duration,
+) {
+	t.Helper()
+
+	filter := EventDataFilter(
+		events.FilterEvents(
+			timebox.EventType(api.EventTypeStepHealthChanged),
+		),
+		func(data api.StepHealthChangedEvent) bool {
+			return data.StepID == stepID && data.Status == status
+		},
+	)
+
+	WaitForEvents(t, consumer, filter, 1, timeout)
+}
+
+// WaitForEngineEvents waits for engine aggregate events of the given types
+func WaitForEngineEvents(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], count int,
+	timeout time.Duration, eventTypes ...api.EventType,
+) {
+	t.Helper()
+	filter := events.AndFilters(
+		events.FilterAggregate(events.EngineID),
+		events.FilterEvents(toTimeboxTypes(eventTypes)...),
+	)
+	WaitForEvents(t, consumer, filter, count, timeout)
+}
+
+// WaitForFlowStatus waits for a flow to complete or fail and returns it
+func (e *TestEngineEnv) WaitForFlowStatus(
+	t *testing.T, flowID api.FlowID, timeout time.Duration,
+) *api.FlowState {
+	t.Helper()
+	consumer := e.EventHub.NewConsumer()
+	defer consumer.Close()
+
+	filter := filterFlowEvents(
+		flowID, api.EventTypeFlowCompleted, api.EventTypeFlowFailed,
+	)
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+
+	for {
+		state, err := e.Engine.GetFlowState(flowID)
+		if err == nil && flowTerminal(state) {
+			return state
+		}
+
+		select {
+		case ev, ok := <-consumer.Receive():
+			if !ok {
+				t.Fatalf(
+					"event consumer closed before flow %s completed", flowID,
+				)
+			}
+			if ev == nil || !filter(ev) {
+				continue
+			}
+		case <-deadline.C:
+			t.Fatalf("timeout waiting for %s", flowID)
+		}
+	}
+}
+
+// WaitForStepStarted waits for a step to start and returns the execution
+func (e *TestEngineEnv) WaitForStepStarted(
+	t *testing.T, flowID api.FlowID, stepID api.StepID, timeout time.Duration,
+) *api.ExecutionState {
+	t.Helper()
+	consumer := e.EventHub.NewConsumer()
+	defer consumer.Close()
+
+	filter := filterStepEvents(flowID, stepID, api.EventTypeStepStarted)
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+
+	for {
+		exec, err := e.getExecutionState(flowID, stepID)
+		if err == nil && exec != nil && stepStarted(exec.Status) {
+			return exec
+		}
+
+		select {
+		case ev, ok := <-consumer.Receive():
+			if !ok {
+				t.Fatalf(
+					"event consumer closed before %s started", stepID,
+				)
+			}
+			if ev == nil || !filter(ev) {
+				continue
+			}
+		case <-deadline.C:
+			t.Fatalf("timeout waiting for %s", stepID)
+		}
+	}
+}
+
+// WaitForStepStatus waits for a step to finish and returns the execution
+func (e *TestEngineEnv) WaitForStepStatus(
+	t *testing.T, flowID api.FlowID, stepID api.StepID, timeout time.Duration,
+) *api.ExecutionState {
+	t.Helper()
+	consumer := e.EventHub.NewConsumer()
+	defer consumer.Close()
+
+	filter := filterStepEvents(
+		flowID, stepID, api.EventTypeStepCompleted,
+		api.EventTypeStepFailed, api.EventTypeStepSkipped,
+	)
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+
+	for {
+		exec, err := e.getExecutionState(flowID, stepID)
+		if err == nil && exec != nil && stepTerminal(exec.Status) {
+			return exec
+		}
+
+		select {
+		case ev, ok := <-consumer.Receive():
+			if !ok {
+				t.Fatalf(
+					"event consumer closed before %s finished", stepID,
+				)
+			}
+			if ev == nil || !filter(ev) {
+				continue
+			}
+		case <-deadline.C:
+			t.Fatalf("timeout waiting for %s", stepID)
+		}
+	}
+}
+
+func (e *TestEngineEnv) getExecutionState(
+	flowID api.FlowID, stepID api.StepID,
+) (*api.ExecutionState, error) {
+	flow, err := e.Engine.GetFlowState(flowID)
+	if err != nil {
+		return nil, err
+	}
+	return flow.Executions[stepID], nil
+}
+
+func flowTerminal(state *api.FlowState) bool {
+	if state == nil {
+		return false
+	}
+	return state.Status == api.FlowCompleted ||
+		state.Status == api.FlowFailed
+}
+
+func stepStarted(status api.StepStatus) bool {
+	return status != api.StepPending
+}
+
+func stepTerminal(status api.StepStatus) bool {
+	return status == api.StepCompleted ||
+		status == api.StepFailed ||
+		status == api.StepSkipped
+}
 
 func filterFlowEvents(
 	flowID api.FlowID, eventTypes ...api.EventType,
 ) events.EventFilter {
 	typeFilter := events.FilterEvents(toTimeboxTypes(eventTypes)...)
-	return func(ev *timebox.Event) bool {
-		if !typeFilter(ev) {
-			return false
-		}
-		var e api.FlowCompletedEvent
-		if json.Unmarshal(ev.Data, &e) != nil {
-			return false
-		}
-		return e.FlowID == flowID
-	}
+	return EventDataFilter(typeFilter, func(data flowEvent) bool {
+		return data.FlowID == flowID
+	})
 }
 
 func filterStepEvents(
 	flowID api.FlowID, stepID api.StepID, eventTypes ...api.EventType,
 ) events.EventFilter {
 	typeFilter := events.FilterEvents(toTimeboxTypes(eventTypes)...)
-	return func(ev *timebox.Event) bool {
-		if !typeFilter(ev) {
-			return false
-		}
-		var e api.StepStartedEvent
-		if json.Unmarshal(ev.Data, &e) != nil {
-			return false
-		}
-		return e.FlowID == flowID && e.StepID == stepID
-	}
+	return EventDataFilter(typeFilter, func(data stepEvent) bool {
+		return data.FlowID == flowID && data.StepID == stepID
+	})
 }
 
 func toTimeboxTypes(eventTypes []api.EventType) []timebox.EventType {

@@ -6,7 +6,6 @@ import (
 
 	testify "github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -43,7 +42,9 @@ func TestGetFlowNotFound(t *testing.T) {
 }
 
 func TestScript(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		step := &api.Step{
 			ID:   "script-step",
 			Name: "Script Step",
@@ -57,7 +58,7 @@ func TestScript(t *testing.T) {
 			},
 		}
 
-		err := eng.RegisterStep(step)
+		err := env.Engine.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -65,27 +66,30 @@ func TestScript(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-script", plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(
+			"wf-script", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
-		a := assert.New(t)
-		fs := engine.FlowStep{FlowID: "wf-script", StepID: "script-step"}
-		a.EventuallyWithError(func() error {
-			_, err := eng.GetCompiledScript(fs)
-			return err
-		}, 500*time.Millisecond, "script should compile")
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, "wf-script",
+		)
 
-		comp, err := eng.GetCompiledScript(fs)
+		fs := engine.FlowStep{FlowID: "wf-script", StepID: "script-step"}
+		comp, err := env.Engine.GetCompiledScript(fs)
 		testify.NoError(t, err)
 		testify.NotNil(t, comp)
 	})
 }
 
 func TestScriptMissing(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		step := helpers.NewSimpleStep("no-script")
 
-		err := eng.RegisterStep(step)
+		err := env.Engine.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -93,23 +97,32 @@ func TestScriptMissing(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-no-script", plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(
+			"wf-no-script", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, "wf-no-script",
+		)
+
 		fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
-		comp, err := eng.GetCompiledScript(fs)
+		comp, err := env.Engine.GetCompiledScript(fs)
 		testify.NoError(t, err)
 		testify.Nil(t, comp)
 	})
 }
 
 func TestPredicate(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		step := helpers.NewStepWithPredicate(
 			"predicate-step", api.ScriptLangLua, "return true",
 		)
 
-		err := eng.RegisterStep(step)
+		err := env.Engine.RegisterStep(step)
 		testify.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -117,17 +130,20 @@ func TestPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-predicate", plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(
+			"wf-predicate", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
-		a := assert.New(t)
-		fs := engine.FlowStep{FlowID: "wf-predicate", StepID: "predicate-step"}
-		a.EventuallyWithError(func() error {
-			_, err := eng.GetCompiledPredicate(fs)
-			return err
-		}, 500*time.Millisecond, "predicate should compile")
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, "wf-predicate",
+		)
 
-		comp, err := eng.GetCompiledPredicate(fs)
+		fs := engine.FlowStep{
+			FlowID: "wf-predicate", StepID: "predicate-step",
+		}
+		comp, err := env.Engine.GetCompiledPredicate(fs)
 		testify.NoError(t, err)
 		testify.NotNil(t, comp)
 	})

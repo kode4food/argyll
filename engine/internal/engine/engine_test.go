@@ -209,7 +209,9 @@ func TestLuaPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-lua-pred", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(
+			"wf-lua-pred", plan, api.Args{}, api.Metadata{},
+		)
 		assert.NoError(t, err)
 	})
 }

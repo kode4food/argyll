@@ -168,8 +168,7 @@ func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	var flowIDs []api.FlowID
 
 	cmd := func(
-		st *api.EngineState,
-		ag *timebox.Aggregator[*api.EngineState],
+		st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
 	) error {
 		if st == nil {
 			return nil

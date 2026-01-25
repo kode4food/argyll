@@ -250,8 +250,8 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"WEBHOOK_BASE_URL": "http://webhooks.example.com",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(
-					t, "http://webhooks.example.com", c.WebhookBaseURL,
+				testify.Equal(t,
+					"http://webhooks.example.com", c.WebhookBaseURL,
 				)
 			},
 		},
@@ -342,8 +342,8 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_MAX_RETRIES": "not_a_number",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(
-					t, config.DefaultRetryMaxRetries, c.Work.MaxRetries,
+				testify.Equal(t,
+					config.DefaultRetryMaxRetries, c.Work.MaxRetries,
 				)
 			},
 		},
@@ -353,10 +353,8 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_BACKOFF_MS": "invalid",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(
-					t,
-					int64(config.DefaultRetryBackoffMs),
-					c.Work.BackoffMs,
+				testify.Equal(t,
+					int64(config.DefaultRetryBackoffMs), c.Work.BackoffMs,
 				)
 			},
 		},
@@ -366,10 +364,8 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"RETRY_MAX_BACKOFF_MS": "bad_value",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(
-					t,
-					int64(config.DefaultRetryMaxBackoffMs),
-					c.Work.MaxBackoffMs,
+				testify.Equal(t,
+					int64(config.DefaultRetryMaxBackoffMs), c.Work.MaxBackoffMs,
 				)
 			},
 		},

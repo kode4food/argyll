@@ -92,6 +92,16 @@ type FlowState struct {
 When a function signature is too long for one line, keep as many parameters as fit on the first line and wrap the remainder on the next line(s). Do not put one parameter per line unless the line would still exceed the limit.
 | `ev` | Event |
 
+Example with more parameters:
+
+```go
+func WaitForStepEvents(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+	eventTypes ...api.EventType,
+) {
+```
+
 ### Function Names
 
 Verb + noun. Get/Set only when accessing fields:
@@ -222,6 +232,22 @@ func NewArchiveWorker(
 
 ```go
 c, err := client.NewClient("embedded://", client.WithEmbedded(tr))
+```
+
+### Multi-line Calls with *testing.T
+
+When a function call wraps and the first argument is the test instance (`t`), keep `t` on the first line and break immediately after it. Do not place `t` alone on the next line.
+
+```go
+WaitForFlowEvents(t,
+	consumer, flowIDs, timeout, api.EventTypeFlowStarted,
+)
+```
+
+```go
+assert.Equal(t,
+	api.FlowID("parent-flow"), metaFlowID(childState.Metadata),
+)
 ```
 
 ## File Organization

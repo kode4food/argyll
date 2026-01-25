@@ -13,7 +13,9 @@ import (
 )
 
 func TestRecoveryActivation(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		flowID := api.FlowID("test-flow")
 
 		step := helpers.NewSimpleStep("step-1")
@@ -22,20 +24,19 @@ func TestRecoveryActivation(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := eng.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Check that flow was created and started
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID)
-			if err != nil || flow == nil {
-				return false
-			}
-			if flow.ID != flowID {
-				return false
-			}
-			return !flow.CreatedAt.IsZero()
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, flowID,
+		)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		assert.NotNil(t, flow)
+		assert.Equal(t, flowID, flow.ID)
+		assert.False(t, flow.CreatedAt.IsZero())
 	})
 }
 
@@ -55,21 +56,18 @@ func TestRecoveryDeactivation(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for flow to complete naturally
-		env.WaitForFlowStatus(t, flowID, 5*time.Second)
+		helpers.WaitForFlowDeactivated(t,
+			consumer, 5*time.Second, flowID,
+		)
 
-		// Poll for flow to be removed from active flows (deactivation is async)
-		assert.Eventually(t, func() bool {
-			engineState, err := env.Engine.GetEngineState()
-			if err != nil {
-				return false
-			}
-			_, exists := engineState.Active[flowID]
-			return !exists
-		}, 5*time.Second, 10*time.Millisecond, "flow should be deactivated")
+		engineState, err := env.Engine.GetEngineState()
+		assert.NoError(t, err)
+		_, exists := engineState.Active[flowID]
+		assert.False(t, exists)
 	})
 }
 
@@ -289,26 +287,28 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 
 		flowID := api.FlowID("exhaustion-flow")
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := env.Engine.GetFlowState(flowID)
-			if err != nil {
-				return false
-			}
-			exec := flow.Executions["failing-step"]
-			if exec == nil || exec.WorkItems == nil ||
-				len(exec.WorkItems) == 0 {
-				return false
-			}
+		helpers.WaitForWorkEvents(t,
+			consumer, flowID, "failing-step", 1,
+			5*time.Second, api.EventTypeRetryScheduled,
+		)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		exec := flow.Executions["failing-step"]
+		if assert.NotNil(t, exec) && assert.NotNil(t, exec.WorkItems) {
+			found := false
 			for _, item := range exec.WorkItems {
 				if item.RetryCount >= 1 {
-					return true
+					found = true
+					break
 				}
 			}
-			return false
-		}, 5*time.Second, 50*time.Millisecond)
+			assert.True(t, found)
+		}
 	})
 }
 
@@ -380,7 +380,9 @@ func TestFindRetriableSteps(t *testing.T) {
 }
 
 func TestRecoverActiveFlows(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		flowID1 := api.FlowID("flow-1")
 		flowID2 := api.FlowID("flow-2")
 
@@ -390,26 +392,30 @@ func TestRecoverActiveFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := eng.StartFlow(flowID1, plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID1, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		err = eng.StartFlow(flowID2, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID2, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Flows created successfully
-		assert.Eventually(t, func() bool {
-			flow1, err := eng.GetFlowState(flowID1)
-			if err != nil || flow1 == nil {
-				return false
-			}
-			flow2, err := eng.GetFlowState(flowID2)
-			return err == nil && flow2 != nil
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, flowID1, flowID2,
+		)
+
+		flow1, err := env.Engine.GetFlowState(flowID1)
+		assert.NoError(t, err)
+		assert.NotNil(t, flow1)
+		flow2, err := env.Engine.GetFlowState(flowID2)
+		assert.NoError(t, err)
+		assert.NotNil(t, flow2)
 	})
 }
 
 func TestConcurrentRecoveryState(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		count := 10
 
 		done := make(chan bool, count)
@@ -420,10 +426,13 @@ func TestConcurrentRecoveryState(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
 		for i := range count {
 			go func(id int) {
 				flowID := api.FlowID(fmt.Sprintf("flow-%d", id))
-				err := eng.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+				err := env.Engine.StartFlow(
+					flowID, plan, api.Args{}, api.Metadata{},
+				)
 				assert.NoError(t, err)
 				done <- true
 			}(i)
@@ -433,13 +442,19 @@ func TestConcurrentRecoveryState(t *testing.T) {
 			<-done
 		}
 
-		// Verify all flows were created
+		flowIDs := make([]api.FlowID, 0, count)
 		for i := range count {
-			flowID := api.FlowID(fmt.Sprintf("flow-%d", i))
-			assert.Eventually(t, func() bool {
-				flow, err := eng.GetFlowState(flowID)
-				return err == nil && flow != nil
-			}, 5*time.Second, 50*time.Millisecond)
+			flowIDs = append(flowIDs, api.FlowID(fmt.Sprintf("flow-%d", i)))
+		}
+
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, flowIDs...,
+		)
+
+		for _, flowID := range flowIDs {
+			flow, err := env.Engine.GetFlowState(flowID)
+			assert.NoError(t, err)
+			assert.NotNil(t, flow)
 		}
 	})
 }
@@ -616,7 +631,9 @@ func TestNoRetryableSteps(t *testing.T) {
 }
 
 func TestWorkActiveItems(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		step := helpers.NewSimpleStep("step-1")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:   3,
@@ -625,7 +642,7 @@ func TestWorkActiveItems(t *testing.T) {
 			BackoffType:  api.BackoffTypeFixed,
 		}
 
-		err := eng.RegisterStep(step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -634,31 +651,23 @@ func TestWorkActiveItems(t *testing.T) {
 		}
 
 		flowID := api.FlowID("active-work-flow")
-		err = eng.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID)
-			if err != nil || flow == nil {
-				return false
-			}
-			exec := flow.Executions[step.ID]
-			return exec != nil && exec.WorkItems != nil &&
-				len(exec.WorkItems) > 0
-		}, 5*time.Second, 50*time.Millisecond)
+		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
 
-		err = eng.RecoverFlow(flowID)
+		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID)
-			return err == nil && flow != nil
-		}, 5*time.Second, 50*time.Millisecond)
+		_, err = env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
 	})
 }
 
 func TestPendingWorkWithActiveStep(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		step := helpers.NewSimpleStep("step-1")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:   3,
@@ -667,7 +676,7 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 			BackoffType:  api.BackoffTypeFixed,
 		}
 
-		err := eng.RegisterStep(step)
+		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
@@ -676,20 +685,12 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 		}
 
 		flowID := api.FlowID("pending-active-flow")
-		err = eng.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID)
-			if err != nil || flow == nil {
-				return false
-			}
-			exec := flow.Executions[step.ID]
-			return exec != nil && exec.WorkItems != nil &&
-				len(exec.WorkItems) > 0
-		}, 5*time.Second, 50*time.Millisecond)
+		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
 
-		err = eng.RecoverFlow(flowID)
+		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
 	})
 }
@@ -718,25 +719,14 @@ func TestFailedWorkRetryable(t *testing.T) {
 		}
 
 		flowID := api.FlowID("failed-work-flow")
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := env.Engine.GetFlowState(flowID)
-			if err != nil {
-				return false
-			}
-			exec := flow.Executions["failing-step"]
-			if exec == nil || exec.WorkItems == nil {
-				return false
-			}
-			for _, item := range exec.WorkItems {
-				if item.Status == api.WorkFailed && item.RetryCount > 0 {
-					return true
-				}
-			}
-			return false
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForWorkEvents(t,
+			consumer, flowID, "failing-step", 1,
+			5*time.Second, api.EventTypeRetryScheduled,
+		)
 
 		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -754,7 +744,9 @@ func TestInvalidFlowID(t *testing.T) {
 }
 
 func TestMultipleFlows(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		step := helpers.NewSimpleStep("step-1")
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-1"},
@@ -762,23 +754,19 @@ func TestMultipleFlows(t *testing.T) {
 		}
 
 		flowID1 := api.FlowID("flow-1")
-		err := eng.StartFlow(flowID1, plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID1, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		flowID2 := api.FlowID("flow-2")
-		err = eng.StartFlow(flowID2, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID2, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID1)
-			return err == nil && flow != nil
-		}, 5*time.Second, 50*time.Millisecond)
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID2)
-			return err == nil && flow != nil
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, flowID1, flowID2,
+		)
 
-		err = eng.RecoverFlows()
+		err = env.Engine.RecoverFlows()
 		assert.NoError(t, err)
 	})
 }
@@ -809,7 +797,8 @@ func TestMissingStepInPlan(t *testing.T) {
 }
 
 func TestRecoverFlowsWithFailure(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
 
 		step := helpers.NewSimpleStep("step-1")
 		plan := &api.ExecutionPlan{
@@ -818,29 +807,27 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 		}
 
 		flowID1 := api.FlowID("good-flow")
-		err := eng.StartFlow(flowID1, plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID1, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
 		flowID2 := api.FlowID("bad-flow")
-		err = eng.StartFlow(flowID2, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID2, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID1)
-			return err == nil && flow != nil
-		}, 5*time.Second, 50*time.Millisecond)
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID2)
-			return err == nil && flow != nil
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, flowID1, flowID2,
+		)
 
-		err = eng.RecoverFlows()
+		err = env.Engine.RecoverFlows()
 		assert.NoError(t, err)
 	})
 }
 
 func TestRecoverFlowNilWorkItems(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		flowID := api.FlowID("nil-work-flow")
 
 		step := helpers.NewSimpleStep("step-1")
@@ -849,15 +836,15 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := eng.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		assert.Eventually(t, func() bool {
-			flow, err := eng.GetFlowState(flowID)
-			return err == nil && flow != nil
-		}, 5*time.Second, 50*time.Millisecond)
+		helpers.WaitForFlowStarted(t,
+			consumer, 5*time.Second, flowID,
+		)
 
-		err = eng.RecoverFlow(flowID)
+		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
 	})
 }

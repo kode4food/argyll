@@ -331,11 +331,13 @@ func TestListFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
+
 		err = env.Engine.StartFlow("wf-list", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
-		helpers.WaitForFlowActivated(
-			t, env.EventHub, []api.FlowID{"wf-list"}, testTimeout,
+		helpers.WaitForFlowActivated(t,
+			consumer, testTimeout, "wf-list",
 		)
 
 		flows, err := env.Engine.ListFlows()

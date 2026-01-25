@@ -141,7 +141,9 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 		err := env.Engine.StartFlow("parent-missing", plan, api.Args{}, nil)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(t, "parent-missing", childFlowTimeout)
+		parentState := env.WaitForFlowStatus(t,
+			"parent-missing", childFlowTimeout,
+		)
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
@@ -197,7 +199,9 @@ func TestFlowStepMapping(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(t, "parent-mapped", childFlowTimeout)
+		parentState := env.WaitForFlowStatus(t,
+			"parent-mapped", childFlowTimeout,
+		)
 		assert.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
@@ -263,9 +267,8 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 			"%s:%s:%s", "parent-list", parent.ID, token,
 		))
 
-		helpers.WaitForFlowActivatedFromConsumer(
-			t, consumer, []api.FlowID{"parent-list", childID},
-			childFlowTimeout,
+		helpers.WaitForFlowActivated(t,
+			consumer, childFlowTimeout, "parent-list", childID,
 		)
 
 		flows, err := env.Engine.ListFlows()
@@ -321,11 +324,13 @@ func TestFlowStepMissingOutputParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-missing-output", plan, api.Args{}, nil)
+		err := env.Engine.StartFlow(
+			"parent-missing-output", plan, api.Args{}, nil,
+		)
 		assert.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus(
-			t, "parent-missing-output", childFlowTimeout,
+		parentState := env.WaitForFlowStatus(t,
+			"parent-missing-output", childFlowTimeout,
 		)
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})

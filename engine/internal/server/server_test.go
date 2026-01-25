@@ -999,14 +999,7 @@ func TestSanitizeFlowID(t *testing.T) {
 
 func (e *testServerEnv) waitForWorkItem(t *testing.T, fs engine.FlowStep) {
 	t.Helper()
-	assert.Eventually(t, func() bool {
-		flow, err := e.Engine.GetFlowState(fs.FlowID)
-		if err != nil {
-			return false
-		}
-		exec := flow.Executions[fs.StepID]
-		return exec != nil && exec.WorkItems != nil && len(exec.WorkItems) > 0
-	}, 5*time.Second, 50*time.Millisecond)
+	e.WaitForStepStarted(t, fs.FlowID, fs.StepID, 5*time.Second)
 }
 
 func TestListFlowsMultiple(t *testing.T) {
@@ -1023,6 +1016,8 @@ func TestListFlowsMultiple(t *testing.T) {
 			Steps: api.Steps{"test-step": step},
 		}
 
+		consumer := testEnv.EventHub.NewConsumer()
+
 		err = testEnv.Engine.StartFlow(
 			"flow-1", plan, api.Args{}, api.Metadata{},
 		)
@@ -1033,9 +1028,8 @@ func TestListFlowsMultiple(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		helpers.WaitForFlowActivated(
-			t, testEnv.EventHub, []api.FlowID{"flow-1", "flow-2"},
-			5*time.Second,
+		helpers.WaitForFlowActivated(t,
+			consumer, 5*time.Second, "flow-1", "flow-2",
 		)
 
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
