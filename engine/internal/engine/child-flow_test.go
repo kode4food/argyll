@@ -210,6 +210,8 @@ func TestFlowStepMapping(t *testing.T) {
 func TestListFlowsSkipsChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
+		consumer := env.EventHub.NewConsumer()
+		defer consumer.Close()
 
 		child := &api.Step{
 			ID:   "child-list",
@@ -260,6 +262,11 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 		childID := api.FlowID(fmt.Sprintf(
 			"%s:%s:%s", "parent-list", parent.ID, token,
 		))
+
+		helpers.WaitForFlowActivatedFromConsumer(
+			t, consumer, []api.FlowID{"parent-list", childID},
+			childFlowTimeout,
+		)
 
 		flows, err := env.Engine.ListFlows()
 		assert.NoError(t, err)
