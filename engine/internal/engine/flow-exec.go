@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -17,43 +16,6 @@ import (
 type flowActor struct {
 	*Engine
 	flowID api.FlowID
-	events chan *timebox.Event
-}
-
-func (a *flowActor) run() {
-	defer a.wg.Done()
-	defer a.flows.Delete(a.flowID)
-
-	handler := a.createEventHandler()
-	idleTimer := time.NewTimer(100 * time.Millisecond)
-	defer idleTimer.Stop()
-
-	for {
-		select {
-		case event := <-a.events:
-			a.handleEvent(event, handler)
-
-			if !idleTimer.Stop() {
-				select {
-				case <-idleTimer.C:
-				default:
-				}
-			}
-			idleTimer.Reset(100 * time.Millisecond)
-
-		case <-idleTimer.C:
-			select {
-			case event := <-a.events:
-				a.handleEvent(event, handler)
-				idleTimer.Reset(100 * time.Millisecond)
-			default:
-				return
-			}
-
-		case <-a.ctx.Done():
-			return
-		}
-	}
 }
 
 // execTransaction executes a function within a flow transaction
@@ -190,6 +152,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 			return err
 		}
 		ag.OnSuccess(a.handleFlowCompletedOnSuccess)
+		ag.OnSuccess(a.handleFlowTerminal)
 		return nil
 	}
 	if a.IsFlowFailed(flow) {
@@ -205,6 +168,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		ag.OnSuccess(func() {
 			a.handleFlowFailedOnSuccess(errMsg)
 		})
+		ag.OnSuccess(a.handleFlowTerminal)
 		return nil
 	}
 	return nil
@@ -218,6 +182,17 @@ func (a *flowActor) handleFlowCompletedOnSuccess() {
 func (a *flowActor) handleFlowFailedOnSuccess(errMsg string) {
 	a.raiseFlowDigestUpdated(api.FlowFailed, errMsg)
 	a.retryQueue.RemoveFlow(a.flowID)
+}
+
+func (a *flowActor) handleFlowTerminal() {
+	if err := a.execTransaction(func(ag *FlowAggregator) error {
+		a.maybeDeactivate(ag)
+		return nil
+	}); err != nil {
+		slog.Error("Failed to check flow deactivation",
+			log.FlowID(a.flowID),
+			log.Error(err))
+	}
 }
 
 func (a *flowActor) raiseFlowDigestUpdated(

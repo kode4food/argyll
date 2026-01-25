@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"sync"
 	"time"
 
-	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/client"
@@ -22,19 +20,13 @@ type (
 	Engine struct {
 		stepClient client.Client
 		ctx        context.Context
-		consumer   EventConsumer
 		engineExec *Executor
 		flowExec   *FlowExecutor
 		config     *config.Config
 		cancel     context.CancelFunc
 		scripts    *ScriptRegistry
-		wg         sync.WaitGroup
-		flows      sync.Map // map[flowID]*flowActor
 		retryQueue *RetryQueue
 	}
-
-	// EventConsumer consumes events from the event hub
-	EventConsumer = topic.Consumer[*timebox.Event]
 
 	// Executor manages engine state persistence and event sourcing
 	Executor = timebox.Executor[*api.EngineState]
@@ -50,7 +42,6 @@ type (
 )
 
 var (
-	ErrShutdownTimeout     = errors.New("shutdown timeout exceeded")
 	ErrFlowNotFound        = errors.New("flow not found")
 	ErrFlowExists          = errors.New("flow exists")
 	ErrStepNotFound        = errors.New("step not found")
@@ -63,7 +54,7 @@ var (
 // New creates a new orchestrator instance with the specified stores, client,
 // event hub, and configuration
 func New(
-	engine, flow *timebox.Store, client client.Client, hub timebox.EventHub,
+	engine, flow *timebox.Store, client client.Client, _ timebox.EventHub,
 	cfg *config.Config,
 ) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -78,7 +69,6 @@ func New(
 		config:     cfg,
 		ctx:        ctx,
 		cancel:     cancel,
-		consumer:   hub.NewConsumer(),
 		retryQueue: NewRetryQueue(),
 	}
 	e.scripts = NewScriptRegistry()
@@ -95,7 +85,6 @@ func (e *Engine) Start() {
 			log.Error(err))
 	}
 
-	go e.eventLoop()
 	go e.retryLoop()
 }
 
@@ -103,22 +92,9 @@ func (e *Engine) Start() {
 func (e *Engine) Stop() error {
 	e.cancel()
 	e.retryQueue.Stop()
-	defer e.consumer.Close()
-
-	done := make(chan struct{})
-	go func() {
-		e.wg.Wait()
-		close(done)
-	}()
-
-	select {
-	case <-done:
-		e.saveEngineSnapshot()
-		slog.Info("Engine stopped")
-		return nil
-	case <-time.After(e.config.ShutdownTimeout):
-		return ErrShutdownTimeout
-	}
+	e.saveEngineSnapshot()
+	slog.Info("Engine stopped")
+	return nil
 }
 
 // StartFlow begins a new flow execution with the given plan and state
@@ -224,45 +200,6 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	}
 
 	return steps, nil
-}
-
-func (e *Engine) eventLoop() {
-	for {
-		select {
-		case <-e.ctx.Done():
-			return
-
-		case event, ok := <-e.consumer.Receive():
-			if !ok {
-				return
-			}
-			e.routeEvent(event)
-		}
-	}
-}
-
-func (e *Engine) routeEvent(event *timebox.Event) {
-	if !events.IsFlowEvent(event) {
-		return
-	}
-
-	flowID := api.FlowID(event.AggregateID[1])
-
-	actor, loaded := e.flows.Load(flowID)
-	if !loaded {
-		wa := &flowActor{
-			Engine: e,
-			flowID: flowID,
-			events: make(chan *timebox.Event, 100),
-		}
-		actor, loaded = e.flows.LoadOrStore(flowID, wa)
-		if !loaded {
-			e.wg.Add(1)
-			go wa.run()
-		}
-	}
-
-	actor.(*flowActor).events <- event
 }
 
 func (e *Engine) saveEngineSnapshot() {
