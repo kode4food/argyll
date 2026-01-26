@@ -327,3 +327,99 @@ func TestParallelWorkItems(t *testing.T) {
 		assert.Equal(t, api.StepCompleted, flow.Executions[step.ID].Status)
 	})
 }
+
+func TestRetryPendingParallelism(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+		step.ID = "retry-parallel"
+		step.WorkConfig = &api.WorkConfig{
+			MaxRetries:   1,
+			BackoffMs:    500,
+			MaxBackoffMs: 500,
+			BackoffType:  api.BackoffTypeFixed,
+			Parallelism:  1,
+		}
+		step.Attributes["items"].ForEach = true
+		step.Attributes["items"].Type = api.TypeArray
+		step.Attributes["result"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeString,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-retry-parallel")
+		workConsumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID, plan, api.Args{
+			"items": []any{"a", "b"},
+		}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForWorkRetryScheduled(t,
+			workConsumer, flowID, step.ID, 2, workExecTimeout,
+		)
+
+		env.MockClient.ClearError(step.ID)
+		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+		flow := env.WaitForFlowStatus(t, flowID, workExecTimeout)
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+
+		exec := flow.Executions[step.ID]
+		assert.Equal(t, api.StepCompleted, exec.Status)
+		assert.Len(t, exec.WorkItems, 2)
+		for _, item := range exec.WorkItems {
+			assert.Equal(t, api.WorkSucceeded, item.Status)
+			assert.GreaterOrEqual(t, item.RetryCount, 1)
+		}
+	})
+}
+
+func TestPredicateFailurePerWorkItem(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+		step.ID = "predicate-items"
+		step.Predicate = &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script: "if type(items) ~= 'table' then error('boom') end; " +
+				"return true",
+		}
+		step.Attributes["items"].ForEach = true
+		step.Attributes["items"].Type = api.TypeArray
+		step.Attributes["result"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeString,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-pred-work-item")
+		err := env.Engine.StartFlow(flowID, plan, api.Args{
+			"items": []any{"a", "b"},
+		}, api.Metadata{})
+		assert.NoError(t, err)
+
+		exec := env.WaitForStepStatus(t, flowID, step.ID, workExecTimeout)
+		assert.Equal(t, api.StepFailed, exec.Status)
+		assert.Contains(t, exec.Error, "predicate")
+
+		flow := env.WaitForFlowStatus(t, flowID, workExecTimeout)
+		assert.Equal(t, api.FlowFailed, flow.Status)
+	})
+}

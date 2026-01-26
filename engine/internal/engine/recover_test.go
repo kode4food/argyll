@@ -411,6 +411,39 @@ func TestRecoverActiveFlows(t *testing.T) {
 	})
 }
 
+func TestRecoverActiveWorkStartsRetry(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("retry-active")
+		step.Type = api.StepTypeAsync
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-recover-active")
+		workConsumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForWorkStarted(t,
+			workConsumer, flowID, step.ID, 1, 5*time.Second,
+		)
+
+		assert.NoError(t, env.Engine.RecoverFlow(flowID))
+
+		retryConsumer := env.EventHub.NewConsumer()
+		helpers.WaitForWorkStarted(t,
+			retryConsumer, flowID, step.ID, 1, 5*time.Second,
+		)
+	})
+}
+
 func TestConcurrentRecoveryState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
