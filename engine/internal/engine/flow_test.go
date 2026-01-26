@@ -371,6 +371,7 @@ func TestIsFlowFailed(t *testing.T) {
 		env.Engine.Start()
 
 		stepA := helpers.NewStepWithOutputs("step-a", "value")
+		stepA.Attributes["value"].Type = api.TypeString
 
 		stepB := helpers.NewSimpleStep("step-b")
 		stepB.Attributes["value"] = &api.AttributeSpec{
@@ -391,31 +392,19 @@ func TestIsFlowFailed(t *testing.T) {
 		testify.NoError(t, err)
 		err = env.Engine.RegisterStep(stepB)
 		testify.NoError(t, err)
+		env.MockClient.SetError(stepA.ID, errors.New("step failed"))
+
 		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(
 			"wf-failed-test", plan, api.Args{}, api.Metadata{},
 		)
 		testify.NoError(t, err)
 
-		helpers.WaitForWorkStarted(t,
-			consumer, "wf-failed-test", stepA.ID, 1, 5*time.Second,
+		helpers.WaitForStepTerminalEvent(t,
+			consumer, "wf-failed-test", stepA.ID, 5*time.Second,
 		)
 
 		flow, err := env.Engine.GetFlowState("wf-failed-test")
-		testify.NoError(t, err)
-
-		exec := flow.Executions[stepA.ID]
-		var token api.Token
-		for id := range exec.WorkItems {
-			token = id
-			break
-		}
-
-		fs := engine.FlowStep{FlowID: "wf-failed-test", StepID: stepA.ID}
-		err = env.Engine.FailWork(fs, token, "test error")
-		testify.NoError(t, err)
-
-		flow, err = env.Engine.GetFlowState("wf-failed-test")
 		testify.NoError(t, err)
 
 		isFailed := env.Engine.IsFlowFailed(flow)
