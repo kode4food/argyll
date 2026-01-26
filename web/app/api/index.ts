@@ -11,6 +11,7 @@ export type {
   Step,
   ExecutionPlan,
   FlowContext,
+  FlowsListItem,
   ExecutionResult,
   StepHealth,
   AttributeValue,

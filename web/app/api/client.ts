@@ -1,6 +1,12 @@
 import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
-import { Step, FlowContext, ExecutionPlan, FlowProjection } from "./types";
+import {
+  Step,
+  FlowContext,
+  ExecutionPlan,
+  FlowProjection,
+  FlowsListItem,
+} from "./types";
 
 export class ArgyllApi {
   private client: AxiosInstance;
@@ -41,6 +47,24 @@ export class ArgyllApi {
     };
   }
 
+  private convertListItem(item: FlowsListItem): FlowContext {
+    return {
+      id: item.id,
+      status: item.digest?.status || "active",
+      state: {},
+      error_state: item.digest?.error
+        ? {
+            message: item.digest.error,
+            step_id: "",
+            timestamp: new Date().toISOString(),
+          }
+        : undefined,
+      plan: undefined,
+      started_at: item.digest?.created_at || new Date().toISOString(),
+      completed_at: item.digest?.completed_at,
+    };
+  }
+
   async registerStep(step: Step): Promise<Step> {
     const response = await this.client.post("/engine/step", step);
     return response.data.step;
@@ -66,8 +90,8 @@ export class ArgyllApi {
 
   async listFlows(): Promise<FlowContext[]> {
     const response = await this.client.get("/engine/flow");
-    const projections: FlowProjection[] = response.data.flows || [];
-    return projections.map((p) => this.convertProjection(p));
+    const items: FlowsListItem[] = response.data.flows || [];
+    return items.map((item) => this.convertListItem(item));
   }
 
   async getExecutionPlan(

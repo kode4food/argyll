@@ -157,6 +157,16 @@ export interface FlowProjection {
   error?: string;
 }
 
+export interface FlowsListItem {
+  id: string;
+  digest?: {
+    status: FlowStatus;
+    created_at: string;
+    completed_at?: string;
+    error?: string;
+  };
+}
+
 export interface WorkItemState {
   status: "pending" | "active" | "completed" | "failed";
   started_at: string;

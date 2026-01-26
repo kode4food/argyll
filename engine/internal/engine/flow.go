@@ -1,7 +1,7 @@
 package engine
 
 import (
-	"sort"
+	"slices"
 
 	"github.com/kode4food/timebox"
 
@@ -172,9 +172,7 @@ func (e *Engine) ListFlows() ([]*api.FlowsListItem, error) {
 		flowIDs = append(flowIDs, info.FlowID)
 	}
 
-	sort.Slice(flowIDs, func(i, j int) bool {
-		return flowIDs[i] < flowIDs[j]
-	})
+	slices.Sort(flowIDs)
 
 	digests := make([]*api.FlowsListItem, 0, len(flowIDs))
 	for _, flowID := range flowIDs {

@@ -1,6 +1,5 @@
 import axios from "axios";
 import { ArgyllApi } from "./client";
-import type { FlowProjection } from "./types";
 import { AttributeRole, AttributeType } from "./types";
 
 jest.mock("axios");
@@ -84,38 +83,27 @@ describe("ArgyllApi", () => {
 
   describe("listFlows", () => {
     test("fetches and converts flow list", async () => {
-      const mockProjections: FlowProjection[] = [
+      const mockItems = [
         {
           id: "wf-1",
-          status: "active",
-          attributes: {},
-          created_at: "2024-01-01T00:00:00Z",
-          plan: {
-            goals: [],
-            required: [],
-            steps: {},
-            attributes: {},
+          digest: {
+            status: "active",
+            created_at: "2024-01-01T00:00:00Z",
           },
-          executions: {},
         },
         {
           id: "wf-2",
-          status: "completed",
-          attributes: { result: { value: "done" } },
-          created_at: "2024-01-02T00:00:00Z",
-          completed_at: "2024-01-02T00:05:00Z",
-          plan: {
-            goals: [],
-            required: [],
-            steps: {},
-            attributes: {},
+          digest: {
+            status: "completed",
+            created_at: "2024-01-02T00:00:00Z",
+            completed_at: "2024-01-02T00:05:00Z",
+            error: "done",
           },
-          executions: {},
         },
       ];
 
       mockClient.get.mockResolvedValue({
-        data: { flows: mockProjections },
+        data: { flows: mockItems },
       });
 
       const result = await api.listFlows();
