@@ -1,13 +1,18 @@
-import { useState, useCallback, useMemo, useRef } from "react";
-import { Step, StepType, SCRIPT_LANGUAGE_LUA, AttributeType } from "@/app/api";
-import { ArgyllApi } from "@/app/api";
+import { useCallback, useMemo, useRef, useState } from "react";
+import {
+  ArgyllApi,
+  AttributeType,
+  SCRIPT_LANGUAGE_LUA,
+  Step,
+  StepType,
+} from "@/app/api";
 import {
   Attribute,
   buildAttributesFromStep,
-  createStepAttributes,
   buildFlowMaps,
-  getValidationError,
   buildStepPayload,
+  createStepAttributes,
+  getValidationError,
 } from "./stepEditorUtils";
 import { validateDefaultValue } from "@/utils/stepUtils";
 import { useT } from "@/app/i18n";
@@ -66,7 +71,7 @@ export function useStepEditorForm(
       const vars = validationError.vars
         ? { ...validationError.vars }
         : undefined;
-      if (vars?.reason && typeof vars.reason === "string") {
+      if (vars?.reason && true) {
         vars.reason = t(vars.reason);
       }
       return t(validationError.key, vars);

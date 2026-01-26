@@ -1,12 +1,6 @@
 import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
-import {
-  Step,
-  FlowContext,
-  ExecutionPlan,
-  FlowProjection,
-  FlowsListItem,
-} from "./types";
+import { ExecutionPlan, FlowContext, FlowsListItem, Step } from "./types";
 
 export class ArgyllApi {
   private client: AxiosInstance;
@@ -19,32 +13,6 @@ export class ArgyllApi {
         "Content-Type": "application/json",
       },
     });
-  }
-
-  private convertProjection(projection: FlowProjection): FlowContext {
-    let errorState = undefined;
-    if (projection.error) {
-      errorState = {
-        message: projection.error,
-        step_id: "",
-        timestamp: new Date().toISOString(),
-      };
-    }
-
-    let executionPlan = undefined;
-    if (projection.plan && Object.keys(projection.plan.steps).length > 0) {
-      executionPlan = projection.plan;
-    }
-
-    return {
-      id: projection.id,
-      status: projection.status,
-      state: projection.attributes || {},
-      error_state: errorState,
-      plan: executionPlan,
-      started_at: projection.created_at,
-      completed_at: projection.completed_at,
-    };
   }
 
   private convertListItem(item: FlowsListItem): FlowContext {
