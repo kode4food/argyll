@@ -5,11 +5,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kode4food/caravan/topic"
+	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
+
+type flowEvent struct {
+	FlowID api.FlowID `json:"flow_id"`
+}
 
 const childFlowTimeout = 5 * time.Second
 
@@ -267,8 +274,12 @@ func TestListFlowsSkipsChildFlows(t *testing.T) {
 			"%s:%s:%s", "parent-list", parent.ID, token,
 		))
 
-		helpers.WaitForFlowActivated(t,
-			consumer, childFlowTimeout, "parent-list", childID,
+		waitForFlowEvents(t,
+			consumer, childFlowTimeout, api.EventTypeFlowActivated,
+			"parent-list", childID,
+		)
+		waitForFlowEvents(t,
+			consumer, childFlowTimeout, api.EventTypeFlowDeactivated, childID,
 		)
 
 		flows, err := env.Engine.ListFlows()
@@ -366,5 +377,48 @@ func metaToken(meta api.Metadata) api.Token {
 		return api.Token(val)
 	default:
 		return ""
+	}
+}
+
+func waitForFlowEvents(
+	t *testing.T, consumer topic.Consumer[*timebox.Event],
+	timeout time.Duration, eventType api.EventType, flowIDs ...api.FlowID,
+) {
+	t.Helper()
+
+	expected := make(map[api.FlowID]struct{}, len(flowIDs))
+	for _, flowID := range flowIDs {
+		expected[flowID] = struct{}{}
+	}
+
+	filter := helpers.EventDataFilter(
+		events.FilterEvents(timebox.EventType(eventType)),
+		func(data flowEvent) bool {
+			if _, ok := expected[data.FlowID]; ok {
+				delete(expected, data.FlowID)
+				return true
+			}
+			return false
+		},
+	)
+
+	deadline := time.NewTimer(timeout)
+	defer deadline.Stop()
+
+	for len(expected) > 0 {
+		select {
+		case ev, ok := <-consumer.Receive():
+			if !ok {
+				t.Fatalf(
+					"event consumer closed before receiving %d events",
+					len(flowIDs),
+				)
+			}
+			if ev == nil || !filter(ev) {
+				continue
+			}
+		case <-deadline.C:
+			t.Fatalf("timeout waiting for %d events", len(flowIDs))
+		}
 	}
 }
