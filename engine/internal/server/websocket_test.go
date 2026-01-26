@@ -20,6 +20,7 @@ import (
 type (
 	mockEventHub struct {
 		consumers []*mockConsumer
+		created   chan struct{}
 	}
 
 	mockConsumer struct {
@@ -60,6 +61,10 @@ func (m *mockEventHub) NewConsumer() topic.Consumer[*timebox.Event] {
 		closedCh: make(chan struct{}),
 	}
 	m.consumers = append(m.consumers, consumer)
+	select {
+	case m.created <- struct{}{}:
+	default:
+	}
 	return consumer
 }
 
@@ -597,7 +602,7 @@ func TestBuildFilter(t *testing.T) {
 
 func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 	t.Helper()
-	hub := &mockEventHub{}
+	hub := &mockEventHub{created: make(chan struct{}, 1)}
 
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -608,11 +613,21 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 	wsURL := "ws" + strings.TrimPrefix(srv.URL, "http")
 	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
 	assert.NoError(t, err)
+	waitForConsumer(t, hub)
 
 	return &testWebSocketEnv{
 		Server: srv,
 		Hub:    hub,
 		Conn:   conn,
+	}
+}
+
+func waitForConsumer(t *testing.T, hub *mockEventHub) {
+	t.Helper()
+	select {
+	case <-hub.created:
+	case <-time.After(wsReadTimeout):
+		t.Fatalf("timeout waiting for consumer")
 	}
 }
 
