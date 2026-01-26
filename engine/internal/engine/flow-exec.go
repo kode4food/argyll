@@ -432,7 +432,6 @@ func (a *flowActor) scheduleRetry(
 	step := ag.Value().Plan.Steps[stepID]
 
 	if a.ShouldRetry(step, workItem) {
-		now := time.Now()
 		nextRetryAt := a.CalculateNextRetry(
 			step.WorkConfig, workItem.RetryCount,
 		)
@@ -448,11 +447,9 @@ func (a *flowActor) scheduleRetry(
 		); err != nil {
 			return err
 		}
-		if nextRetryAt.After(now) {
-			ag.OnSuccess(func() {
-				a.handleRetryScheduled(stepID, token, nextRetryAt)
-			})
-		}
+		ag.OnSuccess(func() {
+			a.handleRetryScheduled(stepID, token, nextRetryAt)
+		})
 		return nil
 	}
 
@@ -660,6 +657,9 @@ func (a *flowActor) handleWorkItems(
 	exec := ag.Value().Executions[stepID]
 	flow := ag.Value()
 	ag.OnSuccess(func() {
+		for token := range started {
+			a.retryQueue.Remove(a.flowID, stepID, token)
+		}
 		a.handleWorkItemsExecution(
 			stepID, step, exec.Inputs, flow.Metadata, started,
 		)
