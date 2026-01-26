@@ -133,7 +133,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(a.handleFlowCompletedOnSuccess)
+		ag.OnSuccess(a.handleFlowCompleted)
 		ag.OnSuccess(a.handleFlowTerminal)
 		return nil
 	}
@@ -148,7 +148,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 			return err
 		}
 		ag.OnSuccess(func() {
-			a.handleFlowFailedOnSuccess(errMsg)
+			a.handleFlowFailed(errMsg)
 		})
 		ag.OnSuccess(a.handleFlowTerminal)
 		return nil
@@ -156,12 +156,12 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 	return nil
 }
 
-func (a *flowActor) handleFlowCompletedOnSuccess() {
+func (a *flowActor) handleFlowCompleted() {
 	a.raiseFlowDigestUpdated(api.FlowCompleted, "")
 	a.retryQueue.RemoveFlow(a.flowID)
 }
 
-func (a *flowActor) handleFlowFailedOnSuccess(errMsg string) {
+func (a *flowActor) handleFlowFailed(errMsg string) {
 	a.raiseFlowDigestUpdated(api.FlowFailed, errMsg)
 	a.retryQueue.RemoveFlow(a.flowID)
 }
@@ -432,6 +432,7 @@ func (a *flowActor) scheduleRetry(
 	step := ag.Value().Plan.Steps[stepID]
 
 	if a.ShouldRetry(step, workItem) {
+		now := time.Now()
 		nextRetryAt := a.CalculateNextRetry(
 			step.WorkConfig, workItem.RetryCount,
 		)
@@ -447,9 +448,11 @@ func (a *flowActor) scheduleRetry(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func() {
-			a.handleRetryScheduledOnSuccess(stepID, token, nextRetryAt)
-		})
+		if nextRetryAt.After(now) {
+			ag.OnSuccess(func() {
+				a.handleRetryScheduled(stepID, token, nextRetryAt)
+			})
+		}
 		return nil
 	}
 
@@ -519,7 +522,7 @@ func (a *flowActor) handleWorkContinuation(
 	if err != nil {
 		return err
 	}
-	a.handleWorkItemsOnSuccess(ag, stepID, step, started)
+	a.handleWorkItems(ag, stepID, step, started)
 	return nil
 }
 
@@ -531,7 +534,7 @@ func (a *flowActor) handleWorkFailed(
 	if err != nil {
 		return err
 	}
-	a.handleWorkItemsOnSuccess(ag, stepID, step, started)
+	a.handleWorkItems(ag, stepID, step, started)
 	return a.handleStepFailure(ag, stepID)
 }
 
@@ -550,7 +553,7 @@ func (a *flowActor) handleWorkNotCompleted(
 	if err != nil {
 		return err
 	}
-	a.handleWorkItemsOnSuccess(ag, stepID, step, started)
+	a.handleWorkItems(ag, stepID, step, started)
 	return a.handleStepFailure(ag, stepID)
 }
 
@@ -647,7 +650,7 @@ func (a *flowActor) startRetryWorkItem(
 	return started, nil
 }
 
-func (a *flowActor) handleWorkItemsOnSuccess(
+func (a *flowActor) handleWorkItems(
 	ag *FlowAggregator, stepID api.StepID, step *api.Step,
 	started api.WorkItems,
 ) {
@@ -727,7 +730,7 @@ func (a *flowActor) maybeDeactivate(ag *FlowAggregator) {
 	})
 }
 
-func (a *flowActor) handleRetryScheduledOnSuccess(
+func (a *flowActor) handleRetryScheduled(
 	stepID api.StepID, token api.Token, nextRetryAt time.Time,
 ) {
 	a.retryQueue.Push(&RetryItem{
