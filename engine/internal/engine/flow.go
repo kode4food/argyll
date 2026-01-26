@@ -153,22 +153,22 @@ func (e *Engine) ListFlows() ([]*api.FlowsListItem, error) {
 
 	count := len(engState.Active) + len(engState.Deactivated)
 	flowIDs := make([]api.FlowID, 0, count)
-	seen := make(map[api.FlowID]struct{}, count)
+	seen := util.Set[api.FlowID]{}
 	for id, info := range engState.Active {
 		if info != nil && info.ParentFlowID != "" {
 			continue
 		}
-		seen[id] = struct{}{}
+		seen.Add(id)
 		flowIDs = append(flowIDs, id)
 	}
 	for _, info := range engState.Deactivated {
 		if info.ParentFlowID != "" {
 			continue
 		}
-		if _, ok := seen[info.FlowID]; ok {
+		if seen.Contains(info.FlowID) {
 			continue
 		}
-		seen[info.FlowID] = struct{}{}
+		seen.Add(info.FlowID)
 		flowIDs = append(flowIDs, info.FlowID)
 	}
 

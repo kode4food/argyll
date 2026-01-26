@@ -240,8 +240,7 @@ func (e *Engine) executeReadyRetries() {
 			continue
 		}
 
-		workItem, ok := exec.WorkItems[item.Token]
-		if !ok {
+		if _, ok := exec.WorkItems[item.Token]; !ok {
 			continue
 		}
 
@@ -251,22 +250,43 @@ func (e *Engine) executeReadyRetries() {
 		}
 
 		fs := FlowStep{FlowID: item.FlowID, StepID: item.StepID}
-		e.retryWork(fs, step, item.Token, workItem, flow.Metadata)
+		e.retryWork(fs, step, item.Token, flow.Metadata)
 	}
 }
 
 func (e *Engine) retryWork(
-	fs FlowStep, step *api.Step, token api.Token, workItem *api.WorkState,
-	meta api.Metadata,
+	fs FlowStep, step *api.Step, token api.Token, meta api.Metadata,
 ) {
-	execCtx := &ExecContext{
-		engine: e,
-		step:   step,
-		inputs: workItem.Inputs,
-		flowID: fs.FlowID,
-		stepID: fs.StepID,
-		meta:   meta,
+	a := &flowActor{Engine: e, flowID: fs.FlowID}
+	var (
+		started api.WorkItems
+		inputs  api.Args
+	)
+	err := a.execTransaction(func(ag *FlowAggregator) error {
+		exec, ok := ag.Value().Executions[fs.StepID]
+		if ok {
+			inputs = exec.Inputs
+		}
+		var err error
+		started, err = a.startRetryWorkItem(ag, fs.StepID, step, token)
+		if err != nil {
+			return err
+		}
+		if len(started) == 0 {
+			return nil
+		}
+		ag.OnSuccess(func() {
+			a.handleWorkItemsExecution(
+				fs.StepID, step, inputs, meta, started,
+			)
+		})
+		return nil
+	})
+	if err != nil {
+		slog.Error("Failed to retry work item",
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(token),
+			log.Error(err))
 	}
-
-	execCtx.executeWorkItem(token, workItem)
 }

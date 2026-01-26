@@ -3,10 +3,19 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
+
+type parentWork struct {
+	fs    FlowStep
+	token api.Token
+	step  *api.Step
+}
 
 var (
 	getMetaFlowID = api.GetMetaString[api.FlowID]
@@ -58,67 +67,74 @@ func (e *Engine) StartChildFlow(
 	return childID, nil
 }
 
-func (a *flowActor) completeParentWork(flow *api.FlowState) {
-	if flow.Metadata == nil {
-		return
-	}
-
-	parentFlowID, ok := getMetaFlowID(flow.Metadata, api.MetaParentFlowID)
+func (a *flowActor) completeParentWork(st *api.FlowState) {
+	target, ok := a.parentWork(st)
 	if !ok {
 		return
 	}
-	parentStepID, ok := getMetaStepID(flow.Metadata, api.MetaParentStepID)
-	if !ok {
-		return
-	}
-	parentToken, ok := getMetaToken(
-		flow.Metadata, api.MetaParentWorkItemToken,
-	)
-	if !ok {
-		return
-	}
-
-	parentFlow, err := a.GetFlowState(parentFlowID)
-	if err != nil {
-		return
-	}
-
-	exec, ok := parentFlow.Executions[parentStepID]
-	if !ok || exec.WorkItems == nil {
-		return
-	}
-
-	workItem, ok := exec.WorkItems[parentToken]
-	if !ok || workItem == nil {
-		return
-	}
-
-	if isWorkTerminal(workItem.Status) {
-		return
-	}
-
-	step := getPlanStep(parentFlow, parentStepID)
-	if step == nil {
-		return
-	}
-
-	fs := FlowStep{FlowID: parentFlowID, StepID: parentStepID}
-	switch flow.Status {
+	switch st.Status {
 	case api.FlowCompleted:
-		childAttrs := flow.GetAttributes()
-		outputs, err := mapFlowOutputs(step, childAttrs)
+		childAttrs := st.GetAttributes()
+		outputs, err := mapFlowOutputs(target.step, childAttrs)
 		if err != nil {
-			_ = a.FailWork(fs, parentToken, err.Error())
+			_ = a.FailWork(target.fs, target.token, err.Error())
 			return
 		}
-		_ = a.CompleteWork(fs, parentToken, outputs)
+		_ = a.CompleteWork(target.fs, target.token, outputs)
 	case api.FlowFailed:
-		errMsg := flow.Error
+		errMsg := st.Error
 		if errMsg == "" {
 			errMsg = "child flow failed"
 		}
-		_ = a.FailWork(fs, parentToken, errMsg)
+		_ = a.FailWork(target.fs, target.token, errMsg)
 	}
+}
+
+func (a *flowActor) parentWork(st *api.FlowState) (*parentWork, bool) {
+	target := &parentWork{}
+	if !a.parentMeta(st, target) {
+		return nil, false
+	}
+
+	parentFlow, err := a.GetFlowState(target.fs.FlowID)
+	if err != nil {
+		return nil, false
+	}
+
+	exec := parentFlow.Executions[target.fs.StepID]
+	workItem := exec.WorkItems[target.token]
+	if isWorkTerminal(workItem.Status) {
+		return nil, false
+	}
+
+	target.step = parentFlow.Plan.Steps[target.fs.StepID]
+	return target, true
+}
+
+func (a *flowActor) parentMeta(st *api.FlowState, target *parentWork) bool {
+	if st.Metadata == nil {
+		return false
+	}
+
+	flowID, hasFlowID := getMetaFlowID(st.Metadata, api.MetaParentFlowID)
+	stepID, hasStepID := getMetaStepID(st.Metadata, api.MetaParentStepID)
+	token, hasToken := getMetaToken(st.Metadata, api.MetaParentWorkItemToken)
+
+	if !hasFlowID || !hasStepID || !hasToken {
+		if !hasFlowID && !hasStepID && !hasToken {
+			return false
+		}
+		slog.Error("Invalid parent metadata",
+			log.FlowID(st.ID),
+			slog.Bool("has_parent_flow_id", hasFlowID),
+			slog.Bool("has_parent_step_id", hasStepID),
+			slog.Bool("has_parent_token", hasToken))
+		return false
+	}
+
+	target.fs = FlowStep{FlowID: flowID, StepID: stepID}
+	target.token = token
+	return true
 }
 
 func childFlowID(parent FlowStep, token api.Token) api.FlowID {
@@ -154,13 +170,13 @@ func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
 	}
 
 	outputs := api.Args{}
-	outputSet := map[api.Name]struct{}{}
+	outputSet := util.Set[api.Name]{}
 	for _, name := range step.GetOutputArgs() {
-		outputSet[name] = struct{}{}
+		outputSet.Add(name)
 	}
 
 	for childName, outputName := range step.Flow.OutputMap {
-		if _, ok := outputSet[outputName]; !ok {
+		if !outputSet.Contains(outputName) {
 			continue
 		}
 		value, ok := childAttrs[childName]
@@ -180,14 +196,4 @@ func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
 	}
 
 	return outputs, nil
-}
-
-func getPlanStep(flow *api.FlowState, stepID api.StepID) *api.Step {
-	if flow.Plan == nil {
-		return nil
-	}
-	if flow.Plan.Steps == nil {
-		return nil
-	}
-	return flow.Plan.Steps[stepID]
 }

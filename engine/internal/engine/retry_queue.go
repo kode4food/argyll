@@ -79,10 +79,7 @@ func (q *RetryQueue) Remove(
 		StepID: stepID,
 		Token:  token,
 	}
-	item, ok := q.items[key]
-	if !ok {
-		return
-	}
+	item := q.items[key]
 
 	delete(q.items, key)
 	if q.next == item {

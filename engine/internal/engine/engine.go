@@ -48,7 +48,6 @@ var (
 	ErrStepExists          = errors.New("step exists")
 	ErrScriptCompileFailed = errors.New("failed to compile scripts for plan")
 	ErrStepNotInPlan       = errors.New("step not in execution plan")
-	ErrInvalidTransition   = errors.New("invalid step status transition")
 )
 
 // New creates a new orchestrator instance with the specified stores, client,

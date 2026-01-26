@@ -367,7 +367,9 @@ func TestListFlows(t *testing.T) {
 }
 
 func TestIsFlowFailed(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
 		stepA := helpers.NewStepWithOutputs("step-a", "value")
 
 		stepB := helpers.NewSimpleStep("step-b")
@@ -383,24 +385,40 @@ func TestIsFlowFailed(t *testing.T) {
 				stepB.ID: stepB,
 			},
 		}
+		plan.Attributes = api.AttributeGraph{}.AddStep(stepA).AddStep(stepB)
 
-		err := eng.RegisterStep(stepA)
+		err := env.Engine.RegisterStep(stepA)
 		testify.NoError(t, err)
-		err = eng.RegisterStep(stepB)
+		err = env.Engine.RegisterStep(stepB)
 		testify.NoError(t, err)
-
-		err = eng.StartFlow("wf-failed-test", plan, api.Args{}, api.Metadata{})
-		testify.NoError(t, err)
-
-		// Fail step-a directly via FailStepExecution (step will be started)
-		fs := engine.FlowStep{FlowID: "wf-failed-test", StepID: "step-a"}
-		err = eng.FailStepExecution(fs, "test error")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(
+			"wf-failed-test", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
-		flow, err := eng.GetFlowState("wf-failed-test")
+		helpers.WaitForWorkStarted(t,
+			consumer, "wf-failed-test", stepA.ID, 1, 5*time.Second,
+		)
+
+		flow, err := env.Engine.GetFlowState("wf-failed-test")
 		testify.NoError(t, err)
 
-		isFailed := eng.IsFlowFailed(flow)
+		exec := flow.Executions[stepA.ID]
+		var token api.Token
+		for id := range exec.WorkItems {
+			token = id
+			break
+		}
+
+		fs := engine.FlowStep{FlowID: "wf-failed-test", StepID: stepA.ID}
+		err = env.Engine.FailWork(fs, token, "test error")
+		testify.NoError(t, err)
+
+		flow, err = env.Engine.GetFlowState("wf-failed-test")
+		testify.NoError(t, err)
+
+		isFailed := env.Engine.IsFlowFailed(flow)
 		testify.True(t, isFailed)
 	})
 }

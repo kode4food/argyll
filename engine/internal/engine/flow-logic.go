@@ -39,10 +39,7 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 }
 
 func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
-	step, ok := flow.Plan.Steps[stepID]
-	if !ok {
-		return false
-	}
+	step := flow.Plan.Steps[stepID]
 
 	if isGoalStep(stepID, flow.Plan.Goals) {
 		return true
@@ -61,8 +58,8 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 }
 
 func (a *flowActor) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
-	exec, ok := flow.Executions[stepID]
-	if ok && exec.Status != api.StepPending {
+	exec := flow.Executions[stepID]
+	if exec.Status != api.StepPending {
 		return false
 	}
 	if !a.hasRequired(stepID, flow) {
@@ -72,10 +69,7 @@ func (a *flowActor) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
 }
 
 func (a *flowActor) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
-	step, ok := flow.Plan.Steps[stepID]
-	if !ok {
-		return false
-	}
+	step := flow.Plan.Steps[stepID]
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
 			if _, ok := flow.Attributes[name]; !ok {
@@ -120,10 +114,7 @@ func (a *flowActor) findReadySteps(
 func (a *flowActor) getDownstreamConsumers(
 	stepID api.StepID, flow *api.FlowState,
 ) []api.StepID {
-	step, ok := flow.Plan.Steps[stepID]
-	if !ok {
-		return nil
-	}
+	step := flow.Plan.Steps[stepID]
 
 	seen := util.Set[api.StepID]{}
 	var consumers []api.StepID

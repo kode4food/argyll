@@ -81,63 +81,20 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 // Work item execution functions
 
 func (e *ExecContext) executeWorkItems(items api.WorkItems) {
-	parallelism := 0
-	if e.step.WorkConfig != nil {
-		parallelism = e.step.WorkConfig.Parallelism
-	}
-
-	sem := make(chan struct{}, max(1, parallelism))
-
 	for token, workItem := range items {
 		if workItem.Status != api.WorkActive {
 			continue
 		}
 
-		go func(token api.Token, workItem *api.WorkState) {
-			sem <- struct{}{}
-			defer func() { <-sem }()
-
-			e.performWorkItem(token, workItem)
-		}(token, workItem)
+		go e.performWorkItem(token, workItem)
 	}
-}
-
-func (e *ExecContext) executeWorkItem(
-	token api.Token, workItem *api.WorkState,
-) {
-	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	if workItem.Status != api.WorkActive {
-		shouldExecute, err := e.engine.evaluateStepPredicate(
-			e.step, workItem.Inputs,
-		)
-		if err != nil {
-			_ = e.engine.FailStepExecution(fs, err.Error())
-			return
-		}
-		if !shouldExecute {
-			return
-		}
-		if err := e.engine.StartWork(fs, token, workItem.Inputs); err != nil {
-			return
-		}
-	}
-
-	e.performWorkItem(token, workItem)
 }
 
 func (e *ExecContext) performWorkItem(
 	token api.Token, workItem *api.WorkState,
 ) {
-	outputs, err := e.performWork(workItem.Inputs, token)
-
-	if err != nil {
+	if err := e.performWork(workItem.Inputs, token); err != nil {
 		e.handleWorkItemFailure(token, err)
-		return
-	}
-
-	if !isAsyncStep(e.step.Type) {
-		fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
-		_ = e.engine.CompleteWork(fs, token, outputs)
 	}
 }
 
@@ -152,54 +109,71 @@ func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 	_ = e.engine.FailWork(fs, token, err.Error())
 }
 
-func (e *ExecContext) performWork(
-	inputs api.Args, token api.Token,
-) (api.Args, error) {
+func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
 	switch e.step.Type {
 	case api.StepTypeScript:
-		return e.performScriptWork(inputs)
-	case api.StepTypeSync, api.StepTypeAsync:
-		return e.performHTTPWork(inputs, token)
+		return e.performScript(inputs, token)
+	case api.StepTypeSync:
+		return e.performSyncHTTP(inputs, token)
+	case api.StepTypeAsync:
+		return e.performAsyncHTTP(inputs, token)
 	case api.StepTypeFlow:
-		return e.performFlowWork(inputs, token)
+		return e.performFlow(inputs, token)
 	default:
-		return nil, ErrUnsupportedStepType
+		return ErrUnsupportedStepType
 	}
 }
 
-func (e *ExecContext) performScriptWork(inputs api.Args) (api.Args, error) {
+func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
 	c, err := e.engine.GetCompiledScript(FlowStep{
 		FlowID: e.flowID,
 		StepID: e.stepID,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
+		return fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
 	}
 
 	if c == nil {
-		return nil, ErrScriptCompileFailed
+		return ErrScriptCompileFailed
 	}
 
-	return e.executeScript(c, inputs)
+	outputs, err := e.executeScript(c, inputs)
+	if err != nil {
+		return err
+	}
+
+	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	return e.engine.CompleteWork(fs, token, outputs)
 }
 
-func (e *ExecContext) performHTTPWork(
-	inputs api.Args, token api.Token,
-) (api.Args, error) {
+func (e *ExecContext) performSyncHTTP(inputs api.Args, token api.Token) error {
 	metadata := e.httpMetaForToken(token)
-	return e.engine.stepClient.Invoke(e.step, inputs, metadata)
+	outputs, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
+	if err != nil {
+		return err
+	}
+
+	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	return e.engine.CompleteWork(fs, token, outputs)
 }
 
-func (e *ExecContext) performFlowWork(
-	initState api.Args, token api.Token,
-) (api.Args, error) {
+func (e *ExecContext) performAsyncHTTP(inputs api.Args, token api.Token) error {
+	metadata := e.httpMetaForToken(token)
+	metadata[api.MetaWebhookURL] = fmt.Sprintf("%s/webhook/%s/%s/%s",
+		e.engine.config.WebhookBaseURL, e.flowID, e.stepID, token,
+	)
+	_, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
+	return err
+}
+
+func (e *ExecContext) performFlow(initState api.Args, token api.Token) error {
 	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	mappedState := mapFlowInputs(e.step, initState)
 	_, err := e.engine.StartChildFlow(fs, token, e.step, mappedState)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return nil, nil
+	return nil
 }
 
 func (e *ExecContext) httpMetaForToken(token api.Token) api.Metadata {
@@ -211,14 +185,6 @@ func (e *ExecContext) httpMetaForToken(token api.Token) api.Metadata {
 	metadata[api.MetaFlowID] = e.flowID
 	metadata[api.MetaStepID] = e.stepID
 	metadata[api.MetaReceiptToken] = token
-
-	if isAsyncStep(e.step.Type) {
-		metadata[api.MetaWebhookURL] = fmt.Sprintf(
-			"%s/webhook/%s/%s/%s",
-			e.engine.config.WebhookBaseURL, e.flowID, e.stepID, token,
-		)
-	}
-
 	return metadata
 }
 
