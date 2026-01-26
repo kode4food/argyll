@@ -121,7 +121,8 @@ var (
 	ErrInvalidBackoffType    = errors.New("invalid backoff type")
 	ErrAttributeNil          = errors.New("attribute has nil definition")
 	ErrNegativeBackoff       = errors.New("backoff_ms cannot be negative")
-	ErrMaxBackoffTooSmall    = errors.New("max_backoff_ms must be >= backoff_ms")
+	ErrMaxBackoffTooSmall    = errors.New("max_backoff_ms must be >= " +
+		"backoff_ms")
 	ErrWorkNotCompleted      = errors.New("work not completed")
 )
 

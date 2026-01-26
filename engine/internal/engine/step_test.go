@@ -175,7 +175,8 @@ func TestStepMissingPlan(t *testing.T) {
 		testify.NoError(t, err)
 
 		err = eng.FailStepExecution(
-			engine.FlowStep{FlowID: "wf-missing-plan-step", StepID: "nope"}, "boom",
+			engine.FlowStep{FlowID: "wf-missing-plan-step", StepID: "nope"},
+			"boom",
 		)
 		testify.ErrorIs(t, err, engine.ErrStepNotInPlan)
 	})
@@ -196,15 +197,19 @@ func TestStepInvalidTransition(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(
 			"wf-transition", plan, api.Args{}, api.Metadata{},
 		)
 		testify.NoError(t, err)
 
-		env.WaitForStepStatus(t, "wf-transition", step.ID, 5*time.Second)
+		helpers.WaitForStepTerminalEvent(t,
+			consumer, "wf-transition", step.ID, 5*time.Second,
+		)
 
 		err = env.Engine.FailStepExecution(
-			engine.FlowStep{FlowID: "wf-transition", StepID: step.ID}, "late",
+			engine.FlowStep{FlowID: "wf-transition", StepID: step.ID},
+			"late",
 		)
 		testify.ErrorIs(t, err, engine.ErrInvalidTransition)
 	})

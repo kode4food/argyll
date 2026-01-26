@@ -72,6 +72,17 @@ func EventDataFilter[T any](
 	}
 }
 
+// WaitForEventData waits for matching event data for the given filter
+func WaitForEventData[T any](
+	t *testing.T, consumer topic.Consumer[*timebox.Event],
+	typeFilter events.EventFilter, predicate func(T) bool, count int,
+	timeout time.Duration,
+) {
+	t.Helper()
+	filter := EventDataFilter(typeFilter, predicate)
+	WaitForEvents(t, consumer, filter, count, timeout)
+}
+
 // WaitForFlowEvents waits for one event per flow ID for the given types
 func WaitForFlowEvents(
 	t *testing.T, consumer topic.Consumer[*timebox.Event], flowIDs []api.FlowID,
@@ -84,7 +95,7 @@ func WaitForFlowEvents(
 		expected[flowID] = struct{}{}
 	}
 
-	filter := EventDataFilter(
+	WaitForEventData(t, consumer,
 		events.FilterEvents(toTimeboxTypes(eventTypes)...),
 		func(data flowEvent) bool {
 			if _, ok := expected[data.FlowID]; ok {
@@ -93,9 +104,8 @@ func WaitForFlowEvents(
 			}
 			return false
 		},
+		len(flowIDs), timeout,
 	)
-
-	WaitForEvents(t, consumer, filter, len(flowIDs), timeout)
 }
 
 // WaitForFlowStarted waits for flow start events for the given IDs
@@ -143,6 +153,28 @@ func WaitForFlowTerminal(
 	)
 }
 
+// WaitForFlowCompleted waits for flow completion events for the given IDs
+func WaitForFlowCompleted(
+	t *testing.T, consumer topic.Consumer[*timebox.Event],
+	timeout time.Duration, flowIDs ...api.FlowID,
+) {
+	t.Helper()
+	WaitForFlowEvents(t,
+		consumer, flowIDs, timeout, api.EventTypeFlowCompleted,
+	)
+}
+
+// WaitForFlowFailed waits for flow failure events for the given IDs
+func WaitForFlowFailed(
+	t *testing.T, consumer topic.Consumer[*timebox.Event],
+	timeout time.Duration, flowIDs ...api.FlowID,
+) {
+	t.Helper()
+	WaitForFlowEvents(t,
+		consumer, flowIDs, timeout, api.EventTypeFlowFailed,
+	)
+}
+
 // WaitForStepEvents waits for matching step events for the given flow/step
 func WaitForStepEvents(
 	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
@@ -151,14 +183,13 @@ func WaitForStepEvents(
 ) {
 	t.Helper()
 
-	filter := EventDataFilter(
+	WaitForEventData(t, consumer,
 		events.FilterEvents(toTimeboxTypes(eventTypes)...),
 		func(data stepEvent) bool {
 			return data.FlowID == flowID && data.StepID == stepID
 		},
+		count, timeout,
 	)
-
-	WaitForEvents(t, consumer, filter, count, timeout)
 }
 
 // WaitForWorkEvents waits for matching work events for the given flow/step
@@ -173,6 +204,74 @@ func WaitForWorkEvents(
 	)
 }
 
+// WaitForStepStartedEvent waits for step started events
+func WaitForStepStartedEvent(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, timeout time.Duration,
+) {
+	t.Helper()
+	WaitForStepEvents(t,
+		consumer, flowID, stepID, 1, timeout, api.EventTypeStepStarted,
+	)
+}
+
+// WaitForStepTerminalEvent waits for step completion, failure, or skip events
+func WaitForStepTerminalEvent(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, timeout time.Duration,
+) {
+	t.Helper()
+	WaitForStepEvents(t,
+		consumer, flowID, stepID, 1, timeout, api.EventTypeStepCompleted,
+		api.EventTypeStepFailed, api.EventTypeStepSkipped,
+	)
+}
+
+// WaitForWorkStarted waits for work started events
+func WaitForWorkStarted(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+) {
+	t.Helper()
+	WaitForWorkEvents(t,
+		consumer, flowID, stepID, count, timeout, api.EventTypeWorkStarted,
+	)
+}
+
+// WaitForWorkSucceeded waits for work succeeded events
+func WaitForWorkSucceeded(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+) {
+	t.Helper()
+	WaitForWorkEvents(t,
+		consumer, flowID, stepID, count, timeout, api.EventTypeWorkSucceeded,
+	)
+}
+
+// WaitForWorkFailed waits for work failed events
+func WaitForWorkFailed(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+) {
+	t.Helper()
+	WaitForWorkEvents(t,
+		consumer, flowID, stepID, count, timeout, api.EventTypeWorkFailed,
+	)
+}
+
+// WaitForWorkRetryScheduled waits for retry scheduled events
+func WaitForWorkRetryScheduled(
+	t *testing.T, consumer topic.Consumer[*timebox.Event], flowID api.FlowID,
+	stepID api.StepID, count int, timeout time.Duration,
+) {
+	t.Helper()
+	WaitForWorkEvents(t,
+		consumer, flowID, stepID, count, timeout,
+		api.EventTypeRetryScheduled,
+	)
+}
+
 // WaitForStepHealth waits for a step health change to the target status
 func WaitForStepHealth(
 	t *testing.T, consumer topic.Consumer[*timebox.Event], stepID api.StepID,
@@ -180,16 +279,15 @@ func WaitForStepHealth(
 ) {
 	t.Helper()
 
-	filter := EventDataFilter(
+	WaitForEventData(t, consumer,
 		events.FilterEvents(
 			timebox.EventType(api.EventTypeStepHealthChanged),
 		),
 		func(data api.StepHealthChangedEvent) bool {
 			return data.StepID == stepID && data.Status == status
 		},
+		1, timeout,
 	)
-
-	WaitForEvents(t, consumer, filter, 1, timeout)
 }
 
 // WaitForEngineEvents waits for engine aggregate events of the given types

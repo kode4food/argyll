@@ -291,9 +291,8 @@ func TestRetryExhaustion(t *testing.T) {
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		helpers.WaitForWorkEvents(t,
-			consumer, flowID, "failing-step", 1,
-			5*time.Second, api.EventTypeRetryScheduled,
+		helpers.WaitForWorkRetryScheduled(t,
+			consumer, flowID, "failing-step", 1, 5*time.Second,
 		)
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -651,10 +650,13 @@ func TestWorkActiveItems(t *testing.T) {
 		}
 
 		flowID := api.FlowID("active-work-flow")
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
+		helpers.WaitForStepStartedEvent(t,
+			consumer, flowID, step.ID, 5*time.Second,
+		)
 
 		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -685,10 +687,13 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 		}
 
 		flowID := api.FlowID("pending-active-flow")
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
+		helpers.WaitForStepStartedEvent(t,
+			consumer, flowID, step.ID, 5*time.Second,
+		)
 
 		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -723,9 +728,8 @@ func TestFailedWorkRetryable(t *testing.T) {
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		helpers.WaitForWorkEvents(t,
-			consumer, flowID, "failing-step", 1,
-			5*time.Second, api.EventTypeRetryScheduled,
+		helpers.WaitForWorkRetryScheduled(t,
+			consumer, flowID, "failing-step", 1, 5*time.Second,
 		)
 
 		err = env.Engine.RecoverFlow(flowID)

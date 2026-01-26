@@ -110,11 +110,12 @@ func TestSetAttribute(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow("wf-attr", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
 		// Wait for flow to complete
-		env.WaitForFlowStatus(t, "wf-attr", testTimeout)
+		helpers.WaitForFlowCompleted(t, consumer, testTimeout, "wf-attr")
 
 		a := assert.New(t)
 		a.FlowStateEquals(env.Engine, "wf-attr", "test_key", "test_value")
@@ -142,7 +143,9 @@ func TestGetAttributes(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-getattrs", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(
+			"wf-getattrs", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete
@@ -181,7 +184,9 @@ func TestDuplicateFirstWins(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow("wf-dup-attr", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(
+			"wf-dup-attr", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete
@@ -212,7 +217,9 @@ func TestCompleteFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-complete", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(
+			"wf-complete", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete automatically
@@ -239,11 +246,15 @@ func TestFailFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow("wf-fail", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
 		// Wait for flow to fail automatically
-		flow := env.WaitForFlowStatus(t, "wf-fail", testTimeout)
+		helpers.WaitForFlowFailed(t, consumer, testTimeout, "wf-fail")
+
+		flow, err := env.Engine.GetFlowState("wf-fail")
+		testify.NoError(t, err)
 		a.FlowStatus(flow, api.FlowFailed)
 		testify.Contains(t, flow.Error, "test error")
 	})
@@ -266,11 +277,18 @@ func TestSkipStep(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		consumer := env.EventHub.NewConsumer()
 		err = env.Engine.StartFlow("wf-skip", plan, api.Args{}, api.Metadata{})
 		testify.NoError(t, err)
 
 		// Wait for step to be skipped
-		exec := env.WaitForStepStatus(t, "wf-skip", "step-skip", testTimeout)
+		helpers.WaitForStepTerminalEvent(t,
+			consumer, "wf-skip", "step-skip", testTimeout,
+		)
+
+		flow, err := env.Engine.GetFlowState("wf-skip")
+		testify.NoError(t, err)
+		exec := flow.Executions["step-skip"]
 		testify.NotNil(t, exec)
 		testify.Equal(t, api.StepSkipped, exec.Status)
 		testify.Equal(t, "predicate returned false", exec.Error)
@@ -306,7 +324,9 @@ func TestStartFlowSimple(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow("wf-simple", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(
+			"wf-simple", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-simple")
@@ -437,7 +457,9 @@ func TestHasInputProvider(t *testing.T) {
 		err = eng.RegisterStep(stepB)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow("wf-provider-test", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow(
+			"wf-provider-test", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-provider-test")
@@ -465,7 +487,9 @@ func TestHasInputProviderNone(t *testing.T) {
 		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow("wf-no-provider-test", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow(
+			"wf-no-provider-test", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-no-provider-test")
@@ -490,7 +514,9 @@ func TestStepProvidesInput(t *testing.T) {
 		err := eng.RegisterStep(stepA)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow("wf-provides-test", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow(
+			"wf-provides-test", plan, api.Args{}, api.Metadata{},
+		)
 		testify.NoError(t, err)
 
 		outputArgs := stepA.GetOutputArgs()

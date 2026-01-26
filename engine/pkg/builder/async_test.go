@@ -18,7 +18,8 @@ func TestNewAsyncContext(t *testing.T) {
 	meta := api.Metadata{
 		api.MetaFlowID:     "test-flow",
 		api.MetaStepID:     "test-step",
-		api.MetaWebhookURL: "http://localhost:8080/webhook/test-flow/test-step/t123",
+		api.MetaWebhookURL: "http://localhost:8080/webhook/" +
+			"test-flow/test-step/t123",
 	}
 
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)

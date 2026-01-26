@@ -301,6 +301,229 @@ func TestMetadataEmpty(t *testing.T) {
 	assert.Nil(t, last)
 }
 
+func TestWaitForFlowCompletedEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("completed-step")
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-completed-event")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForFlowCompleted(t, consumer, 5*time.Second, flowID)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+	})
+}
+
+func TestWaitForFlowFailedEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("failed-step")
+		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetError(step.ID, assert.AnError)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-failed-event")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForFlowFailed(t, consumer, 5*time.Second, flowID)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, flow.Status)
+	})
+}
+
+func TestWaitForStepStartedEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("started-step")
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-step-started")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForStepStartedEvent(t,
+			consumer, flowID, step.ID, 5*time.Second,
+		)
+	})
+}
+
+func TestWaitForStepTerminalEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("terminal-step")
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-step-terminal")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForStepTerminalEvent(t,
+			consumer, flowID, step.ID, 5*time.Second,
+		)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		exec := flow.Executions[step.ID]
+		assert.NotNil(t, exec)
+		assert.Equal(t, api.StepCompleted, exec.Status)
+	})
+}
+
+func TestWaitForWorkSucceededEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("work-succeeded")
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-work-succeeded")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForWorkSucceeded(t,
+			consumer, flowID, step.ID, 1, 5*time.Second,
+		)
+	})
+}
+
+func TestWaitForWorkFailedEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("work-failed")
+		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetError(step.ID, assert.AnError)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-work-failed")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForWorkFailed(t,
+			consumer, flowID, step.ID, 1, 5*time.Second,
+		)
+	})
+}
+
+func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("work-retry")
+		step.WorkConfig = &api.WorkConfig{
+			MaxRetries:   2,
+			BackoffMs:    10,
+			MaxBackoffMs: 10,
+			BackoffType:  api.BackoffTypeFixed,
+		}
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("flow-work-retry")
+		consumer := env.EventHub.NewConsumer()
+		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		assert.NoError(t, err)
+
+		helpers.WaitForWorkRetryScheduled(t,
+			consumer, flowID, step.ID, 1, 5*time.Second,
+		)
+	})
+}
+
+func TestWaitForEngineEvents(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("engine-events")
+		consumer := env.EventHub.NewConsumer()
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		helpers.WaitForEngineEvents(t,
+			consumer, 1, 5*time.Second, api.EventTypeStepRegistered,
+		)
+	})
+}
+
 func TestWaitFlowCompleted(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()

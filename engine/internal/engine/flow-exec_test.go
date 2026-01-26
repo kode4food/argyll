@@ -57,7 +57,9 @@ func TestLinearFlowCompletes(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow("wf-linear", plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(
+			"wf-linear", plan, api.Args{}, api.Metadata{},
+		)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-linear", testTimeout)

@@ -43,12 +43,21 @@ func TestOptionalDefaults(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-defaults", plan, api.Args{
+		flowID := api.FlowID("wf-defaults")
+		workConsumer := env.EventHub.NewConsumer()
+		flowConsumer := env.EventHub.NewConsumer()
+		err := env.Engine.StartFlow(flowID, plan, api.Args{
 			"input": "value",
 		}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, "wf-defaults", workExecTimeout)
+		helpers.WaitForWorkSucceeded(t,
+			workConsumer, flowID, step.ID, 1, workExecTimeout,
+		)
+		helpers.WaitForFlowCompleted(t, flowConsumer, workExecTimeout, flowID)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -72,12 +81,21 @@ func TestIncompleteWorkFails(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		flowID := api.FlowID("wf-not-complete")
+		workConsumer := env.EventHub.NewConsumer()
+		flowConsumer := env.EventHub.NewConsumer()
 		err := env.Engine.StartFlow(
-			"wf-not-complete", plan, api.Args{}, api.Metadata{},
+			flowID, plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, "wf-not-complete", workExecTimeout)
+		helpers.WaitForWorkFailed(t,
+			workConsumer, flowID, step.ID, 1, workExecTimeout,
+		)
+		helpers.WaitForFlowFailed(t, flowConsumer, workExecTimeout, flowID)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -105,12 +123,17 @@ func TestWorkFailure(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
+		flowID := api.FlowID("wf-failure")
+		consumer := env.EventHub.NewConsumer()
 		err := env.Engine.StartFlow(
-			"wf-failure", plan, api.Args{}, api.Metadata{},
+			flowID, plan, api.Args{}, api.Metadata{},
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, "wf-failure", workExecTimeout)
+		helpers.WaitForFlowFailed(t, consumer, workExecTimeout, flowID)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -186,9 +209,8 @@ func TestAsyncMetadata(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		helpers.WaitForWorkEvents(t,
-			consumer, "wf-async-meta", step.ID, 1,
-			workExecTimeout, api.EventTypeWorkStarted,
+		helpers.WaitForWorkStarted(t,
+			consumer, "wf-async-meta", step.ID, 1, workExecTimeout,
 		)
 
 		assert.True(t, env.MockClient.WaitForInvocation(
