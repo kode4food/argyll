@@ -9,7 +9,7 @@ Single lowercase letter, first letter of type name:
 ```go
 // Good
 func (e *Engine) Start() {}
-func (a *flowActor) process() {}
+func (tx *flowTx) process() {}
 func (s *Store) Get() {}
 func (c *Client) Do() {}
 

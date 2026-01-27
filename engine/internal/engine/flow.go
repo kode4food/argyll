@@ -85,10 +85,6 @@ func (e *Engine) CompleteWork(
 	})
 }
 
-func (tx *flowTx) handleWorkSucceededCleanup(fs FlowStep, token api.Token) {
-	tx.retryQueue.Remove(fs.FlowID, fs.StepID, token)
-}
-
 // FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
@@ -201,6 +197,10 @@ func (e *Engine) execFlow(
 	flowID timebox.AggregateID, cmd timebox.Command[*api.FlowState],
 ) (*api.FlowState, error) {
 	return e.flowExec.Exec(e.ctx, flowID, cmd)
+}
+
+func (tx *flowTx) handleWorkSucceededCleanup(fs FlowStep, token api.Token) {
+	tx.retryQueue.Remove(fs.FlowID, fs.StepID, token)
 }
 
 func flowKey(flowID api.FlowID) timebox.AggregateID {

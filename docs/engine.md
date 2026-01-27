@@ -643,21 +643,13 @@ A flow maintains several pieces of state:
 
 **Flow status**: Whether the flow itself is active, completed, or failed.
 
-### The Actor Model
+### Flow Event Processing
 
-The engine uses an actor-based concurrency model for flow execution. This is a specific architectural pattern that provides safety and efficiency.
+Flows advance when events are raised against their aggregates. Events come from API entrypoints (StartFlow, work completions), step execution (sync work completion), async callbacks (webhook completions), child flow completions, and retry timers. Each event is applied to the flow aggregate using the timebox executor with optimistic concurrency.
 
-**What is an actor?** An actor is an independent unit of computation that processes messages sequentially. Each flow gets its own actor—a dedicated goroutine that handles all events for that flow.
+Flows can have many steps executing concurrently, producing outputs and triggering downstream steps. Without careful synchronization, this could lead to race conditions and inconsistent state. The engine avoids this by applying each event inside a transaction and letting the executor retry on version conflicts. State transitions are derived from the event log, not in-place mutation.
 
-**Why actors?** Flows can have many steps executing concurrently, producing outputs and triggering downstream steps. Without careful synchronization, this could lead to race conditions and inconsistent state. The actor model solves this by funneling all state changes through a single sequential event handler.
-
-Here's how it works:
-
-The engine has a global event loop that receives all events from all flows. When an event arrives (like "work item succeeded"), the event loop routes it to the appropriate flow's actor by sending it on that actor's event channel.
-
-The actor's goroutine continuously reads from its event channel and processes events one at a time, in order. This serial processing means there's no concurrent access to flow state, eliminating race conditions.
-
-Each flow actor has a 100ms idle timeout. If no events arrive for 100ms, the actor assumes the flow is quiescent (either completed, failed, or waiting for external events) and exits. If more events arrive later, a new actor is spawned automatically.
+Work items are keyed by tokens. When a completion arrives, the token identifies the specific work item to update inside the flow's execution state.
 
 ### Engine Startup and Recovery
 
@@ -675,11 +667,7 @@ For each active flow, the engine:
 
 This ensures that flows continue from where they left off, without losing any work or requiring manual intervention.
 
-After recovery completes, the engine starts two background goroutines:
-
-**Event loop**: Continuously reads events from the event consumer and routes them to flow actors.
-
-**Retry loop**: Uses a timer-based queue that wakes at the exact time of the next scheduled retry. When a `RetryScheduledEvent` is received, the retry is added to the queue. The loop sleeps until the earliest retry time, then executes all ready retries.
+After recovery completes, the engine starts a background retry loop that uses a timer-based queue. When a `RetryScheduledEvent` is recorded for a work item, the retry is added to the queue. The loop sleeps until the earliest retry time, then executes all ready retries.
 
 ### Starting a Flow
 
@@ -691,9 +679,7 @@ When you call the StartFlow API, several things happen:
 
 **Event emission**: A "FlowStartedEvent" is created and persisted to the event log. This event contains the plan and initial state.
 
-**Actor creation**: When the event loop sees the FlowStartedEvent, it creates a new flow actor (if one doesn't already exist for this flow) and routes the event to it.
-
-**Initial step discovery**: The actor processes the FlowStartedEvent by finding all steps that can start immediately (those whose inputs are all available in the initial state) and preparing them for execution.
+**Initial step discovery**: The FlowStartedEvent is applied in a transaction, which finds all steps that can start immediately (those whose inputs are all available in the initial state) and prepares them for execution. Work execution is scheduled after the transaction commits.
 
 At this point, the flow is active and steps begin executing.
 
@@ -942,7 +928,7 @@ A flow reaches completion when one of two conditions is met:
 
 **Failure**: Any goal step cannot complete (either failed directly or became unreachable due to dependency failures). The flow transitions to "failed" status and a "FlowFailedEvent" is emitted.
 
-In both cases, the flow is terminal—no more steps will execute, and the flow actor will exit after its idle timeout.
+In both cases, the flow is terminal—no more steps will execute, and the flow will be deactivated once no active work remains.
 
 ### Event Sourcing and State Reconstruction
 
@@ -1186,9 +1172,9 @@ Deferred execution (the actual step work) happens outside the transaction to avo
 
 The engine achieves high concurrency while maintaining safety through several mechanisms:
 
-**Global event loop**: Single goroutine receives all events and routes them.
+**Event-sourced state**: All state changes are events applied to aggregates.
 
-**Per-flow actors**: Each flow has a dedicated goroutine that processes events serially.
+**Optimistic concurrency**: Aggregate updates are transactional with automatic retry on conflicts.
 
 **Work item parallelism**: Within a step, multiple work items execute concurrently, controlled by semaphore.
 
@@ -1200,7 +1186,7 @@ This architecture allows:
 - Multiple flows executing concurrently (true parallelism across flows)
 - Serial processing within each flow (safety and consistency)
 - Parallel work items within each step (performance optimization)
-- No manual locking required (actor model handles synchronization)
+- No manual locking required (serial flow processing handles synchronization)
 
 ### The Complete Execution Flow
 
@@ -1209,7 +1195,7 @@ To tie it all together, here's the journey of a flow from start to finish:
 1. **StartFlow called** with goals and initial state
 2. **Plan generated** by recursive dependency resolution
 3. **FlowStartedEvent emitted** and persisted
-4. **Flow actor created** and event routed to it
+4. **FlowStartedEvent applied** to the flow aggregate
 5. **Initial steps discovered** (inputs satisfied by initial state)
 6. **Each initial step prepared**: inputs collected, predicate evaluated, work items computed
 7. **Work items execute** in parallel (controlled by parallelism limit)
@@ -1220,10 +1206,10 @@ To tie it all together, here's the journey of a flow from start to finish:
 12. **Eventually all reachable steps complete**
 13. **Flow completion checked**: all goals completed?
 14. **FlowCompletedEvent emitted**
-15. **Flow actor idles and exits**
+15. **Flow deactivated** once no active work remains
 
 If any step fails and is a goal or causes a goal to become unreachable, the flow fails instead of completing.
 
 If any work item needs retry, it's scheduled and re-executed later, potentially delaying completion.
 
-This entire process is driven by events, coordinated by actors, and persisted through event sourcing, providing a robust and scalable execution engine.
+This entire process is driven by events applied to aggregates, coordinated by transactional updates and deferred work execution, and persisted through event sourcing.
