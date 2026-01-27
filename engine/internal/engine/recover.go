@@ -275,7 +275,7 @@ func (e *Engine) retryWork(
 		if len(started) == 0 {
 			return nil
 		}
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(*api.FlowState) {
 			a.handleWorkItemsExecution(
 				fs.StepID, step, inputs, meta, started,
 			)

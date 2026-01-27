@@ -79,7 +79,7 @@ func (e *Engine) CompleteWork(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(*api.FlowState) {
 			a.handleWorkSucceededCleanup(fs, token)
 		})
 		return a.handleWorkSucceeded(ag, fs.StepID)

@@ -88,9 +88,8 @@ func (a *flowActor) prepareStep(stepID api.StepID, ag *FlowAggregator) error {
 		return err
 	}
 
-	flow = ag.Value()
 	if len(started) > 0 {
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(flow *api.FlowState) {
 			a.handleWorkItemsExecution(
 				stepID, step, inputs, flow.Metadata, started,
 			)
@@ -133,8 +132,12 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(a.handleFlowCompleted)
-		ag.OnSuccess(a.handleFlowTerminal)
+		ag.OnSuccess(func(*api.FlowState) {
+			a.handleFlowCompleted()
+		})
+		ag.OnSuccess(func(*api.FlowState) {
+			a.handleFlowTerminal()
+		})
 		return nil
 	}
 	if a.IsFlowFailed(flow) {
@@ -147,10 +150,12 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(*api.FlowState) {
 			a.handleFlowFailed(errMsg)
 		})
-		ag.OnSuccess(a.handleFlowTerminal)
+		ag.OnSuccess(func(*api.FlowState) {
+			a.handleFlowTerminal()
+		})
 		return nil
 	}
 	return nil
@@ -399,9 +404,8 @@ func (a *flowActor) handleStepFailure(
 		if len(started) == 0 {
 			return nil
 		}
-		exec := ag.Value().Executions[stepID]
-		flow := ag.Value()
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(flow *api.FlowState) {
+			exec := flow.Executions[stepID]
 			a.handleWorkItemsExecution(
 				stepID, step, exec.Inputs, flow.Metadata, started,
 			)
@@ -447,7 +451,7 @@ func (a *flowActor) scheduleRetry(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(*api.FlowState) {
 			a.handleRetryScheduled(stepID, token, nextRetryAt)
 		})
 		return nil
@@ -654,9 +658,8 @@ func (a *flowActor) handleWorkItems(
 	if len(started) == 0 {
 		return
 	}
-	exec := ag.Value().Executions[stepID]
-	flow := ag.Value()
-	ag.OnSuccess(func() {
+	ag.OnSuccess(func(flow *api.FlowState) {
+		exec := flow.Executions[stepID]
 		for token := range started {
 			a.retryQueue.Remove(a.flowID, stepID, token)
 		}
@@ -725,7 +728,7 @@ func (a *flowActor) maybeDeactivate(ag *FlowAggregator) {
 	if hasActiveWork(flow) {
 		return
 	}
-	ag.OnSuccess(func() {
+	ag.OnSuccess(func(flow *api.FlowState) {
 		a.handleFlowDeactivated(flow)
 	})
 }

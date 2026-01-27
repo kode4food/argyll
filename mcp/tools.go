@@ -32,7 +32,7 @@ func (s *Server) registerTools(srv server.Server) {
 	srv.Tool(
 		"list_steps",
 		"List registered steps in the engine",
-		func(_ *server.Context, _ any) (any, error) {
+		func(*server.Context, any) (any, error) {
 			payload, err := s.httpGet("/engine/step")
 			return toolResult(payload, err)
 		},
@@ -75,7 +75,7 @@ func (s *Server) registerTools(srv server.Server) {
 	srv.Tool(
 		"engine_state",
 		"Fetch the current engine state",
-		func(_ *server.Context, _ any) (any, error) {
+		func(*server.Context, any) (any, error) {
 			payload, err := s.httpGet("/engine")
 			return toolResult(payload, err)
 		},

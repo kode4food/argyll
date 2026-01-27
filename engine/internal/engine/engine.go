@@ -122,7 +122,7 @@ func (e *Engine) StartFlow(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func() {
+		ag.OnSuccess(func(*api.FlowState) {
 			e.handleFlowActivated(flowID, meta)
 		})
 		if flowTransitions.IsTerminal(ag.Value().Status) {
