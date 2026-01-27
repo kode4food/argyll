@@ -135,9 +135,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		ag.OnSuccess(func(*api.FlowState) {
 			a.handleFlowCompleted()
 		})
-		ag.OnSuccess(func(*api.FlowState) {
-			a.handleFlowTerminal()
-		})
+		a.maybeDeactivate(ag)
 		return nil
 	}
 	if a.IsFlowFailed(flow) {
@@ -153,9 +151,7 @@ func (a *flowActor) checkTerminal(ag *FlowAggregator) error {
 		ag.OnSuccess(func(*api.FlowState) {
 			a.handleFlowFailed(errMsg)
 		})
-		ag.OnSuccess(func(*api.FlowState) {
-			a.handleFlowTerminal()
-		})
+		a.maybeDeactivate(ag)
 		return nil
 	}
 	return nil
@@ -169,17 +165,6 @@ func (a *flowActor) handleFlowCompleted() {
 func (a *flowActor) handleFlowFailed(errMsg string) {
 	a.raiseFlowDigestUpdated(api.FlowFailed, errMsg)
 	a.retryQueue.RemoveFlow(a.flowID)
-}
-
-func (a *flowActor) handleFlowTerminal() {
-	if err := a.execTransaction(func(ag *FlowAggregator) error {
-		a.maybeDeactivate(ag)
-		return nil
-	}); err != nil {
-		slog.Error("Failed to check flow deactivation",
-			log.FlowID(a.flowID),
-			log.Error(err))
-	}
 }
 
 func (a *flowActor) raiseFlowDigestUpdated(
@@ -373,7 +358,6 @@ func (a *flowActor) handlePredicateFailure(
 	if termErr := a.checkTerminal(ag); termErr != nil {
 		return termErr
 	}
-	a.maybeDeactivate(ag)
 	return nil
 }
 
@@ -498,7 +482,6 @@ func (a *flowActor) handleWorkSucceeded(
 		if err := a.checkTerminal(ag); err != nil {
 			return err
 		}
-		a.maybeDeactivate(ag)
 		return nil
 	}
 
