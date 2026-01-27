@@ -15,18 +15,19 @@ import (
 
 type flowTx struct {
 	*Engine
+	*FlowAggregator
 	flowID api.FlowID
 }
 
-func (e *Engine) flowTx(flowID api.FlowID) *flowTx {
-	return &flowTx{Engine: e, flowID: flowID}
-}
-
-// execTransaction executes a function within a flow transaction
-func (tx *flowTx) execTransaction(fn func(ag *FlowAggregator) error) error {
-	_, err := tx.execFlow(flowKey(tx.flowID),
+func (e *Engine) flowTx(flowID api.FlowID, fn func(*flowTx) error) error {
+	_, err := e.execFlow(flowKey(flowID),
 		func(_ *api.FlowState, ag *FlowAggregator) error {
-			return fn(ag)
+			tx := &flowTx{
+				Engine:         e,
+				FlowAggregator: ag,
+				flowID:         flowID,
+			}
+			return fn(tx)
 		},
 	)
 	return err
@@ -35,8 +36,8 @@ func (tx *flowTx) execTransaction(fn func(ag *FlowAggregator) error) error {
 // prepareStep validates and prepares a step for execution within a
 // transaction, raising the StepStarted event via aggregator and scheduling
 // work execution after commit
-func (tx *flowTx) prepareStep(stepID api.StepID, ag *FlowAggregator) error {
-	flow := ag.Value()
+func (tx *flowTx) prepareStep(stepID api.StepID) error {
+	flow := tx.Value()
 
 	// Validate step is pending
 	exec := flow.Executions[stepID]
@@ -53,11 +54,11 @@ func (tx *flowTx) prepareStep(stepID api.StepID, ag *FlowAggregator) error {
 	// Evaluate predicate
 	shouldExecute, err := tx.evaluateStepPredicate(step, inputs)
 	if err != nil {
-		return tx.handlePredicateFailure(ag, stepID, err)
+		return tx.handlePredicateFailure(stepID, err)
 	}
 	if !shouldExecute {
 		// Predicate failed - skip this step
-		if err := events.Raise(ag, api.EventTypeStepSkipped,
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
 			api.StepSkippedEvent{
 				FlowID: tx.flowID,
 				StepID: stepID,
@@ -78,22 +79,24 @@ func (tx *flowTx) prepareStep(stepID api.StepID, ag *FlowAggregator) error {
 	}
 
 	// Raise StepStarted event with work items
-	if err := events.Raise(ag, api.EventTypeStepStarted, api.StepStartedEvent{
-		FlowID:    tx.flowID,
-		StepID:    stepID,
-		Inputs:    inputs,
-		WorkItems: workItemsMap,
-	}); err != nil {
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted,
+		api.StepStartedEvent{
+			FlowID:    tx.flowID,
+			StepID:    stepID,
+			Inputs:    inputs,
+			WorkItems: workItemsMap,
+		},
+	); err != nil {
 		return err
 	}
 
-	started, err := tx.startPendingWork(ag, stepID, step)
+	started, err := tx.startPendingWork(stepID, step)
 	if err != nil {
 		return err
 	}
 
 	if len(started) > 0 {
-		ag.OnSuccess(func(flow *api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState) {
 			tx.handleWorkItemsExecution(
 				stepID, step, inputs, flow.Metadata, started,
 			)
@@ -119,8 +122,8 @@ func (tx *flowTx) handleWorkItemsExecution(
 }
 
 // checkTerminal checks for flow completion or failure
-func (tx *flowTx) checkTerminal(ag *FlowAggregator) error {
-	flow := ag.Value()
+func (tx *flowTx) checkTerminal() error {
+	flow := tx.Value()
 	if tx.isFlowComplete(flow) {
 		result := api.Args{}
 		for _, goalID := range flow.Plan.Goals {
@@ -128,7 +131,7 @@ func (tx *flowTx) checkTerminal(ag *FlowAggregator) error {
 				maps.Copy(result, goal.Outputs)
 			}
 		}
-		if err := events.Raise(ag, api.EventTypeFlowCompleted,
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted,
 			api.FlowCompletedEvent{
 				FlowID: tx.flowID,
 				Result: result,
@@ -136,15 +139,15 @@ func (tx *flowTx) checkTerminal(ag *FlowAggregator) error {
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState) {
 			tx.handleFlowCompleted()
 		})
-		tx.maybeDeactivate(ag)
+		tx.maybeDeactivate()
 		return nil
 	}
 	if tx.IsFlowFailed(flow) {
 		errMsg := tx.getFailureReason(flow)
-		if err := events.Raise(ag, api.EventTypeFlowFailed,
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: tx.flowID,
 				Error:  errMsg,
@@ -152,10 +155,10 @@ func (tx *flowTx) checkTerminal(ag *FlowAggregator) error {
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState) {
 			tx.handleFlowFailed(errMsg)
 		})
-		tx.maybeDeactivate(ag)
+		tx.maybeDeactivate()
 		return nil
 	}
 	return nil
@@ -171,9 +174,7 @@ func (tx *flowTx) handleFlowFailed(errMsg string) {
 	tx.retryQueue.RemoveFlow(tx.flowID)
 }
 
-func (tx *flowTx) raiseFlowDigestUpdated(
-	status api.FlowStatus, errMsg string,
-) {
+func (tx *flowTx) raiseFlowDigestUpdated(status api.FlowStatus, errMsg string) {
 	if err := tx.raiseEngineEvent(
 		api.EventTypeFlowDigestUpdated,
 		api.FlowDigestUpdatedEvent{
@@ -191,10 +192,10 @@ func (tx *flowTx) raiseFlowDigestUpdated(
 
 // failUnreachable finds and fails all pending steps that can no longer
 // complete because their required inputs cannot be satisfied
-func (tx *flowTx) failUnreachable(ag *FlowAggregator) error {
+func (tx *flowTx) failUnreachable() error {
 	for {
 		failedAny := false
-		flow := ag.Value()
+		flow := tx.Value()
 
 		for stepID, exec := range flow.Executions {
 			if exec.Status != api.StepPending {
@@ -204,7 +205,7 @@ func (tx *flowTx) failUnreachable(ag *FlowAggregator) error {
 				continue
 			}
 
-			if err := events.Raise(ag, api.EventTypeStepFailed,
+			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 				api.StepFailedEvent{
 					FlowID: tx.flowID,
 					StepID: stepID,
@@ -223,10 +224,10 @@ func (tx *flowTx) failUnreachable(ag *FlowAggregator) error {
 	}
 }
 
-func (tx *flowTx) skipPendingUnused(ag *FlowAggregator) error {
+func (tx *flowTx) skipPendingUnused() error {
 	for {
 		skip := false
-		flow := ag.Value()
+		flow := tx.Value()
 
 		for stepID, exec := range flow.Executions {
 			if exec.Status != api.StepPending {
@@ -236,7 +237,7 @@ func (tx *flowTx) skipPendingUnused(ag *FlowAggregator) error {
 				continue
 			}
 
-			if err := events.Raise(ag, api.EventTypeStepSkipped,
+			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
 				api.StepSkippedEvent{
 					FlowID: tx.flowID,
 					StepID: stepID,
@@ -267,10 +268,8 @@ func (tx *flowTx) getFailureReason(flow *api.FlowState) string {
 
 // checkStepCompletion checks if a specific step can complete (all work items
 // done) and raises appropriate completion or failure events
-func (tx *flowTx) checkStepCompletion(
-	ag *FlowAggregator, stepID api.StepID,
-) (bool, error) {
-	exec, ok := ag.Value().Executions[stepID]
+func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
+	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
 		return false, nil
 	}
@@ -301,7 +300,7 @@ func (tx *flowTx) checkStepCompletion(
 		if failureError == "" {
 			failureError = "work item failed"
 		}
-		return true, events.Raise(ag, api.EventTypeStepFailed,
+		return true, events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 			api.StepFailedEvent{
 				FlowID: tx.flowID,
 				StepID: stepID,
@@ -311,7 +310,7 @@ func (tx *flowTx) checkStepCompletion(
 	}
 
 	// Step succeeded - set attributes and raise completion
-	step := ag.Value().Plan.Steps[stepID]
+	step := tx.Value().Plan.Steps[stepID]
 	outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
 	dur := time.Since(exec.StartedAt).Milliseconds()
 
@@ -319,8 +318,8 @@ func (tx *flowTx) checkStepCompletion(
 		if !isOutputAttribute(step, key) {
 			continue
 		}
-		if _, ok := ag.Value().Attributes[key]; !ok {
-			if err := events.Raise(ag, api.EventTypeAttributeSet,
+		if _, ok := tx.Value().Attributes[key]; !ok {
+			if err := events.Raise(tx.FlowAggregator, api.EventTypeAttributeSet,
 				api.AttributeSetEvent{
 					FlowID: tx.flowID,
 					StepID: stepID,
@@ -333,7 +332,7 @@ func (tx *flowTx) checkStepCompletion(
 		}
 	}
 
-	return true, events.Raise(ag, api.EventTypeStepCompleted,
+	return true, events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,
 		api.StepCompletedEvent{
 			FlowID:   tx.flowID,
 			StepID:   stepID,
@@ -343,10 +342,8 @@ func (tx *flowTx) checkStepCompletion(
 	)
 }
 
-func (tx *flowTx) handlePredicateFailure(
-	ag *FlowAggregator, stepID api.StepID, err error,
-) error {
-	if raiseErr := events.Raise(ag, api.EventTypeStepFailed,
+func (tx *flowTx) handlePredicateFailure(stepID api.StepID, err error) error {
+	if raiseErr := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 		api.StepFailedEvent{
 			FlowID: tx.flowID,
 			StepID: stepID,
@@ -356,10 +353,10 @@ func (tx *flowTx) handlePredicateFailure(
 		return raiseErr
 	}
 
-	if failErr := tx.failUnreachable(ag); failErr != nil {
+	if failErr := tx.failUnreachable(); failErr != nil {
 		return failErr
 	}
-	if termErr := tx.checkTerminal(ag); termErr != nil {
+	if termErr := tx.checkTerminal(); termErr != nil {
 		return termErr
 	}
 	return nil
@@ -367,32 +364,30 @@ func (tx *flowTx) handlePredicateFailure(
 
 // handleStepFailure handles common failure logic for work failure paths,
 // checking step completion and propagating failures
-func (tx *flowTx) handleStepFailure(
-	ag *FlowAggregator, stepID api.StepID,
-) error {
-	if flowTransitions.IsTerminal(ag.Value().Status) {
-		_, err := tx.checkStepCompletion(ag, stepID)
+func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
+	if flowTransitions.IsTerminal(tx.Value().Status) {
+		_, err := tx.checkStepCompletion(stepID)
 		if err != nil {
 			return err
 		}
-		tx.maybeDeactivate(ag)
+		tx.maybeDeactivate()
 		return nil
 	}
 
-	completed, err := tx.checkStepCompletion(ag, stepID)
+	completed, err := tx.checkStepCompletion(stepID)
 	if err != nil || !completed {
 		if err != nil {
 			return err
 		}
-		step := ag.Value().Plan.Steps[stepID]
-		started, err := tx.startPendingWork(ag, stepID, step)
+		step := tx.Value().Plan.Steps[stepID]
+		started, err := tx.startPendingWork(stepID, step)
 		if err != nil {
 			return err
 		}
 		if len(started) == 0 {
 			return nil
 		}
-		ag.OnSuccess(func(flow *api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState) {
 			exec := flow.Executions[stepID]
 			tx.handleWorkItemsExecution(
 				stepID, step, exec.Inputs, flow.Metadata, started,
@@ -401,17 +396,15 @@ func (tx *flowTx) handleStepFailure(
 		return nil
 	}
 
-	if err := tx.failUnreachable(ag); err != nil {
+	if err := tx.failUnreachable(); err != nil {
 		return err
 	}
-	return tx.checkTerminal(ag)
+	return tx.checkTerminal()
 }
 
 // scheduleRetry handles retry decision for a specific work item
-func (tx *flowTx) scheduleRetry(
-	ag *FlowAggregator, stepID api.StepID, token api.Token,
-) error {
-	exec, ok := ag.Value().Executions[stepID]
+func (tx *flowTx) scheduleRetry(stepID api.StepID, token api.Token) error {
+	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
 		return nil
 	}
@@ -421,13 +414,13 @@ func (tx *flowTx) scheduleRetry(
 		return nil
 	}
 
-	step := ag.Value().Plan.Steps[stepID]
+	step := tx.Value().Plan.Steps[stepID]
 
 	if tx.ShouldRetry(step, workItem) {
 		nextRetryAt := tx.CalculateNextRetry(
 			step.WorkConfig, workItem.RetryCount,
 		)
-		if err := events.Raise(ag, api.EventTypeRetryScheduled,
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeRetryScheduled,
 			api.RetryScheduledEvent{
 				FlowID:      tx.flowID,
 				StepID:      stepID,
@@ -439,14 +432,14 @@ func (tx *flowTx) scheduleRetry(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState) {
 			tx.handleRetryScheduled(stepID, token, nextRetryAt)
 		})
 		return nil
 	}
 
 	// Permanent failure
-	return events.Raise(ag, api.EventTypeWorkFailed,
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
 		api.WorkFailedEvent{
 			FlowID: tx.flowID,
 			StepID: stepID,
@@ -456,42 +449,40 @@ func (tx *flowTx) scheduleRetry(
 	)
 }
 
-func (tx *flowTx) handleWorkSucceeded(
-	ag *FlowAggregator, stepID api.StepID,
-) error {
+func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 	// Terminal flows only record step completions for audit
-	if flowTransitions.IsTerminal(ag.Value().Status) {
-		_, err := tx.checkStepCompletion(ag, stepID)
+	if flowTransitions.IsTerminal(tx.Value().Status) {
+		_, err := tx.checkStepCompletion(stepID)
 		if err != nil {
 			return err
 		}
-		tx.maybeDeactivate(ag)
+		tx.maybeDeactivate()
 		return nil
 	}
 
-	completed, err := tx.checkStepCompletion(ag, stepID)
+	completed, err := tx.checkStepCompletion(stepID)
 	if err != nil {
 		return err
 	}
 	if !completed {
-		return tx.handleWorkContinuation(ag, stepID)
+		return tx.handleWorkContinuation(stepID)
 	}
 
-	if err := tx.skipPendingUnused(ag); err != nil {
+	if err := tx.skipPendingUnused(); err != nil {
 		return err
 	}
 
 	// Step completed - check if it was a goal step
-	if tx.isGoalStep(stepID, ag.Value()) {
-		if err := tx.checkTerminal(ag); err != nil {
+	if tx.isGoalStep(stepID, tx.Value()) {
+		if err := tx.checkTerminal(); err != nil {
 			return err
 		}
 		return nil
 	}
 
 	// Find and start downstream ready steps
-	for _, consumerID := range tx.findReadySteps(stepID, ag.Value()) {
-		err := tx.prepareStep(consumerID, ag)
+	for _, consumerID := range tx.findReadySteps(stepID, tx.Value()) {
+		err := tx.prepareStep(consumerID)
 		if err != nil {
 			slog.Warn("Failed to prepare step",
 				log.StepID(consumerID),
@@ -502,53 +493,49 @@ func (tx *flowTx) handleWorkSucceeded(
 	return nil
 }
 
-func (tx *flowTx) handleWorkContinuation(
-	ag *FlowAggregator, stepID api.StepID,
-) error {
-	step := ag.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(ag, stepID, step)
+func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
+	step := tx.Value().Plan.Steps[stepID]
+	started, err := tx.startPendingWork(stepID, step)
 	if err != nil {
 		return err
 	}
-	tx.handleWorkItems(ag, stepID, step, started)
+	tx.handleWorkItems(stepID, step, started)
 	return nil
 }
 
-func (tx *flowTx) handleWorkFailed(
-	ag *FlowAggregator, stepID api.StepID,
-) error {
-	step := ag.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(ag, stepID, step)
+func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
+	step := tx.Value().Plan.Steps[stepID]
+	started, err := tx.startPendingWork(stepID, step)
 	if err != nil {
 		return err
 	}
-	tx.handleWorkItems(ag, stepID, step, started)
-	return tx.handleStepFailure(ag, stepID)
+	tx.handleWorkItems(stepID, step, started)
+	return tx.handleStepFailure(stepID)
 }
 
 func (tx *flowTx) handleWorkNotCompleted(
-	ag *FlowAggregator, stepID api.StepID, token api.Token,
+	stepID api.StepID, token api.Token,
 ) error {
-	if flowTransitions.IsTerminal(ag.Value().Status) {
-		tx.maybeDeactivate(ag)
+	if flowTransitions.IsTerminal(tx.Value().Status) {
+		tx.maybeDeactivate()
 		return nil
 	}
-	if err := tx.scheduleRetry(ag, stepID, token); err != nil {
+	if err := tx.scheduleRetry(stepID, token); err != nil {
 		return err
 	}
-	step := ag.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(ag, stepID, step)
+	step := tx.Value().Plan.Steps[stepID]
+	started, err := tx.startPendingWork(stepID, step)
 	if err != nil {
 		return err
 	}
-	tx.handleWorkItems(ag, stepID, step, started)
-	return tx.handleStepFailure(ag, stepID)
+	tx.handleWorkItems(stepID, step, started)
+	return tx.handleStepFailure(stepID)
 }
 
 func (tx *flowTx) startPendingWork(
-	ag *FlowAggregator, stepID api.StepID, step *api.Step,
+	stepID api.StepID, step *api.Step,
 ) (api.WorkItems, error) {
-	exec, ok := ag.Value().Executions[stepID]
+	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
 		return nil, nil
 	}
@@ -568,7 +555,7 @@ func (tx *flowTx) startPendingWork(
 			break
 		}
 		shouldStart, err := tx.shouldStartPendingWorkItem(
-			ag, stepID, step, item, now,
+			stepID, step, item, now,
 		)
 		if err != nil {
 			return nil, err
@@ -577,11 +564,11 @@ func (tx *flowTx) startPendingWork(
 			continue
 		}
 		if err := tx.raiseWorkStarted(
-			ag, stepID, token, item.Inputs,
+			stepID, token, item.Inputs,
 		); err != nil {
 			return nil, err
 		}
-		exec = ag.Value().Executions[stepID]
+		exec = tx.Value().Executions[stepID]
 		started[token] = exec.WorkItems[token]
 		remaining--
 	}
@@ -590,9 +577,9 @@ func (tx *flowTx) startPendingWork(
 }
 
 func (tx *flowTx) startRetryWorkItem(
-	ag *FlowAggregator, stepID api.StepID, step *api.Step, token api.Token,
+	stepID api.StepID, step *api.Step, token api.Token,
 ) (api.WorkItems, error) {
-	exec, ok := ag.Value().Executions[stepID]
+	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
 		return nil, nil
 	}
@@ -608,7 +595,7 @@ func (tx *flowTx) startRetryWorkItem(
 	case api.WorkPending:
 		var err error
 		shouldStart, err = tx.shouldStartRetryPending(
-			ag, stepID, step, item, exec.WorkItems, now,
+			stepID, step, item, exec.WorkItems, now,
 		)
 		if err != nil {
 			return nil, err
@@ -628,24 +615,23 @@ func (tx *flowTx) startRetryWorkItem(
 	}
 
 	if err := tx.raiseWorkStarted(
-		ag, stepID, token, item.Inputs,
+		stepID, token, item.Inputs,
 	); err != nil {
 		return nil, err
 	}
-	exec = ag.Value().Executions[stepID]
+	exec = tx.Value().Executions[stepID]
 	started := api.WorkItems{}
 	started[token] = exec.WorkItems[token]
 	return started, nil
 }
 
 func (tx *flowTx) handleWorkItems(
-	ag *FlowAggregator, stepID api.StepID, step *api.Step,
-	started api.WorkItems,
+	stepID api.StepID, step *api.Step, started api.WorkItems,
 ) {
 	if len(started) == 0 {
 		return
 	}
-	ag.OnSuccess(func(flow *api.FlowState) {
+	tx.OnSuccess(func(flow *api.FlowState) {
 		exec := flow.Executions[stepID]
 		for token := range started {
 			tx.retryQueue.Remove(tx.flowID, stepID, token)
@@ -657,8 +643,7 @@ func (tx *flowTx) handleWorkItems(
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
-	ag *FlowAggregator, stepID api.StepID, step *api.Step, item *api.WorkState,
-	now time.Time,
+	stepID api.StepID, step *api.Step, item *api.WorkState, now time.Time,
 ) (bool, error) {
 	if item.Status != api.WorkPending {
 		return false, nil
@@ -668,14 +653,14 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 	}
 	shouldStart, err := tx.evaluateStepPredicate(step, item.Inputs)
 	if err != nil {
-		return false, tx.handlePredicateFailure(ag, stepID, err)
+		return false, tx.handlePredicateFailure(stepID, err)
 	}
 	return shouldStart, nil
 }
 
 func (tx *flowTx) shouldStartRetryPending(
-	ag *FlowAggregator, stepID api.StepID, step *api.Step, item *api.WorkState,
-	items api.WorkItems, now time.Time,
+	stepID api.StepID, step *api.Step, item *api.WorkState, items api.WorkItems,
+	now time.Time,
 ) (bool, error) {
 	if !item.NextRetryAt.IsZero() && item.NextRetryAt.After(now) {
 		return false, nil
@@ -687,15 +672,15 @@ func (tx *flowTx) shouldStartRetryPending(
 	}
 	shouldStart, err := tx.evaluateStepPredicate(step, item.Inputs)
 	if err != nil {
-		return false, tx.handlePredicateFailure(ag, stepID, err)
+		return false, tx.handlePredicateFailure(stepID, err)
 	}
 	return shouldStart, nil
 }
 
 func (tx *flowTx) raiseWorkStarted(
-	ag *FlowAggregator, stepID api.StepID, token api.Token, inputs api.Args,
+	stepID api.StepID, token api.Token, inputs api.Args,
 ) error {
-	return events.Raise(ag, api.EventTypeWorkStarted,
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
 			FlowID: tx.flowID,
 			StepID: stepID,
@@ -707,15 +692,15 @@ func (tx *flowTx) raiseWorkStarted(
 
 // maybeDeactivate emits FlowDeactivated after commit if the flow is terminal
 // and has no active work items remaining
-func (tx *flowTx) maybeDeactivate(ag *FlowAggregator) {
-	flow := ag.Value()
+func (tx *flowTx) maybeDeactivate() {
+	flow := tx.Value()
 	if !flowTransitions.IsTerminal(flow.Status) {
 		return
 	}
 	if hasActiveWork(flow) {
 		return
 	}
-	ag.OnSuccess(func(flow *api.FlowState) {
+	tx.OnSuccess(func(flow *api.FlowState) {
 		tx.handleFlowDeactivated(flow)
 	})
 }

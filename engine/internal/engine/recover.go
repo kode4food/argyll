@@ -260,21 +260,20 @@ func (e *Engine) retryWork(
 	var started api.WorkItems
 	var inputs api.Args
 
-	tx := e.flowTx(fs.FlowID)
-	err := tx.execTransaction(func(ag *FlowAggregator) error {
-		exec, ok := ag.Value().Executions[fs.StepID]
+	err := e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		exec, ok := tx.Value().Executions[fs.StepID]
 		if ok {
 			inputs = exec.Inputs
 		}
 		var err error
-		started, err = tx.startRetryWorkItem(ag, fs.StepID, step, token)
+		started, err = tx.startRetryWorkItem(fs.StepID, step, token)
 		if err != nil {
 			return err
 		}
 		if len(started) == 0 {
 			return nil
 		}
-		ag.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState) {
 			tx.handleWorkItemsExecution(
 				fs.StepID, step, inputs, meta, started,
 			)

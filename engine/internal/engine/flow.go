@@ -67,9 +67,8 @@ func (e *Engine) StartWork(
 func (e *Engine) CompleteWork(
 	fs FlowStep, token api.Token, outputs api.Args,
 ) error {
-	tx := e.flowTx(fs.FlowID)
-	return tx.execTransaction(func(ag *FlowAggregator) error {
-		if err := events.Raise(ag, api.EventTypeWorkSucceeded,
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 			api.WorkSucceededEvent{
 				FlowID:  fs.FlowID,
 				StepID:  fs.StepID,
@@ -79,10 +78,10 @@ func (e *Engine) CompleteWork(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState) {
 			tx.handleWorkSucceededCleanup(fs, token)
 		})
-		return tx.handleWorkSucceeded(ag, fs.StepID)
+		return tx.handleWorkSucceeded(fs.StepID)
 	})
 }
 
@@ -92,9 +91,8 @@ func (tx *flowTx) handleWorkSucceededCleanup(fs FlowStep, token api.Token) {
 
 // FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
-	tx := e.flowTx(fs.FlowID)
-	return tx.execTransaction(func(ag *FlowAggregator) error {
-		if err := events.Raise(ag, api.EventTypeWorkFailed,
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
 			api.WorkFailedEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
@@ -104,7 +102,7 @@ func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
 		); err != nil {
 			return err
 		}
-		return tx.handleWorkFailed(ag, fs.StepID)
+		return tx.handleWorkFailed(fs.StepID)
 	})
 }
 
@@ -112,9 +110,8 @@ func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
 func (e *Engine) NotCompleteWork(
 	fs FlowStep, token api.Token, errMsg string,
 ) error {
-	tx := e.flowTx(fs.FlowID)
-	return tx.execTransaction(func(ag *FlowAggregator) error {
-		if err := events.Raise(ag, api.EventTypeWorkNotCompleted,
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 			api.WorkNotCompletedEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
@@ -124,7 +121,7 @@ func (e *Engine) NotCompleteWork(
 		); err != nil {
 			return err
 		}
-		return tx.handleWorkNotCompleted(ag, fs.StepID, token)
+		return tx.handleWorkNotCompleted(fs.StepID, token)
 	})
 }
 

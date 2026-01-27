@@ -110,9 +110,8 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	tx := e.flowTx(flowID)
-	return tx.execTransaction(func(ag *FlowAggregator) error {
-		if err := events.Raise(ag, api.EventTypeFlowStarted,
+	return e.flowTx(flowID, func(tx *flowTx) error {
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
 				FlowID:   flowID,
 				Plan:     plan,
@@ -122,15 +121,15 @@ func (e *Engine) StartFlow(
 		); err != nil {
 			return err
 		}
-		ag.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState) {
 			e.handleFlowActivated(flowID, meta)
 		})
-		if flowTransitions.IsTerminal(ag.Value().Status) {
+		if flowTransitions.IsTerminal(tx.Value().Status) {
 			return nil
 		}
 
-		for _, stepID := range tx.findInitialSteps(ag.Value()) {
-			err := tx.prepareStep(stepID, ag)
+		for _, stepID := range tx.findInitialSteps(tx.Value()) {
+			err := tx.prepareStep(stepID)
 			if err != nil {
 				slog.Warn("Failed to prepare step",
 					log.StepID(stepID),
