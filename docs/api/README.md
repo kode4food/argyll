@@ -20,6 +20,8 @@ Upload to [Swagger Editor](https://editor.swagger.io/) or [Redoc](https://redocl
 
 ## Quick Start
 
+If you are new, start with `docs/quickstart.md` and then return here for API reference.
+
 ### Engine API
 
 Register a step and start a flow:
@@ -91,3 +93,7 @@ Or errors:
   "error": "Error message"
 }
 ```
+
+## Async Webhooks
+
+For async steps, the engine provides a webhook URL in `metadata.webhook_url`. Post a `StepResult` JSON payload to that URL when work completes. The token in the URL identifies the work item.

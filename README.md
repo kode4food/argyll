@@ -18,6 +18,15 @@ docker compose up
 go install github.com/kode4food/argyll/cmd/argyll@latest
 ```
 
+## Start Here
+
+If you are new to Argyll, start with:
+
+- `docs/quickstart.md` for a runnable end-to-end example
+- `docs/concepts.md` for the minimal vocabulary
+- `docs/execution-model.md` for event sourcing and optimistic concurrency
+- `docs/README.md` for the full docs map
+
 ## How It Works
 
 Define steps that declare their input/output requirements. Create a flow by specifying one or more Goal Steps. The engine automatically:
@@ -64,6 +73,10 @@ GET     /engine/ws              # WebSocket event stream
 ```
 
 See `docs/api/engine-api.yaml` for full OpenAPI specification.
+
+## Documentation Structure
+
+The documentation is organized into onboarding, guides, APIs, SDKs, and architecture references under `docs/`. Contributor-only standards live under `docs/agents/`.
 
 ## Current Status
 

@@ -1,5 +1,7 @@
 # Argyll Engine: Architecture and Execution Model
 
+This is a deep dive reference for engine internals. If you are new, start with `docs/quickstart.md`, `docs/concepts.md`, and `docs/execution-model.md`.
+
 This document explains how the Argyll engine works internally, covering the core mechanisms for step registration, script compilation, execution planning, and flow orchestration.
 
 ---
@@ -738,11 +740,11 @@ Each work item gets a unique token (UUID) to identify it.
 
 #### Event Emission and Deferred Execution
 
-All the above preparation happens inside a database transaction to ensure atomicity. Once preparation completes, a StepStartedEvent is emitted within the transaction.
+All the above preparation happens inside a timebox transaction to ensure atomicity. Once preparation completes, a StepStartedEvent is emitted within the transaction.
 
 The transaction also returns a deferred function—a callback that will execute the actual work after the transaction commits.
 
-Why deferred? Because step execution can be long-running (HTTP calls, scripts that take time), and we don't want to hold database locks during that time. By deferring the work until after the transaction commits, we keep transactions short and avoid blocking other flows.
+Why deferred? Because step execution can be long-running (HTTP calls, scripts that take time), and we don't want to hold transactional locks during that time. By deferring the work until after the transaction commits, we keep transactions short and avoid blocking other flows.
 
 After the transaction commits and the event is persisted, the deferred function is called, which actually executes the work items.
 
@@ -1155,7 +1157,7 @@ The benefits:
 
 ### Transactional Guarantees
 
-All state changes happen within database transactions, ensuring atomicity and consistency.
+All state changes happen within timebox transactions, ensuring atomicity and consistency.
 
 The pattern is:
 1. Read current state
@@ -1178,7 +1180,7 @@ The engine achieves high concurrency while maintaining safety through several me
 
 **Work item parallelism**: Within a step, multiple work items execute concurrently, controlled by semaphore.
 
-**Transaction isolation**: State changes are atomic and isolated via database transactions.
+**Transaction isolation**: State changes are atomic and isolated via timebox transactions.
 
 **Deferred execution**: Long-running work happens outside transactions to avoid blocking.
 
