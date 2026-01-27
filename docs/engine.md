@@ -1,6 +1,6 @@
 # Argyll Engine: Architecture and Execution Model
 
-This is a deep dive reference for engine internals. If you are new, start with `docs/quickstart.md`, `docs/concepts.md`, and `docs/execution-model.md`.
+This is a deep dive reference for engine internals. If you are new, start with [docs/quickstart.md](quickstart.md), [docs/concepts.md](concepts.md), and [docs/execution-model.md](execution-model.md).
 
 This document explains how the Argyll engine works internally, covering the core mechanisms for step registration, script compilation, execution planning, and flow orchestration.
 

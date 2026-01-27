@@ -52,6 +52,6 @@ Look for:
 
 ## 5) Next steps
 
-- Build a real HTTP step: ./guides/step-types.md
-- Async steps and webhooks: ./guides/async-steps.md
-- Go SDK: ./go/README.md
+- Build a real HTTP step: [./guides/step-types.md](./guides/step-types.md)
+- Async steps and webhooks: [./guides/async-steps.md](./guides/async-steps.md)
+- Go SDK: [./go/README.md](./go/README.md)

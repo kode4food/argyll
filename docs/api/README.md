@@ -20,7 +20,7 @@ Upload to [Swagger Editor](https://editor.swagger.io/) or [Redoc](https://redocl
 
 ## Quick Start
 
-If you are new, start with `docs/quickstart.md` and then return here for API reference.
+If you are new, start with [docs/quickstart.md](../quickstart.md) and then return here for API reference.
 
 ### Engine API
 

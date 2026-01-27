@@ -22,10 +22,10 @@ go install github.com/kode4food/argyll/cmd/argyll@latest
 
 If you are new to Argyll, start with:
 
-- `docs/quickstart.md` for a runnable end-to-end example
-- `docs/concepts.md` for the minimal vocabulary
-- `docs/execution-model.md` for event sourcing and optimistic concurrency
-- `docs/README.md` for the full docs map
+- [docs/quickstart.md](docs/quickstart.md) for a runnable end-to-end example
+- [docs/concepts.md](docs/concepts.md) for the minimal vocabulary
+- [docs/execution-model.md](docs/execution-model.md) for event sourcing and optimistic concurrency
+- [docs/README.md](docs/README.md) for the full docs map
 
 ## How It Works
 
@@ -72,11 +72,11 @@ GET     /engine/health/:stepID  # Step health
 GET     /engine/ws              # WebSocket event stream
 ```
 
-See `docs/api/engine-api.yaml` for full OpenAPI specification.
+See [docs/api/engine-api.yaml](docs/api/engine-api.yaml) for full OpenAPI specification.
 
 ## Documentation Structure
 
-The documentation is organized into onboarding, guides, APIs, SDKs, and architecture references under `docs/`. Contributor-only standards live under `docs/agents/`.
+The documentation is organized into onboarding, guides, APIs, SDKs, and architecture references under [docs/](docs/). Contributor-only standards live under [docs/agents/](docs/agents/).
 
 ## Current Status
 
