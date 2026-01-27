@@ -20,19 +20,21 @@ This document explains how the Argyll engine works internally, covering the core
 A step is a unit of computation in Argyll. Think of it as a single task that can be performed, like "send email", "query database", or "calculate result". Each step has:
 
 - **An identity**: A unique ID and human-readable name
-- **A type**: Either a synchronous HTTP call, asynchronous HTTP call, or embedded script
+- **A type**: Either a synchronous HTTP call, asynchronous HTTP call, script, or flow
 - **Inputs and outputs**: Declared as attributes with specific types and roles
 - **Optional execution logic**: Either an HTTP endpoint to call or a script to run
 - **Optional conditional logic**: A predicate that determines if the step should run
 - **Execution configuration**: Retry policies and parallelism settings
 
-### The Three Types of Steps
+### The Four Types of Steps
 
 **Synchronous HTTP Steps** call an HTTP endpoint and wait for the response before continuing. The endpoint returns the step's outputs directly in the HTTP response.
 
 **Asynchronous HTTP Steps** also call an HTTP endpoint, but they don't wait for outputs. Instead, the endpoint receives a webhook URL that it calls later when the work is done. This allows long-running operations to complete without tying up resources.
 
 **Script Steps** execute embedded code (written in Lua or Ale) locally within the engine. The script receives inputs as arguments and returns outputs as its result.
+
+**Flow Steps** start a child flow using a list of goal steps and optional input/output mappings. Inputs are mapped into the child flow before execution, and selected outputs can be mapped back into the parent flow when the child completes.
 
 ### How Registration Works
 
@@ -211,7 +213,7 @@ The role determines how the engine treats the attribute:
 
 **Required inputs** must be provided either by the flow's initial state or by another step's output. If a required input can't be satisfied, the step won't execute.
 
-**Optional inputs** can be omitted. If provided, they're used; otherwise, the default value is used (or null if no default is specified).
+**Optional inputs** can be omitted. If provided, they're used; otherwise, the default value is used (if one is specified) or the input is omitted.
 
 **Outputs** are produced by the step and made available to downstream steps that depend on them.
 
@@ -731,7 +733,7 @@ If the step has a predicate, it's evaluated with the collected inputs. If the pr
 
 This is where parallel execution is handled. Some steps can execute multiple times in parallel with different input values, based on the "for_each" attribute flag.
 
-The engine identifies which attributes are marked as "for_each". These attributes must contain arrays. The engine then computes the Cartesian product of all for_each arrays to create individual work items.
+The engine identifies which attributes are marked as "for_each". If the input value for a for_each attribute is an array, the engine uses it to compute the Cartesian product that creates individual work items. If a for_each input is not an array, it behaves like a normal scalar input and does not create multiple work items on its own.
 
 For example, if a step has:
 - `users` (for_each): ["alice", "bob", "charlie"]
