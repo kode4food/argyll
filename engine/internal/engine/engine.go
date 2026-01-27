@@ -110,8 +110,8 @@ func (e *Engine) StartFlow(
 		return err
 	}
 
-	a := &flowActor{Engine: e, flowID: flowID}
-	return a.execTransaction(func(ag *FlowAggregator) error {
+	tx := e.flowTx(flowID)
+	return tx.execTransaction(func(ag *FlowAggregator) error {
 		if err := events.Raise(ag, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
 				FlowID:   flowID,
@@ -129,8 +129,8 @@ func (e *Engine) StartFlow(
 			return nil
 		}
 
-		for _, stepID := range a.findInitialSteps(ag.Value()) {
-			err := a.prepareStep(stepID, ag)
+		for _, stepID := range tx.findInitialSteps(ag.Value()) {
+			err := tx.prepareStep(stepID, ag)
 			if err != nil {
 				slog.Warn("Failed to prepare step",
 					log.StepID(stepID),

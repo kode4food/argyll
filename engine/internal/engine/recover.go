@@ -257,18 +257,17 @@ func (e *Engine) executeReadyRetries() {
 func (e *Engine) retryWork(
 	fs FlowStep, step *api.Step, token api.Token, meta api.Metadata,
 ) {
-	a := &flowActor{Engine: e, flowID: fs.FlowID}
-	var (
-		started api.WorkItems
-		inputs  api.Args
-	)
-	err := a.execTransaction(func(ag *FlowAggregator) error {
+	var started api.WorkItems
+	var inputs api.Args
+
+	tx := e.flowTx(fs.FlowID)
+	err := tx.execTransaction(func(ag *FlowAggregator) error {
 		exec, ok := ag.Value().Executions[fs.StepID]
 		if ok {
 			inputs = exec.Inputs
 		}
 		var err error
-		started, err = a.startRetryWorkItem(ag, fs.StepID, step, token)
+		started, err = tx.startRetryWorkItem(ag, fs.StepID, step, token)
 		if err != nil {
 			return err
 		}
@@ -276,7 +275,7 @@ func (e *Engine) retryWork(
 			return nil
 		}
 		ag.OnSuccess(func(*api.FlowState) {
-			a.handleWorkItemsExecution(
+			tx.handleWorkItemsExecution(
 				fs.StepID, step, inputs, meta, started,
 			)
 		})

@@ -57,18 +57,18 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 	return true
 }
 
-func (a *flowActor) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
+func (tx *flowTx) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
 	exec := flow.Executions[stepID]
 	if exec.Status != api.StepPending {
 		return false
 	}
-	if !a.hasRequired(stepID, flow) {
+	if !tx.hasRequired(stepID, flow) {
 		return false
 	}
-	return a.areOutputsNeeded(stepID, flow)
+	return tx.areOutputsNeeded(stepID, flow)
 }
 
-func (a *flowActor) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
+func (tx *flowTx) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
 	step := flow.Plan.Steps[stepID]
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
@@ -81,11 +81,11 @@ func (a *flowActor) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
 }
 
 // findInitialSteps finds steps that can start when a flow begins
-func (a *flowActor) findInitialSteps(flow *api.FlowState) []api.StepID {
+func (tx *flowTx) findInitialSteps(flow *api.FlowState) []api.StepID {
 	var ready []api.StepID
 
 	for stepID := range flow.Plan.Steps {
-		if a.canStartStep(stepID, flow) {
+		if tx.canStartStep(stepID, flow) {
 			ready = append(ready, stepID)
 		}
 	}
@@ -95,13 +95,13 @@ func (a *flowActor) findInitialSteps(flow *api.FlowState) []api.StepID {
 
 // findReadySteps finds ready steps among downstream consumers of a completed
 // step
-func (a *flowActor) findReadySteps(
+func (tx *flowTx) findReadySteps(
 	stepID api.StepID, flow *api.FlowState,
 ) []api.StepID {
 	var ready []api.StepID
 
-	for _, consumerID := range a.getDownstreamConsumers(stepID, flow) {
-		if a.canStartStep(consumerID, flow) {
+	for _, consumerID := range tx.getDownstreamConsumers(stepID, flow) {
+		if tx.canStartStep(consumerID, flow) {
 			ready = append(ready, consumerID)
 		}
 	}
@@ -111,7 +111,7 @@ func (a *flowActor) findReadySteps(
 
 // getDownstreamConsumers returns step IDs that consume any output from the
 // given step, using the ExecutionPlan's Attributes dependency map
-func (a *flowActor) getDownstreamConsumers(
+func (tx *flowTx) getDownstreamConsumers(
 	stepID api.StepID, flow *api.FlowState,
 ) []api.StepID {
 	step := flow.Plan.Steps[stepID]
@@ -142,7 +142,7 @@ func (a *flowActor) getDownstreamConsumers(
 }
 
 // isGoalStep returns true if the step is a goal step
-func (a *flowActor) isGoalStep(stepID api.StepID, flow *api.FlowState) bool {
+func (tx *flowTx) isGoalStep(stepID api.StepID, flow *api.FlowState) bool {
 	return slices.Contains(flow.Plan.Goals, stepID)
 }
 

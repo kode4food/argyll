@@ -67,8 +67,8 @@ func (e *Engine) StartChildFlow(
 	return childID, nil
 }
 
-func (a *flowActor) completeParentWork(st *api.FlowState) {
-	target, ok := a.parentWork(st)
+func (tx *flowTx) completeParentWork(st *api.FlowState) {
+	target, ok := tx.parentWork(st)
 	if !ok {
 		return
 	}
@@ -77,26 +77,26 @@ func (a *flowActor) completeParentWork(st *api.FlowState) {
 		childAttrs := st.GetAttributes()
 		outputs, err := mapFlowOutputs(target.step, childAttrs)
 		if err != nil {
-			_ = a.FailWork(target.fs, target.token, err.Error())
+			_ = tx.FailWork(target.fs, target.token, err.Error())
 			return
 		}
-		_ = a.CompleteWork(target.fs, target.token, outputs)
+		_ = tx.CompleteWork(target.fs, target.token, outputs)
 	case api.FlowFailed:
 		errMsg := st.Error
 		if errMsg == "" {
 			errMsg = "child flow failed"
 		}
-		_ = a.FailWork(target.fs, target.token, errMsg)
+		_ = tx.FailWork(target.fs, target.token, errMsg)
 	}
 }
 
-func (a *flowActor) parentWork(st *api.FlowState) (*parentWork, bool) {
+func (tx *flowTx) parentWork(st *api.FlowState) (*parentWork, bool) {
 	target := &parentWork{}
-	if !a.parentMeta(st, target) {
+	if !tx.parentMeta(st, target) {
 		return nil, false
 	}
 
-	parentFlow, err := a.GetFlowState(target.fs.FlowID)
+	parentFlow, err := tx.GetFlowState(target.fs.FlowID)
 	if err != nil {
 		return nil, false
 	}
@@ -111,7 +111,7 @@ func (a *flowActor) parentWork(st *api.FlowState) (*parentWork, bool) {
 	return target, true
 }
 
-func (a *flowActor) parentMeta(st *api.FlowState, target *parentWork) bool {
+func (tx *flowTx) parentMeta(st *api.FlowState, target *parentWork) bool {
 	if st.Metadata == nil {
 		return false
 	}
