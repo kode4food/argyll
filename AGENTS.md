@@ -1,6 +1,6 @@
 # Argyll - AI Development Guide
 
-Distributed, goal-oriented workflow processing system using lazy evaluation and
+Distributed, goal-oriented flow processing system using lazy evaluation and
 event sourcing. Steps declare input/output dependencies; the engine orchestrates
 execution based on state availability, executing only the minimal set of steps
 needed to reach specified goals.
@@ -73,7 +73,7 @@ examples/        # Sample step implementations
 5. Immutable execution plans
 6. Real-time UI (React 19 + WebSocket)
 7. Health monitoring
-8. Separate engine/workflow stores
+8. Separate engine/flow stores
 9. Step retry with configurable backoff
 10. Flow archiving (Redis stream consumption)
 
@@ -84,7 +84,7 @@ examples/        # Sample step implementations
 
 ### ❌ Not Implemented
 
-- Workflow pending state (immediate activation)
+- Flow pending state (immediate activation)
 - Metrics/observability (no Prometheus/tracing)
 
 ## API
@@ -100,7 +100,7 @@ examples/        # Sample step implementations
 {
   "step_id": "unique-id",
   "arguments": { "key": "value" },
-  "meta": { "workflow_id": "wf-123" }
+  "meta": { "flow_id": "wf-123" }
 }
 
 // Response
@@ -117,10 +117,10 @@ examples/        # Sample step implementations
 - Port: 3001
 - API: Connects to engine at `http://localhost:8080`
 
-Features: Dashboard, step management, workflow viewer, flow creation with
+Features: Dashboard, step management, flow viewer, flow creation with
 goal selection and required input detection.
 
-## Development Workflow
+## Development Flow
 
 ### Before Committing
 

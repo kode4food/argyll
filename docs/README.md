@@ -1,6 +1,6 @@
 # Documentation
 
-This directory is the canonical entry point for Argyll documentation. If you are new, start with Quickstart and Concepts, then move into Guides and API references.
+This directory is the canonical entry point for Argyll documentation. If you are new, start with Quickstart and Concepts, then move into Guides and API references. Argyll is a goal-driven orchestrator: plan and perform only what matters.
 
 ## Start Here
 

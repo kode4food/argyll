@@ -9,8 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestMultipleGoals verifies that workflows with multiple goal steps execute
-// all necessary dependencies (union of paths) and only those steps
+// TestMultipleGoals verifies that flows with multiple goal steps execute all
+// necessary dependencies (union of paths) and only those steps
 func TestMultipleGoals(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
@@ -96,9 +96,9 @@ func TestMultipleGoals(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 
-		// Verify workflow completed successfully
+		// Verify flow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify both goals (C and D) completed

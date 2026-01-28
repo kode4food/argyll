@@ -21,20 +21,20 @@ These constraints are **load-bearing** and must not be relaxed:
 - **Acyclic execution only**: Execution plans form a DAG. No cycles or loops.
 - **No speculative execution**: Steps never execute "just in case."
 - **No bidirectional data flow**: Data flows from dependencies toward goals.
-- **No workflow-level timeouts**: Workflows run to completion or failure.
+- **No flow-level timeouts**: Flows run to completion or failure.
 - **No human-in-the-loop**: No waiting states or approval gates.
-- **Minimal polling**: Workflow progression is event-driven.
+- **Minimal polling**: Flow progression is event-driven.
 - **No distributed locks or leaders**: Optimistic concurrency only.
-- **No cross-workflow coordination**: Workflows are fully isolated.
+- **No cross-flow coordination**: Flows are fully isolated.
 - **Event recording is unconditional**: All events persisted regardless of
-  workflow state.
+  flow state.
 
 ## Non-Goals
 
 Argyll is intentionally **not**:
 
 - A general-purpose DAG engine
-- A BPMN or human workflow system
+- A BPMN or human flow system
 - A speculative or reactive orchestration framework
 - A process manager with explicit lifecycle control
 - A plugin framework for arbitrary execution semantics
@@ -45,7 +45,7 @@ Argyll is intentionally **not**:
 
 System correctness must be explainable via event replay alone:
 
-- Any workflow state can be reconstructed by replaying its event log
+- Any flow state can be reconstructed by replaying its event log
 - No runtime state exists that isn't derived from persisted events
 - Recovery requires no external coordination or distributed consensus
 

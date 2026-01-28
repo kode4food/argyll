@@ -10,7 +10,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const workflowTimeout = 5 * time.Second
+const flowTimeout = 5 * time.Second
 
 // TestDependencyChain tests that a linear dependency chain A→B→C executes
 // correctly with proper attribute propagation
@@ -70,8 +70,8 @@ func TestDependencyChain(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Wait for flow completion
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed
@@ -175,8 +175,8 @@ func TestDiamondDependencies(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Wait for flow completion
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed

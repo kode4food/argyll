@@ -245,8 +245,6 @@ describe("Attributes", () => {
     const satisfiedArgs = new Set<string>();
 
     render(<Attributes step={step} satisfiedArgs={satisfiedArgs} />);
-
-    // Test removed - step-level timeout no longer shown per-argument
   });
 
   test("renders nothing when step has no args", () => {

@@ -1,6 +1,6 @@
 # Quickstart
 
-This quickstart uses a script step so you can run end-to-end without writing a separate step service.
+This quickstart uses a script step so you can run end-to-end without writing a separate step service. It’s the fastest way to see the goal-driven orchestrator in action.
 
 ## 1) Start the engine
 

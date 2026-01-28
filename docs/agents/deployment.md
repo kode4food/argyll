@@ -34,11 +34,11 @@ Archiving runs in the `argyll-s3` service.
 
 ## Store Separation
 
-Engine and workflow stores can use different Valkey instances:
+Engine and flow stores can use different Valkey instances:
 
 - **Single instance**: Both stores point to same Valkey (default)
-- **Separated concerns**: Engine state on one instance, workflows on another
-- **Workflow sharding**: Multiple Valkey instances for partitioning
+- **Separated concerns**: Engine state on one instance, flows on another
+- **Flow sharding**: Multiple Valkey instances for partitioning
 
 ## Security Considerations
 
@@ -56,13 +56,13 @@ Engine and workflow stores can use different Valkey instances:
 
 **Recommended:**
 1. Run 2+ engine instances for high availability
-2. Use dedicated Valkey instances for engine vs workflow state
+2. Use dedicated Valkey instances for engine vs flow state
 3. Limit who can create script steps
 4. Add external monitoring (no built-in metrics)
 5. Configure archiving and an external consumer for long-term deactivated flow storage
 
 **Performance:**
-- Peak throughput: 6000+ workflows/second per instance
+- Peak throughput: 6000+ flows/second per instance
 - Linear scaling with additional instances
 - Event sourcing overhead minimal at scale
 

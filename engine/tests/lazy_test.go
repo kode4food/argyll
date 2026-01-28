@@ -94,8 +94,8 @@ func TestLazyEvaluation(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Wait for flow completion
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// CRITICAL: Verify only 3 steps exist in executions (lazy evaluation)

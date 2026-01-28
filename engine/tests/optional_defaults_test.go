@@ -66,9 +66,9 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 
-		// Verify workflow completed successfully
+		// Verify flow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify both steps completed

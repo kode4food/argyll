@@ -39,7 +39,7 @@ info:
     ### Flow Steps
     - Sub-flows executed by the engine with child flow goals
     - Not HTTP-based (no external endpoint required)
-    - Best for: Encapsulating reusable sub-workflows with input/output mapping
+    - Best for: Encapsulating reusable sub-flows with input/output mapping
 
     **Note**: This specification covers only HTTP-based steps (sync and async).
     Script and flow steps are defined directly in the step registration.

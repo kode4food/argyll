@@ -10,7 +10,7 @@ import (
 )
 
 // TestPredicateSkipping tests that steps with false predicates are skipped
-// and that workflows fail when goal steps cannot complete due to skipped
+// and that flows fail when goal steps cannot complete due to skipped
 // dependencies
 func TestPredicateSkipping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -57,10 +57,10 @@ func TestPredicateSkipping(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Wait for step A to complete
-		env.WaitForStepStatus(t, flowID, "step-a", workflowTimeout)
+		env.WaitForStepStatus(t, flowID, "step-a", flowTimeout)
 
 		// Wait for step B to be skipped
-		execB := env.WaitForStepStatus(t, flowID, "step-b", workflowTimeout)
+		execB := env.WaitForStepStatus(t, flowID, "step-b", flowTimeout)
 		assert.Equal(t, api.StepSkipped, execB.Status)
 		assert.Equal(t, "predicate returned false", execB.Error)
 

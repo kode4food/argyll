@@ -8,31 +8,31 @@
 - Scope: Individual step execution
 
 **Attributes**
-- Workflow state accumulated from step outputs with provenance tracking
+- Flow state accumulated from step outputs with provenance tracking
 - Type: `map[Name]*AttributeValue` (value + producing step ID)
-- Scope: Entire workflow lifecycle
+- Scope: Entire flow lifecycle
 
 **Data Flow:**
 ```
-Step Outputs → Workflow Attributes (with provenance)
+Step Outputs → Flow Attributes (with provenance)
                         ↓
-Workflow Attributes → Next Step Inputs
+Flow Attributes → Next Step Inputs
 ```
 
 **Naming:**
 - Backend: `Attributes map[Name]*AttributeSpec` (step definitions)
-- Backend: `Attributes map[Name]*AttributeValue` (workflow state)
+- Backend: `Attributes map[Name]*AttributeValue` (flow state)
 - Backend: `Args` (runtime values)
 - Frontend: `satisfiedArgs`/`timedOutArgs` (step execution tracking)
-- Frontend: `attributeProvenance` (workflow state tracking)
+- Frontend: `attributeProvenance` (flow state tracking)
 
 ## Goal-Oriented Execution
 
-Workflows specify **Goal Steps** - the targets to reach. The engine:
+Flows specify **Goal Steps** - the targets to reach. The engine:
 
 1. Walks backward from all goal steps
 2. Creates execution plan as union of required steps
-3. Determines required inputs for workflow start
+3. Determines required inputs for flow start
 4. Executes steps in dependency order
 
 **Multiple Goals:**

@@ -10,7 +10,7 @@ import (
 )
 
 // TestMixedStepTypes tests that HTTP and Script steps can work together in a
-// single workflow
+// single flow
 func TestMixedStepTypes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
@@ -70,8 +70,8 @@ func TestMixedStepTypes(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Wait for flow completion
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed

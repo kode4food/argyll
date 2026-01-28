@@ -10,7 +10,7 @@ import (
 )
 
 // TestScriptStepErrorAle verifies that Ale script steps that throw errors fail
-// gracefully and cause the workflow to fail
+// gracefully and cause the flow to fail
 func TestScriptStepErrorAle(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
@@ -76,9 +76,9 @@ func TestScriptStepErrorAle(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 
-		// Verify workflow failed
+		// Verify flow failed
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step A completed
@@ -99,7 +99,7 @@ func TestScriptStepErrorAle(t *testing.T) {
 }
 
 // TestScriptStepErrorLua verifies that Lua script steps that throw errors fail
-// gracefully and cause the workflow to fail
+// gracefully and cause the flow to fail
 func TestScriptStepErrorLua(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
@@ -165,9 +165,9 @@ func TestScriptStepErrorLua(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 
-		// Verify workflow failed
+		// Verify flow failed
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step A completed

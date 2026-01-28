@@ -2,7 +2,7 @@
 
 ## Overview
 
-Pure event-driven architecture where workflow execution is triggered by events,
+Pure event-driven architecture where flow execution is triggered by events,
 not polling. Provides clear causality, better performance, horizontal scaling.
 
 ## Core Components
@@ -26,15 +26,15 @@ not polling. Provides clear causality, better performance, horizontal scaling.
 
 **Separate Event Recording from Step Launching**
 
-- **All Events Are Processed**: Events recorded regardless of workflow state
+- **All Events Are Processed**: Events recorded regardless of flow state
   (Active, Completed, or Failed). Ensures complete final state for
   compensation/reversal.
 
-- **Single Decision Point for Step Launching**: Only `processWorkflow` decides
-  whether to launch new steps. Returns early if workflow is terminal.
+- **Single Decision Point for Step Launching**: Only `processFlow` decides
+  whether to launch new steps. Returns early if flow is terminal.
 
 **Why This Matters:**
-1. Steps may complete after workflow fails - outputs needed for reversal
+1. Steps may complete after flow fails - outputs needed for reversal
 2. Final state reflects ALL step executions
 3. Clear separation: event recording (always) vs step launching (conditional)
 

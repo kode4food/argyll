@@ -10,9 +10,9 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestPartialWorkflowFailure tests that when one step in a workflow fails,
-// independent steps complete successfully while dependent steps fail
-func TestPartialWorkflowFailure(t *testing.T) {
+// TestPartialFlowFailure tests that when one step in a flow fails, independent
+// steps complete successfully while dependent steps fail
+func TestPartialFlowFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
@@ -94,13 +94,13 @@ func TestPartialWorkflowFailure(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Wait for step C to complete (independent branch)
-		env.WaitForStepStatus(t, flowID, "step-c", workflowTimeout)
+		env.WaitForStepStatus(t, flowID, "step-c", flowTimeout)
 
 		// Wait for step B to fail
-		env.WaitForStepStatus(t, flowID, "step-b", workflowTimeout)
+		env.WaitForStepStatus(t, flowID, "step-b", flowTimeout)
 
-		// Now wait for workflow to fail
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Now wait for flow to fail
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step A completed (no dependencies, no errors)
@@ -173,7 +173,7 @@ func TestUnreachableStep(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, "wf-unreachable", workflowTimeout)
+		flow := env.WaitForFlowStatus(t, "wf-unreachable", flowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		assert.Equal(t, api.StepFailed, flow.Executions[stepA.ID].Status)

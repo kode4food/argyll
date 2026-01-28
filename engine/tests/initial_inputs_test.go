@@ -10,16 +10,16 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestInitialWorkflowInputs verifies that workflows can start with
-// pre-populated attributes that aren't produced by any step. These initial
-// inputs are provided when the workflow starts and are available to all steps
-func TestInitialWorkflowInputs(t *testing.T) {
+// TestInitialFlowInputs verifies that flows can start with pre-populated
+// attributes that aren't produced by any step. These initial inputs are
+// provided when the flow starts and are available to all steps
+func TestInitialFlowInputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
 		// Step A (Goal): Requires "initialValue" and "configValue", produces
 		// "result". Neither initialValue nor configValue are produced by any
-		// step, they must be provided as initial workflow inputs
+		// step, they must be provided as initial flow inputs
 		stepA := helpers.NewTestStepWithArgs(
 			[]api.Name{"initialValue", "configValue"},
 			nil,
@@ -58,7 +58,7 @@ func TestInitialWorkflowInputs(t *testing.T) {
 			"result": "computed from initial inputs",
 		})
 
-		// Start workflow with initial inputs
+		// Start flow with initial inputs
 		initialInputs := api.Args{
 			"initialValue": "user-provided",
 			"configValue":  42,
@@ -68,10 +68,10 @@ func TestInitialWorkflowInputs(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, initialInputs, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for workflow completion
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Wait for flow completion
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 
-		// Verify workflow completed successfully
+		// Verify flow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify step A completed

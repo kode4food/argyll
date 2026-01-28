@@ -37,8 +37,8 @@ func TestRetryExhaustion(t *testing.T) {
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
 
-		// Wait for workflow to fail (step exhausts retries)
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		// Wait for flow to fail (step exhausts retries)
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step failed after exhausting retries

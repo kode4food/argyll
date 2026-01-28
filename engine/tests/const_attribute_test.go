@@ -46,7 +46,7 @@ func TestConstAttribute(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		flow := env.WaitForFlowStatus(t, flowID, workflowTimeout)
+		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, "fixed", flow.Attributes["result"].Value)
 	})
