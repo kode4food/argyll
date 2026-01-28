@@ -25,16 +25,11 @@ A flow is a single execution of a plan. You start a flow by providing goals and 
 
 Goals are the target steps for a flow. They define what “done” means. The engine walks backward from the goals to determine the minimal set of steps and inputs needed to satisfy them. Multiple goals can be declared at once; the plan is the union of their dependencies.
 
-## Attributes and Arguments
+## Attributes
 
-- Arguments (args) are the inputs to a single step execution.
-- Attributes are flow-level state produced by steps and consumed by downstream steps with provenance tracking.
+Attributes are the data flowing through a flow. Each step declares its required and optional inputs, plus the outputs it produces. When a step completes, its outputs become flow attributes that downstream steps can consume.
 
-Conceptually:
-
-Step outputs → Flow attributes → Next step inputs
-
-This separation keeps step execution local while the flow maintains global state in a traceable way.
+The engine tracks provenance: every attribute value records which step produced it. This gives you a complete audit trail of how data moved through the flow without any extra bookkeeping in your application code.
 
 ## Work Items and Tokens
 
