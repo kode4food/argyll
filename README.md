@@ -76,7 +76,7 @@ See [docs/api/engine-api.yaml](docs/api/engine-api.yaml) for full OpenAPI specif
 
 ## Documentation Structure
 
-The documentation is organized into onboarding, guides, APIs, SDKs, and architecture references under [docs/](docs/). Contributor-only standards live under [docs/agents/](docs/agents/).
+The documentation is organized into onboarding, guides, APIs, SDKs, and architecture references under [docs/](docs/).
 
 ## Current Status
 

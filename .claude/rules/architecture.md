@@ -2,17 +2,13 @@
 
 ## Core Principles
 
-1. **Understanding stays ahead of behavior**: The system only does what can be
-   fully explained via event replay. No hidden state, no implicit coordination.
+1. **Understanding stays ahead of behavior**: The system only does what can be fully explained via event replay. No hidden state, no implicit coordination.
 
-2. **Constraints are protective**: Each limitation exists to preserve
-   correctness, predictability, or operational simplicity.
+2. **Constraints are protective**: Each limitation exists to preserve correctness, predictability, or operational simplicity.
 
-3. **Lazy evaluation is a correctness property**: Steps execute only when their
-   outputs are required by declared goals. This defines "correct execution."
+3. **Lazy evaluation is a correctness property**: Steps execute only when their outputs are required by declared goals. This defines "correct execution."
 
-4. **Explicit non-goals are first-class decisions**: Features Argyll refuses to
-   implement are as important as features it provides.
+4. **Explicit non-goals are first-class decisions**: Features Argyll refuses to implement are as important as features it provides.
 
 ## Architectural Constraints
 
@@ -26,8 +22,7 @@ These constraints are **load-bearing** and must not be relaxed:
 - **Minimal polling**: Flow progression is event-driven.
 - **No distributed locks or leaders**: Optimistic concurrency only.
 - **No cross-flow coordination**: Flows are fully isolated.
-- **Event recording is unconditional**: All events persisted regardless of
-  flow state.
+- **Event recording is unconditional**: All events persisted regardless of flow state.
 
 ## Non-Goals
 

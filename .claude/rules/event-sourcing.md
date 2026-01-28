@@ -2,8 +2,7 @@
 
 ## Overview
 
-Pure event-driven architecture where flow execution is triggered by events,
-not polling. Provides clear causality, better performance, horizontal scaling.
+Pure event-driven architecture where flow execution is triggered by events, not polling. Provides clear causality, better performance, horizontal scaling.
 
 ## Core Components
 
@@ -26,12 +25,9 @@ not polling. Provides clear causality, better performance, horizontal scaling.
 
 **Separate Event Recording from Step Launching**
 
-- **All Events Are Processed**: Events recorded regardless of flow state
-  (Active, Completed, or Failed). Ensures complete final state for
-  compensation/reversal.
+- **All Events Are Processed**: Events recorded regardless of flow state (Active, Completed, or Failed). Ensures complete final state for compensation/reversal.
 
-- **Single Decision Point for Step Launching**: Only `processFlow` decides
-  whether to launch new steps. Returns early if flow is terminal.
+- **Single Decision Point for Step Launching**: Only `processFlow` decides whether to launch new steps. Returns early if flow is terminal.
 
 **Why This Matters:**
 1. Steps may complete after flow fails - outputs needed for reversal
@@ -82,8 +78,7 @@ flow_archiving event + archive flow started
 
 **Deactivation vs Completion/Failure**
 
-`flow_completed`/`flow_failed` mark the flow's logical outcome but don't
-immediately deactivate. Work items may still be in-flight:
+`flow_completed`/`flow_failed` mark the flow's logical outcome but don't immediately deactivate. Work items may still be in-flight:
 
 ```
 1. Payment and reservation run in parallel
@@ -122,8 +117,7 @@ This separation enables:
 
 ## Consistency via timebox.Executor
 
-All state mutations use the Executor pattern. Define a command function that
-receives current state and an aggregator, then call `Exec`:
+All state mutations use the Executor pattern. Define a command function that receives current state and an aggregator, then call `Exec`:
 
 ```go
 // Engine state mutations
