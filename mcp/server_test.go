@@ -74,6 +74,36 @@ func TestPreviewPlanTool(t *testing.T) {
 	assert.Equal(t, []any{"input"}, payload["required"])
 }
 
+func TestNewServerTrimsTrailingSlash(t *testing.T) {
+	httpClient := &http.Client{
+		Transport: roundTripperFunc(
+			func(r *http.Request) (*http.Response, error) {
+				assert.Equal(t, "/engine/step", r.URL.Path)
+				return jsonResponse(
+					http.StatusOK,
+					[]byte(`{"steps":[]}`),
+				), nil
+			},
+		),
+	}
+	s := mcp.NewServer("http://example/", httpClient)
+
+	serverTransport, clientTransport := embedded.NewTransportPair()
+	srv := s.MCPServer().AsEmbedded(serverTransport)
+	go func() {
+		_ = srv.Run()
+	}()
+
+	c, err := client.NewClient(
+		"embedded://", client.WithEmbedded(clientTransport),
+	)
+	assert.NoError(t, err)
+	defer func() { _ = c.Close() }()
+
+	_, err = c.CallTool("list_steps", map[string]any{})
+	assert.NoError(t, err)
+}
+
 func (f roundTripperFunc) RoundTrip(r *http.Request) (*http.Response, error) {
 	return f(r)
 }

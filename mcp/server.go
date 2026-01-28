@@ -2,6 +2,7 @@ package mcp
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/localrivet/gomcp/server"
 )
@@ -23,7 +24,7 @@ func NewServer(baseURL string, client *http.Client) *Server {
 		client = http.DefaultClient
 	}
 	return &Server{
-		baseURL: baseURL,
+		baseURL: strings.TrimRight(baseURL, "/"),
 		client:  client,
 	}
 }
@@ -35,7 +36,9 @@ func (s *Server) Run() error {
 
 // MCPServer builds a configured gomcp server for advanced usage and tests
 func (s *Server) MCPServer() server.Server {
-	srv := server.NewServer("argyll-mcp")
+	srv := server.NewServer("argyll-mcp",
+		server.WithProtocolVersion("2025-03-26"),
+	)
 	s.registerTools(srv)
 	return srv
 }
