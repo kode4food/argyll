@@ -30,9 +30,3 @@ This directory is the canonical entry point for Argyll documentation. If you are
 ## Architecture Deep Dives
 
 - Engine architecture and execution model: [engine.md](./engine.md)
-
-## Internal Contributor Docs
-
-- Contributor guidelines and style guides: [agents/](./agents/)
-
-These are internal references for contributors and code reviewers, not app developer onboarding material.
