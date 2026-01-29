@@ -190,3 +190,79 @@ func TestChaining(t *testing.T) {
 	assert.Equal(t, true, result["key3"])
 	assert.Empty(t, original)
 }
+
+func TestHashKey(t *testing.T) {
+	t.Run("empty_args", func(t *testing.T) {
+		a := api.Args{}
+		h, err := a.HashKey()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, h)
+	})
+
+	t.Run("single_arg", func(t *testing.T) {
+		a := api.Args{"key": "value"}
+		h, err := a.HashKey()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, h)
+	})
+
+	t.Run("multiple_args", func(t *testing.T) {
+		a := api.Args{
+			"key1": "value1",
+			"key2": 42,
+			"key3": true,
+		}
+		h, err := a.HashKey()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, h)
+	})
+
+	t.Run("deterministic", func(t *testing.T) {
+		a := api.Args{
+			"key1": "value1",
+			"key2": 42,
+		}
+		h1, err := a.HashKey()
+		assert.NoError(t, err)
+		h2, err := a.HashKey()
+		assert.NoError(t, err)
+		assert.Equal(t, h1, h2)
+	})
+
+	t.Run("order_independent", func(t *testing.T) {
+		a1 := api.Args{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		a2 := api.Args{
+			"key2": "value2",
+			"key1": "value1",
+		}
+		h1, err := a1.HashKey()
+		assert.NoError(t, err)
+		h2, err := a2.HashKey()
+		assert.NoError(t, err)
+		assert.Equal(t, h1, h2)
+	})
+
+	t.Run("different_values", func(t *testing.T) {
+		a1 := api.Args{"key": "value1"}
+		a2 := api.Args{"key": "value2"}
+		h1, err := a1.HashKey()
+		assert.NoError(t, err)
+		h2, err := a2.HashKey()
+		assert.NoError(t, err)
+		assert.NotEqual(t, h1, h2)
+	})
+
+	t.Run("nested_maps", func(t *testing.T) {
+		a := api.Args{
+			"nested": map[string]any{
+				"inner": "value",
+			},
+		}
+		h, err := a.HashKey()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, h)
+	})
+}

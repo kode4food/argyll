@@ -1105,3 +1105,169 @@ func TestResultEdgeCases(t *testing.T) {
 		as.True(result.Success)
 	})
 }
+
+func TestStepHashKey(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("deterministic", func(t *testing.T) {
+		s := &api.Step{
+			ID:   "test-step",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test",
+			},
+		}
+		h1, err := s.HashKey()
+		as.NoError(err)
+		h2, err := s.HashKey()
+		as.NoError(err)
+		as.Equal(h1, h2)
+	})
+
+	t.Run("cached", func(t *testing.T) {
+		s := &api.Step{
+			ID:   "test-step",
+			Type: api.StepTypeSync,
+		}
+		h1, err := s.HashKey()
+		as.NoError(err)
+		h2, err := s.HashKey()
+		as.NoError(err)
+		as.Equal(h1, h2)
+	})
+
+	t.Run("different_types", func(t *testing.T) {
+		s1 := &api.Step{Type: api.StepTypeSync}
+		s2 := &api.Step{Type: api.StepTypeAsync}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.NotEqual(h1, h2)
+	})
+
+	t.Run("different_http_configs", func(t *testing.T) {
+		s1 := &api.Step{
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{Endpoint: "http://a"},
+		}
+		s2 := &api.Step{
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{Endpoint: "http://b"},
+		}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.NotEqual(h1, h2)
+	})
+
+	t.Run("ignores_id", func(t *testing.T) {
+		s1 := &api.Step{
+			ID:   "id1",
+			Type: api.StepTypeSync,
+		}
+		s2 := &api.Step{
+			ID:   "id2",
+			Type: api.StepTypeSync,
+		}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.Equal(h1, h2)
+	})
+
+	t.Run("ignores_name", func(t *testing.T) {
+		s1 := &api.Step{
+			Type: api.StepTypeSync,
+			Name: "name1",
+		}
+		s2 := &api.Step{
+			Type: api.StepTypeSync,
+			Name: "name2",
+		}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.Equal(h1, h2)
+	})
+
+	t.Run("ignores_labels", func(t *testing.T) {
+		s1 := &api.Step{
+			Type:   api.StepTypeSync,
+			Labels: map[string]string{"env": "dev"},
+		}
+		s2 := &api.Step{
+			Type:   api.StepTypeSync,
+			Labels: map[string]string{"env": "prod"},
+		}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.Equal(h1, h2)
+	})
+
+	t.Run("includes_memoizable", func(t *testing.T) {
+		s1 := &api.Step{
+			Type:       api.StepTypeSync,
+			Memoizable: false,
+		}
+		s2 := &api.Step{
+			Type:       api.StepTypeSync,
+			Memoizable: true,
+		}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.NotEqual(h1, h2)
+	})
+
+	t.Run("includes_attributes", func(t *testing.T) {
+		s1 := &api.Step{
+			Type: api.StepTypeSync,
+			Attributes: map[api.Name]*api.AttributeSpec{
+				"in": {Role: api.RoleRequired},
+			},
+		}
+		s2 := &api.Step{
+			Type: api.StepTypeSync,
+			Attributes: map[api.Name]*api.AttributeSpec{
+				"out": {Role: api.RoleOutput},
+			},
+		}
+		h1, err := s1.HashKey()
+		as.NoError(err)
+		h2, err := s2.HashKey()
+		as.NoError(err)
+		as.NotEqual(h1, h2)
+	})
+
+	t.Run("with_script", func(t *testing.T) {
+		s := &api.Step{
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: "ale",
+				Script:   "return 42",
+			},
+		}
+		h, err := s.HashKey()
+		as.NoError(err)
+		as.NotEmpty(h)
+	})
+
+	t.Run("with_flow", func(t *testing.T) {
+		s := &api.Step{
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"goal1", "goal2"},
+			},
+		}
+		h, err := s.HashKey()
+		as.NoError(err)
+		as.NotEmpty(h)
+	})
+}

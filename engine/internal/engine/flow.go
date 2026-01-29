@@ -86,9 +86,8 @@ func (e *Engine) CompleteWork(
 			if step != nil && step.Memoizable {
 				work := flow.Executions[fs.StepID].WorkItems[token]
 				if work != nil {
-					if err := e.memoCache.Put(
-						step, work.Inputs, outputs,
-					); err != nil {
+					err := e.memoCache.Put(step, work.Inputs, outputs)
+					if err != nil {
 						slog.Warn("memo cache put failed",
 							log.FlowID(fs.FlowID), log.StepID(fs.StepID),
 							log.Error(err))

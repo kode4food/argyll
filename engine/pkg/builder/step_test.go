@@ -585,6 +585,27 @@ func TestStepBuilderWithLabels(t *testing.T) {
 	})
 }
 
+func TestStepBuilderWithMemoizable(t *testing.T) {
+	t.Run("set_memoizable", func(t *testing.T) {
+		step, err := testClient().NewStep("Memoizable Step").
+			WithEndpoint("http://example.com").
+			WithMemoizable().
+			Build()
+
+		assert.NoError(t, err)
+		assert.True(t, step.Memoizable)
+	})
+
+	t.Run("default_not_memoizable", func(t *testing.T) {
+		step, err := testClient().NewStep("Regular Step").
+			WithEndpoint("http://example.com").
+			Build()
+
+		assert.NoError(t, err)
+		assert.False(t, step.Memoizable)
+	})
+}
+
 func TestUpdate(t *testing.T) {
 	step := testClient().NewStep("Test").
 		WithEndpoint("http://example.com")
