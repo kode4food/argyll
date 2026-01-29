@@ -703,8 +703,8 @@ func (tx *flowTx) raiseWorkStarted(
 }
 
 // handleMemoCacheHit processes a memo cache hit by emitting WorkSucceeded
-func (tx *flowTx) handleMemoCacheHit(stepID api.StepID, token api.Token,
-	outputs api.Args,
+func (tx *flowTx) handleMemoCacheHit(
+	stepID api.StepID, token api.Token, outputs api.Args,
 ) error {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 		api.WorkSucceededEvent{
