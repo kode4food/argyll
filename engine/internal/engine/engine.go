@@ -26,6 +26,7 @@ type (
 		cancel     context.CancelFunc
 		scripts    *ScriptRegistry
 		retryQueue *RetryQueue
+		memoCache  *MemoCache
 	}
 
 	// Executor manages engine state persistence and event sourcing
@@ -69,6 +70,7 @@ func New(
 		ctx:        ctx,
 		cancel:     cancel,
 		retryQueue: NewRetryQueue(),
+		memoCache:  NewMemoCache(cfg.MemoCacheSize),
 	}
 	e.scripts = NewScriptRegistry()
 

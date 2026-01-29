@@ -1,12 +1,14 @@
 package engine
 
 import (
+	"log/slog"
 	"slices"
 
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -78,8 +80,21 @@ func (e *Engine) CompleteWork(
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState) {
 			tx.handleWorkSucceededCleanup(fs, token)
+			step := flow.Plan.Steps[fs.StepID]
+			if step != nil && step.Memoizable {
+				work := flow.Executions[fs.StepID].WorkItems[token]
+				if work != nil {
+					if err := e.memoCache.Put(
+						step, work.Inputs, outputs,
+					); err != nil {
+						slog.Warn("memo cache put failed",
+							log.FlowID(fs.FlowID), log.StepID(fs.StepID),
+							log.Error(err))
+					}
+				}
+			}
 		})
 		return tx.handleWorkSucceeded(fs.StepID)
 	})

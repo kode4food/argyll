@@ -31,6 +31,7 @@ type (
 		// Engine
 		StepTimeout     int64
 		FlowCacheSize   int
+		MemoCacheSize   int
 		ShutdownTimeout time.Duration
 	}
 )
@@ -50,6 +51,7 @@ const (
 	DefaultSnapshotQueueSize   = 1000
 	DefaultSnapshotSaveTimeout = 30 * time.Second
 	DefaultCacheSize           = 4096
+	DefaultMemoCacheSize       = 10240
 
 	DefaultRetryMaxRetries   = 10
 	DefaultRetryBackoffMs    = 1000
@@ -96,6 +98,7 @@ func NewDefaultConfig() *Config {
 		},
 		StepTimeout:     DefaultStepTimeout,
 		FlowCacheSize:   DefaultCacheSize,
+		MemoCacheSize:   DefaultMemoCacheSize,
 		ShutdownTimeout: DefaultShutdownTimeout,
 		LogLevel:        "info",
 	}
@@ -117,10 +120,16 @@ func (c *Config) LoadFromEnv() {
 	if webhookBaseURL := os.Getenv("WEBHOOK_BASE_URL"); webhookBaseURL != "" {
 		c.WebhookBaseURL = webhookBaseURL
 	}
-	if cacheSizeStr := os.Getenv("FLOW_CACHE_SIZE"); cacheSizeStr != "" {
-		cacheSize, err := strconv.Atoi(cacheSizeStr)
+	if flowSizeStr := os.Getenv("FLOW_CACHE_SIZE"); flowSizeStr != "" {
+		cacheSize, err := strconv.Atoi(flowSizeStr)
 		if err == nil && cacheSize > 0 {
 			c.FlowCacheSize = cacheSize
+		}
+	}
+	if memoSizeStr := os.Getenv("MEMO_CACHE_SIZE"); memoSizeStr != "" {
+		cacheSize, err := strconv.Atoi(memoSizeStr)
+		if err == nil && cacheSize > 0 {
+			c.MemoCacheSize = cacheSize
 		}
 	}
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {

@@ -1,6 +1,13 @@
 package api
 
-import "maps"
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"maps"
+	"slices"
+)
 
 type (
 	// Args represents a map of named arguments passed to or from steps
@@ -8,6 +15,11 @@ type (
 
 	// Name is a string identifier for arguments and attributes
 	Name string
+
+	argPair struct {
+		K string `json:"k"`
+		V any    `json:"v"`
+	}
 )
 
 // Set creates a new Args with the specified name-value pair added
@@ -63,4 +75,36 @@ func (a Args) GetInt(name Name, defaultValue int) int {
 		return int(f)
 	}
 	return defaultValue
+}
+
+// HashKey computes a deterministic SHA256 hash key of the Args. Keys are
+// sorted alphabetically to ensure consistent hashing regardless of map
+// iteration order. Returns hex string (64 chars) for use as cache key
+func (a Args) HashKey() (string, error) {
+	if len(a) == 0 {
+		return sha256Hex(""), nil
+	}
+
+	keys := make([]Name, 0, len(a))
+	for k := range a {
+		keys = append(keys, k)
+	}
+	slices.Sort(keys)
+
+	pairs := make([]argPair, len(keys))
+	for i, k := range keys {
+		pairs[i] = argPair{K: string(k), V: a[k]}
+	}
+
+	data, err := json.Marshal(pairs)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal args: %w", err)
+	}
+
+	return sha256Hex(string(data)), nil
+}
+
+func sha256Hex(s string) string {
+	hash := sha256.Sum256([]byte(s))
+	return hex.EncodeToString(hash[:])
 }

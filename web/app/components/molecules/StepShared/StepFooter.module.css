@@ -43,6 +43,13 @@
   gap: var(--spacing-sm);
 }
 
+.memoIcon {
+  display: flex;
+  align-items: center;
+  color: var(--color-primary);
+  opacity: 0.7;
+}
+
 .healthStatus {
   display: flex;
   align-items: center;

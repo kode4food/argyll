@@ -729,6 +729,16 @@ components:
         predicate:
           $ref: "#/components/schemas/ScriptConfig"
           description: Optional script-based predicate for conditional execution
+        memoizable:
+          type: boolean
+          default: false
+          description: |\
+            Enable result caching (memoization) for this step.
+            When enabled, the engine maintains a cache of (step definition, inputs) → outputs mappings.
+            Before execution, the cache is checked using a deterministic key based on the step's functional definition and input arguments.
+            Cache hits return cached outputs without re-executing the step. Only successful executions are cached.
+            The cache is global, in-memory, thread-safe, and uses LRU eviction.
+          example: true
         http:
           $ref: "#/components/schemas/HttpConfig"
         flow:

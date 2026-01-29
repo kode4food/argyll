@@ -563,6 +563,18 @@ func (tx *flowTx) startPendingWork(
 		if !shouldStart {
 			continue
 		}
+
+		if step.Memoizable {
+			if cached, ok := tx.Engine.memoCache.Get(step, item.Inputs); ok {
+				err := tx.handleMemoCacheHit(stepID, token, cached)
+				if err != nil {
+					return nil, err
+				}
+				remaining--
+				continue
+			}
+		}
+
 		if err := tx.raiseWorkStarted(
 			stepID, token, item.Inputs,
 		); err != nil {
@@ -688,6 +700,27 @@ func (tx *flowTx) raiseWorkStarted(
 			Inputs: inputs,
 		},
 	)
+}
+
+// handleMemoCacheHit processes a memo cache hit by emitting WorkSucceeded
+func (tx *flowTx) handleMemoCacheHit(stepID api.StepID, token api.Token,
+	outputs api.Args,
+) error {
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
+		api.WorkSucceededEvent{
+			FlowID:  tx.flowID,
+			StepID:  stepID,
+			Token:   token,
+			Outputs: outputs,
+		},
+	); err != nil {
+		return err
+	}
+	tx.OnSuccess(func(flow *api.FlowState) {
+		fs := FlowStep{FlowID: tx.flowID, StepID: stepID}
+		tx.handleWorkSucceededCleanup(fs, token)
+	})
+	return tx.handleWorkSucceeded(stepID)
 }
 
 // maybeDeactivate emits FlowDeactivated after commit if the flow is terminal

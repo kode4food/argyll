@@ -54,6 +54,8 @@ export function useStepEditorForm(
     step?.flow?.goals?.join(", ") || ""
   );
 
+  const [memoizable, setMemoizable] = useState(step?.memoizable || false);
+
   const [attributes, setAttributes] = useState<Attribute[]>(() =>
     buildAttributesFromStep(step)
   );
@@ -191,6 +193,7 @@ export function useStepEditorForm(
         flowGoals,
         flowInputMap: inputMap,
         flowOutputMap: outputMap,
+        memoizable,
       });
 
       let resultStep: Step;
@@ -233,6 +236,8 @@ export function useStepEditorForm(
       setHttpTimeout,
       flowGoals,
       setFlowGoals,
+      memoizable,
+      setMemoizable,
     }),
     [
       stepId,
@@ -248,6 +253,7 @@ export function useStepEditorForm(
       healthCheck,
       httpTimeout,
       flowGoals,
+      memoizable,
     ]
   );
 
@@ -274,6 +280,8 @@ export function useStepEditorForm(
     setScriptLanguage,
     flowGoals,
     setFlowGoals,
+    memoizable,
+    setMemoizable,
     attributes,
     addAttribute,
     updateAttribute,

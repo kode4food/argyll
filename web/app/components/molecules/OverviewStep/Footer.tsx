@@ -9,7 +9,7 @@ import {
   formatScriptPreview,
   formatScriptForTooltip,
 } from "@/utils/stepFooterUtils";
-import { getStepTypeIcon } from "@/utils/iconRegistry";
+import { getStepTypeIcon, IconMemoizable } from "@/utils/iconRegistry";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
 import { useT } from "@/app/i18n";
 
@@ -119,6 +119,17 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
       </TooltipSection>
     );
 
+    if (step.memoizable) {
+      sections.push(
+        <TooltipSection
+          key="memoizable"
+          title={t("stepEditor.memoizableLabel")}
+        >
+          {t("stepEditor.memoizableLabel")}
+        </TooltipSection>
+      );
+    }
+
     return { displayInfo, tooltipSections: sections };
   }, [step, healthStatus, healthText, t]);
 
@@ -143,6 +154,11 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
             </div>
           )}
           <div className={styles.actions}>
+            {step.memoizable && (
+              <div className={styles.memoIcon}>
+                <IconMemoizable className={styles.icon} />
+              </div>
+            )}
             <div className={styles.healthStatus}>
               <HealthDot status={healthIconClass as HealthStatus} />
             </div>

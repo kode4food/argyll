@@ -14,18 +14,19 @@ import (
 // Step is a builder for creating and configuring flow steps. It provides an
 // API for defining step attributes, predicates, and execution settings
 type Step struct {
-	client     *Client
-	predicate  *api.ScriptConfig
-	http       *api.HTTPConfig
-	flow       *api.FlowConfig
-	script     *api.ScriptConfig
-	id         api.StepID
-	name       api.Name
-	stepType   api.StepType
-	labels     api.Labels
-	attributes api.AttributeSpecs
-	timeout    int64
-	dirty      bool
+	client      *Client
+	predicate   *api.ScriptConfig
+	http        *api.HTTPConfig
+	flow        *api.FlowConfig
+	script      *api.ScriptConfig
+	id          api.StepID
+	name        api.Name
+	stepType    api.StepType
+	labels      api.Labels
+	attributes  api.AttributeSpecs
+	timeout     int64
+	memoizable  bool
+	dirty       bool
 }
 
 var (
@@ -266,6 +267,13 @@ func (s *Step) WithScriptExecution() *Step {
 	return &res
 }
 
+// WithMemoizable marks the step as eligible for result memoization
+func (s *Step) WithMemoizable() *Step {
+	res := *s
+	res.memoizable = true
+	return &res
+}
+
 // Build validates and creates the final Step API object
 func (s *Step) Build() (*api.Step, error) {
 	var httpConfig *api.HTTPConfig
@@ -285,6 +293,7 @@ func (s *Step) Build() (*api.Step, error) {
 		HTTP:       httpConfig,
 		Flow:       s.flow,
 		Script:     s.script,
+		Memoizable: s.memoizable,
 	}
 
 	if err := step.Validate(); err != nil {

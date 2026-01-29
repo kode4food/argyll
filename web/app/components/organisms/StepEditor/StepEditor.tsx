@@ -62,6 +62,8 @@ interface StepEditingContextValue {
   setHttpTimeout: (value: number) => void;
   flowGoals: string;
   setFlowGoals: (value: string) => void;
+  memoizable: boolean;
+  setMemoizable: (value: boolean) => void;
   flowInputOptions: FlowInputOption[];
   flowOutputOptions: string[];
 }
@@ -628,6 +630,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setScript,
     scriptLanguage,
     setScriptLanguage,
+    memoizable,
+    setMemoizable,
     saving,
     error,
     handleSave,
@@ -779,26 +783,37 @@ const StepEditor: React.FC<StepEditorProps> = ({
           </div>
 
           <div className={styles.footer}>
-            <button
-              onClick={onClose}
-              disabled={saving}
-              className={styles.buttonCancel}
-            >
-              {t("stepEditor.cancel")}
-            </button>
-            <button
-              onClick={handleSave}
-              disabled={saving}
-              className={styles.buttonSave}
-            >
-              {saving
-                ? isCreateMode
-                  ? t("stepEditor.creating")
-                  : t("stepEditor.saving")
-                : isCreateMode
-                  ? t("stepEditor.create")
-                  : t("stepEditor.save")}
-            </button>
+            <label className={styles.footerCheckboxLabel}>
+              <input
+                type="checkbox"
+                checked={memoizable}
+                onChange={(e) => setMemoizable(e.target.checked)}
+                className={styles.footerCheckbox}
+              />
+              <span>{t("stepEditor.memoizableLabel")}</span>
+            </label>
+            <div className={styles.footerButtons}>
+              <button
+                onClick={onClose}
+                disabled={saving}
+                className={styles.buttonCancel}
+              >
+                {t("stepEditor.cancel")}
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving}
+                className={styles.buttonSave}
+              >
+                {saving
+                  ? isCreateMode
+                    ? t("stepEditor.creating")
+                    : t("stepEditor.saving")
+                  : isCreateMode
+                    ? t("stepEditor.create")
+                    : t("stepEditor.save")}
+              </button>
+            </div>
           </div>
         </div>
       </div>

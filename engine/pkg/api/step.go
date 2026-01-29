@@ -1,10 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"maps"
 	"slices"
+	"sync/atomic"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -31,7 +33,9 @@ type (
 		ID         StepID         `json:"id"`
 		Name       Name           `json:"name"`
 		Type       StepType       `json:"type"`
+		Memoizable bool           `json:"memoizable,omitempty"`
 		Attributes AttributeSpecs `json:"attributes"`
+		hashKey    atomic.Pointer[string]
 	}
 
 	// HTTPConfig configures HTTP-based step execution
@@ -75,6 +79,33 @@ type (
 		Outputs Args   `json:"outputs,omitempty"`
 		Error   string `json:"error,omitempty"`
 		Success bool   `json:"success"`
+	}
+
+	attrPair struct {
+		K Name           `json:"k"`
+		V *AttributeSpec `json:"v"`
+	}
+
+	mapEntry struct {
+		K Name `json:"k"`
+		V Name `json:"v"`
+	}
+
+	flowCfg struct {
+		Goals []StepID   `json:"goals"`
+		In    []mapEntry `json:"input_map,omitempty"`
+		Out   []mapEntry `json:"output_map,omitempty"`
+	}
+
+	stepHash struct {
+		Type       StepType      `json:"type"`
+		Memoizable bool          `json:"memoizable,omitempty"`
+		Attributes []attrPair    `json:"attributes"`
+		HTTP       *HTTPConfig   `json:"http,omitempty"`
+		Script     *ScriptConfig `json:"script,omitempty"`
+		Flow       any           `json:"flow,omitempty"`
+		Predicate  *ScriptConfig `json:"predicate,omitempty"`
+		WorkConfig *WorkConfig   `json:"work_config,omitempty"`
 	}
 )
 
@@ -123,7 +154,7 @@ var (
 	ErrNegativeBackoff       = errors.New("backoff_ms cannot be negative")
 	ErrMaxBackoffTooSmall    = errors.New("max_backoff_ms must be >= " +
 		"backoff_ms")
-	ErrWorkNotCompleted      = errors.New("work not completed")
+	ErrWorkNotCompleted = errors.New("work not completed")
 )
 
 var (
@@ -391,6 +422,9 @@ func (s *Step) Equal(other *Step) bool {
 	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
 		return false
 	}
+	if s.Memoizable != other.Memoizable {
+		return false
+	}
 	if !s.Attributes.Equal(other.Attributes) {
 		return false
 	}
@@ -413,6 +447,84 @@ func (s *Step) Equal(other *Step) bool {
 		return false
 	}
 	return true
+}
+
+// HashKey computes a deterministic SHA256 hash key of the functional parts of
+// the step definition. Excludes ID, Name, and Labels (non-functional metadata)
+func (s *Step) HashKey() (string, error) {
+	if cached := s.hashKey.Load(); cached != nil {
+		return *cached, nil
+	}
+
+	key, err := s.computeHashKey()
+	if err != nil {
+		return "", err
+	}
+
+	s.hashKey.Store(&key)
+	return key, nil
+}
+
+func (s *Step) computeHashKey() (string, error) {
+	names := make([]Name, 0, len(s.Attributes))
+	for n := range s.Attributes {
+		names = append(names, n)
+	}
+	slices.Sort(names)
+
+	attrs := make([]attrPair, len(names))
+	for i, n := range names {
+		attrs[i] = attrPair{K: n, V: s.Attributes[n]}
+	}
+
+	var flow any
+	if s.Flow != nil {
+		keys := make([]Name, 0, len(s.Flow.InputMap))
+		for k := range s.Flow.InputMap {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+
+		in := make([]mapEntry, len(keys))
+		for i, k := range keys {
+			in[i] = mapEntry{K: k, V: s.Flow.InputMap[k]}
+		}
+
+		keys = make([]Name, 0, len(s.Flow.OutputMap))
+		for k := range s.Flow.OutputMap {
+			keys = append(keys, k)
+		}
+		slices.Sort(keys)
+
+		out := make([]mapEntry, len(keys))
+		for i, k := range keys {
+			out[i] = mapEntry{K: k, V: s.Flow.OutputMap[k]}
+		}
+
+		flow = flowCfg{
+			Goals: s.Flow.Goals,
+			In:    in,
+			Out:   out,
+		}
+	}
+
+	h := stepHash{
+		Type:       s.Type,
+		Memoizable: s.Memoizable,
+		Attributes: attrs,
+		HTTP:       s.HTTP,
+		Script:     s.Script,
+		Flow:       flow,
+		Predicate:  s.Predicate,
+		WorkConfig: s.WorkConfig,
+	}
+
+	data, err := json.Marshal(h)
+	if err != nil {
+		return "", fmt.Errorf("failed to marshal step definition: %w", err)
+	}
+
+	return sha256Hex(string(data)), nil
 }
 
 func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {

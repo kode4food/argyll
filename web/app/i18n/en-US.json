@@ -134,6 +134,7 @@
   "stepEditor.duplicateAttributeName": "Duplicate attribute name: {name}",
   "stepEditor.endpointLabel": "Endpoint URL",
   "stepEditor.endpointRequired": "HTTP endpoint is required",
+  "stepEditor.memoizableLabel": "Memoizable (cache step results)",
   "stepEditor.healthCheckLabel": "Health Check URL (optional)",
   "stepEditor.httpConfigLabel": "HTTP Configuration",
   "stepEditor.invalidDefaultValue": "Invalid default value for \"{name}\": {reason}",

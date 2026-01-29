@@ -85,9 +85,32 @@
   border-top: 1px solid
     color-mix(in srgb, var(--color-dark-bg) 70%, var(--color-darken));
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
   gap: var(--spacing-md);
   flex-shrink: 0;
+}
+
+.footerCheckboxLabel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  font-size: var(--text-xs);
+  color: var(--color-dark-text);
+  user-select: none;
+}
+
+.footerCheckbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: var(--color-info);
+}
+
+.footerButtons {
+  display: flex;
+  gap: var(--spacing-md);
 }
 
 .buttonCancel {

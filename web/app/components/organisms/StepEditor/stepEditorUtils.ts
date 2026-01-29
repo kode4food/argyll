@@ -260,6 +260,7 @@ export function buildStepPayload({
   flowGoals,
   flowInputMap,
   flowOutputMap,
+  memoizable,
 }: {
   stepId: string;
   name: string;
@@ -275,6 +276,7 @@ export function buildStepPayload({
   flowGoals: string;
   flowInputMap: Record<string, string>;
   flowOutputMap: Record<string, string>;
+  memoizable: boolean;
 }): Step {
   const stepData: Step = {
     id: stepId.trim(),
@@ -287,6 +289,7 @@ export function buildStepPayload({
           script: predicate.trim(),
         }
       : undefined,
+    memoizable,
   };
 
   if (stepType === "flow") {

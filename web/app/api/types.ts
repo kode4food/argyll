@@ -74,6 +74,7 @@ export interface Step {
   labels?: Record<string, string>;
   predicate?: ScriptConfig;
   work_config?: WorkConfig;
+  memoizable?: boolean;
 
   // Type-specific configurations
   http?: HTTPConfig;

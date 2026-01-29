@@ -14,6 +14,7 @@ import {
   CircleSlash,
   Clock,
   Command,
+  Database,
   FileCode2,
   Globe,
   Info,
@@ -69,6 +70,7 @@ export const IconConnectionReconnecting = RefreshCw;
 export const IconConnectionError = AlertCircle;
 export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
+export const IconMemoizable = Database;
 
 export const IconProgressPending = Clock;
 export const IconProgressActive = Loader2;
