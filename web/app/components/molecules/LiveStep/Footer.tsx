@@ -120,17 +120,6 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
       );
     }
 
-    if (step.memoizable) {
-      sections.push(
-        <TooltipSection
-          key="memoizable"
-          title={t("stepEditor.memoizableLabel")}
-        >
-          {t("stepEditor.memoizableLabel")}
-        </TooltipSection>
-      );
-    }
-
     return { displayInfo, tooltipSections: sections };
   }, [execution, flowId, progressState, step, t]);
 

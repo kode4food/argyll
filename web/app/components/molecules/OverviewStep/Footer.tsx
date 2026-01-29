@@ -119,17 +119,6 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
       </TooltipSection>
     );
 
-    if (step.memoizable) {
-      sections.push(
-        <TooltipSection
-          key="memoizable"
-          title={t("stepEditor.memoizableLabel")}
-        >
-          {t("stepEditor.memoizableLabel")}
-        </TooltipSection>
-      );
-    }
-
     return { displayInfo, tooltipSections: sections };
   }, [step, healthStatus, healthText, t]);
 

@@ -1,8 +1,6 @@
 package engine
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 
 	"github.com/kode4food/argyll/engine/internal/util"
@@ -65,7 +63,7 @@ func (m *MemoCache) Put(
 }
 
 // buildCacheKey creates a deterministic cache key from step definition and
-// inputs. Format: sha256(stepKey + "|" + inputKey)
+// inputs. Format: stepKey + ":" + inputKey
 func buildCacheKey(step *api.Step, inputs api.Args) (string, error) {
 	stepKey, err := step.HashKey()
 	if err != nil {
@@ -77,7 +75,5 @@ func buildCacheKey(step *api.Step, inputs api.Args) (string, error) {
 		return "", err
 	}
 
-	combined := stepKey + "|" + inputKey
-	hash := sha256.Sum256([]byte(combined))
-	return hex.EncodeToString(hash[:]), nil
+	return stepKey + ":" + inputKey, nil
 }
