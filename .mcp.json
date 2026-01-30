@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "argyll": {
+      "type": "stdio",
+      "command": "go",
+      "args": [
+        "run",
+        "./mcp/cmd/argyll-mcp",
+        "-engine",
+        "http://localhost:8080/"
+      ]
+    }
+  }
+}
