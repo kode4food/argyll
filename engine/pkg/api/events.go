@@ -109,10 +109,11 @@ type (
 
 	// WorkNotCompletedEvent is emitted when a work item fails transiently
 	WorkNotCompletedEvent struct {
-		FlowID FlowID `json:"flow_id"`
-		StepID StepID `json:"step_id"`
-		Token  Token  `json:"token"`
-		Error  string `json:"error"`
+		FlowID     FlowID `json:"flow_id"`
+		StepID     StepID `json:"step_id"`
+		Token      Token  `json:"token"`
+		RetryToken Token  `json:"retry_token,omitempty"`
+		Error      string `json:"error"`
 	}
 
 	// RetryScheduledEvent is emitted when a failed work item is to be retried

@@ -381,6 +381,14 @@ func (e *ExecutionState) SetWorkItem(
 	return &res
 }
 
+// RemoveWorkItem returns a new ExecutionState with the work item removed
+func (e *ExecutionState) RemoveWorkItem(token Token) *ExecutionState {
+	res := *e
+	res.WorkItems = maps.Clone(e.WorkItems)
+	delete(res.WorkItems, token)
+	return &res
+}
+
 // SetStatus returns a new HealthState with the updated status
 func (h *HealthState) SetStatus(s HealthStatus) *HealthState {
 	res := *h

@@ -28,7 +28,8 @@ func TestMemoCache_GetPut(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	cache.Put(step, inputs, outputs)
+	err := cache.Put(step, inputs, outputs)
+	assert.NoError(t, err)
 
 	result, ok := cache.Get(step, inputs)
 	assert.True(t, ok)
@@ -77,8 +78,10 @@ func TestMemoCache_DifferentInputsDifferentCache(t *testing.T) {
 	inputs2 := api.Args{"input": "value2"}
 	outputs2 := api.Args{"output": "result2"}
 
-	cache.Put(step, inputs1, outputs1)
-	cache.Put(step, inputs2, outputs2)
+	err := cache.Put(step, inputs1, outputs1)
+	assert.NoError(t, err)
+	err = cache.Put(step, inputs2, outputs2)
+	assert.NoError(t, err)
 
 	result, ok := cache.Get(step, inputs1)
 	assert.True(t, ok)
@@ -107,7 +110,8 @@ func TestMemoCache_StepDefinitionChangeInvalidatesCache(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, inputs, outputs)
+	assert.NoError(t, err)
 
 	step2 := &api.Step{
 		ID:   api.StepID("test"),
@@ -145,7 +149,8 @@ func TestMemoCache_StepMetadataChangeDoesNotInvalidateCache(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, inputs, outputs)
+	assert.NoError(t, err)
 
 	step2 := &api.Step{
 		ID:   api.StepID("test"),
@@ -184,7 +189,8 @@ func TestMemoCache_EmptyInputs(t *testing.T) {
 	inputs := api.Args{}
 	outputs := api.Args{"output": "result"}
 
-	cache.Put(step, inputs, outputs)
+	err := cache.Put(step, inputs, outputs)
+	assert.NoError(t, err)
 
 	result, ok := cache.Get(step, inputs)
 	assert.True(t, ok)
@@ -199,7 +205,8 @@ func TestMemoCache_NilStep(t *testing.T) {
 	_, ok := cache.Get(nil, inputs)
 	assert.False(t, ok)
 
-	cache.Put(nil, inputs, api.Args{"output": "result"})
+	err := cache.Put(nil, inputs, api.Args{"output": "result"})
+	assert.NoError(t, err)
 }
 
 func TestMemoCache_NilCache(t *testing.T) {
@@ -253,7 +260,8 @@ func TestMemoCache_DeterministicHashingWithAttributeOrder(t *testing.T) {
 	inputs := api.Args{"a": "1", "z": "2", "m": "3"}
 	outputs := api.Args{"output": "result"}
 
-	cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, inputs, outputs)
+	assert.NoError(t, err)
 	result, ok := cache.Get(step2, inputs)
 
 	assert.True(t, ok)
@@ -308,7 +316,8 @@ func TestMemoCache_DeterministicHashingWithFlowConfig(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	cache.Put(step1, inputs, outputs)
+	err := cache.Put(step1, inputs, outputs)
+	assert.NoError(t, err)
 	result, ok := cache.Get(step2, inputs)
 
 	assert.True(t, ok)
@@ -343,7 +352,8 @@ func TestMemoCache_DeterministicHashingWithInputArgOrder(t *testing.T) {
 
 	outputs := api.Args{"result": "data"}
 
-	cache.Put(step, inputs1, outputs)
+	err := cache.Put(step, inputs1, outputs)
+	assert.NoError(t, err)
 	result, ok := cache.Get(step, inputs2)
 
 	assert.True(t, ok)

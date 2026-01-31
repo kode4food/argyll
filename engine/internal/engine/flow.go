@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"slices"
 
+	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -142,17 +143,33 @@ func (e *Engine) NotCompleteWork(
 			return err
 		}
 
+		var retryToken api.Token
+		if exec, ok := tx.Value().Executions[fs.StepID]; ok {
+			if item := exec.WorkItems[token]; item != nil {
+				step := tx.Value().Plan.Steps[fs.StepID]
+				if step != nil && !step.Memoizable && item.RetryCount > 0 {
+					retryToken = api.Token(uuid.New().String())
+				}
+			}
+		}
+
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 			api.WorkNotCompletedEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Token:  token,
-				Error:  errMsg,
+				FlowID:     fs.FlowID,
+				StepID:     fs.StepID,
+				Token:      token,
+				RetryToken: retryToken,
+				Error:      errMsg,
 			},
 		); err != nil {
 			return err
 		}
-		return tx.handleWorkNotCompleted(fs.StepID, token)
+
+		actualToken := token
+		if retryToken != "" {
+			actualToken = retryToken
+		}
+		return tx.handleWorkNotCompleted(fs.StepID, actualToken)
 	})
 }
 
