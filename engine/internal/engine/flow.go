@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"fmt"
 	"log/slog"
 	"slices"
 
@@ -12,14 +13,34 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-var flowTransitions = StateTransitions[api.FlowStatus]{
-	api.FlowActive: util.SetOf(
-		api.FlowCompleted,
-		api.FlowFailed,
-	),
-	api.FlowCompleted: {},
-	api.FlowFailed:    {},
-}
+var (
+	flowTransitions = StateTransitions[api.FlowStatus]{
+		api.FlowActive: util.SetOf(
+			api.FlowCompleted,
+			api.FlowFailed,
+		),
+		api.FlowCompleted: {},
+		api.FlowFailed:    {},
+	}
+
+	workTransitions = StateTransitions[api.WorkStatus]{
+		api.WorkPending: util.SetOf(
+			api.WorkActive,
+		),
+		api.WorkActive: util.SetOf(
+			api.WorkSucceeded,
+			api.WorkFailed,
+			api.WorkNotCompleted,
+		),
+		api.WorkSucceeded: {},
+		api.WorkFailed:    {},
+		api.WorkNotCompleted: util.SetOf(
+			api.WorkActive,
+			api.WorkSucceeded,
+			api.WorkFailed,
+		),
+	}
+)
 
 // GetFlowState retrieves the current state of a flow by its ID
 func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
@@ -49,27 +70,17 @@ func (e *Engine) GetFlowStateSeq(
 	return state, nextSeq, nil
 }
 
-// StartWork begins execution of a work item for a step with the given token
-// and input arguments
-func (e *Engine) StartWork(
-	fs FlowStep, token api.Token, inputs api.Args,
-) error {
-	return e.raiseFlowEvent(fs.FlowID, api.EventTypeWorkStarted,
-		api.WorkStartedEvent{
-			FlowID: fs.FlowID,
-			StepID: fs.StepID,
-			Token:  token,
-			Inputs: inputs,
-		},
-	)
-}
-
 // CompleteWork marks a work item as successfully completed with the given
 // output values
 func (e *Engine) CompleteWork(
 	fs FlowStep, token api.Token, outputs api.Args,
 ) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		err := tx.checkWorkTransition(fs.StepID, token, api.WorkSucceeded)
+		if err != nil {
+			return err
+		}
+
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 			api.WorkSucceededEvent{
 				FlowID:  fs.FlowID,
@@ -102,6 +113,11 @@ func (e *Engine) CompleteWork(
 // FailWork marks a work item as failed with the specified error message
 func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		err := tx.checkWorkTransition(fs.StepID, token, api.WorkFailed)
+		if err != nil {
+			return err
+		}
+
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
 			api.WorkFailedEvent{
 				FlowID: fs.FlowID,
@@ -121,6 +137,11 @@ func (e *Engine) NotCompleteWork(
 	fs FlowStep, token api.Token, errMsg string,
 ) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+		err := tx.checkWorkTransition(fs.StepID, token, api.WorkNotCompleted)
+		if err != nil {
+			return err
+		}
+
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 			api.WorkNotCompletedEvent{
 				FlowID: fs.FlowID,
@@ -196,17 +217,6 @@ func (e *Engine) ListFlows() ([]*api.FlowsListItem, error) {
 	return digests, nil
 }
 
-func (e *Engine) raiseFlowEvent(
-	flowID api.FlowID, eventType api.EventType, data any,
-) error {
-	_, err := e.execFlow(flowKey(flowID),
-		func(st *api.FlowState, ag *FlowAggregator) error {
-			return events.Raise(ag, eventType, data)
-		},
-	)
-	return err
-}
-
 func (e *Engine) execFlow(
 	flowID timebox.AggregateID, cmd timebox.Command[*api.FlowState],
 ) (*api.FlowState, error) {
@@ -215,6 +225,28 @@ func (e *Engine) execFlow(
 
 func (tx *flowTx) handleWorkSucceededCleanup(fs FlowStep, token api.Token) {
 	tx.retryQueue.Remove(fs.FlowID, fs.StepID, token)
+}
+
+func (tx *flowTx) checkWorkTransition(
+	stepID api.StepID, token api.Token, toStatus api.WorkStatus,
+) error {
+	flow := tx.Value()
+	exec, ok := flow.Executions[stepID]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+	}
+
+	work, ok := exec.WorkItems[token]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrWorkItemNotFound, token)
+	}
+
+	if !workTransitions.CanTransition(work.Status, toStatus) {
+		return fmt.Errorf("%w: %s -> %s", ErrInvalidWorkTransition,
+			work.Status, toStatus)
+	}
+
+	return nil
 }
 
 func flowKey(flowID api.FlowID) timebox.AggregateID {

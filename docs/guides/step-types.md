@@ -1,107 +1,192 @@
-# Step Types
+# Choosing a Step Type
 
-Argyll is a goal-driven orchestrator. It supports four step types. Choose the simplest one that fits your workload and operational constraints.
+Argyll supports four step types. Choose the simplest one that fits your workload and operational constraints. For detailed information about each type, see [Steps](../concepts/steps.md).
 
-## Choosing a step type
+## Quick Decision Tree
 
-Start with Sync HTTP when you can return within a normal request timeout. Move to Async HTTP when you need background processing. Use Script for small in-engine transformations or predicates. Use Flow when you want a reusable sub-flow with its own goals and mappings.
+```
+Does your work finish within ~10 seconds?
+├─ Yes, need external service?
+│  ├─ Yes → Sync HTTP (fast endpoint call)
+│  └─ No → Script (in-engine transformation)
+└─ No, long-running work?
+   ├─ Yes → Async HTTP (queued background work)
+   └─ Yes (but reusable logic) → Flow (sub-flow)
+```
+
+## Step Type Comparison
+
+| Type | Latency | When to Use | Complexity |
+|------|---------|-------------|------------|
+| **Sync HTTP** | Fast (~100ms-10s) | Fast lookups, transformations | Low |
+| **Async HTTP** | Decoupled (background) | Long-running, queued work | Medium |
+| **Script** | In-engine (fast) | Transformations, predicates, glue logic | Low |
+| **Flow** | Variable | Reusable logic, composition | High |
 
 ## Sync HTTP
 
-Use when the work finishes within the HTTP request timeout and the caller can return outputs immediately.
+**Use when:** Work finishes within the HTTP request timeout and you can return outputs immediately.
 
-How it works:
+**Example:** Lookup service, calculation, validation
 
-- Engine calls your endpoint with inputs and metadata
-- Your handler returns outputs synchronously
-- The engine records work completion and continues the flow
-
-Pros:
-
+**Characteristics:**
+- Latency bound by HTTP timeout (typically 10-30 seconds)
 - Simplest to implement
-- Easy to debug with request/response logs
-- Good fit for pure transforms or fast lookups
+- No background workers needed
+- Good for: lookups, transformations, fast API calls
 
-Cons:
+**Timeout:** Configure `http.timeout` per step (in milliseconds)
 
-- Latency is bound by the HTTP request
-- Not appropriate for long-running work
+See [HTTP Steps](../concepts/steps.md#sync-http) for details.
 
 ## Async HTTP
 
-Use when work is long-running, requires queueing, or is handled by background workers.
+**Use when:** Work is long-running, requires queueing, or is handled by background workers.
 
-How it works:
+**Example:** Payment processing, email delivery, batch import
 
-- Engine calls your endpoint and includes a webhook URL in metadata
-- Your handler returns immediately (usually 200 OK)
-- Your worker POSTs the result to the webhook later
+**Characteristics:**
+- Decouples request latency from work duration
+- Requires webhook for completion notification
+- Needs background worker infrastructure
+- Idempotent handling required
 
-Pros:
-
-- Decouples execution time from request latency
-- Supports queues and background workers
-- Avoids HTTP timeouts for long jobs
-
-Cons:
-
-- Requires webhook reachability and idempotent handling
-- More moving parts to operate
-
-See the async guide for details: [guides/async-steps.md](./async-steps.md).
+See [Async Steps Guide](./async-steps.md) for webhook setup and best practices.
 
 ## Script
 
-Use for small transformations, predicates, and routing logic that does not need external I/O.
+**Use when:** You need small transformations, predicates, or in-engine data processing.
 
-How it works:
+**Example:** Calculate discount, validate email, format data
 
-- Ale or Lua runs inside the engine
-- The script returns outputs or a predicate decision
-- No external service is required
+**Languages:** Ale (simple, safe) or Lua (flexible, partial sandbox)
 
-Pros:
+**Characteristics:**
+- No external service needed
+- Runs inside the engine
+- Great for glue logic
+- No I/O or external calls
 
-- No separate runtime or service
-- Great for glue logic and light validation
-- Keeps simple logic close to the flow definition
+For predicates specifically, see [Predicates Guide](./predicates.md).
 
-Cons:
+## Flow (Sub-Flow)
 
-- No external I/O
-- Use sparingly for complex logic
+**Use when:** You want to reuse logic across multiple flows or encapsulate complex logic.
 
-## Flow (Sub-flow)
+**Example:** User authentication flow, payment authorization, order validation
 
-Use when you want reusable sub-flows or shared logic across multiple flows.
+**Characteristics:**
+- Child flow has its own execution plan and goals
+- Input/output mapping between parent and child
+- More events and state overhead
+- Enables composition and reuse
 
-How it works:
+For details, see [Flows](../concepts/flows.md) and [Flow Steps](../concepts/steps.md#flow-sub-flow).
 
-- Parent flow starts a child flow with its own goals
-- Inputs and outputs are mapped between parent and child
-- Child completion produces mapped outputs back to the parent
+## Multiple Work Items (For Each)
 
-Pros:
+Any step type can process multiple items using `for_each`. The engine creates one work item per array element and aggregates results.
 
-- Reuse common flow patterns
-- Encapsulate complex logic behind a clean interface
-- Allows composition without duplicating steps
+**Example:**
+```
+Process 100 orders in parallel (with rate limiting)
+├─ parallelism: 5 (process 5 at a time)
+├─ Sync HTTP step executes per order
+└─ Results aggregated back to flow
+```
 
-Cons:
+See [Work Items Guide](./work-items.md) for configuration and aggregation details.
 
-- More events and state to manage
-- Requires careful mapping of inputs and outputs
+## Decision Guide by Scenario
 
-## Work items and for_each
+### Scenario: Fetch user from database
 
-Any step type can expand into multiple work items when an input attribute is marked for_each and provided as an array. The engine creates one work item per element and aggregates outputs when the step completes.
+**Best choice:** Sync HTTP
 
-## Parallelism
+```json
+{
+  "id": "lookup-user",
+  "type": "sync",
+  "http": {
+    "endpoint": "https://api.example.com/users",
+    "timeout": 5000
+  }
+}
+```
 
-Work items can be processed with a parallelism limit in the step work config. This lets you control concurrency and avoid overwhelming downstream systems while still using for_each expansion.
+### Scenario: Process 1000 orders
 
-## Value recap
+**Best choice:** Sync HTTP + For Each + Parallelism
 
-- Pick the simplest step type that meets your latency and operational needs
-- Prefer Sync HTTP for speed, Async HTTP for durability, Script for glue, Flow for reuse
-- for_each and parallelism give you scalable fan-out without custom orchestration code
+```json
+{
+  "id": "process-orders",
+  "type": "sync",
+  "work_config": { "parallelism": 10 },
+  "attributes": {
+    "orders": { "for_each": true }
+  }
+}
+```
+
+### Scenario: Charge a credit card
+
+**Best choice:** Async HTTP (because payment processing takes time and requires retry logic)
+
+```json
+{
+  "id": "charge-card",
+  "type": "async",
+  "http": {
+    "endpoint": "https://payment-service.example.com/charge",
+    "timeout": 1000
+  }
+}
+```
+
+### Scenario: Apply business rule (e.g., calculate discount)
+
+**Best choice:** Script
+
+```json
+{
+  "id": "calculate-discount",
+  "type": "script",
+  "script": {
+    "language": "ale",
+    "script": "(* original_amount (- 1 discount_rate))"
+  }
+}
+```
+
+### Scenario: Reuse authentication logic in multiple flows
+
+**Best choice:** Flow (sub-flow)
+
+```json
+{
+  "id": "authorize-user",
+  "type": "flow",
+  "flow": {
+    "goals": ["verify-credentials"],
+    "input_map": { "username": "user" },
+    "output_map": { "is_authorized": "authorized" }
+  }
+}
+```
+
+## Related Guides
+
+- [Work Items](./work-items.md) - Scaling fan-out without custom code
+- [Async Steps](./async-steps.md) - Webhook setup and background processing
+- [Predicates](./predicates.md) - Conditional execution with scripts
+- [Memoization](./memoization.md) - Result caching for expensive operations
+
+## Key Principles
+
+1. **Pick the simplest type** that meets your latency and operational needs
+2. **Prefer Sync HTTP** for speed and simplicity
+3. **Use Async HTTP** only when work is genuinely long-running
+4. **Use Script** for lightweight transformations and predicates
+5. **Use Flow** when you need composition and reuse
+6. **Use For Each + Parallelism** for scalable fan-out without custom orchestration

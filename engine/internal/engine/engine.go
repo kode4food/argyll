@@ -43,12 +43,14 @@ type (
 )
 
 var (
-	ErrFlowNotFound        = errors.New("flow not found")
-	ErrFlowExists          = errors.New("flow exists")
-	ErrStepNotFound        = errors.New("step not found")
-	ErrStepExists          = errors.New("step exists")
-	ErrScriptCompileFailed = errors.New("failed to compile scripts for plan")
-	ErrStepNotInPlan       = errors.New("step not in execution plan")
+	ErrFlowNotFound          = errors.New("flow not found")
+	ErrFlowExists            = errors.New("flow exists")
+	ErrStepNotFound          = errors.New("step not found")
+	ErrStepExists            = errors.New("step exists")
+	ErrScriptCompileFailed   = errors.New("failed to compile scripts for plan")
+	ErrStepNotInPlan         = errors.New("step not in execution plan")
+	ErrWorkItemNotFound      = errors.New("work item not found")
+	ErrInvalidWorkTransition = errors.New("invalid work state transition")
 )
 
 // New creates a new orchestrator instance with the specified stores, client,

@@ -89,9 +89,9 @@ func (s *Server) handleWorkWebhook(
 				log.StepID(fs.StepID),
 				log.Token(token),
 				log.Error(err))
-			c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-				Error:  fmt.Sprintf("Failed to fail work: %v", err),
-				Status: http.StatusInternalServerError,
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Error:  err.Error(),
+				Status: http.StatusBadRequest,
 			})
 			return
 		}
@@ -105,9 +105,9 @@ func (s *Server) handleWorkWebhook(
 			log.StepID(fs.StepID),
 			log.Token(token),
 			log.Error(err))
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("Failed to complete work: %v", err),
-			Status: http.StatusInternalServerError,
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusBadRequest,
 		})
 		return
 	}

@@ -173,6 +173,8 @@ func TestHookCompleteTwice(t *testing.T) {
 		)
 		assert.Equal(t, api.StepCompleted, exec.Status)
 
+		// Second webhook call with same token should be rejected (400)
+		// due to invalid work state transition
 		result = api.StepResult{
 			Success: true,
 			Outputs: api.Args{"output": "value2"},
@@ -186,6 +188,100 @@ func TestHookCompleteTwice(t *testing.T) {
 		w = httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
+
+		// Verify duplicate call is rejected
+		assert.Equal(t, 400, w.Code, "duplicate webhook call should return 400")
+
+		// Verify response contains ErrInvalidWorkTransition error
+		var respErr api.ErrorResponse
+		err = json.NewDecoder(w.Body).Decode(&respErr)
+		assert.NoError(t, err)
+		// Error wrapped with typed error will contain the base error message
+		assert.Contains(t, respErr.Error, engine.ErrInvalidWorkTransition.Error())
+	})
+}
+
+func TestHookFailTwice(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := &api.Step{
+			ID:   "double-fail",
+			Name: "Double Fail",
+			Type: api.StepTypeAsync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test:8080",
+			},
+		}
+
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		err = env.Engine.StartFlow(
+			"double-fail-flow", plan, api.Args{}, api.Metadata{},
+		)
+		assert.NoError(t, err)
+
+		fs := engine.FlowStep{FlowID: "double-fail-flow", StepID: step.ID}
+		env.waitForWorkItem(t, fs)
+
+		flow, err := env.Engine.GetFlowState("double-fail-flow")
+		assert.NoError(t, err)
+
+		var token api.Token
+		for tk := range flow.Executions[step.ID].WorkItems {
+			token = tk
+			break
+		}
+
+		// First FailWork should succeed
+		result := api.StepResult{
+			Success: false,
+			Error:   "error1",
+		}
+
+		body, _ := json.Marshal(result)
+		req := httptest.NewRequest("POST",
+			"/webhook/double-fail-flow/"+string(step.ID)+"/"+string(token),
+			bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := env.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, 200, w.Code)
+
+		// Second FailWork with same token should be rejected (400)
+		result = api.StepResult{
+			Success: false,
+			Error:   "error2",
+		}
+
+		body, _ = json.Marshal(result)
+		req = httptest.NewRequest("POST",
+			"/webhook/double-fail-flow/"+string(step.ID)+"/"+string(token),
+			bytes.NewReader(body))
+		req.Header.Set("Content-Type", "application/json")
+		w = httptest.NewRecorder()
+
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, 400, w.Code, "duplicate fail webhook should return 400")
+
+		var respErr api.ErrorResponse
+		_ = json.NewDecoder(w.Body).Decode(&respErr)
+		assert.Contains(
+			t, respErr.Error, engine.ErrInvalidWorkTransition.Error(),
+		)
 	})
 }
 

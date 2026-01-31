@@ -222,7 +222,7 @@ type FlowId string
 
 ### Line Width
 
-Maximum 80 characters per line (tabs count as 4 spaces). Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When you must wrap, break after the opening paren and align arguments on new lines:
+Maximum 80 characters per line (tabs count as 4 spaces). Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When you must wrap, break after the opening paren:
 
 ```go
 func NewArchiveWorker(
@@ -462,25 +462,70 @@ var _ Archiver = (*ArchiveWorker)(nil)
 ## Error Handling
 
 - **Never panic** - always return errors
-- Typed errors as package-level vars with `Err` prefix
-- Wrap with context: `fmt.Errorf("context: %w", err)`
+- **Typed errors only** - All production code must use package-level vars with `Err` prefix
+- **Pattern: `%w: context`** — wrapped error first, then context variable
+- Plain error messages acceptable only in examples/documentation
 - Handle errors immediately, early return
 
+**Production Code - Always Use Typed Errors:**
 ```go
 var (
-	ErrNotFound = errors.New("not found")
-	ErrExists   = errors.New("already exists")
+	ErrStepNotInPlan        = errors.New("step not in execution plan")
+	ErrWorkItemNotFound     = errors.New("work item not found")
+	ErrInvalidWorkTransition = errors.New("invalid work state transition")
 )
 
-// Good - return error
+// Good - %w: %s pattern with typed error
+if x == nil {
+    return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+}
+
+// Good - typed error with multiple context values
+if !workTransitions.CanTransition(work.Status, toStatus) {
+    return fmt.Errorf("%w: %s -> %s", ErrInvalidWorkTransition,
+        work.Status, toStatus)
+}
+
+// Good - return typed error directly
 if x == nil {
     return nil, ErrNotFound
+}
+
+// Bad - plain message in production code (no typed error)
+if x == nil {
+    return fmt.Errorf("work item not found: %s", token)  // NO! Use typed error
+}
+
+// Bad - context before wrapped error
+if err := doSomething(); err != nil {
+    return fmt.Errorf("failed to process: %w", err)  // Wrong order
 }
 
 // Bad - never panic
 if x == nil {
     panic("x is nil")  // NO!
 }
+```
+
+**Testing - Use errors.Is() to Check Typed Errors:**
+
+Tests should use `errors.Is()` to check for specific error types, not `strings.Contains()`:
+
+```go
+// Good - use errors.Is for typed errors
+err := tx.checkWorkTransition(stepID, token, toStatus)
+assert.True(t, errors.Is(err, ErrWorkItemNotFound))
+
+// Bad - fragile string matching
+assert.True(t, strings.Contains(err.Error(), "work item not found"))
+```
+
+This enables robust error checking without brittle string comparisons. Typed errors are also easier to handle programmatically.
+
+**Examples/Documentation Only - Plain Messages OK:**
+```go
+// Only acceptable in README examples, not in engine code
+return fmt.Errorf("invalid configuration: %s", reason)
 ```
 
 ## Constants

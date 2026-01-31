@@ -4,12 +4,15 @@ Retries are per-work-item and configured per step. They apply when a work item r
 
 ## When retries are scheduled
 
-Retries are scheduled when a work item:
+Retries are scheduled when a work item reports not completed to the engine. This happens in two ways:
 
-- Returns `work_not_completed`
-- Fails with a retryable error (network failure, timeout, or HTTP 5xx)
+1. **Explicit `work_not_completed`**: Your step handler returns `success: false` with an error in the response payload. If you want the engine to retry, you must indicate this is a transient failure (not a permanent error).
 
-If a step returns `success: false` in a response payload, it is treated as a permanent failure and will not be retried.
+2. **Async webhook with `success: false`**: Your async worker completes via webhook with `success: false` and an error message.
+
+If a step returns `success: true`, the work item is considered complete regardless of whether actual work succeeded. This is a design choice: the engine respects your step handler's judgment about whether something should be retried.
+
+**Important:** The engine does NOT examine HTTP status codes, network errors, or timeouts. Your step handler is responsible for deciding what constitutes a retryable error and returning `success: false` accordingly.
 
 ## Configuration
 

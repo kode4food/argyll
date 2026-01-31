@@ -1,155 +1,297 @@
-# Event-Driven Architecture
+# Event Sourcing Implementation
 
-## Overview
+## Architecture
 
-Pure event-driven architecture where flow execution is triggered by events, not polling. Provides clear causality, better performance, horizontal scaling.
+**Storage:** Valkey backend via timebox.Store (NOT EventHub)
+- Engine state: `timebox.Store` with `timebox.Executor[*api.EngineState]`
+- Flow state: `timebox.Store` with `timebox.Executor[*api.FlowState]`
+- Concurrency: Optimistic (sequence-based versioning, automatic retry on conflict)
 
-## Core Components
+**WebSocket Notifications (separate from event sourcing):**
+- EventHub: `pkg/events/hub.go` (uses `github.com/kode4food/caravan` Topic)
+- Purpose: Broadcast events to WebSocket subscribers
+- NOT used for event sourcing - only for real-time UI updates
+- Produces from timebox events, doesn't drive execution
 
-**EventHub (Topic-Based Distribution)**
-- Location: `internal/events/hub.go`
-- Uses `github.com/kode4food/caravan` Topic
-- Pull-based consumers (no dropped events)
-- FIFO guarantees per consumer
+## State Mutations: Executor Pattern (Only Pattern)
 
-**Engine Event Processing Loop**
-- Location: `internal/engine/engine.go`
-- Event types that trigger processing:
-  - `flow_started` - Initial processing
-  - `step_completed` - May unblock dependent steps
-  - `step_failed` - Check if flow can continue
-  - `step_skipped` - May unblock dependent steps
-  - `attribute_set` - May satisfy step dependencies
+Every state change MUST use this pattern. No exceptions.
 
-## Critical Design Decision
+**Core pattern:**
+```go
+cmd := func(state *StateType, ag *Aggregator) error {
+    // 1. Read state (read-only)
+    // 2. Decide if mutation needed
+    // 3. Raise events via aggregator ONLY
+    events.Raise(ag, eventType, eventData)
 
-**Separate Event Recording from Step Launching**
+    // 4. Register side effects via ag.OnSuccess()
+    // This is called INSIDE the command, runs AFTER commit
+    ag.OnSuccess(func(state *StateType) {
+        // Network calls, starting work, cross-aggregate ops
+        // Runs ONCE after Exec completes and commits
+    })
 
-- **All Events Are Processed**: Events recorded regardless of flow state (Active, Completed, or Failed). Ensures complete final state for compensation/reversal.
-
-- **Single Decision Point for Step Launching**: Only `processFlow` decides whether to launch new steps. Returns early if flow is terminal.
-
-**Why This Matters:**
-1. Steps may complete after flow fails - outputs needed for reversal
-2. Final state reflects ALL step executions
-3. Clear separation: event recording (always) vs step launching (conditional)
-
-## Event Flow
-
-```
-POST /engine/flows
-  ↓
-flow_started event appended
-  ↓
-EventHub notified
-  ↓
-Engine consumer receives event
-  ↓
-processFlow spawned
-  ↓
-Ready steps executed in parallel
-  ↓
-step_completed events → attribute_set events
-  ↓
-Loop until flow complete/failed
-  ↓
-flow_completed or flow_failed event
-  ↓
-Remaining work items complete (recorded for audit)
-  ↓
-flow_deactivated event (when terminal + no active work)
-  ↓
-Archive worker evaluates deactivated flows
-  ↓
-flow_archiving event + archive flow started
+    return nil
+}
+executor.Exec(ctx, aggregateID, cmd)
 ```
 
-## Flow Lifecycle Events
+**CRITICAL: Side Effects Must Use ag.OnSuccess()**
 
-**Engine-Level Events** (affect engine state):
-- `flow_activated` - Emitted when flow starts, adds to active flows
-- `flow_deactivated` - Emitted when flow is terminal AND no active work items
-- `flow_archiving` - Emitted when a deactivated flow is selected for archiving
+Anything with side effects (network calls, starting real work, cross-aggregate operations, retry queue updates) MUST be registered via `ag.OnSuccess()` inside the command callback, NOT called directly in the command.
 
-**Flow-Level Events** (affect flow state):
-- `flow_started` - Flow begins execution
-- `flow_completed` - All goals satisfied
-- `flow_failed` - Goal step failed or unreachable
+**Why:** If the command retries (optimistic concurrency conflict), direct side effects execute multiple times. `ag.OnSuccess()` runs only once, after Exec commits.
 
-**Deactivation vs Completion/Failure**
+**Real patterns from the codebase:**
 
-`flow_completed`/`flow_failed` mark the flow's logical outcome but don't immediately deactivate. Work items may still be in-flight:
-
+For engine state mutations (execEngine - no side effects needed):
+```go
+// registry.go: UpdateStepHealth
+func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, errMsg string) error {
+    cmd := func(st *api.EngineState, ag *Aggregator) error {
+        if stepHealth, ok := st.Health[stepID]; ok {
+            if stepHealth.Status == health && stepHealth.Error == errMsg {
+                return nil  // Idempotent
+            }
+        }
+        return events.Raise(ag, api.EventTypeStepHealthChanged,
+            api.StepHealthChangedEvent{StepID: stepID, Status: health, Error: errMsg})
+    }
+    _, err := e.execEngine(cmd)  // Pure mutation, no OnSuccess needed
+    return err
+}
 ```
-1. Payment and reservation run in parallel
-2. Payment fails → flow_failed emitted
-3. Reservation still running, completes 100ms later
-4. work_succeeded recorded (outputs available for compensation)
-5. No more active work → flow_deactivated emitted
-6. Archive worker selects deactivated flows
-7. flow_archiving emitted and archive flow started
+
+For flow state mutations (flowTx wrapper with OnSuccess for side effects):
+```go
+// engine.go: StartFlow using flowTx
+func (e *Engine) StartFlow(flowID api.FlowID, plan *api.ExecutionPlan, initState api.Args, meta api.Metadata) error {
+    return e.flowTx(flowID, func(tx *flowTx) error {  // flowTx wraps execFlow
+        if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted, ...); err != nil {
+            return err
+        }
+        tx.OnSuccess(func(*api.FlowState) {
+            e.handleFlowActivated(flowID, meta)  // Side effect after commit
+        })
+        // Prepare initial steps (may register more OnSuccess)
+        for _, stepID := range tx.findInitialSteps(tx.Value()) {
+            tx.prepareStep(stepID)
+        }
+        return nil  // All events committed, then all OnSuccess handlers run
+    })
+}
 ```
 
-This separation enables:
-- Complete audit trail of all step executions
-- Outputs available for compensation/reversal
-- Policy-based archiving (memory pressure, age, etc.)
+Work execution (inside flowTx prepareStep):
+```go
+// flow-exec.go: prepareStep (called inside flowTx command)
+func (tx *flowTx) prepareStep(stepID api.StepID) error {
+    if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted, ...); err != nil {
+        return err
+    }
+    started, err := tx.startPendingWork(stepID, step)
+    if len(started) > 0 {
+        tx.OnSuccess(func(flow *api.FlowState) {
+            // Execute work AFTER commit succeeds
+            tx.handleWorkItemsExecution(stepID, step, inputs, flow.Metadata, started)
+        })
+    }
+    return nil
+}
+```
 
-## Multi-Instance Coordination
+Flow completion (inside flowTx checkTerminal):
+```go
+// flow-exec.go: checkTerminal (called inside flowTx command)
+func (tx *flowTx) checkTerminal() error {
+    if tx.isFlowComplete(flow) {
+        if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted, ...); err != nil {
+            return err
+        }
+        tx.OnSuccess(func(*api.FlowState) {
+            tx.handleFlowCompleted()  // Cleanup: remove from retry queue
+        })
+    }
+    return nil
+}
+```
 
-- All engines receive all flow events (broadcast)
-- Optimistic concurrency prevents duplicate execution
-- Any engine can pick up work (natural load balancing)
-- No distributed locks required
+**Rules (non-negotiable):**
+- State parameter: READ-ONLY (never modify directly)
+- Mutations: ONLY via `events.Raise(ag, type, data)`
+- Idempotency: Check state before raising event (avoid duplicate events)
+- Executor: Handles conflict retries automatically (no manual retry needed)
+- Atomicity: Events and projections commit together
 
-## State Management
+## CRITICAL: Stale References After Event Raise
 
-**Event-Sourced Storage**
-- Valkey backend with atomic Lua operations
-- State reconstructed from event log
-- Cached projections for efficient queries
-- Optimistic concurrency with sequence-based versioning
-
-**State Properties**
-- All state changes are events
-- Cumulative state built from event stream
-- Complete reconstruction on restart
-
-## Consistency via timebox.Executor
-
-All state mutations use the Executor pattern. Define a command function that receives current state and an aggregator, then call `Exec`:
+**MUST KNOW:** When you raise an event, the aggregator IMMEDIATELY applies it. But your state reference becomes STALE.
 
 ```go
-// Engine state mutations
-cmd := func(st *api.EngineState, ag *Aggregator) error {
-    // Check current state
-    if stepHealth, ok := st.Health[stepID]; ok {
-        if stepHealth.Status == health {
-            return nil  // No change needed
-        }
-    }
-    // Raise event via aggregator
-    return events.Raise(ag, api.EventTypeStepHealthChanged,
-        api.StepHealthChangedEvent{StepID: stepID, Status: health})
-}
-_, err := e.engineExec.Exec(ctx, events.EngineID, cmd)
-
-// Flow state mutations
 cmd := func(st *api.FlowState, ag *FlowAggregator) error {
-    exec, ok := st.Executions[stepID]
-    if !ok {
-        return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
+    // st is current state
+    flow := ag.Value()  // Same as st
+
+    // Raise event: aggregator IMMEDIATELY applies it
+    if err := events.Raise(ag, api.EventTypeAttributeSet,
+        api.AttributeSetEvent{...}); err != nil {
+        return err
     }
-    if !stepTransitions.CanTransition(exec.Status, toStatus) {
-        return fmt.Errorf("%w: invalid transition", ErrInvalidTransition)
-    }
-    return events.Raise(ag, eventType, eventData)
+
+    // ❌ WRONG: flow is now stale! It doesn't have the new attribute
+    if v, ok := flow.GetAttributes()[name]; ok { ... }  // STALE DATA
+
+    // ✅ CORRECT: fetch fresh state after raising event
+    updatedFlow := ag.Value()  // NEW reference with applied event
+    if v, ok := updatedFlow.GetAttributes()[name]; ok { ... }  // FRESH
 }
-_, err := e.flowExec.Exec(ctx, flowKey(flowID), cmd)
 ```
 
-**Key Rules:**
-- State is read-only inside the command - never mutate directly
-- All changes via `events.Raise(ag, type, data)`
-- Executor handles optimistic concurrency with automatic retry
-- Events and projections update atomically on commit
+**Why:** Persistent data structures mean events create new aggregate versions. Old references point to old versions.
+
+**Pattern when chaining operations:**
+```go
+cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+    // Raise event 1
+    if err := events.Raise(ag, EventType1, data1); err != nil {
+        return err
+    }
+    // Fetch updated state
+    current := ag.Value()
+
+    // Check updated state and maybe raise event 2
+    if someCondition(current) {
+        if err := events.Raise(ag, EventType2, data2); err != nil {
+            return err
+        }
+    }
+    // Fetch again if you need latest
+    latest := ag.Value()
+    // ... use latest
+
+    return nil
+}
+```
+
+**Key locations to check:**
+- `engine/internal/engine/flow-exec.go` - prepareStep, handleWorkSucceeded (chains events)
+- Anywhere you raise multiple events in sequence
+
+## Critical Constraint: Event Recording vs Step Launching
+
+**MAINTAIN THIS SEPARATION:**
+```go
+// In flowTx (flow execution context):
+// 1. Always record event (even if flow is terminal)
+events.Raise(ag, api.EventTypeWorkSucceeded, ...)
+
+// 2. SEPARATE decision: only execute next steps if flow is active
+if !isTerminal(flow.Status) {
+    // prepare next step
+}
+```
+
+**Rationale:**
+- Events recorded even after flow fails (for compensation/reversal outputs)
+- Step launching stopped only when flow is terminal
+- Preserves complete audit trail and late-arriving work completions
+
+Example:
+```
+1. Payment fails → flow_failed event
+2. Flow is terminal, no new steps start
+3. Inventory reservation still running → work_succeeded recorded
+4. Outputs available for compensating rollback
+```
+
+## Flow Execution Flow
+
+```
+POST /engine/flow (server)
+  ↓
+engine.StartFlow() calls flowTx
+  ↓
+flowTx raises FlowStartedEvent
+  ↓
+flowTx.execFlow() uses Executor pattern
+  ↓
+Command execution:
+  - Ready steps identified
+  - StepStarted event raised for each
+  - Work items created and executed
+  ↓
+Work completes (sync) or callback received (async)
+  ↓
+CompleteWork() calls flowTx
+  ↓
+flowTx raises WorkSucceededEvent
+  ↓
+Aggregator updates flow state from events
+  ↓
+Check if all goals satisfied
+  ↓
+Raise FlowCompletedEvent or continue loop
+  ↓
+When no active work: FlowDeactivatedEvent
+```
+
+## State Reconstruction (Recovery)
+
+Executor automatically reconstructs state by replaying events:
+
+```go
+// Conceptual - timebox handles this internally
+func reconstructState(aggregateID ID) State {
+    events := store.LoadEvents(aggregateID)
+    state := NewState()
+    for _, event := range events {
+        state = applyEvent(state, event)
+    }
+    return state
+}
+```
+
+**How recovery works:**
+1. Engine.Start() calls RecoverFlows()
+2. Executor loads events from Valkey for each flow
+3. Replays events to reconstruct exact state
+4. Resume from where it left off
+5. No external coordination needed
+
+## Event Types
+
+**Engine aggregate events** (step registry and active flow tracking):
+- `step_registered` - Step added to registry
+- `step_unregistered` - Step deleted from registry
+- `step_updated` - Step definition modified
+- `step_health_changed` - Step availability changed
+- `flow_activated` - Flow added to active flows list
+- `flow_archiving` - Flow selected for archiving
+- `flow_archived` - Flow moved to external storage
+
+**Flow aggregate events** (flow execution state):
+- `flow_started` - Execution begins
+- `flow_completed` - All goals satisfied
+- `flow_failed` - Goal unreachable or failed
+- `step_started` - Step preparing to execute
+- `step_completed` - Step succeeded
+- `step_failed` - Step encountered error
+- `step_skipped` - Predicate returned false
+- `work_started` - Work item execution begins
+- `work_succeeded` - Work item completed successfully
+- `work_failed` - Work item failed
+- `work_not_completed` - Work item reports not ready (triggers retry scheduling)
+- `retry_scheduled` - Work item retry scheduled for future time
+- `attribute_set` - Step outputs added to flow state
+- `flow_digest_updated` - Flow status digest updated (internal)
+- `flow_deactivated` - Flow terminal + no active work
+
+## Key Locations
+
+- State mutation: `engine/internal/engine/flow-exec.go` (flowTx pattern)
+- Executor setup: `engine/internal/engine/engine.go` (NewExecutor calls)
+- Event types: `engine/pkg/events/` (event definitions)
+- Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic)
+- Retry queue: `engine/internal/engine/retry_queue.go` (scheduled retries, NOT event-driven)
+- WebSocket broadcast: `engine/pkg/events/hub.go` (separate from event sourcing)
