@@ -29,15 +29,6 @@ docker compose up
 3. **Engine computes** the minimal execution plan
 4. **Execute and audit** - all state changes recorded as events
 
-```
-Goal: [process_payment, send_notification]
-     ↓
-Execution Plan: lookup_customer → process_payment
-               check_inventory → reserve_stock → send_notification
-     ↓
-Result: Events recorded, flow auditable, recovery automatic
-```
-
 ## Key Features
 
 - **Event Sourcing**: Complete audit trail of all state changes
@@ -97,7 +88,3 @@ GET    /engine/ws                # WebSocket event stream
 ## Status
 
 Work in progress. Core features stable. Not yet production-ready. Use at your own risk.
-
-## License
-
-MIT
