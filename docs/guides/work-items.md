@@ -103,32 +103,16 @@ Each work item has a unique **token**. The token is used to:
 6. When all work items complete, outputs are merged
 ```
 
-### Token Regeneration on Retry
+### Tokens and Retries
 
-For **non-memoizable steps**, the engine generates a new token on each retry to prevent accepting late responses from previous attempts.
+Each work item has a token that the engine uses to track completion. If a work item is retried, the engine handles token management automatically.
 
-**Memoizable steps** (same token across retries):
-- Results are deterministic (same inputs → same outputs)
-- Late responses are safe to accept
-- Example: `GET /exchange-rate?from=USD&to=EUR`
+**You don't need to worry about this.** The engine ensures that:
+- Duplicate webhook calls with the same token are rejected
+- Retries are safe and won't cause duplicate work
+- Late responses from old attempts are handled correctly
 
-**Non-memoizable steps** (new token per retry):
-- Results may vary across attempts
-- Late responses from previous attempts are rejected
-- Example: `POST /create-order` (might generate different IDs)
-
-**Example scenario:**
-```
-Time 0: Work starts with token-1
-Time 5s: Work times out, retry scheduled
-  → Non-memoizable step: new token-2 generated
-  → Old token-1 becomes invalid
-Time 10s: Retry executes with token-2
-Time 11s: Late response arrives with token-1 → rejected
-Time 12s: Retry completes with token-2 → accepted
-```
-
-Token regeneration is automatic based on the step's `memoizable` field. See [Memoization](memoization.md) for when to mark steps as memoizable.
+See [Memoization](memoization.md) for when to mark steps as deterministic (results never change for same inputs).
 
 ## Output Aggregation
 

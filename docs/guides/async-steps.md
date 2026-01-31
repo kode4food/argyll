@@ -45,22 +45,11 @@ On failure:
 }
 ```
 
-## Token Semantics and Idempotency
+## Idempotency
 
-Each work item has a unique **receipt_token** in the metadata. This token serves two critical purposes:
+Each work item has a unique **receipt_token** in the metadata. The engine uses this token to ensure idempotency: duplicate webhook calls with the same token are rejected, making it safe to retry.
 
-1. **Work Item Identification**: The engine uses the token to associate webhook completions with the correct work item
-2. **Your Deduplication Key**: You use the token to implement idempotency in your worker, preventing duplicate work execution
-
-**The engine enforces idempotency via state validation:**
-
-When you send a webhook completion, the engine validates the work item's current state before accepting the transition:
-
-- **Webhook with `success: true`**: Only accepted if work item is in `WorkActive` or `WorkNotCompleted` state. Duplicate calls return 400 Bad Request if the work item is already `WorkSucceeded`.
-- **Webhook with `success: false`**: Only accepted if work item is in `WorkActive` or `WorkNotCompleted` state. Duplicate calls return 400 Bad Request if the work item is already `WorkFailed`.
-- **Same work item, different result**: Rejected with 400 Bad Request - the engine prevents changing the outcome once recorded.
-
-This means **duplicate webhook calls with the same token are rejected**, making it safe for your worker to retry.
+This means **your worker can safely retry the webhook call**—duplicate attempts are automatically rejected without creating duplicate work.
 
 **Example:**
 ```bash
@@ -76,20 +65,20 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"success":true,"outputs":{"result":"ok"}}' \
   https://engine/webhook/wf-123/step-abc/receipt-token-xyz
-# HTTP 400 Bad Request - work item already succeeded
-# Your worker detects this and knows it was processed
+# HTTP 400 Bad Request - already processed
+# Your worker can safely give up and move on
 ```
 
 **What you SHOULD do:**
 - Store the receipt_token for logging and debugging
 - Implement retry logic with exponential backoff in your worker
-- Treat 400 responses (state validation errors) as permanent failures for that token
+- Treat 400 responses as "already processed" (safe to stop retrying)
 - Treat 5xx responses and network errors as retryable
 
 **What you DON'T need to do:**
-- Store previous results in your worker - the engine handles deduplication
-- Check if a token was already processed - the engine validates state transitions
-- Return the same result on retry - the engine enforces idempotency
+- Implement your own deduplication—the engine handles it
+- Track which tokens were processed—the engine rejects duplicates
+- Return the same result on retry—the engine enforces it
 
 **Safe webhook call pattern:**
 ```python

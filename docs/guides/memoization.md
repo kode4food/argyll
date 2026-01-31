@@ -93,11 +93,10 @@ Each work item is cached independently.
 - No time-based expiration
 - Suitable for data that doesn't change frequently
 
-### Thread-Safe
+### Cache Scope
 
-- Protected by RWMutex
-- Safe for concurrent access from multiple engine instances
-- Each instance has its own cache (not shared)
+- Each engine instance has its own cache (not shared across instances)
+- Cache is lost on engine restart
 
 ## When to Use Memoization
 
