@@ -37,7 +37,7 @@ Timeline:
 3. Flow is terminal, no new steps start
 4. reserve_inventory still processing...
 5. reserve_inventory completes → work_succeeded event recorded
-6. (Outputs available for compensating action)
+6. Outputs available in the event log for audit purposes
 ```
 
 ## Event Categories

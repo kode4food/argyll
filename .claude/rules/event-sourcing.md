@@ -193,7 +193,7 @@ if !isTerminal(flow.Status) {
 ```
 
 **Rationale:**
-- Events recorded even after flow fails (for compensation/reversal outputs)
+- Events recorded even after flow fails (complete audit trail)
 - Step launching stopped only when flow is terminal
 - Preserves complete audit trail and late-arriving work completions
 
@@ -202,7 +202,7 @@ Example:
 1. Payment fails → flow_failed event
 2. Flow is terminal, no new steps start
 3. Inventory reservation still running → work_succeeded recorded
-4. Outputs available for compensating rollback
+4. Outputs recorded in event log for complete audit trail
 ```
 
 ## Flow Execution Flow

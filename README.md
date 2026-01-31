@@ -4,7 +4,7 @@
 
 [![Go Report Card](https://goreportcard.com/badge/github.com/kode4food/argyll/engine)](https://goreportcard.com/report/github.com/kode4food/argyll/engine) [![Build Status](https://github.com/kode4food/argyll/workflows/Build/badge.svg)](https://github.com/kode4food/argyll/actions) [![Code Coverage](https://qlty.sh/gh/kode4food/projects/argyll/coverage.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![Maintainability](https://qlty.sh/gh/kode4food/projects/argyll/maintainability.svg)](https://qlty.sh/gh/kode4food/projects/argyll) [![License: MIT](https://img.shields.io/badge/License-MIT-brightgreen.svg)](https://github.com/kode4food/argyll/blob/main/LICENSE.md)
 
-Argyll is a goal-driven orchestrator. You declare what you want to achieve, the engine builds an execution plan, and it executes only the minimal set of steps needed. All state changes are immutable events, giving you a complete audit trail and deterministic recovery.
+Argyll is a goal-driven orchestrator. You declare what you want to achieve, the engine builds an execution plan, and it executes only the minimal set of steps needed. All state changes are immutable events, giving you a complete audit trail.
 
 ![Argyll UI Screenshot](./docs/img/screenshot.png)
 
@@ -40,7 +40,7 @@ Result: Events recorded, flow auditable, recovery automatic
 
 ## Key Features
 
-- **Event Sourcing**: Complete audit trail, deterministic recovery
+- **Event Sourcing**: Complete audit trail of all state changes
 - **Lazy Evaluation**: Execute only what's needed to reach goals
 - **Multi-Instance**: Horizontal scaling with optimistic concurrency
 - **Real-Time UI**: WebSocket updates, live flow monitoring
@@ -69,20 +69,21 @@ Full OpenAPI spec: [docs/api/engine-api.yaml](docs/api/engine-api.yaml)
 ```bash
 # Steps
 POST   /engine/step              # Register step
+GET    /engine/step              # List all steps
 GET    /engine/step/:stepID      # Get step
 PUT    /engine/step/:stepID      # Update step
 DELETE /engine/step/:stepID      # Delete step
-GET    /engine                   # List all steps
 
 # Flows
 POST   /engine/flow              # Start flow
-GET    /engine/flow/:flowID      # Get flow state
 GET    /engine/flow              # List flows
+GET    /engine/flow/:flowID      # Get flow state
 POST   /engine/plan              # Preview execution plan
 
-# Health & Events
-GET    /engine/health            # Step health
-GET    /engine/ws                # WebSocket events
+# Engine & Health
+GET    /engine                   # Get complete engine state
+GET    /engine/health            # Get step health status
+GET    /engine/ws                # WebSocket event stream
 ```
 
 ## Documentation
