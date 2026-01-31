@@ -19,7 +19,7 @@ Use this when you want a working system quickly without wiring services by hand.
 
 ## Running the engine locally (without Docker)
 
-If you want a tight Go dev loop:
+To run the engine binary directly (useful when iterating on engine code):
 
 ```bash
 cd engine
