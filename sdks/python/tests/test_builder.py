@@ -1,10 +1,22 @@
 """Tests for StepBuilder and FlowBuilder."""
 
+import pytest
 import responses
 
 from argyll import Client
-from argyll.errors import StepValidationError
-from argyll.types import AttributeRole, AttributeType, ScriptLanguage, StepType
+from argyll.builder import StepBuilder, _validate_step
+from argyll.errors import StepRegistrationError, StepValidationError
+from argyll.types import (
+    AttributeRole,
+    AttributeSpec,
+    AttributeType,
+    FlowConfig,
+    HTTPConfig,
+    ScriptConfig,
+    ScriptLanguage,
+    Step,
+    StepType,
+)
 
 
 def test_step_builder_initialization():
@@ -252,6 +264,26 @@ def test_step_builder_register():
     assert len(responses.calls) == 1
 
 
+def test_step_builder_update():
+    client = Client()
+    builder = client.new_step("Test").update()
+    assert builder._dirty is True
+
+
+def test_step_builder_register_error():
+    class DummyClient:
+        def register_step(self, step) -> None:
+            raise RuntimeError("nope")
+
+    client = DummyClient()
+    builder = StepBuilder(client=client, name="Test").with_endpoint(
+        "http://localhost:8081/test"
+    )
+
+    with pytest.raises(StepRegistrationError):
+        builder.register()
+
+
 def test_flow_builder_initialization():
     client = Client()
     builder = client.new_flow("flow-123")
@@ -413,3 +445,128 @@ def test_flow_builder_start_error():
         assert False, "Should have raised FlowError"
     except FlowError:
         pass
+
+
+def _make_step(**overrides):
+    data = {
+        "id": "step-1",
+        "name": "Step",
+        "type": StepType.SYNC,
+        "attributes": {},
+        "labels": {},
+        "http": HTTPConfig(endpoint="http://localhost:8081/test"),
+        "script": None,
+        "predicate": None,
+        "work_config": None,
+        "flow": None,
+        "memoizable": False,
+    }
+    data.update(overrides)
+    return Step(**data)
+
+
+@pytest.mark.parametrize(
+    "step",
+    [
+        _make_step(id=""),
+        _make_step(name=""),
+        _make_step(type="invalid"),
+        _make_step(http=None),
+        _make_step(flow=FlowConfig(goals=["g1"])),
+        _make_step(
+            script=ScriptConfig(language=ScriptLanguage.ALE, script="x")
+        ),
+        _make_step(
+            type=StepType.SCRIPT,
+            http=None,
+            script=None,
+        ),
+        _make_step(
+            type=StepType.SCRIPT,
+            script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
+            http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        ),
+        _make_step(
+            type=StepType.SCRIPT,
+            script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
+            flow=FlowConfig(goals=["g1"]),
+            http=None,
+        ),
+        _make_step(type=StepType.FLOW, flow=None),
+        _make_step(
+            type=StepType.FLOW,
+            flow=FlowConfig(goals=["g1"]),
+            http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        ),
+        _make_step(
+            type=StepType.FLOW,
+            flow=FlowConfig(goals=["g1"]),
+            script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
+        ),
+        _make_step(
+            attributes={
+                "": AttributeSpec(
+                    role=AttributeRole.REQUIRED,
+                    type=AttributeType.STRING,
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "const": AttributeSpec(
+                    role=AttributeRole.CONST,
+                    type=AttributeType.STRING,
+                    default="",
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "baddefault": AttributeSpec(
+                    role=AttributeRole.REQUIRED,
+                    type=AttributeType.STRING,
+                    default="1",
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "badjson": AttributeSpec(
+                    role=AttributeRole.OPTIONAL,
+                    type=AttributeType.STRING,
+                    default="{",
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "badtype": AttributeSpec(
+                    role=AttributeRole.OPTIONAL,
+                    type=AttributeType.STRING,
+                    default="1",
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "output": AttributeSpec(
+                    role=AttributeRole.OUTPUT,
+                    type=AttributeType.STRING,
+                    for_each=True,
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "items": AttributeSpec(
+                    role=AttributeRole.REQUIRED,
+                    type=AttributeType.STRING,
+                    for_each=True,
+                )
+            }
+        ),
+    ],
+)
+def test_validate_step_errors(step):
+    with pytest.raises(StepValidationError):
+        _validate_step(step)

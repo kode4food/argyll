@@ -70,6 +70,33 @@ def test_list_steps_with_data():
 
 
 @responses.activate
+def test_list_steps_with_list_payload():
+    responses.add(
+        responses.GET,
+        "http://localhost:8080/engine/step",
+        json=[
+            {
+                "id": "step-1",
+                "name": "Step 1",
+                "type": "sync",
+                "attributes": {
+                    "input": {
+                        "role": "required",
+                        "type": "string",
+                    }
+                },
+            }
+        ],
+        status=200,
+    )
+
+    client = Client()
+    steps = client.list_steps()
+    assert len(steps) == 1
+    assert steps[0].id == "step-1"
+
+
+@responses.activate
 def test_register_step():
     responses.add(
         responses.POST,
@@ -142,6 +169,32 @@ def test_update_step():
     client.update_step(step)
 
     assert len(responses.calls) == 1
+
+
+@responses.activate
+def test_update_step_error():
+    responses.add(
+        responses.PUT,
+        "http://localhost:8080/engine/step/test-step",
+        json={"error": "bad"},
+        status=500,
+    )
+
+    from argyll.types import HTTPConfig, Step
+
+    client = Client()
+    step = Step(
+        id="test-step",
+        name="Test",
+        type=StepType.SYNC,
+        http=HTTPConfig(endpoint="http://localhost:8081/test"),
+    )
+
+    try:
+        client.update_step(step)
+        assert False, "Should have raised ClientError"
+    except ClientError as e:
+        assert e.status_code == 500
 
 
 def test_new_step():

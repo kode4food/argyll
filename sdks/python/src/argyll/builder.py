@@ -338,15 +338,21 @@ def _validate_step(step: Step) -> None:
         if step.flow is not None:
             raise StepValidationError("Flow config not allowed for HTTP steps")
         if step.script is not None:
-            raise StepValidationError("Script config not allowed for HTTP steps")
+            raise StepValidationError(
+                "Script config not allowed for HTTP steps"
+            )
 
     if step.type == StepType.SCRIPT:
         if not step.script or not step.script.script:
             raise StepValidationError("Script config required for script step")
         if step.http is not None:
-            raise StepValidationError("HTTP config not allowed for script steps")
+            raise StepValidationError(
+                "HTTP config not allowed for script steps"
+            )
         if step.flow is not None:
-            raise StepValidationError("Flow config not allowed for script steps")
+            raise StepValidationError(
+                "Flow config not allowed for script steps"
+            )
 
     if step.type == StepType.FLOW:
         if not step.flow or not step.flow.goals:
@@ -354,7 +360,9 @@ def _validate_step(step: Step) -> None:
         if step.http is not None:
             raise StepValidationError("HTTP config not allowed for flow steps")
         if step.script is not None:
-            raise StepValidationError("Script config not allowed for flow steps")
+            raise StepValidationError(
+                "Script config not allowed for flow steps"
+            )
 
     for name, spec in step.attributes.items():
         if not name:

@@ -120,9 +120,7 @@ def create_step_server(
             time.sleep(attempt * BACKOFF_MULTIPLIER_SECONDS)
 
     if not registered:
-        raise StepRegistrationError(
-            "Failed to register step after retries"
-        )
+        raise StepRegistrationError("Failed to register step after retries")
 
     app = Flask(__name__)
 
