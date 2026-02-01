@@ -6,11 +6,11 @@ use (
 	./examples/inventory-resolver
 	./examples/notification-sender
 	./examples/order-creator
-	./examples/payment-processor
 	./examples/simple-step
 	./examples/stock-reservation
 	./examples/user-resolver
 	./mcp
+	./sdks/go-builder
 )
 
 replace github.com/kode4food/argyll/engine v0.0.0 => ./engine

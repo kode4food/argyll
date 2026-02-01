@@ -99,6 +99,7 @@ describe("WebSocketProvider", () => {
         "work_started",
         "work_succeeded",
         "work_failed",
+        "work_not_completed",
       ],
     });
   });
@@ -372,7 +373,7 @@ describe("WebSocketProvider", () => {
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
       "step-1",
       "token-2",
-      { status: "completed", outputs: { result: "done" } }
+      { status: "succeeded", outputs: { result: "done" } }
     );
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
       "step-1",

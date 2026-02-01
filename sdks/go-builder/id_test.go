@@ -6,7 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/pkg/builder"
+	"github.com/kode4food/argyll/sdks/go-builder"
 )
 
 func TestNewFlowID(t *testing.T) {

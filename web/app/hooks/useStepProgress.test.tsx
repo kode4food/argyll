@@ -88,7 +88,7 @@ describe("useStepProgress", () => {
         inputs: {},
         started_at: "2024-01-01T00:00:00Z",
         work_items: {
-          a: { status: "completed" },
+          a: { status: "succeeded" },
           b: { status: "failed" },
           c: { status: "active" },
         },

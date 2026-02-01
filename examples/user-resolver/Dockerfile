@@ -3,15 +3,21 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /build
 
-# Copy go mod files
-COPY engine/go.mod engine/go.sum ./
+# Copy engine module
+COPY engine/go.mod engine/go.sum ./engine/
+COPY engine/pkg ./engine/pkg
+
+# Copy SDK module
+COPY sdks/go-builder/go.mod sdks/go-builder/go.sum ./sdks/go-builder/
+COPY sdks/go-builder ./sdks/go-builder
+
+# Copy example
+COPY examples/user-resolver/go.mod examples/user-resolver/go.sum* ./examples/user-resolver/
+COPY examples/user-resolver/main.go ./examples/user-resolver/
 
 # Download dependencies
+WORKDIR /build/examples/user-resolver
 RUN go mod download
-
-# Copy source
-COPY engine/pkg ./pkg
-COPY examples/user-resolver/main.go ./
 
 # Build the executable
 RUN CGO_ENABLED=0 GOOS=linux go build -o user-resolver main.go
@@ -24,7 +30,7 @@ RUN apk --no-cache add ca-certificates curl
 WORKDIR /app
 
 # Copy the binary
-COPY --from=builder /build/user-resolver .
+COPY --from=builder /build/examples/user-resolver/user-resolver .
 
 # Set default environment variables
 ENV STEP_PORT=8082

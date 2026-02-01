@@ -26,6 +26,14 @@ dist
 *.test
 *.prof
 
+# Go binaries in examples
+examples/simple-step/simple-step
+examples/inventory-resolver/inventory-resolver
+examples/notification-sender/notification-sender
+examples/order-creator/order-creator
+examples/stock-reservation/stock-reservation
+examples/user-resolver/user-resolver
+
 # Coverage files
 cover.out
 *.coverprofile

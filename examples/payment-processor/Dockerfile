@@ -1,36 +1,33 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM python:3.11-slim AS builder
 
 WORKDIR /build
 
-# Copy go mod files
-COPY engine/go.mod engine/go.sum ./
+# Copy SDK
+COPY sdks/python /build/sdks/python
 
-# Download dependencies
-RUN go mod download
-
-# Copy source
-COPY engine/pkg ./pkg
-COPY examples/payment-processor/main.go ./
-
-# Build the executable
-RUN CGO_ENABLED=0 GOOS=linux go build -o payment-processor main.go
+# Install SDK
+RUN pip install --no-cache-dir /build/sdks/python
 
 # Runtime stage
-FROM alpine:latest
+FROM python:3.11-slim
 
-RUN apk --no-cache add ca-certificates curl
+RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Copy the binary
-COPY --from=builder /build/payment-processor .
+# Copy installed packages from builder
+COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
+
+# Copy application
+COPY examples/payment-processor/main.py .
 
 # Set default environment variables
 ENV STEP_PORT=8085
 ENV STEP_HOSTNAME=payment-processor
 ENV ARGYLL_ENGINE_URL=http://argyll-engine:8080
+ENV PYTHONUNBUFFERED=1
 
 EXPOSE 8085
 
-CMD ["./payment-processor"]
+CMD ["python", "-u", "main.py"]

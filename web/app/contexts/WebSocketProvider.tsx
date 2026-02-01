@@ -26,6 +26,7 @@ const FLOW_EVENT_TYPES = [
   "work_started",
   "work_succeeded",
   "work_failed",
+  "work_not_completed",
 ];
 
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
@@ -195,7 +196,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           break;
         case "work_succeeded":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-            status: "completed",
+            status: "succeeded",
             outputs: wsEvent.data?.outputs,
           });
           break;
@@ -204,6 +205,17 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
             status: "failed",
             error: wsEvent.data?.error,
           });
+          break;
+        case "work_not_completed":
+          updateWorkItem(
+            wsEvent.data?.step_id,
+            wsEvent.data?.token,
+            {
+              status: "not_completed",
+              error: wsEvent.data?.error,
+            },
+            wsEvent.data?.retry_token
+          );
           break;
         default:
           break;

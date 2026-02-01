@@ -40,7 +40,7 @@ export const useStepProgress = (
 
     const progress: WorkItemProgress = {
       total: items.length,
-      completed: items.filter((item: any) => item.status === "completed")
+      completed: items.filter((item: any) => item.status === "succeeded")
         .length,
       failed: items.filter((item: any) => item.status === "failed").length,
       active: items.filter((item: any) => item.status === "active").length,

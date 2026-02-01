@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/builder"
+	"github.com/kode4food/argyll/sdks/go-builder"
 )
 
 func TestSetupStepWithMockEngine(t *testing.T) {

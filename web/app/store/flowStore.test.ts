@@ -385,6 +385,53 @@ describe("flowStore", () => {
       const state = useFlowStore.getState();
       expect(state.executions[0].work_items).toBeUndefined();
     });
+
+    test("updateWorkItem handles retry_token by removing old token and updating with new", () => {
+      useFlowStore.setState({
+        executions: [
+          {
+            step_id: "step-1",
+            flow_id: "wf-1",
+            status: "active",
+            inputs: {},
+            started_at: "2024-01-01T00:00:00Z",
+            work_items: {
+              "token-1": {
+                token: "token-1",
+                status: "active",
+                inputs: { key: "value" },
+                retry_count: 0,
+              },
+            },
+          },
+        ],
+      });
+
+      // Retry with new token
+      useFlowStore.getState().updateWorkItem(
+        "step-1",
+        "token-1",
+        {
+          status: "active",
+          inputs: { key: "value" },
+          retry_count: 1,
+        },
+        "token-2"
+      );
+
+      const state = useFlowStore.getState();
+      // Old token should be removed
+      expect(state.executions[0].work_items?.["token-1"]).toBeUndefined();
+      // New token should exist with updated data
+      expect(state.executions[0].work_items?.["token-2"]).toEqual({
+        token: "token-2",
+        status: "active",
+        inputs: { key: "value" },
+        retry_count: 1,
+      });
+      // Total work items should still be 1
+      expect(Object.keys(state.executions[0].work_items || {}).length).toBe(1);
+    });
   });
 
   describe("Step health updates", () => {

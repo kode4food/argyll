@@ -4,7 +4,12 @@ go 1.25.3
 
 replace github.com/kode4food/argyll/engine => ../../engine
 
-require github.com/kode4food/argyll/engine v0.0.0-00010101000000-000000000000
+replace github.com/kode4food/argyll/sdks/go-builder => ../../sdks/go-builder
+
+require (
+	github.com/kode4food/argyll/engine v0.0.0
+	github.com/kode4food/argyll/sdks/go-builder v0.0.0-00010101000000-000000000000
+)
 
 require (
 	github.com/tidwall/gjson v1.18.0 // indirect

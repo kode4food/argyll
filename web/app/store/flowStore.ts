@@ -86,7 +86,8 @@ interface FlowState {
   updateWorkItem: (
     stepId: string,
     token: string,
-    updates: Partial<WorkState>
+    updates: Partial<WorkState>,
+    retryToken?: string
   ) => void;
   setEngineSocketStatus: (
     status: ConnectionStatus,
@@ -334,7 +335,8 @@ export const useFlowStore = create<FlowState>()(
       updateWorkItem: (
         stepId: string,
         token: string,
-        updates: Partial<WorkState>
+        updates: Partial<WorkState>,
+        retryToken?: string
       ) => {
         const { executions } = get();
         const index = executions.findIndex((e) => e.step_id === stepId);
@@ -342,23 +344,49 @@ export const useFlowStore = create<FlowState>()(
 
         const execution = executions[index];
         const workItems = execution.work_items || {};
-        const existingItem = workItems[token] || {
-          token,
-          status: "pending",
-          inputs: {},
-          retry_count: 0,
-        };
 
-        const updated = [...executions];
-        updated[index] = {
-          ...execution,
-          work_items: {
-            ...workItems,
-            [token]: { ...existingItem, ...updates },
-          },
-        };
+        // If retry_token exists and differs from token, this is a retry
+        // Remove the old token and update under the retry_token
+        if (retryToken && retryToken !== token) {
+          const existingItem = workItems[token] || {
+            token: retryToken,
+            status: "pending",
+            inputs: {},
+            retry_count: 0,
+          };
 
-        set({ executions: updated });
+          const { [token]: removed, ...remainingItems } = workItems;
+
+          const updated = [...executions];
+          updated[index] = {
+            ...execution,
+            work_items: {
+              ...remainingItems,
+              [retryToken]: { ...existingItem, ...updates, token: retryToken },
+            },
+          };
+
+          set({ executions: updated });
+        } else {
+          // Normal case: just update the work item with the current token
+          const existingItem = workItems[token] || {
+            token,
+            status: "pending",
+            inputs: {},
+            retry_count: 0,
+          };
+
+          const updated = [...executions];
+          updated[index] = {
+            ...execution,
+            work_items: {
+              ...workItems,
+              [token]: { ...existingItem, ...updates },
+            },
+          };
+
+          set({ executions: updated });
+        }
       },
 
       setEngineSocketStatus: (

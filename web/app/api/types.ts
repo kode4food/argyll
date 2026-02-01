@@ -11,6 +11,12 @@ export type StepStatus =
   | "completed"
   | "skipped"
   | "failed";
+export type WorkStatus =
+  | "pending"
+  | "active"
+  | "succeeded"
+  | "failed"
+  | "not_completed";
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "sync" | "async" | "script" | "flow";
 
@@ -116,7 +122,7 @@ export interface FlowContext {
 
 export interface WorkState {
   token: string;
-  status: StepStatus;
+  status: WorkStatus;
   inputs: Record<string, any>;
   outputs?: Record<string, any>;
   error?: string;

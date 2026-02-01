@@ -1,0 +1,107 @@
+[build-system]
+requires = ["setuptools>=65.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "argyll-sdk"
+version = "0.1.0"
+description = "Python SDK for Argyll distributed orchestrator"
+readme = "README.md"
+requires-python = ">=3.9"
+license = {text = "MIT"}
+authors = [
+    {name = "Argyll Contributors"}
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "requests>=2.31.0",
+    "flask>=3.0.0",
+    "typing-extensions>=4.8.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-cov>=4.1.0",
+    "mypy>=1.7.0",
+    "black>=23.11.0",
+    "ruff>=0.1.6",
+    "responses>=0.24.0",
+    "types-requests>=2.31.0",
+    "types-flask>=1.1.6",
+]
+
+[project.urls]
+Homepage = "https://github.com/argyll/argyll"
+Documentation = "https://github.com/argyll/argyll/tree/main/sdks/python"
+Repository = "https://github.com/argyll/argyll"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+argyll = ["py.typed"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --strict-markers"
+
+[tool.coverage.run]
+source = ["argyll"]
+branch = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.mypy]
+python_version = "3.9"
+strict = true
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_any_generics = true
+check_untyped_defs = true
+no_implicit_reexport = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+
+[tool.black]
+line-length = 80
+target-version = ["py39"]
+
+[tool.ruff]
+line-length = 80
+target-version = "py39"
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+ignore = [
+    "B011",  # assert False in tests is acceptable
+    "UP035", # Dict/List from typing OK for Python 3.9 compat
+    "UP006", # Dict/List from typing OK for Python 3.9 compat
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]

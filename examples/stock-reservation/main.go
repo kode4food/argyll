@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/builder"
+	"github.com/kode4food/argyll/sdks/go-builder"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
