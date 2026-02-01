@@ -1,32 +1,34 @@
+PYTHON ?= $(shell test -f venv/bin/python && echo venv/bin/python || which python3 2>/dev/null || which python 2>/dev/null || echo python3)
+
 .PHONY: install test test-cov lint format type-check check build publish clean
 
 install:
-	pip install -e ".[dev]"
+	$(PYTHON) -m pip install -e ".[dev]"
 
 test:
-	pytest
+	$(PYTHON) -m pytest
 
 test-cov:
-	pytest --cov=argyll --cov-report=html --cov-report=lcov --cov-fail-under=87
+	$(PYTHON) -m pytest --cov=argyll --cov-report=html --cov-report=lcov --cov-fail-under=87
 
 lint:
-	ruff check src/argyll tests
-	black --check src/argyll tests
+	$(PYTHON) -m ruff check src/argyll tests
+	$(PYTHON) -m black --check src/argyll tests
 
 format:
-	black src/argyll tests
-	ruff check --fix src/argyll tests
+	$(PYTHON) -m black src/argyll tests
+	$(PYTHON) -m ruff check --fix src/argyll tests
 
 type-check:
-	mypy src/argyll
+	$(PYTHON) -m mypy src/argyll
 
 check: format lint type-check test-cov
 
 build:
-	python -m build
+	$(PYTHON) -m build
 
 publish:
-	twine upload dist/*
+	$(PYTHON) -m twine upload dist/*
 
 clean:
 	rm -rf build dist *.egg-info
