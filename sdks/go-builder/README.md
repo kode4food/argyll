@@ -24,13 +24,14 @@ package main
 import (
     "context"
     "log"
+    "time"
 
     "github.com/kode4food/argyll/engine/pkg/api"
     "github.com/kode4food/argyll/sdks/go-builder"
 )
 
 func main() {
-    client := builder.NewClient("http://localhost:8080")
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
     handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
         name := args["name"].(string)
@@ -61,7 +62,7 @@ import (
 )
 
 func main() {
-    client := builder.NewClient("http://localhost:8080")
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
     handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
         asyncCtx, err := builder.NewAsyncContext(ctx)
@@ -95,13 +96,14 @@ package main
 import (
     "context"
     "log"
+    "time"
 
     "github.com/kode4food/argyll/engine/pkg/api"
     "github.com/kode4food/argyll/sdks/go-builder"
 )
 
 func main() {
-    client := builder.NewClient("http://localhost:8080")
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
     if err := client.NewStep("Double").
         Required("value", api.TypeNumber).
@@ -121,18 +123,46 @@ package main
 import (
     "context"
     "log"
+    "time"
 
     "github.com/kode4food/argyll/engine/pkg/api"
     "github.com/kode4food/argyll/sdks/go-builder"
 )
 
 func main() {
-    client := builder.NewClient("http://localhost:8080")
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
     if err := client.NewFlow("greeting-flow-123").
         WithGoals("greeting").
         WithInitialState(api.Args{"name": "Alice"}).
         Start(context.Background()); err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
+### Define a Flow Step
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "time"
+
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/sdks/go-builder"
+)
+
+func main() {
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
+
+    if err := client.NewStep("Child Flow Wrapper").
+        WithFlowGoals("child-goal").
+        WithFlowInputMap(map[api.Name]api.Name{"input": "child_input"}).
+        WithFlowOutputMap(map[api.Name]api.Name{"child_output": "output"}).
+        Register(context.Background()); err != nil {
         log.Fatal(err)
     }
 }
@@ -226,7 +256,7 @@ handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error)
 ## Testing
 
 ```bash
-cd builder
+cd sdks/go-builder
 go test ./...
 ```
 
@@ -242,7 +272,7 @@ See the [examples](../../examples) directory for complete working examples:
 
 ### Client
 
-- `NewClient(engineURL string) *Client` - Create a new client
+- `NewClient(engineURL string, timeout time.Duration) *Client` - Create a new client
 - `NewStep(name api.Name) *Step` - Create a step builder
 - `NewFlow(flowID api.FlowID) *Flow` - Create a flow builder
 - `Flow(flowID api.FlowID) *FlowClient` - Get flow client
@@ -257,6 +287,9 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithForEach(name) *Step` - Enable array iteration
 - `WithLabel(key, value) *Step` - Add label
 - `WithLabels(labels) *Step` - Add multiple labels
+- `WithFlowGoals(...stepIDs) *Step` - Configure a flow step with child goals
+- `WithFlowInputMap(mapping) *Step` - Configure input mapping for a flow step
+- `WithFlowOutputMap(mapping) *Step` - Configure output mapping for a flow step
 - `WithEndpoint(url) *Step` - Set HTTP endpoint
 - `WithHealthCheck(url) *Step` - Set health check endpoint
 - `WithTimeout(ms) *Step` - Set execution timeout

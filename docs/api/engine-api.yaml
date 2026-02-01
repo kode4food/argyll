@@ -718,6 +718,10 @@ components:
               role: "optional"
               type: "string"
               default: '"default_value"'
+            const_field:
+              role: "const"
+              type: "string"
+              default: '"fixed_value"'
             processed_text:
               role: "output"
               type: "string"
@@ -760,10 +764,12 @@ components:
             Attribute role:
             - `required`: Input that must be available before execution
             - `optional`: Input with default value or timeout
+            - `const`: Input fixed to a default value
             - `output`: Value produced by step execution
           enum:
             - required
             - optional
+            - const
             - output
           example: "required"
         type:
@@ -783,7 +789,7 @@ components:
         default:
           type: string
           description: |
-            Default value as JSON string (only for optional attributes).
+            Default value as JSON string (for optional and const attributes).
             Must be valid JSON matching the specified type.
           example: '"default_value"'
         for_each:
@@ -898,7 +904,7 @@ components:
       properties:
         message:
           type: string
-          example: "Step registered successfully"
+          example: "Step registered"
         step:
           $ref: "#/components/schemas/StepRegistration"
 

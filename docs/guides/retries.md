@@ -12,7 +12,7 @@ Retries are scheduled when a work item reports not completed to the engine. This
 
 If a step returns `success: true`, the work item is considered complete regardless of whether actual work succeeded. This is a design choice: the engine respects your step handler's judgment about whether something should be retried.
 
-**Important:** The engine does NOT examine HTTP status codes, network errors, or timeouts. Your step handler is responsible for deciding what constitutes a retryable error and returning `success: false` accordingly.
+**Important:** The engine’s HTTP client examines transport errors and HTTP status codes. Network errors and HTTP 5xx responses are treated as retryable (work not completed). HTTP 4xx responses are treated as permanent failures. If your handler returns `success: false`, that is treated as a permanent failure (not retryable) unless you explicitly report work-not-completed semantics.
 
 ## Configuration
 

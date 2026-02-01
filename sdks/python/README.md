@@ -67,7 +67,7 @@ client.new_step("AsyncTask") \
 ### Define a Script Step
 
 ```python
-from argyll import Client
+from argyll import Client, AttributeType
 
 client = Client("http://localhost:8080")
 
@@ -89,6 +89,38 @@ client.new_flow("greeting-flow-123") \
     .with_goals("greeting") \
     .with_initial_state({"name": "Alice"}) \
     .start()
+```
+
+### Define a Flow Step
+
+```python
+from argyll import Client
+
+client = Client("http://localhost:8080")
+
+client.new_step("Child Flow Wrapper") \
+    .with_flow_goals("child-goal") \
+    .with_flow_input_map({"input": "child_input"}) \
+    .with_flow_output_map({"child_output": "output"}) \
+    .register()
+```
+
+### Update a Step
+
+```python
+from argyll import Client, StepContext, AttributeType, StepResult
+
+client = Client("http://localhost:8080")
+
+def handle_user(ctx: StepContext, args: dict) -> StepResult:
+    return StepResult(success=True, outputs={"user_name": "Jane"})
+
+client.new_step("User Resolver") \
+    .required("user_id", AttributeType.STRING) \
+    .output("user_name", AttributeType.STRING) \
+    .output("user_email", AttributeType.STRING) \
+    .update() \
+    .start(handle_user)
 ```
 
 ## Features

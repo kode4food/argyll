@@ -186,6 +186,37 @@ func main() {
 }
 ```
 
+## Flow Steps
+
+Wrap a child flow as a step:
+
+```go
+package main
+
+import (
+    "context"
+    "log"
+    "time"
+
+    "github.com/kode4food/argyll/engine/pkg/api"
+    "github.com/kode4food/argyll/sdks/go-builder"
+)
+
+func main() {
+    client := builder.NewClient("http://localhost:8080", 30*time.Second)
+
+    err := client.NewStep("Child Flow Wrapper").
+        WithFlowGoals("child-goal").
+        WithFlowInputMap(map[api.Name]api.Name{"input": "child_input"}).
+        WithFlowOutputMap(map[api.Name]api.Name{"child_output": "output"}).
+        Register(context.Background())
+
+    if err != nil {
+        log.Fatal(err)
+    }
+}
+```
+
 ## Configuration
 
 ### Custom Step ID
@@ -348,6 +379,9 @@ NewStep(name api.Name) *Step
 
 #### Advanced
 - `WithForEach(name api.Name) *Step` - Enable parallel array processing
+- `WithFlowGoals(goals ...api.StepID) *Step` - Configure child flow goals
+- `WithFlowInputMap(mapping map[api.Name]api.Name) *Step` - Configure flow input mapping
+- `WithFlowOutputMap(mapping map[api.Name]api.Name) *Step` - Configure flow output mapping
 
 #### Registration
 - `Build() (*api.Step, error)` - Build step definition

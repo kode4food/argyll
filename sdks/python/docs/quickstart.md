@@ -100,6 +100,22 @@ client.new_flow("greeting-flow-123") \
     .start()
 ```
 
+## Flow Steps
+
+Wrap a child flow as a step:
+
+```python
+from argyll import Client
+
+client = Client()
+
+client.new_step("Child Flow Wrapper") \
+    .with_flow_goals("child-goal") \
+    .with_flow_input_map({"input": "child_input"}) \
+    .with_flow_output_map({"child_output": "output"}) \
+    .register()
+```
+
 ## Builder Pattern
 
 All builders are immutable - each method returns a new instance:
@@ -153,6 +169,26 @@ client.new_step("ExpensiveComputation") \
     .with_memoizable() \
     .with_endpoint("http://localhost:8081/compute") \
     .register()
+```
+
+### Updating Steps
+
+Mark a step as modified to update the existing registration:
+
+```python
+from argyll import Client, StepContext, AttributeType, StepResult
+
+client = Client()
+
+def handle_user(ctx: StepContext, args: dict) -> StepResult:
+    return StepResult(success=True, outputs={"user_name": "Jane"})
+
+client.new_step("User Resolver") \
+    .required("user_id", AttributeType.STRING) \
+    .output("user_name", AttributeType.STRING) \
+    .output("user_email", AttributeType.STRING) \
+    .update() \
+    .start(handle_user)
 ```
 
 ### Labels
