@@ -1,6 +1,6 @@
 # Argyll Go SDK
 
-Go SDK for building steps and flows with the Argyll distributed orchestrator.
+Go SDK for building steps and flows with the Argyll Goal-Driven Orchestrator.
 
 ## Installation
 

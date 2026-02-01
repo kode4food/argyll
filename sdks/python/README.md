@@ -1,6 +1,6 @@
 # Argyll Python SDK
 
-Python SDK for building steps and flows with the Argyll distributed orchestrator.
+Python SDK for building steps and flows with the Argyll Goal-Driven Orchestrator.
 
 ## Installation
 
