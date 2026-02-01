@@ -21,7 +21,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 		step := helpers.NewSimpleStep("recovery-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries: 20,
-			BackoffMs:  200,
+			Backoff:    200,
 		}
 
 		err := env.Engine.RegisterStep(step)
@@ -78,13 +78,13 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		env.Engine.Start()
 
 		step1 := helpers.NewSimpleStep("step-1")
-		step1.WorkConfig = &api.WorkConfig{MaxRetries: 20, BackoffMs: 200}
+		step1.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
 
 		step2 := helpers.NewSimpleStep("step-2")
-		step2.WorkConfig = &api.WorkConfig{MaxRetries: 20, BackoffMs: 200}
+		step2.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
 
 		step3 := helpers.NewSimpleStep("step-3")
-		step3.WorkConfig = &api.WorkConfig{MaxRetries: 20, BackoffMs: 200}
+		step3.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
 
 		assert.NoError(t, env.Engine.RegisterStep(step1))
 		assert.NoError(t, env.Engine.RegisterStep(step2))
@@ -183,12 +183,12 @@ func TestRecoveryWorkStates(t *testing.T) {
 
 		// Step 1: Will have Pending work (hasn't started yet)
 		pendingStep := helpers.NewSimpleStep("pending-step")
-		pendingStep.WorkConfig = &api.WorkConfig{MaxRetries: 20, BackoffMs: 200}
+		pendingStep.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
 
 		// Step 2: Will have NotCompleted work (failed but retryable)
 		notCompletedStep := helpers.NewSimpleStep("not-completed-step")
 		notCompletedStep.WorkConfig = &api.WorkConfig{
-			MaxRetries: 20, BackoffMs: 200,
+			MaxRetries: 20, Backoff: 200,
 		}
 
 		// Step 3: Will have Failed work (perm failure, max retries reached)
@@ -285,7 +285,7 @@ func TestRecoveryPreservesState(t *testing.T) {
 		env.Engine.Start()
 
 		step := helpers.NewSimpleStep("retry-step")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 20, BackoffMs: 200}
+		step.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
 
 		assert.NoError(t, env.Engine.RegisterStep(step))
 

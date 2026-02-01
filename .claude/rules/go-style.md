@@ -158,10 +158,10 @@ type IArchiver interface { ... }
 ```go
 // Good
 const (
-    DefaultTimeout   = 30 * time.Second
-    DefaultRetries   = 10
-    MaxConcurrency   = 100
-    MinBackoffMs     = 100
+    DefaultTimeout = 30 * time.Second
+    DefaultRetries = 10
+    MaxConcurrency = 100
+    MinBackoff     = 100
 )
 
 // Bad - unclear what 30 means
@@ -536,8 +536,8 @@ return fmt.Errorf("invalid configuration: %s", reason)
 
 ```go
 const (
-	DefaultTimeout     = 30 * time.Second
-	DefaultRetries     = 10
-	DefaultBackoffMs   = 1000
+	DefaultTimeout = 30 * time.Second
+	DefaultRetries = 10
+	DefaultBackoff = 1000
 )
 ```

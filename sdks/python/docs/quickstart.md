@@ -16,7 +16,7 @@ Create a simple synchronous step that processes a greeting:
 from argyll import Client, StepContext, AttributeType, StepResult
 
 # Connect to the Argyll engine
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 # Define your step handler
 def handle_greeting(ctx: StepContext, args: dict) -> StepResult:

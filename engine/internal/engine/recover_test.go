@@ -89,10 +89,10 @@ func TestShouldRetryStep(t *testing.T) {
 		{
 			name: "zero retries",
 			config: &api.WorkConfig{
-				MaxRetries:   0,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  0,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			retries:  0,
 			error:    "network timeout",
@@ -101,10 +101,10 @@ func TestShouldRetryStep(t *testing.T) {
 		{
 			name: "within limit",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  3,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			retries:  2,
 			error:    "network timeout",
@@ -113,10 +113,10 @@ func TestShouldRetryStep(t *testing.T) {
 		{
 			name: "at limit",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  3,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			retries:  3,
 			error:    "network timeout",
@@ -125,10 +125,10 @@ func TestShouldRetryStep(t *testing.T) {
 		{
 			name: "unlimited retries",
 			config: &api.WorkConfig{
-				MaxRetries:   -1,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  -1,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			retries:  100,
 			error:    "network timeout",
@@ -160,66 +160,66 @@ func TestCalculateNextRetry(t *testing.T) {
 	scenarios := []struct {
 		name        string
 		backoffType string
-		backoffMs   int64
+		backoff     int64
 		maxBackoff  int64
 		retryCount  int
-		expectedMs  int64
+		expected    int64
 	}{
 		{
 			name:        "fixed backoff",
 			backoffType: api.BackoffTypeFixed,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  0,
-			expectedMs:  1000,
+			expected:    1000,
 		},
 		{
 			name:        "fixed backoff retry 5",
 			backoffType: api.BackoffTypeFixed,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  5,
-			expectedMs:  1000,
+			expected:    1000,
 		},
 		{
 			name:        "linear backoff retry 0",
 			backoffType: api.BackoffTypeLinear,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  0,
-			expectedMs:  1000,
+			expected:    1000,
 		},
 		{
 			name:        "linear backoff retry 3",
 			backoffType: api.BackoffTypeLinear,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  3,
-			expectedMs:  4000,
+			expected:    4000,
 		},
 		{
 			name:        "exponential backoff retry 0",
 			backoffType: api.BackoffTypeExponential,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  0,
-			expectedMs:  1000,
+			expected:    1000,
 		},
 		{
 			name:        "exponential backoff retry 3",
 			backoffType: api.BackoffTypeExponential,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  3,
-			expectedMs:  8000,
+			expected:    8000,
 		},
 		{
 			name:        "exponential backoff capped",
 			backoffType: api.BackoffTypeExponential,
-			backoffMs:   1000,
+			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  10,
-			expectedMs:  10000,
+			expected:    10000,
 		},
 	}
 
@@ -227,9 +227,9 @@ func TestCalculateNextRetry(t *testing.T) {
 		for _, sc := range scenarios {
 			t.Run(sc.name, func(t *testing.T) {
 				config := &api.WorkConfig{
-					BackoffMs:    sc.backoffMs,
-					MaxBackoffMs: sc.maxBackoff,
-					BackoffType:  sc.backoffType,
+					Backoff:     sc.backoff,
+					MaxBackoff:  sc.maxBackoff,
+					BackoffType: sc.backoffType,
 				}
 
 				before := time.Now()
@@ -239,8 +239,8 @@ func TestCalculateNextRetry(t *testing.T) {
 				delay := nextRetry.Sub(before).Milliseconds()
 				maxDelay := nextRetry.Sub(after).Milliseconds()
 
-				assert.GreaterOrEqual(t, delay, sc.expectedMs-10)
-				assert.LessOrEqual(t, maxDelay, sc.expectedMs+10)
+				assert.GreaterOrEqual(t, delay, sc.expected-10)
+				assert.LessOrEqual(t, maxDelay, sc.expected+10)
 			})
 		}
 	})
@@ -249,9 +249,9 @@ func TestCalculateNextRetry(t *testing.T) {
 func TestRetryDefaults(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		config := &api.WorkConfig{
-			BackoffMs:    750,
-			MaxBackoffMs: 1200,
-			BackoffType:  "unknown",
+			Backoff:     750,
+			MaxBackoff:  1200,
+			BackoffType: "unknown",
 		}
 
 		start := time.Now()
@@ -269,10 +269,10 @@ func TestRetryExhaustion(t *testing.T) {
 
 		step := helpers.NewSimpleStep("failing-step")
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   2,
-			BackoffMs:    200,
-			MaxBackoffMs: 1000,
-			BackoffType:  api.BackoffTypeFixed,
+			MaxRetries:  2,
+			Backoff:     200,
+			MaxBackoff:  1000,
+			BackoffType: api.BackoffTypeFixed,
 		}
 
 		env.MockClient.SetError("failing-step",
@@ -505,50 +505,50 @@ func TestWorkConfigValidation(t *testing.T) {
 		{
 			name: "valid fixed config",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  3,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			expectErr: false,
 		},
 		{
 			name: "negative backoff invalid",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    -1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  3,
+				Backoff:     -1000,
+				MaxBackoff:  10000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			expectErr: true,
 		},
 		{
 			name: "max less than backoff invalid",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    10000,
-				MaxBackoffMs: 1000,
-				BackoffType:  api.BackoffTypeFixed,
+				MaxRetries:  3,
+				Backoff:     10000,
+				MaxBackoff:  1000,
+				BackoffType: api.BackoffTypeFixed,
 			},
 			expectErr: true,
 		},
 		{
 			name: "invalid backoff type",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  "invalid",
+				MaxRetries:  3,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: "invalid",
 			},
 			expectErr: true,
 		},
 		{
 			name: "empty backoff type",
 			config: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 10000,
-				BackoffType:  "",
+				MaxRetries:  3,
+				Backoff:     1000,
+				MaxBackoff:  10000,
+				BackoffType: "",
 			},
 			expectErr: true,
 		},
@@ -668,10 +668,10 @@ func TestWorkActiveItems(t *testing.T) {
 
 		step := helpers.NewSimpleStep("step-1")
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   3,
-			BackoffMs:    100,
-			MaxBackoffMs: 1000,
-			BackoffType:  api.BackoffTypeFixed,
+			MaxRetries:  3,
+			Backoff:     100,
+			MaxBackoff:  1000,
+			BackoffType: api.BackoffTypeFixed,
 		}
 
 		err := env.Engine.RegisterStep(step)
@@ -705,10 +705,10 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 
 		step := helpers.NewSimpleStep("step-1")
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   3,
-			BackoffMs:    100,
-			MaxBackoffMs: 1000,
-			BackoffType:  api.BackoffTypeFixed,
+			MaxRetries:  3,
+			Backoff:     100,
+			MaxBackoff:  1000,
+			BackoffType: api.BackoffTypeFixed,
 		}
 
 		err := env.Engine.RegisterStep(step)
@@ -739,10 +739,10 @@ func TestFailedWorkRetryable(t *testing.T) {
 
 		step := helpers.NewSimpleStep("failing-step")
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   3,
-			BackoffMs:    100,
-			MaxBackoffMs: 1000,
-			BackoffType:  api.BackoffTypeFixed,
+			MaxRetries:  3,
+			Backoff:     100,
+			MaxBackoff:  1000,
+			BackoffType: api.BackoffTypeFixed,
 		}
 
 		env.MockClient.SetError("failing-step",

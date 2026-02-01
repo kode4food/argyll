@@ -9,7 +9,7 @@ from argyll.types import StepType
 
 def test_client_initialization():
     client = Client()
-    assert client.base_url == "http://localhost:8080/engine"
+    assert client.base_url == "http://localhost:8080"
     assert client.timeout == 30
 
 
@@ -18,12 +18,17 @@ def test_client_custom_url():
     assert client.base_url == "http://example.com:9000/api"
 
 
+def test_client_strips_engine_suffix():
+    client = Client(base_url="http://localhost:8080/engine")
+    assert client.base_url == "http://localhost:8080"
+
+
 @responses.activate
 def test_list_steps_empty():
     responses.add(
         responses.GET,
         "http://localhost:8080/engine/step",
-        json=[],
+        json={"steps": []},
         status=200,
     )
 
@@ -37,19 +42,22 @@ def test_list_steps_with_data():
     responses.add(
         responses.GET,
         "http://localhost:8080/engine/step",
-        json=[
-            {
-                "id": "step-1",
-                "name": "Step 1",
-                "type": "sync",
-                "attributes": {
-                    "input": {
-                        "role": "required",
-                        "type": "string",
-                    }
-                },
-            }
-        ],
+        json={
+            "steps": [
+                {
+                    "id": "step-1",
+                    "name": "Step 1",
+                    "type": "sync",
+                    "attributes": {
+                        "input": {
+                            "role": "required",
+                            "type": "string",
+                        }
+                    },
+                }
+            ],
+            "count": 1,
+        },
         status=200,
     )
 
@@ -211,37 +219,41 @@ def test_parse_step_with_all_fields():
     responses.add(
         responses.GET,
         "http://localhost:8080/engine/step",
-        json=[
-            {
-                "id": "complex-step",
-                "name": "Complex Step",
-                "type": "async",
-                "attributes": {
-                    "input": {"role": "required", "type": "string"},
-                    "output": {"role": "output", "type": "number"},
-                },
-                "labels": {"env": "prod"},
-                "http": {
-                    "endpoint": "http://localhost:8081/complex",
-                    "health_check": "http://localhost:8081/health",
-                    "timeout_ms": 5000,
-                },
-                "script": {"language": "ale", "script": "(+ 1 2)"},
-                "predicate": {"language": "lua", "script": "return true"},
-                "retry": {
-                    "max_attempts": 3,
-                    "backoff_type": "exponential",
-                    "backoff_ms": 1000,
-                    "max_backoff_ms": 10000,
-                },
-                "flow": {
-                    "goals": ["step-1", "step-2"],
-                    "input_map": {"a": "b"},
-                    "output_map": {"c": "d"},
-                },
-                "memoizable": True,
-            }
-        ],
+        json={
+            "steps": [
+                {
+                    "id": "complex-step",
+                    "name": "Complex Step",
+                    "type": "async",
+                    "attributes": {
+                        "input": {"role": "required", "type": "string"},
+                        "output": {"role": "output", "type": "number"},
+                    },
+                    "labels": {"env": "prod"},
+                    "http": {
+                        "endpoint": "http://localhost:8081/complex",
+                        "health_check": "http://localhost:8081/health",
+                        "timeout": 5000,
+                    },
+                    "script": {"language": "ale", "script": "(+ 1 2)"},
+                    "predicate": {"language": "lua", "script": "return true"},
+                    "work_config": {
+                        "max_retries": 3,
+                        "backoff_type": "exponential",
+                        "backoff": 1000,
+                        "max_backoff": 10000,
+                        "parallelism": 2,
+                    },
+                    "flow": {
+                        "goals": ["step-1", "step-2"],
+                        "input_map": {"a": "b"},
+                        "output_map": {"c": "d"},
+                    },
+                    "memoizable": True,
+                }
+            ],
+            "count": 1,
+        },
         status=200,
     )
 
@@ -251,9 +263,9 @@ def test_parse_step_with_all_fields():
     step = steps[0]
     assert step.id == "complex-step"
     assert step.http is not None
-    assert step.http.timeout_ms == 5000
+    assert step.http.timeout == 5000
     assert step.script is not None
     assert step.predicate is not None
-    assert step.retry is not None
+    assert step.work_config is not None
     assert step.flow is not None
     assert step.memoizable is True

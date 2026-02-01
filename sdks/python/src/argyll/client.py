@@ -25,7 +25,7 @@ class FlowClient:
 
     def get_state(self) -> Dict[str, Any]:
         """Get the current flow state."""
-        url = f"{self._client.base_url}/flow/{self._flow_id}"
+        url = f"{self._client.base_url}/engine/flow/{self._flow_id}"
         try:
             resp = self._client.session.get(url, timeout=self._client.timeout)
             resp.raise_for_status()
@@ -40,24 +40,31 @@ class Client:
 
     def __init__(
         self,
-        base_url: str = "http://localhost:8080/engine",
+        base_url: str = "http://localhost:8080",
         timeout: int = 30,
         session: Optional[requests.Session] = None,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        trimmed = base_url.rstrip("/")
+        if trimmed.endswith("/engine"):
+            trimmed = trimmed[: -len("/engine")]
+        self.base_url = trimmed
         self.timeout = timeout
         self.session = session or requests.Session()
 
     def list_steps(self) -> List[Step]:
         """List all registered steps."""
-        url = f"{self.base_url}/step"
+        url = f"{self.base_url}/engine/step"
         try:
             resp = self.session.get(url, timeout=self.timeout)
             resp.raise_for_status()
             data = resp.json()
+            if isinstance(data, dict):
+                step_items = data.get("steps", [])
+            else:
+                step_items = data
 
             steps = []
-            for step_data in data:
+            for step_data in step_items:
                 steps.append(self._parse_step(step_data))
             return steps
         except requests.RequestException as e:
@@ -68,7 +75,7 @@ class Client:
 
     def register_step(self, step: Step) -> None:
         """Register a new step with the engine."""
-        url = f"{self.base_url}/step"
+        url = f"{self.base_url}/engine/step"
         try:
             resp = self.session.post(
                 url, json=step.to_dict(), timeout=self.timeout
@@ -81,7 +88,7 @@ class Client:
 
     def update_step(self, step: Step) -> None:
         """Update an existing step."""
-        url = f"{self.base_url}/step/{step.id}"
+        url = f"{self.base_url}/engine/step/{step.id}"
         try:
             resp = self.session.put(
                 url, json=step.to_dict(), timeout=self.timeout
@@ -118,10 +125,10 @@ class Client:
             FlowConfig,
             HTTPConfig,
             PredicateConfig,
-            RetryConfig,
             ScriptConfig,
             ScriptLanguage,
             StepType,
+            WorkConfig,
         )
 
         # Parse attributes
@@ -141,7 +148,7 @@ class Client:
             http = HTTPConfig(
                 endpoint=http_data["endpoint"],
                 health_check=http_data.get("health_check", ""),
-                timeout_ms=http_data.get("timeout_ms", 0),
+                timeout=http_data.get("timeout", 0),
             )
 
         # Parse script config
@@ -162,17 +169,18 @@ class Client:
                 script=pred_data["script"],
             )
 
-        # Parse retry config
-        retry = None
-        if "retry" in data:
-            retry_data = data["retry"]
-            retry = RetryConfig(
-                max_attempts=retry_data.get("max_attempts", 0),
+        # Parse work config
+        work_config = None
+        if "work_config" in data:
+            work_data = data["work_config"]
+            work_config = WorkConfig(
+                max_retries=work_data.get("max_retries", 0),
                 backoff_type=BackoffType(
-                    retry_data.get("backoff_type", "fixed")
+                    work_data.get("backoff_type", "fixed")
                 ),
-                backoff_ms=retry_data.get("backoff_ms", 0),
-                max_backoff_ms=retry_data.get("max_backoff_ms", 0),
+                backoff=work_data.get("backoff", 0),
+                max_backoff=work_data.get("max_backoff", 0),
+                parallelism=work_data.get("parallelism", 0),
             )
 
         # Parse flow config
@@ -194,7 +202,7 @@ class Client:
             http=http,
             script=script,
             predicate=predicate,
-            retry=retry,
+            work_config=work_config,
             flow=flow,
             memoizable=data.get("memoizable", False),
         )

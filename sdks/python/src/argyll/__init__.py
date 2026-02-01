@@ -30,6 +30,7 @@ from .types import (
     StepID,
     StepResult,
     StepType,
+    WorkConfig,
 )
 
 __version__ = "0.1.0"
@@ -58,6 +59,7 @@ __all__ = [
     "ScriptConfig",
     "PredicateConfig",
     "FlowConfig",
+    "WorkConfig",
     # Type aliases
     "Args",
     "StepID",

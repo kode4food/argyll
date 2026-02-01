@@ -15,7 +15,7 @@ pip install argyll-sdk
 ```python
 from argyll import Client, StepContext, AttributeType, StepResult
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 def handle_greeting(ctx: StepContext, args: dict) -> StepResult:
     name = args.get("name", "World")
@@ -34,7 +34,7 @@ client.new_step("Greeting") \
 from argyll import Client, StepContext, AsyncContext, AttributeType, StepResult
 import threading
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
     # Extract webhook URL from metadata
@@ -69,7 +69,7 @@ client.new_step("AsyncTask") \
 ```python
 from argyll import Client
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 client.new_step("Double") \
     .required("value", AttributeType.NUMBER) \
@@ -83,7 +83,7 @@ client.new_step("Double") \
 ```python
 from argyll import Client
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 client.new_flow("greeting-flow-123") \
     .with_goals("greeting") \

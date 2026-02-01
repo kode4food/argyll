@@ -482,10 +482,10 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 
 		step := helpers.NewSimpleStep("work-retry")
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   2,
-			BackoffMs:    10,
-			MaxBackoffMs: 10,
-			BackoffType:  api.BackoffTypeFixed,
+			MaxRetries:  2,
+			Backoff:     10,
+			MaxBackoff:  10,
+			BackoffType: api.BackoffTypeFixed,
 		}
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
@@ -584,10 +584,10 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 
 		step := helpers.NewSimpleStep("polling-step")
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   -1,
-			BackoffMs:    200,
-			MaxBackoffMs: 200,
-			BackoffType:  api.BackoffTypeFixed,
+			MaxRetries:  -1,
+			Backoff:     200,
+			MaxBackoff:  200,
+			BackoffType: api.BackoffTypeFixed,
 		}
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)

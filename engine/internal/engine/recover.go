@@ -11,7 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-type backoffCalculator func(baseDelayMs int64, retryCount int) int64
+type backoffCalculator func(baseDelay int64, retryCount int) int64
 
 var backoffCalculators = map[string]backoffCalculator{
 	api.BackoffTypeFixed: func(base int64, _ int) int64 {
@@ -61,12 +61,11 @@ func (e *Engine) CalculateNextRetry(
 		calculator = backoffCalculators[api.BackoffTypeFixed]
 	}
 
-	delayMs := min(
-		calculator(config.BackoffMs, retryCount),
-		config.MaxBackoffMs,
+	delay := min(
+		calculator(config.Backoff, retryCount), config.MaxBackoff,
 	)
 
-	return time.Now().Add(time.Duration(delayMs) * time.Millisecond)
+	return time.Now().Add(time.Duration(delay) * time.Millisecond)
 }
 
 // Recovery orchestration

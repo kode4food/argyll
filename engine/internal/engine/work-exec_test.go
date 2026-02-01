@@ -335,11 +335,11 @@ func TestRetryPendingParallelism(t *testing.T) {
 		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		step.ID = "retry-parallel"
 		step.WorkConfig = &api.WorkConfig{
-			MaxRetries:   1,
-			BackoffMs:    500,
-			MaxBackoffMs: 500,
-			BackoffType:  api.BackoffTypeFixed,
-			Parallelism:  1,
+			MaxRetries:  1,
+			Backoff:     500,
+			MaxBackoff:  500,
+			BackoffType: api.BackoffTypeFixed,
+			Parallelism: 1,
 		}
 		step.Attributes["items"].ForEach = true
 		step.Attributes["items"].Type = api.TypeArray

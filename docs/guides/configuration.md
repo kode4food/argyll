@@ -222,24 +222,24 @@ Configure via `work_config`:
 {
   "work_config": {
     "max_retries": 3,
-    "backoff_ms": 100,
-    "max_backoff_ms": 5000,
+    "backoff": 100,
+    "max_backoff": 5000,
     "backoff_type": "exponential"
   }
 }
 ```
 
 **Backoff Types:**
-- `fixed`: Same delay between retries (backoff_ms)
-- `linear`: Delay increases linearly (attempt * backoff_ms)
-- `exponential`: Delay doubles each retry (2^attempt * backoff_ms, capped at max_backoff_ms)
+- `fixed`: Same delay between retries (backoff in milliseconds)
+- `linear`: Delay increases linearly (attempt * backoff in milliseconds)
+- `exponential`: Delay doubles each retry (2^attempt * backoff in milliseconds, capped at max_backoff)
 
 **Example:**
 ```json
 {
   "max_retries": 3,
-  "backoff_ms": 100,
-  "max_backoff_ms": 5000,
+  "backoff": 100,
+  "max_backoff": 5000,
   "backoff_type": "exponential"
 }
 ```

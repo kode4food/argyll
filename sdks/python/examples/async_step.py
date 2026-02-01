@@ -5,7 +5,7 @@ import time
 
 from argyll import Client, StepContext, AsyncContext, AttributeType, StepResult
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 
 def handle_async_task(ctx: StepContext, args: dict) -> StepResult:

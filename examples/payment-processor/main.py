@@ -11,8 +11,8 @@ from argyll import AsyncContext, AttributeType, Client, StepContext, StepResult
 # Get engine URL from environment
 ENGINE_URL = os.getenv("ARGYLL_ENGINE_URL", "http://localhost:8080")
 
-# Client expects base_url with /engine path prefix
-client = Client(f"{ENGINE_URL}/engine")
+# Client expects base_url without /engine path prefix
+client = Client(ENGINE_URL)
 
 
 def handle_payment(ctx: StepContext, args: dict) -> StepResult:

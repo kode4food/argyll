@@ -1,6 +1,7 @@
 """Step execution context and server setup."""
 
 import os
+import time
 import traceback
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable
@@ -8,12 +9,16 @@ from typing import TYPE_CHECKING, Any, Callable
 import requests
 from flask import Flask, jsonify, request
 
-from .errors import HTTPError, WebhookError
+from .errors import HTTPError, StepRegistrationError, WebhookError
 from .types import Args, Metadata, StepID, StepResult
 
 if TYPE_CHECKING:
     from .builder import StepBuilder
     from .client import Client, FlowClient
+
+
+MAX_REGISTRATION_ATTEMPTS = 5
+BACKOFF_MULTIPLIER_SECONDS = 2
 
 
 @dataclass(frozen=True)
@@ -99,7 +104,25 @@ def create_step_server(
 
     builder = builder.with_endpoint(endpoint).with_health_check(health_endpoint)
 
-    builder.register()
+    step = builder.build()
+    registered = False
+    for attempt in range(1, MAX_REGISTRATION_ATTEMPTS + 1):
+        try:
+            if builder._dirty:
+                client.update_step(step)
+            else:
+                client.register_step(step)
+            registered = True
+            break
+        except Exception:
+            if attempt >= MAX_REGISTRATION_ATTEMPTS:
+                raise
+            time.sleep(attempt * BACKOFF_MULTIPLIER_SECONDS)
+
+    if not registered:
+        raise StepRegistrationError(
+            "Failed to register step after retries"
+        )
 
     app = Flask(__name__)
 

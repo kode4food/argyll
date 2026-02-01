@@ -19,8 +19,8 @@ If a step returns `success: true`, the work item is considered complete regardle
 Retry configuration lives in the step's `work_config`:
 
 - `max_retries`
-- `backoff_ms`
-- `max_backoff_ms`
+- `backoff` (milliseconds)
+- `max_backoff` (milliseconds)
 - `backoff_type` (fixed, linear, exponential)
 
 Semantics:
@@ -33,7 +33,7 @@ Semantics:
 
 - Fixed: constant delay between attempts
 - Linear: delay grows by a fixed increment each attempt
-- Exponential: delay doubles each attempt up to `max_backoff_ms`
+- Exponential: delay doubles each attempt up to `max_backoff` (milliseconds)
 
 Backoff is applied per work item, not per step.
 

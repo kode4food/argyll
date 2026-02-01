@@ -19,7 +19,7 @@ func TestRetryExhaustion(t *testing.T) {
 		step := helpers.NewStepWithOutputs("failing-step", "result")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			BackoffMs:   10,
+			Backoff:     10,
 			BackoffType: api.BackoffTypeFixed,
 		}
 

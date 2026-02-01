@@ -85,15 +85,15 @@ class HTTPConfig:
 
     endpoint: str
     health_check: str = ""
-    timeout_ms: int = 0
+    timeout: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
         result: Dict[str, Any] = {"endpoint": self.endpoint}
         if self.health_check:
             result["health_check"] = self.health_check
-        if self.timeout_ms > 0:
-            result["timeout_ms"] = self.timeout_ms
+        if self.timeout > 0:
+            result["timeout"] = self.timeout
         return result
 
 
@@ -122,25 +122,28 @@ class PredicateConfig:
 
 
 @dataclass(frozen=True)
-class RetryConfig:
-    """Retry configuration for step execution."""
+class WorkConfig:
+    """Work configuration for retries and parallelism."""
 
-    max_attempts: int = 0
+    max_retries: int = 0
     backoff_type: BackoffType = BackoffType.FIXED
-    backoff_ms: int = 0
-    max_backoff_ms: int = 0
+    backoff: int = 0
+    max_backoff: int = 0
+    parallelism: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
         result: Dict[str, Any] = {}
-        if self.max_attempts > 0:
-            result["max_attempts"] = self.max_attempts
+        if self.max_retries > 0:
+            result["max_retries"] = self.max_retries
         if self.backoff_type:
             result["backoff_type"] = self.backoff_type.value
-        if self.backoff_ms > 0:
-            result["backoff_ms"] = self.backoff_ms
-        if self.max_backoff_ms > 0:
-            result["max_backoff_ms"] = self.max_backoff_ms
+        if self.backoff > 0:
+            result["backoff"] = self.backoff
+        if self.max_backoff > 0:
+            result["max_backoff"] = self.max_backoff
+        if self.parallelism > 0:
+            result["parallelism"] = self.parallelism
         return result
 
 
@@ -174,7 +177,7 @@ class Step:
     http: Optional[HTTPConfig] = None
     script: Optional[ScriptConfig] = None
     predicate: Optional[PredicateConfig] = None
-    retry: Optional[RetryConfig] = None
+    work_config: Optional[WorkConfig] = None
     flow: Optional[FlowConfig] = None
     memoizable: bool = False
 
@@ -203,8 +206,8 @@ class Step:
         if self.predicate:
             result["predicate"] = self.predicate.to_dict()
 
-        if self.retry:
-            result["retry"] = self.retry.to_dict()
+        if self.work_config:
+            result["work_config"] = self.work_config.to_dict()
 
         if self.flow:
             result["flow"] = self.flow.to_dict()

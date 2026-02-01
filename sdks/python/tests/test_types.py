@@ -113,25 +113,25 @@ def test_step_enums():
 
 
 def test_http_config_with_timeout():
-    config = HTTPConfig(endpoint="http://localhost:8081/test", timeout_ms=3000)
+    config = HTTPConfig(endpoint="http://localhost:8081/test", timeout=3000)
     result = config.to_dict()
-    assert result["timeout_ms"] == 3000
+    assert result["timeout"] == 3000
 
 
-def test_retry_config_to_dict():
-    from argyll.types import BackoffType, RetryConfig
+def test_work_config_to_dict():
+    from argyll.types import BackoffType, WorkConfig
 
-    config = RetryConfig(
-        max_attempts=5,
+    config = WorkConfig(
+        max_retries=5,
         backoff_type=BackoffType.EXPONENTIAL,
-        backoff_ms=100,
-        max_backoff_ms=5000,
+        backoff=100,
+        max_backoff=5000,
     )
     result = config.to_dict()
-    assert result["max_attempts"] == 5
+    assert result["max_retries"] == 5
     assert result["backoff_type"] == "exponential"
-    assert result["backoff_ms"] == 100
-    assert result["max_backoff_ms"] == 5000
+    assert result["backoff"] == 100
+    assert result["max_backoff"] == 5000
 
 
 def test_flow_config_to_dict():
@@ -162,7 +162,7 @@ def test_step_with_all_fields():
         BackoffType,
         FlowConfig,
         PredicateConfig,
-        RetryConfig,
+        WorkConfig,
     )
 
     step = Step(
@@ -178,17 +178,17 @@ def test_step_with_all_fields():
         http=HTTPConfig(
             endpoint="http://localhost:8081/test",
             health_check="http://localhost:8081/health",
-            timeout_ms=5000,
+            timeout=5000,
         ),
         script=ScriptConfig(language=ScriptLanguage.ALE, script="(+ 1 2)"),
         predicate=PredicateConfig(
             language=ScriptLanguage.LUA, script="return true"
         ),
-        retry=RetryConfig(
-            max_attempts=3,
+        work_config=WorkConfig(
+            max_retries=3,
             backoff_type=BackoffType.LINEAR,
-            backoff_ms=1000,
-            max_backoff_ms=10000,
+            backoff=1000,
+            max_backoff=10000,
         ),
         flow=FlowConfig(
             goals=["step-1"], input_map={"a": "b"}, output_map={"c": "d"}
@@ -199,10 +199,10 @@ def test_step_with_all_fields():
     result = step.to_dict()
     assert result["type"] == "async"
     assert result["labels"]["env"] == "test"
-    assert result["http"]["timeout_ms"] == 5000
+    assert result["http"]["timeout"] == 5000
     assert result["script"]["script"] == "(+ 1 2)"
     assert result["predicate"]["script"] == "return true"
-    assert result["retry"]["max_attempts"] == 3
+    assert result["work_config"]["max_retries"] == 3
     assert result["flow"]["goals"] == ["step-1"]
     assert result["memoizable"] is True
 

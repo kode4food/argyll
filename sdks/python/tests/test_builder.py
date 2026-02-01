@@ -34,7 +34,11 @@ def test_step_builder_immutability():
 
 def test_step_builder_required():
     client = Client()
-    builder = client.new_step("Test").required("name", AttributeType.STRING)
+    builder = (
+        client.new_step("Test")
+        .required("name", AttributeType.STRING)
+        .with_endpoint("http://localhost:8081/test")
+    )
     step = builder.build()
     assert "name" in step.attributes
     assert step.attributes["name"].role == AttributeRole.REQUIRED
@@ -43,8 +47,10 @@ def test_step_builder_required():
 
 def test_step_builder_optional():
     client = Client()
-    builder = client.new_step("Test").optional(
-        "count", AttributeType.NUMBER, "0"
+    builder = (
+        client.new_step("Test")
+        .optional("count", AttributeType.NUMBER, "0")
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert "count" in step.attributes
@@ -54,7 +60,11 @@ def test_step_builder_optional():
 
 def test_step_builder_output():
     client = Client()
-    builder = client.new_step("Test").output("result", AttributeType.STRING)
+    builder = (
+        client.new_step("Test")
+        .output("result", AttributeType.STRING)
+        .with_endpoint("http://localhost:8081/test")
+    )
     step = builder.build()
     assert "result" in step.attributes
     assert step.attributes["result"].role == AttributeRole.OUTPUT
@@ -66,6 +76,7 @@ def test_step_builder_with_for_each():
         client.new_step("Test")
         .required("items", AttributeType.ARRAY)
         .with_for_each("items")
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.attributes["items"].for_each is True
@@ -83,15 +94,21 @@ def test_step_builder_with_for_each_missing_attribute():
 
 def test_step_builder_with_label():
     client = Client()
-    builder = client.new_step("Test").with_label("env", "prod")
+    builder = (
+        client.new_step("Test")
+        .with_label("env", "prod")
+        .with_endpoint("http://localhost:8081/test")
+    )
     step = builder.build()
     assert step.labels["env"] == "prod"
 
 
 def test_step_builder_with_labels():
     client = Client()
-    builder = client.new_step("Test").with_labels(
-        {"env": "prod", "team": "platform"}
+    builder = (
+        client.new_step("Test")
+        .with_labels({"env": "prod", "team": "platform"})
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.labels["env"] == "prod"
@@ -129,7 +146,7 @@ def test_step_builder_with_timeout():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.timeout_ms == 5000
+    assert step.http.timeout == 5000
 
 
 def test_step_builder_with_script():
@@ -155,8 +172,10 @@ def test_step_builder_with_script_language():
 
 def test_step_builder_with_predicate():
     client = Client()
-    builder = client.new_step("Test").with_predicate(
-        ScriptLanguage.ALE, "(> value 10)"
+    builder = (
+        client.new_step("Test")
+        .with_predicate(ScriptLanguage.ALE, "(> value 10)")
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.predicate is not None
@@ -165,7 +184,11 @@ def test_step_builder_with_predicate():
 
 def test_step_builder_with_async_execution():
     client = Client()
-    builder = client.new_step("Test").with_async_execution()
+    builder = (
+        client.new_step("Test")
+        .with_async_execution()
+        .with_endpoint("http://localhost:8081/test")
+    )
     step = builder.build()
     assert step.type == StepType.ASYNC
 
@@ -173,7 +196,10 @@ def test_step_builder_with_async_execution():
 def test_step_builder_with_sync_execution():
     client = Client()
     builder = (
-        client.new_step("Test").with_async_execution().with_sync_execution()
+        client.new_step("Test")
+        .with_async_execution()
+        .with_sync_execution()
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.type == StepType.SYNC
@@ -181,7 +207,11 @@ def test_step_builder_with_sync_execution():
 
 def test_step_builder_with_memoizable():
     client = Client()
-    builder = client.new_step("Test").with_memoizable()
+    builder = (
+        client.new_step("Test")
+        .with_memoizable()
+        .with_endpoint("http://localhost:8081/test")
+    )
     step = builder.build()
     assert step.memoizable is True
 
@@ -269,9 +299,9 @@ def test_flow_builder_start():
     import json
 
     data = json.loads(req_body)
-    assert data["flow_id"] == "flow-123"
+    assert data["id"] == "flow-123"
     assert data["goals"] == ["step-1"]
-    assert data["initial_state"] == {"name": "Alice"}
+    assert data["init"] == {"name": "Alice"}
 
 
 def test_kebab_case_conversion():
@@ -308,8 +338,10 @@ def test_step_builder_with_script_defaults_to_ale():
 
 def test_step_builder_const():
     client = Client()
-    builder = client.new_step("Test").const(
-        "api_key", AttributeType.STRING, '"secret"'
+    builder = (
+        client.new_step("Test")
+        .const("api_key", AttributeType.STRING, '"secret"')
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert "api_key" in step.attributes

@@ -870,12 +870,12 @@ components:
           type: integer
           description: Maximum number of retries on failure
           example: 3
-        backoff_ms:
+        backoff:
           type: integer
           format: int64
           description: Initial backoff delay in milliseconds
           example: 1000
-        max_backoff_ms:
+        max_backoff:
           type: integer
           format: int64
           description: Maximum backoff delay in milliseconds

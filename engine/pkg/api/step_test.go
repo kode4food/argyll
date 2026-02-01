@@ -635,27 +635,27 @@ func TestEqualWorkConfig(t *testing.T) {
 	as := assert.New(t)
 
 	config1 := &api.WorkConfig{
-		Parallelism:  5,
-		MaxRetries:   3,
-		BackoffMs:    1000,
-		MaxBackoffMs: 60000,
-		BackoffType:  api.BackoffTypeExponential,
+		Parallelism: 5,
+		MaxRetries:  3,
+		Backoff:     1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
 	}
 
 	config2 := &api.WorkConfig{
-		Parallelism:  5,
-		MaxRetries:   3,
-		BackoffMs:    1000,
-		MaxBackoffMs: 60000,
-		BackoffType:  api.BackoffTypeExponential,
+		Parallelism: 5,
+		MaxRetries:  3,
+		Backoff:     1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
 	}
 
 	config3 := &api.WorkConfig{
-		Parallelism:  10,
-		MaxRetries:   3,
-		BackoffMs:    1000,
-		MaxBackoffMs: 60000,
-		BackoffType:  api.BackoffTypeExponential,
+		Parallelism: 10,
+		MaxRetries:  3,
+		Backoff:     1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
 	}
 
 	as.True(config1.Equal(config2))
@@ -758,10 +758,10 @@ func TestValidateWorkConfig(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			WorkConfig: &api.WorkConfig{
-				BackoffMs: -1,
+				Backoff: -1,
 			},
 		}
-		as.StepInvalid(step, "backoff_ms cannot be negative")
+		as.StepInvalid(step, "backoff cannot be negative")
 	})
 
 	t.Run("max_backoff_too_small", func(t *testing.T) {
@@ -773,11 +773,11 @@ func TestValidateWorkConfig(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			WorkConfig: &api.WorkConfig{
-				BackoffMs:    1000,
-				MaxBackoffMs: 500,
+				Backoff:    1000,
+				MaxBackoff: 500,
 			},
 		}
-		as.StepInvalid(step, "max_backoff_ms")
+		as.StepInvalid(step, "max_backoff")
 	})
 
 	t.Run("missing_backoff_type", func(t *testing.T) {
@@ -820,10 +820,10 @@ func TestValidateWorkConfig(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			WorkConfig: &api.WorkConfig{
-				MaxRetries:   3,
-				BackoffMs:    1000,
-				MaxBackoffMs: 60000,
-				BackoffType:  api.BackoffTypeExponential,
+				MaxRetries:  3,
+				Backoff:     1000,
+				MaxBackoff:  60000,
+				BackoffType: api.BackoffTypeExponential,
 			},
 		}
 		as.StepValid(step)

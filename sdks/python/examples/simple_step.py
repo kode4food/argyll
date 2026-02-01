@@ -2,7 +2,7 @@
 
 from argyll import Client, StepContext, AttributeType, StepResult
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 
 def handle_greeting(ctx: StepContext, args: dict) -> StepResult:

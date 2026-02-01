@@ -73,10 +73,10 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		MemoCacheSize:   100,
 		ShutdownTimeout: 2 * time.Second,
 		Work: api.WorkConfig{
-			MaxRetries:   3,
-			BackoffMs:    1000,
-			MaxBackoffMs: 60000,
-			BackoffType:  api.BackoffTypeExponential,
+			MaxRetries:  3,
+			Backoff:     1000,
+			MaxBackoff:  60000,
+			BackoffType: api.BackoffTypeExponential,
 		},
 	}
 

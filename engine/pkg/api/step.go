@@ -61,11 +61,11 @@ type (
 	// WorkConfig configures retry and parallelism behavior for steps with
 	// multiple work items
 	WorkConfig struct {
-		MaxRetries   int    `json:"max_retries,omitempty"`
-		BackoffMs    int64  `json:"backoff_ms,omitempty"`
-		MaxBackoffMs int64  `json:"max_backoff_ms,omitempty"`
-		BackoffType  string `json:"backoff_type,omitempty"`
-		Parallelism  int    `json:"parallelism,omitempty"`
+		MaxRetries  int    `json:"max_retries,omitempty"`
+		Backoff     int64  `json:"backoff,omitempty"`
+		MaxBackoff  int64  `json:"max_backoff,omitempty"`
+		BackoffType string `json:"backoff_type,omitempty"`
+		Parallelism int    `json:"parallelism,omitempty"`
 	}
 
 	// StepRequest is the request payload sent to step handlers
@@ -151,10 +151,9 @@ var (
 	ErrInvalidRetryConfig    = errors.New("invalid retry config")
 	ErrInvalidBackoffType    = errors.New("invalid backoff type")
 	ErrAttributeNil          = errors.New("attribute has nil definition")
-	ErrNegativeBackoff       = errors.New("backoff_ms cannot be negative")
-	ErrMaxBackoffTooSmall    = errors.New("max_backoff_ms must be >= " +
-		"backoff_ms")
-	ErrWorkNotCompleted = errors.New("work not completed")
+	ErrNegativeBackoff       = errors.New("backoff cannot be negative")
+	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
+	ErrWorkNotCompleted      = errors.New("work not completed")
 )
 
 var (
@@ -341,17 +340,17 @@ func (s *Step) validateWorkConfig() error {
 		return nil
 	}
 
-	if s.WorkConfig.BackoffMs < 0 {
+	if s.WorkConfig.Backoff < 0 {
 		return ErrNegativeBackoff
 	}
 
-	if s.WorkConfig.MaxBackoffMs != 0 &&
-		s.WorkConfig.MaxBackoffMs < s.WorkConfig.BackoffMs {
+	if s.WorkConfig.MaxBackoff != 0 &&
+		s.WorkConfig.MaxBackoff < s.WorkConfig.Backoff {
 		return ErrMaxBackoffTooSmall
 	}
 
 	hasRetryConfig := s.WorkConfig.MaxRetries != 0 ||
-		s.WorkConfig.BackoffMs != 0 || s.WorkConfig.MaxBackoffMs != 0
+		s.WorkConfig.Backoff != 0 || s.WorkConfig.MaxBackoff != 0
 	if hasRetryConfig {
 		if s.WorkConfig.BackoffType == "" {
 			return ErrInvalidRetryConfig
@@ -588,8 +587,8 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 	return equalWithNilCheck(c, other, func() bool {
 		return c.Parallelism == other.Parallelism &&
 			c.MaxRetries == other.MaxRetries &&
-			c.BackoffMs == other.BackoffMs &&
-			c.MaxBackoffMs == other.MaxBackoffMs &&
+			c.Backoff == other.Backoff &&
+			c.MaxBackoff == other.MaxBackoff &&
 			c.BackoffType == other.BackoffType
 	})
 }

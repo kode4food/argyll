@@ -53,10 +53,10 @@ const (
 	DefaultCacheSize           = 4096
 	DefaultMemoCacheSize       = 10240
 
-	DefaultRetryMaxRetries   = 10
-	DefaultRetryBackoffMs    = 1000
-	DefaultRetryMaxBackoffMs = 60000
-	DefaultRetryBackoffType  = api.BackoffTypeExponential
+	DefaultRetryMaxRetries  = 10
+	DefaultRetryBackoff     = 1000
+	DefaultMaxRetryBackoff  = 60000
+	DefaultRetryBackoffType = api.BackoffTypeExponential
 )
 
 var (
@@ -91,10 +91,10 @@ func NewDefaultConfig() *Config {
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
 		},
 		Work: api.WorkConfig{
-			MaxRetries:   DefaultRetryMaxRetries,
-			BackoffMs:    DefaultRetryBackoffMs,
-			MaxBackoffMs: DefaultRetryMaxBackoffMs,
-			BackoffType:  DefaultRetryBackoffType,
+			MaxRetries:  DefaultRetryMaxRetries,
+			Backoff:     DefaultRetryBackoff,
+			MaxBackoff:  DefaultMaxRetryBackoff,
+			BackoffType: DefaultRetryBackoffType,
 		},
 		StepTimeout:     DefaultStepTimeout,
 		FlowCacheSize:   DefaultCacheSize,
@@ -141,14 +141,14 @@ func (c *Config) LoadFromEnv() {
 			c.Work.MaxRetries = retries
 		}
 	}
-	if backoffMs := os.Getenv("RETRY_BACKOFF_MS"); backoffMs != "" {
-		if ms, err := strconv.ParseInt(backoffMs, 10, 64); err == nil {
-			c.Work.BackoffMs = ms
+	if backoff := os.Getenv("RETRY_BACKOFF"); backoff != "" {
+		if ms, err := strconv.ParseInt(backoff, 10, 64); err == nil {
+			c.Work.Backoff = ms
 		}
 	}
-	if maxBackoffMs := os.Getenv("RETRY_MAX_BACKOFF_MS"); maxBackoffMs != "" {
-		if ms, err := strconv.ParseInt(maxBackoffMs, 10, 64); err == nil {
-			c.Work.MaxBackoffMs = ms
+	if maxBackoff := os.Getenv("RETRY_MAX_BACKOFF"); maxBackoff != "" {
+		if ms, err := strconv.ParseInt(maxBackoff, 10, 64); err == nil {
+			c.Work.MaxBackoff = ms
 		}
 	}
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {

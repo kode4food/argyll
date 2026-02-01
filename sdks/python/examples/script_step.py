@@ -2,7 +2,7 @@
 
 from argyll import Client, AttributeType
 
-client = Client("http://localhost:8080/engine")
+client = Client("http://localhost:8080")
 
 if __name__ == "__main__":
     # Ale script that doubles a number
