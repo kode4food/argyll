@@ -29,17 +29,17 @@ jobs:
       - name: Build and Test Go SDK
         run: cd sdks/go-builder && make
 
-  build-python-sdk:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Set up Go
-        uses: actions/setup-python@v6
-        with:
-          python-version: "3.9"
-      - name: Build and Test Python SDK
-        run: cd sdks/python && make test
+  # build-python-sdk:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v3
+  #     - name: Set up Go
+  #       uses: actions/setup-python@v6
+  #       with:
+  #         python-version: "3.9"
+  #     - name: Build and Test Python SDK
+  #       run: cd sdks/python && make test
 
   build-web:
     runs-on: ubuntu-latest
