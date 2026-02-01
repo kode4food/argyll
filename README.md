@@ -81,7 +81,8 @@ GET    /engine/ws                # WebSocket event stream
 
 - **[Getting Started](docs/)** - Quickstart, dev setup, concepts
 - **[How-To Guides](docs/guides/)** - Step types, parallelism, predicates, configuration
-- **[Go SDK](docs/go/)** - Building steps in Go
+- **[Go SDK](sdks/go-builder/)** - Building steps in Go
+- **[Python SDK](sdks/python/)** - Building steps in Python
 - **[API Reference](docs/api/)** - OpenAPI specs and curl examples
 - **[Examples](examples/)** - 7 runnable example steps
 

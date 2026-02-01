@@ -103,15 +103,10 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080")
 
-    script := `
-    (define (double x) (* x 2))
-    (double value)
-    `
-
     if err := client.NewStep("Double").
         Required("value", api.TypeNumber).
         Output("result", api.TypeNumber).
-        WithScript(script).
+        WithScript("(* value 2)").
         Register(context.Background()); err != nil {
         log.Fatal(err)
     }
