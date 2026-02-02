@@ -4,7 +4,7 @@ go 1.25.3
 
 require (
 	github.com/kode4food/argyll/engine v0.0.0
-	github.com/kode4food/argyll/sdks/go-builder v0.0.0-00010101000000-000000000000
+	github.com/kode4food/argyll/sdks/go-builder v0.0.0
 )
 
 require (

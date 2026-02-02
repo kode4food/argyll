@@ -14,3 +14,5 @@ use (
 )
 
 replace github.com/kode4food/argyll/engine v0.0.0 => ./engine
+
+replace github.com/kode4food/argyll/sdks/go-builder v0.0.0 => ./sdks/go-builder
