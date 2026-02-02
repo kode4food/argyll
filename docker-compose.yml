@@ -1,3 +1,15 @@
+x-argyll-env: &argyll-env
+  ENGINE_REDIS_ADDR: valkey:6379
+  ENGINE_REDIS_PASSWORD:
+  ENGINE_REDIS_DB: "0"
+  FLOW_REDIS_ADDR: valkey:6379
+  FLOW_REDIS_PASSWORD:
+  FLOW_REDIS_DB: "0"
+  LOG_LEVEL: debug
+
+x-step-env: &step-env
+  ARGYLL_ENGINE_URL: http://argyll-engine:8080
+
 services:
   valkey:
     image: valkey/valkey:9-alpine
@@ -18,17 +30,11 @@ services:
       context: .
       dockerfile: engine/Dockerfile
     environment:
-      - ENGINE_REDIS_ADDR=valkey:6379
-      - ENGINE_REDIS_PASSWORD=
-      - ENGINE_REDIS_DB=0
-      - FLOW_REDIS_ADDR=valkey:6379
-      - FLOW_REDIS_PASSWORD=
-      - FLOW_REDIS_DB=0
-      - API_PORT=8080
-      - API_HOST=0.0.0.0
-      - WEBHOOK_BASE_URL=http://argyll-engine:8080
-      - DEV_MODE=true
-      - LOG_LEVEL=debug
+      <<: *argyll-env
+      API_PORT: "8080"
+      API_HOST: 0.0.0.0
+      WEBHOOK_BASE_URL: http://argyll-engine:8080
+      DEV_MODE: "true"
     depends_on:
       valkey:
         condition: service_healthy
@@ -76,15 +82,27 @@ services:
       retries: 12
       start_period: 30s
 
+  argyll-archiver-file:
+    build:
+      context: .
+      dockerfile: archiver/Dockerfile
+    environment:
+      <<: *argyll-env
+      ARCHIVE_SINK_PATH: /dev/null
+    depends_on:
+      valkey:
+        condition: service_healthy
+    restart: unless-stopped
+
   # Example step services
   text-processor:
     build:
       context: .
       dockerfile: examples/simple-step/Dockerfile
     environment:
-      - STEP_PORT=8081
-      - STEP_HOSTNAME=text-processor
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8081"
+      STEP_HOSTNAME: text-processor
     depends_on:
       argyll-engine:
         condition: service_healthy
@@ -103,9 +121,9 @@ services:
       context: .
       dockerfile: examples/user-resolver/Dockerfile
     environment:
-      - STEP_PORT=8082
-      - STEP_HOSTNAME=user-resolver
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8082"
+      STEP_HOSTNAME: user-resolver
     depends_on:
       argyll-engine:
         condition: service_healthy
@@ -124,9 +142,9 @@ services:
       context: .
       dockerfile: examples/inventory-resolver/Dockerfile
     environment:
-      - STEP_PORT=8083
-      - STEP_HOSTNAME=inventory-resolver
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8083"
+      STEP_HOSTNAME: inventory-resolver
     depends_on:
       argyll-engine:
         condition: service_healthy
@@ -145,9 +163,9 @@ services:
       context: .
       dockerfile: examples/order-creator/Dockerfile
     environment:
-      - STEP_PORT=8084
-      - STEP_HOSTNAME=order-creator
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8084"
+      STEP_HOSTNAME: order-creator
     depends_on:
       argyll-engine:
         condition: service_healthy
@@ -166,9 +184,9 @@ services:
       context: .
       dockerfile: examples/payment-processor/Dockerfile
     environment:
-      - STEP_PORT=8085
-      - STEP_HOSTNAME=payment-processor
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8085"
+      STEP_HOSTNAME: payment-processor
     depends_on:
       argyll-engine:
         condition: service_healthy
@@ -187,9 +205,9 @@ services:
       context: .
       dockerfile: examples/stock-reservation/Dockerfile
     environment:
-      - STEP_PORT=8086
-      - STEP_HOSTNAME=stock-reservation
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8086"
+      STEP_HOSTNAME: stock-reservation
     depends_on:
       argyll-engine:
         condition: service_healthy
@@ -208,9 +226,9 @@ services:
       context: .
       dockerfile: examples/notification-sender/Dockerfile
     environment:
-      - STEP_PORT=8087
-      - STEP_HOSTNAME=notification-sender
-      - ARGYLL_ENGINE_URL=http://argyll-engine:8080
+      <<: *step-env
+      STEP_PORT: "8087"
+      STEP_HOSTNAME: notification-sender
     depends_on:
       argyll-engine:
         condition: service_healthy

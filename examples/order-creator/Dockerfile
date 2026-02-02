@@ -17,6 +17,8 @@ COPY examples/order-creator/main.go ./examples/order-creator/
 
 # Download dependencies
 WORKDIR /build/examples/order-creator
+RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
+RUN go mod edit -replace github.com/kode4food/argyll/sdks/go-builder=../../sdks/go-builder
 RUN go mod download
 
 # Build the executable

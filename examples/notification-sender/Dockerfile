@@ -17,6 +17,8 @@ COPY examples/notification-sender/main.go ./examples/notification-sender/
 
 # Download dependencies
 WORKDIR /build/examples/notification-sender
+RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
+RUN go mod edit -replace github.com/kode4food/argyll/sdks/go-builder=../../sdks/go-builder
 RUN go mod download
 
 # Build the executable
