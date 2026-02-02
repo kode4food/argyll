@@ -16,8 +16,8 @@ import (
 
 func TestNewAsyncContext(t *testing.T) {
 	meta := api.Metadata{
-		api.MetaFlowID:     "test-flow",
-		api.MetaStepID:     "test-step",
+		api.MetaFlowID: "test-flow",
+		api.MetaStepID: "test-step",
 		api.MetaWebhookURL: "http://localhost:8080/webhook/" +
 			"test-flow/test-step/t123",
 	}

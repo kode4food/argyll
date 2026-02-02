@@ -20,7 +20,7 @@ func TestMemoCache_GetPut(t *testing.T) {
 			Timeout:  30000,
 		},
 		Attributes: api.AttributeSpecs{
-			"input": &api.AttributeSpec{Role: api.RoleRequired},
+			"input":  &api.AttributeSpec{Role: api.RoleRequired},
 			"output": &api.AttributeSpec{Role: api.RoleOutput},
 		},
 	}
