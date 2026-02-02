@@ -99,7 +99,7 @@ class Client:
             msg = f"Failed to update step {step.id}: {e}"
             raise ClientError(msg, status_code=status) from e
 
-    def new_step(self, name: str) -> "StepBuilder":
+    def new_step(self, name: str = "") -> "StepBuilder":
         """Create a new step builder."""
         from .builder import StepBuilder
 

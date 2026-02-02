@@ -51,7 +51,7 @@ func startStepServer(
 
 	client := builder.NewClient(engineURL, time.Second)
 	go func() {
-		_ = client.NewStep(stepName).
+		_ = client.NewStep().WithName(stepName).
 			WithID(string(stepID)).
 			WithSyncExecution().
 			Start(handle)

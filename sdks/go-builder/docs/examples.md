@@ -11,7 +11,7 @@ client := builder.NewClient("http://localhost:8080", 30*time.Second)
 ## Register a sync HTTP step
 
 ```go
-err := client.NewStep("Transform Order").
+err := client.NewStep().WithName("Transform Order").
     Required("order_id", api.TypeString).
     Output("status", api.TypeString).
     WithEndpoint("http://localhost:8081/transform").
@@ -24,7 +24,7 @@ if err != nil {
 ## Register an async HTTP step
 
 ```go
-err := client.NewStep("Send Email").
+err := client.NewStep().WithName("Send Email").
     Required("user_id", api.TypeString).
     Output("sent", api.TypeBool).
     WithEndpoint("http://localhost:8082/send").
@@ -38,7 +38,7 @@ if err != nil {
 ## Register a script step
 
 ```go
-err := client.NewStep("Hello Script").
+err := client.NewStep().WithName("Hello Script").
     Required("name", api.TypeString).
     Output("greeting", api.TypeString).
     WithScript("{:greeting name}").

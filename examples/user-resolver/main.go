@@ -66,7 +66,7 @@ func main() {
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
-	err := client.NewStep("User Resolver").
+	err := client.NewStep().WithName("User Resolver").
 		WithLabels(api.Labels{
 			"description": "resolve user profile by user_id",
 			"domain":      "users",

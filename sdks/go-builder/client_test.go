@@ -42,7 +42,7 @@ func TestRegisterStepSuccess(t *testing.T) {
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 
-	err := client.NewStep("Test Step").
+	err := client.NewStep().WithName("Test Step").
 		WithEndpoint("http://test").
 		Register(context.Background())
 
@@ -59,7 +59,7 @@ func TestRegisterCreated(t *testing.T) {
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 
-	err := client.NewStep("Test").
+	err := client.NewStep().WithName("Test").
 		WithEndpoint("http://test").
 		Register(context.Background())
 
@@ -77,7 +77,7 @@ func TestRegisterStepError(t *testing.T) {
 
 	client := builder.NewClient(server.URL, 5*time.Second)
 
-	err := client.NewStep("Test").
+	err := client.NewStep().WithName("Test").
 		WithEndpoint("http://test").
 		Register(context.Background())
 
@@ -182,7 +182,7 @@ func TestContextCancellation(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := client.NewStep("Test").
+	err := client.NewStep().WithName("Test").
 		WithEndpoint("http://test").
 		Register(ctx)
 

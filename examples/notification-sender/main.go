@@ -26,7 +26,7 @@ func main() {
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
-	err := client.NewStep("Notification Sender").
+	err := client.NewStep().WithName("Notification Sender").
 		WithLabels(api.Labels{
 			"description": "send order confirmation notifications",
 			"domain":      "notifications",

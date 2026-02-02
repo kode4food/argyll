@@ -91,7 +91,7 @@ def handle_payment(ctx: StepContext, args: dict) -> StepResult:
 
 
 if __name__ == "__main__":
-    client.new_step("Payment Processor") \
+    client.new_step().with_name("Payment Processor") \
         .with_labels({
             "description": "process payment asynchronously",
             "domain": "payments",

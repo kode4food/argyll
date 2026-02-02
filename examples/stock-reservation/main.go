@@ -49,7 +49,7 @@ func main() {
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
-	err := client.NewStep("Stock Reservation").
+	err := client.NewStep().WithName("Stock Reservation").
 		WithLabels(api.Labels{
 			"description": "reserve inventory for an order",
 			"domain":      "inventory",

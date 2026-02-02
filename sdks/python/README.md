@@ -22,7 +22,7 @@ def handle_greeting(ctx: StepContext, args: dict) -> StepResult:
     greeting = f"Hello, {name}!"
     return StepResult(success=True, outputs={"greeting": greeting})
 
-client.new_step("Greeting") \
+client.new_step().with_name("Greeting") \
     .required("name", AttributeType.STRING) \
     .output("greeting", AttributeType.STRING) \
     .start(handle_greeting)
@@ -58,7 +58,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
     # Return immediately
     return StepResult(success=True, outputs={})
 
-client.new_step("AsyncTask") \
+client.new_step().with_name("AsyncTask") \
     .with_async_execution() \
     .output("status", AttributeType.STRING) \
     .start(handle_async_task)
@@ -71,7 +71,7 @@ from argyll import Client, AttributeType
 
 client = Client("http://localhost:8080")
 
-client.new_step("Double") \
+client.new_step().with_name("Double") \
     .required("value", AttributeType.NUMBER) \
     .output("result", AttributeType.NUMBER) \
     .with_script("(* value 2)") \
@@ -98,7 +98,7 @@ from argyll import Client
 
 client = Client("http://localhost:8080")
 
-client.new_step("Child Flow Wrapper") \
+client.new_step().with_name("Child Flow Wrapper") \
     .with_flow_goals("child-goal") \
     .with_flow_input_map({"input": "child_input"}) \
     .with_flow_output_map({"child_output": "output"}) \
@@ -115,7 +115,7 @@ client = Client("http://localhost:8080")
 def handle_user(ctx: StepContext, args: dict) -> StepResult:
     return StepResult(success=True, outputs={"user_name": "Jane"})
 
-client.new_step("User Resolver") \
+client.new_step().with_name("User Resolver") \
     .required("user_id", AttributeType.STRING) \
     .output("user_name", AttributeType.STRING) \
     .output("user_email", AttributeType.STRING) \

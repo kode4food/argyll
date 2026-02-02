@@ -42,7 +42,7 @@ func main() {
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
-	err := client.NewStep("Order Creator").
+	err := client.NewStep().WithName("Order Creator").
 		WithLabels(api.Labels{
 			"description": "create order records and validate business rules",
 			"domain":      "orders",

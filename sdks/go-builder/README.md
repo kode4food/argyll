@@ -38,7 +38,7 @@ func main() {
         return *api.NewResult().WithOutput("greeting", "Hello, "+name), nil
     }
 
-    if err := client.NewStep("Greeting").
+    if err := client.NewStep().WithName("Greeting").
         Required("name", api.TypeString).
         Output("greeting", api.TypeString).
         Start(handler); err != nil {
@@ -79,7 +79,7 @@ func main() {
         return *api.NewResult(), nil
     }
 
-    if err := client.NewStep("AsyncTask").
+    if err := client.NewStep().WithName("AsyncTask").
         WithAsyncExecution().
         Output("result", api.TypeString).
         Start(handler); err != nil {
@@ -105,7 +105,7 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    if err := client.NewStep("Double").
+    if err := client.NewStep().WithName("Double").
         Required("value", api.TypeNumber).
         Output("result", api.TypeNumber).
         WithScript("(* value 2)").
@@ -158,7 +158,7 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    if err := client.NewStep("Child Flow Wrapper").
+    if err := client.NewStep().WithName("Child Flow Wrapper").
         WithFlowGoals("child-goal").
         WithFlowInputMap(map[api.Name]api.Name{"input": "child_input"}).
         WithFlowOutputMap(map[api.Name]api.Name{"child_output": "output"}).
@@ -183,7 +183,7 @@ func main() {
 All builders use Go's value semantics for immutability:
 
 ```go
-builder1 := client.NewStep("Test")
+builder1 := client.NewStep().WithName("Test")
 builder2 := builder1.WithID("custom-id")
 
 // builder1 is unchanged
@@ -195,7 +195,7 @@ builder2 := builder1.WithID("custom-id")
 ### Conditional Execution
 
 ```go
-client.NewStep("ConditionalStep").
+client.NewStep().WithName("ConditionalStep").
     Required("value", api.TypeNumber).
     WithAlePredicate("(> value 10)").
     WithEndpoint("http://localhost:8081/step").
@@ -205,7 +205,7 @@ client.NewStep("ConditionalStep").
 ### Array Processing
 
 ```go
-client.NewStep("ProcessItems").
+client.NewStep().WithName("ProcessItems").
     Required("items", api.TypeArray).
     WithForEach("items").
     Output("processed", api.TypeString).
@@ -216,7 +216,7 @@ client.NewStep("ProcessItems").
 ### Result Memoization
 
 ```go
-client.NewStep("ExpensiveComputation").
+client.NewStep().WithName("ExpensiveComputation").
     Required("input", api.TypeNumber).
     Output("result", api.TypeNumber).
     WithMemoizable().
@@ -227,7 +227,7 @@ client.NewStep("ExpensiveComputation").
 ### Labels
 
 ```go
-client.NewStep("DataProcessor").
+client.NewStep().WithName("DataProcessor").
     WithLabels(api.Labels{"team": "data", "env": "prod"}).
     WithEndpoint("http://localhost:8081/process").
     Register(ctx)
@@ -273,12 +273,13 @@ See the [examples](../../examples) directory for complete working examples:
 ### Client
 
 - `NewClient(engineURL string, timeout time.Duration) *Client` - Create a new client
-- `NewStep(name api.Name) *Step` - Create a step builder
+- `NewStep() *Step` - Create a step builder template
 - `NewFlow(flowID api.FlowID) *Flow` - Create a flow builder
 - `Flow(flowID api.FlowID) *FlowClient` - Get flow client
 
 ### StepBuilder
 
+- `WithName(name api.Name) *Step` - Set step name (auto-generates ID if unset)
 - `WithID(id string) *Step` - Set custom step ID
 - `Required(name, type) *Step` - Add required input
 - `Optional(name, type, default) *Step` - Add optional input

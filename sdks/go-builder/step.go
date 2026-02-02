@@ -14,19 +14,19 @@ import (
 // Step is a builder for creating and configuring flow steps. It provides an
 // API for defining step attributes, predicates, and execution settings
 type Step struct {
-	client      *Client
-	predicate   *api.ScriptConfig
-	http        *api.HTTPConfig
-	flow        *api.FlowConfig
-	script      *api.ScriptConfig
-	id          api.StepID
-	name        api.Name
-	stepType    api.StepType
-	labels      api.Labels
-	attributes  api.AttributeSpecs
-	timeout     int64
-	memoizable  bool
-	dirty       bool
+	client     *Client
+	predicate  *api.ScriptConfig
+	http       *api.HTTPConfig
+	flow       *api.FlowConfig
+	script     *api.ScriptConfig
+	id         api.StepID
+	name       api.Name
+	stepType   api.StepType
+	labels     api.Labels
+	attributes api.AttributeSpecs
+	timeout    int64
+	memoizable bool
+	dirty      bool
 }
 
 var (
@@ -34,13 +34,10 @@ var (
 	delimiterRegex = regexp.MustCompile(`[\s_]+`)
 )
 
-// NewStep creates a new step builder with the specified name
-func (c *Client) NewStep(name api.Name) *Step {
-	id := api.StepID(toSnakeCase(string(name)))
+// NewStep creates a new step builder template
+func (c *Client) NewStep() *Step {
 	return &Step{
 		client:     c,
-		id:         id,
-		name:       name,
 		stepType:   api.StepTypeSync,
 		labels:     api.Labels{},
 		timeout:    30 * api.Second,
@@ -52,6 +49,16 @@ func (c *Client) NewStep(name api.Name) *Step {
 func (s *Step) WithID(id string) *Step {
 	res := *s
 	res.id = api.StepID(id)
+	return &res
+}
+
+// WithName sets the step name. If no ID is set, it will be derived
+func (s *Step) WithName(name api.Name) *Step {
+	res := *s
+	res.name = name
+	if res.id == "" && name != "" {
+		res.id = api.StepID(toSnakeCase(string(name)))
+	}
 	return &res
 }
 
@@ -276,6 +283,9 @@ func (s *Step) WithMemoizable() *Step {
 
 // Build validates and creates the final Step API object
 func (s *Step) Build() (*api.Step, error) {
+	if s.name != "" && s.id == "" {
+		s = s.WithName(s.name)
+	}
 	var httpConfig *api.HTTPConfig
 	if s.http != nil {
 		httpCopy := *s.http

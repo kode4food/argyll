@@ -25,7 +25,7 @@ def handle_greeting(ctx: StepContext, args: dict) -> StepResult:
     return StepResult(success=True, outputs={"greeting": greeting})
 
 # Register and start the step server
-client.new_step("Greeting") \
+client.new_step().with_name("Greeting") \
     .required("name", AttributeType.STRING) \
     .output("greeting", AttributeType.STRING) \
     .start(handle_greeting)
@@ -62,7 +62,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
     threading.Thread(target=background_work, daemon=True).start()
     return StepResult(success=True, outputs={"status": "started"})
 
-client.new_step("AsyncTask") \
+client.new_step().with_name("AsyncTask") \
     .with_async_execution() \
     .output("status", AttributeType.STRING) \
     .start(handle_async_task)
@@ -77,7 +77,7 @@ from argyll import Client, AttributeType
 
 client = Client()
 
-client.new_step("Double") \
+client.new_step().with_name("Double") \
     .required("value", AttributeType.NUMBER) \
     .output("result", AttributeType.NUMBER) \
     .with_script("(* value 2)") \
@@ -109,7 +109,7 @@ from argyll import Client
 
 client = Client()
 
-client.new_step("Child Flow Wrapper") \
+client.new_step().with_name("Child Flow Wrapper") \
     .with_flow_goals("child-goal") \
     .with_flow_input_map({"input": "child_input"}) \
     .with_flow_output_map({"child_output": "output"}) \
@@ -121,7 +121,7 @@ client.new_step("Child Flow Wrapper") \
 All builders are immutable - each method returns a new instance:
 
 ```python
-builder1 = client.new_step("Test")
+builder1 = client.new_step().with_name("Test")
 builder2 = builder1.with_id("custom-id")
 
 # builder1 is unchanged
@@ -138,7 +138,7 @@ Use predicates to control when steps run:
 ```python
 from argyll import ScriptLanguage
 
-client.new_step("ConditionalStep") \
+client.new_step().with_name("ConditionalStep") \
     .required("value", AttributeType.NUMBER) \
     .with_predicate(ScriptLanguage.ALE, "(> value 10)") \
     .with_endpoint("http://localhost:8081/step") \
@@ -150,7 +150,7 @@ client.new_step("ConditionalStep") \
 Process array elements individually:
 
 ```python
-client.new_step("ProcessItems") \
+client.new_step().with_name("ProcessItems") \
     .required("items", AttributeType.ARRAY) \
     .with_for_each("items") \
     .output("processed", AttributeType.STRING) \
@@ -163,7 +163,7 @@ client.new_step("ProcessItems") \
 Cache step results for efficiency:
 
 ```python
-client.new_step("ExpensiveComputation") \
+client.new_step().with_name("ExpensiveComputation") \
     .required("input", AttributeType.NUMBER) \
     .output("result", AttributeType.NUMBER) \
     .with_memoizable() \
@@ -183,7 +183,7 @@ client = Client()
 def handle_user(ctx: StepContext, args: dict) -> StepResult:
     return StepResult(success=True, outputs={"user_name": "Jane"})
 
-client.new_step("User Resolver") \
+client.new_step().with_name("User Resolver") \
     .required("user_id", AttributeType.STRING) \
     .output("user_name", AttributeType.STRING) \
     .output("user_email", AttributeType.STRING) \
@@ -196,7 +196,7 @@ client.new_step("User Resolver") \
 Add metadata to steps:
 
 ```python
-client.new_step("DataProcessor") \
+client.new_step().with_name("DataProcessor") \
     .with_labels({"team": "data", "env": "prod"}) \
     .with_endpoint("http://localhost:8081/process") \
     .register()

@@ -35,7 +35,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
 
 
 if __name__ == "__main__":
-    client.new_step("AsyncTask") \
+    client.new_step().with_name("AsyncTask") \
         .with_async_execution() \
         .optional("duration", AttributeType.NUMBER, "5") \
         .output("status", AttributeType.STRING) \

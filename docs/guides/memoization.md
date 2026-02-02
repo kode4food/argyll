@@ -147,7 +147,7 @@ Step: process-payment
 **Via Go SDK:**
 ```go
 step := builder.
-  NewStep("lookup-exchange-rate").
+  NewStep().WithName("lookup-exchange-rate").
   WithMemoizable().
   WithSync("https://api.example.com/rates")
 ```

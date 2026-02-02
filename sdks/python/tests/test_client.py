@@ -199,7 +199,7 @@ def test_update_step_error():
 
 def test_new_step():
     client = Client()
-    builder = client.new_step("Test Step")
+    builder = client.new_step().with_name("Test Step")
     assert builder._name == "Test Step"
     assert builder._id == "test-step"
 

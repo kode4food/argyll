@@ -24,7 +24,7 @@ func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
     // Script step - no server needed
-    err := client.NewStep("Text Formatter").
+    err := client.NewStep().WithName("Text Formatter").
         Required("text", api.TypeString).
         Output("formatted_text", api.TypeString).
         WithScript(`{:formatted_text (str "Hello, " text)}`).
@@ -35,7 +35,7 @@ func main() {
     }
 
     // HTTP step with external server
-    err = client.NewStep("User Resolver").
+    err = client.NewStep().WithName("User Resolver").
         Required("user_id", api.TypeString).
         Output("user_name", api.TypeString).
         WithEndpoint("http://localhost:8081/user-resolver").
@@ -80,7 +80,7 @@ func main() {
             WithOutput("user_email", "john@example.com"), nil
     }
 
-    err := client.NewStep("User Resolver").
+    err := client.NewStep().WithName("User Resolver").
         Required("user_id", api.TypeString).
         Output("user_name", api.TypeString).
         Output("user_email", api.TypeString).
@@ -174,7 +174,7 @@ func main() {
         return api.StepResult{Success: true}, nil
     }
 
-    err := client.NewStep("Async Step").
+    err := client.NewStep().WithName("Async Step").
         WithAsyncExecution().
         Required("input", api.TypeString).
         Output("output", api.TypeString).
@@ -205,7 +205,7 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    err := client.NewStep("Child Flow Wrapper").
+    err := client.NewStep().WithName("Child Flow Wrapper").
         WithFlowGoals("child-goal").
         WithFlowInputMap(map[api.Name]api.Name{"input": "child_input"}).
         WithFlowOutputMap(map[api.Name]api.Name{"child_output": "output"}).
@@ -269,7 +269,7 @@ s.WithPredicate("ale", `(> amount 100)`)
 Mark a step as modified to update the existing registration:
 
 ```go
-err := client.NewStep("User Resolver").
+err := client.NewStep().WithName("User Resolver").
     Required("user_id", api.TypeString).
     Output("user_name", api.TypeString).
     Output("user_email", api.TypeString).
@@ -320,7 +320,7 @@ func main() {
             WithOutput("processed_at", time.Now().Unix()), nil
     }
 
-    err := client.NewStep("Order Processor").
+    err := client.NewStep().WithName("Order Processor").
         WithTimeout(30 * api.Second).
         Required("order_id", api.TypeString).
         Required("items", api.TypeArray).
@@ -345,9 +345,9 @@ func calculateTotal(items any) float64 {
 ### Client Methods
 
 #### NewStep: Create a step builder
-Creates a new step builder with the specified name.
+Creates a new step builder template.
 ```go
-NewStep(name api.Name) *Step
+NewStep() *Step
 ```
 
 ### Step Builder Methods
@@ -358,6 +358,7 @@ NewStep(name api.Name) *Step
 - `Output(name api.Name, argType api.AttributeType) *Step` - Add output
 
 #### Configuration
+- `WithName(name api.Name) *Step` - Set step name (auto-generates ID if unset)
 - `WithID(id string) *Step` - Set custom step ID
 - `WithTimeout(timeout int64) *Step` - Set execution timeout (milliseconds)
 - `WithEndpoint(endpoint string) *Step` - Set HTTP endpoint

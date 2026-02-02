@@ -21,7 +21,7 @@ from argyll.types import (
 
 def test_step_builder_initialization():
     client = Client()
-    builder = client.new_step("Test Step")
+    builder = client.new_step().with_name("Test Step")
     assert builder._name == "Test Step"
     assert builder._id == "test-step"
     assert builder._type == StepType.SYNC
@@ -29,15 +29,28 @@ def test_step_builder_initialization():
 
 def test_step_builder_with_id():
     client = Client()
-    b1 = client.new_step("Test")
+    b1 = client.new_step().with_name("Test")
     b2 = b1.with_id("custom-id")
     assert b1._id == "test"
     assert b2._id == "custom-id"
 
 
+def test_step_builder_name_does_not_override_id():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_id("custom-id")
+        .with_name("Test Step")
+        .with_endpoint("http://localhost:8081/test")
+    )
+    step = builder.build()
+    assert step.id == "custom-id"
+    assert step.name == "Test Step"
+
+
 def test_step_builder_immutability():
     client = Client()
-    b1 = client.new_step("Test")
+    b1 = client.new_step().with_name("Test")
     b2 = b1.with_id("custom")
     assert b1._id != b2._id
     assert b1._id == "test"
@@ -47,7 +60,8 @@ def test_step_builder_immutability():
 def test_step_builder_required():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .required("name", AttributeType.STRING)
         .with_endpoint("http://localhost:8081/test")
     )
@@ -60,7 +74,8 @@ def test_step_builder_required():
 def test_step_builder_optional():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .optional("count", AttributeType.NUMBER, "0")
         .with_endpoint("http://localhost:8081/test")
     )
@@ -73,7 +88,8 @@ def test_step_builder_optional():
 def test_step_builder_output():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .output("result", AttributeType.STRING)
         .with_endpoint("http://localhost:8081/test")
     )
@@ -85,7 +101,8 @@ def test_step_builder_output():
 def test_step_builder_with_for_each():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .required("items", AttributeType.ARRAY)
         .with_for_each("items")
         .with_endpoint("http://localhost:8081/test")
@@ -96,7 +113,7 @@ def test_step_builder_with_for_each():
 
 def test_step_builder_with_for_each_missing_attribute():
     client = Client()
-    builder = client.new_step("Test")
+    builder = client.new_step().with_name("Test")
     try:
         builder.with_for_each("nonexistent")
         assert False, "Should raise StepValidationError"
@@ -107,7 +124,8 @@ def test_step_builder_with_for_each_missing_attribute():
 def test_step_builder_with_label():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_label("env", "prod")
         .with_endpoint("http://localhost:8081/test")
     )
@@ -118,7 +136,8 @@ def test_step_builder_with_label():
 def test_step_builder_with_labels():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_labels({"env": "prod", "team": "platform"})
         .with_endpoint("http://localhost:8081/test")
     )
@@ -129,8 +148,10 @@ def test_step_builder_with_labels():
 
 def test_step_builder_with_endpoint():
     client = Client()
-    builder = client.new_step("Test").with_endpoint(
-        "http://localhost:8081/test"
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.http is not None
@@ -140,7 +161,8 @@ def test_step_builder_with_endpoint():
 def test_step_builder_with_health_check():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_endpoint("http://localhost:8081/test")
         .with_health_check("http://localhost:8081/health")
     )
@@ -152,7 +174,8 @@ def test_step_builder_with_health_check():
 def test_step_builder_with_timeout():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_endpoint("http://localhost:8081/test")
         .with_timeout(5000)
     )
@@ -163,7 +186,7 @@ def test_step_builder_with_timeout():
 
 def test_step_builder_with_script():
     client = Client()
-    builder = client.new_step("Test").with_script("(+ 1 2)")
+    builder = client.new_step().with_name("Test").with_script("(+ 1 2)")
     step = builder.build()
     assert step.script is not None
     assert step.script.language == ScriptLanguage.ALE
@@ -173,8 +196,10 @@ def test_step_builder_with_script():
 
 def test_step_builder_with_script_language():
     client = Client()
-    builder = client.new_step("Test").with_script_language(
-        ScriptLanguage.LUA, "return 1 + 2"
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_script_language(ScriptLanguage.LUA, "return 1 + 2")
     )
     step = builder.build()
     assert step.script is not None
@@ -185,7 +210,8 @@ def test_step_builder_with_script_language():
 def test_step_builder_with_predicate():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_predicate(ScriptLanguage.ALE, "(> value 10)")
         .with_endpoint("http://localhost:8081/test")
     )
@@ -197,7 +223,8 @@ def test_step_builder_with_predicate():
 def test_step_builder_with_async_execution():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_async_execution()
         .with_endpoint("http://localhost:8081/test")
     )
@@ -208,7 +235,8 @@ def test_step_builder_with_async_execution():
 def test_step_builder_with_sync_execution():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_async_execution()
         .with_sync_execution()
         .with_endpoint("http://localhost:8081/test")
@@ -220,7 +248,8 @@ def test_step_builder_with_sync_execution():
 def test_step_builder_with_memoizable():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_memoizable()
         .with_endpoint("http://localhost:8081/test")
     )
@@ -231,7 +260,8 @@ def test_step_builder_with_memoizable():
 def test_step_builder_chaining():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .with_id("custom-id")
         .required("input", AttributeType.STRING)
         .output("output", AttributeType.STRING)
@@ -256,8 +286,10 @@ def test_step_builder_register():
     )
 
     client = Client()
-    builder = client.new_step("Test").with_endpoint(
-        "http://localhost:8081/test"
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
     )
     builder.register()
 
@@ -266,7 +298,7 @@ def test_step_builder_register():
 
 def test_step_builder_update():
     client = Client()
-    builder = client.new_step("Test").update()
+    builder = client.new_step().with_name("Test").update()
     assert builder._dirty is True
 
 
@@ -349,7 +381,8 @@ def test_kebab_case_conversion():
 def test_step_builder_build():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .required("input", AttributeType.STRING)
         .output("output", AttributeType.STRING)
         .with_endpoint("http://localhost:8081/test")
@@ -362,7 +395,7 @@ def test_step_builder_build():
 
 def test_step_builder_with_script_defaults_to_ale():
     client = Client()
-    builder = client.new_step("ScriptStep").with_script("(+ 1 2)")
+    builder = client.new_step().with_name("ScriptStep").with_script("(+ 1 2)")
     step = builder.build()
     assert step.script is not None
     assert step.script.language == ScriptLanguage.ALE
@@ -371,7 +404,8 @@ def test_step_builder_with_script_defaults_to_ale():
 def test_step_builder_const():
     client = Client()
     builder = (
-        client.new_step("Test")
+        client.new_step()
+        .with_name("Test")
         .const("api_key", AttributeType.STRING, '"secret"')
         .with_endpoint("http://localhost:8081/test")
     )
@@ -395,7 +429,11 @@ def test_flow_builder_chaining():
 
 def test_step_builder_with_flow_goals():
     client = Client()
-    builder = client.new_step("FlowStep").with_flow_goals("step-1", "step-2")
+    builder = (
+        client.new_step()
+        .with_name("FlowStep")
+        .with_flow_goals("step-1", "step-2")
+    )
     step = builder.build()
     assert step.type == StepType.FLOW
     assert step.flow is not None
@@ -405,7 +443,8 @@ def test_step_builder_with_flow_goals():
 def test_step_builder_with_flow_input_map():
     client = Client()
     builder = (
-        client.new_step("FlowStep")
+        client.new_step()
+        .with_name("FlowStep")
         .with_flow_goals("step-1")
         .with_flow_input_map({"a": "b"})
     )
@@ -417,7 +456,8 @@ def test_step_builder_with_flow_input_map():
 def test_step_builder_with_flow_output_map():
     client = Client()
     builder = (
-        client.new_step("FlowStep")
+        client.new_step()
+        .with_name("FlowStep")
         .with_flow_goals("step-1")
         .with_flow_output_map({"c": "d"})
     )

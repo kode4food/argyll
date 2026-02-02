@@ -29,7 +29,7 @@ func main() {
 
 	client := builder.NewClient(engineURL, 30*time.Second)
 
-	err := client.NewStep("Text Formatter").
+	err := client.NewStep().WithName("Text Formatter").
 		WithID("text-formatter").
 		WithLabels(api.Labels{
 			"description": "format text with a label",
@@ -59,7 +59,7 @@ func main() {
    :shipping shipping
    :total    (+ subtotal tax shipping)})`
 
-	err = client.NewStep("Price Calculator").
+	err = client.NewStep().WithName("Price Calculator").
 		WithID("price-calculator").
 		WithLabels(api.Labels{
 			"description": "calculate pricing totals",
@@ -107,7 +107,7 @@ return {
 				(credit_score >= 650 and "medium" or "high")
 }`
 
-	err = client.NewStep("Eligibility Checker").
+	err = client.NewStep().WithName("Eligibility Checker").
 		WithID("eligibility-checker").
 		WithLabels(api.Labels{
 			"description": "evaluate eligibility based on risk inputs",

@@ -41,7 +41,7 @@ class StepBuilder:
     def __init__(
         self,
         client: "Client",
-        name: str,
+        name: str = "",
         step_id: Optional[StepID] = None,
         step_type: StepType = StepType.SYNC,
         attributes: Optional[Dict[str, AttributeSpec]] = None,
@@ -55,7 +55,12 @@ class StepBuilder:
     ) -> None:
         self._client = client
         self._name = name
-        self._id = step_id or _to_kebab_case(name)
+        if step_id:
+            self._id = step_id
+        elif name:
+            self._id = _to_kebab_case(name)
+        else:
+            self._id = ""
         self._type = step_type
         self._attributes = attributes or {}
         self._labels = labels or {}
@@ -76,6 +81,13 @@ class StepBuilder:
     def with_id(self, step_id: StepID) -> "StepBuilder":
         """Set custom step ID."""
         return self._copy(_id=step_id)
+
+    def with_name(self, name: str) -> "StepBuilder":
+        """Set step name (auto-generates ID if unset)."""
+        updates = {"_name": name}
+        if not self._id and name:
+            updates["_id"] = _to_kebab_case(name)
+        return self._copy(**updates)
 
     def required(self, name: str, attr_type: AttributeType) -> "StepBuilder":
         """Add required input attribute."""
@@ -230,6 +242,8 @@ class StepBuilder:
 
     def build(self) -> Step:
         """Create immutable Step."""
+        if self._name and not self._id:
+            self = self.with_name(self._name)
         step = Step(
             id=self._id,
             name=self._name,
