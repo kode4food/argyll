@@ -2,7 +2,7 @@ DIST_DIR ?= ./dist
 EXE = $(DIST_DIR)/argyll
 GO ?= go
 
-.PHONY: all install build test clean
+.PHONY: all install build format check test clean
 
 all: build
 
@@ -14,9 +14,15 @@ build: test
 	@rm -f $(EXE)
 	$(GO) build -o $(EXE) ./cmd/argyll
 
+format:
+	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
+
+check:
+	$(GO) vet ./...
+
 test:
 	$(GO) test ./...
-	$(GO) vet ./...
+	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
 
 clean:

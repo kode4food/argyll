@@ -3,7 +3,7 @@ S3_EXE = $(DIST_DIR)/argyll-s3
 FILE_EXE = $(DIST_DIR)/argyll-file
 GO ?= go
 
-.PHONY: all install build test clean
+.PHONY: all install build format check test clean
 
 all: build
 
@@ -17,9 +17,15 @@ build: test
 	$(GO) build -o $(S3_EXE) ./cmd/argyll-s3
 	$(GO) build -o $(FILE_EXE) ./cmd/argyll-file
 
+format:
+	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
+
+check:
+	$(GO) vet ./...
+
 test:
 	$(GO) test ./...
-	$(GO) vet ./...
+	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
 
 clean:

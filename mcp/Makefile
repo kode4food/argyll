@@ -4,7 +4,7 @@ GO ?= go
 SPECS_DIR ?= ./specs
 DOCS_DIR ?= ../docs/api
 
-.PHONY: all build run test clean sync-specs
+.PHONY: all build run format check test clean sync-specs
 
 all: build
 
@@ -16,9 +16,15 @@ build: sync-specs
 run: sync-specs
 	$(GO) run ./cmd/argyll-mcp
 
+format:
+	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
+
+check:
+	$(GO) vet ./...
+
 test:
 	$(GO) test ./...
-	$(GO) vet ./...
+	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
 
 clean:
