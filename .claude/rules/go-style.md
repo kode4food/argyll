@@ -383,6 +383,7 @@ func TestArchive(t *testing.T) {
     })
 }
 
+// Bad - underscores are extraneous
 func TestStore_Get(t *testing.T) { ... }
 func TestEngine_Start(t *testing.T) { ... }
 

@@ -736,7 +736,7 @@ components:
         memoizable:
           type: boolean
           default: false
-          description: |\
+          description: |
             Enable result caching (memoization) for this step.
             When enabled, the engine maintains a cache of (step definition, inputs) → outputs mappings.
             Before execution, the cache is checked using a deterministic key based on the step's functional definition and input arguments.

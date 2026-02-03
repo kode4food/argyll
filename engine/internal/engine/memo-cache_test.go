@@ -9,7 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestMemoCache_GetPut(t *testing.T) {
+func TestMemoCacheGetPut(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step := &api.Step{
@@ -36,7 +36,7 @@ func TestMemoCache_GetPut(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCache_CacheMiss(t *testing.T) {
+func TestMemoCacheMiss(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step := &api.Step{
@@ -57,7 +57,7 @@ func TestMemoCache_CacheMiss(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestMemoCache_DifferentInputsDifferentCache(t *testing.T) {
+func TestMemoCacheDifferentInputs(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step := &api.Step{
@@ -92,7 +92,7 @@ func TestMemoCache_DifferentInputsDifferentCache(t *testing.T) {
 	assert.Equal(t, outputs2, result)
 }
 
-func TestMemoCache_StepDefinitionChangeInvalidatesCache(t *testing.T) {
+func TestMemoCacheInvalidatesOnStepChange(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step1 := &api.Step{
@@ -129,7 +129,7 @@ func TestMemoCache_StepDefinitionChangeInvalidatesCache(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestMemoCache_StepMetadataChangeDoesNotInvalidateCache(t *testing.T) {
+func TestMemoCacheKeepsOnMetadataChange(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step1 := &api.Step{
@@ -171,7 +171,7 @@ func TestMemoCache_StepMetadataChangeDoesNotInvalidateCache(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCache_EmptyInputs(t *testing.T) {
+func TestMemoCacheEmptyInputs(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step := &api.Step{
@@ -197,7 +197,7 @@ func TestMemoCache_EmptyInputs(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCache_NilStep(t *testing.T) {
+func TestMemoCacheNilStep(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	inputs := api.Args{"input": "value"}
@@ -209,7 +209,7 @@ func TestMemoCache_NilStep(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestMemoCache_NilCache(t *testing.T) {
+func TestMemoCacheNilCache(t *testing.T) {
 	var cache *engine.MemoCache
 
 	step := &api.Step{
@@ -226,7 +226,7 @@ func TestMemoCache_NilCache(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestMemoCache_DeterministicHashingWithAttributeOrder(t *testing.T) {
+func TestMemoCacheHashAttributeOrder(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step1 := &api.Step{
@@ -268,7 +268,7 @@ func TestMemoCache_DeterministicHashingWithAttributeOrder(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCache_DeterministicHashingWithFlowConfig(t *testing.T) {
+func TestMemoCacheHashFlowConfigOrder(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	flowConfig1 := &api.FlowConfig{
@@ -324,7 +324,7 @@ func TestMemoCache_DeterministicHashingWithFlowConfig(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCache_DeterministicHashingWithInputArgOrder(t *testing.T) {
+func TestMemoCacheHashInputOrder(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	step := &api.Step{

@@ -1,15 +1,24 @@
 # Argyll MCP
 
 This MCP server exposes a small interface over the Argyll engine. It supports
-listing steps, fetching a single step, previewing execution plans, and fetching
-engine state.
+step management, flow visibility and control, execution plan previews, health
+inspection, and engine state.
 
 ## Tools
 
+- `openapi` - return compact OpenAPI specs (info, paths, components, tags)
 - `list_steps` - list all registered steps
+- `register_step` - register a new step
 - `get_step` - fetch a single step by ID
+- `update_step` - update a step by ID
+- `unregister_step` - remove a step by ID
 - `preview_plan` - preview an execution plan from goal steps and init state
+- `list_flows` - list flows
+- `get_flow` - fetch a single flow by ID
+- `start_flow` - start a new flow
 - `engine_state` - fetch the current engine state
+- `list_step_health` - list health for all steps
+- `get_step_health` - fetch health for a single step
 
 ## Run
 

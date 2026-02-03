@@ -32,6 +32,12 @@ type (
 	}
 )
 
+var (
+	ErrEngineStoreRequired = errors.New("engine store is required")
+	ErrFlowStoreRequired   = errors.New("flow store is required")
+	ErrRedisClientRequired = errors.New("redis client is required")
+)
+
 func NewArchiver(
 	engineStore *timebox.Store, flowStore *timebox.Store,
 	redisClient *redis.Client, cfg Config,
@@ -40,13 +46,13 @@ func NewArchiver(
 		return nil, err
 	}
 	if engineStore == nil {
-		return nil, errors.New("engine store is required")
+		return nil, ErrEngineStoreRequired
 	}
 	if flowStore == nil {
-		return nil, errors.New("flow store is required")
+		return nil, ErrFlowStoreRequired
 	}
 	if redisClient == nil {
-		return nil, errors.New("redis client is required")
+		return nil, ErrRedisClientRequired
 	}
 
 	return &Archiver{

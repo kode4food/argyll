@@ -117,3 +117,7 @@ cd web && npm run format && npm test && npm run lint && npm run type-check
 - Prefer simple solutions over abstractions
 - Only make changes directly requested
 - Read files before editing them
+
+## Backward Compatibility
+
+This project is in active development with no established user base. Do not preserve backward compatibility, avoid deprecation paths, and prefer breaking changes when they simplify the system.

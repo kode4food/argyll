@@ -9,9 +9,9 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestMemoizableStepReusesToken verifies that memoizable steps reuse the same
-// token across retries
-func TestMemoizableStepReusesToken(t *testing.T) {
+// TestMemoStepReusesToken verifies that memoizable steps reuse the same token
+// across retries
+func TestMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
@@ -63,9 +63,9 @@ func TestMemoizableStepReusesToken(t *testing.T) {
 	})
 }
 
-// TestNonMemoizableStepRegeneratesToken verifies that non-memoizable steps
-// generate a new token on retry
-func TestNonMemoizableStepRegeneratesToken(t *testing.T) {
+// TestNonMemoStepRegeneratesToken verifies that non-memoizable steps generate
+// a new token on retry
+func TestNonMemoStepRegeneratesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 
@@ -117,9 +117,9 @@ func TestNonMemoizableStepRegeneratesToken(t *testing.T) {
 	})
 }
 
-// TestMultipleRetriesRegenerateTokens verifies that each retry generates a
-// new token for non-memoizable steps
-func TestMultipleRetriesRegenerateTokens(t *testing.T) {
+// TestRetriesRegenerateTokens verifies that each retry generates a new token
+// for non-memoizable steps
+func TestRetriesRegenerateTokens(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
 

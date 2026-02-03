@@ -14,7 +14,7 @@ type s3Config struct {
 }
 
 var (
-	errBucketURLRequired = errors.New("ARCHIVE_BUCKET_URL is required")
+	ErrBucketURLRequired = errors.New("ARCHIVE_BUCKET_URL is required")
 )
 
 func loadS3Config() (s3Config, error) {
@@ -28,7 +28,7 @@ func loadS3Config() (s3Config, error) {
 		cfg.Prefix = prefix
 	}
 	if cfg.BucketURL == "" {
-		return s3Config{}, errBucketURLRequired
+		return s3Config{}, ErrBucketURLRequired
 	}
 
 	return cfg, nil
