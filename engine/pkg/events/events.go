@@ -4,56 +4,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
-
-// EventFilter is a predicate function for filtering events
-type EventFilter func(*timebox.Event) bool
-
-// FilterEvents creates a filter that matches events with any of the specified
-// event types
-func FilterEvents(eventTypes ...timebox.EventType) EventFilter {
-	lookup := util.Set[timebox.EventType]{}
-	for _, et := range eventTypes {
-		lookup.Add(et)
-	}
-	return func(ev *timebox.Event) bool {
-		return lookup.Contains(ev.Type)
-	}
-}
-
-// FilterAggregate matches events for a specific aggregate ID
-func FilterAggregate(id timebox.AggregateID) EventFilter {
-	return func(ev *timebox.Event) bool {
-		return ev.AggregateID.Equal(id)
-	}
-}
-
-// OrFilters combines multiple filters using OR logic, matching if any filter
-// matches the event
-func OrFilters(filters ...EventFilter) EventFilter {
-	return func(ev *timebox.Event) bool {
-		for _, filter := range filters {
-			if filter(ev) {
-				return true
-			}
-		}
-		return false
-	}
-}
-
-// AndFilters combines multiple filters using AND logic, matching only if all
-// filters match the event
-func AndFilters(filters ...EventFilter) EventFilter {
-	return func(ev *timebox.Event) bool {
-		for _, filter := range filters {
-			if !filter(ev) {
-				return false
-			}
-		}
-		return true
-	}
-}
 
 func MakeAppliers[T any](
 	app map[api.EventType]timebox.Applier[T],
@@ -63,4 +14,14 @@ func MakeAppliers[T any](
 		res[timebox.EventType(et)] = fn
 	}
 	return res
+}
+
+func MakeDispatcher(
+	handlers map[api.EventType]timebox.Handler,
+) timebox.Handler {
+	res := map[timebox.EventType]timebox.Handler{}
+	for et, fn := range handlers {
+		res[timebox.EventType(et)] = fn
+	}
+	return timebox.MakeDispatcher(res)
 }

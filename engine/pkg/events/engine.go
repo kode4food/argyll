@@ -8,10 +8,10 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const enginePrefix = "engine"
+const EnginePrefix = "engine"
 
 var (
-	EngineID = timebox.NewAggregateID(enginePrefix)
+	EngineID = timebox.NewAggregateID(EnginePrefix)
 
 	EngineAppliers = makeEngineAppliers()
 )
@@ -32,7 +32,7 @@ func NewEngineState() *api.EngineState {
 
 // IsEngineEvent returns true if the event is for the engine aggregate
 func IsEngineEvent(ev *timebox.Event) bool {
-	return len(ev.AggregateID) >= 1 && ev.AggregateID[0] == enginePrefix
+	return len(ev.AggregateID) >= 1 && ev.AggregateID[0] == EnginePrefix
 }
 
 func makeEngineAppliers() timebox.Appliers[*api.EngineState] {

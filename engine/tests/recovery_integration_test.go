@@ -17,6 +17,8 @@ const recoveryTimeout = 10 * time.Second
 func TestBasicFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
+		consumer := env.EventHub.NewConsumer()
+		defer consumer.Close()
 
 		step := helpers.NewSimpleStep("recovery-step")
 		step.WorkConfig = &api.WorkConfig{
@@ -38,6 +40,8 @@ func TestBasicFlowRecovery(t *testing.T) {
 		flowID := api.FlowID("test-recovery")
 		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
+
+		helpers.WaitForFlowActivated(t, consumer, flowTimeout, flowID)
 
 		// Wait for step to start via event hub
 		env.WaitForStepStarted(t, flowID, step.ID, flowTimeout)
@@ -76,6 +80,8 @@ func TestBasicFlowRecovery(t *testing.T) {
 func TestMultipleFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
+		consumer := env.EventHub.NewConsumer()
+		defer consumer.Close()
 
 		step1 := helpers.NewSimpleStep("step-1")
 		step1.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
@@ -122,6 +128,10 @@ func TestMultipleFlowRecovery(t *testing.T) {
 			flowID3, plan3, api.Args{}, api.Metadata{},
 		))
 
+		helpers.WaitForFlowActivated(t,
+			consumer, flowTimeout, flowID1, flowID2, flowID3,
+		)
+
 		// Wait for all steps to start via event hub
 		env.WaitForStepStarted(t, flowID1, step1.ID, flowTimeout)
 		env.WaitForStepStarted(t, flowID2, step2.ID, flowTimeout)
@@ -156,10 +166,11 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(step2))
 		assert.NoError(t, env.Engine.RegisterStep(step3))
 
-		consumer := env.EventHub.NewConsumer()
+		flowConsumer := env.EventHub.NewConsumer()
+		defer flowConsumer.Close()
 		env.Engine.Start()
 		helpers.WaitForFlowTerminal(t,
-			consumer, recoveryTimeout, flowID1, flowID2, flowID3,
+			flowConsumer, recoveryTimeout, flowID1, flowID2, flowID3,
 		)
 
 		recovered1, err := env.Engine.GetFlowState(flowID1)
@@ -180,6 +191,8 @@ func TestMultipleFlowRecovery(t *testing.T) {
 func TestRecoveryWorkStates(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
+		consumer := env.EventHub.NewConsumer()
+		defer consumer.Close()
 
 		// Step 1: Will have Pending work (hasn't started yet)
 		pendingStep := helpers.NewSimpleStep("pending-step")
@@ -244,6 +257,10 @@ func TestRecoveryWorkStates(t *testing.T) {
 			pendingFlowID, plan1, api.Args{}, api.Metadata{},
 		))
 
+		helpers.WaitForFlowActivated(t,
+			consumer, flowTimeout, notCompletedFlowID, pendingFlowID,
+		)
+
 		err := env.Engine.Stop()
 		assert.NoError(t, err)
 
@@ -283,6 +300,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 func TestRecoveryPreservesState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
+		consumer := env.EventHub.NewConsumer()
+		defer consumer.Close()
 
 		step := helpers.NewSimpleStep("retry-step")
 		step.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
@@ -301,6 +320,8 @@ func TestRecoveryPreservesState(t *testing.T) {
 
 		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
 		assert.NoError(t, err)
+
+		helpers.WaitForFlowActivated(t, consumer, flowTimeout, flowID)
 
 		// Wait for step to start via event hub
 		env.WaitForStepStarted(t, flowID, step.ID, flowTimeout)

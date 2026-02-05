@@ -1,6 +1,7 @@
 package server_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -16,6 +17,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestStartStop(t *testing.T) {
@@ -217,22 +219,15 @@ func TestRecentSuccess(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	producer := tb.GetHub().NewProducer()
-	defer producer.Close()
-
 	completedData, _ := json.Marshal(api.StepCompletedEvent{
 		StepID: "recent-success-step",
 		FlowID: "wf-test",
 	})
 
-	event := &timebox.Event{
-		Type:        timebox.EventType(api.EventTypeStepCompleted),
-		AggregateID: timebox.NewAggregateID("flow", "wf-test"),
-		Timestamp:   time.Now(),
-		Data:        completedData,
-	}
-
-	producer.Send() <- event
+	appendFlowEvent(t, flowStore, "wf-test", &timebox.Event{
+		Type: timebox.EventType(api.EventTypeStepCompleted),
+		Data: completedData,
+	})
 
 	engineState, err := eng.GetEngineState()
 	assert.NoError(t, err)
@@ -333,17 +328,12 @@ func TestEventLoopUnmarshalError(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	producer := tb.GetHub().NewProducer()
-	defer producer.Close()
-
 	invalidEvent := &timebox.Event{
-		Type:        timebox.EventType(api.EventTypeStepCompleted),
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
-		Timestamp:   time.Now(),
-		Data:        []byte("invalid json"),
+		Type: timebox.EventType(api.EventTypeStepCompleted),
+		Data: []byte(`{"step_id":123}`),
 	}
 
-	producer.Send() <- invalidEvent
+	appendFlowEvent(t, flowStore, "wf-test", invalidEvent)
 }
 
 func TestCheckMultipleHTTPSteps(t *testing.T) {
@@ -433,15 +423,35 @@ func TestNonStepCompletedEvent(t *testing.T) {
 	checker.Start()
 	defer checker.Stop()
 
-	producer := tb.GetHub().NewProducer()
-	defer producer.Close()
-
 	event := &timebox.Event{
-		Type:        timebox.EventType(api.EventTypeFlowStarted),
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
-		Timestamp:   time.Now(),
-		Data:        []byte("{}"),
+		Type: timebox.EventType(api.EventTypeFlowStarted),
+		Data: []byte("{}"),
 	}
 
-	producer.Send() <- event
+	appendFlowEvent(t, flowStore, "wf-test", event)
+}
+
+func appendFlowEvent(
+	t *testing.T, store *timebox.Store, flowID api.FlowID, event *timebox.Event,
+) {
+	t.Helper()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	aggregateID := timebox.NewAggregateID(
+		events.FlowPrefix, timebox.ID(flowID),
+	)
+	eventsInStore, err := store.GetEvents(ctx, aggregateID, 0)
+	assert.NoError(t, err)
+
+	event.AggregateID = aggregateID
+	event.Sequence = int64(len(eventsInStore))
+	if event.Timestamp.IsZero() {
+		event.Timestamp = time.Now()
+	}
+
+	err = store.AppendEvents(ctx, aggregateID, event.Sequence, []*timebox.Event{
+		event,
+	})
+	assert.NoError(t, err)
 }

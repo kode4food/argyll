@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
-	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -20,10 +20,9 @@ import (
 type (
 	// Client represents a WebSocket client connection for event streaming
 	Client struct {
-		hub      timebox.EventHub
+		hub      *timebox.EventHub
 		conn     *websocket.Conn
-		consumer topic.Consumer[*timebox.Event]
-		filter   events.EventFilter
+		consumer *timebox.Consumer
 		getState StateFunc
 		minSeq   int64
 	}
@@ -42,18 +41,22 @@ const (
 	incomingBufferSize = 16
 )
 
-var upgrader = websocket.Upgrader{
-	ReadBufferSize:  wsBufferSize,
-	WriteBufferSize: wsBufferSize,
-	CheckOrigin: func(r *http.Request) bool {
-		return true
-	},
-}
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  wsBufferSize,
+		WriteBufferSize: wsBufferSize,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+
+	noopEventType = newNoopEventType()
+)
 
 // HandleWebSocket upgrades an HTTP connection to WebSocket and starts
 // streaming events based on client subscriptions
 func HandleWebSocket(
-	hub timebox.EventHub, w http.ResponseWriter, r *http.Request, st StateFunc,
+	hub *timebox.EventHub, w http.ResponseWriter, r *http.Request, st StateFunc,
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -62,12 +65,10 @@ func HandleWebSocket(
 		return
 	}
 
-	noopFilter := func(*timebox.Event) bool { return false }
 	client := &Client{
 		hub:      hub,
 		conn:     conn,
-		consumer: hub.NewConsumer(),
-		filter:   noopFilter,
+		consumer: hub.NewTypeConsumer(noopEventType),
 		getState: st,
 	}
 
@@ -81,9 +82,9 @@ func (s *Server) handleWebSocket(c *gin.Context) {
 				return nil, 0, nil
 			}
 			switch string(id[0]) {
-			case "engine":
+			case events.EnginePrefix:
 				return s.engine.GetEngineStateSeq()
-			case "flow":
+			case events.FlowPrefix:
 				if len(id) < 2 {
 					return nil, 0, errors.New("invalid aggregate_id")
 				}
@@ -164,7 +165,8 @@ func (c *Client) handleSubscribe(message []byte) {
 		return
 	}
 
-	c.filter = BuildFilter(&sub.Data)
+	c.swapConsumer(&sub.Data)
+	c.minSeq = 0
 
 	if len(sub.Data.AggregateID) > 0 {
 		c.sendSubscribeState(stringsToID(sub.Data.AggregateID))
@@ -210,7 +212,7 @@ func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
 }
 
 func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
-	if event.Sequence < c.minSeq || !c.filter(event) {
+	if event == nil || event.Sequence < c.minSeq {
 		return true
 	}
 
@@ -240,36 +242,38 @@ func (c *Client) sendPing() bool {
 	return err == nil
 }
 
-// BuildFilter creates an event filter based on client subscription preferences
-// for event types and aggregate IDs
-func BuildFilter(sub *api.ClientSubscription) events.EventFilter {
-	var aggregateFilter events.EventFilter
+func (c *Client) swapConsumer(sub *api.ClientSubscription) {
+	eventTypes := subscriptionEventTypes(sub)
 	if len(sub.AggregateID) > 0 {
-		id := stringsToID(sub.AggregateID)
-		aggregateFilter = events.FilterAggregate(id)
+		aggregateID := stringsToID(sub.AggregateID)
+		c.consumer.Close()
+		c.consumer = c.hub.NewAggregateConsumer(aggregateID, eventTypes...)
+		return
 	}
-
-	var eventTypeFilter events.EventFilter
-	if len(sub.EventTypes) > 0 {
-		timeboxEventTypes := make([]timebox.EventType, len(sub.EventTypes))
-		for i, et := range sub.EventTypes {
-			timeboxEventTypes[i] = timebox.EventType(et)
-		}
-		eventTypeFilter = events.FilterEvents(timeboxEventTypes...)
+	if len(eventTypes) > 0 {
+		c.consumer.Close()
+		c.consumer = c.hub.NewTypeConsumer(eventTypes...)
+		return
 	}
-
-	switch {
-	case aggregateFilter != nil && eventTypeFilter != nil:
-		return events.AndFilters(aggregateFilter, eventTypeFilter)
-	case aggregateFilter != nil:
-		return aggregateFilter
-	case eventTypeFilter != nil:
-		return eventTypeFilter
-	default:
-		return func(*timebox.Event) bool { return false }
-	}
+	c.consumer.Close()
+	c.consumer = c.hub.NewTypeConsumer(noopEventType)
 }
 
+func subscriptionEventTypes(
+	sub *api.ClientSubscription,
+) []timebox.EventType {
+	if len(sub.EventTypes) == 0 {
+		return nil
+	}
+	eventTypes := make([]timebox.EventType, len(sub.EventTypes))
+	for i, eventType := range sub.EventTypes {
+		eventTypes[i] = timebox.EventType(eventType)
+	}
+	return eventTypes
+}
+
+// BuildFilter creates an event filter based on client subscription preferences
+// for event types and aggregate IDs
 func idToStrings(id timebox.AggregateID) []string {
 	res := make([]string, len(id))
 	for i, p := range id {
@@ -284,4 +288,9 @@ func stringsToID(parts []string) timebox.AggregateID {
 		res = append(res, timebox.ID(part))
 	}
 	return res
+}
+
+func newNoopEventType() timebox.EventType {
+	id := uuid.New()
+	return timebox.EventType(string(id[:]))
 }

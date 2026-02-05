@@ -27,6 +27,7 @@ type (
 		scripts    *ScriptRegistry
 		retryQueue *RetryQueue
 		memoCache  *MemoCache
+		eventHub   *timebox.EventHub
 	}
 
 	// Executor manages engine state persistence and event sourcing
@@ -56,7 +57,7 @@ var (
 // New creates a new orchestrator instance with the specified stores, client,
 // event hub, and configuration
 func New(
-	engine, flow *timebox.Store, client client.Client, _ timebox.EventHub,
+	engine, flow *timebox.Store, client client.Client, hub *timebox.EventHub,
 	cfg *config.Config,
 ) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
@@ -73,6 +74,7 @@ func New(
 		cancel:     cancel,
 		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
+		eventHub:   hub,
 	}
 	e.scripts = NewScriptRegistry()
 
@@ -82,6 +84,7 @@ func New(
 // Start begins processing flows and events
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
+	go e.startProjection()
 
 	if err := e.RecoverFlows(); err != nil {
 		slog.Error("Failed to recover flows",
@@ -125,9 +128,18 @@ func (e *Engine) StartFlow(
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(*api.FlowState) {
-			e.handleFlowActivated(flowID, meta)
-		})
+		parentID, _ := api.GetMetaString[api.FlowID](
+			meta, api.MetaParentFlowID,
+		)
+		if err := events.Raise(tx.FlowAggregator,
+			api.EventTypeFlowActivated,
+			api.FlowActivatedEvent{
+				FlowID:       flowID,
+				ParentFlowID: parentID,
+			},
+		); err != nil {
+			return err
+		}
 		if flowTransitions.IsTerminal(tx.Value().Status) {
 			return nil
 		}
@@ -143,23 +155,6 @@ func (e *Engine) StartFlow(
 		}
 		return nil
 	})
-}
-
-func (e *Engine) handleFlowActivated(flowID api.FlowID, meta api.Metadata) {
-	parentID, _ := api.GetMetaString[api.FlowID](
-		meta, api.MetaParentFlowID,
-	)
-	if err := e.raiseEngineEvent(
-		api.EventTypeFlowActivated,
-		api.FlowActivatedEvent{
-			FlowID:       flowID,
-			ParentFlowID: parentID,
-		},
-	); err != nil {
-		slog.Error("Failed to emit FlowActivated",
-			log.FlowID(flowID),
-			log.Error(err))
-	}
 }
 
 // UnregisterStep removes a step from the engine registry
@@ -204,6 +199,89 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	return steps, nil
 }
 
+func (e *Engine) startProjection() {
+	handlers := e.projectionHandlers()
+	consumer := e.eventHub.NewAggregateConsumer(
+		timebox.NewAggregateID(events.FlowPrefix),
+		handlerEventTypes(handlers)...,
+	)
+	defer consumer.Close()
+	dispatch := events.MakeDispatcher(handlers)
+
+	for {
+		select {
+		case <-e.ctx.Done():
+			return
+		case ev, ok := <-consumer.Receive():
+			if !ok {
+				return
+			}
+			if ev == nil {
+				continue
+			}
+			if err := dispatch(ev); err != nil {
+				slog.Error("Engine projection failed",
+					slog.String("event_type", string(ev.Type)),
+					slog.String("aggregate_id", ev.AggregateID.Join("/")),
+					log.Error(err))
+			}
+		}
+	}
+}
+
+func (e *Engine) projectionHandlers() map[api.EventType]timebox.Handler {
+	flowActivated := timebox.MakeHandler(e.handleFlowActivated)
+	flowDeactivated := timebox.MakeHandler(e.handleFlowDeactivated)
+	flowCompleted := timebox.MakeHandler(e.handleFlowCompleted)
+	flowFailed := timebox.MakeHandler(e.handleFlowFailed)
+
+	return map[api.EventType]timebox.Handler{
+		api.EventTypeFlowActivated:   flowActivated,
+		api.EventTypeFlowDeactivated: flowDeactivated,
+		api.EventTypeFlowCompleted:   flowCompleted,
+		api.EventTypeFlowFailed:      flowFailed,
+	}
+}
+
+func (e *Engine) handleFlowActivated(
+	_ *timebox.Event, data api.FlowActivatedEvent,
+) error {
+	return e.raiseEngineEvent(api.EventTypeFlowActivated, data)
+}
+
+func (e *Engine) handleFlowDeactivated(
+	_ *timebox.Event, data api.FlowDeactivatedEvent,
+) error {
+	return e.raiseEngineEvent(api.EventTypeFlowDeactivated, data)
+}
+
+func (e *Engine) handleFlowCompleted(
+	ev *timebox.Event, data api.FlowCompletedEvent,
+) error {
+	return e.raiseEngineEvent(
+		api.EventTypeFlowDigestUpdated,
+		api.FlowDigestUpdatedEvent{
+			FlowID:      data.FlowID,
+			Status:      api.FlowCompleted,
+			CompletedAt: ev.Timestamp,
+		},
+	)
+}
+
+func (e *Engine) handleFlowFailed(
+	ev *timebox.Event, data api.FlowFailedEvent,
+) error {
+	return e.raiseEngineEvent(
+		api.EventTypeFlowDigestUpdated,
+		api.FlowDigestUpdatedEvent{
+			FlowID:      data.FlowID,
+			Status:      api.FlowFailed,
+			CompletedAt: ev.Timestamp,
+			Error:       data.Error,
+		},
+	)
+}
+
 func (e *Engine) saveEngineSnapshot() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -229,4 +307,14 @@ func (e *Engine) execEngine(
 	cmd timebox.Command[*api.EngineState],
 ) (*api.EngineState, error) {
 	return e.engineExec.Exec(e.ctx, events.EngineID, cmd)
+}
+
+func handlerEventTypes(
+	handlers map[api.EventType]timebox.Handler,
+) []timebox.EventType {
+	eventTypes := make([]timebox.EventType, 0, len(handlers))
+	for eventType := range handlers {
+		eventTypes = append(eventTypes, timebox.EventType(eventType))
+	}
+	return eventTypes
 }

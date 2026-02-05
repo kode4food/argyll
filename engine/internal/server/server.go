@@ -17,14 +17,14 @@ import (
 // Server implements the HTTP API server for the orchestrator
 type Server struct {
 	engine   *engine.Engine
-	eventHub timebox.EventHub
+	eventHub *timebox.EventHub
 }
 
 // ErrGetEngineState is returned when the engine state cannot be retrieved
 var ErrGetEngineState = errors.New("failed to get engine state")
 
 // NewServer creates a new HTTP API server
-func NewServer(eng *engine.Engine, hub timebox.EventHub) *Server {
+func NewServer(eng *engine.Engine, hub *timebox.EventHub) *Server {
 	return &Server{
 		engine:   eng,
 		eventHub: hub,

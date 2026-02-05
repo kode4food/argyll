@@ -605,17 +605,15 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 
 		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
 
-		producer := env.EventHub.NewProducer()
-		defer producer.Close()
-
 		data, err := json.Marshal(api.FlowCompletedEvent{FlowID: flowID})
 		assert.NoError(t, err)
-		producer.Send() <- &timebox.Event{
-			Timestamp:   time.Now(),
-			Type:        timebox.EventType(api.EventTypeFlowCompleted),
-			AggregateID: timebox.NewAggregateID("flow", timebox.ID(flowID)),
-			Data:        data,
-		}
+
+		err = env.AppendFlowEvents(flowID, &timebox.Event{
+			Timestamp: time.Now(),
+			Type:      timebox.EventType(api.EventTypeFlowCompleted),
+			Data:      data,
+		})
+		assert.NoError(t, err)
 
 		env.MockClient.ClearError(step.ID)
 		env.MockClient.SetResponse(step.ID, api.Args{})

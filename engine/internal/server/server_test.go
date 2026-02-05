@@ -8,14 +8,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 type testServerEnv struct {
@@ -505,122 +503,6 @@ func TestStartFlowInvalidJSON(t *testing.T) {
 	})
 }
 
-func TestFilterEngineEvents(t *testing.T) {
-	sub := &api.ClientSubscription{
-		AggregateID: []string{"engine"},
-	}
-
-	filter := server.BuildFilter(sub)
-	assert.NotNil(t, filter)
-
-	engineEvent := &timebox.Event{
-		AggregateID: events.EngineID,
-		Type:        timebox.EventType(api.EventTypeStepRegistered),
-	}
-	assert.True(t, filter(engineEvent))
-
-	flowEvent := &timebox.Event{
-		AggregateID: timebox.AggregateID{
-			timebox.ID("flow"), timebox.ID("flow-123"),
-		},
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-	}
-	assert.False(t, filter(flowEvent))
-}
-
-func TestFilterEventTypes(t *testing.T) {
-	sub := &api.ClientSubscription{
-		EventTypes: []api.EventType{
-			api.EventTypeStepRegistered,
-			api.EventTypeFlowStarted,
-		},
-	}
-
-	filter := server.BuildFilter(sub)
-
-	event1 := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeStepRegistered),
-	}
-	assert.True(t, filter(event1))
-
-	event2 := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-	}
-	assert.True(t, filter(event2))
-
-	event3 := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeStepCompleted),
-	}
-	assert.False(t, filter(event3))
-}
-
-func TestFilterFlowID(t *testing.T) {
-	sub := &api.ClientSubscription{
-		AggregateID: []string{"flow", "test-flow"},
-	}
-
-	filter := server.BuildFilter(sub)
-
-	event1 := &timebox.Event{
-		AggregateID: timebox.AggregateID{
-			timebox.ID("flow"), timebox.ID("test-flow"),
-		},
-	}
-	assert.True(t, filter(event1))
-
-	event2 := &timebox.Event{
-		AggregateID: timebox.AggregateID{
-			timebox.ID("flow"), timebox.ID("other-flow"),
-		},
-	}
-	assert.False(t, filter(event2))
-
-	event3 := &timebox.Event{AggregateID: events.EngineID}
-	assert.False(t, filter(event3))
-}
-
-func TestFilterEmpty(t *testing.T) {
-	sub := &api.ClientSubscription{}
-
-	filter := server.BuildFilter(sub)
-
-	event := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeStepRegistered),
-	}
-	assert.False(t, filter(event))
-}
-
-func TestFilterCombinedUsesAndLogic(t *testing.T) {
-	sub := &api.ClientSubscription{
-		AggregateID: []string{"engine"},
-		EventTypes: []api.EventType{
-			api.EventTypeStepRegistered,
-		},
-	}
-
-	filter := server.BuildFilter(sub)
-
-	matchingEvent := &timebox.Event{
-		AggregateID: events.EngineID,
-		Type:        timebox.EventType(api.EventTypeStepRegistered),
-	}
-	assert.True(t, filter(matchingEvent))
-
-	wrongTypeEvent := &timebox.Event{
-		AggregateID: events.EngineID,
-		Type:        timebox.EventType(api.EventTypeFlowStarted),
-	}
-	assert.False(t, filter(wrongTypeEvent))
-
-	wrongAggregateEvent := &timebox.Event{
-		AggregateID: timebox.AggregateID{
-			timebox.ID("flow"), timebox.ID("flow-123"),
-		},
-		Type: timebox.EventType(api.EventTypeStepRegistered),
-	}
-	assert.False(t, filter(wrongAggregateEvent))
-}
-
 func TestEngineHealthByID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		step := helpers.NewSimpleStep("health-step")
@@ -999,10 +881,7 @@ func TestSanitizeFlowID(t *testing.T) {
 
 func (e *testServerEnv) waitForWorkItem(t *testing.T, fs engine.FlowStep) {
 	t.Helper()
-	consumer := e.EventHub.NewConsumer()
-	helpers.WaitForStepStartedEvent(t,
-		consumer, fs.FlowID, fs.StepID, 5*time.Second,
-	)
+	e.WaitForStepStarted(t, fs.FlowID, fs.StepID, 5*time.Second)
 }
 
 func TestListFlowsMultiple(t *testing.T) {

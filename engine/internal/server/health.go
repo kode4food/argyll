@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
@@ -21,11 +20,11 @@ import (
 // HealthChecker monitors the health of registered step services
 type HealthChecker struct {
 	engine      *engine.Engine
-	eventHub    timebox.EventHub
+	eventHub    *timebox.EventHub
 	ctx         context.Context
 	cancel      context.CancelFunc
 	client      *http.Client
-	consumer    topic.Consumer[*timebox.Event]
+	consumer    *timebox.Consumer
 	lastSuccess map[api.StepID]time.Time
 	mu          sync.RWMutex
 }
@@ -39,7 +38,9 @@ const (
 
 // NewHealthChecker creates a health checker that periodically monitors HTTP
 // step service availability and updates their health status
-func NewHealthChecker(eng *engine.Engine, hub timebox.EventHub) *HealthChecker {
+func NewHealthChecker(
+	eng *engine.Engine, hub *timebox.EventHub,
+) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &HealthChecker{
 		engine:      eng,

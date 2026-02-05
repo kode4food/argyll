@@ -5,13 +5,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 type flowEvent struct {
@@ -381,8 +379,8 @@ func metaToken(meta api.Metadata) api.Token {
 }
 
 func waitForFlowEvents(
-	t *testing.T, consumer topic.Consumer[*timebox.Event],
-	timeout time.Duration, eventType api.EventType, flowIDs ...api.FlowID,
+	t *testing.T, consumer *timebox.Consumer, timeout time.Duration,
+	eventType api.EventType, flowIDs ...api.FlowID,
 ) {
 	t.Helper()
 
@@ -392,7 +390,9 @@ func waitForFlowEvents(
 	}
 
 	filter := helpers.EventDataFilter(
-		events.FilterEvents(timebox.EventType(eventType)),
+		func(ev *timebox.Event) bool {
+			return ev != nil && ev.Type == timebox.EventType(eventType)
+		},
 		func(data flowEvent) bool {
 			if _, ok := expected[data.FlowID]; ok {
 				delete(expected, data.FlowID)

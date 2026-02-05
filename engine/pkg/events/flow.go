@@ -6,7 +6,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const flowPrefix = "flow"
+const FlowPrefix = "flow"
 
 // FlowAppliers contains the event applier functions for flow events
 var FlowAppliers = makeFlowAppliers()
@@ -22,7 +22,7 @@ func NewFlowState() *api.FlowState {
 
 // IsFlowEvent returns true if the event belongs to a flow aggregate
 func IsFlowEvent(ev *timebox.Event) bool {
-	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == flowPrefix
+	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == FlowPrefix
 }
 
 func makeFlowAppliers() timebox.Appliers[*api.FlowState] {

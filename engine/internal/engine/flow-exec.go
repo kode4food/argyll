@@ -140,10 +140,9 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.handleFlowCompleted()
+			tx.retryQueue.RemoveFlow(tx.flowID)
 		})
-		tx.maybeDeactivate()
-		return nil
+		return tx.maybeDeactivate()
 	}
 	if tx.IsFlowFailed(flow) {
 		errMsg := tx.getFailureReason(flow)
@@ -156,38 +155,11 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.handleFlowFailed(errMsg)
+			tx.retryQueue.RemoveFlow(tx.flowID)
 		})
-		tx.maybeDeactivate()
-		return nil
+		return tx.maybeDeactivate()
 	}
 	return nil
-}
-
-func (tx *flowTx) handleFlowCompleted() {
-	tx.raiseFlowDigestUpdated(api.FlowCompleted, "")
-	tx.retryQueue.RemoveFlow(tx.flowID)
-}
-
-func (tx *flowTx) handleFlowFailed(errMsg string) {
-	tx.raiseFlowDigestUpdated(api.FlowFailed, errMsg)
-	tx.retryQueue.RemoveFlow(tx.flowID)
-}
-
-func (tx *flowTx) raiseFlowDigestUpdated(status api.FlowStatus, errMsg string) {
-	if err := tx.raiseEngineEvent(
-		api.EventTypeFlowDigestUpdated,
-		api.FlowDigestUpdatedEvent{
-			FlowID:      tx.flowID,
-			Status:      status,
-			CompletedAt: time.Now(),
-			Error:       errMsg,
-		},
-	); err != nil {
-		slog.Error("Failed to emit FlowDigestUpdated",
-			log.FlowID(tx.flowID),
-			log.Error(err))
-	}
 }
 
 // failUnreachable finds and fails all pending steps that can no longer
@@ -370,8 +342,7 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 		if err != nil {
 			return err
 		}
-		tx.maybeDeactivate()
-		return nil
+		return tx.maybeDeactivate()
 	}
 
 	completed, err := tx.checkStepCompletion(stepID)
@@ -456,8 +427,7 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 		if err != nil {
 			return err
 		}
-		tx.maybeDeactivate()
-		return nil
+		return tx.maybeDeactivate()
 	}
 
 	completed, err := tx.checkStepCompletion(stepID)
@@ -517,8 +487,7 @@ func (tx *flowTx) handleWorkNotCompleted(
 	stepID api.StepID, token api.Token,
 ) error {
 	if flowTransitions.IsTerminal(tx.Value().Status) {
-		tx.maybeDeactivate()
-		return nil
+		return tx.maybeDeactivate()
 	}
 	if err := tx.scheduleRetry(stepID, token); err != nil {
 		return err
@@ -723,19 +692,25 @@ func (tx *flowTx) handleMemoCacheHit(
 	return tx.handleWorkSucceeded(stepID)
 }
 
-// maybeDeactivate emits FlowDeactivated after commit if the flow is terminal
-// and has no active work items remaining
-func (tx *flowTx) maybeDeactivate() {
+// maybeDeactivate emits FlowDeactivated if the flow is terminal and has no
+// active work items remaining
+func (tx *flowTx) maybeDeactivate() error {
 	flow := tx.Value()
 	if !flowTransitions.IsTerminal(flow.Status) {
-		return
+		return nil
 	}
 	if hasActiveWork(flow) {
-		return
+		return nil
+	}
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowDeactivated,
+		api.FlowDeactivatedEvent{FlowID: tx.flowID},
+	); err != nil {
+		return err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
 		tx.handleFlowDeactivated(flow)
 	})
+	return nil
 }
 
 func (tx *flowTx) handleRetryScheduled(
@@ -751,14 +726,6 @@ func (tx *flowTx) handleRetryScheduled(
 
 func (tx *flowTx) handleFlowDeactivated(flow *api.FlowState) {
 	tx.completeParentWork(flow)
-	if err := tx.raiseEngineEvent(
-		api.EventTypeFlowDeactivated,
-		api.FlowDeactivatedEvent{FlowID: tx.flowID},
-	); err != nil {
-		slog.Error("Failed to emit FlowDeactivated",
-			log.FlowID(tx.flowID),
-			log.Error(err))
-	}
 }
 
 func stepParallelism(step *api.Step) int {

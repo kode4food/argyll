@@ -19,10 +19,10 @@ run: sync-specs
 format:
 	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
 
-check:
+check: sync-specs
 	$(GO) vet ./...
 
-test:
+test: sync-specs
 	$(GO) test ./...
 	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
