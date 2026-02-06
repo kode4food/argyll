@@ -9,6 +9,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+const retryBackoffMs = 200
+
 // TestMemoStepReusesToken verifies that memoizable steps reuse the same token
 // across retries
 func TestMemoStepReusesToken(t *testing.T) {
@@ -19,7 +21,8 @@ func TestMemoStepReusesToken(t *testing.T) {
 		step.Memoizable = true
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
-			Backoff:     10,
+			Backoff:     retryBackoffMs,
+			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
@@ -73,7 +76,8 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 		step.Memoizable = false
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
-			Backoff:     10,
+			Backoff:     retryBackoffMs,
+			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
@@ -127,7 +131,8 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 		step.Memoizable = false
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     10,
+			Backoff:     retryBackoffMs,
+			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
 

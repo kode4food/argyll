@@ -2,7 +2,6 @@ package helpers
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
@@ -16,19 +15,25 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-// TestEngineEnv holds all the components needed for engine testing
-type TestEngineEnv struct {
-	Engine      *engine.Engine
-	Redis       *miniredis.Miniredis
-	MockClient  *MockClient
-	Config      *config.Config
-	EventHub    *timebox.EventHub
-	Cleanup     func()
-	engineStore *timebox.Store
-	flowStore   *timebox.Store
-}
+type (
+	// TestEngineEnv holds all the components needed for engine testing
+	TestEngineEnv struct {
+		Engine      *engine.Engine
+		Redis       *miniredis.Miniredis
+		MockClient  *MockClient
+		Config      *config.Config
+		EventHub    *timebox.EventHub
+		Cleanup     func()
+		engineStore *timebox.Store
+		flowStore   *timebox.Store
+		flowExec    *timebox.Executor[*api.FlowState]
+	}
 
-const defaultStoreTimeout = 5 * time.Second
+	FlowEvent struct {
+		Type api.EventType
+		Data any
+	}
+)
 
 // NewTestConfig creates a default configuration with debug logging enabled
 func NewTestConfig() *config.Config {
@@ -66,6 +71,10 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	flowStore, err := tb.NewStore(flowConfig)
 	assert.NoError(t, err)
 
+	flowExec := timebox.NewExecutor(
+		flowStore, events.NewFlowState, events.FlowAppliers,
+	)
+
 	mockCli := NewMockClient()
 
 	cfg := &config.Config{
@@ -102,6 +111,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		Cleanup:     cleanup,
 		engineStore: engineStore,
 		flowStore:   flowStore,
+		flowExec:    flowExec,
 	}
 }
 
@@ -113,57 +123,23 @@ func (e *TestEngineEnv) NewEngineInstance() *engine.Engine {
 	)
 }
 
-// AppendFlowEvents appends flow events directly to the flow store
-func (e *TestEngineEnv) AppendFlowEvents(
-	flowID api.FlowID, evs ...*timebox.Event,
+// RaiseFlowEvents appends flow events via the executor
+func (e *TestEngineEnv) RaiseFlowEvents(
+	flowID api.FlowID, evs ...FlowEvent,
 ) error {
-	ctx, cancel := context.WithTimeout(
-		context.Background(), defaultStoreTimeout,
+	_, err := e.flowExec.Exec(
+		context.Background(),
+		timebox.NewAggregateID(events.FlowPrefix, timebox.ID(flowID)),
+		func(st *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
+			for _, ev := range evs {
+				if err := events.Raise(ag, ev.Type, ev.Data); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
 	)
-	defer cancel()
-
-	aggregateID := timebox.NewAggregateID(
-		events.FlowPrefix, timebox.ID(flowID),
-	)
-	seq, err := e.getFlowSequence(ctx, aggregateID)
-	if err != nil {
-		return err
-	}
-
-	for i, ev := range evs {
-		ev.AggregateID = aggregateID
-		ev.Sequence = seq + int64(i)
-		if ev.Timestamp.IsZero() {
-			ev.Timestamp = time.Now()
-		}
-	}
-
-	err = e.flowStore.AppendEvents(ctx, aggregateID, seq, evs)
-	if err == nil {
-		return nil
-	}
-
-	conflict := new(timebox.VersionConflictError)
-	if !errors.As(err, &conflict) {
-		return err
-	}
-
-	seq = conflict.ActualSequence
-	for i, ev := range evs {
-		ev.Sequence = seq + int64(i)
-	}
-
-	return e.flowStore.AppendEvents(ctx, aggregateID, seq, evs)
-}
-
-func (e *TestEngineEnv) getFlowSequence(
-	ctx context.Context, aggregateID timebox.AggregateID,
-) (int64, error) {
-	eventsInStore, err := e.flowStore.GetEvents(ctx, aggregateID, 0)
-	if err != nil {
-		return 0, err
-	}
-	return int64(len(eventsInStore)), nil
+	return err
 }
 
 // WithTestEnv creates a test engine environment, executes the provided

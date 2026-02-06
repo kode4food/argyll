@@ -90,11 +90,10 @@ func TestClientReceivesEvent(t *testing.T) {
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
 
-	event := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-		Data: json.RawMessage(`{"test":"data"}`),
-	}
-	err = env.Env.AppendFlowEvents(flowID, event)
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(flowID, "step-1"),
+	})
 	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
@@ -103,7 +102,10 @@ func TestClientReceivesEvent(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, api.EventTypeFlowStarted, wsEvent.Type)
-	assert.Equal(t, json.RawMessage(`{"test":"data"}`), wsEvent.Data)
+	var data api.FlowStartedEvent
+	err = json.Unmarshal(wsEvent.Data, &data)
+	assert.NoError(t, err)
+	assert.Equal(t, flowID, data.FlowID)
 }
 
 func TestMessageInvalid(t *testing.T) {
@@ -114,11 +116,10 @@ func TestMessageInvalid(t *testing.T) {
 	err := env.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json"))
 	assert.NoError(t, err)
 
-	event := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-		Data: json.RawMessage(`{}`),
-	}
-	err = env.Env.AppendFlowEvents(flowID, event)
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(flowID, "step-1"),
+	})
 	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
@@ -141,11 +142,10 @@ func TestMessageNonSubscribe(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	event := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-		Data: json.RawMessage(`{}`),
-	}
-	err = env.Env.AppendFlowEvents(flowID, event)
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(flowID, "step-1"),
+	})
 	assert.NoError(t, err)
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
@@ -217,19 +217,17 @@ func TestStaleEventsFiltered(t *testing.T) {
 	assert.Equal(t, int64(1), stateMsg.Sequence)
 
 	// Send stale event (sequence 5 < minSequence 10)
-	staleEvent := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-		Data: json.RawMessage(`{"stale":true}`),
-	}
-	err = env.Env.AppendFlowEvents(flowID, staleEvent)
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(flowID, "step-1"),
+	})
 	assert.NoError(t, err)
 
 	// Send fresh event (sequence 10 >= minSequence 10)
-	freshEvent := &timebox.Event{
-		Type: timebox.EventType(api.EventTypeStepStarted),
-		Data: json.RawMessage(`{"fresh":true}`),
-	}
-	err = env.Env.AppendFlowEvents(flowID, freshEvent)
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeStepStarted,
+		Data: wsStepStarted(flowID, "step-1"),
+	})
 	assert.NoError(t, err)
 
 	// Should only receive the fresh event
@@ -237,7 +235,10 @@ func TestStaleEventsFiltered(t *testing.T) {
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
 	assert.Equal(t, api.EventTypeStepStarted, wsEvent.Type)
-	assert.Equal(t, json.RawMessage(`{"fresh":true}`), wsEvent.Data)
+	var stepData api.StepStartedEvent
+	err = json.Unmarshal(wsEvent.Data, &stepData)
+	assert.NoError(t, err)
+	assert.Equal(t, api.StepID("step-1"), stepData.StepID)
 }
 
 func TestSubscribeStateWithError(t *testing.T) {
@@ -426,6 +427,43 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 		Server: srv,
 		Env:    env,
 		Conn:   conn,
+	}
+}
+
+func wsFlowStarted(
+	flowID api.FlowID, stepID api.StepID,
+) api.FlowStartedEvent {
+	return api.FlowStartedEvent{
+		FlowID:   flowID,
+		Plan:     wsPlan(stepID),
+		Init:     api.Args{},
+		Metadata: api.Metadata{},
+	}
+}
+
+func wsStepStarted(
+	flowID api.FlowID, stepID api.StepID,
+) api.StepStartedEvent {
+	return api.StepStartedEvent{
+		FlowID:    flowID,
+		StepID:    stepID,
+		Inputs:    api.Args{},
+		WorkItems: map[api.Token]api.Args{},
+	}
+}
+
+func wsPlan(stepID api.StepID) *api.ExecutionPlan {
+	step := &api.Step{
+		ID:   stepID,
+		Name: "ws-step",
+		Type: api.StepTypeAsync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test:8080",
+		},
+	}
+	return &api.ExecutionPlan{
+		Goals: []api.StepID{stepID},
+		Steps: api.Steps{stepID: step},
 	}
 }
 

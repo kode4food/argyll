@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log/slog"
-	"sync"
 	"time"
 
 	"github.com/kode4food/timebox"
@@ -29,7 +28,6 @@ type (
 		retryQueue *RetryQueue
 		memoCache  *MemoCache
 		eventHub   *timebox.EventHub
-		projWait   sync.WaitGroup
 	}
 
 	// Executor manages engine state persistence and event sourcing
@@ -100,7 +98,6 @@ func (e *Engine) Start() {
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
 	e.cancel()
-	e.projWait.Wait()
 	e.retryQueue.Stop()
 	e.saveEngineSnapshot()
 	slog.Info("Engine stopped")
@@ -210,9 +207,7 @@ func (e *Engine) startProjection() {
 		handlerEventTypes(handlers)...,
 	)
 
-	e.projWait.Add(1)
 	go func() {
-		defer e.projWait.Done()
 		defer consumer.Close()
 		dispatch := events.MakeDispatcher(handlers)
 

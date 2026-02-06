@@ -1,11 +1,9 @@
 package helpers_test
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -605,13 +603,9 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 
 		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
 
-		data, err := json.Marshal(api.FlowCompletedEvent{FlowID: flowID})
-		assert.NoError(t, err)
-
-		err = env.AppendFlowEvents(flowID, &timebox.Event{
-			Timestamp: time.Now(),
-			Type:      timebox.EventType(api.EventTypeFlowCompleted),
-			Data:      data,
+		err = env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+			Type: api.EventTypeFlowCompleted,
+			Data: api.FlowCompletedEvent{FlowID: flowID},
 		})
 		assert.NoError(t, err)
 

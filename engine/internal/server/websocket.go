@@ -292,5 +292,5 @@ func stringsToID(parts []string) timebox.AggregateID {
 
 func newNoopEventType() timebox.EventType {
 	id := uuid.New()
-	return timebox.EventType(string(id[:]))
+	return timebox.EventType(id[:])
 }

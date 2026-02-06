@@ -708,7 +708,7 @@ func (tx *flowTx) maybeDeactivate() error {
 		return err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		tx.handleFlowDeactivated(flow)
+		tx.completeParentWork(flow)
 	})
 	return nil
 }
@@ -722,10 +722,6 @@ func (tx *flowTx) handleRetryScheduled(
 		Token:       token,
 		NextRetryAt: nextRetryAt,
 	})
-}
-
-func (tx *flowTx) handleFlowDeactivated(flow *api.FlowState) {
-	tx.completeParentWork(flow)
 }
 
 func stepParallelism(step *api.Step) int {
