@@ -11,7 +11,7 @@ import (
 const EnginePrefix = "engine"
 
 var (
-	EngineID = timebox.NewAggregateID(EnginePrefix)
+	EngineKey = timebox.NewAggregateID(EnginePrefix)
 
 	EngineAppliers = makeEngineAppliers()
 )

@@ -279,8 +279,8 @@ func TestHookFailTwice(t *testing.T) {
 
 		var respErr api.ErrorResponse
 		_ = json.NewDecoder(w.Body).Decode(&respErr)
-		assert.Contains(
-			t, respErr.Error, engine.ErrInvalidWorkTransition.Error(),
+		assert.Contains(t,
+			respErr.Error, engine.ErrInvalidWorkTransition.Error(),
 		)
 	})
 }

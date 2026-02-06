@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"sync"
 
 	glog "github.com/gin-contrib/slog"
 	"github.com/gin-gonic/gin"
@@ -12,12 +13,15 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // Server implements the HTTP API server for the orchestrator
 type Server struct {
 	engine   *engine.Engine
 	eventHub *timebox.EventHub
+	sockets  util.Set[*Client]
+	mu       sync.Mutex
 }
 
 // ErrGetEngineState is returned when the engine state cannot be retrieved
@@ -28,6 +32,7 @@ func NewServer(eng *engine.Engine, hub *timebox.EventHub) *Server {
 	return &Server{
 		engine:   eng,
 		eventHub: hub,
+		sockets:  util.Set[*Client]{},
 	}
 }
 
@@ -110,4 +115,30 @@ func (s *Server) handleEngine(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, engState)
+}
+
+func (s *Server) registerWebSocket(c *Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sockets.Add(c)
+}
+
+func (s *Server) unregisterWebSocket(c *Client) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.sockets.Remove(c)
+}
+
+// CloseWebSockets closes all active WebSocket connections.
+func (s *Server) CloseWebSockets() {
+	s.mu.Lock()
+	conns := make([]*Client, 0, len(s.sockets))
+	for c := range s.sockets {
+		conns = append(conns, c)
+	}
+	s.mu.Unlock()
+
+	for _, c := range conns {
+		c.Close()
+	}
 }

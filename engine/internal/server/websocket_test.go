@@ -15,6 +15,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 type (
@@ -79,7 +80,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
+			AggregateID: []string{events.FlowPrefix, "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -136,7 +137,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	sub := api.SubscribeRequest{
 		Type: "other",
 		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
+			AggregateID: []string{events.FlowPrefix, "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -161,7 +162,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	}
 
 	getState := func(id timebox.AggregateID) (any, int64, error) {
-		assert.Equal(t, timebox.NewAggregateID("flow", "wf-123"), id)
+		assert.Equal(t, events.FlowKey("wf-123"), id)
 		return flowState, 5, nil
 	}
 
@@ -171,7 +172,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
+			AggregateID: []string{events.FlowPrefix, "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -182,7 +183,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
 	assert.Equal(t, "subscribed", stateMsg.Type)
-	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID)
 	assert.Equal(t, int64(5), stateMsg.Sequence)
 
 	var receivedState api.FlowState
@@ -204,7 +205,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
+			AggregateID: []string{events.FlowPrefix, "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -252,7 +253,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
+			AggregateID: []string{events.FlowPrefix, "wf-123"},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -301,7 +302,7 @@ func TestClientPongHandler(t *testing.T) {
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
 		Data: api.ClientSubscription{
-			AggregateID: []string{"flow", "wf-123"},
+			AggregateID: []string{events.FlowPrefix, "wf-123"},
 		},
 	}
 	err = env.Conn.WriteJSON(sub)
@@ -311,7 +312,7 @@ func TestClientPongHandler(t *testing.T) {
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID)
 }
 
 func TestClientConsumerClosed(t *testing.T) {
@@ -325,6 +326,19 @@ func TestClientConsumerClosed(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestServerCloseWebSockets(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		ws := testServerWebSocket(t, env.Server)
+		defer ws.Cleanup()
+
+		env.Server.CloseWebSockets()
+
+		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsCloseTimeout))
+		_, _, err := ws.Conn.ReadMessage()
+		assert.Error(t, err)
+	})
+}
+
 func TestSocketCallbackEngine(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		ws := testServerWebSocket(t, env.Server)
@@ -333,7 +347,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 		sub := api.SubscribeRequest{
 			Type: "subscribe",
 			Data: api.ClientSubscription{
-				AggregateID: []string{"engine"},
+				AggregateID: []string{events.EnginePrefix},
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -343,7 +357,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
-		assert.Equal(t, []string{"engine"}, stateMsg.AggregateID)
+		assert.Equal(t, []string{events.EnginePrefix}, stateMsg.AggregateID)
 
 		var engState api.EngineState
 		err = json.Unmarshal(stateMsg.Data, &engState)
@@ -365,7 +379,7 @@ func TestSocketCallbackFlow(t *testing.T) {
 		sub := api.SubscribeRequest{
 			Type: "subscribe",
 			Data: api.ClientSubscription{
-				AggregateID: []string{"flow", "wf-123"},
+				AggregateID: []string{events.FlowPrefix, "wf-123"},
 			},
 		}
 		err = ws.Conn.WriteJSON(sub)
@@ -375,7 +389,9 @@ func TestSocketCallbackFlow(t *testing.T) {
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
-		assert.Equal(t, []string{"flow", "wf-123"}, stateMsg.AggregateID)
+		assert.Equal(t,
+			[]string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID,
+		)
 
 		var flowState api.FlowState
 		err = json.Unmarshal(stateMsg.Data, &flowState)
@@ -390,7 +406,7 @@ func TestSocketCallbackInvalidAgg(t *testing.T) {
 		defer ws.Cleanup()
 
 		for _, aggregateID := range [][]string{
-			{"flow"},
+			{events.FlowPrefix},
 			{"invalid"},
 		} {
 			sub := api.SubscribeRequest{
@@ -415,7 +431,7 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			server.HandleWebSocket(env.EventHub, w, r, getState)
+			server.HandleWebSocket(env.EventHub, w, r, getState, nil)
 		},
 	))
 

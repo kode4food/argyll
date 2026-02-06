@@ -20,6 +20,11 @@ func NewFlowState() *api.FlowState {
 	}
 }
 
+// FlowKey returns the aggregate ID for a flow
+func FlowKey[T ~string](flowID T) timebox.AggregateID {
+	return timebox.NewAggregateID(FlowPrefix, timebox.ID(flowID))
+}
+
 // IsFlowEvent returns true if the event belongs to a flow aggregate
 func IsFlowEvent(ev *timebox.Event) bool {
 	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == FlowPrefix

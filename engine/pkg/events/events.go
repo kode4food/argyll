@@ -6,6 +6,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+// MakeAppliers converts an api.EventType applier map to timebox types
 func MakeAppliers[T any](
 	app map[api.EventType]timebox.Applier[T],
 ) timebox.Appliers[T] {
@@ -16,12 +17,9 @@ func MakeAppliers[T any](
 	return res
 }
 
-func MakeDispatcher(
-	handlers map[api.EventType]timebox.Handler,
-) timebox.Handler {
-	res := map[timebox.EventType]timebox.Handler{}
-	for et, fn := range handlers {
-		res[timebox.EventType(et)] = fn
-	}
-	return timebox.MakeDispatcher(res)
+// Raise raises an event through the aggregator
+func Raise[T, V any](
+	ag *timebox.Aggregator[T], typ api.EventType, value V,
+) error {
+	return timebox.Raise(ag, timebox.EventType(typ), value)
 }

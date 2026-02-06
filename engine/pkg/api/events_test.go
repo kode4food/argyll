@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestEventJSONMarshaling(t *testing.T) {
@@ -17,7 +18,7 @@ func TestEventJSONMarshaling(t *testing.T) {
 
 	in := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
-		AggregateID: timebox.NewAggregateID("engine"),
+		AggregateID: events.EngineKey,
 		Timestamp:   now,
 		Data:        data,
 	}

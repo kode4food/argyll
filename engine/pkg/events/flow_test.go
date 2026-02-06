@@ -24,10 +24,10 @@ func TestNewFlowState(t *testing.T) {
 
 func TestIsFlowEvent(t *testing.T) {
 	flowEvent := &timebox.Event{
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 	}
 	engineEvent := &timebox.Event{
-		AggregateID: timebox.NewAggregateID("engine"),
+		AggregateID: events.EngineKey,
 	}
 
 	assert.True(t, events.IsFlowEvent(flowEvent))
@@ -58,7 +58,7 @@ func TestFlowStarted(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		Data:        data,
 	}
@@ -90,7 +90,7 @@ func TestFlowCompleted(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeFlowCompleted),
 		Data:        data,
 	}
@@ -118,7 +118,7 @@ func TestFlowFailed(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeFlowFailed),
 		Data:        data,
 	}
@@ -153,7 +153,7 @@ func TestStepStarted(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeStepStarted),
 		Data:        data,
 	}
@@ -188,7 +188,7 @@ func TestStepCompleted(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeStepCompleted),
 		Data:        data,
 	}
@@ -222,7 +222,7 @@ func TestStepFailed(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeStepFailed),
 		Data:        data,
 	}
@@ -254,7 +254,7 @@ func TestStepSkipped(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeStepSkipped),
 		Data:        data,
 	}
@@ -285,7 +285,7 @@ func TestAttributeSet(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeAttributeSet),
 		Data:        data,
 	}
@@ -326,7 +326,7 @@ func TestWorkStarted(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeWorkStarted),
 		Data:        data,
 	}
@@ -365,7 +365,7 @@ func TestWorkSucceeded(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeWorkSucceeded),
 		Data:        data,
 	}
@@ -405,7 +405,7 @@ func TestWorkFailed(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeWorkFailed),
 		Data:        data,
 	}
@@ -444,7 +444,7 @@ func TestWorkNotCompleted(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeWorkNotCompleted),
 		Data:        data,
 	}
@@ -490,7 +490,7 @@ func TestRetryScheduled(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeRetryScheduled),
 		Data:        data,
 	}
@@ -523,7 +523,7 @@ func TestMissingExecution(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 		Type:        timebox.EventType(api.EventTypeStepCompleted),
 		Data:        data,
 	}

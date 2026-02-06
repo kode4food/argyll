@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -89,16 +90,16 @@ func WaitForFlowEvents(
 ) {
 	t.Helper()
 
-	expected := make(map[api.FlowID]struct{}, len(flowIDs))
+	expected := make(util.Set[api.FlowID], len(flowIDs))
 	for _, flowID := range flowIDs {
-		expected[flowID] = struct{}{}
+		expected.Add(flowID)
 	}
 
 	WaitForEventData(t, consumer,
 		filterEventTypes(eventTypes...),
 		func(data flowEvent) bool {
-			if _, ok := expected[data.FlowID]; ok {
-				delete(expected, data.FlowID)
+			if expected.Contains(data.FlowID) {
+				expected.Remove(data.FlowID)
 				return true
 			}
 			return false
@@ -113,19 +114,19 @@ func waitForEngineFlowEvents(
 ) {
 	t.Helper()
 
-	expected := make(map[api.FlowID]struct{}, len(flowIDs))
+	expected := make(util.Set[api.FlowID], len(flowIDs))
 	for _, flowID := range flowIDs {
-		expected[flowID] = struct{}{}
+		expected.Add(flowID)
 	}
 
 	typeFilter := func(ev *timebox.Event) bool {
-		return filterAggregate(events.EngineID)(ev) &&
+		return filterAggregate(events.EngineKey)(ev) &&
 			filterEventTypes(eventTypes...)(ev)
 	}
 	WaitForEventData(t, consumer, typeFilter,
 		func(data flowEvent) bool {
-			if _, ok := expected[data.FlowID]; ok {
-				delete(expected, data.FlowID)
+			if expected.Contains(data.FlowID) {
+				expected.Remove(data.FlowID)
 				return true
 			}
 			return false
@@ -321,7 +322,7 @@ func WaitForEngineEvents(
 ) {
 	t.Helper()
 	filter := func(ev *timebox.Event) bool {
-		return filterAggregate(events.EngineID)(ev) &&
+		return filterAggregate(events.EngineKey)(ev) &&
 			filterEventTypes(eventTypes...)(ev)
 	}
 	WaitForEvents(t, consumer, filter, count, timeout)
@@ -490,15 +491,14 @@ func filterEventTypes(eventTypes ...api.EventType) func(*timebox.Event) bool {
 	if len(eventTypes) == 0 {
 		return func(*timebox.Event) bool { return false }
 	}
-	lookup := map[timebox.EventType]struct{}{}
+	lookup := make(util.Set[timebox.EventType], len(eventTypes))
 	for _, et := range eventTypes {
-		lookup[timebox.EventType(et)] = struct{}{}
+		lookup.Add(timebox.EventType(et))
 	}
 	return func(ev *timebox.Event) bool {
 		if ev == nil {
 			return false
 		}
-		_, ok := lookup[ev.Type]
-		return ok
+		return lookup.Contains(ev.Type)
 	}
 }

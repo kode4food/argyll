@@ -12,6 +12,7 @@ import (
 	"gocloud.dev/blob"
 
 	"github.com/kode4food/argyll/archiver"
+	"github.com/kode4food/argyll/engine/pkg/events"
 
 	_ "gocloud.dev/blob/memblob"
 )
@@ -67,7 +68,7 @@ func TestRunnerWritesArchiveRecord(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
+		AggregateID:      events.FlowKey("abc123"),
 		SnapshotSequence: 0,
 		SnapshotData:     json.RawMessage{},
 		Events: []json.RawMessage{
@@ -181,7 +182,7 @@ func TestWriterWritesWithNoPrefix(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
+		AggregateID:      events.FlowKey("abc123"),
 		SnapshotSequence: 0,
 		Events: []json.RawMessage{
 			json.RawMessage(`{"type":"flow_completed"}`),
@@ -212,7 +213,7 @@ func TestWriterTrailingSlash(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
+		AggregateID:      events.FlowKey("abc123"),
 		SnapshotSequence: 0,
 		Events: []json.RawMessage{
 			json.RawMessage(`{"type":"flow_completed"}`),
@@ -243,7 +244,7 @@ func TestWriterFiltersEmptyEvents(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
+		AggregateID:      events.FlowKey("abc123"),
 		SnapshotSequence: 0,
 		SnapshotData:     json.RawMessage(" "),
 		Events: []json.RawMessage{
@@ -285,7 +286,7 @@ func TestWriterInvalidSnapshot(t *testing.T) {
 
 	rec := &timebox.ArchiveRecord{
 		StreamID:         "1-0",
-		AggregateID:      timebox.NewAggregateID("flow", "abc123"),
+		AggregateID:      events.FlowKey("abc123"),
 		SnapshotSequence: 0,
 		SnapshotData:     json.RawMessage("{"),
 		Events: []json.RawMessage{

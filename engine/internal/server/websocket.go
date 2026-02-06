@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -20,16 +21,21 @@ import (
 type (
 	// Client represents a WebSocket client connection for event streaming
 	Client struct {
-		hub      *timebox.EventHub
-		conn     *websocket.Conn
-		consumer *timebox.Consumer
-		getState StateFunc
-		minSeq   int64
+		hub       *timebox.EventHub
+		conn      *websocket.Conn
+		consumer  *timebox.Consumer
+		getState  StateFunc
+		minSeq    int64
+		onClose   func(*Client)
+		closeOnce sync.Once
 	}
 
 	// StateFunc retrieves the current projected state and next sequence for an
 	// aggregate. The next sequence is used by clients to detect sequence skew
 	StateFunc func(timebox.AggregateID) (any, int64, error)
+
+	// RegisterFunc registers a client with the caller
+	RegisterFunc func(*Client)
 )
 
 const (
@@ -56,7 +62,8 @@ var (
 // HandleWebSocket upgrades an HTTP connection to WebSocket and starts
 // streaming events based on client subscriptions
 func HandleWebSocket(
-	hub *timebox.EventHub, w http.ResponseWriter, r *http.Request, st StateFunc,
+	hub *timebox.EventHub, w http.ResponseWriter, r *http.Request,
+	st StateFunc, register RegisterFunc,
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -70,6 +77,10 @@ func HandleWebSocket(
 		conn:     conn,
 		consumer: hub.NewTypeConsumer(noopEventType),
 		getState: st,
+	}
+
+	if register != nil {
+		register(client)
 	}
 
 	go client.run()
@@ -94,13 +105,19 @@ func (s *Server) handleWebSocket(c *gin.Context) {
 				return nil, 0, errors.New("invalid aggregate_id")
 			}
 		},
+		func(client *Client) {
+			client.onClose = s.unregisterWebSocket
+			s.registerWebSocket(client)
+		},
 	)
 }
 
 func (c *Client) run() {
 	defer func() {
-		c.consumer.Close()
-		_ = c.conn.Close()
+		c.Close()
+		if c.onClose != nil {
+			c.onClose(c)
+		}
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
@@ -140,6 +157,17 @@ func (c *Client) run() {
 			}
 		}
 	}
+}
+
+func (c *Client) Close() {
+	c.closeOnce.Do(func() {
+		if c.consumer != nil {
+			c.consumer.Close()
+		}
+		if c.conn != nil {
+			_ = c.conn.Close()
+		}
+	})
 }
 
 func (c *Client) readMessages(incoming chan []byte) {

@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type flowEvent struct {
@@ -384,9 +385,9 @@ func waitForFlowEvents(
 ) {
 	t.Helper()
 
-	expected := make(map[api.FlowID]struct{}, len(flowIDs))
+	expected := make(util.Set[api.FlowID], len(flowIDs))
 	for _, flowID := range flowIDs {
-		expected[flowID] = struct{}{}
+		expected.Add(flowID)
 	}
 
 	filter := helpers.EventDataFilter(
@@ -394,8 +395,8 @@ func waitForFlowEvents(
 			return ev != nil && ev.Type == timebox.EventType(eventType)
 		},
 		func(data flowEvent) bool {
-			if _, ok := expected[data.FlowID]; ok {
-				delete(expected, data.FlowID)
+			if expected.Contains(data.FlowID) {
+				expected.Remove(data.FlowID)
 				return true
 			}
 			return false

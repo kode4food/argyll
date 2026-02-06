@@ -94,7 +94,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	}
 
 	hub := tb.GetHub()
-	eng := engine.New(engineStore, flowStore, mockCli, hub, cfg)
+	eng := engine.New(engineStore, flowStore, mockCli, cfg)
 
 	cleanup := func() {
 		_ = eng.Stop()
@@ -119,7 +119,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 // and mock client. Used to simulate process restart after crash
 func (e *TestEngineEnv) NewEngineInstance() *engine.Engine {
 	return engine.New(
-		e.engineStore, e.flowStore, e.MockClient, e.EventHub, e.Config,
+		e.engineStore, e.flowStore, e.MockClient, e.Config,
 	)
 }
 
@@ -129,7 +129,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 ) error {
 	_, err := e.flowExec.Exec(
 		context.Background(),
-		timebox.NewAggregateID(events.FlowPrefix, timebox.ID(flowID)),
+		events.FlowKey(flowID),
 		func(st *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
 			for _, ev := range evs {
 				if err := events.Raise(ag, ev.Type, ev.Data); err != nil {

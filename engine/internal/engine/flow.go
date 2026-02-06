@@ -54,7 +54,7 @@ func (e *Engine) GetFlowStateSeq(
 	flowID api.FlowID,
 ) (*api.FlowState, int64, error) {
 	var nextSeq int64
-	state, err := e.execFlow(flowKey(flowID),
+	state, err := e.execFlow(events.FlowKey(flowID),
 		func(st *api.FlowState, ag *FlowAggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil
@@ -264,8 +264,4 @@ func (tx *flowTx) checkWorkTransition(
 	}
 
 	return nil
-}
-
-func flowKey(flowID api.FlowID) timebox.AggregateID {
-	return timebox.NewAggregateID("flow", timebox.ID(flowID))
 }

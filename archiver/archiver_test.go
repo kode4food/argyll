@@ -226,14 +226,14 @@ func seedDeactivatedFlow(
 			api.FlowDeactivatedEvent{FlowID: flowID},
 		)
 	}
-	_, err := exec.Exec(context.Background(), events.EngineID, cmd)
+	_, err := exec.Exec(context.Background(), events.EngineKey, cmd)
 	assert.NoError(t, err)
 }
 
 func seedFlowEvents(
 	t *testing.T, store *timebox.Store, flowID api.FlowID,
 ) {
-	id := timebox.NewAggregateID("flow", timebox.ID(flowID))
+	id := events.FlowKey(flowID)
 	ev := &timebox.Event{
 		Timestamp:   time.Now(),
 		AggregateID: id,
@@ -250,7 +250,7 @@ func loadEngineState(t *testing.T, store *timebox.Store) *api.EngineState {
 	)
 	state, err := exec.Exec(
 		context.Background(),
-		events.EngineID,
+		events.EngineKey,
 		func(
 			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
 		) error {

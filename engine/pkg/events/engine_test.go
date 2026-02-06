@@ -30,10 +30,10 @@ func TestNewEngineState(t *testing.T) {
 
 func TestIsEngineEvent(t *testing.T) {
 	engineEvent := &timebox.Event{
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 	}
 	flowEvent := &timebox.Event{
-		AggregateID: timebox.NewAggregateID("flow", "test-flow"),
+		AggregateID: events.FlowKey("test-flow"),
 	}
 
 	assert.True(t, events.IsEngineEvent(engineEvent))
@@ -59,7 +59,7 @@ func TestStepRegistered(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
 		Data:        data,
 	}
@@ -96,7 +96,7 @@ func TestStepUnregistered(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeStepUnregistered),
 		Data:        data,
 	}
@@ -137,7 +137,7 @@ func TestStepUpdated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeStepUpdated),
 		Data:        data,
 	}
@@ -167,7 +167,7 @@ func TestStepHealthChanged(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeStepHealthChanged),
 		Data:        data,
 	}
@@ -197,7 +197,7 @@ func TestChangedWithError(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeStepHealthChanged),
 		Data:        data,
 	}
@@ -224,7 +224,7 @@ func TestFlowActivated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeFlowActivated),
 		Data:        data,
 	}
@@ -261,7 +261,7 @@ func TestFlowDeactivated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeFlowDeactivated),
 		Data:        data,
 	}
@@ -291,7 +291,7 @@ func TestFlowArchiving(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeFlowArchiving),
 		Data:        data,
 	}
@@ -325,7 +325,7 @@ func TestFlowArchived(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeFlowArchived),
 		Data:        data,
 	}
@@ -363,7 +363,7 @@ func TestFlowDigestUpdated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineID,
+		AggregateID: events.EngineKey,
 		Type:        timebox.EventType(api.EventTypeFlowDigestUpdated),
 		Data:        data,
 	}

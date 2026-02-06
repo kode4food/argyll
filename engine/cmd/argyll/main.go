@@ -29,6 +29,7 @@ type argyll struct {
 	stepClient  client.Client
 	engine      *engine.Engine
 	health      *server.HealthChecker
+	apiServer   *server.Server
 	httpServer  *http.Server
 	quit        chan os.Signal
 }
@@ -128,9 +129,7 @@ func (s *argyll) initializeEngine() {
 		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
 
-	s.engine = engine.New(
-		s.engineStore, s.flowStore, s.stepClient, s.timebox.GetHub(), s.cfg,
-	)
+	s.engine = engine.New(s.engineStore, s.flowStore, s.stepClient, s.cfg)
 	s.engine.Start()
 }
 
@@ -138,8 +137,8 @@ func (s *argyll) startServer() {
 	s.health = server.NewHealthChecker(s.engine, s.timebox.GetHub())
 	s.health.Start()
 
-	srv := server.NewServer(s.engine, s.timebox.GetHub())
-	mux := srv.SetupRoutes()
+	s.apiServer = server.NewServer(s.engine, s.timebox.GetHub())
+	mux := s.apiServer.SetupRoutes()
 
 	s.httpServer = &http.Server{
 		Addr:    fmt.Sprintf("%s:%d", s.cfg.APIHost, s.cfg.APIPort),
@@ -170,6 +169,7 @@ func (s *argyll) shutdown() {
 			log.Error(err))
 	}
 
+	s.apiServer.CloseWebSockets()
 	s.health.Stop()
 
 	if err := s.engine.Stop(); err != nil {

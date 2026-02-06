@@ -27,7 +27,7 @@ type (
 		scripts    *ScriptRegistry
 		retryQueue *RetryQueue
 		memoCache  *MemoCache
-		eventHub   *timebox.EventHub
+		taskRunner *TaskRunner
 	}
 
 	// Executor manages engine state persistence and event sourcing
@@ -57,8 +57,7 @@ var (
 // New creates a new orchestrator instance with the specified stores, client,
 // event hub, and configuration
 func New(
-	engine, flow *timebox.Store, client client.Client, hub *timebox.EventHub,
-	cfg *config.Config,
+	engine, flow *timebox.Store, client client.Client, cfg *config.Config,
 ) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
@@ -74,7 +73,7 @@ func New(
 		cancel:     cancel,
 		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
-		eventHub:   hub,
+		taskRunner: NewTaskRunner(),
 	}
 	e.scripts = NewScriptRegistry()
 
@@ -85,7 +84,7 @@ func New(
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
 
-	e.startProjection()
+	e.taskRunner.Start()
 
 	if err := e.RecoverFlows(); err != nil {
 		slog.Error("Failed to recover flows",
@@ -97,8 +96,9 @@ func (e *Engine) Start() {
 
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
-	e.cancel()
 	e.retryQueue.Stop()
+	e.taskRunner.Flush()
+	e.cancel()
 	e.saveEngineSnapshot()
 	slog.Info("Engine stopped")
 	return nil
@@ -132,15 +132,11 @@ func (e *Engine) StartFlow(
 		parentID, _ := api.GetMetaString[api.FlowID](
 			meta, api.MetaParentFlowID,
 		)
-		if err := events.Raise(tx.FlowAggregator,
-			api.EventTypeFlowActivated,
-			api.FlowActivatedEvent{
-				FlowID:       flowID,
-				ParentFlowID: parentID,
-			},
-		); err != nil {
-			return err
-		}
+		tx.OnSuccess(func(*api.FlowState) {
+			tx.EnqueueTask(func() {
+				e.handleFlowActivated(flowID, parentID)
+			})
+		})
 		if flowTransitions.IsTerminal(tx.Value().Status) {
 			return nil
 		}
@@ -200,97 +196,25 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	return steps, nil
 }
 
-func (e *Engine) startProjection() {
-	handlers := e.projectionHandlers()
-	consumer := e.eventHub.NewAggregateConsumer(
-		timebox.NewAggregateID(events.FlowPrefix),
-		handlerEventTypes(handlers)...,
-	)
-
-	go func() {
-		defer consumer.Close()
-		dispatch := events.MakeDispatcher(handlers)
-
-		for {
-			select {
-			case <-e.ctx.Done():
-				return
-			case ev, ok := <-consumer.Receive():
-				if !ok {
-					return
-				}
-				if ev == nil {
-					continue
-				}
-				if err := dispatch(ev); err != nil {
-					slog.Error("Engine projection failed",
-						slog.String("event_type", string(ev.Type)),
-						slog.String("aggregate_id", ev.AggregateID.Join("/")),
-						log.Error(err))
-				}
-			}
-		}
-	}()
-}
-
-func (e *Engine) projectionHandlers() map[api.EventType]timebox.Handler {
-	flowActivated := timebox.MakeHandler(e.handleFlowActivated)
-	flowDeactivated := timebox.MakeHandler(e.handleFlowDeactivated)
-	flowCompleted := timebox.MakeHandler(e.handleFlowCompleted)
-	flowFailed := timebox.MakeHandler(e.handleFlowFailed)
-
-	return map[api.EventType]timebox.Handler{
-		api.EventTypeFlowActivated:   flowActivated,
-		api.EventTypeFlowDeactivated: flowDeactivated,
-		api.EventTypeFlowCompleted:   flowCompleted,
-		api.EventTypeFlowFailed:      flowFailed,
+func (e *Engine) handleFlowActivated(flowID api.FlowID, parentID api.FlowID) {
+	if err := e.raiseEngineEvent(
+		api.EventTypeFlowActivated,
+		api.FlowActivatedEvent{
+			FlowID:       flowID,
+			ParentFlowID: parentID,
+		},
+	); err != nil {
+		slog.Error("Failed to emit FlowActivated",
+			log.FlowID(flowID),
+			log.Error(err))
 	}
-}
-
-func (e *Engine) handleFlowActivated(
-	_ *timebox.Event, data api.FlowActivatedEvent,
-) error {
-	return e.raiseEngineEvent(api.EventTypeFlowActivated, data)
-}
-
-func (e *Engine) handleFlowDeactivated(
-	_ *timebox.Event, data api.FlowDeactivatedEvent,
-) error {
-	return e.raiseEngineEvent(api.EventTypeFlowDeactivated, data)
-}
-
-func (e *Engine) handleFlowCompleted(
-	ev *timebox.Event, data api.FlowCompletedEvent,
-) error {
-	return e.raiseEngineEvent(
-		api.EventTypeFlowDigestUpdated,
-		api.FlowDigestUpdatedEvent{
-			FlowID:      data.FlowID,
-			Status:      api.FlowCompleted,
-			CompletedAt: ev.Timestamp,
-		},
-	)
-}
-
-func (e *Engine) handleFlowFailed(
-	ev *timebox.Event, data api.FlowFailedEvent,
-) error {
-	return e.raiseEngineEvent(
-		api.EventTypeFlowDigestUpdated,
-		api.FlowDigestUpdatedEvent{
-			FlowID:      data.FlowID,
-			Status:      api.FlowFailed,
-			CompletedAt: ev.Timestamp,
-			Error:       data.Error,
-		},
-	)
 }
 
 func (e *Engine) saveEngineSnapshot() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := e.engineExec.SaveSnapshot(ctx, events.EngineID); err != nil {
+	if err := e.engineExec.SaveSnapshot(ctx, events.EngineKey); err != nil {
 		slog.Error("Failed to save engine snapshot",
 			log.Error(err))
 		return
@@ -310,15 +234,9 @@ func (e *Engine) raiseEngineEvent(eventType api.EventType, data any) error {
 func (e *Engine) execEngine(
 	cmd timebox.Command[*api.EngineState],
 ) (*api.EngineState, error) {
-	return e.engineExec.Exec(e.ctx, events.EngineID, cmd)
+	return e.engineExec.Exec(e.ctx, events.EngineKey, cmd)
 }
 
-func handlerEventTypes(
-	handlers map[api.EventType]timebox.Handler,
-) []timebox.EventType {
-	eventTypes := make([]timebox.EventType, 0, len(handlers))
-	for eventType := range handlers {
-		eventTypes = append(eventTypes, timebox.EventType(eventType))
-	}
-	return eventTypes
+func (e *Engine) EnqueueTask(fn Task) {
+	e.taskRunner.Enqueue(fn)
 }

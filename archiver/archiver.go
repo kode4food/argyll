@@ -133,7 +133,7 @@ func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 
 	bg := context.Background()
 	for _, flowID := range flowIDs {
-		if err := a.flowStore.Archive(bg, flowKey(flowID)); err != nil {
+		if err := a.flowStore.Archive(bg, events.FlowKey(flowID)); err != nil {
 			slog.Warn("Failed to archive flow",
 				slog.String("flow_id", string(flowID)),
 				slog.String("error", err.Error()))
@@ -194,13 +194,13 @@ func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	}
 
 	bg := context.Background()
-	_, err := a.engineExec.Exec(bg, events.EngineID, cmd)
+	_, err := a.engineExec.Exec(bg, events.EngineKey, cmd)
 	return flowIDs, err
 }
 
 func (a *Archiver) raiseEngineEvent(eventType api.EventType, data any) error {
 	bg := context.Background()
-	_, err := a.engineExec.Exec(bg, events.EngineID,
+	_, err := a.engineExec.Exec(bg, events.EngineKey,
 		func(
 			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
 		) error {
@@ -243,10 +243,6 @@ func selectFlows(
 	}
 
 	return selected
-}
-
-func flowKey(flowID api.FlowID) timebox.AggregateID {
-	return timebox.NewAggregateID("flow", timebox.ID(flowID))
 }
 
 func parseMemoryInfo(info string) (used, max int64) {
