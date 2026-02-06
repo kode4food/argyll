@@ -84,7 +84,8 @@ func New(
 // Start begins processing flows and events
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
-	go e.startProjection()
+
+	e.startProjection()
 
 	if err := e.RecoverFlows(); err != nil {
 		slog.Error("Failed to recover flows",
@@ -205,28 +206,31 @@ func (e *Engine) startProjection() {
 		timebox.NewAggregateID(events.FlowPrefix),
 		handlerEventTypes(handlers)...,
 	)
-	defer consumer.Close()
-	dispatch := events.MakeDispatcher(handlers)
 
-	for {
-		select {
-		case <-e.ctx.Done():
-			return
-		case ev, ok := <-consumer.Receive():
-			if !ok {
+	go func() {
+		defer consumer.Close()
+		dispatch := events.MakeDispatcher(handlers)
+
+		for {
+			select {
+			case <-e.ctx.Done():
 				return
-			}
-			if ev == nil {
-				continue
-			}
-			if err := dispatch(ev); err != nil {
-				slog.Error("Engine projection failed",
-					slog.String("event_type", string(ev.Type)),
-					slog.String("aggregate_id", ev.AggregateID.Join("/")),
-					log.Error(err))
+			case ev, ok := <-consumer.Receive():
+				if !ok {
+					return
+				}
+				if ev == nil {
+					continue
+				}
+				if err := dispatch(ev); err != nil {
+					slog.Error("Engine projection failed",
+						slog.String("event_type", string(ev.Type)),
+						slog.String("aggregate_id", ev.AggregateID.Join("/")),
+						log.Error(err))
+				}
 			}
 		}
-	}
+	}()
 }
 
 func (e *Engine) projectionHandlers() map[api.EventType]timebox.Handler {
