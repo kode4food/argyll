@@ -486,9 +486,7 @@ func filterAggregate(id timebox.AggregateID) func(*timebox.Event) bool {
 	}
 }
 
-func filterEventTypes(
-	eventTypes ...api.EventType,
-) func(*timebox.Event) bool {
+func filterEventTypes(eventTypes ...api.EventType) func(*timebox.Event) bool {
 	if len(eventTypes) == 0 {
 		return func(*timebox.Event) bool { return false }
 	}
