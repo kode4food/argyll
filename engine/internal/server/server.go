@@ -24,8 +24,10 @@ type Server struct {
 	mu       sync.Mutex
 }
 
-// ErrGetEngineState is returned when the engine state cannot be retrieved
-var ErrGetEngineState = errors.New("failed to get engine state")
+var (
+	// ErrGetEngineState is returned when the engine state cannot be retrieved
+	ErrGetEngineState = errors.New("failed to get engine state")
+)
 
 // NewServer creates a new HTTP API server
 func NewServer(eng *engine.Engine, hub *timebox.EventHub) *Server {

@@ -18,12 +18,14 @@ type parentWork struct {
 }
 
 var (
+	ErrFlowOutputMissing = errors.New("flow output missing")
+)
+
+var (
 	getMetaFlowID = api.GetMetaString[api.FlowID]
 	getMetaStepID = api.GetMetaString[api.StepID]
 	getMetaToken  = api.GetMetaString[api.Token]
 )
-
-var ErrFlowOutputMissing = errors.New("flow output missing")
 
 func (e *Engine) StartChildFlow(
 	parent FlowStep, token api.Token, step *api.Step, initState api.Args,

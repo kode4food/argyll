@@ -21,12 +21,16 @@ type (
 		FlowID api.FlowID `json:"flow_id"`
 		StepID api.StepID `json:"step_id"`
 	}
+
+	predicate[T any] func(T) bool
+
+	eventFilter predicate[*timebox.Event]
 )
 
 // WaitForEvents waits for matching events from the consumer
 func WaitForEvents(
-	t *testing.T, consumer *timebox.Consumer, filter func(*timebox.Event) bool,
-	count int, timeout time.Duration,
+	t *testing.T, consumer *timebox.Consumer, filter eventFilter, count int,
+	timeout time.Duration,
 ) {
 	t.Helper()
 	defer consumer.Close()
@@ -53,33 +57,30 @@ func WaitForEvents(
 }
 
 // EventDataFilter creates a filter that unmarshals event data into T
-func EventDataFilter[T any](
-	typeFilter func(*timebox.Event) bool, predicate func(T) bool,
-) func(*timebox.Event) bool {
-	if predicate == nil {
-		predicate = func(T) bool { return true }
+func EventDataFilter[T any](filter eventFilter, pred predicate[T]) eventFilter {
+	if pred == nil {
+		pred = func(T) bool { return true }
 	}
 
 	return func(ev *timebox.Event) bool {
-		if !typeFilter(ev) {
+		if !filter(ev) {
 			return false
 		}
 		var data T
 		if json.Unmarshal(ev.Data, &data) != nil {
 			return false
 		}
-		return predicate(data)
+		return pred(data)
 	}
 }
 
 // WaitForEventData waits for matching event data for the given filter
 func WaitForEventData[T any](
-	t *testing.T, consumer *timebox.Consumer,
-	typeFilter func(*timebox.Event) bool,
-	predicate func(T) bool, count int, timeout time.Duration,
+	t *testing.T, consumer *timebox.Consumer, typeFilter eventFilter,
+	pred predicate[T], count int, timeout time.Duration,
 ) {
 	t.Helper()
-	filter := EventDataFilter(typeFilter, predicate)
+	filter := EventDataFilter(typeFilter, pred)
 	WaitForEvents(t, consumer, filter, count, timeout)
 }
 
@@ -317,8 +318,8 @@ func WaitForStepHealth(
 
 // WaitForEngineEvents waits for engine aggregate events of the given types
 func WaitForEngineEvents(
-	t *testing.T, consumer *timebox.Consumer, count int,
-	timeout time.Duration, eventTypes ...api.EventType,
+	t *testing.T, consumer *timebox.Consumer, count int, timeout time.Duration,
+	eventTypes ...api.EventType,
 ) {
 	t.Helper()
 	filter := func(ev *timebox.Event) bool {
@@ -465,7 +466,7 @@ func stepTerminal(status api.StepStatus) bool {
 
 func filterFlowEvents(
 	flowID api.FlowID, eventTypes ...api.EventType,
-) func(*timebox.Event) bool {
+) eventFilter {
 	typeFilter := filterEventTypes(eventTypes...)
 	return EventDataFilter(typeFilter, func(data flowEvent) bool {
 		return data.FlowID == flowID
@@ -474,20 +475,20 @@ func filterFlowEvents(
 
 func filterStepEvents(
 	flowID api.FlowID, stepID api.StepID, eventTypes ...api.EventType,
-) func(*timebox.Event) bool {
+) eventFilter {
 	typeFilter := filterEventTypes(eventTypes...)
 	return EventDataFilter(typeFilter, func(data stepEvent) bool {
 		return data.FlowID == flowID && data.StepID == stepID
 	})
 }
 
-func filterAggregate(id timebox.AggregateID) func(*timebox.Event) bool {
+func filterAggregate(id timebox.AggregateID) eventFilter {
 	return func(ev *timebox.Event) bool {
 		return ev != nil && ev.AggregateID.Equal(id)
 	}
 }
 
-func filterEventTypes(eventTypes ...api.EventType) func(*timebox.Event) bool {
+func filterEventTypes(eventTypes ...api.EventType) eventFilter {
 	if len(eventTypes) == 0 {
 		return func(*timebox.Event) bool { return false }
 	}

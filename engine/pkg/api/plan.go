@@ -32,7 +32,9 @@ type (
 	}
 )
 
-var ErrRequiredInputs = errors.New("required inputs not provided")
+var (
+	ErrRequiredInputs = errors.New("required inputs not provided")
+)
 
 // ValidateInputs checks that all required inputs are provided
 func (p *ExecutionPlan) ValidateInputs(args Args) error {

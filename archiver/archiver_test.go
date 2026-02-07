@@ -230,9 +230,7 @@ func seedDeactivatedFlow(
 	assert.NoError(t, err)
 }
 
-func seedFlowEvents(
-	t *testing.T, store *timebox.Store, flowID api.FlowID,
-) {
+func seedFlowEvents(t *testing.T, store *timebox.Store, flowID api.FlowID) {
 	id := events.FlowKey(flowID)
 	ev := &timebox.Event{
 		Timestamp:   time.Now(),

@@ -48,6 +48,10 @@ const (
 )
 
 var (
+	ErrInvalidAggregateID = errors.New("invalid aggregate_id")
+)
+
+var (
 	upgrader = websocket.Upgrader{
 		ReadBufferSize:  wsBufferSize,
 		WriteBufferSize: wsBufferSize,
@@ -97,17 +101,17 @@ func (s *Server) handleWebSocket(c *gin.Context) {
 				return s.engine.GetEngineStateSeq()
 			case events.FlowPrefix:
 				if len(id) < 2 {
-					return nil, 0, errors.New("invalid aggregate_id")
+					return nil, 0, ErrInvalidAggregateID
 				}
 				flowID := api.FlowID(id[1])
 				return s.engine.GetFlowStateSeq(flowID)
 			default:
-				return nil, 0, errors.New("invalid aggregate_id")
+				return nil, 0, ErrInvalidAggregateID
 			}
 		},
-		func(client *Client) {
-			client.onClose = s.unregisterWebSocket
-			s.registerWebSocket(client)
+		func(c *Client) {
+			c.onClose = s.unregisterWebSocket
+			s.registerWebSocket(c)
 		},
 	)
 }

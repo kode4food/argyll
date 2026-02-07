@@ -2,24 +2,19 @@ package log
 
 import "log/slog"
 
-// str captures types whose underlying type is string (e.g., custom ID types)
-type str interface {
-	~string
-}
-
-func FlowID[T str](id T) slog.Attr {
+func FlowID[T ~string](id T) slog.Attr {
 	return slog.String("flow_id", string(id))
 }
 
-func StepID[T str](id T) slog.Attr {
+func StepID[T ~string](id T) slog.Attr {
 	return slog.String("step_id", string(id))
 }
 
-func Status[T str](status T) slog.Attr {
+func Status[T ~string](status T) slog.Attr {
 	return slog.String("status", string(status))
 }
 
-func Token[T str](token T) slog.Attr {
+func Token[T ~string](token T) slog.Attr {
 	return slog.String("token", string(token))
 }
 
