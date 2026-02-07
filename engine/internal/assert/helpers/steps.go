@@ -57,8 +57,7 @@ func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
 	return step
 }
 
-// NewSimpleStep creates a minimal HTTP step with the specified ID and no
-// attributes
+// NewSimpleStep creates a minimal HTTP step with the specified ID
 func NewSimpleStep(id api.StepID) *api.Step {
 	return &api.Step{
 		ID:         id,

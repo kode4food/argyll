@@ -14,8 +14,8 @@ import (
 )
 
 type (
-	// Client provides functionality for interacting with the orchestrator
-	// API, including step registration, flow management, and state queries
+	// Client provides functionality for interacting with the orchestrator API,
+	// including step registration, flow management, and state queries
 	Client struct {
 		httpClient *http.Client
 		baseURL    string

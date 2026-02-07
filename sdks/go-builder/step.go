@@ -335,9 +335,8 @@ func (s *Step) Update() *Step {
 	return &res
 }
 
-// Start builds the step, registers it with the engine, creates an HTTP server,
-// and starts handling requests. Automatically registers the step before
-// starting the server
+// Start builds and registers the step, creates an HTTP server, and starts
+// handling requests
 func (s *Step) Start(handler StepHandler) error {
 	if s.client == nil {
 		return errors.New("step not created from client")

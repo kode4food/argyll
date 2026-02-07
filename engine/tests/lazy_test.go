@@ -68,8 +68,8 @@ func TestLazyEvaluation(t *testing.T) {
 		env.MockClient.SetResponse("step-i", api.Args{"valueI": "from-I"})
 		env.MockClient.SetResponse("step-j", api.Args{"valueJ": "from-J"})
 
-		// Create execution plan with ONLY the steps needed to reach goal
-		// This simulates the lazy evaluation - plan only includes A→B→C
+		// Create execution plan with ONLY the steps needed to reach goal. This
+		// simulates the lazy evaluation - plan only includes A→B→C
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c"},
 			Steps: api.Steps{

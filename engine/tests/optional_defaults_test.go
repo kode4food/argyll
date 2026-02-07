@@ -18,8 +18,8 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
 
-		// Step B: Requires "valueA", has optional "config" input with
-		// default, produces "result"
+		// Step B: Requires "valueA", has optional "config" input with default,
+		// produces "result"
 		stepB := helpers.NewTestStepWithArgs(
 			[]api.Name{"valueA"},
 			[]api.Name{"config"},

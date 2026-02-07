@@ -42,8 +42,7 @@ func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 	}, nil
 }
 
-// Success marks the async step as successfully completed with the given
-// outputs
+// Success marks an async step as successfully completed with the given outputs
 func (c *AsyncContext) Success(outputs api.Args) error {
 	result := api.StepResult{
 		Success: true,
