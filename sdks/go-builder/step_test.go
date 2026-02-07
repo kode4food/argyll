@@ -407,7 +407,8 @@ func TestImmutability(t *testing.T) {
 }
 
 func TestImmutabilityMaps(t *testing.T) {
-	base := testClient().NewStep().WithName("Test").WithEndpoint("http://example.com")
+	base := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com")
 
 	builder1 := base.Required("arg1", api.TypeString)
 	builder2 := base.Required("arg2", api.TypeNumber)

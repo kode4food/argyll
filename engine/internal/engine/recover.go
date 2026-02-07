@@ -96,8 +96,8 @@ func (e *Engine) RecoverFlows() error {
 	return nil
 }
 
-// RecoverFlow resumes execution of a specific flow by queuing any pending
-// work items for retry
+// RecoverFlow resumes execution of a specific flow by queuing any pending work
+// items for retry
 func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	flow, err := e.GetFlowState(flowID)
 	if err != nil {

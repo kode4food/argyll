@@ -11,9 +11,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// AsyncContext provides functionality for managing asynchronous step
-// execution. It embeds StepContext and adds the webhook URL for result
-// delivery
+// AsyncContext provides functionality to manage asynchronous step execution.
+// It embeds StepContext and adds the webhook URL for result delivery
 type AsyncContext struct {
 	*StepContext
 	webhookURL string

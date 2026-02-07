@@ -228,8 +228,8 @@ func (e *EngineState) AddDeactivated(info *DeactivatedFlow) *EngineState {
 	return &res
 }
 
-// RemoveDeactivated returns a new EngineState with the flow removed from
-// the deactivated list (typically after archiving)
+// RemoveDeactivated returns a new EngineState with the flow removed from the
+// deactivated list (typically after archiving)
 func (e *EngineState) RemoveDeactivated(id FlowID) *EngineState {
 	idx := -1
 	for i, info := range e.Deactivated {
@@ -246,8 +246,8 @@ func (e *EngineState) RemoveDeactivated(id FlowID) *EngineState {
 	return &res
 }
 
-// AddArchiving returns a new EngineState with the flow added to the
-// archiving map. Existing entries for the flow are replaced
+// AddArchiving returns a new EngineState with the flow added to the archiving
+// map. Existing entries for the flow are replaced
 func (e *EngineState) AddArchiving(id FlowID, at time.Time) *EngineState {
 	if existing, ok := e.Archiving[id]; ok && existing.Equal(at) {
 		return e
@@ -258,8 +258,8 @@ func (e *EngineState) AddArchiving(id FlowID, at time.Time) *EngineState {
 	return &res
 }
 
-// RemoveArchiving returns a new EngineState with the flow removed from
-// the archiving map
+// RemoveArchiving returns a new EngineState with the flow removed from the
+// archiving map
 func (e *EngineState) RemoveArchiving(id FlowID) *EngineState {
 	if _, ok := e.Archiving[id]; !ok {
 		return e

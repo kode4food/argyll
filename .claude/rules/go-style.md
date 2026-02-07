@@ -222,7 +222,7 @@ type FlowId string
 
 ### Line Width
 
-Maximum 80 characters per line (tabs count as 4 spaces). Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When you must wrap, break after the opening paren:
+Maximum 80 characters per line (tabs count as 4 spaces). This applies to code *and* comments. Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When wrapping function signatures or call arguments, pack as many arguments per line as will fit under the limit before wrapping again. When you must wrap, break after the opening paren:
 
 ```go
 func NewArchiveWorker(

@@ -173,8 +173,8 @@ func TestHookCompleteTwice(t *testing.T) {
 		)
 		assert.Equal(t, api.StepCompleted, exec.Status)
 
-		// Second webhook call with same token should be rejected (400)
-		// due to invalid work state transition
+		// Second webhook call with same token should be rejected (400) due to
+		// invalid work state transition
 		result = api.StepResult{
 			Success: true,
 			Outputs: api.Args{"output": "value2"},
@@ -197,7 +197,9 @@ func TestHookCompleteTwice(t *testing.T) {
 		err = json.NewDecoder(w.Body).Decode(&respErr)
 		assert.NoError(t, err)
 		// Error wrapped with typed error will contain the base error message
-		assert.Contains(t, respErr.Error, engine.ErrInvalidWorkTransition.Error())
+		assert.Contains(t,
+			respErr.Error, engine.ErrInvalidWorkTransition.Error(),
+		)
 	})
 }
 

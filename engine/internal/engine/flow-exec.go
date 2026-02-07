@@ -33,9 +33,9 @@ func (e *Engine) flowTx(flowID api.FlowID, fn func(*flowTx) error) error {
 	return err
 }
 
-// prepareStep validates and prepares a step for execution within a
-// transaction, raising the StepStarted event via aggregator and scheduling
-// work execution after commit
+// prepareStep validates and prepares a step to execute within a transaction,
+// raising the StepStarted event via aggregator and scheduling work execution
+// after commit
 func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	flow := tx.Value()
 
