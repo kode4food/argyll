@@ -140,8 +140,14 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.EnqueueTask(tx.handleFlowCompleted)
 			tx.retryQueue.RemoveFlow(tx.flowID)
+			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
+				api.FlowDigestUpdatedEvent{
+					FlowID:      tx.flowID,
+					Status:      api.FlowCompleted,
+					CompletedAt: time.Now(),
+				},
+			)
 		})
 		return tx.maybeDeactivate()
 	}
@@ -156,10 +162,15 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.EnqueueTask(func() {
-				tx.handleFlowFailed(errMsg)
-			})
 			tx.retryQueue.RemoveFlow(tx.flowID)
+			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
+				api.FlowDigestUpdatedEvent{
+					FlowID:      tx.flowID,
+					Status:      api.FlowFailed,
+					CompletedAt: time.Now(),
+					Error:       errMsg,
+				},
+			)
 		})
 		return tx.maybeDeactivate()
 	}
@@ -707,49 +718,12 @@ func (tx *flowTx) maybeDeactivate() error {
 		return nil
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		tx.EnqueueTask(func() {
-			tx.handleFlowDeactivated(flow)
-		})
+		tx.completeParentWork(flow)
+		tx.EnqueueEvent(api.EventTypeFlowDeactivated,
+			api.FlowDeactivatedEvent{FlowID: tx.flowID},
+		)
 	})
 	return nil
-}
-
-func (tx *flowTx) handleFlowCompleted() {
-	tx.raiseFlowDigestUpdated(api.FlowCompleted, "")
-	tx.retryQueue.RemoveFlow(tx.flowID)
-}
-
-func (tx *flowTx) handleFlowFailed(errMsg string) {
-	tx.raiseFlowDigestUpdated(api.FlowFailed, errMsg)
-	tx.retryQueue.RemoveFlow(tx.flowID)
-}
-
-func (tx *flowTx) raiseFlowDigestUpdated(status api.FlowStatus, errMsg string) {
-	if err := tx.raiseEngineEvent(
-		api.EventTypeFlowDigestUpdated,
-		api.FlowDigestUpdatedEvent{
-			FlowID:      tx.flowID,
-			Status:      status,
-			CompletedAt: time.Now(),
-			Error:       errMsg,
-		},
-	); err != nil {
-		slog.Error("Failed to emit FlowDigestUpdated",
-			log.FlowID(tx.flowID),
-			log.Error(err))
-	}
-}
-
-func (tx *flowTx) handleFlowDeactivated(flow *api.FlowState) {
-	tx.completeParentWork(flow)
-	if err := tx.raiseEngineEvent(
-		api.EventTypeFlowDeactivated,
-		api.FlowDeactivatedEvent{FlowID: tx.flowID},
-	); err != nil {
-		slog.Error("Failed to emit FlowDeactivated",
-			log.FlowID(tx.flowID),
-			log.Error(err))
-	}
 }
 
 func (tx *flowTx) handleRetryScheduled(

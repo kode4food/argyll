@@ -381,7 +381,7 @@ func metaToken(meta api.Metadata) api.Token {
 
 func waitForFlowEvents(
 	t *testing.T, consumer *timebox.Consumer, timeout time.Duration,
-	eventType api.EventType, flowIDs ...api.FlowID,
+	typ api.EventType, flowIDs ...api.FlowID,
 ) {
 	t.Helper()
 
@@ -392,7 +392,7 @@ func waitForFlowEvents(
 
 	filter := helpers.EventDataFilter(
 		func(ev *timebox.Event) bool {
-			return ev != nil && ev.Type == timebox.EventType(eventType)
+			return ev != nil && ev.Type == timebox.EventType(typ)
 		},
 		func(data flowEvent) bool {
 			if expected.Contains(data.FlowID) {

@@ -198,13 +198,13 @@ func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	return flowIDs, err
 }
 
-func (a *Archiver) raiseEngineEvent(eventType api.EventType, data any) error {
+func (a *Archiver) raiseEngineEvent(typ api.EventType, data any) error {
 	bg := context.Background()
 	_, err := a.engineExec.Exec(bg, events.EngineKey,
 		func(
 			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
 		) error {
-			return timebox.Raise(ag, timebox.EventType(eventType), data)
+			return timebox.Raise(ag, timebox.EventType(typ), data)
 		},
 	)
 	return err

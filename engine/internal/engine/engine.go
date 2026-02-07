@@ -27,7 +27,7 @@ type (
 		scripts    *ScriptRegistry
 		retryQueue *RetryQueue
 		memoCache  *MemoCache
-		taskRunner *TaskRunner
+		eventQueue *EventQueue
 	}
 
 	// Executor manages engine state persistence and event sourcing
@@ -73,8 +73,8 @@ func New(
 		cancel:     cancel,
 		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
-		taskRunner: NewTaskRunner(),
 	}
+	e.eventQueue = NewEventQueue(e.raiseEngineEvent)
 	e.scripts = NewScriptRegistry()
 
 	return e
@@ -84,7 +84,7 @@ func New(
 func (e *Engine) Start() {
 	slog.Info("Engine starting")
 
-	e.taskRunner.Start()
+	e.eventQueue.Start()
 
 	if err := e.RecoverFlows(); err != nil {
 		slog.Error("Failed to recover flows",
@@ -97,7 +97,7 @@ func (e *Engine) Start() {
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
 	e.retryQueue.Stop()
-	e.taskRunner.Flush()
+	e.eventQueue.Flush()
 	e.cancel()
 	e.saveEngineSnapshot()
 	slog.Info("Engine stopped")
@@ -133,9 +133,12 @@ func (e *Engine) StartFlow(
 			meta, api.MetaParentFlowID,
 		)
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.EnqueueTask(func() {
-				e.handleFlowActivated(flowID, parentID)
-			})
+			tx.EnqueueEvent(api.EventTypeFlowActivated,
+				api.FlowActivatedEvent{
+					FlowID:       flowID,
+					ParentFlowID: parentID,
+				},
+			)
 		})
 		if flowTransitions.IsTerminal(tx.Value().Status) {
 			return nil
@@ -196,18 +199,9 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	return steps, nil
 }
 
-func (e *Engine) handleFlowActivated(flowID api.FlowID, parentID api.FlowID) {
-	if err := e.raiseEngineEvent(
-		api.EventTypeFlowActivated,
-		api.FlowActivatedEvent{
-			FlowID:       flowID,
-			ParentFlowID: parentID,
-		},
-	); err != nil {
-		slog.Error("Failed to emit FlowActivated",
-			log.FlowID(flowID),
-			log.Error(err))
-	}
+// EnqueueEvent schedules an engine aggregate event for sequential processing
+func (e *Engine) EnqueueEvent(typ api.EventType, data any) {
+	e.eventQueue.Enqueue(typ, data)
 }
 
 func (e *Engine) saveEngineSnapshot() {
@@ -222,10 +216,10 @@ func (e *Engine) saveEngineSnapshot() {
 	slog.Info("Engine snapshot saved")
 }
 
-func (e *Engine) raiseEngineEvent(eventType api.EventType, data any) error {
+func (e *Engine) raiseEngineEvent(typ api.EventType, data any) error {
 	_, err := e.execEngine(
 		func(st *api.EngineState, ag *Aggregator) error {
-			return events.Raise(ag, eventType, data)
+			return events.Raise(ag, typ, data)
 		},
 	)
 	return err
@@ -235,8 +229,4 @@ func (e *Engine) execEngine(
 	cmd timebox.Command[*api.EngineState],
 ) (*api.EngineState, error) {
 	return e.engineExec.Exec(e.ctx, events.EngineKey, cmd)
-}
-
-func (e *Engine) EnqueueTask(fn Task) {
-	e.taskRunner.Enqueue(fn)
 }
