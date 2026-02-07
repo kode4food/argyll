@@ -17,7 +17,9 @@ type (
 		cons      topic.Consumer[event]
 		handler   EventHandler
 		stop      chan struct{}
+		wg        sync.WaitGroup
 		startOnce sync.Once
+		flushOnce sync.Once
 		stopOnce  sync.Once
 	}
 
@@ -32,23 +34,21 @@ type (
 // NewEventQueue creates a new engine event queue
 func NewEventQueue(handler EventHandler) *EventQueue {
 	queue := caravan.NewTopic[event]()
-	tr := &EventQueue{
+	return &EventQueue{
 		prod:    queue.NewProducer(),
 		cons:    queue.NewConsumer(),
 		handler: handler,
 		stop:    make(chan struct{}),
 	}
-	return tr
 }
 
 // Start begins processing queued engine events
 func (t *EventQueue) Start() {
 	t.startOnce.Do(func() {
-		go func() {
+		t.wg.Go(func() {
 			for {
 				select {
 				case <-t.stop:
-					t.flush()
 					return
 				case ev, ok := <-t.cons.Receive():
 					if !ok {
@@ -57,7 +57,7 @@ func (t *EventQueue) Start() {
 					t.handleEvent(ev)
 				}
 			}
-		}()
+		})
 	})
 }
 
@@ -74,6 +74,8 @@ func (t *EventQueue) Flush() {
 	t.stopOnce.Do(func() {
 		close(t.stop)
 	})
+	t.wg.Wait()
+	t.flushOnce.Do(t.flush)
 }
 
 func (t *EventQueue) flush() {
