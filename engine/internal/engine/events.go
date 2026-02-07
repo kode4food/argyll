@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/kode4food/caravan"
-	"github.com/kode4food/caravan/message"
 	"github.com/kode4food/caravan/topic"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -14,29 +13,26 @@ import (
 type (
 	// EventQueue executes queued engine events sequentially
 	EventQueue struct {
-		queue    topic.Topic[Event]
-		prod     topic.Producer[Event]
-		cons     topic.Consumer[Event]
-		handler  EventHandler
-		stop     chan struct{}
-		stopOnce sync.Once
-		started  sync.Once
-		runWG    sync.WaitGroup
+		prod      topic.Producer[event]
+		cons      topic.Consumer[event]
+		handler   EventHandler
+		stop      chan struct{}
+		startOnce sync.Once
+		stopOnce  sync.Once
 	}
 
 	EventHandler func(api.EventType, any) error
 
-	Event struct {
-		eventType api.EventType
-		data      any
+	event struct {
+		typ  api.EventType
+		data any
 	}
 )
 
 // NewEventQueue creates a new engine event queue
 func NewEventQueue(handler EventHandler) *EventQueue {
-	queue := caravan.NewTopic[Event]()
+	queue := caravan.NewTopic[event]()
 	tr := &EventQueue{
-		queue:   queue,
 		prod:    queue.NewProducer(),
 		cons:    queue.NewConsumer(),
 		handler: handler,
@@ -47,32 +43,30 @@ func NewEventQueue(handler EventHandler) *EventQueue {
 
 // Start begins processing queued engine events
 func (t *EventQueue) Start() {
-	t.started.Do(func() {
-		t.runWG.Go(func() {
+	t.startOnce.Do(func() {
+		go func() {
 			for {
 				select {
 				case <-t.stop:
+					t.flush()
 					return
 				case ev, ok := <-t.cons.Receive():
 					if !ok {
 						return
 					}
-					t.runTask(ev)
+					t.handleEvent(ev)
 				}
 			}
-		})
+		}()
 	})
 }
 
 // Enqueue adds an engine event to the queue
 func (t *EventQueue) Enqueue(typ api.EventType, data any) {
-	if typ == "" {
-		return
+	t.prod.Send() <- event{
+		typ:  typ,
+		data: data,
 	}
-	message.Send(t.prod, Event{
-		eventType: typ,
-		data:      data,
-	})
 }
 
 // Flush waits for queued events to complete and stops the queue
@@ -80,34 +74,39 @@ func (t *EventQueue) Flush() {
 	t.stopOnce.Do(func() {
 		close(t.stop)
 	})
-	t.runWG.Wait()
+}
+
+func (t *EventQueue) flush() {
 	for {
 		select {
 		case ev, ok := <-t.cons.Receive():
 			if !ok {
-				t.prod.Close()
-				t.cons.Close()
+				t.close()
 				return
 			}
-			t.runTask(ev)
+			t.handleEvent(ev)
 		default:
-			t.prod.Close()
-			t.cons.Close()
+			t.close()
 			return
 		}
 	}
 }
 
-func (t *EventQueue) runTask(ev Event) {
+func (t *EventQueue) close() {
+	t.prod.Close()
+	t.cons.Close()
+}
+
+func (t *EventQueue) handleEvent(ev event) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Engine event panic",
 				slog.Any("panic", r))
 		}
 	}()
-	if err := t.handler(ev.eventType, ev.data); err != nil {
+	if err := t.handler(ev.typ, ev.data); err != nil {
 		slog.Error("Failed to raise engine event",
-			slog.String("event_type", string(ev.eventType)),
+			slog.String("event_type", string(ev.typ)),
 			slog.Any("error", err))
 	}
 }
