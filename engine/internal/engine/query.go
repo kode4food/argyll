@@ -30,7 +30,9 @@ type (
 
 // ListFlows returns summary information for active and deactivated flows
 func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
-	resp, err := e.QueryFlows(nil)
+	resp, err := e.QueryFlows(&api.QueryFlowsRequest{
+		Sort: api.FlowSortRecentDesc,
+	})
 	if err != nil {
 		return nil, err
 	}

@@ -96,9 +96,7 @@ func (s *Server) queryFlows(c *gin.Context) {
 }
 
 func (s *Server) listFlows(c *gin.Context) {
-	resp, err := s.engine.QueryFlows(&api.QueryFlowsRequest{
-		Sort: api.FlowSortRecentDesc,
-	})
+	resp, err := s.engine.ListFlows()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrQueryFlows, err),

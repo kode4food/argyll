@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -207,5 +208,37 @@ func TestPendingUnusedSkip(t *testing.T) {
 			"outputs not needed", flow.Executions[providerB.ID].Error,
 		)
 		assert.Equal(t, api.StepCompleted, flow.Executions[consumer.ID].Status)
+	})
+}
+
+func TestMemoizableStepUsesCache(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewTestStep()
+		step.Memoizable = true
+		assert.NoError(t, env.Engine.RegisterStep(step))
+
+		env.MockClient.SetResponse(step.ID, api.Args{"output": "cached"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		assert.NoError(t, env.Engine.StartFlow("wf-memo-1", plan,
+			flowopt.WithInit(api.Args{"input": "value"}),
+		))
+		flow := env.WaitForFlowStatus(t, "wf-memo-1", testTimeout)
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+
+		assert.NoError(t, env.Engine.StartFlow("wf-memo-2", plan,
+			flowopt.WithInit(api.Args{"input": "value"}),
+		))
+		flow = env.WaitForFlowStatus(t, "wf-memo-2", testTimeout)
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+
+		invocations := env.MockClient.GetInvocations()
+		assert.Len(t, invocations, 1)
 	})
 }
