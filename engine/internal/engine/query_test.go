@@ -52,6 +52,36 @@ func TestQueryFlows(t *testing.T) {
 	})
 }
 
+func TestListFlows(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("list-step")
+
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		consumer := env.EventHub.NewConsumer()
+
+		err = env.Engine.StartFlow("wf-listflows", plan)
+		assert.NoError(t, err)
+
+		helpers.WaitForFlowActivated(t,
+			consumer, queryTimeout, "wf-listflows",
+		)
+
+		flows, err := env.Engine.ListFlows()
+		assert.NoError(t, err)
+		assert.NotEmpty(t, flows)
+	})
+}
+
 func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()

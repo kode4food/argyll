@@ -10,6 +10,30 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+type registryTestEnv struct{}
+
+func (r registryTestEnv) Validate(*api.Step, string) error {
+	return nil
+}
+
+func (r registryTestEnv) Compile(
+	*api.Step, *api.ScriptConfig,
+) (engine.Compiled, error) {
+	return "compiled", nil
+}
+
+func (r registryTestEnv) ExecuteScript(
+	engine.Compiled, *api.Step, api.Args,
+) (api.Args, error) {
+	return api.Args{}, nil
+}
+
+func (r registryTestEnv) EvaluatePredicate(
+	engine.Compiled, *api.Step, api.Args,
+) (bool, error) {
+	return true, nil
+}
+
 func TestAleCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := engine.NewScriptRegistry()
@@ -369,4 +393,15 @@ func TestLuaInvalidSyntax(t *testing.T) {
 		_, err = env.Compile(step, step.Script)
 		assert.Error(t, err)
 	})
+}
+
+func TestScriptRegistryRegister(t *testing.T) {
+	registry := engine.NewScriptRegistry()
+	env := registryTestEnv{}
+
+	registry.Register("test", env)
+
+	got, err := registry.Get("test")
+	assert.NoError(t, err)
+	assert.Equal(t, env, got)
 }

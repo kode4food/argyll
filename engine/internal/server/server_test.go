@@ -622,6 +622,63 @@ func TestQueryFlowsEmpty(t *testing.T) {
 	})
 }
 
+func TestListFlowsEndpoint(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		testEnv.Engine.Start()
+		defer func() { _ = testEnv.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("list-step")
+		err := testEnv.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		err = testEnv.Engine.StartFlow("wf-list", plan)
+		assert.NoError(t, err)
+
+		consumer := testEnv.EventHub.NewConsumer()
+		helpers.WaitForFlowActivated(t,
+			consumer, 5*time.Second, "wf-list",
+		)
+
+		req := httptest.NewRequest("GET", "/engine/flow", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response []*api.QueryFlowsItem
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.NotEmpty(t, response)
+	})
+}
+
+func TestQueryFlowsInvalidStatuses(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		reqBody := map[string]any{
+			"statuses": []string{"nope"},
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid statuses")
+	})
+}
+
 func TestBasicHealthEndpoint(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest("GET", "/health", nil)

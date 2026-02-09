@@ -156,6 +156,45 @@ func TestGetAttributes(t *testing.T) {
 	})
 }
 
+func TestGetAttribute(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("attr-step")
+		step.Attributes = api.AttributeSpecs{
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		testify.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+			Attributes: api.AttributeGraph{
+				"result": {
+					Providers: []api.StepID{step.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		err := env.Engine.StartFlow("wf-attr", plan)
+		testify.NoError(t, err)
+
+		flow := env.WaitForFlowStatus(t, "wf-attr", testTimeout)
+		testify.Equal(t, api.FlowCompleted, flow.Status)
+
+		value, ok, err := env.Engine.GetAttribute("wf-attr", "result")
+		testify.NoError(t, err)
+		testify.True(t, ok)
+		testify.Equal(t, "ok", value)
+
+		_, ok, err = env.Engine.GetAttribute("wf-attr", "missing")
+		testify.NoError(t, err)
+		testify.False(t, ok)
+	})
+}
+
 func TestDuplicateFirstWins(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
