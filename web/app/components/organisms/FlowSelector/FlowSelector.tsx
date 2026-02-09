@@ -171,13 +171,8 @@ const FlowSelectorContent: React.FC = () => {
   const t = useT();
   const navigate = useNavigate();
   useFlowFromUrl();
-  const {
-    flows,
-    selectedFlow,
-    flowsHasMore,
-    flowsLoading,
-    loadMoreFlows,
-  } = useFlowSession();
+  const { flows, selectedFlow, flowsHasMore, flowsLoading, loadMoreFlows } =
+    useFlowSession();
   const { showCreateForm, setShowCreateForm } = useUI();
   const { setNewID } = useFlowCreation();
 

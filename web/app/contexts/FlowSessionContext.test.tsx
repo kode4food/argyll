@@ -4,13 +4,17 @@ import { FlowSessionProvider, useFlowSession } from "./FlowSessionContext";
 jest.mock("../store/flowStore", () => {
   const loadSteps = jest.fn().mockResolvedValue(undefined);
   const loadFlows = jest.fn().mockResolvedValue(undefined);
+  const loadMoreFlows = jest.fn().mockResolvedValue(undefined);
   return {
     useSelectedFlow: jest.fn(() => "wf-1"),
     useFlowStore: jest.fn(() => ({ selectFlow: jest.fn() })),
     useLoadFlows: jest.fn(() => loadFlows),
+    useLoadMoreFlows: jest.fn(() => loadMoreFlows),
     useLoadSteps: jest.fn(() => loadSteps),
     useSteps: jest.fn(() => [{ id: "s1" }]),
     useFlows: jest.fn(() => [{ id: "wf-1" }]),
+    useFlowsHasMore: jest.fn(() => false),
+    useFlowsLoading: jest.fn(() => false),
     useUpdateFlowStatus: jest.fn(() => jest.fn()),
     useFlowData: jest.fn(() => ({ id: "wf-1" })),
     useFlowLoading: jest.fn(() => false),
@@ -20,6 +24,7 @@ jest.mock("../store/flowStore", () => {
     useFlowError: jest.fn(() => null),
     __loadSteps: loadSteps,
     __loadFlows: loadFlows,
+    __loadMoreFlows: loadMoreFlows,
   };
 });
 

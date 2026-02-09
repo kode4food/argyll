@@ -63,9 +63,7 @@ export class ArgyllApi {
     return response.data;
   }
 
-  async queryFlows(
-    request: QueryFlowsRequest
-  ): Promise<QueryFlowsResponse> {
+  async queryFlows(request: QueryFlowsRequest): Promise<QueryFlowsResponse> {
     const response = await this.client.post("/engine/flow/query", request);
     return response.data;
   }
