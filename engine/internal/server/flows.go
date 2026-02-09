@@ -10,31 +10,117 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 var (
-	ErrListFlows           = errors.New("failed to list flows")
+	ErrQueryFlows          = errors.New("failed to query flows")
 	ErrGetFlow             = errors.New("failed to get flow")
 	ErrCreateExecutionPlan = errors.New("failed to create execution plan")
 )
 
 var invalidFlowIDChars = regexp.MustCompile(`[^a-zA-Z0-9_.\-+ ]`)
 
-func (s *Server) listFlows(c *gin.Context) {
-	flows, err := s.engine.ListFlows()
+func (s *Server) queryFlows(c *gin.Context) {
+	var req api.QueryFlowsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrInvalidJSON, err),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	if req.IDPrefix != "" && invalidFlowIDChars.MatchString(req.IDPrefix) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid ID prefix",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	if req.Limit < 0 {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid limit",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	if req.Sort != "" &&
+		req.Sort != api.FlowSortRecentDesc &&
+		req.Sort != api.FlowSortRecentAsc {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid sort",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	for key, value := range req.Labels {
+		if key == "" || value == "" {
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Error:  "Invalid labels",
+				Status: http.StatusBadRequest,
+			})
+			return
+		}
+	}
+
+	if !validFlowStatuses(req.Statuses) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid statuses",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	resp, err := s.engine.QueryFlows(&req)
 	if err != nil {
+		if errors.Is(err, engine.ErrInvalidFlowCursor) {
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Error:  err.Error(),
+				Status: http.StatusBadRequest,
+			})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrListFlows, err),
+			Error:  fmt.Sprintf("%s: %v", ErrQueryFlows, err),
 			Status: http.StatusInternalServerError,
 		})
 		return
 	}
 
-	c.JSON(http.StatusOK, api.FlowsListResponse{
-		Flows: flows,
-		Count: len(flows),
+	c.JSON(http.StatusOK, resp)
+}
+
+func (s *Server) listFlows(c *gin.Context) {
+	resp, err := s.engine.QueryFlows(&api.QueryFlowsRequest{
+		Sort: api.FlowSortRecentDesc,
 	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrQueryFlows, err),
+			Status: http.StatusInternalServerError,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+func validFlowStatuses(statuses []api.FlowStatus) bool {
+	if len(statuses) == 0 {
+		return true
+	}
+	for _, status := range statuses {
+		if status != api.FlowActive &&
+			status != api.FlowCompleted &&
+			status != api.FlowFailed {
+			return false
+		}
+	}
+	return true
 }
 
 func (s *Server) startFlow(c *gin.Context) {
@@ -69,8 +155,14 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	meta := api.Metadata{}
-	err := s.engine.StartFlow(flowID, plan, req.Init, meta)
+	var apps []flowopt.Applier
+	if req.Init != nil {
+		apps = append(apps, flowopt.WithInit(req.Init))
+	}
+	if len(req.Labels) > 0 {
+		apps = append(apps, flowopt.WithLabels(req.Labels))
+	}
+	err := s.engine.StartFlow(flowID, plan, apps...)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FlowStartedResponse{
 			FlowID: flowID,
@@ -94,9 +186,9 @@ func (s *Server) startFlow(c *gin.Context) {
 func (s *Server) getFlow(c *gin.Context) {
 	flowID := api.FlowID(c.Param("flowID"))
 
-	flow, err := s.engine.GetFlowState(flowID)
+	fl, err := s.engine.GetFlowState(flowID)
 	if err == nil {
-		c.JSON(http.StatusOK, flow)
+		c.JSON(http.StatusOK, fl)
 		return
 	}
 

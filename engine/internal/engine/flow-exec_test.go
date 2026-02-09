@@ -57,9 +57,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow(
-			"wf-linear", plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-linear", plan)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-linear", testTimeout)
@@ -125,9 +123,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow(
-			"wf-undeclared-outputs", plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-undeclared-outputs", plan)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-undeclared-outputs", testTimeout)
@@ -200,9 +196,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow(
-			"wf-skip-unneeded", plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-skip-unneeded", plan)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-skip-unneeded", testTimeout)

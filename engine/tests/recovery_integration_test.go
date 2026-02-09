@@ -38,7 +38,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-recovery")
-		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		helpers.WaitForFlowActivated(t, consumer, flowTimeout, flowID)
@@ -118,15 +118,9 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		flowID2 := api.FlowID("flow-2")
 		flowID3 := api.FlowID("flow-3")
 
-		assert.NoError(t, env.Engine.StartFlow(
-			flowID1, plan1, api.Args{}, api.Metadata{},
-		))
-		assert.NoError(t, env.Engine.StartFlow(
-			flowID2, plan2, api.Args{}, api.Metadata{},
-		))
-		assert.NoError(t, env.Engine.StartFlow(
-			flowID3, plan3, api.Args{}, api.Metadata{},
-		))
+		assert.NoError(t, env.Engine.StartFlow(flowID1, plan1))
+		assert.NoError(t, env.Engine.StartFlow(flowID2, plan2))
+		assert.NoError(t, env.Engine.StartFlow(flowID3, plan3))
 
 		helpers.WaitForFlowActivated(t,
 			consumer, flowTimeout, flowID1, flowID2, flowID3,
@@ -235,14 +229,10 @@ func TestRecoveryWorkStates(t *testing.T) {
 		failedFlowID := api.FlowID("failed-flow")
 
 		// Start not-completed flow first (it will enter retry state)
-		assert.NoError(t, env.Engine.StartFlow(
-			notCompletedFlowID, plan2, api.Args{}, api.Metadata{},
-		))
+		assert.NoError(t, env.Engine.StartFlow(notCompletedFlowID, plan2))
 
 		// Start failed flow (will fail immediately)
-		assert.NoError(t, env.Engine.StartFlow(
-			failedFlowID, plan3, api.Args{}, api.Metadata{},
-		))
+		assert.NoError(t, env.Engine.StartFlow(failedFlowID, plan3))
 
 		// Wait for notCompleted to start via event hub
 		env.WaitForStepStarted(t,
@@ -253,9 +243,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 		env.WaitForFlowStatus(t, failedFlowID, flowTimeout)
 
 		// Start pending flow just before shutdown
-		assert.NoError(t, env.Engine.StartFlow(
-			pendingFlowID, plan1, api.Args{}, api.Metadata{},
-		))
+		assert.NoError(t, env.Engine.StartFlow(pendingFlowID, plan1))
 
 		helpers.WaitForFlowActivated(t,
 			consumer, flowTimeout, notCompletedFlowID, pendingFlowID,
@@ -318,7 +306,7 @@ func TestRecoveryPreservesState(t *testing.T) {
 
 		flowID := api.FlowID("state-preservation-flow")
 
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		helpers.WaitForFlowActivated(t, consumer, flowTimeout, flowID)

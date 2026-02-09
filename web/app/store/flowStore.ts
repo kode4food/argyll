@@ -21,6 +21,8 @@ declare global {
   }
 }
 
+const FlowListPageSize = 1000;
+
 const compareFlows = (a: FlowContext, b: FlowContext): number => {
   const aIsActive = a.status === "active";
   const bIsActive = b.status === "active";
@@ -56,6 +58,9 @@ interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
   flows: FlowContext[];
+  flowsCursor: string | null;
+  flowsHasMore: boolean;
+  flowsLoading: boolean;
   selectedFlow: string | null;
   flowData: FlowContext | null;
   executions: ExecutionResult[];
@@ -68,6 +73,7 @@ interface FlowState {
   engineReconnectRequest: number;
   loadSteps: () => Promise<void>;
   loadFlows: () => Promise<void>;
+  loadMoreFlows: () => Promise<void>;
   addStep: (step: Step) => void;
   updateStep: (step: Step) => void;
   removeStep: (stepId: string) => void;
@@ -116,6 +122,9 @@ export const useFlowStore = create<FlowState>()(
       steps: [],
       stepHealth: {},
       flows: [],
+      flowsCursor: null,
+      flowsHasMore: false,
+      flowsLoading: false,
       selectedFlow: null,
       flowData: null,
       executions: [],
@@ -156,10 +165,31 @@ export const useFlowStore = create<FlowState>()(
       },
 
       loadFlows: async () => {
+        if (get().flowsLoading) {
+          return;
+        }
         try {
-          const flows = await api.listFlows();
+          set({ flowsLoading: true });
+          const resp = await api.listFlowsPage({ limit: FlowListPageSize });
+          const flows = (resp.flows || []).map((item) => ({
+            id: item.id,
+            status: item.digest?.status || "active",
+            state: {},
+            error_state: item.digest?.error
+              ? {
+                  message: item.digest.error,
+                  step_id: "",
+                  timestamp: new Date().toISOString(),
+                }
+              : undefined,
+            plan: undefined,
+            started_at: item.digest?.created_at || new Date().toISOString(),
+            completed_at: item.digest?.completed_at,
+          }));
           set({
             flows: (flows || []).sort(compareFlows),
+            flowsCursor: resp.next_cursor ?? null,
+            flowsHasMore: resp.has_more ?? false,
           });
         } catch (error) {
           console.error("Failed to load flows:", error);
@@ -167,6 +197,51 @@ export const useFlowStore = create<FlowState>()(
             error:
               error instanceof Error ? error.message : "Failed to load flows",
           });
+        } finally {
+          set({ flowsLoading: false });
+        }
+      },
+
+      loadMoreFlows: async () => {
+        const { flowsLoading, flowsHasMore, flowsCursor, flows } = get();
+        if (flowsLoading || !flowsHasMore) {
+          return;
+        }
+        try {
+          set({ flowsLoading: true });
+          const resp = await api.listFlowsPage({
+            limit: FlowListPageSize,
+            cursor: flowsCursor ?? undefined,
+          });
+          const moreFlows = (resp.flows || []).map((item) => ({
+            id: item.id,
+            status: item.digest?.status || "active",
+            state: {},
+            error_state: item.digest?.error
+              ? {
+                  message: item.digest.error,
+                  step_id: "",
+                  timestamp: new Date().toISOString(),
+                }
+              : undefined,
+            plan: undefined,
+            started_at: item.digest?.created_at || new Date().toISOString(),
+            completed_at: item.digest?.completed_at,
+          }));
+          const merged = [...flows, ...moreFlows];
+          set({
+            flows: merged.sort(compareFlows),
+            flowsCursor: resp.next_cursor ?? flowsCursor,
+            flowsHasMore: resp.has_more ?? false,
+          });
+        } catch (error) {
+          console.error("Failed to load more flows:", error);
+          set({
+            error:
+              error instanceof Error ? error.message : "Failed to load flows",
+          });
+        } finally {
+          set({ flowsLoading: false });
         }
       },
 
@@ -504,6 +579,10 @@ if (isDevHost) {
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);
 export const useFlows = () => useFlowStore((state) => state.flows);
+export const useFlowsHasMore = () =>
+  useFlowStore((state) => state.flowsHasMore);
+export const useFlowsLoading = () =>
+  useFlowStore((state) => state.flowsLoading);
 export const useSelectedFlow = () =>
   useFlowStore((state) => state.selectedFlow);
 export const useFlowData = () => useFlowStore((state) => state.flowData);
@@ -525,6 +604,7 @@ export const useRequestEngineReconnect = () =>
 type ActionKeys =
   | "loadSteps"
   | "loadFlows"
+  | "loadMoreFlows"
   | "addFlow"
   | "removeFlow"
   | "selectFlow"
@@ -537,6 +617,7 @@ const createActionHook =
 
 export const useLoadSteps = createActionHook("loadSteps");
 export const useLoadFlows = createActionHook("loadFlows");
+export const useLoadMoreFlows = createActionHook("loadMoreFlows");
 export const useAddFlow = createActionHook("addFlow");
 export const useRemoveFlow = createActionHook("removeFlow");
 export const useSelectFlow = createActionHook("selectFlow");

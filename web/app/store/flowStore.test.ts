@@ -16,7 +16,7 @@ jest.mock("../api", () => ({
   ...jest.requireActual("../api"),
   api: {
     getEngineState: jest.fn(),
-    listFlows: jest.fn(),
+    listFlowsPage: jest.fn(),
   },
 }));
 
@@ -30,6 +30,9 @@ describe("flowStore", () => {
       steps: [],
       stepHealth: {},
       flows: [],
+      flowsCursor: null,
+      flowsHasMore: false,
+      flowsLoading: false,
       selectedFlow: null,
       flowData: null,
       executions: [],
@@ -73,12 +76,43 @@ describe("flowStore", () => {
         completed_at: "2024-01-04T01:00:00Z",
       };
 
-      mockApi.listFlows.mockResolvedValue([
-        completedOld,
-        activeOld,
-        completedNew,
-        activeNew,
-      ]);
+      mockApi.listFlowsPage.mockResolvedValue({
+        flows: [
+          {
+            id: completedOld.id,
+            digest: {
+              status: completedOld.status,
+              created_at: completedOld.started_at,
+              completed_at: completedOld.completed_at,
+            },
+          },
+          {
+            id: activeOld.id,
+            digest: {
+              status: activeOld.status,
+              created_at: activeOld.started_at,
+            },
+          },
+          {
+            id: completedNew.id,
+            digest: {
+              status: completedNew.status,
+              created_at: completedNew.started_at,
+              completed_at: completedNew.completed_at,
+            },
+          },
+          {
+            id: activeNew.id,
+            digest: {
+              status: activeNew.status,
+              created_at: activeNew.started_at,
+            },
+          },
+        ],
+        count: 4,
+        total: 4,
+        has_more: false,
+      });
 
       await useFlowStore.getState().loadFlows();
       const state = useFlowStore.getState();
@@ -176,13 +210,26 @@ describe("flowStore", () => {
     };
 
     test("loadFlows fetches flows", async () => {
-      mockApi.listFlows.mockResolvedValue([mockFlow]);
+      mockApi.listFlowsPage.mockResolvedValue({
+        flows: [
+          {
+            id: mockFlow.id,
+            digest: {
+              status: mockFlow.status,
+              created_at: mockFlow.started_at,
+            },
+          },
+        ],
+        count: 1,
+        total: 1,
+        has_more: false,
+      });
       await useFlowStore.getState().loadFlows();
       expect(useFlowStore.getState().flows).toHaveLength(1);
     });
 
     test("loadFlows handles error", async () => {
-      mockApi.listFlows.mockRejectedValue(new Error("Network error"));
+      mockApi.listFlowsPage.mockRejectedValue(new Error("Network error"));
 
       await useFlowStore.getState().loadFlows();
       const state = useFlowStore.getState();

@@ -97,6 +97,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		// Flow endpoints
 		eng.GET("/flow", s.listFlows)
 		eng.POST("/flow", s.startFlow)
+		eng.POST("/flow/query", s.queryFlows)
 		eng.GET("/flow/:flowID", s.getFlow)
 
 		// WebSocket

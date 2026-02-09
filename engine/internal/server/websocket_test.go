@@ -367,10 +367,9 @@ func TestSocketCallbackEngine(t *testing.T) {
 
 func TestSocketCallbackFlow(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		err := env.Engine.StartFlow(
-			"wf-123", &api.ExecutionPlan{Steps: api.Steps{}}, api.Args{},
-			api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-123", &api.ExecutionPlan{
+			Steps: api.Steps{},
+		})
 		assert.NoError(t, err)
 
 		ws := testServerWebSocket(t, env.Server)

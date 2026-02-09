@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -52,6 +53,7 @@ var (
 	ErrStepNotInPlan         = errors.New("step not in execution plan")
 	ErrWorkItemNotFound      = errors.New("work item not found")
 	ErrInvalidWorkTransition = errors.New("invalid work state transition")
+	ErrInvalidFlowCursor     = errors.New("invalid flow cursor")
 )
 
 // New creates a new orchestrator instance with the specified stores, client,
@@ -104,17 +106,17 @@ func (e *Engine) Stop() error {
 	return nil
 }
 
-// StartFlow begins a new flow execution with the given plan and state
+// StartFlow begins a new flow execution with the given plan and options
 func (e *Engine) StartFlow(
-	flowID api.FlowID, plan *api.ExecutionPlan, initState api.Args,
-	meta api.Metadata,
+	flowID api.FlowID, plan *api.ExecutionPlan, apps ...flowopt.Applier,
 ) error {
 	existing, err := e.GetFlowState(flowID)
 	if err == nil && existing.ID != "" {
 		return ErrFlowExists
 	}
 
-	if err := plan.ValidateInputs(initState); err != nil {
+	opts := flowopt.DefaultOptions(apps...)
+	if err := plan.ValidateInputs(opts.Init); err != nil {
 		return err
 	}
 
@@ -123,20 +125,22 @@ func (e *Engine) StartFlow(
 			api.FlowStartedEvent{
 				FlowID:   flowID,
 				Plan:     plan,
-				Init:     initState,
-				Metadata: meta,
+				Init:     opts.Init,
+				Metadata: opts.Metadata,
+				Labels:   opts.Labels,
 			},
 		); err != nil {
 			return err
 		}
 		parentID, _ := api.GetMetaString[api.FlowID](
-			meta, api.MetaParentFlowID,
+			opts.Metadata, api.MetaParentFlowID,
 		)
 		tx.OnSuccess(func(*api.FlowState) {
 			tx.EnqueueEvent(api.EventTypeFlowActivated,
 				api.FlowActivatedEvent{
 					FlowID:       flowID,
 					ParentFlowID: parentID,
+					Labels:       opts.Labels,
 				},
 			)
 		})

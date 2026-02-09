@@ -267,6 +267,47 @@ func TestStepValidation(t *testing.T) {
 			errorContains: "flow output map invalid",
 		},
 		{
+			name: "flow_with_duplicate_input_map",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{"goal"},
+					InputMap: map[api.Name]api.Name{
+						"input_a": "child_input",
+						"input_b": "child_input",
+					},
+				},
+				Attributes: api.AttributeSpecs{
+					"input_a": {Role: api.RoleRequired},
+					"input_b": {Role: api.RoleRequired},
+				},
+			},
+			expectError:   true,
+			errorContains: "flow input map duplicate",
+		},
+		{
+			name: "flow_with_duplicate_output_map",
+			step: &api.Step{
+				ID:   "test-id",
+				Name: "Test Flow",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{"goal"},
+					OutputMap: map[api.Name]api.Name{
+						"child_out_a": "output",
+						"child_out_b": "output",
+					},
+				},
+				Attributes: api.AttributeSpecs{
+					"output": {Role: api.RoleOutput},
+				},
+			},
+			expectError:   true,
+			errorContains: "flow output map duplicate",
+		},
+		{
 			name: "empty_script",
 			step: &api.Step{
 				ID:   "test-id",

@@ -2,9 +2,12 @@ import React, { createContext, useContext, useMemo, useEffect } from "react";
 import {
   useSelectedFlow,
   useLoadFlows,
+  useLoadMoreFlows,
   useLoadSteps,
   useSteps,
   useFlows,
+  useFlowsHasMore,
+  useFlowsLoading,
   useUpdateFlowStatus,
   useFlowData,
   useFlowLoading,
@@ -19,9 +22,12 @@ type FlowSessionValue = {
   selectedFlow: string | null;
   selectFlow: (flowId: string | null) => void;
   loadFlows: () => Promise<void>;
+  loadMoreFlows: () => Promise<void>;
   loadSteps: () => Promise<void>;
   steps: ReturnType<typeof useSteps>;
   flows: ReturnType<typeof useFlows>;
+  flowsHasMore: boolean;
+  flowsLoading: boolean;
   updateFlowStatus: ReturnType<typeof useUpdateFlowStatus>;
   flowData: ReturnType<typeof useFlowData>;
   loading: boolean;
@@ -41,9 +47,12 @@ export const FlowSessionProvider = ({
   const selectedFlow = useSelectedFlow();
   const selectFlow = useFlowStore((s) => s.selectFlow);
   const loadFlows = useLoadFlows();
+  const loadMoreFlows = useLoadMoreFlows();
   const loadSteps = useLoadSteps();
   const steps = useSteps();
   const flows = useFlows();
+  const flowsHasMore = useFlowsHasMore();
+  const flowsLoading = useFlowsLoading();
   const updateFlowStatus = useUpdateFlowStatus();
   const flowData = useFlowData();
   const loading = useFlowLoading();
@@ -61,9 +70,12 @@ export const FlowSessionProvider = ({
       selectedFlow,
       selectFlow,
       loadFlows,
+      loadMoreFlows,
       loadSteps,
       steps,
       flows,
+      flowsHasMore,
+      flowsLoading,
       updateFlowStatus,
       flowData,
       loading,
@@ -76,9 +88,12 @@ export const FlowSessionProvider = ({
       selectedFlow,
       selectFlow,
       loadFlows,
+      loadMoreFlows,
       loadSteps,
       steps,
       flows,
+      flowsHasMore,
+      flowsLoading,
       updateFlowStatus,
       flowData,
       loading,

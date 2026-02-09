@@ -30,6 +30,7 @@ type (
 		Plan     *ExecutionPlan `json:"plan"`
 		Init     Args           `json:"init"`
 		Metadata Metadata       `json:"metadata,omitempty"`
+		Labels   Labels         `json:"labels,omitempty"`
 		FlowID   FlowID         `json:"flow_id"`
 	}
 
@@ -130,6 +131,7 @@ type (
 	FlowActivatedEvent struct {
 		FlowID       FlowID `json:"flow_id"`
 		ParentFlowID FlowID `json:"parent_flow_id,omitempty"`
+		Labels       Labels `json:"labels,omitempty"`
 	}
 
 	// FlowDigestUpdatedEvent is emitted when a flow summary changes

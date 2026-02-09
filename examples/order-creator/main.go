@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -73,7 +74,7 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 		}
 		selectedErr := errMsg[rand.Intn(len(errMsg))]
 		slog.Warn("Simulating transient failure (will retry)",
-			log.Error(fmt.Errorf(selectedErr)),
+			log.Error(errors.New(selectedErr)),
 			log.StepID(ctx.StepID))
 		return api.StepResult{}, builder.NewHTTPError(
 			http.StatusServiceUnavailable, selectedErr,

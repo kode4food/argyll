@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -65,7 +66,7 @@ func TestHTTPExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-http", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow("wf-http", plan)
 		assert.NoError(t, err)
 	})
 }
@@ -84,7 +85,7 @@ func TestScriptExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-script", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-script", plan)
 		assert.NoError(t, err)
 	})
 }
@@ -109,7 +110,7 @@ func TestPredicateExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-pred", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow("wf-pred", plan)
 		assert.NoError(t, err)
 	})
 }
@@ -135,9 +136,7 @@ func TestPredicateFalse(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"wf-pred-false", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-pred-false", plan)
 		assert.NoError(t, err)
 
 		assert.False(t, env.MockClient.WasInvoked("predicate-false-step"))
@@ -159,7 +158,7 @@ func TestLuaScriptExecution(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-lua-script", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-lua-script", plan)
 		assert.NoError(t, err)
 	})
 }
@@ -181,8 +180,8 @@ func TestAleScriptWithInputs(t *testing.T) {
 			Required: []api.Name{"x"},
 		}
 
-		err = eng.StartFlow(
-			"wf-ale-input", plan, api.Args{"x": float64(21)}, api.Metadata{},
+		err = eng.StartFlow("wf-ale-input", plan,
+			flowopt.WithInit(api.Args{"x": float64(21)}),
 		)
 		assert.NoError(t, err)
 	})
@@ -209,9 +208,7 @@ func TestLuaPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"wf-lua-pred", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-lua-pred", plan)
 		assert.NoError(t, err)
 	})
 }
@@ -315,7 +312,7 @@ func TestGetFlowState(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-state", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-state", plan)
 		assert.NoError(t, err)
 
 		state, err := eng.GetFlowState("wf-state")

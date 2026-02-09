@@ -219,6 +219,10 @@ export function getValidationError({
     if (parseFlowGoals(flowGoals).length === 0) {
       return { key: "stepEditor.flowGoalsRequired" };
     }
+    const flowMapError = validateFlowMaps(attributes);
+    if (flowMapError) {
+      return flowMapError;
+    }
     return null;
   }
 
@@ -233,6 +237,38 @@ export function getValidationError({
     if (!httpTimeout || httpTimeout <= 0) {
       return { key: "stepEditor.timeoutPositive" };
     }
+  }
+
+  return null;
+}
+
+function validateFlowMaps(attributes: Attribute[]): ValidationError | null {
+  const inputTargets = new Set<string>();
+  const outputTargets = new Set<string>();
+
+  for (const attr of attributes) {
+    if (!attr.flowMap?.trim()) {
+      continue;
+    }
+    const target = attr.flowMap.trim();
+    if (attr.attrType === "output") {
+      if (outputTargets.has(target)) {
+        return {
+          key: "stepEditor.duplicateFlowOutputMap",
+          vars: { name: target },
+        };
+      }
+      outputTargets.add(target);
+      continue;
+    }
+
+    if (inputTargets.has(target)) {
+      return {
+        key: "stepEditor.duplicateFlowInputMap",
+        vars: { name: target },
+      };
+    }
+    inputTargets.add(target);
   }
 
   return null;

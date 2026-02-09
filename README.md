@@ -68,6 +68,7 @@ DELETE /engine/step/:stepID      # Delete step
 # Flows
 POST   /engine/flow              # Start flow
 GET    /engine/flow              # List flows
+POST   /engine/flow/query        # Query flows
 GET    /engine/flow/:flowID      # Get flow state
 POST   /engine/plan              # Preview execution plan
 

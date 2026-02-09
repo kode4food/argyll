@@ -90,7 +90,7 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-partial-failure")
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for step C to complete (independent branch)
@@ -168,9 +168,7 @@ func TestUnreachableStep(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow(
-			"wf-unreachable", plan, api.Args{}, api.Metadata{},
-		)
+		err := env.Engine.StartFlow("wf-unreachable", plan)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-unreachable", flowTimeout)

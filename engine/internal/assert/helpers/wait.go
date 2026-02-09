@@ -24,12 +24,12 @@ type (
 
 	predicate[T any] func(T) bool
 
-	eventFilter predicate[*timebox.Event]
+	EventFilter predicate[*timebox.Event]
 )
 
 // WaitForEvents waits for matching events from the consumer
 func WaitForEvents(
-	t *testing.T, consumer *timebox.Consumer, filter eventFilter, count int,
+	t *testing.T, consumer *timebox.Consumer, filter EventFilter, count int,
 	timeout time.Duration,
 ) {
 	t.Helper()
@@ -57,7 +57,7 @@ func WaitForEvents(
 }
 
 // EventDataFilter creates a filter that unmarshals event data into T
-func EventDataFilter[T any](filter eventFilter, pred predicate[T]) eventFilter {
+func EventDataFilter[T any](filter EventFilter, pred predicate[T]) EventFilter {
 	if pred == nil {
 		pred = func(T) bool { return true }
 	}
@@ -76,7 +76,7 @@ func EventDataFilter[T any](filter eventFilter, pred predicate[T]) eventFilter {
 
 // WaitForEventData waits for matching event data for the given filter
 func WaitForEventData[T any](
-	t *testing.T, consumer *timebox.Consumer, typeFilter eventFilter,
+	t *testing.T, consumer *timebox.Consumer, typeFilter EventFilter,
 	pred predicate[T], count int, timeout time.Duration,
 ) {
 	t.Helper()
@@ -466,7 +466,7 @@ func stepTerminal(status api.StepStatus) bool {
 
 func filterFlowEvents(
 	flowID api.FlowID, eventTypes ...api.EventType,
-) eventFilter {
+) EventFilter {
 	typeFilter := filterEventTypes(eventTypes...)
 	return EventDataFilter(typeFilter, func(data flowEvent) bool {
 		return data.FlowID == flowID
@@ -475,20 +475,20 @@ func filterFlowEvents(
 
 func filterStepEvents(
 	flowID api.FlowID, stepID api.StepID, eventTypes ...api.EventType,
-) eventFilter {
+) EventFilter {
 	typeFilter := filterEventTypes(eventTypes...)
 	return EventDataFilter(typeFilter, func(data stepEvent) bool {
 		return data.FlowID == flowID && data.StepID == stepID
 	})
 }
 
-func filterAggregate(id timebox.AggregateID) eventFilter {
+func filterAggregate(id timebox.AggregateID) EventFilter {
 	return func(ev *timebox.Event) bool {
 		return ev != nil && ev.AggregateID.Equal(id)
 	}
 }
 
-func filterEventTypes(eventTypes ...api.EventType) eventFilter {
+func filterEventTypes(eventTypes ...api.EventType) EventFilter {
 	if len(eventTypes) == 0 {
 		return func(*timebox.Event) bool { return false }
 	}

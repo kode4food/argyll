@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -45,9 +46,9 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-foreach", plan, api.Args{
-			"item": []any{"a", "b"},
-		}, api.Metadata{})
+		err := env.Engine.StartFlow("wf-foreach", plan,
+			flowopt.WithInit(api.Args{"item": []any{"a", "b"}}),
+		)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, "wf-foreach", workItemTimeout)

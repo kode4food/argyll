@@ -196,6 +196,20 @@ const AttributesSection: React.FC = () => {
 
   const flowInputList = flowInputOptions;
   const flowOutputList = flowOutputOptions;
+  const usedInputTargets = new Map<string, string>();
+  const usedOutputTargets = new Map<string, string>();
+
+  attributes.forEach((attr) => {
+    const target = attr.flowMap?.trim();
+    if (!target) {
+      return;
+    }
+    if (attr.attrType === "output") {
+      usedOutputTargets.set(target, attr.id);
+      return;
+    }
+    usedInputTargets.set(target, attr.id);
+  });
 
   return (
     <div className={formStyles.section}>
@@ -336,7 +350,14 @@ const AttributesSection: React.FC = () => {
                   <option value="">{t("stepEditor.flowMapPlaceholder")}</option>
                   {attr.attrType === "output"
                     ? flowOutputList.map((option) => (
-                        <option key={option} value={option}>
+                        <option
+                          key={option}
+                          value={option}
+                          disabled={
+                            usedOutputTargets.has(option) &&
+                            usedOutputTargets.get(option) !== attr.id
+                          }
+                        >
                           {option}
                         </option>
                       ))
@@ -344,6 +365,10 @@ const AttributesSection: React.FC = () => {
                         <option
                           key={option.name}
                           value={option.name}
+                          disabled={
+                            usedInputTargets.has(option.name) &&
+                            usedInputTargets.get(option.name) !== attr.id
+                          }
                           className={
                             option.required
                               ? formStyles.flowMapOptionRequired

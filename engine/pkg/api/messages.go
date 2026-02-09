@@ -5,9 +5,10 @@ import "time"
 type (
 	// CreateFlowRequest contains parameters for starting a new flow
 	CreateFlowRequest struct {
-		Init  Args     `json:"init"`
-		ID    FlowID   `json:"id"`
-		Goals []StepID `json:"goals"`
+		Init   Args     `json:"init"`
+		ID     FlowID   `json:"id"`
+		Labels Labels   `json:"labels,omitempty"`
+		Goals  []StepID `json:"goals"`
 	}
 
 	// ExecutionPlanRequest contains parameters for creating an execution plan
@@ -27,19 +28,33 @@ type (
 		Status      FlowStatus `json:"status"`
 		CreatedAt   time.Time  `json:"created_at"`
 		CompletedAt time.Time  `json:"completed_at"`
+		Labels      Labels     `json:"labels,omitempty"`
 		Error       string     `json:"error,omitempty"`
 	}
 
-	// FlowsListItem provides a flow ID with its summary information
-	FlowsListItem struct {
-		ID     FlowID      `json:"id"`
-		Digest *FlowDigest `json:"digest"`
+	// QueryFlowsRequest contains filter criteria and pagination options
+	QueryFlowsRequest struct {
+		IDPrefix string       `json:"id_prefix,omitempty"`
+		Labels   Labels       `json:"labels,omitempty"`
+		Statuses []FlowStatus `json:"statuses,omitempty"`
+		Limit    int          `json:"limit,omitempty"`
+		Cursor   string       `json:"cursor,omitempty"`
+		Sort     FlowSort     `json:"sort,omitempty"`
 	}
 
-	// FlowsListResponse contains a list of flow summaries
-	FlowsListResponse struct {
-		Flows []*FlowsListItem `json:"flows"`
-		Count int              `json:"count"`
+	// QueryFlowsResponse contains a list of flow summaries
+	QueryFlowsResponse struct {
+		Flows      []*QueryFlowsItem `json:"flows"`
+		Count      int               `json:"count"`
+		Total      int               `json:"total,omitempty"`
+		HasMore    bool              `json:"has_more,omitempty"`
+		NextCursor string            `json:"next_cursor,omitempty"`
+	}
+
+	// QueryFlowsItem provides a flow ID with its summary information
+	QueryFlowsItem struct {
+		ID     FlowID      `json:"id"`
+		Digest *FlowDigest `json:"digest"`
 	}
 
 	// StepRegisteredResponse is returned when a step registration succeeds
@@ -76,4 +91,12 @@ type (
 		Error  string `json:"error"`
 		Status int    `json:"status,omitempty"`
 	}
+
+	// FlowSort determines flow query ordering
+	FlowSort string
+)
+
+const (
+	FlowSortRecentDesc FlowSort = "recent_desc"
+	FlowSortRecentAsc  FlowSort = "recent_asc"
 )

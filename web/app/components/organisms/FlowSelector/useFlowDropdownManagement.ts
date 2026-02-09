@@ -5,10 +5,15 @@ import { filterFlowsBySearch } from "./flowSelectorUtils";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import { FlowDropdownContextValue } from "@/app/contexts/FlowDropdownContext";
 
+type FlowDropdownState = Omit<
+  FlowDropdownContextValue,
+  "flowsHasMore" | "flowsLoading" | "loadMoreFlows"
+>;
+
 export function useFlowDropdownManagement(
   flows: FlowContext[],
   selectedFlow: string | null
-): FlowDropdownContextValue {
+): FlowDropdownState {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");

@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -41,8 +42,8 @@ func TestConstAttribute(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-const-attribute")
-		err := env.Engine.StartFlow(
-			flowID, plan, api.Args{"const_value": "override"}, api.Metadata{},
+		err := env.Engine.StartFlow(flowID, plan,
+			flowopt.WithInit(api.Args{"const_value": "override"}),
 		)
 		assert.NoError(t, err)
 

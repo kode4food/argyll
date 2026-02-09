@@ -1,6 +1,13 @@
 import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
-import { ExecutionPlan, FlowContext, FlowsListItem, Step } from "./types";
+import {
+  ExecutionPlan,
+  FlowContext,
+  QueryFlowsItem,
+  QueryFlowsResponse,
+  QueryFlowsRequest,
+  Step,
+} from "./types";
 
 export class ArgyllApi {
   private client: AxiosInstance;
@@ -15,7 +22,7 @@ export class ArgyllApi {
     });
   }
 
-  private convertListItem(item: FlowsListItem): FlowContext {
+  private convertListItem(item: QueryFlowsItem): FlowContext {
     return {
       id: item.id,
       status: item.digest?.status || "active",
@@ -56,9 +63,27 @@ export class ArgyllApi {
     return response.data;
   }
 
+  async queryFlows(
+    request: QueryFlowsRequest
+  ): Promise<QueryFlowsResponse> {
+    const response = await this.client.post("/engine/flow/query", request);
+    return response.data;
+  }
+
+  async listFlowsPage(opts?: {
+    limit?: number;
+    cursor?: string;
+  }): Promise<QueryFlowsResponse> {
+    return this.queryFlows({
+      limit: opts?.limit,
+      cursor: opts?.cursor,
+      sort: "recent_desc",
+    });
+  }
+
   async listFlows(): Promise<FlowContext[]> {
-    const response = await this.client.get("/engine/flow");
-    const items: FlowsListItem[] = response.data.flows || [];
+    const response = await this.listFlowsPage();
+    const items: QueryFlowsItem[] = response.flows || [];
     return items.map((item) => this.convertListItem(item));
   }
 

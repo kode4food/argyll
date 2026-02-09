@@ -3,7 +3,6 @@ package engine
 import (
 	"fmt"
 	"log/slog"
-	"slices"
 
 	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
@@ -187,51 +186,6 @@ func (e *Engine) GetAttribute(
 		return av.Value, true, nil
 	}
 	return nil, false, nil
-}
-
-// ListFlows returns summary information for active and deactivated flows
-func (e *Engine) ListFlows() ([]*api.FlowsListItem, error) {
-	engState, err := e.GetEngineState()
-	if err != nil {
-		return nil, err
-	}
-
-	count := len(engState.Active) + len(engState.Deactivated)
-	flowIDs := make([]api.FlowID, 0, count)
-	seen := util.Set[api.FlowID]{}
-	for id, info := range engState.Active {
-		if info != nil && info.ParentFlowID != "" {
-			continue
-		}
-		seen.Add(id)
-		flowIDs = append(flowIDs, id)
-	}
-	for _, info := range engState.Deactivated {
-		if info.ParentFlowID != "" {
-			continue
-		}
-		if seen.Contains(info.FlowID) {
-			continue
-		}
-		seen.Add(info.FlowID)
-		flowIDs = append(flowIDs, info.FlowID)
-	}
-
-	slices.Sort(flowIDs)
-
-	digests := make([]*api.FlowsListItem, 0, len(flowIDs))
-	for _, flowID := range flowIDs {
-		digest, ok := engState.FlowDigests[flowID]
-		if !ok || digest == nil {
-			continue
-		}
-		digests = append(digests, &api.FlowsListItem{
-			ID:     flowID,
-			Digest: digest,
-		})
-	}
-
-	return digests, nil
 }
 
 func (e *Engine) execFlow(

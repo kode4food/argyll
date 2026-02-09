@@ -67,7 +67,7 @@ func TestMixedStepTypes(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-mixed-types")
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for flow completion

@@ -39,7 +39,7 @@ func TestMemoStepReusesToken(t *testing.T) {
 		flowID := api.FlowID("test-memo-token-reuse")
 		eventConsumer := env.EventHub.NewConsumer()
 
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for retry to be scheduled
@@ -94,7 +94,7 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 		flowID := api.FlowID("test-non-memo-token-regen")
 		eventConsumer := env.EventHub.NewConsumer()
 
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for retry to be scheduled
@@ -149,7 +149,7 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 		flowID := api.FlowID("test-multi-retry-tokens")
 		eventConsumer := env.EventHub.NewConsumer()
 
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for first retry

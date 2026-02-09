@@ -53,7 +53,7 @@ func TestPredicateSkipping(t *testing.T) {
 		assert.NoError(t, err)
 		err = env.Engine.RegisterStep(stepB)
 		assert.NoError(t, err)
-		err = env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for step A to complete

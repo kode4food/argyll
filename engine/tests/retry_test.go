@@ -34,7 +34,7 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-retry-exhaustion")
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		// Wait for flow to fail (step exhausts retries)

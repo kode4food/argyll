@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -65,7 +66,9 @@ func TestInitialFlowInputs(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-initial-inputs")
-		err := env.Engine.StartFlow(flowID, plan, initialInputs, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan,
+			flowopt.WithInit(initialInputs),
+		)
 		assert.NoError(t, err)
 
 		// Wait for flow completion
@@ -117,9 +120,7 @@ func TestRequiredInputsMissing(t *testing.T) {
 			Required: []api.Name{"customer_id"},
 		}
 
-		err := eng.StartFlow(
-			"wf-missing-required", plan, api.Args{}, api.Metadata{},
-		)
+		err := eng.StartFlow("wf-missing-required", plan)
 		assert.ErrorIs(t, err, api.ErrRequiredInputs)
 	})
 }

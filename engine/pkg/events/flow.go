@@ -63,6 +63,7 @@ func flowStarted(
 		Status:      api.FlowActive,
 		Plan:        data.Plan,
 		Metadata:    data.Metadata,
+		Labels:      data.Labels,
 		Attributes:  attributes,
 		Executions:  execs,
 		CreatedAt:   ev.Timestamp,

@@ -48,7 +48,22 @@ const FlowSelectorDropdown = () => {
     selectFlow,
     flows,
     closeDropdown,
+    flowsHasMore,
+    flowsLoading,
+    loadMoreFlows,
   } = useFlowDropdownContext();
+
+  const handleDropdownScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    if (!flowsHasMore || flowsLoading) {
+      return;
+    }
+    const target = e.currentTarget;
+    const nearBottom =
+      target.scrollTop + target.clientHeight >= target.scrollHeight - 40;
+    if (nearBottom) {
+      void loadMoreFlows();
+    }
+  };
 
   return (
     <div className={styles.dropdown}>
@@ -77,7 +92,11 @@ const FlowSelectorDropdown = () => {
         )}
       </button>
       {showDropdown && (
-        <div className={styles.dropdownMenu} ref={dropdownRef}>
+        <div
+          className={styles.dropdownMenu}
+          ref={dropdownRef}
+          onScroll={handleDropdownScroll}
+        >
           <div className={styles.dropdownSearch}>
             <IconSearch className={styles.dropdownSearchIcon} />
             <input
@@ -126,6 +145,22 @@ const FlowSelectorDropdown = () => {
               {t("flowSelector.noFlowsFound")}
             </div>
           )}
+          {flowsLoading && (
+            <div className={`${styles.dropdownItem} ${styles.noResults}`}>
+              {t("flowSelector.loadingMore")}
+            </div>
+          )}
+          {!flowsLoading && flowsHasMore && (
+            <div
+              className={`${styles.dropdownItem} ${styles.loadMore}`}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                void loadMoreFlows();
+              }}
+            >
+              {t("flowSelector.loadMore")}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -136,7 +171,13 @@ const FlowSelectorContent: React.FC = () => {
   const t = useT();
   const navigate = useNavigate();
   useFlowFromUrl();
-  const { flows, selectedFlow } = useFlowSession();
+  const {
+    flows,
+    selectedFlow,
+    flowsHasMore,
+    flowsLoading,
+    loadMoreFlows,
+  } = useFlowSession();
   const { showCreateForm, setShowCreateForm } = useUI();
   const { setNewID } = useFlowCreation();
 
@@ -195,6 +236,9 @@ const FlowSelectorContent: React.FC = () => {
     closeDropdown,
     selectedFlow: dropdownSelectedFlow,
     flows: dropdownFlows,
+    flowsHasMore,
+    flowsLoading,
+    loadMoreFlows,
   };
 
   return (

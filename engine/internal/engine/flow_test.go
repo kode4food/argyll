@@ -27,10 +27,10 @@ func TestStartDuplicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-dup", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-dup", plan)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow("wf-dup", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-dup", plan)
 		testify.ErrorIs(t, err, engine.ErrFlowExists)
 	})
 }
@@ -49,7 +49,7 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-start", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow("wf-start", plan)
 		testify.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-start")
@@ -78,7 +78,7 @@ func TestStartMissingInput(t *testing.T) {
 			Required: []api.Name{"required_value"},
 		}
 
-		err := eng.StartFlow("wf-missing", plan, api.Args{}, api.Metadata{})
+		err := eng.StartFlow("wf-missing", plan)
 		testify.Error(t, err)
 	})
 }
@@ -111,7 +111,7 @@ func TestSetAttribute(t *testing.T) {
 		}
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-attr", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow("wf-attr", plan)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete
@@ -143,9 +143,7 @@ func TestGetAttributes(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"wf-getattrs", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-getattrs", plan)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete
@@ -184,9 +182,7 @@ func TestDuplicateFirstWins(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow(
-			"wf-dup-attr", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-dup-attr", plan)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete
@@ -217,9 +213,7 @@ func TestCompleteFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"wf-complete", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-complete", plan)
 		testify.NoError(t, err)
 
 		// Wait for flow to complete automatically
@@ -247,7 +241,7 @@ func TestFailFlow(t *testing.T) {
 		}
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-fail", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow("wf-fail", plan)
 		testify.NoError(t, err)
 
 		// Wait for flow to fail automatically
@@ -278,7 +272,7 @@ func TestSkipStep(t *testing.T) {
 		}
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-skip", plan, api.Args{}, api.Metadata{})
+		err = env.Engine.StartFlow("wf-skip", plan)
 		testify.NoError(t, err)
 
 		// Wait for step to be skipped
@@ -324,45 +318,13 @@ func TestStartFlowSimple(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow(
-			"wf-simple", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-simple", plan)
 		testify.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-simple")
 		testify.NoError(t, err)
 		testify.NotNil(t, flow)
 		testify.Equal(t, api.FlowID("wf-simple"), flow.ID)
-	})
-}
-
-func TestListFlows(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
-		defer func() { _ = env.Engine.Stop() }()
-
-		step := helpers.NewSimpleStep("test")
-
-		err := env.Engine.RegisterStep(step)
-		testify.NoError(t, err)
-
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{"test"},
-			Steps: api.Steps{step.ID: step},
-		}
-
-		consumer := env.EventHub.NewConsumer()
-
-		err = env.Engine.StartFlow("wf-list", plan, api.Args{}, api.Metadata{})
-		testify.NoError(t, err)
-
-		helpers.WaitForFlowActivated(t,
-			consumer, testTimeout, "wf-list",
-		)
-
-		flows, err := env.Engine.ListFlows()
-		testify.NoError(t, err)
-		testify.NotEmpty(t, flows)
 	})
 }
 
@@ -395,9 +357,7 @@ func TestIsFlowFailed(t *testing.T) {
 		env.MockClient.SetError(stepA.ID, errors.New("step failed"))
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(
-			"wf-failed-test", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-failed-test", plan)
 		testify.NoError(t, err)
 
 		helpers.WaitForStepTerminalEvent(t,
@@ -424,7 +384,7 @@ func TestIsFlowNotFailed(t *testing.T) {
 		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow("wf-ok-test", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-ok-test", plan)
 		testify.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-ok-test")
@@ -464,9 +424,7 @@ func TestHasInputProvider(t *testing.T) {
 		err = eng.RegisterStep(stepB)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow(
-			"wf-provider-test", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("wf-provider-test", plan)
 		testify.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-provider-test")
@@ -494,9 +452,7 @@ func TestHasInputProviderNone(t *testing.T) {
 		err := eng.RegisterStep(step)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow(
-			"wf-no-provider-test", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("wf-no-provider-test", plan)
 		testify.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-no-provider-test")
@@ -521,9 +477,7 @@ func TestStepProvidesInput(t *testing.T) {
 		err := eng.RegisterStep(stepA)
 		testify.NoError(t, err)
 
-		err = eng.StartFlow(
-			"wf-provides-test", plan, api.Args{}, api.Metadata{},
-		)
+		err = eng.StartFlow("wf-provides-test", plan)
 		testify.NoError(t, err)
 
 		outputArgs := stepA.GetOutputArgs()

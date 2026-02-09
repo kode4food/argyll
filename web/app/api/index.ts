@@ -11,11 +11,14 @@ export type {
   Step,
   ExecutionPlan,
   FlowContext,
-  FlowsListItem,
+  QueryFlowsItem,
+  QueryFlowsResponse,
   ExecutionResult,
   StepHealth,
   AttributeValue,
   WorkState,
+  FlowSort,
+  QueryFlowsRequest,
 } from "./types";
 
 export {

@@ -36,9 +36,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"invalid-work-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("invalid-work-flow", plan)
 		assert.NoError(t, err)
 
 		result := api.StepResult{Success: true}
@@ -90,9 +88,7 @@ func TestHookExecutionMissing(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"missing-exec-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("missing-exec-flow", plan)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("POST",
@@ -135,9 +131,7 @@ func TestHookCompleteTwice(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"double-complete-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("double-complete-flow", plan)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "double-complete-flow", StepID: step.ID}
@@ -227,9 +221,7 @@ func TestHookFailTwice(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"double-fail-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("double-fail-flow", plan)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "double-fail-flow", StepID: step.ID}
@@ -314,9 +306,7 @@ func TestHookSuccess(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"webhook-success-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("webhook-success-flow", plan)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-success-flow", StepID: step.ID}
@@ -374,9 +364,7 @@ func TestHookWorkFailure(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"webhook-fail-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("webhook-fail-flow", plan)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-fail-flow", StepID: step.ID}
@@ -434,9 +422,7 @@ func TestHookInvalidJSON(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow(
-			"webhook-badjson-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("webhook-badjson-flow", plan)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-badjson-flow", StepID: step.ID}

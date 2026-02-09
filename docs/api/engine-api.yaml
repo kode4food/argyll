@@ -362,7 +362,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/FlowsListResponse"
+                $ref: "#/components/schemas/QueryFlowsResponse"
     post:
       summary: Start Flow
       description: |
@@ -1045,6 +1045,11 @@ components:
           additionalProperties: true
           example:
             input_text: "Hello, Argyll!"
+        labels:
+          type: object
+          description: Optional labels for the flow
+          additionalProperties:
+            type: string
 
     FlowStartedResponse:
       type: object
@@ -1058,7 +1063,7 @@ components:
           type: string
           example: "wf-text-processing-001"
 
-    FlowsListResponse:
+    QueryFlowsResponse:
       type: object
       required:
         - flows
@@ -1067,23 +1072,42 @@ components:
         flows:
           type: array
           items:
-            $ref: "#/components/schemas/FlowDigest"
+            $ref: "#/components/schemas/QueryFlowsItem"
         count:
           type: integer
-          description: Total number of flows
+          description: Number of flows returned in this response
           example: 3
+        total:
+          type: integer
+          description: Total number of flows available
+          example: 120
+        has_more:
+          type: boolean
+          description: True when more flows are available after this page
+          example: true
+        next_cursor:
+          type: string
+          description: Cursor token for the next page
+          example: "eyJncm91cCI6MCwicmVjZW50IjoxNzA3MDAwMDAwMDAwMDAwMDAwLCJpZCI6IndmLTAwMiJ9"
 
-    FlowDigest:
+    QueryFlowsItem:
       type: object
       required:
         - id
-        - status
-        - created_at
       properties:
         id:
           type: string
           description: Flow identifier
           example: "wf-text-processing-001"
+        digest:
+          $ref: "#/components/schemas/FlowDigest"
+
+    FlowDigest:
+      type: object
+      required:
+        - status
+        - created_at
+      properties:
         status:
           type: string
           enum: [active, completed, failed]
@@ -1100,9 +1124,47 @@ components:
           type: string
           format: date-time
           description: Flow completion timestamp (if completed or failed)
+        labels:
+          type: object
+          description: Flow labels
+          additionalProperties:
+            type: string
         error:
           type: string
           description: Error message if status is failed
+
+    QueryFlowsRequest:
+      type: object
+      properties:
+        id_prefix:
+          type: string
+          description: Flow ID prefix to match
+          example: "wf-"
+        labels:
+          type: object
+          description: Labels to match (ANDed)
+          additionalProperties:
+            type: string
+          example:
+            env: "prod"
+        statuses:
+          type: array
+          description: Flow statuses to include
+          items:
+            type: string
+            enum: [active, completed, failed]
+        limit:
+          type: integer
+          description: Maximum number of flows to return
+          minimum: 0
+          example: 1000
+        cursor:
+          type: string
+          description: Cursor token from previous page
+        sort:
+          type: string
+          enum: [recent_desc, recent_asc]
+          description: Sort order by recency within status grouping
           example: "Step execution failed: connection timeout"
 
     FlowState:
@@ -1349,3 +1411,29 @@ tags:
     description: Webhook callbacks for async steps
   - name: WebSocket
     description: Real-time event streaming
+  /engine/flow/query:
+    post:
+      summary: Query Flows
+      description: Query flows using ID prefix, labels, status filters, and pagination
+      operationId: queryFlows
+      tags:
+        - Flows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryFlowsRequest"
+      responses:
+        "200":
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryFlowsResponse"
+        "400":
+          description: Invalid query request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"

@@ -131,29 +131,31 @@ const (
 )
 
 var (
-	ErrStepIDEmpty           = errors.New("step ID empty")
-	ErrStepNameEmpty         = errors.New("step name empty")
-	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
-	ErrArgNameEmpty          = errors.New("argument name empty")
-	ErrInvalidStepType       = errors.New("invalid step type")
-	ErrHTTPRequired          = errors.New("http required")
-	ErrScriptRequired        = errors.New("script required")
-	ErrFlowRequired          = errors.New("flow required")
-	ErrFlowGoalsRequired     = errors.New("flow goals required")
-	ErrFlowInputMapInvalid   = errors.New("flow input map invalid")
-	ErrFlowOutputMapInvalid  = errors.New("flow output map invalid")
-	ErrHTTPNotAllowed        = errors.New("http not allowed for step type")
-	ErrScriptNotAllowed      = errors.New("script not allowed for step type")
-	ErrFlowNotAllowed        = errors.New("flow not allowed for step type")
-	ErrScriptLanguageEmpty   = errors.New("script language empty")
-	ErrInvalidScriptLanguage = errors.New("invalid script language")
-	ErrScriptEmpty           = errors.New("script empty")
-	ErrInvalidRetryConfig    = errors.New("invalid retry config")
-	ErrInvalidBackoffType    = errors.New("invalid backoff type")
-	ErrAttributeNil          = errors.New("attribute has nil definition")
-	ErrNegativeBackoff       = errors.New("backoff cannot be negative")
-	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
-	ErrWorkNotCompleted      = errors.New("work not completed")
+	ErrStepIDEmpty            = errors.New("step ID empty")
+	ErrStepNameEmpty          = errors.New("step name empty")
+	ErrStepEndpointEmpty      = errors.New("step endpoint empty")
+	ErrArgNameEmpty           = errors.New("argument name empty")
+	ErrInvalidStepType        = errors.New("invalid step type")
+	ErrHTTPRequired           = errors.New("http required")
+	ErrScriptRequired         = errors.New("script required")
+	ErrFlowRequired           = errors.New("flow required")
+	ErrFlowGoalsRequired      = errors.New("flow goals required")
+	ErrFlowInputMapInvalid    = errors.New("flow input map invalid")
+	ErrFlowOutputMapInvalid   = errors.New("flow output map invalid")
+	ErrFlowInputMapDuplicate  = errors.New("flow input map duplicate")
+	ErrFlowOutputMapDuplicate = errors.New("flow output map duplicate")
+	ErrHTTPNotAllowed         = errors.New("http not allowed for step type")
+	ErrScriptNotAllowed       = errors.New("script not allowed for step type")
+	ErrFlowNotAllowed         = errors.New("flow not allowed for step type")
+	ErrScriptLanguageEmpty    = errors.New("script language empty")
+	ErrInvalidScriptLanguage  = errors.New("invalid script language")
+	ErrScriptEmpty            = errors.New("script empty")
+	ErrInvalidRetryConfig     = errors.New("invalid retry config")
+	ErrInvalidBackoffType     = errors.New("invalid backoff type")
+	ErrAttributeNil           = errors.New("attribute has nil definition")
+	ErrNegativeBackoff        = errors.New("backoff cannot be negative")
+	ErrMaxBackoffTooSmall     = errors.New("max_backoff must be >= backoff")
+	ErrWorkNotCompleted       = errors.New("work not completed")
 )
 
 var (
@@ -307,6 +309,7 @@ func (s *Step) validateFlowInputMap() error {
 	if len(s.Flow.InputMap) == 0 {
 		return nil
 	}
+	seen := util.Set[Name]{}
 	for inputName, childName := range s.Flow.InputMap {
 		if inputName == "" || childName == "" {
 			return ErrFlowInputMapInvalid
@@ -315,6 +318,10 @@ func (s *Step) validateFlowInputMap() error {
 		if !ok || !attr.IsInput() {
 			return ErrFlowInputMapInvalid
 		}
+		if seen.Contains(childName) {
+			return fmt.Errorf("%w: %s", ErrFlowInputMapDuplicate, childName)
+		}
+		seen.Add(childName)
 	}
 	return nil
 }
@@ -323,6 +330,7 @@ func (s *Step) validateFlowOutputMap() error {
 	if len(s.Flow.OutputMap) == 0 {
 		return nil
 	}
+	seen := util.Set[Name]{}
 	for childName, outputName := range s.Flow.OutputMap {
 		if childName == "" || outputName == "" {
 			return ErrFlowOutputMapInvalid
@@ -331,6 +339,10 @@ func (s *Step) validateFlowOutputMap() error {
 		if !ok || !attr.IsOutput() {
 			return ErrFlowOutputMapInvalid
 		}
+		if seen.Contains(outputName) {
+			return fmt.Errorf("%w: %s", ErrFlowOutputMapDuplicate, outputName)
+		}
+		seen.Add(outputName)
 	}
 	return nil
 }

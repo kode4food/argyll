@@ -15,6 +15,9 @@ export interface FlowDropdownContextValue {
   closeDropdown: () => void;
   selectedFlow: string | null;
   flows: FlowContext[];
+  flowsHasMore: boolean;
+  flowsLoading: boolean;
+  loadMoreFlows: () => Promise<void>;
 }
 
 const FlowDropdownContext = createContext<FlowDropdownContextValue | null>(

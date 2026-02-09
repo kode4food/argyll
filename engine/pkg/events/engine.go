@@ -91,6 +91,7 @@ func flowActivated(
 	digest := &api.FlowDigest{
 		Status:    api.FlowActive,
 		CreatedAt: ev.Timestamp,
+		Labels:    data.Labels,
 	}
 	return st.
 		SetActiveFlow(data.FlowID, &api.ActiveFlow{
@@ -148,6 +149,7 @@ func flowDigestUpdated(
 
 	if existing, ok := st.FlowDigests[data.FlowID]; ok {
 		digest.CreatedAt = existing.CreatedAt
+		digest.Labels = existing.Labels
 	} else if active, ok := st.Active[data.FlowID]; ok {
 		digest.CreatedAt = active.StartedAt
 	}

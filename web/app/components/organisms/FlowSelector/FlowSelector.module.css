@@ -164,6 +164,11 @@
   background-color: transparent !important;
 }
 
+.loadMore {
+  justify-content: center;
+  font-weight: 600;
+}
+
 /* Selector Layout */
 .selector {
   position: relative;

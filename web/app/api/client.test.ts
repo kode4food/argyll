@@ -102,13 +102,15 @@ describe("ArgyllApi", () => {
         },
       ];
 
-      mockClient.get.mockResolvedValue({
+      mockClient.post.mockResolvedValue({
         data: { flows: mockItems },
       });
 
       const result = await api.listFlows();
 
-      expect(mockClient.get).toHaveBeenCalledWith("/engine/flow");
+      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow/query", {
+        sort: "recent_desc",
+      });
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe("wf-1");
       expect(result[1].id).toBe("wf-2");
@@ -116,11 +118,23 @@ describe("ArgyllApi", () => {
     });
 
     test("handles empty flow list", async () => {
-      mockClient.get.mockResolvedValue({ data: {} });
+      mockClient.post.mockResolvedValue({ data: {} });
 
       const result = await api.listFlows();
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe("queryFlows", () => {
+    test("posts query request", async () => {
+      mockClient.post.mockResolvedValue({ data: { flows: [] } });
+
+      await api.queryFlows({ id_prefix: "wf-" });
+
+      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow/query", {
+        id_prefix: "wf-",
+      });
     });
   });
 

@@ -23,7 +23,7 @@ func TestGetActiveFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = eng.StartFlow("wf-active-test", plan, api.Args{}, api.Metadata{})
+		err = eng.StartFlow("wf-active-test", plan)
 		testify.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-active-test")
@@ -67,9 +67,7 @@ func TestScript(t *testing.T) {
 		}
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(
-			"wf-script", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-script", plan)
 		testify.NoError(t, err)
 
 		helpers.WaitForFlowStarted(t,
@@ -98,9 +96,7 @@ func TestScriptMissing(t *testing.T) {
 		}
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(
-			"wf-no-script", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-no-script", plan)
 		testify.NoError(t, err)
 
 		helpers.WaitForFlowStarted(t,
@@ -131,9 +127,7 @@ func TestPredicate(t *testing.T) {
 		}
 
 		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(
-			"wf-predicate", plan, api.Args{}, api.Metadata{},
-		)
+		err = env.Engine.StartFlow("wf-predicate", plan)
 		testify.NoError(t, err)
 
 		helpers.WaitForFlowStarted(t,

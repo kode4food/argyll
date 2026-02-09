@@ -69,6 +69,24 @@ func TestStartFlow(t *testing.T) {
 	})
 }
 
+func TestQueryFlows(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		testEnv.Engine.Start()
+		defer func() { _ = testEnv.Engine.Stop() }()
+
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+	})
+}
+
 func TestListFlows(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		testEnv.Engine.Start()
@@ -112,7 +130,7 @@ func TestSuccess(t *testing.T) {
 			Steps: api.Steps{
 				"async-step": step,
 			},
-		}, api.Args{}, api.Metadata{})
+		})
 		assert.NoError(t, err)
 
 		// Wait for flow to execute and create work item
@@ -199,9 +217,7 @@ func TestHookStepNotFound(t *testing.T) {
 			},
 		}
 
-		err = testEnv.Engine.StartFlow(
-			"webhook-wf", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("webhook-wf", plan)
 		assert.NoError(t, err)
 
 		result := api.StepResult{
@@ -250,7 +266,7 @@ func TestHookInvalidToken(t *testing.T) {
 			Steps: api.Steps{
 				"async-step": step,
 			},
-		}, api.Args{}, api.Metadata{})
+		})
 		assert.NoError(t, err)
 
 		// Wait for work item to be created
@@ -301,7 +317,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 			Steps: api.Steps{
 				"async-step": step,
 			},
-		}, api.Args{}, api.Metadata{})
+		})
 		assert.NoError(t, err)
 
 		// Wait for work item to be created
@@ -363,7 +379,7 @@ func TestHookFailurePath(t *testing.T) {
 			Steps: api.Steps{
 				"async-step": step,
 			},
-		}, api.Args{}, api.Metadata{})
+		})
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "wf-fail-path", StepID: "async-step"}
@@ -420,9 +436,7 @@ func TestGetFlow(t *testing.T) {
 			},
 		}
 
-		err = testEnv.Engine.StartFlow(
-			"test-wf-id", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("test-wf-id", plan)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/flow/test-wf-id", nil)
@@ -588,9 +602,12 @@ func TestStartFlowNoGoals(t *testing.T) {
 	})
 }
 
-func TestListFlowsEmpty(t *testing.T) {
+func TestQueryFlowsEmpty(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		req := httptest.NewRequest("GET", "/engine/flow", nil)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),
+		)
+		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -598,7 +615,7 @@ func TestListFlowsEmpty(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response api.FlowsListResponse
+		var response api.QueryFlowsResponse
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, 0, response.Count)
@@ -752,9 +769,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 			},
 		}
 
-		err = testEnv.Engine.StartFlow(
-			"duplicate-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("duplicate-flow", plan)
 		assert.NoError(t, err)
 
 		reqBody := api.CreateFlowRequest{
@@ -884,7 +899,7 @@ func (e *testServerEnv) waitForWorkItem(t *testing.T, fs engine.FlowStep) {
 	e.WaitForStepStarted(t, fs.FlowID, fs.StepID, 5*time.Second)
 }
 
-func TestListFlowsMultiple(t *testing.T) {
+func TestQueryFlowsMultiple(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		testEnv.Engine.Start()
 		defer func() { _ = testEnv.Engine.Stop() }()
@@ -904,21 +919,20 @@ func TestListFlowsMultiple(t *testing.T) {
 
 		flowConsumer := testEnv.EventHub.NewConsumer()
 
-		err = testEnv.Engine.StartFlow(
-			"flow-1", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("flow-1", plan)
 		assert.NoError(t, err)
 
-		err = testEnv.Engine.StartFlow(
-			"flow-2", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("flow-2", plan)
 		assert.NoError(t, err)
 
 		helpers.WaitForFlowActivated(t,
 			flowConsumer, 5*time.Second, "flow-1", "flow-2",
 		)
 
-		req := httptest.NewRequest("GET", "/engine/flow", nil)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),
+		)
+		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -926,7 +940,7 @@ func TestListFlowsMultiple(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response api.FlowsListResponse
+		var response api.QueryFlowsResponse
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Equal(t, 2, response.Count)
@@ -1008,9 +1022,7 @@ func TestHookSuccessRoute(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = testEnv.Engine.StartFlow(
-			"webhook-flow", plan, api.Args{}, api.Metadata{},
-		)
+		err = testEnv.Engine.StartFlow("webhook-flow", plan)
 		assert.NoError(t, err)
 
 		fs := engine.FlowStep{FlowID: "webhook-flow", StepID: step.ID}

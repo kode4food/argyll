@@ -63,7 +63,7 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-optional-defaults")
-		err := env.Engine.StartFlow(flowID, plan, api.Args{}, api.Metadata{})
+		err := env.Engine.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
 		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)

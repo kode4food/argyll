@@ -5,17 +5,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
-
-type flowEvent struct {
-	FlowID api.FlowID `json:"flow_id"`
-}
 
 const childFlowTimeout = 5 * time.Second
 
@@ -52,7 +47,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-flow", plan, api.Args{}, nil)
+		err := env.Engine.StartFlow("parent-flow", plan)
 		assert.NoError(t, err)
 
 		parentState := env.WaitForFlowStatus(t, "parent-flow", childFlowTimeout)
@@ -115,7 +110,7 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-fail", plan, api.Args{}, nil)
+		err := env.Engine.StartFlow("parent-fail", plan)
 		assert.NoError(t, err)
 
 		parentState := env.WaitForFlowStatus(t, "parent-fail", childFlowTimeout)
@@ -144,7 +139,7 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-missing", plan, api.Args{}, nil)
+		err := env.Engine.StartFlow("parent-missing", plan)
 		assert.NoError(t, err)
 
 		parentState := env.WaitForFlowStatus(t,
@@ -200,8 +195,8 @@ func TestFlowStepMapping(t *testing.T) {
 			Required: []api.Name{"input"},
 		}
 
-		err := env.Engine.StartFlow(
-			"parent-mapped", plan, api.Args{"input": float64(7)}, nil,
+		err := env.Engine.StartFlow("parent-mapped", plan,
+			flowopt.WithInit(api.Args{"input": float64(7)}),
 		)
 		assert.NoError(t, err)
 
@@ -214,83 +209,6 @@ func TestFlowStepMapping(t *testing.T) {
 		if assert.NotNil(t, exec) {
 			assert.Equal(t, float64(7), exec.Outputs["output"])
 		}
-	})
-}
-
-func TestListFlowsSkipsChildFlows(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
-		consumer := env.EventHub.NewConsumer()
-		defer consumer.Close()
-
-		child := &api.Step{
-			ID:   "child-list",
-			Name: "Child List",
-			Type: api.StepTypeScript,
-			Script: &api.ScriptConfig{
-				Language: api.ScriptLangLua,
-				Script:   "return {}",
-			},
-			Attributes: api.AttributeSpecs{},
-		}
-
-		parent := &api.Step{
-			ID:   "subflow-list",
-			Name: "Subflow List",
-			Type: api.StepTypeFlow,
-			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
-			},
-			Attributes: api.AttributeSpecs{},
-		}
-
-		assert.NoError(t, env.Engine.RegisterStep(child))
-		assert.NoError(t, env.Engine.RegisterStep(parent))
-
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{parent.ID},
-			Steps: api.Steps{parent.ID: parent},
-		}
-
-		err := env.Engine.StartFlow("parent-list", plan, api.Args{}, nil)
-		assert.NoError(t, err)
-
-		parentState := env.WaitForFlowStatus(t, "parent-list", childFlowTimeout)
-		assert.Equal(t, api.FlowCompleted, parentState.Status)
-
-		exec := parentState.Executions[parent.ID]
-		if !assert.NotNil(t, exec) {
-			return
-		}
-
-		var token api.Token
-		for tkn := range exec.WorkItems {
-			token = tkn
-			break
-		}
-
-		childID := api.FlowID(fmt.Sprintf(
-			"%s:%s:%s", "parent-list", parent.ID, token,
-		))
-
-		waitForFlowEvents(t,
-			consumer, childFlowTimeout, api.EventTypeFlowActivated,
-			"parent-list", childID,
-		)
-		waitForFlowEvents(t,
-			consumer, childFlowTimeout, api.EventTypeFlowDeactivated, childID,
-		)
-
-		flows, err := env.Engine.ListFlows()
-		assert.NoError(t, err)
-
-		var ids []api.FlowID
-		for _, flow := range flows {
-			ids = append(ids, flow.ID)
-		}
-
-		assert.Contains(t, ids, api.FlowID("parent-list"))
-		assert.NotContains(t, ids, childID)
 	})
 }
 
@@ -334,9 +252,7 @@ func TestFlowStepMissingOutputParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow(
-			"parent-missing-output", plan, api.Args{}, nil,
-		)
+		err := env.Engine.StartFlow("parent-missing-output", plan)
 		assert.NoError(t, err)
 
 		parentState := env.WaitForFlowStatus(t,
@@ -376,50 +292,5 @@ func metaToken(meta api.Metadata) api.Token {
 		return api.Token(val)
 	default:
 		return ""
-	}
-}
-
-func waitForFlowEvents(
-	t *testing.T, consumer *timebox.Consumer, timeout time.Duration,
-	typ api.EventType, flowIDs ...api.FlowID,
-) {
-	t.Helper()
-
-	expected := make(util.Set[api.FlowID], len(flowIDs))
-	for _, flowID := range flowIDs {
-		expected.Add(flowID)
-	}
-
-	filter := helpers.EventDataFilter(
-		func(ev *timebox.Event) bool {
-			return ev != nil && ev.Type == timebox.EventType(typ)
-		},
-		func(data flowEvent) bool {
-			if expected.Contains(data.FlowID) {
-				expected.Remove(data.FlowID)
-				return true
-			}
-			return false
-		},
-	)
-
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-
-	for len(expected) > 0 {
-		select {
-		case ev, ok := <-consumer.Receive():
-			if !ok {
-				t.Fatalf(
-					"event consumer closed before receiving %d events",
-					len(flowIDs),
-				)
-			}
-			if ev == nil || !filter(ev) {
-				continue
-			}
-		case <-deadline.C:
-			t.Fatalf("timeout waiting for %d events", len(flowIDs))
-		}
 	}
 }

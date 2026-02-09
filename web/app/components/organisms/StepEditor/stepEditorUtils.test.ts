@@ -428,6 +428,72 @@ describe("stepEditorUtils", () => {
       expect(error).toEqual({ key: "stepEditor.flowGoalsRequired" });
     });
 
+    it("rejects duplicate flow input mappings", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [
+          {
+            id: "attr-1",
+            attrType: "input",
+            name: "input_a",
+            dataType: AttributeType.String,
+            flowMap: "child_input",
+          },
+          {
+            id: "attr-2",
+            attrType: "optional",
+            name: "input_b",
+            dataType: AttributeType.String,
+            flowMap: "child_input",
+          },
+        ],
+        stepType: "flow",
+        script: "",
+        endpoint: "",
+        httpTimeout: 0,
+        flowGoals: "goal-a",
+      });
+
+      expect(error).toEqual({
+        key: "stepEditor.duplicateFlowInputMap",
+        vars: { name: "child_input" },
+      });
+    });
+
+    it("rejects duplicate flow output mappings", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [
+          {
+            id: "attr-1",
+            attrType: "output",
+            name: "out_a",
+            dataType: AttributeType.String,
+            flowMap: "child_out",
+          },
+          {
+            id: "attr-2",
+            attrType: "output",
+            name: "out_b",
+            dataType: AttributeType.String,
+            flowMap: "child_out",
+          },
+        ],
+        stepType: "flow",
+        script: "",
+        endpoint: "",
+        httpTimeout: 0,
+        flowGoals: "goal-a",
+      });
+
+      expect(error).toEqual({
+        key: "stepEditor.duplicateFlowOutputMap",
+        vars: { name: "child_out" },
+      });
+    });
+
     it("allows flow type without http or script config", () => {
       const error = getValidationError({
         isCreateMode: false,

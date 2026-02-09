@@ -164,14 +164,34 @@ export interface FlowProjection {
   error?: string;
 }
 
-export interface FlowsListItem {
+export interface QueryFlowsItem {
   id: string;
   digest?: {
     status: FlowStatus;
     created_at: string;
     completed_at?: string;
+    labels?: Record<string, string>;
     error?: string;
   };
+}
+
+export interface QueryFlowsResponse {
+  flows: QueryFlowsItem[];
+  count: number;
+  total?: number;
+  has_more?: boolean;
+  next_cursor?: string;
+}
+
+export type FlowSort = "recent_desc" | "recent_asc";
+
+export interface QueryFlowsRequest {
+  id_prefix?: string;
+  labels?: Record<string, string>;
+  statuses?: FlowStatus[];
+  limit?: number;
+  cursor?: string;
+  sort?: FlowSort;
 }
 
 export interface WorkItemState {

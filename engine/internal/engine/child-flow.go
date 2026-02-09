@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"maps"
 
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -59,7 +60,10 @@ func (e *Engine) StartChildFlow(
 	meta[api.MetaParentStepID] = parent.StepID
 	meta[api.MetaParentWorkItemToken] = token
 
-	if err := e.StartFlow(childID, plan, initState, meta); err != nil {
+	if err := e.StartFlow(childID, plan,
+		flowopt.WithInit(initState),
+		flowopt.WithMetadata(meta),
+	); err != nil {
 		if errors.Is(err, ErrFlowExists) {
 			return childID, nil
 		}
