@@ -99,7 +99,7 @@ func (e *ExecContext) performWorkItem(
 }
 
 func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
-	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 
 	if errors.Is(err, api.ErrWorkNotCompleted) {
 		_ = e.engine.NotCompleteWork(fs, token, err.Error())
@@ -125,7 +125,7 @@ func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
 }
 
 func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
-	c, err := e.engine.GetCompiledScript(FlowStep{
+	c, err := e.engine.GetCompiledScript(api.FlowStep{
 		FlowID: e.flowID,
 		StepID: e.stepID,
 	})
@@ -142,7 +142,7 @@ func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
 		return err
 	}
 
-	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	return e.engine.CompleteWork(fs, token, outputs)
 }
 
@@ -153,7 +153,7 @@ func (e *ExecContext) performSyncHTTP(inputs api.Args, token api.Token) error {
 		return err
 	}
 
-	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	return e.engine.CompleteWork(fs, token, outputs)
 }
 
@@ -167,7 +167,7 @@ func (e *ExecContext) performAsyncHTTP(inputs api.Args, token api.Token) error {
 }
 
 func (e *ExecContext) performFlow(initState api.Args, token api.Token) error {
-	fs := FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	mappedState := mapFlowInputs(e.step, initState)
 	_, err := e.engine.StartChildFlow(fs, token, e.step, mappedState)
 	if err != nil {

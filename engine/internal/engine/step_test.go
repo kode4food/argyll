@@ -2,7 +2,6 @@ package engine_test
 
 import (
 	"testing"
-	"time"
 
 	testify "github.com/stretchr/testify/assert"
 
@@ -66,15 +65,12 @@ func TestScript(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-script", plan)
-		testify.NoError(t, err)
+		env.WaitForFlowStarted([]api.FlowID{"wf-script"}, func() {
+			err = env.Engine.StartFlow("wf-script", plan)
+			testify.NoError(t, err)
+		})
 
-		helpers.WaitForFlowStarted(t,
-			consumer, 5*time.Second, "wf-script",
-		)
-
-		fs := engine.FlowStep{FlowID: "wf-script", StepID: "script-step"}
+		fs := api.FlowStep{FlowID: "wf-script", StepID: "script-step"}
 		comp, err := env.Engine.GetCompiledScript(fs)
 		testify.NoError(t, err)
 		testify.NotNil(t, comp)
@@ -95,15 +91,12 @@ func TestScriptMissing(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-no-script", plan)
-		testify.NoError(t, err)
+		env.WaitForFlowStarted([]api.FlowID{"wf-no-script"}, func() {
+			err = env.Engine.StartFlow("wf-no-script", plan)
+			testify.NoError(t, err)
+		})
 
-		helpers.WaitForFlowStarted(t,
-			consumer, 5*time.Second, "wf-no-script",
-		)
-
-		fs := engine.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
+		fs := api.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
 		comp, err := env.Engine.GetCompiledScript(fs)
 		testify.NoError(t, err)
 		testify.Nil(t, comp)
@@ -126,15 +119,12 @@ func TestPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-predicate", plan)
-		testify.NoError(t, err)
+		env.WaitForFlowStarted([]api.FlowID{"wf-predicate"}, func() {
+			err = env.Engine.StartFlow("wf-predicate", plan)
+			testify.NoError(t, err)
+		})
 
-		helpers.WaitForFlowStarted(t,
-			consumer, 5*time.Second, "wf-predicate",
-		)
-
-		fs := engine.FlowStep{
+		fs := api.FlowStep{
 			FlowID: "wf-predicate", StepID: "predicate-step",
 		}
 		comp, err := env.Engine.GetCompiledPredicate(fs)
@@ -145,7 +135,7 @@ func TestPredicate(t *testing.T) {
 
 func TestPlanFlowNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		fs := engine.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
+		fs := api.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
 		_, err := eng.GetCompiledScript(fs)
 		testify.ErrorIs(t, err, engine.ErrFlowNotFound)
 	})

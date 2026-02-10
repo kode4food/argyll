@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -149,14 +148,12 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		consumer := env.EventHub.NewConsumer()
 		checker := server.NewHealthChecker(env.Engine, env.EventHub)
-		checker.Start()
 		defer checker.Stop()
 
-		helpers.WaitForStepHealth(t,
-			consumer, "unhealthy-step", api.HealthUnhealthy, 5*time.Second,
-		)
+		env.WaitForStepHealth("unhealthy-step", api.HealthUnhealthy, func() {
+			checker.Start()
+		})
 
 		state, err := env.Engine.GetEngineState()
 		assert.NoError(t, err)

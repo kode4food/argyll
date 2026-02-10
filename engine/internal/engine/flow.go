@@ -73,7 +73,7 @@ func (e *Engine) GetFlowStateSeq(
 // CompleteWork marks a work item as successfully completed with the given
 // output values
 func (e *Engine) CompleteWork(
-	fs FlowStep, token api.Token, outputs api.Args,
+	fs api.FlowStep, token api.Token, outputs api.Args,
 ) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		err := tx.checkWorkTransition(fs.StepID, token, api.WorkSucceeded)
@@ -111,7 +111,9 @@ func (e *Engine) CompleteWork(
 }
 
 // FailWork marks a work item as failed with the specified error message
-func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
+func (e *Engine) FailWork(
+	fs api.FlowStep, token api.Token, errMsg string,
+) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		err := tx.checkWorkTransition(fs.StepID, token, api.WorkFailed)
 		if err != nil {
@@ -134,7 +136,7 @@ func (e *Engine) FailWork(fs FlowStep, token api.Token, errMsg string) error {
 
 // NotCompleteWork marks a work item as not completed with specified error
 func (e *Engine) NotCompleteWork(
-	fs FlowStep, token api.Token, errMsg string,
+	fs api.FlowStep, token api.Token, errMsg string,
 ) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		err := tx.checkWorkTransition(fs.StepID, token, api.WorkNotCompleted)
@@ -194,7 +196,7 @@ func (e *Engine) execFlow(
 	return e.flowExec.Exec(e.ctx, flowID, cmd)
 }
 
-func (tx *flowTx) handleWorkSucceededCleanup(fs FlowStep, token api.Token) {
+func (tx *flowTx) handleWorkSucceededCleanup(fs api.FlowStep, token api.Token) {
 	tx.retryQueue.Remove(fs.FlowID, fs.StepID, token)
 }
 

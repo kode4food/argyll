@@ -2,15 +2,12 @@ package tests
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-const flowTimeout = 5 * time.Second
 
 // TestDependencyChain tests that a linear dependency chain A→B→C executes
 // correctly with proper attribute propagation
@@ -67,11 +64,10 @@ func TestDependencyChain(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-dependency-chain")
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		// Wait for flow completion
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed
@@ -172,11 +168,10 @@ func TestDiamondDependencies(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-diamond")
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		// Wait for flow completion
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify all steps completed

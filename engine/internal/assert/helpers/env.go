@@ -18,6 +18,7 @@ import (
 type (
 	// TestEngineEnv holds all the components needed for engine testing
 	TestEngineEnv struct {
+		T           *testing.T
 		Engine      *engine.Engine
 		Redis       *miniredis.Miniredis
 		MockClient  *MockClient
@@ -103,6 +104,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	}
 
 	return &TestEngineEnv{
+		T:           t,
 		Engine:      eng,
 		Redis:       server,
 		MockClient:  mockCli,
@@ -128,8 +130,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 	flowID api.FlowID, evs ...FlowEvent,
 ) error {
 	_, err := e.flowExec.Exec(
-		context.Background(),
-		events.FlowKey(flowID),
+		context.Background(), events.FlowKey(flowID),
 		func(st *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
 			for _, ev := range evs {
 				if err := events.Raise(ag, ev.Type, ev.Data); err != nil {

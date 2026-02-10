@@ -13,7 +13,7 @@ import (
 )
 
 type parentWork struct {
-	fs    FlowStep
+	fs    api.FlowStep
 	token api.Token
 	step  *api.Step
 }
@@ -29,7 +29,7 @@ var (
 )
 
 func (e *Engine) StartChildFlow(
-	parent FlowStep, token api.Token, step *api.Step, initState api.Args,
+	parent api.FlowStep, token api.Token, step *api.Step, initState api.Args,
 ) (api.FlowID, error) {
 	if step.Flow == nil || len(step.Flow.Goals) == 0 {
 		return "", api.ErrFlowGoalsRequired
@@ -138,12 +138,12 @@ func (tx *flowTx) parentMeta(st *api.FlowState, target *parentWork) bool {
 		return false
 	}
 
-	target.fs = FlowStep{FlowID: flowID, StepID: stepID}
+	target.fs = api.FlowStep{FlowID: flowID, StepID: stepID}
 	target.token = token
 	return true
 }
 
-func childFlowID(parent FlowStep, token api.Token) api.FlowID {
+func childFlowID(parent api.FlowStep, token api.Token) api.FlowID {
 	return api.FlowID(
 		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, token),
 	)

@@ -91,11 +91,10 @@ func TestLazyEvaluation(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-lazy-eval")
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		// Wait for flow completion
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// CRITICAL: Verify only 3 steps exist in executions (lazy evaluation)

@@ -2,7 +2,6 @@ package tests
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -32,19 +31,19 @@ func TestMemoizationHit(t *testing.T) {
 		}
 
 		id1 := api.FlowID("f1")
-		err := env.Engine.StartFlow(id1, plan)
-		assert.NoError(t, err)
-
-		f1 := env.WaitForFlowStatus(t, id1, 5*time.Second)
+		f1 := env.WaitForFlowStatus(id1, func() {
+			err := env.Engine.StartFlow(id1, plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, f1.Status)
 		assert.Equal(t, "v1", f1.Attributes["out"].Value)
 		assert.True(t, env.MockClient.WasInvoked("memo"))
 
 		id2 := api.FlowID("f2")
-		err = env.Engine.StartFlow(id2, plan)
-		assert.NoError(t, err)
-
-		f2 := env.WaitForFlowStatus(t, id2, 5*time.Second)
+		f2 := env.WaitForFlowStatus(id2, func() {
+			err := env.Engine.StartFlow(id2, plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, f2.Status)
 		assert.Equal(t, "v1", f2.Attributes["out"].Value)
 
@@ -74,23 +73,23 @@ func TestMemoizationMiss(t *testing.T) {
 
 		env.MockClient.SetResponse("memo", api.Args{"out": "a"})
 		id1 := api.FlowID("f1")
-		err := env.Engine.StartFlow(id1, plan,
-			flowopt.WithInit(api.Args{"in": "a"}),
-		)
-		assert.NoError(t, err)
-
-		f1 := env.WaitForFlowStatus(t, id1, 5*time.Second)
+		f1 := env.WaitForFlowStatus(id1, func() {
+			err := env.Engine.StartFlow(id1, plan,
+				flowopt.WithInit(api.Args{"in": "a"}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, f1.Status)
 		assert.Equal(t, "a", f1.Attributes["out"].Value)
 
 		env.MockClient.SetResponse("memo", api.Args{"out": "b"})
 		id2 := api.FlowID("f2")
-		err = env.Engine.StartFlow(id2, plan,
-			flowopt.WithInit(api.Args{"in": "b"}),
-		)
-		assert.NoError(t, err)
-
-		f2 := env.WaitForFlowStatus(t, id2, 5*time.Second)
+		f2 := env.WaitForFlowStatus(id2, func() {
+			err := env.Engine.StartFlow(id2, plan,
+				flowopt.WithInit(api.Args{"in": "b"}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, f2.Status)
 		assert.Equal(t, "b", f2.Attributes["out"].Value)
 	})

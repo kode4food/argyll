@@ -58,10 +58,10 @@ func TestLinearFlowCompletes(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow("wf-linear", plan)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-linear", testTimeout)
+		flow := env.WaitForFlowStatus("wf-linear", func() {
+			err := env.Engine.StartFlow("wf-linear", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		assert.Equal(t, api.StepCompleted, flow.Executions[producer.ID].Status)
@@ -124,10 +124,10 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow("wf-undeclared-outputs", plan)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-undeclared-outputs", testTimeout)
+		flow := env.WaitForFlowStatus("wf-undeclared-outputs", func() {
+			err := env.Engine.StartFlow("wf-undeclared-outputs", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		assert.NotNil(t, flow.Attributes["value"])
@@ -197,10 +197,10 @@ func TestPendingUnusedSkip(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow("wf-skip-unneeded", plan)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-skip-unneeded", testTimeout)
+		flow := env.WaitForFlowStatus("wf-skip-unneeded", func() {
+			err := env.Engine.StartFlow("wf-skip-unneeded", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, api.StepCompleted, flow.Executions[providerA.ID].Status)
 		assert.Equal(t, api.StepSkipped, flow.Executions[providerB.ID].Status)
@@ -226,16 +226,18 @@ func TestMemoizableStepUsesCache(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		assert.NoError(t, env.Engine.StartFlow("wf-memo-1", plan,
-			flowopt.WithInit(api.Args{"input": "value"}),
-		))
-		flow := env.WaitForFlowStatus(t, "wf-memo-1", testTimeout)
+		flow := env.WaitForFlowStatus("wf-memo-1", func() {
+			assert.NoError(t, env.Engine.StartFlow("wf-memo-1", plan,
+				flowopt.WithInit(api.Args{"input": "value"}),
+			))
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
-		assert.NoError(t, env.Engine.StartFlow("wf-memo-2", plan,
-			flowopt.WithInit(api.Args{"input": "value"}),
-		))
-		flow = env.WaitForFlowStatus(t, "wf-memo-2", testTimeout)
+		flow = env.WaitForFlowStatus("wf-memo-2", func() {
+			assert.NoError(t, env.Engine.StartFlow("wf-memo-2", plan,
+				flowopt.WithInit(api.Args{"input": "value"}),
+			))
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		invocations := env.MockClient.GetInvocations()

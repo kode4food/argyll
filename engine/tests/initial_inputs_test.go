@@ -66,13 +66,12 @@ func TestInitialFlowInputs(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-initial-inputs")
-		err := env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(initialInputs),
-		)
-		assert.NoError(t, err)
-
-		// Wait for flow completion
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(initialInputs),
+			)
+			assert.NoError(t, err)
+		})
 
 		// Verify flow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)

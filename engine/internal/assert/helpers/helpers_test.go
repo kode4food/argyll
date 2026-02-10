@@ -2,9 +2,10 @@ package helpers_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
@@ -316,11 +317,13 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-completed-event")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForFlowCompleted(t, consumer, 5*time.Second, flowID)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForFlowCompleted(flowID)
+		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
@@ -346,11 +349,13 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-failed-event")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForFlowFailed(t, consumer, 5*time.Second, flowID)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForFlowFailed(flowID)
+		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
@@ -375,13 +380,16 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-step-started")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForStepStartedEvent(t,
-			consumer, flowID, step.ID, 5*time.Second,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForStepStartedEvent(api.FlowStep{
+				FlowID: flowID,
+				StepID: step.ID,
+			})
+		})
 	})
 }
 
@@ -402,13 +410,16 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-step-terminal")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForStepTerminalEvent(t,
-			consumer, flowID, step.ID, 5*time.Second,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForStepTerminalEvent(api.FlowStep{
+				FlowID: flowID,
+				StepID: step.ID,
+			})
+		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
@@ -435,13 +446,16 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-work-succeeded")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForWorkSucceeded(t,
-			consumer, flowID, step.ID, 1, 5*time.Second,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForWorkSucceeded(api.FlowStep{
+				FlowID: flowID,
+				StepID: step.ID,
+			}, 1)
+		})
 	})
 }
 
@@ -463,13 +477,16 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-work-failed")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForWorkFailed(t,
-			consumer, flowID, step.ID, 1, 5*time.Second,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForWorkFailed(api.FlowStep{
+				FlowID: flowID,
+				StepID: step.ID,
+			}, 1)
+		})
 	})
 }
 
@@ -496,13 +513,16 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 		}
 
 		flowID := api.FlowID("flow-work-retry")
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
 
-		helpers.WaitForWorkRetryScheduled(t,
-			consumer, flowID, step.ID, 1, 5*time.Second,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForWorkRetryScheduled(api.FlowStep{
+				FlowID: flowID,
+				StepID: step.ID,
+			}, 1)
+		})
 	})
 }
 
@@ -512,13 +532,13 @@ func TestWaitForEngineEvents(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("engine-events")
-		consumer := env.EventHub.NewConsumer()
-		err := env.Engine.RegisterStep(step)
-		assert.NoError(t, err)
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			err := env.Engine.RegisterStep(step)
+			assert.NoError(t, err)
 
-		helpers.WaitForEngineEvents(t,
-			consumer, 1, 5*time.Second, api.EventTypeStepRegistered,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForEngineEvents(1, api.EventTypeStepRegistered)
+		})
 	})
 }
 
@@ -539,10 +559,10 @@ func TestWaitFlowCompleted(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-flow-completed")
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		finalState := env.WaitForFlowStatus(t, flowID, 5*time.Second)
+		finalState := env.WaitForFlowStatus(flowID, func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowCompleted, finalState.Status)
 	})
@@ -566,10 +586,10 @@ func TestWaitFlowFailed(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-flow-failed")
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		finalState := env.WaitForFlowStatus(t, flowID, 5*time.Second)
+		finalState := env.WaitForFlowStatus(flowID, func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowFailed, finalState.Status)
 	})
@@ -598,21 +618,18 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-flow-polling")
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: flowID, StepID: step.ID},
+			func() {
+				err = env.Engine.StartFlow(flowID, plan)
+				assert.NoError(t, err)
+			},
+		)
 
-		env.WaitForStepStarted(t, flowID, step.ID, 5*time.Second)
-
-		err = env.RaiseFlowEvents(flowID, helpers.FlowEvent{
-			Type: api.EventTypeFlowCompleted,
-			Data: api.FlowCompletedEvent{FlowID: flowID},
+		finalState := env.WaitForFlowStatus(flowID, func() {
+			env.MockClient.ClearError(step.ID)
+			env.MockClient.SetResponse(step.ID, api.Args{})
 		})
-		assert.NoError(t, err)
-
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{})
-
-		finalState := env.WaitForFlowStatus(t, flowID, 5*time.Second)
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowCompleted, finalState.Status)
 	})
@@ -635,10 +652,10 @@ func TestWaitStepCompleted(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-step-complete")
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		execState := env.WaitForStepStatus(t, flowID, step.ID, 5*time.Second)
+		execState := env.WaitForStepStatus(flowID, step.ID, func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.NotNil(t, execState)
 		assert.Equal(t, api.StepCompleted, execState.Status)
 	})
@@ -662,10 +679,10 @@ func TestWaitStepFailed(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-step-fail")
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		execState := env.WaitForStepStatus(t, flowID, step.ID, 5*time.Second)
+		execState := env.WaitForStepStatus(flowID, step.ID, func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.NotNil(t, execState)
 		assert.Equal(t, api.StepFailed, execState.Status)
 	})
@@ -688,10 +705,10 @@ func TestWaitStepSkipped(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-step-skipped")
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		execState := env.WaitForStepStatus(t, flowID, step.ID, 5*time.Second)
+		execState := env.WaitForStepStatus(flowID, step.ID, func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 		assert.NotNil(t, execState)
 		assert.Equal(t, api.StepSkipped, execState.Status)
 	})

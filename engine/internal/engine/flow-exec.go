@@ -701,7 +701,7 @@ func (tx *flowTx) handleMemoCacheHit(
 		return err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		fs := FlowStep{FlowID: tx.flowID, StepID: stepID}
+		fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
 		tx.handleWorkSucceededCleanup(fs, token)
 	})
 	return tx.handleWorkSucceeded(stepID)

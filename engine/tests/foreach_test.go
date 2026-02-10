@@ -64,10 +64,10 @@ func TestForEachWorkItems(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-foreach")
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		// Verify flow completed successfully
 		assert.Equal(t, api.FlowCompleted, flow.Status)

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -131,11 +130,13 @@ func TestHookCompleteTwice(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("double-complete-flow", plan)
-		assert.NoError(t, err)
-
-		fs := engine.FlowStep{FlowID: "double-complete-flow", StepID: step.ID}
-		env.waitForWorkItem(t, fs)
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: "double-complete-flow", StepID: step.ID},
+			func() {
+				err = env.Engine.StartFlow("double-complete-flow", plan)
+				assert.NoError(t, err)
+			},
+		)
 
 		flow, err := env.Engine.GetFlowState("double-complete-flow")
 		assert.NoError(t, err)
@@ -156,15 +157,15 @@ func TestHookCompleteTwice(t *testing.T) {
 			"/webhook/double-complete-flow/"+string(step.ID)+"/"+string(token),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
-		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
-		router.ServeHTTP(w, req)
+		var w *httptest.ResponseRecorder
+		exec := env.WaitForStepStatus("double-complete-flow", step.ID, func() {
+			w = httptest.NewRecorder()
+			router.ServeHTTP(w, req)
+		})
 
 		assert.Equal(t, 200, w.Code)
-		exec := env.WaitForStepStatus(t,
-			"double-complete-flow", step.ID, 5*time.Second,
-		)
 		assert.Equal(t, api.StepCompleted, exec.Status)
 
 		// Second webhook call with same token should be rejected (400) due to
@@ -221,11 +222,13 @@ func TestHookFailTwice(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("double-fail-flow", plan)
-		assert.NoError(t, err)
-
-		fs := engine.FlowStep{FlowID: "double-fail-flow", StepID: step.ID}
-		env.waitForWorkItem(t, fs)
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: "double-fail-flow", StepID: step.ID},
+			func() {
+				err = env.Engine.StartFlow("double-fail-flow", plan)
+				assert.NoError(t, err)
+			},
+		)
 
 		flow, err := env.Engine.GetFlowState("double-fail-flow")
 		assert.NoError(t, err)
@@ -306,11 +309,13 @@ func TestHookSuccess(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("webhook-success-flow", plan)
-		assert.NoError(t, err)
-
-		fs := engine.FlowStep{FlowID: "webhook-success-flow", StepID: step.ID}
-		env.waitForWorkItem(t, fs)
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: "webhook-success-flow", StepID: step.ID},
+			func() {
+				err = env.Engine.StartFlow("webhook-success-flow", plan)
+				assert.NoError(t, err)
+			},
+		)
 
 		flow, err := env.Engine.GetFlowState("webhook-success-flow")
 		assert.NoError(t, err)
@@ -364,11 +369,13 @@ func TestHookWorkFailure(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("webhook-fail-flow", plan)
-		assert.NoError(t, err)
-
-		fs := engine.FlowStep{FlowID: "webhook-fail-flow", StepID: step.ID}
-		env.waitForWorkItem(t, fs)
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: "webhook-fail-flow", StepID: step.ID},
+			func() {
+				err = env.Engine.StartFlow("webhook-fail-flow", plan)
+				assert.NoError(t, err)
+			},
+		)
 
 		flow, err := env.Engine.GetFlowState("webhook-fail-flow")
 		assert.NoError(t, err)
@@ -422,11 +429,13 @@ func TestHookInvalidJSON(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("webhook-badjson-flow", plan)
-		assert.NoError(t, err)
-
-		fs := engine.FlowStep{FlowID: "webhook-badjson-flow", StepID: step.ID}
-		env.waitForWorkItem(t, fs)
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: "webhook-badjson-flow", StepID: step.ID},
+			func() {
+				err = env.Engine.StartFlow("webhook-badjson-flow", plan)
+				assert.NoError(t, err)
+			},
+		)
 
 		flow, err := env.Engine.GetFlowState("webhook-badjson-flow")
 		assert.NoError(t, err)

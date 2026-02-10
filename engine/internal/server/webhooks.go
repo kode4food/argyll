@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -56,12 +55,12 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		return
 	}
 
-	fs := engine.FlowStep{FlowID: flowID, StepID: stepID}
+	fs := api.FlowStep{FlowID: flowID, StepID: stepID}
 	s.handleWorkWebhook(c, fs, token)
 }
 
 func (s *Server) handleWorkWebhook(
-	c *gin.Context, fs engine.FlowStep, token api.Token,
+	c *gin.Context, fs api.FlowStep, token api.Token,
 ) {
 	var result api.StepResult
 	if err := c.ShouldBindJSON(&result); err != nil {

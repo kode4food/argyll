@@ -248,13 +248,13 @@ func (e *Engine) executeReadyRetries() {
 			continue
 		}
 
-		fs := FlowStep{FlowID: item.FlowID, StepID: item.StepID}
+		fs := api.FlowStep{FlowID: item.FlowID, StepID: item.StepID}
 		e.retryWork(fs, step, item.Token, flow.Metadata)
 	}
 }
 
 func (e *Engine) retryWork(
-	fs FlowStep, step *api.Step, token api.Token, meta api.Metadata,
+	fs api.FlowStep, step *api.Step, token api.Token, meta api.Metadata,
 ) {
 	var started api.WorkItems
 	var inputs api.Args

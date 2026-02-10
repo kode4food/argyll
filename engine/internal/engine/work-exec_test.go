@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -12,8 +11,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-const workExecTimeout = 5 * time.Second
 
 func TestOptionalDefaults(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -45,20 +42,17 @@ func TestOptionalDefaults(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-defaults")
-		workConsumer := env.EventHub.NewConsumer()
-		flowConsumer := env.EventHub.NewConsumer()
-		err := env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"input": "value"}),
-		)
-		assert.NoError(t, err)
-
-		helpers.WaitForWorkSucceeded(t,
-			workConsumer, flowID, step.ID, 1, workExecTimeout,
-		)
-		helpers.WaitForFlowCompleted(t, flowConsumer, workExecTimeout, flowID)
-
-		fl, err := env.Engine.GetFlowState(flowID)
-		assert.NoError(t, err)
+		fl := env.WaitForFlowStatus(flowID, func() {
+			env.WaitForWorkSucceeded(
+				api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
+				func() {
+					err := env.Engine.StartFlow(flowID, plan,
+						flowopt.WithInit(api.Args{"input": "value"}),
+					)
+					assert.NoError(t, err)
+				},
+			)
+		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		exec := fl.Executions[step.ID]
@@ -83,18 +77,15 @@ func TestIncompleteWorkFails(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-not-complete")
-		workConsumer := env.EventHub.NewConsumer()
-		flowConsumer := env.EventHub.NewConsumer()
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		helpers.WaitForWorkFailed(t,
-			workConsumer, flowID, step.ID, 1, workExecTimeout,
-		)
-		helpers.WaitForFlowFailed(t, flowConsumer, workExecTimeout, flowID)
-
-		fl, err := env.Engine.GetFlowState(flowID)
-		assert.NoError(t, err)
+		fl := env.WaitForFlowStatus(flowID, func() {
+			env.WaitForWorkFailed(
+				api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
+				func() {
+					err := env.Engine.StartFlow(flowID, plan)
+					assert.NoError(t, err)
+				},
+			)
+		})
 		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		exec := fl.Executions[step.ID]
@@ -123,11 +114,10 @@ func TestWorkFailure(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-failure")
-		consumer := env.EventHub.NewConsumer()
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
-		helpers.WaitForFlowFailed(t, consumer, workExecTimeout, flowID)
+		env.WaitForFlowFailed([]api.FlowID{flowID}, func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		fl, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
@@ -162,12 +152,12 @@ func TestHTTPMetadata(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-meta", plan,
-			flowopt.WithMetadata(flowMetadata),
-		)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-meta", workExecTimeout)
+		flow := env.WaitForFlowStatus("wf-meta", func() {
+			err := env.Engine.StartFlow("wf-meta", plan,
+				flowopt.WithMetadata(flowMetadata),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		md := env.MockClient.LastMetadata(step.ID)
@@ -202,18 +192,18 @@ func TestAsyncMetadata(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err := env.Engine.StartFlow("wf-async-meta", plan,
-			flowopt.WithMetadata(flowMetadata),
-		)
-		assert.NoError(t, err)
-
-		helpers.WaitForWorkStarted(t,
-			consumer, "wf-async-meta", step.ID, 1, workExecTimeout,
+		env.WaitForWorkStarted(
+			api.FlowStep{FlowID: "wf-async-meta", StepID: step.ID}, 1,
+			func() {
+				err := env.Engine.StartFlow("wf-async-meta", plan,
+					flowopt.WithMetadata(flowMetadata),
+				)
+				assert.NoError(t, err)
+			},
 		)
 
 		assert.True(t, env.MockClient.WaitForInvocation(
-			step.ID, workExecTimeout,
+			step.ID, helpers.DefaultWaitTimeout,
 		))
 
 		md := env.MockClient.LastMetadata(step.ID)
@@ -252,12 +242,12 @@ func TestScriptWorkExecutes(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-script", plan,
-			flowopt.WithInit(api.Args{"x": float64(2)}),
-		)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-script", workExecTimeout)
+		flow := env.WaitForFlowStatus("wf-script", func() {
+			err := env.Engine.StartFlow("wf-script", plan,
+				flowopt.WithInit(api.Args{"x": float64(2)}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -281,12 +271,10 @@ func TestPredicateFailure(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-pred-fail", plan)
-		assert.NoError(t, err)
-
-		exec := env.WaitForStepStatus(t,
-			"wf-pred-fail", step.ID, workExecTimeout,
-		)
+		exec := env.WaitForStepStatus("wf-pred-fail", step.ID, func() {
+			err := env.Engine.StartFlow("wf-pred-fail", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.StepFailed, exec.Status)
 		assert.True(t, strings.Contains(exec.Error, "predicate"))
 	})
@@ -314,12 +302,12 @@ func TestParallelWorkItems(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-parallel", plan,
-			flowopt.WithInit(api.Args{"items": []any{"a", "b", "c"}}),
-		)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-parallel", workExecTimeout)
+		flow := env.WaitForFlowStatus("wf-parallel", func() {
+			err := env.Engine.StartFlow("wf-parallel", plan,
+				flowopt.WithInit(api.Args{"items": []any{"a", "b", "c"}}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, api.StepCompleted, flow.Executions[step.ID].Status)
 	})
@@ -354,20 +342,22 @@ func TestRetryPendingParallelism(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-retry-parallel")
-		workConsumer := env.EventHub.NewConsumer()
-		err := env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"items": []any{"a", "b"}}),
-		)
-		assert.NoError(t, err)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			env.WaitForWorkRetryScheduled(
+				api.FlowStep{FlowID: flowID, StepID: step.ID}, 2,
+				func() {
+					err := env.Engine.StartFlow(flowID, plan,
+						flowopt.WithInit(api.Args{
+							"items": []any{"a", "b"},
+						}),
+					)
+					assert.NoError(t, err)
+				},
+			)
 
-		helpers.WaitForWorkRetryScheduled(t,
-			workConsumer, flowID, step.ID, 2, workExecTimeout,
-		)
-
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
-
-		flow := env.WaitForFlowStatus(t, flowID, workExecTimeout)
+			env.MockClient.ClearError(step.ID)
+			env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		exec := flow.Executions[step.ID]
@@ -407,16 +397,23 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-pred-work-item")
-		err := env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"items": []any{"a", "b"}}),
-		)
-		assert.NoError(t, err)
+		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{"items": []any{"a", "b"}}),
+			)
+			assert.NoError(t, err)
+			waits[0].ForStepTerminalEvent(api.FlowStep{
+				FlowID: flowID,
+				StepID: step.ID,
+			})
+			waits[1].ForFlowTerminal(flowID)
+		})
 
-		exec := env.WaitForStepStatus(t, flowID, step.ID, workExecTimeout)
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		exec := flow.Executions[step.ID]
 		assert.Equal(t, api.StepFailed, exec.Status)
 		assert.Contains(t, exec.Error, "predicate")
-
-		flow := env.WaitForFlowStatus(t, flowID, workExecTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 	})
 }

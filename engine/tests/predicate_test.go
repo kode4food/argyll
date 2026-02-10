@@ -53,20 +53,24 @@ func TestPredicateSkipping(t *testing.T) {
 		assert.NoError(t, err)
 		err = env.Engine.RegisterStep(stepB)
 		assert.NoError(t, err)
-		err = env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
 
-		// Wait for step A to complete
-		env.WaitForStepStatus(t, flowID, "step-a", flowTimeout)
+		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+			waits[0].ForStepTerminalEvent(
+				api.FlowStep{FlowID: flowID, StepID: "step-a"},
+			)
+			waits[1].ForStepTerminalEvent(
+				api.FlowStep{FlowID: flowID, StepID: "step-b"},
+			)
+		})
 
-		// Wait for step B to be skipped
-		execB := env.WaitForStepStatus(t, flowID, "step-b", flowTimeout)
-		assert.Equal(t, api.StepSkipped, execB.Status)
-		assert.Equal(t, "predicate returned false", execB.Error)
-
-		// Get final flow state
 		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
+
+		execB := flow.Executions["step-b"]
+		assert.Equal(t, api.StepSkipped, execB.Status)
+		assert.Equal(t, "predicate returned false", execB.Error)
 
 		// Verify step A completed
 		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)

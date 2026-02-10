@@ -3,7 +3,6 @@ package engine_test
 import (
 	"errors"
 	"testing"
-	"time"
 
 	testify "github.com/stretchr/testify/assert"
 
@@ -12,8 +11,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-const testTimeout = 5 * time.Second
 
 func TestStartDuplicate(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
@@ -110,12 +107,10 @@ func TestSetAttribute(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-attr", plan)
-		testify.NoError(t, err)
-
-		// Wait for flow to complete
-		helpers.WaitForFlowCompleted(t, consumer, testTimeout, "wf-attr")
+		env.WaitForFlowCompleted([]api.FlowID{"wf-attr"}, func() {
+			err = env.Engine.StartFlow("wf-attr", plan)
+			testify.NoError(t, err)
+		})
 
 		a := assert.New(t)
 		a.FlowStateEquals(env.Engine, "wf-attr", "test_key", "test_value")
@@ -143,11 +138,10 @@ func TestGetAttributes(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-getattrs", plan)
-		testify.NoError(t, err)
-
-		// Wait for flow to complete
-		flow := env.WaitForFlowStatus(t, "wf-getattrs", testTimeout)
+		flow := env.WaitForFlowStatus("wf-getattrs", func() {
+			err = env.Engine.StartFlow("wf-getattrs", plan)
+			testify.NoError(t, err)
+		})
 
 		attrs := flow.GetAttributes()
 		testify.Len(t, attrs, 2)
@@ -178,10 +172,10 @@ func TestGetAttribute(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow("wf-attr", plan)
-		testify.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-attr", testTimeout)
+		flow := env.WaitForFlowStatus("wf-attr", func() {
+			err := env.Engine.StartFlow("wf-attr", plan)
+			testify.NoError(t, err)
+		})
 		testify.Equal(t, api.FlowCompleted, flow.Status)
 
 		value, ok, err := env.Engine.GetAttribute("wf-attr", "result")
@@ -221,11 +215,10 @@ func TestDuplicateFirstWins(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow("wf-dup-attr", plan)
-		testify.NoError(t, err)
-
-		// Wait for flow to complete
-		flow := env.WaitForFlowStatus(t, "wf-dup-attr", testTimeout)
+		flow := env.WaitForFlowStatus("wf-dup-attr", func() {
+			err = env.Engine.StartFlow("wf-dup-attr", plan)
+			testify.NoError(t, err)
+		})
 
 		// First value wins - duplicates are silently ignored
 		attrs := flow.GetAttributes()
@@ -252,11 +245,10 @@ func TestCompleteFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("wf-complete", plan)
-		testify.NoError(t, err)
-
-		// Wait for flow to complete automatically
-		flow := env.WaitForFlowStatus(t, "wf-complete", testTimeout)
+		flow := env.WaitForFlowStatus("wf-complete", func() {
+			err = env.Engine.StartFlow("wf-complete", plan)
+			testify.NoError(t, err)
+		})
 		a.FlowStatus(flow, api.FlowCompleted)
 	})
 }
@@ -279,12 +271,11 @@ func TestFailFlow(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-fail", plan)
-		testify.NoError(t, err)
-
 		// Wait for flow to fail automatically
-		helpers.WaitForFlowFailed(t, consumer, testTimeout, "wf-fail")
+		env.WaitForFlowFailed([]api.FlowID{"wf-fail"}, func() {
+			err = env.Engine.StartFlow("wf-fail", plan)
+			testify.NoError(t, err)
+		})
 
 		flow, err := env.Engine.GetFlowState("wf-fail")
 		testify.NoError(t, err)
@@ -310,13 +301,13 @@ func TestSkipStep(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-skip", plan)
-		testify.NoError(t, err)
-
 		// Wait for step to be skipped
-		helpers.WaitForStepTerminalEvent(t,
-			consumer, "wf-skip", "step-skip", testTimeout,
+		env.WaitForStepTerminalEvent(
+			api.FlowStep{FlowID: "wf-skip", StepID: "step-skip"},
+			func() {
+				err = env.Engine.StartFlow("wf-skip", plan)
+				testify.NoError(t, err)
+			},
 		)
 
 		flow, err := env.Engine.GetFlowState("wf-skip")
@@ -395,12 +386,12 @@ func TestIsFlowFailed(t *testing.T) {
 		testify.NoError(t, err)
 		env.MockClient.SetError(stepA.ID, errors.New("step failed"))
 
-		consumer := env.EventHub.NewConsumer()
-		err = env.Engine.StartFlow("wf-failed-test", plan)
-		testify.NoError(t, err)
-
-		helpers.WaitForStepTerminalEvent(t,
-			consumer, "wf-failed-test", stepA.ID, 5*time.Second,
+		env.WaitForStepTerminalEvent(
+			api.FlowStep{FlowID: "wf-failed-test", StepID: stepA.ID},
+			func() {
+				err = env.Engine.StartFlow("wf-failed-test", plan)
+				testify.NoError(t, err)
+			},
 		)
 
 		flow, err := env.Engine.GetFlowState("wf-failed-test")

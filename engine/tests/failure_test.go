@@ -90,17 +90,20 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-partial-failure")
-		err := env.Engine.StartFlow(flowID, plan)
+		env.WaitAfterAll(3, func(waits []*helpers.Wait) {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+			waits[0].ForStepTerminalEvent(
+				api.FlowStep{FlowID: flowID, StepID: "step-c"},
+			)
+			waits[1].ForStepTerminalEvent(
+				api.FlowStep{FlowID: flowID, StepID: "step-b"},
+			)
+			waits[2].ForFlowTerminal(flowID)
+		})
+
+		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
-
-		// Wait for step C to complete (independent branch)
-		env.WaitForStepStatus(t, flowID, "step-c", flowTimeout)
-
-		// Wait for step B to fail
-		env.WaitForStepStatus(t, flowID, "step-b", flowTimeout)
-
-		// Now wait for flow to fail
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		// Verify step A completed (no dependencies, no errors)
@@ -168,10 +171,10 @@ func TestUnreachableStep(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.StartFlow("wf-unreachable", plan)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-unreachable", flowTimeout)
+		flow := env.WaitForFlowStatus("wf-unreachable", func() {
+			err := env.Engine.StartFlow("wf-unreachable", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
 		assert.Equal(t, api.StepFailed, flow.Executions[stepA.ID].Status)

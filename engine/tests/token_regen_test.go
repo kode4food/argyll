@@ -37,21 +37,20 @@ func TestMemoStepReusesToken(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-memo-token-reuse")
-		eventConsumer := env.EventHub.NewConsumer()
-
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
 		// Wait for retry to be scheduled
-		helpers.WaitForWorkRetryScheduled(t,
-			eventConsumer, flowID, step.ID, 1, flowTimeout,
+		env.WaitForWorkRetryScheduled(
+			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
+			func() {
+				err := env.Engine.StartFlow(flowID, plan)
+				assert.NoError(t, err)
+			},
 		)
 
 		// Clear error and set success response for retry
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
-
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			env.MockClient.ClearError(step.ID)
+			env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify only one work item (token was reused)
@@ -92,21 +91,20 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-non-memo-token-regen")
-		eventConsumer := env.EventHub.NewConsumer()
-
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
 		// Wait for retry to be scheduled
-		helpers.WaitForWorkRetryScheduled(t,
-			eventConsumer, flowID, step.ID, 1, flowTimeout,
+		env.WaitForWorkRetryScheduled(
+			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
+			func() {
+				err := env.Engine.StartFlow(flowID, plan)
+				assert.NoError(t, err)
+			},
 		)
 
 		// Clear error and set success response for retry
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
-
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			env.MockClient.ClearError(step.ID)
+			env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify only one work item exists (old token was replaced)
@@ -147,21 +145,20 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-multi-retry-tokens")
-		eventConsumer := env.EventHub.NewConsumer()
-
-		err := env.Engine.StartFlow(flowID, plan)
-		assert.NoError(t, err)
-
 		// Wait for first retry
-		helpers.WaitForWorkRetryScheduled(t,
-			eventConsumer, flowID, step.ID, 1, flowTimeout,
+		env.WaitForWorkRetryScheduled(
+			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
+			func() {
+				err := env.Engine.StartFlow(flowID, plan)
+				assert.NoError(t, err)
+			},
 		)
 
 		// Allow next retry to succeed
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
-
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			env.MockClient.ClearError(step.ID)
+			env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		// Verify only one work item exists (tokens were replaced on retry)

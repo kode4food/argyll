@@ -42,12 +42,12 @@ func TestConstAttribute(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-const-attribute")
-		err := env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"const_value": "override"}),
-		)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, flowID, flowTimeout)
+		flow := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{"const_value": "override"}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, "fixed", flow.Attributes["result"].Value)
 	})

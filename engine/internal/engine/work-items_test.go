@@ -2,7 +2,6 @@ package engine_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -10,8 +9,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-const workItemTimeout = 5 * time.Second
 
 func TestForEachAggregatesOutputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -46,12 +43,12 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err := env.Engine.StartFlow("wf-foreach", plan,
-			flowopt.WithInit(api.Args{"item": []any{"a", "b"}}),
-		)
-		assert.NoError(t, err)
-
-		flow := env.WaitForFlowStatus(t, "wf-foreach", workItemTimeout)
+		flow := env.WaitForFlowStatus("wf-foreach", func() {
+			err := env.Engine.StartFlow("wf-foreach", plan,
+				flowopt.WithInit(api.Args{"item": []any{"a", "b"}}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 
 		attrs := flow.GetAttributes()

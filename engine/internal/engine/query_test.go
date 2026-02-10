@@ -13,14 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
-
-type flowEvent struct {
-	FlowID api.FlowID `json:"flow_id"`
-}
-
-const queryTimeout = 5 * time.Second
 
 func TestQueryFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -37,14 +30,10 @@ func TestQueryFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-
-		err = env.Engine.StartFlow("wf-list", plan)
-		assert.NoError(t, err)
-
-		helpers.WaitForFlowActivated(t,
-			consumer, queryTimeout, "wf-list",
-		)
+		env.WaitForFlowActivated([]api.FlowID{"wf-list"}, func() {
+			err = env.Engine.StartFlow("wf-list", plan)
+			assert.NoError(t, err)
+		})
 
 		resp, err := env.Engine.QueryFlows(nil)
 		assert.NoError(t, err)
@@ -67,14 +56,10 @@ func TestListFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		consumer := env.EventHub.NewConsumer()
-
-		err = env.Engine.StartFlow("wf-listflows", plan)
-		assert.NoError(t, err)
-
-		helpers.WaitForFlowActivated(t,
-			consumer, queryTimeout, "wf-listflows",
-		)
+		env.WaitForFlowActivated([]api.FlowID{"wf-listflows"}, func() {
+			err = env.Engine.StartFlow("wf-listflows", plan)
+			assert.NoError(t, err)
+		})
 
 		flows, err := env.Engine.ListFlows()
 		assert.NoError(t, err)
@@ -114,29 +99,34 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 			Steps: api.Steps{failedStep.ID: failedStep},
 		}
 
-		assert.NoError(t,
-			env.Engine.StartFlow("flow-active", activePlan,
-				flowopt.WithLabels(api.Labels{"tier": "active"}),
-			),
+		env.WaitForStepStarted(
+			api.FlowStep{FlowID: "flow-active", StepID: activeStep.ID},
+			func() {
+				assert.NoError(t,
+					env.Engine.StartFlow("flow-active", activePlan,
+						flowopt.WithLabels(api.Labels{"tier": "active"}),
+					),
+				)
+			},
 		)
-		assert.NoError(t,
-			env.Engine.StartFlow("flow-complete", completePlan,
-				flowopt.WithLabels(api.Labels{"tier": "done"}),
-			),
-		)
-		assert.NoError(t,
-			env.Engine.StartFlow("flow-failed", failedPlan,
-				flowopt.WithLabels(api.Labels{"tier": "fail"}),
-			),
-		)
-
-		env.WaitForStepStarted(t, "flow-active", activeStep.ID, queryTimeout)
-		env.WaitForFlowStatus(t, "flow-complete", queryTimeout)
-		env.WaitForFlowStatus(t, "flow-failed", queryTimeout)
+		env.WaitForFlowStatus("flow-complete", func() {
+			assert.NoError(t,
+				env.Engine.StartFlow("flow-complete", completePlan,
+					flowopt.WithLabels(api.Labels{"tier": "done"}),
+				),
+			)
+		})
+		env.WaitForFlowStatus("flow-failed", func() {
+			assert.NoError(t,
+				env.Engine.StartFlow("flow-failed", failedPlan,
+					flowopt.WithLabels(api.Labels{"tier": "fail"}),
+				),
+			)
+		})
 
 		waitForQueryFlow(t, env.Engine, &api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowActive},
-		}, api.FlowID("flow-active"))
+		}, "flow-active")
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			IDPrefix: "flow-c",
@@ -190,12 +180,14 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		assert.NoError(t, env.Engine.StartFlow("flow-a", plan))
-		env.WaitForFlowStatus(t, "flow-a", queryTimeout)
+		env.WaitForFlowStatus("flow-a", func() {
+			assert.NoError(t, env.Engine.StartFlow("flow-a", plan))
+		})
 		time.Sleep(10 * time.Millisecond)
 
-		assert.NoError(t, env.Engine.StartFlow("flow-b", plan))
-		env.WaitForFlowStatus(t, "flow-b", queryTimeout)
+		env.WaitForFlowStatus("flow-b", func() {
+			assert.NoError(t, env.Engine.StartFlow("flow-b", plan))
+		})
 
 		resp := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -226,7 +218,7 @@ func waitForQueryFlow(
 ) {
 	t.Helper()
 
-	deadline := time.Now().Add(queryTimeout)
+	deadline := time.Now().Add(helpers.DefaultWaitTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := eng.QueryFlows(req)
 		if err == nil &&
@@ -252,7 +244,7 @@ func waitForQueryFlows(
 ) *api.QueryFlowsResponse {
 	t.Helper()
 
-	deadline := time.Now().Add(queryTimeout)
+	deadline := time.Now().Add(helpers.DefaultWaitTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := eng.QueryFlows(req)
 		if err == nil && len(resp.Flows) >= min {
@@ -284,8 +276,6 @@ func flowRecent(digest *api.FlowDigest) time.Time {
 func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
-		consumer := env.EventHub.NewConsumer()
-		defer consumer.Close()
 
 		child := &api.Step{
 			ID:   "child-list",
@@ -316,34 +306,33 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-list", plan)
-		assert.NoError(t, err)
+		var childID api.FlowID
+		env.WithConsumer(func(consumer *timebox.Consumer) {
+			parentState := env.WaitForFlowStatus("parent-list", func() {
+				err := env.Engine.StartFlow("parent-list", plan)
+				assert.NoError(t, err)
+			})
+			assert.Equal(t, api.FlowCompleted, parentState.Status)
 
-		parentState := env.WaitForFlowStatus(t, "parent-list", childFlowTimeout)
-		assert.Equal(t, api.FlowCompleted, parentState.Status)
+			exec := parentState.Executions[parent.ID]
+			if !assert.NotNil(t, exec) {
+				return
+			}
 
-		exec := parentState.Executions[parent.ID]
-		if !assert.NotNil(t, exec) {
-			return
-		}
+			var token api.Token
+			for tkn := range exec.WorkItems {
+				token = tkn
+				break
+			}
 
-		var token api.Token
-		for tkn := range exec.WorkItems {
-			token = tkn
-			break
-		}
+			childID = api.FlowID(fmt.Sprintf(
+				"%s:%s:%s", "parent-list", parent.ID, token,
+			))
 
-		childID := api.FlowID(fmt.Sprintf(
-			"%s:%s:%s", "parent-list", parent.ID, token,
-		))
-
-		waitForFlowEvents(t,
-			consumer, childFlowTimeout, api.EventTypeFlowActivated,
-			"parent-list", childID,
-		)
-		waitForFlowEvents(t,
-			consumer, childFlowTimeout, api.EventTypeFlowDeactivated, childID,
-		)
+			wait := helpers.WaitOn(t, consumer)
+			wait.ForFlowActivated("parent-list", childID)
+			wait.ForFlowDeactivated(childID)
+		})
 
 		resp, err := env.Engine.QueryFlows(nil)
 		assert.NoError(t, err)
@@ -356,49 +345,4 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 		assert.Contains(t, ids, api.FlowID("parent-list"))
 		assert.NotContains(t, ids, childID)
 	})
-}
-
-func waitForFlowEvents(
-	t *testing.T, consumer *timebox.Consumer, timeout time.Duration,
-	typ api.EventType, flowIDs ...api.FlowID,
-) {
-	t.Helper()
-
-	expected := make(util.Set[api.FlowID], len(flowIDs))
-	for _, flowID := range flowIDs {
-		expected.Add(flowID)
-	}
-
-	filter := helpers.EventDataFilter(
-		func(ev *timebox.Event) bool {
-			return ev != nil && ev.Type == timebox.EventType(typ)
-		},
-		func(data flowEvent) bool {
-			if expected.Contains(data.FlowID) {
-				expected.Remove(data.FlowID)
-				return true
-			}
-			return false
-		},
-	)
-
-	deadline := time.NewTimer(timeout)
-	defer deadline.Stop()
-
-	for len(expected) > 0 {
-		select {
-		case ev, ok := <-consumer.Receive():
-			if !ok {
-				t.Fatalf(
-					"event consumer closed before receiving %d events",
-					len(flowIDs),
-				)
-			}
-			if ev == nil || !filter(ev) {
-				continue
-			}
-		case <-deadline.C:
-			t.Fatalf("timeout waiting for %d events", len(flowIDs))
-		}
-	}
 }

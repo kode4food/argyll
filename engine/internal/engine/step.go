@@ -5,12 +5,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// FlowStep identifies a step execution within a flow
-type FlowStep struct {
-	FlowID api.FlowID
-	StepID api.StepID
-}
-
 var stepTransitions = StateTransitions[api.StepStatus]{
 	api.StepPending: util.SetOf(
 		api.StepActive,

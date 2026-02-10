@@ -3,7 +3,6 @@ package engine_test
 import (
 	"fmt"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -11,8 +10,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-const childFlowTimeout = 5 * time.Second
 
 func TestFlowStepChildSuccess(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -47,10 +44,10 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-flow", plan)
-		assert.NoError(t, err)
-
-		parentState := env.WaitForFlowStatus(t, "parent-flow", childFlowTimeout)
+		parentState := env.WaitForFlowStatus("parent-flow", func() {
+			err := env.Engine.StartFlow("parent-flow", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
@@ -110,10 +107,10 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-fail", plan)
-		assert.NoError(t, err)
-
-		parentState := env.WaitForFlowStatus(t, "parent-fail", childFlowTimeout)
+		parentState := env.WaitForFlowStatus("parent-fail", func() {
+			err := env.Engine.StartFlow("parent-fail", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
@@ -139,12 +136,10 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-missing", plan)
-		assert.NoError(t, err)
-
-		parentState := env.WaitForFlowStatus(t,
-			"parent-missing", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus("parent-missing", func() {
+			err := env.Engine.StartFlow("parent-missing", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
@@ -195,14 +190,12 @@ func TestFlowStepMapping(t *testing.T) {
 			Required: []api.Name{"input"},
 		}
 
-		err := env.Engine.StartFlow("parent-mapped", plan,
-			flowopt.WithInit(api.Args{"input": float64(7)}),
-		)
-		assert.NoError(t, err)
-
-		parentState := env.WaitForFlowStatus(t,
-			"parent-mapped", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus("parent-mapped", func() {
+			err := env.Engine.StartFlow("parent-mapped", plan,
+				flowopt.WithInit(api.Args{"input": float64(7)}),
+			)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
@@ -252,12 +245,10 @@ func TestFlowStepMissingOutputParentFails(t *testing.T) {
 			Steps: api.Steps{parent.ID: parent},
 		}
 
-		err := env.Engine.StartFlow("parent-missing-output", plan)
-		assert.NoError(t, err)
-
-		parentState := env.WaitForFlowStatus(t,
-			"parent-missing-output", childFlowTimeout,
-		)
+		parentState := env.WaitForFlowStatus("parent-missing-output", func() {
+			err := env.Engine.StartFlow("parent-missing-output", plan)
+			assert.NoError(t, err)
+		})
 		assert.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
