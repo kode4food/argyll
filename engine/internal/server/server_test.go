@@ -647,11 +647,10 @@ func TestListFlowsEndpoint(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		testEnv.WaitForFlowActivated([]api.FlowID{"wf-list"},
-			func() {
-				err = testEnv.Engine.StartFlow("wf-list", plan)
-				assert.NoError(t, err)
-			})
+		testEnv.WaitFor(helpers.FlowActivated("wf-list"), func() {
+			err = testEnv.Engine.StartFlow("wf-list", plan)
+			assert.NoError(t, err)
+		})
 
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
 		w := httptest.NewRecorder()
@@ -967,29 +966,26 @@ func TestQueryFlowsMultiple(t *testing.T) {
 
 		var err error
 		step := helpers.NewSimpleStep("test-step")
-		testEnv.WaitForEngineEvents(
-			1, []api.EventType{api.EventTypeStepRegistered},
-			func() {
-				err = testEnv.Engine.RegisterStep(step)
-				assert.NoError(t, err)
-			},
-		)
+		testEnv.WaitFor(helpers.EngineEvent(
+			api.EventTypeStepRegistered,
+		), func() {
+			err = testEnv.Engine.RegisterStep(step)
+			assert.NoError(t, err)
+		})
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{"test-step"},
 			Steps: api.Steps{"test-step": step},
 		}
 
-		testEnv.WaitForFlowActivated(
-			[]api.FlowID{"flow-1", "flow-2"},
-			func() {
+		testEnv.WaitForCount(2,
+			helpers.FlowActivated("flow-1", "flow-2"), func() {
 				err = testEnv.Engine.StartFlow("flow-1", plan)
 				assert.NoError(t, err)
 
 				err = testEnv.Engine.StartFlow("flow-2", plan)
 				assert.NoError(t, err)
-			},
-		)
+			})
 
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),

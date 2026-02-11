@@ -93,13 +93,15 @@ func TestPartialFlowFailure(t *testing.T) {
 		env.WaitAfterAll(3, func(waits []*helpers.Wait) {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-			waits[0].ForStepTerminalEvent(
-				api.FlowStep{FlowID: flowID, StepID: "step-c"},
-			)
-			waits[1].ForStepTerminalEvent(
-				api.FlowStep{FlowID: flowID, StepID: "step-b"},
-			)
-			waits[2].ForFlowTerminal(flowID)
+			waits[0].ForEvent(helpers.StepTerminal(api.FlowStep{
+				FlowID: flowID,
+				StepID: "step-c",
+			}))
+			waits[1].ForEvent(helpers.StepTerminal(api.FlowStep{
+				FlowID: flowID,
+				StepID: "step-b",
+			}))
+			waits[2].ForEvent(helpers.FlowTerminal(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)

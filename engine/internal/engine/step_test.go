@@ -65,7 +65,7 @@ func TestScript(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowStarted([]api.FlowID{"wf-script"}, func() {
+		env.WaitFor(helpers.FlowStarted("wf-script"), func() {
 			err = env.Engine.StartFlow("wf-script", plan)
 			testify.NoError(t, err)
 		})
@@ -91,7 +91,7 @@ func TestScriptMissing(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowStarted([]api.FlowID{"wf-no-script"}, func() {
+		env.WaitFor(helpers.FlowStarted("wf-no-script"), func() {
 			err = env.Engine.StartFlow("wf-no-script", plan)
 			testify.NoError(t, err)
 		})
@@ -119,7 +119,7 @@ func TestPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowStarted([]api.FlowID{"wf-predicate"}, func() {
+		env.WaitFor(helpers.FlowStarted("wf-predicate"), func() {
 			err = env.Engine.StartFlow("wf-predicate", plan)
 			testify.NoError(t, err)
 		})

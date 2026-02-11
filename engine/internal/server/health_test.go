@@ -151,7 +151,9 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 		checker := server.NewHealthChecker(env.Engine, env.EventHub)
 		defer checker.Stop()
 
-		env.WaitForStepHealth("unhealthy-step", api.HealthUnhealthy, func() {
+		env.WaitFor(helpers.StepHealthChanged(
+			"unhealthy-step", api.HealthUnhealthy,
+		), func() {
 			checker.Start()
 		})
 

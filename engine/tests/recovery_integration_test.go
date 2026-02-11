@@ -27,7 +27,7 @@ func waitForFlowStatusWithTimeout(
 
 	env.WithConsumer(func(consumer *timebox.Consumer) {
 		wait := helpers.WaitOn(env.T, consumer).WithTimeout(timeout)
-		wait.ForFlowTerminal(flowID)
+		wait.ForEvent(helpers.FlowTerminal(flowID))
 	})
 
 	state, err = env.Engine.GetFlowState(flowID)
@@ -67,11 +67,11 @@ func TestBasicFlowRecovery(t *testing.T) {
 		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-			waits[0].ForFlowActivated(flowID)
-			waits[1].ForStepStartedEvent(api.FlowStep{
+			waits[0].ForEvent(helpers.FlowActivated(flowID))
+			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			})
+			}))
 		})
 
 		// Verify flow is active with pending work
@@ -150,19 +150,19 @@ func TestMultipleFlowRecovery(t *testing.T) {
 			assert.NoError(t, env.Engine.StartFlow(flowID1, plan1))
 			assert.NoError(t, env.Engine.StartFlow(flowID2, plan2))
 			assert.NoError(t, env.Engine.StartFlow(flowID3, plan3))
-			waits[0].ForFlowActivated(flowID1, flowID2, flowID3)
-			waits[1].ForStepStartedEvent(api.FlowStep{
+			waits[0].ForEvents(3, helpers.FlowActivated(flowID1, flowID2, flowID3))
+			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: flowID1,
 				StepID: step1.ID,
-			})
-			waits[2].ForStepStartedEvent(api.FlowStep{
+			}))
+			waits[2].ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: flowID2,
 				StepID: step2.ID,
-			})
-			waits[3].ForStepStartedEvent(api.FlowStep{
+			}))
+			waits[3].ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: flowID3,
 				StepID: step3.ID,
-			})
+			}))
 		})
 
 		// Verify all flows are active with work in progress
@@ -198,7 +198,7 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		env.WithConsumer(func(consumer *timebox.Consumer) {
 			wait := helpers.WaitOn(t, consumer).
 				WithTimeout(recoveryTimeout)
-			wait.ForFlowTerminal(flowID1, flowID2, flowID3)
+			wait.ForEvents(3, helpers.FlowTerminal(flowID1, flowID2, flowID3))
 		})
 
 		recovered1, err := env.Engine.GetFlowState(flowID1)
@@ -264,11 +264,11 @@ func TestRecoveryWorkStates(t *testing.T) {
 			assert.NoError(t,
 				env.Engine.StartFlow(notCompletedFlowID, plan2),
 			)
-			waits[0].ForFlowActivated(notCompletedFlowID)
-			waits[1].ForStepStartedEvent(api.FlowStep{
+			waits[0].ForEvent(helpers.FlowActivated(notCompletedFlowID))
+			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: notCompletedFlowID,
 				StepID: notCompletedStep.ID,
-			})
+			}))
 		})
 
 		// Wait for failed flow to fail
@@ -277,7 +277,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 		})
 
 		// Start pending flow just before shutdown
-		env.WaitForFlowActivated([]api.FlowID{pendingFlowID}, func() {
+		env.WaitFor(helpers.FlowActivated(pendingFlowID), func() {
 			assert.NoError(t, env.Engine.StartFlow(pendingFlowID, plan1))
 		})
 
@@ -340,11 +340,11 @@ func TestRecoveryPreservesState(t *testing.T) {
 		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-			waits[0].ForFlowActivated(flowID)
-			waits[1].ForStepStartedEvent(api.FlowStep{
+			waits[0].ForEvent(helpers.FlowActivated(flowID))
+			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			})
+			}))
 		})
 
 		// Get state before restart

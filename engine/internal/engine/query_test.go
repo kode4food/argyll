@@ -30,7 +30,7 @@ func TestQueryFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowActivated([]api.FlowID{"wf-list"}, func() {
+		env.WaitFor(helpers.FlowActivated("wf-list"), func() {
 			err = env.Engine.StartFlow("wf-list", plan)
 			assert.NoError(t, err)
 		})
@@ -56,7 +56,7 @@ func TestListFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowActivated([]api.FlowID{"wf-listflows"}, func() {
+		env.WaitFor(helpers.FlowActivated("wf-listflows"), func() {
 			err = env.Engine.StartFlow("wf-listflows", plan)
 			assert.NoError(t, err)
 		})
@@ -330,8 +330,10 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 			))
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForFlowActivated("parent-list", childID)
-			wait.ForFlowDeactivated(childID)
+			wait.ForEvents(2,
+				helpers.FlowActivated("parent-list", childID),
+			)
+			wait.ForEvent(helpers.FlowDeactivated(childID))
 		})
 
 		resp, err := env.Engine.QueryFlows(nil)

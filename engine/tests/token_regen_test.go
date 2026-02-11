@@ -38,13 +38,13 @@ func TestMemoStepReusesToken(t *testing.T) {
 
 		flowID := api.FlowID("test-memo-token-reuse")
 		// Wait for retry to be scheduled
-		env.WaitForWorkRetryScheduled(
-			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
-			func() {
-				err := env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		// Clear error and set success response for retry
 		flow := env.WaitForFlowStatus(flowID, func() {
@@ -92,13 +92,13 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 
 		flowID := api.FlowID("test-non-memo-token-regen")
 		// Wait for retry to be scheduled
-		env.WaitForWorkRetryScheduled(
-			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
-			func() {
-				err := env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		// Clear error and set success response for retry
 		flow := env.WaitForFlowStatus(flowID, func() {
@@ -146,13 +146,13 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 
 		flowID := api.FlowID("test-multi-retry-tokens")
 		// Wait for first retry
-		env.WaitForWorkRetryScheduled(
-			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
-			func() {
-				err := env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		// Allow next retry to succeed
 		flow := env.WaitForFlowStatus(flowID, func() {

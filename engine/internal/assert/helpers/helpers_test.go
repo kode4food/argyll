@@ -322,7 +322,7 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForFlowCompleted(flowID)
+			wait.ForEvent(helpers.FlowCompleted(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -354,7 +354,7 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForFlowFailed(flowID)
+			wait.ForEvent(helpers.FlowFailed(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -385,10 +385,10 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForStepStartedEvent(api.FlowStep{
+			wait.ForEvent(helpers.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			})
+			}))
 		})
 	})
 }
@@ -415,10 +415,10 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForStepTerminalEvent(api.FlowStep{
+			wait.ForEvent(helpers.StepTerminal(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			})
+			}))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -451,10 +451,10 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForWorkSucceeded(api.FlowStep{
+			wait.ForEvent(helpers.WorkSucceeded(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			}, 1)
+			}))
 		})
 	})
 }
@@ -482,10 +482,10 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForWorkFailed(api.FlowStep{
+			wait.ForEvent(helpers.WorkFailed(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			}, 1)
+			}))
 		})
 	})
 }
@@ -518,10 +518,10 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForWorkRetryScheduled(api.FlowStep{
+			wait.ForEvent(helpers.WorkRetryScheduled(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
-			}, 1)
+			}))
 		})
 	})
 }
@@ -537,7 +537,9 @@ func TestWaitForEngineEvents(t *testing.T) {
 			assert.NoError(t, err)
 
 			wait := helpers.WaitOn(t, consumer)
-			wait.ForEngineEvents(1, api.EventTypeStepRegistered)
+			wait.ForEvent(helpers.EngineEvent(
+				api.EventTypeStepRegistered,
+			))
 		})
 	})
 }

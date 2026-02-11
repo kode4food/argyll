@@ -24,7 +24,7 @@ func TestRecoveryActivation(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowStarted([]api.FlowID{flowID}, func() {
+		env.WaitFor(helpers.FlowStarted(flowID), func() {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 		})
@@ -53,11 +53,10 @@ func TestRecoveryDeactivation(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowDeactivated([]api.FlowID{flowID}, func() {
+		env.WaitFor(helpers.FlowDeactivated(flowID), func() {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-		},
-		)
+		})
 
 		engineState, err := env.Engine.GetEngineState()
 		assert.NoError(t, err)
@@ -282,13 +281,13 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 
 		flowID := api.FlowID("exhaustion-flow")
-		env.WaitForWorkRetryScheduled(
-			api.FlowStep{FlowID: flowID, StepID: "failing-step"}, 1,
-			func() {
-				err = env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+			FlowID: flowID,
+			StepID: "failing-step",
+		}), func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
 		assert.NoError(t, err)
@@ -386,7 +385,9 @@ func TestRecoverActiveFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForFlowStarted([]api.FlowID{flowID1, flowID2}, func() {
+		env.WaitForCount(2, helpers.FlowStarted(
+			flowID1, flowID2,
+		), func() {
 			err := env.Engine.StartFlow(flowID1, plan)
 			assert.NoError(t, err)
 
@@ -419,20 +420,20 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-recover-active")
-		env.WaitForWorkStarted(
-			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
-			func() {
-				err := env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.WorkStarted(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			err := env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
-		env.WaitForWorkStarted(
-			api.FlowStep{FlowID: flowID, StepID: step.ID}, 1,
-			func() {
-				assert.NoError(t, env.Engine.RecoverFlow(flowID))
-			},
-		)
+		env.WaitFor(helpers.WorkStarted(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			assert.NoError(t, env.Engine.RecoverFlow(flowID))
+		})
 	})
 }
 
@@ -455,20 +456,22 @@ func TestConcurrentRecoveryState(t *testing.T) {
 			flowIDs = append(flowIDs, api.FlowID(fmt.Sprintf("flow-%d", i)))
 		}
 
-		env.WaitForFlowStarted(flowIDs, func() {
-			for i := range count {
-				go func(id int) {
-					flowID := api.FlowID(fmt.Sprintf("flow-%d", id))
-					err := env.Engine.StartFlow(flowID, plan)
-					assert.NoError(t, err)
-					done <- true
-				}(i)
-			}
+		env.WaitForCount(
+			len(flowIDs), helpers.FlowStarted(flowIDs...),
+			func() {
+				for i := range count {
+					go func(id int) {
+						flowID := api.FlowID(fmt.Sprintf("flow-%d", id))
+						err := env.Engine.StartFlow(flowID, plan)
+						assert.NoError(t, err)
+						done <- true
+					}(i)
+				}
 
-			for range count {
-				<-done
-			}
-		})
+				for range count {
+					<-done
+				}
+			})
 
 		for _, flowID := range flowIDs {
 			flow, err := env.Engine.GetFlowState(flowID)
@@ -670,13 +673,13 @@ func TestWorkActiveItems(t *testing.T) {
 		}
 
 		flowID := api.FlowID("active-work-flow")
-		env.WaitForStepStartedEvent(
-			api.FlowStep{FlowID: flowID, StepID: step.ID},
-			func() {
-				err = env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.StepStarted(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -707,13 +710,13 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 		}
 
 		flowID := api.FlowID("pending-active-flow")
-		env.WaitForStepStartedEvent(
-			api.FlowStep{FlowID: flowID, StepID: step.ID},
-			func() {
-				err = env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.StepStarted(api.FlowStep{
+			FlowID: flowID,
+			StepID: step.ID,
+		}), func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -744,13 +747,13 @@ func TestFailedWorkRetryable(t *testing.T) {
 		}
 
 		flowID := api.FlowID("failed-work-flow")
-		env.WaitForWorkRetryScheduled(
-			api.FlowStep{FlowID: flowID, StepID: "failing-step"}, 1,
-			func() {
-				err = env.Engine.StartFlow(flowID, plan)
-				assert.NoError(t, err)
-			},
-		)
+		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+			FlowID: flowID,
+			StepID: "failing-step",
+		}), func() {
+			err = env.Engine.StartFlow(flowID, plan)
+			assert.NoError(t, err)
+		})
 
 		err = env.Engine.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -780,7 +783,9 @@ func TestMultipleFlows(t *testing.T) {
 		var err error
 		flowID1 := api.FlowID("flow-1")
 		flowID2 := api.FlowID("flow-2")
-		env.WaitForFlowStarted([]api.FlowID{flowID1, flowID2}, func() {
+		env.WaitForCount(2, helpers.FlowStarted(
+			flowID1, flowID2,
+		), func() {
 			err = env.Engine.StartFlow(flowID1, plan)
 			assert.NoError(t, err)
 
@@ -831,7 +836,9 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 		var err error
 		flowID1 := api.FlowID("good-flow")
 		flowID2 := api.FlowID("bad-flow")
-		env.WaitForFlowStarted([]api.FlowID{flowID1, flowID2}, func() {
+		env.WaitForCount(2, helpers.FlowStarted(
+			flowID1, flowID2,
+		), func() {
 			err = env.Engine.StartFlow(flowID1, plan)
 			assert.NoError(t, err)
 
@@ -857,7 +864,7 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 		}
 
 		var err error
-		env.WaitForFlowStarted([]api.FlowID{flowID}, func() {
+		env.WaitFor(helpers.FlowStarted(flowID), func() {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 		})
