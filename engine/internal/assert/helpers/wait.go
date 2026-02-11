@@ -14,8 +14,7 @@ func (e *TestEngineEnv) WaitFor(filter wait.EventFilter, fn func()) {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *timebox.Consumer) {
 		fn()
-		w := wait.On(e.T, consumer)
-		w.ForEvent(filter)
+		wait.On(e.T, consumer).ForEvent(filter)
 	})
 }
 
@@ -26,8 +25,7 @@ func (e *TestEngineEnv) WaitForCount(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *timebox.Consumer) {
 		fn()
-		w := wait.On(e.T, consumer)
-		w.ForEvents(count, filter)
+		wait.On(e.T, consumer).ForEvents(count, filter)
 	})
 }
 
@@ -45,7 +43,7 @@ func (e *TestEngineEnv) WaitAfterAll(count int, fn func([]*wait.Wait)) {
 
 	consumers := make([]*timebox.Consumer, count)
 	waits := make([]*wait.Wait, count)
-	for i := 0; i < count; i++ {
+	for i := range count {
 		consumer := e.EventHub.NewConsumer()
 		consumers[i] = consumer
 		waits[i] = wait.On(e.T, consumer)
@@ -65,12 +63,11 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *timebox.Consumer) {
 		fn()
-		w := wait.On(e.T, consumer)
 		state, err := e.Engine.GetFlowState(flowID)
 		if err == nil && isFlowTerminal(state) {
 			return
 		}
-		w.ForEvent(wait.FlowTerminal(flowID))
+		wait.On(e.T, consumer).ForEvent(wait.FlowTerminal(flowID))
 	})
 
 	state, err := e.Engine.GetFlowState(flowID)
@@ -90,12 +87,11 @@ func (e *TestEngineEnv) WaitForStepStarted(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *timebox.Consumer) {
 		fn()
-		w := wait.On(e.T, consumer)
 		exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
 		if err == nil && exec != nil && isStepStarted(exec.Status) {
 			return
 		}
-		w.ForEvent(wait.StepStarted(fs))
+		wait.On(e.T, consumer).ForEvent(wait.StepStarted(fs))
 	})
 
 	exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
@@ -115,12 +111,11 @@ func (e *TestEngineEnv) WaitForStepStatus(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *timebox.Consumer) {
 		fn()
-		w := wait.On(e.T, consumer)
 		exec, err := e.getExecutionState(flowID, stepID)
 		if err == nil && exec != nil && isStepTerminal(exec.Status) {
 			return
 		}
-		w.ForEvent(wait.StepTerminal(
+		wait.On(e.T, consumer).ForEvent(wait.StepTerminal(
 			api.FlowStep{FlowID: flowID, StepID: stepID},
 		))
 	})

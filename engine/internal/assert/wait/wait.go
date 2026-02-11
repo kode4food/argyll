@@ -19,7 +19,9 @@ type (
 		timeout  time.Duration
 	}
 
-	EventFilter predicate[*timebox.Event]
+	Predicate[T any] func(T) bool
+
+	EventFilter Predicate[*timebox.Event]
 
 	flowEvent struct {
 		FlowID api.FlowID `json:"flow_id"`
@@ -29,8 +31,6 @@ type (
 		FlowID api.FlowID `json:"flow_id"`
 		StepID api.StepID `json:"step_id"`
 	}
-
-	predicate[T any] func(T) bool
 )
 
 const DefaultTimeout = time.Second * 5
@@ -91,24 +91,38 @@ func And(filters ...EventFilter) EventFilter {
 	}
 }
 
-// Type creates a filter for the given event types
-func Type(eventTypes ...api.EventType) EventFilter {
-	return filterEventTypes(eventTypes...)
+// Type creates a filter for a single event type
+func Type(eventType api.EventType) EventFilter {
+	return Types(eventType)
 }
 
-// EventType creates a filter for a single event type
-func EventType(eventType api.EventType) EventFilter {
-	return Type(eventType)
+// Types creates a filter for the given event types
+func Types(eventTypes ...api.EventType) EventFilter {
+	if len(eventTypes) == 0 {
+		return func(*timebox.Event) bool { return false }
+	}
+	lookup := make(util.Set[timebox.EventType], len(eventTypes))
+	for _, et := range eventTypes {
+		lookup.Add(timebox.EventType(et))
+	}
+	return func(ev *timebox.Event) bool {
+		if ev == nil {
+			return false
+		}
+		return lookup.Contains(ev.Type)
+	}
 }
 
 // EngineFilter restricts events to the engine aggregate
 func EngineFilter() EventFilter {
-	return filterAggregate(events.EngineKey)
+	return func(ev *timebox.Event) bool {
+		return ev != nil && ev.AggregateID.Equal(events.EngineKey)
+	}
 }
 
 // EngineEvent matches engine aggregate events for the given types
 func EngineEvent(eventTypes ...api.EventType) EventFilter {
-	return And(EngineFilter(), Type(eventTypes...))
+	return And(EngineFilter(), Types(eventTypes...))
 }
 
 // FlowStarted matches flow started events for the provided flow IDs
@@ -137,7 +151,7 @@ func FlowDeactivated(ids ...api.FlowID) EventFilter {
 // FlowTerminal matches flow terminal events for the provided flow IDs
 func FlowTerminal(ids ...api.FlowID) EventFilter {
 	return And(
-		Type(api.EventTypeFlowCompleted, api.EventTypeFlowFailed),
+		Types(api.EventTypeFlowCompleted, api.EventTypeFlowFailed),
 		FlowID(ids...),
 	)
 }
@@ -154,41 +168,41 @@ func FlowFailed(ids ...api.FlowID) EventFilter {
 
 // StepStarted matches step started events for the provided flow steps
 func StepStarted(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeStepStarted), FlowStep(steps...))
+	return And(Type(api.EventTypeStepStarted), FlowSteps(steps...))
 }
 
 // StepTerminal matches step terminal events for the provided flow steps
 func StepTerminal(steps ...api.FlowStep) EventFilter {
 	return And(
-		Type(
+		Types(
 			api.EventTypeStepCompleted,
 			api.EventTypeStepFailed,
 			api.EventTypeStepSkipped,
 		),
-		FlowStep(steps...),
+		FlowSteps(steps...),
 	)
 }
 
 // WorkStarted matches work started events for the provided flow steps
 func WorkStarted(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkStarted), FlowStep(steps...))
+	return And(Type(api.EventTypeWorkStarted), FlowSteps(steps...))
 }
 
 // WorkSucceeded matches work succeeded events for the provided flow steps
 func WorkSucceeded(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkSucceeded), FlowStep(steps...))
+	return And(Type(api.EventTypeWorkSucceeded), FlowSteps(steps...))
 }
 
 // WorkFailed matches work failed events for the provided flow steps
 func WorkFailed(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkFailed), FlowStep(steps...))
+	return And(Type(api.EventTypeWorkFailed), FlowSteps(steps...))
 }
 
 // WorkRetryScheduled matches retry scheduled events for flow steps
 func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(
 		Type(api.EventTypeRetryScheduled),
-		FlowStep(steps...),
+		FlowSteps(steps...),
 	)
 }
 
@@ -206,7 +220,7 @@ func FlowID(ids ...api.FlowID) EventFilter {
 	for _, flowID := range ids {
 		expected.Add(flowID)
 	}
-	return Predicate(func(data flowEvent) bool {
+	return Unmarshal(func(data flowEvent) bool {
 		if expected.Contains(data.FlowID) {
 			expected.Remove(data.FlowID)
 			return true
@@ -215,13 +229,18 @@ func FlowID(ids ...api.FlowID) EventFilter {
 	})
 }
 
-// FlowStep matches events for the provided flow steps
-func FlowStep(steps ...api.FlowStep) EventFilter {
+// FlowStep matches events for the provided flow step
+func FlowStep(step api.FlowStep) EventFilter {
+	return FlowSteps(step)
+}
+
+// FlowSteps matches events for the provided flow steps
+func FlowSteps(steps ...api.FlowStep) EventFilter {
 	expected := make(util.Set[api.FlowStep], len(steps))
 	for _, step := range steps {
 		expected.Add(step)
 	}
-	return Predicate(func(data stepEvent) bool {
+	return Unmarshal(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		if expected.Contains(key) {
 			expected.Remove(key)
@@ -237,7 +256,7 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 	for _, step := range steps {
 		expected.Add(step)
 	}
-	return Predicate(func(data stepEvent) bool {
+	return Unmarshal(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		return expected.Contains(key)
 	})
@@ -245,7 +264,7 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 
 // StepHealth matches step health change events for a step and status
 func StepHealth(stepID api.StepID, status api.HealthStatus) EventFilter {
-	return Predicate(func(data api.StepHealthChangedEvent) bool {
+	return Unmarshal(func(data api.StepHealthChangedEvent) bool {
 		return data.StepID == stepID && data.Status == status
 	})
 }
@@ -258,35 +277,13 @@ func StepHealthChanged(stepID api.StepID, status api.HealthStatus) EventFilter {
 	)
 }
 
-// Predicate creates a filter that unmarshals event data and applies pred
-func Predicate[T any](pred predicate[T]) EventFilter {
+// Unmarshal creates a filter that unmarshals event data and applies pred
+func Unmarshal[T any](pred Predicate[T]) EventFilter {
 	return func(ev *timebox.Event) bool {
 		var data T
 		if json.Unmarshal(ev.Data, &data) != nil {
 			return false
 		}
 		return pred(data)
-	}
-}
-
-func filterEventTypes(eventTypes ...api.EventType) EventFilter {
-	if len(eventTypes) == 0 {
-		return func(*timebox.Event) bool { return false }
-	}
-	lookup := make(util.Set[timebox.EventType], len(eventTypes))
-	for _, et := range eventTypes {
-		lookup.Add(timebox.EventType(et))
-	}
-	return func(ev *timebox.Event) bool {
-		if ev == nil {
-			return false
-		}
-		return lookup.Contains(ev.Type)
-	}
-}
-
-func filterAggregate(id timebox.AggregateID) EventFilter {
-	return func(ev *timebox.Event) bool {
-		return ev != nil && ev.AggregateID.Equal(id)
 	}
 }

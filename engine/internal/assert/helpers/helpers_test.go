@@ -322,8 +322,7 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.FlowCompleted(flowID))
+			wait.On(t, consumer).ForEvent(wait.FlowCompleted(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -354,8 +353,7 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.FlowFailed(flowID))
+			wait.On(t, consumer).ForEvent(wait.FlowFailed(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -385,8 +383,7 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.StepStarted(api.FlowStep{
+			wait.On(t, consumer).ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -415,8 +412,7 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.StepTerminal(api.FlowStep{
+			wait.On(t, consumer).ForEvent(wait.StepTerminal(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -451,8 +447,7 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.WorkSucceeded(api.FlowStep{
+			wait.On(t, consumer).ForEvent(wait.WorkSucceeded(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -482,8 +477,7 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.WorkFailed(api.FlowStep{
+			wait.On(t, consumer).ForEvent(wait.WorkFailed(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -518,8 +512,7 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.WorkRetryScheduled(api.FlowStep{
+			wait.On(t, consumer).ForEvent(wait.WorkRetryScheduled(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -537,8 +530,7 @@ func TestWaitForEngineEvents(t *testing.T) {
 			err := env.Engine.RegisterStep(step)
 			assert.NoError(t, err)
 
-			w := wait.On(t, consumer)
-			w.ForEvent(wait.EngineEvent(
+			wait.On(t, consumer).ForEvent(wait.EngineEvent(
 				api.EventTypeStepRegistered,
 			))
 		})
