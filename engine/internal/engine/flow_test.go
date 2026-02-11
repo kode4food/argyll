@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -107,7 +108,7 @@ func TestSetAttribute(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowCompleted("wf-attr"), func() {
+		env.WaitFor(wait.FlowCompleted("wf-attr"), func() {
 			err = env.Engine.StartFlow("wf-attr", plan)
 			testify.NoError(t, err)
 		})
@@ -272,7 +273,7 @@ func TestFailFlow(t *testing.T) {
 		}
 
 		// Wait for flow to fail automatically
-		env.WaitFor(helpers.FlowFailed("wf-fail"), func() {
+		env.WaitFor(wait.FlowFailed("wf-fail"), func() {
 			err = env.Engine.StartFlow("wf-fail", plan)
 			testify.NoError(t, err)
 		})
@@ -302,7 +303,7 @@ func TestSkipStep(t *testing.T) {
 		}
 
 		// Wait for step to be skipped
-		env.WaitFor(helpers.StepTerminal(api.FlowStep{
+		env.WaitFor(wait.StepTerminal(api.FlowStep{
 			FlowID: "wf-skip",
 			StepID: "step-skip",
 		}), func() {
@@ -386,7 +387,7 @@ func TestIsFlowFailed(t *testing.T) {
 		testify.NoError(t, err)
 		env.MockClient.SetError(stepA.ID, errors.New("step failed"))
 
-		env.WaitFor(helpers.StepTerminal(api.FlowStep{
+		env.WaitFor(wait.StepTerminal(api.FlowStep{
 			FlowID: "wf-failed-test",
 			StepID: stepA.ID,
 		}), func() {

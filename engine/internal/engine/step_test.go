@@ -6,6 +6,7 @@ import (
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -65,7 +66,7 @@ func TestScript(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowStarted("wf-script"), func() {
+		env.WaitFor(wait.FlowStarted("wf-script"), func() {
 			err = env.Engine.StartFlow("wf-script", plan)
 			testify.NoError(t, err)
 		})
@@ -91,7 +92,7 @@ func TestScriptMissing(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowStarted("wf-no-script"), func() {
+		env.WaitFor(wait.FlowStarted("wf-no-script"), func() {
 			err = env.Engine.StartFlow("wf-no-script", plan)
 			testify.NoError(t, err)
 		})
@@ -119,7 +120,7 @@ func TestPredicate(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowStarted("wf-predicate"), func() {
+		env.WaitFor(wait.FlowStarted("wf-predicate"), func() {
 			err = env.Engine.StartFlow("wf-predicate", plan)
 			testify.NoError(t, err)
 		})

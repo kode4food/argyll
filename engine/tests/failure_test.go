@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -90,18 +91,18 @@ func TestPartialFlowFailure(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-partial-failure")
-		env.WaitAfterAll(3, func(waits []*helpers.Wait) {
+		env.WaitAfterAll(3, func(waits []*wait.Wait) {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-			waits[0].ForEvent(helpers.StepTerminal(api.FlowStep{
+			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
 				FlowID: flowID,
 				StepID: "step-c",
 			}))
-			waits[1].ForEvent(helpers.StepTerminal(api.FlowStep{
+			waits[1].ForEvent(wait.StepTerminal(api.FlowStep{
 				FlowID: flowID,
 				StepID: "step-b",
 			}))
-			waits[2].ForEvent(helpers.FlowTerminal(flowID))
+			waits[2].ForEvent(wait.FlowTerminal(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)

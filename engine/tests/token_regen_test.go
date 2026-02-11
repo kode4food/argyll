@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -38,7 +39,7 @@ func TestMemoStepReusesToken(t *testing.T) {
 
 		flowID := api.FlowID("test-memo-token-reuse")
 		// Wait for retry to be scheduled
-		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {
@@ -92,7 +93,7 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 
 		flowID := api.FlowID("test-non-memo-token-regen")
 		// Wait for retry to be scheduled
-		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {
@@ -146,7 +147,7 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 
 		flowID := api.FlowID("test-multi-retry-tokens")
 		// Wait for first retry
-		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {

@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -30,7 +31,7 @@ func TestQueryFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowActivated("wf-list"), func() {
+		env.WaitFor(wait.FlowActivated("wf-list"), func() {
 			err = env.Engine.StartFlow("wf-list", plan)
 			assert.NoError(t, err)
 		})
@@ -56,7 +57,7 @@ func TestListFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowActivated("wf-listflows"), func() {
+		env.WaitFor(wait.FlowActivated("wf-listflows"), func() {
 			err = env.Engine.StartFlow("wf-listflows", plan)
 			assert.NoError(t, err)
 		})
@@ -329,11 +330,11 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 				"%s:%s:%s", "parent-list", parent.ID, token,
 			))
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvents(2,
-				helpers.FlowActivated("parent-list", childID),
+			w := wait.On(t, consumer)
+			w.ForEvents(2,
+				wait.FlowActivated("parent-list", childID),
 			)
-			wait.ForEvent(helpers.FlowDeactivated(childID))
+			w.ForEvent(wait.FlowDeactivated(childID))
 		})
 
 		resp, err := env.Engine.QueryFlows(nil)

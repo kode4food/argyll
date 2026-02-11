@@ -8,6 +8,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -321,8 +322,8 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.FlowCompleted(flowID))
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.FlowCompleted(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -353,8 +354,8 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.FlowFailed(flowID))
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.FlowFailed(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)
@@ -384,8 +385,8 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.StepStarted(api.FlowStep{
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -414,8 +415,8 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.StepTerminal(api.FlowStep{
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.StepTerminal(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -450,8 +451,8 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.WorkSucceeded(api.FlowStep{
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.WorkSucceeded(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -481,8 +482,8 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.WorkFailed(api.FlowStep{
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.WorkFailed(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -517,8 +518,8 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.WorkRetryScheduled(api.FlowStep{
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.WorkRetryScheduled(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -536,8 +537,8 @@ func TestWaitForEngineEvents(t *testing.T) {
 			err := env.Engine.RegisterStep(step)
 			assert.NoError(t, err)
 
-			wait := helpers.WaitOn(t, consumer)
-			wait.ForEvent(helpers.EngineEvent(
+			w := wait.On(t, consumer)
+			w.ForEvent(wait.EngineEvent(
 				api.EventTypeStepRegistered,
 			))
 		})

@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -43,7 +44,7 @@ func TestOptionalDefaults(t *testing.T) {
 
 		flowID := api.FlowID("wf-defaults")
 		fl := env.WaitForFlowStatus(flowID, func() {
-			env.WaitFor(helpers.WorkSucceeded(api.FlowStep{
+			env.WaitFor(wait.WorkSucceeded(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}), func() {
@@ -78,7 +79,7 @@ func TestIncompleteWorkFails(t *testing.T) {
 
 		flowID := api.FlowID("wf-not-complete")
 		fl := env.WaitForFlowStatus(flowID, func() {
-			env.WaitFor(helpers.WorkFailed(api.FlowStep{
+			env.WaitFor(wait.WorkFailed(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}), func() {
@@ -114,7 +115,7 @@ func TestWorkFailure(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-failure")
-		env.WaitFor(helpers.FlowFailed(flowID), func() {
+		env.WaitFor(wait.FlowFailed(flowID), func() {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 		})
@@ -192,7 +193,7 @@ func TestAsyncMetadata(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.WorkStarted(api.FlowStep{
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
 			FlowID: "wf-async-meta",
 			StepID: step.ID,
 		}), func() {
@@ -343,7 +344,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 
 		flowID := api.FlowID("wf-retry-parallel")
 		flow := env.WaitForFlowStatus(flowID, func() {
-			env.WaitForCount(2, helpers.WorkRetryScheduledAny(api.FlowStep{
+			env.WaitForCount(2, wait.WorkRetryScheduledAny(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}), func() {
@@ -397,16 +398,16 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-pred-work-item")
-		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
+		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			err := env.Engine.StartFlow(flowID, plan,
 				flowopt.WithInit(api.Args{"items": []any{"a", "b"}}),
 			)
 			assert.NoError(t, err)
-			waits[0].ForEvent(helpers.StepTerminal(api.FlowStep{
+			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
-			waits[1].ForEvent(helpers.FlowTerminal(flowID))
+			waits[1].ForEvent(wait.FlowTerminal(flowID))
 		})
 
 		flow, err := env.Engine.GetFlowState(flowID)

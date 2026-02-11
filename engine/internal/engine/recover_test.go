@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -24,7 +25,7 @@ func TestRecoveryActivation(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowStarted(flowID), func() {
+		env.WaitFor(wait.FlowStarted(flowID), func() {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 		})
@@ -53,7 +54,7 @@ func TestRecoveryDeactivation(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitFor(helpers.FlowDeactivated(flowID), func() {
+		env.WaitFor(wait.FlowDeactivated(flowID), func() {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 		})
@@ -281,7 +282,7 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 
 		flowID := api.FlowID("exhaustion-flow")
-		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: flowID,
 			StepID: "failing-step",
 		}), func() {
@@ -385,7 +386,7 @@ func TestRecoverActiveFlows(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		env.WaitForCount(2, helpers.FlowStarted(
+		env.WaitForCount(2, wait.FlowStarted(
 			flowID1, flowID2,
 		), func() {
 			err := env.Engine.StartFlow(flowID1, plan)
@@ -420,7 +421,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 		}
 
 		flowID := api.FlowID("wf-recover-active")
-		env.WaitFor(helpers.WorkStarted(api.FlowStep{
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {
@@ -428,7 +429,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		env.WaitFor(helpers.WorkStarted(api.FlowStep{
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {
@@ -457,7 +458,7 @@ func TestConcurrentRecoveryState(t *testing.T) {
 		}
 
 		env.WaitForCount(
-			len(flowIDs), helpers.FlowStarted(flowIDs...),
+			len(flowIDs), wait.FlowStarted(flowIDs...),
 			func() {
 				for i := range count {
 					go func(id int) {
@@ -673,7 +674,7 @@ func TestWorkActiveItems(t *testing.T) {
 		}
 
 		flowID := api.FlowID("active-work-flow")
-		env.WaitFor(helpers.StepStarted(api.FlowStep{
+		env.WaitFor(wait.StepStarted(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {
@@ -710,7 +711,7 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 		}
 
 		flowID := api.FlowID("pending-active-flow")
-		env.WaitFor(helpers.StepStarted(api.FlowStep{
+		env.WaitFor(wait.StepStarted(api.FlowStep{
 			FlowID: flowID,
 			StepID: step.ID,
 		}), func() {
@@ -747,7 +748,7 @@ func TestFailedWorkRetryable(t *testing.T) {
 		}
 
 		flowID := api.FlowID("failed-work-flow")
-		env.WaitFor(helpers.WorkRetryScheduled(api.FlowStep{
+		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: flowID,
 			StepID: "failing-step",
 		}), func() {
@@ -783,7 +784,7 @@ func TestMultipleFlows(t *testing.T) {
 		var err error
 		flowID1 := api.FlowID("flow-1")
 		flowID2 := api.FlowID("flow-2")
-		env.WaitForCount(2, helpers.FlowStarted(
+		env.WaitForCount(2, wait.FlowStarted(
 			flowID1, flowID2,
 		), func() {
 			err = env.Engine.StartFlow(flowID1, plan)
@@ -836,7 +837,7 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 		var err error
 		flowID1 := api.FlowID("good-flow")
 		flowID2 := api.FlowID("bad-flow")
-		env.WaitForCount(2, helpers.FlowStarted(
+		env.WaitForCount(2, wait.FlowStarted(
 			flowID1, flowID2,
 		), func() {
 			err = env.Engine.StartFlow(flowID1, plan)
@@ -864,7 +865,7 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 		}
 
 		var err error
-		env.WaitFor(helpers.FlowStarted(flowID), func() {
+		env.WaitFor(wait.FlowStarted(flowID), func() {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
 		})

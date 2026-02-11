@@ -9,6 +9,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -26,8 +27,8 @@ func waitForFlowStatusWithTimeout(
 	}
 
 	env.WithConsumer(func(consumer *timebox.Consumer) {
-		wait := helpers.WaitOn(env.T, consumer).WithTimeout(timeout)
-		wait.ForEvent(helpers.FlowTerminal(flowID))
+		w := wait.On(env.T, consumer).WithTimeout(timeout)
+		w.ForEvent(wait.FlowTerminal(flowID))
 	})
 
 	state, err = env.Engine.GetFlowState(flowID)
@@ -64,11 +65,11 @@ func TestBasicFlowRecovery(t *testing.T) {
 		}
 
 		flowID := api.FlowID("test-recovery")
-		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
+		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			err = env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-			waits[0].ForEvent(helpers.FlowActivated(flowID))
-			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
+			waits[0].ForEvent(wait.FlowActivated(flowID))
+			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))
@@ -146,20 +147,20 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		flowID2 := api.FlowID("flow-2")
 		flowID3 := api.FlowID("flow-3")
 
-		env.WaitAfterAll(4, func(waits []*helpers.Wait) {
+		env.WaitAfterAll(4, func(waits []*wait.Wait) {
 			assert.NoError(t, env.Engine.StartFlow(flowID1, plan1))
 			assert.NoError(t, env.Engine.StartFlow(flowID2, plan2))
 			assert.NoError(t, env.Engine.StartFlow(flowID3, plan3))
-			waits[0].ForEvents(3, helpers.FlowActivated(flowID1, flowID2, flowID3))
-			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
+			waits[0].ForEvents(3, wait.FlowActivated(flowID1, flowID2, flowID3))
+			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID1,
 				StepID: step1.ID,
 			}))
-			waits[2].ForEvent(helpers.StepStarted(api.FlowStep{
+			waits[2].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID2,
 				StepID: step2.ID,
 			}))
-			waits[3].ForEvent(helpers.StepStarted(api.FlowStep{
+			waits[3].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID3,
 				StepID: step3.ID,
 			}))
@@ -196,9 +197,9 @@ func TestMultipleFlowRecovery(t *testing.T) {
 
 		env.Engine.Start()
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			wait := helpers.WaitOn(t, consumer).
+			w := wait.On(t, consumer).
 				WithTimeout(recoveryTimeout)
-			wait.ForEvents(3, helpers.FlowTerminal(flowID1, flowID2, flowID3))
+			w.ForEvents(3, wait.FlowTerminal(flowID1, flowID2, flowID3))
 		})
 
 		recovered1, err := env.Engine.GetFlowState(flowID1)
@@ -260,12 +261,12 @@ func TestRecoveryWorkStates(t *testing.T) {
 		notCompletedFlowID := api.FlowID("not-completed-flow")
 		failedFlowID := api.FlowID("failed-flow")
 
-		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
+		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			assert.NoError(t,
 				env.Engine.StartFlow(notCompletedFlowID, plan2),
 			)
-			waits[0].ForEvent(helpers.FlowActivated(notCompletedFlowID))
-			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
+			waits[0].ForEvent(wait.FlowActivated(notCompletedFlowID))
+			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: notCompletedFlowID,
 				StepID: notCompletedStep.ID,
 			}))
@@ -277,7 +278,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 		})
 
 		// Start pending flow just before shutdown
-		env.WaitFor(helpers.FlowActivated(pendingFlowID), func() {
+		env.WaitFor(wait.FlowActivated(pendingFlowID), func() {
 			assert.NoError(t, env.Engine.StartFlow(pendingFlowID, plan1))
 		})
 
@@ -337,11 +338,11 @@ func TestRecoveryPreservesState(t *testing.T) {
 		}
 
 		flowID := api.FlowID("state-preservation-flow")
-		env.WaitAfterAll(2, func(waits []*helpers.Wait) {
+		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			err := env.Engine.StartFlow(flowID, plan)
 			assert.NoError(t, err)
-			waits[0].ForEvent(helpers.FlowActivated(flowID))
-			waits[1].ForEvent(helpers.StepStarted(api.FlowStep{
+			waits[0].ForEvent(wait.FlowActivated(flowID))
+			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: flowID,
 				StepID: step.ID,
 			}))

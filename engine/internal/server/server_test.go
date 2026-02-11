@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -647,7 +648,7 @@ func TestListFlowsEndpoint(t *testing.T) {
 			Steps: api.Steps{step.ID: step},
 		}
 
-		testEnv.WaitFor(helpers.FlowActivated("wf-list"), func() {
+		testEnv.WaitFor(wait.FlowActivated("wf-list"), func() {
 			err = testEnv.Engine.StartFlow("wf-list", plan)
 			assert.NoError(t, err)
 		})
@@ -966,7 +967,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 
 		var err error
 		step := helpers.NewSimpleStep("test-step")
-		testEnv.WaitFor(helpers.EngineEvent(
+		testEnv.WaitFor(wait.EngineEvent(
 			api.EventTypeStepRegistered,
 		), func() {
 			err = testEnv.Engine.RegisterStep(step)
@@ -979,7 +980,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 		}
 
 		testEnv.WaitForCount(2,
-			helpers.FlowActivated("flow-1", "flow-2"), func() {
+			wait.FlowActivated("flow-1", "flow-2"), func() {
 				err = testEnv.Engine.StartFlow("flow-1", plan)
 				assert.NoError(t, err)
 

@@ -9,6 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -151,7 +152,7 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 		checker := server.NewHealthChecker(env.Engine, env.EventHub)
 		defer checker.Stop()
 
-		env.WaitFor(helpers.StepHealthChanged(
+		env.WaitFor(wait.StepHealthChanged(
 			"unhealthy-step", api.HealthUnhealthy,
 		), func() {
 			checker.Start()
