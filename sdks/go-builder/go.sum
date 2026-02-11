@@ -21,7 +21,8 @@ github.com/kode4food/caravan v0.0.0-20251025080141-10eee0f8ea05 h1:MP2zhC4I07yfA
 github.com/kode4food/caravan v0.0.0-20251025080141-10eee0f8ea05/go.mod h1:9e4xJsAAe/oMaMGSSv2CIZiuy7EiuwbpXcXUeUNgAts=
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
-github.com/kode4food/timebox v0.0.0-20260202170651-ff576474f33d h1:WnN3UVHcsRA8wKJol0W5ZRrmtASj23DJBxRQn0KuLTQ=
+github.com/kode4food/timebox v0.0.0-20260205182603-acffb5d9136a h1:/0znRjefrX+moeD8O4X7HnPWhnL5MF2ouEWtfRkLarw=
+github.com/kode4food/timebox v0.0.0-20260205182603-acffb5d9136a/go.mod h1:tB7LwYv7eFCJkeaGbwW8S6v/kLC9Ho2EHD82/5XcG60=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=

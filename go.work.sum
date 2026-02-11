@@ -580,6 +580,7 @@ github.com/kisielk/errcheck v1.5.0 h1:e8esj/e4R+SAOwFwN+n3zr0nYeCyeweozKfO23MvHz
 github.com/kisielk/gotool v1.0.0 h1:AV2c/EiW3KqPNT9ZKl07ehoAGi4C5/01Cfbblndcapg=
 github.com/kode4food/timebox v0.0.0-20210725081753-1b98a9a9ce9f/go.mod h1:YNilbgWLtqNPkGTc05dM3Ac0VE131FBYh8pxEXzagmQ=
 github.com/kode4food/timebox v0.0.0-20251103090827-097f5682025e/go.mod h1:376zyuGRsoxRQZsCh9b1hbpbB1pPmA821jjE6SMeCP0=
+github.com/kode4food/timebox v0.0.0-20260202170651-ff576474f33d/go.mod h1:tB7LwYv7eFCJkeaGbwW8S6v/kLC9Ho2EHD82/5XcG60=
 github.com/kr/pty v1.1.1 h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=
 github.com/lib/pq v1.10.9 h1:YXG7RB+JIjhP29X+OtkiDnYaXQwpS4JEWq7dtCCRUEw=
 github.com/lib/pq v1.10.9/go.mod h1:AlVN5x4E4T544tWzH6hKfbfQvm3HdbOxrmggDNAPY9o=
