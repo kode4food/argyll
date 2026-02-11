@@ -114,15 +114,13 @@ func Types(eventTypes ...api.EventType) EventFilter {
 }
 
 // EngineFilter restricts events to the engine aggregate
-func EngineFilter() EventFilter {
-	return func(ev *timebox.Event) bool {
-		return ev != nil && ev.AggregateID.Equal(events.EngineKey)
-	}
-}
+var EngineFilter = EventFilter(func(ev *timebox.Event) bool {
+	return ev != nil && ev.AggregateID.Equal(events.EngineKey)
+})
 
 // EngineEvent matches engine aggregate events for the given types
 func EngineEvent(eventTypes ...api.EventType) EventFilter {
-	return And(EngineFilter(), Types(eventTypes...))
+	return And(EngineFilter, Types(eventTypes...))
 }
 
 // FlowStarted matches flow started events for the provided flow IDs
@@ -133,7 +131,7 @@ func FlowStarted(ids ...api.FlowID) EventFilter {
 // FlowActivated matches flow activated events for the provided flow IDs
 func FlowActivated(ids ...api.FlowID) EventFilter {
 	return And(
-		EngineFilter(),
+		EngineFilter,
 		Type(api.EventTypeFlowActivated),
 		FlowID(ids...),
 	)
@@ -142,7 +140,7 @@ func FlowActivated(ids ...api.FlowID) EventFilter {
 // FlowDeactivated matches flow deactivated events for the provided flow IDs
 func FlowDeactivated(ids ...api.FlowID) EventFilter {
 	return And(
-		EngineFilter(),
+		EngineFilter,
 		Type(api.EventTypeFlowDeactivated),
 		FlowID(ids...),
 	)

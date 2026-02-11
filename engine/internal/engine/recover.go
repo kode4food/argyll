@@ -127,10 +127,10 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 			case api.WorkActive, api.WorkNotCompleted:
 				retryAt = now
 			case api.WorkPending:
-				if exec.Status == api.StepActive {
-					retryAt = now
-				} else if !workItem.NextRetryAt.IsZero() {
+				if !workItem.NextRetryAt.IsZero() {
 					retryAt = workItem.NextRetryAt
+				} else if exec.Status == api.StepActive {
+					retryAt = now
 				} else {
 					continue
 				}

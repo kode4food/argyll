@@ -97,24 +97,25 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	hub := tb.GetHub()
 	eng := engine.New(engineStore, flowStore, mockCli, cfg)
 
-	cleanup := func() {
-		_ = eng.Stop()
-		_ = tb.Close()
-		server.Close()
-	}
-
-	return &TestEngineEnv{
+	testEnv := &TestEngineEnv{
 		T:           t,
 		Engine:      eng,
 		Redis:       server,
 		MockClient:  mockCli,
 		Config:      cfg,
 		EventHub:    hub,
-		Cleanup:     cleanup,
 		engineStore: engineStore,
 		flowStore:   flowStore,
 		flowExec:    flowExec,
 	}
+
+	testEnv.Cleanup = func() {
+		_ = testEnv.Engine.Stop()
+		_ = tb.Close()
+		testEnv.Redis.Close()
+	}
+
+	return testEnv
 }
 
 // NewEngineInstance creates a new engine instance sharing the same stores and

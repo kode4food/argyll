@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/kode4food/timebox"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
@@ -15,30 +14,88 @@ import (
 
 const recoveryTimeout = 10 * time.Second
 
-func waitForFlowStatusWithTimeout(
+func waitForFlowStatusWithTimeoutAfter(
 	env *helpers.TestEngineEnv, flowID api.FlowID, timeout time.Duration,
+	fn func(),
 ) *api.FlowState {
 	env.T.Helper()
 
-	state, err := env.Engine.GetFlowState(flowID)
-	if err == nil && (state.Status == api.FlowCompleted ||
-		state.Status == api.FlowFailed) {
-		return state
+	states := waitForFlowsStatusWithTimeoutAfter(
+		env, []api.FlowID{flowID}, timeout, fn,
+	)
+	return states[flowID]
+}
+
+func waitForFlowsStatusWithTimeoutAfter(
+	env *helpers.TestEngineEnv, ids []api.FlowID, timeout time.Duration,
+	fn func(),
+) map[api.FlowID]*api.FlowState {
+	env.T.Helper()
+
+	consumers := make([]*timebox.Consumer, len(ids))
+	for i := range ids {
+		consumer := env.EventHub.NewConsumer()
+		consumers[i] = consumer
+	}
+	defer func() {
+		for _, consumer := range consumers {
+			consumer.Close()
+		}
+	}()
+
+	fn()
+
+	res := make(map[api.FlowID]*api.FlowState, len(ids))
+	for i, flowID := range ids {
+		state, err := env.Engine.GetFlowState(flowID)
+		if err != nil {
+			env.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
+		}
+		if state.Status != api.FlowCompleted &&
+			state.Status != api.FlowFailed {
+			filter := wait.FlowTerminal(flowID)
+			timer := time.NewTimer(timeout)
+			found := false
+			for !found {
+				select {
+				case ev, ok := <-consumers[i].Receive():
+					if !ok {
+						timer.Stop()
+						env.T.Fatalf(
+							"event consumer closed waiting for flow %s",
+							flowID,
+						)
+					}
+					if ev != nil && filter(ev) {
+						found = true
+					}
+				case <-timer.C:
+					found = true
+				}
+			}
+			if !timer.Stop() {
+				select {
+				case <-timer.C:
+				default:
+				}
+			}
+			state, err = env.Engine.GetFlowState(flowID)
+			if err != nil {
+				env.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
+			}
+		}
+		if state.Status != api.FlowCompleted &&
+			state.Status != api.FlowFailed {
+			env.T.Fatalf(
+				"flow %s not terminal after wait; status=%s",
+				flowID,
+				state.Status,
+			)
+		}
+		res[flowID] = state
 	}
 
-	env.WithConsumer(func(consumer *timebox.Consumer) {
-		w := wait.On(env.T, consumer).WithTimeout(timeout)
-		w.ForEvent(wait.FlowTerminal(flowID))
-	})
-
-	state, err = env.Engine.GetFlowState(flowID)
-	if err != nil {
-		env.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
-	}
-	if state.Status != api.FlowCompleted && state.Status != api.FlowFailed {
-		env.T.Fatalf("flow %s not terminal after event", flowID)
-	}
-	return state
+	return res
 }
 
 // TestBasicFlowRecovery tests that a single flow with pending work recovers
@@ -51,6 +108,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries: 20,
 			Backoff:    200,
+			MaxBackoff: 200,
 		}
 
 		err := env.Engine.RegisterStep(step)
@@ -95,11 +153,11 @@ func TestBasicFlowRecovery(t *testing.T) {
 		err = env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		env.Engine.Start()
-
 		// Verify flow recovers and completes
-		recovered := waitForFlowStatusWithTimeout(
-			env, flowID, recoveryTimeout,
+		recovered := waitForFlowStatusWithTimeoutAfter(
+			env, flowID, recoveryTimeout, func() {
+				env.Engine.Start()
+			},
 		)
 		assert.Equal(t, api.FlowCompleted, recovered.Status)
 		assert.Equal(t, api.StepCompleted, recovered.Executions[step.ID].Status)
@@ -113,13 +171,25 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		env.Engine.Start()
 
 		step1 := helpers.NewSimpleStep("step-1")
-		step1.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
+		step1.WorkConfig = &api.WorkConfig{
+			MaxRetries: 20,
+			Backoff:    200,
+			MaxBackoff: 200,
+		}
 
 		step2 := helpers.NewSimpleStep("step-2")
-		step2.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
+		step2.WorkConfig = &api.WorkConfig{
+			MaxRetries: 20,
+			Backoff:    200,
+			MaxBackoff: 200,
+		}
 
 		step3 := helpers.NewSimpleStep("step-3")
-		step3.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
+		step3.WorkConfig = &api.WorkConfig{
+			MaxRetries: 20,
+			Backoff:    200,
+			MaxBackoff: 200,
+		}
 
 		assert.NoError(t, env.Engine.RegisterStep(step1))
 		assert.NoError(t, env.Engine.RegisterStep(step2))
@@ -195,23 +265,18 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(step2))
 		assert.NoError(t, env.Engine.RegisterStep(step3))
 
-		env.Engine.Start()
-		env.WithConsumer(func(consumer *timebox.Consumer) {
-			w := wait.On(t, consumer).
-				WithTimeout(recoveryTimeout)
-			w.ForEvents(3, wait.FlowTerminal(flowID1, flowID2, flowID3))
-		})
+		recovered := waitForFlowsStatusWithTimeoutAfter(
+			env,
+			[]api.FlowID{flowID1, flowID2, flowID3},
+			recoveryTimeout,
+			func() {
+				env.Engine.Start()
+			},
+		)
 
-		recovered1, err := env.Engine.GetFlowState(flowID1)
-		assert.NoError(t, err)
-		recovered2, err := env.Engine.GetFlowState(flowID2)
-		assert.NoError(t, err)
-		recovered3, err := env.Engine.GetFlowState(flowID3)
-		assert.NoError(t, err)
-
-		assert.Equal(t, api.FlowCompleted, recovered1.Status)
-		assert.Equal(t, api.FlowCompleted, recovered2.Status)
-		assert.Equal(t, api.FlowCompleted, recovered3.Status)
+		assert.Equal(t, api.FlowCompleted, recovered[flowID1].Status)
+		assert.Equal(t, api.FlowCompleted, recovered[flowID2].Status)
+		assert.Equal(t, api.FlowCompleted, recovered[flowID3].Status)
 	})
 }
 
@@ -223,12 +288,18 @@ func TestRecoveryWorkStates(t *testing.T) {
 
 		// Step 1: Will have Pending work (hasn't started yet)
 		pendingStep := helpers.NewSimpleStep("pending-step")
-		pendingStep.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
+		pendingStep.WorkConfig = &api.WorkConfig{
+			MaxRetries: 20,
+			Backoff:    200,
+			MaxBackoff: 200,
+		}
 
 		// Step 2: Will have NotCompleted work (failed but retryable)
 		notCompletedStep := helpers.NewSimpleStep("not-completed-step")
 		notCompletedStep.WorkConfig = &api.WorkConfig{
-			MaxRetries: 20, Backoff: 200,
+			MaxRetries: 20,
+			Backoff:    200,
+			MaxBackoff: 200,
 		}
 
 		// Step 3: Will have Failed work (perm failure, max retries reached)
@@ -295,21 +366,21 @@ func TestRecoveryWorkStates(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(notCompletedStep))
 		assert.NoError(t, env.Engine.RegisterStep(failedStep))
 
-		env.Engine.Start()
-
 		// Verify recovery behavior:
 
 		// 1. Pending flow should complete (was never started, now executes)
-		pendingFlow := waitForFlowStatusWithTimeout(
-			env, pendingFlowID, recoveryTimeout,
+		recovered := waitForFlowsStatusWithTimeoutAfter(
+			env,
+			[]api.FlowID{pendingFlowID, notCompletedFlowID},
+			recoveryTimeout,
+			func() {
+				env.Engine.Start()
+			},
 		)
-		assert.Equal(t, api.FlowCompleted, pendingFlow.Status)
+		assert.Equal(t, api.FlowCompleted, recovered[pendingFlowID].Status)
 
 		// 2. NotCompleted flow should complete (recover & retry success)
-		notCompletedFlow := waitForFlowStatusWithTimeout(
-			env, notCompletedFlowID, recoveryTimeout,
-		)
-		assert.Equal(t, api.FlowCompleted, notCompletedFlow.Status)
+		assert.Equal(t, api.FlowCompleted, recovered[notCompletedFlowID].Status)
 
 		// 3. Failed flow should still fail (no retry for perm failures)
 		failedFlow, err := env.Engine.GetFlowState(failedFlowID)
@@ -325,7 +396,11 @@ func TestRecoveryPreservesState(t *testing.T) {
 		env.Engine.Start()
 
 		step := helpers.NewSimpleStep("retry-step")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 20, Backoff: 200}
+		step.WorkConfig = &api.WorkConfig{
+			MaxRetries: 20,
+			Backoff:    200,
+			MaxBackoff: 200,
+		}
 
 		assert.NoError(t, env.Engine.RegisterStep(step))
 
@@ -369,11 +444,11 @@ func TestRecoveryPreservesState(t *testing.T) {
 		// Re-register step on new engine instance
 		assert.NoError(t, env.Engine.RegisterStep(step))
 
-		env.Engine.Start()
-
 		// Wait for completion
-		afterRestart := waitForFlowStatusWithTimeout(
-			env, flowID, recoveryTimeout,
+		afterRestart := waitForFlowStatusWithTimeoutAfter(
+			env, flowID, recoveryTimeout, func() {
+				env.Engine.Start()
+			},
 		)
 
 		// Verify flow completed
