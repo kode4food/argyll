@@ -52,6 +52,20 @@ func TestTypesFilter(t *testing.T) {
 	}))
 }
 
+func TestTypesFilterNoTypes(t *testing.T) {
+	filter := wait.Types()
+	assert.False(t, filter(&timebox.Event{
+		Type: timebox.EventType(api.EventTypeFlowStarted),
+	}))
+}
+
+func TestAndFilterNilFilter(t *testing.T) {
+	filter := wait.And(wait.Type(api.EventTypeFlowStarted), nil)
+	assert.False(t, filter(&timebox.Event{
+		Type: timebox.EventType(api.EventTypeFlowStarted),
+	}))
+}
+
 func TestFlowIDFilterConsumesEach(t *testing.T) {
 	flowA := api.FlowID("flow-a")
 	flowB := api.FlowID("flow-b")
@@ -73,6 +87,77 @@ func TestFlowStepAnyMatchesRepeated(t *testing.T) {
 		stepEvent{FlowID: fs.FlowID, StepID: fs.StepID})
 	assert.True(t, filter(ev))
 	assert.True(t, filter(ev))
+}
+
+func TestFlowStepsAndFlowStepFilter(t *testing.T) {
+	a := api.FlowStep{FlowID: "flow-a", StepID: "step-a"}
+	b := api.FlowStep{FlowID: "flow-b", StepID: "step-b"}
+	filter := wait.FlowSteps(a, b)
+	evA := newEvent(api.EventTypeStepStarted, events.FlowKey(a.FlowID),
+		stepEvent{FlowID: a.FlowID, StepID: a.StepID})
+	evB := newEvent(api.EventTypeStepStarted, events.FlowKey(b.FlowID),
+		stepEvent{FlowID: b.FlowID, StepID: b.StepID})
+	assert.True(t, filter(evA))
+	assert.False(t, filter(evA))
+	assert.True(t, filter(evB))
+
+	one := wait.FlowStep(a)
+	assert.True(t, one(evA))
+	assert.False(t, one(evA))
+}
+
+func TestWrapperFilters(t *testing.T) {
+	flowID := api.FlowID("flow-1")
+	step := api.FlowStep{FlowID: flowID, StepID: "step-1"}
+
+	flowEv := func(typ api.EventType) *timebox.Event {
+		return newEvent(typ, events.EngineKey, flowEvent{FlowID: flowID})
+	}
+	stepEv := func(typ api.EventType) *timebox.Event {
+		return newEvent(typ, events.FlowKey(flowID),
+			stepEvent{FlowID: step.FlowID, StepID: step.StepID})
+	}
+
+	assert.True(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(newEvent(
+		api.EventTypeStepHealthChanged, events.EngineKey,
+		api.StepHealthChangedEvent{StepID: "step-1", Status: api.HealthHealthy},
+	)))
+	assert.False(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(newEvent(
+		api.EventTypeStepHealthChanged, events.FlowKey(flowID),
+		api.StepHealthChangedEvent{StepID: "step-1", Status: api.HealthHealthy},
+	)))
+
+	assert.True(t, wait.FlowStarted(flowID)(newEvent(
+		api.EventTypeFlowStarted, events.FlowKey(flowID),
+		flowEvent{FlowID: flowID},
+	)))
+	assert.True(t, wait.FlowActivated(flowID)(flowEv(api.EventTypeFlowActivated)))
+	assert.True(t, wait.FlowDeactivated(flowID)(flowEv(api.EventTypeFlowDeactivated)))
+	assert.True(t, wait.FlowCompleted(flowID)(newEvent(
+		api.EventTypeFlowCompleted, events.FlowKey(flowID),
+		flowEvent{FlowID: flowID},
+	)))
+	assert.True(t, wait.FlowFailed(flowID)(newEvent(
+		api.EventTypeFlowFailed, events.FlowKey(flowID),
+		flowEvent{FlowID: flowID},
+	)))
+	assert.False(t, wait.FlowCompleted(flowID)(newEvent(
+		api.EventTypeFlowCompleted, events.FlowKey("flow-2"),
+		flowEvent{FlowID: "flow-2"},
+	)))
+
+	assert.True(t, wait.StepStarted(step)(stepEv(api.EventTypeStepStarted)))
+	assert.True(t, wait.StepTerminal(step)(stepEv(api.EventTypeStepCompleted)))
+	assert.True(t, wait.WorkStarted(step)(stepEv(api.EventTypeWorkStarted)))
+	assert.True(t, wait.WorkSucceeded(step)(stepEv(api.EventTypeWorkSucceeded)))
+	assert.True(t, wait.WorkFailed(step)(stepEv(api.EventTypeWorkFailed)))
+	assert.True(t, wait.WorkRetryScheduled(step)(stepEv(api.EventTypeRetryScheduled)))
+	assert.True(t, wait.WorkRetryScheduledAny(step)(stepEv(
+		api.EventTypeRetryScheduled,
+	)))
+	assert.True(t, wait.WorkRetryScheduledAny(step)(stepEv(
+		api.EventTypeRetryScheduled,
+	)))
 }
 
 func TestWaitForEventFlowTerminal(t *testing.T) {
@@ -99,4 +184,11 @@ func TestStepHealthChangedFilter(t *testing.T) {
 			Status: api.HealthHealthy,
 		})
 	assert.True(t, filter(ev))
+}
+
+func TestUnmarshalInvalidJSON(t *testing.T) {
+	filter := wait.Unmarshal(func(data flowEvent) bool {
+		return data.FlowID == "flow-a"
+	})
+	assert.False(t, filter(&timebox.Event{Data: []byte("{")}))
 }
