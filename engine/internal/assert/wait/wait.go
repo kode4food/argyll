@@ -125,7 +125,7 @@ func EngineEvent(eventTypes ...api.EventType) EventFilter {
 
 // FlowStarted matches flow started events for the provided flow IDs
 func FlowStarted(ids ...api.FlowID) EventFilter {
-	return And(Type(api.EventTypeFlowStarted), FlowID(ids...))
+	return And(Type(api.EventTypeFlowStarted), FlowIDs(ids...))
 }
 
 // FlowActivated matches flow activated events for the provided flow IDs
@@ -133,7 +133,7 @@ func FlowActivated(ids ...api.FlowID) EventFilter {
 	return And(
 		EngineFilter,
 		Type(api.EventTypeFlowActivated),
-		FlowID(ids...),
+		FlowIDs(ids...),
 	)
 }
 
@@ -142,7 +142,7 @@ func FlowDeactivated(ids ...api.FlowID) EventFilter {
 	return And(
 		EngineFilter,
 		Type(api.EventTypeFlowDeactivated),
-		FlowID(ids...),
+		FlowIDs(ids...),
 	)
 }
 
@@ -150,18 +150,18 @@ func FlowDeactivated(ids ...api.FlowID) EventFilter {
 func FlowTerminal(ids ...api.FlowID) EventFilter {
 	return And(
 		Types(api.EventTypeFlowCompleted, api.EventTypeFlowFailed),
-		FlowID(ids...),
+		FlowIDs(ids...),
 	)
 }
 
 // FlowCompleted matches flow completed events for the provided flow IDs
 func FlowCompleted(ids ...api.FlowID) EventFilter {
-	return And(Type(api.EventTypeFlowCompleted), FlowID(ids...))
+	return And(Type(api.EventTypeFlowCompleted), FlowIDs(ids...))
 }
 
 // FlowFailed matches flow failed events for the provided flow IDs
 func FlowFailed(ids ...api.FlowID) EventFilter {
-	return And(Type(api.EventTypeFlowFailed), FlowID(ids...))
+	return And(Type(api.EventTypeFlowFailed), FlowIDs(ids...))
 }
 
 // StepStarted matches step started events for the provided flow steps
@@ -212,8 +212,13 @@ func WorkRetryScheduledAny(steps ...api.FlowStep) EventFilter {
 	)
 }
 
-// FlowID matches events for the provided flow IDs
-func FlowID(ids ...api.FlowID) EventFilter {
+// FlowID matches events for the provided flow ID
+func FlowID(id api.FlowID) EventFilter {
+	return FlowIDs(id)
+}
+
+// FlowIDs matches events for the provided flow IDs
+func FlowIDs(ids ...api.FlowID) EventFilter {
 	expected := make(util.Set[api.FlowID], len(ids))
 	for _, flowID := range ids {
 		expected.Add(flowID)

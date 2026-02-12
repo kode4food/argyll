@@ -69,7 +69,7 @@ func TestAndFilterNilFilter(t *testing.T) {
 func TestFlowIDFilterConsumesEach(t *testing.T) {
 	flowA := api.FlowID("flow-a")
 	flowB := api.FlowID("flow-b")
-	filter := wait.FlowID(flowA, flowB)
+	filter := wait.FlowIDs(flowA, flowB)
 	evA := newEvent(api.EventTypeFlowStarted, events.FlowKey(flowA),
 		flowEvent{FlowID: flowA})
 	evB := newEvent(api.EventTypeFlowStarted, events.FlowKey(flowB),
@@ -78,6 +78,15 @@ func TestFlowIDFilterConsumesEach(t *testing.T) {
 	assert.False(t, filter(evA))
 	assert.True(t, filter(evB))
 	assert.False(t, filter(evB))
+}
+
+func TestFlowIDFilterSingle(t *testing.T) {
+	flowID := api.FlowID("flow-single")
+	filter := wait.FlowID(flowID)
+	ev := newEvent(api.EventTypeFlowStarted, events.FlowKey(flowID),
+		flowEvent{FlowID: flowID})
+	assert.True(t, filter(ev))
+	assert.False(t, filter(ev))
 }
 
 func TestFlowStepAnyMatchesRepeated(t *testing.T) {
