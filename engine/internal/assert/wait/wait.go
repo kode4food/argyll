@@ -35,6 +35,10 @@ type (
 
 const DefaultTimeout = time.Second * 5
 
+var engineFilter = EventFilter(func(ev *timebox.Event) bool {
+	return ev.AggregateID.Equal(events.EngineKey)
+})
+
 func On(t *testing.T, consumer *timebox.Consumer) *Wait {
 	return &Wait{
 		t:        t,
@@ -64,7 +68,7 @@ func (w *Wait) ForEvents(count int, filter EventFilter) {
 					"event consumer closed before receiving %d events", count,
 				)
 			}
-			if ev == nil || !filter(ev) {
+			if !filter(ev) {
 				continue
 			}
 			seen++
@@ -83,7 +87,7 @@ func (w *Wait) ForEvent(filter EventFilter) {
 func And(filters ...EventFilter) EventFilter {
 	return func(ev *timebox.Event) bool {
 		for _, filter := range filters {
-			if filter == nil || !filter(ev) {
+			if !filter(ev) {
 				return false
 			}
 		}
@@ -106,21 +110,13 @@ func Types(eventTypes ...api.EventType) EventFilter {
 		lookup.Add(timebox.EventType(et))
 	}
 	return func(ev *timebox.Event) bool {
-		if ev == nil {
-			return false
-		}
 		return lookup.Contains(ev.Type)
 	}
 }
 
-// EngineFilter restricts events to the engine aggregate
-var EngineFilter = EventFilter(func(ev *timebox.Event) bool {
-	return ev != nil && ev.AggregateID.Equal(events.EngineKey)
-})
-
 // EngineEvent matches engine aggregate events for the given types
 func EngineEvent(eventTypes ...api.EventType) EventFilter {
-	return And(EngineFilter, Types(eventTypes...))
+	return And(engineFilter, Types(eventTypes...))
 }
 
 // FlowStarted matches flow started events for the provided flow IDs
@@ -131,7 +127,7 @@ func FlowStarted(ids ...api.FlowID) EventFilter {
 // FlowActivated matches flow activated events for the provided flow IDs
 func FlowActivated(ids ...api.FlowID) EventFilter {
 	return And(
-		EngineFilter,
+		engineFilter,
 		Type(api.EventTypeFlowActivated),
 		FlowIDs(ids...),
 	)
@@ -140,7 +136,7 @@ func FlowActivated(ids ...api.FlowID) EventFilter {
 // FlowDeactivated matches flow deactivated events for the provided flow IDs
 func FlowDeactivated(ids ...api.FlowID) EventFilter {
 	return And(
-		EngineFilter,
+		engineFilter,
 		Type(api.EventTypeFlowDeactivated),
 		FlowIDs(ids...),
 	)
@@ -265,18 +261,13 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 	})
 }
 
-// StepHealth matches step health change events for a step and status
-func StepHealth(stepID api.StepID, status api.HealthStatus) EventFilter {
-	return Unmarshal(func(data api.StepHealthChangedEvent) bool {
-		return data.StepID == stepID && data.Status == status
-	})
-}
-
 // StepHealthChanged matches step health change events for a step/status
 func StepHealthChanged(stepID api.StepID, status api.HealthStatus) EventFilter {
 	return And(
 		Type(api.EventTypeStepHealthChanged),
-		StepHealth(stepID, status),
+		Unmarshal(func(data api.StepHealthChangedEvent) bool {
+			return data.StepID == stepID && data.Status == status
+		}),
 	)
 }
 

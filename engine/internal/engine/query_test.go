@@ -219,7 +219,7 @@ func waitForQueryFlow(
 ) {
 	t.Helper()
 
-	deadline := time.Now().Add(helpers.DefaultWaitTimeout)
+	deadline := time.Now().Add(wait.DefaultTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := eng.QueryFlows(req)
 		if err == nil &&
@@ -245,7 +245,7 @@ func waitForQueryFlows(
 ) *api.QueryFlowsResponse {
 	t.Helper()
 
-	deadline := time.Now().Add(helpers.DefaultWaitTimeout)
+	deadline := time.Now().Add(wait.DefaultTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := eng.QueryFlows(req)
 		if err == nil && len(resp.Flows) >= min {

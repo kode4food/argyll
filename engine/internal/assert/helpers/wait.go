@@ -7,8 +7,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const DefaultWaitTimeout = wait.DefaultTimeout
-
 // WaitFor runs fn and waits for a matching event
 func (e *TestEngineEnv) WaitFor(filter wait.EventFilter, fn func()) {
 	e.T.Helper()
@@ -141,9 +139,6 @@ func (e *TestEngineEnv) getExecutionState(
 }
 
 func isFlowTerminal(state *api.FlowState) bool {
-	if state == nil {
-		return false
-	}
 	return state.Status == api.FlowCompleted ||
 		state.Status == api.FlowFailed
 }

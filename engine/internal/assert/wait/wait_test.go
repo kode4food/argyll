@@ -43,7 +43,6 @@ func newEvent(
 
 func TestTypesFilter(t *testing.T) {
 	filter := wait.Types(api.EventTypeFlowStarted, api.EventTypeFlowFailed)
-	assert.False(t, filter(nil))
 	assert.True(t, filter(&timebox.Event{
 		Type: timebox.EventType(api.EventTypeFlowStarted),
 	}))
@@ -59,11 +58,51 @@ func TestTypesFilterNoTypes(t *testing.T) {
 	}))
 }
 
-func TestAndFilterNilFilter(t *testing.T) {
-	filter := wait.And(wait.Type(api.EventTypeFlowStarted), nil)
-	assert.False(t, filter(&timebox.Event{
-		Type: timebox.EventType(api.EventTypeFlowStarted),
-	}))
+func TestAnd(t *testing.T) {
+	tests := []struct {
+		name      string
+		returns   []bool
+		want      bool
+		wantCalls []int
+	}{
+		{
+			name:      "stops when first filter is false",
+			returns:   []bool{false, true, true},
+			want:      false,
+			wantCalls: []int{1, 0, 0},
+		},
+		{
+			name:      "stops when second filter is false",
+			returns:   []bool{true, false, true},
+			want:      false,
+			wantCalls: []int{1, 1, 0},
+		},
+		{
+			name:      "calls all filters when all are true",
+			returns:   []bool{true, true, true},
+			want:      true,
+			wantCalls: []int{1, 1, 1},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			calls := make([]int, len(tc.returns))
+			filters := make([]wait.EventFilter, 0, len(tc.returns))
+			for i, ret := range tc.returns {
+				filters = append(filters, wait.EventFilter(
+					func(*timebox.Event) bool {
+						calls[i]++
+						return ret
+					},
+				))
+			}
+
+			filter := wait.And(filters...)
+			assert.Equal(t, tc.want, filter(&timebox.Event{}))
+			assert.Equal(t, tc.wantCalls, calls)
+		})
+	}
 }
 
 func TestFlowIDFilterConsumesEach(t *testing.T) {

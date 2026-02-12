@@ -204,7 +204,7 @@ func TestAsyncMetadata(t *testing.T) {
 		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
-			step.ID, helpers.DefaultWaitTimeout,
+			step.ID, wait.DefaultTimeout,
 		))
 
 		md := env.MockClient.LastMetadata(step.ID)
