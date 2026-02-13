@@ -4,7 +4,7 @@ GO ?= go
 SPECS_DIR ?= ./specs
 DOCS_DIR ?= ../docs/api
 
-.PHONY: all build run format check test clean sync-specs
+.PHONY: all build run format check test pre-commit clean sync-specs
 
 all: build
 
@@ -22,11 +22,12 @@ format:
 
 check: sync-specs
 	$(GO) vet ./...
-
-test: sync-specs
-	$(GO) test ./...
-	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
+
+test: check
+	$(GO) test ./...
+
+pre-commit: format test
 
 clean:
 	@rm -f $(EXE)

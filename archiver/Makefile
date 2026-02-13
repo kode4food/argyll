@@ -3,7 +3,7 @@ S3_EXE = $(DIST_DIR)/argyll-s3
 FILE_EXE = $(DIST_DIR)/argyll-file
 GO ?= go
 
-.PHONY: all install build format check test clean
+.PHONY: all install build format check test pre-commit clean
 
 all: build
 
@@ -23,11 +23,12 @@ format:
 
 check:
 	$(GO) vet ./...
-
-test:
-	$(GO) test ./...
-	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
+
+test: check
+	$(GO) test ./...
+
+pre-commit: format test
 
 clean:
 	@rm -f $(S3_EXE) $(FILE_EXE)

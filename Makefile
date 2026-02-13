@@ -3,7 +3,7 @@ SUBPROJECTS = engine mcp archiver sdks/go-builder sdks/python \
 	examples/order-creator examples/simple-step \
 	examples/stock-reservation examples/user-resolver
 
-.PHONY: all install build format check test clean
+.PHONY: all install build format check test pre-commit clean
 
 define run_target
 	@for dir in $(SUBPROJECTS); do \
@@ -32,6 +32,9 @@ check:
 
 test:
 	$(call run_target,test)
+
+pre-commit:
+	$(call run_target,pre-commit)
 
 clean:
 	$(call run_target,clean)

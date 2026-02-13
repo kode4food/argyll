@@ -1,6 +1,6 @@
 GO ?= go
 
-.PHONY: all format check test
+.PHONY: all format check test pre-commit
 
 all: test
 
@@ -10,8 +10,9 @@ format:
 
 check:
 	$(GO) vet ./...
-
-test:
-	$(GO) test ./...
-	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
+
+test: check
+	$(GO) test ./...
+
+pre-commit: format test

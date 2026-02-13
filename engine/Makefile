@@ -2,7 +2,7 @@ DIST_DIR ?= ./dist
 EXE = $(DIST_DIR)/argyll
 GO ?= go
 
-.PHONY: all install build format check test clean
+.PHONY: all install build format check test pre-commit clean
 
 all: build
 
@@ -20,11 +20,12 @@ format:
 
 check:
 	$(GO) vet ./...
-
-test:
-	$(GO) test ./...
-	$(MAKE) check
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
+
+test: check
+	$(GO) test ./...
+
+pre-commit: format test
 
 clean:
 	@rm -f $(EXE)
