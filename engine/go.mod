@@ -9,9 +9,9 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/kode4food/ale v0.3.1-0.20260122093507-a14c30caae2d
-	github.com/kode4food/caravan v0.0.0-20251025080141-10eee0f8ea05
-	github.com/kode4food/timebox v0.0.0-20260205182603-acffb5d9136a
+	github.com/kode4food/ale v0.3.1-0.20260213082956-70a76657eba8
+	github.com/kode4food/caravan v0.0.0-20260213081010-9cf178c64677
+	github.com/kode4food/timebox v0.0.0-20260213123425-477fa2811c48
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.41.0

@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741
-	github.com/kode4food/timebox v0.0.0-20260205182603-acffb5d9136a
+	github.com/kode4food/timebox v0.0.0-20260213123425-477fa2811c48
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.11.1
 	gocloud.dev v0.44.0
@@ -66,8 +66,8 @@ require (
 	github.com/google/wire v0.7.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
-	github.com/kode4food/ale v0.3.1-0.20260122093507-a14c30caae2d // indirect
-	github.com/kode4food/caravan v0.0.0-20251025080141-10eee0f8ea05 // indirect
+	github.com/kode4food/ale v0.3.1-0.20260213082956-70a76657eba8 // indirect
+	github.com/kode4food/caravan v0.0.0-20260213081010-9cf178c64677 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
