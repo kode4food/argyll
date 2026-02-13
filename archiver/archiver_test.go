@@ -338,7 +338,7 @@ func readRespCommand(reader *bufio.Reader) ([]string, error) {
 	}
 
 	parts := make([]string, 0, n)
-	for i := 0; i < n; i++ {
+	for range n {
 		part, err := readRespBulk(reader)
 		if err != nil {
 			return nil, err

@@ -188,7 +188,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 	)
 	defer healthServer.Close()
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		for i := 0; i < 3; i++ {
+		for i := range 3 {
 			step := &api.Step{
 				ID:   api.StepID("multi-health-" + string(rune('a'+i))),
 				Name: "Multi Health Step",

@@ -624,9 +624,7 @@ func (l Labels) Apply(other Labels) Labels {
 		return other
 	}
 	res := maps.Clone(l)
-	for k, v := range other {
-		res[k] = v
-	}
+	maps.Copy(res, other)
 	return res
 }
 

@@ -18,6 +18,7 @@ run: sync-specs
 
 format:
 	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
+	$(GO) fix ./...
 
 check: sync-specs
 	$(GO) vet ./...

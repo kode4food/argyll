@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"slices"
 	"sync"
 	"time"
 
@@ -133,10 +134,5 @@ func (c *MockClient) LastMetadata(stepID api.StepID) api.Metadata {
 }
 
 func (c *MockClient) wasInvokedLocked(stepID api.StepID) bool {
-	for _, id := range c.invoked {
-		if id == stepID {
-			return true
-		}
-	}
-	return false
+	return slices.Contains(c.invoked, stepID)
 }

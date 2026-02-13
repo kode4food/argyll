@@ -14,7 +14,7 @@ type (
 		Required   []Name         `json:"required"`
 		Steps      Steps          `json:"steps"`
 		Attributes AttributeGraph `json:"attributes"`
-		Excluded   ExcludedSteps  `json:"excluded,omitempty"`
+		Excluded   ExcludedSteps  `json:"excluded"`
 	}
 
 	ExcludedSteps struct {

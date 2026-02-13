@@ -1121,8 +1121,8 @@ func TestResultEdgeCases(t *testing.T) {
 
 	t.Run("with_output_complex_types", func(t *testing.T) {
 		result := &api.StepResult{Success: true}
-		complexData := map[string]interface{}{
-			"nested": map[string]interface{}{
+		complexData := map[string]any{
+			"nested": map[string]any{
 				"value": 123,
 			},
 		}
@@ -1133,7 +1133,7 @@ func TestResultEdgeCases(t *testing.T) {
 
 	t.Run("with_output_array", func(t *testing.T) {
 		result := &api.StepResult{Success: true}
-		arrayData := []interface{}{"a", "b", "c"}
+		arrayData := []any{"a", "b", "c"}
 		result = result.WithOutput("array", arrayData)
 
 		as.Equal(arrayData, result.Outputs["array"])
