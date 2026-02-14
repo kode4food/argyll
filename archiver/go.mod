@@ -5,7 +5,7 @@ go 1.25.3
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741
-	github.com/kode4food/timebox v0.0.0-20260213123425-477fa2811c48
+	github.com/kode4food/timebox v0.0.0-20260214112909-c04e9654ef62
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.11.1
 	gocloud.dev v0.44.0

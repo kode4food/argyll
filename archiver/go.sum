@@ -146,14 +146,15 @@ github.com/googleapis/gax-go/v2 v2.15.0/go.mod h1:zVVkkxAQHa1RQpg9z2AUCMnKhi0Qld
 github.com/keybase/go-keychain v0.0.1 h1:way+bWYa6lDppZoZcgMbYsvC7GxljxrskdNInRtuthU=
 github.com/keybase/go-keychain v0.0.1/go.mod h1:PdEILRW3i9D8JcdM+FmY6RwkHGnhHxXwkPPMeUgOK1k=
 github.com/kode4food/ale v0.3.1-0.20260213082956-70a76657eba8 h1:UhII4hfX92jdj89TsWDOTv0vkhjy/FDl12jYhE3VWdE=
+github.com/kode4food/ale v0.3.1-0.20260213082956-70a76657eba8/go.mod h1:x3yLGka1od5Cfmal4ylJouS4N9ViB+DXMPBvifGQkhU=
 github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741 h1:JGbWyuCDFxUNbSIJcFh6oW+ip1kKJHsJCqSiQolW1uw=
 github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741/go.mod h1:jb/S9B53QG+D/m8IufduUL0eHPpvP5VrgQ7ld+5zIVw=
 github.com/kode4food/caravan v0.0.0-20260213081010-9cf178c64677 h1:rKHBWuUaiM8oP7u2r+q0APvKL6Z0tSdH4yb+fsy/7ls=
 github.com/kode4food/caravan v0.0.0-20260213081010-9cf178c64677/go.mod h1:9e4xJsAAe/oMaMGSSv2CIZiuy7EiuwbpXcXUeUNgAts=
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
-github.com/kode4food/timebox v0.0.0-20260213123425-477fa2811c48 h1:hkB4yZDsFpSwjVFBMzbpWzRuU929dpbm65NEW+wgZBw=
-github.com/kode4food/timebox v0.0.0-20260213123425-477fa2811c48/go.mod h1:d7DkOyPU1LCVkt8PAVj1s4fUAwtoaNsPIGIP5DvkapI=
+github.com/kode4food/timebox v0.0.0-20260214112909-c04e9654ef62 h1:bRhRhUyxIyDxkaaOdRclyGE5I4sUeNyi4iWH6wcSrLM=
+github.com/kode4food/timebox v0.0.0-20260214112909-c04e9654ef62/go.mod h1:d7DkOyPU1LCVkt8PAVj1s4fUAwtoaNsPIGIP5DvkapI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=

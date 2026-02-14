@@ -19,7 +19,7 @@ github.com/kode4food/argyll/engine v0.0.0-20260202154946-578cd6fdfe5e/go.mod h1:
 github.com/kode4food/caravan v0.0.0-20260213081010-9cf178c64677 h1:rKHBWuUaiM8oP7u2r+q0APvKL6Z0tSdH4yb+fsy/7ls=
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
-github.com/kode4food/timebox v0.0.0-20260213123425-477fa2811c48 h1:hkB4yZDsFpSwjVFBMzbpWzRuU929dpbm65NEW+wgZBw=
+github.com/kode4food/timebox v0.0.0-20260214112909-c04e9654ef62 h1:bRhRhUyxIyDxkaaOdRclyGE5I4sUeNyi4iWH6wcSrLM=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
