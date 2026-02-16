@@ -10,7 +10,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 // indirect
-	github.com/kode4food/timebox v0.0.0-20260214112909-c04e9654ef62 // indirect
+	github.com/kode4food/timebox v0.0.0-20260216142152-eb58bed5ee12 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
