@@ -26,8 +26,8 @@ type (
 )
 
 func newHub() (*timebox.EventHub, topic.Topic[*timebox.Event]) {
-	topic := caravan.NewTopic[*timebox.Event]()
-	return timebox.NewEventHub(topic), topic
+	top := caravan.NewTopic[*timebox.Event]()
+	return timebox.NewEventHub(top), top
 }
 
 func newEvent(
@@ -90,12 +90,10 @@ func TestAnd(t *testing.T) {
 			calls := make([]int, len(tc.returns))
 			filters := make([]wait.EventFilter, 0, len(tc.returns))
 			for i, ret := range tc.returns {
-				filters = append(filters, wait.EventFilter(
-					func(*timebox.Event) bool {
-						calls[i]++
-						return ret
-					},
-				))
+				filters = append(filters, func(*timebox.Event) bool {
+					calls[i]++
+					return ret
+				})
 			}
 
 			filter := wait.And(filters...)
@@ -209,10 +207,10 @@ func TestWrapperFilters(t *testing.T) {
 }
 
 func TestWaitForEventFlowTerminal(t *testing.T) {
-	hub, topic := newHub()
+	hub, top := newHub()
 	consumer := hub.NewConsumer()
 	defer consumer.Close()
-	producer := topic.NewProducer()
+	producer := top.NewProducer()
 
 	flowID := api.FlowID("flow-terminal")
 	ev := newEvent(api.EventTypeFlowCompleted, events.FlowKey(flowID),

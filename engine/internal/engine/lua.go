@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/Shopify/go-lua"
+	"github.com/kode4food/lru"
 
-	"github.com/kode4food/argyll/engine/internal/util"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -16,7 +16,7 @@ type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
 		statePool chan *lua.State
-		cache     *util.LRUCache[*CompiledLua]
+		cache     *lru.Cache[*CompiledLua]
 	}
 
 	// CompiledLua represents a compiled Lua script
@@ -52,7 +52,7 @@ var luaExclude = [...]string{
 func NewLuaEnv() *LuaEnv {
 	return &LuaEnv{
 		statePool: make(chan *lua.State, luaStatePoolSize),
-		cache:     util.NewLRUCache[*CompiledLua](luaCacheSize),
+		cache:     lru.NewCache[*CompiledLua](luaCacheSize),
 	}
 }
 

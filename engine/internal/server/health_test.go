@@ -190,7 +190,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		for i := range 3 {
 			step := &api.Step{
-				ID:   api.StepID("multi-health-" + string(rune('a'+i))),
+				ID:   api.StepID("multi-health-" + string('a'+i)),
 				Name: "Multi Health Step",
 				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{

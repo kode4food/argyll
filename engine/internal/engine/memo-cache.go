@@ -3,20 +3,21 @@ package engine
 import (
 	"fmt"
 
-	"github.com/kode4food/argyll/engine/internal/util"
+	"github.com/kode4food/lru"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // MemoCache provides global caching of step results based on (step definition,
 // inputs)
 type MemoCache struct {
-	cache *util.LRUCache[api.Args]
+	cache *lru.Cache[api.Args]
 }
 
 // NewMemoCache creates a new memo cache with the specified maximum size
 func NewMemoCache(maxSize int) *MemoCache {
 	return &MemoCache{
-		cache: util.NewLRUCache[api.Args](maxSize),
+		cache: lru.NewCache[api.Args](maxSize),
 	}
 }
 

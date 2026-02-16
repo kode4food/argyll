@@ -10,15 +10,15 @@ import (
 	"github.com/kode4food/ale/data"
 	"github.com/kode4food/ale/env"
 	"github.com/kode4food/ale/eval"
+	"github.com/kode4food/lru"
 
-	"github.com/kode4food/argyll/engine/internal/util"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // AleEnv provides an Ale script execution environment
 type AleEnv struct {
 	env   *env.Environment
-	cache *util.LRUCache[data.Procedure]
+	cache *lru.Cache[data.Procedure]
 }
 
 const (
@@ -40,7 +40,7 @@ func NewAleEnv() *AleEnv {
 	bootstrap.Into(e)
 	return &AleEnv{
 		env:   e,
-		cache: util.NewLRUCache[data.Procedure](aleCacheSize),
+		cache: lru.NewCache[data.Procedure](aleCacheSize),
 	}
 }
 
