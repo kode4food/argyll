@@ -10,15 +10,14 @@ import (
 	"github.com/kode4food/ale/data"
 	"github.com/kode4food/ale/env"
 	"github.com/kode4food/ale/eval"
-	"github.com/kode4food/lru"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // AleEnv provides an Ale script execution environment
 type AleEnv struct {
-	env   *env.Environment
-	cache *lru.Cache[data.Procedure]
+	*scriptCompiler[data.Procedure]
+	env *env.Environment
 }
 
 const (
@@ -36,30 +35,14 @@ var (
 // NewAleEnv creates a new Ale script execution environment with the standard
 // library bootstrapped
 func NewAleEnv() *AleEnv {
-	e := env.NewEnvironment()
-	bootstrap.Into(e)
-	return &AleEnv{
-		env:   e,
-		cache: lru.NewCache[data.Procedure](aleCacheSize),
+	aleEnv := &AleEnv{
+		env: env.NewEnvironment(),
 	}
-}
-
-// Compile compiles a script configuration
-func (e *AleEnv) Compile(
-	step *api.Step, cfg *api.ScriptConfig,
-) (Compiled, error) {
-	if cfg.Script == "" {
-		return nil, nil
-	}
-
-	argNames := step.SortedArgNames()
-	src := fmt.Sprintf(
-		aleLambdaTemplate, strings.Join(argNames, " "), cfg.Script,
+	bootstrap.Into(aleEnv.env)
+	aleEnv.scriptCompiler = newScriptCompiler(
+		aleCacheSize, aleEnv.compileKey, aleEnv.buildCompiled,
 	)
-
-	return e.cache.Get(src, func() (data.Procedure, error) {
-		return e.compileSource(src)
-	})
+	return aleEnv
 }
 
 // Validate checks if an Ale script is syntactically correct without running it
@@ -111,6 +94,22 @@ func (e *AleEnv) EvaluatePredicate(
 	}
 
 	return evaluatePredicate(proc, step, inputs)
+}
+
+func (e *AleEnv) compileKey(
+	step *api.Step, cfg *api.ScriptConfig,
+) (scriptKey, error) {
+	argNames := step.SortedArgNames()
+	src := fmt.Sprintf(
+		aleLambdaTemplate, strings.Join(argNames, " "), cfg.Script,
+	)
+	return scriptKey(src), nil
+}
+
+func (e *AleEnv) buildCompiled(
+	key scriptKey, _ *api.Step, _ *api.ScriptConfig,
+) (data.Procedure, error) {
+	return e.compileSource(string(key))
 }
 
 func (e *AleEnv) compileSource(src string) (proc data.Procedure, err error) {

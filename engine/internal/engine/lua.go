@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/Shopify/go-lua"
-	"github.com/kode4food/lru"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -15,8 +14,8 @@ import (
 type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
+		*scriptCompiler[*CompiledLua]
 		statePool chan *lua.State
-		cache     *lru.Cache[*CompiledLua]
 	}
 
 	// CompiledLua represents a compiled Lua script
@@ -50,26 +49,13 @@ var luaExclude = [...]string{
 // NewLuaEnv creates a new Lua script execution environment with a state pool
 // for efficient script reuse
 func NewLuaEnv() *LuaEnv {
-	return &LuaEnv{
+	luaEnv := &LuaEnv{
 		statePool: make(chan *lua.State, luaStatePoolSize),
-		cache:     lru.NewCache[*CompiledLua](luaCacheSize),
 	}
-}
-
-// Compile compiles a script configuration
-func (e *LuaEnv) Compile(
-	step *api.Step, cfg *api.ScriptConfig,
-) (Compiled, error) {
-	if cfg.Script == "" {
-		return nil, nil
-	}
-
-	argNames := step.SortedArgNames()
-	src := e.buildSource(cfg.Script, argNames)
-
-	return e.cache.Get(src, func() (*CompiledLua, error) {
-		return e.compileSource(src, argNames)
-	})
+	luaEnv.scriptCompiler = newScriptCompiler(
+		luaCacheSize, luaEnv.compileKey, luaEnv.buildCompiled,
+	)
+	return luaEnv
 }
 
 // Validate checks if a Lua script is syntactically correct without running it
@@ -103,6 +89,21 @@ func (e *LuaEnv) EvaluatePredicate(
 	}
 
 	return evaluateLuaPredicate(e, script, inputs)
+}
+
+func (e *LuaEnv) compileKey(
+	step *api.Step, cfg *api.ScriptConfig,
+) (scriptKey, error) {
+	argNames := step.SortedArgNames()
+	src := e.buildSource(cfg.Script, argNames)
+	return scriptKey(src), nil
+}
+
+func (e *LuaEnv) buildCompiled(
+	key scriptKey, step *api.Step, _ *api.ScriptConfig,
+) (*CompiledLua, error) {
+	argNames := step.SortedArgNames()
+	return e.compileSource(string(key), argNames)
 }
 
 func (e *LuaEnv) buildSource(script string, argNames []string) string {

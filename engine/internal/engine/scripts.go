@@ -3,6 +3,8 @@ package engine
 import (
 	"fmt"
 
+	"github.com/kode4food/lru"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -31,9 +33,22 @@ type (
 		) (bool, error)
 	}
 
-	// Compiled represents a compiled script for any supported language.
-	// Concrete types: data.Procedure (Ale), *CompiledLuaScript (Lua)
+	// Compiled represents a compiled script for any supported language
 	Compiled any
+
+	scriptKey string
+
+	scriptKeyFunc func(step *api.Step, cfg *api.ScriptConfig) (scriptKey, error)
+
+	scriptBuildFunc[T any] func(
+		key scriptKey, step *api.Step, cfg *api.ScriptConfig,
+	) (T, error)
+
+	scriptCompiler[T any] struct {
+		cache   *lru.Cache[T]
+		keyFn   scriptKeyFunc
+		buildFn scriptBuildFunc[T]
+	}
 )
 
 var (
@@ -107,4 +122,35 @@ func (e *Engine) getStepFromPlan(fs api.FlowStep) (*api.Step, error) {
 		return step, nil
 	}
 	return nil, ErrStepNotInPlan
+}
+
+func newScriptCompiler[T any](
+	size int, keyFn scriptKeyFunc, buildFn scriptBuildFunc[T],
+) *scriptCompiler[T] {
+	return &scriptCompiler[T]{
+		cache:   lru.NewCache[T](size),
+		keyFn:   keyFn,
+		buildFn: buildFn,
+	}
+}
+
+func (c *scriptCompiler[T]) Compile(
+	step *api.Step, cfg *api.ScriptConfig,
+) (Compiled, error) {
+	if cfg == nil || cfg.Script == "" {
+		return nil, nil
+	}
+
+	key, err := c.keyFn(step, cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.cache.Get(string(key), func() (T, error) {
+		return c.buildFn(key, step, cfg)
+	})
+	if err != nil {
+		return nil, err
+	}
+	return res, nil
 }

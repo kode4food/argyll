@@ -5,14 +5,13 @@ import (
 	"fmt"
 
 	"github.com/kode4food/jpath"
-	"github.com/kode4food/lru"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // JPathEnv provides JPath predicate evaluation
 type JPathEnv struct {
-	cache *lru.Cache[jpath.Path]
+	*scriptCompiler[jpath.Path]
 }
 
 const jpathCacheSize = 10240
@@ -25,9 +24,11 @@ var (
 
 // NewJPathEnv creates a JPath predicate evaluation environment
 func NewJPathEnv() *JPathEnv {
-	return &JPathEnv{
-		cache: lru.NewCache[jpath.Path](jpathCacheSize),
-	}
+	env := &JPathEnv{}
+	env.scriptCompiler = newScriptCompiler(
+		jpathCacheSize, env.compileKey, env.buildCompiled,
+	)
+	return env
 }
 
 // Validate checks whether the given JPath expression is valid
@@ -37,28 +38,6 @@ func (e *JPathEnv) Validate(_ *api.Step, script string) error {
 		Script:   script,
 	})
 	return err
-}
-
-// Compile compiles and caches a JPath expression
-func (e *JPathEnv) Compile(
-	_ *api.Step, cfg *api.ScriptConfig,
-) (Compiled, error) {
-	if cfg.Script == "" {
-		return nil, nil
-	}
-
-	return e.cache.Get(cfg.Script, func() (jpath.Path, error) {
-		parsed, err := jpath.Parse(cfg.Script)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrJPathCompile, cfg.Script)
-		}
-
-		compiled, err := jpath.Compile(parsed)
-		if err != nil {
-			return nil, fmt.Errorf("%w: %s", ErrJPathCompile, cfg.Script)
-		}
-		return compiled, nil
-	})
 }
 
 // ExecuteScript is unsupported for JPath language
@@ -80,4 +59,26 @@ func (e *JPathEnv) EvaluatePredicate(
 
 	matches := path(normalizeMappingDoc(inputs))
 	return len(matches) > 0, nil
+}
+
+func (e *JPathEnv) compileKey(
+	_ *api.Step, cfg *api.ScriptConfig,
+) (scriptKey, error) {
+	return scriptKey(cfg.Script), nil
+}
+
+func (e *JPathEnv) buildCompiled(
+	key scriptKey, _ *api.Step, _ *api.ScriptConfig,
+) (jpath.Path, error) {
+	expr := string(key)
+	parsed, err := jpath.Parse(expr)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, expr)
+	}
+
+	compiled, err := jpath.Compile(parsed)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, expr)
+	}
+	return compiled, nil
 }
