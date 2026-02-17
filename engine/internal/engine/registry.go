@@ -18,6 +18,7 @@ type (
 )
 
 var (
+	ErrInvalidStep        = errors.New("invalid step")
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
 )
@@ -54,7 +55,7 @@ func (e *Engine) UpdateStep(step *api.Step) error {
 func (e *Engine) upsertStep(
 	step *api.Step, validate stepValidate, raise stepRaise,
 ) error {
-	if err := e.validateStepScripts(step); err != nil {
+	if err := e.validateStep(step); err != nil {
 		return err
 	}
 
@@ -63,10 +64,10 @@ func (e *Engine) upsertStep(
 			return err
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
-			return err
+			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 		}
 		if err := detectStepCycles(st, step); err != nil {
-			return err
+			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 		}
 		return raise(step, ag)
 	}
@@ -77,6 +78,32 @@ func (e *Engine) upsertStep(
 
 	if stepHasScripts(step) {
 		_ = e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
+	}
+	return nil
+}
+
+func (e *Engine) validateStep(step *api.Step) error {
+	if err := step.Validate(); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
+	}
+	if err := validateStepMappings(step); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
+	}
+	if err := e.validateStepScripts(step); err != nil {
+		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
+	}
+	return nil
+}
+
+func validateStepMappings(step *api.Step) error {
+	for name, attr := range step.Attributes {
+		if attr.Mapping == "" {
+			continue
+		}
+		if _, err := compileMapping(attr.Mapping); err != nil {
+			return fmt.Errorf("%w for attribute %q: %v",
+				api.ErrInvalidAttributeMapping, name, err)
+		}
 	}
 	return nil
 }

@@ -11,6 +11,7 @@ require (
 	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33
 	github.com/kode4food/caravan v0.0.0-20260214080757-320930a6cebc
+	github.com/kode4food/jpath v0.0.0-20260216175027-8d79376f3142
 	github.com/kode4food/lru v0.0.0-20260216174936-ab1f3aa333ef
 	github.com/kode4food/timebox v0.0.0-20260216212535-d85626371102
 	github.com/stretchr/testify v1.11.1
@@ -61,6 +62,7 @@ require (
 	golang.org/x/net v0.50.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260213145524-e0ab670178e1 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	google.golang.org/protobuf v1.36.9 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

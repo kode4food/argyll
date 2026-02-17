@@ -224,6 +224,47 @@ func TestValidateDefault(t *testing.T) {
 			attrName:  "result",
 			expectErr: true,
 		},
+		{
+			name: "input with valid mapping",
+			spec: &api.AttributeSpec{
+				Role:    api.RoleRequired,
+				Type:    api.TypeObject,
+				Mapping: "$.foo",
+			},
+			attrName:  "input",
+			expectErr: false,
+		},
+		{
+			name: "output with valid mapping",
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOutput,
+				Type:    api.TypeAny,
+				Mapping: "$..book",
+			},
+			attrName:  "result",
+			expectErr: false,
+		},
+		{
+			name: "const with mapping should fail",
+			spec: &api.AttributeSpec{
+				Role:    api.RoleConst,
+				Type:    api.TypeObject,
+				Default: "{}",
+				Mapping: "$.foo",
+			},
+			attrName:  "input",
+			expectErr: true,
+		},
+		{
+			name: "invalid mapping syntax is engine-level validation",
+			spec: &api.AttributeSpec{
+				Role:    api.RoleOptional,
+				Type:    api.TypeObject,
+				Mapping: "$[?",
+			},
+			attrName:  "input",
+			expectErr: false,
+		},
 	}
 
 	for _, tt := range tests {
@@ -348,6 +389,20 @@ func TestEqualEdgeCases(t *testing.T) {
 			Role:    api.RoleOptional,
 			Type:    api.TypeString,
 			Default: `"value2"`,
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("different_mapping", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:    api.RoleOutput,
+			Type:    api.TypeAny,
+			Mapping: "$.foo",
+		}
+		spec2 := &api.AttributeSpec{
+			Role:    api.RoleOutput,
+			Type:    api.TypeAny,
+			Mapping: "$.bar",
 		}
 		assert.False(t, spec1.Equal(spec2))
 	})
@@ -524,6 +579,27 @@ func TestValidateEdgeCases(t *testing.T) {
 			Role:    api.RoleOptional,
 			Type:    api.TypeNull,
 			Default: "null",
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
+	})
+
+	t.Run("const_with_mapping_not_allowed", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleConst,
+			Type:    api.TypeObject,
+			Default: "{}",
+			Mapping: "$.foo",
+		}
+		err := spec.Validate("test_arg")
+		assert.ErrorIs(t, err, api.ErrMappingNotAllowed)
+	})
+
+	t.Run("invalid_mapping_syntax_is_allowed_here", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeObject,
+			Mapping: "$[?",
 		}
 		err := spec.Validate("test_arg")
 		assert.NoError(t, err)

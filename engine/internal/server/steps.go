@@ -44,14 +44,6 @@ func (s *Server) createStep(c *gin.Context) {
 		return
 	}
 
-	if err := step.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  err.Error(),
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
 	err := s.engine.RegisterStep(&step)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.StepRegisteredResponse{
@@ -65,6 +57,13 @@ func (s *Server) createStep(c *gin.Context) {
 		c.JSON(http.StatusConflict, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusConflict,
+		})
+		return
+	}
+	if errors.Is(err, engine.ErrInvalidStep) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusBadRequest,
 		})
 		return
 	}
@@ -117,14 +116,6 @@ func (s *Server) updateStep(c *gin.Context) {
 		return
 	}
 
-	if err := step.Validate(); err != nil {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  err.Error(),
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
 	err := s.engine.UpdateStep(&step)
 	if err == nil {
 		c.JSON(http.StatusOK, api.StepRegisteredResponse{
@@ -138,6 +129,13 @@ func (s *Server) updateStep(c *gin.Context) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  err.Error(),
 			Status: http.StatusNotFound,
+		})
+		return
+	}
+	if errors.Is(err, engine.ErrInvalidStep) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusBadRequest,
 		})
 		return
 	}

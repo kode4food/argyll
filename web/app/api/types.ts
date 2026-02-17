@@ -44,6 +44,7 @@ export interface AttributeSpec {
   role: AttributeRole;
   type?: AttributeType;
   default?: string;
+  mapping?: string;
   for_each?: boolean;
 }
 

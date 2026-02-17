@@ -69,9 +69,22 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 		}
 
 		if value, ok := attrs[name]; ok {
-			inputs[name] = value
+			mapped, mappedOK, err := mappingValue(attr.Mapping, value)
+			if err != nil {
+				continue
+			}
+			if mappedOK {
+				inputs[name] = mapped
+			}
 		} else if !attr.IsRequired() && attr.Default != "" {
-			inputs[name] = gjson.Parse(attr.Default).Value()
+			value := gjson.Parse(attr.Default).Value()
+			mapped, mappedOK, err := mappingValue(attr.Mapping, value)
+			if err != nil {
+				continue
+			}
+			if mappedOK {
+				inputs[name] = mapped
+			}
 		}
 	}
 

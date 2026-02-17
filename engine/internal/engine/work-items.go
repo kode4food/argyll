@@ -114,32 +114,66 @@ func aggregateWorkItemOutputs(items api.WorkItems, step *api.Step) api.Args {
 	case 0:
 		return nil
 	case 1:
-		return completed[0].Outputs
+		return mapOutputAttributes(completed[0].Outputs, step)
 	default:
-		aggregated := map[api.Name][]map[string]any{}
-		var multiArgNames []api.Name
-		if step != nil {
-			multiArgNames = step.MultiArgNames()
-		}
+		aggregated := combineWorkItemOutputs(completed, step)
+		return mapOutputAttributes(aggregated, step)
+	}
+}
 
-		for _, item := range completed {
-			for name, value := range item.Outputs {
-				entry := map[string]any{}
-				for _, argName := range multiArgNames {
-					if val, ok := item.Inputs[argName]; ok {
-						entry[string(argName)] = val
-					}
+func combineWorkItemOutputs(
+	completed []*api.WorkState, step *api.Step,
+) api.Args {
+	aggregated := map[api.Name][]map[string]any{}
+	var multiArgNames []api.Name
+	if step != nil {
+		multiArgNames = step.MultiArgNames()
+	}
+
+	for _, item := range completed {
+		for name, value := range item.Outputs {
+			entry := map[string]any{}
+			for _, argName := range multiArgNames {
+				if val, ok := item.Inputs[argName]; ok {
+					entry[string(argName)] = val
 				}
-				entry[string(name)] = value
-
-				aggregated[name] = append(aggregated[name], entry)
 			}
-		}
+			entry[string(name)] = value
 
-		outputs := api.Args{}
-		for name, values := range aggregated {
-			outputs[name] = values
+			aggregated[name] = append(aggregated[name], entry)
 		}
+	}
+
+	outputs := api.Args{}
+	for name, values := range aggregated {
+		outputs[name] = values
+	}
+	return outputs
+}
+
+func mapOutputAttributes(outputs api.Args, step *api.Step) api.Args {
+	if step == nil {
 		return outputs
 	}
+
+	res := api.Args{}
+	for name, attr := range step.Attributes {
+		if !attr.IsOutput() {
+			continue
+		}
+
+		if attr.Mapping == "" {
+			if value, ok := outputs[name]; ok {
+				res[name] = value
+			}
+			continue
+		}
+
+		value, ok, err := mappingValue(attr.Mapping, outputs)
+		if err != nil || !ok {
+			continue
+		}
+		res[name] = value
+	}
+	return res
 }

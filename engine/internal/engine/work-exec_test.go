@@ -62,6 +62,89 @@ func TestOptionalDefaults(t *testing.T) {
 	})
 }
 
+func TestInputMapping(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("mapped-input-step")
+		step.Attributes = api.AttributeSpecs{
+			"input": {
+				Role:    api.RoleRequired,
+				Type:    api.TypeObject,
+				Mapping: "$.foo",
+			},
+			"result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-input-mapping")
+		fl := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{
+					"input": map[string]any{"foo": "value"},
+				}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		exec := fl.Executions[step.ID]
+		assert.Equal(t, "value", exec.Inputs["input"])
+	})
+}
+
+func TestOutputMapping(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("mapped-output-step")
+		step.Attributes = api.AttributeSpecs{
+			"input": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"result": {
+				Role:    api.RoleOutput,
+				Type:    api.TypeAny,
+				Mapping: "$.payload.value",
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{
+			"payload": map[string]any{"value": "ok"},
+		})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-output-mapping")
+		fl := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{"input": "value"}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		exec := fl.Executions[step.ID]
+		assert.Equal(t, "ok", exec.Outputs["result"])
+		assert.Equal(t, "ok", fl.Attributes["result"].Value)
+	})
+}
+
 func TestIncompleteWorkFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()

@@ -97,3 +97,18 @@ func TestUpdateStep(t *testing.T) {
 		assert.Equal(t, api.Name("Updated"), retrievedStep.Name)
 	})
 }
+
+func TestRegisterStepValidatesMappings(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("bad-mapping")
+		step.Attributes["in"] = &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			Mapping: "$..[",
+		}
+
+		err := eng.RegisterStep(step)
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorContains(t, err, api.ErrInvalidAttributeMapping.Error())
+	})
+}

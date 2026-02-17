@@ -62,6 +62,8 @@ github.com/kode4food/caravan v0.0.0-20260214080757-320930a6cebc h1:/m2+NdJ+Qktit
 github.com/kode4food/caravan v0.0.0-20260214080757-320930a6cebc/go.mod h1:9e4xJsAAe/oMaMGSSv2CIZiuy7EiuwbpXcXUeUNgAts=
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
+github.com/kode4food/jpath v0.0.0-20260216175027-8d79376f3142 h1:WHmEp0IYLE+i4gbuHMo1sFUbRYIlgwXp3gTd26jekxo=
+github.com/kode4food/jpath v0.0.0-20260216175027-8d79376f3142/go.mod h1:ypqiAuyfQ0MU+R1mWk/9+Ym6IHCbeZLih/iTdjxWWh0=
 github.com/kode4food/lru v0.0.0-20260216174936-ab1f3aa333ef h1:QtY1CUINi1YjAAos5eT0o/6SD0WgNmm89KAl4uelxVE=
 github.com/kode4food/lru v0.0.0-20260216174936-ab1f3aa333ef/go.mod h1:OuCIPTq57u7GVZDjTL9o1NicekX+9oKfoTRK1nhNp9o=
 github.com/kode4food/timebox v0.0.0-20260216212535-d85626371102 h1:9fuf9Sl3tuYyowDZ8Fsj+VslweD9FcB/jTr/C56AIRo=
@@ -130,6 +132,8 @@ golang.org/x/sync v0.19.0/go.mod h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI=
 golang.org/x/sys v0.6.0/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
 golang.org/x/sys v0.41.0 h1:Ivj+2Cp/ylzLiEU89QhWblYnOE9zerudt9Ftecq2C6k=
 golang.org/x/sys v0.41.0/go.mod h1:OgkHotnGiDImocRcuBABYBEXf8A9a87e/uXjp9XT3ks=
+golang.org/x/telemetry v0.0.0-20260213145524-e0ab670178e1 h1:QNaHp8YvpPswfDNxlCmJyeesxbGOgaKf41iT9/QrErY=
+golang.org/x/telemetry v0.0.0-20260213145524-e0ab670178e1/go.mod h1:NuITXsA9cTiqnXtVk+/wrBT2Ja4X5hsfGOYRJ6kgYjs=
 golang.org/x/text v0.34.0 h1:oL/Qq0Kdaqxa1KbNeMKwQq0reLCCaFtqu2eNuSeNHbk=
 golang.org/x/text v0.34.0/go.mod h1:homfLqTYRFyVYemLBFl5GgL/DWEiH5wcsQ5gSh1yziA=
 golang.org/x/time v0.12.0 h1:ScB/8o8olJvc+CQPWrK3fPZNfh7qgwCrY0zJmoEQLSE=

@@ -15,6 +15,7 @@ type (
 		Role    AttributeRole `json:"role"`
 		Type    AttributeType `json:"type"`
 		Default string        `json:"default,omitempty"`
+		Mapping string        `json:"mapping,omitempty"`
 		ForEach bool          `json:"for_each,omitempty"`
 	}
 
@@ -65,6 +66,10 @@ var (
 		"for_each processing requires an input attribute type",
 	)
 	ErrInvalidDefaultValue = errors.New("invalid default value for type")
+	ErrMappingNotAllowed   = errors.New(
+		"mapping is not allowed for const attributes",
+	)
+	ErrInvalidAttributeMapping = errors.New("invalid attribute mapping")
 )
 
 var (
@@ -110,6 +115,12 @@ func (s *AttributeSpec) Validate(name Name) error {
 		}
 		if s.IsOutput() {
 			return fmt.Errorf("%w: %q", ErrForEachNotAllowedOutput, name)
+		}
+	}
+
+	if s.Mapping != "" {
+		if s.IsConst() {
+			return fmt.Errorf("%w: %q", ErrMappingNotAllowed, name)
 		}
 	}
 
@@ -224,7 +235,8 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 	return s.Role == other.Role &&
 		s.Type == other.Type &&
 		s.ForEach == other.ForEach &&
-		s.Default == other.Default
+		s.Default == other.Default &&
+		s.Mapping == other.Mapping
 }
 
 // Equal returns true if two attribute spec maps are equal
