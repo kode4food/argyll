@@ -189,3 +189,102 @@ func TestUnreachableStep(t *testing.T) {
 		assert.NotContains(t, env.MockClient.GetInvocations(), stepB.ID)
 	})
 }
+
+func TestSkippedProviderCascade(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		orderCreator := helpers.NewStepWithPredicate(
+			"order-creator", api.ScriptLangAle, "false", "order",
+		)
+		orderCreator.Attributes["order"].Type = api.TypeString
+
+		paymentProcessor := helpers.NewTestStepWithArgs(
+			[]api.Name{"order"}, nil,
+		)
+		paymentProcessor.ID = "payment-processor"
+		paymentProcessor.Attributes["payment"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeString,
+		}
+
+		stockReservation := helpers.NewTestStepWithArgs(
+			[]api.Name{"order"}, nil,
+		)
+		stockReservation.ID = "stock-reservation"
+		stockReservation.Attributes["reservation"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeString,
+		}
+
+		notificationSender := helpers.NewTestStepWithArgs(
+			[]api.Name{"payment", "reservation"}, nil,
+		)
+		notificationSender.ID = "notification-sender"
+		notificationSender.Attributes["notified"] = &api.AttributeSpec{
+			Role: api.RoleOutput,
+			Type: api.TypeString,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(orderCreator))
+		assert.NoError(t, env.Engine.RegisterStep(paymentProcessor))
+		assert.NoError(t, env.Engine.RegisterStep(stockReservation))
+		assert.NoError(t, env.Engine.RegisterStep(notificationSender))
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{notificationSender.ID},
+			Steps: api.Steps{
+				orderCreator.ID:       orderCreator,
+				paymentProcessor.ID:   paymentProcessor,
+				stockReservation.ID:   stockReservation,
+				notificationSender.ID: notificationSender,
+			},
+			Attributes: api.AttributeGraph{
+				"order": {
+					Providers: []api.StepID{orderCreator.ID},
+					Consumers: []api.StepID{
+						paymentProcessor.ID,
+						stockReservation.ID,
+					},
+				},
+				"payment": {
+					Providers: []api.StepID{paymentProcessor.ID},
+					Consumers: []api.StepID{notificationSender.ID},
+				},
+				"reservation": {
+					Providers: []api.StepID{stockReservation.ID},
+					Consumers: []api.StepID{notificationSender.ID},
+				},
+				"notified": {
+					Providers: []api.StepID{notificationSender.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		flow := env.WaitForFlowStatus("wf-skipped-provider", func() {
+			err := env.Engine.StartFlow("wf-skipped-provider", plan)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t,
+			api.StepSkipped, flow.Executions[orderCreator.ID].Status,
+		)
+
+		for _, stepID := range []api.StepID{
+			paymentProcessor.ID,
+			stockReservation.ID,
+			notificationSender.ID,
+		} {
+			assert.Equal(t, api.StepFailed, flow.Executions[stepID].Status)
+			assert.Equal(t,
+				"required input no longer available",
+				flow.Executions[stepID].Error,
+			)
+		}
+
+		invocations := env.MockClient.GetInvocations()
+		assert.Empty(t, invocations)
+	})
+}

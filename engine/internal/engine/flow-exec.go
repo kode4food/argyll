@@ -67,7 +67,10 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		); err != nil {
 			return err
 		}
-		return nil
+		if err := tx.failUnreachable(); err != nil {
+			return err
+		}
+		return tx.checkTerminal()
 	}
 
 	// Compute work items
