@@ -86,7 +86,7 @@ func (e *Engine) validateStep(step *api.Step) error {
 	if err := step.Validate(); err != nil {
 		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 	}
-	if err := validateStepMappings(step); err != nil {
+	if err := e.validateStepMappings(step); err != nil {
 		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 	}
 	if err := e.validateStepScripts(step); err != nil {
@@ -95,12 +95,12 @@ func (e *Engine) validateStep(step *api.Step) error {
 	return nil
 }
 
-func validateStepMappings(step *api.Step) error {
+func (e *Engine) validateStepMappings(step *api.Step) error {
 	for name, attr := range step.Attributes {
 		if attr.Mapping == "" {
 			continue
 		}
-		if _, err := compileMapping(attr.Mapping); err != nil {
+		if err := e.mapper.CompileMapping(attr.Mapping); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
 				api.ErrInvalidAttributeMapping, name, err)
 		}

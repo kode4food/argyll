@@ -21,6 +21,7 @@ export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "sync" | "async" | "script" | "flow";
 
 export const SCRIPT_LANGUAGE_ALE = "ale";
+export const SCRIPT_LANGUAGE_JPATH = "jpath";
 export const SCRIPT_LANGUAGE_LUA = "lua";
 
 export enum AttributeRole {

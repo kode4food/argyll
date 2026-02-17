@@ -26,6 +26,7 @@ type (
 		config     *config.Config
 		cancel     context.CancelFunc
 		scripts    *ScriptRegistry
+		mapper     *Mapper
 		retryQueue *RetryQueue
 		memoCache  *MemoCache
 		eventQueue *EventQueue
@@ -78,6 +79,7 @@ func New(
 	}
 	e.eventQueue = NewEventQueue(e.raiseEngineEvent)
 	e.scripts = NewScriptRegistry()
+	e.mapper = NewMapper(e)
 
 	return e
 }

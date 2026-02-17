@@ -45,8 +45,9 @@ var (
 func NewScriptRegistry() *ScriptRegistry {
 	return &ScriptRegistry{
 		envs: map[string]ScriptEnvironment{
-			api.ScriptLangAle: NewAleEnv(),
-			api.ScriptLangLua: NewLuaEnv(),
+			api.ScriptLangAle:   NewAleEnv(),
+			api.ScriptLangJPath: NewJPathEnv(),
+			api.ScriptLangLua:   NewLuaEnv(),
 		},
 	}
 }

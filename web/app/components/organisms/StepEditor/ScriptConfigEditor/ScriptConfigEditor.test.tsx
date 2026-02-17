@@ -1,6 +1,10 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import ScriptConfigEditor from "./ScriptConfigEditor";
-import { SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import {
+  SCRIPT_LANGUAGE_ALE,
+  SCRIPT_LANGUAGE_JPATH,
+  SCRIPT_LANGUAGE_LUA,
+} from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/molecules/ScriptEditor", () => {
@@ -74,6 +78,43 @@ describe("ScriptConfigEditor", () => {
     fireEvent.click(luaButton);
     expect(defaultProps.onLanguageChange).toHaveBeenCalledWith(
       SCRIPT_LANGUAGE_LUA
+    );
+  });
+
+  test("renders custom language options when provided", () => {
+    render(
+      <ScriptConfigEditor
+        {...defaultProps}
+        languageOptions={[
+          { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+        ]}
+      />
+    );
+
+    expect(screen.getByText(t("script.language.jpath"))).toBeInTheDocument();
+    expect(
+      screen.queryByText(t("script.language.ale"))
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(t("script.language.lua"))
+    ).not.toBeInTheDocument();
+  });
+
+  test("calls onLanguageChange with custom language when clicked", () => {
+    render(
+      <ScriptConfigEditor
+        {...defaultProps}
+        language={SCRIPT_LANGUAGE_ALE}
+        languageOptions={[
+          { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+        ]}
+      />
+    );
+
+    const button = screen.getByText(t("script.language.jpath"));
+    fireEvent.click(button);
+    expect(defaultProps.onLanguageChange).toHaveBeenCalledWith(
+      SCRIPT_LANGUAGE_JPATH
     );
   });
 

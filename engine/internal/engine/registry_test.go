@@ -112,3 +112,26 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 		assert.ErrorContains(t, err, api.ErrInvalidAttributeMapping.Error())
 	})
 }
+
+func TestRegisterStepJPathInvalid(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewStepWithPredicate(
+			"bad-jpath-predicate", api.ScriptLangJPath, "$..[",
+		)
+
+		err := eng.RegisterStep(step)
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorContains(t, err, engine.ErrJPathCompile.Error())
+	})
+}
+
+func TestRegisterStepJPathValid(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewStepWithPredicate(
+			"good-jpath-predicate", api.ScriptLangJPath, "$.flag",
+		)
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+	})
+}

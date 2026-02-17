@@ -298,7 +298,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 
 	// Step succeeded - set attributes and raise completion
 	step := tx.Value().Plan.Steps[stepID]
-	outputs := aggregateWorkItemOutputs(exec.WorkItems, step)
+	outputs := tx.collectStepOutputs(exec.WorkItems, step)
 	dur := time.Since(exec.StartedAt).Milliseconds()
 
 	for key, value := range outputs {

@@ -12,6 +12,9 @@ import {
   StepType,
   ExecutionPlan,
   AttributeRole,
+  SCRIPT_LANGUAGE_ALE,
+  SCRIPT_LANGUAGE_JPATH,
+  SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
 import ScriptConfigEditor from "./ScriptConfigEditor";
 import DurationInput from "@/app/components/molecules/DurationInput";
@@ -80,6 +83,12 @@ const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.Object,
   AttributeType.Array,
   AttributeType.Any,
+];
+
+const PREDICATE_LANGUAGE_OPTIONS = [
+  { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
+  { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
+  { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
 ];
 
 const StepEditingContext = createContext<StepEditingContextValue | null>(null);
@@ -786,6 +795,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 onChange={setPredicate}
                 language={predicateLanguage}
                 onLanguageChange={setPredicateLanguage}
+                languageOptions={PREDICATE_LANGUAGE_OPTIONS}
                 containerClassName={formStyles.predicateEditorContainer}
               />
 

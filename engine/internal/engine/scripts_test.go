@@ -230,6 +230,81 @@ func TestLuaPredicateFalse(t *testing.T) {
 	})
 }
 
+func TestJPathPredicateMatches(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		registry := engine.NewScriptRegistry()
+
+		step := helpers.NewStepWithPredicate(
+			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
+		)
+		step.Attributes["flag"] = &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Type: api.TypeAny,
+		}
+
+		env, err := registry.Get(api.ScriptLangJPath)
+		assert.NoError(t, err)
+
+		comp, err := env.Compile(step, step.Predicate)
+		assert.NoError(t, err)
+
+		passed, err := env.EvaluatePredicate(comp, step, api.Args{
+			"flag": nil,
+		})
+		assert.NoError(t, err)
+		assert.True(t, passed)
+	})
+}
+
+func TestJPathPredicateNoMatch(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		registry := engine.NewScriptRegistry()
+
+		step := helpers.NewStepWithPredicate(
+			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
+		)
+
+		env, err := registry.Get(api.ScriptLangJPath)
+		assert.NoError(t, err)
+
+		comp, err := env.Compile(step, step.Predicate)
+		assert.NoError(t, err)
+
+		passed, err := env.EvaluatePredicate(comp, step, api.Args{})
+		assert.NoError(t, err)
+		assert.False(t, passed)
+	})
+}
+
+func TestJPathInvalidSyntax(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		registry := engine.NewScriptRegistry()
+
+		step := helpers.NewStepWithPredicate(
+			"jpath-invalid", api.ScriptLangJPath, "$..[",
+		)
+
+		env, err := registry.Get(api.ScriptLangJPath)
+		assert.NoError(t, err)
+
+		_, err = env.Compile(step, step.Predicate)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, engine.ErrJPathCompile)
+	})
+}
+
+func TestJPathExecuteScriptUnsupported(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		registry := engine.NewScriptRegistry()
+
+		env, err := registry.Get(api.ScriptLangJPath)
+		assert.NoError(t, err)
+
+		_, err = env.ExecuteScript(nil, nil, nil)
+		assert.ErrorIs(t, err, engine.ErrJPathExecuteScript)
+	})
+}
+
 func TestUnsupportedLanguage(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := engine.NewScriptRegistry()

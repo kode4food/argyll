@@ -1,5 +1,6 @@
 {
   "script.language.ale": "Ale",
+  "script.language.jpath": "JPath",
   "script.language.lua": "Lua",
   "stepEditor.endpointPlaceholder": "http://localhost:8080/process",
   "stepEditor.healthCheckPlaceholder": "http://localhost:8080/health"

@@ -23,6 +23,7 @@ export type {
 
 export {
   SCRIPT_LANGUAGE_ALE,
+  SCRIPT_LANGUAGE_JPATH,
   SCRIPT_LANGUAGE_LUA,
   AttributeType,
   AttributeRole,

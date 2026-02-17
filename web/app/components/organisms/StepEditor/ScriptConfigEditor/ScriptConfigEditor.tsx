@@ -4,15 +4,26 @@ import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import formStyles from "../StepEditorForm.module.css";
 import { useT } from "@/app/i18n";
 
+interface ScriptLanguageOption {
+  value: string;
+  labelKey: string;
+}
+
 interface ScriptConfigEditorProps {
   label: string;
   value: string;
   onChange: (value: string) => void;
   language: string;
   onLanguageChange: (language: string) => void;
+  languageOptions?: ScriptLanguageOption[];
   readOnly?: boolean;
   containerClassName?: string;
 }
+
+const defaultLanguageOptions: ScriptLanguageOption[] = [
+  { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
+  { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
+];
 
 /**
  * Unified editor for script configurations (both step scripts and predicates).
@@ -24,6 +35,7 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
   onChange,
   language,
   onLanguageChange,
+  languageOptions = defaultLanguageOptions,
   readOnly = false,
   containerClassName = formStyles.scriptEditorContainer,
 }) => {
@@ -35,28 +47,20 @@ const ScriptConfigEditor: React.FC<ScriptConfigEditorProps> = ({
         <label className={formStyles.label}>{label}</label>
         {!readOnly && (
           <div className={formStyles.languageSelectorGroup}>
-            <button
-              type="button"
-              onClick={(e) => {
-                onLanguageChange(SCRIPT_LANGUAGE_ALE);
-                e.currentTarget.blur();
-              }}
-              className={`${formStyles.languageButton} ${language === SCRIPT_LANGUAGE_ALE ? formStyles.languageButtonActive : ""}`}
-              title={t("script.language.ale")}
-            >
-              {t("script.language.ale")}
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                onLanguageChange(SCRIPT_LANGUAGE_LUA);
-                e.currentTarget.blur();
-              }}
-              className={`${formStyles.languageButton} ${language === SCRIPT_LANGUAGE_LUA ? formStyles.languageButtonActive : ""}`}
-              title={t("script.language.lua")}
-            >
-              {t("script.language.lua")}
-            </button>
+            {languageOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={(e) => {
+                  onLanguageChange(option.value);
+                  e.currentTarget.blur();
+                }}
+                className={`${formStyles.languageButton} ${language === option.value ? formStyles.languageButtonActive : ""}`}
+                title={t(option.labelKey)}
+              >
+                {t(option.labelKey)}
+              </button>
+            ))}
           </div>
         )}
       </div>

@@ -69,7 +69,9 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 		}
 
 		if value, ok := attrs[name]; ok {
-			mapped, mappedOK, err := mappingValue(attr.Mapping, value)
+			mapped, mappedOK, err := e.mapper.MappingValue(
+				attr.Mapping, value,
+			)
 			if err != nil {
 				continue
 			}
@@ -78,7 +80,9 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 			}
 		} else if !attr.IsRequired() && attr.Default != "" {
 			value := gjson.Parse(attr.Default).Value()
-			mapped, mappedOK, err := mappingValue(attr.Mapping, value)
+			mapped, mappedOK, err := e.mapper.MappingValue(
+				attr.Mapping, value,
+			)
 			if err != nil {
 				continue
 			}

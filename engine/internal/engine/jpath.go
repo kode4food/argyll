@@ -1,0 +1,83 @@
+package engine
+
+import (
+	"errors"
+	"fmt"
+
+	"github.com/kode4food/jpath"
+	"github.com/kode4food/lru"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+)
+
+// JPathEnv provides JPath predicate evaluation
+type JPathEnv struct {
+	cache *lru.Cache[jpath.Path]
+}
+
+const jpathCacheSize = 10240
+
+var (
+	ErrJPathBadCompiledType = errors.New("expected jpath path")
+	ErrJPathCompile         = errors.New("jpath compile error")
+	ErrJPathExecuteScript   = errors.New("jpath cannot execute step scripts")
+)
+
+// NewJPathEnv creates a JPath predicate evaluation environment
+func NewJPathEnv() *JPathEnv {
+	return &JPathEnv{
+		cache: lru.NewCache[jpath.Path](jpathCacheSize),
+	}
+}
+
+// Validate checks whether the given JPath expression is valid
+func (e *JPathEnv) Validate(_ *api.Step, script string) error {
+	_, err := e.Compile(nil, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   script,
+	})
+	return err
+}
+
+// Compile compiles and caches a JPath expression
+func (e *JPathEnv) Compile(
+	_ *api.Step, cfg *api.ScriptConfig,
+) (Compiled, error) {
+	if cfg.Script == "" {
+		return nil, nil
+	}
+
+	return e.cache.Get(cfg.Script, func() (jpath.Path, error) {
+		parsed, err := jpath.Parse(cfg.Script)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrJPathCompile, cfg.Script)
+		}
+
+		compiled, err := jpath.Compile(parsed)
+		if err != nil {
+			return nil, fmt.Errorf("%w: %s", ErrJPathCompile, cfg.Script)
+		}
+		return compiled, nil
+	})
+}
+
+// ExecuteScript is unsupported for JPath language
+func (e *JPathEnv) ExecuteScript(
+	Compiled, *api.Step, api.Args,
+) (api.Args, error) {
+	return nil, ErrJPathExecuteScript
+}
+
+// EvaluatePredicate applies the compiled JPath expression and treats any
+// match as predicate success, including explicit null matches
+func (e *JPathEnv) EvaluatePredicate(
+	c Compiled, _ *api.Step, inputs api.Args,
+) (bool, error) {
+	path, ok := c.(jpath.Path)
+	if !ok {
+		return false, fmt.Errorf("%w, got %T", ErrJPathBadCompiledType, c)
+	}
+
+	matches := path(normalizeMappingDoc(inputs))
+	return len(matches) > 0, nil
+}

@@ -102,7 +102,9 @@ func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
 	return inputs
 }
 
-func aggregateWorkItemOutputs(items api.WorkItems, step *api.Step) api.Args {
+func (e *Engine) collectStepOutputs(
+	items api.WorkItems, step *api.Step,
+) api.Args {
 	completed := make([]*api.WorkState, 0, len(items))
 	for _, item := range items {
 		if item.Status == api.WorkSucceeded {
@@ -114,16 +116,41 @@ func aggregateWorkItemOutputs(items api.WorkItems, step *api.Step) api.Args {
 	case 0:
 		return nil
 	case 1:
-		return mapOutputAttributes(completed[0].Outputs, step)
+		return e.mapOutputAttributes(completed[0].Outputs, step)
 	default:
-		aggregated := combineWorkItemOutputs(completed, step)
-		return mapOutputAttributes(aggregated, step)
+		aggregated := collectWorkOutputs(completed, step)
+		return e.mapOutputAttributes(aggregated, step)
 	}
 }
 
-func combineWorkItemOutputs(
-	completed []*api.WorkState, step *api.Step,
-) api.Args {
+func (e *Engine) mapOutputAttributes(outputs api.Args, step *api.Step) api.Args {
+	if step == nil {
+		return outputs
+	}
+
+	res := api.Args{}
+	for name, attr := range step.Attributes {
+		if !attr.IsOutput() {
+			continue
+		}
+
+		if attr.Mapping == "" {
+			if value, ok := outputs[name]; ok {
+				res[name] = value
+			}
+			continue
+		}
+
+		value, ok, err := e.mapper.MappingValue(attr.Mapping, outputs)
+		if err != nil || !ok {
+			continue
+		}
+		res[name] = value
+	}
+	return res
+}
+
+func collectWorkOutputs(completed []*api.WorkState, step *api.Step) api.Args {
 	aggregated := map[api.Name][]map[string]any{}
 	var multiArgNames []api.Name
 	if step != nil {
@@ -149,31 +176,4 @@ func combineWorkItemOutputs(
 		outputs[name] = values
 	}
 	return outputs
-}
-
-func mapOutputAttributes(outputs api.Args, step *api.Step) api.Args {
-	if step == nil {
-		return outputs
-	}
-
-	res := api.Args{}
-	for name, attr := range step.Attributes {
-		if !attr.IsOutput() {
-			continue
-		}
-
-		if attr.Mapping == "" {
-			if value, ok := outputs[name]; ok {
-				res[name] = value
-			}
-			continue
-		}
-
-		value, ok, err := mappingValue(attr.Mapping, outputs)
-		if err != nil || !ok {
-			continue
-		}
-		res[name] = value
-	}
-	return res
 }

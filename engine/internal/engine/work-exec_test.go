@@ -364,6 +364,39 @@ func TestPredicateFailure(t *testing.T) {
 	})
 }
 
+func TestJPathPredicateMatchOnNull(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewStepWithPredicate(
+			"jpath-null", api.ScriptLangJPath, "$.flag", "result",
+		)
+		step.Attributes["flag"] = &api.AttributeSpec{
+			Role: api.RoleOptional,
+			Type: api.TypeAny,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flow := env.WaitForFlowStatus("wf-jpath-null", func() {
+			err := env.Engine.StartFlow("wf-jpath-null", plan,
+				flowopt.WithInit(api.Args{"flag": nil}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.StepCompleted, flow.Executions[step.ID].Status)
+
+		assert.True(t, env.MockClient.WasInvoked(step.ID))
+	})
+}
+
 func TestParallelWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
