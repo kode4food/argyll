@@ -1,6 +1,6 @@
 module github.com/kode4food/argyll/sdks/go-builder
 
-go 1.25.3
+go 1.25.7
 
 require (
 	github.com/kode4food/argyll/engine v0.0.0-20260202154946-578cd6fdfe5e
@@ -10,7 +10,7 @@ require (
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
 	github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 // indirect
-	github.com/kode4food/timebox v0.0.0-20260216212535-d85626371102 // indirect
+	github.com/kode4food/timebox v0.0.0-20260217084524-fbd53910f1ee // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect

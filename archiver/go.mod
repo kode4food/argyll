@@ -1,11 +1,11 @@
 module github.com/kode4food/argyll/archiver
 
-go 1.25.3
+go 1.25.7
 
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741
-	github.com/kode4food/timebox v0.0.0-20260216212535-d85626371102
+	github.com/kode4food/timebox v0.0.0-20260217084524-fbd53910f1ee
 	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.11.1
 	gocloud.dev v0.44.0
@@ -67,8 +67,8 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
 	github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 // indirect
-	github.com/kode4food/caravan v0.0.0-20260214080757-320930a6cebc // indirect
-	github.com/kode4food/lru v0.0.0-20260216174936-ab1f3aa333ef // indirect
+	github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2 // indirect
+	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
 	github.com/planetscale/vtprotobuf v0.6.1-0.20240319094008-0393e58bdf10 // indirect
@@ -95,6 +95,7 @@ require (
 	golang.org/x/oauth2 v0.30.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
+	golang.org/x/telemetry v0.0.0-20260213145524-e0ab670178e1 // indirect
 	golang.org/x/text v0.34.0 // indirect
 	golang.org/x/time v0.12.0 // indirect
 	golang.org/x/tools v0.42.0 // indirect

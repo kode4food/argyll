@@ -15,11 +15,11 @@ github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+
 github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 h1:A5Q5ELtMBIWiwIN12a6ZB7k1trQSlNQtRh1k/brul58=
 github.com/kode4food/argyll/engine v0.0.0-20260202154946-578cd6fdfe5e h1:9hFTl47vTG6aYOFbqiYDpgl28jCiWhKRppuidKs/C+Q=
 github.com/kode4food/argyll/engine v0.0.0-20260202154946-578cd6fdfe5e/go.mod h1:7npt2GGcvswv3lAnrgHWFrBgkiP0LtjU5mONS14B9Ag=
-github.com/kode4food/caravan v0.0.0-20260214080757-320930a6cebc h1:/m2+NdJ+QktitLxqswnu9+F6D5yq0ZihwBzfdSXeIMM=
+github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2 h1:C2ta3iRuYuSUJna2x7BDlBXqkW3SlaBWSSvb9lFxk/c=
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
 github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
-github.com/kode4food/lru v0.0.0-20260216174936-ab1f3aa333ef h1:QtY1CUINi1YjAAos5eT0o/6SD0WgNmm89KAl4uelxVE=
-github.com/kode4food/timebox v0.0.0-20260216212535-d85626371102 h1:9fuf9Sl3tuYyowDZ8Fsj+VslweD9FcB/jTr/C56AIRo=
+github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 h1:sR7BMpyWzMmwOGwZw+evTvdvbZSAsX53WLtGNvVtwi0=
+github.com/kode4food/timebox v0.0.0-20260217084524-fbd53910f1ee h1:tUlZsjLPe6wFrVgFh78V/DzaVJsYjFQtDFY6i84yHLQ=
 github.com/kr/pretty v0.2.1/go.mod h1:ipq/a2n7PKx3OHsz4KJII5eveXtPO4qwEXGdVfWzfnI=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
@@ -49,6 +49,8 @@ golang.org/x/exp/typeparams v0.0.0-20260212183809-81e46e3db34a h1:n3SZDk8iNpMasC
 golang.org/x/mod v0.33.0 h1:tHFzIWbBifEmbwtGz65eaWyGiGZatSrT9prnU8DbVL8=
 golang.org/x/sync v0.19.0 h1:vV+1eWNmZ5geRlYjzm2adRgW2/mcpevXNg50YZtPCE4=
 golang.org/x/sync v0.19.0/go.mod h1:9KTHXmSnoGruLpwFjVSX0lNNA75CykiMECbovNTZqGI=
+golang.org/x/sys v0.41.0 h1:Ivj+2Cp/ylzLiEU89QhWblYnOE9zerudt9Ftecq2C6k=
+golang.org/x/telemetry v0.0.0-20260213145524-e0ab670178e1 h1:QNaHp8YvpPswfDNxlCmJyeesxbGOgaKf41iT9/QrErY=
 golang.org/x/tools v0.42.0 h1:uNgphsn75Tdz5Ji2q36v/nsFSfR/9BRFvqhGBaJGd5k=
 gopkg.in/check.v1 v0.0.0-20161208181325-20d25e280405/go.mod h1:Co6ibVJAznAaIkqp8huTwlJQCZ016jof/cbN4VW5Yz0=
 gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c h1:Hei/4ADfdWqJk1ZMxUNpqntNwaWcugrBjAiHlqqRiVk=

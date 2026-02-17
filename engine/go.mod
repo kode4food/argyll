@@ -1,6 +1,6 @@
 module github.com/kode4food/argyll/engine
 
-go 1.25.3
+go 1.25.7
 
 require (
 	github.com/Shopify/go-lua v0.0.0-20250718183320-1e37f32ad7d0
@@ -10,10 +10,10 @@ require (
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
 	github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33
-	github.com/kode4food/caravan v0.0.0-20260214080757-320930a6cebc
-	github.com/kode4food/jpath v0.0.0-20260216175027-8d79376f3142
-	github.com/kode4food/lru v0.0.0-20260216174936-ab1f3aa333ef
-	github.com/kode4food/timebox v0.0.0-20260216212535-d85626371102
+	github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2
+	github.com/kode4food/jpath v0.0.0-20260217084313-0066e8a2bd8d
+	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9
+	github.com/kode4food/timebox v0.0.0-20260217084524-fbd53910f1ee
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.42.0
