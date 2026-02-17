@@ -53,6 +53,8 @@ func main() {
 		Required("user_info", api.TypeObject).
 		Required("product_info", api.TypeObject).
 		Optional("quantity", api.TypeNumber, "1").
+		WithPredicate(api.ScriptLangJPath,
+			`$.product_info.name == "Professional Laptop"`).
 		Output("order", api.TypeObject).
 		Start(handle)
 

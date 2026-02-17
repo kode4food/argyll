@@ -55,6 +55,35 @@ func TestJPathEvaluatePredicate(t *testing.T) {
 	assert.False(t, passed)
 }
 
+func TestJPathEvaluatePredicateTopLevelFilter(t *testing.T) {
+	env := engine.NewJPathEnv()
+
+	compiled, err := env.Compile(nil, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   `$.product_info.name == "Professional Laptop"`,
+	})
+	assert.NoError(t, err)
+	assert.NotNil(t, compiled)
+
+	passed, err := env.EvaluatePredicate(compiled, nil, api.Args{
+		"product_info": map[string]any{
+			"name": "Professional Laptop",
+			"sku":  "123",
+		},
+	})
+	assert.NoError(t, err)
+	assert.True(t, passed)
+
+	passed, err = env.EvaluatePredicate(compiled, nil, api.Args{
+		"product_info": map[string]any{
+			"name": "Basic Laptop",
+			"sku":  "123",
+		},
+	})
+	assert.NoError(t, err)
+	assert.False(t, passed)
+}
+
 func TestJPathEvaluatePredicateNullMatch(t *testing.T) {
 	env := engine.NewJPathEnv()
 
