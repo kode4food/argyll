@@ -25,8 +25,10 @@ var (
 // NewJPathEnv creates a JPath predicate evaluation environment
 func NewJPathEnv() *JPathEnv {
 	env := &JPathEnv{}
-	env.scriptCompiler = newScriptCompiler(
-		jpathCacheSize, env.compileKey, env.buildCompiled,
+	env.scriptCompiler = newScriptCompiler(jpathCacheSize,
+		func(_ *api.Step, cfg *api.ScriptConfig) (jpath.Path, error) {
+			return env.compile(cfg.Script)
+		},
 	)
 	return env
 }
@@ -61,24 +63,15 @@ func (e *JPathEnv) EvaluatePredicate(
 	return len(matches) > 0, nil
 }
 
-func (e *JPathEnv) compileKey(
-	_ *api.Step, cfg *api.ScriptConfig,
-) (scriptKey, error) {
-	return scriptKey(cfg.Script), nil
-}
-
-func (e *JPathEnv) buildCompiled(
-	key scriptKey, _ *api.Step, _ *api.ScriptConfig,
-) (jpath.Path, error) {
-	expr := string(key)
-	parsed, err := jpath.Parse(expr)
+func (e *JPathEnv) compile(source string) (jpath.Path, error) {
+	parsed, err := jpath.Parse(source)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, expr)
+		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, source)
 	}
 
 	compiled, err := jpath.Compile(parsed)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, expr)
+		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, source)
 	}
 	return compiled, nil
 }

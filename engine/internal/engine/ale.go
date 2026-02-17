@@ -22,7 +22,7 @@ type AleEnv struct {
 
 const (
 	aleLambdaTemplate = "(lambda (%s) %s)"
-	aleCacheSize      = 1024
+	aleCacheSize      = 4096
 )
 
 var (
@@ -39,8 +39,11 @@ func NewAleEnv() *AleEnv {
 		env: env.NewEnvironment(),
 	}
 	bootstrap.Into(aleEnv.env)
-	aleEnv.scriptCompiler = newScriptCompiler(
-		aleCacheSize, aleEnv.compileKey, aleEnv.buildCompiled,
+	aleEnv.scriptCompiler = newScriptCompiler(aleCacheSize,
+		func(step *api.Step, cfg *api.ScriptConfig) (data.Procedure, error) {
+			src := aleEnv.wrapSource(step, cfg.Script)
+			return aleEnv.compile(src)
+		},
 	)
 	return aleEnv
 }
@@ -96,23 +99,15 @@ func (e *AleEnv) EvaluatePredicate(
 	return evaluatePredicate(proc, step, inputs)
 }
 
-func (e *AleEnv) compileKey(
-	step *api.Step, cfg *api.ScriptConfig,
-) (scriptKey, error) {
+func (e *AleEnv) wrapSource(step *api.Step, script string) string {
 	argNames := step.SortedArgNames()
-	src := fmt.Sprintf(
-		aleLambdaTemplate, strings.Join(argNames, " "), cfg.Script,
+	return fmt.Sprintf(
+		aleLambdaTemplate, strings.Join(argNames, " "), script,
 	)
-	return scriptKey(src), nil
+
 }
 
-func (e *AleEnv) buildCompiled(
-	key scriptKey, _ *api.Step, _ *api.ScriptConfig,
-) (data.Procedure, error) {
-	return e.compileSource(string(key))
-}
-
-func (e *AleEnv) compileSource(src string) (proc data.Procedure, err error) {
+func (e *AleEnv) compile(src string) (proc data.Procedure, err error) {
 	return catchPanic(ErrAleCompile,
 		func() (data.Procedure, error) {
 			ns := e.env.GetAnonymous()

@@ -26,14 +26,14 @@ type (
 )
 
 const (
-	luaCacheSize        = 1024
+	luaCacheSize        = 4096
 	luaStatePoolSize    = 10
 	luaGlobalTableIndex = -2
 	luaArrayTableIndex  = -3
 	luaMapTableIndex    = -3
 	luaArgLocalTemplate = "local %s = select(%d, ...)"
-	luaScriptSeparator  = "\n"
 	luaGlobalTableName  = "_G"
+	luaSeparator        = "\n"
 )
 
 var (
@@ -52,8 +52,12 @@ func NewLuaEnv() *LuaEnv {
 	luaEnv := &LuaEnv{
 		statePool: make(chan *lua.State, luaStatePoolSize),
 	}
-	luaEnv.scriptCompiler = newScriptCompiler(
-		luaCacheSize, luaEnv.compileKey, luaEnv.buildCompiled,
+	luaEnv.scriptCompiler = newScriptCompiler(luaCacheSize,
+		func(step *api.Step, cfg *api.ScriptConfig) (*CompiledLua, error) {
+			argNames := step.SortedArgNames()
+			src := luaEnv.wrapSource(cfg.Script, argNames)
+			return luaEnv.compile(src, argNames)
+		},
 	)
 	return luaEnv
 }
@@ -91,34 +95,17 @@ func (e *LuaEnv) EvaluatePredicate(
 	return evaluateLuaPredicate(e, script, inputs)
 }
 
-func (e *LuaEnv) compileKey(
-	step *api.Step, cfg *api.ScriptConfig,
-) (scriptKey, error) {
-	argNames := step.SortedArgNames()
-	src := e.buildSource(cfg.Script, argNames)
-	return scriptKey(src), nil
-}
-
-func (e *LuaEnv) buildCompiled(
-	key scriptKey, step *api.Step, _ *api.ScriptConfig,
-) (*CompiledLua, error) {
-	argNames := step.SortedArgNames()
-	return e.compileSource(string(key), argNames)
-}
-
-func (e *LuaEnv) buildSource(script string, argNames []string) string {
+func (e *LuaEnv) wrapSource(script string, argNames []string) string {
 	argLocals := make([]string, len(argNames))
 	for i, name := range argNames {
 		argLocals[i] = fmt.Sprintf(luaArgLocalTemplate, name, i+1)
 	}
 	return strings.Join([]string{
-		strings.Join(argLocals, luaScriptSeparator), script,
-	}, luaScriptSeparator)
+		strings.Join(argLocals, luaSeparator), script,
+	}, luaSeparator)
 }
 
-func (e *LuaEnv) compileSource(
-	src string, argNames []string,
-) (*CompiledLua, error) {
+func (e *LuaEnv) compile(src string, argNames []string) (*CompiledLua, error) {
 	L := lua.NewState()
 
 	e.setupSandbox(L)

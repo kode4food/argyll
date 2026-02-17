@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"fmt"
 
 	"github.com/kode4food/lru"
@@ -36,18 +38,13 @@ type (
 	// Compiled represents a compiled script for any supported language
 	Compiled any
 
-	scriptKey string
-
-	scriptKeyFunc func(step *api.Step, cfg *api.ScriptConfig) (scriptKey, error)
-
 	scriptBuildFunc[T any] func(
-		key scriptKey, step *api.Step, cfg *api.ScriptConfig,
+		step *api.Step, cfg *api.ScriptConfig,
 	) (T, error)
 
 	scriptCompiler[T any] struct {
-		cache   *lru.Cache[T]
-		keyFn   scriptKeyFunc
-		buildFn scriptBuildFunc[T]
+		cache *lru.Cache[T]
+		build scriptBuildFunc[T]
 	}
 )
 
@@ -125,12 +122,11 @@ func (e *Engine) getStepFromPlan(fs api.FlowStep) (*api.Step, error) {
 }
 
 func newScriptCompiler[T any](
-	size int, keyFn scriptKeyFunc, buildFn scriptBuildFunc[T],
+	size int, build scriptBuildFunc[T],
 ) *scriptCompiler[T] {
 	return &scriptCompiler[T]{
-		cache:   lru.NewCache[T](size),
-		keyFn:   keyFn,
-		buildFn: buildFn,
+		cache: lru.NewCache[T](size),
+		build: build,
 	}
 }
 
@@ -141,16 +137,12 @@ func (c *scriptCompiler[T]) Compile(
 		return nil, nil
 	}
 
-	key, err := c.keyFn(step, cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := c.cache.Get(string(key), func() (T, error) {
-		return c.buildFn(key, step, cfg)
+	return c.cache.Get(hashScript(cfg.Script), func() (T, error) {
+		return c.build(step, cfg)
 	})
-	if err != nil {
-		return nil, err
-	}
-	return res, nil
+}
+
+func hashScript(script string) string {
+	h := sha256.Sum256([]byte(script))
+	return hex.EncodeToString(h[:])
 }
