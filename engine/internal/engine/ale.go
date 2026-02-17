@@ -16,7 +16,7 @@ import (
 
 // AleEnv provides an Ale script execution environment
 type AleEnv struct {
-	*scriptCompiler[data.Procedure]
+	*compiler[data.Procedure]
 	env *env.Environment
 }
 
@@ -39,22 +39,13 @@ func NewAleEnv() *AleEnv {
 		env: env.NewEnvironment(),
 	}
 	bootstrap.Into(aleEnv.env)
-	aleEnv.scriptCompiler = newScriptCompiler(aleCacheSize,
+	aleEnv.compiler = newCompiler(aleCacheSize,
 		func(step *api.Step, cfg *api.ScriptConfig) (data.Procedure, error) {
 			src := aleEnv.wrapSource(step, cfg.Script)
 			return aleEnv.compile(src)
 		},
 	)
 	return aleEnv
-}
-
-// Validate checks if an Ale script is syntactically correct without running it
-func (e *AleEnv) Validate(step *api.Step, script string) error {
-	_, err := e.Compile(step, &api.ScriptConfig{
-		Script:   script,
-		Language: api.ScriptLangAle,
-	})
-	return err
 }
 
 // ExecuteScript runs a compiled Ale procedure with the provided inputs and

@@ -11,7 +11,7 @@ import (
 
 // JPathEnv provides JPath predicate evaluation
 type JPathEnv struct {
-	*scriptCompiler[jpath.Path]
+	*compiler[jpath.Path]
 }
 
 const jpathCacheSize = 10240
@@ -25,21 +25,12 @@ var (
 // NewJPathEnv creates a JPath predicate evaluation environment
 func NewJPathEnv() *JPathEnv {
 	env := &JPathEnv{}
-	env.scriptCompiler = newScriptCompiler(jpathCacheSize,
+	env.compiler = newCompiler(jpathCacheSize,
 		func(_ *api.Step, cfg *api.ScriptConfig) (jpath.Path, error) {
 			return env.compile(cfg.Script)
 		},
 	)
 	return env
-}
-
-// Validate checks whether the given JPath expression is valid
-func (e *JPathEnv) Validate(_ *api.Step, script string) error {
-	_, err := e.Compile(nil, &api.ScriptConfig{
-		Language: api.ScriptLangJPath,
-		Script:   script,
-	})
-	return err
 }
 
 // ExecuteScript is unsupported for JPath language

@@ -38,13 +38,11 @@ type (
 	// Compiled represents a compiled script for any supported language
 	Compiled any
 
-	scriptBuildFunc[T any] func(
-		step *api.Step, cfg *api.ScriptConfig,
-	) (T, error)
+	compileFunc[T any] func(step *api.Step, cfg *api.ScriptConfig) (T, error)
 
-	scriptCompiler[T any] struct {
+	compiler[T any] struct {
 		cache *lru.Cache[T]
-		build scriptBuildFunc[T]
+		build compileFunc[T]
 	}
 )
 
@@ -121,16 +119,19 @@ func (e *Engine) getStepFromPlan(fs api.FlowStep) (*api.Step, error) {
 	return nil, ErrStepNotInPlan
 }
 
-func newScriptCompiler[T any](
-	size int, build scriptBuildFunc[T],
-) *scriptCompiler[T] {
-	return &scriptCompiler[T]{
+func newCompiler[T any](size int, build compileFunc[T]) *compiler[T] {
+	return &compiler[T]{
 		cache: lru.NewCache[T](size),
 		build: build,
 	}
 }
 
-func (c *scriptCompiler[T]) Compile(
+func (c *compiler[T]) Validate(step *api.Step, script string) error {
+	_, err := c.Compile(step, &api.ScriptConfig{Script: script})
+	return err
+}
+
+func (c *compiler[T]) Compile(
 	step *api.Step, cfg *api.ScriptConfig,
 ) (Compiled, error) {
 	if cfg == nil || cfg.Script == "" {

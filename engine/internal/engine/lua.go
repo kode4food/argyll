@@ -14,7 +14,7 @@ import (
 type (
 	// LuaEnv provides a Lua script execution environment with state pooling
 	LuaEnv struct {
-		*scriptCompiler[*CompiledLua]
+		*compiler[*CompiledLua]
 		statePool chan *lua.State
 	}
 
@@ -52,7 +52,7 @@ func NewLuaEnv() *LuaEnv {
 	luaEnv := &LuaEnv{
 		statePool: make(chan *lua.State, luaStatePoolSize),
 	}
-	luaEnv.scriptCompiler = newScriptCompiler(luaCacheSize,
+	luaEnv.compiler = newCompiler(luaCacheSize,
 		func(step *api.Step, cfg *api.ScriptConfig) (*CompiledLua, error) {
 			argNames := step.SortedArgNames()
 			src := luaEnv.wrapSource(cfg.Script, argNames)
@@ -60,13 +60,6 @@ func NewLuaEnv() *LuaEnv {
 		},
 	)
 	return luaEnv
-}
-
-// Validate checks if a Lua script is syntactically correct without running it
-func (e *LuaEnv) Validate(step *api.Step, script string) error {
-	cfg := &api.ScriptConfig{Script: script, Language: api.ScriptLangLua}
-	_, err := e.Compile(step, cfg)
-	return err
 }
 
 // ExecuteScript runs a compiled Lua script with the provided inputs and
