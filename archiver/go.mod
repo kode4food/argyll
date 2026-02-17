@@ -66,7 +66,7 @@ require (
 	github.com/google/wire v0.7.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
-	github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 // indirect
+	github.com/kode4food/ale v0.3.1-0.20260217085052-7a1e1e5d99c9 // indirect
 	github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2 // indirect
 	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect

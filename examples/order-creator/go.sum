@@ -11,8 +11,7 @@ github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f h1:lO4WD4F/r
 github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f/go.mod h1:cuUVRXasLTGF7a8hSLbxyZXjz+1KgoB3wDUb6vlszIc=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 h1:A5Q5ELtMBIWiwIN12a6ZB7k1trQSlNQtRh1k/brul58=
-github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33/go.mod h1:CqAgf1MUN1X5a1IdhKwvlzLKJpdZjPwNDo8Sa6+ncnk=
+github.com/kode4food/ale v0.3.1-0.20260217085052-7a1e1e5d99c9 h1:3RNk2sSFLTS4rCuKIx11mh0jf/Vq4+uYmL1nL8KBlpM=
 github.com/kode4food/argyll/engine v0.0.0-20260216142321-e1c5d4f8e78a h1:Tygn9znIzkcZOGZ8Rn2X6aOMTqohu4hLfpJbxUT3U9Q=
 github.com/kode4food/argyll/engine v0.0.0-20260216142321-e1c5d4f8e78a/go.mod h1:T9POW+qrqDshp3pQoGb3P8DoT2pMStN4IZ5BXjEUBek=
 github.com/kode4food/argyll/sdks/go-builder v0.0.0-20260216142321-e1c5d4f8e78a h1:tBESJ26jgK16wDbwA1BpO6c6sN8LeAY0suKXIs5vTPE=

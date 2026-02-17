@@ -144,8 +144,7 @@ github.com/googleapis/gax-go/v2 v2.15.0 h1:SyjDc1mGgZU5LncH8gimWo9lW1DtIfPibOG81
 github.com/googleapis/gax-go/v2 v2.15.0/go.mod h1:zVVkkxAQHa1RQpg9z2AUCMnKhi0Qld9rcmyfL1OZhoc=
 github.com/keybase/go-keychain v0.0.1 h1:way+bWYa6lDppZoZcgMbYsvC7GxljxrskdNInRtuthU=
 github.com/keybase/go-keychain v0.0.1/go.mod h1:PdEILRW3i9D8JcdM+FmY6RwkHGnhHxXwkPPMeUgOK1k=
-github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33 h1:A5Q5ELtMBIWiwIN12a6ZB7k1trQSlNQtRh1k/brul58=
-github.com/kode4food/ale v0.3.1-0.20260214085859-a396d4980c33/go.mod h1:CqAgf1MUN1X5a1IdhKwvlzLKJpdZjPwNDo8Sa6+ncnk=
+github.com/kode4food/ale v0.3.1-0.20260217085052-7a1e1e5d99c9 h1:3RNk2sSFLTS4rCuKIx11mh0jf/Vq4+uYmL1nL8KBlpM=
 github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741 h1:JGbWyuCDFxUNbSIJcFh6oW+ip1kKJHsJCqSiQolW1uw=
 github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741/go.mod h1:jb/S9B53QG+D/m8IufduUL0eHPpvP5VrgQ7ld+5zIVw=
 github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2 h1:C2ta3iRuYuSUJna2x7BDlBXqkW3SlaBWSSvb9lFxk/c=
