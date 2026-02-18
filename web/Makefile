@@ -20,12 +20,6 @@ check:
 test:
 	$(NPM) test -- --runInBand
 
-test-watch:
-	$(NPM) run test:watch
-
-test-coverage:
-	$(NPM) run test:coverage
-
 pre-commit: format test check
 
 clean:
