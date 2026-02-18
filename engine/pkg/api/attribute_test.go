@@ -227,9 +227,14 @@ func TestValidateDefault(t *testing.T) {
 		{
 			name: "input with valid mapping",
 			spec: &api.AttributeSpec{
-				Role:    api.RoleRequired,
-				Type:    api.TypeObject,
-				Mapping: "$.foo",
+				Role: api.RoleRequired,
+				Type: api.TypeObject,
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$.foo",
+					},
+				},
 			},
 			attrName:  "input",
 			expectErr: false,
@@ -237,9 +242,14 @@ func TestValidateDefault(t *testing.T) {
 		{
 			name: "output with valid mapping",
 			spec: &api.AttributeSpec{
-				Role:    api.RoleOutput,
-				Type:    api.TypeAny,
-				Mapping: "$..book",
+				Role: api.RoleOutput,
+				Type: api.TypeAny,
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$..book",
+					},
+				},
 			},
 			attrName:  "result",
 			expectErr: false,
@@ -250,7 +260,12 @@ func TestValidateDefault(t *testing.T) {
 				Role:    api.RoleConst,
 				Type:    api.TypeObject,
 				Default: "{}",
-				Mapping: "$.foo",
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$.foo",
+					},
+				},
 			},
 			attrName:  "input",
 			expectErr: true,
@@ -258,9 +273,14 @@ func TestValidateDefault(t *testing.T) {
 		{
 			name: "invalid mapping syntax is engine-level validation",
 			spec: &api.AttributeSpec{
-				Role:    api.RoleOptional,
-				Type:    api.TypeObject,
-				Mapping: "$[?",
+				Role: api.RoleOptional,
+				Type: api.TypeObject,
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$[?",
+					},
+				},
 			},
 			attrName:  "input",
 			expectErr: false,
@@ -395,14 +415,24 @@ func TestEqualEdgeCases(t *testing.T) {
 
 	t.Run("different_mapping", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
-			Role:    api.RoleOutput,
-			Type:    api.TypeAny,
-			Mapping: "$.foo",
+			Role: api.RoleOutput,
+			Type: api.TypeAny,
+			Mapping: &api.AttributeMapping{
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$.foo",
+				},
+			},
 		}
 		spec2 := &api.AttributeSpec{
-			Role:    api.RoleOutput,
-			Type:    api.TypeAny,
-			Mapping: "$.bar",
+			Role: api.RoleOutput,
+			Type: api.TypeAny,
+			Mapping: &api.AttributeMapping{
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$.bar",
+				},
+			},
 		}
 		assert.False(t, spec1.Equal(spec2))
 	})
@@ -589,7 +619,12 @@ func TestValidateEdgeCases(t *testing.T) {
 			Role:    api.RoleConst,
 			Type:    api.TypeObject,
 			Default: "{}",
-			Mapping: "$.foo",
+			Mapping: &api.AttributeMapping{
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$.foo",
+				},
+			},
 		}
 		err := spec.Validate("test_arg")
 		assert.ErrorIs(t, err, api.ErrMappingNotAllowed)
@@ -597,11 +632,68 @@ func TestValidateEdgeCases(t *testing.T) {
 
 	t.Run("invalid_mapping_syntax_is_allowed_here", func(t *testing.T) {
 		spec := &api.AttributeSpec{
-			Role:    api.RoleRequired,
-			Type:    api.TypeObject,
-			Mapping: "$[?",
+			Role: api.RoleRequired,
+			Type: api.TypeObject,
+			Mapping: &api.AttributeMapping{
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$[?",
+				},
+			},
 		}
 		err := spec.Validate("test_arg")
 		assert.NoError(t, err)
+	})
+}
+
+func TestAttributeMappingValidation(t *testing.T) {
+	t.Run("name_only", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+			Mapping: &api.AttributeMapping{
+				Name: "service_param",
+			},
+		}
+		assert.NoError(t, spec.Validate("test"))
+	})
+
+	t.Run("script_only", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+			Mapping: &api.AttributeMapping{
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$.value",
+				},
+			},
+		}
+		assert.NoError(t, spec.Validate("test"))
+	})
+
+	t.Run("both_name_and_script", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+			Mapping: &api.AttributeMapping{
+				Name: "api_field",
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$.data.value",
+				},
+			},
+		}
+		assert.NoError(t, spec.Validate("test"))
+	})
+
+	t.Run("empty_mapping_fails", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:    api.RoleRequired,
+			Type:    api.TypeString,
+			Mapping: &api.AttributeMapping{},
+		}
+		err := spec.Validate("test")
+		assert.ErrorIs(t, err, api.ErrInvalidAttributeMapping)
 	})
 }

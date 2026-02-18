@@ -69,9 +69,14 @@ func TestInputMapping(t *testing.T) {
 		step := helpers.NewSimpleStep("mapped-input-step")
 		step.Attributes = api.AttributeSpecs{
 			"input": {
-				Role:    api.RoleRequired,
-				Type:    api.TypeObject,
-				Mapping: "$.foo",
+				Role: api.RoleRequired,
+				Type: api.TypeObject,
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$.foo",
+					},
+				},
 			},
 			"result": {
 				Role: api.RoleOutput,
@@ -114,9 +119,14 @@ func TestOutputMapping(t *testing.T) {
 				Type: api.TypeString,
 			},
 			"result": {
-				Role:    api.RoleOutput,
-				Type:    api.TypeAny,
-				Mapping: "$.payload.value",
+				Role: api.RoleOutput,
+				Type: api.TypeAny,
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$.payload.value",
+					},
+				},
 			},
 		}
 
@@ -142,6 +152,44 @@ func TestOutputMapping(t *testing.T) {
 		exec := fl.Executions[step.ID]
 		assert.Equal(t, "ok", exec.Outputs["result"])
 		assert.Equal(t, "ok", fl.Attributes["result"].Value)
+	})
+}
+
+func TestInputMappingWithRename(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("rename-input")
+		step.Attributes = api.AttributeSpecs{
+			"user_email": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "email",
+				},
+			},
+			"result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-input-rename")
+		fl := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{"user_email": "test@example.com"}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 

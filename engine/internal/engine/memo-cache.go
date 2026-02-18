@@ -1,12 +1,14 @@
 package engine
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/kode4food/lru"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+var ErrCacheMiss = errors.New("cache miss")
 
 // MemoCache provides global caching of step results based on (step definition,
 // inputs)
@@ -35,7 +37,7 @@ func (m *MemoCache) Get(step *api.Step, inputs api.Args) (api.Args, bool) {
 
 	result, err := m.cache.Get(key, func() (api.Args, error) {
 		var zero api.Args
-		return zero, fmt.Errorf("cache miss")
+		return zero, ErrCacheMiss
 	})
 	if err != nil {
 		return nil, false

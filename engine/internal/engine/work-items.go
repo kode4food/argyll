@@ -9,7 +9,96 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// computeWorkItems determines all work items that a step needs to execute
+func (e *Engine) collectStepOutputs(
+	items api.WorkItems, step *api.Step,
+) api.Args {
+	completed := make([]*api.WorkState, 0, len(items))
+	for _, item := range items {
+		if item.Status == api.WorkSucceeded {
+			completed = append(completed, item)
+		}
+	}
+
+	switch len(completed) {
+	case 0:
+		return nil
+	case 1:
+		return e.mapOutputAttributes(completed[0].Outputs, step)
+	default:
+		aggregated := collectWorkOutputs(completed, step)
+		return e.mapOutputAttributes(aggregated, step)
+	}
+}
+
+func (e *Engine) mapOutputAttributes(
+	outputs api.Args, step *api.Step,
+) api.Args {
+	if step == nil {
+		return outputs
+	}
+
+	res := api.Args{}
+	for name, attr := range step.Attributes {
+		if !attr.IsOutput() {
+			continue
+		}
+
+		if value, ok := e.extractOutputValue(step, name, attr, outputs); ok {
+			res[name] = value
+		}
+	}
+	return res
+}
+
+func (e *Engine) extractOutputValue(
+	step *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
+) (any, bool) {
+	if attr.Mapping != nil && attr.Mapping.Script != nil {
+		return e.applyOutputScriptMapping(step, attr, outputs)
+	}
+	return e.extractOutputByName(name, attr, outputs)
+}
+
+func (e *Engine) applyOutputScriptMapping(
+	step *api.Step, attr *api.AttributeSpec, outputs api.Args,
+) (any, bool) {
+	if attr.Mapping.Script.Language == api.ScriptLangJPath {
+		mapped, ok, err := e.mapper.MappingValue(
+			attr.Mapping.Script.Script, outputs,
+		)
+		if err == nil && ok {
+			return mapped, true
+		}
+		return nil, false
+	}
+
+	scriptInput := convertToArgs(outputs)
+	compiled, err := e.scripts.Compile(step, attr.Mapping.Script)
+	if err != nil {
+		return nil, false
+	}
+	env, err := e.scripts.Get(attr.Mapping.Script.Language)
+	if err != nil {
+		return nil, false
+	}
+	result, err := env.ExecuteScript(compiled, step, scriptInput)
+	if err != nil {
+		return nil, false
+	}
+	return extractScriptResult(result), true
+}
+
+func (e *Engine) extractOutputByName(
+	name api.Name, attr *api.AttributeSpec, outputs api.Args,
+) (any, bool) {
+	sourceKey := name
+	if attr.Mapping != nil && attr.Mapping.Name != "" {
+		sourceKey = api.Name(attr.Mapping.Name)
+	}
+	value, ok := outputs[sourceKey]
+	return value, ok
+}
+
 func computeWorkItems(step *api.Step, inputs api.Args) []api.Args {
 	argNames := step.MultiArgNames()
 	multiArgs := getMultiArgs(argNames, inputs)
@@ -100,54 +189,6 @@ func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
 	}
 	maps.Copy(inputs, current)
 	return inputs
-}
-
-func (e *Engine) collectStepOutputs(
-	items api.WorkItems, step *api.Step,
-) api.Args {
-	completed := make([]*api.WorkState, 0, len(items))
-	for _, item := range items {
-		if item.Status == api.WorkSucceeded {
-			completed = append(completed, item)
-		}
-	}
-
-	switch len(completed) {
-	case 0:
-		return nil
-	case 1:
-		return e.mapOutputAttributes(completed[0].Outputs, step)
-	default:
-		aggregated := collectWorkOutputs(completed, step)
-		return e.mapOutputAttributes(aggregated, step)
-	}
-}
-
-func (e *Engine) mapOutputAttributes(outputs api.Args, step *api.Step) api.Args {
-	if step == nil {
-		return outputs
-	}
-
-	res := api.Args{}
-	for name, attr := range step.Attributes {
-		if !attr.IsOutput() {
-			continue
-		}
-
-		if attr.Mapping == "" {
-			if value, ok := outputs[name]; ok {
-				res[name] = value
-			}
-			continue
-		}
-
-		value, ok, err := e.mapper.MappingValue(attr.Mapping, outputs)
-		if err != nil || !ok {
-			continue
-		}
-		res[name] = value
-	}
-	return res
 }
 
 func collectWorkOutputs(completed []*api.WorkState, step *api.Step) api.Args {

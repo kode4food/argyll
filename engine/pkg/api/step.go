@@ -217,6 +217,9 @@ func (s *Step) Validate() error {
 	if err := s.validateAttributes(); err != nil {
 		return err
 	}
+	if err := s.validateMappingNames(); err != nil {
+		return err
+	}
 	return s.validateWorkConfig()
 }
 
@@ -345,6 +348,35 @@ func (s *Step) validateFlowOutputMap() error {
 		}
 		seen.Add(outputName)
 	}
+	return nil
+}
+
+func (s *Step) validateMappingNames() error {
+	inputInnerNames := map[string]Name{}
+	outputInnerNames := map[string]Name{}
+
+	for name, attr := range s.Attributes {
+		if attr.Mapping == nil || attr.Mapping.Name == "" {
+			continue
+		}
+
+		innerName := attr.Mapping.Name
+
+		if attr.IsRuntimeInput() {
+			if _, ok := inputInnerNames[innerName]; ok {
+				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, innerName)
+			}
+			inputInnerNames[innerName] = name
+		}
+
+		if attr.IsOutput() {
+			if _, ok := outputInnerNames[innerName]; ok {
+				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, innerName)
+			}
+			outputInnerNames[innerName] = name
+		}
+	}
+
 	return nil
 }
 

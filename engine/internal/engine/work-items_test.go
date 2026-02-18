@@ -92,9 +92,14 @@ func TestOutputMappingCollectsDescendants(t *testing.T) {
 					Type: api.TypeString,
 				},
 				"books": {
-					Role:    api.RoleOutput,
-					Type:    api.TypeAny,
-					Mapping: "$..book",
+					Role: api.RoleOutput,
+					Type: api.TypeAny,
+					Mapping: &api.AttributeMapping{
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangJPath,
+							Script:   "$..book",
+						},
+					},
 				},
 			},
 		}

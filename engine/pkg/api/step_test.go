@@ -1312,3 +1312,81 @@ func TestStepHashKey(t *testing.T) {
 		as.NotEmpty(h)
 	})
 }
+
+func TestStepValidateMappingNames(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("duplicate_input_inner_names", func(t *testing.T) {
+		step := &api.Step{
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+				Timeout:  30 * api.Second,
+			},
+			Attributes: api.AttributeSpecs{
+				"email": {
+					Role:    api.RoleRequired,
+					Mapping: &api.AttributeMapping{Name: "user_email"},
+				},
+				"contact": {
+					Role:    api.RoleRequired,
+					Mapping: &api.AttributeMapping{Name: "user_email"},
+				},
+			},
+		}
+		err := step.Validate()
+		as.ErrorIs(err, api.ErrDuplicateInnerName)
+		as.ErrorContains(err, "user_email")
+	})
+
+	t.Run("duplicate_output_inner_names", func(t *testing.T) {
+		step := &api.Step{
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+				Timeout:  30 * api.Second,
+			},
+			Attributes: api.AttributeSpecs{
+				"sent": {
+					Role:    api.RoleOutput,
+					Mapping: &api.AttributeMapping{Name: "status"},
+				},
+				"delivered": {
+					Role:    api.RoleOutput,
+					Mapping: &api.AttributeMapping{Name: "status"},
+				},
+			},
+		}
+		err := step.Validate()
+		as.ErrorIs(err, api.ErrDuplicateInnerName)
+		as.ErrorContains(err, "status")
+	})
+
+	t.Run("same_inner_name_input_and_output_allowed", func(t *testing.T) {
+		step := &api.Step{
+			ID:   "test",
+			Name: "Test",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+				Timeout:  30 * api.Second,
+			},
+			Attributes: api.AttributeSpecs{
+				"user_data": {
+					Role:    api.RoleRequired,
+					Mapping: &api.AttributeMapping{Name: "data"},
+				},
+				"result_data": {
+					Role:    api.RoleOutput,
+					Mapping: &api.AttributeMapping{Name: "data"},
+				},
+			},
+		}
+		err := step.Validate()
+		as.NoError(err)
+	})
+}

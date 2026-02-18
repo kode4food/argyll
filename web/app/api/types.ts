@@ -41,11 +41,16 @@ export enum AttributeType {
   Any = "any",
 }
 
+export interface AttributeMapping {
+  name?: string;
+  script?: ScriptConfig;
+}
+
 export interface AttributeSpec {
   role: AttributeRole;
   type?: AttributeType;
   default?: string;
-  mapping?: string;
+  mapping?: AttributeMapping;
   for_each?: boolean;
 }
 

@@ -212,6 +212,86 @@ The step expands to 3 work items (one per element). Each work item executes inde
 
 **Parallelism:** Work items can be processed with a concurrency limit. See [Work Items](../guides/work-items.md).
 
+## Attribute Mappings
+
+Attributes can include optional **mappings** that rename parameters or transform values between the flow state and service interfaces.
+
+### Parameter Renaming
+
+Use `mapping.name` to map between flow state attribute names (outer names) and service parameter names (inner names):
+
+```json
+{
+  "attributes": {
+    "user_email": {
+      "role": "required",
+      "type": "string",
+      "mapping": {
+        "name": "email"
+      }
+    }
+  }
+}
+```
+
+**For inputs:** The flow state has `user_email`, but the service receives it as `email`.
+
+**For outputs:** The service returns `email`, but it's stored in flow state as `user_email`.
+
+### Value Transformation
+
+Use `mapping.script` to transform values using JPath, Ale, or Lua:
+
+```json
+{
+  "attributes": {
+    "order_total": {
+      "role": "required",
+      "type": "number",
+      "mapping": {
+        "script": {
+          "language": "jpath",
+          "script": "$.data.order.total"
+        }
+      }
+    }
+  }
+}
+```
+
+**For inputs:** Extract a nested value from the flow state before passing to the service.
+
+**For outputs:** Extract a nested value from the service response before storing in flow state.
+
+### Combined Renaming and Transformation
+
+You can use both `name` and `script` together:
+
+```json
+{
+  "attributes": {
+    "customer_id": {
+      "role": "required",
+      "type": "string",
+      "mapping": {
+        "name": "customerId",
+        "script": {
+          "language": "jpath",
+          "script": "$.user.id"
+        }
+      }
+    }
+  }
+}
+```
+
+This extracts `$.user.id` from the value, then passes it to the service as `customerId`.
+
+**Mapping rules:**
+- At least one of `name` or `script` must be present
+- Mappings not allowed on const attributes
+- Inner names (mapping.name) must be unique within inputs, unique within outputs
+
 ## Attributes vs Arguments vs Outputs
 
 These terms describe different levels of a flow's data:

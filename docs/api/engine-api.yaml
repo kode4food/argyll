@@ -714,6 +714,11 @@ components:
             input_text:
               role: "required"
               type: "string"
+            user_email:
+              role: "required"
+              type: "string"
+              mapping:
+                name: "email"
             optional_field:
               role: "optional"
               type: "string"
@@ -725,6 +730,13 @@ components:
             processed_text:
               role: "output"
               type: "string"
+            user_data:
+              role: "output"
+              type: "object"
+              mapping:
+                script:
+                  language: "jpath"
+                  script: "$.response.data"
         labels:
           type: object
           description: Optional labels for categorization and discovery
@@ -799,6 +811,35 @@ components:
             Only allowed for input attributes (required/optional) with array type.
           default: false
           example: false
+        mapping:
+          $ref: "#/components/schemas/AttributeMapping"
+
+    AttributeMapping:
+      type: object
+      description: |
+        Defines parameter name mapping and value transformation for attributes.
+        Allows renaming parameters between flow state and service interfaces,
+        and transforming values using scripts (JPath for queries, Lua/Ale for logic).
+
+        At least one of `name` or `script` must be provided.
+        Not allowed on const attributes.
+      properties:
+        name:
+          type: string
+          description: |
+            Service-level parameter name (inner name) - the key used in the service request/response.
+            If not specified, the attribute name (outer name) is used.
+
+            For inputs: reads from flow state using attribute name, sends to service using this name.
+            For outputs: reads from service response using this name, stores in flow state using attribute name.
+          example: "user_email"
+        script:
+          $ref: "#/components/schemas/ScriptConfig"
+      example:
+        name: "email"
+        script:
+          language: "jpath"
+          script: "$.user.email"
 
     HttpConfig:
       type: object
@@ -825,19 +866,31 @@ components:
 
     ScriptConfig:
       type: object
-      description: Configuration for script-based steps
+      description: |
+        Configuration for script-based steps or attribute mappings.
+
+        For step execution, only `ale` and `lua` are supported.
+        For attribute mappings, `jpath` is also supported for value extraction.
       required:
         - language
         - script
       properties:
         language:
           type: string
-          enum: ["ale", "lua"]
-          description: Script language (Ale or Lua)
+          enum: ["ale", "lua", "jpath"]
+          description: |
+            Script language:
+            - `ale`: Ale language for step scripts
+            - `lua`: Lua language for step scripts
+            - `jpath`: JPath for attribute mapping queries
           example: "ale"
         script:
           type: string
-          description: The script code to execute
+          description: |
+            The script code to execute.
+
+            For JPath: A query string like `$.user.email` or `$.data[0].value`
+            For Ale/Lua: The complete script code
           example: '{:greeting (str "Hello, " name)}'
 
     FlowConfig:

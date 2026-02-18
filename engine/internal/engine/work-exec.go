@@ -68,31 +68,63 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 			continue
 		}
 
-		if value, ok := attrs[name]; ok {
-			mapped, mappedOK, err := e.mapper.MappingValue(
-				attr.Mapping, value,
-			)
-			if err != nil {
+		value, ok := attrs[name]
+		if !ok {
+			if !attr.IsRequired() && attr.Default != "" {
+				value = gjson.Parse(attr.Default).Value()
+			} else {
 				continue
-			}
-			if mappedOK {
-				inputs[name] = mapped
-			}
-		} else if !attr.IsRequired() && attr.Default != "" {
-			value := gjson.Parse(attr.Default).Value()
-			mapped, mappedOK, err := e.mapper.MappingValue(
-				attr.Mapping, value,
-			)
-			if err != nil {
-				continue
-			}
-			if mappedOK {
-				inputs[name] = mapped
 			}
 		}
+
+		val := e.applyInputMapping(step, attr, value)
+		paramName := e.getInputParamName(name, attr)
+		inputs[paramName] = val
 	}
 
 	return inputs
+}
+
+func (e *Engine) applyInputMapping(
+	step *api.Step, attr *api.AttributeSpec, value any,
+) any {
+	if attr.Mapping == nil || attr.Mapping.Script == nil {
+		return value
+	}
+
+	if attr.Mapping.Script.Language == api.ScriptLangJPath {
+		mapped, ok, err := e.mapper.MappingValue(
+			attr.Mapping.Script.Script, value,
+		)
+		if err == nil && ok {
+			return mapped
+		}
+		return value
+	}
+
+	scriptInput := convertToArgs(value)
+	compiled, err := e.scripts.Compile(step, attr.Mapping.Script)
+	if err != nil {
+		return value
+	}
+	env, err := e.scripts.Get(attr.Mapping.Script.Language)
+	if err != nil {
+		return value
+	}
+	result, err := env.ExecuteScript(compiled, step, scriptInput)
+	if err != nil {
+		return value
+	}
+	return extractScriptResult(result)
+}
+
+func (e *Engine) getInputParamName(
+	attrName api.Name, attr *api.AttributeSpec,
+) api.Name {
+	if attr.Mapping != nil && attr.Mapping.Name != "" {
+		return api.Name(attr.Mapping.Name)
+	}
+	return attrName
 }
 
 // Work item execution functions
@@ -219,4 +251,30 @@ func (e *ExecContext) executeScript(
 	}
 
 	return env.ExecuteScript(c, e.step, inputs)
+}
+
+func convertToArgs(value any) api.Args {
+	if m, ok := value.(map[string]any); ok {
+		result := make(api.Args, len(m))
+		for k, v := range m {
+			result[api.Name(k)] = v
+		}
+		return result
+	}
+	return api.Args{"value": value}
+}
+
+func extractScriptResult(result api.Args) any {
+	if len(result) == 0 {
+		return nil
+	}
+	if val, ok := result["value"]; ok {
+		return val
+	}
+	if len(result) == 1 {
+		for _, v := range result {
+			return v
+		}
+	}
+	return result
 }

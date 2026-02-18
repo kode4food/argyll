@@ -21,6 +21,7 @@ var (
 	ErrInvalidStep        = errors.New("invalid step")
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
+	ErrLangNotValid       = errors.New("language not valid in this context")
 )
 
 // RegisterStep registers a new step with the engine after validating its
@@ -97,10 +98,12 @@ func (e *Engine) validateStep(step *api.Step) error {
 
 func (e *Engine) validateStepMappings(step *api.Step) error {
 	for name, attr := range step.Attributes {
-		if attr.Mapping == "" {
+		if attr.Mapping == nil || attr.Mapping.Script == nil {
 			continue
 		}
-		if err := e.mapper.CompileMapping(attr.Mapping); err != nil {
+
+		_, err := e.scripts.Compile(step, attr.Mapping.Script)
+		if err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
 				api.ErrInvalidAttributeMapping, name, err)
 		}
@@ -135,6 +138,10 @@ func (e *Engine) UpdateStepHealth(
 
 func (e *Engine) validateStepScripts(step *api.Step) error {
 	if step.Type == api.StepTypeScript && step.Script != nil {
+		if step.Script.Language == api.ScriptLangJPath {
+			return fmt.Errorf("%w: %s", ErrLangNotValid, step.Script.Language)
+		}
+
 		env, err := e.scripts.Get(step.Script.Language)
 		if err != nil {
 			return err

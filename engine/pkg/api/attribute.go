@@ -12,11 +12,17 @@ import (
 type (
 	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
-		Role    AttributeRole `json:"role"`
-		Type    AttributeType `json:"type"`
-		Default string        `json:"default,omitempty"`
-		Mapping string        `json:"mapping,omitempty"`
-		ForEach bool          `json:"for_each,omitempty"`
+		Role    AttributeRole     `json:"role"`
+		Type    AttributeType     `json:"type"`
+		Default string            `json:"default,omitempty"`
+		Mapping *AttributeMapping `json:"mapping,omitempty"`
+		ForEach bool              `json:"for_each,omitempty"`
+	}
+
+	// AttributeMapping defines parameter name mapping and value transformation
+	AttributeMapping struct {
+		Name   string        `json:"name,omitempty"`
+		Script *ScriptConfig `json:"script,omitempty"`
 	}
 
 	// AttributeSpecs is a map of attribute names to their specifications
@@ -70,6 +76,7 @@ var (
 		"mapping is not allowed for const attributes",
 	)
 	ErrInvalidAttributeMapping = errors.New("invalid attribute mapping")
+	ErrDuplicateInnerName      = errors.New("duplicate mapped parameter name")
 )
 
 var (
@@ -118,9 +125,12 @@ func (s *AttributeSpec) Validate(name Name) error {
 		}
 	}
 
-	if s.Mapping != "" {
+	if s.Mapping != nil {
 		if s.IsConst() {
 			return fmt.Errorf("%w: %q", ErrMappingNotAllowed, name)
+		}
+		if s.Mapping.Name == "" && s.Mapping.Script == nil {
+			return fmt.Errorf("%w: %q", ErrInvalidAttributeMapping, name)
 		}
 	}
 
@@ -236,7 +246,7 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		s.Type == other.Type &&
 		s.ForEach == other.ForEach &&
 		s.Default == other.Default &&
-		s.Mapping == other.Mapping
+		mappingsEqual(s.Mapping, other.Mapping)
 }
 
 // Equal returns true if two attribute spec maps are equal
@@ -251,4 +261,24 @@ func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
 		}
 	}
 	return true
+}
+
+func mappingsEqual(a, b *AttributeMapping) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Name == b.Name && scriptsEqual(a.Script, b.Script)
+}
+
+func scriptsEqual(a, b *ScriptConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Language == b.Language && a.Script == b.Script
 }

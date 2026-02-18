@@ -102,9 +102,14 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("bad-mapping")
 		step.Attributes["in"] = &api.AttributeSpec{
-			Role:    api.RoleRequired,
-			Type:    api.TypeString,
-			Mapping: "$..[",
+			Role: api.RoleRequired,
+			Type: api.TypeString,
+			Mapping: &api.AttributeMapping{
+				Script: &api.ScriptConfig{
+					Language: api.ScriptLangJPath,
+					Script:   "$..[",
+				},
+			},
 		}
 
 		err := eng.RegisterStep(step)
