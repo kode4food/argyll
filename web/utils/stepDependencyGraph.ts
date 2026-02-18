@@ -5,12 +5,6 @@ export interface StepInput {
   isOptional: boolean;
 }
 
-export interface StepRoleCounts {
-  required: number;
-  optional: number;
-  output: number;
-}
-
 export interface StepGraph {
   dependencies: Map<string, string[]>;
   stepsWithDependencies: Set<string>;
@@ -132,28 +126,4 @@ export const calculateStepLevels = (
   });
 
   return levels;
-};
-
-export const countStepRoleAttributes = (step: Step): StepRoleCounts => {
-  const counts: StepRoleCounts = {
-    required: 0,
-    optional: 0,
-    output: 0,
-  };
-
-  Object.values(step.attributes || {}).forEach((spec) => {
-    if (spec.role === AttributeRole.Required) {
-      counts.required += 1;
-      return;
-    }
-    if (spec.role === AttributeRole.Optional) {
-      counts.optional += 1;
-      return;
-    }
-    if (spec.role === AttributeRole.Output) {
-      counts.output += 1;
-    }
-  });
-
-  return counts;
 };

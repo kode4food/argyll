@@ -43,6 +43,26 @@ const compareSteps = (a: Step, b: Step): number => {
   return a.name.localeCompare(b.name);
 };
 
+const upsertStepList = (steps: Step[], step: Step): Step[] => {
+  const existingIndex = steps.findIndex((current) => current.id === step.id);
+  if (existingIndex >= 0) {
+    const updatedSteps = [...steps];
+    updatedSteps[existingIndex] = step;
+    return updatedSteps;
+  }
+
+  return [...steps, step].sort(compareSteps);
+};
+
+const updateExistingStepList = (steps: Step[], step: Step): Step[] => {
+  const exists = steps.some((current) => current.id === step.id);
+  if (!exists) {
+    return steps;
+  }
+
+  return upsertStepList(steps, step);
+};
+
 const mergeResolvedAttributes = (
   current: string[],
   newAttrs?: Record<string, any>
@@ -274,36 +294,25 @@ export const useFlowStore = create<FlowState>()(
       },
 
       addStep: (step: Step) => {
-        const { steps } = get();
-        const newSteps = [...steps, step];
-        newSteps.sort(compareSteps);
-        set({ steps: newSteps });
+        set((state) => ({
+          steps: upsertStepList(state.steps, step),
+        }));
       },
 
       upsertStep: (step: Step) => {
-        const { steps } = get();
-        const existingIndex = steps.findIndex((s) => s.id === step.id);
-        if (existingIndex >= 0) {
-          const updatedSteps = [...steps];
-          updatedSteps[existingIndex] = step;
-          set({ steps: updatedSteps });
-          return;
-        }
-
-        const newSteps = [...steps, step];
-        newSteps.sort(compareSteps);
-        set({ steps: newSteps });
+        set((state) => ({
+          steps: upsertStepList(state.steps, step),
+        }));
       },
 
       updateStep: (step: Step) => {
-        const { steps } = get();
-        const existingIndex = steps.findIndex((s) => s.id === step.id);
-
-        if (existingIndex >= 0) {
-          const updatedSteps = [...steps];
-          updatedSteps[existingIndex] = step;
-          set({ steps: updatedSteps });
-        }
+        set((state) => {
+          const updatedSteps = updateExistingStepList(state.steps, step);
+          if (updatedSteps === state.steps) {
+            return state;
+          }
+          return { steps: updatedSteps };
+        });
       },
 
       removeStep: (stepId: string) => {

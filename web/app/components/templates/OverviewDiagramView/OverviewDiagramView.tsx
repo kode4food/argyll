@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect } from "react";
+import React, { useCallback } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -30,6 +30,7 @@ import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
 import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
+import { useApplyDiagramViewport } from "@/app/hooks/useApplyDiagramViewport";
 import { useLayoutPlan } from "./useLayoutPlan";
 
 interface OverviewDiagramViewProps {
@@ -155,39 +156,15 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     },
   ]);
 
-  useEffect(() => {
-    if (savedViewport && reactFlowInstance) {
-      reactFlowInstance.setViewport(savedViewport);
-      requestAnimationFrame(() => markRestored());
-    }
-  }, [reactFlowInstance, savedViewport, markRestored]);
-
-  useEffect(() => {
-    if (!shouldFitView || !reactFlowInstance || nodes.length === 0) {
-      return;
-    }
-
-    let frameA = 0;
-    let frameB = 0;
-
-    frameA = requestAnimationFrame(() => {
-      frameB = requestAnimationFrame(() => {
-        reactFlowInstance.fitView({
-          padding: STEP_LAYOUT.FIT_VIEW_PADDING,
-        });
-        markFitApplied();
-      });
-    });
-
-    return () => {
-      if (frameA) {
-        cancelAnimationFrame(frameA);
-      }
-      if (frameB) {
-        cancelAnimationFrame(frameB);
-      }
-    };
-  }, [reactFlowInstance, shouldFitView, nodes, markFitApplied]);
+  useApplyDiagramViewport({
+    fitPadding: STEP_LAYOUT.FIT_VIEW_PADDING,
+    markFitApplied,
+    markRestored,
+    nodeCount: nodes.length,
+    reactFlowInstance,
+    savedViewport,
+    shouldFitView,
+  });
 
   React.useEffect(() => {
     setNodes((currentNodes) => {

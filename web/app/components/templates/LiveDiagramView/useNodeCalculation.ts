@@ -7,13 +7,8 @@ import {
   buildOutputProducerMap,
   buildStepGraph,
   calculateStepLevels,
-  countStepRoleAttributes,
 } from "@/utils/stepDependencyGraph";
-
-const calculateSectionHeight = (argCount: number): number => {
-  if (argCount === 0) return 0;
-  return STEP_LAYOUT.SECTION_HEIGHT + argCount * STEP_LAYOUT.ARG_LINE_HEIGHT;
-};
+import { calculateWidgetHeightFromAttributes } from "@/utils/stepLayout";
 
 export const useNodeCalculation = (
   visibleSteps: Step[],
@@ -58,13 +53,9 @@ export const useNodeCalculation = (
         const levelSteps = levelGroups.get(level) || [];
         const indexInLevel = levelSteps.indexOf(step.id);
         const levelSize = levelSteps.length;
-        const roleCounts = countStepRoleAttributes(step);
-
-        const widgetHeight =
-          STEP_LAYOUT.WIDGET_BASE_HEIGHT +
-          calculateSectionHeight(roleCounts.required) +
-          calculateSectionHeight(roleCounts.optional) +
-          calculateSectionHeight(roleCounts.output);
+        const widgetHeight = calculateWidgetHeightFromAttributes(
+          step.attributes
+        );
 
         const col = level;
         const row = indexInLevel - (levelSize - 1) / 2;

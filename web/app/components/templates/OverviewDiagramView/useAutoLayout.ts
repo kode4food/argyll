@@ -1,8 +1,11 @@
 import { useMemo } from "react";
 import dagre from "@dagrejs/dagre";
 import { Node, Edge } from "@xyflow/react";
-import { ExecutionPlan, AttributeRole } from "@/app/api";
-import { STEP_LAYOUT } from "@/constants/layout";
+import { ExecutionPlan } from "@/app/api";
+import {
+  AttributeSpecLike,
+  calculateWidgetHeightFromAttributes,
+} from "@/utils/stepLayout";
 
 interface LayoutConfig {
   rankdir?: "TB" | "BT" | "LR" | "RL";
@@ -11,13 +14,9 @@ interface LayoutConfig {
   nodeSep?: number;
 }
 
-type StepAttributeSpec = {
-  role?: AttributeRole;
-};
-
 interface StepNodeData {
   step?: {
-    attributes?: Record<string, StepAttributeSpec>;
+    attributes?: Record<string, AttributeSpecLike>;
   };
 }
 
@@ -30,38 +29,14 @@ const DEFAULT_CONFIG = {
 
 const getStepAttributes = (
   node: Node
-): Record<string, StepAttributeSpec> | undefined => {
+): Record<string, AttributeSpecLike> | undefined => {
   const data = node.data as StepNodeData | undefined;
   return data?.step?.attributes;
 };
 
 const calculateNodeHeight = (node: Node): number => {
   const attributes = getStepAttributes(node);
-  if (!attributes) {
-    return STEP_LAYOUT.WIDGET_BASE_HEIGHT;
-  }
-
-  const requiredCount = Object.values(attributes).filter(
-    (spec) => spec?.role === AttributeRole.Required
-  ).length;
-  const optionalCount = Object.values(attributes).filter(
-    (spec) => spec?.role === AttributeRole.Optional
-  ).length;
-  const outputCount = Object.values(attributes).filter(
-    (spec) => spec?.role === AttributeRole.Output
-  ).length;
-
-  const calculateSectionHeight = (argCount: number): number => {
-    if (argCount === 0) return 0;
-    return STEP_LAYOUT.SECTION_HEIGHT + argCount * STEP_LAYOUT.ARG_LINE_HEIGHT;
-  };
-
-  return (
-    STEP_LAYOUT.WIDGET_BASE_HEIGHT +
-    calculateSectionHeight(requiredCount) +
-    calculateSectionHeight(optionalCount) +
-    calculateSectionHeight(outputCount)
-  );
+  return calculateWidgetHeightFromAttributes(attributes);
 };
 
 export const useAutoLayout = (
