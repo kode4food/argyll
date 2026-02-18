@@ -26,9 +26,8 @@ const (
 )
 
 var (
-	ErrAleNotProcedure = errors.New("not a procedure")
-	ErrAleCompile      = errors.New("script compile error")
-	ErrAleCall         = errors.New("error calling procedure")
+	ErrAleCompile = errors.New("script compile error")
+	ErrAleCall    = errors.New("error calling procedure")
 )
 
 // NewAleEnv creates a new Ale script execution environment with the standard
@@ -97,11 +96,7 @@ func (e *AleEnv) compile(src string) (proc data.Procedure, err error) {
 			if err != nil {
 				return nil, err
 			}
-
-			if proc, ok := res.(data.Procedure); ok {
-				return proc, nil
-			}
-			return nil, fmt.Errorf("%w, got: %T", ErrAleNotProcedure, res)
+			return res.(data.Procedure), nil
 		},
 	)
 }
