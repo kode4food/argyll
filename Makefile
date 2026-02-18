@@ -1,4 +1,4 @@
-SUBPROJECTS = engine mcp archiver sdks/go-builder sdks/python \
+SUBPROJECTS = engine web mcp archiver sdks/go-builder sdks/python \
 	examples/inventory-resolver examples/notification-sender \
 	examples/order-creator examples/simple-step \
 	examples/stock-reservation examples/user-resolver
