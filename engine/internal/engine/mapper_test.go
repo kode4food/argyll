@@ -17,54 +17,27 @@ func withMapper(t *testing.T, fn func(*engine.Mapper)) {
 	})
 }
 
-func TestMapperCompilePath(t *testing.T) {
-	t.Run("compiles valid mapping", func(t *testing.T) {
+func TestMapperCompile(t *testing.T) {
+	t.Run("compiles jpath mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			path, err := m.CompilePath("$.foo")
+			compiled, err := m.Compile(nil, jpathCfg("$.foo"))
 			assert.NoError(t, err)
-			assert.NotNil(t, path)
+			assert.NotNil(t, compiled)
 		})
 	})
 
-	t.Run("returns parse error for invalid syntax", func(t *testing.T) {
+	t.Run("compiles ale mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			_, err := m.CompilePath("$..[")
-			assert.Error(t, err)
-			assert.ErrorIs(t, err, engine.ErrInvalidMapping)
-			assert.ErrorContains(t, err, "$..[")
-		})
-	})
-
-	t.Run("returns compile error for unknown function", func(t *testing.T) {
-		withMapper(t, func(m *engine.Mapper) {
-			_, err := m.CompilePath("$[?unknown(@)]")
-			assert.Error(t, err)
-			assert.ErrorIs(t, err, engine.ErrInvalidMapping)
-			assert.ErrorContains(t, err, "$[?unknown(@)]")
-		})
-	})
-}
-
-func TestMapperApply(t *testing.T) {
-	t.Run("returns nil for empty mapping", func(t *testing.T) {
-		withMapper(t, func(m *engine.Mapper) {
-			res, err := m.Apply("", api.Args{"foo": "value"})
+			step := mappingStep("amount")
+			compiled, err := m.Compile(step, aleCfg("(* amount 2)"))
 			assert.NoError(t, err)
-			assert.Nil(t, res)
-		})
-	})
-
-	t.Run("applies valid mapping", func(t *testing.T) {
-		withMapper(t, func(m *engine.Mapper) {
-			res, err := m.Apply("$.foo", api.Args{"foo": "value"})
-			assert.NoError(t, err)
-			assert.Equal(t, []any{"value"}, res)
+			assert.NotNil(t, compiled)
 		})
 	})
 
 	t.Run("returns error for invalid mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			_, err := m.Apply("$..[", api.Args{"foo": "value"})
+			_, err := m.Compile(nil, jpathCfg("$..["))
 			assert.Error(t, err)
 			assert.ErrorIs(t, err, engine.ErrInvalidMapping)
 		})
@@ -72,35 +45,36 @@ func TestMapperApply(t *testing.T) {
 }
 
 func TestMapperMappingValue(t *testing.T) {
-	t.Run("returns value as-is for empty mapping", func(t *testing.T) {
+	t.Run("returns value as-is for nil mapping config", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			input := api.Args{"foo": "bar"}
-			value, ok, err := m.MappingValue("", input)
-			assert.NoError(t, err)
+			value, ok := m.MapValue(nil, "input", nil, input)
 			assert.True(t, ok)
 			assert.Equal(t, input, value)
 		})
 	})
 
-	t.Run("returns no value when mapping finds nothing", func(t *testing.T) {
+	t.Run("returns no value when jpath finds nothing", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			value, ok, err := m.MappingValue("$.missing", api.Args{"foo": "bar"})
-			assert.NoError(t, err)
+			value, ok := m.MapValue(
+				nil, "input", jpathCfg("$.missing"), api.Args{"foo": "bar"},
+			)
 			assert.False(t, ok)
 			assert.Nil(t, value)
 		})
 	})
 
-	t.Run("returns scalar when mapping finds one value", func(t *testing.T) {
+	t.Run("returns scalar when jpath finds one value", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			value, ok, err := m.MappingValue("$.foo", api.Args{"foo": "bar"})
-			assert.NoError(t, err)
+			value, ok := m.MapValue(
+				nil, "input", jpathCfg("$.foo"), api.Args{"foo": "bar"},
+			)
 			assert.True(t, ok)
 			assert.Equal(t, "bar", value)
 		})
 	})
 
-	t.Run("returns slice when mapping finds many values", func(t *testing.T) {
+	t.Run("returns slice when jpath finds many values", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			input := api.Args{
 				"payload": map[string]any{
@@ -110,25 +84,37 @@ func TestMapperMappingValue(t *testing.T) {
 					},
 				},
 			}
-			value, ok, err := m.MappingValue("$..book", input)
-			assert.NoError(t, err)
+			value, ok := m.MapValue(
+				nil, "output", jpathCfg("$..book"), input,
+			)
 			assert.True(t, ok)
 			assert.Equal(t, []any{"A", "B"}, value)
 		})
 	})
 
-	t.Run("returns error when mapping is invalid", func(t *testing.T) {
+	t.Run("executes ale mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			value, ok, err := m.MappingValue("$..[", api.Args{"foo": "bar"})
-			assert.Error(t, err)
-			assert.ErrorIs(t, err, engine.ErrInvalidMapping)
+			step := mappingStep("amount")
+			value, ok := m.MapValue(
+				step, "amount", aleCfg("(* amount 2)"), float64(5),
+			)
+			assert.True(t, ok)
+			assert.Equal(t, float64(10), value)
+		})
+	})
+
+	t.Run("returns no value for invalid mapping script", func(t *testing.T) {
+		withMapper(t, func(m *engine.Mapper) {
+			value, ok := m.MapValue(
+				nil, "input", jpathCfg("$..["), api.Args{"foo": "bar"},
+			)
 			assert.False(t, ok)
 			assert.Nil(t, value)
 		})
 	})
 }
 
-func TestMapperNormalization(t *testing.T) {
+func TestMapperJPathMarshaling(t *testing.T) {
 	withMapper(t, func(m *engine.Mapper) {
 		input := api.Args{
 			"args": api.Args{
@@ -148,39 +134,78 @@ func TestMapperNormalization(t *testing.T) {
 			"scalar": 42,
 		}
 
-		v, ok, err := m.MappingValue("$.args.inner", input)
-		assert.NoError(t, err)
+		v, ok := m.MapValue(
+			nil, "input", jpathCfg("$.args.inner"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, "value", v)
 
-		v, ok, err = m.MappingValue("$.named.namedKey", input)
-		assert.NoError(t, err)
+		v, ok = m.MapValue(
+			nil, "input", jpathCfg("$.named.namedKey"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, "namedValue", v)
 
-		v, ok, err = m.MappingValue("$.plain.plainKey", input)
-		assert.NoError(t, err)
+		v, ok = m.MapValue(
+			nil, "input", jpathCfg("$.plain.plainKey"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, "plainValue", v)
 
-		v, ok, err = m.MappingValue("$.list[0].listNamed", input)
-		assert.NoError(t, err)
+		v, ok = m.MapValue(
+			nil, "input", jpathCfg("$.list[0].listNamed"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, "x", v)
 
-		v, ok, err = m.MappingValue("$.list[1].listArgs", input)
-		assert.NoError(t, err)
+		v, ok = m.MapValue(
+			nil, "input", jpathCfg("$.list[1].listArgs"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, "y", v)
 
-		v, ok, err = m.MappingValue("$.list[2]", input)
-		assert.NoError(t, err)
+		v, ok = m.MapValue(
+			nil, "input", jpathCfg("$.list[2]"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, 123, v)
 
-		v, ok, err = m.MappingValue("$.scalar", input)
-		assert.NoError(t, err)
+		v, ok = m.MapValue(
+			nil, "input", jpathCfg("$.scalar"), input,
+		)
 		assert.True(t, ok)
 		assert.Equal(t, 42, v)
 	})
+}
+
+func mappingStep(name api.Name) *api.Step {
+	return &api.Step{
+		ID:   "mapping-step",
+		Name: "Mapping Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://example.com",
+			Timeout:  30 * api.Second,
+		},
+		Attributes: api.AttributeSpecs{
+			name: {
+				Role: api.RoleRequired,
+				Type: api.TypeNumber,
+			},
+		},
+	}
+}
+
+func jpathCfg(script string) *api.ScriptConfig {
+	return &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   script,
+	}
+}
+
+func aleCfg(script string) *api.ScriptConfig {
+	return &api.ScriptConfig{
+		Language: api.ScriptLangAle,
+		Script:   script,
+	}
 }

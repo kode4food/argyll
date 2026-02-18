@@ -23,80 +23,11 @@ func (e *Engine) collectStepOutputs(
 	case 0:
 		return nil
 	case 1:
-		return e.mapOutputAttributes(completed[0].Outputs, step)
+		return e.mapper.MapOutputs(step, completed[0].Outputs)
 	default:
 		aggregated := collectWorkOutputs(completed, step)
-		return e.mapOutputAttributes(aggregated, step)
+		return e.mapper.MapOutputs(step, aggregated)
 	}
-}
-
-func (e *Engine) mapOutputAttributes(
-	outputs api.Args, step *api.Step,
-) api.Args {
-	if step == nil {
-		return outputs
-	}
-
-	res := api.Args{}
-	for name, attr := range step.Attributes {
-		if !attr.IsOutput() {
-			continue
-		}
-
-		if value, ok := e.extractOutputValue(step, name, attr, outputs); ok {
-			res[name] = value
-		}
-	}
-	return res
-}
-
-func (e *Engine) extractOutputValue(
-	step *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
-) (any, bool) {
-	if attr.Mapping != nil && attr.Mapping.Script != nil {
-		return e.applyOutputScriptMapping(step, attr, outputs)
-	}
-	return e.extractOutputByName(name, attr, outputs)
-}
-
-func (e *Engine) applyOutputScriptMapping(
-	step *api.Step, attr *api.AttributeSpec, outputs api.Args,
-) (any, bool) {
-	if attr.Mapping.Script.Language == api.ScriptLangJPath {
-		mapped, ok, err := e.mapper.MappingValue(
-			attr.Mapping.Script.Script, outputs,
-		)
-		if err == nil && ok {
-			return mapped, true
-		}
-		return nil, false
-	}
-
-	scriptInput := convertToArgs(outputs)
-	compiled, err := e.scripts.Compile(step, attr.Mapping.Script)
-	if err != nil {
-		return nil, false
-	}
-	env, err := e.scripts.Get(attr.Mapping.Script.Language)
-	if err != nil {
-		return nil, false
-	}
-	result, err := env.ExecuteScript(compiled, step, scriptInput)
-	if err != nil {
-		return nil, false
-	}
-	return extractScriptResult(result), true
-}
-
-func (e *Engine) extractOutputByName(
-	name api.Name, attr *api.AttributeSpec, outputs api.Args,
-) (any, bool) {
-	sourceKey := name
-	if attr.Mapping != nil && attr.Mapping.Name != "" {
-		sourceKey = api.Name(attr.Mapping.Name)
-	}
-	value, ok := outputs[sourceKey]
-	return value, ok
 }
 
 func computeWorkItems(step *api.Step, inputs api.Args) []api.Args {

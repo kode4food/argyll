@@ -293,15 +293,25 @@ func TestJPathInvalidSyntax(t *testing.T) {
 	})
 }
 
-func TestJPathExecuteScriptUnsupported(t *testing.T) {
+func TestJPathExecuteScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := engine.NewScriptRegistry()
 
 		env, err := registry.Get(api.ScriptLangJPath)
 		assert.NoError(t, err)
 
-		_, err = env.ExecuteScript(nil, nil, nil)
-		assert.ErrorIs(t, err, engine.ErrJPathExecuteScript)
+		step := helpers.NewStepWithPredicate(
+			"jpath-exec", api.ScriptLangJPath, "$.foo",
+		)
+
+		comp, err := env.Compile(step, step.Predicate)
+		assert.NoError(t, err)
+
+		outputs, err := env.ExecuteScript(comp, nil, api.Args{
+			"input": map[string]any{"foo": "bar"},
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, "bar", outputs["value"])
 	})
 }
 

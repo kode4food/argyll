@@ -3,22 +3,20 @@ package engine
 import (
 	"errors"
 	"fmt"
-
-	"github.com/kode4food/jpath"
+	"log/slog"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-)
-
-var (
-	ErrInvalidMapping   = errors.New("invalid mapping")
-	ErrJPathEnvInvalid  = errors.New("invalid jpath environment")
-	ErrJPathEnvNotFound = errors.New("jpath environment not found")
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 // Mapper evaluates attribute mappings through the engine script registry
 type Mapper struct {
 	engine *Engine
 }
+
+var (
+	ErrInvalidMapping = errors.New("invalid mapping")
+)
 
 // NewMapper creates a mapping evaluator bound to an engine
 func NewMapper(engine *Engine) *Mapper {
@@ -27,102 +25,112 @@ func NewMapper(engine *Engine) *Mapper {
 	}
 }
 
-// Apply executes a mapping expression against the provided value
-func (m *Mapper) Apply(mapping string, value any) ([]any, error) {
-	if mapping == "" {
+// Compile compiles a mapping script for the provided step context
+func (m *Mapper) Compile(
+	step *api.Step, cfg *api.ScriptConfig,
+) (Compiled, error) {
+	if cfg == nil || cfg.Script == "" {
 		return nil, nil
 	}
 
-	path, err := m.CompilePath(mapping)
+	compiled, err := m.engine.scripts.Compile(step, cfg)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %s", ErrInvalidMapping, cfg.Script)
 	}
-
-	return path(normalizeMappingDoc(value)), nil
+	return compiled, nil
 }
 
-// CompilePath compiles a mapping expression into an executable JPath path
-func (m *Mapper) CompilePath(mapping string) (jpath.Path, error) {
-	env, err := m.engine.scripts.Get(api.ScriptLangJPath)
+// MapValue applies a mapping script and normalizes result presence
+func (m *Mapper) MapValue(
+	step *api.Step, name api.Name, cfg *api.ScriptConfig, value any,
+) (any, bool) {
+	if cfg == nil || cfg.Script == "" {
+		return value, true
+	}
+
+	compiled, err := m.Compile(step, cfg)
 	if err != nil {
-		return nil, ErrJPathEnvNotFound
+		return nil, false
 	}
 
-	jPathEnv, ok := env.(*JPathEnv)
-	if !ok {
-		return nil, ErrJPathEnvInvalid
-	}
-
-	compiled, err := jPathEnv.Compile(nil, &api.ScriptConfig{
-		Language: api.ScriptLangJPath,
-		Script:   mapping,
-	})
+	env, err := m.engine.scripts.Get(cfg.Language)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrInvalidMapping, mapping)
+		return nil, false
 	}
 
-	path, ok := compiled.(jpath.Path)
-	if !ok || path == nil {
-		return nil, fmt.Errorf("%w: %s", ErrInvalidMapping, mapping)
+	result, err := env.ExecuteScript(compiled, step, api.Args{name: value})
+	if err != nil {
+		return nil, false
 	}
-
-	return path, nil
+	return extractScriptResult(result), true
 }
 
-// MappingValue applies a mapping and normalizes 0/1/N matches
-func (m *Mapper) MappingValue(mapping string, value any) (any, bool, error) {
-	if mapping == "" {
-		return value, true, nil
-	}
-
-	res, err := m.Apply(mapping, value)
-	if err != nil {
-		return nil, false, err
-	}
-
-	switch len(res) {
-	case 0:
-		return nil, false, nil
-	case 1:
-		return res[0], true, nil
-	default:
-		return res, true, nil
-	}
-}
-
-func normalizeMappingDoc(value any) any {
-	switch v := value.(type) {
-	case api.Args:
-		out := make(map[string]any, len(v))
-		for key, elem := range v {
-			out[string(key)] = normalizeMappingDoc(elem)
-		}
-		return out
-	case map[api.Name]any:
-		out := make(map[string]any, len(v))
-		for key, elem := range v {
-			out[string(key)] = normalizeMappingDoc(elem)
-		}
-		return out
-	case map[string]any:
-		out := make(map[string]any, len(v))
-		for key, elem := range v {
-			out[key] = normalizeMappingDoc(elem)
-		}
-		return out
-	case []any:
-		out := make([]any, len(v))
-		for idx, elem := range v {
-			out[idx] = normalizeMappingDoc(elem)
-		}
-		return out
-	default:
+// MapInput maps a step input value and falls back to original value
+func (m *Mapper) MapInput(
+	step *api.Step, name api.Name, attr *api.AttributeSpec, value any,
+) any {
+	if attr.Mapping == nil || attr.Mapping.Script == nil {
 		return value
 	}
+
+	if mapped, ok := m.MapValue(step, name, attr.Mapping.Script, value); ok {
+		return mapped
+	}
+
+	slog.Warn("Input mapping failed; using original value",
+		log.StepID(step.ID),
+		slog.String("attribute", string(name)),
+		slog.String("language", attr.Mapping.Script.Language),
+	)
+	return value
 }
 
-// CompileMapping validates that a mapping expression compiles
-func (m *Mapper) CompileMapping(mapping string) error {
-	_, err := m.CompilePath(mapping)
-	return err
+// InputParamName resolves the outbound parameter name for a mapped input
+func (m *Mapper) InputParamName(
+	attrName api.Name, attr *api.AttributeSpec,
+) api.Name {
+	if attr.Mapping != nil && attr.Mapping.Name != "" {
+		return api.Name(attr.Mapping.Name)
+	}
+	return attrName
+}
+
+// MapOutputs maps raw step outputs to declared output attributes
+func (m *Mapper) MapOutputs(step *api.Step, outputs api.Args) api.Args {
+	if step == nil {
+		return outputs
+	}
+
+	res := api.Args{}
+	for name, attr := range step.Attributes {
+		if !attr.IsOutput() {
+			continue
+		}
+
+		value, ok := m.mapOutput(step, name, attr, outputs)
+		if ok {
+			res[name] = value
+		}
+	}
+	return res
+}
+
+func (m *Mapper) mapOutput(
+	step *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
+) (any, bool) {
+	if attr.Mapping != nil && attr.Mapping.Script != nil {
+		return m.MapValue(step, name, attr.Mapping.Script, outputs)
+	}
+	return m.outputByName(name, attr, outputs)
+}
+
+func (m *Mapper) outputByName(
+	name api.Name, attr *api.AttributeSpec, outputs api.Args,
+) (any, bool) {
+	sourceKey := name
+	if attr.Mapping != nil && attr.Mapping.Name != "" {
+		sourceKey = api.Name(attr.Mapping.Name)
+	}
+	value, ok := outputs[sourceKey]
+	return value, ok
 }

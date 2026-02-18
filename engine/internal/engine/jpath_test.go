@@ -109,10 +109,63 @@ func TestJPathEvaluatePredicateBadCompiledType(t *testing.T) {
 	assert.False(t, passed)
 }
 
-func TestJPathExecUnsupported(t *testing.T) {
+func TestJPathExecuteScriptSingleMatch(t *testing.T) {
 	env := engine.NewJPathEnv()
 
-	outputs, err := env.ExecuteScript(nil, nil, nil)
-	assert.ErrorIs(t, err, engine.ErrJPathExecuteScript)
+	compiled, err := env.Compile(nil, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   "$.foo",
+	})
+	assert.NoError(t, err)
+
+	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
+		"input": map[string]any{"foo": "bar"},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "bar", outputs["value"])
+}
+
+func TestJPathExecuteScriptMultiMatch(t *testing.T) {
+	env := engine.NewJPathEnv()
+
+	compiled, err := env.Compile(nil, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   "$..book",
+	})
+	assert.NoError(t, err)
+
+	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
+		"output": map[string]any{
+			"books": []any{
+				map[string]any{"book": "A"},
+				map[string]any{"book": "B"},
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, []any{"A", "B"}, outputs["value"])
+}
+
+func TestJPathExecuteScriptNoMatch(t *testing.T) {
+	env := engine.NewJPathEnv()
+
+	compiled, err := env.Compile(nil, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   "$.missing",
+	})
+	assert.NoError(t, err)
+
+	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
+		"input": map[string]any{"foo": "bar"},
+	})
+	assert.ErrorIs(t, err, engine.ErrJPathNoMatch)
+	assert.Nil(t, outputs)
+}
+
+func TestJPathExecuteScriptBadCompiledType(t *testing.T) {
+	env := engine.NewJPathEnv()
+
+	outputs, err := env.ExecuteScript("not-compiled", nil, api.Args{})
+	assert.ErrorIs(t, err, engine.ErrJPathBadCompiledType)
 	assert.Nil(t, outputs)
 }

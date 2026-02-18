@@ -582,3 +582,89 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 		assert.Equal(t, api.FlowFailed, flow.Status)
 	})
 }
+
+func TestInputMappingWithAle(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("ale-input-map")
+		step.Attributes = api.AttributeSpecs{
+			"amount": {
+				Role: api.RoleRequired,
+				Type: api.TypeNumber,
+				Mapping: &api.AttributeMapping{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangAle,
+						Script:   "(* amount 2)",
+					},
+				},
+			},
+			"result": {
+				Role: api.RoleOutput,
+				Type: api.TypeNumber,
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"result": float64(10)})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-ale-input")
+		fl := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{"amount": float64(5)}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		exec := fl.Executions[step.ID]
+		assert.Equal(t, float64(10), exec.Inputs["amount"])
+	})
+}
+
+func TestOutputMappingWithRename(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := helpers.NewSimpleStep("rename-output")
+		step.Attributes = api.AttributeSpecs{
+			"input": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"status": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "success",
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"success": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-output-rename")
+		fl := env.WaitForFlowStatus(flowID, func() {
+			err := env.Engine.StartFlow(flowID, plan,
+				flowopt.WithInit(api.Args{"input": "test"}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		exec := fl.Executions[step.ID]
+		assert.Equal(t, "ok", exec.Outputs["status"])
+		assert.Equal(t, "ok", fl.Attributes["status"].Value)
+	})
+}

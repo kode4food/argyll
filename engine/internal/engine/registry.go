@@ -102,10 +102,10 @@ func (e *Engine) validateStepMappings(step *api.Step) error {
 			continue
 		}
 
-		_, err := e.scripts.Compile(step, attr.Mapping.Script)
-		if err != nil {
+		if _, err := e.mapper.Compile(step, attr.Mapping.Script); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
-				api.ErrInvalidAttributeMapping, name, err)
+				api.ErrInvalidAttributeMapping, name, err,
+			)
 		}
 	}
 	return nil

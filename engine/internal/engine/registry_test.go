@@ -140,3 +140,25 @@ func TestRegisterStepJPathValid(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestJPathNotValidForScripts(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := &api.Step{
+			ID:   "jpath-script-step",
+			Name: "JPath Script",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangJPath,
+				Script:   "$.value",
+			},
+			Attributes: api.AttributeSpecs{
+				"value":  {Role: api.RoleRequired, Type: api.TypeString},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		}
+
+		err := eng.RegisterStep(step)
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
+	})
+}
