@@ -49,7 +49,7 @@ func (e *JPathEnv) ExecuteScript(
 		}
 	}
 
-	value, ok := jPathMappingValue(path(doc))
+	value, ok := collapseJPathMatches(path(doc))
 	if !ok {
 		return nil, ErrJPathNoMatch
 	}
@@ -83,7 +83,7 @@ func (e *JPathEnv) compile(source string) (jpath.Path, error) {
 	return compiled, nil
 }
 
-func jPathMappingValue(matches []any) (any, bool) {
+func collapseJPathMatches(matches []any) (any, bool) {
 	switch len(matches) {
 	case 0:
 		return nil, false
