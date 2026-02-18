@@ -1,5 +1,5 @@
 import React, { useRef } from "react";
-import { Position, NodeProps } from "@xyflow/react";
+import { Position, NodeProps, useUpdateNodeInternals } from "@xyflow/react";
 import { Step, FlowContext, ExecutionResult } from "@/app/api";
 import Widget from "./Widget";
 import InvisibleHandle from "@/app/components/atoms/InvisibleHandle";
@@ -16,10 +16,11 @@ interface NodeData {
   isStartingPoint?: boolean;
 }
 
-const Node: React.FC<NodeProps> = ({ data }) => {
+const Node: React.FC<NodeProps> = ({ id, data }) => {
   const nodeData = data as unknown as NodeData;
   const { step, flowData, executions = [], resolvedAttributes = [] } = nodeData;
   const widgetRef = useRef<HTMLDivElement | null>(null);
+  const updateNodeInternals = useUpdateNodeInternals();
 
   const { execution, provenance, satisfied } = useNodeData(
     step,
@@ -29,6 +30,10 @@ const Node: React.FC<NodeProps> = ({ data }) => {
   );
 
   const { allHandles } = useHandlePositions(step, widgetRef);
+
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [allHandles, id, updateNodeInternals]);
 
   return (
     <div>

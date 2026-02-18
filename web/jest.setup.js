@@ -8,6 +8,17 @@ class ResizeObserverMock {
 
 global.ResizeObserver = ResizeObserverMock;
 
+class DOMMatrixReadOnlyMock {
+  constructor() {
+    this.m11 = 1;
+    this.m22 = 1;
+    this.m41 = 0;
+    this.m42 = 0;
+  }
+}
+
+global.DOMMatrixReadOnly = DOMMatrixReadOnlyMock;
+
 const baseMessages = require("./app/i18n/en-US.json");
 const commonMessages = require("./app/i18n/common.json");
 const messages = { ...commonMessages, ...baseMessages };

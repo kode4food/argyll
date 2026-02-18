@@ -8,6 +8,16 @@ import {
 } from "@/app/contexts/DiagramSelectionContext";
 import { UIProvider } from "@/app/contexts/UIContext";
 
+const updateNodeInternalsMock = jest.fn();
+
+jest.mock("@xyflow/react", () => {
+  const actual = jest.requireActual("@xyflow/react");
+  return {
+    ...actual,
+    useUpdateNodeInternals: () => updateNodeInternalsMock,
+  };
+});
+
 jest.mock("@/app/contexts/UIContext", () => ({
   UIProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
   useUI: () => ({
@@ -95,6 +105,10 @@ describe("Node", () => {
     step: mockStep,
     selected: false,
   };
+
+  beforeEach(() => {
+    updateNodeInternalsMock.mockClear();
+  });
 
   const defaultProps = {
     id: "node-1",

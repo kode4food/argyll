@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback } from "react";
 import { Step } from "@/app/api";
 import StepHeader from "@/app/components/molecules/StepHeader";
 import Attributes from "@/app/components/molecules/OverviewStep/Attributes";
@@ -8,6 +8,7 @@ import { getStepType } from "@/utils/stepUtils";
 import { useStepHealth } from "@/app/hooks/useStepHealth";
 import { useStepEditorContext } from "@/app/contexts/StepEditorContext";
 import { useT } from "@/app/i18n";
+import { useFlowStore } from "@/app/store/flowStore";
 
 interface WidgetProps {
   step: Step;
@@ -36,20 +37,33 @@ const Widget: React.FC<WidgetProps> = ({
 }) => {
   const { status: healthStatus, error: healthError } = useStepHealth(step);
   const stepType = getStepType(step);
-
-  const [localStep, setLocalStep] = useState(step);
+  const addStep = useFlowStore((state) => state.addStep);
+  const updateStep = useFlowStore((state) => state.updateStep);
   const { openEditor } = useStepEditorContext();
   const t = useT();
+
+  const handleStepUpdate = useCallback(
+    (updatedStep: Step) => {
+      const { steps } = useFlowStore.getState();
+      const hasExisting = steps.some((currentStep) => {
+        return currentStep.id === updatedStep.id;
+      });
+      if (hasExisting) {
+        updateStep(updatedStep);
+        return;
+      }
+      addStep(updatedStep);
+    },
+    [addStep, updateStep]
+  );
 
   React.useEffect(() => {
     const handleOpenEditor = (event: Event) => {
       const customEvent = event as CustomEvent;
       if (customEvent.detail?.stepId === step.id && !disableEdit) {
         openEditor({
-          step: localStep,
-          onUpdate: (updated) => {
-            setLocalStep(updated);
-          },
+          step,
+          onUpdate: handleStepUpdate,
           diagramContainerRef,
         });
       }
@@ -58,24 +72,28 @@ const Widget: React.FC<WidgetProps> = ({
     document.addEventListener("openStepEditor", handleOpenEditor);
     return () =>
       document.removeEventListener("openStepEditor", handleOpenEditor);
-  }, [step.id, disableEdit, openEditor, localStep, diagramContainerRef]);
+  }, [
+    step,
+    step.id,
+    disableEdit,
+    openEditor,
+    handleStepUpdate,
+    diagramContainerRef,
+  ]);
 
   const isGrayedOut = isPreviewMode && !isInPreviewPlan;
   const isEditable =
     !disableEdit &&
-    ((localStep.type === "script" && localStep.script) ||
-      ((localStep.type === "sync" || localStep.type === "async") &&
-        localStep.http) ||
-      (localStep.type === "flow" && localStep.flow));
+    ((step.type === "script" && step.script) ||
+      ((step.type === "sync" || step.type === "async") && step.http) ||
+      (step.type === "flow" && step.flow));
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (disableEdit || !isEditable) return;
     e.stopPropagation();
     openEditor({
-      step: localStep,
-      onUpdate: (updated) => {
-        setLocalStep(updated);
-      },
+      step,
+      onUpdate: handleStepUpdate,
       diagramContainerRef,
     });
   };

@@ -1,5 +1,5 @@
 import React, { useRef, useCallback } from "react";
-import { Position, NodeProps } from "@xyflow/react";
+import { Position, NodeProps, useUpdateNodeInternals } from "@xyflow/react";
 import { Step } from "@/app/api";
 import Widget from "./Widget";
 import InvisibleHandle from "@/app/components/atoms/InvisibleHandle";
@@ -18,11 +18,12 @@ interface NodeData {
   disableEdit?: boolean;
 }
 
-const Node: React.FC<NodeProps> = ({ data }) => {
+const Node: React.FC<NodeProps> = ({ id, data }) => {
   const nodeData = data as unknown as NodeData;
   const { step, onStepClick } = nodeData;
   const { setGoalSteps } = useDiagramSelection();
   const widgetRef = useRef<HTMLDivElement | null>(null);
+  const updateNodeInternals = useUpdateNodeInternals();
 
   // Memoize the click handler to prevent unnecessary re-renders
   const handleClick = useCallback(
@@ -38,6 +39,10 @@ const Node: React.FC<NodeProps> = ({ data }) => {
   );
 
   const { allHandles } = useHandlePositions(step, widgetRef);
+
+  React.useEffect(() => {
+    updateNodeInternals(id);
+  }, [allHandles, id, updateNodeInternals]);
 
   return (
     <div>

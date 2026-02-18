@@ -1,8 +1,15 @@
 import React from "react";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  act,
+} from "@testing-library/react";
 import Widget from "./Widget";
 import type { Step } from "@/app/api";
 import { useStepHealth } from "@/app/hooks/useStepHealth";
+import { useFlowStore } from "@/app/store/flowStore";
 
 jest.mock("@/app/hooks/useStepHealth");
 jest.mock("@/app/components/molecules/StepHeader", () => ({
@@ -320,5 +327,35 @@ describe("Widget", () => {
 
     const { __openEditor } = require("@/app/contexts/StepEditorContext");
     expect(__openEditor).not.toHaveBeenCalled();
+  });
+
+  test("applies editor updates to the flow store", () => {
+    const step = createStep("sync", "step-123");
+    useFlowStore.setState({ steps: [step] });
+
+    const { container } = render(<Widget step={step} />);
+    const widget = container.querySelector(".step-widget");
+    fireEvent.doubleClick(widget!);
+
+    const { __openEditor } = require("@/app/contexts/StepEditorContext");
+    const onUpdate = __openEditor.mock.calls[0]?.[0]?.onUpdate as
+      | ((updated: Step) => void)
+      | undefined;
+
+    expect(onUpdate).toBeDefined();
+
+    const updatedStep: Step = {
+      ...step,
+      name: "Updated Step",
+    };
+
+    act(() => {
+      onUpdate?.(updatedStep);
+    });
+
+    const updated = useFlowStore
+      .getState()
+      .steps.find((current) => current.id === step.id);
+    expect(updated?.name).toBe("Updated Step");
   });
 });
