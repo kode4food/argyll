@@ -189,23 +189,3 @@ export interface QueryFlowsRequest {
   cursor?: string;
   sort?: FlowSort;
 }
-
-export interface WorkItemState {
-  status: "pending" | "active" | "completed" | "failed";
-  started_at: string;
-  completed_at?: string;
-  inputs: Record<string, any>;
-  outputs?: Record<string, any>;
-  error?: string;
-}
-
-export interface ExecutionInfo {
-  status: StepStatus;
-  started_at: string;
-  completed_at?: string;
-  inputs: Record<string, any>;
-  outputs?: Record<string, any>;
-  duration?: number;
-  error?: string;
-  work_items?: Record<string, WorkItemState>;
-}
