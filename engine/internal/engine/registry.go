@@ -222,7 +222,11 @@ func checkAttributeConflicts(
 
 func detectStepCycles(st *api.EngineState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
-	deps := st.Attributes.AddStep(newStep)
+	deps := st.Attributes
+	if existing, ok := st.Steps[newStep.ID]; ok {
+		deps = deps.RemoveStep(existing)
+	}
+	deps = deps.AddStep(newStep)
 	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
 }
 

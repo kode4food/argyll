@@ -98,6 +98,38 @@ func TestUpdateStep(t *testing.T) {
 	})
 }
 
+func TestUpdateStepReplacesCycleDependencies(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		stepA := helpers.NewSimpleStep("step-a")
+		stepA.Attributes = api.AttributeSpecs{
+			"foo": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		assert.NoError(t, eng.RegisterStep(stepA))
+
+		stepB := helpers.NewSimpleStep("step-b")
+		stepB.Attributes = api.AttributeSpecs{
+			"foo": {Role: api.RoleRequired, Type: api.TypeString},
+			"bar": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		assert.NoError(t, eng.RegisterStep(stepB))
+
+		stepC := helpers.NewSimpleStep("step-c")
+		stepC.Attributes = api.AttributeSpecs{
+			"bar": {Role: api.RoleRequired, Type: api.TypeString},
+			"baz": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		assert.NoError(t, eng.RegisterStep(stepC))
+
+		updatedA := helpers.NewSimpleStep("step-a")
+		updatedA.Attributes = api.AttributeSpecs{
+			"baz": {Role: api.RoleRequired, Type: api.TypeString},
+			"qux": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+
+		assert.NoError(t, eng.UpdateStep(updatedA))
+	})
+}
+
 func TestRegisterStepValidatesMappings(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("bad-mapping")
