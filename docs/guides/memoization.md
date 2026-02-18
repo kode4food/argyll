@@ -84,7 +84,7 @@ Each work item is cached independently.
 ### LRU Eviction
 
 - Cache uses LRU (Least Recently Used) eviction
-- Configurable size (default: 4096 entries)
+- Configurable size (default: 10240 entries)
 - When full, least recently used entries are removed
 
 ### No TTL
@@ -159,7 +159,7 @@ Check "Cache step results (memoizable)" in step execution options.
 
 Configure via environment variable:
 ```bash
-MEMO_CACHE_SIZE=4096  # Default
+MEMO_CACHE_SIZE=10240 # Default
 MEMO_CACHE_SIZE=8192  # Larger cache for more memoizable steps
 ```
 

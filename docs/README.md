@@ -33,15 +33,6 @@ Practical guides for specific tasks:
 - [Configuration](./guides/configuration.md) - Environment variables, security, deployment, monitoring
 - [Flow Design Patterns](./guides/flow-design.md) - Structuring flows for reuse and clarity
 
-## Go SDK
-
-Building steps and flows in Go:
-
-- [SDK Overview](./go/README.md)
-- [Step Builder](./go/step-builder.md)
-- [Flow Builder](./go/flow-builder.md)
-- [SDK Examples](./go/examples.md)
-
 ## API Reference
 
 - **Engine API**: [api/engine-api.yaml](./api/engine-api.yaml) - OpenAPI specification
@@ -58,7 +49,7 @@ Complete, runnable example steps:
 ## Need Help?
 
 - **Questions about concepts?** Read the [core concepts](./concepts/index.md)
-- **How do I build a step?** See [Go SDK](./go/README.md) or [Step Types Guide](./guides/step-types.md)
+- **How do I build a step?** See [Step Types Guide](./guides/step-types.md)
 - **How do I deploy?** Read [Configuration Guide](./guides/configuration.md)
 - **Errors or unexpected behavior?** Check the troubleshooting sections in relevant guides
 
@@ -88,10 +79,5 @@ docs/
 │   ├── engine-api.yaml              # OpenAPI spec
 │   ├── step-interface.yaml          # Step handler interface
 │   └── README.md                    # Quick reference
-├── go/
-│   ├── README.md                    # SDK overview
-│   ├── step-builder.md              # Building steps in Go
-│   ├── flow-builder.md              # Building flows in Go
-│   └── examples.md                  # Code examples
 └── img/                             # Images and logos
 ```

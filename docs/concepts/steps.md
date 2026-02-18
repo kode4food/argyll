@@ -182,7 +182,7 @@ The predicate evaluates to true/false. If false, the step is skipped and produce
 - Conditional execution without adding branching infrastructure
 - Avoiding unnecessary work (e.g., "only notify if order is large")
 
-**Predicates are evaluated:** Once per step before work items are created. If the predicate is false, the step produces no outputs and is marked skipped.
+**Predicates are evaluated:** before initial work starts and again when pending/retry work items are started. If predicate checks fail, that work does not run.
 
 ## Work Items and For Each
 
@@ -240,7 +240,7 @@ Use `mapping.name` to map between flow state attribute names (outer names) and s
 
 ### Value Transformation
 
-Use `mapping.script` to transform values using JPath, Ale, or Lua:
+Use `mapping.script` to transform values using JSONPath, Ale, or Lua:
 
 ```json
 {

@@ -72,7 +72,7 @@ curl -X POST \
 **What you SHOULD do:**
 - Store the receipt_token for logging and debugging
 - Implement retry logic with exponential backoff in your worker
-- Treat 400 responses as "already processed" (safe to stop retrying)
+- Treat 400 responses as terminal and inspect the error body
 - Treat 5xx responses and network errors as retryable
 
 **What you DON'T need to do:**
@@ -94,10 +94,10 @@ def send_completion(flow_id, step_id, receipt_token, result):
             if response.status_code == 200:
                 return True  # Success
             elif response.status_code == 400:
-                # Permanent failure - work already in terminal state
-                # Safe to give up (engine has idempotency guarantee)
-                log.error(f"Work {receipt_token} already processed",
-                          response.text)
+                # Terminal request error (invalid flow/step/token/work state)
+                # Do not retry blindly; inspect response and alert/log.
+                log.error(f"Webhook rejected for {receipt_token}: "
+                          f"{response.text}")
                 return False
             else:
                 # Retryable error (5xx, network, timeout)
@@ -114,8 +114,11 @@ def send_completion(flow_id, step_id, receipt_token, result):
 ## Retries and failures
 
 - Retry behavior is controlled by step work config.
-- A webhook failure should return `success: false` with an error string.
-- If a work item reports not completed, the engine can schedule a retry using backoff.
+- Posting webhook payload `{ "success": false, "error": "..." }` records a
+  permanent failure for that work item.
+- Retry scheduling is driven by `work_not_completed` transitions (for example,
+  transient invocation failures like network errors or HTTP 5xx from a step
+  endpoint).
 
 See [guides/retries.md](./retries.md) for details.
 

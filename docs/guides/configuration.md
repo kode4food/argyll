@@ -12,7 +12,7 @@ Configure where the engine stores step definitions and health data:
 ENGINE_REDIS_ADDR=localhost:6379       # Default
 ENGINE_REDIS_PASSWORD=                 # Empty if no auth
 ENGINE_REDIS_DB=0                      # Redis database number
-ENGINE_REDIS_PREFIX=argyll:engine       # Namespace prefix
+ENGINE_REDIS_PREFIX=argyll             # Namespace prefix
 ```
 
 ### Flow Storage
@@ -23,7 +23,7 @@ Configure where flows and their state are stored:
 FLOW_REDIS_ADDR=localhost:6379
 FLOW_REDIS_PASSWORD=
 FLOW_REDIS_DB=0
-FLOW_REDIS_PREFIX=argyll:flow
+FLOW_REDIS_PREFIX=argyll
 ```
 
 ### Archiving Policy
@@ -51,14 +51,16 @@ ARCHIVE_POLL_INTERVAL=500ms             # Poll interval for archive job status
 ### Caching
 
 ```bash
-MEMO_CACHE_SIZE=4096                   # Max memoization cache entries (default: 4096)
+MEMO_CACHE_SIZE=10240                  # Max memoization cache entries (default: 10240)
 ```
 
 ### Server Configuration
 
 ```bash
-ENGINE_PORT=8080                       # HTTP API port
-ENGINE_LOGGING_LEVEL=info              # Log level: debug, info, warn, error
+API_HOST=0.0.0.0                        # HTTP listen host
+API_PORT=8080                           # HTTP API port
+WEBHOOK_BASE_URL=http://localhost:8080  # Async callback base URL
+LOG_LEVEL=info                          # Log level: debug, info, warn, error
 ```
 
 ## Store Separation
@@ -156,7 +158,7 @@ go run ./cmd/argyll
 
 6. **Logging**:
    - Forward logs to centralized system (ELK, Splunk, etc.)
-   - Set `ENGINE_LOGGING_LEVEL` appropriately (warn/error for prod)
+   - Set `LOG_LEVEL` appropriately (warn/error for prod)
 
 ### Performance Tuning
 
@@ -260,7 +262,7 @@ HTTP steps can include a health check endpoint:
 }
 ```
 
-Health checks run periodically to detect step availability. If unavailable, steps using this handler fail.
+Health checks run periodically to update step health status. They do not directly block or fail step execution.
 
 ## Monitoring & Observability
 
@@ -298,7 +300,7 @@ Since Argyll has no built-in metrics, instrument at:
 
 ```
 Error: redis: connection refused
-→ Check REDIS_ADDR is correct
+→ Check ENGINE_REDIS_ADDR / FLOW_REDIS_ADDR
 → Verify Redis is running
 → Check network connectivity
 ```

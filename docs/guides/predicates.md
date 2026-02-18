@@ -36,13 +36,13 @@ Step executes, HTTP call made, outputs produced
 
 ## When Predicate Evaluates
 
-Predicates evaluate **once per step**, before work items are created.
+Predicates are evaluated when work is about to start:
 
 ```
 If step has for_each:
-  1. Predicate evaluates (once)
-  2. If false: entire step skipped (no work items created)
-  3. If true: work items created and execute
+  1. Predicate is checked before initial scheduling
+  2. Predicate is checked again when pending/retry work items are started
+  3. If false, that work does not start
 ```
 
 Example:
@@ -64,7 +64,7 @@ If `items` is empty, predicate is false and no work items run. If non-empty, wor
 
 ## Languages
 
-Predicates are Ale or Lua scripts, the same as regular script steps.
+Predicates support Ale, Lua, and JSONPath.
 
 ### Ale
 
@@ -98,6 +98,15 @@ end
 
 -- More complex logic
 return #items > 0 and items[1].status == "approved"
+```
+
+### JSONPath
+
+Declarative JSON path/filter expressions. Predicate is true when the query matches at least one value (including explicit `null` matches).
+
+```text
+$.customer.active
+$.items[?(@.status=="ready")]
 ```
 
 ## Use Cases
@@ -284,7 +293,7 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
   "id": "send-time-sensitive-offer",
   "predicate": {
     "language": "lua",
-    "script": "return os.time() < offer_expiry"
+    "script": "return current_epoch < offer_expiry"
   }
 }
 ```

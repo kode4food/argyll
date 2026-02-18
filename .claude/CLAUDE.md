@@ -26,13 +26,12 @@ docker compose logs -f argyll-engine   # Follow logs
 engine/
   internal/
     engine/      # Core orchestration (engine.go, flow.go, flow-exec.go, step.go, work-exec.go)
-    events/      # Event sourcing types and projections
     client/      # HTTP client for step invocation
     config/      # Configuration management
     server/      # HTTP/WebSocket API (Gin-based)
   pkg/
     api/         # Public types and interfaces
-    builder/     # Step builder utilities
+    events/      # Event key helpers and aggregates
   cmd/argyll/    # Main entry point
   tests/         # Integration tests
 web/             # React UI (atomic design)
@@ -46,7 +45,7 @@ examples/        # Sample step implementations
 - Distributed coordination (optimistic concurrency)
 - Event sourcing (Valkey backend)
 - Lazy evaluation (goal-oriented execution)
-- Step types (sync HTTP, async HTTP, script)
+- Step types (sync HTTP, async HTTP, script, flow)
 - Immutable execution plans
 - Real-time UI (React 19 + WebSocket)
 - Health monitoring
@@ -66,8 +65,8 @@ examples/        # Sample step implementations
 
 ## API
 
-- Engine API: `/engine/docs/engine-api.yaml`
-- Step Interface: `/engine/docs/step-interface.yaml`
+- Engine API: `/docs/api/engine-api.yaml`
+- Step Interface: `/docs/api/step-interface.yaml`
 - Base path: `/engine/`
 
 ### Step Request/Response
@@ -75,9 +74,12 @@ examples/        # Sample step implementations
 ```json
 // Request
 {
-  "step_id": "unique-id",
   "arguments": { "key": "value" },
-  "meta": { "flow_id": "wf-123" }
+  "metadata": {
+    "flow_id": "wf-123",
+    "step_id": "unique-id",
+    "receipt_token": "tok-abc123"
+  }
 }
 
 // Response
@@ -90,7 +92,7 @@ examples/        # Sample step implementations
 ## Web UI
 
 - Location: `/web`
-- Tech: React 19 + TypeScript + Tailwind CSS v3
+- Tech: React 19 + TypeScript
 - Port: 3001
 - API: Connects to engine at `http://localhost:8080`
 

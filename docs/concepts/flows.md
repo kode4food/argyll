@@ -108,6 +108,6 @@ Deactivated flows are eligible for archiving. The archive worker:
 3. Writes them to external storage (e.g., S3)
 4. Removes them from the active store
 
-Archived flows are no longer in Redis but remain queryable and replayable from the archive backend.
+Archived flows are removed from the live engine stores. They remain available in the archive backend, but are not returned by the engine flow query endpoints.
 
 See [Configuration](../guides/configuration.md) for archiving policy options.

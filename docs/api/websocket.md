@@ -38,7 +38,7 @@ ws.onclose = () => {
 
 ## Event Format
 
-All WebSocket messages are JSON objects with this envelope:
+Event messages use this envelope:
 
 ```json
 {
@@ -50,12 +50,15 @@ All WebSocket messages are JSON objects with this envelope:
 }
 ```
 
-**Envelope Fields:**
+**Envelope Fields (event messages):**
 - `type`: Event type constant (e.g., "flow_started", "step_completed")
 - `data`: Event-specific data (structure varies by event type)
 - `id`: Aggregate ID path (e.g., ["engine"], ["flow", "flow-id"])
 - `timestamp`: Milliseconds since epoch (Unix time × 1000)
 - `sequence`: Global event sequence number for ordering
+
+`subscribed` messages are different: they include `type`, `id`, `data`, and
+`sequence`, but no `timestamp`.
 
 ## Event Types
 
@@ -449,7 +452,8 @@ All WebSocket messages are JSON objects with this envelope:
 
 ## Subscriptions and Filtering
 
-By default, a WebSocket connection receives all events. To filter events, send a `subscribe` message after connection:
+A new WebSocket connection starts with no event stream. Send a `subscribe`
+message to begin receiving events:
 
 ```json
 {

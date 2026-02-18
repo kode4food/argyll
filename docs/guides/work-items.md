@@ -215,16 +215,17 @@ Inventory API supports 10 concurrent requests
 
 ## Partial Failure
 
-If some work items fail, the step status reflects the aggregated result.
+If any work item fails permanently, the step ends in `failed` once all work
+items reach terminal states.
 
 ```
 5 work items
 4 succeed
 1 fails
 
-Step status: "partial_failure" (or "failed" depending on your flow)
-Outputs aggregated from successful items
-Failed item recorded in error logs
+Step status: "failed"
+Successful work outputs remain recorded on their work items
+Failure reason is stored on the step execution
 ```
 
 ## Use Cases
@@ -258,9 +259,10 @@ inventory_items = [item1, item2, item3, ...]
 
 If a step has both a `predicate` and `for_each`:
 
-- Predicate evaluates **once** before work items are created
-- If predicate is false, entire step is skipped (no work items run)
-- If predicate is true, all work items execute
+- Predicate is evaluated before initial work-item scheduling
+- Predicate is also checked when pending/retry work items are about to start
+- If predicate is false, affected work does not start (or is skipped at step
+  level before any work items are started)
 
 ```json
 {
@@ -283,11 +285,11 @@ When a step handler receives a work item:
 
 ```json
 {
-  "step_id": "process-item",
   "arguments": {
     "item": { "id": "item-1", "value": 10 }
   },
   "metadata": {
+    "step_id": "process-item",
     "flow_id": "flow-123",
     "receipt_token": "work-abc-123"
   }
@@ -303,7 +305,7 @@ When a step handler receives a work item:
 }
 ```
 
-This counts as a handled failure and triggers retries (if configured).
+This records a handled, permanent failure for that work item.
 
 ## Common Patterns
 
@@ -347,4 +349,6 @@ A: Each aggregated output includes the `for_each` input values. In the code abov
 A: No, it's set in the step definition. Create a new step version if you need to change it.
 
 **Q: What happens if a work item never completes?**
-A: After the configured timeout, it's marked failed. The step continues with remaining items if you have retries configured.
+A: Completion behavior is controlled by retry settings and result reporting.
+Transient failures (`work_not_completed`) retry until retry budget is exhausted;
+permanent failures (`work_failed`) fail that work item immediately.

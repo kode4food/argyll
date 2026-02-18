@@ -362,7 +362,9 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/QueryFlowsResponse"
+                type: array
+                items:
+                  $ref: "#/components/schemas/QueryFlowsItem"
     post:
       summary: Start Flow
       description: |
@@ -402,6 +404,33 @@ paths:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Flow ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /engine/flow/query:
+    post:
+      summary: Query Flows
+      description: Query flows using ID prefix, labels, status filters, and pagination
+      operationId: queryFlows
+      tags:
+        - Flows
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/QueryFlowsRequest"
+      responses:
+        "200":
+          description: Query results
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/QueryFlowsResponse"
+        "400":
+          description: Invalid query request
           content:
             application/json:
               schema:
@@ -497,19 +526,9 @@ paths:
                   error: "Processing failed due to invalid input format"
       responses:
         "200":
-          description: Webhook processed successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MessageResponse"
+          description: Webhook processed successfully (empty body)
         "400":
-          description: Invalid webhook request or token
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Flow or step not found
+          description: Invalid webhook request, state, or token
           content:
             application/json:
               schema:
@@ -621,6 +640,9 @@ components:
         - health
         - active
         - deactivated
+        - archiving
+        - flow_digests
+        - attributes
         - last_updated
       properties:
         steps:
@@ -643,6 +665,22 @@ components:
           description: List of deactivated flows pending archiving
           items:
             $ref: "#/components/schemas/DeactivatedFlowInfo"
+        archiving:
+          type: object
+          description: Map of flow ID to archiving lease timestamp
+          additionalProperties:
+            type: string
+            format: date-time
+        flow_digests:
+          type: object
+          description: Map of flow ID to digest summary
+          additionalProperties:
+            $ref: "#/components/schemas/FlowDigest"
+        attributes:
+          type: object
+          description: Engine-level attribute dependency graph
+          additionalProperties:
+            $ref: "#/components/schemas/Dependencies"
         last_updated:
           type: string
           format: date-time
@@ -819,7 +857,7 @@ components:
       description: |
         Defines parameter name mapping and value transformation for attributes.
         Allows renaming parameters between flow state and service interfaces,
-        and transforming values using scripts (JPath for queries, Lua/Ale for logic).
+        and transforming values using scripts (JSONPath for queries, Lua/Ale for logic).
 
         At least one of `name` or `script` must be provided.
         Not allowed on const attributes.
@@ -869,8 +907,9 @@ components:
       description: |
         Configuration for script-based steps or attribute mappings.
 
-        For step execution, only `ale` and `lua` are supported.
-        For attribute mappings, `jpath` is also supported for value extraction.
+        For step execution (`type: script`), `ale` and `lua` are supported.
+        For predicates and attribute mappings, all registered languages are valid
+        (`ale`, `lua`, `jpath` in the default engine).
       required:
         - language
         - script
@@ -880,16 +919,16 @@ components:
           enum: ["ale", "lua", "jpath"]
           description: |
             Script language:
-            - `ale`: Ale language for step scripts
-            - `lua`: Lua language for step scripts
-            - `jpath`: JPath for attribute mapping queries
+            - `ale`: Ale expressions
+            - `lua`: Lua scripts
+            - `jpath`: JSONPath query expressions
           example: "ale"
         script:
           type: string
           description: |
             The script code to execute.
 
-            For JPath: A query string like `$.user.email` or `$.data[0].value`
+            For JSONPath: A query string like `$.user.email` or `$.data[0].value`
             For Ale/Lua: The complete script code
           example: '{:greeting (str "Hello, " name)}'
 
@@ -1218,7 +1257,7 @@ components:
           type: string
           enum: [recent_desc, recent_asc]
           description: Sort order by recency within status grouping
-          example: "Step execution failed: connection timeout"
+          example: "recent_desc"
 
     FlowState:
       type: object
@@ -1273,14 +1312,13 @@ components:
     ActiveFlowInfo:
       type: object
       required:
-        - flow_id
         - started_at
         - last_active
       properties:
-        flow_id:
+        parent_flow_id:
           type: string
-          description: Flow identifier
-          example: "wf-text-processing-001"
+          description: Parent flow ID for child flows
+          example: "wf-parent-001"
         started_at:
           type: string
           format: date-time
@@ -1300,6 +1338,10 @@ components:
           type: string
           description: Flow identifier
           example: "wf-text-processing-001"
+        parent_flow_id:
+          type: string
+          description: Parent flow ID for child flows
+          example: "wf-parent-001"
         deactivated_at:
           type: string
           format: date-time
@@ -1368,9 +1410,9 @@ components:
       properties:
         status:
           type: string
-          enum: [pending, active, completed, failed]
+          enum: [pending, active, succeeded, failed, not_completed]
           description: Current work item status
-          example: "completed"
+          example: "succeeded"
         started_at:
           type: string
           format: date-time
@@ -1398,9 +1440,6 @@ components:
           type: string
           format: date-time
           description: When the next retry is scheduled
-        last_error:
-          type: string
-          description: Error message from the last failed attempt
 
     StepResponse:
       type: object
@@ -1413,7 +1452,7 @@ components:
           description: Whether the step executed successfully
         outputs:
           type: object
-          description: Output values to merge into flow state
+          description: Output values for declared step output attributes
           additionalProperties: true
           example:
             processed_text: "HELLO WORLD"
@@ -1464,29 +1503,3 @@ tags:
     description: Webhook callbacks for async steps
   - name: WebSocket
     description: Real-time event streaming
-  /engine/flow/query:
-    post:
-      summary: Query Flows
-      description: Query flows using ID prefix, labels, status filters, and pagination
-      operationId: queryFlows
-      tags:
-        - Flows
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/QueryFlowsRequest"
-      responses:
-        "200":
-          description: Query results
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/QueryFlowsResponse"
-        "400":
-          description: Invalid query request
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"

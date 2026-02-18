@@ -50,11 +50,11 @@ info:
 
     1. **Accepts** a JSON request with:
        - `arguments`: Input arguments (from flow state)
-       - `metadata`: Flow context (flow_id, step_id, etc.)
+       - `metadata`: Flow context (flow_id, step_id, receipt_token, etc.)
 
     2. **Returns** a JSON response with:
        - `success`: Boolean indicating execution success
-       - `outputs`: Key-value pairs to merge into flow state (if success=true)
+       - `outputs`: Key-value pairs for declared output attributes (if success=true)
        - `error`: Optional error message (if success=false)
 
     ## Error Handling
@@ -64,7 +64,7 @@ info:
     - **Business logic errors** (`success: false`, `error: "message"`):
       - The step executed correctly but the business logic failed
       - Example: Validation failed, invalid input format, etc.
-      - The step is marked as failed and the flow is terminated
+      - The step is marked as failed (the flow fails if this blocks goals)
 
     - **HTTP errors** (4xx/5xx status codes):
       - Infrastructure or request format errors
@@ -119,7 +119,7 @@ paths:
         2. **Process the request**: Execute your business logic
         3. **Return results**: Provide outputs or error information
         4. **Handle timeouts**: Respect the timeout configured in step registration
-        5. **Use idempotency**: Use `flow_id` + `step_id` from metadata as idempotency key
+        5. **Use idempotency**: Use `flow_id` + `step_id` + `receipt_token` from metadata as idempotency key
 
         ## Execution Flow
 
@@ -127,14 +127,14 @@ paths:
         1. Receive request from engine
         2. Process immediately
         3. Return response with outputs
-        4. Engine merges outputs into flow state
+        4. Engine maps declared outputs into flow state
 
         **For Async Steps:**
         1. Receive request from engine
         2. Return HTTP 200 immediately (engine provides webhook URL in request)
         3. Process asynchronously in background
         4. POST results to webhook when complete
-        5. Engine merges outputs into flow state
+        5. Engine maps declared outputs into flow state
 
         ## Terminal Steps
 
@@ -170,6 +170,7 @@ paths:
                   metadata:
                     flow_id: "wf-123"
                     step_id: "text-processor"
+                    receipt_token: "tok_abc123xyz"
               validationStep:
                 summary: User validation
                 description: A step that validates user permissions
@@ -180,6 +181,7 @@ paths:
                   metadata:
                     flow_id: "wf-onboarding-789"
                     step_id: "user-validator"
+                    receipt_token: "tok_def456uvw"
               dataEnrichment:
                 summary: Data enrichment
                 description: A step that enriches data with external API
@@ -190,6 +192,7 @@ paths:
                   metadata:
                     flow_id: "wf-analytics-456"
                     step_id: "data-enricher"
+                    receipt_token: "tok_ghi789rst"
       responses:
         "200":
           description: Step executed successfully (or failed with business logic error)
@@ -304,15 +307,17 @@ components:
             **Standard fields provided by the engine:**
             - `flow_id`: The executing flow's ID (use for idempotency)
             - `step_id`: The step identifier being executed
+            - `receipt_token`: Unique work-item token for idempotency
             - `webhook_url`: For async steps only, the URL to POST results to
 
-            **Best Practice**: Use `flow_id` + `step_id` as an idempotency key.
-            The combination uniquely identifies a step execution within a flow.
+            **Best Practice**: Use `flow_id` + `step_id` + `receipt_token` as an idempotency key.
+            `receipt_token` uniquely identifies a work item execution attempt.
             Do NOT depend on `metadata` for core step logic (use `arguments` instead).
           additionalProperties: true
           example:
             flow_id: "wf-123"
             step_id: "text-processor"
+            receipt_token: "tok_abc123xyz"
             webhook_url: "http://localhost:8080/webhook/wf-123/text-processor/tok_abc123xyz"
 
     StepResponse:
@@ -324,16 +329,15 @@ components:
           type: boolean
           description: |
             Whether the step executed successfully.
-            - `true`: Step completed successfully (outputs will be merged into flow state)
+            - `true`: Step completed successfully (declared outputs are mapped into flow state)
             - `false`: Step failed (check `error` for details)
         outputs:
           type: object
           description: |
-            Output values that will be merged into the flow state.
+            Output values for declared output attributes.
 
             **Key naming**: Keys should match the step's declared output attributes
-            in the step registration. However, you can return any keys - the engine
-            will merge all outputs into the flow state.
+            in the step registration. Undeclared keys may be ignored by the engine.
 
             **Value types**: Outputs can be any JSON-serializable values:
             - Primitives: strings, numbers, booleans
@@ -359,7 +363,7 @@ components:
 
             **Flow behavior**:
             - The step is marked as failed
-            - The flow is terminated
+            - The flow fails if this is a goal step or if dependencies become unreachable
             - Error is logged in flow state
 
             **Required when**: `success: false`
@@ -412,7 +416,7 @@ x-implementation-notes: |
      - 400: Invalid request format
      - 500: Internal server error
      - 503: Service unavailable
-  4. **Use metadata for idempotency**: Use `flow_id` + `step_id` as idempotency key
+  4. **Use metadata for idempotency**: Use `flow_id` + `step_id` + `receipt_token` as idempotency key
   5. **Distinguish errors from exceptions**:
      - `error`: Recoverable business logic failures
      - `exception`: Critical failures that terminate flow
@@ -432,7 +436,8 @@ x-implementation-notes: |
       },
       "metadata": {
         "flow_id": "test-flow",
-        "step_id": "your-step-id"
+        "step_id": "your-step-id",
+        "receipt_token": "tok_test123"
       }
     }'
   ```
