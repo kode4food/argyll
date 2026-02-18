@@ -69,9 +69,10 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
 
   const {
     handleViewportChange,
-    shouldFitView: fitsView,
+    shouldFitView,
     savedViewport,
     markRestored,
+    markFitApplied,
   } = useDiagramViewport(viewportKey);
 
   useEffect(() => {
@@ -80,6 +81,33 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
       requestAnimationFrame(() => markRestored());
     }
   }, [reactFlowInstance, savedViewport, markRestored]);
+
+  useEffect(() => {
+    if (!shouldFitView || !reactFlowInstance || nodes.length === 0) {
+      return;
+    }
+
+    let frameA = 0;
+    let frameB = 0;
+
+    frameA = requestAnimationFrame(() => {
+      frameB = requestAnimationFrame(() => {
+        reactFlowInstance.fitView({
+          padding: STEP_LAYOUT.FIT_VIEW_PADDING,
+        });
+        markFitApplied();
+      });
+    });
+
+    return () => {
+      if (frameA) {
+        cancelAnimationFrame(frameA);
+      }
+      if (frameB) {
+        cancelAnimationFrame(frameB);
+      }
+    };
+  }, [reactFlowInstance, shouldFitView, nodes, markFitApplied]);
 
   if (isLoadingPlan || stepsToRender.length === 0) {
     return (
@@ -102,8 +130,6 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
         nodesDraggable={false}
         elementsSelectable={false}
         nodesFocusable={false}
-        fitView={fitsView}
-        fitViewOptions={{ padding: STEP_LAYOUT.FIT_VIEW_PADDING }}
         onViewportChange={handleViewportChange}
         className="flow-mode-bg"
         proOptions={{ hideAttribution: true }}

@@ -12,6 +12,7 @@ jest.mock("@xyflow/react", () => ({
     <>{children}</>
   ),
   useReactFlow: () => ({
+    fitView: jest.fn(),
     setViewport: jest.fn(),
   }),
 }));
@@ -29,6 +30,7 @@ jest.mock("@/app/hooks/useDiagramViewport", () => ({
     shouldFitView: true,
     savedViewport: null,
     markRestored: jest.fn(),
+    markFitApplied: jest.fn(),
   }),
 }));
 

@@ -37,24 +37,15 @@ const Widget: React.FC<WidgetProps> = ({
 }) => {
   const { status: healthStatus, error: healthError } = useStepHealth(step);
   const stepType = getStepType(step);
-  const addStep = useFlowStore((state) => state.addStep);
-  const updateStep = useFlowStore((state) => state.updateStep);
+  const upsertStep = useFlowStore((state) => state.upsertStep);
   const { openEditor } = useStepEditorContext();
   const t = useT();
 
   const handleStepUpdate = useCallback(
     (updatedStep: Step) => {
-      const { steps } = useFlowStore.getState();
-      const hasExisting = steps.some((currentStep) => {
-        return currentStep.id === updatedStep.id;
-      });
-      if (hasExisting) {
-        updateStep(updatedStep);
-        return;
-      }
-      addStep(updatedStep);
+      upsertStep(updatedStep);
     },
-    [addStep, updateStep]
+    [upsertStep]
   );
 
   React.useEffect(() => {

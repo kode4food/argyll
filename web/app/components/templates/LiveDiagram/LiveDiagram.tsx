@@ -59,7 +59,7 @@ const LiveDiagramContent: React.FC = () => {
                 >
                   {flowData.status}
                 </span>
-                {flowData.plan?.steps && steps && (
+                {flowData.plan?.steps && (
                   <FlowStats
                     steps={steps}
                     executionSequence={Object.keys(flowData.plan.steps)}
@@ -94,9 +94,9 @@ const LiveDiagramContent: React.FC = () => {
         description={t("diagram.errorDescription")}
       >
         <LiveDiagramView
-          steps={steps || []}
+          steps={steps}
           flowData={flowData}
-          executions={executions || []}
+          executions={executions}
           resolvedAttributes={resolved}
         />
       </ErrorBoundary>

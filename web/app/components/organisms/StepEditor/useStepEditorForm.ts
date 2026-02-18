@@ -73,7 +73,7 @@ export function useStepEditorForm(
       const vars = validationError.vars
         ? { ...validationError.vars }
         : undefined;
-      if (vars?.reason && true) {
+      if (vars?.reason) {
         vars.reason = t(vars.reason);
       }
       return t(validationError.key, vars);

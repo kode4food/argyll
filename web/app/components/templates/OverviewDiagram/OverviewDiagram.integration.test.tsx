@@ -12,13 +12,20 @@ import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 
 const loadStepsMock = jest.fn().mockResolvedValue(undefined);
 const loadFlowsMock = jest.fn().mockResolvedValue(undefined);
+const flowStoreState = {
+  selectFlow: jest.fn(),
+  stepHealth: {},
+  upsertStep: jest.fn(),
+};
 
 jest.mock("@/app/store/flowStore", () => {
   const api = jest.requireActual("@/app/store/flowStore");
   return {
     ...api,
     useSelectedFlow: jest.fn(() => null),
-    useFlowStore: jest.fn(() => ({ selectFlow: jest.fn() })),
+    useFlowStore: jest.fn((selector?: (state: any) => unknown) => {
+      return selector ? selector(flowStoreState) : flowStoreState;
+    }),
     useLoadFlows: jest.fn(() => loadFlowsMock),
     useLoadSteps: jest.fn(() => loadStepsMock),
     useSteps: jest.fn(() => [
@@ -60,9 +67,11 @@ jest.mock("@/app/components/organisms/StepEditor", () => {
 describe("OverviewDiagram integration", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    flowStoreState.selectFlow.mockClear();
+    flowStoreState.upsertStep.mockClear();
   });
 
-  it("opens editor and reloads steps on create", async () => {
+  it("opens editor and applies step updates", async () => {
     render(
       <UIProvider>
         <FlowSessionProvider>
@@ -77,6 +86,6 @@ describe("OverviewDiagram integration", () => {
     });
 
     expect(await screen.findByTestId("step-editor")).toBeInTheDocument();
-    await waitFor(() => expect(loadStepsMock).toHaveBeenCalled());
+    await waitFor(() => expect(flowStoreState.upsertStep).toHaveBeenCalled());
   });
 });

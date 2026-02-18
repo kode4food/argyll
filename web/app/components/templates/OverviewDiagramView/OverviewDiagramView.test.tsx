@@ -67,6 +67,7 @@ jest.mock("@/app/hooks/useDiagramViewport", () => ({
     shouldFitView: true,
     savedViewport: null,
     markRestored: jest.fn(),
+    markFitApplied: jest.fn(),
   }),
 }));
 

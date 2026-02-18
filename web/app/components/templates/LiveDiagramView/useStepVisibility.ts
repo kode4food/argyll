@@ -24,11 +24,11 @@ export function useStepVisibility(
     return null;
   }, [flowData]);
 
-  if (planSteps && !planStepsRef.current) {
+  if (planSteps) {
     planStepsRef.current = planSteps;
   }
 
   return {
-    visibleSteps: planStepsRef.current || steps || [],
+    visibleSteps: planStepsRef.current || steps,
   };
 }

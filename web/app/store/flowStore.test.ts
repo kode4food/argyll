@@ -194,6 +194,25 @@ describe("flowStore", () => {
       expect(state.steps[0].name).toBe("Test Step");
     });
 
+    test("upsertStep updates existing step", () => {
+      useFlowStore.setState({ steps: [mockStep] });
+      const updatedStep = { ...mockStep, name: "Updated Step" };
+
+      useFlowStore.getState().upsertStep(updatedStep);
+      const state = useFlowStore.getState();
+
+      expect(state.steps).toHaveLength(1);
+      expect(state.steps[0].name).toBe("Updated Step");
+    });
+
+    test("upsertStep adds missing step", () => {
+      useFlowStore.getState().upsertStep(mockStep);
+      const state = useFlowStore.getState();
+
+      expect(state.steps).toHaveLength(1);
+      expect(state.steps[0].id).toBe("step-1");
+    });
+
     test("removeStep deletes step", () => {
       useFlowStore.setState({ steps: [mockStep] });
       useFlowStore.getState().removeStep("step-1");

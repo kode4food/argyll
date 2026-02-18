@@ -19,12 +19,7 @@ import { Step } from "@/app/api";
 
 const OverviewDiagramContent: React.FC = () => {
   const { steps, loadSteps } = useFlowSession();
-  const addStep = useFlowStore((s) => s.addStep) as
-    | ((step: Step) => void)
-    | undefined;
-  const updateStep = useFlowStore((s) => s.updateStep) as
-    | ((step: Step) => void)
-    | undefined;
+  const upsertStep = useFlowStore((state) => state.upsertStep);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
   const { openEditor } = useStepEditorContext();
@@ -32,23 +27,12 @@ const OverviewDiagramContent: React.FC = () => {
 
   const applyStepUpdate = React.useCallback(
     (updatedStep: Step) => {
-      const existingStep = steps.find((step) => step.id === updatedStep.id);
-      if (existingStep && typeof updateStep === "function") {
-        updateStep(updatedStep);
-        return;
-      }
-      if (!existingStep && typeof addStep === "function") {
-        addStep(updatedStep);
-        return;
-      }
-      void loadSteps();
+      upsertStep(updatedStep);
     },
-    [addStep, loadSteps, steps, updateStep]
+    [upsertStep]
   );
 
   const { handleStepCreated } = useStepEditorIntegration(
-    (step) =>
-      openEditor({ step, diagramContainerRef, onUpdate: handleStepCreated }),
     loadSteps,
     applyStepUpdate
   );
@@ -57,7 +41,7 @@ const OverviewDiagramContent: React.FC = () => {
     setGoalSteps([]);
   }, [setGoalSteps]);
 
-  if (!steps || steps.length === 0) {
+  if (steps.length === 0) {
     return (
       <div className={styles.emptyStateContainer}>
         <EmptyState
@@ -111,7 +95,7 @@ const OverviewDiagramContent: React.FC = () => {
             setGoalSteps,
           }}
         >
-          <OverviewDiagramView steps={steps || []} />
+          <OverviewDiagramView steps={steps} />
         </DiagramSelectionProvider>
       </ErrorBoundary>
     </DiagramLayout>

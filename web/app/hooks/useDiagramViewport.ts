@@ -21,6 +21,10 @@ export function useDiagramViewport(viewportKey: string) {
     canPersistRef.current = true;
   }, []);
 
+  const markFitApplied = useCallback(() => {
+    setShouldFit(false);
+  }, []);
+
   const handleViewportChange = useCallback(
     (viewport: Viewport) => {
       const event = new CustomEvent("hideTooltips");
@@ -38,5 +42,6 @@ export function useDiagramViewport(viewportKey: string) {
     shouldFitView: shouldFit,
     savedViewport,
     markRestored,
+    markFitApplied,
   };
 }

@@ -39,6 +39,10 @@ const compareFlows = (a: FlowContext, b: FlowContext): number => {
   }
 };
 
+const compareSteps = (a: Step, b: Step): number => {
+  return a.name.localeCompare(b.name);
+};
+
 const mergeResolvedAttributes = (
   current: string[],
   newAttrs?: Record<string, any>
@@ -75,6 +79,7 @@ interface FlowState {
   loadFlows: () => Promise<void>;
   loadMoreFlows: () => Promise<void>;
   addStep: (step: Step) => void;
+  upsertStep: (step: Step) => void;
   updateStep: (step: Step) => void;
   removeStep: (stepId: string) => void;
   addFlow: (flow: FlowContext) => void;
@@ -152,7 +157,7 @@ export const useFlowStore = create<FlowState>()(
           );
 
           set({
-            steps: (steps || []).sort((a, b) => a.name.localeCompare(b.name)),
+            steps: steps.sort(compareSteps),
             stepHealth: healthMap,
           });
         } catch (error) {
@@ -187,7 +192,7 @@ export const useFlowStore = create<FlowState>()(
             completed_at: item.digest?.completed_at,
           }));
           set({
-            flows: (flows || []).sort(compareFlows),
+            flows: flows.sort(compareFlows),
             flowsCursor: resp.next_cursor ?? null,
             flowsHasMore: resp.has_more ?? false,
           });
@@ -271,7 +276,22 @@ export const useFlowStore = create<FlowState>()(
       addStep: (step: Step) => {
         const { steps } = get();
         const newSteps = [...steps, step];
-        newSteps.sort((a, b) => a.name.localeCompare(b.name));
+        newSteps.sort(compareSteps);
+        set({ steps: newSteps });
+      },
+
+      upsertStep: (step: Step) => {
+        const { steps } = get();
+        const existingIndex = steps.findIndex((s) => s.id === step.id);
+        if (existingIndex >= 0) {
+          const updatedSteps = [...steps];
+          updatedSteps[existingIndex] = step;
+          set({ steps: updatedSteps });
+          return;
+        }
+
+        const newSteps = [...steps, step];
+        newSteps.sort(compareSteps);
         set({ steps: newSteps });
       },
 
@@ -494,7 +514,7 @@ export const useFlowStore = create<FlowState>()(
         );
 
         set({
-          steps: steps.sort((a, b) => a.name.localeCompare(b.name)),
+          steps: steps.sort(compareSteps),
           stepHealth: healthMap,
         });
       },

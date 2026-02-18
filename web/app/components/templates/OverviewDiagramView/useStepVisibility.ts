@@ -16,13 +16,13 @@ export function useStepVisibility(
       const planSteps = getStepsFromPlan(previewPlan);
       const planStepIds = new Set(planSteps.map((step) => step.id));
       return {
-        visibleSteps: steps || [],
+        visibleSteps: steps,
         previewStepIds: planStepIds,
       };
     }
 
     return {
-      visibleSteps: steps || [],
+      visibleSteps: steps,
       previewStepIds: null,
     };
   }, [steps, previewPlan]);

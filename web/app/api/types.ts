@@ -160,17 +160,6 @@ export interface AttributeValue {
   step?: string;
 }
 
-export interface FlowProjection {
-  id: string;
-  status: FlowStatus;
-  plan: ExecutionPlan;
-  attributes: Record<string, AttributeValue>;
-  executions: Record<string, ExecutionInfo>;
-  created_at: string;
-  completed_at?: string;
-  error?: string;
-}
-
 export interface QueryFlowsItem {
   id: string;
   digest?: {
