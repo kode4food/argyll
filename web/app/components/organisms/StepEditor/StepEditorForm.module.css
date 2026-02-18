@@ -7,6 +7,59 @@
   padding-right: var(--spacing-sm);
 }
 
+.formContainerJsonMode {
+  overflow: hidden;
+}
+
+.editorModeToggleGroup {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+}
+
+.editorModeToggle {
+  height: 28px;
+  padding: 0 var(--spacing-md);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.editorModeToggle:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.editorModeToggleActive {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.editorModeToggleActive:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.jsonEditorContainer {
+  flex: 1;
+  min-height: 0;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.jsonSection {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 .row {
   display: flex;
   gap: var(--spacing-md);
@@ -560,4 +613,99 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.mappingExpandButton {
+  border-color: var(--color-info-border);
+  color: var(--color-info);
+}
+
+.mappingExpandButton:hover {
+  background-color: var(--color-info-bg);
+  border-color: var(--color-info);
+}
+
+.mappingExpandButtonActive {
+  background-color: color-mix(in srgb, var(--color-info) 25%, transparent);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.mappingExpandButtonActive:hover {
+  background-color: color-mix(in srgb, var(--color-info) 38%, transparent);
+  border-color: var(--color-info-light);
+}
+
+.attrMappingPanel {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  margin-left: 40px;
+  margin-right: calc((32px * 2) + (var(--spacing-sm) * 2));
+  min-height: 32px;
+}
+
+.mappingInlineInput {
+  flex: 1 1 180px;
+}
+
+.mappingToggleLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  font-size: var(--text-xs);
+  color: var(--overlay-light-70);
+  white-space: nowrap;
+}
+
+.mappingToggleInput {
+  margin: 0;
+}
+
+.mappingLanguageSelect {
+  height: 32px;
+  min-width: 130px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding: 0 var(--spacing-2xl) 0 10px;
+}
+
+.mappingLanguageSelect:focus,
+.mappingScriptInlineInput:focus {
+  outline: none;
+  border-color: var(--color-info);
+  background-color: var(--overlay-dark-40);
+}
+
+.mappingLanguageSelect option {
+  background-color: var(--overlay-dark-90);
+  color: var(--color-dark-text);
+}
+
+.mappingScriptInlineInput {
+  flex: 1 1 260px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+}
+
+@media (max-width: 960px) {
+  .attrMappingPanel {
+    flex-wrap: wrap;
+    margin-left: 0;
+  }
+
+  .mappingInlineInput,
+  .mappingScriptInlineInput {
+    min-width: 180px;
+  }
 }

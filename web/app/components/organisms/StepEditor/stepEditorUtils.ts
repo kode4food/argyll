@@ -18,6 +18,9 @@ export interface Attribute {
   defaultValue?: string;
   forEach?: boolean;
   flowMap?: string;
+  mappingName?: string;
+  mappingLanguage?: string;
+  mappingScript?: string;
   validationError?: string;
 }
 
@@ -79,6 +82,9 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
             : undefined,
         forEach: spec.for_each || false,
         flowMap,
+        mappingName: spec.mapping?.name,
+        mappingLanguage: spec.mapping?.script?.language,
+        mappingScript: spec.mapping?.script?.script,
       };
     }
   );
@@ -161,6 +167,21 @@ export function createStepAttributes(
       spec.for_each = true;
     }
 
+    const mappingName = a.mappingName?.trim();
+    const mappingScript = a.mappingScript?.trim();
+    if (mappingName || mappingScript) {
+      spec.mapping = {};
+      if (mappingName) {
+        spec.mapping.name = mappingName;
+      }
+      if (mappingScript) {
+        spec.mapping.script = {
+          language: a.mappingLanguage?.trim() || "jpath",
+          script: mappingScript,
+        };
+      }
+    }
+
     stepAttributes[a.name] = spec;
   });
   return stepAttributes;
@@ -213,6 +234,10 @@ export function getValidationError({
   const attrError = validateAttributesList(attributes);
   if (attrError) {
     return attrError;
+  }
+  const mappingError = validateAttributeMappings(attributes);
+  if (mappingError) {
+    return mappingError;
   }
 
   if (stepType === "flow") {
@@ -269,6 +294,53 @@ function validateFlowMaps(attributes: Attribute[]): ValidationError | null {
       };
     }
     inputTargets.add(target);
+  }
+
+  return null;
+}
+
+function validateAttributeMappings(
+  attributes: Attribute[]
+): ValidationError | null {
+  const inputMappingNames = new Set<string>();
+  const outputMappingNames = new Set<string>();
+
+  for (const attr of attributes) {
+    const mappingName = attr.mappingName?.trim() || "";
+    const mappingScript = attr.mappingScript?.trim() || "";
+    const mappingLanguage = attr.mappingLanguage?.trim() || "";
+
+    if (attr.attrType === "const" && (mappingName || mappingScript)) {
+      return {
+        key: "stepEditor.constMappingNotAllowed",
+        vars: { name: attr.name },
+      };
+    }
+
+    if (!mappingName && !mappingScript) {
+      continue;
+    }
+
+    if (mappingScript && !mappingLanguage) {
+      return {
+        key: "stepEditor.mappingLanguageRequired",
+        vars: { name: attr.name },
+      };
+    }
+
+    if (!mappingName) {
+      continue;
+    }
+
+    const bucket =
+      attr.attrType === "output" ? outputMappingNames : inputMappingNames;
+    if (bucket.has(mappingName)) {
+      return {
+        key: "stepEditor.duplicateMappingName",
+        vars: { name: mappingName },
+      };
+    }
+    bucket.add(mappingName);
   }
 
   return null;

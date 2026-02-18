@@ -4,6 +4,8 @@ import {
   IconAdd,
   IconArrayMultiple,
   IconArraySingle,
+  IconExpandDown,
+  IconExpandUp,
   IconRemove,
 } from "@/utils/iconRegistry";
 import {
@@ -17,6 +19,7 @@ import {
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
 import ScriptConfigEditor from "./ScriptConfigEditor";
+import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
@@ -86,6 +89,12 @@ const ATTRIBUTE_TYPES: AttributeType[] = [
 ];
 
 const PREDICATE_LANGUAGE_OPTIONS = [
+  { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
+  { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
+  { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+];
+
+const MAPPING_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
@@ -202,6 +211,8 @@ const AttributesSection: React.FC = () => {
     flowInputOptions,
     flowOutputOptions,
   } = useStepEditingContext();
+  const [expandedMappingAttributeID, setExpandedMappingAttributeID] =
+    React.useState<string | null>(null);
 
   const flowInputList = flowInputOptions;
   const flowOutputList = flowOutputOptions;
@@ -262,148 +273,232 @@ const AttributesSection: React.FC = () => {
             </div>
           </div>
         )}
-        {attributes.map((attr) => (
-          <div key={attr.id} className={formStyles.attrRow}>
-            <div className={formStyles.attrRowInputs}>
-              <button
-                type="button"
-                onClick={() => cycleAttributeType(attr.id, attr.attrType)}
-                className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
-                title={t("stepEditor.cycleAttributeType", {
-                  type: attr.attrType,
-                })}
-              >
-                {(() => {
-                  const { Icon, className } = getAttributeIconProps(
-                    attr.attrType
-                  );
-                  return <Icon className={`${styles.iconMd} ${className}`} />;
-                })()}
-              </button>
-              <select
-                value={attr.dataType}
-                onChange={(e) =>
-                  updateAttribute(attr.id, "dataType", e.target.value)
-                }
-                className={formStyles.argType}
-              >
-                {ATTRIBUTE_TYPES.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-              <input
-                type="text"
-                value={attr.name}
-                onChange={(e) =>
-                  updateAttribute(attr.id, "name", e.target.value)
-                }
-                placeholder={t("stepEditor.attributeNamePlaceholder")}
-                className={formStyles.argInput}
-              />
-              {(attr.attrType === "optional" || attr.attrType === "const") && (
+        {attributes.map((attr) => {
+          const isMappingExpanded =
+            expandedMappingAttributeID === attr.id && attr.attrType !== "const";
+          const hasMappingConfigured = Boolean(
+            attr.mappingName?.trim() || attr.mappingScript?.trim()
+          );
+
+          return (
+            <div key={attr.id} className={formStyles.attrRow}>
+              <div className={formStyles.attrRowInputs}>
+                <button
+                  type="button"
+                  onClick={() => cycleAttributeType(attr.id, attr.attrType)}
+                  className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
+                  title={t("stepEditor.cycleAttributeType", {
+                    type: attr.attrType,
+                  })}
+                >
+                  {(() => {
+                    const { Icon, className } = getAttributeIconProps(
+                      attr.attrType
+                    );
+                    return <Icon className={`${styles.iconMd} ${className}`} />;
+                  })()}
+                </button>
+                <select
+                  value={attr.dataType}
+                  onChange={(e) =>
+                    updateAttribute(attr.id, "dataType", e.target.value)
+                  }
+                  className={formStyles.argType}
+                >
+                  {ATTRIBUTE_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
                 <input
                   type="text"
-                  value={attr.defaultValue || ""}
+                  value={attr.name}
                   onChange={(e) =>
-                    updateAttribute(attr.id, "defaultValue", e.target.value)
+                    updateAttribute(attr.id, "name", e.target.value)
                   }
-                  placeholder={t("stepEditor.attributeDefaultPlaceholder")}
+                  placeholder={t("stepEditor.attributeNamePlaceholder")}
                   className={formStyles.argInput}
-                  title={t("stepEditor.attributeDefaultTitle")}
                 />
-              )}
-              {attr.attrType !== "output" &&
-                attr.dataType === AttributeType.Array && (
-                  <div className={formStyles.forEachToggleGroup}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        updateAttribute(attr.id, "forEach", false);
-                        e.currentTarget.blur();
-                      }}
-                      className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                      title={t("stepEditor.arraySingleTitle")}
-                    >
-                      <IconArraySingle className={styles.iconSm} />
-                      <span>{t("stepEditor.arraySingleLabel")}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        updateAttribute(attr.id, "forEach", true);
-                        e.currentTarget.blur();
-                      }}
-                      className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                      title={t("stepEditor.arrayMultiTitle")}
-                    >
-                      <IconArrayMultiple className={styles.iconSm} />
-                      <span>{t("stepEditor.arrayMultiLabel")}</span>
-                    </button>
-                  </div>
+                {(attr.attrType === "optional" ||
+                  attr.attrType === "const") && (
+                  <input
+                    type="text"
+                    value={attr.defaultValue || ""}
+                    onChange={(e) =>
+                      updateAttribute(attr.id, "defaultValue", e.target.value)
+                    }
+                    placeholder={t("stepEditor.attributeDefaultPlaceholder")}
+                    className={formStyles.argInput}
+                    title={t("stepEditor.attributeDefaultTitle")}
+                  />
                 )}
-              {stepType === "flow" && (
-                <select
-                  value={attr.flowMap || ""}
-                  onChange={(e) =>
-                    updateAttribute(attr.id, "flowMap", e.target.value)
-                  }
-                  className={formStyles.flowMapSelect}
-                  disabled={
-                    attr.attrType === "output"
-                      ? flowOutputList.length === 0
-                      : flowInputList.length === 0
-                  }
+                {attr.attrType !== "output" &&
+                  attr.dataType === AttributeType.Array && (
+                    <div className={formStyles.forEachToggleGroup}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          updateAttribute(attr.id, "forEach", false);
+                          e.currentTarget.blur();
+                        }}
+                        className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
+                        title={t("stepEditor.arraySingleTitle")}
+                      >
+                        <IconArraySingle className={styles.iconSm} />
+                        <span>{t("stepEditor.arraySingleLabel")}</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          updateAttribute(attr.id, "forEach", true);
+                          e.currentTarget.blur();
+                        }}
+                        className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
+                        title={t("stepEditor.arrayMultiTitle")}
+                      >
+                        <IconArrayMultiple className={styles.iconSm} />
+                        <span>{t("stepEditor.arrayMultiLabel")}</span>
+                      </button>
+                    </div>
+                  )}
+                {stepType === "flow" && (
+                  <select
+                    value={attr.flowMap || ""}
+                    onChange={(e) =>
+                      updateAttribute(attr.id, "flowMap", e.target.value)
+                    }
+                    className={formStyles.flowMapSelect}
+                    disabled={
+                      attr.attrType === "output"
+                        ? flowOutputList.length === 0
+                        : flowInputList.length === 0
+                    }
+                  >
+                    <option value="">
+                      {t("stepEditor.flowMapPlaceholder")}
+                    </option>
+                    {attr.attrType === "output"
+                      ? flowOutputList.map((option) => (
+                          <option
+                            key={option}
+                            value={option}
+                            disabled={
+                              usedOutputTargets.has(option) &&
+                              usedOutputTargets.get(option) !== attr.id
+                            }
+                          >
+                            {option}
+                          </option>
+                        ))
+                      : flowInputList.map((option) => (
+                          <option
+                            key={option.name}
+                            value={option.name}
+                            disabled={
+                              usedInputTargets.has(option.name) &&
+                              usedInputTargets.get(option.name) !== attr.id
+                            }
+                            className={
+                              option.required
+                                ? formStyles.flowMapOptionRequired
+                                : undefined
+                            }
+                          >
+                            {option.name}
+                          </option>
+                        ))}
+                  </select>
+                )}
+                {attr.attrType !== "const" && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedMappingAttributeID((current) =>
+                        current === attr.id ? null : attr.id
+                      )
+                    }
+                    className={`${formStyles.iconButton} ${formStyles.mappingExpandButton} ${
+                      hasMappingConfigured
+                        ? formStyles.mappingExpandButtonActive
+                        : ""
+                    }`}
+                    title={t("stepEditor.mappingLabel")}
+                    aria-label={`${t("stepEditor.mappingLabel")} ${attr.name || attr.id}`}
+                  >
+                    {isMappingExpanded ? (
+                      <IconExpandUp className={styles.iconSm} />
+                    ) : (
+                      <IconExpandDown className={styles.iconSm} />
+                    )}
+                  </button>
+                )}
+                <button
+                  onClick={() => removeAttribute(attr.id)}
+                  className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
+                  title={t("stepEditor.removeAttribute")}
                 >
-                  <option value="">{t("stepEditor.flowMapPlaceholder")}</option>
-                  {attr.attrType === "output"
-                    ? flowOutputList.map((option) => (
-                        <option
-                          key={option}
-                          value={option}
-                          disabled={
-                            usedOutputTargets.has(option) &&
-                            usedOutputTargets.get(option) !== attr.id
-                          }
-                        >
-                          {option}
-                        </option>
-                      ))
-                    : flowInputList.map((option) => (
-                        <option
-                          key={option.name}
-                          value={option.name}
-                          disabled={
-                            usedInputTargets.has(option.name) &&
-                            usedInputTargets.get(option.name) !== attr.id
-                          }
-                          className={
-                            option.required
-                              ? formStyles.flowMapOptionRequired
-                              : undefined
-                          }
-                        >
-                          {option.name}
-                        </option>
-                      ))}
-                </select>
-              )}
-              <button
-                onClick={() => removeAttribute(attr.id)}
-                className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
-                title={t("stepEditor.removeAttribute")}
-              >
-                <IconRemove className={styles.iconSm} />
-              </button>
-            </div>
-            {attr.validationError && (
-              <div className={formStyles.attrValidationError}>
-                {attr.validationError}
+                  <IconRemove className={styles.iconSm} />
+                </button>
               </div>
-            )}
-          </div>
-        ))}
+              {isMappingExpanded && (
+                <div className={formStyles.attrMappingPanel}>
+                  <input
+                    type="text"
+                    value={attr.mappingName || ""}
+                    onChange={(e) =>
+                      updateAttribute(attr.id, "mappingName", e.target.value)
+                    }
+                    placeholder={t("stepEditor.mappingSourceNamePlaceholder")}
+                    className={`${formStyles.formControl} ${formStyles.mappingInlineInput}`}
+                  />
+                  <div
+                    className={formStyles.languageSelectorGroup}
+                    aria-label={t("stepEditor.mappingLanguageLabel")}
+                  >
+                    {MAPPING_LANGUAGE_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={(e) => {
+                          updateAttribute(
+                            attr.id,
+                            "mappingLanguage",
+                            option.value
+                          );
+                          e.currentTarget.blur();
+                        }}
+                        className={`${formStyles.languageButton} ${
+                          (attr.mappingLanguage || SCRIPT_LANGUAGE_JPATH) ===
+                          option.value
+                            ? formStyles.languageButtonActive
+                            : ""
+                        }`}
+                        title={t(option.labelKey)}
+                      >
+                        {t(option.labelKey)}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={attr.mappingScript || ""}
+                    onChange={(e) =>
+                      updateAttribute(attr.id, "mappingScript", e.target.value)
+                    }
+                    className={`${formStyles.formControl} ${formStyles.mappingScriptInlineInput}`}
+                    placeholder={t("stepEditor.mappingScriptPlaceholder")}
+                  />
+                </div>
+              )}
+              {attr.validationError && (
+                <div className={formStyles.attrValidationError}>
+                  {attr.validationError}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </div>
     </div>
   );
@@ -668,10 +763,17 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setMemoizable,
     saving,
     error,
+    setError,
     handleSave,
+    handleJsonSave,
+    validateJsonDraft,
+    getSerializedStepData,
+    applyStepDataToForm,
     isCreateMode,
     contextValue,
   } = useStepEditorForm(step, onUpdate, onClose);
+  const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
+  const [jsonDraft, setJsonDraft] = React.useState("");
 
   const [flowPreviewPlan, setFlowPreviewPlan] =
     React.useState<ExecutionPlan | null>(null);
@@ -743,6 +845,33 @@ const StepEditor: React.FC<StepEditorProps> = ({
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
 
+  useEffect(() => {
+    setEditorMode("basic");
+    setJsonDraft(getSerializedStepData());
+  }, [getSerializedStepData, step]);
+
+  const handleEditorModeChange = (mode: "basic" | "json") => {
+    if (mode === editorMode) {
+      return;
+    }
+
+    if (mode === "json") {
+      setJsonDraft(getSerializedStepData());
+      setError(null);
+      setEditorMode("json");
+      return;
+    }
+
+    const jsonError = validateJsonDraft(jsonDraft);
+    if (jsonError) {
+      setError(jsonError);
+      return;
+    }
+
+    applyStepDataToForm(JSON.parse(jsonDraft) as Step);
+    setEditorMode("basic");
+  };
+
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -758,7 +887,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
           className={styles.content}
           style={{
             width: `${dimensions.width}px`,
-            minHeight: `${dimensions.minHeight}px`,
+            height: `${dimensions.height}px`,
           }}
           onClick={(e) => e.stopPropagation()}
         >
@@ -768,49 +897,77 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 ? t("stepEditor.modalCreateTitle")
                 : t("stepEditor.modalEditTitle", { id: stepId })}
             </h2>
+            <div className={formStyles.editorModeToggleGroup}>
+              <button
+                type="button"
+                className={`${formStyles.editorModeToggle} ${editorMode === "basic" ? formStyles.editorModeToggleActive : ""}`}
+                onClick={() => handleEditorModeChange("basic")}
+              >
+                {t("stepEditor.modeBasic")}
+              </button>
+              <button
+                type="button"
+                className={`${formStyles.editorModeToggle} ${editorMode === "json" ? formStyles.editorModeToggleActive : ""}`}
+                onClick={() => handleEditorModeChange("json")}
+              >
+                {t("stepEditor.modeJson")}
+              </button>
+            </div>
           </div>
 
           <div className={styles.body}>
-            <div className={formStyles.formContainer}>
-              {/* Basic Fields */}
-              <BasicFields />
+            <div
+              className={`${formStyles.formContainer} ${editorMode === "json" ? formStyles.formContainerJsonMode : ""}`}
+            >
+              {editorMode === "basic" ? (
+                <>
+                  <BasicFields />
 
-              {stepType === "flow" && (
-                <FlowConfiguration
-                  previewPlan={flowPreviewPlan}
-                  flowInitialState={flowInitialState}
-                  setFlowInitialState={setFlowInitialState}
-                  updatePreviewPlan={updateFlowPreviewPlan}
-                  clearPreviewPlan={clearFlowPreviewPlan}
-                />
-              )}
+                  {stepType === "flow" && (
+                    <FlowConfiguration
+                      previewPlan={flowPreviewPlan}
+                      flowInitialState={flowInitialState}
+                      setFlowInitialState={setFlowInitialState}
+                      updatePreviewPlan={updateFlowPreviewPlan}
+                      clearPreviewPlan={clearFlowPreviewPlan}
+                    />
+                  )}
 
-              {/* Unified Attributes Section */}
-              <AttributesSection />
+                  <AttributesSection />
 
-              {/* Predicate */}
-              <ScriptConfigEditor
-                label={t("stepEditor.predicateLabel")}
-                value={predicate}
-                onChange={setPredicate}
-                language={predicateLanguage}
-                onLanguageChange={setPredicateLanguage}
-                languageOptions={PREDICATE_LANGUAGE_OPTIONS}
-                containerClassName={formStyles.predicateEditorContainer}
-              />
+                  <ScriptConfigEditor
+                    label={t("stepEditor.predicateLabel")}
+                    value={predicate}
+                    onChange={setPredicate}
+                    language={predicateLanguage}
+                    onLanguageChange={setPredicateLanguage}
+                    languageOptions={PREDICATE_LANGUAGE_OPTIONS}
+                    containerClassName={formStyles.predicateEditorContainer}
+                  />
 
-              {/* Type-Specific Configuration */}
-              {stepType === "script" ? (
-                <ScriptConfigEditor
-                  label={t("stepEditor.scriptLabel")}
-                  value={script}
-                  onChange={setScript}
-                  language={scriptLanguage}
-                  onLanguageChange={setScriptLanguage}
-                  containerClassName={formStyles.scriptEditorContainer}
-                />
-              ) : stepType === "flow" ? null : (
-                <HttpConfiguration />
+                  {stepType === "script" ? (
+                    <ScriptConfigEditor
+                      label={t("stepEditor.scriptLabel")}
+                      value={script}
+                      onChange={setScript}
+                      language={scriptLanguage}
+                      onLanguageChange={setScriptLanguage}
+                      containerClassName={formStyles.scriptEditorContainer}
+                    />
+                  ) : stepType === "flow" ? null : (
+                    <HttpConfiguration />
+                  )}
+                </>
+              ) : (
+                <div className={formStyles.jsonSection}>
+                  <div className={formStyles.jsonEditorContainer}>
+                    <ScriptEditor
+                      value={jsonDraft}
+                      onChange={setJsonDraft}
+                      language="json"
+                    />
+                  </div>
+                </div>
               )}
 
               {error && <div className={formStyles.errorMessage}>{error}</div>}
@@ -818,15 +975,19 @@ const StepEditor: React.FC<StepEditorProps> = ({
           </div>
 
           <div className={styles.footer}>
-            <label className={styles.footerCheckboxLabel}>
-              <input
-                type="checkbox"
-                checked={memoizable}
-                onChange={(e) => setMemoizable(e.target.checked)}
-                className={styles.footerCheckbox}
-              />
-              <span>{t("stepEditor.memoizableLabel")}</span>
-            </label>
+            {editorMode === "basic" ? (
+              <label className={styles.footerCheckboxLabel}>
+                <input
+                  type="checkbox"
+                  checked={memoizable}
+                  onChange={(e) => setMemoizable(e.target.checked)}
+                  className={styles.footerCheckbox}
+                />
+                <span>{t("stepEditor.memoizableLabel")}</span>
+              </label>
+            ) : (
+              <div />
+            )}
             <div className={styles.footerButtons}>
               <button
                 onClick={onClose}
@@ -836,7 +997,13 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 {t("stepEditor.cancel")}
               </button>
               <button
-                onClick={handleSave}
+                onClick={() => {
+                  if (editorMode === "json") {
+                    void handleJsonSave(jsonDraft);
+                    return;
+                  }
+                  void handleSave();
+                }}
                 disabled={saving}
                 className={styles.buttonSave}
               >

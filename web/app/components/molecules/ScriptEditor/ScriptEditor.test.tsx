@@ -1,22 +1,22 @@
 import { render } from "@testing-library/react";
 import ScriptEditor from "./ScriptEditor";
+import { StreamLanguage } from "@codemirror/language";
+import { json as jsonLegacyMode } from "@codemirror/legacy-modes/mode/javascript";
+
+const codeMirrorMock = jest.fn(({ value, onChange, readOnly, theme }: any) => (
+  <div data-testid="codemirror">
+    <textarea
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      readOnly={readOnly}
+      data-theme={theme}
+    />
+  </div>
+));
 
 jest.mock("@uiw/react-codemirror", () => ({
   __esModule: true,
-  default: ({ value, onChange, readOnly, theme }: any) => (
-    <div data-testid="codemirror">
-      <textarea
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        readOnly={readOnly}
-        data-theme={theme}
-      />
-    </div>
-  ),
-}));
-
-jest.mock("@codemirror/lang-javascript", () => ({
-  javascript: jest.fn(() => "javascript-extension"),
+  default: (props: any) => codeMirrorMock(props),
 }));
 
 jest.mock("@codemirror/language", () => ({
@@ -29,6 +29,10 @@ jest.mock("@codemirror/legacy-modes/mode/lua", () => ({
   lua: {},
 }));
 
+jest.mock("@codemirror/legacy-modes/mode/javascript", () => ({
+  json: { name: "json-mode" },
+}));
+
 jest.mock("@codemirror/view", () => ({
   EditorView: {
     lineWrapping: "line-wrapping-extension",
@@ -36,6 +40,10 @@ jest.mock("@codemirror/view", () => ({
 }));
 
 describe("ScriptEditor", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
   test("renders CodeMirror editor", () => {
     const onChange = jest.fn();
 
@@ -97,5 +105,13 @@ describe("ScriptEditor", () => {
 
     const textarea = getByTestId("codemirror").querySelector("textarea");
     expect(textarea?.dataset.theme).toBe("dark");
+  });
+
+  test("uses JSON legacy mode when language is json", () => {
+    const onChange = jest.fn();
+    render(<ScriptEditor value="{}" onChange={onChange} language="json" />);
+
+    expect(StreamLanguage.define).toHaveBeenCalledWith(jsonLegacyMode);
+    expect(codeMirrorMock).toHaveBeenCalled();
   });
 });

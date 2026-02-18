@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 
 export interface ModalDimensions {
   width: number;
-  minHeight: number;
+  height: number;
 }
 
 export function useModalDimensions(
@@ -13,10 +13,13 @@ export function useModalDimensions(
       const rect = containerRef.current.getBoundingClientRect();
       return {
         width: Math.min(rect.width * 0.8, 1000),
-        minHeight: rect.height * 0.9,
+        height: Math.min(rect.height * 0.9, window.innerHeight * 0.9),
       };
     }
-    return { width: 1000, minHeight: 800 };
+    return {
+      width: Math.min(window.innerWidth * 0.9, 1000),
+      height: Math.min(window.innerHeight * 0.9, 800),
+    };
   }, [containerRef]);
 
   const [dimensions, setDimensions] = useState<ModalDimensions>(getDimensions);

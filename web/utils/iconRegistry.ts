@@ -4,6 +4,8 @@ import {
   AlertTriangle,
   ArrowLeft,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
   Award,
   Ban,
   CheckCircle,
@@ -71,6 +73,8 @@ export const IconConnectionError = AlertCircle;
 export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
 export const IconMemoizable = Database;
+export const IconExpandDown = ChevronDown;
+export const IconExpandUp = ChevronUp;
 
 export const IconProgressPending = Clock;
 export const IconProgressActive = Loader2;

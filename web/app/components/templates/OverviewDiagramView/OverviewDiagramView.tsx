@@ -6,7 +6,6 @@ import {
   Background,
   BackgroundVariant,
   useNodesState,
-  useEdgesState,
   useReactFlow,
   NodeChange,
   NodeTypes,
@@ -76,7 +75,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const arrangedNodes = useAutoLayout(initialNodes, initialEdges, plan);
 
   const [nodes, setNodes, onNodesChange] = useNodesState(arrangedNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
 
   const handleNodesChange = useCallback(
     (changes: NodeChange[]) => {
@@ -193,23 +191,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     });
   }, [arrangedNodes, setNodes]);
 
-  React.useEffect(() => {
-    setEdges((currentEdges) => {
-      if (currentEdges.length !== initialEdges.length) {
-        return initialEdges;
-      }
-      for (let i = 0; i < currentEdges.length; i += 1) {
-        if (
-          currentEdges[i].id !== initialEdges[i].id ||
-          currentEdges[i].style?.stroke !== initialEdges[i].style?.stroke
-        ) {
-          return initialEdges;
-        }
-      }
-      return currentEdges;
-    });
-  }, [initialEdges, setEdges]);
-
   if (!visibleSteps || visibleSteps.length === 0) {
     return (
       <DiagramEmptyState
@@ -224,10 +205,9 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     <DiagramView ref={diagramContainerRef}>
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={initialEdges}
         nodeTypes={nodeTypes}
         onNodesChange={handleNodesChange}
-        onEdgesChange={onEdgesChange}
         onPaneClick={handlePaneClick}
         onNodeDragStart={handleNodeDragStart}
         nodesConnectable={false}

@@ -153,66 +153,158 @@ export function useStepEditorForm(
     [updateAttribute]
   );
 
-  const handleSave = async () => {
-    const validationError = getValidationError({
-      isCreateMode,
+  const buildStepData = useCallback((): Step => {
+    const stepAttributes = createStepAttributes(attributes);
+    const { inputMap, outputMap } = buildFlowMaps(attributes);
+    return buildStepPayload({
       stepId,
-      attributes,
+      name,
       stepType,
+      attributes: stepAttributes,
+      predicate,
+      predicateLanguage,
       script,
+      scriptLanguage,
       endpoint,
+      healthCheck,
       httpTimeout,
       flowGoals,
+      flowInputMap: inputMap,
+      flowOutputMap: outputMap,
+      memoizable,
     });
+  }, [
+    attributes,
+    endpoint,
+    flowGoals,
+    healthCheck,
+    httpTimeout,
+    memoizable,
+    name,
+    predicate,
+    predicateLanguage,
+    script,
+    scriptLanguage,
+    stepId,
+    stepType,
+  ]);
 
-    if (validationError) {
-      setError(formatValidationError(validationError));
+  const getStepValidationError = useCallback(
+    (stepData: Step) => {
+      const mappedAttributes = buildAttributesFromStep(stepData);
+      return getValidationError({
+        isCreateMode,
+        stepId: stepData.id || "",
+        attributes: mappedAttributes,
+        stepType: stepData.type,
+        script: stepData.script?.script || "",
+        endpoint: stepData.http?.endpoint || "",
+        httpTimeout: stepData.http?.timeout || 0,
+        flowGoals: stepData.flow?.goals?.join(", ") || "",
+      });
+    },
+    [isCreateMode]
+  );
+
+  const persistStepData = useCallback(
+    async (stepData: Step) => {
+      const validationError = getStepValidationError(stepData);
+      if (validationError) {
+        setError(formatValidationError(validationError));
+        return;
+      }
+
+      setSaving(true);
+      setError(null);
+
+      try {
+        const api = new ArgyllApi();
+        let resultStep: Step;
+        if (isCreateMode) {
+          resultStep = await api.registerStep(stepData);
+        } else {
+          resultStep = await api.updateStep(stepId, stepData);
+        }
+        onUpdate(resultStep);
+        onClose();
+      } catch (err: any) {
+        setError(
+          err.response?.data?.error || err.message || t("stepEditor.saveFailed")
+        );
+      } finally {
+        setSaving(false);
+      }
+    },
+    [
+      formatValidationError,
+      getStepValidationError,
+      isCreateMode,
+      onClose,
+      onUpdate,
+      stepId,
+      t,
+    ]
+  );
+
+  const handleSave = async () => {
+    await persistStepData(buildStepData());
+  };
+
+  const handleJsonSave = async (rawValue: string) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawValue);
+    } catch {
+      setError(t("stepEditor.invalidJson"));
       return;
     }
 
-    setSaving(true);
-    setError(null);
-
-    try {
-      const api = new ArgyllApi();
-
-      const stepAttributes = createStepAttributes(attributes);
-      const { inputMap, outputMap } = buildFlowMaps(attributes);
-      const stepData = buildStepPayload({
-        stepId,
-        name,
-        stepType,
-        attributes: stepAttributes,
-        predicate,
-        predicateLanguage,
-        script,
-        scriptLanguage,
-        endpoint,
-        healthCheck,
-        httpTimeout,
-        flowGoals,
-        flowInputMap: inputMap,
-        flowOutputMap: outputMap,
-        memoizable,
-      });
-
-      let resultStep: Step;
-      if (isCreateMode) {
-        resultStep = await api.registerStep(stepData);
-      } else {
-        resultStep = await api.updateStep(stepId, stepData);
-      }
-
-      onUpdate(resultStep);
-      onClose();
-    } catch (err: any) {
-      setError(
-        err.response?.data?.error || err.message || t("stepEditor.saveFailed")
-      );
-    } finally {
-      setSaving(false);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      setError(t("stepEditor.invalidJsonObject"));
+      return;
     }
+
+    await persistStepData(parsed as Step);
   };
+
+  const applyStepDataToForm = useCallback((stepData: Step) => {
+    setStepId(stepData.id || "");
+    setName(stepData.name || "");
+    setStepType(stepData.type || "sync");
+    setPredicate(stepData.predicate?.script || "");
+    setPredicateLanguage(stepData.predicate?.language || SCRIPT_LANGUAGE_LUA);
+    setScript(stepData.script?.script || "");
+    setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
+    setFlowGoals(stepData.flow?.goals?.join(", ") || "");
+    setEndpoint(stepData.http?.endpoint || "");
+    setHealthCheck(stepData.http?.health_check || "");
+    setHttpTimeout(stepData.http?.timeout || 5000);
+    setMemoizable(Boolean(stepData.memoizable));
+    setAttributes(buildAttributesFromStep(stepData));
+    setError(null);
+  }, []);
+
+  const validateJsonDraft = useCallback(
+    (rawValue: string) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(rawValue);
+      } catch {
+        return t("stepEditor.invalidJson");
+      }
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return t("stepEditor.invalidJsonObject");
+      }
+      const validationError = getStepValidationError(parsed as Step);
+      return formatValidationError(validationError);
+    },
+    [formatValidationError, getStepValidationError, t]
+  );
+
+  const getSerializedStepData = useCallback(
+    () => JSON.stringify(buildStepData(), null, 2),
+    [buildStepData]
+  );
 
   const contextValue = useMemo(
     () => ({
@@ -291,6 +383,10 @@ export function useStepEditorForm(
     error,
     setError,
     handleSave,
+    handleJsonSave,
+    validateJsonDraft,
+    getSerializedStepData,
+    applyStepDataToForm,
     isCreateMode,
     contextValue,
   };

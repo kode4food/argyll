@@ -291,6 +291,49 @@ describe("stepEditorUtils", () => {
 
       expect(result.value.default).toBeUndefined();
     });
+
+    it("adds mapping name and script when provided", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "input",
+          name: "payload",
+          dataType: AttributeType.Object,
+          mappingName: "request",
+          mappingLanguage: "jpath",
+          mappingScript: "$.payload",
+        },
+      ];
+
+      const result = createStepAttributes(attributes);
+
+      expect(result.payload.mapping).toEqual({
+        name: "request",
+        script: {
+          language: "jpath",
+          script: "$.payload",
+        },
+      });
+    });
+
+    it("defaults mapping script language to jpath", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "output",
+          name: "result",
+          dataType: AttributeType.Object,
+          mappingScript: "$.result",
+        },
+      ];
+
+      const result = createStepAttributes(attributes);
+
+      expect(result.result.mapping?.script).toEqual({
+        language: "jpath",
+        script: "$.result",
+      });
+    });
   });
 
   describe("buildFlowMaps", () => {
@@ -572,6 +615,93 @@ describe("stepEditorUtils", () => {
       });
 
       expect(error).toBeNull();
+    });
+
+    it("rejects duplicate mapping names for input attributes", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [
+          {
+            id: "attr-1",
+            attrType: "input",
+            name: "a",
+            dataType: AttributeType.String,
+            mappingName: "shared",
+          },
+          {
+            id: "attr-2",
+            attrType: "optional",
+            name: "b",
+            dataType: AttributeType.String,
+            mappingName: "shared",
+          },
+        ],
+        stepType: "sync",
+        script: "",
+        endpoint: "https://example.com",
+        httpTimeout: 5000,
+        flowGoals: "",
+      });
+
+      expect(error).toEqual({
+        key: "stepEditor.duplicateMappingName",
+        vars: { name: "shared" },
+      });
+    });
+
+    it("rejects const attribute mappings", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [
+          {
+            id: "attr-1",
+            attrType: "const",
+            name: "const_value",
+            dataType: AttributeType.String,
+            defaultValue: '"x"',
+            mappingName: "illegal",
+          },
+        ],
+        stepType: "sync",
+        script: "",
+        endpoint: "https://example.com",
+        httpTimeout: 5000,
+        flowGoals: "",
+      });
+
+      expect(error).toEqual({
+        key: "stepEditor.constMappingNotAllowed",
+        vars: { name: "const_value" },
+      });
+    });
+
+    it("requires mapping language when mapping script is set", () => {
+      const error = getValidationError({
+        isCreateMode: false,
+        stepId: "step-1",
+        attributes: [
+          {
+            id: "attr-1",
+            attrType: "output",
+            name: "result",
+            dataType: AttributeType.String,
+            mappingScript: "$.result",
+            mappingLanguage: " ",
+          },
+        ],
+        stepType: "sync",
+        script: "",
+        endpoint: "https://example.com",
+        httpTimeout: 5000,
+        flowGoals: "",
+      });
+
+      expect(error).toEqual({
+        key: "stepEditor.mappingLanguageRequired",
+        vars: { name: "result" },
+      });
     });
   });
 });

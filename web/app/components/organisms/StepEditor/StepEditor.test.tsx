@@ -535,6 +535,94 @@ describe("StepEditor", () => {
     });
   });
 
+  test("saves attribute mapping edits", async () => {
+    const step = createHttpStep();
+    mockUpdateStep.mockResolvedValue(undefined);
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const expandMappingButton = await screen.findByRole("button", {
+      name: `${t("stepEditor.mappingLabel")} input1`,
+    });
+    fireEvent.click(expandMappingButton);
+
+    const sourceInput = await screen.findByPlaceholderText(
+      t("stepEditor.mappingSourceNamePlaceholder")
+    );
+    fireEvent.change(sourceInput, {
+      target: { value: "request_payload" },
+    });
+
+    const scriptInput = await screen.findByPlaceholderText(
+      t("stepEditor.mappingScriptPlaceholder")
+    );
+    fireEvent.change(scriptInput, { target: { value: "$.payload.input" } });
+
+    const saveButton = screen.getByText(t("stepEditor.save"));
+    fireEvent.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockUpdateStep).toHaveBeenCalledWith(
+        "step-1",
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            input1: expect.objectContaining({
+              mapping: {
+                name: "request_payload",
+                script: {
+                  language: "jpath",
+                  script: "$.payload.input",
+                },
+              },
+            }),
+          }),
+        })
+      );
+    });
+  });
+
+  test("saves edits from JSON mode", async () => {
+    const step = createHttpStep();
+    mockUpdateStep.mockResolvedValue(undefined);
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const jsonModeButton = await screen.findByRole("button", {
+      name: t("stepEditor.modeJson"),
+    });
+    fireEvent.click(jsonModeButton);
+
+    const jsonInput = await screen.findByTestId("script-editor");
+
+    fireEvent.change(jsonInput, {
+      target: {
+        value: JSON.stringify(
+          {
+            ...step,
+            name: "Updated via JSON",
+          },
+          null,
+          2
+        ),
+      },
+    });
+
+    fireEvent.click(screen.getByText(t("stepEditor.save")));
+
+    await waitFor(() => {
+      expect(mockUpdateStep).toHaveBeenCalledWith(
+        "step-1",
+        expect.objectContaining({
+          name: "Updated via JSON",
+        })
+      );
+    });
+  });
+
   test("shows error when endpoint is empty", async () => {
     const step = createHttpStep();
 

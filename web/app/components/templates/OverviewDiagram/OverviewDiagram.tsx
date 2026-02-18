@@ -14,18 +14,43 @@ import {
 } from "@/app/contexts/StepEditorContext";
 import { useStepEditorIntegration } from "./useStepEditorIntegration";
 import { useT } from "@/app/i18n";
+import { useFlowStore } from "@/app/store/flowStore";
+import { Step } from "@/app/api";
 
 const OverviewDiagramContent: React.FC = () => {
   const { steps, loadSteps } = useFlowSession();
+  const addStep = useFlowStore((s) => s.addStep) as
+    | ((step: Step) => void)
+    | undefined;
+  const updateStep = useFlowStore((s) => s.updateStep) as
+    | ((step: Step) => void)
+    | undefined;
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
   const { openEditor } = useStepEditorContext();
   const t = useT();
 
+  const applyStepUpdate = React.useCallback(
+    (updatedStep: Step) => {
+      const existingStep = steps.find((step) => step.id === updatedStep.id);
+      if (existingStep && typeof updateStep === "function") {
+        updateStep(updatedStep);
+        return;
+      }
+      if (!existingStep && typeof addStep === "function") {
+        addStep(updatedStep);
+        return;
+      }
+      void loadSteps();
+    },
+    [addStep, loadSteps, steps, updateStep]
+  );
+
   const { handleStepCreated } = useStepEditorIntegration(
     (step) =>
       openEditor({ step, diagramContainerRef, onUpdate: handleStepCreated }),
-    loadSteps
+    loadSteps,
+    applyStepUpdate
   );
 
   useEffect(() => {

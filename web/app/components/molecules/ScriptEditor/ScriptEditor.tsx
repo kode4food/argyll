@@ -3,6 +3,7 @@ import CodeMirror from "@uiw/react-codemirror";
 import { StreamLanguage } from "@codemirror/language";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
 import { scheme } from "@codemirror/legacy-modes/mode/scheme";
+import { json } from "@codemirror/legacy-modes/mode/javascript";
 import { EditorView } from "@codemirror/view";
 import styles from "./ScriptEditor.module.css";
 
@@ -20,6 +21,9 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
   language = "lua",
 }) => {
   const extensions = useMemo(() => {
+    if (language === "json") {
+      return [StreamLanguage.define(json), EditorView.lineWrapping];
+    }
     const langMode = language === "lua" ? lua : scheme;
     const langExt = StreamLanguage.define(langMode);
     return [langExt, EditorView.lineWrapping];

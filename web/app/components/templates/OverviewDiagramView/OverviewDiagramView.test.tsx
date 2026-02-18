@@ -1,13 +1,14 @@
 import React from "react";
-import { render, waitFor } from "@testing-library/react";
+import { render } from "@testing-library/react";
 import OverviewDiagramView from ".";
 import { t } from "@/app/testUtils/i18n";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
-import { useEdgesState } from "@xyflow/react";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 
+const reactFlowMock = jest.fn(() => <div data-testid="react-flow" />);
+
 jest.mock("@xyflow/react", () => ({
-  ReactFlow: () => <div data-testid="react-flow" />,
+  ReactFlow: (props: any) => reactFlowMock(props),
   MiniMap: () => <div data-testid="mini-map" />,
   Controls: () => <div data-testid="controls" />,
   Background: () => <div data-testid="background" />,
@@ -16,7 +17,6 @@ jest.mock("@xyflow/react", () => ({
     <>{children}</>
   ),
   useNodesState: (nodes: any[]) => [nodes, jest.fn(), jest.fn()],
-  useEdgesState: jest.fn(),
   useReactFlow: () => ({
     fitView: jest.fn(),
     setViewport: jest.fn(),
@@ -102,16 +102,10 @@ jest.mock("./useLayoutPlan", () => ({
 }));
 
 describe("OverviewDiagramView", () => {
-  const useEdgesStateMock = useEdgesState as jest.Mock;
   const useEdgeCalculationMock = useEdgeCalculation as jest.Mock;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    useEdgesStateMock.mockImplementation((edges: any[]) => [
-      edges,
-      jest.fn(),
-      jest.fn(),
-    ]);
     useEdgeCalculationMock.mockReturnValue([]);
   });
 
@@ -167,15 +161,9 @@ describe("OverviewDiagramView", () => {
     expect(getByTestId("react-flow")).toBeInTheDocument();
   });
 
-  it("refreshes edges when stroke changes", async () => {
+  it("passes calculated edges directly to ReactFlow", () => {
     const initialEdges = [{ id: "e1-2", style: { stroke: "#111111" } }];
-    const setEdgesMock = jest.fn();
     useEdgeCalculationMock.mockReturnValue(initialEdges);
-    useEdgesStateMock.mockImplementation((edges: any[]) => [
-      edges,
-      setEdgesMock,
-      jest.fn(),
-    ]);
 
     render(
       <DiagramSelectionProvider
@@ -191,15 +179,8 @@ describe("OverviewDiagramView", () => {
       </DiagramSelectionProvider>
     );
 
-    await waitFor(() => {
-      expect(setEdgesMock).toHaveBeenCalled();
-    });
-
-    const setEdgesCallback = setEdgesMock.mock.calls[0][0];
-    const nextEdges = setEdgesCallback([
-      { id: "e1-2", style: { stroke: "#222222" } },
-    ]);
-
-    expect(nextEdges).toBe(initialEdges);
+    expect(reactFlowMock).toHaveBeenCalled();
+    const props = reactFlowMock.mock.calls[0][0];
+    expect(props.edges).toBe(initialEdges);
   });
 });
