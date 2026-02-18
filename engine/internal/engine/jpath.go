@@ -17,9 +17,8 @@ type JPathEnv struct {
 const jpathCacheSize = 10240
 
 var (
-	ErrJPathBadCompiledType = errors.New("expected jpath path")
-	ErrJPathCompile         = errors.New("jpath compile error")
-	ErrJPathNoMatch         = errors.New("jpath produced no matches")
+	ErrJPathCompile = errors.New("jpath compile error")
+	ErrJPathNoMatch = errors.New("jpath produced no matches")
 )
 
 // NewJPathEnv creates a JPath predicate evaluation environment
@@ -37,11 +36,6 @@ func NewJPathEnv() *JPathEnv {
 func (e *JPathEnv) ExecuteScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
-	path, ok := c.(jpath.Path)
-	if !ok {
-		return nil, fmt.Errorf("%w, got %T", ErrJPathBadCompiledType, c)
-	}
-
 	doc := marshalJPathValue(inputs)
 	if len(inputs) == 1 {
 		for _, v := range inputs {
@@ -49,7 +43,7 @@ func (e *JPathEnv) ExecuteScript(
 		}
 	}
 
-	value, ok := collapseJPathMatches(path(doc))
+	value, ok := collapseJPathMatches(c.(jpath.Path)(doc))
 	if !ok {
 		return nil, ErrJPathNoMatch
 	}
@@ -61,12 +55,7 @@ func (e *JPathEnv) ExecuteScript(
 func (e *JPathEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {
-	path, ok := c.(jpath.Path)
-	if !ok {
-		return false, fmt.Errorf("%w, got %T", ErrJPathBadCompiledType, c)
-	}
-
-	matches := path(marshalJPathValue(inputs))
+	matches := c.(jpath.Path)(marshalJPathValue(inputs))
 	return len(matches) > 0, nil
 }
 

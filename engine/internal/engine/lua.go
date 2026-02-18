@@ -37,9 +37,8 @@ const (
 )
 
 var (
-	ErrLuaBadCompiledType = errors.New("expected compiled lua")
-	ErrLuaLoad            = errors.New("lua load error")
-	ErrLuaExecution       = errors.New("lua execution error")
+	ErrLuaLoad      = errors.New("lua load error")
+	ErrLuaExecution = errors.New("lua execution error")
 )
 
 var luaExclude = [...]string{
@@ -67,12 +66,20 @@ func NewLuaEnv() *LuaEnv {
 func (e *LuaEnv) ExecuteScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
-	script, ok := c.(*CompiledLua)
-	if !ok {
-		return nil, fmt.Errorf("%w, got %T", ErrLuaBadCompiledType, c)
-	}
-
-	return executeLuaScript(e, script, inputs)
+	proc := c.(*CompiledLua)
+	var result api.Args
+	err := e.withCompiledResult(proc, inputs,
+		func(L *lua.State) {
+			if L.IsTable(-1) {
+				result = luaTableToMap(L, -1)
+			} else {
+				value := luaToGo(L, -1)
+				result = api.Args{"result": value}
+			}
+			L.Pop(1)
+		},
+	)
+	return result, err
 }
 
 // EvaluatePredicate executes a compiled Lua predicate with the provided inputs
@@ -80,12 +87,15 @@ func (e *LuaEnv) ExecuteScript(
 func (e *LuaEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {
-	script, ok := c.(*CompiledLua)
-	if !ok {
-		return false, fmt.Errorf("%s, got %T", ErrLuaBadCompiledType, c)
-	}
-
-	return evaluateLuaPredicate(e, script, inputs)
+	proc := c.(*CompiledLua)
+	result := false
+	err := e.withCompiledResult(proc, inputs,
+		func(L *lua.State) {
+			result = L.ToBoolean(-1)
+			L.Pop(1)
+		},
+	)
+	return result, err
 }
 
 func (e *LuaEnv) wrapSource(script string, argNames []string) string {
@@ -128,6 +138,29 @@ func (e *LuaEnv) setupSandbox(L *lua.State) {
 	L.Pop(1)
 }
 
+func (e *LuaEnv) withCompiledResult(
+	proc *CompiledLua, inputs api.Args, onResult func(*lua.State),
+) error {
+	L := e.getState()
+	defer e.returnState(L)
+
+	e.setupSandbox(L)
+	if err := L.Load(bytes.NewReader(proc.bytecode), "chunk", "b"); err != nil {
+		return fmt.Errorf("%w: %w", ErrLuaLoad, err)
+	}
+
+	for _, name := range proc.argNames {
+		pushLuaArg(L, inputs, name)
+	}
+
+	if err := L.ProtectedCall(len(proc.argNames), 1, 0); err != nil {
+		return fmt.Errorf("%w: %w", ErrLuaExecution, err)
+	}
+
+	onResult(L)
+	return nil
+}
+
 func (e *LuaEnv) getState() *lua.State {
 	select {
 	case L := <-e.statePool:
@@ -144,63 +177,6 @@ func (e *LuaEnv) returnState(L *lua.State) {
 	case e.statePool <- L:
 	default:
 	}
-}
-
-func executeLuaScript(
-	env *LuaEnv, c *CompiledLua, inputs api.Args,
-) (api.Args, error) {
-	L := env.getState()
-	defer env.returnState(L)
-
-	env.setupSandbox(L)
-	if err := L.Load(bytes.NewReader(c.bytecode), "chunk", "b"); err != nil {
-		return nil, err
-	}
-
-	for _, name := range c.argNames {
-		pushLuaArg(L, inputs, name)
-	}
-
-	if err := L.ProtectedCall(len(c.argNames), 1, 0); err != nil {
-		return nil, err
-	}
-
-	var result api.Args
-	if L.IsTable(-1) {
-		result = luaTableToMap(L, -1)
-	} else {
-		value := luaToGo(L, -1)
-		result = api.Args{"result": value}
-	}
-	L.Pop(1)
-
-	return result, nil
-}
-
-func evaluateLuaPredicate(
-	env *LuaEnv, c *CompiledLua, inputs api.Args,
-) (bool, error) {
-	L := env.getState()
-	defer env.returnState(L)
-
-	env.setupSandbox(L)
-
-	if err := L.Load(bytes.NewReader(c.bytecode), "chunk", "b"); err != nil {
-		return false, fmt.Errorf("%w: %w", ErrLuaLoad, err)
-	}
-
-	for _, name := range c.argNames {
-		pushLuaArg(L, inputs, name)
-	}
-
-	if err := L.ProtectedCall(len(c.argNames), 1, 0); err != nil {
-		return false, fmt.Errorf("%w: %w", ErrLuaExecution, err)
-	}
-
-	result := L.ToBoolean(-1)
-	L.Pop(1)
-
-	return result, nil
 }
 
 func pushLuaArg(L *lua.State, inputs api.Args, argName string) {

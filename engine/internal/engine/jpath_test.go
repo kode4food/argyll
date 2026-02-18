@@ -100,15 +100,6 @@ func TestJPathEvaluatePredicateNullMatch(t *testing.T) {
 	assert.True(t, passed)
 }
 
-func TestJPathEvaluatePredicateBadCompiledType(t *testing.T) {
-	env := engine.NewJPathEnv()
-
-	passed, err := env.EvaluatePredicate("not-compiled", nil, api.Args{})
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, engine.ErrJPathBadCompiledType)
-	assert.False(t, passed)
-}
-
 func TestJPathExecuteScriptSingleMatch(t *testing.T) {
 	env := engine.NewJPathEnv()
 
@@ -159,13 +150,5 @@ func TestJPathExecuteScriptNoMatch(t *testing.T) {
 		"input": map[string]any{"foo": "bar"},
 	})
 	assert.ErrorIs(t, err, engine.ErrJPathNoMatch)
-	assert.Nil(t, outputs)
-}
-
-func TestJPathExecuteScriptBadCompiledType(t *testing.T) {
-	env := engine.NewJPathEnv()
-
-	outputs, err := env.ExecuteScript("not-compiled", nil, api.Args{})
-	assert.ErrorIs(t, err, engine.ErrJPathBadCompiledType)
 	assert.Nil(t, outputs)
 }

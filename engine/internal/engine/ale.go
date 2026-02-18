@@ -26,10 +26,9 @@ const (
 )
 
 var (
-	ErrAleBadCompiledType = errors.New("expected ale procedure")
-	ErrAleNotProcedure    = errors.New("not a procedure")
-	ErrAleCompile         = errors.New("script compile error")
-	ErrAleCall            = errors.New("error calling procedure")
+	ErrAleNotProcedure = errors.New("not a procedure")
+	ErrAleCompile      = errors.New("script compile error")
+	ErrAleCall         = errors.New("error calling procedure")
 )
 
 // NewAleEnv creates a new Ale script execution environment with the standard
@@ -53,12 +52,7 @@ func NewAleEnv() *AleEnv {
 func (e *AleEnv) ExecuteScript(
 	c Compiled, step *api.Step, inputs api.Args,
 ) (api.Args, error) {
-	proc, ok := c.(data.Procedure)
-	if !ok {
-		return nil, fmt.Errorf("%w, got %T", ErrAleBadCompiledType, c)
-	}
-
-	result, err := executeScript(proc, step, inputs)
+	result, err := executeScript(c.(data.Procedure), step, inputs)
 	if err != nil {
 		return nil, err
 	}
@@ -82,20 +76,17 @@ func (e *AleEnv) ExecuteScript(
 func (e *AleEnv) EvaluatePredicate(
 	c Compiled, step *api.Step, inputs api.Args,
 ) (bool, error) {
-	proc, ok := c.(data.Procedure)
-	if !ok {
-		return false, fmt.Errorf("%s, got %T", ErrAleBadCompiledType, c)
+	result, err := executeScript(c.(data.Procedure), step, inputs)
+	if err != nil {
+		return false, err
 	}
-
-	return evaluatePredicate(proc, step, inputs)
+	return result != data.False, nil
 }
 
 func (e *AleEnv) wrapSource(step *api.Step, script string) string {
-	argNames := step.SortedArgNames()
 	return fmt.Sprintf(
-		aleLambdaTemplate, strings.Join(argNames, " "), script,
+		aleLambdaTemplate, strings.Join(step.SortedArgNames(), " "), script,
 	)
-
 }
 
 func (e *AleEnv) compile(src string) (proc data.Procedure, err error) {
@@ -137,16 +128,6 @@ func getArgValue(inputs api.Args, argName string) ale.Value {
 		return jsonToAle(value)
 	}
 	return data.Null
-}
-
-func evaluatePredicate(
-	proc data.Procedure, step *api.Step, inputs api.Args,
-) (bool, error) {
-	result, err := executeScript(proc, step, inputs)
-	if err != nil {
-		return false, err
-	}
-	return result != data.False, nil
 }
 
 func jsonToAle(value any) ale.Value {
