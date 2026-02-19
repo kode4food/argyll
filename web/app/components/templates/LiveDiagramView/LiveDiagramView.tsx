@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
@@ -21,7 +21,6 @@ import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { STEP_LAYOUT } from "@/constants/layout";
 import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
-import { useApplyDiagramViewport } from "@/app/hooks/useApplyDiagramViewport";
 import { useStepVisibility } from "./useStepVisibility";
 
 interface LiveDiagramViewProps {
@@ -76,15 +75,39 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     markFitApplied,
   } = useDiagramViewport(viewportKey);
 
-  useApplyDiagramViewport({
-    fitPadding: STEP_LAYOUT.FIT_VIEW_PADDING,
-    markFitApplied,
-    markRestored,
-    nodeCount: nodes.length,
-    reactFlowInstance,
-    savedViewport,
-    shouldFitView,
-  });
+  useEffect(() => {
+    if (savedViewport && reactFlowInstance) {
+      reactFlowInstance.setViewport(savedViewport);
+      requestAnimationFrame(() => markRestored());
+    }
+  }, [reactFlowInstance, savedViewport, markRestored]);
+
+  useEffect(() => {
+    if (!shouldFitView || !reactFlowInstance || nodes.length === 0) {
+      return;
+    }
+
+    let frameA = 0;
+    let frameB = 0;
+
+    frameA = requestAnimationFrame(() => {
+      frameB = requestAnimationFrame(() => {
+        reactFlowInstance.fitView({
+          padding: STEP_LAYOUT.FIT_VIEW_PADDING,
+        });
+        markFitApplied();
+      });
+    });
+
+    return () => {
+      if (frameA) {
+        cancelAnimationFrame(frameA);
+      }
+      if (frameB) {
+        cancelAnimationFrame(frameB);
+      }
+    };
+  }, [reactFlowInstance, shouldFitView, nodes, markFitApplied]);
 
   if (isLoadingPlan || stepsToRender.length === 0) {
     return (

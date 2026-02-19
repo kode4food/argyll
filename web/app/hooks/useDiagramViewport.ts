@@ -13,7 +13,7 @@ export function useDiagramViewport(viewportKey: string) {
   useEffect(() => {
     const savedViewport = getViewportForKey(viewportKey);
     setSavedViewport(savedViewport);
-    canPersistRef.current = !savedViewport;
+    canPersistRef.current = false;
     setShouldFit(!savedViewport);
   }, [viewportKey]);
 
@@ -23,6 +23,7 @@ export function useDiagramViewport(viewportKey: string) {
 
   const markFitApplied = useCallback(() => {
     setShouldFit(false);
+    canPersistRef.current = true;
   }, []);
 
   const handleViewportChange = useCallback(
