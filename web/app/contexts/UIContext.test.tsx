@@ -38,6 +38,7 @@ describe("UIContext", () => {
     expect(result.current.disableEdit).toBe(false);
     expect(result.current.previewPlan).toBeNull();
     expect(result.current.goalSteps).toEqual([]);
+    expect(result.current.focusedPreviewAttribute).toBeNull();
   });
 
   test("setShowCreateForm updates state", () => {
@@ -59,6 +60,20 @@ describe("UIContext", () => {
     });
 
     expect(result.current.goalSteps).toEqual(["step-1", "step-2"]);
+  });
+
+  test("setFocusedPreviewAttribute updates state", () => {
+    const { result } = renderHook(() => useUI(), { wrapper });
+
+    act(() => {
+      result.current.setFocusedPreviewAttribute("quantity");
+    });
+    expect(result.current.focusedPreviewAttribute).toBe("quantity");
+
+    act(() => {
+      result.current.setFocusedPreviewAttribute(null);
+    });
+    expect(result.current.focusedPreviewAttribute).toBeNull();
   });
 
   test("toggleGoalStep adds and removes ids", () => {

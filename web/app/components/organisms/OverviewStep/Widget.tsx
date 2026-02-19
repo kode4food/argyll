@@ -7,6 +7,7 @@ import Footer from "@/app/components/molecules/OverviewStep/Footer";
 import { getStepType } from "@/utils/stepUtils";
 import { useStepHealth } from "@/app/hooks/useStepHealth";
 import { useStepEditorContext } from "@/app/contexts/StepEditorContext";
+import { useUI } from "@/app/contexts/UIContext";
 import { useT } from "@/app/i18n";
 import { useFlowStore } from "@/app/store/flowStore";
 
@@ -37,6 +38,7 @@ const Widget: React.FC<WidgetProps> = ({
 }) => {
   const { status: healthStatus, error: healthError } = useStepHealth(step);
   const stepType = getStepType(step);
+  const { focusedPreviewAttribute } = useUI();
   const upsertStep = useFlowStore((state) => state.upsertStep);
   const { openEditor } = useStepEditorContext();
   const t = useT();
@@ -111,7 +113,10 @@ const Widget: React.FC<WidgetProps> = ({
         title={isEditable ? t("overviewStep.doubleClickEdit") : undefined}
       >
         <StepHeader step={step} />
-        <Attributes step={step} />
+        <Attributes
+          step={step}
+          focusedAttributeName={focusedPreviewAttribute}
+        />
         <StepPredicate step={step} />
         <Footer
           step={step}

@@ -207,4 +207,36 @@ describe("useEdgeCalculation", () => {
       result.current.some((e) => e.source === "step2" && e.target === "step3")
     ).toBe(true);
   });
+
+  test("highlights focused attribute edges while keeping others visible", () => {
+    const step1 = createStep("step1", [], [], ["shared", "other"]);
+    const step2 = createStep("step2", ["shared", "other"], [], []);
+
+    const { result } = renderHook(() =>
+      useEdgeCalculation([step1, step2], null, "shared")
+    );
+
+    const focusedEdge = result.current.find(
+      (e) => e.id === "step1-step2-shared"
+    );
+    const dimmedEdge = result.current.find((e) => e.id === "step1-step2-other");
+
+    expect(focusedEdge?.style?.stroke).toBe("var(--color-edge-required)");
+    expect(focusedEdge?.style?.strokeWidth).toBe(2);
+    expect(focusedEdge?.style?.strokeDasharray).toBeUndefined();
+    expect(focusedEdge?.className).toBe("edge-focused-animated");
+    expect(dimmedEdge?.style?.stroke).toBe("var(--color-edge-required)");
+  });
+
+  test("keeps normal edge styling when focused attribute has no matching edges", () => {
+    const step1 = createStep("step1", [], [], ["shared"]);
+    const step2 = createStep("step2", ["shared"], [], []);
+
+    const { result } = renderHook(() =>
+      useEdgeCalculation([step1, step2], null, "not_present")
+    );
+
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].style?.stroke).toBe("var(--color-edge-required)");
+  });
 });

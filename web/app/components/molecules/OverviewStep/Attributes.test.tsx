@@ -27,4 +27,27 @@ describe("Attributes", () => {
       container.querySelector('[data-arg-name="output1"]')
     ).toBeInTheDocument();
   });
+
+  test("highlights focused attribute rows", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test Step",
+      type: "sync",
+      attributes: {
+        quantity: { role: AttributeRole.Required, type: AttributeType.Number },
+        total: { role: AttributeRole.Output, type: AttributeType.Number },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+
+    const { container } = render(
+      <Attributes step={step} focusedAttributeName="quantity" />
+    );
+
+    const focusedRow = container.querySelector('[data-arg-name="quantity"]');
+    expect(focusedRow?.className).toContain("argItemFocused");
+  });
 });

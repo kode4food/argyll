@@ -9,7 +9,8 @@ import {
 
 export const useEdgeCalculation = (
   visibleSteps: Step[],
-  previewStepIds?: Set<string> | null
+  previewStepIds?: Set<string> | null,
+  focusedAttributeName?: string | null
 ) => {
   return useMemo(() => {
     const edges: Edge[] = [];
@@ -26,13 +27,14 @@ export const useEdgeCalculation = (
           const isInPlan = previewStepIds
             ? previewStepIds.has(fromStepID) && previewStepIds.has(toStep.id)
             : false;
+          const isFocusedAttribute = focusedAttributeName === input.name;
+          const isOutOfPlan = !!previewStepIds && !isInPlan;
 
-          const strokeColor =
-            previewStepIds && !isInPlan
-              ? EDGE_COLORS.GRAYED
-              : input.isOptional
-                ? EDGE_COLORS.OPTIONAL
-                : EDGE_COLORS.REQUIRED;
+          const strokeColor = isOutOfPlan
+            ? EDGE_COLORS.GRAYED
+            : input.isOptional
+              ? EDGE_COLORS.OPTIONAL
+              : EDGE_COLORS.REQUIRED;
 
           const edgeStyle = {
             stroke: strokeColor,
@@ -55,11 +57,15 @@ export const useEdgeCalculation = (
               color: strokeColor,
             },
             zIndex: isInPlan ? 1000 : 1,
+            className:
+              focusedAttributeName && isFocusedAttribute
+                ? "edge-focused-animated"
+                : undefined,
           });
         });
       });
     });
 
     return edges;
-  }, [visibleSteps, previewStepIds]);
+  }, [visibleSteps, previewStepIds, focusedAttributeName]);
 };

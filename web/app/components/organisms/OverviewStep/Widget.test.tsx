@@ -12,6 +12,11 @@ import { useStepHealth } from "@/app/hooks/useStepHealth";
 import { useFlowStore } from "@/app/store/flowStore";
 
 jest.mock("@/app/hooks/useStepHealth");
+jest.mock("@/app/contexts/UIContext", () => ({
+  useUI: () => ({
+    focusedPreviewAttribute: null,
+  }),
+}));
 jest.mock("@/app/components/molecules/StepHeader", () => ({
   __esModule: true,
   default: ({ step }: any) => <div data-testid="step-header">{step.name}</div>,
@@ -218,6 +223,15 @@ describe("Widget", () => {
 
     const widget = container.querySelector(".step-widget");
     expect(widget?.className).toContain("custom-class");
+  });
+
+  test("does not add step-level focus class when attribute is focused", () => {
+    const step = createStep("sync");
+
+    const { container } = render(<Widget step={step} />);
+
+    const widget = container.querySelector(".step-widget");
+    expect(widget?.className).not.toContain("attribute-focus-match");
   });
 
   test("applies custom style", () => {

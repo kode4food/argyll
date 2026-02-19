@@ -13,6 +13,8 @@ interface UIContextType {
   setShowCreateForm: (show: boolean) => void;
   disableEdit: boolean;
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
+  focusedPreviewAttribute: string | null;
+  setFocusedPreviewAttribute: (attribute: string | null) => void;
   previewPlan: ExecutionPlan | null;
   setPreviewPlan: (plan: ExecutionPlan | null) => void;
   goalSteps: string[];
@@ -34,6 +36,9 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [previewPlan, setPreviewPlanState] = useState<ExecutionPlan | null>(
     null
   );
+  const [focusedPreviewAttribute, setFocusedPreviewAttributeState] = useState<
+    string | null
+  >(null);
   const [goalSteps, setGoalStepsState] = useState<string[]>([]);
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -41,6 +46,10 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setPreviewPlan = useCallback((plan: ExecutionPlan | null) => {
     setPreviewPlanState(plan);
+  }, []);
+
+  const setFocusedPreviewAttribute = useCallback((attribute: string | null) => {
+    setFocusedPreviewAttributeState(attribute);
   }, []);
 
   const setGoalSteps = useCallback((stepIds: string[]) => {
@@ -119,6 +128,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       setShowCreateForm,
       disableEdit,
       diagramContainerRef,
+      focusedPreviewAttribute,
+      setFocusedPreviewAttribute,
       previewPlan,
       setPreviewPlan,
       goalSteps,
@@ -130,6 +141,8 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
     [
       showCreateForm,
       disableEdit,
+      focusedPreviewAttribute,
+      setFocusedPreviewAttribute,
       previewPlan,
       setPreviewPlan,
       goalSteps,

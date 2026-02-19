@@ -17,12 +17,17 @@ import { useT } from "@/app/i18n";
 import { useFlowStore } from "@/app/store/flowStore";
 import { Step } from "@/app/api";
 
-const OverviewDiagramContent: React.FC = () => {
+interface OverviewDiagramContentProps {
+  openEditor: ReturnType<typeof useStepEditorContext>["openEditor"];
+}
+
+const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
+  openEditor,
+}) => {
   const { steps, loadSteps } = useFlowSession();
   const upsertStep = useFlowStore((state) => state.upsertStep);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
-  const { openEditor } = useStepEditorContext();
   const t = useT();
 
   const applyStepUpdate = React.useCallback(
@@ -102,9 +107,14 @@ const OverviewDiagramContent: React.FC = () => {
   );
 };
 
+const OverviewDiagramInner: React.FC = () => {
+  const { openEditor } = useStepEditorContext();
+  return <OverviewDiagramContent openEditor={openEditor} />;
+};
+
 const OverviewDiagram: React.FC = () => (
   <StepEditorProvider>
-    <OverviewDiagramContent />
+    <OverviewDiagramInner />
   </StepEditorProvider>
 );
 

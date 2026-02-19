@@ -49,7 +49,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
   const reactFlowInstance = useReactFlow();
   const viewportKey = "overview";
-  const { disableEdit, diagramContainerRef } = useUI();
+  const { disableEdit, diagramContainerRef, focusedPreviewAttribute } = useUI();
   const { previewPlan, handleStepClick, clearPreview } =
     useExecutionPlanPreview(goalSteps, setGoalSteps);
 
@@ -68,7 +68,11 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     disableEdit
   );
 
-  const initialEdges = useEdgeCalculation(visibleSteps, previewStepIds);
+  const initialEdges = useEdgeCalculation(
+    visibleSteps,
+    previewStepIds,
+    focusedPreviewAttribute
+  );
 
   const { plan } = useLayoutPlan(visibleSteps, []);
 

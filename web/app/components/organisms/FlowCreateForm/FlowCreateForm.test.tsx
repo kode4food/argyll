@@ -63,6 +63,8 @@ describe("FlowCreateForm", () => {
   const defaultUIContext = {
     showCreateForm: true,
     setShowCreateForm: jest.fn(),
+    focusedPreviewAttribute: null,
+    setFocusedPreviewAttribute: jest.fn(),
     disableEdit: false,
     diagramContainerRef: { current: null },
     previewPlan: null,
@@ -525,6 +527,54 @@ describe("FlowCreateForm", () => {
 
     const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
     expect(editor.value).toContain('"quantity":0');
+  });
+
+  test("tracks focused input attribute for preview highlighting", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["quantity"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+    const setFocusedPreviewAttribute = jest.fn();
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+      setFocusedPreviewAttribute,
+    });
+
+    renderWithProvider();
+
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${styles.attributeListItem}`);
+    const quantityInput = within(quantityRow as HTMLElement).getByRole(
+      "textbox"
+    );
+    fireEvent.focus(quantityInput);
+
+    expect(setFocusedPreviewAttribute).toHaveBeenCalledWith("quantity");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    expect(setFocusedPreviewAttribute).toHaveBeenCalledWith(null);
   });
 
   test("selects step when clicked", async () => {

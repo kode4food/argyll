@@ -64,7 +64,13 @@ const FlowCreateForm: React.FC = () => {
     generateID,
     sortSteps,
   } = useFlowCreation();
-  const { showCreateForm, setShowCreateForm, previewPlan, goalSteps } = useUI();
+  const {
+    showCreateForm,
+    setShowCreateForm,
+    previewPlan,
+    goalSteps,
+    setFocusedPreviewAttribute,
+  } = useUI();
   const t = useT();
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
@@ -81,6 +87,12 @@ const FlowCreateForm: React.FC = () => {
       setEditorMode("basic");
     }
   }, [showCreateForm]);
+
+  React.useEffect(() => {
+    if (!showCreateForm || editorMode !== "basic") {
+      setFocusedPreviewAttribute(null);
+    }
+  }, [showCreateForm, editorMode, setFocusedPreviewAttribute]);
 
   const sortedSteps = React.useMemo(() => sortSteps(steps), [steps, sortSteps]);
 
@@ -334,6 +346,9 @@ const FlowCreateForm: React.FC = () => {
                                       option.name,
                                       e.target.value
                                     )
+                                  }
+                                  onFocus={() =>
+                                    setFocusedPreviewAttribute(option.name)
                                   }
                                   className={`${styles.input} ${styles.attributeValueInput}`}
                                   placeholder={getFlowInputPlaceholder(option)}

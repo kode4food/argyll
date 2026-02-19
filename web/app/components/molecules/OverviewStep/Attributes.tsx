@@ -6,9 +6,13 @@ import styles from "../StepShared/StepAttributesSection.module.css";
 
 interface AttributesProps {
   step: Step;
+  focusedAttributeName?: string | null;
 }
 
-const Attributes: React.FC<AttributesProps> = ({ step }) => {
+const Attributes: React.FC<AttributesProps> = ({
+  step,
+  focusedAttributeName = null,
+}) => {
   const unifiedArgs = getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }) => ({
       name,
@@ -40,7 +44,9 @@ const Attributes: React.FC<AttributesProps> = ({ step }) => {
         return (
           <div
             key={key}
-            className={styles.argItem}
+            className={`${styles.argItem} ${
+              focusedAttributeName === arg.name ? styles.argItemFocused : ""
+            }`}
             data-arg-type={arg.argType}
             data-arg-name={arg.name}
           >

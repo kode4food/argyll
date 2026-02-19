@@ -24,6 +24,40 @@
   align-items: center;
   min-height: 24px;
   max-height: 24px;
+  position: relative;
+  z-index: 0;
+}
+
+.argItemFocused {
+  --arg-focus-inset-x: -6px;
+  --arg-focus-inset-y: -3px;
+  --arg-focus-ring-width: 2px;
+  --arg-focus-ring-alpha: 32%;
+  --arg-focus-pulse-spread: 10px;
+  --arg-focus-pulse-duration: 1.5s;
+  border-radius: var(--radius-md);
+}
+
+.argItemFocused::before {
+  content: "";
+  position: absolute;
+  top: var(--arg-focus-inset-y);
+  bottom: var(--arg-focus-inset-y);
+  left: var(--arg-focus-inset-x);
+  right: var(--arg-focus-inset-x);
+  border-radius: var(--radius-round);
+  background-color: transparent;
+  box-shadow: 0 0 0 var(--arg-focus-ring-width)
+    color-mix(
+      in srgb,
+      var(--arg-focus-border-color, var(--color-neutral-border))
+        var(--arg-focus-ring-alpha),
+      transparent
+    );
+  animation: argItemFocusPulse var(--arg-focus-pulse-duration) ease-in-out
+    infinite;
+  pointer-events: none;
+  z-index: -1;
 }
 
 .argName {
@@ -102,4 +136,32 @@
   border: 2px dotted var(--color-neutral-border);
   background-color: transparent;
   opacity: var(--opacity-disabled);
+}
+
+@keyframes argItemFocusPulse {
+  0% {
+    box-shadow: 0 0 0 var(--arg-focus-ring-width)
+      color-mix(
+        in srgb,
+        var(--arg-focus-border-color, var(--color-neutral-border))
+          var(--arg-focus-ring-alpha),
+        transparent
+      );
+  }
+  70% {
+    box-shadow: 0 0 0 var(--arg-focus-pulse-spread)
+      color-mix(
+        in srgb,
+        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
+        transparent
+      );
+  }
+  100% {
+    box-shadow: 0 0 0 var(--arg-focus-ring-width)
+      color-mix(
+        in srgb,
+        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
+        transparent
+      );
+  }
 }

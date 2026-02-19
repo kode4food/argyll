@@ -1,5 +1,11 @@
 /* Shared Step Widget Patterns */
 
+:root {
+  --focused-edge-dash-pattern: 10 3;
+  --focused-edge-dash-offset: -26;
+  --focused-edge-animation-duration: 0.9s;
+}
+
 /* Base Step Widget - Used across multiple components */
 .step-widget {
   border-width: var(--step-border-width);
@@ -11,6 +17,7 @@
   height: auto;
   position: relative;
   pointer-events: all;
+  --arg-focus-border-color: var(--step-widget-border-color);
 }
 
 /* ReactFlow Diagram Overrides */
@@ -35,41 +42,61 @@
   opacity: 0.3;
 }
 
+.react-flow__edge.edge-focused-animated .react-flow__edge-path {
+  stroke-dasharray: var(--focused-edge-dash-pattern);
+  stroke-linecap: round;
+  animation: edgeFocusedFlow var(--focused-edge-animation-duration) linear
+    infinite;
+}
+
+@keyframes edgeFocusedFlow {
+  from {
+    stroke-dashoffset: 0;
+  }
+  to {
+    stroke-dashoffset: var(--focused-edge-dash-offset);
+  }
+}
+
 /* Step Widget Type Variants */
 .step-widget.resolver {
   background-color: var(--step-resolver-bg);
-  border-color: color-mix(
+  --step-widget-border-color: color-mix(
     in srgb,
     var(--step-resolver-border) 85%,
     var(--color-darken)
   );
+  border-color: var(--step-widget-border-color);
 }
 
 .step-widget.processor {
   background-color: var(--step-processor-bg);
-  border-color: color-mix(
+  --step-widget-border-color: color-mix(
     in srgb,
     var(--step-processor-border) 85%,
     var(--color-darken)
   );
+  border-color: var(--step-widget-border-color);
 }
 
 .step-widget.collector {
   background-color: var(--step-collector-bg);
-  border-color: color-mix(
+  --step-widget-border-color: color-mix(
     in srgb,
     var(--step-collector-border) 85%,
     var(--color-darken)
   );
+  border-color: var(--step-widget-border-color);
 }
 
 .step-widget.neutral {
   background-color: var(--color-neutral-bg);
-  border-color: color-mix(
+  --step-widget-border-color: color-mix(
     in srgb,
     var(--color-neutral-border) 85%,
     var(--color-darken)
   );
+  border-color: var(--step-widget-border-color);
 }
 
 /* Step Widget Display Modes */
