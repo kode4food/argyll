@@ -36,6 +36,7 @@
   "flowCreate.invalidJson": "JSON invalide: {error}",
   "flowCreate.modeBasic": "Basique",
   "flowCreate.modeJson": "JSON",
+  "flowCreate.noGoalsSelected": "Aucun Goal Step sélectionné",
   "flowCreate.noPotentialInputs": "Aucun Input potentiel pour les Goal Steps sélectionnés",
   "flowCreate.requiredAttributesLabel": "Attributes requis",
   "flowCreate.requiredBadge": "Requis",

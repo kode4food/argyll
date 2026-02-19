@@ -351,6 +351,45 @@ describe("FlowCreateForm", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("shows no-goals message when no goal steps are selected", () => {
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      goalSteps: [],
+      previewPlan: null,
+    });
+
+    renderWithProvider();
+
+    expect(
+      screen.getByText(t("flowCreate.noGoalsSelected"))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(t("flowCreate.noPotentialInputs"))
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows no-potential-inputs message when goals are selected but no inputs exist", () => {
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      goalSteps: ["step-1"],
+      previewPlan: {
+        steps: {},
+        required: [],
+        attributes: {},
+        goals: ["step-1"],
+      },
+    });
+
+    renderWithProvider();
+
+    expect(
+      screen.getByText(t("flowCreate.noPotentialInputs"))
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(t("flowCreate.noGoalsSelected"))
+    ).not.toBeInTheDocument();
+  });
+
   test("selects step when clicked", async () => {
     renderWithProvider();
 

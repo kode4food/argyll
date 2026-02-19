@@ -64,6 +64,10 @@ const FlowCreateForm: React.FC = () => {
     () => getFlowPlanAttributeOptions(previewPlan),
     [previewPlan]
   );
+  const emptyAttributesLabel =
+    goalSteps.length === 0
+      ? t("flowCreate.noGoalsSelected")
+      : t("flowCreate.noPotentialInputs");
   const flowInputNames = React.useMemo(
     () => flowInputOptions.map((option) => option.name),
     [flowInputOptions]
@@ -217,7 +221,7 @@ const FlowCreateForm: React.FC = () => {
                 <div className={styles.editorWrapper}>
                   {flowInputOptions.length === 0 ? (
                     <div className={styles.emptyAttributesCentered}>
-                      {t("flowCreate.noPotentialInputs")}
+                      {emptyAttributesLabel}
                     </div>
                   ) : (
                     <div className={styles.attributeTableScroll}>

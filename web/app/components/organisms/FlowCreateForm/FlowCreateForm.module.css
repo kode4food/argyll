@@ -312,8 +312,11 @@
 }
 
 .attributeList {
+  --attribute-name-column-max-width: 280px;
   display: grid;
-  grid-template-columns: max-content minmax(0, 1fr);
+  grid-template-columns: fit-content(
+      var(--attribute-name-column-max-width)
+    ) minmax(0, 1fr);
   width: 100%;
   font-size: var(--text-sm);
 }
@@ -341,12 +344,16 @@
   align-items: center;
   gap: var(--spacing-xs);
   min-width: 0;
+  overflow: hidden;
   height: 33px;
   padding: 0 var(--spacing-sm);
   border-bottom: 1px solid var(--color-dark-border);
 }
 
 .attributeNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -354,7 +361,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  min-width: calc(8ch + 1rem);
+  flex-shrink: 0;
   height: 1.2rem;
 }
 
