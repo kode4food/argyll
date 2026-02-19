@@ -26,7 +26,6 @@ import (
     "log"
     "time"
 
-    "github.com/kode4food/argyll/engine/pkg/api"
     "github.com/kode4food/argyll/sdks/go-builder"
 )
 
@@ -160,8 +159,6 @@ func main() {
 
     if err := client.NewStep().WithName("Child Flow Wrapper").
         WithFlowGoals("child-goal").
-        WithFlowInputMap(map[api.Name]api.Name{"input": "child_input"}).
-        WithFlowOutputMap(map[api.Name]api.Name{"child_output": "output"}).
         Register(context.Background()); err != nil {
         log.Fatal(err)
     }
@@ -289,8 +286,6 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithLabel(key, value) *Step` - Add label
 - `WithLabels(labels) *Step` - Add multiple labels
 - `WithFlowGoals(...stepIDs) *Step` - Configure a flow step with child goals
-- `WithFlowInputMap(mapping) *Step` - Configure input mapping for a flow step
-- `WithFlowOutputMap(mapping) *Step` - Configure output mapping for a flow step
 - `WithEndpoint(url) *Step` - Set HTTP endpoint
 - `WithHealthCheck(url) *Step` - Set health check endpoint
 - `WithTimeout(ms) *Step` - Set execution timeout

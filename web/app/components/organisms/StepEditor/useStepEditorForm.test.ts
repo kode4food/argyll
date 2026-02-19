@@ -118,8 +118,6 @@ describe("useStepEditorForm", () => {
       script: undefined,
       flow: {
         goals: ["goal-1", "goal-2"],
-        input_map: { input: "child_input" },
-        output_map: { child_output: "output" },
       },
     });
     registerStep.mockResolvedValue(createdStep);
@@ -143,10 +141,14 @@ describe("useStepEditorForm", () => {
     act(() => {
       result.current.updateAttribute(inputAttrId, "name", "input");
       result.current.updateAttribute(inputAttrId, "attrType", "input");
-      result.current.updateAttribute(inputAttrId, "flowMap", "child_input");
+      result.current.updateAttribute(inputAttrId, "mappingName", "child_input");
       result.current.updateAttribute(outputAttrId, "name", "output");
       result.current.updateAttribute(outputAttrId, "attrType", "output");
-      result.current.updateAttribute(outputAttrId, "flowMap", "child_output");
+      result.current.updateAttribute(
+        outputAttrId,
+        "mappingName",
+        "child_output"
+      );
     });
 
     await act(async () => {
@@ -158,9 +160,15 @@ describe("useStepEditorForm", () => {
         type: "flow",
         flow: {
           goals: ["goal-1", "goal-2"],
-          input_map: { input: "child_input" },
-          output_map: { child_output: "output" },
         },
+        attributes: expect.objectContaining({
+          input: expect.objectContaining({
+            mapping: expect.objectContaining({ name: "child_input" }),
+          }),
+          output: expect.objectContaining({
+            mapping: expect.objectContaining({ name: "child_output" }),
+          }),
+        }),
         http: undefined,
         script: undefined,
       })

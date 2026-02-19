@@ -111,8 +111,6 @@ client = Client()
 
 client.new_step().with_name("Child Flow Wrapper") \
     .with_flow_goals("child-goal") \
-    .with_flow_input_map({"input": "child_input"}) \
-    .with_flow_output_map({"child_output": "output"}) \
     .register()
 ```
 

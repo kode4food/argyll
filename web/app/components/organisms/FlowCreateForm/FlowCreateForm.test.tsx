@@ -1,4 +1,10 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import FlowCreateForm from "./FlowCreateForm";
 import styles from "./FlowCreateForm.module.css";
 import { t } from "@/app/testUtils/i18n";
@@ -60,6 +66,7 @@ describe("FlowCreateForm", () => {
     disableEdit: false,
     diagramContainerRef: { current: null },
     previewPlan: null,
+    setPreviewPlan: jest.fn(),
     goalSteps: [],
     toggleGoalStep: jest.fn(),
     updatePreviewPlan: jest.fn(),
@@ -106,9 +113,6 @@ describe("FlowCreateForm", () => {
       screen.getByText(t("flowCreate.selectGoalSteps"))
     ).toBeInTheDocument();
     expect(screen.getByText(t("flowCreate.flowIdLabel"))).toBeInTheDocument();
-    expect(
-      screen.getByText(t("flowCreate.requiredAttributesLabel"))
-    ).toBeInTheDocument();
   });
 
   test("renders steps in sorted list", () => {
@@ -159,12 +163,20 @@ describe("FlowCreateForm", () => {
   test("displays initial state in code editor", () => {
     renderWithProvider({ initialState: '{"key": "value"}' });
 
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
     const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
     expect(editor.value).toBe('{"key": "value"}');
   });
 
   test("calls setInitialState when code editor changes", () => {
     renderWithProvider();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
 
     const editor = screen.getByTestId("code-editor");
     fireEvent.change(editor, { target: { value: '{"new": "value"}' } });
@@ -177,6 +189,10 @@ describe("FlowCreateForm", () => {
   test("shows JSON error when initialState is invalid JSON", () => {
     renderWithProvider({ initialState: "{invalid" });
 
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
     expect(
       screen.getByText((content) =>
         content.startsWith(t("flowCreate.invalidJson", { error: "" }))
@@ -186,6 +202,10 @@ describe("FlowCreateForm", () => {
 
   test("does not show JSON error when initialState is valid JSON", () => {
     renderWithProvider({ initialState: '{"valid": true}' });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
 
     expect(
       screen.queryByText((content) =>
@@ -269,6 +289,9 @@ describe("FlowCreateForm", () => {
     });
 
     renderWithProvider({ newID: "test-id", initialState: "{invalid" });
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
 
     const startButton = screen.getByText(t("common.start"));
     expect(startButton).toBeDisabled();
@@ -301,6 +324,30 @@ describe("FlowCreateForm", () => {
 
     expect(
       screen.queryByText(t("flowCreate.warningNoSteps"))
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows required attributes label only in JSON mode", () => {
+    renderWithProvider();
+
+    expect(
+      screen.queryByText(t("flowCreate.requiredAttributesLabel"))
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    expect(
+      screen.getByText(t("flowCreate.requiredAttributesLabel"))
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeBasic") })
+    );
+
+    expect(
+      screen.queryByText(t("flowCreate.requiredAttributesLabel"))
     ).not.toBeInTheDocument();
   });
 
@@ -416,5 +463,69 @@ describe("FlowCreateForm", () => {
     await waitFor(() => {
       expect(defaultProps.handleStepChange).not.toHaveBeenCalled();
     });
+  });
+
+  test("marks required badge only for plan-required launch inputs", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["order_id"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            order_id: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+        upstream: {
+          id: "upstream",
+          name: "Upstream",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Output,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/upstream", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    renderWithProvider();
+
+    const orderIdRow = screen
+      .getByText("order_id")
+      .closest(`.${styles.attributeListItem}`);
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${styles.attributeListItem}`);
+    expect(orderIdRow).toBeInTheDocument();
+    expect(quantityRow).toBeInTheDocument();
+
+    expect(
+      within(orderIdRow as HTMLElement).getByText(t("flowCreate.requiredBadge"))
+    ).toBeInTheDocument();
+    expect(
+      within(quantityRow as HTMLElement).queryByText(
+        t("flowCreate.requiredBadge")
+      )
+    ).not.toBeInTheDocument();
   });
 });

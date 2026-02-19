@@ -106,7 +106,11 @@ export const addRequiredDefaults = (
 ): Record<string, any> => {
   const result = { ...state };
 
-  (executionPlan.required || []).forEach((name) => {
+  const requiredNames = [...(executionPlan.required || [])].sort((a, b) =>
+    a.localeCompare(b)
+  );
+
+  requiredNames.forEach((name) => {
     if (!(name in result)) {
       // Find the attribute type from any step that declares it
       let attributeType: AttributeType | undefined;

@@ -199,30 +199,10 @@ class StepBuilder:
 
     def with_flow_goals(self, *goal_ids: StepID) -> "StepBuilder":
         """Configure flow step with goal IDs."""
-        new_flow = FlowConfig(
-            goals=list(goal_ids),
-            input_map=self._flow.input_map if self._flow else {},
-            output_map=self._flow.output_map if self._flow else {},
+        return self._copy(
+            _flow=FlowConfig(goals=list(goal_ids)),
+            _type=StepType.FLOW,
         )
-        return self._copy(_flow=new_flow, _type=StepType.FLOW)
-
-    def with_flow_input_map(self, mapping: Dict[str, str]) -> "StepBuilder":
-        """Configure input mapping for flow step."""
-        new_flow = FlowConfig(
-            goals=self._flow.goals if self._flow else [],
-            input_map=mapping,
-            output_map=self._flow.output_map if self._flow else {},
-        )
-        return self._copy(_flow=new_flow, _type=StepType.FLOW)
-
-    def with_flow_output_map(self, mapping: Dict[str, str]) -> "StepBuilder":
-        """Configure output mapping for flow step."""
-        new_flow = FlowConfig(
-            goals=self._flow.goals if self._flow else [],
-            input_map=self._flow.input_map if self._flow else {},
-            output_map=mapping,
-        )
-        return self._copy(_flow=new_flow, _type=StepType.FLOW)
 
     def with_async_execution(self) -> "StepBuilder":
         """Configure async execution."""

@@ -40,6 +40,7 @@ let showCreateForm = true;
 let previewPlan: ExecutionPlan | null = null;
 const uiState = {
   previewPlan,
+  setPreviewPlan: jest.fn(),
   updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
   clearPreviewPlan: jest.fn(),
   toggleGoalStep: jest.fn(),

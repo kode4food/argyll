@@ -131,8 +131,6 @@ describe("StepEditor", () => {
     },
     flow: {
       goals: [],
-      input_map: {},
-      output_map: {},
     },
   });
 
@@ -360,9 +358,20 @@ describe("StepEditor", () => {
       fireEvent.click(goalChip);
     });
 
+    const expandInputMappingButton = await screen.findByRole("button", {
+      name: `${t("stepEditor.mappingLabel")} input1`,
+    });
+    fireEvent.click(expandInputMappingButton);
+
     expect(
       await screen.findByRole("option", { name: "in1" })
     ).toBeInTheDocument();
+
+    const expandOutputMappingButton = await screen.findByRole("button", {
+      name: `${t("stepEditor.mappingLabel")} output1`,
+    });
+    fireEvent.click(expandOutputMappingButton);
+
     expect(
       await screen.findByRole("option", { name: "out1" })
     ).toBeInTheDocument();

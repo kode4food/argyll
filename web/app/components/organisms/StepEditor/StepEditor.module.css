@@ -46,6 +46,12 @@
   align-items: center;
 }
 
+.headerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
 .title {
   margin: 0;
   font-size: var(--text-xl);
@@ -95,7 +101,14 @@
   flex-shrink: 0;
 }
 
-.footerCheckboxLabel {
+.footerControls {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  min-height: 28px;
+}
+
+.headerCheckboxLabel {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
@@ -105,7 +118,7 @@
   user-select: none;
 }
 
-.footerCheckbox {
+.headerCheckbox {
   width: 16px;
   height: 16px;
   cursor: pointer;

@@ -9,7 +9,6 @@ import {
 import {
   Attribute,
   buildAttributesFromStep,
-  buildFlowMaps,
   buildStepPayload,
   createStepAttributes,
   getValidationError,
@@ -155,7 +154,6 @@ export function useStepEditorForm(
 
   const buildStepData = useCallback((): Step => {
     const stepAttributes = createStepAttributes(attributes);
-    const { inputMap, outputMap } = buildFlowMaps(attributes);
     return buildStepPayload({
       stepId,
       name,
@@ -169,8 +167,6 @@ export function useStepEditorForm(
       healthCheck,
       httpTimeout,
       flowGoals,
-      flowInputMap: inputMap,
-      flowOutputMap: outputMap,
       memoizable,
     });
   }, [

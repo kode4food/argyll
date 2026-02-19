@@ -17,7 +17,6 @@ export interface Attribute {
   dataType: AttributeType;
   defaultValue?: string;
   forEach?: boolean;
-  flowMap?: string;
   mappingName?: string;
   mappingLanguage?: string;
   mappingScript?: string;
@@ -33,7 +32,6 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
   if (!step) return [];
 
   const timestamp = Date.now();
-  const flowConfig = step.flow;
 
   return getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }, index) => {
@@ -52,22 +50,6 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
             ? "const"
             : "input";
 
-      let flowMap: string | undefined;
-      if (flowConfig) {
-        if (spec.role === AttributeRole.Output && flowConfig.output_map) {
-          for (const [childName, outputName] of Object.entries(
-            flowConfig.output_map
-          )) {
-            if (outputName === name) {
-              flowMap = childName;
-              break;
-            }
-          }
-        } else if (flowConfig.input_map) {
-          flowMap = flowConfig.input_map[name] ?? undefined;
-        }
-      }
-
       return {
         id: `${prefix}-${index}-${timestamp}`,
         attrType,
@@ -81,7 +63,6 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
               : undefined
             : undefined,
         forEach: spec.for_each || false,
-        flowMap,
         mappingName: spec.mapping?.name,
         mappingLanguage: spec.mapping?.script?.language,
         mappingScript: spec.mapping?.script?.script,
@@ -187,27 +168,6 @@ export function createStepAttributes(
   return stepAttributes;
 }
 
-export function buildFlowMaps(attributes: Attribute[]): {
-  inputMap: Record<string, string>;
-  outputMap: Record<string, string>;
-} {
-  const inputMap: Record<string, string> = {};
-  const outputMap: Record<string, string> = {};
-
-  attributes.forEach((attr) => {
-    if (!attr.flowMap?.trim() || !attr.name.trim()) {
-      return;
-    }
-    if (attr.attrType === "output") {
-      outputMap[attr.flowMap.trim()] = attr.name;
-      return;
-    }
-    inputMap[attr.name] = attr.flowMap.trim();
-  });
-
-  return { inputMap, outputMap };
-}
-
 export function getValidationError({
   isCreateMode,
   stepId,
@@ -244,10 +204,6 @@ export function getValidationError({
     if (parseFlowGoals(flowGoals).length === 0) {
       return { key: "stepEditor.flowGoalsRequired" };
     }
-    const flowMapError = validateFlowMaps(attributes);
-    if (flowMapError) {
-      return flowMapError;
-    }
     return null;
   }
 
@@ -262,38 +218,6 @@ export function getValidationError({
     if (!httpTimeout || httpTimeout <= 0) {
       return { key: "stepEditor.timeoutPositive" };
     }
-  }
-
-  return null;
-}
-
-function validateFlowMaps(attributes: Attribute[]): ValidationError | null {
-  const inputTargets = new Set<string>();
-  const outputTargets = new Set<string>();
-
-  for (const attr of attributes) {
-    if (!attr.flowMap?.trim()) {
-      continue;
-    }
-    const target = attr.flowMap.trim();
-    if (attr.attrType === "output") {
-      if (outputTargets.has(target)) {
-        return {
-          key: "stepEditor.duplicateFlowOutputMap",
-          vars: { name: target },
-        };
-      }
-      outputTargets.add(target);
-      continue;
-    }
-
-    if (inputTargets.has(target)) {
-      return {
-        key: "stepEditor.duplicateFlowInputMap",
-        vars: { name: target },
-      };
-    }
-    inputTargets.add(target);
   }
 
   return null;
@@ -366,8 +290,6 @@ export function buildStepPayload({
   healthCheck,
   httpTimeout,
   flowGoals,
-  flowInputMap,
-  flowOutputMap,
   memoizable,
 }: {
   stepId: string;
@@ -382,8 +304,6 @@ export function buildStepPayload({
   healthCheck: string;
   httpTimeout: number;
   flowGoals: string;
-  flowInputMap: Record<string, string>;
-  flowOutputMap: Record<string, string>;
   memoizable: boolean;
 }): Step {
   const stepData: Step = {
@@ -403,8 +323,6 @@ export function buildStepPayload({
   if (stepType === "flow") {
     stepData.flow = {
       goals: parseFlowGoals(flowGoals),
-      input_map: flowInputMap,
-      output_map: flowOutputMap,
     };
     stepData.http = undefined;
     stepData.script = undefined;

@@ -77,7 +77,7 @@ For predicates specifically, see [Predicates Guide](./predicates.md).
 
 **Characteristics:**
 - Child flow has its own execution plan and goals
-- Input/output mapping between parent and child
+- Input/output mapping between parent and child via attribute `mapping.name`
 - More events and state overhead
 - Enables composition and reuse
 
@@ -106,10 +106,15 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 ```json
 {
   "id": "lookup-user",
+  "name": "Lookup User",
   "type": "sync",
   "http": {
     "endpoint": "https://api.example.com/users",
     "timeout": 5000
+  },
+  "attributes": {
+    "user_id": { "role": "required", "type": "string" },
+    "user": { "role": "output", "type": "object" }
   }
 }
 ```
@@ -121,10 +126,16 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 ```json
 {
   "id": "process-orders",
+  "name": "Process Orders",
   "type": "sync",
+  "http": {
+    "endpoint": "https://api.example.com/orders/process",
+    "timeout": 5000
+  },
   "work_config": { "parallelism": 10 },
   "attributes": {
-    "orders": { "for_each": true }
+    "orders": { "role": "required", "type": "array", "for_each": true },
+    "processed_order": { "role": "output", "type": "object" }
   }
 }
 ```
@@ -136,10 +147,16 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 ```json
 {
   "id": "charge-card",
+  "name": "Charge Card",
   "type": "async",
   "http": {
     "endpoint": "https://payment-service.example.com/charge",
     "timeout": 1000
+  },
+  "attributes": {
+    "card_token": { "role": "required", "type": "string" },
+    "amount": { "role": "required", "type": "number" },
+    "charge_id": { "role": "output", "type": "string" }
   }
 }
 ```
@@ -151,10 +168,16 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 ```json
 {
   "id": "calculate-discount",
+  "name": "Calculate Discount",
   "type": "script",
+  "attributes": {
+    "original_amount": { "role": "required", "type": "number" },
+    "discount_rate": { "role": "required", "type": "number" },
+    "discounted_amount": { "role": "output", "type": "number" }
+  },
   "script": {
     "language": "ale",
-    "script": "(* original_amount (- 1 discount_rate))"
+    "script": "{:discounted_amount (* original_amount (- 1 discount_rate))}"
   }
 }
 ```
@@ -166,11 +189,14 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 ```json
 {
   "id": "authorize-user",
+  "name": "Authorize User",
   "type": "flow",
   "flow": {
-    "goals": ["verify-credentials"],
-    "input_map": { "username": "user" },
-    "output_map": { "is_authorized": "authorized" }
+    "goals": ["verify-credentials"]
+  },
+  "attributes": {
+    "user": { "role": "required", "mapping": { "name": "username" } },
+    "authorized": { "role": "output", "mapping": { "name": "is_authorized" } }
   }
 }
 ```

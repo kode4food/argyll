@@ -14,12 +14,17 @@ A predicate script evaluates to true/false:
 ```json
 {
   "id": "send-notification",
+  "name": "Send Notification",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/notifications/send", "timeout": 5000 },
+  "attributes": {
+    "amount": { "role": "required", "type": "number" },
+    "notification_sent": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "ale",
     "script": "(> amount 100)"
-  },
-  "type": "sync",
-  "http": { "endpoint": "..." }
+  }
 }
 ```
 
@@ -50,12 +55,16 @@ Example:
 ```json
 {
   "id": "process-items",
+  "name": "Process Items",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/items/process", "timeout": 5000 },
   "predicate": {
     "language": "ale",
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "for_each": true }
+    "items": { "role": "required", "type": "array", "for_each": true },
+    "processed_count": { "role": "output", "type": "number" }
   }
 }
 ```
@@ -73,15 +82,15 @@ Simple, purely functional language. Ideal for predicates.
 ```javascript
 // Simple comparisons
 (> amount 100)
-(= status "active")
+(eq status "active")
 
 // Logical operators
-(and (> amount 100) (= status "active"))
-(or (= region "US") (= region "EU"))
+(and (> amount 100) (eq status "active"))
+(or (eq region "US") (eq region "EU"))
 
 // List operations
 (> (length items) 0)
-(= (first statuses) "paid")
+(eq (first statuses) "paid")
 ```
 
 ### Lua
@@ -118,6 +127,13 @@ $.items[?(@.status=="ready")]
 ```json
 {
   "id": "send-priority-notification",
+  "name": "Send Priority Notification",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/notifications/priority", "timeout": 5000 },
+  "attributes": {
+    "amount": { "role": "required", "type": "number" },
+    "notification_sent": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "ale",
     "script": "(>= amount 1000)"
@@ -132,12 +148,16 @@ $.items[?(@.status=="ready")]
 ```json
 {
   "id": "batch-processor",
+  "name": "Batch Processor",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/batch/process", "timeout": 5000 },
   "predicate": {
     "language": "ale",
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "for_each": true }
+    "items": { "role": "required", "type": "array", "for_each": true },
+    "batch_result": { "role": "output", "type": "string" }
   }
 }
 ```
@@ -149,9 +169,17 @@ $.items[?(@.status=="ready")]
 ```json
 {
   "id": "apply-loyalty-discount",
+  "name": "Apply Loyalty Discount",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/discounts/loyalty", "timeout": 5000 },
+  "attributes": {
+    "years_member": { "role": "required", "type": "number" },
+    "account_status": { "role": "required", "type": "string" },
+    "discount_applied": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "ale",
-    "script": "(and (>= years_member 2) (= account_status \"active\"))"
+    "script": "(and (>= years_member 2) (eq account_status \"active\"))"
   }
 }
 ```
@@ -161,6 +189,13 @@ $.items[?(@.status=="ready")]
 ```json
 {
   "id": "charge-extra-fee",
+  "name": "Charge Extra Fee",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/fees/charge", "timeout": 5000 },
+  "attributes": {
+    "order": { "role": "required", "type": "object" },
+    "fee_charged": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "lua",
     "script": "return order.total > 500 and order.region == 'international' and order.method == 'card'"
@@ -261,11 +296,17 @@ A step can have both:
 
 ```json
 {
+  "id": "process-items-if-non-empty",
+  "name": "Process Items If Non Empty",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/items/process", "timeout": 5000 },
   "predicate": {
+    "language": "ale",
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "for_each": true }
+    "items": { "role": "required", "type": "array", "for_each": true },
+    "processed_count": { "role": "output", "type": "number" }
   }
 }
 ```
@@ -279,9 +320,16 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
 ```json
 {
   "id": "process-premium-customers",
+  "name": "Process Premium Customers",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/customers/premium/process", "timeout": 5000 },
+  "attributes": {
+    "customer_tier": { "role": "required", "type": "string" },
+    "processed": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "ale",
-    "script": "(= customer_tier \"premium\")"
+    "script": "(eq customer_tier \"premium\")"
   }
 }
 ```
@@ -291,6 +339,14 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
 ```json
 {
   "id": "send-time-sensitive-offer",
+  "name": "Send Time Sensitive Offer",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/offers/send", "timeout": 5000 },
+  "attributes": {
+    "current_epoch": { "role": "required", "type": "number" },
+    "offer_expiry": { "role": "required", "type": "number" },
+    "sent": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "lua",
     "script": "return current_epoch < offer_expiry"
@@ -303,9 +359,16 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
 ```json
 {
   "id": "experimental-feature",
+  "name": "Experimental Feature",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/features/experimental", "timeout": 5000 },
+  "attributes": {
+    "feature_enabled": { "role": "required", "type": "boolean" },
+    "executed": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "ale",
-    "script": "(= feature_enabled true)"
+    "script": "(eq feature_enabled true)"
   }
 }
 ```
@@ -315,6 +378,13 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
 ```json
 {
   "id": "process-if-valid",
+  "name": "Process If Valid",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/validation/process", "timeout": 5000 },
+  "attributes": {
+    "email": { "role": "required", "type": "string" },
+    "processed": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "lua",
     "script": "return email:find('@') ~= nil"

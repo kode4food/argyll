@@ -1,6 +1,10 @@
 import {
   buildItemClassName,
+  buildInitialStateFromInputValues,
+  buildInitialStateInputValues,
+  formatInputValue,
   hasScrollOverflow,
+  parseInputValue,
   safeParseState,
   validateJsonString,
 } from "./flowFormUtils";
@@ -72,6 +76,12 @@ describe("flowFormUtils", () => {
       expect(parsed).toEqual({ foo: "bar" });
     });
 
+    it("returns empty object for non-object JSON", () => {
+      expect(safeParseState("null")).toEqual({});
+      expect(safeParseState("123")).toEqual({});
+      expect(safeParseState('["a"]')).toEqual({});
+    });
+
     it("returns empty object for invalid JSON", () => {
       const parsed = safeParseState("{not-valid");
       expect(parsed).toEqual({});
@@ -104,6 +114,72 @@ describe("flowFormUtils", () => {
       expect(
         buildItemClassName(false, false, "base", "selected", "disabled")
       ).toBe("base");
+    });
+  });
+
+  describe("formatInputValue", () => {
+    it("returns empty string for nullish values", () => {
+      expect(formatInputValue(undefined)).toBe("");
+      expect(formatInputValue(null)).toBe("");
+    });
+
+    it("returns strings as-is", () => {
+      expect(formatInputValue("abc")).toBe("abc");
+    });
+
+    it("serializes non-string values", () => {
+      expect(formatInputValue(123)).toBe("123");
+      expect(formatInputValue(true)).toBe("true");
+      expect(formatInputValue({ a: 1 })).toBe('{"a":1}');
+    });
+  });
+
+  describe("parseInputValue", () => {
+    it("returns undefined for empty strings", () => {
+      expect(parseInputValue("   ")).toBeUndefined();
+    });
+
+    it("parses valid JSON literals", () => {
+      expect(parseInputValue("123")).toBe(123);
+      expect(parseInputValue("true")).toBe(true);
+      expect(parseInputValue('{"a":1}')).toEqual({ a: 1 });
+    });
+
+    it("falls back to raw string for non-JSON text", () => {
+      expect(parseInputValue("hello")).toBe("hello");
+    });
+  });
+
+  describe("initial state input value helpers", () => {
+    it("builds table values from initial state", () => {
+      const values = buildInitialStateInputValues('{"a":1,"b":"text"}', [
+        "a",
+        "b",
+        "c",
+      ]);
+      expect(values).toEqual({
+        a: "1",
+        b: "text",
+        c: "",
+      });
+    });
+
+    it("builds initial state from table values", () => {
+      const state = buildInitialStateFromInputValues(
+        {
+          a: "1",
+          b: "hello",
+          c: "",
+          d: '{"x":true}',
+        },
+        ["a", "b", "c", "d"]
+      );
+
+      expect(state).toEqual({
+        a: 1,
+        b: "hello",
+        d: { x: true },
+      });
     });
   });
 });

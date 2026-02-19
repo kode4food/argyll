@@ -38,6 +38,7 @@ jest.mock("@/app/contexts/UIContext", () => ({
     goalSteps: [],
     toggleGoalStep: jest.fn(),
     setGoalSteps: jest.fn(),
+    setPreviewPlan: jest.fn(),
     updatePreviewPlan: jest.fn(),
     clearPreviewPlan: jest.fn(),
     previewPlan: null,

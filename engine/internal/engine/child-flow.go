@@ -9,7 +9,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type parentWork struct {
@@ -153,52 +152,27 @@ func isWorkTerminal(status api.WorkStatus) bool {
 	return status == api.WorkSucceeded || status == api.WorkFailed
 }
 
-func mapFlowInputs(step *api.Step, inputs api.Args) api.Args {
-	if step.Flow == nil || len(step.Flow.InputMap) == 0 {
-		return inputs
-	}
-
-	mapped := api.Args{}
-	for name, value := range inputs {
-		target := name
-		if mappedName, ok := step.Flow.InputMap[name]; ok {
-			target = mappedName
-		}
-		mapped[target] = value
-	}
-
-	return mapped
-}
-
 func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
-	if step.Flow == nil {
+	if step == nil {
 		return nil, nil
 	}
 
-	outputs := api.Args{}
-	outputSet := util.Set[api.Name]{}
-	for _, name := range step.GetOutputArgs() {
-		outputSet.Add(name)
-	}
+	outputs := maps.Clone(childAttrs)
 
-	for childName, outputName := range step.Flow.OutputMap {
-		if !outputSet.Contains(outputName) {
+	for _, attr := range step.Attributes {
+		if !attr.IsOutput() {
 			continue
 		}
-		value, ok := childAttrs[childName]
+		if attr.Mapping == nil || attr.Mapping.Name == "" {
+			continue
+		}
+
+		sourceName := api.Name(attr.Mapping.Name)
+		value, ok := childAttrs[sourceName]
 		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrFlowOutputMissing, childName)
+			return nil, fmt.Errorf("%w: %s", ErrFlowOutputMissing, sourceName)
 		}
-		outputs[outputName] = value
-	}
-
-	for outputName := range outputSet {
-		if _, ok := outputs[outputName]; ok {
-			continue
-		}
-		if value, ok := childAttrs[outputName]; ok {
-			outputs[outputName] = value
-		}
+		outputs[sourceName] = value
 	}
 
 	return outputs, nil

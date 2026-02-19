@@ -53,9 +53,7 @@ type (
 
 	// FlowConfig configures flow-based step execution
 	FlowConfig struct {
-		Goals     []StepID      `json:"goals"`
-		InputMap  map[Name]Name `json:"input_map,omitempty"`
-		OutputMap map[Name]Name `json:"output_map,omitempty"`
+		Goals []StepID `json:"goals"`
 	}
 
 	// WorkConfig configures retry and parallelism behavior for steps with
@@ -86,15 +84,8 @@ type (
 		V *AttributeSpec `json:"v"`
 	}
 
-	mapEntry struct {
-		K Name `json:"k"`
-		V Name `json:"v"`
-	}
-
 	flowCfg struct {
-		Goals []StepID   `json:"goals"`
-		In    []mapEntry `json:"input_map,omitempty"`
-		Out   []mapEntry `json:"output_map,omitempty"`
+		Goals []StepID `json:"goals"`
 	}
 
 	stepHash struct {
@@ -132,31 +123,27 @@ const (
 )
 
 var (
-	ErrStepIDEmpty            = errors.New("step ID empty")
-	ErrStepNameEmpty          = errors.New("step name empty")
-	ErrStepEndpointEmpty      = errors.New("step endpoint empty")
-	ErrArgNameEmpty           = errors.New("argument name empty")
-	ErrInvalidStepType        = errors.New("invalid step type")
-	ErrHTTPRequired           = errors.New("http required")
-	ErrScriptRequired         = errors.New("script required")
-	ErrFlowRequired           = errors.New("flow required")
-	ErrFlowGoalsRequired      = errors.New("flow goals required")
-	ErrFlowInputMapInvalid    = errors.New("flow input map invalid")
-	ErrFlowOutputMapInvalid   = errors.New("flow output map invalid")
-	ErrFlowInputMapDuplicate  = errors.New("flow input map duplicate")
-	ErrFlowOutputMapDuplicate = errors.New("flow output map duplicate")
-	ErrHTTPNotAllowed         = errors.New("http not allowed for step type")
-	ErrScriptNotAllowed       = errors.New("script not allowed for step type")
-	ErrFlowNotAllowed         = errors.New("flow not allowed for step type")
-	ErrScriptLanguageEmpty    = errors.New("script language empty")
-	ErrInvalidScriptLanguage  = errors.New("invalid script language")
-	ErrScriptEmpty            = errors.New("script empty")
-	ErrInvalidRetryConfig     = errors.New("invalid retry config")
-	ErrInvalidBackoffType     = errors.New("invalid backoff type")
-	ErrAttributeNil           = errors.New("attribute has nil definition")
-	ErrNegativeBackoff        = errors.New("backoff cannot be negative")
-	ErrMaxBackoffTooSmall     = errors.New("max_backoff must be >= backoff")
-	ErrWorkNotCompleted       = errors.New("work not completed")
+	ErrStepIDEmpty           = errors.New("step ID empty")
+	ErrStepNameEmpty         = errors.New("step name empty")
+	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
+	ErrArgNameEmpty          = errors.New("argument name empty")
+	ErrInvalidStepType       = errors.New("invalid step type")
+	ErrHTTPRequired          = errors.New("http required")
+	ErrScriptRequired        = errors.New("script required")
+	ErrFlowRequired          = errors.New("flow required")
+	ErrFlowGoalsRequired     = errors.New("flow goals required")
+	ErrHTTPNotAllowed        = errors.New("http not allowed for step type")
+	ErrScriptNotAllowed      = errors.New("script not allowed for step type")
+	ErrFlowNotAllowed        = errors.New("flow not allowed for step type")
+	ErrScriptLanguageEmpty   = errors.New("script language empty")
+	ErrInvalidScriptLanguage = errors.New("invalid script language")
+	ErrScriptEmpty           = errors.New("script empty")
+	ErrInvalidRetryConfig    = errors.New("invalid retry config")
+	ErrInvalidBackoffType    = errors.New("invalid backoff type")
+	ErrAttributeNil          = errors.New("attribute has nil definition")
+	ErrNegativeBackoff       = errors.New("backoff cannot be negative")
+	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
+	ErrWorkNotCompleted      = errors.New("work not completed")
 )
 
 var (
@@ -292,61 +279,6 @@ func (s *Step) validateFlowConfig() error {
 	}
 	if len(s.Flow.Goals) == 0 {
 		return ErrFlowGoalsRequired
-	}
-	if err := s.validateFlowMappings(); err != nil {
-		return err
-	}
-	return nil
-}
-
-func (s *Step) validateFlowMappings() error {
-	if s.Flow == nil {
-		return nil
-	}
-	if err := s.validateFlowInputMap(); err != nil {
-		return err
-	}
-	return s.validateFlowOutputMap()
-}
-
-func (s *Step) validateFlowInputMap() error {
-	if len(s.Flow.InputMap) == 0 {
-		return nil
-	}
-	seen := util.Set[Name]{}
-	for inputName, childName := range s.Flow.InputMap {
-		if inputName == "" || childName == "" {
-			return ErrFlowInputMapInvalid
-		}
-		attr, ok := s.Attributes[inputName]
-		if !ok || !attr.IsInput() {
-			return ErrFlowInputMapInvalid
-		}
-		if seen.Contains(childName) {
-			return fmt.Errorf("%w: %s", ErrFlowInputMapDuplicate, childName)
-		}
-		seen.Add(childName)
-	}
-	return nil
-}
-
-func (s *Step) validateFlowOutputMap() error {
-	if len(s.Flow.OutputMap) == 0 {
-		return nil
-	}
-	seen := util.Set[Name]{}
-	for childName, outputName := range s.Flow.OutputMap {
-		if childName == "" || outputName == "" {
-			return ErrFlowOutputMapInvalid
-		}
-		attr, ok := s.Attributes[outputName]
-		if !ok || !attr.IsOutput() {
-			return ErrFlowOutputMapInvalid
-		}
-		if seen.Contains(outputName) {
-			return fmt.Errorf("%w: %s", ErrFlowOutputMapDuplicate, outputName)
-		}
-		seen.Add(outputName)
 	}
 	return nil
 }
@@ -523,32 +455,8 @@ func (s *Step) computeHashKey() (string, error) {
 
 	var flow any
 	if s.Flow != nil {
-		keys := make([]Name, 0, len(s.Flow.InputMap))
-		for k := range s.Flow.InputMap {
-			keys = append(keys, k)
-		}
-		slices.Sort(keys)
-
-		in := make([]mapEntry, len(keys))
-		for i, k := range keys {
-			in[i] = mapEntry{K: k, V: s.Flow.InputMap[k]}
-		}
-
-		keys = make([]Name, 0, len(s.Flow.OutputMap))
-		for k := range s.Flow.OutputMap {
-			keys = append(keys, k)
-		}
-		slices.Sort(keys)
-
-		out := make([]mapEntry, len(keys))
-		for i, k := range keys {
-			out[i] = mapEntry{K: k, V: s.Flow.OutputMap[k]}
-		}
-
 		flow = flowCfg{
 			Goals: s.Flow.Goals,
-			In:    in,
-			Out:   out,
 		}
 	}
 
@@ -617,13 +525,7 @@ func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
 // Equal returns true if two flow configs are equal
 func (c *FlowConfig) Equal(other *FlowConfig) bool {
 	return equalWithNilCheck(c, other, func() bool {
-		if !slices.Equal(c.Goals, other.Goals) {
-			return false
-		}
-		if !maps.Equal(c.InputMap, other.InputMap) {
-			return false
-		}
-		return maps.Equal(c.OutputMap, other.OutputMap)
+		return slices.Equal(c.Goals, other.Goals)
 	})
 }
 

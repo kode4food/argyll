@@ -5,7 +5,6 @@ import {
   createStepAttributes,
   getAttributeIconProps,
   getValidationError,
-  buildFlowMaps,
 } from "./stepEditorUtils";
 import { AttributeRole, AttributeType, Step } from "@/app/api";
 
@@ -24,6 +23,7 @@ describe("stepEditorUtils", () => {
           required_arg: {
             role: AttributeRole.Required,
             type: AttributeType.String,
+            mapping: { name: "child_in" },
             description: "",
           },
           const_arg: {
@@ -41,14 +41,11 @@ describe("stepEditorUtils", () => {
           output_arg: {
             role: AttributeRole.Output,
             type: AttributeType.String,
+            mapping: { name: "child_out" },
             description: "",
           },
         },
-        flow: {
-          goals: ["goal-1"],
-          input_map: { required_arg: "child_in" },
-          output_map: { child_out: "output_arg" },
-        },
+        flow: { goals: ["goal-1"] },
       };
 
       const result = buildAttributesFromStep(step);
@@ -73,8 +70,8 @@ describe("stepEditorUtils", () => {
 
       expect(outputAttrs).toHaveLength(1);
       expect(outputAttrs[0].name).toBe("output_arg");
-      expect(inputAttrs[0].flowMap).toBe("child_in");
-      expect(outputAttrs[0].flowMap).toBe("child_out");
+      expect(inputAttrs[0].mappingName).toBe("child_in");
+      expect(outputAttrs[0].mappingName).toBe("child_out");
     });
   });
 
@@ -336,32 +333,6 @@ describe("stepEditorUtils", () => {
     });
   });
 
-  describe("buildFlowMaps", () => {
-    it("builds input and output maps from attributes", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          attrType: "input",
-          name: "input",
-          dataType: AttributeType.String,
-          flowMap: "child_in",
-        },
-        {
-          id: "attr-2",
-          attrType: "output",
-          name: "output",
-          dataType: AttributeType.String,
-          flowMap: "child_out",
-        },
-      ];
-
-      const { inputMap, outputMap } = buildFlowMaps(attributes);
-
-      expect(inputMap).toEqual({ input: "child_in" });
-      expect(outputMap).toEqual({ child_out: "output" });
-    });
-  });
-
   describe("getAttributeIconProps", () => {
     it("returns icon props for input attribute", () => {
       const props = getAttributeIconProps("input");
@@ -469,72 +440,6 @@ describe("stepEditorUtils", () => {
       });
 
       expect(error).toEqual({ key: "stepEditor.flowGoalsRequired" });
-    });
-
-    it("rejects duplicate flow input mappings", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [
-          {
-            id: "attr-1",
-            attrType: "input",
-            name: "input_a",
-            dataType: AttributeType.String,
-            flowMap: "child_input",
-          },
-          {
-            id: "attr-2",
-            attrType: "optional",
-            name: "input_b",
-            dataType: AttributeType.String,
-            flowMap: "child_input",
-          },
-        ],
-        stepType: "flow",
-        script: "",
-        endpoint: "",
-        httpTimeout: 0,
-        flowGoals: "goal-a",
-      });
-
-      expect(error).toEqual({
-        key: "stepEditor.duplicateFlowInputMap",
-        vars: { name: "child_input" },
-      });
-    });
-
-    it("rejects duplicate flow output mappings", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [
-          {
-            id: "attr-1",
-            attrType: "output",
-            name: "out_a",
-            dataType: AttributeType.String,
-            flowMap: "child_out",
-          },
-          {
-            id: "attr-2",
-            attrType: "output",
-            name: "out_b",
-            dataType: AttributeType.String,
-            flowMap: "child_out",
-          },
-        ],
-        stepType: "flow",
-        script: "",
-        endpoint: "",
-        httpTimeout: 0,
-        flowGoals: "goal-a",
-      });
-
-      expect(error).toEqual({
-        key: "stepEditor.duplicateFlowOutputMap",
-        vars: { name: "child_out" },
-      });
     });
 
     it("allows flow type without http or script config", () => {

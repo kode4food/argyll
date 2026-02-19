@@ -254,10 +254,16 @@ HTTP steps can include a health check endpoint:
 
 ```json
 {
+  "id": "process-payload",
+  "name": "Process Payload",
   "type": "sync",
   "http": {
     "endpoint": "https://api.example.com/process",
     "health_check": "https://api.example.com/health"
+  },
+  "attributes": {
+    "payload": { "role": "required", "type": "object" },
+    "processed": { "role": "output", "type": "object" }
   }
 }
 ```

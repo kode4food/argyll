@@ -299,8 +299,6 @@ def test_parse_step_with_all_fields():
                     },
                     "flow": {
                         "goals": ["step-1", "step-2"],
-                        "input_map": {"a": "b"},
-                        "output_map": {"c": "d"},
                     },
                     "memoizable": True,
                 }

@@ -71,8 +71,6 @@ describe("Widget", () => {
         ? {
             flow: {
               goals: ["goal-a"],
-              input_map: {},
-              output_map: {},
             },
           }
         : {

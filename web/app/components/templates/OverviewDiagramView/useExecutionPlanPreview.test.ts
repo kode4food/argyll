@@ -16,6 +16,7 @@ describe("useExecutionPlanPreview", () => {
 
     mockUseUI.mockReturnValue({
       previewPlan: null,
+      setPreviewPlan: jest.fn(),
       updatePreviewPlan: mockUpdatePreviewPlan,
       clearPreviewPlan: mockClearPreviewPlan,
       showCreateForm: false,
@@ -99,6 +100,7 @@ describe("useExecutionPlanPreview", () => {
         required: [],
         attributes: {},
       } as ExecutionPlan,
+      setPreviewPlan: jest.fn(),
       updatePreviewPlan: mockUpdatePreviewPlan,
       clearPreviewPlan: mockClearPreviewPlan,
       showCreateForm: false,
@@ -132,6 +134,7 @@ describe("useExecutionPlanPreview", () => {
         attributes: {},
         required: [],
       } as ExecutionPlan,
+      setPreviewPlan: jest.fn(),
       updatePreviewPlan: mockUpdatePreviewPlan,
       clearPreviewPlan: mockClearPreviewPlan,
       showCreateForm: false,
@@ -179,6 +182,7 @@ describe("useExecutionPlanPreview", () => {
 
     mockUseUI.mockReturnValue({
       previewPlan: mockPlan,
+      setPreviewPlan: jest.fn(),
       updatePreviewPlan: mockUpdatePreviewPlan,
       clearPreviewPlan: mockClearPreviewPlan,
       showCreateForm: false,

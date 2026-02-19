@@ -268,31 +268,15 @@ func TestMemoCacheHashAttributeOrder(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheHashFlowConfigOrder(t *testing.T) {
+func TestMemoCacheHashFlowConfig(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 
 	flowConfig1 := &api.FlowConfig{
 		Goals: []api.StepID{"goal1"},
-		InputMap: map[api.Name]api.Name{
-			"z": "z_mapped",
-			"a": "a_mapped",
-		},
-		OutputMap: map[api.Name]api.Name{
-			"m": "m_mapped",
-			"b": "b_mapped",
-		},
 	}
 
 	flowConfig2 := &api.FlowConfig{
 		Goals: []api.StepID{"goal1"},
-		InputMap: map[api.Name]api.Name{
-			"a": "a_mapped",
-			"z": "z_mapped",
-		},
-		OutputMap: map[api.Name]api.Name{
-			"b": "b_mapped",
-			"m": "m_mapped",
-		},
 	}
 
 	step1 := &api.Step{

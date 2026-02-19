@@ -168,16 +168,20 @@ func TestFlowStepMapping(t *testing.T) {
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
 				Goals: []api.StepID{child.ID},
-				InputMap: map[api.Name]api.Name{
-					"input": "child_in",
-				},
-				OutputMap: map[api.Name]api.Name{
-					"child_out": "output",
-				},
 			},
 			Attributes: api.AttributeSpecs{
-				"input":  {Role: api.RoleRequired},
-				"output": {Role: api.RoleOutput},
+				"input": {
+					Role: api.RoleRequired,
+					Mapping: &api.AttributeMapping{
+						Name: "child_in",
+					},
+				},
+				"output": {
+					Role: api.RoleOutput,
+					Mapping: &api.AttributeMapping{
+						Name: "child_out",
+					},
+				},
 			},
 		}
 
@@ -228,12 +232,14 @@ func TestFlowStepMissingOutputParentFails(t *testing.T) {
 			Type: api.StepTypeFlow,
 			Flow: &api.FlowConfig{
 				Goals: []api.StepID{child.ID},
-				OutputMap: map[api.Name]api.Name{
-					"child_out": "output",
-				},
 			},
 			Attributes: api.AttributeSpecs{
-				"output": {Role: api.RoleOutput},
+				"output": {
+					Role: api.RoleOutput,
+					Mapping: &api.AttributeMapping{
+						Name: "child_out",
+					},
+				},
 			},
 		}
 

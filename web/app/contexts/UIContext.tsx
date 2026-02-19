@@ -14,6 +14,7 @@ interface UIContextType {
   disableEdit: boolean;
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
   previewPlan: ExecutionPlan | null;
+  setPreviewPlan: (plan: ExecutionPlan | null) => void;
   goalSteps: string[];
   toggleGoalStep: (stepId: string) => void;
   setGoalSteps: (stepIds: string[]) => void;
@@ -30,11 +31,17 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [previewPlan, setPreviewPlan] = useState<ExecutionPlan | null>(null);
+  const [previewPlan, setPreviewPlanState] = useState<ExecutionPlan | null>(
+    null
+  );
   const [goalSteps, setGoalStepsState] = useState<string[]>([]);
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const disableEdit = showCreateForm;
+
+  const setPreviewPlan = useCallback((plan: ExecutionPlan | null) => {
+    setPreviewPlanState(plan);
+  }, []);
 
   const setGoalSteps = useCallback((stepIds: string[]) => {
     setGoalStepsState(stepIds);
@@ -58,7 +65,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (goalSteps.length === 0) {
-        setPreviewPlan(null);
+        setPreviewPlanState(null);
         return;
       }
 
@@ -75,13 +82,13 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Only update state if this request wasn't aborted
         if (!abortController.signal.aborted) {
-          setPreviewPlan(plan);
+          setPreviewPlanState(plan);
         }
       } catch (error: any) {
         // Ignore abort errors
         if (error?.name !== "AbortError" && error?.code !== "ERR_CANCELED") {
           console.error("Failed to update preview plan:", error);
-          setPreviewPlan(null);
+          setPreviewPlanState(null);
         }
       }
     },
@@ -94,7 +101,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       abortControllerRef.current.abort();
       abortControllerRef.current = null;
     }
-    setPreviewPlan(null);
+    setPreviewPlanState(null);
   }, []);
 
   // Cleanup on unmount
@@ -113,6 +120,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       disableEdit,
       diagramContainerRef,
       previewPlan,
+      setPreviewPlan,
       goalSteps,
       toggleGoalStep,
       updatePreviewPlan,
@@ -123,6 +131,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       showCreateForm,
       disableEdit,
       previewPlan,
+      setPreviewPlan,
       goalSteps,
       toggleGoalStep,
       updatePreviewPlan,

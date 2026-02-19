@@ -26,9 +26,9 @@ Use optional attributes with defaults to keep steps reusable across different fl
 ```json
 {
   "attributes": {
-    "customer_id": { "role": "required" },
-    "notify_user": { "role": "optional", "default": "true" },
-    "timeout_seconds": { "role": "optional", "default": "30" }
+    "customer_id": { "role": "required", "type": "string" },
+    "notify_user": { "role": "optional", "type": "boolean", "default": "true" },
+    "timeout_seconds": { "role": "optional", "type": "number", "default": "30" }
   }
 }
 ```
@@ -42,7 +42,7 @@ Use `for_each` on array inputs to process multiple items in parallel. Outputs ar
 ```json
 {
   "attributes": {
-    "order_items": { "role": "required", "for_each": true },
+    "order_items": { "role": "required", "type": "array", "for_each": true },
     "stock_reserved": { "role": "output" }
   },
   "work_config": {
@@ -62,9 +62,17 @@ Use predicates to conditionally skip steps based on flow state. This avoids bran
 ```json
 {
   "id": "apply_vip_discount",
+  "name": "Apply VIP Discount",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/discounts/apply", "timeout": 5000 },
+  "attributes": {
+    "order_total": { "role": "required", "type": "number" },
+    "customer_tier": { "role": "required", "type": "string" },
+    "discount_applied": { "role": "output", "type": "boolean" }
+  },
   "predicate": {
     "language": "ale",
-    "script": "(and (> order_total 1000) (= customer_tier \"gold\"))"
+    "script": "(and (> order_total 1000) (eq customer_tier \"gold\"))"
   }
 }
 ```
@@ -101,15 +109,17 @@ Use flow steps (sub-flows) to create reusable, self-contained units with their o
 ```json
 {
   "id": "authorize_payment",
+  "name": "Authorize Payment",
   "type": "flow",
   "flow": {
-    "goals": ["validate_payment_method"],
-    "input_map": {
-      "card_number": "cardnum",
-      "cvv": "security_code"
-    },
-    "output_map": {
-      "is_valid": "authorization_result"
+    "goals": ["validate_payment_method"]
+  },
+  "attributes": {
+    "cardnum": { "role": "required", "mapping": { "name": "card_number" } },
+    "security_code": { "role": "required", "mapping": { "name": "cvv" } },
+    "authorization_result": {
+      "role": "output",
+      "mapping": { "name": "is_valid" }
     }
   }
 }
@@ -170,8 +180,15 @@ Mark expensive, deterministic steps as memoizable:
 ```json
 {
   "id": "exchange_rate_lookup",
+  "name": "Exchange Rate Lookup",
   "memoizable": true,
-  "type": "sync"
+  "type": "sync",
+  "http": { "endpoint": "https://api.exchangerate-api.com/rates", "timeout": 5000 },
+  "attributes": {
+    "base_currency": { "role": "required", "type": "string" },
+    "quote_currency": { "role": "required", "type": "string" },
+    "rate": { "role": "output", "type": "number" }
+  }
 }
 ```
 

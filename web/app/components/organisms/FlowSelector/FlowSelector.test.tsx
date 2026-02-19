@@ -10,6 +10,7 @@ type UIStateMock = {
   showCreateForm: boolean;
   setShowCreateForm: jest.Mock;
   previewPlan: unknown;
+  setPreviewPlan: jest.Mock;
   updatePreviewPlan: jest.Mock;
   clearPreviewPlan: jest.Mock;
   toggleGoalStep: jest.Mock;
@@ -25,6 +26,7 @@ const uiState: UIStateMock = {
   showCreateForm: false,
   setShowCreateForm: jest.fn(),
   previewPlan: null,
+  setPreviewPlan: jest.fn(),
   updatePreviewPlan: jest.fn(),
   clearPreviewPlan: jest.fn(),
   toggleGoalStep: jest.fn(),
@@ -164,6 +166,7 @@ describe("FlowSelector", () => {
     Object.assign(uiState, {
       showCreateForm: false,
       previewPlan: null,
+      setPreviewPlan: jest.fn(),
       goalSteps: [],
       updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
       setGoalSteps: jest.fn(),

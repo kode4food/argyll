@@ -18,10 +18,72 @@ export function hasScrollOverflow(element: HTMLElement): {
 
 export function safeParseState(stateString: string): Record<string, any> {
   try {
-    return JSON.parse(stateString);
+    const parsed = JSON.parse(stateString);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed;
   } catch {
     return {};
   }
+}
+
+export function formatInputValue(value: any): string {
+  if (value === undefined || value === null) {
+    return "";
+  }
+
+  if (typeof value === "string") {
+    return value;
+  }
+
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+export function parseInputValue(rawValue: string): any {
+  if (rawValue.trim() === "") {
+    return undefined;
+  }
+
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    return rawValue;
+  }
+}
+
+export function buildInitialStateInputValues(
+  initialState: string,
+  inputNames: string[]
+): Record<string, string> {
+  const parsed = safeParseState(initialState);
+  const values: Record<string, string> = {};
+
+  inputNames.forEach((name) => {
+    values[name] = formatInputValue(parsed[name]);
+  });
+
+  return values;
+}
+
+export function buildInitialStateFromInputValues(
+  inputValues: Record<string, string>,
+  inputNames: string[]
+): Record<string, any> {
+  const nextState: Record<string, any> = {};
+
+  inputNames.forEach((name) => {
+    const parsedValue = parseInputValue(inputValues[name] || "");
+    if (parsedValue !== undefined) {
+      nextState[name] = parsedValue;
+    }
+  });
+
+  return nextState;
 }
 
 export function validateJsonString(jsonString: string): string | null {

@@ -18,15 +18,16 @@ Argyll supports four step types. Choose the simplest type that fits your needs:
 **Example:**
 ```json
 {
-  "step_id": "lookup-customer",
+  "id": "lookup-customer",
+  "name": "Lookup Customer",
   "type": "sync",
   "http": {
     "endpoint": "https://api.example.com/customers/lookup",
     "timeout": 5000
   },
   "attributes": {
-    "customer_id": { "required": true },
-    "email": { "required": false }
+    "customer_id": { "role": "required" },
+    "email": { "role": "optional" }
   }
 }
 ```
@@ -47,15 +48,16 @@ Argyll supports four step types. Choose the simplest type that fits your needs:
 **Example:**
 ```json
 {
-  "step_id": "process-payment",
+  "id": "process-payment",
+  "name": "Process Payment",
   "type": "async",
   "http": {
     "endpoint": "https://api.example.com/payments/initiate",
     "timeout": 1000
   },
   "attributes": {
-    "amount": { "required": true },
-    "transaction_id": { "required": false }
+    "amount": { "role": "required" },
+    "transaction_id": { "role": "output" }
   }
 }
 ```
@@ -82,16 +84,17 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 **Example:**
 ```json
 {
-  "step_id": "calculate-discount",
+  "id": "calculate-discount",
+  "name": "Calculate Discount",
   "type": "script",
   "script": {
     "language": "ale",
-    "script": "(* amount (- 1 discount_percent))"
+    "script": "{:discounted_amount (* amount (- 1 discount_percent))}"
   },
   "attributes": {
-    "amount": { "required": true },
-    "discount_percent": { "required": true },
-    "discounted_amount": { "required": false }
+    "amount": { "role": "required" },
+    "discount_percent": { "role": "required" },
+    "discounted_amount": { "role": "output" }
   }
 }
 ```
@@ -106,29 +109,23 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 
 **How it works:**
 - Parent flow starts a child flow with its own goals
-- Inputs are mapped from parent to child
-- Child outputs are mapped back to parent attributes
+- Inputs are mapped from parent to child via attribute `mapping.name`
+- Child outputs are mapped back to parent attributes via `mapping.name`
 - Child completion produces the mapped outputs
 
 **Example:**
 ```json
 {
-  "step_id": "authorize-user",
+  "id": "authorize-user",
+  "name": "Authorize User",
   "type": "flow",
   "flow": {
-    "goals": ["fetch-user"],
-    "input_map": {
-      "user_id": "uid"
-    },
-    "output_map": {
-      "user_name": "name",
-      "is_admin": "admin"
-    }
+    "goals": ["fetch-user"]
   },
   "attributes": {
-    "uid": { "required": true },
-    "name": { "required": false },
-    "admin": { "required": false }
+    "uid": { "role": "required", "mapping": { "name": "user_id" } },
+    "name": { "role": "output", "mapping": { "name": "user_name" } },
+    "admin": { "role": "output", "mapping": { "name": "is_admin" } }
   }
 }
 ```
@@ -145,11 +142,11 @@ Each step declares what it needs and what it produces.
 ```json
 {
   "attributes": {
-    "customer_id": { "required": true },
-    "order_data": { "required": true },
-    "notes": { "required": false },
-    "confirmation_id": { "required": false },
-    "total_amount": { "required": false }
+    "customer_id": { "role": "required" },
+    "order_data": { "role": "required" },
+    "notes": { "role": "optional" },
+    "confirmation_id": { "role": "output" },
+    "total_amount": { "role": "output" }
   }
 }
 ```
@@ -166,12 +163,21 @@ A step can include an optional **predicate** script that decides whether the ste
 
 ```json
 {
-  "step_id": "maybe-send-notification",
+  "id": "maybe-send-notification",
+  "name": "Maybe Send Notification",
+  "type": "sync",
+  "http": {
+    "endpoint": "https://api.example.com/notify",
+    "timeout": 5000
+  },
+  "attributes": {
+    "amount": { "role": "required" },
+    "notification_sent": { "role": "output" }
+  },
   "predicate": {
     "language": "ale",
     "script": "(> amount 100)"
-  },
-  ...
+  }
 }
 ```
 
@@ -191,8 +197,8 @@ Any step can expand into multiple work items using the `for_each` attribute. Whe
 ```json
 {
   "attributes": {
-    "items": { "required": true, "for_each": true },
-    "item_total": { "required": false }
+    "items": { "role": "required", "type": "array", "for_each": true },
+    "item_total": { "role": "output" }
   }
 }
 ```

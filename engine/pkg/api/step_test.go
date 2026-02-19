@@ -233,81 +233,6 @@ func TestStepValidation(t *testing.T) {
 			errorContains: "script not allowed",
 		},
 		{
-			name: "flow_with_invalid_input_map",
-			step: &api.Step{
-				ID:   "test-id",
-				Name: "Test Flow",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals:    []api.StepID{"goal"},
-					InputMap: map[api.Name]api.Name{"missing": "target"},
-				},
-				Attributes: api.AttributeSpecs{
-					"output": {Role: api.RoleOutput},
-				},
-			},
-			expectError:   true,
-			errorContains: "flow input map invalid",
-		},
-		{
-			name: "flow_with_invalid_output_map",
-			step: &api.Step{
-				ID:   "test-id",
-				Name: "Test Flow",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals:     []api.StepID{"goal"},
-					OutputMap: map[api.Name]api.Name{"child": "missing"},
-				},
-				Attributes: api.AttributeSpecs{
-					"input": {Role: api.RoleRequired},
-				},
-			},
-			expectError:   true,
-			errorContains: "flow output map invalid",
-		},
-		{
-			name: "flow_with_duplicate_input_map",
-			step: &api.Step{
-				ID:   "test-id",
-				Name: "Test Flow",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"goal"},
-					InputMap: map[api.Name]api.Name{
-						"input_a": "child_input",
-						"input_b": "child_input",
-					},
-				},
-				Attributes: api.AttributeSpecs{
-					"input_a": {Role: api.RoleRequired},
-					"input_b": {Role: api.RoleRequired},
-				},
-			},
-			expectError:   true,
-			errorContains: "flow input map duplicate",
-		},
-		{
-			name: "flow_with_duplicate_output_map",
-			step: &api.Step{
-				ID:   "test-id",
-				Name: "Test Flow",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"goal"},
-					OutputMap: map[api.Name]api.Name{
-						"child_out_a": "output",
-						"child_out_b": "output",
-					},
-				},
-				Attributes: api.AttributeSpecs{
-					"output": {Role: api.RoleOutput},
-				},
-			},
-			expectError:   true,
-			errorContains: "flow output map duplicate",
-		},
-		{
 			name: "empty_script",
 			step: &api.Step{
 				ID:   "test-id",
@@ -638,32 +563,14 @@ func TestEqualFlowConfig(t *testing.T) {
 
 	config1 := &api.FlowConfig{
 		Goals: []api.StepID{"goal-1"},
-		InputMap: map[api.Name]api.Name{
-			"input": "child-input",
-		},
-		OutputMap: map[api.Name]api.Name{
-			"child-output": "output",
-		},
 	}
 
 	config2 := &api.FlowConfig{
 		Goals: []api.StepID{"goal-1"},
-		InputMap: map[api.Name]api.Name{
-			"input": "child-input",
-		},
-		OutputMap: map[api.Name]api.Name{
-			"child-output": "output",
-		},
 	}
 
 	config3 := &api.FlowConfig{
 		Goals: []api.StepID{"goal-2"},
-		InputMap: map[api.Name]api.Name{
-			"input": "child-input",
-		},
-		OutputMap: map[api.Name]api.Name{
-			"child-output": "output",
-		},
 	}
 
 	as.True(config1.Equal(config2))
@@ -1014,7 +921,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangAle,
-				Script:   "(= status \"ready\")",
+				Script:   "(eq status \"ready\")",
 			},
 		}
 		step2 := &api.Step{
@@ -1026,7 +933,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangAle,
-				Script:   "(= status \"pending\")",
+				Script:   "(eq status \"pending\")",
 			},
 		}
 		as.False(step1.Equal(step2))

@@ -9,8 +9,14 @@ import styles from "./FlowCreateForm.module.css";
 import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
 import { useFlowFormScrollFade } from "./useFlowFormScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
-import { validateJsonString, buildItemClassName } from "./flowFormUtils";
+import {
+  buildInitialStateFromInputValues,
+  buildInitialStateInputValues,
+  buildItemClassName,
+  validateJsonString,
+} from "./flowFormUtils";
 import { useT } from "@/app/i18n";
+import { getFlowPlanAttributeOptions } from "@/utils/flowPlanAttributeOptions";
 
 const FlowCreateForm: React.FC = () => {
   const {
@@ -30,12 +36,19 @@ const FlowCreateForm: React.FC = () => {
   const t = useT();
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
+  const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
 
   useEscapeKey(showCreateForm, () => setShowCreateForm(false));
 
   React.useEffect(() => {
     setJsonError(validateJsonString(initialState));
   }, [initialState]);
+
+  React.useEffect(() => {
+    if (showCreateForm) {
+      setEditorMode("basic");
+    }
+  }, [showCreateForm]);
 
   const sortedSteps = React.useMemo(() => sortSteps(steps), [steps, sortSteps]);
 
@@ -46,6 +59,33 @@ const FlowCreateForm: React.FC = () => {
     steps,
     initialState,
     previewPlan
+  );
+  const { flowInputOptions } = React.useMemo(
+    () => getFlowPlanAttributeOptions(previewPlan),
+    [previewPlan]
+  );
+  const flowInputNames = React.useMemo(
+    () => flowInputOptions.map((option) => option.name),
+    [flowInputOptions]
+  );
+  const flowInputValues = React.useMemo(
+    () => buildInitialStateInputValues(initialState, flowInputNames),
+    [flowInputNames, initialState]
+  );
+
+  const handleBasicInputChange = React.useCallback(
+    (name: string, value: string) => {
+      const nextValues = {
+        ...flowInputValues,
+        [name]: value,
+      };
+      const nextState = buildInitialStateFromInputValues(
+        nextValues,
+        flowInputNames
+      );
+      setInitialState(JSON.stringify(nextState, null, 2));
+    },
+    [flowInputNames, flowInputValues, setInitialState]
   );
 
   if (!showCreateForm) return null;
@@ -164,49 +204,140 @@ const FlowCreateForm: React.FC = () => {
             </div>
 
             <div className={styles.editorContainer}>
-              <label className={styles.label}>
-                {t("flowCreate.requiredAttributesLabel")}
-              </label>
-              <div className={styles.editorWrapper}>
-                <LazyCodeEditor
-                  value={initialState}
-                  onChange={setInitialState}
-                  height="100%"
-                />
-              </div>
-              {jsonError && (
-                <div className={styles.jsonError}>
-                  {t("flowCreate.invalidJson", { error: jsonError })}
+              {editorMode === "json" && (
+                <div
+                  className={`${styles.editorHeader} ${styles.editorHeaderWithLabel}`}
+                >
+                  <span className={styles.editorModeLabel}>
+                    {t("flowCreate.requiredAttributesLabel")}
+                  </span>
                 </div>
+              )}
+              {editorMode === "basic" ? (
+                <div className={styles.editorWrapper}>
+                  <div className={styles.attributeTableScroll}>
+                    <div className={styles.attributeList}>
+                      <div className={styles.attributeListHeader}>
+                        <div className={styles.attributeListHeaderCell}>
+                          {t("flowCreate.attributeColumn")}
+                        </div>
+                        <div className={styles.attributeListHeaderCell}>
+                          {t("flowCreate.valueColumn")}
+                        </div>
+                      </div>
+
+                      {flowInputOptions.map((option) => (
+                        <div
+                          key={option.name}
+                          className={styles.attributeListItem}
+                        >
+                          <div className={styles.attributeNameCell}>
+                            <span className={styles.attributeNameText}>
+                              {option.name}
+                            </span>
+                            <span className={styles.requiredBadgeSlot}>
+                              {option.required && (
+                                <span className={styles.requiredBadge}>
+                                  {t("flowCreate.requiredBadge")}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className={styles.attributeValueCell}>
+                            <input
+                              type="text"
+                              value={flowInputValues[option.name] || ""}
+                              onChange={(e) =>
+                                handleBasicInputChange(
+                                  option.name,
+                                  e.target.value
+                                )
+                              }
+                              className={`${styles.input} ${styles.attributeValueInput}`}
+                              placeholder={t("flowCreate.valuePlaceholder")}
+                            />
+                          </div>
+                        </div>
+                      ))}
+
+                      {flowInputOptions.length === 0 && (
+                        <div className={styles.emptyAttributes}>
+                          {t("flowCreate.noPotentialInputs")}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className={styles.editorWrapper}>
+                    <LazyCodeEditor
+                      value={initialState}
+                      onChange={setInitialState}
+                      height="100%"
+                    />
+                  </div>
+                  {jsonError && (
+                    <div className={styles.jsonError}>
+                      {t("flowCreate.invalidJson", { error: jsonError })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
 
             <div className={styles.actions}>
-              <button
-                onClick={() => setShowCreateForm(false)}
-                className={styles.buttonCancel}
-              >
-                {t("common.cancel")}
-              </button>
-              <button
-                onClick={handleCreateFlow}
-                disabled={
-                  creating ||
-                  !newID.trim() ||
-                  goalSteps.length === 0 ||
-                  jsonError !== null
-                }
-                className={styles.buttonStart}
-              >
-                <span className={styles.buttonIcon}>
-                  {creating ? (
-                    <Spinner size="sm" color="white" />
-                  ) : (
-                    <IconStartFlow className={styles.startIcon} />
-                  )}
-                </span>
-                {t("common.start")}
-              </button>
+              <div className={styles.actionsLeft}>
+                <div className={styles.editorModeToggleGroup}>
+                  <button
+                    type="button"
+                    className={`${styles.editorModeToggle} ${
+                      editorMode === "basic"
+                        ? styles.editorModeToggleActive
+                        : ""
+                    }`}
+                    onClick={() => setEditorMode("basic")}
+                  >
+                    {t("flowCreate.modeBasic")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`${styles.editorModeToggle} ${
+                      editorMode === "json" ? styles.editorModeToggleActive : ""
+                    }`}
+                    onClick={() => setEditorMode("json")}
+                  >
+                    {t("flowCreate.modeJson")}
+                  </button>
+                </div>
+              </div>
+              <div className={styles.actionsRight}>
+                <button
+                  onClick={() => setShowCreateForm(false)}
+                  className={styles.buttonCancel}
+                >
+                  {t("common.cancel")}
+                </button>
+                <button
+                  onClick={handleCreateFlow}
+                  disabled={
+                    creating ||
+                    !newID.trim() ||
+                    goalSteps.length === 0 ||
+                    (editorMode === "json" && jsonError !== null)
+                  }
+                  className={styles.buttonStart}
+                >
+                  <span className={styles.buttonIcon}>
+                    {creating ? (
+                      <Spinner size="sm" color="white" />
+                    ) : (
+                      <IconStartFlow className={styles.startIcon} />
+                    )}
+                  </span>
+                  {t("common.start")}
+                </button>
+              </div>
             </div>
           </div>
         </div>

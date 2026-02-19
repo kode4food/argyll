@@ -55,8 +55,6 @@ describe("Footer", () => {
         ? {
             flow: {
               goals: config?.goals || ["goal-a", "goal-b"],
-              input_map: {},
-              output_map: {},
             },
           }
         : {

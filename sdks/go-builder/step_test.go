@@ -271,26 +271,6 @@ func TestWithFlowGoals(t *testing.T) {
 	assert.Equal(t, []api.StepID{"goal-a", "goal-b"}, step.Flow.Goals)
 }
 
-func TestWithFlowMaps(t *testing.T) {
-	step, err := testClient().NewStep().WithName("Flow Step").
-		Required("input", api.TypeString).
-		Output("output", api.TypeString).
-		WithFlowGoals("goal-a").
-		WithFlowInputMap(map[api.Name]api.Name{"input": "child-input"}).
-		WithFlowOutputMap(map[api.Name]api.Name{"child-output": "output"}).
-		Build()
-
-	assert.NoError(t, err)
-	assert.Equal(t, api.StepTypeFlow, step.Type)
-	assert.Equal(t, []api.StepID{"goal-a"}, step.Flow.Goals)
-	assert.Equal(t,
-		map[api.Name]api.Name{"input": "child-input"}, step.Flow.InputMap,
-	)
-	assert.Equal(t,
-		map[api.Name]api.Name{"child-output": "output"}, step.Flow.OutputMap,
-	)
-}
-
 func TestWithPredicate(t *testing.T) {
 	predicate := "(> x 10)"
 	step, err := testClient().NewStep().WithName("Test").

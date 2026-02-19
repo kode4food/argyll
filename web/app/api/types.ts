@@ -69,8 +69,6 @@ export interface ScriptConfig {
 
 export interface FlowConfig {
   goals: string[];
-  input_map?: Record<string, string>;
-  output_map?: Record<string, string>;
 }
 
 export interface WorkConfig {

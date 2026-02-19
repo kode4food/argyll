@@ -175,8 +175,7 @@ func (e *ExecContext) performAsyncHTTP(inputs api.Args, token api.Token) error {
 
 func (e *ExecContext) performFlow(initState api.Args, token api.Token) error {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	mappedState := mapFlowInputs(e.step, initState)
-	_, err := e.engine.StartChildFlow(fs, token, e.step, mappedState)
+	_, err := e.engine.StartChildFlow(fs, token, e.step, initState)
 	if err != nil {
 		return err
 	}

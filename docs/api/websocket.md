@@ -204,8 +204,8 @@ Event messages use this envelope:
       "type": "sync",
       "http": { "endpoint": "http://api.local/customer", "timeout": 5000 },
       "attributes": {
-        "customer_id": { "input": true },
-        "customer_name": { "output": true }
+        "customer_id": { "role": "required", "type": "string" },
+        "customer_name": { "role": "output", "type": "string" }
       },
       "memoizable": false
     }
@@ -242,9 +242,9 @@ Event messages use this envelope:
       "type": "sync",
       "http": { "endpoint": "http://api.local/customer/v2", "timeout": 10000 },
       "attributes": {
-        "customer_id": { "input": true },
-        "customer_name": { "output": true },
-        "customer_tier": { "output": true }
+        "customer_id": { "role": "required", "type": "string" },
+        "customer_name": { "role": "output", "type": "string" },
+        "customer_tier": { "role": "output", "type": "string" }
       },
       "memoizable": true
     }

@@ -152,17 +152,10 @@ class FlowConfig:
     """Flow configuration for flow steps."""
 
     goals: List[StepID]
-    input_map: Dict[str, str] = field(default_factory=dict)
-    output_map: Dict[str, str] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        result: Dict[str, Any] = {"goals": self.goals}
-        if self.input_map:
-            result["input_map"] = self.input_map
-        if self.output_map:
-            result["output_map"] = self.output_map
-        return result
+        return {"goals": self.goals}
 
 
 @dataclass(frozen=True)

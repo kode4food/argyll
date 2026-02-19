@@ -137,15 +137,9 @@ def test_work_config_to_dict():
 def test_flow_config_to_dict():
     from argyll.types import FlowConfig
 
-    config = FlowConfig(
-        goals=["step-1", "step-2"],
-        input_map={"a": "b"},
-        output_map={"c": "d"},
-    )
+    config = FlowConfig(goals=["step-1", "step-2"])
     result = config.to_dict()
     assert result["goals"] == ["step-1", "step-2"]
-    assert result["input_map"] == {"a": "b"}
-    assert result["output_map"] == {"c": "d"}
 
 
 def test_predicate_config_to_dict():
@@ -190,9 +184,7 @@ def test_step_with_all_fields():
             backoff=1000,
             max_backoff=10000,
         ),
-        flow=FlowConfig(
-            goals=["step-1"], input_map={"a": "b"}, output_map={"c": "d"}
-        ),
+        flow=FlowConfig(goals=["step-1"]),
         memoizable=True,
     )
 

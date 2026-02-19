@@ -185,24 +185,6 @@ func (s *Step) WithFlowGoals(goals ...api.StepID) *Step {
 	return &res
 }
 
-// WithFlowInputMap configures input arg mapping for a flow step
-func (s *Step) WithFlowInputMap(mapping map[api.Name]api.Name) *Step {
-	res := *s
-	res.flow = cloneFlowConfig(res.flow)
-	res.flow.InputMap = maps.Clone(mapping)
-	res.stepType = api.StepTypeFlow
-	return &res
-}
-
-// WithFlowOutputMap configures output arg mapping for a flow step
-func (s *Step) WithFlowOutputMap(mapping map[api.Name]api.Name) *Step {
-	res := *s
-	res.flow = cloneFlowConfig(res.flow)
-	res.flow.OutputMap = maps.Clone(mapping)
-	res.stepType = api.StepTypeFlow
-	return &res
-}
-
 // WithScript sets an Ale script to execute for this step
 func (s *Step) WithScript(script string) *Step {
 	res := *s
@@ -357,8 +339,6 @@ func cloneFlowConfig(flow *api.FlowConfig) *api.FlowConfig {
 	}
 
 	copyFlow := *flow
-	copyFlow.InputMap = maps.Clone(flow.InputMap)
-	copyFlow.OutputMap = maps.Clone(flow.OutputMap)
 	copyFlow.Goals = slices.Clone(flow.Goals)
 	return &copyFlow
 }

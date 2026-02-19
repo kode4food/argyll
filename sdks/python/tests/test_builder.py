@@ -440,32 +440,6 @@ def test_step_builder_with_flow_goals():
     assert step.flow.goals == ["step-1", "step-2"]
 
 
-def test_step_builder_with_flow_input_map():
-    client = Client()
-    builder = (
-        client.new_step()
-        .with_name("FlowStep")
-        .with_flow_goals("step-1")
-        .with_flow_input_map({"a": "b"})
-    )
-    step = builder.build()
-    assert step.flow is not None
-    assert step.flow.input_map == {"a": "b"}
-
-
-def test_step_builder_with_flow_output_map():
-    client = Client()
-    builder = (
-        client.new_step()
-        .with_name("FlowStep")
-        .with_flow_goals("step-1")
-        .with_flow_output_map({"c": "d"})
-    )
-    step = builder.build()
-    assert step.flow is not None
-    assert step.flow.output_map == {"c": "d"}
-
-
 @responses.activate
 def test_flow_builder_start_error():
     from argyll.errors import FlowError

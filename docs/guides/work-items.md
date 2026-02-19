@@ -12,15 +12,18 @@ When a step input is marked `for_each` and provided as an array, the engine crea
 ```json
 {
   "id": "process-item",
+  "name": "Process Item",
   "type": "sync",
-  "http": { "endpoint": "..." },
+  "http": { "endpoint": "https://api.example.com/items/process", "timeout": 5000 },
   "attributes": {
     "items": {
-      "required": true,
+      "role": "required",
+      "type": "array",
       "for_each": true
     },
     "processed": {
-      "required": false
+      "role": "output",
+      "type": "number"
     }
   }
 }
@@ -52,8 +55,8 @@ A step can have multiple `for_each` attributes. The engine computes the **Cartes
 ```json
 {
   "attributes": {
-    "regions": { "for_each": true },
-    "products": { "for_each": true }
+    "regions": { "role": "required", "type": "array", "for_each": true },
+    "products": { "role": "required", "type": "array", "for_each": true }
   }
 }
 ```
@@ -167,12 +170,15 @@ By default, work items are processed sequentially. Use **WorkConfig** to control
 ```json
 {
   "id": "process-items",
+  "name": "Process Items",
   "type": "sync",
+  "http": { "endpoint": "https://api.example.com/items/process", "timeout": 5000 },
   "work_config": {
     "parallelism": 5
   },
   "attributes": {
-    "items": { "required": true, "for_each": true }
+    "items": { "role": "required", "type": "array", "for_each": true },
+    "processed": { "role": "output", "type": "number" }
   }
 }
 ```
@@ -267,12 +273,16 @@ If a step has both a `predicate` and `for_each`:
 ```json
 {
   "id": "batch-process",
+  "name": "Batch Process",
+  "type": "sync",
+  "http": { "endpoint": "https://api.example.com/batch/process", "timeout": 5000 },
   "predicate": {
     "language": "ale",
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "for_each": true }
+    "items": { "role": "required", "type": "array", "for_each": true },
+    "batch_result": { "role": "output", "type": "string" }
   }
 }
 ```

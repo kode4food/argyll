@@ -8,23 +8,29 @@
    ```json
    {
      "id": "calculate-discount",
+     "name": "Calculate Discount",
      "memoizable": true,
      "type": "sync",
-     "http": { "endpoint": "..." }
+     "http": { "endpoint": "https://api.example.com/discounts/calculate", "timeout": 5000 },
+     "attributes": {
+       "amount": { "role": "required", "type": "number" },
+       "discount_rate": { "role": "required", "type": "number" },
+       "discount_amount": { "role": "output", "type": "number" }
+     }
    }
    ```
 
-2. **First execution with inputs `{amount: 100, rate: 0.1}`:**
+2. **First execution with inputs `{amount: 100, discount_rate: 0.1}`:**
    - Engine checks cache → miss
    - Step executes normally
-   - Outputs cached: `{discount_amount: 90}`
+   - Outputs cached: `{discount_amount: 10}`
 
-3. **Second execution with same inputs `{amount: 100, rate: 0.1}`:**
+3. **Second execution with same inputs `{amount: 100, discount_rate: 0.1}`:**
    - Engine checks cache → hit
    - Returns cached outputs immediately
    - Step handler never called
 
-4. **Execution with different inputs `{amount: 200, rate: 0.1}`:**
+4. **Execution with different inputs `{amount: 200, discount_rate: 0.1}`:**
    - Different inputs → cache miss
    - Step executes
    - New result cached
@@ -138,9 +144,15 @@ Step: process-payment
 ```json
 {
   "id": "lookup-exchange-rate",
+  "name": "Lookup Exchange Rate",
   "memoizable": true,
   "type": "sync",
-  "http": { "endpoint": "https://api.example.com/rates" }
+  "http": { "endpoint": "https://api.example.com/rates", "timeout": 5000 },
+  "attributes": {
+    "from_currency": { "role": "required", "type": "string" },
+    "to_currency": { "role": "required", "type": "string" },
+    "rate": { "role": "output", "type": "number" }
+  }
 }
 ```
 
@@ -192,6 +204,7 @@ This prevents caching failures and accidentally skipping retries.
 ```json
 {
   "id": "convert-currency",
+  "name": "Convert Currency",
   "memoizable": true,
   "type": "sync",
   "http": {
@@ -199,10 +212,10 @@ This prevents caching failures and accidentally skipping retries.
     "timeout": 5000
   },
   "attributes": {
-    "from_currency": { "required": true },
-    "to_currency": { "required": true },
-    "amount": { "required": true },
-    "converted_amount": { "required": false }
+    "from_currency": { "role": "required" },
+    "to_currency": { "role": "required" },
+    "amount": { "role": "required" },
+    "converted_amount": { "role": "output" }
   }
 }
 ```

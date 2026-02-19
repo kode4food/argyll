@@ -66,6 +66,7 @@ export const FlowCreationStateProvider = ({
   const removeFlow = useRemoveFlow();
   const {
     previewPlan,
+    setPreviewPlan,
     updatePreviewPlan,
     clearPreviewPlan,
     goalSteps,
@@ -92,6 +93,7 @@ export const FlowCreationStateProvider = ({
 
   const handleStepChange = useCallback(
     async (stepIds: string[]) => {
+      initializedGoalsRef.current = true;
       await applyFlowGoalSelectionChange({
         stepIds,
         initialState,
@@ -102,6 +104,7 @@ export const FlowCreationStateProvider = ({
         setInitialState,
         setGoalSteps,
         updatePreviewPlan,
+        setPreviewPlan,
         clearPreviewPlan,
         getExecutionPlan: (goalStepIds, init) =>
           api.getExecutionPlan(goalStepIds, init),
@@ -113,6 +116,7 @@ export const FlowCreationStateProvider = ({
       setNewID,
       steps,
       setGoalSteps,
+      setPreviewPlan,
       updatePreviewPlan,
       clearPreviewPlan,
     ]
@@ -128,9 +132,7 @@ export const FlowCreationStateProvider = ({
     const currentState = parseState(throttledInitialState);
     const nonDefaultState = filterDefaultValues(currentState, steps);
 
-    if (Object.keys(currentState).length >= 0) {
-      updatePreviewPlan(goalSteps, nonDefaultState).catch(() => {});
-    }
+    updatePreviewPlan(goalSteps, nonDefaultState).catch(() => {});
   }, [
     throttledInitialState,
     showCreateForm,
@@ -152,7 +154,6 @@ export const FlowCreationStateProvider = ({
     }
 
     if (goalSteps.length === 0) {
-      initializedGoalsRef.current = false;
       return;
     }
 

@@ -100,7 +100,7 @@ paths:
         - **Sync**: HTTP endpoints that return results immediately
         - **Async**: HTTP endpoints that return immediately and complete via webhook
         - **Script**: Ale and Lua scripts executed in-engine
-        - **Flow**: Sub-flow execution using child flow goals with optional input/output mapping
+        - **Flow**: Sub-flow execution using child flow goals and attribute mappings
       operationId: registerStep
       tags:
         - Steps
@@ -905,7 +905,7 @@ components:
     ScriptConfig:
       type: object
       description: |
-        Configuration for script-based steps or attribute mappings.
+        Configuration for script-based steps, predicates, and attribute mappings.
 
         For step execution (`type: script`), `ale` and `lua` are supported.
         For predicates and attribute mappings, all registered languages are valid
@@ -945,20 +945,6 @@ components:
             type: string
           minItems: 1
           example: ["child-goal"]
-        input_map:
-          type: object
-          description: Optional mapping from parent input attribute names to child input names
-          additionalProperties:
-            type: string
-          example:
-            parent_input: "child_input"
-        output_map:
-          type: object
-          description: Optional mapping from child output names to parent output attribute names
-          additionalProperties:
-            type: string
-          example:
-            child_output: "parent_output"
 
     WorkConfig:
       type: object

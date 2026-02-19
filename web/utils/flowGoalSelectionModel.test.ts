@@ -50,6 +50,7 @@ describe("flowGoalSelectionModel", () => {
 
     const setInitialState = jest.fn();
     const setGoalSteps = jest.fn();
+    const setPreviewPlan = jest.fn();
     const updatePreviewPlan = jest.fn().mockResolvedValue(undefined);
     const clearPreviewPlan = jest.fn();
     const setNewID = jest.fn();
@@ -64,12 +65,14 @@ describe("flowGoalSelectionModel", () => {
       generatePadded,
       setInitialState,
       setGoalSteps,
+      setPreviewPlan,
       updatePreviewPlan,
       clearPreviewPlan,
       getExecutionPlan,
     });
 
     expect(setGoalSteps).toHaveBeenCalledWith(["notification-sender"]);
+    expect(setPreviewPlan).toHaveBeenCalledWith(combinedPlan);
     expect(updatePreviewPlan).toHaveBeenCalledWith(["notification-sender"], {});
     expect(clearPreviewPlan).not.toHaveBeenCalled();
     expect(setNewID).toHaveBeenCalledWith("notification-sender-0001");
@@ -79,6 +82,7 @@ describe("flowGoalSelectionModel", () => {
     const getExecutionPlan: jest.MockedFunction<GetExecutionPlan> = jest.fn();
     const setInitialState = jest.fn();
     const setGoalSteps = jest.fn();
+    const setPreviewPlan = jest.fn();
     const updatePreviewPlan = jest.fn().mockResolvedValue(undefined);
     const clearPreviewPlan = jest.fn();
 
@@ -88,12 +92,14 @@ describe("flowGoalSelectionModel", () => {
       steps: [],
       setInitialState,
       setGoalSteps,
+      setPreviewPlan,
       updatePreviewPlan,
       clearPreviewPlan,
       getExecutionPlan,
     });
 
     expect(clearPreviewPlan).toHaveBeenCalled();
+    expect(setPreviewPlan).toHaveBeenCalledWith(null);
     expect(setGoalSteps).toHaveBeenCalledWith([]);
     expect(updatePreviewPlan).not.toHaveBeenCalled();
   });

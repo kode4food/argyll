@@ -187,11 +187,7 @@ class Client:
         flow = None
         if "flow" in data:
             flow_data = data["flow"]
-            flow = FlowConfig(
-                goals=flow_data["goals"],
-                input_map=flow_data.get("input_map", {}),
-                output_map=flow_data.get("output_map", {}),
-            )
+            flow = FlowConfig(goals=flow_data["goals"])
 
         return Step(
             id=data["id"],
