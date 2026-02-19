@@ -1,4 +1,4 @@
-import { useMemo, useRef, useEffect } from "react";
+import { useMemo, useRef } from "react";
 import { Step, FlowContext } from "@/app/api";
 import { getStepsFromPlan } from "@/utils/planUtils";
 
@@ -12,10 +12,12 @@ export function useStepVisibility(
 ): StepVisibilityResult {
   const flowId = flowData?.id ?? null;
   const planStepsRef = useRef<Step[] | null>(null);
+  const lastFlowIdRef = useRef<string | null>(null);
 
-  useEffect(() => {
+  if (lastFlowIdRef.current !== flowId) {
     planStepsRef.current = null;
-  }, [flowId]);
+    lastFlowIdRef.current = flowId;
+  }
 
   const planSteps = useMemo(() => {
     if (flowData?.plan?.steps && Object.keys(flowData.plan.steps).length > 0) {
