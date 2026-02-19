@@ -3,6 +3,7 @@ import {
   AlertCircle,
   AlertTriangle,
   ArrowLeft,
+  ArrowRightLeft,
   ArrowRight,
   ChevronDown,
   ChevronUp,
@@ -73,6 +74,7 @@ export const IconConnectionError = AlertCircle;
 export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
 export const IconMemoizable = Database;
+export const IconMapping = ArrowRightLeft;
 export const IconExpandDown = ChevronDown;
 export const IconExpandUp = ChevronUp;
 

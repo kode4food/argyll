@@ -377,6 +377,72 @@ describe("StepEditor", () => {
     ).toBeInTheDocument();
   });
 
+  test("does not duplicate default mapping option in flow dropdown", async () => {
+    const step = createFlowStep();
+    stepsInStore = [
+      {
+        id: "child-step",
+        name: "Child Step",
+        type: "sync",
+        attributes: {},
+        http: { endpoint: "http://localhost:8080/child", timeout: 5000 },
+      },
+    ];
+
+    const { api } = jest.requireMock("@/app/api");
+    const plan = {
+      steps: {
+        "child-step": {
+          id: "child-step",
+          name: "Child Step",
+          type: "sync",
+          attributes: {
+            input1: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+            output1: {
+              role: AttributeRole.Output,
+              type: AttributeType.String,
+            },
+          },
+        },
+      },
+      required: [],
+      attributes: {},
+      goals: ["child-step"],
+    };
+    api.getExecutionPlan.mockResolvedValue(plan);
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    await waitFor(() => {
+      const flowButton = screen.getByTitle(t("stepEditor.typeFlowTitle"));
+      fireEvent.click(flowButton);
+    });
+
+    await waitFor(() => {
+      const goalChip = screen.getByText("child-step");
+      fireEvent.click(goalChip);
+    });
+
+    const expandInputMappingButton = await screen.findByRole("button", {
+      name: `${t("stepEditor.mappingLabel")} input1`,
+    });
+    fireEvent.click(expandInputMappingButton);
+
+    expect(screen.getAllByRole("option", { name: "input1" })).toHaveLength(1);
+
+    const expandOutputMappingButton = await screen.findByRole("button", {
+      name: `${t("stepEditor.mappingLabel")} output1`,
+    });
+    fireEvent.click(expandOutputMappingButton);
+
+    expect(screen.getAllByRole("option", { name: "output1" })).toHaveLength(1);
+  });
+
   test("excludes current step from flow goal selector", () => {
     const step = createFlowStep();
     const otherStep: Step = {
@@ -557,9 +623,7 @@ describe("StepEditor", () => {
     });
     fireEvent.click(expandMappingButton);
 
-    const sourceInput = await screen.findByPlaceholderText(
-      t("stepEditor.mappingSourceNamePlaceholder")
-    );
+    const sourceInput = await screen.findByPlaceholderText("input1");
     fireEvent.change(sourceInput, {
       target: { value: "request_payload" },
     });

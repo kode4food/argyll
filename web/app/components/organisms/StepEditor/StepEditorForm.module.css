@@ -265,6 +265,20 @@
   color: var(--color-dark-text);
 }
 
+.flowMapSelect:disabled {
+  background-color: var(--overlay-dark-20);
+  border-color: var(--color-dark-border);
+  color: var(--overlay-light-40);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.flowMapSelect:disabled:focus,
+.flowMapSelect:disabled:hover {
+  background-color: var(--overlay-dark-20);
+  border-color: var(--color-dark-border);
+}
+
 .flowMapOptionRequired {
   font-weight: var(--font-semibold);
 }
@@ -645,8 +659,23 @@
   min-height: 32px;
 }
 
+.mappingIndicator {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  color: var(--overlay-light-70);
+}
+
 .mappingInlineInput {
   flex: 1 1 180px;
+}
+
+.mappingInlineSelect {
+  background-position: right 12px center;
+  padding-right: calc(var(--spacing-2xl) + 2px);
 }
 
 .mappingToggleLabel {

@@ -6,6 +6,7 @@ import {
   IconArraySingle,
   IconExpandDown,
   IconExpandUp,
+  IconMapping,
   IconRemove,
 } from "@/utils/iconRegistry";
 import {
@@ -277,6 +278,13 @@ const AttributesSection: React.FC = () => {
           const hasMappingConfigured = Boolean(
             attr.mappingName?.trim() || attr.mappingScript?.trim()
           );
+          const mappingNameHint = attr.name?.trim() || attr.id;
+          const filteredFlowOutputList = flowOutputList.filter(
+            (option) => option !== mappingNameHint
+          );
+          const filteredFlowInputList = flowInputList.filter(
+            (option) => option.name !== mappingNameHint
+          );
 
           return (
             <div key={attr.id} className={formStyles.attrRow}>
@@ -393,24 +401,25 @@ const AttributesSection: React.FC = () => {
               </div>
               {isMappingExpanded && (
                 <div className={formStyles.attrMappingPanel}>
+                  <span className={formStyles.mappingIndicator} aria-hidden>
+                    <IconMapping className={styles.iconSm} />
+                  </span>
                   {stepType === "flow" ? (
                     <select
                       value={attr.mappingName || ""}
                       onChange={(e) =>
                         updateAttribute(attr.id, "mappingName", e.target.value)
                       }
-                      className={`${formStyles.formControl} ${formStyles.mappingInlineInput}`}
+                      className={`${formStyles.flowMapSelect} ${formStyles.mappingInlineInput} ${formStyles.mappingInlineSelect}`}
                       disabled={
                         attr.attrType === "output"
                           ? flowOutputList.length === 0
                           : flowInputList.length === 0
                       }
                     >
-                      <option value="">
-                        {t("stepEditor.flowMapPlaceholder")}
-                      </option>
+                      <option value="">{mappingNameHint}</option>
                       {attr.attrType === "output"
-                        ? flowOutputList.map((option) => (
+                        ? filteredFlowOutputList.map((option) => (
                             <option
                               key={option}
                               value={option}
@@ -422,7 +431,7 @@ const AttributesSection: React.FC = () => {
                               {option}
                             </option>
                           ))
-                        : flowInputList.map((option) => (
+                        : filteredFlowInputList.map((option) => (
                             <option
                               key={option.name}
                               value={option.name}
@@ -447,7 +456,7 @@ const AttributesSection: React.FC = () => {
                       onChange={(e) =>
                         updateAttribute(attr.id, "mappingName", e.target.value)
                       }
-                      placeholder={t("stepEditor.mappingSourceNamePlaceholder")}
+                      placeholder={mappingNameHint}
                       className={`${formStyles.formControl} ${formStyles.mappingInlineInput}`}
                     />
                   )}
