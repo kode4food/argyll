@@ -73,7 +73,8 @@ func (m *Mapper) MapInput(
 		return value
 	}
 
-	if mapped, ok := m.MapValue(step, name, attr.Mapping.Script, value); ok {
+	argName := m.InputParamName(name, attr)
+	if mapped, ok := m.MapValue(step, argName, attr.Mapping.Script, value); ok {
 		return mapped
 	}
 

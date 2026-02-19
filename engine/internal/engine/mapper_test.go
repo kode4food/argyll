@@ -114,6 +114,36 @@ func TestMapperMappingValue(t *testing.T) {
 	})
 }
 
+func TestScriptUsesMappedName(t *testing.T) {
+	withMapper(t, func(m *engine.Mapper) {
+		step := &api.Step{
+			ID:   "mapped-input-script",
+			Name: "Mapped Input Script",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+			},
+			Attributes: api.AttributeSpecs{
+				"amount": {
+					Role: api.RoleRequired,
+					Type: api.TypeNumber,
+					Mapping: &api.AttributeMapping{
+						Name: "value",
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangAle,
+							Script:   "(* value 2)",
+						},
+					},
+				},
+			},
+		}
+
+		attr := step.Attributes["amount"]
+		mapped := m.MapInput(step, "amount", attr, float64(5))
+		assert.Equal(t, float64(10), mapped)
+	})
+}
+
 func TestMapperJPathMarshaling(t *testing.T) {
 	withMapper(t, func(m *engine.Mapper) {
 		input := api.Args{

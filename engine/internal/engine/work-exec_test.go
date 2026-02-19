@@ -388,6 +388,54 @@ func TestScriptWorkExecutes(t *testing.T) {
 	})
 }
 
+func TestScriptWorkUsesMappedInputName(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		step := &api.Step{
+			ID:   "script-mapped-input",
+			Name: "Script Mapped Input",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return { result = (inner_amount or 0) * 3 }",
+			},
+			Attributes: api.AttributeSpecs{
+				"amount": {
+					Role: api.RoleRequired,
+					Type: api.TypeNumber,
+					Mapping: &api.AttributeMapping{
+						Name: "inner_amount",
+					},
+				},
+				"result": {
+					Role: api.RoleOutput,
+					Type: api.TypeNumber,
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flow := env.WaitForFlowStatus("wf-script-mapped", func() {
+			err := env.Engine.StartFlow("wf-script-mapped", plan,
+				flowopt.WithInit(api.Args{"amount": float64(2)}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+
+		exec := flow.Executions[step.ID]
+		assert.Equal(t, api.StepCompleted, exec.Status)
+		assert.Equal(t, float64(6), exec.Outputs["result"])
+	})
+}
+
 func TestPredicateFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()

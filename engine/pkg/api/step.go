@@ -353,6 +353,10 @@ func (s *Step) SortedArgNames() []string {
 	var all []string
 	for name, attr := range s.Attributes {
 		if attr.IsRuntimeInput() {
+			if attr.Mapping != nil && attr.Mapping.Name != "" {
+				all = append(all, attr.Mapping.Name)
+				continue
+			}
 			all = append(all, string(name))
 		}
 	}

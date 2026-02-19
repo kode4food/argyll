@@ -384,6 +384,43 @@ func TestSortedArgNames(t *testing.T) {
 	as.Equal("mango", sorted[3])
 	as.Equal("zebra", sorted[4])
 }
+
+func TestSortedArgNamesUsesMappingNames(t *testing.T) {
+	as := assert.New(t)
+
+	step := &api.Step{
+		ID:   "sorted-mapped-args",
+		Name: "Sorted Mapped Args Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://localhost:8080",
+		},
+		Attributes: api.AttributeSpecs{
+			"outer_b": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "inner_b",
+				},
+			},
+			"outer_a": {
+				Role: api.RoleOptional,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "inner_a",
+				},
+			},
+			"plain": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+		},
+	}
+
+	sorted := step.SortedArgNames()
+	as.Equal([]string{"inner_a", "inner_b", "plain"}, sorted)
+}
+
 func TestMultiArgNames(t *testing.T) {
 	as := assert.New(t)
 
