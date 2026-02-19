@@ -1,8 +1,10 @@
-import { AttributeRole, ExecutionPlan } from "@/app/api";
+import { AttributeRole, AttributeType, ExecutionPlan } from "@/app/api";
 
 export interface FlowInputOption {
   name: string;
   required: boolean;
+  type?: AttributeType;
+  defaultValue?: string;
 }
 
 export interface FlowPlanAttributeOptions {
@@ -12,6 +14,59 @@ export interface FlowPlanAttributeOptions {
 
 const isInputRole = (role: AttributeRole): boolean => {
   return role === AttributeRole.Required || role === AttributeRole.Optional;
+};
+
+const mergeInputType = (
+  existingType: AttributeType | undefined,
+  nextType: AttributeType | undefined
+): AttributeType | undefined => {
+  if (!existingType) {
+    return nextType;
+  }
+  if (!nextType || existingType === nextType) {
+    return existingType;
+  }
+  return AttributeType.Any;
+};
+
+const getTypeDefaultValue = (attrType?: AttributeType): string | undefined => {
+  switch (attrType) {
+    case AttributeType.Number:
+      return "0";
+    case AttributeType.Boolean:
+      return "false";
+    case AttributeType.Object:
+      return "{}";
+    case AttributeType.Array:
+      return "[]";
+    case AttributeType.Null:
+      return "null";
+    default:
+      return undefined;
+  }
+};
+
+const normalizeDefaultValue = (defaultValue?: string): string | undefined => {
+  if (defaultValue === undefined) {
+    return undefined;
+  }
+  const trimmed = defaultValue.trim();
+  if (!trimmed) {
+    return "";
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed);
+    if (parsed === null || parsed === undefined) {
+      return "";
+    }
+    if (typeof parsed === "string") {
+      return parsed;
+    }
+    return JSON.stringify(parsed);
+  } catch {
+    return trimmed;
+  }
 };
 
 const collectFlowAttributeOptions = (
@@ -31,10 +86,26 @@ const collectFlowAttributeOptions = (
       if (isInputRole(spec.role)) {
         const existing = inputMap.get(name);
         const isRequired = requiredInputs.has(name);
-        inputMap.set(name, {
+        const mergedType = mergeInputType(existing?.type, spec.type);
+        const defaultValue =
+          normalizeDefaultValue(spec.default) ??
+          getTypeDefaultValue(mergedType);
+        const mergedDefaultValue =
+          existing?.defaultValue === undefined
+            ? defaultValue
+            : defaultValue === undefined ||
+                existing.defaultValue === defaultValue
+              ? existing.defaultValue
+              : undefined;
+        const nextInput: FlowInputOption = {
           name,
           required: existing?.required === true || isRequired,
-        });
+          type: mergedType,
+        };
+        if (mergedDefaultValue !== undefined) {
+          nextInput.defaultValue = mergedDefaultValue;
+        }
+        inputMap.set(name, nextInput);
         return;
       }
 

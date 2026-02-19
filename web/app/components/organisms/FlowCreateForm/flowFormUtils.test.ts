@@ -3,6 +3,7 @@ import {
   buildInitialStateFromInputValues,
   buildInitialStateInputValues,
   formatInputValue,
+  getFlowInputStatus,
   hasScrollOverflow,
   parseInputValue,
   safeParseState,
@@ -180,6 +181,42 @@ describe("flowFormUtils", () => {
         b: "hello",
         d: { x: true },
       });
+    });
+  });
+
+  describe("getFlowInputStatus", () => {
+    it("returns required for empty required values", () => {
+      expect(getFlowInputStatus({ required: true }, "")).toBe("required");
+      expect(getFlowInputStatus({ required: true }, "   ")).toBe("required");
+    });
+
+    it("returns optional for empty optional values", () => {
+      expect(getFlowInputStatus({ required: false }, "")).toBe("optional");
+    });
+
+    it("returns defaulted when value equals default", () => {
+      expect(
+        getFlowInputStatus({ required: true, defaultValue: "0" }, "0")
+      ).toBe("defaulted");
+      expect(
+        getFlowInputStatus({ required: false, defaultValue: "{}" }, "{}")
+      ).toBe("defaulted");
+      expect(
+        getFlowInputStatus(
+          { required: false, defaultValue: '{"a":1}' },
+          '{"a":1}'
+        )
+      ).toBe("defaulted");
+    });
+
+    it("returns provided when non-default value is set", () => {
+      expect(
+        getFlowInputStatus({ required: true, defaultValue: "0" }, "1")
+      ).toBe("provided");
+      expect(
+        getFlowInputStatus({ required: false, defaultValue: "{}" }, '{"a":1}')
+      ).toBe("provided");
+      expect(getFlowInputStatus({ required: false }, "hello")).toBe("provided");
     });
   });
 });

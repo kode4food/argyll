@@ -390,6 +390,143 @@ describe("FlowCreateForm", () => {
     ).not.toBeInTheDocument();
   });
 
+  test("shows per-type default placeholders in value inputs", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: [],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+            payload: {
+              role: AttributeRole.Optional,
+              type: AttributeType.Object,
+            },
+            tags: {
+              role: AttributeRole.Optional,
+              type: AttributeType.Array,
+            },
+            enabled: {
+              role: AttributeRole.Optional,
+              type: AttributeType.Boolean,
+            },
+            nickname: {
+              role: AttributeRole.Optional,
+              type: AttributeType.String,
+            },
+            retry_count: {
+              role: AttributeRole.Optional,
+              type: AttributeType.Number,
+              default: "5",
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    renderWithProvider({ initialState: "{}" });
+
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${styles.attributeListItem}`);
+    const payloadRow = screen
+      .getByText("payload")
+      .closest(`.${styles.attributeListItem}`);
+    const tagsRow = screen
+      .getByText("tags")
+      .closest(`.${styles.attributeListItem}`);
+    const enabledRow = screen
+      .getByText("enabled")
+      .closest(`.${styles.attributeListItem}`);
+    const nicknameRow = screen
+      .getByText("nickname")
+      .closest(`.${styles.attributeListItem}`);
+    const retryRow = screen
+      .getByText("retry_count")
+      .closest(`.${styles.attributeListItem}`);
+
+    expect(
+      within(quantityRow as HTMLElement).getByRole("textbox")
+    ).toHaveAttribute("placeholder", "0");
+    expect(
+      within(payloadRow as HTMLElement).getByRole("textbox")
+    ).toHaveAttribute("placeholder", "{}");
+    expect(within(tagsRow as HTMLElement).getByRole("textbox")).toHaveAttribute(
+      "placeholder",
+      "[]"
+    );
+    expect(
+      within(enabledRow as HTMLElement).getByRole("textbox")
+    ).toHaveAttribute("placeholder", "false");
+    expect(
+      within(nicknameRow as HTMLElement).getByRole("textbox")
+    ).toHaveAttribute("placeholder", '""');
+    expect(
+      within(retryRow as HTMLElement).getByRole("textbox")
+    ).toHaveAttribute("placeholder", "5");
+  });
+
+  test("shows defaulted values as placeholders in basic mode while keeping JSON defaults", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["quantity"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    renderWithProvider({ initialState: '{"quantity":0}' });
+
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${styles.attributeListItem}`);
+    const quantityInput = within(quantityRow as HTMLElement).getByRole(
+      "textbox"
+    ) as HTMLInputElement;
+
+    expect(quantityInput.value).toBe("");
+    expect(quantityInput.placeholder).toBe("0");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
+    expect(editor.value).toContain('"quantity":0');
+  });
+
   test("selects step when clicked", async () => {
     renderWithProvider();
 
@@ -559,12 +696,160 @@ describe("FlowCreateForm", () => {
     expect(quantityRow).toBeInTheDocument();
 
     expect(
-      within(orderIdRow as HTMLElement).getByText(t("flowCreate.requiredBadge"))
+      within(orderIdRow as HTMLElement).getByLabelText(
+        t("flowCreate.requiredBadge")
+      )
     ).toBeInTheDocument();
     expect(
-      within(quantityRow as HTMLElement).queryByText(
+      within(quantityRow as HTMLElement).queryByLabelText(
         t("flowCreate.requiredBadge")
       )
     ).not.toBeInTheDocument();
+  });
+
+  test("shows red/green/gray status dots for required and optional inputs", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["order_id"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            order_id: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+        upstream: {
+          id: "upstream",
+          name: "Upstream",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Output,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/upstream", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    renderWithProvider({ initialState: '{"order_id":"123"}' });
+
+    const orderIdRow = screen
+      .getByText("order_id")
+      .closest(`.${styles.attributeListItem}`);
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${styles.attributeListItem}`);
+    expect(orderIdRow).toBeInTheDocument();
+    expect(quantityRow).toBeInTheDocument();
+
+    const providedDot = within(orderIdRow as HTMLElement).getByLabelText(
+      t("flowCreate.providedBadge")
+    );
+    expect(providedDot.className).toContain(styles.requiredBadgeSatisfied);
+
+    const optionalDot = within(quantityRow as HTMLElement).getByLabelText(
+      t("flowStats.optionalLabel")
+    );
+    expect(optionalDot.className).toContain(styles.requiredBadgeOptional);
+  });
+
+  test("marks required dot as default when provided value equals default", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["order_id"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            order_id: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+              default: '"guest"',
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    renderWithProvider({ initialState: '{"order_id":"guest"}' });
+
+    const orderIdRow = screen
+      .getByText("order_id")
+      .closest(`.${styles.attributeListItem}`);
+    expect(orderIdRow).toBeInTheDocument();
+
+    const defaultDot = within(orderIdRow as HTMLElement).getByLabelText(
+      t("flowCreate.defaultBadge")
+    );
+    expect(defaultDot.className).toContain(styles.requiredBadgeDefault);
+  });
+
+  test("marks numeric zero value as default instead of provided", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["quantity"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    renderWithProvider({ initialState: '{"quantity":0}' });
+
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${styles.attributeListItem}`);
+    expect(quantityRow).toBeInTheDocument();
+
+    const defaultDot = within(quantityRow as HTMLElement).getByLabelText(
+      t("flowCreate.defaultBadge")
+    );
+    expect(defaultDot.className).toContain(styles.requiredBadgeDefault);
   });
 });

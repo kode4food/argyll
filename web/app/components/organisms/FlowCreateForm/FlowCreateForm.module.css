@@ -312,11 +312,8 @@
 }
 
 .attributeList {
-  --attribute-name-column-max-width: 280px;
   display: grid;
-  grid-template-columns: fit-content(
-      var(--attribute-name-column-max-width)
-    ) minmax(0, 1fr);
+  grid-template-columns: max-content fit-content(50%) minmax(0, 1fr);
   width: 100%;
   font-size: var(--text-sm);
 }
@@ -333,6 +330,10 @@
   border-bottom: 1px solid var(--color-dark-border);
   color: var(--color-dark-text-muted);
   font-weight: var(--font-medium);
+}
+
+.attributeStatusHeaderCell {
+  padding: 0 var(--spacing-xs);
 }
 
 .attributeListItem {
@@ -357,12 +358,13 @@
   white-space: nowrap;
 }
 
-.requiredBadgeSlot {
+.requiredBadgeCell {
   display: inline-flex;
   align-items: center;
-  justify-content: flex-start;
-  flex-shrink: 0;
-  height: 1.2rem;
+  justify-content: center;
+  height: 33px;
+  padding: 0 var(--spacing-xs) 0 var(--spacing-sm);
+  border-bottom: 1px solid var(--color-dark-border);
 }
 
 .attributeValueCell {
@@ -372,6 +374,11 @@
   height: 33px;
   padding: 0 var(--spacing-sm);
   border-bottom: 1px solid var(--color-dark-border);
+  transition: background-color var(--transition-fast);
+}
+
+.attributeValueCell:focus-within {
+  background-color: var(--overlay-light-10);
 }
 
 .attributeValueInput {
@@ -381,6 +388,7 @@
   box-sizing: border-box;
   height: 100%;
   width: 100%;
+  min-width: 0;
   margin: 0;
   padding: 0;
   line-height: 1;
@@ -394,14 +402,29 @@
 .requiredBadge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   border-radius: 999px;
-  padding: 0 0.5rem;
-  height: 1.2rem;
-  font-size: 0.65rem;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  background-color: color-mix(in srgb, var(--color-info) 25%, transparent);
-  color: var(--color-white);
+  width: 10px;
+  height: 10px;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+
+.requiredBadgeMissing {
+  background-color: var(--color-error);
+}
+
+.requiredBadgeSatisfied {
+  background-color: var(--color-success);
+}
+
+.requiredBadgeDefault {
+  background-color: var(--color-purple-light);
+}
+
+.requiredBadgeOptional {
+  background-color: var(--color-gray-500);
 }
 
 .emptyAttributesCentered {

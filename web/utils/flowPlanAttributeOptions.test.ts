@@ -56,9 +56,14 @@ describe("flowPlanAttributeOptions", () => {
 
     expect(getFlowPlanAttributeOptions(plan)).toEqual({
       flowInputOptions: [
-        { name: "notes", required: false },
-        { name: "order_id", required: true },
-        { name: "quantity", required: false },
+        { name: "notes", required: false, type: AttributeType.String },
+        { name: "order_id", required: true, type: AttributeType.String },
+        {
+          name: "quantity",
+          required: false,
+          type: AttributeType.Number,
+          defaultValue: "0",
+        },
       ],
       flowOutputOptions: ["quantity", "total_price"],
     });
@@ -98,7 +103,59 @@ describe("flowPlanAttributeOptions", () => {
     };
 
     expect(getFlowPlanAttributeOptions(plan).flowInputOptions).toEqual([
-      { name: "user_id", required: true },
+      { name: "user_id", required: true, type: AttributeType.String },
+    ]);
+  });
+
+  it("normalizes and carries default values for flow inputs", () => {
+    const plan: ExecutionPlan = {
+      goals: ["goal-a"],
+      required: ["required_with_default"],
+      attributes: {},
+      steps: {
+        "goal-a": {
+          id: "goal-a",
+          name: "Goal A",
+          type: "sync",
+          attributes: {
+            required_with_default: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+              default: '"same-value"',
+            },
+            optional_with_default: {
+              role: AttributeRole.Optional,
+              type: AttributeType.Number,
+              default: "42",
+            },
+            optional_without_default: {
+              role: AttributeRole.Optional,
+              type: AttributeType.String,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/a", timeout: 5000 },
+        },
+      },
+    };
+
+    expect(getFlowPlanAttributeOptions(plan).flowInputOptions).toEqual([
+      {
+        name: "optional_with_default",
+        required: false,
+        type: AttributeType.Number,
+        defaultValue: "42",
+      },
+      {
+        name: "optional_without_default",
+        required: false,
+        type: AttributeType.String,
+      },
+      {
+        name: "required_with_default",
+        required: true,
+        type: AttributeType.String,
+        defaultValue: "same-value",
+      },
     ]);
   });
 });

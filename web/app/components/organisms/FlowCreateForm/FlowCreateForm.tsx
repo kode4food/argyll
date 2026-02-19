@@ -5,6 +5,7 @@ import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import { useUI } from "@/app/contexts/UIContext";
 import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
+import { AttributeType } from "@/app/api";
 import styles from "./FlowCreateForm.module.css";
 import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
 import { useFlowFormScrollFade } from "./useFlowFormScrollFade";
@@ -13,10 +14,41 @@ import {
   buildInitialStateFromInputValues,
   buildInitialStateInputValues,
   buildItemClassName,
+  getFlowInputStatus,
+  FlowInputStatus,
   validateJsonString,
 } from "./flowFormUtils";
 import { useT } from "@/app/i18n";
-import { getFlowPlanAttributeOptions } from "@/utils/flowPlanAttributeOptions";
+import {
+  FlowInputOption,
+  getFlowPlanAttributeOptions,
+} from "@/utils/flowPlanAttributeOptions";
+
+const getTypePlaceholder = (type?: AttributeType): string => {
+  switch (type) {
+    case AttributeType.Number:
+      return "0";
+    case AttributeType.Boolean:
+      return "false";
+    case AttributeType.Object:
+      return "{}";
+    case AttributeType.Array:
+      return "[]";
+    case AttributeType.String:
+      return '""';
+    case AttributeType.Null:
+      return "null";
+    default:
+      return "";
+  }
+};
+
+const getFlowInputPlaceholder = (option: FlowInputOption): string => {
+  if (option.defaultValue !== undefined) {
+    return option.defaultValue;
+  }
+  return getTypePlaceholder(option.type);
+};
 
 const FlowCreateForm: React.FC = () => {
   const {
@@ -72,16 +104,44 @@ const FlowCreateForm: React.FC = () => {
     () => flowInputOptions.map((option) => option.name),
     [flowInputOptions]
   );
-  const flowInputValues = React.useMemo(
+  const flowInputValuesRaw = React.useMemo(
     () => buildInitialStateInputValues(initialState, flowInputNames),
     [flowInputNames, initialState]
   );
+  const flowInputValues = React.useMemo(() => {
+    const values: Record<string, string> = {};
+    flowInputOptions.forEach((option) => {
+      const rawValue = flowInputValuesRaw[option.name] || "";
+      const status = getFlowInputStatus(option, rawValue);
+      values[option.name] = status === "defaulted" ? "" : rawValue;
+    });
+    return values;
+  }, [flowInputOptions, flowInputValuesRaw]);
+  const statusLabelByType: Record<FlowInputStatus, string> = {
+    provided: t("flowCreate.providedBadge"),
+    defaulted: t("flowCreate.defaultBadge"),
+    required: t("flowCreate.requiredBadge"),
+    optional: t("flowStats.optionalLabel"),
+  };
+  const statusClassByType: Record<FlowInputStatus, string> = {
+    provided: styles.requiredBadgeSatisfied,
+    defaulted: styles.requiredBadgeDefault,
+    required: styles.requiredBadgeMissing,
+    optional: styles.requiredBadgeOptional,
+  };
 
   const handleBasicInputChange = React.useCallback(
     (name: string, value: string) => {
+      const option = flowInputOptions.find((item) => item.name === name);
+      const normalizedValue =
+        value.trim() === "" &&
+        option?.required &&
+        option.defaultValue !== undefined
+          ? option.defaultValue
+          : value;
       const nextValues = {
-        ...flowInputValues,
-        [name]: value,
+        ...flowInputValuesRaw,
+        [name]: normalizedValue,
       };
       const nextState = buildInitialStateFromInputValues(
         nextValues,
@@ -89,7 +149,7 @@ const FlowCreateForm: React.FC = () => {
       );
       setInitialState(JSON.stringify(nextState, null, 2));
     },
-    [flowInputNames, flowInputValues, setInitialState]
+    [flowInputNames, flowInputOptions, flowInputValuesRaw, setInitialState]
   );
 
   if (!showCreateForm) return null;
@@ -227,6 +287,9 @@ const FlowCreateForm: React.FC = () => {
                     <div className={styles.attributeTableScroll}>
                       <div className={styles.attributeList}>
                         <div className={styles.attributeListHeader}>
+                          <div
+                            className={`${styles.attributeListHeaderCell} ${styles.attributeStatusHeaderCell}`}
+                          />
                           <div className={styles.attributeListHeaderCell}>
                             {t("flowCreate.attributeColumn")}
                           </div>
@@ -235,39 +298,49 @@ const FlowCreateForm: React.FC = () => {
                           </div>
                         </div>
 
-                        {flowInputOptions.map((option) => (
-                          <div
-                            key={option.name}
-                            className={styles.attributeListItem}
-                          >
-                            <div className={styles.attributeNameCell}>
-                              <span className={styles.attributeNameText}>
-                                {option.name}
-                              </span>
-                              <span className={styles.requiredBadgeSlot}>
-                                {option.required && (
-                                  <span className={styles.requiredBadge}>
-                                    {t("flowCreate.requiredBadge")}
-                                  </span>
-                                )}
-                              </span>
+                        {flowInputOptions.map((option) => {
+                          const value = flowInputValues[option.name] || "";
+                          const rawValue =
+                            flowInputValuesRaw[option.name] || "";
+                          const status = getFlowInputStatus(option, rawValue);
+                          const statusClass = statusClassByType[status];
+                          const statusLabel = statusLabelByType[status];
+
+                          return (
+                            <div
+                              key={option.name}
+                              className={styles.attributeListItem}
+                            >
+                              <div className={styles.requiredBadgeCell}>
+                                <span
+                                  className={`${styles.requiredBadge} ${statusClass}`}
+                                  role="img"
+                                  aria-label={statusLabel}
+                                  title={statusLabel}
+                                />
+                              </div>
+                              <div className={styles.attributeNameCell}>
+                                <span className={styles.attributeNameText}>
+                                  {option.name}
+                                </span>
+                              </div>
+                              <div className={styles.attributeValueCell}>
+                                <input
+                                  type="text"
+                                  value={value}
+                                  onChange={(e) =>
+                                    handleBasicInputChange(
+                                      option.name,
+                                      e.target.value
+                                    )
+                                  }
+                                  className={`${styles.input} ${styles.attributeValueInput}`}
+                                  placeholder={getFlowInputPlaceholder(option)}
+                                />
+                              </div>
                             </div>
-                            <div className={styles.attributeValueCell}>
-                              <input
-                                type="text"
-                                value={flowInputValues[option.name] || ""}
-                                onChange={(e) =>
-                                  handleBasicInputChange(
-                                    option.name,
-                                    e.target.value
-                                  )
-                                }
-                                className={`${styles.input} ${styles.attributeValueInput}`}
-                                placeholder={t("flowCreate.valuePlaceholder")}
-                              />
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   )}
