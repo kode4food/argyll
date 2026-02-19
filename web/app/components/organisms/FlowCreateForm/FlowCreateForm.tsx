@@ -288,12 +288,13 @@ const FlowCreateForm: React.FC = () => {
                       <div className={styles.attributeList}>
                         <div className={styles.attributeListHeader}>
                           <div
-                            className={`${styles.attributeListHeaderCell} ${styles.attributeStatusHeaderCell}`}
-                          />
-                          <div className={styles.attributeListHeaderCell}>
+                            className={`${styles.attributeListHeaderCell} ${styles.attributeHeaderCell}`}
+                          >
                             {t("flowCreate.attributeColumn")}
                           </div>
-                          <div className={styles.attributeListHeaderCell}>
+                          <div
+                            className={`${styles.attributeListHeaderCell} ${styles.attributeValueHeaderCell}`}
+                          >
                             {t("flowCreate.valueColumn")}
                           </div>
                         </div>

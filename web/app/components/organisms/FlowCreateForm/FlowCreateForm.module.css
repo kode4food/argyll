@@ -327,13 +327,23 @@
   align-items: center;
   height: 33px;
   padding: 0 var(--spacing-sm);
-  border-bottom: 1px solid var(--color-dark-border);
-  color: var(--color-dark-text-muted);
-  font-weight: var(--font-medium);
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--color-dark-border-light);
+  background-color: var(--color-dark-bg-lighter);
+  color: var(--color-dark-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
 }
 
-.attributeStatusHeaderCell {
-  padding: 0 var(--spacing-xs);
+.attributeHeaderCell {
+  grid-column: span 2;
+  padding-left: var(--spacing-sm);
+}
+
+.attributeValueHeaderCell {
+  border-left: 1px solid var(--color-dark-border);
 }
 
 .attributeListItem {
@@ -373,6 +383,7 @@
   min-width: 0;
   height: 33px;
   padding: 0 var(--spacing-sm);
+  border-left: 1px solid var(--color-dark-border);
   border-bottom: 1px solid var(--color-dark-border);
   transition: background-color var(--transition-fast);
 }
