@@ -3,5 +3,14 @@
   "script.language.jpath": "JPath",
   "script.language.lua": "Lua",
   "stepEditor.endpointPlaceholder": "http://localhost:8080/process",
-  "stepEditor.healthCheckPlaceholder": "http://localhost:8080/health"
+  "stepEditor.healthCheckPlaceholder": "http://localhost:8080/health",
+  "stepEditor.mappingScriptPlaceholderAle": "(* value 2)",
+  "stepEditor.mappingScriptPlaceholderJPath": "$.value",
+  "stepEditor.mappingScriptPlaceholderLua": "return (value or 0) * 2",
+  "stepEditor.stepIdPlaceholder": "my-step",
+  "stepEditor.stepNamePlaceholder": "My Step",
+  "stepEditor.typeAsyncLabel": "Async",
+  "stepEditor.typeFlowLabel": "Flow",
+  "stepEditor.typeScriptLabel": "Script",
+  "stepEditor.typeSyncLabel": "Sync"
 }

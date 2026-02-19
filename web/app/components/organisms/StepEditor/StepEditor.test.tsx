@@ -3,7 +3,13 @@ import StepEditor from "./StepEditor";
 import formStyles from "./StepEditorForm.module.css";
 import { t } from "@/app/testUtils/i18n";
 import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import {
+  render,
+  screen,
+  fireEvent,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import type { Step } from "@/app/api";
 
 jest.requireActual("@/app/api");
@@ -629,7 +635,7 @@ describe("StepEditor", () => {
     });
 
     const scriptInput = await screen.findByPlaceholderText(
-      t("stepEditor.mappingScriptPlaceholder")
+      t("stepEditor.mappingScriptPlaceholderJPath")
     );
     fireEvent.change(scriptInput, { target: { value: "$.payload.input" } });
 
@@ -653,6 +659,64 @@ describe("StepEditor", () => {
           }),
         })
       );
+    });
+  });
+
+  test("uses language-specific mapping script placeholders", async () => {
+    const step = createHttpStep();
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const expandMappingButton = await screen.findByRole("button", {
+      name: `${t("stepEditor.mappingLabel")} input1`,
+    });
+    fireEvent.click(expandMappingButton);
+
+    expect(
+      await screen.findByPlaceholderText(
+        t("stepEditor.mappingScriptPlaceholderJPath")
+      )
+    ).toBeInTheDocument();
+
+    const languageGroup = screen.getByLabelText(
+      t("stepEditor.mappingLanguageLabel")
+    );
+
+    fireEvent.click(
+      within(languageGroup).getByRole("button", {
+        name: t("script.language.ale"),
+      })
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderAle"))
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      within(languageGroup).getByRole("button", {
+        name: t("script.language.lua"),
+      })
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderLua"))
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(
+      within(languageGroup).getByRole("button", {
+        name: t("script.language.jpath"),
+      })
+    );
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(
+          t("stepEditor.mappingScriptPlaceholderJPath")
+        )
+      ).toBeInTheDocument();
     });
   });
 

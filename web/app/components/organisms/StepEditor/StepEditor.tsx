@@ -99,6 +99,22 @@ const MAPPING_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
 ];
 
+const MAPPING_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
+  [SCRIPT_LANGUAGE_ALE]: "stepEditor.mappingScriptPlaceholderAle",
+  [SCRIPT_LANGUAGE_JPATH]: "stepEditor.mappingScriptPlaceholderJPath",
+  [SCRIPT_LANGUAGE_LUA]: "stepEditor.mappingScriptPlaceholderLua",
+};
+
+const getMappingScriptPlaceholderKey = (language?: string): string => {
+  if (!language) {
+    return MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_JPATH];
+  }
+  return (
+    MAPPING_SCRIPT_PLACEHOLDER_KEYS[language] ||
+    MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_JPATH]
+  );
+};
+
 const StepEditingContext = createContext<StepEditingContextValue | null>(null);
 
 const useStepEditingContext = (): StepEditingContextValue => {
@@ -495,7 +511,9 @@ const AttributesSection: React.FC = () => {
                       updateAttribute(attr.id, "mappingScript", e.target.value)
                     }
                     className={`${formStyles.formControl} ${formStyles.mappingScriptInlineInput}`}
-                    placeholder={t("stepEditor.mappingScriptPlaceholder")}
+                    placeholder={t(
+                      getMappingScriptPlaceholderKey(attr.mappingLanguage)
+                    )}
                   />
                 </div>
               )}
