@@ -12,7 +12,7 @@
   position: fixed;
   inset: 0;
   z-index: 40;
-  background-color: var(--overlay-dark-50);
+  background-color: var(--overlay-dark-30);
 }
 
 .input {
