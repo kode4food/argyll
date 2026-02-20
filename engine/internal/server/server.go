@@ -25,8 +25,8 @@ type Server struct {
 }
 
 var (
-	// ErrGetEngineState is returned when the engine state cannot be retrieved
-	ErrGetEngineState = errors.New("failed to get engine state")
+	ErrGetCatalogState   = errors.New("failed to get catalog state")
+	ErrGetPartitionState = errors.New("failed to get partition state")
 )
 
 // NewServer creates a new HTTP API server
@@ -108,16 +108,36 @@ func (s *Server) SetupRoutes() *gin.Engine {
 }
 
 func (s *Server) handleEngine(c *gin.Context) {
-	engState, err := s.engine.GetEngineState()
+	catState, err := s.engine.GetCatalogState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),
+			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
 			Status: http.StatusInternalServerError,
 		})
 		return
 	}
-
-	c.JSON(http.StatusOK, engState)
+	partState, err := s.engine.GetPartitionState()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrGetPartitionState, err),
+			Status: http.StatusInternalServerError,
+		})
+		return
+	}
+	last := catState.LastUpdated
+	if partState.LastUpdated.After(last) {
+		last = partState.LastUpdated
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"last_updated": last,
+		"steps":        catState.Steps,
+		"attributes":   catState.Attributes,
+		"health":       partState.Health,
+		"active":       partState.Active,
+		"deactivated":  partState.Deactivated,
+		"archiving":    partState.Archiving,
+		"flow_digests": partState.FlowDigests,
+	})
 }
 
 func (s *Server) registerWebSocket(c *Client) {

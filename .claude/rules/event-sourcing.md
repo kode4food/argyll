@@ -3,8 +3,9 @@
 ## Architecture
 
 **Storage:** Valkey backend via timebox.Store (NOT EventHub)
-- Engine state: `timebox.Store` with `timebox.Executor[*api.EngineState]`
-- Flow state: `timebox.Store` with `timebox.Executor[*api.FlowState]`
+- Catalog state: `timebox.Store` with `timebox.Executor[*api.CatalogState]` (TrimEvents: true, snapshotted on shutdown)
+- Partition state: `timebox.Store` with `timebox.Executor[*api.PartitionState]` (TrimEvents: true, snapshotted on shutdown)
+- Flow state: `timebox.Store` with `timebox.Executor[*api.FlowState]` (TrimEvents: false, full event history)
 - Concurrency: Optimistic (sequence-based versioning, automatic retry on conflict)
 
 **WebSocket Notifications (separate from event sourcing):**
@@ -45,11 +46,11 @@ Anything with side effects (network calls, starting real work, cross-aggregate o
 
 **Real patterns from the codebase:**
 
-For engine state mutations (execEngine - no side effects needed):
+For partition state mutations (execPartition - no side effects needed):
 ```go
 // registry.go: UpdateStepHealth
 func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, errMsg string) error {
-    cmd := func(st *api.EngineState, ag *Aggregator) error {
+    cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
         if stepHealth, ok := st.Health[stepID]; ok {
             if stepHealth.Status == health && stepHealth.Error == errMsg {
                 return nil  // Idempotent
@@ -58,7 +59,7 @@ func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, er
         return events.Raise(ag, api.EventTypeStepHealthChanged,
             api.StepHealthChangedEvent{StepID: stepID, Status: health, Error: errMsg})
     }
-    _, err := e.execEngine(cmd)  // Pure mutation, no OnSuccess needed
+    _, err := e.execPartition(cmd)  // Pure mutation, no OnSuccess needed
     return err
 }
 ```
@@ -261,14 +262,18 @@ func reconstructState(aggregateID ID) State {
 
 ## Event Types
 
-**Engine aggregate events** (step registry and active flow tracking):
+**Catalog aggregate events** (step registry):
 - `step_registered` - Step added to registry
 - `step_unregistered` - Step deleted from registry
 - `step_updated` - Step definition modified
+
+**Partition aggregate events** (health and flow lifecycle tracking):
 - `step_health_changed` - Step availability changed
 - `flow_activated` - Flow added to active flows list
+- `flow_deactivated` - Flow terminal + no active work
 - `flow_archiving` - Flow selected for archiving
 - `flow_archived` - Flow moved to external storage
+- `flow_digest_updated` - Flow status digest updated (internal)
 
 **Flow aggregate events** (flow execution state):
 - `flow_started` - Execution begins
@@ -284,8 +289,6 @@ func reconstructState(aggregateID ID) State {
 - `work_not_completed` - Work item reports not ready (triggers retry scheduling)
 - `retry_scheduled` - Work item retry scheduled for future time
 - `attribute_set` - Step outputs added to flow state
-- `flow_digest_updated` - Flow status digest updated (internal)
-- `flow_deactivated` - Flow terminal + no active work
 
 ## Key Locations
 

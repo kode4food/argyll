@@ -43,16 +43,16 @@ func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
 func (e *Engine) QueryFlows(
 	req *api.QueryFlowsRequest,
 ) (*api.QueryFlowsResponse, error) {
-	engState, err := e.GetEngineState()
+	partState, err := e.GetPartitionState()
 	if err != nil {
 		return nil, err
 	}
 
 	req = normalizeQueryFlowsRequest(req)
 	sortOrder := querySortOrder(req)
-	flowIDs := collectRootFlowIDs(engState)
+	flowIDs := collectRootFlowIDs(partState)
 	filters := buildFlowQueryFilters(req)
-	items := buildFlowQueryItems(engState, flowIDs, filters)
+	items := buildFlowQueryItems(partState, flowIDs, filters)
 	sortFlowQueryItems(items, sortOrder)
 
 	start, err := queryFlowStart(items, req, sortOrder)
@@ -84,18 +84,18 @@ func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
 }
 
 // collectRootFlowIDs returns active & deactivated flow IDs excluding children
-func collectRootFlowIDs(engState *api.EngineState) []api.FlowID {
-	count := len(engState.Active) + len(engState.Deactivated)
+func collectRootFlowIDs(partState *api.PartitionState) []api.FlowID {
+	count := len(partState.Active) + len(partState.Deactivated)
 	flowIDs := make([]api.FlowID, 0, count)
 	seen := util.Set[api.FlowID]{}
-	for id, info := range engState.Active {
+	for id, info := range partState.Active {
 		if info != nil && info.ParentFlowID != "" {
 			continue
 		}
 		seen.Add(id)
 		flowIDs = append(flowIDs, id)
 	}
-	for _, info := range engState.Deactivated {
+	for _, info := range partState.Deactivated {
 		if info.ParentFlowID != "" {
 			continue
 		}
@@ -180,11 +180,12 @@ func flowQueryOrdering(digest *api.FlowDigest) (int, int64) {
 
 // buildFlowQueryItems converts flow digests into sortable query items
 func buildFlowQueryItems(
-	engState *api.EngineState, flowIDs []api.FlowID, filters []flowQueryFilter,
+	partState *api.PartitionState,
+	flowIDs []api.FlowID, filters []flowQueryFilter,
 ) []flowQueryItem {
 	items := make([]flowQueryItem, 0, len(flowIDs))
 	for _, flowID := range flowIDs {
-		digest, ok := engState.FlowDigests[flowID]
+		digest, ok := partState.FlowDigests[flowID]
 		if !ok || digest == nil {
 			continue
 		}

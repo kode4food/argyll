@@ -157,7 +157,7 @@ func TestWrapperFilters(t *testing.T) {
 	step := api.FlowStep{FlowID: flowID, StepID: "step-1"}
 
 	flowEv := func(typ api.EventType) *timebox.Event {
-		return newEvent(typ, events.EngineKey, flowEvent{FlowID: flowID})
+		return newEvent(typ, events.PartitionKey, flowEvent{FlowID: flowID})
 	}
 	stepEv := func(typ api.EventType) *timebox.Event {
 		return newEvent(typ, events.FlowKey(flowID),
@@ -165,7 +165,7 @@ func TestWrapperFilters(t *testing.T) {
 	}
 
 	assert.True(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(newEvent(
-		api.EventTypeStepHealthChanged, events.EngineKey,
+		api.EventTypeStepHealthChanged, events.PartitionKey,
 		api.StepHealthChangedEvent{StepID: "step-1", Status: api.HealthHealthy},
 	)))
 	assert.False(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(newEvent(
@@ -224,7 +224,7 @@ func TestWaitForEventFlowTerminal(t *testing.T) {
 
 func TestStepHealthChangedFilter(t *testing.T) {
 	filter := wait.StepHealthChanged("step-a", api.HealthHealthy)
-	ev := newEvent(api.EventTypeStepHealthChanged, events.EngineKey,
+	ev := newEvent(api.EventTypeStepHealthChanged, events.PartitionKey,
 		api.StepHealthChangedEvent{
 			StepID: "step-a",
 			Status: api.HealthHealthy,

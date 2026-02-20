@@ -36,7 +36,7 @@ type (
 const DefaultTimeout = time.Second * 5
 
 var engineFilter = EventFilter(func(ev *timebox.Event) bool {
-	return ev.AggregateID.Equal(events.EngineKey)
+	return events.IsCatalogEvent(ev) || events.IsPartitionEvent(ev)
 })
 
 func On(t *testing.T, consumer *timebox.Consumer) *Wait {

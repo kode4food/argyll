@@ -15,7 +15,8 @@ import (
 
 func TestInitStoresInvalidAddr(t *testing.T) {
 	cfg := config.NewDefaultConfig()
-	cfg.EngineStore.Addr = "127.0.0.1:0"
+	cfg.CatalogStore.Addr = "127.0.0.1:0"
+	cfg.PartitionStore.Addr = "127.0.0.1:0"
 	cfg.FlowStore.Addr = "127.0.0.1:0"
 
 	s := &argyll{cfg: cfg}
@@ -31,7 +32,8 @@ func TestInitializeStoresSuccess(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
-	cfg.EngineStore.Addr = server.Addr()
+	cfg.CatalogStore.Addr = server.Addr()
+	cfg.PartitionStore.Addr = server.Addr()
 	cfg.FlowStore.Addr = server.Addr()
 
 	s := &argyll{cfg: cfg}
@@ -39,7 +41,8 @@ func TestInitializeStoresSuccess(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, s.timebox)
-	assert.NotNil(t, s.engineStore)
+	assert.NotNil(t, s.catalogStore)
+	assert.NotNil(t, s.partitionStore)
 	assert.NotNil(t, s.flowStore)
 
 	_ = s.timebox.Close()
@@ -87,7 +90,8 @@ func TestInitializeEngine(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
-	cfg.EngineStore.Addr = server.Addr()
+	cfg.CatalogStore.Addr = server.Addr()
+	cfg.PartitionStore.Addr = server.Addr()
 	cfg.FlowStore.Addr = server.Addr()
 
 	s := &argyll{cfg: cfg}
@@ -127,7 +131,8 @@ func TestRun(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
-	cfg.EngineStore.Addr = server.Addr()
+	cfg.CatalogStore.Addr = server.Addr()
+	cfg.PartitionStore.Addr = server.Addr()
 	cfg.FlowStore.Addr = server.Addr()
 	cfg.APIPort = 0
 	cfg.ShutdownTimeout = 100 * time.Millisecond
@@ -170,7 +175,8 @@ func setupServerTest(t *testing.T) (*argyll, func()) {
 	assert.NoError(t, err)
 
 	cfg := config.NewDefaultConfig()
-	cfg.EngineStore.Addr = server.Addr()
+	cfg.CatalogStore.Addr = server.Addr()
+	cfg.PartitionStore.Addr = server.Addr()
 	cfg.FlowStore.Addr = server.Addr()
 	cfg.APIPort = 0
 

@@ -33,7 +33,7 @@ func TestNewArchiverValidation(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	_, err := archiver.NewArchiver(nil, nil, nil, cfg)
+	_, err := archiver.NewArchiver(nil, nil, cfg)
 	assert.Error(t, err)
 
 	cfg.MemoryCheckInterval = 0
@@ -44,9 +44,7 @@ func TestNewArchiverValidation(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	_, err = archiver.NewArchiver(
-		&timebox.Store{}, &timebox.Store{}, redisClient, cfg,
-	)
+	_, err = archiver.NewArchiver(&timebox.Store{}, redisClient, cfg)
 	assert.Error(t, err)
 }
 
@@ -55,15 +53,14 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	assert.NoError(t, err)
 	defer redisServer.Close()
 
-	engineStore, flowStore := setupStores(t, redisServer.Addr())
+	partStore := setupStore(t, redisServer.Addr())
 
 	flowID := api.FlowID("flow-sweep")
-	seedDeactivatedFlow(t, engineStore, flowID)
-	seedFlowEvents(t, flowStore, flowID)
+	seedDeactivatedFlow(t, partStore, flowID)
+	seedFlowEvents(t, partStore, flowID)
 
 	cfg := archiver.Config{
-		EngineStore:         timebox.DefaultStoreConfig(),
-		FlowStore:           timebox.DefaultStoreConfig(),
+		PartitionStore:      timebox.DefaultStoreConfig(),
 		MemoryPercent:       99.0,
 		MaxAge:              0,
 		MemoryCheckInterval: time.Second,
@@ -80,7 +77,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(engineStore, flowStore, redisClient, cfg)
+	arch, err := archiver.NewArchiver(partStore, redisClient, cfg)
 	assert.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -91,7 +88,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := flowStore.PollArchive(
+		err := partStore.PollArchive(
 			context.Background(), 5*time.Millisecond,
 			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
 				record = rec
@@ -108,7 +105,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	state := loadEngineState(t, engineStore)
+	state := loadPartitionState(t, partStore)
 	assert.Empty(t, state.Deactivated)
 	assert.Empty(t, state.Archiving)
 }
@@ -118,18 +115,17 @@ func TestArchiverPressureArchives(t *testing.T) {
 	assert.NoError(t, err)
 	defer redisServer.Close()
 
-	engineStore, flowStore := setupStores(t, redisServer.Addr())
+	partStore := setupStore(t, redisServer.Addr())
 
 	flowID := api.FlowID("flow-pressure")
-	seedDeactivatedFlow(t, engineStore, flowID)
-	seedFlowEvents(t, flowStore, flowID)
+	seedDeactivatedFlow(t, partStore, flowID)
+	seedFlowEvents(t, partStore, flowID)
 
 	infoAddr, stop := startInfoServer(t, "used_memory:80\nmaxmemory:100\n")
 	defer stop()
 
 	cfg := archiver.Config{
-		EngineStore:         timebox.DefaultStoreConfig(),
-		FlowStore:           timebox.DefaultStoreConfig(),
+		PartitionStore:      timebox.DefaultStoreConfig(),
 		MemoryPercent:       50.0,
 		MaxAge:              time.Hour,
 		MemoryCheckInterval: time.Second,
@@ -146,7 +142,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(engineStore, flowStore, redisClient, cfg)
+	arch, err := archiver.NewArchiver(partStore, redisClient, cfg)
 	assert.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -157,7 +153,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := flowStore.PollArchive(
+		err := partStore.PollArchive(
 			context.Background(), 5*time.Millisecond,
 			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
 				record = rec
@@ -174,51 +170,41 @@ func TestArchiverPressureArchives(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	state := loadEngineState(t, engineStore)
+	state := loadPartitionState(t, partStore)
 	assert.Empty(t, state.Deactivated)
 	assert.Empty(t, state.Archiving)
 }
 
-func setupStores(
-	t *testing.T, redisAddr string,
-) (*timebox.Store, *timebox.Store) {
+func setupStore(t *testing.T, redisAddr string) *timebox.Store {
 	tbCfg := timebox.DefaultConfig()
 	tbCfg.Workers = false
 	tb, err := timebox.NewTimebox(tbCfg)
 	assert.NoError(t, err)
 
-	engineCfg := timebox.DefaultStoreConfig()
-	engineCfg.Addr = redisAddr
-	engineCfg.Prefix = "engine"
+	partCfg := timebox.DefaultStoreConfig()
+	partCfg.Addr = redisAddr
+	partCfg.Prefix = "partition"
+	partCfg.Archiving = true
 
-	flowCfg := timebox.DefaultStoreConfig()
-	flowCfg.Addr = redisAddr
-	flowCfg.Prefix = "flow"
-	flowCfg.Archiving = true
-
-	engineStore, err := tb.NewStore(engineCfg)
-	assert.NoError(t, err)
-
-	flowStore, err := tb.NewStore(flowCfg)
+	partStore, err := tb.NewStore(partCfg)
 	assert.NoError(t, err)
 
 	t.Cleanup(func() {
-		assert.NoError(t, flowStore.Close())
-		assert.NoError(t, engineStore.Close())
+		assert.NoError(t, partStore.Close())
 		assert.NoError(t, tb.Close())
 	})
 
-	return engineStore, flowStore
+	return partStore
 }
 
 func seedDeactivatedFlow(
 	t *testing.T, store *timebox.Store, flowID api.FlowID,
 ) {
 	exec := timebox.NewExecutor(
-		store, events.NewEngineState, events.EngineAppliers,
+		store, events.NewPartitionState, events.PartitionAppliers,
 	)
 	cmd := func(
-		st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
+		st *api.PartitionState, ag *timebox.Aggregator[*api.PartitionState],
 	) error {
 		return timebox.Raise(
 			ag,
@@ -226,7 +212,7 @@ func seedDeactivatedFlow(
 			api.FlowDeactivatedEvent{FlowID: flowID},
 		)
 	}
-	_, err := exec.Exec(context.Background(), events.EngineKey, cmd)
+	_, err := exec.Exec(context.Background(), events.PartitionKey, cmd)
 	assert.NoError(t, err)
 }
 
@@ -242,15 +228,16 @@ func seedFlowEvents(t *testing.T, store *timebox.Store, flowID api.FlowID) {
 	assert.NoError(t, err)
 }
 
-func loadEngineState(t *testing.T, store *timebox.Store) *api.EngineState {
+func loadPartitionState(t *testing.T, store *timebox.Store) *api.PartitionState {
 	exec := timebox.NewExecutor(
-		store, events.NewEngineState, events.EngineAppliers,
+		store, events.NewPartitionState, events.PartitionAppliers,
 	)
 	state, err := exec.Exec(
 		context.Background(),
-		events.EngineKey,
+		events.PartitionKey,
 		func(
-			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
+			st *api.PartitionState,
+			ag *timebox.Aggregator[*api.PartitionState],
 		) error {
 			return nil
 		},

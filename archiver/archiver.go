@@ -18,8 +18,8 @@ import (
 
 type (
 	Archiver struct {
-		engineExec  *timebox.Executor[*api.EngineState]
-		flowStore   *timebox.Store
+		partExec    *timebox.Executor[*api.PartitionState]
+		partStore   *timebox.Store
 		redisClient *redis.Client
 		config      Config
 		mu          sync.Mutex
@@ -33,33 +33,28 @@ type (
 )
 
 var (
-	ErrEngineStoreRequired = errors.New("engine store is required")
-	ErrFlowStoreRequired   = errors.New("flow store is required")
-	ErrRedisClientRequired = errors.New("redis client is required")
+	ErrPartitionStoreRequired = errors.New("partition store is required")
+	ErrRedisClientRequired    = errors.New("redis client is required")
 )
 
 func NewArchiver(
-	engineStore *timebox.Store, flowStore *timebox.Store,
-	redisClient *redis.Client, cfg Config,
+	partStore *timebox.Store, redisClient *redis.Client, cfg Config,
 ) (*Archiver, error) {
 	if err := cfg.Validate(); err != nil {
 		return nil, err
 	}
-	if engineStore == nil {
-		return nil, ErrEngineStoreRequired
-	}
-	if flowStore == nil {
-		return nil, ErrFlowStoreRequired
+	if partStore == nil {
+		return nil, ErrPartitionStoreRequired
 	}
 	if redisClient == nil {
 		return nil, ErrRedisClientRequired
 	}
 
 	return &Archiver{
-		engineExec: timebox.NewExecutor(
-			engineStore, events.NewEngineState, events.EngineAppliers,
+		partExec: timebox.NewExecutor(
+			partStore, events.NewPartitionState, events.PartitionAppliers,
 		),
-		flowStore:   flowStore,
+		partStore:   partStore,
 		redisClient: redisClient,
 		config:      cfg,
 	}, nil
@@ -133,13 +128,13 @@ func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 
 	bg := context.Background()
 	for _, flowID := range flowIDs {
-		if err := a.flowStore.Archive(bg, events.FlowKey(flowID)); err != nil {
+		if err := a.partStore.Archive(bg, events.FlowKey(flowID)); err != nil {
 			slog.Warn("Failed to archive flow",
 				slog.String("flow_id", string(flowID)),
 				slog.String("error", err.Error()))
 			continue
 		}
-		if err := a.raiseEngineEvent(
+		if err := a.raisePartitionEvent(
 			api.EventTypeFlowArchived, api.FlowArchivedEvent{FlowID: flowID},
 		); err != nil {
 			slog.Warn("Failed to emit flow archived event",
@@ -174,7 +169,7 @@ func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	var flowIDs []api.FlowID
 
 	cmd := func(
-		st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
+		st *api.PartitionState, ag *timebox.Aggregator[*api.PartitionState],
 	) error {
 		if st == nil {
 			return nil
@@ -194,15 +189,15 @@ func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	}
 
 	bg := context.Background()
-	_, err := a.engineExec.Exec(bg, events.EngineKey, cmd)
+	_, err := a.partExec.Exec(bg, events.PartitionKey, cmd)
 	return flowIDs, err
 }
 
-func (a *Archiver) raiseEngineEvent(typ api.EventType, data any) error {
+func (a *Archiver) raisePartitionEvent(typ api.EventType, data any) error {
 	bg := context.Background()
-	_, err := a.engineExec.Exec(bg, events.EngineKey,
+	_, err := a.partExec.Exec(bg, events.PartitionKey,
 		func(
-			st *api.EngineState, ag *timebox.Aggregator[*api.EngineState],
+			st *api.PartitionState, ag *timebox.Aggregator[*api.PartitionState],
 		) error {
 			return timebox.Raise(ag, timebox.EventType(typ), data)
 		},
@@ -211,7 +206,7 @@ func (a *Archiver) raiseEngineEvent(typ api.EventType, data any) error {
 }
 
 func selectFlows(
-	st *api.EngineState, now time.Time, opts reserveOptions,
+	st *api.PartitionState, now time.Time, opts reserveOptions,
 ) []api.FlowID {
 	if opts.limit <= 0 {
 		return nil

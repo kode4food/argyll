@@ -59,9 +59,9 @@ func TestRecoveryDeactivation(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		engineState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, exists := engineState.Active[flowID]
+		_, exists := partState.Active[flowID]
 		assert.False(t, exists)
 	})
 }
@@ -921,9 +921,9 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		engState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok := engState.Active[flowID]
+		_, ok := partState.Active[flowID]
 		assert.False(t, ok)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -934,9 +934,9 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 		invoked := env.MockClient.WaitForInvocation(step.ID, 2*time.Second)
 		assert.True(t, invoked)
 
-		engState, err = env.Engine.GetEngineState()
+		partState, err = env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok = engState.Active[flowID]
+		_, ok = partState.Active[flowID]
 		assert.True(t, ok)
 	})
 }

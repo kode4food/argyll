@@ -89,9 +89,9 @@ func (e *Engine) RecoverFlows() error {
 		return nil
 	}
 
-	state, err := e.GetEngineState()
+	state, err := e.GetPartitionState()
 	if err != nil {
-		return fmt.Errorf("failed to load engine state: %w", err)
+		return fmt.Errorf("failed to load partition state: %w", err)
 	}
 
 	candidates := pruneRecoveryCandidates(ids, state)
@@ -268,7 +268,7 @@ func (e *Engine) activateFlow(id api.FlowID, flow *api.FlowState) {
 }
 
 func pruneRecoveryCandidates(
-	ids []api.FlowID, state *api.EngineState,
+	ids []api.FlowID, state *api.PartitionState,
 ) []api.FlowID {
 	deactivated := util.Set[api.FlowID]{}
 	for _, info := range state.Deactivated {

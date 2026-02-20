@@ -206,17 +206,17 @@ func (s *Server) getFlow(c *gin.Context) {
 func (s *Server) createPlan(
 	c *gin.Context, goalStepIDs []api.StepID, initialState api.Args,
 ) (*api.ExecutionPlan, bool) {
-	engState, err := s.engine.GetEngineState()
+	catState, err := s.engine.GetCatalogState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetEngineState, err),
+			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
 			Status: http.StatusInternalServerError,
 		})
 		return nil, false
 	}
 
 	plan, err := s.engine.CreateExecutionPlan(
-		engState, goalStepIDs, initialState,
+		catState, goalStepIDs, initialState,
 	)
 	if err == nil {
 		return plan, true

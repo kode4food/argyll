@@ -97,8 +97,10 @@ func (s *Server) handleWebSocket(c *gin.Context) {
 				return nil, 0, nil
 			}
 			switch string(id[0]) {
-			case events.EnginePrefix:
-				return s.engine.GetEngineStateSeq()
+			case events.CatalogPrefix:
+				return s.engine.GetCatalogStateSeq()
+			case events.PartitionPrefix:
+				return s.engine.GetPartitionStateSeq()
 			case events.FlowPrefix:
 				if len(id) < 2 {
 					return nil, 0, ErrInvalidAggregateID

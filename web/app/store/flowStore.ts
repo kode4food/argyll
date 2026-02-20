@@ -125,10 +125,8 @@ interface FlowState {
     reconnectAttempt: number
   ) => void;
   requestEngineReconnect: () => void;
-  setEngineState: (state: {
-    steps?: Record<string, Step>;
-    health?: Record<string, StepHealthInfo>;
-  }) => void;
+  setCatalogState: (steps: Record<string, Step>) => void;
+  setPartitionState: (health: Record<string, StepHealthInfo>) => void;
   setFlowState: (state: {
     id: string;
     status: FlowContext["status"];
@@ -163,23 +161,9 @@ export const useFlowStore = create<FlowState>()(
 
       loadSteps: async () => {
         try {
-          const engineState = await api.getEngineState();
-          const steps = Object.values(engineState.steps || {});
-          const healthMap: Record<string, StepHealthInfo> = {};
-
-          Object.entries(engineState.health || {}).forEach(
-            ([stepId, health]: [string, any]) => {
-              healthMap[stepId] = {
-                status: health.status || "unknown",
-                error: health.error,
-              };
-            }
-          );
-
-          set({
-            steps: steps.sort(compareSteps),
-            stepHealth: healthMap,
-          });
+          const engineData = await api.getEngine();
+          get().setCatalogState(engineData.steps || {});
+          get().setPartitionState(engineData.health || {});
         } catch (error) {
           console.error("Failed to load steps:", error);
           set({
@@ -509,23 +493,19 @@ export const useFlowStore = create<FlowState>()(
         }));
       },
 
-      setEngineState: (state) => {
-        const steps = Object.values(state.steps || {});
+      setCatalogState: (steps) => {
+        set({ steps: Object.values(steps).sort(compareSteps) });
+      },
+
+      setPartitionState: (health) => {
         const healthMap: Record<string, StepHealthInfo> = {};
-
-        Object.entries(state.health || {}).forEach(
-          ([stepId, health]: [string, any]) => {
-            healthMap[stepId] = {
-              status: health.status || "unknown",
-              error: health.error,
-            };
-          }
-        );
-
-        set({
-          steps: steps.sort(compareSteps),
-          stepHealth: healthMap,
+        Object.entries(health).forEach(([stepId, h]: [string, any]) => {
+          healthMap[stepId] = {
+            status: h.status || "unknown",
+            error: h.error,
+          };
         });
+        set({ stepHealth: healthMap });
       },
 
       setFlowState: (state) => {

@@ -22,16 +22,21 @@ type (
 	// Token uniquely identifies a work item within a step
 	Token string
 
-	// EngineState contains the global state of the orchestrator
-	EngineState struct {
+	// CatalogState contains the global step catalog for the cluster
+	CatalogState struct {
+		LastUpdated time.Time      `json:"last_updated"`
+		Steps       Steps          `json:"steps"`
+		Attributes  AttributeGraph `json:"attributes"`
+	}
+
+	// PartitionState contains partition operational state
+	PartitionState struct {
 		LastUpdated time.Time               `json:"last_updated"`
-		Steps       Steps                   `json:"steps"`
 		Health      map[StepID]*HealthState `json:"health"`
 		Active      map[FlowID]*ActiveFlow  `json:"active"`
 		Deactivated []*DeactivatedFlow      `json:"deactivated"`
 		Archiving   map[FlowID]time.Time    `json:"archiving"`
 		FlowDigests map[FlowID]*FlowDigest  `json:"flow_digests"`
-		Attributes  AttributeGraph          `json:"attributes"`
 	}
 
 	// ActiveFlow tracks basic metadata for active flows
@@ -138,13 +143,13 @@ const (
 	HealthUnknown   HealthStatus = "unknown"
 )
 
-// SetStep returns a new EngineState with the specified step registered
-func (e *EngineState) SetStep(id StepID, step *Step) *EngineState {
-	res := *e
-	res.Steps = maps.Clone(e.Steps)
+// SetStep returns a new CatalogState with the specified step registered
+func (c *CatalogState) SetStep(id StepID, step *Step) *CatalogState {
+	res := *c
+	res.Steps = maps.Clone(c.Steps)
 	res.Steps[id] = step
 
-	if oldStep, ok := e.Steps[id]; ok {
+	if oldStep, ok := c.Steps[id]; ok {
 		res.Attributes = res.Attributes.RemoveStep(oldStep)
 	}
 
@@ -152,57 +157,66 @@ func (e *EngineState) SetStep(id StepID, step *Step) *EngineState {
 	return &res
 }
 
-// DeleteStep returns a new EngineState with the specified step removed
-func (e *EngineState) DeleteStep(id StepID) *EngineState {
-	step, ok := e.Steps[id]
+// DeleteStep returns a new CatalogState with the specified step removed
+func (c *CatalogState) DeleteStep(id StepID) *CatalogState {
+	step, ok := c.Steps[id]
 	if !ok {
-		return e
+		return c
 	}
 
-	res := *e
-	res.Steps = maps.Clone(e.Steps)
+	res := *c
+	res.Steps = maps.Clone(c.Steps)
 	delete(res.Steps, id)
 	res.Attributes = res.Attributes.RemoveStep(step)
 	return &res
 }
 
-// SetHealth returns a new EngineState with updated health for a given step
-func (e *EngineState) SetHealth(id StepID, h *HealthState) *EngineState {
-	res := *e
-	res.Health = maps.Clone(e.Health)
-	res.Health[id] = h
-	return &res
-}
-
-// SetLastUpdated returns a new EngineState with the last updated timestamp set
-func (e *EngineState) SetLastUpdated(t time.Time) *EngineState {
-	res := *e
+// SetLastUpdated returns a new CatalogState with the last updated timestamp set
+func (c *CatalogState) SetLastUpdated(t time.Time) *CatalogState {
+	res := *c
 	res.LastUpdated = t
 	return &res
 }
 
-// SetActiveFlow returns a new EngineState with the flow as active
-func (e *EngineState) SetActiveFlow(
+// SetHealth returns a new PartitionState with updated health for a given step
+func (p *PartitionState) SetHealth(id StepID, h *HealthState) *PartitionState {
+	res := *p
+	res.Health = maps.Clone(p.Health)
+	res.Health[id] = h
+	return &res
+}
+
+// SetLastUpdated returns a new PartitionState with the last updated timestamp set
+func (p *PartitionState) SetLastUpdated(t time.Time) *PartitionState {
+	res := *p
+	res.LastUpdated = t
+	return &res
+}
+
+// SetActiveFlow returns a new PartitionState with the flow as active
+func (p *PartitionState) SetActiveFlow(
 	id FlowID, info *ActiveFlow,
-) *EngineState {
-	res := *e
-	res.Active = maps.Clone(e.Active)
+) *PartitionState {
+	res := *p
+	res.Active = maps.Clone(p.Active)
 	res.Active[id] = info
 	return &res
 }
 
-// DeleteActiveFlow returns a new EngineState with the flow inactive
-func (e *EngineState) DeleteActiveFlow(id FlowID) *EngineState {
-	res := *e
-	res.Active = maps.Clone(e.Active)
+// DeleteActiveFlow returns a new PartitionState with the flow inactive
+func (p *PartitionState) DeleteActiveFlow(id FlowID) *PartitionState {
+	res := *p
+	res.Active = maps.Clone(p.Active)
 	delete(res.Active, id)
 	return &res
 }
 
-// SetFlowDigest returns a new EngineState with the flow digest updated
-func (e *EngineState) SetFlowDigest(id FlowID, d *FlowDigest) *EngineState {
-	res := *e
-	res.FlowDigests = maps.Clone(e.FlowDigests)
+// SetFlowDigest returns a new PartitionState with the flow digest updated
+func (p *PartitionState) SetFlowDigest(
+	id FlowID, d *FlowDigest,
+) *PartitionState {
+	res := *p
+	res.FlowDigests = maps.Clone(p.FlowDigests)
 	if res.FlowDigests == nil {
 		res.FlowDigests = map[FlowID]*FlowDigest{}
 	}
@@ -210,63 +224,67 @@ func (e *EngineState) SetFlowDigest(id FlowID, d *FlowDigest) *EngineState {
 	return &res
 }
 
-// DeleteFlowDigest returns a new EngineState with the flow digest removed
-func (e *EngineState) DeleteFlowDigest(id FlowID) *EngineState {
-	if e.FlowDigests == nil {
-		return e
+// DeleteFlowDigest returns a new PartitionState with the flow digest removed
+func (p *PartitionState) DeleteFlowDigest(id FlowID) *PartitionState {
+	if p.FlowDigests == nil {
+		return p
 	}
-	res := *e
-	res.FlowDigests = maps.Clone(e.FlowDigests)
+	res := *p
+	res.FlowDigests = maps.Clone(p.FlowDigests)
 	delete(res.FlowDigests, id)
 	return &res
 }
 
-// AddDeactivated returns a new EngineState with the flow added to the
+// AddDeactivated returns a new PartitionState with the flow added to the
 // deactivated list. The list maintains time order (oldest first)
-func (e *EngineState) AddDeactivated(info *DeactivatedFlow) *EngineState {
-	res := *e
-	res.Deactivated = append(slices.Clone(e.Deactivated), info)
+func (p *PartitionState) AddDeactivated(
+	info *DeactivatedFlow,
+) *PartitionState {
+	res := *p
+	res.Deactivated = append(slices.Clone(p.Deactivated), info)
 	return &res
 }
 
-// RemoveDeactivated returns a new EngineState with the flow removed from the
-// deactivated list (typically after archiving)
-func (e *EngineState) RemoveDeactivated(id FlowID) *EngineState {
+// RemoveDeactivated returns a new PartitionState with the flow removed from
+// the deactivated list (typically after archiving)
+func (p *PartitionState) RemoveDeactivated(id FlowID) *PartitionState {
 	idx := -1
-	for i, info := range e.Deactivated {
+	for i, info := range p.Deactivated {
 		if info.FlowID == id {
 			idx = i
 			break
 		}
 	}
 	if idx < 0 {
-		return e
+		return p
 	}
-	res := *e
-	res.Deactivated = slices.Delete(slices.Clone(e.Deactivated), idx, idx+1)
+	res := *p
+	res.Deactivated = slices.Delete(slices.Clone(p.Deactivated), idx, idx+1)
 	return &res
 }
 
-// AddArchiving returns a new EngineState with the flow added to the archiving
-// map. Existing entries for the flow are replaced
-func (e *EngineState) AddArchiving(id FlowID, at time.Time) *EngineState {
-	if existing, ok := e.Archiving[id]; ok && existing.Equal(at) {
-		return e
+// AddArchiving returns a new PartitionState with the flow added to the
+// archiving map. Existing entries for the flow are replaced
+func (p *PartitionState) AddArchiving(
+	id FlowID, at time.Time,
+) *PartitionState {
+	if existing, ok := p.Archiving[id]; ok && existing.Equal(at) {
+		return p
 	}
-	res := *e
-	res.Archiving = maps.Clone(e.Archiving)
+	res := *p
+	res.Archiving = maps.Clone(p.Archiving)
 	res.Archiving[id] = at
 	return &res
 }
 
-// RemoveArchiving returns a new EngineState with the flow removed from the
-// archiving map
-func (e *EngineState) RemoveArchiving(id FlowID) *EngineState {
-	if _, ok := e.Archiving[id]; !ok {
-		return e
+// RemoveArchiving returns a new PartitionState with the flow removed from
+// the archiving map
+func (p *PartitionState) RemoveArchiving(id FlowID) *PartitionState {
+	if _, ok := p.Archiving[id]; !ok {
+		return p
 	}
-	res := *e
-	res.Archiving = maps.Clone(e.Archiving)
+	res := *p
+	res.Archiving = maps.Clone(p.Archiving)
 	delete(res.Archiving, id)
 	return &res
 }

@@ -53,7 +53,7 @@ Event messages use this envelope:
 **Envelope Fields (event messages):**
 - `type`: Event type constant (e.g., "flow_started", "step_completed")
 - `data`: Event-specific data (structure varies by event type)
-- `id`: Aggregate ID path (e.g., ["engine"], ["flow", "flow-id"])
+- `id`: Aggregate ID path (e.g., ["catalog"], ["partition"], ["flow", "flow-id"])
 - `timestamp`: Milliseconds since epoch (Unix time × 1000)
 - `sequence`: Global event sequence number for ordering
 
@@ -116,81 +116,9 @@ Event messages use this envelope:
 }
 ```
 
-**flow_activated** — Emitted when a flow becomes active (part of the engine's active flow list).
+### Catalog Events
 
-```json
-{
-  "type": "flow_activated",
-  "data": {
-    "flow_id": "wf-123",
-    "parent_flow_id": "wf-parent-456"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067425100,
-  "sequence": 2
-}
-```
-
-**flow_deactivated** — Emitted when a flow is terminal (completed or failed) AND no active work items remain.
-
-```json
-{
-  "type": "flow_deactivated",
-  "data": {
-    "flow_id": "wf-123"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067435000,
-  "sequence": 50
-}
-```
-
-**flow_archiving** — Emitted when a deactivated flow is selected for archiving to external storage.
-
-```json
-{
-  "type": "flow_archiving",
-  "data": {
-    "flow_id": "wf-123"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067440000,
-  "sequence": 51
-}
-```
-
-**flow_archived** — Emitted when a flow is successfully archived.
-
-```json
-{
-  "type": "flow_archived",
-  "data": {
-    "flow_id": "wf-123"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067445000,
-  "sequence": 52
-}
-```
-
-**flow_digest_updated** — Emitted when the flow's summary status changes (internal event).
-
-```json
-{
-  "type": "flow_digest_updated",
-  "data": {
-    "flow_id": "wf-123",
-    "status": "completed",
-    "completed_at": "2025-01-30T15:24:02Z",
-    "error": ""
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067430500,
-  "sequence": 48
-}
-```
-
-### Step Registry Events
+Catalog events are emitted on the `["catalog"]` aggregate. They track the step registry.
 
 **step_registered** — Emitted when a step is added to the engine registry.
 
@@ -210,7 +138,7 @@ Event messages use this envelope:
       "memoizable": false
     }
   },
-  "id": ["engine"],
+  "id": ["catalog"],
   "timestamp": 1704067200000,
   "sequence": 1
 }
@@ -224,7 +152,7 @@ Event messages use this envelope:
   "data": {
     "step_id": "lookup_customer"
   },
-  "id": ["engine"],
+  "id": ["catalog"],
   "timestamp": 1704067500000,
   "sequence": 10
 }
@@ -249,11 +177,15 @@ Event messages use this envelope:
       "memoizable": true
     }
   },
-  "id": ["engine"],
+  "id": ["catalog"],
   "timestamp": 1704067600000,
   "sequence": 12
 }
 ```
+
+### Partition Events
+
+Partition events are emitted on the `["partition"]` aggregate. They track engine-wide operational state: step health and the set of active flows.
 
 **step_health_changed** — Emitted when a step's health status changes (e.g., endpoint unreachable).
 
@@ -265,9 +197,83 @@ Event messages use this envelope:
     "status": "unhealthy",
     "error": "health check failed: connection refused"
   },
-  "id": ["engine"],
+  "id": ["partition"],
   "timestamp": 1704067700000,
   "sequence": 15
+}
+```
+
+**flow_activated** — Emitted when a flow is added to the engine's active flow list.
+
+```json
+{
+  "type": "flow_activated",
+  "data": {
+    "flow_id": "wf-123",
+    "parent_flow_id": "wf-parent-456"
+  },
+  "id": ["partition"],
+  "timestamp": 1704067425100,
+  "sequence": 2
+}
+```
+
+**flow_deactivated** — Emitted when a flow is terminal (completed or failed) AND no active work items remain.
+
+```json
+{
+  "type": "flow_deactivated",
+  "data": {
+    "flow_id": "wf-123"
+  },
+  "id": ["partition"],
+  "timestamp": 1704067435000,
+  "sequence": 50
+}
+```
+
+**flow_archiving** — Emitted when a deactivated flow is selected for archiving to external storage.
+
+```json
+{
+  "type": "flow_archiving",
+  "data": {
+    "flow_id": "wf-123"
+  },
+  "id": ["partition"],
+  "timestamp": 1704067440000,
+  "sequence": 51
+}
+```
+
+**flow_archived** — Emitted when a flow is successfully archived.
+
+```json
+{
+  "type": "flow_archived",
+  "data": {
+    "flow_id": "wf-123"
+  },
+  "id": ["partition"],
+  "timestamp": 1704067445000,
+  "sequence": 52
+}
+```
+
+**flow_digest_updated** — Emitted when the flow's summary status changes (internal event).
+
+```json
+{
+  "type": "flow_digest_updated",
+  "data": {
+    "flow_id": "wf-123",
+    "status": "completed",
+    "completed_at": "2025-01-30T15:24:02Z",
+    "error": ""
+  },
+  "id": ["partition"],
+  "timestamp": 1704067430500,
+  "sequence": 48
 }
 ```
 
@@ -466,17 +472,27 @@ message to begin receiving events:
 ```
 
 **Subscription Fields:**
-- `aggregate_id` (optional): Array identifying the aggregate to filter on. Use `["engine"]` for all engine-level events, or `["flow", "flow-id"]` for a specific flow's events.
+- `aggregate_id` (optional): Array identifying the aggregate to filter on. Use `["catalog"]` for step registry events, `["partition"]` for health and flow lifecycle events, or `["flow", "flow-id"]` for a specific flow's events.
 - `event_types` (optional): Array of event types to receive. If omitted, all event types for the aggregate are sent.
 
 **Examples:**
 
-Subscribe to all engine events (step registry, health changes):
+Subscribe to catalog events (step registration and updates):
 ```json
 {
   "type": "subscribe",
   "data": {
-    "aggregate_id": ["engine"]
+    "aggregate_id": ["catalog"]
+  }
+}
+```
+
+Subscribe to partition events (health changes, flow activation):
+```json
+{
+  "type": "subscribe",
+  "data": {
+    "aggregate_id": ["partition"]
   }
 }
 ```
@@ -504,19 +520,29 @@ Subscribe to only completion events for a flow:
 
 ### Client Implementation Pattern
 
-The web UI maintains **two separate WebSocket connections**:
-1. One subscribed to `["engine"]` for all engine-level events (step registry, health changes)
-2. One subscribed to `["flow", flowId]` for a specific flow's events
+The web UI maintains **three separate WebSocket connections**:
+1. One subscribed to `["catalog"]` for step registry events (step_registered, step_unregistered, step_updated)
+2. One subscribed to `["partition"]` for health and flow lifecycle events (step_health_changed, flow_activated, flow_deactivated)
+3. One subscribed to `["flow", flowId]` for a specific flow's execution events
 
 This allows efficient filtering at the server level rather than discarding events on the client:
 
 ```javascript
-// Connection for engine-level events
-const engineWs = new WebSocket('ws://localhost:8080/engine/ws');
-engineWs.onopen = () => {
-  engineWs.send(JSON.stringify({
+// Connection for step registry
+const catalogWs = new WebSocket('ws://localhost:8080/engine/ws');
+catalogWs.onopen = () => {
+  catalogWs.send(JSON.stringify({
     type: 'subscribe',
-    data: { aggregate_id: ['engine'] }
+    data: { aggregate_id: ['catalog'] }
+  }));
+};
+
+// Connection for health and flow lifecycle
+const partitionWs = new WebSocket('ws://localhost:8080/engine/ws');
+partitionWs.onopen = () => {
+  partitionWs.send(JSON.stringify({
+    type: 'subscribe',
+    data: { aggregate_id: ['partition'] }
   }));
 };
 
@@ -563,7 +589,7 @@ ws.onclose = () => {
 
 - **Event volume**: High-concurrency scenarios may generate many events per second
 - **Reduce event traffic**: Use subscription filters to receive only relevant events, reducing network bandwidth and client processing overhead
-- **Multiple connections**: Consider using separate WebSocket connections for different aggregate IDs (e.g., one for engine-level events, one for specific flow monitoring)
+- **Multiple connections**: Consider using separate WebSocket connections for different aggregate IDs (e.g., one for catalog events, one for partition events, one for specific flow monitoring)
 - **Message queueing**: Large backlogs can cause memory growth in the server
 - **Parsing overhead**: Decode JSON and extract relevant fields on the client
 - **Best practice**: Subscribe with filters to minimize unnecessary data transfer; process and discard events as needed

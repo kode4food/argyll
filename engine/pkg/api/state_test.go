@@ -10,7 +10,7 @@ import (
 )
 
 func TestSetStep(t *testing.T) {
-	original := &api.EngineState{
+	original := &api.CatalogState{
 		Steps: api.Steps{
 			"existing": {ID: "existing", Name: "Existing Step"},
 		},
@@ -26,7 +26,7 @@ func TestSetStep(t *testing.T) {
 }
 
 func TestDeleteStep(t *testing.T) {
-	original := &api.EngineState{
+	original := &api.CatalogState{
 		Steps: api.Steps{
 			"step1": {ID: "step1"},
 			"step2": {ID: "step2"},
@@ -42,7 +42,7 @@ func TestDeleteStep(t *testing.T) {
 }
 
 func TestSetHealth(t *testing.T) {
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Health: map[api.StepID]*api.HealthState{},
 	}
 
@@ -53,8 +53,8 @@ func TestSetHealth(t *testing.T) {
 	assert.Empty(t, original.Health)
 }
 
-func TestSetEngineUpdated(t *testing.T) {
-	original := &api.EngineState{LastUpdated: time.Unix(1000, 0)}
+func TestSetPartitionUpdated(t *testing.T) {
+	original := &api.PartitionState{LastUpdated: time.Unix(1000, 0)}
 	newTime := time.Unix(2000, 0)
 
 	result := original.SetLastUpdated(newTime)
@@ -64,7 +64,7 @@ func TestSetEngineUpdated(t *testing.T) {
 }
 
 func TestSetActiveFlow(t *testing.T) {
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Active: map[api.FlowID]*api.ActiveFlow{},
 	}
 
@@ -81,7 +81,7 @@ func TestSetActiveFlow(t *testing.T) {
 }
 
 func TestDeleteActiveFlow(t *testing.T) {
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Active: map[api.FlowID]*api.ActiveFlow{
 			"flow-1": {},
 			"flow-2": {},
@@ -98,7 +98,7 @@ func TestDeleteActiveFlow(t *testing.T) {
 
 func TestSetFlowDigest(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		FlowDigests: map[api.FlowID]*api.FlowDigest{},
 	}
 
@@ -114,7 +114,7 @@ func TestSetFlowDigest(t *testing.T) {
 }
 
 func TestDeleteFlowDigest(t *testing.T) {
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		FlowDigests: map[api.FlowID]*api.FlowDigest{
 			"flow-1": {Status: api.FlowActive},
 			"flow-2": {Status: api.FlowActive},
@@ -131,7 +131,7 @@ func TestDeleteFlowDigest(t *testing.T) {
 
 func TestAddDeactivated(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Deactivated: []*api.DeactivatedFlow{
 			{FlowID: "flow-1", DeactivatedAt: now.Add(-time.Hour)},
 		},
@@ -150,7 +150,7 @@ func TestAddDeactivated(t *testing.T) {
 
 func TestRemoveDeactivated(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Deactivated: []*api.DeactivatedFlow{
 			{FlowID: "flow-1", DeactivatedAt: now.Add(-2 * time.Hour)},
 			{FlowID: "flow-2", DeactivatedAt: now.Add(-time.Hour)},
@@ -168,7 +168,7 @@ func TestRemoveDeactivated(t *testing.T) {
 
 func TestRemoveDeactivatedNotFound(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Deactivated: []*api.DeactivatedFlow{
 			{FlowID: "flow-1", DeactivatedAt: now},
 		},
@@ -181,7 +181,7 @@ func TestRemoveDeactivatedNotFound(t *testing.T) {
 
 func TestAddArchiving(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Archiving: map[api.FlowID]time.Time{
 			"flow-1": now.Add(-time.Hour),
 		},
@@ -197,7 +197,7 @@ func TestAddArchiving(t *testing.T) {
 
 func TestAddArchivingReplaces(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Archiving: map[api.FlowID]time.Time{
 			"flow-1": now.Add(-time.Hour),
 		},
@@ -213,7 +213,7 @@ func TestAddArchivingReplaces(t *testing.T) {
 
 func TestRemoveArchiving(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Archiving: map[api.FlowID]time.Time{
 			"flow-1": now.Add(-2 * time.Hour),
 			"flow-2": now.Add(-time.Hour),
@@ -233,7 +233,7 @@ func TestRemoveArchiving(t *testing.T) {
 
 func TestRemoveArchivingNotFound(t *testing.T) {
 	now := time.Now()
-	original := &api.EngineState{
+	original := &api.PartitionState{
 		Archiving: map[api.FlowID]time.Time{
 			"flow-1": now,
 		},

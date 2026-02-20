@@ -207,7 +207,7 @@ describe("ArgyllApi", () => {
     });
   });
 
-  describe("getEngineState", () => {
+  describe("getEngine", () => {
     test("fetches engine state with steps and health", async () => {
       const mockState = {
         steps: {
@@ -231,7 +231,7 @@ describe("ArgyllApi", () => {
 
       mockClient.get.mockResolvedValue({ data: mockState });
 
-      const result = await api.getEngineState();
+      const result = await api.getEngine();
 
       expect(mockClient.get).toHaveBeenCalledWith("/engine");
       expect(result.steps).toEqual(mockState.steps);

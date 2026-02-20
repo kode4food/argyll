@@ -5,10 +5,13 @@ import { FlowContext } from "@/app/api";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 import { useT } from "@/app/i18n";
 
-const ENGINE_EVENT_TYPES = [
+const CATALOG_EVENT_TYPES = [
   "step_registered",
   "step_unregistered",
   "step_updated",
+];
+
+const PARTITION_EVENT_TYPES = [
   "step_health_changed",
   "flow_activated",
   "flow_deactivated",
@@ -27,6 +30,7 @@ const FLOW_EVENT_TYPES = [
   "work_succeeded",
   "work_failed",
   "work_not_completed",
+  "retry_scheduled",
 ];
 
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
@@ -44,11 +48,12 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     (state) => state.engineReconnectRequest
   );
 
-  const handleEngineEvent = useCallback(
+  const handleCatalogEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
       if (event.type === "subscribed") {
-        const { setEngineState } = useFlowStore.getState();
-        setEngineState((event as WebSocketSubscribed).data as any);
+        const { setCatalogState } = useFlowStore.getState();
+        const data = (event as WebSocketSubscribed).data as any;
+        setCatalogState(data?.steps ?? {});
         return;
       }
 
@@ -69,6 +74,24 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           if (step) updateStep(step);
           break;
         }
+        default:
+          break;
+      }
+    },
+    [addStep, removeStep, updateStep]
+  );
+
+  const handlePartitionEvent = useCallback(
+    (event: WebSocketEvent | WebSocketSubscribed) => {
+      if (event.type === "subscribed") {
+        const { setPartitionState } = useFlowStore.getState();
+        const data = (event as WebSocketSubscribed).data as any;
+        setPartitionState(data?.health ?? {});
+        return;
+      }
+
+      const wsEvent = event as WebSocketEvent;
+      switch (wsEvent.type) {
         case "step_health_changed": {
           const stepId = wsEvent.data?.step_id;
           const health = wsEvent.data?.status;
@@ -86,7 +109,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           break;
       }
     },
-    [addStep, removeStep, updateStep, updateStepHealth, loadFlows]
+    [updateStepHealth, loadFlows]
   );
 
   const handleFlowEvent = useCallback(
@@ -217,6 +240,14 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
             wsEvent.data?.retry_token
           );
           break;
+        case "retry_scheduled":
+          updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+            status: "pending",
+            retry_count: wsEvent.data?.retry_count ?? 0,
+            next_retry_at: wsEvent.data?.next_retry_at,
+            error: wsEvent.data?.error,
+          });
+          break;
         default:
           break;
       }
@@ -228,9 +259,13 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     [t]
   );
 
-  const engineClient = useWebSocketClient({
+  const catalogClient = useWebSocketClient({
     enabled: true,
-    onEvent: handleEngineEvent,
+    onEvent: handleCatalogEvent,
+  });
+  const partitionClient = useWebSocketClient({
+    enabled: true,
+    onEvent: handlePartitionEvent,
   });
   const flowClient = useWebSocketClient({
     enabled: Boolean(selectedFlow),
@@ -238,11 +273,18 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   });
 
   useEffect(() => {
-    engineClient.subscribe({
-      aggregate_id: ["engine"],
-      event_types: ENGINE_EVENT_TYPES,
+    catalogClient.subscribe({
+      aggregate_id: ["catalog"],
+      event_types: CATALOG_EVENT_TYPES,
     });
-  }, [engineClient.subscribe]);
+  }, [catalogClient.subscribe]);
+
+  useEffect(() => {
+    partitionClient.subscribe({
+      aggregate_id: ["partition"],
+      event_types: PARTITION_EVENT_TYPES,
+    });
+  }, [partitionClient.subscribe]);
 
   useEffect(() => {
     if (selectedFlow) {
@@ -255,12 +297,12 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     setEngineSocketStatus(
-      engineClient.connectionStatus,
-      engineClient.reconnectAttempt
+      catalogClient.connectionStatus,
+      catalogClient.reconnectAttempt
     );
   }, [
-    engineClient.connectionStatus,
-    engineClient.reconnectAttempt,
+    catalogClient.connectionStatus,
+    catalogClient.reconnectAttempt,
     setEngineSocketStatus,
   ]);
 
@@ -270,8 +312,13 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     engineReconnectRef.current = engineReconnectRequest;
-    engineClient.reconnect();
-  }, [engineReconnectRequest, engineClient.reconnect]);
+    catalogClient.reconnect();
+    partitionClient.reconnect();
+  }, [
+    engineReconnectRequest,
+    catalogClient.reconnect,
+    partitionClient.reconnect,
+  ]);
 
   return <>{children}</>;
 };

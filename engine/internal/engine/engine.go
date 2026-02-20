@@ -19,24 +19,31 @@ import (
 type (
 	// Engine is the core flow execution engine
 	Engine struct {
-		stepClient client.Client
-		ctx        context.Context
-		engineExec *Executor
-		flowExec   *FlowExecutor
-		config     *config.Config
-		cancel     context.CancelFunc
-		scripts    *ScriptRegistry
-		mapper     *Mapper
-		retryQueue *RetryQueue
-		memoCache  *MemoCache
-		eventQueue *EventQueue
+		stepClient  client.Client
+		ctx         context.Context
+		catalogExec *CatalogExecutor
+		partExec    *PartitionExecutor
+		flowExec    *FlowExecutor
+		config      *config.Config
+		cancel      context.CancelFunc
+		scripts     *ScriptRegistry
+		mapper      *Mapper
+		retryQueue  *RetryQueue
+		memoCache   *MemoCache
+		eventQueue  *EventQueue
 	}
 
-	// Executor manages engine state persistence and event sourcing
-	Executor = timebox.Executor[*api.EngineState]
+	// CatalogExecutor manages catalog state persistence and event sourcing
+	CatalogExecutor = timebox.Executor[*api.CatalogState]
 
-	// Aggregator aggregates engine state from events
-	Aggregator = timebox.Aggregator[*api.EngineState]
+	// CatalogAggregator aggregates catalog state from events
+	CatalogAggregator = timebox.Aggregator[*api.CatalogState]
+
+	// PartitionExecutor manages partition state persistence and event sourcing
+	PartitionExecutor = timebox.Executor[*api.PartitionState]
+
+	// PartitionAggregator aggregates partition state from events
+	PartitionAggregator = timebox.Aggregator[*api.PartitionState]
 
 	// FlowExecutor manages flow state persistence and event sourcing
 	FlowExecutor = timebox.Executor[*api.FlowState]
@@ -60,12 +67,16 @@ var (
 // New creates a new orchestrator instance with the specified stores, client,
 // event hub, and configuration
 func New(
-	engine, flow *timebox.Store, client client.Client, cfg *config.Config,
+	catalog, partition, flow *timebox.Store, client client.Client,
+	cfg *config.Config,
 ) *Engine {
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
-		engineExec: timebox.NewExecutor(
-			engine, events.NewEngineState, events.EngineAppliers,
+		catalogExec: timebox.NewExecutor(
+			catalog, events.NewCatalogState, events.CatalogAppliers,
+		),
+		partExec: timebox.NewExecutor(
+			partition, events.NewPartitionState, events.PartitionAppliers,
 		),
 		flowExec: timebox.NewExecutor(
 			flow, events.NewFlowState, events.FlowAppliers,
@@ -77,7 +88,7 @@ func New(
 		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
 	}
-	e.eventQueue = NewEventQueue(e.raiseEngineEvent)
+	e.eventQueue = NewEventQueue(e.raisePartitionEvent)
 	e.scripts = NewScriptRegistry()
 	e.mapper = NewMapper(e)
 
@@ -165,47 +176,72 @@ func (e *Engine) StartFlow(
 
 // UnregisterStep removes a step from the engine registry
 func (e *Engine) UnregisterStep(stepID api.StepID) error {
-	return e.raiseEngineEvent(
+	return e.raiseCatalogEvent(
 		api.EventTypeStepUnregistered,
 		api.StepUnregisteredEvent{StepID: stepID},
 	)
 }
 
-// GetEngineState retrieves the current engine state including registered steps
-// and active flows
-func (e *Engine) GetEngineState() (*api.EngineState, error) {
-	state, _, err := e.GetEngineStateSeq()
-	return state, err
-}
-
-// GetEngineStateSeq retrieves the current engine state and next sequence
-func (e *Engine) GetEngineStateSeq() (*api.EngineState, int64, error) {
-	var nextSeq int64
-	state, err := e.execEngine(
-		func(st *api.EngineState, ag *Aggregator) error {
-			nextSeq = ag.NextSequence()
+// GetCatalogState retrieves the current catalog state
+func (e *Engine) GetCatalogState() (*api.CatalogState, error) {
+	state, err := e.execCatalog(
+		func(st *api.CatalogState, ag *CatalogAggregator) error {
 			return nil
 		},
 	)
-	return state, nextSeq, err
+	return state, err
+}
+
+// GetPartitionState retrieves the current partition state
+func (e *Engine) GetPartitionState() (*api.PartitionState, error) {
+	state, err := e.execPartition(
+		func(st *api.PartitionState, ag *PartitionAggregator) error {
+			return nil
+		},
+	)
+	return state, err
+}
+
+// GetCatalogStateSeq retrieves catalog state and its next event sequence
+func (e *Engine) GetCatalogStateSeq() (*api.CatalogState, int64, error) {
+	var seq int64
+	state, err := e.execCatalog(
+		func(st *api.CatalogState, ag *CatalogAggregator) error {
+			seq = ag.NextSequence()
+			return nil
+		},
+	)
+	return state, seq, err
+}
+
+// GetPartitionStateSeq retrieves partition state and its next event sequence
+func (e *Engine) GetPartitionStateSeq() (*api.PartitionState, int64, error) {
+	var seq int64
+	state, err := e.execPartition(
+		func(st *api.PartitionState, ag *PartitionAggregator) error {
+			seq = ag.NextSequence()
+			return nil
+		},
+	)
+	return state, seq, err
 }
 
 // ListSteps returns all currently registered steps in the engine
 func (e *Engine) ListSteps() ([]*api.Step, error) {
-	engState, err := e.GetEngineState()
+	catState, err := e.GetCatalogState()
 	if err != nil {
 		return nil, err
 	}
 
 	var steps []*api.Step
-	for _, step := range engState.Steps {
+	for _, step := range catState.Steps {
 		steps = append(steps, step)
 	}
 
 	return steps, nil
 }
 
-// EnqueueEvent schedules an engine aggregate event for sequential processing
+// EnqueueEvent schedules a partition aggregate event for sequential processing
 func (e *Engine) EnqueueEvent(typ api.EventType, data any) {
 	e.eventQueue.Enqueue(typ, data)
 }
@@ -214,25 +250,45 @@ func (e *Engine) saveEngineSnapshot() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	if err := e.engineExec.SaveSnapshot(ctx, events.EngineKey); err != nil {
-		slog.Error("Failed to save engine snapshot",
-			log.Error(err))
-		return
+	if err := e.catalogExec.SaveSnapshot(ctx, events.CatalogKey); err != nil {
+		slog.Error("Failed to save catalog snapshot", log.Error(err))
+	} else {
+		slog.Info("Catalog snapshot saved")
 	}
-	slog.Info("Engine snapshot saved")
+
+	if err := e.partExec.SaveSnapshot(ctx, events.PartitionKey); err != nil {
+		slog.Error("Failed to save partition snapshot", log.Error(err))
+	} else {
+		slog.Info("Partition snapshot saved")
+	}
 }
 
-func (e *Engine) raiseEngineEvent(typ api.EventType, data any) error {
-	_, err := e.execEngine(
-		func(st *api.EngineState, ag *Aggregator) error {
+func (e *Engine) raiseCatalogEvent(typ api.EventType, data any) error {
+	_, err := e.execCatalog(
+		func(st *api.CatalogState, ag *CatalogAggregator) error {
 			return events.Raise(ag, typ, data)
 		},
 	)
 	return err
 }
 
-func (e *Engine) execEngine(
-	cmd timebox.Command[*api.EngineState],
-) (*api.EngineState, error) {
-	return e.engineExec.Exec(e.ctx, events.EngineKey, cmd)
+func (e *Engine) raisePartitionEvent(typ api.EventType, data any) error {
+	_, err := e.execPartition(
+		func(st *api.PartitionState, ag *PartitionAggregator) error {
+			return events.Raise(ag, typ, data)
+		},
+	)
+	return err
+}
+
+func (e *Engine) execCatalog(
+	cmd timebox.Command[*api.CatalogState],
+) (*api.CatalogState, error) {
+	return e.catalogExec.Exec(e.ctx, events.CatalogKey, cmd)
+}
+
+func (e *Engine) execPartition(
+	cmd timebox.Command[*api.PartitionState],
+) (*api.PartitionState, error) {
+	return e.partExec.Exec(e.ctx, events.PartitionKey, cmd)
 }

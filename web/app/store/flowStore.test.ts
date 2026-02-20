@@ -15,7 +15,7 @@ import type { Step, FlowContext, ExecutionResult } from "../api";
 jest.mock("../api", () => ({
   ...jest.requireActual("../api"),
   api: {
-    getEngineState: jest.fn(),
+    getEngine: jest.fn(),
     listFlowsPage: jest.fn(),
   },
 }));
@@ -140,7 +140,7 @@ describe("flowStore", () => {
     };
 
     test("loadSteps fetches and sorts steps alphabetically", async () => {
-      mockApi.getEngineState.mockResolvedValue({
+      mockApi.getEngine.mockResolvedValue({
         steps: {
           "step-1": { ...mockStep, name: "Zebra Step" },
           "step-2": { ...mockStep, id: "step-2", name: "Alpha Step" },
@@ -162,7 +162,7 @@ describe("flowStore", () => {
     });
 
     test("loadSteps handles error", async () => {
-      mockApi.getEngineState.mockRejectedValue(new Error("Network error"));
+      mockApi.getEngine.mockRejectedValue(new Error("Network error"));
 
       await useFlowStore.getState().loadSteps();
       const state = useFlowStore.getState();
@@ -617,7 +617,7 @@ describe("flowStore", () => {
   });
 
   describe("WebSocket state handling", () => {
-    test("setEngineState updates steps and health from WebSocket", () => {
+    test("setCatalogState updates steps from WebSocket", () => {
       const mockStep: Step = {
         id: "step-1",
         name: "Test Step",
@@ -626,22 +626,27 @@ describe("flowStore", () => {
         http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
       };
 
-      useFlowStore.getState().setEngineState({
-        steps: { "step-1": mockStep },
-        health: { "step-1": { status: "healthy" } },
-      });
+      useFlowStore.getState().setCatalogState({ "step-1": mockStep });
 
       const state = useFlowStore.getState();
       expect(state.steps).toHaveLength(1);
       expect(state.steps[0].id).toBe("step-1");
+    });
+
+    test("setPartitionState updates health from WebSocket", () => {
+      useFlowStore.getState().setPartitionState({
+        "step-1": { status: "healthy" },
+      });
+
+      const state = useFlowStore.getState();
       expect(state.stepHealth["step-1"]).toEqual({
         status: "healthy",
         error: undefined,
       });
     });
 
-    test("setEngineState handles empty state", () => {
-      useFlowStore.getState().setEngineState({});
+    test("setCatalogState handles empty state", () => {
+      useFlowStore.getState().setCatalogState({});
 
       const state = useFlowStore.getState();
       expect(state.steps).toHaveLength(0);

@@ -50,7 +50,7 @@ docker compose up
 go install github.com/kode4food/argyll/cmd/argyll@latest
 
 # Manual local testing
-export ENGINE_REDIS_ADDR=localhost:6379
+export CATALOG_REDIS_ADDR=localhost:6379
 go run ./cmd/argyll
 ```
 

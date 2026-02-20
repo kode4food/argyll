@@ -11,8 +11,7 @@ import (
 
 // Config configures the archiver runtime behavior
 type Config struct {
-	EngineStore         timebox.StoreConfig
-	FlowStore           timebox.StoreConfig
+	PartitionStore      timebox.StoreConfig
 	MemoryPercent       float64
 	MaxAge              time.Duration
 	MemoryCheckInterval time.Duration
@@ -55,8 +54,7 @@ var (
 
 func LoadFromEnv() (Config, error) {
 	cfg := Config{
-		EngineStore:         timebox.DefaultStoreConfig(),
-		FlowStore:           timebox.DefaultStoreConfig(),
+		PartitionStore:      timebox.DefaultStoreConfig(),
 		MemoryPercent:       DefaultMemoryPercent,
 		MaxAge:              DefaultMaxAge,
 		MemoryCheckInterval: DefaultMemoryCheckInterval,
@@ -67,8 +65,7 @@ func LoadFromEnv() (Config, error) {
 		LogLevel:            defaultLogLevel,
 	}
 
-	loadStoreConfigFromEnv(&cfg.EngineStore, "ENGINE")
-	loadStoreConfigFromEnv(&cfg.FlowStore, "FLOW")
+	loadStoreConfigFromEnv(&cfg.PartitionStore, "PARTITION")
 
 	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {

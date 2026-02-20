@@ -18,16 +18,17 @@ import (
 type (
 	// TestEngineEnv holds all the components needed for engine testing
 	TestEngineEnv struct {
-		T           *testing.T
-		Engine      *engine.Engine
-		Redis       *miniredis.Miniredis
-		MockClient  *MockClient
-		Config      *config.Config
-		EventHub    *timebox.EventHub
-		Cleanup     func()
-		engineStore *timebox.Store
-		flowStore   *timebox.Store
-		flowExec    *timebox.Executor[*api.FlowState]
+		T              *testing.T
+		Engine         *engine.Engine
+		Redis          *miniredis.Miniredis
+		MockClient     *MockClient
+		Config         *config.Config
+		EventHub       *timebox.EventHub
+		Cleanup        func()
+		catalogStore   *timebox.Store
+		partitionStore *timebox.Store
+		flowStore      *timebox.Store
+		flowExec       *timebox.Executor[*api.FlowState]
 	}
 
 	FlowEvent struct {
@@ -58,11 +59,18 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	})
 	assert.NoError(t, err)
 
-	engineConfig := config.NewDefaultConfig().EngineStore
-	engineConfig.Addr = server.Addr()
-	engineConfig.Prefix = "test-engine"
+	catCfg := config.NewDefaultConfig().CatalogStore
+	catCfg.Addr = server.Addr()
+	catCfg.Prefix = "test-catalog"
 
-	engineStore, err := tb.NewStore(engineConfig)
+	catStore, err := tb.NewStore(catCfg)
+	assert.NoError(t, err)
+
+	partCfg := config.NewDefaultConfig().PartitionStore
+	partCfg.Addr = server.Addr()
+	partCfg.Prefix = "test-partition"
+
+	partStore, err := tb.NewStore(partCfg)
 	assert.NoError(t, err)
 
 	flowConfig := config.NewDefaultConfig().FlowStore
@@ -95,18 +103,19 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	}
 
 	hub := tb.GetHub()
-	eng := engine.New(engineStore, flowStore, mockCli, cfg)
+	eng := engine.New(catStore, partStore, flowStore, mockCli, cfg)
 
 	testEnv := &TestEngineEnv{
-		T:           t,
-		Engine:      eng,
-		Redis:       server,
-		MockClient:  mockCli,
-		Config:      cfg,
-		EventHub:    hub,
-		engineStore: engineStore,
-		flowStore:   flowStore,
-		flowExec:    flowExec,
+		T:              t,
+		Engine:         eng,
+		Redis:          server,
+		MockClient:     mockCli,
+		Config:         cfg,
+		EventHub:       hub,
+		catalogStore:   catStore,
+		partitionStore: partStore,
+		flowStore:      flowStore,
+		flowExec:       flowExec,
 	}
 
 	testEnv.Cleanup = func() {
@@ -122,7 +131,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 // mock client. Used to simulate process restart after crash
 func (e *TestEngineEnv) NewEngineInstance() *engine.Engine {
 	return engine.New(
-		e.engineStore, e.flowStore, e.MockClient, e.Config,
+		e.catalogStore, e.partitionStore, e.flowStore, e.MockClient, e.Config,
 	)
 }
 

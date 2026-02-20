@@ -337,6 +337,19 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
+			name: "partition_redis_addr_propagates_to_flow_store",
+			envVars: map[string]string{
+				"PARTITION_REDIS_ADDR":   "valkey-partition:6379",
+				"PARTITION_REDIS_PREFIX": "shared-prefix",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, "valkey-partition:6379", c.PartitionStore.Addr)
+				testify.Equal(t, "valkey-partition:6379", c.FlowStore.Addr)
+				testify.Equal(t, "shared-prefix", c.PartitionStore.Prefix)
+				testify.Equal(t, "shared-prefix", c.FlowStore.Prefix)
+			},
+		},
+		{
 			name: "invalid_retry_max_retries_ignored",
 			envVars: map[string]string{
 				"RETRY_MAX_RETRIES": "not_a_number",

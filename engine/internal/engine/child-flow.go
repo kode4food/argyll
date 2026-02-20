@@ -36,12 +36,12 @@ func (e *Engine) StartChildFlow(
 
 	childID := childFlowID(parent, token)
 
-	engState, err := e.GetEngineState()
+	catState, err := e.GetCatalogState()
 	if err != nil {
 		return "", err
 	}
 
-	plan, err := e.CreateExecutionPlan(engState, step.Flow.Goals, initState)
+	plan, err := e.CreateExecutionPlan(catState, step.Flow.Goals, initState)
 	if err != nil {
 		return "", err
 	}

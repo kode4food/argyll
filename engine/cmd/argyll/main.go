@@ -22,16 +22,17 @@ import (
 )
 
 type argyll struct {
-	cfg         *config.Config
-	timebox     *timebox.Timebox
-	engineStore *timebox.Store
-	flowStore   *timebox.Store
-	stepClient  client.Client
-	engine      *engine.Engine
-	health      *server.HealthChecker
-	apiServer   *server.Server
-	httpServer  *http.Server
-	quit        chan os.Signal
+	cfg            *config.Config
+	timebox        *timebox.Timebox
+	catalogStore   *timebox.Store
+	partitionStore *timebox.Store
+	flowStore      *timebox.Store
+	stepClient     client.Client
+	engine         *engine.Engine
+	health         *server.HealthChecker
+	apiServer      *server.Server
+	httpServer     *http.Server
+	quit           chan os.Signal
 }
 
 var logLevels = map[string]slog.Level{
@@ -89,8 +90,10 @@ func (s *argyll) setupLogging() {
 		slog.String("log_level", s.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("engine_redis_addr", s.cfg.EngineStore.Addr),
-		slog.Int("engine_redis_db", s.cfg.EngineStore.DB),
+		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Addr),
+		slog.Int("catalog_redis_db", s.cfg.CatalogStore.DB),
+		slog.String("partition_redis_addr", s.cfg.PartitionStore.Addr),
+		slog.Int("partition_redis_db", s.cfg.PartitionStore.DB),
 		slog.String("flow_redis_addr", s.cfg.FlowStore.Addr),
 		slog.Int("flow_redis_db", s.cfg.FlowStore.DB),
 		slog.String("api_host", s.cfg.APIHost),
@@ -109,10 +112,16 @@ func (s *argyll) initializeStores() error {
 		return fmt.Errorf("failed to create timebox: %w", err)
 	}
 
-	s.engineStore, err = s.timebox.NewStore(s.cfg.EngineStore)
+	s.catalogStore, err = s.timebox.NewStore(s.cfg.CatalogStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("failed to create engine store: %w", err)
+		return fmt.Errorf("failed to create catalog store: %w", err)
+	}
+
+	s.partitionStore, err = s.timebox.NewStore(s.cfg.PartitionStore)
+	if err != nil {
+		_ = s.timebox.Close()
+		return fmt.Errorf("failed to create partition store: %w", err)
 	}
 
 	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
@@ -129,7 +138,9 @@ func (s *argyll) initializeEngine() {
 		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
 
-	s.engine = engine.New(s.engineStore, s.flowStore, s.stepClient, s.cfg)
+	s.engine = engine.New(
+		s.catalogStore, s.partitionStore, s.flowStore, s.stepClient, s.cfg,
+	)
 	s.engine.Start()
 }
 

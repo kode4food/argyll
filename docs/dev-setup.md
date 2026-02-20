@@ -10,7 +10,7 @@ docker compose up
 
 This starts:
 
-- Valkey (flow and engine stores)
+- Valkey (catalog and partition stores)
 - Argyll engine on http://localhost:8080
 - UI on http://localhost:3001
 - Example step services (ports 8081–8086)
@@ -33,7 +33,7 @@ Ensure your environment points at a Valkey instance (local or Docker).
 
 Local defaults are defined in `docker-compose.yml`. The most important settings are:
 
-- `ENGINE_REDIS_ADDR` and `FLOW_REDIS_ADDR` (Valkey endpoints)
+- `CATALOG_REDIS_ADDR` and `PARTITION_REDIS_ADDR` (Valkey endpoints)
 - `API_HOST` and `API_PORT` (engine HTTP server)
 - `WEBHOOK_BASE_URL` (used for async step callbacks)
 

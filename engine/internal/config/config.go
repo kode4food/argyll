@@ -22,8 +22,9 @@ type (
 		LogLevel       string
 
 		// Stores & Archiving
-		EngineStore timebox.StoreConfig
-		FlowStore   timebox.StoreConfig
+		CatalogStore   timebox.StoreConfig
+		PartitionStore timebox.StoreConfig
+		FlowStore      timebox.StoreConfig
 
 		// Work & Retry
 		Work api.WorkConfig
@@ -71,7 +72,17 @@ func NewDefaultConfig() *Config {
 		APIPort:        DefaultAPIPort,
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
-		EngineStore: timebox.StoreConfig{
+		CatalogStore: timebox.StoreConfig{
+			Addr:         DefaultRedisEndpoint,
+			Password:     "",
+			DB:           DefaultRedisDB,
+			Prefix:       DefaultRedisPrefix,
+			WorkerCount:  DefaultSnapshotWorkers,
+			MaxQueueSize: DefaultSnapshotQueueSize,
+			SaveTimeout:  DefaultSnapshotSaveTimeout,
+			TrimEvents:   true,
+		},
+		PartitionStore: timebox.StoreConfig{
 			Addr:         DefaultRedisEndpoint,
 			Password:     "",
 			DB:           DefaultRedisDB,
@@ -106,8 +117,9 @@ func NewDefaultConfig() *Config {
 
 // LoadFromEnv populates configuration values from environment variables
 func (c *Config) LoadFromEnv() {
-	LoadStoreConfigFromEnv(&c.EngineStore, "ENGINE")
-	LoadStoreConfigFromEnv(&c.FlowStore, "FLOW")
+	LoadStoreConfigFromEnv(&c.CatalogStore, "CATALOG")
+	LoadStoreConfigFromEnv(&c.PartitionStore, "PARTITION")
+	LoadStoreConfigFromEnv(&c.FlowStore, "PARTITION")
 
 	if apiPort := os.Getenv("API_PORT"); apiPort != "" {
 		if port, err := strconv.Atoi(apiPort); err == nil {
@@ -171,7 +183,7 @@ func (c *Config) Validate() error {
 }
 
 // LoadStoreConfigFromEnv loads Redis store configuration from environment
-// variables with the given prefix (e.g., "ENGINE" or "FLOW")
+// variables with the given prefix (e.g., "CATALOG" or "PARTITION")
 func LoadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
 	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
 		s.Addr = addr

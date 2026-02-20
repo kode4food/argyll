@@ -31,9 +31,9 @@ func TestGetStepHealth(t *testing.T) {
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		engineState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		health, ok := engineState.Health["health-test-step"]
+		health, ok := partState.Health["health-test-step"]
 		assert.True(t, ok)
 		assert.NotNil(t, health)
 		assert.Equal(t, api.HealthUnknown, health.Status)
@@ -42,9 +42,9 @@ func TestGetStepHealth(t *testing.T) {
 
 func TestGetStepHealthNotFound(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		engineState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok := engineState.Health["nonexistent-step"]
+		_, ok := partState.Health["nonexistent-step"]
 		assert.False(t, ok)
 	})
 }
@@ -78,9 +78,9 @@ func TestWithRealHealthCheck(t *testing.T) {
 		checker.Start()
 		defer checker.Stop()
 
-		engineState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		health, ok := engineState.Health["real-health-step"]
+		health, ok := partState.Health["real-health-step"]
 		assert.True(t, ok)
 		assert.NotNil(t, health)
 	})
@@ -120,9 +120,9 @@ func TestRecentSuccess(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		engineState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		health, ok := engineState.Health["recent-success-step"]
+		health, ok := partState.Health["recent-success-step"]
 		assert.True(t, ok)
 		assert.NotNil(t, health)
 	})
@@ -158,7 +158,7 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 			checker.Start()
 		})
 
-		state, err := env.Engine.GetEngineState()
+		state, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
 		health, ok := state.Health["unhealthy-step"]
 		assert.True(t, ok)
@@ -207,9 +207,9 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 		checker.Start()
 		defer checker.Stop()
 
-		engineState, err := env.Engine.GetEngineState()
+		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(engineState.Health), 3)
+		assert.GreaterOrEqual(t, len(partState.Health), 3)
 	})
 }
 

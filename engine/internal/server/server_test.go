@@ -1006,7 +1006,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 	})
 }
 
-func TestEngineState(t *testing.T) {
+func TestGetEngine(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		testEnv.Engine.Start()
 		defer func() { _ = testEnv.Engine.Stop() }()
@@ -1023,7 +1023,9 @@ func TestEngineState(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var state api.EngineState
+		var state struct {
+			Steps api.Steps `json:"steps"`
+		}
 		err = json.Unmarshal(w.Body.Bytes(), &state)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(state.Steps))

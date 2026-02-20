@@ -83,7 +83,7 @@ describe("useWebSocketClient", () => {
     expect(result.current.connectionStatus).toBe("connecting");
 
     act(() => {
-      result.current.subscribe({ aggregate_id: ["engine"] });
+      result.current.subscribe({ aggregate_id: ["catalog"] });
     });
 
     expect(instances).toHaveLength(1);
@@ -96,7 +96,7 @@ describe("useWebSocketClient", () => {
     expect(instances[0].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
-        data: { aggregate_id: ["engine"] },
+        data: { aggregate_id: ["catalog"] },
       })
     );
   });

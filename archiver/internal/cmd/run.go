@@ -39,13 +39,7 @@ func Run(
 	}
 	defer func() { _ = tb.Close() }()
 
-	engineStore, err := tb.NewStore(cfg.EngineStore)
-	if err != nil {
-		return err
-	}
-	defer func() { _ = engineStore.Close() }()
-
-	storeCfg := cfg.FlowStore
+	storeCfg := cfg.PartitionStore
 	storeCfg.Archiving = true
 	store, err := tb.NewStore(storeCfg)
 	if err != nil {
@@ -60,7 +54,7 @@ func Run(
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(engineStore, store, redisClient, cfg)
+	arch, err := archiver.NewArchiver(store, redisClient, cfg)
 	if err != nil {
 		return err
 	}

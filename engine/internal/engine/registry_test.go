@@ -45,7 +45,7 @@ func TestUpdateStepHealth(t *testing.T) {
 		err = eng.UpdateStepHealth("health-step", api.HealthHealthy, "")
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState()
+		state, err := eng.GetPartitionState()
 		assert.NoError(t, err)
 
 		health, ok := state.Health["health-step"]
@@ -66,7 +66,7 @@ func TestUpdateUnhealthy(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState()
+		state, err := eng.GetPartitionState()
 		assert.NoError(t, err)
 
 		health, ok := state.Health["unhealthy-step"]
@@ -89,7 +89,7 @@ func TestUpdateStep(t *testing.T) {
 		err = eng.UpdateStep(updated)
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState()
+		state, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
 		retrievedStep, ok := state.Steps["update-step"]

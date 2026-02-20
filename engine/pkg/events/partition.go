@@ -8,38 +8,32 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const EnginePrefix = "engine"
+const PartitionPrefix = "partition"
 
 var (
-	EngineKey = timebox.NewAggregateID(EnginePrefix)
+	PartitionKey = timebox.NewAggregateID(PartitionPrefix)
 
-	EngineAppliers = makeEngineAppliers()
+	PartitionAppliers = makePartitionAppliers()
 )
 
-// NewEngineState creates an empty engine state with initialized maps for
-// steps, health status, active flows, and deactivated flows
-func NewEngineState() *api.EngineState {
-	return &api.EngineState{
-		Steps:       api.Steps{},
+// NewPartitionState creates an empty partition state with initialized maps
+func NewPartitionState() *api.PartitionState {
+	return &api.PartitionState{
 		Health:      map[api.StepID]*api.HealthState{},
 		Active:      map[api.FlowID]*api.ActiveFlow{},
 		Deactivated: []*api.DeactivatedFlow{},
 		Archiving:   map[api.FlowID]time.Time{},
 		FlowDigests: map[api.FlowID]*api.FlowDigest{},
-		Attributes:  api.AttributeGraph{},
 	}
 }
 
-// IsEngineEvent returns true if the event is for the engine aggregate
-func IsEngineEvent(ev *timebox.Event) bool {
-	return len(ev.AggregateID) >= 1 && ev.AggregateID[0] == EnginePrefix
+// IsPartitionEvent returns true if the event is for the partition aggregate
+func IsPartitionEvent(ev *timebox.Event) bool {
+	return len(ev.AggregateID) >= 1 && ev.AggregateID[0] == PartitionPrefix
 }
 
-func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
-	return MakeAppliers(map[api.EventType]timebox.Applier[*api.EngineState]{
-		api.EventTypeStepRegistered:    timebox.MakeApplier(stepRegistered),
-		api.EventTypeStepUnregistered:  timebox.MakeApplier(stepUnregistered),
-		api.EventTypeStepUpdated:       timebox.MakeApplier(stepUpdated),
+func makePartitionAppliers() timebox.Appliers[*api.PartitionState] {
+	return MakeAppliers(map[api.EventType]timebox.Applier[*api.PartitionState]{
 		api.EventTypeStepHealthChanged: timebox.MakeApplier(stepHealthChanged),
 		api.EventTypeFlowActivated:     timebox.MakeApplier(flowActivated),
 		api.EventTypeFlowDeactivated:   timebox.MakeApplier(flowDeactivated),
@@ -49,34 +43,10 @@ func makeEngineAppliers() timebox.Appliers[*api.EngineState] {
 	})
 }
 
-func stepRegistered(
-	st *api.EngineState, ev *timebox.Event, data api.StepRegisteredEvent,
-) *api.EngineState {
-	return st.
-		SetStep(data.Step.ID, data.Step).
-		SetHealth(data.Step.ID, &api.HealthState{Status: api.HealthUnknown}).
-		SetLastUpdated(ev.Timestamp)
-}
-
-func stepUnregistered(
-	st *api.EngineState, ev *timebox.Event, data api.StepUnregisteredEvent,
-) *api.EngineState {
-	return st.
-		DeleteStep(data.StepID).
-		SetLastUpdated(ev.Timestamp)
-}
-
-func stepUpdated(
-	st *api.EngineState, ev *timebox.Event, data api.StepUpdatedEvent,
-) *api.EngineState {
-	return st.
-		SetStep(data.Step.ID, data.Step).
-		SetLastUpdated(ev.Timestamp)
-}
-
 func stepHealthChanged(
-	st *api.EngineState, ev *timebox.Event, data api.StepHealthChangedEvent,
-) *api.EngineState {
+	st *api.PartitionState, ev *timebox.Event,
+	data api.StepHealthChangedEvent,
+) *api.PartitionState {
 	return st.
 		SetHealth(data.StepID, &api.HealthState{
 			Status: data.Status,
@@ -86,8 +56,8 @@ func stepHealthChanged(
 }
 
 func flowActivated(
-	st *api.EngineState, ev *timebox.Event, data api.FlowActivatedEvent,
-) *api.EngineState {
+	st *api.PartitionState, ev *timebox.Event, data api.FlowActivatedEvent,
+) *api.PartitionState {
 	digest := &api.FlowDigest{
 		Status:    api.FlowActive,
 		CreatedAt: ev.Timestamp,
@@ -104,8 +74,8 @@ func flowActivated(
 }
 
 func flowDeactivated(
-	st *api.EngineState, ev *timebox.Event, data api.FlowDeactivatedEvent,
-) *api.EngineState {
+	st *api.PartitionState, ev *timebox.Event, data api.FlowDeactivatedEvent,
+) *api.PartitionState {
 	var parentID api.FlowID
 	if active, ok := st.Active[data.FlowID]; ok {
 		parentID = active.ParentFlowID
@@ -121,8 +91,8 @@ func flowDeactivated(
 }
 
 func flowArchiving(
-	st *api.EngineState, ev *timebox.Event, data api.FlowArchivingEvent,
-) *api.EngineState {
+	st *api.PartitionState, ev *timebox.Event, data api.FlowArchivingEvent,
+) *api.PartitionState {
 	return st.
 		RemoveDeactivated(data.FlowID).
 		AddArchiving(data.FlowID, ev.Timestamp).
@@ -130,8 +100,8 @@ func flowArchiving(
 }
 
 func flowArchived(
-	st *api.EngineState, ev *timebox.Event, data api.FlowArchivedEvent,
-) *api.EngineState {
+	st *api.PartitionState, ev *timebox.Event, data api.FlowArchivedEvent,
+) *api.PartitionState {
 	return st.
 		RemoveArchiving(data.FlowID).
 		DeleteFlowDigest(data.FlowID).
@@ -139,8 +109,9 @@ func flowArchived(
 }
 
 func flowDigestUpdated(
-	st *api.EngineState, ev *timebox.Event, data api.FlowDigestUpdatedEvent,
-) *api.EngineState {
+	st *api.PartitionState, ev *timebox.Event,
+	data api.FlowDigestUpdatedEvent,
+) *api.PartitionState {
 	digest := &api.FlowDigest{
 		Status:      data.Status,
 		CompletedAt: data.CompletedAt,

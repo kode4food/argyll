@@ -18,7 +18,7 @@ func TestEventJSONMarshaling(t *testing.T) {
 
 	in := &timebox.Event{
 		Type:        timebox.EventType(api.EventTypeStepRegistered),
-		AggregateID: events.EngineKey,
+		AggregateID: events.CatalogKey,
 		Timestamp:   now,
 		Data:        data,
 	}

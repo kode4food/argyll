@@ -49,7 +49,7 @@ examples/        # Sample step implementations
 - Immutable execution plans
 - Real-time UI (React 19 + WebSocket)
 - Health monitoring
-- Separate engine/flow stores
+- Separate catalog/partition/flow stores
 - Step retry with configurable backoff
 - Flow archiving (Redis stream consumption)
 

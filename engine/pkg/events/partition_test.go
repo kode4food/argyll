@@ -12,147 +12,34 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-func TestNewEngineState(t *testing.T) {
-	state := events.NewEngineState()
+func TestNewPartitionState(t *testing.T) {
+	state := events.NewPartitionState()
 
 	assert.NotNil(t, state)
-	assert.NotNil(t, state.Steps)
 	assert.NotNil(t, state.Health)
 	assert.NotNil(t, state.Active)
 	assert.NotNil(t, state.FlowDigests)
-	assert.NotNil(t, state.Attributes)
-	assert.Empty(t, state.Steps)
+	assert.NotNil(t, state.Archiving)
 	assert.Empty(t, state.Health)
 	assert.Empty(t, state.Active)
 	assert.Empty(t, state.FlowDigests)
-	assert.Empty(t, state.Attributes)
+	assert.Empty(t, state.Deactivated)
 }
 
-func TestIsEngineEvent(t *testing.T) {
-	engineEvent := &timebox.Event{
-		AggregateID: events.EngineKey,
+func TestIsPartitionEvent(t *testing.T) {
+	partEvent := &timebox.Event{
+		AggregateID: events.PartitionKey,
 	}
 	flowEvent := &timebox.Event{
 		AggregateID: events.FlowKey("test-flow"),
 	}
 
-	assert.True(t, events.IsEngineEvent(engineEvent))
-	assert.False(t, events.IsEngineEvent(flowEvent))
-}
-
-func TestStepRegistered(t *testing.T) {
-	initialState := events.NewEngineState()
-	now := time.Now()
-
-	step := &api.Step{
-		ID:   "test-step",
-		Name: "Test Step",
-		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080",
-		},
-	}
-
-	eventData := api.StepRegisteredEvent{Step: step}
-	data, err := json.Marshal(eventData)
-	assert.NoError(t, err)
-
-	event := &timebox.Event{
-		Timestamp:   now,
-		AggregateID: events.EngineKey,
-		Type:        timebox.EventType(api.EventTypeStepRegistered),
-		Data:        data,
-	}
-
-	applier := events.EngineAppliers[event.Type]
-	result := applier(initialState, event)
-
-	assert.NotNil(t, result)
-	assert.Equal(t, step, result.Steps["test-step"])
-	assert.NotNil(t, result.Health["test-step"])
-	assert.Equal(t, api.HealthUnknown, result.Health["test-step"].Status)
-	assert.True(t, result.LastUpdated.Equal(now))
-}
-
-func TestStepUnregistered(t *testing.T) {
-	step := &api.Step{
-		ID:   "test-step",
-		Name: "Test Step",
-		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080",
-		},
-	}
-
-	initialState := events.NewEngineState().
-		SetStep("test-step", step).
-		SetHealth("test-step", &api.HealthState{Status: api.HealthHealthy})
-
-	now := time.Now()
-
-	eventData := api.StepUnregisteredEvent{StepID: "test-step"}
-	data, err := json.Marshal(eventData)
-	assert.NoError(t, err)
-
-	event := &timebox.Event{
-		Timestamp:   now,
-		AggregateID: events.EngineKey,
-		Type:        timebox.EventType(api.EventTypeStepUnregistered),
-		Data:        data,
-	}
-
-	applier := events.EngineAppliers[event.Type]
-	result := applier(initialState, event)
-
-	assert.NotNil(t, result)
-	assert.Nil(t, result.Steps["test-step"])
-	assert.True(t, result.LastUpdated.Equal(now))
-}
-
-func TestStepUpdated(t *testing.T) {
-	oldStep := &api.Step{
-		ID:   "test-step",
-		Name: "Old Name",
-		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080",
-		},
-	}
-
-	newStep := &api.Step{
-		ID:   "test-step",
-		Name: "New Name",
-		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:9090",
-		},
-	}
-
-	initialState := events.NewEngineState().SetStep("test-step", oldStep)
-	now := time.Now()
-
-	eventData := api.StepUpdatedEvent{Step: newStep}
-	data, err := json.Marshal(eventData)
-	assert.NoError(t, err)
-
-	event := &timebox.Event{
-		Timestamp:   now,
-		AggregateID: events.EngineKey,
-		Type:        timebox.EventType(api.EventTypeStepUpdated),
-		Data:        data,
-	}
-
-	applier := events.EngineAppliers[event.Type]
-	result := applier(initialState, event)
-
-	assert.NotNil(t, result)
-	assert.Equal(t, newStep, result.Steps["test-step"])
-	assert.Equal(t, api.Name("New Name"), result.Steps["test-step"].Name)
-	assert.True(t, result.LastUpdated.Equal(now))
+	assert.True(t, events.IsPartitionEvent(partEvent))
+	assert.False(t, events.IsPartitionEvent(flowEvent))
 }
 
 func TestStepHealthChanged(t *testing.T) {
-	initialState := events.NewEngineState().
+	initialState := events.NewPartitionState().
 		SetHealth("test-step", &api.HealthState{Status: api.HealthUnknown})
 
 	now := time.Now()
@@ -167,12 +54,12 @@ func TestStepHealthChanged(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeStepHealthChanged),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
@@ -182,7 +69,7 @@ func TestStepHealthChanged(t *testing.T) {
 }
 
 func TestChangedWithError(t *testing.T) {
-	initialState := events.NewEngineState().
+	initialState := events.NewPartitionState().
 		SetHealth("test-step", &api.HealthState{Status: api.HealthHealthy})
 
 	now := time.Now()
@@ -197,12 +84,12 @@ func TestChangedWithError(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeStepHealthChanged),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
@@ -212,7 +99,7 @@ func TestChangedWithError(t *testing.T) {
 }
 
 func TestFlowActivated(t *testing.T) {
-	initialState := events.NewEngineState()
+	initialState := events.NewPartitionState()
 	now := time.Now()
 
 	eventData := api.FlowActivatedEvent{
@@ -224,12 +111,12 @@ func TestFlowActivated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeFlowActivated),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
@@ -246,7 +133,7 @@ func TestFlowActivated(t *testing.T) {
 }
 
 func TestFlowDeactivated(t *testing.T) {
-	initialState := events.NewEngineState().
+	initialState := events.NewPartitionState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
 			ParentFlowID: "parent-flow",
 			StartedAt:    time.Now(),
@@ -261,12 +148,12 @@ func TestFlowDeactivated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeFlowDeactivated),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
@@ -278,7 +165,7 @@ func TestFlowDeactivated(t *testing.T) {
 }
 
 func TestFlowArchiving(t *testing.T) {
-	initialState := events.NewEngineState().
+	initialState := events.NewPartitionState().
 		AddDeactivated(&api.DeactivatedFlow{
 			FlowID:        "test-flow",
 			DeactivatedAt: time.Now(),
@@ -291,12 +178,12 @@ func TestFlowArchiving(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeFlowArchiving),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
@@ -308,7 +195,7 @@ func TestFlowArchiving(t *testing.T) {
 
 func TestFlowArchived(t *testing.T) {
 	now := time.Now()
-	initialState := events.NewEngineState().
+	initialState := events.NewPartitionState().
 		AddDeactivated(&api.DeactivatedFlow{
 			FlowID:        "test-flow",
 			DeactivatedAt: now.Add(-time.Minute),
@@ -325,12 +212,12 @@ func TestFlowArchived(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeFlowArchived),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)
@@ -342,7 +229,7 @@ func TestFlowArchived(t *testing.T) {
 
 func TestFlowDigestUpdated(t *testing.T) {
 	now := time.Now()
-	initialState := events.NewEngineState().
+	initialState := events.NewPartitionState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
 			StartedAt:  now.Add(-time.Minute),
 			LastActive: now.Add(-time.Minute),
@@ -363,12 +250,12 @@ func TestFlowDigestUpdated(t *testing.T) {
 
 	event := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.EngineKey,
+		AggregateID: events.PartitionKey,
 		Type:        timebox.EventType(api.EventTypeFlowDigestUpdated),
 		Data:        data,
 	}
 
-	applier := events.EngineAppliers[event.Type]
+	applier := events.PartitionAppliers[event.Type]
 	result := applier(initialState, event)
 
 	assert.NotNil(t, result)

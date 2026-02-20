@@ -24,12 +24,20 @@ func TestStartStop(t *testing.T) {
 	})
 }
 
-func TestGetEngineState(t *testing.T) {
+func TestGetCatalogState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, err := eng.GetEngineState()
+		state, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 		assert.NotNil(t, state)
 		assert.NotNil(t, state.Steps)
+	})
+}
+
+func TestGetPartitionState(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		state, err := eng.GetPartitionState()
+		assert.NoError(t, err)
+		assert.NotNil(t, state)
 		assert.NotNil(t, state.Health)
 	})
 }
@@ -282,7 +290,7 @@ func TestUpdateStepSuccess(t *testing.T) {
 		err = eng.UpdateStep(updatedStep)
 		assert.NoError(t, err)
 
-		state, err := eng.GetEngineState()
+		state, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
 		updated, ok := state.Steps["update-step"]

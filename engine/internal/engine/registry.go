@@ -13,8 +13,8 @@ import (
 type (
 	stepSet = util.Set[api.StepID]
 
-	stepValidate func(*api.EngineState, *api.Step) error
-	stepRaise    func(*api.Step, *Aggregator) error
+	stepValidate func(*api.CatalogState, *api.Step) error
+	stepRaise    func(*api.Step, *CatalogAggregator) error
 )
 
 var (
@@ -27,7 +27,7 @@ var (
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
 func (e *Engine) RegisterStep(step *api.Step) error {
-	return e.upsertStep(step, func(st *api.EngineState, s *api.Step) error {
+	return e.upsertStep(step, func(st *api.CatalogState, s *api.Step) error {
 		if existing, ok := st.Steps[s.ID]; ok {
 			if existing.Equal(s) {
 				return nil
@@ -41,7 +41,7 @@ func (e *Engine) RegisterStep(step *api.Step) error {
 // UpdateStep updates an existing step registration with new configuration
 // after validation
 func (e *Engine) UpdateStep(step *api.Step) error {
-	return e.upsertStep(step, func(st *api.EngineState, s *api.Step) error {
+	return e.upsertStep(step, func(st *api.CatalogState, s *api.Step) error {
 		existing, ok := st.Steps[s.ID]
 		if !ok {
 			return fmt.Errorf("%w: %s", ErrStepNotFound, s.ID)
@@ -60,7 +60,7 @@ func (e *Engine) upsertStep(
 		return err
 	}
 
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
+	cmd := func(st *api.CatalogState, ag *CatalogAggregator) error {
 		if err := validate(st, step); err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (e *Engine) upsertStep(
 		return raise(step, ag)
 	}
 
-	if _, err := e.execEngine(cmd); err != nil {
+	if _, err := e.execCatalog(cmd); err != nil {
 		return err
 	}
 
@@ -116,7 +116,7 @@ func (e *Engine) validateStepMappings(step *api.Step) error {
 func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
-	cmd := func(st *api.EngineState, ag *Aggregator) error {
+	cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
 		if stepHealth, ok := st.Health[stepID]; ok {
 			if stepHealth.Status == health && stepHealth.Error == errMsg {
 				return nil
@@ -132,7 +132,7 @@ func (e *Engine) UpdateStepHealth(
 		)
 	}
 
-	_, err := e.execEngine(cmd)
+	_, err := e.execPartition(cmd)
 	return err
 }
 
@@ -172,28 +172,39 @@ func stepHasScripts(step *api.Step) bool {
 }
 
 func (e *Engine) raiseStepRegisteredEvent(
-	step *api.Step, ag *Aggregator,
+	step *api.Step, ag *CatalogAggregator,
 ) error {
-	return events.Raise(ag, api.EventTypeStepRegistered,
+	if err := events.Raise(ag, api.EventTypeStepRegistered,
 		api.StepRegisteredEvent{Step: step},
-	)
+	); err != nil {
+		return err
+	}
+	ag.OnSuccess(func(*api.CatalogState) {
+		_ = e.raisePartitionEvent(api.EventTypeStepHealthChanged,
+			api.StepHealthChangedEvent{
+				StepID: step.ID,
+				Status: api.HealthUnknown,
+			},
+		)
+	})
+	return nil
 }
 
 func (e *Engine) raiseStepUpdatedEvent(
-	step *api.Step, ag *Aggregator,
+	step *api.Step, ag *CatalogAggregator,
 ) error {
 	return events.Raise(ag, api.EventTypeStepUpdated,
 		api.StepUpdatedEvent{Step: step},
 	)
 }
 
-func validateAttributeTypes(st *api.EngineState, newStep *api.Step) error {
+func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {
 	attributeTypes := collectAttributeTypes(st, newStep.ID)
 	return checkAttributeConflicts(newStep.Attributes, attributeTypes)
 }
 
 func collectAttributeTypes(
-	st *api.EngineState, excludeID api.StepID,
+	st *api.CatalogState, excludeID api.StepID,
 ) api.AttributeTypes {
 	attributeTypes := make(api.AttributeTypes)
 	for stepID, step := range st.Steps {
@@ -220,7 +231,7 @@ func checkAttributeConflicts(
 	return nil
 }
 
-func detectStepCycles(st *api.EngineState, newStep *api.Step) error {
+func detectStepCycles(st *api.CatalogState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
 	deps := st.Attributes
 	if existing, ok := st.Steps[newStep.ID]; ok {
@@ -259,7 +270,7 @@ func checkCycleFromStep(
 	return nil
 }
 
-func stepsIncluding(st *api.EngineState, newStep *api.Step) api.Steps {
+func stepsIncluding(st *api.CatalogState, newStep *api.Step) api.Steps {
 	steps := maps.Clone(st.Steps)
 	steps[newStep.ID] = newStep
 	return steps

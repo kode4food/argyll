@@ -103,7 +103,7 @@ export class ArgyllApi {
     return response.data;
   }
 
-  async getEngineState(): Promise<{
+  async getEngine(): Promise<{
     steps: Record<string, Step>;
     health: Record<string, any>;
   }> {

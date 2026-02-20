@@ -9,7 +9,7 @@ import (
 )
 
 type planBuilder struct {
-	engState    *api.EngineState
+	catState    *api.CatalogState
 	satisfied   util.Set[api.Name]
 	available   util.Set[api.Name]
 	satisfiable util.Set[api.StepID]
@@ -27,17 +27,17 @@ var (
 // CreateExecutionPlan builds an execution plan for the given goal steps,
 // resolving dependencies and determining required inputs
 func (e *Engine) CreateExecutionPlan(
-	engState *api.EngineState, goalIDs []api.StepID, initState api.Args,
+	catalogState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
 ) (*api.ExecutionPlan, error) {
 	if len(goalIDs) == 0 {
 		return nil, ErrNoGoals
 	}
 
-	if err := validateGoals(engState, goalIDs); err != nil {
+	if err := validateGoals(catalogState, goalIDs); err != nil {
 		return nil, err
 	}
 
-	pb := newPlanBuilder(engState, initState)
+	pb := newPlanBuilder(catalogState, initState)
 	pb.computeSatisfiable()
 	if err := pb.collectSteps(goalIDs); err != nil {
 		return nil, err
@@ -54,9 +54,9 @@ func (e *Engine) CreateExecutionPlan(
 	}, nil
 }
 
-func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
+func newPlanBuilder(st *api.CatalogState, initState api.Args) *planBuilder {
 	pb := &planBuilder{
-		engState:    st,
+		catState:    st,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
 		satisfiable: util.Set[api.StepID]{},
@@ -74,9 +74,9 @@ func newPlanBuilder(st *api.EngineState, initState api.Args) *planBuilder {
 	return pb
 }
 
-func validateGoals(engState *api.EngineState, goalIDs []api.StepID) error {
+func validateGoals(catState *api.CatalogState, goalIDs []api.StepID) error {
 	for _, goalID := range goalIDs {
-		if _, ok := engState.Steps[goalID]; !ok {
+		if _, ok := catState.Steps[goalID]; !ok {
 			return ErrStepNotFound
 		}
 	}
@@ -93,7 +93,7 @@ func (b *planBuilder) computeSatisfiable() {
 	progress := true
 	for progress {
 		progress = false
-		for _, step := range b.engState.Steps {
+		for _, step := range b.catState.Steps {
 			if b.satisfiable.Contains(step.ID) {
 				continue
 			}
@@ -139,7 +139,7 @@ func (b *planBuilder) collectStep(stepID api.StepID) error {
 	}
 	b.visited.Add(stepID)
 
-	step := b.engState.Steps[stepID]
+	step := b.catState.Steps[stepID]
 	allInputs := step.GetAllInputArgs()
 	required := b.buildRequired(step)
 	for _, name := range allInputs {
@@ -175,7 +175,7 @@ func (b *planBuilder) buildRequired(step *api.Step) util.Set[api.Name] {
 
 func (b *planBuilder) markSatisfied(name api.Name) {
 	for _, providerID := range b.findProviders(name) {
-		step := b.engState.Steps[providerID]
+		step := b.catState.Steps[providerID]
 		if b.outputsAvailable(step) {
 			b.visited.Add(providerID)
 		}
@@ -203,7 +203,7 @@ func (b *planBuilder) includeProviders(name api.Name) (bool, error) {
 }
 
 func (b *planBuilder) findProviders(name api.Name) []api.StepID {
-	if deps, ok := b.engState.Attributes[name]; ok {
+	if deps, ok := b.catState.Attributes[name]; ok {
 		return deps.Providers
 	}
 	return nil
@@ -235,7 +235,7 @@ func (b *planBuilder) outputsAvailable(step *api.Step) bool {
 
 func (b *planBuilder) buildPlan() {
 	for id := range b.included {
-		step := b.engState.Steps[id]
+		step := b.catState.Steps[id]
 		b.steps[id] = step
 		for name, attr := range step.Attributes {
 			if attr.IsOutput() {
@@ -245,7 +245,7 @@ func (b *planBuilder) buildPlan() {
 	}
 
 	for id := range b.included {
-		step := b.engState.Steps[id]
+		step := b.catState.Steps[id]
 		for name, attr := range step.Attributes {
 			if attr.IsInput() && b.inputSatisfied(name) {
 				b.addConsumer(name, id)
@@ -258,7 +258,7 @@ func (b *planBuilder) inputSatisfied(name api.Name) bool {
 	if b.satisfied.Contains(name) {
 		return true
 	}
-	if deps, ok := b.engState.Attributes[name]; ok {
+	if deps, ok := b.catState.Attributes[name]; ok {
 		if slices.ContainsFunc(deps.Providers, b.included.Contains) {
 			return true
 		}
@@ -292,7 +292,7 @@ func (b *planBuilder) buildExcluded() api.ExcludedSteps {
 		Missing:   map[api.StepID][]api.Name{},
 	}
 	for stepID := range b.visited {
-		step := b.engState.Steps[stepID]
+		step := b.catState.Steps[stepID]
 		if b.included.Contains(stepID) {
 			continue
 		}

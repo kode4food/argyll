@@ -347,7 +347,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 		sub := api.SubscribeRequest{
 			Type: "subscribe",
 			Data: api.ClientSubscription{
-				AggregateID: []string{events.EnginePrefix},
+				AggregateID: []string{events.CatalogPrefix},
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -357,10 +357,10 @@ func TestSocketCallbackEngine(t *testing.T) {
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
-		assert.Equal(t, []string{events.EnginePrefix}, stateMsg.AggregateID)
+		assert.Equal(t, []string{events.CatalogPrefix}, stateMsg.AggregateID)
 
-		var engState api.EngineState
-		err = json.Unmarshal(stateMsg.Data, &engState)
+		var catState api.CatalogState
+		err = json.Unmarshal(stateMsg.Data, &catState)
 		assert.NoError(t, err)
 	})
 }

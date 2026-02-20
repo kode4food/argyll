@@ -26,12 +26,12 @@ func TestIsFlowEvent(t *testing.T) {
 	flowEvent := &timebox.Event{
 		AggregateID: events.FlowKey("test-flow"),
 	}
-	engineEvent := &timebox.Event{
-		AggregateID: events.EngineKey,
+	catEvent := &timebox.Event{
+		AggregateID: events.CatalogKey,
 	}
 
 	assert.True(t, events.IsFlowEvent(flowEvent))
-	assert.False(t, events.IsFlowEvent(engineEvent))
+	assert.False(t, events.IsFlowEvent(catEvent))
 }
 
 func TestFlowStarted(t *testing.T) {

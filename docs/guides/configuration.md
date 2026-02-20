@@ -4,26 +4,26 @@ This guide covers how to configure Argyll for development, testing, and producti
 
 ## Environment Variables
 
-### Engine Storage
+### Catalog Storage
 
-Configure where the engine stores step definitions and health data:
+Configure where the engine stores the step catalog (step definitions and attribute graph):
 
 ```bash
-ENGINE_REDIS_ADDR=localhost:6379       # Default
-ENGINE_REDIS_PASSWORD=                 # Empty if no auth
-ENGINE_REDIS_DB=0                      # Redis database number
-ENGINE_REDIS_PREFIX=argyll             # Namespace prefix
+CATALOG_REDIS_ADDR=localhost:6379      # Default
+CATALOG_REDIS_PASSWORD=                # Empty if no auth
+CATALOG_REDIS_DB=0                     # Redis database number
+CATALOG_REDIS_PREFIX=argyll            # Namespace prefix
 ```
 
-### Flow Storage
+### Partition Storage
 
-Configure where flows and their state are stored:
+Configure where the engine stores partition state (active flows, health, digests):
 
 ```bash
-FLOW_REDIS_ADDR=localhost:6379
-FLOW_REDIS_PASSWORD=
-FLOW_REDIS_DB=0
-FLOW_REDIS_PREFIX=argyll
+PARTITION_REDIS_ADDR=localhost:6379
+PARTITION_REDIS_PASSWORD=
+PARTITION_REDIS_DB=0
+PARTITION_REDIS_PREFIX=argyll
 ```
 
 ### Archiving Policy
@@ -65,40 +65,28 @@ LOG_LEVEL=info                          # Log level: debug, info, warn, error
 
 ## Store Separation
 
-Engine and flow stores can use different Valkey instances. This is useful for scaling:
+Catalog and Partition each have their own Redis connection, configured independently. FlowStore always shares the Partition connection — they run on the same Redis instance.
 
 ### Single Instance (Default)
 
-Both stores point to the same Valkey:
-
 ```bash
-ENGINE_REDIS_ADDR=valkey:6379
-FLOW_REDIS_ADDR=valkey:6379
+CATALOG_REDIS_ADDR=valkey:6379
+PARTITION_REDIS_ADDR=valkey:6379
 ```
 
-### Separated Stores
+### Separated Catalog
 
-Engine state on one instance, flows on another:
-
-```bash
-ENGINE_REDIS_ADDR=valkey-engine:6379
-FLOW_REDIS_ADDR=valkey-flows:6379
-```
-
-**Benefits:**
-- Scale engine and flow stores independently
-- Isolate workloads
-- Easier debugging and monitoring
-
-### Flow Sharding
-
-Multiple Valkey instances for flow partitioning:
+Catalog on its own instance; partition and flow on another:
 
 ```bash
-# In a more advanced setup, you could:
-# - Use Redis Cluster for automatic sharding
-# - Or deploy multiple engines with different FLOW_REDIS_ADDR
+CATALOG_REDIS_ADDR=valkey-catalog:6379
+PARTITION_REDIS_ADDR=valkey-partition:6379
 ```
+
+**Store behaviors:**
+- Catalog: event trimming enabled, snapshotted on shutdown
+- Partition: event trimming enabled, snapshotted on shutdown
+- Flow: full event history retained (no trimming), not snapshotted; shares Partition's Redis connection
 
 ## Development Setup
 
@@ -121,10 +109,10 @@ For local testing without Docker:
 redis-server
 
 # Set minimal env vars
-export ENGINE_REDIS_ADDR=localhost:6379
-export FLOW_REDIS_ADDR=localhost:6379
-export ENGINE_REDIS_PREFIX=argyll:engine:test
-export FLOW_REDIS_PREFIX=argyll:flow:test
+export CATALOG_REDIS_ADDR=localhost:6379
+export PARTITION_REDIS_ADDR=localhost:6379
+export CATALOG_REDIS_PREFIX=argyll
+export PARTITION_REDIS_PREFIX=argyll
 
 # Run engine
 go run ./cmd/argyll
@@ -306,7 +294,7 @@ Since Argyll has no built-in metrics, instrument at:
 
 ```
 Error: redis: connection refused
-→ Check ENGINE_REDIS_ADDR / FLOW_REDIS_ADDR
+→ Check CATALOG_REDIS_ADDR / PARTITION_REDIS_ADDR
 → Verify Redis is running
 → Check network connectivity
 ```
