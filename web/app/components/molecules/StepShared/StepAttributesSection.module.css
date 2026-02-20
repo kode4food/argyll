@@ -29,11 +29,13 @@
 }
 
 .argItemFocused {
-  --arg-focus-inset-x: -6px;
-  --arg-focus-inset-y: -3px;
+  --arg-focus-inset-left: -6px;
+  --arg-focus-inset-right: -6px;
+  --arg-focus-inset-top: -3px;
+  --arg-focus-inset-bottom: -3px;
   --arg-focus-ring-width: 2px;
   --arg-focus-ring-alpha: 32%;
-  --arg-focus-pulse-spread: 10px;
+  --arg-focus-pulse-spread: 20px;
   --arg-focus-pulse-duration: 1.5s;
   border-radius: var(--radius-md);
 }
@@ -41,10 +43,10 @@
 .argItemFocused::before {
   content: "";
   position: absolute;
-  top: var(--arg-focus-inset-y);
-  bottom: var(--arg-focus-inset-y);
-  left: var(--arg-focus-inset-x);
-  right: var(--arg-focus-inset-x);
+  top: var(--arg-focus-inset-top);
+  bottom: var(--arg-focus-inset-bottom);
+  left: var(--arg-focus-inset-left);
+  right: var(--arg-focus-inset-right);
   border-radius: var(--radius-round);
   background-color: transparent;
   box-shadow: 0 0 0 var(--arg-focus-ring-width)
