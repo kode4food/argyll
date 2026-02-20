@@ -50,6 +50,21 @@ Backoff is applied per work item, not per step.
 
 The step completes only when all work items succeed or a failure becomes permanent.
 
+## Startup recovery candidate selection
+
+At startup, the engine builds recovery candidates from persisted flow aggregates (flow store), not just the in-memory active flow projection.
+
+The startup candidate set is then pruned using engine metadata:
+
+- `deactivated` flows are skipped
+- `archiving` flows are skipped
+
+For the remaining candidates, if a flow is missing from the engine `active` projection, the engine raises `flow_activated` first to repair engine-level metadata.
+
+After that activation repair step, startup recovery inspects each candidate flow state and queues only recoverable work items.
+
+This keeps startup recovery broad enough to catch flows that were persisted before a crash, while still pruning potentially large numbers of terminal/archive flows early.
+
 ## Terminal failures
 
 If a work item fails permanently, the step fails. If a goal step fails, the flow fails. Non-goal step failure can still cause other steps to become unreachable, which may fail the flow depending on the execution plan.

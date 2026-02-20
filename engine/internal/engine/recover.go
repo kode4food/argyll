@@ -1,17 +1,24 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"math"
+	"slices"
 	"time"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type backoffCalculator func(baseDelay int64, retryCount int) int64
+
+const retryDispatchBackoff = 1 * time.Second
 
 var backoffCalculators = map[string]backoffCalculator{
 	api.BackoffTypeFixed: func(base int64, _ int) int64 {
@@ -72,26 +79,38 @@ func (e *Engine) CalculateNextRetry(
 
 // RecoverFlows initiates recovery for all active flows during engine startup
 func (e *Engine) RecoverFlows() error {
+	ids, err := e.listFlowAggregateIDs()
+	if err != nil {
+		return fmt.Errorf("failed to list flow aggregates: %w", err)
+	}
+
+	if len(ids) == 0 {
+		slog.Info("No flows to recover")
+		return nil
+	}
+
 	state, err := e.GetEngineState()
 	if err != nil {
 		return fmt.Errorf("failed to load engine state: %w", err)
 	}
 
-	if len(state.Active) == 0 {
-		slog.Info("No flows to recover")
+	candidates := pruneRecoveryCandidates(ids, state)
+	if len(candidates) == 0 {
+		slog.Info("No flows to recover",
+			slog.Int("candidate_count", 0))
 		return nil
 	}
 
 	slog.Info("Recovering flows",
-		slog.Int("count", len(state.Active)))
+		slog.Int("candidate_count", len(candidates)),
+	)
 
+	active := util.Set[api.FlowID]{}
 	for flowID := range state.Active {
-		if err := e.RecoverFlow(flowID); err != nil {
-			slog.Error("Failed to recover flow",
-				log.FlowID(flowID),
-				log.Error(err))
-		}
+		active.Add(flowID)
 	}
+	e.activateMissingFlows(candidates, active)
+	e.recoverFlows(candidates)
 
 	return nil
 }
@@ -185,6 +204,106 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	return retryableSteps
 }
 
+func (e *Engine) listFlowAggregateIDs() ([]api.FlowID, error) {
+	store := e.flowExec.GetStore()
+	ids, err := store.ListAggregates(e.ctx, events.FlowKey("*"))
+	if err != nil {
+		return nil, err
+	}
+
+	seen := util.Set[api.FlowID]{}
+	res := make([]api.FlowID, 0, len(ids))
+	for _, id := range ids {
+		flowID, ok := flowIDFromAggregateID(id)
+		if !ok || seen.Contains(flowID) {
+			continue
+		}
+		seen.Add(flowID)
+		res = append(res, flowID)
+	}
+	slices.Sort(res)
+	return res, nil
+}
+
+func (e *Engine) activateMissingFlows(
+	ids []api.FlowID, active util.Set[api.FlowID],
+) {
+	for _, id := range ids {
+		if active.Contains(id) {
+			continue
+		}
+		flow, err := e.GetFlowState(id)
+		if err != nil {
+			slog.Error("Failed to load flow for activation repair",
+				log.FlowID(id),
+				log.Error(err))
+			continue
+		}
+		e.activateFlow(id, flow)
+		active.Add(id)
+	}
+}
+
+func (e *Engine) recoverFlows(ids []api.FlowID) {
+	for _, id := range ids {
+		if err := e.RecoverFlow(id); err != nil {
+			slog.Error("Failed to recover flow",
+				log.FlowID(id),
+				log.Error(err))
+		}
+	}
+}
+
+func (e *Engine) activateFlow(id api.FlowID, flow *api.FlowState) {
+	parentID, _ := api.GetMetaString[api.FlowID](
+		flow.Metadata, api.MetaParentFlowID,
+	)
+	e.EnqueueEvent(api.EventTypeFlowActivated,
+		api.FlowActivatedEvent{
+			FlowID:       id,
+			ParentFlowID: parentID,
+			Labels:       flow.Labels,
+		},
+	)
+}
+
+func pruneRecoveryCandidates(
+	ids []api.FlowID, state *api.EngineState,
+) []api.FlowID {
+	deactivated := util.Set[api.FlowID]{}
+	for _, info := range state.Deactivated {
+		deactivated.Add(info.FlowID)
+	}
+
+	archiving := util.Set[api.FlowID]{}
+	for flowID := range state.Archiving {
+		archiving.Add(flowID)
+	}
+
+	candidates := make([]api.FlowID, 0, len(ids))
+	for _, id := range ids {
+		if archiving.Contains(id) {
+			continue
+		}
+		if deactivated.Contains(id) {
+			continue
+		}
+		candidates = append(candidates, id)
+	}
+	return candidates
+}
+
+func flowIDFromAggregateID(id timebox.AggregateID) (api.FlowID, bool) {
+	if len(id) < 2 || id[0] != events.FlowPrefix {
+		return "", false
+	}
+	flowID := api.FlowID(id[1])
+	if flowID == "" {
+		return "", false
+	}
+	return flowID, true
+}
+
 func (e *Engine) retryLoop() {
 	var t retryTimer
 	var timerC <-chan time.Time
@@ -228,6 +347,10 @@ func (e *Engine) executeReadyRetries() {
 	for _, item := range items {
 		flow, err := e.GetFlowState(item.FlowID)
 		if err != nil {
+			if errors.Is(err, ErrFlowNotFound) {
+				continue
+			}
+			e.requeueRetryItem(item)
 			slog.Error("Failed to get flow state for retry",
 				log.FlowID(item.FlowID),
 				log.Error(err))
@@ -249,13 +372,20 @@ func (e *Engine) executeReadyRetries() {
 		}
 
 		fs := api.FlowStep{FlowID: item.FlowID, StepID: item.StepID}
-		e.retryWork(fs, step, item.Token, flow.Metadata)
+		if err := e.retryWork(fs, step, item.Token, flow.Metadata); err != nil {
+			e.requeueRetryItem(item)
+			slog.Error("Failed to retry work item",
+				log.FlowID(fs.FlowID),
+				log.StepID(fs.StepID),
+				log.Token(item.Token),
+				log.Error(err))
+		}
 	}
 }
 
 func (e *Engine) retryWork(
 	fs api.FlowStep, step *api.Step, token api.Token, meta api.Metadata,
-) {
+) error {
 	var started api.WorkItems
 	var inputs api.Args
 
@@ -279,11 +409,14 @@ func (e *Engine) retryWork(
 		})
 		return nil
 	})
-	if err != nil {
-		slog.Error("Failed to retry work item",
-			log.FlowID(fs.FlowID),
-			log.StepID(fs.StepID),
-			log.Token(token),
-			log.Error(err))
-	}
+	return err
+}
+
+func (e *Engine) requeueRetryItem(item *RetryItem) {
+	e.retryQueue.Push(&RetryItem{
+		FlowID:      item.FlowID,
+		StepID:      item.StepID,
+		Token:       item.Token,
+		NextRetryAt: time.Now().Add(retryDispatchBackoff),
+	})
 }

@@ -875,6 +875,72 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 	})
 }
 
+func TestRecoverFlowsFromAggregateList(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		flowID := api.FlowID("aggregate-recovery-flow")
+		step := helpers.NewSimpleStep("aggregate-recovery-step")
+		step.Type = api.StepTypeAsync
+		token := api.Token("retry-token")
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		err := env.RaiseFlowEvents(
+			flowID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: flowID,
+					Plan:   plan,
+					Init:   api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: flowID,
+					StepID: step.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						token: {},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeRetryScheduled,
+				Data: api.RetryScheduledEvent{
+					FlowID:      flowID,
+					StepID:      step.ID,
+					Token:       token,
+					RetryCount:  1,
+					NextRetryAt: time.Now().Add(-1 * time.Second),
+					Error:       "retry",
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		engState, err := env.Engine.GetEngineState()
+		assert.NoError(t, err)
+		_, ok := engState.Active[flowID]
+		assert.False(t, ok)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.WaitFor(wait.FlowActivated(flowID), func() {
+			env.Engine.Start()
+		})
+
+		invoked := env.MockClient.WaitForInvocation(step.ID, 2*time.Second)
+		assert.True(t, invoked)
+
+		engState, err = env.Engine.GetEngineState()
+		assert.NoError(t, err)
+		_, ok = engState.Active[flowID]
+		assert.True(t, ok)
+	})
+}
+
 func TestPendingWorkNotRetryable(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		state := &api.FlowState{
