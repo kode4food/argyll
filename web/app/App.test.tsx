@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import App from "./App";
 
 jest.mock("./contexts/WebSocketProvider", () => ({
@@ -16,7 +16,11 @@ jest.mock("./components/atoms/ConnectionStatusWrapper", () => ({
 
 jest.mock("./components/templates/OverviewPage", () => ({
   __esModule: true,
-  default: () => <div data-testid="overview-page" />,
+  default: () => (
+    <div data-testid="overview-page">
+      <input data-testid="overview-input" />
+    </div>
+  ),
 }));
 
 jest.mock("./components/templates/LivePage", () => ({
@@ -48,6 +52,28 @@ describe("App", () => {
     expect(screen.getByTestId("overview-page")).toBeInTheDocument();
     expect(screen.getByTestId("connection-status-wrapper")).toBeInTheDocument();
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
+  });
+
+  test("applies autofill suppression attributes on mousedown", () => {
+    renderAt("/");
+
+    const overviewInput = screen.getByTestId("overview-input");
+    expect(overviewInput).not.toHaveAttribute("autocomplete");
+    fireEvent.mouseDown(overviewInput);
+    expect(overviewInput).toHaveAttribute("autocomplete", "off");
+    expect(overviewInput).toHaveAttribute("data-1p-ignore", "true");
+    expect(overviewInput).toHaveAttribute("data-lpignore", "true");
+    expect(overviewInput).toHaveAttribute("data-bwignore", "true");
+
+    const dynamicInput = document.createElement("input");
+    document.body.appendChild(dynamicInput);
+    fireEvent.mouseDown(dynamicInput);
+    expect(dynamicInput).toHaveAttribute("autocomplete", "off");
+    expect(dynamicInput).toHaveAttribute("data-1p-ignore", "true");
+    expect(dynamicInput).toHaveAttribute("data-lpignore", "true");
+    expect(dynamicInput).toHaveAttribute("data-bwignore", "true");
+
+    dynamicInput.remove();
   });
 
   test("renders LivePage for flow route", () => {
