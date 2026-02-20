@@ -69,7 +69,8 @@ info:
     - **HTTP errors** (4xx/5xx status codes):
       - Infrastructure or request format errors
       - Example: Missing required arguments, internal server error, etc.
-      - The engine will fail the step execution and may retry
+      - 4xx responses are treated as permanent failures (no retry)
+      - 5xx responses are treated as retryable failures
 
     ## Deployment Flexibility
 

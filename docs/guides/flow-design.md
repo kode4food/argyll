@@ -57,7 +57,7 @@ Use `for_each` on array inputs to process multiple items in parallel. Outputs ar
 
 ## Predicates for Business Logic
 
-Use predicates to conditionally skip steps based on flow state. This avoids branching logic.
+Use predicates to conditionally skip steps based on flow state.
 
 ```json
 {
@@ -129,22 +129,16 @@ Use flow steps (sub-flows) to create reusable, self-contained units with their o
 
 **Pattern:** Create sub-flows for domain-specific logic (authentication, payment, validation) that might be reused across multiple parent flows.
 
-## Idempotency Patterns
+## Idempotency
 
-Design flows so they can be safely retried without unintended duplication.
+Idempotency for async completion is handled by the engine.
 
-**Pattern 1: Unique IDs for Async Work**
-```
-User provides: order_id = "ord-123"
-Step generates: payment_request_id = "uuid()" (unique each attempt)
-Problem: Different UUIDs each retry = duplicate payment requests
+Use the engine-provided metadata and webhook token path:
+- `flow_id`
+- `step_id`
+- `receipt_token` (also encoded in `/webhook/{flow_id}/{step_id}/{token}`)
 
-Better: payment_request_id = hash(order_id + "payment_v1")
-Effect: Same input = same ID = idempotent at payment processor
-```
-
-**Pattern 2: Async Webhook Idempotency**
-Your async worker receives the same `receipt_token` on retry. Use it to detect duplicates and return the same result.
+The engine rejects duplicate completions for the same token, so you do not need to implement your own duplicate-detection pattern for normal step retries.
 
 See [Async Steps Guide](./async-steps.md) for details.
 
@@ -153,7 +147,7 @@ See [Async Steps Guide](./async-steps.md) for details.
 Avoid flows where many steps depend on each other in complex ways. Instead:
 - **Keep dependencies linear when possible**: A → B → C
 - **Use sub-flows** for clusters of related steps
-- **Use predicates** instead of explicit branching
+- **Use predicates** for conditional execution
 
 This makes flows easier to understand, test, and debug.
 
@@ -197,7 +191,6 @@ Mark expensive, deterministic steps as memoizable:
 | Anti-Pattern | Problem | Solution |
 |--------------|---------|----------|
 | Too many goals | Hard to understand what flow is for | Keep 1-3 focused goals |
-| Circular dependencies | Impossible to execute | Use DAG structure only |
 | Overly granular steps | Excessive overhead | Combine related logic |
 | Missing error handling | Silent failures | Explicitly mark goal vs optional steps |
 | All-or-nothing parallelism | Bottlenecks on slow item | Use parallelism config to rate-limit |

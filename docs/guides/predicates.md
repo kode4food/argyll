@@ -1,6 +1,6 @@
 # Predicates
 
-A **predicate** is an optional script that decides whether a step should execute given its inputs. Predicates let you add lightweight gating logic without introducing branching infrastructure.
+A **predicate** is an optional script that decides whether a step should execute given its inputs. Predicates are the supported way to model conditional execution in Argyll; imperative branching is not supported.
 
 ## Basic Concept
 

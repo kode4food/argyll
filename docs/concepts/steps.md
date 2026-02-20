@@ -42,7 +42,7 @@ Argyll supports four step types. Choose the simplest type that fits your needs:
 
 **How it works:**
 - Engine calls your HTTP endpoint and includes a webhook URL in metadata
-- Your handler returns immediately (e.g., 202 Accepted)
+- Your handler returns immediately with a valid StepResult payload (HTTP 200)
 - Your background worker processes the task and POSTs results to the webhook
 
 **Example:**
@@ -185,7 +185,7 @@ The predicate evaluates to true/false. If false, the step is skipped and produce
 
 **Use predicates for:**
 - Lightweight gating logic
-- Conditional execution without adding branching infrastructure
+- Conditional execution without requiring branching infrastructure
 - Avoiding unnecessary work (e.g., "only notify if order is large")
 
 **Predicates are evaluated:** before initial work starts and again when pending/retry work items are started. If predicate checks fail, that work does not run.

@@ -74,7 +74,7 @@ Argyll intentionally does not provide:
 
 - **General-purpose DAG engine**: Not suitable for arbitrary graph topologies
 - **BPMN or human process engine**: No approval gates, waiting states, or human intervention
-- **Speculative or reactive orchestration**: No "what-if" execution or reactive branching
+- **Speculative or reactive orchestration**: No "if-then" execution
 - **Process manager with explicit lifecycle control**: No pause/resume or manual state transition
 - **Plugin framework for arbitrary execution semantics**: Limited step types by design
 - **Scheduler**: No cron jobs, delayed execution, or recurring flows

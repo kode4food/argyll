@@ -98,7 +98,7 @@ The flow starts with the minimal required inputs. Optional inputs can be provide
 
 Traditional orchestrators run all steps, or require you to manually specify which steps to run. Argyll avoids this complexity:
 
-- **No branching logic**: You don't write "if customer exists, skip lookup"—just declare the lookup as a dependency
+- **Conditional execution model**: Predicates and dependencies determine which steps run
 - **No polling**: Event-driven execution, not polling for results
 - **No wasted work**: Only execute what's necessary
 - **Deterministic**: The plan is fixed, making failures explainable and reproducible

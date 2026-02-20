@@ -49,7 +49,7 @@ See [HTTP Steps](../concepts/steps.md#sync-http) for details.
 - Decouples request latency from work duration
 - Requires webhook for completion notification
 - Needs background worker infrastructure
-- Idempotent handling required
+- Engine-provided receipt tokens make completion idempotent for webhook retries
 
 See [Async Steps Guide](./async-steps.md) for webhook setup and best practices.
 
