@@ -1025,3 +1025,269 @@ func TestFindRetryEmptyWorkItems(t *testing.T) {
 		assert.Empty(t, retryable)
 	})
 }
+
+func TestRecoverFlowMixedStatuses(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		flowID := api.FlowID("recover-mixed-statuses")
+		stepA := helpers.NewSimpleStep("mixed-step-a")
+		stepB := helpers.NewSimpleStep("mixed-step-b")
+		tokenActive := api.Token("active")
+		tokenNotCompleted := api.Token("not-completed")
+		tokenPendingRetry := api.Token("pending-retry")
+		tokenPendingNoRetry := api.Token("pending-no-retry")
+		tokenFailedRetry := api.Token("failed-retry")
+		tokenFailedNoRetry := api.Token("failed-no-retry")
+		tokenSucceeded := api.Token("succeeded")
+		tokenBranchReady := api.Token("branch-ready")
+		tokenBranchSkip := api.Token("branch-skip")
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{stepA.ID},
+			Steps: api.Steps{
+				stepA.ID: stepA,
+				stepB.ID: stepB,
+			},
+		}
+		now := time.Now()
+		err := env.RaiseFlowEvents(
+			flowID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: flowID,
+					Plan:   plan,
+					Init:   api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: flowID,
+					StepID: stepA.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						tokenActive:         {},
+						tokenNotCompleted:   {},
+						tokenPendingRetry:   {},
+						tokenPendingNoRetry: {},
+						tokenFailedRetry:    {},
+						tokenFailedNoRetry:  {},
+						tokenSucceeded:      {},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkStarted,
+				Data: api.WorkStartedEvent{
+					FlowID: flowID,
+					StepID: stepA.ID,
+					Token:  tokenActive,
+					Inputs: api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkNotCompleted,
+				Data: api.WorkNotCompletedEvent{
+					FlowID: flowID,
+					StepID: stepA.ID,
+					Token:  tokenNotCompleted,
+					Error:  "retry",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeRetryScheduled,
+				Data: api.RetryScheduledEvent{
+					FlowID:      flowID,
+					StepID:      stepA.ID,
+					Token:       tokenPendingRetry,
+					RetryCount:  1,
+					NextRetryAt: now.Add(-500 * time.Millisecond),
+					Error:       "retry",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeRetryScheduled,
+				Data: api.RetryScheduledEvent{
+					FlowID:      flowID,
+					StepID:      stepA.ID,
+					Token:       tokenFailedRetry,
+					RetryCount:  2,
+					NextRetryAt: now.Add(-500 * time.Millisecond),
+					Error:       "retry",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkFailed,
+				Data: api.WorkFailedEvent{
+					FlowID: flowID,
+					StepID: stepA.ID,
+					Token:  tokenFailedRetry,
+					Error:  "failed",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkFailed,
+				Data: api.WorkFailedEvent{
+					FlowID: flowID,
+					StepID: stepA.ID,
+					Token:  tokenFailedNoRetry,
+					Error:  "failed",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkSucceeded,
+				Data: api.WorkSucceededEvent{
+					FlowID:  flowID,
+					StepID:  stepA.ID,
+					Token:   tokenSucceeded,
+					Outputs: api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: flowID,
+					StepID: stepB.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						tokenBranchReady: {},
+						tokenBranchSkip:  {},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeRetryScheduled,
+				Data: api.RetryScheduledEvent{
+					FlowID:      flowID,
+					StepID:      stepB.ID,
+					Token:       tokenBranchReady,
+					RetryCount:  1,
+					NextRetryAt: now.Add(-500 * time.Millisecond),
+					Error:       "retry",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepFailed,
+				Data: api.StepFailedEvent{
+					FlowID: flowID,
+					StepID: stepB.ID,
+					Error:  "failed step",
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		err = env.Engine.RecoverFlow(flowID)
+		assert.NoError(t, err)
+	})
+}
+
+func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+
+		activeFlowID := api.FlowID("recover-active")
+		deactivatedFlowID := api.FlowID("recover-deactivated")
+		archivingFlowID := api.FlowID("recover-archiving")
+		activeStep := helpers.NewSimpleStep("recover-step-active")
+		deactivatedStep := helpers.NewSimpleStep("recover-step-deactivated")
+		archivingStep := helpers.NewSimpleStep("recover-step-archiving")
+		activeToken := api.Token("active-token")
+		deactivatedToken := api.Token("deactivated-token")
+		archivingToken := api.Token("archiving-token")
+
+		raiseFlow := func(
+			flowID api.FlowID, step *api.Step, token api.Token,
+		) {
+			plan := &api.ExecutionPlan{
+				Goals: []api.StepID{step.ID},
+				Steps: api.Steps{step.ID: step},
+			}
+			err := env.RaiseFlowEvents(
+				flowID,
+				helpers.FlowEvent{
+					Type: api.EventTypeFlowStarted,
+					Data: api.FlowStartedEvent{
+						FlowID: flowID,
+						Plan:   plan,
+						Init:   api.Args{},
+					},
+				},
+				helpers.FlowEvent{
+					Type: api.EventTypeStepStarted,
+					Data: api.StepStartedEvent{
+						FlowID: flowID,
+						StepID: step.ID,
+						Inputs: api.Args{},
+						WorkItems: map[api.Token]api.Args{
+							token: {},
+						},
+					},
+				},
+				helpers.FlowEvent{
+					Type: api.EventTypeRetryScheduled,
+					Data: api.RetryScheduledEvent{
+						FlowID:      flowID,
+						StepID:      step.ID,
+						Token:       token,
+						RetryCount:  1,
+						NextRetryAt: time.Now().Add(-500 * time.Millisecond),
+						Error:       "retry",
+					},
+				},
+			)
+			assert.NoError(t, err)
+		}
+
+		raiseFlow(activeFlowID, activeStep, activeToken)
+		raiseFlow(deactivatedFlowID, deactivatedStep, deactivatedToken)
+		raiseFlow(archivingFlowID, archivingStep, archivingToken)
+
+		env.WaitFor(wait.FlowActivated(activeFlowID), func() {
+			env.Engine.EnqueueEvent(api.EventTypeFlowActivated,
+				api.FlowActivatedEvent{FlowID: activeFlowID})
+		})
+		env.WaitFor(wait.FlowDeactivated(deactivatedFlowID), func() {
+			env.Engine.EnqueueEvent(api.EventTypeFlowDeactivated,
+				api.FlowDeactivatedEvent{FlowID: deactivatedFlowID})
+		})
+		env.WaitFor(wait.And(
+			wait.EngineEvent(api.EventTypeFlowArchiving),
+			wait.FlowID(archivingFlowID),
+		), func() {
+			env.Engine.EnqueueEvent(api.EventTypeFlowArchiving,
+				api.FlowArchivingEvent{FlowID: archivingFlowID})
+		})
+
+		env.MockClient.SetResponse(activeStep.ID, api.Args{})
+		env.MockClient.SetResponse(deactivatedStep.ID, api.Args{})
+		env.MockClient.SetResponse(archivingStep.ID, api.Args{})
+		assert.NoError(t, env.Engine.Stop())
+
+		restarted := env.NewEngineInstance()
+		restarted.Start()
+		defer func() { _ = restarted.Stop() }()
+
+		assert.True(t,
+			env.MockClient.WaitForInvocation(activeStep.ID, 2*time.Second))
+		assert.False(t,
+			env.MockClient.WaitForInvocation(deactivatedStep.ID, 300*time.Millisecond))
+		assert.False(t,
+			env.MockClient.WaitForInvocation(archivingStep.ID, 300*time.Millisecond))
+
+		activeState, err := restarted.GetFlowState(activeFlowID)
+		assert.NoError(t, err)
+		deactivatedState, err := restarted.GetFlowState(deactivatedFlowID)
+		assert.NoError(t, err)
+		archivingState, err := restarted.GetFlowState(archivingFlowID)
+		assert.NoError(t, err)
+
+		assert.NotEqual(t, api.WorkPending,
+			activeState.Executions[activeStep.ID].WorkItems[activeToken].Status)
+		assert.Equal(t, api.WorkPending,
+			deactivatedState.Executions[deactivatedStep.ID].
+				WorkItems[deactivatedToken].Status)
+		assert.Equal(t, api.WorkPending,
+			archivingState.Executions[archivingStep.ID].
+				WorkItems[archivingToken].Status)
+	})
+}
