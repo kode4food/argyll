@@ -80,6 +80,7 @@ const Widget: React.FC<WidgetProps> = ({
     ((step.type === "script" && step.script) ||
       ((step.type === "sync" || step.type === "async") && step.http) ||
       (step.type === "flow" && step.flow));
+  const focusedAttributeName = isInPreviewPlan ? focusedPreviewAttribute : null;
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     if (disableEdit || !isEditable) return;
@@ -113,10 +114,7 @@ const Widget: React.FC<WidgetProps> = ({
         title={isEditable ? t("overviewStep.doubleClickEdit") : undefined}
       >
         <StepHeader step={step} />
-        <Attributes
-          step={step}
-          focusedAttributeName={focusedPreviewAttribute}
-        />
+        <Attributes step={step} focusedAttributeName={focusedAttributeName} />
         <StepPredicate step={step} />
         <Footer
           step={step}

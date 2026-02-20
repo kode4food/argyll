@@ -12,10 +12,11 @@ import { useStepHealth } from "@/app/hooks/useStepHealth";
 import { useFlowStore } from "@/app/store/flowStore";
 
 jest.mock("@/app/hooks/useStepHealth");
+const mockUseUI = jest.fn(() => ({
+  focusedPreviewAttribute: null,
+}));
 jest.mock("@/app/contexts/UIContext", () => ({
-  useUI: () => ({
-    focusedPreviewAttribute: null,
-  }),
+  useUI: () => mockUseUI(),
 }));
 jest.mock("@/app/components/molecules/StepHeader", () => ({
   __esModule: true,
@@ -23,7 +24,11 @@ jest.mock("@/app/components/molecules/StepHeader", () => ({
 }));
 jest.mock("@/app/components/molecules/OverviewStep/Attributes", () => ({
   __esModule: true,
-  default: ({ step }: any) => <div data-testid="step-args">{step.id}</div>,
+  default: ({ step, focusedAttributeName }: any) => (
+    <div data-testid="step-args" data-focused-attribute={focusedAttributeName}>
+      {step.id}
+    </div>
+  ),
 }));
 jest.mock("@/app/components/molecules/StepPredicate", () => ({
   __esModule: true,
@@ -90,6 +95,9 @@ describe("Widget", () => {
     mockUseStepHealth.mockReturnValue({
       status: "healthy",
       error: undefined,
+    });
+    mockUseUI.mockReturnValue({
+      focusedPreviewAttribute: null,
     });
     const {
       __openEditor,
@@ -232,6 +240,34 @@ describe("Widget", () => {
 
     const widget = container.querySelector(".step-widget");
     expect(widget?.className).not.toContain("attribute-focus-match");
+  });
+
+  test("does not pass focused attribute for steps outside preview plan", () => {
+    mockUseUI.mockReturnValue({
+      focusedPreviewAttribute: "quantity",
+    });
+    const step = createStep("sync");
+
+    render(<Widget step={step} isPreviewMode={true} isInPreviewPlan={false} />);
+
+    expect(screen.getByTestId("step-args")).not.toHaveAttribute(
+      "data-focused-attribute",
+      "quantity"
+    );
+  });
+
+  test("passes focused attribute for steps inside preview plan", () => {
+    mockUseUI.mockReturnValue({
+      focusedPreviewAttribute: "quantity",
+    });
+    const step = createStep("sync");
+
+    render(<Widget step={step} isPreviewMode={true} isInPreviewPlan={true} />);
+
+    expect(screen.getByTestId("step-args")).toHaveAttribute(
+      "data-focused-attribute",
+      "quantity"
+    );
   });
 
   test("applies custom style", () => {
