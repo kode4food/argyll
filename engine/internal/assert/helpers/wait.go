@@ -1,11 +1,15 @@
 package helpers
 
 import (
+	"time"
+
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+const waitPollInterval = 10 * time.Millisecond
 
 // WaitFor runs fn and waits for a matching event
 func (e *TestEngineEnv) WaitFor(filter wait.EventFilter, fn func()) {
@@ -68,14 +72,7 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 		wait.On(e.T, consumer).ForEvent(wait.FlowTerminal(flowID))
 	})
 
-	state, err := e.Engine.GetFlowState(flowID)
-	if err != nil {
-		e.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
-	}
-	if !isFlowTerminal(state) {
-		e.T.Fatalf("flow %s not terminal after event", flowID)
-	}
-	return state
+	return e.waitForTerminalFlow(flowID)
 }
 
 // WaitForStepStarted waits for a step to start and returns the execution
@@ -118,14 +115,7 @@ func (e *TestEngineEnv) WaitForStepStatus(
 		))
 	})
 
-	exec, err := e.getExecutionState(flowID, stepID)
-	if err != nil {
-		e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
-	}
-	if exec == nil || !isStepTerminal(exec.Status) {
-		e.T.Fatalf("execution %s not terminal after event", stepID)
-	}
-	return exec
+	return e.waitForTerminalStep(flowID, stepID)
 }
 
 func (e *TestEngineEnv) getExecutionState(
@@ -151,4 +141,44 @@ func isStepTerminal(status api.StepStatus) bool {
 	return status == api.StepCompleted ||
 		status == api.StepFailed ||
 		status == api.StepSkipped
+}
+
+func (e *TestEngineEnv) waitForTerminalFlow(flowID api.FlowID) *api.FlowState {
+	e.T.Helper()
+
+	deadline := time.Now().Add(wait.DefaultTimeout)
+	for {
+		state, err := e.Engine.GetFlowState(flowID)
+		if err == nil && isFlowTerminal(state) {
+			return state
+		}
+		if time.Now().After(deadline) {
+			if err != nil {
+				e.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
+			}
+			e.T.Fatalf("flow %s not terminal after event", flowID)
+		}
+		time.Sleep(waitPollInterval)
+	}
+}
+
+func (e *TestEngineEnv) waitForTerminalStep(
+	flowID api.FlowID, stepID api.StepID,
+) *api.ExecutionState {
+	e.T.Helper()
+
+	deadline := time.Now().Add(wait.DefaultTimeout)
+	for {
+		exec, err := e.getExecutionState(flowID, stepID)
+		if err == nil && exec != nil && isStepTerminal(exec.Status) {
+			return exec
+		}
+		if time.Now().After(deadline) {
+			if err != nil {
+				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
+			}
+			e.T.Fatalf("execution %s not terminal after event", stepID)
+		}
+		time.Sleep(waitPollInterval)
+	}
 }
