@@ -963,10 +963,13 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   </div>
                 </div>
               )}
-
-              {error && <div className={formStyles.errorMessage}>{error}</div>}
             </div>
           </div>
+          {error && (
+            <div className={`${formStyles.errorMessage} ${styles.errorBanner}`}>
+              {error}
+            </div>
+          )}
 
           <div className={styles.footer}>
             <div className={styles.footerControls}>

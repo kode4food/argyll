@@ -40,6 +40,51 @@ func TestAleCacheForSameScript(t *testing.T) {
 	})
 }
 
+func TestAleCacheIncludesArgNames(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		env := engine.NewAleEnv()
+
+		stepOuter := &api.Step{
+			ID:   "outer-step",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Script:   "{:result (* amount 2)}",
+				Language: api.ScriptLangAle,
+			},
+			Attributes: api.AttributeSpecs{
+				"amount": {Role: api.RoleRequired, Type: api.TypeNumber},
+				"result": {Role: api.RoleOutput, Type: api.TypeNumber},
+			},
+		}
+
+		stepMapped := &api.Step{
+			ID:   "mapped-step",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Script:   "{:result (* amount 2)}",
+				Language: api.ScriptLangAle,
+			},
+			Attributes: api.AttributeSpecs{
+				"amount": {
+					Role: api.RoleRequired,
+					Type: api.TypeNumber,
+					Mapping: &api.AttributeMapping{
+						Name: "inner_amount",
+					},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeNumber},
+			},
+		}
+
+		_, err := env.Compile(stepOuter, stepOuter.Script)
+		assert.NoError(t, err)
+
+		_, err = env.Compile(stepMapped, stepMapped.Script)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "amount")
+	})
+}
+
 func TestAleCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := engine.NewScriptRegistry()

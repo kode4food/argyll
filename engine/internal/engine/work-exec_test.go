@@ -432,6 +432,9 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 
 		exec := flow.Executions[step.ID]
 		assert.Equal(t, api.StepCompleted, exec.Status)
+		_, hasOuter := exec.Inputs["amount"]
+		assert.False(t, hasOuter)
+		assert.Equal(t, float64(2), exec.Inputs["inner_amount"])
 		assert.Equal(t, float64(6), exec.Outputs["result"])
 	})
 }

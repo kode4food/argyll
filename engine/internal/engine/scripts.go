@@ -138,12 +138,21 @@ func (c *compiler[T]) Compile(
 		return nil, nil
 	}
 
-	return c.cache.Get(hashScript(cfg.Script), func() (T, error) {
+	return c.cache.Get(hashScript(step, cfg.Script), func() (T, error) {
 		return c.build(step, cfg)
 	})
 }
 
-func hashScript(script string) string {
-	h := sha256.Sum256([]byte(script))
-	return hex.EncodeToString(h[:])
+func hashScript(step *api.Step, script string) string {
+	h := sha256.New()
+	_, _ = h.Write([]byte(script))
+
+	if step != nil {
+		for _, arg := range step.SortedArgNames() {
+			_, _ = h.Write([]byte{0})
+			_, _ = h.Write([]byte(arg))
+		}
+	}
+
+	return hex.EncodeToString(h.Sum(nil))
 }
