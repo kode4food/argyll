@@ -141,11 +141,6 @@ func (tx *flowTx) getDownstreamConsumers(
 	return consumers
 }
 
-// isGoalStep returns true if the step is a goal step
-func (tx *flowTx) isGoalStep(stepID api.StepID, flow *api.FlowState) bool {
-	return slices.Contains(flow.Plan.Goals, stepID)
-}
-
 func isGoalStep(stepID api.StepID, goals []api.StepID) bool {
 	return slices.Contains(goals, stepID)
 }

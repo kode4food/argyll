@@ -368,21 +368,7 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 		if err != nil {
 			return err
 		}
-		step := tx.Value().Plan.Steps[stepID]
-		started, err := tx.startPendingWork(stepID, step)
-		if err != nil {
-			return err
-		}
-		if len(started) == 0 {
-			return nil
-		}
-		tx.OnSuccess(func(flow *api.FlowState) {
-			exec := flow.Executions[stepID]
-			tx.handleWorkItemsExecution(
-				stepID, step, exec.Inputs, flow.Metadata, started,
-			)
-		})
-		return nil
+		return tx.continueStepWork(stepID, false)
 	}
 
 	if err := tx.failUnreachable(); err != nil {
@@ -461,7 +447,7 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 	}
 
 	// Step completed - check if it was a goal step
-	if tx.isGoalStep(stepID, tx.Value()) {
+	if isGoalStep(stepID, tx.Value().Plan.Goals) {
 		if err := tx.checkTerminal(); err != nil {
 			return err
 		}
@@ -482,22 +468,13 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 }
 
 func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
-	step := tx.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(stepID, step)
-	if err != nil {
-		return err
-	}
-	tx.handleWorkItems(stepID, step, started)
-	return nil
+	return tx.continueStepWork(stepID, true)
 }
 
 func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
-	step := tx.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(stepID, step)
-	if err != nil {
+	if err := tx.continueStepWork(stepID, true); err != nil {
 		return err
 	}
-	tx.handleWorkItems(stepID, step, started)
 	return tx.handleStepFailure(stepID)
 }
 
@@ -510,12 +487,9 @@ func (tx *flowTx) handleWorkNotCompleted(
 	if err := tx.scheduleRetry(stepID, token); err != nil {
 		return err
 	}
-	step := tx.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(stepID, step)
-	if err != nil {
+	if err := tx.continueStepWork(stepID, true); err != nil {
 		return err
 	}
-	tx.handleWorkItems(stepID, step, started)
 	return tx.handleStepFailure(stepID)
 }
 
@@ -624,21 +598,29 @@ func (tx *flowTx) startRetryWorkItem(
 	return started, nil
 }
 
-func (tx *flowTx) handleWorkItems(
-	stepID api.StepID, step *api.Step, started api.WorkItems,
-) {
+func (tx *flowTx) continueStepWork(
+	stepID api.StepID, clearRetryEntries bool,
+) error {
+	step := tx.Value().Plan.Steps[stepID]
+	started, err := tx.startPendingWork(stepID, step)
+	if err != nil {
+		return err
+	}
 	if len(started) == 0 {
-		return
+		return nil
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
 		exec := flow.Executions[stepID]
-		for token := range started {
-			tx.retryQueue.Remove(tx.flowID, stepID, token)
+		if clearRetryEntries {
+			for token := range started {
+				tx.retryQueue.Remove(tx.flowID, stepID, token)
+			}
 		}
 		tx.handleWorkItemsExecution(
 			stepID, step, exec.Inputs, flow.Metadata, started,
 		)
 	})
+	return nil
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
