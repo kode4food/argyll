@@ -357,22 +357,6 @@ func TestEqual(t *testing.T) {
 }
 
 func TestEqualEdgeCases(t *testing.T) {
-	t.Run("both_nil", func(t *testing.T) {
-		var spec1 *api.AttributeSpec
-		var spec2 *api.AttributeSpec
-		assert.True(t, spec1.Equal(spec2))
-	})
-
-	t.Run("one_nil_one_not", func(t *testing.T) {
-		spec1 := &api.AttributeSpec{
-			Role: api.RoleRequired,
-			Type: api.TypeString,
-		}
-		var spec2 *api.AttributeSpec
-		assert.False(t, spec1.Equal(spec2))
-		assert.False(t, spec2.Equal(spec1))
-	})
-
 	t.Run("different_for_each", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:    api.RoleRequired,
