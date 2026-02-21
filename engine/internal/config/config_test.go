@@ -281,7 +281,7 @@ func TestWithDefaults(t *testing.T) {
 		testify.Equal(t, 5, out.Work.MaxRetries)
 		testify.Equal(t, int64(2000), out.Work.Backoff)
 		testify.Equal(t, int64(30000), out.Work.MaxBackoff)
-		testify.Equal(t, "fixed", string(out.Work.BackoffType))
+		testify.Equal(t, "fixed", out.Work.BackoffType)
 	})
 
 	t.Run("does not mutate original", func(t *testing.T) {

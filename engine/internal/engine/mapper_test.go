@@ -208,6 +208,62 @@ func TestMapperJPathMarshaling(t *testing.T) {
 	})
 }
 
+func TestMapInput(t *testing.T) {
+	t.Run("returns value for nil mapping", func(t *testing.T) {
+		withMapper(t, func(m *engine.Mapper) {
+			attr := &api.AttributeSpec{
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			}
+			result := m.MapInput(nil, "input", attr, "hello")
+			assert.Equal(t, "hello", result)
+		})
+	})
+
+	t.Run("returns value for nil script", func(t *testing.T) {
+		withMapper(t, func(m *engine.Mapper) {
+			attr := &api.AttributeSpec{
+				Role:    api.RoleRequired,
+				Type:    api.TypeString,
+				Mapping: &api.AttributeMapping{Name: "renamed"},
+			}
+			result := m.MapInput(nil, "input", attr, "hello")
+			assert.Equal(t, "hello", result)
+		})
+	})
+
+	t.Run("maps value with jpath", func(t *testing.T) {
+		withMapper(t, func(m *engine.Mapper) {
+			attr := &api.AttributeSpec{
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Script: jpathCfg("$.key"),
+				},
+			}
+			input := api.Args{"key": "mapped"}
+			result := m.MapInput(nil, "input", attr, input)
+			assert.Equal(t, "mapped", result)
+		})
+	})
+
+	t.Run("returns original on failed mapping", func(t *testing.T) {
+		withMapper(t, func(m *engine.Mapper) {
+			step := mappingStep("input")
+			attr := &api.AttributeSpec{
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Script: jpathCfg("$.missing"),
+				},
+			}
+			input := api.Args{"key": "value"}
+			result := m.MapInput(step, "input", attr, input)
+			assert.Equal(t, input, result)
+		})
+	})
+}
+
 func mappingStep(name api.Name) *api.Step {
 	return &api.Step{
 		ID:   "mapping-step",

@@ -56,6 +56,26 @@ func TestGetPartitionState(t *testing.T) {
 	})
 }
 
+func TestGetCatalogStateSeq(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		state, seq, err := eng.GetCatalogStateSeq()
+		assert.NoError(t, err)
+		assert.NotNil(t, state)
+		assert.NotNil(t, state.Steps)
+		assert.True(t, seq >= 0)
+	})
+}
+
+func TestGetPartitionStateSeq(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		state, seq, err := eng.GetPartitionStateSeq()
+		assert.NoError(t, err)
+		assert.NotNil(t, state)
+		assert.NotNil(t, state.Health)
+		assert.True(t, seq >= 0)
+	})
+}
+
 func TestUnregisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("test-step")
@@ -232,6 +252,70 @@ func TestLuaPredicate(t *testing.T) {
 
 		err = env.Engine.StartFlow("wf-lua-pred", plan)
 		assert.NoError(t, err)
+	})
+}
+
+func TestWorkFailed(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewStepWithOutputs("fail-step", "output")
+		step.WorkConfig = &api.WorkConfig{
+			MaxRetries:  1,
+			Backoff:     10,
+			MaxBackoff:  10,
+			BackoffType: api.BackoffTypeFixed,
+		}
+
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetError("fail-step", assert.AnError)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{"fail-step"},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		finalState := env.WaitForFlowStatus("wf-fail", func() {
+			err = env.Engine.StartFlow("wf-fail", plan)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowFailed, finalState.Status)
+	})
+}
+
+func TestPredicateError(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewStepWithPredicate(
+			"pred-err-step", api.ScriptLangLua,
+			"error('predicate failed')", "output",
+		)
+
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(
+			"pred-err-step", api.Args{"output": "never"},
+		)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{"pred-err-step"},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		finalState := env.WaitForFlowStatus("wf-pred-err", func() {
+			err = env.Engine.StartFlow("wf-pred-err", plan)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowFailed, finalState.Status)
+		assert.False(t, env.MockClient.WasInvoked("pred-err-step"))
 	})
 }
 

@@ -439,6 +439,55 @@ func TestLuaNestedArrays(t *testing.T) {
 	assert.Equal(t, 2, row1[1])
 }
 
+func TestLuaNilReturn(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "nil-return",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   "return {result = nil}",
+		},
+		Attributes: api.AttributeSpecs{
+			"result": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.Compile(step, step.Script)
+	assert.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	assert.NoError(t, err)
+	assert.Nil(t, result["result"])
+}
+
+func TestLuaEmptyTable(t *testing.T) {
+	env := engine.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "empty-table",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   "return {result = {}}",
+		},
+		Attributes: api.AttributeSpecs{
+			"result": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.Compile(step, step.Script)
+	assert.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	assert.NoError(t, err)
+
+	m, ok := result["result"].(map[string]any)
+	assert.True(t, ok)
+	assert.Empty(t, m)
+}
+
 func TestLuaLargeArray(t *testing.T) {
 	env := engine.NewLuaEnv()
 

@@ -54,3 +54,53 @@ func TestEventsOrdered(t *testing.T) {
 	defer mu.Unlock()
 	assert.Equal(t, []int{1, 2, 3}, order)
 }
+
+func TestEventsHandlerError(t *testing.T) {
+	done := make(chan struct{})
+
+	runner := engine.NewEventQueue(
+		func(typ api.EventType, data any) error {
+			if data.(int) == 1 {
+				return errors.New("handler error")
+			}
+			close(done)
+			return nil
+		},
+	)
+	runner.Start()
+	t.Cleanup(runner.Flush)
+
+	runner.Enqueue(api.EventTypeFlowActivated, 1)
+	runner.Enqueue(api.EventTypeFlowActivated, 2)
+
+	select {
+	case <-done:
+	case <-time.After(eventTimeout):
+		assert.Fail(t, "timed out waiting for events")
+	}
+}
+
+func TestEventsHandlerPanic(t *testing.T) {
+	done := make(chan struct{})
+
+	runner := engine.NewEventQueue(
+		func(typ api.EventType, data any) error {
+			if data.(int) == 1 {
+				panic("test panic")
+			}
+			close(done)
+			return nil
+		},
+	)
+	runner.Start()
+	t.Cleanup(runner.Flush)
+
+	runner.Enqueue(api.EventTypeFlowActivated, 1)
+	runner.Enqueue(api.EventTypeFlowActivated, 2)
+
+	select {
+	case <-done:
+	case <-time.After(eventTimeout):
+		assert.Fail(t, "timed out waiting for events")
+	}
+}

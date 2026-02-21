@@ -199,6 +199,55 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 	})
 }
 
+func TestQueryFlowsPaginationAsc(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Engine.Start()
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("page-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		env.WaitForFlowStatus("page-a", func() {
+			assert.NoError(t, env.Engine.StartFlow("page-a", plan))
+		})
+		time.Sleep(10 * time.Millisecond)
+
+		env.WaitForFlowStatus("page-b", func() {
+			assert.NoError(t, env.Engine.StartFlow("page-b", plan))
+		})
+
+		waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+		}, 2)
+
+		first := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentAsc,
+			Limit:    1,
+		}, 1)
+		assert.True(t, first.HasMore)
+		assert.NotEmpty(t, first.NextCursor)
+
+		second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentAsc,
+			Limit:    1,
+			Cursor:   first.NextCursor,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, second.Count)
+		assert.NotEqual(t,
+			first.Flows[0].ID, second.Flows[0].ID,
+		)
+	})
+}
+
 func TestQueryFlowsInvalidCursor(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		env.Engine.Start()
