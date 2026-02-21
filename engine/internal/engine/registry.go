@@ -13,8 +13,8 @@ import (
 type (
 	stepSet = util.Set[api.StepID]
 
-	stepValidate func(*api.CatalogState, *api.Step) error
-	stepRaise    func(*api.Step, *CatalogAggregator) error
+	upsertRaise func(*api.Step, *CatalogAggregator) error
+	upsertCheck func(oldStep, newStep *api.Step, exists bool) (bool, error)
 )
 
 var (
@@ -22,40 +22,42 @@ var (
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
 	ErrLangNotValid       = errors.New("language not valid in this context")
-	ErrStepUnchanged      = errors.New("step unchanged")
 )
 
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
 func (e *Engine) RegisterStep(step *api.Step) error {
-	return e.upsertStep(step, func(st *api.CatalogState, s *api.Step) error {
-		if existing, ok := st.Steps[s.ID]; ok {
-			if existing.Equal(s) {
-				return nil
+	return e.execStepUpsert(step, e.raiseStepRegisteredEvent,
+		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
+			if !exists {
+				return false, nil
 			}
-			return fmt.Errorf("%w: %s", ErrStepExists, s.ID)
-		}
-		return nil
-	}, e.raiseStepRegisteredEvent)
+			if oldStep.Equal(newStep) {
+				return true, nil
+			}
+			return false, fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
+		},
+	)
 }
 
 // UpdateStep updates an existing step registration with new configuration
 // after validation
 func (e *Engine) UpdateStep(step *api.Step) error {
-	return e.upsertStep(step, func(st *api.CatalogState, s *api.Step) error {
-		existing, ok := st.Steps[s.ID]
-		if !ok {
-			return fmt.Errorf("%w: %s", ErrStepNotFound, s.ID)
-		}
-		if existing.Equal(s) {
-			return ErrStepUnchanged
-		}
-		return nil
-	}, e.raiseStepUpdatedEvent)
+	return e.execStepUpsert(step, e.raiseStepUpdatedEvent,
+		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
+			if !exists {
+				return false, fmt.Errorf("%w: %s", ErrStepNotFound, newStep.ID)
+			}
+			if oldStep.Equal(newStep) {
+				return true, nil
+			}
+			return false, nil
+		},
+	)
 }
 
-func (e *Engine) upsertStep(
-	step *api.Step, validate stepValidate, raise stepRaise,
+func (e *Engine) execStepUpsert(
+	step *api.Step, raise upsertRaise, check upsertCheck,
 ) error {
 	step = step.WithWorkDefaults(&e.config.Work)
 	if err := e.validateStep(step); err != nil {
@@ -63,12 +65,11 @@ func (e *Engine) upsertStep(
 	}
 
 	cmd := func(st *api.CatalogState, ag *CatalogAggregator) error {
-		if err := validate(st, step); err != nil {
-			if errors.Is(err, ErrStepUnchanged) {
-				return nil
-			}
+		existing, exists := st.Steps[step.ID]
+		if noop, err := check(existing, step, exists); noop || err != nil {
 			return err
 		}
+
 		if err := validateAttributeTypes(st, step); err != nil {
 			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 		}
@@ -81,7 +82,6 @@ func (e *Engine) upsertStep(
 	if _, err := e.execCatalog(cmd); err != nil {
 		return err
 	}
-
 	if stepHasScripts(step) {
 		_ = e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
 	}

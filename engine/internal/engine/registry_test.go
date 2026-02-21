@@ -35,6 +35,25 @@ func TestRegisterStep(t *testing.T) {
 	})
 }
 
+func TestRegisterStepIdempotent(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("dup-step")
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		_, beforeSeq, err := eng.GetCatalogStateSeq()
+		assert.NoError(t, err)
+
+		err = eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		_, afterSeq, err := eng.GetCatalogStateSeq()
+		assert.NoError(t, err)
+		assert.Equal(t, beforeSeq, afterSeq)
+	})
+}
+
 func TestUpdateStepHealth(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("health-step")

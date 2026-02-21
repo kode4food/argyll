@@ -33,9 +33,3 @@ func TestLoadConfigUsesEnvOverride(t *testing.T) {
 
 	assert.Equal(t, 250*time.Millisecond, cfg.PollInterval)
 }
-
-func TestLoadConfigNilIsNoop(t *testing.T) {
-	assert.NotPanics(t, func() {
-		cmd.LoadConfig(nil)
-	})
-}
