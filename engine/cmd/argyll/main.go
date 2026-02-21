@@ -60,15 +60,13 @@ func main() {
 }
 
 func (s *argyll) run() error {
-	if err := s.cfg.Validate(); err != nil {
-		return err
-	}
-
 	if err := s.initializeStores(); err != nil {
 		return err
 	}
 
-	s.initializeEngine()
+	if err := s.initializeEngine(); err != nil {
+		return err
+	}
 	s.startServer()
 
 	signal.Notify(s.quit, syscall.SIGINT, syscall.SIGTERM)
@@ -137,15 +135,20 @@ func (s *argyll) initializeStores() error {
 	return nil
 }
 
-func (s *argyll) initializeEngine() {
+func (s *argyll) initializeEngine() error {
 	s.stepClient = client.NewHTTPClient(
 		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
 
-	s.engine = engine.New(
+	eng, err := engine.New(
 		s.catalogStore, s.partitionStore, s.flowStore, s.stepClient, s.cfg,
 	)
+	if err != nil {
+		return err
+	}
+	s.engine = eng
 	s.engine.Start()
+	return nil
 }
 
 func (s *argyll) startServer() {

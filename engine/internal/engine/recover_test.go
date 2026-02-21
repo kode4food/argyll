@@ -1286,7 +1286,8 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 		env.MockClient.SetResponse(archivingStep.ID, api.Args{})
 		assert.NoError(t, env.Engine.Stop())
 
-		restarted := env.NewEngineInstance()
+		restarted, err := env.NewEngineInstance()
+		assert.NoError(t, err)
 		restarted.Start()
 		defer func() { _ = restarted.Stop() }()
 

@@ -148,7 +148,8 @@ func TestBasicFlowRecovery(t *testing.T) {
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
 		// Create new engine instance (simulates process restart)
-		env.Engine = env.NewEngineInstance()
+		env.Engine, err = env.NewEngineInstance()
+		assert.NoError(t, err)
 
 		// Re-register step on new engine instance
 		err = env.Engine.RegisterStep(step)
@@ -262,7 +263,8 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		env.MockClient.SetResponse(step2.ID, api.Args{})
 		env.MockClient.SetResponse(step3.ID, api.Args{})
 
-		env.Engine = env.NewEngineInstance()
+		env.Engine, err = env.NewEngineInstance()
+		assert.NoError(t, err)
 
 		// Re-register steps on new engine instance
 		assert.NoError(t, env.Engine.RegisterStep(step1))
@@ -370,7 +372,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 		env.MockClient.ClearError(notCompletedStep.ID)
 		env.MockClient.SetResponse(notCompletedStep.ID, api.Args{})
 
-		env.Engine = env.NewEngineInstance()
+		env.Engine, err = env.NewEngineInstance()
+		assert.NoError(t, err)
 
 		// Re-register steps on new engine instance
 		assert.NoError(t, env.Engine.RegisterStep(pendingStep))
@@ -451,7 +454,8 @@ func TestRecoveryPreservesState(t *testing.T) {
 		env.MockClient.ClearError(step.ID)
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		env.Engine = env.NewEngineInstance()
+		env.Engine, err = env.NewEngineInstance()
+		assert.NoError(t, err)
 
 		// Re-register step on new engine instance
 		assert.NoError(t, env.Engine.RegisterStep(step))

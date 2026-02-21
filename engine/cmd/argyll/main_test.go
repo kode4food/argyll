@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log/slog"
+	"net"
 	"os"
 	"testing"
 	"time"
@@ -98,7 +99,8 @@ func TestInitializeEngine(t *testing.T) {
 	err = s.initializeStores()
 	assert.NoError(t, err)
 
-	s.initializeEngine()
+	err = s.initializeEngine()
+	assert.NoError(t, err)
 
 	assert.NotNil(t, s.stepClient)
 	assert.NotNil(t, s.engine)
@@ -134,7 +136,7 @@ func TestRun(t *testing.T) {
 	cfg.CatalogStore.Addr = server.Addr()
 	cfg.PartitionStore.Addr = server.Addr()
 	cfg.FlowStore.Addr = server.Addr()
-	cfg.APIPort = 0
+	cfg.APIPort = availablePort(t)
 	cfg.ShutdownTimeout = 100 * time.Millisecond
 
 	s := &argyll{
@@ -178,14 +180,27 @@ func setupServerTest(t *testing.T) (*argyll, func()) {
 	cfg.CatalogStore.Addr = server.Addr()
 	cfg.PartitionStore.Addr = server.Addr()
 	cfg.FlowStore.Addr = server.Addr()
-	cfg.APIPort = 0
+	cfg.APIPort = availablePort(t)
 
 	s := &argyll{cfg: cfg}
 	err = s.initializeStores()
 	assert.NoError(t, err)
 
-	s.initializeEngine()
+	err = s.initializeEngine()
+	assert.NoError(t, err)
 	s.startServer()
 
 	return s, server.Close
+}
+
+func availablePort(t *testing.T) int {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer func() { _ = ln.Close() }()
+
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	assert.True(t, ok)
+	return addr.Port
 }

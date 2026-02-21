@@ -3,6 +3,7 @@ package engine
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"time"
 
@@ -62,14 +63,19 @@ var (
 	ErrWorkItemNotFound      = errors.New("work item not found")
 	ErrInvalidWorkTransition = errors.New("invalid work state transition")
 	ErrInvalidFlowCursor     = errors.New("invalid flow cursor")
+	ErrInvalidConfig         = errors.New("invalid config")
 )
 
 // New creates a new orchestrator instance with the specified stores, client,
-// event hub, and configuration
+// and configuration
 func New(
 	catalog, partition, flow *timebox.Store, client client.Client,
 	cfg *config.Config,
-) *Engine {
+) (*Engine, error) {
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
+	}
+
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
@@ -92,7 +98,7 @@ func New(
 	e.scripts = NewScriptRegistry()
 	e.mapper = NewMapper(e)
 
-	return e
+	return e, nil
 }
 
 // Start begins processing flows and events

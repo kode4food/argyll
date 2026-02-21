@@ -177,7 +177,7 @@ go run ./cmd/argyll
 ### Performance Tuning
 
 - **Memory**: Engine caches are in-process. Monitor memory growth. Set `MEMO_CACHE_SIZE` based on available memory.
-- **Concurrency**: Parallelism is per-step via `work_config`. No global concurrency limit.
+- **Concurrency**: Parallelism is per-step via `work_config` (`parallelism <= 0` means sequential execution with concurrency `1`). No global concurrency limit.
 - **Timeout**: `step.http.timeout` overrides per step; otherwise the engine uses `STEP_TIMEOUT` (default `30000` ms)
 
 **Peak throughput:** 6000+ flows/second per engine instance (benchmark-dependent)

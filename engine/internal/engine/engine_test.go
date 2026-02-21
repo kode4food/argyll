@@ -1,11 +1,13 @@
 package engine_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -14,6 +16,18 @@ import (
 func TestNew(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		assert.NotNil(t, eng)
+	})
+}
+
+func TestNewInvalidConfig(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Config.APIPort = 0
+
+		eng, err := env.NewEngineInstance()
+		assert.Nil(t, eng)
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, engine.ErrInvalidConfig))
+		assert.True(t, errors.Is(err, config.ErrInvalidAPIPort))
 	})
 }
 

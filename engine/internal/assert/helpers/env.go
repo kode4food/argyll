@@ -103,7 +103,8 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	}
 
 	hub := tb.GetHub()
-	eng := engine.New(catStore, partStore, flowStore, mockCli, cfg)
+	eng, err := engine.New(catStore, partStore, flowStore, mockCli, cfg)
+	assert.NoError(t, err)
 
 	testEnv := &TestEngineEnv{
 		T:              t,
@@ -129,7 +130,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 
 // NewEngineInstance creates a new engine instance sharing the same stores and
 // mock client. Used to simulate process restart after crash
-func (e *TestEngineEnv) NewEngineInstance() *engine.Engine {
+func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 	return engine.New(
 		e.catalogStore, e.partitionStore, e.flowStore, e.MockClient, e.Config,
 	)

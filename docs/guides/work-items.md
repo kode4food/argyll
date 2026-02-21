@@ -201,7 +201,7 @@ By default, work items are processed sequentially. Use **WorkConfig** to control
 
 | Field | Meaning |
 |-------|---------|
-| `parallelism` | Max concurrent work items (default: 1) |
+| `parallelism` | Max concurrent work items (`<= 0` or omitted defaults to `1`) |
 | `max_retries` | Retries per work item on failure |
 | `backoff` | Initial backoff (milliseconds) |
 | `max_backoff` | Maximum backoff (milliseconds) |

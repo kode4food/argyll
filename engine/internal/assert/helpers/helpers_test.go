@@ -300,7 +300,8 @@ func TestMetadataEmpty(t *testing.T) {
 
 func TestNewEngineInstance(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		eng := env.NewEngineInstance()
+		eng, err := env.NewEngineInstance()
+		assert.NoError(t, err)
 		assert.NotNil(t, eng)
 	})
 }

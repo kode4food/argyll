@@ -1092,7 +1092,9 @@ components:
           example: "exponential"
         parallelism:
           type: integer
-          description: Maximum parallel executions for for_each steps
+          description: |
+            Maximum parallel executions for for_each steps.
+            If omitted or <= 0, execution defaults to sequential (`1`).
           example: 10
 
     StepRegisteredResponse:

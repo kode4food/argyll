@@ -22,6 +22,7 @@ var (
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
 	ErrLangNotValid       = errors.New("language not valid in this context")
+	ErrStepUnchanged      = errors.New("step unchanged")
 )
 
 // RegisterStep registers a new step with the engine after validating its
@@ -47,7 +48,7 @@ func (e *Engine) UpdateStep(step *api.Step) error {
 			return fmt.Errorf("%w: %s", ErrStepNotFound, s.ID)
 		}
 		if existing.Equal(s) {
-			return nil
+			return ErrStepUnchanged
 		}
 		return nil
 	}, e.raiseStepUpdatedEvent)
@@ -62,6 +63,9 @@ func (e *Engine) upsertStep(
 
 	cmd := func(st *api.CatalogState, ag *CatalogAggregator) error {
 		if err := validate(st, step); err != nil {
+			if errors.Is(err, ErrStepUnchanged) {
+				return nil
+			}
 			return err
 		}
 		if err := validateAttributeTypes(st, step); err != nil {
