@@ -63,6 +63,8 @@ These defaults must be valid at startup:
 
 If you run the external archiver process, configure when and how flows are archived:
 
+Archiver scope is per partition store configuration. Run one archiver process per `PARTITION_*` Redis connection/prefix. In a multi-partition deployment, each partition needs its own archiver instance pointed at that partition store.
+
 ```bash
 ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when Redis reaches 80% full
 ARCHIVE_MAX_AGE=24h                    # Archive flows older than 24 hours
@@ -168,6 +170,7 @@ go run ./cmd/argyll
 5. **Archiving**:
    - Configure archiving policy
    - Set up S3 or compatible backend
+   - Run one archiver process per partition store (`PARTITION_*`)
    - Monitor archive job success/failure
 
 6. **Logging**:
