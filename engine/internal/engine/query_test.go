@@ -36,7 +36,7 @@ func TestQueryFlows(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		resp, err := env.Engine.QueryFlows(nil)
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{})
 		assert.NoError(t, err)
 		assert.NotEmpty(t, resp.Flows)
 	})
@@ -385,7 +385,7 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 			w.ForEvent(wait.FlowDeactivated(childID))
 		})
 
-		resp, err := env.Engine.QueryFlows(nil)
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{})
 		assert.NoError(t, err)
 
 		var ids []api.FlowID

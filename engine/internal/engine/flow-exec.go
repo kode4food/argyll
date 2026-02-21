@@ -557,8 +557,8 @@ func (tx *flowTx) startRetryWorkItem(
 		return nil, nil
 	}
 
-	item := exec.WorkItems[token]
-	if item == nil {
+	item, ok := exec.WorkItems[token]
+	if !ok {
 		return nil, nil
 	}
 

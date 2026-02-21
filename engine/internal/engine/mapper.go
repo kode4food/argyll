@@ -98,10 +98,6 @@ func (m *Mapper) InputParamName(
 
 // MapOutputs maps raw step outputs to declared output attributes
 func (m *Mapper) MapOutputs(step *api.Step, outputs api.Args) api.Args {
-	if step == nil {
-		return outputs
-	}
-
 	res := api.Args{}
 	for name, attr := range step.Attributes {
 		if !attr.IsOutput() {

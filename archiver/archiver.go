@@ -171,10 +171,6 @@ func (a *Archiver) reserveFlows(opts reserveOptions) ([]api.FlowID, error) {
 	cmd := func(
 		st *api.PartitionState, ag *timebox.Aggregator[*api.PartitionState],
 	) error {
-		if st == nil {
-			return nil
-		}
-
 		flowIDs = selectFlows(st, now, opts)
 		for _, flowID := range flowIDs {
 			if err := timebox.Raise(
@@ -225,9 +221,6 @@ func selectFlows(
 	}
 
 	for _, info := range st.Deactivated {
-		if info == nil {
-			continue
-		}
 		if opts.maxAge > 0 && now.Sub(info.DeactivatedAt) <= opts.maxAge {
 			continue
 		}

@@ -153,10 +153,6 @@ func isWorkTerminal(status api.WorkStatus) bool {
 }
 
 func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
-	if step == nil {
-		return nil, nil
-	}
-
 	outputs := maps.Clone(childAttrs)
 
 	for _, attr := range step.Attributes {

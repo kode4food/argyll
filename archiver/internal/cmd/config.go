@@ -12,10 +12,6 @@ type Config struct {
 const DefaultPollInterval = 500 * time.Millisecond
 
 func LoadConfig(cfg *Config) {
-	if cfg == nil {
-		return
-	}
-
 	if cfg.PollInterval == 0 {
 		cfg.PollInterval = DefaultPollInterval
 	}

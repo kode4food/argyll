@@ -21,8 +21,8 @@ func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
 // HasInputProvider checks if a required attribute has at least one step that
 // can provide it in the flow execution plan
 func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
-	deps := flow.Plan.Attributes[name]
-	if deps == nil {
+	deps, ok := flow.Plan.Attributes[name]
+	if !ok {
 		return false
 	}
 

@@ -48,7 +48,6 @@ func (e *Engine) QueryFlows(
 		return nil, err
 	}
 
-	req = normalizeQueryFlowsRequest(req)
 	sortOrder := querySortOrder(req)
 	flowIDs := collectRootFlowIDs(partState)
 	filters := buildFlowQueryFilters(req)
@@ -65,15 +64,6 @@ func (e *Engine) QueryFlows(
 	)
 
 	return buildFlowQueryResponse(page, len(items), hasMore, nextCursor), nil
-}
-
-func normalizeQueryFlowsRequest(
-	req *api.QueryFlowsRequest,
-) *api.QueryFlowsRequest {
-	if req == nil {
-		return &api.QueryFlowsRequest{}
-	}
-	return req
 }
 
 func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
@@ -180,16 +170,13 @@ func flowQueryOrdering(digest *api.FlowDigest) (int, int64) {
 
 // buildFlowQueryItems converts flow digests into sortable query items
 func buildFlowQueryItems(
-	partState *api.PartitionState,
-	flowIDs []api.FlowID, filters []flowQueryFilter,
+	partState *api.PartitionState, flowIDs []api.FlowID,
+	filters []flowQueryFilter,
 ) []flowQueryItem {
 	items := make([]flowQueryItem, 0, len(flowIDs))
 	for _, flowID := range flowIDs {
 		digest, ok := partState.FlowDigests[flowID]
-		if !ok || digest == nil {
-			continue
-		}
-		if !matchesFlowQueryFilters(flowID, digest, filters) {
+		if !ok || !matchesFlowQueryFilters(flowID, digest, filters) {
 			continue
 		}
 		group, recent := flowQueryOrdering(digest)
