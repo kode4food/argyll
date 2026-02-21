@@ -2,6 +2,7 @@ package client
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -38,10 +39,8 @@ var _ Client = (*HTTPClient)(nil)
 // NewHTTPClient creates a new HTTP client with the specified request timeout
 func NewHTTPClient(timeout time.Duration) *HTTPClient {
 	return &HTTPClient{
-		httpClient: &http.Client{
-			Timeout: timeout,
-		},
-		timeout: timeout,
+		httpClient: &http.Client{},
+		timeout:    timeout,
 	}
 }
 
@@ -101,8 +100,14 @@ func (c *HTTPClient) buildRequest(
 func (c *HTTPClient) sendRequest(
 	step *api.Step, httpReq *http.Request,
 ) ([]byte, error) {
+	timeout := c.requestTimeout(step)
+	ctx, cancel := context.WithTimeout(httpReq.Context(), timeout)
+	defer cancel()
+
+	req := httpReq.Clone(ctx)
+
 	start := time.Now()
-	resp, err := c.httpClient.Do(httpReq)
+	resp, err := c.httpClient.Do(req)
 	dur := time.Since(start)
 
 	if err != nil {
@@ -141,6 +146,13 @@ func (c *HTTPClient) sendRequest(
 	}
 
 	return respBody, nil
+}
+
+func (c *HTTPClient) requestTimeout(step *api.Step) time.Duration {
+	if step != nil && step.HTTP != nil && step.HTTP.Timeout > 0 {
+		return time.Duration(step.HTTP.Timeout) * time.Millisecond
+	}
+	return c.timeout
 }
 
 func (c *HTTPClient) parseResponse(

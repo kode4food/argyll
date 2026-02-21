@@ -33,6 +33,10 @@ Semantics:
 - `max_retries > 0` limits the number of attempts
 - `max_retries = -1` allows unlimited retries
 
+If a step omits `work_config` entirely, the engine falls back to global retry defaults (`RETRY_MAX_RETRIES`, `RETRY_BACKOFF`, `RETRY_MAX_BACKOFF`, `RETRY_BACKOFF_TYPE`).
+
+If `work_config` is present but `max_retries` is omitted (zero value), retries are disabled for that step.
+
 ## Backoff strategies
 
 - Fixed: constant delay between attempts

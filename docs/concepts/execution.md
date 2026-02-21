@@ -92,7 +92,7 @@ Flow analysis:
   - transaction_id: PRODUCED by process_payment, available to send_notification
 ```
 
-The flow starts with the minimal required inputs. Optional inputs can be provided or omitted (steps use defaults). Data produced by earlier steps automatically flows to later steps that need it.
+The flow starts with the minimal required inputs. Optional inputs can be provided or omitted (defaults are applied only when explicitly declared on the attribute). Data produced by earlier steps automatically flows to later steps that need it.
 
 ## Why This Matters
 

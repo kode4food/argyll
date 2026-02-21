@@ -56,11 +56,11 @@ Optimistic concurrency only. No leader election, no distributed locking.
 
 **Why**: Simpler to operate. Natural load balancing. No split-brain risk.
 
-### No Cross-Flow Coordination
+### No Arbitrary Cross-Flow Coordination
 
-Flows are fully isolated. One flow cannot block, wait for, or depend on another flow's outcome.
+Flows are isolated by default. The only supported cross-flow relationship is an explicit parent/child flow step. Flows cannot otherwise block, wait for, or depend on unrelated flows.
 
-**Why**: Keeps each flow's execution independent and predictable.
+**Why**: Keeps execution predictable while still allowing explicit sub-flow composition.
 
 ### Minimal Polling
 
@@ -98,11 +98,11 @@ These constraints enable:
 |---------|------|
 | Deterministic execution | Cannot change plan at runtime |
 | Simple recovery | No pause/resume capability |
-| Event-driven scaling | No cross-flow coordination |
+| Event-driven scaling | No arbitrary cross-flow coordination |
 | Complete audit trail | Everything is recorded (storage overhead) |
 | No distributed consensus | No human-in-the-loop |
 
-If your use case requires runtime plan mutation, cross-flow synchronization, or human approval gates, Argyll is not the right fit. Consider a general-purpose orchestrator (Temporal, Airflow, Cadence).
+If your use case requires runtime plan mutation, arbitrary cross-flow synchronization, or human approval gates, Argyll may not be the right fit. Consider a general-purpose orchestrator instead.
 
 ## Implications for Users
 
@@ -117,7 +117,7 @@ If your use case requires runtime plan mutation, cross-flow synchronization, or 
 
 - Try to add steps dynamically during flow execution
 - Expect to pause/resume or seek human approval
-- Rely on cross-flow coordination or signaling
+- Rely on implicit cross-flow coordination or signaling
 - Use Argyll as a general-purpose graph engine
 
 ## Operational Constraints

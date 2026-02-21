@@ -74,15 +74,15 @@ Each attribute has **provenance**—it tracks which step produced it. This gives
 {
   "customer_name": {
     "value": "Alice",
-    "produced_by": "lookup_customer"
+    "step": "lookup_customer"
   },
   "amount": {
     "value": 150.00,
-    "produced_by": "calculate_total"
+    "step": "calculate_total"
   },
   "confirmation_id": {
     "value": "txn-12345",
-    "produced_by": "process_payment"
+    "step": "process_payment"
   }
 }
 ```

@@ -78,6 +78,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EngineResponse"
+        "500":
+          description: Failed to load engine state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /engine/step:
     get:
@@ -93,6 +99,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/StepsListResponse"
+        "500":
+          description: Failed to list steps
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       summary: Register Step
       description: |
@@ -163,6 +175,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to register step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /engine/step/{stepId}:
     get:
@@ -188,6 +206,12 @@ paths:
                 $ref: "#/components/schemas/StepRegistration"
         "404":
           description: Step not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to load step state
           content:
             application/json:
               schema:
@@ -233,6 +257,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to update step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     delete:
       summary: Unregister Step
       description: |
@@ -262,6 +292,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to unregister step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /engine/health:
     get:
@@ -277,6 +313,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthListResponse"
+        "500":
+          description: Failed to load partition health state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /engine/health/{stepId}:
     get:
@@ -302,6 +344,12 @@ paths:
                 $ref: "#/components/schemas/HealthState"
         "404":
           description: Health information not found for step
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to load partition health state
           content:
             application/json:
               schema:
@@ -348,11 +396,17 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to build execution plan
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 
   /engine/flow:
     get:
       summary: List Flows
-      description: Retrieve all flows in the system (active, completed, and failed)
+      description: Retrieve (non-child) flows in the system (active, completed, and failed), sorted by most-recent activity first within each status group
       operationId: listFlows
       tags:
         - Flows
@@ -365,6 +419,12 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/QueryFlowsItem"
+        "500":
+          description: Failed to list flows
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
     post:
       summary: Start Flow
       description: |
@@ -402,8 +462,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: One or more goal steps were not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "409":
           description: Flow ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to create execution plan or load catalog state
           content:
             application/json:
               schema:
@@ -412,7 +484,7 @@ paths:
   /engine/flow/query:
     post:
       summary: Query Flows
-      description: Query flows using ID prefix, labels, status filters, and pagination
+      description: Query (non-child) flows using ID prefix, labels, status filters, and pagination
       operationId: queryFlows
       tags:
         - Flows
@@ -431,6 +503,12 @@ paths:
                 $ref: "#/components/schemas/QueryFlowsResponse"
         "400":
           description: Invalid query request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to query flows
           content:
             application/json:
               schema:
@@ -465,6 +543,12 @@ paths:
                 $ref: "#/components/schemas/FlowState"
         "404":
           description: Flow not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to load flow state
           content:
             application/json:
               schema:
@@ -803,7 +887,7 @@ components:
         flow:
           $ref: "#/components/schemas/FlowConfig"
         script:
-          $ref: "#/components/schemas/ScriptConfig"
+          $ref: "#/components/schemas/StepScriptConfig"
         work_config:
           $ref: "#/components/schemas/WorkConfig"
 
@@ -818,7 +902,7 @@ components:
           description: |
             Attribute role:
             - `required`: Input that must be available before execution
-            - `optional`: Input with default value or timeout
+            - `optional`: Input that may be omitted
             - `const`: Input fixed to a default value
             - `output`: Value produced by step execution
           enum:
@@ -889,7 +973,6 @@ components:
       description: Configuration for HTTP-based steps (sync/async)
       required:
         - endpoint
-        - timeout
       properties:
         endpoint:
           type: string
@@ -904,7 +987,9 @@ components:
         timeout:
           type: integer
           format: int64
-          description: Timeout in milliseconds for HTTP requests
+          description: |
+            Optional per-step timeout in milliseconds.
+            If omitted or <= 0, the engine uses its default HTTP timeout.
           example: 30000
 
     ScriptConfig:
@@ -937,6 +1022,23 @@ components:
             For Ale/Lua: The complete script code
           example: '{:greeting (str "Hello, " name)}'
 
+    StepScriptConfig:
+      type: object
+      description: Configuration for script step execution (`type: script`)
+      required:
+        - language
+        - script
+      properties:
+        language:
+          type: string
+          enum: ["ale", "lua"]
+          description: Script language for step execution
+          example: "ale"
+        script:
+          type: string
+          description: The script code to execute
+          example: '{:greeting (str "Hello, " name)}'
+
     FlowConfig:
       type: object
       description: Configuration for flow-based steps (sub-flows)
@@ -953,7 +1055,10 @@ components:
 
     WorkConfig:
       type: object
-      description: Configuration for step execution behavior
+      description: |
+        Configuration for step execution behavior.
+        If omitted entirely, the engine uses global retry defaults.
+        If provided with `max_retries` omitted/zero, retries are disabled for this step.
       properties:
         max_retries:
           type: integer
@@ -1047,9 +1152,9 @@ components:
           example: ["input_text"]
         steps:
           type: object
-          description: Map of step ID to step information (immutable snapshots)
+          description: Map of step ID to step registration snapshots
           additionalProperties:
-            $ref: "#/components/schemas/StepInfo"
+            $ref: "#/components/schemas/StepRegistration"
         attributes:
           type: object
           description: Map of attribute names to their provider/consumer dependencies
@@ -1076,15 +1181,6 @@ components:
             type: array
             items:
               type: string
-
-    StepInfo:
-      type: object
-      required:
-        - step
-      properties:
-        step:
-          $ref: "#/components/schemas/StepRegistration"
-          description: The step definition snapshot
 
     Dependencies:
       type: object
@@ -1113,7 +1209,9 @@ components:
       properties:
         id:
           type: string
-          description: Unique flow identifier
+          description: |
+            Desired flow identifier. The server normalizes it by lowercasing,
+            replacing spaces with `-`, and removing unsupported characters.
           example: "wf-text-processing-001"
         goals:
           type: array
@@ -1141,7 +1239,8 @@ components:
       properties:
         message:
           type: string
-          example: "Flow started successfully"
+          description: Optional informational message (currently returned as an empty string)
+          example: ""
         flow_id:
           type: string
           example: "wf-text-processing-001"
@@ -1247,7 +1346,7 @@ components:
         sort:
           type: string
           enum: [recent_desc, recent_asc]
-          description: Sort order by recency within status grouping
+          description: Sort order by recency within status grouping (defaults to `recent_asc` when omitted)
           example: "recent_desc"
 
     FlowState:
@@ -1285,6 +1384,15 @@ components:
         plan:
           $ref: "#/components/schemas/ExecutionPlan"
           description: Immutable execution plan for this flow
+        metadata:
+          type: object
+          description: Optional flow metadata passed to step invocations
+          additionalProperties: true
+        labels:
+          type: object
+          description: Optional flow labels
+          additionalProperties:
+            type: string
         attributes:
           type: object
           description: Map of attribute name to attribute value with provenance
@@ -1475,9 +1583,6 @@ components:
           type: integer
           description: HTTP status code
           example: 404
-        details:
-          type: string
-          description: Additional error details
 
 security: []
 

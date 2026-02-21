@@ -49,16 +49,17 @@ These track changes to registered steps:
 - **step_registered**: Step added to registry
 - **step_unregistered**: Step deleted from registry
 - **step_updated**: Step definition modified
+
+### Partition Events
+
+These affect the partition aggregate's operational view of active flows:
+
 - **step_health_changed**: Step availability/health status changed
-
-### Engine-Level Events
-
-These affect the engine's view of active flows:
-
 - **flow_activated**: Flow starts, added to list of active flows
 - **flow_deactivated**: Flow is terminal + no active work, removed from active list
 - **flow_archiving**: Deactivated flow selected for archiving to external storage
 - **flow_archived**: Flow successfully archived
+- **flow_digest_updated**: Flow status digest updated (internal summary event)
 
 ### Flow-Level Events
 
@@ -77,12 +78,11 @@ These affect the flow's execution state:
 - **work_not_completed**: Work item reports not yet complete (triggers retry scheduling)
 - **retry_scheduled**: Work item retry scheduled for future time
 - **attribute_set**: Step outputs added to flow state
-- **flow_digest_updated**: Flow status digest updated (internal event)
 
 ## Event Flow Diagram
 
 ```
-User requests: POST /flows
+User requests: POST /engine/flow
          ↓
 flow_started event recorded
          ↓

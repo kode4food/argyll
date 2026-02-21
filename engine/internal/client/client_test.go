@@ -178,6 +178,62 @@ func TestTimeout(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestStepTimeoutOverride(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			time.Sleep(100 * time.Millisecond)
+			response := api.StepResult{
+				Success: true,
+				Outputs: api.Args{
+					"result": "ok",
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(response)
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(50 * time.Millisecond)
+	step := &api.Step{
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Endpoint: server.URL,
+			Timeout:  250,
+		},
+	}
+
+	outputs, err := cl.Invoke(step, api.Args{}, api.Metadata{})
+	assert.NoError(t, err)
+	assert.Equal(t, "ok", outputs["result"])
+}
+
+func TestStepTimeoutCanBeShorterThanGlobal(t *testing.T) {
+	serverDone := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
+		},
+	))
+	defer server.Close()
+	defer close(serverDone)
+
+	cl := client.NewHTTPClient(1 * time.Second)
+	step := &api.Step{
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Endpoint: server.URL,
+			Timeout:  10,
+		},
+	}
+
+	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
+	assert.Error(t, err)
+}
+
 func TestEmptyOutputs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

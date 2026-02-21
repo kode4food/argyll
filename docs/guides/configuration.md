@@ -4,7 +4,7 @@ This guide covers how to configure Argyll for development, testing, and producti
 
 ## Environment Variables
 
-### Catalog Storage
+### Engine: Catalog Storage
 
 Configure where the engine stores the step catalog (step definitions and attribute graph):
 
@@ -13,22 +13,48 @@ CATALOG_REDIS_ADDR=localhost:6379      # Default
 CATALOG_REDIS_PASSWORD=                # Empty if no auth
 CATALOG_REDIS_DB=0                     # Redis database number
 CATALOG_REDIS_PREFIX=argyll            # Namespace prefix
+CATALOG_SNAPSHOT_WORKERS=4             # Snapshot worker count (0 disables async workers)
 ```
 
-### Partition Storage
+### Engine: Partition + Flow Storage
 
-Configure where the engine stores partition state (active flows, health, digests):
+Configure where the engine stores partition state (active flows, health, digests). Flow state shares this connection/prefix configuration in the current engine.
 
 ```bash
 PARTITION_REDIS_ADDR=localhost:6379
 PARTITION_REDIS_PASSWORD=
 PARTITION_REDIS_DB=0
 PARTITION_REDIS_PREFIX=argyll
+PARTITION_SNAPSHOT_WORKERS=4
 ```
 
-### Archiving Policy
+### Engine: Runtime + Caching
 
-Configure when and how flows are archived:
+```bash
+API_HOST=0.0.0.0                        # HTTP listen host
+API_PORT=8080                           # HTTP API port
+WEBHOOK_BASE_URL=http://localhost:8080  # Async callback base URL
+LOG_LEVEL=info                          # Log level: debug, info, warn, error
+FLOW_CACHE_SIZE=4096                    # Timebox aggregate cache entries
+MEMO_CACHE_SIZE=10240                   # Memoization cache entries
+```
+
+HTTP step timeout is set per step via `step.http.timeout` (milliseconds). If omitted/<=0, the engine uses its built-in default timeout (30s).
+
+### Engine: Retry Defaults
+
+These values are used only when a step omits `work_config` entirely:
+
+```bash
+RETRY_MAX_RETRIES=10                    # Default max retries
+RETRY_BACKOFF=1000                      # Initial backoff in milliseconds
+RETRY_MAX_BACKOFF=60000                 # Backoff cap in milliseconds
+RETRY_BACKOFF_TYPE=exponential          # fixed, linear, exponential
+```
+
+### Archiver: Policy
+
+If you run the external archiver process, configure when and how flows are archived:
 
 ```bash
 ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when Redis reaches 80% full
@@ -40,27 +66,18 @@ ARCHIVE_PRESSURE_BATCH=10              # Archive 10 flows per pressure event
 ARCHIVE_SWEEP_BATCH=100                # Archive 100 flows per sweep
 ```
 
-### Archiver Backend (S3)
+### Archiver: Backend (S3)
 
 ```bash
 ARCHIVE_BUCKET_URL=s3://my-bucket      # S3 bucket URL
-ARCHIVE_PREFIX=archived/                # Prefix for archived objects
+ARCHIVE_PREFIX=archived/               # Prefix for archived objects
 ARCHIVE_POLL_INTERVAL=500ms             # Poll interval for archive job status
 ```
 
-### Caching
+### Archiver: Backend (File Sink)
 
 ```bash
-MEMO_CACHE_SIZE=10240                  # Max memoization cache entries (default: 10240)
-```
-
-### Server Configuration
-
-```bash
-API_HOST=0.0.0.0                        # HTTP listen host
-API_PORT=8080                           # HTTP API port
-WEBHOOK_BASE_URL=http://localhost:8080  # Async callback base URL
-LOG_LEVEL=info                          # Log level: debug, info, warn, error
+ARCHIVE_SINK_PATH=/dev/null             # Local filesystem sink path
 ```
 
 ## Store Separation
@@ -86,7 +103,7 @@ PARTITION_REDIS_ADDR=valkey-partition:6379
 **Store behaviors:**
 - Catalog: event trimming enabled, snapshotted on shutdown
 - Partition: event trimming enabled, snapshotted on shutdown
-- Flow: full event history retained (no trimming), not snapshotted; shares Partition's Redis connection
+- Flow: full event history retained (no trimming); shares Partition's Redis connection and snapshot worker setting (`PARTITION_SNAPSHOT_WORKERS`)
 
 ## Development Setup
 
@@ -127,7 +144,9 @@ go run ./cmd/argyll
    - Optimistic concurrency prevents duplicates
    - Natural load balancing
 
-2. **Separate Stores**: Use different Valkey instances for engine vs flow state
+2. **Separate Catalog vs Partition/Flow Stores**:
+   - Keep catalog on its own Valkey instance if you need isolation
+   - Partition and flow state share one store configuration in the current engine
 
 3. **Authentication & Reverse Proxy**:
    - Place engine behind a reverse proxy (nginx, envoy, etc.)
@@ -152,7 +171,7 @@ go run ./cmd/argyll
 
 - **Memory**: Engine caches are in-process. Monitor memory growth. Set `MEMO_CACHE_SIZE` based on available memory.
 - **Concurrency**: Parallelism is per-step via `work_config`. No global concurrency limit.
-- **Timeout**: HTTP step timeout is per-step (see [Step Types](../concepts/steps.md))
+- **Timeout**: `step.http.timeout` overrides per step; otherwise the engine uses the built-in 30s default
 
 **Peak throughput:** 6000+ flows/second per engine instance (benchmark-dependent)
 
@@ -182,7 +201,7 @@ Scripts (Ale and Lua) run inside the engine with restricted capabilities:
 - **Server**: Validates that all required inputs are present (as defined in the execution plan). Extraneous inputs are accepted but ignored.
 - **No type validation**: Server doesn't validate input types against step definitions
 
-**Implication:** Required inputs must be provided to start a flow. Optional inputs can be omitted (steps use defaults). Validate input types and semantics in your step handlers.
+**Implication:** Required inputs must be provided to start a flow. Optional inputs can be omitted; defaults are only applied when explicitly declared on the attribute. Validate input types and semantics in your step handlers.
 
 ### Authentication & Authorization
 

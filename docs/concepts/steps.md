@@ -153,7 +153,7 @@ Each step declares what it needs and what it produces.
 
 **Required attributes** must be available before the step executes.
 
-**Optional attributes** have defaults (typically empty/null) if not provided.
+**Optional attributes** use their declared `default` value if provided. If no default is declared and the value is missing, the input is omitted.
 
 **Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps.
 

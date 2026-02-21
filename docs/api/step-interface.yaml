@@ -418,9 +418,9 @@ x-implementation-notes: |
      - 500: Internal server error
      - 503: Service unavailable
   4. **Use metadata for idempotency**: Use `flow_id` + `step_id` + `receipt_token` as idempotency key
-  5. **Distinguish errors from exceptions**:
-     - `error`: Recoverable business logic failures
-     - `exception`: Critical failures that terminate flow
+  5. **Distinguish business failures from HTTP failures**:
+     - `error`: Business logic failures returned in `StepResponse`
+     - HTTP 4xx/5xx: Request or infrastructure failures
   6. **Return declared outputs** (keys matching output attributes in registration)
   7. **Handle async operations** properly (return 200 immediately, POST to `webhook_url` when done)
 
