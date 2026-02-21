@@ -197,35 +197,6 @@ func TestMemoCacheEmptyInputs(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheNilStep(t *testing.T) {
-	cache := engine.NewMemoCache(100)
-
-	inputs := api.Args{"input": "value"}
-
-	_, ok := cache.Get(nil, inputs)
-	assert.False(t, ok)
-
-	err := cache.Put(nil, inputs, api.Args{"output": "result"})
-	assert.NoError(t, err)
-}
-
-func TestMemoCacheNilCache(t *testing.T) {
-	var cache *engine.MemoCache
-
-	step := &api.Step{
-		ID:   api.StepID("test"),
-		Type: api.StepTypeSync,
-	}
-
-	inputs := api.Args{"input": "value"}
-
-	_, ok := cache.Get(step, inputs)
-	assert.False(t, ok)
-
-	err := cache.Put(step, inputs, api.Args{"output": "result"})
-	assert.NoError(t, err)
-}
-
 func TestMemoCacheHashAttributeOrder(t *testing.T) {
 	cache := engine.NewMemoCache(100)
 

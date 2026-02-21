@@ -236,12 +236,6 @@ func (s *AttributeSpec) IsConst() bool {
 
 // Equal returns true if two attribute specs are equal
 func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
-	if s == nil && other == nil {
-		return true
-	}
-	if s == nil || other == nil {
-		return false
-	}
 	return s.Role == other.Role &&
 		s.Type == other.Type &&
 		s.ForEach == other.ForEach &&
