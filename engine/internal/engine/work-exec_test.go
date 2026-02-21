@@ -198,7 +198,12 @@ func TestIncompleteWorkFails(t *testing.T) {
 		env.Engine.Start()
 
 		step := helpers.NewSimpleStep("retry-stop")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
+		step.WorkConfig = &api.WorkConfig{
+			MaxRetries:  1,
+			Backoff:     1,
+			MaxBackoff:  1,
+			BackoffType: api.BackoffTypeFixed,
+		}
 
 		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
@@ -235,7 +240,6 @@ func TestWorkFailure(t *testing.T) {
 		env.Engine.Start()
 
 		step := helpers.NewSimpleStep("failure-step")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
 		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetError(step.ID, errors.New("boom"))
@@ -314,7 +318,6 @@ func TestAsyncMetadata(t *testing.T) {
 
 		step := helpers.NewSimpleStep("async-meta")
 		step.Type = api.StepTypeAsync
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
 		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{})

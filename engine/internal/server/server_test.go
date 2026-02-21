@@ -614,6 +614,44 @@ func TestStartFlowNoGoals(t *testing.T) {
 	})
 }
 
+func TestStartFlowMissingRequiredInputs(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		step := &api.Step{
+			ID:   "required-input-step",
+			Name: "Required Input Step",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test:8080",
+			},
+			Attributes: api.AttributeSpecs{
+				"customer_id": {Role: api.RoleRequired, Type: api.TypeString},
+				"result":      {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		}
+
+		err := testEnv.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		reqBody := api.CreateFlowRequest{
+			ID:    "wf-missing-input",
+			Goals: []api.StepID{"required-input-step"},
+		}
+
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "required inputs")
+	})
+}
+
 func TestQueryFlowsEmpty(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest(

@@ -38,10 +38,7 @@ var backoffCalculators = map[string]backoffCalculator{
 // ShouldRetry determines if a failed work item should be retried based on
 // configured retry limits
 func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
-	workConfig := step.WorkConfig
-	if workConfig == nil {
-		workConfig = &e.config.Work
-	}
+	workConfig := e.resolveRetryConfig(step.WorkConfig)
 
 	if workConfig.MaxRetries == 0 {
 		return false
@@ -59,9 +56,7 @@ func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
 func (e *Engine) CalculateNextRetry(
 	config *api.WorkConfig, retryCount int,
 ) time.Time {
-	if config == nil {
-		config = &e.config.Work
-	}
+	config = e.resolveRetryConfig(config)
 
 	calculator, ok := backoffCalculators[config.BackoffType]
 	if !ok {
@@ -419,4 +414,26 @@ func (e *Engine) requeueRetryItem(item *RetryItem) {
 		Token:       item.Token,
 		NextRetryAt: time.Now().Add(retryDispatchBackoff),
 	})
+}
+
+func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
+	res := e.config.Work
+	if config == nil {
+		return &res
+	}
+
+	if config.MaxRetries != 0 {
+		res.MaxRetries = config.MaxRetries
+	}
+	if config.Backoff > 0 {
+		res.Backoff = config.Backoff
+	}
+	if config.MaxBackoff > 0 {
+		res.MaxBackoff = config.MaxBackoff
+	}
+	if config.BackoffType != "" {
+		res.BackoffType = config.BackoffType
+	}
+
+	return &res
 }

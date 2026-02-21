@@ -60,6 +60,10 @@ func main() {
 }
 
 func (s *argyll) run() error {
+	if err := s.cfg.Validate(); err != nil {
+		return err
+	}
+
 	if err := s.initializeStores(); err != nil {
 		return err
 	}

@@ -310,7 +310,12 @@ func TestRecoveryWorkStates(t *testing.T) {
 
 		// Step 3: Will have Failed work (perm failure, max retries reached)
 		failedStep := helpers.NewSimpleStep("failed-step")
-		failedStep.WorkConfig = &api.WorkConfig{MaxRetries: 0} // No retries
+		failedStep.WorkConfig = &api.WorkConfig{
+			MaxRetries:  1,
+			Backoff:     1,
+			MaxBackoff:  1,
+			BackoffType: api.BackoffTypeFixed,
+		}
 
 		assert.NoError(t, env.Engine.RegisterStep(pendingStep))
 		assert.NoError(t, env.Engine.RegisterStep(notCompletedStep))

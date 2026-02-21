@@ -18,6 +18,7 @@ var (
 	ErrQueryFlows          = errors.New("failed to query flows")
 	ErrGetFlow             = errors.New("failed to get flow")
 	ErrCreateExecutionPlan = errors.New("failed to create execution plan")
+	ErrStartFlow           = errors.New("failed to start flow")
 )
 
 var invalidFlowIDChars = regexp.MustCompile(`[^a-zA-Z0-9_.\-+ ]`)
@@ -175,9 +176,16 @@ func (s *Server) startFlow(c *gin.Context) {
 		})
 		return
 	}
-	c.JSON(http.StatusBadRequest, api.ErrorResponse{
-		Error:  err.Error(),
-		Status: http.StatusBadRequest,
+	if errors.Is(err, api.ErrRequiredInputs) {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  err.Error(),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+		Error:  fmt.Sprintf("%s: %v", ErrStartFlow, err),
+		Status: http.StatusInternalServerError,
 	})
 }
 

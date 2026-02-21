@@ -58,6 +58,42 @@ func TestConfigValidation(t *testing.T) {
 			},
 			errorContains: "step timeout must be positive",
 		},
+		{
+			name: "zero_retry_max_retries",
+			configMod: func(c *config.Config) {
+				c.Work.MaxRetries = 0
+			},
+			errorContains: "retry max retries cannot be zero",
+		},
+		{
+			name: "zero_retry_backoff",
+			configMod: func(c *config.Config) {
+				c.Work.Backoff = 0
+			},
+			errorContains: "retry backoff must be positive",
+		},
+		{
+			name: "zero_retry_max_backoff",
+			configMod: func(c *config.Config) {
+				c.Work.MaxBackoff = 0
+			},
+			errorContains: "retry max backoff must be positive",
+		},
+		{
+			name: "retry_max_backoff_too_small",
+			configMod: func(c *config.Config) {
+				c.Work.Backoff = 1000
+				c.Work.MaxBackoff = 999
+			},
+			errorContains: "retry max backoff must be >=",
+		},
+		{
+			name: "invalid_retry_backoff_type",
+			configMod: func(c *config.Config) {
+				c.Work.BackoffType = "weird"
+			},
+			errorContains: "invalid retry backoff type",
+		},
 	}
 
 	for _, tt := range tests {
@@ -274,6 +310,15 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
+			name: "load_step_timeout",
+			envVars: map[string]string{
+				"STEP_TIMEOUT": "45000",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, int64(45000), c.StepTimeout)
+			},
+		},
+		{
 			name: "invalid_api_port_ignored",
 			envVars: map[string]string{
 				"API_PORT": "not_a_number",
@@ -298,6 +343,24 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 			check: func(t *testing.T, c *config.Config) {
 				testify.Equal(t, config.DefaultCacheSize, c.FlowCacheSize)
+			},
+		},
+		{
+			name: "invalid_step_timeout_ignored",
+			envVars: map[string]string{
+				"STEP_TIMEOUT": "invalid",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, config.DefaultStepTimeout, c.StepTimeout)
+			},
+		},
+		{
+			name: "non_positive_step_timeout_ignored",
+			envVars: map[string]string{
+				"STEP_TIMEOUT": "0",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, config.DefaultStepTimeout, c.StepTimeout)
 			},
 		},
 		{

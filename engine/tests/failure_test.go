@@ -23,7 +23,12 @@ func TestPartialFlowFailure(t *testing.T) {
 		// Step B: Requires "valueB", will fail
 		stepB := helpers.NewTestStepWithArgs([]api.Name{"valueB"}, nil)
 		stepB.ID = "step-b"
-		stepB.WorkConfig = &api.WorkConfig{MaxRetries: 0}
+		stepB.WorkConfig = &api.WorkConfig{
+			MaxRetries:  1,
+			Backoff:     1,
+			MaxBackoff:  1,
+			BackoffType: api.BackoffTypeFixed,
+		}
 		stepB.Attributes["outputB"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
@@ -142,7 +147,6 @@ func TestUnreachableStep(t *testing.T) {
 		env.Engine.Start()
 
 		stepA := helpers.NewStepWithOutputs("provider-step", "value")
-		stepA.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
 		stepB := helpers.NewTestStepWithArgs([]api.Name{"value"}, nil)
 		stepB.ID = "consumer-step"

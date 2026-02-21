@@ -457,7 +457,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/FlowStartedResponse"
         "400":
-          description: Invalid flow request (missing inputs, invalid goal step, etc.)
+          description: Invalid flow request (missing inputs, invalid ID, etc.)
           content:
             application/json:
               schema:
@@ -989,7 +989,8 @@ components:
           format: int64
           description: |
             Optional per-step timeout in milliseconds.
-            If omitted or <= 0, the engine uses its default HTTP timeout.
+            If omitted or <= 0, the engine uses the global engine timeout
+            (`STEP_TIMEOUT`, default `30000` ms).
           example: 30000
 
     ScriptConfig:
@@ -1057,27 +1058,37 @@ components:
       type: object
       description: |
         Configuration for step execution behavior.
-        If omitted entirely, the engine uses global retry defaults.
-        If provided with `max_retries` omitted/zero, retries are disabled for this step.
+        If retry settings are omitted (no `work_config`, or `work_config`
+        only setting non-retry fields like `parallelism`), the engine uses
+        global retry defaults.
+        Global retry defaults are validated at engine startup.
       properties:
         max_retries:
           type: integer
-          description: Maximum number of retries on failure
+          description: |
+            Maximum number of retries on failure.
+            `0` means use global default, `-1` means unlimited retries.
           example: 3
         backoff:
           type: integer
           format: int64
-          description: Initial backoff delay in milliseconds
+          description: |
+            Initial backoff delay in milliseconds.
+            `0` means use global default.
           example: 1000
         max_backoff:
           type: integer
           format: int64
-          description: Maximum backoff delay in milliseconds
+          description: |
+            Maximum backoff delay in milliseconds.
+            `0` means use global default.
           example: 30000
         backoff_type:
           type: string
           enum: ["fixed", "linear", "exponential"]
-          description: Backoff strategy
+          description: |
+            Backoff strategy.
+            Empty string means use global default.
           example: "exponential"
         parallelism:
           type: integer

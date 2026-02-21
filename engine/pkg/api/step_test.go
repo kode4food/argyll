@@ -765,7 +765,7 @@ func TestValidateWorkConfig(t *testing.T) {
 		as.StepInvalid(step, "max_backoff")
 	})
 
-	t.Run("missing_backoff_type", func(t *testing.T) {
+	t.Run("missing_backoff_type_uses_default", func(t *testing.T) {
 		step := &api.Step{
 			ID:   "test",
 			Name: "Test",
@@ -777,7 +777,7 @@ func TestValidateWorkConfig(t *testing.T) {
 				MaxRetries: 3,
 			},
 		}
-		as.StepInvalid(step, "invalid retry config")
+		as.StepValid(step)
 	})
 
 	t.Run("invalid_backoff_type", func(t *testing.T) {

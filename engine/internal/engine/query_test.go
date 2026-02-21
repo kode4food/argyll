@@ -75,7 +75,6 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 
 		activeStep := helpers.NewSimpleStep("active-step")
 		activeStep.Type = api.StepTypeAsync
-		activeStep.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 
 		completeStep := helpers.NewSimpleStep("complete-step")
 		failedStep := helpers.NewSimpleStep("failed-step")

@@ -35,15 +35,16 @@ API_HOST=0.0.0.0                        # HTTP listen host
 API_PORT=8080                           # HTTP API port
 WEBHOOK_BASE_URL=http://localhost:8080  # Async callback base URL
 LOG_LEVEL=info                          # Log level: debug, info, warn, error
+STEP_TIMEOUT=30000                      # Global HTTP step timeout fallback (ms)
 FLOW_CACHE_SIZE=4096                    # Timebox aggregate cache entries
 MEMO_CACHE_SIZE=10240                   # Memoization cache entries
 ```
 
-HTTP step timeout is set per step via `step.http.timeout` (milliseconds). If omitted/<=0, the engine uses its built-in default timeout (30s).
+HTTP step timeout is set per step via `step.http.timeout` (milliseconds). If omitted/<=0, the engine uses `STEP_TIMEOUT` (default: `30000` ms).
 
 ### Engine: Retry Defaults
 
-These values are used only when a step omits `work_config` entirely:
+These values are used when a step omits retry settings, or sets retry fields to zero/empty values (for example no `work_config`, or `work_config` only setting non-retry fields like `parallelism`):
 
 ```bash
 RETRY_MAX_RETRIES=10                    # Default max retries
@@ -51,6 +52,12 @@ RETRY_BACKOFF=1000                      # Initial backoff in milliseconds
 RETRY_MAX_BACKOFF=60000                 # Backoff cap in milliseconds
 RETRY_BACKOFF_TYPE=exponential          # fixed, linear, exponential
 ```
+
+These defaults must be valid at startup:
+- `RETRY_MAX_RETRIES` cannot be `0`
+- `RETRY_BACKOFF` must be `> 0`
+- `RETRY_MAX_BACKOFF` must be `> 0` and `>= RETRY_BACKOFF`
+- `RETRY_BACKOFF_TYPE` must be `fixed`, `linear`, or `exponential`
 
 ### Archiver: Policy
 
@@ -171,7 +178,7 @@ go run ./cmd/argyll
 
 - **Memory**: Engine caches are in-process. Monitor memory growth. Set `MEMO_CACHE_SIZE` based on available memory.
 - **Concurrency**: Parallelism is per-step via `work_config`. No global concurrency limit.
-- **Timeout**: `step.http.timeout` overrides per step; otherwise the engine uses the built-in 30s default
+- **Timeout**: `step.http.timeout` overrides per step; otherwise the engine uses `STEP_TIMEOUT` (default `30000` ms)
 
 **Peak throughput:** 6000+ flows/second per engine instance (benchmark-dependent)
 
@@ -237,6 +244,8 @@ Configure via `work_config`:
   }
 }
 ```
+
+Step-level retry fields only override when they are non-zero/non-empty. If a retry field is omitted or set to zero/empty, the engine uses the global retry default for that field.
 
 **Backoff Types:**
 - `fixed`: Same delay between retries (backoff in milliseconds)

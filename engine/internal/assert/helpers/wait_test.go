@@ -48,7 +48,6 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("failed-step")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
@@ -172,7 +171,6 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("work-failed")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
@@ -280,7 +278,6 @@ func TestWaitFlowFailed(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("failing-step")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
@@ -373,7 +370,6 @@ func TestWaitStepFailed(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("step-fail")
-		step.WorkConfig = &api.WorkConfig{MaxRetries: 0}
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 

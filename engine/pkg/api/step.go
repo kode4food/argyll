@@ -138,8 +138,8 @@ var (
 	ErrScriptLanguageEmpty   = errors.New("script language empty")
 	ErrInvalidScriptLanguage = errors.New("invalid script language")
 	ErrScriptEmpty           = errors.New("script empty")
-	ErrInvalidRetryConfig    = errors.New("invalid retry config")
 	ErrInvalidBackoffType    = errors.New("invalid backoff type")
+	ErrInvalidParallelism    = errors.New("parallelism cannot be negative")
 	ErrAttributeNil          = errors.New("attribute has nil definition")
 	ErrNegativeBackoff       = errors.New("backoff cannot be negative")
 	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
@@ -317,6 +317,10 @@ func (s *Step) validateWorkConfig() error {
 		return nil
 	}
 
+	if s.WorkConfig.Parallelism < 0 {
+		return ErrInvalidParallelism
+	}
+
 	if s.WorkConfig.Backoff < 0 {
 		return ErrNegativeBackoff
 	}
@@ -326,15 +330,9 @@ func (s *Step) validateWorkConfig() error {
 		return ErrMaxBackoffTooSmall
 	}
 
-	hasRetryConfig := s.WorkConfig.MaxRetries != 0 ||
-		s.WorkConfig.Backoff != 0 || s.WorkConfig.MaxBackoff != 0
-	if hasRetryConfig {
-		if s.WorkConfig.BackoffType == "" {
-			return ErrInvalidRetryConfig
-		}
-		if !validBackoffTypes.Contains(s.WorkConfig.BackoffType) {
-			return ErrInvalidBackoffType
-		}
+	if s.WorkConfig.BackoffType != "" &&
+		!validBackoffTypes.Contains(s.WorkConfig.BackoffType) {
+		return ErrInvalidBackoffType
 	}
 
 	return nil

@@ -82,7 +82,16 @@ func TestShouldRetryStep(t *testing.T) {
 			expected: true,
 		},
 		{
-			name: "zero retries",
+			name: "parallelism only uses global retry defaults",
+			config: &api.WorkConfig{
+				Parallelism: 4,
+			},
+			retries:  0,
+			error:    "network timeout",
+			expected: true,
+		},
+		{
+			name: "zero max retries uses global defaults",
 			config: &api.WorkConfig{
 				MaxRetries:  0,
 				Backoff:     1000,
@@ -91,7 +100,7 @@ func TestShouldRetryStep(t *testing.T) {
 			},
 			retries:  0,
 			error:    "network timeout",
-			expected: false,
+			expected: true,
 		},
 		{
 			name: "within limit",
@@ -541,7 +550,7 @@ func TestWorkConfigValidation(t *testing.T) {
 				MaxBackoff:  10000,
 				BackoffType: "",
 			},
-			expectErr: true,
+			expectErr: false,
 		},
 	}
 
@@ -1005,6 +1014,20 @@ func TestNextRetryNilConfig(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		nextRetry := eng.CalculateNextRetry(nil, 0)
 		assert.False(t, nextRetry.IsZero())
+	})
+}
+
+func TestNextRetryParallelismOnlyConfig(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		cfg := &api.WorkConfig{
+			Parallelism: 2,
+		}
+		start := time.Now()
+		nextRetry := eng.CalculateNextRetry(cfg, 0)
+		delay := nextRetry.Sub(start).Milliseconds()
+
+		assert.GreaterOrEqual(t, delay, int64(990))
+		assert.LessOrEqual(t, delay, int64(1010))
 	})
 }
 

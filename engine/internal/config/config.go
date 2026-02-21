@@ -61,8 +61,21 @@ const (
 )
 
 var (
-	ErrInvalidAPIPort     = errors.New("invalid API port")
-	ErrInvalidStepTimeout = errors.New("step timeout must be positive")
+	ErrInvalidAPIPort         = errors.New("invalid API port")
+	ErrInvalidStepTimeout     = errors.New("step timeout must be positive")
+	ErrInvalidRetryMaxRetries = errors.New(
+		"retry max retries cannot be zero",
+	)
+	ErrInvalidRetryBackoff = errors.New(
+		"retry backoff must be positive",
+	)
+	ErrInvalidRetryMaxBackoff = errors.New(
+		"retry max backoff must be positive",
+	)
+	ErrRetryBackoffTooSmall = errors.New(
+		"retry max backoff must be >= retry backoff",
+	)
+	ErrInvalidRetryBackoffType = errors.New("invalid retry backoff type")
 )
 
 // NewDefaultConfig creates a configuration with sensible defaults for all
@@ -144,6 +157,11 @@ func (c *Config) LoadFromEnv() {
 			c.MemoCacheSize = cacheSize
 		}
 	}
+	if timeout := os.Getenv("STEP_TIMEOUT"); timeout != "" {
+		if ms, err := strconv.ParseInt(timeout, 10, 64); err == nil && ms > 0 {
+			c.StepTimeout = ms
+		}
+	}
 	if logLevel := os.Getenv("LOG_LEVEL"); logLevel != "" {
 		c.LogLevel = logLevel
 	}
@@ -166,7 +184,6 @@ func (c *Config) LoadFromEnv() {
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
 		c.Work.BackoffType = backoffType
 	}
-
 }
 
 // Validate checks that all configuration values are valid
@@ -177,6 +194,29 @@ func (c *Config) Validate() error {
 
 	if c.StepTimeout <= 0 {
 		return ErrInvalidStepTimeout
+	}
+
+	if c.Work.MaxRetries == 0 {
+		return ErrInvalidRetryMaxRetries
+	}
+
+	if c.Work.Backoff <= 0 {
+		return ErrInvalidRetryBackoff
+	}
+
+	if c.Work.MaxBackoff <= 0 {
+		return ErrInvalidRetryMaxBackoff
+	}
+
+	if c.Work.MaxBackoff < c.Work.Backoff {
+		return ErrRetryBackoffTooSmall
+	}
+
+	if c.Work.BackoffType != api.BackoffTypeFixed &&
+		c.Work.BackoffType != api.BackoffTypeLinear &&
+		c.Work.BackoffType != api.BackoffTypeExponential {
+		return fmt.Errorf("%w: %s",
+			ErrInvalidRetryBackoffType, c.Work.BackoffType)
 	}
 
 	return nil
