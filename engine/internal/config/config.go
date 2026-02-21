@@ -186,9 +186,9 @@ func (c *Config) LoadFromEnv() {
 	}
 }
 
-// WithDefaults returns a copy of the config with zero-valued work fields
+// WithWorkDefaults returns a copy of the config with zero-valued work fields
 // filled in from defaults
-func (c *Config) WithDefaults() *Config {
+func (c *Config) WithWorkDefaults() *Config {
 	res := *c
 	if res.Work.MaxRetries == 0 {
 		res.Work.MaxRetries = DefaultRetryMaxRetries

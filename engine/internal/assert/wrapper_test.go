@@ -364,21 +364,21 @@ func TestConfigValid(t *testing.T) {
 			cfg: (&config.Config{
 				APIPort:     9090,
 				StepTimeout: 60000,
-			}).WithDefaults(),
+			}).WithWorkDefaults(),
 		},
 		{
 			name: "minimum valid port",
 			cfg: (&config.Config{
 				APIPort:     1,
 				StepTimeout: 1000,
-			}).WithDefaults(),
+			}).WithWorkDefaults(),
 		},
 		{
 			name: "maximum valid port",
 			cfg: (&config.Config{
 				APIPort:     65535,
 				StepTimeout: 1000,
-			}).WithDefaults(),
+			}).WithWorkDefaults(),
 		},
 	}
 

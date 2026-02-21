@@ -253,7 +253,7 @@ func TestWithDefaults(t *testing.T) {
 			APIPort:     8080,
 			StepTimeout: 1000,
 		}
-		out := cfg.WithDefaults()
+		out := cfg.WithWorkDefaults()
 
 		testify.Equal(t,
 			config.DefaultRetryMaxRetries, out.Work.MaxRetries,
@@ -276,7 +276,7 @@ func TestWithDefaults(t *testing.T) {
 		cfg.Work.MaxBackoff = 30000
 		cfg.Work.BackoffType = "fixed"
 
-		out := cfg.WithDefaults()
+		out := cfg.WithWorkDefaults()
 
 		testify.Equal(t, 5, out.Work.MaxRetries)
 		testify.Equal(t, int64(2000), out.Work.Backoff)
@@ -289,7 +289,7 @@ func TestWithDefaults(t *testing.T) {
 			APIPort:     8080,
 			StepTimeout: 1000,
 		}
-		_ = cfg.WithDefaults()
+		_ = cfg.WithWorkDefaults()
 
 		testify.Equal(t, 0, cfg.Work.MaxRetries)
 		testify.Equal(t, int64(0), cfg.Work.Backoff)

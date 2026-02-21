@@ -210,6 +210,153 @@ func (s *Step) Validate() error {
 	return s.validateWorkConfig()
 }
 
+// Copy returns a shallow copy of the step without copying internal cache state
+func (s *Step) Copy() *Step {
+	return &Step{
+		Predicate:  s.Predicate,
+		HTTP:       s.HTTP,
+		Flow:       s.Flow,
+		Script:     s.Script,
+		WorkConfig: s.WorkConfig,
+		Labels:     s.Labels,
+		ID:         s.ID,
+		Name:       s.Name,
+		Type:       s.Type,
+		Memoizable: s.Memoizable,
+		Attributes: s.Attributes,
+	}
+}
+
+// WithWorkDefaults returns a copy of the step with zero-valued work fields
+// filled in from defaults
+func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
+	res := s.Copy()
+	if res.WorkConfig == nil {
+		res.WorkConfig = &WorkConfig{}
+	} else {
+		cfg := *res.WorkConfig
+		res.WorkConfig = &cfg
+	}
+	if res.WorkConfig.MaxRetries == 0 {
+		res.WorkConfig.MaxRetries = defaults.MaxRetries
+	}
+	if res.WorkConfig.Backoff == 0 {
+		res.WorkConfig.Backoff = defaults.Backoff
+	}
+	if res.WorkConfig.MaxBackoff == 0 {
+		res.WorkConfig.MaxBackoff = defaults.MaxBackoff
+	}
+	if res.WorkConfig.BackoffType == "" {
+		res.WorkConfig.BackoffType = defaults.BackoffType
+	}
+	return res
+}
+
+// IsOptionalArg returns true if the argument is optional
+func (s *Step) IsOptionalArg(argName Name) bool {
+	if attr, ok := s.Attributes[argName]; ok {
+		return attr.IsOptional()
+	}
+	return false
+}
+
+// SortedArgNames returns sorted runtime input argument names
+func (s *Step) SortedArgNames() []string {
+	var all []string
+	for name, attr := range s.Attributes {
+		if attr.IsRuntimeInput() {
+			if attr.Mapping != nil && attr.Mapping.Name != "" {
+				all = append(all, attr.Mapping.Name)
+				continue
+			}
+			all = append(all, string(name))
+		}
+	}
+	slices.Sort(all)
+	return all
+}
+
+// MultiArgNames returns names of attributes that support multiple work items
+// (for_each)
+func (s *Step) MultiArgNames() []Name {
+	var names []Name
+	for name, attr := range s.Attributes {
+		if attr.ForEach {
+			names = append(names, name)
+		}
+	}
+	slices.Sort(names)
+	return names
+}
+
+// GetAllInputArgs returns all input argument names (required and optional)
+func (s *Step) GetAllInputArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsInput)
+}
+
+// GetRequiredArgs returns all required argument names
+func (s *Step) GetRequiredArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsRequired)
+}
+
+// GetOptionalArgs returns all optional argument names
+func (s *Step) GetOptionalArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsOptional)
+}
+
+// GetOutputArgs returns all output argument names
+func (s *Step) GetOutputArgs() []Name {
+	return s.filterAttributes((*AttributeSpec).IsOutput)
+}
+
+// Equal returns true if two steps are equal
+func (s *Step) Equal(other *Step) bool {
+	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
+		return false
+	}
+	if s.Memoizable != other.Memoizable {
+		return false
+	}
+	if !s.Attributes.Equal(other.Attributes) {
+		return false
+	}
+	if !s.HTTP.Equal(other.HTTP) {
+		return false
+	}
+	if !s.Flow.Equal(other.Flow) {
+		return false
+	}
+	if !s.Script.Equal(other.Script) {
+		return false
+	}
+	if !s.Predicate.Equal(other.Predicate) {
+		return false
+	}
+	if !s.WorkConfig.Equal(other.WorkConfig) {
+		return false
+	}
+	if !s.Labels.Equal(other.Labels) {
+		return false
+	}
+	return true
+}
+
+// HashKey computes a deterministic SHA256 hash key of the functional parts of
+// the step definition. Excludes ID, Name, and Labels (non-functional metadata)
+func (s *Step) HashKey() (string, error) {
+	if cached := s.hashKey.Load(); cached != nil {
+		return *cached, nil
+	}
+
+	key, err := s.computeHashKey()
+	if err != nil {
+		return "", err
+	}
+
+	s.hashKey.Store(&key)
+	return key, nil
+}
+
 func (s *Step) validateAttributes() error {
 	if s.Attributes == nil {
 		s.Attributes = AttributeSpecs{}
@@ -336,111 +483,6 @@ func (s *Step) validateWorkConfig() error {
 	}
 
 	return nil
-}
-
-// IsOptionalArg returns true if the argument is optional
-func (s *Step) IsOptionalArg(argName Name) bool {
-	if attr, ok := s.Attributes[argName]; ok {
-		return attr.IsOptional()
-	}
-	return false
-}
-
-// SortedArgNames returns sorted runtime input argument names
-func (s *Step) SortedArgNames() []string {
-	var all []string
-	for name, attr := range s.Attributes {
-		if attr.IsRuntimeInput() {
-			if attr.Mapping != nil && attr.Mapping.Name != "" {
-				all = append(all, attr.Mapping.Name)
-				continue
-			}
-			all = append(all, string(name))
-		}
-	}
-	slices.Sort(all)
-	return all
-}
-
-// MultiArgNames returns names of attributes that support multiple work items
-// (for_each)
-func (s *Step) MultiArgNames() []Name {
-	var names []Name
-	for name, attr := range s.Attributes {
-		if attr.ForEach {
-			names = append(names, name)
-		}
-	}
-	slices.Sort(names)
-	return names
-}
-
-// GetAllInputArgs returns all input argument names (required and optional)
-func (s *Step) GetAllInputArgs() []Name {
-	return s.filterAttributes((*AttributeSpec).IsInput)
-}
-
-// GetRequiredArgs returns all required argument names
-func (s *Step) GetRequiredArgs() []Name {
-	return s.filterAttributes((*AttributeSpec).IsRequired)
-}
-
-// GetOptionalArgs returns all optional argument names
-func (s *Step) GetOptionalArgs() []Name {
-	return s.filterAttributes((*AttributeSpec).IsOptional)
-}
-
-// GetOutputArgs returns all output argument names
-func (s *Step) GetOutputArgs() []Name {
-	return s.filterAttributes((*AttributeSpec).IsOutput)
-}
-
-// Equal returns true if two steps are equal
-func (s *Step) Equal(other *Step) bool {
-	if s.ID != other.ID || s.Name != other.Name || s.Type != other.Type {
-		return false
-	}
-	if s.Memoizable != other.Memoizable {
-		return false
-	}
-	if !s.Attributes.Equal(other.Attributes) {
-		return false
-	}
-	if !s.HTTP.Equal(other.HTTP) {
-		return false
-	}
-	if !s.Flow.Equal(other.Flow) {
-		return false
-	}
-	if !s.Script.Equal(other.Script) {
-		return false
-	}
-	if !s.Predicate.Equal(other.Predicate) {
-		return false
-	}
-	if !s.WorkConfig.Equal(other.WorkConfig) {
-		return false
-	}
-	if !s.Labels.Equal(other.Labels) {
-		return false
-	}
-	return true
-}
-
-// HashKey computes a deterministic SHA256 hash key of the functional parts of
-// the step definition. Excludes ID, Name, and Labels (non-functional metadata)
-func (s *Step) HashKey() (string, error) {
-	if cached := s.hashKey.Load(); cached != nil {
-		return *cached, nil
-	}
-
-	key, err := s.computeHashKey()
-	if err != nil {
-		return "", err
-	}
-
-	s.hashKey.Store(&key)
-	return key, nil
 }
 
 func (s *Step) computeHashKey() (string, error) {

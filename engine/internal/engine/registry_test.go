@@ -98,6 +98,26 @@ func TestUpdateStep(t *testing.T) {
 	})
 }
 
+func TestUpdateStepDefaultIdempotent(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("update-defaulted")
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		_, beforeSeq, err := eng.GetCatalogStateSeq()
+		assert.NoError(t, err)
+
+		updated := helpers.NewSimpleStep("update-defaulted")
+		err = eng.UpdateStep(updated)
+		assert.NoError(t, err)
+
+		_, afterSeq, err := eng.GetCatalogStateSeq()
+		assert.NoError(t, err)
+		assert.Equal(t, beforeSeq, afterSeq)
+	})
+}
+
 func TestUpdateStepReplacesCycleDependencies(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := helpers.NewSimpleStep("step-a")

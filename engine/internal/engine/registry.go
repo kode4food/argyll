@@ -57,6 +57,7 @@ func (e *Engine) UpdateStep(step *api.Step) error {
 func (e *Engine) upsertStep(
 	step *api.Step, validate stepValidate, raise stepRaise,
 ) error {
+	step = step.WithWorkDefaults(&e.config.Work)
 	if err := e.validateStep(step); err != nil {
 		return err
 	}

@@ -815,6 +815,145 @@ func TestValidateWorkConfig(t *testing.T) {
 	})
 }
 
+func TestStepWithDefaults(t *testing.T) {
+	as := assert.New(t)
+
+	defaults := &api.WorkConfig{
+		MaxRetries:  10,
+		Backoff:     1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
+	}
+
+	t.Run("nil_work_config", func(t *testing.T) {
+		step := &api.Step{ID: "step", Name: "Step", Type: api.StepTypeSync}
+		res := step.WithWorkDefaults(defaults)
+
+		as.NotNil(res.WorkConfig)
+		as.Equal(10, res.WorkConfig.MaxRetries)
+		as.Equal(int64(1000), res.WorkConfig.Backoff)
+		as.Equal(int64(60000), res.WorkConfig.MaxBackoff)
+		as.Equal(api.BackoffTypeExponential, res.WorkConfig.BackoffType)
+	})
+
+	t.Run("fills_retry_fields_only", func(t *testing.T) {
+		step := &api.Step{
+			ID:   "step",
+			Name: "Step",
+			Type: api.StepTypeSync,
+			WorkConfig: &api.WorkConfig{
+				Parallelism: 4,
+			},
+		}
+		res := step.WithWorkDefaults(defaults)
+
+		as.NotNil(res.WorkConfig)
+		as.Equal(4, res.WorkConfig.Parallelism)
+		as.Equal(10, res.WorkConfig.MaxRetries)
+		as.Equal(int64(1000), res.WorkConfig.Backoff)
+		as.Equal(int64(60000), res.WorkConfig.MaxBackoff)
+		as.Equal(api.BackoffTypeExponential, res.WorkConfig.BackoffType)
+		as.Equal(0, step.WorkConfig.MaxRetries)
+		as.Equal(int64(0), step.WorkConfig.Backoff)
+		as.Equal(int64(0), step.WorkConfig.MaxBackoff)
+		as.Equal("", step.WorkConfig.BackoffType)
+	})
+
+	t.Run("explicit_retry_values_preserved", func(t *testing.T) {
+		step := &api.Step{
+			ID:   "step",
+			Name: "Step",
+			Type: api.StepTypeSync,
+			WorkConfig: &api.WorkConfig{
+				MaxRetries:  2,
+				Backoff:     250,
+				MaxBackoff:  5000,
+				BackoffType: api.BackoffTypeLinear,
+			},
+		}
+		res := step.WithWorkDefaults(defaults)
+
+		as.Equal(2, res.WorkConfig.MaxRetries)
+		as.Equal(int64(250), res.WorkConfig.Backoff)
+		as.Equal(int64(5000), res.WorkConfig.MaxBackoff)
+		as.Equal(api.BackoffTypeLinear, res.WorkConfig.BackoffType)
+	})
+}
+
+func TestStepCopy(t *testing.T) {
+	as := assert.New(t)
+
+	t.Run("shallow_copy", func(t *testing.T) {
+		step := &api.Step{
+			ID:   "copy-step",
+			Name: "Copy Step",
+			Type: api.StepTypeFlow,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://localhost:8080",
+			},
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"goal-a"},
+			},
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "(+ 1 2)",
+			},
+			Predicate: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return true",
+			},
+			WorkConfig: &api.WorkConfig{
+				MaxRetries:  3,
+				Parallelism: 2,
+			},
+			Labels: api.Labels{
+				"team": "core",
+			},
+			Attributes: api.AttributeSpecs{
+				"input": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+					Mapping: &api.AttributeMapping{
+						Name: "arg_input",
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangJPath,
+							Script:   "$.input",
+						},
+					},
+				},
+			},
+		}
+
+		copy := step.Copy()
+		as.NotNil(copy)
+		as.NotSame(step, copy)
+		as.True(step.Equal(copy))
+
+		copy.Name = "Changed Name"
+		as.Equal(api.Name("Copy Step"), step.Name)
+
+		copy.HTTP.Endpoint = "http://localhost:8081"
+		copy.Flow.Goals[0] = "goal-b"
+		copy.Script.Script = "(* 2 3)"
+		copy.Predicate.Script = "return false"
+		copy.WorkConfig.MaxRetries = 9
+		copy.Labels["team"] = "platform"
+		copy.Attributes["input"].Type = api.TypeNumber
+		copy.Attributes["input"].Mapping.Name = "changed"
+		copy.Attributes["input"].Mapping.Script.Script = "$.changed"
+
+		as.Equal("http://localhost:8081", step.HTTP.Endpoint)
+		as.Equal(api.StepID("goal-b"), step.Flow.Goals[0])
+		as.Equal("(* 2 3)", step.Script.Script)
+		as.Equal("return false", step.Predicate.Script)
+		as.Equal(9, step.WorkConfig.MaxRetries)
+		as.Equal("platform", step.Labels["team"])
+		as.Equal(api.TypeNumber, step.Attributes["input"].Type)
+		as.Equal("changed", step.Attributes["input"].Mapping.Name)
+		as.Equal("$.changed", step.Attributes["input"].Mapping.Script.Script)
+	})
+}
+
 func TestStepEqualEdgeCases(t *testing.T) {
 	as := assert.New(t)
 
