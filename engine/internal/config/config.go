@@ -186,6 +186,25 @@ func (c *Config) LoadFromEnv() {
 	}
 }
 
+// WithDefaults returns a copy of the config with zero-valued work fields
+// filled in from defaults
+func (c *Config) WithDefaults() *Config {
+	res := *c
+	if res.Work.MaxRetries == 0 {
+		res.Work.MaxRetries = DefaultRetryMaxRetries
+	}
+	if res.Work.Backoff <= 0 {
+		res.Work.Backoff = DefaultRetryBackoff
+	}
+	if res.Work.MaxBackoff <= 0 {
+		res.Work.MaxBackoff = DefaultMaxRetryBackoff
+	}
+	if res.Work.BackoffType == "" {
+		res.Work.BackoffType = DefaultRetryBackoffType
+	}
+	return &res
+}
+
 // Validate checks that all configuration values are valid
 func (c *Config) Validate() error {
 	if c.APIPort <= 0 || c.APIPort > MaxTCPPort {

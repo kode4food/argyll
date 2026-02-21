@@ -72,6 +72,7 @@ func New(
 	catalog, partition, flow *timebox.Store, client client.Client,
 	cfg *config.Config,
 ) (*Engine, error) {
+	cfg = cfg.WithDefaults()
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
 	}

@@ -361,24 +361,24 @@ func TestConfigValid(t *testing.T) {
 		},
 		{
 			name: "custom valid config",
-			cfg: &config.Config{
+			cfg: (&config.Config{
 				APIPort:     9090,
 				StepTimeout: 60000,
-			},
+			}).WithDefaults(),
 		},
 		{
 			name: "minimum valid port",
-			cfg: &config.Config{
+			cfg: (&config.Config{
 				APIPort:     1,
 				StepTimeout: 1000,
-			},
+			}).WithDefaults(),
 		},
 		{
 			name: "maximum valid port",
-			cfg: &config.Config{
+			cfg: (&config.Config{
 				APIPort:     65535,
 				StepTimeout: 1000,
-			},
+			}).WithDefaults(),
 		},
 	}
 

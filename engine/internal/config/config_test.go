@@ -247,6 +247,55 @@ func TestValidateValidEdgeCases(t *testing.T) {
 	}
 }
 
+func TestWithDefaults(t *testing.T) {
+	t.Run("fills zero work config", func(t *testing.T) {
+		cfg := &config.Config{
+			APIPort:     8080,
+			StepTimeout: 1000,
+		}
+		out := cfg.WithDefaults()
+
+		testify.Equal(t,
+			config.DefaultRetryMaxRetries, out.Work.MaxRetries,
+		)
+		testify.Equal(t,
+			int64(config.DefaultRetryBackoff), out.Work.Backoff,
+		)
+		testify.Equal(t,
+			int64(config.DefaultMaxRetryBackoff), out.Work.MaxBackoff,
+		)
+		testify.Equal(t,
+			config.DefaultRetryBackoffType, out.Work.BackoffType,
+		)
+	})
+
+	t.Run("preserves explicit values", func(t *testing.T) {
+		cfg := config.NewDefaultConfig()
+		cfg.Work.MaxRetries = 5
+		cfg.Work.Backoff = 2000
+		cfg.Work.MaxBackoff = 30000
+		cfg.Work.BackoffType = "fixed"
+
+		out := cfg.WithDefaults()
+
+		testify.Equal(t, 5, out.Work.MaxRetries)
+		testify.Equal(t, int64(2000), out.Work.Backoff)
+		testify.Equal(t, int64(30000), out.Work.MaxBackoff)
+		testify.Equal(t, "fixed", string(out.Work.BackoffType))
+	})
+
+	t.Run("does not mutate original", func(t *testing.T) {
+		cfg := &config.Config{
+			APIPort:     8080,
+			StepTimeout: 1000,
+		}
+		_ = cfg.WithDefaults()
+
+		testify.Equal(t, 0, cfg.Work.MaxRetries)
+		testify.Equal(t, int64(0), cfg.Work.Backoff)
+	})
+}
+
 func TestValidateNegativeTimeout(t *testing.T) {
 	cfg := config.NewDefaultConfig()
 	cfg.StepTimeout = -1
