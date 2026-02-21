@@ -65,8 +65,8 @@ func (e *Engine) execStepUpsert(
 	}
 
 	cmd := func(st *api.CatalogState, ag *CatalogAggregator) error {
-		existing, exists := st.Steps[step.ID]
-		if noop, err := check(existing, step, exists); noop || err != nil {
+		old, ok := st.Steps[step.ID]
+		if noop, err := check(old, step, ok); noop || err != nil {
 			return err
 		}
 

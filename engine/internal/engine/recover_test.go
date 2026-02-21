@@ -61,8 +61,8 @@ func TestRecoveryDeactivation(t *testing.T) {
 
 		partState, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, exists := partState.Active[flowID]
-		assert.False(t, exists)
+		_, ok := partState.Active[flowID]
+		assert.False(t, ok)
 	})
 }
 
