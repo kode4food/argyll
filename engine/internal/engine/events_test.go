@@ -12,7 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const eventTimeout = 1 * time.Second
+const eventTimeout = 3 * time.Second
 
 func TestEventsOrdered(t *testing.T) {
 	var mu sync.Mutex
@@ -20,20 +20,22 @@ func TestEventsOrdered(t *testing.T) {
 	done := make(chan struct{})
 
 	runner := engine.NewEventQueue(
-		func(typ api.EventType, data any) error {
-			if typ == "" {
-				return errors.New("missing event type")
+		func(batch []engine.QueueEvent) error {
+			for _, ev := range batch {
+				if ev.Type == "" {
+					return errors.New("missing event type")
+				}
+				value, ok := ev.Data.(int)
+				if !ok {
+					return errors.New("invalid event data")
+				}
+				mu.Lock()
+				order = append(order, value)
+				if value == 3 {
+					close(done)
+				}
+				mu.Unlock()
 			}
-			value, ok := data.(int)
-			if !ok {
-				return errors.New("invalid event data")
-			}
-			mu.Lock()
-			order = append(order, value)
-			if value == 3 {
-				close(done)
-			}
-			mu.Unlock()
 			return nil
 		},
 	)
@@ -57,10 +59,16 @@ func TestEventsOrdered(t *testing.T) {
 
 func TestEventsHandlerError(t *testing.T) {
 	done := make(chan struct{})
+	var mu sync.Mutex
+	calls := 0
 
 	runner := engine.NewEventQueue(
-		func(typ api.EventType, data any) error {
-			if data.(int) == 1 {
+		func(batch []engine.QueueEvent) error {
+			mu.Lock()
+			calls++
+			n := calls
+			mu.Unlock()
+			if n == 1 {
 				return errors.New("handler error")
 			}
 			close(done)
@@ -71,7 +79,6 @@ func TestEventsHandlerError(t *testing.T) {
 	t.Cleanup(runner.Flush)
 
 	runner.Enqueue(api.EventTypeFlowActivated, 1)
-	runner.Enqueue(api.EventTypeFlowActivated, 2)
 
 	select {
 	case <-done:
@@ -82,10 +89,16 @@ func TestEventsHandlerError(t *testing.T) {
 
 func TestEventsHandlerPanic(t *testing.T) {
 	done := make(chan struct{})
+	var mu sync.Mutex
+	calls := 0
 
 	runner := engine.NewEventQueue(
-		func(typ api.EventType, data any) error {
-			if data.(int) == 1 {
+		func(batch []engine.QueueEvent) error {
+			mu.Lock()
+			calls++
+			n := calls
+			mu.Unlock()
+			if n == 1 {
 				panic("test panic")
 			}
 			close(done)
@@ -96,7 +109,6 @@ func TestEventsHandlerPanic(t *testing.T) {
 	t.Cleanup(runner.Flush)
 
 	runner.Enqueue(api.EventTypeFlowActivated, 1)
-	runner.Enqueue(api.EventTypeFlowActivated, 2)
 
 	select {
 	case <-done:

@@ -15,7 +15,7 @@ import (
 // dependencies
 func TestPredicateSkipping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")

@@ -13,7 +13,7 @@ import (
 
 func TestFlowStepChildSuccess(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-step",
@@ -76,7 +76,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 
 func TestFlowStepChildFailureParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-fail",
@@ -117,7 +117,7 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 
 func TestFlowStepMissingGoalParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		parent := &api.Step{
 			ID:   "subflow-missing",
@@ -146,7 +146,7 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 
 func TestFlowStepMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-mapped",
@@ -211,7 +211,7 @@ func TestFlowStepMapping(t *testing.T) {
 
 func TestFlowStepMissingOutputParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-empty",

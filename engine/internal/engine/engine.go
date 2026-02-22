@@ -64,6 +64,7 @@ var (
 	ErrInvalidWorkTransition = errors.New("invalid work state transition")
 	ErrInvalidFlowCursor     = errors.New("invalid flow cursor")
 	ErrInvalidConfig         = errors.New("invalid config")
+	ErrRecoverFlows          = errors.New("failed to recover flows")
 )
 
 // New creates a new orchestrator instance with the specified stores, client,
@@ -95,7 +96,7 @@ func New(
 		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
 	}
-	e.eventQueue = NewEventQueue(e.raisePartitionEvent)
+	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
 	e.scripts = NewScriptRegistry()
 	e.mapper = NewMapper(e)
 
@@ -103,17 +104,18 @@ func New(
 }
 
 // Start begins processing flows and events
-func (e *Engine) Start() {
+func (e *Engine) Start() error {
 	slog.Info("Engine starting")
 
 	e.eventQueue.Start()
 
 	if err := e.RecoverFlows(); err != nil {
-		slog.Error("Failed to recover flows",
-			log.Error(err))
+		e.eventQueue.Cancel()
+		return fmt.Errorf("%w: %w", ErrRecoverFlows, err)
 	}
 
 	go e.retryLoop()
+	return nil
 }
 
 // Stop gracefully shuts down the engine
@@ -169,12 +171,8 @@ func (e *Engine) StartFlow(
 		}
 
 		for _, stepID := range tx.findInitialSteps(tx.Value()) {
-			err := tx.prepareStep(stepID)
-			if err != nil {
-				slog.Warn("Failed to prepare step",
-					log.StepID(stepID),
-					log.Error(err))
-				continue
+			if err := tx.prepareStep(stepID); err != nil {
+				return err
 			}
 		}
 		return nil
@@ -280,9 +278,21 @@ func (e *Engine) raiseCatalogEvent(typ api.EventType, data any) error {
 }
 
 func (e *Engine) raisePartitionEvent(typ api.EventType, data any) error {
+	return e.raisePartitionEvents([]QueueEvent{{
+		Type: typ,
+		Data: data,
+	}})
+}
+
+func (e *Engine) raisePartitionEvents(evs []QueueEvent) error {
 	_, err := e.execPartition(
 		func(st *api.PartitionState, ag *PartitionAggregator) error {
-			return events.Raise(ag, typ, data)
+			for _, ev := range evs {
+				if err := events.Raise(ag, ev.Type, ev.Data); err != nil {
+					return err
+				}
+			}
+			return nil
 		},
 	)
 	return err

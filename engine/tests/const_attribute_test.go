@@ -13,7 +13,7 @@ import (
 // TestConstAttribute verifies const attributes always use their default value
 func TestConstAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewScriptStep(
 			"step-const",

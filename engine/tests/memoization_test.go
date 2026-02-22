@@ -12,7 +12,7 @@ import (
 
 func TestMemoizationHit(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		s := helpers.NewTestStepWithArgs(nil, nil)
 		s.ID = "memo"
@@ -54,7 +54,7 @@ func TestMemoizationHit(t *testing.T) {
 
 func TestMemoizationMiss(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		s := helpers.NewTestStepWithArgs([]api.Name{"in"}, nil)
 		s.ID = "memo"

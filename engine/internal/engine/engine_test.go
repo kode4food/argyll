@@ -94,7 +94,7 @@ func TestUnregisterStep(t *testing.T) {
 
 func TestHTTPExecution(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithOutputs("http-step", "output")
 
@@ -134,7 +134,7 @@ func TestScriptExecution(t *testing.T) {
 
 func TestPredicateExecution(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithPredicate(
 			"predicate-step", api.ScriptLangAle, "true", "output",
@@ -159,7 +159,7 @@ func TestPredicateExecution(t *testing.T) {
 
 func TestPredicateFalse(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewStepWithPredicate(
@@ -231,7 +231,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 
 func TestLuaPredicate(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewStepWithPredicate(
@@ -257,13 +257,13 @@ func TestLuaPredicate(t *testing.T) {
 
 func TestWorkFailed(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewStepWithOutputs("fail-step", "output")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
-			Backoff:     10,
+			InitBackoff: 10,
 			MaxBackoff:  10,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -289,7 +289,7 @@ func TestWorkFailed(t *testing.T) {
 
 func TestPredicateError(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewStepWithPredicate(

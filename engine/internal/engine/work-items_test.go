@@ -1,18 +1,20 @@
 package engine_test
 
 import (
+	"errors"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestForEachAggregatesOutputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := &api.Step{
 			ID:   "foreach-step",
@@ -76,7 +78,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 
 func TestOutputMappingCollectsDescendants(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := &api.Step{
 			ID:   "mapped-descendants-step",
@@ -131,6 +133,41 @@ func TestOutputMappingCollectsDescendants(t *testing.T) {
 		books, ok := raw.([]any)
 		assert.True(t, ok)
 		assert.Equal(t, []any{"A", "B"}, books)
+	})
+}
+
+func TestTooManyWorkItems(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		step := &api.Step{
+			ID:   "foreach-overload",
+			Name: "ForEach Overload",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+			},
+			Attributes: api.AttributeSpecs{
+				"x": {Role: api.RoleRequired, Type: api.TypeArray, ForEach: true},
+				"y": {Role: api.RoleRequired, Type: api.TypeArray, ForEach: true},
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(step))
+
+		// 101 * 101 = 10,201 items, exceeds MaxWorkItemsPerStep (10,000)
+		xArr := make([]any, 101)
+		yArr := make([]any, 101)
+		for i := range xArr {
+			xArr[i] = i
+			yArr[i] = i
+		}
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+		err := env.Engine.StartFlow("wf-too-many", plan,
+			flowopt.WithInit(api.Args{"x": xArr, "y": yArr}),
+		)
+		assert.True(t, errors.Is(err, engine.ErrTooManyWorkItems))
 	})
 }
 

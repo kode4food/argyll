@@ -13,7 +13,7 @@ import (
 // gracefully and cause the flow to fail
 func TestScriptStepErrorAle(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: Produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -102,7 +102,7 @@ func TestScriptStepErrorAle(t *testing.T) {
 // gracefully and cause the flow to fail
 func TestScriptStepErrorLua(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: Produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")

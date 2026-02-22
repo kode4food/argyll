@@ -12,7 +12,7 @@ import (
 
 func TestLinearFlowCompletes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		producer := &api.Step{
 			ID:   "producer",
@@ -72,7 +72,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 
 func TestUndeclaredOutputsIgnored(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		producer := &api.Step{
 			ID:   "producer",
@@ -139,7 +139,7 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 
 func TestPendingUnusedSkip(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		providerA := &api.Step{
 			ID:   "provider-a",
@@ -213,7 +213,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 
 func TestMemoizableStepUsesCache(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewTestStep()
 		step.Memoizable = true

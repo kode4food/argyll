@@ -13,7 +13,7 @@ import (
 // necessary dependencies (union of paths) and only those steps
 func TestMultipleGoals(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: Produces both "valueB" and "valueD"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueB", "valueD")

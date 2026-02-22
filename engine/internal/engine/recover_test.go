@@ -15,7 +15,7 @@ import (
 
 func TestRecoveryActivation(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		flowID := api.FlowID("test-flow")
 
@@ -40,7 +40,7 @@ func TestRecoveryActivation(t *testing.T) {
 
 func TestRecoveryDeactivation(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		flowID := api.FlowID("test-flow")
 
@@ -94,7 +94,7 @@ func TestShouldRetryStep(t *testing.T) {
 			name: "zero max retries uses global defaults",
 			config: &api.WorkConfig{
 				MaxRetries:  0,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -106,7 +106,7 @@ func TestShouldRetryStep(t *testing.T) {
 			name: "within limit",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -118,7 +118,7 @@ func TestShouldRetryStep(t *testing.T) {
 			name: "at limit",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -130,7 +130,7 @@ func TestShouldRetryStep(t *testing.T) {
 			name: "unlimited retries",
 			config: &api.WorkConfig{
 				MaxRetries:  -1,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -231,7 +231,7 @@ func TestCalculateNextRetry(t *testing.T) {
 		for _, sc := range scenarios {
 			t.Run(sc.name, func(t *testing.T) {
 				config := &api.WorkConfig{
-					Backoff:     sc.backoff,
+					InitBackoff: sc.backoff,
 					MaxBackoff:  sc.maxBackoff,
 					BackoffType: sc.backoffType,
 				}
@@ -253,7 +253,7 @@ func TestCalculateNextRetry(t *testing.T) {
 func TestRetryDefaults(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		config := &api.WorkConfig{
-			Backoff:     750,
+			InitBackoff: 750,
 			MaxBackoff:  1200,
 			BackoffType: "unknown",
 		}
@@ -269,12 +269,12 @@ func TestRetryDefaults(t *testing.T) {
 
 func TestRetryExhaustion(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("failing-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  1000,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -384,7 +384,7 @@ func TestFindRetriableSteps(t *testing.T) {
 
 func TestRecoverActiveFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		flowID1 := api.FlowID("flow-1")
 		flowID2 := api.FlowID("flow-2")
@@ -416,7 +416,7 @@ func TestRecoverActiveFlows(t *testing.T) {
 
 func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("retry-active")
 		step.Type = api.StepTypeAsync
@@ -449,7 +449,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 
 func TestConcurrentRecoveryState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		count := 10
 
@@ -506,7 +506,7 @@ func TestWorkConfigValidation(t *testing.T) {
 			name: "valid fixed config",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -516,7 +516,7 @@ func TestWorkConfigValidation(t *testing.T) {
 			name: "negative backoff invalid",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     -1000,
+				InitBackoff: -1000,
 				MaxBackoff:  10000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -526,7 +526,7 @@ func TestWorkConfigValidation(t *testing.T) {
 			name: "max less than backoff invalid",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     10000,
+				InitBackoff: 10000,
 				MaxBackoff:  1000,
 				BackoffType: api.BackoffTypeFixed,
 			},
@@ -536,7 +536,7 @@ func TestWorkConfigValidation(t *testing.T) {
 			name: "invalid backoff type",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: "invalid",
 			},
@@ -546,7 +546,7 @@ func TestWorkConfigValidation(t *testing.T) {
 			name: "empty backoff type",
 			config: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  10000,
 				BackoffType: "",
 			},
@@ -664,12 +664,12 @@ func TestNoRetryableSteps(t *testing.T) {
 
 func TestWorkActiveItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("step-1")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     100,
+			InitBackoff: 100,
 			MaxBackoff:  1000,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -701,12 +701,12 @@ func TestWorkActiveItems(t *testing.T) {
 
 func TestPendingWorkWithActiveStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("step-1")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     100,
+			InitBackoff: 100,
 			MaxBackoff:  1000,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -735,12 +735,12 @@ func TestPendingWorkWithActiveStep(t *testing.T) {
 
 func TestFailedWorkRetryable(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("failing-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     100,
+			InitBackoff: 100,
 			MaxBackoff:  1000,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -782,7 +782,7 @@ func TestInvalidFlowID(t *testing.T) {
 
 func TestMultipleFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("step-1")
 		plan := &api.ExecutionPlan{
@@ -835,7 +835,7 @@ func TestMissingStepInPlan(t *testing.T) {
 
 func TestRecoverFlowsWithFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("step-1")
 		plan := &api.ExecutionPlan{
@@ -863,7 +863,7 @@ func TestRecoverFlowsWithFailure(t *testing.T) {
 
 func TestRecoverFlowNilWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		flowID := api.FlowID("nil-work-flow")
 
@@ -937,7 +937,7 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
 		env.WaitFor(wait.FlowActivated(flowID), func() {
-			env.Engine.Start()
+			assert.NoError(t, env.Engine.Start())
 		})
 
 		invoked := env.MockClient.WaitForInvocation(step.ID, 2*time.Second)
@@ -1206,7 +1206,7 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 
 func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		activeFlowID := api.FlowID("recover-active")
 		deactivatedFlowID := api.FlowID("recover-deactivated")
@@ -1288,7 +1288,7 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 
 		restarted, err := env.NewEngineInstance()
 		assert.NoError(t, err)
-		restarted.Start()
+		assert.NoError(t, restarted.Start())
 		defer func() { _ = restarted.Stop() }()
 
 		assert.True(t,

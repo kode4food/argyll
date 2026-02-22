@@ -64,7 +64,7 @@ func (e *Engine) CalculateNextRetry(
 	}
 
 	delay := min(
-		calculator(config.Backoff, retryCount), config.MaxBackoff,
+		calculator(config.InitBackoff, retryCount), config.MaxBackoff,
 	)
 
 	return time.Now().Add(time.Duration(delay) * time.Millisecond)
@@ -425,8 +425,8 @@ func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
 	if config.MaxRetries != 0 {
 		res.MaxRetries = config.MaxRetries
 	}
-	if config.Backoff > 0 {
-		res.Backoff = config.Backoff
+	if config.InitBackoff > 0 {
+		res.InitBackoff = config.InitBackoff
 	}
 	if config.MaxBackoff > 0 {
 		res.MaxBackoff = config.MaxBackoff

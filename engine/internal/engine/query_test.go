@@ -18,7 +18,7 @@ import (
 
 func TestQueryFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("test")
@@ -44,7 +44,7 @@ func TestQueryFlows(t *testing.T) {
 
 func TestListFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("list-step")
@@ -70,7 +70,7 @@ func TestListFlows(t *testing.T) {
 
 func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		activeStep := helpers.NewSimpleStep("active-step")
@@ -168,7 +168,7 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 
 func TestQueryFlowsSortAsc(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("sort-step")
@@ -201,7 +201,7 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 
 func TestQueryFlowsPaginationAsc(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("page-step")
@@ -250,7 +250,7 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 
 func TestQueryFlowsInvalidCursor(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -324,7 +324,7 @@ func flowRecent(digest *api.FlowDigest) time.Time {
 
 func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-list",

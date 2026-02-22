@@ -13,7 +13,7 @@ import (
 // executed, even when many other steps are registered
 func TestLazyEvaluation(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Create 10 steps, but only A→B→C form path to goal
 		// Step A: No inputs, produces "valueA"

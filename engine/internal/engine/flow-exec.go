@@ -1,8 +1,8 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
-	"log/slog"
 	"maps"
 	"time"
 
@@ -10,7 +10,6 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
-	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type flowTx struct {
@@ -18,6 +17,10 @@ type flowTx struct {
 	*FlowAggregator
 	flowID api.FlowID
 }
+
+var (
+	ErrInvariantViolated = errors.New("engine invariant violated")
+)
 
 func (e *Engine) flowTx(flowID api.FlowID, fn func(*flowTx) error) error {
 	_, err := e.execFlow(events.FlowKey(flowID),
@@ -74,7 +77,10 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	}
 
 	// Compute work items
-	workItemsList := computeWorkItems(step, inputs)
+	workItemsList, err := computeWorkItems(step, inputs)
+	if err != nil {
+		return err
+	}
 	workItemsMap := map[api.Token]api.Args{}
 	for _, workInputs := range workItemsList {
 		token := api.Token(uuid.New().String())
@@ -261,7 +267,8 @@ func (tx *flowTx) getFailureReason(flow *api.FlowState) string {
 func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
-		return false, nil
+		return false, fmt.Errorf("%w: expected %s to be active, got %s",
+			ErrInvariantViolated, stepID, exec.Status)
 	}
 
 	allDone := true
@@ -381,7 +388,8 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 func (tx *flowTx) scheduleRetry(stepID api.StepID, token api.Token) error {
 	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
-		return nil
+		return fmt.Errorf("%w: expected %s to be active, got %s",
+			ErrInvariantViolated, stepID, exec.Status)
 	}
 
 	workItem, ok := exec.WorkItems[token]
@@ -456,12 +464,11 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 
 	// Find and start downstream ready steps
 	for _, consumerID := range tx.findReadySteps(stepID, tx.Value()) {
-		err := tx.prepareStep(consumerID)
-		if err != nil {
-			slog.Warn("Failed to prepare step",
-				log.StepID(consumerID),
-				log.Error(err))
-			continue
+		if err := tx.prepareStep(consumerID); err != nil {
+			if errors.Is(err, ErrStepAlreadyPending) {
+				continue // concurrent completion already started this step
+			}
+			return err
 		}
 	}
 	return nil
@@ -498,7 +505,8 @@ func (tx *flowTx) startPendingWork(
 ) (api.WorkItems, error) {
 	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
-		return nil, nil
+		return nil, fmt.Errorf("%w: expected %s to be active, got %s",
+			ErrInvariantViolated, stepID, exec.Status)
 	}
 
 	limit := stepParallelism(step)

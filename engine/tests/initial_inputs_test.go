@@ -16,7 +16,7 @@ import (
 // provided when the flow starts and are available to all steps
 func TestInitialFlowInputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A (Goal): Requires "initialValue" and "configValue", produces
 		// "result". Neither initialValue nor configValue are produced by any

@@ -11,6 +11,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -540,6 +541,42 @@ func TestCreateStepInvalidText(t *testing.T) {
 	})
 }
 
+func TestCreateStepBodyTooLarge(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		body := bytes.Repeat([]byte("x"), server.MaxStepBodyBytes+1)
+		req := httptest.NewRequest(
+			"POST", "/engine/step", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := env.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestUpdateStepBodyTooLarge(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		step := helpers.NewSimpleStep("large-update-step")
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		body := bytes.Repeat([]byte("x"), server.MaxStepBodyBytes+1)
+		req := httptest.NewRequest(
+			"PUT", "/engine/step/large-update-step", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := env.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
 func TestDeleteStepInternalError(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		step := helpers.NewSimpleStep("test-delete-step")
@@ -560,7 +597,7 @@ func TestDeleteStepInternalError(t *testing.T) {
 
 func TestListStepsRunning(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step1 := helpers.NewSimpleStep("step-1")

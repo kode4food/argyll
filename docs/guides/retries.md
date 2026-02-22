@@ -23,7 +23,7 @@ If a step returns `success: true`, the work item is considered complete regardle
 Retry configuration lives in the step's `work_config`:
 
 - `max_retries`
-- `backoff` (milliseconds)
+- `init_backoff` (milliseconds)
 - `max_backoff` (milliseconds)
 - `backoff_type` (fixed, linear, exponential)
 
@@ -32,13 +32,13 @@ Semantics:
 - `max_retries > 0` limits the number of attempts
 - `max_retries = -1` allows unlimited retries
 - `max_retries = 0` falls back to global default (`RETRY_MAX_RETRIES`)
-- `backoff = 0` falls back to global default (`RETRY_BACKOFF`)
+- `init_backoff = 0` falls back to global default (`RETRY_INITIAL_BACKOFF`)
 - `max_backoff = 0` falls back to global default (`RETRY_MAX_BACKOFF`)
 - empty `backoff_type` falls back to global default (`RETRY_BACKOFF_TYPE`)
 
-There is no step-level "disable retries" switch. Step retry fields only override non-zero/non-empty values. Omitted or zero-valued retry fields inherit global retry defaults (`RETRY_MAX_RETRIES`, `RETRY_BACKOFF`, `RETRY_MAX_BACKOFF`, `RETRY_BACKOFF_TYPE`).
+There is no step-level "disable retries" switch. Step retry fields only override non-zero/non-empty values. Omitted or zero-valued retry fields inherit global retry defaults (`RETRY_MAX_RETRIES`, `RETRY_INITIAL_BACKOFF`, `RETRY_MAX_BACKOFF`, `RETRY_BACKOFF_TYPE`).
 
-Global retry defaults are validated at startup. Invalid values (for example `RETRY_MAX_RETRIES=0`, `RETRY_BACKOFF<=0`, `RETRY_MAX_BACKOFF<=0`, `RETRY_MAX_BACKOFF<RETRY_BACKOFF`, or invalid `RETRY_BACKOFF_TYPE`) fail engine startup.
+Global retry defaults are validated at startup. Invalid values (for example `RETRY_MAX_RETRIES=0`, `RETRY_INITIAL_BACKOFF<=0`, `RETRY_MAX_BACKOFF<=0`, `RETRY_MAX_BACKOFF<RETRY_INITIAL_BACKOFF`, or invalid `RETRY_BACKOFF_TYPE`) fail engine startup.
 
 ## Backoff strategies
 

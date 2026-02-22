@@ -68,9 +68,9 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "zero_retry_backoff",
 			configMod: func(c *config.Config) {
-				c.Work.Backoff = 0
+				c.Work.InitBackoff = 0
 			},
-			errorContains: "retry backoff must be positive",
+			errorContains: "retry initial backoff must be positive",
 		},
 		{
 			name: "zero_retry_max_backoff",
@@ -82,7 +82,7 @@ func TestConfigValidation(t *testing.T) {
 		{
 			name: "retry_max_backoff_too_small",
 			configMod: func(c *config.Config) {
-				c.Work.Backoff = 1000
+				c.Work.InitBackoff = 1000
 				c.Work.MaxBackoff = 999
 			},
 			errorContains: "retry max backoff must be >=",
@@ -259,7 +259,7 @@ func TestWithDefaults(t *testing.T) {
 			config.DefaultRetryMaxRetries, out.Work.MaxRetries,
 		)
 		testify.Equal(t,
-			int64(config.DefaultRetryBackoff), out.Work.Backoff,
+			int64(config.DefaultRetryInitBackoff), out.Work.InitBackoff,
 		)
 		testify.Equal(t,
 			int64(config.DefaultMaxRetryBackoff), out.Work.MaxBackoff,
@@ -272,14 +272,14 @@ func TestWithDefaults(t *testing.T) {
 	t.Run("preserves explicit values", func(t *testing.T) {
 		cfg := config.NewDefaultConfig()
 		cfg.Work.MaxRetries = 5
-		cfg.Work.Backoff = 2000
+		cfg.Work.InitBackoff = 2000
 		cfg.Work.MaxBackoff = 30000
 		cfg.Work.BackoffType = "fixed"
 
 		out := cfg.WithWorkDefaults()
 
 		testify.Equal(t, 5, out.Work.MaxRetries)
-		testify.Equal(t, int64(2000), out.Work.Backoff)
+		testify.Equal(t, int64(2000), out.Work.InitBackoff)
 		testify.Equal(t, int64(30000), out.Work.MaxBackoff)
 		testify.Equal(t, "fixed", out.Work.BackoffType)
 	})
@@ -292,7 +292,7 @@ func TestWithDefaults(t *testing.T) {
 		_ = cfg.WithWorkDefaults()
 
 		testify.Equal(t, 0, cfg.Work.MaxRetries)
-		testify.Equal(t, int64(0), cfg.Work.Backoff)
+		testify.Equal(t, int64(0), cfg.Work.InitBackoff)
 	})
 }
 
@@ -424,10 +424,10 @@ func TestConfigLoadFromEnv(t *testing.T) {
 		{
 			name: "load_retry_backoff",
 			envVars: map[string]string{
-				"RETRY_BACKOFF": "2000",
+				"RETRY_INITIAL_BACKOFF": "2000",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, int64(2000), c.Work.Backoff)
+				testify.Equal(t, int64(2000), c.Work.InitBackoff)
 			},
 		},
 		{
@@ -475,11 +475,11 @@ func TestConfigLoadFromEnv(t *testing.T) {
 		{
 			name: "invalid_retry_backoff_ignored",
 			envVars: map[string]string{
-				"RETRY_BACKOFF": "invalid",
+				"RETRY_INITIAL_BACKOFF": "invalid",
 			},
 			check: func(t *testing.T, c *config.Config) {
 				testify.Equal(t,
-					int64(config.DefaultRetryBackoff), c.Work.Backoff,
+					int64(config.DefaultRetryInitBackoff), c.Work.InitBackoff,
 				)
 			},
 		},

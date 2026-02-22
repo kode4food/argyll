@@ -1069,7 +1069,7 @@ components:
             Maximum number of retries on failure.
             `0` means use global default, `-1` means unlimited retries.
           example: 3
-        backoff:
+        init_backoff:
           type: integer
           format: int64
           description: |

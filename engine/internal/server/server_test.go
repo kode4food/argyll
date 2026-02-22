@@ -3,8 +3,10 @@ package server_test
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -70,7 +72,7 @@ func TestStartFlow(t *testing.T) {
 
 func TestQueryFlows(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		req := httptest.NewRequest(
@@ -88,7 +90,7 @@ func TestQueryFlows(t *testing.T) {
 
 func TestListFlows(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		req := httptest.NewRequest("GET", "/engine/flow", nil)
@@ -103,7 +105,7 @@ func TestListFlows(t *testing.T) {
 
 func TestSuccess(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := &api.Step{
@@ -197,7 +199,7 @@ func TestHookFlowNotFound(t *testing.T) {
 
 func TestHookStepNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := &api.Step{
@@ -242,7 +244,7 @@ func TestHookStepNotFound(t *testing.T) {
 
 func TestHookInvalidToken(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := &api.Step{
@@ -299,7 +301,7 @@ func TestHookInvalidToken(t *testing.T) {
 
 func TestHookInvalidJSONRoute(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := &api.Step{
@@ -362,7 +364,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 
 func TestHookFailurePath(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := &api.Step{
@@ -433,7 +435,7 @@ func TestHookFailurePath(t *testing.T) {
 
 func TestGetFlow(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("get-wf-step")
@@ -674,7 +676,7 @@ func TestQueryFlowsEmpty(t *testing.T) {
 
 func TestListFlowsEndpoint(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("list-step")
@@ -1000,7 +1002,7 @@ func TestSanitizeFlowID(t *testing.T) {
 
 func TestQueryFlowsMultiple(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		var err error
@@ -1046,7 +1048,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 
 func TestGetEngine(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("test-step")
@@ -1072,7 +1074,7 @@ func TestGetEngine(t *testing.T) {
 
 func TestHealthList(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("health-test-step")
@@ -1096,7 +1098,7 @@ func TestHealthList(t *testing.T) {
 
 func TestHookSuccessRoute(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		testEnv.Engine.Start()
+		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		step := &api.Step{
@@ -1172,5 +1174,221 @@ func TestSocketEndpoint(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestQueryFlowsInvalidJSON(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader([]byte("not json")),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+	})
+}
+
+func TestQueryFlowsLimitTooHigh(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		reqBody := map[string]any{"limit": server.MaxQueryLimit + 1}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Limit must be between")
+	})
+}
+
+func TestQueryFlowsNegativeLimit(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		reqBody := map[string]any{"limit": -1}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Limit must be between")
+	})
+}
+
+func TestQueryFlowsInvalidSort(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		reqBody := map[string]any{"sort": "invalid-sort-value"}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid sort")
+	})
+}
+
+func TestQueryFlowsInvalidIDPrefix(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		reqBody := map[string]any{"id_prefix": "bad!prefix"}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid ID prefix")
+	})
+}
+
+func TestQueryFlowsInvalidLabelEmptyKey(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		reqBody := map[string]any{"labels": map[string]string{"": "value"}}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow/query", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Invalid labels")
+	})
+}
+
+func TestStartFlowIDTooLong(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		step := helpers.NewSimpleStep("test-step-long-id")
+		err := testEnv.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		longID := api.FlowID(strings.Repeat("a", server.MaxFlowIDLen+1))
+		reqBody := api.CreateFlowRequest{
+			ID:    longID,
+			Goals: []api.StepID{"test-step-long-id"},
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "exceeds maximum length")
+	})
+}
+
+func TestStartFlowTooManyGoals(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		goals := make([]api.StepID, server.MaxGoalCount+1)
+		for i := range goals {
+			goals[i] = api.StepID(fmt.Sprintf("step-%d", i))
+		}
+		reqBody := api.CreateFlowRequest{
+			ID:    "too-many-goals",
+			Goals: goals,
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Number of goals exceeds maximum")
+	})
+}
+
+func TestStartFlowTooManyInitKeys(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		step := helpers.NewSimpleStep("test-step-init-keys")
+		err := testEnv.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		init := api.Args{}
+		for i := range server.MaxInitKeys + 1 {
+			init[api.Name(fmt.Sprintf("key-%d", i))] = "value"
+		}
+		reqBody := api.CreateFlowRequest{
+			ID:    "too-many-init-keys",
+			Goals: []api.StepID{"test-step-init-keys"},
+			Init:  init,
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Init state exceeds maximum")
+	})
+}
+
+func TestStartFlowTooManyLabels(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		step := helpers.NewSimpleStep("test-step-labels")
+		err := testEnv.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		labels := api.Labels{}
+		for i := range server.MaxLabelCount + 1 {
+			labels[fmt.Sprintf("label-%d", i)] = "value"
+		}
+		reqBody := api.CreateFlowRequest{
+			ID:     "too-many-labels",
+			Goals:  []api.StepID{"test-step-labels"},
+			Labels: labels,
+		}
+		body, _ := json.Marshal(reqBody)
+		req := httptest.NewRequest(
+			"POST", "/engine/flow", bytes.NewReader(body),
+		)
+		req.Header.Set("Content-Type", "application/json")
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusBadRequest, w.Code)
+		assert.Contains(t, w.Body.String(), "Labels exceed maximum")
 	})
 }

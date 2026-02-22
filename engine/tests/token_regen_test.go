@@ -16,13 +16,13 @@ const retryBackoffMs = 200
 // across retries
 func TestMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithOutputs("memo-retry", "result")
 		step.Memoizable = true
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
-			Backoff:     retryBackoffMs,
+			InitBackoff: retryBackoffMs,
 			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -70,13 +70,13 @@ func TestMemoStepReusesToken(t *testing.T) {
 // a new token on retry
 func TestNonMemoStepRegeneratesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithOutputs("non-memo-retry", "result")
 		step.Memoizable = false
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
-			Backoff:     retryBackoffMs,
+			InitBackoff: retryBackoffMs,
 			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -124,13 +124,13 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 // for non-memoizable steps
 func TestRetriesRegenerateTokens(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithOutputs("multi-retry", "result")
 		step.Memoizable = false
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     retryBackoffMs,
+			InitBackoff: retryBackoffMs,
 			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}

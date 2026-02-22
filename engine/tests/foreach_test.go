@@ -13,7 +13,7 @@ import (
 // work items (one per array element) and aggregate outputs correctly
 func TestForEachWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: Produces array "items"
 		stepA := helpers.NewStepWithOutputs("step-a", "items")

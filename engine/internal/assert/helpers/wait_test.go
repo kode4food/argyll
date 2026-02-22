@@ -14,7 +14,7 @@ import (
 
 func TestWaitForFlowCompletedEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("completed-step")
@@ -44,7 +44,7 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 
 func TestWaitForFlowFailedEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("failed-step")
@@ -74,7 +74,7 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 
 func TestWaitForStepStartedEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("started-step")
@@ -103,7 +103,7 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 
 func TestWaitForStepTerminalEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("terminal-step")
@@ -138,7 +138,7 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 
 func TestWaitForWorkSucceededEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("work-succeeded")
@@ -167,7 +167,7 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 
 func TestWaitForWorkFailedEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("work-failed")
@@ -196,13 +196,13 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 
 func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("work-retry")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
-			Backoff:     10,
+			InitBackoff: 10,
 			MaxBackoff:  10,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -231,7 +231,7 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 
 func TestWaitForEngineEvents(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("engine-events")
@@ -248,7 +248,7 @@ func TestWaitForEngineEvents(t *testing.T) {
 
 func TestWaitFlowCompleted(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("simple-step")
@@ -274,7 +274,7 @@ func TestWaitFlowCompleted(t *testing.T) {
 
 func TestWaitFlowFailed(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("failing-step")
@@ -300,13 +300,13 @@ func TestWaitFlowFailed(t *testing.T) {
 
 func TestWaitFlowStatusTerminal(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("polling-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  -1,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -340,7 +340,7 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 
 func TestWaitStepCompleted(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("step-complete")
@@ -366,7 +366,7 @@ func TestWaitStepCompleted(t *testing.T) {
 
 func TestWaitStepFailed(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("step-fail")
@@ -392,7 +392,7 @@ func TestWaitStepFailed(t *testing.T) {
 
 func TestWaitStepSkipped(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewStepWithPredicate(
@@ -418,7 +418,7 @@ func TestWaitStepSkipped(t *testing.T) {
 
 func TestWaitForHelper(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("waitfor-step")
@@ -441,7 +441,7 @@ func TestWaitForHelper(t *testing.T) {
 
 func TestWaitForCountHelper(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		env.WaitForCount(
@@ -457,7 +457,7 @@ func TestWaitForCountHelper(t *testing.T) {
 
 func TestWaitAfterAllHelper(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := helpers.NewSimpleStep("waitafterall-step")

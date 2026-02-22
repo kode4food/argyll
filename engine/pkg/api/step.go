@@ -60,7 +60,7 @@ type (
 	// multiple work items
 	WorkConfig struct {
 		MaxRetries  int    `json:"max_retries,omitempty"`
-		Backoff     int64  `json:"backoff,omitempty"`
+		InitBackoff int64  `json:"init_backoff,omitempty"`
 		MaxBackoff  int64  `json:"max_backoff,omitempty"`
 		BackoffType string `json:"backoff_type,omitempty"`
 		Parallelism int    `json:"parallelism,omitempty"`
@@ -240,8 +240,8 @@ func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 	if res.WorkConfig.MaxRetries == 0 {
 		res.WorkConfig.MaxRetries = defaults.MaxRetries
 	}
-	if res.WorkConfig.Backoff == 0 {
-		res.WorkConfig.Backoff = defaults.Backoff
+	if res.WorkConfig.InitBackoff == 0 {
+		res.WorkConfig.InitBackoff = defaults.InitBackoff
 	}
 	if res.WorkConfig.MaxBackoff == 0 {
 		res.WorkConfig.MaxBackoff = defaults.MaxBackoff
@@ -468,12 +468,12 @@ func (s *Step) validateWorkConfig() error {
 		return ErrInvalidParallelism
 	}
 
-	if s.WorkConfig.Backoff < 0 {
+	if s.WorkConfig.InitBackoff < 0 {
 		return ErrNegativeBackoff
 	}
 
 	if s.WorkConfig.MaxBackoff != 0 &&
-		s.WorkConfig.MaxBackoff < s.WorkConfig.Backoff {
+		s.WorkConfig.MaxBackoff < s.WorkConfig.InitBackoff {
 		return ErrMaxBackoffTooSmall
 	}
 
@@ -578,7 +578,7 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 	return equalWithNilCheck(c, other, func() bool {
 		return c.Parallelism == other.Parallelism &&
 			c.MaxRetries == other.MaxRetries &&
-			c.Backoff == other.Backoff &&
+			c.InitBackoff == other.InitBackoff &&
 			c.MaxBackoff == other.MaxBackoff &&
 			c.BackoffType == other.BackoffType
 	})

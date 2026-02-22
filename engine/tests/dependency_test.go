@@ -13,7 +13,7 @@ import (
 // correctly with proper attribute propagation
 func TestDependencyChain(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: No inputs, produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
@@ -93,7 +93,7 @@ func TestDependencyChain(t *testing.T) {
 // executes correctly with parallel execution of B and C
 func TestDiamondDependencies(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: Produces both "valueB" and "valueC"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueB", "valueC")

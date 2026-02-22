@@ -73,7 +73,7 @@ export interface FlowConfig {
 
 export interface WorkConfig {
   max_retries?: number;
-  backoff?: number;
+  init_backoff?: number;
   max_backoff?: number;
   backoff_type?: "fixed" | "linear" | "exponential";
   parallelism?: number;

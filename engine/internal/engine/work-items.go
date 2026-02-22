@@ -2,11 +2,19 @@ package engine
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"maps"
 
 	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+)
+
+const MaxWorkItemsPerStep = 10000
+
+var (
+	ErrTooManyWorkItems = errors.New("too many work items")
 )
 
 func (e *Engine) collectStepOutputs(
@@ -30,13 +38,18 @@ func (e *Engine) collectStepOutputs(
 	}
 }
 
-func computeWorkItems(step *api.Step, inputs api.Args) []api.Args {
+func computeWorkItems(step *api.Step, inputs api.Args) ([]api.Args, error) {
 	argNames := step.MultiArgNames()
 	multiArgs := getMultiArgs(argNames, inputs)
 	if len(multiArgs) == 0 {
-		return []api.Args{inputs}
+		return []api.Args{inputs}, nil
 	}
-	return cartesianProduct(multiArgs, inputs)
+
+	if n := productSize(multiArgs); n > MaxWorkItemsPerStep {
+		return nil, fmt.Errorf("%w: %d (max %d)",
+			ErrTooManyWorkItems, n, MaxWorkItemsPerStep)
+	}
+	return cartesianProduct(multiArgs, inputs), nil
 }
 
 func getMultiArgs(argNames []api.Name, inputs api.Args) MultiArgs {
@@ -71,6 +84,14 @@ func asArray(value any) []any {
 		arr = append(arr, item.Value())
 	}
 	return arr
+}
+
+func productSize(multiArgs MultiArgs) int {
+	n := 1
+	for _, arr := range multiArgs {
+		n *= len(arr)
+	}
+	return n
 }
 
 func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {

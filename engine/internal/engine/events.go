@@ -1,8 +1,11 @@
 package engine
 
 import (
+	"errors"
+	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/kode4food/caravan"
 	"github.com/kode4food/caravan/topic"
@@ -11,29 +14,40 @@ import (
 )
 
 type (
-	// EventQueue executes queued engine events sequentially
+	// EventQueue executes queued engine events sequentially, batching up to
+	// maxBatchSize events per handler call
 	EventQueue struct {
-		prod      topic.Producer[event]
-		cons      topic.Consumer[event]
-		handler   EventHandler
-		stop      chan struct{}
-		wg        sync.WaitGroup
-		startOnce sync.Once
-		flushOnce sync.Once
-		stopOnce  sync.Once
+		prod        topic.Producer[QueueEvent]
+		cons        topic.Consumer[QueueEvent]
+		handler     EventHandler
+		stop        chan struct{}
+		wg          sync.WaitGroup
+		startOnce   sync.Once
+		stopOnce    sync.Once
+		cleanupOnce sync.Once
 	}
 
-	EventHandler func(api.EventType, any) error
+	// EventHandler processes a batch of engine events in a single execution
+	EventHandler func([]QueueEvent) error
 
-	event struct {
-		typ  api.EventType
-		data any
+	// QueueEvent is an engine event envelope
+	QueueEvent struct {
+		Type api.EventType
+		Data any
 	}
+)
+
+var ErrEventHandlerPanicked = errors.New("event handler panicked")
+
+const (
+	maxBatchSize    = 128
+	maxEventRetries = 3
+	eventRetryDelay = 100 * time.Millisecond
 )
 
 // NewEventQueue creates a new engine event queue
 func NewEventQueue(handler EventHandler) *EventQueue {
-	queue := caravan.NewTopic[event]()
+	queue := caravan.NewTopic[QueueEvent]()
 	return &EventQueue{
 		prod:    queue.NewProducer(),
 		cons:    queue.NewConsumer(),
@@ -54,7 +68,7 @@ func (t *EventQueue) Start() {
 					if !ok {
 						return
 					}
-					t.handleEvent(ev)
+					t.handleBatch(t.collectBatch(ev))
 				}
 			}
 		})
@@ -63,9 +77,9 @@ func (t *EventQueue) Start() {
 
 // Enqueue adds an engine event to the queue
 func (t *EventQueue) Enqueue(typ api.EventType, data any) {
-	t.prod.Send() <- event{
-		typ:  typ,
-		data: data,
+	t.prod.Send() <- QueueEvent{
+		Type: typ,
+		Data: data,
 	}
 }
 
@@ -75,7 +89,32 @@ func (t *EventQueue) Flush() {
 		close(t.stop)
 	})
 	t.wg.Wait()
-	t.flushOnce.Do(t.flush)
+	t.cleanupOnce.Do(t.flush)
+}
+
+// Cancel immediately stops the queue without processing remaining events
+func (t *EventQueue) Cancel() {
+	t.stopOnce.Do(func() {
+		close(t.stop)
+	})
+	t.wg.Wait()
+	t.cleanupOnce.Do(t.close)
+}
+
+func (t *EventQueue) collectBatch(first QueueEvent) []QueueEvent {
+	batch := []QueueEvent{first}
+	for len(batch) < maxBatchSize {
+		select {
+		case ev, ok := <-t.cons.Receive():
+			if !ok {
+				return batch
+			}
+			batch = append(batch, ev)
+		default:
+			return batch
+		}
+	}
+	return batch
 }
 
 func (t *EventQueue) flush() {
@@ -86,7 +125,7 @@ func (t *EventQueue) flush() {
 				t.close()
 				return
 			}
-			t.handleEvent(ev)
+			t.handleBatch(t.collectBatch(ev))
 		default:
 			t.close()
 			return
@@ -99,16 +138,31 @@ func (t *EventQueue) close() {
 	t.cons.Close()
 }
 
-func (t *EventQueue) handleEvent(ev event) {
+func (t *EventQueue) handleBatch(batch []QueueEvent) {
+	for attempt := range maxEventRetries {
+		err := t.tryHandleBatch(batch)
+		if err == nil {
+			return
+		}
+		slog.Error("Engine event batch failed",
+			slog.Int("batch_size", len(batch)),
+			slog.Int("attempt", attempt+1),
+			slog.Int("max_attempts", maxEventRetries),
+			slog.Any("error", err))
+		if attempt < maxEventRetries-1 {
+			time.Sleep(eventRetryDelay)
+		}
+	}
+	slog.Error(
+		"Engine event batch permanently failed; partition state may diverge",
+		slog.Int("batch_size", len(batch)))
+}
+
+func (t *EventQueue) tryHandleBatch(batch []QueueEvent) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			slog.Error("Engine event panic",
-				slog.Any("panic", r))
+			err = fmt.Errorf("%w: %v", ErrEventHandlerPanicked, r)
 		}
 	}()
-	if err := t.handler(ev.typ, ev.data); err != nil {
-		slog.Error("Failed to raise engine event",
-			slog.String("event_type", string(ev.typ)),
-			slog.Any("error", err))
-	}
+	return t.handler(batch)
 }

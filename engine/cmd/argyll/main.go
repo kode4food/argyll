@@ -44,7 +44,10 @@ var logLevels = map[string]slog.Level{
 
 func main() {
 	cfg := config.NewDefaultConfig()
-	cfg.LoadFromEnv()
+	if err := cfg.LoadFromEnv(); err != nil {
+		slog.Error("Invalid configuration", log.Error(err))
+		os.Exit(1)
+	}
 
 	s := &argyll{
 		cfg:  cfg,
@@ -147,8 +150,7 @@ func (s *argyll) initializeEngine() error {
 		return err
 	}
 	s.engine = eng
-	s.engine.Start()
-	return nil
+	return s.engine.Start()
 }
 
 func (s *argyll) startServer() {

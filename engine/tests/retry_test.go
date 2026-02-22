@@ -13,13 +13,13 @@ import (
 // exhausting all retry attempts
 func TestRetryExhaustion(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Create a step that will always fail
 		step := helpers.NewStepWithOutputs("failing-step", "result")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     10,
+			InitBackoff: 10,
 			BackoffType: api.BackoffTypeFixed,
 		}
 

@@ -192,7 +192,7 @@ By default, work items are processed sequentially. Use **WorkConfig** to control
   "work_config": {
     "parallelism": 10,
     "max_retries": 3,
-    "backoff": 100,
+    "init_backoff": 100,
     "max_backoff": 5000,
     "backoff_type": "exponential"
   }
@@ -203,7 +203,7 @@ By default, work items are processed sequentially. Use **WorkConfig** to control
 |-------|---------|
 | `parallelism` | Max concurrent work items (`<= 0` or omitted defaults to `1`) |
 | `max_retries` | Retries per work item on failure |
-| `backoff` | Initial backoff (milliseconds) |
+| `init_backoff` | Initial backoff (milliseconds) |
 | `max_backoff` | Maximum backoff (milliseconds) |
 | `backoff_type` | `fixed`, `linear`, or `exponential` |
 

@@ -15,7 +15,7 @@ import (
 
 func TestHookInvalidWorkItem(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := &api.Step{
@@ -105,7 +105,7 @@ func TestHookExecutionMissing(t *testing.T) {
 
 func TestHookCompleteTwice(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := &api.Step{
@@ -200,7 +200,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 func TestHookFailTwice(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := &api.Step{
@@ -284,7 +284,7 @@ func TestHookFailTwice(t *testing.T) {
 
 func TestHookSuccess(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := &api.Step{
@@ -347,7 +347,7 @@ func TestHookSuccess(t *testing.T) {
 
 func TestHookWorkFailure(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := &api.Step{
@@ -407,7 +407,7 @@ func TestHookWorkFailure(t *testing.T) {
 
 func TestHookInvalidJSON(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
 		step := &api.Step{

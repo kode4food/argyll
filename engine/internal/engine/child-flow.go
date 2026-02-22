@@ -82,16 +82,27 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 		childAttrs := st.GetAttributes()
 		outputs, err := mapFlowOutputs(target.step, childAttrs)
 		if err != nil {
-			_ = tx.FailWork(target.fs, target.token, err.Error())
+			ferr := tx.FailWork(target.fs, target.token, err.Error())
+			if ferr != nil {
+				slog.Error("Failed to fail parent work item",
+					log.FlowID(tx.flowID), log.Error(ferr))
+			}
 			return
 		}
-		_ = tx.CompleteWork(target.fs, target.token, outputs)
+		cerr := tx.CompleteWork(target.fs, target.token, outputs)
+		if cerr != nil {
+			slog.Error("Failed to complete parent work item",
+				log.FlowID(tx.flowID), log.Error(cerr))
+		}
 	case api.FlowFailed:
 		errMsg := st.Error
 		if errMsg == "" {
 			errMsg = "child flow failed"
 		}
-		_ = tx.FailWork(target.fs, target.token, errMsg)
+		if ferr := tx.FailWork(target.fs, target.token, errMsg); ferr != nil {
+			slog.Error("Failed to fail parent work item",
+				log.FlowID(tx.flowID), log.Error(ferr))
+		}
 	}
 }
 

@@ -15,7 +15,7 @@ import (
 // steps complete successfully while dependent steps fail
 func TestPartialFlowFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step A: No inputs, produces "valueB" and "valueC"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueB", "valueC")
@@ -25,7 +25,7 @@ func TestPartialFlowFailure(t *testing.T) {
 		stepB.ID = "step-b"
 		stepB.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
-			Backoff:     1,
+			InitBackoff: 1,
 			MaxBackoff:  1,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -144,7 +144,7 @@ func TestPartialFlowFailure(t *testing.T) {
 
 func TestUnreachableStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		stepA := helpers.NewStepWithOutputs("provider-step", "value")
 
@@ -196,7 +196,7 @@ func TestUnreachableStep(t *testing.T) {
 
 func TestSkippedProviderCascade(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		orderCreator := helpers.NewStepWithPredicate(
 			"order-creator", api.ScriptLangAle, "false", "order",

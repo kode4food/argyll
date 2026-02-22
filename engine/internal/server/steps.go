@@ -11,6 +11,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+const MaxStepBodyBytes = 512 * 1024 // 512 KB
+
 var (
 	ErrInvalidJSON    = errors.New("invalid JSON request")
 	ErrListSteps      = errors.New("failed to list steps")
@@ -35,6 +37,7 @@ func (s *Server) listSteps(c *gin.Context) {
 }
 
 func (s *Server) createStep(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
 	var step api.Step
 	if err := c.ShouldBindJSON(&step); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -99,6 +102,7 @@ func (s *Server) getStep(c *gin.Context) {
 func (s *Server) updateStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
 	var step api.Step
 	if err := c.ShouldBindJSON(&step); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

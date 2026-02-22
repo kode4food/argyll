@@ -622,7 +622,7 @@ func TestEqualWorkConfig(t *testing.T) {
 	config1 := &api.WorkConfig{
 		Parallelism: 5,
 		MaxRetries:  3,
-		Backoff:     1000,
+		InitBackoff: 1000,
 		MaxBackoff:  60000,
 		BackoffType: api.BackoffTypeExponential,
 	}
@@ -630,7 +630,7 @@ func TestEqualWorkConfig(t *testing.T) {
 	config2 := &api.WorkConfig{
 		Parallelism: 5,
 		MaxRetries:  3,
-		Backoff:     1000,
+		InitBackoff: 1000,
 		MaxBackoff:  60000,
 		BackoffType: api.BackoffTypeExponential,
 	}
@@ -638,7 +638,7 @@ func TestEqualWorkConfig(t *testing.T) {
 	config3 := &api.WorkConfig{
 		Parallelism: 10,
 		MaxRetries:  3,
-		Backoff:     1000,
+		InitBackoff: 1000,
 		MaxBackoff:  60000,
 		BackoffType: api.BackoffTypeExponential,
 	}
@@ -743,7 +743,7 @@ func TestValidateWorkConfig(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			WorkConfig: &api.WorkConfig{
-				Backoff: -1,
+				InitBackoff: -1,
 			},
 		}
 		as.StepInvalid(step, "backoff cannot be negative")
@@ -758,8 +758,8 @@ func TestValidateWorkConfig(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			WorkConfig: &api.WorkConfig{
-				Backoff:    1000,
-				MaxBackoff: 500,
+				InitBackoff: 1000,
+				MaxBackoff:  500,
 			},
 		}
 		as.StepInvalid(step, "max_backoff")
@@ -806,7 +806,7 @@ func TestValidateWorkConfig(t *testing.T) {
 			},
 			WorkConfig: &api.WorkConfig{
 				MaxRetries:  3,
-				Backoff:     1000,
+				InitBackoff: 1000,
 				MaxBackoff:  60000,
 				BackoffType: api.BackoffTypeExponential,
 			},
@@ -820,7 +820,7 @@ func TestStepWithDefaults(t *testing.T) {
 
 	defaults := &api.WorkConfig{
 		MaxRetries:  10,
-		Backoff:     1000,
+		InitBackoff: 1000,
 		MaxBackoff:  60000,
 		BackoffType: api.BackoffTypeExponential,
 	}
@@ -831,7 +831,7 @@ func TestStepWithDefaults(t *testing.T) {
 
 		as.NotNil(res.WorkConfig)
 		as.Equal(10, res.WorkConfig.MaxRetries)
-		as.Equal(int64(1000), res.WorkConfig.Backoff)
+		as.Equal(int64(1000), res.WorkConfig.InitBackoff)
 		as.Equal(int64(60000), res.WorkConfig.MaxBackoff)
 		as.Equal(api.BackoffTypeExponential, res.WorkConfig.BackoffType)
 	})
@@ -850,11 +850,11 @@ func TestStepWithDefaults(t *testing.T) {
 		as.NotNil(res.WorkConfig)
 		as.Equal(4, res.WorkConfig.Parallelism)
 		as.Equal(10, res.WorkConfig.MaxRetries)
-		as.Equal(int64(1000), res.WorkConfig.Backoff)
+		as.Equal(int64(1000), res.WorkConfig.InitBackoff)
 		as.Equal(int64(60000), res.WorkConfig.MaxBackoff)
 		as.Equal(api.BackoffTypeExponential, res.WorkConfig.BackoffType)
 		as.Equal(0, step.WorkConfig.MaxRetries)
-		as.Equal(int64(0), step.WorkConfig.Backoff)
+		as.Equal(int64(0), step.WorkConfig.InitBackoff)
 		as.Equal(int64(0), step.WorkConfig.MaxBackoff)
 		as.Equal("", step.WorkConfig.BackoffType)
 	})
@@ -866,7 +866,7 @@ func TestStepWithDefaults(t *testing.T) {
 			Type: api.StepTypeSync,
 			WorkConfig: &api.WorkConfig{
 				MaxRetries:  2,
-				Backoff:     250,
+				InitBackoff: 250,
 				MaxBackoff:  5000,
 				BackoffType: api.BackoffTypeLinear,
 			},
@@ -874,7 +874,7 @@ func TestStepWithDefaults(t *testing.T) {
 		res := step.WithWorkDefaults(defaults)
 
 		as.Equal(2, res.WorkConfig.MaxRetries)
-		as.Equal(int64(250), res.WorkConfig.Backoff)
+		as.Equal(int64(250), res.WorkConfig.InitBackoff)
 		as.Equal(int64(5000), res.WorkConfig.MaxBackoff)
 		as.Equal(api.BackoffTypeLinear, res.WorkConfig.BackoffType)
 	})

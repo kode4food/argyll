@@ -3,11 +3,13 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 
 	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type (
@@ -109,11 +111,21 @@ func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 
 	if errors.Is(err, api.ErrWorkNotCompleted) {
-		_ = e.engine.NotCompleteWork(fs, token, err.Error())
+		recErr := e.engine.NotCompleteWork(fs, token, err.Error())
+		if recErr != nil {
+			slog.Error(
+				"Failed to record work not completed; work item may be stuck",
+				log.FlowID(e.flowID), log.StepID(e.stepID),
+				log.Error(recErr))
+		}
 		return
 	}
 
-	_ = e.engine.FailWork(fs, token, err.Error())
+	recErr := e.engine.FailWork(fs, token, err.Error())
+	if recErr != nil {
+		slog.Error("Failed to record work failure; work item may be stuck",
+			log.FlowID(e.flowID), log.StepID(e.stepID), log.Error(recErr))
+	}
 }
 
 func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
@@ -127,7 +139,7 @@ func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
 	case api.StepTypeFlow:
 		return e.performFlow(inputs, token)
 	default:
-		return ErrUnsupportedStepType
+		panic(fmt.Sprintf("%s: %s", ErrUnsupportedStepType, e.step.Type))
 	}
 }
 

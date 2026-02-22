@@ -102,12 +102,12 @@ func waitForFlowsStatusWithTimeoutAfter(
 // and completes after engine crash (new engine instance)
 func TestBasicFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("recovery-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -158,7 +158,7 @@ func TestBasicFlowRecovery(t *testing.T) {
 		// Verify flow recovers and completes
 		recovered := waitForFlowStatusWithTimeoutAfter(
 			env, flowID, recoveryTimeout, func() {
-				env.Engine.Start()
+				assert.NoError(t, env.Engine.Start())
 			},
 		)
 		assert.Equal(t, api.FlowCompleted, recovered.Status)
@@ -170,12 +170,12 @@ func TestBasicFlowRecovery(t *testing.T) {
 // restart
 func TestMultipleFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step1 := helpers.NewSimpleStep("step-1")
 		step1.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -183,7 +183,7 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		step2 := helpers.NewSimpleStep("step-2")
 		step2.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -191,7 +191,7 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		step3 := helpers.NewSimpleStep("step-3")
 		step3.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -276,7 +276,7 @@ func TestMultipleFlowRecovery(t *testing.T) {
 			[]api.FlowID{flowID1, flowID2, flowID3},
 			recoveryTimeout,
 			func() {
-				env.Engine.Start()
+				assert.NoError(t, env.Engine.Start())
 			},
 		)
 
@@ -290,13 +290,13 @@ func TestMultipleFlowRecovery(t *testing.T) {
 // states: Pending, NotCompleted, and Failed
 func TestRecoveryWorkStates(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		// Step 1: Will have Pending work (hasn't started yet)
 		pendingStep := helpers.NewSimpleStep("pending-step")
 		pendingStep.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -305,7 +305,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 		notCompletedStep := helpers.NewSimpleStep("not-completed-step")
 		notCompletedStep.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -314,7 +314,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 		failedStep := helpers.NewSimpleStep("failed-step")
 		failedStep.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
-			Backoff:     1,
+			InitBackoff: 1,
 			MaxBackoff:  1,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -388,7 +388,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 			[]api.FlowID{pendingFlowID, notCompletedFlowID},
 			recoveryTimeout,
 			func() {
-				env.Engine.Start()
+				assert.NoError(t, env.Engine.Start())
 			},
 		)
 		assert.Equal(t, api.FlowCompleted, recovered[pendingFlowID].Status)
@@ -407,12 +407,12 @@ func TestRecoveryWorkStates(t *testing.T) {
 // restarts (recovery picks up where it left off)
 func TestRecoveryPreservesState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("retry-step")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
-			Backoff:     200,
+			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -463,7 +463,7 @@ func TestRecoveryPreservesState(t *testing.T) {
 		// Wait for completion
 		afterRestart := waitForFlowStatusWithTimeoutAfter(
 			env, flowID, recoveryTimeout, func() {
-				env.Engine.Start()
+				assert.NoError(t, env.Engine.Start())
 			},
 		)
 

@@ -15,7 +15,7 @@ import (
 
 func TestOptionalDefaults(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("default-step")
 		step.Attributes = api.AttributeSpecs{
@@ -64,7 +64,7 @@ func TestOptionalDefaults(t *testing.T) {
 
 func TestInputMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("mapped-input-step")
 		step.Attributes = api.AttributeSpecs{
@@ -110,7 +110,7 @@ func TestInputMapping(t *testing.T) {
 
 func TestOutputMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("mapped-output-step")
 		step.Attributes = api.AttributeSpecs{
@@ -157,7 +157,7 @@ func TestOutputMapping(t *testing.T) {
 
 func TestInputMappingWithRename(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("rename-input")
 		step.Attributes = api.AttributeSpecs{
@@ -195,12 +195,12 @@ func TestInputMappingWithRename(t *testing.T) {
 
 func TestIncompleteWorkFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("retry-stop")
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
-			Backoff:     1,
+			InitBackoff: 1,
 			MaxBackoff:  1,
 			BackoffType: api.BackoffTypeFixed,
 		}
@@ -237,7 +237,7 @@ func TestIncompleteWorkFails(t *testing.T) {
 
 func TestWorkFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("failure-step")
 
@@ -271,7 +271,7 @@ func TestWorkFailure(t *testing.T) {
 
 func TestHTTPMetadata(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		flowMetadata := api.Metadata{
 			"correlation_id": "cid-123",
@@ -310,7 +310,7 @@ func TestHTTPMetadata(t *testing.T) {
 
 func TestAsyncMetadata(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		flowMetadata := api.Metadata{
 			"correlation_id": "cid-async-123",
@@ -354,7 +354,7 @@ func TestAsyncMetadata(t *testing.T) {
 
 func TestScriptWorkExecutes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := &api.Step{
 			ID:   "script-work",
@@ -393,7 +393,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 
 func TestScriptWorkUsesMappedInputName(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := &api.Step{
 			ID:   "script-mapped-input",
@@ -444,7 +444,7 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 
 func TestPredicateFailure(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithPredicate(
 			"pred-fail", api.ScriptLangLua, "error('boom')",
@@ -468,7 +468,7 @@ func TestPredicateFailure(t *testing.T) {
 
 func TestJPathPredicateMatchOnNull(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithPredicate(
 			"jpath-null", api.ScriptLangJPath, "$.flag", "result",
@@ -501,7 +501,7 @@ func TestJPathPredicateMatchOnNull(t *testing.T) {
 
 func TestParallelWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		step.ID = "parallel-items"
@@ -534,13 +534,13 @@ func TestParallelWorkItems(t *testing.T) {
 
 func TestRetryPendingParallelism(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		step.ID = "retry-parallel"
 		step.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
-			Backoff:     500,
+			InitBackoff: 500,
 			MaxBackoff:  500,
 			BackoffType: api.BackoffTypeFixed,
 			Parallelism: 1,
@@ -591,7 +591,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 
 func TestPredicateFailurePerWorkItem(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		step.ID = "predicate-items"
@@ -639,7 +639,7 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 
 func TestInputMappingWithAle(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("ale-input-map")
 		step.Attributes = api.AttributeSpecs{
@@ -683,7 +683,7 @@ func TestInputMappingWithAle(t *testing.T) {
 
 func TestOutputMappingWithRename(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		assert.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("rename-output")
 		step.Attributes = api.AttributeSpecs{

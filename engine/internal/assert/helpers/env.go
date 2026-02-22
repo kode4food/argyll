@@ -96,7 +96,7 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 		ShutdownTimeout: 2 * time.Second,
 		Work: api.WorkConfig{
 			MaxRetries:  3,
-			Backoff:     1000,
+			InitBackoff: 1000,
 			MaxBackoff:  60000,
 			BackoffType: api.BackoffTypeExponential,
 		},
@@ -177,7 +177,7 @@ func WithEngine(t *testing.T, fn func(*engine.Engine)) {
 func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 	t.Helper()
 	WithEngine(t, func(eng *engine.Engine) {
-		eng.Start()
+		assert.NoError(t, eng.Start())
 		fn(eng)
 	})
 }

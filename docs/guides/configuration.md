@@ -48,15 +48,15 @@ These values are used when a step omits retry settings, or sets retry fields to 
 
 ```bash
 RETRY_MAX_RETRIES=10                    # Default max retries
-RETRY_BACKOFF=1000                      # Initial backoff in milliseconds
+RETRY_INITIAL_BACKOFF=1000              # Initial backoff in milliseconds
 RETRY_MAX_BACKOFF=60000                 # Backoff cap in milliseconds
 RETRY_BACKOFF_TYPE=exponential          # fixed, linear, exponential
 ```
 
 These defaults must be valid at startup:
 - `RETRY_MAX_RETRIES` cannot be `0`
-- `RETRY_BACKOFF` must be `> 0`
-- `RETRY_MAX_BACKOFF` must be `> 0` and `>= RETRY_BACKOFF`
+- `RETRY_INITIAL_BACKOFF` must be `> 0`
+- `RETRY_MAX_BACKOFF` must be `> 0` and `>= RETRY_INITIAL_BACKOFF`
 - `RETRY_BACKOFF_TYPE` must be `fixed`, `linear`, or `exponential`
 
 ### Archiver: Policy
@@ -241,7 +241,7 @@ Configure via `work_config`:
 {
   "work_config": {
     "max_retries": 3,
-    "backoff": 100,
+    "init_backoff": 100,
     "max_backoff": 5000,
     "backoff_type": "exponential"
   }
@@ -251,15 +251,15 @@ Configure via `work_config`:
 Step-level retry fields only override when they are non-zero/non-empty. If a retry field is omitted or set to zero/empty, the engine uses the global retry default for that field.
 
 **Backoff Types:**
-- `fixed`: Same delay between retries (backoff in milliseconds)
-- `linear`: Delay increases linearly (attempt * backoff in milliseconds)
-- `exponential`: Delay doubles each retry (2^attempt * backoff in milliseconds, capped at max_backoff)
+- `fixed`: Same delay between retries (`init_backoff` milliseconds)
+- `linear`: Delay increases linearly (attempt * `init_backoff` milliseconds)
+- `exponential`: Delay doubles each retry (2^attempt * `init_backoff` milliseconds, capped at `max_backoff`)
 
 **Example:**
 ```json
 {
   "max_retries": 3,
-  "backoff": 100,
+  "init_backoff": 100,
   "max_backoff": 5000,
   "backoff_type": "exponential"
 }

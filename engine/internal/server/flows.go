@@ -14,6 +14,23 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+const (
+	MaxFlowBodyBytes = 1 * 1024 * 1024 // 1 MB
+	MaxFlowIDLen     = 256
+	MaxInitKeys      = 128
+	MaxGoalCount     = 64
+	MaxLabelCount    = 32
+	MaxQueryLimit    = 1000
+)
+
+const (
+	errLimitTooHigh  = "Limit must be between 0 and %d"
+	errFlowIDTooLong = "Flow ID exceeds maximum length of %d"
+	errTooManyGoals  = "Number of goals exceeds maximum of %d"
+	errTooManyInit   = "Init state exceeds maximum of %d keys"
+	errTooManyLabels = "Labels exceed maximum of %d entries"
+)
+
 var (
 	ErrQueryFlows          = errors.New("failed to query flows")
 	ErrGetFlow             = errors.New("failed to get flow")
@@ -41,9 +58,9 @@ func (s *Server) queryFlows(c *gin.Context) {
 		return
 	}
 
-	if req.Limit < 0 {
+	if req.Limit < 0 || req.Limit > MaxQueryLimit {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  "Invalid limit",
+			Error:  fmt.Sprintf(errLimitTooHigh, MaxQueryLimit),
 			Status: http.StatusBadRequest,
 		})
 		return
@@ -123,6 +140,7 @@ func validFlowStatuses(statuses []api.FlowStatus) bool {
 }
 
 func (s *Server) startFlow(c *gin.Context) {
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxFlowBodyBytes)
 	var req api.CreateFlowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -141,9 +159,41 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
+	if len(flowID) > MaxFlowIDLen {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  fmt.Sprintf(errFlowIDTooLong, MaxFlowIDLen),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
 	if len(req.Goals) == 0 {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "At least one goal step ID is required",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	if len(req.Goals) > MaxGoalCount {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  fmt.Sprintf(errTooManyGoals, MaxGoalCount),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	if len(req.Init) > MaxInitKeys {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  fmt.Sprintf(errTooManyInit, MaxInitKeys),
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	if len(req.Labels) > MaxLabelCount {
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  fmt.Sprintf(errTooManyLabels, MaxLabelCount),
 			Status: http.StatusBadRequest,
 		})
 		return

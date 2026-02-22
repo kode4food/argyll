@@ -90,7 +90,7 @@ func TestGetStateNotFound(t *testing.T) {
 
 func TestSetAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		// Create a step that produces an output attribute
 		step := helpers.NewStepWithOutputs("output-step", "test_key")
@@ -120,7 +120,7 @@ func TestSetAttribute(t *testing.T) {
 
 func TestGetAttributes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		// Create a step that produces multiple output attributes
 		step := helpers.NewStepWithOutputs("step-attrs", "key1", "key2")
@@ -153,7 +153,7 @@ func TestGetAttributes(t *testing.T) {
 
 func TestGetAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("attr-step")
 		step.Attributes = api.AttributeSpecs{
@@ -192,7 +192,7 @@ func TestGetAttribute(t *testing.T) {
 
 func TestDuplicateFirstWins(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		// Create two steps that both produce the same output attribute
 		stepA := helpers.NewStepWithOutputs("step-a", "shared_key")
@@ -231,7 +231,7 @@ func TestCompleteFlow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		a := assert.New(t)
 
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithOutputs("complete-step", "result")
 
@@ -258,7 +258,7 @@ func TestFailFlow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		a := assert.New(t)
 
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("fail-step")
 
@@ -287,7 +287,7 @@ func TestFailFlow(t *testing.T) {
 
 func TestSkipStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		// Create a step with a predicate that returns false, causing a  skip
 		step := helpers.NewStepWithPredicate(
@@ -322,7 +322,7 @@ func TestSkipStep(t *testing.T) {
 
 func TestStartFlowSimple(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		step := &api.Step{
 			ID:   "goal-step",
@@ -361,7 +361,7 @@ func TestStartFlowSimple(t *testing.T) {
 
 func TestIsFlowFailed(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Engine.Start()
+		testify.NoError(t, env.Engine.Start())
 
 		stepA := helpers.NewStepWithOutputs("step-a", "value")
 		stepA.Attributes["value"].Type = api.TypeString
