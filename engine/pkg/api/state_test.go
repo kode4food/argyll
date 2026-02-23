@@ -245,12 +245,12 @@ func TestRemoveArchivingNotFound(t *testing.T) {
 }
 
 func TestSetFlowStatus(t *testing.T) {
-	original := &api.FlowState{Status: api.FlowPending}
+	original := &api.FlowState{Status: api.FlowActive}
 
-	result := original.SetStatus(api.FlowActive)
+	result := original.SetStatus(api.FlowCompleted)
 
-	assert.Equal(t, api.FlowActive, result.Status)
-	assert.Equal(t, api.FlowPending, original.Status)
+	assert.Equal(t, api.FlowCompleted, result.Status)
+	assert.Equal(t, api.FlowActive, original.Status)
 }
 
 func TestSetAttribute(t *testing.T) {
@@ -520,24 +520,24 @@ func TestSetWorkOutputs(t *testing.T) {
 func TestFlowChain(t *testing.T) {
 	original := &api.FlowState{
 		ID:         "test-flow",
-		Status:     api.FlowPending,
+		Status:     api.FlowActive,
 		Attributes: api.AttributeValues{},
 		Executions: api.Executions{},
 	}
 
 	result := original.
-		SetStatus(api.FlowActive).
+		SetStatus(api.FlowCompleted).
 		SetAttribute(
 			"attr1", &api.AttributeValue{Value: "value1", Step: "step1"},
 		).
 		SetAttribute("attr2", &api.AttributeValue{Value: 42, Step: "step2"})
 
-	assert.Equal(t, api.FlowActive, result.Status)
+	assert.Equal(t, api.FlowCompleted, result.Status)
 	assert.Equal(t, "value1", result.Attributes["attr1"].Value)
 	assert.Equal(t, api.StepID("step1"), result.Attributes["attr1"].Step)
 	assert.Equal(t, 42, result.Attributes["attr2"].Value)
 	assert.Equal(t, api.StepID("step2"), result.Attributes["attr2"].Step)
-	assert.Equal(t, api.FlowPending, original.Status)
+	assert.Equal(t, api.FlowActive, original.Status)
 }
 
 func TestExecChain(t *testing.T) {

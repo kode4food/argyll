@@ -35,6 +35,13 @@ type argyll struct {
 	quit           chan os.Signal
 }
 
+var (
+	ErrCreateTimebox        = errors.New("failed to create timebox")
+	ErrCreateCatalogStore   = errors.New("failed to create catalog store")
+	ErrCreatePartitionStore = errors.New("failed to create partition store")
+	ErrCreateFlowStore      = errors.New("failed to create flow store")
+)
+
 var logLevels = map[string]slog.Level{
 	"debug": slog.LevelDebug,
 	"info":  slog.LevelInfo,
@@ -114,25 +121,25 @@ func (s *argyll) initializeStores() error {
 		Workers:    true,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create timebox: %w", err)
+		return fmt.Errorf("%w: %w", ErrCreateTimebox, err)
 	}
 
 	s.catalogStore, err = s.timebox.NewStore(s.cfg.CatalogStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("failed to create catalog store: %w", err)
+		return fmt.Errorf("%w: %w", ErrCreateCatalogStore, err)
 	}
 
 	s.partitionStore, err = s.timebox.NewStore(s.cfg.PartitionStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("failed to create partition store: %w", err)
+		return fmt.Errorf("%w: %w", ErrCreatePartitionStore, err)
 	}
 
 	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("failed to create flow store: %w", err)
+		return fmt.Errorf("%w: %w", ErrCreateFlowStore, err)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"maps"
 	"slices"
@@ -20,6 +21,10 @@ type (
 		K string `json:"k"`
 		V any    `json:"v"`
 	}
+)
+
+var (
+	ErrMarshalArgs = errors.New("failed to marshal args")
 )
 
 // Set creates a new Args with the specified name-value pair added
@@ -98,7 +103,7 @@ func (a Args) HashKey() (string, error) {
 
 	data, err := json.Marshal(pairs)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal args: %w", err)
+		return "", fmt.Errorf("%w: %w", ErrMarshalArgs, err)
 	}
 
 	return sha256Hex(string(data)), nil

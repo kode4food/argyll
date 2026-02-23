@@ -4,8 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"regexp"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 
@@ -16,20 +14,10 @@ import (
 
 const (
 	MaxFlowBodyBytes = 1 * 1024 * 1024 // 1 MB
-	MaxFlowIDLen     = 256
-	MaxInitKeys      = 128
-	MaxGoalCount     = 64
-	MaxLabelCount    = 32
 	MaxQueryLimit    = 1000
 )
 
-const (
-	errLimitTooHigh  = "Limit must be between 0 and %d"
-	errFlowIDTooLong = "Flow ID exceeds maximum length of %d"
-	errTooManyGoals  = "Number of goals exceeds maximum of %d"
-	errTooManyInit   = "Init state exceeds maximum of %d keys"
-	errTooManyLabels = "Labels exceed maximum of %d entries"
-)
+const errLimitTooHigh = "Limit must be between 0 and %d"
 
 var (
 	ErrQueryFlows          = errors.New("failed to query flows")
@@ -37,8 +25,6 @@ var (
 	ErrCreateExecutionPlan = errors.New("failed to create execution plan")
 	ErrStartFlow           = errors.New("failed to start flow")
 )
-
-var invalidFlowIDChars = regexp.MustCompile(`[^a-zA-Z0-9_.\-+ ]`)
 
 func (s *Server) queryFlows(c *gin.Context) {
 	var req api.QueryFlowsRequest
@@ -50,7 +36,7 @@ func (s *Server) queryFlows(c *gin.Context) {
 		return
 	}
 
-	if req.IDPrefix != "" && invalidFlowIDChars.MatchString(req.IDPrefix) {
+	if req.IDPrefix != "" && api.InvalidIDChars.MatchString(req.IDPrefix) {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Invalid ID prefix",
 			Status: http.StatusBadRequest,
@@ -140,7 +126,9 @@ func validFlowStatuses(statuses []api.FlowStatus) bool {
 }
 
 func (s *Server) startFlow(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxFlowBodyBytes)
+	c.Request.Body = http.MaxBytesReader(
+		c.Writer, c.Request.Body, MaxFlowBodyBytes,
+	)
 	var req api.CreateFlowRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -150,50 +138,10 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	flowID := sanitizeFlowID(string(req.ID))
-	if flowID == "" {
+	req.ID = api.SanitizeID(req.ID)
+	if err := req.Validate(); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  "Valid Flow ID is required",
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
-	if len(flowID) > MaxFlowIDLen {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf(errFlowIDTooLong, MaxFlowIDLen),
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
-	if len(req.Goals) == 0 {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  "At least one goal step ID is required",
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
-	if len(req.Goals) > MaxGoalCount {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf(errTooManyGoals, MaxGoalCount),
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
-	if len(req.Init) > MaxInitKeys {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf(errTooManyInit, MaxInitKeys),
-			Status: http.StatusBadRequest,
-		})
-		return
-	}
-
-	if len(req.Labels) > MaxLabelCount {
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf(errTooManyLabels, MaxLabelCount),
+			Error:  err.Error(),
 			Status: http.StatusBadRequest,
 		})
 		return
@@ -211,17 +159,17 @@ func (s *Server) startFlow(c *gin.Context) {
 	if len(req.Labels) > 0 {
 		apps = append(apps, flowopt.WithLabels(req.Labels))
 	}
-	err := s.engine.StartFlow(flowID, plan, apps...)
+	err := s.engine.StartFlow(req.ID, plan, apps...)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FlowStartedResponse{
-			FlowID: flowID,
+			FlowID: req.ID,
 		})
 		return
 	}
 
 	if errors.Is(err, engine.ErrFlowExists) {
 		c.JSON(http.StatusConflict, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", err.Error(), flowID),
+			Error:  fmt.Sprintf("%s: %s", err.Error(), req.ID),
 			Status: http.StatusConflict,
 		})
 		return
@@ -315,11 +263,4 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 	if plan, ok := s.createPlan(c, req.Goals, req.Init); ok {
 		c.JSON(http.StatusOK, plan)
 	}
-}
-
-func sanitizeFlowID(id string) api.FlowID {
-	id = strings.ToLower(id)
-	sanitized := invalidFlowIDChars.ReplaceAllString(id, "")
-	sanitized = strings.ReplaceAll(sanitized, " ", "-")
-	return api.FlowID(strings.Trim(sanitized, "-"))
 }

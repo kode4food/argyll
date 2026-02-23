@@ -9,7 +9,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -187,14 +186,10 @@ func TestHookCompleteTwice(t *testing.T) {
 		// Verify duplicate call is rejected
 		assert.Equal(t, 400, w.Code, "duplicate webhook call should return 400")
 
-		// Verify response contains ErrInvalidWorkTransition error
 		var respErr api.ErrorResponse
 		err = json.NewDecoder(w.Body).Decode(&respErr)
 		assert.NoError(t, err)
-		// Error wrapped with typed error will contain the base error message
-		assert.Contains(t,
-			respErr.Error, engine.ErrInvalidWorkTransition.Error(),
-		)
+		assert.Equal(t, "Work item already completed", respErr.Error)
 	})
 }
 
@@ -276,9 +271,7 @@ func TestHookFailTwice(t *testing.T) {
 
 		var respErr api.ErrorResponse
 		_ = json.NewDecoder(w.Body).Decode(&respErr)
-		assert.Contains(t,
-			respErr.Error, engine.ErrInvalidWorkTransition.Error(),
-		)
+		assert.Equal(t, "Work item already completed", respErr.Error)
 	})
 }
 

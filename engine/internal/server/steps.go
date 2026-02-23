@@ -37,7 +37,9 @@ func (s *Server) listSteps(c *gin.Context) {
 }
 
 func (s *Server) createStep(c *gin.Context) {
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
+	c.Request.Body = http.MaxBytesReader(
+		c.Writer, c.Request.Body, MaxStepBodyBytes,
+	)
 	var step api.Step
 	if err := c.ShouldBindJSON(&step); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -46,6 +48,8 @@ func (s *Server) createStep(c *gin.Context) {
 		})
 		return
 	}
+
+	step.ID = api.SanitizeID(step.ID)
 
 	err := s.engine.RegisterStep(&step)
 	if err == nil {
@@ -102,7 +106,9 @@ func (s *Server) getStep(c *gin.Context) {
 func (s *Server) updateStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, MaxStepBodyBytes)
+	c.Request.Body = http.MaxBytesReader(
+		c.Writer, c.Request.Body, MaxStepBodyBytes,
+	)
 	var step api.Step
 	if err := c.ShouldBindJSON(&step); err != nil {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -111,6 +117,9 @@ func (s *Server) updateStep(c *gin.Context) {
 		})
 		return
 	}
+
+	step.ID = api.SanitizeID(step.ID)
+	stepID = api.SanitizeID(stepID)
 
 	if step.ID != stepID {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{

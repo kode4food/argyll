@@ -10,6 +10,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 type (
@@ -120,6 +121,8 @@ func NewDefaultConfig() *Config {
 			WorkerCount:  DefaultSnapshotWorkers,
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
+			JoinKey:      events.FlowJoinKey,
+			ParseKey:     events.FlowParseKey,
 		},
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,

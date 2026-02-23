@@ -35,6 +35,19 @@ func TestStepValidation(t *testing.T) {
 			errorContains: "ID empty",
 		},
 		{
+			name: "invalid_id",
+			step: &api.Step{
+				ID:   "my:step",
+				Name: "Test",
+				Type: api.StepTypeSync,
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://localhost:8080",
+				},
+			},
+			expectError:   true,
+			errorContains: "invalid characters",
+		},
+		{
 			name: "missing_name",
 			step: &api.Step{
 				ID:   "test-id",

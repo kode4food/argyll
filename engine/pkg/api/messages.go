@@ -1,6 +1,27 @@
 package api
 
-import "time"
+import (
+	"errors"
+	"fmt"
+	"time"
+)
+
+var (
+	ErrFlowIDEmpty   = errors.New("flow ID empty")
+	ErrFlowIDInvalid = errors.New("flow ID contains invalid characters")
+	ErrFlowIDTooLong = errors.New("flow ID too long")
+	ErrGoalsRequired = errors.New("at least one goal step is required")
+	ErrTooManyGoals  = errors.New("too many goals")
+	ErrTooManyInit   = errors.New("too many init keys")
+	ErrTooManyLabels = errors.New("too many labels")
+)
+
+const (
+	MaxFlowIDLen  = 256
+	MaxGoalCount  = 64
+	MaxInitKeys   = 128
+	MaxLabelCount = 32
+)
 
 type (
 	// CreateFlowRequest contains parameters for starting a new flow
@@ -100,3 +121,29 @@ const (
 	FlowSortRecentDesc FlowSort = "recent_desc"
 	FlowSortRecentAsc  FlowSort = "recent_asc"
 )
+
+// Validate checks that the request has a valid flow ID and at least one goal
+func (r *CreateFlowRequest) Validate() error {
+	if r.ID == "" {
+		return ErrFlowIDEmpty
+	}
+	if SanitizeID(r.ID) != r.ID {
+		return ErrFlowIDInvalid
+	}
+	if len(r.ID) > MaxFlowIDLen {
+		return fmt.Errorf("%w: maximum is %d", ErrFlowIDTooLong, MaxFlowIDLen)
+	}
+	if len(r.Goals) == 0 {
+		return ErrGoalsRequired
+	}
+	if len(r.Goals) > MaxGoalCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyGoals, MaxGoalCount)
+	}
+	if len(r.Init) > MaxInitKeys {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyInit, MaxInitKeys)
+	}
+	if len(r.Labels) > MaxLabelCount {
+		return fmt.Errorf("%w: maximum is %d", ErrTooManyLabels, MaxLabelCount)
+	}
+	return nil
+}

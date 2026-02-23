@@ -124,6 +124,7 @@ const (
 
 var (
 	ErrStepIDEmpty           = errors.New("step ID empty")
+	ErrStepIDInvalid         = errors.New("step ID contains invalid characters")
 	ErrStepNameEmpty         = errors.New("step name empty")
 	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
 	ErrArgNameEmpty          = errors.New("argument name empty")
@@ -144,6 +145,7 @@ var (
 	ErrNegativeBackoff       = errors.New("backoff cannot be negative")
 	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
 	ErrWorkNotCompleted      = errors.New("work not completed")
+	ErrMarshalStep           = errors.New("failed to marshal step definition")
 )
 
 var (
@@ -177,6 +179,9 @@ func NewResult() *StepResult {
 func (s *Step) Validate() error {
 	if s.ID == "" {
 		return ErrStepIDEmpty
+	}
+	if SanitizeID(s.ID) != s.ID {
+		return ErrStepIDInvalid
 	}
 	if s.Name == "" {
 		return ErrStepNameEmpty
@@ -517,7 +522,7 @@ func (s *Step) computeHashKey() (string, error) {
 
 	data, err := json.Marshal(h)
 	if err != nil {
-		return "", fmt.Errorf("failed to marshal step definition: %w", err)
+		return "", fmt.Errorf("%w: %w", ErrMarshalStep, err)
 	}
 
 	return sha256Hex(string(data)), nil

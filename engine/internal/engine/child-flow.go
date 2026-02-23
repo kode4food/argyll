@@ -18,7 +18,8 @@ type parentWork struct {
 }
 
 var (
-	ErrFlowOutputMissing = errors.New("flow output missing")
+	ErrFlowOutputMissing     = errors.New("flow output missing")
+	ErrPartialParentMetadata = errors.New("partial parent metadata")
 )
 
 var (
@@ -140,12 +141,7 @@ func (tx *flowTx) parentMeta(st *api.FlowState, target *parentWork) bool {
 		if !hasFlowID && !hasStepID && !hasToken {
 			return false
 		}
-		slog.Error("Invalid parent metadata",
-			log.FlowID(st.ID),
-			slog.Bool("has_parent_flow_id", hasFlowID),
-			slog.Bool("has_parent_step_id", hasStepID),
-			slog.Bool("has_parent_token", hasToken))
-		return false
+		panic(fmt.Errorf("%w: %s", ErrPartialParentMetadata, st.ID))
 	}
 
 	target.fs = api.FlowStep{FlowID: flowID, StepID: stepID}

@@ -18,6 +18,12 @@ import (
 
 type backoffCalculator func(baseDelay int64, retryCount int) int64
 
+var (
+	ErrListFlowAggregates = errors.New("failed to list flow aggregates")
+	ErrLoadPartitionState = errors.New("failed to load partition state")
+	ErrGetFlowState       = errors.New("failed to get flow state")
+)
+
 const retryDispatchBackoff = 1 * time.Second
 
 var backoffCalculators = map[string]backoffCalculator{
@@ -76,7 +82,7 @@ func (e *Engine) CalculateNextRetry(
 func (e *Engine) RecoverFlows() error {
 	ids, err := e.listFlowAggregateIDs()
 	if err != nil {
-		return fmt.Errorf("failed to list flow aggregates: %w", err)
+		return fmt.Errorf("%w: %w", ErrListFlowAggregates, err)
 	}
 
 	if len(ids) == 0 {
@@ -86,7 +92,7 @@ func (e *Engine) RecoverFlows() error {
 
 	state, err := e.GetPartitionState()
 	if err != nil {
-		return fmt.Errorf("failed to load partition state: %w", err)
+		return fmt.Errorf("%w: %w", ErrLoadPartitionState, err)
 	}
 
 	candidates := pruneRecoveryCandidates(ids, state)
@@ -115,7 +121,7 @@ func (e *Engine) RecoverFlows() error {
 func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	flow, err := e.GetFlowState(flowID)
 	if err != nil {
-		return fmt.Errorf("failed to get flow state: %w", err)
+		return fmt.Errorf("%w: %w", ErrGetFlowState, err)
 	}
 
 	if flowTransitions.IsTerminal(flow.Status) {

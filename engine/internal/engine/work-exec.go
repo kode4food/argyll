@@ -28,8 +28,12 @@ type (
 )
 
 var (
-	ErrStepAlreadyPending  = errors.New("step not pending")
-	ErrUnsupportedStepType = errors.New("unsupported step type")
+	ErrStepAlreadyPending     = errors.New("step not pending")
+	ErrUnsupportedStepType    = errors.New("unsupported step type")
+	ErrScriptNotCompiled      = errors.New("script step has no compiled script")
+	ErrPredicateCompileFailed = errors.New("predicate compilation failed")
+	ErrPredicateEnvFailed     = errors.New("failed to get script environment")
+	ErrPredicateEvalFailed    = errors.New("predicate evaluation failed")
 )
 
 func (e *Engine) evaluateStepPredicate(
@@ -41,17 +45,17 @@ func (e *Engine) evaluateStepPredicate(
 
 	comp, err := e.scripts.Compile(step, step.Predicate)
 	if err != nil {
-		return false, fmt.Errorf("predicate compilation failed: %w", err)
+		return false, fmt.Errorf("%w: %w", ErrPredicateCompileFailed, err)
 	}
 
 	env, err := e.scripts.Get(step.Predicate.Language)
 	if err != nil {
-		return false, fmt.Errorf("failed to get script environment: %w", err)
+		return false, fmt.Errorf("%w: %w", ErrPredicateEnvFailed, err)
 	}
 
 	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
 	if err != nil {
-		return false, fmt.Errorf("predicate evaluation failed: %w", err)
+		return false, fmt.Errorf("%w: %w", ErrPredicateEvalFailed, err)
 	}
 
 	return shouldExecute, nil
@@ -139,7 +143,7 @@ func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
 	case api.StepTypeFlow:
 		return e.performFlow(inputs, token)
 	default:
-		panic(fmt.Sprintf("%s: %s", ErrUnsupportedStepType, e.step.Type))
+		panic(fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type))
 	}
 }
 
@@ -153,7 +157,7 @@ func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
 	}
 
 	if c == nil {
-		return ErrScriptCompileFailed
+		panic(fmt.Errorf("%w: %s", ErrScriptNotCompiled, e.stepID))
 	}
 
 	outputs, err := e.executeScript(c, inputs)

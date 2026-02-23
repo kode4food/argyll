@@ -1,14 +1,20 @@
 package server
 
 import (
-	"fmt"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
+)
+
+var (
+	ErrExecutionNotFound = errors.New("execution not found")
+	ErrWorkItemNotFound  = errors.New("work item not found")
 )
 
 func (s *Server) handleWebhook(c *gin.Context) {
@@ -22,7 +28,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 			log.FlowID(flowID),
 			log.Error(err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("Flow not found: %v", err),
+			Error:  "Flow not found",
 			Status: http.StatusBadRequest,
 		})
 		return
@@ -33,7 +39,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		slog.Error("Execution not found",
 			log.FlowID(flowID),
 			log.StepID(stepID),
-			log.Error(fmt.Errorf("execution not found")))
+			log.Error(ErrExecutionNotFound))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Step execution not found",
 			Status: http.StatusBadRequest,
@@ -47,7 +53,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 			log.FlowID(flowID),
 			log.StepID(stepID),
 			log.Token(token),
-			log.Error(fmt.Errorf("work item not found")))
+			log.Error(ErrWorkItemNotFound))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Work item not found for token",
 			Status: http.StatusBadRequest,
@@ -70,7 +76,7 @@ func (s *Server) handleWorkWebhook(
 			log.Token(token),
 			log.Error(err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  fmt.Sprintf("Invalid JSON: %v", err),
+			Error:  "Invalid JSON",
 			Status: http.StatusBadRequest,
 		})
 		return
@@ -88,9 +94,16 @@ func (s *Server) handleWorkWebhook(
 				log.StepID(fs.StepID),
 				log.Token(token),
 				log.Error(err))
-			c.JSON(http.StatusBadRequest, api.ErrorResponse{
-				Error:  err.Error(),
-				Status: http.StatusBadRequest,
+			if errors.Is(err, engine.ErrInvalidWorkTransition) {
+				c.JSON(http.StatusBadRequest, api.ErrorResponse{
+					Error:  "Work item already completed",
+					Status: http.StatusBadRequest,
+				})
+				return
+			}
+			c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+				Error:  "Failed to record work failure",
+				Status: http.StatusInternalServerError,
 			})
 			return
 		}
@@ -104,9 +117,16 @@ func (s *Server) handleWorkWebhook(
 			log.StepID(fs.StepID),
 			log.Token(token),
 			log.Error(err))
-		c.JSON(http.StatusBadRequest, api.ErrorResponse{
-			Error:  err.Error(),
-			Status: http.StatusBadRequest,
+		if errors.Is(err, engine.ErrInvalidWorkTransition) {
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Error:  "Work item already completed",
+				Status: http.StatusBadRequest,
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  "Failed to complete work",
+			Status: http.StatusInternalServerError,
 		})
 		return
 	}

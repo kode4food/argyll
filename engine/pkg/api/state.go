@@ -115,7 +115,6 @@ type (
 )
 
 const (
-	FlowPending   FlowStatus = "pending"
 	FlowActive    FlowStatus = "active"
 	FlowCompleted FlowStatus = "completed"
 	FlowFailed    FlowStatus = "failed"

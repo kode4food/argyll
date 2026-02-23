@@ -3,10 +3,12 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -83,7 +85,11 @@ func (e *Engine) execStepUpsert(
 		return err
 	}
 	if stepHasScripts(step) {
-		_ = e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
+		err := e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
+		if err != nil {
+			slog.Error("Failed to update step health",
+				log.StepID(step.ID), log.Error(err))
+		}
 	}
 	return nil
 }
@@ -185,12 +191,15 @@ func (e *Engine) raiseStepRegisteredEvent(
 		return err
 	}
 	ag.OnSuccess(func(*api.CatalogState) {
-		_ = e.raisePartitionEvent(api.EventTypeStepHealthChanged,
+		if err := e.raisePartitionEvent(api.EventTypeStepHealthChanged,
 			api.StepHealthChangedEvent{
 				StepID: step.ID,
 				Status: api.HealthUnknown,
 			},
-		)
+		); err != nil {
+			slog.Error("Failed to raise step health changed event",
+				log.StepID(step.ID), log.Error(err))
+		}
 	})
 	return nil
 }

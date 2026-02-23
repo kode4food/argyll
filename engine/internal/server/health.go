@@ -151,7 +151,11 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 	h.mu.RUnlock()
 
 	if hasRecent && time.Since(lastSuccess) < successWindow {
-		_ = h.engine.UpdateStepHealth(step.ID, api.HealthHealthy, "")
+		err := h.engine.UpdateStepHealth(step.ID, api.HealthHealthy, "")
+		if err != nil {
+			slog.Error("Failed to update step health",
+				log.StepID(step.ID), log.Error(err))
+		}
 		return
 	}
 
@@ -165,7 +169,11 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 		slog.Error("Health check failed",
 			log.StepID(step.ID),
 			log.Error(err))
-		_ = h.engine.UpdateStepHealth(step.ID, status, errorMsg)
+		err := h.engine.UpdateStepHealth(step.ID, status, errorMsg)
+		if err != nil {
+			slog.Error("Failed to update step health",
+				log.StepID(step.ID), log.Error(err))
+		}
 		return
 	}
 
@@ -178,7 +186,10 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 			log.Status(resp.Status))
 	}
 
-	_ = h.engine.UpdateStepHealth(step.ID, status, errorMsg)
+	if err := h.engine.UpdateStepHealth(step.ID, status, errorMsg); err != nil {
+		slog.Error("Failed to update step health",
+			log.StepID(step.ID), log.Error(err))
+	}
 }
 
 func (s *Server) handleHealth(c *gin.Context) {

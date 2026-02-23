@@ -591,7 +591,7 @@ func TestStartFlowEmptyID(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Flow ID is required")
+		assert.Contains(t, w.Body.String(), "flow ID empty")
 	})
 }
 
@@ -1288,7 +1288,7 @@ func TestStartFlowIDTooLong(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		longID := api.FlowID(strings.Repeat("a", server.MaxFlowIDLen+1))
+		longID := api.FlowID(strings.Repeat("a", api.MaxFlowIDLen+1))
 		reqBody := api.CreateFlowRequest{
 			ID:    longID,
 			Goals: []api.StepID{"test-step-long-id"},
@@ -1304,13 +1304,13 @@ func TestStartFlowIDTooLong(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "exceeds maximum length")
+		assert.Contains(t, w.Body.String(), "flow ID too long")
 	})
 }
 
 func TestStartFlowTooManyGoals(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		goals := make([]api.StepID, server.MaxGoalCount+1)
+		goals := make([]api.StepID, api.MaxGoalCount+1)
 		for i := range goals {
 			goals[i] = api.StepID(fmt.Sprintf("step-%d", i))
 		}
@@ -1329,7 +1329,7 @@ func TestStartFlowTooManyGoals(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Number of goals exceeds maximum")
+		assert.Contains(t, w.Body.String(), "too many goals")
 	})
 }
 
@@ -1340,7 +1340,7 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 		assert.NoError(t, err)
 
 		init := api.Args{}
-		for i := range server.MaxInitKeys + 1 {
+		for i := range api.MaxInitKeys + 1 {
 			init[api.Name(fmt.Sprintf("key-%d", i))] = "value"
 		}
 		reqBody := api.CreateFlowRequest{
@@ -1359,7 +1359,7 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Init state exceeds maximum")
+		assert.Contains(t, w.Body.String(), "too many init keys")
 	})
 }
 
@@ -1370,7 +1370,7 @@ func TestStartFlowTooManyLabels(t *testing.T) {
 		assert.NoError(t, err)
 
 		labels := api.Labels{}
-		for i := range server.MaxLabelCount + 1 {
+		for i := range api.MaxLabelCount + 1 {
 			labels[fmt.Sprintf("label-%d", i)] = "value"
 		}
 		reqBody := api.CreateFlowRequest{
@@ -1389,6 +1389,6 @@ func TestStartFlowTooManyLabels(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusBadRequest, w.Code)
-		assert.Contains(t, w.Body.String(), "Labels exceed maximum")
+		assert.Contains(t, w.Body.String(), "too many labels")
 	})
 }
