@@ -3,11 +3,12 @@ package engine_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestGetActiveFlow(t *testing.T) {
