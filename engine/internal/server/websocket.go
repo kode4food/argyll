@@ -71,8 +71,7 @@ func HandleWebSocket(
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		slog.Error("WebSocket upgrade failed",
-			log.Error(err))
+		slog.Error("WebSocket upgrade failed", log.Error(err))
 		return
 	}
 
@@ -190,8 +189,7 @@ func (c *Client) readMessages(incoming chan []byte) {
 func (c *Client) handleSubscribe(message []byte) {
 	var sub api.SubscribeRequest
 	if err := json.Unmarshal(message, &sub); err != nil {
-		slog.Error("Failed to parse WebSocket message",
-			log.Error(err))
+		slog.Error("Failed to parse WebSocket message", log.Error(err))
 		return
 	}
 
@@ -253,8 +251,7 @@ func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
 	wsEvent := c.transformEvent(event)
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	if err := c.conn.WriteJSON(wsEvent); err != nil {
-		slog.Error("WebSocket write failed",
-			log.Error(err))
+		slog.Error("WebSocket write failed", log.Error(err))
 		return false
 	}
 	return true

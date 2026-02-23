@@ -61,8 +61,7 @@ func main() {
 		Start(handle)
 
 	if err != nil {
-		slog.Error("Failed to setup stock reservation",
-			log.Error(err))
+		slog.Error("Failed to setup stock reservation", log.Error(err))
 		os.Exit(1)
 	}
 }

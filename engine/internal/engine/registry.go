@@ -88,7 +88,8 @@ func (e *Engine) execStepUpsert(
 		err := e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
 		if err != nil {
 			slog.Error("Failed to update step health",
-				log.StepID(step.ID), log.Error(err))
+				log.StepID(step.ID),
+				log.Error(err))
 		}
 	}
 	return nil
@@ -198,7 +199,8 @@ func (e *Engine) raiseStepRegisteredEvent(
 			},
 		); err != nil {
 			slog.Error("Failed to raise step health changed event",
-				log.StepID(step.ID), log.Error(err))
+				log.StepID(step.ID),
+				log.Error(err))
 		}
 	})
 	return nil

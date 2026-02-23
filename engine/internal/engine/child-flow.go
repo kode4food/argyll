@@ -74,8 +74,14 @@ func (e *Engine) StartChildFlow(
 }
 
 func (tx *flowTx) completeParentWork(st *api.FlowState) {
-	target, ok := tx.parentWork(st)
-	if !ok {
+	target, err := tx.parentWork(st)
+	if err != nil {
+		slog.Error("Failed to get parent flow state",
+			log.FlowID(tx.flowID),
+			log.Error(err))
+		return
+	}
+	if target == nil {
 		return
 	}
 	switch st.Status {
@@ -86,14 +92,16 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 			ferr := tx.FailWork(target.fs, target.token, err.Error())
 			if ferr != nil {
 				slog.Error("Failed to fail parent work item",
-					log.FlowID(tx.flowID), log.Error(ferr))
+					log.FlowID(tx.flowID),
+					log.Error(ferr))
 			}
 			return
 		}
 		cerr := tx.CompleteWork(target.fs, target.token, outputs)
 		if cerr != nil {
 			slog.Error("Failed to complete parent work item",
-				log.FlowID(tx.flowID), log.Error(cerr))
+				log.FlowID(tx.flowID),
+				log.Error(cerr))
 		}
 	case api.FlowFailed:
 		errMsg := st.Error
@@ -102,30 +110,30 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 		}
 		if ferr := tx.FailWork(target.fs, target.token, errMsg); ferr != nil {
 			slog.Error("Failed to fail parent work item",
-				log.FlowID(tx.flowID), log.Error(ferr))
+				log.FlowID(tx.flowID),
+				log.Error(ferr))
 		}
 	}
 }
 
-func (tx *flowTx) parentWork(st *api.FlowState) (*parentWork, bool) {
+func (tx *flowTx) parentWork(st *api.FlowState) (*parentWork, error) {
 	target := &parentWork{}
 	if !tx.parentMeta(st, target) {
-		return nil, false
+		return nil, nil
 	}
 
 	parentFlow, err := tx.GetFlowState(target.fs.FlowID)
 	if err != nil {
-		return nil, false
+		return nil, fmt.Errorf("%w: %w", ErrGetFlowState, err)
 	}
 
 	exec := parentFlow.Executions[target.fs.StepID]
-	workItem := exec.WorkItems[target.token]
-	if isWorkTerminal(workItem.Status) {
-		return nil, false
+	if isWorkTerminal(exec.WorkItems[target.token].Status) {
+		return nil, nil
 	}
 
 	target.step = parentFlow.Plan.Steps[target.fs.StepID]
-	return target, true
+	return target, nil
 }
 
 func (tx *flowTx) parentMeta(st *api.FlowState, target *parentWork) bool {

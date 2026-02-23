@@ -89,8 +89,7 @@ func (h *HealthChecker) handleStepCompleted(event *timebox.Event) {
 
 	var sc api.StepCompletedEvent
 	if err := json.Unmarshal(event.Data, &sc); err != nil {
-		slog.Error("Failed to unmarshal event",
-			log.Error(err))
+		slog.Error("Failed to unmarshal event", log.Error(err))
 		return
 	}
 
@@ -119,8 +118,7 @@ func (h *HealthChecker) healthCheckLoop() {
 func (h *HealthChecker) checkAllSteps() {
 	catState, err := h.engine.GetCatalogState()
 	if err != nil {
-		slog.Error("Failed to get catalog state",
-			log.Error(err))
+		slog.Error("Failed to get catalog state", log.Error(err))
 		return
 	}
 
@@ -154,7 +152,8 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 		err := h.engine.UpdateStepHealth(step.ID, api.HealthHealthy, "")
 		if err != nil {
 			slog.Error("Failed to update step health",
-				log.StepID(step.ID), log.Error(err))
+				log.StepID(step.ID),
+				log.Error(err))
 		}
 		return
 	}
@@ -172,7 +171,8 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 		err := h.engine.UpdateStepHealth(step.ID, status, errorMsg)
 		if err != nil {
 			slog.Error("Failed to update step health",
-				log.StepID(step.ID), log.Error(err))
+				log.StepID(step.ID),
+				log.Error(err))
 		}
 		return
 	}
@@ -188,7 +188,8 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 
 	if err := h.engine.UpdateStepHealth(step.ID, status, errorMsg); err != nil {
 		slog.Error("Failed to update step health",
-			log.StepID(step.ID), log.Error(err))
+			log.StepID(step.ID),
+			log.Error(err))
 	}
 }
 

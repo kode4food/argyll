@@ -153,8 +153,7 @@ func (t *EventQueue) handleBatch(batch []QueueEvent) {
 			time.Sleep(eventRetryDelay)
 		}
 	}
-	slog.Error(
-		"Engine event batch permanently failed; partition state may diverge",
+	slog.Error("Engine event batch permanently failed",
 		slog.Int("batch_size", len(batch)))
 }
 

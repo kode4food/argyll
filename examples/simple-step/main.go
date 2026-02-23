@@ -45,8 +45,7 @@ func main() {
 		Register(context.Background())
 
 	if err != nil {
-		slog.Error("Failed to register text formatter",
-			log.Error(err))
+		slog.Error("Failed to register text formatter", log.Error(err))
 		os.Exit(1)
 	}
 
@@ -78,8 +77,7 @@ func main() {
 		Register(context.Background())
 
 	if err != nil {
-		slog.Error("Failed to register price calculator",
-			log.Error(err))
+		slog.Error("Failed to register price calculator", log.Error(err))
 		os.Exit(1)
 	}
 
@@ -126,8 +124,7 @@ return {
 		Register(context.Background())
 
 	if err != nil {
-		slog.Error("Failed to register eligibility checker",
-			log.Error(err))
+		slog.Error("Failed to register eligibility checker", log.Error(err))
 		os.Exit(1)
 	}
 

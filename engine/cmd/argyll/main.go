@@ -63,8 +63,7 @@ func main() {
 	s.setupLogging()
 
 	if err := s.run(); err != nil {
-		slog.Error("Failed to start application",
-			log.Error(err))
+		slog.Error("Failed to start application", log.Error(err))
 		os.Exit(1)
 	}
 }
@@ -177,8 +176,7 @@ func (s *argyll) startServer() {
 			slog.String("addr", s.httpServer.Addr))
 		err := s.httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
-			slog.Error("HTTP server error",
-				log.Error(err))
+			slog.Error("HTTP server error", log.Error(err))
 		}
 	}()
 }
@@ -192,16 +190,14 @@ func (s *argyll) shutdown() {
 	defer cancel()
 
 	if err := s.httpServer.Shutdown(ctx); err != nil {
-		slog.Error("Shutdown failed",
-			log.Error(err))
+		slog.Error("Shutdown failed", log.Error(err))
 	}
 
 	s.apiServer.CloseWebSockets()
 	s.health.Stop()
 
 	if err := s.engine.Stop(); err != nil {
-		slog.Error("Engine shutdown failed",
-			log.Error(err))
+		slog.Error("Engine shutdown failed", log.Error(err))
 	}
 
 	_ = s.timebox.Close()

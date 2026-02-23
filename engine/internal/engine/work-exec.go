@@ -117,9 +117,9 @@ func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 	if errors.Is(err, api.ErrWorkNotCompleted) {
 		recErr := e.engine.NotCompleteWork(fs, token, err.Error())
 		if recErr != nil {
-			slog.Error(
-				"Failed to record work not completed; work item may be stuck",
-				log.FlowID(e.flowID), log.StepID(e.stepID),
+			slog.Error("Failed to record work not completed",
+				log.FlowID(e.flowID),
+				log.StepID(e.stepID),
 				log.Error(recErr))
 		}
 		return
@@ -127,8 +127,10 @@ func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 
 	recErr := e.engine.FailWork(fs, token, err.Error())
 	if recErr != nil {
-		slog.Error("Failed to record work failure; work item may be stuck",
-			log.FlowID(e.flowID), log.StepID(e.stepID), log.Error(recErr))
+		slog.Error("Failed to record work failure",
+			log.FlowID(e.flowID),
+			log.StepID(e.stepID),
+			log.Error(recErr))
 	}
 }
 
