@@ -309,6 +309,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 	tests := []struct {
 		name    string
 		envVars map[string]string
+		wantErr bool
 		check   func(*testing.T, *config.Config)
 	}{
 		{
@@ -368,49 +369,39 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid_api_port_ignored",
+			name: "invalid_api_port_errors",
 			envVars: map[string]string{
 				"API_PORT": "not_a_number",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultAPIPort, c.APIPort)
-			},
+			wantErr: true,
 		},
 		{
-			name: "invalid_cache_size_ignored",
+			name: "invalid_cache_size_errors",
 			envVars: map[string]string{
 				"FLOW_CACHE_SIZE": "invalid",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultCacheSize, c.FlowCacheSize)
-			},
+			wantErr: true,
 		},
 		{
-			name: "zero_cache_size_ignored",
+			name: "zero_cache_size_errors",
 			envVars: map[string]string{
 				"FLOW_CACHE_SIZE": "0",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultCacheSize, c.FlowCacheSize)
-			},
+			wantErr: true,
 		},
 		{
-			name: "invalid_step_timeout_ignored",
+			name: "invalid_step_timeout_errors",
 			envVars: map[string]string{
 				"STEP_TIMEOUT": "invalid",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultStepTimeout, c.StepTimeout)
-			},
+			wantErr: true,
 		},
 		{
-			name: "non_positive_step_timeout_ignored",
+			name: "non_positive_step_timeout_errors",
 			envVars: map[string]string{
 				"STEP_TIMEOUT": "0",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, config.DefaultStepTimeout, c.StepTimeout)
-			},
+			wantErr: true,
 		},
 		{
 			name: "load_retry_max_retries",
@@ -462,37 +453,25 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "invalid_retry_max_retries_ignored",
+			name: "invalid_retry_max_retries_errors",
 			envVars: map[string]string{
 				"RETRY_MAX_RETRIES": "not_a_number",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t,
-					config.DefaultRetryMaxRetries, c.Work.MaxRetries,
-				)
-			},
+			wantErr: true,
 		},
 		{
-			name: "invalid_retry_backoff_ignored",
+			name: "invalid_retry_backoff_errors",
 			envVars: map[string]string{
 				"RETRY_INITIAL_BACKOFF": "invalid",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t,
-					int64(config.DefaultRetryInitBackoff), c.Work.InitBackoff,
-				)
-			},
+			wantErr: true,
 		},
 		{
-			name: "invalid_retry_max_backoff_ignored",
+			name: "invalid_retry_max_backoff_errors",
 			envVars: map[string]string{
 				"RETRY_MAX_BACKOFF": "bad_value",
 			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t,
-					int64(config.DefaultMaxRetryBackoff), c.Work.MaxBackoff,
-				)
-			},
+			wantErr: true,
 		},
 	}
 
@@ -504,7 +483,12 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			}
 
 			cfg := config.NewDefaultConfig()
-			testify.NoError(t, cfg.LoadFromEnv())
+			err := cfg.LoadFromEnv()
+			if tt.wantErr {
+				testify.Error(t, err)
+				return
+			}
+			testify.NoError(t, err)
 			tt.check(t, cfg)
 		})
 	}
