@@ -100,7 +100,7 @@ func (tx *flowTx) hasOptionalReady(
 		if !attr.IsOptional() {
 			continue
 		}
-		ready, deadline := tx.optionalInputReady(name, attr, flow, now)
+		ready, deadline := tx.optionalReadyDeadline(name, attr, flow, now)
 		if !ready {
 			blocked = true
 		}
@@ -113,32 +113,54 @@ func (tx *flowTx) hasOptionalReady(
 	return !blocked, nextDeadline
 }
 
-func (tx *flowTx) optionalInputReady(
+func (tx *flowTx) optionalReadyDeadline(
 	name api.Name, attr *api.AttributeSpec, flow *api.FlowState, now time.Time,
 ) (bool, time.Time) {
-	if _, ok := flow.Attributes[name]; ok {
-		return true, time.Time{}
-	}
+	ready, _, deadline := tx.optionalDecision(name, attr, flow, now)
+	return ready, deadline
+}
 
+func (tx *flowTx) optionalUsesDefault(
+	name api.Name, attr *api.AttributeSpec, flow *api.FlowState, now time.Time,
+) (bool, bool) {
+	ready, useDefault, _ := tx.optionalDecision(name, attr, flow, now)
+	return ready, useDefault
+}
+
+func (tx *flowTx) optionalDecision(
+	name api.Name, attr *api.AttributeSpec, flow *api.FlowState, now time.Time,
+) (bool, bool, time.Time) {
+	attrVal, hasAttr := flow.Attributes[name]
 	deps, ok := flow.Plan.Attributes[name]
-	if !ok || len(deps.Providers) == 0 {
-		return true, time.Time{}
+	if hasAttr {
+		if !ok || len(deps.Providers) == 0 || attr.Timeout <= 0 ||
+			attrVal.Step == "" {
+			return true, false, time.Time{}
+		}
+
+		deadline, ok := tx.optionalDeadline(
+			deps.Providers, flow, attr.Timeout,
+		)
+		if !ok {
+			return true, false, time.Time{}
+		}
+
+		if !attrVal.SetAt.IsZero() && attrVal.SetAt.After(deadline) {
+			return true, true, time.Time{}
+		}
+		return true, false, time.Time{}
 	}
 
-	var startedAt time.Time
-	activePotential := false
+	if !ok || len(deps.Providers) == 0 {
+		return true, false, time.Time{}
+	}
 
+	activePotential := false
 	for _, providerID := range deps.Providers {
 		exec, ok := flow.Executions[providerID]
 		if !ok || exec == nil {
 			continue
 		}
-
-		if !exec.StartedAt.IsZero() && (startedAt.IsZero() ||
-			exec.StartedAt.Before(startedAt)) {
-			startedAt = exec.StartedAt
-		}
-
 		if stepTransitions.IsTerminal(exec.Status) {
 			continue
 		}
@@ -149,20 +171,42 @@ func (tx *flowTx) optionalInputReady(
 	}
 
 	if !activePotential {
-		return true, time.Time{}
+		return true, false, time.Time{}
 	}
 	if attr.Timeout <= 0 {
-		return false, time.Time{}
-	}
-	if startedAt.IsZero() {
-		return false, time.Time{}
+		return false, false, time.Time{}
 	}
 
-	deadline := startedAt.Add(time.Duration(attr.Timeout) * time.Millisecond)
-	if !deadline.After(now) {
-		return true, time.Time{}
+	deadline, ok := tx.optionalDeadline(deps.Providers, flow, attr.Timeout)
+	if !ok {
+		return false, false, time.Time{}
 	}
-	return false, deadline
+	if !deadline.After(now) {
+		return true, true, time.Time{}
+	}
+	return false, false, deadline
+}
+
+func (tx *flowTx) optionalDeadline(
+	providers []api.StepID, flow *api.FlowState, timeoutMS int64,
+) (time.Time, bool) {
+	var startedAt time.Time
+
+	for _, providerID := range providers {
+		exec, ok := flow.Executions[providerID]
+		if !ok || exec == nil || exec.StartedAt.IsZero() {
+			continue
+		}
+		if startedAt.IsZero() || exec.StartedAt.Before(startedAt) {
+			startedAt = exec.StartedAt
+		}
+	}
+
+	if startedAt.IsZero() {
+		return time.Time{}, false
+	}
+
+	return startedAt.Add(time.Duration(timeoutMS) * time.Millisecond), true
 }
 
 // findInitialSteps finds steps that can start when a flow begins

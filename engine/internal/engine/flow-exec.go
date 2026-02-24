@@ -52,7 +52,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	step := flow.Plan.Steps[stepID]
 
 	// Collect inputs
-	inputs := tx.collectStepInputs(step, flow.GetAttributes())
+	inputs := tx.collectStepInputs(step, flow)
 
 	// Evaluate predicate
 	shouldExecute, err := tx.evaluateStepPredicate(step, inputs)

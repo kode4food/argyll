@@ -94,7 +94,10 @@ func flowStarted(
 
 	attributes := api.AttributeValues{}
 	for key, value := range data.Init {
-		attributes[key] = &api.AttributeValue{Value: value}
+		attributes[key] = &api.AttributeValue{
+			Value: value,
+			SetAt: ev.Timestamp,
+		}
 	}
 
 	return &api.FlowState{
@@ -202,6 +205,7 @@ func attributeSet(
 		SetAttribute(data.Key, &api.AttributeValue{
 			Value: data.Value,
 			Step:  data.StepID,
+			SetAt: ev.Timestamp,
 		}).
 		SetLastUpdated(ev.Timestamp)
 }

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
+	"time"
 
 	"github.com/tidwall/gjson"
 
@@ -61,8 +62,11 @@ func (e *Engine) evaluateStepPredicate(
 	return shouldExecute, nil
 }
 
-func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
+func (tx *flowTx) collectStepInputs(
+	step *api.Step, flow *api.FlowState,
+) api.Args {
 	inputs := api.Args{}
+	now := time.Now()
 
 	for name, attr := range step.Attributes {
 		if !attr.IsRuntimeInput() {
@@ -74,17 +78,36 @@ func (e *Engine) collectStepInputs(step *api.Step, attrs api.Args) api.Args {
 			continue
 		}
 
-		value, ok := attrs[name]
-		if !ok {
-			if !attr.IsRequired() && attr.Default != "" {
-				value = gjson.Parse(attr.Default).Value()
-			} else {
+		if attr.IsOptional() {
+			ready, useDefault := tx.optionalUsesDefault(
+				name, attr, flow, now,
+			)
+			if !ready {
+				continue
+			}
+			if useDefault && attr.Default != "" {
+				value := gjson.Parse(attr.Default).Value()
+				val := tx.mapper.MapInput(step, name, attr, value)
+				paramName := tx.mapper.InputParamName(name, attr)
+				inputs[paramName] = val
 				continue
 			}
 		}
 
-		val := e.mapper.MapInput(step, name, attr, value)
-		paramName := e.mapper.InputParamName(name, attr)
+		attrVal, ok := flow.Attributes[name]
+		if !ok {
+			if !attr.IsRequired() && attr.Default != "" {
+				value := gjson.Parse(attr.Default).Value()
+				val := tx.mapper.MapInput(step, name, attr, value)
+				paramName := tx.mapper.InputParamName(name, attr)
+				inputs[paramName] = val
+				continue
+			}
+			continue
+		}
+
+		val := tx.mapper.MapInput(step, name, attr, attrVal.Value)
+		paramName := tx.mapper.InputParamName(name, attr)
 		inputs[paramName] = val
 	}
 

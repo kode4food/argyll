@@ -533,3 +533,123 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		assert.Equal(t, "real", flow.Executions[strict.ID].Inputs["opt"])
 	})
 }
+
+func TestTimeoutDefaultSticksWhileWaitingOnOtherRequiredInputs(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		userProvider := &api.Step{
+			ID:   "user-provider",
+			Name: "User Provider",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		productProvider := &api.Step{
+			ID:   "product-provider",
+			Name: "Product Provider",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"product_info": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		orderCreator := &api.Step{
+			ID:   "order-creator",
+			Name: "Order Creator",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
+				"user_info": {
+					Role:    api.RoleOptional,
+					Type:    api.TypeString,
+					Default: `"guest"`,
+					Timeout: 50,
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(userProvider))
+		assert.NoError(t, env.Engine.RegisterStep(productProvider))
+		assert.NoError(t, env.Engine.RegisterStep(orderCreator))
+
+		releaseUser := make(chan struct{})
+		releaseProduct := make(chan struct{})
+		userDone := make(chan struct{})
+
+		env.MockClient.SetHandler(userProvider.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseUser
+				close(userDone)
+				return api.Args{"user_info": "real-user"}, nil
+			},
+		)
+		env.MockClient.SetHandler(productProvider.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseProduct
+				return api.Args{"product_info": "real-product"}, nil
+			},
+		)
+		env.MockClient.SetResponse(orderCreator.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{orderCreator.ID},
+			Steps: api.Steps{
+				userProvider.ID:    userProvider,
+				productProvider.ID: productProvider,
+				orderCreator.ID:    orderCreator,
+			},
+			Attributes: api.AttributeGraph{
+				"user_info": {
+					Providers: []api.StepID{userProvider.ID},
+					Consumers: []api.StepID{orderCreator.ID},
+				},
+				"product_info": {
+					Providers: []api.StepID{productProvider.ID},
+					Consumers: []api.StepID{orderCreator.ID},
+				},
+				"result": {
+					Providers: []api.StepID{orderCreator.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		flowID := api.FlowID("wf-opt-timeout-sticky-default")
+		assert.NoError(t, env.Engine.StartFlow(flowID, plan))
+
+		assert.True(t, env.MockClient.WaitForInvocation(
+			userProvider.ID, 500*time.Millisecond,
+		))
+		assert.True(t, env.MockClient.WaitForInvocation(
+			productProvider.ID, 500*time.Millisecond,
+		))
+
+		time.Sleep(80 * time.Millisecond)
+		close(releaseUser)
+
+		select {
+		case <-userDone:
+		case <-time.After(500 * time.Millisecond):
+			assert.Fail(t, "timed out waiting for user provider completion")
+		}
+
+		assert.False(t, env.MockClient.WaitForInvocation(
+			orderCreator.ID, 100*time.Millisecond,
+		))
+
+		close(releaseProduct)
+		flow := env.WaitForFlowStatus(flowID, func() {})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t,
+			"guest", flow.Executions[orderCreator.ID].Inputs["user_info"],
+		)
+		assert.Equal(t, "real-product",
+			flow.Executions[orderCreator.ID].Inputs["product_info"],
+		)
+	})
+}

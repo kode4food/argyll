@@ -931,6 +931,17 @@ components:
             Default value as JSON string (for optional and const attributes).
             Must be valid JSON matching the specified type.
           example: '"default_value"'
+        timeout:
+          type: integer
+          format: int64
+          description: |
+            Optional timeout in milliseconds for optional attributes.
+            Timeout starts when the first potential upstream provider starts work.
+            If the timeout expires before the attribute is set, the consuming
+            step may proceed using its optional default (step-local only).
+            `0` means no timeout.
+          minimum: 0
+          example: 2000
         for_each:
           type: boolean
           description: |
@@ -1468,8 +1479,16 @@ components:
           description: The attribute value (can be any JSON type)
         step:
           type: string
-          description: ID of the step that produced this value
+          description: |
+            ID of the step that produced this value.
+            Omitted for attributes provided in flow init state.
           example: "data-fetcher"
+        set_at:
+          type: string
+          format: date-time
+          description: |
+            When this attribute value was set in flow state.
+            For init-state attributes, this is the `flow_started` timestamp.
 
     ExecutionState:
       type: object

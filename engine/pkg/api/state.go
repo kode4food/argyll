@@ -76,8 +76,9 @@ type (
 
 	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
-		Value any    `json:"value"`
-		Step  StepID `json:"step,omitempty"`
+		Value any       `json:"value"`
+		Step  StepID    `json:"step,omitempty"`
+		SetAt time.Time `json:"set_at"`
 	}
 
 	// ExecutionState contains the state of a step execution
@@ -185,7 +186,7 @@ func (p *PartitionState) SetHealth(id StepID, h *HealthState) *PartitionState {
 	return &res
 }
 
-// SetLastUpdated returns a new PartitionState with the last updated timestamp set
+// SetLastUpdated returns a new PartitionState with last updated timestamp set
 func (p *PartitionState) SetLastUpdated(t time.Time) *PartitionState {
 	res := *p
 	res.LastUpdated = t

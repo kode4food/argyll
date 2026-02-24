@@ -59,6 +59,7 @@ Optional inputs can define a `timeout` (milliseconds) to let a step continue wit
 - If upstream providers exist, the step waits for them by default
 - The timeout clock starts when the first potential provider step starts work
 - If the timeout expires first, this step can proceed with its default
+- That default choice is step-local and sticky for this step execution, even if the real attribute still arrives before the step starts
 - Other steps that require the real attribute still wait for it
 
 **Why:** Improves latency for downstream steps that can tolerate a fallback while preserving correctness for strict consumers.

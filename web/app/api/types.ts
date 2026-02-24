@@ -159,6 +159,7 @@ export interface StepHealth {
 export interface AttributeValue {
   value: any;
   step?: string;
+  set_at?: string;
 }
 
 export interface QueryFlowsItem {
