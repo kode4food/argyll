@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 	"fmt"
+	"log/slog"
 	"maps"
 	"time"
 
@@ -10,13 +11,23 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-type flowTx struct {
-	*Engine
-	*FlowAggregator
-	flowID api.FlowID
-}
+type (
+	flowTx struct {
+		*Engine
+		*FlowAggregator
+		flowID api.FlowID
+	}
+
+	timeoutAttrs struct {
+		Attributes []api.Name
+		Providers  []api.StepID
+		Deadline   time.Time
+	}
+)
 
 var (
 	ErrInvariantViolated = errors.New("engine invariant violated")
@@ -53,6 +64,9 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 
 	// Collect inputs
 	inputs := tx.collectStepInputs(step, flow.GetAttributes())
+
+	// Schedule timeouts for optional attributes with upstream providers
+	timeouts := tx.identifyTimeouts(step, inputs, flow)
 
 	// Evaluate predicate
 	shouldExecute, err := tx.evaluateStepPredicate(step, inputs)
@@ -109,6 +123,20 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 			tx.handleWorkItemsExecution(
 				stepID, step, inputs, flow.Metadata, started,
 			)
+		})
+	}
+
+	if len(timeouts.Attributes) > 0 {
+		tx.OnSuccess(func(*api.FlowState) {
+			if err := tx.Engine.ScheduleTimeout(
+				tx.flowID, stepID, timeouts.Deadline,
+				timeouts.Attributes, timeouts.Providers,
+			); err != nil {
+				slog.Error("Failed to schedule attribute timeout",
+					log.FlowID(tx.flowID),
+					log.StepID(stepID),
+					log.Error(err))
+			}
 		})
 	}
 
@@ -728,6 +756,55 @@ func (tx *flowTx) handleRetryScheduled(
 		Token:       token,
 		NextRetryAt: nextRetryAt,
 	})
+	tx.Engine.RegisterTask(tx.Engine.retryTask, nextRetryAt)
+}
+
+func (tx *flowTx) identifyTimeouts(
+	step *api.Step, inputs api.Args, flow *api.FlowState,
+) timeoutAttrs {
+	result := timeoutAttrs{
+		Attributes: []api.Name{},
+		Providers:  []api.StepID{},
+	}
+
+	now := time.Now()
+	var maxDeadline time.Time
+
+	for name, attr := range step.Attributes {
+		if !attr.IsOptional() || attr.Timeout <= 0 {
+			continue
+		}
+
+		if _, ok := inputs[name]; ok {
+			continue
+		}
+
+		attrDeps, ok := flow.Plan.Attributes[name]
+		if !ok || len(attrDeps.Providers) == 0 {
+			continue
+		}
+
+		result.Attributes = append(result.Attributes, name)
+
+		providers := util.Set[api.StepID]{}
+		for _, providerID := range attrDeps.Providers {
+			if !providers.Contains(providerID) {
+				result.Providers = append(result.Providers, providerID)
+				providers.Add(providerID)
+			}
+		}
+
+		// Calculate deadline (use maximum of all timeouts)
+		deadline := now.Add(
+			time.Duration(attr.Timeout) * time.Millisecond,
+		)
+		if maxDeadline.IsZero() || deadline.After(maxDeadline) {
+			maxDeadline = deadline
+		}
+	}
+
+	result.Deadline = maxDeadline
+	return result
 }
 
 func stepParallelism(step *api.Step) int {

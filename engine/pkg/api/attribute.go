@@ -12,11 +12,15 @@ import (
 type (
 	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
+		// Common
 		Role    AttributeRole     `json:"role"`
 		Type    AttributeType     `json:"type"`
-		Default string            `json:"default,omitempty"`
 		Mapping *AttributeMapping `json:"mapping,omitempty"`
-		ForEach bool              `json:"for_each,omitempty"`
+
+		// Role and Type specific
+		ForEach bool   `json:"for_each,omitempty"`
+		Default string `json:"default,omitempty"`
+		Timeout int64  `json:"timeout,omitempty"`
 	}
 
 	// AttributeMapping defines parameter name mapping and value transformation
@@ -77,6 +81,17 @@ var (
 	)
 	ErrInvalidAttributeMapping = errors.New("invalid attribute mapping")
 	ErrDuplicateInnerName      = errors.New("duplicate mapped parameter name")
+	ErrTimeoutNotAllowed       = errors.New(
+		"timeout is only allowed on optional attributes",
+	)
+	ErrInvalidAttributeTimeout = errors.New(
+		"timeout must be between 0 and 1 year in milliseconds",
+	)
+)
+
+const (
+	MinAttributeTimeout = 0                         // 0 means no timeout
+	MaxAttributeTimeout = 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
 )
 
 var (
@@ -146,6 +161,16 @@ func (s *AttributeSpec) Validate(name Name) error {
 			return fmt.Errorf("%w for attribute %q: %v",
 				ErrInvalidDefaultValue, name, err)
 		}
+	}
+
+	if s.Timeout < MinAttributeTimeout || s.Timeout > MaxAttributeTimeout {
+		return fmt.Errorf("%w: timeout %d for attribute %q",
+			ErrInvalidAttributeTimeout, s.Timeout, name)
+	}
+
+	if s.Timeout > 0 && !s.IsOptional() {
+		return fmt.Errorf("%w: %q",
+			ErrTimeoutNotAllowed, name)
 	}
 
 	return nil
@@ -240,6 +265,7 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		s.Type == other.Type &&
 		s.ForEach == other.ForEach &&
 		s.Default == other.Default &&
+		s.Timeout == other.Timeout &&
 		mappingsEqual(s.Mapping, other.Mapping)
 }
 

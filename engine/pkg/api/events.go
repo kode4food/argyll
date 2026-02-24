@@ -157,6 +157,31 @@ type (
 		FlowID FlowID `json:"flow_id"`
 	}
 
+	// TimeoutFiredEvent is emitted when a timeout expires for optional
+	// attribute inputs
+	TimeoutFiredEvent struct {
+		FlowID     FlowID    `json:"flow_id"`
+		StepID     StepID    `json:"step_id"`
+		FiresAt    time.Time `json:"fires_at"`
+		Attributes []Name    `json:"attributes"`
+	}
+
+	// TimeoutScheduledEvent is emitted when a step registers a timeout for
+	// optional attribute inputs
+	TimeoutScheduledEvent struct {
+		FlowID          FlowID    `json:"flow_id"`
+		StepID          StepID    `json:"step_id"`
+		FiresAt         time.Time `json:"fires_at"`
+		Attributes      []Name    `json:"attributes"`
+		UpstreamStepIDs []StepID  `json:"upstream_step_ids"`
+	}
+
+	// TimeoutCanceledEvent is emitted when a timeout is canceled
+	TimeoutCanceledEvent struct {
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+	}
+
 	EventType string
 )
 
@@ -183,4 +208,7 @@ const (
 	EventTypeWorkFailed        EventType = "work_failed"
 	EventTypeWorkNotCompleted  EventType = "work_not_completed"
 	EventTypeRetryScheduled    EventType = "retry_scheduled"
+	EventTypeTimeoutFired      EventType = "timeout_fired"
+	EventTypeTimeoutScheduled  EventType = "timeout_scheduled"
+	EventTypeTimeoutCanceled   EventType = "timeout_canceled"
 )

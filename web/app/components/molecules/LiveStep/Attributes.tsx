@@ -63,77 +63,84 @@ const Attributes: React.FC<AttributesProps> = ({
       className={`${styles.argsSection} step-args-section`}
       data-testid="step-args"
     >
-      {unifiedArgs.map((arg) => {
-        const { hasValue, value } = getAttributeValue(
-          arg,
-          execution,
-          attributeValues
-        );
-        const isWinner = attributeProvenance.get(arg.name) === step.id;
-        const isConst = arg.argType === "const";
-        const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
+      {unifiedArgs
+        .filter((arg) => {
+          if (arg.argType === "optional") {
+            return attributeProvenance.has(arg.name);
+          }
+          return true;
+        })
+        .map((arg) => {
+          const { hasValue, value } = getAttributeValue(
+            arg,
+            execution,
+            attributeValues
+          );
+          const isWinner = attributeProvenance.get(arg.name) === step.id;
+          const isConst = arg.argType === "const";
+          const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
 
-        const { Icon, className } = getArgIcon(arg.argType);
+          const { Icon, className } = getArgIcon(arg.argType);
 
-        const isProvidedByUpstream =
-          arg.argType === "optional" ? isSatisfied : undefined;
-        const wasDefaulted =
-          arg.argType === "optional"
-            ? hasValue && !isSatisfied
-            : isConst
-              ? hasValue
-              : undefined;
+          const isProvidedByUpstream =
+            arg.argType === "optional" ? isSatisfied : undefined;
+          const wasDefaulted =
+            arg.argType === "optional"
+              ? hasValue && !isSatisfied
+              : isConst
+                ? hasValue
+                : undefined;
 
-        const statusBadge = renderStatusBadge(arg.argType, {
-          isSatisfied,
-          executionStatus: execution?.status,
-          isWinner,
-          isProvidedByUpstream,
-          wasDefaulted,
-        });
+          const statusBadge = renderStatusBadge(arg.argType, {
+            isSatisfied,
+            executionStatus: execution?.status,
+            isWinner,
+            isProvidedByUpstream,
+            wasDefaulted,
+          });
 
-        const argItem = (
-          <div
-            className={styles.argItem}
-            data-arg-type={arg.argType}
-            data-arg-name={arg.name}
-          >
-            <span className={styles.argName}>
-              <Icon className={className} />
-              {arg.name}
-            </span>
-            <div className={styles.argTypeContainer}>
-              <span className={styles.argType}>{arg.type}</span>
-              {statusBadge}
-            </div>
-          </div>
-        );
-
-        const key = `${arg.argType}-${arg.name}`;
-
-        const tooltipContent = hasValue
-          ? {
-              title: t(getAttributeTooltipTitle(arg.argType, wasDefaulted)),
-              icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
-              content: formatAttributeValue(value),
-              monospace: true,
-            }
-          : null;
-
-        return tooltipContent ? (
-          <Tooltip key={key} trigger={argItem}>
-            <TooltipSection
-              title={tooltipContent.title}
-              icon={tooltipContent.icon}
-              monospace={tooltipContent.monospace}
+          const argItem = (
+            <div
+              className={styles.argItem}
+              data-arg-type={arg.argType}
+              data-arg-name={arg.name}
             >
-              {tooltipContent.content}
-            </TooltipSection>
-          </Tooltip>
-        ) : (
-          <div key={key}>{argItem}</div>
-        );
-      })}
+              <span className={styles.argName}>
+                <Icon className={className} />
+                {arg.name}
+              </span>
+              <div className={styles.argTypeContainer}>
+                <span className={styles.argType}>{arg.type}</span>
+                {statusBadge}
+              </div>
+            </div>
+          );
+
+          const key = `${arg.argType}-${arg.name}`;
+
+          const tooltipContent = hasValue
+            ? {
+                title: t(getAttributeTooltipTitle(arg.argType, wasDefaulted)),
+                icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
+                content: formatAttributeValue(value),
+                monospace: true,
+              }
+            : null;
+
+          return tooltipContent ? (
+            <Tooltip key={key} trigger={argItem}>
+              <TooltipSection
+                title={tooltipContent.title}
+                icon={tooltipContent.icon}
+                monospace={tooltipContent.monospace}
+              >
+                {tooltipContent.content}
+              </TooltipSection>
+            </Tooltip>
+          ) : (
+            <div key={key}>{argItem}</div>
+          );
+        })}
     </div>
   );
 };

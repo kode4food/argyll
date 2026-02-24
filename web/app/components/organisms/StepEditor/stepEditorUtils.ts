@@ -16,6 +16,7 @@ export interface Attribute {
   name: string;
   dataType: AttributeType;
   defaultValue?: string;
+  timeout?: number; // milliseconds
   forEach?: boolean;
   mappingName?: string;
   mappingLanguage?: string;
@@ -61,6 +62,10 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
             ? spec.default !== undefined
               ? String(spec.default)
               : undefined
+            : undefined,
+        timeout:
+          spec.role === AttributeRole.Optional && spec.timeout
+            ? spec.timeout
             : undefined,
         forEach: spec.for_each || false,
         mappingName: spec.mapping?.name,
@@ -142,6 +147,10 @@ export function createStepAttributes(
       a.defaultValue?.trim()
     ) {
       spec.default = a.defaultValue.trim();
+    }
+
+    if (a.attrType === "optional" && a.timeout) {
+      spec.timeout = a.timeout;
     }
 
     if (a.forEach) {

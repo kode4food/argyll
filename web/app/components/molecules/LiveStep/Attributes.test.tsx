@@ -84,9 +84,17 @@ describe("Attributes", () => {
   test("renders attributes section with optional args", () => {
     const step = createStep([], ["opt1", "opt2"], []);
     const satisfiedArgs = new Set<string>();
+    const attributeProvenance = new Map([
+      ["opt1", "step-0"],
+      ["opt2", "step-0"],
+    ]);
 
     const { container } = render(
-      <Attributes step={step} satisfiedArgs={satisfiedArgs} />
+      <Attributes
+        step={step}
+        satisfiedArgs={satisfiedArgs}
+        attributeProvenance={attributeProvenance}
+      />
     );
 
     expect(
@@ -100,9 +108,17 @@ describe("Attributes", () => {
   test("renders all attributes in single section", () => {
     const step = createStep(["req1"], ["opt1"], ["out1"]);
     const satisfiedArgs = new Set<string>();
+    const attributeProvenance = new Map([
+      ["opt1", "step-0"],
+      ["out1", "step-1"],
+    ]);
 
     const { container } = render(
-      <Attributes step={step} satisfiedArgs={satisfiedArgs} />
+      <Attributes
+        step={step}
+        satisfiedArgs={satisfiedArgs}
+        attributeProvenance={attributeProvenance}
+      />
     );
 
     expect(
@@ -354,9 +370,15 @@ describe("Attributes", () => {
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeProvenance = new Map([["opt1", "step-0"]]);
 
     const { container } = render(
-      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        attributeProvenance={attributeProvenance}
+      />
     );
 
     const badge = container.querySelector(".arg-status-badge.skipped");
@@ -373,12 +395,14 @@ describe("Attributes", () => {
       inputs: { opt1: "value" },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeProvenance = new Map([["opt1", "step-0"]]);
 
     const { container } = render(
       <Attributes
         step={step}
         satisfiedArgs={new Set(["opt1"])}
         execution={execution}
+        attributeProvenance={attributeProvenance}
       />
     );
 
@@ -413,6 +437,7 @@ describe("Attributes", () => {
     const attributeValues = {
       opt1: { value: "default-value" },
     };
+    const attributeProvenance = new Map([["opt1", "step-0"]]);
 
     const { container } = render(
       <Attributes
@@ -420,6 +445,7 @@ describe("Attributes", () => {
         satisfiedArgs={new Set()}
         execution={execution}
         attributeValues={attributeValues}
+        attributeProvenance={attributeProvenance}
       />
     );
 
@@ -437,9 +463,15 @@ describe("Attributes", () => {
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeProvenance = new Map([["opt1", "step-0"]]);
 
     const { container } = render(
-      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        attributeProvenance={attributeProvenance}
+      />
     );
 
     const badge = container.querySelector(".arg-status-badge.pending");
@@ -513,7 +545,7 @@ describe("Attributes", () => {
     expect(screen.getByText(/\[object Object\]/)).toBeInTheDocument();
   });
 
-  test("shows 'Default Value' tooltip title for defaulted optional args", () => {
+  test("shows 'Default Value' tooltip title when optional arg has upstream provider", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
@@ -537,10 +569,105 @@ describe("Attributes", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
+    const attributeProvenance = new Map([["opt1", "step-0"]]);
+
     render(
-      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        attributeProvenance={attributeProvenance}
+      />
     );
 
     expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
+  });
+
+  test("hides optional arg when resolved by default and not in attributeProvenance", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          default: "default-value",
+        },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { opt1: "default-value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+    const attributeValues = {
+      opt1: { value: "default-value" },
+    };
+    const attributeProvenance = new Map<string, string>();
+
+    const { container } = render(
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        attributeValues={attributeValues}
+        attributeProvenance={attributeProvenance}
+      />
+    );
+
+    expect(
+      container.querySelector('[data-arg-name="opt1"]')
+    ).not.toBeInTheDocument();
+  });
+
+  test("shows optional arg when resolved by upstream in attributeProvenance", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          default: "default-value",
+        },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { opt1: "upstream-value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+    const attributeValues = {
+      opt1: { value: "upstream-value" },
+    };
+    const attributeProvenance = new Map([["opt1", "step-0"]]);
+
+    const { container } = render(
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        execution={execution}
+        attributeValues={attributeValues}
+        attributeProvenance={attributeProvenance}
+      />
+    );
+
+    expect(
+      container.querySelector('[data-arg-name="opt1"]')
+    ).toBeInTheDocument();
   });
 });

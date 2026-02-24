@@ -221,3 +221,14 @@ func (tx *flowTx) checkWorkTransition(
 
 	return nil
 }
+
+func (e *Engine) onTimeoutFired(flowID api.FlowID, stepID api.StepID) error {
+	return e.flowTx(flowID, func(tx *flowTx) error {
+		flow := tx.Value()
+		exec, ok := flow.Executions[stepID]
+		if !ok || exec.Status != api.StepPending {
+			return nil
+		}
+		return tx.prepareStep(stepID)
+	})
+}

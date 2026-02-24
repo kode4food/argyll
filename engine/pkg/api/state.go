@@ -37,6 +37,7 @@ type (
 		Deactivated []*DeactivatedFlow      `json:"deactivated"`
 		Archiving   map[FlowID]time.Time    `json:"archiving"`
 		FlowDigests map[FlowID]*FlowDigest  `json:"flow_digests"`
+		Timeouts    []*TimeoutEntry         `json:"timeouts"`
 	}
 
 	// ActiveFlow tracks basic metadata for active flows
@@ -53,6 +54,13 @@ type (
 		DeactivatedAt time.Time `json:"deactivated_at"`
 	}
 
+	// TimeoutEntry is a scheduled timeout ordered by deadline time
+	TimeoutEntry struct {
+		FiresAt time.Time `json:"fires_at"`
+		FlowID  FlowID    `json:"flow_id"`
+		StepID  StepID    `json:"step_id"`
+	}
+
 	// FlowState contains the complete state of a flow execution
 	FlowState struct {
 		CreatedAt   time.Time       `json:"created_at"`
@@ -63,9 +71,20 @@ type (
 		Labels      Labels          `json:"labels,omitempty"`
 		Attributes  AttributeValues `json:"attributes"`
 		Executions  Executions      `json:"executions"`
+		Timeouts    Timeouts        `json:"timeouts"`
 		ID          FlowID          `json:"id"`
 		Status      FlowStatus      `json:"status"`
 		Error       string          `json:"error,omitempty"`
+	}
+
+	// Timeouts maps steps to their timeout configurations
+	Timeouts map[StepID]*Timeout
+
+	// Timeout is the configuration for a step's optional attribute deadline
+	Timeout struct {
+		FiresAt         time.Time `json:"fires_at"`
+		Attributes      []Name    `json:"attributes"`
+		UpstreamStepIDs []StepID  `json:"upstream_step_ids"`
 	}
 
 	// Executions contains the execution progress of multiple steps
@@ -288,6 +307,13 @@ func (p *PartitionState) RemoveArchiving(id FlowID) *PartitionState {
 	return &res
 }
 
+// SetTimeouts returns a new PartitionState with all timeouts replaced
+func (p *PartitionState) SetTimeouts(timeouts []*TimeoutEntry) *PartitionState {
+	res := *p
+	res.Timeouts = slices.Clone(timeouts)
+	return &res
+}
+
 // GetAttributes returns all attribute values as Args
 func (f *FlowState) GetAttributes() Args {
 	result := make(Args, len(f.Attributes))
@@ -337,6 +363,28 @@ func (f *FlowState) SetError(err string) *FlowState {
 func (f *FlowState) SetLastUpdated(t time.Time) *FlowState {
 	res := *f
 	res.LastUpdated = t
+	return &res
+}
+
+// SetTimeout returns a new FlowState with a timeout added or updated
+func (f *FlowState) SetTimeout(stepID StepID, t *Timeout) *FlowState {
+	res := *f
+	res.Timeouts = maps.Clone(f.Timeouts)
+	if res.Timeouts == nil {
+		res.Timeouts = make(Timeouts)
+	}
+	res.Timeouts[stepID] = t
+	return &res
+}
+
+// DeleteTimeout returns a new FlowState with a timeout removed
+func (f *FlowState) DeleteTimeout(stepID StepID) *FlowState {
+	if _, ok := f.Timeouts[stepID]; !ok {
+		return f
+	}
+	res := *f
+	res.Timeouts = maps.Clone(f.Timeouts)
+	delete(res.Timeouts, stepID)
 	return &res
 }
 

@@ -54,6 +54,7 @@ export interface AttributeSpec {
   default?: string;
   mapping?: AttributeMapping;
   for_each?: boolean;
+  timeout?: number;
 }
 
 export interface HTTPConfig {

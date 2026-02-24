@@ -24,18 +24,24 @@ type (
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
-		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
-		HTTP       *HTTPConfig    `json:"http,omitempty"`
-		Flow       *FlowConfig    `json:"flow,omitempty"`
-		Script     *ScriptConfig  `json:"script,omitempty"`
-		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
-		Labels     Labels         `json:"labels,omitempty"`
-		ID         StepID         `json:"id"`
-		Name       Name           `json:"name"`
+		// Registration
+		ID     StepID `json:"id"`
+		Name   Name   `json:"name"`
+		Labels Labels `json:"labels,omitempty"`
+
+		// Common
 		Type       StepType       `json:"type"`
-		Memoizable bool           `json:"memoizable,omitempty"`
 		Attributes AttributeSpecs `json:"attributes"`
-		hashKey    atomic.Pointer[string]
+		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
+		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
+		Memoizable bool           `json:"memoizable,omitempty"`
+
+		// Type specific
+		HTTP   *HTTPConfig   `json:"http,omitempty"`
+		Script *ScriptConfig `json:"script,omitempty"`
+		Flow   *FlowConfig   `json:"flow,omitempty"`
+
+		hashKey atomic.Pointer[string]
 	}
 
 	// HTTPConfig configures HTTP-based step execution

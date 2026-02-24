@@ -355,6 +355,15 @@ const AttributesSection: React.FC = () => {
                     title={t("stepEditor.attributeDefaultTitle")}
                   />
                 )}
+                {attr.attrType === "optional" && (
+                  <DurationInput
+                    value={attr.timeout || 0}
+                    onChange={(ms) =>
+                      updateAttribute(attr.id, "timeout", ms || undefined)
+                    }
+                    className={formStyles.argInput}
+                  />
+                )}
                 {attr.attrType !== "output" &&
                   attr.dataType === AttributeType.Array && (
                     <div className={formStyles.forEachToggleGroup}>

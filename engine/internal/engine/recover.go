@@ -170,6 +170,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 				Token:       token,
 				NextRetryAt: retryAt,
 			})
+			e.RegisterTask(e.retryTask, retryAt)
 		}
 	}
 
@@ -305,42 +306,6 @@ func flowIDFromAggregateID(id timebox.AggregateID) (api.FlowID, bool) {
 	return flowID, true
 }
 
-func (e *Engine) retryLoop() {
-	var t retryTimer
-	var timerC <-chan time.Time
-	notifyC := e.retryQueue.Notify()
-
-	resetTimer := func() {
-		if nextTime, ok := e.retryQueue.Peek(); ok {
-			timerC = t.Reset(nextTime)
-		} else {
-			t.Stop()
-			timerC = nil
-		}
-	}
-
-	resetTimer()
-
-	for {
-		select {
-		case <-e.ctx.Done():
-			t.Stop()
-			return
-
-		case _, ok := <-notifyC:
-			if !ok {
-				t.Stop()
-				return
-			}
-			resetTimer()
-
-		case <-timerC:
-			e.executeReadyRetries()
-			resetTimer()
-		}
-	}
-}
-
 func (e *Engine) executeReadyRetries() {
 	now := time.Now()
 
@@ -414,12 +379,14 @@ func (e *Engine) retryWork(
 }
 
 func (e *Engine) requeueRetryItem(item *RetryItem) {
+	nextRetryAt := time.Now().Add(retryDispatchBackoff)
 	e.retryQueue.Push(&RetryItem{
 		FlowID:      item.FlowID,
 		StepID:      item.StepID,
 		Token:       item.Token,
-		NextRetryAt: time.Now().Add(retryDispatchBackoff),
+		NextRetryAt: nextRetryAt,
 	})
+	e.RegisterTask(e.retryTask, nextRetryAt)
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
