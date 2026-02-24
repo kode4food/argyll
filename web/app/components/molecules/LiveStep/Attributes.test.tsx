@@ -437,7 +437,7 @@ describe("Attributes", () => {
     const attributeValues = {
       opt1: { value: "default-value" },
     };
-    const attributeProvenance = new Map([["opt1", "step-0"]]);
+    const attributeProvenance = new Map<string, string>();
 
     const { container } = render(
       <Attributes
@@ -463,15 +463,9 @@ describe("Attributes", () => {
       inputs: {},
       started_at: "2024-01-01T00:00:00Z",
     };
-    const attributeProvenance = new Map([["opt1", "step-0"]]);
 
     const { container } = render(
-      <Attributes
-        step={step}
-        satisfiedArgs={new Set()}
-        execution={execution}
-        attributeProvenance={attributeProvenance}
-      />
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
     );
 
     const badge = container.querySelector(".arg-status-badge.pending");
@@ -545,7 +539,7 @@ describe("Attributes", () => {
     expect(screen.getByText(/\[object Object\]/)).toBeInTheDocument();
   });
 
-  test("shows 'Default Value' tooltip title when optional arg has upstream provider", () => {
+  test("shows 'Default Value' tooltip title for defaulted optional args", () => {
     const step: Step = {
       id: "step-1",
       name: "Test",
@@ -569,105 +563,10 @@ describe("Attributes", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
-    const attributeProvenance = new Map([["opt1", "step-0"]]);
-
     render(
-      <Attributes
-        step={step}
-        satisfiedArgs={new Set()}
-        execution={execution}
-        attributeProvenance={attributeProvenance}
-      />
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
     );
 
     expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
-  });
-
-  test("hides optional arg when resolved by default and not in attributeProvenance", () => {
-    const step: Step = {
-      id: "step-1",
-      name: "Test",
-      type: "sync",
-      attributes: {
-        opt1: {
-          role: AttributeRole.Optional,
-          type: AttributeType.String,
-          default: "default-value",
-        },
-      },
-      http: {
-        endpoint: "http://test",
-        timeout: 5000,
-      },
-    };
-    const execution: ExecutionResult = {
-      step_id: "step-1",
-      flow_id: "wf-1",
-      status: "completed",
-      inputs: { opt1: "default-value" },
-      started_at: "2024-01-01T00:00:00Z",
-    };
-    const attributeValues = {
-      opt1: { value: "default-value" },
-    };
-    const attributeProvenance = new Map<string, string>();
-
-    const { container } = render(
-      <Attributes
-        step={step}
-        satisfiedArgs={new Set()}
-        execution={execution}
-        attributeValues={attributeValues}
-        attributeProvenance={attributeProvenance}
-      />
-    );
-
-    expect(
-      container.querySelector('[data-arg-name="opt1"]')
-    ).not.toBeInTheDocument();
-  });
-
-  test("shows optional arg when resolved by upstream in attributeProvenance", () => {
-    const step: Step = {
-      id: "step-1",
-      name: "Test",
-      type: "sync",
-      attributes: {
-        opt1: {
-          role: AttributeRole.Optional,
-          type: AttributeType.String,
-          default: "default-value",
-        },
-      },
-      http: {
-        endpoint: "http://test",
-        timeout: 5000,
-      },
-    };
-    const execution: ExecutionResult = {
-      step_id: "step-1",
-      flow_id: "wf-1",
-      status: "completed",
-      inputs: { opt1: "upstream-value" },
-      started_at: "2024-01-01T00:00:00Z",
-    };
-    const attributeValues = {
-      opt1: { value: "upstream-value" },
-    };
-    const attributeProvenance = new Map([["opt1", "step-0"]]);
-
-    const { container } = render(
-      <Attributes
-        step={step}
-        satisfiedArgs={new Set()}
-        execution={execution}
-        attributeValues={attributeValues}
-        attributeProvenance={attributeProvenance}
-      />
-    );
-
-    expect(
-      container.querySelector('[data-arg-name="opt1"]')
-    ).toBeInTheDocument();
   });
 });

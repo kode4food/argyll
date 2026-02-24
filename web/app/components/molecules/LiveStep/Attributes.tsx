@@ -63,14 +63,7 @@ const Attributes: React.FC<AttributesProps> = ({
       className={`${styles.argsSection} step-args-section`}
       data-testid="step-args"
     >
-      {unifiedArgs
-        .filter((arg) => {
-          if (arg.argType === "optional") {
-            return attributeProvenance.has(arg.name);
-          }
-          return true;
-        })
-        .map((arg) => {
+      {unifiedArgs.map((arg) => {
           const { hasValue, value } = getAttributeValue(
             arg,
             execution,
@@ -83,10 +76,12 @@ const Attributes: React.FC<AttributesProps> = ({
           const { Icon, className } = getArgIcon(arg.argType);
 
           const isProvidedByUpstream =
-            arg.argType === "optional" ? isSatisfied : undefined;
+            arg.argType === "optional"
+              ? attributeProvenance.has(arg.name)
+              : undefined;
           const wasDefaulted =
             arg.argType === "optional"
-              ? hasValue && !isSatisfied
+              ? hasValue && !attributeProvenance.has(arg.name)
               : isConst
                 ? hasValue
                 : undefined;
