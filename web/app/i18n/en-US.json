@@ -20,7 +20,7 @@
   "diagram.errorTitle": "Step Diagram Error",
   "diagram.selectorErrorDescription": "An error occurred in the flow selector. Try refreshing the page",
   "diagram.selectorErrorTitle": "Flow Selector Error",
-  "durationInput.placeholder": "e.g. 5d, 2 days 3h, 1.5 days",
+  "durationInput.placeholder": "e.g. 5d, 2h",
   "durationInput.title": "Examples: 5d, 2 days, 1 day 3 hrs, 1.5 days, 2d 7h",
   "errorFallback.description": "An unexpected error occurred. You can try reloading this section",
   "errorFallback.details": "Error details",

@@ -2,6 +2,7 @@ package engine
 
 import (
 	"slices"
+	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -39,13 +40,11 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 }
 
 func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
-	step := flow.Plan.Steps[stepID]
-
-	if isGoalStep(stepID, flow.Plan.Goals) {
+	plan := flow.Plan
+	if slices.Contains(plan.Goals, stepID) {
 		return true
 	}
-
-	return needsOutputs(step, flow)
+	return needsOutputs(plan.Steps[stepID], flow)
 }
 
 func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
@@ -58,14 +57,25 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 }
 
 func (tx *flowTx) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
+	ready, _ := tx.canStartStepAt(stepID, flow, time.Now())
+	return ready
+}
+
+func (tx *flowTx) canStartStepAt(
+	stepID api.StepID, flow *api.FlowState, now time.Time,
+) (bool, time.Time) {
 	exec := flow.Executions[stepID]
 	if exec.Status != api.StepPending {
-		return false
+		return false, time.Time{}
 	}
 	if !tx.hasRequired(stepID, flow) {
-		return false
+		return false, time.Time{}
 	}
-	return tx.areOutputsNeeded(stepID, flow)
+	optReady, nextDeadline := tx.hasOptionalReady(stepID, flow, now)
+	if !optReady {
+		return false, nextDeadline
+	}
+	return tx.areOutputsNeeded(stepID, flow), time.Time{}
 }
 
 func (tx *flowTx) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
@@ -78,6 +88,82 @@ func (tx *flowTx) hasRequired(stepID api.StepID, flow *api.FlowState) bool {
 		}
 	}
 	return true
+}
+
+func (tx *flowTx) hasOptionalReady(
+	stepID api.StepID, flow *api.FlowState, now time.Time,
+) (bool, time.Time) {
+	step := flow.Plan.Steps[stepID]
+	blocked := false
+	var nextDeadline time.Time
+
+	for name, attr := range step.Attributes {
+		if !attr.IsOptional() {
+			continue
+		}
+		ready, deadline := tx.optionalInputReady(name, attr, flow, now)
+		if !ready {
+			blocked = true
+		}
+		if !deadline.IsZero() && (nextDeadline.IsZero() ||
+			deadline.Before(nextDeadline)) {
+			nextDeadline = deadline
+		}
+	}
+
+	return !blocked, nextDeadline
+}
+
+func (tx *flowTx) optionalInputReady(
+	name api.Name, attr *api.AttributeSpec, flow *api.FlowState, now time.Time,
+) (bool, time.Time) {
+	if _, ok := flow.Attributes[name]; ok {
+		return true, time.Time{}
+	}
+
+	deps, ok := flow.Plan.Attributes[name]
+	if !ok || len(deps.Providers) == 0 {
+		return true, time.Time{}
+	}
+
+	var startedAt time.Time
+	activePotential := false
+
+	for _, providerID := range deps.Providers {
+		exec, ok := flow.Executions[providerID]
+		if !ok || exec == nil {
+			continue
+		}
+
+		if !exec.StartedAt.IsZero() && (startedAt.IsZero() ||
+			exec.StartedAt.Before(startedAt)) {
+			startedAt = exec.StartedAt
+		}
+
+		if stepTransitions.IsTerminal(exec.Status) {
+			continue
+		}
+		if !tx.Engine.canStepComplete(providerID, flow) {
+			continue
+		}
+		activePotential = true
+	}
+
+	if !activePotential {
+		return true, time.Time{}
+	}
+	if attr.Timeout <= 0 {
+		return false, time.Time{}
+	}
+	if startedAt.IsZero() {
+		return false, time.Time{}
+	}
+
+	deadline := startedAt.Add(time.Duration(attr.Timeout) * time.Millisecond)
+	if !deadline.After(now) {
+		return true, time.Time{}
+	}
+	return false, deadline
 }
 
 // findInitialSteps finds steps that can start when a flow begins
@@ -139,10 +225,6 @@ func (tx *flowTx) getDownstreamConsumers(
 	}
 
 	return consumers
-}
-
-func isGoalStep(stepID api.StepID, goals []api.StepID) bool {
-	return slices.Contains(goals, stepID)
 }
 
 func needsOutputs(step *api.Step, flow *api.FlowState) bool {

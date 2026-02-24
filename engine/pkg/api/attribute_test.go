@@ -781,7 +781,6 @@ func TestTimeoutValidation(t *testing.T) {
 	})
 
 	t.Run("timeout_one_year_max", func(t *testing.T) {
-		// MaxAttributeTimeout = 365 * 24 * 60 * 60 * 1000
 		spec := &api.AttributeSpec{
 			Role:    api.RoleOptional,
 			Type:    api.TypeString,

@@ -32,7 +32,7 @@ type (
 		retryQueue  *RetryQueue
 		memoCache   *MemoCache
 		eventQueue  *EventQueue
-		tasks       chan task
+		tasks       chan Task
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -96,7 +96,7 @@ func New(
 		cancel:     cancel,
 		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
-		tasks:      make(chan task, 100),
+		tasks:      make(chan Task, 100),
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
 	e.scripts = NewScriptRegistry()
@@ -120,12 +120,7 @@ func (e *Engine) Start() error {
 
 	retryTime, retryOk := e.retryQueue.Peek()
 	if retryOk {
-		e.RegisterTask(e.retryTask, retryTime)
-	}
-
-	partState, err := e.GetPartitionState()
-	if err == nil && len(partState.Timeouts) > 0 {
-		e.RegisterTask(e.timeoutTask, partState.Timeouts[0].FiresAt)
+		e.ScheduleTask(e.retryTask, retryTime)
 	}
 
 	return nil

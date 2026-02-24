@@ -20,7 +20,7 @@
   "diagram.errorTitle": "Errore diagramma Step",
   "diagram.selectorErrorDescription": "Si è verificato un errore nel Flow Selector. Prova ad aggiornare la pagina",
   "diagram.selectorErrorTitle": "Errore Flow Selector",
-  "durationInput.placeholder": "es. 5g, 2 giorni 3h, 1,5 giorni",
+  "durationInput.placeholder": "es. 5g, 2h",
   "durationInput.title": "Esempi: 5g, 2 giorni, 1 giorno 3 ore, 1,5 giorni, 2g 7h",
   "errorFallback.description": "Si è verificato un errore inatteso. Puoi ricaricare questa sezione",
   "errorFallback.details": "Dettagli errore",

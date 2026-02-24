@@ -90,8 +90,8 @@ var (
 )
 
 const (
-	MinAttributeTimeout = 0                         // 0 means no timeout
-	MaxAttributeTimeout = 365 * 24 * 60 * 60 * 1000 // 1 year in milliseconds
+	MinAttributeTimeout = 0
+	MaxAttributeTimeout = 365 * 24 * 60 * 60 * 1000
 )
 
 var (
@@ -169,8 +169,7 @@ func (s *AttributeSpec) Validate(name Name) error {
 	}
 
 	if s.Timeout > 0 && !s.IsOptional() {
-		return fmt.Errorf("%w: %q",
-			ErrTimeoutNotAllowed, name)
+		return fmt.Errorf("%w: %q", ErrTimeoutNotAllowed, name)
 	}
 
 	return nil

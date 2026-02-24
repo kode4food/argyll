@@ -16,7 +16,7 @@ export interface Attribute {
   name: string;
   dataType: AttributeType;
   defaultValue?: string;
-  timeout?: number; // milliseconds
+  timeout?: number;
   forEach?: boolean;
   mappingName?: string;
   mappingLanguage?: string;

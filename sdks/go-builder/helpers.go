@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -56,6 +57,9 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 			err = client.updateStep(context.Background(), stepReq)
 		} else {
 			err = client.registerStep(context.Background(), stepReq)
+			if err != nil && isRegisterConflict(err) {
+				err = client.updateStep(context.Background(), stepReq)
+			}
 		}
 
 		if err == nil {
@@ -98,6 +102,11 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 	}
 
 	return server.ListenAndServe()
+}
+
+func isRegisterConflict(err error) bool {
+	return errors.Is(err, ErrRegisterStep) &&
+		strings.Contains(err.Error(), "status 409")
 }
 
 func makeStepHandler(

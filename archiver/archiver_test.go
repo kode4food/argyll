@@ -228,7 +228,9 @@ func seedFlowEvents(t *testing.T, store *timebox.Store, flowID api.FlowID) {
 	assert.NoError(t, err)
 }
 
-func loadPartitionState(t *testing.T, store *timebox.Store) *api.PartitionState {
+func loadPartitionState(
+	t *testing.T, store *timebox.Store,
+) *api.PartitionState {
 	exec := timebox.NewExecutor(
 		store, events.NewPartitionState, events.PartitionAppliers,
 	)

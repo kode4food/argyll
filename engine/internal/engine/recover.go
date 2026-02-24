@@ -116,8 +116,8 @@ func (e *Engine) RecoverFlows() error {
 	return nil
 }
 
-// RecoverFlow resumes execution of a specific flow by queuing any pending work
-// items for retry
+// RecoverFlow resumes execution of a specific flow by scheduling timeout scans
+// and queuing any pending work items for retry
 func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	flow, err := e.GetFlowState(flowID)
 	if err != nil {
@@ -128,52 +128,8 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 		return nil
 	}
 
-	retryableSteps := e.FindRetrySteps(flow)
-	if retryableSteps.IsEmpty() {
-		return nil
-	}
-
-	now := time.Now()
-	for stepID := range retryableSteps {
-		exec := flow.Executions[stepID]
-		if exec.WorkItems == nil {
-			continue
-		}
-
-		for token, workItem := range exec.WorkItems {
-			var retryAt time.Time
-
-			switch workItem.Status {
-			case api.WorkActive, api.WorkNotCompleted:
-				retryAt = now
-			case api.WorkPending:
-				if !workItem.NextRetryAt.IsZero() {
-					retryAt = workItem.NextRetryAt
-				} else if exec.Status == api.StepActive {
-					retryAt = now
-				} else {
-					continue
-				}
-			case api.WorkFailed:
-				if !workItem.NextRetryAt.IsZero() {
-					retryAt = workItem.NextRetryAt
-				} else {
-					continue
-				}
-			default:
-				continue
-			}
-
-			e.retryQueue.Push(&RetryItem{
-				FlowID:      flowID,
-				StepID:      stepID,
-				Token:       token,
-				NextRetryAt: retryAt,
-			})
-			e.RegisterTask(e.retryTask, retryAt)
-		}
-	}
-
+	e.recoverTimeoutScans(flowID)
+	e.recoverRetryWork(flowID, flow)
 	return nil
 }
 
@@ -204,6 +160,64 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	}
 
 	return retryableSteps
+}
+
+func (e *Engine) recoverTimeoutScans(flowID api.FlowID) {
+	e.scheduleTimeoutScan(flowID, time.Now())
+}
+
+func (e *Engine) recoverRetryWork(flowID api.FlowID, flow *api.FlowState) {
+	retryableSteps := e.FindRetrySteps(flow)
+	if retryableSteps.IsEmpty() {
+		return
+	}
+
+	now := time.Now()
+	for stepID := range retryableSteps {
+		exec := flow.Executions[stepID]
+		if exec.WorkItems == nil {
+			continue
+		}
+
+		for token, workItem := range exec.WorkItems {
+			retryAt, ok := recoverRetryDeadline(exec, workItem, now)
+			if !ok {
+				continue
+			}
+
+			e.retryQueue.Push(&RetryItem{
+				FlowID:      flowID,
+				StepID:      stepID,
+				Token:       token,
+				NextRetryAt: retryAt,
+			})
+			e.ScheduleTask(e.retryTask, retryAt)
+		}
+	}
+}
+
+func recoverRetryDeadline(
+	exec *api.ExecutionState, workItem *api.WorkState, now time.Time,
+) (time.Time, bool) {
+	switch workItem.Status {
+	case api.WorkActive, api.WorkNotCompleted:
+		return now, true
+	case api.WorkPending:
+		if !workItem.NextRetryAt.IsZero() {
+			return workItem.NextRetryAt, true
+		}
+		if exec.Status == api.StepActive {
+			return now, true
+		}
+		return time.Time{}, false
+	case api.WorkFailed:
+		if !workItem.NextRetryAt.IsZero() {
+			return workItem.NextRetryAt, true
+		}
+		return time.Time{}, false
+	default:
+		return time.Time{}, false
+	}
 }
 
 func (e *Engine) listFlowAggregateIDs() ([]api.FlowID, error) {
@@ -386,7 +400,7 @@ func (e *Engine) requeueRetryItem(item *RetryItem) {
 		Token:       item.Token,
 		NextRetryAt: nextRetryAt,
 	})
-	e.RegisterTask(e.retryTask, nextRetryAt)
+	e.ScheduleTask(e.retryTask, nextRetryAt)
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {

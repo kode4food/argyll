@@ -454,6 +454,50 @@ describe("Attributes", () => {
     expect(badge?.querySelector(".lucide-circle-dot")).toBeInTheDocument();
   });
 
+  test("keeps optional arg labeled defaulted after upstream provenance appears", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          default: "default-value",
+        },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { opt1: "default-value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+    const attributeValues = {
+      opt1: { value: "real-upstream-value", step: "step-2" },
+    };
+    const attributeProvenance = new Map<string, string>([["opt1", "step-2"]]);
+
+    const { container } = render(
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set(["opt1"])}
+        execution={execution}
+        attributeValues={attributeValues}
+        attributeProvenance={attributeProvenance}
+      />
+    );
+
+    const badge = container.querySelector(".arg-status-badge.defaulted");
+    expect(badge).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
+  });
+
   test("shows pending badge for optional arg when not satisfied", () => {
     const step = createStep([], ["opt1"], []);
     const execution: ExecutionResult = {

@@ -19,7 +19,6 @@ func NewFlowState() *api.FlowState {
 	return &api.FlowState{
 		Attributes: api.AttributeValues{},
 		Executions: api.Executions{},
-		Timeouts:   api.Timeouts{},
 	}
 }
 
@@ -85,9 +84,6 @@ func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
 		api.EventTypeWorkFailed:       timebox.MakeApplier(workFailed),
 		api.EventTypeWorkNotCompleted: timebox.MakeApplier(workNotCompleted),
 		api.EventTypeRetryScheduled:   timebox.MakeApplier(retryScheduled),
-		api.EventTypeTimeoutFired:     timebox.MakeApplier(timeoutFired),
-		api.EventTypeTimeoutScheduled: timebox.MakeApplier(timeoutScheduled),
-		api.EventTypeTimeoutCanceled:  timebox.MakeApplier(timeoutCanceled),
 	})
 }
 
@@ -315,34 +311,5 @@ func retryScheduled(
 
 	return st.
 		SetExecution(data.StepID, exec.SetWorkItem(data.Token, item)).
-		SetLastUpdated(ev.Timestamp)
-}
-
-func timeoutFired(
-	st *api.FlowState, ev *timebox.Event, data api.TimeoutFiredEvent,
-) *api.FlowState {
-	return st.
-		DeleteTimeout(data.StepID).
-		SetLastUpdated(ev.Timestamp)
-}
-
-func timeoutScheduled(
-	st *api.FlowState, ev *timebox.Event, data api.TimeoutScheduledEvent,
-) *api.FlowState {
-	t := &api.Timeout{
-		FiresAt:         data.FiresAt,
-		Attributes:      data.Attributes,
-		UpstreamStepIDs: data.UpstreamStepIDs,
-	}
-	return st.
-		SetTimeout(data.StepID, t).
-		SetLastUpdated(ev.Timestamp)
-}
-
-func timeoutCanceled(
-	st *api.FlowState, ev *timebox.Event, data api.TimeoutCanceledEvent,
-) *api.FlowState {
-	return st.
-		DeleteTimeout(data.StepID).
 		SetLastUpdated(ev.Timestamp)
 }

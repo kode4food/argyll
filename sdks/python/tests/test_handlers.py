@@ -5,7 +5,7 @@ import responses
 
 from argyll import Client, StepContext, StepResult, handlers
 from argyll.builder import StepBuilder
-from argyll.errors import HTTPError, WebhookError
+from argyll.errors import ClientError, HTTPError, WebhookError
 from argyll.handlers import AsyncContext, _execute_with_recovery
 
 
@@ -323,3 +323,28 @@ def test_create_step_server_update(monkeypatch):
 
     assert len(client.updated) == 1
     assert len(client.registered) == 0
+
+
+def test_create_step_server_register_conflict_falls_back_to_update(monkeypatch):
+    captured = {}
+
+    def fake_run(self, host, port):
+        captured["app"] = self
+
+    monkeypatch.setattr(handlers.Flask, "run", fake_run, raising=True)
+
+    class _ConflictClient(_DummyClient):
+        def register_step(self, step):
+            self.registered.append(step)
+            raise ClientError("conflict", status_code=409)
+
+    client = _ConflictClient()
+    builder = StepBuilder(client=client, name="Test Step")
+
+    def handler(step_ctx, args):
+        return StepResult(success=True)
+
+    handlers.create_step_server(client, builder, handler)
+
+    assert len(client.registered) == 1
+    assert len(client.updated) == 1

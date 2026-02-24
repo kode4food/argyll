@@ -12,6 +12,9 @@ import (
 type MockClient struct {
 	responses map[api.StepID]api.Args
 	errors    map[api.StepID]error
+	handlers  map[api.StepID]func(*api.Step, api.Args, api.Metadata) (
+		api.Args, error,
+	)
 	invoked   []api.StepID
 	metadata  map[api.StepID][]api.Metadata
 	invokedCh map[api.StepID]chan struct{}
@@ -24,6 +27,9 @@ func NewMockClient() *MockClient {
 	return &MockClient{
 		responses: map[api.StepID]api.Args{},
 		errors:    map[api.StepID]error{},
+		handlers: map[api.StepID]func(*api.Step, api.Args, api.Metadata) (
+			api.Args, error,
+		){},
 		invoked:   []api.StepID{},
 		metadata:  map[api.StepID][]api.Metadata{},
 		invokedCh: map[api.StepID]chan struct{}{},
@@ -32,11 +38,9 @@ func NewMockClient() *MockClient {
 
 // Invoke records the invocation and returns the configured response or error
 func (c *MockClient) Invoke(
-	step *api.Step, _ api.Args, md api.Metadata,
+	step *api.Step, args api.Args, md api.Metadata,
 ) (api.Args, error) {
 	c.mu.Lock()
-	defer c.mu.Unlock()
-
 	c.invoked = append(c.invoked, step.ID)
 	c.metadata[step.ID] = append(c.metadata[step.ID], md)
 	if ch, ok := c.invokedCh[step.ID]; ok {
@@ -45,15 +49,20 @@ func (c *MockClient) Invoke(
 		default:
 		}
 	}
+	h := c.handlers[step.ID]
+	err := c.errors[step.ID]
+	out := c.responses[step.ID]
+	c.mu.Unlock()
 
-	if err, ok := c.errors[step.ID]; ok {
+	if h != nil {
+		return h(step, args, md)
+	}
+	if err != nil {
 		return nil, err
 	}
-
-	if outputs, ok := c.responses[step.ID]; ok {
-		return outputs, nil
+	if out != nil {
+		return out, nil
 	}
-
 	return nil, nil
 }
 
@@ -69,6 +78,23 @@ func (c *MockClient) SetError(stepID api.StepID, err error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.errors[stepID] = err
+}
+
+// SetHandler configures a custom invocation handler for a step
+func (c *MockClient) SetHandler(
+	stepID api.StepID,
+	handler func(*api.Step, api.Args, api.Metadata) (api.Args, error),
+) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.handlers[stepID] = handler
+}
+
+// ClearHandler removes a custom handler for a step
+func (c *MockClient) ClearHandler(stepID api.StepID) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.handlers, stepID)
 }
 
 // ClearError removes any configured error for a step

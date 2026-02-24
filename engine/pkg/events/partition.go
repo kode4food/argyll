@@ -24,7 +24,6 @@ func NewPartitionState() *api.PartitionState {
 		Deactivated: []*api.DeactivatedFlow{},
 		Archiving:   map[api.FlowID]time.Time{},
 		FlowDigests: map[api.FlowID]*api.FlowDigest{},
-		Timeouts:    []*api.TimeoutEntry{},
 	}
 }
 
@@ -41,9 +40,6 @@ func makePartitionAppliers() timebox.Appliers[*api.PartitionState] {
 		api.EventTypeFlowArchiving:     timebox.MakeApplier(flowArchiving),
 		api.EventTypeFlowArchived:      timebox.MakeApplier(flowArchived),
 		api.EventTypeFlowDigestUpdated: timebox.MakeApplier(flowDigestUpdated),
-		api.EventTypeTimeoutFired:      timebox.MakeApplier(flowTimeoutFired),
-		api.EventTypeTimeoutScheduled:  timebox.MakeApplier(flowTimeoutScheduled),
-		api.EventTypeTimeoutCanceled:   timebox.MakeApplier(flowTimeoutCanceled),
 	})
 }
 
@@ -131,76 +127,4 @@ func flowDigestUpdated(
 	return st.
 		SetFlowDigest(data.FlowID, digest).
 		SetLastUpdated(ev.Timestamp)
-}
-
-func flowTimeoutFired(
-	st *api.PartitionState, ev *timebox.Event, data api.TimeoutFiredEvent,
-) *api.PartitionState {
-	idx := findTimeoutIdx(st.Timeouts, data.FlowID, data.StepID)
-	if idx < 0 {
-		return st.SetLastUpdated(ev.Timestamp)
-	}
-
-	res := *st
-	res.Timeouts = append(st.Timeouts[:idx], st.Timeouts[idx+1:]...)
-	res.LastUpdated = ev.Timestamp
-	return &res
-}
-
-func flowTimeoutScheduled(
-	st *api.PartitionState, ev *timebox.Event, data api.TimeoutScheduledEvent,
-) *api.PartitionState {
-	entry := &api.TimeoutEntry{
-		FiresAt: data.FiresAt,
-		FlowID:  data.FlowID,
-		StepID:  data.StepID,
-	}
-
-	res := *st
-	res.Timeouts = insertTimeoutSorted(st.Timeouts, entry)
-	res.LastUpdated = ev.Timestamp
-	return &res
-}
-
-func flowTimeoutCanceled(
-	st *api.PartitionState, ev *timebox.Event, data api.TimeoutCanceledEvent,
-) *api.PartitionState {
-	idx := findTimeoutIdx(st.Timeouts, data.FlowID, data.StepID)
-	if idx < 0 {
-		return st.SetLastUpdated(ev.Timestamp)
-	}
-
-	res := *st
-	res.Timeouts = append(st.Timeouts[:idx], st.Timeouts[idx+1:]...)
-	res.LastUpdated = ev.Timestamp
-	return &res
-}
-
-func findTimeoutIdx(
-	entries []*api.TimeoutEntry, flowID api.FlowID, stepID api.StepID,
-) int {
-	for i, e := range entries {
-		if e.FlowID == flowID && e.StepID == stepID {
-			return i
-		}
-	}
-	return -1
-}
-
-func insertTimeoutSorted(
-	entries []*api.TimeoutEntry, entry *api.TimeoutEntry,
-) []*api.TimeoutEntry {
-	new := []*api.TimeoutEntry{}
-	inserted := false
-	for _, e := range entries {
-		if !inserted && entry.FiresAt.Before(e.FiresAt) {
-			new = append(new, entry)
-			inserted = true
-		}
-		new = append(new, e)
-	}
-	if !inserted {
-		new = append(new, entry)
-	}
-	return new
 }

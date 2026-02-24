@@ -20,7 +20,7 @@
   "diagram.errorTitle": "Erreur du diagramme Step",
   "diagram.selectorErrorDescription": "Une erreur est survenue dans le Flow Selector. Essayez de rafraîchir la page",
   "diagram.selectorErrorTitle": "Erreur du Flow Selector",
-  "durationInput.placeholder": "p. ex. 5j, 2 jours 3h, 1,5 jours",
+  "durationInput.placeholder": "p. ex. 5j, 2h",
   "durationInput.title": "Exemples: 5j, 2 jours, 1 jour 3 h, 1,5 jours, 2j 7h",
   "errorFallback.description": "Une erreur inattendue s'est produite. Vous pouvez recharger cette section",
   "errorFallback.details": "Détails de l'erreur",

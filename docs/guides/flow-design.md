@@ -35,6 +35,34 @@ Use optional attributes with defaults to keep steps reusable across different fl
 
 **Why:** Enables the same step to work in multiple flows without duplication.
 
+### Optional Timeouts (Step-Local Fallback)
+
+Optional inputs can define a `timeout` (milliseconds) to let a step continue with its own default value when an upstream provider is slow.
+
+```json
+{
+  "attributes": {
+    "profile": { "role": "required", "type": "object" },
+    "preferences": {
+      "role": "optional",
+      "type": "object",
+      "default": "{}",
+      "timeout": 2000
+    },
+    "rendered_email": { "role": "output", "type": "string" }
+  }
+}
+```
+
+**Behavior:**
+- If no upstream provider exists for the optional attribute, the step can start immediately and use the default
+- If upstream providers exist, the step waits for them by default
+- The timeout clock starts when the first potential provider step starts work
+- If the timeout expires first, this step can proceed with its default
+- Other steps that require the real attribute still wait for it
+
+**Why:** Improves latency for downstream steps that can tolerate a fallback while preserving correctness for strict consumers.
+
 ## For Each and Parallelism
 
 Use `for_each` on array inputs to process multiple items in parallel. Outputs are aggregated.

@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Any, Callable
 import requests
 from flask import Flask, jsonify, request
 
-from .errors import HTTPError, StepRegistrationError, WebhookError
+from .errors import ClientError, HTTPError, StepRegistrationError, WebhookError
 from .types import Args, Metadata, StepID, StepResult
 
 if TYPE_CHECKING:
@@ -111,7 +111,12 @@ def create_step_server(
             if builder._dirty:
                 client.update_step(step)
             else:
-                client.register_step(step)
+                try:
+                    client.register_step(step)
+                except ClientError as e:
+                    if e.status_code != 409:
+                        raise
+                    client.update_step(step)
             registered = True
             break
         except Exception:

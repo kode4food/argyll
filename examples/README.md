@@ -89,6 +89,10 @@ Creates an order with comprehensive business logic validation.
 
 **Optional Inputs**:
 - `quantity` (number) - Order quantity (defaults to 1)
+- Optional inputs can also define a timeout (milliseconds) in the step definition for default fallback behavior
+- Timeout starts when the first upstream provider step for that attribute begins work
+- If the timeout expires, the step can continue using its optional default value
+- The default is step-local only (it does not become a flow attribute)
 
 **Outputs**:
 - `order` (object) - Order details including pricing breakdown

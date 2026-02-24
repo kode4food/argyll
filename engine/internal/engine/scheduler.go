@@ -13,23 +13,23 @@ type (
 	// for rescheduling or zero to stop
 	TaskFunc func() (nextDeadline time.Time, err error)
 
-	task struct {
-		fn       TaskFunc
-		deadline time.Time
+	Task struct {
+		Func     TaskFunc
+		Deadline time.Time
 	}
 
-	taskList []*task
+	TaskList []*Task
 )
 
 func (e *Engine) scheduler() {
 	var t retryTimer
 	var timer <-chan time.Time
-	var tasks taskList
+	var tasks TaskList
 
 	resetTimer := func() {
 		var nextTime time.Time
 		if peek := tasks.Peek(); peek != nil {
-			nextTime = peek.deadline
+			nextTime = peek.Deadline
 		}
 
 		if nextTime.IsZero() {
@@ -49,21 +49,21 @@ func (e *Engine) scheduler() {
 			return
 
 		case tsk := <-e.tasks:
-			tasks.Insert(tsk.fn, tsk.deadline)
+			tasks.Insert(tsk.Func, tsk.Deadline)
 			resetTimer()
 
 		case <-timer:
 			tsk := tasks.Pop()
 			if tsk != nil {
 				// Execute task
-				nextDeadline, err := tsk.fn()
+				nextDeadline, err := tsk.Func()
 				if err != nil {
 					slog.Error("Scheduled task failed", log.Error(err))
 				}
 
 				// Reschedule if it returns a deadline
 				if !nextDeadline.IsZero() {
-					tasks.Insert(tsk.fn, nextDeadline)
+					tasks.Insert(tsk.Func, nextDeadline)
 				}
 			}
 			resetTimer()
@@ -71,10 +71,10 @@ func (e *Engine) scheduler() {
 	}
 }
 
-// RegisterTask schedules a function to run at the given deadline
-func (e *Engine) RegisterTask(fn TaskFunc, deadline time.Time) {
+// ScheduleTask schedules a function to run at the given deadline
+func (e *Engine) ScheduleTask(fn TaskFunc, deadline time.Time) {
 	select {
-	case e.tasks <- task{fn, deadline}:
+	case e.tasks <- Task{fn, deadline}:
 	case <-e.ctx.Done():
 	}
 }
@@ -89,38 +89,23 @@ func (e *Engine) retryTask() (time.Time, error) {
 	return nextTime, nil
 }
 
-// timeoutTask executes expired timeouts and returns the next deadline
-func (e *Engine) timeoutTask() (time.Time, error) {
-	if err := e.fireExpiredTimeouts(); err != nil {
-		return time.Time{}, err
-	}
-	partState, err := e.GetPartitionState()
-	if err != nil {
-		return time.Time{}, err
-	}
-	if len(partState.Timeouts) > 0 {
-		return partState.Timeouts[0].FiresAt, nil
-	}
-	return time.Time{}, nil
-}
-
-func (l *taskList) Insert(fn TaskFunc, deadline time.Time) {
-	*l = append(*l, &task{
-		fn:       fn,
-		deadline: deadline,
+func (l *TaskList) Insert(fn TaskFunc, deadline time.Time) {
+	*l = append(*l, &Task{
+		Func:     fn,
+		Deadline: deadline,
 	})
-	slices.SortStableFunc(*l, func(a, b *task) int {
-		if a.deadline.Before(b.deadline) {
+	slices.SortStableFunc(*l, func(a, b *Task) int {
+		if a.Deadline.Before(b.Deadline) {
 			return -1
 		}
-		if b.deadline.Before(a.deadline) {
+		if b.Deadline.Before(a.Deadline) {
 			return 1
 		}
 		return 0
 	})
 }
 
-func (l *taskList) Pop() *task {
+func (l *TaskList) Pop() *Task {
 	if len(*l) == 0 {
 		return nil
 	}
@@ -129,13 +114,13 @@ func (l *taskList) Pop() *task {
 	return t
 }
 
-func (l *taskList) Peek() *task {
+func (l *TaskList) Peek() *Task {
 	if len(*l) == 0 {
 		return nil
 	}
 	return (*l)[0]
 }
 
-func (l *taskList) Len() int {
+func (l *TaskList) Len() int {
 	return len(*l)
 }

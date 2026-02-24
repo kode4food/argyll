@@ -340,7 +340,7 @@ const AttributesSection: React.FC = () => {
                     updateAttribute(attr.id, "name", e.target.value)
                   }
                   placeholder={t("stepEditor.attributeNamePlaceholder")}
-                  className={formStyles.argInput}
+                  className={`${formStyles.argInput} ${formStyles.argNameInput}`}
                 />
                 {(attr.attrType === "optional" ||
                   attr.attrType === "const") && (
@@ -351,7 +351,7 @@ const AttributesSection: React.FC = () => {
                       updateAttribute(attr.id, "defaultValue", e.target.value)
                     }
                     placeholder={t("stepEditor.attributeDefaultPlaceholder")}
-                    className={formStyles.argInput}
+                    className={`${formStyles.argInput} ${formStyles.argValueInput}`}
                     title={t("stepEditor.attributeDefaultTitle")}
                   />
                 )}

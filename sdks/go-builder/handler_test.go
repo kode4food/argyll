@@ -146,6 +146,38 @@ func TestPanic(t *testing.T) {
 	assert.Contains(t, result.Error, builder.ErrHandlerPanic.Error())
 }
 
+func TestStartFallsBackToUpdateOnRegisterConflict(t *testing.T) {
+	var postCount int
+	var putCount int
+
+	engineServer := newHTTPTestServer(t, http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			switch {
+			case r.URL.Path == "/engine/step" && r.Method == http.MethodPost:
+				postCount++
+				w.WriteHeader(http.StatusConflict)
+			case r.URL.Path == "/engine/step/test-step" &&
+				r.Method == http.MethodPut:
+				putCount++
+				w.WriteHeader(http.StatusOK)
+			default:
+				w.WriteHeader(http.StatusNotFound)
+			}
+		},
+	))
+
+	handler := func(
+		_ *builder.StepContext, _ api.Args,
+	) (api.StepResult, error) {
+		return *api.NewResult(), nil
+	}
+
+	_ = startStepServer(t, engineServer.URL, "test-step", "test-step", handler)
+
+	assert.Equal(t, 1, postCount)
+	assert.Equal(t, 1, putCount)
+}
+
 func TestHTTPErrorMessage(t *testing.T) {
 	err := builder.NewHTTPError(418, "I'm a teapot")
 	assert.Equal(t, "HTTP 418: I'm a teapot", err.Error())

@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -242,5 +243,293 @@ func TestMemoizableStepUsesCache(t *testing.T) {
 
 		invocations := env.MockClient.GetInvocations()
 		assert.Len(t, invocations, 1)
+	})
+}
+
+func TestTimeoutDefaultsBeforeProviderCompletes(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := &api.Step{
+			ID:   "provider",
+			Name: "Provider",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		consumer := &api.Step{
+			ID:   "consumer",
+			Name: "Consumer",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"seed": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+				},
+				"opt": {
+					Role:    api.RoleOptional,
+					Type:    api.TypeString,
+					Default: `"fallback"`,
+					Timeout: 50,
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		releaseProvider := make(chan struct{})
+		env.MockClient.SetHandler(provider.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseProvider
+				return api.Args{"opt": "real"}, nil
+			},
+		)
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				provider.ID: provider,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"opt": {
+					Providers: []api.StepID{provider.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"seed": {
+					Providers: []api.StepID{},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"result": {
+					Providers: []api.StepID{consumer.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		flowID := api.FlowID("wf-opt-timeout-default")
+		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
+			flowopt.WithInit(api.Args{"seed": "x"}),
+		))
+
+		assert.True(t,
+			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
+		)
+		assert.True(t,
+			env.MockClient.WaitForInvocation(consumer.ID, 500*time.Millisecond),
+		)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		assert.Equal(t, "fallback", flow.Executions[consumer.ID].Inputs["opt"])
+
+		close(releaseProvider)
+		flow = env.WaitForFlowStatus(flowID, func() {})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+	})
+}
+
+func TestTimeoutZeroWaitsForProvider(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := &api.Step{
+			ID:   "provider",
+			Name: "Provider",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		consumer := &api.Step{
+			ID:   "consumer",
+			Name: "Consumer",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"seed": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+				},
+				"opt": {
+					Role:    api.RoleOptional,
+					Type:    api.TypeString,
+					Default: `"fallback"`,
+					Timeout: 0,
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		releaseProvider := make(chan struct{})
+		env.MockClient.SetHandler(provider.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseProvider
+				return api.Args{"opt": "real"}, nil
+			},
+		)
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				provider.ID: provider,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"opt": {
+					Providers: []api.StepID{provider.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"seed": {
+					Providers: []api.StepID{},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"result": {
+					Providers: []api.StepID{consumer.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		flowID := api.FlowID("wf-opt-timeout-zero")
+		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
+			flowopt.WithInit(api.Args{"seed": "x"}),
+		))
+
+		assert.True(t,
+			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
+		)
+		assert.False(t,
+			env.MockClient.WaitForInvocation(consumer.ID, 120*time.Millisecond),
+		)
+
+		close(releaseProvider)
+		flow := env.WaitForFlowStatus(flowID, func() {})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, "real", flow.Executions[consumer.ID].Inputs["opt"])
+	})
+}
+
+func TestTimeoutDefaultIsStepLocal(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := &api.Step{
+			ID:   "provider",
+			Name: "Provider",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"opt": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		fast := &api.Step{
+			ID:   "fast",
+			Name: "Fast",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"seed": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+				},
+				"opt": {
+					Role:    api.RoleOptional,
+					Type:    api.TypeString,
+					Default: `"fallback"`,
+					Timeout: 50,
+				},
+				"fast_done": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		strict := &api.Step{
+			ID:   "strict",
+			Name: "Strict",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"opt":         {Role: api.RoleRequired, Type: api.TypeString},
+				"strict_done": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(fast))
+		assert.NoError(t, env.Engine.RegisterStep(strict))
+
+		releaseProvider := make(chan struct{})
+		env.MockClient.SetHandler(provider.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseProvider
+				return api.Args{"opt": "real"}, nil
+			},
+		)
+		env.MockClient.SetResponse(fast.ID, api.Args{"fast_done": "ok"})
+		env.MockClient.SetResponse(strict.ID, api.Args{"strict_done": "ok"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{fast.ID, strict.ID},
+			Steps: api.Steps{
+				provider.ID: provider,
+				fast.ID:     fast,
+				strict.ID:   strict,
+			},
+			Attributes: api.AttributeGraph{
+				"opt": {
+					Providers: []api.StepID{provider.ID},
+					Consumers: []api.StepID{fast.ID, strict.ID},
+				},
+				"seed": {
+					Providers: []api.StepID{},
+					Consumers: []api.StepID{fast.ID},
+				},
+				"fast_done": {
+					Providers: []api.StepID{fast.ID},
+					Consumers: []api.StepID{},
+				},
+				"strict_done": {
+					Providers: []api.StepID{strict.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		flowID := api.FlowID("wf-opt-timeout-local")
+		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
+			flowopt.WithInit(api.Args{"seed": "x"}),
+		))
+
+		assert.True(t,
+			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
+		)
+		assert.True(t,
+			env.MockClient.WaitForInvocation(fast.ID, 500*time.Millisecond),
+		)
+		assert.False(t,
+			env.MockClient.WaitForInvocation(strict.ID, 120*time.Millisecond),
+		)
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		assert.Equal(t, "fallback", flow.Executions[fast.ID].Inputs["opt"])
+		if _, ok := flow.Attributes["opt"]; ok {
+			t.Fatalf("timed optional default leaked into flow attributes")
+		}
+
+		close(releaseProvider)
+		flow = env.WaitForFlowStatus(flowID, func() {})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, "real", flow.Executions[strict.ID].Inputs["opt"])
 	})
 }

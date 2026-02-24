@@ -64,80 +64,135 @@ const Attributes: React.FC<AttributesProps> = ({
       data-testid="step-args"
     >
       {unifiedArgs.map((arg) => {
-          const { hasValue, value } = getAttributeValue(
-            arg,
-            execution,
-            attributeValues
-          );
-          const isWinner = attributeProvenance.get(arg.name) === step.id;
-          const isConst = arg.argType === "const";
-          const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
+        const { hasValue, value } = getAttributeValue(
+          arg,
+          execution,
+          attributeValues
+        );
+        const isWinner = attributeProvenance.get(arg.name) === step.id;
+        const isConst = arg.argType === "const";
+        const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
+        const executionInputValue = execution?.inputs?.[arg.name];
+        const optionalUsedDefault =
+          arg.argType === "optional" &&
+          hasExecutionInput(execution, arg.name) &&
+          defaultMatchesExecutionInput(arg.spec.default, executionInputValue);
 
-          const { Icon, className } = getArgIcon(arg.argType);
+        const { Icon, className } = getArgIcon(arg.argType);
 
-          const isProvidedByUpstream =
-            arg.argType === "optional"
-              ? attributeProvenance.has(arg.name)
+        const isProvidedByUpstream =
+          arg.argType === "optional"
+            ? hasExecutionInput(execution, arg.name)
+              ? !optionalUsedDefault
+              : attributeProvenance.has(arg.name)
+            : undefined;
+        const wasDefaulted =
+          arg.argType === "optional"
+            ? optionalUsedDefault ||
+              (hasValue && !attributeProvenance.has(arg.name))
+            : isConst
+              ? hasValue
               : undefined;
-          const wasDefaulted =
-            arg.argType === "optional"
-              ? hasValue && !attributeProvenance.has(arg.name)
-              : isConst
-                ? hasValue
-                : undefined;
 
-          const statusBadge = renderStatusBadge(arg.argType, {
-            isSatisfied,
-            executionStatus: execution?.status,
-            isWinner,
-            isProvidedByUpstream,
-            wasDefaulted,
-          });
+        const statusBadge = renderStatusBadge(arg.argType, {
+          isSatisfied,
+          executionStatus: execution?.status,
+          isWinner,
+          isProvidedByUpstream,
+          wasDefaulted,
+        });
 
-          const argItem = (
-            <div
-              className={styles.argItem}
-              data-arg-type={arg.argType}
-              data-arg-name={arg.name}
-            >
-              <span className={styles.argName}>
-                <Icon className={className} />
-                {arg.name}
-              </span>
-              <div className={styles.argTypeContainer}>
-                <span className={styles.argType}>{arg.type}</span>
-                {statusBadge}
-              </div>
+        const argItem = (
+          <div
+            className={styles.argItem}
+            data-arg-type={arg.argType}
+            data-arg-name={arg.name}
+          >
+            <span className={styles.argName}>
+              <Icon className={className} />
+              {arg.name}
+            </span>
+            <div className={styles.argTypeContainer}>
+              <span className={styles.argType}>{arg.type}</span>
+              {statusBadge}
             </div>
-          );
+          </div>
+        );
 
-          const key = `${arg.argType}-${arg.name}`;
+        const key = `${arg.argType}-${arg.name}`;
 
-          const tooltipContent = hasValue
-            ? {
-                title: t(getAttributeTooltipTitle(arg.argType, wasDefaulted)),
-                icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
-                content: formatAttributeValue(value),
-                monospace: true,
-              }
-            : null;
+        const tooltipContent = hasValue
+          ? {
+              title: t(getAttributeTooltipTitle(arg.argType, wasDefaulted)),
+              icon: <Icon className={`${className} ${styles.tooltipIcon}`} />,
+              content: formatAttributeValue(value),
+              monospace: true,
+            }
+          : null;
 
-          return tooltipContent ? (
-            <Tooltip key={key} trigger={argItem}>
-              <TooltipSection
-                title={tooltipContent.title}
-                icon={tooltipContent.icon}
-                monospace={tooltipContent.monospace}
-              >
-                {tooltipContent.content}
-              </TooltipSection>
-            </Tooltip>
-          ) : (
-            <div key={key}>{argItem}</div>
-          );
-        })}
+        return tooltipContent ? (
+          <Tooltip key={key} trigger={argItem}>
+            <TooltipSection
+              title={tooltipContent.title}
+              icon={tooltipContent.icon}
+              monospace={tooltipContent.monospace}
+            >
+              {tooltipContent.content}
+            </TooltipSection>
+          </Tooltip>
+        ) : (
+          <div key={key}>{argItem}</div>
+        );
+      })}
     </div>
   );
+};
+
+const hasExecutionInput = (
+  execution: ExecutionResult | undefined,
+  name: string
+): boolean => {
+  return (
+    !!execution?.inputs &&
+    Object.prototype.hasOwnProperty.call(execution.inputs, name)
+  );
+};
+
+const defaultMatchesExecutionInput = (
+  rawDefault: unknown,
+  executionValue: unknown
+): boolean => {
+  if (rawDefault === undefined) {
+    return false;
+  }
+
+  let parsedDefault: unknown = rawDefault;
+  if (typeof rawDefault === "string") {
+    try {
+      parsedDefault = JSON.parse(rawDefault);
+    } catch {
+      parsedDefault = rawDefault;
+    }
+  }
+
+  if (Object.is(parsedDefault, executionValue)) {
+    return true;
+  }
+
+  if (
+    parsedDefault !== null &&
+    executionValue !== null &&
+    typeof parsedDefault === "object" &&
+    typeof executionValue === "object"
+  ) {
+    try {
+      return JSON.stringify(parsedDefault) === JSON.stringify(executionValue);
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
 };
 
 export default React.memo(Attributes);
