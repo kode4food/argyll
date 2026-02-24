@@ -937,23 +937,23 @@ func TestStepCopy(t *testing.T) {
 			},
 		}
 
-		copy := step.Copy()
-		as.NotNil(copy)
-		as.NotSame(step, copy)
-		as.True(step.Equal(copy))
+		cpy := step.Copy()
+		as.NotNil(cpy)
+		as.NotSame(step, cpy)
+		as.True(step.Equal(cpy))
 
-		copy.Name = "Changed Name"
+		cpy.Name = "Changed Name"
 		as.Equal(api.Name("Copy Step"), step.Name)
 
-		copy.HTTP.Endpoint = "http://localhost:8081"
-		copy.Flow.Goals[0] = "goal-b"
-		copy.Script.Script = "(* 2 3)"
-		copy.Predicate.Script = "return false"
-		copy.WorkConfig.MaxRetries = 9
-		copy.Labels["team"] = "platform"
-		copy.Attributes["input"].Type = api.TypeNumber
-		copy.Attributes["input"].Mapping.Name = "changed"
-		copy.Attributes["input"].Mapping.Script.Script = "$.changed"
+		cpy.HTTP.Endpoint = "http://localhost:8081"
+		cpy.Flow.Goals[0] = "goal-b"
+		cpy.Script.Script = "(* 2 3)"
+		cpy.Predicate.Script = "return false"
+		cpy.WorkConfig.MaxRetries = 9
+		cpy.Labels["team"] = "platform"
+		cpy.Attributes["input"].Type = api.TypeNumber
+		cpy.Attributes["input"].Mapping.Name = "changed"
+		cpy.Attributes["input"].Mapping.Script.Script = "$.changed"
 
 		as.Equal("http://localhost:8081", step.HTTP.Endpoint)
 		as.Equal(api.StepID("goal-b"), step.Flow.Goals[0])

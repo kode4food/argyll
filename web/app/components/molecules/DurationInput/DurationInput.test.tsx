@@ -88,10 +88,7 @@ describe("DurationInput", () => {
     render(<DurationInput value={0} onChange={jest.fn()} />);
 
     const input = screen.getByRole("textbox");
-    expect(input).toHaveAttribute(
-      "placeholder",
-      "e.g. 5d, 2 days 3h, 1.5 days"
-    );
+    expect(input).toHaveAttribute("placeholder", "e.g. 5d, 2h");
   });
 
   test("handles empty input values as zero", () => {

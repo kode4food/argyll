@@ -504,7 +504,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			}
 
 			cfg := config.NewDefaultConfig()
-			cfg.LoadFromEnv()
+			testify.NoError(t, cfg.LoadFromEnv())
 			tt.check(t, cfg)
 		})
 	}
