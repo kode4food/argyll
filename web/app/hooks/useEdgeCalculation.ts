@@ -43,6 +43,8 @@ export const useEdgeCalculation = (
               ? STEP_LAYOUT.DASH_PATTERN
               : undefined,
           };
+          const baseZIndex = isInPlan ? 1000 : 1;
+          const edgeZIndex = input.isOptional ? baseZIndex : baseZIndex + 1;
 
           edges.push({
             id: `${fromStepID}-${toStep.id}-${input.name}`,
@@ -56,7 +58,7 @@ export const useEdgeCalculation = (
               type: "arrow",
               color: strokeColor,
             },
-            zIndex: isInPlan ? 1000 : 1,
+            zIndex: edgeZIndex,
             className:
               focusedAttributeName && isFocusedAttribute
                 ? "edge-focused-animated"

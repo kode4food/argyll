@@ -1,7 +1,7 @@
 /* Shared Step Widget Patterns */
 
 :root {
-  --focused-edge-dash-pattern: 10 3;
+  --focused-edge-dash-pattern: 8 4;
   --focused-edge-dash-offset: -26;
   --focused-edge-animation-duration: 0.9s;
 }
@@ -44,7 +44,6 @@
 
 .react-flow__edge.edge-focused-animated .react-flow__edge-path {
   stroke-dasharray: var(--focused-edge-dash-pattern);
-  stroke-linecap: round;
   animation: edgeFocusedFlow var(--focused-edge-animation-duration) linear
     infinite;
 }

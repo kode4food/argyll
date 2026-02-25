@@ -165,7 +165,7 @@ describe("useEdgeCalculation", () => {
       useEdgeCalculation([step1, step2], previewStepIds)
     );
 
-    expect(result.current[0].zIndex).toBe(1000);
+    expect(result.current[0].zIndex).toBe(1001);
   });
 
   test("sets default zIndex for edges not in preview plan", () => {
@@ -178,7 +178,22 @@ describe("useEdgeCalculation", () => {
       useEdgeCalculation([step1, step2], previewStepIds)
     );
 
-    expect(result.current[0].zIndex).toBe(1);
+    expect(result.current[0].zIndex).toBe(2);
+  });
+
+  test("keeps required edges above optional edges", () => {
+    const producer = createStep("step1", [], [], ["shared"]);
+    const requiredConsumer = createStep("step2", ["shared"], [], []);
+    const optionalConsumer = createStep("step3", [], ["shared"], []);
+
+    const { result } = renderHook(() =>
+      useEdgeCalculation([producer, requiredConsumer, optionalConsumer])
+    );
+
+    const reqEdge = result.current.find((e) => e.target === "step2");
+    const optEdge = result.current.find((e) => e.target === "step3");
+
+    expect(reqEdge?.zIndex).toBeGreaterThan(optEdge?.zIndex ?? 0);
   });
 
   test("handles steps with no dependencies", () => {
