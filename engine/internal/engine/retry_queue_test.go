@@ -197,6 +197,37 @@ func TestRetryQueueUpdate(t *testing.T) {
 	assert.Equal(t, now.Unix(), peekTime.Unix())
 }
 
+func TestRetryQueueUpdateHeadLater(t *testing.T) {
+	rq := NewRetryQueue()
+	defer rq.Stop()
+
+	now := time.Now()
+	rq.Push(&RetryItem{
+		FlowID:      "flow-1",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now,
+	})
+	rq.Push(&RetryItem{
+		FlowID:      "flow-2",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now.Add(time.Second),
+	})
+
+	changed := rq.Push(&RetryItem{
+		FlowID:      "flow-1",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now.Add(2 * time.Second),
+	})
+
+	assert.True(t, changed)
+	peekTime, ok := rq.Peek()
+	assert.True(t, ok)
+	assert.Equal(t, now.Add(time.Second).Unix(), peekTime.Unix())
+}
+
 func TestRetryQueueStopPreventsPush(t *testing.T) {
 	rq := NewRetryQueue()
 

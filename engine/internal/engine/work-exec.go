@@ -67,6 +67,7 @@ func (tx *flowTx) collectStepInputs(
 ) api.Args {
 	inputs := api.Args{}
 	now := time.Now()
+	ev := tx.newStepEval(step.ID, flow, now)
 
 	for name, attr := range step.Attributes {
 		if !attr.IsRuntimeInput() {
@@ -79,17 +80,17 @@ func (tx *flowTx) collectStepInputs(
 		}
 
 		if attr.IsOptional() {
-			ready, useDefault := tx.optionalUsesDefault(
-				name, attr, flow, now,
-			)
+			ready, fallback := ev.optionalFallback(name, attr)
 			if !ready {
 				continue
 			}
-			if useDefault && attr.Default != "" {
-				value := gjson.Parse(attr.Default).Value()
-				val := tx.mapper.MapInput(step, name, attr, value)
-				paramName := tx.mapper.InputParamName(name, attr)
-				inputs[paramName] = val
+			if fallback {
+				if attr.Default != "" {
+					value := gjson.Parse(attr.Default).Value()
+					val := tx.mapper.MapInput(step, name, attr, value)
+					paramName := tx.mapper.InputParamName(name, attr)
+					inputs[paramName] = val
+				}
 				continue
 			}
 		}

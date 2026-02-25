@@ -9,9 +9,12 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-func (e *Engine) scheduleTimeoutScan(
-	flowID api.FlowID, deadline time.Time,
-) {
+func (e *Engine) scheduleTimeoutScan(flow *api.FlowState, now time.Time) {
+	deadline := e.nextTimeoutDeadline(flow, now)
+	if deadline.IsZero() {
+		return
+	}
+	flowID := flow.ID
 	e.ScheduleTask(func() (time.Time, error) {
 		nextDeadline, err := e.scanPendingTimeouts(flowID, time.Now())
 		if err != nil && errors.Is(err, ErrFlowNotFound) {
@@ -72,4 +75,31 @@ func (e *Engine) scanPendingTimeouts(
 	}
 
 	return nextDeadline, err
+}
+
+func (e *Engine) nextTimeoutDeadline(
+	flow *api.FlowState, now time.Time,
+) time.Time {
+	if flow == nil || flowTransitions.IsTerminal(flow.Status) {
+		return time.Time{}
+	}
+
+	tx := &flowTx{Engine: e}
+	var next time.Time
+
+	for stepID, exec := range flow.Executions {
+		if exec.Status != api.StepPending {
+			continue
+		}
+
+		ready, d := tx.canStartStepAt(stepID, flow, now)
+		if ready || d.IsZero() {
+			continue
+		}
+		if next.IsZero() || d.Before(next) {
+			next = d
+		}
+	}
+
+	return next
 }

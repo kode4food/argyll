@@ -55,9 +55,9 @@ Optional inputs can define a `timeout` (milliseconds) to let a step continue wit
 ```
 
 **Behavior:**
-- If no upstream provider exists for the optional attribute, the step can start immediately and use the default
-- If upstream providers exist, the step waits for them by default
-- The timeout clock starts when the first potential provider step starts work
+- `timeout: 0` means there is no wait window for that optional input (use the upstream value only if it is already present when the step is ready; otherwise use the default or omit the input)
+- If `timeout` is greater than 0, the step waits up to that long for the optional value
+- The timeout clock starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
 - If the timeout expires first, this step can proceed with its default
 - That default choice is step-local and sticky for this step execution, even if the real attribute still arrives before the step starts
 - Other steps that require the real attribute still wait for it

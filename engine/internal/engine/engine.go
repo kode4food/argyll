@@ -110,17 +110,11 @@ func (e *Engine) Start() error {
 	slog.Info("Engine starting")
 
 	e.eventQueue.Start()
+	go e.scheduler()
 
 	if err := e.RecoverFlows(); err != nil {
 		e.eventQueue.Cancel()
 		return fmt.Errorf("%w: %w", ErrRecoverFlows, err)
-	}
-
-	go e.scheduler()
-
-	retryTime, retryOk := e.retryQueue.Peek()
-	if retryOk {
-		e.ScheduleTask(e.retryTask, retryTime)
 	}
 
 	return nil
@@ -183,6 +177,9 @@ func (e *Engine) StartFlow(
 				return err
 			}
 		}
+		tx.OnSuccess(func(flow *api.FlowState) {
+			tx.Engine.scheduleTimeoutScan(flow, time.Now())
+		})
 		return nil
 	})
 }

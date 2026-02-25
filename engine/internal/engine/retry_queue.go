@@ -45,13 +45,13 @@ func NewRetryQueue() *RetryQueue {
 	}
 }
 
-// Push adds or updates a retry item
-func (q *RetryQueue) Push(item *RetryItem) {
+// Push adds or updates a retry item and reports if the next deadline changed
+func (q *RetryQueue) Push(item *RetryItem) bool {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 
 	if q.stopped {
-		return
+		return false
 	}
 
 	key := retryKey{
@@ -59,12 +59,21 @@ func (q *RetryQueue) Push(item *RetryItem) {
 		StepID: item.StepID,
 		Token:  item.Token,
 	}
-	q.items[key] = item
-
-	if q.next == nil || item.NextRetryAt.Before(q.next.NextRetryAt) {
-		q.next = item
-		q.signal()
+	prevNext := q.next
+	prevTime := time.Time{}
+	if prevNext != nil {
+		prevTime = prevNext.NextRetryAt
 	}
+	q.items[key] = item
+	q.recalcNext()
+	if q.next == nil {
+		return false
+	}
+	if prevNext == q.next && q.next.NextRetryAt.Equal(prevTime) {
+		return false
+	}
+	q.signal()
+	return true
 }
 
 // Remove removes a retry item from the queue

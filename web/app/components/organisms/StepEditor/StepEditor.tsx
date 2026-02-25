@@ -906,7 +906,10 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 : t("stepEditor.modalEditTitle", { id: stepId })}
             </h2>
             <div className={styles.headerControls}>
-              <label className={styles.headerCheckboxLabel}>
+              <label
+                className={styles.headerCheckboxLabel}
+                title={t("stepEditor.memoizableTitle")}
+              >
                 <span>{t("stepEditor.memoizableLabel")}</span>
                 <input
                   type="checkbox"

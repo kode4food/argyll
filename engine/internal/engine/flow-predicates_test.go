@@ -9,8 +9,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestNothing(t *testing.T) {}
-
 func TestNoDeps(t *testing.T) {
 	e := &engine.Engine{}
 	flow := &api.FlowState{

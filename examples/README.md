@@ -90,7 +90,8 @@ Creates an order with comprehensive business logic validation.
 **Optional Inputs**:
 - `quantity` (number) - Order quantity (defaults to 1)
 - Optional inputs can also define a timeout (milliseconds) in the step definition for default fallback behavior
-- Timeout starts when the first upstream provider step for that attribute begins work
+- `timeout: 0` means there is no wait window for that optional input (use the upstream value only if it is already present; otherwise use the default or omit the input)
+- Timeout starts when required inputs are satisfied (or at flow start if none exist)
 - If the timeout expires, the step can continue using its optional default value
 - That default choice is sticky for that step execution, even if the real value still arrives before the step starts
 - The default is step-local only (it does not become a flow attribute)

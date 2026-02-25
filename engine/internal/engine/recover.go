@@ -128,8 +128,8 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 		return nil
 	}
 
-	e.recoverTimeoutScans(flowID)
-	e.recoverRetryWork(flowID, flow)
+	e.recoverTimeoutScans(flow)
+	e.recoverRetryWork(flow)
 	return nil
 }
 
@@ -162,17 +162,18 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	return retryableSteps
 }
 
-func (e *Engine) recoverTimeoutScans(flowID api.FlowID) {
-	e.scheduleTimeoutScan(flowID, time.Now())
+func (e *Engine) recoverTimeoutScans(flow *api.FlowState) {
+	e.scheduleTimeoutScan(flow, time.Now())
 }
 
-func (e *Engine) recoverRetryWork(flowID api.FlowID, flow *api.FlowState) {
+func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 	retryableSteps := e.FindRetrySteps(flow)
 	if retryableSteps.IsEmpty() {
 		return
 	}
 
 	now := time.Now()
+	schedRetry := false
 	for stepID := range retryableSteps {
 		exec := flow.Executions[stepID]
 		if exec.WorkItems == nil {
@@ -185,14 +186,20 @@ func (e *Engine) recoverRetryWork(flowID api.FlowID, flow *api.FlowState) {
 				continue
 			}
 
-			e.retryQueue.Push(&RetryItem{
-				FlowID:      flowID,
+			isNext := e.retryQueue.Push(&RetryItem{
+				FlowID:      flow.ID,
 				StepID:      stepID,
 				Token:       token,
 				NextRetryAt: retryAt,
 			})
-			e.ScheduleTask(e.retryTask, retryAt)
+			schedRetry = schedRetry || isNext
 		}
+	}
+	if !schedRetry {
+		return
+	}
+	if retryAt, ok := e.retryQueue.Peek(); ok {
+		e.ScheduleTask(e.retryTask, retryAt)
 	}
 }
 
@@ -375,7 +382,7 @@ func (e *Engine) retryWork(
 			inputs = exec.Inputs
 		}
 		var err error
-		started, err = tx.startRetryWorkItem(fs.StepID, step, token)
+		started, err = tx.startRetryWorkItem(step, token)
 		if err != nil {
 			return err
 		}
@@ -384,7 +391,7 @@ func (e *Engine) retryWork(
 		}
 		tx.OnSuccess(func(*api.FlowState) {
 			tx.handleWorkItemsExecution(
-				fs.StepID, step, inputs, meta, started,
+				step, inputs, meta, started,
 			)
 		})
 		return nil
@@ -393,14 +400,16 @@ func (e *Engine) retryWork(
 }
 
 func (e *Engine) requeueRetryItem(item *RetryItem) {
-	nextRetryAt := time.Now().Add(retryDispatchBackoff)
-	e.retryQueue.Push(&RetryItem{
+	if isNext := e.retryQueue.Push(&RetryItem{
 		FlowID:      item.FlowID,
 		StepID:      item.StepID,
 		Token:       item.Token,
-		NextRetryAt: nextRetryAt,
-	})
-	e.ScheduleTask(e.retryTask, nextRetryAt)
+		NextRetryAt: time.Now().Add(retryDispatchBackoff),
+	}); isNext {
+		if retryAt, ok := e.retryQueue.Peek(); ok {
+			e.ScheduleTask(e.retryTask, retryAt)
+		}
+	}
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {

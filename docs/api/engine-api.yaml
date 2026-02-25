@@ -936,10 +936,14 @@ components:
           format: int64
           description: |
             Optional timeout in milliseconds for optional attributes.
-            Timeout starts when the first potential upstream provider starts work.
+            Timeout starts when the step's required inputs are satisfied (or at
+            flow start if the step has no required inputs).
+            `0` means there is no wait window for that optional input.
+            If no upstream provider exists for the optional attribute, the
+            consuming step may fall back immediately.
             If the timeout expires before the attribute is set, the consuming
-            step may proceed using its optional default (step-local only).
-            `0` means no timeout.
+            step may proceed using its optional default, or omit the input if
+            no default is declared (step-local only).
           minimum: 0
           example: 2000
         for_each:

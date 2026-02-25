@@ -156,11 +156,11 @@ Each step declares what it needs and what it produces.
 **Optional attributes** use their declared `default` value if provided. If no default is declared and the value is missing, the input is omitted.
 
 Optional attributes may also declare a `timeout` (milliseconds):
-- `timeout: 0` means no timeout (wait for upstream providers if they exist)
-- timeout starts when the first potential upstream provider for that attribute starts work
-- if the timeout expires before the attribute is produced, the consuming step may proceed with its optional `default`
-- once the timeout is exceeded for that consuming step, the default choice is step-local and remains in effect even if the real attribute still arrives before the step starts
-- this fallback default is step-local only and does not become a flow attribute
+- `timeout: 0` means there is no wait window (the step uses the upstream value only if it is already present; otherwise it uses the default or omits the input)
+- Timeout starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
+- If the timeout expires before the attribute is produced, the consuming step may proceed with its optional `default`
+- Once the timeout is exceeded for that consuming step, the default choice is step-local and remains in effect even if the real attribute still arrives before the step starts
+- This fallback default is step-local only and does not become a flow attribute
 
 **Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps.
 
