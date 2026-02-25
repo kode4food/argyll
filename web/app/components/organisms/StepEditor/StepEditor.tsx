@@ -89,8 +89,8 @@ const ATTRIBUTE_TYPES: AttributeType[] = [
 
 const PREDICATE_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
-  { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
+  { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 
 const MAPPING_LANGUAGE_OPTIONS = [
@@ -107,11 +107,11 @@ const MAPPING_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
 
 const getMappingScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_JPATH];
+    return MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_LUA];
   }
   return (
     MAPPING_SCRIPT_PLACEHOLDER_KEYS[language] ||
-    MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_JPATH]
+    MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_LUA]
   );
 };
 
@@ -502,7 +502,7 @@ const AttributesSection: React.FC = () => {
                           e.currentTarget.blur();
                         }}
                         className={`${formStyles.languageButton} ${
-                          (attr.mappingLanguage || SCRIPT_LANGUAGE_JPATH) ===
+                          (attr.mappingLanguage || SCRIPT_LANGUAGE_LUA) ===
                           option.value
                             ? formStyles.languageButtonActive
                             : ""

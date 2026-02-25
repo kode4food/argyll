@@ -158,7 +158,7 @@ describe("stepUtils", () => {
       expect(getStepType(step)).toBe("processor");
     });
 
-    test("returns neutral when step has no inputs and no outputs", () => {
+    test("returns standalone when step has no inputs and no outputs", () => {
       const step: Step = {
         id: "step-4",
         name: "Test Step",
@@ -170,7 +170,7 @@ describe("stepUtils", () => {
         },
       };
 
-      expect(getStepType(step)).toBe("neutral");
+      expect(getStepType(step)).toBe("standalone");
     });
 
     test("optional args alone do not affect step type (resolver remains resolver)", () => {
@@ -191,7 +191,7 @@ describe("stepUtils", () => {
       expect(getStepType(step)).toBe("resolver");
     });
 
-    test("optional args alone do not affect step type (neutral remains neutral)", () => {
+    test("optional args alone do not affect step type (standalone remains standalone)", () => {
       const step: Step = {
         id: "step-6",
         name: "Test Step",
@@ -205,7 +205,7 @@ describe("stepUtils", () => {
         },
       };
 
-      expect(getStepType(step)).toBe("neutral");
+      expect(getStepType(step)).toBe("standalone");
     });
 
     test("handles step with multiple required and optional args", () => {
@@ -230,7 +230,7 @@ describe("stepUtils", () => {
       expect(getStepType(step)).toBe("processor");
     });
 
-    test("returns neutral when step has empty attributes", () => {
+    test("returns standalone when step has empty attributes", () => {
       const step: Step = {
         id: "step-8",
         name: "Test Step",
@@ -242,7 +242,7 @@ describe("stepUtils", () => {
         },
       };
 
-      expect(getStepType(step)).toBe("neutral");
+      expect(getStepType(step)).toBe("standalone");
     });
   });
 
@@ -259,8 +259,8 @@ describe("stepUtils", () => {
       expect(getStepTypeLabel("processor")).toBe("P");
     });
 
-    test("returns correct label for neutral", () => {
-      expect(getStepTypeLabel("neutral")).toBe("S");
+    test("returns correct label for standalone", () => {
+      expect(getStepTypeLabel("standalone")).toBe("S");
     });
   });
 

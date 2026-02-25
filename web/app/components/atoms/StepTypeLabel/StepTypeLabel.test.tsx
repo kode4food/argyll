@@ -42,7 +42,7 @@ describe("StepTypeLabel", () => {
     expect(screen.getByText("P")).toBeInTheDocument();
   });
 
-  test("renders neutral label for step with no inputs or outputs", () => {
+  test("renders standalone label for step with no inputs or outputs", () => {
     const step = createStep(false, false);
     render(<StepTypeLabel step={step} />);
     expect(screen.getByText("S")).toBeInTheDocument();

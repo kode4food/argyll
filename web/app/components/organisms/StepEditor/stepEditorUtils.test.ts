@@ -317,7 +317,7 @@ describe("stepEditorUtils", () => {
       });
     });
 
-    it("defaults mapping script language to jpath", () => {
+    it("defaults mapping script language to lua", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
@@ -331,7 +331,7 @@ describe("stepEditorUtils", () => {
       const result = createStepAttributes(attributes);
 
       expect(result.result.mapping?.script).toEqual({
-        language: "jpath",
+        language: "lua",
         script: "$.result",
       });
     });

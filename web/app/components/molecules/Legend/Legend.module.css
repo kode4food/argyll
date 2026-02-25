@@ -68,6 +68,12 @@
     color-mix(in srgb, var(--step-collector-border) 85%, var(--color-darken));
 }
 
+.boxStandalone {
+  background-color: var(--step-standalone-bg);
+  border: 2px solid
+    color-mix(in srgb, var(--step-standalone-border) 85%, var(--color-darken));
+}
+
 .lineRequired {
   border-top: 2px solid var(--color-edge-required);
 }

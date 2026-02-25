@@ -20,6 +20,10 @@ const Legend: React.FC = () => {
           <div className={`${styles.box} ${styles.boxCollector}`}></div>
           <span className={styles.label}>{t("legend.collector")}</span>
         </div>
+        <div className={styles.item}>
+          <div className={`${styles.box} ${styles.boxStandalone}`}></div>
+          <span className={styles.label}>{t("legend.standalone")}</span>
+        </div>
         <div className={styles.divider}>
           <div className={`${styles.line} ${styles.lineRequired}`}></div>
           <span className={styles.label}>{t("legend.required")}</span>

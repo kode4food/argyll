@@ -166,7 +166,7 @@ export function createStepAttributes(
       }
       if (mappingScript) {
         spec.mapping.script = {
-          language: a.mappingLanguage?.trim() || "jpath",
+          language: a.mappingLanguage?.trim() || "lua",
           script: mappingScript,
         };
       }

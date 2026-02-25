@@ -1,7 +1,7 @@
 import { Step, AttributeRole, AttributeSpec, AttributeType } from "@/app/api";
 import { STEP_TYPE_ORDER } from "@/app/constants";
 
-export type StepType = "resolver" | "processor" | "collector" | "neutral";
+export type StepType = "resolver" | "processor" | "collector" | "standalone";
 
 export interface OrderedAttribute {
   name: string;
@@ -98,7 +98,7 @@ export const validateDefaultValue = (
 };
 
 export const getStepType = (step: Step): StepType => {
-  if (!step.attributes) return "neutral";
+  if (!step.attributes) return "standalone";
 
   const hasRequiredInputs = Object.values(step.attributes).some(
     (attr) => attr.role === AttributeRole.Required
@@ -110,7 +110,7 @@ export const getStepType = (step: Step): StepType => {
   if (hasOutputs && !hasRequiredInputs) return "resolver";
   if (!hasOutputs && hasRequiredInputs) return "collector";
   if (hasOutputs && hasRequiredInputs) return "processor";
-  return "neutral";
+  return "standalone";
 };
 
 export const getStepTypeLabel = (stepType: StepType): string => {
@@ -121,7 +121,7 @@ export const getStepTypeLabel = (stepType: StepType): string => {
       return "C";
     case "processor":
       return "P";
-    case "neutral":
+    case "standalone":
       return "S";
   }
 };

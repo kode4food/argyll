@@ -635,7 +635,7 @@ describe("StepEditor", () => {
     });
 
     const scriptInput = await screen.findByPlaceholderText(
-      t("stepEditor.mappingScriptPlaceholderJPath")
+      t("stepEditor.mappingScriptPlaceholderLua")
     );
     fireEvent.change(scriptInput, { target: { value: "$.payload.input" } });
 
@@ -651,7 +651,7 @@ describe("StepEditor", () => {
               mapping: {
                 name: "request_payload",
                 script: {
-                  language: "jpath",
+                  language: "lua",
                   script: "$.payload.input",
                 },
               },
@@ -676,7 +676,7 @@ describe("StepEditor", () => {
 
     expect(
       await screen.findByPlaceholderText(
-        t("stepEditor.mappingScriptPlaceholderJPath")
+        t("stepEditor.mappingScriptPlaceholderLua")
       )
     ).toBeInTheDocument();
 
