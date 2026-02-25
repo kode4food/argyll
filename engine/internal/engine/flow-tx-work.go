@@ -22,7 +22,6 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, token api.Token) error {
 	}
 
 	step := tx.Value().Plan.Steps[stepID]
-
 	if tx.ShouldRetry(step, workItem) {
 		nextRetryAt := tx.CalculateNextRetry(
 			step.WorkConfig, workItem.RetryCount,
@@ -59,8 +58,7 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, token api.Token) error {
 func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 	// Terminal flows only record step completions for audit
 	if flowTransitions.IsTerminal(tx.Value().Status) {
-		_, err := tx.checkStepCompletion(stepID)
-		if err != nil {
+		if _, err := tx.checkStepCompletion(stepID); err != nil {
 			return err
 		}
 		return tx.maybeDeactivate()
@@ -74,14 +72,11 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 		return tx.handleWorkContinuation(stepID)
 	}
 
-	if err := tx.skipPendingUnused(); err != nil {
-		return err
-	}
-
-	if err := tx.startReadyPendingSteps(); err != nil {
-		return err
-	}
-	return tx.checkTerminal()
+	return performCalls(
+		tx.skipPendingUnused,
+		tx.startReadyPendingSteps,
+		tx.checkTerminal,
+	)
 }
 
 func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
@@ -89,10 +84,10 @@ func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
 }
 
 func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
-	if err := tx.continueStepWork(stepID, true); err != nil {
-		return err
-	}
-	return tx.handleStepFailure(stepID)
+	return performCalls(
+		withArgs(tx.continueStepWork, stepID, true),
+		withArg(tx.handleStepFailure, stepID),
+	)
 }
 
 func (tx *flowTx) handleWorkNotCompleted(
@@ -101,13 +96,11 @@ func (tx *flowTx) handleWorkNotCompleted(
 	if flowTransitions.IsTerminal(tx.Value().Status) {
 		return tx.maybeDeactivate()
 	}
-	if err := tx.scheduleRetry(stepID, token); err != nil {
-		return err
-	}
-	if err := tx.continueStepWork(stepID, true); err != nil {
-		return err
-	}
-	return tx.handleStepFailure(stepID)
+	return performCalls(
+		withArgs(tx.scheduleRetry, stepID, token),
+		withArgs(tx.continueStepWork, stepID, true),
+		withArg(tx.handleStepFailure, stepID),
+	)
 }
 
 func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
@@ -181,10 +174,9 @@ func (tx *flowTx) startRetryWorkItem(
 	switch item.Status {
 	case api.WorkPending:
 		var err error
-		shouldStart, err = tx.shouldStartRetryPending(
+		if shouldStart, err = tx.shouldStartRetryPending(
 			step, item, exec.WorkItems, now,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 	case api.WorkFailed:
@@ -308,13 +300,12 @@ func (tx *flowTx) handleMemoCacheHit(
 func (tx *flowTx) handleRetryScheduled(
 	stepID api.StepID, token api.Token, nextRetryAt time.Time,
 ) {
-	isNext := tx.retryQueue.Push(&RetryItem{
+	if isNext := tx.retryQueue.Push(&RetryItem{
 		FlowID:      tx.flowID,
 		StepID:      stepID,
 		Token:       token,
 		NextRetryAt: nextRetryAt,
-	})
-	if isNext {
+	}); isNext {
 		if retryAt, ok := tx.retryQueue.Peek(); ok {
 			tx.Engine.ScheduleTask(tx.Engine.retryTask, retryAt)
 		}

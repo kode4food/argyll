@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"context"
 	"testing"
 	"time"
 
@@ -253,6 +254,59 @@ func TestRetryQueueStopPreventsPush(t *testing.T) {
 	assert.Equal(t, 1, rq.Len())
 }
 
+func TestRetryQueuePushChanged(t *testing.T) {
+	rq := NewRetryQueue()
+	defer rq.Stop()
+
+	now := time.Now()
+	changed := rq.Push(&RetryItem{
+		FlowID:      "flow-1",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now,
+	})
+	assert.True(t, changed)
+
+	changed = rq.Push(&RetryItem{
+		FlowID:      "flow-2",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now.Add(time.Second),
+	})
+	assert.False(t, changed)
+
+	changed = rq.Push(&RetryItem{
+		FlowID:      "flow-2",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now.Add(2 * time.Second),
+	})
+	assert.False(t, changed)
+
+	changed = rq.Push(&RetryItem{
+		FlowID:      "flow-2",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: now.Add(-time.Second),
+	})
+	assert.True(t, changed)
+}
+
+func TestRetryQueuePushStopped(t *testing.T) {
+	rq := NewRetryQueue()
+	rq.Stop()
+
+	changed := rq.Push(&RetryItem{
+		FlowID:      "flow-1",
+		StepID:      "step-1",
+		Token:       "token-1",
+		NextRetryAt: time.Now(),
+	})
+
+	assert.False(t, changed)
+	assert.Equal(t, 0, rq.Len())
+}
+
 func TestRetryQueueStopIdempotent(t *testing.T) {
 	rq := NewRetryQueue()
 	rq.Stop()
@@ -284,4 +338,60 @@ func TestRetryQueueNotify(t *testing.T) {
 	case <-time.After(time.Second):
 		t.Fatal("notification not received")
 	}
+}
+
+func TestRequeueRetryItem(t *testing.T) {
+	t.Run("schedules retry task when queue head changes", func(t *testing.T) {
+		e := &Engine{
+			ctx:        context.Background(),
+			retryQueue: NewRetryQueue(),
+			tasks:      make(chan Task, 4),
+		}
+		defer e.retryQueue.Stop()
+
+		e.requeueRetryItem(&RetryItem{
+			FlowID: "flow-1",
+			StepID: "step-1",
+			Token:  "token-1",
+		})
+
+		assert.Equal(t, 1, e.retryQueue.Len())
+		select {
+		case tsk := <-e.tasks:
+			assert.NotNil(t, tsk.Func)
+			assert.False(t, tsk.Deadline.IsZero())
+		default:
+			t.Fatal("expected retry task to be scheduled")
+		}
+	})
+
+	t.Run("does not schedule when earlier retry exists", func(t *testing.T) {
+		e := &Engine{
+			ctx:        context.Background(),
+			retryQueue: NewRetryQueue(),
+			tasks:      make(chan Task, 4),
+		}
+		defer e.retryQueue.Stop()
+
+		earlier := time.Now().Add(-10 * time.Second)
+		e.retryQueue.Push(&RetryItem{
+			FlowID:      "flow-0",
+			StepID:      "step-0",
+			Token:       "token-0",
+			NextRetryAt: earlier,
+		})
+
+		e.requeueRetryItem(&RetryItem{
+			FlowID: "flow-1",
+			StepID: "step-1",
+			Token:  "token-1",
+		})
+
+		assert.Equal(t, 2, e.retryQueue.Len())
+		select {
+		case <-e.tasks:
+			t.Fatal("expected no retry task to be scheduled")
+		default:
+		}
+	})
 }

@@ -72,10 +72,10 @@ func (e *Engine) execStepUpsert(
 			return err
 		}
 
-		if err := validateAttributeTypes(st, step); err != nil {
-			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
-		}
-		if err := detectStepCycles(st, step); err != nil {
+		if err := performCalls(
+			withArgs(validateAttributeTypes, st, step),
+			withArgs(detectStepCycles, st, step),
+		); err != nil {
 			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 		}
 		return raise(step, ag)
@@ -96,13 +96,11 @@ func (e *Engine) execStepUpsert(
 }
 
 func (e *Engine) validateStep(step *api.Step) error {
-	if err := step.Validate(); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
-	}
-	if err := e.validateStepMappings(step); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
-	}
-	if err := e.validateStepScripts(step); err != nil {
+	if err := performCalls(
+		step.Validate,
+		withArg(e.validateStepMappings, step),
+		withArg(e.validateStepScripts, step),
+	); err != nil {
 		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 	}
 	return nil

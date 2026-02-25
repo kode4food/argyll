@@ -69,13 +69,11 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		); err != nil {
 			return err
 		}
-		if err := tx.failUnreachable(); err != nil {
-			return err
-		}
-		if err := tx.checkTerminal(); err != nil {
-			return err
-		}
-		return tx.startReadyPendingSteps()
+		return performCalls(
+			tx.checkUnreachable,
+			tx.checkTerminal,
+			tx.startReadyPendingSteps,
+		)
 	}
 
 	// Compute work items
@@ -226,13 +224,10 @@ func (tx *flowTx) handlePredicateFailure(stepID api.StepID, err error) error {
 		return raiseErr
 	}
 
-	if failErr := tx.failUnreachable(); failErr != nil {
-		return failErr
-	}
-	if termErr := tx.checkTerminal(); termErr != nil {
-		return termErr
-	}
-	return nil
+	return performCalls(
+		tx.checkUnreachable,
+		tx.checkTerminal,
+	)
 }
 
 // handleStepFailure handles common failure logic for work failure paths,
@@ -254,11 +249,9 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 		return tx.continueStepWork(stepID, false)
 	}
 
-	if err := tx.failUnreachable(); err != nil {
-		return err
-	}
-	if err := tx.checkTerminal(); err != nil {
-		return err
-	}
-	return tx.startReadyPendingSteps()
+	return performCalls(
+		tx.checkUnreachable,
+		tx.checkTerminal,
+		tx.startReadyPendingSteps,
+	)
 }

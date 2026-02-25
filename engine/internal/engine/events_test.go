@@ -116,3 +116,24 @@ func TestEventsHandlerPanic(t *testing.T) {
 		assert.Fail(t, "timed out waiting for events")
 	}
 }
+
+func TestEventsCancel(t *testing.T) {
+	handled := make(chan struct{}, 1)
+
+	runner := engine.NewEventQueue(
+		func(batch []engine.QueueEvent) error {
+			handled <- struct{}{}
+			return nil
+		},
+	)
+	runner.Start()
+
+	runner.Cancel()
+	runner.Cancel()
+
+	select {
+	case <-handled:
+		t.Fatal("unexpected event handled after cancel")
+	default:
+	}
+}

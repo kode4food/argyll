@@ -66,9 +66,9 @@ func (tx *flowTx) checkTerminal() error {
 	return nil
 }
 
-// failUnreachable finds and fails all pending steps that can no longer
+// checkUnreachable finds and fails all pending steps that can no longer
 // complete because their required inputs cannot be satisfied
-func (tx *flowTx) failUnreachable() error {
+func (tx *flowTx) checkUnreachable() error {
 	for {
 		failedAny := false
 		flow := tx.Value()
