@@ -13,40 +13,39 @@ import (
 func TestTaskHeapKeyed(t *testing.T) {
 	now := time.Now()
 	h := NewTaskHeap()
+	noop := func() error { return nil }
+	insert := func(path []string, at time.Time) {
+		h.Insert(&Task{Path: path, At: at, Func: noop})
+	}
 
-	h.Insert(&Task{Key: "a", At: now.Add(3 * time.Second),
-		Func: func() error { return nil }})
-	h.Insert(&Task{Key: "b", At: now.Add(2 * time.Second),
-		Func: func() error { return nil }})
-	h.Insert(&Task{Key: "a", At: now.Add(time.Second),
-		Func: func() error { return nil }})
+	insert([]string{"a"}, now.Add(3*time.Second))
+	insert([]string{"b"}, now.Add(2*time.Second))
+	insert([]string{"a"}, now.Add(time.Second))
 
 	peek := h.Peek()
 	if assert.NotNil(t, peek) {
-		assert.Equal(t, "a", peek.Key)
+		assert.Equal(t, []string{"a"}, []string(peek.Path))
 		assert.Equal(t, now.Add(time.Second).Unix(), peek.At.Unix())
 	}
 
-	h.Cancel("a")
+	h.Cancel([]string{"a"})
 	peek = h.Peek()
 	if assert.NotNil(t, peek) {
-		assert.Equal(t, "b", peek.Key)
+		assert.Equal(t, []string{"b"}, []string(peek.Path))
 	}
 
-	h.Insert(&Task{Key: "retry/f1/s1/t1", At: now,
-		Func: func() error { return nil }})
-	h.Insert(&Task{Key: "retry/f1/s2/t2", At: now,
-		Func: func() error { return nil }})
-	h.Insert(&Task{Key: "retry/f2/s1/t1", At: now,
-		Func: func() error { return nil }})
+	insert([]string{"retry", "f1", "s1", "t1"}, now)
+	insert([]string{"retry", "f1", "s2", "t2"}, now)
+	insert([]string{"retry", "f2", "s1", "t1"}, now)
 
-	h.CancelPrefix("retry/f1/")
+	h.CancelPrefix([]string{"retry", "f1"})
 	for {
 		task := h.PopTask()
 		if task == nil {
 			break
 		}
-		assert.NotContains(t, task.Key, "retry/f1/")
+		assert.False(t, len(task.Path) >= 2 &&
+			task.Path[0] == "retry" && task.Path[1] == "f1")
 	}
 }
 
@@ -63,9 +62,7 @@ func TestScheduleRetryTask(t *testing.T) {
 	case req := <-e.tasks:
 		assert.Equal(t, taskReqSchedule, req.op)
 		if assert.NotNil(t, req.task) {
-			assert.Equal(t,
-				retryTaskKey(fs, "tok-1"), req.task.Key,
-			)
+			assert.Equal(t, retryKey(fs, "tok-1"), []string(req.task.Path))
 			assert.NotNil(t, req.task.Func)
 			assert.Equal(t, at.Unix(), req.task.At.Unix())
 		}
@@ -79,17 +76,17 @@ func TestCancelScheduledTaskRequests(t *testing.T) {
 		ctx:   context.Background(),
 		tasks: make(chan taskReq, 2),
 	}
-	key := retryTaskKey(
+	key := retryKey(
 		api.FlowStep{FlowID: "f", StepID: "s"}, api.Token("t"),
 	)
 	e.CancelScheduledTask(key)
-	e.CancelScheduledTaskPrefix(retryTaskPrefix("f"))
+	e.CancelScheduledTaskPrefix(retryPrefix("f"))
 
 	first := <-e.tasks
 	assert.Equal(t, taskReqCancel, first.op)
-	assert.Equal(t, key, first.key)
+	assert.Equal(t, key, []string(first.key))
 
 	second := <-e.tasks
 	assert.Equal(t, taskReqCancelPrefix, second.op)
-	assert.Equal(t, retryTaskPrefix("f"), second.prefix)
+	assert.Equal(t, retryPrefix("f"), []string(second.prefix))
 }

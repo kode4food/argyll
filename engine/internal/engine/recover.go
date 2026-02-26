@@ -348,7 +348,7 @@ func (e *Engine) retryWork(
 func (e *Engine) scheduleRetryTask(
 	fs api.FlowStep, token api.Token, retryAt time.Time,
 ) {
-	e.ScheduleTaskKeyed(retryTaskKey(fs, token),
+	e.ScheduleTaskKeyed(retryKey(fs, token),
 		func() error {
 			err := e.runRetryTask(fs, token)
 			if err != nil {
@@ -415,10 +415,12 @@ func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
 	return &res
 }
 
-func retryTaskKey(fs api.FlowStep, token api.Token) string {
-	return fmt.Sprintf("retry/%s/%s/%s", fs.FlowID, fs.StepID, token)
+func retryKey(fs api.FlowStep, token api.Token) []string {
+	return []string{
+		"retry", string(fs.FlowID), string(fs.StepID), string(token),
+	}
 }
 
-func retryTaskPrefix(flowID api.FlowID) string {
-	return fmt.Sprintf("retry/%s/", flowID)
+func retryPrefix(flowID api.FlowID) []string {
+	return []string{"retry", string(flowID)}
 }

@@ -3,10 +3,10 @@ package engine
 import (
 	"container/heap"
 	"log/slog"
-	"strings"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/log"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type (
@@ -16,26 +16,30 @@ type (
 	Task struct {
 		Func  TaskFunc
 		At    time.Time
-		Key   string
+		Path  taskPath
+		id    string
 		index int
 	}
+
+	TaskHeap struct {
+		items  []*Task
+		byID   map[string]*Task
+		byPath *util.PathTree[*Task]
+	}
+
+	taskPath []string
 
 	taskReqOp uint8
 
 	taskReq struct {
 		op     taskReqOp
 		task   *Task
-		key    string
-		prefix string
+		key    taskPath
+		prefix taskPath
 	}
 
 	retryTimer struct {
 		timer *time.Timer
-	}
-
-	TaskHeap struct {
-		items []*Task
-		byKey map[string]*Task
 	}
 )
 
@@ -46,7 +50,10 @@ const (
 )
 
 func NewTaskHeap() *TaskHeap {
-	h := &TaskHeap{byKey: map[string]*Task{}}
+	h := &TaskHeap{
+		byID:   map[string]*Task{},
+		byPath: util.NewPathTree[*Task](),
+	}
 	heap.Init(h)
 	return h
 }
@@ -61,7 +68,6 @@ func (e *Engine) scheduler() {
 		if t := tasks.Peek(); t != nil {
 			next = t.At
 		}
-
 		if next.IsZero() {
 			t.Stop()
 			timer = nil
@@ -93,8 +99,7 @@ func (e *Engine) scheduler() {
 				resetTimer()
 				continue
 			}
-			err := task.Func()
-			if err != nil {
+			if err := task.Func(); err != nil {
 				slog.Error("Scheduled task failed", log.Error(err))
 			}
 			resetTimer()
@@ -110,19 +115,21 @@ func (e *Engine) ScheduleTask(fn TaskFunc, at time.Time) {
 	})
 }
 
-func (e *Engine) ScheduleTaskKeyed(key string, fn TaskFunc, at time.Time) {
+func (e *Engine) ScheduleTaskKeyed(path []string, fn TaskFunc, at time.Time) {
 	e.scheduleTaskReq(taskReq{
 		op:   taskReqSchedule,
-		task: &Task{Func: fn, At: at, Key: key},
+		task: &Task{Func: fn, At: at, Path: clonePath(path)},
 	})
 }
 
-func (e *Engine) CancelScheduledTask(key string) {
-	e.scheduleTaskReq(taskReq{op: taskReqCancel, key: key})
+func (e *Engine) CancelScheduledTask(path []string) {
+	e.scheduleTaskReq(taskReq{op: taskReqCancel, key: clonePath(path)})
 }
 
-func (e *Engine) CancelScheduledTaskPrefix(prefix string) {
-	e.scheduleTaskReq(taskReq{op: taskReqCancelPrefix, prefix: prefix})
+func (e *Engine) CancelScheduledTaskPrefix(prefix []string) {
+	e.scheduleTaskReq(taskReq{
+		op: taskReqCancelPrefix, prefix: clonePath(prefix),
+	})
 }
 
 func (e *Engine) scheduleTaskReq(req taskReq) {
@@ -136,8 +143,9 @@ func (h *TaskHeap) Insert(t *Task) {
 	if t == nil || t.Func == nil || t.At.IsZero() {
 		return
 	}
-	if t.Key != "" {
-		if old, ok := h.byKey[t.Key]; ok && old != nil {
+	if len(t.Path) > 0 {
+		t.id = taskPathID(t.Path)
+		if old, ok := h.byID[t.id]; ok && old != nil {
 			old.Func = t.Func
 			old.At = t.At
 			heap.Fix(h, old.index)
@@ -161,25 +169,22 @@ func (h *TaskHeap) Peek() *Task {
 	return h.items[0]
 }
 
-func (h *TaskHeap) Cancel(key string) {
-	if key == "" {
+func (h *TaskHeap) Cancel(path []string) {
+	if len(path) == 0 {
 		return
 	}
-	t, ok := h.byKey[key]
+	t, ok := h.byID[taskPathID(path)]
 	if !ok || t == nil {
 		return
 	}
 	heap.Remove(h, t.index)
 }
 
-func (h *TaskHeap) CancelPrefix(prefix string) {
-	if prefix == "" {
+func (h *TaskHeap) CancelPrefix(prefix []string) {
+	if len(prefix) == 0 {
 		return
 	}
-	for key, t := range h.byKey {
-		if t == nil || !strings.HasPrefix(key, prefix) {
-			continue
-		}
+	for _, t := range h.detachPrefix(prefix) {
 		heap.Remove(h, t.index)
 	}
 }
@@ -202,8 +207,12 @@ func (h *TaskHeap) Push(x any) {
 	t := x.(*Task)
 	t.index = len(h.items)
 	h.items = append(h.items, t)
-	if t.Key != "" {
-		h.byKey[t.Key] = t
+	if len(t.Path) > 0 {
+		if t.id == "" {
+			t.id = taskPathID(t.Path)
+		}
+		h.byID[t.id] = t
+		h.byPath.Insert(t.Path, t)
 	}
 }
 
@@ -217,10 +226,24 @@ func (h *TaskHeap) Pop() any {
 	old[n-1] = nil
 	h.items = old[:n-1]
 	t.index = -1
-	if t.Key != "" {
-		delete(h.byKey, t.Key)
-	}
+	h.removeIndexes(t)
 	return t
+}
+
+func (h *TaskHeap) removeIndexes(t *Task) {
+	if t == nil || len(t.Path) == 0 {
+		return
+	}
+	delete(h.byID, t.id)
+	h.byPath.Remove(t.Path)
+}
+
+func (h *TaskHeap) detachPrefix(prefix []string) []*Task {
+	tasks := h.byPath.Detach(prefix)
+	for _, t := range tasks {
+		delete(h.byID, t.id)
+	}
+	return tasks
 }
 
 func (t *retryTimer) Reset(nextTime time.Time) <-chan time.Time {
@@ -243,4 +266,29 @@ func (t *retryTimer) Stop() {
 	if t.timer != nil {
 		t.timer.Stop()
 	}
+}
+
+func clonePath(path []string) taskPath {
+	if len(path) == 0 {
+		return nil
+	}
+	cp := make(taskPath, len(path))
+	copy(cp, path)
+	return cp
+}
+
+func taskPathID(path []string) string {
+	if len(path) == 0 {
+		return ""
+	}
+	n := 0
+	for _, p := range path {
+		n += len(p) + 1
+	}
+	b := make([]byte, 0, n)
+	for _, p := range path {
+		b = append(b, p...)
+		b = append(b, 0)
+	}
+	return string(b)
 }

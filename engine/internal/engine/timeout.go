@@ -2,14 +2,13 @@ package engine
 
 import (
 	"errors"
-	"fmt"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
-	e.CancelScheduledTaskPrefix(timeoutTaskFlowPrefix(flow.ID))
+	e.CancelScheduledTaskPrefix(timeoutFlowPrefix(flow.ID))
 	if flowTransitions.IsTerminal(flow.Status) {
 		return
 	}
@@ -44,7 +43,7 @@ func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
 func (e *Engine) scheduleTimeoutTask(
 	fs api.FlowStep, name api.Name, at time.Time,
 ) {
-	e.ScheduleTaskKeyed(timeoutTaskKey(fs, name),
+	e.ScheduleTaskKeyed(timeoutKey(fs, name),
 		func() error {
 			return e.runTimeoutTask(fs)
 		},
@@ -77,14 +76,14 @@ func (e *Engine) runTimeoutTask(fs api.FlowStep) error {
 	})
 }
 
-func timeoutTaskKey(fs api.FlowStep, name api.Name) string {
-	return fmt.Sprintf("timeout/%s/%s/%s", fs.FlowID, fs.StepID, name)
+func timeoutKey(fs api.FlowStep, name api.Name) []string {
+	return []string{"timeout", string(fs.FlowID), string(fs.StepID), string(name)}
 }
 
-func timeoutTaskFlowPrefix(flowID api.FlowID) string {
-	return fmt.Sprintf("timeout/%s/", flowID)
+func timeoutFlowPrefix(flowID api.FlowID) []string {
+	return []string{"timeout", string(flowID)}
 }
 
-func timeoutTaskStepPrefix(fs api.FlowStep) string {
-	return fmt.Sprintf("timeout/%s/%s/", fs.FlowID, fs.StepID)
+func timeoutStepPrefix(fs api.FlowStep) []string {
+	return []string{"timeout", string(fs.FlowID), string(fs.StepID)}
 }
