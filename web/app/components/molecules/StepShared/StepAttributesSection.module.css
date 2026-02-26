@@ -31,11 +31,11 @@
 .argItemFocused {
   --arg-focus-inset-left: -6px;
   --arg-focus-inset-right: -6px;
-  --arg-focus-inset-top: -3px;
-  --arg-focus-inset-bottom: -3px;
+  --arg-focus-inset-top: 0px;
+  --arg-focus-inset-bottom: 0px;
   --arg-focus-ring-width: 2px;
   --arg-focus-ring-alpha: 32%;
-  --arg-focus-pulse-spread: 20px;
+  --arg-focus-pulse-spread: 5px;
   --arg-focus-pulse-duration: 1.5s;
   border-radius: var(--radius-md);
 }
@@ -56,10 +56,18 @@
         var(--arg-focus-ring-alpha),
       transparent
     );
-  animation: argItemFocusPulse var(--arg-focus-pulse-duration) ease-in-out
-    infinite;
+  animation: argItemFocusPulseOutward var(--arg-focus-pulse-duration)
+    ease-in-out infinite;
   pointer-events: none;
   z-index: -1;
+}
+
+.argItemFocusedOutput::before {
+  animation-name: argItemFocusPulseOutward;
+}
+
+.argItemFocusedInput::before {
+  animation-name: argItemFocusPulseInward;
 }
 
 .argName {
@@ -140,8 +148,12 @@
   opacity: var(--opacity-disabled);
 }
 
-@keyframes argItemFocusPulse {
+@keyframes argItemFocusPulseOutward {
   0% {
+    top: var(--arg-focus-inset-top);
+    bottom: var(--arg-focus-inset-bottom);
+    left: var(--arg-focus-inset-left);
+    right: var(--arg-focus-inset-right);
     box-shadow: 0 0 0 var(--arg-focus-ring-width)
       color-mix(
         in srgb,
@@ -151,7 +163,11 @@
       );
   }
   70% {
-    box-shadow: 0 0 0 var(--arg-focus-pulse-spread)
+    top: calc(var(--arg-focus-inset-top) - var(--arg-focus-pulse-spread));
+    bottom: calc(var(--arg-focus-inset-bottom) - var(--arg-focus-pulse-spread));
+    left: calc(var(--arg-focus-inset-left) - var(--arg-focus-pulse-spread));
+    right: calc(var(--arg-focus-inset-right) - var(--arg-focus-pulse-spread));
+    box-shadow: 0 0 0 var(--arg-focus-ring-width)
       color-mix(
         in srgb,
         var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
@@ -159,6 +175,50 @@
       );
   }
   100% {
+    top: var(--arg-focus-inset-top);
+    bottom: var(--arg-focus-inset-bottom);
+    left: var(--arg-focus-inset-left);
+    right: var(--arg-focus-inset-right);
+    box-shadow: 0 0 0 var(--arg-focus-ring-width)
+      color-mix(
+        in srgb,
+        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
+        transparent
+      );
+  }
+}
+
+@keyframes argItemFocusPulseInward {
+  0% {
+    top: calc(var(--arg-focus-inset-top) - var(--arg-focus-pulse-spread));
+    bottom: calc(var(--arg-focus-inset-bottom) - var(--arg-focus-pulse-spread));
+    left: calc(var(--arg-focus-inset-left) - var(--arg-focus-pulse-spread));
+    right: calc(var(--arg-focus-inset-right) - var(--arg-focus-pulse-spread));
+    box-shadow: 0 0 0 var(--arg-focus-ring-width)
+      color-mix(
+        in srgb,
+        var(--arg-focus-border-color, var(--color-neutral-border))
+          var(--arg-focus-ring-alpha),
+        transparent
+      );
+  }
+  70% {
+    top: var(--arg-focus-inset-top);
+    bottom: var(--arg-focus-inset-bottom);
+    left: var(--arg-focus-inset-left);
+    right: var(--arg-focus-inset-right);
+    box-shadow: 0 0 0 var(--arg-focus-ring-width)
+      color-mix(
+        in srgb,
+        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
+        transparent
+      );
+  }
+  100% {
+    top: var(--arg-focus-inset-top);
+    bottom: var(--arg-focus-inset-bottom);
+    left: var(--arg-focus-inset-left);
+    right: var(--arg-focus-inset-right);
     box-shadow: 0 0 0 var(--arg-focus-ring-width)
       color-mix(
         in srgb,

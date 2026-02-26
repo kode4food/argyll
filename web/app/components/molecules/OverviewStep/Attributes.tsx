@@ -40,13 +40,19 @@ const Attributes: React.FC<AttributesProps> = ({
       {unifiedArgs.map((arg) => {
         const { Icon, className } = getArgIcon(arg.argType);
         const key = `${arg.argType}-${arg.name}`;
+        const isFocused = focusedAttributeName === arg.name;
+        const focusDirectionClass = isFocused
+          ? arg.argType === "output"
+            ? styles.argItemFocusedOutput
+            : styles.argItemFocusedInput
+          : "";
 
         return (
           <div
             key={key}
             className={`${styles.argItem} ${
-              focusedAttributeName === arg.name ? styles.argItemFocused : ""
-            }`}
+              isFocused ? styles.argItemFocused : ""
+            } ${focusDirectionClass}`}
             data-arg-type={arg.argType}
             data-arg-name={arg.name}
           >

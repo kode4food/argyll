@@ -49,5 +49,30 @@ describe("Attributes", () => {
 
     const focusedRow = container.querySelector('[data-arg-name="quantity"]');
     expect(focusedRow?.className).toContain("argItemFocused");
+    expect(focusedRow?.className).toContain("argItemFocusedInput");
+  });
+
+  test("uses outward pulse for focused outputs", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test Step",
+      type: "sync",
+      attributes: {
+        quantity: { role: AttributeRole.Required, type: AttributeType.Number },
+        total: { role: AttributeRole.Output, type: AttributeType.Number },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+
+    const { container } = render(
+      <Attributes step={step} focusedAttributeName="total" />
+    );
+
+    const focusedRow = container.querySelector('[data-arg-name="total"]');
+    expect(focusedRow?.className).toContain("argItemFocused");
+    expect(focusedRow?.className).toContain("argItemFocusedOutput");
   });
 });

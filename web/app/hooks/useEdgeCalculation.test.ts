@@ -63,6 +63,9 @@ describe("useEdgeCalculation", () => {
       targetHandle: "input-required-output1",
       type: "smoothstep",
     });
+    expect(result.current[0].markerEnd).toMatchObject({
+      strokeWidth: 1.5,
+    });
   });
 
   test("creates edge for optional input dependency", () => {

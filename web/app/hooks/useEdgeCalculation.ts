@@ -43,6 +43,13 @@ export const useEdgeCalculation = (
               ? STEP_LAYOUT.DASH_PATTERN
               : undefined,
           };
+
+          const arrowHead = {
+            type: "arrow" as const,
+            color: strokeColor,
+            strokeWidth: STEP_LAYOUT.EDGE_WIDTH - 0.5,
+          };
+
           const baseZIndex = isInPlan ? 1000 : 1;
           const edgeZIndex = input.isOptional ? baseZIndex : baseZIndex + 1;
 
@@ -54,10 +61,7 @@ export const useEdgeCalculation = (
             targetHandle: `input-${input.isOptional ? "optional" : "required"}-${input.name}`,
             type: "smoothstep",
             style: edgeStyle,
-            markerEnd: {
-              type: "arrow",
-              color: strokeColor,
-            },
+            markerEnd: arrowHead,
             zIndex: edgeZIndex,
             className:
               focusedAttributeName && isFocusedAttribute
