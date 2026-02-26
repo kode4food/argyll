@@ -217,7 +217,12 @@ func (tx *flowTx) continueStepWork(
 		exec := flow.Executions[stepID]
 		if clearRetryEntries {
 			for token := range started {
-				tx.retryQueue.Remove(tx.flowID, stepID, token)
+				tx.Engine.CancelScheduledTask(
+					retryTaskKey(api.FlowStep{
+						FlowID: tx.flowID,
+						StepID: stepID,
+					}, token),
+				)
 			}
 		}
 		tx.handleWorkItemsExecution(
@@ -300,16 +305,10 @@ func (tx *flowTx) handleMemoCacheHit(
 func (tx *flowTx) handleRetryScheduled(
 	stepID api.StepID, token api.Token, nextRetryAt time.Time,
 ) {
-	if isNext := tx.retryQueue.Push(&RetryItem{
-		FlowID:      tx.flowID,
-		StepID:      stepID,
-		Token:       token,
-		NextRetryAt: nextRetryAt,
-	}); isNext {
-		if retryAt, ok := tx.retryQueue.Peek(); ok {
-			tx.Engine.ScheduleTask(tx.Engine.retryTask, retryAt)
-		}
-	}
+	tx.Engine.scheduleRetryTask(api.FlowStep{
+		FlowID: tx.flowID,
+		StepID: stepID,
+	}, token, nextRetryAt)
 }
 
 func stepParallelism(step *api.Step) int {

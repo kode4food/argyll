@@ -29,10 +29,9 @@ type (
 		cancel      context.CancelFunc
 		scripts     *ScriptRegistry
 		mapper      *Mapper
-		retryQueue  *RetryQueue
 		memoCache   *MemoCache
 		eventQueue  *EventQueue
-		tasks       chan Task
+		tasks       chan taskReq
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -94,9 +93,8 @@ func New(
 		config:     cfg,
 		ctx:        ctx,
 		cancel:     cancel,
-		retryQueue: NewRetryQueue(),
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
-		tasks:      make(chan Task, 100),
+		tasks:      make(chan taskReq, 100),
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
 	e.scripts = NewScriptRegistry()
@@ -122,7 +120,6 @@ func (e *Engine) Start() error {
 
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
-	e.retryQueue.Stop()
 	e.eventQueue.Flush()
 	e.cancel()
 	e.saveEngineSnapshot()
@@ -178,7 +175,7 @@ func (e *Engine) StartFlow(
 			}
 		}
 		tx.OnSuccess(func(flow *api.FlowState) {
-			tx.Engine.scheduleTimeoutScan(flow, time.Now())
+			tx.Engine.scheduleTimeouts(flow, time.Now())
 		})
 		return nil
 	})

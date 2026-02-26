@@ -8,7 +8,7 @@ import (
 
 type (
 	stepEval struct {
-		tx     *flowTx
+		e      *Engine
 		flow   *api.FlowState
 		stepID api.StepID
 		step   *api.Step
@@ -18,7 +18,7 @@ type (
 	optDecision struct {
 		ready    bool
 		fallback bool
-		deadline time.Time
+		at       time.Time
 	}
 )
 
@@ -30,7 +30,7 @@ func (tx *flowTx) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
 func (tx *flowTx) canStartStepAt(
 	stepID api.StepID, flow *api.FlowState, now time.Time,
 ) (bool, time.Time) {
-	return tx.newStepEval(stepID, flow, now).canStart()
+	return tx.Engine.newStepEval(stepID, flow, now).canStart()
 }
 
 // findInitialSteps finds steps that can start when a flow begins
@@ -46,11 +46,11 @@ func (tx *flowTx) findInitialSteps(flow *api.FlowState) []api.StepID {
 	return ready
 }
 
-func (tx *flowTx) newStepEval(
+func (e *Engine) newStepEval(
 	stepID api.StepID, flow *api.FlowState, now time.Time,
 ) *stepEval {
 	return &stepEval{
-		tx:     tx,
+		e:      e,
 		flow:   flow,
 		stepID: stepID,
 		step:   flow.Plan.Steps[stepID],
@@ -63,46 +63,45 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	if exec.Status != api.StepPending {
 		return false, time.Time{}
 	}
-	if !s.tx.areOutputsNeeded(s.stepID, s.flow) {
+	if !s.e.areOutputsNeeded(s.stepID, s.flow) {
 		return false, time.Time{}
 	}
 	anchor := s.requiredReadyAt()
 	if anchor.IsZero() {
 		return false, time.Time{}
 	}
-	optReady, nextDeadline := s.hasOptionalReady(anchor)
+	optReady, nextAt := s.hasOptionalReady(anchor)
 	if !optReady {
-		return false, nextDeadline
+		return false, nextAt
 	}
 	return true, time.Time{}
 }
 
 func (s *stepEval) hasOptionalReady(anchor time.Time) (bool, time.Time) {
 	blocked := false
-	var nextDeadline time.Time
+	var nextAt time.Time
 
 	for name, attr := range s.step.Attributes {
 		if !attr.IsOptional() {
 			continue
 		}
-		ready, deadline := s.optionalReadyDeadline(name, attr, anchor)
+		ready, at := s.optionalReadyAt(name, attr, anchor)
 		if !ready {
 			blocked = true
 		}
-		if !deadline.IsZero() && (nextDeadline.IsZero() ||
-			deadline.Before(nextDeadline)) {
-			nextDeadline = deadline
+		if !at.IsZero() && (nextAt.IsZero() || at.Before(nextAt)) {
+			nextAt = at
 		}
 	}
 
-	return !blocked, nextDeadline
+	return !blocked, nextAt
 }
 
-func (s *stepEval) optionalReadyDeadline(
+func (s *stepEval) optionalReadyAt(
 	name api.Name, attr *api.AttributeSpec, anchor time.Time,
 ) (bool, time.Time) {
 	d := s.optionalDecisionAt(name, attr, anchor)
-	return d.ready, d.deadline
+	return d.ready, d.at
 }
 
 func (s *stepEval) optionalFallback(
@@ -114,8 +113,7 @@ func (s *stepEval) optionalFallback(
 }
 
 func (s *stepEval) optionalDecisionAt(
-	name api.Name, attr *api.AttributeSpec,
-	anchor time.Time,
+	name api.Name, attr *api.AttributeSpec, anchor time.Time,
 ) optDecision {
 	attrVal, hasAttr := s.flow.Attributes[name]
 	deps, ok := s.flow.Plan.Attributes[name]
@@ -125,14 +123,14 @@ func (s *stepEval) optionalDecisionAt(
 			return optDecision{ready: true}
 		}
 
-		deadline := s.optionalDeadline(anchor, attr.Timeout)
-		ok := !deadline.IsZero()
+		at := s.optionalAt(anchor, attr.Timeout)
+		ok := !at.IsZero()
 		if !ok {
 			return optDecision{ready: true}
 		}
 
 		setAt := attrVal.SetAt
-		if !setAt.IsZero() && setAt.After(deadline) {
+		if !setAt.IsZero() && setAt.After(at) {
 			return optDecision{ready: true, fallback: true}
 		}
 		return optDecision{ready: true}
@@ -146,20 +144,18 @@ func (s *stepEval) optionalDecisionAt(
 		return optDecision{ready: true, fallback: true}
 	}
 
-	deadline := s.optionalDeadline(anchor, attr.Timeout)
-	ok = !deadline.IsZero()
+	at := s.optionalAt(anchor, attr.Timeout)
+	ok = !at.IsZero()
 	if !ok {
 		return optDecision{}
 	}
-	if !deadline.After(s.now) {
+	if !at.After(s.now) {
 		return optDecision{ready: true, fallback: true}
 	}
-	return optDecision{deadline: deadline}
+	return optDecision{at: at}
 }
 
-func (s *stepEval) optionalDeadline(
-	anchor time.Time, timeoutMS int64,
-) time.Time {
+func (s *stepEval) optionalAt(anchor time.Time, timeoutMS int64) time.Time {
 	if anchor.IsZero() {
 		return time.Time{}
 	}

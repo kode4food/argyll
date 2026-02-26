@@ -106,6 +106,12 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 
 	if len(started) > 0 {
 		tx.OnSuccess(func(flow *api.FlowState) {
+			tx.Engine.CancelScheduledTaskPrefix(
+				timeoutTaskStepPrefix(api.FlowStep{
+					FlowID: tx.flowID,
+					StepID: step.ID,
+				}),
+			)
 			tx.handleWorkItemsExecution(step, inputs, flow.Metadata, started)
 		})
 	}
@@ -208,7 +214,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		return true, err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		tx.Engine.scheduleTimeoutScan(flow, time.Now())
+		tx.Engine.scheduleTimeouts(flow, time.Now())
 	})
 	return true, nil
 }

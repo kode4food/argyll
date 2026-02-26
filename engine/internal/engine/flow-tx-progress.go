@@ -29,7 +29,8 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.retryQueue.RemoveFlow(tx.flowID)
+			tx.Engine.CancelScheduledTaskPrefix(retryTaskPrefix(tx.flowID))
+			tx.Engine.CancelScheduledTaskPrefix(timeoutTaskFlowPrefix(tx.flowID))
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,
@@ -51,7 +52,8 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(*api.FlowState) {
-			tx.retryQueue.RemoveFlow(tx.flowID)
+			tx.Engine.CancelScheduledTaskPrefix(retryTaskPrefix(tx.flowID))
+			tx.Engine.CancelScheduledTaskPrefix(timeoutTaskFlowPrefix(tx.flowID))
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,

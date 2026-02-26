@@ -116,8 +116,8 @@ func (e *Engine) RecoverFlows() error {
 	return nil
 }
 
-// RecoverFlow resumes execution of a specific flow by scheduling timeout scans
-// and queuing any pending work items for retry
+// RecoverFlow resumes execution of a specific flow by scheduling optional
+// timeout callbacks and any pending work retries
 func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	flow, err := e.GetFlowState(flowID)
 	if err != nil {
@@ -163,7 +163,7 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 }
 
 func (e *Engine) recoverTimeoutScans(flow *api.FlowState) {
-	e.scheduleTimeoutScan(flow, time.Now())
+	e.scheduleTimeouts(flow, time.Now())
 }
 
 func (e *Engine) recoverRetryWork(flow *api.FlowState) {
@@ -173,7 +173,6 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 	}
 
 	now := time.Now()
-	schedRetry := false
 	for stepID := range retryableSteps {
 		exec := flow.Executions[stepID]
 		if exec.WorkItems == nil {
@@ -185,21 +184,11 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 			if !ok {
 				continue
 			}
-
-			isNext := e.retryQueue.Push(&RetryItem{
-				FlowID:      flow.ID,
-				StepID:      stepID,
-				Token:       token,
-				NextRetryAt: retryAt,
-			})
-			schedRetry = schedRetry || isNext
+			e.scheduleRetryTask(api.FlowStep{
+				FlowID: flow.ID,
+				StepID: stepID,
+			}, token, retryAt)
 		}
-	}
-	if !schedRetry {
-		return
-	}
-	if retryAt, ok := e.retryQueue.Peek(); ok {
-		e.ScheduleTask(e.retryTask, retryAt)
 	}
 }
 
@@ -327,49 +316,6 @@ func flowIDFromAggregateID(id timebox.AggregateID) (api.FlowID, bool) {
 	return flowID, true
 }
 
-func (e *Engine) executeReadyRetries() {
-	now := time.Now()
-
-	items := e.retryQueue.PopReady(now)
-	for _, item := range items {
-		flow, err := e.GetFlowState(item.FlowID)
-		if err != nil {
-			if errors.Is(err, ErrFlowNotFound) {
-				continue
-			}
-			e.requeueRetryItem(item)
-			slog.Error("Failed to get flow state for retry",
-				log.FlowID(item.FlowID),
-				log.Error(err))
-			continue
-		}
-
-		exec, ok := flow.Executions[item.StepID]
-		if !ok || exec.WorkItems == nil {
-			continue
-		}
-
-		if _, ok := exec.WorkItems[item.Token]; !ok {
-			continue
-		}
-
-		step, ok := flow.Plan.Steps[item.StepID]
-		if !ok {
-			continue
-		}
-
-		fs := api.FlowStep{FlowID: item.FlowID, StepID: item.StepID}
-		if err := e.retryWork(fs, step, item.Token, flow.Metadata); err != nil {
-			e.requeueRetryItem(item)
-			slog.Error("Failed to retry work item",
-				log.FlowID(fs.FlowID),
-				log.StepID(fs.StepID),
-				log.Token(item.Token),
-				log.Error(err))
-		}
-	}
-}
-
 func (e *Engine) retryWork(
 	fs api.FlowStep, step *api.Step, token api.Token, meta api.Metadata,
 ) error {
@@ -399,17 +345,52 @@ func (e *Engine) retryWork(
 	return err
 }
 
-func (e *Engine) requeueRetryItem(item *RetryItem) {
-	if isNext := e.retryQueue.Push(&RetryItem{
-		FlowID:      item.FlowID,
-		StepID:      item.StepID,
-		Token:       item.Token,
-		NextRetryAt: time.Now().Add(retryDispatchBackoff),
-	}); isNext {
-		if retryAt, ok := e.retryQueue.Peek(); ok {
-			e.ScheduleTask(e.retryTask, retryAt)
+func (e *Engine) scheduleRetryTask(
+	fs api.FlowStep, token api.Token, retryAt time.Time,
+) {
+	e.ScheduleTaskKeyed(retryTaskKey(fs, token),
+		func() error {
+			err := e.runRetryTask(fs, token)
+			if err != nil {
+				e.scheduleRetryTask(fs, token,
+					time.Now().Add(retryDispatchBackoff),
+				)
+			}
+			return err
+		},
+		retryAt,
+	)
+}
+
+func (e *Engine) runRetryTask(fs api.FlowStep, token api.Token) error {
+	flow, err := e.GetFlowState(fs.FlowID)
+	if err != nil {
+		if errors.Is(err, ErrFlowNotFound) {
+			return nil
 		}
+		return err
 	}
+	if flowTransitions.IsTerminal(flow.Status) {
+		return nil
+	}
+
+	exec, ok := flow.Executions[fs.StepID]
+	if !ok || exec.WorkItems == nil {
+		return nil
+	}
+	if _, ok := exec.WorkItems[token]; !ok {
+		return nil
+	}
+
+	step, ok := flow.Plan.Steps[fs.StepID]
+	if !ok {
+		return nil
+	}
+
+	if err := e.retryWork(fs, step, token, flow.Metadata); err != nil {
+		return err
+	}
+	return nil
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
@@ -432,4 +413,12 @@ func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
 	}
 
 	return &res
+}
+
+func retryTaskKey(fs api.FlowStep, token api.Token) string {
+	return fmt.Sprintf("retry/%s/%s/%s", fs.FlowID, fs.StepID, token)
+}
+
+func retryTaskPrefix(flowID api.FlowID) string {
+	return fmt.Sprintf("retry/%s/", flowID)
 }
