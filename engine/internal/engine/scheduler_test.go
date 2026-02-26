@@ -122,7 +122,7 @@ func TestScheduleTaskRequest(t *testing.T) {
 		ctx:   context.Background(),
 		tasks: make(chan taskReq, 1),
 	}
-	e.ScheduleTask(func() error { return nil }, time.Now())
+	e.ScheduleTask(time.Now(), func() error { return nil })
 
 	req := <-e.tasks
 	assert.Equal(t, taskReqSchedule, req.op)

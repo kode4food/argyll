@@ -144,7 +144,7 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 		}
 
 		for _, work := range exec.WorkItems {
-			if !isRecoveryRetryable(exec, work) {
+			if !isRecoverable(exec, work) {
 				continue
 			}
 			retryableSteps.Add(stepID)
@@ -173,7 +173,7 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 		}
 
 		for token, work := range exec.WorkItems {
-			retryAt, ok := recoverRetryDeadline(exec, work, now)
+			retryAt, ok := recoverableDeadline(exec, work, now)
 			if !ok {
 				continue
 			}
@@ -280,18 +280,15 @@ func (e *Engine) retryWork(
 func (e *Engine) scheduleRetryTask(
 	fs api.FlowStep, token api.Token, retryAt time.Time,
 ) {
-	e.ScheduleTaskKeyed(retryKey(fs, token),
-		func() error {
-			err := e.runRetryTask(fs, token)
-			if err != nil {
-				e.scheduleRetryTask(fs, token,
-					time.Now().Add(retryDispatchBackoff),
-				)
-			}
-			return err
-		},
-		retryAt,
-	)
+	e.ScheduleTaskKeyed(retryKey(fs, token), retryAt, func() error {
+		err := e.runRetryTask(fs, token)
+		if err != nil {
+			e.scheduleRetryTask(fs, token,
+				time.Now().Add(retryDispatchBackoff),
+			)
+		}
+		return err
+	})
 }
 
 func (e *Engine) runRetryTask(fs api.FlowStep, token api.Token) error {
@@ -372,10 +369,7 @@ func pruneRecoveryCandidates(
 
 	candidates := make([]api.FlowID, 0, len(ids))
 	for _, id := range ids {
-		if archiving.Contains(id) {
-			continue
-		}
-		if deactivated.Contains(id) {
+		if archiving.Contains(id) || deactivated.Contains(id) {
 			continue
 		}
 		candidates = append(candidates, id)
@@ -383,9 +377,7 @@ func pruneRecoveryCandidates(
 	return candidates
 }
 
-func isRecoveryRetryable(
-	exec *api.ExecutionState, work *api.WorkState,
-) bool {
+func isRecoverable(exec *api.ExecutionState, work *api.WorkState) bool {
 	switch work.Status {
 	case api.WorkActive, api.WorkNotCompleted:
 		return true
@@ -401,7 +393,7 @@ func isRecoveryRetryable(
 	}
 }
 
-func recoverRetryDeadline(
+func recoverableDeadline(
 	exec *api.ExecutionState, work *api.WorkState, now time.Time,
 ) (time.Time, bool) {
 	switch work.Status {

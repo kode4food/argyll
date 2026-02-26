@@ -59,14 +59,14 @@ func NewTaskHeap() *TaskHeap {
 }
 
 // ScheduleTask schedules a function to run at the given time
-func (e *Engine) ScheduleTask(fn TaskFunc, at time.Time) {
+func (e *Engine) ScheduleTask(at time.Time, fn TaskFunc) {
 	e.scheduleTaskReq(taskReq{
 		op:   taskReqSchedule,
 		task: &Task{Func: fn, At: at},
 	})
 }
 
-func (e *Engine) ScheduleTaskKeyed(path []string, fn TaskFunc, at time.Time) {
+func (e *Engine) ScheduleTaskKeyed(path []string, at time.Time, fn TaskFunc) {
 	e.scheduleTaskReq(taskReq{
 		op:   taskReqSchedule,
 		task: &Task{Func: fn, At: at, Path: clonePath(path)},

@@ -86,12 +86,9 @@ func (e *Engine) scheduleStepTimeouts(
 func (e *Engine) scheduleTimeoutTask(
 	fs api.FlowStep, name api.Name, at time.Time,
 ) {
-	e.ScheduleTaskKeyed(timeoutKey(fs, name),
-		func() error {
-			return e.runTimeoutTask(fs)
-		},
-		at,
-	)
+	e.ScheduleTaskKeyed(timeoutKey(fs, name), at, func() error {
+		return e.runTimeoutTask(fs)
+	})
 }
 
 func (e *Engine) runTimeoutTask(fs api.FlowStep) error {
