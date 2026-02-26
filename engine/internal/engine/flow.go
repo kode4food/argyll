@@ -146,9 +146,9 @@ func (e *Engine) NotCompleteWork(
 
 		var retryToken api.Token
 		if exec, ok := tx.Value().Executions[fs.StepID]; ok {
-			if item := exec.WorkItems[token]; item != nil {
+			if work := exec.WorkItems[token]; work != nil {
 				step := tx.Value().Plan.Steps[fs.StepID]
-				if step != nil && !step.Memoizable && item.RetryCount > 0 {
+				if step != nil && !step.Memoizable && work.RetryCount > 0 {
 					retryToken = api.Token(uuid.New().String())
 				}
 			}

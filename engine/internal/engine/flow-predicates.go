@@ -99,8 +99,8 @@ func hasPendingConsumer(
 
 func hasActiveWork(flow *api.FlowState) bool {
 	for _, exec := range flow.Executions {
-		for _, item := range exec.WorkItems {
-			if item.Status == api.WorkPending || item.Status == api.WorkActive {
+		for _, work := range exec.WorkItems {
+			if work.Status == api.WorkPending || work.Status == api.WorkActive {
 				return true
 			}
 		}

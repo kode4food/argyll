@@ -147,14 +147,14 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	hasFailed := false
 	var failureError string
 
-	for _, item := range exec.WorkItems {
-		switch item.Status {
+	for _, work := range exec.WorkItems {
+		switch work.Status {
 		case api.WorkSucceeded:
 			// continue
 		case api.WorkFailed:
 			hasFailed = true
 			if failureError == "" {
-				failureError = item.Error
+				failureError = work.Error
 			}
 		case api.WorkNotCompleted, api.WorkPending, api.WorkActive:
 			allDone = false
@@ -214,7 +214,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		return true, err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		tx.Engine.scheduleTimeouts(flow, time.Now())
+		tx.Engine.scheduleConsumerTimeouts(flow, stepID, time.Now())
 	})
 	return true, nil
 }

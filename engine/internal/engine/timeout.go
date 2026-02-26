@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
@@ -13,30 +14,72 @@ func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
 		return
 	}
 
-	for stepID, exec := range flow.Executions {
-		if exec.Status != api.StepPending {
+	for stepID := range flow.Executions {
+		e.scheduleStepTimeouts(flow, stepID, now)
+	}
+}
+
+func (e *Engine) scheduleConsumerTimeouts(
+	flow *api.FlowState, producerID api.StepID, now time.Time,
+) {
+	if flowTransitions.IsTerminal(flow.Status) {
+		e.CancelScheduledTaskPrefix(timeoutFlowPrefix(flow.ID))
+		return
+	}
+
+	producer, ok := flow.Plan.Steps[producerID]
+	if !ok || producer == nil {
+		return
+	}
+
+	seen := util.Set[api.StepID]{}
+	for name, attr := range producer.Attributes {
+		if !attr.IsOutput() {
 			continue
 		}
-
-		s := e.newStepEval(stepID, flow, now)
-		anchor := s.requiredReadyAt()
-		if anchor.IsZero() {
+		deps, ok := flow.Plan.Attributes[name]
+		if !ok {
 			continue
 		}
-
-		for name, attr := range s.step.Attributes {
-			if !attr.IsOptional() || attr.Timeout <= 0 {
+		for _, stepID := range deps.Consumers {
+			if seen.Contains(stepID) {
 				continue
 			}
-			ready, at := s.optionalReadyAt(name, attr, anchor)
-			if ready || at.IsZero() {
-				continue
-			}
-			e.scheduleTimeoutTask(api.FlowStep{
-				FlowID: flow.ID,
-				StepID: stepID,
-			}, name, at)
+			seen.Add(stepID)
+			e.scheduleStepTimeouts(flow, stepID, now)
 		}
+	}
+}
+
+func (e *Engine) scheduleStepTimeouts(
+	flow *api.FlowState, stepID api.StepID, now time.Time,
+) {
+	fs := api.FlowStep{FlowID: flow.ID, StepID: stepID}
+	e.CancelScheduledTaskPrefix(timeoutStepPrefix(fs))
+
+	if flowTransitions.IsTerminal(flow.Status) {
+		return
+	}
+	exec, ok := flow.Executions[stepID]
+	if !ok || exec.Status != api.StepPending {
+		return
+	}
+
+	s := e.newStepEval(stepID, flow, now)
+	anchor := s.requiredReadyAt()
+	if anchor.IsZero() {
+		return
+	}
+
+	for name, attr := range s.step.Attributes {
+		if !attr.IsOptional() || attr.Timeout <= 0 {
+			continue
+		}
+		ready, at := s.optionalReadyAt(name, attr, anchor)
+		if ready || at.IsZero() {
+			continue
+		}
+		e.scheduleTimeoutTask(fs, name, at)
 	}
 }
 

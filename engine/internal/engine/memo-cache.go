@@ -8,13 +8,13 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-var ErrCacheMiss = errors.New("cache miss")
-
 // MemoCache provides global caching of step results based on (step definition,
 // inputs)
 type MemoCache struct {
 	cache *lru.Cache[api.Args]
 }
+
+var ErrCacheMiss = errors.New("cache miss")
 
 // NewMemoCache creates a new memo cache with the specified maximum size
 func NewMemoCache(maxSize int) *MemoCache {

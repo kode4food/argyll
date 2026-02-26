@@ -21,9 +21,9 @@ func (e *Engine) collectStepOutputs(
 	items api.WorkItems, step *api.Step,
 ) api.Args {
 	completed := make([]*api.WorkState, 0, len(items))
-	for _, item := range items {
-		if item.Status == api.WorkSucceeded {
-			completed = append(completed, item)
+	for _, work := range items {
+		if work.Status == api.WorkSucceeded {
+			completed = append(completed, work)
 		}
 	}
 

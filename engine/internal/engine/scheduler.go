@@ -58,6 +58,31 @@ func NewTaskHeap() *TaskHeap {
 	return h
 }
 
+// ScheduleTask schedules a function to run at the given time
+func (e *Engine) ScheduleTask(fn TaskFunc, at time.Time) {
+	e.scheduleTaskReq(taskReq{
+		op:   taskReqSchedule,
+		task: &Task{Func: fn, At: at},
+	})
+}
+
+func (e *Engine) ScheduleTaskKeyed(path []string, fn TaskFunc, at time.Time) {
+	e.scheduleTaskReq(taskReq{
+		op:   taskReqSchedule,
+		task: &Task{Func: fn, At: at, Path: clonePath(path)},
+	})
+}
+
+func (e *Engine) CancelScheduledTask(path []string) {
+	e.scheduleTaskReq(taskReq{op: taskReqCancel, key: clonePath(path)})
+}
+
+func (e *Engine) CancelScheduledTaskPrefix(prefix []string) {
+	e.scheduleTaskReq(taskReq{
+		op: taskReqCancelPrefix, prefix: clonePath(prefix),
+	})
+}
+
 func (e *Engine) scheduler() {
 	var t retryTimer
 	var timer <-chan time.Time
@@ -105,31 +130,6 @@ func (e *Engine) scheduler() {
 			resetTimer()
 		}
 	}
-}
-
-// ScheduleTask schedules a function to run at the given time
-func (e *Engine) ScheduleTask(fn TaskFunc, at time.Time) {
-	e.scheduleTaskReq(taskReq{
-		op:   taskReqSchedule,
-		task: &Task{Func: fn, At: at},
-	})
-}
-
-func (e *Engine) ScheduleTaskKeyed(path []string, fn TaskFunc, at time.Time) {
-	e.scheduleTaskReq(taskReq{
-		op:   taskReqSchedule,
-		task: &Task{Func: fn, At: at, Path: clonePath(path)},
-	})
-}
-
-func (e *Engine) CancelScheduledTask(path []string) {
-	e.scheduleTaskReq(taskReq{op: taskReqCancel, key: clonePath(path)})
-}
-
-func (e *Engine) CancelScheduledTaskPrefix(prefix []string) {
-	e.scheduleTaskReq(taskReq{
-		op: taskReqCancelPrefix, prefix: clonePath(prefix),
-	})
 }
 
 func (e *Engine) scheduleTaskReq(req taskReq) {
@@ -184,9 +184,7 @@ func (h *TaskHeap) CancelPrefix(prefix []string) {
 	if len(prefix) == 0 {
 		return
 	}
-	for _, t := range h.detachPrefix(prefix) {
-		heap.Remove(h, t.index)
-	}
+	h.detachPrefix(prefix)
 }
 
 func (h *TaskHeap) Len() int {
@@ -238,12 +236,11 @@ func (h *TaskHeap) removeIndexes(t *Task) {
 	h.byPath.Remove(t.Path)
 }
 
-func (h *TaskHeap) detachPrefix(prefix []string) []*Task {
-	tasks := h.byPath.Detach(prefix)
-	for _, t := range tasks {
+func (h *TaskHeap) detachPrefix(prefix []string) {
+	h.byPath.DetachWith(prefix, func(t *Task) {
 		delete(h.byID, t.id)
-	}
-	return tasks
+		heap.Remove(h, t.index)
+	})
 }
 
 func (t *retryTimer) Reset(nextTime time.Time) <-chan time.Time {

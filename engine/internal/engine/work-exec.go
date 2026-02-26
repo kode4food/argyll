@@ -118,19 +118,19 @@ func (tx *flowTx) collectStepInputs(
 // Work item execution functions
 
 func (e *ExecContext) executeWorkItems(items api.WorkItems) {
-	for token, workItem := range items {
-		if workItem.Status != api.WorkActive {
+	for token, work := range items {
+		if work.Status != api.WorkActive {
 			continue
 		}
 
-		go e.performWorkItem(token, workItem)
+		go e.performWorkItem(token, work)
 	}
 }
 
 func (e *ExecContext) performWorkItem(
-	token api.Token, workItem *api.WorkState,
+	token api.Token, work *api.WorkState,
 ) {
-	if err := e.performWork(workItem.Inputs, token); err != nil {
+	if err := e.performWork(work.Inputs, token); err != nil {
 		e.handleWorkItemFailure(token, err)
 	}
 }
@@ -174,10 +174,7 @@ func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
 }
 
 func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
-	c, err := e.engine.GetCompiledScript(api.FlowStep{
-		FlowID: e.flowID,
-		StepID: e.stepID,
-	})
+	c, err := e.engine.scripts.Compile(e.step, e.step.Script)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
 	}

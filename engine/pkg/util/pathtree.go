@@ -51,18 +51,24 @@ func (t *PathTree[T]) Remove(path []string) {
 	t.root.remove(path, 0)
 }
 
-// Detach removes a prefix subtree and returns its values
-func (t *PathTree[T]) Detach(prefix []string) []T {
+// Detach removes a prefix subtree
+func (t *PathTree[T]) Detach(prefix []string) {
+	t.DetachWith(prefix, nil)
+}
+
+// DetachWith removes a prefix subtree and calls fn for each detached value
+func (t *PathTree[T]) DetachWith(prefix []string, fn func(T)) {
 	if len(prefix) == 0 {
-		vals := t.root.values()
+		root := t.root
 		t.root = &pathTreeNode[T]{children: map[string]*pathTreeNode[T]{}}
-		return vals
+		if fn != nil {
+			root.walkValues(fn)
+		}
+		return
 	}
-	n := t.root.detach(prefix)
-	if n == nil {
-		return nil
+	if n := t.root.detach(prefix); n != nil && fn != nil {
+		n.walkValues(fn)
 	}
-	return n.values()
 }
 
 func (n *pathTreeNode[T]) remove(path []string, idx int) bool {
@@ -100,13 +106,11 @@ func (n *pathTreeNode[T]) detach(prefix []string) *pathTreeNode[T] {
 	return next
 }
 
-func (n *pathTreeNode[T]) values() []T {
-	res := make([]T, 0)
+func (n *pathTreeNode[T]) walkValues(fn func(T)) {
 	if n.hasValue {
-		res = append(res, n.value)
+		fn(n.value)
 	}
 	for _, child := range n.children {
-		res = append(res, child.values()...)
+		child.walkValues(fn)
 	}
-	return res
 }

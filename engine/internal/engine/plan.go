@@ -74,15 +74,6 @@ func newPlanBuilder(st *api.CatalogState, initState api.Args) *planBuilder {
 	return pb
 }
 
-func validateGoals(catState *api.CatalogState, goalIDs []api.StepID) error {
-	for _, goalID := range goalIDs {
-		if _, ok := catState.Steps[goalID]; !ok {
-			return ErrStepNotFound
-		}
-	}
-	return nil
-}
-
 // Pass 1: determine which steps are satisfiable from init + other satisfiable
 // outputs
 func (b *planBuilder) computeSatisfiable() {
@@ -332,4 +323,13 @@ func (b *planBuilder) getRequiredInputs() []api.Name {
 		required = append(required, input)
 	}
 	return required
+}
+
+func validateGoals(catState *api.CatalogState, goalIDs []api.StepID) error {
+	for _, goalID := range goalIDs {
+		if _, ok := catState.Steps[goalID]; !ok {
+			return ErrStepNotFound
+		}
+	}
+	return nil
 }

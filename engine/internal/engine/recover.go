@@ -43,7 +43,7 @@ var backoffCalculators = map[string]backoffCalculator{
 
 // ShouldRetry determines if a failed work item should be retried based on
 // configured retry limits
-func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
+func (e *Engine) ShouldRetry(step *api.Step, work *api.WorkState) bool {
 	workConfig := e.resolveRetryConfig(step.WorkConfig)
 
 	if workConfig.MaxRetries == 0 {
@@ -54,7 +54,7 @@ func (e *Engine) ShouldRetry(step *api.Step, workItem *api.WorkState) bool {
 		return true
 	}
 
-	return workItem.RetryCount < workConfig.MaxRetries
+	return work.RetryCount < workConfig.MaxRetries
 }
 
 // CalculateNextRetry calculates the next retry time using the configured
@@ -134,8 +134,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 }
 
 // FindRetrySteps identifies all steps in a flow that have work items that
-// might need recovery (Active, Pending with NextRetryAt, or Failed with
-// NextRetryAt)
+// might need recovery
 func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	retryableSteps := util.Set[api.StepID]{}
 
@@ -144,18 +143,12 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 			continue
 		}
 
-		for _, workItem := range exec.WorkItems {
-			if workItem.Status == api.WorkActive ||
-				workItem.Status == api.WorkNotCompleted {
-				retryableSteps.Add(stepID)
-				break
+		for _, work := range exec.WorkItems {
+			if !isRecoveryRetryable(exec, work) {
+				continue
 			}
-			if (workItem.Status == api.WorkPending ||
-				workItem.Status == api.WorkFailed) &&
-				!workItem.NextRetryAt.IsZero() {
-				retryableSteps.Add(stepID)
-				break
-			}
+			retryableSteps.Add(stepID)
+			break
 		}
 	}
 
@@ -179,8 +172,8 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 			continue
 		}
 
-		for token, workItem := range exec.WorkItems {
-			retryAt, ok := recoverRetryDeadline(exec, workItem, now)
+		for token, work := range exec.WorkItems {
+			retryAt, ok := recoverRetryDeadline(exec, work, now)
 			if !ok {
 				continue
 			}
@@ -189,30 +182,6 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 				StepID: stepID,
 			}, token, retryAt)
 		}
-	}
-}
-
-func recoverRetryDeadline(
-	exec *api.ExecutionState, workItem *api.WorkState, now time.Time,
-) (time.Time, bool) {
-	switch workItem.Status {
-	case api.WorkActive, api.WorkNotCompleted:
-		return now, true
-	case api.WorkPending:
-		if !workItem.NextRetryAt.IsZero() {
-			return workItem.NextRetryAt, true
-		}
-		if exec.Status == api.StepActive {
-			return now, true
-		}
-		return time.Time{}, false
-	case api.WorkFailed:
-		if !workItem.NextRetryAt.IsZero() {
-			return workItem.NextRetryAt, true
-		}
-		return time.Time{}, false
-	default:
-		return time.Time{}, false
 	}
 }
 
@@ -277,43 +246,6 @@ func (e *Engine) activateFlow(id api.FlowID, flow *api.FlowState) {
 			Labels:       flow.Labels,
 		},
 	)
-}
-
-func pruneRecoveryCandidates(
-	ids []api.FlowID, state *api.PartitionState,
-) []api.FlowID {
-	deactivated := util.Set[api.FlowID]{}
-	for _, info := range state.Deactivated {
-		deactivated.Add(info.FlowID)
-	}
-
-	archiving := util.Set[api.FlowID]{}
-	for flowID := range state.Archiving {
-		archiving.Add(flowID)
-	}
-
-	candidates := make([]api.FlowID, 0, len(ids))
-	for _, id := range ids {
-		if archiving.Contains(id) {
-			continue
-		}
-		if deactivated.Contains(id) {
-			continue
-		}
-		candidates = append(candidates, id)
-	}
-	return candidates
-}
-
-func flowIDFromAggregateID(id timebox.AggregateID) (api.FlowID, bool) {
-	if len(id) < 2 || id[0] != events.FlowPrefix {
-		return "", false
-	}
-	flowID := api.FlowID(id[1])
-	if flowID == "" {
-		return "", false
-	}
-	return flowID, true
 }
 
 func (e *Engine) retryWork(
@@ -423,4 +355,83 @@ func retryKey(fs api.FlowStep, token api.Token) []string {
 
 func retryPrefix(flowID api.FlowID) []string {
 	return []string{"retry", string(flowID)}
+}
+
+func pruneRecoveryCandidates(
+	ids []api.FlowID, state *api.PartitionState,
+) []api.FlowID {
+	deactivated := util.Set[api.FlowID]{}
+	for _, info := range state.Deactivated {
+		deactivated.Add(info.FlowID)
+	}
+
+	archiving := util.Set[api.FlowID]{}
+	for flowID := range state.Archiving {
+		archiving.Add(flowID)
+	}
+
+	candidates := make([]api.FlowID, 0, len(ids))
+	for _, id := range ids {
+		if archiving.Contains(id) {
+			continue
+		}
+		if deactivated.Contains(id) {
+			continue
+		}
+		candidates = append(candidates, id)
+	}
+	return candidates
+}
+
+func isRecoveryRetryable(
+	exec *api.ExecutionState, work *api.WorkState,
+) bool {
+	switch work.Status {
+	case api.WorkActive, api.WorkNotCompleted:
+		return true
+	case api.WorkPending:
+		if exec.Status == api.StepActive {
+			return true
+		}
+		return !work.NextRetryAt.IsZero()
+	case api.WorkFailed:
+		return !work.NextRetryAt.IsZero()
+	default:
+		return false
+	}
+}
+
+func recoverRetryDeadline(
+	exec *api.ExecutionState, work *api.WorkState, now time.Time,
+) (time.Time, bool) {
+	switch work.Status {
+	case api.WorkActive, api.WorkNotCompleted:
+		return now, true
+	case api.WorkPending:
+		if !work.NextRetryAt.IsZero() {
+			return work.NextRetryAt, true
+		}
+		if exec.Status == api.StepActive {
+			return now, true
+		}
+		return time.Time{}, false
+	case api.WorkFailed:
+		if !work.NextRetryAt.IsZero() {
+			return work.NextRetryAt, true
+		}
+		return time.Time{}, false
+	default:
+		return time.Time{}, false
+	}
+}
+
+func flowIDFromAggregateID(id timebox.AggregateID) (api.FlowID, bool) {
+	if len(id) < 2 || id[0] != events.FlowPrefix {
+		return "", false
+	}
+	flowID := api.FlowID(id[1])
+	if flowID == "" {
+		return "", false
+	}
+	return flowID, true
 }

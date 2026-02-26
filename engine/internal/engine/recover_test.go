@@ -148,12 +148,12 @@ func TestShouldRetryStep(t *testing.T) {
 					WorkConfig: sc.config,
 				}
 
-				workItem := &api.WorkState{
+				work := &api.WorkState{
 					RetryCount: sc.retries,
 					Error:      sc.error,
 				}
 
-				result := eng.ShouldRetry(step, workItem)
+				result := eng.ShouldRetry(step, work)
 				assert.Equal(t, sc.expected, result)
 			})
 		}
@@ -618,8 +618,8 @@ func TestIsRetryable(t *testing.T) {
 	}, now))
 }
 
-func isRetryable(workItem *api.WorkState, now time.Time) bool {
-	return !workItem.NextRetryAt.IsZero() && workItem.NextRetryAt.Before(now)
+func isRetryable(work *api.WorkState, now time.Time) bool {
+	return !work.NextRetryAt.IsZero() && work.NextRetryAt.Before(now)
 }
 
 func TestTerminalFlow(t *testing.T) {
@@ -1007,6 +1007,35 @@ func TestWorkItemNoNextRetry(t *testing.T) {
 
 		retryable := eng.FindRetrySteps(state)
 		assert.Empty(t, retryable)
+	})
+}
+
+func TestFindRetryStepsActivePending(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		state := &api.FlowState{
+			ID:     "test-flow",
+			Status: api.FlowActive,
+			Plan: &api.ExecutionPlan{
+				Goals: []api.StepID{"step-1"},
+				Steps: api.Steps{
+					"step-1": helpers.NewSimpleStep("step-1"),
+				},
+			},
+			Executions: api.Executions{
+				"step-1": {
+					Status: api.StepActive,
+					WorkItems: api.WorkItems{
+						"token-1": {
+							Status: api.WorkPending,
+						},
+					},
+				},
+			},
+		}
+
+		retryable := eng.FindRetrySteps(state)
+		assert.Len(t, retryable, 1)
+		assert.Contains(t, retryable, api.StepID("step-1"))
 	})
 }
 

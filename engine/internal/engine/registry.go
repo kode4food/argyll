@@ -58,6 +58,31 @@ func (e *Engine) UpdateStep(step *api.Step) error {
 	)
 }
 
+// UpdateStepHealth updates the health status of a registered step, used
+// primarily for tracking HTTP service availability and script errors
+func (e *Engine) UpdateStepHealth(
+	stepID api.StepID, health api.HealthStatus, errMsg string,
+) error {
+	cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
+		if stepHealth, ok := st.Health[stepID]; ok {
+			if stepHealth.Status == health && stepHealth.Error == errMsg {
+				return nil
+			}
+		}
+
+		return events.Raise(ag, api.EventTypeStepHealthChanged,
+			api.StepHealthChangedEvent{
+				StepID: stepID,
+				Status: health,
+				Error:  errMsg,
+			},
+		)
+	}
+
+	_, err := e.execPartition(cmd)
+	return err
+}
+
 func (e *Engine) execStepUpsert(
 	step *api.Step, raise upsertRaise, check upsertCheck,
 ) error {
@@ -121,31 +146,6 @@ func (e *Engine) validateStepMappings(step *api.Step) error {
 	return nil
 }
 
-// UpdateStepHealth updates the health status of a registered step, used
-// primarily for tracking HTTP service availability and script errors
-func (e *Engine) UpdateStepHealth(
-	stepID api.StepID, health api.HealthStatus, errMsg string,
-) error {
-	cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
-		if stepHealth, ok := st.Health[stepID]; ok {
-			if stepHealth.Status == health && stepHealth.Error == errMsg {
-				return nil
-			}
-		}
-
-		return events.Raise(ag, api.EventTypeStepHealthChanged,
-			api.StepHealthChangedEvent{
-				StepID: stepID,
-				Status: health,
-				Error:  errMsg,
-			},
-		)
-	}
-
-	_, err := e.execPartition(cmd)
-	return err
-}
-
 func (e *Engine) validateStepScripts(step *api.Step) error {
 	if step.Type == api.StepTypeScript && step.Script != nil {
 		if step.Script.Language == api.ScriptLangJPath {
@@ -174,11 +174,6 @@ func (e *Engine) validateStepScripts(step *api.Step) error {
 	}
 
 	return nil
-}
-
-func stepHasScripts(step *api.Step) bool {
-	return (step.Type == api.StepTypeScript && step.Script != nil) ||
-		step.Predicate != nil
 }
 
 func (e *Engine) raiseStepRegisteredEvent(
@@ -210,6 +205,11 @@ func (e *Engine) raiseStepUpdatedEvent(
 	return events.Raise(ag, api.EventTypeStepUpdated,
 		api.StepUpdatedEvent{Step: step},
 	)
+}
+
+func stepHasScripts(step *api.Step) bool {
+	return (step.Type == api.StepTypeScript && step.Script != nil) ||
+		step.Predicate != nil
 }
 
 func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {
