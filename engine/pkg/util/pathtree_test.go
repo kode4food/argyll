@@ -54,3 +54,52 @@ func TestPathTreeExactOverwriteAndRemove(t *testing.T) {
 	vals = tree.Detach([]string{"x"})
 	assert.Nil(t, vals)
 }
+
+func TestPathTreeEmptyPath(t *testing.T) {
+	tree := util.NewPathTree[string]()
+
+	tree.Insert([]string{}, "root")
+	tree.Insert([]string{"x"}, "child")
+	assert.ElementsMatch(t, []string{"root", "child"}, tree.Detach(nil))
+
+	tree.Insert([]string{}, "root")
+	tree.Insert([]string{"x"}, "child")
+	tree.Remove([]string{})
+	assert.Equal(t, []string{"child"}, tree.Detach([]string{}))
+}
+
+func TestPathTreeRemoveMissingNestedPath(t *testing.T) {
+	tree := util.NewPathTree[int]()
+	tree.Insert([]string{"a", "b"}, 1)
+	tree.Insert([]string{"a", "c"}, 2)
+
+	tree.Remove([]string{"a", "x"})
+	assert.ElementsMatch(t, []int{1, 2}, tree.Detach([]string{"a"}))
+}
+
+func TestPathTreeRemoveNodeWithChildren(t *testing.T) {
+	tree := util.NewPathTree[int]()
+	tree.Insert([]string{"a"}, 1)
+	tree.Insert([]string{"a", "b"}, 2)
+
+	tree.Remove([]string{"a"})
+	assert.Equal(t, []int{2}, tree.Detach([]string{"a"}))
+}
+
+func TestPathTreeDetachMissingNestedPrefix(t *testing.T) {
+	tree := util.NewPathTree[int]()
+	tree.Insert([]string{"a", "b"}, 1)
+
+	vals := tree.Detach([]string{"a", "x"})
+	assert.Nil(t, vals)
+	assert.Equal(t, []int{1}, tree.Detach([]string{"a"}))
+}
+
+func TestPathTreeDetachMissingParentPrefix(t *testing.T) {
+	tree := util.NewPathTree[int]()
+	tree.Insert([]string{"a", "b"}, 1)
+
+	vals := tree.Detach([]string{"x", "b"})
+	assert.Nil(t, vals)
+	assert.Equal(t, []int{1}, tree.Detach([]string{"a"}))
+}

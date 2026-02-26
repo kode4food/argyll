@@ -22,14 +22,13 @@ func NewPathTree[T any]() *PathTree[T] {
 
 // Insert stores a value at the exact path
 func (t *PathTree[T]) Insert(path []string, v T) {
-	if t == nil || len(path) == 0 {
+	cur := t.root
+	if len(path) == 0 {
+		cur.value = v
+		cur.hasValue = true
 		return
 	}
-	cur := t.root
 	for _, p := range path {
-		if cur.children == nil {
-			cur.children = map[string]*pathTreeNode[T]{}
-		}
 		next, ok := cur.children[p]
 		if !ok {
 			next = &pathTreeNode[T]{children: map[string]*pathTreeNode[T]{}}
@@ -43,7 +42,10 @@ func (t *PathTree[T]) Insert(path []string, v T) {
 
 // Remove clears the value at the exact path
 func (t *PathTree[T]) Remove(path []string) {
-	if t == nil || len(path) == 0 {
+	if len(path) == 0 {
+		t.root.hasValue = false
+		var zero T
+		t.root.value = zero
 		return
 	}
 	t.root.remove(path, 0)
@@ -51,8 +53,10 @@ func (t *PathTree[T]) Remove(path []string) {
 
 // Detach removes a prefix subtree and returns its values
 func (t *PathTree[T]) Detach(prefix []string) []T {
-	if t == nil || len(prefix) == 0 {
-		return nil
+	if len(prefix) == 0 {
+		vals := t.root.values()
+		t.root = &pathTreeNode[T]{children: map[string]*pathTreeNode[T]{}}
+		return vals
 	}
 	n := t.root.detach(prefix)
 	if n == nil {
@@ -62,17 +66,11 @@ func (t *PathTree[T]) Detach(prefix []string) []T {
 }
 
 func (n *pathTreeNode[T]) remove(path []string, idx int) bool {
-	if n == nil {
-		return false
-	}
 	if idx == len(path) {
 		n.hasValue = false
 		var zero T
 		n.value = zero
 		return len(n.children) == 0
-	}
-	if n.children == nil {
-		return false
 	}
 	next, ok := n.children[path[idx]]
 	if !ok {
@@ -85,28 +83,24 @@ func (n *pathTreeNode[T]) remove(path []string, idx int) bool {
 }
 
 func (n *pathTreeNode[T]) detach(prefix []string) *pathTreeNode[T] {
-	if n == nil || len(prefix) == 0 {
-		return nil
-	}
 	cur := n
-	for i, p := range prefix {
+	for _, p := range prefix[:len(prefix)-1] {
 		next, ok := cur.children[p]
 		if !ok {
 			return nil
 		}
-		if i == len(prefix)-1 {
-			delete(cur.children, p)
-			return next
-		}
 		cur = next
 	}
-	return nil
+	last := prefix[len(prefix)-1]
+	next, ok := cur.children[last]
+	if !ok {
+		return nil
+	}
+	delete(cur.children, last)
+	return next
 }
 
 func (n *pathTreeNode[T]) values() []T {
-	if n == nil {
-		return nil
-	}
 	res := make([]T, 0)
 	if n.hasValue {
 		res = append(res, n.value)
