@@ -149,9 +149,12 @@ func (s *argyll) initializeEngine() error {
 		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
 
-	eng, err := engine.New(
-		s.catalogStore, s.partitionStore, s.flowStore, s.stepClient, s.cfg,
-	)
+	eng, err := engine.New(s.cfg, engine.Dependencies{
+		CatalogStore:   s.catalogStore,
+		PartitionStore: s.partitionStore,
+		FlowStore:      s.flowStore,
+		StepClient:     s.stepClient,
+	})
 	if err != nil {
 		return err
 	}

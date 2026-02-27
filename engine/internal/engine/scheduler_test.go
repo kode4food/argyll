@@ -235,17 +235,16 @@ func withFakeScheduler(
 	fn func(*engine.Engine, *fakeTimer, time.Time),
 ) {
 	t.Helper()
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-		eng.SetClock(func() time.Time { return now })
-		tf := newFakeTimerFactory()
-		eng.SetTimerConstructor(tf.NewTimer)
-		assert.NoError(t, eng.Start())
-		timer := tf.WaitTimer(t)
-		timer.DrainResets()
-		timer.DrainStops()
-		fn(eng, timer, now)
-	})
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	tf := newFakeTimerFactory()
+	helpers.WithEngineWithTime(t, func() time.Time { return now },
+		tf.NewTimer, func(eng *engine.Engine) {
+			assert.NoError(t, eng.Start())
+			timer := tf.WaitTimer(t)
+			timer.DrainResets()
+			timer.DrainStops()
+			fn(eng, timer, now)
+		})
 }
 
 type fakeTimerFactory struct {

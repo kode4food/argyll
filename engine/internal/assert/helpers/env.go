@@ -47,6 +47,13 @@ func NewTestConfig() *config.Config {
 // NewTestEngine creates a fully configured test engine environment with an
 // in-memory Redis backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
+	return NewTestEngineWithTime(t, time.Now, engine.NewTimer)
+}
+
+// NewTestEngineWithTime creates a test engine with explicit time wiring
+func NewTestEngineWithTime(
+	t *testing.T, clock engine.Clock, makeTimer engine.TimerConstructor,
+) *TestEngineEnv {
 	t.Helper()
 
 	server, err := miniredis.Run()
@@ -103,7 +110,14 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 	}
 
 	hub := tb.GetHub()
-	eng, err := engine.New(catStore, partStore, flowStore, mockCli, cfg)
+	eng, err := engine.New(cfg, engine.Dependencies{
+		CatalogStore:     catStore,
+		PartitionStore:   partStore,
+		FlowStore:        flowStore,
+		StepClient:       mockCli,
+		Clock:            clock,
+		TimerConstructor: makeTimer,
+	})
 	assert.NoError(t, err)
 
 	testEnv := &TestEngineEnv{
@@ -131,9 +145,12 @@ func NewTestEngine(t *testing.T) *TestEngineEnv {
 // NewEngineInstance creates a new engine instance sharing the same stores and
 // mock client. Used to simulate process restart after crash
 func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
-	return engine.New(
-		e.catalogStore, e.partitionStore, e.flowStore, e.MockClient, e.Config,
-	)
+	return engine.New(e.Config, e.Dependencies())
+}
+
+// Dependencies returns a valid dependency bundle for constructing an engine
+func (e *TestEngineEnv) Dependencies() engine.Dependencies {
+	return e.engineDeps(time.Now, engine.NewTimer)
 }
 
 // RaiseFlowEvents appends flow events via the executor
@@ -163,11 +180,35 @@ func WithTestEnv(t *testing.T, fn func(*TestEngineEnv)) {
 	fn(testEnv)
 }
 
+// WithTestEnvWithTime creates a test engine environment with explicit time
+// wiring and ensures cleanup happens automatically
+func WithTestEnvWithTime(
+	t *testing.T, clock engine.Clock, makeTimer engine.TimerConstructor,
+	fn func(*TestEngineEnv),
+) {
+	t.Helper()
+	testEnv := NewTestEngineWithTime(t, clock, makeTimer)
+	defer testEnv.Cleanup()
+	fn(testEnv)
+}
+
 // WithEngine creates a test engine, executes the provided function with it,
 // and ensures cleanup happens automatically
 func WithEngine(t *testing.T, fn func(*engine.Engine)) {
 	t.Helper()
 	WithTestEnv(t, func(env *TestEngineEnv) {
+		fn(env.Engine)
+	})
+}
+
+// WithEngineWithTime creates a test engine with explicit time wiring and
+// ensures cleanup happens automatically
+func WithEngineWithTime(
+	t *testing.T, clock engine.Clock, makeTimer engine.TimerConstructor,
+	fn func(*engine.Engine),
+) {
+	t.Helper()
+	WithTestEnvWithTime(t, clock, makeTimer, func(env *TestEngineEnv) {
 		fn(env.Engine)
 	})
 }
@@ -180,4 +221,17 @@ func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 		assert.NoError(t, eng.Start())
 		fn(eng)
 	})
+}
+
+func (e *TestEngineEnv) engineDeps(
+	clock engine.Clock, makeTimer engine.TimerConstructor,
+) engine.Dependencies {
+	return engine.Dependencies{
+		CatalogStore:     e.catalogStore,
+		PartitionStore:   e.partitionStore,
+		FlowStore:        e.flowStore,
+		StepClient:       e.MockClient,
+		Clock:            clock,
+		TimerConstructor: makeTimer,
+	}
 }

@@ -26,17 +26,8 @@ func (e *Engine) Now() time.Time {
 	return e.clock()
 }
 
-// SetClock replaces the engine clock used by timeout and retry logic
-func (e *Engine) SetClock(clock Clock) {
-	e.clock = clock
-}
-
-// SetTimerConstructor replaces the scheduler timer constructor used by Engine
-func (e *Engine) SetTimerConstructor(ctor TimerConstructor) {
-	e.makeTimer = ctor
-}
-
-func newSystemTimer(delay time.Duration) Timer {
+// NewTimer builds the default system-backed scheduler timer
+func NewTimer(delay time.Duration) Timer {
 	return &systemTimer{
 		Timer: time.NewTimer(delay),
 	}

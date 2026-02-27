@@ -18,6 +18,16 @@ import (
 )
 
 type (
+	// Dependencies groups the external dependencies required by Engine
+	Dependencies struct {
+		CatalogStore     *timebox.Store
+		PartitionStore   *timebox.Store
+		FlowStore        *timebox.Store
+		StepClient       client.Client
+		Clock            Clock
+		TimerConstructor TimerConstructor
+	}
+
 	// Engine is the core flow execution engine
 	Engine struct {
 		stepClient  client.Client
@@ -66,15 +76,16 @@ var (
 	ErrInvalidWorkTransition = errors.New("invalid work state transition")
 	ErrInvalidFlowCursor     = errors.New("invalid flow cursor")
 	ErrInvalidConfig         = errors.New("invalid config")
+	ErrMissingDependency     = errors.New("missing dependency")
 	ErrRecoverFlows          = errors.New("failed to recover flows")
 )
 
-// New creates a new orchestrator instance with the specified stores, client,
-// and configuration
-func New(
-	catalog, partition, flow *timebox.Store, client client.Client,
-	cfg *config.Config,
-) (*Engine, error) {
+// New creates a new orchestrator instance from configuration and dependencies
+func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
+	if err := normalizeDependencies(&deps); err != nil {
+		return nil, err
+	}
+
 	cfg = cfg.WithWorkDefaults()
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
@@ -83,22 +94,28 @@ func New(
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
-			catalog, events.NewCatalogState, events.CatalogAppliers,
+			deps.CatalogStore,
+			events.NewCatalogState,
+			events.CatalogAppliers,
 		),
 		partExec: timebox.NewExecutor(
-			partition, events.NewPartitionState, events.PartitionAppliers,
+			deps.PartitionStore,
+			events.NewPartitionState,
+			events.PartitionAppliers,
 		),
 		flowExec: timebox.NewExecutor(
-			flow, events.NewFlowState, events.FlowAppliers,
+			deps.FlowStore,
+			events.NewFlowState,
+			events.FlowAppliers,
 		),
-		stepClient: client,
+		stepClient: deps.StepClient,
 		config:     cfg,
 		ctx:        ctx,
 		cancel:     cancel,
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
 		tasks:      make(chan taskReq, 100),
-		clock:      time.Now,
-		makeTimer:  newSystemTimer,
+		clock:      deps.Clock,
+		makeTimer:  deps.TimerConstructor,
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
 	e.scripts = NewScriptRegistry()
@@ -314,4 +331,26 @@ func (e *Engine) execPartition(
 	cmd timebox.Command[*api.PartitionState],
 ) (*api.PartitionState, error) {
 	return e.partExec.Exec(e.ctx, events.PartitionKey, cmd)
+}
+
+func normalizeDependencies(deps *Dependencies) error {
+	if deps.CatalogStore == nil {
+		return fmt.Errorf("%w: catalog store", ErrMissingDependency)
+	}
+	if deps.PartitionStore == nil {
+		return fmt.Errorf("%w: partition store", ErrMissingDependency)
+	}
+	if deps.FlowStore == nil {
+		return fmt.Errorf("%w: flow store", ErrMissingDependency)
+	}
+	if deps.StepClient == nil {
+		return fmt.Errorf("%w: step client", ErrMissingDependency)
+	}
+	if deps.Clock == nil {
+		deps.Clock = time.Now
+	}
+	if deps.TimerConstructor == nil {
+		deps.TimerConstructor = NewTimer
+	}
+	return nil
 }
