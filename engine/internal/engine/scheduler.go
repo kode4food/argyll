@@ -58,28 +58,20 @@ func NewTaskHeap() *TaskHeap {
 	return h
 }
 
-// ScheduleTask schedules a function to run at the given time
-func (e *Engine) ScheduleTask(at time.Time, fn TaskFunc) {
+func (e *Engine) ScheduleTask(path []string, at time.Time, fn TaskFunc) {
 	e.scheduleTaskReq(taskReq{
 		op:   taskReqSchedule,
-		task: &Task{Func: fn, At: at},
+		task: &Task{Func: fn, At: at, Path: path},
 	})
 }
 
-func (e *Engine) ScheduleTaskKeyed(path []string, at time.Time, fn TaskFunc) {
-	e.scheduleTaskReq(taskReq{
-		op:   taskReqSchedule,
-		task: &Task{Func: fn, At: at, Path: clonePath(path)},
-	})
+func (e *Engine) CancelTask(path []string) {
+	e.scheduleTaskReq(taskReq{op: taskReqCancel, key: path})
 }
 
-func (e *Engine) CancelScheduledTask(path []string) {
-	e.scheduleTaskReq(taskReq{op: taskReqCancel, key: clonePath(path)})
-}
-
-func (e *Engine) CancelScheduledTaskPrefix(prefix []string) {
+func (e *Engine) CancelPrefixedTasks(prefix []string) {
 	e.scheduleTaskReq(taskReq{
-		op: taskReqCancelPrefix, prefix: clonePath(prefix),
+		op: taskReqCancelPrefix, prefix: prefix,
 	})
 }
 
@@ -263,15 +255,6 @@ func (t *retryTimer) Stop() {
 	if t.timer != nil {
 		t.timer.Stop()
 	}
-}
-
-func clonePath(path []string) taskPath {
-	if len(path) == 0 {
-		return nil
-	}
-	cp := make(taskPath, len(path))
-	copy(cp, path)
-	return cp
 }
 
 func taskPathID(path []string) string {

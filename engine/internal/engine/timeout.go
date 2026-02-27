@@ -9,7 +9,7 @@ import (
 )
 
 func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
-	e.CancelScheduledTaskPrefix(timeoutFlowPrefix(flow.ID))
+	e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
 	if flowTransitions.IsTerminal(flow.Status) {
 		return
 	}
@@ -23,7 +23,7 @@ func (e *Engine) scheduleConsumerTimeouts(
 	flow *api.FlowState, producerID api.StepID, now time.Time,
 ) {
 	if flowTransitions.IsTerminal(flow.Status) {
-		e.CancelScheduledTaskPrefix(timeoutFlowPrefix(flow.ID))
+		e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
 		return
 	}
 
@@ -55,7 +55,7 @@ func (e *Engine) scheduleStepTimeouts(
 	flow *api.FlowState, stepID api.StepID, now time.Time,
 ) {
 	fs := api.FlowStep{FlowID: flow.ID, StepID: stepID}
-	e.CancelScheduledTaskPrefix(timeoutStepPrefix(fs))
+	e.CancelPrefixedTasks(timeoutStepPrefix(fs))
 
 	if flowTransitions.IsTerminal(flow.Status) {
 		return
@@ -86,7 +86,7 @@ func (e *Engine) scheduleStepTimeouts(
 func (e *Engine) scheduleTimeoutTask(
 	fs api.FlowStep, name api.Name, at time.Time,
 ) {
-	e.ScheduleTaskKeyed(timeoutKey(fs, name), at, func() error {
+	e.ScheduleTask(timeoutKey(fs, name), at, func() error {
 		return e.runTimeoutTask(fs)
 	})
 }

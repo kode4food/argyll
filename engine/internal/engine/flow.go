@@ -197,7 +197,7 @@ func (e *Engine) execFlow(
 }
 
 func (tx *flowTx) handleWorkSucceededCleanup(fs api.FlowStep, token api.Token) {
-	tx.Engine.CancelScheduledTask(retryKey(fs, token))
+	tx.Engine.CancelTask(retryKey(fs, token))
 }
 
 func (tx *flowTx) checkWorkTransition(

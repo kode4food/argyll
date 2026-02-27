@@ -280,7 +280,7 @@ func (e *Engine) retryWork(
 func (e *Engine) scheduleRetryTask(
 	fs api.FlowStep, token api.Token, retryAt time.Time,
 ) {
-	e.ScheduleTaskKeyed(retryKey(fs, token), retryAt, func() error {
+	e.ScheduleTask(retryKey(fs, token), retryAt, func() error {
 		err := e.runRetryTask(fs, token)
 		if err != nil {
 			e.scheduleRetryTask(fs, token,
