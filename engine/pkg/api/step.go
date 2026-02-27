@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"maps"
 	"slices"
-	"sync/atomic"
+	"sync"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -41,7 +41,8 @@ type (
 		Script *ScriptConfig `json:"script,omitempty"`
 		Flow   *FlowConfig   `json:"flow,omitempty"`
 
-		hashKey atomic.Pointer[string]
+		hashOnce sync.Once
+		hashKey  func() (string, error)
 	}
 
 	// HTTPConfig configures HTTP-based step execution
@@ -355,24 +356,13 @@ func (s *Step) Equal(other *Step) bool {
 // HashKey computes a deterministic SHA256 hash key of the functional parts of
 // the step definition. Excludes ID, Name, and Labels (non-functional metadata)
 func (s *Step) HashKey() (string, error) {
-	if cached := s.hashKey.Load(); cached != nil {
-		return *cached, nil
-	}
-
-	key, err := s.computeHashKey()
-	if err != nil {
-		return "", err
-	}
-
-	s.hashKey.Store(&key)
-	return key, nil
+	s.hashOnce.Do(func() {
+		s.hashKey = sync.OnceValues(s.computeHashKey)
+	})
+	return s.hashKey()
 }
 
 func (s *Step) validateAttributes() error {
-	if s.Attributes == nil {
-		s.Attributes = AttributeSpecs{}
-	}
-
 	for name, attr := range s.Attributes {
 		if name == "" {
 			return ErrArgNameEmpty
