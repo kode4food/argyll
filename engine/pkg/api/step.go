@@ -42,7 +42,8 @@ type (
 		Flow   *FlowConfig   `json:"flow,omitempty"`
 
 		hashOnce sync.Once
-		hashKey  func() (string, error)
+		hashVal  string
+		hashErr  error
 	}
 
 	// HTTPConfig configures HTTP-based step execution
@@ -357,9 +358,9 @@ func (s *Step) Equal(other *Step) bool {
 // the step definition. Excludes ID, Name, and Labels (non-functional metadata)
 func (s *Step) HashKey() (string, error) {
 	s.hashOnce.Do(func() {
-		s.hashKey = sync.OnceValues(s.computeHashKey)
+		s.hashVal, s.hashErr = s.computeHashKey()
 	})
-	return s.hashKey()
+	return s.hashVal, s.hashErr
 }
 
 func (s *Step) validateAttributes() error {
