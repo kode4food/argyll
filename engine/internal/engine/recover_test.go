@@ -318,6 +318,7 @@ func TestRetryExhaustion(t *testing.T) {
 
 func TestFindRetriableSteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 		state := &api.FlowState{
 			Executions: api.Executions{
 				"step-1": {
@@ -326,7 +327,7 @@ func TestFindRetriableSteps(t *testing.T) {
 						"token-1": {
 							Status:      api.WorkPending,
 							RetryCount:  1,
-							NextRetryAt: time.Now().Add(1 * time.Hour),
+							NextRetryAt: now.Add(time.Hour),
 						},
 					},
 				},
@@ -336,7 +337,7 @@ func TestFindRetriableSteps(t *testing.T) {
 						"token-2": {
 							Status:      api.WorkActive,
 							RetryCount:  1,
-							NextRetryAt: time.Now().Add(1 * time.Hour),
+							NextRetryAt: now.Add(time.Hour),
 						},
 					},
 				},
@@ -354,7 +355,7 @@ func TestFindRetriableSteps(t *testing.T) {
 						"token-4": {
 							Status:      api.WorkPending,
 							RetryCount:  2,
-							NextRetryAt: time.Now().Add(1 * time.Hour),
+							NextRetryAt: now.Add(time.Hour),
 						},
 					},
 				},
@@ -576,7 +577,7 @@ func TestWorkConfigValidation(t *testing.T) {
 }
 
 func TestIsRetryableUtility(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 
 	tests := []struct {
 		name   string
@@ -608,7 +609,7 @@ func TestIsRetryableUtility(t *testing.T) {
 }
 
 func TestIsRetryable(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 
 	assert.False(t, isRetryable(&api.WorkState{}, now))
 	assert.False(t, isRetryable(&api.WorkState{
@@ -887,6 +888,7 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 
 func TestRecoverFlowsFromAggregateList(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 		flowID := api.FlowID("aggregate-recovery-flow")
 		step := helpers.NewSimpleStep("aggregate-recovery-step")
 		step.Type = api.StepTypeAsync
@@ -924,7 +926,7 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 					StepID:      step.ID,
 					Token:       token,
 					RetryCount:  1,
-					NextRetryAt: time.Now().Add(-1 * time.Second),
+					NextRetryAt: now.Add(-time.Second),
 					Error:       "retry",
 				},
 			},
@@ -953,6 +955,7 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 
 func TestPendingWorkNotRetryable(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 		state := &api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
@@ -969,7 +972,7 @@ func TestPendingWorkNotRetryable(t *testing.T) {
 						"token-1": {
 							Status:      api.WorkPending,
 							RetryCount:  1,
-							NextRetryAt: time.Now().Add(1 * time.Hour),
+							NextRetryAt: now.Add(time.Hour),
 						},
 					},
 				},
@@ -1102,7 +1105,7 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 				stepB.ID: stepB,
 			},
 		}
-		now := time.Now()
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 		err := env.RaiseFlowEvents(
 			flowID,
 			helpers.FlowEvent{
@@ -1239,6 +1242,7 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 
 		activeFlowID := api.FlowID("recover-active")
 		deactivatedFlowID := api.FlowID("recover-deactivated")
@@ -1285,7 +1289,7 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 						StepID:      step.ID,
 						Token:       token,
 						RetryCount:  1,
-						NextRetryAt: time.Now().Add(-500 * time.Millisecond),
+						NextRetryAt: now.Add(-500 * time.Millisecond),
 						Error:       "retry",
 					},
 				},

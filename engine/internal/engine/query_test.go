@@ -170,6 +170,8 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+		env.Engine.SetClock(func() time.Time { return now })
 
 		step := helpers.NewSimpleStep("sort-step")
 		assert.NoError(t, env.Engine.RegisterStep(step))
@@ -183,7 +185,7 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 		env.WaitForFlowStatus("flow-a", func() {
 			assert.NoError(t, env.Engine.StartFlow("flow-a", plan))
 		})
-		time.Sleep(10 * time.Millisecond)
+		now = now.Add(10 * time.Millisecond)
 
 		env.WaitForFlowStatus("flow-b", func() {
 			assert.NoError(t, env.Engine.StartFlow("flow-b", plan))
@@ -203,6 +205,8 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
+		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+		env.Engine.SetClock(func() time.Time { return now })
 
 		step := helpers.NewSimpleStep("page-step")
 		assert.NoError(t, env.Engine.RegisterStep(step))
@@ -216,7 +220,7 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 		env.WaitForFlowStatus("page-a", func() {
 			assert.NoError(t, env.Engine.StartFlow("page-a", plan))
 		})
-		time.Sleep(10 * time.Millisecond)
+		now = now.Add(10 * time.Millisecond)
 
 		env.WaitForFlowStatus("page-b", func() {
 			assert.NoError(t, env.Engine.StartFlow("page-b", plan))

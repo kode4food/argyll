@@ -656,7 +656,9 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			productProvider.ID, 500*time.Millisecond,
 		))
 
-		time.Sleep(80 * time.Millisecond)
+		assert.False(t, env.MockClient.WaitForInvocation(
+			orderCreator.ID, 80*time.Millisecond,
+		))
 		close(releaseUser)
 
 		select {

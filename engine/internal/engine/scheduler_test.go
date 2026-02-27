@@ -160,7 +160,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 }
 
 func TestTaskHeapKeyedOrderAndCancelPrefix(t *testing.T) {
-	now := time.Now()
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	h := engine.NewTaskHeap()
 	noop := func() error { return nil }
 	insert := func(path []string, at time.Time) {
@@ -201,9 +201,10 @@ func TestTaskHeapKeyedOrderAndCancelPrefix(t *testing.T) {
 func TestTaskHeapNoOps(t *testing.T) {
 	h := engine.NewTaskHeap()
 	assert.Nil(t, h.PopTask())
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 
 	h.Insert(nil)
-	h.Insert(&engine.Task{At: time.Now()})
+	h.Insert(&engine.Task{At: now})
 	h.Insert(&engine.Task{Func: func() error { return nil }})
 	assert.Nil(t, h.Peek())
 
@@ -216,8 +217,9 @@ func TestTaskHeapNoOps(t *testing.T) {
 
 func TestTaskHeapPopNonKeyed(t *testing.T) {
 	h := engine.NewTaskHeap()
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	h.Insert(&engine.Task{
-		At:   time.Now(),
+		At:   now,
 		Func: func() error { return nil },
 	})
 
