@@ -29,6 +29,12 @@ var (
 func (e *Engine) CreateExecutionPlan(
 	catalogState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
 ) (*api.ExecutionPlan, error) {
+	return createExecutionPlan(catalogState, goalIDs, initState)
+}
+
+func createExecutionPlan(
+	catalogState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
+) (*api.ExecutionPlan, error) {
 	if len(goalIDs) == 0 {
 		return nil, ErrNoGoals
 	}

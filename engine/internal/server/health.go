@@ -203,7 +203,7 @@ func (s *Server) handleHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealth(c *gin.Context) {
-	partState, err := s.engine.GetPartitionState()
+	health, err := resolveEngineHealth(s.engine)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetPartitionState, err),
@@ -213,15 +213,15 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, api.HealthListResponse{
-		Health: partState.Health,
-		Count:  len(partState.Health),
+		Health: health,
+		Count:  len(health),
 	})
 }
 
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	partState, err := s.engine.GetPartitionState()
+	healthByStepID, err := resolveEngineHealth(s.engine)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetPartitionState, err),
@@ -230,7 +230,7 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 		return
 	}
 
-	health, ok := partState.Health[stepID]
+	health, ok := healthByStepID[stepID]
 	if !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("Health not found for step: %s", stepID),
@@ -240,4 +240,18 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, health)
+}
+
+func resolveEngineHealth(
+	eng *engine.Engine,
+) (map[api.StepID]*api.HealthState, error) {
+	catState, err := eng.GetCatalogState()
+	if err != nil {
+		return nil, err
+	}
+	partState, err := eng.GetPartitionState()
+	if err != nil {
+		return nil, err
+	}
+	return engine.ResolveHealth(catState, partState.Health), nil
 }

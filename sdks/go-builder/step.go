@@ -5,7 +5,6 @@ import (
 	"errors"
 	"maps"
 	"regexp"
-	"slices"
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -179,8 +178,10 @@ func (s *Step) WithEndpoint(endpoint string) *Step {
 // WithFlowGoals configures a flow step with child flow goal IDs
 func (s *Step) WithFlowGoals(goals ...api.StepID) *Step {
 	res := *s
-	res.flow = cloneFlowConfig(res.flow)
-	res.flow.Goals = goals
+	if res.flow == nil {
+		res.flow = &api.FlowConfig{}
+	}
+	res.flow = res.flow.WithGoals(goals...)
 	res.stepType = api.StepTypeFlow
 	return &res
 }
@@ -331,14 +332,4 @@ func toSnakeCase(s string) string {
 	s = camelCaseRegex.ReplaceAllString(s, "$1-$2")
 	s = delimiterRegex.ReplaceAllString(s, "-")
 	return strings.ToLower(s)
-}
-
-func cloneFlowConfig(flow *api.FlowConfig) *api.FlowConfig {
-	if flow == nil {
-		return &api.FlowConfig{}
-	}
-
-	copyFlow := *flow
-	copyFlow.Goals = slices.Clone(flow.Goals)
-	return &copyFlow
 }

@@ -24,6 +24,7 @@ jest.mock("@/app/store/flowStore", () => ({
       state: {},
       started_at: "2024-01-01T00:00:00Z",
     },
+    loadSteps: jest.fn(),
     loadFlows: jest.fn(),
     addStep: jest.fn(),
     updateStep: jest.fn(),
@@ -201,6 +202,7 @@ describe("WebSocketProvider", () => {
       "healthy",
       undefined
     );
+    expect(flowStore.__storeState.loadSteps).toHaveBeenCalledTimes(1);
     expect(flowStore.__storeState.loadFlows).toHaveBeenCalledTimes(2);
   });
 

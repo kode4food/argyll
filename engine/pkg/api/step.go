@@ -546,19 +546,21 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 
 // WithOutput adds an output value to the step result
 func (r *StepResult) WithOutput(name Name, value any) *StepResult {
-	if r.Outputs == nil {
-		r.Outputs = Args{name: value}
-		return r
+	res := *r
+	res.Outputs = maps.Clone(r.Outputs)
+	if res.Outputs == nil {
+		res.Outputs = Args{}
 	}
-	r.Outputs[name] = value
-	return r
+	res.Outputs[name] = value
+	return &res
 }
 
 // WithError marks the step result as failed with the given error
 func (r *StepResult) WithError(err error) *StepResult {
-	r.Success = false
-	r.Error = err.Error()
-	return r
+	res := *r
+	res.Success = false
+	res.Error = err.Error()
+	return &res
 }
 
 // Equal returns true if two HTTP configs are equal
@@ -575,6 +577,13 @@ func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
 	return equalWithNilCheck(c, other, func() bool {
 		return c.Language == other.Language && c.Script == other.Script
 	})
+}
+
+// WithGoals returns a copy of the flow config with the provided goals
+func (c *FlowConfig) WithGoals(goals ...StepID) *FlowConfig {
+	res := *c
+	res.Goals = goals
+	return &res
 }
 
 // Equal returns true if two flow configs are equal

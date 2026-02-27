@@ -54,47 +54,6 @@ func TestRegisterStepIdempotent(t *testing.T) {
 	})
 }
 
-func TestUpdateStepHealth(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("health-step")
-
-		err := eng.RegisterStep(step)
-		assert.NoError(t, err)
-
-		err = eng.UpdateStepHealth("health-step", api.HealthHealthy, "")
-		assert.NoError(t, err)
-
-		state, err := eng.GetPartitionState()
-		assert.NoError(t, err)
-
-		health, ok := state.Health["health-step"]
-		assert.True(t, ok)
-		assert.Equal(t, api.HealthHealthy, health.Status)
-	})
-}
-
-func TestUpdateUnhealthy(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("unhealthy-step")
-
-		err := eng.RegisterStep(step)
-		assert.NoError(t, err)
-
-		err = eng.UpdateStepHealth(
-			"unhealthy-step", api.HealthUnhealthy, "connection refused",
-		)
-		assert.NoError(t, err)
-
-		state, err := eng.GetPartitionState()
-		assert.NoError(t, err)
-
-		health, ok := state.Health["unhealthy-step"]
-		assert.True(t, ok)
-		assert.Equal(t, api.HealthUnhealthy, health.Status)
-		assert.Equal(t, "connection refused", health.Error)
-	})
-}
-
 func TestUpdateStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		step := helpers.NewSimpleStep("update-step")

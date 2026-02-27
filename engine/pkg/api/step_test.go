@@ -546,6 +546,21 @@ func TestWithOutput(t *testing.T) {
 	as.Equal("value", result.Outputs["key"])
 }
 
+func TestWithOutputImmutable(t *testing.T) {
+	as := assert.New(t)
+
+	original := &api.StepResult{
+		Success: true,
+		Outputs: api.Args{"existing": "value"},
+	}
+	updated := original.WithOutput("new", "next")
+
+	as.Equal("value", original.Outputs["existing"])
+	_, ok := original.Outputs["new"]
+	as.False(ok)
+	as.Equal("next", updated.Outputs["new"])
+}
+
 func TestWithError(t *testing.T) {
 	as := assert.New(t)
 
@@ -554,6 +569,18 @@ func TestWithError(t *testing.T) {
 
 	as.False(result.Success)
 	as.Contains(result.Error, "ID")
+}
+
+func TestWithErrorImmutable(t *testing.T) {
+	as := assert.New(t)
+
+	original := &api.StepResult{Success: true}
+	updated := original.WithError(api.ErrStepIDEmpty)
+
+	as.True(original.Success)
+	as.Empty(original.Error)
+	as.False(updated.Success)
+	as.Contains(updated.Error, "ID")
 }
 
 func TestEqualHTTP(t *testing.T) {
@@ -627,6 +654,24 @@ func TestEqualFlowConfig(t *testing.T) {
 	as.False(config1.Equal(config3))
 	as.True((*api.FlowConfig)(nil).Equal(nil))
 	as.False(config1.Equal(nil))
+}
+
+func TestFlowConfigWithGoals(t *testing.T) {
+	as := assert.New(t)
+
+	base := &api.FlowConfig{
+		Goals: []api.StepID{"goal-1"},
+	}
+
+	updated := base.WithGoals("goal-2", "goal-3")
+	as.Equal([]api.StepID{"goal-1"}, base.Goals)
+	as.Equal([]api.StepID{"goal-2", "goal-3"}, updated.Goals)
+
+	goals := []api.StepID{"goal-a"}
+	fromBase := base.WithGoals(goals...)
+	as.Equal([]api.StepID{"goal-a"}, fromBase.Goals)
+	goals[0] = "mutated"
+	as.Equal([]api.StepID{"goal-a"}, fromBase.Goals)
 }
 
 func TestEqualWorkConfig(t *testing.T) {

@@ -553,6 +553,47 @@ func TestEngineHealthByID(t *testing.T) {
 	})
 }
 
+func TestEngineHealthByIDFlow(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		goalA := helpers.NewSimpleStep("goal-a")
+		goalB := helpers.NewSimpleStep("goal-b")
+		flow := &api.Step{
+			ID:   "flow-step",
+			Name: "Flow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{goalA.ID, goalB.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"out": {Role: api.RoleOutput},
+			},
+		}
+
+		assert.NoError(t, testEnv.Engine.RegisterStep(goalA))
+		assert.NoError(t, testEnv.Engine.RegisterStep(goalB))
+		assert.NoError(t, testEnv.Engine.RegisterStep(flow))
+		assert.NoError(t,
+			testEnv.Engine.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
+		)
+		assert.NoError(t, testEnv.Engine.UpdateStepHealth(
+			goalB.ID, api.HealthUnhealthy, "down",
+		))
+
+		req := httptest.NewRequest("GET", "/engine/health/flow-step", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		var health api.HealthState
+		err := json.Unmarshal(w.Body.Bytes(), &health)
+		assert.NoError(t, err)
+		assert.Equal(t, api.HealthUnhealthy, health.Status)
+		assert.Contains(t, health.Error, "goal-b")
+	})
+}
+
 func TestEngineHealthNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest(

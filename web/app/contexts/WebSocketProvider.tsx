@@ -36,6 +36,7 @@ const FLOW_EVENT_TYPES = [
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const t = useT();
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
+  const loadSteps = useFlowStore((state) => state.loadSteps);
   const loadFlows = useFlowStore((state) => state.loadFlows);
   const addStep = useFlowStore((state) => state.addStep);
   const updateStep = useFlowStore((state) => state.updateStep);
@@ -98,6 +99,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           const error = wsEvent.data?.error;
           if (stepId && health) {
             updateStepHealth(stepId, health, error);
+            loadSteps();
           }
           break;
         }
@@ -109,7 +111,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           break;
       }
     },
-    [updateStepHealth, loadFlows]
+    [updateStepHealth, loadSteps, loadFlows]
   );
 
   const handleFlowEvent = useCallback(

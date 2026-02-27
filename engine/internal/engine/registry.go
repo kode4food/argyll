@@ -58,31 +58,6 @@ func (e *Engine) UpdateStep(step *api.Step) error {
 	)
 }
 
-// UpdateStepHealth updates the health status of a registered step, used
-// primarily for tracking HTTP service availability and script errors
-func (e *Engine) UpdateStepHealth(
-	stepID api.StepID, health api.HealthStatus, errMsg string,
-) error {
-	cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
-		if stepHealth, ok := st.Health[stepID]; ok {
-			if stepHealth.Status == health && stepHealth.Error == errMsg {
-				return nil
-			}
-		}
-
-		return events.Raise(ag, api.EventTypeStepHealthChanged,
-			api.StepHealthChangedEvent{
-				StepID: stepID,
-				Status: health,
-				Error:  errMsg,
-			},
-		)
-	}
-
-	_, err := e.execPartition(cmd)
-	return err
-}
-
 func (e *Engine) execStepUpsert(
 	step *api.Step, raise upsertRaise, check upsertCheck,
 ) error {

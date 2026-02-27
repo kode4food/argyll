@@ -124,6 +124,8 @@ func (s *Server) handleEngine(c *gin.Context) {
 		})
 		return
 	}
+	health := engine.ResolveHealth(catState, partState.Health)
+
 	last := catState.LastUpdated
 	if partState.LastUpdated.After(last) {
 		last = partState.LastUpdated
@@ -132,7 +134,7 @@ func (s *Server) handleEngine(c *gin.Context) {
 		"last_updated": last,
 		"steps":        catState.Steps,
 		"attributes":   catState.Attributes,
-		"health":       partState.Health,
+		"health":       health,
 		"active":       partState.Active,
 		"deactivated":  partState.Deactivated,
 		"archiving":    partState.Archiving,
