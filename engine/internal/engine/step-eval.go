@@ -23,7 +23,7 @@ type (
 )
 
 func (tx *flowTx) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
-	ready, _ := tx.canStartStepAt(stepID, flow, time.Now())
+	ready, _ := tx.canStartStepAt(stepID, flow, tx.Now())
 	return ready
 }
 

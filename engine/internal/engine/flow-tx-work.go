@@ -23,8 +23,8 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, token api.Token) error {
 
 	step := tx.Value().Plan.Steps[stepID]
 	if tx.ShouldRetry(step, work) {
-		nextRetryAt := tx.CalculateNextRetry(
-			step.WorkConfig, work.RetryCount,
+		nextRetryAt := tx.calculateNextRetryAt(
+			tx.Now(), step.WorkConfig, work.RetryCount,
 		)
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeRetryScheduled,
 			api.RetryScheduledEvent{
@@ -119,7 +119,7 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 		return nil, nil
 	}
 
-	now := time.Now()
+	now := tx.Now()
 	started := api.WorkItems{}
 	for token, work := range exec.WorkItems {
 		if remaining == 0 {
@@ -169,7 +169,7 @@ func (tx *flowTx) startRetryWorkItem(
 		return nil, nil
 	}
 
-	now := time.Now()
+	now := tx.Now()
 	shouldStart := false
 	switch work.Status {
 	case api.WorkPending:

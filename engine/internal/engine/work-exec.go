@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-	"time"
 
 	"github.com/tidwall/gjson"
 
@@ -66,7 +65,7 @@ func (tx *flowTx) collectStepInputs(
 	step *api.Step, flow *api.FlowState,
 ) api.Args {
 	inputs := api.Args{}
-	now := time.Now()
+	now := tx.Now()
 	ev := tx.newStepEval(step.ID, flow, now)
 
 	for name, attr := range step.Attributes {

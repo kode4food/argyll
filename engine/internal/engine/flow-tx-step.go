@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
 
@@ -181,7 +180,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	// Step succeeded - set attributes and raise completion
 	step := flow.Plan.Steps[stepID]
 	outputs := tx.collectStepOutputs(exec.WorkItems, step)
-	dur := time.Since(exec.StartedAt).Milliseconds()
+	dur := max(tx.Now().Sub(exec.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
 		if !isOutputAttribute(step, key) {
@@ -214,7 +213,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		return true, err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		tx.Engine.scheduleConsumerTimeouts(flow, stepID, time.Now())
+		tx.Engine.scheduleConsumerTimeouts(flow, stepID, tx.Now())
 	})
 	return true, nil
 }

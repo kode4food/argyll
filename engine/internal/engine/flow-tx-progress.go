@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"maps"
-	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -28,14 +27,18 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState) {
+			completedAt := flow.CompletedAt
+			if completedAt.IsZero() {
+				completedAt = tx.Now()
+			}
 			tx.Engine.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			tx.Engine.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,
 					Status:      api.FlowCompleted,
-					CompletedAt: time.Now(),
+					CompletedAt: completedAt,
 				},
 			)
 		})
@@ -51,14 +54,18 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState) {
+			completedAt := flow.CompletedAt
+			if completedAt.IsZero() {
+				completedAt = tx.Now()
+			}
 			tx.Engine.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			tx.Engine.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,
 					Status:      api.FlowFailed,
-					CompletedAt: time.Now(),
+					CompletedAt: completedAt,
 					Error:       errMsg,
 				},
 			)
@@ -170,7 +177,7 @@ func (tx *flowTx) startReadyPendingSteps() error {
 
 	for {
 		flow := tx.Value()
-		now := time.Now()
+		now := tx.Now()
 		startedAny := false
 
 		for stepID, exec := range flow.Executions {

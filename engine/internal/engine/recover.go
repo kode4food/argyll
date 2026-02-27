@@ -62,6 +62,12 @@ func (e *Engine) ShouldRetry(step *api.Step, work *api.WorkState) bool {
 func (e *Engine) CalculateNextRetry(
 	config *api.WorkConfig, retryCount int,
 ) time.Time {
+	return e.calculateNextRetryAt(e.Now(), config, retryCount)
+}
+
+func (e *Engine) calculateNextRetryAt(
+	now time.Time, config *api.WorkConfig, retryCount int,
+) time.Time {
 	config = e.resolveRetryConfig(config)
 
 	calculator, ok := backoffCalculators[config.BackoffType]
@@ -73,7 +79,7 @@ func (e *Engine) CalculateNextRetry(
 		calculator(config.InitBackoff, retryCount), config.MaxBackoff,
 	)
 
-	return time.Now().Add(time.Duration(delay) * time.Millisecond)
+	return now.Add(time.Duration(delay) * time.Millisecond)
 }
 
 // Recovery orchestration
@@ -156,7 +162,7 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 }
 
 func (e *Engine) recoverTimeoutScans(flow *api.FlowState) {
-	e.scheduleTimeouts(flow, time.Now())
+	e.scheduleTimeouts(flow, e.Now())
 }
 
 func (e *Engine) recoverRetryWork(flow *api.FlowState) {
@@ -165,7 +171,7 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 		return
 	}
 
-	now := time.Now()
+	now := e.Now()
 	for stepID := range retryableSteps {
 		exec := flow.Executions[stepID]
 		if exec.WorkItems == nil {
@@ -284,7 +290,7 @@ func (e *Engine) scheduleRetryTask(
 		err := e.runRetryTask(fs, token)
 		if err != nil {
 			e.scheduleRetryTask(fs, token,
-				time.Now().Add(retryDispatchBackoff),
+				e.Now().Add(retryDispatchBackoff),
 			)
 		}
 		return err

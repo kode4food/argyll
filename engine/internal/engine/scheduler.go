@@ -37,10 +37,6 @@ type (
 		key    taskPath
 		prefix taskPath
 	}
-
-	retryTimer struct {
-		timer *time.Timer
-	}
 )
 
 const (
@@ -76,8 +72,8 @@ func (e *Engine) CancelPrefixedTasks(prefix []string) {
 }
 
 func (e *Engine) scheduler() {
-	var t retryTimer
-	var timer <-chan time.Time
+	timer := e.makeTimer(0)
+	var timerCh <-chan time.Time
 	tasks := NewTaskHeap()
 
 	resetTimer := func() {
@@ -86,11 +82,13 @@ func (e *Engine) scheduler() {
 			next = t.At
 		}
 		if next.IsZero() {
-			t.Stop()
-			timer = nil
+			timer.Stop()
+			timerCh = nil
 			return
 		}
-		timer = t.Reset(next)
+		delay := next.Sub(e.Now())
+		timer.Reset(delay)
+		timerCh = timer.Channel()
 	}
 
 	resetTimer()
@@ -98,7 +96,7 @@ func (e *Engine) scheduler() {
 	for {
 		select {
 		case <-e.ctx.Done():
-			t.Stop()
+			timer.Stop()
 			return
 		case req := <-e.tasks:
 			switch req.op {
@@ -110,7 +108,7 @@ func (e *Engine) scheduler() {
 				tasks.CancelPrefix(req.prefix)
 			}
 			resetTimer()
-		case <-timer:
+		case <-timerCh:
 			task := tasks.PopTask()
 			if task == nil {
 				resetTimer()
@@ -233,28 +231,6 @@ func (h *TaskHeap) detachPrefix(prefix []string) {
 		delete(h.byID, t.id)
 		heap.Remove(h, t.index)
 	})
-}
-
-func (t *retryTimer) Reset(nextTime time.Time) <-chan time.Time {
-	delay := max(time.Until(nextTime), 0)
-	if t.timer == nil {
-		t.timer = time.NewTimer(delay)
-		return t.timer.C
-	}
-	if !t.timer.Stop() {
-		select {
-		case <-t.timer.C:
-		default:
-		}
-	}
-	t.timer.Reset(delay)
-	return t.timer.C
-}
-
-func (t *retryTimer) Stop() {
-	if t.timer != nil {
-		t.timer.Stop()
-	}
 }
 
 func taskPathID(path []string) string {

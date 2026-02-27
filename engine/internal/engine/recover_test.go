@@ -228,6 +228,9 @@ func TestCalculateNextRetry(t *testing.T) {
 	}
 
 	helpers.WithEngine(t, func(eng *engine.Engine) {
+		base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+		eng.SetClock(func() time.Time { return base })
+
 		for _, sc := range scenarios {
 			t.Run(sc.name, func(t *testing.T) {
 				config := &api.WorkConfig{
@@ -236,15 +239,11 @@ func TestCalculateNextRetry(t *testing.T) {
 					BackoffType: sc.backoffType,
 				}
 
-				before := time.Now()
 				nextRetry := eng.CalculateNextRetry(config, sc.retryCount)
-				after := time.Now()
-
-				delay := nextRetry.Sub(before).Milliseconds()
-				maxDelay := nextRetry.Sub(after).Milliseconds()
-
-				assert.GreaterOrEqual(t, delay, sc.expected-10)
-				assert.LessOrEqual(t, maxDelay, sc.expected+10)
+				expected := base.Add(
+					time.Duration(sc.expected) * time.Millisecond,
+				)
+				assert.Equal(t, expected, nextRetry)
 			})
 		}
 	})
@@ -252,18 +251,20 @@ func TestCalculateNextRetry(t *testing.T) {
 
 func TestRetryDefaults(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
+		base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+		eng.SetClock(func() time.Time { return base })
+
 		config := &api.WorkConfig{
 			InitBackoff: 750,
 			MaxBackoff:  1200,
 			BackoffType: "unknown",
 		}
 
-		start := time.Now()
 		nextRetry := eng.CalculateNextRetry(config, 5)
-		delay := nextRetry.Sub(start).Milliseconds()
-
-		assert.GreaterOrEqual(t, delay, int64(740))
-		assert.LessOrEqual(t, delay, int64(1210))
+		assert.Equal(t,
+			base.Add(750*time.Millisecond),
+			nextRetry,
+		)
 	})
 }
 
@@ -1041,22 +1042,24 @@ func TestFindRetryStepsActivePending(t *testing.T) {
 
 func TestNextRetryNilConfig(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
+		base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+		eng.SetClock(func() time.Time { return base })
+
 		nextRetry := eng.CalculateNextRetry(nil, 0)
-		assert.False(t, nextRetry.IsZero())
+		assert.Equal(t, base.Add(time.Second), nextRetry)
 	})
 }
 
 func TestNextRetryParallelismOnlyConfig(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
+		base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+		eng.SetClock(func() time.Time { return base })
+
 		cfg := &api.WorkConfig{
 			Parallelism: 2,
 		}
-		start := time.Now()
 		nextRetry := eng.CalculateNextRetry(cfg, 0)
-		delay := nextRetry.Sub(start).Milliseconds()
-
-		assert.GreaterOrEqual(t, delay, int64(990))
-		assert.LessOrEqual(t, delay, int64(1010))
+		assert.Equal(t, base.Add(time.Second), nextRetry)
 	})
 }
 

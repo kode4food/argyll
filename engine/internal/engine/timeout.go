@@ -87,11 +87,11 @@ func (e *Engine) scheduleTimeoutTask(
 	fs api.FlowStep, name api.Name, at time.Time,
 ) {
 	e.ScheduleTask(timeoutKey(fs, name), at, func() error {
-		return e.runTimeoutTask(fs)
+		return e.runTimeoutTaskAt(fs, e.Now())
 	})
 }
 
-func (e *Engine) runTimeoutTask(fs api.FlowStep) error {
+func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		flow := tx.Value()
 		if flowTransitions.IsTerminal(flow.Status) {
@@ -103,7 +103,7 @@ func (e *Engine) runTimeoutTask(fs api.FlowStep) error {
 			return nil
 		}
 
-		ready, _ := tx.canStartStepAt(fs.StepID, flow, time.Now())
+		ready, _ := tx.canStartStepAt(fs.StepID, flow, now)
 		if !ready {
 			return nil
 		}

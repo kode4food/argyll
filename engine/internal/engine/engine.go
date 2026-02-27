@@ -32,6 +32,8 @@ type (
 		memoCache   *MemoCache
 		eventQueue  *EventQueue
 		tasks       chan taskReq
+		clock       Clock
+		makeTimer   TimerConstructor
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -95,6 +97,8 @@ func New(
 		cancel:     cancel,
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
 		tasks:      make(chan taskReq, 100),
+		clock:      time.Now,
+		makeTimer:  newSystemTimer,
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
 	e.scripts = NewScriptRegistry()
@@ -175,7 +179,7 @@ func (e *Engine) StartFlow(
 			}
 		}
 		tx.OnSuccess(func(flow *api.FlowState) {
-			tx.Engine.scheduleTimeouts(flow, time.Now())
+			tx.Engine.scheduleTimeouts(flow, tx.Now())
 		})
 		return nil
 	})
