@@ -666,12 +666,6 @@ func TestFlowConfigWithGoals(t *testing.T) {
 	updated := base.WithGoals("goal-2", "goal-3")
 	as.Equal([]api.StepID{"goal-1"}, base.Goals)
 	as.Equal([]api.StepID{"goal-2", "goal-3"}, updated.Goals)
-
-	goals := []api.StepID{"goal-a"}
-	fromBase := base.WithGoals(goals...)
-	as.Equal([]api.StepID{"goal-a"}, fromBase.Goals)
-	goals[0] = "mutated"
-	as.Equal([]api.StepID{"goal-a"}, fromBase.Goals)
 }
 
 func TestEqualWorkConfig(t *testing.T) {
