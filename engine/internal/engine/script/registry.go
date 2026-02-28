@@ -50,8 +50,7 @@ var (
 	ErrUnsupportedLanguage = api.ErrInvalidScriptLanguage
 )
 
-// NewScriptRegistry creates a new script registry with Ale and Lua execution
-// environments
+// NewRegistry creates a new registry with Ale, JPath and Lua environments
 func NewRegistry() *Registry {
 	return &Registry{
 		envs: map[string]Environment{
