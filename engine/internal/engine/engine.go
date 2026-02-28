@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -32,9 +33,8 @@ type (
 		mapper      *Mapper
 		memoCache   *MemoCache
 		eventQueue  *EventQueue
-		tasks       chan taskReq
-		clock       Clock
-		makeTimer   TimerConstructor
+		scheduler   *scheduler.Scheduler
+		clock       scheduler.Clock
 	}
 
 	// Dependencies groups the external dependencies required by Engine
@@ -43,8 +43,8 @@ type (
 		PartitionStore   *timebox.Store
 		FlowStore        *timebox.Store
 		StepClient       client.Client
-		Clock            Clock
-		TimerConstructor TimerConstructor
+		Clock            scheduler.Clock
+		TimerConstructor scheduler.TimerConstructor
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -115,9 +115,8 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		ctx:        ctx,
 		cancel:     cancel,
 		memoCache:  NewMemoCache(cfg.MemoCacheSize),
-		tasks:      make(chan taskReq, 100),
+		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
-		makeTimer:  deps.TimerConstructor,
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
 	e.mapper = NewMapper(e)
@@ -130,7 +129,7 @@ func (e *Engine) Start() error {
 	slog.Info("Engine starting")
 
 	e.eventQueue.Start()
-	go e.scheduler()
+	go e.scheduler.Run(e.ctx)
 
 	if err := e.RecoverFlows(); err != nil {
 		e.eventQueue.Cancel()
@@ -138,6 +137,28 @@ func (e *Engine) Start() error {
 	}
 
 	return nil
+}
+
+// ScheduleTask schedules a function to run at the given time
+func (e *Engine) ScheduleTask(
+	path []string, at time.Time, fn scheduler.TaskFunc,
+) {
+	e.scheduler.Schedule(e.ctx, path, at, fn)
+}
+
+// CancelTask removes a scheduled task for the exact path
+func (e *Engine) CancelTask(path []string) {
+	e.scheduler.Cancel(e.ctx, path)
+}
+
+// CancelPrefixedTasks removes all scheduled tasks under the given prefix
+func (e *Engine) CancelPrefixedTasks(prefix []string) {
+	e.scheduler.CancelPrefix(e.ctx, prefix)
+}
+
+// Now returns the current wall time from Engine's configured clock
+func (e *Engine) Now() time.Time {
+	return e.clock()
 }
 
 // Stop gracefully shuts down the engine
@@ -351,7 +372,7 @@ func normalizeDependencies(deps *Dependencies) error {
 		deps.Clock = time.Now
 	}
 	if deps.TimerConstructor == nil {
-		deps.TimerConstructor = NewTimer
+		deps.TimerConstructor = scheduler.NewTimer
 	}
 	return nil
 }

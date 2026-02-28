@@ -1,9 +1,9 @@
-package engine
+package scheduler
 
 import "time"
 
 type (
-	// Clock provides the current time for engine scheduling and retries
+	// Clock provides the current time for scheduling and retries
 	Clock func() time.Time
 
 	// Timer represents a resettable scheduler timer
@@ -20,11 +20,6 @@ type (
 		*time.Timer
 	}
 )
-
-// Now returns the current wall time from Engine's configured clock
-func (e *Engine) Now() time.Time {
-	return e.clock()
-}
 
 // NewTimer builds the default system-backed scheduler timer
 func NewTimer(delay time.Duration) Timer {

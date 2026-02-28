@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -118,7 +119,7 @@ func TestEngineDependenciesClockOverride(t *testing.T) {
 
 func TestEngineDependenciesTimerOverride(t *testing.T) {
 	called := make(chan time.Duration, 1)
-	makeTimer := func(delay time.Duration) engine.Timer {
+	makeTimer := func(delay time.Duration) scheduler.Timer {
 		called <- delay
 		return &testTimer{ch: make(chan time.Time)}
 	}

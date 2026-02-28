@@ -11,6 +11,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -116,7 +117,7 @@ func NewTestEngineWithDeps(
 		FlowStore:        flowStore,
 		StepClient:       mockCli,
 		Clock:            time.Now,
-		TimerConstructor: engine.NewTimer,
+		TimerConstructor: scheduler.NewTimer,
 	}
 	deps := mergeDependencies(defaultDeps, overrides)
 	eng, err := engine.New(cfg, deps)
@@ -155,7 +156,7 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 
 // Dependencies returns a valid dependency bundle for constructing an engine
 func (e *TestEngineEnv) Dependencies() engine.Dependencies {
-	return e.engineDeps(time.Now, engine.NewTimer)
+	return e.engineDeps(time.Now, scheduler.NewTimer)
 }
 
 // RaiseFlowEvents appends flow events via the executor
@@ -221,7 +222,7 @@ func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 }
 
 func (e *TestEngineEnv) engineDeps(
-	clock engine.Clock, makeTimer engine.TimerConstructor,
+	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
 	return engine.Dependencies{
 		CatalogStore:     e.catalogStore,

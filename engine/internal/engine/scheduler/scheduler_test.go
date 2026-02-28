@@ -1,4 +1,4 @@
-package engine_test
+package scheduler_test
 
 import (
 	"sync/atomic"
@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 )
 
 type (
@@ -143,7 +144,6 @@ func TestCancelPrefixedTasks(t *testing.T) {
 				return nil
 			},
 		)
-
 		eng.ScheduleTask(
 			[]string{"sched", "prefix", "active", "c"},
 			now.Add(100*time.Millisecond),
@@ -174,10 +174,10 @@ func TestCancelPrefixedTasks(t *testing.T) {
 
 func TestTaskHeapKeyedOrderAndCancelPrefix(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	h := engine.NewTaskHeap()
+	h := scheduler.NewTaskHeap()
 	noop := func() error { return nil }
 	insert := func(path []string, at time.Time) {
-		h.Insert(&engine.Task{Path: path, At: at, Func: noop})
+		h.Insert(&scheduler.Task{Path: path, At: at, Func: noop})
 	}
 
 	insert([]string{"a"}, now.Add(3*time.Second))
@@ -212,13 +212,13 @@ func TestTaskHeapKeyedOrderAndCancelPrefix(t *testing.T) {
 }
 
 func TestTaskHeapNoOps(t *testing.T) {
-	h := engine.NewTaskHeap()
+	h := scheduler.NewTaskHeap()
 	assert.Nil(t, h.PopTask())
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 
 	h.Insert(nil)
-	h.Insert(&engine.Task{At: now})
-	h.Insert(&engine.Task{Func: func() error { return nil }})
+	h.Insert(&scheduler.Task{At: now})
+	h.Insert(&scheduler.Task{Func: func() error { return nil }})
 	assert.Nil(t, h.Peek())
 
 	h.Cancel(nil)
@@ -229,9 +229,9 @@ func TestTaskHeapNoOps(t *testing.T) {
 }
 
 func TestTaskHeapPopNonKeyed(t *testing.T) {
-	h := engine.NewTaskHeap()
+	h := scheduler.NewTaskHeap()
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	h.Insert(&engine.Task{
+	h.Insert(&scheduler.Task{
 		At:   now,
 		Func: func() error { return nil },
 	})
@@ -243,7 +243,9 @@ func TestTaskHeapPopNonKeyed(t *testing.T) {
 	assert.Nil(t, h.PopTask())
 }
 
-func (c *testTimerConstructor) NewTimer(delay time.Duration) engine.Timer {
+func (c *testTimerConstructor) NewTimer(
+	delay time.Duration,
+) scheduler.Timer {
 	timer := newFakeTimer(delay)
 	select {
 	case c.created <- timer:
