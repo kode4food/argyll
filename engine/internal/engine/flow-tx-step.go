@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type flowTx struct {
@@ -68,7 +69,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		); err != nil {
 			return err
 		}
-		return performCalls(
+		return call.Perform(
 			tx.checkUnreachable,
 			tx.checkTerminal,
 			tx.startReadyPendingSteps,
@@ -229,7 +230,7 @@ func (tx *flowTx) handlePredicateFailure(stepID api.StepID, err error) error {
 		return raiseErr
 	}
 
-	return performCalls(
+	return call.Perform(
 		tx.checkUnreachable,
 		tx.checkTerminal,
 	)
@@ -254,7 +255,7 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 		return tx.continueStepWork(stepID, false)
 	}
 
-	return performCalls(
+	return call.Perform(
 		tx.checkUnreachable,
 		tx.checkTerminal,
 		tx.startReadyPendingSteps,

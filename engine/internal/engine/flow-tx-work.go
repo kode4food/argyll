@@ -6,6 +6,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 // scheduleRetry handles retry decision for a specific work item
@@ -72,7 +73,7 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 		return tx.handleWorkContinuation(stepID)
 	}
 
-	return performCalls(
+	return call.Perform(
 		tx.skipPendingUnused,
 		tx.startReadyPendingSteps,
 		tx.checkTerminal,
@@ -84,9 +85,9 @@ func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
 }
 
 func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
-	return performCalls(
-		withArgs(tx.continueStepWork, stepID, true),
-		withArg(tx.handleStepFailure, stepID),
+	return call.Perform(
+		call.WithArgs(tx.continueStepWork, stepID, true),
+		call.WithArg(tx.handleStepFailure, stepID),
 	)
 }
 
@@ -96,10 +97,10 @@ func (tx *flowTx) handleWorkNotCompleted(
 	if flowTransitions.IsTerminal(tx.Value().Status) {
 		return tx.maybeDeactivate()
 	}
-	return performCalls(
-		withArgs(tx.scheduleRetry, stepID, token),
-		withArgs(tx.continueStepWork, stepID, true),
-		withArg(tx.handleStepFailure, stepID),
+	return call.Perform(
+		call.WithArgs(tx.scheduleRetry, stepID, token),
+		call.WithArgs(tx.continueStepWork, stepID, true),
+		call.WithArg(tx.handleStepFailure, stepID),
 	)
 }
 

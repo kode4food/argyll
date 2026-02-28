@@ -10,6 +10,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type (
@@ -72,9 +73,9 @@ func (e *Engine) execStepUpsert(
 			return err
 		}
 
-		if err := performCalls(
-			withArgs(validateAttributeTypes, st, step),
-			withArgs(detectStepCycles, st, step),
+		if err := call.Perform(
+			call.WithArgs(validateAttributeTypes, st, step),
+			call.WithArgs(detectStepCycles, st, step),
 		); err != nil {
 			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 		}
@@ -96,10 +97,10 @@ func (e *Engine) execStepUpsert(
 }
 
 func (e *Engine) validateStep(step *api.Step) error {
-	if err := performCalls(
+	if err := call.Perform(
 		step.Validate,
-		withArg(e.validateStepMappings, step),
-		withArg(e.validateStepScripts, step),
+		call.WithArg(e.validateStepMappings, step),
+		call.WithArg(e.validateStepScripts, step),
 	); err != nil {
 		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
 	}
