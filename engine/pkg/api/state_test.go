@@ -411,14 +411,14 @@ func TestSetWorkItem(t *testing.T) {
 		WorkItems: map[api.Token]*api.WorkState{},
 	}
 
-	workItem := &api.WorkState{
+	work := &api.WorkState{
 		Status: api.WorkPending,
 	}
 
-	result := original.SetWorkItem("work-1", workItem)
+	result := original.SetWorkItem("work-1", work)
 
 	assert.Len(t, result.WorkItems, 1)
-	assert.Equal(t, workItem, result.WorkItems["work-1"])
+	assert.Equal(t, work, result.WorkItems["work-1"])
 	assert.Empty(t, original.WorkItems)
 }
 

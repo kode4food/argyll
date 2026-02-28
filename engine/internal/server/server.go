@@ -108,7 +108,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 }
 
 func (s *Server) handleEngine(c *gin.Context) {
-	catState, err := s.engine.GetCatalogState()
+	cat, err := s.engine.GetCatalogState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
@@ -116,7 +116,7 @@ func (s *Server) handleEngine(c *gin.Context) {
 		})
 		return
 	}
-	partState, err := s.engine.GetPartitionState()
+	part, err := s.engine.GetPartitionState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetPartitionState, err),
@@ -124,21 +124,21 @@ func (s *Server) handleEngine(c *gin.Context) {
 		})
 		return
 	}
-	health := engine.ResolveHealth(catState, partState.Health)
+	health := engine.ResolveHealth(cat, part.Health)
 
-	last := catState.LastUpdated
-	if partState.LastUpdated.After(last) {
-		last = partState.LastUpdated
+	last := cat.LastUpdated
+	if part.LastUpdated.After(last) {
+		last = part.LastUpdated
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"last_updated": last,
-		"steps":        catState.Steps,
-		"attributes":   catState.Attributes,
+		"steps":        cat.Steps,
+		"attributes":   cat.Attributes,
 		"health":       health,
-		"active":       partState.Active,
-		"deactivated":  partState.Deactivated,
-		"archiving":    partState.Archiving,
-		"flow_digests": partState.FlowDigests,
+		"active":       part.Active,
+		"deactivated":  part.Deactivated,
+		"archiving":    part.Archiving,
+		"flow_digests": part.FlowDigests,
 	})
 }
 

@@ -54,13 +54,13 @@ func (e *Engine) GetPartitionStateSeq() (*api.PartitionState, int64, error) {
 
 // ListSteps returns all currently registered steps in the engine
 func (e *Engine) ListSteps() ([]*api.Step, error) {
-	catState, err := e.GetCatalogState()
+	cat, err := e.GetCatalogState()
 	if err != nil {
 		return nil, err
 	}
 
 	var steps []*api.Step
-	for _, step := range catState.Steps {
+	for _, step := range cat.Steps {
 		steps = append(steps, step)
 	}
 

@@ -9,7 +9,7 @@ import (
 )
 
 type builder struct {
-	catState    *api.CatalogState
+	cat         *api.CatalogState
 	satisfied   util.Set[api.Name]
 	available   util.Set[api.Name]
 	satisfiable util.Set[api.StepID]
@@ -28,17 +28,17 @@ var (
 // Create builds an execution plan for the given goal steps, resolving
 // dependencies and determining required inputs
 func Create(
-	catState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
+	cat *api.CatalogState, goalIDs []api.StepID, init api.Args,
 ) (*api.ExecutionPlan, error) {
 	if len(goalIDs) == 0 {
 		return nil, ErrNoGoals
 	}
 
-	if err := validateGoals(catState, goalIDs); err != nil {
+	if err := validateGoals(cat, goalIDs); err != nil {
 		return nil, err
 	}
 
-	pb := newPlanBuilder(catState, initState)
+	pb := newPlanBuilder(cat, init)
 	pb.computeSatisfiable()
 	if err := pb.collectSteps(goalIDs); err != nil {
 		return nil, err
@@ -55,9 +55,9 @@ func Create(
 	}, nil
 }
 
-func newPlanBuilder(st *api.CatalogState, initState api.Args) *builder {
+func newPlanBuilder(st *api.CatalogState, init api.Args) *builder {
 	pb := &builder{
-		catState:    st,
+		cat:         st,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
 		satisfiable: util.Set[api.StepID]{},
@@ -68,7 +68,7 @@ func newPlanBuilder(st *api.CatalogState, initState api.Args) *builder {
 		attributes:  api.AttributeGraph{},
 	}
 
-	for key := range initState {
+	for key := range init {
 		pb.satisfied.Add(key)
 	}
 
@@ -85,7 +85,7 @@ func (b *builder) computeSatisfiable() {
 	progress := true
 	for progress {
 		progress = false
-		for _, step := range b.catState.Steps {
+		for _, step := range b.cat.Steps {
 			if b.satisfiable.Contains(step.ID) {
 				continue
 			}
@@ -131,7 +131,7 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	}
 	b.visited.Add(stepID)
 
-	step := b.catState.Steps[stepID]
+	step := b.cat.Steps[stepID]
 	allInputs := step.GetAllInputArgs()
 	required := b.buildRequired(step)
 	for _, name := range allInputs {
@@ -167,7 +167,7 @@ func (b *builder) buildRequired(step *api.Step) util.Set[api.Name] {
 
 func (b *builder) markSatisfied(name api.Name) {
 	for _, providerID := range b.findProviders(name) {
-		step := b.catState.Steps[providerID]
+		step := b.cat.Steps[providerID]
 		if b.outputsAvailable(step) {
 			b.visited.Add(providerID)
 		}
@@ -195,7 +195,7 @@ func (b *builder) includeProviders(name api.Name) (bool, error) {
 }
 
 func (b *builder) findProviders(name api.Name) []api.StepID {
-	if deps, ok := b.catState.Attributes[name]; ok {
+	if deps, ok := b.cat.Attributes[name]; ok {
 		return deps.Providers
 	}
 	return nil
@@ -227,7 +227,7 @@ func (b *builder) outputsAvailable(step *api.Step) bool {
 
 func (b *builder) buildPlan() {
 	for id := range b.included {
-		step := b.catState.Steps[id]
+		step := b.cat.Steps[id]
 		b.steps[id] = step
 		for name, attr := range step.Attributes {
 			if attr.IsOutput() {
@@ -237,7 +237,7 @@ func (b *builder) buildPlan() {
 	}
 
 	for id := range b.included {
-		step := b.catState.Steps[id]
+		step := b.cat.Steps[id]
 		for name, attr := range step.Attributes {
 			if attr.IsInput() && b.inputSatisfied(name) {
 				b.addConsumer(name, id)
@@ -250,7 +250,7 @@ func (b *builder) inputSatisfied(name api.Name) bool {
 	if b.satisfied.Contains(name) {
 		return true
 	}
-	if deps, ok := b.catState.Attributes[name]; ok {
+	if deps, ok := b.cat.Attributes[name]; ok {
 		if slices.ContainsFunc(deps.Providers, b.included.Contains) {
 			return true
 		}
@@ -284,7 +284,7 @@ func (b *builder) buildExcluded() api.ExcludedSteps {
 		Missing:   map[api.StepID][]api.Name{},
 	}
 	for stepID := range b.visited {
-		step := b.catState.Steps[stepID]
+		step := b.cat.Steps[stepID]
 		if b.included.Contains(stepID) {
 			continue
 		}
@@ -326,9 +326,9 @@ func (b *builder) getRequiredInputs() []api.Name {
 	return required
 }
 
-func validateGoals(catState *api.CatalogState, goalIDs []api.StepID) error {
+func validateGoals(cat *api.CatalogState, goalIDs []api.StepID) error {
 	for _, goalID := range goalIDs {
-		if _, ok := catState.Steps[goalID]; !ok {
+		if _, ok := cat.Steps[goalID]; !ok {
 			return ErrStepNotFound
 		}
 	}

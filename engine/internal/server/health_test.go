@@ -31,9 +31,9 @@ func TestGetStepHealth(t *testing.T) {
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		health, ok := partState.Health["health-test-step"]
+		health, ok := part.Health["health-test-step"]
 		assert.True(t, ok)
 		assert.NotNil(t, health)
 		assert.Equal(t, api.HealthUnknown, health.Status)
@@ -42,9 +42,9 @@ func TestGetStepHealth(t *testing.T) {
 
 func TestGetStepHealthNotFound(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok := partState.Health["nonexistent-step"]
+		_, ok := part.Health["nonexistent-step"]
 		assert.False(t, ok)
 	})
 }
@@ -78,9 +78,9 @@ func TestWithRealHealthCheck(t *testing.T) {
 		checker.Start()
 		defer checker.Stop()
 
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		health, ok := partState.Health["real-health-step"]
+		health, ok := part.Health["real-health-step"]
 		assert.True(t, ok)
 		assert.NotNil(t, health)
 	})
@@ -120,9 +120,9 @@ func TestRecentSuccess(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		health, ok := partState.Health["recent-success-step"]
+		health, ok := part.Health["recent-success-step"]
 		assert.True(t, ok)
 		assert.NotNil(t, health)
 	})
@@ -207,9 +207,9 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 		checker.Start()
 		defer checker.Stop()
 
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(partState.Health), 3)
+		assert.GreaterOrEqual(t, len(part.Health), 3)
 	})
 }
 

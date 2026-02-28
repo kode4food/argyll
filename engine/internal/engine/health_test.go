@@ -209,11 +209,11 @@ func resolveHealth(
 ) map[api.StepID]*api.HealthState {
 	t.Helper()
 
-	catState, err := eng.GetCatalogState()
+	cat, err := eng.GetCatalogState()
 	assert.NoError(t, err)
 
-	partState, err := eng.GetPartitionState()
+	part, err := eng.GetPartitionState()
 	assert.NoError(t, err)
 
-	return engine.ResolveHealth(catState, partState.Health)
+	return engine.ResolveHealth(cat, part.Health)
 }

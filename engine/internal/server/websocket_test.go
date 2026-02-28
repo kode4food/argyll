@@ -156,14 +156,14 @@ func TestMessageNonSubscribe(t *testing.T) {
 }
 
 func TestSubscribeStateSendsState(t *testing.T) {
-	flowState := &api.FlowState{
+	flow := &api.FlowState{
 		ID:     "wf-123",
 		Status: api.FlowActive,
 	}
 
 	getState := func(id timebox.AggregateID) (any, int64, error) {
 		assert.Equal(t, events.FlowKey("wf-123"), id)
-		return flowState, 5, nil
+		return flow, 5, nil
 	}
 
 	env := testWebSocket(t, getState)
@@ -359,8 +359,8 @@ func TestSocketCallbackEngine(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, []string{events.CatalogPrefix}, stateMsg.AggregateID)
 
-		var catState api.CatalogState
-		err = json.Unmarshal(stateMsg.Data, &catState)
+		var cat api.CatalogState
+		err = json.Unmarshal(stateMsg.Data, &cat)
 		assert.NoError(t, err)
 	})
 }
@@ -392,10 +392,10 @@ func TestSocketCallbackFlow(t *testing.T) {
 			[]string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID,
 		)
 
-		var flowState api.FlowState
-		err = json.Unmarshal(stateMsg.Data, &flowState)
+		var flow api.FlowState
+		err = json.Unmarshal(stateMsg.Data, &flow)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowID("wf-123"), flowState.ID)
+		assert.Equal(t, api.FlowID("wf-123"), flow.ID)
 	})
 }
 

@@ -39,7 +39,7 @@ func TestIsPartitionEvent(t *testing.T) {
 }
 
 func TestStepHealthChanged(t *testing.T) {
-	initialState := events.NewPartitionState().
+	state := events.NewPartitionState().
 		SetHealth("test-step", &api.HealthState{Status: api.HealthUnknown})
 
 	now := time.Now()
@@ -60,7 +60,7 @@ func TestStepHealthChanged(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, api.HealthHealthy, result.Health["test-step"].Status)
@@ -69,7 +69,7 @@ func TestStepHealthChanged(t *testing.T) {
 }
 
 func TestChangedWithError(t *testing.T) {
-	initialState := events.NewPartitionState().
+	state := events.NewPartitionState().
 		SetHealth("test-step", &api.HealthState{Status: api.HealthHealthy})
 
 	now := time.Now()
@@ -90,7 +90,7 @@ func TestChangedWithError(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, api.HealthUnhealthy, result.Health["test-step"].Status)
@@ -99,7 +99,7 @@ func TestChangedWithError(t *testing.T) {
 }
 
 func TestFlowActivated(t *testing.T) {
-	initialState := events.NewPartitionState()
+	state := events.NewPartitionState()
 	now := time.Now()
 
 	eventData := api.FlowActivatedEvent{
@@ -117,7 +117,7 @@ func TestFlowActivated(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.NotNil(t, result.Active["test-flow"])
@@ -133,7 +133,7 @@ func TestFlowActivated(t *testing.T) {
 }
 
 func TestFlowDeactivated(t *testing.T) {
-	initialState := events.NewPartitionState().
+	state := events.NewPartitionState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
 			ParentFlowID: "parent-flow",
 			StartedAt:    time.Now(),
@@ -154,7 +154,7 @@ func TestFlowDeactivated(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Nil(t, result.Active["test-flow"])
@@ -165,7 +165,7 @@ func TestFlowDeactivated(t *testing.T) {
 }
 
 func TestFlowArchiving(t *testing.T) {
-	initialState := events.NewPartitionState().
+	state := events.NewPartitionState().
 		AddDeactivated(&api.DeactivatedFlow{
 			FlowID:        "test-flow",
 			DeactivatedAt: time.Now(),
@@ -184,7 +184,7 @@ func TestFlowArchiving(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Len(t, result.Deactivated, 0)
@@ -195,7 +195,7 @@ func TestFlowArchiving(t *testing.T) {
 
 func TestFlowArchived(t *testing.T) {
 	now := time.Now()
-	initialState := events.NewPartitionState().
+	state := events.NewPartitionState().
 		AddDeactivated(&api.DeactivatedFlow{
 			FlowID:        "test-flow",
 			DeactivatedAt: now.Add(-time.Minute),
@@ -218,7 +218,7 @@ func TestFlowArchived(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Len(t, result.Archiving, 0)
@@ -229,7 +229,7 @@ func TestFlowArchived(t *testing.T) {
 
 func TestFlowDigestUpdated(t *testing.T) {
 	now := time.Now()
-	initialState := events.NewPartitionState().
+	state := events.NewPartitionState().
 		SetActiveFlow("test-flow", &api.ActiveFlow{
 			StartedAt:  now.Add(-time.Minute),
 			LastActive: now.Add(-time.Minute),
@@ -256,7 +256,7 @@ func TestFlowDigestUpdated(t *testing.T) {
 	}
 
 	applier := events.PartitionAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, api.FlowCompleted, result.FlowDigests["test-flow"].Status)

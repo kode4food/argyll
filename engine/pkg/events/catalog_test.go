@@ -35,7 +35,7 @@ func TestIsCatalogEvent(t *testing.T) {
 }
 
 func TestStepRegistered(t *testing.T) {
-	initialState := events.NewCatalogState()
+	state := events.NewCatalogState()
 	now := time.Now()
 
 	step := &api.Step{
@@ -59,7 +59,7 @@ func TestStepRegistered(t *testing.T) {
 	}
 
 	applier := events.CatalogAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, step, result.Steps["test-step"])
@@ -76,7 +76,7 @@ func TestStepUnregistered(t *testing.T) {
 		},
 	}
 
-	initialState := events.NewCatalogState().SetStep("test-step", step)
+	state := events.NewCatalogState().SetStep("test-step", step)
 	now := time.Now()
 
 	eventData := api.StepUnregisteredEvent{StepID: "test-step"}
@@ -91,7 +91,7 @@ func TestStepUnregistered(t *testing.T) {
 	}
 
 	applier := events.CatalogAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Nil(t, result.Steps["test-step"])
@@ -117,7 +117,7 @@ func TestStepUpdated(t *testing.T) {
 		},
 	}
 
-	initialState := events.NewCatalogState().SetStep("test-step", oldStep)
+	state := events.NewCatalogState().SetStep("test-step", oldStep)
 	now := time.Now()
 
 	eventData := api.StepUpdatedEvent{Step: newStep}
@@ -132,7 +132,7 @@ func TestStepUpdated(t *testing.T) {
 	}
 
 	applier := events.CatalogAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, newStep, result.Steps["test-step"])

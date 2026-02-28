@@ -59,9 +59,9 @@ func TestRecoveryDeactivation(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok := partState.Active[flowID]
+		_, ok := part.Active[flowID]
 		assert.False(t, ok)
 	})
 }
@@ -188,9 +188,9 @@ func TestTerminalFlow(t *testing.T) {
 		err := eng.StartFlow(flowID, plan)
 		assert.NoError(t, err)
 
-		flowState, err := eng.GetFlowState(flowID)
+		flow, err := eng.GetFlowState(flowID)
 		assert.NoError(t, err)
-		flowState.Status = api.FlowCompleted
+		flow.Status = api.FlowCompleted
 
 		err = eng.RecoverFlow(flowID)
 		assert.NoError(t, err)
@@ -484,9 +484,9 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		partState, err := env.Engine.GetPartitionState()
+		part, err := env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok := partState.Active[flowID]
+		_, ok := part.Active[flowID]
 		assert.False(t, ok)
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
@@ -497,9 +497,9 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 		invoked := env.MockClient.WaitForInvocation(step.ID, 2*time.Second)
 		assert.True(t, invoked)
 
-		partState, err = env.Engine.GetPartitionState()
+		part, err = env.Engine.GetPartitionState()
 		assert.NoError(t, err)
-		_, ok = partState.Active[flowID]
+		_, ok = part.Active[flowID]
 		assert.True(t, ok)
 	})
 }
@@ -667,9 +667,9 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 		activeFlowID := api.FlowID("recover-active")
 		deactivatedFlowID := api.FlowID("recover-deactivated")
 		archivingFlowID := api.FlowID("recover-archiving")
-		activeStep := helpers.NewSimpleStep("recover-step-active")
-		deactivatedStep := helpers.NewSimpleStep("recover-step-deactivated")
-		archivingStep := helpers.NewSimpleStep("recover-step-archiving")
+		active := helpers.NewSimpleStep("recover-step-active")
+		deactivated := helpers.NewSimpleStep("recover-step-deactivated")
+		archiving := helpers.NewSimpleStep("recover-step-archiving")
 		activeToken := api.Token("active-token")
 		deactivatedToken := api.Token("deactivated-token")
 		archivingToken := api.Token("archiving-token")
@@ -717,9 +717,9 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 			assert.NoError(t, err)
 		}
 
-		raiseFlow(activeFlowID, activeStep, activeToken)
-		raiseFlow(deactivatedFlowID, deactivatedStep, deactivatedToken)
-		raiseFlow(archivingFlowID, archivingStep, archivingToken)
+		raiseFlow(activeFlowID, active, activeToken)
+		raiseFlow(deactivatedFlowID, deactivated, deactivatedToken)
+		raiseFlow(archivingFlowID, archiving, archivingToken)
 
 		env.WaitFor(wait.FlowActivated(activeFlowID), func() {
 			env.Engine.EnqueueEvent(api.EventTypeFlowActivated,
@@ -737,9 +737,9 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 				api.FlowArchivingEvent{FlowID: archivingFlowID})
 		})
 
-		env.MockClient.SetResponse(activeStep.ID, api.Args{})
-		env.MockClient.SetResponse(deactivatedStep.ID, api.Args{})
-		env.MockClient.SetResponse(archivingStep.ID, api.Args{})
+		env.MockClient.SetResponse(active.ID, api.Args{})
+		env.MockClient.SetResponse(deactivated.ID, api.Args{})
+		env.MockClient.SetResponse(archiving.ID, api.Args{})
 		assert.NoError(t, env.Engine.Stop())
 
 		restarted, err := env.NewEngineInstance()
@@ -748,26 +748,26 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 		defer func() { _ = restarted.Stop() }()
 
 		assert.True(t,
-			env.MockClient.WaitForInvocation(activeStep.ID, 2*time.Second))
+			env.MockClient.WaitForInvocation(active.ID, 2*time.Second))
 		assert.False(t,
-			env.MockClient.WaitForInvocation(deactivatedStep.ID, 300*time.Millisecond))
+			env.MockClient.WaitForInvocation(deactivated.ID, 300*time.Millisecond))
 		assert.False(t,
-			env.MockClient.WaitForInvocation(archivingStep.ID, 300*time.Millisecond))
+			env.MockClient.WaitForInvocation(archiving.ID, 300*time.Millisecond))
 
-		activeState, err := restarted.GetFlowState(activeFlowID)
+		activeFlow, err := restarted.GetFlowState(activeFlowID)
 		assert.NoError(t, err)
-		deactivatedState, err := restarted.GetFlowState(deactivatedFlowID)
+		deactivatedFlow, err := restarted.GetFlowState(deactivatedFlowID)
 		assert.NoError(t, err)
-		archivingState, err := restarted.GetFlowState(archivingFlowID)
+		archivingFlow, err := restarted.GetFlowState(archivingFlowID)
 		assert.NoError(t, err)
 
 		assert.NotEqual(t, api.WorkPending,
-			activeState.Executions[activeStep.ID].WorkItems[activeToken].Status)
+			activeFlow.Executions[active.ID].WorkItems[activeToken].Status)
 		assert.Equal(t, api.WorkPending,
-			deactivatedState.Executions[deactivatedStep.ID].
+			deactivatedFlow.Executions[deactivated.ID].
 				WorkItems[deactivatedToken].Status)
 		assert.Equal(t, api.WorkPending,
-			archivingState.Executions[archivingStep.ID].
+			archivingFlow.Executions[archiving.ID].
 				WorkItems[archivingToken].Status)
 	})
 }

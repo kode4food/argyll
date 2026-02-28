@@ -90,7 +90,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		script := &api.Step{
+		st := &api.Step{
 			ID:   "script-step",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
@@ -117,7 +117,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 			},
 		}
 
-		scriptComp, err := registry.Compile(script, script.Script)
+		scriptComp, err := registry.Compile(st, st.Script)
 		assert.NoError(t, err)
 		assert.NotNil(t, scriptComp)
 

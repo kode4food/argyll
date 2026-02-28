@@ -293,8 +293,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		// Step 1: Will have Pending work (hasn't started yet)
-		pendingStep := helpers.NewSimpleStep("pending-step")
-		pendingStep.WorkConfig = &api.WorkConfig{
+		pending := helpers.NewSimpleStep("pending-step")
+		pending.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
 			InitBackoff: 200,
 			MaxBackoff:  200,
@@ -302,8 +302,8 @@ func TestRecoveryWorkStates(t *testing.T) {
 		}
 
 		// Step 2: Will have NotCompleted work (failed but retryable)
-		notCompletedStep := helpers.NewSimpleStep("not-completed-step")
-		notCompletedStep.WorkConfig = &api.WorkConfig{
+		retry := helpers.NewSimpleStep("not-completed-step")
+		retry.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
 			InitBackoff: 200,
 			MaxBackoff:  200,
@@ -311,34 +311,34 @@ func TestRecoveryWorkStates(t *testing.T) {
 		}
 
 		// Step 3: Will have Failed work (perm failure, max retries reached)
-		failedStep := helpers.NewSimpleStep("failed-step")
-		failedStep.WorkConfig = &api.WorkConfig{
+		failed := helpers.NewSimpleStep("failed-step")
+		failed.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
 			InitBackoff: 1,
 			MaxBackoff:  1,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(pendingStep))
-		assert.NoError(t, env.Engine.RegisterStep(notCompletedStep))
-		assert.NoError(t, env.Engine.RegisterStep(failedStep))
+		assert.NoError(t, env.Engine.RegisterStep(pending))
+		assert.NoError(t, env.Engine.RegisterStep(retry))
+		assert.NoError(t, env.Engine.RegisterStep(failed))
 
 		// Set up mock responses
-		env.MockClient.SetResponse(pendingStep.ID, api.Args{})
-		env.MockClient.SetError(notCompletedStep.ID, api.ErrWorkNotCompleted)
-		env.MockClient.SetError(failedStep.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetResponse(pending.ID, api.Args{})
+		env.MockClient.SetError(retry.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(failed.ID, api.ErrWorkNotCompleted)
 
 		plan1 := &api.ExecutionPlan{
-			Goals: []api.StepID{pendingStep.ID},
-			Steps: api.Steps{pendingStep.ID: pendingStep},
+			Goals: []api.StepID{pending.ID},
+			Steps: api.Steps{pending.ID: pending},
 		}
 		plan2 := &api.ExecutionPlan{
-			Goals: []api.StepID{notCompletedStep.ID},
-			Steps: api.Steps{notCompletedStep.ID: notCompletedStep},
+			Goals: []api.StepID{retry.ID},
+			Steps: api.Steps{retry.ID: retry},
 		}
 		plan3 := &api.ExecutionPlan{
-			Goals: []api.StepID{failedStep.ID},
-			Steps: api.Steps{failedStep.ID: failedStep},
+			Goals: []api.StepID{failed.ID},
+			Steps: api.Steps{failed.ID: failed},
 		}
 
 		pendingFlowID := api.FlowID("pending-flow")
@@ -352,7 +352,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 			waits[0].ForEvent(wait.FlowActivated(notCompletedFlowID))
 			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
 				FlowID: notCompletedFlowID,
-				StepID: notCompletedStep.ID,
+				StepID: retry.ID,
 			}))
 		})
 
@@ -369,16 +369,16 @@ func TestRecoveryWorkStates(t *testing.T) {
 		err := env.Engine.Stop()
 		assert.NoError(t, err)
 
-		env.MockClient.ClearError(notCompletedStep.ID)
-		env.MockClient.SetResponse(notCompletedStep.ID, api.Args{})
+		env.MockClient.ClearError(retry.ID)
+		env.MockClient.SetResponse(retry.ID, api.Args{})
 
 		env.Engine, err = env.NewEngineInstance()
 		assert.NoError(t, err)
 
 		// Re-register steps on new engine instance
-		assert.NoError(t, env.Engine.RegisterStep(pendingStep))
-		assert.NoError(t, env.Engine.RegisterStep(notCompletedStep))
-		assert.NoError(t, env.Engine.RegisterStep(failedStep))
+		assert.NoError(t, env.Engine.RegisterStep(pending))
+		assert.NoError(t, env.Engine.RegisterStep(retry))
+		assert.NoError(t, env.Engine.RegisterStep(failed))
 
 		// Verify recovery behavior:
 

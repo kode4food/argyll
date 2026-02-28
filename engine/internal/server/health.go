@@ -116,14 +116,14 @@ func (h *HealthChecker) healthCheckLoop() {
 }
 
 func (h *HealthChecker) checkAllSteps() {
-	catState, err := h.engine.GetCatalogState()
+	cat, err := h.engine.GetCatalogState()
 	if err != nil {
 		slog.Error("Failed to get catalog state", log.Error(err))
 		return
 	}
 
 	var httpSteps []*api.Step
-	for _, step := range catState.Steps {
+	for _, step := range cat.Steps {
 		if step.HTTP != nil && step.HTTP.HealthCheck != "" {
 			httpSteps = append(httpSteps, step)
 		}
@@ -245,13 +245,13 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 func resolveEngineHealth(
 	eng *engine.Engine,
 ) (map[api.StepID]*api.HealthState, error) {
-	catState, err := eng.GetCatalogState()
+	cat, err := eng.GetCatalogState()
 	if err != nil {
 		return nil, err
 	}
-	partState, err := eng.GetPartitionState()
+	part, err := eng.GetPartitionState()
 	if err != nil {
 		return nil, err
 	}
-	return engine.ResolveHealth(catState, partState.Health), nil
+	return engine.ResolveHealth(cat, part.Health), nil
 }

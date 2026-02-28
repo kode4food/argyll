@@ -43,15 +43,15 @@ func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
 func (e *Engine) QueryFlows(
 	req *api.QueryFlowsRequest,
 ) (*api.QueryFlowsResponse, error) {
-	partState, err := e.GetPartitionState()
+	part, err := e.GetPartitionState()
 	if err != nil {
 		return nil, err
 	}
 
 	sortOrder := querySortOrder(req)
-	flowIDs := collectRootFlowIDs(partState)
+	ids := collectRootFlowIDs(part)
 	filters := buildFlowQueryFilters(req)
-	items := buildFlowQueryItems(partState, flowIDs, filters)
+	items := buildFlowQueryItems(part, ids, filters)
 	sortFlowQueryItems(items, sortOrder)
 
 	start, err := queryFlowStart(items, req, sortOrder)
@@ -74,18 +74,18 @@ func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
 }
 
 // collectRootFlowIDs returns active & deactivated flow IDs excluding children
-func collectRootFlowIDs(partState *api.PartitionState) []api.FlowID {
-	count := len(partState.Active) + len(partState.Deactivated)
-	flowIDs := make([]api.FlowID, 0, count)
+func collectRootFlowIDs(part *api.PartitionState) []api.FlowID {
+	count := len(part.Active) + len(part.Deactivated)
+	ids := make([]api.FlowID, 0, count)
 	seen := util.Set[api.FlowID]{}
-	for id, info := range partState.Active {
+	for id, info := range part.Active {
 		if info != nil && info.ParentFlowID != "" {
 			continue
 		}
 		seen.Add(id)
-		flowIDs = append(flowIDs, id)
+		ids = append(ids, id)
 	}
-	for _, info := range partState.Deactivated {
+	for _, info := range part.Deactivated {
 		if info.ParentFlowID != "" {
 			continue
 		}
@@ -93,9 +93,9 @@ func collectRootFlowIDs(partState *api.PartitionState) []api.FlowID {
 			continue
 		}
 		seen.Add(info.FlowID)
-		flowIDs = append(flowIDs, info.FlowID)
+		ids = append(ids, info.FlowID)
 	}
-	return flowIDs
+	return ids
 }
 
 func labelsMatch(flowLabels, queryLabels api.Labels) bool {
@@ -170,12 +170,12 @@ func flowQueryOrdering(digest *api.FlowDigest) (int, int64) {
 
 // buildFlowQueryItems converts flow digests into sortable query items
 func buildFlowQueryItems(
-	partState *api.PartitionState, flowIDs []api.FlowID,
+	part *api.PartitionState, ids []api.FlowID,
 	filters []flowQueryFilter,
 ) []flowQueryItem {
-	items := make([]flowQueryItem, 0, len(flowIDs))
-	for _, flowID := range flowIDs {
-		digest, ok := partState.FlowDigests[flowID]
+	items := make([]flowQueryItem, 0, len(ids))
+	for _, flowID := range ids {
+		digest, ok := part.FlowDigests[flowID]
 		if !ok || !matchesFlowQueryFilters(flowID, digest, filters) {
 			continue
 		}

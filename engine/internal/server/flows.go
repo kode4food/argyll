@@ -148,7 +148,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	plan, ok := s.createPlan(c, req.Goals, req.Init)
+	pl, ok := s.createPlan(c, req.Goals, req.Init)
 	if !ok {
 		return
 	}
@@ -160,7 +160,7 @@ func (s *Server) startFlow(c *gin.Context) {
 	if len(req.Labels) > 0 {
 		apps = append(apps, flowopt.WithLabels(req.Labels))
 	}
-	err := s.engine.StartFlow(req.ID, plan, apps...)
+	err := s.engine.StartFlow(req.ID, pl, apps...)
 	if err == nil {
 		c.JSON(http.StatusCreated, api.FlowStartedResponse{
 			FlowID: req.ID,
@@ -211,9 +211,9 @@ func (s *Server) getFlow(c *gin.Context) {
 }
 
 func (s *Server) createPlan(
-	c *gin.Context, goalStepIDs []api.StepID, initialState api.Args,
+	c *gin.Context, goalStepIDs []api.StepID, init api.Args,
 ) (*api.ExecutionPlan, bool) {
-	catState, err := s.engine.GetCatalogState()
+	cat, err := s.engine.GetCatalogState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
@@ -222,9 +222,9 @@ func (s *Server) createPlan(
 		return nil, false
 	}
 
-	execPlan, err := plan.Create(catState, goalStepIDs, initialState)
+	pl, err := plan.Create(cat, goalStepIDs, init)
 	if err == nil {
-		return execPlan, true
+		return pl, true
 	}
 
 	if errors.Is(err, plan.ErrStepNotFound) {
@@ -259,7 +259,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	if plan, ok := s.createPlan(c, req.Goals, req.Init); ok {
-		c.JSON(http.StatusOK, plan)
+	if pl, ok := s.createPlan(c, req.Goals, req.Init); ok {
+		c.JSON(http.StatusOK, pl)
 	}
 }

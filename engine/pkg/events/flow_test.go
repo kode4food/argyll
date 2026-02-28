@@ -35,7 +35,7 @@ func TestIsFlowEvent(t *testing.T) {
 }
 
 func TestFlowStarted(t *testing.T) {
-	initialState := events.NewFlowState()
+	state := events.NewFlowState()
 	now := time.Now()
 
 	plan := &api.ExecutionPlan{
@@ -64,7 +64,7 @@ func TestFlowStarted(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, api.FlowID("test-flow"), result.ID)
@@ -78,7 +78,7 @@ func TestFlowStarted(t *testing.T) {
 }
 
 func TestFlowCompleted(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
@@ -96,14 +96,14 @@ func TestFlowCompleted(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.Equal(t, api.FlowCompleted, result.Status)
 	assert.True(t, result.CompletedAt.Equal(now))
 }
 
 func TestFlowFailed(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
@@ -124,7 +124,7 @@ func TestFlowFailed(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.Equal(t, api.FlowFailed, result.Status)
 	assert.Equal(t, "execution failed", result.Error)
@@ -132,7 +132,7 @@ func TestFlowFailed(t *testing.T) {
 }
 
 func TestStepStarted(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -159,7 +159,7 @@ func TestStepStarted(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
 	assert.Equal(t, api.StepActive, exec.Status)
@@ -169,7 +169,7 @@ func TestStepStarted(t *testing.T) {
 }
 
 func TestStepCompleted(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -194,7 +194,7 @@ func TestStepCompleted(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
 	assert.Equal(t, api.StepCompleted, exec.Status)
@@ -204,7 +204,7 @@ func TestStepCompleted(t *testing.T) {
 }
 
 func TestStepFailed(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -228,7 +228,7 @@ func TestStepFailed(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
 	assert.Equal(t, api.StepFailed, exec.Status)
@@ -236,7 +236,7 @@ func TestStepFailed(t *testing.T) {
 }
 
 func TestStepSkipped(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -260,7 +260,7 @@ func TestStepSkipped(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
 	assert.Equal(t, api.StepSkipped, exec.Status)
@@ -268,7 +268,7 @@ func TestStepSkipped(t *testing.T) {
 }
 
 func TestAttributeSet(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:         "test-flow",
 		Status:     api.FlowActive,
 		Attributes: api.AttributeValues{},
@@ -291,7 +291,7 @@ func TestAttributeSet(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	assert.Len(t, result.Attributes, 1)
 	assert.NotNil(t, result.Attributes["result"])
@@ -300,7 +300,7 @@ func TestAttributeSet(t *testing.T) {
 }
 
 func TestWorkStarted(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -332,16 +332,16 @@ func TestWorkStarted(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
-	workItem := exec.WorkItems["token1"]
-	assert.Equal(t, api.WorkActive, workItem.Status)
-	assert.True(t, workItem.StartedAt.Equal(now))
+	work := exec.WorkItems["token1"]
+	assert.Equal(t, api.WorkActive, work.Status)
+	assert.True(t, work.StartedAt.Equal(now))
 }
 
 func TestWorkSucceeded(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -371,17 +371,17 @@ func TestWorkSucceeded(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
-	workItem := exec.WorkItems["token1"]
-	assert.Equal(t, api.WorkSucceeded, workItem.Status)
-	assert.True(t, workItem.CompletedAt.Equal(now))
-	assert.Equal(t, "success", workItem.Outputs["work_result"])
+	work := exec.WorkItems["token1"]
+	assert.Equal(t, api.WorkSucceeded, work.Status)
+	assert.True(t, work.CompletedAt.Equal(now))
+	assert.Equal(t, "success", work.Outputs["work_result"])
 }
 
 func TestWorkFailed(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -411,16 +411,16 @@ func TestWorkFailed(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
-	workItem := exec.WorkItems["token1"]
-	assert.Equal(t, api.WorkFailed, workItem.Status)
-	assert.Equal(t, "work execution failed", workItem.Error)
+	work := exec.WorkItems["token1"]
+	assert.Equal(t, api.WorkFailed, work.Status)
+	assert.Equal(t, "work execution failed", work.Error)
 }
 
 func TestWorkNotCompleted(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -450,16 +450,16 @@ func TestWorkNotCompleted(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
-	workItem := exec.WorkItems["token1"]
-	assert.Equal(t, api.WorkNotCompleted, workItem.Status)
-	assert.Equal(t, "work not completed", workItem.Error)
+	work := exec.WorkItems["token1"]
+	assert.Equal(t, api.WorkNotCompleted, work.Status)
+	assert.Equal(t, "work not completed", work.Error)
 }
 
 func TestRetryScheduled(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -496,17 +496,17 @@ func TestRetryScheduled(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-	result := applier(initialState, event)
+	result := applier(state, event)
 
 	exec := result.Executions["step1"]
-	workItem := exec.WorkItems["token1"]
-	assert.Equal(t, api.WorkPending, workItem.Status)
-	assert.Equal(t, 1, workItem.RetryCount)
-	assert.True(t, workItem.NextRetryAt.Equal(nextRetry))
+	work := exec.WorkItems["token1"]
+	assert.Equal(t, api.WorkPending, work.Status)
+	assert.Equal(t, 1, work.RetryCount)
+	assert.True(t, work.NextRetryAt.Equal(nextRetry))
 }
 
 func TestMissingExecution(t *testing.T) {
-	initialState := &api.FlowState{
+	state := &api.FlowState{
 		ID:         "test-flow",
 		Status:     api.FlowActive,
 		Executions: api.Executions{},
@@ -531,6 +531,6 @@ func TestMissingExecution(t *testing.T) {
 	applier := events.FlowAppliers[event.Type]
 
 	assert.Panics(t, func() {
-		applier(initialState, event)
+		applier(state, event)
 	})
 }

@@ -84,12 +84,12 @@ func (e *Engine) StartChildFlow(
 
 	childID := childFlowID(parent, token)
 
-	catState, err := e.GetCatalogState()
+	cat, err := e.GetCatalogState()
 	if err != nil {
 		return "", err
 	}
 
-	childPlan, err := plan.Create(catState, step.Flow.Goals, initState)
+	pl, err := plan.Create(cat, step.Flow.Goals, initState)
 	if err != nil {
 		return "", err
 	}
@@ -107,7 +107,7 @@ func (e *Engine) StartChildFlow(
 	meta[api.MetaParentStepID] = parent.StepID
 	meta[api.MetaParentWorkItemToken] = token
 
-	if err := e.StartFlow(childID, childPlan,
+	if err := e.StartFlow(childID, pl,
 		flowopt.WithInit(initState),
 		flowopt.WithMetadata(meta),
 	); err != nil {

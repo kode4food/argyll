@@ -9,7 +9,7 @@ import (
 )
 
 type healthResolver struct {
-	catState *api.CatalogState
+	cat      *api.CatalogState
 	steps    api.Steps
 	base     map[api.StepID]*api.HealthState
 	cache    map[api.StepID]*api.HealthState
@@ -24,8 +24,8 @@ func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
 	cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
-		if stepHealth, ok := st.Health[stepID]; ok {
-			if stepHealth.Status == health && stepHealth.Error == errMsg {
+		if h, ok := st.Health[stepID]; ok {
+			if h.Status == health && h.Error == errMsg {
 				return nil
 			}
 		}
@@ -46,15 +46,15 @@ func (e *Engine) UpdateStepHealth(
 // ResolveHealth returns resolved health for all steps, deriving flow step
 // health from all steps included in the flow's execution preview
 func ResolveHealth(
-	catState *api.CatalogState, base map[api.StepID]*api.HealthState,
+	cat *api.CatalogState, base map[api.StepID]*api.HealthState,
 ) map[api.StepID]*api.HealthState {
-	if catState == nil {
+	if cat == nil {
 		return map[api.StepID]*api.HealthState{}
 	}
 
 	resolver := &healthResolver{
-		catState: catState,
-		steps:    catState.Steps,
+		cat:      cat,
+		steps:    cat.Steps,
 		base:     base,
 		cache:    map[api.StepID]*api.HealthState{},
 		visiting: map[api.StepID]bool{},
@@ -62,8 +62,8 @@ func ResolveHealth(
 		planErrs: map[api.StepID]error{},
 	}
 
-	resolved := make(map[api.StepID]*api.HealthState, len(catState.Steps))
-	for stepID := range catState.Steps {
+	resolved := make(map[api.StepID]*api.HealthState, len(cat.Steps))
+	for stepID := range cat.Steps {
 		resolved[stepID] = resolver.resolve(stepID)
 	}
 	return resolved
@@ -109,7 +109,7 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 	r.visiting[stepID] = true
 	defer delete(r.visiting, stepID)
 
-	plan, err := r.previewFlowPlan(stepID, step)
+	pl, err := r.previewFlowPlan(stepID, step)
 	if err != nil {
 		h := &api.HealthState{
 			Status: api.HealthUnknown,
@@ -120,16 +120,16 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 	}
 
 	var unknown *api.HealthState
-	for plannedStepID := range plan.Steps {
-		plannedStepHealth := r.resolve(plannedStepID)
-		if plannedStepHealth.Status == api.HealthUnhealthy {
-			h := flowStepHealth(plannedStepID, plannedStepHealth)
+	for id := range pl.Steps {
+		health := r.resolve(id)
+		if health.Status == api.HealthUnhealthy {
+			h := flowStepHealth(id, health)
 			r.cache[stepID] = h
 			return h
 		}
-		if plannedStepHealth.Status == api.HealthUnknown &&
-			plannedStepHealth.Error != "" && unknown == nil {
-			unknown = flowStepHealth(plannedStepID, plannedStepHealth)
+		if health.Status == api.HealthUnknown &&
+			health.Error != "" && unknown == nil {
+			unknown = flowStepHealth(id, health)
 		}
 	}
 
@@ -192,19 +192,19 @@ func flowStepHealth(
 func (r *healthResolver) previewFlowPlan(
 	stepID api.StepID, step *api.Step,
 ) (*api.ExecutionPlan, error) {
-	if plan, ok := r.plans[stepID]; ok {
-		return plan, nil
+	if pl, ok := r.plans[stepID]; ok {
+		return pl, nil
 	}
 	if err, ok := r.planErrs[stepID]; ok {
 		return nil, err
 	}
 
-	plan, err := plan.Create(r.catState, step.Flow.Goals, api.Args{})
+	pl, err := plan.Create(r.cat, step.Flow.Goals, api.Args{})
 	if err != nil {
 		r.planErrs[stepID] = err
 		return nil, err
 	}
 
-	r.plans[stepID] = plan
-	return plan, nil
+	r.plans[stepID] = pl
+	return pl, nil
 }

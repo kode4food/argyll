@@ -79,7 +79,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 // FindRetrySteps identifies all steps in a flow that have work items that
 // might need recovery
 func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
-	retryableSteps := util.Set[api.StepID]{}
+	steps := util.Set[api.StepID]{}
 
 	for stepID, exec := range state.Executions {
 		if exec.WorkItems == nil {
@@ -90,12 +90,12 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 			if !isRecoverable(exec, work) {
 				continue
 			}
-			retryableSteps.Add(stepID)
+			steps.Add(stepID)
 			break
 		}
 	}
 
-	return retryableSteps
+	return steps
 }
 
 func (e *Engine) recoverTimeoutScans(flow *api.FlowState) {
@@ -103,13 +103,13 @@ func (e *Engine) recoverTimeoutScans(flow *api.FlowState) {
 }
 
 func (e *Engine) recoverRetryWork(flow *api.FlowState) {
-	retryableSteps := e.FindRetrySteps(flow)
-	if retryableSteps.IsEmpty() {
+	steps := e.FindRetrySteps(flow)
+	if steps.IsEmpty() {
 		return
 	}
 
 	now := e.Now()
-	for stepID := range retryableSteps {
+	for stepID := range steps {
 		exec := flow.Executions[stepID]
 		if exec.WorkItems == nil {
 			continue

@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kode4food/argyll/engine/pkg/util/call"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 func TestPerform(t *testing.T) {

@@ -73,34 +73,34 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		activeStep := helpers.NewSimpleStep("active-step")
-		activeStep.Type = api.StepTypeAsync
+		active := helpers.NewSimpleStep("active-step")
+		active.Type = api.StepTypeAsync
 
 		completeStep := helpers.NewSimpleStep("complete-step")
-		failedStep := helpers.NewSimpleStep("failed-step")
+		failed := helpers.NewSimpleStep("failed-step")
 
-		assert.NoError(t, env.Engine.RegisterStep(activeStep))
+		assert.NoError(t, env.Engine.RegisterStep(active))
 		assert.NoError(t, env.Engine.RegisterStep(completeStep))
-		assert.NoError(t, env.Engine.RegisterStep(failedStep))
+		assert.NoError(t, env.Engine.RegisterStep(failed))
 
 		env.MockClient.SetResponse(completeStep.ID, api.Args{"ok": true})
-		env.MockClient.SetError(failedStep.ID, assert.AnError)
+		env.MockClient.SetError(failed.ID, assert.AnError)
 
 		activePlan := &api.ExecutionPlan{
-			Goals: []api.StepID{activeStep.ID},
-			Steps: api.Steps{activeStep.ID: activeStep},
+			Goals: []api.StepID{active.ID},
+			Steps: api.Steps{active.ID: active},
 		}
 		completePlan := &api.ExecutionPlan{
 			Goals: []api.StepID{completeStep.ID},
 			Steps: api.Steps{completeStep.ID: completeStep},
 		}
 		failedPlan := &api.ExecutionPlan{
-			Goals: []api.StepID{failedStep.ID},
-			Steps: api.Steps{failedStep.ID: failedStep},
+			Goals: []api.StepID{failed.ID},
+			Steps: api.Steps{failed.ID: failed},
 		}
 
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: "flow-active", StepID: activeStep.ID},
+			api.FlowStep{FlowID: "flow-active", StepID: active.ID},
 			func() {
 				assert.NoError(t,
 					env.Engine.StartFlow("flow-active", activePlan,

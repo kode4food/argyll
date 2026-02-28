@@ -83,7 +83,7 @@ func (s *Server) createStep(c *gin.Context) {
 func (s *Server) getStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	catState, err := s.engine.GetCatalogState()
+	cat, err := s.engine.GetCatalogState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
@@ -92,7 +92,7 @@ func (s *Server) getStep(c *gin.Context) {
 		return
 	}
 
-	if step, ok := catState.Steps[stepID]; ok {
+	if step, ok := cat.Steps[stepID]; ok {
 		c.JSON(http.StatusOK, step)
 		return
 	}
@@ -161,7 +161,7 @@ func (s *Server) updateStep(c *gin.Context) {
 func (s *Server) deleteStep(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	catState, err := s.engine.GetCatalogState()
+	cat, err := s.engine.GetCatalogState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
@@ -170,7 +170,7 @@ func (s *Server) deleteStep(c *gin.Context) {
 		return
 	}
 
-	if _, ok := catState.Steps[stepID]; !ok {
+	if _, ok := cat.Steps[stepID]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, stepID),
 			Status: http.StatusNotFound,

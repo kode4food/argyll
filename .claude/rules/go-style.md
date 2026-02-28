@@ -21,8 +21,7 @@ func (this *Engine) Start() {}
 
 ### Variable Names
 
-**Prefer short names.** The closer a variable is used to where it's declared, the
-shorter it can be. Loop variables can be single letters.
+**Prefer short names.** The closer a variable is used to where it's declared, the shorter it can be. Loop variables can be single letters.
 
 ```go
 // Good - short names, close usage
@@ -52,6 +51,40 @@ for index, currentStep := range steps {
     }
 }
 ```
+
+Avoid local names that merely restate the type. Prefer the semantic subject, not the full noun phrase:
+
+```go
+// Good
+for id := range pl.Steps {
+    health := r.resolve(id)
+    if health.Status == api.HealthUnhealthy {
+        return flowStepHealth(id, health)
+    }
+}
+
+part, err := eng.GetPartitionState()
+cat, err := eng.GetCatalogState()
+flow, err := eng.GetFlowState(flowID)
+work := exec.WorkItems[token]
+h, ok := st.Health[stepID]
+
+// Bad
+for plannedStepID := range executionPlan.Steps {
+    plannedStepHealth := r.resolve(plannedStepID)
+    if plannedStepHealth.Status == api.HealthUnhealthy {
+        return flowStepHealth(plannedStepID, plannedStepHealth)
+    }
+}
+
+partState, err := eng.GetPartitionState()
+catState, err := eng.GetCatalogState()
+flowState, err := eng.GetFlowState(flowID)
+workItem := exec.WorkItems[token]
+stepHealth, ok := st.Health[stepID]
+```
+
+Use longer names only when the broader scope really needs them, such as struct fields, exported APIs, or tests where the variable itself is the subject under test.
 
 **Longer names for wider scope** (exported functions, struct fields):
 
@@ -86,11 +119,14 @@ type FlowState struct {
 | `pfx`, `sfx` | Prefix, suffix |
 | `cfg` | Config struct |
 | `opts` | Options struct |
+| `pl` | Execution plan |
+| `cat`, `part` | Catalog or partition state in local scope |
+| `flow`, `step`, `work` | Current flow/step/work value in local scope |
+| `h` | Health value in tight scope |
 
 ### Function Signature Wrapping
 
 When a function signature is too long for one line, keep as many parameters as fit on the first line and wrap the remainder on the next line(s). Do not put one parameter per line unless the line would still exceed the limit.
-| `ev` | Event |
 
 Example with more parameters:
 
@@ -297,9 +333,18 @@ func helperFunc(...) { ... }               // unexported helper
 3. Unexported methods that support the exported ones
 4. Pure helper functions (non-methods) at the bottom
 
-Related methods stay together. Within each group, order by call chain or
-first use. Unexported helpers appear after the exported methods that use
-them.
+Related methods stay together. Within each group, order by call chain or first use. Unexported helpers appear after the exported methods that use them.
+
+### Concern Grouping
+
+Within a package, organize files around real concerns, not arbitrary helper categories. For the engine runtime, prefer lifecycle or stage-oriented grouping when that matches the code's behavior:
+
+- `engine-start.go`, `engine-stop.go`
+- `flow-start.go`, `flow-continue.go`, `flow-stop.go`
+- `step-start.go`, `step-continue.go`, `step-stop.go`
+- `work-start.go`, `work-continue.go`, `work-stop.go`
+
+Do not introduce wrapper files that just forward calls to another package or rename errors.
 
 
 ## Control Flow
@@ -338,8 +383,7 @@ func processStep(step *StepInfo) error {
 
 ### Nesting Limit
 
-Maximum one level of conditional nesting. Exception: when early return
-would cause code duplication.
+Maximum one level of conditional nesting. Exception: when early return would cause code duplication.
 
 ```go
 // Acceptable nesting to avoid duplicating the publish call
@@ -415,6 +459,21 @@ assert.Equal(t, expected, actual, "values should match")
 - Table-driven tests for multiple scenarios
 - Subtest descriptions with `t.Run()`
 - `t.Helper()` in test utilities
+- Keep test files aligned with source concerns when the split is clear
+
+If the runtime code is grouped by stage or lifecycle, the tests should mirror that grouping:
+
+- `flow-start_test.go`
+- `flow-continue_test.go`
+- `flow-stop_test.go`
+- `step-start_test.go`
+- `step-continue_test.go`
+- `step-stop_test.go`
+- `work-start_test.go`
+- `work-continue_test.go`
+- `work-stop_test.go`
+
+Do not keep broad mixed test files once the source has been split cleanly.
 
 ## Comments
 
