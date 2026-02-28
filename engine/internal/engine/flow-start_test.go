@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -77,6 +78,24 @@ func TestStartMissingInput(t *testing.T) {
 		testify.Error(t, err)
 	})
 }
+
+func TestStartFlowRejectsPartialParentMetadata(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("step-parent-meta")
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		err := eng.StartFlow("wf-partial-parent-meta", plan,
+			flowopt.WithMetadata(api.Metadata{
+				api.MetaParentFlowID: "parent",
+			}),
+		)
+		testify.ErrorContains(t, err, "partial parent metadata")
+	})
+}
+
 func TestStartFlowSimple(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		testify.NoError(t, env.Engine.Start())

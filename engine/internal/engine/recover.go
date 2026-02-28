@@ -66,6 +66,9 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrGetFlowState, err)
 	}
+	if err := validateParentMetadata(flow.Metadata); err != nil {
+		return err
+	}
 
 	if flowTransitions.IsTerminal(flow.Status) {
 		return nil

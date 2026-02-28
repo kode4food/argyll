@@ -171,8 +171,9 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 
 func (tx *flowTx) parentWork(st *api.FlowState) (*parentWork, error) {
 	target := &parentWork{}
-	if !tx.parentMeta(st, target) {
-		return nil, nil
+	ok, err := tx.parentMeta(st, target)
+	if !ok || err != nil {
+		return nil, err
 	}
 
 	parentFlow, err := tx.GetFlowState(target.fs.FlowID)
@@ -189,25 +190,24 @@ func (tx *flowTx) parentWork(st *api.FlowState) (*parentWork, error) {
 	return target, nil
 }
 
-func (tx *flowTx) parentMeta(st *api.FlowState, target *parentWork) bool {
-	if st.Metadata == nil {
-		return false
+func (tx *flowTx) parentMeta(
+	st *api.FlowState, target *parentWork,
+) (bool, error) {
+	if err := validateParentMetadata(st.Metadata); err != nil {
+		return false, fmt.Errorf("%w: %s", err, st.ID)
 	}
 
 	flowID, hasFlowID := getMetaFlowID(st.Metadata, api.MetaParentFlowID)
 	stepID, hasStepID := getMetaStepID(st.Metadata, api.MetaParentStepID)
 	token, hasToken := getMetaToken(st.Metadata, api.MetaParentWorkItemToken)
 
-	if !hasFlowID || !hasStepID || !hasToken {
-		if !hasFlowID && !hasStepID && !hasToken {
-			return false
-		}
-		panic(fmt.Errorf("%w: %s", ErrPartialParentMetadata, st.ID))
+	if !hasFlowID && !hasStepID && !hasToken {
+		return false, nil
 	}
 
 	target.fs = api.FlowStep{FlowID: flowID, StepID: stepID}
 	target.token = token
-	return true
+	return true, nil
 }
 
 func isWorkTerminal(status api.WorkStatus) bool {
@@ -234,4 +234,17 @@ func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
 	}
 
 	return outputs, nil
+}
+
+func validateParentMetadata(meta api.Metadata) error {
+	_, hasFlowID := getMetaFlowID(meta, api.MetaParentFlowID)
+	_, hasStepID := getMetaStepID(meta, api.MetaParentStepID)
+	_, hasToken := getMetaToken(meta, api.MetaParentWorkItemToken)
+	if !hasFlowID && !hasStepID && !hasToken {
+		return nil
+	}
+	if hasFlowID && hasStepID && hasToken {
+		return nil
+	}
+	return ErrPartialParentMetadata
 }

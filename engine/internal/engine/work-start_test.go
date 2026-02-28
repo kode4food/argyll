@@ -219,6 +219,34 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 		assert.Equal(t, float64(6), exec.Outputs["result"])
 	})
 }
+
+func TestUnsupportedStepTypeFailsFlow(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		step := &api.Step{
+			ID:         "bad-step-type",
+			Name:       "Bad Step Type",
+			Type:       api.StepType("bad-type"),
+			Attributes: api.AttributeSpecs{},
+		}
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+		flowID := api.FlowID("wf-bad-step-type")
+
+		env.WaitFor(wait.FlowFailed(flowID), func() {
+			assert.NoError(t, env.Engine.StartFlow(flowID, plan))
+		})
+
+		flow, err := env.Engine.GetFlowState(flowID)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Contains(t, flow.Error, "unsupported step type")
+	})
+}
+
 func TestParallelWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

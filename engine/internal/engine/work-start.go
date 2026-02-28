@@ -31,7 +31,6 @@ type (
 var (
 	ErrStepAlreadyPending     = errors.New("step not pending")
 	ErrUnsupportedStepType    = errors.New("unsupported step type")
-	ErrScriptNotCompiled      = errors.New("script step has no compiled script")
 	ErrPredicateCompileFailed = errors.New("predicate compilation failed")
 	ErrPredicateEnvFailed     = errors.New("failed to get script environment")
 	ErrPredicateEvalFailed    = errors.New("predicate evaluation failed")
@@ -103,7 +102,7 @@ func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
 	case api.StepTypeFlow:
 		return e.performFlow(inputs, token)
 	default:
-		panic(fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type))
+		return fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type)
 	}
 }
 
@@ -111,10 +110,6 @@ func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
 	c, err := e.engine.scripts.Compile(e.step, e.step.Script)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
-	}
-
-	if c == nil {
-		panic(fmt.Errorf("%w: %s", ErrScriptNotCompiled, e.stepID))
 	}
 
 	outputs, err := e.executeScript(c, inputs)

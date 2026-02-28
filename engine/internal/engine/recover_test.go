@@ -131,6 +131,31 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 	})
 }
 
+func TestRecoverFlowRejectsPartialParentMetadata(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		step := helpers.NewSimpleStep("step-partial-parent-meta")
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+		flowID := api.FlowID("wf-recover-partial-parent")
+
+		assert.NoError(t, env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID: flowID,
+				Plan:   plan,
+				Metadata: api.Metadata{
+					api.MetaParentFlowID: "parent",
+				},
+			},
+		}))
+
+		err := env.Engine.RecoverFlow(flowID)
+		assert.ErrorContains(t, err, "partial parent metadata")
+	})
+}
+
 func TestConcurrentRecoveryState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

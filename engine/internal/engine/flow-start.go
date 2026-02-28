@@ -11,6 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 type flowTx struct {
@@ -31,7 +32,10 @@ func (e *Engine) StartFlow(
 	}
 
 	opts := flowopt.DefaultOptions(apps...)
-	if err := plan.ValidateInputs(opts.Init); err != nil {
+	if err := call.Perform(
+		call.WithArg(validateParentMetadata, opts.Metadata),
+		call.WithArg(plan.ValidateInputs, opts.Init),
+	); err != nil {
 		return err
 	}
 
