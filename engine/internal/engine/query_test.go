@@ -127,6 +127,13 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 		waitForQueryFlow(t, env.Engine, &api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowActive},
 		}, "flow-active")
+		waitForQueryFlow(t, env.Engine, &api.QueryFlowsRequest{
+			IDPrefix: "flow-c",
+		}, "flow-complete")
+		waitForQueryFlow(t, env.Engine, &api.QueryFlowsRequest{
+			Labels: api.Labels{"tier": "done"},
+		}, "flow-complete")
+		waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{}, 3)
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			IDPrefix: "flow-c",
