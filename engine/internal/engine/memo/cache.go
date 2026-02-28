@@ -1,4 +1,4 @@
-package engine
+package memo
 
 import (
 	"errors"
@@ -8,30 +8,28 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// MemoCache provides global caching of step results based on (step definition,
-// inputs)
-type MemoCache struct {
+// Cache provides caching of step results based on step definition and inputs
+type Cache struct {
 	cache *lru.Cache[api.Args]
 }
 
 var ErrCacheMiss = errors.New("cache miss")
 
-// NewMemoCache creates a new memo cache with the specified maximum size
-func NewMemoCache(maxSize int) *MemoCache {
-	return &MemoCache{
+// NewCache creates a memo cache with the specified maximum size
+func NewCache(maxSize int) *Cache {
+	return &Cache{
 		cache: lru.NewCache[api.Args](maxSize),
 	}
 }
 
-// Get retrieves cached outputs for a step and inputs. Returns (outputs, true)
-// on cache hit, (nil, false) on miss
-func (m *MemoCache) Get(step *api.Step, inputs api.Args) (api.Args, bool) {
+// Get retrieves cached outputs for a step and inputs
+func (c *Cache) Get(step *api.Step, inputs api.Args) (api.Args, bool) {
 	key, err := buildCacheKey(step, inputs)
 	if err != nil {
 		return nil, false
 	}
 
-	result, err := m.cache.Get(key, func() (api.Args, error) {
+	result, err := c.cache.Get(key, func() (api.Args, error) {
 		var zero api.Args
 		return zero, ErrCacheMiss
 	})
@@ -43,22 +41,18 @@ func (m *MemoCache) Get(step *api.Step, inputs api.Args) (api.Args, bool) {
 }
 
 // Put stores cached outputs for a step and inputs
-func (m *MemoCache) Put(
-	step *api.Step, inputs api.Args, outputs api.Args,
-) error {
+func (c *Cache) Put(step *api.Step, inputs api.Args, outputs api.Args) error {
 	key, err := buildCacheKey(step, inputs)
 	if err != nil {
 		return err
 	}
 
-	_, err = m.cache.Get(key, func() (api.Args, error) {
+	_, err = c.cache.Get(key, func() (api.Args, error) {
 		return outputs, nil
 	})
 	return err
 }
 
-// buildCacheKey creates a deterministic cache key from step definition and
-// inputs. Format: stepKey + ":" + inputKey
 func buildCacheKey(step *api.Step, inputs api.Args) (string, error) {
 	stepKey, err := step.HashKey()
 	if err != nil {

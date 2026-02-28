@@ -1,16 +1,16 @@
-package engine_test
+package memo_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestMemoCacheGetPut(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheGetPut(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step := &api.Step{
 		ID:   api.StepID("test"),
@@ -36,8 +36,8 @@ func TestMemoCacheGetPut(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheMiss(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheMiss(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step := &api.Step{
 		ID:   api.StepID("test"),
@@ -57,8 +57,8 @@ func TestMemoCacheMiss(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestMemoCacheDifferentInputs(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheDifferentInputs(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step := &api.Step{
 		ID:   api.StepID("test"),
@@ -74,7 +74,6 @@ func TestMemoCacheDifferentInputs(t *testing.T) {
 
 	inputs1 := api.Args{"input": "value1"}
 	outputs1 := api.Args{"output": "result1"}
-
 	inputs2 := api.Args{"input": "value2"}
 	outputs2 := api.Args{"output": "result2"}
 
@@ -92,8 +91,8 @@ func TestMemoCacheDifferentInputs(t *testing.T) {
 	assert.Equal(t, outputs2, result)
 }
 
-func TestMemoCacheInvalidatesOnStepChange(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheInvalidatesOnStepChange(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step1 := &api.Step{
 		ID:   api.StepID("test"),
@@ -129,8 +128,8 @@ func TestMemoCacheInvalidatesOnStepChange(t *testing.T) {
 	assert.False(t, ok)
 }
 
-func TestMemoCacheKeepsOnMetadataChange(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheKeepsOnMetadataChange(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step1 := &api.Step{
 		ID:   api.StepID("test"),
@@ -171,8 +170,8 @@ func TestMemoCacheKeepsOnMetadataChange(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheEmptyInputs(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheEmptyInputs(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step := &api.Step{
 		ID:   api.StepID("test"),
@@ -197,8 +196,8 @@ func TestMemoCacheEmptyInputs(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheHashAttributeOrder(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheHashAttributeOrder(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step1 := &api.Step{
 		ID:   api.StepID("test"),
@@ -239,13 +238,12 @@ func TestMemoCacheHashAttributeOrder(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheHashFlowConfig(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheHashFlowConfig(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	flowConfig1 := &api.FlowConfig{
 		Goals: []api.StepID{"goal1"},
 	}
-
 	flowConfig2 := &api.FlowConfig{
 		Goals: []api.StepID{"goal1"},
 	}
@@ -279,8 +277,8 @@ func TestMemoCacheHashFlowConfig(t *testing.T) {
 	assert.Equal(t, outputs, result)
 }
 
-func TestMemoCacheHashInputOrder(t *testing.T) {
-	cache := engine.NewMemoCache(100)
+func TestCacheHashInputOrder(t *testing.T) {
+	cache := memo.NewCache(100)
 
 	step := &api.Step{
 		ID:   api.StepID("test"),
@@ -299,12 +297,10 @@ func TestMemoCacheHashInputOrder(t *testing.T) {
 		"x": "value-x",
 		"y": "value-y",
 	}
-
 	inputs2 := api.Args{
 		"y": "value-y",
 		"x": "value-x",
 	}
-
 	outputs := api.Args{"result": "data"}
 
 	err := cache.Put(step, inputs1, outputs)

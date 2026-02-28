@@ -13,6 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine/event"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -32,7 +33,7 @@ type (
 		cancel      context.CancelFunc
 		scripts     *script.Registry
 		mapper      *Mapper
-		memoCache   *MemoCache
+		memoCache   *memo.Cache
 		eventQueue  *event.Queue
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
@@ -117,7 +118,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		config:     cfg,
 		ctx:        ctx,
 		cancel:     cancel,
-		memoCache:  NewMemoCache(cfg.MemoCacheSize),
+		memoCache:  memo.NewCache(cfg.MemoCacheSize),
 		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
 	}
