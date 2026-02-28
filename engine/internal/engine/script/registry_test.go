@@ -1,4 +1,4 @@
-package engine_test
+package script_test
 
 import (
 	"testing"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -18,25 +19,25 @@ func (r registryTestEnv) Validate(*api.Step, string) error {
 
 func (r registryTestEnv) Compile(
 	*api.Step, *api.ScriptConfig,
-) (engine.Compiled, error) {
+) (script.Compiled, error) {
 	return "compiled", nil
 }
 
 func (r registryTestEnv) ExecuteScript(
-	engine.Compiled, *api.Step, api.Args,
+	script.Compiled, *api.Step, api.Args,
 ) (api.Args, error) {
 	return api.Args{}, nil
 }
 
 func (r registryTestEnv) EvaluatePredicate(
-	engine.Compiled, *api.Step, api.Args,
+	script.Compiled, *api.Step, api.Args,
 ) (bool, error) {
 	return true, nil
 }
 
 func TestAleCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "ale-step",
@@ -68,7 +69,7 @@ func TestAleCompilation(t *testing.T) {
 
 func TestLuaCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "lua-step",
@@ -100,7 +101,7 @@ func TestLuaCompilation(t *testing.T) {
 
 func TestAlePredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "pred-step",
@@ -133,7 +134,7 @@ func TestAlePredicateTrue(t *testing.T) {
 
 func TestAlePredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "pred-step",
@@ -166,7 +167,7 @@ func TestAlePredicateFalse(t *testing.T) {
 
 func TestLuaPredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "lua-pred-step",
@@ -199,7 +200,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 
 func TestLuaPredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "lua-pred-step",
@@ -232,7 +233,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 
 func TestJPathPredicateMatches(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := helpers.NewStepWithPredicate(
 			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
@@ -258,7 +259,7 @@ func TestJPathPredicateMatches(t *testing.T) {
 
 func TestJPathPredicateNoMatch(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := helpers.NewStepWithPredicate(
 			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
@@ -278,7 +279,7 @@ func TestJPathPredicateNoMatch(t *testing.T) {
 
 func TestJPathInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := helpers.NewStepWithPredicate(
 			"jpath-invalid", api.ScriptLangJPath, "$..[",
@@ -289,13 +290,13 @@ func TestJPathInvalidSyntax(t *testing.T) {
 
 		_, err = env.Compile(step, step.Predicate)
 		assert.Error(t, err)
-		assert.ErrorIs(t, err, engine.ErrJPathCompile)
+		assert.ErrorIs(t, err, script.ErrJPathCompile)
 	})
 }
 
 func TestJPathExecuteScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		env, err := registry.Get(api.ScriptLangJPath)
 		assert.NoError(t, err)
@@ -317,7 +318,7 @@ func TestJPathExecuteScript(t *testing.T) {
 
 func TestUnsupportedLanguage(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		_, err := registry.Get("python")
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
@@ -326,7 +327,7 @@ func TestUnsupportedLanguage(t *testing.T) {
 
 func TestCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		aleStep := helpers.NewScriptStep(
 			"ale-step", api.ScriptLangAle, "{:result 42}", "result",
@@ -356,7 +357,7 @@ func TestCompileViaRegistry(t *testing.T) {
 
 func TestAleComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "complex-ale",
@@ -402,7 +403,7 @@ func TestAleComplexScript(t *testing.T) {
 
 func TestLuaComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := &api.Step{
 			ID:   "complex-lua",
@@ -450,7 +451,7 @@ func TestLuaComplexScript(t *testing.T) {
 
 func TestAleInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := helpers.NewScriptStep(
 			"invalid-ale", api.ScriptLangAle, "{:result (+ 1 2",
@@ -466,7 +467,7 @@ func TestAleInvalidSyntax(t *testing.T) {
 
 func TestLuaInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		step := helpers.NewScriptStep(
 			"invalid-lua", api.ScriptLangLua, "return {result = ",
@@ -481,7 +482,7 @@ func TestLuaInvalidSyntax(t *testing.T) {
 }
 
 func TestScriptRegistryRegister(t *testing.T) {
-	registry := engine.NewScriptRegistry()
+	registry := script.NewRegistry()
 	env := registryTestEnv{}
 
 	registry.Register("test", env)

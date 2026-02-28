@@ -3,6 +3,7 @@ package engine
 import (
 	"fmt"
 
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -198,7 +199,7 @@ func (r *healthResolver) previewFlowPlan(
 		return nil, err
 	}
 
-	plan, err := createExecutionPlan(r.catState, step.Flow.Goals, api.Args{})
+	plan, err := plan.Create(r.catState, step.Flow.Goals, api.Args{})
 	if err != nil {
 		r.planErrs[stepID] = err
 		return nil, err

@@ -7,6 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -156,7 +157,7 @@ func TestRegisterStepJPathInvalid(t *testing.T) {
 
 		err := eng.RegisterStep(step)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
-		assert.ErrorContains(t, err, engine.ErrJPathCompile.Error())
+		assert.ErrorContains(t, err, script.ErrJPathCompile.Error())
 	})
 }
 

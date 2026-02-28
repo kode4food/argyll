@@ -1,4 +1,4 @@
-package engine_test
+package script_test
 
 import (
 	"testing"
@@ -7,11 +7,12 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestLuaCompile(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "test",
@@ -33,7 +34,7 @@ func TestLuaCompile(t *testing.T) {
 }
 
 func TestLuaExecuteScript(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "test",
@@ -65,7 +66,7 @@ func TestLuaExecuteScript(t *testing.T) {
 }
 
 func TestLuaEvaluatePredicate(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	tests := []struct {
 		name      string
@@ -122,7 +123,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 }
 
 func TestLuaValidate(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	tests := []struct {
 		name        string
@@ -155,7 +156,7 @@ func TestLuaValidate(t *testing.T) {
 }
 
 func TestLuaScriptCache(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "test",
@@ -182,7 +183,7 @@ func TestLuaScriptCache(t *testing.T) {
 
 func TestLuaCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		script := &api.Step{
 			ID:   "test",
@@ -219,7 +220,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 }
 
 func TestLuaComplexConversion(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "complex-types",
@@ -267,7 +268,7 @@ func TestLuaComplexConversion(t *testing.T) {
 }
 
 func TestLuaArrayTableConversion(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "array-test",
@@ -298,7 +299,7 @@ func TestLuaArrayTableConversion(t *testing.T) {
 }
 
 func TestLuaInputTypes(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	tests := []struct {
 		name     string
@@ -379,7 +380,7 @@ func TestLuaInputTypes(t *testing.T) {
 }
 
 func TestLuaEmptyArray(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "empty-array",
@@ -405,7 +406,7 @@ func TestLuaEmptyArray(t *testing.T) {
 }
 
 func TestLuaNestedArrays(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "nested-arrays",
@@ -440,7 +441,7 @@ func TestLuaNestedArrays(t *testing.T) {
 }
 
 func TestLuaNilReturn(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "nil-return",
@@ -463,7 +464,7 @@ func TestLuaNilReturn(t *testing.T) {
 }
 
 func TestLuaEmptyTable(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "empty-table",
@@ -489,7 +490,7 @@ func TestLuaEmptyTable(t *testing.T) {
 }
 
 func TestLuaLargeArray(t *testing.T) {
-	env := engine.NewLuaEnv()
+	env := script.NewLuaEnv()
 
 	step := &api.Step{
 		ID:   "large-array",

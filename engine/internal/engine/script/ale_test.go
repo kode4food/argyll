@@ -1,4 +1,4 @@
-package engine_test
+package script_test
 
 import (
 	"testing"
@@ -8,12 +8,13 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestAleCacheForSameScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "test-step",
@@ -42,7 +43,7 @@ func TestAleCacheForSameScript(t *testing.T) {
 
 func TestAleCacheIncludesArgNames(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		stepOuter := &api.Step{
 			ID:   "outer-step",
@@ -87,7 +88,7 @@ func TestAleCacheIncludesArgNames(t *testing.T) {
 
 func TestAleCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		registry := engine.NewScriptRegistry()
+		registry := script.NewRegistry()
 
 		script := &api.Step{
 			ID:   "script-step",
@@ -136,7 +137,7 @@ func TestAleCompileViaRegistry(t *testing.T) {
 
 func TestAleExecuteScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "test",
@@ -170,7 +171,7 @@ func TestAleExecuteScript(t *testing.T) {
 
 func TestAleEvaluatePredicate(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		tests := []struct {
 			name      string
@@ -230,7 +231,7 @@ func TestAleEvaluatePredicate(t *testing.T) {
 
 func TestAleValidate(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		tests := []struct {
 			name        string
@@ -265,7 +266,7 @@ func TestAleValidate(t *testing.T) {
 
 func TestAleComplexConversion(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "complex-types",
@@ -340,7 +341,7 @@ func TestAleComplexConversion(t *testing.T) {
 
 func TestAleListConversion(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		env := engine.NewAleEnv()
+		env := script.NewAleEnv()
 
 		step := &api.Step{
 			ID:   "list-test",

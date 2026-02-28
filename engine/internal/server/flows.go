@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -221,14 +222,12 @@ func (s *Server) createPlan(
 		return nil, false
 	}
 
-	plan, err := s.engine.CreateExecutionPlan(
-		catState, goalStepIDs, initialState,
-	)
+	execPlan, err := plan.Create(catState, goalStepIDs, initialState)
 	if err == nil {
-		return plan, true
+		return execPlan, true
 	}
 
-	if errors.Is(err, engine.ErrStepNotFound) {
+	if errors.Is(err, plan.ErrStepNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", err.Error(), goalStepIDs),
 			Status: http.StatusNotFound,

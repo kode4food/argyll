@@ -1,16 +1,16 @@
-package engine_test
+package script_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestJPathCompileAndValidate(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -24,18 +24,18 @@ func TestJPathCompileAndValidate(t *testing.T) {
 }
 
 func TestJPathCompileInvalid(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	_, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
 		Script:   "$..[",
 	})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, engine.ErrJPathCompile)
+	assert.ErrorIs(t, err, script.ErrJPathCompile)
 }
 
 func TestJPathEvaluatePredicate(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -56,7 +56,7 @@ func TestJPathEvaluatePredicate(t *testing.T) {
 }
 
 func TestJPathEvaluatePredicateTopLevelFilter(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -85,7 +85,7 @@ func TestJPathEvaluatePredicateTopLevelFilter(t *testing.T) {
 }
 
 func TestJPathEvaluatePredicateNullMatch(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -101,7 +101,7 @@ func TestJPathEvaluatePredicateNullMatch(t *testing.T) {
 }
 
 func TestJPathExecuteScriptSingleMatch(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -117,7 +117,7 @@ func TestJPathExecuteScriptSingleMatch(t *testing.T) {
 }
 
 func TestJPathExecuteScriptMultiMatch(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -138,7 +138,7 @@ func TestJPathExecuteScriptMultiMatch(t *testing.T) {
 }
 
 func TestJPathExecuteScriptNoMatch(t *testing.T) {
-	env := engine.NewJPathEnv()
+	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{
 		Language: api.ScriptLangJPath,
@@ -149,6 +149,6 @@ func TestJPathExecuteScriptNoMatch(t *testing.T) {
 	outputs, err := env.ExecuteScript(compiled, nil, api.Args{
 		"input": map[string]any{"foo": "bar"},
 	})
-	assert.ErrorIs(t, err, engine.ErrJPathNoMatch)
+	assert.ErrorIs(t, err, script.ErrJPathNoMatch)
 	assert.Nil(t, outputs)
 }

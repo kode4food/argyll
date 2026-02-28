@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -37,7 +38,7 @@ type (
 		flowExec    *FlowExecutor
 		config      *config.Config
 		cancel      context.CancelFunc
-		scripts     *ScriptRegistry
+		scripts     *script.Registry
 		mapper      *Mapper
 		memoCache   *MemoCache
 		eventQueue  *EventQueue
@@ -118,7 +119,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		makeTimer:  deps.TimerConstructor,
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
-	e.scripts = NewScriptRegistry()
+	e.scripts = script.NewRegistry()
 	e.mapper = NewMapper(e)
 
 	return e, nil

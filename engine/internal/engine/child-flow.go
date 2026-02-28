@@ -7,6 +7,7 @@ import (
 	"maps"
 
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -42,7 +43,7 @@ func (e *Engine) StartChildFlow(
 		return "", err
 	}
 
-	plan, err := e.CreateExecutionPlan(catState, step.Flow.Goals, initState)
+	plan, err := plan.Create(catState, step.Flow.Goals, initState)
 	if err != nil {
 		return "", err
 	}

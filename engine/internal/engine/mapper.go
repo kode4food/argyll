@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -28,7 +29,7 @@ func NewMapper(engine *Engine) *Mapper {
 // Compile compiles a mapping script for the provided step context
 func (m *Mapper) Compile(
 	step *api.Step, cfg *api.ScriptConfig,
-) (Compiled, error) {
+) (script.Compiled, error) {
 	if cfg == nil || cfg.Script == "" {
 		return nil, nil
 	}

@@ -1,4 +1,4 @@
-package engine
+package plan
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-type planBuilder struct {
+type builder struct {
 	catState    *api.CatalogState
 	satisfied   util.Set[api.Name]
 	available   util.Set[api.Name]
@@ -21,29 +21,24 @@ type planBuilder struct {
 }
 
 var (
-	ErrNoGoals = errors.New("at least one goal step is required")
+	ErrNoGoals      = errors.New("at least one goal step is required")
+	ErrStepNotFound = errors.New("step not found")
 )
 
-// CreateExecutionPlan builds an execution plan for the given goal steps,
-// resolving dependencies and determining required inputs
-func (e *Engine) CreateExecutionPlan(
-	catalogState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
-) (*api.ExecutionPlan, error) {
-	return createExecutionPlan(catalogState, goalIDs, initState)
-}
-
-func createExecutionPlan(
-	catalogState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
+// Create builds an execution plan for the given goal steps, resolving
+// dependencies and determining required inputs
+func Create(
+	catState *api.CatalogState, goalIDs []api.StepID, initState api.Args,
 ) (*api.ExecutionPlan, error) {
 	if len(goalIDs) == 0 {
 		return nil, ErrNoGoals
 	}
 
-	if err := validateGoals(catalogState, goalIDs); err != nil {
+	if err := validateGoals(catState, goalIDs); err != nil {
 		return nil, err
 	}
 
-	pb := newPlanBuilder(catalogState, initState)
+	pb := newPlanBuilder(catState, initState)
 	pb.computeSatisfiable()
 	if err := pb.collectSteps(goalIDs); err != nil {
 		return nil, err
@@ -60,8 +55,8 @@ func createExecutionPlan(
 	}, nil
 }
 
-func newPlanBuilder(st *api.CatalogState, initState api.Args) *planBuilder {
-	pb := &planBuilder{
+func newPlanBuilder(st *api.CatalogState, initState api.Args) *builder {
+	pb := &builder{
 		catState:    st,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
@@ -82,7 +77,7 @@ func newPlanBuilder(st *api.CatalogState, initState api.Args) *planBuilder {
 
 // Pass 1: determine which steps are satisfiable from init + other satisfiable
 // outputs
-func (b *planBuilder) computeSatisfiable() {
+func (b *builder) computeSatisfiable() {
 	for name := range b.satisfied {
 		b.available.Add(name)
 	}
@@ -109,7 +104,7 @@ func (b *planBuilder) computeSatisfiable() {
 	}
 }
 
-func (b *planBuilder) requiredInputsAvailable(
+func (b *builder) requiredInputsAvailable(
 	step *api.Step, available util.Set[api.Name],
 ) bool {
 	for name, attr := range step.Attributes {
@@ -121,7 +116,7 @@ func (b *planBuilder) requiredInputsAvailable(
 }
 
 // Pass 2: collect steps and build plan from goal traversal
-func (b *planBuilder) collectSteps(goalIDs []api.StepID) error {
+func (b *builder) collectSteps(goalIDs []api.StepID) error {
 	for _, goalID := range goalIDs {
 		if err := b.collectStep(goalID); err != nil {
 			return err
@@ -130,7 +125,7 @@ func (b *planBuilder) collectSteps(goalIDs []api.StepID) error {
 	return nil
 }
 
-func (b *planBuilder) collectStep(stepID api.StepID) error {
+func (b *builder) collectStep(stepID api.StepID) error {
 	if b.visited.Contains(stepID) {
 		return nil
 	}
@@ -160,7 +155,7 @@ func (b *planBuilder) collectStep(stepID api.StepID) error {
 	return nil
 }
 
-func (b *planBuilder) buildRequired(step *api.Step) util.Set[api.Name] {
+func (b *builder) buildRequired(step *api.Step) util.Set[api.Name] {
 	required := util.Set[api.Name]{}
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
@@ -170,7 +165,7 @@ func (b *planBuilder) buildRequired(step *api.Step) util.Set[api.Name] {
 	return required
 }
 
-func (b *planBuilder) markSatisfied(name api.Name) {
+func (b *builder) markSatisfied(name api.Name) {
 	for _, providerID := range b.findProviders(name) {
 		step := b.catState.Steps[providerID]
 		if b.outputsAvailable(step) {
@@ -179,7 +174,7 @@ func (b *planBuilder) markSatisfied(name api.Name) {
 	}
 }
 
-func (b *planBuilder) includeProviders(name api.Name) (bool, error) {
+func (b *builder) includeProviders(name api.Name) (bool, error) {
 	providers := b.findProviders(name)
 	if len(providers) == 0 {
 		return false, nil
@@ -199,18 +194,18 @@ func (b *planBuilder) includeProviders(name api.Name) (bool, error) {
 	return hasProvider, nil
 }
 
-func (b *planBuilder) findProviders(name api.Name) []api.StepID {
+func (b *builder) findProviders(name api.Name) []api.StepID {
 	if deps, ok := b.catState.Attributes[name]; ok {
 		return deps.Providers
 	}
 	return nil
 }
 
-func (b *planBuilder) shouldInclude(step *api.Step) bool {
+func (b *builder) shouldInclude(step *api.Step) bool {
 	return !b.outputsAvailable(step)
 }
 
-func (b *planBuilder) outputsAvailable(step *api.Step) bool {
+func (b *builder) outputsAvailable(step *api.Step) bool {
 	hasOutputs := false
 	for _, attr := range step.Attributes {
 		if attr.IsOutput() {
@@ -230,7 +225,7 @@ func (b *planBuilder) outputsAvailable(step *api.Step) bool {
 	return true
 }
 
-func (b *planBuilder) buildPlan() {
+func (b *builder) buildPlan() {
 	for id := range b.included {
 		step := b.catState.Steps[id]
 		b.steps[id] = step
@@ -251,7 +246,7 @@ func (b *planBuilder) buildPlan() {
 	}
 }
 
-func (b *planBuilder) inputSatisfied(name api.Name) bool {
+func (b *builder) inputSatisfied(name api.Name) bool {
 	if b.satisfied.Contains(name) {
 		return true
 	}
@@ -263,7 +258,7 @@ func (b *planBuilder) inputSatisfied(name api.Name) bool {
 	return false
 }
 
-func (b *planBuilder) missingRequired(step *api.Step) []api.Name {
+func (b *builder) missingRequired(step *api.Step) []api.Name {
 	var missing []api.Name
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() && !b.available.Contains(name) {
@@ -273,7 +268,7 @@ func (b *planBuilder) missingRequired(step *api.Step) []api.Name {
 	return missing
 }
 
-func (b *planBuilder) stepOutputNames(step *api.Step) []api.Name {
+func (b *builder) stepOutputNames(step *api.Step) []api.Name {
 	var outputs []api.Name
 	for name, attr := range step.Attributes {
 		if attr.IsOutput() {
@@ -283,7 +278,7 @@ func (b *planBuilder) stepOutputNames(step *api.Step) []api.Name {
 	return outputs
 }
 
-func (b *planBuilder) buildExcluded() api.ExcludedSteps {
+func (b *builder) buildExcluded() api.ExcludedSteps {
 	excluded := api.ExcludedSteps{
 		Satisfied: map[api.StepID][]api.Name{},
 		Missing:   map[api.StepID][]api.Name{},
@@ -305,7 +300,7 @@ func (b *planBuilder) buildExcluded() api.ExcludedSteps {
 	return excluded
 }
 
-func (b *planBuilder) addProvider(name api.Name, provider api.StepID) {
+func (b *builder) addProvider(name api.Name, provider api.StepID) {
 	edges, ok := b.attributes[name]
 	if !ok {
 		edges = &api.AttributeEdges{}
@@ -314,7 +309,7 @@ func (b *planBuilder) addProvider(name api.Name, provider api.StepID) {
 	b.attributes[name] = edges
 }
 
-func (b *planBuilder) addConsumer(name api.Name, consumer api.StepID) {
+func (b *builder) addConsumer(name api.Name, consumer api.StepID) {
 	edges, ok := b.attributes[name]
 	if !ok {
 		edges = &api.AttributeEdges{}
@@ -323,7 +318,7 @@ func (b *planBuilder) addConsumer(name api.Name, consumer api.StepID) {
 	b.attributes[name] = edges
 }
 
-func (b *planBuilder) getRequiredInputs() []api.Name {
+func (b *builder) getRequiredInputs() []api.Name {
 	var required []api.Name
 	for input := range b.missing {
 		required = append(required, input)

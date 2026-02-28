@@ -8,6 +8,7 @@ import (
 
 	"github.com/tidwall/gjson"
 
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -233,7 +234,7 @@ func (e *ExecContext) httpMetaForToken(token api.Token) api.Metadata {
 }
 
 func (e *ExecContext) executeScript(
-	c Compiled, inputs api.Args,
+	c script.Compiled, inputs api.Args,
 ) (api.Args, error) {
 	language := api.ScriptLangAle
 	if e.step.Script != nil {
