@@ -267,7 +267,7 @@ func (s *Step) WithMemoizable() *Step {
 // Build validates and creates the final Step API object
 func (s *Step) Build() (*api.Step, error) {
 	if s.name != "" && s.id == "" {
-		s = s.WithName(s.name)
+		return s.WithName(s.name).Build()
 	}
 	var httpConfig *api.HTTPConfig
 	if s.http != nil {
