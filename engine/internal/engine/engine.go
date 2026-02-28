@@ -11,6 +11,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/engine/event"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
@@ -32,7 +33,7 @@ type (
 		scripts     *script.Registry
 		mapper      *Mapper
 		memoCache   *MemoCache
-		eventQueue  *EventQueue
+		eventQueue  *event.Queue
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
 	}
@@ -81,6 +82,8 @@ var (
 	ErrRecoverFlows          = errors.New("failed to recover flows")
 )
 
+const defaultBatchSize = 128
+
 // New creates a new orchestrator instance from configuration and dependencies
 func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	cfg = cfg.WithWorkDefaults()
@@ -118,7 +121,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
 	}
-	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
+	e.eventQueue = event.NewQueue(e.raisePartitionEvents, defaultBatchSize)
 	e.mapper = NewMapper(e)
 
 	return e, nil
@@ -323,13 +326,13 @@ func (e *Engine) raiseCatalogEvent(typ api.EventType, data any) error {
 }
 
 func (e *Engine) raisePartitionEvent(typ api.EventType, data any) error {
-	return e.raisePartitionEvents([]QueueEvent{{
+	return e.raisePartitionEvents([]event.Event{{
 		Type: typ,
 		Data: data,
 	}})
 }
 
-func (e *Engine) raisePartitionEvents(evs []QueueEvent) error {
+func (e *Engine) raisePartitionEvents(evs []event.Event) error {
 	_, err := e.execPartition(
 		func(st *api.PartitionState, ag *PartitionAggregator) error {
 			for _, ev := range evs {

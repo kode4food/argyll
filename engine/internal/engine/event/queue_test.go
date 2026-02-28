@@ -1,4 +1,4 @@
-package engine_test
+package event_test
 
 import (
 	"errors"
@@ -8,19 +8,19 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 const eventTimeout = 3 * time.Second
 
-func TestEventsOrdered(t *testing.T) {
+func TestQueueOrdered(t *testing.T) {
 	var mu sync.Mutex
 	var order []int
 	done := make(chan struct{})
 
-	runner := engine.NewEventQueue(
-		func(batch []engine.QueueEvent) error {
+	q := event.NewQueue(
+		func(batch []event.Event) error {
 			for _, ev := range batch {
 				if ev.Type == "" {
 					return errors.New("missing event type")
@@ -38,13 +38,14 @@ func TestEventsOrdered(t *testing.T) {
 			}
 			return nil
 		},
+		128,
 	)
-	runner.Start()
-	t.Cleanup(runner.Flush)
+	q.Start()
+	t.Cleanup(q.Flush)
 
-	runner.Enqueue(api.EventTypeFlowActivated, 1)
-	runner.Enqueue(api.EventTypeFlowActivated, 2)
-	runner.Enqueue(api.EventTypeFlowActivated, 3)
+	q.Enqueue(api.EventTypeFlowActivated, 1)
+	q.Enqueue(api.EventTypeFlowActivated, 2)
+	q.Enqueue(api.EventTypeFlowActivated, 3)
 
 	select {
 	case <-done:
@@ -57,13 +58,13 @@ func TestEventsOrdered(t *testing.T) {
 	assert.Equal(t, []int{1, 2, 3}, order)
 }
 
-func TestEventsHandlerError(t *testing.T) {
+func TestQueueHandlerError(t *testing.T) {
 	done := make(chan struct{})
 	var mu sync.Mutex
 	calls := 0
 
-	runner := engine.NewEventQueue(
-		func(batch []engine.QueueEvent) error {
+	q := event.NewQueue(
+		func(batch []event.Event) error {
 			mu.Lock()
 			calls++
 			n := calls
@@ -74,11 +75,12 @@ func TestEventsHandlerError(t *testing.T) {
 			close(done)
 			return nil
 		},
+		128,
 	)
-	runner.Start()
-	t.Cleanup(runner.Flush)
+	q.Start()
+	t.Cleanup(q.Flush)
 
-	runner.Enqueue(api.EventTypeFlowActivated, 1)
+	q.Enqueue(api.EventTypeFlowActivated, 1)
 
 	select {
 	case <-done:
@@ -87,13 +89,13 @@ func TestEventsHandlerError(t *testing.T) {
 	}
 }
 
-func TestEventsHandlerPanic(t *testing.T) {
+func TestQueueHandlerPanic(t *testing.T) {
 	done := make(chan struct{})
 	var mu sync.Mutex
 	calls := 0
 
-	runner := engine.NewEventQueue(
-		func(batch []engine.QueueEvent) error {
+	q := event.NewQueue(
+		func(batch []event.Event) error {
 			mu.Lock()
 			calls++
 			n := calls
@@ -104,11 +106,12 @@ func TestEventsHandlerPanic(t *testing.T) {
 			close(done)
 			return nil
 		},
+		128,
 	)
-	runner.Start()
-	t.Cleanup(runner.Flush)
+	q.Start()
+	t.Cleanup(q.Flush)
 
-	runner.Enqueue(api.EventTypeFlowActivated, 1)
+	q.Enqueue(api.EventTypeFlowActivated, 1)
 
 	select {
 	case <-done:
@@ -117,19 +120,20 @@ func TestEventsHandlerPanic(t *testing.T) {
 	}
 }
 
-func TestEventsCancel(t *testing.T) {
+func TestQueueCancel(t *testing.T) {
 	handled := make(chan struct{}, 1)
 
-	runner := engine.NewEventQueue(
-		func(batch []engine.QueueEvent) error {
+	q := event.NewQueue(
+		func(batch []event.Event) error {
 			handled <- struct{}{}
 			return nil
 		},
+		128,
 	)
-	runner.Start()
+	q.Start()
 
-	runner.Cancel()
-	runner.Cancel()
+	q.Cancel()
+	q.Cancel()
 
 	select {
 	case <-handled:
