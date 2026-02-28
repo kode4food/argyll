@@ -1,15 +1,76 @@
 package engine_test
 
 import (
+	"errors"
 	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
+	engassert "github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+func TestCompleteFlow(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		a := engassert.New(t)
+
+		assert.NoError(t, env.Engine.Start())
+
+		step := helpers.NewStepWithOutputs("complete-step", "result")
+
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		// Configure mock to return a result
+		env.MockClient.SetResponse("complete-step", api.Args{"result": "final"})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{"complete-step"},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flow := env.WaitForFlowStatus("wf-complete", func() {
+			err = env.Engine.StartFlow("wf-complete", plan)
+			assert.NoError(t, err)
+		})
+		a.FlowStatus(flow, api.FlowCompleted)
+	})
+}
+
+func TestFailFlow(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		a := engassert.New(t)
+
+		assert.NoError(t, env.Engine.Start())
+
+		step := helpers.NewSimpleStep("fail-step")
+
+		err := env.Engine.RegisterStep(step)
+		assert.NoError(t, err)
+
+		env.MockClient.SetError("fail-step", errors.New("test error"))
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{"fail-step"},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		// Wait for flow to fail automatically
+		env.WaitFor(wait.FlowFailed("wf-fail"), func() {
+			err = env.Engine.StartFlow("wf-fail", plan)
+			assert.NoError(t, err)
+		})
+
+		flow, err := env.Engine.GetFlowState("wf-fail")
+		assert.NoError(t, err)
+		a.FlowStatus(flow, api.FlowFailed)
+		assert.Contains(t, flow.Error, "test error")
+	})
+}
 
 func TestFlowStepChildSuccess(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {

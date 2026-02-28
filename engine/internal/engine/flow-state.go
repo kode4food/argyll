@@ -4,7 +4,52 @@ import (
 	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
+
+// GetFlowState retrieves the current state of a flow by its ID.
+func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
+	state, _, err := e.GetFlowStateSeq(flowID)
+	return state, err
+}
+
+// GetFlowStateSeq retrieves the current state and next sequence for a flow.
+func (e *Engine) GetFlowStateSeq(
+	flowID api.FlowID,
+) (*api.FlowState, int64, error) {
+	var nextSeq int64
+	state, err := e.execFlow(events.FlowKey(flowID),
+		func(st *api.FlowState, ag *FlowAggregator) error {
+			nextSeq = ag.NextSequence()
+			return nil
+		},
+	)
+	if err != nil {
+		return nil, 0, err
+	}
+
+	if state.ID == "" {
+		return nil, 0, ErrFlowNotFound
+	}
+
+	return state, nextSeq, nil
+}
+
+// GetAttribute retrieves a specific attribute value from the flow state,
+// returning the value, whether it exists, and any error.
+func (e *Engine) GetAttribute(
+	flowID api.FlowID, attr api.Name,
+) (any, bool, error) {
+	flow, err := e.GetFlowState(flowID)
+	if err != nil {
+		return nil, false, err
+	}
+
+	if av, ok := flow.Attributes[attr]; ok {
+		return av.Value, true, nil
+	}
+	return nil, false, nil
+}
 
 // IsFlowFailed determines if a flow has failed by checking whether any of its
 // goal steps cannot be completed
@@ -37,6 +82,15 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 	return false
 }
 
+func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
+	for stepID := range flow.Plan.Steps {
+		if !e.isStepComplete(stepID, flow) {
+			return false
+		}
+	}
+	return true
+}
+
 func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
 	plan := flow.Plan
 	if slices.Contains(plan.Goals, stepID) {
@@ -45,12 +99,29 @@ func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
 	return needsOutputs(plan.Steps[stepID], flow)
 }
 
-func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
-	for stepID := range flow.Plan.Steps {
-		if !e.isStepComplete(stepID, flow) {
-			return false
+func (e *Engine) isStepComplete(stepID api.StepID, flow *api.FlowState) bool {
+	exec := flow.Executions[stepID]
+	return exec.Status == api.StepCompleted || exec.Status == api.StepSkipped
+}
+
+func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
+	exec := flow.Executions[stepID]
+	if stepTransitions.IsTerminal(exec.Status) {
+		return exec.Status == api.StepCompleted
+	}
+
+	step := flow.Plan.Steps[stepID]
+	for name, attr := range step.Attributes {
+		if attr.IsRequired() {
+			if _, ok := flow.Attributes[name]; ok {
+				continue
+			}
+			if !e.HasInputProvider(name, flow) {
+				return false
+			}
 		}
 	}
+
 	return true
 }
 

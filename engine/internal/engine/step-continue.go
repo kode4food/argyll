@@ -117,7 +117,8 @@ func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
 }
 
 func timeoutKey(fs api.FlowStep, name api.Name) []string {
-	return []string{"timeout", string(fs.FlowID), string(fs.StepID), string(name)}
+	return []string{"timeout", string(fs.FlowID), string(fs.StepID),
+		string(name)}
 }
 
 func timeoutFlowPrefix(flowID api.FlowID) []string {

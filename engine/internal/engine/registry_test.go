@@ -193,3 +193,106 @@ func TestJPathNotValidForScripts(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
 	})
 }
+
+func TestUnregisterStep(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("test-step")
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		err = eng.UnregisterStep("test-step")
+		assert.NoError(t, err)
+
+		steps, err := eng.ListSteps()
+		assert.NoError(t, err)
+		assert.Empty(t, steps)
+	})
+}
+
+func TestListSteps(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("list-step")
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		steps, err := eng.ListSteps()
+		assert.NoError(t, err)
+		assert.Len(t, steps, 1)
+		assert.Equal(t, api.StepID("list-step"), steps[0].ID)
+	})
+}
+
+func TestListStepsEmpty(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		steps, err := eng.ListSteps()
+		assert.NoError(t, err)
+		assert.Empty(t, steps)
+	})
+}
+
+func TestRegisterDuplicateStep(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("dup-step")
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		err = eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		steps, err := eng.ListSteps()
+		assert.NoError(t, err)
+		assert.Len(t, steps, 1)
+		assert.Equal(t, api.StepID("dup-step"), steps[0].ID)
+	})
+}
+
+func TestRegisterConflictingStep(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("dup-step")
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		updatedStep := helpers.NewSimpleStep("dup-step")
+		updatedStep.Name = "Updated Name"
+
+		err = eng.RegisterStep(updatedStep)
+		assert.ErrorIs(t, err, engine.ErrStepExists)
+	})
+}
+
+func TestUpdateStepSuccess(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("update-step")
+		step.Name = "Original Name"
+
+		err := eng.RegisterStep(step)
+		assert.NoError(t, err)
+
+		updatedStep := helpers.NewSimpleStep("update-step")
+		updatedStep.Name = "Updated Name"
+		updatedStep.HTTP.Endpoint = "http://test:8080/v2"
+
+		err = eng.UpdateStep(updatedStep)
+		assert.NoError(t, err)
+
+		state, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+
+		updated, ok := state.Steps["update-step"]
+		assert.True(t, ok)
+		assert.Equal(t, api.Name("Updated Name"), updated.Name)
+	})
+}
+
+func TestUpdateStepNotFound(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		step := helpers.NewSimpleStep("nonexistent")
+
+		err := eng.UpdateStep(step)
+		assert.ErrorIs(t, err, engine.ErrStepNotFound)
+	})
+}

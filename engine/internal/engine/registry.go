@@ -27,6 +27,14 @@ var (
 	ErrLangNotValid       = errors.New("language not valid in this context")
 )
 
+// UnregisterStep removes a step from the engine registry
+func (e *Engine) UnregisterStep(stepID api.StepID) error {
+	return e.raiseCatalogEvent(
+		api.EventTypeStepUnregistered,
+		api.StepUnregisteredEvent{StepID: stepID},
+	)
+}
+
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
 func (e *Engine) RegisterStep(step *api.Step) error {

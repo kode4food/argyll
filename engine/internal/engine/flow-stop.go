@@ -6,9 +6,8 @@ import (
 	"log/slog"
 	"maps"
 
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
@@ -29,49 +28,99 @@ var (
 	getMetaToken  = api.GetMetaString[api.Token]
 )
 
-func (e *Engine) StartChildFlow(
-	parent api.FlowStep, token api.Token, step *api.Step, initState api.Args,
-) (api.FlowID, error) {
-	if step.Flow == nil || len(step.Flow.Goals) == 0 {
-		return "", api.ErrFlowGoalsRequired
-	}
-
-	childID := childFlowID(parent, token)
-
-	catState, err := e.GetCatalogState()
-	if err != nil {
-		return "", err
-	}
-
-	plan, err := plan.Create(catState, step.Flow.Goals, initState)
-	if err != nil {
-		return "", err
-	}
-
-	parentFlow, err := e.GetFlowState(parent.FlowID)
-	if err != nil {
-		return "", err
-	}
-
-	meta := maps.Clone(parentFlow.Metadata)
-	if meta == nil {
-		meta = api.Metadata{}
-	}
-	meta[api.MetaParentFlowID] = parent.FlowID
-	meta[api.MetaParentStepID] = parent.StepID
-	meta[api.MetaParentWorkItemToken] = token
-
-	if err := e.StartFlow(childID, plan,
-		flowopt.WithInit(initState),
-		flowopt.WithMetadata(meta),
-	); err != nil {
-		if errors.Is(err, ErrFlowExists) {
-			return childID, nil
+// checkTerminal checks for flow completion or failure
+func (tx *flowTx) checkTerminal() error {
+	flow := tx.Value()
+	if tx.isFlowComplete(flow) {
+		result := api.Args{}
+		for _, goalID := range flow.Plan.Goals {
+			if goal := flow.Executions[goalID]; goal != nil {
+				maps.Copy(result, goal.Outputs)
+			}
 		}
-		return "", err
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted,
+			api.FlowCompletedEvent{
+				FlowID: tx.flowID,
+				Result: result,
+			},
+		); err != nil {
+			return err
+		}
+		tx.OnSuccess(func(flow *api.FlowState) {
+			completedAt := flow.CompletedAt
+			if completedAt.IsZero() {
+				completedAt = tx.Now()
+			}
+			tx.Engine.CancelPrefixedTasks(retryPrefix(tx.flowID))
+			tx.Engine.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
+				api.FlowDigestUpdatedEvent{
+					FlowID:      tx.flowID,
+					Status:      api.FlowCompleted,
+					CompletedAt: completedAt,
+				},
+			)
+		})
+		return tx.maybeDeactivate()
 	}
+	if tx.IsFlowFailed(flow) {
+		errMsg := tx.getFailureReason(flow)
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowFailed,
+			api.FlowFailedEvent{
+				FlowID: tx.flowID,
+				Error:  errMsg,
+			},
+		); err != nil {
+			return err
+		}
+		tx.OnSuccess(func(flow *api.FlowState) {
+			completedAt := flow.CompletedAt
+			if completedAt.IsZero() {
+				completedAt = tx.Now()
+			}
+			tx.Engine.CancelPrefixedTasks(retryPrefix(tx.flowID))
+			tx.Engine.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
+				api.FlowDigestUpdatedEvent{
+					FlowID:      tx.flowID,
+					Status:      api.FlowFailed,
+					CompletedAt: completedAt,
+					Error:       errMsg,
+				},
+			)
+		})
+		return tx.maybeDeactivate()
+	}
+	return nil
+}
 
-	return childID, nil
+// getFailureReason extracts a failure reason from flow state
+func (tx *flowTx) getFailureReason(flow *api.FlowState) string {
+	for stepID, exec := range flow.Executions {
+		if exec.Status == api.StepFailed {
+			return fmt.Sprintf("step %s failed: %s", stepID, exec.Error)
+		}
+	}
+	return "flow failed"
+}
+
+// maybeDeactivate emits FlowDeactivated if the flow is terminal and has no
+// active work items remaining
+func (tx *flowTx) maybeDeactivate() error {
+	flow := tx.Value()
+	if !flowTransitions.IsTerminal(flow.Status) {
+		return nil
+	}
+	if hasActiveWork(flow) {
+		return nil
+	}
+	tx.OnSuccess(func(flow *api.FlowState) {
+		tx.completeParentWork(flow)
+		tx.EnqueueEvent(api.EventTypeFlowDeactivated,
+			api.FlowDeactivatedEvent{FlowID: tx.flowID},
+		)
+	})
+	return nil
 }
 
 func (tx *flowTx) completeParentWork(st *api.FlowState) {
@@ -85,8 +134,7 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 	if target == nil {
 		return
 	}
-	switch st.Status {
-	case api.FlowCompleted:
+	if st.Status == api.FlowCompleted {
 		childAttrs := st.GetAttributes()
 		outputs, err := mapFlowOutputs(target.step, childAttrs)
 		if err != nil {
@@ -104,16 +152,20 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 				log.FlowID(tx.flowID),
 				log.Error(cerr))
 		}
-	case api.FlowFailed:
-		errMsg := st.Error
-		if errMsg == "" {
-			errMsg = "child flow failed"
-		}
-		if ferr := tx.FailWork(target.fs, target.token, errMsg); ferr != nil {
-			slog.Error("Failed to fail parent work item",
-				log.FlowID(tx.flowID),
-				log.Error(ferr))
-		}
+		return
+	}
+	if st.Status != api.FlowFailed {
+		return
+	}
+
+	errMsg := st.Error
+	if errMsg == "" {
+		errMsg = "child flow failed"
+	}
+	if ferr := tx.FailWork(target.fs, target.token, errMsg); ferr != nil {
+		slog.Error("Failed to fail parent work item",
+			log.FlowID(tx.flowID),
+			log.Error(ferr))
 	}
 }
 
@@ -156,12 +208,6 @@ func (tx *flowTx) parentMeta(st *api.FlowState, target *parentWork) bool {
 	target.fs = api.FlowStep{FlowID: flowID, StepID: stepID}
 	target.token = token
 	return true
-}
-
-func childFlowID(parent api.FlowStep, token api.Token) api.FlowID {
-	return api.FlowID(
-		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, token),
-	)
 }
 
 func isWorkTerminal(status api.WorkStatus) bool {

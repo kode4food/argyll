@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"log/slog"
 	"maps"
-
-	"github.com/tidwall/gjson"
+	"time"
 
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
@@ -37,85 +37,19 @@ var (
 	ErrPredicateEvalFailed    = errors.New("predicate evaluation failed")
 )
 
-func (e *Engine) evaluateStepPredicate(
-	step *api.Step, inputs api.Args,
-) (bool, error) {
-	if step.Predicate == nil {
-		return true, nil
+func (tx *flowTx) handleWorkItemsExecution(
+	step *api.Step, inputs api.Args, meta api.Metadata, items api.WorkItems,
+) {
+	execCtx := &ExecContext{
+		engine: tx.Engine,
+		flowID: tx.flowID,
+		stepID: step.ID,
+		step:   step,
+		inputs: inputs,
+		meta:   meta,
 	}
-
-	comp, err := e.scripts.Compile(step, step.Predicate)
-	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrPredicateCompileFailed, err)
-	}
-
-	env, err := e.scripts.Get(step.Predicate.Language)
-	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrPredicateEnvFailed, err)
-	}
-
-	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
-	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrPredicateEvalFailed, err)
-	}
-
-	return shouldExecute, nil
+	execCtx.executeWorkItems(items)
 }
-
-func (tx *flowTx) collectStepInputs(
-	step *api.Step, flow *api.FlowState,
-) api.Args {
-	inputs := api.Args{}
-	now := tx.Now()
-	ev := tx.newStepEval(step.ID, flow, now)
-
-	for name, attr := range step.Attributes {
-		if !attr.IsRuntimeInput() {
-			continue
-		}
-
-		if attr.IsConst() {
-			inputs[name] = gjson.Parse(attr.Default).Value()
-			continue
-		}
-
-		if attr.IsOptional() {
-			ready, fallback := ev.optionalFallback(name, attr)
-			if !ready {
-				continue
-			}
-			if fallback {
-				if attr.Default != "" {
-					value := gjson.Parse(attr.Default).Value()
-					val := tx.mapper.MapInput(step, name, attr, value)
-					paramName := tx.mapper.InputParamName(name, attr)
-					inputs[paramName] = val
-				}
-				continue
-			}
-		}
-
-		attrVal, ok := flow.Attributes[name]
-		if !ok {
-			if !attr.IsRequired() && attr.Default != "" {
-				value := gjson.Parse(attr.Default).Value()
-				val := tx.mapper.MapInput(step, name, attr, value)
-				paramName := tx.mapper.InputParamName(name, attr)
-				inputs[paramName] = val
-				continue
-			}
-			continue
-		}
-
-		val := tx.mapper.MapInput(step, name, attr, attrVal.Value)
-		paramName := tx.mapper.InputParamName(name, attr)
-		inputs[paramName] = val
-	}
-
-	return inputs
-}
-
-// Work item execution functions
 
 func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 	for token, work := range items {
@@ -240,12 +174,10 @@ func (e *ExecContext) executeScript(
 	if e.step.Script != nil {
 		language = e.step.Script.Language
 	}
-
 	env, err := e.engine.scripts.Get(language)
 	if err != nil {
 		return nil, err
 	}
-
 	return env.ExecuteScript(c, e.step, inputs)
 }
 
@@ -257,9 +189,173 @@ func extractScriptResult(result api.Args) any {
 		return val
 	}
 	if len(result) == 1 {
-		for _, v := range result {
-			return v
+		for _, value := range result {
+			return value
 		}
 	}
 	return result
+}
+
+func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
+	stepID := step.ID
+	exec, ok := tx.Value().Executions[stepID]
+	if !ok || exec.Status != api.StepActive {
+		return nil, fmt.Errorf("%w: expected %s to be active, got %s",
+			ErrInvariantViolated, stepID, exec.Status)
+	}
+
+	limit := stepParallelism(step)
+	active := countActiveWorkItems(exec.WorkItems)
+	remaining := limit - active
+	if remaining <= 0 {
+		return nil, nil
+	}
+
+	now := tx.Now()
+	started := api.WorkItems{}
+	for token, work := range exec.WorkItems {
+		if remaining == 0 {
+			break
+		}
+		shouldStart, err := tx.shouldStartPendingWorkItem(step, work, now)
+		if err != nil {
+			return nil, err
+		}
+		if !shouldStart {
+			continue
+		}
+
+		if step.Memoizable {
+			if cached, ok := tx.Engine.memoCache.Get(step, work.Inputs); ok {
+				err := tx.handleMemoCacheHit(stepID, token, cached)
+				if err != nil {
+					return nil, err
+				}
+				remaining--
+				continue
+			}
+		}
+
+		if err := tx.raiseWorkStarted(stepID, token, work.Inputs); err != nil {
+			return nil, err
+		}
+		exec = tx.Value().Executions[stepID]
+		started[token] = exec.WorkItems[token]
+		remaining--
+	}
+
+	return started, nil
+}
+
+func (tx *flowTx) startRetryWorkItem(
+	step *api.Step, token api.Token,
+) (api.WorkItems, error) {
+	stepID := step.ID
+	exec, ok := tx.Value().Executions[stepID]
+	if !ok || exec.Status != api.StepActive {
+		return nil, nil
+	}
+
+	work, ok := exec.WorkItems[token]
+	if !ok {
+		return nil, nil
+	}
+
+	now := tx.Now()
+	shouldStart := false
+	switch work.Status {
+	case api.WorkPending:
+		var err error
+		if shouldStart, err = tx.shouldStartRetryPending(
+			step, work, exec.WorkItems, now,
+		); err != nil {
+			return nil, err
+		}
+	case api.WorkFailed:
+		if work.NextRetryAt.IsZero() || work.NextRetryAt.After(now) {
+			return nil, nil
+		}
+		shouldStart = true
+	case api.WorkActive, api.WorkNotCompleted:
+		shouldStart = true
+	default:
+		return nil, nil
+	}
+	if !shouldStart {
+		return nil, nil
+	}
+
+	if err := tx.raiseWorkStarted(stepID, token, work.Inputs); err != nil {
+		return nil, err
+	}
+	exec = tx.Value().Executions[stepID]
+	started := api.WorkItems{}
+	started[token] = exec.WorkItems[token]
+	return started, nil
+}
+
+func (tx *flowTx) shouldStartPendingWorkItem(
+	step *api.Step, work *api.WorkState, now time.Time,
+) (bool, error) {
+	stepID := step.ID
+	if work.Status != api.WorkPending {
+		return false, nil
+	}
+	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+		return false, nil
+	}
+	shouldStart, err := tx.evaluateStepPredicate(step, work.Inputs)
+	if err != nil {
+		return false, tx.handlePredicateFailure(stepID, err)
+	}
+	return shouldStart, nil
+}
+
+func (tx *flowTx) shouldStartRetryPending(
+	step *api.Step, work *api.WorkState, items api.WorkItems, now time.Time,
+) (bool, error) {
+	stepID := step.ID
+	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+		return false, nil
+	}
+	limit := stepParallelism(step)
+	active := countActiveWorkItems(items)
+	if active >= limit {
+		return false, nil
+	}
+	shouldStart, err := tx.evaluateStepPredicate(step, work.Inputs)
+	if err != nil {
+		return false, tx.handlePredicateFailure(stepID, err)
+	}
+	return shouldStart, nil
+}
+
+func (tx *flowTx) raiseWorkStarted(
+	stepID api.StepID, token api.Token, inputs api.Args,
+) error {
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
+		api.WorkStartedEvent{
+			FlowID: tx.flowID,
+			StepID: stepID,
+			Token:  token,
+			Inputs: inputs,
+		},
+	)
+}
+
+func stepParallelism(step *api.Step) int {
+	if step.WorkConfig == nil || step.WorkConfig.Parallelism <= 0 {
+		return 1
+	}
+	return step.WorkConfig.Parallelism
+}
+
+func countActiveWorkItems(items api.WorkItems) int {
+	active := 0
+	for _, work := range items {
+		if work.Status == api.WorkActive {
+			active++
+		}
+	}
+	return active
 }

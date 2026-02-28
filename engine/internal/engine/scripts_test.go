@@ -11,37 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestGetActiveFlow(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("active-test")
-
-		err := eng.RegisterStep(step)
-		assert.NoError(t, err)
-
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{"active-test"},
-			Steps: api.Steps{step.ID: step},
-		}
-
-		err = eng.StartFlow("wf-active-test", plan)
-		assert.NoError(t, err)
-
-		flow, err := eng.GetFlowState("wf-active-test")
-		assert.NoError(t, err)
-		assert.NotNil(t, flow)
-		assert.Equal(t, api.FlowID("wf-active-test"), flow.ID)
-		assert.Equal(t, api.FlowActive, flow.Status)
-	})
-}
-
-func TestGetFlowNotFound(t *testing.T) {
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		_, err := eng.GetFlowState("nonexistent")
-		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
-	})
-}
-
-func TestScript(t *testing.T) {
+func TestGetCompiledScript(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -78,7 +48,7 @@ func TestScript(t *testing.T) {
 	})
 }
 
-func TestScriptMissing(t *testing.T) {
+func TestGetCompiledScriptMissing(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -104,7 +74,7 @@ func TestScriptMissing(t *testing.T) {
 	})
 }
 
-func TestPredicate(t *testing.T) {
+func TestGetCompiledPredicate(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -134,7 +104,7 @@ func TestPredicate(t *testing.T) {
 	})
 }
 
-func TestPlanFlowNotFound(t *testing.T) {
+func TestGetCompiledScriptFlowNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		fs := api.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
 		_, err := eng.GetCompiledScript(fs)

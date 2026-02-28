@@ -3,72 +3,15 @@ package engine
 import (
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/google/uuid"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/engine/pkg/util"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
-
-var (
-	flowTransitions = StateTransitions[api.FlowStatus]{
-		api.FlowActive: util.SetOf(
-			api.FlowCompleted,
-			api.FlowFailed,
-		),
-		api.FlowCompleted: {},
-		api.FlowFailed:    {},
-	}
-
-	workTransitions = StateTransitions[api.WorkStatus]{
-		api.WorkPending: util.SetOf(
-			api.WorkActive,
-		),
-		api.WorkActive: util.SetOf(
-			api.WorkSucceeded,
-			api.WorkFailed,
-			api.WorkNotCompleted,
-		),
-		api.WorkSucceeded: {},
-		api.WorkFailed:    {},
-		api.WorkNotCompleted: util.SetOf(
-			api.WorkActive,
-			api.WorkSucceeded,
-			api.WorkFailed,
-		),
-	}
-)
-
-// GetFlowState retrieves the current state of a flow by its ID
-func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
-	state, _, err := e.GetFlowStateSeq(flowID)
-	return state, err
-}
-
-// GetFlowStateSeq retrieves the current state and next sequence for a flow
-func (e *Engine) GetFlowStateSeq(
-	flowID api.FlowID,
-) (*api.FlowState, int64, error) {
-	var nextSeq int64
-	state, err := e.execFlow(events.FlowKey(flowID),
-		func(st *api.FlowState, ag *FlowAggregator) error {
-			nextSeq = ag.NextSequence()
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, 0, err
-	}
-
-	if state.ID == "" {
-		return nil, 0, ErrFlowNotFound
-	}
-
-	return state, nextSeq, nil
-}
 
 // CompleteWork marks a work item as successfully completed with the given
 // output values
@@ -120,14 +63,7 @@ func (e *Engine) FailWork(
 			return err
 		}
 
-		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
-			api.WorkFailedEvent{
-				FlowID: fs.FlowID,
-				StepID: fs.StepID,
-				Token:  token,
-				Error:  errMsg,
-			},
-		); err != nil {
+		if err := tx.raiseWorkFailed(fs.StepID, token, errMsg); err != nil {
 			return err
 		}
 		return tx.handleWorkFailed(fs.StepID)
@@ -154,14 +90,8 @@ func (e *Engine) NotCompleteWork(
 			}
 		}
 
-		if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
-			api.WorkNotCompletedEvent{
-				FlowID:     fs.FlowID,
-				StepID:     fs.StepID,
-				Token:      token,
-				RetryToken: retryToken,
-				Error:      errMsg,
-			},
+		if err := tx.raiseWorkNotCompleted(
+			fs.StepID, token, retryToken, errMsg,
 		); err != nil {
 			return err
 		}
@@ -172,28 +102,6 @@ func (e *Engine) NotCompleteWork(
 		}
 		return tx.handleWorkNotCompleted(fs.StepID, actualToken)
 	})
-}
-
-// GetAttribute retrieves a specific attribute value from the flow state,
-// returning the value, whether it exists, and any error
-func (e *Engine) GetAttribute(
-	flowID api.FlowID, attr api.Name,
-) (any, bool, error) {
-	flow, err := e.GetFlowState(flowID)
-	if err != nil {
-		return nil, false, err
-	}
-
-	if av, ok := flow.Attributes[attr]; ok {
-		return av.Value, true, nil
-	}
-	return nil, false, nil
-}
-
-func (e *Engine) execFlow(
-	flowID timebox.AggregateID, cmd timebox.Command[*api.FlowState],
-) (*api.FlowState, error) {
-	return e.flowExec.Exec(e.ctx, flowID, cmd)
 }
 
 func (tx *flowTx) handleWorkSucceededCleanup(fs api.FlowStep, token api.Token) {
@@ -220,4 +128,111 @@ func (tx *flowTx) checkWorkTransition(
 	}
 
 	return nil
+}
+
+func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
+	if flowTransitions.IsTerminal(tx.Value().Status) {
+		if _, err := tx.checkStepCompletion(stepID); err != nil {
+			return err
+		}
+		return tx.maybeDeactivate()
+	}
+
+	completed, err := tx.checkStepCompletion(stepID)
+	if err != nil {
+		return err
+	}
+	if !completed {
+		return tx.handleWorkContinuation(stepID)
+	}
+
+	return call.Perform(
+		tx.skipPendingUnused,
+		tx.startReadyPendingSteps,
+		tx.checkTerminal,
+	)
+}
+
+func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
+	return call.Perform(
+		call.WithArgs(tx.continueStepWork, stepID, true),
+		call.WithArg(tx.handleStepFailure, stepID),
+	)
+}
+
+func (tx *flowTx) handleWorkNotCompleted(
+	stepID api.StepID, token api.Token,
+) error {
+	if flowTransitions.IsTerminal(tx.Value().Status) {
+		return tx.maybeDeactivate()
+	}
+	return call.Perform(
+		call.WithArgs(tx.scheduleRetry, stepID, token),
+		call.WithArgs(tx.continueStepWork, stepID, true),
+		call.WithArg(tx.handleStepFailure, stepID),
+	)
+}
+
+// handleMemoCacheHit processes a memo cache hit by emitting WorkSucceeded
+func (tx *flowTx) handleMemoCacheHit(
+	stepID api.StepID, token api.Token, outputs api.Args,
+) error {
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
+		api.WorkSucceededEvent{
+			FlowID:  tx.flowID,
+			StepID:  stepID,
+			Token:   token,
+			Outputs: outputs,
+		},
+	); err != nil {
+		return err
+	}
+	tx.OnSuccess(func(flow *api.FlowState) {
+		fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
+		tx.handleWorkSucceededCleanup(fs, token)
+	})
+	return tx.handleWorkSucceeded(stepID)
+}
+
+func (tx *flowTx) raiseWorkFailed(
+	stepID api.StepID, token api.Token, errMsg string,
+) error {
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkFailed,
+		api.WorkFailedEvent{
+			FlowID: tx.flowID,
+			StepID: stepID,
+			Token:  token,
+			Error:  errMsg,
+		},
+	)
+}
+
+func (tx *flowTx) raiseRetryScheduled(
+	stepID api.StepID, token api.Token, work *api.WorkState,
+	nextRetryAt time.Time,
+) error {
+	return events.Raise(tx.FlowAggregator, api.EventTypeRetryScheduled,
+		api.RetryScheduledEvent{
+			FlowID:      tx.flowID,
+			StepID:      stepID,
+			Token:       token,
+			RetryCount:  work.RetryCount + 1,
+			NextRetryAt: nextRetryAt,
+			Error:       work.Error,
+		},
+	)
+}
+
+func (tx *flowTx) raiseWorkNotCompleted(
+	stepID api.StepID, token, retryToken api.Token, errMsg string,
+) error {
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
+		api.WorkNotCompletedEvent{
+			FlowID:     tx.flowID,
+			StepID:     stepID,
+			Token:      token,
+			RetryToken: retryToken,
+			Error:      errMsg,
+		},
+	)
 }
