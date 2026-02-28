@@ -11,6 +11,19 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 )
 
+type (
+	testTimerConstructor struct {
+		created chan *fakeTimer
+	}
+
+	fakeTimer struct {
+		ch      chan time.Time
+		resets  chan time.Duration
+		stops   chan struct{}
+		stopped atomic.Bool
+	}
+)
+
 const schedulerWaitTimeout = time.Second
 
 func TestScheduleTask(t *testing.T) {
@@ -230,68 +243,24 @@ func TestTaskHeapPopNonKeyed(t *testing.T) {
 	assert.Nil(t, h.PopTask())
 }
 
-func withFakeScheduler(
-	t *testing.T,
-	fn func(*engine.Engine, *fakeTimer, time.Time),
-) {
-	t.Helper()
-	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	tf := newFakeTimerFactory()
-	helpers.WithEngineWithTime(t, func() time.Time { return now },
-		tf.NewTimer, func(eng *engine.Engine) {
-			assert.NoError(t, eng.Start())
-			timer := tf.WaitTimer(t)
-			timer.DrainResets()
-			timer.DrainStops()
-			fn(eng, timer, now)
-		})
-}
-
-type fakeTimerFactory struct {
-	created chan *fakeTimer
-}
-
-func newFakeTimerFactory() *fakeTimerFactory {
-	return &fakeTimerFactory{
-		created: make(chan *fakeTimer, 1),
-	}
-}
-
-func (f *fakeTimerFactory) NewTimer(delay time.Duration) engine.Timer {
+func (c *testTimerConstructor) NewTimer(delay time.Duration) engine.Timer {
 	timer := newFakeTimer(delay)
 	select {
-	case f.created <- timer:
+	case c.created <- timer:
 	default:
 	}
 	return timer
 }
 
-func (f *fakeTimerFactory) WaitTimer(t *testing.T) *fakeTimer {
+func (c *testTimerConstructor) WaitTimer(t *testing.T) *fakeTimer {
 	t.Helper()
 	select {
-	case timer := <-f.created:
+	case timer := <-c.created:
 		return timer
 	case <-time.After(schedulerWaitTimeout):
 		t.Fatal("scheduler timer was not created")
 		return nil
 	}
-}
-
-type fakeTimer struct {
-	ch      chan time.Time
-	resets  chan time.Duration
-	stops   chan struct{}
-	stopped atomic.Bool
-}
-
-func newFakeTimer(delay time.Duration) *fakeTimer {
-	timer := &fakeTimer{
-		ch:     make(chan time.Time, 1),
-		resets: make(chan time.Duration, 16),
-		stops:  make(chan struct{}, 16),
-	}
-	_ = delay
-	return timer
 }
 
 func (t *fakeTimer) Channel() <-chan time.Time {
@@ -361,6 +330,40 @@ func (t *fakeTimer) DrainStops() {
 			return
 		}
 	}
+}
+
+func withFakeScheduler(
+	t *testing.T, fn func(*engine.Engine, *fakeTimer, time.Time),
+) {
+	t.Helper()
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	tc := newTestTimerConstructor()
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock:            func() time.Time { return now },
+		TimerConstructor: tc.NewTimer,
+	}, func(eng *engine.Engine) {
+		assert.NoError(t, eng.Start())
+		timer := tc.WaitTimer(t)
+		timer.DrainResets()
+		timer.DrainStops()
+		fn(eng, timer, now)
+	})
+}
+
+func newTestTimerConstructor() *testTimerConstructor {
+	return &testTimerConstructor{
+		created: make(chan *fakeTimer, 1),
+	}
+}
+
+func newFakeTimer(delay time.Duration) *fakeTimer {
+	timer := &fakeTimer{
+		ch:     make(chan time.Time, 1),
+		resets: make(chan time.Duration, 16),
+		stops:  make(chan struct{}, 16),
+	}
+	_ = delay
+	return timer
 }
 
 func drainTimeChan(ch <-chan time.Time) {

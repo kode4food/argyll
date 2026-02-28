@@ -2,6 +2,7 @@ package helpers_test
 
 import (
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -9,6 +10,10 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+type testTimer struct {
+	ch chan time.Time
+}
 
 func TestMockClient(t *testing.T) {
 	client := helpers.NewMockClient()
@@ -99,6 +104,46 @@ func TestEngine(t *testing.T) {
 		assert.NotNil(t, env.Config)
 		assert.NotNil(t, env.EventHub)
 		assert.NotNil(t, env.Cleanup)
+	})
+}
+
+func TestEngineDependenciesClockOverride(t *testing.T) {
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return now },
+	}, func(eng *engine.Engine) {
+		assert.Equal(t, now, eng.Now())
+	})
+}
+
+func TestEngineDependenciesTimerOverride(t *testing.T) {
+	called := make(chan time.Duration, 1)
+	makeTimer := func(delay time.Duration) engine.Timer {
+		called <- delay
+		return &testTimer{ch: make(chan time.Time)}
+	}
+
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		TimerConstructor: makeTimer,
+	}, func(eng *engine.Engine) {
+		assert.NoError(t, eng.Start())
+		select {
+		case delay := <-called:
+			assert.Equal(t, time.Duration(0), delay)
+		case <-time.After(time.Second):
+			t.Fatal("timer constructor not called")
+		}
+	})
+}
+
+func TestTestEnvDependenciesPreservesDefaults(t *testing.T) {
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return now },
+	}, func(env *helpers.TestEngineEnv) {
+		assert.NotNil(t, env.Engine)
+		assert.NotNil(t, env.MockClient)
+		assert.Equal(t, now, env.Engine.Now())
 	})
 }
 
@@ -339,4 +384,16 @@ func TestRaiseFlowEvents(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 	})
+}
+
+func (t *testTimer) Channel() <-chan time.Time {
+	return t.ch
+}
+
+func (t *testTimer) Reset(time.Duration) bool {
+	return true
+}
+
+func (t *testTimer) Stop() bool {
+	return true
 }

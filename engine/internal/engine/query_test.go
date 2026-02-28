@@ -168,88 +168,90 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 
 func TestQueryFlowsSortAsc(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithTestEnvWithTime(t, func() time.Time { return now },
-		engine.NewTimer, func(env *helpers.TestEngineEnv) {
-			assert.NoError(t, env.Engine.Start())
-			defer func() { _ = env.Engine.Stop() }()
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return now },
+	}, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
 
-			step := helpers.NewSimpleStep("sort-step")
-			assert.NoError(t, env.Engine.RegisterStep(step))
-			env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		step := helpers.NewSimpleStep("sort-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
 
-			plan := &api.ExecutionPlan{
-				Goals: []api.StepID{step.ID},
-				Steps: api.Steps{step.ID: step},
-			}
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
 
-			env.WaitForFlowStatus("flow-a", func() {
-				assert.NoError(t, env.Engine.StartFlow("flow-a", plan))
-			})
-			now = now.Add(10 * time.Millisecond)
-
-			env.WaitForFlowStatus("flow-b", func() {
-				assert.NoError(t, env.Engine.StartFlow("flow-b", plan))
-			})
-
-			resp := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
-				Statuses: []api.FlowStatus{api.FlowCompleted},
-				Sort:     api.FlowSortRecentAsc,
-			}, 2)
-			recent0 := flowRecent(resp.Flows[0].Digest)
-			recent1 := flowRecent(resp.Flows[1].Digest)
-			assert.False(t, recent0.After(recent1))
+		env.WaitForFlowStatus("flow-a", func() {
+			assert.NoError(t, env.Engine.StartFlow("flow-a", plan))
 		})
+		now = now.Add(10 * time.Millisecond)
+
+		env.WaitForFlowStatus("flow-b", func() {
+			assert.NoError(t, env.Engine.StartFlow("flow-b", plan))
+		})
+
+		resp := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentAsc,
+		}, 2)
+		recent0 := flowRecent(resp.Flows[0].Digest)
+		recent1 := flowRecent(resp.Flows[1].Digest)
+		assert.False(t, recent0.After(recent1))
+	})
 }
 
 func TestQueryFlowsPaginationAsc(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithTestEnvWithTime(t, func() time.Time { return now },
-		engine.NewTimer, func(env *helpers.TestEngineEnv) {
-			assert.NoError(t, env.Engine.Start())
-			defer func() { _ = env.Engine.Stop() }()
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return now },
+	}, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
 
-			step := helpers.NewSimpleStep("page-step")
-			assert.NoError(t, env.Engine.RegisterStep(step))
-			env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		step := helpers.NewSimpleStep("page-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
 
-			plan := &api.ExecutionPlan{
-				Goals: []api.StepID{step.ID},
-				Steps: api.Steps{step.ID: step},
-			}
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
 
-			env.WaitForFlowStatus("page-a", func() {
-				assert.NoError(t, env.Engine.StartFlow("page-a", plan))
-			})
-			now = now.Add(10 * time.Millisecond)
-
-			env.WaitForFlowStatus("page-b", func() {
-				assert.NoError(t, env.Engine.StartFlow("page-b", plan))
-			})
-
-			waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
-				Statuses: []api.FlowStatus{api.FlowCompleted},
-			}, 2)
-
-			first := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
-				Statuses: []api.FlowStatus{api.FlowCompleted},
-				Sort:     api.FlowSortRecentAsc,
-				Limit:    1,
-			}, 1)
-			assert.True(t, first.HasMore)
-			assert.NotEmpty(t, first.NextCursor)
-
-			second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-				Statuses: []api.FlowStatus{api.FlowCompleted},
-				Sort:     api.FlowSortRecentAsc,
-				Limit:    1,
-				Cursor:   first.NextCursor,
-			})
-			assert.NoError(t, err)
-			assert.Equal(t, 1, second.Count)
-			assert.NotEqual(t,
-				first.Flows[0].ID, second.Flows[0].ID,
-			)
+		env.WaitForFlowStatus("page-a", func() {
+			assert.NoError(t, env.Engine.StartFlow("page-a", plan))
 		})
+		now = now.Add(10 * time.Millisecond)
+
+		env.WaitForFlowStatus("page-b", func() {
+			assert.NoError(t, env.Engine.StartFlow("page-b", plan))
+		})
+
+		waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+		}, 2)
+
+		first := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentAsc,
+			Limit:    1,
+		}, 1)
+		assert.True(t, first.HasMore)
+		assert.NotEmpty(t, first.NextCursor)
+
+		second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentAsc,
+			Limit:    1,
+			Cursor:   first.NextCursor,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, second.Count)
+		assert.NotEqual(t,
+			first.Flows[0].ID, second.Flows[0].ID,
+		)
+	})
 }
 
 func TestQueryFlowsInvalidCursor(t *testing.T) {
@@ -263,67 +265,6 @@ func TestQueryFlowsInvalidCursor(t *testing.T) {
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, engine.ErrInvalidFlowCursor))
 	})
-}
-
-func waitForQueryFlow(
-	t *testing.T, eng *engine.Engine, req *api.QueryFlowsRequest,
-	expected api.FlowID,
-) {
-	t.Helper()
-
-	deadline := time.Now().Add(wait.DefaultTimeout)
-	for time.Now().Before(deadline) {
-		resp, err := eng.QueryFlows(req)
-		if err == nil &&
-			len(resp.Flows) == 1 &&
-			resp.Flows[0].ID == expected {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	resp, err := eng.QueryFlows(req)
-	if err != nil {
-		t.Fatalf("query failed: %v", err)
-	}
-	var ids []api.FlowID
-	for _, flow := range resp.Flows {
-		ids = append(ids, flow.ID)
-	}
-	t.Fatalf("expected flow %s, got %v", expected, ids)
-}
-
-func waitForQueryFlows(
-	t *testing.T, eng *engine.Engine, req *api.QueryFlowsRequest, min int,
-) *api.QueryFlowsResponse {
-	t.Helper()
-
-	deadline := time.Now().Add(wait.DefaultTimeout)
-	for time.Now().Before(deadline) {
-		resp, err := eng.QueryFlows(req)
-		if err == nil && len(resp.Flows) >= min {
-			return resp
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-	resp, err := eng.QueryFlows(req)
-	if err != nil {
-		t.Fatalf("query failed: %v", err)
-	}
-	t.Fatalf("expected at least %d flows, got %d", min, len(resp.Flows))
-	return nil
-}
-
-func flowRecent(digest *api.FlowDigest) time.Time {
-	if digest == nil {
-		return time.Time{}
-	}
-	if digest.Status == api.FlowActive {
-		return digest.CreatedAt
-	}
-	if !digest.CompletedAt.IsZero() {
-		return digest.CompletedAt
-	}
-	return digest.CreatedAt
 }
 
 func TestQueryFlowsSkipsChildFlows(t *testing.T) {
@@ -400,4 +341,65 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 		assert.Contains(t, ids, api.FlowID("parent-list"))
 		assert.NotContains(t, ids, childID)
 	})
+}
+
+func waitForQueryFlow(
+	t *testing.T, eng *engine.Engine, req *api.QueryFlowsRequest,
+	expected api.FlowID,
+) {
+	t.Helper()
+
+	deadline := time.Now().Add(wait.DefaultTimeout)
+	for time.Now().Before(deadline) {
+		resp, err := eng.QueryFlows(req)
+		if err == nil &&
+			len(resp.Flows) == 1 &&
+			resp.Flows[0].ID == expected {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	resp, err := eng.QueryFlows(req)
+	if err != nil {
+		t.Fatalf("query failed: %v", err)
+	}
+	var ids []api.FlowID
+	for _, flow := range resp.Flows {
+		ids = append(ids, flow.ID)
+	}
+	t.Fatalf("expected flow %s, got %v", expected, ids)
+}
+
+func waitForQueryFlows(
+	t *testing.T, eng *engine.Engine, req *api.QueryFlowsRequest, min int,
+) *api.QueryFlowsResponse {
+	t.Helper()
+
+	deadline := time.Now().Add(wait.DefaultTimeout)
+	for time.Now().Before(deadline) {
+		resp, err := eng.QueryFlows(req)
+		if err == nil && len(resp.Flows) >= min {
+			return resp
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+	resp, err := eng.QueryFlows(req)
+	if err != nil {
+		t.Fatalf("query failed: %v", err)
+	}
+	t.Fatalf("expected at least %d flows, got %d", min, len(resp.Flows))
+	return nil
+}
+
+func flowRecent(digest *api.FlowDigest) time.Time {
+	if digest == nil {
+		return time.Time{}
+	}
+	if digest.Status == api.FlowActive {
+		return digest.CreatedAt
+	}
+	if !digest.CompletedAt.IsZero() {
+		return digest.CompletedAt
+	}
+	return digest.CreatedAt
 }

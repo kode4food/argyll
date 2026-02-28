@@ -47,12 +47,12 @@ func NewTestConfig() *config.Config {
 // NewTestEngine creates a fully configured test engine environment with an
 // in-memory Redis backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
-	return NewTestEngineWithTime(t, time.Now, engine.NewTimer)
+	return NewTestEngineWithDeps(t, engine.Dependencies{})
 }
 
-// NewTestEngineWithTime creates a test engine with explicit time wiring
-func NewTestEngineWithTime(
-	t *testing.T, clock engine.Clock, makeTimer engine.TimerConstructor,
+// NewTestEngineWithDeps creates a test engine with dependency overrides
+func NewTestEngineWithDeps(
+	t *testing.T, overrides engine.Dependencies,
 ) *TestEngineEnv {
 	t.Helper()
 
@@ -110,15 +110,20 @@ func NewTestEngineWithTime(
 	}
 
 	hub := tb.GetHub()
-	eng, err := engine.New(cfg, engine.Dependencies{
+	defaultDeps := engine.Dependencies{
 		CatalogStore:     catStore,
 		PartitionStore:   partStore,
 		FlowStore:        flowStore,
 		StepClient:       mockCli,
-		Clock:            clock,
-		TimerConstructor: makeTimer,
-	})
+		Clock:            time.Now,
+		TimerConstructor: engine.NewTimer,
+	}
+	deps := mergeDependencies(defaultDeps, overrides)
+	eng, err := engine.New(cfg, deps)
 	assert.NoError(t, err)
+	if cl, ok := deps.StepClient.(*MockClient); ok {
+		mockCli = cl
+	}
 
 	testEnv := &TestEngineEnv{
 		T:              t,
@@ -174,20 +179,16 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 // WithTestEnv creates a test engine environment, executes the provided
 // function with it, and ensures cleanup happens automatically
 func WithTestEnv(t *testing.T, fn func(*TestEngineEnv)) {
-	t.Helper()
-	testEnv := NewTestEngine(t)
-	defer testEnv.Cleanup()
-	fn(testEnv)
+	WithTestEnvDeps(t, engine.Dependencies{}, fn)
 }
 
-// WithTestEnvWithTime creates a test engine environment with explicit time
-// wiring and ensures cleanup happens automatically
-func WithTestEnvWithTime(
-	t *testing.T, clock engine.Clock, makeTimer engine.TimerConstructor,
-	fn func(*TestEngineEnv),
+// WithTestEnvDeps creates a test engine environment with dependency
+// overrides and ensures cleanup happens automatically
+func WithTestEnvDeps(
+	t *testing.T, overrides engine.Dependencies, fn func(*TestEngineEnv),
 ) {
 	t.Helper()
-	testEnv := NewTestEngineWithTime(t, clock, makeTimer)
+	testEnv := NewTestEngineWithDeps(t, overrides)
 	defer testEnv.Cleanup()
 	fn(testEnv)
 }
@@ -195,20 +196,16 @@ func WithTestEnvWithTime(
 // WithEngine creates a test engine, executes the provided function with it,
 // and ensures cleanup happens automatically
 func WithEngine(t *testing.T, fn func(*engine.Engine)) {
-	t.Helper()
-	WithTestEnv(t, func(env *TestEngineEnv) {
-		fn(env.Engine)
-	})
+	WithEngineDeps(t, engine.Dependencies{}, fn)
 }
 
-// WithEngineWithTime creates a test engine with explicit time wiring and
+// WithEngineDeps creates a test engine with dependency overrides and
 // ensures cleanup happens automatically
-func WithEngineWithTime(
-	t *testing.T, clock engine.Clock, makeTimer engine.TimerConstructor,
-	fn func(*engine.Engine),
+func WithEngineDeps(
+	t *testing.T, overrides engine.Dependencies, fn func(*engine.Engine),
 ) {
 	t.Helper()
-	WithTestEnvWithTime(t, clock, makeTimer, func(env *TestEngineEnv) {
+	WithTestEnvDeps(t, overrides, func(env *TestEngineEnv) {
 		fn(env.Engine)
 	})
 }
@@ -234,4 +231,28 @@ func (e *TestEngineEnv) engineDeps(
 		Clock:            clock,
 		TimerConstructor: makeTimer,
 	}
+}
+
+func mergeDependencies(
+	defaults engine.Dependencies, overrides engine.Dependencies,
+) engine.Dependencies {
+	if overrides.CatalogStore != nil {
+		defaults.CatalogStore = overrides.CatalogStore
+	}
+	if overrides.PartitionStore != nil {
+		defaults.PartitionStore = overrides.PartitionStore
+	}
+	if overrides.FlowStore != nil {
+		defaults.FlowStore = overrides.FlowStore
+	}
+	if overrides.StepClient != nil {
+		defaults.StepClient = overrides.StepClient
+	}
+	if overrides.Clock != nil {
+		defaults.Clock = overrides.Clock
+	}
+	if overrides.TimerConstructor != nil {
+		defaults.TimerConstructor = overrides.TimerConstructor
+	}
+	return defaults
 }

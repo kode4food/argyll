@@ -228,42 +228,44 @@ func TestCalculateNextRetry(t *testing.T) {
 	}
 
 	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithEngineWithTime(t, func() time.Time { return base },
-		engine.NewTimer, func(eng *engine.Engine) {
-			for _, sc := range scenarios {
-				t.Run(sc.name, func(t *testing.T) {
-					config := &api.WorkConfig{
-						InitBackoff: sc.backoff,
-						MaxBackoff:  sc.maxBackoff,
-						BackoffType: sc.backoffType,
-					}
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		for _, sc := range scenarios {
+			t.Run(sc.name, func(t *testing.T) {
+				config := &api.WorkConfig{
+					InitBackoff: sc.backoff,
+					MaxBackoff:  sc.maxBackoff,
+					BackoffType: sc.backoffType,
+				}
 
-					nextRetry := eng.CalculateNextRetry(config, sc.retryCount)
-					expected := base.Add(
-						time.Duration(sc.expected) * time.Millisecond,
-					)
-					assert.Equal(t, expected, nextRetry)
-				})
-			}
-		})
+				nextRetry := eng.CalculateNextRetry(config, sc.retryCount)
+				expected := base.Add(
+					time.Duration(sc.expected) * time.Millisecond,
+				)
+				assert.Equal(t, expected, nextRetry)
+			})
+		}
+	})
 }
 
 func TestRetryDefaults(t *testing.T) {
 	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithEngineWithTime(t, func() time.Time { return base },
-		engine.NewTimer, func(eng *engine.Engine) {
-			config := &api.WorkConfig{
-				InitBackoff: 750,
-				MaxBackoff:  1200,
-				BackoffType: "unknown",
-			}
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		config := &api.WorkConfig{
+			InitBackoff: 750,
+			MaxBackoff:  1200,
+			BackoffType: "unknown",
+		}
 
-			nextRetry := eng.CalculateNextRetry(config, 5)
-			assert.Equal(t,
-				base.Add(750*time.Millisecond),
-				nextRetry,
-			)
-		})
+		nextRetry := eng.CalculateNextRetry(config, 5)
+		assert.Equal(t,
+			base.Add(750*time.Millisecond),
+			nextRetry,
+		)
+	})
 }
 
 func TestRetryExhaustion(t *testing.T) {
@@ -616,10 +618,6 @@ func TestIsRetryable(t *testing.T) {
 	assert.True(t, isRetryable(&api.WorkState{
 		NextRetryAt: now.Add(-time.Minute),
 	}, now))
-}
-
-func isRetryable(work *api.WorkState, now time.Time) bool {
-	return !work.NextRetryAt.IsZero() && work.NextRetryAt.Before(now)
 }
 
 func TestTerminalFlow(t *testing.T) {
@@ -1043,23 +1041,25 @@ func TestFindRetryStepsActivePending(t *testing.T) {
 
 func TestNextRetryNilConfig(t *testing.T) {
 	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithEngineWithTime(t, func() time.Time { return base },
-		engine.NewTimer, func(eng *engine.Engine) {
-			nextRetry := eng.CalculateNextRetry(nil, 0)
-			assert.Equal(t, base.Add(time.Second), nextRetry)
-		})
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		nextRetry := eng.CalculateNextRetry(nil, 0)
+		assert.Equal(t, base.Add(time.Second), nextRetry)
+	})
 }
 
 func TestNextRetryParallelismOnlyConfig(t *testing.T) {
 	base := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	helpers.WithEngineWithTime(t, func() time.Time { return base },
-		engine.NewTimer, func(eng *engine.Engine) {
-			cfg := &api.WorkConfig{
-				Parallelism: 2,
-			}
-			nextRetry := eng.CalculateNextRetry(cfg, 0)
-			assert.Equal(t, base.Add(time.Second), nextRetry)
-		})
+	helpers.WithEngineDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return base },
+	}, func(eng *engine.Engine) {
+		cfg := &api.WorkConfig{
+			Parallelism: 2,
+		}
+		nextRetry := eng.CalculateNextRetry(cfg, 0)
+		assert.Equal(t, base.Add(time.Second), nextRetry)
+	})
 }
 
 func TestFindRetryEmptyWorkItems(t *testing.T) {
@@ -1346,4 +1346,8 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 			archivingState.Executions[archivingStep.ID].
 				WorkItems[archivingToken].Status)
 	})
+}
+
+func isRetryable(work *api.WorkState, now time.Time) bool {
+	return !work.NextRetryAt.IsZero() && work.NextRetryAt.Before(now)
 }

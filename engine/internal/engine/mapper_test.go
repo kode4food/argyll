@@ -10,13 +10,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func withMapper(t *testing.T, fn func(*engine.Mapper)) {
-	t.Helper()
-	helpers.WithEngine(t, func(eng *engine.Engine) {
-		fn(engine.NewMapper(eng))
-	})
-}
-
 func TestMapperCompile(t *testing.T) {
 	t.Run("compiles jpath mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
@@ -294,4 +287,11 @@ func aleCfg(script string) *api.ScriptConfig {
 		Language: api.ScriptLangAle,
 		Script:   script,
 	}
+}
+
+func withMapper(t *testing.T, fn func(*engine.Mapper)) {
+	t.Helper()
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		fn(engine.NewMapper(eng))
+	})
 }
