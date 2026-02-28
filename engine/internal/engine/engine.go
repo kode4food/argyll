@@ -19,16 +19,6 @@ import (
 )
 
 type (
-	// Dependencies groups the external dependencies required by Engine
-	Dependencies struct {
-		CatalogStore     *timebox.Store
-		PartitionStore   *timebox.Store
-		FlowStore        *timebox.Store
-		StepClient       client.Client
-		Clock            Clock
-		TimerConstructor TimerConstructor
-	}
-
 	// Engine is the core flow execution engine
 	Engine struct {
 		stepClient  client.Client
@@ -45,6 +35,16 @@ type (
 		tasks       chan taskReq
 		clock       Clock
 		makeTimer   TimerConstructor
+	}
+
+	// Dependencies groups the external dependencies required by Engine
+	Dependencies struct {
+		CatalogStore     *timebox.Store
+		PartitionStore   *timebox.Store
+		FlowStore        *timebox.Store
+		StepClient       client.Client
+		Clock            Clock
+		TimerConstructor TimerConstructor
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -83,13 +83,13 @@ var (
 
 // New creates a new orchestrator instance from configuration and dependencies
 func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
-	if err := normalizeDependencies(&deps); err != nil {
-		return nil, err
-	}
-
 	cfg = cfg.WithWorkDefaults()
 	if err := cfg.Validate(); err != nil {
 		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
+	}
+
+	if err := normalizeDependencies(&deps); err != nil {
+		return nil, err
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -109,6 +109,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 			events.NewFlowState,
 			events.FlowAppliers,
 		),
+		scripts:    script.NewRegistry(),
 		stepClient: deps.StepClient,
 		config:     cfg,
 		ctx:        ctx,
@@ -119,7 +120,6 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		makeTimer:  deps.TimerConstructor,
 	}
 	e.eventQueue = NewEventQueue(e.raisePartitionEvents)
-	e.scripts = script.NewRegistry()
 	e.mapper = NewMapper(e)
 
 	return e, nil
