@@ -113,14 +113,14 @@ func TestFlowStepChildSuccess(t *testing.T) {
 
 		exec := parentState.Executions[parent.ID]
 		if assert.NotNil(t, exec) && assert.NotNil(t, exec.WorkItems) {
-			var token api.Token
-			for tkn := range exec.WorkItems {
-				token = tkn
+			var tkn api.Token
+			for t := range exec.WorkItems {
+				tkn = t
 				break
 			}
 
 			childID := api.FlowID(fmt.Sprintf(
-				"%s:%s:%s", "parent-flow", parent.ID, token,
+				"%s:%s:%s", "parent-flow", parent.ID, tkn,
 			))
 			childState, err := env.Engine.GetFlowState(childID)
 			assert.NoError(t, err)
@@ -130,7 +130,7 @@ func TestFlowStepChildSuccess(t *testing.T) {
 				api.FlowID("parent-flow"), metaFlowID(childState.Metadata),
 			)
 			assert.Equal(t, parent.ID, metaStepID(childState.Metadata))
-			assert.Equal(t, token, metaToken(childState.Metadata))
+			assert.Equal(t, tkn, metaToken(childState.Metadata))
 		}
 	})
 }

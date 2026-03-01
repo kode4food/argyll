@@ -59,20 +59,18 @@ func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 	}
 }
 
-func (e *ExecContext) performWorkItem(
-	token api.Token, work *api.WorkState,
-) {
+func (e *ExecContext) performWorkItem(tkn api.Token, work *api.WorkState) {
 	inputs := e.inputs.Apply(work.Inputs)
-	if err := e.performWork(inputs, token); err != nil {
-		e.handleWorkItemFailure(token, err)
+	if err := e.performWork(inputs, tkn); err != nil {
+		e.handleWorkItemFailure(tkn, err)
 	}
 }
 
-func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
+func (e *ExecContext) handleWorkItemFailure(tkn api.Token, err error) {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 
 	if errors.Is(err, api.ErrWorkNotCompleted) {
-		recErr := e.engine.NotCompleteWork(fs, token, err.Error())
+		recErr := e.engine.NotCompleteWork(fs, tkn, err.Error())
 		if recErr != nil {
 			slog.Error("Failed to record work not completed",
 				log.FlowID(e.flowID),
@@ -82,7 +80,7 @@ func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 		return
 	}
 
-	recErr := e.engine.FailWork(fs, token, err.Error())
+	recErr := e.engine.FailWork(fs, tkn, err.Error())
 	if recErr != nil {
 		slog.Error("Failed to record work failure",
 			log.FlowID(e.flowID),
@@ -91,22 +89,22 @@ func (e *ExecContext) handleWorkItemFailure(token api.Token, err error) {
 	}
 }
 
-func (e *ExecContext) performWork(inputs api.Args, token api.Token) error {
+func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
 	switch e.step.Type {
 	case api.StepTypeScript:
-		return e.performScript(inputs, token)
+		return e.performScript(inputs, tkn)
 	case api.StepTypeSync:
-		return e.performSyncHTTP(inputs, token)
+		return e.performSyncHTTP(inputs, tkn)
 	case api.StepTypeAsync:
-		return e.performAsyncHTTP(inputs, token)
+		return e.performAsyncHTTP(inputs, tkn)
 	case api.StepTypeFlow:
-		return e.performFlow(inputs, token)
+		return e.performFlow(inputs, tkn)
 	default:
 		return fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type)
 	}
 }
 
-func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
+func (e *ExecContext) performScript(inputs api.Args, tkn api.Token) error {
 	c, err := e.engine.scripts.Compile(e.step, e.step.Script)
 	if err != nil {
 		return fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
@@ -118,43 +116,43 @@ func (e *ExecContext) performScript(inputs api.Args, token api.Token) error {
 	}
 
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.CompleteWork(fs, token, outputs)
+	return e.engine.CompleteWork(fs, tkn, outputs)
 }
 
-func (e *ExecContext) performSyncHTTP(inputs api.Args, token api.Token) error {
-	metadata := e.httpMetaForToken(token)
+func (e *ExecContext) performSyncHTTP(inputs api.Args, tkn api.Token) error {
+	metadata := e.httpMetaForToken(tkn)
 	outputs, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
 	if err != nil {
 		return err
 	}
 
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.CompleteWork(fs, token, outputs)
+	return e.engine.CompleteWork(fs, tkn, outputs)
 }
 
-func (e *ExecContext) performAsyncHTTP(inputs api.Args, token api.Token) error {
-	metadata := e.httpMetaForToken(token)
+func (e *ExecContext) performAsyncHTTP(inputs api.Args, tkn api.Token) error {
+	metadata := e.httpMetaForToken(tkn)
 	metadata[api.MetaWebhookURL] = fmt.Sprintf("%s/webhook/%s/%s/%s",
-		e.engine.config.WebhookBaseURL, e.flowID, e.stepID, token,
+		e.engine.config.WebhookBaseURL, e.flowID, e.stepID, tkn,
 	)
 	_, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
 	return err
 }
 
-func (e *ExecContext) performFlow(initState api.Args, token api.Token) error {
+func (e *ExecContext) performFlow(initState api.Args, tkn api.Token) error {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	_, err := e.engine.StartChildFlow(fs, token, e.step, initState)
+	_, err := e.engine.StartChildFlow(fs, tkn, e.step, initState)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (e *ExecContext) httpMetaForToken(token api.Token) api.Metadata {
+func (e *ExecContext) httpMetaForToken(tkn api.Token) api.Metadata {
 	return e.meta.Apply(api.Metadata{
 		api.MetaFlowID:       e.flowID,
 		api.MetaStepID:       e.stepID,
-		api.MetaReceiptToken: token,
+		api.MetaReceiptToken: tkn,
 	})
 }
 
@@ -242,7 +240,7 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 }
 
 func (tx *flowTx) startRetryWorkItem(
-	step *api.Step, token api.Token,
+	step *api.Step, tkn api.Token,
 ) (api.WorkItems, error) {
 	stepID := step.ID
 	exec, ok := tx.Value().Executions[stepID]
@@ -250,7 +248,7 @@ func (tx *flowTx) startRetryWorkItem(
 		return nil, nil
 	}
 
-	work, ok := exec.WorkItems[token]
+	work, ok := exec.WorkItems[tkn]
 	if !ok {
 		return nil, nil
 	}
@@ -280,12 +278,12 @@ func (tx *flowTx) startRetryWorkItem(
 	}
 
 	inputs := exec.Inputs.Apply(work.Inputs)
-	if err := tx.raiseWorkStarted(stepID, token, inputs); err != nil {
+	if err := tx.raiseWorkStarted(stepID, tkn, inputs); err != nil {
 		return nil, err
 	}
 	exec = tx.Value().Executions[stepID]
 	started := api.WorkItems{}
-	started[token] = exec.WorkItems[token]
+	started[tkn] = exec.WorkItems[tkn]
 	return started, nil
 }
 
@@ -329,13 +327,13 @@ func (tx *flowTx) shouldStartRetryPending(
 }
 
 func (tx *flowTx) raiseWorkStarted(
-	stepID api.StepID, token api.Token, inputs api.Args,
+	stepID api.StepID, tkn api.Token, inputs api.Args,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkStarted,
 		api.WorkStartedEvent{
 			FlowID: tx.flowID,
 			StepID: stepID,
-			Token:  token,
+			Token:  tkn,
 			Inputs: inputs,
 		},
 	)

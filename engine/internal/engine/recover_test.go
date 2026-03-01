@@ -700,7 +700,7 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 		archivingToken := api.Token("archiving-token")
 
 		raiseFlow := func(
-			flowID api.FlowID, step *api.Step, token api.Token,
+			flowID api.FlowID, step *api.Step, tkn api.Token,
 		) {
 			plan := &api.ExecutionPlan{
 				Goals: []api.StepID{step.ID},
@@ -723,7 +723,7 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 						StepID: step.ID,
 						Inputs: api.Args{},
 						WorkItems: map[api.Token]api.Args{
-							token: {},
+							tkn: {},
 						},
 					},
 				},
@@ -732,7 +732,7 @@ func TestRecoverFlowsPrunesDeactivatedAndArchiving(t *testing.T) {
 					Data: api.RetryScheduledEvent{
 						FlowID:      flowID,
 						StepID:      step.ID,
-						Token:       token,
+						Token:       tkn,
 						RetryCount:  1,
 						NextRetryAt: now.Add(-500 * time.Millisecond),
 						Error:       "retry",

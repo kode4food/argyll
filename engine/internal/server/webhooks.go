@@ -66,14 +66,14 @@ func (s *Server) handleWebhook(c *gin.Context) {
 }
 
 func (s *Server) handleWorkWebhook(
-	c *gin.Context, fs api.FlowStep, token api.Token,
+	c *gin.Context, fs api.FlowStep, tkn api.Token,
 ) {
 	var result api.StepResult
 	if err := c.ShouldBindJSON(&result); err != nil {
 		slog.Error("Invalid JSON",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
-			log.Token(token),
+			log.Token(tkn),
 			log.Error(err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Invalid JSON",
@@ -86,13 +86,13 @@ func (s *Server) handleWorkWebhook(
 		slog.Error("Work failed",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
-			log.Token(token),
+			log.Token(tkn),
 			log.ErrorString(result.Error))
-		if err := s.engine.FailWork(fs, token, result.Error); err != nil {
+		if err := s.engine.FailWork(fs, tkn, result.Error); err != nil {
 			slog.Error("Failed to record work failure",
 				log.FlowID(fs.FlowID),
 				log.StepID(fs.StepID),
-				log.Token(token),
+				log.Token(tkn),
 				log.Error(err))
 			if errors.Is(err, engine.ErrInvalidWorkTransition) {
 				c.JSON(http.StatusBadRequest, api.ErrorResponse{
@@ -111,11 +111,11 @@ func (s *Server) handleWorkWebhook(
 		return
 	}
 
-	if err := s.engine.CompleteWork(fs, token, result.Outputs); err != nil {
+	if err := s.engine.CompleteWork(fs, tkn, result.Outputs); err != nil {
 		slog.Error("Failed to complete work",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
-			log.Token(token),
+			log.Token(tkn),
 			log.Error(err))
 		if errors.Is(err, engine.ErrInvalidWorkTransition) {
 			c.JSON(http.StatusBadRequest, api.ErrorResponse{

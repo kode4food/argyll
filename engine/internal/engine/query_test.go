@@ -320,14 +320,14 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 				return
 			}
 
-			var token api.Token
-			for tkn := range exec.WorkItems {
-				token = tkn
+			var tkn api.Token
+			for t := range exec.WorkItems {
+				tkn = t
 				break
 			}
 
 			childID = api.FlowID(fmt.Sprintf(
-				"%s:%s:%s", "parent-list", parent.ID, token,
+				"%s:%s:%s", "parent-list", parent.ID, tkn,
 			))
 
 			w := wait.On(t, consumer)

@@ -140,9 +140,9 @@ func TestHookCompleteTwice(t *testing.T) {
 		flow, err := env.Engine.GetFlowState("double-complete-flow")
 		assert.NoError(t, err)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range flow.Executions[step.ID].WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
@@ -153,7 +153,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/double-complete-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/double-complete-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 
@@ -176,7 +176,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		body, _ = json.Marshal(result)
 		req = httptest.NewRequest("POST",
-			"/webhook/double-complete-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/double-complete-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w = httptest.NewRecorder()
@@ -228,9 +228,9 @@ func TestHookFailTwice(t *testing.T) {
 		flow, err := env.Engine.GetFlowState("double-fail-flow")
 		assert.NoError(t, err)
 
-		var token api.Token
-		for tk := range flow.Executions[step.ID].WorkItems {
-			token = tk
+		var tkn api.Token
+		for t := range flow.Executions[step.ID].WorkItems {
+			tkn = t
 			break
 		}
 
@@ -242,7 +242,7 @@ func TestHookFailTwice(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/double-fail-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/double-fail-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -260,7 +260,7 @@ func TestHookFailTwice(t *testing.T) {
 
 		body, _ = json.Marshal(result)
 		req = httptest.NewRequest("POST",
-			"/webhook/double-fail-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/double-fail-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w = httptest.NewRecorder()
@@ -313,9 +313,9 @@ func TestHookSuccess(t *testing.T) {
 		flow, err := env.Engine.GetFlowState("webhook-success-flow")
 		assert.NoError(t, err)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range flow.Executions[step.ID].WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
@@ -326,7 +326,7 @@ func TestHookSuccess(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-success-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/webhook-success-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -373,9 +373,9 @@ func TestHookWorkFailure(t *testing.T) {
 		flow, err := env.Engine.GetFlowState("webhook-fail-flow")
 		assert.NoError(t, err)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range flow.Executions[step.ID].WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
@@ -386,7 +386,7 @@ func TestHookWorkFailure(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-fail-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/webhook-fail-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -433,14 +433,14 @@ func TestHookInvalidJSON(t *testing.T) {
 		flow, err := env.Engine.GetFlowState("webhook-badjson-flow")
 		assert.NoError(t, err)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range flow.Executions[step.ID].WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-badjson-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/webhook-badjson-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

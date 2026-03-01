@@ -150,9 +150,9 @@ func TestSuccess(t *testing.T) {
 		assert.NotNil(t, exec.WorkItems)
 		assert.Len(t, exec.WorkItems, 1)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range exec.WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
@@ -164,7 +164,7 @@ func TestSuccess(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-wf/async-step/"+string(token),
+			"/webhook/webhook-wf/async-step/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -342,15 +342,15 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 		assert.NotNil(t, exec)
 		assert.NotNil(t, exec.WorkItems)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range exec.WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
 		// Send invalid JSON with real token
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-wf/async-step/"+string(token),
+			"/webhook/webhook-wf/async-step/"+string(tkn),
 			bytes.NewReader([]byte("invalid json")))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -402,9 +402,9 @@ func TestHookFailurePath(t *testing.T) {
 		flow, err := testEnv.Engine.GetFlowState("wf-fail-path")
 		assert.NoError(t, err)
 
-		var token api.Token
-		for tkn := range flow.Executions["async-step"].WorkItems {
-			token = tkn
+		var tkn api.Token
+		for t := range flow.Executions["async-step"].WorkItems {
+			tkn = t
 			break
 		}
 
@@ -415,7 +415,7 @@ func TestHookFailurePath(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/wf-fail-path/async-step/"+string(token),
+			"/webhook/wf-fail-path/async-step/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()
@@ -427,7 +427,7 @@ func TestHookFailurePath(t *testing.T) {
 
 		updated, err := testEnv.Engine.GetFlowState("wf-fail-path")
 		assert.NoError(t, err)
-		work := updated.Executions["async-step"].WorkItems[token]
+		work := updated.Executions["async-step"].WorkItems[tkn]
 		assert.Equal(t, api.WorkFailed, work.Status)
 		assert.Equal(t, "boom", work.Error)
 	})
@@ -1181,9 +1181,9 @@ func TestHookSuccessRoute(t *testing.T) {
 		assert.NotNil(t, exec)
 		assert.NotEmpty(t, exec.WorkItems)
 
-		var token api.Token
+		var tkn api.Token
 		for t := range exec.WorkItems {
-			token = t
+			tkn = t
 			break
 		}
 
@@ -1194,7 +1194,7 @@ func TestHookSuccessRoute(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-flow/"+string(step.ID)+"/"+string(token),
+			"/webhook/webhook-flow/"+string(step.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

@@ -25,11 +25,6 @@ var ErrInvariantViolated = errors.New("engine invariant violated")
 func (e *Engine) StartFlow(
 	flowID api.FlowID, plan *api.ExecutionPlan, apps ...flowopt.Applier,
 ) error {
-	existing, err := e.GetFlowState(flowID)
-	if err == nil && existing.ID != "" {
-		return ErrFlowExists
-	}
-
 	opts := flowopt.DefaultOptions(apps...)
 	if err := call.Perform(
 		call.WithArg(validateParentMetadata, opts.Metadata),
@@ -39,6 +34,9 @@ func (e *Engine) StartFlow(
 	}
 
 	return e.flowTx(flowID, func(tx *flowTx) error {
+		if tx.Value().ID != "" {
+			return ErrFlowExists
+		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
 				FlowID:   flowID,
@@ -79,13 +77,13 @@ func (e *Engine) StartFlow(
 }
 
 func (e *Engine) StartChildFlow(
-	parent api.FlowStep, token api.Token, step *api.Step, initState api.Args,
+	parent api.FlowStep, tkn api.Token, step *api.Step, initState api.Args,
 ) (api.FlowID, error) {
 	if step.Flow == nil || len(step.Flow.Goals) == 0 {
 		return "", api.ErrFlowGoalsRequired
 	}
 
-	childID := childFlowID(parent, token)
+	childID := childFlowID(parent, tkn)
 
 	cat, err := e.GetCatalogState()
 	if err != nil {
@@ -105,7 +103,7 @@ func (e *Engine) StartChildFlow(
 	meta := parentFlow.Metadata.Apply(api.Metadata{
 		api.MetaParentFlowID:        parent.FlowID,
 		api.MetaParentStepID:        parent.StepID,
-		api.MetaParentWorkItemToken: token,
+		api.MetaParentWorkItemToken: tkn,
 	})
 
 	if err := e.StartFlow(childID, pl,
@@ -121,9 +119,9 @@ func (e *Engine) StartChildFlow(
 	return childID, nil
 }
 
-func childFlowID(parent api.FlowStep, token api.Token) api.FlowID {
+func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
 	return api.FlowID(
-		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, token),
+		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, tkn),
 	)
 }
 

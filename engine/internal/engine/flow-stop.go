@@ -14,7 +14,6 @@ import (
 type parentWork struct {
 	fs    api.FlowStep
 	token api.Token
-	step  *api.Step
 }
 
 var (
@@ -132,70 +131,62 @@ func (tx *flowTx) maybeDeactivate() error {
 }
 
 func (tx *flowTx) completeParentWork(st *api.FlowState) {
-	target, err := tx.parentWork(st)
-	if err != nil {
-		slog.Error("Failed to get parent flow state",
-			log.FlowID(tx.flowID),
-			log.Error(err))
-		return
-	}
-	if target == nil {
-		return
-	}
-	if st.Status == api.FlowCompleted {
-		childAttrs := st.GetAttributes()
-		outputs, err := mapFlowOutputs(target.step, childAttrs)
-		if err != nil {
-			ferr := tx.FailWork(target.fs, target.token, err.Error())
-			if ferr != nil {
-				slog.Error("Failed to fail parent work item",
-					log.FlowID(tx.flowID),
-					log.Error(ferr))
-			}
-			return
-		}
-		cerr := tx.CompleteWork(target.fs, target.token, outputs)
-		if cerr != nil {
-			slog.Error("Failed to complete parent work item",
-				log.FlowID(tx.flowID),
-				log.Error(cerr))
-		}
-		return
-	}
-	if st.Status != api.FlowFailed {
-		return
-	}
-
-	errMsg := st.Error
-	if errMsg == "" {
-		errMsg = "child flow failed"
-	}
-	if ferr := tx.FailWork(target.fs, target.token, errMsg); ferr != nil {
-		slog.Error("Failed to fail parent work item",
-			log.FlowID(tx.flowID),
-			log.Error(ferr))
-	}
-}
-
-func (tx *flowTx) parentWork(st *api.FlowState) (*parentWork, error) {
 	target := &parentWork{}
 	ok, err := tx.parentMeta(st, target)
 	if !ok || err != nil {
-		return nil, err
+		if err != nil {
+			slog.Error("Failed to resolve parent work item",
+				log.FlowID(tx.flowID),
+				log.Error(err))
+		}
+		return
+	}
+	if st.Status != api.FlowCompleted && st.Status != api.FlowFailed {
+		return
 	}
 
-	parentFlow, err := tx.GetFlowState(target.fs.FlowID)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrGetFlowState, err)
+	if err := tx.completeParentFlowWork(st, target); err != nil {
+		slog.Error("Failed to update parent work item",
+			log.FlowID(tx.flowID),
+			log.Error(err))
 	}
+}
 
-	exec := parentFlow.Executions[target.fs.StepID]
-	if isWorkTerminal(exec.WorkItems[target.token].Status) {
-		return nil, nil
-	}
+func (tx *flowTx) completeParentFlowWork(
+	child *api.FlowState, target *parentWork,
+) error {
+	return tx.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
+		parent := parentTx.Value()
+		if parent.ID == "" {
+			return fmt.Errorf("%w: %w", ErrGetFlowState, ErrFlowNotFound)
+		}
 
-	target.step = parentFlow.Plan.Steps[target.fs.StepID]
-	return target, nil
+		exec := parent.Executions[target.fs.StepID]
+		work := exec.WorkItems[target.token]
+		if isWorkTerminal(work.Status) {
+			return nil
+		}
+
+		if child.Status == api.FlowCompleted {
+			outputs, err := mapFlowOutputs(
+				parent.Plan.Steps[target.fs.StepID], child.GetAttributes(),
+			)
+			if err != nil {
+				return parentTx.failWork(
+					target.fs.StepID, target.token, err.Error(),
+				)
+			}
+			return parentTx.completeWork(
+				target.fs.StepID, target.token, outputs,
+			)
+		}
+
+		errMsg := child.Error
+		if errMsg == "" {
+			errMsg = "child flow failed"
+		}
+		return parentTx.failWork(target.fs.StepID, target.token, errMsg)
+	})
 }
 
 func (tx *flowTx) parentMeta(
