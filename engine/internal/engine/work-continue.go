@@ -196,7 +196,7 @@ func (e *Engine) runRetryTask(fs api.FlowStep, token api.Token) error {
 	}
 
 	exec, ok := flow.Executions[fs.StepID]
-	if !ok || exec.WorkItems == nil {
+	if !ok {
 		return nil
 	}
 	if _, ok := exec.WorkItems[token]; !ok {

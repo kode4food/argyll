@@ -85,10 +85,6 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 
 	for stepID, exec := range state.Executions {
-		if exec.WorkItems == nil {
-			continue
-		}
-
 		for _, work := range exec.WorkItems {
 			if !isRecoverable(exec, work) {
 				continue
@@ -114,10 +110,6 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 	now := e.Now()
 	for stepID := range steps {
 		exec := flow.Executions[stepID]
-		if exec.WorkItems == nil {
-			continue
-		}
-
 		for token, work := range exec.WorkItems {
 			retryAt, ok := recoverableDeadline(exec, work, now)
 			if !ok {

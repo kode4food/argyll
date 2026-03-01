@@ -226,7 +226,7 @@ func (p *PartitionState) SetFlowDigest(
 
 // DeleteFlowDigest returns a new PartitionState with the flow digest removed
 func (p *PartitionState) DeleteFlowDigest(id FlowID) *PartitionState {
-	if p.FlowDigests == nil {
+	if len(p.FlowDigests) == 0 {
 		return p
 	}
 	res := *p

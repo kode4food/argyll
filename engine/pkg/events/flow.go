@@ -240,11 +240,12 @@ func workSucceeded(
 	st *api.FlowState, ev *timebox.Event, data api.WorkSucceededEvent,
 ) *api.FlowState {
 	exec := st.Executions[data.StepID]
-	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
+	item, ok := exec.WorkItems[data.Token]
+	if !ok {
 		return st
 	}
 
-	item := exec.WorkItems[data.Token].
+	item = item.
 		SetStatus(api.WorkSucceeded).
 		SetCompletedAt(ev.Timestamp).
 		SetOutputs(data.Outputs)
@@ -258,11 +259,12 @@ func workFailed(
 	st *api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
 ) *api.FlowState {
 	exec := st.Executions[data.StepID]
-	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
+	item, ok := exec.WorkItems[data.Token]
+	if !ok {
 		return st
 	}
 
-	item := exec.WorkItems[data.Token].
+	item = item.
 		SetStatus(api.WorkFailed).
 		SetCompletedAt(ev.Timestamp).
 		SetError(data.Error)
@@ -276,11 +278,12 @@ func workNotCompleted(
 	st *api.FlowState, ev *timebox.Event, data api.WorkNotCompletedEvent,
 ) *api.FlowState {
 	exec := st.Executions[data.StepID]
-	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
+	item, ok := exec.WorkItems[data.Token]
+	if !ok {
 		return st
 	}
 
-	item := exec.WorkItems[data.Token].
+	item = item.
 		SetStatus(api.WorkNotCompleted).
 		SetCompletedAt(ev.Timestamp).
 		SetError(data.Error)
@@ -303,11 +306,12 @@ func retryScheduled(
 	st *api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
 ) *api.FlowState {
 	exec := st.Executions[data.StepID]
-	if exec.WorkItems == nil || exec.WorkItems[data.Token] == nil {
+	item, ok := exec.WorkItems[data.Token]
+	if !ok {
 		return st
 	}
 
-	item := exec.WorkItems[data.Token].
+	item = item.
 		SetStatus(api.WorkPending).
 		SetRetryCount(data.RetryCount).
 		SetNextRetryAt(data.NextRetryAt).

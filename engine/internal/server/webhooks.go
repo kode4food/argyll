@@ -48,7 +48,7 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	}
 
 	// Check if token matches a work item
-	if exec.WorkItems == nil || exec.WorkItems[token] == nil {
+	if _, ok := exec.WorkItems[token]; !ok {
 		slog.Error("Work item not found",
 			log.FlowID(flowID),
 			log.StepID(stepID),

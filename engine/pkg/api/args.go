@@ -29,7 +29,7 @@ var (
 
 // Set creates a new Args with the specified name-value pair added
 func (a Args) Set(name Name, value any) Args {
-	if a == nil {
+	if len(a) == 0 {
 		return Args{name: value}
 	}
 	res := maps.Clone(a)
@@ -123,7 +123,7 @@ func applyMap[M ~map[K]V, K comparable, V any](base, other M) M {
 	if len(other) == 0 {
 		return base
 	}
-	if base == nil {
+	if len(base) == 0 {
 		return other
 	}
 	res := maps.Clone(base)
