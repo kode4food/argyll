@@ -607,15 +607,7 @@ func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {
 
 // Apply will merge the keys/values of the other label set into this one
 func (l Labels) Apply(other Labels) Labels {
-	if len(other) == 0 {
-		return l
-	}
-	if l == nil {
-		return other
-	}
-	res := maps.Clone(l)
-	maps.Copy(res, other)
-	return res
+	return applyMap(l, other)
 }
 
 // Equal returns true if two label sets are equal

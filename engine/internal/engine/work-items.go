@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 
 	"github.com/tidwall/gjson"
 
@@ -42,14 +41,14 @@ func computeWorkItems(step *api.Step, inputs api.Args) ([]api.Args, error) {
 	argNames := step.MultiArgNames()
 	multiArgs := getMultiArgs(argNames, inputs)
 	if len(multiArgs) == 0 {
-		return []api.Args{inputs}, nil
+		return []api.Args{{}}, nil
 	}
 
 	if n := productSize(multiArgs); n > MaxWorkItemsPerStep {
 		return nil, fmt.Errorf("%w: %d (max %d)",
 			ErrTooManyWorkItems, n, MaxWorkItemsPerStep)
 	}
-	return cartesianProduct(multiArgs, inputs), nil
+	return cartesianProduct(multiArgs), nil
 }
 
 func getMultiArgs(argNames []api.Name, inputs api.Args) MultiArgs {
@@ -94,7 +93,7 @@ func productSize(multiArgs MultiArgs) int {
 	return n
 }
 
-func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
+func cartesianProduct(multiArgs MultiArgs) []api.Args {
 	if len(multiArgs) == 0 {
 		return nil
 	}
@@ -105,9 +104,7 @@ func cartesianProduct(multiArgs MultiArgs, baseInputs api.Args) []api.Args {
 	var generate func(int, api.Args)
 	generate = func(depth int, current api.Args) {
 		if depth == len(arrays) {
-			result = append(result,
-				combineInputs(baseInputs, current, multiArgs),
-			)
+			result = append(result, current)
 			return
 		}
 
@@ -130,17 +127,6 @@ func extractMultiArgs(multiArgs MultiArgs) ([]api.Name, [][]any) {
 		arrays = append(arrays, arr)
 	}
 	return names, arrays
-}
-
-func combineInputs(baseInputs, current api.Args, multiArgs MultiArgs) api.Args {
-	inputs := api.Args{}
-	for k, v := range baseInputs {
-		if _, isMulti := multiArgs[k]; !isMulti {
-			inputs[k] = v
-		}
-	}
-	maps.Copy(inputs, current)
-	return inputs
 }
 
 func collectWorkOutputs(completed []*api.WorkState, step *api.Step) api.Args {

@@ -82,6 +82,11 @@ func (a Args) GetInt(name Name, defaultValue int) int {
 	return defaultValue
 }
 
+// Apply will merge the keys/values of the other arg set into this one
+func (a Args) Apply(other Args) Args {
+	return applyMap(a, other)
+}
+
 // HashKey computes a deterministic SHA256 hash key of the Args. Keys are
 // sorted alphabetically to ensure consistent hashing regardless of map
 // iteration order. Returns hex string (64 chars) for use as cache key
@@ -112,4 +117,16 @@ func (a Args) HashKey() (string, error) {
 func sha256Hex(s string) string {
 	hash := sha256.Sum256([]byte(s))
 	return hex.EncodeToString(hash[:])
+}
+
+func applyMap[M ~map[K]V, K comparable, V any](base, other M) M {
+	if len(other) == 0 {
+		return base
+	}
+	if base == nil {
+		return other
+	}
+	res := maps.Clone(base)
+	maps.Copy(res, other)
+	return res
 }

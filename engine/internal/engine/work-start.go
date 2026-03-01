@@ -63,7 +63,8 @@ func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 func (e *ExecContext) performWorkItem(
 	token api.Token, work *api.WorkState,
 ) {
-	if err := e.performWork(work.Inputs, token); err != nil {
+	inputs := e.inputs.Apply(work.Inputs)
+	if err := e.performWork(inputs, token); err != nil {
 		e.handleWorkItemFailure(token, err)
 	}
 }
@@ -212,7 +213,9 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 		if remaining == 0 {
 			break
 		}
-		shouldStart, err := tx.shouldStartPendingWorkItem(step, work, now)
+		shouldStart, err := tx.shouldStartPendingWorkItem(
+			step, exec.Inputs, work, now,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -220,8 +223,9 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 			continue
 		}
 
+		inputs := exec.Inputs.Apply(work.Inputs)
 		if step.Memoizable {
-			if cached, ok := tx.memoCache.Get(step, work.Inputs); ok {
+			if cached, ok := tx.memoCache.Get(step, inputs); ok {
 				err := tx.handleMemoCacheHit(stepID, token, cached)
 				if err != nil {
 					return nil, err
@@ -231,7 +235,7 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 			}
 		}
 
-		if err := tx.raiseWorkStarted(stepID, token, work.Inputs); err != nil {
+		if err := tx.raiseWorkStarted(stepID, token, inputs); err != nil {
 			return nil, err
 		}
 		exec = tx.Value().Executions[stepID]
@@ -262,7 +266,7 @@ func (tx *flowTx) startRetryWorkItem(
 	case api.WorkPending:
 		var err error
 		if shouldStart, err = tx.shouldStartRetryPending(
-			step, work, exec.WorkItems, now,
+			step, exec.Inputs, work, exec.WorkItems, now,
 		); err != nil {
 			return nil, err
 		}
@@ -280,7 +284,8 @@ func (tx *flowTx) startRetryWorkItem(
 		return nil, nil
 	}
 
-	if err := tx.raiseWorkStarted(stepID, token, work.Inputs); err != nil {
+	inputs := exec.Inputs.Apply(work.Inputs)
+	if err := tx.raiseWorkStarted(stepID, token, inputs); err != nil {
 		return nil, err
 	}
 	exec = tx.Value().Executions[stepID]
@@ -290,7 +295,7 @@ func (tx *flowTx) startRetryWorkItem(
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
-	step *api.Step, work *api.WorkState, now time.Time,
+	step *api.Step, base api.Args, work *api.WorkState, now time.Time,
 ) (bool, error) {
 	stepID := step.ID
 	if work.Status != api.WorkPending {
@@ -299,7 +304,8 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
 		return false, nil
 	}
-	shouldStart, err := tx.evaluateStepPredicate(step, work.Inputs)
+	inputs := base.Apply(work.Inputs)
+	shouldStart, err := tx.evaluateStepPredicate(step, inputs)
 	if err != nil {
 		return false, tx.handlePredicateFailure(stepID, err)
 	}
@@ -307,7 +313,8 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 }
 
 func (tx *flowTx) shouldStartRetryPending(
-	step *api.Step, work *api.WorkState, items api.WorkItems, now time.Time,
+	step *api.Step, base api.Args, work *api.WorkState, items api.WorkItems,
+	now time.Time,
 ) (bool, error) {
 	stepID := step.ID
 	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
@@ -318,7 +325,8 @@ func (tx *flowTx) shouldStartRetryPending(
 	if active >= limit {
 		return false, nil
 	}
-	shouldStart, err := tx.evaluateStepPredicate(step, work.Inputs)
+	inputs := base.Apply(work.Inputs)
+	shouldStart, err := tx.evaluateStepPredicate(step, inputs)
 	if err != nil {
 		return false, tx.handlePredicateFailure(stepID, err)
 	}

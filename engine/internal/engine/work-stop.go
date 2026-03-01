@@ -38,9 +38,11 @@ func (e *Engine) CompleteWork(
 			tx.handleWorkSucceededCleanup(fs, token)
 			step := flow.Plan.Steps[fs.StepID]
 			if step != nil && step.Memoizable {
+				exec := flow.Executions[fs.StepID]
 				work := flow.Executions[fs.StepID].WorkItems[token]
-				if work != nil {
-					err := e.memoCache.Put(step, work.Inputs, outputs)
+				if exec != nil && work != nil {
+					inputs := exec.Inputs.Apply(work.Inputs)
+					err := e.memoCache.Put(step, inputs, outputs)
 					if err != nil {
 						slog.Warn("memo cache put failed",
 							log.FlowID(fs.FlowID), log.StepID(fs.StepID),
