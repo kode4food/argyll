@@ -14,6 +14,11 @@ const (
 	MetaParentWorkItemToken = "parent_work_item_token"
 )
 
+// Apply will merge the keys/values of the other metadata set into this one
+func (m Metadata) Apply(other Metadata) Metadata {
+	return applyMap(m, other)
+}
+
 func GetMetaString[T ~string](meta Metadata, key string) (T, bool) {
 	var zero T
 	val, ok := meta[key]

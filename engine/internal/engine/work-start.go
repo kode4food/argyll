@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"maps"
 	"time"
 
 	"github.com/kode4food/argyll/engine/internal/engine/script"
@@ -152,15 +151,11 @@ func (e *ExecContext) performFlow(initState api.Args, token api.Token) error {
 }
 
 func (e *ExecContext) httpMetaForToken(token api.Token) api.Metadata {
-	metadata := maps.Clone(e.meta)
-	if metadata == nil {
-		metadata = api.Metadata{}
-	}
-
-	metadata[api.MetaFlowID] = e.flowID
-	metadata[api.MetaStepID] = e.stepID
-	metadata[api.MetaReceiptToken] = token
-	return metadata
+	return e.meta.Apply(api.Metadata{
+		api.MetaFlowID:       e.flowID,
+		api.MetaStepID:       e.stepID,
+		api.MetaReceiptToken: token,
+	})
 }
 
 func (e *ExecContext) executeScript(

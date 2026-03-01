@@ -51,3 +51,34 @@ func TestGetMetaString(t *testing.T) {
 		assert.Equal(t, api.FlowID("parent-flow"), val)
 	})
 }
+
+func TestMetadataApply(t *testing.T) {
+	t.Run("returns receiver when other is empty", func(t *testing.T) {
+		base := api.Metadata{"flow_id": "test-flow"}
+		applied := base.Apply(nil)
+		assert.Equal(t, base, applied)
+	})
+
+	t.Run("returns other when receiver is nil", func(t *testing.T) {
+		applied := api.Metadata(nil).Apply(api.Metadata{"step_id": "test-step"})
+		assert.Equal(t, api.Metadata{"step_id": "test-step"}, applied)
+	})
+
+	t.Run("returns merged copy", func(t *testing.T) {
+		base := api.Metadata{
+			"flow_id": "test-flow",
+			"shared":  "base",
+		}
+		applied := base.Apply(api.Metadata{
+			"shared": "override",
+			"token":  "abc123",
+		})
+
+		assert.Equal(t, api.Metadata{
+			"flow_id": "test-flow",
+			"shared":  "override",
+			"token":   "abc123",
+		}, applied)
+		assert.Equal(t, "base", base["shared"])
+	})
+}

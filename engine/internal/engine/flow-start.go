@@ -3,7 +3,6 @@ package engine
 import (
 	"errors"
 	"fmt"
-	"maps"
 
 	"github.com/kode4food/timebox"
 
@@ -103,13 +102,11 @@ func (e *Engine) StartChildFlow(
 		return "", err
 	}
 
-	meta := maps.Clone(parentFlow.Metadata)
-	if meta == nil {
-		meta = api.Metadata{}
-	}
-	meta[api.MetaParentFlowID] = parent.FlowID
-	meta[api.MetaParentStepID] = parent.StepID
-	meta[api.MetaParentWorkItemToken] = token
+	meta := parentFlow.Metadata.Apply(api.Metadata{
+		api.MetaParentFlowID:        parent.FlowID,
+		api.MetaParentStepID:        parent.StepID,
+		api.MetaParentWorkItemToken: token,
+	})
 
 	if err := e.StartFlow(childID, pl,
 		flowopt.WithInit(initState),
