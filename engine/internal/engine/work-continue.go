@@ -107,7 +107,7 @@ func (tx *flowTx) continueStepWork(
 	if clearRetryEntries {
 		tx.OnSuccess(func(*api.FlowState) {
 			for token := range started {
-				tx.Engine.CancelTask(
+				tx.CancelTask(
 					retryKey(api.FlowStep{
 						FlowID: tx.flowID,
 						StepID: stepID,
@@ -126,7 +126,7 @@ func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
 func (tx *flowTx) handleRetryScheduled(
 	stepID api.StepID, token api.Token, nextRetryAt time.Time,
 ) {
-	tx.Engine.scheduleRetryTask(api.FlowStep{
+	tx.scheduleRetryTask(api.FlowStep{
 		FlowID: tx.flowID,
 		StepID: stepID,
 	}, token, nextRetryAt)

@@ -73,7 +73,7 @@ func (e *Engine) StartFlow(
 			}
 		}
 		tx.OnSuccess(func(flow *api.FlowState) {
-			tx.Engine.scheduleTimeouts(flow, tx.Now())
+			tx.scheduleTimeouts(flow, tx.Now())
 		})
 		return nil
 	})

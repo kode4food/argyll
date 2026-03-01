@@ -51,8 +51,8 @@ func (tx *flowTx) checkTerminal() error {
 			if completedAt.IsZero() {
 				completedAt = tx.Now()
 			}
-			tx.Engine.CancelPrefixedTasks(retryPrefix(tx.flowID))
-			tx.Engine.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+			tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,
@@ -78,8 +78,8 @@ func (tx *flowTx) checkTerminal() error {
 			if completedAt.IsZero() {
 				completedAt = tx.Now()
 			}
-			tx.Engine.CancelPrefixedTasks(retryPrefix(tx.flowID))
-			tx.Engine.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+			tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,

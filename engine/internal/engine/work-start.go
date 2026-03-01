@@ -221,7 +221,7 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 		}
 
 		if step.Memoizable {
-			if cached, ok := tx.Engine.memoCache.Get(step, work.Inputs); ok {
+			if cached, ok := tx.memoCache.Get(step, work.Inputs); ok {
 				err := tx.handleMemoCacheHit(stepID, token, cached)
 				if err != nil {
 					return nil, err

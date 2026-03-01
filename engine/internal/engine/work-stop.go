@@ -105,7 +105,7 @@ func (e *Engine) NotCompleteWork(
 }
 
 func (tx *flowTx) handleWorkSucceededCleanup(fs api.FlowStep, token api.Token) {
-	tx.Engine.CancelTask(retryKey(fs, token))
+	tx.CancelTask(retryKey(fs, token))
 }
 
 func (tx *flowTx) checkWorkTransition(
