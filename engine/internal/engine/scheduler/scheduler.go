@@ -3,6 +3,7 @@ package scheduler
 import (
 	"context"
 	"log/slog"
+	"sync"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -11,116 +12,156 @@ import (
 type (
 	// Scheduler runs delayed tasks and supports replacement and prefix cancel
 	Scheduler struct {
-		now       Clock
-		makeTimer TimerConstructor
-		tasks     chan taskReq
+		mu         sync.Mutex
+		cond       *sync.Cond
+		now        Clock
+		timer      Timer
+		timerFired bool
+		tasks      *TaskHeap
 	}
 
 	// TaskFunc is called when its run time arrives
 	TaskFunc func() error
 
-	taskReqOp uint8
-
-	taskReq struct {
-		op     taskReqOp
-		task   *Task
-		key    taskPath
-		prefix taskPath
+	taskHead struct {
+		id string
+		at time.Time
+		ok bool
 	}
-)
-
-const (
-	taskReqSchedule taskReqOp = iota
-	taskReqCancel
-	taskReqCancelPrefix
 )
 
 // New creates a scheduler using the provided clock and timer constructor
 func New(now Clock, makeTimer TimerConstructor) *Scheduler {
-	return &Scheduler{
-		now:       now,
-		makeTimer: makeTimer,
-		tasks:     make(chan taskReq, 100),
+	s := &Scheduler{
+		now:   now,
+		timer: makeTimer(0),
+		tasks: NewTaskHeap(),
 	}
+	s.timer.Stop()
+	s.cond = sync.NewCond(&s.mu)
+	return s
 }
 
 // Schedule enqueues a task to run at the requested time
 func (s *Scheduler) Schedule(
-	ctx context.Context, path []string, at time.Time, fn TaskFunc,
+	path []string, at time.Time, fn TaskFunc,
 ) {
-	s.scheduleTaskReq(ctx, taskReq{
-		op:   taskReqSchedule,
-		task: &Task{Func: fn, At: at, Path: path},
-	})
+	s.mu.Lock()
+	prev := s.currentHead()
+	s.tasks.Insert(&Task{Func: fn, At: at, Path: path})
+	s.notifyIfHeadChanged(prev)
+	s.mu.Unlock()
 }
 
 // Cancel removes the task registered for the exact path
-func (s *Scheduler) Cancel(ctx context.Context, path []string) {
-	s.scheduleTaskReq(ctx, taskReq{op: taskReqCancel, key: path})
+func (s *Scheduler) Cancel(path []string) {
+	s.mu.Lock()
+	prev := s.currentHead()
+	s.tasks.Cancel(path)
+	s.notifyIfHeadChanged(prev)
+	s.mu.Unlock()
 }
 
 // CancelPrefix removes all tasks under the provided path prefix
-func (s *Scheduler) CancelPrefix(ctx context.Context, prefix []string) {
-	s.scheduleTaskReq(ctx, taskReq{
-		op: taskReqCancelPrefix, prefix: prefix,
-	})
+func (s *Scheduler) CancelPrefix(prefix []string) {
+	s.mu.Lock()
+	prev := s.currentHead()
+	s.tasks.CancelPrefix(prefix)
+	s.notifyIfHeadChanged(prev)
+	s.mu.Unlock()
 }
 
 // Run processes scheduler requests until the context is cancelled
 func (s *Scheduler) Run(ctx context.Context) {
-	timer := s.makeTimer(0)
-	var timerCh <-chan time.Time
-	tasks := NewTaskHeap()
-
-	resetTimer := func() {
-		var next time.Time
-		if t := tasks.Peek(); t != nil {
-			next = t.At
-		}
-		if next.IsZero() {
-			timer.Stop()
-			timerCh = nil
-			return
-		}
-		delay := next.Sub(s.now())
-		timer.Reset(delay)
-		timerCh = timer.Channel()
-	}
-
-	resetTimer()
+	s.mu.Lock()
+	s.resetTimer()
+	go s.signalTimer(ctx)
+	s.mu.Unlock()
 
 	for {
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return
-		case req := <-s.tasks:
-			switch req.op {
-			case taskReqSchedule:
-				tasks.Insert(req.task)
-			case taskReqCancel:
-				tasks.Cancel(req.key)
-			case taskReqCancelPrefix:
-				tasks.CancelPrefix(req.prefix)
+		s.mu.Lock()
+		for {
+			if ctx.Err() != nil {
+				s.timer.Stop()
+				s.mu.Unlock()
+				return
 			}
-			resetTimer()
-		case <-timerCh:
-			task := tasks.PopTask()
-			if task == nil {
-				resetTimer()
+
+			if s.tasks.Peek() == nil {
+				s.cond.Wait()
 				continue
 			}
+			task := s.tasks.Peek()
+			if !s.timerFired && task.At.After(s.now()) {
+				s.cond.Wait()
+				continue
+			}
+
+			task = s.tasks.PopTask()
+			s.resetTimer()
+			s.mu.Unlock()
 			if err := task.Func(); err != nil {
 				slog.Error("Scheduled task failed", log.Error(err))
 			}
-			resetTimer()
+			break
 		}
 	}
 }
 
-func (s *Scheduler) scheduleTaskReq(ctx context.Context, req taskReq) {
-	select {
-	case s.tasks <- req:
-	case <-ctx.Done():
+func (s *Scheduler) resetTimer() {
+	next := s.nextRunAt()
+	if next.IsZero() {
+		s.timerFired = false
+		s.timer.Stop()
+		return
+	}
+
+	delay := max(next.Sub(s.now()), 0)
+	s.timerFired = delay == 0
+	s.timer.Reset(delay)
+}
+
+func (s *Scheduler) notifyIfHeadChanged(prev taskHead) {
+	if !headChanged(prev, s.currentHead()) {
+		return
+	}
+	s.resetTimer()
+	s.cond.Signal()
+}
+
+func (s *Scheduler) currentHead() taskHead {
+	t := s.tasks.Peek()
+	if t == nil {
+		return taskHead{}
+	}
+	return taskHead{id: t.id, at: t.At, ok: true}
+}
+
+func (s *Scheduler) nextRunAt() time.Time {
+	if t := s.tasks.Peek(); t != nil {
+		return t.At
+	}
+	return time.Time{}
+}
+
+func headChanged(prev, next taskHead) bool {
+	return prev.ok != next.ok || prev.id != next.id || !prev.at.Equal(next.at)
+}
+
+func (s *Scheduler) signalTimer(ctx context.Context) {
+	ch := s.timer.Channel()
+	for {
+		select {
+		case <-ctx.Done():
+			s.mu.Lock()
+			s.cond.Broadcast()
+			s.mu.Unlock()
+			return
+		case <-ch:
+			s.mu.Lock()
+			s.timerFired = true
+			s.cond.Signal()
+			s.mu.Unlock()
+		}
 	}
 }

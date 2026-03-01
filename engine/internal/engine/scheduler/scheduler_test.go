@@ -9,7 +9,9 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (
@@ -77,7 +79,7 @@ func TestScheduleTaskReplacesSamePath(t *testing.T) {
 				return nil
 			},
 		)
-		assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
+		assertEventuallyEqual(t, 40*time.Millisecond, timer.WaitReset)
 		timer.Fire(now)
 
 		select {
@@ -154,12 +156,10 @@ func TestCancelPrefixedTasks(t *testing.T) {
 			},
 		)
 		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
-		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
 		timer.DrainResets()
 
 		eng.CancelPrefixedTasks(cancelledPrefix)
-		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
+		assertEventuallyEqual(t, 100*time.Millisecond, timer.WaitReset)
 		timer.Fire(now)
 
 		select {
@@ -169,6 +169,46 @@ func TestCancelPrefixedTasks(t *testing.T) {
 		}
 		assert.Equal(t, int32(0), cancelledRuns.Load())
 		assert.Equal(t, int32(1), activeRuns.Load())
+	})
+}
+
+func TestFlowWithoutTimeoutOptionalsSchedulesNoTimeoutTasks(t *testing.T) {
+	withFakeScheduler(t, func(
+		eng *engine.Engine, timer *fakeTimer, _ time.Time,
+	) {
+		step := &api.Step{
+			ID:   "script-step",
+			Name: "Script Step",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return { result = input }",
+			},
+			Attributes: api.AttributeSpecs{
+				"input": {
+					Role: api.RoleRequired,
+					Type: api.TypeString,
+				},
+				"result": {
+					Role: api.RoleOutput,
+					Type: api.TypeString,
+				},
+			},
+		}
+		assert.NoError(t, eng.RegisterStep(step))
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		flowID := api.FlowID("wf-no-timeouts")
+		assert.NoError(t, eng.StartFlow(flowID, plan,
+			flowopt.WithInit(api.Args{"input": "ok"}),
+		))
+
+		assertFlowEventuallyCompleted(t, eng, flowID)
+		assertNoSchedulerActivity(t, timer)
 	})
 }
 
@@ -261,6 +301,43 @@ func (t *fakeTimer) DrainStops() {
 			return
 		}
 	}
+}
+
+func assertNoSchedulerActivity(t *testing.T, timer *fakeTimer) {
+	t.Helper()
+
+	select {
+	case delay := <-timer.resets:
+		t.Fatalf("unexpected scheduler reset: %s", delay)
+	case <-timer.stops:
+		t.Fatal("unexpected scheduler stop")
+	case <-time.After(100 * time.Millisecond):
+	}
+}
+
+func assertEventuallyEqual(
+	t *testing.T, expected time.Duration,
+	wait func(*testing.T) time.Duration,
+) {
+	t.Helper()
+	assert.Equal(t, expected, wait(t))
+}
+
+func assertFlowEventuallyCompleted(
+	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+) {
+	t.Helper()
+
+	deadline := time.Now().Add(schedulerWaitTimeout)
+	for time.Now().Before(deadline) {
+		flow, err := eng.GetFlowState(flowID)
+		if err == nil && flow.Status == api.FlowCompleted {
+			return
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	t.Fatalf("flow %s did not complete", flowID)
 }
 
 func withFakeScheduler(

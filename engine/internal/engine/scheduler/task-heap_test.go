@@ -38,31 +38,11 @@ func TestTaskHeapKeyedOrderAndCancelPrefix(t *testing.T) {
 	insert([]string{"retry", "f2", "s1", "t1"}, now)
 
 	h.CancelPrefix([]string{"retry", "f1"})
-	for {
+	for h.Len() > 0 {
 		task := h.PopTask()
-		if task == nil {
-			break
-		}
 		assert.False(t, len(task.Path) >= 2 &&
 			task.Path[0] == "retry" && task.Path[1] == "f1")
 	}
-}
-
-func TestTaskHeapNoOps(t *testing.T) {
-	h := scheduler.NewTaskHeap()
-	assert.Nil(t, h.PopTask())
-	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-
-	h.Insert(nil)
-	h.Insert(&scheduler.Task{At: now})
-	h.Insert(&scheduler.Task{Func: func() error { return nil }})
-	assert.Nil(t, h.Peek())
-
-	h.Cancel(nil)
-	h.Cancel([]string{"missing"})
-	h.CancelPrefix(nil)
-	h.CancelPrefix([]string{"missing"})
-	assert.Nil(t, h.Peek())
 }
 
 func TestTaskHeapPopNonKeyed(t *testing.T) {
@@ -77,5 +57,5 @@ func TestTaskHeapPopNonKeyed(t *testing.T) {
 	if assert.NotNil(t, task) {
 		assert.Nil(t, task.Path)
 	}
-	assert.Nil(t, h.PopTask())
+	assert.Zero(t, h.Len())
 }

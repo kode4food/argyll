@@ -28,17 +28,17 @@ func (e *Engine) Start() error {
 func (e *Engine) ScheduleTask(
 	path []string, at time.Time, fn scheduler.TaskFunc,
 ) {
-	e.scheduler.Schedule(e.ctx, path, at, fn)
+	e.scheduler.Schedule(path, at, fn)
 }
 
 // CancelTask removes a scheduled task for the exact path
 func (e *Engine) CancelTask(path []string) {
-	e.scheduler.Cancel(e.ctx, path)
+	e.scheduler.Cancel(path)
 }
 
 // CancelPrefixedTasks removes all scheduled tasks under the given prefix
 func (e *Engine) CancelPrefixedTasks(prefix []string) {
-	e.scheduler.CancelPrefix(e.ctx, prefix)
+	e.scheduler.CancelPrefix(prefix)
 }
 
 // Now returns the current wall time from Engine's configured clock

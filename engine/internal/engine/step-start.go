@@ -76,12 +76,14 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 
 	if len(started) > 0 {
 		tx.OnSuccess(func(flow *api.FlowState) {
-			tx.CancelPrefixedTasks(
-				timeoutStepPrefix(api.FlowStep{
-					FlowID: tx.flowID,
-					StepID: step.ID,
-				}),
-			)
+			if stepHasTimeouts(step) {
+				tx.CancelPrefixedTasks(
+					timeoutStepPrefix(api.FlowStep{
+						FlowID: tx.flowID,
+						StepID: step.ID,
+					}),
+				)
+			}
 			tx.handleWorkItemsExecution(step, inputs, flow.Metadata, started)
 		})
 	}

@@ -39,12 +39,9 @@ func NewTaskHeap() *TaskHeap {
 
 // Insert adds a task to the heap or replaces an existing keyed task
 func (h *TaskHeap) Insert(t *Task) {
-	if t == nil || t.Func == nil || t.At.IsZero() {
-		return
-	}
 	if len(t.Path) > 0 {
 		t.id = taskPathID(t.Path)
-		if old, ok := h.byID[t.id]; ok && old != nil {
+		if old, ok := h.byID[t.id]; ok {
 			old.Func = t.Func
 			old.At = t.At
 			heap.Fix(h, old.index)
@@ -56,9 +53,6 @@ func (h *TaskHeap) Insert(t *Task) {
 
 // PopTask removes and returns the next scheduled task
 func (h *TaskHeap) PopTask() *Task {
-	if h.Len() == 0 {
-		return nil
-	}
 	return heap.Pop(h).(*Task)
 }
 
@@ -72,11 +66,8 @@ func (h *TaskHeap) Peek() *Task {
 
 // Cancel removes the keyed task for the exact path
 func (h *TaskHeap) Cancel(path []string) {
-	if len(path) == 0 {
-		return
-	}
 	t, ok := h.byID[taskPathID(path)]
-	if !ok || t == nil {
+	if !ok {
 		return
 	}
 	heap.Remove(h, t.index)
@@ -84,9 +75,6 @@ func (h *TaskHeap) Cancel(path []string) {
 
 // CancelPrefix removes all keyed tasks under the provided prefix
 func (h *TaskHeap) CancelPrefix(prefix []string) {
-	if len(prefix) == 0 {
-		return
-	}
 	h.detachPrefix(prefix)
 }
 
@@ -137,7 +125,7 @@ func (h *TaskHeap) Pop() any {
 }
 
 func (h *TaskHeap) removeIndexes(t *Task) {
-	if t == nil || len(t.Path) == 0 {
+	if len(t.Path) == 0 {
 		return
 	}
 	delete(h.byID, t.id)

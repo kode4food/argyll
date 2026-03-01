@@ -35,7 +35,9 @@ func (e *Engine) CompleteWork(
 			return err
 		}
 		tx.OnSuccess(func(flow *api.FlowState) {
-			tx.handleWorkSucceededCleanup(fs, token)
+			if hasRetryTask(flow, fs.StepID, token) {
+				tx.handleWorkSucceededCleanup(fs, token)
+			}
 			step := flow.Plan.Steps[fs.StepID]
 			if step != nil && step.Memoizable {
 				exec := flow.Executions[fs.StepID]
@@ -190,8 +192,10 @@ func (tx *flowTx) handleMemoCacheHit(
 		return err
 	}
 	tx.OnSuccess(func(flow *api.FlowState) {
-		fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
-		tx.handleWorkSucceededCleanup(fs, token)
+		if hasRetryTask(flow, stepID, token) {
+			fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
+			tx.handleWorkSucceededCleanup(fs, token)
+		}
 	})
 	return tx.handleWorkSucceeded(stepID)
 }
@@ -207,6 +211,20 @@ func (tx *flowTx) raiseWorkFailed(
 			Error:  errMsg,
 		},
 	)
+}
+
+func hasRetryTask(
+	flow *api.FlowState, stepID api.StepID, token api.Token,
+) bool {
+	exec, ok := flow.Executions[stepID]
+	if !ok {
+		return false
+	}
+	work, ok := exec.WorkItems[token]
+	if !ok || work == nil {
+		return false
+	}
+	return !work.NextRetryAt.IsZero()
 }
 
 func (tx *flowTx) raiseRetryScheduled(

@@ -9,13 +9,16 @@ import (
 )
 
 func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
+	if !flowHasTimeouts(flow) {
+		return
+	}
 	e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
 	if flowTransitions.IsTerminal(flow.Status) {
 		return
 	}
 
 	for stepID := range flow.Executions {
-		e.scheduleStepTimeouts(flow, stepID, now)
+		e.scheduleStepTimeouts(flow, stepID, now, false)
 	}
 }
 
@@ -23,7 +26,9 @@ func (e *Engine) scheduleConsumerTimeouts(
 	flow *api.FlowState, producerID api.StepID, now time.Time,
 ) {
 	if flowTransitions.IsTerminal(flow.Status) {
-		e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
+		if flowHasTimeouts(flow) {
+			e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
+		}
 		return
 	}
 
@@ -46,16 +51,23 @@ func (e *Engine) scheduleConsumerTimeouts(
 				continue
 			}
 			seen.Add(stepID)
-			e.scheduleStepTimeouts(flow, stepID, now)
+			e.scheduleStepTimeouts(flow, stepID, now, true)
 		}
 	}
 }
 
 func (e *Engine) scheduleStepTimeouts(
-	flow *api.FlowState, stepID api.StepID, now time.Time,
+	flow *api.FlowState, stepID api.StepID, now time.Time, clearExisting bool,
 ) {
+	step, ok := flow.Plan.Steps[stepID]
+	if !ok || !stepHasTimeouts(step) {
+		return
+	}
+
 	fs := api.FlowStep{FlowID: flow.ID, StepID: stepID}
-	e.CancelPrefixedTasks(timeoutStepPrefix(fs))
+	if clearExisting {
+		e.CancelPrefixedTasks(timeoutStepPrefix(fs))
+	}
 
 	if flowTransitions.IsTerminal(flow.Status) {
 		return
@@ -81,6 +93,27 @@ func (e *Engine) scheduleStepTimeouts(
 		}
 		e.scheduleTimeoutTask(fs, name, at)
 	}
+}
+
+func flowHasTimeouts(flow *api.FlowState) bool {
+	for _, step := range flow.Plan.Steps {
+		if stepHasTimeouts(step) {
+			return true
+		}
+	}
+	return false
+}
+
+func stepHasTimeouts(step *api.Step) bool {
+	if step == nil {
+		return false
+	}
+	for _, attr := range step.Attributes {
+		if attr.IsOptional() && attr.Timeout > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) scheduleTimeoutTask(

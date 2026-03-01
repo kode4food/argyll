@@ -51,8 +51,12 @@ func (tx *flowTx) checkTerminal() error {
 			if completedAt.IsZero() {
 				completedAt = tx.Now()
 			}
-			tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
-			tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			if flowHasRetryTasks(flow) {
+				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+			}
+			if flowHasTimeouts(flow) {
+				tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			}
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,
@@ -78,8 +82,12 @@ func (tx *flowTx) checkTerminal() error {
 			if completedAt.IsZero() {
 				completedAt = tx.Now()
 			}
-			tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
-			tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			if flowHasRetryTasks(flow) {
+				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+			}
+			if flowHasTimeouts(flow) {
+				tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+			}
 			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
 				api.FlowDigestUpdatedEvent{
 					FlowID:      tx.flowID,
@@ -212,6 +220,17 @@ func (tx *flowTx) parentMeta(
 
 func isWorkTerminal(status api.WorkStatus) bool {
 	return status == api.WorkSucceeded || status == api.WorkFailed
+}
+
+func flowHasRetryTasks(flow *api.FlowState) bool {
+	for _, exec := range flow.Executions {
+		for _, work := range exec.WorkItems {
+			if !work.NextRetryAt.IsZero() {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
