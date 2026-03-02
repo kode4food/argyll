@@ -109,6 +109,54 @@ func TestClientReceivesEvent(t *testing.T) {
 	assert.Equal(t, flowID, data.FlowID)
 }
 
+func TestClientFiltersEventsByType(t *testing.T) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
+		return &api.FlowState{ID: "wf-123"}, 0, nil
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+	flowID := api.FlowID("wf-123")
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-1",
+			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			EventTypes:     []api.EventType{api.EventTypeFlowStarted},
+		},
+	}
+	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+	var stateMsg api.SubscribedResult
+	err = env.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
+
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeStepStarted,
+		Data: wsStepStarted(flowID, "step-1"),
+	})
+	assert.NoError(t, err)
+
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(flowID, "step-1"),
+	})
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	var wsEvent api.WebSocketEvent
+	err = env.Conn.ReadJSON(&wsEvent)
+	assert.NoError(t, err)
+	assert.Equal(t, api.EventTypeFlowStarted, wsEvent.Type)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_, _, err = env.Conn.ReadMessage()
+	assert.Error(t, err)
+}
+
 func TestMessageInvalid(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
