@@ -2,7 +2,6 @@ package server
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -20,11 +19,11 @@ import (
 // HealthChecker monitors the health of registered step services
 type HealthChecker struct {
 	engine      *engine.Engine
-	eventHub    *timebox.EventHub
 	ctx         context.Context
 	cancel      context.CancelFunc
 	client      *http.Client
 	consumer    *timebox.Consumer
+	handler     timebox.Handler
 	lastSuccess map[api.StepID]time.Time
 	mu          sync.RWMutex
 }
@@ -42,17 +41,18 @@ func NewHealthChecker(
 	eng *engine.Engine, hub *timebox.EventHub,
 ) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
-	return &HealthChecker{
+	res := &HealthChecker{
 		engine:      eng,
-		eventHub:    hub,
 		ctx:         ctx,
 		cancel:      cancel,
-		consumer:    hub.NewConsumer(),
+		consumer:    hub.NewTypeConsumer(timebox.EventType(api.EventTypeStepCompleted)),
 		lastSuccess: map[api.StepID]time.Time{},
 		client: &http.Client{
 			Timeout: healthCheckTimeout,
 		},
 	}
+	res.handler = timebox.MakeHandler(res.handleStepCompleted)
+	return res
 }
 
 // Start begins the health check loop and event processing
@@ -77,25 +77,28 @@ func (h *HealthChecker) eventLoop() {
 			if !ok {
 				return
 			}
-			h.handleStepCompleted(event)
+			if err := h.handler(event); err != nil {
+				slog.Error("Failed to handle step completed event",
+					log.Error(err))
+			}
 		}
 	}
 }
 
-func (h *HealthChecker) handleStepCompleted(event *timebox.Event) {
-	if event.Type != timebox.EventType(api.EventTypeStepCompleted) {
-		return
-	}
-
-	var sc api.StepCompletedEvent
-	if err := json.Unmarshal(event.Data, &sc); err != nil {
-		slog.Error("Failed to unmarshal event", log.Error(err))
-		return
-	}
-
+func (h *HealthChecker) handleStepCompleted(
+	_ *timebox.Event, sc api.StepCompletedEvent,
+) error {
 	h.mu.Lock()
+	defer h.mu.Unlock()
 	h.lastSuccess[sc.StepID] = time.Now()
-	h.mu.Unlock()
+	return nil
+}
+
+func (h *HealthChecker) getLastSuccess(stepID api.StepID) (time.Time, bool) {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+	ts, ok := h.lastSuccess[stepID]
+	return ts, ok
 }
 
 func (h *HealthChecker) healthCheckLoop() {
@@ -144,9 +147,7 @@ func (h *HealthChecker) checkAllSteps() {
 }
 
 func (h *HealthChecker) checkStepHealth(step *api.Step) {
-	h.mu.RLock()
-	lastSuccess, hasRecent := h.lastSuccess[step.ID]
-	h.mu.RUnlock()
+	lastSuccess, hasRecent := h.getLastSuccess(step.ID)
 
 	if hasRecent && time.Since(lastSuccess) < successWindow {
 		err := h.engine.UpdateStepHealth(step.ID, api.HealthHealthy, "")

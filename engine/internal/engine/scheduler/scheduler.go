@@ -47,28 +47,28 @@ func (s *Scheduler) Schedule(
 	path []string, at time.Time, fn TaskFunc,
 ) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	prev := s.currentHead()
 	s.tasks.Insert(&Task{Func: fn, At: at, Path: path})
 	s.notifyIfHeadChanged(prev)
-	s.mu.Unlock()
 }
 
 // Cancel removes the task registered for the exact path
 func (s *Scheduler) Cancel(path []string) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	prev := s.currentHead()
 	s.tasks.Cancel(path)
 	s.notifyIfHeadChanged(prev)
-	s.mu.Unlock()
 }
 
 // CancelPrefix removes all tasks under the provided path prefix
 func (s *Scheduler) CancelPrefix(prefix []string) {
 	s.mu.Lock()
+	defer s.mu.Unlock()
 	prev := s.currentHead()
 	s.tasks.CancelPrefix(prefix)
 	s.notifyIfHeadChanged(prev)
-	s.mu.Unlock()
 }
 
 // Run processes scheduler requests until the context is cancelled
