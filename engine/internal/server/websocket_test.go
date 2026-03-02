@@ -321,6 +321,50 @@ func TestClientPongHandler(t *testing.T) {
 	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID)
 }
 
+func TestClientUnsubscribeStopsEvents(t *testing.T) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
+		return &api.FlowState{ID: "wf-123"}, 0, nil
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+	flowID := api.FlowID("wf-123")
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-1",
+			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+		},
+	}
+	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+	var stateMsg api.SubscribedResult
+	err = env.Conn.ReadJSON(&stateMsg)
+	assert.NoError(t, err)
+
+	unsub := api.UnsubscribeRequest{
+		Type: "unsubscribe",
+		Data: api.ClientUnsubscription{
+			SubscriptionID: "sub-1",
+		},
+	}
+	err = env.Conn.WriteJSON(unsub)
+	assert.NoError(t, err)
+
+	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted(flowID, "step-1"),
+	})
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_, _, err = env.Conn.ReadMessage()
+	assert.Error(t, err)
+}
+
 func TestClientConsumerClosed(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
@@ -368,6 +412,33 @@ func TestSocketCallbackEngine(t *testing.T) {
 
 		var cat api.CatalogState
 		err = json.Unmarshal(stateMsg.Data, &cat)
+		assert.NoError(t, err)
+	})
+}
+
+func TestSocketCallbackPartition(t *testing.T) {
+	withTestServerEnv(t, func(env *testServerEnv) {
+		ws := testServerWebSocket(t, env.Server)
+		defer ws.Cleanup()
+
+		sub := api.SubscribeRequest{
+			Type: "subscribe",
+			Data: api.ClientSubscription{
+				SubscriptionID: "sub-1",
+				AggregateID:    []string{events.PartitionPrefix},
+			},
+		}
+		err := ws.Conn.WriteJSON(sub)
+		assert.NoError(t, err)
+
+		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+		var stateMsg api.SubscribedResult
+		err = ws.Conn.ReadJSON(&stateMsg)
+		assert.NoError(t, err)
+		assert.Equal(t, []string{events.PartitionPrefix}, stateMsg.AggregateID)
+
+		var part api.PartitionState
+		err = json.Unmarshal(stateMsg.Data, &part)
 		assert.NoError(t, err)
 	})
 }

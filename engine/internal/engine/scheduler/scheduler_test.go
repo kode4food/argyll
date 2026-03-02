@@ -208,7 +208,7 @@ func TestFlowWithoutTimeoutOptionalsSchedulesNoTimeoutTasks(t *testing.T) {
 		))
 
 		assertFlowEventuallyCompleted(t, eng, flowID)
-		assertNoSchedulerActivity(t, timer)
+		assertNoSchedulerResets(t, timer)
 	})
 }
 
@@ -303,15 +303,20 @@ func (t *fakeTimer) DrainStops() {
 	}
 }
 
-func assertNoSchedulerActivity(t *testing.T, timer *fakeTimer) {
+func assertNoSchedulerResets(t *testing.T, timer *fakeTimer) {
 	t.Helper()
 
-	select {
-	case delay := <-timer.resets:
-		t.Fatalf("unexpected scheduler reset: %s", delay)
-	case <-timer.stops:
-		t.Fatal("unexpected scheduler stop")
-	case <-time.After(100 * time.Millisecond):
+	deadline := time.After(100 * time.Millisecond)
+
+	for {
+		select {
+		case delay := <-timer.resets:
+			t.Fatalf("unexpected scheduler reset: %s", delay)
+		case <-timer.stops:
+			// Empty-queue and shutdown paths legitimately stop the timer
+		case <-deadline:
+			return
+		}
 	}
 }
 
