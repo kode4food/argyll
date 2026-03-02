@@ -5,11 +5,11 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/kode4food/timebox"
 
@@ -21,21 +21,32 @@ import (
 type (
 	// Client represents a WebSocket client connection for event streaming
 	Client struct {
-		hub       *timebox.EventHub
-		conn      *websocket.Conn
-		consumer  *timebox.Consumer
-		getState  StateFunc
-		minSeq    int64
-		onClose   func(*Client)
-		closeOnce sync.Once
+		hub           *timebox.EventHub
+		conn          *websocket.Conn
+		consumer      *timebox.Consumer
+		getState      StateFunc
+		subscriptions map[string]*clientSubscription
+		onClose       func(*Client)
+		closeOnce     sync.Once
 	}
-
 	// StateFunc retrieves the current projected state and next sequence for an
 	// aggregate. The next sequence is used by clients to detect sequence skew
 	StateFunc func(timebox.AggregateID) (any, int64, error)
 
 	// RegisterFunc registers a client with the caller
 	RegisterFunc func(*Client)
+
+	clientMessage struct {
+		Type string          `json:"type"`
+		Data json.RawMessage `json:"data"`
+	}
+
+	clientSubscription struct {
+		id          string
+		aggregateID timebox.AggregateID
+		eventTypes  []timebox.EventType
+		minSeq      int64
+	}
 )
 
 const (
@@ -48,7 +59,7 @@ const (
 )
 
 var (
-	ErrInvalidAggregateID = errors.New("invalid aggregate_id")
+	ErrMissingSubscriptionID = errors.New("missing sub_id")
 )
 
 var (
@@ -59,8 +70,6 @@ var (
 			return true
 		},
 	}
-
-	noopEventType = newNoopEventType()
 )
 
 // HandleWebSocket upgrades an HTTP connection to WebSocket and starts
@@ -76,10 +85,11 @@ func HandleWebSocket(
 	}
 
 	client := &Client{
-		hub:      hub,
-		conn:     conn,
-		consumer: hub.NewTypeConsumer(noopEventType),
-		getState: st,
+		hub:           hub,
+		conn:          conn,
+		consumer:      hub.NewConsumer(),
+		getState:      st,
+		subscriptions: map[string]*clientSubscription{},
 	}
 
 	if register != nil {
@@ -91,30 +101,36 @@ func HandleWebSocket(
 
 func (s *Server) handleWebSocket(c *gin.Context) {
 	HandleWebSocket(s.eventHub, c.Writer, c.Request,
-		func(id timebox.AggregateID) (any, int64, error) {
-			if len(id) == 0 {
-				return nil, 0, nil
-			}
-			switch string(id[0]) {
-			case events.CatalogPrefix:
-				return s.engine.GetCatalogStateSeq()
-			case events.PartitionPrefix:
-				return s.engine.GetPartitionStateSeq()
-			case events.FlowPrefix:
-				if len(id) < 2 {
-					return nil, 0, ErrInvalidAggregateID
-				}
-				flowID := api.FlowID(id[1])
-				return s.engine.GetFlowStateSeq(flowID)
-			default:
-				return nil, 0, ErrInvalidAggregateID
-			}
-		},
+		s.lookupSubscriptionState,
 		func(c *Client) {
 			c.onClose = s.unregisterWebSocket
 			s.registerWebSocket(c)
 		},
 	)
+}
+
+func (s *Server) lookupSubscriptionState(
+	id timebox.AggregateID,
+) (any, int64, error) {
+	if len(id) == 0 {
+		return nil, 0, nil
+	}
+	switch string(id[0]) {
+	case events.CatalogPrefix:
+		if len(id) == 1 {
+			return s.engine.GetCatalogStateSeq()
+		}
+	case events.PartitionPrefix:
+		if len(id) == 1 {
+			return s.engine.GetPartitionStateSeq()
+		}
+	case events.FlowPrefix:
+		if len(id) == 2 {
+			flowID := api.FlowID(id[1])
+			return s.engine.GetFlowStateSeq(flowID)
+		}
+	}
+	return nil, 0, nil
 }
 
 func (c *Client) run() {
@@ -144,7 +160,9 @@ func (c *Client) run() {
 			if !ok {
 				return
 			}
-			c.handleSubscribe(message)
+			if !c.handleMessage(message) {
+				return
+			}
 
 		case event, ok := <-c.consumer.Receive():
 			if !ok {
@@ -186,34 +204,60 @@ func (c *Client) readMessages(incoming chan []byte) {
 	}
 }
 
-func (c *Client) handleSubscribe(message []byte) {
-	var sub api.SubscribeRequest
-	if err := json.Unmarshal(message, &sub); err != nil {
+func (c *Client) handleMessage(message []byte) bool {
+	var env clientMessage
+	if err := json.Unmarshal(message, &env); err != nil {
 		slog.Error("Failed to parse WebSocket message", log.Error(err))
-		return
+		return true
 	}
 
-	if sub.Type != "subscribe" {
+	switch env.Type {
+	case "subscribe":
+		var sub api.ClientSubscription
+		if err := json.Unmarshal(env.Data, &sub); err != nil {
+			slog.Error("Failed to parse subscribe payload", log.Error(err))
+			return true
+		}
+		c.addSubscription(&sub)
+	case "unsubscribe":
+		var sub api.ClientUnsubscription
+		if err := json.Unmarshal(env.Data, &sub); err != nil {
+			slog.Error("Failed to parse unsubscribe payload", log.Error(err))
+			return true
+		}
+		c.removeSubscription(sub.SubscriptionID)
+	default:
+		return true
+	}
+	return true
+}
+
+func (c *Client) addSubscription(sub *api.ClientSubscription) {
+	cs, err := newClientSubscription(sub)
+	if err != nil {
+		slog.Error("Failed to register subscription", log.Error(err))
 		return
 	}
+	c.subscriptions[cs.id] = cs
 
-	c.swapConsumer(&sub.Data)
-	c.minSeq = 0
-
-	if len(sub.Data.AggregateID) > 0 {
-		c.sendSubscribeState(stringsToID(sub.Data.AggregateID))
+	if len(cs.aggregateID) > 0 {
+		c.sendSubscribeState(cs)
 	}
 }
 
-func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
+func (c *Client) removeSubscription(subscriptionID string) {
+	delete(c.subscriptions, subscriptionID)
+}
+
+func (c *Client) sendSubscribeState(sub *clientSubscription) {
 	if c.getState == nil {
 		return
 	}
 
-	state, nextSeq, err := c.getState(aggregateID)
+	state, nextSeq, err := c.getState(sub.aggregateID)
 	if err != nil {
 		slog.Error("Failed to get state for subscription",
-			slog.Any("aggregate_id", aggregateID),
+			slog.Any("aggregate_id", sub.aggregateID),
 			log.Error(err))
 		return
 	}
@@ -221,18 +265,19 @@ func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
 	data, err := json.Marshal(state)
 	if err != nil {
 		slog.Error("Failed to marshal state",
-			slog.Any("aggregate_id", aggregateID),
+			slog.Any("aggregate_id", sub.aggregateID),
 			log.Error(err))
 		return
 	}
 
-	c.minSeq = nextSeq
+	sub.minSeq = nextSeq
 
 	msg := api.SubscribedResult{
-		Type:        "subscribed",
-		AggregateID: idToStrings(aggregateID),
-		Data:        data,
-		Sequence:    nextSeq,
+		Type:           "subscribed",
+		AggregateID:    idToStrings(sub.aggregateID),
+		SubscriptionID: sub.id,
+		Data:           data,
+		Sequence:       nextSeq,
 	}
 
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
@@ -244,26 +289,35 @@ func (c *Client) sendSubscribeState(aggregateID timebox.AggregateID) {
 }
 
 func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
-	if event == nil || event.Sequence < c.minSeq {
+	if event == nil {
 		return true
 	}
 
-	wsEvent := c.transformEvent(event)
-	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	if err := c.conn.WriteJSON(wsEvent); err != nil {
-		slog.Error("WebSocket write failed", log.Error(err))
-		return false
+	for _, sub := range c.subscriptions {
+		if !sub.matches(event) || event.Sequence < sub.minSeq {
+			continue
+		}
+
+		wsEvent := c.transformEvent(event, sub.id)
+		_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+		if err := c.conn.WriteJSON(wsEvent); err != nil {
+			slog.Error("WebSocket write failed", log.Error(err))
+			return false
+		}
 	}
 	return true
 }
 
-func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
+func (c *Client) transformEvent(
+	ev *timebox.Event, subscriptionID string,
+) *api.WebSocketEvent {
 	return &api.WebSocketEvent{
-		Type:        api.EventType(ev.Type),
-		Data:        ev.Data,
-		Timestamp:   ev.Timestamp.UnixMilli(),
-		AggregateID: idToStrings(ev.AggregateID),
-		Sequence:    ev.Sequence,
+		Type:           api.EventType(ev.Type),
+		Data:           ev.Data,
+		Timestamp:      ev.Timestamp.UnixMilli(),
+		AggregateID:    idToStrings(ev.AggregateID),
+		SubscriptionID: subscriptionID,
+		Sequence:       ev.Sequence,
 	}
 }
 
@@ -271,23 +325,6 @@ func (c *Client) sendPing() bool {
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 	err := c.conn.WriteMessage(websocket.PingMessage, nil)
 	return err == nil
-}
-
-func (c *Client) swapConsumer(sub *api.ClientSubscription) {
-	eventTypes := subscriptionEventTypes(sub)
-	if len(sub.AggregateID) > 0 {
-		aggregateID := stringsToID(sub.AggregateID)
-		c.consumer.Close()
-		c.consumer = c.hub.NewAggregateConsumer(aggregateID, eventTypes...)
-		return
-	}
-	if len(eventTypes) > 0 {
-		c.consumer.Close()
-		c.consumer = c.hub.NewTypeConsumer(eventTypes...)
-		return
-	}
-	c.consumer.Close()
-	c.consumer = c.hub.NewTypeConsumer(noopEventType)
 }
 
 func subscriptionEventTypes(
@@ -301,6 +338,29 @@ func subscriptionEventTypes(
 		eventTypes[i] = timebox.EventType(eventType)
 	}
 	return eventTypes
+}
+
+func newClientSubscription(
+	sub *api.ClientSubscription,
+) (*clientSubscription, error) {
+	if sub.SubscriptionID == "" {
+		return nil, ErrMissingSubscriptionID
+	}
+	return &clientSubscription{
+		id:          sub.SubscriptionID,
+		aggregateID: stringsToID(sub.AggregateID),
+		eventTypes:  subscriptionEventTypes(sub),
+	}, nil
+}
+
+func (s *clientSubscription) matches(ev *timebox.Event) bool {
+	if len(s.aggregateID) > 0 && !ev.AggregateID.HasPrefix(s.aggregateID) {
+		return false
+	}
+	if len(s.eventTypes) == 0 {
+		return true
+	}
+	return slices.Contains(s.eventTypes, ev.Type)
 }
 
 // BuildFilter creates an event filter based on client subscription preferences
@@ -319,9 +379,4 @@ func stringsToID(parts []string) timebox.AggregateID {
 		res = append(res, timebox.ID(part))
 	}
 	return res
-}
-
-func newNoopEventType() timebox.EventType {
-	id := uuid.New()
-	return timebox.EventType(id[:])
 }

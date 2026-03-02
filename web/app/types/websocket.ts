@@ -11,11 +11,17 @@ export interface WebSocketEvent {
   timestamp: number;
   sequence: number;
   id: string[];
+  sub_id?: string;
 }
 
 export interface WebSocketSubscribe {
+  sub_id?: string;
   aggregate_id?: string[];
   event_types?: string[];
+}
+
+export interface WebSocketUnsubscribe {
+  sub_id: string;
 }
 
 export interface WebSocketSubscribed {
@@ -23,4 +29,5 @@ export interface WebSocketSubscribed {
   id: string[];
   data: unknown;
   sequence: number;
+  sub_id?: string;
 }

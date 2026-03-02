@@ -24,8 +24,16 @@ jest.mock("@/app/store/flowStore", () => ({
       state: {},
       started_at: "2024-01-01T00:00:00Z",
     },
+    flows: [
+      {
+        id: "flow-1",
+        status: "active",
+        state: {},
+        started_at: "2024-01-01T00:00:00Z",
+      },
+    ],
     loadSteps: jest.fn(),
-    loadFlows: jest.fn(),
+    addFlow: jest.fn(),
     addStep: jest.fn(),
     updateStep: jest.fn(),
     removeStep: jest.fn(),
@@ -42,10 +50,15 @@ jest.mock("@/app/store/flowStore", () => ({
 jest.mock("@/app/hooks/useWebSocketClient");
 
 function makeClient(overrides?: Record<string, any>) {
+  const subscribe = jest.fn((_subscription, _handler) => {
+    return String(subscribe.mock.calls.length);
+  });
+
   return {
     connectionStatus: "connected",
     reconnectAttempt: 0,
-    subscribe: jest.fn(),
+    subscribe,
+    unsubscribe: jest.fn(),
     reconnect: jest.fn(),
     ...overrides,
   };
@@ -55,22 +68,20 @@ describe("WebSocketProvider", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     const flowStore = require("@/app/store/flowStore");
-    (globalThis as any).__websocketStoreState = flowStore.__storeState;
+    (globalThis as any).__websocketStoreState = {
+      ...flowStore.__storeState,
+      flowData: {
+        ...flowStore.__storeState.flowData,
+      },
+      flows: [...flowStore.__storeState.flows],
+    };
     (globalThis as any).__websocketStoreState.selectedFlow = "flow-1";
     (globalThis as any).__websocketStoreState.engineReconnectRequest = 0;
   });
 
-  test("subscribes to catalog, partition, and flow aggregates", () => {
-    const catalogSubscribe = jest.fn();
-    const partitionSubscribe = jest.fn();
-    const flowSubscribe = jest.fn();
-
-    useWebSocketClientMock
-      .mockImplementationOnce(() => makeClient({ subscribe: catalogSubscribe }))
-      .mockImplementationOnce(() =>
-        makeClient({ subscribe: partitionSubscribe })
-      )
-      .mockImplementationOnce(() => makeClient({ subscribe: flowSubscribe }));
+  test("subscribes one socket to catalog, partition, flow summary, and flow aggregates", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>
@@ -78,49 +89,71 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    expect(catalogSubscribe).toHaveBeenCalledWith({
-      aggregate_id: ["catalog"],
-      event_types: ["step_registered", "step_unregistered", "step_updated"],
+    expect(useWebSocketClientMock).toHaveBeenCalledWith({
+      enabled: true,
     });
 
-    expect(partitionSubscribe).toHaveBeenCalledWith({
-      aggregate_id: ["partition"],
-      event_types: [
-        "step_health_changed",
-        "flow_activated",
-        "flow_deactivated",
-      ],
-    });
+    expect(client.subscribe).toHaveBeenNthCalledWith(
+      1,
+      {
+        aggregate_id: ["catalog"],
+        event_types: ["step_registered", "step_unregistered", "step_updated"],
+      },
+      expect.any(Function)
+    );
 
-    expect(flowSubscribe).toHaveBeenCalledWith({
-      aggregate_id: ["flow", "flow-1"],
-      event_types: [
-        "flow_started",
-        "step_started",
-        "step_completed",
-        "step_failed",
-        "step_skipped",
-        "attribute_set",
-        "flow_completed",
-        "flow_failed",
-        "work_started",
-        "work_succeeded",
-        "work_failed",
-        "work_not_completed",
-        "retry_scheduled",
-      ],
-    });
+    expect(client.subscribe).toHaveBeenNthCalledWith(
+      2,
+      {
+        aggregate_id: ["partition"],
+        event_types: ["step_health_changed"],
+      },
+      expect.any(Function)
+    );
+
+    expect(client.subscribe).toHaveBeenNthCalledWith(
+      3,
+      {
+        aggregate_id: ["flow"],
+        event_types: ["flow_started", "flow_completed", "flow_failed"],
+      },
+      expect.any(Function)
+    );
+
+    expect(client.subscribe).toHaveBeenNthCalledWith(
+      4,
+      {
+        aggregate_id: ["flow", "flow-1"],
+        event_types: [
+          "flow_started",
+          "step_started",
+          "step_completed",
+          "step_failed",
+          "step_skipped",
+          "attribute_set",
+          "flow_completed",
+          "flow_failed",
+          "work_started",
+          "work_succeeded",
+          "work_failed",
+          "work_not_completed",
+          "retry_scheduled",
+        ],
+      },
+      expect.any(Function)
+    );
   });
 
-  test("disables flow socket when no flow is selected", () => {
+  test("does not subscribe to selected flow when no flow is selected", () => {
     const flowStore = require("@/app/store/flowStore");
-    (globalThis as any).__websocketStoreState = flowStore.__storeState;
-    (globalThis as any).__websocketStoreState.selectedFlow = null;
+    (globalThis as any).__websocketStoreState = {
+      ...flowStore.__storeState,
+      selectedFlow: null,
+      flows: [...flowStore.__storeState.flows],
+    };
 
-    useWebSocketClientMock
-      .mockImplementationOnce(() => makeClient())
-      .mockImplementationOnce(() => makeClient())
-      .mockImplementationOnce(() => makeClient());
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>
@@ -128,16 +161,12 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    // Third call is the flow client
-    expect(useWebSocketClientMock.mock.calls[2][0]?.enabled).toBe(false);
+    expect(client.subscribe).toHaveBeenCalledTimes(3);
   });
 
   test("dispatches catalog events to step handlers", () => {
-    const clientOptions: Array<{ onEvent?: (event: any) => void }> = [];
-    useWebSocketClientMock.mockImplementation((options) => {
-      clientOptions.push(options || {});
-      return makeClient();
-    });
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>
@@ -145,16 +174,17 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    // clientOptions[0] = catalogClient
-    clientOptions[0].onEvent?.({
+    const catalogHandler = client.subscribe.mock.calls[0][1];
+
+    catalogHandler({
       type: "step_registered",
       data: { step: { id: "step-1" } },
     });
-    clientOptions[0].onEvent?.({
+    catalogHandler({
       type: "step_unregistered",
       data: { step_id: "step-2" },
     });
-    clientOptions[0].onEvent?.({
+    catalogHandler({
       type: "step_updated",
       data: { step: { id: "step-3" } },
     });
@@ -169,12 +199,9 @@ describe("WebSocketProvider", () => {
     });
   });
 
-  test("dispatches partition events to health and flow handlers", () => {
-    const clientOptions: Array<{ onEvent?: (event: any) => void }> = [];
-    useWebSocketClientMock.mockImplementation((options) => {
-      clientOptions.push(options || {});
-      return makeClient();
-    });
+  test("dispatches partition events to health handlers", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>
@@ -182,18 +209,10 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    // clientOptions[1] = partitionClient
-    clientOptions[1].onEvent?.({
+    const partitionHandler = client.subscribe.mock.calls[1][1];
+    partitionHandler({
       type: "step_health_changed",
       data: { step_id: "step-3", status: "healthy" },
-    });
-    clientOptions[1].onEvent?.({
-      type: "flow_activated",
-      data: { flow_id: "flow-1" },
-    });
-    clientOptions[1].onEvent?.({
-      type: "flow_deactivated",
-      data: { flow_id: "flow-1" },
     });
 
     const flowStore = require("@/app/store/flowStore");
@@ -203,15 +222,11 @@ describe("WebSocketProvider", () => {
       undefined
     );
     expect(flowStore.__storeState.loadSteps).toHaveBeenCalledTimes(1);
-    expect(flowStore.__storeState.loadFlows).toHaveBeenCalledTimes(2);
   });
 
-  test("dispatches flow events to execution and flow updates", () => {
-    const clientOptions: Array<{ onEvent?: (event: any) => void }> = [];
-    useWebSocketClientMock.mockImplementation((options) => {
-      clientOptions.push(options || {});
-      return makeClient();
-    });
+  test("dispatches flow summary events to flow store", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>
@@ -219,33 +234,98 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    // clientOptions[2] = flowClient
-    clientOptions[2].onEvent?.({
+    const summaryHandler = client.subscribe.mock.calls[2][1];
+    const startedAt = Date.parse("2024-01-02T00:00:00Z");
+    const completedAt = Date.parse("2024-01-03T00:00:00Z");
+    const failedAt = Date.parse("2024-01-04T00:00:00Z");
+
+    summaryHandler({
+      type: "flow_started",
+      data: { flow_id: "flow-2" },
+      timestamp: startedAt,
+    });
+    summaryHandler({
+      type: "flow_completed",
+      data: { flow_id: "flow-1" },
+      timestamp: completedAt,
+    });
+    summaryHandler({
+      type: "flow_failed",
+      data: { flow_id: "flow-1", error: "bad" },
+      timestamp: failedAt,
+    });
+
+    const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(1, {
+      id: "flow-2",
+      status: "active",
+      state: {},
+      error_state: undefined,
+      plan: undefined,
+      started_at: "2024-01-02T00:00:00.000Z",
+    });
+    expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(2, {
+      id: "flow-1",
+      status: "completed",
+      state: {},
+      error_state: undefined,
+      plan: undefined,
+      started_at: "2024-01-01T00:00:00Z",
+      completed_at: "2024-01-03T00:00:00.000Z",
+    });
+    expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(3, {
+      id: "flow-1",
+      status: "failed",
+      state: {},
+      error_state: {
+        message: "bad",
+        step_id: "",
+        timestamp: "2024-01-04T00:00:00.000Z",
+      },
+      plan: undefined,
+      started_at: "2024-01-01T00:00:00Z",
+      completed_at: "2024-01-04T00:00:00.000Z",
+    });
+  });
+
+  test("dispatches flow events to execution and flow updates", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    const flowHandler = client.subscribe.mock.calls[3][1];
+
+    flowHandler({
       type: "flow_started",
       data: { flow_id: "flow-1", plan: { steps: { a: {} } } },
-      timestamp: Date.now(),
+      timestamp: Date.parse("2024-01-05T00:00:00Z"),
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "step_started",
       data: { flow_id: "flow-1", step_id: "step-1", inputs: {} },
       timestamp: Date.now(),
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "step_completed",
       data: { flow_id: "flow-1", step_id: "step-1", outputs: {} },
       timestamp: Date.now(),
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "step_failed",
       data: { flow_id: "flow-1", step_id: "step-2", error: "boom" },
       timestamp: Date.now(),
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "step_skipped",
       data: { flow_id: "flow-1", step_id: "step-3" },
       timestamp: Date.now(),
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "attribute_set",
       data: {
         flow_id: "flow-1",
@@ -254,13 +334,15 @@ describe("WebSocketProvider", () => {
         value: { ok: true },
       },
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "flow_completed",
       data: { flow_id: "flow-1" },
+      timestamp: Date.parse("2024-01-06T00:00:00Z"),
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "flow_failed",
       data: { flow_id: "flow-1", error: "bad" },
+      timestamp: Date.parse("2024-01-07T00:00:00Z"),
     });
 
     const flowStore = require("@/app/store/flowStore");
@@ -288,19 +370,22 @@ describe("WebSocketProvider", () => {
       })
     );
     expect(flowStore.__storeState.updateFlowFromWebSocket).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "completed" })
+      expect.objectContaining({
+        status: "completed",
+        completed_at: "2024-01-06T00:00:00.000Z",
+      })
     );
     expect(flowStore.__storeState.updateFlowFromWebSocket).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "failed" })
+      expect.objectContaining({
+        status: "failed",
+        completed_at: "2024-01-07T00:00:00.000Z",
+      })
     );
   });
 
   test("dispatches work item events to updateWorkItem", () => {
-    const clientOptions: Array<{ onEvent?: (event: any) => void }> = [];
-    useWebSocketClientMock.mockImplementation((options) => {
-      clientOptions.push(options || {});
-      return makeClient();
-    });
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>
@@ -308,8 +393,8 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    // clientOptions[2] = flowClient
-    clientOptions[2].onEvent?.({
+    const flowHandler = client.subscribe.mock.calls[3][1];
+    flowHandler({
       type: "work_started",
       data: {
         flow_id: "flow-1",
@@ -318,7 +403,7 @@ describe("WebSocketProvider", () => {
         inputs: { key: "value" },
       },
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "work_succeeded",
       data: {
         flow_id: "flow-1",
@@ -327,7 +412,7 @@ describe("WebSocketProvider", () => {
         outputs: { result: "done" },
       },
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "work_failed",
       data: {
         flow_id: "flow-1",
@@ -336,7 +421,7 @@ describe("WebSocketProvider", () => {
         error: "something went wrong",
       },
     });
-    clientOptions[2].onEvent?.({
+    flowHandler({
       type: "retry_scheduled",
       data: {
         flow_id: "flow-1",
@@ -376,13 +461,12 @@ describe("WebSocketProvider", () => {
     );
   });
 
-  test("writes catalog client connection status to store", () => {
-    useWebSocketClientMock
-      .mockImplementationOnce(() =>
-        makeClient({ connectionStatus: "reconnecting", reconnectAttempt: 2 })
-      )
-      .mockImplementationOnce(() => makeClient())
-      .mockImplementationOnce(() => makeClient());
+  test("writes socket connection status to store", () => {
+    const client = makeClient({
+      connectionStatus: "reconnecting",
+      reconnectAttempt: 2,
+    });
+    useWebSocketClientMock.mockReturnValue(client);
 
     render(
       <WebSocketProvider>

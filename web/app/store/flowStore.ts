@@ -43,6 +43,20 @@ const compareSteps = (a: Step, b: Step): number => {
   return a.name.localeCompare(b.name);
 };
 
+const upsertFlowList = (
+  flows: FlowContext[],
+  flow: FlowContext
+): FlowContext[] => {
+  const existingIndex = flows.findIndex((current) => current.id === flow.id);
+  if (existingIndex >= 0) {
+    const updatedFlows = [...flows];
+    updatedFlows[existingIndex] = flow;
+    return updatedFlows;
+  }
+
+  return [...flows, flow];
+};
+
 const upsertStepList = (steps: Step[], step: Step): Step[] => {
   const existingIndex = steps.findIndex((current) => current.id === step.id);
   if (existingIndex >= 0) {
@@ -309,9 +323,8 @@ export const useFlowStore = create<FlowState>()(
       },
 
       addFlow: (flow: FlowContext) => {
-        const { flows } = get();
         set({
-          flows: [...flows, flow].sort(compareFlows),
+          flows: upsertFlowList(get().flows, flow).sort(compareFlows),
         });
       },
 

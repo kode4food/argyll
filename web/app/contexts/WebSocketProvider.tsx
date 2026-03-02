@@ -11,10 +11,12 @@ const CATALOG_EVENT_TYPES = [
   "step_updated",
 ];
 
-const PARTITION_EVENT_TYPES = [
-  "step_health_changed",
-  "flow_activated",
-  "flow_deactivated",
+const PARTITION_EVENT_TYPES = ["step_health_changed"];
+
+const FLOW_SUMMARY_EVENT_TYPES = [
+  "flow_started",
+  "flow_completed",
+  "flow_failed",
 ];
 
 const FLOW_EVENT_TYPES = [
@@ -33,11 +35,15 @@ const FLOW_EVENT_TYPES = [
   "retry_scheduled",
 ];
 
+const eventTimestamp = (timestamp?: number): string => {
+  return new Date(timestamp || Date.now()).toISOString();
+};
+
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const t = useT();
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
   const loadSteps = useFlowStore((state) => state.loadSteps);
-  const loadFlows = useFlowStore((state) => state.loadFlows);
+  const addFlow = useFlowStore((state) => state.addFlow);
   const addStep = useFlowStore((state) => state.addStep);
   const updateStep = useFlowStore((state) => state.updateStep);
   const removeStep = useFlowStore((state) => state.removeStep);
@@ -103,15 +109,71 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           }
           break;
         }
-        case "flow_activated":
-        case "flow_deactivated":
-          loadFlows();
+        default:
+          break;
+      }
+    },
+    [updateStepHealth, loadSteps]
+  );
+
+  const handleFlowSummaryEvent = useCallback(
+    (event: WebSocketEvent | WebSocketSubscribed) => {
+      if (event.type === "subscribed") {
+        return;
+      }
+
+      const wsEvent = event as WebSocketEvent;
+      const flowId = wsEvent.data?.flow_id;
+      if (!flowId) {
+        return;
+      }
+
+      const { flows } = useFlowStore.getState();
+      const existingFlow = flows.find((flow) => flow.id === flowId);
+      const timestamp = eventTimestamp(wsEvent.timestamp);
+
+      switch (wsEvent.type) {
+        case "flow_started":
+          addFlow({
+            id: flowId,
+            status: "active",
+            state: existingFlow?.state || {},
+            error_state: undefined,
+            plan: existingFlow?.plan,
+            started_at: existingFlow?.started_at || timestamp,
+          });
+          break;
+        case "flow_completed":
+          addFlow({
+            id: flowId,
+            status: "completed",
+            state: existingFlow?.state || {},
+            error_state: undefined,
+            plan: existingFlow?.plan,
+            started_at: existingFlow?.started_at || timestamp,
+            completed_at: timestamp,
+          });
+          break;
+        case "flow_failed":
+          addFlow({
+            id: flowId,
+            status: "failed",
+            state: existingFlow?.state || {},
+            error_state: {
+              message: wsEvent.data?.error || t("flow.failed"),
+              step_id: "",
+              timestamp,
+            },
+            plan: existingFlow?.plan,
+            started_at: existingFlow?.started_at || timestamp,
+            completed_at: timestamp,
+          });
           break;
         default:
           break;
       }
     },
-    [updateStepHealth, loadSteps, loadFlows]
+    [addFlow, t]
   );
 
   const handleFlowEvent = useCallback(
@@ -145,8 +207,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
       switch (wsEvent.type) {
         case "flow_started":
           flowUpdate.status = "active";
-          flowUpdate.started_at =
-            wsEvent.data?.started_at || new Date().toISOString();
+          flowUpdate.started_at = eventTimestamp(wsEvent.timestamp);
           if (wsEvent.data?.plan) {
             initializeExecutions(activeFlowId, wsEvent.data.plan);
           }
@@ -156,7 +217,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
             status: "active",
             inputs: wsEvent.data?.inputs,
             work_items: wsEvent.data?.work_items || {},
-            started_at: new Date(wsEvent.timestamp || Date.now()).toISOString(),
+            started_at: eventTimestamp(wsEvent.timestamp),
           });
           break;
         case "step_completed":
@@ -164,26 +225,20 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
             status: "completed",
             outputs: wsEvent.data?.outputs,
             duration_ms: wsEvent.data?.duration,
-            completed_at: new Date(
-              wsEvent.timestamp || Date.now()
-            ).toISOString(),
+            completed_at: eventTimestamp(wsEvent.timestamp),
           });
           break;
         case "step_failed":
           updateExecution(wsEvent.data?.step_id, {
             status: "failed",
             error_message: wsEvent.data?.error,
-            completed_at: new Date(
-              wsEvent.timestamp || Date.now()
-            ).toISOString(),
+            completed_at: eventTimestamp(wsEvent.timestamp),
           });
           break;
         case "step_skipped":
           updateExecution(wsEvent.data?.step_id, {
             status: "skipped",
-            completed_at: new Date(
-              wsEvent.timestamp || Date.now()
-            ).toISOString(),
+            completed_at: eventTimestamp(wsEvent.timestamp),
           });
           break;
         case "attribute_set": {
@@ -200,18 +255,17 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         }
         case "flow_completed":
           flowUpdate.status = "completed";
-          flowUpdate.completed_at =
-            wsEvent.data?.completed_at || new Date().toISOString();
+          flowUpdate.completed_at = eventTimestamp(wsEvent.timestamp);
           break;
         case "flow_failed":
+          const failedAt = eventTimestamp(wsEvent.timestamp);
           flowUpdate.status = "failed";
           flowUpdate.error_state = {
             message: wsEvent.data?.error || t("flow.failed"),
             step_id: "",
-            timestamp: wsEvent.data?.failed_at || new Date().toISOString(),
+            timestamp: failedAt,
           };
-          flowUpdate.completed_at =
-            wsEvent.data?.failed_at || new Date().toISOString();
+          flowUpdate.completed_at = failedAt;
           break;
         case "work_started":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
@@ -261,50 +315,83 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     [t]
   );
 
-  const catalogClient = useWebSocketClient({
+  const socketClient = useWebSocketClient({
     enabled: true,
-    onEvent: handleCatalogEvent,
-  });
-  const partitionClient = useWebSocketClient({
-    enabled: true,
-    onEvent: handlePartitionEvent,
-  });
-  const flowClient = useWebSocketClient({
-    enabled: Boolean(selectedFlow),
-    onEvent: handleFlowEvent,
   });
 
   useEffect(() => {
-    catalogClient.subscribe({
-      aggregate_id: ["catalog"],
-      event_types: CATALOG_EVENT_TYPES,
-    });
-  }, [catalogClient.subscribe]);
+    const subscriptionId = socketClient.subscribe(
+      {
+        aggregate_id: ["catalog"],
+        event_types: CATALOG_EVENT_TYPES,
+      },
+      handleCatalogEvent
+    );
+    return () => {
+      socketClient.unsubscribe(subscriptionId);
+    };
+  }, [handleCatalogEvent, socketClient.subscribe, socketClient.unsubscribe]);
 
   useEffect(() => {
-    partitionClient.subscribe({
-      aggregate_id: ["partition"],
-      event_types: PARTITION_EVENT_TYPES,
-    });
-  }, [partitionClient.subscribe]);
+    const subscriptionId = socketClient.subscribe(
+      {
+        aggregate_id: ["partition"],
+        event_types: PARTITION_EVENT_TYPES,
+      },
+      handlePartitionEvent
+    );
+    return () => {
+      socketClient.unsubscribe(subscriptionId);
+    };
+  }, [handlePartitionEvent, socketClient.subscribe, socketClient.unsubscribe]);
 
   useEffect(() => {
-    if (selectedFlow) {
-      flowClient.subscribe({
+    const subscriptionId = socketClient.subscribe(
+      {
+        aggregate_id: ["flow"],
+        event_types: FLOW_SUMMARY_EVENT_TYPES,
+      },
+      handleFlowSummaryEvent
+    );
+    return () => {
+      socketClient.unsubscribe(subscriptionId);
+    };
+  }, [
+    handleFlowSummaryEvent,
+    socketClient.subscribe,
+    socketClient.unsubscribe,
+  ]);
+
+  useEffect(() => {
+    if (!selectedFlow) {
+      return;
+    }
+
+    const subscriptionId = socketClient.subscribe(
+      {
         aggregate_id: ["flow", selectedFlow],
         event_types: FLOW_EVENT_TYPES,
-      });
-    }
-  }, [selectedFlow, flowClient.subscribe]);
+      },
+      handleFlowEvent
+    );
+    return () => {
+      socketClient.unsubscribe(subscriptionId);
+    };
+  }, [
+    handleFlowEvent,
+    selectedFlow,
+    socketClient.subscribe,
+    socketClient.unsubscribe,
+  ]);
 
   useEffect(() => {
     setEngineSocketStatus(
-      catalogClient.connectionStatus,
-      catalogClient.reconnectAttempt
+      socketClient.connectionStatus,
+      socketClient.reconnectAttempt
     );
   }, [
-    catalogClient.connectionStatus,
-    catalogClient.reconnectAttempt,
+    socketClient.connectionStatus,
+    socketClient.reconnectAttempt,
     setEngineSocketStatus,
   ]);
 
@@ -314,13 +401,8 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
       return;
     }
     engineReconnectRef.current = engineReconnectRequest;
-    catalogClient.reconnect();
-    partitionClient.reconnect();
-  }, [
-    engineReconnectRequest,
-    catalogClient.reconnect,
-    partitionClient.reconnect,
-  ]);
+    socketClient.reconnect();
+  }, [engineReconnectRequest, socketClient.reconnect]);
 
   return <>{children}</>;
 };

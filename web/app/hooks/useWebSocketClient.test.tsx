@@ -74,18 +74,24 @@ describe("useWebSocketClient", () => {
     jest.useRealTimers();
   });
 
-  test("connects when enabled and sends pending subscription on open", () => {
+  test("connects when enabled and sends pending subscriptions on open", () => {
     const onEvent = jest.fn();
+    const handler = jest.fn();
     const { result } = renderHook(() =>
       useWebSocketClient({ enabled: true, onEvent })
     );
 
     expect(result.current.connectionStatus).toBe("connecting");
 
+    let subscriptionId = "";
     act(() => {
-      result.current.subscribe({ aggregate_id: ["catalog"] });
+      subscriptionId = result.current.subscribe(
+        { aggregate_id: ["catalog"] },
+        handler
+      );
     });
 
+    expect(subscriptionId).toBe("0");
     expect(instances).toHaveLength(1);
 
     act(() => {
@@ -96,7 +102,7 @@ describe("useWebSocketClient", () => {
     expect(instances[0].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
-        data: { aggregate_id: ["catalog"] },
+        data: { aggregate_id: ["catalog"], sub_id: "0" },
       })
     );
   });
@@ -115,29 +121,125 @@ describe("useWebSocketClient", () => {
     expect(instances[0].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
-        data: { aggregate_id: ["flow", "flow-1"] },
+        data: { aggregate_id: ["flow", "flow-1"], sub_id: "0" },
       })
     );
   });
 
-  test("ignores pong and forwards other messages", () => {
-    const onEvent = jest.fn();
-    renderHook(() => useWebSocketClient({ enabled: true, onEvent }));
+  test("routes messages to the matching subscription handler", () => {
+    const fallbackHandler = jest.fn();
+    const subscriptionHandler = jest.fn();
+    const { result } = renderHook(() =>
+      useWebSocketClient({ enabled: true, onEvent: fallbackHandler })
+    );
+
+    act(() => {
+      result.current.subscribe(
+        { aggregate_id: ["catalog"] },
+        subscriptionHandler
+      );
+    });
 
     act(() => {
       instances[0].triggerOpen();
     });
 
     act(() => {
-      instances[0].triggerMessage({ type: "pong" });
-      instances[0].triggerMessage({ type: "flow_started", data: {} });
+      instances[0].triggerMessage({
+        type: "subscribed",
+        sub_id: "0",
+        data: { steps: {} },
+      });
+      instances[0].triggerMessage({
+        type: "step_registered",
+        sub_id: "0",
+        data: { step: { id: "step-1" } },
+      });
+      instances[0].triggerMessage({ type: "step_registered", data: {} });
     });
 
-    expect(onEvent).toHaveBeenCalledTimes(1);
-    expect(onEvent).toHaveBeenCalledWith({
-      type: "flow_started",
-      data: {},
+    expect(subscriptionHandler).toHaveBeenCalledTimes(2);
+    expect(fallbackHandler).toHaveBeenCalledTimes(1);
+  });
+
+  test("sends unsubscribe when removing an active subscription", () => {
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+
+    let subscriptionId = "";
+    act(() => {
+      subscriptionId = result.current.subscribe({ aggregate_id: ["catalog"] });
+      instances[0].triggerOpen();
     });
+
+    act(() => {
+      result.current.unsubscribe(subscriptionId);
+    });
+
+    expect(instances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "unsubscribe",
+        data: { sub_id: "0" },
+      })
+    );
+  });
+
+  test("re-sends all subscriptions after reconnect", () => {
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      result.current.subscribe({ aggregate_id: ["catalog"] });
+      result.current.subscribe({
+        aggregate_id: ["flow"],
+        event_types: ["flow_started"],
+      });
+    });
+
+    act(() => {
+      instances[0].triggerOpen();
+    });
+
+    act(() => {
+      instances[0].triggerClose(1006);
+    });
+
+    act(() => {
+      jest.advanceTimersByTime(WEBSOCKET.INITIAL_RECONNECT_DELAY);
+    });
+
+    expect(instances).toHaveLength(2);
+
+    act(() => {
+      instances[1].triggerOpen();
+    });
+
+    expect(instances[1].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "subscribe",
+        data: { aggregate_id: ["catalog"], sub_id: "0" },
+      })
+    );
+    expect(instances[1].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "subscribe",
+        data: {
+          aggregate_id: ["flow"],
+          event_types: ["flow_started"],
+          sub_id: "1",
+        },
+      })
+    );
+  });
+
+  test("ignores pong messages", () => {
+    const onEvent = jest.fn();
+    renderHook(() => useWebSocketClient({ enabled: true, onEvent }));
+
+    act(() => {
+      instances[0].triggerOpen();
+      instances[0].triggerMessage({ type: "pong" });
+    });
+
+    expect(onEvent).not.toHaveBeenCalled();
   });
 
   test("sends heartbeat pings while connected", () => {
@@ -145,9 +247,6 @@ describe("useWebSocketClient", () => {
 
     act(() => {
       instances[0].triggerOpen();
-    });
-
-    act(() => {
       jest.advanceTimersByTime(WEBSOCKET.HEARTBEAT_INTERVAL);
     });
 
@@ -161,9 +260,6 @@ describe("useWebSocketClient", () => {
 
     act(() => {
       instances[0].triggerOpen();
-    });
-
-    act(() => {
       instances[0].triggerClose(1000);
     });
 
@@ -174,34 +270,11 @@ describe("useWebSocketClient", () => {
     expect(instances).toHaveLength(1);
   });
 
-  test("schedules reconnect on abnormal close", () => {
-    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
-
-    act(() => {
-      instances[0].triggerOpen();
-    });
-
-    act(() => {
-      instances[0].triggerClose(1006);
-    });
-
-    expect(result.current.connectionStatus).toBe("reconnecting");
-
-    act(() => {
-      jest.advanceTimersByTime(WEBSOCKET.INITIAL_RECONNECT_DELAY);
-    });
-
-    expect(instances).toHaveLength(2);
-  });
-
   test("reconnect() creates a new socket", () => {
     const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
 
     act(() => {
       instances[0].triggerOpen();
-    });
-
-    act(() => {
       result.current.reconnect();
     });
 
@@ -233,9 +306,6 @@ describe("useWebSocketClient", () => {
 
     act(() => {
       instances[0].triggerOpen();
-    });
-
-    act(() => {
       instances[0].triggerError();
     });
 
@@ -252,9 +322,6 @@ describe("useWebSocketClient", () => {
 
     act(() => {
       instances[0].triggerOpen();
-    });
-
-    act(() => {
       instances[0].onmessage?.({ data: "{" });
     });
 

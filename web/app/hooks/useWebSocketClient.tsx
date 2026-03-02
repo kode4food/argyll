@@ -4,12 +4,43 @@ import {
   ConnectionStatus,
   WebSocketEvent,
   WebSocketSubscribe,
+  WebSocketSubscribed,
+  WebSocketUnsubscribe,
 } from "@/app/types/websocket";
 
 interface UseWebSocketClientOptions {
   enabled?: boolean;
-  onEvent?: (event: WebSocketEvent) => void;
+  onEvent?: (event: WebSocketEvent | WebSocketSubscribed) => void;
 }
+
+interface SubscriptionEntry {
+  onEvent?: (event: WebSocketEvent | WebSocketSubscribed) => void;
+  subscription: WebSocketSubscribe;
+}
+
+const sendSubscribeMessage = (
+  ws: WebSocket,
+  subscription: WebSocketSubscribe
+) => {
+  ws.send(
+    JSON.stringify({
+      type: "subscribe",
+      data: subscription,
+    })
+  );
+};
+
+const sendUnsubscribeMessage = (
+  ws: WebSocket,
+  subscription: WebSocketUnsubscribe
+) => {
+  ws.send(
+    JSON.stringify({
+      type: "unsubscribe",
+      data: subscription,
+    })
+  );
+};
 
 export const useWebSocketClient = ({
   enabled = true,
@@ -25,8 +56,8 @@ export const useWebSocketClient = ({
   const connectRef = useRef<(() => void) | undefined>(undefined);
   const enabledRef = useRef(enabled);
   const onEventRef = useRef(onEvent);
-  const pendingSubscriptionRef = useRef<WebSocketSubscribe | null>(null);
-  const currentSubscriptionRef = useRef<WebSocketSubscribe | null>(null);
+  const nextSubscriptionIdRef = useRef(0);
+  const subscriptionsRef = useRef<Map<string, SubscriptionEntry>>(new Map());
 
   useEffect(() => {
     enabledRef.current = enabled;
@@ -136,18 +167,8 @@ export const useWebSocketClient = ({
         reconnectDelayRef.current = WEBSOCKET.INITIAL_RECONNECT_DELAY;
         startHeartbeat();
 
-        const pending = pendingSubscriptionRef.current;
-        const current = currentSubscriptionRef.current;
-
-        const subToSend = pending || current;
-        if (subToSend) {
-          ws.send(
-            JSON.stringify({
-              type: "subscribe",
-              data: subToSend,
-            })
-          );
-          pendingSubscriptionRef.current = null;
+        for (const { subscription } of subscriptionsRef.current.values()) {
+          sendSubscribeMessage(ws, subscription);
         }
       };
 
@@ -173,11 +194,25 @@ export const useWebSocketClient = ({
 
       ws.onmessage = (event) => {
         try {
-          const data = JSON.parse(event.data);
+          const data = JSON.parse(event.data) as
+            | WebSocketEvent
+            | WebSocketSubscribed
+            | { type: "pong" };
           if (data.type === "pong") {
             return;
           }
-          onEventRef.current?.(data);
+
+          const routedEvent = data as WebSocketEvent | WebSocketSubscribed;
+          const subscriptionId = routedEvent.sub_id;
+          if (subscriptionId) {
+            const sub = subscriptionsRef.current.get(subscriptionId);
+            if (sub?.onEvent) {
+              sub.onEvent(routedEvent);
+              return;
+            }
+          }
+
+          onEventRef.current?.(routedEvent);
         } catch (error) {
           console.error("Error parsing WebSocket message:", error);
         }
@@ -192,19 +227,42 @@ export const useWebSocketClient = ({
 
   connectRef.current = connect;
 
-  const subscribe = useCallback((subscription: WebSocketSubscribe) => {
-    currentSubscriptionRef.current = subscription;
+  const subscribe = useCallback(
+    (
+      subscription: WebSocketSubscribe,
+      handler?: (event: WebSocketEvent | WebSocketSubscribed) => void
+    ) => {
+      const subscriptionId = String(nextSubscriptionIdRef.current);
+      nextSubscriptionIdRef.current += 1;
 
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(
-        JSON.stringify({
-          type: "subscribe",
-          data: subscription,
-        })
-      );
-    } else {
-      pendingSubscriptionRef.current = subscription;
+      const nextSubscription = {
+        ...subscription,
+        sub_id: subscriptionId,
+      };
+
+      subscriptionsRef.current.set(subscriptionId, {
+        subscription: nextSubscription,
+        onEvent: handler,
+      });
+
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        sendSubscribeMessage(wsRef.current, nextSubscription);
+      }
+
+      return subscriptionId;
+    },
+    []
+  );
+
+  const unsubscribe = useCallback((subscriptionId: string) => {
+    const hadSubscription = subscriptionsRef.current.delete(subscriptionId);
+    if (!hadSubscription || wsRef.current?.readyState !== WebSocket.OPEN) {
+      return;
     }
+
+    sendUnsubscribeMessage(wsRef.current, {
+      sub_id: subscriptionId,
+    });
   }, []);
 
   const reconnect = useCallback(() => {
@@ -231,6 +289,7 @@ export const useWebSocketClient = ({
     connectionStatus,
     reconnectAttempt,
     subscribe,
+    unsubscribe,
     reconnect,
   };
 };
