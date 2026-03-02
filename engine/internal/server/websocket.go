@@ -289,16 +289,16 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) {
 }
 
 func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
-	if event == nil {
-		return true
-	}
-
+	var wsEvent *api.WebSocketEvent
 	for _, sub := range c.subscriptions {
 		if !sub.matches(event) || event.Sequence < sub.minSeq {
 			continue
 		}
 
-		wsEvent := c.transformEvent(event, sub.id)
+		if wsEvent == nil {
+			wsEvent = c.transformEvent(event)
+		}
+		wsEvent.SubscriptionID = sub.id
 		_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
 		if err := c.conn.WriteJSON(wsEvent); err != nil {
 			slog.Error("WebSocket write failed", log.Error(err))
@@ -308,16 +308,13 @@ func (c *Client) sendEventIfMatched(event *timebox.Event) bool {
 	return true
 }
 
-func (c *Client) transformEvent(
-	ev *timebox.Event, subscriptionID string,
-) *api.WebSocketEvent {
+func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
 	return &api.WebSocketEvent{
-		Type:           api.EventType(ev.Type),
-		Data:           ev.Data,
-		Timestamp:      ev.Timestamp.UnixMilli(),
-		AggregateID:    idToStrings(ev.AggregateID),
-		SubscriptionID: subscriptionID,
-		Sequence:       ev.Sequence,
+		Type:        api.EventType(ev.Type),
+		Data:        ev.Data,
+		Timestamp:   ev.Timestamp.UnixMilli(),
+		AggregateID: idToStrings(ev.AggregateID),
+		Sequence:    ev.Sequence,
 	}
 }
 
