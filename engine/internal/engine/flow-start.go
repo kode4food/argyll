@@ -48,22 +48,6 @@ func (e *Engine) StartFlow(
 		); err != nil {
 			return err
 		}
-		parentID, _ := api.GetMetaString[api.FlowID](
-			opts.Metadata, api.MetaParentFlowID,
-		)
-		tx.OnSuccess(func(*api.FlowState) {
-			tx.EnqueueEvent(api.EventTypeFlowActivated,
-				api.FlowActivatedEvent{
-					FlowID:       flowID,
-					ParentFlowID: parentID,
-					Labels:       opts.Labels,
-				},
-			)
-		})
-		if flowTransitions.IsTerminal(tx.Value().Status) {
-			return nil
-		}
-
 		for _, stepID := range tx.findInitialSteps(tx.Value()) {
 			if err := tx.prepareStep(stepID); err != nil {
 				return err

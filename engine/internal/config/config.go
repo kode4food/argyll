@@ -121,6 +121,7 @@ func NewDefaultConfig() *Config {
 			WorkerCount:  DefaultSnapshotWorkers,
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
+			Indexer:      events.FlowIndexer,
 			JoinKey:      events.FlowJoinKey,
 			ParseKey:     events.FlowParseKey,
 		},

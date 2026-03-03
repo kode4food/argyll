@@ -6,18 +6,15 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
-	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 // Start begins processing flows and events
 func (e *Engine) Start() error {
 	slog.Info("Engine starting")
 
-	e.eventQueue.Start()
 	go e.scheduler.Run(e.ctx)
 
 	if err := e.RecoverFlows(); err != nil {
-		e.eventQueue.Cancel()
 		return fmt.Errorf("%w: %w", ErrRecoverFlows, err)
 	}
 
@@ -44,9 +41,4 @@ func (e *Engine) CancelPrefixedTasks(prefix []string) {
 // Now returns the current wall time from Engine's configured clock
 func (e *Engine) Now() time.Time {
 	return e.clock()
-}
-
-// EnqueueEvent schedules a partition aggregate event for sequential processing
-func (e *Engine) EnqueueEvent(typ api.EventType, data any) {
-	e.eventQueue.Enqueue(typ, data)
 }

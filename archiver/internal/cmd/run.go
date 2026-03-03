@@ -39,7 +39,7 @@ func Run(
 	}
 	defer func() { _ = tb.Close() }()
 
-	storeCfg := cfg.PartitionStore
+	storeCfg := cfg.FlowStore
 	storeCfg.Archiving = true
 	store, err := tb.NewStore(storeCfg)
 	if err != nil {

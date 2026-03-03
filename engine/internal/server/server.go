@@ -135,10 +135,6 @@ func (s *Server) handleEngine(c *gin.Context) {
 		"steps":        cat.Steps,
 		"attributes":   cat.Attributes,
 		"health":       health,
-		"active":       part.Active,
-		"deactivated":  part.Deactivated,
-		"archiving":    part.Archiving,
-		"flow_digests": part.FlowDigests,
 	})
 }
 

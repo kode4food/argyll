@@ -4,10 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"slices"
 	"time"
-
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -16,16 +13,15 @@ import (
 )
 
 var (
-	ErrListFlowAggregates = errors.New("failed to list flow aggregates")
-	ErrLoadPartitionState = errors.New("failed to load partition state")
-	ErrGetFlowState       = errors.New("failed to get flow state")
+	ErrListActiveFlows = errors.New("failed to list active flows")
+	ErrGetFlowState    = errors.New("failed to get flow state")
 )
 
 // RecoverFlows initiates recovery for all active flows during engine startup
 func (e *Engine) RecoverFlows() error {
-	ids, err := e.listFlowAggregateIDs()
+	ids, err := e.listIndexedFlows(events.FlowStatusActive)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrListFlowAggregates, err)
+		return fmt.Errorf("%w: %w", ErrListActiveFlows, err)
 	}
 
 	if len(ids) == 0 {
@@ -33,28 +29,11 @@ func (e *Engine) RecoverFlows() error {
 		return nil
 	}
 
-	state, err := e.GetPartitionState()
-	if err != nil {
-		return fmt.Errorf("%w: %w", ErrLoadPartitionState, err)
-	}
-
-	candidates := pruneRecoveryCandidates(ids, state)
-	if len(candidates) == 0 {
-		slog.Info("No flows to recover",
-			slog.Int("candidate_count", 0))
-		return nil
-	}
-
 	slog.Info("Recovering flows",
-		slog.Int("candidate_count", len(candidates)),
+		slog.Int("candidate_count", len(ids)),
 	)
 
-	active := util.Set[api.FlowID]{}
-	for flowID := range state.Active {
-		active.Add(flowID)
-	}
-	e.activateMissingFlows(candidates, active)
-	e.recoverFlows(candidates)
+	e.recoverFlows(ids)
 
 	return nil
 }
@@ -123,9 +102,9 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 	}
 }
 
-func (e *Engine) listFlowAggregateIDs() ([]api.FlowID, error) {
+func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	store := e.flowExec.GetStore()
-	ids, err := store.ListAggregates(e.ctx, events.FlowKey("*"))
+	ids, err := store.ListAggregatesByStatus(e.ctx, status)
 	if err != nil {
 		return nil, err
 	}
@@ -133,34 +112,14 @@ func (e *Engine) listFlowAggregateIDs() ([]api.FlowID, error) {
 	seen := util.Set[api.FlowID]{}
 	res := make([]api.FlowID, 0, len(ids))
 	for _, id := range ids {
-		flowID, ok := flowIDFromAggregateID(id)
+		flowID, ok := events.ParseFlowID(id)
 		if !ok || seen.Contains(flowID) {
 			continue
 		}
 		seen.Add(flowID)
 		res = append(res, flowID)
 	}
-	slices.Sort(res)
 	return res, nil
-}
-
-func (e *Engine) activateMissingFlows(
-	ids []api.FlowID, active util.Set[api.FlowID],
-) {
-	for _, id := range ids {
-		if active.Contains(id) {
-			continue
-		}
-		flow, err := e.GetFlowState(id)
-		if err != nil {
-			slog.Error("Failed to load flow for activation repair",
-				log.FlowID(id),
-				log.Error(err))
-			continue
-		}
-		e.activateFlow(id, flow)
-		active.Add(id)
-	}
 }
 
 func (e *Engine) recoverFlows(ids []api.FlowID) {
@@ -171,42 +130,6 @@ func (e *Engine) recoverFlows(ids []api.FlowID) {
 				log.Error(err))
 		}
 	}
-}
-
-func (e *Engine) activateFlow(id api.FlowID, flow *api.FlowState) {
-	parentID, _ := api.GetMetaString[api.FlowID](
-		flow.Metadata, api.MetaParentFlowID,
-	)
-	e.EnqueueEvent(api.EventTypeFlowActivated,
-		api.FlowActivatedEvent{
-			FlowID:       id,
-			ParentFlowID: parentID,
-			Labels:       flow.Labels,
-		},
-	)
-}
-
-func pruneRecoveryCandidates(
-	ids []api.FlowID, state *api.PartitionState,
-) []api.FlowID {
-	deactivated := util.Set[api.FlowID]{}
-	for _, info := range state.Deactivated {
-		deactivated.Add(info.FlowID)
-	}
-
-	archiving := util.Set[api.FlowID]{}
-	for flowID := range state.Archiving {
-		archiving.Add(flowID)
-	}
-
-	candidates := make([]api.FlowID, 0, len(ids))
-	for _, id := range ids {
-		if archiving.Contains(id) || deactivated.Contains(id) {
-			continue
-		}
-		candidates = append(candidates, id)
-	}
-	return candidates
 }
 
 func isRecoverable(exec *api.ExecutionState, work *api.WorkState) bool {
@@ -247,15 +170,4 @@ func recoverableDeadline(
 	default:
 		return time.Time{}, false
 	}
-}
-
-func flowIDFromAggregateID(id timebox.AggregateID) (api.FlowID, bool) {
-	if len(id) < 2 || id[0] != events.FlowPrefix {
-		return "", false
-	}
-	flowID := api.FlowID(id[1])
-	if flowID == "" {
-		return "", false
-	}
-	return flowID, true
 }

@@ -126,17 +126,12 @@ func FlowStarted(ids ...api.FlowID) EventFilter {
 
 // FlowActivated matches flow activated events for the provided flow IDs
 func FlowActivated(ids ...api.FlowID) EventFilter {
-	return And(
-		engineFilter,
-		Type(api.EventTypeFlowActivated),
-		FlowIDs(ids...),
-	)
+	return FlowStarted(ids...)
 }
 
 // FlowDeactivated matches flow deactivated events for the provided flow IDs
 func FlowDeactivated(ids ...api.FlowID) EventFilter {
 	return And(
-		engineFilter,
 		Type(api.EventTypeFlowDeactivated),
 		FlowIDs(ids...),
 	)

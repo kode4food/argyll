@@ -46,23 +46,12 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(flow *api.FlowState) {
-			completedAt := flow.CompletedAt
-			if completedAt.IsZero() {
-				completedAt = tx.Now()
-			}
 			if flowHasRetryTasks(flow) {
 				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			}
 			if flowHasTimeouts(flow) {
 				tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
 			}
-			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
-				api.FlowDigestUpdatedEvent{
-					FlowID:      tx.flowID,
-					Status:      api.FlowCompleted,
-					CompletedAt: completedAt,
-				},
-			)
 		})
 		return tx.maybeDeactivate()
 	}
@@ -77,24 +66,12 @@ func (tx *flowTx) checkTerminal() error {
 			return err
 		}
 		tx.OnSuccess(func(flow *api.FlowState) {
-			completedAt := flow.CompletedAt
-			if completedAt.IsZero() {
-				completedAt = tx.Now()
-			}
 			if flowHasRetryTasks(flow) {
 				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			}
 			if flowHasTimeouts(flow) {
 				tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
 			}
-			tx.EnqueueEvent(api.EventTypeFlowDigestUpdated,
-				api.FlowDigestUpdatedEvent{
-					FlowID:      tx.flowID,
-					Status:      api.FlowFailed,
-					CompletedAt: completedAt,
-					Error:       errMsg,
-				},
-			)
 		})
 		return tx.maybeDeactivate()
 	}
@@ -121,11 +98,16 @@ func (tx *flowTx) maybeDeactivate() error {
 	if hasActiveWork(flow) {
 		return nil
 	}
+	if !flow.DeactivatedAt.IsZero() {
+		return nil
+	}
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowDeactivated,
+		api.FlowDeactivatedEvent{FlowID: tx.flowID},
+	); err != nil {
+		return err
+	}
 	tx.OnSuccess(func(flow *api.FlowState) {
 		tx.completeParentWork(flow)
-		tx.EnqueueEvent(api.EventTypeFlowDeactivated,
-			api.FlowDeactivatedEvent{FlowID: tx.flowID},
-		)
 	})
 	return nil
 }

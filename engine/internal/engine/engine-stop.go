@@ -11,7 +11,6 @@ import (
 
 // Stop gracefully shuts down the engine
 func (e *Engine) Stop() error {
-	e.eventQueue.Flush()
 	e.cancel()
 	e.saveEngineSnapshot()
 	slog.Info("Engine stopped")

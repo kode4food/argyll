@@ -167,7 +167,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 		context.Background(), events.FlowKey(flowID),
 		func(st *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
 			for _, ev := range evs {
-				if err := events.Raise(ag, ev.Type, ev.Data); err != nil {
+				if err := raiseFlowEvent(ag, ev); err != nil {
 					return err
 				}
 			}
@@ -175,6 +175,12 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 		},
 	)
 	return err
+}
+
+func raiseFlowEvent(
+	ag *timebox.Aggregator[*api.FlowState], ev FlowEvent,
+) error {
+	return events.Raise(ag, ev.Type, ev.Data)
 }
 
 // WithTestEnv creates a test engine environment, executes the provided

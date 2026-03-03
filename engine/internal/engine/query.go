@@ -3,11 +3,13 @@ package engine
 import (
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -43,15 +45,17 @@ func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
 func (e *Engine) QueryFlows(
 	req *api.QueryFlowsRequest,
 ) (*api.QueryFlowsResponse, error) {
-	part, err := e.GetPartitionState()
+	ids, err := e.collectRootFlowIDs()
 	if err != nil {
 		return nil, err
 	}
 
 	sortOrder := querySortOrder(req)
-	ids := collectRootFlowIDs(part)
 	filters := buildFlowQueryFilters(req)
-	items := buildFlowQueryItems(part, ids, filters)
+	items, err := e.buildFlowQueryItems(ids, filters)
+	if err != nil {
+		return nil, err
+	}
 	sortFlowQueryItems(items, sortOrder)
 
 	start, err := queryFlowStart(items, req, sortOrder)
@@ -73,29 +77,32 @@ func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
 	return req.Sort
 }
 
-// collectRootFlowIDs returns active & deactivated flow IDs excluding children
-func collectRootFlowIDs(part *api.PartitionState) []api.FlowID {
-	count := len(part.Active) + len(part.Deactivated)
-	ids := make([]api.FlowID, 0, count)
+// collectRootFlowIDs returns active and deactivated flow IDs excluding
+// children.
+func (e *Engine) collectRootFlowIDs() ([]api.FlowID, error) {
+	active, err := e.listIndexedFlows(events.FlowStatusActive)
+	if err != nil {
+		return nil, err
+	}
+	deactivated, err := e.listIndexedFlows(events.FlowStatusDeactivated)
+	if err != nil {
+		return nil, err
+	}
+
+	ids := make([]api.FlowID, 0, len(active)+len(deactivated))
 	seen := util.Set[api.FlowID]{}
-	for id, info := range part.Active {
-		if info != nil && info.ParentFlowID != "" {
+	for _, id := range active {
+		seen.Add(id)
+		ids = append(ids, id)
+	}
+	for _, id := range deactivated {
+		if seen.Contains(id) {
 			continue
 		}
 		seen.Add(id)
 		ids = append(ids, id)
 	}
-	for _, info := range part.Deactivated {
-		if info.ParentFlowID != "" {
-			continue
-		}
-		if seen.Contains(info.FlowID) {
-			continue
-		}
-		seen.Add(info.FlowID)
-		ids = append(ids, info.FlowID)
-	}
-	return ids
+	return ids, nil
 }
 
 func labelsMatch(flowLabels, queryLabels api.Labels) bool {
@@ -168,15 +175,22 @@ func flowQueryOrdering(digest *api.FlowDigest) (int, int64) {
 	return group, recent
 }
 
-// buildFlowQueryItems converts flow digests into sortable query items
-func buildFlowQueryItems(
-	part *api.PartitionState, ids []api.FlowID,
+// buildFlowQueryItems converts flow state into sortable query items.
+func (e *Engine) buildFlowQueryItems(
+	ids []api.FlowID,
 	filters []flowQueryFilter,
-) []flowQueryItem {
+) ([]flowQueryItem, error) {
 	items := make([]flowQueryItem, 0, len(ids))
 	for _, flowID := range ids {
-		digest, ok := part.FlowDigests[flowID]
-		if !ok || !matchesFlowQueryFilters(flowID, digest, filters) {
+		flow, ok, err := e.loadIndexedFlow(flowID)
+		if err != nil {
+			return nil, err
+		}
+		if !ok || isChildFlow(flow) {
+			continue
+		}
+		digest := flowDigest(flow)
+		if !matchesFlowQueryFilters(flowID, digest, filters) {
 			continue
 		}
 		group, recent := flowQueryOrdering(digest)
@@ -187,7 +201,39 @@ func buildFlowQueryItems(
 			recent: recent,
 		})
 	}
-	return items
+	return items, nil
+}
+
+func (e *Engine) loadIndexedFlow(
+	flowID api.FlowID,
+) (*api.FlowState, bool, error) {
+	flow, err := e.GetFlowState(flowID)
+	if err == nil {
+		return flow, true, nil
+	}
+	if !errors.Is(err, ErrFlowNotFound) {
+		return nil, false, err
+	}
+	_ = events.RemoveFlowFromStatuses(e.ctx, e.flowExec.GetStore(), flowID)
+	return nil, false, nil
+}
+
+func isChildFlow(flow *api.FlowState) bool {
+	if flow == nil {
+		return false
+	}
+	_, ok := api.GetMetaString[api.FlowID](flow.Metadata, api.MetaParentFlowID)
+	return ok
+}
+
+func flowDigest(flow *api.FlowState) *api.FlowDigest {
+	return &api.FlowDigest{
+		Status:      flow.Status,
+		CreatedAt:   flow.CreatedAt,
+		CompletedAt: flow.CompletedAt,
+		Labels:      flow.Labels,
+		Error:       flow.Error,
+	}
 }
 
 func flowQueryLess(

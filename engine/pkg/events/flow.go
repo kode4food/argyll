@@ -1,6 +1,8 @@
 package events
 
 import (
+	"context"
+	"errors"
 	"strings"
 
 	"github.com/kode4food/timebox"
@@ -8,7 +10,11 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-const FlowPrefix = "flow"
+const (
+	FlowPrefix            = "flow"
+	FlowStatusActive      = "active"
+	FlowStatusDeactivated = "deactivated"
+)
 
 // FlowAppliers contains the event applier functions for flow events
 var FlowAppliers = makeFlowAppliers()
@@ -25,6 +31,42 @@ func NewFlowState() *api.FlowState {
 // FlowKey returns the aggregate ID for a flow
 func FlowKey[T ~string](flowID T) timebox.AggregateID {
 	return timebox.NewAggregateID(FlowPrefix, timebox.ID(flowID))
+}
+
+func ParseFlowID(id timebox.AggregateID) (api.FlowID, bool) {
+	if len(id) < 2 || id[0] != FlowPrefix {
+		return "", false
+	}
+	flowID := api.FlowID(id[1])
+	if flowID == "" {
+		return "", false
+	}
+	return flowID, true
+}
+
+func RemoveFlowFromStatuses(
+	ctx context.Context, store *timebox.Store, flowID api.FlowID,
+) error {
+	id := FlowKey(flowID)
+	return errors.Join(
+		store.RemoveAggregateFromStatus(ctx, id, FlowStatusActive),
+		store.RemoveAggregateFromStatus(ctx, id, FlowStatusDeactivated),
+	)
+}
+
+func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
+	res := make([]*timebox.Index, 0, len(evs))
+	for _, ev := range evs {
+		switch api.EventType(ev.Type) {
+		case api.EventTypeFlowStarted:
+			status := FlowStatusActive
+			res = append(res, &timebox.Index{Status: &status})
+		case api.EventTypeFlowDeactivated:
+			status := FlowStatusDeactivated
+			res = append(res, &timebox.Index{Status: &status})
+		}
+	}
+	return res
 }
 
 // FlowJoinKey is a JoinKeyFunc that co-locates parent and child flows in the
@@ -73,6 +115,7 @@ func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
 	return MakeAppliers(map[api.EventType]timebox.Applier[*api.FlowState]{
 		api.EventTypeFlowStarted:      timebox.MakeApplier(flowStarted),
 		api.EventTypeFlowCompleted:    timebox.MakeApplier(flowCompleted),
+		api.EventTypeFlowDeactivated:  timebox.MakeApplier(flowDeactivated),
 		api.EventTypeFlowFailed:       timebox.MakeApplier(flowFailed),
 		api.EventTypeStepStarted:      timebox.MakeApplier(stepStarted),
 		api.EventTypeStepCompleted:    timebox.MakeApplier(stepCompleted),
@@ -129,6 +172,14 @@ func flowFailed(
 		SetStatus(api.FlowFailed).
 		SetError(data.Error).
 		SetCompletedAt(ev.Timestamp).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func flowDeactivated(
+	st *api.FlowState, ev *timebox.Event, _ api.FlowDeactivatedEvent,
+) *api.FlowState {
+	return st.
+		SetDeactivatedAt(ev.Timestamp).
 		SetLastUpdated(ev.Timestamp)
 }
 

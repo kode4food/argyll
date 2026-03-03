@@ -2,7 +2,6 @@ package api
 
 import (
 	"maps"
-	"slices"
 	"time"
 )
 
@@ -33,39 +32,22 @@ type (
 	PartitionState struct {
 		LastUpdated time.Time               `json:"last_updated"`
 		Health      map[StepID]*HealthState `json:"health"`
-		Active      map[FlowID]*ActiveFlow  `json:"active"`
-		Deactivated []*DeactivatedFlow      `json:"deactivated"`
-		Archiving   map[FlowID]time.Time    `json:"archiving"`
-		FlowDigests map[FlowID]*FlowDigest  `json:"flow_digests"`
-	}
-
-	// ActiveFlow tracks basic metadata for active flows
-	ActiveFlow struct {
-		ParentFlowID FlowID    `json:"parent_flow_id,omitempty"`
-		StartedAt    time.Time `json:"started_at"`
-		LastActive   time.Time `json:"last_active"`
-	}
-
-	// DeactivatedFlow tracks when a flow was deactivated for archiving
-	DeactivatedFlow struct {
-		FlowID        FlowID    `json:"flow_id"`
-		ParentFlowID  FlowID    `json:"parent_flow_id,omitempty"`
-		DeactivatedAt time.Time `json:"deactivated_at"`
 	}
 
 	// FlowState contains the complete state of a flow execution
 	FlowState struct {
-		CreatedAt   time.Time       `json:"created_at"`
-		CompletedAt time.Time       `json:"completed_at"`
-		LastUpdated time.Time       `json:"last_updated"`
-		Plan        *ExecutionPlan  `json:"plan"`
-		Metadata    Metadata        `json:"metadata,omitempty"`
-		Labels      Labels          `json:"labels,omitempty"`
-		Attributes  AttributeValues `json:"attributes"`
-		Executions  Executions      `json:"executions"`
-		ID          FlowID          `json:"id"`
-		Status      FlowStatus      `json:"status"`
-		Error       string          `json:"error,omitempty"`
+		CreatedAt     time.Time       `json:"created_at"`
+		CompletedAt   time.Time       `json:"completed_at"`
+		LastUpdated   time.Time       `json:"last_updated"`
+		Plan          *ExecutionPlan  `json:"plan"`
+		Metadata      Metadata        `json:"metadata,omitempty"`
+		Labels        Labels          `json:"labels,omitempty"`
+		Attributes    AttributeValues `json:"attributes"`
+		DeactivatedAt time.Time       `json:"deactivated_at"`
+		Executions    Executions      `json:"executions"`
+		ID            FlowID          `json:"id"`
+		Status        FlowStatus      `json:"status"`
+		Error         string          `json:"error,omitempty"`
 	}
 
 	// Executions contains the execution progress of multiple steps
@@ -193,102 +175,6 @@ func (p *PartitionState) SetLastUpdated(t time.Time) *PartitionState {
 	return &res
 }
 
-// SetActiveFlow returns a new PartitionState with the flow as active
-func (p *PartitionState) SetActiveFlow(
-	id FlowID, info *ActiveFlow,
-) *PartitionState {
-	res := *p
-	res.Active = maps.Clone(p.Active)
-	res.Active[id] = info
-	return &res
-}
-
-// DeleteActiveFlow returns a new PartitionState with the flow inactive
-func (p *PartitionState) DeleteActiveFlow(id FlowID) *PartitionState {
-	res := *p
-	res.Active = maps.Clone(p.Active)
-	delete(res.Active, id)
-	return &res
-}
-
-// SetFlowDigest returns a new PartitionState with the flow digest updated
-func (p *PartitionState) SetFlowDigest(
-	id FlowID, d *FlowDigest,
-) *PartitionState {
-	res := *p
-	res.FlowDigests = maps.Clone(p.FlowDigests)
-	if res.FlowDigests == nil {
-		res.FlowDigests = map[FlowID]*FlowDigest{}
-	}
-	res.FlowDigests[id] = d
-	return &res
-}
-
-// DeleteFlowDigest returns a new PartitionState with the flow digest removed
-func (p *PartitionState) DeleteFlowDigest(id FlowID) *PartitionState {
-	if len(p.FlowDigests) == 0 {
-		return p
-	}
-	res := *p
-	res.FlowDigests = maps.Clone(p.FlowDigests)
-	delete(res.FlowDigests, id)
-	return &res
-}
-
-// AddDeactivated returns a new PartitionState with the flow added to the
-// deactivated list. The list maintains time order (oldest first)
-func (p *PartitionState) AddDeactivated(
-	info *DeactivatedFlow,
-) *PartitionState {
-	res := *p
-	res.Deactivated = append(slices.Clone(p.Deactivated), info)
-	return &res
-}
-
-// RemoveDeactivated returns a new PartitionState with the flow removed from
-// the deactivated list (typically after archiving)
-func (p *PartitionState) RemoveDeactivated(id FlowID) *PartitionState {
-	idx := -1
-	for i, info := range p.Deactivated {
-		if info.FlowID == id {
-			idx = i
-			break
-		}
-	}
-	if idx < 0 {
-		return p
-	}
-	res := *p
-	res.Deactivated = slices.Delete(slices.Clone(p.Deactivated), idx, idx+1)
-	return &res
-}
-
-// AddArchiving returns a new PartitionState with the flow added to the
-// archiving map. Existing entries for the flow are replaced
-func (p *PartitionState) AddArchiving(
-	id FlowID, at time.Time,
-) *PartitionState {
-	if existing, ok := p.Archiving[id]; ok && existing.Equal(at) {
-		return p
-	}
-	res := *p
-	res.Archiving = maps.Clone(p.Archiving)
-	res.Archiving[id] = at
-	return &res
-}
-
-// RemoveArchiving returns a new PartitionState with the flow removed from
-// the archiving map
-func (p *PartitionState) RemoveArchiving(id FlowID) *PartitionState {
-	if _, ok := p.Archiving[id]; !ok {
-		return p
-	}
-	res := *p
-	res.Archiving = maps.Clone(p.Archiving)
-	delete(res.Archiving, id)
-	return &res
-}
-
 // GetAttributes returns all attribute values as Args
 func (f *FlowState) GetAttributes() Args {
 	result := make(Args, len(f.Attributes))
@@ -338,6 +224,13 @@ func (f *FlowState) SetError(err string) *FlowState {
 func (f *FlowState) SetLastUpdated(t time.Time) *FlowState {
 	res := *f
 	res.LastUpdated = t
+	return &res
+}
+
+// SetDeactivatedAt returns a new FlowState with deactivated time set.
+func (f *FlowState) SetDeactivatedAt(t time.Time) *FlowState {
+	res := *f
+	res.DeactivatedAt = t
 	return &res
 }
 

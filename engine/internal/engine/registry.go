@@ -169,12 +169,7 @@ func (e *Engine) raiseStepRegisteredEvent(
 		return err
 	}
 	ag.OnSuccess(func(*api.CatalogState) {
-		if err := e.raisePartitionEvent(api.EventTypeStepHealthChanged,
-			api.StepHealthChangedEvent{
-				StepID: step.ID,
-				Status: api.HealthUnknown,
-			},
-		); err != nil {
+		if err := e.UpdateStepHealth(step.ID, api.HealthUnknown, ""); err != nil {
 			slog.Error("Failed to raise step health changed event",
 				log.StepID(step.ID),
 				log.Error(err))

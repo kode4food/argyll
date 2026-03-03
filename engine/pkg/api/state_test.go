@@ -63,187 +63,6 @@ func TestSetPartitionUpdated(t *testing.T) {
 	assert.True(t, original.LastUpdated.Equal(time.Unix(1000, 0)))
 }
 
-func TestSetActiveFlow(t *testing.T) {
-	original := &api.PartitionState{
-		Active: map[api.FlowID]*api.ActiveFlow{},
-	}
-
-	flowInfo := &api.ActiveFlow{
-		StartedAt:  time.Now(),
-		LastActive: time.Now(),
-	}
-
-	result := original.SetActiveFlow("flow-1", flowInfo)
-
-	assert.Len(t, result.Active, 1)
-	assert.Equal(t, flowInfo, result.Active["flow-1"])
-	assert.Empty(t, original.Active)
-}
-
-func TestDeleteActiveFlow(t *testing.T) {
-	original := &api.PartitionState{
-		Active: map[api.FlowID]*api.ActiveFlow{
-			"flow-1": {},
-			"flow-2": {},
-		},
-	}
-
-	result := original.DeleteActiveFlow("flow-1")
-
-	assert.Len(t, result.Active, 1)
-	assert.Nil(t, result.Active["flow-1"])
-	assert.NotNil(t, result.Active["flow-2"])
-	assert.Len(t, original.Active, 2)
-}
-
-func TestSetFlowDigest(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		FlowDigests: map[api.FlowID]*api.FlowDigest{},
-	}
-
-	digest := &api.FlowDigest{
-		Status:    api.FlowActive,
-		CreatedAt: now,
-	}
-	result := original.SetFlowDigest("flow-1", digest)
-
-	assert.Len(t, result.FlowDigests, 1)
-	assert.Equal(t, digest, result.FlowDigests["flow-1"])
-	assert.Empty(t, original.FlowDigests)
-}
-
-func TestDeleteFlowDigest(t *testing.T) {
-	original := &api.PartitionState{
-		FlowDigests: map[api.FlowID]*api.FlowDigest{
-			"flow-1": {Status: api.FlowActive},
-			"flow-2": {Status: api.FlowActive},
-		},
-	}
-
-	result := original.DeleteFlowDigest("flow-1")
-
-	assert.Len(t, result.FlowDigests, 1)
-	assert.Nil(t, result.FlowDigests["flow-1"])
-	assert.NotNil(t, result.FlowDigests["flow-2"])
-	assert.Len(t, original.FlowDigests, 2)
-}
-
-func TestAddDeactivated(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Deactivated: []*api.DeactivatedFlow{
-			{FlowID: "flow-1", DeactivatedAt: now.Add(-time.Hour)},
-		},
-	}
-
-	result := original.AddDeactivated(&api.DeactivatedFlow{
-		FlowID:        "flow-2",
-		DeactivatedAt: now,
-	})
-
-	assert.Len(t, result.Deactivated, 2)
-	assert.Equal(t, api.FlowID("flow-1"), result.Deactivated[0].FlowID)
-	assert.Equal(t, api.FlowID("flow-2"), result.Deactivated[1].FlowID)
-	assert.Len(t, original.Deactivated, 1)
-}
-
-func TestRemoveDeactivated(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Deactivated: []*api.DeactivatedFlow{
-			{FlowID: "flow-1", DeactivatedAt: now.Add(-2 * time.Hour)},
-			{FlowID: "flow-2", DeactivatedAt: now.Add(-time.Hour)},
-			{FlowID: "flow-3", DeactivatedAt: now},
-		},
-	}
-
-	result := original.RemoveDeactivated("flow-2")
-
-	assert.Len(t, result.Deactivated, 2)
-	assert.Equal(t, api.FlowID("flow-1"), result.Deactivated[0].FlowID)
-	assert.Equal(t, api.FlowID("flow-3"), result.Deactivated[1].FlowID)
-	assert.Len(t, original.Deactivated, 3)
-}
-
-func TestRemoveDeactivatedNotFound(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Deactivated: []*api.DeactivatedFlow{
-			{FlowID: "flow-1", DeactivatedAt: now},
-		},
-	}
-
-	result := original.RemoveDeactivated("flow-missing")
-
-	assert.Same(t, original, result)
-}
-
-func TestAddArchiving(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Archiving: map[api.FlowID]time.Time{
-			"flow-1": now.Add(-time.Hour),
-		},
-	}
-
-	result := original.AddArchiving("flow-2", now)
-
-	assert.Len(t, result.Archiving, 2)
-	assert.True(t, result.Archiving["flow-1"].Equal(now.Add(-time.Hour)))
-	assert.True(t, result.Archiving["flow-2"].Equal(now))
-	assert.Len(t, original.Archiving, 1)
-}
-
-func TestAddArchivingReplaces(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Archiving: map[api.FlowID]time.Time{
-			"flow-1": now.Add(-time.Hour),
-		},
-	}
-
-	result := original.AddArchiving("flow-1", now)
-
-	assert.Len(t, result.Archiving, 1)
-	assert.True(t, result.Archiving["flow-1"].Equal(now))
-	assert.True(t, original.Archiving["flow-1"].Equal(now.Add(-time.Hour)))
-	assert.Len(t, original.Archiving, 1)
-}
-
-func TestRemoveArchiving(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Archiving: map[api.FlowID]time.Time{
-			"flow-1": now.Add(-2 * time.Hour),
-			"flow-2": now.Add(-time.Hour),
-			"flow-3": now,
-		},
-	}
-
-	result := original.RemoveArchiving("flow-2")
-
-	assert.Len(t, result.Archiving, 2)
-	assert.True(t, result.Archiving["flow-1"].Equal(now.Add(-2*time.Hour)))
-	_, ok := result.Archiving["flow-2"]
-	assert.False(t, ok)
-	assert.True(t, result.Archiving["flow-3"].Equal(now))
-	assert.Len(t, original.Archiving, 3)
-}
-
-func TestRemoveArchivingNotFound(t *testing.T) {
-	now := time.Now()
-	original := &api.PartitionState{
-		Archiving: map[api.FlowID]time.Time{
-			"flow-1": now,
-		},
-	}
-
-	result := original.RemoveArchiving("flow-missing")
-
-	assert.Same(t, original, result)
-}
-
 func TestSetFlowStatus(t *testing.T) {
 	original := &api.FlowState{Status: api.FlowActive}
 
@@ -314,6 +133,16 @@ func TestSetFlowUpdated(t *testing.T) {
 
 	assert.True(t, result.LastUpdated.Equal(newTime))
 	assert.True(t, original.LastUpdated.Equal(time.Unix(1000, 0)))
+}
+
+func TestSetFlowDeactivated(t *testing.T) {
+	original := &api.FlowState{}
+	deactivatedAt := time.Now()
+
+	result := original.SetDeactivatedAt(deactivatedAt)
+
+	assert.True(t, result.DeactivatedAt.Equal(deactivatedAt))
+	assert.True(t, original.DeactivatedAt.IsZero())
 }
 
 func TestGetAttributes(t *testing.T) {

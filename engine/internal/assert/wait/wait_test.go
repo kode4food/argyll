@@ -156,9 +156,6 @@ func TestWrapperFilters(t *testing.T) {
 	flowID := api.FlowID("flow-1")
 	step := api.FlowStep{FlowID: flowID, StepID: "step-1"}
 
-	flowEv := func(typ api.EventType) *timebox.Event {
-		return newEvent(typ, events.PartitionKey, flowEvent{FlowID: flowID})
-	}
 	stepEv := func(typ api.EventType) *timebox.Event {
 		return newEvent(typ, events.FlowKey(flowID),
 			stepEvent{FlowID: step.FlowID, StepID: step.StepID})
@@ -177,8 +174,14 @@ func TestWrapperFilters(t *testing.T) {
 		api.EventTypeFlowStarted, events.FlowKey(flowID),
 		flowEvent{FlowID: flowID},
 	)))
-	assert.True(t, wait.FlowActivated(flowID)(flowEv(api.EventTypeFlowActivated)))
-	assert.True(t, wait.FlowDeactivated(flowID)(flowEv(api.EventTypeFlowDeactivated)))
+	assert.True(t, wait.FlowActivated(flowID)(newEvent(
+		api.EventTypeFlowStarted, events.FlowKey(flowID),
+		flowEvent{FlowID: flowID},
+	)))
+	assert.True(t, wait.FlowDeactivated(flowID)(newEvent(
+		api.EventTypeFlowDeactivated, events.FlowKey(flowID),
+		flowEvent{FlowID: flowID},
+	)))
 	assert.True(t, wait.FlowCompleted(flowID)(newEvent(
 		api.EventTypeFlowCompleted, events.FlowKey(flowID),
 		flowEvent{FlowID: flowID},

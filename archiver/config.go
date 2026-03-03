@@ -7,11 +7,13 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
+
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 // Config configures the archiver runtime behavior
 type Config struct {
-	PartitionStore      timebox.StoreConfig
+	FlowStore           timebox.StoreConfig
 	MemoryPercent       float64
 	MaxAge              time.Duration
 	MemoryCheckInterval time.Duration
@@ -54,7 +56,7 @@ var (
 
 func LoadFromEnv() (Config, error) {
 	cfg := Config{
-		PartitionStore:      timebox.DefaultStoreConfig(),
+		FlowStore:           timebox.DefaultStoreConfig(),
 		MemoryPercent:       DefaultMemoryPercent,
 		MaxAge:              DefaultMaxAge,
 		MemoryCheckInterval: DefaultMemoryCheckInterval,
@@ -64,8 +66,11 @@ func LoadFromEnv() (Config, error) {
 		SweepBatchSize:      DefaultSweepBatchSize,
 		LogLevel:            defaultLogLevel,
 	}
+	cfg.FlowStore.Indexer = events.FlowIndexer
+	cfg.FlowStore.JoinKey = events.FlowJoinKey
+	cfg.FlowStore.ParseKey = events.FlowParseKey
 
-	loadStoreConfigFromEnv(&cfg.PartitionStore, "PARTITION")
+	loadStoreConfigFromEnv(&cfg.FlowStore, "FLOW")
 
 	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {

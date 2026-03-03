@@ -10,7 +10,6 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
-	"github.com/kode4food/argyll/engine/internal/engine/event"
 	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
@@ -31,7 +30,6 @@ type (
 		scripts     *script.Registry
 		mapper      *Mapper
 		memoCache   *memo.Cache
-		eventQueue  *event.Queue
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
 	}
@@ -80,8 +78,6 @@ var (
 	ErrRecoverFlows          = errors.New("failed to recover flows")
 )
 
-const defaultBatchSize = 128
-
 // New creates a new orchestrator instance from configuration and dependencies
 func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	cfg = cfg.WithWorkDefaults()
@@ -119,7 +115,6 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
 	}
-	e.eventQueue = event.NewQueue(e.raisePartitionEvents, defaultBatchSize)
 	e.mapper = NewMapper(e)
 
 	return e, nil

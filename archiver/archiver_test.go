@@ -3,13 +3,13 @@ package archiver_test
 import (
 	"bufio"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -53,14 +53,13 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	assert.NoError(t, err)
 	defer redisServer.Close()
 
-	partStore := setupStore(t, redisServer.Addr())
+	flowStore := setupStore(t, redisServer.Addr())
 
 	flowID := api.FlowID("flow-sweep")
-	seedDeactivatedFlow(t, partStore, flowID)
-	seedFlowEvents(t, partStore, flowID)
+	seedDeactivatedFlow(t, flowStore, flowID)
 
 	cfg := archiver.Config{
-		PartitionStore:      timebox.DefaultStoreConfig(),
+		FlowStore:           timebox.DefaultStoreConfig(),
 		MemoryPercent:       99.0,
 		MaxAge:              0,
 		MemoryCheckInterval: time.Second,
@@ -77,7 +76,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(partStore, redisClient, cfg)
+	arch, err := archiver.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -88,7 +87,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := partStore.PollArchive(
+		err := flowStore.PollArchive(
 			context.Background(), 5*time.Millisecond,
 			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
 				record = rec
@@ -105,9 +104,11 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	state := loadPartitionState(t, partStore)
-	assert.Empty(t, state.Deactivated)
-	assert.Empty(t, state.Archiving)
+	ids, err := flowStore.ListAggregatesByStatus(
+		context.Background(), events.FlowStatusDeactivated,
+	)
+	assert.NoError(t, err)
+	assert.NotContains(t, ids, events.FlowKey(flowID))
 }
 
 func TestArchiverPressureArchives(t *testing.T) {
@@ -115,17 +116,16 @@ func TestArchiverPressureArchives(t *testing.T) {
 	assert.NoError(t, err)
 	defer redisServer.Close()
 
-	partStore := setupStore(t, redisServer.Addr())
+	flowStore := setupStore(t, redisServer.Addr())
 
 	flowID := api.FlowID("flow-pressure")
-	seedDeactivatedFlow(t, partStore, flowID)
-	seedFlowEvents(t, partStore, flowID)
+	seedDeactivatedFlow(t, flowStore, flowID)
 
 	infoAddr, stop := startInfoServer(t, "used_memory:80\nmaxmemory:100\n")
 	defer stop()
 
 	cfg := archiver.Config{
-		PartitionStore:      timebox.DefaultStoreConfig(),
+		FlowStore:           timebox.DefaultStoreConfig(),
 		MemoryPercent:       50.0,
 		MaxAge:              time.Hour,
 		MemoryCheckInterval: time.Second,
@@ -142,7 +142,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(partStore, redisClient, cfg)
+	arch, err := archiver.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -153,7 +153,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := partStore.PollArchive(
+		err := flowStore.PollArchive(
 			context.Background(), 5*time.Millisecond,
 			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
 				record = rec
@@ -170,9 +170,11 @@ func TestArchiverPressureArchives(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	state := loadPartitionState(t, partStore)
-	assert.Empty(t, state.Deactivated)
-	assert.Empty(t, state.Archiving)
+	ids, err := flowStore.ListAggregatesByStatus(
+		context.Background(), events.FlowStatusDeactivated,
+	)
+	assert.NoError(t, err)
+	assert.NotContains(t, ids, events.FlowKey(flowID))
 }
 
 func setupStore(t *testing.T, redisAddr string) *timebox.Store {
@@ -181,71 +183,68 @@ func setupStore(t *testing.T, redisAddr string) *timebox.Store {
 	tb, err := timebox.NewTimebox(tbCfg)
 	assert.NoError(t, err)
 
-	partCfg := timebox.DefaultStoreConfig()
-	partCfg.Addr = redisAddr
-	partCfg.Prefix = "partition"
-	partCfg.Archiving = true
+	flowCfg := timebox.DefaultStoreConfig()
+	flowCfg.Addr = redisAddr
+	flowCfg.Prefix = "partition"
+	flowCfg.Archiving = true
+	flowCfg.Indexer = events.FlowIndexer
+	flowCfg.JoinKey = events.FlowJoinKey
+	flowCfg.ParseKey = events.FlowParseKey
 
-	partStore, err := tb.NewStore(partCfg)
+	flowStore, err := tb.NewStore(flowCfg)
 	assert.NoError(t, err)
 
 	t.Cleanup(func() {
-		assert.NoError(t, partStore.Close())
+		assert.NoError(t, flowStore.Close())
 		assert.NoError(t, tb.Close())
 	})
 
-	return partStore
+	return flowStore
 }
 
 func seedDeactivatedFlow(
 	t *testing.T, store *timebox.Store, flowID api.FlowID,
 ) {
 	exec := timebox.NewExecutor(
-		store, events.NewPartitionState, events.PartitionAppliers,
+		store, events.NewFlowState, events.FlowAppliers,
 	)
-	cmd := func(
-		st *api.PartitionState, ag *timebox.Aggregator[*api.PartitionState],
-	) error {
-		return timebox.Raise(
-			ag,
-			timebox.EventType(api.EventTypeFlowDeactivated),
-			api.FlowDeactivatedEvent{FlowID: flowID},
-		)
+	pl := &api.ExecutionPlan{
+		Steps:      api.Steps{},
+		Attributes: api.AttributeGraph{},
 	}
-	_, err := exec.Exec(context.Background(), events.PartitionKey, cmd)
-	assert.NoError(t, err)
-}
-
-func seedFlowEvents(t *testing.T, store *timebox.Store, flowID api.FlowID) {
-	id := events.FlowKey(flowID)
-	ev := &timebox.Event{
-		Timestamp:   time.Now(),
-		AggregateID: id,
-		Type:        timebox.EventType("flow_started"),
-		Data:        json.RawMessage(`{}`),
-	}
-	err := store.AppendEvents(context.Background(), id, 0, []*timebox.Event{ev})
-	assert.NoError(t, err)
-}
-
-func loadPartitionState(
-	t *testing.T, store *timebox.Store,
-) *api.PartitionState {
-	exec := timebox.NewExecutor(
-		store, events.NewPartitionState, events.PartitionAppliers,
-	)
-	state, err := exec.Exec(
+	_, err := exec.Exec(
 		context.Background(),
-		events.PartitionKey,
+		events.FlowKey(flowID),
 		func(
-			st *api.PartitionState,
-			ag *timebox.Aggregator[*api.PartitionState],
+			st *api.FlowState,
+			ag *timebox.Aggregator[*api.FlowState],
 		) error {
-			return nil
+			if err := events.Raise(
+				ag, api.EventTypeFlowStarted,
+				api.FlowStartedEvent{
+					FlowID: flowID,
+					Plan:   pl,
+					Init:   api.Args{},
+				},
+			); err != nil {
+				return err
+			}
+			if err := timebox.Raise(ag,
+				timebox.EventType(api.EventTypeFlowCompleted),
+				api.FlowCompletedEvent{
+					FlowID: flowID,
+					Result: api.Args{},
+				},
+			); err != nil {
+				return err
+			}
+			return events.Raise(
+				ag, api.EventTypeFlowDeactivated,
+				api.FlowDeactivatedEvent{FlowID: flowID},
+			)
 		},
 	)
 	assert.NoError(t, err)
-	return state
 }
 
 func startInfoServer(t *testing.T, info string) (string, func()) {
@@ -253,6 +252,8 @@ func startInfoServer(t *testing.T, info string) (string, func()) {
 	assert.NoError(t, err)
 
 	done := make(chan struct{})
+	var mu sync.Mutex
+	keys := map[string]struct{}{}
 	go func() {
 		for {
 			conn, err := listener.Accept()
@@ -264,7 +265,7 @@ func startInfoServer(t *testing.T, info string) (string, func()) {
 					continue
 				}
 			}
-			go handleInfoConn(conn, info)
+			go handleInfoConn(conn, info, &mu, keys)
 		}
 	}()
 
@@ -275,7 +276,9 @@ func startInfoServer(t *testing.T, info string) (string, func()) {
 	return listener.Addr().String(), stop
 }
 
-func handleInfoConn(conn net.Conn, info string) {
+func handleInfoConn(
+	conn net.Conn, info string, mu *sync.Mutex, keys map[string]struct{},
+) {
 	defer func() { _ = conn.Close() }()
 
 	reader := bufio.NewReader(conn)
@@ -300,11 +303,57 @@ func handleInfoConn(conn net.Conn, info string) {
 			_, _ = writer.WriteString("+PONG\r\n")
 			_ = writer.Flush()
 		case "INFO":
-			if len(cmd) >= 2 && strings.EqualFold(cmd[1], "memory") {
-				_ = writeRespBulk(writer, info)
-			} else {
-				_ = writeRespError(writer, "section not supported")
+			_ = writeRespBulk(writer, info)
+		case "SETNX":
+			if len(cmd) < 3 {
+				_ = writeRespError(writer, "wrong number of arguments")
+				continue
 			}
+			mu.Lock()
+			_, ok := keys[cmd[1]]
+			if !ok {
+				keys[cmd[1]] = struct{}{}
+			}
+			mu.Unlock()
+			_ = writeRespInt(writer, !ok)
+		case "SET":
+			if len(cmd) < 3 {
+				_ = writeRespError(writer, "wrong number of arguments")
+				continue
+			}
+			key := cmd[1]
+			setIfMissing := false
+			for _, arg := range cmd[3:] {
+				if strings.EqualFold(arg, "NX") {
+					setIfMissing = true
+				}
+			}
+			mu.Lock()
+			_, exists := keys[key]
+			if !setIfMissing || !exists {
+				keys[key] = struct{}{}
+				mu.Unlock()
+				_ = writeRespBulk(writer, "OK")
+				continue
+			}
+			mu.Unlock()
+			_, _ = writer.WriteString("$-1\r\n")
+			_ = writer.Flush()
+		case "DEL":
+			if len(cmd) < 2 {
+				_ = writeRespError(writer, "wrong number of arguments")
+				continue
+			}
+			var deleted int
+			mu.Lock()
+			for _, key := range cmd[1:] {
+				if _, ok := keys[key]; ok {
+					delete(keys, key)
+					deleted++
+				}
+			}
+			mu.Unlock()
+			_ = writeRespCount(writer, deleted)
 		default:
 			_ = writeRespError(writer, "unknown command")
 		}
@@ -373,6 +422,28 @@ func writeRespBulk(writer *bufio.Writer, value string) error {
 
 func writeRespError(writer *bufio.Writer, msg string) error {
 	if _, err := writer.WriteString("-ERR " + msg + "\r\n"); err != nil {
+		return err
+	}
+	return writer.Flush()
+}
+
+func writeRespInt(writer *bufio.Writer, ok bool) error {
+	if ok {
+		_, err := writer.WriteString(":1\r\n")
+		if err != nil {
+			return err
+		}
+		return writer.Flush()
+	}
+	_, err := writer.WriteString(":0\r\n")
+	if err != nil {
+		return err
+	}
+	return writer.Flush()
+}
+
+func writeRespCount(writer *bufio.Writer, n int) error {
+	if _, err := fmt.Fprintf(writer, ":%d\r\n", n); err != nil {
 		return err
 	}
 	return writer.Flush()

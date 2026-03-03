@@ -3,7 +3,6 @@ package engine
 import (
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -71,27 +70,6 @@ func (e *Engine) raiseCatalogEvent(typ api.EventType, data any) error {
 	_, err := e.execCatalog(
 		func(st *api.CatalogState, ag *CatalogAggregator) error {
 			return events.Raise(ag, typ, data)
-		},
-	)
-	return err
-}
-
-func (e *Engine) raisePartitionEvent(typ api.EventType, data any) error {
-	return e.raisePartitionEvents([]event.Event{{
-		Type: typ,
-		Data: data,
-	}})
-}
-
-func (e *Engine) raisePartitionEvents(evs []event.Event) error {
-	_, err := e.execPartition(
-		func(st *api.PartitionState, ag *PartitionAggregator) error {
-			for _, ev := range evs {
-				if err := events.Raise(ag, ev.Type, ev.Data); err != nil {
-					return err
-				}
-			}
-			return nil
 		},
 	)
 	return err
