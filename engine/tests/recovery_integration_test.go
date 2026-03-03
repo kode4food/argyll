@@ -4,7 +4,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -32,58 +31,26 @@ func waitForFlowsStatusWithTimeoutAfter(
 ) map[api.FlowID]*api.FlowState {
 	env.T.Helper()
 
-	consumers := make([]*timebox.Consumer, len(ids))
-	for i := range ids {
-		consumer := env.EventHub.NewConsumer()
-		consumers[i] = consumer
-	}
-	defer func() {
-		for _, consumer := range consumers {
-			consumer.Close()
-		}
-	}()
-
 	fn()
 
 	res := make(map[api.FlowID]*api.FlowState, len(ids))
-	for i, flowID := range ids {
-		state, err := env.Engine.GetFlowState(flowID)
-		if err != nil {
-			env.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
-		}
-		if state.Status != api.FlowCompleted &&
-			state.Status != api.FlowFailed {
-			filter := wait.FlowTerminal(flowID)
-			timer := time.NewTimer(timeout)
-			found := false
-			for !found {
-				select {
-				case ev, ok := <-consumers[i].Receive():
-					if !ok {
-						timer.Stop()
-						env.T.Fatalf(
-							"event consumer closed waiting for flow %s",
-							flowID,
-						)
-					}
-					if ev != nil && filter(ev) {
-						found = true
-					}
-				case <-timer.C:
-					found = true
-				}
-			}
-			if !timer.Stop() {
-				select {
-				case <-timer.C:
-				default:
-				}
-			}
-			state, err = env.Engine.GetFlowState(flowID)
+	assert.Eventually(env.T, func() bool {
+		for _, flowID := range ids {
+			state, err := env.Engine.GetFlowState(flowID)
 			if err != nil {
-				env.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
+				return false
+			}
+			res[flowID] = state
+			if state.Status != api.FlowCompleted &&
+				state.Status != api.FlowFailed {
+				return false
 			}
 		}
+		return true
+	}, timeout, 25*time.Millisecond)
+
+	for _, flowID := range ids {
+		state := res[flowID]
 		if state.Status != api.FlowCompleted &&
 			state.Status != api.FlowFailed {
 			env.T.Fatalf(
@@ -92,7 +59,6 @@ func waitForFlowsStatusWithTimeoutAfter(
 				state.Status,
 			)
 		}
-		res[flowID] = state
 	}
 
 	return res
