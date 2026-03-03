@@ -156,8 +156,10 @@ def create_step_server(
 
         except HTTPError as e:
             return jsonify({"error": e.args[0]}), e.status_code
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
+        except Exception:
+            tb = traceback.format_exc()
+            print(f"Unhandled step server error: {tb}")
+            return jsonify({"error": "Internal server error"}), 500
 
     print(f"Starting step server: {step_id}")
     print(f"  Endpoint: {endpoint}")
