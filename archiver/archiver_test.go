@@ -20,6 +20,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util"
 
 	"github.com/kode4food/argyll/archiver"
 )
@@ -253,7 +254,7 @@ func startInfoServer(t *testing.T, info string) (string, func()) {
 
 	done := make(chan struct{})
 	var mu sync.Mutex
-	keys := map[string]struct{}{}
+	keys := util.Set[string]{}
 	go func() {
 		for {
 			conn, err := listener.Accept()
@@ -277,7 +278,7 @@ func startInfoServer(t *testing.T, info string) (string, func()) {
 }
 
 func handleInfoConn(
-	conn net.Conn, info string, mu *sync.Mutex, keys map[string]struct{},
+	conn net.Conn, info string, mu *sync.Mutex, keys util.Set[string],
 ) {
 	defer func() { _ = conn.Close() }()
 
@@ -310,9 +311,9 @@ func handleInfoConn(
 				continue
 			}
 			mu.Lock()
-			_, ok := keys[cmd[1]]
+			ok := keys.Contains(cmd[1])
 			if !ok {
-				keys[cmd[1]] = struct{}{}
+				keys.Add(cmd[1])
 			}
 			mu.Unlock()
 			_ = writeRespInt(writer, !ok)
@@ -329,9 +330,9 @@ func handleInfoConn(
 				}
 			}
 			mu.Lock()
-			_, exists := keys[key]
+			exists := keys.Contains(key)
 			if !setIfMissing || !exists {
-				keys[key] = struct{}{}
+				keys.Add(key)
 				mu.Unlock()
 				_ = writeRespBulk(writer, "OK")
 				continue
@@ -347,8 +348,8 @@ func handleInfoConn(
 			var deleted int
 			mu.Lock()
 			for _, key := range cmd[1:] {
-				if _, ok := keys[key]; ok {
-					delete(keys, key)
+				if keys.Contains(key) {
+					keys.Remove(key)
 					deleted++
 				}
 			}
