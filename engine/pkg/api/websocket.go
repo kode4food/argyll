@@ -22,7 +22,8 @@ type (
 	// ClientSubscription configures which events a WebSocket client receives
 	ClientSubscription struct {
 		SubscriptionID string      `json:"sub_id,omitempty"`
-		AggregateID    []string    `json:"aggregate_id"`
+		AggregateIDs   [][]string  `json:"aggregate_ids,omitempty"`
+		IncludeState   bool        `json:"include_state,omitempty"`
 		EventTypes     []EventType `json:"event_types,omitempty"`
 	}
 
@@ -39,10 +40,15 @@ type (
 
 	// SubscribedResult is sent to clients with current state on subscribe
 	SubscribedResult struct {
-		Type           string          `json:"type"`
-		AggregateID    []string        `json:"id"`
-		SubscriptionID string          `json:"sub_id,omitempty"`
-		Data           json.RawMessage `json:"data"`
-		Sequence       int64           `json:"sequence"`
+		Type           string           `json:"type"`
+		SubscriptionID string           `json:"sub_id,omitempty"`
+		Items          []SubscribedItem `json:"items"`
+	}
+
+	// SubscribedItem is one projected aggregate state on subscribe
+	SubscribedItem struct {
+		AggregateID []string        `json:"id"`
+		Data        json.RawMessage `json:"data"`
+		Sequence    int64           `json:"sequence"`
 	}
 )

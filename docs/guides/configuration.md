@@ -18,7 +18,7 @@ CATALOG_SNAPSHOT_WORKERS=4             # Snapshot worker count (0 disables async
 
 ### Engine: Partition + Flow Storage
 
-Configure where the engine stores partition state (active flows, health, digests). Flow state shares this connection/prefix configuration in the current engine.
+Configure where the engine stores partition state (step health) and flow state. Flow state and flow status indexes share this connection/prefix configuration in the current engine.
 
 ```bash
 PARTITION_REDIS_ADDR=localhost:6379
@@ -63,7 +63,7 @@ These defaults must be valid at startup:
 
 If you run the external archiver process, configure when and how flows are archived:
 
-Archiver scope is per partition store configuration. Run one archiver process per `PARTITION_*` Redis connection/prefix. In a multi-partition deployment, each partition needs its own archiver instance pointed at that partition store.
+Archiver scope is per partition/flow store configuration. Run one archiver process per `PARTITION_*` Redis connection/prefix. In a multi-partition deployment, each partition needs its own archiver instance pointed at that partition/flow store.
 
 ```bash
 ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when Redis reaches 80% full
@@ -155,7 +155,7 @@ go run ./cmd/argyll
 
 2. **Separate Catalog vs Partition/Flow Stores**:
    - Keep catalog on its own Valkey instance if you need isolation
-   - Partition and flow state share one store configuration in the current engine
+   - Partition state, flow state, and flow status indexes share one store configuration in the current engine
 
 3. **Authentication & Reverse Proxy**:
    - Place engine behind a reverse proxy (nginx, envoy, etc.)

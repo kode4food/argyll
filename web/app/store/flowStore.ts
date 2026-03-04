@@ -123,6 +123,7 @@ interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
   flows: FlowContext[];
+  visibleFlowIDs: string[];
   flowsCursor: string | null;
   flowsHasMore: boolean;
   flowsLoading: boolean;
@@ -166,6 +167,7 @@ interface FlowState {
     reconnectAttempt: number
   ) => void;
   requestEngineReconnect: () => void;
+  setVisibleFlowIDs: (flowIDs: string[]) => void;
   setCatalogState: (steps: Record<string, Step>) => void;
   setPartitionState: (health: Record<string, StepHealthInfo>) => void;
   setFlowState: (state: {
@@ -186,6 +188,7 @@ export const useFlowStore = create<FlowState>()(
       steps: [],
       stepHealth: {},
       flows: [],
+      visibleFlowIDs: [],
       flowsCursor: null,
       flowsHasMore: false,
       flowsLoading: false,
@@ -505,6 +508,10 @@ export const useFlowStore = create<FlowState>()(
         }));
       },
 
+      setVisibleFlowIDs: (flowIDs: string[]) => {
+        set({ visibleFlowIDs: flowIDs });
+      },
+
       setCatalogState: (steps) => {
         set({ steps: Object.values(steps).sort(compareSteps) });
       },
@@ -521,7 +528,7 @@ export const useFlowStore = create<FlowState>()(
       },
 
       setFlowState: (state) => {
-        const { selectedFlow } = get();
+        const { selectedFlow, flows } = get();
         if (!selectedFlow || state.id !== selectedFlow) {
           return;
         }
@@ -549,6 +556,7 @@ export const useFlowStore = create<FlowState>()(
           started_at: state.created_at || new Date().toISOString(),
           completed_at: state.completed_at,
         };
+        const updatedFlows = upsertFlowList(flows, flowData).sort(compareFlows);
 
         const executions: ExecutionResult[] = Object.entries(
           state.executions || {}
@@ -577,6 +585,7 @@ export const useFlowStore = create<FlowState>()(
 
         set({
           flowData,
+          flows: updatedFlows,
           executions,
           resolvedAttributes: Array.from(resolved),
           loading: false,
@@ -600,6 +609,8 @@ if (isDevHost) {
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);
 export const useFlows = () => useFlowStore((state) => state.flows);
+export const useVisibleFlowIDs = () =>
+  useFlowStore((state) => state.visibleFlowIDs);
 export const useFlowsHasMore = () =>
   useFlowStore((state) => state.flowsHasMore);
 export const useFlowsLoading = () =>
@@ -629,7 +640,8 @@ type ActionKeys =
   | "addFlow"
   | "removeFlow"
   | "selectFlow"
-  | "updateFlowStatus";
+  | "updateFlowStatus"
+  | "setVisibleFlowIDs";
 
 const createActionHook =
   <K extends ActionKeys>(key: K) =>
@@ -643,3 +655,4 @@ export const useAddFlow = createActionHook("addFlow");
 export const useRemoveFlow = createActionHook("removeFlow");
 export const useSelectFlow = createActionHook("selectFlow");
 export const useUpdateFlowStatus = createActionHook("updateFlowStatus");
+export const useSetVisibleFlowIDs = createActionHook("setVisibleFlowIDs");

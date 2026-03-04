@@ -32,6 +32,7 @@ jest.mock("@/app/store/flowStore", () => ({
         started_at: "2024-01-01T00:00:00Z",
       },
     ],
+    visibleFlowIDs: [],
     loadSteps: jest.fn(),
     addFlow: jest.fn(),
     addStep: jest.fn(),
@@ -79,7 +80,7 @@ describe("WebSocketProvider", () => {
     (globalThis as any).__websocketStoreState.engineReconnectRequest = 0;
   });
 
-  test("subscribes one socket to catalog, partition, flow summary, and flow aggregates", () => {
+  test("subscribes to catalog, partition, and selected flow", () => {
     const client = makeClient();
     useWebSocketClientMock.mockReturnValue(client);
 
@@ -96,7 +97,8 @@ describe("WebSocketProvider", () => {
     expect(client.subscribe).toHaveBeenNthCalledWith(
       1,
       {
-        aggregate_id: ["catalog"],
+        aggregate_ids: [["catalog"]],
+        include_state: true,
         event_types: ["step_registered", "step_unregistered", "step_updated"],
       },
       expect.any(Function)
@@ -105,7 +107,8 @@ describe("WebSocketProvider", () => {
     expect(client.subscribe).toHaveBeenNthCalledWith(
       2,
       {
-        aggregate_id: ["partition"],
+        aggregate_ids: [["partition"]],
+        include_state: true,
         event_types: ["step_health_changed"],
       },
       expect.any(Function)
@@ -114,16 +117,8 @@ describe("WebSocketProvider", () => {
     expect(client.subscribe).toHaveBeenNthCalledWith(
       3,
       {
-        aggregate_id: ["flow"],
-        event_types: ["flow_started", "flow_completed", "flow_failed"],
-      },
-      expect.any(Function)
-    );
-
-    expect(client.subscribe).toHaveBeenNthCalledWith(
-      4,
-      {
-        aggregate_id: ["flow", "flow-1"],
+        aggregate_ids: [["flow", "flow-1"]],
+        include_state: true,
         event_types: [
           "flow_started",
           "step_started",
@@ -139,6 +134,34 @@ describe("WebSocketProvider", () => {
           "work_not_completed",
           "retry_scheduled",
         ],
+      },
+      expect.any(Function)
+    );
+  });
+
+  test("subscribes to flow summary when the list is visible", () => {
+    const flowStore = require("@/app/store/flowStore");
+    (globalThis as any).__websocketStoreState = {
+      ...flowStore.__storeState,
+      visibleFlowIDs: ["flow-1"],
+      flows: [...flowStore.__storeState.flows],
+    };
+
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    expect(client.subscribe).toHaveBeenNthCalledWith(
+      3,
+      {
+        aggregate_ids: [["flow", "flow-1"]],
+        include_state: false,
+        event_types: ["flow_started", "flow_completed", "flow_failed"],
       },
       expect.any(Function)
     );
@@ -161,7 +184,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    expect(client.subscribe).toHaveBeenCalledTimes(3);
+    expect(client.subscribe).toHaveBeenCalledTimes(2);
   });
 
   test("dispatches catalog events to step handlers", () => {
@@ -225,6 +248,16 @@ describe("WebSocketProvider", () => {
   });
 
   test("dispatches flow summary events to flow store", () => {
+    const flowStore = require("@/app/store/flowStore");
+    (globalThis as any).__websocketStoreState = {
+      ...flowStore.__storeState,
+      visibleFlowIDs: ["flow-1"],
+      flowData: {
+        ...flowStore.__storeState.flowData,
+      },
+      flows: [...flowStore.__storeState.flows],
+    };
+
     const client = makeClient();
     useWebSocketClientMock.mockReturnValue(client);
 
@@ -255,7 +288,6 @@ describe("WebSocketProvider", () => {
       timestamp: failedAt,
     });
 
-    const flowStore = require("@/app/store/flowStore");
     expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(1, {
       id: "flow-2",
       status: "active",
@@ -298,7 +330,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const flowHandler = client.subscribe.mock.calls[3][1];
+    const flowHandler = client.subscribe.mock.calls[2][1];
 
     flowHandler({
       type: "flow_started",
@@ -393,7 +425,7 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const flowHandler = client.subscribe.mock.calls[3][1];
+    const flowHandler = client.subscribe.mock.calls[2][1];
     flowHandler({
       type: "work_started",
       data: {

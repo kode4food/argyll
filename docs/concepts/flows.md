@@ -101,10 +101,10 @@ This enables:
 
 ## Archiving
 
-Deactivated flows are eligible for archiving. The archive worker:
+Once a flow is deactivated, it is indexed as terminal (`completed` or `failed`) and becomes eligible for archiving. The archive worker:
 
 1. Monitors memory pressure
-2. Selects deactivated flows by age and size
+2. Selects terminal flow candidates from the flow status indexes using their indexed terminal timestamp
 3. Writes them to external storage (e.g., S3)
 4. Removes them from the active store
 

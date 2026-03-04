@@ -39,9 +39,14 @@ const eventTimestamp = (timestamp?: number): string => {
   return new Date(timestamp || Date.now()).toISOString();
 };
 
+const subscribedData = (event: WebSocketSubscribed): any => {
+  return event.items[0]?.data;
+};
+
 const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const t = useT();
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
+  const visibleFlowIDs = useFlowStore((state) => state.visibleFlowIDs);
   const loadSteps = useFlowStore((state) => state.loadSteps);
   const addFlow = useFlowStore((state) => state.addFlow);
   const addStep = useFlowStore((state) => state.addStep);
@@ -59,7 +64,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     (event: WebSocketEvent | WebSocketSubscribed) => {
       if (event.type === "subscribed") {
         const { setCatalogState } = useFlowStore.getState();
-        const data = (event as WebSocketSubscribed).data as any;
+        const data = subscribedData(event as WebSocketSubscribed);
         setCatalogState(data?.steps ?? {});
         return;
       }
@@ -92,7 +97,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     (event: WebSocketEvent | WebSocketSubscribed) => {
       if (event.type === "subscribed") {
         const { setPartitionState } = useFlowStore.getState();
-        const data = (event as WebSocketSubscribed).data as any;
+        const data = subscribedData(event as WebSocketSubscribed);
         setPartitionState(data?.health ?? {});
         return;
       }
@@ -180,7 +185,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     (event: WebSocketEvent | WebSocketSubscribed) => {
       if (event.type === "subscribed") {
         const { setFlowState } = useFlowStore.getState();
-        setFlowState((event as WebSocketSubscribed).data as any);
+        setFlowState(subscribedData(event as WebSocketSubscribed));
         return;
       }
 
@@ -322,7 +327,8 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_id: ["catalog"],
+        aggregate_ids: [["catalog"]],
+        include_state: true,
         event_types: CATALOG_EVENT_TYPES,
       },
       handleCatalogEvent
@@ -335,7 +341,8 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_id: ["partition"],
+        aggregate_ids: [["partition"]],
+        include_state: true,
         event_types: PARTITION_EVENT_TYPES,
       },
       handlePartitionEvent
@@ -346,9 +353,14 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   }, [handlePartitionEvent, socketClient.subscribe, socketClient.unsubscribe]);
 
   useEffect(() => {
+    if (visibleFlowIDs.length === 0) {
+      return;
+    }
+
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_id: ["flow"],
+        aggregate_ids: visibleFlowIDs.map((flowID) => ["flow", flowID]),
+        include_state: false,
         event_types: FLOW_SUMMARY_EVENT_TYPES,
       },
       handleFlowSummaryEvent
@@ -360,6 +372,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     handleFlowSummaryEvent,
     socketClient.subscribe,
     socketClient.unsubscribe,
+    visibleFlowIDs,
   ]);
 
   useEffect(() => {
@@ -369,7 +382,8 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
 
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_id: ["flow", selectedFlow],
+        aggregate_ids: [["flow", selectedFlow]],
+        include_state: true,
         event_types: FLOW_EVENT_TYPES,
       },
       handleFlowEvent

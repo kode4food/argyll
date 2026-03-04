@@ -25,12 +25,37 @@ import {
   FlowCreationStateProvider,
   useFlowCreation,
 } from "@/app/contexts/FlowCreationContext";
+import { useSetVisibleFlowIDs } from "@/app/store/flowStore";
 import {
   FlowDropdownProvider,
   useFlowDropdownContext,
   FlowDropdownContextValue,
 } from "@/app/contexts/FlowDropdownContext";
 import { useFlowSession } from "@/app/contexts/FlowSessionContext";
+
+const visibleFlowIDsDelayMS = 150;
+const visibleFlowIDSelector = "[data-flow-id]";
+
+const visibleFlowIDs = (menu: HTMLDivElement): string[] => {
+  const top = menu.scrollTop;
+  const bottom = top + menu.clientHeight;
+  const items = Array.from(
+    menu.querySelectorAll<HTMLElement>(visibleFlowIDSelector)
+  );
+
+  return items
+    .filter((item) => {
+      if (item.offsetHeight === 0) {
+        return true;
+      }
+
+      const itemTop = item.offsetTop;
+      const itemBottom = itemTop + item.offsetHeight;
+      return itemBottom > top && itemTop < bottom;
+    })
+    .map((item) => item.dataset.flowId)
+    .filter((flowID): flowID is string => !!flowID);
+};
 
 const FlowSelectorDropdown = () => {
   const t = useT();
@@ -44,6 +69,7 @@ const FlowSelectorDropdown = () => {
     filteredFlows,
     handleSearchChange,
     handleKeyDown,
+    setScrollTop,
     selectedFlow,
     selectFlow,
     flows,
@@ -54,6 +80,8 @@ const FlowSelectorDropdown = () => {
   } = useFlowDropdownContext();
 
   const handleDropdownScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    setScrollTop(e.currentTarget.scrollTop);
+
     if (!flowsHasMore || flowsLoading) {
       return;
     }
@@ -126,6 +154,7 @@ const FlowSelectorDropdown = () => {
             return (
               <div
                 key={flow.id}
+                data-flow-id={flow.id}
                 className={dropdownItemClassName}
                 onMouseDown={(e) => {
                   e.preventDefault();
@@ -171,8 +200,15 @@ const FlowSelectorContent: React.FC = () => {
   const t = useT();
   const navigate = useNavigate();
   useFlowFromUrl();
-  const { flows, selectedFlow, flowsHasMore, flowsLoading, loadMoreFlows } =
-    useFlowSession();
+  const {
+    flows,
+    selectedFlow,
+    flowsHasMore,
+    flowsLoading,
+    loadFlows,
+    loadMoreFlows,
+  } = useFlowSession();
+  const setVisibleFlowIDs = useSetVisibleFlowIDs();
   const { showCreateForm, setShowCreateForm } = useUI();
   const { setNewID } = useFlowCreation();
 
@@ -181,11 +217,13 @@ const FlowSelectorContent: React.FC = () => {
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    scrollTop,
     searchInputRef,
     dropdownRef,
     filteredFlows,
     handleSearchChange,
     handleKeyDown,
+    setScrollTop,
     selectFlow,
     closeDropdown,
     selectedFlow: dropdownSelectedFlow,
@@ -193,6 +231,36 @@ const FlowSelectorContent: React.FC = () => {
   } = useFlowDropdownManagement(flows, selectedFlow);
 
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
+
+  React.useEffect(() => {
+    if (!showDropdown) {
+      setVisibleFlowIDs([]);
+      return () => {
+        setVisibleFlowIDs([]);
+      };
+    }
+
+    const timeout = setTimeout(() => {
+      const menu = dropdownRef.current;
+      if (!menu) {
+        setVisibleFlowIDs([]);
+        return;
+      }
+
+      setVisibleFlowIDs(visibleFlowIDs(menu));
+    }, visibleFlowIDsDelayMS);
+
+    return () => {
+      clearTimeout(timeout);
+    };
+  }, [dropdownRef, filteredFlows, scrollTop, setVisibleFlowIDs, showDropdown]);
+
+  React.useEffect(() => {
+    if (!showDropdown) {
+      return;
+    }
+    void loadFlows();
+  }, [loadFlows, showDropdown]);
 
   useKeyboardShortcuts(
     [
@@ -222,11 +290,13 @@ const FlowSelectorContent: React.FC = () => {
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    scrollTop,
     searchInputRef,
     dropdownRef,
     filteredFlows,
     handleSearchChange,
     handleKeyDown,
+    setScrollTop,
     selectFlow,
     closeDropdown,
     selectedFlow: dropdownSelectedFlow,

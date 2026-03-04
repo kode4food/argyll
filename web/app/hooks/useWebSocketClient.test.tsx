@@ -86,7 +86,7 @@ describe("useWebSocketClient", () => {
     let subscriptionId = "";
     act(() => {
       subscriptionId = result.current.subscribe(
-        { aggregate_id: ["catalog"] },
+        { aggregate_ids: [["catalog"]] },
         handler
       );
     });
@@ -102,7 +102,7 @@ describe("useWebSocketClient", () => {
     expect(instances[0].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
-        data: { aggregate_id: ["catalog"], sub_id: "0" },
+        data: { aggregate_ids: [["catalog"]], sub_id: "0" },
       })
     );
   });
@@ -115,13 +115,69 @@ describe("useWebSocketClient", () => {
     });
 
     act(() => {
-      result.current.subscribe({ aggregate_id: ["flow", "flow-1"] });
+      result.current.subscribe({ aggregate_ids: [["flow", "flow-1"]] });
     });
 
     expect(instances[0].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
-        data: { aggregate_id: ["flow", "flow-1"], sub_id: "0" },
+        data: { aggregate_ids: [["flow", "flow-1"]], sub_id: "0" },
+      })
+    );
+  });
+
+  test("sends include_state when requested", () => {
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      instances[0].triggerOpen();
+    });
+
+    act(() => {
+      result.current.subscribe({
+        aggregate_ids: [["catalog"]],
+        include_state: true,
+      });
+    });
+
+    expect(instances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "subscribe",
+        data: {
+          aggregate_ids: [["catalog"]],
+          include_state: true,
+          sub_id: "0",
+        },
+      })
+    );
+  });
+
+  test("sends multi-aggregate subscriptions", () => {
+    const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
+
+    act(() => {
+      instances[0].triggerOpen();
+    });
+
+    act(() => {
+      result.current.subscribe({
+        aggregate_ids: [
+          ["flow", "flow-1"],
+          ["flow", "flow-2"],
+        ],
+      });
+    });
+
+    expect(instances[0].send).toHaveBeenCalledWith(
+      JSON.stringify({
+        type: "subscribe",
+        data: {
+          aggregate_ids: [
+            ["flow", "flow-1"],
+            ["flow", "flow-2"],
+          ],
+          sub_id: "0",
+        },
       })
     );
   });
@@ -135,7 +191,7 @@ describe("useWebSocketClient", () => {
 
     act(() => {
       result.current.subscribe(
-        { aggregate_id: ["catalog"] },
+        { aggregate_ids: [["catalog"]] },
         subscriptionHandler
       );
     });
@@ -148,7 +204,7 @@ describe("useWebSocketClient", () => {
       instances[0].triggerMessage({
         type: "subscribed",
         sub_id: "0",
-        data: { steps: {} },
+        items: [{ id: ["catalog"], data: { steps: {} }, sequence: 0 }],
       });
       instances[0].triggerMessage({
         type: "step_registered",
@@ -167,7 +223,9 @@ describe("useWebSocketClient", () => {
 
     let subscriptionId = "";
     act(() => {
-      subscriptionId = result.current.subscribe({ aggregate_id: ["catalog"] });
+      subscriptionId = result.current.subscribe({
+        aggregate_ids: [["catalog"]],
+      });
       instances[0].triggerOpen();
     });
 
@@ -187,9 +245,9 @@ describe("useWebSocketClient", () => {
     const { result } = renderHook(() => useWebSocketClient({ enabled: true }));
 
     act(() => {
-      result.current.subscribe({ aggregate_id: ["catalog"] });
+      result.current.subscribe({ aggregate_ids: [["catalog"]] });
       result.current.subscribe({
-        aggregate_id: ["flow"],
+        aggregate_ids: [["flow"]],
         event_types: ["flow_started"],
       });
     });
@@ -215,14 +273,14 @@ describe("useWebSocketClient", () => {
     expect(instances[1].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
-        data: { aggregate_id: ["catalog"], sub_id: "0" },
+        data: { aggregate_ids: [["catalog"]], sub_id: "0" },
       })
     );
     expect(instances[1].send).toHaveBeenCalledWith(
       JSON.stringify({
         type: "subscribe",
         data: {
-          aggregate_id: ["flow"],
+          aggregate_ids: [["flow"]],
           event_types: ["flow_started"],
           sub_id: "1",
         },

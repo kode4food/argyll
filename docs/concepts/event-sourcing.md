@@ -52,14 +52,17 @@ These track changes to registered steps:
 
 ### Partition Events
 
-These affect the partition aggregate's operational view of active flows:
+These affect the partition aggregate's operational health view:
 
 - **step_health_changed**: Step availability/health status changed
-- **flow_activated**: Flow starts, added to list of active flows
-- **flow_deactivated**: Flow is terminal + no active work, removed from active list
-- **flow_archiving**: Deactivated flow selected for archiving to external storage
-- **flow_archived**: Flow successfully archived
-- **flow_digest_updated**: Flow status digest updated (internal summary event)
+
+### Flow Indexes
+
+Flow lifecycle membership is maintained as flow-store indexes derived from flow events, not as partition events:
+
+- **active**: Flow has started and is currently active
+- **completed**: Flow is terminal, deactivated, and completed successfully
+- **failed**: Flow is terminal, deactivated, and failed
 
 ### Flow-Level Events
 
@@ -104,9 +107,9 @@ work_succeeded/work_failed events recorded
 When no active work remains:
 flow_deactivated event
          ↓
-Archive worker evaluates flow
+Flow index updated to completed/failed
          ↓
-flow_archiving event + archive flow starts
+Archive worker selects terminal flows from flow-store indexes
 ```
 
 ## Terminal vs Deactivated

@@ -681,6 +681,40 @@ describe("flowStore", () => {
       expect(state.loading).toBe(false);
     });
 
+    test("setFlowState updates the flow list entry", () => {
+      useFlowStore.setState({
+        selectedFlow: "wf-1",
+        flows: [
+          {
+            id: "wf-1",
+            status: "pending",
+            state: {},
+            started_at: "2024-01-01T00:00:00Z",
+          },
+        ],
+      });
+
+      useFlowStore.getState().setFlowState({
+        id: "wf-1",
+        status: "completed",
+        created_at: "2024-01-01T00:00:00Z",
+        completed_at: "2024-01-02T00:00:00Z",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.flows).toEqual([
+        {
+          id: "wf-1",
+          status: "completed",
+          state: {},
+          error_state: undefined,
+          plan: undefined,
+          started_at: "2024-01-01T00:00:00Z",
+          completed_at: "2024-01-02T00:00:00Z",
+        },
+      ]);
+    });
+
     test("setFlowState ignores unselected flow", () => {
       useFlowStore.setState({ selectedFlow: "wf-2" });
 

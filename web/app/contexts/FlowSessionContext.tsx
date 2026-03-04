@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useMemo, useEffect } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import {
   useSelectedFlow,
   useLoadFlows,
@@ -60,10 +60,6 @@ export const FlowSessionProvider = ({
   const executions = useExecutions();
   const resolvedAttributes = useResolvedAttributes();
   const flowError = useFlowError();
-
-  useEffect(() => {
-    loadFlows?.();
-  }, [loadFlows]);
 
   const value = useMemo(
     () => ({

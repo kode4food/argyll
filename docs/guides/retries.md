@@ -59,18 +59,11 @@ The step completes only when all work items succeed or a failure becomes permane
 
 ## Startup recovery candidate selection
 
-At startup, the engine builds recovery candidates from persisted flow aggregates (flow store), not just the in-memory active flow projection.
+At startup, the engine builds recovery candidates from the flow store's `active` status index.
 
-The startup candidate set is then pruned using engine metadata:
+For each indexed active flow, the engine loads the flow state, validates it, and queues only recoverable work items and timeout scans.
 
-- `deactivated` flows are skipped
-- `archiving` flows are skipped
-
-For the remaining candidates, if a flow is missing from the engine `active` projection, the engine raises `flow_activated` first to repair engine-level metadata.
-
-After that activation repair step, startup recovery inspects each candidate flow state and queues only recoverable work items.
-
-This keeps startup recovery broad enough to catch flows that were persisted before a crash, while still pruning potentially large numbers of terminal/archive flows early.
+This keeps startup recovery broad enough to catch persisted in-flight flows after a crash without requiring separate partition-level flow bookkeeping repair.
 
 ## Terminal failures
 

@@ -406,7 +406,10 @@ paths:
   /engine/flow:
     get:
       summary: List Flows
-      description: Retrieve (non-child) flows in the system (active, completed, and failed), sorted by most-recent activity first within each status group
+      description: |
+        Retrieve non-child flows in the system (`active`, `completed`, and `failed`), sorted by most-recent activity within each status group.
+
+        This endpoint uses the same query engine as `/engine/flow/query`. Simple status- and ID-prefix-based results are served from flow status indexes; label filtering loads flow state only for the remaining candidates.
       operationId: listFlows
       tags:
         - Flows
@@ -484,7 +487,10 @@ paths:
   /engine/flow/query:
     post:
       summary: Query Flows
-      description: Query (non-child) flows using ID prefix, labels, status filters, and pagination
+      description: |
+        Query non-child flows using ID prefix, labels, status filters, and pagination.
+
+        The engine resolves status and ID-prefix filtering from flow status indexes first. If label filters are present, it then loads only the remaining candidate flows to inspect their labels.
       operationId: queryFlows
       tags:
         - Flows
@@ -632,31 +638,34 @@ paths:
         {
           "type": "subscribe",
           "data": {
-            "aggregate_id": ["flow", "my-flow-id"]
+            "sub_id": "flow-detail",
+            "aggregate_ids": [["flow", "my-flow-id"]]
           }
         }
         ```
 
-        The server responds with a `subscribed` message containing the current
-        state and sequence number:
+        If `include_state` is `true`, the server responds with a `subscribed` message containing the current projection for every requested aggregate:
 
         ```json
         {
           "type": "subscribed",
-          "id": ["flow", "my-flow-id"],
-          "data": { ... current flow state ... },
-          "sequence": 42
+          "sub_id": "flow-detail",
+          "items": [
+            {
+              "id": ["flow", "my-flow-id"],
+              "data": { ... current flow state ... },
+              "sequence": 42
+            }
+          ]
         }
         ```
 
-        After subscription, the server streams events matching your filter.
-        The server filters out stale events (sequence < subscription sequence)
-        to prevent race conditions.
+        After subscription, the server streams events matching your filter. For each subscribed aggregate, the server filters out stale live events whose sequence is lower than the initial subscribed sequence for that aggregate.
 
         ## Aggregate IDs
 
         - **Catalog events**: `["catalog"]` - step registration and updates
-        - **Partition events**: `["partition"]` - health changes, flow activation/deactivation
+        - **Partition events**: `["partition"]` - step health changes
         - **Flow events**: `["flow", "flow-id"]` - flow and step execution events
 
         ## Event Filtering
@@ -667,7 +676,9 @@ paths:
         {
           "type": "subscribe",
           "data": {
-            "aggregate_id": ["flow", "my-flow-id"],
+            "sub_id": "flow-detail",
+            "aggregate_ids": [["flow", "my-flow-id"]],
+            "include_state": true,
             "event_types": ["step_completed", "step_failed"]
           }
         }
@@ -689,9 +700,8 @@ paths:
 
         **Event Types:**
         - Catalog events: step_registered, step_unregistered, step_updated
-        - Partition events: step_health_changed, flow_activated, flow_deactivated,
-          flow_archiving, flow_archived, flow_digest_updated
-        - Flow events: flow_started, flow_completed, flow_failed,
+        - Partition events: step_health_changed
+        - Flow events: flow_started, flow_completed, flow_failed, flow_deactivated,
           step_started, step_completed, step_failed, step_skipped, attribute_set,
           work_started, work_succeeded, work_failed, work_not_completed,
           retry_scheduled
@@ -727,10 +737,6 @@ components:
       required:
         - steps
         - health
-        - active
-        - deactivated
-        - archiving
-        - flow_digests
         - attributes
         - last_updated
       properties:
@@ -744,27 +750,6 @@ components:
           description: Map of step ID to health status
           additionalProperties:
             $ref: "#/components/schemas/HealthState"
-        active:
-          type: object
-          description: Map of flow ID to active flow information
-          additionalProperties:
-            $ref: "#/components/schemas/ActiveFlowInfo"
-        deactivated:
-          type: array
-          description: List of deactivated flows pending archiving
-          items:
-            $ref: "#/components/schemas/DeactivatedFlowInfo"
-        archiving:
-          type: object
-          description: Map of flow ID to archiving lease timestamp
-          additionalProperties:
-            type: string
-            format: date-time
-        flow_digests:
-          type: object
-          description: Map of flow ID to digest summary
-          additionalProperties:
-            $ref: "#/components/schemas/FlowDigest"
         attributes:
           type: object
           description: Engine-level attribute dependency graph
@@ -1329,11 +1314,15 @@ components:
         created_at:
           type: string
           format: date-time
-          description: Flow creation timestamp
+          description: |
+            Summary timestamp used by flow list/query responses.
+            For indexed-only queries, this is the indexed status timestamp used for ordering.
         completed_at:
           type: string
           format: date-time
-          description: Flow completion timestamp (if completed or failed)
+          description: |
+            Terminal summary timestamp when the flow is completed or failed.
+            For indexed-only terminal queries, this is the indexed terminal timestamp.
         labels:
           type: object
           description: Flow labels
@@ -1435,44 +1424,6 @@ components:
           type: string
           description: Error message if status is failed
           example: "Step execution failed: connection timeout"
-
-    ActiveFlowInfo:
-      type: object
-      required:
-        - started_at
-        - last_active
-      properties:
-        parent_flow_id:
-          type: string
-          description: Parent flow ID for child flows
-          example: "wf-parent-001"
-        started_at:
-          type: string
-          format: date-time
-          description: When the flow started executing
-        last_active:
-          type: string
-          format: date-time
-          description: Last time the flow had activity
-
-    DeactivatedFlowInfo:
-      type: object
-      required:
-        - flow_id
-        - deactivated_at
-      properties:
-        flow_id:
-          type: string
-          description: Flow identifier
-          example: "wf-text-processing-001"
-        parent_flow_id:
-          type: string
-          description: Parent flow ID for child flows
-          example: "wf-parent-001"
-        deactivated_at:
-          type: string
-          format: date-time
-          description: When the flow was deactivated
 
     AttributeValue:
       type: object

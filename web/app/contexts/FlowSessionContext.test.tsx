@@ -1,4 +1,4 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { FlowSessionProvider, useFlowSession } from "./FlowSessionContext";
 
 jest.mock("../store/flowStore", () => {
@@ -45,14 +45,15 @@ describe("FlowSessionContext", () => {
     jest.clearAllMocks();
   });
 
-  it("exposes session values and loads data", async () => {
+  it("exposes session values", () => {
     render(
       <FlowSessionProvider>
         <Consumer />
       </FlowSessionProvider>
     );
 
-    // Steps are loaded via WebSocket subscribed, not HTTP API
-    expect(await waitFor(() => flowStore.__loadFlows)).toHaveBeenCalled();
+    expect(screen.getByTestId("selected-flow")).toHaveTextContent("wf-1");
+    expect(screen.getByTestId("steps-count")).toHaveTextContent("1");
+    expect(flowStore.__loadFlows).not.toHaveBeenCalled();
   });
 });

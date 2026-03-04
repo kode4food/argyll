@@ -13,7 +13,8 @@ require (
 	github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2
 	github.com/kode4food/jpath v0.0.0-20260217152807-2602c67f9f76
 	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9
-	github.com/kode4food/timebox v0.0.0-20260304062155-445ae9d87ca5
+	github.com/kode4food/timebox v0.0.0-20260304110216-ffc3ab5a2026
+	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.11.1
 	github.com/tidwall/gjson v1.18.0
 	golang.org/x/tools v0.42.0
@@ -47,7 +48,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.57.0 // indirect
-	github.com/redis/go-redis/v9 v9.8.0 // indirect
 	github.com/rogpeppe/go-internal v1.14.1 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect

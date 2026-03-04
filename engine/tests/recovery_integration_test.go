@@ -424,7 +424,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 
 		// Verify recovery behavior:
 
-			// 1. Pending work should execute and complete after recovery
+		// 1. Pending work should execute and complete after recovery
 		recovered := waitForFlowsStatusWithTimeoutAfter(
 			env,
 			[]api.FlowID{pendingFlowID, notCompletedFlowID},

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -45,12 +46,13 @@ type (
 	}
 
 	clientSubscription struct {
-		id          string
-		aggregateID timebox.AggregateID
-		eventTypes  []timebox.EventType
-		minSeq      int64
-		consumer    *timebox.Consumer
-		active      atomic.Bool
+		id           string
+		aggregateIDs []timebox.AggregateID
+		includeState bool
+		eventTypes   []timebox.EventType
+		minSeqs      map[string]int64
+		consumer     *timebox.Consumer
+		active       atomic.Bool
 	}
 )
 
@@ -58,7 +60,7 @@ const (
 	writeWait          = 10 * time.Second
 	pongWait           = 60 * time.Second
 	pingPeriod         = (pongWait * 9) / 10
-	maxMessageSize     = 512
+	maxMessageSize     = 64 * 1024
 	wsBufferSize       = 1024
 	incomingBufferSize = 16
 )
@@ -250,7 +252,7 @@ func (c *Client) addSubscription(sub *api.ClientSubscription) {
 	c.subscriptions[cs.id] = cs
 	c.subMu.Unlock()
 
-	if len(cs.aggregateID) > 0 && !c.sendSubscribeState(cs) {
+	if !c.sendSubscribeState(cs) {
 		cs.close()
 		c.subMu.Lock()
 		delete(c.subscriptions, cs.id)
@@ -287,40 +289,47 @@ func (c *Client) streamSubscription(sub *clientSubscription) {
 }
 
 func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
-	if c.getState == nil {
+	if !sub.includeState || c.getState == nil {
 		return true
 	}
 
-	state, nextSeq, err := c.getState(sub.aggregateID)
-	if err != nil {
-		slog.Error("Failed to get state for subscription",
-			slog.Any("aggregate_id", sub.aggregateID),
-			log.Error(err))
-		return false
-	}
+	items := make([]api.SubscribedItem, 0, len(sub.aggregateIDs))
+	sub.minSeqs = make(map[string]int64, len(sub.aggregateIDs))
+	for _, id := range sub.aggregateIDs {
+		state, nextSeq, err := c.getState(id)
+		if err != nil {
+			slog.Error("Failed to get state for subscription",
+				slog.Any("aggregate_id", id),
+				log.Error(err))
+			return false
+		}
 
-	data, err := json.Marshal(state)
-	if err != nil {
-		slog.Error("Failed to marshal state",
-			slog.Any("aggregate_id", sub.aggregateID),
-			log.Error(err))
-		return false
-	}
+		data, err := json.Marshal(state)
+		if err != nil {
+			slog.Error("Failed to marshal state",
+				slog.Any("aggregate_id", id),
+				log.Error(err))
+			return false
+		}
 
-	sub.minSeq = nextSeq
+		items = append(items, api.SubscribedItem{
+			AggregateID: idToStrings(id),
+			Data:        data,
+			Sequence:    nextSeq,
+		})
+		sub.minSeqs[aggregateIDKey(id)] = nextSeq
+	}
 
 	msg := api.SubscribedResult{
 		Type:           "subscribed",
-		AggregateID:    idToStrings(sub.aggregateID),
 		SubscriptionID: sub.id,
-		Data:           data,
-		Sequence:       nextSeq,
+		Items:          items,
 	}
 
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
 	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
-	err = c.conn.WriteJSON(msg)
+	err := c.conn.WriteJSON(msg)
 	if err != nil {
 		slog.Error("WebSocket write failed",
 			slog.String("context", "subscribed"),
@@ -333,7 +342,12 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 func (c *Client) writeSubscriptionEvent(
 	sub *clientSubscription, event *timebox.Event,
 ) bool {
-	if !sub.active.Load() || event.Sequence < sub.minSeq {
+	if !sub.active.Load() {
+		return true
+	}
+
+	if minSeq, ok := sub.minSeqs[aggregateIDKey(event.AggregateID)]; ok &&
+		event.Sequence < minSeq {
 		return true
 	}
 
@@ -369,9 +383,7 @@ func (c *Client) sendPing() bool {
 	return err == nil
 }
 
-func subscriptionEventTypes(
-	sub *api.ClientSubscription,
-) []timebox.EventType {
+func subscriptionEventTypes(sub *api.ClientSubscription) []timebox.EventType {
 	if len(sub.EventTypes) == 0 {
 		return nil
 	}
@@ -389,11 +401,12 @@ func newClientSubscription(
 		return nil, ErrMissingSubscriptionID
 	}
 	res := &clientSubscription{
-		id:          sub.SubscriptionID,
-		aggregateID: stringsToID(sub.AggregateID),
-		eventTypes:  subscriptionEventTypes(sub),
+		id:           sub.SubscriptionID,
+		aggregateIDs: stringsToIDs(sub.AggregateIDs),
+		includeState: sub.IncludeState,
+		eventTypes:   subscriptionEventTypes(sub),
 	}
-	res.consumer = hub.NewAggregateConsumer(res.aggregateID, res.eventTypes...)
+	res.consumer = hub.NewAggregatesConsumer(res.aggregateIDs, res.eventTypes...)
 	res.active.Store(true)
 	return res, nil
 }
@@ -409,6 +422,21 @@ func idToStrings(id timebox.AggregateID) []string {
 		res[i] = string(p)
 	}
 	return res
+}
+
+func stringsToIDs(parts [][]string) []timebox.AggregateID {
+	if len(parts) == 0 {
+		return nil
+	}
+	res := make([]timebox.AggregateID, 0, len(parts))
+	for _, p := range parts {
+		res = append(res, stringsToID(p))
+	}
+	return res
+}
+
+func aggregateIDKey(id timebox.AggregateID) string {
+	return strings.Join(idToStrings(id), "\x00")
 }
 
 func stringsToID(parts []string) timebox.AggregateID {

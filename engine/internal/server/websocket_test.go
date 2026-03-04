@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -67,6 +68,14 @@ func TestSocket(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func subscribedItem(
+	t *testing.T, msg api.SubscribedResult,
+) api.SubscribedItem {
+	t.Helper()
+	assert.Len(t, msg.Items, 1)
+	return msg.Items[0]
+}
+
 func TestClientReceivesEvent(t *testing.T) {
 	getState := func(id timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 0, nil
@@ -80,7 +89,8 @@ func TestClientReceivesEvent(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -122,7 +132,8 @@ func TestClientFiltersEventsByType(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 			EventTypes:     []api.EventType{api.EventTypeFlowStarted},
 		},
 	}
@@ -157,6 +168,94 @@ func TestClientFiltersEventsByType(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestClientReceivesEventsForAggregates(t *testing.T) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
+		assert.Fail(t, "multi-aggregate subscribe should not load state")
+		return nil, 0, nil
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-1",
+			AggregateIDs: [][]string{
+				{events.FlowPrefix, "wf-123"},
+				{events.FlowPrefix, "wf-456"},
+			},
+			IncludeState: false,
+			EventTypes:   []api.EventType{api.EventTypeFlowStarted},
+		},
+	}
+	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	err = env.Env.RaiseFlowEvents("wf-123", helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted("wf-123", "step-1"),
+	})
+	assert.NoError(t, err)
+
+	err = env.Env.RaiseFlowEvents("wf-456", helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted("wf-456", "step-1"),
+	})
+	assert.NoError(t, err)
+
+	var wsEvent api.WebSocketEvent
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	err = env.Conn.ReadJSON(&wsEvent)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, wsEvent.AggregateID)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	err = env.Conn.ReadJSON(&wsEvent)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-456"}, wsEvent.AggregateID)
+}
+
+func TestClientSubscribesToManyAggregates(t *testing.T) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
+		assert.Fail(t, "multi-aggregate subscribe should not load state")
+		return nil, 0, nil
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+
+	aggregateIDs := make([][]string, 0, 200)
+	for i := range 200 {
+		aggregateIDs = append(aggregateIDs,
+			[]string{events.FlowPrefix, "wf-" + strconv.Itoa(i)})
+	}
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-1",
+			AggregateIDs:   aggregateIDs,
+			IncludeState:   false,
+			EventTypes:     []api.EventType{api.EventTypeFlowStarted},
+		},
+	}
+	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	err = env.Env.RaiseFlowEvents("wf-199", helpers.FlowEvent{
+		Type: api.EventTypeFlowStarted,
+		Data: wsFlowStarted("wf-199", "step-1"),
+	})
+	assert.NoError(t, err)
+
+	var wsEvent api.WebSocketEvent
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	err = env.Conn.ReadJSON(&wsEvent)
+	assert.NoError(t, err)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-199"}, wsEvent.AggregateID)
+}
+
 func TestMessageInvalid(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
@@ -186,7 +285,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 		Type: "other",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -222,7 +321,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -233,11 +332,12 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
 	assert.Equal(t, "subscribed", stateMsg.Type)
-	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID)
-	assert.Equal(t, int64(5), stateMsg.Sequence)
+	item := subscribedItem(t, stateMsg)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, item.AggregateID)
+	assert.Equal(t, int64(5), item.Sequence)
 
 	var receivedState api.FlowState
-	err = json.Unmarshal(stateMsg.Data, &receivedState)
+	err = json.Unmarshal(item.Data, &receivedState)
 	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("wf-123"), receivedState.ID)
 	assert.Equal(t, api.FlowActive, receivedState.Status)
@@ -256,7 +356,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -266,7 +366,8 @@ func TestStaleEventsFiltered(t *testing.T) {
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
-	assert.Equal(t, int64(1), stateMsg.Sequence)
+	item := subscribedItem(t, stateMsg)
+	assert.Equal(t, int64(1), item.Sequence)
 
 	// Send stale event (sequence 5 < minSequence 10)
 	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
@@ -305,7 +406,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -356,7 +457,7 @@ func TestClientPongHandler(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 		},
 	}
 	err = env.Conn.WriteJSON(sub)
@@ -366,7 +467,8 @@ func TestClientPongHandler(t *testing.T) {
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID)
+	item := subscribedItem(t, stateMsg)
+	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, item.AggregateID)
 }
 
 func TestClientUnsubscribeStopsEvents(t *testing.T) {
@@ -382,7 +484,7 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 		Type: "subscribe",
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
-			AggregateID:    []string{events.FlowPrefix, "wf-123"},
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -446,7 +548,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 			Type: "subscribe",
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
-				AggregateID:    []string{events.CatalogPrefix},
+				AggregateIDs:   [][]string{{events.CatalogPrefix}},
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -456,10 +558,11 @@ func TestSocketCallbackEngine(t *testing.T) {
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
-		assert.Equal(t, []string{events.CatalogPrefix}, stateMsg.AggregateID)
+		item := subscribedItem(t, stateMsg)
+		assert.Equal(t, []string{events.CatalogPrefix}, item.AggregateID)
 
 		var cat api.CatalogState
-		err = json.Unmarshal(stateMsg.Data, &cat)
+		err = json.Unmarshal(item.Data, &cat)
 		assert.NoError(t, err)
 	})
 }
@@ -473,7 +576,7 @@ func TestSocketCallbackPartition(t *testing.T) {
 			Type: "subscribe",
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
-				AggregateID:    []string{events.PartitionPrefix},
+				AggregateIDs:   [][]string{{events.PartitionPrefix}},
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -483,10 +586,11 @@ func TestSocketCallbackPartition(t *testing.T) {
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
-		assert.Equal(t, []string{events.PartitionPrefix}, stateMsg.AggregateID)
+		item := subscribedItem(t, stateMsg)
+		assert.Equal(t, []string{events.PartitionPrefix}, item.AggregateID)
 
 		var part api.PartitionState
-		err = json.Unmarshal(stateMsg.Data, &part)
+		err = json.Unmarshal(item.Data, &part)
 		assert.NoError(t, err)
 	})
 }
@@ -505,7 +609,7 @@ func TestSocketCallbackFlow(t *testing.T) {
 			Type: "subscribe",
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
-				AggregateID:    []string{events.FlowPrefix, "wf-123"},
+				AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
 			},
 		}
 		err = ws.Conn.WriteJSON(sub)
@@ -515,12 +619,11 @@ func TestSocketCallbackFlow(t *testing.T) {
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
-		assert.Equal(t,
-			[]string{events.FlowPrefix, "wf-123"}, stateMsg.AggregateID,
-		)
+		item := subscribedItem(t, stateMsg)
+		assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, item.AggregateID)
 
 		var flow api.FlowState
-		err = json.Unmarshal(stateMsg.Data, &flow)
+		err = json.Unmarshal(item.Data, &flow)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowID("wf-123"), flow.ID)
 	})
@@ -539,7 +642,7 @@ func TestSocketCallbackPrefixOrUnknownAgg(t *testing.T) {
 				Type: "subscribe",
 				Data: api.ClientSubscription{
 					SubscriptionID: "sub-1",
-					AggregateID:    aggregateID,
+					AggregateIDs:   [][]string{aggregateID},
 				},
 			}
 			err := ws.Conn.WriteJSON(sub)
@@ -549,8 +652,9 @@ func TestSocketCallbackPrefixOrUnknownAgg(t *testing.T) {
 			var stateMsg api.SubscribedResult
 			err = ws.Conn.ReadJSON(&stateMsg)
 			assert.NoError(t, err)
-			assert.Equal(t, aggregateID, stateMsg.AggregateID)
-			assert.Equal(t, json.RawMessage("null"), stateMsg.Data)
+			item := subscribedItem(t, stateMsg)
+			assert.Equal(t, aggregateID, item.AggregateID)
+			assert.Equal(t, json.RawMessage("null"), item.Data)
 		}
 	})
 }

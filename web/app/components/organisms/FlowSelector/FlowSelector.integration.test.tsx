@@ -17,11 +17,13 @@ jest.mock("./useFlowFromUrl", () => ({
 jest.mock("@/app/store/flowStore", () => {
   const loadFlows = jest.fn().mockResolvedValue(undefined);
   const loadSteps = jest.fn().mockResolvedValue(undefined);
+  const setVisibleFlowIDs = jest.fn();
   const updateFlowStatus = jest.fn();
   return {
     useSelectedFlow: jest.fn(() => null),
     useFlowStore: jest.fn(() => ({ selectFlow: jest.fn() })),
     useLoadFlows: jest.fn(() => loadFlows),
+    useSetVisibleFlowIDs: jest.fn(() => setVisibleFlowIDs),
     useLoadSteps: jest.fn(() => loadSteps),
     useSteps: jest.fn(() => [
       {
@@ -50,6 +52,7 @@ jest.mock("@/app/store/flowStore", () => {
     useFlowError: jest.fn(() => null),
     __loadFlows: loadFlows,
     __loadSteps: loadSteps,
+    __setVisibleFlowIDs: setVisibleFlowIDs,
     __updateFlowStatus: updateFlowStatus,
   };
 });
@@ -78,7 +81,15 @@ jest.mock("../FlowCreateForm/FlowCreateForm", () => ({
 }));
 
 describe("FlowSelector integration", () => {
-  it("loads flows on mount and can open create form", async () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("loads flows when the dropdown opens and can open create form", async () => {
     const flowStore = require("@/app/store/flowStore");
     render(
       <UIProvider>
@@ -88,7 +99,28 @@ describe("FlowSelector integration", () => {
       </UIProvider>
     );
 
+    expect(flowStore.__loadFlows).not.toHaveBeenCalled();
+
+    act(() => {
+      fireEvent.click(
+        screen.getByRole("button", { name: t("flowSelector.selectFlow") })
+      );
+    });
+
     await waitFor(() => expect(flowStore.__loadFlows).toHaveBeenCalled());
+    expect(flowStore.__setVisibleFlowIDs).not.toHaveBeenCalledWith([
+      "wf-1",
+      "wf-2",
+    ]);
+
+    act(() => {
+      jest.advanceTimersByTime(150);
+    });
+
+    expect(flowStore.__setVisibleFlowIDs).toHaveBeenLastCalledWith([
+      "wf-1",
+      "wf-2",
+    ]);
 
     act(() => {
       fireEvent.click(

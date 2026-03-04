@@ -1,640 +1,250 @@
 # WebSocket API
 
-The engine provides a real-time event stream via WebSocket for live monitoring of flows and step execution.
+The engine provides a real-time event stream via WebSocket for live monitoring of steps, partition health, and flow execution.
 
 ## Connection
 
-**Endpoint:** `GET /engine/ws`
+- Endpoint: `GET /engine/ws`
+- Local URL: `ws://localhost:8080/engine/ws`
+- Production URL: `wss://.../engine/ws`
 
-**URL:** `ws://localhost:8080/engine/ws`
+## Message Envelopes
 
-**Connection types:**
-- `ws://` for local development
-- `wss://` for secure production
+### Event Messages
 
-## Example Connection
-
-```javascript
-// Connect to WebSocket
-const ws = new WebSocket('ws://localhost:8080/engine/ws');
-
-ws.onopen = () => {
-  console.log('Connected to engine');
-};
-
-ws.onmessage = (event) => {
-  const engineEvent = JSON.parse(event.data);
-  console.log('Event:', engineEvent);
-};
-
-ws.onerror = (error) => {
-  console.error('WebSocket error:', error);
-};
-
-ws.onclose = () => {
-  console.log('Disconnected from engine');
-};
-```
-
-## Event Format
-
-Event messages use this envelope:
+Event messages stream live timebox events:
 
 ```json
 {
-  "type": "event_type",
-  "data": { /* event-specific fields */ },
-  "id": ["aggregate", "id"],
+  "type": "flow_started",
+  "data": { "flow_id": "wf-123" },
+  "id": ["flow", "wf-123"],
+  "sub_id": "flow-detail",
   "timestamp": 1704067425000,
   "sequence": 42
 }
 ```
 
-**Envelope Fields (event messages):**
-- `type`: Event type constant (e.g., "flow_started", "step_completed")
-- `data`: Event-specific data (structure varies by event type)
-- `id`: Aggregate ID path (e.g., ["catalog"], ["partition"], ["flow", "flow-id"])
-- `timestamp`: Milliseconds since epoch (Unix time × 1000)
-- `sequence`: Global event sequence number for ordering
+Fields:
 
-`subscribed` messages are different: they include `type`, `id`, `data`, and
-`sequence`, but no `timestamp`.
+- `type`: event type
+- `data`: event payload
+- `id`: aggregate ID path
+- `sub_id`: subscription identifier that produced the event
+- `timestamp`: event timestamp in Unix milliseconds
+- `sequence`: aggregate sequence number
 
-## Event Types
+### Subscribed Messages
 
-### Flow Events
-
-**flow_started** — Emitted when flow execution begins. Includes the execution plan and initial arguments.
+When you subscribe, the server sends the current projected state for every requested aggregate before streaming live events:
 
 ```json
 {
-  "type": "flow_started",
-  "data": {
-    "flow_id": "wf-123",
-    "init": { "amount": 100.00, "order_id": "ord-456" },
-    "plan": {
-      "goals": ["process_payment", "send_notification"],
-      "required": ["amount", "order_id"],
-      "steps": { /* step definitions */ },
-      "attributes": { /* attribute dependency graph */ }
+  "type": "subscribed",
+  "sub_id": "flow-list",
+  "items": [
+    {
+      "id": ["flow", "wf-123"],
+      "data": { "id": "wf-123", "status": "active" },
+      "sequence": 42
     },
-    "metadata": { "user_id": "user-789" }
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067425000,
-  "sequence": 1
-}
-```
-
-**flow_completed** — Emitted when all goal steps are satisfied and flow completes successfully.
-
-```json
-{
-  "type": "flow_completed",
-  "data": {
-    "flow_id": "wf-123",
-    "result": { "transaction_id": "txn-789", "notification_sent": true }
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067430000,
-  "sequence": 47
-}
-```
-
-**flow_failed** — Emitted when a goal step fails or becomes unreachable, making success impossible.
-
-```json
-{
-  "type": "flow_failed",
-  "data": {
-    "flow_id": "wf-123",
-    "error": "step process_payment failed: insufficient funds"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067428000,
-  "sequence": 45
-}
-```
-
-### Catalog Events
-
-Catalog events are emitted on the `["catalog"]` aggregate. They track the step registry.
-
-**step_registered** — Emitted when a step is added to the engine registry.
-
-```json
-{
-  "type": "step_registered",
-  "data": {
-    "step": {
-      "id": "lookup_customer",
-      "name": "Lookup Customer",
-      "type": "sync",
-      "http": { "endpoint": "http://api.local/customer", "timeout": 5000 },
-      "attributes": {
-        "customer_id": { "role": "required", "type": "string" },
-        "customer_name": { "role": "output", "type": "string" }
-      },
-      "memoizable": false
+    {
+      "id": ["flow", "wf-456"],
+      "data": { "id": "wf-456", "status": "failed" },
+      "sequence": 87
     }
-  },
-  "id": ["catalog"],
-  "timestamp": 1704067200000,
-  "sequence": 1
+  ]
 }
 ```
 
-**step_unregistered** — Emitted when a step is removed from the engine registry.
+Each `items` entry contains:
 
-```json
-{
-  "type": "step_unregistered",
-  "data": {
-    "step_id": "lookup_customer"
-  },
-  "id": ["catalog"],
-  "timestamp": 1704067500000,
-  "sequence": 10
-}
-```
+- `id`: aggregate ID path
+- `data`: current projected state for that aggregate
+- `sequence`: next live sequence boundary for that aggregate
 
-**step_updated** — Emitted when a step definition is modified.
+The server suppresses stale live events with a sequence lower than the initial subscribed item sequence for that aggregate.
 
-```json
-{
-  "type": "step_updated",
-  "data": {
-    "step": {
-      "id": "lookup_customer",
-      "name": "Lookup Customer",
-      "type": "sync",
-      "http": { "endpoint": "http://api.local/customer/v2", "timeout": 10000 },
-      "attributes": {
-        "customer_id": { "role": "required", "type": "string" },
-        "customer_name": { "role": "output", "type": "string" },
-        "customer_tier": { "role": "output", "type": "string" }
-      },
-      "memoizable": true
-    }
-  },
-  "id": ["catalog"],
-  "timestamp": 1704067600000,
-  "sequence": 12
-}
-```
+## Subscriptions
 
-### Partition Events
-
-Partition events are emitted on the `["partition"]` aggregate. They track engine-wide operational state: step health and the set of active flows.
-
-**step_health_changed** — Emitted when a step's health status changes (e.g., endpoint unreachable).
-
-```json
-{
-  "type": "step_health_changed",
-  "data": {
-    "step_id": "lookup_customer",
-    "status": "unhealthy",
-    "error": "health check failed: connection refused"
-  },
-  "id": ["partition"],
-  "timestamp": 1704067700000,
-  "sequence": 15
-}
-```
-
-**flow_activated** — Emitted when a flow is added to the engine's active flow list.
-
-```json
-{
-  "type": "flow_activated",
-  "data": {
-    "flow_id": "wf-123",
-    "parent_flow_id": "wf-parent-456"
-  },
-  "id": ["partition"],
-  "timestamp": 1704067425100,
-  "sequence": 2
-}
-```
-
-**flow_deactivated** — Emitted when a flow is terminal (completed or failed) AND no active work items remain.
-
-```json
-{
-  "type": "flow_deactivated",
-  "data": {
-    "flow_id": "wf-123"
-  },
-  "id": ["partition"],
-  "timestamp": 1704067435000,
-  "sequence": 50
-}
-```
-
-**flow_archiving** — Emitted when a deactivated flow is selected for archiving to external storage.
-
-```json
-{
-  "type": "flow_archiving",
-  "data": {
-    "flow_id": "wf-123"
-  },
-  "id": ["partition"],
-  "timestamp": 1704067440000,
-  "sequence": 51
-}
-```
-
-**flow_archived** — Emitted when a flow is successfully archived.
-
-```json
-{
-  "type": "flow_archived",
-  "data": {
-    "flow_id": "wf-123"
-  },
-  "id": ["partition"],
-  "timestamp": 1704067445000,
-  "sequence": 52
-}
-```
-
-**flow_digest_updated** — Emitted when the flow's summary status changes (internal event).
-
-```json
-{
-  "type": "flow_digest_updated",
-  "data": {
-    "flow_id": "wf-123",
-    "status": "completed",
-    "completed_at": "2025-01-30T15:24:02Z",
-    "error": ""
-  },
-  "id": ["partition"],
-  "timestamp": 1704067430500,
-  "sequence": 48
-}
-```
-
-### Step Events
-
-**step_started** — Emitted when a step begins execution.
-
-```json
-{
-  "type": "step_started",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_payment",
-    "inputs": { "amount": 100.00, "currency": "USD" },
-    "work_items": {
-      "tok-1": { "amount": 50.00 },
-      "tok-2": { "amount": 50.00 }
-    }
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067427000,
-  "sequence": 25
-}
-```
-
-**step_completed** — Emitted when a step finishes successfully.
-
-```json
-{
-  "type": "step_completed",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_payment",
-    "outputs": { "transaction_id": "txn-789", "status": "approved" },
-    "duration": 523
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067428000,
-  "sequence": 26
-}
-```
-
-**step_failed** — Emitted when a step encounters an error.
-
-```json
-{
-  "type": "step_failed",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_payment",
-    "error": "connection timeout"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067429000,
-  "sequence": 27
-}
-```
-
-**step_skipped** — Emitted when a step is skipped due to its predicate evaluating to false.
-
-```json
-{
-  "type": "step_skipped",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "send_premium_notification",
-    "reason": "predicate returned false"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067428500,
-  "sequence": 30
-}
-```
-
-### Work Item Events
-
-**work_started** — Emitted when a work item begins execution (for async steps or for_each expansion).
-
-```json
-{
-  "type": "work_started",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_items",
-    "token": "tok-abc-123",
-    "inputs": { "item_id": "item-789", "quantity": 5 }
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067430000,
-  "sequence": 33
-}
-```
-
-**work_succeeded** — Emitted when a work item completes successfully.
-
-```json
-{
-  "type": "work_succeeded",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_items",
-    "token": "tok-abc-123",
-    "outputs": { "processed_count": 100, "status": "ok" }
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067431000,
-  "sequence": 34
-}
-```
-
-**work_failed** — Emitted when a work item fails permanently (error is unrecoverable).
-
-```json
-{
-  "type": "work_failed",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_items",
-    "token": "tok-abc-123",
-    "error": "invalid input format"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067432000,
-  "sequence": 35
-}
-```
-
-**work_not_completed** — Emitted when work reports transient failure (retry will be attempted).
-
-```json
-{
-  "type": "work_not_completed",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_items",
-    "token": "tok-abc-123",
-    "error": "service temporarily unavailable"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067434000,
-  "sequence": 36
-}
-```
-
-**retry_scheduled** — Emitted when a failed work item is scheduled for retry.
-
-```json
-{
-  "type": "retry_scheduled",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "process_items",
-    "token": "tok-abc-123",
-    "retry_count": 1,
-    "next_retry_at": "2025-01-30T15:24:00Z",
-    "error": "service temporarily unavailable"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067433000,
-  "sequence": 37
-}
-```
-
-### Attribute and Status Events
-
-**attribute_set** — Emitted when a flow attribute is set from step outputs (with provenance tracking).
-
-```json
-{
-  "type": "attribute_set",
-  "data": {
-    "flow_id": "wf-123",
-    "step_id": "lookup_customer",
-    "key": "customer_name",
-    "value": "Alice Smith"
-  },
-  "id": ["flow", "wf-123"],
-  "timestamp": 1704067428000,
-  "sequence": 31
-}
-```
-
-## Subscriptions and Filtering
-
-A new WebSocket connection starts with no event stream. Send a `subscribe`
-message to begin receiving events:
+A connection starts idle. Send a `subscribe` message to begin receiving events:
 
 ```json
 {
   "type": "subscribe",
   "data": {
-    "aggregate_id": ["flow", "wf-123"],
+    "sub_id": "flow-detail",
+    "aggregate_ids": [["flow", "wf-123"]],
     "event_types": ["flow_started", "step_completed", "flow_completed"]
   }
 }
 ```
 
-**Subscription Fields:**
-- `aggregate_id` (optional): Array identifying the aggregate to filter on. Use `["catalog"]` for step registry events, `["partition"]` for health and flow lifecycle events, or `["flow", "flow-id"]` for a specific flow's events.
-- `event_types` (optional): Array of event types to receive. If omitted, all event types for the aggregate are sent.
+Fields:
 
-**Examples:**
+- `sub_id`: required client-defined subscription ID
+- `aggregate_ids`: optional list of aggregate IDs to follow
+- `include_state`: optional flag controlling whether the server sends the initial `subscribed` projection batch. Omit it or set it to `false` for live events only; set it to `true` when you want the current projected state first
+- `event_types`: optional event type filter
 
-Subscribe to catalog events (step registration and updates):
+Single-aggregate subscriptions use a one-element `aggregate_ids` array. There is no separate `aggregate_id` field.
+
+To unsubscribe:
+
 ```json
 {
-  "type": "subscribe",
+  "type": "unsubscribe",
   "data": {
-    "aggregate_id": ["catalog"]
+    "sub_id": "flow-detail"
   }
 }
 ```
 
-Subscribe to partition events (health changes, flow activation):
+## Aggregate IDs
+
+- `["catalog"]`: step registry events
+- `["partition"]`: partition health events
+- `["flow", "flow-id"]`: flow execution events for one flow
+
+## Event Types
+
+### Catalog
+
+- `step_registered`
+- `step_unregistered`
+- `step_updated`
+
+### Partition
+
+- `step_health_changed`
+
+### Flow
+
+- `flow_started`
+- `flow_completed`
+- `flow_failed`
+- `flow_deactivated`
+- `step_started`
+- `step_completed`
+- `step_failed`
+- `step_skipped`
+- `attribute_set`
+- `work_started`
+- `work_succeeded`
+- `work_failed`
+- `work_not_completed`
+- `retry_scheduled`
+
+## Examples
+
+### Subscribe to Catalog Updates
+
 ```json
 {
   "type": "subscribe",
   "data": {
-    "aggregate_id": ["partition"]
+    "sub_id": "catalog",
+    "aggregate_ids": [["catalog"]]
   }
 }
 ```
 
-Subscribe to a specific flow's events:
+### Subscribe to Partition Health
+
 ```json
 {
   "type": "subscribe",
   "data": {
-    "aggregate_id": ["flow", "wf-123"]
+    "sub_id": "health",
+    "aggregate_ids": [["partition"]],
+    "event_types": ["step_health_changed"]
   }
 }
 ```
 
-Subscribe to only completion events for a flow:
+### Subscribe to a Specific Flow
+
 ```json
 {
   "type": "subscribe",
   "data": {
-    "aggregate_id": ["flow", "wf-123"],
-    "event_types": ["flow_completed", "flow_failed", "step_completed"]
+    "sub_id": "flow-detail",
+    "aggregate_ids": [["flow", "wf-123"]],
+    "event_types": ["flow_started", "step_completed", "flow_completed", "flow_failed"]
   }
 }
 ```
 
-### Client Implementation Pattern
+### Subscribe to Multiple Visible Flows
 
-The web UI maintains **three separate WebSocket connections**:
-1. One subscribed to `["catalog"]` for step registry events (step_registered, step_unregistered, step_updated)
-2. One subscribed to `["partition"]` for health and flow lifecycle events (step_health_changed, flow_activated, flow_deactivated)
-3. One subscribed to `["flow", flowId]` for a specific flow's execution events
+```json
+{
+  "type": "subscribe",
+  "data": {
+    "sub_id": "flow-list",
+    "aggregate_ids": [
+      ["flow", "wf-123"],
+      ["flow", "wf-456"],
+      ["flow", "wf-789"]
+    ],
+    "event_types": ["flow_started", "flow_completed", "flow_failed", "flow_deactivated"]
+  }
+}
+```
 
-This allows efficient filtering at the server level rather than discarding events on the client:
+## Client Pattern
+
+One WebSocket connection can carry multiple subscriptions. The web UI uses one connection and adds or removes subscriptions as needed:
+
+- catalog events
+- partition health
+- the currently selected flow
+- the currently visible flow rows in the selector list
+
+Use distinct `sub_id` values so you can replace or unsubscribe individual streams without reconnecting the socket.
+
+Use `include_state: true` for stateful subscriptions such as catalog, partition health, or the currently selected flow. Leave it omitted for high-churn ephemeral subscriptions where you only care about future events, such as a short-lived visible-row list in the flow selector.
+
+## Performance Notes
+
+- Filter aggressively with `aggregate_ids` and `event_types`
+- Use multi-aggregate subscriptions for short visible lists instead of broad unfiltered streams
+- Expect high event volume on busy flows
+- Reconnect on `close`, then resubscribe with the same filters
+
+## Example Client
 
 ```javascript
-// Connection for step registry
-const catalogWs = new WebSocket('ws://localhost:8080/engine/ws');
-catalogWs.onopen = () => {
-  catalogWs.send(JSON.stringify({
-    type: 'subscribe',
-    data: { aggregate_id: ['catalog'] }
-  }));
-};
-
-// Connection for health and flow lifecycle
-const partitionWs = new WebSocket('ws://localhost:8080/engine/ws');
-partitionWs.onopen = () => {
-  partitionWs.send(JSON.stringify({
-    type: 'subscribe',
-    data: { aggregate_id: ['partition'] }
-  }));
-};
-
-// Connection for specific flow
-const flowWs = new WebSocket('ws://localhost:8080/engine/ws');
-flowWs.onopen = () => {
-  flowWs.send(JSON.stringify({
-    type: 'subscribe',
-    data: { aggregate_id: ['flow', 'wf-123'] }
-  }));
-};
-```
-
-## Connection Management
-
-### Reconnection
-
-The WebSocket connection may drop. Your client should:
-1. Detect the disconnection (`onclose` event)
-2. Implement exponential backoff for reconnect attempts
-3. Resubscribe after reconnection with your desired filters
-
-**Example backoff with resubscription:**
-```javascript
-let reconnectDelay = 1000; // 1 second
-const maxDelay = 30000;    // 30 seconds
-const subscriptionFilter = {
-  type: 'subscribe',
-  data: { aggregate_id: ['flow', 'wf-123'] }
-};
-
-ws.onclose = () => {
-  setTimeout(() => {
-    ws = new WebSocket('ws://localhost:8080/engine/ws');
-    ws.onopen = () => {
-      ws.send(JSON.stringify(subscriptionFilter));
-    };
-    reconnectDelay = Math.min(reconnectDelay * 2, maxDelay);
-  }, reconnectDelay);
-};
-```
-
-## Performance Considerations
-
-- **Event volume**: High-concurrency scenarios may generate many events per second
-- **Reduce event traffic**: Use subscription filters to receive only relevant events, reducing network bandwidth and client processing overhead
-- **Multiple connections**: Consider using separate WebSocket connections for different aggregate IDs (e.g., one for catalog events, one for partition events, one for specific flow monitoring)
-- **Message queueing**: Large backlogs can cause memory growth in the server
-- **Parsing overhead**: Decode JSON and extract relevant fields on the client
-- **Best practice**: Subscribe with filters to minimize unnecessary data transfer; process and discard events as needed
-
-## Error Handling
-
-- **Network errors**: Handle `onerror` and `onclose` with reconnection logic
-- **Malformed events**: Add try-catch around JSON parsing
-- **Stale events**: WebSocket events are real-time but may arrive out-of-order across network boundaries
-
-## Example: Monitor a Specific Flow
-
-Subscribe to only the events you care about on the server, eliminating the need for client-side filtering:
-
-```javascript
-const flowIDToMonitor = 'wf-123';
-
-const ws = new WebSocket('ws://localhost:8080/engine/ws');
+const ws = new WebSocket("ws://localhost:8080/engine/ws");
 
 ws.onopen = () => {
-  // Subscribe to specific flow's completion-related events
   ws.send(JSON.stringify({
-    type: 'subscribe',
+    type: "subscribe",
     data: {
-      aggregate_id: ['flow', flowIDToMonitor],
-      event_types: ['flow_started', 'step_completed', 'flow_completed', 'flow_failed']
-    }
+      sub_id: "flow-detail",
+      aggregate_ids: [["flow", "wf-123"]],
+      event_types: ["flow_started", "step_completed", "flow_completed", "flow_failed"],
+    },
   }));
 };
 
 ws.onmessage = (event) => {
-  const engineEvent = JSON.parse(event.data);
+  const msg = JSON.parse(event.data);
 
-  switch (engineEvent.type) {
-    case 'flow_started':
-      console.log('Flow started:', engineEvent.data);
+  if (msg.type === "subscribed") {
+    console.log("initial projection", msg.items[0]);
+    return;
+  }
+
+  switch (msg.type) {
+    case "step_completed":
+      console.log("step completed", msg.data.step_id, msg.data.outputs);
       break;
-    case 'step_completed':
-      console.log(`Step ${engineEvent.data.step_id} completed`, engineEvent.data.outputs);
+    case "flow_completed":
+      console.log("flow completed", msg.data.result);
       break;
-    case 'flow_completed':
-      console.log('Flow completed with result:', engineEvent.data.result);
-      break;
-    case 'flow_failed':
-      console.error('Flow failed:', engineEvent.data.error);
+    case "flow_failed":
+      console.error("flow failed", msg.data.error);
       break;
   }
 };

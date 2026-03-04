@@ -18,6 +18,7 @@ export function useFlowDropdownManagement(
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(-1);
+  const [scrollTop, setScrollTop] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -28,6 +29,7 @@ export function useFlowDropdownManagement(
     setShowDropdown(false);
     setSearchTerm("");
     setSelectedIndex(-1);
+    setScrollTop(0);
   };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -100,11 +102,13 @@ export function useFlowDropdownManagement(
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    scrollTop,
     searchInputRef,
     dropdownRef,
     filteredFlows,
     handleSearchChange,
     handleKeyDown,
+    setScrollTop,
     selectFlow: navigateToFlow,
     closeDropdown,
     selectedFlow,

@@ -16,7 +16,8 @@ export interface WebSocketEvent {
 
 export interface WebSocketSubscribe {
   sub_id?: string;
-  aggregate_id?: string[];
+  aggregate_ids?: string[][];
+  include_state?: boolean;
   event_types?: string[];
 }
 
@@ -26,8 +27,12 @@ export interface WebSocketUnsubscribe {
 
 export interface WebSocketSubscribed {
   type: "subscribed";
+  items: WebSocketSubscribedItem[];
+  sub_id?: string;
+}
+
+export interface WebSocketSubscribedItem {
   id: string[];
   data: unknown;
   sequence: number;
-  sub_id?: string;
 }
