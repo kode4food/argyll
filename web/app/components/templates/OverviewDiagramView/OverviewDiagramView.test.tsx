@@ -10,7 +10,20 @@ const reactFlowMock = jest.fn(() => <div data-testid="react-flow" />);
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
   MiniMap: () => <div data-testid="mini-map" />,
-  Controls: () => <div data-testid="controls" />,
+  Controls: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="controls">{children}</div>
+  ),
+  ControlButton: ({
+    children,
+    ...props
+  }: {
+    children?: React.ReactNode;
+    [key: string]: any;
+  }) => (
+    <button data-testid="control-button" {...props}>
+      {children}
+    </button>
+  ),
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (

@@ -3,9 +3,9 @@
 }
 
 .portal {
-  background: var(--color-neutral-text);
+  background: var(--color-tooltip-bg);
   opacity: 0;
-  color: var(--color-white);
+  color: var(--color-tooltip-text);
   padding: var(--spacing-md);
   border-radius: var(--spacing-xs);
   box-shadow: var(--shadow-md);
@@ -28,7 +28,7 @@
   top: 100%;
   left: var(--spacing-lg);
   border: 6px solid transparent;
-  border-top-color: var(--color-neutral-text);
+  border-top-color: var(--color-tooltip-bg);
 }
 
 .portal.below::after {
@@ -37,5 +37,5 @@
   bottom: 100%;
   left: var(--spacing-lg);
   border: 6px solid transparent;
-  border-bottom-color: var(--color-neutral-text);
+  border-bottom-color: var(--color-tooltip-bg);
 }

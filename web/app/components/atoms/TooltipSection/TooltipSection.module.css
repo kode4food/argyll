@@ -8,14 +8,14 @@
 
 .label {
   font-size: var(--text-xs);
-  color: var(--overlay-light-70);
+  color: var(--color-tooltip-muted);
   margin-bottom: 2px;
   font-weight: var(--font-medium);
 }
 
 .value {
   font-size: var(--text-xs);
-  color: var(--color-white);
+  color: var(--color-tooltip-text);
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -34,13 +34,13 @@
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   white-space: pre-wrap;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--color-tooltip-code-bg);
   padding: var(--spacing-xs) 6px;
   border-radius: var(--radius-sm);
 }
 
 .codeMore {
-  color: var(--color-gray-muted);
+  color: var(--color-tooltip-muted);
   margin-top: var(--spacing-xs);
 }
 

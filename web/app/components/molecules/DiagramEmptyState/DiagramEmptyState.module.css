@@ -1,7 +1,7 @@
 /* Diagram Empty State */
 
 .wrapper {
-  background-color: var(--color-white);
+  background-color: var(--color-surface);
   border-radius: var(--radius-md);
   overflow: hidden;
   box-shadow: var(--shadow-md);

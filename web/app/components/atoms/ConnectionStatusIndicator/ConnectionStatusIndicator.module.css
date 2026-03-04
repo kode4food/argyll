@@ -11,7 +11,7 @@
   gap: 0.5rem;
   padding: var(--spacing-md) var(--spacing-lg);
   border-radius: var(--spacing-sm);
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--color-neutral-border);
   box-shadow:
     0 4px 6px -1px rgb(0 0 0 / 0.1),
     0 2px 4px -2px rgb(0 0 0 / 0.1);
@@ -70,5 +70,5 @@
 }
 
 .bgWhite {
-  background-color: var(--color-white);
+  background-color: var(--color-surface);
 }

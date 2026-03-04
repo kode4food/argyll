@@ -25,12 +25,14 @@ import {
   Loader2,
   Lock,
   MinusCircle,
+  Moon,
   Play,
   Plus,
   RefreshCw,
   Search,
   Server,
   Square,
+  Sun,
   Trash2,
   Webhook,
   Wifi,
@@ -56,6 +58,8 @@ export const IconSearch = Search;
 export const IconStartFlow = Play;
 export const IconCreateFlow = Play;
 export const IconNavigateOverview = Activity;
+export const IconThemeDark = Moon;
+export const IconThemeLight = Sun;
 export const IconEmptyState = Server;
 export const IconDiagramEmptyState = Server;
 export const IconDiagramLoading = Server;

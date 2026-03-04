@@ -6,7 +6,7 @@
 }
 
 .containerOverviewMode {
-  background-color: var(--color-white);
+  background-color: var(--color-surface-elevated);
 }
 
 .emptyStateContainer {
@@ -14,7 +14,7 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  background-color: var(--color-white);
+  background-color: var(--color-surface-elevated);
 }
 
 /* Overview Header */
@@ -34,14 +34,14 @@
 .overviewTitle {
   font-size: var(--text-base);
   font-weight: var(--font-medium);
-  color: var(--color-neutral-text);
+  color: #374151;
 }
 
 .overviewStats {
   display: flex;
   align-items: center;
   font-size: var(--text-xs);
-  color: var(--color-neutral-text);
+  color: #374151;
 }
 
 .overviewAddStep {
@@ -52,18 +52,22 @@
   padding: var(--spacing-xs);
   border: none;
   border-radius: 9999px;
-  background-color: #e6bd8c;
-  color: #6a5d53;
+  background-color: color-mix(in srgb, var(--color-primary-light) 80%, black);
+  color: #374151;
   transition: background-color 0.2s;
   cursor: pointer;
 }
 
 .overviewAddStep:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, #6a5d53 60%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, #374151 40%, transparent);
 }
 
 .overviewAddStep:hover,
 .overviewAddStep:focus-visible {
-  background-color: color-mix(in srgb, #e6bd8c 90%, white);
+  background-color: color-mix(
+    in srgb,
+    var(--color-primary-light) 90%,
+    var(--color-surface)
+  );
 }

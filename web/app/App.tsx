@@ -12,6 +12,7 @@ import deCH from "./i18n/de-CH.json";
 import frCH from "./i18n/fr-CH.json";
 import itCH from "./i18n/it-CH.json";
 import { useLocale } from "./store/i18nStore";
+import { useTheme } from "./store/themeStore";
 
 const AUTOFILL_TARGET_SELECTOR =
   "input:not([type='password']), textarea, select";
@@ -58,6 +59,8 @@ const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({
 };
 
 const App: React.FC = () => {
+  const theme = useTheme();
+
   React.useEffect(() => {
     const handleInputInteraction = (event: Event): void => {
       if (!(event.target instanceof Element)) {
@@ -79,6 +82,10 @@ const App: React.FC = () => {
       document.removeEventListener("focusin", handleInputInteraction, true);
     };
   }, []);
+
+  React.useEffect(() => {
+    document.documentElement.setAttribute("data-theme", theme);
+  }, [theme]);
 
   return (
     <Router>

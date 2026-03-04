@@ -80,7 +80,8 @@
   border: 1px solid var(--color-neutral-border);
   border-radius: var(--spacing-xs);
   font-size: var(--text-sm);
-  background: white;
+  background: var(--color-surface);
+  color: var(--color-neutral-text);
   transition: var(--transition-all);
 }
 
@@ -100,7 +101,7 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: white;
+  background: var(--color-surface);
   border: 1px solid var(--color-neutral-border);
   border-radius: var(--spacing-xs);
   box-shadow: var(--shadow-md);
@@ -172,7 +173,7 @@
 /* Selector Layout */
 .selector {
   position: relative;
-  background-color: var(--color-white);
+  background-color: var(--color-surface-elevated);
   border-bottom: 1px solid var(--color-neutral-border);
   padding: var(--spacing-md) var(--spacing-lg);
 }
@@ -233,7 +234,8 @@
   border-radius: var(--spacing-xs);
   padding: var(--spacing-md) var(--spacing-md);
   font-size: var(--text-sm);
-  background: white;
+  background: var(--color-surface);
+  color: var(--color-neutral-text);
   cursor: pointer;
   min-width: 300px;
   text-align: left;

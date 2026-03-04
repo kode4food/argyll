@@ -3,7 +3,7 @@
 .fallback {
   width: 100%;
   height: 100%;
-  background-color: var(--color-code-bg);
+  background-color: var(--color-dark-bg-secondary, var(--color-code-bg));
 }
 
 .codemirror {

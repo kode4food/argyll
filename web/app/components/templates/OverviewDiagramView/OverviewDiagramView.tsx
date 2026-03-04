@@ -3,6 +3,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Controls,
+  ControlButton,
   Background,
   BackgroundVariant,
   useNodesState,
@@ -12,7 +13,11 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
-import { IconDiagramEmptyState } from "@/utils/iconRegistry";
+import {
+  IconDiagramEmptyState,
+  IconThemeDark,
+  IconThemeLight,
+} from "@/utils/iconRegistry";
 import Node from "@/app/components/organisms/OverviewStep/Node";
 import Legend from "@/app/components/molecules/Legend";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
@@ -31,6 +36,7 @@ import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
 import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useLayoutPlan } from "./useLayoutPlan";
+import { useTheme, useToggleTheme } from "@/app/store/themeStore";
 
 interface OverviewDiagramViewProps {
   steps: Step[];
@@ -44,6 +50,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   steps = [],
 }) => {
   const t = useT();
+  const theme = useTheme();
+  const toggleTheme = useToggleTheme();
   const { goalSteps, setGoalSteps } = useDiagramSelection();
   const activeGoalStepId =
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
@@ -250,7 +258,23 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
         className="overview-mode-bg"
         proOptions={{ hideAttribution: true }}
       >
-        <Controls showInteractive={false} className="diagram-controls" />
+        <Controls showInteractive={false} className="diagram-controls">
+          <ControlButton
+            onClick={toggleTheme}
+            title={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {theme === "dark" ? (
+              <IconThemeLight aria-hidden="true" />
+            ) : (
+              <IconThemeDark aria-hidden="true" />
+            )}
+          </ControlButton>
+        </Controls>
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}

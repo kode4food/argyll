@@ -3,6 +3,7 @@ import {
   ReactFlow,
   ReactFlowProvider,
   Controls,
+  ControlButton,
   Background,
   BackgroundVariant,
   useReactFlow,
@@ -12,7 +13,11 @@ import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import { IconDiagramLoading } from "@/utils/iconRegistry";
+import {
+  IconDiagramLoading,
+  IconThemeDark,
+  IconThemeLight,
+} from "@/utils/iconRegistry";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
@@ -22,6 +27,7 @@ import { STEP_LAYOUT } from "@/constants/layout";
 import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useStepVisibility } from "./useStepVisibility";
+import { useTheme, useToggleTheme } from "@/app/store/themeStore";
 
 interface LiveDiagramViewProps {
   steps: Step[];
@@ -41,6 +47,8 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   resolvedAttributes = [],
 }) => {
   const t = useT();
+  const theme = useTheme();
+  const toggleTheme = useToggleTheme();
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "flow";
   const { disableEdit, diagramContainerRef } = useUI();
@@ -134,7 +142,23 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
         className="flow-mode-bg"
         proOptions={{ hideAttribution: true }}
       >
-        <Controls showInteractive={false} className="diagram-controls" />
+        <Controls showInteractive={false} className="diagram-controls">
+          <ControlButton
+            onClick={toggleTheme}
+            title={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+            aria-label={
+              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
+            }
+          >
+            {theme === "dark" ? (
+              <IconThemeLight aria-hidden="true" />
+            ) : (
+              <IconThemeDark aria-hidden="true" />
+            )}
+          </ControlButton>
+        </Controls>
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}

@@ -18,6 +18,10 @@
   position: relative;
   pointer-events: all;
   --arg-focus-border-color: var(--step-widget-border-color);
+  /* Keep step widget typography stable across global theme switches. */
+  --color-neutral-text: #374151;
+  --color-pending: #6b7280;
+  color: var(--color-neutral-text);
 }
 
 /* ReactFlow Diagram Overrides */
@@ -36,6 +40,29 @@
 .react-flow__controls.diagram-controls {
   bottom: 1rem !important;
   left: 1rem !important;
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--color-surface-elevated);
+}
+
+.react-flow__controls.diagram-controls .react-flow__controls-button {
+  background-color: var(--color-surface);
+  color: var(--color-neutral-text);
+  border-bottom: 1px solid var(--color-neutral-border);
+}
+
+.react-flow__controls.diagram-controls .react-flow__controls-button:last-child {
+  border-bottom: none;
+}
+
+.react-flow__controls.diagram-controls .react-flow__controls-button:hover {
+  background-color: var(--color-neutral-bg-dark);
+}
+
+.react-flow__controls.diagram-controls .react-flow__controls-button svg {
+  fill: currentColor;
 }
 
 .react-flow__background.diagram-background {
