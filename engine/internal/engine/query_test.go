@@ -1,12 +1,14 @@
 package engine_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"testing"
 	"time"
 
 	"github.com/kode4food/timebox"
+	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -14,6 +16,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestQueryFlows(t *testing.T) {
@@ -65,6 +68,18 @@ func TestListFlows(t *testing.T) {
 		flows, err := env.Engine.ListFlows()
 		assert.NoError(t, err)
 		assert.NotEmpty(t, flows)
+	})
+}
+
+func TestListFlowsBadStatus(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		addStatusEntry(t, env, events.FlowStatusActive, "bad-id", time.Now())
+
+		_, err := env.Engine.ListFlows()
+		assert.ErrorIs(t, err, engine.ErrQueryFlows)
 	})
 }
 
@@ -274,6 +289,77 @@ func TestQueryFlowsInvalidCursor(t *testing.T) {
 	})
 }
 
+func TestQueryFlowsBadCursorJSON(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Cursor: "bm90LWpzb24",
+		})
+		assert.Error(t, err)
+		assert.True(t, errors.Is(err, engine.ErrInvalidFlowCursor))
+	})
+}
+
+func TestQueryFlowsBadStatus(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		addStatusEntry(t, env, events.FlowStatusActive, "bad-id", time.Now())
+
+		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowActive},
+		})
+		assert.ErrorIs(t, err, engine.ErrQueryFlows)
+	})
+}
+
+func TestQueryFlowsStaleLabels(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		addStatusEntry(t, env,
+			events.FlowStatusCompleted, "flow:missing-labels", time.Now(),
+		)
+
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Labels:   api.Labels{"tier": "done"},
+		})
+		assert.NoError(t, err)
+		assert.Empty(t, resp.Flows)
+	})
+}
+
+func TestQueryFlowsNoLabels(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("no-label-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		env.WaitForFlowStatus("flow-no-labels", func() {
+			assert.NoError(t, env.Engine.StartFlow("flow-no-labels", plan))
+		})
+
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Labels: api.Labels{"tier": "done"},
+		})
+		assert.NoError(t, err)
+		assert.Empty(t, resp.Flows)
+	})
+}
+
 func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -350,6 +436,89 @@ func TestQueryFlowsSkipsChildFlows(t *testing.T) {
 	})
 }
 
+func TestQueryFlowsBadStatuses(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("status-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		env.WaitForFlowStatus("flow-status", func() {
+			assert.NoError(t, env.Engine.StartFlow("flow-status", plan))
+		})
+
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{
+				api.FlowCompleted,
+				api.FlowCompleted,
+				api.FlowStatus("bogus"),
+			},
+		})
+		assert.NoError(t, err)
+		assert.Len(t, resp.Flows, 1)
+		assert.Equal(t, api.FlowID("flow-status"), resp.Flows[0].ID)
+	})
+}
+
+func TestQueryFlowsPageDesc(t *testing.T) {
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		Clock: func() time.Time { return now },
+	}, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("page-desc-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		env.WaitForFlowStatus("page-desc-a", func() {
+			assert.NoError(t, env.Engine.StartFlow("page-desc-a", plan))
+		})
+		now = now.Add(10 * time.Millisecond)
+
+		env.WaitForFlowStatus("page-desc-b", func() {
+			assert.NoError(t, env.Engine.StartFlow("page-desc-b", plan))
+		})
+
+		waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+		}, 2)
+
+		first := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentDesc,
+			Limit:    1,
+		}, 1)
+		assert.True(t, first.HasMore)
+		assert.NotEmpty(t, first.NextCursor)
+
+		second, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Sort:     api.FlowSortRecentDesc,
+			Limit:    1,
+			Cursor:   first.NextCursor,
+		})
+		assert.NoError(t, err)
+		assert.Equal(t, 1, second.Count)
+		assert.NotEqual(t,
+			first.Flows[0].ID, second.Flows[0].ID,
+		)
+	})
+}
+
 func waitForQueryFlow(
 	t *testing.T, eng *engine.Engine, req *api.QueryFlowsRequest,
 	expected api.FlowID,
@@ -409,4 +578,19 @@ func flowRecent(digest *api.FlowDigest) time.Time {
 		return digest.CompletedAt
 	}
 	return digest.CreatedAt
+}
+
+func addStatusEntry(
+	t *testing.T, env *helpers.TestEngineEnv, status, id string, at time.Time,
+) {
+	t.Helper()
+
+	cli := redis.NewClient(&redis.Options{Addr: env.Redis.Addr()})
+	defer func() { _ = cli.Close() }()
+
+	err := cli.ZAdd(context.Background(),
+		"test-flow:status:"+status,
+		redis.Z{Score: float64(at.UnixMilli()), Member: id},
+	).Err()
+	assert.NoError(t, err)
 }

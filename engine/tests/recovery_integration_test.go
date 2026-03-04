@@ -258,7 +258,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		// Step 1: Will have Pending work (hasn't started yet)
+		// Step 1: Active step with pending work
 		pending := helpers.NewSimpleStep("pending-step")
 		pending.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
@@ -267,7 +267,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		// Step 2: Will have NotCompleted work (failed but retryable)
+		// Step 2: Active step with not-completed work
 		retry := helpers.NewSimpleStep("not-completed-step")
 		retry.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
@@ -276,7 +276,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		// Step 3: Will have Failed work (perm failure, max retries reached)
+		// Step 3: Terminal failed flow
 		failed := helpers.NewSimpleStep("failed-step")
 		failed.WorkConfig = &api.WorkConfig{
 			MaxRetries:  1,
@@ -285,14 +285,12 @@ func TestRecoveryWorkStates(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(pending))
-		assert.NoError(t, env.Engine.RegisterStep(retry))
-		assert.NoError(t, env.Engine.RegisterStep(failed))
+		pendingToken := api.Token("pending-token")
+		retryToken := api.Token("retry-token")
+		failedToken := api.Token("failed-token")
 
-		// Set up mock responses
 		env.MockClient.SetResponse(pending.ID, api.Args{})
-		env.MockClient.SetError(retry.ID, api.ErrWorkNotCompleted)
-		env.MockClient.SetError(failed.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetResponse(retry.ID, api.Args{})
 
 		plan1 := &api.ExecutionPlan{
 			Goals: []api.StepID{pending.ID},
@@ -311,32 +309,110 @@ func TestRecoveryWorkStates(t *testing.T) {
 		notCompletedFlowID := api.FlowID("not-completed-flow")
 		failedFlowID := api.FlowID("failed-flow")
 
-		env.WaitAfterAll(2, func(waits []*wait.Wait) {
-			assert.NoError(t,
-				env.Engine.StartFlow(notCompletedFlowID, plan2),
-			)
-			waits[0].ForEvent(wait.FlowActivated(notCompletedFlowID))
-			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: notCompletedFlowID,
-				StepID: retry.ID,
-			}))
-		})
+		assert.NoError(t, env.RaiseFlowEvents(
+			pendingFlowID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: pendingFlowID,
+					Plan:   plan1,
+					Init:   api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: pendingFlowID,
+					StepID: pending.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						pendingToken: {},
+					},
+				},
+			},
+		))
 
-		// Wait for failed flow to fail
-		env.WaitForFlowStatus(failedFlowID, func() {
-			assert.NoError(t, env.Engine.StartFlow(failedFlowID, plan3))
-		})
+		assert.NoError(t, env.RaiseFlowEvents(
+			notCompletedFlowID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: notCompletedFlowID,
+					Plan:   plan2,
+					Init:   api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: notCompletedFlowID,
+					StepID: retry.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						retryToken: {},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkNotCompleted,
+				Data: api.WorkNotCompletedEvent{
+					FlowID: notCompletedFlowID,
+					StepID: retry.ID,
+					Token:  retryToken,
+					Error:  api.ErrWorkNotCompleted.Error(),
+				},
+			},
+		))
 
-		// Start pending flow just before shutdown
-		env.WaitFor(wait.FlowActivated(pendingFlowID), func() {
-			assert.NoError(t, env.Engine.StartFlow(pendingFlowID, plan1))
-		})
+		assert.NoError(t, env.RaiseFlowEvents(
+			failedFlowID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: failedFlowID,
+					Plan:   plan3,
+					Init:   api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: failedFlowID,
+					StepID: failed.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						failedToken: {},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkFailed,
+				Data: api.WorkFailedEvent{
+					FlowID: failedFlowID,
+					StepID: failed.ID,
+					Token:  failedToken,
+					Error:  "failed",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepFailed,
+				Data: api.StepFailedEvent{
+					FlowID: failedFlowID,
+					StepID: failed.ID,
+					Error:  "failed",
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowFailed,
+				Data: api.FlowFailedEvent{
+					FlowID: failedFlowID,
+					Error:  "failed",
+				},
+			},
+		))
 
 		err := env.Engine.Stop()
 		assert.NoError(t, err)
-
-		env.MockClient.ClearError(retry.ID)
-		env.MockClient.SetResponse(retry.ID, api.Args{})
 
 		env.Engine, err = env.NewEngineInstance()
 		assert.NoError(t, err)
@@ -348,7 +424,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 
 		// Verify recovery behavior:
 
-		// 1. Pending flow should complete (was never started, now executes)
+			// 1. Pending work should execute and complete after recovery
 		recovered := waitForFlowsStatusWithTimeoutAfter(
 			env,
 			[]api.FlowID{pendingFlowID, notCompletedFlowID},
