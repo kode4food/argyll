@@ -322,6 +322,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
 			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -357,6 +358,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
 			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -407,6 +409,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
 			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -458,6 +461,7 @@ func TestClientPongHandler(t *testing.T) {
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
 			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 		},
 	}
 	err = env.Conn.WriteJSON(sub)
@@ -485,6 +489,7 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 		Data: api.ClientSubscription{
 			SubscriptionID: "sub-1",
 			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+			IncludeState:   true,
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
@@ -549,6 +554,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
 				AggregateIDs:   [][]string{{events.CatalogPrefix}},
+				IncludeState:   true,
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -577,6 +583,7 @@ func TestSocketCallbackPartition(t *testing.T) {
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
 				AggregateIDs:   [][]string{{events.PartitionPrefix}},
+				IncludeState:   true,
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -610,6 +617,7 @@ func TestSocketCallbackFlow(t *testing.T) {
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
 				AggregateIDs:   [][]string{{events.FlowPrefix, "wf-123"}},
+				IncludeState:   true,
 			},
 		}
 		err = ws.Conn.WriteJSON(sub)
@@ -643,6 +651,7 @@ func TestSocketCallbackPrefixOrUnknownAgg(t *testing.T) {
 				Data: api.ClientSubscription{
 					SubscriptionID: "sub-1",
 					AggregateIDs:   [][]string{aggregateID},
+					IncludeState:   true,
 				},
 			}
 			err := ws.Conn.WriteJSON(sub)
