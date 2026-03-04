@@ -33,14 +33,15 @@ type (
 	}
 
 	flowCandidate struct {
-		id            api.FlowID
-		deactivatedAt time.Time
+		id       api.FlowID
+		statusAt time.Time
 	}
 )
 
 var (
 	ErrFlowStoreRequired   = errors.New("flow store is required")
 	ErrRedisClientRequired = errors.New("redis client is required")
+	ErrSelectFlowsFailed   = errors.New("failed to select flows")
 )
 
 func NewArchiver(
@@ -138,8 +139,8 @@ func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 			continue
 		}
 
-		if err := a.flowStore.RemoveAggregateFromStatus(
-			bg, events.FlowKey(flowID), events.FlowStatusDeactivated,
+		if err := events.RemoveFlowFromStatuses(
+			bg, a.flowStore, flowID,
 		); err != nil {
 			slog.Warn("Failed to clear archived flow index",
 				slog.String("flow_id", string(flowID)),
@@ -204,26 +205,36 @@ func (a *Archiver) selectFlows(
 	}
 
 	entries, err := a.flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusDeactivated,
+		context.Background(), events.FlowStatusCompleted,
 	)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrSelectFlowsFailed, err)
 	}
 
-	selected := make([]flowCandidate, 0, len(entries))
-	for _, entry := range entries {
-		flowID, ok := events.ParseFlowID(entry.ID)
-		if !ok {
-			continue
+	failed, err := a.flowStore.ListAggregatesByStatus(
+		context.Background(), events.FlowStatusFailed,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %w", ErrSelectFlowsFailed, err)
+	}
+
+	selected := make([]flowCandidate, 0, len(entries)+len(failed))
+	for _, group := range [][]timebox.StatusEntry{entries, failed} {
+		for _, entry := range group {
+			flowID, ok := events.ParseFlowID(entry.ID)
+			if !ok {
+				return nil, fmt.Errorf("%w: invalid flow status entry %s",
+					ErrSelectFlowsFailed, entry.ID.Join(":"))
+			}
+			selected = append(selected, flowCandidate{
+				id:       flowID,
+				statusAt: entry.Timestamp,
+			})
 		}
-		selected = append(selected, flowCandidate{
-			id:            flowID,
-			deactivatedAt: entry.Timestamp,
-		})
 	}
 
 	sort.Slice(selected, func(i, j int) bool {
-		return selected[i].deactivatedAt.Before(selected[j].deactivatedAt)
+		return selected[i].statusAt.Before(selected[j].statusAt)
 	})
 
 	if opts.maxAge <= 0 {
@@ -232,7 +243,7 @@ func (a *Archiver) selectFlows(
 
 	ready := make([]flowCandidate, 0, len(selected))
 	for _, cand := range selected {
-		if now.Sub(cand.deactivatedAt) <= opts.maxAge {
+		if now.Sub(cand.statusAt) <= opts.maxAge {
 			break
 		}
 		ready = append(ready, cand)

@@ -23,20 +23,14 @@ export class ArgyllApi {
   }
 
   private convertListItem(item: QueryFlowsItem): FlowContext {
+    const active = (item.digest?.status || "active") === "active";
     return {
       id: item.id,
       status: item.digest?.status || "active",
       state: {},
-      error_state: item.digest?.error
-        ? {
-            message: item.digest.error,
-            step_id: "",
-            timestamp: new Date().toISOString(),
-          }
-        : undefined,
       plan: undefined,
       started_at: item.digest?.created_at || new Date().toISOString(),
-      completed_at: item.digest?.completed_at,
+      completed_at: active ? undefined : item.digest?.completed_at,
     };
   }
 

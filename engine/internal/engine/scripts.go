@@ -1,6 +1,14 @@
 package engine
 
-import "github.com/kode4food/argyll/engine/pkg/api"
+import (
+	"errors"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+)
+
+var (
+	ErrStepNotInPlan = errors.New("step not in execution plan")
+)
 
 // GetCompiledPredicate retrieves the compiled predicate for a flow step.
 func (e *Engine) GetCompiledPredicate(fs api.FlowStep) (any, error) {

@@ -22,6 +22,8 @@ type (
 
 var (
 	ErrInvalidStep        = errors.New("invalid step")
+	ErrStepExists         = errors.New("step exists")
+	ErrStepNotFound       = errors.New("step not found")
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
 	ErrLangNotValid       = errors.New("language not valid in this context")

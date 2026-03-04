@@ -19,7 +19,10 @@ type flowTx struct {
 	flowID api.FlowID
 }
 
-var ErrInvariantViolated = errors.New("engine invariant violated")
+var (
+	ErrFlowExists        = errors.New("flow exists")
+	ErrInvariantViolated = errors.New("engine invariant violated")
+)
 
 // StartFlow begins a new flow execution with the given plan and options
 func (e *Engine) StartFlow(

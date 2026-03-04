@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
@@ -11,6 +12,11 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
+)
+
+var (
+	ErrWorkItemNotFound      = errors.New("work item not found")
+	ErrInvalidWorkTransition = errors.New("invalid work state transition")
 )
 
 // CompleteWork marks a work item as successfully completed with the given

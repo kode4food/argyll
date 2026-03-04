@@ -1,11 +1,16 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"log/slog"
 	"time"
 
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
+)
+
+var (
+	ErrRecoverFlows = errors.New("failed to recover flows")
 )
 
 // Start begins processing flows and events

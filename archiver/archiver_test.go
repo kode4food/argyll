@@ -106,7 +106,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	entries, err := flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusDeactivated,
+		context.Background(), events.FlowStatusCompleted,
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
@@ -172,7 +172,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	entries, err := flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusDeactivated,
+		context.Background(), events.FlowStatusCompleted,
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
@@ -255,7 +255,10 @@ func seedDeactivatedFlow(
 			}
 			return events.Raise(
 				ag, api.EventTypeFlowDeactivated,
-				api.FlowDeactivatedEvent{FlowID: flowID},
+				api.FlowDeactivatedEvent{
+					FlowID: flowID,
+					Status: api.FlowCompleted,
+				},
 			)
 		},
 	)

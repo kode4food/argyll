@@ -70,7 +70,7 @@ func LoadFromEnv() (Config, error) {
 	cfg.FlowStore.JoinKey = events.FlowJoinKey
 	cfg.FlowStore.ParseKey = events.FlowParseKey
 
-	loadStoreConfigFromEnv(&cfg.FlowStore, "FLOW")
+	loadStoreConfigFromEnv(&cfg.FlowStore, "PARTITION")
 
 	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {

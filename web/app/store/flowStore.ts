@@ -92,6 +92,33 @@ const mergeResolvedAttributes = (
   return Array.from(resolved);
 };
 
+const toFlowListContext = (item: {
+  id: string;
+  digest?: {
+    status: FlowContext["status"];
+    created_at: string;
+    completed_at?: string;
+    error?: string;
+  };
+}): FlowContext => {
+  const active = (item.digest?.status || "active") === "active";
+  return {
+    id: item.id,
+    status: item.digest?.status || "active",
+    state: {},
+    error_state: item.digest?.error
+      ? {
+          message: item.digest.error,
+          step_id: "",
+          timestamp: new Date().toISOString(),
+        }
+      : undefined,
+    plan: undefined,
+    started_at: item.digest?.created_at || new Date().toISOString(),
+    completed_at: active ? undefined : item.digest?.completed_at,
+  };
+};
+
 interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
@@ -194,21 +221,7 @@ export const useFlowStore = create<FlowState>()(
         try {
           set({ flowsLoading: true });
           const resp = await api.listFlowsPage({ limit: FlowListPageSize });
-          const flows = (resp.flows || []).map((item) => ({
-            id: item.id,
-            status: item.digest?.status || "active",
-            state: {},
-            error_state: item.digest?.error
-              ? {
-                  message: item.digest.error,
-                  step_id: "",
-                  timestamp: new Date().toISOString(),
-                }
-              : undefined,
-            plan: undefined,
-            started_at: item.digest?.created_at || new Date().toISOString(),
-            completed_at: item.digest?.completed_at,
-          }));
+          const flows = (resp.flows || []).map(toFlowListContext);
           set({
             flows: flows.sort(compareFlows),
             flowsCursor: resp.next_cursor ?? null,
@@ -236,21 +249,7 @@ export const useFlowStore = create<FlowState>()(
             limit: FlowListPageSize,
             cursor: flowsCursor ?? undefined,
           });
-          const moreFlows = (resp.flows || []).map((item) => ({
-            id: item.id,
-            status: item.digest?.status || "active",
-            state: {},
-            error_state: item.digest?.error
-              ? {
-                  message: item.digest.error,
-                  step_id: "",
-                  timestamp: new Date().toISOString(),
-                }
-              : undefined,
-            plan: undefined,
-            started_at: item.digest?.created_at || new Date().toISOString(),
-            completed_at: item.digest?.completed_at,
-          }));
+          const moreFlows = (resp.flows || []).map(toFlowListContext);
           const merged = [...flows, ...moreFlows];
           set({
             flows: merged.sort(compareFlows),

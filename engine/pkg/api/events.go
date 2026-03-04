@@ -129,7 +129,8 @@ type (
 
 	// FlowDeactivatedEvent is emitted when a flow becomes inactive
 	FlowDeactivatedEvent struct {
-		FlowID FlowID `json:"flow_id"`
+		FlowID FlowID     `json:"flow_id"`
+		Status FlowStatus `json:"status"`
 	}
 
 	EventType string

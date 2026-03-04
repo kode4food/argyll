@@ -29,6 +29,7 @@ type (
 
 var (
 	ErrStepAlreadyPending     = errors.New("step not pending")
+	ErrScriptCompileFailed    = errors.New("failed to compile scripts for plan")
 	ErrUnsupportedStepType    = errors.New("unsupported step type")
 	ErrPredicateCompileFailed = errors.New("predicate compilation failed")
 	ErrPredicateEnvFailed     = errors.New("failed to get script environment")

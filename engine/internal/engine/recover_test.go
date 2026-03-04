@@ -736,7 +736,10 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 			deactivatedFlowID,
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowDeactivated,
-				Data: api.FlowDeactivatedEvent{FlowID: deactivatedFlowID},
+				Data: api.FlowDeactivatedEvent{
+					FlowID: deactivatedFlowID,
+					Status: api.FlowCompleted,
+				},
 			},
 		))
 

@@ -10,10 +10,10 @@ import (
 )
 
 func TestLoadFromEnvParsesValues(t *testing.T) {
-	t.Setenv("FLOW_REDIS_ADDR", "redis:6379")
-	t.Setenv("FLOW_REDIS_PASSWORD", "secret")
-	t.Setenv("FLOW_REDIS_DB", "2")
-	t.Setenv("FLOW_REDIS_PREFIX", "argyll:flow")
+	t.Setenv("PARTITION_REDIS_ADDR", "redis:6379")
+	t.Setenv("PARTITION_REDIS_PASSWORD", "secret")
+	t.Setenv("PARTITION_REDIS_DB", "2")
+	t.Setenv("PARTITION_REDIS_PREFIX", "argyll:flow")
 	t.Setenv("ARCHIVE_MEMORY_PERCENT", "75.5")
 	t.Setenv("ARCHIVE_MAX_AGE", "2h")
 	t.Setenv("ARCHIVE_MEMORY_CHECK_INTERVAL", "3s")

@@ -11,9 +11,10 @@ import (
 )
 
 const (
-	FlowPrefix            = "flow"
-	FlowStatusActive      = "active"
-	FlowStatusDeactivated = "deactivated"
+	FlowPrefix          = "flow"
+	FlowStatusActive    = "active"
+	FlowStatusCompleted = "completed"
+	FlowStatusFailed    = "failed"
 )
 
 // FlowAppliers contains the event applier functions for flow events
@@ -50,20 +51,27 @@ func RemoveFlowFromStatuses(
 	id := FlowKey(flowID)
 	return errors.Join(
 		store.RemoveAggregateFromStatus(ctx, id, FlowStatusActive),
-		store.RemoveAggregateFromStatus(ctx, id, FlowStatusDeactivated),
+		store.RemoveAggregateFromStatus(ctx, id, FlowStatusCompleted),
+		store.RemoveAggregateFromStatus(ctx, id, FlowStatusFailed),
 	)
 }
 
 func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 	res := make([]*timebox.Index, 0, len(evs))
+	handleDeactivated := timebox.MakeHandler(
+		func(_ *timebox.Event, data api.FlowDeactivatedEvent) error {
+			status := string(data.Status)
+			res = append(res, &timebox.Index{Status: &status})
+			return nil
+		},
+	)
 	for _, ev := range evs {
 		switch api.EventType(ev.Type) {
 		case api.EventTypeFlowStarted:
 			status := FlowStatusActive
 			res = append(res, &timebox.Index{Status: &status})
 		case api.EventTypeFlowDeactivated:
-			status := FlowStatusDeactivated
-			res = append(res, &timebox.Index{Status: &status})
+			_ = handleDeactivated(ev)
 		}
 	}
 	return res

@@ -102,7 +102,10 @@ func (tx *flowTx) maybeDeactivate() error {
 		return nil
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowDeactivated,
-		api.FlowDeactivatedEvent{FlowID: tx.flowID},
+		api.FlowDeactivatedEvent{
+			FlowID: tx.flowID,
+			Status: flow.Status,
+		},
 	); err != nil {
 		return err
 	}

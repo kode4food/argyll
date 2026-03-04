@@ -113,7 +113,11 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	res := make([]api.FlowID, 0, len(entries))
 	for _, entry := range entries {
 		flowID, ok := events.ParseFlowID(entry.ID)
-		if !ok || seen.Contains(flowID) {
+		if !ok {
+			return nil, fmt.Errorf("%w: invalid flow status entry %s",
+				ErrListActiveFlows, entry.ID.Join(":"))
+		}
+		if seen.Contains(flowID) {
 			continue
 		}
 		seen.Add(flowID)

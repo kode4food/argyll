@@ -1,10 +1,15 @@
 package engine
 
 import (
+	"errors"
 	"slices"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+)
+
+var (
+	ErrFlowNotFound = errors.New("flow not found")
 )
 
 // GetFlowState retrieves the current state of a flow by its ID.
