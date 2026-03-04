@@ -104,15 +104,15 @@ func (e *Engine) recoverRetryWork(flow *api.FlowState) {
 
 func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	store := e.flowExec.GetStore()
-	ids, err := store.ListAggregatesByStatus(e.ctx, status)
+	entries, err := store.ListAggregatesByStatus(e.ctx, status)
 	if err != nil {
 		return nil, err
 	}
 
 	seen := util.Set[api.FlowID]{}
-	res := make([]api.FlowID, 0, len(ids))
-	for _, id := range ids {
-		flowID, ok := events.ParseFlowID(id)
+	res := make([]api.FlowID, 0, len(entries))
+	for _, entry := range entries {
+		flowID, ok := events.ParseFlowID(entry.ID)
 		if !ok || seen.Contains(flowID) {
 			continue
 		}

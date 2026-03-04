@@ -105,11 +105,11 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	ids, err := flowStore.ListAggregatesByStatus(
+	entries, err := flowStore.ListAggregatesByStatus(
 		context.Background(), events.FlowStatusDeactivated,
 	)
 	assert.NoError(t, err)
-	assert.NotContains(t, ids, events.FlowKey(flowID))
+	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
 }
 
 func TestArchiverPressureArchives(t *testing.T) {
@@ -171,11 +171,25 @@ func TestArchiverPressureArchives(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	ids, err := flowStore.ListAggregatesByStatus(
+	entries, err := flowStore.ListAggregatesByStatus(
 		context.Background(), events.FlowStatusDeactivated,
 	)
 	assert.NoError(t, err)
-	assert.NotContains(t, ids, events.FlowKey(flowID))
+	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
+}
+
+func containsStatusEntry(
+	entries []timebox.StatusEntry, id timebox.AggregateID,
+) bool {
+	for _, entry := range entries {
+		if entry.ID == nil {
+			continue
+		}
+		if entry.ID.Join(":") == id.Join(":") {
+			return true
+		}
+	}
+	return false
 }
 
 func setupStore(t *testing.T, redisAddr string) *timebox.Store {

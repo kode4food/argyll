@@ -20,7 +20,6 @@ import (
 
 type (
 	Archiver struct {
-		flowExec    *timebox.Executor[*api.FlowState]
 		flowStore   *timebox.Store
 		redisClient *redis.Client
 		config      Config
@@ -58,9 +57,6 @@ func NewArchiver(
 	}
 
 	return &Archiver{
-		flowExec: timebox.NewExecutor(
-			flowStore, events.NewFlowState, events.FlowAppliers,
-		),
 		flowStore:   flowStore,
 		redisClient: redisClient,
 		config:      cfg,
@@ -207,29 +203,22 @@ func (a *Archiver) selectFlows(
 		return nil, nil
 	}
 
-	ids, err := a.flowStore.ListAggregatesByStatus(
+	entries, err := a.flowStore.ListAggregatesByStatus(
 		context.Background(), events.FlowStatusDeactivated,
 	)
 	if err != nil {
 		return nil, err
 	}
 
-	selected := make([]flowCandidate, 0, len(ids))
-	for _, id := range ids {
-		flowID, ok := events.ParseFlowID(id)
+	selected := make([]flowCandidate, 0, len(entries))
+	for _, entry := range entries {
+		flowID, ok := events.ParseFlowID(entry.ID)
 		if !ok {
-			continue
-		}
-		flow, ok, err := a.loadFlow(flowID)
-		if err != nil {
-			return nil, err
-		}
-		if !ok || flow.DeactivatedAt.IsZero() {
 			continue
 		}
 		selected = append(selected, flowCandidate{
 			id:            flowID,
-			deactivatedAt: flow.DeactivatedAt,
+			deactivatedAt: entry.Timestamp,
 		})
 	}
 
@@ -250,32 +239,6 @@ func (a *Archiver) selectFlows(
 	}
 
 	return ready, nil
-}
-
-func (a *Archiver) loadFlow(
-	flowID api.FlowID,
-) (*api.FlowState, bool, error) {
-	flow, err := a.flowExec.Exec(context.Background(), events.FlowKey(flowID),
-		func(
-			st *api.FlowState, ag *timebox.Aggregator[*api.FlowState],
-		) error {
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, false, err
-	}
-	if flow.ID != "" {
-		return flow, true, nil
-	}
-	if err := events.RemoveFlowFromStatuses(
-		context.Background(), a.flowStore, flowID,
-	); err != nil {
-		slog.Warn("Failed to clear stale flow index",
-			slog.String("flow_id", string(flowID)),
-			slog.String("error", err.Error()))
-	}
-	return nil, false, nil
 }
 
 func (a *Archiver) acquireLease(

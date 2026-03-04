@@ -9,7 +9,7 @@ require (
 
 require (
 	github.com/kode4food/ale v0.3.1-0.20260217090131-174134c4a231 // indirect
-	github.com/kode4food/timebox v0.0.0-20260303114825-9968ae1e45ed // indirect
+	github.com/kode4food/timebox v0.0.0-20260304062155-445ae9d87ca5 // indirect
 	github.com/tidwall/gjson v1.18.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.0 // indirect
