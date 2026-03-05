@@ -25,7 +25,6 @@
   min-height: 24px;
   max-height: 24px;
   position: relative;
-  z-index: 0;
 }
 
 .argItemFocused {
@@ -59,7 +58,6 @@
   animation: argItemFocusPulseOutward var(--arg-focus-pulse-duration)
     ease-in-out infinite;
   pointer-events: none;
-  z-index: -1;
 }
 
 .argItemFocusedOutput::before {

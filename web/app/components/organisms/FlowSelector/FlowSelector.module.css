@@ -71,7 +71,6 @@
   width: 1rem;
   color: var(--color-pending);
   pointer-events: none;
-  z-index: 1;
 }
 
 .dropdownSearchInput {
@@ -107,7 +106,7 @@
   box-shadow: var(--shadow-md);
   max-height: 300px;
   overflow-y: auto;
-  z-index: 1000;
+  z-index: 50;
 }
 
 .dropdownItem {

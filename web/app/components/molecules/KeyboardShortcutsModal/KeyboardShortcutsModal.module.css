@@ -5,7 +5,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1000;
+  z-index: 50;
   width: 500px;
   max-height: 600px;
   border-radius: var(--spacing-sm);

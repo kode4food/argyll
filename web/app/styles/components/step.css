@@ -26,7 +26,7 @@
 
 /* ReactFlow Diagram Overrides */
 .react-flow__node.dragging:has(.step-widget) {
-  z-index: 1000 !important;
+  z-index: 10 !important;
 }
 
 .react-flow__renderer.flow-mode-bg {
@@ -204,6 +204,7 @@
   border: 2px solid;
   border-radius: calc(var(--step-border-radius) + 4px);
   pointer-events: none;
+  z-index: -1;
 }
 
 .step-widget.resolver.start-point::before {
@@ -213,10 +214,10 @@
     var(--step-resolver-border) 85%,
     var(--color-darken)
   );
-  z-index: -1000;
 }
 
 .step-widget.processor.start-point::before {
+  background-color: var(--step-processor-bg);
   border-color: color-mix(
     in srgb,
     var(--step-processor-border) 85%,
