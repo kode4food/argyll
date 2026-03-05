@@ -16,6 +16,8 @@ export const useKeyboardShortcuts = (
   const handleKeyDown = useCallback(
     (event: KeyboardEvent) => {
       if (!enabled) return;
+      const shortcutsBlocked =
+        document.querySelector("[data-ui-overlay]") !== null;
 
       const activeElement = document.activeElement;
       const isInputFocused =
@@ -36,6 +38,13 @@ export const useKeyboardShortcuts = (
             : event.shiftKey === shortcut.shift;
 
         if (keyMatches && ctrlMatches && metaMatches && shiftMatches) {
+          if (
+            shortcutsBlocked &&
+            (shortcut.key === "/" || shortcut.key === "?")
+          ) {
+            return;
+          }
+
           if (
             (shortcut.key === "/" || shortcut.key === "?") &&
             !isInputFocused

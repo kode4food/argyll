@@ -893,6 +893,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
       <div className={styles.backdrop} onClick={handleBackdropClick}>
         <div
           className={styles.content}
+          data-ui-overlay="modal"
           style={{
             width: `${dimensions.width}px`,
             height: `${dimensions.height}px`,

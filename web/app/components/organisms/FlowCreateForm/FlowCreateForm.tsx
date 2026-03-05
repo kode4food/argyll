@@ -173,7 +173,7 @@ const FlowCreateForm: React.FC = () => {
         onClick={() => setShowCreateForm(false)}
         aria-label={t("flowCreate.closeForm")}
       />
-      <div className={styles.modal}>
+      <div className={styles.modal} data-ui-overlay="modal">
         <div className={styles.container}>
           <div className={styles.sidebar}>
             <div className={styles.sidebarHeader}>

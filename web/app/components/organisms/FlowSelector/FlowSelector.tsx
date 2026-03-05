@@ -122,6 +122,7 @@ const FlowSelectorDropdown = () => {
       {showDropdown && (
         <div
           className={styles.dropdownMenu}
+          data-ui-overlay="dropdown"
           ref={dropdownRef}
           onScroll={handleDropdownScroll}
         >
@@ -282,7 +283,7 @@ const FlowSelectorContent: React.FC = () => {
         },
       },
     ],
-    !showCreateForm && !showShortcutsModal
+    !showShortcutsModal
   );
 
   const dropdownValue: FlowDropdownContextValue = {
