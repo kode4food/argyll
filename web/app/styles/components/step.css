@@ -207,11 +207,13 @@
 }
 
 .step-widget.resolver.start-point::before {
+  background-color: var(--step-resolver-bg);
   border-color: color-mix(
     in srgb,
     var(--step-resolver-border) 85%,
     var(--color-darken)
   );
+  z-index: -1000;
 }
 
 .step-widget.processor.start-point::before {
