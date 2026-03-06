@@ -10,8 +10,14 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+type earlyDelayedTimer struct {
+	scheduler.Timer
+	firedEarly bool
+}
 
 func TestRecoveryActivation(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -520,6 +526,67 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 	})
 }
 
+func TestRecoverFlowReschedulesEarlyRetryTask(t *testing.T) {
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		TimerConstructor: newEarlyDelayedTimer,
+	}, func(env *helpers.TestEngineEnv) {
+		flowID := api.FlowID("recover-early-retry")
+		step := helpers.NewSimpleStep("recover-early-retry-step")
+		token := api.Token("retry-token")
+		nextRetryAt := time.Now().UTC().Add(250 * time.Millisecond)
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+
+		err := env.RaiseFlowEvents(
+			flowID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: flowID,
+					Plan:   plan,
+					Init:   api.Args{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID: flowID,
+					StepID: step.ID,
+					Inputs: api.Args{},
+					WorkItems: map[api.Token]api.Args{
+						token: {},
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeRetryScheduled,
+				Data: api.RetryScheduledEvent{
+					FlowID:      flowID,
+					StepID:      step.ID,
+					Token:       token,
+					RetryCount:  1,
+					NextRetryAt: nextRetryAt,
+					Error:       "retry",
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		assert.NoError(t, env.Engine.Start())
+
+		invoked := env.MockClient.WaitForInvocation(step.ID, 2*time.Second)
+		assert.True(t, invoked)
+
+		flow := env.WaitForFlowStatus(flowID, func() {})
+		assert.Equal(t, api.FlowCompleted, flow.Status)
+	})
+}
+
 func TestRecoverFlowMixedStatuses(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		flowID := api.FlowID("recover-mixed-statuses")
@@ -769,4 +836,18 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 				WorkItems[deactivatedToken].Status)
 		assert.False(t, deactivatedFlow.DeactivatedAt.IsZero())
 	})
+}
+
+func newEarlyDelayedTimer(delay time.Duration) scheduler.Timer {
+	return &earlyDelayedTimer{
+		Timer: scheduler.NewTimer(delay),
+	}
+}
+
+func (t *earlyDelayedTimer) Reset(delay time.Duration) bool {
+	if delay > 0 && !t.firedEarly {
+		t.firedEarly = true
+		return t.Timer.Reset(0)
+	}
+	return t.Timer.Reset(delay)
 }

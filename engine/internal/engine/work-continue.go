@@ -156,7 +156,6 @@ func (e *Engine) scheduleRetryTask(
 }
 
 func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
-	var started api.WorkItems
 	var inputs api.Args
 	var step *api.Step
 	var meta api.Metadata
@@ -184,15 +183,19 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 		meta = flow.Metadata
 
 		var err error
-		started, err = tx.startRetryWorkItem(step, tkn)
+		started, retryAt, err := tx.startRetryWorkItem(step, tkn)
 		if err != nil {
 			return err
 		}
-		if len(started) == 0 {
+		if retryAt.IsZero() && len(started) == 0 {
 			return nil
 		}
 
 		tx.OnSuccess(func(*api.FlowState) {
+			if !retryAt.IsZero() {
+				tx.scheduleRetryTask(fs, tkn, retryAt)
+				return
+			}
 			tx.handleWorkItemsExecution(step, inputs, meta, started)
 		})
 		return nil

@@ -242,50 +242,53 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 
 func (tx *flowTx) startRetryWorkItem(
 	step *api.Step, tkn api.Token,
-) (api.WorkItems, error) {
+) (api.WorkItems, time.Time, error) {
 	stepID := step.ID
 	exec, ok := tx.Value().Executions[stepID]
 	if !ok || exec.Status != api.StepActive {
-		return nil, nil
+		return nil, time.Time{}, nil
 	}
 
 	work, ok := exec.WorkItems[tkn]
 	if !ok {
-		return nil, nil
+		return nil, time.Time{}, nil
 	}
 
 	now := tx.Now()
 	shouldStart := false
 	switch work.Status {
 	case api.WorkPending:
+		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+			return nil, work.NextRetryAt, nil
+		}
 		var err error
 		if shouldStart, err = tx.shouldStartRetryPending(
 			step, exec.Inputs, work, exec.WorkItems, now,
 		); err != nil {
-			return nil, err
+			return nil, time.Time{}, err
 		}
 	case api.WorkFailed:
 		if work.NextRetryAt.IsZero() || work.NextRetryAt.After(now) {
-			return nil, nil
+			return nil, work.NextRetryAt, nil
 		}
 		shouldStart = true
 	case api.WorkActive, api.WorkNotCompleted:
 		shouldStart = true
 	default:
-		return nil, nil
+		return nil, time.Time{}, nil
 	}
 	if !shouldStart {
-		return nil, nil
+		return nil, time.Time{}, nil
 	}
 
 	inputs := exec.Inputs.Apply(work.Inputs)
 	if err := tx.raiseWorkStarted(stepID, tkn, inputs); err != nil {
-		return nil, err
+		return nil, time.Time{}, err
 	}
 	exec = tx.Value().Executions[stepID]
 	started := api.WorkItems{}
 	started[tkn] = exec.WorkItems[tkn]
-	return started, nil
+	return started, time.Time{}, nil
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
