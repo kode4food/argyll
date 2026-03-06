@@ -142,12 +142,22 @@
   --overlay-dark-30: rgba(0, 0, 0, 0.3);
   --overlay-dark-40: rgba(0, 0, 0, 0.4);
   --overlay-dark-50: rgba(0, 0, 0, 0.5);
+  --overlay-dark-60: rgba(0, 0, 0, 0.6);
   --overlay-dark-70: rgba(0, 0, 0, 0.7);
+  --overlay-dark-80: rgba(0, 0, 0, 0.8);
   --overlay-dark-90: rgba(0, 0, 0, 0.9);
   --overlay-light-10: rgba(255, 255, 255, 0.1);
+  --overlay-light-20: rgba(255, 255, 255, 0.2);
   --overlay-light-30: rgba(255, 255, 255, 0.3);
   --overlay-light-40: rgba(255, 255, 255, 0.4);
+  --overlay-light-50: rgba(255, 255, 255, 0.5);
+  --overlay-light-60: rgba(255, 255, 255, 0.6);
   --overlay-light-70: rgba(255, 255, 255, 0.7);
+  --overlay-light-80: rgba(255, 255, 255, 0.8);
+  --overlay-light-90: rgba(255, 255, 255, 0.9);
+
+  --overlay-backdrop-dialog: var(--overlay-dark-30);
+  --overlay-backdrop-preview: var(--overlay-dark-10);
 
   /* Semantic Colors */
   --color-error-light: #ff6666;
@@ -203,4 +213,6 @@
   --color-tooltip-text: #111827;
   --color-tooltip-muted: #4b5563;
   --color-tooltip-code-bg: rgba(17, 24, 39, 0.08);
+  --overlay-backdrop-dialog: var(--overlay-light-30);
+  --overlay-backdrop-preview: var(--overlay-light-10);
 }

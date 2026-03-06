@@ -63,6 +63,12 @@ const KeyboardShortcutsModal: React.FC<KeyboardShortcutsModalProps> = ({
 
   return (
     <>
+      <div
+        className={styles.backdrop}
+        onClick={onClose}
+        data-ui-overlay="modal"
+        aria-label={t("keyboardShortcuts.close")}
+      />
       <div className={styles.modal}>
         <div className={styles.header}>
           <div className={styles.headerContent}>

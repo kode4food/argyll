@@ -17,7 +17,7 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: var(--overlay-dark-50);
+  background-color: var(--overlay-backdrop-dialog);
   display: flex;
   align-items: center;
   justify-content: center;

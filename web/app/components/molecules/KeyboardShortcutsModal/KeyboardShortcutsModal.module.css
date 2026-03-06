@@ -1,5 +1,12 @@
 /* KeyboardShortcutsModal CSS Module */
 
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  background-color: var(--overlay-backdrop-dialog);
+}
+
 .modal {
   position: fixed;
   top: 50%;
