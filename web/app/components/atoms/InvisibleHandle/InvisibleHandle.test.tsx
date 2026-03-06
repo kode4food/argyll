@@ -74,7 +74,7 @@ describe("InvisibleHandle", () => {
       />
     );
     const handle = getByTestId("handle-test-handle");
-    expect(handle.style.top).toBe("250px");
+    expect(handle.style.top).toBe("252px");
   });
 
   test("renders source type handle", () => {

@@ -1,6 +1,8 @@
 import React from "react";
 import { Handle, Position } from "@xyflow/react";
 
+const HANDLE_VERTICAL_OFFSET_PX = 2;
+
 interface InvisibleHandleProps {
   id: string;
   type: "source" | "target";
@@ -29,7 +31,7 @@ const InvisibleHandle: React.FC<InvisibleHandleProps> = ({
       id={id}
       isConnectable={false}
       className={`invisible-handle ${positionClass}`}
-      style={{ top: `${top}px` }}
+      style={{ top: `${top + HANDLE_VERTICAL_OFFSET_PX}px` }}
     />
   );
 };
