@@ -16,19 +16,17 @@ const DiagramEmptyState: React.FC<DiagramEmptyStateProps> = ({
   description,
   action,
   iconClassName,
-}) => {
-  return (
-    <div className={styles.wrapper}>
-      <EmptyState
-        icon={icon}
-        title={title}
-        description={description}
-        action={action}
-        iconClassName={iconClassName}
-        className={styles.padding}
-      />
-    </div>
-  );
-};
+}) => (
+  <div className={styles.wrapper}>
+    <EmptyState
+      icon={icon}
+      title={title}
+      description={description}
+      action={action}
+      iconClassName={iconClassName}
+      className={styles.padding}
+    />
+  </div>
+);
 
 export default DiagramEmptyState;

@@ -17,23 +17,16 @@ const InvisibleHandle: React.FC<InvisibleHandleProps> = ({
   position,
   top,
   argName,
-}) => {
-  const positionClass =
-    position === Position.Left
-      ? "invisible-handle-left"
-      : "invisible-handle-right";
-
-  return (
-    <Handle
-      key={`${type}-${argName}`}
-      type={type}
-      position={position}
-      id={id}
-      isConnectable={false}
-      className={`invisible-handle ${positionClass}`}
-      style={{ top: `${top + HANDLE_VERTICAL_OFFSET_PX}px` }}
-    />
-  );
-};
+}) => (
+  <Handle
+    key={`${type}-${argName}`}
+    type={type}
+    position={position}
+    id={id}
+    isConnectable={false}
+    className={`invisible-handle invisible-handle-${type}`}
+    style={{ top: `${top + HANDLE_VERTICAL_OFFSET_PX}px` }}
+  />
+);
 
 export default InvisibleHandle;

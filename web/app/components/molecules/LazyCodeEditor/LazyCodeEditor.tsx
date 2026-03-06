@@ -15,13 +15,11 @@ const LazyCodeEditor: React.FC<LazyCodeEditorProps> = ({
   value,
   onChange,
   height = "100%",
-}) => {
-  return (
-    <Suspense fallback={<EditorFallback />}>
-      <CodeMirrorEditor value={value} onChange={onChange} height={height} />
-    </Suspense>
-  );
-};
+}) => (
+  <Suspense fallback={<EditorFallback />}>
+    <CodeMirrorEditor value={value} onChange={onChange} height={height} />
+  </Suspense>
+);
 
 const CodeMirrorEditor: React.FC<LazyCodeEditorProps> = ({
   value,

@@ -6,13 +6,11 @@ interface DiagramViewProps {
 }
 
 const DiagramView = React.forwardRef<HTMLDivElement, DiagramViewProps>(
-  ({ children }, ref) => {
-    return (
-      <div className={styles.wrapper} ref={ref}>
-        {children}
-      </div>
-    );
-  }
+  ({ children }, ref) => (
+    <div className={styles.wrapper} ref={ref}>
+      {children}
+    </div>
+  )
 );
 
 DiagramView.displayName = "DiagramView";

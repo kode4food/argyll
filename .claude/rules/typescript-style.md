@@ -236,6 +236,23 @@ const HealthDot: React.FC<{ step: Step }> = ({ step }) => {
 };
 ```
 
+### Component Return Style
+
+For arrow-function components that only render JSX, use implicit returns.
+Do not wrap the JSX in a block with an immediate `return`.
+
+```typescript
+// Good
+const DiagramEmptyState: React.FC<Props> = ({ title }) => (
+  <EmptyState title={title} />
+);
+
+// Bad
+const DiagramEmptyState: React.FC<Props> = ({ title }) => {
+  return <EmptyState title={title} />;
+};
+```
+
 ### Colocation
 
 Keep one-time-use helpers close to their components:

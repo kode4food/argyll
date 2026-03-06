@@ -35,7 +35,7 @@ describe("InvisibleHandle", () => {
     expect(getByTestId("handle-test-handle")).toBeInTheDocument();
   });
 
-  test("applies left position class", () => {
+  test("applies source class for source handle", () => {
     const { getByTestId } = render(
       <InvisibleHandle
         id="test-handle"
@@ -46,10 +46,10 @@ describe("InvisibleHandle", () => {
       />
     );
     const handle = getByTestId("handle-test-handle");
-    expect(handle.className).toContain("invisible-handle-left");
+    expect(handle.className).toContain("invisible-handle-source");
   });
 
-  test("applies right position class", () => {
+  test("applies target class for target handle", () => {
     const { getByTestId } = render(
       <InvisibleHandle
         id="test-handle"
@@ -60,7 +60,7 @@ describe("InvisibleHandle", () => {
       />
     );
     const handle = getByTestId("handle-test-handle");
-    expect(handle.className).toContain("invisible-handle-right");
+    expect(handle.className).toContain("invisible-handle-target");
   });
 
   test("sets top style correctly", () => {

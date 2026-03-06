@@ -288,12 +288,10 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   );
 };
 
-const OverviewDiagramView: React.FC<OverviewDiagramViewProps> = (props) => {
-  return (
-    <ReactFlowProvider>
-      <OverviewDiagramViewInner {...props} />
-    </ReactFlowProvider>
-  );
-};
+const OverviewDiagramView: React.FC<OverviewDiagramViewProps> = (props) => (
+  <ReactFlowProvider>
+    <OverviewDiagramViewInner {...props} />
+  </ReactFlowProvider>
+);
 
 export default OverviewDiagramView;

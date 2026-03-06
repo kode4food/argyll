@@ -1,8 +1,9 @@
 /* Shared Step Widget Patterns */
 
 :root {
-  --focused-edge-dash-pattern: 8 4;
-  --focused-edge-dash-offset: -26;
+  --focused-edge-dash-length: 8;
+  --focused-edge-gap-length: 4;
+  --focused-edge-dash-offset: -24;
   --focused-edge-animation-duration: 0.9s;
 }
 
@@ -70,7 +71,8 @@
 }
 
 .react-flow__edge.edge-focused-animated .react-flow__edge-path {
-  stroke-dasharray: var(--focused-edge-dash-pattern);
+  stroke-dasharray: var(--focused-edge-dash-length)
+    var(--focused-edge-gap-length);
   animation: edgeFocusedFlow var(--focused-edge-animation-duration) linear
     infinite;
 }
@@ -160,8 +162,8 @@
   left: -4px;
   right: -4px;
   bottom: -4px;
-  border: 2px solid;
-  border-radius: calc(var(--step-border-radius) + 2px);
+  border: 4px solid;
+  border-radius: calc(var(--step-border-radius));
   pointer-events: none;
   z-index: -1;
 }
@@ -440,12 +442,6 @@
   pointer-events: none;
 }
 
-.invisible-handle-left {
-  left: var(--step-border-width);
-  transform: translate(0, -50%) !important;
-}
-
-.invisible-handle-right {
-  right: var(--step-border-width);
-  transform: translate(0, -50%) !important;
+.invisible-handle-target {
+  left: calc(var(--step-border-width) - 3px) !important;
 }

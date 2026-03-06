@@ -172,12 +172,10 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   );
 };
 
-const LiveDiagramView: React.FC<LiveDiagramViewProps> = (props) => {
-  return (
-    <ReactFlowProvider>
-      <LiveDiagramViewInner {...props} />
-    </ReactFlowProvider>
-  );
-};
+const LiveDiagramView: React.FC<LiveDiagramViewProps> = (props) => (
+  <ReactFlowProvider>
+    <LiveDiagramViewInner {...props} />
+  </ReactFlowProvider>
+);
 
 export default LiveDiagramView;
