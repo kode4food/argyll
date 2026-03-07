@@ -1,4 +1,3 @@
-// Package engine is the main package for the Argyll Orchestrator Engine
 package engine
 
 const (
