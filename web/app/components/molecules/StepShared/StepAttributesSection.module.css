@@ -32,10 +32,12 @@
   --arg-focus-inset-right: -6px;
   --arg-focus-inset-top: 0px;
   --arg-focus-inset-bottom: 0px;
-  --arg-focus-ring-width: 2px;
+  --arg-focus-ring-width: 3px;
   --arg-focus-ring-alpha: 32%;
-  --arg-focus-pulse-spread: 5px;
-  --arg-focus-pulse-duration: 1.5s;
+  --arg-focus-pulse-duration: 1.2s;
+  --arg-focus-pulse-scale-base: 1;
+  --arg-focus-pulse-scale-mid: 1.02;
+  --arg-focus-pulse-scale-expanded: 1.045;
   border-radius: var(--radius-md);
 }
 
@@ -55,9 +57,12 @@
         var(--arg-focus-ring-alpha),
       transparent
     );
-  animation: argItemFocusPulseOutward var(--arg-focus-pulse-duration)
-    ease-in-out infinite;
+  opacity: 0;
+  transform: scale(var(--arg-focus-pulse-scale-base));
+  animation: argItemFocusPulseOutward var(--arg-focus-pulse-duration) ease-out
+    infinite;
   pointer-events: none;
+  will-change: opacity, transform;
 }
 
 .argItemFocusedOutput::before {
@@ -148,80 +153,62 @@
 
 @keyframes argItemFocusPulseOutward {
   0% {
-    top: var(--arg-focus-inset-top);
-    bottom: var(--arg-focus-inset-bottom);
-    left: var(--arg-focus-inset-left);
-    right: var(--arg-focus-inset-right);
-    box-shadow: 0 0 0 var(--arg-focus-ring-width)
-      color-mix(
-        in srgb,
-        var(--arg-focus-border-color, var(--color-neutral-border))
-          var(--arg-focus-ring-alpha),
-        transparent
-      );
+    opacity: 0;
+    transform: scale(var(--arg-focus-pulse-scale-base));
   }
-  70% {
-    top: calc(var(--arg-focus-inset-top) - var(--arg-focus-pulse-spread));
-    bottom: calc(var(--arg-focus-inset-bottom) - var(--arg-focus-pulse-spread));
-    left: calc(var(--arg-focus-inset-left) - var(--arg-focus-pulse-spread));
-    right: calc(var(--arg-focus-inset-right) - var(--arg-focus-pulse-spread));
-    box-shadow: 0 0 0 var(--arg-focus-ring-width)
-      color-mix(
-        in srgb,
-        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
-        transparent
-      );
+  12% {
+    opacity: 0.28;
+    transform: scale(var(--arg-focus-pulse-scale-base));
+  }
+  26% {
+    opacity: 0.68;
+    transform: scale(1.01);
+  }
+  44% {
+    opacity: 0.68;
+    transform: scale(var(--arg-focus-pulse-scale-mid));
+  }
+  64% {
+    opacity: 0.28;
+    transform: scale(1.035);
+  }
+  80% {
+    opacity: 0;
+    transform: scale(var(--arg-focus-pulse-scale-expanded));
   }
   100% {
-    top: var(--arg-focus-inset-top);
-    bottom: var(--arg-focus-inset-bottom);
-    left: var(--arg-focus-inset-left);
-    right: var(--arg-focus-inset-right);
-    box-shadow: 0 0 0 var(--arg-focus-ring-width)
-      color-mix(
-        in srgb,
-        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
-        transparent
-      );
+    opacity: 0;
+    transform: scale(var(--arg-focus-pulse-scale-base));
   }
 }
 
 @keyframes argItemFocusPulseInward {
   0% {
-    top: calc(var(--arg-focus-inset-top) - var(--arg-focus-pulse-spread));
-    bottom: calc(var(--arg-focus-inset-bottom) - var(--arg-focus-pulse-spread));
-    left: calc(var(--arg-focus-inset-left) - var(--arg-focus-pulse-spread));
-    right: calc(var(--arg-focus-inset-right) - var(--arg-focus-pulse-spread));
-    box-shadow: 0 0 0 var(--arg-focus-ring-width)
-      color-mix(
-        in srgb,
-        var(--arg-focus-border-color, var(--color-neutral-border))
-          var(--arg-focus-ring-alpha),
-        transparent
-      );
+    opacity: 0;
+    transform: scale(var(--arg-focus-pulse-scale-expanded));
   }
-  70% {
-    top: var(--arg-focus-inset-top);
-    bottom: var(--arg-focus-inset-bottom);
-    left: var(--arg-focus-inset-left);
-    right: var(--arg-focus-inset-right);
-    box-shadow: 0 0 0 var(--arg-focus-ring-width)
-      color-mix(
-        in srgb,
-        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
-        transparent
-      );
+  12% {
+    opacity: 0.28;
+    transform: scale(var(--arg-focus-pulse-scale-expanded));
+  }
+  26% {
+    opacity: 0.68;
+    transform: scale(1.035);
+  }
+  44% {
+    opacity: 0.68;
+    transform: scale(var(--arg-focus-pulse-scale-mid));
+  }
+  64% {
+    opacity: 0.28;
+    transform: scale(1.01);
+  }
+  80% {
+    opacity: 0;
+    transform: scale(var(--arg-focus-pulse-scale-base));
   }
   100% {
-    top: var(--arg-focus-inset-top);
-    bottom: var(--arg-focus-inset-bottom);
-    left: var(--arg-focus-inset-left);
-    right: var(--arg-focus-inset-right);
-    box-shadow: 0 0 0 var(--arg-focus-ring-width)
-      color-mix(
-        in srgb,
-        var(--arg-focus-border-color, var(--color-neutral-border)) 0%,
-        transparent
-      );
+    opacity: 0;
+    transform: scale(var(--arg-focus-pulse-scale-expanded));
   }
 }
