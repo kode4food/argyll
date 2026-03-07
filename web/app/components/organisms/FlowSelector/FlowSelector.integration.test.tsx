@@ -18,7 +18,6 @@ jest.mock("@/app/store/flowStore", () => {
   const loadFlows = jest.fn().mockResolvedValue(undefined);
   const loadSteps = jest.fn().mockResolvedValue(undefined);
   const setVisibleFlowIDs = jest.fn();
-  const updateFlowStatus = jest.fn();
   return {
     useSelectedFlow: jest.fn(() => null),
     useFlowStore: jest.fn(() => ({ selectFlow: jest.fn() })),
@@ -35,15 +34,14 @@ jest.mock("@/app/store/flowStore", () => {
       },
     ]),
     useFlows: jest.fn(() => [
-      { id: "wf-1", status: "pending" },
-      { id: "wf-2", status: "completed" },
+      { id: "wf-1", status: "pending", timestamp: "2024-01-01T00:00:00Z" },
+      { id: "wf-2", status: "completed", timestamp: "2024-01-02T00:00:00Z" },
     ]),
     useFlowsHasMore: jest.fn(() => false),
     useFlowsLoading: jest.fn(() => false),
     useLoadMoreFlows: jest.fn(() => jest.fn()),
     useAddFlow: jest.fn(() => jest.fn()),
     useRemoveFlow: jest.fn(() => jest.fn()),
-    useUpdateFlowStatus: jest.fn(() => updateFlowStatus),
     useFlowData: jest.fn(() => null),
     useFlowLoading: jest.fn(() => false),
     useFlowNotFound: jest.fn(() => false),
@@ -53,7 +51,6 @@ jest.mock("@/app/store/flowStore", () => {
     __loadFlows: loadFlows,
     __loadSteps: loadSteps,
     __setVisibleFlowIDs: setVisibleFlowIDs,
-    __updateFlowStatus: updateFlowStatus,
   };
 });
 

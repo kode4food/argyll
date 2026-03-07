@@ -28,8 +28,7 @@ jest.mock("@/app/store/flowStore", () => ({
       {
         id: "flow-1",
         status: "active",
-        state: {},
-        started_at: "2024-01-01T00:00:00Z",
+        timestamp: "2024-01-01T00:00:00Z",
       },
     ],
     visibleFlowIDs: [],
@@ -42,7 +41,7 @@ jest.mock("@/app/store/flowStore", () => ({
     initializeExecutions: jest.fn(),
     updateExecution: jest.fn(),
     updateWorkItem: jest.fn(),
-    updateFlowFromWebSocket: jest.fn(),
+    updateFlowData: jest.fn(),
     setEngineSocketStatus: jest.fn(),
     engineReconnectRequest: 0,
   },
@@ -291,32 +290,18 @@ describe("WebSocketProvider", () => {
     expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(1, {
       id: "flow-2",
       status: "active",
-      state: {},
-      error_state: undefined,
-      plan: undefined,
-      started_at: "2024-01-02T00:00:00.000Z",
+      timestamp: "2024-01-02T00:00:00.000Z",
     });
     expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(2, {
       id: "flow-1",
       status: "completed",
-      state: {},
-      error_state: undefined,
-      plan: undefined,
-      started_at: "2024-01-01T00:00:00Z",
-      completed_at: "2024-01-03T00:00:00.000Z",
+      timestamp: "2024-01-03T00:00:00.000Z",
     });
     expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(3, {
       id: "flow-1",
       status: "failed",
-      state: {},
-      error_state: {
-        message: "bad",
-        step_id: "",
-        timestamp: "2024-01-04T00:00:00.000Z",
-      },
-      plan: undefined,
-      started_at: "2024-01-01T00:00:00Z",
-      completed_at: "2024-01-04T00:00:00.000Z",
+      timestamp: "2024-01-04T00:00:00.000Z",
+      error: "bad",
     });
   });
 
@@ -382,6 +367,22 @@ describe("WebSocketProvider", () => {
       "flow-1",
       { steps: { a: {} } }
     );
+    expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(1, {
+      id: "flow-1",
+      status: "active",
+      timestamp: "2024-01-05T00:00:00.000Z",
+    });
+    expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(2, {
+      id: "flow-1",
+      status: "completed",
+      timestamp: "2024-01-06T00:00:00.000Z",
+    });
+    expect(flowStore.__storeState.addFlow).toHaveBeenNthCalledWith(3, {
+      id: "flow-1",
+      status: "failed",
+      timestamp: "2024-01-07T00:00:00.000Z",
+      error: "bad",
+    });
     expect(flowStore.__storeState.updateExecution).toHaveBeenCalledWith(
       "step-1",
       expect.objectContaining({ status: "active" })
@@ -394,20 +395,20 @@ describe("WebSocketProvider", () => {
       "step-3",
       expect.objectContaining({ status: "skipped" })
     );
-    expect(flowStore.__storeState.updateFlowFromWebSocket).toHaveBeenCalledWith(
+    expect(flowStore.__storeState.updateFlowData).toHaveBeenCalledWith(
       expect.objectContaining({
         state: expect.objectContaining({
           result: { value: { ok: true }, step: "step-1" },
         }),
       })
     );
-    expect(flowStore.__storeState.updateFlowFromWebSocket).toHaveBeenCalledWith(
+    expect(flowStore.__storeState.updateFlowData).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "completed",
         completed_at: "2024-01-06T00:00:00.000Z",
       })
     );
-    expect(flowStore.__storeState.updateFlowFromWebSocket).toHaveBeenCalledWith(
+    expect(flowStore.__storeState.updateFlowData).toHaveBeenCalledWith(
       expect.objectContaining({
         status: "failed",
         completed_at: "2024-01-07T00:00:00.000Z",

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { FlowContext } from "@/app/api";
+import { FlowSummary } from "@/app/api";
 import { filterFlowsBySearch } from "./flowSelectorUtils";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import { FlowDropdownContextValue } from "@/app/contexts/FlowDropdownContext";
@@ -11,7 +11,7 @@ type FlowDropdownState = Omit<
 >;
 
 export function useFlowDropdownManagement(
-  flows: FlowContext[],
+  flows: FlowSummary[],
   selectedFlow: string | null
 ): FlowDropdownState {
   const navigate = useNavigate();

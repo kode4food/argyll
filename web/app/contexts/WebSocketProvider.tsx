@@ -133,8 +133,6 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
-      const { flows } = useFlowStore.getState();
-      const existingFlow = flows.find((flow) => flow.id === flowId);
       const timestamp = eventTimestamp(wsEvent.timestamp);
 
       switch (wsEvent.type) {
@@ -142,36 +140,22 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           addFlow({
             id: flowId,
             status: "active",
-            state: existingFlow?.state || {},
-            error_state: undefined,
-            plan: existingFlow?.plan,
-            started_at: existingFlow?.started_at || timestamp,
+            timestamp,
           });
           break;
         case "flow_completed":
           addFlow({
             id: flowId,
             status: "completed",
-            state: existingFlow?.state || {},
-            error_state: undefined,
-            plan: existingFlow?.plan,
-            started_at: existingFlow?.started_at || timestamp,
-            completed_at: timestamp,
+            timestamp,
           });
           break;
         case "flow_failed":
           addFlow({
             id: flowId,
             status: "failed",
-            state: existingFlow?.state || {},
-            error_state: {
-              message: wsEvent.data?.error || t("flow.failed"),
-              step_id: "",
-              timestamp,
-            },
-            plan: existingFlow?.plan,
-            started_at: existingFlow?.started_at || timestamp,
-            completed_at: timestamp,
+            timestamp,
+            error: wsEvent.data?.error || t("flow.failed"),
           });
           break;
         default:
@@ -196,7 +180,8 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         initializeExecutions,
         updateExecution,
         updateWorkItem,
-        updateFlowFromWebSocket,
+        updateFlowData,
+        addFlow,
       } = useFlowStore.getState();
 
       if (
@@ -211,6 +196,11 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
 
       switch (wsEvent.type) {
         case "flow_started":
+          addFlow({
+            id: activeFlowId,
+            status: "active",
+            timestamp: eventTimestamp(wsEvent.timestamp),
+          });
           flowUpdate.status = "active";
           flowUpdate.started_at = eventTimestamp(wsEvent.timestamp);
           if (wsEvent.data?.plan) {
@@ -259,11 +249,22 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           break;
         }
         case "flow_completed":
+          addFlow({
+            id: activeFlowId,
+            status: "completed",
+            timestamp: eventTimestamp(wsEvent.timestamp),
+          });
           flowUpdate.status = "completed";
           flowUpdate.completed_at = eventTimestamp(wsEvent.timestamp);
           break;
         case "flow_failed":
           const failedAt = eventTimestamp(wsEvent.timestamp);
+          addFlow({
+            id: activeFlowId,
+            status: "failed",
+            timestamp: failedAt,
+            error: wsEvent.data?.error || t("flow.failed"),
+          });
           flowUpdate.status = "failed";
           flowUpdate.error_state = {
             message: wsEvent.data?.error || t("flow.failed"),
@@ -314,7 +315,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
       }
 
       if (Object.keys(flowUpdate).length > 0) {
-        updateFlowFromWebSocket(flowUpdate);
+        updateFlowData(flowUpdate);
       }
     },
     [t]

@@ -44,15 +44,6 @@ type (
 		FlowID  FlowID `json:"flow_id"`
 	}
 
-	// FlowDigest provides summary information about a flow
-	FlowDigest struct {
-		Status      FlowStatus `json:"status"`
-		CreatedAt   time.Time  `json:"created_at"`
-		CompletedAt time.Time  `json:"completed_at"`
-		Labels      Labels     `json:"labels,omitempty"`
-		Error       string     `json:"error,omitempty"`
-	}
-
 	// QueryFlowsRequest contains filter criteria and pagination options
 	QueryFlowsRequest struct {
 		IDPrefix string       `json:"id_prefix,omitempty"`
@@ -72,10 +63,13 @@ type (
 		NextCursor string            `json:"next_cursor,omitempty"`
 	}
 
-	// QueryFlowsItem provides a flow ID with its summary information
+	// QueryFlowsItem provides summary information about a flow
 	QueryFlowsItem struct {
-		ID     FlowID      `json:"id"`
-		Digest *FlowDigest `json:"digest"`
+		ID        FlowID     `json:"id"`
+		Status    FlowStatus `json:"status"`
+		Timestamp time.Time  `json:"timestamp"`
+		Labels    Labels     `json:"labels,omitempty"`
+		Error     string     `json:"error,omitempty"`
 	}
 
 	// StepRegisteredResponse is returned when a step registration succeeds

@@ -28,7 +28,6 @@ const sessionMock = {
   loadSteps: jest.fn(),
   steps: [] as Step[],
   flows: [] as any[],
-  updateFlowStatus: jest.fn(),
   flowData: null as any,
   loading: false,
   flowNotFound: false,

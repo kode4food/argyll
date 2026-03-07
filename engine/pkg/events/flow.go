@@ -1,8 +1,6 @@
 package events
 
 import (
-	"context"
-	"errors"
 	"strings"
 
 	"github.com/kode4food/timebox"
@@ -45,19 +43,16 @@ func ParseFlowID(id timebox.AggregateID) (api.FlowID, bool) {
 	return flowID, true
 }
 
-func RemoveFlowFromStatuses(
-	ctx context.Context, store *timebox.Store, flowID api.FlowID,
-) error {
-	id := FlowKey(flowID)
-	return errors.Join(
-		store.RemoveAggregateFromStatus(ctx, id, FlowStatusActive),
-		store.RemoveAggregateFromStatus(ctx, id, FlowStatusCompleted),
-		store.RemoveAggregateFromStatus(ctx, id, FlowStatusFailed),
-	)
-}
-
 func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 	res := make([]*timebox.Index, 0, len(evs))
+	handleStarted := timebox.MakeHandler(
+		func(_ *timebox.Event, data api.FlowStartedEvent) error {
+			status := FlowStatusActive
+			idx := &timebox.Index{Status: &status, Labels: data.Labels}
+			res = append(res, idx)
+			return nil
+		},
+	)
 	handleDeactivated := timebox.MakeHandler(
 		func(_ *timebox.Event, data api.FlowDeactivatedEvent) error {
 			status := string(data.Status)
@@ -68,8 +63,7 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 	for _, ev := range evs {
 		switch api.EventType(ev.Type) {
 		case api.EventTypeFlowStarted:
-			status := FlowStatusActive
-			res = append(res, &timebox.Index{Status: &status})
+			_ = handleStarted(ev)
 		case api.EventTypeFlowDeactivated:
 			_ = handleDeactivated(ev)
 		}

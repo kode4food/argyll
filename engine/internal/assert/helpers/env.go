@@ -177,6 +177,16 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 	return err
 }
 
+// ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
+// given label/value pair.
+func (e *TestEngineEnv) ListFlowsByLabel(
+	label, value string,
+) ([]timebox.AggregateID, error) {
+	return e.flowStore.ListAggregatesByLabel(
+		context.Background(), label, value,
+	)
+}
+
 func raiseFlowEvent(
 	ag *timebox.Aggregator[*api.FlowState], ev FlowEvent,
 ) error {

@@ -25,6 +25,11 @@ import (
 	"github.com/kode4food/argyll/archiver"
 )
 
+const (
+	archiveLabelKey   = "tier"
+	archiveLabelValue = "archived"
+)
+
 func TestNewArchiverValidation(t *testing.T) {
 	cfg := archiver.Config{
 		MemoryCheckInterval: time.Second,
@@ -58,6 +63,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 
 	flowID := api.FlowID("flow-sweep")
 	seedDeactivatedFlow(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, flowID)
 
 	cfg := archiver.Config{
 		FlowStore:           timebox.DefaultStoreConfig(),
@@ -110,6 +116,8 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
+
+	assertLabelNotIndexed(t, flowStore, flowID)
 }
 
 func TestArchiverPressureArchives(t *testing.T) {
@@ -121,6 +129,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 
 	flowID := api.FlowID("flow-pressure")
 	seedDeactivatedFlow(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, flowID)
 
 	infoAddr, stop := startInfoServer(t, "used_memory:80\nmaxmemory:100\n")
 	defer stop()
@@ -176,6 +185,8 @@ func TestArchiverPressureArchives(t *testing.T) {
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
+
+	assertLabelNotIndexed(t, flowStore, flowID)
 }
 
 func containsStatusEntry(
@@ -186,6 +197,41 @@ func containsStatusEntry(
 			continue
 		}
 		if entry.ID.Join(":") == id.Join(":") {
+			return true
+		}
+	}
+	return false
+}
+
+func assertLabelIndexed(
+	t *testing.T, store *timebox.Store, flowID api.FlowID,
+) {
+	t.Helper()
+
+	ids, err := store.ListAggregatesByLabel(
+		context.Background(), archiveLabelKey, archiveLabelValue,
+	)
+	assert.NoError(t, err)
+	assert.True(t, containsAggregateID(ids, events.FlowKey(flowID)))
+}
+
+func assertLabelNotIndexed(
+	t *testing.T, store *timebox.Store, flowID api.FlowID,
+) {
+	t.Helper()
+
+	ids, err := store.ListAggregatesByLabel(
+		context.Background(), archiveLabelKey, archiveLabelValue,
+	)
+	assert.NoError(t, err)
+	assert.False(t, containsAggregateID(ids, events.FlowKey(flowID)))
+}
+
+func containsAggregateID(
+	ids []timebox.AggregateID, want timebox.AggregateID,
+) bool {
+	for _, id := range ids {
+		if id.Join(":") == want.Join(":") {
 			return true
 		}
 	}
@@ -240,6 +286,9 @@ func seedDeactivatedFlow(
 					FlowID: flowID,
 					Plan:   pl,
 					Init:   api.Args{},
+					Labels: api.Labels{
+						archiveLabelKey: archiveLabelValue,
+					},
 				},
 			); err != nil {
 				return err

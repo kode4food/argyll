@@ -1,8 +1,8 @@
-import { FlowContext, FlowStatus } from "@/app/api";
+import { FlowStatus, FlowSummary } from "@/app/api";
 import { StepProgressStatus } from "@/app/hooks/useStepProgress";
 import { sanitizeFlowID } from "@/utils/flowUtils";
 
-export type SelectableFlow = Pick<FlowContext, "id" | "status">;
+export type SelectableFlow = Pick<FlowSummary, "id" | "status">;
 
 export function mapFlowStatusToProgressStatus(
   status: FlowStatus

@@ -162,15 +162,15 @@ export interface AttributeValue {
   set_at?: string;
 }
 
-export interface QueryFlowsItem {
+export interface FlowSummary {
   id: string;
-  digest?: {
-    status: FlowStatus;
-    created_at: string;
-    completed_at?: string;
-    labels?: Record<string, string>;
-    error?: string;
-  };
+  status: FlowStatus;
+  timestamp: string;
+  error?: string;
+}
+
+export interface QueryFlowsItem extends FlowSummary {
+  labels?: Record<string, string>;
 }
 
 export interface QueryFlowsResponse {

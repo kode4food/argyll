@@ -2,8 +2,6 @@ import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
 import {
   ExecutionPlan,
-  FlowContext,
-  QueryFlowsItem,
   QueryFlowsResponse,
   QueryFlowsRequest,
   Step,
@@ -20,18 +18,6 @@ export class ArgyllApi {
         "Content-Type": "application/json",
       },
     });
-  }
-
-  private convertListItem(item: QueryFlowsItem): FlowContext {
-    const active = (item.digest?.status || "active") === "active";
-    return {
-      id: item.id,
-      status: item.digest?.status || "active",
-      state: {},
-      plan: undefined,
-      started_at: item.digest?.created_at || new Date().toISOString(),
-      completed_at: active ? undefined : item.digest?.completed_at,
-    };
   }
 
   async registerStep(step: Step): Promise<Step> {
@@ -71,12 +57,6 @@ export class ArgyllApi {
       cursor: opts?.cursor,
       sort: "recent_desc",
     });
-  }
-
-  async listFlows(): Promise<FlowContext[]> {
-    const response = await this.listFlowsPage();
-    const items: QueryFlowsItem[] = response.flows || [];
-    return items.map((item) => this.convertListItem(item));
   }
 
   async getExecutionPlan(

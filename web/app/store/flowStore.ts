@@ -5,6 +5,8 @@ import {
   FlowContext,
   ExecutionPlan,
   ExecutionResult,
+  FlowSummary,
+  QueryFlowsItem,
   Step,
   WorkState,
 } from "../api";
@@ -23,20 +25,18 @@ declare global {
 
 const FlowListPageSize = 1000;
 
-const compareFlows = (a: FlowContext, b: FlowContext): number => {
-  const aIsActive = a.status === "active";
-  const bIsActive = b.status === "active";
+const isRunningFlow = (status: FlowSummary["status"]): boolean => {
+  return status === "pending" || status === "active";
+};
 
-  if (aIsActive && !bIsActive) return -1;
-  if (!aIsActive && bIsActive) return 1;
+const compareFlows = (a: FlowSummary, b: FlowSummary): number => {
+  const aIsRunning = isRunningFlow(a.status);
+  const bIsRunning = isRunningFlow(b.status);
 
-  if (aIsActive && bIsActive) {
-    return new Date(b.started_at).getTime() - new Date(a.started_at).getTime();
-  } else {
-    const aTime = a.completed_at || a.started_at;
-    const bTime = b.completed_at || b.started_at;
-    return new Date(bTime).getTime() - new Date(aTime).getTime();
-  }
+  if (aIsRunning && !bIsRunning) return -1;
+  if (!aIsRunning && bIsRunning) return 1;
+
+  return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
 };
 
 const compareSteps = (a: Step, b: Step): number => {
@@ -44,9 +44,9 @@ const compareSteps = (a: Step, b: Step): number => {
 };
 
 const upsertFlowList = (
-  flows: FlowContext[],
-  flow: FlowContext
-): FlowContext[] => {
+  flows: FlowSummary[],
+  flow: FlowSummary
+): FlowSummary[] => {
   const existingIndex = flows.findIndex((current) => current.id === flow.id);
   if (existingIndex >= 0) {
     const updatedFlows = [...flows];
@@ -77,6 +77,13 @@ const updateExistingStepList = (steps: Step[], step: Step): Step[] => {
   return upsertStepList(steps, step);
 };
 
+const mergeFlowLists = (
+  flows: FlowSummary[],
+  moreFlows: FlowSummary[]
+): FlowSummary[] => {
+  return moreFlows.reduce(upsertFlowList, flows).sort(compareFlows);
+};
+
 const mergeResolvedAttributes = (
   current: string[],
   newAttrs?: Record<string, any>
@@ -92,37 +99,43 @@ const mergeResolvedAttributes = (
   return Array.from(resolved);
 };
 
-const toFlowListContext = (item: {
-  id: string;
-  digest?: {
-    status: FlowContext["status"];
-    created_at: string;
-    completed_at?: string;
-    error?: string;
-  };
-}): FlowContext => {
-  const active = (item.digest?.status || "active") === "active";
+const toFlowSummary = (item: QueryFlowsItem): FlowSummary => {
   return {
     id: item.id,
-    status: item.digest?.status || "active",
-    state: {},
-    error_state: item.digest?.error
-      ? {
-          message: item.digest.error,
-          step_id: "",
-          timestamp: new Date().toISOString(),
-        }
-      : undefined,
-    plan: undefined,
-    started_at: item.digest?.created_at || new Date().toISOString(),
-    completed_at: active ? undefined : item.digest?.completed_at,
+    status: item.status,
+    timestamp: item.timestamp,
+    error: item.error,
+  };
+};
+
+type FlowSummaryState = {
+  id: string;
+  status: FlowContext["status"];
+  created_at?: string;
+  completed_at?: string;
+  error?: string;
+};
+
+const flowSummaryTimestamp = (state: FlowSummaryState): string => {
+  if (isRunningFlow(state.status)) {
+    return state.created_at || new Date().toISOString();
+  }
+  return state.completed_at || state.created_at || new Date().toISOString();
+};
+
+const toFlowSummaryFromState = (state: FlowSummaryState): FlowSummary => {
+  return {
+    id: state.id,
+    status: state.status,
+    timestamp: flowSummaryTimestamp(state),
+    error: state.error,
   };
 };
 
 interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
-  flows: FlowContext[];
+  flows: FlowSummary[];
   visibleFlowIDs: string[];
   flowsCursor: string | null;
   flowsHasMore: boolean;
@@ -144,15 +157,10 @@ interface FlowState {
   upsertStep: (step: Step) => void;
   updateStep: (step: Step) => void;
   removeStep: (stepId: string) => void;
-  addFlow: (flow: FlowContext) => void;
+  addFlow: (flow: FlowSummary) => void;
   removeFlow: (flowId: string) => void;
   selectFlow: (flowId: string | null) => void;
-  updateFlowFromWebSocket: (update: Partial<FlowContext>) => void;
-  updateFlowStatus: (
-    flowId: string,
-    status: FlowContext["status"],
-    completed_at?: string
-  ) => void;
+  updateFlowData: (update: Partial<FlowContext>) => void;
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
   initializeExecutions: (flowId: string, plan: ExecutionPlan) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
@@ -224,7 +232,7 @@ export const useFlowStore = create<FlowState>()(
         try {
           set({ flowsLoading: true });
           const resp = await api.listFlowsPage({ limit: FlowListPageSize });
-          const flows = (resp.flows || []).map(toFlowListContext);
+          const flows = (resp.flows || []).map(toFlowSummary);
           set({
             flows: flows.sort(compareFlows),
             flowsCursor: resp.next_cursor ?? null,
@@ -252,10 +260,9 @@ export const useFlowStore = create<FlowState>()(
             limit: FlowListPageSize,
             cursor: flowsCursor ?? undefined,
           });
-          const moreFlows = (resp.flows || []).map(toFlowListContext);
-          const merged = [...flows, ...moreFlows];
+          const moreFlows = (resp.flows || []).map(toFlowSummary);
           set({
-            flows: merged.sort(compareFlows),
+            flows: mergeFlowLists(flows, moreFlows),
             flowsCursor: resp.next_cursor ?? flowsCursor,
             flowsHasMore: resp.has_more ?? false,
           });
@@ -324,7 +331,7 @@ export const useFlowStore = create<FlowState>()(
         });
       },
 
-      addFlow: (flow: FlowContext) => {
+      addFlow: (flow: FlowSummary) => {
         set({
           flows: upsertFlowList(get().flows, flow).sort(compareFlows),
         });
@@ -335,55 +342,21 @@ export const useFlowStore = create<FlowState>()(
         set({ flows: flows.filter((w) => w.id !== flowId) });
       },
 
-      updateFlowFromWebSocket: (update: Partial<FlowContext>) => {
-        const { flowData, flows, resolvedAttributes } = get();
-        if (flowData) {
-          const updatedFlow = { ...flowData, ...update };
-          const newResolvedAttrs = mergeResolvedAttributes(
-            resolvedAttributes,
-            update.state
-          );
-
-          const flowIndex = flows.findIndex((w) => w.id === updatedFlow.id);
-          const updatedFlows =
-            flowIndex >= 0
-              ? flows.map((w, i) => (i === flowIndex ? updatedFlow : w))
-              : flows;
-
-          set({
-            flowData: updatedFlow,
-            flows: updatedFlows,
-            resolvedAttributes: newResolvedAttrs,
-          });
-        }
-      },
-
-      updateFlowStatus: (
-        flowId: string,
-        status: FlowContext["status"],
-        completed_at?: string
-      ) => {
-        const { flows } = get();
-        const flowIndex = flows.findIndex((w) => w.id === flowId);
-
-        if (flowIndex < 0) {
+      updateFlowData: (update: Partial<FlowContext>) => {
+        const { flowData, resolvedAttributes } = get();
+        if (!flowData) {
           return;
         }
 
-        const existingFlow = flows[flowIndex];
-
-        if (existingFlow.status === status) {
-          return;
-        }
-
-        const updatedFlows = flows.map((w, i) =>
-          i === flowIndex
-            ? { ...w, status, ...(completed_at && { completed_at }) }
-            : w
+        const updatedFlow = { ...flowData, ...update };
+        const newResolvedAttrs = mergeResolvedAttributes(
+          resolvedAttributes,
+          update.state
         );
 
         set({
-          flows: updatedFlows.sort(compareFlows),
+          flowData: updatedFlow,
+          resolvedAttributes: newResolvedAttrs,
         });
       },
 
@@ -556,7 +529,10 @@ export const useFlowStore = create<FlowState>()(
           started_at: state.created_at || new Date().toISOString(),
           completed_at: state.completed_at,
         };
-        const updatedFlows = upsertFlowList(flows, flowData).sort(compareFlows);
+        const updatedFlows = upsertFlowList(
+          flows,
+          toFlowSummaryFromState(state)
+        ).sort(compareFlows);
 
         const executions: ExecutionResult[] = Object.entries(
           state.executions || {}
@@ -640,7 +616,6 @@ type ActionKeys =
   | "addFlow"
   | "removeFlow"
   | "selectFlow"
-  | "updateFlowStatus"
   | "setVisibleFlowIDs";
 
 const createActionHook =
@@ -654,5 +629,4 @@ export const useLoadMoreFlows = createActionHook("loadMoreFlows");
 export const useAddFlow = createActionHook("addFlow");
 export const useRemoveFlow = createActionHook("removeFlow");
 export const useSelectFlow = createActionHook("selectFlow");
-export const useUpdateFlowStatus = createActionHook("updateFlowStatus");
 export const useSetVisibleFlowIDs = createActionHook("setVisibleFlowIDs");

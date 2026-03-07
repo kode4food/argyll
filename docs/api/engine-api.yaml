@@ -409,7 +409,7 @@ paths:
       description: |
         Retrieve non-child flows in the system (`active`, `completed`, and `failed`), sorted by most-recent activity within each status group.
 
-        This endpoint uses the same query engine as `/engine/flow/query`. Simple status- and ID-prefix-based results are served from flow status indexes; label filtering loads flow state only for the remaining candidates.
+        This endpoint uses the same query engine as `/engine/flow/query`. Status, ID-prefix, and label filtering are resolved from flow-store indexes without loading full flow state.
       operationId: listFlows
       tags:
         - Flows
@@ -490,7 +490,7 @@ paths:
       description: |
         Query non-child flows using ID prefix, labels, status filters, and pagination.
 
-        The engine resolves status and ID-prefix filtering from flow status indexes first. If label filters are present, it then loads only the remaining candidate flows to inspect their labels.
+        The engine resolves status, ID-prefix, and label filtering directly from flow-store indexes.
       operationId: queryFlows
       tags:
         - Flows
@@ -1289,20 +1289,13 @@ components:
       type: object
       required:
         - id
+        - status
+        - timestamp
       properties:
         id:
           type: string
           description: Flow identifier
           example: "wf-text-processing-001"
-        digest:
-          $ref: "#/components/schemas/FlowDigest"
-
-    FlowDigest:
-      type: object
-      required:
-        - status
-        - created_at
-      properties:
         status:
           type: string
           enum: [active, completed, failed]
@@ -1311,21 +1304,16 @@ components:
             - `completed`: Flow completed successfully
             - `failed`: Flow failed with an error
           example: "active"
-        created_at:
+        timestamp:
           type: string
           format: date-time
           description: |
-            Summary timestamp used by flow list/query responses.
-            For indexed-only queries, this is the indexed status timestamp used for ordering.
-        completed_at:
-          type: string
-          format: date-time
-          description: |
-            Terminal summary timestamp when the flow is completed or failed.
-            For indexed-only terminal queries, this is the indexed terminal timestamp.
+            Indexed status timestamp used by flow list/query responses.
+            For active flows, this is when the flow entered active status.
+            For completed or failed flows, this is when the flow entered its terminal status.
         labels:
           type: object
-          description: Flow labels
+          description: Flow labels when available in the summary
           additionalProperties:
             type: string
         error:

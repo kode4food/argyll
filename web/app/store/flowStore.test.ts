@@ -10,7 +10,7 @@ import {
   useFlowLoading,
   useFlowError,
 } from "./flowStore";
-import type { Step, FlowContext, ExecutionResult } from "../api";
+import type { Step, FlowContext, ExecutionResult, FlowSummary } from "../api";
 
 jest.mock("../api", () => ({
   ...jest.requireActual("../api"),
@@ -23,6 +23,13 @@ jest.mock("../api", () => ({
 import { api, AttributeRole, AttributeType } from "../api";
 
 const mockApi = api as jest.Mocked<typeof api>;
+
+const toFlowSummary = (flow: FlowContext): FlowSummary => ({
+  id: flow.id,
+  status: flow.status,
+  timestamp: flow.completed_at || flow.started_at,
+  error: flow.error_state?.message,
+});
 
 describe("flowStore", () => {
   beforeEach(() => {
@@ -80,33 +87,23 @@ describe("flowStore", () => {
         flows: [
           {
             id: completedOld.id,
-            digest: {
-              status: completedOld.status,
-              created_at: completedOld.started_at,
-              completed_at: completedOld.completed_at,
-            },
+            status: completedOld.status,
+            timestamp: completedOld.completed_at!,
           },
           {
             id: activeOld.id,
-            digest: {
-              status: activeOld.status,
-              created_at: activeOld.started_at,
-            },
+            status: activeOld.status,
+            timestamp: activeOld.started_at,
           },
           {
             id: completedNew.id,
-            digest: {
-              status: completedNew.status,
-              created_at: completedNew.started_at,
-              completed_at: completedNew.completed_at,
-            },
+            status: completedNew.status,
+            timestamp: completedNew.completed_at!,
           },
           {
             id: activeNew.id,
-            digest: {
-              status: activeNew.status,
-              created_at: activeNew.started_at,
-            },
+            status: activeNew.status,
+            timestamp: activeNew.started_at,
           },
         ],
         count: 4,
@@ -233,10 +230,8 @@ describe("flowStore", () => {
         flows: [
           {
             id: mockFlow.id,
-            digest: {
-              status: mockFlow.status,
-              created_at: mockFlow.started_at,
-            },
+            status: mockFlow.status,
+            timestamp: mockFlow.started_at,
           },
         ],
         count: 1,
@@ -257,12 +252,12 @@ describe("flowStore", () => {
     });
 
     test("addFlow adds flow", () => {
-      useFlowStore.getState().addFlow(mockFlow);
+      useFlowStore.getState().addFlow(toFlowSummary(mockFlow));
       expect(useFlowStore.getState().flows).toHaveLength(1);
     });
 
     test("removeFlow deletes flow", () => {
-      useFlowStore.setState({ flows: [mockFlow] });
+      useFlowStore.setState({ flows: [toFlowSummary(mockFlow)] });
       useFlowStore.getState().removeFlow("wf-1");
       expect(useFlowStore.getState().flows).toHaveLength(0);
     });
@@ -531,10 +526,10 @@ describe("flowStore", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
 
-    test("updateFlowFromWebSocket merges state", () => {
+    test("updateFlowData merges detail state", () => {
       useFlowStore.setState({
         flowData: mockFlow,
-        flows: [mockFlow],
+        flows: [toFlowSummary(mockFlow)],
         resolvedAttributes: [],
       });
 
@@ -543,7 +538,7 @@ describe("flowStore", () => {
         state: { result: { value: "final", step: "final-step" } },
       };
 
-      useFlowStore.getState().updateFlowFromWebSocket(update);
+      useFlowStore.getState().updateFlowData(update);
 
       const state = useFlowStore.getState();
 
@@ -554,17 +549,10 @@ describe("flowStore", () => {
       expect(state.resolvedAttributes).toContain("result");
     });
 
-    test("updateFlowFromWebSocket updates flows list", () => {
-      const flow2: FlowContext = {
-        id: "wf-2",
-        status: "active",
-        state: {},
-        started_at: "2024-01-02T00:00:00Z",
-      };
-
+    test("updateFlowData leaves flow summaries alone", () => {
       useFlowStore.setState({
         flowData: mockFlow,
-        flows: [mockFlow, flow2],
+        flows: [toFlowSummary(mockFlow)],
         resolvedAttributes: [],
       });
 
@@ -572,47 +560,26 @@ describe("flowStore", () => {
         status: "completed",
       };
 
-      useFlowStore.getState().updateFlowFromWebSocket(update);
+      useFlowStore.getState().updateFlowData(update);
 
       const state = useFlowStore.getState();
-      const updatedFlow = state.flows.find((w) => w.id === "wf-1");
-
-      expect(updatedFlow?.status).toBe("completed");
+      expect(state.flows).toEqual([toFlowSummary(mockFlow)]);
     });
 
-    test("updateFlowStatus updates flow status", () => {
+    test("addFlow replaces an existing summary", () => {
       useFlowStore.setState({
-        flowData: mockFlow,
-        flows: [mockFlow],
+        flows: [toFlowSummary(mockFlow)],
       });
 
-      useFlowStore.getState().updateFlowStatus("wf-1", "completed");
+      useFlowStore.getState().addFlow({
+        id: "wf-1",
+        status: "completed",
+        timestamp: "2024-01-02T00:00:00Z",
+      });
       const state = useFlowStore.getState();
 
       expect(state.flows[0].status).toBe("completed");
-    });
-
-    test("updateFlowStatus does nothing if flow not found", () => {
-      useFlowStore.setState({
-        flowData: mockFlow,
-        flows: [mockFlow],
-      });
-
-      useFlowStore.getState().updateFlowStatus("wf-999", "completed");
-      const state = useFlowStore.getState();
-
-      expect(state.flows[0].status).toBe("active");
-    });
-
-    test("updateFlowStatus does nothing if status unchanged", () => {
-      useFlowStore.setState({
-        flows: [mockFlow],
-      });
-
-      useFlowStore.getState().updateFlowStatus("wf-1", "active");
-      const state = useFlowStore.getState();
-
-      expect(state.flows[0]).toEqual(mockFlow);
+      expect(state.flows[0].timestamp).toBe("2024-01-02T00:00:00Z");
     });
   });
 
@@ -688,8 +655,7 @@ describe("flowStore", () => {
           {
             id: "wf-1",
             status: "pending",
-            state: {},
-            started_at: "2024-01-01T00:00:00Z",
+            timestamp: "2024-01-01T00:00:00Z",
           },
         ],
       });
@@ -706,11 +672,8 @@ describe("flowStore", () => {
         {
           id: "wf-1",
           status: "completed",
-          state: {},
-          error_state: undefined,
-          plan: undefined,
-          started_at: "2024-01-01T00:00:00Z",
-          completed_at: "2024-01-02T00:00:00Z",
+          timestamp: "2024-01-02T00:00:00Z",
+          error: undefined,
         },
       ]);
     });
@@ -787,11 +750,10 @@ describe("flowStore", () => {
     });
 
     test("useFlows selector works", () => {
-      const mockFlow: FlowContext = {
+      const mockFlow: FlowSummary = {
         id: "wf-1",
         status: "active",
-        state: {},
-        started_at: "2024-01-01T00:00:00Z",
+        timestamp: "2024-01-01T00:00:00Z",
       };
 
       useFlowStore.setState({ flows: [mockFlow] });

@@ -71,15 +71,16 @@ func TestListFlows(t *testing.T) {
 	})
 }
 
-func TestListFlowsBadStatus(t *testing.T) {
+func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		addStatusEntry(t, env, events.FlowStatusActive, "bad-id", time.Now())
+		addStatusEntry(t, env, events.FlowStatusActive, "bad:flow-id", time.Now())
 
-		_, err := env.Engine.ListFlows()
-		assert.ErrorIs(t, err, engine.ErrQueryFlows)
+		flows, err := env.Engine.ListFlows()
+		assert.NoError(t, err)
+		assert.Empty(t, flows)
 	})
 }
 
@@ -188,6 +189,46 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 	})
 }
 
+func TestFlowLabelsAreIndexedInStore(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+		defer func() { _ = env.Engine.Stop() }()
+
+		step := helpers.NewSimpleStep("label-step")
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		plan := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+		labels := api.Labels{
+			"tier": "gold",
+			"env":  "prod",
+		}
+
+		env.WaitForFlowStatus("flow-labeled", func() {
+			assert.NoError(t, env.Engine.StartFlow(
+				"flow-labeled",
+				plan,
+				flowopt.WithLabels(labels),
+			))
+		})
+
+		ids, err := env.ListFlowsByLabel("tier", "gold")
+		assert.NoError(t, err)
+		assert.Contains(t, ids, events.FlowKey("flow-labeled"))
+
+		ids, err = env.ListFlowsByLabel("env", "prod")
+		assert.NoError(t, err)
+		assert.Contains(t, ids, events.FlowKey("flow-labeled"))
+
+		ids, err = env.ListFlowsByLabel("tier", "silver")
+		assert.NoError(t, err)
+		assert.NotContains(t, ids, events.FlowKey("flow-labeled"))
+	})
+}
+
 func TestQueryFlowsSortAsc(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnvDeps(t, engine.Dependencies{
@@ -218,8 +259,8 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 			Statuses: []api.FlowStatus{api.FlowCompleted},
 			Sort:     api.FlowSortRecentAsc,
 		}, 2)
-		recent0 := flowRecent(resp.Flows[0].Digest)
-		recent1 := flowRecent(resp.Flows[1].Digest)
+		recent0 := resp.Flows[0].Timestamp
+		recent1 := resp.Flows[1].Timestamp
 		assert.False(t, recent0.After(recent1))
 	})
 }
@@ -302,17 +343,18 @@ func TestQueryFlowsBadCursorJSON(t *testing.T) {
 	})
 }
 
-func TestQueryFlowsBadStatus(t *testing.T) {
+func TestQueryFlowsIgnoresBadStatusEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		addStatusEntry(t, env, events.FlowStatusActive, "bad-id", time.Now())
+		addStatusEntry(t, env, events.FlowStatusActive, "bad:flow-id", time.Now())
 
-		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
+		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowActive},
 		})
-		assert.ErrorIs(t, err, engine.ErrQueryFlows)
+		assert.NoError(t, err)
+		assert.Empty(t, resp.Flows)
 	})
 }
 
@@ -456,9 +498,7 @@ func TestQueryFlowsBadStatuses(t *testing.T) {
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{
-				api.FlowCompleted,
-				api.FlowCompleted,
-				api.FlowStatus("bogus"),
+				api.FlowCompleted, api.FlowCompleted, "bogus",
 			},
 		})
 		assert.NoError(t, err)
@@ -565,19 +605,6 @@ func waitForQueryFlows(
 	}
 	t.Fatalf("expected at least %d flows, got %d", min, len(resp.Flows))
 	return nil
-}
-
-func flowRecent(digest *api.FlowDigest) time.Time {
-	if digest == nil {
-		return time.Time{}
-	}
-	if digest.Status == api.FlowActive {
-		return digest.CreatedAt
-	}
-	if !digest.CompletedAt.IsZero() {
-		return digest.CompletedAt
-	}
-	return digest.CreatedAt
 }
 
 func addStatusEntry(

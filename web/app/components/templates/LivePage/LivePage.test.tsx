@@ -23,7 +23,6 @@ jest.mock("@/app/contexts/FlowSessionContext", () => {
     loadSteps: jest.fn(),
     steps: [],
     flows: [],
-    updateFlowStatus: jest.fn(),
     flowData: null,
     loading: false,
     flowNotFound: false,

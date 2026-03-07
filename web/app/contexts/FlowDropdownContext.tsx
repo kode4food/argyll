@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from "react";
-import { FlowContext } from "../api";
+import { FlowSummary } from "../api";
 
 export interface FlowDropdownContextValue {
   showDropdown: boolean;
@@ -9,14 +9,14 @@ export interface FlowDropdownContextValue {
   scrollTop: number;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
-  filteredFlows: FlowContext[];
+  filteredFlows: FlowSummary[];
   handleSearchChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   handleKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   setScrollTop: (scrollTop: number) => void;
   selectFlow: (flowId: string) => void;
   closeDropdown: () => void;
   selectedFlow: string | null;
-  flows: FlowContext[];
+  flows: FlowSummary[];
   flowsHasMore: boolean;
   flowsLoading: boolean;
   loadMoreFlows: () => Promise<void>;

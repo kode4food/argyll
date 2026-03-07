@@ -8,7 +8,6 @@ import {
   useFlows,
   useFlowsHasMore,
   useFlowsLoading,
-  useUpdateFlowStatus,
   useFlowData,
   useFlowLoading,
   useFlowNotFound,
@@ -28,7 +27,6 @@ type FlowSessionValue = {
   flows: ReturnType<typeof useFlows>;
   flowsHasMore: boolean;
   flowsLoading: boolean;
-  updateFlowStatus: ReturnType<typeof useUpdateFlowStatus>;
   flowData: ReturnType<typeof useFlowData>;
   loading: boolean;
   flowNotFound: boolean;
@@ -53,7 +51,6 @@ export const FlowSessionProvider = ({
   const flows = useFlows();
   const flowsHasMore = useFlowsHasMore();
   const flowsLoading = useFlowsLoading();
-  const updateFlowStatus = useUpdateFlowStatus();
   const flowData = useFlowData();
   const loading = useFlowLoading();
   const flowNotFound = useFlowNotFound();
@@ -72,7 +69,6 @@ export const FlowSessionProvider = ({
       flows,
       flowsHasMore,
       flowsLoading,
-      updateFlowStatus,
       flowData,
       loading,
       flowNotFound,
@@ -90,7 +86,6 @@ export const FlowSessionProvider = ({
       flows,
       flowsHasMore,
       flowsLoading,
-      updateFlowStatus,
       flowData,
       loading,
       flowNotFound,

@@ -77,6 +77,35 @@ func TestFlowStarted(t *testing.T) {
 	assert.True(t, result.CreatedAt.Equal(now))
 }
 
+func TestFlowIndexerProjectsLabelsOnStart(t *testing.T) {
+	eventData := api.FlowStartedEvent{
+		FlowID: "test-flow",
+		Plan: &api.ExecutionPlan{
+			Steps: api.Steps{},
+		},
+		Labels: api.Labels{
+			"tier": "gold",
+			"env":  "prod",
+		},
+	}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	indexes := events.FlowIndexer([]*timebox.Event{
+		{
+			AggregateID: events.FlowKey("test-flow"),
+			Type:        timebox.EventType(api.EventTypeFlowStarted),
+			Data:        data,
+		},
+	})
+
+	if assert.Len(t, indexes, 1) {
+		assert.NotNil(t, indexes[0].Status)
+		assert.Equal(t, events.FlowStatusActive, *indexes[0].Status)
+		assert.EqualValues(t, eventData.Labels, indexes[0].Labels)
+	}
+}
+
 func TestFlowCompleted(t *testing.T) {
 	state := &api.FlowState{
 		ID:     "test-flow",

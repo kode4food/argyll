@@ -178,9 +178,7 @@ export const FlowCreationStateProvider = ({
     addFlow({
       id: flowId,
       status: "pending",
-      state: parsedState,
-      started_at: new Date().toISOString(),
-      plan: previewPlan || undefined,
+      timestamp: new Date().toISOString(),
     });
 
     setCreating(true);

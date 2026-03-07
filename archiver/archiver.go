@@ -139,14 +139,6 @@ func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 			continue
 		}
 
-		if err := events.RemoveFlowFromStatuses(
-			bg, a.flowStore, flowID,
-		); err != nil {
-			slog.Warn("Failed to clear archived flow index",
-				slog.String("flow_id", string(flowID)),
-				slog.String("error", err.Error()))
-		}
-
 		a.releaseLease(bg, flowID)
 	}
 }

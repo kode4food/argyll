@@ -11,6 +11,7 @@ export type {
   Step,
   ExecutionPlan,
   FlowContext,
+  FlowSummary,
   QueryFlowsItem,
   QueryFlowsResponse,
   ExecutionResult,

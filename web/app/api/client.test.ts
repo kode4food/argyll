@@ -81,48 +81,16 @@ describe("ArgyllApi", () => {
     });
   });
 
-  describe("listFlows", () => {
-    test("fetches and converts flow list", async () => {
-      const mockItems = [
-        {
-          id: "wf-1",
-          digest: {
-            status: "active",
-            created_at: "2024-01-01T00:00:00Z",
-          },
-        },
-        {
-          id: "wf-2",
-          digest: {
-            status: "completed",
-            created_at: "2024-01-02T00:00:00Z",
-            completed_at: "2024-01-02T00:05:00Z",
-            error: "done",
-          },
-        },
-      ];
+  describe("listFlowsPage", () => {
+    test("uses the default recent-desc query", async () => {
+      mockClient.post.mockResolvedValue({ data: { flows: [] } });
 
-      mockClient.post.mockResolvedValue({
-        data: { flows: mockItems },
-      });
-
-      const result = await api.listFlows();
+      const result = await api.listFlowsPage();
 
       expect(mockClient.post).toHaveBeenCalledWith("/engine/flow/query", {
         sort: "recent_desc",
       });
-      expect(result).toHaveLength(2);
-      expect(result[0].id).toBe("wf-1");
-      expect(result[1].id).toBe("wf-2");
-      expect(result[1].completed_at).toBe("2024-01-02T00:05:00Z");
-    });
-
-    test("handles empty flow list", async () => {
-      mockClient.post.mockResolvedValue({ data: {} });
-
-      const result = await api.listFlows();
-
-      expect(result).toEqual([]);
+      expect(result).toEqual({ flows: [] });
     });
   });
 
