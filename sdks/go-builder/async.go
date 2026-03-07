@@ -96,8 +96,8 @@ func (c *AsyncContext) sendWebhook(result api.StepResult) error {
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("%w: status %d: %s",
-			ErrWebhookError, resp.StatusCode, string(body))
+		return fmt.Errorf("%w: status %d: %s", ErrWebhookError,
+			resp.StatusCode, string(body))
 	}
 
 	return nil

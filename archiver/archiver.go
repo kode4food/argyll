@@ -42,6 +42,7 @@ var (
 	ErrFlowStoreRequired   = errors.New("flow store is required")
 	ErrRedisClientRequired = errors.New("redis client is required")
 	ErrSelectFlowsFailed   = errors.New("failed to select flows")
+	ErrInvalidFlowStatus   = errors.New("invalid flow status entry")
 )
 
 func NewArchiver(
@@ -200,14 +201,14 @@ func (a *Archiver) selectFlows(
 		context.Background(), events.FlowStatusCompleted,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrSelectFlowsFailed, err)
+		return nil, errors.Join(ErrSelectFlowsFailed, err)
 	}
 
 	failed, err := a.flowStore.ListAggregatesByStatus(
 		context.Background(), events.FlowStatusFailed,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrSelectFlowsFailed, err)
+		return nil, errors.Join(ErrSelectFlowsFailed, err)
 	}
 
 	selected := make([]flowCandidate, 0, len(entries)+len(failed))
@@ -215,8 +216,11 @@ func (a *Archiver) selectFlows(
 		for _, entry := range group {
 			flowID, ok := events.ParseFlowID(entry.ID)
 			if !ok {
-				return nil, fmt.Errorf("%w: invalid flow status entry %s",
-					ErrSelectFlowsFailed, entry.ID.Join(":"))
+				return nil, errors.Join(
+					ErrSelectFlowsFailed,
+					fmt.Errorf("%w: %s", ErrInvalidFlowStatus,
+						entry.ID.Join(":")),
+				)
 			}
 			selected = append(selected, flowCandidate{
 				id:       flowID,

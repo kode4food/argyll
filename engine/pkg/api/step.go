@@ -519,7 +519,7 @@ func (s *Step) computeHashKey() (string, error) {
 
 	data, err := json.Marshal(h)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrMarshalStep, err)
+		return "", errors.Join(ErrMarshalStep, err)
 	}
 
 	return sha256Hex(string(data)), nil

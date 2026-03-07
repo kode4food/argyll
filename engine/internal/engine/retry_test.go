@@ -1,7 +1,7 @@
 package engine_test
 
 import (
-	"fmt"
+	"errors"
 	"testing"
 	"time"
 
@@ -228,7 +228,7 @@ func TestRetryExhaustion(t *testing.T) {
 		}
 
 		env.MockClient.SetError("failing-step",
-			fmt.Errorf("%w: %w", api.ErrWorkNotCompleted, assert.AnError))
+			errors.Join(api.ErrWorkNotCompleted, assert.AnError))
 
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)

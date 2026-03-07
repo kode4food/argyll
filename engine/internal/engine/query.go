@@ -40,8 +40,9 @@ type (
 )
 
 var (
-	ErrInvalidFlowCursor = errors.New("invalid flow cursor")
-	ErrQueryFlows        = errors.New("failed to query flows")
+	ErrInvalidFlowCursor     = errors.New("invalid flow cursor")
+	ErrQueryFlows            = errors.New("failed to query flows")
+	ErrInvalidFlowLabelEntry = errors.New("invalid flow label entry")
 )
 
 // ListFlows returns summary information for flows using the query path
@@ -119,8 +120,11 @@ func (e *Engine) listIndexedEntries(
 	for _, entry := range entries {
 		flowID, ok := events.ParseFlowID(entry.ID)
 		if !ok {
-			return nil, fmt.Errorf("%w: invalid flow status entry %s",
-				ErrQueryFlows, entry.ID.Join(":"))
+			return nil, errors.Join(
+				ErrQueryFlows,
+				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry,
+					entry.ID.Join(":")),
+			)
 		}
 		res = append(res, flowStatusEntry{
 			id:        flowID,
@@ -193,8 +197,11 @@ func (e *Engine) collectLabelFlowIDs(
 		for _, id := range ids {
 			flowID, ok := events.ParseFlowID(id)
 			if !ok {
-				return nil, fmt.Errorf("%w: invalid flow label entry %s",
-					ErrQueryFlows, id.Join(":"))
+				return nil, errors.Join(
+					ErrQueryFlows,
+					fmt.Errorf("%w: %s", ErrInvalidFlowLabelEntry,
+						id.Join(":")),
+				)
 			}
 			if isChildFlowID(flowID) {
 				continue
@@ -317,13 +324,11 @@ func flowLessKey(
 func decodeFlowQueryCursor(value string) (flowQueryCursor, error) {
 	b, err := base64.RawURLEncoding.DecodeString(value)
 	if err != nil {
-		return flowQueryCursor{},
-			fmt.Errorf("%w: %s", ErrInvalidFlowCursor, err)
+		return flowQueryCursor{}, errors.Join(ErrInvalidFlowCursor, err)
 	}
 	var cursor flowQueryCursor
 	if err := json.Unmarshal(b, &cursor); err != nil {
-		return flowQueryCursor{},
-			fmt.Errorf("%w: %s", ErrInvalidFlowCursor, err)
+		return flowQueryCursor{}, errors.Join(ErrInvalidFlowCursor, err)
 	}
 	return cursor, nil
 }

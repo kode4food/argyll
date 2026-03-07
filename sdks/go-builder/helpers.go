@@ -75,8 +75,8 @@ func setupStepServer(client *Client, step *Step, handle StepHandler) error {
 	}
 
 	if !registered {
-		return fmt.Errorf("%w: %d attempts",
-			ErrStepRegistration, MaxRegistrationAttempts)
+		return fmt.Errorf("%w: %d attempts", ErrStepRegistration,
+			MaxRegistrationAttempts)
 	}
 
 	mux := http.NewServeMux()

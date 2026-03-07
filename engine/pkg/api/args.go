@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"maps"
 	"slices"
 )
@@ -108,7 +107,7 @@ func (a Args) HashKey() (string, error) {
 
 	data, err := json.Marshal(pairs)
 	if err != nil {
-		return "", fmt.Errorf("%w: %w", ErrMarshalArgs, err)
+		return "", errors.Join(ErrMarshalArgs, err)
 	}
 
 	return sha256Hex(string(data)), nil

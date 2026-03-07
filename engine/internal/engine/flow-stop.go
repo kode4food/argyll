@@ -143,7 +143,7 @@ func (tx *flowTx) completeParentFlowWork(
 	return tx.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
 		parent := parentTx.Value()
 		if parent.ID == "" {
-			return fmt.Errorf("%w: %w", ErrGetFlowState, ErrFlowNotFound)
+			return errors.Join(ErrGetFlowState, ErrFlowNotFound)
 		}
 
 		exec := parent.Executions[target.fs.StepID]

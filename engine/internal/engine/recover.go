@@ -13,15 +13,16 @@ import (
 )
 
 var (
-	ErrListActiveFlows = errors.New("failed to list active flows")
-	ErrGetFlowState    = errors.New("failed to get flow state")
+	ErrListActiveFlows        = errors.New("failed to list active flows")
+	ErrGetFlowState           = errors.New("failed to get flow state")
+	ErrInvalidFlowStatusEntry = errors.New("invalid flow status entry")
 )
 
 // RecoverFlows initiates recovery for all active flows during engine startup
 func (e *Engine) RecoverFlows() error {
 	ids, err := e.listIndexedFlows(events.FlowStatusActive)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrListActiveFlows, err)
+		return errors.Join(ErrListActiveFlows, err)
 	}
 
 	if len(ids) == 0 {
@@ -43,7 +44,7 @@ func (e *Engine) RecoverFlows() error {
 func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	flow, err := e.GetFlowState(flowID)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrGetFlowState, err)
+		return errors.Join(ErrGetFlowState, err)
 	}
 	if err := validateParentMetadata(flow.Metadata); err != nil {
 		return err
@@ -114,8 +115,11 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 	for _, entry := range entries {
 		flowID, ok := events.ParseFlowID(entry.ID)
 		if !ok {
-			return nil, fmt.Errorf("%w: invalid flow status entry %s",
-				ErrListActiveFlows, entry.ID.Join(":"))
+			return nil, errors.Join(
+				ErrListActiveFlows,
+				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry,
+					entry.ID.Join(":")),
+			)
 		}
 		if seen.Contains(flowID) {
 			continue

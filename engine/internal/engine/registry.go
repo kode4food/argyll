@@ -87,7 +87,7 @@ func (e *Engine) execStepUpsert(
 			call.WithArgs(validateAttributeTypes, st, step),
 			call.WithArgs(detectStepCycles, st, step),
 		); err != nil {
-			return fmt.Errorf("%w: %w", ErrInvalidStep, err)
+			return errors.Join(ErrInvalidStep, err)
 		}
 		return raise(step, ag)
 	}
@@ -112,7 +112,7 @@ func (e *Engine) validateStep(step *api.Step) error {
 		call.WithArg(e.validateStepMappings, step),
 		call.WithArg(e.validateStepScripts, step),
 	); err != nil {
-		return fmt.Errorf("%w: %w", ErrInvalidStep, err)
+		return errors.Join(ErrInvalidStep, err)
 	}
 	return nil
 }

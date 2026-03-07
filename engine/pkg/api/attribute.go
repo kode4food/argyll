@@ -116,18 +116,18 @@ var (
 // Validate checks if the attribute specification is valid
 func (s *AttributeSpec) Validate(name Name) error {
 	if !validAttributeRoles.Contains(s.Role) {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidAttributeRole, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrInvalidAttributeRole,
+			s.Role, name)
 	}
 
 	if s.IsConst() && s.Default == "" {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrDefaultRequired, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultRequired,
+			s.Role, name)
 	}
 
 	if s.Default != "" && !s.IsOptional() && !s.IsConst() {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrDefaultNotAllowed, s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultNotAllowed,
+			s.Role, name)
 	}
 
 	if s.ForEach {

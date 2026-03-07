@@ -108,7 +108,7 @@ func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
 func (e *ExecContext) performScript(inputs api.Args, tkn api.Token) error {
 	c, err := e.engine.scripts.Compile(e.step, e.step.Script)
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrScriptCompileFailed, err)
+		return errors.Join(ErrScriptCompileFailed, err)
 	}
 
 	outputs, err := e.executeScript(c, inputs)

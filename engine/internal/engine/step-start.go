@@ -1,6 +1,7 @@
 package engine
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -20,8 +21,8 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 
 	exec := flow.Executions[stepID]
 	if exec.Status != api.StepPending {
-		return fmt.Errorf("%w: %s (status=%s)",
-			ErrStepAlreadyPending, stepID, exec.Status)
+		return fmt.Errorf("%w: %s (status=%s)", ErrStepAlreadyPending,
+			stepID, exec.Status)
 	}
 
 	step := flow.Plan.Steps[stepID]
@@ -136,17 +137,17 @@ func (e *Engine) evaluateStepPredicate(
 
 	comp, err := e.scripts.Compile(step, step.Predicate)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrPredicateCompileFailed, err)
+		return false, errors.Join(ErrPredicateCompileFailed, err)
 	}
 
 	env, err := e.scripts.Get(step.Predicate.Language)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrPredicateEnvFailed, err)
+		return false, errors.Join(ErrPredicateEnvFailed, err)
 	}
 
 	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
 	if err != nil {
-		return false, fmt.Errorf("%w: %w", ErrPredicateEvalFailed, err)
+		return false, errors.Join(ErrPredicateEvalFailed, err)
 	}
 
 	return shouldExecute, nil

@@ -45,8 +45,8 @@ func computeWorkItems(step *api.Step, inputs api.Args) ([]api.Args, error) {
 	}
 
 	if n := productSize(multiArgs); n > MaxWorkItemsPerStep {
-		return nil, fmt.Errorf("%w: %d (max %d)",
-			ErrTooManyWorkItems, n, MaxWorkItemsPerStep)
+		return nil, fmt.Errorf("%w: %d (max %d)", ErrTooManyWorkItems,
+			n, MaxWorkItemsPerStep)
 	}
 	return cartesianProduct(multiArgs), nil
 }

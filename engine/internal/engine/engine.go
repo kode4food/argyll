@@ -72,7 +72,7 @@ var (
 func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	cfg = cfg.WithWorkDefaults()
 	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("%w: %w", ErrInvalidConfig, err)
+		return nil, errors.Join(ErrInvalidConfig, err)
 	}
 
 	if err := normalizeDependencies(&deps); err != nil {

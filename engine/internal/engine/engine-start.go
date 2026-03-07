@@ -2,7 +2,6 @@ package engine
 
 import (
 	"errors"
-	"fmt"
 	"log/slog"
 	"time"
 
@@ -20,7 +19,7 @@ func (e *Engine) Start() error {
 	go e.scheduler.Run(e.ctx)
 
 	if err := e.RecoverFlows(); err != nil {
-		return fmt.Errorf("%w: %w", ErrRecoverFlows, err)
+		return errors.Join(ErrRecoverFlows, err)
 	}
 
 	return nil

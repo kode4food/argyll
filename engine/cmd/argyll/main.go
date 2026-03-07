@@ -120,25 +120,25 @@ func (s *argyll) initializeStores() error {
 		Workers:    true,
 	})
 	if err != nil {
-		return fmt.Errorf("%w: %w", ErrCreateTimebox, err)
+		return errors.Join(ErrCreateTimebox, err)
 	}
 
 	s.catalogStore, err = s.timebox.NewStore(s.cfg.CatalogStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("%w: %w", ErrCreateCatalogStore, err)
+		return errors.Join(ErrCreateCatalogStore, err)
 	}
 
 	s.partitionStore, err = s.timebox.NewStore(s.cfg.PartitionStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("%w: %w", ErrCreatePartitionStore, err)
+		return errors.Join(ErrCreatePartitionStore, err)
 	}
 
 	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
 	if err != nil {
 		_ = s.timebox.Close()
-		return fmt.Errorf("%w: %w", ErrCreateFlowStore, err)
+		return errors.Join(ErrCreateFlowStore, err)
 	}
 
 	return nil

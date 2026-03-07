@@ -146,7 +146,7 @@ func (e *LuaEnv) withCompiledResult(
 
 	e.setupSandbox(L)
 	if err := L.Load(bytes.NewReader(proc.bytecode), "chunk", "b"); err != nil {
-		return fmt.Errorf("%w: %w", ErrLuaLoad, err)
+		return errors.Join(ErrLuaLoad, err)
 	}
 
 	for _, name := range proc.argNames {
@@ -154,7 +154,7 @@ func (e *LuaEnv) withCompiledResult(
 	}
 
 	if err := L.ProtectedCall(len(proc.argNames), 1, 0); err != nil {
-		return fmt.Errorf("%w: %w", ErrLuaExecution, err)
+		return errors.Join(ErrLuaExecution, err)
 	}
 
 	onResult(L)

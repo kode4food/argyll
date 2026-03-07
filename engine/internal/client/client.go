@@ -115,7 +115,7 @@ func (c *HTTPClient) sendRequest(
 			log.StepID(step.ID),
 			slog.Int("duration_ms", int(dur.Milliseconds())),
 			log.Error(err))
-		return nil, fmt.Errorf("%w: %w", api.ErrWorkNotCompleted, err)
+		return nil, errors.Join(api.ErrWorkNotCompleted, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
@@ -136,13 +136,16 @@ func (c *HTTPClient) sendRequest(
 
 		// 4xx errors are permanent failures
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			return nil, fmt.Errorf("%w: status %d",
-				ErrHTTPError, resp.StatusCode)
+			return nil, fmt.Errorf("%w: status %d", ErrHTTPError,
+				resp.StatusCode)
 		}
 
 		// 5xx errors are transient
-		return nil, fmt.Errorf("%w: %w: status %d",
-			api.ErrWorkNotCompleted, ErrHTTPError, resp.StatusCode)
+		return nil,
+			errors.Join(
+				api.ErrWorkNotCompleted,
+				fmt.Errorf("%w: status %d", ErrHTTPError, resp.StatusCode),
+			)
 	}
 
 	return respBody, nil

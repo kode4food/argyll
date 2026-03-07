@@ -246,8 +246,8 @@ func (c *Config) Validate() error {
 	if c.Work.BackoffType != api.BackoffTypeFixed &&
 		c.Work.BackoffType != api.BackoffTypeLinear &&
 		c.Work.BackoffType != api.BackoffTypeExponential {
-		return fmt.Errorf("%w: %s",
-			ErrInvalidRetryBackoffType, c.Work.BackoffType)
+		return fmt.Errorf("%w: %s", ErrInvalidRetryBackoffType,
+			c.Work.BackoffType)
 	}
 
 	return nil
