@@ -21,7 +21,7 @@ func TestRunCanceled(t *testing.T) {
 	defer redisServer.Close()
 
 	cfg := testRunConfig(redisServer.Addr())
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	err = archive.Run(ctx, cfg,
@@ -39,7 +39,7 @@ func TestRunNoHandler(t *testing.T) {
 
 	cfg := testRunConfig(redisServer.Addr())
 
-	err = archive.Run(context.Background(), cfg, nil)
+	err = archive.Run(t.Context(), cfg, nil)
 	assert.ErrorIs(t, err, archive.ErrArchiveHandlerRequired)
 }
 
@@ -51,7 +51,7 @@ func TestRunBadConfig(t *testing.T) {
 	cfg := testRunConfig(redisServer.Addr())
 	cfg.MemoryCheckInterval = 0
 
-	err = archive.Run(context.Background(), cfg,
+	err = archive.Run(t.Context(), cfg,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			return nil
 		},
@@ -67,7 +67,7 @@ func TestRunBadPollInterval(t *testing.T) {
 	cfg := testRunConfig(redisServer.Addr())
 	cfg.PollInterval = 0
 
-	err = archive.Run(context.Background(), cfg,
+	err = archive.Run(t.Context(), cfg,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			return nil
 		},
@@ -87,7 +87,7 @@ func TestRunArchives(t *testing.T) {
 	cfg := testRunConfig(redisServer.Addr())
 	cfg.MaxAge = 0
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	done := make(chan error, 1)
@@ -130,7 +130,7 @@ func TestRunHandlerError(t *testing.T) {
 	cfg := testRunConfig(redisServer.Addr())
 	cfg.MaxAge = 0
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	err = archive.Run(ctx, cfg,

@@ -40,7 +40,7 @@ func (p *fakePoller) PollArchive(
 }
 
 func TestRunnerHandlesArchiveRecord(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := &fakePoller{records: make(chan *timebox.ArchiveRecord, 1)}
 
 	var got *timebox.ArchiveRecord
@@ -64,7 +64,7 @@ func TestRunnerHandlesArchiveRecord(t *testing.T) {
 }
 
 func TestRunnerStopsOnPollerError(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	p := &fakePoller{err: assert.AnError}
 
 	r, err := archive.NewRunner(p, testPollInterval,
@@ -95,7 +95,7 @@ func TestNewRunnerValidation(t *testing.T) {
 }
 
 func TestRunnerCancel(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	p := &fakePoller{records: make(chan *timebox.ArchiveRecord)}
@@ -135,7 +135,7 @@ func TestRunnerContextCanceledSuccess(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	err = r.Run(context.Background())
+	err = r.Run(t.Context())
 	assert.NoError(t, err)
 }
 

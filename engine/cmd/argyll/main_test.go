@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log/slog"
 	"net"
 	"os"
@@ -76,7 +75,7 @@ func TestSetupLogging(t *testing.T) {
 			s.setupLogging()
 
 			handler := slog.Default().Handler()
-			ctx := context.Background()
+			ctx := t.Context()
 
 			assert.True(t, handler.Enabled(ctx, tt.expected))
 			assert.False(t, handler.Enabled(ctx, tt.expected-1))

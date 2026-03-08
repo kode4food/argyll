@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"testing"
@@ -737,7 +736,7 @@ func addStatusEntry(
 	cli := redis.NewClient(&redis.Options{Addr: env.Redis.Addr()})
 	defer func() { _ = cli.Close() }()
 
-	err := cli.ZAdd(context.Background(),
+	err := cli.ZAdd(t.Context(),
 		"test-flow:idx:status:"+status,
 		redis.Z{Score: float64(at.UnixMilli()), Member: id},
 	).Err()
@@ -753,6 +752,6 @@ func addLabelEntry(
 	defer func() { _ = cli.Close() }()
 
 	key := fmt.Sprintf("test-flow:idx:label:%s:%s", label, value)
-	err := cli.SAdd(context.Background(), key, id).Err()
+	err := cli.SAdd(t.Context(), key, id).Err()
 	assert.NoError(t, err)
 }

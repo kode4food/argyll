@@ -2,7 +2,6 @@ package log_test
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"io"
 	"log/slog"
@@ -16,7 +15,7 @@ import (
 
 func TestNewUsesInfoLevel(t *testing.T) {
 	logger := log.New("svc", "dev", "1.0.0")
-	ctx := context.Background()
+	ctx := t.Context()
 
 	assert.False(t, logger.Handler().Enabled(ctx, slog.LevelDebug))
 	assert.True(t, logger.Handler().Enabled(ctx, slog.LevelInfo))

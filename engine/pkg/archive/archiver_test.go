@@ -107,7 +107,7 @@ func TestSweepDeactivated(t *testing.T) {
 	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
 		done <- arch.Run(ctx)
@@ -116,7 +116,7 @@ func TestSweepDeactivated(t *testing.T) {
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
 		err := flowStore.PollArchive(
-			context.Background(), 5*time.Millisecond,
+			t.Context(), 5*time.Millisecond,
 			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
 				record = rec
 				return nil
@@ -133,7 +133,7 @@ func TestSweepDeactivated(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	entries, err := flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusCompleted,
+		t.Context(), events.FlowStatusCompleted,
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
@@ -176,7 +176,7 @@ func TestPressureArchives(t *testing.T) {
 	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
 		done <- arch.Run(ctx)
@@ -185,7 +185,7 @@ func TestPressureArchives(t *testing.T) {
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
 		err := flowStore.PollArchive(
-			context.Background(), 5*time.Millisecond,
+			t.Context(), 5*time.Millisecond,
 			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
 				record = rec
 				return nil
@@ -202,7 +202,7 @@ func TestPressureArchives(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	entries, err := flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusCompleted,
+		t.Context(), events.FlowStatusCompleted,
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
@@ -241,7 +241,7 @@ func TestAgeSweepRecent(t *testing.T) {
 	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
 		done <- arch.Run(ctx)
@@ -252,7 +252,7 @@ func TestAgeSweepRecent(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	err = flowStore.PollArchive(
-		context.Background(), 5*time.Millisecond,
+		t.Context(), 5*time.Millisecond,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			t.Fatal("expected no archived records for recent flow")
 			return nil
@@ -297,7 +297,7 @@ func TestPressureBelowThreshold(t *testing.T) {
 	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
 		done <- arch.Run(ctx)
@@ -308,7 +308,7 @@ func TestPressureBelowThreshold(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	err = flowStore.PollArchive(
-		context.Background(), 5*time.Millisecond,
+		t.Context(), 5*time.Millisecond,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			t.Fatal("expected no archived records below memory threshold")
 			return nil
@@ -336,7 +336,7 @@ func TestSweepBadStatus(t *testing.T) {
 	})
 	defer func() { _ = cli.Close() }()
 
-	err = cli.ZAdd(context.Background(),
+	err = cli.ZAdd(t.Context(),
 		"partition:idx:status:"+events.FlowStatusCompleted,
 		redis.Z{
 			Score:  float64(time.Now().UnixMilli()),
@@ -359,7 +359,7 @@ func TestSweepBadStatus(t *testing.T) {
 	arch, err := archive.NewArchiver(flowStore, cli, cfg)
 	assert.NoError(t, err)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	done := make(chan error, 1)
 	go func() {
 		done <- arch.Run(ctx)
@@ -370,7 +370,7 @@ func TestSweepBadStatus(t *testing.T) {
 	assert.NoError(t, <-done)
 
 	err = flowStore.PollArchive(
-		context.Background(), 5*time.Millisecond,
+		t.Context(), 5*time.Millisecond,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			t.Fatal("expected no archived records when status index is invalid")
 			return nil
@@ -400,7 +400,7 @@ func assertLabelIndexed(
 	t.Helper()
 
 	ids, err := store.ListAggregatesByLabel(
-		context.Background(), archiveLabelKey, archiveLabelValue,
+		t.Context(), archiveLabelKey, archiveLabelValue,
 	)
 	assert.NoError(t, err)
 	assert.True(t, containsAggregateID(ids, events.FlowKey(flowID)))
@@ -412,7 +412,7 @@ func assertLabelNotIndexed(
 	t.Helper()
 
 	ids, err := store.ListAggregatesByLabel(
-		context.Background(), archiveLabelKey, archiveLabelValue,
+		t.Context(), archiveLabelKey, archiveLabelValue,
 	)
 	assert.NoError(t, err)
 	assert.False(t, containsAggregateID(ids, events.FlowKey(flowID)))
@@ -462,7 +462,7 @@ func seedDeactivatedFlow(
 		Attributes: api.AttributeGraph{},
 	}
 	_, err := exec.Exec(
-		context.Background(),
+		t.Context(),
 		events.FlowKey(flowID),
 		func(
 			st *api.FlowState,
