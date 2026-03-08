@@ -1,7 +1,6 @@
 package scheduler_test
 
 import (
-	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -74,8 +73,7 @@ func TestRunAfterSchedule(t *testing.T) {
 	assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
 	timer.Fire(now)
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	ctx := t.Context()
 	go s.Run(ctx)
 
 	select {
