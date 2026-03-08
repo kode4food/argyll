@@ -7,8 +7,9 @@ import (
 
 	"gocloud.dev/blob"
 
-	"github.com/kode4food/argyll/archiver"
 	"github.com/kode4food/argyll/archiver/internal/cmd"
+	"github.com/kode4food/argyll/archiver/internal/writer"
+	"github.com/kode4food/argyll/engine/pkg/archive"
 
 	_ "gocloud.dev/blob/azureblob"
 	_ "gocloud.dev/blob/fileblob"
@@ -17,7 +18,7 @@ import (
 )
 
 func main() {
-	cfg, err := archiver.LoadFromEnv()
+	cfg, err := archive.LoadFromEnv()
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -37,7 +38,7 @@ func main() {
 	}
 	defer func() { _ = bucket.Close() }()
 
-	writer, err := archiver.NewWriter(
+	w, err := writer.NewWriter(
 		func(ctx context.Context, key string, data []byte) error {
 			return bucket.WriteAll(ctx, key, data, nil)
 		},
@@ -48,7 +49,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	if err := cmd.Run(cfg, writer, s3Cfg.PollInterval); err != nil {
+	if err := cmd.Run(cfg, w.Write); err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}

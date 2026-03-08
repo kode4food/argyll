@@ -3,12 +3,9 @@ package main
 import (
 	"errors"
 	"os"
-
-	"github.com/kode4food/argyll/archiver/internal/cmd"
 )
 
 type s3Config struct {
-	cmd.Config
 	BucketURL string
 	Prefix    string
 }
@@ -19,7 +16,6 @@ var (
 
 func loadS3Config() (s3Config, error) {
 	cfg := s3Config{}
-	cmd.LoadConfig(&cfg.Config)
 
 	if bucketURL := os.Getenv("ARCHIVE_BUCKET_URL"); bucketURL != "" {
 		cfg.BucketURL = bucketURL

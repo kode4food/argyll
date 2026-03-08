@@ -3,7 +3,7 @@ package engine_test
 import (
 	"testing"
 
-	testify "github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
@@ -16,7 +16,7 @@ func TestStartDuplicate(t *testing.T) {
 		step := helpers.NewSimpleStep("step-1")
 
 		err := eng.RegisterStep(step)
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-1"},
@@ -24,10 +24,10 @@ func TestStartDuplicate(t *testing.T) {
 		}
 
 		err = eng.StartFlow("wf-dup", plan)
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		err = eng.StartFlow("wf-dup", plan)
-		testify.ErrorIs(t, err, engine.ErrFlowExists)
+		assert.ErrorIs(t, err, engine.ErrFlowExists)
 	})
 }
 
@@ -38,7 +38,7 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		step.HTTP.Timeout = 30 * api.Second
 
 		err := env.Engine.RegisterStep(step)
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
@@ -46,16 +46,16 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow("wf-start", plan)
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-start")
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		exec := flow.Executions[step.ID]
-		testify.Equal(t, api.StepActive, exec.Status)
-		testify.Len(t, exec.WorkItems, 1)
+		assert.Equal(t, api.StepActive, exec.Status)
+		assert.Len(t, exec.WorkItems, 1)
 		for _, item := range exec.WorkItems {
-			testify.Equal(t, api.WorkActive, item.Status)
+			assert.Equal(t, api.WorkActive, item.Status)
 		}
 	})
 }
@@ -75,7 +75,7 @@ func TestStartMissingInput(t *testing.T) {
 		}
 
 		err := eng.StartFlow("wf-missing", plan)
-		testify.Error(t, err)
+		assert.Error(t, err)
 	})
 }
 
@@ -92,13 +92,13 @@ func TestStartFlowRejectsPartialParentMetadata(t *testing.T) {
 				api.MetaParentFlowID: "parent",
 			}),
 		)
-		testify.ErrorContains(t, err, "partial parent metadata")
+		assert.ErrorContains(t, err, "partial parent metadata")
 	})
 }
 
 func TestStartFlowSimple(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		testify.NoError(t, env.Engine.Start())
+		assert.NoError(t, env.Engine.Start())
 
 		step := &api.Step{
 			ID:   "goal-step",
@@ -113,7 +113,7 @@ func TestStartFlowSimple(t *testing.T) {
 		}
 
 		err := env.Engine.RegisterStep(step)
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
@@ -126,11 +126,11 @@ func TestStartFlowSimple(t *testing.T) {
 		}
 
 		err = env.Engine.StartFlow("wf-simple", plan)
-		testify.NoError(t, err)
+		assert.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-simple")
-		testify.NoError(t, err)
-		testify.NotNil(t, flow)
-		testify.Equal(t, api.FlowID("wf-simple"), flow.ID)
+		assert.NoError(t, err)
+		assert.NotNil(t, flow)
+		assert.Equal(t, api.FlowID("wf-simple"), flow.ID)
 	})
 }

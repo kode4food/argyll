@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	testify "github.com/stretchr/testify/assert"
 
-	engassert "github.com/kode4food/argyll/engine/internal/assert"
+	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
@@ -16,14 +16,14 @@ import (
 
 func TestCompleteFlow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		a := engassert.New(t)
+		a := assert.New(t)
 
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewStepWithOutputs("complete-step", "result")
 
 		err := env.Engine.RegisterStep(step)
-		assert.NoError(t, err)
+		testify.NoError(t, err)
 
 		// Configure mock to return a result
 		env.MockClient.SetResponse("complete-step", api.Args{"result": "final"})
@@ -35,7 +35,7 @@ func TestCompleteFlow(t *testing.T) {
 
 		flow := env.WaitForFlowStatus("wf-complete", func() {
 			err = env.Engine.StartFlow("wf-complete", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
 		a.FlowStatus(flow, api.FlowCompleted)
 	})
@@ -43,14 +43,14 @@ func TestCompleteFlow(t *testing.T) {
 
 func TestFailFlow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		a := engassert.New(t)
+		a := assert.New(t)
 
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("fail-step")
 
 		err := env.Engine.RegisterStep(step)
-		assert.NoError(t, err)
+		testify.NoError(t, err)
 
 		env.MockClient.SetError("fail-step", errors.New("test error"))
 
@@ -62,19 +62,19 @@ func TestFailFlow(t *testing.T) {
 		// Wait for flow to fail automatically
 		env.WaitFor(wait.FlowFailed("wf-fail"), func() {
 			err = env.Engine.StartFlow("wf-fail", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
 
 		flow, err := env.Engine.GetFlowState("wf-fail")
-		assert.NoError(t, err)
+		testify.NoError(t, err)
 		a.FlowStatus(flow, api.FlowFailed)
-		assert.Contains(t, flow.Error, "test error")
+		testify.Contains(t, flow.Error, "test error")
 	})
 }
 
 func TestFlowStepChildSuccess(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-step",
@@ -97,8 +97,8 @@ func TestFlowStepChildSuccess(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(child))
-		assert.NoError(t, env.Engine.RegisterStep(parent))
+		testify.NoError(t, env.Engine.RegisterStep(child))
+		testify.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
@@ -107,12 +107,12 @@ func TestFlowStepChildSuccess(t *testing.T) {
 
 		parentState := env.WaitForFlowStatus("parent-flow", func() {
 			err := env.Engine.StartFlow("parent-flow", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, parentState.Status)
+		testify.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
-		if assert.NotNil(t, exec) && assert.NotNil(t, exec.WorkItems) {
+		if testify.NotNil(t, exec) && testify.NotNil(t, exec.WorkItems) {
 			var tkn api.Token
 			for t := range exec.WorkItems {
 				tkn = t
@@ -123,21 +123,21 @@ func TestFlowStepChildSuccess(t *testing.T) {
 				"%s:%s:%s", "parent-flow", parent.ID, tkn,
 			))
 			childState, err := env.Engine.GetFlowState(childID)
-			assert.NoError(t, err)
-			assert.Equal(t, api.FlowCompleted, childState.Status)
+			testify.NoError(t, err)
+			testify.Equal(t, api.FlowCompleted, childState.Status)
 
-			assert.Equal(t,
+			testify.Equal(t,
 				api.FlowID("parent-flow"), metaFlowID(childState.Metadata),
 			)
-			assert.Equal(t, parent.ID, metaStepID(childState.Metadata))
-			assert.Equal(t, tkn, metaToken(childState.Metadata))
+			testify.Equal(t, parent.ID, metaStepID(childState.Metadata))
+			testify.Equal(t, tkn, metaToken(childState.Metadata))
 		}
 	})
 }
 
 func TestFlowStepChildFailureParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-fail",
@@ -160,8 +160,8 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(child))
-		assert.NoError(t, env.Engine.RegisterStep(parent))
+		testify.NoError(t, env.Engine.RegisterStep(child))
+		testify.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
@@ -170,15 +170,15 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 
 		parentState := env.WaitForFlowStatus("parent-fail", func() {
 			err := env.Engine.StartFlow("parent-fail", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowFailed, parentState.Status)
+		testify.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
 
 func TestFlowStepMissingGoalParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		parent := &api.Step{
 			ID:   "subflow-missing",
@@ -190,7 +190,7 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 			Attributes: api.AttributeSpecs{},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(parent))
+		testify.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
@@ -199,15 +199,15 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 
 		parentState := env.WaitForFlowStatus("parent-missing", func() {
 			err := env.Engine.StartFlow("parent-missing", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowFailed, parentState.Status)
+		testify.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
 
 func TestFlowStepMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-mapped",
@@ -246,8 +246,8 @@ func TestFlowStepMapping(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(child))
-		assert.NoError(t, env.Engine.RegisterStep(parent))
+		testify.NoError(t, env.Engine.RegisterStep(child))
+		testify.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals:    []api.StepID{parent.ID},
@@ -259,20 +259,20 @@ func TestFlowStepMapping(t *testing.T) {
 			err := env.Engine.StartFlow("parent-mapped", plan,
 				flowopt.WithInit(api.Args{"input": float64(7)}),
 			)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, parentState.Status)
+		testify.Equal(t, api.FlowCompleted, parentState.Status)
 
 		exec := parentState.Executions[parent.ID]
-		if assert.NotNil(t, exec) {
-			assert.Equal(t, float64(7), exec.Outputs["output"])
+		if testify.NotNil(t, exec) {
+			testify.Equal(t, float64(7), exec.Outputs["output"])
 		}
 	})
 }
 
 func TestFlowStepMissingOutputParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		child := &api.Step{
 			ID:   "child-empty",
@@ -304,8 +304,8 @@ func TestFlowStepMissingOutputParentFails(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(child))
-		assert.NoError(t, env.Engine.RegisterStep(parent))
+		testify.NoError(t, env.Engine.RegisterStep(child))
+		testify.NoError(t, env.Engine.RegisterStep(parent))
 
 		plan := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
@@ -314,9 +314,9 @@ func TestFlowStepMissingOutputParentFails(t *testing.T) {
 
 		parentState := env.WaitForFlowStatus("parent-missing-output", func() {
 			err := env.Engine.StartFlow("parent-missing-output", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowFailed, parentState.Status)
+		testify.Equal(t, api.FlowFailed, parentState.Status)
 	})
 }
 

@@ -1,4 +1,4 @@
-package archiver_test
+package archive_test
 
 import (
 	"bufio"
@@ -18,11 +18,11 @@ import (
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/archive"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util"
-
-	"github.com/kode4food/argyll/archiver"
 )
 
 const (
@@ -31,7 +31,7 @@ const (
 )
 
 func TestNewArchiverValidation(t *testing.T) {
-	cfg := archiver.Config{
+	cfg := archive.Config{
 		MemoryCheckInterval: time.Second,
 		SweepInterval:       time.Second,
 		LeaseTimeout:        time.Second,
@@ -39,7 +39,7 @@ func TestNewArchiverValidation(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	_, err := archiver.NewArchiver(nil, nil, cfg)
+	_, err := archive.NewArchiver(nil, nil, cfg)
 	assert.Error(t, err)
 
 	cfg.MemoryCheckInterval = 0
@@ -50,7 +50,7 @@ func TestNewArchiverValidation(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	_, err = archiver.NewArchiver(&timebox.Store{}, redisClient, cfg)
+	_, err = archive.NewArchiver(&timebox.Store{}, redisClient, cfg)
 	assert.Error(t, err)
 }
 
@@ -65,8 +65,8 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	seedDeactivatedFlow(t, flowStore, flowID)
 	assertLabelIndexed(t, flowStore, flowID)
 
-	cfg := archiver.Config{
-		FlowStore:           timebox.DefaultStoreConfig(),
+	cfg := archive.Config{
+		FlowStore:           config.NewDefaultConfig().FlowStore,
 		MemoryPercent:       99.0,
 		MaxAge:              0,
 		MemoryCheckInterval: time.Second,
@@ -83,7 +83,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(flowStore, redisClient, cfg)
+	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -134,8 +134,8 @@ func TestArchiverPressureArchives(t *testing.T) {
 	infoAddr, stop := startInfoServer(t, "used_memory:80\nmaxmemory:100\n")
 	defer stop()
 
-	cfg := archiver.Config{
-		FlowStore:           timebox.DefaultStoreConfig(),
+	cfg := archive.Config{
+		FlowStore:           config.NewDefaultConfig().FlowStore,
 		MemoryPercent:       50.0,
 		MaxAge:              time.Hour,
 		MemoryCheckInterval: time.Second,
@@ -152,7 +152,7 @@ func TestArchiverPressureArchives(t *testing.T) {
 	})
 	defer func() { _ = redisClient.Close() }()
 
-	arch, err := archiver.NewArchiver(flowStore, redisClient, cfg)
+	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
 	assert.NoError(t, err)
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -244,13 +244,10 @@ func setupStore(t *testing.T, redisAddr string) *timebox.Store {
 	tb, err := timebox.NewTimebox(tbCfg)
 	assert.NoError(t, err)
 
-	flowCfg := timebox.DefaultStoreConfig()
+	flowCfg := config.NewDefaultConfig().FlowStore
 	flowCfg.Addr = redisAddr
 	flowCfg.Prefix = "partition"
 	flowCfg.Archiving = true
-	flowCfg.Indexer = events.FlowIndexer
-	flowCfg.JoinKey = events.FlowJoinKey
-	flowCfg.ParseKey = events.FlowParseKey
 
 	flowStore, err := tb.NewStore(flowCfg)
 	assert.NoError(t, err)

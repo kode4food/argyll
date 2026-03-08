@@ -1,4 +1,4 @@
-package archiver
+package archive
 
 import (
 	"context"
@@ -10,12 +10,12 @@ import (
 
 type (
 	Runner struct {
-		poller       ArchivePoller
-		writer       *Writer
+		poller       Poller
+		handler      timebox.ArchiveHandler
 		pollInterval time.Duration
 	}
 
-	ArchivePoller interface {
+	Poller interface {
 		PollArchive(
 			context.Context, time.Duration, timebox.ArchiveHandler,
 		) error
@@ -23,26 +23,25 @@ type (
 )
 
 var (
-	ErrArchivePollerRequired = errors.New("archive poller is required")
-	ErrArchiveWriterRequired = errors.New("archive writer is required")
-	ErrPollIntervalInvalid   = errors.New("poll interval must be positive")
+	ErrArchivePollerRequired  = errors.New("archive poller is required")
+	ErrArchiveHandlerRequired = errors.New("archive handler is required")
 )
 
 func NewRunner(
-	poller ArchivePoller, writer *Writer, pollInterval time.Duration,
+	poller Poller, pollInterval time.Duration, handler timebox.ArchiveHandler,
 ) (*Runner, error) {
 	if poller == nil {
 		return nil, ErrArchivePollerRequired
 	}
-	if writer == nil {
-		return nil, ErrArchiveWriterRequired
+	if handler == nil {
+		return nil, ErrArchiveHandlerRequired
 	}
 	if pollInterval <= 0 {
 		return nil, ErrPollIntervalInvalid
 	}
 	return &Runner{
 		poller:       poller,
-		writer:       writer,
+		handler:      handler,
 		pollInterval: pollInterval,
 	}, nil
 }
@@ -60,5 +59,5 @@ func (r *Runner) Run(ctx context.Context) error {
 }
 
 func (r *Runner) RunOnce(ctx context.Context) error {
-	return r.poller.PollArchive(ctx, r.pollInterval, r.writer.Write)
+	return r.poller.PollArchive(ctx, r.pollInterval, r.handler)
 }

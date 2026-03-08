@@ -3,9 +3,9 @@ package engine_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
+	testify "github.com/stretchr/testify/assert"
 
-	engassert "github.com/kode4food/argyll/engine/internal/assert"
+	"github.com/kode4food/argyll/engine/internal/assert"
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
@@ -14,13 +14,13 @@ import (
 
 func TestSetAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		// Create a step that produces an output attribute
 		step := helpers.NewStepWithOutputs("output-step", "test_key")
 
 		err := env.Engine.RegisterStep(step)
-		assert.NoError(t, err)
+		testify.NoError(t, err)
 
 		// Configure mock to return the output value
 		env.MockClient.SetResponse("output-step", api.Args{
@@ -34,25 +34,25 @@ func TestSetAttribute(t *testing.T) {
 
 		env.WaitFor(wait.FlowCompleted("wf-attr"), func() {
 			err = env.Engine.StartFlow("wf-attr", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
 
-		a := engassert.New(t)
+		a := assert.New(t)
 		a.FlowStateEquals(env.Engine, "wf-attr", "test_key", "test_value")
 	})
 }
 func TestDuplicateFirstWins(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		// Create two steps that both produce the same output attribute
 		stepA := helpers.NewStepWithOutputs("step-a", "shared_key")
 		stepB := helpers.NewStepWithOutputs("step-b", "shared_key")
 
 		err := env.Engine.RegisterStep(stepA)
-		assert.NoError(t, err)
+		testify.NoError(t, err)
 		err = env.Engine.RegisterStep(stepB)
-		assert.NoError(t, err)
+		testify.NoError(t, err)
 
 		// Configure mock responses - step-a runs first and sets "first"
 		env.MockClient.SetResponse("step-a", api.Args{"shared_key": "first"})
@@ -69,18 +69,18 @@ func TestDuplicateFirstWins(t *testing.T) {
 
 		flow := env.WaitForFlowStatus("wf-dup-attr", func() {
 			err = env.Engine.StartFlow("wf-dup-attr", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
 
 		// First value wins - duplicates are silently ignored
 		attrs := flow.GetAttributes()
-		assert.Contains(t, []string{"first", "second"}, attrs["shared_key"])
+		testify.Contains(t, []string{"first", "second"}, attrs["shared_key"])
 	})
 }
 
 func TestUndeclaredOutputsIgnored(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		producer := &api.Step{
 			ID:   "producer",
@@ -102,8 +102,8 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(producer))
-		assert.NoError(t, env.Engine.RegisterStep(consumer))
+		testify.NoError(t, env.Engine.RegisterStep(producer))
+		testify.NoError(t, env.Engine.RegisterStep(consumer))
 
 		env.MockClient.SetResponse(producer.ID, api.Args{
 			"value": "abc",
@@ -134,20 +134,20 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 
 		flow := env.WaitForFlowStatus("wf-undeclared-outputs", func() {
 			err := env.Engine.StartFlow("wf-undeclared-outputs", plan)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		testify.Equal(t, api.FlowCompleted, flow.Status)
 
-		assert.NotNil(t, flow.Attributes["value"])
-		assert.NotNil(t, flow.Attributes["result"])
-		assert.NotContains(t, flow.Attributes, api.Name("extra"))
-		assert.NotContains(t, flow.Attributes, api.Name("extra2"))
+		testify.NotNil(t, flow.Attributes["value"])
+		testify.NotNil(t, flow.Attributes["result"])
+		testify.NotContains(t, flow.Attributes, api.Name("extra"))
+		testify.NotContains(t, flow.Attributes, api.Name("extra2"))
 	})
 }
 
 func TestOutputMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("mapped-output-step")
 		step.Attributes = api.AttributeSpecs{
@@ -167,7 +167,7 @@ func TestOutputMapping(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		testify.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{
 			"payload": map[string]any{"value": "ok"},
 		})
@@ -182,18 +182,18 @@ func TestOutputMapping(t *testing.T) {
 			err := env.Engine.StartFlow(flowID, plan,
 				flowopt.WithInit(api.Args{"input": "value"}),
 			)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, fl.Status)
+		testify.Equal(t, api.FlowCompleted, fl.Status)
 
 		exec := fl.Executions[step.ID]
-		assert.Equal(t, "ok", exec.Outputs["result"])
-		assert.Equal(t, "ok", fl.Attributes["result"].Value)
+		testify.Equal(t, "ok", exec.Outputs["result"])
+		testify.Equal(t, "ok", fl.Attributes["result"].Value)
 	})
 }
 func TestOutputMappingWithRename(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		testify.NoError(t, env.Engine.Start())
 
 		step := helpers.NewSimpleStep("rename-output")
 		step.Attributes = api.AttributeSpecs{
@@ -210,7 +210,7 @@ func TestOutputMappingWithRename(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		testify.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{"success": "ok"})
 
 		plan := &api.ExecutionPlan{
@@ -223,12 +223,12 @@ func TestOutputMappingWithRename(t *testing.T) {
 			err := env.Engine.StartFlow(flowID, plan,
 				flowopt.WithInit(api.Args{"input": "test"}),
 			)
-			assert.NoError(t, err)
+			testify.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, fl.Status)
+		testify.Equal(t, api.FlowCompleted, fl.Status)
 
 		exec := fl.Executions[step.ID]
-		assert.Equal(t, "ok", exec.Outputs["status"])
-		assert.Equal(t, "ok", fl.Attributes["status"].Value)
+		testify.Equal(t, "ok", exec.Outputs["status"])
+		testify.Equal(t, "ok", fl.Attributes["status"].Value)
 	})
 }

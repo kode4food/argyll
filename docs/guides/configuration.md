@@ -69,6 +69,7 @@ Archiver scope is per partition/flow store configuration. Run one archiver proce
 ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when Redis reaches 80% full
 ARCHIVE_MAX_AGE=24h                    # Archive flows older than 24 hours
 ARCHIVE_MEMORY_CHECK_INTERVAL=5s       # Check memory pressure every 5 seconds
+ARCHIVE_POLL_INTERVAL=500ms            # Poll interval for archive stream consumption
 ARCHIVE_SWEEP_INTERVAL=1h              # Run archiving sweep every hour
 ARCHIVE_LEASE_TIMEOUT=15m              # Lease duration for archive jobs
 ARCHIVE_PRESSURE_BATCH=10              # Archive 10 flows per pressure event
@@ -80,7 +81,6 @@ ARCHIVE_SWEEP_BATCH=100                # Archive 100 flows per sweep
 ```bash
 ARCHIVE_BUCKET_URL=s3://my-bucket      # S3 bucket URL
 ARCHIVE_PREFIX=archived/               # Prefix for archived objects
-ARCHIVE_POLL_INTERVAL=500ms             # Poll interval for archive job status
 ```
 
 ### Archiver: Backend (File Sink)

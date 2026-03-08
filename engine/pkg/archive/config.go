@@ -1,4 +1,4 @@
-package archiver
+package archive
 
 import (
 	"errors"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/internal/config"
 )
 
 // Config configures the archiver runtime behavior
@@ -17,6 +17,7 @@ type Config struct {
 	MemoryPercent       float64
 	MaxAge              time.Duration
 	MemoryCheckInterval time.Duration
+	PollInterval        time.Duration
 	SweepInterval       time.Duration
 	LeaseTimeout        time.Duration
 	PressureBatchSize   int
@@ -28,6 +29,7 @@ const (
 	DefaultMemoryPercent       = 80.0
 	DefaultMaxAge              = 24 * time.Hour
 	DefaultMemoryCheckInterval = 5 * time.Second
+	DefaultPollInterval        = 500 * time.Millisecond
 	DefaultSweepInterval       = 1 * time.Hour
 	DefaultLeaseTimeout        = 15 * time.Minute
 	DefaultPressureBatchSize   = 10
@@ -39,6 +41,9 @@ const (
 var (
 	ErrMemoryCheckIntervalInvalid = errors.New(
 		"ARCHIVE_MEMORY_CHECK_INTERVAL must be positive",
+	)
+	ErrPollIntervalInvalid = errors.New(
+		"ARCHIVE_POLL_INTERVAL must be positive",
 	)
 	ErrSweepIntervalInvalid = errors.New(
 		"ARCHIVE_SWEEP_INTERVAL must be positive",
@@ -55,22 +60,21 @@ var (
 )
 
 func LoadFromEnv() (Config, error) {
+	flowStore := config.NewDefaultConfig().FlowStore
+
 	cfg := Config{
-		FlowStore:           timebox.DefaultStoreConfig(),
+		FlowStore:           flowStore,
 		MemoryPercent:       DefaultMemoryPercent,
 		MaxAge:              DefaultMaxAge,
 		MemoryCheckInterval: DefaultMemoryCheckInterval,
+		PollInterval:        DefaultPollInterval,
 		SweepInterval:       DefaultSweepInterval,
 		LeaseTimeout:        DefaultLeaseTimeout,
 		PressureBatchSize:   DefaultPressureBatchSize,
 		SweepBatchSize:      DefaultSweepBatchSize,
 		LogLevel:            defaultLogLevel,
 	}
-	cfg.FlowStore.Indexer = events.FlowIndexer
-	cfg.FlowStore.JoinKey = events.FlowJoinKey
-	cfg.FlowStore.ParseKey = events.FlowParseKey
-
-	loadStoreConfigFromEnv(&cfg.FlowStore, "PARTITION")
+	config.LoadStoreConfigFromEnv(&cfg.FlowStore, "PARTITION")
 
 	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {
@@ -85,6 +89,11 @@ func LoadFromEnv() (Config, error) {
 	if interval := os.Getenv("ARCHIVE_MEMORY_CHECK_INTERVAL"); interval != "" {
 		if d, err := time.ParseDuration(interval); err == nil {
 			cfg.MemoryCheckInterval = d
+		}
+	}
+	if interval := os.Getenv("ARCHIVE_POLL_INTERVAL"); interval != "" {
+		if d, err := time.ParseDuration(interval); err == nil {
+			cfg.PollInterval = d
 		}
 	}
 	if interval := os.Getenv("ARCHIVE_SWEEP_INTERVAL"); interval != "" {
@@ -121,6 +130,9 @@ func (c Config) Validate() error {
 	if c.MemoryCheckInterval <= 0 {
 		return ErrMemoryCheckIntervalInvalid
 	}
+	if c.PollInterval <= 0 {
+		return ErrPollIntervalInvalid
+	}
 	if c.SweepInterval <= 0 {
 		return ErrSweepIntervalInvalid
 	}
@@ -134,26 +146,4 @@ func (c Config) Validate() error {
 		return ErrSweepBatchInvalid
 	}
 	return nil
-}
-
-func loadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
-	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
-		s.Addr = addr
-	}
-	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
-		s.Password = password
-	}
-	if dbStr := os.Getenv(prefix + "_REDIS_DB"); dbStr != "" {
-		if db, err := strconv.Atoi(dbStr); err == nil {
-			s.DB = db
-		}
-	}
-	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
-		s.Prefix = envPrefix
-	}
-	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
-		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {
-			s.WorkerCount = wc
-		}
-	}
 }
