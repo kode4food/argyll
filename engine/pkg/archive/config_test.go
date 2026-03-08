@@ -10,7 +10,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/archive"
 )
 
-func TestLoadFromEnvParsesValues(t *testing.T) {
+func TestLoadFromEnv(t *testing.T) {
 	t.Setenv("PARTITION_REDIS_ADDR", "redis:6379")
 	t.Setenv("PARTITION_REDIS_PASSWORD", "secret")
 	t.Setenv("PARTITION_REDIS_DB", "2")
@@ -43,7 +43,7 @@ func TestLoadFromEnvParsesValues(t *testing.T) {
 	assert.Equal(t, "debug", cfg.LogLevel)
 }
 
-func TestLoadFromEnvDefaultsPrefixToArgyll(t *testing.T) {
+func TestDefaultPrefix(t *testing.T) {
 	t.Setenv("PARTITION_REDIS_ADDR", "")
 	t.Setenv("PARTITION_REDIS_PASSWORD", "")
 	t.Setenv("PARTITION_REDIS_DB", "")
@@ -64,4 +64,73 @@ func TestLoadFromEnvDefaultsPrefixToArgyll(t *testing.T) {
 	assert.Equal(t, config.NewDefaultConfig().FlowStore.Prefix,
 		cfg.FlowStore.Prefix)
 	assert.Equal(t, archive.DefaultPollInterval, cfg.PollInterval)
+}
+
+func TestConfigValidate(t *testing.T) {
+	cfg := archive.Config{
+		MemoryCheckInterval: time.Second,
+		PollInterval:        time.Second,
+		SweepInterval:       time.Second,
+		LeaseTimeout:        time.Second,
+		PressureBatchSize:   1,
+		SweepBatchSize:      1,
+	}
+
+	tests := []struct {
+		name string
+		mut  func(*archive.Config)
+		want error
+	}{
+		{
+			name: "memory check interval",
+			mut: func(cfg *archive.Config) {
+				cfg.MemoryCheckInterval = 0
+			},
+			want: archive.ErrMemoryCheckIntervalInvalid,
+		},
+		{
+			name: "poll interval",
+			mut: func(cfg *archive.Config) {
+				cfg.PollInterval = 0
+			},
+			want: archive.ErrPollIntervalInvalid,
+		},
+		{
+			name: "sweep interval",
+			mut: func(cfg *archive.Config) {
+				cfg.SweepInterval = 0
+			},
+			want: archive.ErrSweepIntervalInvalid,
+		},
+		{
+			name: "lease timeout",
+			mut: func(cfg *archive.Config) {
+				cfg.LeaseTimeout = 0
+			},
+			want: archive.ErrLeaseTimeoutInvalid,
+		},
+		{
+			name: "pressure batch size",
+			mut: func(cfg *archive.Config) {
+				cfg.PressureBatchSize = 0
+			},
+			want: archive.ErrPressureBatchInvalid,
+		},
+		{
+			name: "sweep batch size",
+			mut: func(cfg *archive.Config) {
+				cfg.SweepBatchSize = 0
+			},
+			want: archive.ErrSweepBatchInvalid,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			curr := cfg
+			tt.mut(&curr)
+			err := curr.Validate()
+			assert.ErrorIs(t, err, tt.want)
+		})
+	}
 }

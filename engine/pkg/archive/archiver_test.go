@@ -54,7 +54,7 @@ func TestNewArchiverValidation(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestNewArchiverIgnoresPollInterval(t *testing.T) {
+func TestNewArchiverNoPoll(t *testing.T) {
 	cfg := archive.Config{
 		MemoryCheckInterval: time.Second,
 		SweepInterval:       time.Second,
@@ -75,7 +75,7 @@ func TestNewArchiverIgnoresPollInterval(t *testing.T) {
 	assert.NotNil(t, arch)
 }
 
-func TestArchiverSweepDeactivated(t *testing.T) {
+func TestSweepDeactivated(t *testing.T) {
 	redisServer, err := miniredis.Run()
 	assert.NoError(t, err)
 	defer redisServer.Close()
@@ -141,7 +141,7 @@ func TestArchiverSweepDeactivated(t *testing.T) {
 	assertLabelNotIndexed(t, flowStore, flowID)
 }
 
-func TestArchiverPressureArchives(t *testing.T) {
+func TestPressureArchives(t *testing.T) {
 	redisServer, err := miniredis.Run()
 	assert.NoError(t, err)
 	defer redisServer.Close()
@@ -208,6 +208,176 @@ func TestArchiverPressureArchives(t *testing.T) {
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
 
 	assertLabelNotIndexed(t, flowStore, flowID)
+}
+
+func TestAgeSweepRecent(t *testing.T) {
+	redisServer, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redisServer.Close()
+
+	flowStore := setupStore(t, redisServer.Addr())
+
+	flowID := api.FlowID("flow-recent")
+	seedDeactivatedFlow(t, flowStore, flowID)
+
+	cfg := archive.Config{
+		FlowStore:           config.NewDefaultConfig().FlowStore,
+		MemoryPercent:       99.0,
+		MaxAge:              time.Hour,
+		MemoryCheckInterval: time.Second,
+		SweepInterval:       time.Second,
+		LeaseTimeout:        time.Second,
+		PressureBatchSize:   1,
+		SweepBatchSize:      1,
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:            redisServer.Addr(),
+		Protocol:        2,
+		DisableIdentity: true,
+	})
+	defer func() { _ = redisClient.Close() }()
+
+	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- arch.Run(ctx)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	assert.NoError(t, <-done)
+
+	err = flowStore.PollArchive(
+		context.Background(), 5*time.Millisecond,
+		func(context.Context, *timebox.ArchiveRecord) error {
+			t.Fatal("expected no archived records for recent flow")
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+	assertLabelIndexed(t, flowStore, flowID)
+}
+
+func TestPressureBelowThreshold(t *testing.T) {
+	redisServer, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redisServer.Close()
+
+	flowStore := setupStore(t, redisServer.Addr())
+
+	flowID := api.FlowID("flow-pressure-skip")
+	seedDeactivatedFlow(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, flowID)
+
+	infoAddr, stop := startInfoServer(t, "used_memory:40\nmaxmemory:100\n")
+	defer stop()
+
+	cfg := archive.Config{
+		FlowStore:           config.NewDefaultConfig().FlowStore,
+		MemoryPercent:       50.0,
+		MaxAge:              time.Hour,
+		MemoryCheckInterval: time.Second,
+		SweepInterval:       time.Second,
+		LeaseTimeout:        time.Second,
+		PressureBatchSize:   1,
+		SweepBatchSize:      1,
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:            infoAddr,
+		Protocol:        2,
+		DisableIdentity: true,
+	})
+	defer func() { _ = redisClient.Close() }()
+
+	arch, err := archive.NewArchiver(flowStore, redisClient, cfg)
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- arch.Run(ctx)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	assert.NoError(t, <-done)
+
+	err = flowStore.PollArchive(
+		context.Background(), 5*time.Millisecond,
+		func(context.Context, *timebox.ArchiveRecord) error {
+			t.Fatal("expected no archived records below memory threshold")
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+	assertLabelIndexed(t, flowStore, flowID)
+}
+
+func TestSweepBadStatus(t *testing.T) {
+	redisServer, err := miniredis.Run()
+	assert.NoError(t, err)
+	defer redisServer.Close()
+
+	flowStore := setupStore(t, redisServer.Addr())
+
+	flowID := api.FlowID("flow-invalid-status")
+	seedDeactivatedFlow(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, flowID)
+
+	cli := redis.NewClient(&redis.Options{
+		Addr:            redisServer.Addr(),
+		Protocol:        2,
+		DisableIdentity: true,
+	})
+	defer func() { _ = cli.Close() }()
+
+	err = cli.ZAdd(context.Background(),
+		"partition:idx:status:"+events.FlowStatusCompleted,
+		redis.Z{
+			Score:  float64(time.Now().UnixMilli()),
+			Member: "bad:flow-id",
+		},
+	).Err()
+	assert.NoError(t, err)
+
+	cfg := archive.Config{
+		FlowStore:           config.NewDefaultConfig().FlowStore,
+		MemoryPercent:       99.0,
+		MaxAge:              0,
+		MemoryCheckInterval: time.Second,
+		SweepInterval:       time.Second,
+		LeaseTimeout:        time.Second,
+		PressureBatchSize:   1,
+		SweepBatchSize:      1,
+	}
+
+	arch, err := archive.NewArchiver(flowStore, cli, cfg)
+	assert.NoError(t, err)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan error, 1)
+	go func() {
+		done <- arch.Run(ctx)
+	}()
+
+	time.Sleep(50 * time.Millisecond)
+	cancel()
+	assert.NoError(t, <-done)
+
+	err = flowStore.PollArchive(
+		context.Background(), 5*time.Millisecond,
+		func(context.Context, *timebox.ArchiveRecord) error {
+			t.Fatal("expected no archived records when status index is invalid")
+			return nil
+		},
+	)
+	assert.NoError(t, err)
+	assertLabelIndexed(t, flowStore, flowID)
 }
 
 func containsStatusEntry(

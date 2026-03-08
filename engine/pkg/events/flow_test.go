@@ -77,7 +77,7 @@ func TestFlowStarted(t *testing.T) {
 	assert.True(t, result.CreatedAt.Equal(now))
 }
 
-func TestFlowIndexerProjectsLabelsOnStart(t *testing.T) {
+func TestFlowStartIndex(t *testing.T) {
 	eventData := api.FlowStartedEvent{
 		FlowID: "test-flow",
 		Plan: &api.ExecutionPlan{
@@ -104,6 +104,95 @@ func TestFlowIndexerProjectsLabelsOnStart(t *testing.T) {
 		assert.Equal(t, events.FlowStatusActive, *indexes[0].Status)
 		assert.EqualValues(t, eventData.Labels, indexes[0].Labels)
 	}
+}
+
+func TestFlowDeactivatedIndex(t *testing.T) {
+	eventData := api.FlowDeactivatedEvent{Status: api.FlowCompleted}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	indexes := events.FlowIndexer([]*timebox.Event{
+		{
+			AggregateID: events.FlowKey("test-flow"),
+			Type:        timebox.EventType(api.EventTypeFlowDeactivated),
+			Data:        data,
+		},
+	})
+
+	if assert.Len(t, indexes, 1) {
+		assert.NotNil(t, indexes[0].Status)
+		assert.Equal(t, string(api.FlowCompleted), *indexes[0].Status)
+		assert.Nil(t, indexes[0].Labels)
+	}
+}
+
+func TestParseFlowID(t *testing.T) {
+	tests := []struct {
+		name string
+		id   timebox.AggregateID
+		want api.FlowID
+		ok   bool
+	}{
+		{
+			name: "valid",
+			id:   events.FlowKey("test-flow"),
+			want: "test-flow",
+			ok:   true,
+		},
+		{
+			name: "wrong prefix",
+			id:   timebox.NewAggregateID("step", "test-flow"),
+			ok:   false,
+		},
+		{
+			name: "too short",
+			id:   timebox.AggregateID{timebox.ID(events.FlowPrefix)},
+			ok:   false,
+		},
+		{
+			name: "empty flow id",
+			id:   timebox.AggregateID{timebox.ID(events.FlowPrefix), ""},
+			ok:   false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := events.ParseFlowID(tt.id)
+			assert.Equal(t, tt.ok, ok)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFlowJoinAndParseKey(t *testing.T) {
+	tests := []struct {
+		name string
+		id   timebox.AggregateID
+		want string
+	}{
+		{
+			name: "root flow",
+			id:   events.FlowKey("root"),
+			want: "flow:{root}",
+		},
+		{
+			name: "child flow",
+			id:   events.FlowKey("root:step:token"),
+			want: "flow:{root}:step:token",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			key := events.FlowJoinKey(tt.id)
+			assert.Equal(t, tt.want, key)
+			assert.Equal(t, tt.id, events.FlowParseKey(key))
+		})
+	}
+
+	fallback := "plain:key"
+	assert.Equal(t, timebox.ParseKey(fallback), events.FlowParseKey(fallback))
 }
 
 func TestFlowCompleted(t *testing.T) {
@@ -158,6 +247,31 @@ func TestFlowFailed(t *testing.T) {
 	assert.Equal(t, api.FlowFailed, result.Status)
 	assert.Equal(t, "execution failed", result.Error)
 	assert.True(t, result.CompletedAt.Equal(now))
+}
+
+func TestFlowDeactivated(t *testing.T) {
+	state := &api.FlowState{
+		ID:     "test-flow",
+		Status: api.FlowActive,
+	}
+	now := time.Now()
+
+	eventData := api.FlowDeactivatedEvent{Status: api.FlowCompleted}
+	data, err := json.Marshal(eventData)
+	assert.NoError(t, err)
+
+	event := &timebox.Event{
+		Timestamp:   now,
+		AggregateID: events.FlowKey("test-flow"),
+		Type:        timebox.EventType(api.EventTypeFlowDeactivated),
+		Data:        data,
+	}
+
+	applier := events.FlowAppliers[event.Type]
+	result := applier(state, event)
+
+	assert.True(t, result.DeactivatedAt.Equal(now))
+	assert.True(t, result.LastUpdated.Equal(now))
 }
 
 func TestStepStarted(t *testing.T) {
