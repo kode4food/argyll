@@ -127,11 +127,15 @@ func LoadFromEnv() (Config, error) {
 }
 
 func (c Config) Validate() error {
+	if err := c.validateArchiver(); err != nil {
+		return err
+	}
+	return c.validateRunner()
+}
+
+func (c Config) validateArchiver() error {
 	if c.MemoryCheckInterval <= 0 {
 		return ErrMemoryCheckIntervalInvalid
-	}
-	if c.PollInterval <= 0 {
-		return ErrPollIntervalInvalid
 	}
 	if c.SweepInterval <= 0 {
 		return ErrSweepIntervalInvalid
@@ -144,6 +148,13 @@ func (c Config) Validate() error {
 	}
 	if c.SweepBatchSize <= 0 {
 		return ErrSweepBatchInvalid
+	}
+	return nil
+}
+
+func (c Config) validateRunner() error {
+	if c.PollInterval <= 0 {
+		return ErrPollIntervalInvalid
 	}
 	return nil
 }

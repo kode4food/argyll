@@ -48,7 +48,7 @@ var (
 func NewArchiver(
 	flowStore *timebox.Store, redisClient *redis.Client, cfg Config,
 ) (*Archiver, error) {
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.validateArchiver(); err != nil {
 		return nil, err
 	}
 	if flowStore == nil {

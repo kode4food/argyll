@@ -54,6 +54,27 @@ func TestNewArchiverValidation(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestNewArchiverIgnoresPollInterval(t *testing.T) {
+	cfg := archive.Config{
+		MemoryCheckInterval: time.Second,
+		SweepInterval:       time.Second,
+		LeaseTimeout:        time.Second,
+		PressureBatchSize:   1,
+		SweepBatchSize:      1,
+	}
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:            "127.0.0.1:1",
+		Protocol:        2,
+		DisableIdentity: true,
+	})
+	defer func() { _ = redisClient.Close() }()
+
+	arch, err := archive.NewArchiver(&timebox.Store{}, redisClient, cfg)
+	assert.NoError(t, err)
+	assert.NotNil(t, arch)
+}
+
 func TestArchiverSweepDeactivated(t *testing.T) {
 	redisServer, err := miniredis.Run()
 	assert.NoError(t, err)
