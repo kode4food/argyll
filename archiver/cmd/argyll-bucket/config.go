@@ -5,7 +5,7 @@ import (
 	"os"
 )
 
-type s3Config struct {
+type bucketConfig struct {
 	BucketURL string
 	Prefix    string
 }
@@ -14,8 +14,8 @@ var (
 	ErrBucketURLRequired = errors.New("ARCHIVE_BUCKET_URL is required")
 )
 
-func loadS3Config() (s3Config, error) {
-	cfg := s3Config{}
+func loadBucketConfig() (bucketConfig, error) {
+	cfg := bucketConfig{}
 
 	if bucketURL := os.Getenv("ARCHIVE_BUCKET_URL"); bucketURL != "" {
 		cfg.BucketURL = bucketURL
@@ -24,7 +24,7 @@ func loadS3Config() (s3Config, error) {
 		cfg.Prefix = prefix
 	}
 	if cfg.BucketURL == "" {
-		return s3Config{}, ErrBucketURLRequired
+		return bucketConfig{}, ErrBucketURLRequired
 	}
 
 	return cfg, nil

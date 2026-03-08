@@ -24,14 +24,14 @@ func main() {
 		os.Exit(1)
 	}
 
-	s3Cfg, err := loadS3Config()
+	bucketCfg, err := loadBucketConfig()
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
 	}
 
 	ctx := context.Background()
-	bucket, err := blob.OpenBucket(ctx, s3Cfg.BucketURL)
+	bucket, err := blob.OpenBucket(ctx, bucketCfg.BucketURL)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -42,7 +42,7 @@ func main() {
 		func(ctx context.Context, key string, data []byte) error {
 			return bucket.WriteAll(ctx, key, data, nil)
 		},
-		s3Cfg.Prefix,
+		bucketCfg.Prefix,
 	)
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, err)

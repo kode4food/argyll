@@ -76,10 +76,10 @@ ARCHIVE_PRESSURE_BATCH=10              # Archive 10 flows per pressure event
 ARCHIVE_SWEEP_BATCH=100                # Archive 100 flows per sweep
 ```
 
-### Archiver: Backend (S3)
+### Archiver: Backend (Bucket)
 
 ```bash
-ARCHIVE_BUCKET_URL=s3://my-bucket      # S3 bucket URL
+ARCHIVE_BUCKET_URL=s3://my-bucket      # Bucket URL
 ARCHIVE_PREFIX=archived/               # Prefix for archived objects
 ```
 
