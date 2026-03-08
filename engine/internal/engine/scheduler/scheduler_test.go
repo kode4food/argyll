@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"context"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -53,6 +54,35 @@ func TestScheduleTask(t *testing.T) {
 			t.Fatal("scheduled task did not run")
 		}
 	})
+}
+
+func TestRunAfterSchedule(t *testing.T) {
+	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
+	tc := newTestTimerConstructor()
+	s := scheduler.New(func() time.Time { return now }, tc.NewTimer)
+	timer := tc.WaitTimer(t)
+	timer.DrainResets()
+	timer.DrainStops()
+
+	done := make(chan struct{}, 1)
+	s.Schedule([]string{"sched", "late-run"}, now.Add(40*time.Millisecond),
+		func() error {
+			done <- struct{}{}
+			return nil
+		},
+	)
+	assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
+	timer.Fire(now)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go s.Run(ctx)
+
+	select {
+	case <-done:
+	case <-time.After(schedulerWaitTimeout):
+		t.Fatal("scheduled task did not run")
+	}
 }
 
 func TestScheduleTaskReplacesSamePath(t *testing.T) {

@@ -74,7 +74,6 @@ func (s *Scheduler) CancelPrefix(prefix []string) {
 // Run processes scheduler requests until the context is cancelled
 func (s *Scheduler) Run(ctx context.Context) {
 	s.mu.Lock()
-	s.resetTimer()
 	go s.signalTimer(ctx)
 	s.mu.Unlock()
 
