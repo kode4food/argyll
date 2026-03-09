@@ -78,11 +78,11 @@ log.Printf("status=%s attrs=%v", state.Status, state.Attributes)
 ```go
 deadline := time.Now().Add(10 * time.Second)
 for {
-    state, err = fc.GetState(context.Background())
+    status, err := fc.GetStatus(context.Background())
     if err != nil {
         log.Fatal(err)
     }
-    if state.Status == api.FlowCompleted || state.Status == api.FlowFailed {
+    if status.Status == api.FlowCompleted || status.Status == api.FlowFailed {
         break
     }
     if time.Now().After(deadline) {

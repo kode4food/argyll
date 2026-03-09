@@ -38,11 +38,12 @@ type (
 )
 
 var (
-	ErrRegisterStep = errors.New("failed to register step")
-	ErrUpdateStep   = errors.New("failed to update step")
-	ErrListSteps    = errors.New("failed to list steps")
-	ErrStartFlow    = errors.New("failed to start flow")
-	ErrGetFlow      = errors.New("failed to get flow")
+	ErrRegisterStep  = errors.New("failed to register step")
+	ErrUpdateStep    = errors.New("failed to update step")
+	ErrListSteps     = errors.New("failed to list steps")
+	ErrStartFlow     = errors.New("failed to start flow")
+	ErrGetFlow       = errors.New("failed to get flow")
+	ErrGetFlowStatus = errors.New("failed to get flow status")
 )
 
 const (
@@ -133,6 +134,22 @@ func (c *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 		Method:    "GET",
 		URL:       c.url("%s/%s", routeFlow, c.flowID),
 		ErrorType: ErrGetFlow,
+		Accepted:  []int{http.StatusOK},
+		Result:    &result,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+// GetStatus retrieves the current status of the flow
+func (c *FlowClient) GetStatus(ctx context.Context) (*api.FlowStatusResponse, error) {
+	var result api.FlowStatusResponse
+	err := c.doHTTPRequest(ctx, httpRequest{
+		Method:    "GET",
+		URL:       c.url("%s/%s/status", routeFlow, c.flowID),
+		ErrorType: ErrGetFlowStatus,
 		Accepted:  []int{http.StatusOK},
 		Result:    &result,
 	})

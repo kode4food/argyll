@@ -220,6 +220,31 @@ func TestFlowGetState(t *testing.T) {
 	assert.Equal(t, api.FlowActive, state.Status)
 }
 
+func TestFlowGetStatus(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "GET", r.Method)
+			assert.Equal(t, "/engine/flow/my-flow/status", r.URL.Path)
+
+			resp := api.FlowStatusResponse{
+				ID:     "my-flow",
+				Status: api.FlowCompleted,
+			}
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(resp)
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("my-flow")
+
+	status, err := wc.GetStatus(context.Background())
+	assert.NoError(t, err)
+	assert.Equal(t, api.FlowID("my-flow"), status.ID)
+	assert.Equal(t, api.FlowCompleted, status.Status)
+}
+
 func TestGetState404(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -233,6 +258,22 @@ func TestGetState404(t *testing.T) {
 	wc := client.Flow("nonexistent-flow")
 
 	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}
+
+func TestGetStatus404(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusNotFound)
+			_, _ = w.Write([]byte("flow not found"))
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("nonexistent-flow")
+
+	_, err := wc.GetStatus(context.Background())
 	assert.Error(t, err)
 }
 
@@ -252,6 +293,22 @@ func TestGetState500(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestGetStatus500(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+			_, _ = w.Write([]byte("internal server error"))
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("test-flow")
+
+	_, err := wc.GetStatus(context.Background())
+	assert.Error(t, err)
+}
+
 func TestGetStateMalformed(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -265,6 +322,22 @@ func TestGetStateMalformed(t *testing.T) {
 	wc := client.Flow("test-flow")
 
 	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}
+
+func TestGetStatusMalformed(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+			_, _ = w.Write([]byte("not valid json{"))
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("test-flow")
+
+	_, err := wc.GetStatus(context.Background())
 	assert.Error(t, err)
 }
 
@@ -293,10 +366,43 @@ func TestGetStateCancelled(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestGetStatusCancelled(t *testing.T) {
+	serverDone := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
+			w.WriteHeader(http.StatusOK)
+			_ = json.NewEncoder(w).Encode(api.FlowStatusResponse{})
+		},
+	))
+	defer server.Close()
+	defer close(serverDone)
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	wc := client.Flow("test-flow")
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := wc.GetStatus(ctx)
+	assert.Error(t, err)
+}
+
 func TestGetStateNetworkError(t *testing.T) {
 	client := builder.NewClient("http://localhost:1", 1*time.Millisecond)
 	wc := client.Flow("test-flow")
 
 	_, err := wc.GetState(context.Background())
+	assert.Error(t, err)
+}
+
+func TestGetStatusNetworkError(t *testing.T) {
+	client := builder.NewClient("http://localhost:1", 1*time.Millisecond)
+	wc := client.Flow("test-flow")
+
+	_, err := wc.GetStatus(context.Background())
 	assert.Error(t, err)
 }

@@ -78,6 +78,14 @@ Use `Flow()` to get a client for an existing flow:
 ```go
 wc := client.Flow("my-flow-123")
 
+// Get current status
+status, err := wc.GetStatus(context.Background())
+if err != nil {
+    log.Fatal(err)
+}
+
+fmt.Printf("Status: %s\n", status.Status)
+
 // Get current state
 state, err := wc.GetState(context.Background())
 if err != nil {
@@ -229,6 +237,12 @@ Start(ctx context.Context) error
 ```
 
 ### FlowClient Methods
+
+#### GetStatus: Get flow status
+Retrieves the current lightweight status of the flow.
+```go
+GetStatus(ctx context.Context) (*api.FlowStatusResponse, error)
+```
 
 #### GetState: Get flow state
 Retrieves the current state of the flow.
