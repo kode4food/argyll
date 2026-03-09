@@ -485,8 +485,10 @@ func TestGetFlowStatus(t *testing.T) {
 			},
 		}
 
-		err = testEnv.Engine.StartFlow("status-wf-id", pl)
-		assert.NoError(t, err)
+		testEnv.WaitForFlowStatus("status-wf-id", func() {
+			err = testEnv.Engine.StartFlow("status-wf-id", pl)
+			assert.NoError(t, err)
+		})
 
 		req := httptest.NewRequest(
 			"GET", "/engine/flow/status-wf-id/status", nil,
