@@ -76,10 +76,10 @@ err := client.NewFlow("multi-goal").
 Use `Flow()` to get a client for an existing flow:
 
 ```go
-wc := client.Flow("my-flow-123")
+fc := client.Flow("my-flow-123")
 
 // Get current status
-status, err := wc.GetStatus(context.Background())
+status, err := fc.GetStatus(context.Background())
 if err != nil {
     log.Fatal(err)
 }
@@ -87,7 +87,7 @@ if err != nil {
 fmt.Printf("Status: %s\n", status.Status)
 
 // Get current state
-state, err := wc.GetState(context.Background())
+state, err := fc.GetState(context.Background())
 if err != nil {
     log.Fatal(err)
 }
@@ -96,7 +96,7 @@ fmt.Printf("Status: %s\n", state.Status)
 fmt.Printf("Attributes: %+v\n", state.Attributes)
 
 // Get flow ID
-flowID := wc.FlowID()
+flowID := fc.FlowID()
 ```
 
 ## Flow ID Generation
@@ -176,8 +176,8 @@ func main() {
     log.Println("Flow started successfully")
 
     // Query flow state
-    wc := client.Flow("data-pipeline-001")
-    state, err := wc.GetState(context.Background())
+    fc := client.Flow("data-pipeline-001")
+    state, err := fc.GetState(context.Background())
     if err != nil {
         log.Fatalf("Failed to get flow state: %v", err)
     }

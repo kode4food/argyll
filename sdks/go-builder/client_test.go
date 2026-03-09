@@ -191,8 +191,8 @@ func TestContextCancellation(t *testing.T) {
 
 func TestFlow(t *testing.T) {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-	wc := client.Flow("test-flow-123")
-	assert.Equal(t, api.FlowID("test-flow-123"), wc.FlowID())
+	fc := client.Flow("test-flow-123")
+	assert.Equal(t, api.FlowID("test-flow-123"), fc.FlowID())
 }
 
 func TestFlowGetState(t *testing.T) {
@@ -212,9 +212,9 @@ func TestFlowGetState(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("my-flow")
+	fc := client.Flow("my-flow")
 
-	state, err := wc.GetState(context.Background())
+	state, err := fc.GetState(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("my-flow"), state.ID)
 	assert.Equal(t, api.FlowActive, state.Status)
@@ -237,9 +237,9 @@ func TestFlowGetStatus(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("my-flow")
+	fc := client.Flow("my-flow")
 
-	status, err := wc.GetStatus(context.Background())
+	status, err := fc.GetStatus(context.Background())
 	assert.NoError(t, err)
 	assert.Equal(t, api.FlowID("my-flow"), status.ID)
 	assert.Equal(t, api.FlowCompleted, status.Status)
@@ -255,9 +255,9 @@ func TestGetState404(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("nonexistent-flow")
+	fc := client.Flow("nonexistent-flow")
 
-	_, err := wc.GetState(context.Background())
+	_, err := fc.GetState(context.Background())
 	assert.Error(t, err)
 }
 
@@ -271,9 +271,9 @@ func TestGetStatus404(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("nonexistent-flow")
+	fc := client.Flow("nonexistent-flow")
 
-	_, err := wc.GetStatus(context.Background())
+	_, err := fc.GetStatus(context.Background())
 	assert.Error(t, err)
 }
 
@@ -287,9 +287,9 @@ func TestGetState500(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
-	_, err := wc.GetState(context.Background())
+	_, err := fc.GetState(context.Background())
 	assert.Error(t, err)
 }
 
@@ -303,9 +303,9 @@ func TestGetStatus500(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
-	_, err := wc.GetStatus(context.Background())
+	_, err := fc.GetStatus(context.Background())
 	assert.Error(t, err)
 }
 
@@ -319,9 +319,9 @@ func TestGetStateMalformed(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
-	_, err := wc.GetState(context.Background())
+	_, err := fc.GetState(context.Background())
 	assert.Error(t, err)
 }
 
@@ -335,9 +335,9 @@ func TestGetStatusMalformed(t *testing.T) {
 	defer server.Close()
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
-	_, err := wc.GetStatus(context.Background())
+	_, err := fc.GetStatus(context.Background())
 	assert.Error(t, err)
 }
 
@@ -357,12 +357,12 @@ func TestGetStateCancelled(t *testing.T) {
 	defer close(serverDone)
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := wc.GetState(ctx)
+	_, err := fc.GetState(ctx)
 	assert.Error(t, err)
 }
 
@@ -382,27 +382,27 @@ func TestGetStatusCancelled(t *testing.T) {
 	defer close(serverDone)
 
 	client := builder.NewClient(server.URL, 5*time.Second)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	_, err := wc.GetStatus(ctx)
+	_, err := fc.GetStatus(ctx)
 	assert.Error(t, err)
 }
 
 func TestGetStateNetworkError(t *testing.T) {
 	client := builder.NewClient("http://localhost:1", 1*time.Millisecond)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
-	_, err := wc.GetState(context.Background())
+	_, err := fc.GetState(context.Background())
 	assert.Error(t, err)
 }
 
 func TestGetStatusNetworkError(t *testing.T) {
 	client := builder.NewClient("http://localhost:1", 1*time.Millisecond)
-	wc := client.Flow("test-flow")
+	fc := client.Flow("test-flow")
 
-	_, err := wc.GetStatus(context.Background())
+	_, err := fc.GetStatus(context.Background())
 	assert.Error(t, err)
 }
