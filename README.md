@@ -60,23 +60,24 @@ Full OpenAPI spec: [docs/api/engine-api.yaml](docs/api/engine-api.yaml)
 
 ```bash
 # Steps
-POST   /engine/step              # Register step
-GET    /engine/step              # List all steps
-GET    /engine/step/:stepID      # Get step
-PUT    /engine/step/:stepID      # Update step
-DELETE /engine/step/:stepID      # Delete step
+POST   /engine/step                # Register step
+GET    /engine/step                # List all steps
+GET    /engine/step/:stepID        # Get step
+PUT    /engine/step/:stepID        # Update step
+DELETE /engine/step/:stepID        # Delete step
 
 # Flows
-POST   /engine/flow              # Start flow
-GET    /engine/flow              # List flows
-POST   /engine/flow/query        # Query flows
-GET    /engine/flow/:flowID      # Get flow state
-POST   /engine/plan              # Preview execution plan
+POST   /engine/flow                # Start flow
+GET    /engine/flow                # List flows
+POST   /engine/flow/query          # Query flows
+GET    /engine/flow/:flowID        # Get flow state
+GET    /engine/flow/:flowID/status # Get flow status
+POST   /engine/plan                # Preview execution plan
 
 # Engine & Health
-GET    /engine                   # Get complete engine state
-GET    /engine/health            # Get step health status
-GET    /engine/ws                # WebSocket event stream
+GET    /engine                     # Get complete engine state
+GET    /engine/health              #  Get step health status
+GET    /engine/ws                  # WebSocket event stream
 ```
 
 ## Documentation
