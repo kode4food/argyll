@@ -35,7 +35,7 @@ func TestPredicateSkipping(t *testing.T) {
 		env.MockClient.SetResponse("step-b", api.Args{"valueB": "from-B"})
 
 		// Create execution plan with step-b as goal (it will be skipped)
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-b"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -49,26 +49,26 @@ func TestPredicateSkipping(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-predicate-skip")
+		id := api.FlowID("test-predicate-skip")
 		err := env.Engine.RegisterStep(stepA)
 		assert.NoError(t, err)
 		err = env.Engine.RegisterStep(stepB)
 		assert.NoError(t, err)
 
 		env.WaitAfterAll(2, func(waits []*wait.Wait) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: flowID,
+				FlowID: id,
 				StepID: "step-a",
 			}))
 			waits[1].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: flowID,
+				FlowID: id,
 				StepID: "step-b",
 			}))
 		})
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 
 		execB := flow.Executions["step-b"]

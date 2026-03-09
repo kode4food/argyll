@@ -146,7 +146,7 @@ func TestSetFlowDeactivated(t *testing.T) {
 }
 
 func TestGetAttributes(t *testing.T) {
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Attributes: api.AttributeValues{
 			"attr1": {Value: "value1", Step: "step-1"},
 			"attr2": {Value: 42, Step: "step-2"},
@@ -154,7 +154,7 @@ func TestGetAttributes(t *testing.T) {
 		},
 	}
 
-	args := flow.GetAttributes()
+	args := fl.GetAttributes()
 
 	assert.Len(t, args, 3)
 	assert.Equal(t, "value1", args["attr1"])

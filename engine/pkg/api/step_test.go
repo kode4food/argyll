@@ -303,13 +303,13 @@ func TestStepValidation(t *testing.T) {
 func TestStepHelperMethods(t *testing.T) {
 	as := assert.New(t)
 
-	step := helpers.NewTestStepWithArgs(
+	st := helpers.NewTestStepWithArgs(
 		[]api.Name{"req1", "req2"},
 		[]api.Name{"opt1", "opt2"},
 	)
 
 	t.Run("get_all_input_args", func(t *testing.T) {
-		args := step.GetAllInputArgs()
+		args := st.GetAllInputArgs()
 		as.Len(args, 4)
 		as.Contains(args, api.Name("req1"))
 		as.Contains(args, api.Name("req2"))
@@ -318,11 +318,11 @@ func TestStepHelperMethods(t *testing.T) {
 	})
 
 	t.Run("is_optional_arg", func(t *testing.T) {
-		as.True(step.IsOptionalArg("opt1"))
-		as.True(step.IsOptionalArg("opt2"))
-		as.False(step.IsOptionalArg("req1"))
-		as.False(step.IsOptionalArg("req2"))
-		as.False(step.IsOptionalArg("nonexistent"))
+		as.True(st.IsOptionalArg("opt1"))
+		as.True(st.IsOptionalArg("opt2"))
+		as.False(st.IsOptionalArg("req1"))
+		as.False(st.IsOptionalArg("req2"))
+		as.False(st.IsOptionalArg("nonexistent"))
 	})
 }
 
@@ -1149,7 +1149,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangAle,
-				Script:   "(eq status \"ready\")",
+				Script:   `(eq status "ready")`,
 			},
 		}
 		step2 := &api.Step{
@@ -1161,7 +1161,7 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangAle,
-				Script:   "(eq status \"pending\")",
+				Script:   `(eq status "pending")`,
 			},
 		}
 		as.False(step1.Equal(step2))

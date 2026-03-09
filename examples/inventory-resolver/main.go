@@ -61,7 +61,7 @@ var inventoryDB = map[string]ProductInfo{
 	},
 	"prod-monitor": {
 		ProductID:       "prod-monitor",
-		Name:            "4K Monitor 27\"",
+		Name:            `4K Monitor 27"`,
 		Price:           449.99,
 		AvailableStock:  30,
 		ReservedStock:   3,

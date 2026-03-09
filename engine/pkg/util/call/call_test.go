@@ -75,3 +75,41 @@ func TestWithArgs(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "foobar", got)
 }
+
+func TestApply(t *testing.T) {
+	type values struct {
+		a int
+		b string
+	}
+
+	v := &values{}
+	call.Apply(v,
+		func(v *values) { v.a = 42 },
+		func(v *values) { v.b = "ok" },
+	)
+
+	assert.Equal(t, 42, v.a)
+	assert.Equal(t, "ok", v.b)
+}
+
+func TestDefaults(t *testing.T) {
+	type values struct {
+		a int
+		b string
+	}
+
+	makeValues := call.Defaults(func() *values {
+		return &values{
+			a: 1,
+			b: "base",
+		}
+	})
+
+	v := makeValues(
+		func(v *values) { v.a = 42 },
+		func(v *values) { v.b = "ok" },
+	)
+
+	assert.Equal(t, 42, v.a)
+	assert.Equal(t, "ok", v.b)
+}

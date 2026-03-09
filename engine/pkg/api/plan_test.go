@@ -9,7 +9,7 @@ import (
 )
 
 func TestValidateSuccess(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1", "input2", "input3"},
 	}
 
@@ -19,12 +19,12 @@ func TestValidateSuccess(t *testing.T) {
 		"input3": "value3",
 	}
 
-	err := plan.ValidateInputs(args)
+	err := pl.ValidateInputs(args)
 	assert.NoError(t, err)
 }
 
 func TestValidateExtraArgs(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1"},
 	}
 
@@ -34,12 +34,12 @@ func TestValidateExtraArgs(t *testing.T) {
 		"extra2": "another_value",
 	}
 
-	err := plan.ValidateInputs(args)
+	err := pl.ValidateInputs(args)
 	assert.NoError(t, err)
 }
 
 func TestValidateMissing(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{"required_input"},
 	}
 
@@ -47,7 +47,7 @@ func TestValidateMissing(t *testing.T) {
 		"other_input": "value",
 	}
 
-	err := plan.ValidateInputs(args)
+	err := pl.ValidateInputs(args)
 	assert.Error(t, err)
 
 	expected := "required inputs not provided: [required_input]"
@@ -55,7 +55,7 @@ func TestValidateMissing(t *testing.T) {
 }
 
 func TestValidateMissingMulti(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1", "input2", "input3"},
 	}
 
@@ -63,7 +63,7 @@ func TestValidateMissingMulti(t *testing.T) {
 		"input1": "value1",
 	}
 
-	err := plan.ValidateInputs(args)
+	err := pl.ValidateInputs(args)
 	assert.Error(t, err)
 
 	errorMsg := err.Error()
@@ -73,33 +73,33 @@ func TestValidateMissingMulti(t *testing.T) {
 }
 
 func TestValidateNoRequired(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{},
 	}
 
 	args := api.Args{}
 
-	err := plan.ValidateInputs(args)
+	err := pl.ValidateInputs(args)
 	assert.NoError(t, err)
 }
 
 func TestValidateNilArgs(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1"},
 	}
 
-	err := plan.ValidateInputs(nil)
+	err := pl.ValidateInputs(nil)
 	assert.Error(t, err)
 }
 
 func TestValidateEmptyArgs(t *testing.T) {
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Required: []api.Name{"input1", "input2"},
 	}
 
 	args := api.Args{}
 
-	err := plan.ValidateInputs(args)
+	err := pl.ValidateInputs(args)
 	assert.Error(t, err)
 }
 

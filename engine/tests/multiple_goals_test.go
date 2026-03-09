@@ -60,7 +60,7 @@ func TestMultipleGoals(t *testing.T) {
 		env.MockClient.SetResponse("step-d", api.Args{"resultD": "done-D"})
 		env.MockClient.SetResponse("step-e", api.Args{"valueE": "from-E"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c", "step-d"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -92,32 +92,32 @@ func TestMultipleGoals(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-multiple-goals")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-multiple-goals")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Verify flow completed successfully
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify both goals (C and D) completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-c"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-d"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-d"].Status)
 
 		// Verify all steps in execution plan completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
 
 		// Verify step E does NOT appear in executions
-		assert.NotContains(t, flow.Executions, api.StepID("step-e"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-e"))
 
 		// Verify all attributes from both paths are set
-		assert.Equal(t, "from-A-B", flow.Attributes["valueB"].Value)
-		assert.Equal(t, "from-B", flow.Attributes["valueC"].Value)
-		assert.Equal(t, "from-A-D", flow.Attributes["valueD"].Value)
-		assert.Equal(t, "done-C", flow.Attributes["resultC"].Value)
-		assert.Equal(t, "done-D", flow.Attributes["resultD"].Value)
+		assert.Equal(t, "from-A-B", fl.Attributes["valueB"].Value)
+		assert.Equal(t, "from-B", fl.Attributes["valueC"].Value)
+		assert.Equal(t, "from-A-D", fl.Attributes["valueD"].Value)
+		assert.Equal(t, "done-C", fl.Attributes["resultC"].Value)
+		assert.Equal(t, "done-D", fl.Attributes["resultD"].Value)
 
 		// Verify step E was not invoked
 		invocations := env.MockClient.GetInvocations()

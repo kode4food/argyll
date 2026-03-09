@@ -7,51 +7,51 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestStartDuplicate(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("step-1")
+		st := helpers.NewSimpleStep("step-1")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-1"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("wf-dup", plan)
+		err = eng.StartFlow("wf-dup", pl)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-dup", plan)
+		err = eng.StartFlow("wf-dup", pl)
 		assert.ErrorIs(t, err, engine.ErrFlowExists)
 	})
 }
 
 func TestStartFlowSchedulesWork(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := helpers.NewSimpleStep("step-start")
-		step.Type = api.StepTypeAsync
-		step.HTTP.Timeout = 30 * api.Second
+		st := helpers.NewSimpleStep("step-start")
+		st.Type = api.StepTypeAsync
+		st.HTTP.Timeout = 30 * api.Second
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("wf-start", plan)
+		err = env.Engine.StartFlow("wf-start", pl)
 		assert.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-start")
 		assert.NoError(t, err)
 
-		exec := flow.Executions[step.ID]
+		exec := flow.Executions[st.ID]
 		assert.Equal(t, api.StepActive, exec.Status)
 		assert.Len(t, exec.WorkItems, 1)
 		for _, item := range exec.WorkItems {
@@ -62,33 +62,33 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 
 func TestStartMissingInput(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("step-needs-input")
-		step.Attributes["required_value"] = &api.AttributeSpec{
+		st := helpers.NewSimpleStep("step-needs-input")
+		st.Attributes["required_value"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Type: api.TypeString,
 		}
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals:    []api.StepID{"step-needs-input"},
-			Steps:    api.Steps{step.ID: step},
+			Steps:    api.Steps{st.ID: st},
 			Required: []api.Name{"required_value"},
 		}
 
-		err := eng.StartFlow("wf-missing", plan)
+		err := eng.StartFlow("wf-missing", pl)
 		assert.Error(t, err)
 	})
 }
 
-func TestStartFlowRejectsPartialParentMetadata(t *testing.T) {
+func TestStartRejectsPartialParent(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("step-parent-meta")
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		st := helpers.NewSimpleStep("step-parent-meta")
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		err := eng.StartFlow("wf-partial-parent-meta", plan,
-			flowopt.WithMetadata(api.Metadata{
+		err := eng.StartFlow("wf-partial-parent-meta", pl,
+			flow.WithMetadata(api.Metadata{
 				api.MetaParentFlowID: "parent",
 			}),
 		)
@@ -117,7 +117,7 @@ func TestStartFlowSimple(t *testing.T) {
 
 		env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals:    []api.StepID{"goal-step"},
 			Required: []api.Name{},
 			Steps: api.Steps{
@@ -125,7 +125,7 @@ func TestStartFlowSimple(t *testing.T) {
 			},
 		}
 
-		err = env.Engine.StartFlow("wf-simple", plan)
+		err = env.Engine.StartFlow("wf-simple", pl)
 		assert.NoError(t, err)
 
 		flow, err := env.Engine.GetFlowState("wf-simple")

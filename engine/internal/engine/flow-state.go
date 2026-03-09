@@ -9,16 +9,37 @@ import (
 )
 
 var (
-	ErrFlowNotFound = errors.New("flow not found")
+	ErrFlowNotFound      = errors.New("flow not found")
+	ErrInvalidFlowStatus = errors.New("invalid indexed flow status")
 )
 
-// GetFlowState retrieves the current state of a flow by its ID.
+// GetFlowState retrieves the current state of a flow by its ID
 func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
 	state, _, err := e.GetFlowStateSeq(flowID)
 	return state, err
 }
 
-// GetFlowStateSeq retrieves the current state and next sequence for a flow.
+// GetFlowStatus retrieves the current indexed status of a flow by its ID
+func (e *Engine) GetFlowStatus(flowID api.FlowID) (api.FlowStatus, error) {
+	status, err := e.flowExec.GetStore().GetAggregateStatus(
+		e.ctx, events.FlowKey(flowID),
+	)
+	if err != nil {
+		return "", err
+	}
+	if status == "" {
+		return "", ErrFlowNotFound
+	}
+
+	switch api.FlowStatus(status) {
+	case api.FlowActive, api.FlowCompleted, api.FlowFailed:
+		return api.FlowStatus(status), nil
+	default:
+		return "", ErrInvalidFlowStatus
+	}
+}
+
+// GetFlowStateSeq retrieves the current state and next sequence for a flow
 func (e *Engine) GetFlowStateSeq(
 	flowID api.FlowID,
 ) (*api.FlowState, int64, error) {
@@ -41,7 +62,7 @@ func (e *Engine) GetFlowStateSeq(
 }
 
 // GetAttribute retrieves a specific attribute value from the flow state,
-// returning the value, whether it exists, and any error.
+// returning the value, whether it exists, and any error
 func (e *Engine) GetAttribute(
 	flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {

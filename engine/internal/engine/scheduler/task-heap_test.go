@@ -9,7 +9,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 )
 
-func TestTaskHeapKeyedOrderAndCancelPrefix(t *testing.T) {
+func TestTaskHeapKeyOrder(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	h := scheduler.NewTaskHeap()
 	noop := func() error { return nil }

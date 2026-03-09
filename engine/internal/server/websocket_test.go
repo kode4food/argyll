@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -77,13 +78,13 @@ func subscribedItem(
 }
 
 func TestClientReceivesEvent(t *testing.T) {
-	getState := func(id timebox.AggregateID) (any, int64, error) {
+	getState := func(aggID timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
-	flowID := api.FlowID("wf-123")
+	id := api.FlowID("wf-123")
 
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
@@ -101,9 +102,9 @@ func TestClientReceivesEvent(t *testing.T) {
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
 
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
-		Data: wsFlowStarted(flowID, "step-1"),
+		Data: wsFlowStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
@@ -116,17 +117,17 @@ func TestClientReceivesEvent(t *testing.T) {
 	var data api.FlowStartedEvent
 	err = json.Unmarshal(wsEvent.Data, &data)
 	assert.NoError(t, err)
-	assert.Equal(t, flowID, data.FlowID)
+	assert.Equal(t, id, data.FlowID)
 }
 
 func TestClientFiltersEventsByType(t *testing.T) {
-	getState := func(id timebox.AggregateID) (any, int64, error) {
+	getState := func(aggID timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
-	flowID := api.FlowID("wf-123")
+	id := api.FlowID("wf-123")
 
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
@@ -145,15 +146,15 @@ func TestClientFiltersEventsByType(t *testing.T) {
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
 
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeStepStarted,
-		Data: wsStepStarted(flowID, "step-1"),
+		Data: wsStepStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
-		Data: wsFlowStarted(flowID, "step-1"),
+		Data: wsFlowStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
@@ -168,7 +169,7 @@ func TestClientFiltersEventsByType(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestClientReceivesEventsForAggregates(t *testing.T) {
+func TestClientAggregateEvents(t *testing.T) {
 	getState := func(id timebox.AggregateID) (any, int64, error) {
 		assert.Fail(t, "multi-aggregate subscribe should not load state")
 		return nil, 0, nil
@@ -216,7 +217,7 @@ func TestClientReceivesEventsForAggregates(t *testing.T) {
 	assert.Equal(t, []string{events.FlowPrefix, "wf-456"}, wsEvent.AggregateID)
 }
 
-func TestClientSubscribesToManyAggregates(t *testing.T) {
+func TestClientManyAggregates(t *testing.T) {
 	getState := func(id timebox.AggregateID) (any, int64, error) {
 		assert.Fail(t, "multi-aggregate subscribe should not load state")
 		return nil, 0, nil
@@ -259,14 +260,14 @@ func TestClientSubscribesToManyAggregates(t *testing.T) {
 func TestMessageInvalid(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
-	flowID := api.FlowID("wf-123")
+	id := api.FlowID("wf-123")
 
 	err := env.Conn.WriteMessage(websocket.TextMessage, []byte("invalid json"))
 	assert.NoError(t, err)
 
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
-		Data: wsFlowStarted(flowID, "step-1"),
+		Data: wsFlowStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
@@ -279,7 +280,7 @@ func TestMessageInvalid(t *testing.T) {
 func TestMessageNonSubscribe(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
-	flowID := api.FlowID("wf-123")
+	id := api.FlowID("wf-123")
 
 	sub := api.SubscribeRequest{
 		Type: "other",
@@ -291,9 +292,9 @@ func TestMessageNonSubscribe(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
-		Data: wsFlowStarted(flowID, "step-1"),
+		Data: wsFlowStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
@@ -304,14 +305,14 @@ func TestMessageNonSubscribe(t *testing.T) {
 }
 
 func TestSubscribeStateSendsState(t *testing.T) {
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		ID:     "wf-123",
 		Status: api.FlowActive,
 	}
 
 	getState := func(id timebox.AggregateID) (any, int64, error) {
 		assert.Equal(t, events.FlowKey("wf-123"), id)
-		return flow, 5, nil
+		return fl, 5, nil
 	}
 
 	env := testWebSocket(t, getState)
@@ -345,13 +346,13 @@ func TestSubscribeStateSendsState(t *testing.T) {
 }
 
 func TestStaleEventsFiltered(t *testing.T) {
-	getState := func(id timebox.AggregateID) (any, int64, error) {
+	getState := func(aggID timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 1, nil
 	}
 
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
-	flowID := api.FlowID("wf-123")
+	id := api.FlowID("wf-123")
 
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
@@ -372,16 +373,16 @@ func TestStaleEventsFiltered(t *testing.T) {
 	assert.Equal(t, int64(1), item.Sequence)
 
 	// Send stale event (sequence 5 < minSequence 10)
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
-		Data: wsFlowStarted(flowID, "step-1"),
+		Data: wsFlowStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
 	// Send fresh event (sequence 10 >= minSequence 10)
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeStepStarted,
-		Data: wsStepStarted(flowID, "step-1"),
+		Data: wsStepStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
@@ -418,6 +419,42 @@ func TestSubscribeStateWithError(t *testing.T) {
 	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
 	assert.Error(t, err)
+}
+
+func TestSubscribeStateMissingFlow(t *testing.T) {
+	getState := func(id timebox.AggregateID) (any, int64, error) {
+		return nil, 0, engine.ErrFlowNotFound
+	}
+
+	env := testWebSocket(t, getState)
+	defer env.Cleanup()
+
+	sub := api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-1",
+			AggregateIDs:   [][]string{{events.FlowPrefix, "wf-404"}},
+			IncludeState:   true,
+		},
+	}
+	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	var msg api.SubscribedResult
+	err = env.Conn.ReadJSON(&msg)
+	assert.NoError(t, err)
+	assert.Equal(t, "subscribed", msg.Type)
+	assert.Empty(t, msg.Items)
+
+	err = env.Conn.WriteJSON(api.SubscribeRequest{
+		Type: "subscribe",
+		Data: api.ClientSubscription{
+			SubscriptionID: "sub-2",
+			AggregateIDs:   [][]string{{events.CatalogPrefix}},
+		},
+	})
+	assert.NoError(t, err)
 }
 
 func TestSubscribeNoID(t *testing.T) {
@@ -476,13 +513,13 @@ func TestClientPongHandler(t *testing.T) {
 }
 
 func TestClientUnsubscribeStopsEvents(t *testing.T) {
-	getState := func(id timebox.AggregateID) (any, int64, error) {
+	getState := func(aggID timebox.AggregateID) (any, int64, error) {
 		return &api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)
 	defer env.Cleanup()
-	flowID := api.FlowID("wf-123")
+	id := api.FlowID("wf-123")
 
 	sub := api.SubscribeRequest{
 		Type: "subscribe",
@@ -509,9 +546,9 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	err = env.Conn.WriteJSON(unsub)
 	assert.NoError(t, err)
 
-	err = env.Env.RaiseFlowEvents(flowID, helpers.FlowEvent{
+	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
-		Data: wsFlowStarted(flowID, "step-1"),
+		Data: wsFlowStarted(id, "step-1"),
 	})
 	assert.NoError(t, err)
 
@@ -637,7 +674,7 @@ func TestSocketCallbackFlow(t *testing.T) {
 	})
 }
 
-func TestSocketCallbackPrefixOrUnknownAgg(t *testing.T) {
+func TestSocketBadCallbackTarget(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		ws := testServerWebSocket(t, env.Server)
 		defer ws.Cleanup()

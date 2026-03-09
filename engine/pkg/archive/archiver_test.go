@@ -82,9 +82,9 @@ func TestSweepDeactivated(t *testing.T) {
 
 	flowStore := setupStore(t, redisServer.Addr())
 
-	flowID := api.FlowID("flow-sweep")
-	seedDeactivatedFlow(t, flowStore, flowID)
-	assertLabelIndexed(t, flowStore, flowID)
+	id := api.FlowID("flow-sweep")
+	seedDeactivatedFlow(t, flowStore, id)
+	assertLabelIndexed(t, flowStore, id)
 
 	cfg := archive.Config{
 		FlowStore:           config.NewDefaultConfig().FlowStore,
@@ -126,7 +126,7 @@ func TestSweepDeactivated(t *testing.T) {
 		return record != nil
 	}, testTimeout, testPollInterval)
 	if ok {
-		assert.Equal(t, "flow:"+string(flowID), record.AggregateID.Join(":"))
+		assert.Equal(t, "flow:"+string(id), record.AggregateID.Join(":"))
 	}
 
 	cancel()
@@ -136,9 +136,9 @@ func TestSweepDeactivated(t *testing.T) {
 		t.Context(), events.FlowStatusCompleted,
 	)
 	assert.NoError(t, err)
-	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
+	assert.False(t, containsStatusEntry(entries, events.FlowKey(id)))
 
-	assertLabelNotIndexed(t, flowStore, flowID)
+	assertLabelNotIndexed(t, flowStore, id)
 }
 
 func TestPressureArchives(t *testing.T) {
@@ -148,9 +148,9 @@ func TestPressureArchives(t *testing.T) {
 
 	flowStore := setupStore(t, redisServer.Addr())
 
-	flowID := api.FlowID("flow-pressure")
-	seedDeactivatedFlow(t, flowStore, flowID)
-	assertLabelIndexed(t, flowStore, flowID)
+	id := api.FlowID("flow-pressure")
+	seedDeactivatedFlow(t, flowStore, id)
+	assertLabelIndexed(t, flowStore, id)
 
 	infoAddr, stop := startInfoServer(t, "used_memory:80\nmaxmemory:100\n")
 	defer stop()
@@ -195,7 +195,7 @@ func TestPressureArchives(t *testing.T) {
 		return record != nil
 	}, testTimeout, testPollInterval)
 	if ok {
-		assert.Equal(t, "flow:"+string(flowID), record.AggregateID.Join(":"))
+		assert.Equal(t, "flow:"+string(id), record.AggregateID.Join(":"))
 	}
 
 	cancel()
@@ -205,9 +205,9 @@ func TestPressureArchives(t *testing.T) {
 		t.Context(), events.FlowStatusCompleted,
 	)
 	assert.NoError(t, err)
-	assert.False(t, containsStatusEntry(entries, events.FlowKey(flowID)))
+	assert.False(t, containsStatusEntry(entries, events.FlowKey(id)))
 
-	assertLabelNotIndexed(t, flowStore, flowID)
+	assertLabelNotIndexed(t, flowStore, id)
 }
 
 func TestAgeSweepRecent(t *testing.T) {
@@ -217,8 +217,8 @@ func TestAgeSweepRecent(t *testing.T) {
 
 	flowStore := setupStore(t, redisServer.Addr())
 
-	flowID := api.FlowID("flow-recent")
-	seedDeactivatedFlow(t, flowStore, flowID)
+	id := api.FlowID("flow-recent")
+	seedDeactivatedFlow(t, flowStore, id)
 
 	cfg := archive.Config{
 		FlowStore:           config.NewDefaultConfig().FlowStore,
@@ -259,7 +259,7 @@ func TestAgeSweepRecent(t *testing.T) {
 		},
 	)
 	assert.NoError(t, err)
-	assertLabelIndexed(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, id)
 }
 
 func TestPressureBelowThreshold(t *testing.T) {
@@ -269,9 +269,9 @@ func TestPressureBelowThreshold(t *testing.T) {
 
 	flowStore := setupStore(t, redisServer.Addr())
 
-	flowID := api.FlowID("flow-pressure-skip")
-	seedDeactivatedFlow(t, flowStore, flowID)
-	assertLabelIndexed(t, flowStore, flowID)
+	id := api.FlowID("flow-pressure-skip")
+	seedDeactivatedFlow(t, flowStore, id)
+	assertLabelIndexed(t, flowStore, id)
 
 	infoAddr, stop := startInfoServer(t, "used_memory:40\nmaxmemory:100\n")
 	defer stop()
@@ -315,7 +315,7 @@ func TestPressureBelowThreshold(t *testing.T) {
 		},
 	)
 	assert.NoError(t, err)
-	assertLabelIndexed(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, id)
 }
 
 func TestSweepBadStatus(t *testing.T) {
@@ -325,9 +325,9 @@ func TestSweepBadStatus(t *testing.T) {
 
 	flowStore := setupStore(t, redisServer.Addr())
 
-	flowID := api.FlowID("flow-invalid-status")
-	seedDeactivatedFlow(t, flowStore, flowID)
-	assertLabelIndexed(t, flowStore, flowID)
+	id := api.FlowID("flow-invalid-status")
+	seedDeactivatedFlow(t, flowStore, id)
+	assertLabelIndexed(t, flowStore, id)
 
 	cli := redis.NewClient(&redis.Options{
 		Addr:            redisServer.Addr(),
@@ -377,7 +377,7 @@ func TestSweepBadStatus(t *testing.T) {
 		},
 	)
 	assert.NoError(t, err)
-	assertLabelIndexed(t, flowStore, flowID)
+	assertLabelIndexed(t, flowStore, id)
 }
 
 func containsStatusEntry(

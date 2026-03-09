@@ -42,6 +42,7 @@ jest.mock("@/app/store/flowStore", () => ({
     updateExecution: jest.fn(),
     updateWorkItem: jest.fn(),
     updateFlowData: jest.fn(),
+    setFlowNotFound: jest.fn(),
     setEngineSocketStatus: jest.fn(),
     engineReconnectRequest: 0,
   },
@@ -492,6 +493,30 @@ describe("WebSocketProvider", () => {
         error: "retry scheduled",
       }
     );
+  });
+
+  test("marks selected flow missing when subscribed state is empty", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    const flowHandler = client.subscribe.mock.calls[2][1];
+    flowHandler({
+      type: "subscribed",
+      sub_id: "2",
+      items: [],
+    });
+
+    const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.setFlowNotFound).toHaveBeenCalledWith(
+      "flow-1"
+    );
+    expect(flowStore.__storeState.updateFlowData).not.toHaveBeenCalled();
   });
 
   test("writes socket connection status to store", () => {

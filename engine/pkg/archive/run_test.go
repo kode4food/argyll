@@ -81,8 +81,8 @@ func TestRunArchives(t *testing.T) {
 	defer redisServer.Close()
 
 	flowStore := setupStore(t, redisServer.Addr())
-	flowID := api.FlowID("flow-run")
-	seedDeactivatedFlow(t, flowStore, flowID)
+	id := api.FlowID("flow-run")
+	seedDeactivatedFlow(t, flowStore, id)
 
 	cfg := testRunConfig(redisServer.Addr())
 	cfg.MaxAge = 0
@@ -112,7 +112,7 @@ func TestRunArchives(t *testing.T) {
 		}
 	}, testTimeout, testPollInterval)
 	if ok {
-		assert.Equal(t, events.FlowKey(flowID), record.AggregateID)
+		assert.Equal(t, events.FlowKey(id), record.AggregateID)
 	}
 
 	assert.NoError(t, <-done)
@@ -124,8 +124,8 @@ func TestRunHandlerError(t *testing.T) {
 	defer redisServer.Close()
 
 	flowStore := setupStore(t, redisServer.Addr())
-	flowID := api.FlowID("flow-run-error")
-	seedDeactivatedFlow(t, flowStore, flowID)
+	id := api.FlowID("flow-run-error")
+	seedDeactivatedFlow(t, flowStore, id)
 
 	cfg := testRunConfig(redisServer.Addr())
 	cfg.MaxAge = 0

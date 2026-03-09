@@ -38,15 +38,15 @@ func TestRegisterStep(t *testing.T) {
 
 func TestRegisterStepIdempotent(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("dup-step")
+		st := helpers.NewSimpleStep("dup-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		_, beforeSeq, err := eng.GetCatalogStateSeq()
 		assert.NoError(t, err)
 
-		err = eng.RegisterStep(step)
+		err = eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		_, afterSeq, err := eng.GetCatalogStateSeq()
@@ -57,9 +57,9 @@ func TestRegisterStepIdempotent(t *testing.T) {
 
 func TestUpdateStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("update-step")
+		st := helpers.NewSimpleStep("update-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		updated := helpers.NewSimpleStep("update-step")
@@ -79,9 +79,9 @@ func TestUpdateStep(t *testing.T) {
 
 func TestUpdateStepDefaultIdempotent(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("update-defaulted")
+		st := helpers.NewSimpleStep("update-defaulted")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		_, beforeSeq, err := eng.GetCatalogStateSeq()
@@ -97,7 +97,7 @@ func TestUpdateStepDefaultIdempotent(t *testing.T) {
 	})
 }
 
-func TestUpdateStepReplacesCycleDependencies(t *testing.T) {
+func TestUpdateStepCycles(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := helpers.NewSimpleStep("step-a")
 		stepA.Attributes = api.AttributeSpecs{
@@ -131,8 +131,8 @@ func TestUpdateStepReplacesCycleDependencies(t *testing.T) {
 
 func TestRegisterStepValidatesMappings(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("bad-mapping")
-		step.Attributes["in"] = &api.AttributeSpec{
+		st := helpers.NewSimpleStep("bad-mapping")
+		st.Attributes["in"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Type: api.TypeString,
 			Mapping: &api.AttributeMapping{
@@ -143,7 +143,7 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 			},
 		}
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
 		assert.ErrorContains(t, err, api.ErrInvalidAttributeMapping.Error())
 	})
@@ -151,11 +151,11 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 
 func TestRegisterStepJPathInvalid(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"bad-jpath-predicate", api.ScriptLangJPath, "$..[",
 		)
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
 		assert.ErrorContains(t, err, script.ErrJPathCompile.Error())
 	})
@@ -163,11 +163,11 @@ func TestRegisterStepJPathInvalid(t *testing.T) {
 
 func TestRegisterStepJPathValid(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"good-jpath-predicate", api.ScriptLangJPath, "$.flag",
 		)
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 	})
 }
@@ -196,9 +196,9 @@ func TestJPathNotValidForScripts(t *testing.T) {
 
 func TestUnregisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("test-step")
+		st := helpers.NewSimpleStep("test-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		err = eng.UnregisterStep("test-step")
@@ -212,9 +212,9 @@ func TestUnregisterStep(t *testing.T) {
 
 func TestListSteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("list-step")
+		st := helpers.NewSimpleStep("list-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		steps, err := eng.ListSteps()
@@ -234,12 +234,12 @@ func TestListStepsEmpty(t *testing.T) {
 
 func TestRegisterDuplicateStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("dup-step")
+		st := helpers.NewSimpleStep("dup-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		err = eng.RegisterStep(step)
+		err = eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		steps, err := eng.ListSteps()
@@ -251,9 +251,9 @@ func TestRegisterDuplicateStep(t *testing.T) {
 
 func TestRegisterConflictingStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("dup-step")
+		st := helpers.NewSimpleStep("dup-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("dup-step")
@@ -266,10 +266,10 @@ func TestRegisterConflictingStep(t *testing.T) {
 
 func TestUpdateStepSuccess(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("update-step")
-		step.Name = "Original Name"
+		st := helpers.NewSimpleStep("update-step")
+		st.Name = "Original Name"
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("update-step")
@@ -290,9 +290,9 @@ func TestUpdateStepSuccess(t *testing.T) {
 
 func TestUpdateStepNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("nonexistent")
+		st := helpers.NewSimpleStep("nonexistent")
 
-		err := eng.UpdateStep(step)
+		err := eng.UpdateStep(st)
 		assert.ErrorIs(t, err, engine.ErrStepNotFound)
 	})
 }

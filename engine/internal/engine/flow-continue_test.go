@@ -40,7 +40,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 		env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{consumer.ID},
 			Steps: api.Steps{
 				producer.ID: producer,
@@ -58,15 +58,15 @@ func TestLinearFlowCompletes(t *testing.T) {
 			},
 		}
 
-		flow := env.WaitForFlowStatus("wf-linear", func() {
-			err := env.Engine.StartFlow("wf-linear", plan)
+		fl := env.WaitForFlowStatus("wf-linear", func() {
+			err := env.Engine.StartFlow("wf-linear", pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		assert.Equal(t, api.StepCompleted, flow.Executions[producer.ID].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions[consumer.ID].Status)
-		assert.Equal(t, "ok", flow.Attributes["result"].Value)
+		assert.Equal(t, api.StepCompleted, fl.Executions[producer.ID].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
+		assert.Equal(t, "ok", fl.Attributes["result"].Value)
 	})
 }
 func TestPendingUnusedSkip(t *testing.T) {
@@ -110,7 +110,7 @@ func TestPendingUnusedSkip(t *testing.T) {
 		env.MockClient.SetResponse(providerA.ID, api.Args{"opt": "value"})
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "done"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{consumer.ID},
 			Steps: api.Steps{
 				providerA.ID: providerA,
@@ -129,17 +129,17 @@ func TestPendingUnusedSkip(t *testing.T) {
 			},
 		}
 
-		flow := env.WaitForFlowStatus("wf-skip-unneeded", func() {
-			err := env.Engine.StartFlow("wf-skip-unneeded", plan)
+		fl := env.WaitForFlowStatus("wf-skip-unneeded", func() {
+			err := env.Engine.StartFlow("wf-skip-unneeded", pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions[providerA.ID].Status)
-		assert.Equal(t, api.StepSkipped, flow.Executions[providerB.ID].Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions[providerA.ID].Status)
+		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
 		assert.Equal(t,
-			"outputs not needed", flow.Executions[providerB.ID].Error,
+			"outputs not needed", fl.Executions[providerB.ID].Error,
 		)
-		assert.Equal(t, api.StepCompleted, flow.Executions[consumer.ID].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
 	})
 }
 
@@ -148,16 +148,16 @@ func TestSkipStep(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		// Create a step with a predicate that returns false, causing a  skip
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"step-skip", api.ScriptLangAle, "false",
 		)
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-skip"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		// Wait for step to be skipped
@@ -165,7 +165,7 @@ func TestSkipStep(t *testing.T) {
 			FlowID: "wf-skip",
 			StepID: "step-skip",
 		}), func() {
-			err = env.Engine.StartFlow("wf-skip", plan)
+			err = env.Engine.StartFlow("wf-skip", pl)
 			assert.NoError(t, err)
 		})
 

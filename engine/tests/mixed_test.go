@@ -47,7 +47,7 @@ func TestMixedStepTypes(t *testing.T) {
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
 
 		// Create execution plan with step-c as goal
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -66,22 +66,22 @@ func TestMixedStepTypes(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-mixed-types")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-mixed-types")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify all steps completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-c"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
 
 		// Verify attribute propagation and transformation
-		assert.Equal(t, "data", flow.Attributes["valueA"].Value)
-		assert.Equal(t, "transformed-data", flow.Attributes["valueB"].Value)
-		assert.Equal(t, "done", flow.Attributes["result"].Value)
+		assert.Equal(t, "data", fl.Attributes["valueA"].Value)
+		assert.Equal(t, "transformed-data", fl.Attributes["valueB"].Value)
+		assert.Equal(t, "done", fl.Attributes["result"].Value)
 
 		// Verify HTTP steps invoked (script step executes inline, not via HTTP)
 		invocations := env.MockClient.GetInvocations()

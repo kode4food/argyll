@@ -5,8 +5,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/tidwall/gjson"
-
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -67,20 +65,18 @@ func asArray(value any) []any {
 	if value == nil {
 		return nil
 	}
+	if arr, ok := value.([]any); ok {
+		return arr
+	}
 
-	jsonBytes, err := json.Marshal(value)
+	data, err := json.Marshal(value)
 	if err != nil {
 		return nil
 	}
 
-	result := gjson.ParseBytes(jsonBytes)
-	if !result.IsArray() {
+	var arr []any
+	if err := json.Unmarshal(data, &arr); err != nil {
 		return nil
-	}
-
-	arr := make([]any, 0, len(result.Array()))
-	for _, item := range result.Array() {
-		arr = append(arr, item.Value())
 	}
 	return arr
 }

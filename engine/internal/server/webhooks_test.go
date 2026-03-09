@@ -29,12 +29,12 @@ func TestHookInvalidWorkItem(t *testing.T) {
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("invalid-work-flow", plan)
+		err = env.Engine.StartFlow("invalid-work-flow", pl)
 		assert.NoError(t, err)
 
 		result := api.StepResult{Success: true}
@@ -81,12 +81,12 @@ func TestHookExecutionMissing(t *testing.T) {
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
 
-		err = env.Engine.StartFlow("missing-exec-flow", plan)
+		err = env.Engine.StartFlow("missing-exec-flow", pl)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("POST",
@@ -124,7 +124,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
@@ -132,7 +132,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "double-complete-flow", StepID: step.ID},
 			func() {
-				err = env.Engine.StartFlow("double-complete-flow", plan)
+				err = env.Engine.StartFlow("double-complete-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -212,7 +212,7 @@ func TestHookFailTwice(t *testing.T) {
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
@@ -220,7 +220,7 @@ func TestHookFailTwice(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "double-fail-flow", StepID: step.ID},
 			func() {
-				err = env.Engine.StartFlow("double-fail-flow", plan)
+				err = env.Engine.StartFlow("double-fail-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -297,7 +297,7 @@ func TestHookSuccess(t *testing.T) {
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
@@ -305,7 +305,7 @@ func TestHookSuccess(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "webhook-success-flow", StepID: step.ID},
 			func() {
-				err = env.Engine.StartFlow("webhook-success-flow", plan)
+				err = env.Engine.StartFlow("webhook-success-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -357,7 +357,7 @@ func TestHookWorkFailure(t *testing.T) {
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
@@ -365,7 +365,7 @@ func TestHookWorkFailure(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "webhook-fail-flow", StepID: step.ID},
 			func() {
-				err = env.Engine.StartFlow("webhook-fail-flow", plan)
+				err = env.Engine.StartFlow("webhook-fail-flow", pl)
 				assert.NoError(t, err)
 			},
 		)
@@ -417,7 +417,7 @@ func TestHookInvalidJSON(t *testing.T) {
 
 		env.MockClient.SetResponse(step.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
@@ -425,7 +425,7 @@ func TestHookInvalidJSON(t *testing.T) {
 		env.WaitForStepStarted(
 			api.FlowStep{FlowID: "webhook-badjson-flow", StepID: step.ID},
 			func() {
-				err = env.Engine.StartFlow("webhook-badjson-flow", plan)
+				err = env.Engine.StartFlow("webhook-badjson-flow", pl)
 				assert.NoError(t, err)
 			},
 		)

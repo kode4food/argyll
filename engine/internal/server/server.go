@@ -98,6 +98,7 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		eng.GET("/flow", s.listFlows)
 		eng.POST("/flow", s.startFlow)
 		eng.POST("/flow/query", s.queryFlows)
+		eng.GET("/flow/:flowID/status", s.getFlowStatus)
 		eng.GET("/flow/:flowID", s.getFlow)
 
 		// WebSocket
@@ -150,7 +151,7 @@ func (s *Server) unregisterWebSocket(c *Client) {
 	s.sockets.Remove(c)
 }
 
-// CloseWebSockets closes all active WebSocket connections.
+// CloseWebSockets closes all active WebSocket connections
 func (s *Server) CloseWebSockets() {
 	s.mu.Lock()
 	conns := make([]*Client, 0, len(s.sockets))

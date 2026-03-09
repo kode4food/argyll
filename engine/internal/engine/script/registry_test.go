@@ -235,10 +235,10 @@ func TestJPathPredicateMatches(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
 		)
-		step.Attributes["flag"] = &api.AttributeSpec{
+		st.Attributes["flag"] = &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Type: api.TypeAny,
 		}
@@ -246,10 +246,10 @@ func TestJPathPredicateMatches(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangJPath)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
-		passed, err := env.EvaluatePredicate(comp, step, api.Args{
+		passed, err := env.EvaluatePredicate(comp, st, api.Args{
 			"flag": nil,
 		})
 		assert.NoError(t, err)
@@ -261,17 +261,17 @@ func TestJPathPredicateNoMatch(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"jpath-pred-step", api.ScriptLangJPath, "$.flag",
 		)
 
 		env, err := registry.Get(api.ScriptLangJPath)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
-		passed, err := env.EvaluatePredicate(comp, step, api.Args{})
+		passed, err := env.EvaluatePredicate(comp, st, api.Args{})
 		assert.NoError(t, err)
 		assert.False(t, passed)
 	})
@@ -281,14 +281,14 @@ func TestJPathInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"jpath-invalid", api.ScriptLangJPath, "$..[",
 		)
 
 		env, err := registry.Get(api.ScriptLangJPath)
 		assert.NoError(t, err)
 
-		_, err = env.Compile(step, step.Predicate)
+		_, err = env.Compile(st, st.Predicate)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, script.ErrJPathCompile)
 	})
@@ -301,11 +301,11 @@ func TestJPathExecuteScript(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangJPath)
 		assert.NoError(t, err)
 
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"jpath-exec", api.ScriptLangJPath, "$.foo",
 		)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
 		outputs, err := env.ExecuteScript(comp, nil, api.Args{
@@ -453,14 +453,14 @@ func TestAleInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := helpers.NewScriptStep(
+		st := helpers.NewScriptStep(
 			"invalid-ale", api.ScriptLangAle, "{:result (+ 1 2",
 		)
 
 		env, err := registry.Get(api.ScriptLangAle)
 		assert.NoError(t, err)
 
-		_, err = env.Compile(step, step.Script)
+		_, err = env.Compile(st, st.Script)
 		assert.Error(t, err)
 	})
 }
@@ -469,14 +469,14 @@ func TestLuaInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := helpers.NewScriptStep(
+		st := helpers.NewScriptStep(
 			"invalid-lua", api.ScriptLangLua, "return {result = ",
 		)
 
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
-		_, err = env.Compile(step, step.Script)
+		_, err = env.Compile(st, st.Script)
 		assert.Error(t, err)
 	})
 }

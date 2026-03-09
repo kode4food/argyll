@@ -160,6 +160,7 @@ interface FlowState {
   addFlow: (flow: FlowSummary) => void;
   removeFlow: (flowId: string) => void;
   selectFlow: (flowId: string | null) => void;
+  setFlowNotFound: (flowId: string) => void;
   updateFlowData: (update: Partial<FlowContext>) => void;
   updateStepHealth: (stepId: string, health: string, error?: string) => void;
   initializeExecutions: (flowId: string, plan: ExecutionPlan) => void;
@@ -297,6 +298,20 @@ export const useFlowStore = create<FlowState>()(
           executions: [],
           resolvedAttributes: [],
           loading: !!flowId,
+        });
+      },
+
+      setFlowNotFound: (flowId: string) => {
+        if (get().selectedFlow !== flowId) {
+          return;
+        }
+
+        set({
+          flowData: null,
+          executions: [],
+          resolvedAttributes: [],
+          loading: false,
+          flowNotFound: true,
         });
       },
 

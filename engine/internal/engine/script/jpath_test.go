@@ -55,7 +55,7 @@ func TestJPathEvaluatePredicate(t *testing.T) {
 	assert.False(t, passed)
 }
 
-func TestJPathEvaluatePredicateTopLevelFilter(t *testing.T) {
+func TestJPathPredicateTopLevel(t *testing.T) {
 	env := script.NewJPathEnv()
 
 	compiled, err := env.Compile(nil, &api.ScriptConfig{

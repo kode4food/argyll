@@ -45,7 +45,7 @@ func TestForEachWorkItems(t *testing.T) {
 			"result": "processed",
 		})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-b"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -63,31 +63,31 @@ func TestForEachWorkItems(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-foreach")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-foreach")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Verify flow completed successfully
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify both steps completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
 
 		// Verify step B was invoked 3 times (once per array element)
 		invocations := env.MockClient.GetInvocations()
 		stepBInvocations := 0
-		for _, id := range invocations {
-			if id == "step-b" {
+		for _, inv := range invocations {
+			if inv == "step-b" {
 				stepBInvocations++
 			}
 		}
 		assert.Equal(t, 3, stepBInvocations)
 
 		// Verify aggregated output contains results
-		result := flow.Attributes["result"].Value
+		result := fl.Attributes["result"].Value
 		assert.NotNil(t, result)
 	})
 }

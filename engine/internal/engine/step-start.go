@@ -1,17 +1,25 @@
 package engine
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
+
+type stepEval struct {
+	e      *Engine
+	flow   *api.FlowState
+	stepID api.StepID
+	step   *api.Step
+	now    time.Time
+}
 
 // prepareStep validates and prepares a step to execute within a transaction,
 // raising the StepStarted event via aggregator and scheduling work execution
@@ -166,7 +174,7 @@ func (tx *flowTx) collectStepInputs(
 		}
 
 		if attr.IsConst() {
-			inputs[name] = gjson.Parse(attr.Default).Value()
+			inputs[name] = parseDefaultValue(attr.Default)
 			continue
 		}
 
@@ -177,7 +185,7 @@ func (tx *flowTx) collectStepInputs(
 			}
 			if fallback {
 				if attr.Default != "" {
-					value := gjson.Parse(attr.Default).Value()
+					value := parseDefaultValue(attr.Default)
 					val := tx.mapper.MapInput(step, name, attr, value)
 					paramName := tx.mapper.InputParamName(name, attr)
 					inputs[paramName] = val
@@ -189,7 +197,7 @@ func (tx *flowTx) collectStepInputs(
 		attrVal, ok := flow.Attributes[name]
 		if !ok {
 			if !attr.IsRequired() && attr.Default != "" {
-				value := gjson.Parse(attr.Default).Value()
+				value := parseDefaultValue(attr.Default)
 				val := tx.mapper.MapInput(step, name, attr, value)
 				paramName := tx.mapper.InputParamName(name, attr)
 				inputs[paramName] = val
@@ -204,14 +212,6 @@ func (tx *flowTx) collectStepInputs(
 	}
 
 	return inputs
-}
-
-type stepEval struct {
-	e      *Engine
-	flow   *api.FlowState
-	stepID api.StepID
-	step   *api.Step
-	now    time.Time
 }
 
 func (s *stepEval) canStart() (bool, time.Time) {
@@ -338,4 +338,12 @@ func (s *stepEval) requiredReadyAt() time.Time {
 		}
 	}
 	return anchor
+}
+
+func parseDefaultValue(value string) any {
+	var result any
+	if err := json.Unmarshal([]byte(value), &result); err != nil {
+		return nil
+	}
+	return result
 }

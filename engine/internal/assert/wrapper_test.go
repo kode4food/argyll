@@ -230,12 +230,12 @@ func TestFlowStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			flow := &api.FlowState{
+			fl := &api.FlowState{
 				Status: tt.flowStatus,
 			}
 
 			w := assert.New(t)
-			w.FlowStatus(flow, tt.expectedStatus)
+			w.FlowStatus(fl, tt.expectedStatus)
 		})
 	}
 }

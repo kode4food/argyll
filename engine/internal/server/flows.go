@@ -8,7 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -23,6 +23,7 @@ const errLimitTooHigh = "Limit must be between 0 and %d"
 var (
 	ErrQueryFlows          = errors.New("failed to query flows")
 	ErrGetFlow             = errors.New("failed to get flow")
+	ErrGetFlowStatus       = errors.New("failed to get flow status")
 	ErrCreateExecutionPlan = errors.New("failed to create execution plan")
 	ErrStartFlow           = errors.New("failed to start flow")
 )
@@ -153,12 +154,12 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	var apps []flowopt.Applier
+	var apps []flow.Applier
 	if req.Init != nil {
-		apps = append(apps, flowopt.WithInit(req.Init))
+		apps = append(apps, flow.WithInit(req.Init))
 	}
 	if len(req.Labels) > 0 {
-		apps = append(apps, flowopt.WithLabels(req.Labels))
+		apps = append(apps, flow.WithLabels(req.Labels))
 	}
 	err := s.engine.StartFlow(req.ID, pl, apps...)
 	if err == nil {
@@ -189,9 +190,9 @@ func (s *Server) startFlow(c *gin.Context) {
 }
 
 func (s *Server) getFlow(c *gin.Context) {
-	flowID := api.FlowID(c.Param("flowID"))
+	id := api.FlowID(c.Param("flowID"))
 
-	fl, err := s.engine.GetFlowState(flowID)
+	fl, err := s.engine.GetFlowState(id)
 	if err == nil {
 		c.JSON(http.StatusOK, fl)
 		return
@@ -199,13 +200,38 @@ func (s *Server) getFlow(c *gin.Context) {
 
 	if errors.Is(err, engine.ErrFlowNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", err.Error(), flowID),
+			Error:  fmt.Sprintf("%s: %s", err.Error(), id),
 			Status: http.StatusNotFound,
 		})
 		return
 	}
 	c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 		Error:  fmt.Sprintf("%s: %v", ErrGetFlow, err),
+		Status: http.StatusInternalServerError,
+	})
+}
+
+func (s *Server) getFlowStatus(c *gin.Context) {
+	id := api.FlowID(c.Param("flowID"))
+
+	status, err := s.engine.GetFlowStatus(id)
+	if err == nil {
+		c.JSON(http.StatusOK, api.FlowStatusResponse{
+			ID:     id,
+			Status: status,
+		})
+		return
+	}
+
+	if errors.Is(err, engine.ErrFlowNotFound) {
+		c.JSON(http.StatusNotFound, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %s", err.Error(), id),
+			Status: http.StatusNotFound,
+		})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+		Error:  fmt.Sprintf("%s: %v", ErrGetFlowStatus, err),
 		Status: http.StatusInternalServerError,
 	})
 }

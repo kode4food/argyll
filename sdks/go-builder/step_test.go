@@ -125,14 +125,14 @@ func TestOptionalArg(t *testing.T) {
 func TestConstArg(t *testing.T) {
 	step, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		Const("const1", api.TypeString, "\"fixed\"").
+		Const("const1", api.TypeString, `"fixed"`).
 		Build()
 
 	assert.NoError(t, err)
 	assert.Len(t, step.Attributes, 1)
 	assert.Contains(t, step.Attributes, api.Name("const1"))
 	assert.EqualValues(t, api.RoleConst, step.Attributes["const1"].Role)
-	assert.EqualValues(t, "\"fixed\"", step.Attributes["const1"].Default)
+	assert.EqualValues(t, `"fixed"`, step.Attributes["const1"].Default)
 }
 
 func TestOutputArg(t *testing.T) {

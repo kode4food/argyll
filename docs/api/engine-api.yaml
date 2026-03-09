@@ -560,6 +560,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 
+  /engine/flow/{flowId}/status:
+    get:
+      summary: Get Flow Status
+      description: |
+        Retrieve the minimal status payload for a specific flow.
+
+        This endpoint is intended for lightweight polling when callers only need
+        to know whether a flow is `active`, `completed`, or `failed`.
+
+        The engine resolves this directly from the flow status index without
+        loading the full flow state.
+      operationId: getFlowStatus
+      tags:
+        - Flows
+      parameters:
+        - name: flowId
+          in: path
+          required: true
+          description: Unique identifier of the flow
+          schema:
+            type: string
+          example: "wf-text-processing-001"
+      responses:
+        "200":
+          description: Minimal flow status payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FlowStatusResponse"
+        "404":
+          description: Flow not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "500":
+          description: Failed to load flow status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
   /webhook/{flowId}/{stepId}/{token}:
     post:
       summary: Webhook Callback for Async Steps
@@ -1353,6 +1395,22 @@ components:
           enum: [recent_desc, recent_asc]
           description: Sort order by recency within status grouping (defaults to `recent_asc` when omitted)
           example: "recent_desc"
+
+    FlowStatusResponse:
+      type: object
+      required:
+        - id
+        - status
+      properties:
+        id:
+          type: string
+          description: Flow identifier
+          example: "wf-text-processing-001"
+        status:
+          type: string
+          enum: [active, completed, failed]
+          description: Current flow status
+          example: "completed"
 
     FlowState:
       type: object

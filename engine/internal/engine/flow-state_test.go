@@ -10,22 +10,23 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestNoDeps(t *testing.T) {
 	e := &engine.Engine{}
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{},
 		},
 	}
 
-	assert.False(t, e.HasInputProvider("missing", flow))
+	assert.False(t, e.HasInputProvider("missing", fl))
 }
 
 func TestNoProviders(t *testing.T) {
 	e := &engine.Engine{}
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{
 				"input": {Providers: []api.StepID{}},
@@ -33,12 +34,12 @@ func TestNoProviders(t *testing.T) {
 		},
 	}
 
-	assert.True(t, e.HasInputProvider("input", flow))
+	assert.True(t, e.HasInputProvider("input", fl))
 }
 
 func TestCompletableProvider(t *testing.T) {
 	e := &engine.Engine{}
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{
 				"input": {Providers: []api.StepID{"provider"}},
@@ -59,12 +60,12 @@ func TestCompletableProvider(t *testing.T) {
 		},
 	}
 
-	assert.True(t, e.HasInputProvider("input", flow))
+	assert.True(t, e.HasInputProvider("input", fl))
 }
 
 func TestFailedProvider(t *testing.T) {
 	e := &engine.Engine{}
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{
 				"input": {Providers: []api.StepID{"provider"}},
@@ -85,13 +86,13 @@ func TestFailedProvider(t *testing.T) {
 		},
 	}
 
-	assert.False(t, e.HasInputProvider("input", flow))
+	assert.False(t, e.HasInputProvider("input", fl))
 }
 
 func TestGoalBlocked(t *testing.T) {
 	e := &engine.Engine{}
 
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Goals: []api.StepID{"goal"},
 			Steps: api.Steps{
@@ -129,13 +130,13 @@ func TestGoalBlocked(t *testing.T) {
 		},
 	}
 
-	assert.True(t, e.IsFlowFailed(flow))
+	assert.True(t, e.IsFlowFailed(fl))
 }
 
 func TestGoalCompleted(t *testing.T) {
 	e := &engine.Engine{}
 
-	flow := &api.FlowState{
+	fl := &api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Goals: []api.StepID{"goal"},
 			Steps: api.Steps{
@@ -151,7 +152,7 @@ func TestGoalCompleted(t *testing.T) {
 		},
 	}
 
-	assert.False(t, e.IsFlowFailed(flow))
+	assert.False(t, e.IsFlowFailed(fl))
 }
 
 func TestIsFlowFailed(t *testing.T) {
@@ -167,14 +168,14 @@ func TestIsFlowFailed(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-b"},
 			Steps: api.Steps{
 				stepA.ID: stepA,
 				stepB.ID: stepB,
 			},
 		}
-		plan.Attributes = api.AttributeGraph{}.AddStep(stepA).AddStep(stepB)
+		pl.Attributes = api.AttributeGraph{}.AddStep(stepA).AddStep(stepB)
 
 		err := env.Engine.RegisterStep(stepA)
 		assert.NoError(t, err)
@@ -186,7 +187,7 @@ func TestIsFlowFailed(t *testing.T) {
 			FlowID: "wf-failed-test",
 			StepID: stepA.ID,
 		}), func() {
-			err = env.Engine.StartFlow("wf-failed-test", plan)
+			err = env.Engine.StartFlow("wf-failed-test", pl)
 			assert.NoError(t, err)
 		})
 
@@ -198,17 +199,17 @@ func TestIsFlowFailed(t *testing.T) {
 
 func TestIsFlowNotFailed(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("step-ok")
+		st := helpers.NewSimpleStep("step-ok")
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-ok"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-ok-test", plan)
+		err = eng.StartFlow("wf-ok-test", pl)
 		assert.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-ok-test")
@@ -227,7 +228,7 @@ func TestHasInputProvider(t *testing.T) {
 			Type: api.TypeString,
 		}
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-b"},
 			Steps: api.Steps{
 				stepA.ID: stepA,
@@ -246,7 +247,7 @@ func TestHasInputProvider(t *testing.T) {
 		err = eng.RegisterStep(stepB)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-provider-test", plan)
+		err = eng.StartFlow("wf-provider-test", pl)
 		assert.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-provider-test")
@@ -257,22 +258,22 @@ func TestHasInputProvider(t *testing.T) {
 
 func TestHasInputProviderNone(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("step-alone")
-		step.Attributes["missing"] = &api.AttributeSpec{
+		st := helpers.NewSimpleStep("step-alone")
+		st.Attributes["missing"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Type: api.TypeString,
 		}
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals:      []api.StepID{"step-alone"},
-			Steps:      api.Steps{step.ID: step},
+			Steps:      api.Steps{st.ID: st},
 			Attributes: api.AttributeGraph{},
 		}
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-no-provider-test", plan)
+		err = eng.StartFlow("wf-no-provider-test", pl)
 		assert.NoError(t, err)
 
 		flow, err := eng.GetFlowState("wf-no-provider-test")
@@ -290,17 +291,17 @@ func TestGetStateNotFound(t *testing.T) {
 
 func TestGetFlowState(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewSimpleStep("state-step")
+		st := helpers.NewSimpleStep("state-step")
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"state-step"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("wf-state", plan)
+		err = eng.StartFlow("wf-state", pl)
 		assert.NoError(t, err)
 
 		state, err := eng.GetFlowState("wf-state")
@@ -309,14 +310,120 @@ func TestGetFlowState(t *testing.T) {
 		assert.NotNil(t, state.Status)
 	})
 }
+
+func TestGetStatusActive(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		pl := &api.ExecutionPlan{
+			Steps:      api.Steps{},
+			Attributes: api.AttributeGraph{},
+		}
+
+		err := env.RaiseFlowEvents("wf-active", helpers.FlowEvent{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID: "wf-active",
+				Plan:   pl,
+			},
+		})
+		assert.NoError(t, err)
+
+		status, err := env.Engine.GetFlowStatus("wf-active")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowActive, status)
+	})
+}
+
+func TestGetStatusCompleted(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		pl := &api.ExecutionPlan{
+			Steps:      api.Steps{},
+			Attributes: api.AttributeGraph{},
+		}
+
+		err := env.RaiseFlowEvents(
+			"wf-completed",
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: "wf-completed",
+					Plan:   pl,
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowDeactivated,
+				Data: api.FlowDeactivatedEvent{
+					FlowID: "wf-completed",
+					Status: api.FlowCompleted,
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		status, err := env.Engine.GetFlowStatus("wf-completed")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowCompleted, status)
+	})
+}
+
+func TestGetStatusFailed(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		pl := &api.ExecutionPlan{
+			Steps:      api.Steps{},
+			Attributes: api.AttributeGraph{},
+		}
+
+		err := env.RaiseFlowEvents(
+			"wf-failed",
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: "wf-failed",
+					Plan:   pl,
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowDeactivated,
+				Data: api.FlowDeactivatedEvent{
+					FlowID: "wf-failed",
+					Status: api.FlowFailed,
+				},
+			},
+		)
+		assert.NoError(t, err)
+
+		status, err := env.Engine.GetFlowStatus("wf-failed")
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowFailed, status)
+	})
+}
+
+func TestGetStatusNotFound(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		_, err := eng.GetFlowStatus("nonexistent")
+		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+	})
+}
+
+func TestGetStatusInvalid(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		const statusHashKey = "test-flow:idx:status"
+
+		id := events.FlowKey("wf-invalid").Join(":")
+		env.Redis.HSet(statusHashKey, id, "bogus")
+
+		_, err := env.Engine.GetFlowStatus("wf-invalid")
+		assert.ErrorIs(t, err, engine.ErrInvalidFlowStatus)
+	})
+}
+
 func TestGetAttributes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		// Create a step that produces multiple output attributes
-		step := helpers.NewStepWithOutputs("step-attrs", "key1", "key2")
+		st := helpers.NewStepWithOutputs("step-attrs", "key1", "key2")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		// Configure mock to return multiple output values
@@ -325,17 +432,17 @@ func TestGetAttributes(t *testing.T) {
 			"key2": float64(42),
 		})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-attrs"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flow := env.WaitForFlowStatus("wf-getattrs", func() {
-			err = env.Engine.StartFlow("wf-getattrs", plan)
+		fl := env.WaitForFlowStatus("wf-getattrs", func() {
+			err = env.Engine.StartFlow("wf-getattrs", pl)
 			assert.NoError(t, err)
 		})
 
-		attrs := flow.GetAttributes()
+		attrs := fl.GetAttributes()
 		assert.Len(t, attrs, 2)
 		assert.Equal(t, "value1", attrs["key1"])
 		assert.Equal(t, float64(42), attrs["key2"])
@@ -346,29 +453,29 @@ func TestGetAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewSimpleStep("attr-step")
-		step.Attributes = api.AttributeSpecs{
+		st := helpers.NewSimpleStep("attr-step")
+		st.Attributes = api.AttributeSpecs{
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		}
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 			Attributes: api.AttributeGraph{
 				"result": {
-					Providers: []api.StepID{step.ID},
+					Providers: []api.StepID{st.ID},
 					Consumers: []api.StepID{},
 				},
 			},
 		}
 
-		flow := env.WaitForFlowStatus("wf-attr", func() {
-			err := env.Engine.StartFlow("wf-attr", plan)
+		fl := env.WaitForFlowStatus("wf-attr", func() {
+			err := env.Engine.StartFlow("wf-attr", pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		value, ok, err := env.Engine.GetAttribute("wf-attr", "result")
 		assert.NoError(t, err)

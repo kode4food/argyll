@@ -70,38 +70,38 @@ func TestBasicFlowRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewSimpleStep("recovery-step")
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewSimpleStep("recovery-step")
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
 			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		// Make step fail initially (will retry)
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-recovery")
+		id := api.FlowID("test-recovery")
 		env.WaitAfterAll(2, func(waits []*wait.Wait) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
-			waits[0].ForEvent(wait.FlowActivated(flowID))
+			waits[0].ForEvent(wait.FlowActivated(id))
 			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 
 		// Verify flow is active with pending work
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowActive, flow.Status)
 
@@ -110,25 +110,25 @@ func TestBasicFlowRecovery(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Change mock to succeed
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.ClearError(st.ID)
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		// Create new engine instance (simulates process restart)
 		env.Engine, err = env.NewEngineInstance()
 		assert.NoError(t, err)
 
 		// Re-register step on new engine instance
-		err = env.Engine.RegisterStep(step)
+		err = env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		// Verify flow recovers and completes
 		recovered := waitForFlowStatusWithTimeoutAfter(
-			env, flowID, recoveryTimeout, func() {
+			env, id, recoveryTimeout, func() {
 				assert.NoError(t, env.Engine.Start())
 			},
 		)
 		assert.Equal(t, api.FlowCompleted, recovered.Status)
-		assert.Equal(t, api.StepCompleted, recovered.Executions[step.ID].Status)
+		assert.Equal(t, api.StepCompleted, recovered.Executions[st.ID].Status)
 	})
 }
 
@@ -451,60 +451,60 @@ func TestRecoveryPreservesState(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewSimpleStep("retry-step")
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewSimpleStep("retry-step")
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  20,
 			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// Step fails initially
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("state-preservation-flow")
+		id := api.FlowID("state-preservation-flow")
 		env.WaitAfterAll(2, func(waits []*wait.Wait) {
-			err := env.Engine.StartFlow(flowID, plan)
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
-			waits[0].ForEvent(wait.FlowActivated(flowID))
+			waits[0].ForEvent(wait.FlowActivated(id))
 			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 
 		// Get state before restart
-		beforeRestart, err := env.Engine.GetFlowState(flowID)
+		beforeRestart, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowActive, beforeRestart.Status)
 
 		// Verify step is active (has been attempted)
-		exec := beforeRestart.Executions[step.ID]
+		exec := beforeRestart.Executions[st.ID]
 		assert.Equal(t, api.StepActive, exec.Status)
 		assert.NotEmpty(t, exec.WorkItems)
 
 		err = env.Engine.Stop()
 		assert.NoError(t, err)
 
-		env.MockClient.ClearError(step.ID)
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.ClearError(st.ID)
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		env.Engine, err = env.NewEngineInstance()
 		assert.NoError(t, err)
 
 		// Re-register step on new engine instance
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// Wait for completion
 		afterRestart := waitForFlowStatusWithTimeoutAfter(
-			env, flowID, recoveryTimeout, func() {
+			env, id, recoveryTimeout, func() {
 				assert.NoError(t, env.Engine.Start())
 			},
 		)
@@ -514,7 +514,7 @@ func TestRecoveryPreservesState(t *testing.T) {
 
 		// Verify step completed after recovery
 		assert.Equal(t,
-			api.StepCompleted, afterRestart.Executions[step.ID].Status,
+			api.StepCompleted, afterRestart.Executions[st.ID].Status,
 		)
 	})
 }

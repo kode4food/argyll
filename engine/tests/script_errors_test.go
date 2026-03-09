@@ -49,7 +49,7 @@ func TestScriptStepErrorAle(t *testing.T) {
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -72,24 +72,24 @@ func TestScriptStepErrorAle(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-script-error-ale")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-script-error-ale")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Verify flow failed
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		// Verify step A completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
 
 		// Verify step B failed
-		assert.Equal(t, api.StepFailed, flow.Executions["step-b"].Status)
-		assert.NotEmpty(t, flow.Executions["step-b"].Error)
+		assert.Equal(t, api.StepFailed, fl.Executions["step-b"].Status)
+		assert.NotEmpty(t, fl.Executions["step-b"].Error)
 
 		// Verify step C failed (dependency not satisfied)
-		assert.Equal(t, api.StepFailed, flow.Executions["step-c"].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions["step-c"].Status)
 
 		// Verify only step A was invoked (B is script, C never starts)
 		invocations := env.MockClient.GetInvocations()
@@ -138,7 +138,7 @@ func TestScriptStepErrorLua(t *testing.T) {
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -161,24 +161,24 @@ func TestScriptStepErrorLua(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-script-error-lua")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-script-error-lua")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Verify flow failed
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		// Verify step A completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
 
 		// Verify step B failed
-		assert.Equal(t, api.StepFailed, flow.Executions["step-b"].Status)
-		assert.Contains(t, flow.Executions["step-b"].Error, "error message")
+		assert.Equal(t, api.StepFailed, fl.Executions["step-b"].Status)
+		assert.Contains(t, fl.Executions["step-b"].Error, "error message")
 
 		// Verify step C failed (dependency not satisfied)
-		assert.Equal(t, api.StepFailed, flow.Executions["step-c"].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions["step-c"].Status)
 
 		// Verify only step A was invoked (B is script, C never starts)
 		invocations := env.MockClient.GetInvocations()

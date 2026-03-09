@@ -208,7 +208,7 @@ func TestStepTimeoutOverride(t *testing.T) {
 	assert.Equal(t, "ok", outputs["result"])
 }
 
-func TestStepTimeoutCanBeShorterThanGlobal(t *testing.T) {
+func TestStepTimeoutShorter(t *testing.T) {
 	serverDone := make(chan struct{})
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {

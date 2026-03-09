@@ -1,7 +1,6 @@
 package wait
 
 import (
-	"encoding/json"
 	"testing"
 	"time"
 
@@ -214,7 +213,7 @@ func FlowIDs(ids ...api.FlowID) EventFilter {
 	for _, flowID := range ids {
 		expected.Add(flowID)
 	}
-	return Unmarshal(func(data flowEvent) bool {
+	return PredicateFilter(func(data flowEvent) bool {
 		if expected.Contains(data.FlowID) {
 			expected.Remove(data.FlowID)
 			return true
@@ -234,7 +233,7 @@ func FlowSteps(steps ...api.FlowStep) EventFilter {
 	for _, step := range steps {
 		expected.Add(step)
 	}
-	return Unmarshal(func(data stepEvent) bool {
+	return PredicateFilter(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		if expected.Contains(key) {
 			expected.Remove(key)
@@ -250,7 +249,7 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 	for _, step := range steps {
 		expected.Add(step)
 	}
-	return Unmarshal(func(data stepEvent) bool {
+	return PredicateFilter(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		return expected.Contains(key)
 	})
@@ -260,17 +259,17 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 func StepHealthChanged(stepID api.StepID, status api.HealthStatus) EventFilter {
 	return And(
 		Type(api.EventTypeStepHealthChanged),
-		Unmarshal(func(data api.StepHealthChangedEvent) bool {
+		PredicateFilter(func(data api.StepHealthChangedEvent) bool {
 			return data.StepID == stepID && data.Status == status
 		}),
 	)
 }
 
-// Unmarshal creates a filter that unmarshals event data and applies pred
-func Unmarshal[T any](pred Predicate[T]) EventFilter {
+// PredicateFilter creates a filter that unmarshals event data and applies pred
+func PredicateFilter[T any](pred Predicate[T]) EventFilter {
 	return func(ev *timebox.Event) bool {
-		var data T
-		if json.Unmarshal(ev.Data, &data) != nil {
+		data, err := timebox.GetEventValue[T](ev)
+		if err != nil {
 			return false
 		}
 		return pred(data)

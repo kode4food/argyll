@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -25,14 +25,14 @@ func TestMemoizationHit(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(s))
 		env.MockClient.SetResponse("memo", api.Args{"out": "v1"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"memo"},
 			Steps: api.Steps{"memo": s},
 		}
 
 		id1 := api.FlowID("f1")
 		f1 := env.WaitForFlowStatus(id1, func() {
-			err := env.Engine.StartFlow(id1, plan)
+			err := env.Engine.StartFlow(id1, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, f1.Status)
@@ -41,7 +41,7 @@ func TestMemoizationHit(t *testing.T) {
 
 		id2 := api.FlowID("f2")
 		f2 := env.WaitForFlowStatus(id2, func() {
-			err := env.Engine.StartFlow(id2, plan)
+			err := env.Engine.StartFlow(id2, pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, f2.Status)
@@ -66,7 +66,7 @@ func TestMemoizationMiss(t *testing.T) {
 
 		assert.NoError(t, env.Engine.RegisterStep(s))
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"memo"},
 			Steps: api.Steps{"memo": s},
 		}
@@ -74,8 +74,8 @@ func TestMemoizationMiss(t *testing.T) {
 		env.MockClient.SetResponse("memo", api.Args{"out": "a"})
 		id1 := api.FlowID("f1")
 		f1 := env.WaitForFlowStatus(id1, func() {
-			err := env.Engine.StartFlow(id1, plan,
-				flowopt.WithInit(api.Args{"in": "a"}),
+			err := env.Engine.StartFlow(id1, pl,
+				flow.WithInit(api.Args{"in": "a"}),
 			)
 			assert.NoError(t, err)
 		})
@@ -85,8 +85,8 @@ func TestMemoizationMiss(t *testing.T) {
 		env.MockClient.SetResponse("memo", api.Args{"out": "b"})
 		id2 := api.FlowID("f2")
 		f2 := env.WaitForFlowStatus(id2, func() {
-			err := env.Engine.StartFlow(id2, plan,
-				flowopt.WithInit(api.Args{"in": "b"}),
+			err := env.Engine.StartFlow(id2, pl,
+				flow.WithInit(api.Args{"in": "b"}),
 			)
 			assert.NoError(t, err)
 		})

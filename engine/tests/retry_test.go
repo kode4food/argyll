@@ -16,32 +16,32 @@ func TestRetryExhaustion(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		// Create a step that will always fail
-		step := helpers.NewStepWithOutputs("failing-step", "result")
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewStepWithOutputs("failing-step", "result")
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
 			InitBackoff: 10,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// Make the step always fail with a retryable error
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-retry-exhaustion")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-retry-exhaustion")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		// Verify step failed after exhausting retries
-		assert.Equal(t, api.StepFailed, flow.Executions[step.ID].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[st.ID].Status)
 
 		// Verify the step was invoked initial + MaxRetries times (1 + 3 = 4)
 		invocations := env.MockClient.GetInvocations()

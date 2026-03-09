@@ -54,7 +54,7 @@ curl -X POST http://localhost:8080/engine/flow \
   }'
 
 # Check status
-curl http://localhost:8080/engine/flow/wf-001
+curl http://localhost:8080/engine/flow/wf-001/status
 ```
 
 ### Step Interface

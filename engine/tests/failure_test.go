@@ -66,8 +66,8 @@ func TestPartialFlowFailure(t *testing.T) {
 		env.MockClient.SetResponse("step-c", api.Args{"outputC": "C-result"})
 		env.MockClient.SetResponse("step-d", api.Args{"result": "done"})
 
-		// Create execution plan
-		plan := &api.ExecutionPlan{
+		// Create execution pl
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-d"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -95,22 +95,22 @@ func TestPartialFlowFailure(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-partial-failure")
+		id := api.FlowID("test-partial-failure")
 		env.WaitAfterAll(3, func(waits []*wait.Wait) {
-			err := env.Engine.StartFlow(flowID, plan)
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: flowID,
+				FlowID: id,
 				StepID: "step-c",
 			}))
 			waits[1].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: flowID,
+				FlowID: id,
 				StepID: "step-b",
 			}))
-			waits[2].ForEvent(wait.FlowTerminal(flowID))
+			waits[2].ForEvent(wait.FlowTerminal(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 
@@ -160,7 +160,7 @@ func TestUnreachableStep(t *testing.T) {
 
 		env.MockClient.SetError(stepA.ID, errors.New("boom"))
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{stepB.ID},
 			Steps: api.Steps{
 				stepA.ID: stepA,
@@ -178,17 +178,17 @@ func TestUnreachableStep(t *testing.T) {
 			},
 		}
 
-		flow := env.WaitForFlowStatus("wf-unreachable", func() {
-			err := env.Engine.StartFlow("wf-unreachable", plan)
+		fl := env.WaitForFlowStatus("wf-unreachable", func() {
+			err := env.Engine.StartFlow("wf-unreachable", pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 
-		assert.Equal(t, api.StepFailed, flow.Executions[stepA.ID].Status)
-		assert.Equal(t, api.StepFailed, flow.Executions[stepB.ID].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[stepA.ID].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[stepB.ID].Status)
 		assert.Equal(t,
 			"required input no longer available",
-			flow.Executions[stepB.ID].Error,
+			fl.Executions[stepB.ID].Error,
 		)
 		assert.NotContains(t, env.MockClient.GetInvocations(), stepB.ID)
 	})
@@ -235,7 +235,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(stockReservation))
 		assert.NoError(t, env.Engine.RegisterStep(notificationSender))
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{notificationSender.ID},
 			Steps: api.Steps{
 				orderCreator.ID:       orderCreator,
@@ -266,14 +266,14 @@ func TestSkippedProviderCascade(t *testing.T) {
 			},
 		}
 
-		flow := env.WaitForFlowStatus("wf-skipped-provider", func() {
-			err := env.Engine.StartFlow("wf-skipped-provider", plan)
+		fl := env.WaitForFlowStatus("wf-skipped-provider", func() {
+			err := env.Engine.StartFlow("wf-skipped-provider", pl)
 			assert.NoError(t, err)
 		})
 
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 		assert.Equal(t,
-			api.StepSkipped, flow.Executions[orderCreator.ID].Status,
+			api.StepSkipped, fl.Executions[orderCreator.ID].Status,
 		)
 
 		for _, stepID := range []api.StepID{
@@ -281,10 +281,10 @@ func TestSkippedProviderCascade(t *testing.T) {
 			stockReservation.ID,
 			notificationSender.ID,
 		} {
-			assert.Equal(t, api.StepFailed, flow.Executions[stepID].Status)
+			assert.Equal(t, api.StepFailed, fl.Executions[stepID].Status)
 			assert.Equal(t,
 				"required input no longer available",
-				flow.Executions[stepID].Error,
+				fl.Executions[stepID].Error,
 			)
 		}
 

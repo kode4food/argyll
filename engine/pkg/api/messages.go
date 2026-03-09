@@ -72,6 +72,12 @@ type (
 		Error     string     `json:"error,omitempty"`
 	}
 
+	// FlowStatusResponse provides the minimal flow status payload
+	FlowStatusResponse struct {
+		ID     FlowID     `json:"id"`
+		Status FlowStatus `json:"status"`
+	}
+
 	// StepRegisteredResponse is returned when a step registration succeeds
 	StepRegisteredResponse struct {
 		Step    *Step  `json:"step"`

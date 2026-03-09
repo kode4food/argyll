@@ -95,7 +95,7 @@ func TestPathTreeRemoveNodeWithChildren(t *testing.T) {
 	assert.Equal(t, []int{2}, collectDetach(tree, []string{"a"}))
 }
 
-func TestPathTreeDetachMissingNestedPrefix(t *testing.T) {
+func TestDetachMissingNested(t *testing.T) {
 	tree := util.NewPathTree[int]()
 	tree.Insert([]string{"a", "b"}, 1)
 
@@ -104,7 +104,7 @@ func TestPathTreeDetachMissingNestedPrefix(t *testing.T) {
 	assert.Equal(t, []int{1}, collectDetach(tree, []string{"a"}))
 }
 
-func TestPathTreeDetachMissingParentPrefix(t *testing.T) {
+func TestDetachMissingParent(t *testing.T) {
 	tree := util.NewPathTree[int]()
 	tree.Insert([]string{"a", "b"}, 1)
 
@@ -113,7 +113,7 @@ func TestPathTreeDetachMissingParentPrefix(t *testing.T) {
 	assert.Equal(t, []int{1}, collectDetach(tree, []string{"a"}))
 }
 
-func TestPathTreeDetachStillDetachesWithoutCallback(t *testing.T) {
+func TestDetachNoCallback(t *testing.T) {
 	tree := util.NewPathTree[int]()
 	tree.Insert([]string{"a", "b"}, 1)
 	tree.Insert([]string{"a", "c"}, 2)

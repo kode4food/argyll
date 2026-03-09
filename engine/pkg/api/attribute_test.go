@@ -299,6 +299,28 @@ func TestValidateDefault(t *testing.T) {
 	}
 }
 
+func TestValidateDefaultErrorReason(t *testing.T) {
+	spec := &api.AttributeSpec{
+		Role:    api.RoleOptional,
+		Type:    api.TypeString,
+		Default: "hello",
+	}
+
+	err := spec.Validate("message")
+	assert.ErrorIs(t, err, api.ErrInvalidDefaultValue)
+	assert.ErrorIs(t, err, api.ErrDefaultJSON)
+
+	spec = &api.AttributeSpec{
+		Role:    api.RoleOptional,
+		Type:    api.TypeObject,
+		Default: `[1, 2, 3]`,
+	}
+
+	err = spec.Validate("config")
+	assert.ErrorIs(t, err, api.ErrInvalidDefaultValue)
+	assert.ErrorIs(t, err, api.ErrDefaultObject)
+}
+
 func TestIsRequired(t *testing.T) {
 	required := &api.AttributeSpec{
 		Role: api.RoleRequired,

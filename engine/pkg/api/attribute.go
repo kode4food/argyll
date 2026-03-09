@@ -1,10 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
-
-	"github.com/tidwall/gjson"
 
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -87,6 +86,14 @@ var (
 	ErrInvalidAttributeTimeout = errors.New(
 		"timeout must be between 0 and 1 year in milliseconds",
 	)
+
+	ErrDefaultJSON    = errors.New("must be valid JSON")
+	ErrDefaultString  = errors.New("must be a valid JSON string")
+	ErrDefaultNumber  = errors.New("must be a valid number")
+	ErrDefaultBoolean = errors.New(`must be "true" or "false"`)
+	ErrDefaultObject  = errors.New("must be valid JSON object")
+	ErrDefaultArray   = errors.New("must be valid JSON array")
+	ErrDefaultNull    = errors.New(`must be "null"`)
 )
 
 const (
@@ -158,7 +165,7 @@ func (s *AttributeSpec) Validate(name Name) error {
 
 	if s.Default != "" && s.Type != "" {
 		if err := validateDefaultValue(s.Default, s.Type); err != nil {
-			return fmt.Errorf("%w for attribute %q: %v",
+			return fmt.Errorf("%w for attribute %q: %w",
 				ErrInvalidDefaultValue, name, err)
 		}
 	}
@@ -175,51 +182,50 @@ func (s *AttributeSpec) Validate(name Name) error {
 	return nil
 }
 
-func validateDefaultValue(value string, attrType AttributeType) error {
-	if !gjson.Valid(value) {
-		return errors.New("must be valid JSON")
+func validateDefaultValue(data string, attrType AttributeType) error {
+	var val any
+	if err := json.Unmarshal([]byte(data), &val); err != nil {
+		return ErrDefaultJSON
 	}
 
 	if attrType == TypeAny {
 		return nil
 	}
 
-	result := gjson.Parse(value)
-
 	switch attrType {
 	case TypeString:
-		if result.Type != gjson.String {
-			return errors.New("must be a valid JSON string")
+		if _, ok := val.(string); !ok {
+			return ErrDefaultString
 		}
 		return nil
 
 	case TypeNumber:
-		if result.Type != gjson.Number {
-			return errors.New("must be a valid number")
+		if _, ok := val.(float64); !ok {
+			return ErrDefaultNumber
 		}
 		return nil
 
 	case TypeBoolean:
-		if result.Type != gjson.True && result.Type != gjson.False {
-			return errors.New("must be \"true\" or \"false\"")
+		if _, ok := val.(bool); !ok {
+			return ErrDefaultBoolean
 		}
 		return nil
 
 	case TypeObject:
-		if !result.IsObject() {
-			return errors.New("must be valid JSON object")
+		if _, ok := val.(map[string]any); !ok {
+			return ErrDefaultObject
 		}
 		return nil
 
 	case TypeArray:
-		if !result.IsArray() {
-			return errors.New("must be valid JSON array")
+		if _, ok := val.([]any); !ok {
+			return ErrDefaultArray
 		}
 		return nil
 
 	case TypeNull:
-		if result.Type != gjson.Null {
-			return errors.New("must be \"null\"")
+		if val != nil {
+			return ErrDefaultNull
 		}
 		return nil
 

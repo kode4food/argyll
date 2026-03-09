@@ -31,13 +31,13 @@ func TestGetCompiledScript(t *testing.T) {
 		err := env.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"script-step"},
 			Steps: api.Steps{step.ID: step},
 		}
 
 		env.WaitFor(wait.FlowStarted("wf-script"), func() {
-			err = env.Engine.StartFlow("wf-script", plan)
+			err = env.Engine.StartFlow("wf-script", pl)
 			assert.NoError(t, err)
 		})
 
@@ -52,18 +52,18 @@ func TestGetCompiledScriptMissing(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewSimpleStep("no-script")
+		st := helpers.NewSimpleStep("no-script")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"no-script"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitFor(wait.FlowStarted("wf-no-script"), func() {
-			err = env.Engine.StartFlow("wf-no-script", plan)
+			err = env.Engine.StartFlow("wf-no-script", pl)
 			assert.NoError(t, err)
 		})
 
@@ -78,20 +78,20 @@ func TestGetCompiledPredicate(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"predicate-step", api.ScriptLangLua, "return true",
 		)
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"predicate-step"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitFor(wait.FlowStarted("wf-predicate"), func() {
-			err = env.Engine.StartFlow("wf-predicate", plan)
+			err = env.Engine.StartFlow("wf-predicate", pl)
 			assert.NoError(t, err)
 		})
 

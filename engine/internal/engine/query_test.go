@@ -13,7 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -23,18 +23,18 @@ func TestQueryFlows(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("test")
+		st := helpers.NewSimpleStep("test")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"test"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitFor(wait.FlowActivated("wf-list"), func() {
-			err = env.Engine.StartFlow("wf-list", plan)
+			err = env.Engine.StartFlow("wf-list", pl)
 			assert.NoError(t, err)
 		})
 
@@ -49,18 +49,18 @@ func TestListFlows(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("list-step")
+		st := helpers.NewSimpleStep("list-step")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitFor(wait.FlowActivated("wf-listflows"), func() {
-			err = env.Engine.StartFlow("wf-listflows", plan)
+			err = env.Engine.StartFlow("wf-listflows", pl)
 			assert.NoError(t, err)
 		})
 
@@ -120,7 +120,7 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 			func() {
 				assert.NoError(t,
 					env.Engine.StartFlow("flow-active", activePlan,
-						flowopt.WithLabels(api.Labels{"tier": "active"}),
+						flow.WithLabels(api.Labels{"tier": "active"}),
 					),
 				)
 			},
@@ -128,14 +128,14 @@ func TestQueryFlowsFiltersAndPaging(t *testing.T) {
 		env.WaitForFlowStatus("flow-complete", func() {
 			assert.NoError(t,
 				env.Engine.StartFlow("flow-complete", completePlan,
-					flowopt.WithLabels(api.Labels{"tier": "done"}),
+					flow.WithLabels(api.Labels{"tier": "done"}),
 				),
 			)
 		})
 		env.WaitForFlowStatus("flow-failed", func() {
 			assert.NoError(t,
 				env.Engine.StartFlow("flow-failed", failedPlan,
-					flowopt.WithLabels(api.Labels{"tier": "fail"}),
+					flow.WithLabels(api.Labels{"tier": "fail"}),
 				),
 			)
 		})
@@ -194,13 +194,13 @@ func TestLabelIndex(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("label-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		st := helpers.NewSimpleStep("label-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 		labels := api.Labels{
 			"tier": "gold",
@@ -210,8 +210,8 @@ func TestLabelIndex(t *testing.T) {
 		env.WaitForFlowStatus("flow-labeled", func() {
 			assert.NoError(t, env.Engine.StartFlow(
 				"flow-labeled",
-				plan,
-				flowopt.WithLabels(labels),
+				pl,
+				flow.WithLabels(labels),
 			))
 		})
 
@@ -237,22 +237,22 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("sort-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		st := helpers.NewSimpleStep("sort-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"ok": true})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitForFlowStatus("flow-a", func() {
-			assert.NoError(t, env.Engine.StartFlow("flow-a", plan))
+			assert.NoError(t, env.Engine.StartFlow("flow-a", pl))
 		})
 		now = now.Add(10 * time.Millisecond)
 
 		env.WaitForFlowStatus("flow-b", func() {
-			assert.NoError(t, env.Engine.StartFlow("flow-b", plan))
+			assert.NoError(t, env.Engine.StartFlow("flow-b", pl))
 		})
 
 		resp := waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
@@ -273,22 +273,22 @@ func TestQueryFlowsPaginationAsc(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("page-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		st := helpers.NewSimpleStep("page-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"ok": true})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitForFlowStatus("page-a", func() {
-			assert.NoError(t, env.Engine.StartFlow("page-a", plan))
+			assert.NoError(t, env.Engine.StartFlow("page-a", pl))
 		})
 		now = now.Add(10 * time.Millisecond)
 
 		env.WaitForFlowStatus("page-b", func() {
-			assert.NoError(t, env.Engine.StartFlow("page-b", plan))
+			assert.NoError(t, env.Engine.StartFlow("page-b", pl))
 		})
 
 		waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
@@ -382,17 +382,17 @@ func TestQueryFlowsNoLabels(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("no-label-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		st := helpers.NewSimpleStep("no-label-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"ok": true})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitForFlowStatus("flow-no-labels", func() {
-			assert.NoError(t, env.Engine.StartFlow("flow-no-labels", plan))
+			assert.NoError(t, env.Engine.StartFlow("flow-no-labels", pl))
 		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -408,20 +408,20 @@ func TestLabelIntersection(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("intersection-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		st := helpers.NewSimpleStep("intersection-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"ok": true})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitForFlowStatus("flow-intersection-a", func() {
 			assert.NoError(t, env.Engine.StartFlow(
 				"flow-intersection-a",
-				plan,
-				flowopt.WithLabels(api.Labels{
+				pl,
+				flow.WithLabels(api.Labels{
 					"tier": "gold",
 					"env":  "prod",
 				}),
@@ -431,8 +431,8 @@ func TestLabelIntersection(t *testing.T) {
 		env.WaitForFlowStatus("flow-intersection-b", func() {
 			assert.NoError(t, env.Engine.StartFlow(
 				"flow-intersection-b",
-				plan,
-				flowopt.WithLabels(api.Labels{
+				pl,
+				flow.WithLabels(api.Labels{
 					"tier": "silver",
 					"env":  "stage",
 				}),
@@ -493,7 +493,7 @@ func TestSkipChildFlows(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(child))
 		assert.NoError(t, env.Engine.RegisterStep(parent))
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{parent.ID},
 			Steps: api.Steps{parent.ID: parent},
 		}
@@ -501,7 +501,7 @@ func TestSkipChildFlows(t *testing.T) {
 		var childID api.FlowID
 		env.WithConsumer(func(consumer *timebox.Consumer) {
 			parentState := env.WaitForFlowStatus("parent-list", func() {
-				err := env.Engine.StartFlow("parent-list", plan)
+				err := env.Engine.StartFlow("parent-list", pl)
 				assert.NoError(t, err)
 			})
 			assert.Equal(t, api.FlowCompleted, parentState.Status)
@@ -532,8 +532,8 @@ func TestSkipChildFlows(t *testing.T) {
 		assert.NoError(t, err)
 
 		var ids []api.FlowID
-		for _, flow := range resp.Flows {
-			ids = append(ids, flow.ID)
+		for _, fl := range resp.Flows {
+			ids = append(ids, fl.ID)
 		}
 
 		assert.Contains(t, ids, api.FlowID("parent-list"))
@@ -546,17 +546,17 @@ func TestQueryFlowsBadStatuses(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("status-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		st := helpers.NewSimpleStep("status-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"ok": true})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitForFlowStatus("flow-status", func() {
-			assert.NoError(t, env.Engine.StartFlow("flow-status", plan))
+			assert.NoError(t, env.Engine.StartFlow("flow-status", pl))
 		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -578,22 +578,22 @@ func TestQueryFlowsPageDesc(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("page-desc-step")
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"ok": true})
+		st := helpers.NewSimpleStep("page-desc-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"ok": true})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitForFlowStatus("page-desc-a", func() {
-			assert.NoError(t, env.Engine.StartFlow("page-desc-a", plan))
+			assert.NoError(t, env.Engine.StartFlow("page-desc-a", pl))
 		})
 		now = now.Add(10 * time.Millisecond)
 
 		env.WaitForFlowStatus("page-desc-b", func() {
-			assert.NoError(t, env.Engine.StartFlow("page-desc-b", plan))
+			assert.NoError(t, env.Engine.StartFlow("page-desc-b", pl))
 		})
 
 		waitForQueryFlows(t, env.Engine, &api.QueryFlowsRequest{
@@ -701,8 +701,8 @@ func waitForQueryFlow(
 		t.Fatalf("query failed: %v", err)
 	}
 	var ids []api.FlowID
-	for _, flow := range resp.Flows {
-		ids = append(ids, flow.ID)
+	for _, fl := range resp.Flows {
+		ids = append(ids, fl.ID)
 	}
 	t.Fatalf("expected flow %s, got %v", expected, ids)
 }

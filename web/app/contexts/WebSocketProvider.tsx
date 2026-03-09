@@ -168,8 +168,15 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const handleFlowEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
       if (event.type === "subscribed") {
-        const { setFlowState } = useFlowStore.getState();
-        setFlowState(subscribedData(event as WebSocketSubscribed));
+        const { setFlowNotFound, setFlowState } = useFlowStore.getState();
+        const data = subscribedData(event as WebSocketSubscribed);
+        if (!data) {
+          if (selectedFlow) {
+            setFlowNotFound(selectedFlow);
+          }
+          return;
+        }
+        setFlowState(data);
         return;
       }
 
@@ -318,7 +325,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         updateFlowData(flowUpdate);
       }
     },
-    [t]
+    [selectedFlow, t]
   );
 
   const socketClient = useWebSocketClient({

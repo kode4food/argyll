@@ -7,11 +7,11 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func TestTimeoutDefaultsBeforeProviderCompletes(t *testing.T) {
+func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -56,7 +56,7 @@ func TestTimeoutDefaultsBeforeProviderCompletes(t *testing.T) {
 		)
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{consumer.ID},
 			Steps: api.Steps{
 				provider.ID: provider,
@@ -78,9 +78,9 @@ func TestTimeoutDefaultsBeforeProviderCompletes(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("wf-opt-timeout-default")
-		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"seed": "x"}),
+		id := api.FlowID("wf-opt-timeout-default")
+		assert.NoError(t, env.Engine.StartFlow(id, pl,
+			flow.WithInit(api.Args{"seed": "x"}),
 		))
 
 		assert.True(t,
@@ -90,12 +90,12 @@ func TestTimeoutDefaultsBeforeProviderCompletes(t *testing.T) {
 			env.MockClient.WaitForInvocation(consumer.ID, 500*time.Millisecond),
 		)
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, "fallback", flow.Executions[consumer.ID].Inputs["opt"])
 
 		close(releaseProvider)
-		flow = env.WaitForFlowStatus(flowID, func() {})
+		flow = env.WaitForFlowStatus(id, func() {})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 	})
 }
@@ -159,7 +159,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		)
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{consumer.ID},
 			Steps: api.Steps{
 				provider.ID: provider,
@@ -189,9 +189,9 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("wf-opt-timeout-zero")
-		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"seed": "x"}),
+		id := api.FlowID("wf-opt-timeout-zero")
+		assert.NoError(t, env.Engine.StartFlow(id, pl,
+			flow.WithInit(api.Args{"seed": "x"}),
 		))
 
 		assert.True(t,
@@ -202,13 +202,13 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		)
 
 		close(releaseProvider)
-		flow := env.WaitForFlowStatus(flowID, func() {})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
-		assert.Equal(t, "fallback", flow.Executions[consumer.ID].Inputs["opt"])
+		fl := env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t,
-			"fallback3", flow.Executions[consumer.ID].Inputs["opt3"],
+			"fallback3", fl.Executions[consumer.ID].Inputs["opt3"],
 		)
-		_, ok := flow.Executions[consumer.ID].Inputs["opt2"]
+		_, ok := fl.Executions[consumer.ID].Inputs["opt2"]
 		assert.False(t, ok)
 	})
 }
@@ -270,7 +270,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		env.MockClient.SetResponse(fast.ID, api.Args{"fast_done": "ok"})
 		env.MockClient.SetResponse(strict.ID, api.Args{"strict_done": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{fast.ID, strict.ID},
 			Steps: api.Steps{
 				provider.ID: provider,
@@ -297,9 +297,9 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("wf-opt-timeout-local")
-		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"seed": "x"}),
+		id := api.FlowID("wf-opt-timeout-local")
+		assert.NoError(t, env.Engine.StartFlow(id, pl,
+			flow.WithInit(api.Args{"seed": "x"}),
 		))
 
 		assert.True(t,
@@ -312,7 +312,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			env.MockClient.WaitForInvocation(strict.ID, 120*time.Millisecond),
 		)
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, "fallback", flow.Executions[fast.ID].Inputs["opt"])
 		if _, ok := flow.Attributes["opt"]; ok {
@@ -320,7 +320,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		}
 
 		close(releaseProvider)
-		flow = env.WaitForFlowStatus(flowID, func() {})
+		flow = env.WaitForFlowStatus(id, func() {})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 		assert.Equal(t, "real", flow.Executions[strict.ID].Inputs["opt"])
 	})
@@ -388,7 +388,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		)
 		env.MockClient.SetResponse(orderCreator.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{orderCreator.ID},
 			Steps: api.Steps{
 				userProvider.ID:    userProvider,
@@ -411,8 +411,8 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("wf-opt-timeout-waits-required")
-		assert.NoError(t, env.Engine.StartFlow(flowID, plan))
+		id := api.FlowID("wf-opt-timeout-waits-required")
+		assert.NoError(t, env.Engine.StartFlow(id, pl))
 
 		assert.True(t, env.MockClient.WaitForInvocation(
 			userProvider.ID, 500*time.Millisecond,
@@ -437,13 +437,13 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		))
 
 		close(releaseProduct)
-		flow := env.WaitForFlowStatus(flowID, func() {})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		fl := env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t,
-			"real-user", flow.Executions[orderCreator.ID].Inputs["user_info"],
+			"real-user", fl.Executions[orderCreator.ID].Inputs["user_info"],
 		)
 		assert.Equal(t, "real-product",
-			flow.Executions[orderCreator.ID].Inputs["product_info"],
+			fl.Executions[orderCreator.ID].Inputs["product_info"],
 		)
 	})
 }
@@ -504,7 +504,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		)
 		env.MockClient.SetResponse(orderCreator.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{orderCreator.ID},
 			Steps: api.Steps{
 				gate.ID:         gate,
@@ -531,9 +531,9 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("wf-opt-timeout-step-ready")
-		assert.NoError(t, env.Engine.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"product_info": "real-product"}),
+		id := api.FlowID("wf-opt-timeout-step-ready")
+		assert.NoError(t, env.Engine.StartFlow(id, pl,
+			flow.WithInit(api.Args{"product_info": "real-product"}),
 		))
 
 		assert.True(t, env.MockClient.WaitForInvocation(
@@ -546,19 +546,19 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			orderCreator.ID, 500*time.Millisecond,
 		))
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t,
 			"guest", flow.Executions[orderCreator.ID].Inputs["user_info"],
 		)
 
 		close(releaseGate)
-		flow = env.WaitForFlowStatus(flowID, func() {})
+		flow = env.WaitForFlowStatus(id, func() {})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 	})
 }
 
-func TestTimeoutFiresAfterRequiredsBecomeReady(t *testing.T) {
+func TestTimeoutAfterRequireds(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -617,7 +617,7 @@ func TestTimeoutFiresAfterRequiredsBecomeReady(t *testing.T) {
 		)
 		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{consumer.ID},
 			Steps: api.Steps{
 				reqProvider.ID: reqProvider,
@@ -640,8 +640,8 @@ func TestTimeoutFiresAfterRequiredsBecomeReady(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("wf-opt-timeout-after-requireds")
-		assert.NoError(t, env.Engine.StartFlow(flowID, plan))
+		id := api.FlowID("wf-opt-timeout-after-requireds")
+		assert.NoError(t, env.Engine.StartFlow(id, pl))
 
 		assert.True(t, env.MockClient.WaitForInvocation(
 			reqProvider.ID, 500*time.Millisecond,
@@ -655,13 +655,13 @@ func TestTimeoutFiresAfterRequiredsBecomeReady(t *testing.T) {
 			consumer.ID, 500*time.Millisecond,
 		))
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, "fallback", flow.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t, "real-req", flow.Executions[consumer.ID].Inputs["req"])
 
 		close(releaseOpt)
-		flow = env.WaitForFlowStatus(flowID, func() {})
+		flow = env.WaitForFlowStatus(id, func() {})
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 	})
 }

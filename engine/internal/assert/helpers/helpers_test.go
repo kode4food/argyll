@@ -137,7 +137,7 @@ func TestEngineDependenciesTimerOverride(t *testing.T) {
 	})
 }
 
-func TestTestEnvDependenciesPreservesDefaults(t *testing.T) {
+func TestEnvDepsPreserveDefaults(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnvDeps(t, engine.Dependencies{
 		Clock: func() time.Time { return now },
@@ -150,8 +150,8 @@ func TestTestEnvDependenciesPreservesDefaults(t *testing.T) {
 
 func TestCanRegisterSteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewTestStep()
-		err := eng.RegisterStep(step)
+		st := helpers.NewTestStep()
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		steps, err := eng.ListSteps()
@@ -162,16 +162,16 @@ func TestCanRegisterSteps(t *testing.T) {
 
 func TestCanStartFlows(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewTestStep()
-		err := eng.RegisterStep(step)
+		st := helpers.NewTestStep()
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		err = eng.StartFlow("test-wf", plan)
+		err = eng.StartFlow("test-wf", pl)
 		assert.NoError(t, err)
 
 		wf, err := eng.GetFlowState("test-wf")
@@ -181,16 +181,16 @@ func TestCanStartFlows(t *testing.T) {
 }
 
 func TestStep(t *testing.T) {
-	step := helpers.NewTestStep()
+	st := helpers.NewTestStep()
 
-	assert.NotNil(t, step)
-	assert.NotEmpty(t, step.ID)
-	assert.Equal(t, api.Name("Test Step"), step.Name)
-	assert.Equal(t, api.StepTypeSync, step.Type)
-	assert.NotNil(t, step.HTTP)
-	assert.NotEmpty(t, step.HTTP.Endpoint)
+	assert.NotNil(t, st)
+	assert.NotEmpty(t, st.ID)
+	assert.Equal(t, api.Name("Test Step"), st.Name)
+	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.NotNil(t, st.HTTP)
+	assert.NotEmpty(t, st.HTTP.Endpoint)
 
-	err := step.Validate()
+	err := st.Validate()
 	assert.NoError(t, err)
 }
 
@@ -198,11 +198,11 @@ func TestStepWithArgs(t *testing.T) {
 	req := []api.Name{"req1", "req2"}
 	opt := []api.Name{"opt1", "opt2"}
 
-	step := helpers.NewTestStepWithArgs(req, opt)
+	st := helpers.NewTestStepWithArgs(req, opt)
 
-	assert.NotNil(t, step)
-	requiredArgs := step.GetRequiredArgs()
-	optionalArgs := step.GetOptionalArgs()
+	assert.NotNil(t, st)
+	requiredArgs := st.GetRequiredArgs()
+	optionalArgs := st.GetOptionalArgs()
 	assert.Len(t, requiredArgs, 2)
 	assert.Len(t, optionalArgs, 2)
 
@@ -211,7 +211,7 @@ func TestStepWithArgs(t *testing.T) {
 	assert.Contains(t, optionalArgs, api.Name("opt1"))
 	assert.Contains(t, optionalArgs, api.Name("opt2"))
 
-	err := step.Validate()
+	err := st.Validate()
 	assert.NoError(t, err)
 }
 
@@ -235,89 +235,89 @@ func TestCleanup(t *testing.T) {
 }
 
 func TestSimpleStep(t *testing.T) {
-	step := helpers.NewSimpleStep("test-id")
+	st := helpers.NewSimpleStep("test-id")
 
-	assert.NotNil(t, step)
-	assert.Equal(t, api.StepID("test-id"), step.ID)
-	assert.Equal(t, api.StepTypeSync, step.Type)
-	assert.NotNil(t, step.HTTP)
-	assert.Empty(t, step.GetRequiredArgs())
-	assert.Empty(t, step.GetOptionalArgs())
-	assert.Empty(t, step.GetOutputArgs())
+	assert.NotNil(t, st)
+	assert.Equal(t, api.StepID("test-id"), st.ID)
+	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.NotNil(t, st.HTTP)
+	assert.Empty(t, st.GetRequiredArgs())
+	assert.Empty(t, st.GetOptionalArgs())
+	assert.Empty(t, st.GetOutputArgs())
 
-	err := step.Validate()
+	err := st.Validate()
 	assert.NoError(t, err)
 }
 
 func TestStepWithOutput(t *testing.T) {
-	step := helpers.NewStepWithOutputs("output-step", "result1", "result2")
+	st := helpers.NewStepWithOutputs("output-step", "result1", "result2")
 
-	assert.NotNil(t, step)
-	assert.Equal(t, api.StepID("output-step"), step.ID)
-	outputArgs := step.GetOutputArgs()
+	assert.NotNil(t, st)
+	assert.Equal(t, api.StepID("output-step"), st.ID)
+	outputArgs := st.GetOutputArgs()
 	assert.Len(t, outputArgs, 2)
 	assert.Contains(t, outputArgs, api.Name("result1"))
 	assert.Contains(t, outputArgs, api.Name("result2"))
 
-	err := step.Validate()
+	err := st.Validate()
 	assert.NoError(t, err)
 }
 
 func TestScriptStep(t *testing.T) {
-	step := helpers.NewScriptStep(
+	st := helpers.NewScriptStep(
 		"script-id", api.ScriptLangAle, "{:result 42}", "result",
 	)
 
-	assert.NotNil(t, step)
-	assert.Equal(t, api.StepID("script-id"), step.ID)
-	assert.Equal(t, api.StepTypeScript, step.Type)
-	assert.NotNil(t, step.Script)
-	assert.Equal(t, api.ScriptLangAle, step.Script.Language)
-	assert.Equal(t, "{:result 42}", step.Script.Script)
-	assert.Len(t, step.GetOutputArgs(), 1)
-	assert.Contains(t, step.GetOutputArgs(), api.Name("result"))
+	assert.NotNil(t, st)
+	assert.Equal(t, api.StepID("script-id"), st.ID)
+	assert.Equal(t, api.StepTypeScript, st.Type)
+	assert.NotNil(t, st.Script)
+	assert.Equal(t, api.ScriptLangAle, st.Script.Language)
+	assert.Equal(t, "{:result 42}", st.Script.Script)
+	assert.Len(t, st.GetOutputArgs(), 1)
+	assert.Contains(t, st.GetOutputArgs(), api.Name("result"))
 
-	err := step.Validate()
+	err := st.Validate()
 	assert.NoError(t, err)
 }
 
 func TestScriptNoOutput(t *testing.T) {
-	step := helpers.NewScriptStep(
+	st := helpers.NewScriptStep(
 		"script-id", api.ScriptLangLua, "return {}",
 	)
 
-	assert.NotNil(t, step)
-	assert.Equal(t, api.StepTypeScript, step.Type)
-	assert.Empty(t, step.GetOutputArgs())
+	assert.NotNil(t, st)
+	assert.Equal(t, api.StepTypeScript, st.Type)
+	assert.Empty(t, st.GetOutputArgs())
 }
 
 func TestStepPredicate(t *testing.T) {
-	step := helpers.NewStepWithPredicate(
+	st := helpers.NewStepWithPredicate(
 		"pred-step", api.ScriptLangAle, "true", "output",
 	)
 
-	assert.NotNil(t, step)
-	assert.Equal(t, api.StepID("pred-step"), step.ID)
-	assert.Equal(t, api.StepTypeSync, step.Type)
-	assert.NotNil(t, step.HTTP)
-	assert.NotNil(t, step.Predicate)
-	assert.Equal(t, api.ScriptLangAle, step.Predicate.Language)
-	assert.Equal(t, "true", step.Predicate.Script)
-	assert.Len(t, step.GetOutputArgs(), 1)
-	assert.Contains(t, step.GetOutputArgs(), api.Name("output"))
+	assert.NotNil(t, st)
+	assert.Equal(t, api.StepID("pred-step"), st.ID)
+	assert.Equal(t, api.StepTypeSync, st.Type)
+	assert.NotNil(t, st.HTTP)
+	assert.NotNil(t, st.Predicate)
+	assert.Equal(t, api.ScriptLangAle, st.Predicate.Language)
+	assert.Equal(t, "true", st.Predicate.Script)
+	assert.Len(t, st.GetOutputArgs(), 1)
+	assert.Contains(t, st.GetOutputArgs(), api.Name("output"))
 
-	err := step.Validate()
+	err := st.Validate()
 	assert.NoError(t, err)
 }
 
 func TestStepPredicateNoOutput(t *testing.T) {
-	step := helpers.NewStepWithPredicate(
+	st := helpers.NewStepWithPredicate(
 		"pred-step", api.ScriptLangLua, "return false",
 	)
 
-	assert.NotNil(t, step)
-	assert.NotNil(t, step.Predicate)
-	assert.Empty(t, step.GetOutputArgs())
+	assert.NotNil(t, st)
+	assert.NotNil(t, st.Predicate)
+	assert.Empty(t, st.GetOutputArgs())
 }
 
 func TestLastMetadata(t *testing.T) {
@@ -354,34 +354,34 @@ func TestNewEngineInstance(t *testing.T) {
 
 func TestRaiseFlowEvents(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := helpers.NewSimpleStep("raised-step")
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		st := helpers.NewSimpleStep("raised-step")
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
-		flowID := api.FlowID("raised-flow")
+		id := api.FlowID("raised-flow")
 
 		err := env.RaiseFlowEvents(
-			flowID,
+			id,
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowStarted,
 				Data: api.FlowStartedEvent{
-					FlowID: flowID,
-					Plan:   plan,
+					FlowID: id,
+					Plan:   pl,
 					Init:   api.Args{},
 				},
 			},
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowCompleted,
 				Data: api.FlowCompletedEvent{
-					FlowID: flowID,
+					FlowID: id,
 					Result: api.Args{},
 				},
 			},
 		)
 		assert.NoError(t, err)
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 	})

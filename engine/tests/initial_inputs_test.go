@@ -7,7 +7,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -33,7 +33,7 @@ func TestInitialFlowInputs(t *testing.T) {
 
 		assert.NoError(t, env.Engine.RegisterStep(stepA))
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-a"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -65,19 +65,19 @@ func TestInitialFlowInputs(t *testing.T) {
 			"configValue":  42,
 		}
 
-		flowID := api.FlowID("test-initial-inputs")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan,
-				flowopt.WithInit(initialInputs),
+		id := api.FlowID("test-initial-inputs")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(initialInputs),
 			)
 			assert.NoError(t, err)
 		})
 
 		// Verify flow completed successfully
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify step A completed
-		execA := flow.Executions["step-a"]
+		execA := fl.Executions["step-a"]
 		assert.NotNil(t, execA)
 		assert.Equal(t, api.StepCompleted, execA.Status)
 
@@ -87,39 +87,39 @@ func TestInitialFlowInputs(t *testing.T) {
 		assert.Contains(t, invocations, api.StepID("step-a"))
 
 		// Verify final attributes contain initial values plus step A's output
-		assert.Equal(t, "user-provided", flow.Attributes["initialValue"].Value)
-		assert.Equal(t, float64(42), flow.Attributes["configValue"].Value)
+		assert.Equal(t, "user-provided", fl.Attributes["initialValue"].Value)
+		assert.Equal(t, 42, fl.Attributes["configValue"].Value)
 		assert.Equal(t,
-			"computed from initial inputs", flow.Attributes["result"].Value,
+			"computed from initial inputs", fl.Attributes["result"].Value,
 		)
 
 		// Verify initial attributes have no producing step (provenance = empty)
-		assert.Equal(t, api.StepID(""), flow.Attributes["initialValue"].Step)
-		assert.Equal(t, api.StepID(""), flow.Attributes["configValue"].Step)
+		assert.Equal(t, api.StepID(""), fl.Attributes["initialValue"].Step)
+		assert.Equal(t, api.StepID(""), fl.Attributes["configValue"].Step)
 
 		// Verify step A's output has correct provenance
-		assert.Equal(t, api.StepID("step-a"), flow.Attributes["result"].Step)
+		assert.Equal(t, api.StepID("step-a"), fl.Attributes["result"].Step)
 	})
 }
 
 func TestRequiredInputsMissing(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		step := helpers.NewTestStepWithArgs([]api.Name{"customer_id"}, nil)
-		step.ID = "requires-input"
-		step.Attributes["result"] = &api.AttributeSpec{
+		st := helpers.NewTestStepWithArgs([]api.Name{"customer_id"}, nil)
+		st.ID = "requires-input"
+		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
 		}
 
-		assert.NoError(t, eng.RegisterStep(step))
+		assert.NoError(t, eng.RegisterStep(st))
 
-		plan := &api.ExecutionPlan{
-			Goals:    []api.StepID{step.ID},
-			Steps:    api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals:    []api.StepID{st.ID},
+			Steps:    api.Steps{st.ID: st},
 			Required: []api.Name{"customer_id"},
 		}
 
-		err := eng.StartFlow("wf-missing-required", plan)
+		err := eng.StartFlow("wf-missing-required", pl)
 		assert.ErrorIs(t, err, api.ErrRequiredInputs)
 	})
 }

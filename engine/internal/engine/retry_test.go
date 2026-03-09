@@ -219,8 +219,8 @@ func TestRetryExhaustion(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewSimpleStep("failing-step")
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewSimpleStep("failing-step")
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
 			InitBackoff: 200,
 			MaxBackoff:  1000,
@@ -230,24 +230,24 @@ func TestRetryExhaustion(t *testing.T) {
 		env.MockClient.SetError("failing-step",
 			errors.Join(api.ErrWorkNotCompleted, assert.AnError))
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"failing-step"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("exhaustion-flow")
+		id := api.FlowID("exhaustion-flow")
 		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
-			FlowID: flowID,
+			FlowID: id,
 			StepID: "failing-step",
 		}), func() {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		exec := flow.Executions["failing-step"]
 		if assert.NotNil(t, exec) && assert.NotNil(t, exec.WorkItems) {

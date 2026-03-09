@@ -8,7 +8,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -40,30 +40,23 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(step))
 		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
 
-		flow := env.WaitForFlowStatus("wf-foreach", func() {
-			err := env.Engine.StartFlow("wf-foreach", plan,
-				flowopt.WithInit(api.Args{"item": []any{"a", "b"}}),
+		fl := env.WaitForFlowStatus("wf-foreach", func() {
+			err := env.Engine.StartFlow("wf-foreach", pl,
+				flow.WithInit(api.Args{"item": []any{"a", "b"}}),
 			)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		attrs := flow.GetAttributes()
-		rawResults, ok := attrs["result"].([]any)
+		attrs := fl.GetAttributes()
+		results, ok := attrs["result"].([]map[string]any)
 		assert.True(t, ok)
-		assert.Len(t, rawResults, 2)
-
-		results := make([]map[string]any, 0, len(rawResults))
-		for _, r := range rawResults {
-			entry, ok := r.(map[string]any)
-			assert.True(t, ok)
-			results = append(results, entry)
-		}
+		assert.Len(t, results, 2)
 
 		assertContainsEntry(t, results, map[string]any{
 			"item":   "a",
@@ -76,7 +69,121 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 	})
 }
 
-func TestOutputMappingCollectsDescendants(t *testing.T) {
+func TestForEachTypedSlice(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := &api.Step{
+			ID:   "foreach-typed",
+			Name: "For Each Typed",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+				Timeout:  30 * api.Second,
+			},
+			Attributes: api.AttributeSpecs{
+				"item": {
+					Role:    api.RoleRequired,
+					Type:    api.TypeArray,
+					ForEach: true,
+				},
+				"result": {
+					Role: api.RoleOutput,
+					Type: api.TypeString,
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		fl := env.WaitForFlowStatus("wf-foreach-typed", func() {
+			err := env.Engine.StartFlow("wf-foreach-typed", pl,
+				flow.WithInit(api.Args{"item": []string{"a", "b"}}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		attrs := fl.GetAttributes()
+		results, ok := attrs["result"].([]map[string]any)
+		assert.True(t, ok)
+		assert.Len(t, results, 2)
+
+		assertContainsEntry(t, results, map[string]any{
+			"item":   "a",
+			"result": "ok",
+		})
+		assertContainsEntry(t, results, map[string]any{
+			"item":   "b",
+			"result": "ok",
+		})
+	})
+}
+
+func TestForEachTypedNumbers(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := &api.Step{
+			ID:   "foreach-nums",
+			Name: "For Each Numbers",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://example.com",
+				Timeout:  30 * api.Second,
+			},
+			Attributes: api.AttributeSpecs{
+				"item": {
+					Role:    api.RoleRequired,
+					Type:    api.TypeArray,
+					ForEach: true,
+				},
+				"result": {
+					Role: api.RoleOutput,
+					Type: api.TypeString,
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		fl := env.WaitForFlowStatus("wf-foreach-nums", func() {
+			err := env.Engine.StartFlow("wf-foreach-nums", pl,
+				flow.WithInit(api.Args{"item": []int{2, 3}}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		attrs := fl.GetAttributes()
+		results, ok := attrs["result"].([]map[string]any)
+		assert.True(t, ok)
+		assert.Len(t, results, 2)
+
+		assertContainsEntry(t, results, map[string]any{
+			"item":   float64(2),
+			"result": "ok",
+		})
+		assertContainsEntry(t, results, map[string]any{
+			"item":   float64(3),
+			"result": "ok",
+		})
+	})
+}
+
+func TestOutputMappingDescendants(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -116,20 +223,20 @@ func TestOutputMappingCollectsDescendants(t *testing.T) {
 			},
 		})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
 
-		flow := env.WaitForFlowStatus("wf-desc-mapping", func() {
-			err := env.Engine.StartFlow("wf-desc-mapping", plan,
-				flowopt.WithInit(api.Args{"input": "value"}),
+		fl := env.WaitForFlowStatus("wf-desc-mapping", func() {
+			err := env.Engine.StartFlow("wf-desc-mapping", pl,
+				flow.WithInit(api.Args{"input": "value"}),
 			)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		raw := flow.Attributes["books"].Value
+		raw := fl.Attributes["books"].Value
 		books, ok := raw.([]any)
 		assert.True(t, ok)
 		assert.Equal(t, []any{"A", "B"}, books)
@@ -160,12 +267,12 @@ func TestTooManyWorkItems(t *testing.T) {
 			yArr[i] = i
 		}
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
-		err := env.Engine.StartFlow("wf-too-many", plan,
-			flowopt.WithInit(api.Args{"x": xArr, "y": yArr}),
+		err := env.Engine.StartFlow("wf-too-many", pl,
+			flow.WithInit(api.Args{"x": xArr, "y": yArr}),
 		)
 		assert.True(t, errors.Is(err, engine.ErrTooManyWorkItems))
 	})

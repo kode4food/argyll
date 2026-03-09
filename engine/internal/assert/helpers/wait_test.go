@@ -17,26 +17,26 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("completed-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("completed-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-completed-event")
+		id := api.FlowID("flow-completed-event")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
-			wait.On(t, consumer).ForEvent(wait.FlowCompleted(flowID))
+			wait.On(t, consumer).ForEvent(wait.FlowCompleted(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, flow.Status)
 	})
@@ -47,26 +47,26 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("failed-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("failed-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetError(step.ID, assert.AnError)
+		env.MockClient.SetError(st.ID, assert.AnError)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-failed-event")
+		id := api.FlowID("flow-failed-event")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
-			wait.On(t, consumer).ForEvent(wait.FlowFailed(flowID))
+			wait.On(t, consumer).ForEvent(wait.FlowFailed(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, flow.Status)
 	})
@@ -77,25 +77,25 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("started-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("started-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-step-started")
+		id := api.FlowID("flow-step-started")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 	})
@@ -106,31 +106,31 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("terminal-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("terminal-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-step-terminal")
+		id := api.FlowID("flow-step-terminal")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 
-		flow, err := env.Engine.GetFlowState(flowID)
+		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		exec := flow.Executions[step.ID]
+		exec := flow.Executions[st.ID]
 		assert.NotNil(t, exec)
 		assert.Equal(t, api.StepCompleted, exec.Status)
 	})
@@ -141,25 +141,25 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("work-succeeded")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("work-succeeded")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-work-succeeded")
+		id := api.FlowID("flow-work-succeeded")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.WorkSucceeded(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 	})
@@ -170,25 +170,25 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("work-failed")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("work-failed")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetError(step.ID, assert.AnError)
+		env.MockClient.SetError(st.ID, assert.AnError)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-work-failed")
+		id := api.FlowID("flow-work-failed")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.WorkFailed(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 	})
@@ -199,31 +199,31 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("work-retry")
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewSimpleStep("work-retry")
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
 			InitBackoff: 10,
 			MaxBackoff:  10,
 			BackoffType: api.BackoffTypeFixed,
 		}
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("flow-work-retry")
+		id := api.FlowID("flow-work-retry")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.WorkRetryScheduled(api.FlowStep{
-				FlowID: flowID,
-				StepID: step.ID,
+				FlowID: id,
+				StepID: st.ID,
 			}))
 		})
 	})
@@ -234,9 +234,9 @@ func TestWaitForEngineEvents(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("engine-events")
+		st := helpers.NewSimpleStep("engine-events")
 		env.WithConsumer(func(consumer *timebox.Consumer) {
-			err := env.Engine.RegisterStep(step)
+			err := env.Engine.RegisterStep(st)
 			assert.NoError(t, err)
 
 			wait.On(t, consumer).ForEvent(wait.EngineEvent(
@@ -251,20 +251,20 @@ func TestWaitFlowCompleted(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("simple-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("simple-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-flow-completed")
-		finalState := env.WaitForFlowStatus(flowID, func() {
-			err = env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-flow-completed")
+		finalState := env.WaitForFlowStatus(id, func() {
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, finalState)
@@ -277,20 +277,20 @@ func TestWaitFlowFailed(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("failing-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("failing-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetError(step.ID, assert.AnError)
+		env.MockClient.SetError(st.ID, assert.AnError)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-flow-failed")
-		finalState := env.WaitForFlowStatus(flowID, func() {
-			err = env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-flow-failed")
+		finalState := env.WaitForFlowStatus(id, func() {
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, finalState)
@@ -303,35 +303,35 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("polling-step")
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewSimpleStep("polling-step")
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  -1,
 			InitBackoff: 200,
 			MaxBackoff:  200,
 			BackoffType: api.BackoffTypeFixed,
 		}
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-flow-polling")
+		id := api.FlowID("test-flow-polling")
 		env.WaitForStepStarted(
-			api.FlowStep{FlowID: flowID, StepID: step.ID},
+			api.FlowStep{FlowID: id, StepID: st.ID},
 			func() {
-				err = env.Engine.StartFlow(flowID, plan)
+				err = env.Engine.StartFlow(id, pl)
 				assert.NoError(t, err)
 			},
 		)
 
-		finalState := env.WaitForFlowStatus(flowID, func() {
-			env.MockClient.ClearError(step.ID)
-			env.MockClient.SetResponse(step.ID, api.Args{})
+		finalState := env.WaitForFlowStatus(id, func() {
+			env.MockClient.ClearError(st.ID)
+			env.MockClient.SetResponse(st.ID, api.Args{})
 		})
 		assert.NotNil(t, finalState)
 		assert.Equal(t, api.FlowCompleted, finalState.Status)
@@ -343,20 +343,20 @@ func TestWaitStepCompleted(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("step-complete")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("step-complete")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "done"})
+		env.MockClient.SetResponse(st.ID, api.Args{"result": "done"})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-step-complete")
-		execState := env.WaitForStepStatus(flowID, step.ID, func() {
-			err = env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-step-complete")
+		execState := env.WaitForStepStatus(id, st.ID, func() {
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, execState)
@@ -369,20 +369,20 @@ func TestWaitStepFailed(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("step-fail")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("step-fail")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		env.MockClient.SetError(step.ID, assert.AnError)
+		env.MockClient.SetError(st.ID, assert.AnError)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-step-fail")
-		execState := env.WaitForStepStatus(flowID, step.ID, func() {
-			err = env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-step-fail")
+		execState := env.WaitForStepStatus(id, st.ID, func() {
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, execState)
@@ -395,20 +395,20 @@ func TestWaitStepSkipped(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewStepWithPredicate(
+		st := helpers.NewStepWithPredicate(
 			"skip-step", api.ScriptLangAle, "false",
 		)
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-step-skipped")
-		execState := env.WaitForStepStatus(flowID, step.ID, func() {
-			err = env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-step-skipped")
+		execState := env.WaitForStepStatus(id, st.ID, func() {
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 		assert.NotNil(t, execState)
@@ -421,19 +421,19 @@ func TestWaitForHelper(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("waitfor-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("waitfor-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
-		flowID := api.FlowID("waitfor-flow")
+		id := api.FlowID("waitfor-flow")
 
-		env.WaitFor(wait.FlowCompleted(flowID), func() {
-			err = env.Engine.StartFlow(flowID, plan)
+		env.WaitFor(wait.FlowCompleted(id), func() {
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 	})
@@ -460,23 +460,23 @@ func TestWaitAfterAllHelper(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("waitafterall-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("waitafterall-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
-		flowID := api.FlowID("waitafterall-flow")
+		id := api.FlowID("waitafterall-flow")
 
 		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			assert.Len(t, waits, 2)
-			err = env.Engine.StartFlow(flowID, plan)
+			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 			for _, w := range waits {
-				w.ForEvent(wait.FlowCompleted(flowID))
+				w.ForEvent(wait.FlowCompleted(id))
 			}
 		})
 	})

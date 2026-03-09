@@ -279,6 +279,38 @@ describe("flowStore", () => {
       expect(state.selectedFlow).toBeNull();
     });
 
+    test("setFlowNotFound marks the selected flow missing", () => {
+      useFlowStore.setState({
+        selectedFlow: "wf-1",
+        flowData: {
+          id: "wf-1",
+          status: "active",
+          state: {},
+          started_at: "2024-01-01T00:00:00Z",
+        },
+        executions: [
+          {
+            flow_id: "wf-1",
+            step_id: "step-1",
+            status: "active",
+            inputs: {},
+            started_at: "2024-01-01T00:00:00Z",
+          },
+        ],
+        resolvedAttributes: ["foo"],
+        loading: true,
+      });
+
+      useFlowStore.getState().setFlowNotFound("wf-1");
+
+      const state = useFlowStore.getState();
+      expect(state.flowData).toBeNull();
+      expect(state.executions).toEqual([]);
+      expect(state.resolvedAttributes).toEqual([]);
+      expect(state.loading).toBe(false);
+      expect(state.flowNotFound).toBe(true);
+    });
+
     test("selectFlow skips if same flow already selected with data", () => {
       useFlowStore.setState({
         selectedFlow: "wf-1",

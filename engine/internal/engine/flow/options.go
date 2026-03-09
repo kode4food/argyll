@@ -1,6 +1,9 @@
-package flowopt
+package flow
 
-import "github.com/kode4food/argyll/engine/pkg/api"
+import (
+	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
+)
 
 type (
 	// Options contains optional parameters for starting a flow
@@ -10,27 +13,18 @@ type (
 		Labels   api.Labels
 	}
 
-	// Applier mutates Options during StartFlow setup
-	Applier func(*Options)
+	// Applier mutates *FlowOptions during StartFlow setup
+	Applier = call.Applier[*Options]
 )
 
-// DefaultOptions returns an Options instance with defaults applied
-func DefaultOptions(apps ...Applier) *Options {
-	opt := &Options{
+// Defaults returns an Options instance with defaults applied
+var Defaults = call.Defaults(func() *Options {
+	return &Options{
 		Init:     api.Args{},
 		Metadata: api.Metadata{},
 		Labels:   api.Labels{},
 	}
-	ApplyOptions(opt, apps...)
-	return opt
-}
-
-// ApplyOptions applies option appliers in order
-func ApplyOptions(opt *Options, apps ...Applier) {
-	for _, app := range apps {
-		app(opt)
-	}
-}
+})
 
 // WithInit sets the initial flow inputs
 func WithInit(initState api.Args) Applier {

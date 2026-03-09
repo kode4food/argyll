@@ -26,9 +26,9 @@ func TestStartStop(t *testing.T) {
 
 func TestGetStepHealth(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := helpers.NewSimpleStep("health-test-step")
+		st := helpers.NewSimpleStep("health-test-step")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		part, err := env.Engine.GetPartitionState()
@@ -88,9 +88,9 @@ func TestWithRealHealthCheck(t *testing.T) {
 
 func TestRecentSuccess(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := helpers.NewSimpleStep("recent-success-step")
+		st := helpers.NewSimpleStep("recent-success-step")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		checker := server.NewHealthChecker(env.Engine, env.EventHub)
@@ -103,8 +103,8 @@ func TestRecentSuccess(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: "wf-test",
 					Plan: &api.ExecutionPlan{
-						Goals: []api.StepID{step.ID},
-						Steps: api.Steps{step.ID: step},
+						Goals: []api.StepID{st.ID},
+						Steps: api.Steps{st.ID: st},
 					},
 					Init:     api.Args{},
 					Metadata: api.Metadata{},
@@ -113,7 +113,7 @@ func TestRecentSuccess(t *testing.T) {
 			helpers.FlowEvent{
 				Type: api.EventTypeStepCompleted,
 				Data: api.StepCompletedEvent{
-					StepID: step.ID,
+					StepID: st.ID,
 					FlowID: "wf-test",
 				},
 			},

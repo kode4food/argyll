@@ -35,8 +35,8 @@ func TestListStepsEmpty(t *testing.T) {
 
 func TestDeleteStepSuccessful(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("to-delete")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("to-delete")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("DELETE", "/engine/step/to-delete", nil)
@@ -56,8 +56,8 @@ func TestDeleteStepSuccessful(t *testing.T) {
 
 func TestGetStepExists(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("existing-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("existing-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/step/existing-step", nil)
@@ -106,8 +106,8 @@ func TestListStepsWithMultiple(t *testing.T) {
 
 func TestCreateStepConflict(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("conflict-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("conflict-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		differentStep := &api.Step{
@@ -136,9 +136,9 @@ func TestCreateStepConflict(t *testing.T) {
 
 func TestCreateStep(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("test-step")
+		st := helpers.NewSimpleStep("test-step")
 
-		body, _ := json.Marshal(step)
+		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
@@ -154,11 +154,11 @@ func TestCreateStep(t *testing.T) {
 
 func TestCreateStepIdempotent(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("dupe-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("dupe-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		body, _ := json.Marshal(step)
+		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
@@ -205,9 +205,9 @@ func TestCreateStepValid(t *testing.T) {
 
 func TestListSteps(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("list-step")
+		st := helpers.NewSimpleStep("list-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/step", nil)
@@ -229,9 +229,9 @@ func TestListSteps(t *testing.T) {
 
 func TestGetStep(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("get-step")
+		st := helpers.NewSimpleStep("get-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/step/get-step", nil)
@@ -245,15 +245,15 @@ func TestGetStep(t *testing.T) {
 		var retrieved *api.Step
 		err = json.Unmarshal(w.Body.Bytes(), &retrieved)
 		assert.NoError(t, err)
-		assert.Equal(t, step.ID, retrieved.ID)
+		assert.Equal(t, st.ID, retrieved.ID)
 	})
 }
 
 func TestDeleteStep(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("delete-step")
+		st := helpers.NewSimpleStep("delete-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("DELETE", "/engine/step/delete-step", nil)
@@ -285,9 +285,9 @@ func TestDeleteStepNotFound(t *testing.T) {
 
 func TestUpdateStep(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("update-step")
+		st := helpers.NewSimpleStep("update-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("update-step")
@@ -308,9 +308,9 @@ func TestUpdateStep(t *testing.T) {
 
 func TestUpdateStepMismatchStatus(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("update-step-mismatch")
+		st := helpers.NewSimpleStep("update-step-mismatch")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("other-id")
@@ -397,9 +397,9 @@ func TestCreateStepValidBody(t *testing.T) {
 
 func TestUpdateStepMismatchMessage(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewSimpleStep("original-step")
+		st := helpers.NewSimpleStep("original-step")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		updatedStep := helpers.NewSimpleStep("different-id")
@@ -421,9 +421,9 @@ func TestUpdateStepMismatchMessage(t *testing.T) {
 
 func TestUpdateValidationError(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewSimpleStep("update-step")
+		st := helpers.NewSimpleStep("update-step")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		invalidStep := &api.Step{
@@ -449,9 +449,9 @@ func TestUpdateValidationError(t *testing.T) {
 
 func TestUpdateStepNotFound(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewSimpleStep("nonexistent")
+		st := helpers.NewSimpleStep("nonexistent")
 
-		body, _ := json.Marshal(step)
+		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/nonexistent", bytes.NewReader(body),
 		)
@@ -485,12 +485,12 @@ func TestUpdateStepInvalidJSON(t *testing.T) {
 
 func TestCreateStepDuplicate(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewSimpleStep("duplicate-step")
+		st := helpers.NewSimpleStep("duplicate-step")
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		body, _ := json.Marshal(step)
+		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
@@ -506,12 +506,12 @@ func TestCreateStepDuplicate(t *testing.T) {
 
 func TestCreateStepInvalidScript(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewScriptStep(
+		st := helpers.NewScriptStep(
 			"invalid-script", api.ScriptLangLua,
 			"return {invalid syntax", "result",
 		)
 
-		body, _ := json.Marshal(step)
+		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
@@ -559,8 +559,8 @@ func TestCreateStepBodyTooLarge(t *testing.T) {
 
 func TestUpdateStepBodyTooLarge(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewSimpleStep("large-update-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("large-update-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		body := bytes.Repeat([]byte("x"), server.MaxStepBodyBytes+1)
@@ -579,8 +579,8 @@ func TestUpdateStepBodyTooLarge(t *testing.T) {
 
 func TestDeleteStepInternalError(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := helpers.NewSimpleStep("test-delete-step")
-		err := env.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("test-delete-step")
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(

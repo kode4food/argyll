@@ -38,7 +38,7 @@ func TestFlowStarted(t *testing.T) {
 	state := events.NewFlowState()
 	now := time.Now()
 
-	plan := &api.ExecutionPlan{
+	pl := &api.ExecutionPlan{
 		Steps: api.Steps{
 			"step1": {ID: "step1", Name: "Step 1"},
 			"step2": {ID: "step2", Name: "Step 2"},
@@ -47,7 +47,7 @@ func TestFlowStarted(t *testing.T) {
 
 	eventData := api.FlowStartedEvent{
 		FlowID: "test-flow",
-		Plan:   plan,
+		Plan:   pl,
 		Init: api.Args{
 			"input1": "value1",
 			"input2": 42,
@@ -69,7 +69,7 @@ func TestFlowStarted(t *testing.T) {
 	assert.NotNil(t, result)
 	assert.Equal(t, api.FlowID("test-flow"), result.ID)
 	assert.Equal(t, api.FlowActive, result.Status)
-	assert.Equal(t, plan, result.Plan)
+	assert.Equal(t, pl, result.Plan)
 	assert.Len(t, result.Attributes, 2)
 	assert.Equal(t, "value1", result.Attributes["input1"].Value)
 	assert.Equal(t, float64(42), result.Attributes["input2"].Value)

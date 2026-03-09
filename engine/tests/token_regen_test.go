@@ -18,44 +18,44 @@ func TestMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewStepWithOutputs("memo-retry", "result")
-		step.Memoizable = true
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewStepWithOutputs("memo-retry", "result")
+		st.Memoizable = true
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
 			InitBackoff: retryBackoffMs,
 			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// First attempt fails
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-memo-token-reuse")
+		id := api.FlowID("test-memo-token-reuse")
 		// Wait for retry to be scheduled
 		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
-			FlowID: flowID,
-			StepID: step.ID,
+			FlowID: id,
+			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(flowID, plan)
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Clear error and set success response for retry
-		flow := env.WaitForFlowStatus(flowID, func() {
-			env.MockClient.ClearError(step.ID)
-			env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
+		fl := env.WaitForFlowStatus(id, func() {
+			env.MockClient.ClearError(st.ID)
+			env.MockClient.SetResponse(st.ID, api.Args{"result": "success"})
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify only one work item (token was reused)
-		exec := flow.Executions[step.ID]
+		exec := fl.Executions[st.ID]
 		assert.Len(t, exec.WorkItems, 1)
 
 		// Verify the work item has retry count > 0
@@ -72,44 +72,44 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewStepWithOutputs("non-memo-retry", "result")
-		step.Memoizable = false
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewStepWithOutputs("non-memo-retry", "result")
+		st.Memoizable = false
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  2,
 			InitBackoff: retryBackoffMs,
 			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// First attempt fails
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-non-memo-token-regen")
+		id := api.FlowID("test-non-memo-token-regen")
 		// Wait for retry to be scheduled
 		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
-			FlowID: flowID,
-			StepID: step.ID,
+			FlowID: id,
+			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(flowID, plan)
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Clear error and set success response for retry
-		flow := env.WaitForFlowStatus(flowID, func() {
-			env.MockClient.ClearError(step.ID)
-			env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
+		fl := env.WaitForFlowStatus(id, func() {
+			env.MockClient.ClearError(st.ID)
+			env.MockClient.SetResponse(st.ID, api.Args{"result": "success"})
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify only one work item exists (old token was replaced)
-		exec := flow.Executions[step.ID]
+		exec := fl.Executions[st.ID]
 		assert.Len(t, exec.WorkItems, 1)
 
 		// Verify the work item has retry count > 0
@@ -126,44 +126,44 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewStepWithOutputs("multi-retry", "result")
-		step.Memoizable = false
-		step.WorkConfig = &api.WorkConfig{
+		st := helpers.NewStepWithOutputs("multi-retry", "result")
+		st.Memoizable = false
+		st.WorkConfig = &api.WorkConfig{
 			MaxRetries:  3,
 			InitBackoff: retryBackoffMs,
 			MaxBackoff:  retryBackoffMs,
 			BackoffType: api.BackoffTypeFixed,
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// Fail multiple times before succeeding
-		env.MockClient.SetError(step.ID, api.ErrWorkNotCompleted)
+		env.MockClient.SetError(st.ID, api.ErrWorkNotCompleted)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
-		flowID := api.FlowID("test-multi-retry-tokens")
+		id := api.FlowID("test-multi-retry-tokens")
 		// Wait for first retry
 		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
-			FlowID: flowID,
-			StepID: step.ID,
+			FlowID: id,
+			StepID: st.ID,
 		}), func() {
-			err := env.Engine.StartFlow(flowID, plan)
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Allow next retry to succeed
-		flow := env.WaitForFlowStatus(flowID, func() {
-			env.MockClient.ClearError(step.ID)
-			env.MockClient.SetResponse(step.ID, api.Args{"result": "success"})
+		fl := env.WaitForFlowStatus(id, func() {
+			env.MockClient.ClearError(st.ID)
+			env.MockClient.SetResponse(st.ID, api.Args{"result": "success"})
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify only one work item exists (tokens were replaced on retry)
-		exec := flow.Executions[step.ID]
+		exec := fl.Executions[st.ID]
 		assert.Len(t, exec.WorkItems, 1)
 
 		// Verify the work item has retry count >= 1

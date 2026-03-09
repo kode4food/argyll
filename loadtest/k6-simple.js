@@ -75,9 +75,12 @@ export default function (data) {
   while (!completed && attempts < maxAttempts) {
     sleep(0.1);
 
-    const statusRes = http.get(`${ENGINE_URL}/engine/flow/${flowId}`, {
+    const statusRes = http.get(
+      `${ENGINE_URL}/engine/flow/${flowId}/status`,
+      {
       tags: { name: "GetFlowStatus" },
-    });
+      },
+    );
 
     if (statusRes.status === 200) {
       const flow = JSON.parse(statusRes.body);

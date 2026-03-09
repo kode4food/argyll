@@ -23,7 +23,6 @@ type HealthChecker struct {
 	cancel      context.CancelFunc
 	client      *http.Client
 	consumer    *timebox.Consumer
-	handler     timebox.Handler
 	lastSuccess map[api.StepID]time.Time
 	mu          sync.RWMutex
 }
@@ -41,7 +40,7 @@ func NewHealthChecker(
 	eng *engine.Engine, hub *timebox.EventHub,
 ) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
-	res := &HealthChecker{
+	return &HealthChecker{
 		engine:      eng,
 		ctx:         ctx,
 		cancel:      cancel,
@@ -51,8 +50,6 @@ func NewHealthChecker(
 			Timeout: healthCheckTimeout,
 		},
 	}
-	res.handler = timebox.MakeHandler(res.handleStepCompleted)
-	return res
 }
 
 // Start begins the health check loop and event processing
@@ -73,25 +70,25 @@ func (h *HealthChecker) eventLoop() {
 		case <-h.ctx.Done():
 			return
 
-		case event, ok := <-h.consumer.Receive():
+		case ev, ok := <-h.consumer.Receive():
 			if !ok {
 				return
 			}
-			if err := h.handler(event); err != nil {
-				slog.Error("Failed to handle step completed event",
+			sc, err := timebox.GetEventValue[api.StepCompletedEvent](ev)
+			if err != nil {
+				slog.Error("Failed to unmarshal step completed event",
 					log.Error(err))
+				continue
 			}
+			h.handleStepCompleted(sc)
 		}
 	}
 }
 
-func (h *HealthChecker) handleStepCompleted(
-	_ *timebox.Event, sc api.StepCompletedEvent,
-) error {
+func (h *HealthChecker) handleStepCompleted(sc api.StepCompletedEvent) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
 	h.lastSuccess[sc.StepID] = time.Now()
-	return nil
 }
 
 func (h *HealthChecker) getLastSuccess(stepID api.StepID) (time.Time, bool) {

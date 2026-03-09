@@ -1,12 +1,13 @@
-package flowopt_test
+package flow_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
 func TestDefaultOptions(t *testing.T) {
@@ -14,10 +15,10 @@ func TestDefaultOptions(t *testing.T) {
 	meta := api.Metadata{"k": "v"}
 	labels := api.Labels{"tier": "test"}
 
-	opts := flowopt.DefaultOptions(
-		flowopt.WithInit(init),
-		flowopt.WithMetadata(meta),
-		flowopt.WithLabels(labels),
+	opts := flow.Defaults(
+		flow.WithInit(init),
+		flow.WithMetadata(meta),
+		flow.WithLabels(labels),
 	)
 
 	assert.Equal(t, init, opts.Init)
@@ -25,12 +26,12 @@ func TestDefaultOptions(t *testing.T) {
 	assert.Equal(t, labels, opts.Labels)
 }
 
-func TestApplyOptions(t *testing.T) {
-	opts := &flowopt.Options{}
-	flowopt.ApplyOptions(opts,
-		flowopt.WithInit(api.Args{"x": "y"}),
-		flowopt.WithMetadata(api.Metadata{"m": "n"}),
-		flowopt.WithLabels(api.Labels{"l": "z"}),
+func TestApply(t *testing.T) {
+	opts := &flow.Options{}
+	call.Apply(opts,
+		flow.WithInit(api.Args{"x": "y"}),
+		flow.WithMetadata(api.Metadata{"m": "n"}),
+		flow.WithLabels(api.Labels{"l": "z"}),
 	)
 
 	assert.Equal(t, api.Args{"x": "y"}, opts.Init)

@@ -45,27 +45,39 @@ func ParseFlowID(id timebox.AggregateID) (api.FlowID, bool) {
 
 func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 	res := make([]*timebox.Index, 0, len(evs))
-	handleStarted := timebox.MakeHandler(
-		func(_ *timebox.Event, data api.FlowStartedEvent) error {
-			status := FlowStatusActive
-			idx := &timebox.Index{Status: &status, Labels: data.Labels}
-			res = append(res, idx)
-			return nil
-		},
-	)
-	handleDeactivated := timebox.MakeHandler(
-		func(_ *timebox.Event, data api.FlowDeactivatedEvent) error {
-			status := string(data.Status)
-			res = append(res, &timebox.Index{Status: &status})
-			return nil
-		},
-	)
+
+	handleStarted := func(data api.FlowStartedEvent) {
+		status := FlowStatusActive
+		res = append(res, &timebox.Index{
+			Status: &status,
+			Labels: data.Labels,
+		})
+	}
+
+	handleDeactivated := func(data api.FlowDeactivatedEvent) {
+		status := string(data.Status)
+		res = append(res, &timebox.Index{
+			Status: &status,
+		})
+	}
+
 	for _, ev := range evs {
 		switch api.EventType(ev.Type) {
 		case api.EventTypeFlowStarted:
-			_ = handleStarted(ev)
+			data, err := timebox.GetEventValue[api.FlowStartedEvent](ev)
+			if err == nil {
+				handleStarted(data)
+				continue
+			}
+			// slog this. very bad
+
 		case api.EventTypeFlowDeactivated:
-			_ = handleDeactivated(ev)
+			data, err := timebox.GetEventValue[api.FlowDeactivatedEvent](ev)
+			if err == nil {
+				handleDeactivated(data)
+				continue
+			}
+			// slog this. very bad
 		}
 	}
 	return res

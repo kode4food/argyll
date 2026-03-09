@@ -1,7 +1,15 @@
 package call
 
-// Call is a deferred error-returning function
-type Call func() error
+type (
+	// Call is a deferred error-returning function
+	Call func() error
+
+	// Applier mutates a value in place
+	Applier[T any] func(T)
+
+	// Constructor creates a new instance of T
+	Constructor[T any] func() T
+)
 
 // Perform runs calls in order and stops on the first error
 func Perform(calls ...Call) error {
@@ -26,5 +34,21 @@ func WithArgs[Arg1, Arg2 any](
 ) Call {
 	return func() error {
 		return call(arg1, arg2)
+	}
+}
+
+// Apply runs appliers in order
+func Apply[T any](v T, apps ...Applier[T]) {
+	for _, app := range apps {
+		app(v)
+	}
+}
+
+// Defaults builds a defaulted value, then applies the provided appliers
+func Defaults[T any](defaults Constructor[T]) func(...Applier[T]) T {
+	return func(apps ...Applier[T]) T {
+		v := defaults()
+		Apply(v, apps...)
+		return v
 	}
 }

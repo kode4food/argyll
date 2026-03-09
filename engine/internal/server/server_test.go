@@ -46,9 +46,9 @@ func TestEngineHealth(t *testing.T) {
 
 func TestStartFlow(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("wf-step")
+		st := helpers.NewSimpleStep("wf-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		reqBody := api.CreateFlowRequest{
@@ -214,14 +214,14 @@ func TestHookStepNotFound(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(step)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"async-step"},
 			Steps: api.Steps{
 				"async-step": step,
 			},
 		}
 
-		err = testEnv.Engine.StartFlow("webhook-wf", plan)
+		err = testEnv.Engine.StartFlow("webhook-wf", pl)
 		assert.NoError(t, err)
 
 		result := api.StepResult{
@@ -438,19 +438,19 @@ func TestGetFlow(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("get-wf-step")
+		st := helpers.NewSimpleStep("get-wf-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"get-wf-step"},
 			Steps: api.Steps{
-				"get-wf-step": step,
+				"get-wf-step": st,
 			},
 		}
 
-		err = testEnv.Engine.StartFlow("test-wf-id", plan)
+		err = testEnv.Engine.StartFlow("test-wf-id", pl)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/flow/test-wf-id", nil)
@@ -468,9 +468,61 @@ func TestGetFlow(t *testing.T) {
 	})
 }
 
+func TestGetFlowStatus(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		assert.NoError(t, testEnv.Engine.Start())
+		defer func() { _ = testEnv.Engine.Stop() }()
+
+		st := helpers.NewSimpleStep("status-wf-step")
+
+		err := testEnv.Engine.RegisterStep(st)
+		assert.NoError(t, err)
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{"status-wf-step"},
+			Steps: api.Steps{
+				"status-wf-step": st,
+			},
+		}
+
+		err = testEnv.Engine.StartFlow("status-wf-id", pl)
+		assert.NoError(t, err)
+
+		req := httptest.NewRequest(
+			"GET", "/engine/flow/status-wf-id/status", nil,
+		)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var resp api.FlowStatusResponse
+		err = json.Unmarshal(w.Body.Bytes(), &resp)
+		assert.NoError(t, err)
+		assert.Equal(t, api.FlowID("status-wf-id"), resp.ID)
+		assert.Equal(t, api.FlowCompleted, resp.Status)
+	})
+}
+
 func TestGetFlowNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest("GET", "/engine/flow/nonexistent", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusNotFound, w.Code)
+	})
+}
+
+func TestGetFlowStatusNotFound(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		req := httptest.NewRequest(
+			"GET", "/engine/flow/nonexistent/status", nil,
+		)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -533,9 +585,9 @@ func TestStartFlowInvalidJSON(t *testing.T) {
 
 func TestEngineHealthByID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("health-step")
+		st := helpers.NewSimpleStep("health-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/health/health-step", nil)
@@ -557,7 +609,7 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		goalA := helpers.NewSimpleStep("goal-a")
 		goalB := helpers.NewSimpleStep("goal-b")
-		flow := &api.Step{
+		fl := &api.Step{
 			ID:   "flow-step",
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
@@ -571,7 +623,7 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 
 		assert.NoError(t, testEnv.Engine.RegisterStep(goalA))
 		assert.NoError(t, testEnv.Engine.RegisterStep(goalB))
-		assert.NoError(t, testEnv.Engine.RegisterStep(flow))
+		assert.NoError(t, testEnv.Engine.RegisterStep(fl))
 		assert.NoError(t,
 			testEnv.Engine.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
 		)
@@ -610,9 +662,9 @@ func TestEngineHealthNotFound(t *testing.T) {
 
 func TestStartFlowEmptyID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("test-step")
+		st := helpers.NewSimpleStep("test-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		reqData := map[string]any{
@@ -720,17 +772,17 @@ func TestListFlowsEndpoint(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("list-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("list-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		testEnv.WaitFor(wait.FlowActivated("wf-list"), func() {
-			err = testEnv.Engine.StartFlow("wf-list", plan)
+			err = testEnv.Engine.StartFlow("wf-list", pl)
 			assert.NoError(t, err)
 		})
 
@@ -904,19 +956,19 @@ func TestPlanPreviewStepNotFound(t *testing.T) {
 
 func TestStartFlowDuplicate(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("dup-wf-step")
+		st := helpers.NewSimpleStep("dup-wf-step")
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"dup-wf-step"},
 			Steps: api.Steps{
-				"dup-wf-step": step,
+				"dup-wf-step": st,
 			},
 		}
 
-		err = testEnv.Engine.StartFlow("duplicate-flow", plan)
+		err = testEnv.Engine.StartFlow("duplicate-flow", pl)
 		assert.NoError(t, err)
 
 		reqBody := api.CreateFlowRequest{
@@ -982,8 +1034,8 @@ func TestCORSOptions(t *testing.T) {
 
 func TestSanitizeFlowID(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("test-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("test-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		tests := []struct {
@@ -1047,25 +1099,25 @@ func TestQueryFlowsMultiple(t *testing.T) {
 		defer func() { _ = testEnv.Engine.Stop() }()
 
 		var err error
-		step := helpers.NewSimpleStep("test-step")
+		st := helpers.NewSimpleStep("test-step")
 		testEnv.WaitFor(wait.EngineEvent(
 			api.EventTypeStepRegistered,
 		), func() {
-			err = testEnv.Engine.RegisterStep(step)
+			err = testEnv.Engine.RegisterStep(st)
 			assert.NoError(t, err)
 		})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"test-step"},
-			Steps: api.Steps{"test-step": step},
+			Steps: api.Steps{"test-step": st},
 		}
 
 		testEnv.WaitForCount(2,
 			wait.FlowActivated("flow-1", "flow-2"), func() {
-				err = testEnv.Engine.StartFlow("flow-1", plan)
+				err = testEnv.Engine.StartFlow("flow-1", pl)
 				assert.NoError(t, err)
 
-				err = testEnv.Engine.StartFlow("flow-2", plan)
+				err = testEnv.Engine.StartFlow("flow-2", pl)
 				assert.NoError(t, err)
 			})
 
@@ -1092,8 +1144,8 @@ func TestGetEngine(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("test-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("test-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine", nil)
@@ -1118,8 +1170,8 @@ func TestHealthList(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := helpers.NewSimpleStep("health-test-step")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("health-test-step")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/engine/health", nil)
@@ -1159,7 +1211,7 @@ func TestHookSuccessRoute(t *testing.T) {
 
 		testEnv.MockClient.SetResponse(step.ID, api.Args{})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
@@ -1170,7 +1222,7 @@ func TestHookSuccessRoute(t *testing.T) {
 				StepID: step.ID,
 			},
 			func() {
-				err = testEnv.Engine.StartFlow("webhook-flow", plan)
+				err = testEnv.Engine.StartFlow("webhook-flow", pl)
 				assert.NoError(t, err)
 			})
 
@@ -1325,8 +1377,8 @@ func TestQueryFlowsInvalidLabelEmptyKey(t *testing.T) {
 
 func TestStartFlowIDTooLong(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("test-step-long-id")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("test-step-long-id")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		longID := api.FlowID(strings.Repeat("a", api.MaxFlowIDLen+1))
@@ -1376,8 +1428,8 @@ func TestStartFlowTooManyGoals(t *testing.T) {
 
 func TestStartFlowTooManyInitKeys(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("test-step-init-keys")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("test-step-init-keys")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		init := api.Args{}
@@ -1406,8 +1458,8 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 
 func TestStartFlowTooManyLabels(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("test-step-labels")
-		err := testEnv.Engine.RegisterStep(step)
+		st := helpers.NewSimpleStep("test-step-labels")
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		labels := api.Labels{}

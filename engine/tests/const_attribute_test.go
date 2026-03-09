@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -15,40 +15,40 @@ func TestConstAttribute(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := helpers.NewScriptStep(
+		st := helpers.NewScriptStep(
 			"step-const",
 			api.ScriptLangAle,
 			`{:result const_value}`,
 			"result",
 		)
-		step.Attributes["const_value"] = &api.AttributeSpec{
+		st.Attributes["const_value"] = &api.AttributeSpec{
 			Role:    api.RoleConst,
 			Type:    api.TypeString,
 			Default: `"fixed"`,
 		}
-		step.Attributes["result"].Type = api.TypeString
+		st.Attributes["result"].Type = api.TypeString
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
-		plan := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 			Attributes: api.AttributeGraph{
 				"result": {
-					Providers: []api.StepID{step.ID},
+					Providers: []api.StepID{st.ID},
 					Consumers: []api.StepID{},
 				},
 			},
 		}
 
-		flowID := api.FlowID("test-const-attribute")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan,
-				flowopt.WithInit(api.Args{"const_value": "override"}),
+		id := api.FlowID("test-const-attribute")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.Args{"const_value": "override"}),
 			)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
-		assert.Equal(t, "fixed", flow.Attributes["result"].Value)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, "fixed", fl.Attributes["result"].Value)
 	})
 }

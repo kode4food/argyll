@@ -201,12 +201,12 @@ func TestFlowGetState(t *testing.T) {
 			assert.Equal(t, "GET", r.Method)
 			assert.Equal(t, "/engine/flow/my-flow", r.URL.Path)
 
-			flow := api.FlowState{
+			fl := api.FlowState{
 				ID:     "my-flow",
 				Status: api.FlowActive,
 			}
 			w.WriteHeader(http.StatusOK)
-			_ = json.NewEncoder(w).Encode(flow)
+			_ = json.NewEncoder(w).Encode(fl)
 		},
 	))
 	defer server.Close()

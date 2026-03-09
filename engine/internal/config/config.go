@@ -13,30 +13,28 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-type (
-	// Config holds configuration settings for the orchestrator
-	Config struct {
-		// API Server
-		APIHost        string
-		APIPort        int
-		WebhookBaseURL string
-		LogLevel       string
+// Config holds configuration settings for the orchestrator
+type Config struct {
+	// API Server
+	APIHost        string
+	APIPort        int
+	WebhookBaseURL string
+	LogLevel       string
 
-		// Stores & Archiving
-		CatalogStore   timebox.StoreConfig
-		PartitionStore timebox.StoreConfig
-		FlowStore      timebox.StoreConfig
+	// Stores & Archiving
+	CatalogStore   timebox.StoreConfig
+	PartitionStore timebox.StoreConfig
+	FlowStore      timebox.StoreConfig
 
-		// Work & Retry
-		Work api.WorkConfig
+	// Work & Retry
+	Work api.WorkConfig
 
-		// Engine
-		StepTimeout     int64
-		FlowCacheSize   int
-		MemoCacheSize   int
-		ShutdownTimeout time.Duration
-	}
-)
+	// Engine
+	StepTimeout     int64
+	FlowCacheSize   int
+	MemoCacheSize   int
+	ShutdownTimeout time.Duration
+}
 
 const (
 	DefaultStepTimeout     = 30 * api.Second
@@ -52,8 +50,8 @@ const (
 	DefaultSnapshotWorkers     = 4
 	DefaultSnapshotQueueSize   = 1000
 	DefaultSnapshotSaveTimeout = 30 * time.Second
-	DefaultCacheSize           = 4096
-	DefaultMemoCacheSize       = 10240
+	DefaultFlowCacheSize       = 4096
+	DefaultMemoCacheSize       = 16384
 
 	DefaultRetryMaxRetries  = 10
 	DefaultRetryInitBackoff = 1000
@@ -122,8 +120,6 @@ func NewDefaultConfig() *Config {
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
 			Indexer:      events.FlowIndexer,
-			JoinKey:      events.FlowJoinKey,
-			ParseKey:     events.FlowParseKey,
 		},
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
@@ -132,15 +128,15 @@ func NewDefaultConfig() *Config {
 			BackoffType: DefaultRetryBackoffType,
 		},
 		StepTimeout:     DefaultStepTimeout,
-		FlowCacheSize:   DefaultCacheSize,
+		FlowCacheSize:   DefaultFlowCacheSize,
 		MemoCacheSize:   DefaultMemoCacheSize,
 		ShutdownTimeout: DefaultShutdownTimeout,
 		LogLevel:        "info",
 	}
 }
 
-// LoadFromEnv populates configuration values from environment variables.
-// Returns an error if any env var cannot be parsed.
+// LoadFromEnv populates configuration values from environment variables
+// Returns an error if any env var cannot be parsed
 func (c *Config) LoadFromEnv() error {
 	LoadStoreConfigFromEnv(&c.CatalogStore, "CATALOG")
 	LoadStoreConfigFromEnv(&c.PartitionStore, "PARTITION")
@@ -280,7 +276,7 @@ func LoadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
 
 // loadEnvInt reads key from the environment, parses it as an integer, and
 // sets *dst if the value is in the range (min, max). Returns an error if
-// the value cannot be parsed or falls outside the valid range.
+// the value cannot be parsed or falls outside the valid range
 func loadEnvInt[T ~int | ~int64](key string, dst *T, min, max T) error {
 	s := os.Getenv(key)
 	if s == "" {

@@ -70,13 +70,13 @@ func TestLazyEvaluation(t *testing.T) {
 
 		// Create execution plan with ONLY the steps needed to reach goal. This
 		// simulates the lazy evaluation - plan only includes A→B→C
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c"},
 			Steps: api.Steps{
 				"step-a": stepA,
 				"step-b": stepB,
 				"step-c": stepC,
-				// D through J deliberately NOT included in plan
+				// D through J deliberately NOT included in pl
 			},
 			Attributes: api.AttributeGraph{
 				"valueA": &api.AttributeEdges{
@@ -90,33 +90,33 @@ func TestLazyEvaluation(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-lazy-eval")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-lazy-eval")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// CRITICAL: Verify only 3 steps exist in executions (lazy evaluation)
-		assert.Len(t, flow.Executions, 3)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-c"].Status)
+		assert.Len(t, fl.Executions, 3)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
 
 		// Verify unrelated steps are NOT in executions
-		assert.NotContains(t, flow.Executions, api.StepID("step-d"))
-		assert.NotContains(t, flow.Executions, api.StepID("step-e"))
-		assert.NotContains(t, flow.Executions, api.StepID("step-f"))
-		assert.NotContains(t, flow.Executions, api.StepID("step-g"))
-		assert.NotContains(t, flow.Executions, api.StepID("step-h"))
-		assert.NotContains(t, flow.Executions, api.StepID("step-i"))
-		assert.NotContains(t, flow.Executions, api.StepID("step-j"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-d"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-e"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-f"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-g"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-h"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-i"))
+		assert.NotContains(t, fl.Executions, api.StepID("step-j"))
 
 		// Verify only required attributes were set
-		assert.Len(t, flow.Attributes, 3)
-		assert.Equal(t, "from-A", flow.Attributes["valueA"].Value)
-		assert.Equal(t, "from-B", flow.Attributes["valueB"].Value)
-		assert.Equal(t, "done", flow.Attributes["result"].Value)
+		assert.Len(t, fl.Attributes, 3)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
+		assert.Equal(t, "from-B", fl.Attributes["valueB"].Value)
+		assert.Equal(t, "done", fl.Attributes["result"].Value)
 
 		// CRITICAL: Verify only 3 steps were actually invoked (lazy evaluation)
 		invocations := env.MockClient.GetInvocations()

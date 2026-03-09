@@ -44,7 +44,7 @@ func TestDependencyChain(t *testing.T) {
 		env.MockClient.SetResponse("step-c", api.Args{"result": "done"})
 
 		// Create execution plan with step-c as goal
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-c"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -63,22 +63,22 @@ func TestDependencyChain(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-dependency-chain")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-dependency-chain")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify all steps completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-c"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
 
 		// Verify attribute propagation
-		assert.Equal(t, "from-A", flow.Attributes["valueA"].Value)
-		assert.Equal(t, "from-B", flow.Attributes["valueB"].Value)
-		assert.Equal(t, "done", flow.Attributes["result"].Value)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
+		assert.Equal(t, "from-B", fl.Attributes["valueB"].Value)
+		assert.Equal(t, "done", fl.Attributes["result"].Value)
 
 		// Verify invocation order (all should be invoked)
 		invocations := env.MockClient.GetInvocations()
@@ -139,7 +139,7 @@ func TestDiamondDependencies(t *testing.T) {
 		env.MockClient.SetResponse("step-d", api.Args{"final": "done"})
 
 		// Create execution plan with step-d as goal
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-d"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -167,25 +167,25 @@ func TestDiamondDependencies(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-diamond")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-diamond")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify all steps completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-c"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-d"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-d"].Status)
 
 		// Verify attribute propagation
-		assert.Equal(t, "b-val", flow.Attributes["valueB"].Value)
-		assert.Equal(t, "c-val", flow.Attributes["valueC"].Value)
-		assert.Equal(t, "B-result", flow.Attributes["outputB"].Value)
-		assert.Equal(t, "C-result", flow.Attributes["outputC"].Value)
-		assert.Equal(t, "done", flow.Attributes["final"].Value)
+		assert.Equal(t, "b-val", fl.Attributes["valueB"].Value)
+		assert.Equal(t, "c-val", fl.Attributes["valueC"].Value)
+		assert.Equal(t, "B-result", fl.Attributes["outputB"].Value)
+		assert.Equal(t, "C-result", fl.Attributes["outputC"].Value)
+		assert.Equal(t, "done", fl.Attributes["final"].Value)
 
 		// Verify all steps were invoked
 		invocations := env.MockClient.GetInvocations()

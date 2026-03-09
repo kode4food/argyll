@@ -40,7 +40,7 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		env.MockClient.SetResponse("step-a", api.Args{"valueA": "from-A"})
 		env.MockClient.SetResponse("step-b", api.Args{"result": "done"})
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"step-b"},
 			Steps: api.Steps{
 				"step-a": stepA,
@@ -62,24 +62,24 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 			},
 		}
 
-		flowID := api.FlowID("test-optional-defaults")
-		flow := env.WaitForFlowStatus(flowID, func() {
-			err := env.Engine.StartFlow(flowID, plan)
+		id := api.FlowID("test-optional-defaults")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
 
 		// Verify flow completed successfully
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify both steps completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-b"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
 
 		// Verify step A produced valueA
-		assert.Equal(t, "from-A", flow.Attributes["valueA"].Value)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
 
 		// Verify step B produced result
-		assert.Equal(t, "done", flow.Attributes["result"].Value)
+		assert.Equal(t, "done", fl.Attributes["result"].Value)
 
 		// Verify both steps were invoked
 		invocations := env.MockClient.GetInvocations()

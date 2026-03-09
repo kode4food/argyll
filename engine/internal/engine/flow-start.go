@@ -6,7 +6,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -26,9 +26,9 @@ var (
 
 // StartFlow begins a new flow execution with the given plan and options
 func (e *Engine) StartFlow(
-	flowID api.FlowID, plan *api.ExecutionPlan, apps ...flowopt.Applier,
+	flowID api.FlowID, plan *api.ExecutionPlan, apps ...flow.Applier,
 ) error {
-	opts := flowopt.DefaultOptions(apps...)
+	opts := flow.Defaults(apps...)
 	if err := call.Perform(
 		call.WithArg(validateParentMetadata, opts.Metadata),
 		call.WithArg(plan.ValidateInputs, opts.Init),
@@ -94,8 +94,8 @@ func (e *Engine) StartChildFlow(
 	})
 
 	if err := e.StartFlow(childID, pl,
-		flowopt.WithInit(initState),
-		flowopt.WithMetadata(meta),
+		flow.WithInit(initState),
+		flow.WithMetadata(meta),
 	); err != nil {
 		if errors.Is(err, ErrFlowExists) {
 			return childID, nil

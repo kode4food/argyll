@@ -9,7 +9,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
-	"github.com/kode4food/argyll/engine/internal/engine/flowopt"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -200,7 +200,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 	})
 }
 
-func TestFlowWithoutTimeoutOptionalsSchedulesNoTimeoutTasks(t *testing.T) {
+func TestNoTimeoutTasks(t *testing.T) {
 	withFakeScheduler(t, func(
 		eng *engine.Engine, timer *fakeTimer, _ time.Time,
 	) {
@@ -225,17 +225,17 @@ func TestFlowWithoutTimeoutOptionalsSchedulesNoTimeoutTasks(t *testing.T) {
 		}
 		assert.NoError(t, eng.RegisterStep(step))
 
-		plan := &api.ExecutionPlan{
+		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{step.ID},
 			Steps: api.Steps{step.ID: step},
 		}
 
-		flowID := api.FlowID("wf-no-timeouts")
-		assert.NoError(t, eng.StartFlow(flowID, plan,
-			flowopt.WithInit(api.Args{"input": "ok"}),
+		id := api.FlowID("wf-no-timeouts")
+		assert.NoError(t, eng.StartFlow(id, pl,
+			flow.WithInit(api.Args{"input": "ok"}),
 		))
 
-		assertFlowEventuallyCompleted(t, eng, flowID)
+		assertFlowEventuallyCompleted(t, eng, id)
 		assertNoSchedulerResets(t, timer)
 	})
 }
