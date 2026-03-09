@@ -51,6 +51,20 @@ err := client.NewFlow("user-signup").
     Start(context.Background())
 ```
 
+### With Labels
+
+Attach labels for flow discovery and filtering:
+
+```go
+err := client.NewFlow("user-signup").
+    WithGoals("send-welcome-email").
+    WithLabels(api.Labels{
+        "team": "growth",
+        "env": "prod",
+    }).
+    Start(context.Background())
+```
+
 ### Multiple Goals
 
 Specify multiple goal steps:
@@ -139,6 +153,7 @@ err := client.NewFlow("complex-flow").
         },
         "user_id": "123",
     }).
+    WithLabel("team", "core").
     Start(context.Background())
 ```
 
@@ -228,6 +243,18 @@ WithGoal(goal StepID) *Flow
 Sets the initial state (arguments) for the flow.
 ```go
 WithInitialState(init api.Args) *Flow
+```
+
+#### WithLabel: Add a label
+Adds a single flow label.
+```go
+WithLabel(key, value string) *Flow
+```
+
+#### WithLabels: Set labels
+Merges labels into the flow's current label set.
+```go
+WithLabels(labels api.Labels) *Flow
 ```
 
 #### Start: Start flow

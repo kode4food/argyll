@@ -101,6 +101,34 @@ func TestFlowWithInitialState(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestFlowWithLabels(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			var req api.CreateFlowRequest
+			err := json.NewDecoder(r.Body).Decode(&req)
+			assert.NoError(t, err)
+
+			assert.Equal(t, api.FlowID("wf-1"), req.ID)
+			assert.Equal(t, api.Labels{
+				"team": "core",
+				"env":  "dev",
+			}, req.Labels)
+
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer server.Close()
+
+	client := builder.NewClient(server.URL, 5*time.Second)
+	err := client.NewFlow("wf-1").
+		WithGoals("goal-step").
+		WithLabel("team", "core").
+		WithLabels(api.Labels{"env": "dev"}).
+		Start(context.Background())
+
+	assert.NoError(t, err)
+}
+
 func TestFlowStartStatusCreated(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
@@ -240,6 +268,47 @@ func TestImmutabilityInitState(t *testing.T) {
 	err2 := client2.NewFlow("test-wf").
 		WithGoals("goal").
 		WithInitialState(initState2).
+		Start(context.Background())
+	assert.NoError(t, err2)
+}
+
+func TestImmutabilityLabels(t *testing.T) {
+	labels1 := api.Labels{"team": "core"}
+	labels2 := api.Labels{"team": "platform"}
+
+	server1 := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			var req api.CreateFlowRequest
+			err := json.NewDecoder(r.Body).Decode(&req)
+			assert.NoError(t, err)
+			assert.Equal(t, labels1, req.Labels)
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer server1.Close()
+
+	server2 := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			var req api.CreateFlowRequest
+			err := json.NewDecoder(r.Body).Decode(&req)
+			assert.NoError(t, err)
+			assert.Equal(t, labels2, req.Labels)
+			w.WriteHeader(http.StatusOK)
+		},
+	))
+	defer server2.Close()
+
+	client1 := builder.NewClient(server1.URL, 5*time.Second)
+	err1 := client1.NewFlow("test-wf").
+		WithGoals("goal").
+		WithLabels(labels1).
+		Start(context.Background())
+	assert.NoError(t, err1)
+
+	client2 := builder.NewClient(server2.URL, 5*time.Second)
+	err2 := client2.NewFlow("test-wf").
+		WithGoals("goal").
+		WithLabels(labels2).
 		Start(context.Background())
 	assert.NoError(t, err2)
 }

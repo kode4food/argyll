@@ -12,6 +12,7 @@ type Flow struct {
 	id     api.FlowID
 	goals  []api.StepID
 	init   api.Args
+	labels api.Labels
 }
 
 // NewFlow creates a new flow builder with the specified ID
@@ -47,11 +48,27 @@ func (f *Flow) WithInitialState(init api.Args) *Flow {
 	return &res
 }
 
+// WithLabel sets a single label for the flow
+func (f *Flow) WithLabel(key, value string) *Flow {
+	return f.WithLabels(api.Labels{key: value})
+}
+
+// WithLabels merges the provided labels into the flow's labels
+func (f *Flow) WithLabels(labels api.Labels) *Flow {
+	if len(labels) == 0 {
+		return f
+	}
+	res := *f
+	res.labels = res.labels.Apply(labels)
+	return &res
+}
+
 // Start creates and starts the flow
 func (f *Flow) Start(ctx context.Context) error {
 	return f.client.startFlow(ctx, &api.CreateFlowRequest{
-		ID:    f.id,
-		Goals: f.goals,
-		Init:  f.init,
+		ID:     f.id,
+		Goals:  f.goals,
+		Init:   f.init,
+		Labels: f.labels,
 	})
 }

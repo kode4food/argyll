@@ -134,6 +134,7 @@ func main() {
     if err := client.NewFlow("greeting-flow-123").
         WithGoals("greeting").
         WithInitialState(api.Args{"name": "Alice"}).
+        WithLabel("team", "examples").
         Start(context.Background()); err != nil {
         log.Fatal(err)
     }
@@ -304,6 +305,8 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithGoal(stepID) *Flow` - Add single goal
 - `WithGoals(...stepIDs) *Flow` - Set all goals
 - `WithInitialState(args) *Flow` - Set initial state
+- `WithLabel(key, value) *Flow` - Add label
+- `WithLabels(labels) *Flow` - Add multiple labels
 - `Start(ctx) error` - Execute flow
 
 ### StepContext
