@@ -82,6 +82,13 @@ func TestWithID(t *testing.T) {
 	assert.Equal(t, api.Name("Test Step"), step.Name)
 }
 
+func TestStepWithEmptyLabels(t *testing.T) {
+	st := testClient().NewStep().WithName("Test")
+
+	assert.Same(t, st, st.WithLabels(nil))
+	assert.Same(t, st, st.WithLabels(api.Labels{}))
+}
+
 func TestWithNameDoesNotOverrideID(t *testing.T) {
 	step, err := testClient().NewStep().
 		WithID("custom-id").

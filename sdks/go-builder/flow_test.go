@@ -129,6 +129,14 @@ func TestFlowWithLabels(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestFlowWithEmptyLabels(t *testing.T) {
+	wf := builder.NewClient("http://localhost:8080", 30*time.Second).
+		NewFlow("wf-1")
+
+	assert.Same(t, wf, wf.WithLabels(nil))
+	assert.Same(t, wf, wf.WithLabels(api.Labels{}))
+}
+
 func TestFlowStartStatusCreated(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
