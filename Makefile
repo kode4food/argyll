@@ -8,7 +8,7 @@ SUBPROJECTS = engine web mcp archiver sdks/go-builder sdks/python \
 define run_target
 	@for dir in $(SUBPROJECTS); do \
 		if $(MAKE) -C $$dir -n $(1) >/dev/null 2>&1; then \
-			$(MAKE) -C $$dir $(1); \
+			$(MAKE) -C $$dir $(1) || exit $$?; \
 		else \
 			echo "Skipping $$dir (no $(1) target)"; \
 		fi; \
