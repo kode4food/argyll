@@ -101,12 +101,12 @@ func (s *argyll) setupLogging() {
 		slog.String("log_level", s.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Addr),
-		slog.Int("catalog_redis_db", s.cfg.CatalogStore.DB),
-		slog.String("partition_redis_addr", s.cfg.PartitionStore.Addr),
-		slog.Int("partition_redis_db", s.cfg.PartitionStore.DB),
-		slog.String("flow_redis_addr", s.cfg.FlowStore.Addr),
-		slog.Int("flow_redis_db", s.cfg.FlowStore.DB),
+		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Redis.Addr),
+		slog.Int("catalog_redis_db", s.cfg.CatalogStore.Redis.DB),
+		slog.String("partition_redis_addr", s.cfg.PartitionStore.Redis.Addr),
+		slog.Int("partition_redis_db", s.cfg.PartitionStore.Redis.DB),
+		slog.String("flow_redis_addr", s.cfg.FlowStore.Redis.Addr),
+		slog.Int("flow_redis_db", s.cfg.FlowStore.Redis.DB),
 		slog.String("api_host", s.cfg.APIHost),
 		slog.Int("api_port", s.cfg.APIPort))
 }
@@ -114,11 +114,7 @@ func (s *argyll) setupLogging() {
 func (s *argyll) initializeStores() error {
 	var err error
 
-	s.timebox, err = timebox.NewTimebox(timebox.Config{
-		MaxRetries: timebox.DefaultMaxRetries,
-		CacheSize:  s.cfg.FlowCacheSize,
-		Workers:    true,
-	})
+	s.timebox, err = timebox.NewTimebox(config.DefaultTimebox())
 	if err != nil {
 		return errors.Join(ErrCreateTimebox, err)
 	}

@@ -15,9 +15,9 @@ import (
 
 func TestInitStoresInvalidAddr(t *testing.T) {
 	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = "127.0.0.1:0"
-	cfg.PartitionStore.Addr = "127.0.0.1:0"
-	cfg.FlowStore.Addr = "127.0.0.1:0"
+	cfg.CatalogStore.Redis.Addr = "127.0.0.1:0"
+	cfg.PartitionStore.Redis.Addr = "127.0.0.1:0"
+	cfg.FlowStore.Redis.Addr = "127.0.0.1:0"
 
 	s := &argyll{cfg: cfg}
 	err := s.initializeStores()
@@ -32,9 +32,9 @@ func TestInitializeStoresSuccess(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
+	cfg.CatalogStore.Redis.Addr = server.Addr()
+	cfg.PartitionStore.Redis.Addr = server.Addr()
+	cfg.FlowStore.Redis.Addr = server.Addr()
 
 	s := &argyll{cfg: cfg}
 	err = s.initializeStores()
@@ -90,9 +90,9 @@ func TestInitializeEngine(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
+	cfg.CatalogStore.Redis.Addr = server.Addr()
+	cfg.PartitionStore.Redis.Addr = server.Addr()
+	cfg.FlowStore.Redis.Addr = server.Addr()
 
 	s := &argyll{cfg: cfg}
 	err = s.initializeStores()
@@ -132,9 +132,9 @@ func TestRun(t *testing.T) {
 	defer server.Close()
 
 	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
+	cfg.CatalogStore.Redis.Addr = server.Addr()
+	cfg.PartitionStore.Redis.Addr = server.Addr()
+	cfg.FlowStore.Redis.Addr = server.Addr()
 	cfg.APIPort = availablePort(t)
 	cfg.ShutdownTimeout = 100 * time.Millisecond
 
@@ -176,9 +176,9 @@ func setupServerTest(t *testing.T) (*argyll, func()) {
 	assert.NoError(t, err)
 
 	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
+	cfg.CatalogStore.Redis.Addr = server.Addr()
+	cfg.PartitionStore.Redis.Addr = server.Addr()
+	cfg.FlowStore.Redis.Addr = server.Addr()
 	cfg.APIPort = availablePort(t)
 
 	s := &argyll{cfg: cfg}

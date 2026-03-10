@@ -22,16 +22,15 @@ type Config struct {
 	LogLevel       string
 
 	// Stores & Archiving
-	CatalogStore   timebox.StoreConfig
-	PartitionStore timebox.StoreConfig
-	FlowStore      timebox.StoreConfig
+	CatalogStore   timebox.Config
+	PartitionStore timebox.Config
+	FlowStore      timebox.Config
 
 	// Work & Retry
 	Work api.WorkConfig
 
 	// Engine
 	StepTimeout     int64
-	FlowCacheSize   int
 	MemoCacheSize   int
 	ShutdownTimeout time.Duration
 }
@@ -87,40 +86,32 @@ var (
 // NewDefaultConfig creates a configuration with sensible defaults for all
 // engine settings, stores, and retry behavior
 func NewDefaultConfig() *Config {
+	base := DefaultTimebox().With(timebox.Config{
+		Redis: timebox.RedisConfig{
+			Addr:   DefaultRedisEndpoint,
+			DB:     DefaultRedisDB,
+			Prefix: DefaultRedisPrefix,
+		},
+	})
+
 	return &Config{
 		APIPort:        DefaultAPIPort,
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
-		CatalogStore: timebox.StoreConfig{
-			Addr:         DefaultRedisEndpoint,
-			Password:     "",
-			DB:           DefaultRedisDB,
-			Prefix:       DefaultRedisPrefix,
-			WorkerCount:  DefaultSnapshotWorkers,
-			MaxQueueSize: DefaultSnapshotQueueSize,
-			SaveTimeout:  DefaultSnapshotSaveTimeout,
-			TrimEvents:   true,
-		},
-		PartitionStore: timebox.StoreConfig{
-			Addr:         DefaultRedisEndpoint,
-			Password:     "",
-			DB:           DefaultRedisDB,
-			Prefix:       DefaultRedisPrefix,
-			WorkerCount:  DefaultSnapshotWorkers,
-			MaxQueueSize: DefaultSnapshotQueueSize,
-			SaveTimeout:  DefaultSnapshotSaveTimeout,
-			TrimEvents:   true,
-		},
-		FlowStore: timebox.StoreConfig{
-			Addr:         DefaultRedisEndpoint,
-			Password:     "",
-			DB:           DefaultRedisDB,
-			Prefix:       DefaultRedisPrefix,
-			WorkerCount:  DefaultSnapshotWorkers,
-			MaxQueueSize: DefaultSnapshotQueueSize,
-			SaveTimeout:  DefaultSnapshotSaveTimeout,
-			Indexer:      events.FlowIndexer,
-		},
+		CatalogStore: base.With(timebox.Config{
+			Snapshot: timebox.SnapshotConfig{
+				TrimEvents: true,
+			},
+		}),
+		PartitionStore: base.With(timebox.Config{
+			Snapshot: timebox.SnapshotConfig{
+				TrimEvents: true,
+			},
+		}),
+		FlowStore: base.With(timebox.Config{
+			Indexer:   events.FlowIndexer,
+			CacheSize: DefaultFlowCacheSize,
+		}),
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
 			InitBackoff: DefaultRetryInitBackoff,
@@ -128,11 +119,22 @@ func NewDefaultConfig() *Config {
 			BackoffType: DefaultRetryBackoffType,
 		},
 		StepTimeout:     DefaultStepTimeout,
-		FlowCacheSize:   DefaultFlowCacheSize,
 		MemoCacheSize:   DefaultMemoCacheSize,
 		ShutdownTimeout: DefaultShutdownTimeout,
 		LogLevel:        "info",
 	}
+}
+
+// DefaultTimebox returns the top-level Timebox defaults Argyll expects
+func DefaultTimebox() timebox.Config {
+	return timebox.DefaultConfig().With(timebox.Config{
+		Snapshot: timebox.SnapshotConfig{
+			Workers:      true,
+			WorkerCount:  DefaultSnapshotWorkers,
+			MaxQueueSize: DefaultSnapshotQueueSize,
+			SaveTimeout:  DefaultSnapshotSaveTimeout,
+		},
+	})
 }
 
 // LoadFromEnv populates configuration values from environment variables
@@ -160,7 +162,7 @@ func (c *Config) LoadFromEnv() error {
 	}
 
 	if err := loadEnvInt(
-		"FLOW_CACHE_SIZE", &c.FlowCacheSize, 0, MaxFlowCacheSize,
+		"FLOW_CACHE_SIZE", &c.FlowStore.CacheSize, 0, MaxFlowCacheSize,
 	); err != nil {
 		return err
 	}
@@ -251,25 +253,25 @@ func (c *Config) Validate() error {
 
 // LoadStoreConfigFromEnv loads Redis store configuration from environment
 // variables with the given prefix (e.g., "CATALOG" or "PARTITION")
-func LoadStoreConfigFromEnv(s *timebox.StoreConfig, prefix string) {
+func LoadStoreConfigFromEnv(s *timebox.Config, prefix string) {
 	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
-		s.Addr = addr
+		s.Redis.Addr = addr
 	}
 	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
-		s.Password = password
+		s.Redis.Password = password
 	}
 	if dbStr := os.Getenv(prefix + "_REDIS_DB"); dbStr != "" {
 		db, err := strconv.Atoi(dbStr)
 		if err == nil {
-			s.DB = db
+			s.Redis.DB = db
 		}
 	}
 	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
-		s.Prefix = envPrefix
+		s.Redis.Prefix = envPrefix
 	}
 	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
 		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {
-			s.WorkerCount = wc
+			s.Snapshot.WorkerCount = wc
 		}
 	}
 }

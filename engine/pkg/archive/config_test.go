@@ -28,10 +28,10 @@ func TestLoadFromEnv(t *testing.T) {
 	cfg, err := archive.LoadFromEnv()
 	assert.NoError(t, err)
 
-	assert.Equal(t, "redis:6379", cfg.FlowStore.Addr)
-	assert.Equal(t, "secret", cfg.FlowStore.Password)
-	assert.Equal(t, 2, cfg.FlowStore.DB)
-	assert.Equal(t, "argyll:flow", cfg.FlowStore.Prefix)
+	assert.Equal(t, "redis:6379", cfg.FlowStore.Redis.Addr)
+	assert.Equal(t, "secret", cfg.FlowStore.Redis.Password)
+	assert.Equal(t, 2, cfg.FlowStore.Redis.DB)
+	assert.Equal(t, "argyll:flow", cfg.FlowStore.Redis.Prefix)
 	assert.Equal(t, 75.5, cfg.MemoryPercent)
 	assert.Equal(t, 2*time.Hour, cfg.MaxAge)
 	assert.Equal(t, 3*time.Second, cfg.MemoryCheckInterval)
@@ -61,8 +61,8 @@ func TestDefaultPrefix(t *testing.T) {
 
 	cfg, err := archive.LoadFromEnv()
 	assert.NoError(t, err)
-	assert.Equal(t, config.NewDefaultConfig().FlowStore.Prefix,
-		cfg.FlowStore.Prefix)
+	assert.Equal(t, config.NewDefaultConfig().FlowStore.Redis.Prefix,
+		cfg.FlowStore.Redis.Prefix)
 	assert.Equal(t, archive.DefaultPollInterval, cfg.PollInterval)
 }
 

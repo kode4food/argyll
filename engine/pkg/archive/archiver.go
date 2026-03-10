@@ -263,7 +263,8 @@ func (a *Archiver) releaseLease(ctx context.Context, flowID api.FlowID) {
 }
 
 func (a *Archiver) leaseKey(flowID api.FlowID) string {
-	return fmt.Sprintf("%s:archive:lease:%s", a.config.FlowStore.Prefix, flowID)
+	return fmt.Sprintf("%s:archive:lease:%s",
+		a.config.FlowStore.Redis.Prefix, flowID)
 }
 
 func parseMemoryInfo(info string) (used, max int64) {

@@ -60,46 +60,11 @@ func NewTestEngineWithDeps(
 	server, err := miniredis.Run()
 	assert.NoError(t, err)
 
-	tb, err := timebox.NewTimebox(timebox.Config{
-		MaxRetries: timebox.DefaultMaxRetries,
-		CacheSize:  100,
-		Workers:    true,
-	})
-	assert.NoError(t, err)
-
-	catCfg := config.NewDefaultConfig().CatalogStore
-	catCfg.Addr = server.Addr()
-	catCfg.Prefix = "test-catalog"
-
-	catStore, err := tb.NewStore(catCfg)
-	assert.NoError(t, err)
-
-	partCfg := config.NewDefaultConfig().PartitionStore
-	partCfg.Addr = server.Addr()
-	partCfg.Prefix = "test-partition"
-
-	partStore, err := tb.NewStore(partCfg)
-	assert.NoError(t, err)
-
-	flowConfig := config.NewDefaultConfig().FlowStore
-	flowConfig.Addr = server.Addr()
-	flowConfig.Prefix = "test-flow"
-
-	flowStore, err := tb.NewStore(flowConfig)
-	assert.NoError(t, err)
-
-	flowExec := timebox.NewExecutor(
-		flowStore, events.NewFlowState, events.FlowAppliers,
-	)
-
-	mockCli := NewMockClient()
-
 	cfg := &config.Config{
 		APIPort:         8080,
 		APIHost:         "localhost",
 		WebhookBaseURL:  "http://localhost:8080",
 		StepTimeout:     5 * api.Second,
-		FlowCacheSize:   100,
 		MemoCacheSize:   100,
 		ShutdownTimeout: 2 * time.Second,
 		Work: api.WorkConfig{
@@ -109,6 +74,49 @@ func NewTestEngineWithDeps(
 			BackoffType: api.BackoffTypeExponential,
 		},
 	}
+
+	tb, err := timebox.NewTimebox(config.DefaultTimebox())
+	assert.NoError(t, err)
+
+	catStore, err := tb.NewStore(
+		config.NewDefaultConfig().CatalogStore,
+		timebox.Config{
+			Redis: timebox.RedisConfig{
+				Addr:   server.Addr(),
+				Prefix: "test-catalog",
+			},
+		},
+	)
+	assert.NoError(t, err)
+
+	partStore, err := tb.NewStore(
+		config.NewDefaultConfig().PartitionStore,
+		timebox.Config{
+			Redis: timebox.RedisConfig{
+				Addr:   server.Addr(),
+				Prefix: "test-partition",
+			},
+		},
+	)
+	assert.NoError(t, err)
+
+	flowStore, err := tb.NewStore(
+		config.NewDefaultConfig().FlowStore,
+		timebox.Config{
+			Redis: timebox.RedisConfig{
+				Addr:   server.Addr(),
+				Prefix: "test-flow",
+			},
+			CacheSize: 100,
+		},
+	)
+	assert.NoError(t, err)
+
+	flowExec := timebox.NewExecutor(
+		flowStore, events.NewFlowState, events.FlowAppliers,
+	)
+
+	mockCli := NewMockClient()
 
 	hub := tb.GetHub()
 	defaultDeps := engine.Dependencies{

@@ -115,6 +115,32 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
 	as.Equal(config.DefaultShutdownTimeout, cfg.ShutdownTimeout)
 	as.Equal("info", cfg.LogLevel)
+	as.Equal(config.DefaultSnapshotWorkers, cfg.CatalogStore.Snapshot.WorkerCount)
+	as.Equal(config.DefaultSnapshotQueueSize, cfg.CatalogStore.Snapshot.MaxQueueSize)
+	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.CatalogStore.Snapshot.SaveTimeout)
+	as.Equal(timebox.DefaultCacheSize, cfg.CatalogStore.CacheSize)
+	as.True(cfg.CatalogStore.Snapshot.TrimEvents)
+	as.Equal(config.DefaultSnapshotWorkers, cfg.PartitionStore.Snapshot.WorkerCount)
+	as.Equal(config.DefaultSnapshotQueueSize, cfg.PartitionStore.Snapshot.MaxQueueSize)
+	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.PartitionStore.Snapshot.SaveTimeout)
+	as.Equal(timebox.DefaultCacheSize, cfg.PartitionStore.CacheSize)
+	as.True(cfg.PartitionStore.Snapshot.TrimEvents)
+	as.Equal(config.DefaultSnapshotWorkers, cfg.FlowStore.Snapshot.WorkerCount)
+	as.Equal(config.DefaultSnapshotQueueSize, cfg.FlowStore.Snapshot.MaxQueueSize)
+	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.FlowStore.Snapshot.SaveTimeout)
+	as.Equal(config.DefaultFlowCacheSize, cfg.FlowStore.CacheSize)
+	as.NotNil(cfg.FlowStore.Indexer)
+}
+
+func TestDefaultTimebox(t *testing.T) {
+	tb := config.DefaultTimebox()
+
+	testify.True(t, tb.Snapshot.Workers)
+	testify.Equal(t, timebox.DefaultCacheSize, tb.CacheSize)
+	testify.Equal(t, timebox.DefaultMaxRetries, tb.MaxRetries)
+	testify.Equal(t, config.DefaultSnapshotWorkers, tb.Snapshot.WorkerCount)
+	testify.Equal(t, config.DefaultSnapshotQueueSize, tb.Snapshot.MaxQueueSize)
+	testify.Equal(t, config.DefaultSnapshotSaveTimeout, tb.Snapshot.SaveTimeout)
 }
 
 func TestStoreLoadFromEnv(t *testing.T) {
@@ -195,23 +221,23 @@ func TestStoreLoadFromEnv(t *testing.T) {
 				t.Cleanup(func() { _ = os.Unsetenv(key) })
 			}
 
-			storeConfig := &timebox.StoreConfig{}
+			storeConfig := &timebox.Config{}
 			config.LoadStoreConfigFromEnv(storeConfig, tt.envPrefix)
 
 			if tt.checkAddr != "" {
-				as.Equal(tt.checkAddr, storeConfig.Addr)
+				as.Equal(tt.checkAddr, storeConfig.Redis.Addr)
 			}
 			if tt.checkPassword != "" {
-				as.Equal(tt.checkPassword, storeConfig.Password)
+				as.Equal(tt.checkPassword, storeConfig.Redis.Password)
 			}
 			if tt.envVars[tt.envPrefix+"_REDIS_DB"] != "" {
-				as.Equal(tt.checkDB, storeConfig.DB)
+				as.Equal(tt.checkDB, storeConfig.Redis.DB)
 			}
 			if tt.checkPrefix != "" {
-				as.Equal(tt.checkPrefix, storeConfig.Prefix)
+				as.Equal(tt.checkPrefix, storeConfig.Redis.Prefix)
 			}
 			if tt.checkWorkerCount != nil {
-				as.Equal(*tt.checkWorkerCount, storeConfig.WorkerCount)
+				as.Equal(*tt.checkWorkerCount, storeConfig.Snapshot.WorkerCount)
 			}
 		})
 	}
@@ -347,7 +373,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"FLOW_CACHE_SIZE": "8192",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, 8192, c.FlowCacheSize)
+				testify.Equal(t, 8192, c.FlowStore.CacheSize)
 			},
 		},
 		{
@@ -446,10 +472,10 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"PARTITION_REDIS_PREFIX": "shared-prefix",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, "valkey-partition:6379", c.PartitionStore.Addr)
-				testify.Equal(t, "valkey-partition:6379", c.FlowStore.Addr)
-				testify.Equal(t, "shared-prefix", c.PartitionStore.Prefix)
-				testify.Equal(t, "shared-prefix", c.FlowStore.Prefix)
+				testify.Equal(t, "valkey-partition:6379", c.PartitionStore.Redis.Addr)
+				testify.Equal(t, "valkey-partition:6379", c.FlowStore.Redis.Addr)
+				testify.Equal(t, "shared-prefix", c.PartitionStore.Redis.Prefix)
+				testify.Equal(t, "shared-prefix", c.FlowStore.Redis.Prefix)
 			},
 		},
 		{

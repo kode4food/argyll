@@ -6,6 +6,8 @@ import (
 
 	"github.com/kode4food/timebox"
 	"github.com/redis/go-redis/v9"
+
+	"github.com/kode4food/argyll/engine/internal/config"
 )
 
 // Run starts the archive sweep loop and archive stream consumer using the
@@ -15,26 +17,24 @@ func Run(
 ) error {
 	SetupLogging(cfg.LogLevel)
 
-	tbCfg := timebox.DefaultConfig()
-	tbCfg.Workers = false
-	tb, err := timebox.NewTimebox(tbCfg)
+	tb, err := timebox.NewTimebox(config.DefaultTimebox())
 	if err != nil {
 		return err
 	}
 	defer func() { _ = tb.Close() }()
 
-	storeCfg := cfg.FlowStore
-	storeCfg.Archiving = true
-	store, err := tb.NewStore(storeCfg)
+	store, err := tb.NewStore(cfg.FlowStore, timebox.Config{
+		Archiving: true,
+	})
 	if err != nil {
 		return err
 	}
 	defer func() { _ = store.Close() }()
 
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     storeCfg.Addr,
-		Password: storeCfg.Password,
-		DB:       storeCfg.DB,
+		Addr:     cfg.FlowStore.Redis.Addr,
+		Password: cfg.FlowStore.Redis.Password,
+		DB:       cfg.FlowStore.Redis.DB,
 	})
 	defer func() { _ = redisClient.Close() }()
 

@@ -13,7 +13,7 @@ import (
 
 // Config configures the archiver runtime behavior
 type Config struct {
-	FlowStore           timebox.StoreConfig
+	FlowStore           timebox.Config
 	MemoryPercent       float64
 	MaxAge              time.Duration
 	MemoryCheckInterval time.Duration
