@@ -2,35 +2,36 @@
 
 ## Architecture
 
-**Storage:** Valkey backend via timebox.Store (NOT EventHub)
+**Storage:** Valkey backend via `timebox.Store`
+
 - Catalog state: `timebox.Store` with `timebox.Executor[*api.CatalogState]` (TrimEvents: true, snapshotted on shutdown)
 - Partition state: `timebox.Store` with `timebox.Executor[*api.PartitionState]` (TrimEvents: true, snapshotted on shutdown)
 - Flow state: `timebox.Store` with `timebox.Executor[*api.FlowState]` (TrimEvents: false, full event history)
 - Concurrency: Optimistic (sequence-based versioning, automatic retry on conflict)
 
 **WebSocket Notifications (separate from event sourcing):**
-- EventHub: `pkg/events/hub.go` (uses `github.com/kode4food/caravan` Topic)
+
+- EventHub: `timebox.EventHub`, wired through `cmd/argyll/main.go` and `internal/server/websocket.go`
 - Purpose: Broadcast events to WebSocket subscribers
-- NOT used for event sourcing - only for real-time UI updates
+- Separate from event sourcing; used for real-time UI updates
 - Produces from timebox events, doesn't drive execution
 
-## State Mutations: Executor Pattern (Only Pattern)
+## State Mutations: Executor Pattern
 
-Every state change MUST use this pattern. No exceptions.
+State changes use this pattern.
 
 **Core pattern:**
+
 ```go
 cmd := func(state *StateType, ag *Aggregator) error {
-    // 1. Read state (read-only)
+    // 1. Read state
     // 2. Decide if mutation needed
-    // 3. Raise events via aggregator ONLY
+    // 3. Raise events via the aggregator
     events.Raise(ag, eventType, eventData)
 
     // 4. Register side effects via ag.OnSuccess()
-    // This is called INSIDE the command, runs AFTER commit
-    ag.OnSuccess(func(state *StateType) {
+    ag.OnSuccess(func(state *StateType, committed []*timebox.Event) {
         // Network calls, starting work, cross-aggregate ops
-        // Runs ONCE after Exec completes and commits
     })
 
     return nil
@@ -38,15 +39,16 @@ cmd := func(state *StateType, ag *Aggregator) error {
 executor.Exec(ctx, aggregateID, cmd)
 ```
 
-**CRITICAL: Side Effects Must Use ag.OnSuccess()**
+**Side effects use `ag.OnSuccess()`**
 
-Anything with side effects (network calls, starting real work, cross-aggregate operations, retry queue updates) MUST be registered via `ag.OnSuccess()` inside the command callback, NOT called directly in the command.
+Register side effects such as network calls, starting work, cross-aggregate operations, and retry queue updates through `ag.OnSuccess()` inside the command callback rather than calling them directly in the command.
 
-**Why:** If the command retries (optimistic concurrency conflict), direct side effects execute multiple times. `ag.OnSuccess()` runs only once, after Exec commits.
+**Why:** If the command retries (optimistic concurrency conflict), direct side effects execute multiple times. `ag.OnSuccess()` runs only once, after Exec commits, and receives the final aggregate state plus the successfully flushed `[]*timebox.Event`.
 
 **Real patterns from the codebase:**
 
 For partition state mutations (execPartition - no side effects needed):
+
 ```go
 // registry.go: UpdateStepHealth
 func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, errMsg string) error {
@@ -59,12 +61,13 @@ func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, er
         return events.Raise(ag, api.EventTypeStepHealthChanged,
             api.StepHealthChangedEvent{StepID: stepID, Status: health, Error: errMsg})
     }
-    _, err := e.execPartition(cmd)  // Pure mutation, no OnSuccess needed
+    _, err := e.execPartition(cmd)
     return err
 }
 ```
 
 For flow state mutations (flowTx wrapper with OnSuccess for side effects):
+
 ```go
 // engine.go: StartFlow using flowTx
 func (e *Engine) StartFlow(flowID api.FlowID, plan *api.ExecutionPlan, initState api.Args, meta api.Metadata) error {
@@ -72,28 +75,29 @@ func (e *Engine) StartFlow(flowID api.FlowID, plan *api.ExecutionPlan, initState
         if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted, ...); err != nil {
             return err
         }
-        tx.OnSuccess(func(*api.FlowState) {
+        tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
             e.handleFlowActivated(flowID, meta)  // Side effect after commit
         })
         // Prepare initial steps (may register more OnSuccess)
         for _, stepID := range tx.findInitialSteps(tx.Value()) {
             tx.prepareStep(stepID)
         }
-        return nil  // All events committed, then all OnSuccess handlers run
+        return nil
     })
 }
 ```
 
 Work execution (inside flowTx prepareStep):
+
 ```go
-// flow-exec.go: prepareStep (called inside flowTx command)
+// step-start.go: prepareStep (called inside flowTx command)
 func (tx *flowTx) prepareStep(stepID api.StepID) error {
     if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted, ...); err != nil {
         return err
     }
     started, err := tx.startPendingWork(stepID, step)
     if len(started) > 0 {
-        tx.OnSuccess(func(flow *api.FlowState) {
+        tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
             // Execute work AFTER commit succeeds
             tx.handleWorkItemsExecution(stepID, step, inputs, flow.Metadata, started)
         })
@@ -103,14 +107,15 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 ```
 
 Flow completion (inside flowTx checkTerminal):
+
 ```go
-// flow-exec.go: checkTerminal (called inside flowTx command)
+// flow-stop.go: checkTerminal (called inside flowTx command)
 func (tx *flowTx) checkTerminal() error {
     if tx.isFlowComplete(flow) {
         if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted, ...); err != nil {
             return err
         }
-        tx.OnSuccess(func(*api.FlowState) {
+        tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
             tx.handleFlowCompleted()  // Cleanup: remove from retry queue
         })
     }
@@ -118,40 +123,43 @@ func (tx *flowTx) checkTerminal() error {
 }
 ```
 
-**Rules (non-negotiable):**
-- State parameter: READ-ONLY (never modify directly)
-- Mutations: ONLY via `events.Raise(ag, type, data)`
+**Rules:**
+
+- Do not mutate the state parameter directly
+- OnSuccess signature: `func(state, committedEvents)`
+- Mutations: use `events.Raise(ag, type, data)`
 - Idempotency: Check state before raising event (avoid duplicate events)
 - Executor: Handles conflict retries automatically (no manual retry needed)
 - Atomicity: Events and projections commit together
 
-## CRITICAL: Stale References After Event Raise
+## Stale References After Event Raise
 
-**MUST KNOW:** When you raise an event, the aggregator IMMEDIATELY applies it. But your state reference becomes STALE.
+When you raise an event, the aggregator applies it immediately and your previous state reference becomes stale.
 
 ```go
 cmd := func(st *api.FlowState, ag *FlowAggregator) error {
     // st is current state
-    flow := ag.Value()  // Same as st
+    flow := ag.Value()
 
-    // Raise event: aggregator IMMEDIATELY applies it
+    // Raise event: the aggregator applies it immediately
     if err := events.Raise(ag, api.EventTypeAttributeSet,
         api.AttributeSetEvent{...}); err != nil {
         return err
     }
 
-    // ❌ WRONG: flow is now stale! It doesn't have the new attribute
-    if v, ok := flow.GetAttributes()[name]; ok { ... }  // STALE DATA
+    // flow is now stale; it doesn't have the new attribute
+    if v, ok := flow.GetAttributes()[name]; ok { ... }
 
-    // ✅ CORRECT: fetch fresh state after raising event
-    updatedFlow := ag.Value()  // NEW reference with applied event
-    if v, ok := updatedFlow.GetAttributes()[name]; ok { ... }  // FRESH
+    // Fetch fresh state after raising the event
+    updatedFlow := ag.Value()
+    if v, ok := updatedFlow.GetAttributes()[name]; ok { ... }
 }
 ```
 
 **Why:** Persistent data structures mean events create new aggregate versions. Old references point to old versions.
 
 **Pattern when chaining operations:**
+
 ```go
 cmd := func(st *api.FlowState, ag *FlowAggregator) error {
     // Raise event 1
@@ -176,29 +184,33 @@ cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 ```
 
 **Key locations to check:**
-- `engine/internal/engine/flow-exec.go` - prepareStep, handleWorkSucceeded (chains events)
+
+- `engine/internal/engine/step-start.go`, `engine/internal/engine/work-stop.go`, `engine/internal/engine/flow-stop.go`
 - Anywhere you raise multiple events in sequence
 
-## Critical Constraint: Event Recording vs Step Launching
+## Event Recording vs Step Launching
 
-**MAINTAIN THIS SEPARATION:**
+Keep this separation:
+
 ```go
 // In flowTx (flow execution context):
-// 1. Always record event (even if flow is terminal)
+// 1. Record the event, even if the flow is terminal
 events.Raise(ag, api.EventTypeWorkSucceeded, ...)
 
-// 2. SEPARATE decision: only execute next steps if flow is active
+// 2. Separately decide whether to execute next steps
 if !isTerminal(flow.Status) {
     // prepare next step
 }
 ```
 
 **Rationale:**
+
 - Events recorded even after flow fails (complete audit trail)
 - Step launching stopped only when flow is terminal
 - Preserves complete audit trail and late-arriving work completions
 
 Example:
+
 ```
 1. Payment fails → flow_failed event
 2. Flow is terminal, no new steps start
@@ -208,33 +220,45 @@ Example:
 
 ## Flow Execution Flow
 
-```
+```text
 POST /engine/flow (server)
   ↓
-engine.StartFlow() calls flowTx
+Server validates request, builds the plan, calls engine.StartFlow()
   ↓
-flowTx raises FlowStartedEvent
+engine.StartFlow() calls flowTx(), which wraps execFlow()
   ↓
-flowTx.execFlow() uses Executor pattern
+Inside the executor command:
+  - Raise FlowStartedEvent
+  - Find ready pending steps
+  - For each ready step:
+    - If the predicate is false, raise StepSkippedEvent
+    - Otherwise raise StepStartedEvent with computed work items
+    - Raise WorkStartedEvent for each work item that can start now
+    - Register OnSuccess handlers for post-commit side effects
   ↓
-Command execution:
-  - Ready steps identified
-  - StepStarted event raised for each
-  - Work items created and executed
+Commit succeeds
   ↓
-Work completes (sync) or callback received (async)
+OnSuccess handlers run:
+  - Schedule flow/step timeout tasks
+  - Launch newly started work items
   ↓
-CompleteWork() calls flowTx
+Work item execution branch:
+  - Script/sync HTTP: perform work, then call CompleteWork() on success
+  - Async HTTP: invoke the step and return; webhook later calls CompleteWork()/FailWork()
+  - Flow step: StartChildFlow(); parent work completes later when the child flow deactivates
   ↓
-flowTx raises WorkSucceededEvent
+Completion transaction:
+  - Raise WorkSucceededEvent / WorkFailedEvent / WorkNotCompletedEvent
+  - For successful work, check step completion:
+    - Maybe raise AttributeSetEvent(s)
+    - Raise StepCompletedEvent or StepFailedEvent
+  - Maybe schedule retries
+  - Maybe skip unused pending steps
+  - Maybe start newly ready pending steps
   ↓
-Aggregator updates flow state from events
-  ↓
-Check if all goals satisfied
-  ↓
-Raise FlowCompletedEvent or continue loop
-  ↓
-When no active work: FlowDeactivatedEvent
+Check terminal state:
+  - Raise FlowCompletedEvent or FlowFailedEvent when appropriate
+  - Raise FlowDeactivatedEvent only after the flow is terminal and no active work remains
 ```
 
 ## State Reconstruction (Recovery)
@@ -254,6 +278,7 @@ func reconstructState(aggregateID ID) State {
 ```
 
 **How recovery works:**
+
 1. Engine.Start() calls RecoverFlows()
 2. Executor loads events from Valkey for each flow
 3. Replays events to reconstruct exact state
@@ -263,11 +288,13 @@ func reconstructState(aggregateID ID) State {
 ## Event Types
 
 **Catalog aggregate events** (step registry):
+
 - `step_registered` - Step added to registry
 - `step_unregistered` - Step deleted from registry
 - `step_updated` - Step definition modified
 
 **Partition aggregate events** (health and flow lifecycle tracking):
+
 - `step_health_changed` - Step availability changed
 - `flow_activated` - Flow added to active flows list
 - `flow_deactivated` - Flow terminal + no active work
@@ -276,6 +303,7 @@ func reconstructState(aggregateID ID) State {
 - `flow_digest_updated` - Flow status digest updated (internal)
 
 **Flow aggregate events** (flow execution state):
+
 - `flow_started` - Execution begins
 - `flow_completed` - All goals satisfied
 - `flow_failed` - Goal unreachable or failed
@@ -292,9 +320,9 @@ func reconstructState(aggregateID ID) State {
 
 ## Key Locations
 
-- State mutation: `engine/internal/engine/flow-exec.go` (flowTx pattern)
+- State mutation examples: `engine/internal/engine/flow-start.go`, `engine/internal/engine/step-start.go`, `engine/internal/engine/work-stop.go`
 - Executor setup: `engine/internal/engine/engine.go` (NewExecutor calls)
 - Event types: `engine/pkg/events/` (event definitions)
 - Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic)
-- Retry queue: `engine/internal/engine/retry_queue.go` (scheduled retries, NOT event-driven)
-- WebSocket broadcast: `engine/pkg/events/hub.go` (separate from event sourcing)
+- Retry scheduling: `engine/internal/engine/work-continue.go` and `engine/internal/engine/scheduler/`
+- WebSocket broadcast: `cmd/argyll/main.go` and `internal/server/websocket.go`

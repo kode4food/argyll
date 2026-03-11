@@ -8,7 +8,7 @@ This directory contains example step implementations demonstrating different ste
 # Start the entire system with all examples
 docker compose up
 
-# Or start just the engine and specific examples
+# Or start only the engine and specific examples
 docker compose up valkey argyll-engine user-resolver inventory-resolver
 ```
 

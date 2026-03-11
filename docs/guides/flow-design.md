@@ -11,7 +11,7 @@ Define clear goal steps - these are the outcomes you actually need. The engine b
 **Example:**
 ```
 Goal: process_payment + send_confirmation
-NOT Goal: validate_customer, lookup_inventory (these are dependencies)
+Dependencies: validate_customer, lookup_inventory
 
 Engine computes:
 - Required for process_payment: validate_customer, lookup_account
@@ -167,7 +167,7 @@ Use the engine-provided metadata and webhook token path:
 - `step_id`
 - `receipt_token` (also encoded in `/webhook/{flow_id}/{step_id}/{token}`)
 
-The engine rejects duplicate completions for the same token, so you do not need to implement your own duplicate-detection pattern for normal step retries.
+The engine rejects duplicate completions for the same token, so normal step retries can use the standard webhook/token path without extra duplicate-detection logic.
 
 See [Async Steps Guide](./async-steps.md) for details.
 

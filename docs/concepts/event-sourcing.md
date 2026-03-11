@@ -181,11 +181,11 @@ Optimistic concurrency prevents duplicates. Any instance can pick up work.
 4. Resume from where it left off
 5. No external coordination needed—the event log is the source of truth
 
-## What This Means For You
+## Operational Implications
 
 - **Debugging**: Read the event log to understand what happened
 - **Auditing**: Complete trail of all state changes
 - **Recovery**: System can restart and resume without external help
 - **Scalability**: Multiple instances all reading from the same event log
 
-You don't need to write state machines or recovery logic—it's built in.
+Recovery and flow state come from the event log and executor behavior.

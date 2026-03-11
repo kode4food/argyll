@@ -104,25 +104,25 @@ type FlowState struct {
 
 **Idiomatic short names**:
 
-| Name | Usage |
-|------|-------|
-| `i`, `j`, `k` | Loop indices |
-| `n` | Count or length |
-| `ok` | Boolean from map/type assertion |
-| `err` | Error values |
-| `ctx` | context.Context |
-| `b` | bytes or buffer |
-| `r`, `w` | io.Reader, io.Writer |
-| `t` | *testing.T |
-| `s` | String (when scope is tiny) |
-| `idx` | Index (when `i` is ambiguous) |
-| `pfx`, `sfx` | Prefix, suffix |
-| `cfg` | Config struct |
-| `opts` | Options struct |
-| `pl` | Execution plan |
-| `cat`, `part` | Catalog or partition state in local scope |
+| Name                   | Usage                                       |
+| ---------------------- | ------------------------------------------- |
+| `i`, `j`, `k`          | Loop indices                                |
+| `n`                    | Count or length                             |
+| `ok`                   | Boolean from map/type assertion             |
+| `err`                  | Error values                                |
+| `ctx`                  | context.Context                             |
+| `b`                    | bytes or buffer                             |
+| `r`, `w`               | io.Reader, io.Writer                        |
+| `t`                    | \*testing.T                                 |
+| `s`                    | String (when scope is tiny)                 |
+| `idx`                  | Index (when `i` is ambiguous)               |
+| `pfx`, `sfx`           | Prefix, suffix                              |
+| `cfg`                  | Config struct                               |
+| `opts`                 | Options struct                              |
+| `pl`                   | Execution plan                              |
+| `cat`, `part`          | Catalog or partition state in local scope   |
 | `flow`, `step`, `work` | Current flow/step/work value in local scope |
-| `h` | Health value in tight scope |
+| `h`                    | Health value in tight scope                 |
 
 ### Function Signature Wrapping
 
@@ -258,7 +258,7 @@ type FlowId string
 
 ### Line Width
 
-Maximum 80 characters per line (tabs count as 4 spaces). This applies to code *and* comments. Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When wrapping function signatures or call arguments, pack as many arguments per line as will fit under the limit before wrapping again. When you must wrap, break after the opening paren:
+Maximum 80 characters per line (tabs count as 4 spaces). This applies to code _and_ comments. Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When wrapping function signatures or call arguments, pack as many arguments per line as will fit under the limit before wrapping again. When you must wrap, break after the opening paren:
 
 ```go
 func NewArchiveWorker(
@@ -270,7 +270,7 @@ func NewArchiveWorker(
 c, err := client.NewClient("embedded://", client.WithEmbedded(tr))
 ```
 
-### Multi-line Calls with *testing.T
+### Multi-line Calls with \*testing.T
 
 When a function call wraps and the first argument is the test instance (`t`), keep `t` on the first line and break immediately after it. Do not place `t` alone on the next line.
 
@@ -345,7 +345,6 @@ Within a package, organize files around real concerns, not arbitrary helper cate
 - `work-start.go`, `work-continue.go`, `work-stop.go`
 
 Do not introduce wrapper files that just forward calls to another package or rename errors.
-
 
 ## Control Flow
 
@@ -497,7 +496,7 @@ Godoc rule: the last sentence of a comment should not end with a period.
 
 ### Inline Comments
 
-Never add self-evident comments. Only comment non-obvious logic:
+Avoid comments that restate the code. Comment non-obvious logic:
 
 ```go
 // Bad
@@ -528,6 +527,7 @@ var _ Archiver = (*ArchiveWorker)(nil)
 - Handle errors immediately, early return
 
 **Production Code - Always Use Typed Errors:**
+
 ```go
 var (
 	ErrStepNotInPlan        = errors.New("step not in execution plan")
@@ -583,6 +583,7 @@ assert.True(t, strings.Contains(err.Error(), "work item not found"))
 This enables robust error checking without brittle string comparisons. Typed errors are also easier to handle programmatically.
 
 **Examples/Documentation Only - Plain Messages OK:**
+
 ```go
 // Only acceptable in README examples, not in engine code
 return fmt.Errorf("invalid configuration: %s", reason)

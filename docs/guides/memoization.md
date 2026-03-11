@@ -188,7 +188,7 @@ Monitor cache size if:
 Attempt 1: Step fails
   Cache: miss, execute step
   Result: error
-  Cache: NOT updated
+  Cache: unchanged
 
 Attempt 2: Same inputs
   Cache: miss (failure not cached)

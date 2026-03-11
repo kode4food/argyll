@@ -110,7 +110,7 @@ Each work item has a unique **token**. The token is used to:
 
 Each work item has a token that the engine uses to track completion. If a work item is retried, the engine handles token management automatically.
 
-**You don't need to worry about this.** The engine ensures that:
+The engine ensures that:
 - Duplicate webhook calls with the same token are rejected
 - Retries are safe and won't cause duplicate work
 - Late responses from old attempts are handled correctly

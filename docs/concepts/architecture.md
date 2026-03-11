@@ -68,7 +68,7 @@ Flow progression is event-driven, not polling-based.
 
 **Why**: Better performance, lower latency, deterministic behavior.
 
-## What Argyll Is NOT
+## What Argyll Does Not Provide
 
 Argyll intentionally does not provide:
 
@@ -88,7 +88,7 @@ System correctness is explainable via event replay alone:
 - No runtime state exists that isn't derived from persisted events
 - Recovery requires no external coordination or distributed consensus
 
-This is why you don't need to write recovery logic, state machines, or leader election code—it's built in.
+Recovery follows from event replay. The system does not rely on custom state machines or leader election.
 
 ## Design Trade-offs
 
