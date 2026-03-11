@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"maps"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -170,7 +172,7 @@ func (e *Engine) raiseStepRegisteredEvent(
 	); err != nil {
 		return err
 	}
-	ag.OnSuccess(func(*api.CatalogState) {
+	ag.OnSuccess(func(*api.CatalogState, []*timebox.Event) {
 		if err := e.UpdateStepHealth(step.ID, api.HealthUnknown, ""); err != nil {
 			slog.Error("Failed to raise step health changed event",
 				log.StepID(step.ID),

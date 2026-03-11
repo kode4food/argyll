@@ -4,6 +4,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -83,7 +85,7 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
 		if err := tx.raiseRetryScheduled(stepID, tkn, work, nextRetryAt); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
 			tx.handleRetryScheduled(stepID, tkn, nextRetryAt)
 		})
 		return nil
@@ -104,7 +106,7 @@ func (tx *flowTx) continueStepWork(
 		return nil
 	}
 	if clearRetryEntries {
-		tx.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
 			for token := range started {
 				tx.CancelTask(
 					retryKey(api.FlowStep{
@@ -134,7 +136,7 @@ func (tx *flowTx) handleRetryScheduled(
 func (tx *flowTx) startContinuedWork(
 	stepID api.StepID, step *api.Step, started api.WorkItems,
 ) error {
-	tx.OnSuccess(func(flow *api.FlowState) {
+	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 		exec := flow.Executions[stepID]
 		tx.handleWorkItemsExecution(step, exec.Inputs, flow.Metadata, started)
 	})
@@ -191,7 +193,7 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 			return nil
 		}
 
-		tx.OnSuccess(func(*api.FlowState) {
+		tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
 			if !retryAt.IsZero() {
 				tx.scheduleRetryTask(fs, tkn, retryAt)
 				return

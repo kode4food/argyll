@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -84,7 +85,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	}
 
 	if len(started) > 0 {
-		tx.OnSuccess(func(flow *api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 			if stepHasTimeouts(step) {
 				tx.CancelPrefixedTasks(
 					timeoutStepPrefix(api.FlowStep{

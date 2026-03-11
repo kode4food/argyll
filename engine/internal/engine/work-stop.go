@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -95,7 +96,7 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	tx.OnSuccess(func(flow *api.FlowState) {
+	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 		if hasRetryTask(flow, stepID, tkn) {
 			tx.handleWorkSucceededCleanup(api.FlowStep{
 				FlowID: tx.flowID,
@@ -212,7 +213,7 @@ func (tx *flowTx) handleMemoCacheHit(
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(flow *api.FlowState) {
+	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 		if hasRetryTask(flow, stepID, tkn) {
 			fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
 			tx.handleWorkSucceededCleanup(fs, tkn)

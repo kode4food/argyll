@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"maps"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -45,7 +47,7 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(flow *api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 			if flowHasRetryTasks(flow) {
 				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			}
@@ -65,7 +67,7 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(flow *api.FlowState) {
+		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 			if flowHasRetryTasks(flow) {
 				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			}
@@ -109,7 +111,7 @@ func (tx *flowTx) maybeDeactivate() error {
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(flow *api.FlowState) {
+	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
 		tx.completeParentWork(flow)
 	})
 	return nil
