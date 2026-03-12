@@ -15,6 +15,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -23,7 +24,7 @@ import (
 type (
 	// Client represents a WebSocket client connection for event streaming
 	Client struct {
-		hub           *timebox.EventHub
+		hub           *event.Hub
 		conn          *websocket.Conn
 		getState      StateFunc
 		subscriptions map[string]*clientSubscription
@@ -52,7 +53,7 @@ type (
 		includeState bool
 		eventTypes   []timebox.EventType
 		minSeqs      map[string]int64
-		consumer     *timebox.Consumer
+		consumer     *event.Consumer
 		active       atomic.Bool
 	}
 )
@@ -83,8 +84,8 @@ var (
 // HandleWebSocket upgrades an HTTP connection to WebSocket and starts
 // streaming events based on client subscriptions
 func HandleWebSocket(
-	hub *timebox.EventHub, w http.ResponseWriter, r *http.Request,
-	st StateFunc, register RegisterFunc,
+	hub *event.Hub, w http.ResponseWriter, r *http.Request, st StateFunc,
+	register RegisterFunc,
 ) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -277,12 +278,12 @@ func (c *Client) removeSubscription(subscriptionID string) {
 }
 
 func (c *Client) streamSubscription(sub *clientSubscription) {
-	for event := range sub.consumer.Receive() {
+	for ev := range sub.consumer.Receive() {
 		if !sub.active.Load() {
 			return
 		}
 
-		if !c.writeSubscriptionEvent(sub, event) {
+		if !c.writeSubscriptionEvent(sub, ev) {
 			c.Close()
 			return
 		}
@@ -399,7 +400,7 @@ func subscriptionEventTypes(sub *api.ClientSubscription) []timebox.EventType {
 }
 
 func newClientSubscription(
-	hub *timebox.EventHub, sub *api.ClientSubscription,
+	hub *event.Hub, sub *api.ClientSubscription,
 ) (*clientSubscription, error) {
 	if sub.SubscriptionID == "" {
 		return nil, ErrMissingSubscriptionID

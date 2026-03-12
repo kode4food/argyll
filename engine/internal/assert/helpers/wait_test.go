@@ -4,11 +4,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -29,7 +29,7 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-completed-event")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -59,7 +59,7 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-failed-event")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -89,7 +89,7 @@ func TestWaitForStepStartedEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-step-started")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -118,7 +118,7 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-step-terminal")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -153,7 +153,7 @@ func TestWaitForWorkSucceededEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-work-succeeded")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -182,7 +182,7 @@ func TestWaitForWorkFailedEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-work-failed")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -217,7 +217,7 @@ func TestWaitForWorkRetryScheduledEvent(t *testing.T) {
 		}
 
 		id := api.FlowID("flow-work-retry")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 
@@ -235,7 +235,7 @@ func TestWaitForEngineEvents(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		st := helpers.NewSimpleStep("engine-events")
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			err := env.Engine.RegisterStep(st)
 			assert.NoError(t, err)
 

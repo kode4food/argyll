@@ -90,13 +90,13 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 			env.MockClient.WaitForInvocation(consumer.ID, 500*time.Millisecond),
 		)
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, "fallback", flow.Executions[consumer.ID].Inputs["opt"])
+		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 
 		close(releaseProvider)
-		flow = env.WaitForFlowStatus(id, func() {})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		fl = env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 
@@ -312,17 +312,17 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			env.MockClient.WaitForInvocation(strict.ID, 120*time.Millisecond),
 		)
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, "fallback", flow.Executions[fast.ID].Inputs["opt"])
-		if _, ok := flow.Attributes["opt"]; ok {
+		assert.Equal(t, "fallback", fl.Executions[fast.ID].Inputs["opt"])
+		if _, ok := fl.Attributes["opt"]; ok {
 			t.Fatalf("timed optional default leaked into flow attributes")
 		}
 
 		close(releaseProvider)
-		flow = env.WaitForFlowStatus(id, func() {})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
-		assert.Equal(t, "real", flow.Executions[strict.ID].Inputs["opt"])
+		fl = env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, "real", fl.Executions[strict.ID].Inputs["opt"])
 	})
 }
 
@@ -546,15 +546,15 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			orderCreator.ID, 500*time.Millisecond,
 		))
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t,
-			"guest", flow.Executions[orderCreator.ID].Inputs["user_info"],
+			"guest", fl.Executions[orderCreator.ID].Inputs["user_info"],
 		)
 
 		close(releaseGate)
-		flow = env.WaitForFlowStatus(id, func() {})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		fl = env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 
@@ -655,13 +655,13 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			consumer.ID, 500*time.Millisecond,
 		))
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, "fallback", flow.Executions[consumer.ID].Inputs["opt"])
-		assert.Equal(t, "real-req", flow.Executions[consumer.ID].Inputs["req"])
+		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
+		assert.Equal(t, "real-req", fl.Executions[consumer.ID].Inputs["req"])
 
 		close(releaseOpt)
-		flow = env.WaitForFlowStatus(id, func() {})
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		fl = env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }

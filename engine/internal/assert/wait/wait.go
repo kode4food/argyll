@@ -6,6 +6,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -14,7 +15,7 @@ import (
 type (
 	Wait struct {
 		t        *testing.T
-		consumer *timebox.Consumer
+		consumer *event.Consumer
 		timeout  time.Duration
 	}
 
@@ -38,7 +39,7 @@ var engineFilter = EventFilter(func(ev *timebox.Event) bool {
 	return events.IsCatalogEvent(ev) || events.IsPartitionEvent(ev)
 })
 
-func On(t *testing.T, consumer *timebox.Consumer) *Wait {
+func On(t *testing.T, consumer *event.Consumer) *Wait {
 	return &Wait{
 		t:        t,
 		consumer: consumer,

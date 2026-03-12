@@ -430,10 +430,8 @@ func containsAggregateID(
 }
 
 func setupStore(t *testing.T, redisAddr string) *timebox.Store {
-	tb, err := timebox.NewTimebox()
-	assert.NoError(t, err)
-
-	flowStore, err := tb.NewStore(
+	flowStore, err := timebox.NewStore(
+		config.DefaultTimebox(),
 		config.NewDefaultConfig().FlowStore,
 		timebox.Config{
 			Redis: timebox.RedisConfig{
@@ -447,7 +445,6 @@ func setupStore(t *testing.T, redisAddr string) *timebox.Store {
 
 	t.Cleanup(func() {
 		assert.NoError(t, flowStore.Close())
-		assert.NoError(t, tb.Close())
 	})
 
 	return flowStore

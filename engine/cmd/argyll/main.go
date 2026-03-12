@@ -23,7 +23,6 @@ import (
 
 type argyll struct {
 	cfg            *config.Config
-	timebox        *timebox.Timebox
 	catalogStore   *timebox.Store
 	partitionStore *timebox.Store
 	flowStore      *timebox.Store
@@ -36,7 +35,6 @@ type argyll struct {
 }
 
 var (
-	ErrCreateTimebox        = errors.New("failed to create timebox")
 	ErrCreateCatalogStore   = errors.New("failed to create catalog store")
 	ErrCreatePartitionStore = errors.New("failed to create partition store")
 	ErrCreateFlowStore      = errors.New("failed to create flow store")
@@ -114,26 +112,27 @@ func (s *argyll) setupLogging() {
 func (s *argyll) initializeStores() error {
 	var err error
 
-	s.timebox, err = timebox.NewTimebox(config.DefaultTimebox())
+	s.catalogStore, err = timebox.NewStore(
+		config.DefaultTimebox(), s.cfg.CatalogStore,
+	)
 	if err != nil {
-		return errors.Join(ErrCreateTimebox, err)
-	}
-
-	s.catalogStore, err = s.timebox.NewStore(s.cfg.CatalogStore)
-	if err != nil {
-		_ = s.timebox.Close()
 		return errors.Join(ErrCreateCatalogStore, err)
 	}
 
-	s.partitionStore, err = s.timebox.NewStore(s.cfg.PartitionStore)
+	s.partitionStore, err = timebox.NewStore(
+		config.DefaultTimebox(), s.cfg.PartitionStore,
+	)
 	if err != nil {
-		_ = s.timebox.Close()
+		_ = s.catalogStore.Close()
 		return errors.Join(ErrCreatePartitionStore, err)
 	}
 
-	s.flowStore, err = s.timebox.NewStore(s.cfg.FlowStore)
+	s.flowStore, err = timebox.NewStore(
+		config.DefaultTimebox(), s.cfg.FlowStore,
+	)
 	if err != nil {
-		_ = s.timebox.Close()
+		_ = s.partitionStore.Close()
+		_ = s.catalogStore.Close()
 		return errors.Join(ErrCreateFlowStore, err)
 	}
 
@@ -159,10 +158,12 @@ func (s *argyll) initializeEngine() error {
 }
 
 func (s *argyll) startServer() {
-	s.health = server.NewHealthChecker(s.engine, s.timebox.GetHub())
+	hub := s.engine.GetEventHub()
+
+	s.health = server.NewHealthChecker(s.engine, hub)
 	s.health.Start()
 
-	s.apiServer = server.NewServer(s.engine, s.timebox.GetHub())
+	s.apiServer = server.NewServer(s.engine, hub)
 	mux := s.apiServer.SetupRoutes()
 
 	s.httpServer = &http.Server{
@@ -199,7 +200,9 @@ func (s *argyll) shutdown() {
 		slog.Error("Engine shutdown failed", log.Error(err))
 	}
 
-	_ = s.timebox.Close()
+	_ = s.flowStore.Close()
+	_ = s.partitionStore.Close()
+	_ = s.catalogStore.Close()
 
 	slog.Info("Server exited")
 }

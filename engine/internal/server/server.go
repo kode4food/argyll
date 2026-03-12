@@ -9,9 +9,9 @@ import (
 
 	glog "github.com/gin-contrib/slog"
 	"github.com/gin-gonic/gin"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -19,7 +19,7 @@ import (
 // Server implements the HTTP API server for the orchestrator
 type Server struct {
 	engine   *engine.Engine
-	eventHub *timebox.EventHub
+	eventHub *event.Hub
 	sockets  util.Set[*Client]
 	mu       sync.Mutex
 }
@@ -30,7 +30,7 @@ var (
 )
 
 // NewServer creates a new HTTP API server
-func NewServer(eng *engine.Engine, hub *timebox.EventHub) *Server {
+func NewServer(eng *engine.Engine, hub *event.Hub) *Server {
 	return &Server{
 		engine:   eng,
 		eventHub: hub,

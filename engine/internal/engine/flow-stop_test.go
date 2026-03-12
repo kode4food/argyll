@@ -65,10 +65,10 @@ func TestFailFlow(t *testing.T) {
 			testify.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState("wf-fail")
+		fl, err := env.Engine.GetFlowState("wf-fail")
 		testify.NoError(t, err)
-		a.FlowStatus(flow, api.FlowFailed)
-		testify.Contains(t, flow.Error, "test error")
+		a.FlowStatus(fl, api.FlowFailed)
+		testify.Contains(t, fl.Error, "test error")
 	})
 }
 

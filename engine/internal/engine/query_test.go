@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/kode4food/timebox"
 	"github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -499,7 +499,7 @@ func TestSkipChildFlows(t *testing.T) {
 		}
 
 		var childID api.FlowID
-		env.WithConsumer(func(consumer *timebox.Consumer) {
+		env.WithConsumer(func(consumer *event.Consumer) {
 			parentState := env.WaitForFlowStatus("parent-list", func() {
 				err := env.Engine.StartFlow("parent-list", pl)
 				assert.NoError(t, err)

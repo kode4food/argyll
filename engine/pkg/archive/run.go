@@ -17,15 +17,13 @@ func Run(
 ) error {
 	SetupLogging(cfg.LogLevel)
 
-	tb, err := timebox.NewTimebox(config.DefaultTimebox())
-	if err != nil {
-		return err
-	}
-	defer func() { _ = tb.Close() }()
-
-	store, err := tb.NewStore(cfg.FlowStore, timebox.Config{
-		Archiving: true,
-	})
+	store, err := timebox.NewStore(
+		config.DefaultTimebox(),
+		cfg.FlowStore,
+		timebox.Config{
+			Archiving: true,
+		},
+	)
 	if err != nil {
 		return err
 	}

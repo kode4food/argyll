@@ -13,6 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -32,6 +33,7 @@ type (
 		memoCache   *memo.Cache
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
+		eventHub    *event.Hub
 	}
 
 	// Dependencies groups the external dependencies required by Engine
@@ -80,21 +82,19 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	hub := event.NewHub()
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
-			deps.CatalogStore,
-			events.NewCatalogState,
-			events.CatalogAppliers,
+			deps.CatalogStore, events.NewCatalogState,
+			events.CatalogAppliers, makePublisher[*api.CatalogState](hub),
 		),
 		partExec: timebox.NewExecutor(
-			deps.PartitionStore,
-			events.NewPartitionState,
-			events.PartitionAppliers,
+			deps.PartitionStore, events.NewPartitionState,
+			events.PartitionAppliers, makePublisher[*api.PartitionState](hub),
 		),
 		flowExec: timebox.NewExecutor(
-			deps.FlowStore,
-			events.NewFlowState,
-			events.FlowAppliers,
+			deps.FlowStore, events.NewFlowState,
+			events.FlowAppliers, makePublisher[*api.FlowState](hub),
 		),
 		scripts:    script.NewRegistry(),
 		stepClient: deps.StepClient,
@@ -104,10 +104,22 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		memoCache:  memo.NewCache(cfg.MemoCacheSize),
 		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
+		eventHub:   hub,
 	}
 	e.mapper = NewMapper(e)
 
 	return e, nil
+}
+
+// GetEventHub exposes the engine's in-process event hub
+func (e *Engine) GetEventHub() *event.Hub {
+	return e.eventHub
+}
+
+func makePublisher[T any](hub *event.Hub) timebox.SuccessAction[T] {
+	return func(_ T, evs []*timebox.Event) {
+		hub.Publish(evs...)
+	}
 }
 
 func normalizeDependencies(deps *Dependencies) error {

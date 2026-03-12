@@ -19,11 +19,7 @@ func TestRaiseEnqueuesEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Close()
 
-	tb, err := timebox.NewTimebox()
-	require.NoError(t, err)
-	defer func() { _ = tb.Close() }()
-
-	store, err := tb.NewStore(timebox.Config{
+	store, err := timebox.NewStore(timebox.Config{
 		Redis: timebox.RedisConfig{Addr: server.Addr()},
 	})
 	require.NoError(t, err)

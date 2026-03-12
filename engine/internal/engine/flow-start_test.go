@@ -48,10 +48,10 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		err = env.Engine.StartFlow("wf-start", pl)
 		assert.NoError(t, err)
 
-		flow, err := env.Engine.GetFlowState("wf-start")
+		fl, err := env.Engine.GetFlowState("wf-start")
 		assert.NoError(t, err)
 
-		exec := flow.Executions[st.ID]
+		exec := fl.Executions[st.ID]
 		assert.Equal(t, api.StepActive, exec.Status)
 		assert.Len(t, exec.WorkItems, 1)
 		for _, item := range exec.WorkItems {
@@ -128,9 +128,9 @@ func TestStartFlowSimple(t *testing.T) {
 		err = env.Engine.StartFlow("wf-simple", pl)
 		assert.NoError(t, err)
 
-		flow, err := env.Engine.GetFlowState("wf-simple")
+		fl, err := env.Engine.GetFlowState("wf-simple")
 		assert.NoError(t, err)
-		assert.NotNil(t, flow)
-		assert.Equal(t, api.FlowID("wf-simple"), flow.ID)
+		assert.NotNil(t, fl)
+		assert.Equal(t, api.FlowID("wf-simple"), fl.ID)
 	})
 }

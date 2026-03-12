@@ -240,10 +240,10 @@ func TestUnsupportedStepTypeFailsFlow(t *testing.T) {
 			assert.NoError(t, env.Engine.StartFlow(id, pl))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowFailed, flow.Status)
-		assert.Contains(t, flow.Error, "unsupported step type")
+		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.Contains(t, fl.Error, "unsupported step type")
 	})
 }
 
@@ -318,12 +318,12 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 			waits[1].ForEvent(wait.FlowTerminal(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		exec := flow.Executions[st.ID]
+		exec := fl.Executions[st.ID]
 		assert.Equal(t, api.StepFailed, exec.Status)
 		assert.Contains(t, exec.Error, "predicate")
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 	})
 }
 func TestHTTPExecution(t *testing.T) {

@@ -40,12 +40,13 @@ func TestInitializeStoresSuccess(t *testing.T) {
 	err = s.initializeStores()
 
 	assert.NoError(t, err)
-	assert.NotNil(t, s.timebox)
 	assert.NotNil(t, s.catalogStore)
 	assert.NotNil(t, s.partitionStore)
 	assert.NotNil(t, s.flowStore)
 
-	_ = s.timebox.Close()
+	_ = s.flowStore.Close()
+	_ = s.partitionStore.Close()
+	_ = s.catalogStore.Close()
 }
 
 func TestSetupLogging(t *testing.T) {
@@ -105,7 +106,9 @@ func TestInitializeEngine(t *testing.T) {
 	assert.NotNil(t, s.engine)
 
 	_ = s.engine.Stop()
-	_ = s.timebox.Close()
+	_ = s.flowStore.Close()
+	_ = s.partitionStore.Close()
+	_ = s.catalogStore.Close()
 }
 
 func TestStartServer(t *testing.T) {

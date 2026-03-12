@@ -4,8 +4,8 @@ go 1.25.7
 
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0
-	github.com/kode4food/argyll/engine v0.0.0-20260117113923-188e8dbd9741
-	github.com/kode4food/timebox v0.0.0-20260311175638-9bc5a19de45c
+	github.com/kode4food/argyll/engine v0.0.0-20260311192637-0ac6dae7bbb2
+	github.com/kode4food/timebox v0.0.0-20260312162215-ae7b06c180a6
 	github.com/stretchr/testify v1.11.1
 	gocloud.dev v0.44.0
 )
@@ -65,8 +65,6 @@ require (
 	github.com/google/wire v0.7.0 // indirect
 	github.com/googleapis/enterprise-certificate-proxy v0.3.6 // indirect
 	github.com/googleapis/gax-go/v2 v2.15.0 // indirect
-	github.com/kode4food/ale v0.3.1-0.20260217090131-174134c4a231 // indirect
-	github.com/kode4food/caravan v0.0.0-20260217084427-d43d23e4f1e2 // indirect
 	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 // indirect
 	github.com/kylelemons/godebug v1.1.0 // indirect
 	github.com/pkg/browser v0.0.0-20240102092130-5ac0b6a4141c // indirect
@@ -74,9 +72,6 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/redis/go-redis/v9 v9.8.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.5.0 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
 	github.com/yuin/gopher-lua v1.1.1 // indirect
 	github.com/zeebo/errs v1.4.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

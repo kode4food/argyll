@@ -3,9 +3,8 @@ package helpers
 import (
 	"time"
 
-	"github.com/kode4food/timebox"
-
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -14,7 +13,7 @@ const waitPollInterval = 10 * time.Millisecond
 // WaitFor runs fn and waits for a matching event
 func (e *TestEngineEnv) WaitFor(filter wait.EventFilter, fn func()) {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *timebox.Consumer) {
+	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		wait.On(e.T, consumer).ForEvent(filter)
 	})
@@ -25,14 +24,14 @@ func (e *TestEngineEnv) WaitForCount(
 	count int, filter wait.EventFilter, fn func(),
 ) {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *timebox.Consumer) {
+	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		wait.On(e.T, consumer).ForEvents(count, filter)
 	})
 }
 
 // WithConsumer provides a scoped event consumer for tests
-func (e *TestEngineEnv) WithConsumer(fn func(*timebox.Consumer)) {
+func (e *TestEngineEnv) WithConsumer(fn func(*event.Consumer)) {
 	e.T.Helper()
 	consumer := e.EventHub.NewConsumer()
 	defer consumer.Close()
@@ -43,7 +42,7 @@ func (e *TestEngineEnv) WithConsumer(fn func(*timebox.Consumer)) {
 func (e *TestEngineEnv) WaitAfterAll(count int, fn func([]*wait.Wait)) {
 	e.T.Helper()
 
-	consumers := make([]*timebox.Consumer, count)
+	consumers := make([]*event.Consumer, count)
 	waits := make([]*wait.Wait, count)
 	for i := range count {
 		consumer := e.EventHub.NewConsumer()
@@ -63,7 +62,7 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 	flowID api.FlowID, fn func(),
 ) *api.FlowState {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *timebox.Consumer) {
+	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		state, err := e.Engine.GetFlowState(flowID)
 		if err == nil && isFlowTerminal(state) {
@@ -80,7 +79,7 @@ func (e *TestEngineEnv) WaitForStepStarted(
 	fs api.FlowStep, fn func(),
 ) *api.ExecutionState {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *timebox.Consumer) {
+	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
 		if err == nil && exec != nil && isStepStarted(exec.Status) {
@@ -104,7 +103,7 @@ func (e *TestEngineEnv) WaitForStepStatus(
 	flowID api.FlowID, stepID api.StepID, fn func(),
 ) *api.ExecutionState {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *timebox.Consumer) {
+	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		exec, err := e.getExecutionState(flowID, stepID)
 		if err == nil && exec != nil && isStepTerminal(exec.Status) {

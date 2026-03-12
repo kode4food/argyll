@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -24,7 +25,7 @@ type (
 		Redis          *miniredis.Miniredis
 		MockClient     *MockClient
 		Config         *config.Config
-		EventHub       *timebox.EventHub
+		EventHub       *event.Hub
 		Cleanup        func()
 		catalogStore   *timebox.Store
 		partitionStore *timebox.Store
@@ -75,10 +76,8 @@ func NewTestEngineWithDeps(
 		},
 	}
 
-	tb, err := timebox.NewTimebox(config.DefaultTimebox())
-	assert.NoError(t, err)
-
-	catStore, err := tb.NewStore(
+	catStore, err := timebox.NewStore(
+		config.DefaultTimebox(),
 		config.NewDefaultConfig().CatalogStore,
 		timebox.Config{
 			Redis: timebox.RedisConfig{
@@ -89,7 +88,8 @@ func NewTestEngineWithDeps(
 	)
 	assert.NoError(t, err)
 
-	partStore, err := tb.NewStore(
+	partStore, err := timebox.NewStore(
+		config.DefaultTimebox(),
 		config.NewDefaultConfig().PartitionStore,
 		timebox.Config{
 			Redis: timebox.RedisConfig{
@@ -100,7 +100,8 @@ func NewTestEngineWithDeps(
 	)
 	assert.NoError(t, err)
 
-	flowStore, err := tb.NewStore(
+	flowStore, err := timebox.NewStore(
+		config.DefaultTimebox(),
 		config.NewDefaultConfig().FlowStore,
 		timebox.Config{
 			Redis: timebox.RedisConfig{
@@ -112,13 +113,8 @@ func NewTestEngineWithDeps(
 	)
 	assert.NoError(t, err)
 
-	flowExec := timebox.NewExecutor(
-		flowStore, events.NewFlowState, events.FlowAppliers,
-	)
-
 	mockCli := NewMockClient()
 
-	hub := tb.GetHub()
 	defaultDeps := engine.Dependencies{
 		CatalogStore:     catStore,
 		PartitionStore:   partStore,
@@ -133,6 +129,15 @@ func NewTestEngineWithDeps(
 	if cl, ok := deps.StepClient.(*MockClient); ok {
 		mockCli = cl
 	}
+	hub := eng.GetEventHub()
+	flowExec := timebox.NewExecutor(
+		flowStore,
+		events.NewFlowState,
+		events.FlowAppliers,
+		func(_ *api.FlowState, evs []*timebox.Event) {
+			hub.Publish(evs...)
+		},
+	)
 
 	testEnv := &TestEngineEnv{
 		T:              t,
@@ -149,7 +154,9 @@ func NewTestEngineWithDeps(
 
 	testEnv.Cleanup = func() {
 		_ = testEnv.Engine.Stop()
-		_ = tb.Close()
+		_ = testEnv.flowStore.Close()
+		_ = testEnv.partitionStore.Close()
+		_ = testEnv.catalogStore.Close()
 		testEnv.Redis.Close()
 	}
 
@@ -159,7 +166,20 @@ func NewTestEngineWithDeps(
 // NewEngineInstance creates a new engine instance sharing the same stores and
 // mock client. Used to simulate process restart after crash
 func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
-	return engine.New(e.Config, e.Dependencies())
+	eng, err := engine.New(e.Config, e.Dependencies())
+	if err != nil {
+		return nil, err
+	}
+	e.EventHub = eng.GetEventHub()
+	e.flowExec = timebox.NewExecutor(
+		e.flowStore,
+		events.NewFlowState,
+		events.FlowAppliers,
+		func(_ *api.FlowState, evs []*timebox.Event) {
+			e.EventHub.Publish(evs...)
+		},
+	)
+	return eng, nil
 }
 
 // Dependencies returns a valid dependency bundle for constructing an engine

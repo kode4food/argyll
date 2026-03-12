@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -25,9 +26,9 @@ type (
 	}
 )
 
-func newHub() (*timebox.EventHub, topic.Topic[*timebox.Event]) {
+func newHub() (*event.Hub, topic.Topic[*timebox.Event]) {
 	top := caravan.NewTopic[*timebox.Event]()
-	return timebox.NewEventHub(top), top
+	return event.NewHubWithTopic(top), top
 }
 
 func newEvent(

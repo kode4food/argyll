@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -22,7 +23,7 @@ type HealthChecker struct {
 	ctx         context.Context
 	cancel      context.CancelFunc
 	client      *http.Client
-	consumer    *timebox.Consumer
+	consumer    *event.Consumer
 	lastSuccess map[api.StepID]time.Time
 	mu          sync.RWMutex
 }
@@ -36,9 +37,7 @@ const (
 
 // NewHealthChecker creates a health checker that periodically monitors HTTP
 // step service availability and updates their health status
-func NewHealthChecker(
-	eng *engine.Engine, hub *timebox.EventHub,
-) *HealthChecker {
+func NewHealthChecker(eng *engine.Engine, hub *event.Hub) *HealthChecker {
 	ctx, cancel := context.WithCancel(context.Background())
 	return &HealthChecker{
 		engine:      eng,

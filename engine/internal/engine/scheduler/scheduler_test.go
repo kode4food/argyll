@@ -363,8 +363,8 @@ func assertFlowEventuallyCompleted(
 
 	deadline := time.Now().Add(schedulerWaitTimeout)
 	for time.Now().Before(deadline) {
-		flow, err := eng.GetFlowState(flowID)
-		if err == nil && flow.Status == api.FlowCompleted {
+		fl, err := eng.GetFlowState(flowID)
+		if err == nil && fl.Status == api.FlowCompleted {
 			return
 		}
 		time.Sleep(10 * time.Millisecond)

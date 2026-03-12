@@ -7,8 +7,10 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 func TestNew(t *testing.T) {
@@ -136,5 +138,31 @@ func TestEngineStopGraceful(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		err := eng.Stop()
 		assert.NoError(t, err)
+	})
+}
+
+func TestExecPublishesEvents(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		step := helpers.NewSimpleStep("wrapper-step")
+		env.MockClient.SetResponse(step.ID, api.Args{})
+
+		consumer := env.EventHub.NewConsumer()
+		defer consumer.Close()
+		w := wait.On(t, consumer)
+
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		w.ForEvent(wait.EngineEvent(api.EventTypeStepRegistered))
+
+		assert.NoError(t,
+			env.Engine.UpdateStepHealth(step.ID, api.HealthHealthy, ""),
+		)
+		w.ForEvent(wait.EngineEvent(api.EventTypeStepHealthChanged))
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{step.ID},
+			Steps: api.Steps{step.ID: step},
+		}
+		assert.NoError(t, env.Engine.StartFlow("wrapper-flow", pl))
+		w.ForEvent(wait.FlowStarted("wrapper-flow"))
 	})
 }
