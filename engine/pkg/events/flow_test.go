@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -192,7 +193,7 @@ func TestFlowJoinAndParseKey(t *testing.T) {
 	}
 
 	fallback := "plain:key"
-	assert.Equal(t, timebox.ParseKey(fallback), events.FlowParseKey(fallback))
+	assert.Equal(t, redis.ParseKey(fallback), events.FlowParseKey(fallback))
 }
 
 func TestFlowCompleted(t *testing.T) {

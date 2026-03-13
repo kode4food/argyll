@@ -111,7 +111,7 @@ func (e *Engine) listIndexedEntries(
 	status string, flowStatus api.FlowStatus,
 ) ([]flowStatusEntry, error) {
 	store := e.flowExec.GetStore()
-	entries, err := store.ListAggregatesByStatus(e.ctx, status)
+	entries, err := store.ListAggregatesByStatus(status)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func (e *Engine) collectLabelFlowIDs(
 	var res util.Set[api.FlowID]
 
 	for key, value := range labels {
-		ids, err := store.ListAggregatesByLabel(e.ctx, key, value)
+		ids, err := store.ListAggregatesByLabel(key, value)
 		if err != nil {
 			return nil, err
 		}

@@ -115,7 +115,7 @@ func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
 func (e *Engine) execFlow(
 	flowID timebox.AggregateID, cmd timebox.Command[*api.FlowState],
 ) (*api.FlowState, error) {
-	return e.flowExec.Exec(e.ctx, flowID, cmd)
+	return e.flowExec.Exec(flowID, cmd)
 }
 
 func (e *Engine) flowTx(flowID api.FlowID, fn func(*flowTx) error) error {

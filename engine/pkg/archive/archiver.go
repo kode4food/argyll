@@ -133,7 +133,7 @@ func (a *Archiver) archiveFlows(flowIDs []api.FlowID) {
 
 	bg := context.Background()
 	for _, flowID := range flowIDs {
-		if err := a.flowStore.Archive(bg, events.FlowKey(flowID)); err != nil {
+		if err := a.flowStore.Archive(events.FlowKey(flowID)); err != nil {
 			slog.Warn("Failed to archive flow",
 				slog.String("flow_id", string(flowID)),
 				slog.String("error", err.Error()))
@@ -197,16 +197,12 @@ func (a *Archiver) selectFlows(
 		return nil, nil
 	}
 
-	entries, err := a.flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusCompleted,
-	)
+	entries, err := a.flowStore.ListAggregatesByStatus(events.FlowStatusCompleted)
 	if err != nil {
 		return nil, errors.Join(ErrSelectFlowsFailed, err)
 	}
 
-	failed, err := a.flowStore.ListAggregatesByStatus(
-		context.Background(), events.FlowStatusFailed,
-	)
+	failed, err := a.flowStore.ListAggregatesByStatus(events.FlowStatusFailed)
 	if err != nil {
 		return nil, errors.Join(ErrSelectFlowsFailed, err)
 	}
@@ -264,7 +260,7 @@ func (a *Archiver) releaseLease(ctx context.Context, flowID api.FlowID) {
 
 func (a *Archiver) leaseKey(flowID api.FlowID) string {
 	return fmt.Sprintf("%s:archive:lease:%s",
-		a.config.FlowStore.Redis.Prefix, flowID)
+		a.config.FlowStore.Prefix, flowID)
 }
 
 func parseMemoryInfo(info string) (used, max int64) {

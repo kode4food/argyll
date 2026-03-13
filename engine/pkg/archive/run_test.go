@@ -155,7 +155,7 @@ func testRunConfig(addr string) archive.Config {
 		SweepBatchSize:      1,
 		LogLevel:            "debug",
 	}
-	cfg.FlowStore.Redis.Addr = addr
-	cfg.FlowStore.Redis.Prefix = "partition"
+	cfg.FlowStore.Addr = addr
+	cfg.FlowStore.Prefix = "partition"
 	return cfg
 }

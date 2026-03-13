@@ -20,7 +20,7 @@ func TestRunError(t *testing.T) {
 	cfg, err := archive.LoadFromEnv()
 	assert.NoError(t, err)
 
-	cfg.FlowStore.Redis.Addr = redisServer.Addr()
+	cfg.FlowStore.Addr = redisServer.Addr()
 	cfg.MemoryCheckInterval = 0
 
 	err = cmd.Run(cfg, func(context.Context, *timebox.ArchiveRecord) error {

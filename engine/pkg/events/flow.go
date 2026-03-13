@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -107,7 +108,7 @@ func FlowJoinKey(id timebox.AggregateID) string {
 func FlowParseKey(str string) timebox.AggregateID {
 	before, after, found := strings.Cut(str, ":{")
 	if !found {
-		return timebox.ParseKey(str)
+		return redis.ParseKey(str)
 	}
 	slot, remaining, hasRemaining := strings.Cut(after, "}:")
 	if !hasRemaining {

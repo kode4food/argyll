@@ -6,14 +6,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 
 	"github.com/kode4food/argyll/engine/internal/config"
 )
 
 // Config configures the archiver runtime behavior
 type Config struct {
-	FlowStore           timebox.Config
+	FlowStore           redis.Config
 	MemoryPercent       float64
 	MaxAge              time.Duration
 	MemoryCheckInterval time.Duration

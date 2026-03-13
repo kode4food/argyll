@@ -21,9 +21,8 @@ func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
 
 // GetFlowStatus retrieves the current indexed status of a flow by its ID
 func (e *Engine) GetFlowStatus(flowID api.FlowID) (api.FlowStatus, error) {
-	status, err := e.flowExec.GetStore().GetAggregateStatus(
-		e.ctx, events.FlowKey(flowID),
-	)
+	key := events.FlowKey(flowID)
+	status, err := e.flowExec.GetStore().GetAggregateStatus(key)
 	if err != nil {
 		return "", err
 	}

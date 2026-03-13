@@ -78,11 +78,11 @@ func (e *Engine) raiseCatalogEvent(typ api.EventType, data any) error {
 func (e *Engine) execCatalog(
 	cmd timebox.Command[*api.CatalogState],
 ) (*api.CatalogState, error) {
-	return e.catalogExec.Exec(e.ctx, events.CatalogKey, cmd)
+	return e.catalogExec.Exec(events.CatalogKey, cmd)
 }
 
 func (e *Engine) execPartition(
 	cmd timebox.Command[*api.PartitionState],
 ) (*api.PartitionState, error) {
-	return e.partExec.Exec(e.ctx, events.PartitionKey, cmd)
+	return e.partExec.Exec(events.PartitionKey, cmd)
 }

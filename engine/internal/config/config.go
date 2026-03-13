@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -22,9 +23,9 @@ type Config struct {
 	LogLevel       string
 
 	// Stores & Archiving
-	CatalogStore   timebox.Config
-	PartitionStore timebox.Config
-	FlowStore      timebox.Config
+	CatalogStore   redis.Config
+	PartitionStore redis.Config
+	FlowStore      redis.Config
 
 	// Work & Retry
 	Work api.WorkConfig
@@ -86,31 +87,36 @@ var (
 // NewDefaultConfig creates a configuration with sensible defaults for all
 // engine settings, stores, and retry behavior
 func NewDefaultConfig() *Config {
-	base := DefaultTimebox().With(timebox.Config{
-		Redis: timebox.RedisConfig{
-			Addr:   DefaultRedisEndpoint,
-			DB:     DefaultRedisDB,
-			Prefix: DefaultRedisPrefix,
-		},
+	base := redis.DefaultConfig().With(redis.Config{
+		Timebox: DefaultTimebox(),
+		Addr:    DefaultRedisEndpoint,
+		DB:      DefaultRedisDB,
+		Prefix:  DefaultRedisPrefix,
 	})
 
 	return &Config{
 		APIPort:        DefaultAPIPort,
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
-		CatalogStore: base.With(timebox.Config{
-			Snapshot: timebox.SnapshotConfig{
-				TrimEvents: true,
+		CatalogStore: base.With(redis.Config{
+			Timebox: timebox.Config{
+				Snapshot: timebox.SnapshotConfig{
+					TrimEvents: true,
+				},
 			},
 		}),
-		PartitionStore: base.With(timebox.Config{
-			Snapshot: timebox.SnapshotConfig{
-				TrimEvents: true,
+		PartitionStore: base.With(redis.Config{
+			Timebox: timebox.Config{
+				Snapshot: timebox.SnapshotConfig{
+					TrimEvents: true,
+				},
 			},
 		}),
-		FlowStore: base.With(timebox.Config{
-			Indexer:   events.FlowIndexer,
-			CacheSize: DefaultFlowCacheSize,
+		FlowStore: base.With(redis.Config{
+			Timebox: timebox.Config{
+				Indexer:   events.FlowIndexer,
+				CacheSize: DefaultFlowCacheSize,
+			},
 		}),
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
@@ -162,7 +168,7 @@ func (c *Config) LoadFromEnv() error {
 	}
 
 	if err := loadEnvInt(
-		"FLOW_CACHE_SIZE", &c.FlowStore.CacheSize, 0, MaxFlowCacheSize,
+		"FLOW_CACHE_SIZE", &c.FlowStore.Timebox.CacheSize, 0, MaxFlowCacheSize,
 	); err != nil {
 		return err
 	}
@@ -253,25 +259,25 @@ func (c *Config) Validate() error {
 
 // LoadStoreConfigFromEnv loads Redis store configuration from environment
 // variables with the given prefix (e.g., "CATALOG" or "PARTITION")
-func LoadStoreConfigFromEnv(s *timebox.Config, prefix string) {
+func LoadStoreConfigFromEnv(s *redis.Config, prefix string) {
 	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
-		s.Redis.Addr = addr
+		s.Addr = addr
 	}
 	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
-		s.Redis.Password = password
+		s.Password = password
 	}
 	if dbStr := os.Getenv(prefix + "_REDIS_DB"); dbStr != "" {
 		db, err := strconv.Atoi(dbStr)
 		if err == nil {
-			s.Redis.DB = db
+			s.DB = db
 		}
 	}
 	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
-		s.Redis.Prefix = envPrefix
+		s.Prefix = envPrefix
 	}
 	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
 		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {
-			s.Snapshot.WorkerCount = wc
+			s.Timebox.Snapshot.WorkerCount = wc
 		}
 	}
 }

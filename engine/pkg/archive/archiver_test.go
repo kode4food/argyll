@@ -15,7 +15,8 @@ import (
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
-	"github.com/redis/go-redis/v9"
+	"github.com/kode4food/timebox/redis"
+	goredis "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
@@ -43,7 +44,7 @@ func TestNewArchiverValidation(t *testing.T) {
 	assert.Error(t, err)
 
 	cfg.MemoryCheckInterval = 0
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:            "127.0.0.1:1",
 		Protocol:        2,
 		DisableIdentity: true,
@@ -63,7 +64,7 @@ func TestNewArchiverNoPoll(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:            "127.0.0.1:1",
 		Protocol:        2,
 		DisableIdentity: true,
@@ -97,7 +98,7 @@ func TestSweepDeactivated(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:            redisServer.Addr(),
 		Protocol:        2,
 		DisableIdentity: true,
@@ -132,9 +133,7 @@ func TestSweepDeactivated(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	entries, err := flowStore.ListAggregatesByStatus(
-		t.Context(), events.FlowStatusCompleted,
-	)
+	entries, err := flowStore.ListAggregatesByStatus(events.FlowStatusCompleted)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(id)))
 
@@ -166,7 +165,7 @@ func TestPressureArchives(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:            infoAddr,
 		Protocol:        2,
 		DisableIdentity: true,
@@ -201,9 +200,7 @@ func TestPressureArchives(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	entries, err := flowStore.ListAggregatesByStatus(
-		t.Context(), events.FlowStatusCompleted,
-	)
+	entries, err := flowStore.ListAggregatesByStatus(events.FlowStatusCompleted)
 	assert.NoError(t, err)
 	assert.False(t, containsStatusEntry(entries, events.FlowKey(id)))
 
@@ -231,7 +228,7 @@ func TestAgeSweepRecent(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:            redisServer.Addr(),
 		Protocol:        2,
 		DisableIdentity: true,
@@ -287,7 +284,7 @@ func TestPressureBelowThreshold(t *testing.T) {
 		SweepBatchSize:      1,
 	}
 
-	redisClient := redis.NewClient(&redis.Options{
+	redisClient := goredis.NewClient(&goredis.Options{
 		Addr:            infoAddr,
 		Protocol:        2,
 		DisableIdentity: true,
@@ -329,7 +326,7 @@ func TestSweepBadStatus(t *testing.T) {
 	seedDeactivatedFlow(t, flowStore, id)
 	assertLabelIndexed(t, flowStore, id)
 
-	cli := redis.NewClient(&redis.Options{
+	cli := goredis.NewClient(&goredis.Options{
 		Addr:            redisServer.Addr(),
 		Protocol:        2,
 		DisableIdentity: true,
@@ -338,7 +335,7 @@ func TestSweepBadStatus(t *testing.T) {
 
 	err = cli.ZAdd(t.Context(),
 		"partition:idx:status:"+events.FlowStatusCompleted,
-		redis.Z{
+		goredis.Z{
 			Score:  float64(time.Now().UnixMilli()),
 			Member: "bad:flow-id",
 		},
@@ -399,9 +396,7 @@ func assertLabelIndexed(
 ) {
 	t.Helper()
 
-	ids, err := store.ListAggregatesByLabel(
-		t.Context(), archiveLabelKey, archiveLabelValue,
-	)
+	ids, err := store.ListAggregatesByLabel(archiveLabelKey, archiveLabelValue)
 	assert.NoError(t, err)
 	assert.True(t, containsAggregateID(ids, events.FlowKey(flowID)))
 }
@@ -411,9 +406,7 @@ func assertLabelNotIndexed(
 ) {
 	t.Helper()
 
-	ids, err := store.ListAggregatesByLabel(
-		t.Context(), archiveLabelKey, archiveLabelValue,
-	)
+	ids, err := store.ListAggregatesByLabel(archiveLabelKey, archiveLabelValue)
 	assert.NoError(t, err)
 	assert.False(t, containsAggregateID(ids, events.FlowKey(flowID)))
 }
@@ -430,15 +423,14 @@ func containsAggregateID(
 }
 
 func setupStore(t *testing.T, redisAddr string) *timebox.Store {
-	flowStore, err := timebox.NewStore(
-		config.DefaultTimebox(),
+	flowStore, err := redis.NewStore(
 		config.NewDefaultConfig().FlowStore,
-		timebox.Config{
-			Redis: timebox.RedisConfig{
-				Addr:   redisAddr,
-				Prefix: "partition",
+		redis.Config{
+			Addr:   redisAddr,
+			Prefix: "partition",
+			Timebox: timebox.Config{
+				Archiving: true,
 			},
-			Archiving: true,
 		},
 	)
 	assert.NoError(t, err)
@@ -461,7 +453,6 @@ func seedDeactivatedFlow(
 		Attributes: api.AttributeGraph{},
 	}
 	_, err := exec.Exec(
-		t.Context(),
 		events.FlowKey(flowID),
 		func(
 			st *api.FlowState,

@@ -1,12 +1,12 @@
 package helpers
 
 import (
-	"context"
 	"testing"
 	"time"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
@@ -76,41 +76,27 @@ func NewTestEngineWithDeps(
 		},
 	}
 
-	catStore, err := timebox.NewStore(
-		config.DefaultTimebox(),
-		config.NewDefaultConfig().CatalogStore,
-		timebox.Config{
-			Redis: timebox.RedisConfig{
-				Addr:   server.Addr(),
-				Prefix: "test-catalog",
-			},
-		},
-	)
+	base := config.NewDefaultConfig()
+
+	catStore, err := redis.NewStore(base.CatalogStore.With(redis.Config{
+		Addr:   server.Addr(),
+		Prefix: "test-catalog",
+	}))
 	assert.NoError(t, err)
 
-	partStore, err := timebox.NewStore(
-		config.DefaultTimebox(),
-		config.NewDefaultConfig().PartitionStore,
-		timebox.Config{
-			Redis: timebox.RedisConfig{
-				Addr:   server.Addr(),
-				Prefix: "test-partition",
-			},
-		},
-	)
+	partStore, err := redis.NewStore(base.PartitionStore.With(redis.Config{
+		Addr:   server.Addr(),
+		Prefix: "test-partition",
+	}))
 	assert.NoError(t, err)
 
-	flowStore, err := timebox.NewStore(
-		config.DefaultTimebox(),
-		config.NewDefaultConfig().FlowStore,
-		timebox.Config{
-			Redis: timebox.RedisConfig{
-				Addr:   server.Addr(),
-				Prefix: "test-flow",
-			},
+	flowStore, err := redis.NewStore(base.FlowStore.With(redis.Config{
+		Addr:   server.Addr(),
+		Prefix: "test-flow",
+		Timebox: timebox.Config{
 			CacheSize: 100,
 		},
-	)
+	}))
 	assert.NoError(t, err)
 
 	mockCli := NewMockClient()
@@ -192,7 +178,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 	flowID api.FlowID, evs ...FlowEvent,
 ) error {
 	_, err := e.flowExec.Exec(
-		context.Background(), events.FlowKey(flowID),
+		events.FlowKey(flowID),
 		func(st *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
 			for _, ev := range evs {
 				if err := raiseFlowEvent(ag, ev); err != nil {
@@ -210,9 +196,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 func (e *TestEngineEnv) ListFlowsByLabel(
 	label, value string,
 ) ([]timebox.AggregateID, error) {
-	return e.flowStore.ListAggregatesByLabel(
-		context.Background(), label, value,
-	)
+	return e.flowStore.ListAggregatesByLabel(label, value)
 }
 
 func raiseFlowEvent(

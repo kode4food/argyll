@@ -1,12 +1,12 @@
 package events_test
 
 import (
-	"context"
 	"encoding/json"
 	"testing"
 
 	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,8 +19,8 @@ func TestRaiseEnqueuesEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer server.Close()
 
-	store, err := timebox.NewStore(timebox.Config{
-		Redis: timebox.RedisConfig{Addr: server.Addr()},
+	store, err := redis.NewStore(redis.Config{
+		Addr: server.Addr(),
 	})
 	require.NoError(t, err)
 	defer func() { _ = store.Close() }()
@@ -29,7 +29,7 @@ func TestRaiseEnqueuesEvent(t *testing.T) {
 
 	id := timebox.NewAggregateID("flow", "flow-1")
 	called := false
-	_, err = exec.Exec(context.Background(), id,
+	_, err = exec.Exec(id,
 		func(_ int, ag *timebox.Aggregator[int]) error {
 			ag.OnSuccess(func(_ int, evs []*timebox.Event) {
 				called = true

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/redis"
 
 	app "github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/internal/client"
@@ -99,12 +100,12 @@ func (s *argyll) setupLogging() {
 		slog.String("log_level", s.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Redis.Addr),
-		slog.Int("catalog_redis_db", s.cfg.CatalogStore.Redis.DB),
-		slog.String("partition_redis_addr", s.cfg.PartitionStore.Redis.Addr),
-		slog.Int("partition_redis_db", s.cfg.PartitionStore.Redis.DB),
-		slog.String("flow_redis_addr", s.cfg.FlowStore.Redis.Addr),
-		slog.Int("flow_redis_db", s.cfg.FlowStore.Redis.DB),
+		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Addr),
+		slog.Int("catalog_redis_db", s.cfg.CatalogStore.DB),
+		slog.String("partition_redis_addr", s.cfg.PartitionStore.Addr),
+		slog.Int("partition_redis_db", s.cfg.PartitionStore.DB),
+		slog.String("flow_redis_addr", s.cfg.FlowStore.Addr),
+		slog.Int("flow_redis_db", s.cfg.FlowStore.DB),
 		slog.String("api_host", s.cfg.APIHost),
 		slog.Int("api_port", s.cfg.APIPort))
 }
@@ -112,24 +113,18 @@ func (s *argyll) setupLogging() {
 func (s *argyll) initializeStores() error {
 	var err error
 
-	s.catalogStore, err = timebox.NewStore(
-		config.DefaultTimebox(), s.cfg.CatalogStore,
-	)
+	s.catalogStore, err = redis.NewStore(s.cfg.CatalogStore)
 	if err != nil {
 		return errors.Join(ErrCreateCatalogStore, err)
 	}
 
-	s.partitionStore, err = timebox.NewStore(
-		config.DefaultTimebox(), s.cfg.PartitionStore,
-	)
+	s.partitionStore, err = redis.NewStore(s.cfg.PartitionStore)
 	if err != nil {
 		_ = s.catalogStore.Close()
 		return errors.Join(ErrCreatePartitionStore, err)
 	}
 
-	s.flowStore, err = timebox.NewStore(
-		config.DefaultTimebox(), s.cfg.FlowStore,
-	)
+	s.flowStore, err = redis.NewStore(s.cfg.FlowStore)
 	if err != nil {
 		_ = s.partitionStore.Close()
 		_ = s.catalogStore.Close()
