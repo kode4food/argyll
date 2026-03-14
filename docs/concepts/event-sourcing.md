@@ -175,7 +175,7 @@ Optimistic concurrency prevents duplicates. Any instance can pick up work.
 
 ## How Recovery Works
 
-1. Engine starts, loads previous state from Redis
+1. Engine starts, loads previous state from the configured Timebox backend
 2. If crashed mid-flow, the flow is still in the event log
 3. Replay events to reconstruct state
 4. Resume from where it left off

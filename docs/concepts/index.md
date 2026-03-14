@@ -16,4 +16,4 @@ This directory contains the foundational concepts you need to understand Argyll.
 
 - **What happens to my flow after it completes?** The engine marks the flow as completed/failed, records any in-flight work completions, and deactivates it when no work remains.
 
-- **Is my data safe?** Yes. All state changes are recorded as immutable events in Redis. You can replay the event log to reconstruct any flow state exactly.
+- **Is my data safe?** Yes. All state changes are recorded as immutable events in the configured Timebox backend. You can replay the event log to reconstruct any flow state exactly.

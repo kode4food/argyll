@@ -1,12 +1,13 @@
 package engine_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -458,7 +459,8 @@ func TestBadLabelEntry(t *testing.T) {
 		addLabelEntry(t, env, "tier", "gold", "bad:flow-id")
 
 		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
-			Labels: api.Labels{"tier": "gold"},
+			Statuses: []api.FlowStatus{api.FlowCompleted},
+			Labels:   api.Labels{"tier": "gold"},
 		})
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, engine.ErrInvalidFlowLabelEntry))
@@ -733,14 +735,8 @@ func addStatusEntry(
 ) {
 	t.Helper()
 
-	cli := redis.NewClient(&redis.Options{Addr: env.Redis.Addr()})
-	defer func() { _ = cli.Close() }()
-
-	err := cli.ZAdd(t.Context(),
-		"test-flow:idx:status:"+status,
-		redis.Z{Score: float64(at.UnixMilli()), Member: id},
-	).Err()
-	assert.NoError(t, err)
+	ev := statusEvent(t, timebox.ParseAggregateID(id, ":"), status, at)
+	assert.NoError(t, env.AppendEvents(ev.AggregateID, 0, ev))
 }
 
 func addLabelEntry(
@@ -748,10 +744,57 @@ func addLabelEntry(
 ) {
 	t.Helper()
 
-	cli := redis.NewClient(&redis.Options{Addr: env.Redis.Addr()})
-	defer func() { _ = cli.Close() }()
+	ev := startedEvent(t,
+		timebox.ParseAggregateID(id, ":"),
+		api.FlowID("invalid"),
+		time.Now(),
+		api.Labels{label: value},
+	)
+	assert.NoError(t, env.AppendEvents(ev.AggregateID, 0, ev))
+}
 
-	key := fmt.Sprintf("test-flow:idx:label:%s:%s", label, value)
-	err := cli.SAdd(t.Context(), key, id).Err()
+func startedEvent(
+	t *testing.T, id timebox.AggregateID, flowID api.FlowID, at time.Time,
+	labels api.Labels,
+) *timebox.Event {
+	t.Helper()
+
+	data, err := json.Marshal(api.FlowStartedEvent{
+		FlowID: flowID,
+		Plan: &api.ExecutionPlan{
+			Steps:      api.Steps{},
+			Attributes: api.AttributeGraph{},
+		},
+		Init:   api.Args{},
+		Labels: labels,
+	})
 	assert.NoError(t, err)
+	return &timebox.Event{
+		Timestamp:   at,
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		AggregateID: id,
+		Data:        data,
+	}
+}
+
+func statusEvent(
+	t *testing.T, id timebox.AggregateID, status string, at time.Time,
+) *timebox.Event {
+	t.Helper()
+
+	if status == events.FlowStatusActive {
+		return startedEvent(t, id, api.FlowID("invalid"), at, nil)
+	}
+
+	data, err := json.Marshal(api.FlowDeactivatedEvent{
+		FlowID: api.FlowID("invalid"),
+		Status: api.FlowStatus(status),
+	})
+	assert.NoError(t, err)
+	return &timebox.Event{
+		Timestamp:   at,
+		Type:        timebox.EventType(api.EventTypeFlowDeactivated),
+		AggregateID: id,
+		Data:        data,
+	}
 }

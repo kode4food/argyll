@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
@@ -22,7 +21,6 @@ type (
 	TestEngineEnv struct {
 		T              *testing.T
 		Engine         *engine.Engine
-		Redis          *miniredis.Miniredis
 		MockClient     *MockClient
 		Config         *config.Config
 		EventHub       *event.Hub
@@ -47,7 +45,7 @@ func NewTestConfig() *config.Config {
 }
 
 // NewTestEngine creates a fully configured test engine environment with an
-// in-memory Redis backend and mock HTTP client
+// in-memory Timebox backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
 	return NewTestEngineWithDeps(t, engine.Dependencies{})
 }
@@ -58,44 +56,29 @@ func NewTestEngineWithDeps(
 ) *TestEngineEnv {
 	t.Helper()
 
-	server, err := miniredis.Run()
-	assert.NoError(t, err)
-
-	cfg := &config.Config{
-		APIPort:         8080,
-		APIHost:         "localhost",
-		WebhookBaseURL:  "http://localhost:8080",
-		StepTimeout:     5 * api.Second,
-		MemoCacheSize:   100,
-		ShutdownTimeout: 2 * time.Second,
-		Work: api.WorkConfig{
-			MaxRetries:  3,
-			InitBackoff: 1000,
-			MaxBackoff:  60000,
-			BackoffType: api.BackoffTypeExponential,
-		},
+	base := config.NewDefaultConfig()
+	cfg := config.NewDefaultConfig()
+	cfg.APIPort = 8080
+	cfg.APIHost = "localhost"
+	cfg.WebhookBaseURL = "http://localhost:8080"
+	cfg.StepTimeout = 5 * api.Second
+	cfg.MemoCacheSize = 100
+	cfg.ShutdownTimeout = 2 * time.Second
+	cfg.Work = api.WorkConfig{
+		MaxRetries:  3,
+		InitBackoff: 1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
 	}
 
-	base := config.NewDefaultConfig()
-
-	catStore, err := redis.NewStore(base.CatalogStore.With(redis.Config{
-		Addr:   server.Addr(),
-		Prefix: "test-catalog",
-	}))
+	catStore, err := memory.NewStore(base.CatalogStore.Timebox)
 	assert.NoError(t, err)
 
-	partStore, err := redis.NewStore(base.PartitionStore.With(redis.Config{
-		Addr:   server.Addr(),
-		Prefix: "test-partition",
-	}))
+	partStore, err := memory.NewStore(base.PartitionStore.Timebox)
 	assert.NoError(t, err)
 
-	flowStore, err := redis.NewStore(base.FlowStore.With(redis.Config{
-		Addr:   server.Addr(),
-		Prefix: "test-flow",
-		Timebox: timebox.Config{
-			CacheSize: 100,
-		},
+	flowStore, err := memory.NewStore(base.FlowStore.Timebox.With(timebox.Config{
+		CacheSize: 100,
 	}))
 	assert.NoError(t, err)
 
@@ -128,7 +111,6 @@ func NewTestEngineWithDeps(
 	testEnv := &TestEngineEnv{
 		T:              t,
 		Engine:         eng,
-		Redis:          server,
 		MockClient:     mockCli,
 		Config:         cfg,
 		EventHub:       hub,
@@ -143,7 +125,6 @@ func NewTestEngineWithDeps(
 		_ = testEnv.flowStore.Close()
 		_ = testEnv.partitionStore.Close()
 		_ = testEnv.catalogStore.Close()
-		testEnv.Redis.Close()
 	}
 
 	return testEnv
@@ -191,8 +172,15 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 	return err
 }
 
+// AppendEvents appends raw events to the flow test store
+func (e *TestEngineEnv) AppendEvents(
+	id timebox.AggregateID, atSeq int64, evs ...*timebox.Event,
+) error {
+	return e.flowStore.AppendEvents(id, atSeq, evs)
+}
+
 // ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
-// given label/value pair.
+// given label/value pair
 func (e *TestEngineEnv) ListFlowsByLabel(
 	label, value string,
 ) ([]timebox.AggregateID, error) {

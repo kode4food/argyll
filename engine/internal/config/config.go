@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/postgres"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -23,9 +23,9 @@ type Config struct {
 	LogLevel       string
 
 	// Stores & Archiving
-	CatalogStore   redis.Config
-	PartitionStore redis.Config
-	FlowStore      redis.Config
+	CatalogStore   postgres.Config
+	PartitionStore postgres.Config
+	FlowStore      postgres.Config
 
 	// Work & Retry
 	Work api.WorkConfig
@@ -43,10 +43,10 @@ const (
 	DefaultAPIPort = 8080
 	DefaultAPIHost = "0.0.0.0"
 	MaxTCPPort     = 65535
-	DefaultRedisDB = 0
 
-	DefaultRedisEndpoint       = "localhost:6379"
-	DefaultRedisPrefix         = "argyll"
+	DefaultPostgresURL         = "postgres://localhost:5432/argyll?sslmode=disable"
+	DefaultPostgresPrefix      = "argyll"
+	DefaultPostgresMaxConns    = postgres.DefaultMaxConns
 	DefaultSnapshotWorkers     = 4
 	DefaultSnapshotQueueSize   = 1000
 	DefaultSnapshotSaveTimeout = 30 * time.Second
@@ -87,32 +87,32 @@ var (
 // NewDefaultConfig creates a configuration with sensible defaults for all
 // engine settings, stores, and retry behavior
 func NewDefaultConfig() *Config {
-	base := redis.DefaultConfig().With(redis.Config{
-		Timebox: DefaultTimebox(),
-		Addr:    DefaultRedisEndpoint,
-		DB:      DefaultRedisDB,
-		Prefix:  DefaultRedisPrefix,
+	base := postgres.DefaultConfig().With(postgres.Config{
+		Timebox:  DefaultTimebox(),
+		URL:      DefaultPostgresURL,
+		Prefix:   DefaultPostgresPrefix,
+		MaxConns: DefaultPostgresMaxConns,
 	})
 
 	return &Config{
 		APIPort:        DefaultAPIPort,
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
-		CatalogStore: base.With(redis.Config{
+		CatalogStore: base.With(postgres.Config{
 			Timebox: timebox.Config{
 				Snapshot: timebox.SnapshotConfig{
 					TrimEvents: true,
 				},
 			},
 		}),
-		PartitionStore: base.With(redis.Config{
+		PartitionStore: base.With(postgres.Config{
 			Timebox: timebox.Config{
 				Snapshot: timebox.SnapshotConfig{
 					TrimEvents: true,
 				},
 			},
 		}),
-		FlowStore: base.With(redis.Config{
+		FlowStore: base.With(postgres.Config{
 			Timebox: timebox.Config{
 				Indexer:   events.FlowIndexer,
 				CacheSize: DefaultFlowCacheSize,
@@ -148,7 +148,7 @@ func DefaultTimebox() timebox.Config {
 func (c *Config) LoadFromEnv() error {
 	LoadStoreConfigFromEnv(&c.CatalogStore, "CATALOG")
 	LoadStoreConfigFromEnv(&c.PartitionStore, "PARTITION")
-	LoadStoreConfigFromEnv(&c.FlowStore, "PARTITION")
+	LoadStoreConfigFromEnv(&c.FlowStore, "FLOW")
 
 	if apiHost := os.Getenv("API_HOST"); apiHost != "" {
 		c.APIHost = apiHost
@@ -227,6 +227,16 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("%w: %d", ErrInvalidAPIPort, c.APIPort)
 	}
 
+	if err := c.CatalogStore.Validate(); err != nil {
+		return err
+	}
+	if err := c.PartitionStore.Validate(); err != nil {
+		return err
+	}
+	if err := c.FlowStore.Validate(); err != nil {
+		return err
+	}
+
 	if c.StepTimeout <= 0 {
 		return ErrInvalidStepTimeout
 	}
@@ -257,23 +267,19 @@ func (c *Config) Validate() error {
 	return nil
 }
 
-// LoadStoreConfigFromEnv loads Redis store configuration from environment
-// variables with the given prefix (e.g., "CATALOG" or "PARTITION")
-func LoadStoreConfigFromEnv(s *redis.Config, prefix string) {
-	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
-		s.Addr = addr
+// LoadStoreConfigFromEnv loads Postgres store configuration from environment
+// variables with the given prefix
+func LoadStoreConfigFromEnv(s *postgres.Config, prefix string) {
+	if url := os.Getenv(prefix + "_POSTGRES_URL"); url != "" {
+		s.URL = url
 	}
-	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
-		s.Password = password
-	}
-	if dbStr := os.Getenv(prefix + "_REDIS_DB"); dbStr != "" {
-		db, err := strconv.Atoi(dbStr)
-		if err == nil {
-			s.DB = db
-		}
-	}
-	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
+	if envPrefix := os.Getenv(prefix + "_POSTGRES_PREFIX"); envPrefix != "" {
 		s.Prefix = envPrefix
+	}
+	if maxConns := os.Getenv(prefix + "_POSTGRES_MAX_CONNS"); maxConns != "" {
+		if v, err := strconv.ParseInt(maxConns, 10, 32); err == nil && v > 0 {
+			s.MaxConns = int32(v)
+		}
 	}
 	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
 		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {

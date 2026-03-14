@@ -1,32 +1,31 @@
 x-argyll-env: &argyll-env
-  CATALOG_REDIS_ADDR: valkey:6379
-  CATALOG_REDIS_PASSWORD:
-  CATALOG_REDIS_DB: "0"
-  PARTITION_REDIS_ADDR: valkey:6379
-  PARTITION_REDIS_PASSWORD:
-  PARTITION_REDIS_DB: "0"
+  CATALOG_POSTGRES_URL: postgres://postgres:postgres@postgres:5432/argyll?sslmode=disable
+  PARTITION_POSTGRES_URL: postgres://postgres:postgres@postgres:5432/argyll?sslmode=disable
+  FLOW_POSTGRES_URL: postgres://postgres:postgres@postgres:5432/argyll?sslmode=disable
+  CATALOG_POSTGRES_PREFIX: argyll
+  PARTITION_POSTGRES_PREFIX: argyll
+  FLOW_POSTGRES_PREFIX: argyll
+  CATALOG_POSTGRES_MAX_CONNS: "96"
+  PARTITION_POSTGRES_MAX_CONNS: "96"
+  FLOW_POSTGRES_MAX_CONNS: "96"
   LOG_LEVEL: debug
 
 x-step-env: &step-env
   ARGYLL_ENGINE_URL: http://argyll-engine:8080
 
 services:
-  valkey:
-    image: valkey/valkey:9-alpine
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: argyll
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
     ports:
-      - "6379:6379"
+      - "5432:5432"
     volumes:
-      - valkey_data:/data
-    command: >
-      valkey-server
-      --appendonly yes
-      --appendfsync everysec
-      --aof-use-rdb-preamble yes
-      --save ""
-      --auto-aof-rewrite-percentage 50
-      --auto-aof-rewrite-min-size 64mb
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
+      test: ["CMD-SHELL", "pg_isready -U postgres -d argyll"]
       interval: 3s
       timeout: 2s
       retries: 10
@@ -43,7 +42,7 @@ services:
       WEBHOOK_BASE_URL: http://argyll-engine:8080
       DEV_MODE: "true"
     depends_on:
-      valkey:
+      postgres:
         condition: service_healthy
     ports:
       - "8080:8080"
@@ -88,18 +87,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 30s
-
-  argyll-archiver-file:
-    build:
-      context: .
-      dockerfile: archiver/Dockerfile
-    environment:
-      <<: *argyll-env
-      ARCHIVE_SINK_PATH: /dev/null
-    depends_on:
-      valkey:
-        condition: service_healthy
-    restart: unless-stopped
 
   # Example step services
   text-processor:
@@ -250,5 +237,5 @@ services:
       start_period: 10s
 
 volumes:
-  valkey_data:
+  postgres_data:
     driver: local

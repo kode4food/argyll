@@ -6,26 +6,29 @@ This guide covers how to configure Argyll for development, testing, and producti
 
 ### Engine: Catalog Storage
 
-Configure where the engine stores the step catalog (step definitions and attribute graph):
+Configure where the engine stores the step catalog:
 
 ```bash
-CATALOG_REDIS_ADDR=localhost:6379      # Default
-CATALOG_REDIS_PASSWORD=                # Empty if no auth
-CATALOG_REDIS_DB=0                     # Redis database number
-CATALOG_REDIS_PREFIX=argyll            # Namespace prefix
-CATALOG_SNAPSHOT_WORKERS=4             # Snapshot worker count (0 disables async workers)
+CATALOG_POSTGRES_URL='postgres://localhost:5432/argyll?sslmode=disable'
+CATALOG_POSTGRES_PREFIX=argyll
+CATALOG_POSTGRES_MAX_CONNS=96
+CATALOG_SNAPSHOT_WORKERS=4
 ```
 
 ### Engine: Partition + Flow Storage
 
-Configure where the engine stores partition state (step health) and flow state. Flow state and flow status indexes share this connection/prefix configuration in the current engine.
+Configure where the engine stores partition state and flow state:
 
 ```bash
-PARTITION_REDIS_ADDR=localhost:6379
-PARTITION_REDIS_PASSWORD=
-PARTITION_REDIS_DB=0
-PARTITION_REDIS_PREFIX=argyll
+PARTITION_POSTGRES_URL='postgres://localhost:5432/argyll?sslmode=disable'
+PARTITION_POSTGRES_PREFIX=argyll
+PARTITION_POSTGRES_MAX_CONNS=96
 PARTITION_SNAPSHOT_WORKERS=4
+
+FLOW_POSTGRES_URL='postgres://localhost:5432/argyll?sslmode=disable'
+FLOW_POSTGRES_PREFIX=argyll
+FLOW_POSTGRES_MAX_CONNS=96
+FLOW_CACHE_SIZE=4096
 ```
 
 ### Engine: Runtime + Caching
@@ -61,12 +64,10 @@ These defaults must be valid at startup:
 
 ### Archiver: Policy
 
-If you run the external archiver process, configure when and how flows are archived:
-
-Archiver scope is per partition/flow store configuration. Run one archiver process per `PARTITION_*` Redis connection/prefix. In a multi-partition deployment, each partition needs its own archiver instance pointed at that partition/flow store.
+The external archiver package has not been migrated to Postgres yet. The engine itself can persist archive records through `timebox/postgres`, but the standalone Argyll archiver still documents the older Redis-based flow.
 
 ```bash
-ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when Redis reaches 80% full
+ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when the archive store reaches 80% full
 ARCHIVE_MAX_AGE=24h                    # Archive flows older than 24 hours
 ARCHIVE_MEMORY_CHECK_INTERVAL=5s       # Check memory pressure every 5 seconds
 ARCHIVE_POLL_INTERVAL=500ms            # Poll interval for archive stream consumption
@@ -91,28 +92,30 @@ ARCHIVE_SINK_PATH=/dev/null             # Local filesystem sink path
 
 ## Store Separation
 
-Catalog and Partition each have their own Redis connection, configured independently. FlowStore always shares the Partition connection — they run on the same Redis instance.
+Catalog, Partition, and Flow stores are configured independently. In the default local setup they all point at the same Postgres database and prefix, and Argyll shares one underlying Postgres persistence across them.
 
 ### Single Instance (Default)
 
 ```bash
-CATALOG_REDIS_ADDR=valkey:6379
-PARTITION_REDIS_ADDR=valkey:6379
+CATALOG_POSTGRES_URL='postgres://postgres:postgres@postgres:5432/argyll?sslmode=disable'
+PARTITION_POSTGRES_URL="$CATALOG_POSTGRES_URL"
+FLOW_POSTGRES_URL="$CATALOG_POSTGRES_URL"
 ```
 
 ### Separated Catalog
 
-Catalog on its own instance; partition and flow on another:
+Catalog on its own database; partition and flow on another:
 
 ```bash
-CATALOG_REDIS_ADDR=valkey-catalog:6379
-PARTITION_REDIS_ADDR=valkey-partition:6379
+CATALOG_POSTGRES_URL='postgres://catalog-db:5432/argyll?sslmode=disable'
+PARTITION_POSTGRES_URL='postgres://flow-db:5432/argyll?sslmode=disable'
+FLOW_POSTGRES_URL="$PARTITION_POSTGRES_URL"
 ```
 
 **Store behaviors:**
 - Catalog: event trimming enabled, snapshotted on shutdown
 - Partition: event trimming enabled, snapshotted on shutdown
-- Flow: full event history retained (no trimming); shares Partition's Redis connection and snapshot worker setting (`PARTITION_SNAPSHOT_WORKERS`)
+- Flow: full event history retained (no trimming)
 
 ## Development Setup
 
@@ -121,7 +124,7 @@ For local development with Docker Compose:
 ```bash
 docker compose up
 # This starts:
-# - valkey (Redis): localhost:6379
+# - postgres: localhost:5432
 # - argyll-engine: localhost:8080
 # - argyll-web: localhost:3001
 ```
@@ -131,14 +134,16 @@ Environment variables are already configured in `docker-compose.yml`.
 For local testing without Docker:
 
 ```bash
-# Start Redis
-redis-server
+# Start Postgres
+docker compose up postgres
 
 # Set minimal env vars
-export CATALOG_REDIS_ADDR=localhost:6379
-export PARTITION_REDIS_ADDR=localhost:6379
-export CATALOG_REDIS_PREFIX=argyll
-export PARTITION_REDIS_PREFIX=argyll
+export CATALOG_POSTGRES_URL='postgres://localhost:5432/argyll?sslmode=disable'
+export PARTITION_POSTGRES_URL="$CATALOG_POSTGRES_URL"
+export FLOW_POSTGRES_URL="$CATALOG_POSTGRES_URL"
+export CATALOG_POSTGRES_PREFIX=argyll
+export PARTITION_POSTGRES_PREFIX=argyll
+export FLOW_POSTGRES_PREFIX=argyll
 
 # Run engine
 go run ./cmd/argyll
@@ -154,8 +159,8 @@ go run ./cmd/argyll
    - Natural load balancing
 
 2. **Separate Catalog vs Partition/Flow Stores**:
-   - Keep catalog on its own Valkey instance if you need isolation
-   - Partition state, flow state, and flow status indexes share one store configuration in the current engine
+   - Keep catalog on its own Postgres database or schema if you need isolation
+   - Flow state can share the same backend or use a dedicated one
 
 3. **Authentication & Reverse Proxy**:
    - Place engine behind a reverse proxy (nginx, envoy, etc.)
@@ -165,7 +170,7 @@ go run ./cmd/argyll
 4. **External Monitoring**:
    - Engine has no built-in Prometheus metrics
    - Integrate with your APM stack (Datadog, New Relic, etc.)
-   - Monitor Redis memory and latency
+   - Monitor Postgres connections, latency, and WAL pressure
 
 5. **Archiving**:
    - Configure archiving policy
@@ -294,7 +299,7 @@ Health checks run periodically to update step health status. They do not directl
 ### What to Monitor
 
 1. **Engine health**: Is the engine process running?
-2. **Redis health**: Latency, memory usage, replication lag
+2. **Postgres health**: Latency, connections, WAL pressure
 3. **Flow completion**: Success rate, latency distribution
 4. **Step execution**: Per-step failure rate, p95 latency
 5. **Archive jobs**: Success/failure, processed flows per hour
@@ -304,7 +309,7 @@ Health checks run periodically to update step health status. They do not directl
 ```
 ERROR: step execution failed         # Individual step failure
 ERROR: flow failed                   # Goal step failed, flow is terminal
-WARN: redis connection lost          # Store connectivity issue
+WARN: store connection lost          # Store connectivity issue
 WARN: archive job failed             # Flow archiving error
 ```
 
@@ -317,16 +322,16 @@ WARN: archive job failed             # Flow archiving error
 Since Argyll has no built-in metrics, instrument at:
 - Reverse proxy layer (request count, latency, errors)
 - Step handler layer (execution time, error rate)
-- Redis layer (latency, memory, key count)
+- Postgres layer (latency, connections, WAL, table bloat)
 
 ## Troubleshooting
 
 ### Engine Won't Start
 
 ```
-Error: redis: connection refused
-→ Check CATALOG_REDIS_ADDR / PARTITION_REDIS_ADDR
-→ Verify Redis is running
+Error: connection refused
+→ Check CATALOG_POSTGRES_URL / PARTITION_POSTGRES_URL / FLOW_POSTGRES_URL
+→ Verify Postgres is running
 → Check network connectivity
 ```
 
@@ -335,7 +340,7 @@ Error: redis: connection refused
 ```
 → Check logs for step failures
 → Verify step handlers are reachable
-→ Check Redis memory (may be full, blocking operations)
+→ Check Postgres connections and lock contention
 ```
 
 ### High Memory Usage

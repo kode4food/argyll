@@ -6,7 +6,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/archive"
 )
 
@@ -61,8 +60,7 @@ func TestDefaultPrefix(t *testing.T) {
 
 	cfg, err := archive.LoadFromEnv()
 	assert.NoError(t, err)
-	assert.Equal(t, config.NewDefaultConfig().FlowStore.Prefix,
-		cfg.FlowStore.Prefix)
+	assert.Equal(t, archive.DefaultStorePrefix, cfg.FlowStore.Prefix)
 	assert.Equal(t, archive.DefaultPollInterval, cfg.PollInterval)
 }
 

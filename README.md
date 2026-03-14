@@ -50,7 +50,9 @@ docker compose up
 go install github.com/kode4food/argyll/cmd/argyll@latest
 
 # Manual local testing
-export CATALOG_REDIS_ADDR=localhost:6379
+export CATALOG_POSTGRES_URL='postgres://localhost:5432/argyll?sslmode=disable'
+export PARTITION_POSTGRES_URL="$CATALOG_POSTGRES_URL"
+export FLOW_POSTGRES_URL="$CATALOG_POSTGRES_URL"
 go run ./cmd/argyll
 ```
 

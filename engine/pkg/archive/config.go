@@ -6,9 +6,10 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/redis"
 
-	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 // Config configures the archiver runtime behavior
@@ -26,6 +27,7 @@ type Config struct {
 }
 
 const (
+	DefaultStorePrefix         = "argyll:flow"
 	DefaultMemoryPercent       = 80.0
 	DefaultMaxAge              = 24 * time.Hour
 	DefaultMemoryCheckInterval = 5 * time.Second
@@ -59,11 +61,19 @@ var (
 	)
 )
 
-func LoadFromEnv() (Config, error) {
-	flowStore := config.NewDefaultConfig().FlowStore
+func DefaultStoreConfig() redis.Config {
+	return redis.DefaultConfig().With(redis.Config{
+		Prefix: DefaultStorePrefix,
+		Timebox: timebox.Config{
+			Archiving: true,
+			Indexer:   events.FlowIndexer,
+		},
+	})
+}
 
+func LoadFromEnv() (Config, error) {
 	cfg := Config{
-		FlowStore:           flowStore,
+		FlowStore:           DefaultStoreConfig(),
 		MemoryPercent:       DefaultMemoryPercent,
 		MaxAge:              DefaultMaxAge,
 		MemoryCheckInterval: DefaultMemoryCheckInterval,
@@ -74,7 +84,7 @@ func LoadFromEnv() (Config, error) {
 		SweepBatchSize:      DefaultSweepBatchSize,
 		LogLevel:            defaultLogLevel,
 	}
-	config.LoadStoreConfigFromEnv(&cfg.FlowStore, "PARTITION")
+	loadStoreConfigFromEnv(&cfg.FlowStore, "PARTITION")
 
 	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {
@@ -150,6 +160,28 @@ func (c Config) validateArchiver() error {
 		return ErrSweepBatchInvalid
 	}
 	return nil
+}
+
+func loadStoreConfigFromEnv(s *redis.Config, prefix string) {
+	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
+		s.Addr = addr
+	}
+	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
+		s.Password = password
+	}
+	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
+		s.Prefix = envPrefix
+	}
+	if db := os.Getenv(prefix + "_REDIS_DB"); db != "" {
+		if v, err := strconv.Atoi(db); err == nil && v >= 0 {
+			s.DB = v
+		}
+	}
+	if workers := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); workers != "" {
+		if v, err := strconv.Atoi(workers); err == nil && v >= 0 {
+			s.Timebox.Snapshot.WorkerCount = v
+		}
+	}
 }
 
 func (c Config) validateRunner() error {

@@ -85,7 +85,7 @@ Each work item is cached independently.
 
 - Cache is in-memory (in the engine process)
 - Lost on engine restart
-- **Not persisted** to Redis
+- **Not persisted** to the event store
 
 ### LRU Eviction
 
@@ -243,9 +243,9 @@ This prevents caching failures and accidentally skipping retries.
 2. Compare to baseline (without cache)
 3. Check step handler logs—if handler is called fewer times than expected, cache is working
 
-**Redis memory impact:**
+**Storage impact:**
 
-Cache is in-engine memory, not Redis. Monitor engine process memory usage.
+Cache is in-engine memory, not Postgres. Monitor engine process memory usage.
 
 ## Limitations
 

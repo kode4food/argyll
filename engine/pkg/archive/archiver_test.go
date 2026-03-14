@@ -19,7 +19,6 @@ import (
 	goredis "github.com/redis/go-redis/v9"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/archive"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -88,7 +87,7 @@ func TestSweepDeactivated(t *testing.T) {
 	assertLabelIndexed(t, flowStore, id)
 
 	cfg := archive.Config{
-		FlowStore:           config.NewDefaultConfig().FlowStore,
+		FlowStore:           archive.DefaultStoreConfig(),
 		MemoryPercent:       99.0,
 		MaxAge:              0,
 		MemoryCheckInterval: time.Second,
@@ -155,7 +154,7 @@ func TestPressureArchives(t *testing.T) {
 	defer stop()
 
 	cfg := archive.Config{
-		FlowStore:           config.NewDefaultConfig().FlowStore,
+		FlowStore:           archive.DefaultStoreConfig(),
 		MemoryPercent:       50.0,
 		MaxAge:              time.Hour,
 		MemoryCheckInterval: time.Second,
@@ -218,7 +217,7 @@ func TestAgeSweepRecent(t *testing.T) {
 	seedDeactivatedFlow(t, flowStore, id)
 
 	cfg := archive.Config{
-		FlowStore:           config.NewDefaultConfig().FlowStore,
+		FlowStore:           archive.DefaultStoreConfig(),
 		MemoryPercent:       99.0,
 		MaxAge:              time.Hour,
 		MemoryCheckInterval: time.Second,
@@ -274,7 +273,7 @@ func TestPressureBelowThreshold(t *testing.T) {
 	defer stop()
 
 	cfg := archive.Config{
-		FlowStore:           config.NewDefaultConfig().FlowStore,
+		FlowStore:           archive.DefaultStoreConfig(),
 		MemoryPercent:       50.0,
 		MaxAge:              time.Hour,
 		MemoryCheckInterval: time.Second,
@@ -343,7 +342,7 @@ func TestSweepBadStatus(t *testing.T) {
 	assert.NoError(t, err)
 
 	cfg := archive.Config{
-		FlowStore:           config.NewDefaultConfig().FlowStore,
+		FlowStore:           archive.DefaultStoreConfig(),
 		MemoryPercent:       99.0,
 		MaxAge:              0,
 		MemoryCheckInterval: time.Second,
@@ -424,7 +423,7 @@ func containsAggregateID(
 
 func setupStore(t *testing.T, redisAddr string) *timebox.Store {
 	flowStore, err := redis.NewStore(
-		config.NewDefaultConfig().FlowStore,
+		archive.DefaultStoreConfig(),
 		redis.Config{
 			Addr:   redisAddr,
 			Prefix: "partition",

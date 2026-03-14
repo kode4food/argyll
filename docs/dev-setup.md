@@ -10,7 +10,7 @@ docker compose up
 
 This starts:
 
-- Valkey (catalog and partition stores)
+- Postgres
 - Argyll engine on http://localhost:8080
 - UI on http://localhost:3001
 - Example step services (ports 8081–8086)
@@ -27,13 +27,14 @@ make test
 go run ./cmd/argyll
 ```
 
-Ensure your environment points at a Valkey instance (local or Docker).
+Ensure your environment points at a Postgres instance (local or Docker).
 
 ## Engine environment variables
 
 Local defaults are defined in `docker-compose.yml`. The most important settings are:
 
-- `CATALOG_REDIS_ADDR` and `PARTITION_REDIS_ADDR` (Valkey endpoints)
+- `CATALOG_POSTGRES_URL`, `PARTITION_POSTGRES_URL`, and `FLOW_POSTGRES_URL`
+- `CATALOG_POSTGRES_PREFIX`, `PARTITION_POSTGRES_PREFIX`, and `FLOW_POSTGRES_PREFIX`
 - `API_HOST` and `API_PORT` (engine HTTP server)
 - `WEBHOOK_BASE_URL` (used for async step callbacks)
 

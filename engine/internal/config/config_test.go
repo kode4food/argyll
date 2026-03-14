@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/postgres"
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
@@ -131,8 +131,15 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.FlowStore.Timebox.Snapshot.SaveTimeout)
 	as.Equal(config.DefaultFlowCacheSize, cfg.FlowStore.Timebox.CacheSize)
 	as.NotNil(cfg.FlowStore.Timebox.Indexer)
-	as.NotNil(cfg.FlowStore.JoinKey)
-	as.NotNil(cfg.FlowStore.ParseKey)
+	as.Equal(config.DefaultPostgresURL, cfg.CatalogStore.URL)
+	as.Equal(config.DefaultPostgresPrefix, cfg.CatalogStore.Prefix)
+	as.EqualValues(config.DefaultPostgresMaxConns, cfg.CatalogStore.MaxConns)
+	as.Equal(config.DefaultPostgresURL, cfg.PartitionStore.URL)
+	as.Equal(config.DefaultPostgresPrefix, cfg.PartitionStore.Prefix)
+	as.EqualValues(config.DefaultPostgresMaxConns, cfg.PartitionStore.MaxConns)
+	as.Equal(config.DefaultPostgresURL, cfg.FlowStore.URL)
+	as.Equal(config.DefaultPostgresPrefix, cfg.FlowStore.Prefix)
+	as.EqualValues(config.DefaultPostgresMaxConns, cfg.FlowStore.MaxConns)
 }
 
 func TestDefaultTimebox(t *testing.T) {
@@ -151,38 +158,33 @@ func TestStoreLoadFromEnv(t *testing.T) {
 		envVars          map[string]string
 		name             string
 		envPrefix        string
-		checkAddr        string
-		checkPassword    string
+		checkURL         string
 		checkPrefix      string
-		checkDB          int
 		checkWorkerCount *int
+		checkMaxConns    *int32
 	}{
 		{
 			name:      "load_all_fields",
 			envPrefix: "TEST",
 			envVars: map[string]string{
-				"TEST_REDIS_ADDR":       "redis.example.com:6379",
-				"TEST_REDIS_PASSWORD":   "secret123",
-				"TEST_REDIS_DB":         "5",
-				"TEST_REDIS_PREFIX":     "custom-prefix",
-				"TEST_SNAPSHOT_WORKERS": "6",
+				"TEST_POSTGRES_URL":       "postgres://pg.example.com:5432/test?sslmode=disable",
+				"TEST_POSTGRES_PREFIX":    "custom-prefix",
+				"TEST_POSTGRES_MAX_CONNS": "48",
+				"TEST_SNAPSHOT_WORKERS":   "6",
 			},
-			checkAddr:        "redis.example.com:6379",
-			checkPassword:    "secret123",
-			checkDB:          5,
+			checkURL:         "postgres://pg.example.com:5432/test?sslmode=disable",
 			checkPrefix:      "custom-prefix",
 			checkWorkerCount: func() *int { v := 6; return &v }(),
+			checkMaxConns:    func() *int32 { v := int32(48); return &v }(),
 		},
 		{
-			name:      "load_addr_only",
+			name:      "load_url_only",
 			envPrefix: "APP",
 			envVars: map[string]string{
-				"APP_REDIS_ADDR": "localhost:9999",
+				"APP_POSTGRES_URL": "postgres://localhost:5432/app?sslmode=disable",
 			},
-			checkAddr:     "localhost:9999",
-			checkPassword: "",
-			checkDB:       0,
-			checkPrefix:   "",
+			checkURL:    "postgres://localhost:5432/app?sslmode=disable",
+			checkPrefix: "",
 		},
 		{
 			name:      "load_worker_zero",
@@ -193,25 +195,17 @@ func TestStoreLoadFromEnv(t *testing.T) {
 			checkWorkerCount: func() *int { v := 0; return &v }(),
 		},
 		{
-			name:      "load_with_invalid_db",
-			envPrefix: "INVALID",
-			envVars: map[string]string{
-				"INVALID_REDIS_DB": "not_a_number",
-			},
-			checkDB: 0,
-		},
-		{
 			name:      "invalid_worker_ignored",
 			envPrefix: "BADWORKER",
 			envVars: map[string]string{
-				"BADWORKER_SNAPSHOT_WORKERS": "not_a_number",
+				"BADWORKER_SNAPSHOT_WORKERS":   "not_a_number",
+				"BADWORKER_POSTGRES_MAX_CONNS": "0",
 			},
 		},
 		{
 			name:      "no_env_vars",
 			envPrefix: "NONE",
 			envVars:   map[string]string{},
-			checkAddr: "",
 		},
 	}
 
@@ -224,17 +218,11 @@ func TestStoreLoadFromEnv(t *testing.T) {
 				t.Cleanup(func() { _ = os.Unsetenv(key) })
 			}
 
-			storeConfig := &redis.Config{}
+			storeConfig := &postgres.Config{}
 			config.LoadStoreConfigFromEnv(storeConfig, tt.envPrefix)
 
-			if tt.checkAddr != "" {
-				as.Equal(tt.checkAddr, storeConfig.Addr)
-			}
-			if tt.checkPassword != "" {
-				as.Equal(tt.checkPassword, storeConfig.Password)
-			}
-			if tt.envVars[tt.envPrefix+"_REDIS_DB"] != "" {
-				as.Equal(tt.checkDB, storeConfig.DB)
+			if tt.checkURL != "" {
+				as.Equal(tt.checkURL, storeConfig.URL)
 			}
 			if tt.checkPrefix != "" {
 				as.Equal(tt.checkPrefix, storeConfig.Prefix)
@@ -242,6 +230,9 @@ func TestStoreLoadFromEnv(t *testing.T) {
 			if tt.checkWorkerCount != nil {
 				as.Equal(*tt.checkWorkerCount,
 					storeConfig.Timebox.Snapshot.WorkerCount)
+			}
+			if tt.checkMaxConns != nil {
+				as.Equal(*tt.checkMaxConns, storeConfig.MaxConns)
 			}
 		})
 	}
@@ -470,16 +461,22 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "partition_redis_addr_propagates_to_flow_store",
+			name: "partition_postgres_settings",
 			envVars: map[string]string{
-				"PARTITION_REDIS_ADDR":   "valkey-partition:6379",
-				"PARTITION_REDIS_PREFIX": "shared-prefix",
+				"PARTITION_POSTGRES_URL":       "postgres://partition-db:5432/argyll?sslmode=disable",
+				"PARTITION_POSTGRES_PREFIX":    "shared-prefix",
+				"PARTITION_POSTGRES_MAX_CONNS": "64",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, "valkey-partition:6379", c.PartitionStore.Addr)
-				testify.Equal(t, "valkey-partition:6379", c.FlowStore.Addr)
+				testify.Equal(t,
+					"postgres://partition-db:5432/argyll?sslmode=disable",
+					c.PartitionStore.URL,
+				)
 				testify.Equal(t, "shared-prefix", c.PartitionStore.Prefix)
-				testify.Equal(t, "shared-prefix", c.FlowStore.Prefix)
+				testify.EqualValues(t, 64, c.PartitionStore.MaxConns)
+				testify.Equal(t, config.DefaultPostgresURL, c.FlowStore.URL)
+				testify.Equal(t, config.DefaultPostgresPrefix,
+					c.FlowStore.Prefix)
 			},
 		},
 		{
