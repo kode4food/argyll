@@ -42,16 +42,16 @@ examples/        # Sample step implementations
 
 ### Fully Implemented
 
-- Distributed coordination (optimistic concurrency)
-- Event sourcing (Valkey backend)
+- Distributed coordination (Raft replication + optimistic concurrency)
+- Event sourcing (Raft + Pebble backend)
 - Lazy evaluation (goal-oriented execution)
 - Step types (sync HTTP, async HTTP, script, flow)
 - Immutable execution plans
 - Real-time UI (React 19 + WebSocket)
 - Health monitoring
-- Separate catalog/partition/flow stores
+- Shared Timebox store with separate catalog/partition/flow executors
 - Step retry with configurable backoff
-- Flow archiving (Redis stream consumption)
+- Flow archiving (Redis-backed archive worker)
 
 ### Partial
 

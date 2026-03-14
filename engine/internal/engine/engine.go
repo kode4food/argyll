@@ -38,9 +38,7 @@ type (
 
 	// Dependencies groups the external dependencies required by Engine
 	Dependencies struct {
-		CatalogStore     *timebox.Store
-		PartitionStore   *timebox.Store
-		FlowStore        *timebox.Store
+		Store            *timebox.Store
 		StepClient       client.Client
 		Clock            scheduler.Clock
 		TimerConstructor scheduler.TimerConstructor
@@ -85,15 +83,15 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	hub := event.NewHub()
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
-			deps.CatalogStore, events.NewCatalogState,
+			deps.Store, events.NewCatalogState,
 			events.CatalogAppliers, makePublisher[*api.CatalogState](hub),
 		),
 		partExec: timebox.NewExecutor(
-			deps.PartitionStore, events.NewPartitionState,
+			deps.Store, events.NewPartitionState,
 			events.PartitionAppliers, makePublisher[*api.PartitionState](hub),
 		),
 		flowExec: timebox.NewExecutor(
-			deps.FlowStore, events.NewFlowState,
+			deps.Store, events.NewFlowState,
 			events.FlowAppliers, makePublisher[*api.FlowState](hub),
 		),
 		scripts:    script.NewRegistry(),
@@ -123,14 +121,8 @@ func makePublisher[T any](hub *event.Hub) timebox.SuccessAction[T] {
 }
 
 func normalizeDependencies(deps *Dependencies) error {
-	if deps.CatalogStore == nil {
-		return fmt.Errorf("%w: catalog store", ErrMissingDependency)
-	}
-	if deps.PartitionStore == nil {
-		return fmt.Errorf("%w: partition store", ErrMissingDependency)
-	}
-	if deps.FlowStore == nil {
-		return fmt.Errorf("%w: flow store", ErrMissingDependency)
+	if deps.Store == nil {
+		return fmt.Errorf("%w: store", ErrMissingDependency)
 	}
 	if deps.StepClient == nil {
 		return fmt.Errorf("%w: step client", ErrMissingDependency)

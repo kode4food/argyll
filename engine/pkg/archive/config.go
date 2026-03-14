@@ -7,8 +7,6 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox/redis"
-
-	"github.com/kode4food/argyll/engine/internal/config"
 )
 
 // Config configures the archiver runtime behavior
@@ -35,7 +33,10 @@ const (
 	DefaultPressureBatchSize   = 10
 	DefaultSweepBatchSize      = 100
 
-	defaultLogLevel = "info"
+	defaultFlowStoreAddr   = "localhost:6379"
+	defaultFlowStoreDB     = 0
+	defaultFlowStorePrefix = "argyll"
+	defaultLogLevel        = "info"
 )
 
 var (
@@ -60,10 +61,8 @@ var (
 )
 
 func LoadFromEnv() (Config, error) {
-	flowStore := config.NewDefaultConfig().FlowStore
-
 	cfg := Config{
-		FlowStore:           flowStore,
+		FlowStore:           defaultFlowStoreConfig(),
 		MemoryPercent:       DefaultMemoryPercent,
 		MaxAge:              DefaultMaxAge,
 		MemoryCheckInterval: DefaultMemoryCheckInterval,
@@ -74,7 +73,7 @@ func LoadFromEnv() (Config, error) {
 		SweepBatchSize:      DefaultSweepBatchSize,
 		LogLevel:            defaultLogLevel,
 	}
-	config.LoadStoreConfigFromEnv(&cfg.FlowStore, "PARTITION")
+	loadFlowStoreConfigFromEnv(&cfg.FlowStore)
 
 	if pct := os.Getenv("ARCHIVE_MEMORY_PERCENT"); pct != "" {
 		if f, err := strconv.ParseFloat(pct, 64); err == nil {
@@ -157,4 +156,30 @@ func (c Config) validateRunner() error {
 		return ErrPollIntervalInvalid
 	}
 	return nil
+}
+
+func defaultFlowStoreConfig() redis.Config {
+	return redis.DefaultConfig().With(redis.Config{
+		Addr:   defaultFlowStoreAddr,
+		DB:     defaultFlowStoreDB,
+		Prefix: defaultFlowStorePrefix,
+	})
+}
+
+func loadFlowStoreConfigFromEnv(cfg *redis.Config) {
+	if addr := os.Getenv("FLOW_REDIS_ADDR"); addr != "" {
+		cfg.Addr = addr
+	}
+	if password := os.Getenv("FLOW_REDIS_PASSWORD"); password != "" {
+		cfg.Password = password
+	}
+	if dbStr := os.Getenv("FLOW_REDIS_DB"); dbStr != "" {
+		db, err := strconv.Atoi(dbStr)
+		if err == nil {
+			cfg.DB = db
+		}
+	}
+	if prefix := os.Getenv("FLOW_REDIS_PREFIX"); prefix != "" {
+		cfg.Prefix = prefix
+	}
 }

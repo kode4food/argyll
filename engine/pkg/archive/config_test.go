@@ -6,15 +6,14 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/archive"
 )
 
 func TestLoadFromEnv(t *testing.T) {
-	t.Setenv("PARTITION_REDIS_ADDR", "redis:6379")
-	t.Setenv("PARTITION_REDIS_PASSWORD", "secret")
-	t.Setenv("PARTITION_REDIS_DB", "2")
-	t.Setenv("PARTITION_REDIS_PREFIX", "argyll:flow")
+	t.Setenv("FLOW_REDIS_ADDR", "redis:6379")
+	t.Setenv("FLOW_REDIS_PASSWORD", "secret")
+	t.Setenv("FLOW_REDIS_DB", "2")
+	t.Setenv("FLOW_REDIS_PREFIX", "argyll:flow")
 	t.Setenv("ARCHIVE_MEMORY_PERCENT", "75.5")
 	t.Setenv("ARCHIVE_MAX_AGE", "2h")
 	t.Setenv("ARCHIVE_MEMORY_CHECK_INTERVAL", "3s")
@@ -44,11 +43,10 @@ func TestLoadFromEnv(t *testing.T) {
 }
 
 func TestDefaultPrefix(t *testing.T) {
-	t.Setenv("PARTITION_REDIS_ADDR", "")
-	t.Setenv("PARTITION_REDIS_PASSWORD", "")
-	t.Setenv("PARTITION_REDIS_DB", "")
-	t.Setenv("PARTITION_REDIS_PREFIX", "")
-	t.Setenv("PARTITION_SNAPSHOT_WORKERS", "")
+	t.Setenv("FLOW_REDIS_ADDR", "")
+	t.Setenv("FLOW_REDIS_PASSWORD", "")
+	t.Setenv("FLOW_REDIS_DB", "")
+	t.Setenv("FLOW_REDIS_PREFIX", "")
 	t.Setenv("ARCHIVE_MEMORY_PERCENT", "")
 	t.Setenv("ARCHIVE_MAX_AGE", "")
 	t.Setenv("ARCHIVE_MEMORY_CHECK_INTERVAL", "")
@@ -61,8 +59,7 @@ func TestDefaultPrefix(t *testing.T) {
 
 	cfg, err := archive.LoadFromEnv()
 	assert.NoError(t, err)
-	assert.Equal(t, config.NewDefaultConfig().FlowStore.Prefix,
-		cfg.FlowStore.Prefix)
+	assert.Equal(t, "argyll", cfg.FlowStore.Prefix)
 	assert.Equal(t, archive.DefaultPollInterval, cfg.PollInterval)
 }
 

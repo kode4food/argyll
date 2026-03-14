@@ -100,7 +100,6 @@ func TestThreadSafe(t *testing.T) {
 func TestEngine(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NotNil(t, env.Engine)
-		assert.NotNil(t, env.Redis)
 		assert.NotNil(t, env.MockClient)
 		assert.NotNil(t, env.Config)
 		assert.NotNil(t, env.EventHub)
@@ -228,7 +227,6 @@ func TestConfig(t *testing.T) {
 func TestCleanup(t *testing.T) {
 	assert.NotPanics(t, func() {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-			assert.NotNil(t, env.Redis)
 			assert.NotNil(t, env.Engine)
 		})
 	})

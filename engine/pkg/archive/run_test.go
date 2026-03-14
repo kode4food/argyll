@@ -9,7 +9,6 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/archive"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -144,7 +143,7 @@ func TestRunHandlerError(t *testing.T) {
 
 func testRunConfig(addr string) archive.Config {
 	cfg := archive.Config{
-		FlowStore:           config.NewDefaultConfig().FlowStore,
+		FlowStore:           newFlowStoreConfig(addr),
 		MemoryPercent:       archive.DefaultMemoryPercent,
 		MaxAge:              archive.DefaultMaxAge,
 		MemoryCheckInterval: 10 * time.Millisecond,
@@ -155,7 +154,5 @@ func testRunConfig(addr string) archive.Config {
 		SweepBatchSize:      1,
 		LogLevel:            "debug",
 	}
-	cfg.FlowStore.Addr = addr
-	cfg.FlowStore.Prefix = "partition"
 	return cfg
 }

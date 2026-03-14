@@ -8,11 +8,12 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/raft"
 
 	app "github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/internal/client"
@@ -23,22 +24,19 @@ import (
 )
 
 type argyll struct {
-	cfg            *config.Config
-	catalogStore   *timebox.Store
-	partitionStore *timebox.Store
-	flowStore      *timebox.Store
-	stepClient     client.Client
-	engine         *engine.Engine
-	health         *server.HealthChecker
-	apiServer      *server.Server
-	httpServer     *http.Server
-	quit           chan os.Signal
+	cfg        *config.Config
+	store      *timebox.Store
+	engine     *engine.Engine
+	health     *server.HealthChecker
+	apiServer  *server.Server
+	httpServer *http.Server
+	quit       chan os.Signal
 }
 
+const defaultStoreReadyTimeout = 5 * time.Second
+
 var (
-	ErrCreateCatalogStore   = errors.New("failed to create catalog store")
-	ErrCreatePartitionStore = errors.New("failed to create partition store")
-	ErrCreateFlowStore      = errors.New("failed to create flow store")
+	ErrCreateStore = errors.New("failed to create raft store")
 )
 
 var logLevels = map[string]slog.Level{
@@ -100,50 +98,49 @@ func (s *argyll) setupLogging() {
 		slog.String("log_level", s.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Addr),
-		slog.Int("catalog_redis_db", s.cfg.CatalogStore.DB),
-		slog.String("partition_redis_addr", s.cfg.PartitionStore.Addr),
-		slog.Int("partition_redis_db", s.cfg.PartitionStore.DB),
-		slog.String("flow_redis_addr", s.cfg.FlowStore.Addr),
-		slog.Int("flow_redis_db", s.cfg.FlowStore.DB),
+		slog.String("raft_node_id", s.cfg.Raft.LocalID),
+		slog.String("raft_bind_address", s.cfg.Raft.BindAddress),
+		slog.String("raft_advertise_address", s.cfg.Raft.ServerAddress()),
+		slog.String("raft_forward_bind_address", s.cfg.Raft.ForwardBindAddress),
+		slog.String("raft_forward_advertise_address",
+			s.cfg.Raft.ForwardAddress(),
+		),
+		slog.String("raft_data_dir", s.cfg.Raft.DataDir),
+		slog.String("raft_servers", formatRaftServers(s.cfg.Raft.Servers)),
 		slog.String("api_host", s.cfg.APIHost),
 		slog.Int("api_port", s.cfg.APIPort))
 }
 
 func (s *argyll) initializeStores() error {
-	var err error
-
-	s.catalogStore, err = redis.NewStore(s.cfg.CatalogStore)
+	store, err := raft.NewStore(s.cfg.Raft.With(raft.Config{
+		LogOutput: os.Stdout,
+	}))
 	if err != nil {
-		return errors.Join(ErrCreateCatalogStore, err)
+		return errors.Join(ErrCreateStore, err)
+	}
+	ctx, cancel := context.WithTimeout(
+		context.Background(), defaultStoreReadyTimeout,
+	)
+	defer cancel()
+	if err := store.WaitReady(ctx); err != nil {
+		_ = store.Close()
+		return errors.Join(ErrCreateStore, err)
 	}
 
-	s.partitionStore, err = redis.NewStore(s.cfg.PartitionStore)
-	if err != nil {
-		_ = s.catalogStore.Close()
-		return errors.Join(ErrCreatePartitionStore, err)
-	}
-
-	s.flowStore, err = redis.NewStore(s.cfg.FlowStore)
-	if err != nil {
-		_ = s.partitionStore.Close()
-		_ = s.catalogStore.Close()
-		return errors.Join(ErrCreateFlowStore, err)
-	}
-
+	// Raft persistence does not use logical prefixes, so one replicated store
+	// holds catalog, partition, and flow aggregates
+	s.store = store
 	return nil
 }
 
 func (s *argyll) initializeEngine() error {
-	s.stepClient = client.NewHTTPClient(
+	stepClient := client.NewHTTPClient(
 		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
 	)
 
 	eng, err := engine.New(s.cfg, engine.Dependencies{
-		CatalogStore:   s.catalogStore,
-		PartitionStore: s.partitionStore,
-		FlowStore:      s.flowStore,
-		StepClient:     s.stepClient,
+		Store:      s.store,
+		StepClient: stepClient,
 	})
 	if err != nil {
 		return err
@@ -195,9 +192,28 @@ func (s *argyll) shutdown() {
 		slog.Error("Engine shutdown failed", log.Error(err))
 	}
 
-	_ = s.flowStore.Close()
-	_ = s.partitionStore.Close()
-	_ = s.catalogStore.Close()
+	s.closeStores()
 
 	slog.Info("Server exited")
+}
+
+func (s *argyll) closeStores() {
+	if s.store == nil {
+		return
+	}
+
+	_ = s.store.Close()
+	s.store = nil
+}
+
+func formatRaftServers(srvs []raft.Server) string {
+	parts := make([]string, 0, len(srvs))
+	for _, srv := range srvs {
+		part := srv.ID + "=" + srv.Address
+		if srv.ForwardAddress != "" {
+			part += "|" + srv.ForwardAddress
+		}
+		parts = append(parts, part)
+	}
+	return strings.Join(parts, ",")
 }

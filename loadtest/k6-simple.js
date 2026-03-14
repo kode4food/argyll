@@ -3,12 +3,12 @@ import { sleep } from 'k6';
 import { Counter, Rate } from 'k6/metrics';
 
 // Custom metrics
-const flowsStarted = new Counter("flows_started");
-const flowsCompleted = new Counter("flows_completed");
-const flowsFailed = new Counter("flows_failed");
-const errorRate = new Rate("error_rate");
+const flowsStarted = new Counter('flows_started');
+const flowsCompleted = new Counter('flows_completed');
+const flowsFailed = new Counter('flows_failed');
+const errorRate = new Rate('error_rate');
 
-const ENGINE_URL = __ENV.ENGINE_URL || "http://localhost:8080";
+const ENGINE_URL = __ENV.ENGINE_URL || 'http://localhost:8080';
 
 export let options = {
   // Options can be overridden via CLI flags (--vus, --duration, etc.)
@@ -17,28 +17,28 @@ export let options = {
 export function setup() {
   // Register simple step
   const step = {
-    id: "k6-simple-step",
-    name: "K6 Simple Step",
-    type: "script",
+    id: 'k6-simple-step',
+    name: 'K6 Simple Step',
+    type: 'script',
     attributes: {
-      input: { role: "required", type: "string" },
-      result: { role: "output", type: "string" },
+      input: { role: 'required', type: 'string' },
+      result: { role: 'output', type: 'string' },
     },
     script: {
-      language: "ale",
+      language: 'ale',
       script: '{:result "hello"}',
     },
   };
 
   const res = http.post(`${ENGINE_URL}/engine/step`, JSON.stringify(step), {
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
   });
 
   if (res.status !== 201 && res.status !== 409) {
     throw new Error(`Failed to register step: ${res.status}`);
   }
 
-  console.log("Step registered");
+  console.log('Step registered');
   return { stepId: step.id };
 }
 
@@ -51,11 +51,11 @@ export default function (data) {
     JSON.stringify({
       id: flowId,
       goals: [data.stepId],
-      init: { input: "test" },
+      init: { input: 'test' },
     }),
     {
-      headers: { "Content-Type": "application/json" },
-      tags: { name: "StartFlow" },
+      headers: { 'Content-Type': 'application/json' },
+      tags: { name: 'StartFlow' },
     },
   );
 
@@ -75,20 +75,17 @@ export default function (data) {
   while (!completed && attempts < maxAttempts) {
     sleep(0.1);
 
-    const statusRes = http.get(
-      `${ENGINE_URL}/engine/flow/${flowId}/status`,
-      {
-      tags: { name: "GetFlowStatus" },
-      },
-    );
+    const statusRes = http.get(`${ENGINE_URL}/engine/flow/${flowId}/status`, {
+      tags: { name: 'GetFlowStatus' },
+    });
 
     if (statusRes.status === 200) {
       const flow = JSON.parse(statusRes.body);
-      if (flow.status === "completed") {
+      if (flow.status === 'completed') {
         completed = true;
         flowsCompleted.add(1);
         errorRate.add(0);
-      } else if (flow.status === "failed") {
+      } else if (flow.status === 'failed') {
         flowsFailed.add(1);
         errorRate.add(1);
         return;
@@ -113,7 +110,7 @@ export function handleSummary(data) {
 
   const throughput = completed / duration;
 
-  console.log("\n=== RESULTS ===");
+  console.log('\n=== RESULTS ===');
   console.log(`Duration:        ${duration.toFixed(1)}s`);
   console.log(`VUs:             ${maxVUs}`);
   console.log(`Started:         ${started}`);

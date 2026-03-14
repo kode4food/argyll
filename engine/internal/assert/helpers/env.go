@@ -4,9 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
@@ -20,17 +19,14 @@ import (
 type (
 	// TestEngineEnv holds all the components needed for engine testing
 	TestEngineEnv struct {
-		T              *testing.T
-		Engine         *engine.Engine
-		Redis          *miniredis.Miniredis
-		MockClient     *MockClient
-		Config         *config.Config
-		EventHub       *event.Hub
-		Cleanup        func()
-		catalogStore   *timebox.Store
-		partitionStore *timebox.Store
-		flowStore      *timebox.Store
-		flowExec       *timebox.Executor[*api.FlowState]
+		T          *testing.T
+		Engine     *engine.Engine
+		MockClient *MockClient
+		Config     *config.Config
+		EventHub   *event.Hub
+		Cleanup    func()
+		store      *timebox.Store
+		flowExec   *timebox.Executor[*api.FlowState]
 	}
 
 	FlowEvent struct {
@@ -47,7 +43,7 @@ func NewTestConfig() *config.Config {
 }
 
 // NewTestEngine creates a fully configured test engine environment with an
-// in-memory Redis backend and mock HTTP client
+// in-memory Timebox backend and mock HTTP client
 func NewTestEngine(t *testing.T) *TestEngineEnv {
 	return NewTestEngineWithDeps(t, engine.Dependencies{})
 }
@@ -58,53 +54,30 @@ func NewTestEngineWithDeps(
 ) *TestEngineEnv {
 	t.Helper()
 
-	server, err := miniredis.Run()
-	assert.NoError(t, err)
-
-	cfg := &config.Config{
-		APIPort:         8080,
-		APIHost:         "localhost",
-		WebhookBaseURL:  "http://localhost:8080",
-		StepTimeout:     5 * api.Second,
-		MemoCacheSize:   100,
-		ShutdownTimeout: 2 * time.Second,
-		Work: api.WorkConfig{
-			MaxRetries:  3,
-			InitBackoff: 1000,
-			MaxBackoff:  60000,
-			BackoffType: api.BackoffTypeExponential,
-		},
+	cfg := NewTestConfig()
+	cfg.APIPort = 8080
+	cfg.APIHost = "localhost"
+	cfg.WebhookBaseURL = "http://localhost:8080"
+	cfg.StepTimeout = 5 * api.Second
+	cfg.MemoCacheSize = 100
+	cfg.ShutdownTimeout = 2 * time.Second
+	cfg.Work = api.WorkConfig{
+		MaxRetries:  3,
+		InitBackoff: 1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
 	}
 
-	base := config.NewDefaultConfig()
-
-	catStore, err := redis.NewStore(base.CatalogStore.With(redis.Config{
-		Addr:   server.Addr(),
-		Prefix: "test-catalog",
-	}))
-	assert.NoError(t, err)
-
-	partStore, err := redis.NewStore(base.PartitionStore.With(redis.Config{
-		Addr:   server.Addr(),
-		Prefix: "test-partition",
-	}))
-	assert.NoError(t, err)
-
-	flowStore, err := redis.NewStore(base.FlowStore.With(redis.Config{
-		Addr:   server.Addr(),
-		Prefix: "test-flow",
-		Timebox: timebox.Config{
-			CacheSize: 100,
-		},
-	}))
+	storeCfg := config.DefaultTimebox().With(timebox.Config{
+		CacheSize: 100,
+	})
+	store, err := memory.NewStore(storeCfg)
 	assert.NoError(t, err)
 
 	mockCli := NewMockClient()
 
 	defaultDeps := engine.Dependencies{
-		CatalogStore:     catStore,
-		PartitionStore:   partStore,
-		FlowStore:        flowStore,
+		Store:            store,
 		StepClient:       mockCli,
 		Clock:            time.Now,
 		TimerConstructor: scheduler.NewTimer,
@@ -115,9 +88,10 @@ func NewTestEngineWithDeps(
 	if cl, ok := deps.StepClient.(*MockClient); ok {
 		mockCli = cl
 	}
+	store = deps.Store
 	hub := eng.GetEventHub()
 	flowExec := timebox.NewExecutor(
-		flowStore,
+		store,
 		events.NewFlowState,
 		events.FlowAppliers,
 		func(_ *api.FlowState, evs []*timebox.Event) {
@@ -126,24 +100,18 @@ func NewTestEngineWithDeps(
 	)
 
 	testEnv := &TestEngineEnv{
-		T:              t,
-		Engine:         eng,
-		Redis:          server,
-		MockClient:     mockCli,
-		Config:         cfg,
-		EventHub:       hub,
-		catalogStore:   catStore,
-		partitionStore: partStore,
-		flowStore:      flowStore,
-		flowExec:       flowExec,
+		T:          t,
+		Engine:     eng,
+		MockClient: mockCli,
+		Config:     cfg,
+		EventHub:   hub,
+		store:      store,
+		flowExec:   flowExec,
 	}
 
 	testEnv.Cleanup = func() {
 		_ = testEnv.Engine.Stop()
-		_ = testEnv.flowStore.Close()
-		_ = testEnv.partitionStore.Close()
-		_ = testEnv.catalogStore.Close()
-		testEnv.Redis.Close()
+		_ = testEnv.store.Close()
 	}
 
 	return testEnv
@@ -158,7 +126,7 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 	}
 	e.EventHub = eng.GetEventHub()
 	e.flowExec = timebox.NewExecutor(
-		e.flowStore,
+		e.store,
 		events.NewFlowState,
 		events.FlowAppliers,
 		func(_ *api.FlowState, evs []*timebox.Event) {
@@ -179,7 +147,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 ) error {
 	_, err := e.flowExec.Exec(
 		events.FlowKey(flowID),
-		func(st *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
+		func(_ *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
 			for _, ev := range evs {
 				if err := raiseFlowEvent(ag, ev); err != nil {
 					return err
@@ -191,12 +159,19 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 	return err
 }
 
+// AppendEvents appends raw events to the shared test store
+func (e *TestEngineEnv) AppendEvents(
+	id timebox.AggregateID, atSeq int64, evs ...*timebox.Event,
+) error {
+	return e.store.AppendEvents(id, atSeq, evs)
+}
+
 // ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
-// given label/value pair.
+// given label/value pair
 func (e *TestEngineEnv) ListFlowsByLabel(
 	label, value string,
 ) ([]timebox.AggregateID, error) {
-	return e.flowStore.ListAggregatesByLabel(label, value)
+	return e.store.ListAggregatesByLabel(label, value)
 }
 
 func raiseFlowEvent(
@@ -253,9 +228,7 @@ func (e *TestEngineEnv) engineDeps(
 	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
 	return engine.Dependencies{
-		CatalogStore:     e.catalogStore,
-		PartitionStore:   e.partitionStore,
-		FlowStore:        e.flowStore,
+		Store:            e.store,
 		StepClient:       e.MockClient,
 		Clock:            clock,
 		TimerConstructor: makeTimer,
@@ -265,14 +238,8 @@ func (e *TestEngineEnv) engineDeps(
 func mergeDependencies(
 	defaults engine.Dependencies, overrides engine.Dependencies,
 ) engine.Dependencies {
-	if overrides.CatalogStore != nil {
-		defaults.CatalogStore = overrides.CatalogStore
-	}
-	if overrides.PartitionStore != nil {
-		defaults.PartitionStore = overrides.PartitionStore
-	}
-	if overrides.FlowStore != nil {
-		defaults.FlowStore = overrides.FlowStore
+	if overrides.Store != nil {
+		defaults.Store = overrides.Store
 	}
 	if overrides.StepClient != nil {
 		defaults.StepClient = overrides.StepClient

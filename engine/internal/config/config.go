@@ -4,11 +4,13 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -22,10 +24,8 @@ type Config struct {
 	WebhookBaseURL string
 	LogLevel       string
 
-	// Stores & Archiving
-	CatalogStore   redis.Config
-	PartitionStore redis.Config
-	FlowStore      redis.Config
+	// Raft-backed persistence
+	Raft raft.Config
 
 	// Work & Retry
 	Work api.WorkConfig
@@ -43,22 +43,22 @@ const (
 	DefaultAPIPort = 8080
 	DefaultAPIHost = "0.0.0.0"
 	MaxTCPPort     = 65535
-	DefaultRedisDB = 0
 
-	DefaultRedisEndpoint       = "localhost:6379"
-	DefaultRedisPrefix         = "argyll"
 	DefaultSnapshotWorkers     = 4
 	DefaultSnapshotQueueSize   = 1000
 	DefaultSnapshotSaveTimeout = 30 * time.Second
-	DefaultFlowCacheSize       = 4096
+	DefaultTimeboxCacheSize    = 4096
 	DefaultMemoCacheSize       = 16384
+	DefaultRaftNodeID          = "argyll-1"
+	DefaultRaftBindAddress     = "127.0.0.1:9701"
+	DefaultRaftDataDirName     = "argyll-raft"
 
 	DefaultRetryMaxRetries  = 10
 	DefaultRetryInitBackoff = 1000
 	DefaultMaxRetryBackoff  = 60000
 	DefaultRetryBackoffType = api.BackoffTypeExponential
 
-	MaxFlowCacheSize    = 1_000_000
+	MaxTimeboxCacheSize = 1_000_000
 	MaxMemoCacheSize    = 10_000_000
 	MaxRetryMaxRetries  = 1000
 	MaxStepTimeout      = 365 * 24 * 60 * api.Minute // 1 year in ms
@@ -82,42 +82,17 @@ var (
 		"retry max backoff must be >= retry initial backoff",
 	)
 	ErrInvalidRetryBackoffType = errors.New("invalid retry backoff type")
+	ErrInvalidRaftServers      = errors.New("invalid RAFT_SERVERS")
 )
 
 // NewDefaultConfig creates a configuration with sensible defaults for all
 // engine settings, stores, and retry behavior
 func NewDefaultConfig() *Config {
-	base := redis.DefaultConfig().With(redis.Config{
-		Timebox: DefaultTimebox(),
-		Addr:    DefaultRedisEndpoint,
-		DB:      DefaultRedisDB,
-		Prefix:  DefaultRedisPrefix,
-	})
-
 	return &Config{
 		APIPort:        DefaultAPIPort,
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
-		CatalogStore: base.With(redis.Config{
-			Timebox: timebox.Config{
-				Snapshot: timebox.SnapshotConfig{
-					TrimEvents: true,
-				},
-			},
-		}),
-		PartitionStore: base.With(redis.Config{
-			Timebox: timebox.Config{
-				Snapshot: timebox.SnapshotConfig{
-					TrimEvents: true,
-				},
-			},
-		}),
-		FlowStore: base.With(redis.Config{
-			Timebox: timebox.Config{
-				Indexer:   events.FlowIndexer,
-				CacheSize: DefaultFlowCacheSize,
-			},
-		}),
+		Raft:           DefaultRaftConfig(),
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
 			InitBackoff: DefaultRetryInitBackoff,
@@ -131,6 +106,18 @@ func NewDefaultConfig() *Config {
 	}
 }
 
+func DefaultRaftConfig() raft.Config {
+	cfg := raft.DefaultConfig().With(raft.Config{
+		LocalID:     DefaultRaftNodeID,
+		BindAddress: DefaultRaftBindAddress,
+		DataDir:     defaultRaftDataDir(DefaultRaftNodeID),
+		Timebox:     DefaultTimebox(),
+		Bootstrap:   true,
+	})
+	cfg.Servers = defaultRaftServers(cfg)
+	return cfg
+}
+
 // DefaultTimebox returns the top-level Timebox defaults Argyll expects
 func DefaultTimebox() timebox.Config {
 	return timebox.DefaultConfig().With(timebox.Config{
@@ -140,15 +127,15 @@ func DefaultTimebox() timebox.Config {
 			MaxQueueSize: DefaultSnapshotQueueSize,
 			SaveTimeout:  DefaultSnapshotSaveTimeout,
 		},
+		CacheSize: DefaultTimeboxCacheSize,
+		Indexer:   events.FlowIndexer,
 	})
 }
 
 // LoadFromEnv populates configuration values from environment variables
 // Returns an error if any env var cannot be parsed
 func (c *Config) LoadFromEnv() error {
-	LoadStoreConfigFromEnv(&c.CatalogStore, "CATALOG")
-	LoadStoreConfigFromEnv(&c.PartitionStore, "PARTITION")
-	LoadStoreConfigFromEnv(&c.FlowStore, "PARTITION")
+	raftDataDirSet := false
 
 	if apiHost := os.Getenv("API_HOST"); apiHost != "" {
 		c.APIHost = apiHost
@@ -162,13 +149,35 @@ func (c *Config) LoadFromEnv() error {
 	if backoffType := os.Getenv("RETRY_BACKOFF_TYPE"); backoffType != "" {
 		c.Work.BackoffType = backoffType
 	}
+	if raftNodeID := os.Getenv("RAFT_NODE_ID"); raftNodeID != "" {
+		c.Raft.LocalID = raftNodeID
+	}
+	if raftBindAddress := os.Getenv("RAFT_BIND_ADDRESS"); raftBindAddress != "" {
+		c.Raft.BindAddress = raftBindAddress
+	}
+	if raftAdvertiseAddress := os.Getenv("RAFT_ADVERTISE_ADDRESS"); raftAdvertiseAddress != "" {
+		c.Raft.AdvertiseAddress = raftAdvertiseAddress
+	}
+	if forwardBindAddress := os.Getenv("RAFT_FORWARD_BIND_ADDRESS"); forwardBindAddress != "" {
+		c.Raft.ForwardBindAddress = forwardBindAddress
+	}
+	if forwardAdvertiseAddress := os.Getenv("RAFT_FORWARD_ADVERTISE_ADDRESS"); forwardAdvertiseAddress != "" {
+		c.Raft.ForwardAdvertiseAddress = forwardAdvertiseAddress
+	}
+	if raftDataDir := os.Getenv("RAFT_DATA_DIR"); raftDataDir != "" {
+		c.Raft.DataDir = raftDataDir
+		raftDataDirSet = true
+	}
 
 	if err := loadEnvInt("API_PORT", &c.APIPort, 0, MaxTCPPort); err != nil {
 		return err
 	}
 
 	if err := loadEnvInt(
-		"FLOW_CACHE_SIZE", &c.FlowStore.Timebox.CacheSize, 0, MaxFlowCacheSize,
+		"TIMEBOX_CACHE_SIZE",
+		&c.Raft.Timebox.CacheSize,
+		0,
+		MaxTimeboxCacheSize,
 	); err != nil {
 		return err
 	}
@@ -197,6 +206,18 @@ func (c *Config) LoadFromEnv() error {
 		"RETRY_MAX_BACKOFF", &c.Work.MaxBackoff, 0, MaxRetryMaxBackoff,
 	); err != nil {
 		return err
+	}
+	if !raftDataDirSet {
+		c.Raft.DataDir = defaultRaftDataDir(c.Raft.LocalID)
+	}
+	if raftServers := os.Getenv("RAFT_SERVERS"); raftServers != "" {
+		srvs, err := parseRaftServers(raftServers)
+		if err != nil {
+			return err
+		}
+		c.Raft.Servers = srvs
+	} else {
+		c.Raft.Servers = defaultRaftServers(c.Raft)
 	}
 
 	return nil
@@ -253,33 +274,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("%w: %s", ErrInvalidRetryBackoffType,
 			c.Work.BackoffType)
 	}
-
-	return nil
-}
-
-// LoadStoreConfigFromEnv loads Redis store configuration from environment
-// variables with the given prefix (e.g., "CATALOG" or "PARTITION")
-func LoadStoreConfigFromEnv(s *redis.Config, prefix string) {
-	if addr := os.Getenv(prefix + "_REDIS_ADDR"); addr != "" {
-		s.Addr = addr
-	}
-	if password := os.Getenv(prefix + "_REDIS_PASSWORD"); password != "" {
-		s.Password = password
-	}
-	if dbStr := os.Getenv(prefix + "_REDIS_DB"); dbStr != "" {
-		db, err := strconv.Atoi(dbStr)
-		if err == nil {
-			s.DB = db
-		}
-	}
-	if envPrefix := os.Getenv(prefix + "_REDIS_PREFIX"); envPrefix != "" {
-		s.Prefix = envPrefix
-	}
-	if envCount := os.Getenv(prefix + "_SNAPSHOT_WORKERS"); envCount != "" {
-		if wc, err := strconv.Atoi(envCount); err == nil && wc >= 0 {
-			s.Timebox.Snapshot.WorkerCount = wc
-		}
-	}
+	return c.Raft.Validate()
 }
 
 // loadEnvInt reads key from the environment, parses it as an integer, and
@@ -301,4 +296,41 @@ func loadEnvInt[T ~int | ~int64](key string, dst *T, min, max T) error {
 	}
 	*dst = tv
 	return nil
+}
+
+func defaultRaftServers(cfg raft.Config) []raft.Server {
+	return []raft.Server{cfg.LocalServer()}
+}
+
+func defaultRaftDataDir(localID string) string {
+	return filepath.Join(
+		os.TempDir(), DefaultRaftDataDirName, localID,
+	)
+}
+
+func parseRaftServers(spec string) ([]raft.Server, error) {
+	parts := strings.Split(spec, ",")
+	res := make([]raft.Server, 0, len(parts))
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part == "" {
+			continue
+		}
+
+		id, addrSpec, ok := strings.Cut(part, "=")
+		id = strings.TrimSpace(id)
+		addrSpec = strings.TrimSpace(addrSpec)
+		addr, forwardAddr, _ := strings.Cut(addrSpec, "|")
+		addr = strings.TrimSpace(addr)
+		forwardAddr = strings.TrimSpace(forwardAddr)
+		if !ok || id == "" || addr == "" {
+			return nil, fmt.Errorf("%w: %q", ErrInvalidRaftServers, part)
+		}
+		res = append(res, raft.Server{
+			ID:             id,
+			Address:        addr,
+			ForwardAddress: forwardAddr,
+		})
+	}
+	return res, nil
 }

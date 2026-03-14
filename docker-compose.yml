@@ -1,10 +1,8 @@
-x-argyll-env: &argyll-env
-  CATALOG_REDIS_ADDR: valkey:6379
-  CATALOG_REDIS_PASSWORD:
-  CATALOG_REDIS_DB: "0"
-  PARTITION_REDIS_ADDR: valkey:6379
-  PARTITION_REDIS_PASSWORD:
-  PARTITION_REDIS_DB: "0"
+x-archive-env: &archive-env
+  FLOW_REDIS_ADDR: valkey:6379
+  FLOW_REDIS_PASSWORD:
+  FLOW_REDIS_DB: "0"
+  FLOW_REDIS_PREFIX: argyll
   LOG_LEVEL: debug
 
 x-step-env: &step-env
@@ -37,14 +35,15 @@ services:
       context: .
       dockerfile: engine/Dockerfile
     environment:
-      <<: *argyll-env
       API_PORT: "8080"
       API_HOST: 0.0.0.0
       WEBHOOK_BASE_URL: http://argyll-engine:8080
       DEV_MODE: "true"
-    depends_on:
-      valkey:
-        condition: service_healthy
+      LOG_LEVEL: debug
+      RAFT_NODE_ID: argyll-engine
+      RAFT_BIND_ADDRESS: 0.0.0.0:9701
+      RAFT_ADVERTISE_ADDRESS: argyll-engine:9701
+      RAFT_DATA_DIR: /tmp/argyll-raft/argyll-engine
     ports:
       - "8080:8080"
     restart: unless-stopped
@@ -94,7 +93,7 @@ services:
       context: .
       dockerfile: archiver/Dockerfile
     environment:
-      <<: *argyll-env
+      <<: *archive-env
       ARCHIVE_SINK_PATH: /dev/null
     depends_on:
       valkey:

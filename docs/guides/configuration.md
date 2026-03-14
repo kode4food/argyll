@@ -4,28 +4,18 @@ This guide covers how to configure Argyll for development, testing, and producti
 
 ## Environment Variables
 
-### Engine: Catalog Storage
+### Engine: Raft Storage
 
-Configure where the engine stores the step catalog (step definitions and attribute graph):
-
-```bash
-CATALOG_REDIS_ADDR=localhost:6379      # Default
-CATALOG_REDIS_PASSWORD=                # Empty if no auth
-CATALOG_REDIS_DB=0                     # Redis database number
-CATALOG_REDIS_PREFIX=argyll            # Namespace prefix
-CATALOG_SNAPSHOT_WORKERS=4             # Snapshot worker count (0 disables async workers)
-```
-
-### Engine: Partition + Flow Storage
-
-Configure where the engine stores partition state (step health) and flow state. Flow state and flow status indexes share this connection/prefix configuration in the current engine.
+Configure the shared Raft-backed store used by catalog, partition, and flow executors:
 
 ```bash
-PARTITION_REDIS_ADDR=localhost:6379
-PARTITION_REDIS_PASSWORD=
-PARTITION_REDIS_DB=0
-PARTITION_REDIS_PREFIX=argyll
-PARTITION_SNAPSHOT_WORKERS=4
+RAFT_NODE_ID=argyll-1                         # Local Raft server ID
+RAFT_BIND_ADDRESS=127.0.0.1:9701             # Local Raft listener
+RAFT_ADVERTISE_ADDRESS=                       # Peer-visible Raft address
+RAFT_FORWARD_BIND_ADDRESS=                    # Local follower-forward listener
+RAFT_FORWARD_ADVERTISE_ADDRESS=               # Peer-visible forward address
+RAFT_DATA_DIR=/tmp/argyll-raft/argyll-1      # Durable local state
+RAFT_SERVERS=argyll-1=127.0.0.1:9701         # Bootstrap cluster members
 ```
 
 ### Engine: Runtime + Caching
@@ -36,7 +26,7 @@ API_PORT=8080                           # HTTP API port
 WEBHOOK_BASE_URL=http://localhost:8080  # Async callback base URL
 LOG_LEVEL=info                          # Log level: debug, info, warn, error
 STEP_TIMEOUT=30000                      # Global HTTP step timeout fallback (ms)
-FLOW_CACHE_SIZE=4096                    # Flow aggregate cache entries
+TIMEBOX_CACHE_SIZE=4096                 # Shared Timebox projection cache entries
 MEMO_CACHE_SIZE=10240                   # Memoization cache entries
 ```
 
@@ -63,7 +53,7 @@ These defaults must be valid at startup:
 
 If you run the external archiver process, configure when and how flows are archived:
 
-Archiver scope is per partition/flow store configuration. Run one archiver process per `PARTITION_*` Redis connection/prefix. In a multi-partition deployment, each partition needs its own archiver instance pointed at that partition/flow store.
+Archiver scope is per `FLOW_*` Redis connection/prefix. Run one archiver process per archive store.
 
 ```bash
 ARCHIVE_MEMORY_PERCENT=80              # Trigger archiving when Redis reaches 80% full
@@ -89,30 +79,34 @@ ARCHIVE_PREFIX=archived/               # Prefix for archived objects
 ARCHIVE_SINK_PATH=/dev/null             # Local filesystem sink path
 ```
 
-## Store Separation
+## Cluster Topology
 
-Catalog and Partition each have their own Redis connection, configured independently. FlowStore always shares the Partition connection — they run on the same Redis instance.
+Argyll now uses one shared Timebox store backed by Raft. Catalog, partition, and flow state are separate executors over that shared store.
 
-### Single Instance (Default)
+### Single Node
 
 ```bash
-CATALOG_REDIS_ADDR=valkey:6379
-PARTITION_REDIS_ADDR=valkey:6379
+RAFT_NODE_ID=argyll-1
+RAFT_BIND_ADDRESS=127.0.0.1:9701
+RAFT_DATA_DIR=/var/lib/argyll/raft/argyll-1
 ```
 
-### Separated Catalog
-
-Catalog on its own instance; partition and flow on another:
+### Three Node Cluster
 
 ```bash
-CATALOG_REDIS_ADDR=valkey-catalog:6379
-PARTITION_REDIS_ADDR=valkey-partition:6379
+RAFT_NODE_ID=argyll-1
+RAFT_BIND_ADDRESS=0.0.0.0:9701
+RAFT_ADVERTISE_ADDRESS=argyll-1:9701
+RAFT_FORWARD_BIND_ADDRESS=0.0.0.0:9801
+RAFT_FORWARD_ADVERTISE_ADDRESS=argyll-1:9801
+RAFT_DATA_DIR=/var/lib/argyll/raft/argyll-1
+RAFT_SERVERS=argyll-1=argyll-1:9701|argyll-1:9801,argyll-2=argyll-2:9702|argyll-2:9802,argyll-3=argyll-3:9703|argyll-3:9803
 ```
 
 **Store behaviors:**
-- Catalog: event trimming enabled, snapshotted on shutdown
-- Partition: event trimming enabled, snapshotted on shutdown
-- Flow: full event history retained (no trimming); shares Partition's Redis connection and snapshot worker setting (`PARTITION_SNAPSHOT_WORKERS`)
+- Catalog, partition, and flow all commit through the same Raft log
+- Timebox indexes live in the shared store and are updated atomically with event appends
+- Flow forwarding lets callers hit any node; writes are routed to the leader internally
 
 ## Development Setup
 
@@ -121,7 +115,7 @@ For local development with Docker Compose:
 ```bash
 docker compose up
 # This starts:
-# - valkey (Redis): localhost:6379
+# - valkey (archive worker backend): localhost:6379
 # - argyll-engine: localhost:8080
 # - argyll-web: localhost:3001
 ```
@@ -131,49 +125,37 @@ Environment variables are already configured in `docker-compose.yml`.
 For local testing without Docker:
 
 ```bash
-# Start Redis
-redis-server
-
-# Set minimal env vars
-export CATALOG_REDIS_ADDR=localhost:6379
-export PARTITION_REDIS_ADDR=localhost:6379
-export CATALOG_REDIS_PREFIX=argyll
-export PARTITION_REDIS_PREFIX=argyll
-
-# Run engine
-go run ./cmd/argyll
+# Start a 3-node local cluster
+cd engine
+./start.sh
 ```
 
 ## Production Setup
 
 ### Recommended Configuration
 
-1. **High Availability**: Run 2+ engine instances
-   - All instances consume from the same event stream
-   - Optimistic concurrency prevents duplicates
-   - Natural load balancing
+1. **High Availability**: Run 3+ Raft nodes
+   - Each node needs a stable `RAFT_NODE_ID`, `RAFT_DATA_DIR`, and advertised Raft/forward address
+   - Keep `RAFT_SERVERS` consistent across the initial voter set
+   - Writes commit on quorum, so capacity planning must account for replicated disk I/O
 
-2. **Separate Catalog vs Partition/Flow Stores**:
-   - Keep catalog on its own Valkey instance if you need isolation
-   - Partition state, flow state, and flow status indexes share one store configuration in the current engine
-
-3. **Authentication & Reverse Proxy**:
+2. **Authentication & Reverse Proxy**:
    - Place engine behind a reverse proxy (nginx, envoy, etc.)
    - Add authentication/authorization at the proxy layer
    - The engine itself has no built-in auth
 
-4. **External Monitoring**:
+3. **External Monitoring**:
    - Engine has no built-in Prometheus metrics
    - Integrate with your APM stack (Datadog, New Relic, etc.)
-   - Monitor Redis memory and latency
+   - Monitor Raft leader changes, disk latency, and follower lag
 
-5. **Archiving**:
+4. **Archiving**:
    - Configure archiving policy
    - Set up S3 or compatible backend
-   - Run one archiver process per partition store (`PARTITION_*`)
+   - Run one archiver process per flow archive store (`FLOW_*`)
    - Monitor archive job success/failure
 
-6. **Logging**:
+5. **Logging**:
    - Forward logs to centralized system (ELK, Splunk, etc.)
    - Set `LOG_LEVEL` appropriately (warn/error for prod)
 
@@ -183,9 +165,7 @@ go run ./cmd/argyll
 - **Concurrency**: Parallelism is per-step via `work_config` (`parallelism <= 0` means sequential execution with concurrency `1`). No global concurrency limit.
 - **Timeout**: `step.http.timeout` overrides per step; otherwise the engine uses `STEP_TIMEOUT` (default `30000` ms)
 
-**Peak throughput:** 6000+ flows/second per engine instance (benchmark-dependent)
-
-**Scaling:** Linear scaling with additional instances. Add capacity by running more engines.
+Write throughput is leader-bound and pays quorum replication plus disk durability cost. Add nodes for availability and operational headroom, not for linear scaling of one write-heavy workload.
 
 ## Security Considerations
 
@@ -294,17 +274,18 @@ Health checks run periodically to update step health status. They do not directl
 ### What to Monitor
 
 1. **Engine health**: Is the engine process running?
-2. **Redis health**: Latency, memory usage, replication lag
-3. **Flow completion**: Success rate, latency distribution
-4. **Step execution**: Per-step failure rate, p95 latency
-5. **Archive jobs**: Success/failure, processed flows per hour
+2. **Raft health**: Leader stability, election churn, quorum status
+3. **Disk health**: Data-dir latency, fsync pressure, free space
+4. **Flow completion**: Success rate, latency distribution
+5. **Step execution**: Per-step failure rate, p95 latency
+6. **Archive jobs**: Success/failure, processed flows per hour
 
 ### Logs to Watch
 
 ```
+ERROR: failed to create raft store   # Raft or Pebble startup issue
 ERROR: step execution failed         # Individual step failure
-ERROR: flow failed                   # Goal step failed, flow is terminal
-WARN: redis connection lost          # Store connectivity issue
+WARN: leadership lost                # Quorum or shutdown issue
 WARN: archive job failed             # Flow archiving error
 ```
 
@@ -317,33 +298,34 @@ WARN: archive job failed             # Flow archiving error
 Since Argyll has no built-in metrics, instrument at:
 - Reverse proxy layer (request count, latency, errors)
 - Step handler layer (execution time, error rate)
-- Redis layer (latency, memory, key count)
+- Raft and disk layer (leader changes, fsync latency, queueing)
+- Archive Redis layer if enabled (latency, memory, stream lag)
 
 ## Troubleshooting
 
 ### Engine Won't Start
 
 ```
-Error: redis: connection refused
-→ Check CATALOG_REDIS_ADDR / PARTITION_REDIS_ADDR
-→ Verify Redis is running
-→ Check network connectivity
+Error: failed to create raft store
+→ Check RAFT_BIND_ADDRESS / RAFT_ADVERTISE_ADDRESS / RAFT_SERVERS
+→ Verify RAFT_DATA_DIR exists and is writable
+→ Check peer reachability and local port conflicts
 ```
 
 ### Flows Stuck in Active State
 
 ```
-→ Check logs for step failures
+→ Check logs for step failures or leadership churn
 → Verify step handlers are reachable
-→ Check Redis memory (may be full, blocking operations)
+→ Check quorum health and follower connectivity
 ```
 
 ### High Memory Usage
 
 ```
-→ Check MEMO_CACHE_SIZE setting
+→ Check MEMO_CACHE_SIZE and TIMEBOX_CACHE_SIZE
 → Look for flows with large aggregated outputs
-→ Monitor archive job effectiveness
+→ Monitor snapshot growth and archive job effectiveness
 ```
 
 ### Step Timeouts

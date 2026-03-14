@@ -1,12 +1,13 @@
 package engine_test
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"testing"
 	"time"
 
-	"github.com/redis/go-redis/v9"
+	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -450,7 +451,7 @@ func TestLabelIntersection(t *testing.T) {
 	})
 }
 
-func TestBadLabelEntry(t *testing.T) {
+func TestBadIndexedFlowEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 		defer func() { _ = env.Engine.Stop() }()
@@ -461,7 +462,10 @@ func TestBadLabelEntry(t *testing.T) {
 			Labels: api.Labels{"tier": "gold"},
 		})
 		assert.Error(t, err)
-		assert.True(t, errors.Is(err, engine.ErrInvalidFlowLabelEntry))
+		assert.True(t,
+			errors.Is(err, engine.ErrInvalidFlowStatusEntry) ||
+				errors.Is(err, engine.ErrInvalidFlowLabelEntry),
+		)
 	})
 }
 
@@ -733,13 +737,15 @@ func addStatusEntry(
 ) {
 	t.Helper()
 
-	cli := redis.NewClient(&redis.Options{Addr: env.Redis.Addr()})
-	defer func() { _ = cli.Close() }()
-
-	err := cli.ZAdd(t.Context(),
-		"test-flow:idx:status:"+status,
-		redis.Z{Score: float64(at.UnixMilli()), Member: id},
-	).Err()
+	aggID := timebox.ParseAggregateID(id, ":")
+	raw, err := marshalIndexedFlowEvent(status, nil)
+	assert.NoError(t, err)
+	err = env.AppendEvents(aggID, 0, &timebox.Event{
+		AggregateID: aggID,
+		Timestamp:   at,
+		Type:        indexEventType(status),
+		Data:        raw,
+	})
 	assert.NoError(t, err)
 }
 
@@ -748,10 +754,39 @@ func addLabelEntry(
 ) {
 	t.Helper()
 
-	cli := redis.NewClient(&redis.Options{Addr: env.Redis.Addr()})
-	defer func() { _ = cli.Close() }()
-
-	key := fmt.Sprintf("test-flow:idx:label:%s:%s", label, value)
-	err := cli.SAdd(t.Context(), key, id).Err()
+	aggID := timebox.ParseAggregateID(id, ":")
+	raw, err := marshalIndexedFlowEvent(
+		events.FlowStatusActive,
+		api.Labels{label: value},
+	)
 	assert.NoError(t, err)
+	err = env.AppendEvents(aggID, 0, &timebox.Event{
+		AggregateID: aggID,
+		Timestamp:   time.Now().UTC(),
+		Type:        timebox.EventType(api.EventTypeFlowStarted),
+		Data:        raw,
+	})
+	assert.NoError(t, err)
+}
+
+func marshalIndexedFlowEvent(
+	status string, labels api.Labels,
+) ([]byte, error) {
+	if status == events.FlowStatusActive {
+		return json.Marshal(api.FlowStartedEvent{
+			FlowID: "fixture",
+			Labels: labels,
+		})
+	}
+	return json.Marshal(api.FlowDeactivatedEvent{
+		FlowID: "fixture",
+		Status: api.FlowStatus(status),
+	})
+}
+
+func indexEventType(status string) timebox.EventType {
+	if status == events.FlowStatusActive {
+		return timebox.EventType(api.EventTypeFlowStarted)
+	}
+	return timebox.EventType(api.EventTypeFlowDeactivated)
 }

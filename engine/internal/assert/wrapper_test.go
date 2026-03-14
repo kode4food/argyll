@@ -351,6 +351,18 @@ func TestFlowStateEquals(t *testing.T) {
 }
 
 func TestConfigValid(t *testing.T) {
+	customValid := config.NewDefaultConfig()
+	customValid.APIPort = 9090
+	customValid.StepTimeout = 60000
+
+	minPort := config.NewDefaultConfig()
+	minPort.APIPort = 1
+	minPort.StepTimeout = 1000
+
+	maxPort := config.NewDefaultConfig()
+	maxPort.APIPort = 65535
+	maxPort.StepTimeout = 1000
+
 	tests := []struct {
 		name string
 		cfg  *config.Config
@@ -361,24 +373,15 @@ func TestConfigValid(t *testing.T) {
 		},
 		{
 			name: "custom valid config",
-			cfg: (&config.Config{
-				APIPort:     9090,
-				StepTimeout: 60000,
-			}).WithWorkDefaults(),
+			cfg:  customValid,
 		},
 		{
 			name: "minimum valid port",
-			cfg: (&config.Config{
-				APIPort:     1,
-				StepTimeout: 1000,
-			}).WithWorkDefaults(),
+			cfg:  minPort,
 		},
 		{
 			name: "maximum valid port",
-			cfg: (&config.Config{
-				APIPort:     65535,
-				StepTimeout: 1000,
-			}).WithWorkDefaults(),
+			cfg:  maxPort,
 		},
 	}
 

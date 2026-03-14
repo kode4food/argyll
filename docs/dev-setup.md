@@ -10,7 +10,7 @@ docker compose up
 
 This starts:
 
-- Valkey (catalog and partition stores)
+- Valkey (used by the archive worker)
 - Argyll engine on http://localhost:8080
 - UI on http://localhost:3001
 - Example step services (ports 8081–8086)
@@ -27,15 +27,23 @@ make test
 go run ./cmd/argyll
 ```
 
-Ensure your environment points at a Valkey instance (local or Docker).
+This starts a single-node Raft-backed engine with the default local config.
+
+To start the local 3-node dev cluster:
+
+```bash
+cd engine
+./start.sh
+```
 
 ## Engine environment variables
 
 Local defaults are defined in `docker-compose.yml`. The most important settings are:
 
-- `CATALOG_REDIS_ADDR` and `PARTITION_REDIS_ADDR` (Valkey endpoints)
 - `API_HOST` and `API_PORT` (engine HTTP server)
 - `WEBHOOK_BASE_URL` (used for async step callbacks)
+- `RAFT_NODE_ID`, `RAFT_BIND_ADDRESS`, and `RAFT_DATA_DIR` (single-node or cluster identity)
+- `RAFT_ADVERTISE_ADDRESS`, `RAFT_FORWARD_BIND_ADDRESS`, `RAFT_FORWARD_ADVERTISE_ADDRESS`, and `RAFT_SERVERS` (multi-node cluster wiring)
 
 If you run the engine outside Docker, make sure these are set appropriately for your host and network.
 
