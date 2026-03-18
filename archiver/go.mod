@@ -5,7 +5,7 @@ go 1.25.7
 require (
 	github.com/alicebob/miniredis/v2 v2.35.0
 	github.com/kode4food/argyll/engine v0.0.0-20260311192637-0ac6dae7bbb2
-	github.com/kode4food/timebox v0.0.0-20260313161127-fb928d3e913c
+	github.com/kode4food/timebox v0.0.0-20260318180649-25acaa41ad64
 	github.com/stretchr/testify v1.11.1
 	gocloud.dev v0.44.0
 )

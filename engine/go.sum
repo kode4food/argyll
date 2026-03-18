@@ -66,8 +66,8 @@ github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9 h1:cp+VeR7jZf2PMgZ
 github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9/go.mod h1:tluthR8KBbfjN0nMhkIUJi9FUZbNpR1x7eZQm0eydJo=
 github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 h1:sR7BMpyWzMmwOGwZw+evTvdvbZSAsX53WLtGNvVtwi0=
 github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9/go.mod h1:sTzhcYU0AAXpB+uEWdUEukwNQAhc64BefD3eNmcw6Ug=
-github.com/kode4food/timebox v0.0.0-20260313161127-fb928d3e913c h1:7DrxuQKL9opitxmIcJflzTKSql6ddz8p0WRgKFFFGDY=
-github.com/kode4food/timebox v0.0.0-20260313161127-fb928d3e913c/go.mod h1:C8WeyIVSvheGSkjK2E3UqrpaIGx9Ry9oITFVKb9X/P0=
+github.com/kode4food/timebox v0.0.0-20260318180649-25acaa41ad64 h1:c+1fXks4g9DSVyFwpVCnjzDCrC4wSMsfSG+IUe6DybA=
+github.com/kode4food/timebox v0.0.0-20260318180649-25acaa41ad64/go.mod h1:N35xkjJ3SXZahQWYtYCGmGjbnmDz1yUDrxKbBSWNIF4=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=

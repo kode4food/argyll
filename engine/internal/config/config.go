@@ -45,13 +45,12 @@ const (
 	MaxTCPPort     = 65535
 	DefaultRedisDB = 0
 
-	DefaultRedisEndpoint       = "localhost:6379"
-	DefaultRedisPrefix         = "argyll"
-	DefaultSnapshotWorkers     = 4
-	DefaultSnapshotQueueSize   = 1000
-	DefaultSnapshotSaveTimeout = 30 * time.Second
-	DefaultFlowCacheSize       = 4096
-	DefaultMemoCacheSize       = 16384
+	DefaultRedisEndpoint     = "localhost:6379"
+	DefaultRedisPrefix       = "argyll"
+	DefaultSnapshotWorkers   = 4
+	DefaultSnapshotQueueSize = 1000
+	DefaultFlowCacheSize     = 4096
+	DefaultMemoCacheSize     = 16384
 
 	DefaultRetryMaxRetries  = 10
 	DefaultRetryInitBackoff = 1000
@@ -138,7 +137,6 @@ func DefaultTimebox() timebox.Config {
 			Workers:      true,
 			WorkerCount:  DefaultSnapshotWorkers,
 			MaxQueueSize: DefaultSnapshotQueueSize,
-			SaveTimeout:  DefaultSnapshotSaveTimeout,
 		},
 	})
 }

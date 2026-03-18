@@ -116,13 +116,8 @@ func TestSweepDeactivated(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := flowStore.PollArchive(
-			t.Context(), 5*time.Millisecond,
-			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
-				record = rec
-				return nil
-			},
-		)
+		var err error
+		record, err = consumeArchive(t.Context(), flowStore, 5*time.Millisecond)
 		assert.NoError(t, err)
 		return record != nil
 	}, testTimeout, testPollInterval)
@@ -183,13 +178,8 @@ func TestPressureArchives(t *testing.T) {
 
 	var record *timebox.ArchiveRecord
 	ok := assert.Eventually(t, func() bool {
-		err := flowStore.PollArchive(
-			t.Context(), 5*time.Millisecond,
-			func(ctx context.Context, rec *timebox.ArchiveRecord) error {
-				record = rec
-				return nil
-			},
-		)
+		var err error
+		record, err = consumeArchive(t.Context(), flowStore, 5*time.Millisecond)
 		assert.NoError(t, err)
 		return record != nil
 	}, testTimeout, testPollInterval)
@@ -248,14 +238,7 @@ func TestAgeSweepRecent(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	err = flowStore.PollArchive(
-		t.Context(), 5*time.Millisecond,
-		func(context.Context, *timebox.ArchiveRecord) error {
-			t.Fatal("expected no archived records for recent flow")
-			return nil
-		},
-	)
-	assert.NoError(t, err)
+	assertNoArchiveStream(t, redisServer)
 	assertLabelIndexed(t, flowStore, id)
 }
 
@@ -304,14 +287,7 @@ func TestPressureBelowThreshold(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	err = flowStore.PollArchive(
-		t.Context(), 5*time.Millisecond,
-		func(context.Context, *timebox.ArchiveRecord) error {
-			t.Fatal("expected no archived records below memory threshold")
-			return nil
-		},
-	)
-	assert.NoError(t, err)
+	assertNoArchiveStream(t, redisServer)
 	assertLabelIndexed(t, flowStore, id)
 }
 
@@ -366,15 +342,32 @@ func TestSweepBadStatus(t *testing.T) {
 	cancel()
 	assert.NoError(t, <-done)
 
-	err = flowStore.PollArchive(
-		t.Context(), 5*time.Millisecond,
-		func(context.Context, *timebox.ArchiveRecord) error {
-			t.Fatal("expected no archived records when status index is invalid")
+	assertNoArchiveStream(t, redisServer)
+	assertLabelIndexed(t, flowStore, id)
+}
+
+func consumeArchive(
+	ctx context.Context, store *timebox.Store, timeout time.Duration,
+) (*timebox.ArchiveRecord, error) {
+	var record *timebox.ArchiveRecord
+	consumeCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	err := store.ConsumeArchive(consumeCtx,
+		func(ctx context.Context, rec *timebox.ArchiveRecord) error {
+			record = rec
 			return nil
 		},
 	)
-	assert.NoError(t, err)
-	assertLabelIndexed(t, flowStore, id)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return nil, nil
+	}
+	return record, err
+}
+
+func assertNoArchiveStream(t *testing.T, redisServer *miniredis.Miniredis) {
+	t.Helper()
+	assert.False(t, redisServer.Exists("partition:archive"))
 }
 
 func containsStatusEntry(
@@ -428,9 +421,6 @@ func setupStore(t *testing.T, redisAddr string) *timebox.Store {
 		redis.Config{
 			Addr:   redisAddr,
 			Prefix: "partition",
-			Timebox: timebox.Config{
-				Archiving: true,
-			},
 		},
 	)
 	assert.NoError(t, err)

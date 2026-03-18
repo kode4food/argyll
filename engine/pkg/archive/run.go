@@ -16,11 +16,7 @@ func Run(
 ) error {
 	SetupLogging(cfg.LogLevel)
 
-	store, err := redis.NewStore(cfg.FlowStore.With(redis.Config{
-		Timebox: timebox.Config{
-			Archiving: true,
-		},
-	}))
+	store, err := redis.NewStore(cfg.FlowStore)
 	if err != nil {
 		return err
 	}

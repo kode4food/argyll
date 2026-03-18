@@ -10,28 +10,23 @@ import (
 
 type (
 	Runner struct {
-		poller       Poller
+		archiver     timebox.Archiver
 		handler      timebox.ArchiveHandler
 		pollInterval time.Duration
-	}
-
-	Poller interface {
-		PollArchive(
-			context.Context, time.Duration, timebox.ArchiveHandler,
-		) error
 	}
 )
 
 var (
-	ErrArchivePollerRequired  = errors.New("archive poller is required")
+	ErrArchiverRequired       = errors.New("archiver is required")
 	ErrArchiveHandlerRequired = errors.New("archive handler is required")
 )
 
 func NewRunner(
-	poller Poller, pollInterval time.Duration, handler timebox.ArchiveHandler,
+	archiver timebox.Archiver, pollInterval time.Duration,
+	handler timebox.ArchiveHandler,
 ) (*Runner, error) {
-	if poller == nil {
-		return nil, ErrArchivePollerRequired
+	if archiver == nil {
+		return nil, ErrArchiverRequired
 	}
 	if handler == nil {
 		return nil, ErrArchiveHandlerRequired
@@ -40,7 +35,7 @@ func NewRunner(
 		return nil, ErrPollIntervalInvalid
 	}
 	return &Runner{
-		poller:       poller,
+		archiver:     archiver,
 		handler:      handler,
 		pollInterval: pollInterval,
 	}, nil
@@ -59,5 +54,12 @@ func (r *Runner) Run(ctx context.Context) error {
 }
 
 func (r *Runner) RunOnce(ctx context.Context) error {
-	return r.poller.PollArchive(ctx, r.pollInterval, r.handler)
+	pollCtx, cancel := context.WithTimeout(ctx, r.pollInterval)
+	defer cancel()
+
+	err := r.archiver.ConsumeArchive(pollCtx, r.handler)
+	if errors.Is(err, context.DeadlineExceeded) {
+		return nil
+	}
+	return err
 }

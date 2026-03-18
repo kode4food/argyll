@@ -12,7 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
-type fakePoller struct {
+type fakeArchiver struct {
 	records chan *timebox.ArchiveRecord
 	err     error
 }
@@ -22,29 +22,31 @@ const (
 	testTimeout      = 2 * time.Second
 )
 
-func (p *fakePoller) PollArchive(
-	ctx context.Context, timeout time.Duration, handler timebox.ArchiveHandler,
+func (a *fakeArchiver) Archive(timebox.AggregateID) error {
+	return nil
+}
+
+func (a *fakeArchiver) ConsumeArchive(
+	ctx context.Context, handler timebox.ArchiveHandler,
 ) error {
-	if p.err != nil {
-		return p.err
+	if a.err != nil {
+		return a.err
 	}
 
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case rec := <-p.records:
+	case rec := <-a.records:
 		return handler(ctx, rec)
-	case <-time.After(timeout):
-		return nil
 	}
 }
 
 func TestRunnerHandlesArchiveRecord(t *testing.T) {
 	ctx := t.Context()
-	p := &fakePoller{records: make(chan *timebox.ArchiveRecord, 1)}
+	a := &fakeArchiver{records: make(chan *timebox.ArchiveRecord, 1)}
 
 	var got *timebox.ArchiveRecord
-	r, err := archive.NewRunner(p, testPollInterval,
+	r, err := archive.NewRunner(a, testPollInterval,
 		func(_ context.Context, rec *timebox.ArchiveRecord) error {
 			got = rec
 			return nil
@@ -56,7 +58,7 @@ func TestRunnerHandlesArchiveRecord(t *testing.T) {
 		StreamID:    "1-0",
 		AggregateID: events.FlowKey("abc123"),
 	}
-	p.records <- rec
+	a.records <- rec
 
 	err = r.RunOnce(ctx)
 	assert.NoError(t, err)
@@ -65,9 +67,9 @@ func TestRunnerHandlesArchiveRecord(t *testing.T) {
 
 func TestRunnerStopsOnPollerError(t *testing.T) {
 	ctx := t.Context()
-	p := &fakePoller{err: assert.AnError}
+	a := &fakeArchiver{err: assert.AnError}
 
-	r, err := archive.NewRunner(p, testPollInterval,
+	r, err := archive.NewRunner(a, testPollInterval,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			return nil
 		},
@@ -79,18 +81,18 @@ func TestRunnerStopsOnPollerError(t *testing.T) {
 }
 
 func TestNewRunnerValidation(t *testing.T) {
-	p := &fakePoller{records: make(chan *timebox.ArchiveRecord, 1)}
+	a := &fakeArchiver{records: make(chan *timebox.ArchiveRecord, 1)}
 	handler := func(context.Context, *timebox.ArchiveRecord) error {
 		return nil
 	}
 
 	_, err := archive.NewRunner(nil, testPollInterval, handler)
-	assert.ErrorIs(t, err, archive.ErrArchivePollerRequired)
+	assert.ErrorIs(t, err, archive.ErrArchiverRequired)
 
-	_, err = archive.NewRunner(p, testPollInterval, nil)
+	_, err = archive.NewRunner(a, testPollInterval, nil)
 	assert.ErrorIs(t, err, archive.ErrArchiveHandlerRequired)
 
-	_, err = archive.NewRunner(p, 0, handler)
+	_, err = archive.NewRunner(a, 0, handler)
 	assert.ErrorIs(t, err, archive.ErrPollIntervalInvalid)
 }
 
@@ -98,8 +100,8 @@ func TestRunnerCancel(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	p := &fakePoller{records: make(chan *timebox.ArchiveRecord)}
-	r, err := archive.NewRunner(p, testPollInterval,
+	a := &fakeArchiver{records: make(chan *timebox.ArchiveRecord)}
+	r, err := archive.NewRunner(a, testPollInterval,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			return nil
 		},
@@ -127,7 +129,7 @@ func TestRunnerCancel(t *testing.T) {
 
 func TestRunnerContextCanceledSuccess(t *testing.T) {
 	r, err := archive.NewRunner(
-		&fakePoller{err: context.Canceled},
+		&fakeArchiver{err: context.Canceled},
 		testPollInterval,
 		func(context.Context, *timebox.ArchiveRecord) error {
 			return nil

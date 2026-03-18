@@ -118,17 +118,14 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal("info", cfg.LogLevel)
 	as.Equal(config.DefaultSnapshotWorkers, cfg.CatalogStore.Timebox.Snapshot.WorkerCount)
 	as.Equal(config.DefaultSnapshotQueueSize, cfg.CatalogStore.Timebox.Snapshot.MaxQueueSize)
-	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.CatalogStore.Timebox.Snapshot.SaveTimeout)
 	as.Equal(timebox.DefaultCacheSize, cfg.CatalogStore.Timebox.CacheSize)
 	as.True(cfg.CatalogStore.Timebox.Snapshot.TrimEvents)
 	as.Equal(config.DefaultSnapshotWorkers, cfg.PartitionStore.Timebox.Snapshot.WorkerCount)
 	as.Equal(config.DefaultSnapshotQueueSize, cfg.PartitionStore.Timebox.Snapshot.MaxQueueSize)
-	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.PartitionStore.Timebox.Snapshot.SaveTimeout)
 	as.Equal(timebox.DefaultCacheSize, cfg.PartitionStore.Timebox.CacheSize)
 	as.True(cfg.PartitionStore.Timebox.Snapshot.TrimEvents)
 	as.Equal(config.DefaultSnapshotWorkers, cfg.FlowStore.Timebox.Snapshot.WorkerCount)
 	as.Equal(config.DefaultSnapshotQueueSize, cfg.FlowStore.Timebox.Snapshot.MaxQueueSize)
-	as.Equal(config.DefaultSnapshotSaveTimeout, cfg.FlowStore.Timebox.Snapshot.SaveTimeout)
 	as.Equal(config.DefaultFlowCacheSize, cfg.FlowStore.Timebox.CacheSize)
 	as.NotNil(cfg.FlowStore.Timebox.Indexer)
 	as.NotNil(cfg.FlowStore.JoinKey)
@@ -143,7 +140,6 @@ func TestDefaultTimebox(t *testing.T) {
 	testify.Equal(t, timebox.DefaultMaxRetries, tb.MaxRetries)
 	testify.Equal(t, config.DefaultSnapshotWorkers, tb.Snapshot.WorkerCount)
 	testify.Equal(t, config.DefaultSnapshotQueueSize, tb.Snapshot.MaxQueueSize)
-	testify.Equal(t, config.DefaultSnapshotSaveTimeout, tb.Snapshot.SaveTimeout)
 }
 
 func TestStoreLoadFromEnv(t *testing.T) {
