@@ -40,6 +40,7 @@ var engineFilter = EventFilter(func(ev *timebox.Event) bool {
 })
 
 func On(t *testing.T, consumer *event.Consumer) *Wait {
+	consumer.Receive()
 	return &Wait{
 		t:        t,
 		consumer: consumer,
