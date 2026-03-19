@@ -3,6 +3,7 @@ package archive_test
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -114,16 +115,7 @@ func TestSweepDeactivated(t *testing.T) {
 		done <- arch.Run(ctx)
 	}()
 
-	var record *timebox.ArchiveRecord
-	ok := assert.Eventually(t, func() bool {
-		var err error
-		record, err = consumeArchive(t.Context(), flowStore, 5*time.Millisecond)
-		assert.NoError(t, err)
-		return record != nil
-	}, testTimeout, testPollInterval)
-	if ok {
-		assert.Equal(t, "flow:"+string(id), record.AggregateID.Join(":"))
-	}
+	assertArchiveRecord(t, redisServer, id)
 
 	cancel()
 	assert.NoError(t, <-done)
@@ -176,16 +168,7 @@ func TestPressureArchives(t *testing.T) {
 		done <- arch.Run(ctx)
 	}()
 
-	var record *timebox.ArchiveRecord
-	ok := assert.Eventually(t, func() bool {
-		var err error
-		record, err = consumeArchive(t.Context(), flowStore, 5*time.Millisecond)
-		assert.NoError(t, err)
-		return record != nil
-	}, testTimeout, testPollInterval)
-	if ok {
-		assert.Equal(t, "flow:"+string(id), record.AggregateID.Join(":"))
-	}
+	assertArchiveRecord(t, redisServer, id)
 
 	cancel()
 	assert.NoError(t, <-done)
@@ -346,28 +329,40 @@ func TestSweepBadStatus(t *testing.T) {
 	assertLabelIndexed(t, flowStore, id)
 }
 
-func consumeArchive(
-	ctx context.Context, store *timebox.Store, timeout time.Duration,
-) (*timebox.ArchiveRecord, error) {
-	var record *timebox.ArchiveRecord
-	consumeCtx, cancel := context.WithTimeout(ctx, timeout)
-	defer cancel()
-
-	err := store.ConsumeArchive(consumeCtx,
-		func(ctx context.Context, rec *timebox.ArchiveRecord) error {
-			record = rec
-			return nil
-		},
-	)
-	if errors.Is(err, context.DeadlineExceeded) {
-		return nil, nil
-	}
-	return record, err
-}
-
 func assertNoArchiveStream(t *testing.T, redisServer *miniredis.Miniredis) {
 	t.Helper()
 	assert.False(t, redisServer.Exists("partition:archive"))
+}
+
+func assertArchiveRecord(
+	t *testing.T, redisServer *miniredis.Miniredis, id api.FlowID,
+) {
+	t.Helper()
+
+	var entries []miniredis.StreamEntry
+	ok := assert.Eventually(t, func() bool {
+		var err error
+		entries, err = redisServer.Stream("partition:archive")
+		assert.NoError(t, err)
+		return len(entries) > 0
+	}, testTimeout, testPollInterval)
+	if !ok {
+		return
+	}
+
+	vals := entries[0].Values
+	if !assert.GreaterOrEqual(t, len(vals), 2) {
+		return
+	}
+	if !assert.Equal(t, "payload", vals[0]) {
+		return
+	}
+
+	var payload struct {
+		ID string `json:"id"`
+	}
+	assert.NoError(t, json.Unmarshal([]byte(vals[1]), &payload))
+	assert.Equal(t, "flow:"+string(id), payload.ID)
 }
 
 func containsStatusEntry(
