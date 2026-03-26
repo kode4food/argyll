@@ -256,13 +256,11 @@ func mergeDependencies(
 	return defaults
 }
 
-func (b publishingBackend) Append(
-	req timebox.AppendRequest,
-) (*timebox.AppendResult, error) {
-	res, err := b.Backend.Append(req)
-	if err != nil || res != nil || len(req.Events) == 0 {
-		return res, err
+func (b publishingBackend) Append(req timebox.AppendRequest) error {
+	err := b.Backend.Append(req)
+	if err != nil || len(req.Events) == 0 {
+		return err
 	}
 	b.publish(req.Events...)
-	return nil, nil
+	return nil
 }
