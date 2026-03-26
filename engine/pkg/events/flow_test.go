@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -164,36 +163,6 @@ func TestParseFlowID(t *testing.T) {
 			assert.Equal(t, tt.want, got)
 		})
 	}
-}
-
-func TestFlowJoinAndParseKey(t *testing.T) {
-	tests := []struct {
-		name string
-		id   timebox.AggregateID
-		want string
-	}{
-		{
-			name: "root flow",
-			id:   events.FlowKey("root"),
-			want: "flow:{root}",
-		},
-		{
-			name: "child flow",
-			id:   events.FlowKey("root:step:token"),
-			want: "flow:{root}:step:token",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			key := events.FlowJoinKey(tt.id)
-			assert.Equal(t, tt.want, key)
-			assert.Equal(t, tt.id, events.FlowParseKey(key))
-		})
-	}
-
-	fallback := "plain:key"
-	assert.Equal(t, redis.ParseKey(fallback), events.FlowParseKey(fallback))
 }
 
 func TestFlowCompleted(t *testing.T) {

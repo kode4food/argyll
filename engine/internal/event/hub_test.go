@@ -176,6 +176,26 @@ func TestHubNoSubscribers(t *testing.T) {
 	h.Publish(newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0))
 }
 
+func TestHubPublishNonBlocking(t *testing.T) {
+	h := event.NewHub()
+	consumer := h.NewConsumer()
+	defer consumer.Close()
+
+	done := make(chan struct{})
+	go func() {
+		h.Publish(
+			newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0),
+		)
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(eventWait):
+		t.Fatal("publish blocked on inactive consumer")
+	}
+}
+
 func newEvent(
 	typ timebox.EventType, agg timebox.AggregateID, seq int64,
 ) *timebox.Event {

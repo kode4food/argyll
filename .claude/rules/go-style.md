@@ -161,7 +161,7 @@ func (c *Client) GetStepFromAPI(id StepID)      // Use Fetch
 ```go
 // Good
 func NewEngine(store Store) *Engine
-func NewArchiveWorker(ctx context.Context, url string) (*ArchiveWorker, error)
+func NewScheduler(ctx context.Context, interval time.Duration) (*Scheduler, error)
 
 // Bad
 func CreateEngine(store Store) *Engine
@@ -174,17 +174,17 @@ Single-method interfaces use `-er` suffix. Capabilities, not implementations:
 
 ```go
 // Good - describes what it does
-type Archiver interface {
-    Archive(ctx context.Context, key string) error
-}
-
 type EventConsumer interface {
     Consume() (*Event, error)
 }
 
+type StepInvoker interface {
+    Invoke(ctx context.Context, req *Request) (*Response, error)
+}
+
 // Bad - describes what it is
-type ArchiverInterface interface { ... }
-type IArchiver interface { ... }
+type EventConsumerInterface interface { ... }
+type IEventConsumer interface { ... }
 ```
 
 ### Constant Names
@@ -261,9 +261,9 @@ type FlowId string
 Maximum 80 characters per line (tabs count as 4 spaces). This applies to code _and_ comments. Keep short argument lists on a single line when they fit; only break lines when the 80-character limit would be exceeded. When wrapping function signatures or call arguments, pack as many arguments per line as will fit under the limit before wrapping again. When you must wrap, break after the opening paren:
 
 ```go
-func NewArchiveWorker(
-	ctx context.Context, bucketURL, prefix string,
-) (*ArchiveWorker, error) {
+func NewScheduler(
+	ctx context.Context, interval time.Duration, handler WorkHandler,
+) (*Scheduler, error) {
 ```
 
 ```go
@@ -407,8 +407,8 @@ Minimum 90% test coverage.
 All tests use `package_test` suffix:
 
 ```go
-package archive_test  // Good
-package archive       // Bad
+package engine_test  // Good
+package engine       // Bad
 ```
 
 ### Test Naming
@@ -417,11 +417,11 @@ Function names short, subtests can be longer:
 
 ```go
 // Good - short function name
-func TestArchive(t *testing.T) {
-    t.Run("returns error when bucket unavailable", func(t *testing.T) {
+func TestScheduler(t *testing.T) {
+    t.Run("returns error when store unavailable", func(t *testing.T) {
         // ...
     })
-    t.Run("deletes key after upload", func(t *testing.T) {
+    t.Run("executes handler on interval", func(t *testing.T) {
         // ...
     })
 }
@@ -431,7 +431,7 @@ func TestStore_Get(t *testing.T) { ... }
 func TestEngine_Start(t *testing.T) { ... }
 
 // Bad - function name is a novel
-func TestArchiveReturnsErrorWhenBucketIsUnavailable(t *testing.T) { ... }
+func TestSchedulerReturnsErrorWhenStoreIsUnavailable(t *testing.T) { ... }
 func TestEngineShouldStartCorrectlyWhenConfigIsValid(t *testing.T) { ... }
 ```
 
@@ -481,15 +481,15 @@ Do not keep broad mixed test files once the source has been split cleanly.
 Exported symbols need godoc that adds value beyond the name:
 
 ```go
-// ArchiveWorker implements flow archiving policy using timebox.Store,
-// supporting external consumers for long-term storage
-type ArchiveWorker struct {
+// Scheduler manages periodic work execution using timebox.Store,
+// supporting configurable intervals and retry behavior
+type Scheduler struct {
 ```
 
 Skip godoc when the name is self-documenting:
 
 ```go
-func NewArchiveWorker(...) (*ArchiveWorker, error) {
+func NewScheduler(...) (*Scheduler, error) {
 ```
 
 Godoc rule: the last sentence of a comment should not end with a period.
@@ -504,7 +504,7 @@ bucket, err := blob.OpenBucket(ctx, url)  // Open the bucket
 return err                                 // Return the error
 
 // Good - explains WHY
-// Delete succeeds on missing key to make archiving idempotent
+// Missing key is not an error; deletion is idempotent by design
 if gcerrors.Code(err) == gcerrors.NotFound {
 	return nil
 }
@@ -515,7 +515,7 @@ if gcerrors.Code(err) == gcerrors.NotFound {
 Compile-time interface checks:
 
 ```go
-var _ Archiver = (*ArchiveWorker)(nil)
+var _ StepInvoker = (*Client)(nil)
 ```
 
 ## Error Handling

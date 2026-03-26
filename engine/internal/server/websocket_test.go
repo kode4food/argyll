@@ -193,6 +193,11 @@ func TestClientAggregateEvents(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	var ack api.SubscribedResult
+	err = env.Conn.ReadJSON(&ack)
+	assert.NoError(t, err)
+
 	err = env.Env.RaiseFlowEvents("wf-123", helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,
 		Data: wsFlowStarted("wf-123", "step-1"),
@@ -242,6 +247,11 @@ func TestClientManyAggregates(t *testing.T) {
 		},
 	}
 	err := env.Conn.WriteJSON(sub)
+	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	var ack api.SubscribedResult
+	err = env.Conn.ReadJSON(&ack)
 	assert.NoError(t, err)
 
 	err = env.Env.RaiseFlowEvents("wf-199", helpers.FlowEvent{
@@ -545,6 +555,12 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	}
 	err = env.Conn.WriteJSON(unsub)
 	assert.NoError(t, err)
+
+	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	var unsubAck api.UnsubscribedResult
+	err = env.Conn.ReadJSON(&unsubAck)
+	assert.NoError(t, err)
+	assert.Equal(t, "unsubscribed", unsubAck.Type)
 
 	err = env.Env.RaiseFlowEvents(id, helpers.FlowEvent{
 		Type: api.EventTypeFlowStarted,

@@ -1,58 +1,107 @@
-x-argyll-env: &argyll-env
-  CATALOG_REDIS_ADDR: valkey:6379
-  CATALOG_REDIS_PASSWORD:
-  CATALOG_REDIS_DB: "0"
-  PARTITION_REDIS_ADDR: valkey:6379
-  PARTITION_REDIS_PASSWORD:
-  PARTITION_REDIS_DB: "0"
-  LOG_LEVEL: debug
-
 x-step-env: &step-env
-  ARGYLL_ENGINE_URL: http://argyll-engine:8080
+  ARGYLL_ENGINE_URL: http://argyll-engine-1:8080
 
 services:
-  valkey:
-    image: valkey/valkey:9-alpine
+  argyll-proxy:
+    image: haproxy:3.1-alpine
+    depends_on:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
+        condition: service_healthy
     ports:
-      - "6379:6379"
+      - "8080:8080"
     volumes:
-      - valkey_data:/data
-    command: >
-      valkey-server
-      --appendonly yes
-      --appendfsync everysec
-      --aof-use-rdb-preamble yes
-      --save ""
-      --auto-aof-rewrite-percentage 50
-      --auto-aof-rewrite-min-size 64mb
+      - ./haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "valkey-cli", "ping"]
-      interval: 3s
-      timeout: 2s
-      retries: 10
+      test: ["CMD", "haproxy", "-c", "-f", "/usr/local/etc/haproxy/haproxy.cfg"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
       start_period: 5s
 
-  argyll-engine:
+  argyll-engine-1:
     build:
       context: .
       dockerfile: engine/Dockerfile
     environment:
-      <<: *argyll-env
       API_PORT: "8080"
-      API_HOST: 0.0.0.0
-      WEBHOOK_BASE_URL: http://argyll-engine:8080
-      DEV_MODE: "true"
-    depends_on:
-      valkey:
-        condition: service_healthy
-    ports:
-      - "8080:8080"
+      API_HOST: "0.0.0.0"
+      WEBHOOK_BASE_URL: http://argyll-engine-1:8080
+      LOG_LEVEL: debug
+      RAFT_NODE_ID: argyll-1
+      RAFT_ADDRESS: argyll-engine-1:9701
+      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
+      RAFT_DATA_DIR: /data/argyll-raft
+    volumes:
+      - argyll-data-1:/data
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
-      interval: 5s
+      interval: 30s
       timeout: 3s
-      retries: 12
+      retries: 3
+      start_period: 15s
+
+  argyll-engine-2:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+    environment:
+      API_PORT: "8080"
+      API_HOST: "0.0.0.0"
+      WEBHOOK_BASE_URL: http://argyll-engine-2:8080
+      LOG_LEVEL: debug
+      RAFT_NODE_ID: argyll-2
+      RAFT_ADDRESS: argyll-engine-2:9701
+      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
+      RAFT_DATA_DIR: /data/argyll-raft
+    volumes:
+      - argyll-data-2:/data
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 15s
+
+  argyll-engine-3:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+    environment:
+      API_PORT: "8080"
+      API_HOST: "0.0.0.0"
+      WEBHOOK_BASE_URL: http://argyll-engine-3:8080
+      LOG_LEVEL: debug
+      RAFT_NODE_ID: argyll-3
+      RAFT_ADDRESS: argyll-engine-3:9701
+      RAFT_SERVERS: "argyll-1=argyll-engine-1:9701,argyll-2=argyll-engine-2:9701,argyll-3=argyll-engine-3:9701"
+      RAFT_DATA_DIR: /data/argyll-raft
+    volumes:
+      - argyll-data-3:/data
+    restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
       start_period: 15s
 
   argyll-ui:
@@ -71,9 +120,12 @@ services:
       - CHOKIDAR_USEPOLLING=true # For better file watching in Docker
       - NODE_ENV=development
     depends_on:
-      argyll-engine:
+      argyll-proxy:
         condition: service_healthy
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
       test:
         [
@@ -89,18 +141,6 @@ services:
       retries: 12
       start_period: 30s
 
-  argyll-archiver-file:
-    build:
-      context: .
-      dockerfile: archiver/Dockerfile
-    environment:
-      <<: *argyll-env
-      ARCHIVE_SINK_PATH: /dev/null
-    depends_on:
-      valkey:
-        condition: service_healthy
-    restart: unless-stopped
-
   # Example step services
   text-processor:
     build:
@@ -108,16 +148,23 @@ services:
       dockerfile: examples/simple-step/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8081"
+      STEP_PORT: "8090"
       STEP_HOSTNAME: text-processor
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8081:8081"
+      - "8090:8090"
     restart: on-failure
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8090/health"]
       interval: 5s
       timeout: 3s
       retries: 8
@@ -129,16 +176,23 @@ services:
       dockerfile: examples/user-resolver/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8082"
+      STEP_PORT: "8091"
       STEP_HOSTNAME: user-resolver
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8082:8082"
+      - "8091:8091"
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8082/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8091/health"]
       interval: 5s
       timeout: 3s
       retries: 8
@@ -150,16 +204,23 @@ services:
       dockerfile: examples/inventory-resolver/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8083"
+      STEP_PORT: "8092"
       STEP_HOSTNAME: inventory-resolver
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8083:8083"
+      - "8092:8092"
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8083/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8092/health"]
       interval: 5s
       timeout: 3s
       retries: 8
@@ -171,16 +232,23 @@ services:
       dockerfile: examples/order-creator/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8084"
+      STEP_PORT: "8093"
       STEP_HOSTNAME: order-creator
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8084:8084"
+      - "8093:8093"
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8084/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8093/health"]
       interval: 5s
       timeout: 3s
       retries: 8
@@ -192,16 +260,23 @@ services:
       dockerfile: examples/payment-processor/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8085"
+      STEP_PORT: "8094"
       STEP_HOSTNAME: payment-processor
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8085:8085"
+      - "8094:8094"
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8085/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8094/health"]
       interval: 5s
       timeout: 3s
       retries: 8
@@ -213,16 +288,23 @@ services:
       dockerfile: examples/stock-reservation/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8086"
+      STEP_PORT: "8095"
       STEP_HOSTNAME: stock-reservation
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8086:8086"
+      - "8095:8095"
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8086/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8095/health"]
       interval: 5s
       timeout: 3s
       retries: 8
@@ -234,21 +316,29 @@ services:
       dockerfile: examples/notification-sender/Dockerfile
     environment:
       <<: *step-env
-      STEP_PORT: "8087"
+      STEP_PORT: "8096"
       STEP_HOSTNAME: notification-sender
     depends_on:
-      argyll-engine:
+      argyll-engine-1:
+        condition: service_healthy
+      argyll-engine-2:
+        condition: service_healthy
+      argyll-engine-3:
         condition: service_healthy
     ports:
-      - "8087:8087"
+      - "8096:8096"
     restart: unless-stopped
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8087/health"]
+      test: ["CMD", "curl", "-f", "http://localhost:8096/health"]
       interval: 5s
       timeout: 3s
       retries: 8
       start_period: 10s
 
 volumes:
-  valkey_data:
-    driver: local
+  argyll-data-1:
+  argyll-data-2:
+  argyll-data-3:

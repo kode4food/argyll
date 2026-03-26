@@ -1,10 +1,7 @@
 package events
 
 import (
-	"strings"
-
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -82,43 +79,6 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 		}
 	}
 	return res
-}
-
-// FlowJoinKey is a JoinKeyFunc that co-locates parent and child flows in the
-// same Redis hash slot. The root flow ID is wrapped in hash slot notation so
-// that a parent and its children both resolve to {my-flow} and land in the
-// same slot. Produces "flow:{my-flow}" or "flow:{my-flow}:step:token"
-func FlowJoinKey(id timebox.AggregateID) string {
-	if len(id) < 2 {
-		return id.Join(":")
-	}
-	prefix := string(id[0])
-	flowID := string(id[1])
-	rootFlowID := flowID
-	if before, _, ok := strings.Cut(flowID, ":"); ok {
-		rootFlowID = before
-	}
-	if flowID == rootFlowID {
-		return prefix + ":{" + rootFlowID + "}"
-	}
-	return prefix + ":{" + rootFlowID + "}:" + flowID[len(rootFlowID)+1:]
-}
-
-// FlowParseKey is the ParseKeyFunc that reverses FlowJoinKey
-func FlowParseKey(str string) timebox.AggregateID {
-	before, after, found := strings.Cut(str, ":{")
-	if !found {
-		return redis.ParseKey(str)
-	}
-	slot, remaining, hasRemaining := strings.Cut(after, "}:")
-	if !hasRemaining {
-		slot = strings.TrimSuffix(after, "}")
-		return timebox.AggregateID{timebox.ID(before), timebox.ID(slot)}
-	}
-	return timebox.AggregateID{
-		timebox.ID(before),
-		timebox.ID(slot + ":" + remaining),
-	}
 }
 
 // IsFlowEvent returns true if the event belongs to a flow aggregate

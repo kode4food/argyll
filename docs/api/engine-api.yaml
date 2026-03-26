@@ -19,7 +19,7 @@ info:
 
     - **Goal-Driven Execution**: Create flows by specifying a goal step; the engine
       automatically determines and executes only the necessary steps
-    - **Event Sourcing**: Complete audit trail with Valkey backend for recovery and debugging
+    - **Event Sourcing**: Complete audit trail with durable storage for recovery and debugging
     - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
     - **Real-Time Updates**: WebSocket streaming for live flow monitoring
     - **Four Step Types**: Sync HTTP, Async HTTP (with webhooks), Script (Ale and Lua), and Flow (sub-flow execution)
@@ -52,13 +52,18 @@ paths:
   /health:
     get:
       summary: Engine Health Check
-      description: Returns the health status of the Argyll engine
+      description: Returns the health status of the Argyll engine and includes the local Raft state in the `X-Argyll-Raft-State` response header
       operationId: getEngineHealth
       tags:
         - Health
       responses:
         "200":
           description: Engine is healthy
+          headers:
+            X-Argyll-Raft-State:
+              schema:
+                type: string
+                enum: [leader, candidate, follower, unknown]
           content:
             application/json:
               schema:
@@ -773,6 +778,10 @@ components:
         error:
           type: string
           description: Error message if status is unhealthy
+        details:
+          type: object
+          description: Informational subsystem status that does not affect overall health
+          additionalProperties: true
 
     EngineResponse:
       type: object

@@ -8,37 +8,37 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/raft"
 
 	app "github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
 type argyll struct {
-	cfg            *config.Config
-	catalogStore   *timebox.Store
-	partitionStore *timebox.Store
-	flowStore      *timebox.Store
-	stepClient     client.Client
-	engine         *engine.Engine
-	health         *server.HealthChecker
-	apiServer      *server.Server
-	httpServer     *http.Server
-	quit           chan os.Signal
+	cfg         *config.Config
+	store       *timebox.Store
+	persistence *raft.Persistence
+	engine      *engine.Engine
+	health      *server.HealthChecker
+	apiServer   *server.Server
+	httpServer  *http.Server
+	quit        chan os.Signal
 }
 
+const defaultStoreReadyTimeout = 5 * time.Second
+
 var (
-	ErrCreateCatalogStore   = errors.New("failed to create catalog store")
-	ErrCreatePartitionStore = errors.New("failed to create partition store")
-	ErrCreateFlowStore      = errors.New("failed to create flow store")
+	ErrCreateStore = errors.New("failed to create raft store")
 )
 
 var logLevels = map[string]slog.Level{
@@ -67,26 +67,29 @@ func main() {
 	}
 }
 
-func (s *argyll) run() error {
-	if err := s.initializeStores(); err != nil {
+func (a *argyll) run() error {
+	hub := event.NewHub()
+	a.cfg.Raft.Publisher = hub.Publish
+
+	if err := a.initializeStores(); err != nil {
 		return err
 	}
 
-	if err := s.initializeEngine(); err != nil {
+	if err := a.initializeEngine(hub); err != nil {
 		return err
 	}
-	s.startServer()
+	a.startServer()
 
-	signal.Notify(s.quit, syscall.SIGINT, syscall.SIGTERM)
-	defer signal.Stop(s.quit)
-	<-s.quit
+	signal.Notify(a.quit, syscall.SIGINT, syscall.SIGTERM)
+	defer signal.Stop(a.quit)
+	<-a.quit
 
-	s.shutdown()
+	a.shutdown()
 	return nil
 }
 
-func (s *argyll) setupLogging() {
-	level, ok := logLevels[s.cfg.LogLevel]
+func (a *argyll) setupLogging() {
+	level, ok := logLevels[a.cfg.LogLevel]
 	if !ok {
 		level = slog.LevelInfo
 	}
@@ -97,107 +100,128 @@ func (s *argyll) setupLogging() {
 	slog.SetLogLoggerLevel(level)
 
 	slog.Info("Argyll Engine starting",
-		slog.String("log_level", s.cfg.LogLevel))
+		slog.String("log_level", a.cfg.LogLevel))
 
 	slog.Info("Configuration loaded",
-		slog.String("catalog_redis_addr", s.cfg.CatalogStore.Addr),
-		slog.Int("catalog_redis_db", s.cfg.CatalogStore.DB),
-		slog.String("partition_redis_addr", s.cfg.PartitionStore.Addr),
-		slog.Int("partition_redis_db", s.cfg.PartitionStore.DB),
-		slog.String("flow_redis_addr", s.cfg.FlowStore.Addr),
-		slog.Int("flow_redis_db", s.cfg.FlowStore.DB),
-		slog.String("api_host", s.cfg.APIHost),
-		slog.Int("api_port", s.cfg.APIPort))
+		slog.String("raft_node_id", a.cfg.Raft.LocalID),
+		slog.String("raft_address", a.cfg.Raft.Address),
+		slog.String("raft_data_dir", a.cfg.Raft.DataDir),
+		slog.String("raft_servers", formatRaftServers(a.cfg.Raft.Servers)),
+		slog.String("api_host", a.cfg.APIHost),
+		slog.Int("api_port", a.cfg.APIPort))
 }
 
-func (s *argyll) initializeStores() error {
-	var err error
-
-	s.catalogStore, err = redis.NewStore(s.cfg.CatalogStore)
+func (a *argyll) initializeStores() error {
+	p, err := raft.NewPersistence(a.cfg.Raft)
 	if err != nil {
-		return errors.Join(ErrCreateCatalogStore, err)
+		return errors.Join(ErrCreateStore, err)
+	}
+	s, err := timebox.NewStore(p, a.cfg.Raft.Timebox)
+	if err != nil {
+		_ = p.Close()
+		return errors.Join(ErrCreateStore, err)
+	}
+	ctx, cancel := context.WithTimeout(
+		context.Background(), defaultStoreReadyTimeout,
+	)
+	defer cancel()
+	if err := s.WaitReady(ctx); err != nil {
+		_ = s.Close()
+		return errors.Join(ErrCreateStore, err)
 	}
 
-	s.partitionStore, err = redis.NewStore(s.cfg.PartitionStore)
-	if err != nil {
-		_ = s.catalogStore.Close()
-		return errors.Join(ErrCreatePartitionStore, err)
-	}
-
-	s.flowStore, err = redis.NewStore(s.cfg.FlowStore)
-	if err != nil {
-		_ = s.partitionStore.Close()
-		_ = s.catalogStore.Close()
-		return errors.Join(ErrCreateFlowStore, err)
-	}
-
+	// Raft persistence does not use logical prefixes, so one replicated store
+	// holds catalog, partition, and flow aggregates
+	a.persistence = p
+	a.store = s
 	return nil
 }
 
-func (s *argyll) initializeEngine() error {
-	s.stepClient = client.NewHTTPClient(
-		time.Duration(s.cfg.StepTimeout) * time.Millisecond,
+func (a *argyll) initializeEngine(hub *event.Hub) error {
+	stepClient := client.NewHTTPClient(
+		time.Duration(a.cfg.StepTimeout) * time.Millisecond,
 	)
 
-	eng, err := engine.New(s.cfg, engine.Dependencies{
-		CatalogStore:   s.catalogStore,
-		PartitionStore: s.partitionStore,
-		FlowStore:      s.flowStore,
-		StepClient:     s.stepClient,
+	eng, err := engine.New(a.cfg, engine.Dependencies{
+		Store:      a.store,
+		StepClient: stepClient,
+		EventHub:   hub,
 	})
 	if err != nil {
 		return err
 	}
-	s.engine = eng
-	return s.engine.Start()
+	a.engine = eng
+	return a.engine.Start()
 }
 
-func (s *argyll) startServer() {
-	hub := s.engine.GetEventHub()
+func (a *argyll) startServer() {
+	hub := a.engine.GetEventHub()
 
-	s.health = server.NewHealthChecker(s.engine, hub)
-	s.health.Start()
+	a.health = server.NewHealthChecker(a.engine, hub)
+	a.health.Start()
 
-	s.apiServer = server.NewServer(s.engine, hub)
-	mux := s.apiServer.SetupRoutes()
+	a.apiServer = server.NewServer(
+		a.engine,
+		hub,
+		server.NewRaftStatusProvider(a.persistence),
+	)
+	mux := a.apiServer.SetupRoutes()
 
-	s.httpServer = &http.Server{
-		Addr:    fmt.Sprintf("%s:%d", s.cfg.APIHost, s.cfg.APIPort),
+	a.httpServer = &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", a.cfg.APIHost, a.cfg.APIPort),
 		Handler: mux,
 	}
 
 	go func() {
 		slog.Info("HTTP server starting",
-			slog.String("addr", s.httpServer.Addr))
-		err := s.httpServer.ListenAndServe()
+			slog.String("addr", a.httpServer.Addr))
+		err := a.httpServer.ListenAndServe()
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("HTTP server error", log.Error(err))
 		}
 	}()
 }
 
-func (s *argyll) shutdown() {
+func (a *argyll) shutdown() {
 	slog.Info("Shutting down")
 
 	ctx, cancel := context.WithTimeout(
-		context.Background(), s.cfg.ShutdownTimeout,
+		context.Background(), a.cfg.ShutdownTimeout,
 	)
 	defer cancel()
 
-	if err := s.httpServer.Shutdown(ctx); err != nil {
+	if err := a.httpServer.Shutdown(ctx); err != nil {
 		slog.Error("Shutdown failed", log.Error(err))
 	}
 
-	s.apiServer.CloseWebSockets()
-	s.health.Stop()
+	a.apiServer.CloseWebSockets()
+	a.health.Stop()
 
-	if err := s.engine.Stop(); err != nil {
+	if err := a.engine.Stop(); err != nil {
 		slog.Error("Engine shutdown failed", log.Error(err))
 	}
 
-	_ = s.flowStore.Close()
-	_ = s.partitionStore.Close()
-	_ = s.catalogStore.Close()
+	a.closeStores()
 
 	slog.Info("Server exited")
+}
+
+func (a *argyll) closeStores() {
+	if a.store == nil {
+		return
+	}
+
+	_ = a.store.Close()
+	a.store = nil
+	a.persistence = nil
+}
+
+func formatRaftServers(srvs []raft.Server) string {
+	parts := make([]string, 0, len(srvs))
+	for _, srv := range srvs {
+		parts = append(parts,
+			srv.ID+"="+srv.Address,
+		)
+	}
+	return strings.Join(parts, ",")
 }

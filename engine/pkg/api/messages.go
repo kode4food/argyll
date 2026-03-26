@@ -92,7 +92,8 @@ type (
 
 	// HealthResponse provides service health information
 	HealthResponse struct {
-		Service string `json:"service"`
+		Service string         `json:"service"`
+		Details map[string]any `json:"details,omitempty"`
 		HealthState
 	}
 

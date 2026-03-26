@@ -49,7 +49,6 @@ The flow is deactivated once it is **terminal AND no active work remains**.
 At this point:
 - The flow is truly complete
 - All step executions are recorded
-- The flow is eligible for archiving
 - No further state changes will occur
 
 **Important:** A deactivated flow can still be read and replayed. Its event log is complete.
@@ -99,15 +98,3 @@ This enables:
 - **Recovery**: No external coordination needed
 - **Compliance**: Complete audit trail, tamper-evident
 
-## Archiving
-
-Once a flow is deactivated, it is indexed as terminal (`completed` or `failed`) and becomes eligible for archiving. The archive worker:
-
-1. Monitors memory pressure
-2. Selects terminal flow candidates from the flow status indexes using their indexed terminal timestamp
-3. Writes them to external storage (e.g., S3)
-4. Removes them from the active store
-
-Archived flows are removed from the live engine stores. They remain available in the archive backend, but are not returned by the engine flow query endpoints.
-
-See [Configuration](../guides/configuration.md) for archiving policy options.

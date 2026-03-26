@@ -38,12 +38,11 @@ type (
 
 	// Dependencies groups the external dependencies required by Engine
 	Dependencies struct {
-		CatalogStore     *timebox.Store
-		PartitionStore   *timebox.Store
-		FlowStore        *timebox.Store
+		Store            *timebox.Store
 		StepClient       client.Client
 		Clock            scheduler.Clock
 		TimerConstructor scheduler.TimerConstructor
+		EventHub         *event.Hub
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
@@ -82,19 +81,15 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	hub := event.NewHub()
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
-			deps.CatalogStore, events.NewCatalogState,
-			events.CatalogAppliers, makePublisher[*api.CatalogState](hub),
+			deps.Store, events.NewCatalogState, events.CatalogAppliers,
 		),
 		partExec: timebox.NewExecutor(
-			deps.PartitionStore, events.NewPartitionState,
-			events.PartitionAppliers, makePublisher[*api.PartitionState](hub),
+			deps.Store, events.NewPartitionState, events.PartitionAppliers,
 		),
 		flowExec: timebox.NewExecutor(
-			deps.FlowStore, events.NewFlowState,
-			events.FlowAppliers, makePublisher[*api.FlowState](hub),
+			deps.Store, events.NewFlowState, events.FlowAppliers,
 		),
 		scripts:    script.NewRegistry(),
 		stepClient: deps.StepClient,
@@ -104,7 +99,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		memoCache:  memo.NewCache(cfg.MemoCacheSize),
 		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
-		eventHub:   hub,
+		eventHub:   deps.EventHub,
 	}
 	e.mapper = NewMapper(e)
 
@@ -116,24 +111,15 @@ func (e *Engine) GetEventHub() *event.Hub {
 	return e.eventHub
 }
 
-func makePublisher[T any](hub *event.Hub) timebox.SuccessAction[T] {
-	return func(_ T, evs []*timebox.Event) {
-		hub.Publish(evs...)
-	}
-}
-
 func normalizeDependencies(deps *Dependencies) error {
-	if deps.CatalogStore == nil {
-		return fmt.Errorf("%w: catalog store", ErrMissingDependency)
-	}
-	if deps.PartitionStore == nil {
-		return fmt.Errorf("%w: partition store", ErrMissingDependency)
-	}
-	if deps.FlowStore == nil {
-		return fmt.Errorf("%w: flow store", ErrMissingDependency)
+	if deps.Store == nil {
+		return fmt.Errorf("%w: store", ErrMissingDependency)
 	}
 	if deps.StepClient == nil {
 		return fmt.Errorf("%w: step client", ErrMissingDependency)
+	}
+	if deps.EventHub == nil {
+		return fmt.Errorf("%w: event hub", ErrMissingDependency)
 	}
 	if deps.Clock == nil {
 		deps.Clock = time.Now

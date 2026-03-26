@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -29,6 +30,139 @@ func withTestServerEnv(t *testing.T, fn func(*testServerEnv)) {
 			Server:        server.NewServer(env.Engine, env.EventHub),
 			TestEngineEnv: env,
 		})
+	})
+}
+
+func TestHealthIncludesCustomStatus(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		srv := server.NewServer(
+			env.Engine,
+			env.EventHub,
+			func() map[string]any {
+				return map[string]any{
+					"backend": map[string]any{
+						"kind": "test",
+					},
+				}
+			},
+		)
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+
+		router := srv.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response api.HealthResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		if assert.Contains(t, response.Details, "backend") {
+			backend, ok := response.Details["backend"].(map[string]any)
+			if assert.True(t, ok) {
+				assert.Equal(t, "test", backend["kind"])
+			}
+		}
+	})
+}
+
+func TestHealthIncludesBackendStatus(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		srv := server.NewServer(
+			env.Engine,
+			env.EventHub,
+			func() map[string]any {
+				return map[string]any{
+					"backend": map[string]any{
+						"type":      "raft",
+						"state":     "leader",
+						"leader_id": "node-1",
+					},
+				}
+			},
+		)
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+
+		router := srv.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response api.HealthResponse
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		if assert.Contains(t, response.Details, "backend") {
+			backend, ok := response.Details["backend"].(map[string]any)
+			if assert.True(t, ok) {
+				assert.Equal(t, "raft", backend["type"])
+				assert.Equal(t, "leader", backend["state"])
+				assert.Equal(t, "node-1", backend["leader_id"])
+			}
+		}
+	})
+}
+
+func TestHealthLeader(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		srv := server.NewServer(
+			env.Engine,
+			env.EventHub,
+			func() map[string]any {
+				return map[string]any{
+					"backend": map[string]any{
+						"type":  "raft",
+						"state": raft.StateLeader,
+					},
+				}
+			},
+		)
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+
+		router := srv.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "leader", w.Header().Get("X-Argyll-Raft-State"))
+	})
+}
+
+func TestHealthFollower(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		srv := server.NewServer(
+			env.Engine,
+			env.EventHub,
+			func() map[string]any {
+				return map[string]any{
+					"backend": map[string]any{
+						"type":  "raft",
+						"state": raft.StateFollower,
+					},
+				}
+			},
+		)
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+
+		router := srv.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "follower", w.Header().Get("X-Argyll-Raft-State"))
+	})
+}
+
+func TestHealthUnknown(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		req := httptest.NewRequest("GET", "/health", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+		assert.Equal(t, "unknown", w.Header().Get("X-Argyll-Raft-State"))
 	})
 }
 
@@ -838,6 +972,14 @@ func TestBasicHealthEndpoint(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "argyll-engine", response.Service)
 		assert.Equal(t, api.HealthHealthy, response.Status)
+		if assert.Contains(t, response.Details, "websocket") {
+			websocket, ok := response.Details["websocket"].(map[string]any)
+			if assert.True(t, ok) {
+				assert.Equal(t, float64(0), websocket["clients"])
+				assert.NotContains(t, websocket, "subscriptions")
+			}
+		}
+		assert.Equal(t, "unknown", w.Header().Get("X-Argyll-Raft-State"))
 	})
 }
 

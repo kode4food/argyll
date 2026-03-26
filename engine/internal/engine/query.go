@@ -123,7 +123,7 @@ func (e *Engine) listIndexedEntries(
 			return nil, errors.Join(
 				ErrQueryFlows,
 				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry,
-					entry.ID.Join(":")),
+					entry.ID.String()),
 			)
 		}
 		res = append(res, flowStatusEntry{
@@ -200,7 +200,7 @@ func (e *Engine) collectLabelFlowIDs(
 				return nil, errors.Join(
 					ErrQueryFlows,
 					fmt.Errorf("%w: %s", ErrInvalidFlowLabelEntry,
-						id.Join(":")),
+						id.String()),
 				)
 			}
 			if isChildFlowID(flowID) {

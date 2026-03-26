@@ -20,7 +20,9 @@ k6 run --vus 250 --duration 30s k6-simple.js
 
 - `--vus N` - Number of virtual users (default: 1)
 - `--duration Xs` - Test duration in seconds (default: infinite)
-- `--env ENGINE_URL=http://...` - Engine URL (default: http://localhost:8080)
+- `--env ENGINE_URL=http://...` - Engine URL to target (default: `http://localhost:8080`)
+
+`ENGINE_URL` must point at the Raft leader node in the cluster.
 
 ### Examples
 
@@ -42,6 +44,11 @@ k6 run --vus 1000 --duration 60s k6-simple.js
 Against different engine:
 ```bash
 k6 run --vus 100 --duration 30s --env ENGINE_URL=http://staging:8080 k6-simple.js
+```
+
+Against a local 3-node Raft cluster:
+```bash
+k6 run --vus 250 --duration 30s --env ENGINE_URL=http://localhost:8081 k6-simple.js
 ```
 
 ## What It Tests

@@ -65,13 +65,12 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 ) *api.FlowState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
-		w := wait.On(e.T, consumer)
 		fn()
 		state, err := e.Engine.GetFlowState(flowID)
 		if err == nil && isFlowTerminal(state) {
 			return
 		}
-		w.ForEvent(wait.FlowTerminal(flowID))
+		wait.On(e.T, consumer).ForEvent(wait.FlowTerminal(flowID))
 	})
 
 	return e.waitForTerminalFlow(flowID)
@@ -83,13 +82,12 @@ func (e *TestEngineEnv) WaitForStepStarted(
 ) *api.ExecutionState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
-		w := wait.On(e.T, consumer)
 		fn()
 		exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
 		if err == nil && exec != nil && isStepStarted(exec.Status) {
 			return
 		}
-		w.ForEvent(wait.StepStarted(fs))
+		wait.On(e.T, consumer).ForEvent(wait.StepStarted(fs))
 	})
 
 	exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
@@ -108,13 +106,12 @@ func (e *TestEngineEnv) WaitForStepStatus(
 ) *api.ExecutionState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
-		w := wait.On(e.T, consumer)
 		fn()
 		exec, err := e.getExecutionState(flowID, stepID)
 		if err == nil && exec != nil && isStepTerminal(exec.Status) {
 			return
 		}
-		w.ForEvent(wait.StepTerminal(
+		wait.On(e.T, consumer).ForEvent(wait.StepTerminal(
 			api.FlowStep{FlowID: flowID, StepID: stepID},
 		))
 	})

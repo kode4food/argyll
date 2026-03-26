@@ -10,7 +10,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestNoDeps(t *testing.T) {
@@ -406,12 +405,16 @@ func TestGetStatusNotFound(t *testing.T) {
 
 func TestGetStatusInvalid(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		const statusHashKey = "test-flow:idx:status"
+		err := env.RaiseFlowEvents("wf-invalid", helpers.FlowEvent{
+			Type: api.EventTypeFlowDeactivated,
+			Data: api.FlowDeactivatedEvent{
+				FlowID: "wf-invalid",
+				Status: "bogus",
+			},
+		})
+		assert.NoError(t, err)
 
-		id := events.FlowKey("wf-invalid").Join(":")
-		env.Redis.HSet(statusHashKey, id, "bogus")
-
-		_, err := env.Engine.GetFlowStatus("wf-invalid")
+		_, err = env.Engine.GetFlowStatus("wf-invalid")
 		assert.ErrorIs(t, err, engine.ErrInvalidFlowStatus)
 	})
 }

@@ -21,6 +21,7 @@ type Server struct {
 	engine   *engine.Engine
 	eventHub *event.Hub
 	sockets  util.Set[*Client]
+	status   []StatusProvider
 	mu       sync.Mutex
 }
 
@@ -30,12 +31,18 @@ var (
 )
 
 // NewServer creates a new HTTP API server
-func NewServer(eng *engine.Engine, hub *event.Hub) *Server {
-	return &Server{
+func NewServer(
+	eng *engine.Engine, hub *event.Hub, status ...StatusProvider,
+) *Server {
+	s := &Server{
 		engine:   eng,
 		eventHub: hub,
 		sockets:  util.Set[*Client]{},
 	}
+	s.status = append([]StatusProvider{
+		NewWebSocketStatusProvider(s),
+	}, status...)
+	return s
 }
 
 // SetupRoutes configures and returns the HTTP router with all API endpoints
@@ -151,16 +158,26 @@ func (s *Server) unregisterWebSocket(c *Client) {
 	s.sockets.Remove(c)
 }
 
+func (s *Server) webSocketCount() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return len(s.sockets)
+}
+
 // CloseWebSockets closes all active WebSocket connections
 func (s *Server) CloseWebSockets() {
-	s.mu.Lock()
-	conns := make([]*Client, 0, len(s.sockets))
-	for c := range s.sockets {
-		conns = append(conns, c)
-	}
-	s.mu.Unlock()
-
-	for _, c := range conns {
+	for _, c := range s.webSockets() {
 		c.Close()
 	}
+}
+
+func (s *Server) webSockets() []*Client {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	res := make([]*Client, 0, len(s.sockets))
+	for c := range s.sockets {
+		res = append(res, c)
+	}
+	return res
 }

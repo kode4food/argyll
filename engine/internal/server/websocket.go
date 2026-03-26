@@ -234,6 +234,7 @@ func (c *Client) handleMessage(message []byte) bool {
 			return true
 		}
 		c.removeSubscription(sub.SubscriptionID)
+		return c.sendUnsubscribeAck(sub.SubscriptionID)
 	default:
 		return true
 	}
@@ -291,38 +292,38 @@ func (c *Client) streamSubscription(sub *clientSubscription) {
 }
 
 func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
-	if !sub.includeState || c.getState == nil {
-		return true
-	}
+	var items []api.SubscribedItem
 
-	items := make([]api.SubscribedItem, 0, len(sub.aggregateIDs))
-	sub.minSeqs = make(map[string]int64, len(sub.aggregateIDs))
-	for _, id := range sub.aggregateIDs {
-		state, nextSeq, err := c.getState(id)
-		if err != nil {
-			if errors.Is(err, engine.ErrFlowNotFound) {
-				continue
+	if sub.includeState && c.getState != nil {
+		items = make([]api.SubscribedItem, 0, len(sub.aggregateIDs))
+		sub.minSeqs = make(map[string]int64, len(sub.aggregateIDs))
+		for _, id := range sub.aggregateIDs {
+			state, nextSeq, err := c.getState(id)
+			if err != nil {
+				if errors.Is(err, engine.ErrFlowNotFound) {
+					continue
+				}
+				slog.Error("Failed to get state for subscription",
+					slog.Any("aggregate_id", id),
+					log.Error(err))
+				return false
 			}
-			slog.Error("Failed to get state for subscription",
-				slog.Any("aggregate_id", id),
-				log.Error(err))
-			return false
-		}
 
-		data, err := json.Marshal(state)
-		if err != nil {
-			slog.Error("Failed to marshal state",
-				slog.Any("aggregate_id", id),
-				log.Error(err))
-			return false
-		}
+			data, err := json.Marshal(state)
+			if err != nil {
+				slog.Error("Failed to marshal state",
+					slog.Any("aggregate_id", id),
+					log.Error(err))
+				return false
+			}
 
-		items = append(items, api.SubscribedItem{
-			AggregateID: idToStrings(id),
-			Data:        data,
-			Sequence:    nextSeq,
-		})
-		sub.minSeqs[aggregateIDKey(id)] = nextSeq
+			items = append(items, api.SubscribedItem{
+				AggregateID: idToStrings(id),
+				Data:        data,
+				Sequence:    nextSeq,
+			})
+			sub.minSeqs[aggregateIDKey(id)] = nextSeq
+		}
 	}
 
 	msg := api.SubscribedResult{
@@ -378,6 +379,24 @@ func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
 		AggregateID: idToStrings(ev.AggregateID),
 		Sequence:    ev.Sequence,
 	}
+}
+
+func (c *Client) sendUnsubscribeAck(subscriptionID string) bool {
+	msg := api.UnsubscribedResult{
+		Type:           "unsubscribed",
+		SubscriptionID: subscriptionID,
+	}
+	c.writeMu.Lock()
+	defer c.writeMu.Unlock()
+	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	err := c.conn.WriteJSON(msg)
+	if err != nil {
+		slog.Error("WebSocket write failed",
+			slog.String("context", "unsubscribed"),
+			log.Error(err))
+		return false
+	}
+	return true
 }
 
 func (c *Client) sendPing() bool {

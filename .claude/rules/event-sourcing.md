@@ -2,16 +2,16 @@
 
 ## Architecture
 
-**Storage:** Valkey backend via `timebox.Store`
+**Storage:** shared `timebox.Store` backed by Raft + Pebble
 
-- Catalog state: `timebox.Store` with `timebox.Executor[*api.CatalogState]` (TrimEvents: true, snapshotted on shutdown)
-- Partition state: `timebox.Store` with `timebox.Executor[*api.PartitionState]` (TrimEvents: true, snapshotted on shutdown)
-- Flow state: `timebox.Store` with `timebox.Executor[*api.FlowState]` (TrimEvents: false, full event history)
+- Catalog state: `timebox.Executor[*api.CatalogState]` over the shared store
+- Partition state: `timebox.Executor[*api.PartitionState]` over the shared store
+- Flow state: `timebox.Executor[*api.FlowState]` over the shared store
 - Concurrency: Optimistic (sequence-based versioning, automatic retry on conflict)
 
 **WebSocket Notifications (separate from event sourcing):**
 
-- EventHub: `timebox.EventHub`, wired through `cmd/argyll/main.go` and `internal/server/websocket.go`
+- EventHub: `internal/event.Hub`, wired through `cmd/argyll/main.go` and `internal/server/websocket.go`
 - Purpose: Broadcast events to WebSocket subscribers
 - Separate from event sourcing; used for real-time UI updates
 - Produces from timebox events, doesn't drive execution
@@ -280,7 +280,7 @@ func reconstructState(aggregateID ID) State {
 **How recovery works:**
 
 1. Engine.Start() calls RecoverFlows()
-2. Executor loads events from Valkey for each flow
+2. Executor loads events from the shared Timebox store for each flow
 3. Replays events to reconstruct exact state
 4. Resume from where it left off
 5. No external coordination needed
@@ -298,8 +298,6 @@ func reconstructState(aggregateID ID) State {
 - `step_health_changed` - Step availability changed
 - `flow_activated` - Flow added to active flows list
 - `flow_deactivated` - Flow terminal + no active work
-- `flow_archiving` - Flow selected for archiving
-- `flow_archived` - Flow moved to external storage
 - `flow_digest_updated` - Flow status digest updated (internal)
 
 **Flow aggregate events** (flow execution state):

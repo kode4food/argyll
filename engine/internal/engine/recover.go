@@ -118,7 +118,7 @@ func (e *Engine) listIndexedFlows(status string) ([]api.FlowID, error) {
 			return nil, errors.Join(
 				ErrListActiveFlows,
 				fmt.Errorf("%w: %s", ErrInvalidFlowStatusEntry,
-					entry.ID.Join(":")),
+					entry.ID.String()),
 			)
 		}
 		if seen.Contains(flowID) {

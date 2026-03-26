@@ -5,7 +5,7 @@ This quickstart uses a script step so you can run end-to-end without writing a s
 ## 1) Start the engine
 
 ```bash
-docker compose up valkey argyll-engine
+docker compose up
 ```
 
 The engine will be available at http://localhost:8080.

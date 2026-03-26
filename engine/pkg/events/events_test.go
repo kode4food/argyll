@@ -4,9 +4,8 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/alicebob/miniredis/v2"
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
+	"github.com/kode4food/timebox/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -15,13 +14,7 @@ import (
 )
 
 func TestRaiseEnqueuesEvent(t *testing.T) {
-	server, err := miniredis.Run()
-	require.NoError(t, err)
-	defer server.Close()
-
-	store, err := redis.NewStore(redis.Config{
-		Addr: server.Addr(),
-	})
+	store, err := memory.NewStore(timebox.Config{})
 	require.NoError(t, err)
 	defer func() { _ = store.Close() }()
 

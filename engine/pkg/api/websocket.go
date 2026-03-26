@@ -38,6 +38,12 @@ type (
 		SubscriptionID string `json:"sub_id"`
 	}
 
+	// UnsubscribedResult is sent to clients after a subscription is removed
+	UnsubscribedResult struct {
+		Type           string `json:"type"`
+		SubscriptionID string `json:"sub_id,omitempty"`
+	}
+
 	// SubscribedResult is sent to clients with current state on subscribe
 	SubscribedResult struct {
 		Type           string           `json:"type"`

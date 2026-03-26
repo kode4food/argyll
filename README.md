@@ -34,11 +34,10 @@ docker compose up
 
 - **Event Sourcing**: Complete audit trail of all state changes
 - **Lazy Evaluation**: Execute only what's needed to reach goals
-- **Multi-Instance**: Horizontal scaling with optimistic concurrency
+- **Clustered Engine**: Shared Timebox store over Raft
 - **Real-Time UI**: WebSocket updates, live flow monitoring
 - **Four Step Types**: Sync/Async HTTP, Scripts (Ale/Lua), Sub-flows
 - **Built-In Retry**: Configurable backoff strategies
-- **Flow Archiving**: Automatic archiving of completed flows
 
 ## Installation
 
@@ -50,8 +49,11 @@ docker compose up
 go install github.com/kode4food/argyll/cmd/argyll@latest
 
 # Manual local testing
-export CATALOG_REDIS_ADDR=localhost:6379
+cd engine
 go run ./cmd/argyll
+
+# Local 3-node cluster
+./start.sh
 ```
 
 ## API Overview

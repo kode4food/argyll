@@ -21,6 +21,6 @@ WORKDIR /root/
 # Copy the binary from builder stage
 COPY --from=0 /engine/argyll-engine .
 
-EXPOSE 8080
+EXPOSE 8080 9701
 
 CMD ["./argyll-engine"]

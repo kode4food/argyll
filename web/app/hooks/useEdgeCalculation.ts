@@ -64,7 +64,7 @@ export const useEdgeCalculation = (
             markerEnd: arrowHead,
             zIndex: edgeZIndex,
             className:
-              focusedAttributeName && isFocusedAttribute
+              focusedAttributeName && isFocusedAttribute && !isOutOfPlan
                 ? "edge-focused-animated"
                 : undefined,
           });

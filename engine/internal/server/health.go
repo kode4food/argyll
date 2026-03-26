@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/event"
@@ -33,6 +34,7 @@ const (
 	healthCheckTimeout  = 3 * time.Second
 	healthCheckInterval = 30 * time.Second
 	httpErrorThreshold  = 400
+	roleUnknown         = "unknown"
 )
 
 // NewHealthChecker creates a health checker that periodically monitors HTTP
@@ -191,8 +193,11 @@ func (h *HealthChecker) checkStepHealth(step *api.Step) {
 }
 
 func (s *Server) handleHealth(c *gin.Context) {
+	st := s.raftState()
+	c.Header("X-Argyll-Raft-State", st)
 	c.JSON(http.StatusOK, api.HealthResponse{
 		Service: "argyll-engine",
+		Details: s.statusDetails(),
 		HealthState: api.HealthState{
 			Status: api.HealthHealthy,
 		},
@@ -251,4 +256,20 @@ func resolveEngineHealth(
 		return nil, err
 	}
 	return engine.ResolveHealth(cat, part.Health), nil
+}
+
+func (s *Server) raftState() string {
+	details := s.statusDetails()
+	if details == nil {
+		return roleUnknown
+	}
+	backend, ok := details["backend"].(map[string]any)
+	if !ok {
+		return roleUnknown
+	}
+	st, ok := backend["state"].(raft.State)
+	if !ok {
+		return roleUnknown
+	}
+	return string(st)
 }

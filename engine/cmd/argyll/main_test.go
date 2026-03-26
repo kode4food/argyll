@@ -4,20 +4,20 @@ import (
 	"log/slog"
 	"net"
 	"os"
+	"strconv"
 	"testing"
 	"time"
 
-	"github.com/alicebob/miniredis/v2"
+	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/event"
 )
 
-func TestInitStoresInvalidAddr(t *testing.T) {
-	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = "127.0.0.1:0"
-	cfg.PartitionStore.Addr = "127.0.0.1:0"
-	cfg.FlowStore.Addr = "127.0.0.1:0"
+func TestInitStoresInvalidRaftConfig(t *testing.T) {
+	cfg := newRaftTestConfig(t)
+	cfg.Raft.Address = ""
 
 	s := &argyll{cfg: cfg}
 	err := s.initializeStores()
@@ -27,26 +27,15 @@ func TestInitStoresInvalidAddr(t *testing.T) {
 }
 
 func TestInitializeStoresSuccess(t *testing.T) {
-	server, err := miniredis.Run()
-	assert.NoError(t, err)
-	defer server.Close()
-
-	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
+	cfg := newRaftTestConfig(t)
 
 	s := &argyll{cfg: cfg}
-	err = s.initializeStores()
+	err := s.initializeStores()
 
 	assert.NoError(t, err)
-	assert.NotNil(t, s.catalogStore)
-	assert.NotNil(t, s.partitionStore)
-	assert.NotNil(t, s.flowStore)
+	assert.NotNil(t, s.store)
 
-	_ = s.flowStore.Close()
-	_ = s.partitionStore.Close()
-	_ = s.catalogStore.Close()
+	s.closeStores()
 }
 
 func TestSetupLogging(t *testing.T) {
@@ -86,29 +75,19 @@ func TestSetupLogging(t *testing.T) {
 }
 
 func TestInitializeEngine(t *testing.T) {
-	server, err := miniredis.Run()
-	assert.NoError(t, err)
-	defer server.Close()
-
-	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
+	cfg := newRaftTestConfig(t)
 
 	s := &argyll{cfg: cfg}
-	err = s.initializeStores()
+	err := s.initializeStores()
 	assert.NoError(t, err)
 
-	err = s.initializeEngine()
+	err = s.initializeEngine(event.NewHub())
 	assert.NoError(t, err)
 
-	assert.NotNil(t, s.stepClient)
 	assert.NotNil(t, s.engine)
 
 	_ = s.engine.Stop()
-	_ = s.flowStore.Close()
-	_ = s.partitionStore.Close()
-	_ = s.catalogStore.Close()
+	s.closeStores()
 }
 
 func TestStartServer(t *testing.T) {
@@ -130,15 +109,7 @@ func TestShutdown(t *testing.T) {
 }
 
 func TestRun(t *testing.T) {
-	server, err := miniredis.Run()
-	assert.NoError(t, err)
-	defer server.Close()
-
-	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
-	cfg.APIPort = availablePort(t)
+	cfg := newRaftTestConfig(t)
 	cfg.ShutdownTimeout = 100 * time.Millisecond
 
 	s := &argyll{
@@ -156,7 +127,7 @@ func TestRun(t *testing.T) {
 	select {
 	case err := <-done:
 		assert.NoError(t, err)
-	case <-time.After(time.Second):
+	case <-time.After(10 * time.Second):
 		t.Fatal("timed out waiting for run to exit")
 	}
 }
@@ -175,24 +146,17 @@ func TestMain(m *testing.M) {
 func setupServerTest(t *testing.T) (*argyll, func()) {
 	t.Helper()
 
-	server, err := miniredis.Run()
-	assert.NoError(t, err)
-
-	cfg := config.NewDefaultConfig()
-	cfg.CatalogStore.Addr = server.Addr()
-	cfg.PartitionStore.Addr = server.Addr()
-	cfg.FlowStore.Addr = server.Addr()
-	cfg.APIPort = availablePort(t)
+	cfg := newRaftTestConfig(t)
 
 	s := &argyll{cfg: cfg}
-	err = s.initializeStores()
+	err := s.initializeStores()
 	assert.NoError(t, err)
 
-	err = s.initializeEngine()
+	err = s.initializeEngine(event.NewHub())
 	assert.NoError(t, err)
 	s.startServer()
 
-	return s, server.Close
+	return s, s.closeStores
 }
 
 func availablePort(t *testing.T) int {
@@ -205,4 +169,33 @@ func availablePort(t *testing.T) int {
 	addr, ok := ln.Addr().(*net.TCPAddr)
 	assert.True(t, ok)
 	return addr.Port
+}
+
+func availableAddress(t *testing.T) string {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer func() { _ = ln.Close() }()
+
+	return ln.Addr().String()
+}
+
+func newRaftTestConfig(t *testing.T) *config.Config {
+	t.Helper()
+
+	cfg := config.NewDefaultConfig()
+	addr := availableAddress(t)
+	port := availablePort(t)
+	nodeID := "test-node-" + strconv.Itoa(port)
+
+	cfg.APIPort = port
+	cfg.Raft.LocalID = nodeID
+	cfg.Raft.Address = addr
+	cfg.Raft.DataDir = t.TempDir()
+	cfg.Raft.Servers = []raft.Server{{
+		ID:      nodeID,
+		Address: addr,
+	}}
+	return cfg
 }

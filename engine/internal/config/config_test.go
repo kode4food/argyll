@@ -2,10 +2,10 @@ package config_test
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/kode4food/timebox"
-	"github.com/kode4food/timebox/redis"
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
@@ -116,131 +116,31 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultStepTimeout, cfg.StepTimeout)
 	as.Equal(config.DefaultShutdownTimeout, cfg.ShutdownTimeout)
 	as.Equal("info", cfg.LogLevel)
-	as.Equal(config.DefaultSnapshotWorkers, cfg.CatalogStore.Timebox.Snapshot.WorkerCount)
-	as.Equal(config.DefaultSnapshotQueueSize, cfg.CatalogStore.Timebox.Snapshot.MaxQueueSize)
-	as.Equal(timebox.DefaultCacheSize, cfg.CatalogStore.Timebox.CacheSize)
-	as.True(cfg.CatalogStore.Timebox.Snapshot.TrimEvents)
-	as.Equal(config.DefaultSnapshotWorkers, cfg.PartitionStore.Timebox.Snapshot.WorkerCount)
-	as.Equal(config.DefaultSnapshotQueueSize, cfg.PartitionStore.Timebox.Snapshot.MaxQueueSize)
-	as.Equal(timebox.DefaultCacheSize, cfg.PartitionStore.Timebox.CacheSize)
-	as.True(cfg.PartitionStore.Timebox.Snapshot.TrimEvents)
-	as.Equal(config.DefaultSnapshotWorkers, cfg.FlowStore.Timebox.Snapshot.WorkerCount)
-	as.Equal(config.DefaultSnapshotQueueSize, cfg.FlowStore.Timebox.Snapshot.MaxQueueSize)
-	as.Equal(config.DefaultFlowCacheSize, cfg.FlowStore.Timebox.CacheSize)
-	as.NotNil(cfg.FlowStore.Timebox.Indexer)
-	as.NotNil(cfg.FlowStore.JoinKey)
-	as.NotNil(cfg.FlowStore.ParseKey)
+	as.Equal(config.DefaultRaftNodeID, cfg.Raft.LocalID)
+	as.Equal(config.DefaultRaftAddress, cfg.Raft.Address)
+	as.Len(cfg.Raft.Servers, 1)
+	as.Equal(config.DefaultRaftNodeID, cfg.Raft.Servers[0].ID)
+	as.Equal(
+		config.DefaultSnapshotWorkers,
+		cfg.Raft.Timebox.Snapshot.WorkerCount,
+	)
+	as.Equal(
+		config.DefaultSnapshotQueueSize,
+		cfg.Raft.Timebox.Snapshot.MaxQueueSize,
+	)
+	as.Equal(config.DefaultTimeboxCacheSize, cfg.Raft.Timebox.CacheSize)
+	as.NotNil(cfg.Raft.Timebox.Indexer)
 }
 
 func TestDefaultTimebox(t *testing.T) {
 	tb := config.DefaultTimebox()
 
 	testify.True(t, tb.Snapshot.Workers)
-	testify.Equal(t, timebox.DefaultCacheSize, tb.CacheSize)
+	testify.Equal(t, config.DefaultTimeboxCacheSize, tb.CacheSize)
 	testify.Equal(t, timebox.DefaultMaxRetries, tb.MaxRetries)
 	testify.Equal(t, config.DefaultSnapshotWorkers, tb.Snapshot.WorkerCount)
 	testify.Equal(t, config.DefaultSnapshotQueueSize, tb.Snapshot.MaxQueueSize)
-}
-
-func TestStoreLoadFromEnv(t *testing.T) {
-	tests := []struct {
-		envVars          map[string]string
-		name             string
-		envPrefix        string
-		checkAddr        string
-		checkPassword    string
-		checkPrefix      string
-		checkDB          int
-		checkWorkerCount *int
-	}{
-		{
-			name:      "load_all_fields",
-			envPrefix: "TEST",
-			envVars: map[string]string{
-				"TEST_REDIS_ADDR":       "redis.example.com:6379",
-				"TEST_REDIS_PASSWORD":   "secret123",
-				"TEST_REDIS_DB":         "5",
-				"TEST_REDIS_PREFIX":     "custom-prefix",
-				"TEST_SNAPSHOT_WORKERS": "6",
-			},
-			checkAddr:        "redis.example.com:6379",
-			checkPassword:    "secret123",
-			checkDB:          5,
-			checkPrefix:      "custom-prefix",
-			checkWorkerCount: func() *int { v := 6; return &v }(),
-		},
-		{
-			name:      "load_addr_only",
-			envPrefix: "APP",
-			envVars: map[string]string{
-				"APP_REDIS_ADDR": "localhost:9999",
-			},
-			checkAddr:     "localhost:9999",
-			checkPassword: "",
-			checkDB:       0,
-			checkPrefix:   "",
-		},
-		{
-			name:      "load_worker_zero",
-			envPrefix: "ZERO",
-			envVars: map[string]string{
-				"ZERO_SNAPSHOT_WORKERS": "0",
-			},
-			checkWorkerCount: func() *int { v := 0; return &v }(),
-		},
-		{
-			name:      "load_with_invalid_db",
-			envPrefix: "INVALID",
-			envVars: map[string]string{
-				"INVALID_REDIS_DB": "not_a_number",
-			},
-			checkDB: 0,
-		},
-		{
-			name:      "invalid_worker_ignored",
-			envPrefix: "BADWORKER",
-			envVars: map[string]string{
-				"BADWORKER_SNAPSHOT_WORKERS": "not_a_number",
-			},
-		},
-		{
-			name:      "no_env_vars",
-			envPrefix: "NONE",
-			envVars:   map[string]string{},
-			checkAddr: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			as := assert.New(t)
-
-			for key, value := range tt.envVars {
-				_ = os.Setenv(key, value)
-				t.Cleanup(func() { _ = os.Unsetenv(key) })
-			}
-
-			storeConfig := &redis.Config{}
-			config.LoadStoreConfigFromEnv(storeConfig, tt.envPrefix)
-
-			if tt.checkAddr != "" {
-				as.Equal(tt.checkAddr, storeConfig.Addr)
-			}
-			if tt.checkPassword != "" {
-				as.Equal(tt.checkPassword, storeConfig.Password)
-			}
-			if tt.envVars[tt.envPrefix+"_REDIS_DB"] != "" {
-				as.Equal(tt.checkDB, storeConfig.DB)
-			}
-			if tt.checkPrefix != "" {
-				as.Equal(tt.checkPrefix, storeConfig.Prefix)
-			}
-			if tt.checkWorkerCount != nil {
-				as.Equal(*tt.checkWorkerCount,
-					storeConfig.Timebox.Snapshot.WorkerCount)
-			}
-		})
-	}
+	testify.NotNil(t, tb.Indexer)
 }
 
 func TestValidateValidEdgeCases(t *testing.T) {
@@ -368,13 +268,53 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 		},
 		{
-			name: "load_flow_cache_size",
+			name: "load_raft_settings",
 			envVars: map[string]string{
-				"FLOW_CACHE_SIZE": "8192",
+				"RAFT_NODE_ID":  "node-2",
+				"RAFT_ADDRESS":  "10.0.0.2:9702",
+				"RAFT_DATA_DIR": "/tmp/argyll-node-2",
+				"RAFT_SERVERS": "node-1=10.0.0.1:9701," +
+					"node-2=10.0.0.2:9702",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, 8192, c.FlowStore.Timebox.CacheSize)
+				testify.Equal(t, "node-2", c.Raft.LocalID)
+				testify.Equal(t, "10.0.0.2:9702", c.Raft.Address)
+				testify.Equal(t, "/tmp/argyll-node-2", c.Raft.DataDir)
+				testify.Len(t, c.Raft.Servers, 2)
+				testify.Equal(t, "node-1", c.Raft.Servers[0].ID)
+				testify.Equal(t, "10.0.0.2:9702", c.Raft.Servers[1].Address)
 			},
+		},
+		{
+			name: "load_raft_node_id_updates_default_data_dir",
+			envVars: map[string]string{
+				"RAFT_NODE_ID": "node-2",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, "node-2", c.Raft.LocalID)
+				testify.Equal(t, filepath.Join(
+					os.TempDir(),
+					config.DefaultRaftDataDirName,
+					"node-2",
+				), c.Raft.DataDir)
+				testify.Equal(t, "node-2", c.Raft.Servers[0].ID)
+			},
+		},
+		{
+			name: "load_timebox_cache_size",
+			envVars: map[string]string{
+				"TIMEBOX_CACHE_SIZE": "8192",
+			},
+			check: func(t *testing.T, c *config.Config) {
+				testify.Equal(t, 8192, c.Raft.Timebox.CacheSize)
+			},
+		},
+		{
+			name: "invalid_raft_servers_errors",
+			envVars: map[string]string{
+				"RAFT_SERVERS": "node-1-missing-equals",
+			},
+			wantErr: true,
 		},
 		{
 			name: "load_log_level",
@@ -404,14 +344,14 @@ func TestConfigLoadFromEnv(t *testing.T) {
 		{
 			name: "invalid_cache_size_errors",
 			envVars: map[string]string{
-				"FLOW_CACHE_SIZE": "invalid",
+				"TIMEBOX_CACHE_SIZE": "invalid",
 			},
 			wantErr: true,
 		},
 		{
 			name: "zero_cache_size_errors",
 			envVars: map[string]string{
-				"FLOW_CACHE_SIZE": "0",
+				"TIMEBOX_CACHE_SIZE": "0",
 			},
 			wantErr: true,
 		},
@@ -463,19 +403,6 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			},
 			check: func(t *testing.T, c *config.Config) {
 				testify.Equal(t, "exponential", c.Work.BackoffType)
-			},
-		},
-		{
-			name: "partition_redis_addr_propagates_to_flow_store",
-			envVars: map[string]string{
-				"PARTITION_REDIS_ADDR":   "valkey-partition:6379",
-				"PARTITION_REDIS_PREFIX": "shared-prefix",
-			},
-			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, "valkey-partition:6379", c.PartitionStore.Addr)
-				testify.Equal(t, "valkey-partition:6379", c.FlowStore.Addr)
-				testify.Equal(t, "shared-prefix", c.PartitionStore.Prefix)
-				testify.Equal(t, "shared-prefix", c.FlowStore.Prefix)
 			},
 		},
 		{

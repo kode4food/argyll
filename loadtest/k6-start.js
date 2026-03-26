@@ -1,13 +1,12 @@
 import http from 'k6/http';
-import { sleep } from 'k6';
 import { Counter, Rate } from 'k6/metrics';
 
 // Custom metrics
-const flowsStarted = new Counter("flows_started");
-const flowsFailed = new Counter("flows_failed");
-const errorRate = new Rate("error_rate");
+const flowsStarted = new Counter('flows_started');
+const flowsFailed = new Counter('flows_failed');
+const errorRate = new Rate('error_rate');
 
-const ENGINE_URL = __ENV.ENGINE_URL || "http://localhost:8080";
+const ENGINE_URL = __ENV.ENGINE_URL || 'http://localhost:8080';
 
 export let options = {
   // Options can be overridden via CLI flags (--vus, --duration, etc.)
@@ -16,28 +15,28 @@ export let options = {
 export function setup() {
   // Register simple step
   const step = {
-    id: "k6-simple-step",
-    name: "K6 Simple Step",
-    type: "script",
+    id: 'k6-simple-step',
+    name: 'K6 Simple Step',
+    type: 'script',
     attributes: {
-      input: { role: "required", type: "string" },
-      result: { role: "output", type: "string" },
+      input: { role: 'required', type: 'string' },
+      result: { role: 'output', type: 'string' },
     },
     script: {
-      language: "ale",
+      language: 'ale',
       script: '{:result "hello"}',
     },
   };
 
   const res = http.post(`${ENGINE_URL}/engine/step`, JSON.stringify(step), {
-    headers: { "Content-Type": "application/json" },
+    headers: { 'Content-Type': 'application/json' },
   });
 
   if (res.status !== 201 && res.status !== 409) {
     throw new Error(`Failed to register step: ${res.status}`);
   }
 
-  console.log("Step registered");
+  console.log('Step registered');
   return { stepId: step.id };
 }
 
@@ -50,11 +49,11 @@ export default function (data) {
     JSON.stringify({
       id: flowId,
       goals: [data.stepId],
-      init: { input: "test" },
+      init: { input: 'test' },
     }),
     {
-      headers: { "Content-Type": "application/json" },
-      tags: { name: "StartFlow" },
+      headers: { 'Content-Type': 'application/json' },
+      tags: { name: 'StartFlow' },
     },
   );
 
@@ -65,18 +64,20 @@ export default function (data) {
   }
 
   flowsStarted.add(1);
+  errorRate.add(0);
 }
 
 export function handleSummary(data) {
   const duration = (data.state.testRunDurationMs || 0) / 1000;
   const started = data.metrics.flows_started?.values?.count || 0;
   const failed = data.metrics.flows_failed?.values?.count || 0;
-  const errorPct = data.metrics.error_rate?.values?.rate || 0;
   const maxVUs = data.metrics.vus_max?.values?.max || 0;
+  const total = started + failed;
+  const errorPct = total === 0 ? 0 : failed / total;
 
   const throughput = started / duration;
 
-  console.log("\n=== RESULTS ===");
+  console.log('\n=== RESULTS ===');
   console.log(`Duration:        ${duration.toFixed(1)}s`);
   console.log(`VUs:             ${maxVUs}`);
   console.log(`Started:         ${started}`);

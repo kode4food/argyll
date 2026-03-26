@@ -108,8 +108,6 @@ When no active work remains:
 flow_deactivated event
          ↓
 Flow index updated to completed/failed
-         ↓
-Archive worker selects terminal flows from flow-store indexes
 ```
 
 ## Terminal vs Deactivated
@@ -122,7 +120,6 @@ This distinction is crucial:
 
 - **Deactivated**: The flow is terminal AND no active work remains
   - All work is accounted for
-  - Eligible for archiving
   - Event log is complete
 
 ## Benefits
@@ -161,31 +158,38 @@ See exactly what happened:
 - What work was attempted?
 - When did the flow change state?
 
-### Multi-Instance Coordination
+### Cluster Coordination
 
-All engine instances receive all events. No locks, no leaders:
+All engine nodes share one Timebox store backed by Raft:
 
 ```
-Instance A processes: flow_started
-Instance B processes: reserved inventory step
-Instance C processes: payment step
+Node A is leader for writes
+Node B replicates the log and serves local reads from its store state
+Node C replicates the log and serves local reads from its store state
 
-Optimistic concurrency prevents duplicates. Any instance can pick up work.
+Timebox optimistic concurrency still guards aggregate-level command retries
+inside the replicated store
 ```
+
+This means:
+
+- One leader orders writes through the replicated log
+- Followers stay hot with the same event history and derived indexes
+- Writes must target the leader; clients are responsible for leader discovery
 
 ## How Recovery Works
 
-1. Engine starts, loads previous state from Redis
-2. If crashed mid-flow, the flow is still in the event log
+1. Engine starts and opens the shared Timebox store
+2. If crashed mid-flow, the flow is still in the replicated event log
 3. Replay events to reconstruct state
 4. Resume from where it left off
-5. No external coordination needed—the event log is the source of truth
+5. No external coordination is needed beyond the shared store
 
 ## Operational Implications
 
 - **Debugging**: Read the event log to understand what happened
 - **Auditing**: Complete trail of all state changes
 - **Recovery**: System can restart and resume without external help
-- **Scalability**: Multiple instances all reading from the same event log
+- **Availability**: Multiple nodes can survive process loss while preserving the event log
 
 Recovery and flow state come from the event log and executor behavior.

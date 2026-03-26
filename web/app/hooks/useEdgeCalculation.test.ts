@@ -184,6 +184,35 @@ describe("useEdgeCalculation", () => {
     expect(result.current[0].zIndex).toBe(2);
   });
 
+  test("does not animate focused edges that are outside the preview plan", () => {
+    const step1 = createStep("step1", [], [], ["shared"]);
+    const step2 = createStep("step2", ["shared"], [], []);
+    const step3 = createStep("step3", [], [], ["other"]);
+
+    const previewStepIds = new Set(["step2", "step3"]);
+
+    const { result } = renderHook(() =>
+      useEdgeCalculation([step1, step2, step3], previewStepIds, "shared")
+    );
+
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].className).toBeUndefined();
+  });
+
+  test("animates focused edges that are inside the preview plan", () => {
+    const step1 = createStep("step1", [], [], ["shared"]);
+    const step2 = createStep("step2", ["shared"], [], []);
+
+    const previewStepIds = new Set(["step1", "step2"]);
+
+    const { result } = renderHook(() =>
+      useEdgeCalculation([step1, step2], previewStepIds, "shared")
+    );
+
+    expect(result.current).toHaveLength(1);
+    expect(result.current[0].className).toBe("edge-focused-animated");
+  });
+
   test("keeps required edges above optional edges", () => {
     const producer = createStep("step1", [], [], ["shared"]);
     const requiredConsumer = createStep("step2", ["shared"], [], []);

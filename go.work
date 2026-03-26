@@ -1,7 +1,6 @@
 go 1.25.7
 
 use (
-	./archiver
 	./engine
 	./examples/inventory-resolver
 	./examples/notification-sender
