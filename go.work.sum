@@ -712,6 +712,7 @@ github.com/kode4food/timebox v0.0.0-20260324080239-d9808d9acef5/go.mod h1:D6GHxo
 github.com/kode4food/timebox v0.0.0-20260324111830-e3bcdb982536/go.mod h1:D6GHxoIZ7tNgWu4LaWrYrydPKVq2MT1b+tl/W3gnHU8=
 github.com/kode4food/timebox v0.0.0-20260324170658-b16efa1a2c6a/go.mod h1:D6GHxoIZ7tNgWu4LaWrYrydPKVq2MT1b+tl/W3gnHU8=
 github.com/kode4food/timebox v0.0.0-20260325071757-0ef55b9adaa8/go.mod h1:D6GHxoIZ7tNgWu4LaWrYrydPKVq2MT1b+tl/W3gnHU8=
+github.com/kode4food/timebox v0.0.0-20260325165702-e1029cf4310e/go.mod h1:D6GHxoIZ7tNgWu4LaWrYrydPKVq2MT1b+tl/W3gnHU8=
 github.com/kr/pty v1.1.1 h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
