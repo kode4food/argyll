@@ -12,6 +12,7 @@ github.com/cloudwego/base64x v0.1.6 h1:t11wG9AECkCDk5fMSoxmufanudBtJ+/HemLstXDLI
 github.com/cloudwego/base64x v0.1.6/go.mod h1:OFcloc187FXDaYHvrNIjxSe8ncn0OOM8gEHfghB2IPU=
 github.com/cockroachdb/datadriven v1.0.3-0.20230413201302-be42291fc80f h1:otljaYPt5hWxV3MUfO5dFPFiOXg9CyG5/kCfayTqsJ4=
 github.com/cockroachdb/datadriven v1.0.3-0.20230413201302-be42291fc80f/go.mod h1:a9RdTaap04u637JoCzcUoIcDmvwSUtcUFtT/C3kJlTU=
+github.com/creack/pty v1.1.9/go.mod h1:oKZEueFk5CKHvIhNR5MUki03XCEU+Q6VDXinZuGJ33E=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
@@ -63,8 +64,8 @@ github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9 h1:cp+VeR7jZf2PMgZ
 github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9/go.mod h1:tluthR8KBbfjN0nMhkIUJi9FUZbNpR1x7eZQm0eydJo=
 github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 h1:sR7BMpyWzMmwOGwZw+evTvdvbZSAsX53WLtGNvVtwi0=
 github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9/go.mod h1:sTzhcYU0AAXpB+uEWdUEukwNQAhc64BefD3eNmcw6Ug=
-github.com/kode4food/timebox v0.0.0-20260329083536-4a5bbb7d7d76 h1:kY5LYkIbKsjnVKIx/zejE+pVKhDNok14kHU1Z8oD5LA=
-github.com/kode4food/timebox v0.0.0-20260329083536-4a5bbb7d7d76/go.mod h1:D6GHxoIZ7tNgWu4LaWrYrydPKVq2MT1b+tl/W3gnHU8=
+github.com/kode4food/timebox v0.0.0-20260329152242-24f0a0624c5a h1:ZJkPopdhvEG3YNj9OoIE5tezoSUlQfoJ5rRFVvrPiNo=
+github.com/kode4food/timebox v0.0.0-20260329152242-24f0a0624c5a/go.mod h1:D6GHxoIZ7tNgWu4LaWrYrydPKVq2MT1b+tl/W3gnHU8=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/pretty v0.3.1/go.mod h1:hoEshYVHaxMs3cyo3Yncou5ZscifuDolrwPKZanG3xk=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
