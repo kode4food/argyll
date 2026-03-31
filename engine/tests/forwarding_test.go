@@ -27,7 +27,9 @@ import (
 
 type raftNode struct {
 	id          string
-	store       *timebox.Store
+	catStore    *timebox.Store
+	partStore   *timebox.Store
+	flowStore   *timebox.Store
 	persistence *raft.Persistence
 	engine      *engine.Engine
 	server      *server.Server
@@ -115,8 +117,8 @@ func TestFollowerWriteStartup(t *testing.T) {
 			if n.engine != nil {
 				_ = n.engine.Stop()
 			}
-			if n.store != nil {
-				_ = n.store.Close()
+			if n.flowStore != nil {
+				_ = n.flowStore.Close()
 			}
 		}
 	})
@@ -161,8 +163,8 @@ func newRaftCluster(t *testing.T, n int) []*raftNode {
 			if n.engine != nil {
 				_ = n.engine.Stop()
 			}
-			if n.store != nil {
-				_ = n.store.Close()
+			if n.flowStore != nil {
+				_ = n.flowStore.Close()
 			}
 		}
 	})
@@ -204,31 +206,43 @@ func newRaftInits(t *testing.T, n int) []*raftInit {
 }
 
 func bootRaftNode(init *raftInit) (*raftNode, error) {
-	pers, err := raft.NewPersistence(init.cfg.Raft)
+	p, err := raft.NewPersistence(init.cfg.Raft)
 	if err != nil {
 		return nil, err
 	}
 
-	store, err := timebox.NewStore(pers, init.cfg.Raft.Timebox)
+	catalogStore, err := p.NewStore(init.cfg.CatalogStoreConfig())
 	if err != nil {
-		_ = pers.Close()
+		_ = p.Close()
+		return nil, err
+	}
+	partStore, err := p.NewStore(init.cfg.PartitionStoreConfig())
+	if err != nil {
+		_ = catalogStore.Close()
+		return nil, err
+	}
+	flowStore, err := p.NewStore(init.cfg.FlowStoreConfig())
+	if err != nil {
+		_ = catalogStore.Close()
 		return nil, err
 	}
 	closeStore := true
 	defer func() {
 		if closeStore {
-			_ = store.Close()
+			_ = flowStore.Close()
 		}
 	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
-	if err := store.WaitReady(ctx); err != nil {
+	if err := flowStore.WaitReady(ctx); err != nil {
 		return nil, err
 	}
 
 	eng, err := engine.New(init.cfg, engine.Dependencies{
-		Store:            store,
+		CatStore:         catalogStore,
+		PartStore:        partStore,
+		FlowStore:        flowStore,
 		StepClient:       helpers.NewMockClient(),
 		Clock:            time.Now,
 		TimerConstructor: scheduler.NewTimer,
@@ -245,13 +259,15 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 	closeStore = false
 	return &raftNode{
 		id:          init.id,
-		store:       store,
-		persistence: pers,
+		catStore:    catalogStore,
+		partStore:   partStore,
+		flowStore:   flowStore,
+		persistence: p,
 		engine:      eng,
 		server: server.NewServer(
 			eng,
 			init.hub,
-			server.NewRaftStatusProvider(pers),
+			server.NewRaftStatusProvider(p),
 		),
 	}, nil
 }

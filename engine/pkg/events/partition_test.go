@@ -21,7 +21,7 @@ func TestNewPartitionState(t *testing.T) {
 }
 
 func TestIsPartitionEvent(t *testing.T) {
-	partEv := &timebox.Event{AggregateID: events.PartitionKey}
+	partEv := &timebox.Event{AggregateID: events.PartitionKey("node-1")}
 	flowEv := &timebox.Event{AggregateID: events.FlowKey("test-flow")}
 
 	assert.True(t, events.IsPartitionEvent(partEv))
@@ -41,7 +41,7 @@ func TestStepHealthChanged(t *testing.T) {
 
 	ev := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.PartitionKey,
+		AggregateID: events.PartitionKey("node-1"),
 		Type:        timebox.EventType(api.EventTypeStepHealthChanged),
 		Data:        data,
 	}
@@ -65,7 +65,7 @@ func TestStepHealthChangedWithError(t *testing.T) {
 
 	ev := &timebox.Event{
 		Timestamp:   now,
-		AggregateID: events.PartitionKey,
+		AggregateID: events.PartitionKey("node-1"),
 		Type:        timebox.EventType(api.EventTypeStepHealthChanged),
 		Data:        data,
 	}

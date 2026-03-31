@@ -27,6 +27,9 @@ type Config struct {
 	// Raft-backed persistence
 	Raft raft.Config
 
+	// Shared Timebox store defaults
+	Timebox timebox.Config
+
 	// Work & Retry
 	Work api.WorkConfig
 
@@ -44,10 +47,9 @@ const (
 	DefaultAPIHost = "0.0.0.0"
 	MaxTCPPort     = 65535
 
-	DefaultSnapshotWorkers   = 4
-	DefaultSnapshotQueueSize = 1000
-	DefaultTimeboxCacheSize  = 4096
-	DefaultMemoCacheSize     = 16384
+	DefaultFlowSnapshotRatio = 2.0
+	DefaultTimeboxCacheSize  = 32768
+	DefaultMemoCacheSize     = 65536
 	DefaultRaftNodeID        = "argyll-1"
 	DefaultRaftAddress       = "127.0.0.1:9701"
 	DefaultRaftDataDirName   = "argyll-raft"
@@ -57,12 +59,14 @@ const (
 	DefaultMaxRetryBackoff  = 60000
 	DefaultRetryBackoffType = api.BackoffTypeExponential
 
-	MaxTimeboxCacheSize = 1_000_000
-	MaxMemoCacheSize    = 10_000_000
+	MaxTimeboxCacheSize = 1_024_000
+	MaxMemoCacheSize    = 10_240_000
 	MaxRetryMaxRetries  = 1000
 	MaxStepTimeout      = 365 * 24 * 60 * api.Minute // 1 year in ms
 	MaxRetryInitBackoff = 24 * 60 * api.Minute       // 1 day in ms
 	MaxRetryMaxBackoff  = MaxRetryInitBackoff
+
+	SingletonCacheSize = 1
 )
 
 var (
@@ -92,6 +96,7 @@ func NewDefaultConfig() *Config {
 		APIHost:        DefaultAPIHost,
 		WebhookBaseURL: "http://localhost:8080",
 		Raft:           DefaultRaftConfig(),
+		Timebox:        DefaultTimebox(),
 		Work: api.WorkConfig{
 			MaxRetries:  DefaultRetryMaxRetries,
 			InitBackoff: DefaultRetryInitBackoff,
@@ -110,7 +115,6 @@ func DefaultRaftConfig() raft.Config {
 		LocalID: DefaultRaftNodeID,
 		Address: DefaultRaftAddress,
 		DataDir: defaultRaftDataDir(DefaultRaftNodeID),
-		Timebox: DefaultTimebox(),
 	})
 	cfg.Servers = defaultRaftServers(cfg)
 	return cfg
@@ -119,13 +123,35 @@ func DefaultRaftConfig() raft.Config {
 // DefaultTimebox returns the top-level Timebox defaults Argyll expects
 func DefaultTimebox() timebox.Config {
 	return timebox.DefaultConfig().With(timebox.Config{
-		Snapshot: timebox.SnapshotConfig{
-			Workers:      true,
-			WorkerCount:  DefaultSnapshotWorkers,
-			MaxQueueSize: DefaultSnapshotQueueSize,
-		},
 		CacheSize: DefaultTimeboxCacheSize,
-		Indexer:   events.FlowIndexer,
+	})
+}
+
+// CatalogStoreConfig returns the catalog store configuration derived from the
+// shared Timebox defaults.
+func (c *Config) CatalogStoreConfig() timebox.Config {
+	return c.Timebox.With(timebox.Config{
+		TrimEvents:    true,
+		SnapshotRatio: timebox.DefaultSnapshotRatio,
+		CacheSize:     SingletonCacheSize,
+	})
+}
+
+// PartitionStoreConfig returns the partition store configuration derived from
+// the shared Timebox defaults.
+func (c *Config) PartitionStoreConfig() timebox.Config {
+	return c.Timebox.With(timebox.Config{
+		TrimEvents:    true,
+		SnapshotRatio: timebox.DefaultSnapshotRatio,
+	})
+}
+
+// FlowStoreConfig returns the flow store configuration derived from the shared
+// Timebox defaults.
+func (c *Config) FlowStoreConfig() timebox.Config {
+	return c.Timebox.With(timebox.Config{
+		SnapshotRatio: DefaultFlowSnapshotRatio,
+		Indexer:       events.FlowIndexer,
 	})
 }
 
@@ -162,10 +188,7 @@ func (c *Config) LoadFromEnv() error {
 	}
 
 	if err := loadEnvInt(
-		"TIMEBOX_CACHE_SIZE",
-		&c.Raft.Timebox.CacheSize,
-		0,
-		MaxTimeboxCacheSize,
+		"TIMEBOX_CACHE_SIZE", &c.Timebox.CacheSize, 0, MaxTimeboxCacheSize,
 	); err != nil {
 		return err
 	}

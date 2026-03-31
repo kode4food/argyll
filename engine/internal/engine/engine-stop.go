@@ -22,7 +22,7 @@ func (e *Engine) saveEngineSnapshot() {
 		slog.Info("Catalog snapshot saved")
 	}
 
-	if err := e.partExec.SaveSnapshot(events.PartitionKey); err != nil {
+	if err := e.partExec.SaveSnapshot(e.partitionKey()); err != nil {
 		slog.Error("Failed to save partition snapshot", log.Error(err))
 	} else {
 		slog.Info("Partition snapshot saved")

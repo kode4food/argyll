@@ -120,27 +120,60 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultRaftAddress, cfg.Raft.Address)
 	as.Len(cfg.Raft.Servers, 1)
 	as.Equal(config.DefaultRaftNodeID, cfg.Raft.Servers[0].ID)
-	as.Equal(
-		config.DefaultSnapshotWorkers,
-		cfg.Raft.Timebox.Snapshot.WorkerCount,
-	)
-	as.Equal(
-		config.DefaultSnapshotQueueSize,
-		cfg.Raft.Timebox.Snapshot.MaxQueueSize,
-	)
-	as.Equal(config.DefaultTimeboxCacheSize, cfg.Raft.Timebox.CacheSize)
-	as.NotNil(cfg.Raft.Timebox.Indexer)
+	as.False(cfg.Timebox.TrimEvents)
+	as.Equal(timebox.DefaultSnapshotRatio, cfg.Timebox.SnapshotRatio)
+	as.Equal(config.DefaultTimeboxCacheSize, cfg.Timebox.CacheSize)
+	as.Nil(cfg.Timebox.Indexer)
+
+	catStore := cfg.CatalogStoreConfig()
+	as.True(catStore.TrimEvents)
+	as.Equal(timebox.DefaultSnapshotRatio, catStore.SnapshotRatio)
+	as.Equal(config.SingletonCacheSize, catStore.CacheSize)
+	as.Nil(catStore.Indexer)
+
+	partStore := cfg.PartitionStoreConfig()
+	as.True(partStore.TrimEvents)
+	as.Equal(timebox.DefaultSnapshotRatio, partStore.SnapshotRatio)
+	as.Equal(config.DefaultTimeboxCacheSize, partStore.CacheSize)
+	as.Nil(partStore.Indexer)
+
+	flowStore := cfg.FlowStoreConfig()
+	as.False(flowStore.TrimEvents)
+	as.Equal(config.DefaultFlowSnapshotRatio, flowStore.SnapshotRatio)
+	as.Equal(config.DefaultTimeboxCacheSize, flowStore.CacheSize)
+	as.NotNil(flowStore.Indexer)
 }
 
 func TestDefaultTimebox(t *testing.T) {
 	tb := config.DefaultTimebox()
 
-	testify.True(t, tb.Snapshot.Workers)
+	testify.False(t, tb.TrimEvents)
+	testify.Equal(t, timebox.DefaultSnapshotRatio, tb.SnapshotRatio)
 	testify.Equal(t, config.DefaultTimeboxCacheSize, tb.CacheSize)
 	testify.Equal(t, timebox.DefaultMaxRetries, tb.MaxRetries)
-	testify.Equal(t, config.DefaultSnapshotWorkers, tb.Snapshot.WorkerCount)
-	testify.Equal(t, config.DefaultSnapshotQueueSize, tb.Snapshot.MaxQueueSize)
-	testify.NotNil(t, tb.Indexer)
+	testify.Nil(t, tb.Indexer)
+}
+
+func TestStoreConfigs(t *testing.T) {
+	cfg := config.NewDefaultConfig()
+
+	catStore := cfg.CatalogStoreConfig()
+	testify.True(t, catStore.TrimEvents)
+	testify.Equal(t, timebox.DefaultSnapshotRatio, catStore.SnapshotRatio)
+	testify.Equal(t, config.SingletonCacheSize, catStore.CacheSize)
+	testify.Nil(t, catStore.Indexer)
+
+	partStore := cfg.PartitionStoreConfig()
+	testify.True(t, partStore.TrimEvents)
+	testify.Equal(t, timebox.DefaultSnapshotRatio, partStore.SnapshotRatio)
+	testify.Equal(t, config.DefaultTimeboxCacheSize, partStore.CacheSize)
+	testify.Nil(t, partStore.Indexer)
+
+	flowStore := cfg.FlowStoreConfig()
+	testify.False(t, flowStore.TrimEvents)
+	testify.Equal(t, config.DefaultFlowSnapshotRatio, flowStore.SnapshotRatio)
+	testify.Equal(t, config.DefaultTimeboxCacheSize, flowStore.CacheSize)
+	testify.NotNil(t, flowStore.Indexer)
 }
 
 func TestValidateValidEdgeCases(t *testing.T) {
@@ -306,7 +339,10 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				"TIMEBOX_CACHE_SIZE": "8192",
 			},
 			check: func(t *testing.T, c *config.Config) {
-				testify.Equal(t, 8192, c.Raft.Timebox.CacheSize)
+				testify.Equal(t, 8192, c.Timebox.CacheSize)
+				testify.Equal(t, 8192, c.FlowStoreConfig().CacheSize)
+				testify.Equal(t, config.SingletonCacheSize,
+					c.CatalogStoreConfig().CacheSize)
 			},
 		},
 		{

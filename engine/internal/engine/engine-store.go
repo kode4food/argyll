@@ -84,5 +84,9 @@ func (e *Engine) execCatalog(
 func (e *Engine) execPartition(
 	cmd timebox.Command[*api.PartitionState],
 ) (*api.PartitionState, error) {
-	return e.partExec.Exec(events.PartitionKey, cmd)
+	return e.partExec.Exec(e.partitionKey(), cmd)
+}
+
+func (e *Engine) partitionKey() timebox.AggregateID {
+	return events.PartitionKey(e.config.Raft.LocalID)
 }

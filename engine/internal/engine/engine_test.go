@@ -26,9 +26,21 @@ func TestNewMissingDependency(t *testing.T) {
 			edit func(*engine.Dependencies)
 		}{
 			{
-				name: "store",
+				name: "catalog store",
 				edit: func(deps *engine.Dependencies) {
-					deps.Store = nil
+					deps.CatStore = nil
+				},
+			},
+			{
+				name: "partition store",
+				edit: func(deps *engine.Dependencies) {
+					deps.PartStore = nil
+				},
+			},
+			{
+				name: "flow store",
+				edit: func(deps *engine.Dependencies) {
+					deps.FlowStore = nil
 				},
 			},
 			{

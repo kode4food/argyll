@@ -14,7 +14,8 @@ import (
 )
 
 func TestRaiseEnqueuesEvent(t *testing.T) {
-	store, err := memory.NewStore(timebox.Config{})
+	p := memory.NewPersistence()
+	store, err := p.NewStore(timebox.Config{})
 	require.NoError(t, err)
 	defer func() { _ = store.Close() }()
 

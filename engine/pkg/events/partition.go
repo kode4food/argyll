@@ -9,8 +9,6 @@ import (
 const PartitionPrefix = "partition"
 
 var (
-	PartitionKey = timebox.NewAggregateID(PartitionPrefix)
-
 	PartitionAppliers = makePartitionAppliers()
 )
 
@@ -19,6 +17,11 @@ func NewPartitionState() *api.PartitionState {
 	return &api.PartitionState{
 		Health: map[api.StepID]*api.HealthState{},
 	}
+}
+
+// PartitionKey returns the partition aggregate key for a specific raft node.
+func PartitionKey(nodeID string) timebox.AggregateID {
+	return timebox.NewAggregateID(PartitionPrefix, timebox.ID(nodeID))
 }
 
 // IsPartitionEvent returns true if the event is for the partition aggregate

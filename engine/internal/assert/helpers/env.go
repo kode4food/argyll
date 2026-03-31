@@ -25,7 +25,9 @@ type (
 		Config     *config.Config
 		EventHub   *event.Hub
 		Cleanup    func()
-		store      *timebox.Store
+		catStore   *timebox.Store
+		partStore  *timebox.Store
+		flowStore  *timebox.Store
 		flowExec   *timebox.Executor[*api.FlowState]
 	}
 
@@ -76,14 +78,20 @@ func NewTestEngineWithDeps(
 	mockCli := NewMockClient()
 	hub := event.NewHub()
 	backend := publishingBackend{
-		Backend: memory.NewPersistence(cfg.Raft.Timebox),
+		Backend: memory.NewPersistence(),
 		publish: hub.Publish,
 	}
-	store, err := timebox.NewStore(backend, cfg.Raft.Timebox)
+	catStore, err := backend.NewStore(cfg.CatalogStoreConfig())
+	assert.NoError(t, err)
+	partStore, err := backend.NewStore(cfg.PartitionStoreConfig())
+	assert.NoError(t, err)
+	flowStore, err := backend.NewStore(cfg.FlowStoreConfig())
 	assert.NoError(t, err)
 
 	defaultDeps := engine.Dependencies{
-		Store:            store,
+		CatStore:         catStore,
+		PartStore:        partStore,
+		FlowStore:        flowStore,
 		StepClient:       mockCli,
 		Clock:            time.Now,
 		TimerConstructor: scheduler.NewTimer,
@@ -95,11 +103,8 @@ func NewTestEngineWithDeps(
 	if cl, ok := deps.StepClient.(*MockClient); ok {
 		mockCli = cl
 	}
-	store = deps.Store
 	flowExec := timebox.NewExecutor(
-		store,
-		events.NewFlowState,
-		events.FlowAppliers,
+		deps.FlowStore, events.NewFlowState, events.FlowAppliers,
 	)
 
 	testEnv := &TestEngineEnv{
@@ -108,13 +113,15 @@ func NewTestEngineWithDeps(
 		MockClient: mockCli,
 		Config:     cfg,
 		EventHub:   deps.EventHub,
-		store:      store,
+		catStore:   deps.CatStore,
+		partStore:  deps.PartStore,
+		flowStore:  deps.FlowStore,
 		flowExec:   flowExec,
 	}
 
 	testEnv.Cleanup = func() {
 		_ = testEnv.Engine.Stop()
-		_ = testEnv.store.Close()
+		_ = testEnv.flowStore.Close()
 	}
 
 	return testEnv
@@ -128,9 +135,7 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 		return nil, err
 	}
 	e.flowExec = timebox.NewExecutor(
-		e.store,
-		events.NewFlowState,
-		events.FlowAppliers,
+		e.flowStore, events.NewFlowState, events.FlowAppliers,
 	)
 	return eng, nil
 }
@@ -162,7 +167,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 func (e *TestEngineEnv) AppendEvents(
 	id timebox.AggregateID, atSeq int64, evs ...*timebox.Event,
 ) error {
-	return e.store.AppendEvents(id, atSeq, evs)
+	return e.flowStore.AppendEvents(id, atSeq, evs)
 }
 
 // ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
@@ -170,7 +175,7 @@ func (e *TestEngineEnv) AppendEvents(
 func (e *TestEngineEnv) ListFlowsByLabel(
 	label, value string,
 ) ([]timebox.AggregateID, error) {
-	return e.store.ListAggregatesByLabel(label, value)
+	return e.flowStore.ListAggregatesByLabel(label, value)
 }
 
 func raiseFlowEvent(
@@ -227,7 +232,9 @@ func (e *TestEngineEnv) engineDeps(
 	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
 	return engine.Dependencies{
-		Store:            e.store,
+		CatStore:         e.catStore,
+		PartStore:        e.partStore,
+		FlowStore:        e.flowStore,
 		StepClient:       e.MockClient,
 		Clock:            clock,
 		TimerConstructor: makeTimer,
@@ -238,8 +245,14 @@ func (e *TestEngineEnv) engineDeps(
 func mergeDependencies(
 	defaults engine.Dependencies, overrides engine.Dependencies,
 ) engine.Dependencies {
-	if overrides.Store != nil {
-		defaults.Store = overrides.Store
+	if overrides.CatStore != nil {
+		defaults.CatStore = overrides.CatStore
+	}
+	if overrides.PartStore != nil {
+		defaults.PartStore = overrides.PartStore
+	}
+	if overrides.FlowStore != nil {
+		defaults.FlowStore = overrides.FlowStore
 	}
 	if overrides.StepClient != nil {
 		defaults.StepClient = overrides.StepClient
@@ -263,4 +276,10 @@ func (b publishingBackend) Append(req timebox.AppendRequest) error {
 	}
 	b.publish(req.Events...)
 	return nil
+}
+
+func (b publishingBackend) NewStore(
+	cfg timebox.Config,
+) (*timebox.Store, error) {
+	return timebox.NewStore(b, cfg)
 }

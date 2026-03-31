@@ -33,7 +33,9 @@ func TestInitializeStoresSuccess(t *testing.T) {
 	err := s.initializeStores()
 
 	assert.NoError(t, err)
-	assert.NotNil(t, s.store)
+	assert.NotNil(t, s.catStore)
+	assert.NotNil(t, s.partStore)
+	assert.NotNil(t, s.flowStore)
 
 	s.closeStores()
 }

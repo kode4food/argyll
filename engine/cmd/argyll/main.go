@@ -26,7 +26,9 @@ import (
 
 type argyll struct {
 	cfg         *config.Config
-	store       *timebox.Store
+	catStore    *timebox.Store
+	partStore   *timebox.Store
+	flowStore   *timebox.Store
 	persistence *raft.Persistence
 	engine      *engine.Engine
 	health      *server.HealthChecker
@@ -116,24 +118,34 @@ func (a *argyll) initializeStores() error {
 	if err != nil {
 		return errors.Join(ErrCreateStore, err)
 	}
-	s, err := timebox.NewStore(p, a.cfg.Raft.Timebox)
+	catStore, err := p.NewStore(a.cfg.CatalogStoreConfig())
 	if err != nil {
 		_ = p.Close()
+		return errors.Join(ErrCreateStore, err)
+	}
+	partStore, err := p.NewStore(a.cfg.PartitionStoreConfig())
+	if err != nil {
+		_ = catStore.Close()
+		return errors.Join(ErrCreateStore, err)
+	}
+	flowStore, err := p.NewStore(a.cfg.FlowStoreConfig())
+	if err != nil {
+		_ = catStore.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
 	ctx, cancel := context.WithTimeout(
 		context.Background(), defaultStoreReadyTimeout,
 	)
 	defer cancel()
-	if err := s.WaitReady(ctx); err != nil {
-		_ = s.Close()
+	if err := flowStore.WaitReady(ctx); err != nil {
+		_ = catStore.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
 
-	// Raft persistence does not use logical prefixes, so one replicated store
-	// holds catalog, partition, and flow aggregates
 	a.persistence = p
-	a.store = s
+	a.catStore = catStore
+	a.partStore = partStore
+	a.flowStore = flowStore
 	return nil
 }
 
@@ -143,7 +155,9 @@ func (a *argyll) initializeEngine(hub *event.Hub) error {
 	)
 
 	eng, err := engine.New(a.cfg, engine.Dependencies{
-		Store:      a.store,
+		CatStore:   a.catStore,
+		PartStore:  a.partStore,
+		FlowStore:  a.flowStore,
 		StepClient: stepClient,
 		EventHub:   hub,
 	})
@@ -207,12 +221,14 @@ func (a *argyll) shutdown() {
 }
 
 func (a *argyll) closeStores() {
-	if a.store == nil {
+	if a.flowStore == nil {
 		return
 	}
 
-	_ = a.store.Close()
-	a.store = nil
+	_ = a.flowStore.Close()
+	a.catStore = nil
+	a.partStore = nil
+	a.flowStore = nil
 	a.persistence = nil
 }
 
