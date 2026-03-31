@@ -163,4 +163,4 @@ See the [documentation](docs/) for detailed API reference.
 
 ## License
 
-MIT
+Apache 2.0

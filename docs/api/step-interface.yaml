@@ -88,8 +88,8 @@ info:
     name: Argyll Engine
     url: https://github.com/kode4food/argyll
   license:
-    name: MIT
-    url: https://opensource.org/licenses/MIT
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
 
 servers:
   - url: "{protocol}://{host}:{port}"
