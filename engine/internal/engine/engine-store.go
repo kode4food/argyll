@@ -9,16 +9,12 @@ import (
 
 // GetCatalogState retrieves the current catalog state
 func (e *Engine) GetCatalogState() (*api.CatalogState, error) {
-	return e.execCatalog(func(*api.CatalogState, *CatalogAggregator) error {
-		return nil
-	})
+	return e.catalogExec.Get(events.CatalogKey)
 }
 
 // GetClusterState retrieves the current cluster state
 func (e *Engine) GetClusterState() (*api.ClusterState, error) {
-	return e.execCluster(func(*api.ClusterState, *ClusterAggregator) error {
-		return nil
-	})
+	return e.clusterExec.Get(events.ClusterKey)
 }
 
 // GetCatalogStateSeq retrieves catalog state and its next event sequence
