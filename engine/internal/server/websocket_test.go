@@ -626,7 +626,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 	})
 }
 
-func TestSocketCallbackNode(t *testing.T) {
+func TestSocketCallbackCluster(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		ws := testServerWebSocket(t, env.Server)
 		defer ws.Cleanup()
@@ -635,10 +635,8 @@ func TestSocketCallbackNode(t *testing.T) {
 			Type: "subscribe",
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
-				AggregateIDs: [][]string{
-					{events.NodePrefix, env.Config.Raft.LocalID},
-				},
-				IncludeState: true,
+				AggregateIDs:   [][]string{{events.ClusterPrefix}},
+				IncludeState:   true,
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -649,13 +647,10 @@ func TestSocketCallbackNode(t *testing.T) {
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
 		item := subscribedItem(t, stateMsg)
-		assert.Equal(t,
-			[]string{events.NodePrefix, env.Config.Raft.LocalID},
-			item.AggregateID,
-		)
+		assert.Equal(t, []string{events.ClusterPrefix}, item.AggregateID)
 
-		var node api.NodeState
-		err = json.Unmarshal(item.Data, &node)
+		var cluster api.ClusterState
+		err = json.Unmarshal(item.Data, &cluster)
 		assert.NoError(t, err)
 	})
 }

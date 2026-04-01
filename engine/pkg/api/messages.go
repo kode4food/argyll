@@ -97,11 +97,6 @@ type (
 		HealthState
 	}
 
-	// HealthListResponse contains health status for all registered steps
-	HealthListResponse struct {
-		Health map[NodeID]map[StepID]*HealthState `json:"health"`
-	}
-
 	// MessageResponse contains a simple message string
 	MessageResponse struct {
 		Message string `json:"message"`

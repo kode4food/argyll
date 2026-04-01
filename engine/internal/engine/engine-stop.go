@@ -22,9 +22,9 @@ func (e *Engine) saveEngineSnapshot() {
 		slog.Info("Catalog snapshot saved")
 	}
 
-	if err := e.nodeExec.SaveSnapshot(e.nodeKey()); err != nil {
-		slog.Error("Failed to save node snapshot", log.Error(err))
+	if err := e.clusterExec.SaveSnapshot(events.ClusterKey); err != nil {
+		slog.Error("Failed to save cluster snapshot", log.Error(err))
 	} else {
-		slog.Info("Node snapshot saved")
+		slog.Info("Cluster snapshot saved")
 	}
 }

@@ -25,10 +25,13 @@ func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
 	nodeID := api.NodeID(e.config.Raft.LocalID)
-	cmd := func(st *api.NodeState, ag *NodeAggregator) error {
-		if h, ok := st.Health[stepID]; ok {
-			if h.Status == health && h.Error == errMsg {
-				return nil
+	cmd := func(st *api.ClusterState, ag *ClusterAggregator) error {
+		node := st.Nodes[nodeID]
+		if node != nil {
+			if h, ok := node.Health[stepID]; ok {
+				if h.Status == health && h.Error == errMsg {
+					return nil
+				}
 			}
 		}
 
@@ -42,7 +45,7 @@ func (e *Engine) UpdateStepHealth(
 		)
 	}
 
-	_, err := e.execNode(cmd)
+	_, err := e.execCluster(cmd)
 	return err
 }
 
@@ -72,23 +75,26 @@ func ResolveHealth(
 	return resolved
 }
 
-// MergeNodeHealth reduces per-node step health into a shard-wide worst-case
+// MergeNodeHealth reduces per-node step health into a cluster-wide worst-case
 // view while preserving stable results.
 func MergeNodeHealth(
-	byNode map[api.NodeID]map[api.StepID]*api.HealthState,
+	cluster *api.ClusterState,
 ) map[api.StepID]*api.HealthState {
 	res := map[api.StepID]*api.HealthState{}
-	nodes := make([]string, 0, len(byNode))
-	for id := range byNode {
+	nodes := make([]string, 0, len(cluster.Nodes))
+	for id := range cluster.Nodes {
 		nodes = append(nodes, string(id))
 	}
 	sort.Strings(nodes)
 
 	for _, rawNodeID := range nodes {
 		nodeID := api.NodeID(rawNodeID)
-		healthByStepID := byNode[nodeID]
-		steps := make([]string, 0, len(healthByStepID))
-		for stepID := range healthByStepID {
+		node := cluster.Nodes[nodeID]
+		if node == nil {
+			continue
+		}
+		steps := make([]string, 0, len(node.Health))
+		for stepID := range node.Health {
 			steps = append(steps, string(stepID))
 		}
 		sort.Strings(steps)
@@ -96,7 +102,7 @@ func MergeNodeHealth(
 		for _, rawStepID := range steps {
 			stepID := api.StepID(rawStepID)
 			res[stepID] = mergeHealthState(
-				nodeID, res[stepID], healthByStepID[stepID],
+				nodeID, res[stepID], node.Health[stepID],
 			)
 		}
 	}

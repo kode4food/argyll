@@ -28,9 +28,14 @@ type (
 		Attributes  AttributeGraph `json:"attributes"`
 	}
 
+	// ClusterState contains the operational state of all nodes in the cluster
+	ClusterState struct {
+		LastUpdated time.Time             `json:"last_updated"`
+		Nodes       map[NodeID]*NodeState `json:"nodes"`
+	}
+
 	// NodeState contains a node's operational state
 	NodeState struct {
-		ID       NodeID                  `json:"id"`
 		LastSeen time.Time               `json:"last_seen"`
 		Health   map[StepID]*HealthState `json:"health"`
 	}
@@ -161,6 +166,24 @@ func (c *CatalogState) SetLastUpdated(t time.Time) *CatalogState {
 	return &res
 }
 
+// SetNode returns a new ClusterState with the specified node updated
+func (c *ClusterState) SetNode(id NodeID, n *NodeState) *ClusterState {
+	res := *c
+	res.Nodes = maps.Clone(c.Nodes)
+	if res.Nodes == nil {
+		res.Nodes = map[NodeID]*NodeState{}
+	}
+	res.Nodes[id] = n
+	return &res
+}
+
+// SetLastUpdated returns a new ClusterState with the last updated timestamp set
+func (c *ClusterState) SetLastUpdated(t time.Time) *ClusterState {
+	res := *c
+	res.LastUpdated = t
+	return &res
+}
+
 // SetHealth returns a new NodeState with updated health for a given step
 func (n *NodeState) SetHealth(id StepID, h *HealthState) *NodeState {
 	res := *n
@@ -176,13 +199,6 @@ func (n *NodeState) SetHealth(id StepID, h *HealthState) *NodeState {
 func (n *NodeState) SetLastSeen(t time.Time) *NodeState {
 	res := *n
 	res.LastSeen = t
-	return &res
-}
-
-// SetID returns a new NodeState with the node ID set
-func (n *NodeState) SetID(id NodeID) *NodeState {
-	res := *n
-	res.ID = id
 	return &res
 }
 

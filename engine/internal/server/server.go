@@ -124,7 +124,7 @@ func (s *Server) handleEngine(c *gin.Context) {
 		})
 		return
 	}
-	res, err := resolveEngineHealth(s.engine)
+	cluster, err := s.engine.GetClusterState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
@@ -134,14 +134,14 @@ func (s *Server) handleEngine(c *gin.Context) {
 	}
 
 	last := cat.LastUpdated
-	if res.lastUpdated.After(last) {
-		last = res.lastUpdated
+	if cluster.LastUpdated.After(last) {
+		last = cluster.LastUpdated
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"last_updated": last,
 		"steps":        cat.Steps,
 		"attributes":   cat.Attributes,
-		"health":       res.byNode,
+		"health":       cluster.Nodes,
 	})
 }
 

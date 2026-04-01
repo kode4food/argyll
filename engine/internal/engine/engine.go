@@ -24,7 +24,7 @@ type (
 		stepClient  client.Client
 		ctx         context.Context
 		catalogExec *CatalogExecutor
-		nodeExec    *NodeExecutor
+		clusterExec *ClusterExecutor
 		flowExec    *FlowExecutor
 		engStore    *timebox.Store
 		config      *config.Config
@@ -53,11 +53,11 @@ type (
 	// CatalogAggregator aggregates catalog state from events
 	CatalogAggregator = timebox.Aggregator[*api.CatalogState]
 
-	// NodeExecutor manages per-node state persistence and event sourcing
-	NodeExecutor = timebox.Executor[*api.NodeState]
+	// ClusterExecutor manages cluster state persistence and event sourcing
+	ClusterExecutor = timebox.Executor[*api.ClusterState]
 
-	// NodeAggregator aggregates per-node state from events
-	NodeAggregator = timebox.Aggregator[*api.NodeState]
+	// ClusterAggregator aggregates cluster state from events
+	ClusterAggregator = timebox.Aggregator[*api.ClusterState]
 
 	// FlowExecutor manages flow state persistence and event sourcing
 	FlowExecutor = timebox.Executor[*api.FlowState]
@@ -87,8 +87,8 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		catalogExec: timebox.NewExecutor(
 			deps.EngineStore, events.NewCatalogState, events.CatalogAppliers,
 		),
-		nodeExec: timebox.NewExecutor(
-			deps.EngineStore, events.NewNodeState, events.NodeAppliers,
+		clusterExec: timebox.NewExecutor(
+			deps.EngineStore, events.NewClusterState, events.ClusterAppliers,
 		),
 		flowExec: timebox.NewExecutor(
 			deps.FlowStore, events.NewFlowState, events.FlowAppliers,

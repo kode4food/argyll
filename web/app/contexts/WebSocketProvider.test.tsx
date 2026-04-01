@@ -38,6 +38,7 @@ jest.mock("@/app/store/flowStore", () => ({
     updateStep: jest.fn(),
     removeStep: jest.fn(),
     updateStepHealth: jest.fn(),
+    setHealthState: jest.fn(),
     initializeExecutions: jest.fn(),
     updateExecution: jest.fn(),
     updateWorkItem: jest.fn(),
@@ -80,7 +81,7 @@ describe("WebSocketProvider", () => {
     (globalThis as any).__websocketStoreState.engineReconnectRequest = 0;
   });
 
-  test("subscribes to catalog, node, and selected flow", () => {
+  test("subscribes to catalog, cluster, and selected flow", () => {
     const client = makeClient();
     useWebSocketClientMock.mockReturnValue(client);
 
@@ -107,8 +108,8 @@ describe("WebSocketProvider", () => {
     expect(client.subscribe).toHaveBeenNthCalledWith(
       2,
       {
-        aggregate_ids: [["node"]],
-        include_state: false,
+        aggregate_ids: [["cluster"]],
+        include_state: true,
         event_types: ["step_health_changed"],
       },
       expect.any(Function)
@@ -222,7 +223,7 @@ describe("WebSocketProvider", () => {
     });
   });
 
-  test("dispatches node events to health handlers", () => {
+  test("initializes health from cluster subscribed state", () => {
     const client = makeClient();
     useWebSocketClientMock.mockReturnValue(client);
 
@@ -232,8 +233,43 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const nodeHandler = client.subscribe.mock.calls[1][1];
-    nodeHandler({
+    const clusterHandler = client.subscribe.mock.calls[1][1];
+    clusterHandler({
+      type: "subscribed",
+      sub_id: "1",
+      items: [
+        {
+          data: {
+            last_updated: "2024-01-01T00:00:00Z",
+            nodes: {
+              "node-1": {
+                last_seen: "2024-01-01T00:00:00Z",
+                health: { "step-1": { status: "healthy" } },
+              },
+            },
+          },
+        },
+      ],
+    });
+
+    const flowStore = require("@/app/store/flowStore");
+    expect(flowStore.__storeState.setHealthState).toHaveBeenCalledWith({
+      "node-1": { "step-1": { status: "healthy" } },
+    });
+  });
+
+  test("dispatches cluster events to health handlers", () => {
+    const client = makeClient();
+    useWebSocketClientMock.mockReturnValue(client);
+
+    render(
+      <WebSocketProvider>
+        <div>child</div>
+      </WebSocketProvider>
+    );
+
+    const clusterHandler = client.subscribe.mock.calls[1][1];
+    clusterHandler({
       type: "step_health_changed",
       data: { node_id: "node-1", step_id: "step-3", status: "healthy" },
     });

@@ -11,7 +11,7 @@ const CATALOG_EVENT_TYPES = [
   "step_updated",
 ];
 
-const NODE_EVENT_TYPES = ["step_health_changed"];
+const CLUSTER_EVENT_TYPES = ["step_health_changed"];
 
 const FLOW_SUMMARY_EVENT_TYPES = [
   "flow_started",
@@ -92,8 +92,22 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     [addStep, removeStep, updateStep]
   );
 
-  const handleNodeEvent = useCallback(
+  const handleClusterEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
+      if (event.type === "subscribed") {
+        const { setHealthState } = useFlowStore.getState();
+        const data = subscribedData(event as WebSocketSubscribed);
+        const nodes: Record<string, any> = data?.nodes ?? {};
+        const healthByNode: Record<string, Record<string, any>> = {};
+        for (const [nodeId, node] of Object.entries(nodes)) {
+          if (node && typeof node === "object" && "health" in node) {
+            healthByNode[nodeId] = (node as any).health ?? {};
+          }
+        }
+        setHealthState(healthByNode);
+        return;
+      }
+
       const wsEvent = event as WebSocketEvent;
       switch (wsEvent.type) {
         case "step_health_changed": {
@@ -341,16 +355,16 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_ids: [["node"]],
-        include_state: false,
-        event_types: NODE_EVENT_TYPES,
+        aggregate_ids: [["cluster"]],
+        include_state: true,
+        event_types: CLUSTER_EVENT_TYPES,
       },
-      handleNodeEvent
+      handleClusterEvent
     );
     return () => {
       socketClient.unsubscribe(subscriptionId);
     };
-  }, [handleNodeEvent, socketClient.subscribe, socketClient.unsubscribe]);
+  }, [handleClusterEvent, socketClient.subscribe, socketClient.unsubscribe]);
 
   useEffect(() => {
     if (visibleFlowIDs.length === 0) {

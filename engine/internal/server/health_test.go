@@ -31,21 +31,27 @@ func TestGetStepHealth(t *testing.T) {
 		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		part, err := env.Engine.GetNodeState()
+		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		health, ok := part.Health["health-test-step"]
-		assert.True(t, ok)
-		assert.NotNil(t, health)
-		assert.Equal(t, api.HealthUnknown, health.Status)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health["health-test-step"]; ok {
+				assert.NotNil(t, h)
+				assert.Equal(t, api.HealthUnknown, h.Status)
+				return
+			}
+		}
+		assert.Fail(t, "health-test-step not found in any node")
 	})
 }
 
 func TestGetStepHealthNotFound(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		part, err := env.Engine.GetNodeState()
+		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		_, ok := part.Health["nonexistent-step"]
-		assert.False(t, ok)
+		for _, node := range cluster.Nodes {
+			_, ok := node.Health["nonexistent-step"]
+			assert.False(t, ok)
+		}
 	})
 }
 
@@ -78,11 +84,16 @@ func TestWithRealHealthCheck(t *testing.T) {
 		checker.Start()
 		defer checker.Stop()
 
-		part, err := env.Engine.GetNodeState()
+		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		health, ok := part.Health["real-health-step"]
-		assert.True(t, ok)
-		assert.NotNil(t, health)
+		found := false
+		for _, node := range cluster.Nodes {
+			if _, ok := node.Health["real-health-step"]; ok {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
 	})
 }
 
@@ -120,11 +131,16 @@ func TestRecentSuccess(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		part, err := env.Engine.GetNodeState()
+		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		health, ok := part.Health["recent-success-step"]
-		assert.True(t, ok)
-		assert.NotNil(t, health)
+		found := false
+		for _, node := range cluster.Nodes {
+			if _, ok := node.Health["recent-success-step"]; ok {
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
 	})
 }
 
@@ -158,11 +174,17 @@ func TestHealthCheckMarksUnhealthy(t *testing.T) {
 			checker.Start()
 		})
 
-		state, err := env.Engine.GetNodeState()
+		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		health, ok := state.Health["unhealthy-step"]
-		assert.True(t, ok)
-		assert.Equal(t, api.HealthUnhealthy, health.Status)
+		found := false
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health["unhealthy-step"]; ok {
+				assert.Equal(t, api.HealthUnhealthy, h.Status)
+				found = true
+				break
+			}
+		}
+		assert.True(t, found)
 	})
 }
 
@@ -207,9 +229,13 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 		checker.Start()
 		defer checker.Stop()
 
-		part, err := env.Engine.GetNodeState()
+		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, len(part.Health), 3)
+		healthCount := 0
+		for _, node := range cluster.Nodes {
+			healthCount += len(node.Health)
+		}
+		assert.GreaterOrEqual(t, healthCount, 3)
 	})
 }
 

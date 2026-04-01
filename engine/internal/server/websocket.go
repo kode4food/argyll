@@ -124,8 +124,8 @@ func (s *Server) lookupSubscriptionState(
 	switch {
 	case events.IsCatalogEventID(id):
 		return s.engine.GetCatalogStateSeq()
-	case events.IsNodeEventID(id):
-		return s.engine.GetNodeStateSeqFor(api.NodeID(id[1]))
+	case events.IsClusterEventID(id):
+		return s.engine.GetClusterStateSeq()
 	case events.IsFlowEventID(id):
 		return s.engine.GetFlowStateSeq(api.FlowID(id[1]))
 	}

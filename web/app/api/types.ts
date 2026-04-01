@@ -160,9 +160,14 @@ export interface NodeStepHealth extends StepHealth {
   nodeId: string;
 }
 
+export interface NodeState {
+  last_seen: string;
+  health: Record<string, StepHealth>;
+}
+
 export interface EngineState {
   steps: Record<string, Step>;
-  health: Record<string, Record<string, StepHealth>>;
+  health: Record<string, NodeState>;
 }
 
 export interface AttributeValue {

@@ -20,12 +20,16 @@ func TestUpdateStepHealth(t *testing.T) {
 		err = eng.UpdateStepHealth("health-step", api.HealthHealthy, "")
 		assert.NoError(t, err)
 
-		state, err := eng.GetNodeState()
+		cluster, err := eng.GetClusterState()
 		assert.NoError(t, err)
 
-		health, ok := state.Health["health-step"]
-		assert.True(t, ok)
-		assert.Equal(t, api.HealthHealthy, health.Status)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health["health-step"]; ok {
+				assert.Equal(t, api.HealthHealthy, h.Status)
+				return
+			}
+		}
+		assert.Fail(t, "health-step not found in any node")
 	})
 }
 
@@ -41,13 +45,17 @@ func TestUpdateUnhealthy(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		state, err := eng.GetNodeState()
+		cluster, err := eng.GetClusterState()
 		assert.NoError(t, err)
 
-		health, ok := state.Health["unhealthy-step"]
-		assert.True(t, ok)
-		assert.Equal(t, api.HealthUnhealthy, health.Status)
-		assert.Equal(t, "connection refused", health.Error)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health["unhealthy-step"]; ok {
+				assert.Equal(t, api.HealthUnhealthy, h.Status)
+				assert.Equal(t, "connection refused", h.Error)
+				return
+			}
+		}
+		assert.Fail(t, "unhealthy-step not found in any node")
 	})
 }
 
@@ -205,19 +213,20 @@ func TestGetStepHealthNotFound(t *testing.T) {
 }
 
 func TestMergeNodeHealth(t *testing.T) {
-	health := engine.MergeNodeHealth(
-		map[api.NodeID]map[api.StepID]*api.HealthState{
-			"node-b": {
+	cluster := &api.ClusterState{
+		Nodes: map[api.NodeID]*api.NodeState{
+			"node-b": {Health: map[api.StepID]*api.HealthState{
 				"step-a": {Status: api.HealthHealthy},
-			},
-			"node-a": {
+			}},
+			"node-a": {Health: map[api.StepID]*api.HealthState{
 				"step-a": {
 					Status: api.HealthUnhealthy,
 					Error:  "connection refused",
 				},
-			},
+			}},
 		},
-	)
+	}
+	health := engine.MergeNodeHealth(cluster)
 
 	if assert.Contains(t, health, api.StepID("step-a")) {
 		assert.Equal(t, api.HealthUnhealthy, health["step-a"].Status)
@@ -264,8 +273,9 @@ func resolveHealth(
 	cat, err := eng.GetCatalogState()
 	assert.NoError(t, err)
 
-	part, err := eng.GetNodeState()
+	cluster, err := eng.GetClusterState()
 	assert.NoError(t, err)
 
-	return engine.ResolveHealth(cat, part.Health)
+	merged := engine.MergeNodeHealth(cluster)
+	return engine.ResolveHealth(cat, merged)
 }

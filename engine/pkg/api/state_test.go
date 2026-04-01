@@ -63,13 +63,27 @@ func TestSetLastSeen(t *testing.T) {
 	assert.True(t, original.LastSeen.Equal(time.Unix(1000, 0)))
 }
 
-func TestSetNodeID(t *testing.T) {
-	original := &api.NodeState{ID: "node-1"}
+func TestSetClusterNode(t *testing.T) {
+	node := &api.NodeState{}
+	original := &api.ClusterState{
+		Nodes: map[api.NodeID]*api.NodeState{"node-1": node},
+	}
 
-	result := original.SetID("node-2")
+	result := original.SetNode("node-2", node)
 
-	assert.Equal(t, api.NodeID("node-2"), result.ID)
-	assert.Equal(t, api.NodeID("node-1"), original.ID)
+	assert.Contains(t, result.Nodes, api.NodeID("node-1"))
+	assert.Contains(t, result.Nodes, api.NodeID("node-2"))
+	assert.NotContains(t, original.Nodes, api.NodeID("node-2"))
+}
+
+func TestSetClusterLastUpdated(t *testing.T) {
+	original := &api.ClusterState{}
+	newTime := time.Unix(2000, 0)
+
+	result := original.SetLastUpdated(newTime)
+
+	assert.True(t, result.LastUpdated.Equal(newTime))
+	assert.True(t, original.LastUpdated.IsZero())
 }
 
 func TestSetFlowStatus(t *testing.T) {

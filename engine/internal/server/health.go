@@ -29,11 +29,6 @@ type (
 		lastSuccess map[api.StepID]time.Time
 		mu          sync.RWMutex
 	}
-
-	resolvedShardHealth struct {
-		byNode      map[api.NodeID]map[api.StepID]*api.HealthState
-		lastUpdated time.Time
-	}
 )
 
 const (
@@ -214,7 +209,7 @@ func (s *Server) handleHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealth(c *gin.Context) {
-	res, err := resolveEngineHealth(s.engine)
+	cluster, err := s.engine.GetClusterState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
@@ -223,15 +218,21 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, api.HealthListResponse{
-		Health: res.byNode,
-	})
+	c.JSON(http.StatusOK, cluster)
 }
 
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	stepID := api.StepID(c.Param("stepID"))
 
-	res, err := resolveEngineHealth(s.engine)
+	cat, err := s.engine.GetCatalogState()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
+			Status: http.StatusInternalServerError,
+		})
+		return
+	}
+	cluster, err := s.engine.GetClusterState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
@@ -240,7 +241,7 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 		return
 	}
 
-	merged := mergedShardHealth(res.byNode)
+	merged := engine.ResolveHealth(cat, engine.MergeNodeHealth(cluster))
 	health, ok := merged[stepID]
 	if !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
@@ -251,47 +252,6 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, health)
-}
-
-func resolveEngineHealth(
-	eng *engine.Engine,
-) (*resolvedShardHealth, error) {
-	cat, err := eng.GetCatalogState()
-	if err != nil {
-		return nil, err
-	}
-	nodeByID, err := eng.GetShardNodeStates()
-	if err != nil {
-		return nil, err
-	}
-	byNode := make(
-		map[api.NodeID]map[api.StepID]*api.HealthState, len(nodeByID),
-	)
-	for id, node := range nodeByID {
-		byNode[id] = engine.ResolveHealth(cat, node.Health)
-	}
-	return &resolvedShardHealth{
-		byNode:      byNode,
-		lastUpdated: latestNodeUpdate(nodeByID),
-	}, nil
-}
-
-func mergedShardHealth(
-	byNode map[api.NodeID]map[api.StepID]*api.HealthState,
-) map[api.StepID]*api.HealthState {
-	return engine.MergeNodeHealth(byNode)
-}
-
-func latestNodeUpdate(
-	nodeByID map[api.NodeID]*api.NodeState,
-) time.Time {
-	var last time.Time
-	for _, node := range nodeByID {
-		if node != nil && node.LastSeen.After(last) {
-			last = node.LastSeen
-		}
-	}
-	return last
 }
 
 func (s *Server) raftState() string {

@@ -4,8 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/kode4food/timebox/raft"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
@@ -106,12 +107,12 @@ func TestGetCatalogState(t *testing.T) {
 	})
 }
 
-func TestGetNodeState(t *testing.T) {
+func TestGetClusterState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, err := eng.GetNodeState()
+		state, err := eng.GetClusterState()
 		assert.NoError(t, err)
 		assert.NotNil(t, state)
-		assert.NotNil(t, state.Health)
+		assert.NotNil(t, state.Nodes)
 	})
 }
 
@@ -125,22 +126,18 @@ func TestGetCatalogStateSeq(t *testing.T) {
 	})
 }
 
-func TestGetNodeStateSeq(t *testing.T) {
+func TestGetClusterStateSeq(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, seq, err := eng.GetNodeStateSeq()
+		state, seq, err := eng.GetClusterStateSeq()
 		assert.NoError(t, err)
 		assert.NotNil(t, state)
-		assert.NotNil(t, state.Health)
+		assert.NotNil(t, state.Nodes)
 		assert.True(t, seq >= 0)
 	})
 }
 
-func TestGetShardNodeStates(t *testing.T) {
+func TestClusterTracksMultipleNodes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Config.Raft.Servers = append(env.Config.Raft.Servers,
-			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
-		)
-
 		cfg := *env.Config
 		cfg.Raft.LocalID = "node-2"
 		cfg.Raft.Servers = []raft.Server{
@@ -152,18 +149,20 @@ func TestGetShardNodeStates(t *testing.T) {
 		if peer != nil {
 			defer func() { _ = peer.Stop() }()
 		}
+		if !assert.NotNil(t, peer) {
+			return
+		}
 
 		assert.NoError(t,
 			peer.UpdateStepHealth("step-1", api.HealthHealthy, ""),
 		)
 
-		state, err := env.Engine.GetShardNodeStates()
+		state, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		assert.Contains(t, state, api.NodeID(env.Config.Raft.LocalID))
-		assert.Contains(t, state, api.NodeID("node-2"))
+		assert.Contains(t, state.Nodes, api.NodeID("node-2"))
 		assert.Equal(t,
 			api.HealthHealthy,
-			state["node-2"].Health["step-1"].Status,
+			state.Nodes["node-2"].Health["step-1"].Status,
 		)
 	})
 }

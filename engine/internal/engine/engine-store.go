@@ -14,31 +14,11 @@ func (e *Engine) GetCatalogState() (*api.CatalogState, error) {
 	})
 }
 
-// GetNodeState retrieves the current local node state
-func (e *Engine) GetNodeState() (*api.NodeState, error) {
-	return e.execNode(func(*api.NodeState, *NodeAggregator) error {
+// GetClusterState retrieves the current cluster state
+func (e *Engine) GetClusterState() (*api.ClusterState, error) {
+	return e.execCluster(func(*api.ClusterState, *ClusterAggregator) error {
 		return nil
 	})
-}
-
-// GetShardNodeStates retrieves node state for every known node in the shard,
-// deriving membership from the Raft server configuration
-func (e *Engine) GetShardNodeStates() (map[api.NodeID]*api.NodeState, error) {
-	servers := e.config.Raft.Servers
-	res := make(map[api.NodeID]*api.NodeState, len(servers))
-	for _, srv := range servers {
-		id := api.NodeID(srv.ID)
-		st, err := e.execNodeAt(events.NodeKey(id),
-			func(*api.NodeState, *NodeAggregator) error {
-				return nil
-			},
-		)
-		if err != nil {
-			return nil, err
-		}
-		res[id] = st
-	}
-	return res, nil
 }
 
 // GetCatalogStateSeq retrieves catalog state and its next event sequence
@@ -53,18 +33,11 @@ func (e *Engine) GetCatalogStateSeq() (*api.CatalogState, int64, error) {
 	return state, seq, err
 }
 
-// GetNodeStateSeq retrieves local node state and its next event sequence
-func (e *Engine) GetNodeStateSeq() (*api.NodeState, int64, error) {
-	return e.GetNodeStateSeqFor(api.NodeID(e.config.Raft.LocalID))
-}
-
-// GetNodeStateSeqFor retrieves node state and its next event sequence
-func (e *Engine) GetNodeStateSeqFor(
-	nodeID api.NodeID,
-) (*api.NodeState, int64, error) {
+// GetClusterStateSeq retrieves cluster state and its next event sequence
+func (e *Engine) GetClusterStateSeq() (*api.ClusterState, int64, error) {
 	var seq int64
-	state, err := e.execNodeAt(events.NodeKey(nodeID),
-		func(_ *api.NodeState, ag *NodeAggregator) error {
+	state, err := e.execCluster(
+		func(_ *api.ClusterState, ag *ClusterAggregator) error {
 			seq = ag.NextSequence()
 			return nil
 		},
@@ -102,18 +75,8 @@ func (e *Engine) execCatalog(
 	return e.catalogExec.Exec(events.CatalogKey, cmd)
 }
 
-func (e *Engine) execNode(
-	cmd timebox.Command[*api.NodeState],
-) (*api.NodeState, error) {
-	return e.execNodeAt(e.nodeKey(), cmd)
-}
-
-func (e *Engine) execNodeAt(
-	id timebox.AggregateID, cmd timebox.Command[*api.NodeState],
-) (*api.NodeState, error) {
-	return e.nodeExec.Exec(id, cmd)
-}
-
-func (e *Engine) nodeKey() timebox.AggregateID {
-	return events.NodeKey(api.NodeID(e.config.Raft.LocalID))
+func (e *Engine) execCluster(
+	cmd timebox.Command[*api.ClusterState],
+) (*api.ClusterState, error) {
+	return e.clusterExec.Exec(events.ClusterKey, cmd)
 }

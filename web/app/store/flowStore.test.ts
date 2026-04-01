@@ -145,10 +145,14 @@ describe("flowStore", () => {
         },
         health: {
           "node-1": {
-            "step-1": { status: "healthy" },
+            last_seen: "2024-01-01T00:00:00Z",
+            health: { "step-1": { status: "healthy" } },
           },
           "node-2": {
-            "step-1": { status: "unhealthy", error: "Connection timeout" },
+            last_seen: "2024-01-01T00:00:00Z",
+            health: {
+              "step-1": { status: "unhealthy", error: "Connection timeout" },
+            },
           },
         },
       });

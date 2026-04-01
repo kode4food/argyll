@@ -301,7 +301,13 @@ export const useFlowStore = create<FlowState>()(
         try {
           const engineData = await api.getEngine();
           get().setCatalogState(engineData.steps || {});
-          get().setHealthState(engineData.health || {});
+          const healthByNode: Record<string, Record<string, any>> = {};
+          for (const [nodeId, node] of Object.entries(
+            engineData.health || {}
+          )) {
+            healthByNode[nodeId] = node.health ?? {};
+          }
+          get().setHealthState(healthByNode);
         } catch (error) {
           console.error("Failed to load steps:", error);
           set({

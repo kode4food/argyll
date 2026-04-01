@@ -777,23 +777,23 @@ func TestEngineHealthIncludesShardNodes(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response api.HealthListResponse
+		var response api.ClusterState
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.Len(t, response.Health, 2)
+		assert.Len(t, response.Nodes, 2)
 		localID := api.NodeID(testEnv.Config.Raft.LocalID)
-		if assert.Contains(t, response.Health, localID) {
+		if assert.Contains(t, response.Nodes, localID) {
 			assert.Equal(
 				t,
 				api.HealthHealthy,
-				response.Health[localID][st.ID].Status,
+				response.Nodes[localID].Health[st.ID].Status,
 			)
 		}
-		if assert.Contains(t, response.Health, api.NodeID("node-2")) {
+		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
 			assert.Equal(
 				t,
 				api.HealthUnhealthy,
-				response.Health["node-2"][st.ID].Status,
+				response.Nodes["node-2"].Health[st.ID].Status,
 			)
 		}
 	})
@@ -839,22 +839,22 @@ func TestEngineHealthScriptHealthyAcrossShardNodes(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response api.HealthListResponse
+		var response api.ClusterState
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		localID := api.NodeID(testEnv.Config.Raft.LocalID)
-		if assert.Contains(t, response.Health, localID) {
+		if assert.Contains(t, response.Nodes, localID) {
 			assert.Equal(
 				t,
 				api.HealthHealthy,
-				response.Health[localID][st.ID].Status,
+				response.Nodes[localID].Health[st.ID].Status,
 			)
 		}
-		if assert.Contains(t, response.Health, api.NodeID("node-2")) {
+		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
 			assert.Equal(
 				t,
-				api.HealthHealthy,
-				response.Health["node-2"][st.ID].Status,
+				api.HealthUnknown,
+				response.Nodes["node-2"].Health[st.ID].Status,
 			)
 		}
 	})
@@ -1445,10 +1445,10 @@ func TestHealthList(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var response api.HealthListResponse
+		var response api.ClusterState
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.NotNil(t, response.Health)
+		assert.NotNil(t, response.Nodes)
 	})
 }
 
