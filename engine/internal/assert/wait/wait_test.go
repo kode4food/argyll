@@ -163,7 +163,7 @@ func TestWrapperFilters(t *testing.T) {
 	}
 
 	assert.True(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(newEvent(
-		api.EventTypeStepHealthChanged, events.PartitionKey("node-1"),
+		api.EventTypeStepHealthChanged, events.NodeKey("node-1"),
 		api.StepHealthChangedEvent{StepID: "step-1", Status: api.HealthHealthy},
 	)))
 	assert.False(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(newEvent(
@@ -201,7 +201,9 @@ func TestWrapperFilters(t *testing.T) {
 	assert.True(t, wait.WorkStarted(fs)(stepEv(api.EventTypeWorkStarted)))
 	assert.True(t, wait.WorkSucceeded(fs)(stepEv(api.EventTypeWorkSucceeded)))
 	assert.True(t, wait.WorkFailed(fs)(stepEv(api.EventTypeWorkFailed)))
-	assert.True(t, wait.WorkRetryScheduled(fs)(stepEv(api.EventTypeRetryScheduled)))
+	assert.True(t, wait.WorkRetryScheduled(fs)(
+		stepEv(api.EventTypeRetryScheduled),
+	))
 	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(
 		api.EventTypeRetryScheduled,
 	)))
@@ -228,7 +230,7 @@ func TestWaitForEventFlowTerminal(t *testing.T) {
 
 func TestStepHealthChangedFilter(t *testing.T) {
 	filter := wait.StepHealthChanged("step-a", api.HealthHealthy)
-	ev := newEvent(api.EventTypeStepHealthChanged, events.PartitionKey("node-1"),
+	ev := newEvent(api.EventTypeStepHealthChanged, events.NodeKey("node-1"),
 		api.StepHealthChangedEvent{
 			StepID: "step-a",
 			Status: api.HealthHealthy,

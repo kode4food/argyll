@@ -26,8 +26,7 @@ import (
 
 type argyll struct {
 	cfg         *config.Config
-	catStore    *timebox.Store
-	partStore   *timebox.Store
+	engStore    *timebox.Store
 	flowStore   *timebox.Store
 	persistence *raft.Persistence
 	engine      *engine.Engine
@@ -108,6 +107,7 @@ func (a *argyll) setupLogging() {
 		slog.String("raft_node_id", a.cfg.Raft.LocalID),
 		slog.String("raft_address", a.cfg.Raft.Address),
 		slog.String("raft_data_dir", a.cfg.Raft.DataDir),
+		slog.Int("raft_log_tail_size", a.cfg.Raft.LogTailSize),
 		slog.String("raft_servers", formatRaftServers(a.cfg.Raft.Servers)),
 		slog.String("api_host", a.cfg.APIHost),
 		slog.Int("api_port", a.cfg.APIPort))
@@ -118,19 +118,14 @@ func (a *argyll) initializeStores() error {
 	if err != nil {
 		return errors.Join(ErrCreateStore, err)
 	}
-	catStore, err := p.NewStore(a.cfg.CatalogStoreConfig())
+	engStore, err := p.NewStore(a.cfg.EngineStoreConfig())
 	if err != nil {
 		_ = p.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
-	partStore, err := p.NewStore(a.cfg.PartitionStoreConfig())
-	if err != nil {
-		_ = catStore.Close()
-		return errors.Join(ErrCreateStore, err)
-	}
 	flowStore, err := p.NewStore(a.cfg.FlowStoreConfig())
 	if err != nil {
-		_ = catStore.Close()
+		_ = engStore.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
 	ctx, cancel := context.WithTimeout(
@@ -138,13 +133,12 @@ func (a *argyll) initializeStores() error {
 	)
 	defer cancel()
 	if err := flowStore.WaitReady(ctx); err != nil {
-		_ = catStore.Close()
+		_ = engStore.Close()
 		return errors.Join(ErrCreateStore, err)
 	}
 
 	a.persistence = p
-	a.catStore = catStore
-	a.partStore = partStore
+	a.engStore = engStore
 	a.flowStore = flowStore
 	return nil
 }
@@ -155,11 +149,10 @@ func (a *argyll) initializeEngine(hub *event.Hub) error {
 	)
 
 	eng, err := engine.New(a.cfg, engine.Dependencies{
-		CatStore:   a.catStore,
-		PartStore:  a.partStore,
-		FlowStore:  a.flowStore,
-		StepClient: stepClient,
-		EventHub:   hub,
+		EngineStore: a.engStore,
+		FlowStore:   a.flowStore,
+		StepClient:  stepClient,
+		EventHub:    hub,
 	})
 	if err != nil {
 		return err
@@ -226,8 +219,8 @@ func (a *argyll) closeStores() {
 	}
 
 	_ = a.flowStore.Close()
-	a.catStore = nil
-	a.partStore = nil
+	_ = a.engStore.Close()
+	a.engStore = nil
 	a.flowStore = nil
 	a.persistence = nil
 }

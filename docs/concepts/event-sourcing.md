@@ -50,15 +50,16 @@ These track changes to registered steps:
 - **step_unregistered**: Step deleted from registry
 - **step_updated**: Step definition modified
 
-### Partition Events
+### Node Events
 
-These affect the partition aggregate's operational health view:
+These affect cluster membership and per-node operational state:
 
+- **node_seen**: Node registered or refreshed its last-seen heartbeat
 - **step_health_changed**: Step availability/health status changed
 
 ### Flow Indexes
 
-Flow lifecycle membership is maintained as flow-store indexes derived from flow events, not as partition events:
+Flow lifecycle membership is maintained as flow-store indexes derived from flow events, not as node events:
 
 - **active**: Flow has started and is currently active
 - **completed**: Flow is terminal, deactivated, and completed successfully

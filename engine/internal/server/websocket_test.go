@@ -626,7 +626,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 	})
 }
 
-func TestSocketCallbackPartition(t *testing.T) {
+func TestSocketCallbackNode(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
 		ws := testServerWebSocket(t, env.Server)
 		defer ws.Cleanup()
@@ -635,8 +635,10 @@ func TestSocketCallbackPartition(t *testing.T) {
 			Type: "subscribe",
 			Data: api.ClientSubscription{
 				SubscriptionID: "sub-1",
-				AggregateIDs:   [][]string{{events.PartitionPrefix}},
-				IncludeState:   true,
+				AggregateIDs: [][]string{
+					{events.NodePrefix, env.Config.Raft.LocalID},
+				},
+				IncludeState: true,
 			},
 		}
 		err := ws.Conn.WriteJSON(sub)
@@ -647,10 +649,13 @@ func TestSocketCallbackPartition(t *testing.T) {
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
 		item := subscribedItem(t, stateMsg)
-		assert.Equal(t, []string{events.PartitionPrefix}, item.AggregateID)
+		assert.Equal(t,
+			[]string{events.NodePrefix, env.Config.Raft.LocalID},
+			item.AggregateID,
+		)
 
-		var part api.PartitionState
-		err = json.Unmarshal(item.Data, &part)
+		var node api.NodeState
+		err = json.Unmarshal(item.Data, &node)
 		assert.NoError(t, err)
 	})
 }

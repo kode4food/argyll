@@ -6,12 +6,13 @@ This guide covers how to configure Argyll for development, testing, and producti
 
 ### Engine: Raft Storage
 
-Configure the shared Raft-backed store used by catalog, partition, and flow executors:
+Configure the Raft-backed stores used by engine metadata/state and flow executors:
 
 ```bash
 RAFT_NODE_ID=argyll-1                         # Local Raft server ID
 RAFT_ADDRESS=127.0.0.1:9701                  # Local Raft address
 RAFT_DATA_DIR=/tmp/argyll-raft/argyll-1      # Durable local state
+RAFT_LOG_TAIL_SIZE=20480                     # Hot retained WAL tail cache entries
 RAFT_SERVERS=argyll-1=127.0.0.1:9701         # Bootstrap cluster members
 ```
 
@@ -48,7 +49,10 @@ These defaults must be valid at startup:
 
 ## Cluster Topology
 
-Argyll now uses one shared Timebox store backed by Raft. Catalog, partition, and flow state are separate executors over that shared store.
+Argyll now uses two Raft-backed Timebox stores:
+
+- `EngineStore` for engine metadata/state aggregates such as `catalog`, `nodes`, and `node:<node-id>`
+- `FlowStore` for flow state and flow indexes
 
 ### Single Node
 
@@ -68,8 +72,9 @@ RAFT_SERVERS=argyll-1=argyll-1:9701,argyll-2=argyll-2:9702,argyll-3=argyll-3:970
 ```
 
 **Store behaviors:**
-- Catalog, partition, and flow all commit through the same Raft log
-- Timebox indexes live in the shared store and are updated atomically with event appends
+- `catalog`, `nodes`, and `node:<node-id>` commit through the engine store's Raft log
+- Flow state and flow indexes commit through the flow store
+- Timebox indexes live alongside their store and are updated atomically with event appends
 - Writes must target the leader node; followers serve reads from their local state
 
 ## Development Setup
@@ -99,6 +104,7 @@ cd engine
 
 1. **High Availability**: Run 3+ Raft nodes
    - Each node needs a stable `RAFT_NODE_ID`, `RAFT_DATA_DIR`, and `RAFT_ADDRESS`
+   - Tune `RAFT_LOG_TAIL_SIZE` only when you need a larger or smaller retained hot log tail; the default is `20480`
    - Keep `RAFT_SERVERS` consistent across the initial voter set
    - Writes commit on quorum, so capacity planning must account for replicated disk I/O
 

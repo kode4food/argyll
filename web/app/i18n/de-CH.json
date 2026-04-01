@@ -125,6 +125,7 @@
   "overviewStep.doubleClickEdit": "Doppelklicken Sie, um Step zu bearbeiten",
   "overviewStep.endpointUrl": "Endpoint URL",
   "overviewStep.healthCheckUrl": "Health Check URL",
+  "overviewStep.nodeHealth": "Node Health",
   "overviewStep.healthStatus": "Health Status",
   "overviewStep.moreLines": "... ({count} weitere Zeilen)",
   "overviewStep.scriptPreview": "Script Preview ({language})",

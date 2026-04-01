@@ -14,7 +14,6 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/config"
@@ -27,8 +26,7 @@ import (
 
 type raftNode struct {
 	id          string
-	catStore    *timebox.Store
-	partStore   *timebox.Store
+	engStore    *timebox.Store
 	flowStore   *timebox.Store
 	persistence *raft.Persistence
 	engine      *engine.Engine
@@ -51,8 +49,8 @@ func TestFollowerWrite(t *testing.T) {
 	)
 
 	var resp api.StepRegisteredResponse
-	require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-	require.NotNil(t, resp.Step)
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	assert.NotNil(t, resp.Step)
 	assert.Equal(t, step.ID, resp.Step.ID)
 
 	assert.Eventually(t, func() bool {
@@ -90,7 +88,7 @@ func TestFollowerWriteStartup(t *testing.T) {
 	step := newScriptStep()
 	for range len(inits) {
 		res := <-started
-		require.NoError(t, res.err)
+		assert.NoError(t, res.err)
 
 		n := res.node
 		nodes = append(nodes, n)
@@ -104,13 +102,13 @@ func TestFollowerWriteStartup(t *testing.T) {
 			)
 
 			var resp api.StepRegisteredResponse
-			require.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-			require.NotNil(t, resp.Step)
+			assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+			assert.NotNil(t, resp.Step)
 			assert.Equal(t, step.ID, resp.Step.ID)
 			wrote = true
 		}
 	}
-	require.True(t, wrote, "expected one follower to be ready first")
+	assert.True(t, wrote)
 
 	t.Cleanup(func() {
 		for _, n := range nodes {
@@ -119,6 +117,9 @@ func TestFollowerWriteStartup(t *testing.T) {
 			}
 			if n.flowStore != nil {
 				_ = n.flowStore.Close()
+			}
+			if n.engStore != nil {
+				_ = n.engStore.Close()
 			}
 		}
 	})
@@ -154,7 +155,7 @@ func newRaftCluster(t *testing.T, n int) []*raftNode {
 	nodes := make([]*raftNode, 0, len(inits))
 	for range len(inits) {
 		res := <-started
-		require.NoError(t, res.err)
+		assert.NoError(t, res.err)
 		nodes = append(nodes, res.node)
 	}
 
@@ -165,6 +166,9 @@ func newRaftCluster(t *testing.T, n int) []*raftNode {
 			}
 			if n.flowStore != nil {
 				_ = n.flowStore.Close()
+			}
+			if n.engStore != nil {
+				_ = n.engStore.Close()
 			}
 		}
 	})
@@ -211,19 +215,14 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		return nil, err
 	}
 
-	catalogStore, err := p.NewStore(init.cfg.CatalogStoreConfig())
+	engStore, err := p.NewStore(init.cfg.EngineStoreConfig())
 	if err != nil {
 		_ = p.Close()
 		return nil, err
 	}
-	partStore, err := p.NewStore(init.cfg.PartitionStoreConfig())
-	if err != nil {
-		_ = catalogStore.Close()
-		return nil, err
-	}
 	flowStore, err := p.NewStore(init.cfg.FlowStoreConfig())
 	if err != nil {
-		_ = catalogStore.Close()
+		_ = engStore.Close()
 		return nil, err
 	}
 	closeStore := true
@@ -240,8 +239,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 	}
 
 	eng, err := engine.New(init.cfg, engine.Dependencies{
-		CatStore:         catalogStore,
-		PartStore:        partStore,
+		EngineStore:      engStore,
 		FlowStore:        flowStore,
 		StepClient:       helpers.NewMockClient(),
 		Clock:            time.Now,
@@ -259,8 +257,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 	closeStore = false
 	return &raftNode{
 		id:          init.id,
-		catStore:    catalogStore,
-		partStore:   partStore,
+		engStore:    engStore,
 		flowStore:   flowStore,
 		persistence: p,
 		engine:      eng,
@@ -278,7 +275,7 @@ func findLeaderFollower(
 	t.Helper()
 
 	var leader *raftNode
-	require.Eventually(t, func() bool {
+	assert.Eventually(t, func() bool {
 		for _, n := range nodes {
 			if n.persistence.State() == raft.StateLeader {
 				leader = n
@@ -303,7 +300,7 @@ func postJSON(
 	t.Helper()
 
 	data, err := json.Marshal(body)
-	require.NoError(t, err)
+	assert.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(data))
 	req.Header.Set("Content-Type", "application/json")
@@ -317,7 +314,7 @@ func freeAddr(t *testing.T) string {
 	t.Helper()
 
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
+	assert.NoError(t, err)
 	defer func() { _ = ln.Close() }()
 	return ln.Addr().String()
 }

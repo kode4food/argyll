@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"sort"
 
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -23,7 +24,8 @@ type healthResolver struct {
 func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
-	cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
+	nodeID := api.NodeID(e.config.Raft.LocalID)
+	cmd := func(st *api.NodeState, ag *NodeAggregator) error {
 		if h, ok := st.Health[stepID]; ok {
 			if h.Status == health && h.Error == errMsg {
 				return nil
@@ -32,6 +34,7 @@ func (e *Engine) UpdateStepHealth(
 
 		return events.Raise(ag, api.EventTypeStepHealthChanged,
 			api.StepHealthChangedEvent{
+				NodeID: nodeID,
 				StepID: stepID,
 				Status: health,
 				Error:  errMsg,
@@ -39,7 +42,7 @@ func (e *Engine) UpdateStepHealth(
 		)
 	}
 
-	_, err := e.execPartition(cmd)
+	_, err := e.execNode(cmd)
 	return err
 }
 
@@ -67,6 +70,38 @@ func ResolveHealth(
 		resolved[stepID] = resolver.resolve(stepID)
 	}
 	return resolved
+}
+
+// MergeNodeHealth reduces per-node step health into a shard-wide worst-case
+// view while preserving stable results.
+func MergeNodeHealth(
+	byNode map[api.NodeID]map[api.StepID]*api.HealthState,
+) map[api.StepID]*api.HealthState {
+	res := map[api.StepID]*api.HealthState{}
+	nodes := make([]string, 0, len(byNode))
+	for id := range byNode {
+		nodes = append(nodes, string(id))
+	}
+	sort.Strings(nodes)
+
+	for _, rawNodeID := range nodes {
+		nodeID := api.NodeID(rawNodeID)
+		healthByStepID := byNode[nodeID]
+		steps := make([]string, 0, len(healthByStepID))
+		for stepID := range healthByStepID {
+			steps = append(steps, string(stepID))
+		}
+		sort.Strings(steps)
+
+		for _, rawStepID := range steps {
+			stepID := api.StepID(rawStepID)
+			res[stepID] = mergeHealthState(
+				nodeID, res[stepID], healthByStepID[stepID],
+			)
+		}
+	}
+
+	return res
 }
 
 func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
@@ -101,7 +136,7 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 	}
 
 	if step.Type != api.StepTypeFlow || step.Flow == nil {
-		h := baseHealth(stepID, r.base)
+		h := defaultStepHealth(step, stepID, r.base)
 		r.cache[stepID] = h
 		return h
 	}
@@ -152,6 +187,27 @@ func baseHealth(
 	return &api.HealthState{Status: api.HealthUnknown}
 }
 
+func defaultStepHealth(
+	step *api.Step, stepID api.StepID, base map[api.StepID]*api.HealthState,
+) *api.HealthState {
+	if step != nil && step.Type == api.StepTypeScript {
+		return scriptHealth(stepID, base)
+	}
+	return baseHealth(stepID, base)
+}
+
+func scriptHealth(
+	stepID api.StepID, base map[api.StepID]*api.HealthState,
+) *api.HealthState {
+	if h, ok := base[stepID]; ok && h != nil {
+		if h.Status == api.HealthUnknown && h.Error == "" {
+			return &api.HealthState{Status: api.HealthHealthy}
+		}
+		return h
+	}
+	return &api.HealthState{Status: api.HealthHealthy}
+}
+
 func flowStepHealth(
 	stepID api.StepID, health *api.HealthState,
 ) *api.HealthState {
@@ -186,6 +242,51 @@ func flowStepHealth(
 		}
 	default:
 		return &api.HealthState{Status: api.HealthHealthy}
+	}
+}
+
+func mergeHealthState(
+	nodeID api.NodeID, curr, next *api.HealthState,
+) *api.HealthState {
+	if next == nil {
+		return curr
+	}
+
+	norm := &api.HealthState{
+		Status: next.Status,
+		Error:  annotateHealthError(string(nodeID), next.Error),
+	}
+	if curr == nil {
+		return norm
+	}
+
+	if healthRank(norm.Status) > healthRank(curr.Status) {
+		return norm
+	}
+	if healthRank(norm.Status) < healthRank(curr.Status) {
+		return curr
+	}
+	if curr.Error == "" && norm.Error != "" {
+		return norm
+	}
+	return curr
+}
+
+func annotateHealthError(nodeID, errMsg string) string {
+	if errMsg == "" {
+		return ""
+	}
+	return fmt.Sprintf("node %s: %s", nodeID, errMsg)
+}
+
+func healthRank(st api.HealthStatus) int {
+	switch st {
+	case api.HealthUnhealthy:
+		return 2
+	case api.HealthUnknown:
+		return 1
+	default:
+		return 0
 	}
 }
 

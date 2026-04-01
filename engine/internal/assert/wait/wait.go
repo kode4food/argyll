@@ -36,7 +36,7 @@ type (
 const DefaultTimeout = time.Second * 5
 
 var engineFilter = EventFilter(func(ev *timebox.Event) bool {
-	return events.IsCatalogEvent(ev) || events.IsPartitionEvent(ev)
+	return events.IsCatalogEvent(ev) || events.IsNodeEvent(ev)
 })
 
 func On(t *testing.T, consumer *event.Consumer) *Wait {
@@ -259,11 +259,11 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 }
 
 // StepHealthChanged matches step health change events for a step/status
-func StepHealthChanged(stepID api.StepID, status api.HealthStatus) EventFilter {
+func StepHealthChanged(stepID api.StepID, st api.HealthStatus) EventFilter {
 	return And(
 		Type(api.EventTypeStepHealthChanged),
 		PredicateFilter(func(data api.StepHealthChangedEvent) bool {
-			return data.StepID == stepID && data.Status == status
+			return data.StepID == stepID && data.Status == st
 		}),
 	)
 }

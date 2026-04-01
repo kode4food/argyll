@@ -26,8 +26,8 @@ type Server struct {
 }
 
 var (
-	ErrGetCatalogState   = errors.New("failed to get catalog state")
-	ErrGetPartitionState = errors.New("failed to get partition state")
+	ErrGetCatalogState = errors.New("failed to get catalog state")
+	ErrGetNodeState    = errors.New("failed to get node state")
 )
 
 // NewServer creates a new HTTP API server
@@ -124,25 +124,24 @@ func (s *Server) handleEngine(c *gin.Context) {
 		})
 		return
 	}
-	part, err := s.engine.GetPartitionState()
+	res, err := resolveEngineHealth(s.engine)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetPartitionState, err),
+			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
 			Status: http.StatusInternalServerError,
 		})
 		return
 	}
-	health := engine.ResolveHealth(cat, part.Health)
 
 	last := cat.LastUpdated
-	if part.LastUpdated.After(last) {
-		last = part.LastUpdated
+	if res.lastUpdated.After(last) {
+		last = res.lastUpdated
 	}
 	c.JSON(http.StatusOK, gin.H{
 		"last_updated": last,
 		"steps":        cat.Steps,
 		"attributes":   cat.Attributes,
-		"health":       health,
+		"health":       res.byNode,
 	})
 }
 

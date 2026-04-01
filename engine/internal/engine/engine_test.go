@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
@@ -26,15 +27,9 @@ func TestNewMissingDependency(t *testing.T) {
 			edit func(*engine.Dependencies)
 		}{
 			{
-				name: "catalog store",
+				name: "engine store",
 				edit: func(deps *engine.Dependencies) {
-					deps.CatStore = nil
-				},
-			},
-			{
-				name: "partition store",
-				edit: func(deps *engine.Dependencies) {
-					deps.PartStore = nil
+					deps.EngineStore = nil
 				},
 			},
 			{
@@ -111,9 +106,9 @@ func TestGetCatalogState(t *testing.T) {
 	})
 }
 
-func TestGetPartitionState(t *testing.T) {
+func TestGetNodeState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, err := eng.GetPartitionState()
+		state, err := eng.GetNodeState()
 		assert.NoError(t, err)
 		assert.NotNil(t, state)
 		assert.NotNil(t, state.Health)
@@ -130,13 +125,46 @@ func TestGetCatalogStateSeq(t *testing.T) {
 	})
 }
 
-func TestGetPartitionStateSeq(t *testing.T) {
+func TestGetNodeStateSeq(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, seq, err := eng.GetPartitionStateSeq()
+		state, seq, err := eng.GetNodeStateSeq()
 		assert.NoError(t, err)
 		assert.NotNil(t, state)
 		assert.NotNil(t, state.Health)
 		assert.True(t, seq >= 0)
+	})
+}
+
+func TestGetShardNodeStates(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Config.Raft.Servers = append(env.Config.Raft.Servers,
+			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
+		)
+
+		cfg := *env.Config
+		cfg.Raft.LocalID = "node-2"
+		cfg.Raft.Servers = []raft.Server{
+			{ID: "node-2", Address: "127.0.0.1:9702"},
+		}
+
+		peer, err := engine.New(&cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if peer != nil {
+			defer func() { _ = peer.Stop() }()
+		}
+
+		assert.NoError(t,
+			peer.UpdateStepHealth("step-1", api.HealthHealthy, ""),
+		)
+
+		state, err := env.Engine.GetShardNodeStates()
+		assert.NoError(t, err)
+		assert.Contains(t, state, api.NodeID(env.Config.Raft.LocalID))
+		assert.Contains(t, state, api.NodeID("node-2"))
+		assert.Equal(t,
+			api.HealthHealthy,
+			state["node-2"].Health["step-1"].Status,
+		)
 	})
 }
 

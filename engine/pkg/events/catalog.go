@@ -24,7 +24,12 @@ func NewCatalogState() *api.CatalogState {
 
 // IsCatalogEvent returns true if the event is for the catalog aggregate
 func IsCatalogEvent(ev *timebox.Event) bool {
-	return len(ev.AggregateID) >= 1 && ev.AggregateID[0] == CatalogPrefix
+	return IsCatalogEventID(ev.AggregateID)
+}
+
+// IsCatalogEventID returns true if the ID is for the catalog aggregate
+func IsCatalogEventID(id timebox.AggregateID) bool {
+	return len(id) == 1 && id[0] == CatalogPrefix
 }
 
 func makeCatalogAppliers() timebox.Appliers[*api.CatalogState] {

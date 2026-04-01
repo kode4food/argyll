@@ -156,6 +156,15 @@ export interface StepHealth {
   error?: string;
 }
 
+export interface NodeStepHealth extends StepHealth {
+  nodeId: string;
+}
+
+export interface EngineState {
+  steps: Record<string, Step>;
+  health: Record<string, Record<string, StepHealth>>;
+}
+
 export interface AttributeValue {
   value: any;
   step?: string;

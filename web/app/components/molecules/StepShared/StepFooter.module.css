@@ -71,3 +71,47 @@
   margin-top: 0.25rem;
   font-size: 0.875rem;
 }
+
+.nodeHealthList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.nodeBubble {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 1.25rem;
+  padding: 0.0625rem 0.375rem;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  line-height: 1;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.nodeBubblehealthy {
+  background: color-mix(in srgb, var(--color-success) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-success) 45%, transparent);
+  color: var(--color-tooltip-text);
+}
+
+.nodeBubbleunhealthy {
+  background: color-mix(in srgb, var(--color-error) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-error) 45%, transparent);
+  color: var(--color-tooltip-text);
+}
+
+.nodeBubbleunknown {
+  background: color-mix(in srgb, var(--color-warning) 18%, transparent);
+  border-color: color-mix(in srgb, var(--color-warning) 45%, transparent);
+  color: var(--color-tooltip-text);
+}
+
+.nodeBubbleunconfigured {
+  background: color-mix(in srgb, var(--color-dark-border) 30%, transparent);
+  border-color: var(--color-dark-border);
+  color: var(--color-tooltip-text);
+}

@@ -25,8 +25,7 @@ type (
 		Config     *config.Config
 		EventHub   *event.Hub
 		Cleanup    func()
-		catStore   *timebox.Store
-		partStore  *timebox.Store
+		engStore   *timebox.Store
 		flowStore  *timebox.Store
 		flowExec   *timebox.Executor[*api.FlowState]
 	}
@@ -81,16 +80,13 @@ func NewTestEngineWithDeps(
 		Backend: memory.NewPersistence(),
 		publish: hub.Publish,
 	}
-	catStore, err := backend.NewStore(cfg.CatalogStoreConfig())
-	assert.NoError(t, err)
-	partStore, err := backend.NewStore(cfg.PartitionStoreConfig())
+	engStore, err := backend.NewStore(cfg.EngineStoreConfig())
 	assert.NoError(t, err)
 	flowStore, err := backend.NewStore(cfg.FlowStoreConfig())
 	assert.NoError(t, err)
 
 	defaultDeps := engine.Dependencies{
-		CatStore:         catStore,
-		PartStore:        partStore,
+		EngineStore:      engStore,
 		FlowStore:        flowStore,
 		StepClient:       mockCli,
 		Clock:            time.Now,
@@ -113,14 +109,14 @@ func NewTestEngineWithDeps(
 		MockClient: mockCli,
 		Config:     cfg,
 		EventHub:   deps.EventHub,
-		catStore:   deps.CatStore,
-		partStore:  deps.PartStore,
+		engStore:   deps.EngineStore,
 		flowStore:  deps.FlowStore,
 		flowExec:   flowExec,
 	}
 
 	testEnv.Cleanup = func() {
 		_ = testEnv.Engine.Stop()
+		_ = testEnv.engStore.Close()
 		_ = testEnv.flowStore.Close()
 	}
 
@@ -232,8 +228,7 @@ func (e *TestEngineEnv) engineDeps(
 	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
 	return engine.Dependencies{
-		CatStore:         e.catStore,
-		PartStore:        e.partStore,
+		EngineStore:      e.engStore,
 		FlowStore:        e.flowStore,
 		StepClient:       e.MockClient,
 		Clock:            clock,
@@ -245,11 +240,8 @@ func (e *TestEngineEnv) engineDeps(
 func mergeDependencies(
 	defaults engine.Dependencies, overrides engine.Dependencies,
 ) engine.Dependencies {
-	if overrides.CatStore != nil {
-		defaults.CatStore = overrides.CatStore
-	}
-	if overrides.PartStore != nil {
-		defaults.PartStore = overrides.PartStore
+	if overrides.EngineStore != nil {
+		defaults.EngineStore = overrides.EngineStore
 	}
 	if overrides.FlowStore != nil {
 		defaults.FlowStore = overrides.FlowStore

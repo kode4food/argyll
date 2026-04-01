@@ -121,23 +121,13 @@ func (s *Server) handleWebSocket(c *gin.Context) {
 func (s *Server) lookupSubscriptionState(
 	id timebox.AggregateID,
 ) (any, int64, error) {
-	if len(id) == 0 {
-		return nil, 0, nil
-	}
-	switch string(id[0]) {
-	case events.CatalogPrefix:
-		if len(id) == 1 {
-			return s.engine.GetCatalogStateSeq()
-		}
-	case events.PartitionPrefix:
-		if len(id) == 1 {
-			return s.engine.GetPartitionStateSeq()
-		}
-	case events.FlowPrefix:
-		if len(id) == 2 {
-			flowID := api.FlowID(id[1])
-			return s.engine.GetFlowStateSeq(flowID)
-		}
+	switch {
+	case events.IsCatalogEventID(id):
+		return s.engine.GetCatalogStateSeq()
+	case events.IsNodeEventID(id):
+		return s.engine.GetNodeStateSeqFor(api.NodeID(id[1]))
+	case events.IsFlowEventID(id):
+		return s.engine.GetFlowStateSeq(api.FlowID(id[1]))
 	}
 	return nil, 0, nil
 }
@@ -430,7 +420,9 @@ func newClientSubscription(
 		includeState: sub.IncludeState,
 		eventTypes:   subscriptionEventTypes(sub),
 	}
-	res.consumer = hub.NewAggregatesConsumer(res.aggregateIDs, res.eventTypes...)
+	res.consumer = hub.NewAggregatesConsumer(
+		res.aggregateIDs, res.eventTypes...,
+	)
 	res.active.Store(true)
 	return res, nil
 }

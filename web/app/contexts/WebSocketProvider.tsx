@@ -11,7 +11,7 @@ const CATALOG_EVENT_TYPES = [
   "step_updated",
 ];
 
-const PARTITION_EVENT_TYPES = ["step_health_changed"];
+const NODE_EVENT_TYPES = ["step_health_changed"];
 
 const FLOW_SUMMARY_EVENT_TYPES = [
   "flow_started",
@@ -47,7 +47,6 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   const t = useT();
   const selectedFlow = useFlowStore((state) => state.selectedFlow);
   const visibleFlowIDs = useFlowStore((state) => state.visibleFlowIDs);
-  const loadSteps = useFlowStore((state) => state.loadSteps);
   const addFlow = useFlowStore((state) => state.addFlow);
   const addStep = useFlowStore((state) => state.addStep);
   const updateStep = useFlowStore((state) => state.updateStep);
@@ -93,24 +92,17 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
     [addStep, removeStep, updateStep]
   );
 
-  const handlePartitionEvent = useCallback(
+  const handleNodeEvent = useCallback(
     (event: WebSocketEvent | WebSocketSubscribed) => {
-      if (event.type === "subscribed") {
-        const { setPartitionState } = useFlowStore.getState();
-        const data = subscribedData(event as WebSocketSubscribed);
-        setPartitionState(data?.health ?? {});
-        return;
-      }
-
       const wsEvent = event as WebSocketEvent;
       switch (wsEvent.type) {
         case "step_health_changed": {
+          const nodeId = wsEvent.data?.node_id;
           const stepId = wsEvent.data?.step_id;
           const health = wsEvent.data?.status;
           const error = wsEvent.data?.error;
-          if (stepId && health) {
-            updateStepHealth(stepId, health, error);
-            loadSteps();
+          if (nodeId && stepId && health) {
+            updateStepHealth(nodeId, stepId, health, error);
           }
           break;
         }
@@ -118,7 +110,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           break;
       }
     },
-    [updateStepHealth, loadSteps]
+    [updateStepHealth]
   );
 
   const handleFlowSummaryEvent = useCallback(
@@ -349,16 +341,16 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     const subscriptionId = socketClient.subscribe(
       {
-        aggregate_ids: [["partition"]],
-        include_state: true,
-        event_types: PARTITION_EVENT_TYPES,
+        aggregate_ids: [["node"]],
+        include_state: false,
+        event_types: NODE_EVENT_TYPES,
       },
-      handlePartitionEvent
+      handleNodeEvent
     );
     return () => {
       socketClient.unsubscribe(subscriptionId);
     };
-  }, [handlePartitionEvent, socketClient.subscribe, socketClient.unsubscribe]);
+  }, [handleNodeEvent, socketClient.subscribe, socketClient.unsubscribe]);
 
   useEffect(() => {
     if (visibleFlowIDs.length === 0) {

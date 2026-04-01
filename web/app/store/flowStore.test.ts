@@ -144,8 +144,12 @@ describe("flowStore", () => {
           "step-3": { ...mockStep, id: "step-3", name: "Beta Step" },
         },
         health: {
-          "step-1": { status: "healthy" },
-          "step-2": { status: "unhealthy", error: "Connection timeout" },
+          "node-1": {
+            "step-1": { status: "healthy" },
+          },
+          "node-2": {
+            "step-1": { status: "unhealthy", error: "Connection timeout" },
+          },
         },
       });
 
@@ -155,7 +159,17 @@ describe("flowStore", () => {
       expect(state.steps).toHaveLength(3);
       expect(state.steps[0].name).toBe("Alpha Step");
       expect(state.steps[2].name).toBe("Zebra Step");
-      expect(state.stepHealth["step-1"]).toEqual({ status: "healthy" });
+      expect(state.stepHealth["step-1"]).toEqual({
+        status: "unhealthy",
+        error: "node node-2: Connection timeout",
+        nodes: {
+          "node-1": { status: "healthy", error: undefined },
+          "node-2": {
+            status: "unhealthy",
+            error: "Connection timeout",
+          },
+        },
+      });
     });
 
     test("loadSteps handles error", async () => {
@@ -531,21 +545,32 @@ describe("flowStore", () => {
     test("updateStepHealth updates step health", () => {
       useFlowStore.setState({ stepHealth: {} });
 
-      useFlowStore.getState().updateStepHealth("step-1", "healthy");
+      useFlowStore.getState().updateStepHealth("node-1", "step-1", "healthy");
       const state = useFlowStore.getState();
 
-      expect(state.stepHealth["step-1"]).toEqual({ status: "healthy" });
+      expect(state.stepHealth["step-1"]).toEqual({
+        status: "healthy",
+        nodes: {
+          "node-1": { status: "healthy" },
+        },
+      });
     });
 
     test("updateStepHealth updates with error", () => {
       useFlowStore
         .getState()
-        .updateStepHealth("step-1", "unhealthy", "Connection failed");
+        .updateStepHealth("node-1", "step-1", "unhealthy", "Connection failed");
       const state = useFlowStore.getState();
 
       expect(state.stepHealth["step-1"]).toEqual({
         status: "unhealthy",
-        error: "Connection failed",
+        error: "node node-1: Connection failed",
+        nodes: {
+          "node-1": {
+            status: "unhealthy",
+            error: "Connection failed",
+          },
+        },
       });
     });
   });
@@ -632,15 +657,27 @@ describe("flowStore", () => {
       expect(state.steps[0].id).toBe("step-1");
     });
 
-    test("setPartitionState updates health from WebSocket", () => {
-      useFlowStore.getState().setPartitionState({
-        "step-1": { status: "healthy" },
+    test("setHealthState updates health from WebSocket", () => {
+      useFlowStore.getState().setHealthState({
+        "node-1": {
+          "step-1": { status: "healthy" },
+        },
+        "node-2": {
+          "step-1": { status: "unhealthy", error: "Connection failed" },
+        },
       });
 
       const state = useFlowStore.getState();
       expect(state.stepHealth["step-1"]).toEqual({
-        status: "healthy",
-        error: undefined,
+        status: "unhealthy",
+        error: "node node-2: Connection failed",
+        nodes: {
+          "node-1": { status: "healthy", error: undefined },
+          "node-2": {
+            status: "unhealthy",
+            error: "Connection failed",
+          },
+        },
       });
     });
 

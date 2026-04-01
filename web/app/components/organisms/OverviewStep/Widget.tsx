@@ -36,7 +36,11 @@ const Widget: React.FC<WidgetProps> = ({
   diagramContainerRef,
   disableEdit = false,
 }) => {
-  const { status: healthStatus, error: healthError } = useStepHealth(step);
+  const {
+    status: healthStatus,
+    error: healthError,
+    nodes: healthNodes,
+  } = useStepHealth(step);
   const stepType = getStepType(step);
   const { focusedPreviewAttribute } = useUI();
   const upsertStep = useFlowStore((state) => state.upsertStep);
@@ -120,6 +124,7 @@ const Widget: React.FC<WidgetProps> = ({
           step={step}
           healthStatus={healthStatus}
           healthError={healthError}
+          healthNodes={healthNodes}
         />
       </div>
     </>

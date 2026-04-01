@@ -42,7 +42,7 @@ func TestDeleteStep(t *testing.T) {
 }
 
 func TestSetHealth(t *testing.T) {
-	original := &api.PartitionState{
+	original := &api.NodeState{
 		Health: map[api.StepID]*api.HealthState{},
 	}
 
@@ -53,14 +53,23 @@ func TestSetHealth(t *testing.T) {
 	assert.Empty(t, original.Health)
 }
 
-func TestSetPartitionUpdated(t *testing.T) {
-	original := &api.PartitionState{LastUpdated: time.Unix(1000, 0)}
+func TestSetLastSeen(t *testing.T) {
+	original := &api.NodeState{LastSeen: time.Unix(1000, 0)}
 	newTime := time.Unix(2000, 0)
 
-	result := original.SetLastUpdated(newTime)
+	result := original.SetLastSeen(newTime)
 
-	assert.True(t, result.LastUpdated.Equal(newTime))
-	assert.True(t, original.LastUpdated.Equal(time.Unix(1000, 0)))
+	assert.True(t, result.LastSeen.Equal(newTime))
+	assert.True(t, original.LastSeen.Equal(time.Unix(1000, 0)))
+}
+
+func TestSetNodeID(t *testing.T) {
+	original := &api.NodeState{ID: "node-1"}
+
+	result := original.SetID("node-2")
+
+	assert.Equal(t, api.NodeID("node-2"), result.ID)
+	assert.Equal(t, api.NodeID("node-1"), original.ID)
 }
 
 func TestSetFlowStatus(t *testing.T) {

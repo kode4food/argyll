@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/kode4food/timebox"
+	"github.com/kode4food/timebox/raft"
 	testify "github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert"
@@ -118,6 +119,7 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal("info", cfg.LogLevel)
 	as.Equal(config.DefaultRaftNodeID, cfg.Raft.LocalID)
 	as.Equal(config.DefaultRaftAddress, cfg.Raft.Address)
+	as.Equal(raft.DefaultLogTailSize, cfg.Raft.LogTailSize)
 	as.Len(cfg.Raft.Servers, 1)
 	as.Equal(config.DefaultRaftNodeID, cfg.Raft.Servers[0].ID)
 	as.False(cfg.Timebox.TrimEvents)
@@ -125,17 +127,11 @@ func TestDefaultConfigValues(t *testing.T) {
 	as.Equal(config.DefaultTimeboxCacheSize, cfg.Timebox.CacheSize)
 	as.Nil(cfg.Timebox.Indexer)
 
-	catStore := cfg.CatalogStoreConfig()
-	as.True(catStore.TrimEvents)
-	as.Equal(timebox.DefaultSnapshotRatio, catStore.SnapshotRatio)
-	as.Equal(config.SingletonCacheSize, catStore.CacheSize)
-	as.Nil(catStore.Indexer)
-
-	partStore := cfg.PartitionStoreConfig()
-	as.True(partStore.TrimEvents)
-	as.Equal(timebox.DefaultSnapshotRatio, partStore.SnapshotRatio)
-	as.Equal(config.DefaultTimeboxCacheSize, partStore.CacheSize)
-	as.Nil(partStore.Indexer)
+	engStore := cfg.EngineStoreConfig()
+	as.True(engStore.TrimEvents)
+	as.Equal(timebox.DefaultSnapshotRatio, engStore.SnapshotRatio)
+	as.Equal(config.EngineStoreCacheSize, engStore.CacheSize)
+	as.Nil(engStore.Indexer)
 
 	flowStore := cfg.FlowStoreConfig()
 	as.False(flowStore.TrimEvents)
@@ -157,17 +153,11 @@ func TestDefaultTimebox(t *testing.T) {
 func TestStoreConfigs(t *testing.T) {
 	cfg := config.NewDefaultConfig()
 
-	catStore := cfg.CatalogStoreConfig()
-	testify.True(t, catStore.TrimEvents)
-	testify.Equal(t, timebox.DefaultSnapshotRatio, catStore.SnapshotRatio)
-	testify.Equal(t, config.SingletonCacheSize, catStore.CacheSize)
-	testify.Nil(t, catStore.Indexer)
-
-	partStore := cfg.PartitionStoreConfig()
-	testify.True(t, partStore.TrimEvents)
-	testify.Equal(t, timebox.DefaultSnapshotRatio, partStore.SnapshotRatio)
-	testify.Equal(t, config.DefaultTimeboxCacheSize, partStore.CacheSize)
-	testify.Nil(t, partStore.Indexer)
+	engStore := cfg.EngineStoreConfig()
+	testify.True(t, engStore.TrimEvents)
+	testify.Equal(t, timebox.DefaultSnapshotRatio, engStore.SnapshotRatio)
+	testify.Equal(t, config.EngineStoreCacheSize, engStore.CacheSize)
+	testify.Nil(t, engStore.Indexer)
 
 	flowStore := cfg.FlowStoreConfig()
 	testify.False(t, flowStore.TrimEvents)
@@ -303,9 +293,10 @@ func TestConfigLoadFromEnv(t *testing.T) {
 		{
 			name: "load_raft_settings",
 			envVars: map[string]string{
-				"RAFT_NODE_ID":  "node-2",
-				"RAFT_ADDRESS":  "10.0.0.2:9702",
-				"RAFT_DATA_DIR": "/tmp/argyll-node-2",
+				"RAFT_NODE_ID":       "node-2",
+				"RAFT_ADDRESS":       "10.0.0.2:9702",
+				"RAFT_DATA_DIR":      "/tmp/argyll-node-2",
+				"RAFT_LOG_TAIL_SIZE": "4096",
 				"RAFT_SERVERS": "node-1=10.0.0.1:9701," +
 					"node-2=10.0.0.2:9702",
 			},
@@ -313,6 +304,7 @@ func TestConfigLoadFromEnv(t *testing.T) {
 				testify.Equal(t, "node-2", c.Raft.LocalID)
 				testify.Equal(t, "10.0.0.2:9702", c.Raft.Address)
 				testify.Equal(t, "/tmp/argyll-node-2", c.Raft.DataDir)
+				testify.Equal(t, 4096, c.Raft.LogTailSize)
 				testify.Len(t, c.Raft.Servers, 2)
 				testify.Equal(t, "node-1", c.Raft.Servers[0].ID)
 				testify.Equal(t, "10.0.0.2:9702", c.Raft.Servers[1].Address)
@@ -341,14 +333,21 @@ func TestConfigLoadFromEnv(t *testing.T) {
 			check: func(t *testing.T, c *config.Config) {
 				testify.Equal(t, 8192, c.Timebox.CacheSize)
 				testify.Equal(t, 8192, c.FlowStoreConfig().CacheSize)
-				testify.Equal(t, config.SingletonCacheSize,
-					c.CatalogStoreConfig().CacheSize)
+				testify.Equal(t, config.EngineStoreCacheSize,
+					c.EngineStoreConfig().CacheSize)
 			},
 		},
 		{
 			name: "invalid_raft_servers_errors",
 			envVars: map[string]string{
 				"RAFT_SERVERS": "node-1-missing-equals",
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid_raft_log_tail_size_errors",
+			envVars: map[string]string{
+				"RAFT_LOG_TAIL_SIZE": "0",
 			},
 			wantErr: true,
 		},

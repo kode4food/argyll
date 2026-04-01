@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
 import {
+  EngineState,
   ExecutionPlan,
   QueryFlowsResponse,
   QueryFlowsRequest,
@@ -77,10 +78,7 @@ export class ArgyllApi {
     return response.data;
   }
 
-  async getEngine(): Promise<{
-    steps: Record<string, Step>;
-    health: Record<string, any>;
-  }> {
+  async getEngine(): Promise<EngineState> {
     const response = await this.client.get("/engine");
     return response.data;
   }

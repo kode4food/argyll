@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { Step, HealthStatus } from "@/app/api";
+import { Step, HealthStatus, NodeStepHealth } from "@/app/api";
 import { getHealthIconClass } from "@/utils/healthUtils";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import HealthDot from "@/app/components/atoms/HealthDot";
@@ -17,19 +17,32 @@ interface FooterProps {
   step: Step;
   healthStatus: HealthStatus;
   healthError?: string;
+  healthNodes?: NodeStepHealth[];
 }
 
-const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
+const nodeHealthText = (
+  t: (key: string) => string,
+  healthStatus: HealthStatus,
+  healthError?: string
+): string => {
+  return healthStatus === "healthy"
+    ? t("healthStatus.healthy")
+    : healthStatus === "unhealthy"
+      ? healthError || t("healthStatus.unhealthy")
+      : healthStatus === "unconfigured"
+        ? t("healthStatus.unconfigured")
+        : t("healthStatus.unknown");
+};
+
+const Footer: React.FC<FooterProps> = ({
+  step,
+  healthStatus,
+  healthError,
+  healthNodes = [],
+}) => {
   const t = useT();
   const healthIconClass = getHealthIconClass(healthStatus, step.type);
-  const healthText =
-    healthStatus === "healthy"
-      ? t("healthStatus.healthy")
-      : healthStatus === "unhealthy"
-        ? healthError || t("healthStatus.unhealthy")
-        : healthStatus === "unconfigured"
-          ? t("healthStatus.unconfigured")
-          : t("healthStatus.unknown");
+  const healthText = nodeHealthText(t, healthStatus, healthError);
 
   const { displayInfo, tooltipSections } = useMemo(() => {
     let displayInfo: {
@@ -119,8 +132,28 @@ const Footer: React.FC<FooterProps> = ({ step, healthStatus, healthError }) => {
       </TooltipSection>
     );
 
+    if (healthNodes.length > 0) {
+      sections.push(
+        <TooltipSection key="nodes" title={t("overviewStep.nodeHealth")}>
+          <div className={styles.nodeHealthList}>
+            {healthNodes.map((nodeHealth) => (
+              <span
+                key={nodeHealth.nodeId}
+                className={`${styles.nodeBubble} ${
+                  styles[`nodeBubble${nodeHealth.status}`]
+                }`}
+                title={nodeHealthText(t, nodeHealth.status, nodeHealth.error)}
+              >
+                {nodeHealth.nodeId}
+              </span>
+            ))}
+          </div>
+        </TooltipSection>
+      );
+    }
+
     return { displayInfo, tooltipSections: sections };
-  }, [step, healthStatus, healthText, t]);
+  }, [step, healthStatus, healthNodes, healthText, t]);
 
   return (
     <Tooltip

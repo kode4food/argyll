@@ -14,6 +14,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -524,12 +525,13 @@ func TestHookFailurePath(t *testing.T) {
 				StepID: "async-step",
 			},
 			func() {
-				err = testEnv.Engine.StartFlow("wf-fail-path", &api.ExecutionPlan{
-					Goals: []api.StepID{"async-step"},
-					Steps: api.Steps{
-						"async-step": step,
-					},
-				})
+				err = testEnv.Engine.StartFlow(
+					"wf-fail-path", &api.ExecutionPlan{
+						Goals: []api.StepID{"async-step"},
+						Steps: api.Steps{
+							"async-step": step,
+						},
+					})
 				assert.NoError(t, err)
 			})
 
@@ -738,6 +740,123 @@ func TestEngineHealthByID(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &health)
 		assert.NoError(t, err)
 		assert.Equal(t, api.HealthUnknown, health.Status)
+	})
+}
+
+func TestEngineHealthIncludesShardNodes(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		st := helpers.NewSimpleStep("health-step")
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
+		assert.NoError(t,
+			testEnv.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
+		)
+
+		testEnv.Config.Raft.Servers = append(testEnv.Config.Raft.Servers,
+			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
+		)
+		cfg := *testEnv.Config
+		cfg.Raft.LocalID = "node-2"
+		cfg.Raft.Servers = []raft.Server{
+			{ID: "node-2", Address: "127.0.0.1:9702"},
+		}
+		peer, err := engine.New(&cfg, testEnv.Dependencies())
+		assert.NoError(t, err)
+		if peer != nil {
+			defer func() { _ = peer.Stop() }()
+		}
+
+		assert.NoError(t,
+			peer.UpdateStepHealth(st.ID, api.HealthUnhealthy, "peer down"),
+		)
+
+		req := httptest.NewRequest("GET", "/engine/health", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response api.HealthListResponse
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		assert.Len(t, response.Health, 2)
+		localID := api.NodeID(testEnv.Config.Raft.LocalID)
+		if assert.Contains(t, response.Health, localID) {
+			assert.Equal(
+				t,
+				api.HealthHealthy,
+				response.Health[localID][st.ID].Status,
+			)
+		}
+		if assert.Contains(t, response.Health, api.NodeID("node-2")) {
+			assert.Equal(
+				t,
+				api.HealthUnhealthy,
+				response.Health["node-2"][st.ID].Status,
+			)
+		}
+	})
+}
+
+func TestEngineHealthScriptHealthyAcrossShardNodes(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		st := &api.Step{
+			ID:   "script-step",
+			Name: "Script Step",
+			Type: api.StepTypeScript,
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput},
+			},
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "{:result 42}",
+			},
+		}
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
+
+		testEnv.Config.Raft.Servers = append(testEnv.Config.Raft.Servers,
+			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
+		)
+		cfg := *testEnv.Config
+		cfg.Raft.LocalID = "node-2"
+		cfg.Raft.Servers = []raft.Server{
+			{ID: "node-2", Address: "127.0.0.1:9702"},
+		}
+		peer, err := engine.New(&cfg, testEnv.Dependencies())
+		assert.NoError(t, err)
+		if peer != nil {
+			defer func() { _ = peer.Stop() }()
+		}
+
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthUnknown, ""))
+
+		req := httptest.NewRequest("GET", "/engine/health", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response api.HealthListResponse
+		err = json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+		localID := api.NodeID(testEnv.Config.Raft.LocalID)
+		if assert.Contains(t, response.Health, localID) {
+			assert.Equal(
+				t,
+				api.HealthHealthy,
+				response.Health[localID][st.ID].Status,
+			)
+		}
+		if assert.Contains(t, response.Health, api.NodeID("node-2")) {
+			assert.Equal(
+				t,
+				api.HealthHealthy,
+				response.Health["node-2"][st.ID].Status,
+			)
+		}
 	})
 }
 
@@ -1329,7 +1448,7 @@ func TestHealthList(t *testing.T) {
 		var response api.HealthListResponse
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		assert.GreaterOrEqual(t, response.Count, 0)
+		assert.NotNil(t, response.Health)
 	})
 }
 

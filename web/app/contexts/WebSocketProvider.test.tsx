@@ -80,7 +80,7 @@ describe("WebSocketProvider", () => {
     (globalThis as any).__websocketStoreState.engineReconnectRequest = 0;
   });
 
-  test("subscribes to catalog, partition, and selected flow", () => {
+  test("subscribes to catalog, node, and selected flow", () => {
     const client = makeClient();
     useWebSocketClientMock.mockReturnValue(client);
 
@@ -107,8 +107,8 @@ describe("WebSocketProvider", () => {
     expect(client.subscribe).toHaveBeenNthCalledWith(
       2,
       {
-        aggregate_ids: [["partition"]],
-        include_state: true,
+        aggregate_ids: [["node"]],
+        include_state: false,
         event_types: ["step_health_changed"],
       },
       expect.any(Function)
@@ -222,7 +222,7 @@ describe("WebSocketProvider", () => {
     });
   });
 
-  test("dispatches partition events to health handlers", () => {
+  test("dispatches node events to health handlers", () => {
     const client = makeClient();
     useWebSocketClientMock.mockReturnValue(client);
 
@@ -232,19 +232,19 @@ describe("WebSocketProvider", () => {
       </WebSocketProvider>
     );
 
-    const partitionHandler = client.subscribe.mock.calls[1][1];
-    partitionHandler({
+    const nodeHandler = client.subscribe.mock.calls[1][1];
+    nodeHandler({
       type: "step_health_changed",
-      data: { step_id: "step-3", status: "healthy" },
+      data: { node_id: "node-1", step_id: "step-3", status: "healthy" },
     });
 
     const flowStore = require("@/app/store/flowStore");
     expect(flowStore.__storeState.updateStepHealth).toHaveBeenCalledWith(
+      "node-1",
       "step-3",
       "healthy",
       undefined
     );
-    expect(flowStore.__storeState.loadSteps).toHaveBeenCalledTimes(1);
   });
 
   test("dispatches flow summary events to flow store", () => {

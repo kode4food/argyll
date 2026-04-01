@@ -193,7 +193,9 @@ describe("ArgyllApi", () => {
           },
         },
         health: {
-          "step-1": { status: "healthy" },
+          "node-1": {
+            "step-1": { status: "healthy" },
+          },
         },
       };
 

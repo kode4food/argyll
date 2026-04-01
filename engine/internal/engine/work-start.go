@@ -108,16 +108,22 @@ func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
 func (e *ExecContext) performScript(inputs api.Args, tkn api.Token) error {
 	c, err := e.engine.scripts.Compile(e.step, e.step.Script)
 	if err != nil {
+		e.updateScriptHealth(api.HealthUnhealthy, err.Error())
 		return errors.Join(ErrScriptCompileFailed, err)
 	}
 
 	outputs, err := e.executeScript(c, inputs)
 	if err != nil {
+		e.updateScriptHealth(api.HealthUnhealthy, err.Error())
 		return err
 	}
 
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.CompleteWork(fs, tkn, outputs)
+	if err := e.engine.CompleteWork(fs, tkn, outputs); err != nil {
+		return err
+	}
+	e.updateScriptHealth(api.HealthHealthy, "")
+	return nil
 }
 
 func (e *ExecContext) performSyncHTTP(inputs api.Args, tkn api.Token) error {
@@ -184,6 +190,15 @@ func extractScriptResult(result api.Args) any {
 		}
 	}
 	return result
+}
+
+func (e *ExecContext) updateScriptHealth(st api.HealthStatus, errMsg string) {
+	if err := e.engine.UpdateStepHealth(e.stepID, st, errMsg); err != nil {
+		slog.Error("Failed to update script step health",
+			log.FlowID(e.flowID),
+			log.StepID(e.stepID),
+			log.Error(err))
+	}
 }
 
 func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {

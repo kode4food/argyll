@@ -12,9 +12,13 @@ import {
 } from "../api";
 import { ConnectionStatus } from "../types/websocket";
 
-interface StepHealthInfo {
+interface NodeHealth {
   status: string;
   error?: string;
+}
+
+interface StepHealthInfo extends NodeHealth {
+  nodes?: Record<string, NodeHealth>;
 }
 
 declare global {
@@ -132,6 +136,80 @@ const toFlowSummaryFromState = (state: FlowSummaryState): FlowSummary => {
   };
 };
 
+const healthRank = (status?: string): number => {
+  switch (status) {
+    case "unhealthy":
+      return 2;
+    case "unknown":
+      return 1;
+    default:
+      return 0;
+  }
+};
+
+const annotateHealthError = (
+  nodeId: string,
+  error?: string
+): string | undefined => {
+  return error ? `node ${nodeId}: ${error}` : undefined;
+};
+
+const reduceStepHealth = (
+  nodes: Record<string, NodeHealth>
+): StepHealthInfo => {
+  let status = "healthy";
+  let error: string | undefined;
+
+  Object.entries(nodes)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .forEach(([nodeId, nodeHealth]) => {
+      const nextStatus = nodeHealth.status || "unknown";
+      if (healthRank(nextStatus) > healthRank(status)) {
+        status = nextStatus;
+        error = annotateHealthError(nodeId, nodeHealth.error);
+        return;
+      }
+      if (
+        healthRank(nextStatus) === healthRank(status) &&
+        !error &&
+        nodeHealth.error
+      ) {
+        error = annotateHealthError(nodeId, nodeHealth.error);
+      }
+    });
+
+  return {
+    status,
+    ...(error && { error }),
+    ...(Object.keys(nodes).length > 0 && { nodes }),
+  };
+};
+
+const toStepHealthMap = (
+  healthByNode: Record<string, Record<string, StepHealthInfo>>
+): Record<string, StepHealthInfo> => {
+  const byStep: Record<string, Record<string, NodeHealth>> = {};
+
+  Object.entries(healthByNode).forEach(([nodeId, stepHealth]) => {
+    Object.entries(stepHealth || {}).forEach(([stepId, health]) => {
+      if (!byStep[stepId]) {
+        byStep[stepId] = {};
+      }
+      byStep[stepId][nodeId] = {
+        status: health.status || "unknown",
+        error: health.error,
+      };
+    });
+  });
+
+  return Object.fromEntries(
+    Object.entries(byStep).map(([stepId, nodes]) => [
+      stepId,
+      reduceStepHealth(nodes),
+    ])
+  );
+};
+
 interface FlowState {
   steps: Step[];
   stepHealth: Record<string, StepHealthInfo>;
@@ -162,7 +240,12 @@ interface FlowState {
   selectFlow: (flowId: string | null) => void;
   setFlowNotFound: (flowId: string) => void;
   updateFlowData: (update: Partial<FlowContext>) => void;
-  updateStepHealth: (stepId: string, health: string, error?: string) => void;
+  updateStepHealth: (
+    nodeId: string,
+    stepId: string,
+    health: string,
+    error?: string
+  ) => void;
   initializeExecutions: (flowId: string, plan: ExecutionPlan) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
   updateWorkItem: (
@@ -178,7 +261,9 @@ interface FlowState {
   requestEngineReconnect: () => void;
   setVisibleFlowIDs: (flowIDs: string[]) => void;
   setCatalogState: (steps: Record<string, Step>) => void;
-  setPartitionState: (health: Record<string, StepHealthInfo>) => void;
+  setHealthState: (
+    healthByNode: Record<string, Record<string, StepHealthInfo>>
+  ) => void;
   setFlowState: (state: {
     id: string;
     status: FlowContext["status"];
@@ -216,7 +301,7 @@ export const useFlowStore = create<FlowState>()(
         try {
           const engineData = await api.getEngine();
           get().setCatalogState(engineData.steps || {});
-          get().setPartitionState(engineData.health || {});
+          get().setHealthState(engineData.health || {});
         } catch (error) {
           console.error("Failed to load steps:", error);
           set({
@@ -375,15 +460,24 @@ export const useFlowStore = create<FlowState>()(
         });
       },
 
-      updateStepHealth: (stepId: string, health: string, error?: string) => {
+      updateStepHealth: (
+        nodeId: string,
+        stepId: string,
+        health: string,
+        error?: string
+      ) => {
         const { stepHealth } = get();
+        const nodes = {
+          ...(stepHealth[stepId]?.nodes || {}),
+          [nodeId]: {
+            status: health,
+            ...(error && { error }),
+          },
+        };
         set({
           stepHealth: {
             ...stepHealth,
-            [stepId]: {
-              status: health,
-              error: error,
-            },
+            [stepId]: reduceStepHealth(nodes),
           },
         });
       },
@@ -504,15 +598,8 @@ export const useFlowStore = create<FlowState>()(
         set({ steps: Object.values(steps).sort(compareSteps) });
       },
 
-      setPartitionState: (health) => {
-        const healthMap: Record<string, StepHealthInfo> = {};
-        Object.entries(health).forEach(([stepId, h]: [string, any]) => {
-          healthMap[stepId] = {
-            status: h.status || "unknown",
-            error: h.error,
-          };
-        });
-        set({ stepHealth: healthMap });
+      setHealthState: (healthByNode) => {
+        set({ stepHealth: toStepHealthMap(healthByNode) });
       },
 
       setFlowState: (state) => {

@@ -66,6 +66,27 @@ describe("useStepHealth", () => {
     expect(result.current.error).toBe("Connection failed");
   });
 
+  test("returns per-node health when available", () => {
+    mockUseFlowStore.mockReturnValue({
+      status: "unhealthy",
+      error: "node node-2: Connection failed",
+      nodes: {
+        "node-1": { status: "healthy" },
+        "node-2": { status: "unhealthy", error: "Connection failed" },
+      },
+    });
+    const step = createStep("async", true);
+    const { result } = renderHook(() => useStepHealth(step));
+    expect(result.current.nodes).toEqual([
+      { nodeId: "node-1", status: "healthy", error: undefined },
+      {
+        nodeId: "node-2",
+        status: "unhealthy",
+        error: "Connection failed",
+      },
+    ]);
+  });
+
   test("returns unknown status when no health info in store", () => {
     mockUseFlowStore.mockReturnValue({});
     const step = createStep("sync", true);

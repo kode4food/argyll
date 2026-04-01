@@ -83,7 +83,12 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 
 // IsFlowEvent returns true if the event belongs to a flow aggregate
 func IsFlowEvent(ev *timebox.Event) bool {
-	return len(ev.AggregateID) >= 2 && ev.AggregateID[0] == FlowPrefix
+	return IsFlowEventID(ev.AggregateID)
+}
+
+// IsFlowEventID returns true if the ID belongs to a flow aggregate
+func IsFlowEventID(id timebox.AggregateID) bool {
+	return len(id) == 2 && id[0] == FlowPrefix
 }
 
 func makeFlowAppliers() timebox.Appliers[*api.FlowState] {

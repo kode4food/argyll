@@ -20,6 +20,7 @@ type (
 
 	// StepHealthChangedEvent is emitted when a step's health status changes
 	StepHealthChangedEvent struct {
+		NodeID NodeID       `json:"node_id"`
 		StepID StepID       `json:"step_id"`
 		Status HealthStatus `json:"status"`
 		Error  string       `json:"error,omitempty"`

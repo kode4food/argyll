@@ -22,9 +22,9 @@ func (e *Engine) saveEngineSnapshot() {
 		slog.Info("Catalog snapshot saved")
 	}
 
-	if err := e.partExec.SaveSnapshot(e.partitionKey()); err != nil {
-		slog.Error("Failed to save partition snapshot", log.Error(err))
+	if err := e.nodeExec.SaveSnapshot(e.nodeKey()); err != nil {
+		slog.Error("Failed to save node snapshot", log.Error(err))
 	} else {
-		slog.Info("Partition snapshot saved")
+		slog.Info("Node snapshot saved")
 	}
 }

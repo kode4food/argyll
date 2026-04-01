@@ -20,7 +20,7 @@ func TestUpdateStepHealth(t *testing.T) {
 		err = eng.UpdateStepHealth("health-step", api.HealthHealthy, "")
 		assert.NoError(t, err)
 
-		state, err := eng.GetPartitionState()
+		state, err := eng.GetNodeState()
 		assert.NoError(t, err)
 
 		health, ok := state.Health["health-step"]
@@ -41,7 +41,7 @@ func TestUpdateUnhealthy(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		state, err := eng.GetPartitionState()
+		state, err := eng.GetNodeState()
 		assert.NoError(t, err)
 
 		health, ok := state.Health["unhealthy-step"]
@@ -204,6 +204,58 @@ func TestGetStepHealthNotFound(t *testing.T) {
 	})
 }
 
+func TestMergeNodeHealth(t *testing.T) {
+	health := engine.MergeNodeHealth(
+		map[api.NodeID]map[api.StepID]*api.HealthState{
+			"node-b": {
+				"step-a": {Status: api.HealthHealthy},
+			},
+			"node-a": {
+				"step-a": {
+					Status: api.HealthUnhealthy,
+					Error:  "connection refused",
+				},
+			},
+		},
+	)
+
+	if assert.Contains(t, health, api.StepID("step-a")) {
+		assert.Equal(t, api.HealthUnhealthy, health["step-a"].Status)
+		assert.Equal(
+			t,
+			"node node-a: connection refused",
+			health["step-a"].Error,
+		)
+	}
+}
+
+func TestScriptHealthDefaults(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		st := &api.Step{
+			ID:   "script-step",
+			Name: "Script Step",
+			Type: api.StepTypeScript,
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput},
+			},
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "{:result 42}",
+			},
+		}
+
+		assert.NoError(t, eng.RegisterStep(st))
+
+		cat, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+
+		health := engine.ResolveHealth(cat, map[api.StepID]*api.HealthState{})
+		if assert.Contains(t, health, st.ID) {
+			assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
+		}
+	})
+}
+
 func resolveHealth(
 	t *testing.T, eng *engine.Engine,
 ) map[api.StepID]*api.HealthState {
@@ -212,7 +264,7 @@ func resolveHealth(
 	cat, err := eng.GetCatalogState()
 	assert.NoError(t, err)
 
-	part, err := eng.GetPartitionState()
+	part, err := eng.GetNodeState()
 	assert.NoError(t, err)
 
 	return engine.ResolveHealth(cat, part.Health)

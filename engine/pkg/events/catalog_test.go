@@ -26,12 +26,24 @@ func TestIsCatalogEvent(t *testing.T) {
 	catEvent := &timebox.Event{
 		AggregateID: events.CatalogKey,
 	}
+	nestedEvent := &timebox.Event{
+		AggregateID: timebox.NewAggregateID(events.CatalogPrefix, "bad"),
+	}
 	flowEvent := &timebox.Event{
 		AggregateID: events.FlowKey("test-flow"),
 	}
 
 	assert.True(t, events.IsCatalogEvent(catEvent))
+	assert.False(t, events.IsCatalogEvent(nestedEvent))
 	assert.False(t, events.IsCatalogEvent(flowEvent))
+}
+
+func TestIsCatalogEventID(t *testing.T) {
+	assert.True(t, events.IsCatalogEventID(events.CatalogKey))
+	assert.False(t, events.IsCatalogEventID(
+		timebox.NewAggregateID(events.CatalogPrefix, "bad"),
+	))
+	assert.False(t, events.IsCatalogEventID(events.FlowKey("test-flow")))
 }
 
 func TestStepRegistered(t *testing.T) {

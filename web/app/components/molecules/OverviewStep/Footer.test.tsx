@@ -84,6 +84,26 @@ describe("Footer", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows per-node health in tooltip when provided", () => {
+    const step = createStep("sync");
+
+    render(
+      <Footer
+        step={step}
+        healthStatus="unhealthy"
+        healthError="node node-2: peer down"
+        healthNodes={[
+          { nodeId: "node-1", status: "healthy" },
+          { nodeId: "node-2", status: "unhealthy", error: "peer down" },
+        ]}
+      />
+    );
+
+    expect(screen.getByText(t("overviewStep.nodeHealth"))).toBeInTheDocument();
+    expect(screen.getByText("node-1")).toHaveAttribute("title", "Healthy");
+    expect(screen.getByText("node-2")).toHaveAttribute("title", "peer down");
+  });
+
   test("renders flow goals for flow step", () => {
     const step = createStep("flow", { goals: ["goal-a", "goal-b"] });
 

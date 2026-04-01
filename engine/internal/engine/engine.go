@@ -24,8 +24,9 @@ type (
 		stepClient  client.Client
 		ctx         context.Context
 		catalogExec *CatalogExecutor
-		partExec    *PartitionExecutor
+		nodeExec    *NodeExecutor
 		flowExec    *FlowExecutor
+		engStore    *timebox.Store
 		config      *config.Config
 		cancel      context.CancelFunc
 		scripts     *script.Registry
@@ -38,8 +39,7 @@ type (
 
 	// Dependencies groups the external dependencies required by Engine
 	Dependencies struct {
-		CatStore         *timebox.Store
-		PartStore        *timebox.Store
+		EngineStore      *timebox.Store
 		FlowStore        *timebox.Store
 		StepClient       client.Client
 		Clock            scheduler.Clock
@@ -53,11 +53,11 @@ type (
 	// CatalogAggregator aggregates catalog state from events
 	CatalogAggregator = timebox.Aggregator[*api.CatalogState]
 
-	// PartitionExecutor manages partition state persistence and event sourcing
-	PartitionExecutor = timebox.Executor[*api.PartitionState]
+	// NodeExecutor manages per-node state persistence and event sourcing
+	NodeExecutor = timebox.Executor[*api.NodeState]
 
-	// PartitionAggregator aggregates partition state from events
-	PartitionAggregator = timebox.Aggregator[*api.PartitionState]
+	// NodeAggregator aggregates per-node state from events
+	NodeAggregator = timebox.Aggregator[*api.NodeState]
 
 	// FlowExecutor manages flow state persistence and event sourcing
 	FlowExecutor = timebox.Executor[*api.FlowState]
@@ -73,7 +73,7 @@ var (
 
 // New creates a new orchestrator instance from configuration and dependencies
 func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
-	cfg = cfg.WithWorkDefaults()
+	*cfg = *cfg.WithWorkDefaults()
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Join(ErrInvalidConfig, err)
 	}
@@ -85,17 +85,17 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	ctx, cancel := context.WithCancel(context.Background())
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
-			deps.CatStore, events.NewCatalogState, events.CatalogAppliers,
+			deps.EngineStore, events.NewCatalogState, events.CatalogAppliers,
 		),
-		partExec: timebox.NewExecutor(
-			deps.PartStore, events.NewPartitionState,
-			events.PartitionAppliers,
+		nodeExec: timebox.NewExecutor(
+			deps.EngineStore, events.NewNodeState, events.NodeAppliers,
 		),
 		flowExec: timebox.NewExecutor(
 			deps.FlowStore, events.NewFlowState, events.FlowAppliers,
 		),
 		scripts:    script.NewRegistry(),
 		stepClient: deps.StepClient,
+		engStore:   deps.EngineStore,
 		config:     cfg,
 		ctx:        ctx,
 		cancel:     cancel,
@@ -115,11 +115,8 @@ func (e *Engine) GetEventHub() *event.Hub {
 }
 
 func normalizeDependencies(deps *Dependencies) error {
-	if deps.CatStore == nil {
-		return fmt.Errorf("%w: catalog store", ErrMissingDependency)
-	}
-	if deps.PartStore == nil {
-		return fmt.Errorf("%w: partition store", ErrMissingDependency)
+	if deps.EngineStore == nil {
+		return fmt.Errorf("%w: engine store", ErrMissingDependency)
 	}
 	if deps.FlowStore == nil {
 		return fmt.Errorf("%w: flow store", ErrMissingDependency)

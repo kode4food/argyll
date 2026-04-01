@@ -17,6 +17,9 @@ type (
 		FlowID FlowID
 		StepID StepID
 	}
+
+	// NodeID uniquely identifies a cluster node
+	NodeID string
 )
 
 // InvalidIDChars matches characters not permitted in flow and step IDs. Valid

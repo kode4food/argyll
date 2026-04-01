@@ -28,10 +28,11 @@ type (
 		Attributes  AttributeGraph `json:"attributes"`
 	}
 
-	// PartitionState contains partition operational state
-	PartitionState struct {
-		LastUpdated time.Time               `json:"last_updated"`
-		Health      map[StepID]*HealthState `json:"health"`
+	// NodeState contains a node's operational state
+	NodeState struct {
+		ID       NodeID                  `json:"id"`
+		LastSeen time.Time               `json:"last_seen"`
+		Health   map[StepID]*HealthState `json:"health"`
 	}
 
 	// FlowState contains the complete state of a flow execution
@@ -160,18 +161,28 @@ func (c *CatalogState) SetLastUpdated(t time.Time) *CatalogState {
 	return &res
 }
 
-// SetHealth returns a new PartitionState with updated health for a given step
-func (p *PartitionState) SetHealth(id StepID, h *HealthState) *PartitionState {
-	res := *p
-	res.Health = maps.Clone(p.Health)
+// SetHealth returns a new NodeState with updated health for a given step
+func (n *NodeState) SetHealth(id StepID, h *HealthState) *NodeState {
+	res := *n
+	res.Health = maps.Clone(n.Health)
+	if res.Health == nil {
+		res.Health = map[StepID]*HealthState{}
+	}
 	res.Health[id] = h
 	return &res
 }
 
-// SetLastUpdated returns a new PartitionState with last updated timestamp set
-func (p *PartitionState) SetLastUpdated(t time.Time) *PartitionState {
-	res := *p
-	res.LastUpdated = t
+// SetLastSeen returns a new NodeState with the last seen timestamp set
+func (n *NodeState) SetLastSeen(t time.Time) *NodeState {
+	res := *n
+	res.LastSeen = t
+	return &res
+}
+
+// SetID returns a new NodeState with the node ID set
+func (n *NodeState) SetID(id NodeID) *NodeState {
+	res := *n
+	res.ID = id
 	return &res
 }
 
@@ -227,7 +238,7 @@ func (f *FlowState) SetLastUpdated(t time.Time) *FlowState {
 	return &res
 }
 
-// SetDeactivatedAt returns a new FlowState with deactivated time set.
+// SetDeactivatedAt returns a new FlowState with deactivated time set
 func (f *FlowState) SetDeactivatedAt(t time.Time) *FlowState {
 	res := *f
 	res.DeactivatedAt = t

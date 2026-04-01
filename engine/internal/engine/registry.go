@@ -173,7 +173,8 @@ func (e *Engine) raiseStepRegisteredEvent(
 		return err
 	}
 	ag.OnSuccess(func(*api.CatalogState, []*timebox.Event) {
-		if err := e.UpdateStepHealth(step.ID, api.HealthUnknown, ""); err != nil {
+		err := e.UpdateStepHealth(step.ID, api.HealthUnknown, "")
+		if err != nil {
 			slog.Error("Failed to raise step health changed event",
 				log.StepID(step.ID),
 				log.Error(err))
@@ -191,8 +192,7 @@ func (e *Engine) raiseStepUpdatedEvent(
 }
 
 func stepHasScripts(step *api.Step) bool {
-	return (step.Type == api.StepTypeScript && step.Script != nil) ||
-		step.Predicate != nil
+	return step.Type == api.StepTypeScript && step.Script != nil
 }
 
 func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {

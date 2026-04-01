@@ -20,6 +20,8 @@ export type {
   WorkState,
   FlowSort,
   QueryFlowsRequest,
+  EngineState,
+  NodeStepHealth,
 } from "./types";
 
 export {

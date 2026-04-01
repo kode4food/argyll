@@ -61,12 +61,13 @@ const (
 
 	MaxTimeboxCacheSize = 1_024_000
 	MaxMemoCacheSize    = 10_240_000
+	MaxRaftLogTailSize  = 1_024_000
 	MaxRetryMaxRetries  = 1000
 	MaxStepTimeout      = 365 * 24 * 60 * api.Minute // 1 year in ms
 	MaxRetryInitBackoff = 24 * 60 * api.Minute       // 1 day in ms
 	MaxRetryMaxBackoff  = MaxRetryInitBackoff
 
-	SingletonCacheSize = 1
+	EngineStoreCacheSize = 512
 )
 
 var (
@@ -127,27 +128,18 @@ func DefaultTimebox() timebox.Config {
 	})
 }
 
-// CatalogStoreConfig returns the catalog store configuration derived from the
-// shared Timebox defaults.
-func (c *Config) CatalogStoreConfig() timebox.Config {
+// EngineStoreConfig returns the engine metadata store configuration derived
+// from the shared Timebox defaults.
+func (c *Config) EngineStoreConfig() timebox.Config {
 	return c.Timebox.With(timebox.Config{
-		TrimEvents:    true,
-		SnapshotRatio: timebox.DefaultSnapshotRatio,
-		CacheSize:     SingletonCacheSize,
-	})
-}
-
-// PartitionStoreConfig returns the partition store configuration derived from
-// the shared Timebox defaults.
-func (c *Config) PartitionStoreConfig() timebox.Config {
-	return c.Timebox.With(timebox.Config{
+		CacheSize:     EngineStoreCacheSize,
 		TrimEvents:    true,
 		SnapshotRatio: timebox.DefaultSnapshotRatio,
 	})
 }
 
 // FlowStoreConfig returns the flow store configuration derived from the shared
-// Timebox defaults.
+// Timebox defaults
 func (c *Config) FlowStoreConfig() timebox.Config {
 	return c.Timebox.With(timebox.Config{
 		SnapshotRatio: DefaultFlowSnapshotRatio,
@@ -194,6 +186,11 @@ func (c *Config) LoadFromEnv() error {
 	}
 	if err := loadEnvInt(
 		"MEMO_CACHE_SIZE", &c.MemoCacheSize, 0, MaxMemoCacheSize,
+	); err != nil {
+		return err
+	}
+	if err := loadEnvInt(
+		"RAFT_LOG_TAIL_SIZE", &c.Raft.LogTailSize, 0, MaxRaftLogTailSize,
 	); err != nil {
 		return err
 	}
