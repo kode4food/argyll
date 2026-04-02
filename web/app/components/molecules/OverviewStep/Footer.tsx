@@ -43,6 +43,9 @@ const Footer: React.FC<FooterProps> = ({
   const t = useT();
   const healthIconClass = getHealthIconClass(healthStatus, step.type);
   const healthText = nodeHealthText(t, healthStatus, healthError);
+  const showNodeHealth = healthNodes.some(
+    (nodeHealth) => nodeHealth.status !== "healthy"
+  );
 
   const { displayInfo, tooltipSections } = useMemo(() => {
     let displayInfo: {
@@ -132,7 +135,7 @@ const Footer: React.FC<FooterProps> = ({
       </TooltipSection>
     );
 
-    if (healthNodes.length > 0) {
+    if (showNodeHealth) {
       sections.push(
         <TooltipSection key="nodes" title={t("overviewStep.nodeHealth")}>
           <div className={styles.nodeHealthList}>
@@ -153,7 +156,7 @@ const Footer: React.FC<FooterProps> = ({
     }
 
     return { displayInfo, tooltipSections: sections };
-  }, [step, healthStatus, healthNodes, healthText, t]);
+  }, [step, healthStatus, healthNodes, healthText, showNodeHealth, t]);
 
   return (
     <Tooltip

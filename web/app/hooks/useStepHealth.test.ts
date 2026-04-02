@@ -14,9 +14,9 @@ describe("useStepHealth", () => {
     jest.clearAllMocks();
   });
 
-  const setupMock = (stepHealth: Record<string, any>) => {
+  const setupMock = (health: Record<string, any>) => {
     mockUseFlowStore.mockImplementation((selector: any) =>
-      selector({ stepHealth })
+      selector({ stepHealth: health })
     );
   };
 
@@ -67,16 +67,16 @@ describe("useStepHealth", () => {
       expect(result.current.status).toBe("unconfigured");
     });
 
-    test("returns health from store with health check", () => {
-      setupMock({ "step-1": { status: "healthy" } });
-      const { result } = renderHook(() => useStepHealth(syncStep(true)));
-      expect(result.current.status).toBe("healthy");
-    });
-
     test("returns unknown when no health info", () => {
       setupMock({});
       const { result } = renderHook(() => useStepHealth(syncStep(true)));
       expect(result.current.status).toBe("unknown");
+    });
+
+    test("returns health from store", () => {
+      setupMock({ "step-1": { status: "healthy" } });
+      const { result } = renderHook(() => useStepHealth(syncStep(true)));
+      expect(result.current.status).toBe("healthy");
     });
 
     test("returns per-node health", () => {
@@ -105,7 +105,7 @@ describe("useStepHealth", () => {
       expect(result.current.status).toBe("unconfigured");
     });
 
-    test("returns health from store with health check", () => {
+    test("returns health from store", () => {
       setupMock({
         "step-1": { status: "unhealthy", error: "Connection failed" },
       });
@@ -116,32 +116,38 @@ describe("useStepHealth", () => {
   });
 
   describe("script steps", () => {
-    test("returns health status from store", () => {
-      setupMock({ "step-script": { status: "healthy" } });
-      const { result } = renderHook(() => useStepHealth(scriptStep));
-      expect(result.current.status).toBe("healthy");
-    });
-
-    test("does not return per-node health", () => {
-      setupMock({
-        "step-script": {
-          status: "healthy",
-          nodes: { "argyll-1": { status: "healthy" } },
-        },
-      });
-      const { result } = renderHook(() => useStepHealth(scriptStep));
-      expect(result.current.nodes).toBeUndefined();
-    });
-
     test("returns unknown when no health info", () => {
       setupMock({});
       const { result } = renderHook(() => useStepHealth(scriptStep));
       expect(result.current.status).toBe("unknown");
     });
+
+    test("returns health from store", () => {
+      setupMock({ "step-script": { status: "healthy" } });
+      const { result } = renderHook(() => useStepHealth(scriptStep));
+      expect(result.current.status).toBe("healthy");
+    });
+
+    test("returns per-node health", () => {
+      setupMock({
+        "step-script": {
+          status: "unhealthy",
+          nodes: {
+            "node-1": { status: "healthy" },
+            "node-2": { status: "unhealthy", error: "compile error" },
+          },
+        },
+      });
+      const { result } = renderHook(() => useStepHealth(scriptStep));
+      expect(result.current.nodes).toEqual([
+        { nodeId: "node-1", status: "healthy", error: undefined },
+        { nodeId: "node-2", status: "unhealthy", error: "compile error" },
+      ]);
+    });
   });
 
   describe("flow steps", () => {
-    test("returns unknown when no health info in store", () => {
+    test("returns unknown when no health info", () => {
       setupMock({});
       const { result } = renderHook(() =>
         useStepHealth(flowStep(["goal-step"]))
@@ -149,41 +155,21 @@ describe("useStepHealth", () => {
       expect(result.current.status).toBe("unknown");
     });
 
-    test("derives overall status from goal step status", () => {
-      setupMock({ "goal-step": { status: "healthy" } });
+    test("returns health from store", () => {
+      setupMock({ "step-flow": { status: "healthy" } });
       const { result } = renderHook(() =>
         useStepHealth(flowStep(["goal-step"]))
       );
       expect(result.current.status).toBe("healthy");
     });
 
-    test("derives overall status as worst-case across goals", () => {
+    test("returns per-node health from store", () => {
       setupMock({
-        "goal-a": { status: "healthy" },
-        "goal-b": { status: "unhealthy", error: "down" },
-      });
-      const { result } = renderHook(() =>
-        useStepHealth(flowStep(["goal-a", "goal-b"]))
-      );
-      expect(result.current.status).toBe("unhealthy");
-      expect(result.current.error).toBe("down");
-    });
-
-    test("returns no nodes when goal steps have no per-node data", () => {
-      setupMock({ "goal-step": { status: "healthy" } });
-      const { result } = renderHook(() =>
-        useStepHealth(flowStep(["goal-step"]))
-      );
-      expect(result.current.nodes).toBeUndefined();
-    });
-
-    test("derives per-node health from goal step nodes", () => {
-      setupMock({
-        "goal-step": {
-          status: "healthy",
+        "step-flow": {
+          status: "unhealthy",
           nodes: {
             "node-1": { status: "healthy" },
-            "node-2": { status: "healthy" },
+            "node-2": { status: "unhealthy", error: "dependency down" },
           },
         },
       });
@@ -192,55 +178,15 @@ describe("useStepHealth", () => {
       );
       expect(result.current.nodes).toEqual([
         { nodeId: "node-1", status: "healthy", error: undefined },
-        { nodeId: "node-2", status: "healthy", error: undefined },
+        { nodeId: "node-2", status: "unhealthy", error: "dependency down" },
       ]);
     });
+  });
 
-    test("takes worst-case status per node across multiple goals", () => {
-      setupMock({
-        "goal-a": {
-          status: "healthy",
-          nodes: {
-            "node-1": { status: "healthy" },
-            "node-2": { status: "unhealthy", error: "timeout" },
-          },
-        },
-        "goal-b": {
-          status: "healthy",
-          nodes: {
-            "node-1": { status: "unknown" },
-            "node-2": { status: "healthy" },
-          },
-        },
-      });
-      const { result } = renderHook(() =>
-        useStepHealth(flowStep(["goal-a", "goal-b"]))
-      );
-      expect(result.current.nodes).toEqual([
-        { nodeId: "node-1", status: "unknown", error: undefined },
-        { nodeId: "node-2", status: "unhealthy", error: "timeout" },
-      ]);
-    });
-
-    test("includes nodes only from goals that have per-node data", () => {
-      setupMock({
-        "goal-script": { status: "healthy" },
-        "goal-http": {
-          status: "healthy",
-          nodes: { "node-1": { status: "healthy" } },
-        },
-      });
-      const { result } = renderHook(() =>
-        useStepHealth(flowStep(["goal-script", "goal-http"]))
-      );
-      expect(result.current.nodes).toEqual([
-        { nodeId: "node-1", status: "healthy", error: undefined },
-      ]);
-    });
-
+  describe("node sorting", () => {
     test("returns nodes sorted by node ID", () => {
       setupMock({
-        "goal-step": {
+        "step-1": {
           status: "healthy",
           nodes: {
             "node-3": { status: "healthy" },
@@ -249,9 +195,7 @@ describe("useStepHealth", () => {
           },
         },
       });
-      const { result } = renderHook(() =>
-        useStepHealth(flowStep(["goal-step"]))
-      );
+      const { result } = renderHook(() => useStepHealth(syncStep(true)));
       expect(result.current.nodes?.map((n) => n.nodeId)).toEqual([
         "node-1",
         "node-2",

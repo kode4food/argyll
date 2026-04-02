@@ -154,41 +154,80 @@ const annotateHealthError = (
   return error ? `node ${nodeId}: ${error}` : undefined;
 };
 
+const missingHealthError = (nodeId: string): string => {
+  return "health not reported";
+};
+
+const sortNodeIds = (nodeIds: string[]): string[] => {
+  return [...nodeIds].sort((a, b) => a.localeCompare(b));
+};
+
+const requiresAllNodeHealth = (step?: Step): boolean => {
+  return step?.type !== "flow";
+};
+
+const normalizeStepNodes = (
+  nodes: Record<string, NodeHealth>,
+  nodeIds: string[]
+): Record<string, NodeHealth> => {
+  const normalized: Record<string, NodeHealth> = {};
+  const allNodeIds = new Set([...Object.keys(nodes), ...nodeIds]);
+
+  sortNodeIds(Array.from(allNodeIds)).forEach((nodeId) => {
+    normalized[nodeId] = nodes[nodeId] || {
+      status: "unknown",
+      error: missingHealthError(nodeId),
+    };
+  });
+
+  return normalized;
+};
+
 const reduceStepHealth = (
-  nodes: Record<string, NodeHealth>
+  nodes: Record<string, NodeHealth>,
+  nodeIds: string[],
+  step?: Step
 ): StepHealthInfo => {
+  const normalized = requiresAllNodeHealth(step)
+    ? normalizeStepNodes(nodes, nodeIds)
+    : normalizeStepNodes(nodes, []);
+  const ids = Object.keys(normalized);
+  if (ids.length === 0) {
+    return { status: "unknown" };
+  }
+
   let status = "healthy";
   let error: string | undefined;
 
-  Object.entries(nodes)
-    .sort(([a], [b]) => a.localeCompare(b))
-    .forEach(([nodeId, nodeHealth]) => {
-      const nextStatus = nodeHealth.status || "unknown";
-      if (healthRank(nextStatus) > healthRank(status)) {
-        status = nextStatus;
-        error = annotateHealthError(nodeId, nodeHealth.error);
-        return;
-      }
-      if (
-        healthRank(nextStatus) === healthRank(status) &&
-        !error &&
-        nodeHealth.error
-      ) {
-        error = annotateHealthError(nodeId, nodeHealth.error);
-      }
-    });
+  Object.entries(normalized).forEach(([nodeId, nodeHealth]) => {
+    const nextStatus = nodeHealth.status || "unknown";
+    if (healthRank(nextStatus) > healthRank(status)) {
+      status = nextStatus;
+      error = annotateHealthError(nodeId, nodeHealth.error);
+      return;
+    }
+    if (
+      healthRank(nextStatus) === healthRank(status) &&
+      !error &&
+      nodeHealth.error
+    ) {
+      error = annotateHealthError(nodeId, nodeHealth.error);
+    }
+  });
 
   return {
     status,
     ...(error && { error }),
-    ...(Object.keys(nodes).length > 0 && { nodes }),
+    nodes: normalized,
   };
 };
 
 const toStepHealthMap = (
-  healthByNode: Record<string, Record<string, StepHealthInfo>>
+  healthByNode: Record<string, Record<string, StepHealthInfo>>,
+  stepsById: Record<string, Step>
 ): Record<string, StepHealthInfo> => {
   const byStep: Record<string, Record<string, NodeHealth>> = {};
+  const nodeIds = sortNodeIds(Object.keys(healthByNode));
 
   Object.entries(healthByNode).forEach(([nodeId, stepHealth]) => {
     Object.entries(stepHealth || {}).forEach(([stepId, health]) => {
@@ -205,14 +244,20 @@ const toStepHealthMap = (
   return Object.fromEntries(
     Object.entries(byStep).map(([stepId, nodes]) => [
       stepId,
-      reduceStepHealth(nodes),
+      reduceStepHealth(nodes, nodeIds, stepsById[stepId]),
     ])
   );
 };
 
+const toStepMap = (steps: Step[]): Record<string, Step> => {
+  return Object.fromEntries(steps.map((step) => [step.id, step]));
+};
+
 interface FlowState {
   steps: Step[];
+  healthByNode: Record<string, Record<string, StepHealthInfo>>;
   stepHealth: Record<string, StepHealthInfo>;
+  healthNodeIds: string[];
   flows: FlowSummary[];
   visibleFlowIDs: string[];
   flowsCursor: string | null;
@@ -280,7 +325,9 @@ export const useFlowStore = create<FlowState>()(
   devtools(
     (set, get) => ({
       steps: [],
+      healthByNode: {},
       stepHealth: {},
+      healthNodeIds: [],
       flows: [],
       visibleFlowIDs: [],
       flowsCursor: null,
@@ -472,19 +519,25 @@ export const useFlowStore = create<FlowState>()(
         health: string,
         error?: string
       ) => {
-        const { stepHealth } = get();
-        const nodes = {
-          ...(stepHealth[stepId]?.nodes || {}),
+        const { healthByNode, healthNodeIds, steps } = get();
+        const stepsById = toStepMap(steps);
+        const nextNodeIds = healthNodeIds.includes(nodeId)
+          ? healthNodeIds
+          : sortNodeIds([...healthNodeIds, nodeId]);
+        const nextHealthByNode = {
+          ...healthByNode,
           [nodeId]: {
-            status: health,
-            ...(error && { error }),
+            ...(healthByNode[nodeId] || {}),
+            [stepId]: {
+              status: health,
+              ...(error && { error }),
+            },
           },
         };
         set({
-          stepHealth: {
-            ...stepHealth,
-            [stepId]: reduceStepHealth(nodes),
-          },
+          healthByNode: nextHealthByNode,
+          healthNodeIds: nextNodeIds,
+          stepHealth: toStepHealthMap(nextHealthByNode, stepsById),
         });
       },
 
@@ -601,11 +654,20 @@ export const useFlowStore = create<FlowState>()(
       },
 
       setCatalogState: (steps) => {
-        set({ steps: Object.values(steps).sort(compareSteps) });
+        const nextSteps = Object.values(steps).sort(compareSteps);
+        set({
+          steps: nextSteps,
+          stepHealth: toStepHealthMap(get().healthByNode, toStepMap(nextSteps)),
+        });
       },
 
       setHealthState: (healthByNode) => {
-        set({ stepHealth: toStepHealthMap(healthByNode) });
+        const stepsById = toStepMap(get().steps);
+        set({
+          healthByNode,
+          healthNodeIds: sortNodeIds(Object.keys(healthByNode)),
+          stepHealth: toStepHealthMap(healthByNode, stepsById),
+        });
       },
 
       setFlowState: (state) => {

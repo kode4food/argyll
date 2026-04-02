@@ -35,7 +35,9 @@ describe("flowStore", () => {
   beforeEach(() => {
     useFlowStore.setState({
       steps: [],
+      healthByNode: {},
       stepHealth: {},
+      healthNodeIds: [],
       flows: [],
       flowsCursor: null,
       flowsHasMore: false,
@@ -574,6 +576,65 @@ describe("flowStore", () => {
             status: "unhealthy",
             error: "Connection failed",
           },
+        },
+      });
+    });
+
+    test("setHealthState marks non-flow steps unknown when a node is missing", () => {
+      useFlowStore.getState().setCatalogState({
+        "step-1": {
+          id: "step-1",
+          name: "Test Step",
+          type: "sync",
+          attributes: {},
+          http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
+        },
+      });
+
+      useFlowStore.getState().setHealthState({
+        "node-1": {
+          "step-1": { status: "healthy" },
+        },
+        "node-2": {},
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.stepHealth["step-1"]).toEqual({
+        status: "unknown",
+        error: "node node-2: health not reported",
+        nodes: {
+          "node-1": { status: "healthy", error: undefined },
+          "node-2": {
+            status: "unknown",
+            error: "health not reported",
+          },
+        },
+      });
+    });
+
+    test("setHealthState does not require all nodes for flow steps", () => {
+      useFlowStore.getState().setCatalogState({
+        "step-1": {
+          id: "step-1",
+          name: "Flow Step",
+          type: "flow",
+          attributes: {},
+          flow: { goals: ["goal-a"] },
+        },
+      });
+
+      useFlowStore.getState().setHealthState({
+        "node-1": {
+          "step-1": { status: "healthy" },
+        },
+        "node-2": {},
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.stepHealth["step-1"]).toEqual({
+        status: "healthy",
+        nodes: {
+          "node-1": { status: "healthy" },
         },
       });
     });

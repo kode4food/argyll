@@ -265,6 +265,40 @@ func TestScriptHealthDefaults(t *testing.T) {
 	})
 }
 
+func TestScriptHealthInitializedOnRegister(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		st := &api.Step{
+			ID:   "script-step",
+			Name: "Script Step",
+			Type: api.StepTypeScript,
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput},
+			},
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "{:result 42}",
+			},
+		}
+
+		assert.NoError(t, eng.RegisterStep(st))
+
+		cluster, err := eng.GetClusterState()
+		assert.NoError(t, err)
+
+		found := false
+		for _, node := range cluster.Nodes {
+			h, ok := node.Health[st.ID]
+			if !ok {
+				continue
+			}
+			found = true
+			assert.Equal(t, api.HealthHealthy, h.Status)
+			assert.Empty(t, h.Error)
+		}
+		assert.True(t, found)
+	})
+}
+
 func resolveHealth(
 	t *testing.T, eng *engine.Engine,
 ) map[api.StepID]*api.HealthState {

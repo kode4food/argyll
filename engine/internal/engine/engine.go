@@ -109,6 +109,11 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	return e, nil
 }
 
+// LocalNodeID returns the node ID of this engine instance
+func (e *Engine) LocalNodeID() api.NodeID {
+	return api.NodeID(e.config.Raft.LocalID)
+}
+
 // GetEventHub exposes the engine's in-process event hub
 func (e *Engine) GetEventHub() *event.Hub {
 	return e.eventHub

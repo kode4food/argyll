@@ -162,14 +162,11 @@ func (a *argyll) initializeEngine(hub *event.Hub) error {
 }
 
 func (a *argyll) startServer() {
-	hub := a.engine.GetEventHub()
-
-	a.health = server.NewHealthChecker(a.engine, hub)
+	a.health = server.NewHealthChecker(a.engine)
 	a.health.Start()
 
 	a.apiServer = server.NewServer(
-		a.engine,
-		hub,
+		a.engine, a.engine.GetEventHub(),
 		server.NewRaftStatusProvider(a.persistence),
 	)
 	mux := a.apiServer.SetupRoutes()
@@ -228,9 +225,7 @@ func (a *argyll) closeStores() {
 func formatRaftServers(srvs []raft.Server) string {
 	parts := make([]string, 0, len(srvs))
 	for _, srv := range srvs {
-		parts = append(parts,
-			srv.ID+"="+srv.Address,
-		)
+		parts = append(parts, srv.ID+"="+srv.Address)
 	}
 	return strings.Join(parts, ",")
 }

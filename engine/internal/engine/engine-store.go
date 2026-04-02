@@ -14,31 +14,38 @@ func (e *Engine) GetCatalogState() (*api.CatalogState, error) {
 
 // GetClusterState retrieves the current cluster state
 func (e *Engine) GetClusterState() (*api.ClusterState, error) {
-	return e.clusterExec.Get(events.ClusterKey)
+	st, err := e.clusterExec.Get(events.ClusterKey)
+	if err != nil {
+		return nil, err
+	}
+	return e.withConfiguredNodes(st), nil
 }
 
 // GetCatalogStateSeq retrieves catalog state and its next event sequence
 func (e *Engine) GetCatalogStateSeq() (*api.CatalogState, int64, error) {
 	var seq int64
-	state, err := e.execCatalog(
+	st, err := e.execCatalog(
 		func(_ *api.CatalogState, ag *CatalogAggregator) error {
 			seq = ag.NextSequence()
 			return nil
 		},
 	)
-	return state, seq, err
+	return st, seq, err
 }
 
 // GetClusterStateSeq retrieves cluster state and its next event sequence
 func (e *Engine) GetClusterStateSeq() (*api.ClusterState, int64, error) {
 	var seq int64
-	state, err := e.execCluster(
+	st, err := e.execCluster(
 		func(_ *api.ClusterState, ag *ClusterAggregator) error {
 			seq = ag.NextSequence()
 			return nil
 		},
 	)
-	return state, seq, err
+	if err != nil {
+		return nil, 0, err
+	}
+	return e.withConfiguredNodes(st), seq, nil
 }
 
 // ListSteps returns all currently registered steps in the engine
@@ -75,4 +82,11 @@ func (e *Engine) execCluster(
 	cmd timebox.Command[*api.ClusterState],
 ) (*api.ClusterState, error) {
 	return e.clusterExec.Exec(events.ClusterKey, cmd)
+}
+
+func (e *Engine) withConfiguredNodes(st *api.ClusterState) *api.ClusterState {
+	for _, srv := range e.config.Raft.Servers {
+		st = st.EnsureNode(api.NodeID(srv.ID))
+	}
+	return st
 }

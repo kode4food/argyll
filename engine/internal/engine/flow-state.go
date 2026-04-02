@@ -43,7 +43,7 @@ func (e *Engine) GetFlowStateSeq(
 	flowID api.FlowID,
 ) (*api.FlowState, int64, error) {
 	var nextSeq int64
-	state, err := e.execFlow(events.FlowKey(flowID),
+	st, err := e.execFlow(events.FlowKey(flowID),
 		func(st *api.FlowState, ag *FlowAggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil
@@ -53,11 +53,11 @@ func (e *Engine) GetFlowStateSeq(
 		return nil, 0, err
 	}
 
-	if state.ID == "" {
+	if st.ID == "" {
 		return nil, 0, ErrFlowNotFound
 	}
 
-	return state, nextSeq, nil
+	return st, nextSeq, nil
 }
 
 // GetAttribute retrieves a specific attribute value from the flow state,

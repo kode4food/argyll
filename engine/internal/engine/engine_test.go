@@ -100,19 +100,19 @@ func TestStartStop(t *testing.T) {
 
 func TestGetCatalogState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, err := eng.GetCatalogState()
+		st, err := eng.GetCatalogState()
 		assert.NoError(t, err)
-		assert.NotNil(t, state)
-		assert.NotNil(t, state.Steps)
+		assert.NotNil(t, st)
+		assert.NotNil(t, st.Steps)
 	})
 }
 
 func TestGetClusterState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state, err := eng.GetClusterState()
+		st, err := eng.GetClusterState()
 		assert.NoError(t, err)
-		assert.NotNil(t, state)
-		assert.NotNil(t, state.Nodes)
+		assert.NotNil(t, st)
+		assert.NotNil(t, st.Nodes)
 	})
 }
 
@@ -157,12 +157,12 @@ func TestClusterTracksMultipleNodes(t *testing.T) {
 			peer.UpdateStepHealth("step-1", api.HealthHealthy, ""),
 		)
 
-		state, err := env.Engine.GetClusterState()
+		st, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		assert.Contains(t, state.Nodes, api.NodeID("node-2"))
+		assert.Contains(t, st.Nodes, api.NodeID("node-2"))
 		assert.Equal(t,
 			api.HealthHealthy,
-			state.Nodes["node-2"].Health["step-1"].Status,
+			st.Nodes["node-2"].Health["step-1"].Status,
 		)
 	})
 }

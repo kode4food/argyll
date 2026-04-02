@@ -141,7 +141,7 @@ func (s *Server) handleEngine(c *gin.Context) {
 		"last_updated": last,
 		"steps":        cat.Steps,
 		"attributes":   cat.Attributes,
-		"health":       cluster.Nodes,
+		"health":       completeClusterHealth(cat, cluster).Nodes,
 	})
 }
 
@@ -177,6 +177,36 @@ func (s *Server) webSockets() []*Client {
 	res := make([]*Client, 0, len(s.sockets))
 	for c := range s.sockets {
 		res = append(res, c)
+	}
+	return res
+}
+
+func completeClusterHealth(
+	cat *api.CatalogState, cluster *api.ClusterState,
+) *api.ClusterState {
+	if cat == nil || cluster == nil {
+		return cluster
+	}
+
+	res := cluster
+	for nodeID, node := range cluster.Nodes {
+		if node == nil {
+			continue
+		}
+		nextNode := node
+		changed := false
+		for stepID := range cat.Steps {
+			if _, ok := nextNode.Health[stepID]; ok {
+				continue
+			}
+			nextNode = nextNode.SetHealth(stepID, &api.HealthState{
+				Status: api.HealthUnknown,
+			})
+			changed = true
+		}
+		if changed {
+			res = res.SetNode(nodeID, nextNode)
+		}
 	}
 	return res
 }

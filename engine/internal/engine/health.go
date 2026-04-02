@@ -24,7 +24,7 @@ type healthResolver struct {
 func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
-	nodeID := api.NodeID(e.config.Raft.LocalID)
+	nodeID := e.LocalNodeID()
 	cmd := func(st *api.ClusterState, ag *ClusterAggregator) error {
 		node := st.Nodes[nodeID]
 		if node != nil {

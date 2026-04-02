@@ -97,15 +97,24 @@ func (e *Engine) execStepUpsert(
 	if _, err := e.execCatalog(cmd); err != nil {
 		return err
 	}
-	if stepHasScripts(step) {
-		err := e.UpdateStepHealth(step.ID, api.HealthHealthy, "")
-		if err != nil {
-			slog.Error("Failed to update step health",
-				log.StepID(step.ID),
-				log.Error(err))
-		}
+	if step.Type == api.StepTypeScript && step.Script != nil {
+		e.initializeScriptHealth(step)
 	}
 	return nil
+}
+
+func (e *Engine) initializeScriptHealth(step *api.Step) {
+	status := api.HealthHealthy
+	errMsg := ""
+	if err := e.VerifyScript(step); err != nil {
+		status = api.HealthUnhealthy
+		errMsg = err.Error()
+	}
+	if err := e.UpdateStepHealth(step.ID, status, errMsg); err != nil {
+		slog.Error("Failed to update script health",
+			log.StepID(step.ID),
+			log.Error(err))
+	}
 }
 
 func (e *Engine) validateStep(step *api.Step) error {
@@ -189,10 +198,6 @@ func (e *Engine) raiseStepUpdatedEvent(
 	return events.Raise(ag, api.EventTypeStepUpdated,
 		api.StepUpdatedEvent{Step: step},
 	)
-}
-
-func stepHasScripts(step *api.Step) bool {
-	return step.Type == api.StepTypeScript && step.Script != nil
 }
 
 func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {

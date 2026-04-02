@@ -104,6 +104,25 @@ describe("Footer", () => {
     expect(screen.getByText("node-2")).toHaveAttribute("title", "peer down");
   });
 
+  test("hides per-node health when all nodes are healthy", () => {
+    const step = createStep("sync");
+
+    render(
+      <Footer
+        step={step}
+        healthStatus="healthy"
+        healthNodes={[
+          { nodeId: "node-1", status: "healthy" },
+          { nodeId: "node-2", status: "healthy" },
+        ]}
+      />
+    );
+
+    expect(
+      screen.queryByText(t("overviewStep.nodeHealth"))
+    ).not.toBeInTheDocument();
+  });
+
   test("renders flow goals for flow step", () => {
     const step = createStep("flow", { goals: ["goal-a", "goal-b"] });
 

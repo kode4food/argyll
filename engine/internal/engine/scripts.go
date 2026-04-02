@@ -10,6 +10,12 @@ var (
 	ErrStepNotInPlan = errors.New("step not in execution plan")
 )
 
+// VerifyScript compiles a step's script to check it is valid on this node
+func (e *Engine) VerifyScript(step *api.Step) error {
+	_, err := e.scripts.Compile(step, step.Script)
+	return err
+}
+
 // GetCompiledPredicate retrieves the compiled predicate for a flow step.
 func (e *Engine) GetCompiledPredicate(fs api.FlowStep) (any, error) {
 	step, err := e.getStepFromPlan(fs)

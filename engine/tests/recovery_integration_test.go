@@ -36,13 +36,13 @@ func waitForFlowsStatusWithTimeoutAfter(
 	res := make(map[api.FlowID]*api.FlowState, len(ids))
 	assert.Eventually(env.T, func() bool {
 		for _, flowID := range ids {
-			state, err := env.Engine.GetFlowState(flowID)
+			st, err := env.Engine.GetFlowState(flowID)
 			if err != nil {
 				return false
 			}
-			res[flowID] = state
-			if state.Status != api.FlowCompleted &&
-				state.Status != api.FlowFailed {
+			res[flowID] = st
+			if st.Status != api.FlowCompleted &&
+				st.Status != api.FlowFailed {
 				return false
 			}
 		}

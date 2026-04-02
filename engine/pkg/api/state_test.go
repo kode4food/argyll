@@ -76,6 +76,34 @@ func TestSetClusterNode(t *testing.T) {
 	assert.NotContains(t, original.Nodes, api.NodeID("node-2"))
 }
 
+func TestEnsureClusterNode(t *testing.T) {
+	original := &api.ClusterState{
+		Nodes: map[api.NodeID]*api.NodeState{
+			"node-1": {Health: map[api.StepID]*api.HealthState{}},
+		},
+	}
+
+	result := original.EnsureNode("node-2")
+
+	assert.Contains(t, result.Nodes, api.NodeID("node-1"))
+	if assert.Contains(t, result.Nodes, api.NodeID("node-2")) {
+		assert.Empty(t, result.Nodes["node-2"].Health)
+	}
+	assert.NotContains(t, original.Nodes, api.NodeID("node-2"))
+}
+
+func TestEnsureClusterNodeExisting(t *testing.T) {
+	original := &api.ClusterState{
+		Nodes: map[api.NodeID]*api.NodeState{
+			"node-1": {Health: map[api.StepID]*api.HealthState{}},
+		},
+	}
+
+	result := original.EnsureNode("node-1")
+
+	assert.Same(t, original, result)
+}
+
 func TestSetClusterLastUpdated(t *testing.T) {
 	original := &api.ClusterState{}
 	newTime := time.Unix(2000, 0)

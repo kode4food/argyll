@@ -214,10 +214,10 @@ func TestFlowGetState(t *testing.T) {
 	client := builder.NewClient(server.URL, 5*time.Second)
 	fc := client.Flow("my-flow")
 
-	state, err := fc.GetState(context.Background())
+	st, err := fc.GetState(context.Background())
 	assert.NoError(t, err)
-	assert.Equal(t, api.FlowID("my-flow"), state.ID)
-	assert.Equal(t, api.FlowActive, state.Status)
+	assert.Equal(t, api.FlowID("my-flow"), st.ID)
+	assert.Equal(t, api.FlowActive, st.Status)
 }
 
 func TestFlowGetStatus(t *testing.T) {

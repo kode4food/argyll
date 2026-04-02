@@ -177,6 +177,16 @@ func (c *ClusterState) SetNode(id NodeID, n *NodeState) *ClusterState {
 	return &res
 }
 
+// EnsureNode returns a new ClusterState with the specified node present
+func (c *ClusterState) EnsureNode(id NodeID) *ClusterState {
+	if n, ok := c.Nodes[id]; ok && n != nil {
+		return c
+	}
+	return c.SetNode(id, &NodeState{
+		Health: map[StepID]*HealthState{},
+	})
+}
+
 // SetLastUpdated returns a new ClusterState with the last updated timestamp set
 func (c *ClusterState) SetLastUpdated(t time.Time) *ClusterState {
 	res := *c

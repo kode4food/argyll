@@ -66,8 +66,8 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
-		state, err := e.Engine.GetFlowState(flowID)
-		if err == nil && isFlowTerminal(state) {
+		st, err := e.Engine.GetFlowState(flowID)
+		if err == nil && isFlowTerminal(st) {
 			return
 		}
 		wait.On(e.T, consumer).ForEvent(wait.FlowTerminal(flowID))
@@ -149,9 +149,9 @@ func (e *TestEngineEnv) waitForTerminalFlow(flowID api.FlowID) *api.FlowState {
 
 	deadline := time.Now().Add(wait.DefaultTimeout)
 	for {
-		state, err := e.Engine.GetFlowState(flowID)
-		if err == nil && isFlowTerminal(state) {
-			return state
+		st, err := e.Engine.GetFlowState(flowID)
+		if err == nil && isFlowTerminal(st) {
+			return st
 		}
 		if time.Now().After(deadline) {
 			if err != nil {
