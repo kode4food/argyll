@@ -14,6 +14,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -167,6 +168,37 @@ func TestHealthUnknown(t *testing.T) {
 	})
 }
 
+func TestRaftStatusNil(t *testing.T) {
+	assert.Nil(t, server.NewRaftStatusProvider(nil)())
+}
+
+func TestRaftStatus(t *testing.T) {
+	cfg := config.NewDefaultConfig()
+	cfg.Raft.LocalID = "node-1"
+	cfg.Raft.Address = "127.0.0.1:9701"
+	cfg.Raft.DataDir = t.TempDir()
+	cfg.Raft.Servers = []raft.Server{
+		{ID: "node-1", Address: "127.0.0.1:9701"},
+	}
+
+	p, err := raft.NewPersistence(cfg.Raft)
+	assert.NoError(t, err)
+	if p != nil {
+		defer func() { _ = p.Close() }()
+	}
+
+	st := server.NewRaftStatusProvider(p)()
+	if assert.Contains(t, st, "backend") {
+		backend, ok := st["backend"].(map[string]any)
+		if assert.True(t, ok) {
+			assert.Equal(t, "raft", backend["type"])
+			assert.NotEmpty(t, backend["state"])
+			assert.Contains(t, backend, "leader_address")
+			assert.Contains(t, backend, "leader_id")
+		}
+	}
+}
+
 func TestEngineHealth(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		router := testEnv.Server.SetupRoutes()
@@ -177,6 +209,48 @@ func TestEngineHealth(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 	})
+}
+
+func TestEngineClosed(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	srv := server.NewServer(env.Engine, env.EventHub)
+	env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine", nil)
+	w := httptest.NewRecorder()
+
+	router := srv.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestEngineHealthClosed(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	srv := server.NewServer(env.Engine, env.EventHub)
+	env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/health", nil)
+	w := httptest.NewRecorder()
+
+	router := srv.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+}
+
+func TestEngineHealthByIDClosed(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	srv := server.NewServer(env.Engine, env.EventHub)
+	env.Cleanup()
+
+	req := httptest.NewRequest("GET", "/engine/health/step-1", nil)
+	w := httptest.NewRecorder()
+
+	router := srv.SetupRoutes()
+	router.ServeHTTP(w, req)
+
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
 }
 
 func TestStartFlow(t *testing.T) {
@@ -783,15 +857,13 @@ func TestEngineHealthIncludesShardNodes(t *testing.T) {
 		assert.Len(t, response.Nodes, 2)
 		localID := api.NodeID(testEnv.Config.Raft.LocalID)
 		if assert.Contains(t, response.Nodes, localID) {
-			assert.Equal(
-				t,
+			assert.Equal(t,
 				api.HealthHealthy,
 				response.Nodes[localID].Health[st.ID].Status,
 			)
 		}
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
-			assert.Equal(
-				t,
+			assert.Equal(t,
 				api.HealthUnhealthy,
 				response.Nodes["node-2"].Health[st.ID].Status,
 			)
@@ -799,7 +871,7 @@ func TestEngineHealthIncludesShardNodes(t *testing.T) {
 	})
 }
 
-func TestEngineHealthIncludesConfiguredSilentNodes(t *testing.T) {
+func TestEngineHealthSilentNodes(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		testEnv.Config.Raft.Servers = append(testEnv.Config.Raft.Servers,
 			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
@@ -817,14 +889,16 @@ func TestEngineHealthIncludesConfiguredSilentNodes(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Len(t, response.Nodes, 2)
-		assert.Contains(t, response.Nodes, api.NodeID(testEnv.Config.Raft.LocalID))
+		assert.Contains(t,
+			response.Nodes, api.NodeID(testEnv.Config.Raft.LocalID),
+		)
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
 			assert.Empty(t, response.Nodes["node-2"].Health)
 		}
 	})
 }
 
-func TestEngineHealthIncludesUnknownForUncheckedSteps(t *testing.T) {
+func TestEngineHealthUnknownSteps(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		healthServer := httptest.NewServer(
 			http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -878,13 +952,11 @@ func TestEngineHealthIncludesUnknownForUncheckedSteps(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
-			assert.Equal(
-				t,
+			assert.Equal(t,
 				api.HealthHealthy,
 				response.Nodes["node-2"].Health[stepA.ID].Status,
 			)
-			assert.Equal(
-				t,
+			assert.Equal(t,
 				api.HealthUnknown,
 				response.Nodes["node-2"].Health[stepB.ID].Status,
 			)
@@ -892,7 +964,7 @@ func TestEngineHealthIncludesUnknownForUncheckedSteps(t *testing.T) {
 	})
 }
 
-func TestEngineHealthScriptHealthyAcrossShardNodes(t *testing.T) {
+func TestEngineHealthScriptShards(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		st := &api.Step{
 			ID:   "script-step",
@@ -937,18 +1009,47 @@ func TestEngineHealthScriptHealthyAcrossShardNodes(t *testing.T) {
 		assert.NoError(t, err)
 		localID := api.NodeID(testEnv.Config.Raft.LocalID)
 		if assert.Contains(t, response.Nodes, localID) {
-			assert.Equal(
-				t,
+			assert.Equal(t,
 				api.HealthHealthy,
 				response.Nodes[localID].Health[st.ID].Status,
 			)
 		}
 		if assert.Contains(t, response.Nodes, api.NodeID("node-2")) {
-			assert.Equal(
-				t,
+			assert.Equal(t,
 				api.HealthUnknown,
 				response.Nodes["node-2"].Health[st.ID].Status,
 			)
+		}
+	})
+}
+
+func TestEngineUnknownSteps(t *testing.T) {
+	withTestServerEnv(t, func(testEnv *testServerEnv) {
+		step := helpers.NewSimpleStep("step-1")
+		assert.NoError(t, testEnv.Engine.RegisterStep(step))
+
+		req := httptest.NewRequest("GET", "/engine", nil)
+		w := httptest.NewRecorder()
+
+		router := testEnv.Server.SetupRoutes()
+		router.ServeHTTP(w, req)
+
+		assert.Equal(t, http.StatusOK, w.Code)
+
+		var response struct {
+			Health map[api.NodeID]*api.NodeState `json:"health"`
+		}
+		err := json.Unmarshal(w.Body.Bytes(), &response)
+		assert.NoError(t, err)
+
+		nodeID := api.NodeID(testEnv.Config.Raft.LocalID)
+		if assert.Contains(t, response.Health, nodeID) {
+			if assert.Contains(t, response.Health[nodeID].Health, step.ID) {
+				assert.Equal(t,
+					api.HealthUnknown,
+					response.Health[nodeID].Health[step.ID].Status,
+				)
+			}
 		}
 	})
 }

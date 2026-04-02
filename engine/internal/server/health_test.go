@@ -23,7 +23,7 @@ func TestStartStop(t *testing.T) {
 	})
 }
 
-func TestRegisterStepMarksUnknown(t *testing.T) {
+func TestRegisterStepUnknown(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := helpers.NewSimpleStep("health-test-step")
 
@@ -43,7 +43,7 @@ func TestRegisterStepMarksUnknown(t *testing.T) {
 	})
 }
 
-func TestHealthCheckMarksHealthy(t *testing.T) {
+func TestHealthCheckHealthy(t *testing.T) {
 	healthServer := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusOK)
@@ -82,7 +82,190 @@ func TestHealthCheckMarksHealthy(t *testing.T) {
 	})
 }
 
-func TestHealthCheckMarksUnhealthy(t *testing.T) {
+func TestHealthCheckNetworkFail(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		step := &api.Step{
+			ID:   "network-failure-step",
+			Name: "Network Failure Step",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint:    "http://127.0.0.1:1/execute",
+				HealthCheck: "http://127.0.0.1:1/health",
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(step))
+
+		checker := server.NewHealthChecker(env.Engine)
+		defer checker.Stop()
+
+		env.WaitFor(wait.StepHealthChanged(step.ID, api.HealthUnhealthy),
+			func() {
+				checker.Start()
+			},
+		)
+
+		cluster, err := env.Engine.GetClusterState()
+		assert.NoError(t, err)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health[step.ID]; ok {
+				assert.Equal(t, api.HealthUnhealthy, h.Status)
+				assert.NotEmpty(t, h.Error)
+				return
+			}
+		}
+		assert.Fail(t, "network-failure-step not found in any node")
+	})
+}
+
+func TestHealthCheckScript(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		step := &api.Step{
+			ID:   "script-step",
+			Name: "Script Step",
+			Type: api.StepTypeScript,
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput},
+			},
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangAle,
+				Script:   "{:result 42}",
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t,
+			env.Engine.UpdateStepHealth(step.ID, api.HealthUnknown, ""),
+		)
+
+		checker := server.NewHealthChecker(env.Engine)
+		defer checker.Stop()
+
+		env.WaitFor(wait.StepHealthChanged(step.ID, api.HealthHealthy),
+			func() {
+				checker.Start()
+			},
+		)
+
+		cluster, err := env.Engine.GetClusterState()
+		assert.NoError(t, err)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health[step.ID]; ok {
+				assert.Equal(t, api.HealthHealthy, h.Status)
+				assert.Empty(t, h.Error)
+				return
+			}
+		}
+		assert.Fail(t, "script-step not found in any node")
+	})
+}
+
+func TestHealthCheckFlowHealthy(t *testing.T) {
+	healthServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusOK)
+		}),
+	)
+	defer healthServer.Close()
+
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		goal := &api.Step{
+			ID:   "goal-step",
+			Name: "Goal Step",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint:    healthServer.URL + "/execute",
+				HealthCheck: healthServer.URL + "/health",
+			},
+		}
+		fl := &api.Step{
+			ID:   "flow-step",
+			Name: "Flow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{goal.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput},
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(goal))
+		assert.NoError(t, env.Engine.RegisterStep(fl))
+
+		checker := server.NewHealthChecker(env.Engine)
+		defer checker.Stop()
+
+		env.WaitFor(wait.StepHealthChanged(fl.ID, api.HealthHealthy),
+			func() {
+				checker.Start()
+			},
+		)
+
+		cluster, err := env.Engine.GetClusterState()
+		assert.NoError(t, err)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health[fl.ID]; ok {
+				assert.Equal(t, api.HealthHealthy, h.Status)
+				return
+			}
+		}
+		assert.Fail(t, "flow-step not found in any node")
+	})
+}
+
+func TestHealthCheckFlowUnhealthy(t *testing.T) {
+	healthServer := httptest.NewServer(
+		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}),
+	)
+	defer healthServer.Close()
+
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		goal := &api.Step{
+			ID:   "bad-goal-step",
+			Name: "Bad Goal Step",
+			Type: api.StepTypeSync,
+			HTTP: &api.HTTPConfig{
+				Endpoint:    healthServer.URL + "/execute",
+				HealthCheck: healthServer.URL + "/health",
+			},
+		}
+		fl := &api.Step{
+			ID:   "bad-flow-step",
+			Name: "Bad Flow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{goal.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput},
+			},
+		}
+		assert.NoError(t, env.Engine.RegisterStep(goal))
+		assert.NoError(t, env.Engine.RegisterStep(fl))
+
+		checker := server.NewHealthChecker(env.Engine)
+		defer checker.Stop()
+
+		env.WaitFor(wait.StepHealthChanged(fl.ID, api.HealthUnhealthy),
+			func() {
+				checker.Start()
+			},
+		)
+
+		cluster, err := env.Engine.GetClusterState()
+		assert.NoError(t, err)
+		for _, node := range cluster.Nodes {
+			if h, ok := node.Health[fl.ID]; ok {
+				assert.Equal(t, api.HealthUnhealthy, h.Status)
+				assert.Contains(t, h.Error, goal.ID)
+				return
+			}
+		}
+		assert.Fail(t, "bad-flow-step not found in any node")
+	})
+}
+
+func TestHealthCheckUnhealthy(t *testing.T) {
 	healthServer := httptest.NewServer(
 		http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.WriteHeader(http.StatusInternalServerError)

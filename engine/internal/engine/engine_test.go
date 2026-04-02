@@ -21,6 +21,20 @@ func TestNew(t *testing.T) {
 	})
 }
 
+func TestLocalNodeID(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.Equal(t,
+			api.NodeID(env.Config.Raft.LocalID), env.Engine.LocalNodeID(),
+		)
+	})
+}
+
+func TestGetEventHub(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.Same(t, env.EventHub, env.Engine.GetEventHub())
+	})
+}
+
 func TestNewMissingDependency(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		tests := []struct {
@@ -133,6 +147,40 @@ func TestGetClusterStateSeq(t *testing.T) {
 		assert.NotNil(t, state)
 		assert.NotNil(t, state.Nodes)
 		assert.True(t, seq >= 0)
+	})
+}
+
+func TestGetStoreStateErrors(t *testing.T) {
+	env := helpers.NewTestEngine(t)
+	env.Cleanup()
+
+	_, err := env.Engine.GetCatalogState()
+	assert.Error(t, err)
+
+	_, err = env.Engine.GetClusterState()
+	assert.Error(t, err)
+
+	_, _, err = env.Engine.GetCatalogStateSeq()
+	assert.Error(t, err)
+
+	_, _, err = env.Engine.GetClusterStateSeq()
+	assert.Error(t, err)
+}
+
+func TestStateIncludesConfiguredNodes(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		env.Config.Raft.Servers = append(env.Config.Raft.Servers,
+			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
+		)
+
+		st, err := env.Engine.GetClusterState()
+		assert.NoError(t, err)
+		assert.Contains(t, st.Nodes, api.NodeID("node-2"))
+
+		seqState, seq, err := env.Engine.GetClusterStateSeq()
+		assert.NoError(t, err)
+		assert.True(t, seq >= 0)
+		assert.Contains(t, seqState.Nodes, api.NodeID("node-2"))
 	})
 }
 
