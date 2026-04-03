@@ -23,8 +23,10 @@ type (
 		missing     util.Set[api.Name]
 		steps       api.Steps
 		attributes  api.AttributeGraph
-		preview     bool
+		providers   selectProviders
 	}
+
+	selectProviders func(*builder, []api.StepID) []api.StepID
 )
 
 var (
@@ -40,41 +42,43 @@ var (
 // Create builds an execution plan for the given goal steps, resolving
 // dependencies and determining required inputs
 func Create(
-	cat *api.CatalogState, goalIDs []api.StepID, init api.Args,
+	cat *api.CatalogState, goals []api.StepID, init api.Args,
 ) (*api.ExecutionPlan, error) {
-	return create(cat, goalIDs, init, false)
+	return create(cat, goals, init, strictProviders)
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
-// falls back to unsatisfied provider chains when no satisfiable provider exists
-// so the UI can show the full dependency path back to missing init inputs.
+// falls back to unsatisfied provider chains when no satisfiable provider
+// exists so the UI can show the full dependency path back to missing init
+// inputs
 func Preview(
-	cat *api.CatalogState, goalIDs []api.StepID, init api.Args,
+	cat *api.CatalogState, goals []api.StepID, init api.Args,
 ) (*api.ExecutionPlan, error) {
-	return create(cat, goalIDs, init, true)
+	return create(cat, goals, init, previewProviders)
 }
 
 func create(
-	cat *api.CatalogState, goalIDs []api.StepID, init api.Args, preview bool,
+	cat *api.CatalogState, goals []api.StepID, init api.Args,
+	providers selectProviders,
 ) (*api.ExecutionPlan, error) {
-	if len(goalIDs) == 0 {
+	if len(goals) == 0 {
 		return nil, ErrNoGoals
 	}
 
-	if err := validateGoals(cat, goalIDs); err != nil {
+	if err := validateGoals(cat, goals); err != nil {
 		return nil, err
 	}
 
-	pb := newPlanBuilder(cat, init, preview)
+	pb := newPlanBuilder(cat, init, providers)
 	pb.computeSatisfiable()
-	if err := pb.collectSteps(goalIDs); err != nil {
+	if err := pb.collectSteps(goals); err != nil {
 		return nil, err
 	}
 	pb.buildPlan()
 	excluded := pb.buildExcluded()
 
 	return &api.ExecutionPlan{
-		Goals:      goalIDs,
+		Goals:      goals,
 		Required:   pb.getRequiredInputs(),
 		Steps:      pb.steps,
 		Attributes: pb.attributes,
@@ -83,11 +87,11 @@ func create(
 }
 
 func newPlanBuilder(
-	st *api.CatalogState, init api.Args, preview bool,
+	st *api.CatalogState, init api.Args, providers selectProviders,
 ) *builder {
 	pb := &builder{
 		cat:         st,
-		preview:     preview,
+		providers:   providers,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
 		satisfiable: util.Set[api.StepID]{},
@@ -146,8 +150,8 @@ func (b *builder) requiredInputsAvailable(
 }
 
 // Pass 2: collect steps and build plan from goal traversal
-func (b *builder) collectSteps(goalIDs []api.StepID) error {
-	for _, goalID := range goalIDs {
+func (b *builder) collectSteps(goals []api.StepID) error {
+	for _, goalID := range goals {
 		if err := b.collectStep(goalID); err != nil {
 			return err
 		}
@@ -210,31 +214,18 @@ func (b *builder) includeProviders(name api.Name) (bool, error) {
 		return false, nil
 	}
 
-	hasProvider := false
-	hadSatisfiable := false
+	providers = b.providers(b, providers)
+	if len(providers) == 0 {
+		return false, nil
+	}
+
 	for _, providerID := range providers {
-		if !b.satisfiable.Contains(providerID) {
-			continue
-		}
-		hadSatisfiable = true
-		hasProvider = true
 		if err := b.collectStep(providerID); err != nil {
 			return false, err
 		}
 	}
 
-	if hadSatisfiable || !b.preview {
-		return hasProvider, nil
-	}
-
-	for _, providerID := range providers {
-		hasProvider = true
-		if err := b.collectStep(providerID); err != nil {
-			return false, err
-		}
-	}
-
-	return hasProvider, nil
+	return true, nil
 }
 
 func (b *builder) findProviders(name api.Name) []api.StepID {
@@ -369,11 +360,28 @@ func (b *builder) getRequiredInputs() []api.Name {
 	return required
 }
 
-func validateGoals(cat *api.CatalogState, goalIDs []api.StepID) error {
-	for _, goalID := range goalIDs {
+func validateGoals(cat *api.CatalogState, goals []api.StepID) error {
+	for _, goalID := range goals {
 		if _, ok := cat.Steps[goalID]; !ok {
 			return ErrStepNotFound
 		}
 	}
 	return nil
+}
+
+func strictProviders(b *builder, providers []api.StepID) []api.StepID {
+	var res []api.StepID
+	for _, id := range providers {
+		if b.satisfiable.Contains(id) {
+			res = append(res, id)
+		}
+	}
+	return res
+}
+
+func previewProviders(b *builder, providers []api.StepID) []api.StepID {
+	if res := strictProviders(b, providers); len(res) > 0 {
+		return res
+	}
+	return providers
 }

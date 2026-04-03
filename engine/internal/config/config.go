@@ -129,7 +129,7 @@ func DefaultTimebox() timebox.Config {
 }
 
 // EngineStoreConfig returns the engine metadata store configuration derived
-// from the shared Timebox defaults.
+// from the shared Timebox defaults
 func (c *Config) EngineStoreConfig() timebox.Config {
 	return c.Timebox.With(timebox.Config{
 		CacheSize:     EngineStoreCacheSize,

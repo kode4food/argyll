@@ -16,7 +16,7 @@ func (e *Engine) VerifyScript(step *api.Step) error {
 	return err
 }
 
-// GetCompiledPredicate retrieves the compiled predicate for a flow step.
+// GetCompiledPredicate retrieves the compiled predicate for a flow step
 func (e *Engine) GetCompiledPredicate(fs api.FlowStep) (any, error) {
 	step, err := e.getStepFromPlan(fs)
 	if err != nil {
@@ -25,7 +25,7 @@ func (e *Engine) GetCompiledPredicate(fs api.FlowStep) (any, error) {
 	return e.scripts.Compile(step, step.Predicate)
 }
 
-// GetCompiledScript retrieves the compiled script for a step in a flow.
+// GetCompiledScript retrieves the compiled script for a step in a flow
 func (e *Engine) GetCompiledScript(fs api.FlowStep) (any, error) {
 	step, err := e.getStepFromPlan(fs)
 	if err != nil {
