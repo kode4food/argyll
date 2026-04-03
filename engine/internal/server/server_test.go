@@ -1303,6 +1303,7 @@ func TestPlanPreview(t *testing.T) {
 			Name: "Step A",
 			Type: api.StepTypeSync,
 			Attributes: api.AttributeSpecs{
+				"seed":  {Role: api.RoleRequired, Type: api.TypeString},
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
@@ -1315,7 +1316,7 @@ func TestPlanPreview(t *testing.T) {
 			Name: "Step B",
 			Type: api.StepTypeSync,
 			Attributes: api.AttributeSpecs{
-				"value":  {Role: api.RoleOutput, Type: api.TypeString},
+				"value":  {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
@@ -1352,6 +1353,9 @@ func TestPlanPreview(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Len(t, response.Goals, 1)
 		assert.Equal(t, api.StepID("step-b"), response.Goals[0])
+		assert.Contains(t, response.Steps, api.StepID("step-a"))
+		assert.Contains(t, response.Steps, api.StepID("step-b"))
+		assert.Equal(t, []api.Name{"seed"}, response.Required)
 	})
 }
 

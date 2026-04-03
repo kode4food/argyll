@@ -489,6 +489,46 @@ func TestLuaEmptyTable(t *testing.T) {
 	assert.Empty(t, m)
 }
 
+func TestLuaNestedMap(t *testing.T) {
+	env := script.NewLuaEnv()
+
+	step := &api.Step{
+		ID:   "nested-map",
+		Type: api.StepTypeScript,
+		Script: &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script: `
+				return {
+					result = {
+						overall = "medium",
+						score = 6,
+						reasons = {"missing extracted fields", "document inconsistencies"}
+					}
+				}
+			`,
+		},
+		Attributes: api.AttributeSpecs{
+			"result": {Role: api.RoleRequired},
+		},
+	}
+
+	comp, err := env.Compile(step, step.Script)
+	assert.NoError(t, err)
+
+	result, err := env.ExecuteScript(comp, step, api.Args{})
+	assert.NoError(t, err)
+
+	m, ok := result["result"].(map[string]any)
+	assert.True(t, ok)
+	assert.Equal(t, "medium", m["overall"])
+	assert.Equal(t, 6, m["score"])
+
+	reasons, ok := m["reasons"].([]any)
+	assert.True(t, ok)
+	assert.Equal(t, "missing extracted fields", reasons[0])
+	assert.Equal(t, "document inconsistencies", reasons[1])
+}
+
 func TestLuaLargeArray(t *testing.T) {
 	env := script.NewLuaEnv()
 

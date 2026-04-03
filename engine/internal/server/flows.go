@@ -149,7 +149,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	pl, ok := s.createPlan(c, req.Goals, req.Init)
+	pl, ok := s.createExecutionPlan(c, req.Goals, req.Init)
 	if !ok {
 		return
 	}
@@ -236,8 +236,20 @@ func (s *Server) getFlowStatus(c *gin.Context) {
 	})
 }
 
+func (s *Server) createExecutionPlan(
+	c *gin.Context, goals []api.StepID, init api.Args,
+) (*api.ExecutionPlan, bool) {
+	return s.createPlan(c, goals, init, plan.Create)
+}
+
+func (s *Server) createPreviewPlan(
+	c *gin.Context, goals []api.StepID, init api.Args,
+) (*api.ExecutionPlan, bool) {
+	return s.createPlan(c, goals, init, plan.Preview)
+}
+
 func (s *Server) createPlan(
-	c *gin.Context, goalStepIDs []api.StepID, init api.Args,
+	c *gin.Context, goals []api.StepID, init api.Args, planner plan.Planner,
 ) (*api.ExecutionPlan, bool) {
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {
@@ -248,14 +260,14 @@ func (s *Server) createPlan(
 		return nil, false
 	}
 
-	pl, err := plan.Create(cat, goalStepIDs, init)
+	pl, err := planner(cat, goals, init)
 	if err == nil {
 		return pl, true
 	}
 
 	if errors.Is(err, plan.ErrStepNotFound) {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", err.Error(), goalStepIDs),
+			Error:  fmt.Sprintf("%s: %v", err.Error(), goals),
 			Status: http.StatusNotFound,
 		})
 		return nil, false
@@ -285,7 +297,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	if pl, ok := s.createPlan(c, req.Goals, req.Init); ok {
+	if pl, ok := s.createPreviewPlan(c, req.Goals, req.Init); ok {
 		c.JSON(http.StatusOK, pl)
 	}
 }

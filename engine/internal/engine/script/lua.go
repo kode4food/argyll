@@ -256,9 +256,10 @@ func luaToGo(L *lua.State, index int) any {
 
 func luaTableToMap(L *lua.State, index int) api.Args {
 	result := api.Args{}
+	absIndex := luaAbsIndex(L, index)
 
 	L.PushNil()
-	for L.Next(index - 1) {
+	for L.Next(absIndex) {
 		if L.IsString(-2) {
 			key, _ := L.ToString(-2)
 			result[api.Name(key)] = luaToGo(L, -1)
@@ -270,14 +271,15 @@ func luaTableToMap(L *lua.State, index int) api.Args {
 }
 
 func luaTableToAny(L *lua.State, index int) any {
+	absIndex := luaAbsIndex(L, index)
 	isArray := true
 	length := 0
 
 	L.PushNil()
-	for L.Next(index - 1) {
+	for L.Next(absIndex) {
 		if !L.IsNumber(-2) {
 			isArray = false
-			L.Pop(1)
+			L.Pop(2)
 			break
 		}
 		length++
@@ -285,12 +287,12 @@ func luaTableToAny(L *lua.State, index int) any {
 	}
 
 	if isArray && length > 0 {
-		return convertLuaArray(L, index, length)
+		return convertLuaArray(L, absIndex, length)
 	}
 
 	result := map[string]any{}
 	L.PushNil()
-	for L.Next(index - 1) {
+	for L.Next(absIndex) {
 		var key string
 		if !L.IsString(-2) {
 			key = fmt.Sprintf("%v", luaToGo(L, -2))
@@ -308,14 +310,18 @@ func luaTableToAny(L *lua.State, index int) any {
 
 func convertLuaArray(L *lua.State, index, length int) []any {
 	arr := make([]any, length)
-	absIndex := index
-	if index < 0 {
-		absIndex = L.Top() + index + 1
-	}
+	absIndex := luaAbsIndex(L, index)
 	for i := 1; i <= length; i++ {
 		L.RawGetInt(absIndex, i)
 		arr[i-1] = luaToGo(L, -1)
 		L.Pop(1)
 	}
 	return arr
+}
+
+func luaAbsIndex(L *lua.State, index int) int {
+	if index >= 0 {
+		return index
+	}
+	return L.Top() + index + 1
 }

@@ -8,27 +8,54 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-type builder struct {
-	cat         *api.CatalogState
-	satisfied   util.Set[api.Name]
-	available   util.Set[api.Name]
-	satisfiable util.Set[api.StepID]
-	visited     util.Set[api.StepID]
-	included    util.Set[api.StepID]
-	missing     util.Set[api.Name]
-	steps       api.Steps
-	attributes  api.AttributeGraph
-}
+type (
+	Planner func(
+		*api.CatalogState, []api.StepID, api.Args,
+	) (*api.ExecutionPlan, error)
+
+	builder struct {
+		cat         *api.CatalogState
+		satisfied   util.Set[api.Name]
+		available   util.Set[api.Name]
+		satisfiable util.Set[api.StepID]
+		visited     util.Set[api.StepID]
+		included    util.Set[api.StepID]
+		missing     util.Set[api.Name]
+		steps       api.Steps
+		attributes  api.AttributeGraph
+		preview     bool
+	}
+)
 
 var (
 	ErrNoGoals      = errors.New("at least one goal step is required")
 	ErrStepNotFound = errors.New("step not found")
 )
 
+var (
+	_ Planner = Create
+	_ Planner = Preview
+)
+
 // Create builds an execution plan for the given goal steps, resolving
 // dependencies and determining required inputs
 func Create(
 	cat *api.CatalogState, goalIDs []api.StepID, init api.Args,
+) (*api.ExecutionPlan, error) {
+	return create(cat, goalIDs, init, false)
+}
+
+// Preview builds an execution plan for preview purposes. Unlike Create, it
+// falls back to unsatisfied provider chains when no satisfiable provider exists
+// so the UI can show the full dependency path back to missing init inputs.
+func Preview(
+	cat *api.CatalogState, goalIDs []api.StepID, init api.Args,
+) (*api.ExecutionPlan, error) {
+	return create(cat, goalIDs, init, true)
+}
+
+func create(
+	cat *api.CatalogState, goalIDs []api.StepID, init api.Args, preview bool,
 ) (*api.ExecutionPlan, error) {
 	if len(goalIDs) == 0 {
 		return nil, ErrNoGoals
@@ -38,7 +65,7 @@ func Create(
 		return nil, err
 	}
 
-	pb := newPlanBuilder(cat, init)
+	pb := newPlanBuilder(cat, init, preview)
 	pb.computeSatisfiable()
 	if err := pb.collectSteps(goalIDs); err != nil {
 		return nil, err
@@ -55,9 +82,12 @@ func Create(
 	}, nil
 }
 
-func newPlanBuilder(st *api.CatalogState, init api.Args) *builder {
+func newPlanBuilder(
+	st *api.CatalogState, init api.Args, preview bool,
+) *builder {
 	pb := &builder{
 		cat:         st,
+		preview:     preview,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
 		satisfiable: util.Set[api.StepID]{},
@@ -181,10 +211,23 @@ func (b *builder) includeProviders(name api.Name) (bool, error) {
 	}
 
 	hasProvider := false
+	hadSatisfiable := false
 	for _, providerID := range providers {
 		if !b.satisfiable.Contains(providerID) {
 			continue
 		}
+		hadSatisfiable = true
+		hasProvider = true
+		if err := b.collectStep(providerID); err != nil {
+			return false, err
+		}
+	}
+
+	if hadSatisfiable || !b.preview {
+		return hasProvider, nil
+	}
+
+	for _, providerID := range providers {
 		hasProvider = true
 		if err := b.collectStep(providerID); err != nil {
 			return false, err

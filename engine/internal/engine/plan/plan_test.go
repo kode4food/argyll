@@ -567,6 +567,49 @@ func TestProvidersWithInit(t *testing.T) {
 	}
 }
 
+func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
+	intake := &api.Step{
+		ID:   "intake",
+		Name: "Intake",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"seed":  {Role: api.RoleRequired, Type: api.TypeString},
+			"input": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	processor := &api.Step{
+		ID:   "processor",
+		Name: "Processor",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"input":  {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	cat := makeCatalogState(api.Steps{
+		"intake":    intake,
+		"processor": processor,
+	})
+
+	pl, err := plan.Preview(cat, []api.StepID{"processor"}, api.Args{})
+	assert.NoError(t, err)
+
+	assert.Len(t, pl.Steps, 2)
+	assert.Contains(t, pl.Steps, api.StepID("intake"))
+	assert.Contains(t, pl.Steps, api.StepID("processor"))
+	assert.Equal(t, []api.Name{"seed"}, pl.Required)
+}
+
 func TestMixedInputs(t *testing.T) {
 
 	resolver1 := &api.Step{
