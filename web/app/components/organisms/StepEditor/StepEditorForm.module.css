@@ -2,7 +2,8 @@
   display: flex;
   flex-direction: column;
   gap: 14px;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-right: var(--spacing-sm);
 }
@@ -452,16 +453,16 @@
 }
 
 .scriptEditorContainer {
-  min-height: 125px;
-  height: 125px;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 
 .predicateEditorContainer {
-  min-height: 60px;
-  height: 60px;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
   overflow: hidden;
