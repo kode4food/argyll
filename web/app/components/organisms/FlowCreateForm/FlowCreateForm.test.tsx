@@ -573,6 +573,10 @@ describe("FlowCreateForm", () => {
 
     expect(setFocusedPreviewAttribute).toHaveBeenCalledWith("quantity");
 
+    fireEvent.blur(quantityInput);
+
+    expect(setFocusedPreviewAttribute).toHaveBeenCalledWith(null);
+
     fireEvent.click(
       screen.getByRole("button", { name: t("flowCreate.modeJson") })
     );

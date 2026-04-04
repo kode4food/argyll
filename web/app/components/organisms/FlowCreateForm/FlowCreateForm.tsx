@@ -376,6 +376,9 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
                                     onFocus={() =>
                                       setFocusedPreviewAttribute(option.name)
                                     }
+                                    onBlur={() =>
+                                      setFocusedPreviewAttribute(null)
+                                    }
                                     className={`${styles.input} ${styles.attributeValueInput}`}
                                     placeholder={getFlowInputPlaceholder(
                                       option
@@ -415,28 +418,30 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
                 {t("flowCreate.startFlowLabel")}
               </label>
               <div className={styles.footerRow}>
-                <input
-                  type="text"
-                  value={newID}
-                  onChange={(e) => {
-                    setNewID(e.target.value);
-                    setIDManuallyEdited(true);
-                  }}
-                  placeholder={t("flowCreate.flowIdPlaceholder")}
-                  className={`${styles.input} ${styles.idInputFlex}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewID(generateID());
-                    setIDManuallyEdited(false);
-                  }}
-                  className={`${styles.buttonGenerate} ${styles.footerIconButton}`}
-                  title={t("flowCreate.generateIdTitle")}
-                  aria-label={t("flowCreate.generateIdAria")}
-                >
-                  ↻
-                </button>
+                <div className={styles.idControls}>
+                  <input
+                    type="text"
+                    value={newID}
+                    onChange={(e) => {
+                      setNewID(e.target.value);
+                      setIDManuallyEdited(true);
+                    }}
+                    placeholder={t("flowCreate.flowIdPlaceholder")}
+                    className={`${styles.input} ${styles.idInputFlex}`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewID(generateID());
+                      setIDManuallyEdited(false);
+                    }}
+                    className={`${styles.buttonGenerate} ${styles.footerIconButton}`}
+                    title={t("flowCreate.generateIdTitle")}
+                    aria-label={t("flowCreate.generateIdAria")}
+                  >
+                    ↻
+                  </button>
+                </div>
                 <button
                   onClick={handleCreateFlow}
                   disabled={

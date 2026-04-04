@@ -125,6 +125,11 @@
 
 .buttonStart {
   composes: buttonPrimary from "../Shared/Button.module.css";
+  border: 1px solid var(--color-info);
+}
+
+.buttonStart:disabled {
+  border-color: var(--panel-border);
 }
 
 .footerIconButton {
@@ -226,7 +231,7 @@
 .sectionHeaderActions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-xs);
+  gap: var(--spacing-sm);
   min-width: 0;
   margin-left: auto;
 }
@@ -283,7 +288,15 @@
 .footerRow {
   display: flex;
   align-items: center;
+  gap: var(--spacing-md);
+}
+
+.idControls {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
   gap: var(--spacing-xs);
+  min-width: 0;
 }
 
 .idInputFlex {
