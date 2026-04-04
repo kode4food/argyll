@@ -64,15 +64,16 @@
   --color-edge-grayed: #e5e7eb;
 
   /* Spacing */
-  --spacing-2xs: 0.125rem; /* 2px */
-  --spacing-xs: 0.25rem; /* 4px */
-  --spacing-sm: 0.5rem; /* 8px */
-  --spacing-md: 0.75rem; /* 12px */
-  --spacing-lg: 1rem; /* 16px */
-  --spacing-xl: 1.5rem; /* 24px */
-  --spacing-2xl: 2rem; /* 32px */
-  --spacing-3xl: 3rem; /* 48px */
-  --spacing-padding-lg: 1.25rem; /* 20px - common for component padding */
+  --spacing-density: 0.75;
+  --spacing-2xs: calc(0.125rem * var(--spacing-density)); /* 2px base */
+  --spacing-xs: calc(0.25rem * var(--spacing-density)); /* 4px base */
+  --spacing-sm: calc(0.5rem * var(--spacing-density)); /* 8px base */
+  --spacing-md: calc(0.75rem * var(--spacing-density)); /* 12px base */
+  --spacing-lg: calc(1rem * var(--spacing-density)); /* 16px base */
+  --spacing-xl: calc(1.5rem * var(--spacing-density)); /* 24px base */
+  --spacing-2xl: calc(2rem * var(--spacing-density)); /* 32px base */
+  --spacing-3xl: calc(3rem * var(--spacing-density)); /* 48px base */
+  --spacing-padding-lg: calc(1.25rem * var(--spacing-density)); /* 20px base */
 
   /* Component Dimensions */
   --step-widget-width: 16rem; /* 256px */

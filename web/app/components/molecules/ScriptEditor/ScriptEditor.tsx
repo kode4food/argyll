@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
 import { StreamLanguage } from "@codemirror/language";
+import { json as jsonLanguage } from "@codemirror/lang-json";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
 import { scheme } from "@codemirror/legacy-modes/mode/scheme";
-import { json } from "@codemirror/legacy-modes/mode/javascript";
 import { EditorView } from "@codemirror/view";
 import styles from "./ScriptEditor.module.css";
 
@@ -22,7 +22,7 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
 }) => {
   const extensions = useMemo(() => {
     if (language === "json") {
-      return [StreamLanguage.define(json), EditorView.lineWrapping];
+      return [jsonLanguage(), EditorView.lineWrapping];
     }
     const langMode = language === "lua" ? lua : scheme;
     const langExt = StreamLanguage.define(langMode);

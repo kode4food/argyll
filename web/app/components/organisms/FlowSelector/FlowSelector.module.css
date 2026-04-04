@@ -48,10 +48,10 @@
 .navButtonOverlay {
   position: absolute;
   top: 50%;
-  right: calc(var(--spacing-xs) + 4px);
+  right: calc(var(--selector-control-padding-x) / 2);
   z-index: 1;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: var(--selector-overlay-button-size);
+  height: var(--selector-overlay-button-size);
   padding: 0;
   transform: translateY(-50%);
 }
@@ -238,6 +238,8 @@
 }
 
 .selectorControlShell {
+  --selector-control-padding-x: var(--spacing-md);
+  --selector-overlay-button-size: 1.75rem;
   position: relative;
   width: 300px;
 }
@@ -247,7 +249,7 @@
   align-items: center;
   border: 1px solid var(--color-neutral-border);
   border-radius: var(--spacing-xs);
-  padding: var(--spacing-md) var(--spacing-md);
+  padding: var(--spacing-md) var(--selector-control-padding-x);
   font-size: var(--text-sm);
   background: var(--color-surface);
   color: var(--color-neutral-text);
@@ -258,7 +260,10 @@
 }
 
 .selectWithOverlayAction {
-  padding-right: calc(var(--spacing-md) + 2rem + var(--spacing-xs));
+  padding-right: calc(
+    var(--selector-control-padding-x) + var(--selector-overlay-button-size) +
+      var(--spacing-xs)
+  );
 }
 
 .select .progress-icon {

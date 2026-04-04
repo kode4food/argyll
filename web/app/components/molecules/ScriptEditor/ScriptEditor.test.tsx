@@ -1,7 +1,7 @@
 import { render } from "@testing-library/react";
 import ScriptEditor from "./ScriptEditor";
 import { StreamLanguage } from "@codemirror/language";
-import { json as jsonLegacyMode } from "@codemirror/legacy-modes/mode/javascript";
+import { json as jsonLanguage } from "@codemirror/lang-json";
 
 const codeMirrorMock = jest.fn(({ value, onChange, readOnly, theme }: any) => (
   <div data-testid="codemirror">
@@ -25,12 +25,12 @@ jest.mock("@codemirror/language", () => ({
   },
 }));
 
-jest.mock("@codemirror/legacy-modes/mode/lua", () => ({
-  lua: {},
+jest.mock("@codemirror/lang-json", () => ({
+  json: jest.fn(() => "json-extension"),
 }));
 
-jest.mock("@codemirror/legacy-modes/mode/javascript", () => ({
-  json: { name: "json-mode" },
+jest.mock("@codemirror/legacy-modes/mode/lua", () => ({
+  lua: {},
 }));
 
 jest.mock("@codemirror/view", () => ({
@@ -107,11 +107,12 @@ describe("ScriptEditor", () => {
     expect(textarea?.dataset.theme).toBe("dark");
   });
 
-  test("uses JSON legacy mode when language is json", () => {
+  test("uses JSON language extension when language is json", () => {
     const onChange = jest.fn();
     render(<ScriptEditor value="{}" onChange={onChange} language="json" />);
 
-    expect(StreamLanguage.define).toHaveBeenCalledWith(jsonLegacyMode);
+    expect(jsonLanguage).toHaveBeenCalled();
+    expect(StreamLanguage.define).not.toHaveBeenCalled();
     expect(codeMirrorMock).toHaveBeenCalled();
   });
 });
