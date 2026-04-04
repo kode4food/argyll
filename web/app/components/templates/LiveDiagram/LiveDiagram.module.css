@@ -28,7 +28,7 @@
 
 .flowHud {
   position: absolute;
-  top: var(--spacing-xl);
+  top: calc((2 * var(--spacing-md)) + 2rem + var(--spacing-xl));
   left: 50%;
   z-index: 5;
   transform: translateX(-50%);
