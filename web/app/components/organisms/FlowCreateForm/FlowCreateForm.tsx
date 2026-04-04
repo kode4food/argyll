@@ -1,7 +1,6 @@
 import React from "react";
-import { IconStartFlow } from "@/utils/iconRegistry";
+import { IconAddStep, IconStartFlow } from "@/utils/iconRegistry";
 import Spinner from "@/app/components/atoms/Spinner";
-import { useEscapeKey } from "@/app/hooks/useEscapeKey";
 import { useUI } from "@/app/contexts/UIContext";
 import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
@@ -14,8 +13,8 @@ import {
   buildInitialStateFromInputValues,
   buildInitialStateInputValues,
   buildItemClassName,
-  getFlowInputStatus,
   FlowInputStatus,
+  getFlowInputStatus,
   validateJsonString,
 } from "./flowFormUtils";
 import { useT } from "@/app/i18n";
@@ -23,6 +22,10 @@ import {
   FlowInputOption,
   getFlowPlanAttributeOptions,
 } from "@/utils/flowPlanAttributeOptions";
+
+interface FlowCreateFormProps {
+  onCreateStep?: () => void;
+}
 
 const getTypePlaceholder = (type?: AttributeType): string => {
   switch (type) {
@@ -47,10 +50,11 @@ const getFlowInputPlaceholder = (option: FlowInputOption): string => {
   if (option.defaultValue !== undefined) {
     return option.defaultValue;
   }
+
   return getTypePlaceholder(option.type);
 };
 
-const FlowCreateForm: React.FC = () => {
+const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   const {
     newID,
     setNewID,
@@ -64,40 +68,26 @@ const FlowCreateForm: React.FC = () => {
     generateID,
     sortSteps,
   } = useFlowCreation();
-  const {
-    showCreateForm,
-    setShowCreateForm,
-    previewPlan,
-    goalSteps,
-    setFocusedPreviewAttribute,
-  } = useUI();
+  const { previewPlan, goalSteps, setFocusedPreviewAttribute } = useUI();
   const t = useT();
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
-
-  useEscapeKey(showCreateForm, () => setShowCreateForm(false));
 
   React.useEffect(() => {
     setJsonError(validateJsonString(initialState));
   }, [initialState]);
 
   React.useEffect(() => {
-    if (showCreateForm) {
-      setEditorMode("basic");
-    }
-  }, [showCreateForm]);
-
-  React.useEffect(() => {
-    if (!showCreateForm || editorMode !== "basic") {
+    if (editorMode !== "basic") {
       setFocusedPreviewAttribute(null);
     }
-  }, [showCreateForm, editorMode, setFocusedPreviewAttribute]);
+  }, [editorMode, setFocusedPreviewAttribute]);
 
   const sortedSteps = React.useMemo(() => sortSteps(steps), [steps, sortSteps]);
 
   const { sidebarListRef, showTopFade, showBottomFade } =
-    useFlowFormScrollFade(showCreateForm);
+    useFlowFormScrollFade(true);
 
   const { included, satisfied, missingByStep } = useFlowFormStepFiltering(
     steps,
@@ -122,13 +112,16 @@ const FlowCreateForm: React.FC = () => {
   );
   const flowInputValues = React.useMemo(() => {
     const values: Record<string, string> = {};
+
     flowInputOptions.forEach((option) => {
       const rawValue = flowInputValuesRaw[option.name] || "";
       const status = getFlowInputStatus(option, rawValue);
       values[option.name] = status === "defaulted" ? "" : rawValue;
     });
+
     return values;
   }, [flowInputOptions, flowInputValuesRaw]);
+
   const statusLabelByType: Record<FlowInputStatus, string> = {
     provided: t("flowCreate.providedBadge"),
     defaulted: t("flowCreate.defaultBadge"),
@@ -159,228 +152,122 @@ const FlowCreateForm: React.FC = () => {
         nextValues,
         flowInputNames
       );
+
       setInitialState(JSON.stringify(nextState, null, 2));
     },
     [flowInputNames, flowInputOptions, flowInputValuesRaw, setInitialState]
   );
 
-  if (!showCreateForm) return null;
-
   return (
-    <>
-      <div
-        className={styles.overlay}
-        onClick={() => setShowCreateForm(false)}
-        aria-label={t("flowCreate.closeForm")}
-      />
-      <div className={styles.modal} data-ui-overlay="modal">
-        <div className={styles.container}>
-          <div className={styles.sidebar}>
-            <div className={styles.sidebarHeader}>
-              <label className={styles.label}>
-                {t("flowCreate.selectGoalSteps")}
-              </label>
-            </div>
-            <div
-              ref={sidebarListRef}
-              className={`${styles.sidebarList} ${
-                showTopFade ? styles.fadeTop : ""
-              } ${showBottomFade ? styles.fadeBottom : ""}`}
-            >
-              {sortedSteps.map((step) => {
-                const isSelected = goalSteps.includes(step.id);
-                const isIncludedByOthers = included.has(step.id) && !isSelected;
-                const isSatisfiedByState =
-                  satisfied.has(step.id) && !isSelected;
-                const missingRequired = missingByStep.get(step.id) || [];
-                const isMissing = missingRequired.length > 0;
-                const isDisabled = isIncludedByOthers || isSatisfiedByState;
-
-                const tooltipText = isIncludedByOthers
-                  ? t("flowCreate.tooltipAlreadyIncluded")
-                  : isSatisfiedByState
-                    ? t("flowCreate.tooltipSatisfiedByState")
-                    : isMissing
-                      ? t("flowCreate.tooltipMissingRequired", {
-                          attrs: missingRequired.join(", "),
-                        })
-                      : undefined;
-                const itemClassName = buildItemClassName(
-                  isSelected,
-                  isDisabled,
-                  styles.dropdownItem,
-                  styles.dropdownItemSelected,
-                  styles.dropdownItemDisabled
-                );
-                const includedClassName = isIncludedByOthers
-                  ? styles.dropdownItemIncluded
-                  : "";
-
-                return (
-                  <div
-                    key={step.id}
-                    className={`${itemClassName} ${includedClassName}`}
-                    title={tooltipText}
-                    onClick={async () => {
-                      if (isDisabled) return;
-                      const newGoalStepIds = isSelected
-                        ? goalSteps.filter((id) => id !== step.id)
-                        : [...goalSteps, step.id];
-                      handleStepChange(newGoalStepIds);
-                    }}
-                  >
-                    <table className={styles.stepTable}>
-                      <tbody>
-                        <tr>
-                          <td className={styles.stepCellType}>
-                            <StepTypeLabel step={step} />
-                          </td>
-                          <td className={styles.stepCellName}>
-                            <div>{step.name}</div>
-                            <div className={styles.stepId}>({step.id})</div>
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
+    <div className={styles.panel}>
+      <div className={styles.container}>
+        <div className={styles.main}>
+          <div className={styles.panelBody}>
+            <section className={`${styles.sectionCard} ${styles.stepSection}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  {t("stepEditor.flowGoalsLabel")}
+                </div>
+                <div className={styles.sectionHeaderActions}>
+                  <div className={styles.sectionMeta}>
+                    {t("overview.stepsRegistered", {
+                      count: steps.length,
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className={styles.main}>
-            <div>
-              <label className={styles.label}>
-                {t("flowCreate.flowIdLabel")}
-              </label>
-              <div className={styles.idGroup}>
-                <input
-                  type="text"
-                  value={newID}
-                  onChange={(e) => {
-                    setNewID(e.target.value);
-                    setIDManuallyEdited(true);
-                  }}
-                  placeholder={t("flowCreate.flowIdPlaceholder")}
-                  className={`${styles.input} ${styles.idInputFlex}`}
-                />
-                <button
-                  type="button"
-                  onClick={() => {
-                    setNewID(generateID());
-                    setIDManuallyEdited(false);
-                  }}
-                  className={styles.buttonGenerate}
-                  title={t("flowCreate.generateIdTitle")}
-                  aria-label={t("flowCreate.generateIdAria")}
-                >
-                  ↻
-                </button>
+                  {onCreateStep && (
+                    <button
+                      type="button"
+                      className={styles.sectionActionButton}
+                      title={t("overview.addStep")}
+                      aria-label={t("overview.addStep")}
+                      onClick={onCreateStep}
+                    >
+                      <IconAddStep className={styles.sectionActionIcon} />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
-
-            <div className={styles.editorContainer}>
-              {editorMode === "json" && (
+              <div className={styles.goalListShell}>
                 <div
-                  className={`${styles.editorHeader} ${styles.editorHeaderWithLabel}`}
+                  ref={sidebarListRef}
+                  className={`${styles.sidebarList} ${
+                    showTopFade ? styles.fadeTop : ""
+                  } ${showBottomFade ? styles.fadeBottom : ""}`}
                 >
-                  <span className={styles.editorModeLabel}>
-                    {t("flowCreate.requiredAttributesLabel")}
-                  </span>
-                </div>
-              )}
-              {editorMode === "basic" ? (
-                <div className={styles.editorWrapper}>
-                  {flowInputOptions.length === 0 ? (
-                    <div className={styles.emptyAttributesCentered}>
-                      {emptyAttributesLabel}
-                    </div>
-                  ) : (
-                    <div className={styles.attributeTableScroll}>
-                      <div className={styles.attributeList}>
-                        <div className={styles.attributeListHeader}>
-                          <div
-                            className={`${styles.attributeListHeaderCell} ${styles.attributeHeaderCell}`}
-                          >
-                            {t("flowCreate.attributeColumn")}
-                          </div>
-                          <div
-                            className={`${styles.attributeListHeaderCell} ${styles.attributeValueHeaderCell}`}
-                          >
-                            {t("flowCreate.valueColumn")}
-                          </div>
-                        </div>
+                  {sortedSteps.map((step) => {
+                    const isSelected = goalSteps.includes(step.id);
+                    const isIncludedByOthers =
+                      included.has(step.id) && !isSelected;
+                    const isSatisfiedByState =
+                      satisfied.has(step.id) && !isSelected;
+                    const missingRequired = missingByStep.get(step.id) || [];
+                    const isMissing = missingRequired.length > 0;
+                    const isDisabled = isIncludedByOthers || isSatisfiedByState;
 
-                        {flowInputOptions.map((option) => {
-                          const value = flowInputValues[option.name] || "";
-                          const rawValue =
-                            flowInputValuesRaw[option.name] || "";
-                          const status = getFlowInputStatus(option, rawValue);
-                          const statusClass = statusClassByType[status];
-                          const statusLabel = statusLabelByType[status];
+                    const tooltipText = isIncludedByOthers
+                      ? t("flowCreate.tooltipAlreadyIncluded")
+                      : isSatisfiedByState
+                        ? t("flowCreate.tooltipSatisfiedByState")
+                        : isMissing
+                          ? t("flowCreate.tooltipMissingRequired", {
+                              attrs: missingRequired.join(", "),
+                            })
+                          : undefined;
+                    const itemClassName = buildItemClassName(
+                      isSelected,
+                      isDisabled,
+                      styles.dropdownItem,
+                      styles.dropdownItemSelected,
+                      styles.dropdownItemDisabled
+                    );
+                    const includedClassName = isIncludedByOthers
+                      ? styles.dropdownItemIncluded
+                      : "";
 
-                          return (
-                            <div
-                              key={option.name}
-                              className={styles.attributeListItem}
-                            >
-                              <div className={styles.requiredBadgeCell}>
-                                <span
-                                  className={`${styles.requiredBadge} ${statusClass}`}
-                                  role="img"
-                                  aria-label={statusLabel}
-                                  title={statusLabel}
-                                />
-                              </div>
-                              <div className={styles.attributeNameCell}>
-                                <span className={styles.attributeNameText}>
-                                  {option.name}
-                                </span>
-                              </div>
-                              <div className={styles.attributeValueCell}>
-                                <input
-                                  type="text"
-                                  value={value}
-                                  onChange={(e) =>
-                                    handleBasicInputChange(
-                                      option.name,
-                                      e.target.value
-                                    )
-                                  }
-                                  onFocus={() =>
-                                    setFocusedPreviewAttribute(option.name)
-                                  }
-                                  className={`${styles.input} ${styles.attributeValueInput}`}
-                                  placeholder={getFlowInputPlaceholder(option)}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
+                    return (
+                      <div
+                        key={step.id}
+                        className={`${itemClassName} ${includedClassName}`}
+                        title={tooltipText}
+                        onClick={() => {
+                          if (isDisabled) {
+                            return;
+                          }
+
+                          const nextGoalStepIds = isSelected
+                            ? goalSteps.filter((id) => id !== step.id)
+                            : [...goalSteps, step.id];
+
+                          void handleStepChange(nextGoalStepIds);
+                        }}
+                      >
+                        <table className={styles.stepTable}>
+                          <tbody>
+                            <tr>
+                              <td className={styles.stepCellType}>
+                                <StepTypeLabel step={step} />
+                              </td>
+                              <td className={styles.stepCellName}>
+                                <div>{step.name}</div>
+                                <div className={styles.stepId}>({step.id})</div>
+                              </td>
+                            </tr>
+                          </tbody>
+                        </table>
                       </div>
-                    </div>
-                  )}
+                    );
+                  })}
                 </div>
-              ) : (
-                <>
-                  <div className={styles.editorWrapper}>
-                    <LazyCodeEditor
-                      value={initialState}
-                      onChange={setInitialState}
-                      height="100%"
-                    />
-                  </div>
-                  {jsonError && (
-                    <div className={styles.jsonError}>
-                      {t("flowCreate.invalidJson", { error: jsonError })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
+              </div>
+            </section>
 
-            <div className={styles.actions}>
-              <div className={styles.actionsLeft}>
+            <section
+              className={`${styles.sectionCard} ${styles.attributesSection}`}
+            >
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionTitle}>
+                  {t("flowCreate.requiredAttributesLabel")}
+                </div>
                 <div className={styles.editorModeToggleGroup}>
                   <button
                     type="button"
@@ -404,12 +291,128 @@ const FlowCreateForm: React.FC = () => {
                   </button>
                 </div>
               </div>
-              <div className={styles.actionsRight}>
+              <div className={styles.editorContainer}>
+                {editorMode === "basic" ? (
+                  <div className={styles.editorWrapper}>
+                    {flowInputOptions.length === 0 ? (
+                      <div className={styles.emptyAttributesCentered}>
+                        {emptyAttributesLabel}
+                      </div>
+                    ) : (
+                      <div className={styles.attributeTableScroll}>
+                        <div className={styles.attributeList}>
+                          <div className={styles.attributeListHeader}>
+                            <div
+                              className={`${styles.attributeListHeaderCell} ${styles.attributeHeaderCell}`}
+                            >
+                              {t("flowCreate.attributeColumn")}
+                            </div>
+                            <div
+                              className={`${styles.attributeListHeaderCell} ${styles.attributeValueHeaderCell}`}
+                            >
+                              {t("flowCreate.valueColumn")}
+                            </div>
+                          </div>
+
+                          {flowInputOptions.map((option) => {
+                            const value = flowInputValues[option.name] || "";
+                            const rawValue =
+                              flowInputValuesRaw[option.name] || "";
+                            const status = getFlowInputStatus(option, rawValue);
+                            const statusClass = statusClassByType[status];
+                            const statusLabel = statusLabelByType[status];
+
+                            return (
+                              <div
+                                key={option.name}
+                                className={styles.attributeListItem}
+                              >
+                                <div className={styles.requiredBadgeCell}>
+                                  <span
+                                    className={`${styles.requiredBadge} ${statusClass}`}
+                                    role="img"
+                                    aria-label={statusLabel}
+                                    title={statusLabel}
+                                  />
+                                </div>
+                                <div className={styles.attributeNameCell}>
+                                  <span className={styles.attributeNameText}>
+                                    {option.name}
+                                  </span>
+                                </div>
+                                <div className={styles.attributeValueCell}>
+                                  <input
+                                    type="text"
+                                    value={value}
+                                    onChange={(e) =>
+                                      handleBasicInputChange(
+                                        option.name,
+                                        e.target.value
+                                      )
+                                    }
+                                    onFocus={() =>
+                                      setFocusedPreviewAttribute(option.name)
+                                    }
+                                    className={`${styles.input} ${styles.attributeValueInput}`}
+                                    placeholder={getFlowInputPlaceholder(
+                                      option
+                                    )}
+                                  />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className={styles.editorWrapper}>
+                      <LazyCodeEditor
+                        value={initialState}
+                        onChange={setInitialState}
+                        height="100%"
+                      />
+                    </div>
+                    {jsonError && (
+                      <div className={styles.jsonError}>
+                        {t("flowCreate.invalidJson", { error: jsonError })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </section>
+          </div>
+
+          <div className={styles.panelFooter}>
+            <div className={styles.section}>
+              <label className={styles.label}>
+                {t("flowCreate.startFlowLabel")}
+              </label>
+              <div className={styles.footerRow}>
+                <input
+                  type="text"
+                  value={newID}
+                  onChange={(e) => {
+                    setNewID(e.target.value);
+                    setIDManuallyEdited(true);
+                  }}
+                  placeholder={t("flowCreate.flowIdPlaceholder")}
+                  className={`${styles.input} ${styles.idInputFlex}`}
+                />
                 <button
-                  onClick={() => setShowCreateForm(false)}
-                  className={styles.buttonCancel}
+                  type="button"
+                  onClick={() => {
+                    setNewID(generateID());
+                    setIDManuallyEdited(false);
+                  }}
+                  className={`${styles.buttonGenerate} ${styles.footerIconButton}`}
+                  title={t("flowCreate.generateIdTitle")}
+                  aria-label={t("flowCreate.generateIdAria")}
                 >
-                  {t("common.cancel")}
+                  ↻
                 </button>
                 <button
                   onClick={handleCreateFlow}
@@ -419,26 +422,26 @@ const FlowCreateForm: React.FC = () => {
                     goalSteps.length === 0 ||
                     (editorMode === "json" && jsonError !== null)
                   }
-                  className={styles.buttonStart}
+                  className={`${styles.buttonStart} ${styles.footerIconButton}`}
+                  title={t("common.start")}
+                  aria-label={t("common.start")}
                 >
-                  <span className={styles.buttonIcon}>
-                    {creating ? (
-                      <Spinner size="sm" color="white" />
-                    ) : (
-                      <IconStartFlow className={styles.startIcon} />
-                    )}
-                  </span>
-                  {t("common.start")}
+                  {creating ? (
+                    <Spinner size="sm" color="white" />
+                  ) : (
+                    <IconStartFlow className={styles.startIcon} />
+                  )}
                 </button>
               </div>
             </div>
           </div>
         </div>
-        {steps.length === 0 && (
-          <div className={styles.warning}>{t("flowCreate.warningNoSteps")}</div>
-        )}
       </div>
-    </>
+
+      {steps.length === 0 && (
+        <div className={styles.warning}>{t("flowCreate.warningNoSteps")}</div>
+      )}
+    </div>
   );
 };
 

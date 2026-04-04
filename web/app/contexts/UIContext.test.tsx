@@ -34,22 +34,9 @@ describe("UIContext", () => {
   test("provides initial state", () => {
     const { result } = renderHook(() => useUI(), { wrapper });
 
-    expect(result.current.showCreateForm).toBe(false);
-    expect(result.current.disableEdit).toBe(false);
     expect(result.current.previewPlan).toBeNull();
     expect(result.current.goalSteps).toEqual([]);
     expect(result.current.focusedPreviewAttribute).toBeNull();
-  });
-
-  test("setShowCreateForm updates state", () => {
-    const { result } = renderHook(() => useUI(), { wrapper });
-
-    act(() => {
-      result.current.setShowCreateForm(true);
-    });
-
-    expect(result.current.showCreateForm).toBe(true);
-    expect(result.current.disableEdit).toBe(true);
   });
 
   test("setGoalSteps updates state", () => {

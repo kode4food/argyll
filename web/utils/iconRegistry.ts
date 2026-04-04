@@ -24,6 +24,8 @@ import {
   Layers,
   Loader2,
   Lock,
+  Maximize,
+  Minus,
   MinusCircle,
   Moon,
   Play,
@@ -53,6 +55,9 @@ export interface ArgIconConfig {
 
 export const IconAdd = Plus;
 export const IconAddStep = Plus;
+export const IconZoomIn = Plus;
+export const IconZoomOut = Minus;
+export const IconFitView = Maximize;
 export const IconRemove = Trash2;
 export const IconSearch = Search;
 export const IconStartFlow = Play;

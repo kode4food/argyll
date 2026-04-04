@@ -21,7 +21,6 @@ interface WidgetProps {
   isInPreviewPlan?: boolean;
   isPreviewMode?: boolean;
   diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
-  disableEdit?: boolean;
 }
 
 const Widget: React.FC<WidgetProps> = ({
@@ -34,7 +33,6 @@ const Widget: React.FC<WidgetProps> = ({
   isInPreviewPlan = true,
   isPreviewMode = false,
   diagramContainerRef,
-  disableEdit = false,
 }) => {
   const {
     status: healthStatus,
@@ -57,7 +55,7 @@ const Widget: React.FC<WidgetProps> = ({
   React.useEffect(() => {
     const handleOpenEditor = (event: Event) => {
       const customEvent = event as CustomEvent;
-      if (customEvent.detail?.stepId === step.id && !disableEdit) {
+      if (customEvent.detail?.stepId === step.id) {
         openEditor({
           step,
           onUpdate: handleStepUpdate,
@@ -69,25 +67,17 @@ const Widget: React.FC<WidgetProps> = ({
     document.addEventListener("openStepEditor", handleOpenEditor);
     return () =>
       document.removeEventListener("openStepEditor", handleOpenEditor);
-  }, [
-    step,
-    step.id,
-    disableEdit,
-    openEditor,
-    handleStepUpdate,
-    diagramContainerRef,
-  ]);
+  }, [step, step.id, openEditor, handleStepUpdate, diagramContainerRef]);
 
   const isGrayedOut = isPreviewMode && !isInPreviewPlan;
   const isEditable =
-    !disableEdit &&
-    ((step.type === "script" && step.script) ||
-      ((step.type === "sync" || step.type === "async") && step.http) ||
-      (step.type === "flow" && step.flow));
+    (step.type === "script" && step.script) ||
+    ((step.type === "sync" || step.type === "async") && step.http) ||
+    (step.type === "flow" && step.flow);
   const focusedAttributeName = isInPreviewPlan ? focusedPreviewAttribute : null;
 
   const handleDoubleClick = (e: React.MouseEvent) => {
-    if (disableEdit || !isEditable) return;
+    if (!isEditable) return;
     e.stopPropagation();
     openEditor({
       step,

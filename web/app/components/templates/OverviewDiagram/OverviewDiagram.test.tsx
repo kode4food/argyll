@@ -4,6 +4,19 @@ import OverviewDiagram from "./OverviewDiagram";
 import { Step } from "@/app/api";
 import { t, tPlural } from "@/app/testUtils/i18n";
 
+jest.mock("@/app/components/organisms/FlowCreateForm", () => {
+  const MockFlowCreateForm = ({
+    onCreateStep,
+  }: {
+    onCreateStep?: () => void;
+  }) => <button onClick={onCreateStep}>{t("overview.addStep")}</button>;
+  MockFlowCreateForm.displayName = "MockFlowCreateForm";
+  return {
+    __esModule: true,
+    default: MockFlowCreateForm,
+  };
+});
+
 jest.mock("@/app/contexts/StepEditorContext", () => {
   const openEditor = jest.fn();
   const closeEditor = jest.fn();
@@ -102,10 +115,7 @@ describe("OverviewDiagram", () => {
   it("renders header stats when not in flow mode", () => {
     setSession({ steps: [baseStep] });
     render(<OverviewDiagram />);
-    expect(screen.getByText(t("overview.title"))).toBeInTheDocument();
-    expect(
-      screen.getByText(tPlural("overview.stepsRegistered", 1))
-    ).toBeInTheDocument();
+    expect(screen.getByTestId("overview-step-diagram")).toBeInTheDocument();
   });
 
   it("opens create step editor", () => {

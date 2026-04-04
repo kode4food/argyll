@@ -15,8 +15,7 @@ export const useNodeCalculation = (
   flowData?: FlowContext | null,
   executions?: ExecutionResult[],
   resolvedAttributes?: string[],
-  diagramContainerRef?: React.RefObject<HTMLDivElement | null>,
-  disableEdit?: boolean
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>
 ) => {
   return useMemo(() => {
     const savedPositions = flowData?.id
@@ -80,7 +79,6 @@ export const useNodeCalculation = (
           isGoalStep: flowData?.plan?.goals?.includes(step.id),
           isStartingPoint: startingPoints.has(step.id),
           diagramContainerRef,
-          disableEdit,
         },
         type: "stepNode",
       };
@@ -92,7 +90,6 @@ export const useNodeCalculation = (
     flowData,
     executions,
     resolvedAttributes,
-    disableEdit,
     diagramContainerRef,
   ]);
 };

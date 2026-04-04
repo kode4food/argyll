@@ -10,6 +10,19 @@ import OverviewDiagram from "./OverviewDiagram";
 import { UIProvider } from "@/app/contexts/UIContext";
 import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 
+jest.mock("@/app/components/organisms/FlowCreateForm", () => {
+  const MockFlowCreateForm = ({
+    onCreateStep,
+  }: {
+    onCreateStep?: () => void;
+  }) => <button onClick={onCreateStep}>Create New Step</button>;
+  MockFlowCreateForm.displayName = "MockFlowCreateForm";
+  return {
+    __esModule: true,
+    default: MockFlowCreateForm,
+  };
+});
+
 const loadStepsMock = jest.fn().mockResolvedValue(undefined);
 const loadFlowsMock = jest.fn().mockResolvedValue(undefined);
 const flowStoreState = {

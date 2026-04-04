@@ -27,7 +27,6 @@ describe("useNodeCalculation", () => {
   const executions = [{ step_id: "step-1" }] as any[];
   const resolvedAttributes = ["data"];
   const diagramContainerRef = { current: null };
-  const disableEdit = true;
 
   const sectionHeightFor = (count: number) => {
     if (count === 0) return 0;
@@ -78,8 +77,7 @@ describe("useNodeCalculation", () => {
         flowData,
         executions,
         resolvedAttributes,
-        diagramContainerRef,
-        disableEdit
+        diagramContainerRef
       )
     );
 
@@ -96,7 +94,6 @@ describe("useNodeCalculation", () => {
     expect(second.data.executions).toBe(executions);
     expect(second.data.resolvedAttributes).toBe(resolvedAttributes);
     expect(second.data.diagramContainerRef).toBe(diagramContainerRef);
-    expect(second.data.disableEdit).toBe(disableEdit);
 
     expect(first.position).toEqual({
       x: 0,

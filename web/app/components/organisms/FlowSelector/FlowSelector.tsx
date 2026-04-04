@@ -1,30 +1,18 @@
 import React, { useState, lazy, Suspense } from "react";
-import {
-  IconCreateFlow,
-  IconNavigateOverview,
-  IconSearch,
-} from "@/utils/iconRegistry";
+import { IconNavigateOverview, IconSearch } from "@/utils/iconRegistry";
 import { useNavigate } from "react-router-dom";
-import { generateFlowId } from "@/utils/flowUtils";
 import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
 import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
 import { useT } from "@/app/i18n";
 
-const FlowCreateForm = lazy(() => import("../FlowCreateForm/FlowCreateForm"));
 const KeyboardShortcutsModal = lazy(
   () => import("@/app/components/molecules/KeyboardShortcutsModal")
 );
 
 import { useFlowFromUrl } from "./useFlowFromUrl";
-import { useUI } from "@/app/contexts/UIContext";
 import { getProgressIcon } from "@/utils/progressUtils";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
-import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import styles from "./FlowSelector.module.css";
-import {
-  FlowCreationStateProvider,
-  useFlowCreation,
-} from "@/app/contexts/FlowCreationContext";
 import { useSetVisibleFlowIDs } from "@/app/store/flowStore";
 import {
   FlowDropdownProvider,
@@ -57,7 +45,13 @@ const visibleFlowIDs = (menu: HTMLDivElement): string[] => {
     .filter((flowID): flowID is string => !!flowID);
 };
 
-const FlowSelectorDropdown = () => {
+interface FlowSelectorDropdownProps {
+  hasOverlayAction?: boolean;
+}
+
+const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
+  hasOverlayAction = false,
+}) => {
   const t = useT();
   const {
     showDropdown,
@@ -97,7 +91,9 @@ const FlowSelectorDropdown = () => {
     <div className={styles.dropdown}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className={styles.select}
+        className={`${styles.select} ${
+          hasOverlayAction ? styles.selectWithOverlayAction : ""
+        }`}
       >
         {selectedFlow ? (
           <>
@@ -210,8 +206,6 @@ const FlowSelectorContent: React.FC = () => {
     loadMoreFlows,
   } = useFlowSession();
   const setVisibleFlowIDs = useSetVisibleFlowIDs();
-  const { showCreateForm, setShowCreateForm } = useUI();
-  const { setNewID } = useFlowCreation();
 
   const {
     showDropdown,
@@ -332,53 +326,25 @@ const FlowSelectorContent: React.FC = () => {
 
           <div className={styles.right}>
             <div className={styles.controls}>
-              <FlowSelectorDropdown />
-              {selectedFlow ? (
-                <button
-                  onClick={() => navigate("/")}
-                  className={styles.navButton}
-                  title={t("flowSelector.backToOverview")}
-                  aria-label={t("flowSelector.backToOverview")}
-                >
-                  <IconNavigateOverview
-                    className={styles.buttonIcon}
-                    aria-hidden="true"
-                  />
-                </button>
-              ) : (
-                <>
+              <div className={styles.selectorControlShell}>
+                <FlowSelectorDropdown hasOverlayAction={!!selectedFlow} />
+                {selectedFlow ? (
                   <button
-                    onClick={() => {
-                      setNewID(generateFlowId());
-                      setShowCreateForm(!showCreateForm);
-                    }}
-                    className={styles.createButton}
-                    title={t("flowSelector.newFlow")}
-                    aria-label={t("flowSelector.createNewFlow")}
+                    onClick={() => navigate("/")}
+                    className={`${styles.navButton} ${styles.navButtonOverlay}`}
+                    title={t("flowSelector.backToOverview")}
+                    aria-label={t("flowSelector.backToOverview")}
                   >
-                    <IconCreateFlow
+                    <IconNavigateOverview
                       className={styles.buttonIcon}
                       aria-hidden="true"
                     />
                   </button>
-                </>
-              )}
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
-        <ErrorBoundary
-          title={t("flowSelector.formErrorTitle")}
-          description={t("flowSelector.formErrorDescription")}
-          onError={(error, errorInfo) => {
-            console.error("Error in FlowCreateForm:", error);
-            console.error("Component stack:", errorInfo.componentStack);
-            setShowCreateForm(false);
-          }}
-        >
-          <Suspense fallback={null}>
-            <FlowCreateForm />
-          </Suspense>
-        </ErrorBoundary>
         <Suspense fallback={null}>
           <KeyboardShortcutsModal
             isOpen={showShortcutsModal}
@@ -390,10 +356,6 @@ const FlowSelectorContent: React.FC = () => {
   );
 };
 
-const FlowSelector: React.FC = () => (
-  <FlowCreationStateProvider>
-    <FlowSelectorContent />
-  </FlowCreationStateProvider>
-);
+const FlowSelector: React.FC = () => <FlowSelectorContent />;
 
 export default FlowSelector;

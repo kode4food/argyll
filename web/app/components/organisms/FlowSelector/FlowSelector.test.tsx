@@ -2,13 +2,10 @@ import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import FlowSelector from "./FlowSelector";
 import { t } from "@/app/testUtils/i18n";
-import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
 import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 import { FlowContext, Step } from "@/app/api";
 
 type UIStateMock = {
-  showCreateForm: boolean;
-  setShowCreateForm: jest.Mock;
   previewPlan: unknown;
   setPreviewPlan: jest.Mock;
   updatePreviewPlan: jest.Mock;
@@ -16,15 +13,12 @@ type UIStateMock = {
   toggleGoalStep: jest.Mock;
   goalSteps: string[];
   setGoalSteps: jest.Mock;
-  disableEdit: boolean;
   diagramContainerRef: { current: null };
 };
 
 const pushMock = jest.fn();
 
 const uiState: UIStateMock = {
-  showCreateForm: false,
-  setShowCreateForm: jest.fn(),
   previewPlan: null,
   setPreviewPlan: jest.fn(),
   updatePreviewPlan: jest.fn(),
@@ -32,7 +26,6 @@ const uiState: UIStateMock = {
   toggleGoalStep: jest.fn(),
   goalSteps: [],
   setGoalSteps: jest.fn(),
-  disableEdit: false,
   diagramContainerRef: { current: null },
 };
 
@@ -89,53 +82,12 @@ jest.mock("@/app/contexts/FlowSessionContext", () => {
   };
 });
 
-jest.mock("@/app/contexts/FlowCreationContext", () => {
-  const flowCreationValue = {
-    newID: "",
-    setNewID: jest.fn((id: string) => {
-      flowCreationValue.newID = id;
-    }),
-    setIDManuallyEdited: jest.fn(),
-    handleStepChange: jest.fn(),
-    initialState: "{}",
-    setInitialState: jest.fn(),
-    creating: false,
-    handleCreateFlow: jest.fn(),
-    steps: [] as Step[],
-    generateID: jest.fn(() => "generated-id"),
-    sortSteps: jest.fn((steps: Step[]) => steps),
-  };
-
-  return {
-    __esModule: true,
-    FlowCreationStateProvider: ({ children }: { children: React.ReactNode }) =>
-      children,
-    useFlowCreation: () => flowCreationValue,
-    __flowCreationValue: flowCreationValue,
-  };
-});
-
 const {
   __sessionMock: flowSessionMock,
 } = require("@/app/contexts/FlowSessionContext");
-const {
-  __flowCreationValue: flowCreationMock,
-} = require("@/app/contexts/FlowCreationContext");
-
-let capturedFormProps: ReturnType<typeof useFlowCreation> | null = null;
-const MockFlowCreateForm = () => {
-  capturedFormProps = useFlowCreation();
-  return <div data-testid="flow-create-form" />;
-};
-MockFlowCreateForm.displayName = "MockFlowCreateForm";
 
 const MockKeyboardShortcutsModal = () => <div>Shortcuts</div>;
 MockKeyboardShortcutsModal.displayName = "MockKeyboardShortcutsModal";
-
-jest.mock("../FlowCreateForm/FlowCreateForm", () => ({
-  __esModule: true,
-  default: MockFlowCreateForm,
-}));
 jest.mock("@/app/components/molecules/KeyboardShortcutsModal", () => ({
   __esModule: true,
   default: MockKeyboardShortcutsModal,
@@ -154,23 +106,14 @@ describe("FlowSelector", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    capturedFormProps = null;
-    flowCreationMock.newID = "";
-    flowCreationMock.handleCreateFlow = jest.fn();
-    flowCreationMock.handleStepChange = jest.fn(async (ids: string[]) => {
-      uiState.setGoalSteps(ids);
-      await uiState.updatePreviewPlan(ids, {});
-    });
     flowSessionMock.selectedFlow = null;
     flowSessionMock.flows = [];
     Object.assign(uiState, {
-      showCreateForm: false,
       previewPlan: null,
       setPreviewPlan: jest.fn(),
       goalSteps: [],
       updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
       setGoalSteps: jest.fn(),
-      setShowCreateForm: jest.fn(),
       clearPreviewPlan: jest.fn(),
     });
   });
@@ -183,13 +126,6 @@ describe("FlowSelector", () => {
     fireEvent.click(button);
     expect(
       screen.getByPlaceholderText(t("flowSelector.searchPlaceholder"))
-    ).toBeInTheDocument();
-  });
-
-  it("shows new flow button when no selection", async () => {
-    await renderSelector();
-    expect(
-      screen.getByRole("button", { name: t("flowSelector.createNewFlow") })
     ).toBeInTheDocument();
   });
 
@@ -227,65 +163,5 @@ describe("FlowSelector", () => {
     fireEvent.mouseDown(screen.getByText("wf-1"));
 
     expect(pushMock).toHaveBeenCalledWith("/flow/wf-1");
-  });
-
-  it("updates preview when goal changes", async () => {
-    const { api } = require("@/app/api");
-    api.getExecutionPlan.mockResolvedValue({
-      steps: { goal: {} },
-      required: [],
-    });
-    uiState.showCreateForm = true;
-    uiState.goalSteps = [];
-    flowCreationMock.steps = [{ id: "goal", name: "Goal" }];
-
-    await renderSelector();
-    await screen.findByTestId("flow-create-form");
-    expect(capturedFormProps).not.toBeNull();
-
-    await act(async () => {
-      capturedFormProps!.handleStepChange(["goal"]);
-    });
-
-    expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
-    expect(uiState.updatePreviewPlan).toHaveBeenCalledWith(
-      ["goal"],
-      expect.any(Object)
-    );
-  });
-
-  it("removes optimistic flow on create error", async () => {
-    const { api } = require("@/app/api");
-    api.getExecutionPlan.mockResolvedValue({
-      steps: { goal: {} },
-      required: [],
-    });
-    api.startFlow.mockRejectedValue(new Error("fail"));
-    uiState.showCreateForm = true;
-    uiState.goalSteps = ["goal"];
-    flowCreationMock.steps = [{ id: "goal", name: "Goal" }];
-    const addFlow = jest.fn();
-    const removeFlow = jest.fn();
-    flowCreationMock.handleCreateFlow = async () => {
-      addFlow();
-      removeFlow();
-    };
-
-    await renderSelector();
-    await screen.findByTestId("flow-create-form");
-    expect(capturedFormProps).not.toBeNull();
-
-    await act(async () => {
-      capturedFormProps!.setNewID("new-flow");
-    });
-    await act(async () => {
-      capturedFormProps!.handleStepChange(["goal"]);
-    });
-    await act(async () => {
-      capturedFormProps!.handleCreateFlow();
-    });
-
-    expect(addFlow).toHaveBeenCalled();
-    expect(removeFlow).toHaveBeenCalled();
   });
 });

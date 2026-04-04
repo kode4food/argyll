@@ -5,20 +5,6 @@ import { Step, FlowContext, ExecutionResult } from "@/app/api";
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: () => <div data-testid="react-flow" />,
-  Controls: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="controls">{children}</div>
-  ),
-  ControlButton: ({
-    children,
-    ...props
-  }: {
-    children?: React.ReactNode;
-    [key: string]: any;
-  }) => (
-    <button data-testid="control-button" {...props}>
-      {children}
-    </button>
-  ),
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (
@@ -27,12 +13,13 @@ jest.mock("@xyflow/react", () => ({
   useReactFlow: () => ({
     fitView: jest.fn(),
     setViewport: jest.fn(),
+    zoomIn: jest.fn(),
+    zoomOut: jest.fn(),
   }),
 }));
 
 jest.mock("@/app/contexts/UIContext", () => ({
   useUI: () => ({
-    disableEdit: false,
     diagramContainerRef: { current: null },
   }),
 }));
@@ -155,7 +142,6 @@ describe("LiveDiagramView", () => {
     expect(calls[0][2]).toBe(executions);
     expect(calls[0][3]).toBe(resolvedAttributes);
     expect(calls[0][4]).toHaveProperty("current");
-    expect(calls[0][5]).toBe(false);
   });
 
   test("passes correct props to useEdgeCalculation", () => {

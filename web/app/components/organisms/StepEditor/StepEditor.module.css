@@ -17,6 +17,7 @@
   left: 0;
   right: 0;
   bottom: 0;
+  z-index: 45;
   background-color: var(--overlay-backdrop-dialog);
   display: flex;
   align-items: center;
@@ -27,6 +28,8 @@
 }
 
 .content {
+  position: relative;
+  z-index: 50;
   background-color: var(--color-dark-bg);
   border-radius: var(--radius-xl);
   display: flex;

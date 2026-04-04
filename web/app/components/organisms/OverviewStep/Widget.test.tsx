@@ -210,18 +210,6 @@ describe("Widget", () => {
     expect(__openEditor).toHaveBeenCalled();
   });
 
-  test("does not open editor when disableEdit is true", () => {
-    const step = createStep("script");
-
-    const { container } = render(<Widget step={step} disableEdit={true} />);
-
-    const widget = container.querySelector(".step-widget");
-    fireEvent.doubleClick(widget!);
-
-    const { __openEditor } = require("@/app/contexts/StepEditorContext");
-    expect(__openEditor).not.toHaveBeenCalled();
-  });
-
   test("applies custom className", () => {
     const step = createStep("sync");
 
@@ -306,7 +294,7 @@ describe("Widget", () => {
     expect(screen.getByTestId("step-args")).toBeInTheDocument();
   });
 
-  test("shows edit title for script steps when not disabled", () => {
+  test("shows edit title for script steps", () => {
     const step = createStep("script");
 
     const { container } = render(<Widget step={step} />);
@@ -315,22 +303,13 @@ describe("Widget", () => {
     expect(widget?.title).toBe("Double-click to edit step");
   });
 
-  test("shows edit title for HTTP steps when not disabled", () => {
+  test("shows edit title for HTTP steps", () => {
     const step = createStep("sync");
 
     const { container } = render(<Widget step={step} />);
 
     const widget = container.querySelector(".step-widget") as HTMLElement;
     expect(widget?.title).toBe("Double-click to edit step");
-  });
-
-  test("does not show edit title when edit is disabled", () => {
-    const step = createStep("script");
-
-    const { container } = render(<Widget step={step} disableEdit={true} />);
-
-    const widget = container.querySelector(".step-widget") as HTMLElement;
-    expect(widget?.title).toBe("");
   });
 
   test("listens for openStepEditor custom event", async () => {
@@ -356,20 +335,6 @@ describe("Widget", () => {
 
     const event = new CustomEvent("openStepEditor", {
       detail: { stepId: "step-456" },
-    });
-    document.dispatchEvent(event);
-
-    const { __openEditor } = require("@/app/contexts/StepEditorContext");
-    expect(__openEditor).not.toHaveBeenCalled();
-  });
-
-  test("ignores openStepEditor event when disabled", () => {
-    const step = createStep("script", "step-123");
-
-    render(<Widget step={step} disableEdit={true} />);
-
-    const event = new CustomEvent("openStepEditor", {
-      detail: { stepId: "step-123" },
     });
     document.dispatchEvent(event);
 

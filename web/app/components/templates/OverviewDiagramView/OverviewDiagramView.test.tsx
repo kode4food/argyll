@@ -1,29 +1,18 @@
 import React from "react";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import OverviewDiagramView from ".";
 import { t } from "@/app/testUtils/i18n";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 
 const reactFlowMock = jest.fn(() => <div data-testid="react-flow" />);
+const previewHookState = {
+  previewPlan: null as any,
+};
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
   MiniMap: () => <div data-testid="mini-map" />,
-  Controls: ({ children }: { children?: React.ReactNode }) => (
-    <div data-testid="controls">{children}</div>
-  ),
-  ControlButton: ({
-    children,
-    ...props
-  }: {
-    children?: React.ReactNode;
-    [key: string]: any;
-  }) => (
-    <button data-testid="control-button" {...props}>
-      {children}
-    </button>
-  ),
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (
@@ -33,6 +22,8 @@ jest.mock("@xyflow/react", () => ({
   useReactFlow: () => ({
     fitView: jest.fn(),
     setViewport: jest.fn(),
+    zoomIn: jest.fn(),
+    zoomOut: jest.fn(),
   }),
 }));
 
@@ -57,7 +48,6 @@ jest.mock("@/app/contexts/UIContext", () => ({
     updatePreviewPlan: jest.fn(),
     clearPreviewPlan: jest.fn(),
     previewPlan: null,
-    disableEdit: false,
     diagramContainerRef: { current: null },
   }),
 }));
@@ -89,7 +79,7 @@ jest.mock("@/app/hooks/useDiagramViewport", () => ({
 
 jest.mock("./useExecutionPlanPreview", () => ({
   useExecutionPlanPreview: () => ({
-    previewPlan: null,
+    previewPlan: previewHookState.previewPlan,
     handleStepClick: jest.fn(),
     clearPreview: jest.fn(),
   }),
@@ -124,6 +114,7 @@ describe("OverviewDiagramView", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     useEdgeCalculationMock.mockReturnValue([]);
+    previewHookState.previewPlan = null;
   });
 
   it("renders diagram scaffolding", () => {
@@ -176,6 +167,42 @@ describe("OverviewDiagramView", () => {
     );
 
     expect(getByTestId("react-flow")).toBeInTheDocument();
+  });
+
+  it("renders floating preview hud when preview is active", () => {
+    previewHookState.previewPlan = {
+      goals: ["s1"],
+      steps: {
+        s1: {
+          step: { id: "s1", name: "Step 1", type: "sync", attributes: {} },
+          inputs: {},
+        },
+        s2: {
+          step: { id: "s2", name: "Step 2", type: "sync", attributes: {} },
+          inputs: {},
+        },
+      },
+      excluded: [],
+    };
+
+    render(
+      <DiagramSelectionProvider
+        value={{
+          goalSteps: ["s1"],
+          toggleGoalStep: jest.fn(),
+          setGoalSteps: jest.fn(),
+        }}
+      >
+        <OverviewDiagramView
+          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+        />
+      </DiagramSelectionProvider>
+    );
+
+    expect(screen.getByText(t("overview.previewLabel"))).toBeInTheDocument();
+    expect(
+      screen.getByText(t("overview.previewSummary", { goals: 1, steps: 2 }))
+    ).toBeInTheDocument();
   });
 
   it("passes calculated edges directly to ReactFlow", () => {

@@ -31,39 +31,11 @@
 }
 
 .react-flow__renderer.flow-mode-bg {
-  background-color: var(--color-diagram-flow) !important;
+  background-color: var(--color-diagram-bg) !important;
 }
 
 .react-flow__renderer.overview-mode-bg {
-  background-color: var(--color-neutral-bg);
-}
-
-.react-flow__controls.diagram-controls {
-  bottom: 1rem !important;
-  left: 1rem !important;
-  border: 1px solid var(--color-neutral-border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  box-shadow: var(--shadow-sm);
-  background-color: var(--color-surface-elevated);
-}
-
-.react-flow__controls.diagram-controls .react-flow__controls-button {
-  background-color: var(--color-surface);
-  color: var(--color-neutral-text);
-  border-bottom: 1px solid var(--color-neutral-border);
-}
-
-.react-flow__controls.diagram-controls .react-flow__controls-button:last-child {
-  border-bottom: none;
-}
-
-.react-flow__controls.diagram-controls .react-flow__controls-button:hover {
-  background-color: var(--color-neutral-bg-dark);
-}
-
-.react-flow__controls.diagram-controls .react-flow__controls-button svg {
-  fill: currentColor;
+  background-color: var(--color-diagram-bg) !important;
 }
 
 .react-flow__background.diagram-background {

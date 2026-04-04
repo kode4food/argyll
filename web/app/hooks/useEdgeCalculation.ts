@@ -50,7 +50,9 @@ export const useEdgeCalculation = (
             strokeWidth: STEP_LAYOUT.EDGE_WIDTH - 0.5,
           };
 
-          const baseZIndex = isInPlan ? 1000 : 1;
+          const baseZIndex = isInPlan
+            ? STEP_LAYOUT.EDGE_FOCUSED_Z_INDEX
+            : STEP_LAYOUT.EDGE_Z_INDEX;
           const edgeZIndex = input.isOptional ? baseZIndex : baseZIndex + 1;
 
           edges.push({

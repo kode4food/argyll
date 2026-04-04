@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import OverviewPage from "./OverviewPage";
 
 jest.mock("@/app/components/organisms/FlowSelector", () => ({
@@ -37,7 +38,11 @@ describe("OverviewPage integration", () => {
   });
 
   it("renders main content", () => {
-    render(<OverviewPage />);
+    render(
+      <MemoryRouter>
+        <OverviewPage />
+      </MemoryRouter>
+    );
 
     expect(screen.getByTestId("flow-selector")).toBeInTheDocument();
     expect(screen.getByTestId("overview-diagram")).toBeInTheDocument();

@@ -16,8 +16,7 @@ export const useNodeCalculation = (
   previewPlan?: ExecutionPlan | null,
   previewStepIds?: Set<string> | null,
   onStepClick?: (stepId: string, options?: { additive?: boolean }) => void,
-  diagramContainerRef?: React.RefObject<HTMLDivElement | null>,
-  disableEdit?: boolean
+  diagramContainerRef?: React.RefObject<HTMLDivElement | null>
 ) => {
   return useMemo(() => {
     const savedPositions = loadNodePositions();
@@ -84,7 +83,6 @@ export const useNodeCalculation = (
           isPreviewMode,
           isStartingPoint: startingPoints.has(step.id),
           diagramContainerRef,
-          disableEdit,
         },
         type: "stepNode",
       };
@@ -97,7 +95,6 @@ export const useNodeCalculation = (
     previewPlan,
     previewStepIds,
     onStepClick,
-    disableEdit,
     diagramContainerRef,
   ]);
 };

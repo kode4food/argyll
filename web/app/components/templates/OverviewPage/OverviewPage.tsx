@@ -3,6 +3,7 @@ import OverviewDiagram from "@/app/components/templates/OverviewDiagram";
 import FlowSelector from "@/app/components/organisms/FlowSelector";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { UIProvider } from "@/app/contexts/UIContext";
+import { FlowCreationStateProvider } from "@/app/contexts/FlowCreationContext";
 import {
   FlowSessionProvider,
   useFlowSession,
@@ -62,7 +63,9 @@ export default function OverviewPage() {
   return (
     <UIProvider>
       <FlowSessionProvider>
-        <OverviewPageWithSession />
+        <FlowCreationStateProvider>
+          <OverviewPageWithSession />
+        </FlowCreationStateProvider>
       </FlowSessionProvider>
     </UIProvider>
   );

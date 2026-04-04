@@ -6,7 +6,33 @@
 }
 
 .containerOverviewMode {
-  background-color: var(--color-surface-elevated);
+  background-color: var(--color-diagram-bg);
+}
+
+.workspace {
+  display: flex;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.diagramPane {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  order: 1;
+}
+
+.panelPane {
+  flex: 0 0 24rem;
+  min-width: 20rem;
+  max-width: 26rem;
+  min-height: 0;
+  order: 0;
+  overflow: hidden;
+  border-right: 1px solid var(--color-neutral-border);
+  background-color: var(--color-surface);
+  z-index: 1;
 }
 
 .emptyStateContainer {
@@ -14,60 +40,19 @@
   align-items: center;
   justify-content: center;
   height: 100%;
-  background-color: var(--color-surface-elevated);
+  background-color: var(--color-diagram-bg);
 }
 
-/* Overview Header */
-.overviewHeader {
-  background-color: var(--color-primary-light);
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--color-primary-light) 70%, var(--color-darken));
-  padding: var(--spacing-2xs) var(--spacing-lg);
-}
+@media (max-width: 70rem) {
+  .workspace {
+    flex-direction: column;
+  }
 
-.overviewContent {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.overviewTitle {
-  font-size: var(--text-base);
-  font-weight: var(--font-medium);
-  color: #374151;
-}
-
-.overviewStats {
-  display: flex;
-  align-items: center;
-  font-size: var(--text-xs);
-  color: #374151;
-}
-
-.overviewAddStep {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: var(--spacing-sm);
-  padding: var(--spacing-xs);
-  border: none;
-  border-radius: 9999px;
-  background-color: color-mix(in srgb, var(--color-primary-light) 80%, black);
-  color: #374151;
-  transition: background-color 0.2s;
-  cursor: pointer;
-}
-
-.overviewAddStep:focus-visible {
-  outline: none;
-  box-shadow: 0 0 0 2px color-mix(in srgb, #374151 40%, transparent);
-}
-
-.overviewAddStep:hover,
-.overviewAddStep:focus-visible {
-  background-color: color-mix(
-    in srgb,
-    var(--color-primary-light) 90%,
-    var(--color-surface)
-  );
+  .panelPane {
+    flex: 0 0 24rem;
+    min-width: 0;
+    max-width: none;
+    border-top: 1px solid var(--color-neutral-border);
+    border-right: none;
+  }
 }

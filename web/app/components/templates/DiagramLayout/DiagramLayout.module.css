@@ -4,6 +4,8 @@
   display: flex;
   height: 100%;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -19,9 +21,13 @@
 .diagramContainer {
   position: relative;
   flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .diagramContent {
   height: 100%;
   width: 100%;
+  min-height: 0;
+  overflow: hidden;
 }

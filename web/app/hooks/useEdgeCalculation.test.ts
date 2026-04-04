@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useEdgeCalculation } from "./useEdgeCalculation";
 import type { Step } from "@/app/api";
 import { AttributeRole, AttributeType } from "@/app/api";
+import { STEP_LAYOUT } from "@/constants/layout";
 
 describe("useEdgeCalculation", () => {
   const createStep = (
@@ -168,7 +169,7 @@ describe("useEdgeCalculation", () => {
       useEdgeCalculation([step1, step2], previewStepIds)
     );
 
-    expect(result.current[0].zIndex).toBe(1001);
+    expect(result.current[0].zIndex).toBe(STEP_LAYOUT.EDGE_FOCUSED_Z_INDEX + 1);
   });
 
   test("sets default zIndex for edges not in preview plan", () => {
@@ -181,7 +182,7 @@ describe("useEdgeCalculation", () => {
       useEdgeCalculation([step1, step2], previewStepIds)
     );
 
-    expect(result.current[0].zIndex).toBe(2);
+    expect(result.current[0].zIndex).toBe(STEP_LAYOUT.EDGE_Z_INDEX + 1);
   });
 
   test("does not animate focused edges that are outside the preview plan", () => {
@@ -226,6 +227,24 @@ describe("useEdgeCalculation", () => {
     const optEdge = result.current.find((e) => e.target === "step3");
 
     expect(reqEdge?.zIndex).toBeGreaterThan(optEdge?.zIndex ?? 0);
+  });
+
+  test("keeps every edge below step widgets", () => {
+    const producer = createStep("step1", [], [], ["shared"]);
+    const requiredConsumer = createStep("step2", ["shared"], [], []);
+    const optionalConsumer = createStep("step3", [], ["shared"], []);
+    const previewStepIds = new Set(["step1", "step2"]);
+
+    const { result } = renderHook(() =>
+      useEdgeCalculation(
+        [producer, requiredConsumer, optionalConsumer],
+        previewStepIds
+      )
+    );
+
+    result.current.forEach((edge) => {
+      expect(edge.zIndex ?? 0).toBeLessThan(0);
+    });
   });
 
   test("handles steps with no dependencies", () => {

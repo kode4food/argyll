@@ -45,6 +45,17 @@
   aspect-ratio: 1;
 }
 
+.navButtonOverlay {
+  position: absolute;
+  top: 50%;
+  right: calc(var(--spacing-xs) + 4px);
+  z-index: 1;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  transform: translateY(-50%);
+}
+
 .navButton:hover {
   background-color: var(--color-neutral-border);
 }
@@ -175,6 +186,7 @@
   background-color: var(--color-surface-elevated);
   border-bottom: 1px solid var(--color-neutral-border);
   padding: var(--spacing-md) var(--spacing-lg);
+  z-index: 2;
 }
 
 .header {
@@ -223,7 +235,11 @@
 .controls {
   display: flex;
   align-items: center;
-  gap: var(--spacing-sm);
+}
+
+.selectorControlShell {
+  position: relative;
+  width: 300px;
 }
 
 .select {
@@ -236,8 +252,13 @@
   background: var(--color-surface);
   color: var(--color-neutral-text);
   cursor: pointer;
-  min-width: 300px;
+  width: 100%;
+  min-width: 0;
   text-align: left;
+}
+
+.selectWithOverlayAction {
+  padding-right: calc(var(--spacing-md) + 2rem + var(--spacing-xs));
 }
 
 .select .progress-icon {
@@ -255,4 +276,5 @@
 
 .dropdown {
   position: relative;
+  width: 100%;
 }

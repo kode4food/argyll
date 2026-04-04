@@ -1,5 +1,6 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import OverviewPage from "./OverviewPage";
 import { t } from "@/app/testUtils/i18n";
 
@@ -50,7 +51,11 @@ describe("OverviewPage", () => {
 
   it("renders error state", () => {
     flowSession.flowError = "boom";
-    render(<OverviewPage />);
+    render(
+      <MemoryRouter>
+        <OverviewPage />
+      </MemoryRouter>
+    );
     expect(
       screen.getByText(t("common.errorMessage", { message: "boom" }))
     ).toBeInTheDocument();
@@ -58,7 +63,11 @@ describe("OverviewPage", () => {
 
   it("renders selector and diagram", () => {
     flowSession.flowError = null;
-    render(<OverviewPage />);
+    render(
+      <MemoryRouter>
+        <OverviewPage />
+      </MemoryRouter>
+    );
     expect(screen.getByTestId("flow-selector")).toBeInTheDocument();
     expect(screen.getByTestId("overview-diagram")).toBeInTheDocument();
   });

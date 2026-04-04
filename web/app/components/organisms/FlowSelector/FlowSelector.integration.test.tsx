@@ -72,11 +72,6 @@ jest.mock("react-router-dom", () => ({
   useNavigate: () => jest.fn(),
 }));
 
-jest.mock("../FlowCreateForm/FlowCreateForm", () => ({
-  __esModule: true,
-  default: () => <div data-testid="flow-create-form" />,
-}));
-
 describe("FlowSelector integration", () => {
   beforeEach(() => {
     jest.useFakeTimers();
@@ -86,7 +81,7 @@ describe("FlowSelector integration", () => {
     jest.useRealTimers();
   });
 
-  it("loads flows when the dropdown opens and can open create form", async () => {
+  it("loads flows when the dropdown opens", async () => {
     const flowStore = require("@/app/store/flowStore");
     render(
       <UIProvider>
@@ -118,13 +113,5 @@ describe("FlowSelector integration", () => {
       "wf-1",
       "wf-2",
     ]);
-
-    act(() => {
-      fireEvent.click(
-        screen.getByRole("button", { name: t("flowSelector.createNewFlow") })
-      );
-    });
-
-    expect(await screen.findByTestId("flow-create-form")).toBeInTheDocument();
   });
 });

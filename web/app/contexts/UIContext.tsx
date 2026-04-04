@@ -9,9 +9,6 @@ import React, {
 import { api, ExecutionPlan } from "../api";
 
 interface UIContextType {
-  showCreateForm: boolean;
-  setShowCreateForm: (show: boolean) => void;
-  disableEdit: boolean;
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
   focusedPreviewAttribute: string | null;
   setFocusedPreviewAttribute: (attribute: string | null) => void;
@@ -32,7 +29,6 @@ const UIContext = createContext<UIContextType | undefined>(undefined);
 export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const [showCreateForm, setShowCreateForm] = useState(false);
   const [previewPlan, setPreviewPlanState] = useState<ExecutionPlan | null>(
     null
   );
@@ -42,7 +38,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   const [goalSteps, setGoalStepsState] = useState<string[]>([]);
   const diagramContainerRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const disableEdit = showCreateForm;
 
   const setPreviewPlan = useCallback((plan: ExecutionPlan | null) => {
     setPreviewPlanState(plan);
@@ -124,9 +119,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const value = useMemo(
     () => ({
-      showCreateForm,
-      setShowCreateForm,
-      disableEdit,
       diagramContainerRef,
       focusedPreviewAttribute,
       setFocusedPreviewAttribute,
@@ -139,8 +131,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       setGoalSteps,
     }),
     [
-      showCreateForm,
-      disableEdit,
       focusedPreviewAttribute,
       setFocusedPreviewAttribute,
       previewPlan,

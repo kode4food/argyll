@@ -45,6 +45,7 @@
   --color-surface: #ffffff;
   --color-surface-elevated: #ffffff;
   --color-surface-subtle: #f3f4f6;
+  --color-diagram-bg: var(--color-surface-subtle);
   --color-diagram-flow: #d1d5db;
   --color-neutral-border: #6b7280;
   --color-neutral-text: #374151;
@@ -200,6 +201,7 @@
   --color-surface: #2d2d2d;
   --color-surface-elevated: #1e1e1e;
   --color-surface-subtle: #252525;
+  --color-diagram-bg: color-mix(in srgb, var(--color-surface) 94%, white);
   --color-diagram-flow: #3a3a3a;
   --color-neutral-border: #4e4e4e;
   --color-neutral-text: #e5e7eb;

@@ -24,7 +24,6 @@ jest.mock("@/app/contexts/UIContext", () => ({
     goalSteps: [],
     toggleGoalStep: jest.fn(),
     setGoalSteps: jest.fn(),
-    disableEdit: false,
     diagramContainerRef: { current: null },
   }),
 }));
@@ -83,7 +82,6 @@ describe("Node", () => {
     isStartingPoint?: boolean;
     onStepClick?: (stepId: string, options?: { additive?: boolean }) => void;
     diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
-    disableEdit?: boolean;
   };
 
   const mockStep: Step = {

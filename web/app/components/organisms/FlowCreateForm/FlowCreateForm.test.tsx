@@ -16,7 +16,6 @@ import {
 } from "@/app/contexts/FlowCreationContext";
 
 jest.mock("@/app/contexts/UIContext");
-jest.mock("@/app/hooks/useEscapeKey");
 jest.mock("@/app/components/molecules/LazyCodeEditor", () => {
   return function MockLazyCodeEditor({ value, onChange }: any) {
     return (
@@ -61,11 +60,8 @@ describe("FlowCreateForm", () => {
   };
 
   const defaultUIContext = {
-    showCreateForm: true,
-    setShowCreateForm: jest.fn(),
     focusedPreviewAttribute: null,
     setFocusedPreviewAttribute: jest.fn(),
-    disableEdit: false,
     diagramContainerRef: { current: null },
     previewPlan: null,
     setPreviewPlan: jest.fn(),
@@ -95,26 +91,41 @@ describe("FlowCreateForm", () => {
     );
   };
 
-  test("returns null when showCreateForm is false", () => {
-    mockUseUI.mockReturnValue({
-      ...defaultUIContext,
-      showCreateForm: false,
-    });
-
-    const { container } = renderWithProvider();
-    expect(container.firstChild).toBeNull();
-  });
-
-  test("renders form when showCreateForm is true", () => {
+  test("renders form in the overview panel", () => {
     const { container } = renderWithProvider();
 
-    expect(container.querySelector(`.${styles.modal}`)).toBeInTheDocument();
-    expect(container.querySelector(`.${styles.sidebar}`)).toBeInTheDocument();
+    expect(container.querySelector(`.${styles.panel}`)).toBeInTheDocument();
     expect(container.querySelector(`.${styles.main}`)).toBeInTheDocument();
     expect(
-      screen.getByText(t("flowCreate.selectGoalSteps"))
+      container.querySelector(`.${styles.goalListShell}`)
     ).toBeInTheDocument();
-    expect(screen.getByText(t("flowCreate.flowIdLabel"))).toBeInTheDocument();
+    expect(
+      screen.getByText(t("stepEditor.flowGoalsLabel"))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("overview.stepsRegistered", { count: 1 }))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("flowCreate.startFlowLabel"))
+    ).toBeInTheDocument();
+  });
+
+  test("renders create-step action in goal steps header", () => {
+    const onCreateStep = jest.fn();
+
+    render(
+      <FlowCreationContext.Provider value={defaultProps}>
+        <FlowCreateForm onCreateStep={onCreateStep} />
+      </FlowCreationContext.Provider>
+    );
+
+    const createButton = screen.getByRole("button", {
+      name: t("overview.addStep"),
+    });
+
+    fireEvent.click(createButton);
+
+    expect(onCreateStep).toHaveBeenCalled();
   });
 
   test("renders steps in sorted list", () => {
@@ -216,24 +227,6 @@ describe("FlowCreateForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("closes form when overlay is clicked", () => {
-    renderWithProvider();
-
-    const overlay = screen.getByLabelText(t("flowCreate.closeForm"));
-    fireEvent.click(overlay);
-
-    expect(defaultUIContext.setShowCreateForm).toHaveBeenCalledWith(false);
-  });
-
-  test("closes form when Cancel button is clicked", () => {
-    renderWithProvider();
-
-    const cancelButton = screen.getByText(t("common.cancel"));
-    fireEvent.click(cancelButton);
-
-    expect(defaultUIContext.setShowCreateForm).toHaveBeenCalledWith(false);
-  });
-
   test("calls handleCreateFlow when Start button is clicked", () => {
     mockUseUI.mockReturnValue({
       ...defaultUIContext,
@@ -242,7 +235,9 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id" });
 
-    const startButton = screen.getByText(t("common.start"));
+    const startButton = screen.getByRole("button", {
+      name: t("common.start"),
+    });
     fireEvent.click(startButton);
 
     expect(defaultProps.handleCreateFlow).toHaveBeenCalled();
@@ -256,7 +251,9 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id", creating: true });
 
-    const startButton = screen.getByText(t("common.start"));
+    const startButton = screen.getByRole("button", {
+      name: t("common.start"),
+    });
     expect(startButton).toBeDisabled();
   });
 
@@ -268,7 +265,9 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "" });
 
-    const startButton = screen.getByText(t("common.start"));
+    const startButton = screen.getByRole("button", {
+      name: t("common.start"),
+    });
     expect(startButton).toBeDisabled();
   });
 
@@ -280,7 +279,9 @@ describe("FlowCreateForm", () => {
 
     renderWithProvider({ newID: "test-id" });
 
-    const startButton = screen.getByText(t("common.start"));
+    const startButton = screen.getByRole("button", {
+      name: t("common.start"),
+    });
     expect(startButton).toBeDisabled();
   });
 
@@ -295,7 +296,9 @@ describe("FlowCreateForm", () => {
       screen.getByRole("button", { name: t("flowCreate.modeJson") })
     );
 
-    const startButton = screen.getByText(t("common.start"));
+    const startButton = screen.getByRole("button", {
+      name: t("common.start"),
+    });
     expect(startButton).toBeDisabled();
   });
 
@@ -329,12 +332,12 @@ describe("FlowCreateForm", () => {
     ).not.toBeInTheDocument();
   });
 
-  test("shows required attributes label only in JSON mode", () => {
+  test("shows required attributes section header in both modes", () => {
     renderWithProvider();
 
     expect(
-      screen.queryByText(t("flowCreate.requiredAttributesLabel"))
-    ).not.toBeInTheDocument();
+      screen.getByText(t("flowCreate.requiredAttributesLabel"))
+    ).toBeInTheDocument();
 
     fireEvent.click(
       screen.getByRole("button", { name: t("flowCreate.modeJson") })
@@ -349,8 +352,8 @@ describe("FlowCreateForm", () => {
     );
 
     expect(
-      screen.queryByText(t("flowCreate.requiredAttributesLabel"))
-    ).not.toBeInTheDocument();
+      screen.getByText(t("flowCreate.requiredAttributesLabel"))
+    ).toBeInTheDocument();
   });
 
   test("shows no-goals message when no goal steps are selected", () => {

@@ -65,14 +65,11 @@ export const FlowCreationStateProvider = ({
   const addFlow = useAddFlow();
   const removeFlow = useRemoveFlow();
   const {
-    previewPlan,
     setPreviewPlan,
     updatePreviewPlan,
     clearPreviewPlan,
     goalSteps,
     setGoalSteps,
-    showCreateForm,
-    setShowCreateForm,
   } = useUI();
 
   const [newID, setNewID] = useState("");
@@ -80,7 +77,6 @@ export const FlowCreationStateProvider = ({
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
   const initializedGoalsRef = useRef(false);
-  const prevShowCreateFormRef = useRef(showCreateForm);
 
   const resetForm = useCallback(() => {
     setNewID("");
@@ -125,7 +121,7 @@ export const FlowCreationStateProvider = ({
   const throttledInitialState = useThrottledValue(initialState, 500);
 
   useEffect(() => {
-    if (!showCreateForm || goalSteps.length === 0) {
+    if (goalSteps.length === 0) {
       return;
     }
 
@@ -133,26 +129,9 @@ export const FlowCreationStateProvider = ({
     const nonDefaultState = filterDefaultValues(currentState, steps);
 
     updatePreviewPlan(goalSteps, nonDefaultState).catch(() => {});
-  }, [
-    throttledInitialState,
-    showCreateForm,
-    goalSteps,
-    steps,
-    updatePreviewPlan,
-  ]);
+  }, [throttledInitialState, goalSteps, steps, updatePreviewPlan]);
 
   useEffect(() => {
-    if (!showCreateForm && prevShowCreateFormRef.current) {
-      resetForm();
-    }
-    prevShowCreateFormRef.current = showCreateForm;
-  }, [showCreateForm, resetForm]);
-
-  useEffect(() => {
-    if (!showCreateForm) {
-      return;
-    }
-
     if (goalSteps.length === 0) {
       return;
     }
@@ -161,7 +140,7 @@ export const FlowCreationStateProvider = ({
       initializedGoalsRef.current = true;
       handleStepChange(goalSteps);
     }
-  }, [showCreateForm, goalSteps, handleStepChange]);
+  }, [goalSteps, handleStepChange]);
 
   const handleCreateFlow = useCallback(async () => {
     if (!newID.trim() || goalSteps.length === 0) return;
@@ -182,14 +161,11 @@ export const FlowCreationStateProvider = ({
     });
 
     setCreating(true);
-    setNewID("");
-    setGoalSteps([]);
-    setInitialState("{}");
-    setShowCreateForm(false);
 
     try {
       await api.startFlow(flowId, goalSteps, parsedState);
       await loadFlows();
+      resetForm();
       navigate(`/flow/${flowId}`);
     } catch (error: any) {
       let errorMessage = t("flowCreate.unknownError");
@@ -211,12 +187,10 @@ export const FlowCreationStateProvider = ({
     goalSteps,
     addFlow,
     navigate,
-    setGoalSteps,
     loadFlows,
     removeFlow,
     initialState,
-    setShowCreateForm,
-    previewPlan,
+    resetForm,
     t,
   ]);
 

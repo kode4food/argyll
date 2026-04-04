@@ -46,59 +46,58 @@ const LiveDiagramContent: React.FC = () => {
   }
 
   return (
-    <DiagramLayout
-      className={styles.containerLiveMode}
-      header={
-        flowData && (
-          <div className={styles.flowHeader}>
-            <div className={styles.flowContent}>
-              <div className={styles.flowLeft}>
-                <h2 className={styles.flowTitle}>{flowData.id}</h2>
-                <span
-                  className={`status-bubble ${styles.flowStatusBadge} ${styles[flowData.status]}`}
-                >
-                  {flowData.status}
-                </span>
-                {flowData.plan?.steps && (
-                  <FlowStats
-                    steps={steps}
-                    executionSequence={Object.keys(flowData.plan.steps)}
-                    resolvedAttributes={resolved}
-                  />
-                )}
-              </div>
-
-              <div className={styles.flowRight}>
-                {isValidTimestamp(flowData.started_at) && (
-                  <span>
-                    {t("common.started")}:{" "}
-                    {new Date(flowData.started_at).toLocaleString()}
-                  </span>
-                )}
-                {flowData.completed_at &&
-                  isValidTimestamp(flowData.completed_at) && (
-                    <span>
-                      {" · "}
-                      {t("common.ended")}:{" "}
-                      {new Date(flowData.completed_at).toLocaleString()}
-                    </span>
-                  )}
-              </div>
-            </div>
-          </div>
-        )
-      }
-    >
+    <DiagramLayout className={styles.containerLiveMode}>
       <ErrorBoundary
         title={t("diagram.errorTitle")}
         description={t("diagram.errorDescription")}
       >
-        <LiveDiagramView
-          steps={steps}
-          flowData={flowData}
-          executions={executions}
-          resolvedAttributes={resolved}
-        />
+        <div className={styles.liveCanvas}>
+          {flowData && (
+            <div className={styles.flowHud}>
+              <div className={styles.flowContent}>
+                <div className={styles.flowLeft}>
+                  <h2 className={styles.flowTitle}>{flowData.id}</h2>
+                  <span
+                    className={`status-bubble ${styles.flowStatusBadge} ${styles[flowData.status]}`}
+                  >
+                    {flowData.status}
+                  </span>
+                  {flowData.plan?.steps && (
+                    <FlowStats
+                      steps={steps}
+                      executionSequence={Object.keys(flowData.plan.steps)}
+                      resolvedAttributes={resolved}
+                    />
+                  )}
+                </div>
+
+                <div className={styles.flowRight}>
+                  {isValidTimestamp(flowData.started_at) && (
+                    <span>
+                      {t("common.started")}:{" "}
+                      {new Date(flowData.started_at).toLocaleString()}
+                    </span>
+                  )}
+                  {flowData.completed_at &&
+                    isValidTimestamp(flowData.completed_at) && (
+                      <span>
+                        {" · "}
+                        {t("common.ended")}:{" "}
+                        {new Date(flowData.completed_at).toLocaleString()}
+                      </span>
+                    )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          <LiveDiagramView
+            steps={steps}
+            flowData={flowData}
+            executions={executions}
+            resolvedAttributes={resolved}
+          />
+        </div>
       </ErrorBoundary>
     </DiagramLayout>
   );

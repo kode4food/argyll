@@ -36,7 +36,6 @@ jest.mock("../store/flowStore", () => ({
 }));
 
 let goalIds: string[] = [];
-let showCreateForm = true;
 let previewPlan: ExecutionPlan | null = null;
 const uiState = {
   previewPlan,
@@ -49,12 +48,6 @@ const uiState = {
   },
   setGoalSteps: jest.fn((ids: string[]) => {
     goalIds = ids;
-  }),
-  get showCreateForm() {
-    return showCreateForm;
-  },
-  setShowCreateForm: jest.fn((val: boolean) => {
-    showCreateForm = val;
   }),
 };
 
@@ -99,7 +92,6 @@ describe("FlowCreationContext", () => {
     previewPlan = null;
     uiState.previewPlan = previewPlan;
     goalIds = [];
-    showCreateForm = true;
     flowCtx = null;
   });
 
@@ -130,11 +122,14 @@ describe("FlowCreationContext", () => {
   });
 
   it("creates flow successfully and reloads flows", async () => {
-    goalIds = ["goal"];
-    showCreateForm = false;
     renderProvider();
     let ctx = flowCtx!;
     await act(async () => {
+      await ctx.handleStepChange(["goal"]);
+    });
+    ctx = flowCtx!;
+    await act(async () => {
+      ctx.setIDManuallyEdited(true);
       ctx.setNewID("flow-1");
     });
     ctx = flowCtx!;
@@ -147,16 +142,19 @@ describe("FlowCreationContext", () => {
     expect(addFlow).toHaveBeenCalled();
     expect(loadFlows).toHaveBeenCalled();
     expect(mockNavigate).toHaveBeenCalledWith("/flow/flow-1");
-    expect(uiState.setShowCreateForm).toHaveBeenCalledWith(false);
+    expect(uiState.clearPreviewPlan).toHaveBeenCalled();
   });
 
   it("removes optimistic flow on create error", async () => {
     apiMock.startFlow.mockRejectedValueOnce(new Error("boom"));
-    goalIds = ["goal"];
-    showCreateForm = false;
     renderProvider();
     let ctx = flowCtx!;
     await act(async () => {
+      await ctx.handleStepChange(["goal"]);
+    });
+    ctx = flowCtx!;
+    await act(async () => {
+      ctx.setIDManuallyEdited(true);
       ctx.setNewID("flow-err");
     });
     ctx = flowCtx!;

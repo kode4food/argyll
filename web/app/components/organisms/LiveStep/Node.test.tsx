@@ -24,7 +24,6 @@ jest.mock("@/app/contexts/UIContext", () => ({
     goalSteps: [],
     toggleGoalStep: jest.fn(),
     setGoalSteps: jest.fn(),
-    disableEdit: false,
     diagramContainerRef: { current: null },
   }),
 }));

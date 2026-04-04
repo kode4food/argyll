@@ -8,6 +8,8 @@ export const STEP_LAYOUT = {
 
   EDGE_WIDTH: 2,
   DASH_PATTERN: "8,4",
+  EDGE_Z_INDEX: -3,
+  EDGE_FOCUSED_Z_INDEX: -2,
 
   FIT_VIEW_PADDING: 0.1,
 } as const;

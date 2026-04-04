@@ -2,8 +2,6 @@ import React, { useCallback, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
-  Controls,
-  ControlButton,
   Background,
   BackgroundVariant,
   useNodesState,
@@ -13,11 +11,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
-import {
-  IconDiagramEmptyState,
-  IconThemeDark,
-  IconThemeLight,
-} from "@/utils/iconRegistry";
+import { IconDiagramEmptyState } from "@/utils/iconRegistry";
 import Node from "@/app/components/organisms/OverviewStep/Node";
 import Legend from "@/app/components/molecules/Legend";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
@@ -37,6 +31,7 @@ import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useLayoutPlan } from "./useLayoutPlan";
 import { useTheme, useToggleTheme } from "@/app/store/themeStore";
+import styles from "./OverviewDiagramView.module.css";
 
 interface OverviewDiagramViewProps {
   steps: Step[];
@@ -57,7 +52,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
   const reactFlowInstance = useReactFlow();
   const viewportKey = "overview";
-  const { disableEdit, diagramContainerRef, focusedPreviewAttribute } = useUI();
+  const { diagramContainerRef, focusedPreviewAttribute } = useUI();
   const { previewPlan, handleStepClick, clearPreview } =
     useExecutionPlanPreview(goalSteps, setGoalSteps);
 
@@ -72,8 +67,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     previewPlan,
     previewStepIds,
     handleStepClick,
-    diagramContainerRef,
-    disableEdit
+    diagramContainerRef
   );
 
   const initialEdges = useEdgeCalculation(
@@ -83,6 +77,10 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   );
 
   const { plan } = useLayoutPlan(visibleSteps, []);
+  const previewStepCount = previewPlan
+    ? Object.keys(previewPlan.steps).length
+    : 0;
+  const showPreviewHud = !!previewPlan && goalSteps.length > 0;
 
   const arrangedNodes = useAutoLayout(initialNodes, initialEdges, plan);
 
@@ -116,6 +114,17 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     const event = new CustomEvent("hideTooltips");
     document.dispatchEvent(event);
   }, []);
+  const handleZoomIn = useCallback(() => {
+    void reactFlowInstance.zoomIn();
+  }, [reactFlowInstance]);
+  const handleZoomOut = useCallback(() => {
+    void reactFlowInstance.zoomOut();
+  }, [reactFlowInstance]);
+  const handleFitView = useCallback(() => {
+    void reactFlowInstance.fitView({
+      padding: STEP_LAYOUT.FIT_VIEW_PADDING,
+    });
+  }, [reactFlowInstance]);
 
   const {
     handleViewportChange,
@@ -243,6 +252,19 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 
   return (
     <DiagramView ref={diagramContainerRef}>
+      {showPreviewHud && (
+        <div className={styles.previewHud}>
+          <div className={styles.previewHudTitle}>
+            {t("overview.previewLabel")}
+          </div>
+          <div className={styles.previewHudMeta}>
+            {t("overview.previewSummary", {
+              goals: goalSteps.length,
+              steps: previewStepCount,
+            })}
+          </div>
+        </div>
+      )}
       <ReactFlow
         nodes={nodes}
         edges={initialEdges}
@@ -251,30 +273,13 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
         onPaneClick={handlePaneClick}
         onNodeDragStart={handleNodeDragStart}
         nodesConnectable={false}
-        nodesDraggable={!disableEdit}
+        nodesDraggable={true}
         elementsSelectable={false}
         nodesFocusable={false}
         onViewportChange={handleViewportChange}
         className="overview-mode-bg"
         proOptions={{ hideAttribution: true }}
       >
-        <Controls showInteractive={false} className="diagram-controls">
-          <ControlButton
-            onClick={toggleTheme}
-            title={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-            aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-          >
-            {theme === "dark" ? (
-              <IconThemeLight aria-hidden="true" />
-            ) : (
-              <IconThemeDark aria-hidden="true" />
-            )}
-          </ControlButton>
-        </Controls>
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}
@@ -283,7 +288,13 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
         />
       </ReactFlow>
 
-      <Legend />
+      <Legend
+        onZoomOut={handleZoomOut}
+        onZoomIn={handleZoomIn}
+        onFitView={handleFitView}
+        onToggleTheme={toggleTheme}
+        theme={theme}
+      />
     </DiagramView>
   );
 };

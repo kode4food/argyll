@@ -2,8 +2,6 @@ import React, { useCallback, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
-  Controls,
-  ControlButton,
   Background,
   BackgroundVariant,
   useReactFlow,
@@ -13,11 +11,7 @@ import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import Legend from "@/app/components/molecules/Legend";
-import {
-  IconDiagramLoading,
-  IconThemeDark,
-  IconThemeLight,
-} from "@/utils/iconRegistry";
+import { IconDiagramLoading } from "@/utils/iconRegistry";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
@@ -51,7 +45,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   const toggleTheme = useToggleTheme();
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "flow";
-  const { disableEdit, diagramContainerRef } = useUI();
+  const { diagramContainerRef } = useUI();
 
   const { visibleSteps } = useStepVisibility(steps, flowData);
   const hasPlan =
@@ -64,8 +58,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     flowData,
     executions,
     resolvedAttributes,
-    diagramContainerRef,
-    disableEdit
+    diagramContainerRef
   );
 
   const edges = useEdgeCalculation(stepsToRender, null);
@@ -74,6 +67,17 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     const event = new CustomEvent("hideTooltips");
     document.dispatchEvent(event);
   }, []);
+  const handleZoomIn = useCallback(() => {
+    void reactFlowInstance.zoomIn();
+  }, [reactFlowInstance]);
+  const handleZoomOut = useCallback(() => {
+    void reactFlowInstance.zoomOut();
+  }, [reactFlowInstance]);
+  const handleFitView = useCallback(() => {
+    void reactFlowInstance.fitView({
+      padding: STEP_LAYOUT.FIT_VIEW_PADDING,
+    });
+  }, [reactFlowInstance]);
 
   const {
     handleViewportChange,
@@ -142,23 +146,6 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
         className="flow-mode-bg"
         proOptions={{ hideAttribution: true }}
       >
-        <Controls showInteractive={false} className="diagram-controls">
-          <ControlButton
-            onClick={toggleTheme}
-            title={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-            aria-label={
-              theme === "dark" ? "Switch to light mode" : "Switch to dark mode"
-            }
-          >
-            {theme === "dark" ? (
-              <IconThemeLight aria-hidden="true" />
-            ) : (
-              <IconThemeDark aria-hidden="true" />
-            )}
-          </ControlButton>
-        </Controls>
         <Background
           variant={BackgroundVariant.Dots}
           gap={20}
@@ -167,7 +154,13 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
         />
       </ReactFlow>
 
-      <Legend />
+      <Legend
+        onZoomOut={handleZoomOut}
+        onZoomIn={handleZoomIn}
+        onFitView={handleFitView}
+        onToggleTheme={toggleTheme}
+        theme={theme}
+      />
     </DiagramView>
   );
 };

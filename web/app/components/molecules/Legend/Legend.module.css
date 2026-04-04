@@ -18,6 +18,55 @@
   gap: var(--spacing-sm);
 }
 
+.actions {
+  display: flex;
+  align-items: center;
+  margin-top: var(--spacing-md);
+  border: 1px solid var(--color-neutral-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-shadow: var(--shadow-sm);
+  background-color: var(--color-surface-elevated);
+}
+
+.actionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: none;
+  border-right: 1px solid var(--color-neutral-border);
+  border-radius: 0;
+  background-color: var(--color-surface);
+  color: var(--color-neutral-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.actionButton:hover,
+.actionButton:focus-visible {
+  background-color: var(--color-neutral-bg-dark);
+}
+
+.actionButton:focus-visible {
+  outline: none;
+}
+
+.actionButton:last-child {
+  border-right: none;
+}
+
+.actionIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+  fill: currentColor;
+  stroke: currentColor;
+}
+
 .item {
   display: flex;
   align-items: center;

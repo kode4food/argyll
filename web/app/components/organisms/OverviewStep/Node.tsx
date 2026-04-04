@@ -15,7 +15,6 @@ interface NodeData {
   isStartingPoint?: boolean;
   onStepClick?: (stepId: string, options?: { additive?: boolean }) => void;
   diagramContainerRef?: React.RefObject<HTMLDivElement | null>;
-  disableEdit?: boolean;
 }
 
 const Node: React.FC<NodeProps> = ({ id, data }) => {
@@ -74,7 +73,6 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
           isInPreviewPlan={nodeData.isInPreviewPlan}
           isPreviewMode={nodeData.isPreviewMode}
           diagramContainerRef={nodeData.diagramContainerRef}
-          disableEdit={nodeData.disableEdit}
         />
       </div>
     </div>

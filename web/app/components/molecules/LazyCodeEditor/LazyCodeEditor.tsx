@@ -1,5 +1,6 @@
 import React, { Suspense, lazy } from "react";
 import styles from "./LazyCodeEditor.module.css";
+import { useTheme } from "@/app/store/themeStore";
 
 const CodeMirror = lazy(() => import("@uiw/react-codemirror"));
 
@@ -26,6 +27,7 @@ const CodeMirrorEditor: React.FC<LazyCodeEditorProps> = ({
   onChange,
   height,
 }) => {
+  const theme = useTheme();
   const [json, setJson] = React.useState<any>(null);
   const [EditorView, setEditorView] = React.useState<any>(null);
 
@@ -50,7 +52,7 @@ const CodeMirrorEditor: React.FC<LazyCodeEditorProps> = ({
       className={styles.codemirror}
       extensions={[json(), EditorView.lineWrapping]}
       onChange={onChange}
-      theme="dark"
+      theme={theme}
       basicSetup={{
         lineNumbers: true,
         highlightActiveLineGutter: true,
