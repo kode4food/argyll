@@ -70,7 +70,7 @@
   position: relative;
   padding: var(--spacing-sm);
   border-bottom: 1px solid var(--color-neutral-border);
-  background-color: var(--color-neutral-bg);
+  background-color: color-mix(in srgb, var(--color-surface) 96%, transparent);
 }
 
 .dropdownSearchIcon {
@@ -90,7 +90,7 @@
   border: 1px solid var(--color-neutral-border);
   border-radius: var(--spacing-xs);
   font-size: var(--text-sm);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
   color: var(--color-neutral-text);
   transition: var(--transition-all);
 }
@@ -111,13 +111,15 @@
   top: 100%;
   left: 0;
   right: 0;
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 98%, transparent);
   border: 1px solid var(--color-neutral-border);
   border-radius: var(--spacing-xs);
   box-shadow: var(--shadow-md);
   max-height: 300px;
   overflow-y: auto;
   z-index: 50;
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
 
 .dropdownItem {
@@ -182,11 +184,21 @@
 
 /* Selector Layout */
 .selector {
-  position: relative;
-  background-color: var(--color-surface-elevated);
-  border-bottom: 1px solid var(--color-neutral-border);
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 88%,
+    transparent
+  );
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--color-neutral-border) 72%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
   padding: var(--spacing-md) var(--spacing-lg);
-  z-index: 2;
+  z-index: 20;
 }
 
 .header {
@@ -251,12 +263,25 @@
   border-radius: var(--spacing-xs);
   padding: var(--spacing-md) var(--selector-control-padding-x);
   font-size: var(--text-sm);
-  background: var(--color-surface);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
   color: var(--color-neutral-text);
   cursor: pointer;
   width: 100%;
   min-width: 0;
   text-align: left;
+}
+
+@media (max-width: 70rem) {
+  .selector {
+    position: relative;
+    top: auto;
+    left: auto;
+    right: auto;
+    background-color: var(--color-surface-elevated);
+    border-bottom: 1px solid var(--color-neutral-border);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
 }
 
 .selectWithOverlayAction {

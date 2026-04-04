@@ -1,6 +1,7 @@
 /* Flow Page Layout */
 
 .page {
+  position: relative;
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -10,6 +11,7 @@
 
 .mainContent {
   flex: 1;
+  position: relative;
   min-height: 0;
   overflow: hidden;
 }

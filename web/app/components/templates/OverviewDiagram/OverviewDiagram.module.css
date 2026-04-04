@@ -10,29 +10,32 @@
 }
 
 .workspace {
-  display: flex;
+  position: relative;
   height: 100%;
   min-height: 0;
   overflow: hidden;
 }
 
 .diagramPane {
-  flex: 1;
+  height: 100%;
+  width: 100%;
   min-width: 0;
   min-height: 0;
-  order: 1;
 }
 
 .panelPane {
-  flex: 0 0 24rem;
-  min-width: 20rem;
-  max-width: 26rem;
-  min-height: 0;
-  order: 0;
+  position: absolute;
+  top: calc((2 * var(--spacing-md)) + 2rem + 1px);
+  left: 0;
+  bottom: 0;
+  width: clamp(20rem, 26vw, 26rem);
   overflow: hidden;
-  border-right: 1px solid var(--color-neutral-border);
-  background-color: var(--color-surface);
-  z-index: 1;
+  border-right: 1px solid
+    color-mix(in srgb, var(--color-neutral-border) 72%, transparent);
+  background-color: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  z-index: 10;
 }
 
 .emptyStateContainer {
@@ -45,14 +48,23 @@
 
 @media (max-width: 70rem) {
   .workspace {
+    display: flex;
     flex-direction: column;
   }
 
   .panelPane {
+    position: relative;
+    top: auto;
+    left: auto;
+    bottom: auto;
+    width: auto;
     flex: 0 0 24rem;
     min-width: 0;
     max-width: none;
     border-top: 1px solid var(--color-neutral-border);
     border-right: none;
+    background-color: var(--color-surface);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 }

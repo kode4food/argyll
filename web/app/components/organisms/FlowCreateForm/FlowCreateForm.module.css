@@ -1,12 +1,16 @@
 /* FlowCreateForm CSS Module */
 
 .panel {
-  --panel-bg: var(--color-surface);
-  --panel-bg-secondary: var(--color-surface-subtle);
+  --panel-bg: color-mix(in srgb, var(--color-surface) 40%, transparent);
+  --panel-bg-secondary: color-mix(
+    in srgb,
+    var(--color-surface-subtle) 88%,
+    transparent
+  );
   --panel-bg-tertiary: color-mix(
     in srgb,
-    var(--color-surface-subtle) 82%,
-    var(--color-neutral-bg-dark)
+    var(--color-surface-subtle) 84%,
+    transparent
   );
   --panel-border: var(--color-neutral-border);
   --panel-border-soft: color-mix(
@@ -31,7 +35,7 @@
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background-color: var(--panel-bg);
+  background-color: transparent;
 }
 
 .input {
@@ -159,7 +163,7 @@
   height: 100%;
   width: 100%;
   overflow: hidden;
-  background-color: var(--panel-bg);
+  background-color: transparent;
   color: var(--panel-text);
 }
 
@@ -190,7 +194,7 @@
   flex: 0 0 auto;
   gap: var(--spacing-lg);
   padding-bottom: var(--spacing-xs);
-  background-color: var(--panel-bg);
+  background-color: transparent;
 }
 
 .section {
