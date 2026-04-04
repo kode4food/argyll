@@ -122,7 +122,16 @@
   "overview.noStepsDescription": "Registrieren Sie Flow-Steps im Argyll Engine, um das Flow-Diagramm zu sehen",
   "overview.noStepsTitle": "Keine Steps registriert",
   "overview.previewLabel": "Vorschau",
-  "overview.previewSummary": "{goals} Ziele, {steps} Steps im Plan",
+  "overview.previewGoals": {
+    "zero": "Keine Goals",
+    "one": "1 Goal",
+    "other": "{count} Goals"
+  },
+  "overview.previewSteps": {
+    "zero": "Keine Steps im Plan",
+    "one": "1 Step im Plan",
+    "other": "{count} Steps im Plan"
+  },
   "overview.noVisibleDescription": "Registrieren Sie Steps, um ihre Abhängigkeitsbeziehungen im Diagramm zu sehen",
   "overview.noVisibleTitle": "Keine Steps zu visualisieren",
   "overview.stepsRegistered": {

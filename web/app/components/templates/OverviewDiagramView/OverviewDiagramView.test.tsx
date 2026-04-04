@@ -201,7 +201,10 @@ describe("OverviewDiagramView", () => {
 
     expect(screen.getByText(t("overview.previewLabel"))).toBeInTheDocument();
     expect(
-      screen.getByText(t("overview.previewSummary", { goals: 1, steps: 2 }))
+      screen.getByText(t("overview.previewGoals", { count: 1 }))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(t("overview.previewSteps", { count: 2 }))
     ).toBeInTheDocument();
   });
 

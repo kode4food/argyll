@@ -122,7 +122,16 @@
   "overview.noStepsDescription": "Enregistrez des Steps de Flow dans Argyll Engine pour voir le diagramme du Flow",
   "overview.noStepsTitle": "Aucun Step enregistré",
   "overview.previewLabel": "Aperçu",
-  "overview.previewSummary": "{goals} objectifs, {steps} steps dans le plan",
+  "overview.previewGoals": {
+    "zero": "Aucun Goal",
+    "one": "1 Goal",
+    "other": "{count} Goals"
+  },
+  "overview.previewSteps": {
+    "zero": "Aucun step dans le plan",
+    "one": "1 step dans le plan",
+    "other": "{count} steps dans le plan"
+  },
   "overview.noVisibleDescription": "Enregistrez des Steps pour voir leurs dépendances dans le diagramme",
   "overview.noVisibleTitle": "Aucun Step à visualiser",
   "overview.stepsRegistered": {

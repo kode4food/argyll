@@ -2,6 +2,9 @@ import React, { useEffect } from "react";
 import LiveDiagramView from "@/app/components/templates/LiveDiagramView";
 import DiagramLayout from "@/app/components/templates/DiagramLayout";
 import EmptyState from "@/app/components/molecules/EmptyState";
+import DiagramHud, {
+  DiagramHudText,
+} from "@/app/components/molecules/DiagramHud";
 import styles from "./LiveDiagram.module.css";
 import FlowStats from "@/app/components/organisms/FlowStats";
 import { IconFlowNotFound } from "@/utils/iconRegistry";
@@ -53,10 +56,11 @@ const LiveDiagramContent: React.FC = () => {
       >
         <div className={styles.liveCanvas}>
           {flowData && (
-            <div className={styles.flowHud}>
-              <div className={styles.flowContent}>
-                <div className={styles.flowLeft}>
-                  <h2 className={styles.flowTitle}>{flowData.id}</h2>
+            <DiagramHud
+              className={styles.flowHud}
+              sections={[
+                <DiagramHudText nowrap>{flowData.id}</DiagramHudText>,
+                <>
                   <span
                     className={`status-bubble ${styles.flowStatusBadge} ${styles[flowData.status]}`}
                   >
@@ -69,26 +73,25 @@ const LiveDiagramContent: React.FC = () => {
                       resolvedAttributes={resolved}
                     />
                   )}
-                </div>
-
-                <div className={styles.flowRight}>
+                </>,
+                <>
                   {isValidTimestamp(flowData.started_at) && (
-                    <span>
+                    <DiagramHudText>
                       {t("common.started")}:{" "}
                       {new Date(flowData.started_at).toLocaleString()}
-                    </span>
+                    </DiagramHudText>
                   )}
                   {flowData.completed_at &&
                     isValidTimestamp(flowData.completed_at) && (
-                      <span>
+                      <DiagramHudText>
                         {" · "}
                         {t("common.ended")}:{" "}
                         {new Date(flowData.completed_at).toLocaleString()}
-                      </span>
+                      </DiagramHudText>
                     )}
-                </div>
-              </div>
-            </div>
+                </>,
+              ]}
+            />
           )}
 
           <LiveDiagramView

@@ -122,7 +122,16 @@
   "overview.noStepsDescription": "Register flow steps with the Argyll engine to see the flow diagram",
   "overview.noStepsTitle": "No Steps Registered",
   "overview.previewLabel": "Preview",
-  "overview.previewSummary": "{goals} goals, {steps} steps in plan",
+  "overview.previewGoals": {
+    "zero": "No Goals",
+    "one": "1 goal",
+    "other": "{count} goals"
+  },
+  "overview.previewSteps": {
+    "zero": "No steps in plan",
+    "one": "1 step in plan",
+    "other": "{count} steps in plan"
+  },
   "overview.noVisibleDescription": "Register steps to see their dependency relationships in diagram form",
   "overview.noVisibleTitle": "No Steps to Visualize",
   "overview.stepsRegistered": {

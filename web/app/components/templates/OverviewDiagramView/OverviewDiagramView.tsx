@@ -13,6 +13,9 @@ import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
 import { IconDiagramEmptyState } from "@/utils/iconRegistry";
 import Node from "@/app/components/organisms/OverviewStep/Node";
+import DiagramHud, {
+  DiagramHudText,
+} from "@/app/components/molecules/DiagramHud";
 import Legend from "@/app/components/molecules/Legend";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
@@ -253,17 +256,24 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   return (
     <DiagramView ref={diagramContainerRef}>
       {showPreviewHud && (
-        <div className={styles.previewHud}>
-          <div className={styles.previewHudTitle}>
-            {t("overview.previewLabel")}
-          </div>
-          <div className={styles.previewHudMeta}>
-            {t("overview.previewSummary", {
-              goals: goalSteps.length,
-              steps: previewStepCount,
-            })}
-          </div>
-        </div>
+        <DiagramHud
+          className={styles.previewHud}
+          sections={[
+            <DiagramHudText nowrap>
+              {t("overview.previewLabel")}
+            </DiagramHudText>,
+            <DiagramHudText>
+              {t("overview.previewGoals", {
+                count: goalSteps.length,
+              })}
+            </DiagramHudText>,
+            <DiagramHudText>
+              {t("overview.previewSteps", {
+                count: previewStepCount,
+              })}
+            </DiagramHudText>,
+          ]}
+        />
       )}
       <ReactFlow
         nodes={nodes}
