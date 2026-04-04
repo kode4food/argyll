@@ -376,9 +376,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
                                     onFocus={() =>
                                       setFocusedPreviewAttribute(option.name)
                                     }
-                                    onBlur={() =>
-                                      setFocusedPreviewAttribute(null)
-                                    }
                                     className={`${styles.input} ${styles.attributeValueInput}`}
                                     placeholder={getFlowInputPlaceholder(
                                       option
