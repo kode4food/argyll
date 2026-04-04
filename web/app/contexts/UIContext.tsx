@@ -70,6 +70,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (goalSteps.length === 0) {
         setPreviewPlanState(null);
+        setFocusedPreviewAttributeState(null);
         return;
       }
 
@@ -93,6 +94,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
         if (error?.name !== "AbortError" && error?.code !== "ERR_CANCELED") {
           console.error("Failed to update preview plan:", error);
           setPreviewPlanState(null);
+          setFocusedPreviewAttributeState(null);
         }
       }
     },
@@ -106,6 +108,7 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
       abortControllerRef.current = null;
     }
     setPreviewPlanState(null);
+    setFocusedPreviewAttributeState(null);
   }, []);
 
   // Cleanup on unmount

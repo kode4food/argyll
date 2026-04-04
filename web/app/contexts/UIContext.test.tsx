@@ -231,10 +231,17 @@ describe("UIContext", () => {
     expect(result.current.previewPlan).toEqual(mockPlan);
 
     act(() => {
+      result.current.setFocusedPreviewAttribute("quantity");
+    });
+
+    expect(result.current.focusedPreviewAttribute).toBe("quantity");
+
+    act(() => {
       result.current.clearPreviewPlan();
     });
 
     expect(result.current.previewPlan).toBeNull();
+    expect(result.current.focusedPreviewAttribute).toBeNull();
   });
 
   test("aborts pending request on unmount", async () => {

@@ -580,6 +580,54 @@ describe("FlowCreateForm", () => {
     expect(setFocusedPreviewAttribute).toHaveBeenCalledWith(null);
   });
 
+  test("clears focused preview attribute when it is no longer available", () => {
+    const setFocusedPreviewAttribute = jest.fn();
+    const uiContext = {
+      ...defaultUIContext,
+      focusedPreviewAttribute: "quantity",
+      setFocusedPreviewAttribute,
+      goalSteps: ["goal-step"],
+      previewPlan: {
+        goals: ["goal-step"],
+        required: ["quantity"],
+        attributes: {},
+        steps: {
+          "goal-step": {
+            id: "goal-step",
+            name: "Goal Step",
+            type: "sync" as const,
+            attributes: {
+              quantity: {
+                role: AttributeRole.Required,
+                type: AttributeType.Number,
+              },
+            },
+            http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+          },
+        },
+      },
+    };
+
+    mockUseUI.mockImplementation(() => uiContext);
+
+    const { rerender } = render(
+      <FlowCreationContext.Provider value={defaultProps}>
+        <FlowCreateForm />
+      </FlowCreationContext.Provider>
+    );
+
+    uiContext.goalSteps = [];
+    uiContext.previewPlan = null;
+
+    rerender(
+      <FlowCreationContext.Provider value={defaultProps}>
+        <FlowCreateForm />
+      </FlowCreationContext.Provider>
+    );
+
+    expect(setFocusedPreviewAttribute).toHaveBeenCalledWith(null);
+  });
+
   test("selects step when clicked", async () => {
     renderWithProvider();
 
