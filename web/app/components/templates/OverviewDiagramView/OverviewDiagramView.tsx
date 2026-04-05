@@ -4,6 +4,8 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
+  ControlButton,
+  Controls,
   useNodesState,
   useReactFlow,
   NodeChange,
@@ -11,12 +13,15 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
-import { IconDiagramEmptyState } from "@/utils/iconRegistry";
+import {
+  IconDiagramEmptyState,
+  IconThemeDark,
+  IconThemeLight,
+} from "@/utils/iconRegistry";
 import Node from "@/app/components/organisms/OverviewStep/Node";
 import DiagramHud, {
   DiagramHudText,
 } from "@/app/components/molecules/DiagramHud";
-import Legend from "@/app/components/molecules/Legend";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
@@ -296,15 +301,35 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
           size={1}
           className="diagram-background"
         />
+        <Controls
+          orientation="horizontal"
+          position="bottom-right"
+          showInteractive={false}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFitView={handleFitView}
+          style={{
+            right: "1rem",
+            bottom: "1rem",
+          }}
+        >
+          <ControlButton
+            onClick={toggleTheme}
+            title={
+              theme === "dark"
+                ? t("controls.switchToLightMode")
+                : t("controls.switchToDarkMode")
+            }
+            aria-label={
+              theme === "dark"
+                ? t("controls.switchToLightMode")
+                : t("controls.switchToDarkMode")
+            }
+          >
+            {theme === "dark" ? <IconThemeLight /> : <IconThemeDark />}
+          </ControlButton>
+        </Controls>
       </ReactFlow>
-
-      <Legend
-        onZoomOut={handleZoomOut}
-        onZoomIn={handleZoomIn}
-        onFitView={handleFitView}
-        onToggleTheme={toggleTheme}
-        theme={theme}
-      />
     </DiagramView>
   );
 };

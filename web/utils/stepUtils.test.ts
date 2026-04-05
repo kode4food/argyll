@@ -1,6 +1,5 @@
 import {
   getStepType,
-  getStepTypeLabel,
   sortStepsByType,
   validateDefaultValue,
   getSortedAttributes,
@@ -243,24 +242,6 @@ describe("stepUtils", () => {
       };
 
       expect(getStepType(step)).toBe("standalone");
-    });
-  });
-
-  describe("getStepTypeLabel", () => {
-    test("returns correct label for resolver", () => {
-      expect(getStepTypeLabel("resolver")).toBe("R");
-    });
-
-    test("returns correct label for collector", () => {
-      expect(getStepTypeLabel("collector")).toBe("C");
-    });
-
-    test("returns correct label for processor", () => {
-      expect(getStepTypeLabel("processor")).toBe("P");
-    });
-
-    test("returns correct label for standalone", () => {
-      expect(getStepTypeLabel("standalone")).toBe("S");
     });
   });
 

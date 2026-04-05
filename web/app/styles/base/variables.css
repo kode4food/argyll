@@ -63,6 +63,14 @@
   --color-edge-optional: #f59e0b;
   --color-edge-grayed: #e5e7eb;
 
+  /* React Flow Controls */
+  --xy-controls-box-shadow: var(--shadow-sm);
+  --xy-controls-button-background-color: var(--color-surface-elevated);
+  --xy-controls-button-background-color-hover: var(--color-neutral-bg-dark);
+  --xy-controls-button-border-color: var(--color-neutral-border);
+  --xy-controls-button-color: var(--color-neutral-text);
+  --xy-controls-button-color-hover: var(--color-neutral-text);
+
   /* Spacing */
   --spacing-density: 0.75;
   --spacing-2xs: calc(0.125rem * var(--spacing-density)); /* 2px base */
@@ -79,7 +87,6 @@
   --step-widget-width: 16rem; /* 256px */
   --step-border-width: 2px;
   --step-border-radius: var(--spacing-sm);
-  --step-type-label-size: 24px;
 
   /* Typography */
   --text-xs: 0.75rem;

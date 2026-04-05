@@ -12,6 +12,20 @@ const previewHookState = {
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: (props: any) => reactFlowMock(props),
+  Controls: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="controls">{children}</div>
+  ),
+  ControlButton: ({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  ),
+  PanelPosition: {
+    BottomRight: "bottom-right",
+  },
   MiniMap: () => <div data-testid="mini-map" />,
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },

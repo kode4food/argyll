@@ -297,9 +297,6 @@
 .step-type-label {
   background-color: white;
   padding: 0;
-  font-weight: var(--font-semibold);
-  font-size: 10px;
-  line-height: 24px;
   height: 24px;
   width: 24px;
   border-radius: 50%;
@@ -308,6 +305,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.step-type-label svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.25;
 }
 
 .step-type-label.resolver {

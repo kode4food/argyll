@@ -5,6 +5,20 @@ import { Step, FlowContext, ExecutionResult } from "@/app/api";
 
 jest.mock("@xyflow/react", () => ({
   ReactFlow: () => <div data-testid="react-flow" />,
+  Controls: ({ children }: { children?: React.ReactNode }) => (
+    <div data-testid="controls">{children}</div>
+  ),
+  ControlButton: ({
+    children,
+    ...props
+  }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button type="button" {...props}>
+      {children}
+    </button>
+  ),
+  PanelPosition: {
+    BottomRight: "bottom-right",
+  },
   Background: () => <div data-testid="background" />,
   BackgroundVariant: { Dots: "dots" },
   ReactFlowProvider: ({ children }: { children: React.ReactNode }) => (

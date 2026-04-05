@@ -4,14 +4,19 @@ import {
   ReactFlowProvider,
   Background,
   BackgroundVariant,
+  ControlButton,
+  Controls,
   useReactFlow,
   NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
-import Legend from "@/app/components/molecules/Legend";
-import { IconDiagramLoading } from "@/utils/iconRegistry";
+import {
+  IconDiagramLoading,
+  IconThemeDark,
+  IconThemeLight,
+} from "@/utils/iconRegistry";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
 import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
@@ -152,15 +157,35 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
           size={1}
           className="diagram-background"
         />
+        <Controls
+          orientation="horizontal"
+          position="bottom-right"
+          showInteractive={false}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
+          onFitView={handleFitView}
+          style={{
+            right: "1rem",
+            bottom: "1rem",
+          }}
+        >
+          <ControlButton
+            onClick={toggleTheme}
+            title={
+              theme === "dark"
+                ? t("controls.switchToLightMode")
+                : t("controls.switchToDarkMode")
+            }
+            aria-label={
+              theme === "dark"
+                ? t("controls.switchToLightMode")
+                : t("controls.switchToDarkMode")
+            }
+          >
+            {theme === "dark" ? <IconThemeLight /> : <IconThemeDark />}
+          </ControlButton>
+        </Controls>
       </ReactFlow>
-
-      <Legend
-        onZoomOut={handleZoomOut}
-        onZoomIn={handleZoomIn}
-        onFitView={handleFitView}
-        onToggleTheme={toggleTheme}
-        theme={theme}
-      />
     </DiagramView>
   );
 };

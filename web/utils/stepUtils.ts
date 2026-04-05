@@ -113,19 +113,6 @@ export const getStepType = (step: Step): StepType => {
   return "standalone";
 };
 
-export const getStepTypeLabel = (stepType: StepType): string => {
-  switch (stepType) {
-    case "resolver":
-      return "R";
-    case "collector":
-      return "C";
-    case "processor":
-      return "P";
-    case "standalone":
-      return "S";
-  }
-};
-
 export const sortStepsByType = (steps: Step[]): Step[] => {
   return [...steps].sort((a, b) => {
     const aType = getStepType(a);

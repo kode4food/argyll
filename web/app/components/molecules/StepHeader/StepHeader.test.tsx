@@ -50,24 +50,6 @@ describe("StepHeader", () => {
     expect(heading).toBeInTheDocument();
   });
 
-  test("renders StepTypeLabel for resolver", () => {
-    const step = createStep("Resolver Step", false, true);
-    render(<StepHeader step={step} />);
-    expect(screen.getByText("R")).toBeInTheDocument();
-  });
-
-  test("renders StepTypeLabel for collector", () => {
-    const step = createStep("Collector Step", true, false);
-    render(<StepHeader step={step} />);
-    expect(screen.getByText("C")).toBeInTheDocument();
-  });
-
-  test("renders StepTypeLabel for processor", () => {
-    const step = createStep("Processor Step", true, true);
-    render(<StepHeader step={step} />);
-    expect(screen.getByText("P")).toBeInTheDocument();
-  });
-
   test("applies correct CSS classes", () => {
     const step = createStep("Test", false, false);
     const { container } = render(<StepHeader step={step} />);

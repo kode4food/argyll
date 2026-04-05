@@ -24,28 +24,44 @@ describe("StepTypeLabel", () => {
     },
   });
 
-  test("renders resolver label for step with outputs only", () => {
+  test("renders sync icon inside resolver badge for step with outputs only", () => {
     const step = createStep(false, true);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByText("R")).toBeInTheDocument();
+    expect(screen.getByLabelText("sync")).toBeInTheDocument();
   });
 
-  test("renders collector label for step with inputs only", () => {
+  test("renders sync icon inside collector badge for step with inputs only", () => {
     const step = createStep(true, false);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByText("C")).toBeInTheDocument();
+    expect(screen.getByLabelText("sync")).toBeInTheDocument();
   });
 
-  test("renders processor label for step with inputs and outputs", () => {
+  test("renders sync icon inside processor badge for step with inputs and outputs", () => {
     const step = createStep(true, true);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByText("P")).toBeInTheDocument();
+    expect(screen.getByLabelText("sync")).toBeInTheDocument();
   });
 
-  test("renders standalone label for step with no inputs or outputs", () => {
+  test("renders sync icon inside standalone badge for step with no inputs or outputs", () => {
     const step = createStep(false, false);
     render(<StepTypeLabel step={step} />);
-    expect(screen.getByText("S")).toBeInTheDocument();
+    expect(screen.getByLabelText("sync")).toBeInTheDocument();
+  });
+
+  test("renders flow icon for flow steps", () => {
+    const step: Step = {
+      id: "flow-step",
+      name: "Flow Step",
+      type: "flow",
+      attributes: {},
+      flow: {
+        goals: ["goal-a"],
+      },
+    };
+
+    render(<StepTypeLabel step={step} />);
+
+    expect(screen.getByLabelText("flow")).toBeInTheDocument();
   });
 
   test("applies correct CSS classes", () => {

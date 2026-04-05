@@ -1,6 +1,5 @@
 import React from "react";
 import { Step } from "@/app/api";
-import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import styles from "./StepHeader.module.css";
@@ -27,7 +26,6 @@ const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
         </TooltipSection>
         <TooltipSection title={t("tooltip.stepId")}>{step.id}</TooltipSection>
       </Tooltip>
-      <StepTypeLabel step={step} />
     </div>
   );
 };
