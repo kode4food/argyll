@@ -39,6 +39,7 @@ import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useLayoutPlan } from "./useLayoutPlan";
 import { useTheme, useToggleTheme } from "@/app/store/themeStore";
+import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
 import styles from "./OverviewDiagramView.module.css";
 
 interface OverviewDiagramViewProps {
@@ -302,6 +303,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
           className="diagram-background"
         />
         <Controls
+          className={glassChromeStyles.controls}
           orientation="horizontal"
           position="bottom-right"
           showInteractive={false}

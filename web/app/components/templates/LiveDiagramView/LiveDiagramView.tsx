@@ -27,6 +27,7 @@ import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useStepVisibility } from "./useStepVisibility";
 import { useTheme, useToggleTheme } from "@/app/store/themeStore";
+import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
 
 interface LiveDiagramViewProps {
   steps: Step[];
@@ -158,6 +159,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
           className="diagram-background"
         />
         <Controls
+          className={glassChromeStyles.controls}
           orientation="horizontal"
           position="bottom-right"
           showInteractive={false}
