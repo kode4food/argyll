@@ -36,8 +36,9 @@
   --arg-focus-ring-alpha: 32%;
   --arg-focus-pulse-duration: 1.2s;
   --arg-focus-pulse-scale-base: 1;
-  --arg-focus-pulse-scale-mid: 1.02;
-  --arg-focus-pulse-scale-expanded: 1.045;
+  --arg-focus-pulse-scale-near: 1.03;
+  --arg-focus-pulse-scale-mid: 1.06;
+  --arg-focus-pulse-scale-expanded: 1.135;
   border-radius: var(--radius-md);
 }
 
@@ -162,7 +163,7 @@
   }
   26% {
     opacity: 0.68;
-    transform: scale(1.01);
+    transform: scale(var(--arg-focus-pulse-scale-near));
   }
   44% {
     opacity: 0.68;
@@ -170,7 +171,15 @@
   }
   64% {
     opacity: 0.28;
-    transform: scale(1.035);
+    transform: scale(
+      calc(
+        (
+            var(--arg-focus-pulse-scale-near) +
+              var(--arg-focus-pulse-scale-expanded)
+          ) /
+          2
+      )
+    );
   }
   80% {
     opacity: 0;
@@ -193,7 +202,15 @@
   }
   26% {
     opacity: 0.68;
-    transform: scale(1.035);
+    transform: scale(
+      calc(
+        (
+            var(--arg-focus-pulse-scale-near) +
+              var(--arg-focus-pulse-scale-expanded)
+          ) /
+          2
+      )
+    );
   }
   44% {
     opacity: 0.68;
@@ -201,7 +218,7 @@
   }
   64% {
     opacity: 0.28;
-    transform: scale(1.01);
+    transform: scale(var(--arg-focus-pulse-scale-near));
   }
   80% {
     opacity: 0;
