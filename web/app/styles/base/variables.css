@@ -65,8 +65,16 @@
 
   /* React Flow Controls */
   --xy-controls-box-shadow: var(--shadow-sm);
-  --xy-controls-button-background-color: var(--color-surface-elevated);
-  --xy-controls-button-background-color-hover: var(--color-neutral-bg-dark);
+  --xy-controls-button-background-color: color-mix(
+    in srgb,
+    var(--color-surface) 40%,
+    transparent
+  );
+  --xy-controls-button-background-color-hover: color-mix(
+    in srgb,
+    var(--color-surface) 92%,
+    var(--color-neutral-bg-dark)
+  );
   --xy-controls-button-border-color: var(--color-neutral-border);
   --xy-controls-button-color: var(--color-neutral-text);
   --xy-controls-button-color-hover: var(--color-neutral-text);

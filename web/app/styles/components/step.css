@@ -42,6 +42,13 @@
   opacity: 0.3;
 }
 
+.react-flow__controls {
+  border-radius: calc(var(--radius-lg) * 1.5);
+  overflow: hidden;
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+}
+
 .react-flow__edge.edge-focused-animated .react-flow__edge-path {
   stroke-dasharray: var(--focused-edge-dash-length)
     var(--focused-edge-gap-length);
