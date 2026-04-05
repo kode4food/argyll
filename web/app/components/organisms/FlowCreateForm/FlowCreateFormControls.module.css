@@ -1,0 +1,35 @@
+.sectionCard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-sm);
+}
+
+.sectionTitle {
+  color: var(--panel-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.input {
+  width: 100%;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--spacing-xs);
+  padding: var(--spacing-xs) var(--spacing-sm);
+  font-size: var(--text-sm);
+  background-color: var(--panel-bg-secondary);
+  color: var(--panel-text);
+}
+
+.input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-info);
+}

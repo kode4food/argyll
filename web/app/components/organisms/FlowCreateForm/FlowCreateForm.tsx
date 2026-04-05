@@ -1,18 +1,12 @@
 import React from "react";
-import { IconAddStep, IconStartFlow } from "@/utils/iconRegistry";
-import Spinner from "@/app/components/atoms/Spinner";
 import { useUI } from "@/app/contexts/UIContext";
-import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
-import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import { AttributeType } from "@/app/api";
-import styles from "./FlowCreateForm.module.css";
 import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
 import { useFlowFormScrollFade } from "./useFlowFormScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 import {
   buildInitialStateFromInputValues,
   buildInitialStateInputValues,
-  buildItemClassName,
   FlowInputStatus,
   getFlowInputStatus,
   validateJsonString,
@@ -22,6 +16,10 @@ import {
   FlowInputOption,
   getFlowPlanAttributeOptions,
 } from "@/utils/flowPlanAttributeOptions";
+import FlowGoalsSection from "./FlowGoalsSection";
+import FlowAttributesSection from "./FlowAttributesSection";
+import FlowStartSection from "./FlowStartSection";
+import styles from "./FlowCreateForm.module.css";
 
 interface FlowCreateFormProps {
   onCreateStep?: () => void;
@@ -151,13 +149,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     required: t("flowCreate.requiredBadge"),
     optional: t("flowStats.optionalLabel"),
   };
-  const statusClassByType: Record<FlowInputStatus, string> = {
-    provided: styles.requiredBadgeSatisfied,
-    defaulted: styles.requiredBadgeDefault,
-    required: styles.requiredBadgeMissing,
-    optional: styles.requiredBadgeOptional,
-  };
-
   const handleBasicInputChange = React.useCallback(
     (name: string, value: string) => {
       const option = flowInputOptions.find((item) => item.name === name);
@@ -186,279 +177,58 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
       <div className={styles.container}>
         <div className={styles.main}>
           <div className={styles.panelBody}>
-            <section className={`${styles.sectionCard} ${styles.stepSection}`}>
-              <div className={styles.sectionHeader}>
-                <div className={styles.sectionTitle}>
-                  {t("stepEditor.flowGoalsLabel")}
-                </div>
-                <div className={styles.sectionHeaderActions}>
-                  <div className={styles.sectionMeta}>
-                    {t("overview.stepsRegistered", {
-                      count: steps.length,
-                    })}
-                  </div>
-                  {onCreateStep && (
-                    <button
-                      type="button"
-                      className={styles.sectionActionButton}
-                      title={t("overview.addStep")}
-                      aria-label={t("overview.addStep")}
-                      onClick={onCreateStep}
-                    >
-                      <IconAddStep className={styles.sectionActionIcon} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              <div className={styles.goalListShell}>
-                <div
-                  ref={sidebarListRef}
-                  className={`${styles.sidebarList} ${
-                    showTopFade ? styles.fadeTop : ""
-                  } ${showBottomFade ? styles.fadeBottom : ""}`}
-                >
-                  {sortedSteps.map((step) => {
-                    const isSelected = goalSteps.includes(step.id);
-                    const isIncludedByOthers =
-                      included.has(step.id) && !isSelected;
-                    const isSatisfiedByState =
-                      satisfied.has(step.id) && !isSelected;
-                    const missingRequired = missingByStep.get(step.id) || [];
-                    const isMissing = missingRequired.length > 0;
-                    const isDisabled = isIncludedByOthers || isSatisfiedByState;
+            <FlowGoalsSection
+              goalSteps={goalSteps}
+              included={included}
+              missingByStep={missingByStep}
+              onCreateStep={onCreateStep}
+              onGoalStepsChange={handleStepChange}
+              satisfied={satisfied}
+              showBottomFade={showBottomFade}
+              showTopFade={showTopFade}
+              sidebarListRef={sidebarListRef}
+              sortedSteps={sortedSteps}
+              stepsCount={steps.length}
+            />
 
-                    const tooltipText = isIncludedByOthers
-                      ? t("flowCreate.tooltipAlreadyIncluded")
-                      : isSatisfiedByState
-                        ? t("flowCreate.tooltipSatisfiedByState")
-                        : isMissing
-                          ? t("flowCreate.tooltipMissingRequired", {
-                              attrs: missingRequired.join(", "),
-                            })
-                          : undefined;
-                    const itemClassName = buildItemClassName(
-                      isSelected,
-                      isDisabled,
-                      styles.dropdownItem,
-                      styles.dropdownItemSelected,
-                      styles.dropdownItemDisabled
-                    );
-                    const includedClassName = isIncludedByOthers
-                      ? styles.dropdownItemIncluded
-                      : "";
-
-                    return (
-                      <div
-                        key={step.id}
-                        className={`${itemClassName} ${includedClassName}`}
-                        title={tooltipText}
-                        onClick={() => {
-                          if (isDisabled) {
-                            return;
-                          }
-
-                          const nextGoalStepIds = isSelected
-                            ? goalSteps.filter((id) => id !== step.id)
-                            : [...goalSteps, step.id];
-
-                          void handleStepChange(nextGoalStepIds);
-                        }}
-                      >
-                        <table className={styles.stepTable}>
-                          <tbody>
-                            <tr>
-                              <td className={styles.stepCellType}>
-                                <StepTypeLabel step={step} />
-                              </td>
-                              <td className={styles.stepCellName}>
-                                <div>{step.name}</div>
-                                <div className={styles.stepId}>({step.id})</div>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </section>
-
-            <section
-              className={`${styles.sectionCard} ${styles.attributesSection}`}
-            >
-              <div className={styles.sectionHeader}>
-                <div className={styles.sectionTitle}>
-                  {t("flowCreate.requiredAttributesLabel")}
-                </div>
-                <div className={styles.editorModeToggleGroup}>
-                  <button
-                    type="button"
-                    className={`${styles.editorModeToggle} ${
-                      editorMode === "basic"
-                        ? styles.editorModeToggleActive
-                        : ""
-                    }`}
-                    onClick={() => setEditorMode("basic")}
-                  >
-                    {t("flowCreate.modeBasic")}
-                  </button>
-                  <button
-                    type="button"
-                    className={`${styles.editorModeToggle} ${
-                      editorMode === "json" ? styles.editorModeToggleActive : ""
-                    }`}
-                    onClick={() => setEditorMode("json")}
-                  >
-                    {t("flowCreate.modeJson")}
-                  </button>
-                </div>
-              </div>
-              <div className={styles.editorContainer}>
-                {editorMode === "basic" ? (
-                  <div className={styles.editorWrapper}>
-                    {flowInputOptions.length === 0 ? (
-                      <div className={styles.emptyAttributesCentered}>
-                        {emptyAttributesLabel}
-                      </div>
-                    ) : (
-                      <div className={styles.attributeTableScroll}>
-                        <div className={styles.attributeList}>
-                          <div className={styles.attributeListHeader}>
-                            <div
-                              className={`${styles.attributeListHeaderCell} ${styles.attributeHeaderCell}`}
-                            >
-                              {t("flowCreate.attributeColumn")}
-                            </div>
-                            <div
-                              className={`${styles.attributeListHeaderCell} ${styles.attributeValueHeaderCell}`}
-                            >
-                              {t("flowCreate.valueColumn")}
-                            </div>
-                          </div>
-
-                          {flowInputOptions.map((option) => {
-                            const value = flowInputValues[option.name] || "";
-                            const rawValue =
-                              flowInputValuesRaw[option.name] || "";
-                            const status = getFlowInputStatus(option, rawValue);
-                            const statusClass = statusClassByType[status];
-                            const statusLabel = statusLabelByType[status];
-
-                            return (
-                              <div
-                                key={option.name}
-                                className={styles.attributeListItem}
-                              >
-                                <div className={styles.requiredBadgeCell}>
-                                  <span
-                                    className={`${styles.requiredBadge} ${statusClass}`}
-                                    role="img"
-                                    aria-label={statusLabel}
-                                    title={statusLabel}
-                                  />
-                                </div>
-                                <div className={styles.attributeNameCell}>
-                                  <span className={styles.attributeNameText}>
-                                    {option.name}
-                                  </span>
-                                </div>
-                                <div className={styles.attributeValueCell}>
-                                  <input
-                                    type="text"
-                                    value={value}
-                                    onChange={(e) =>
-                                      handleBasicInputChange(
-                                        option.name,
-                                        e.target.value
-                                      )
-                                    }
-                                    onFocus={() =>
-                                      setFocusedPreviewAttribute(option.name)
-                                    }
-                                    className={`${styles.input} ${styles.attributeValueInput}`}
-                                    placeholder={getFlowInputPlaceholder(
-                                      option
-                                    )}
-                                  />
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <>
-                    <div className={styles.editorWrapper}>
-                      <LazyCodeEditor
-                        value={initialState}
-                        onChange={setInitialState}
-                        height="100%"
-                      />
-                    </div>
-                    {jsonError && (
-                      <div className={styles.jsonError}>
-                        {t("flowCreate.invalidJson", { error: jsonError })}
-                      </div>
-                    )}
-                  </>
-                )}
-              </div>
-            </section>
+            <FlowAttributesSection
+              editorMode={editorMode}
+              emptyAttributesLabel={emptyAttributesLabel}
+              flowInputOptions={flowInputOptions}
+              flowInputValues={flowInputValues}
+              flowInputValuesRaw={flowInputValuesRaw}
+              getFlowInputPlaceholder={getFlowInputPlaceholder}
+              handleBasicInputChange={handleBasicInputChange}
+              initialState={initialState}
+              jsonError={jsonError}
+              onEditorModeChange={setEditorMode}
+              onFocusedPreviewAttributeChange={setFocusedPreviewAttribute}
+              setInitialState={setInitialState}
+              statusLabelByType={statusLabelByType}
+              toFlowInputStatus={getFlowInputStatus}
+            />
           </div>
 
           <div className={styles.panelFooter}>
-            <div className={styles.section}>
-              <label className={styles.label}>
-                {t("flowCreate.startFlowLabel")}
-              </label>
-              <div className={styles.footerRow}>
-                <div className={styles.idControls}>
-                  <input
-                    type="text"
-                    value={newID}
-                    onChange={(e) => {
-                      setNewID(e.target.value);
-                      setIDManuallyEdited(true);
-                    }}
-                    placeholder={t("flowCreate.flowIdPlaceholder")}
-                    className={`${styles.input} ${styles.idInputFlex}`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setNewID(generateID());
-                      setIDManuallyEdited(false);
-                    }}
-                    className={`${styles.buttonGenerate} ${styles.footerIconButton}`}
-                    title={t("flowCreate.generateIdTitle")}
-                    aria-label={t("flowCreate.generateIdAria")}
-                  >
-                    ↻
-                  </button>
-                </div>
-                <button
-                  onClick={handleCreateFlow}
-                  disabled={
-                    creating ||
-                    !newID.trim() ||
-                    goalSteps.length === 0 ||
-                    (editorMode === "json" && jsonError !== null)
-                  }
-                  className={`${styles.buttonStart} ${styles.footerIconButton}`}
-                  title={t("common.start")}
-                  aria-label={t("common.start")}
-                >
-                  {creating ? (
-                    <Spinner size="sm" color="white" />
-                  ) : (
-                    <IconStartFlow className={styles.startIcon} />
-                  )}
-                </button>
-              </div>
-            </div>
+            <FlowStartSection
+              creating={creating}
+              disableStart={
+                creating ||
+                !newID.trim() ||
+                goalSteps.length === 0 ||
+                (editorMode === "json" && jsonError !== null)
+              }
+              flowId={newID}
+              onCreateFlow={handleCreateFlow}
+              onFlowIdChange={(value) => {
+                setNewID(value);
+                setIDManuallyEdited(true);
+              }}
+              onGenerateId={() => {
+                setNewID(generateID());
+                setIDManuallyEdited(false);
+              }}
+            />
           </div>
         </div>
       </div>

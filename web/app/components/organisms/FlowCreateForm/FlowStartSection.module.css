@@ -1,0 +1,76 @@
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.label {
+  composes: sectionTitle from "./FlowCreateFormControls.module.css";
+  display: block;
+  margin-bottom: var(--spacing-xs);
+}
+
+.input {
+  composes: input from "./FlowCreateFormControls.module.css";
+}
+
+.footerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+}
+
+.idControls {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  gap: var(--spacing-xs);
+  min-width: 0;
+}
+
+.idInputFlex {
+  flex: 1;
+  height: 2rem;
+  box-sizing: border-box;
+}
+
+.footerIconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.buttonGenerate {
+  border-radius: var(--spacing-xs);
+  border: 1px solid var(--panel-border);
+  background-color: var(--panel-bg-secondary);
+  color: var(--panel-text);
+  padding: 0;
+  font-size: var(--text-sm);
+  line-height: 1;
+  cursor: pointer;
+  transition: var(--transition-all);
+}
+
+.buttonGenerate:hover {
+  background-color: var(--panel-hover);
+}
+
+.buttonStart {
+  composes: buttonPrimary from "../Shared/Button.module.css";
+  border: 1px solid var(--color-info);
+}
+
+.buttonStart:disabled {
+  border-color: var(--panel-border);
+}
+
+.startIcon {
+  width: 1rem;
+  height: 1rem;
+}

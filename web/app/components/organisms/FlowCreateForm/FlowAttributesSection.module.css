@@ -1,0 +1,219 @@
+.sectionCard {
+  composes: sectionCard from "./FlowCreateFormControls.module.css";
+}
+
+.attributesSection {
+  min-height: 0;
+}
+
+.sectionHeader {
+  composes: sectionHeader from "./FlowCreateFormControls.module.css";
+}
+
+.sectionTitle {
+  composes: sectionTitle from "./FlowCreateFormControls.module.css";
+}
+
+.editorModeToggleGroup {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+}
+
+.editorModeToggle {
+  height: 28px;
+  padding: 0 var(--spacing-md);
+  background-color: var(--panel-bg-secondary);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  color: var(--panel-text);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.editorModeToggle:hover {
+  background-color: var(--panel-hover-strong);
+  border-color: var(--color-info);
+}
+
+.editorModeToggleActive {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.editorModeToggleActive:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.editorContainer {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+}
+
+.editorWrapper {
+  flex: 1;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  font-size: var(--text-base);
+  min-height: 0;
+}
+
+.emptyAttributesCentered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  color: var(--panel-text-muted);
+  padding: var(--spacing-md);
+}
+
+.attributeTableScroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.attributeList {
+  display: grid;
+  grid-template-columns: max-content fit-content(50%) minmax(0, 1fr);
+  width: 100%;
+  font-size: var(--text-sm);
+}
+
+.attributeListHeader {
+  display: contents;
+}
+
+.attributeListHeaderCell {
+  display: flex;
+  align-items: center;
+  height: 33px;
+  padding: 0 var(--spacing-sm);
+  position: sticky;
+  top: 0;
+  border-bottom: 1px solid var(--panel-border-soft);
+  background-color: var(--panel-bg-tertiary);
+  color: var(--panel-text);
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+}
+
+.attributeHeaderCell {
+  grid-column: span 2;
+  padding-left: var(--spacing-sm);
+}
+
+.attributeValueHeaderCell {
+  border-left: 1px solid var(--panel-border);
+}
+
+.attributeListItem {
+  display: contents;
+}
+
+.requiredBadgeCell {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 33px;
+  padding: 0 var(--spacing-xs) 0 var(--spacing-sm);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.requiredBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  width: 10px;
+  height: 10px;
+  line-height: 1;
+  cursor: help;
+  user-select: none;
+}
+
+.requiredBadgeMissing {
+  background-color: var(--color-error);
+}
+
+.requiredBadgeSatisfied {
+  background-color: var(--color-success);
+}
+
+.requiredBadgeDefault {
+  background-color: var(--color-purple-light);
+}
+
+.requiredBadgeOptional {
+  background-color: var(--color-gray-500);
+}
+
+.attributeNameCell {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 0;
+  overflow: hidden;
+  height: 33px;
+  padding: 0 var(--spacing-sm);
+  border-bottom: 1px solid var(--panel-border);
+}
+
+.attributeNameText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attributeValueCell {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  height: 33px;
+  padding: 0 var(--spacing-sm);
+  border-left: 1px solid var(--panel-border);
+  border-bottom: 1px solid var(--panel-border);
+  transition: background-color var(--transition-fast);
+}
+
+.attributeValueCell:focus-within {
+  background-color: var(--panel-hover);
+}
+
+.attributeValueInput {
+  width: 100%;
+  min-width: 0;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  box-shadow: none;
+  box-sizing: border-box;
+  line-height: 1;
+  color: var(--panel-text);
+  font-size: var(--text-sm);
+}
+
+.attributeValueInput:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.jsonError {
+  margin-top: var(--spacing-sm);
+  padding: var(--spacing-sm);
+  background-color: var(--panel-error-bg);
+  border: 1px solid var(--color-error-border);
+  border-radius: var(--radius-md);
+  color: var(--color-error);
+  font-size: var(--text-sm);
+}

@@ -1,0 +1,111 @@
+.flowGoalList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-xs);
+}
+
+.flowGoalChip {
+  flex: 0 0 auto;
+  height: 28px;
+  padding: 0 var(--spacing-sm);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.flowGoalChip:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.flowGoalChipSelected {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.flowGoalChipSelected:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.flowGoalChipIncluded {
+  border-color: var(--color-info);
+  background-color: color-mix(in srgb, var(--color-info) 55%, transparent);
+  color: var(--color-white);
+}
+
+.flowGoalChipIncluded:hover {
+  background-color: color-mix(in srgb, var(--color-info) 55%, transparent);
+  border-color: var(--color-info);
+}
+
+.flowGoalChipDisabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.httpFields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.typeButtonGroup {
+  display: flex;
+  gap: var(--spacing-xs);
+}
+
+.typeButton {
+  height: 32px;
+  padding: 0 var(--spacing-sm);
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  box-sizing: border-box;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-xs);
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.typeButton:focus {
+  outline: none;
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.typeButton:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.typeButtonActive {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.typeButtonActive:hover {
+  background-color: var(--color-info-light);
+  border-color: var(--color-info-light);
+}
+
+.typeButtonActive:focus {
+  background-color: var(--color-info);
+  border-color: var(--color-info);
+}

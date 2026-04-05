@@ -1,0 +1,182 @@
+.sectionCard {
+  composes: sectionCard from "./FlowCreateFormControls.module.css";
+}
+
+.stepSection {
+  min-height: 0;
+}
+
+.sectionHeader {
+  composes: sectionHeader from "./FlowCreateFormControls.module.css";
+}
+
+.sectionTitle {
+  composes: sectionTitle from "./FlowCreateFormControls.module.css";
+}
+
+.sectionHeaderActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  min-width: 0;
+  margin-left: auto;
+}
+
+.sectionMeta {
+  color: var(--panel-text-muted);
+  font-size: var(--text-xs);
+  white-space: nowrap;
+}
+
+.sectionActionButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  padding: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  background-color: var(--panel-bg-secondary);
+  color: var(--panel-text);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-fast),
+    border-color var(--transition-fast);
+}
+
+.sectionActionButton:hover,
+.sectionActionButton:focus-visible {
+  background-color: var(--panel-hover-strong);
+  border-color: var(--color-info);
+}
+
+.sectionActionButton:focus-visible {
+  outline: none;
+}
+
+.sectionActionIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.goalListShell {
+  flex: 1 1 auto;
+  width: 100%;
+  min-height: 0;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  box-sizing: border-box;
+  background-color: var(--panel-bg);
+}
+
+.sidebarList {
+  height: 100%;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  position: relative;
+  transition:
+    mask-image 0.3s ease,
+    -webkit-mask-image 0.3s ease;
+}
+
+.sidebarList::-webkit-scrollbar {
+  display: none;
+}
+
+.sidebarList.fadeTop:not(.fadeBottom) {
+  mask-image: linear-gradient(to bottom, transparent 0, black 60px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 60px);
+}
+
+.sidebarList.fadeBottom:not(.fadeTop) {
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+}
+
+.sidebarList.fadeTop.fadeBottom {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 60px,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 60px,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+}
+
+.dropdownItem {
+  cursor: pointer;
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  transition: var(--transition-all);
+  color: var(--panel-text);
+  background-color: transparent;
+}
+
+.dropdownItem:hover:not(.dropdownItemDisabled) {
+  background-color: var(--panel-hover);
+}
+
+.dropdownItemSelected {
+  background-color: var(--color-info);
+  color: var(--color-white);
+}
+
+.dropdownItemSelected:hover:not(.dropdownItemDisabled) {
+  background-color: color-mix(in srgb, var(--color-info) 90%, var(--panel-bg));
+}
+
+.dropdownItemIncluded {
+  background-color: color-mix(in srgb, var(--color-info) 18%, transparent);
+  color: var(--panel-text);
+}
+
+.dropdownItemIncluded:hover:not(.dropdownItemDisabled) {
+  background-color: color-mix(in srgb, var(--color-info) 18%, transparent);
+}
+
+.dropdownItemDisabled {
+  opacity: var(--opacity-disabled);
+  cursor: not-allowed;
+}
+
+.stepTable {
+  width: 100%;
+  table-layout: auto;
+}
+
+.stepCellType {
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  width: 0;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+.stepCellName {
+  padding: var(--spacing-2xs) var(--spacing-xs);
+  vertical-align: middle;
+  white-space: nowrap;
+  overflow-x: auto;
+  color: inherit;
+}
+
+.stepId {
+  font-size: var(--text-xs);
+  opacity: var(--opacity-soft);
+}

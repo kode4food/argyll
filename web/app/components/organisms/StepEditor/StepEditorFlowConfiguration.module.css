@@ -1,0 +1,19 @@
+.flowGoalList {
+  composes: flowGoalList from "./StepEditorControls.module.css";
+}
+
+.flowGoalChip {
+  composes: flowGoalChip from "./StepEditorControls.module.css";
+}
+
+.flowGoalChipSelected {
+  composes: flowGoalChipSelected from "./StepEditorControls.module.css";
+}
+
+.flowGoalChipIncluded {
+  composes: flowGoalChipIncluded from "./StepEditorControls.module.css";
+}
+
+.flowGoalChipDisabled {
+  composes: flowGoalChipDisabled from "./StepEditorControls.module.css";
+}

@@ -5,7 +5,9 @@ import {
   waitFor,
   within,
 } from "@testing-library/react";
+import attributeStyles from "./FlowAttributesSection.module.css";
 import FlowCreateForm from "./FlowCreateForm";
+import goalStyles from "./FlowGoalsSection.module.css";
 import styles from "./FlowCreateForm.module.css";
 import { t } from "@/app/testUtils/i18n";
 import { useUI } from "@/app/contexts/UIContext";
@@ -97,7 +99,7 @@ describe("FlowCreateForm", () => {
     expect(container.querySelector(`.${styles.panel}`)).toBeInTheDocument();
     expect(container.querySelector(`.${styles.main}`)).toBeInTheDocument();
     expect(
-      container.querySelector(`.${styles.goalListShell}`)
+      container.querySelector(`.${goalStyles.goalListShell}`)
     ).toBeInTheDocument();
     expect(
       screen.getByText(t("stepEditor.flowGoalsLabel"))
@@ -447,22 +449,22 @@ describe("FlowCreateForm", () => {
 
     const quantityRow = screen
       .getByText("quantity")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const payloadRow = screen
       .getByText("payload")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const tagsRow = screen
       .getByText("tags")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const enabledRow = screen
       .getByText("enabled")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const nicknameRow = screen
       .getByText("nickname")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const retryRow = screen
       .getByText("retry_count")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
 
     expect(
       within(quantityRow as HTMLElement).getByRole("textbox")
@@ -516,7 +518,7 @@ describe("FlowCreateForm", () => {
 
     const quantityRow = screen
       .getByText("quantity")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const quantityInput = within(quantityRow as HTMLElement).getByRole(
       "textbox"
     ) as HTMLInputElement;
@@ -565,7 +567,7 @@ describe("FlowCreateForm", () => {
 
     const quantityRow = screen
       .getByText("quantity")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const quantityInput = within(quantityRow as HTMLElement).getByRole(
       "textbox"
     );
@@ -789,10 +791,10 @@ describe("FlowCreateForm", () => {
 
     const orderIdRow = screen
       .getByText("order_id")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const quantityRow = screen
       .getByText("quantity")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     expect(orderIdRow).toBeInTheDocument();
     expect(quantityRow).toBeInTheDocument();
 
@@ -855,22 +857,26 @@ describe("FlowCreateForm", () => {
 
     const orderIdRow = screen
       .getByText("order_id")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     const quantityRow = screen
       .getByText("quantity")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     expect(orderIdRow).toBeInTheDocument();
     expect(quantityRow).toBeInTheDocument();
 
     const providedDot = within(orderIdRow as HTMLElement).getByLabelText(
       t("flowCreate.providedBadge")
     );
-    expect(providedDot.className).toContain(styles.requiredBadgeSatisfied);
+    expect(providedDot.className).toContain(
+      attributeStyles.requiredBadgeSatisfied
+    );
 
     const optionalDot = within(quantityRow as HTMLElement).getByLabelText(
       t("flowStats.optionalLabel")
     );
-    expect(optionalDot.className).toContain(styles.requiredBadgeOptional);
+    expect(optionalDot.className).toContain(
+      attributeStyles.requiredBadgeOptional
+    );
   });
 
   test("marks required dot as default when provided value equals default", () => {
@@ -905,13 +911,15 @@ describe("FlowCreateForm", () => {
 
     const orderIdRow = screen
       .getByText("order_id")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     expect(orderIdRow).toBeInTheDocument();
 
     const defaultDot = within(orderIdRow as HTMLElement).getByLabelText(
       t("flowCreate.defaultBadge")
     );
-    expect(defaultDot.className).toContain(styles.requiredBadgeDefault);
+    expect(defaultDot.className).toContain(
+      attributeStyles.requiredBadgeDefault
+    );
   });
 
   test("marks numeric zero value as default instead of provided", () => {
@@ -945,12 +953,14 @@ describe("FlowCreateForm", () => {
 
     const quantityRow = screen
       .getByText("quantity")
-      .closest(`.${styles.attributeListItem}`);
+      .closest(`.${attributeStyles.attributeListItem}`);
     expect(quantityRow).toBeInTheDocument();
 
     const defaultDot = within(quantityRow as HTMLElement).getByLabelText(
       t("flowCreate.defaultBadge")
     );
-    expect(defaultDot.className).toContain(styles.requiredBadgeDefault);
+    expect(defaultDot.className).toContain(
+      attributeStyles.requiredBadgeDefault
+    );
   });
 });

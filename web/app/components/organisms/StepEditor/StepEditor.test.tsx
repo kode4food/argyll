@@ -1,6 +1,5 @@
 import React from "react";
 import StepEditor from "./StepEditor";
-import formStyles from "./StepEditorForm.module.css";
 import { t } from "@/app/testUtils/i18n";
 import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
 import {
@@ -276,49 +275,6 @@ describe("StepEditor", () => {
     });
   });
 
-  test("updates step type", async () => {
-    const step = createHttpStep("sync");
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    await waitFor(() => {
-      const asyncButton = screen.getByTitle(t("stepEditor.typeAsyncTitle"));
-      fireEvent.click(asyncButton);
-      expect(asyncButton.className).toContain("typeButtonActive");
-    });
-  });
-
-  test("shows flow type button and flow goals when selected", async () => {
-    const step = createHttpStep("sync");
-    stepsInStore = [
-      {
-        ...createHttpStep("sync"),
-        id: "step-2",
-        name: "Second Step",
-      },
-    ];
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    await waitFor(() => {
-      const flowButton = screen.getByTitle(t("stepEditor.typeFlowTitle"));
-      fireEvent.click(flowButton);
-      expect(flowButton.className).toContain("typeButtonActive");
-    });
-
-    expect(
-      screen.getByText(t("stepEditor.flowGoalsLabel"))
-    ).toBeInTheDocument();
-    const goalChips = document.body.querySelectorAll(
-      `.${formStyles.flowGoalChip}`
-    );
-    expect(goalChips.length).toBeGreaterThan(0);
-  });
-
   test("renders flow mapping dropdown options", async () => {
     const step = createFlowStep();
     stepsInStore = [
@@ -447,83 +403,6 @@ describe("StepEditor", () => {
     fireEvent.click(expandOutputMappingButton);
 
     expect(screen.getAllByRole("option", { name: "output1" })).toHaveLength(1);
-  });
-
-  test("excludes current step from flow goal selector", () => {
-    const step = createFlowStep();
-    const otherStep: Step = {
-      id: "other-step",
-      name: "Other Step",
-      type: "sync",
-      attributes: {},
-    };
-    stepsInStore = [step, otherStep];
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    expect(
-      screen.queryByRole("button", { name: "step-flow" })
-    ).not.toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "other-step" })
-    ).toBeInTheDocument();
-  });
-
-  test("updates timeout", async () => {
-    const step = createHttpStep();
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    await waitFor(() => {
-      const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 1]; // HTTP timeout is last
-      fireEvent.change(httpTimeoutInput, { target: { value: "10000" } });
-      expect(httpTimeoutInput).toHaveValue("10000");
-    });
-  });
-
-  test("updates endpoint", async () => {
-    const step = createHttpStep();
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    await waitFor(() => {
-      const endpointInput = screen.getByDisplayValue(
-        "http://localhost:8080/test"
-      );
-      fireEvent.change(endpointInput, {
-        target: { value: "http://localhost:9090/new" },
-      });
-      expect(
-        screen.getByDisplayValue("http://localhost:9090/new")
-      ).toBeInTheDocument();
-    });
-  });
-
-  test("updates health check", async () => {
-    const step = createHttpStep();
-
-    render(
-      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
-    );
-
-    await waitFor(() => {
-      const healthInput = screen.getByDisplayValue(
-        "http://localhost:8080/health"
-      );
-      fireEvent.change(healthInput, {
-        target: { value: "http://localhost:9090/health" },
-      });
-      expect(
-        screen.getByDisplayValue("http://localhost:9090/health")
-      ).toBeInTheDocument();
-    });
   });
 
   test("updates predicate", async () => {

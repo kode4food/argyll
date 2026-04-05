@@ -1,0 +1,11 @@
+.typeButtonGroup {
+  composes: typeButtonGroup from "./StepEditorControls.module.css";
+}
+
+.typeButton {
+  composes: typeButton from "./StepEditorControls.module.css";
+}
+
+.typeButtonActive {
+  composes: typeButtonActive from "./StepEditorControls.module.css";
+}
