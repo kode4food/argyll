@@ -167,6 +167,7 @@
     color-mix(in srgb, var(--color-neutral-border) 72%, transparent);
   padding: var(--spacing-md) var(--spacing-lg);
   z-index: 20;
+  box-shadow: none;
 }
 
 .header {

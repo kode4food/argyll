@@ -6,7 +6,7 @@
 
 Argyll is a goal-driven orchestrator. You declare what you want to achieve, the engine builds an execution plan, and it executes only the minimal set of steps needed. All state changes are immutable events, giving you a complete audit trail.
 
-![Argyll UI Screenshot](./docs/img/screenshot.png)
+![Argyll UI Screenshot](./docs/img/screenshot.gif)
 
 ## Getting Started
 
