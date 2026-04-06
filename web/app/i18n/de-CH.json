@@ -14,6 +14,7 @@
   "connectionStatus.disconnected": "Getrennt",
   "connectionStatus.failed": "Verbindung fehlgeschlagen",
   "connectionStatus.reconnecting": "Wiederverbinden... (Versuch {attempt})",
+  "controls.fitView": "An Ansicht anpassen",
   "controls.switchToDarkMode": "Zu Dunkelmodus wechseln",
   "controls.switchToLightMode": "Zu Hellmodus wechseln",
   "diagram.diagramErrorDescription": "Beim Rendern des Diagramms ist ein Fehler aufgetreten. Bitte einen anderen Flow wählen",

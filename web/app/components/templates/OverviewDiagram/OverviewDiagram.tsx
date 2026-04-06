@@ -27,7 +27,7 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
   const { steps, loadSteps } = useFlowSession();
   const upsertStep = useFlowStore((state) => state.upsertStep);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
-  const { goalSteps, toggleGoalStep, setGoalSteps } = useUI();
+  const { goalSteps, toggleGoalStep, setGoalSteps, panelRef } = useUI();
   const t = useT();
 
   const applyStepUpdate = React.useCallback(
@@ -80,7 +80,7 @@ const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
             <div className={styles.diagramPane}>
               <OverviewDiagramView steps={steps} />
             </div>
-            <div className={styles.panelPane}>
+            <div className={styles.panelPane} ref={panelRef}>
               <FlowCreateForm onCreateStep={handleCreateStep} />
             </div>
           </div>

@@ -21,6 +21,7 @@ import {
   FlowDropdownContextValue,
 } from "@/app/contexts/FlowDropdownContext";
 import { useFlowSession } from "@/app/contexts/FlowSessionContext";
+import { useUI } from "@/app/contexts/UIContext";
 
 const visibleFlowIDsDelayMS = 150;
 const visibleFlowIDSelector = "[data-flow-id]";
@@ -241,6 +242,7 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
 const FlowSelectorContent: React.FC = () => {
   const t = useT();
   const navigate = useNavigate();
+  const { headerRef } = useUI();
   useFlowFromUrl();
   const {
     flows,
@@ -348,7 +350,7 @@ const FlowSelectorContent: React.FC = () => {
 
   return (
     <FlowDropdownProvider value={dropdownValue}>
-      <div className={styles.selector}>
+      <div className={styles.selector} ref={headerRef}>
         <div className={styles.header}>
           <div className={styles.left}>
             <a

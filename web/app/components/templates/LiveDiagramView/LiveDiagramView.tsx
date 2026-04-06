@@ -14,6 +14,7 @@ import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
 import {
   IconDiagramLoading,
+  IconFitView,
   IconThemeDark,
   IconThemeLight,
 } from "@/utils/iconRegistry";
@@ -22,9 +23,9 @@ import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
-import { STEP_LAYOUT } from "@/constants/layout";
 import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
+import { useFitView } from "@/app/hooks/useFitView";
 import { useStepVisibility } from "./useStepVisibility";
 import { useTheme, useToggleTheme } from "@/app/store/themeStore";
 import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
@@ -52,6 +53,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "flow";
   const { diagramContainerRef } = useUI();
+  const fitView = useFitView();
 
   const { visibleSteps } = useStepVisibility(steps, flowData);
   const hasPlan =
@@ -79,12 +81,6 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   const handleZoomOut = useCallback(() => {
     void reactFlowInstance.zoomOut();
   }, [reactFlowInstance]);
-  const handleFitView = useCallback(() => {
-    void reactFlowInstance.fitView({
-      padding: STEP_LAYOUT.FIT_VIEW_PADDING,
-    });
-  }, [reactFlowInstance]);
-
   const {
     handleViewportChange,
     shouldFitView,
@@ -110,9 +106,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
 
     frameA = requestAnimationFrame(() => {
       frameB = requestAnimationFrame(() => {
-        reactFlowInstance.fitView({
-          padding: STEP_LAYOUT.FIT_VIEW_PADDING,
-        });
+        fitView();
         markFitApplied();
       });
     });
@@ -125,7 +119,7 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
         cancelAnimationFrame(frameB);
       }
     };
-  }, [reactFlowInstance, shouldFitView, nodes, markFitApplied]);
+  }, [fitView, shouldFitView, nodes, markFitApplied]);
 
   if (isLoadingPlan || stepsToRender.length === 0) {
     return (
@@ -163,14 +157,21 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
           orientation="horizontal"
           position="bottom-right"
           showInteractive={false}
+          showFitView={false}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
-          onFitView={handleFitView}
           style={{
             right: "1rem",
             bottom: "1rem",
           }}
         >
+          <ControlButton
+            onClick={fitView}
+            title={t("controls.fitView")}
+            aria-label={t("controls.fitView")}
+          >
+            <IconFitView />
+          </ControlButton>
           <ControlButton
             onClick={toggleTheme}
             title={

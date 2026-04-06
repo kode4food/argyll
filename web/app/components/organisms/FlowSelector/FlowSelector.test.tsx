@@ -14,6 +14,7 @@ type UIStateMock = {
   goalSteps: string[];
   setGoalSteps: jest.Mock;
   diagramContainerRef: { current: null };
+  headerRef: { current: null };
 };
 
 const pushMock = jest.fn();
@@ -27,6 +28,7 @@ const uiState: UIStateMock = {
   goalSteps: [],
   setGoalSteps: jest.fn(),
   diagramContainerRef: { current: null },
+  headerRef: { current: null },
 };
 
 jest.mock("react-router-dom", () => ({

@@ -63,7 +63,13 @@ jest.mock("@/app/contexts/UIContext", () => ({
     clearPreviewPlan: jest.fn(),
     previewPlan: null,
     diagramContainerRef: { current: null },
+    headerRef: { current: null },
+    panelRef: { current: null },
   }),
+}));
+
+jest.mock("@/app/hooks/useFitView", () => ({
+  useFitView: () => jest.fn(),
 }));
 
 jest.mock("@/app/hooks/useKeyboardShortcuts", () => ({

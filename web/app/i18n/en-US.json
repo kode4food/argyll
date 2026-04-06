@@ -14,6 +14,7 @@
   "connectionStatus.disconnected": "Disconnected",
   "connectionStatus.failed": "Connection failed",
   "connectionStatus.reconnecting": "Reconnecting... (attempt {attempt})",
+  "controls.fitView": "Fit to view",
   "controls.switchToDarkMode": "Switch to dark mode",
   "controls.switchToLightMode": "Switch to light mode",
   "diagram.diagramErrorDescription": "An error occurred while rendering the diagram. Try selecting a different flow",

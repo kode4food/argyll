@@ -15,6 +15,7 @@ import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
 import {
   IconDiagramEmptyState,
+  IconFitView,
   IconThemeDark,
   IconThemeLight,
 } from "@/utils/iconRegistry";
@@ -30,13 +31,13 @@ import { useStepVisibility } from "./useStepVisibility";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 import { useAutoLayout } from "./useAutoLayout";
-import { STEP_LAYOUT } from "@/constants/layout";
 import { saveNodePositions } from "@/utils/nodePositioning";
 import { useUI } from "@/app/contexts/UIContext";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
 import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
+import { useFitView } from "@/app/hooks/useFitView";
 import { useLayoutPlan } from "./useLayoutPlan";
 import { useTheme, useToggleTheme } from "@/app/store/themeStore";
 import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
@@ -62,6 +63,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const reactFlowInstance = useReactFlow();
   const viewportKey = "overview";
   const { diagramContainerRef, focusedPreviewAttribute } = useUI();
+  const fitView = useFitView();
   const { previewPlan, handleStepClick, clearPreview } =
     useExecutionPlanPreview(goalSteps, setGoalSteps);
 
@@ -129,12 +131,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   const handleZoomOut = useCallback(() => {
     void reactFlowInstance.zoomOut();
   }, [reactFlowInstance]);
-  const handleFitView = useCallback(() => {
-    void reactFlowInstance.fitView({
-      padding: STEP_LAYOUT.FIT_VIEW_PADDING,
-    });
-  }, [reactFlowInstance]);
-
   const {
     handleViewportChange,
     shouldFitView,
@@ -202,9 +198,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
 
     frameA = requestAnimationFrame(() => {
       frameB = requestAnimationFrame(() => {
-        reactFlowInstance.fitView({
-          padding: STEP_LAYOUT.FIT_VIEW_PADDING,
-        });
+        fitView();
         markFitApplied();
       });
     });
@@ -217,7 +211,7 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
         cancelAnimationFrame(frameB);
       }
     };
-  }, [reactFlowInstance, shouldFitView, nodes, markFitApplied]);
+  }, [fitView, shouldFitView, nodes, markFitApplied]);
 
   React.useEffect(() => {
     setNodes((currentNodes) => {
@@ -307,14 +301,21 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
           orientation="horizontal"
           position="bottom-right"
           showInteractive={false}
+          showFitView={false}
           onZoomIn={handleZoomIn}
           onZoomOut={handleZoomOut}
-          onFitView={handleFitView}
           style={{
             right: "1rem",
             bottom: "1rem",
           }}
         >
+          <ControlButton
+            onClick={fitView}
+            title={t("controls.fitView")}
+            aria-label={t("controls.fitView")}
+          >
+            <IconFitView />
+          </ControlButton>
           <ControlButton
             onClick={toggleTheme}
             title={

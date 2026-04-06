@@ -68,6 +68,7 @@ jest.mock("@/app/contexts/UIContext", () => {
       toggleGoalStep: jest.fn(),
       setGoalSteps: jest.fn(),
       clearPreviewPlan: jest.fn(),
+      panelRef: { current: null },
     }),
   };
 });

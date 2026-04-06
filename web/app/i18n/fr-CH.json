@@ -14,6 +14,7 @@
   "connectionStatus.disconnected": "Déconnecté",
   "connectionStatus.failed": "Échec de la connexion",
   "connectionStatus.reconnecting": "Reconnexion... (tentative {attempt})",
+  "controls.fitView": "Ajuster à la vue",
   "controls.switchToDarkMode": "Passer en mode sombre",
   "controls.switchToLightMode": "Passer en mode clair",
   "diagram.diagramErrorDescription": "Une erreur est survenue lors du rendu du diagramme. Essayez de sélectionner un autre Flow",
