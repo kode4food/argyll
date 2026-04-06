@@ -97,12 +97,6 @@ func (tx *flowTx) completeWork(
 	}
 
 	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
-		if hasRetryTask(flow, stepID, tkn) {
-			tx.handleWorkSucceededCleanup(api.FlowStep{
-				FlowID: tx.flowID,
-				StepID: stepID,
-			}, tkn)
-		}
 		step := flow.Plan.Steps[stepID]
 		if step != nil && step.Memoizable {
 			exec := flow.Executions[stepID]
@@ -116,6 +110,13 @@ func (tx *flowTx) completeWork(
 						log.Error(err))
 				}
 			}
+		}
+
+		if hasRetryTask(flow, stepID, tkn) {
+			tx.handleWorkSucceededCleanup(api.FlowStep{
+				FlowID: tx.flowID,
+				StepID: stepID,
+			}, tkn)
 		}
 	})
 
