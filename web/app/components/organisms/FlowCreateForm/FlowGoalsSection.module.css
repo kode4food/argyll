@@ -134,12 +134,12 @@
 }
 
 .dropdownItemSelected {
-  background-color: var(--color-info);
+  background-color: color-mix(in srgb, var(--color-info) 70%, transparent);
   color: var(--color-white);
 }
 
 .dropdownItemSelected:hover:not(.dropdownItemDisabled) {
-  background-color: color-mix(in srgb, var(--color-info) 90%, var(--panel-bg));
+  background-color: color-mix(in srgb, var(--color-info) 80%, transparent);
 }
 
 .dropdownItemIncluded {

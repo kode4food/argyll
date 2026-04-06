@@ -37,13 +37,13 @@
 }
 
 .editorModeToggleActive {
-  background-color: var(--color-info);
+  background-color: color-mix(in srgb, var(--color-info) 70%, transparent);
   border-color: var(--color-info);
   color: var(--color-white);
 }
 
 .editorModeToggleActive:hover {
-  background-color: var(--color-info-light);
+  background-color: color-mix(in srgb, var(--color-info) 80%, transparent);
   border-color: var(--color-info-light);
 }
 

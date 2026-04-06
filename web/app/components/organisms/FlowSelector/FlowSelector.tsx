@@ -391,10 +391,14 @@ const FlowSelectorContent: React.FC = () => {
           </div>
         </div>
         <Suspense fallback={null}>
-          <KeyboardShortcutsModal
-            isOpen={showShortcutsModal}
-            onClose={() => setShowShortcutsModal(false)}
-          />
+          {showShortcutsModal &&
+            createPortal(
+              <KeyboardShortcutsModal
+                isOpen={showShortcutsModal}
+                onClose={() => setShowShortcutsModal(false)}
+              />,
+              document.body
+            )}
         </Suspense>
       </div>
     </FlowDropdownProvider>
