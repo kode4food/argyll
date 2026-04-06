@@ -2,7 +2,7 @@ import React from "react";
 import { render, screen, fireEvent, act } from "@testing-library/react";
 import OverviewDiagram from "./OverviewDiagram";
 import { Step } from "@/app/api";
-import { t, tPlural } from "@/app/testUtils/i18n";
+import { t } from "@/app/testUtils/i18n";
 
 jest.mock("@/app/components/organisms/FlowCreateForm", () => {
   const MockFlowCreateForm = ({

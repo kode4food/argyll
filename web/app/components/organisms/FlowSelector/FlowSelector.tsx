@@ -1,4 +1,5 @@
 import React, { useState, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { IconNavigateOverview, IconSearch } from "@/utils/iconRegistry";
 import { useNavigate } from "react-router-dom";
 import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
@@ -87,8 +88,125 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
     }
   };
 
+  const triggerRef = React.useRef<HTMLDivElement>(null);
+  const [dropdownStyle, setDropdownStyle] = React.useState<
+    React.CSSProperties | undefined
+  >(undefined);
+
+  const updateDropdownPosition = React.useCallback(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) {
+      return;
+    }
+
+    const rect = trigger.getBoundingClientRect();
+    setDropdownStyle({
+      top: rect.bottom,
+      left: rect.left,
+      width: rect.width,
+    });
+  }, []);
+
+  React.useLayoutEffect(() => {
+    if (!showDropdown) {
+      return;
+    }
+
+    updateDropdownPosition();
+
+    const handleViewportChange = () => updateDropdownPosition();
+
+    window.addEventListener("resize", handleViewportChange);
+    window.addEventListener("scroll", handleViewportChange, true);
+
+    return () => {
+      window.removeEventListener("resize", handleViewportChange);
+      window.removeEventListener("scroll", handleViewportChange, true);
+    };
+  }, [showDropdown, updateDropdownPosition]);
+
+  const dropdownMenu = showDropdown ? (
+    <div
+      className={styles.dropdownMenuPortal}
+      style={dropdownStyle}
+      data-ui-overlay="dropdown"
+    >
+      <div
+        className={styles.dropdownMenu}
+        ref={dropdownRef}
+        onScroll={handleDropdownScroll}
+      >
+        <div className={styles.dropdownSearch}>
+          <IconSearch className={styles.dropdownSearchIcon} />
+          <input
+            ref={searchInputRef}
+            type="text"
+            placeholder={t("flowSelector.searchPlaceholder")}
+            value={searchTerm}
+            onChange={handleSearchChange}
+            onKeyDown={handleKeyDown}
+            onBlur={() => setTimeout(() => closeDropdown(), 100)}
+            className={styles.dropdownSearchInput}
+            autoFocus
+          />
+        </div>
+        {filteredFlows.map((flow, index) => {
+          const progressStatus = mapFlowStatusToProgressStatus(flow.status);
+          const StatusIcon = getProgressIcon(progressStatus);
+          const isHighlighted = selectedIndex === index;
+          const isSelected = selectedFlow === flow.id;
+          const dropdownItemClassName = [
+            styles.dropdownItem,
+            isHighlighted && styles.dropdownItemHighlighted,
+            isSelected && styles.dropdownItemSelected,
+          ]
+            .filter(Boolean)
+            .join(" ");
+          return (
+            <div
+              key={flow.id}
+              data-flow-id={flow.id}
+              className={dropdownItemClassName}
+              onMouseDown={(e) => {
+                e.preventDefault();
+                selectFlow(flow.id);
+                closeDropdown();
+              }}
+            >
+              <StatusIcon
+                className={`progress-icon ${progressStatus || "pending"}`}
+              />
+              {flow.id}
+            </div>
+          );
+        })}
+        {filteredFlows.length === 0 && searchTerm && (
+          <div className={`${styles.dropdownItem} ${styles.noResults}`}>
+            {t("flowSelector.noFlowsFound")}
+          </div>
+        )}
+        {flowsLoading && (
+          <div className={`${styles.dropdownItem} ${styles.noResults}`}>
+            {t("flowSelector.loadingMore")}
+          </div>
+        )}
+        {!flowsLoading && flowsHasMore && (
+          <div
+            className={`${styles.dropdownItem} ${styles.loadMore}`}
+            onMouseDown={(e) => {
+              e.preventDefault();
+              void loadMoreFlows();
+            }}
+          >
+            {t("flowSelector.loadMore")}
+          </div>
+        )}
+      </div>
+    </div>
+  ) : null;
+
   return (
-    <div className={styles.dropdown}>
+    <div className={styles.dropdown} ref={triggerRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
         className={`${styles.select} ${
@@ -115,80 +233,7 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
           t("flowSelector.selectFlow")
         )}
       </button>
-      {showDropdown && (
-        <div
-          className={styles.dropdownMenu}
-          data-ui-overlay="dropdown"
-          ref={dropdownRef}
-          onScroll={handleDropdownScroll}
-        >
-          <div className={styles.dropdownSearch}>
-            <IconSearch className={styles.dropdownSearchIcon} />
-            <input
-              ref={searchInputRef}
-              type="text"
-              placeholder={t("flowSelector.searchPlaceholder")}
-              value={searchTerm}
-              onChange={handleSearchChange}
-              onKeyDown={handleKeyDown}
-              onBlur={() => setTimeout(() => closeDropdown(), 100)}
-              className={styles.dropdownSearchInput}
-              autoFocus
-            />
-          </div>
-          {filteredFlows.map((flow, index) => {
-            const progressStatus = mapFlowStatusToProgressStatus(flow.status);
-            const StatusIcon = getProgressIcon(progressStatus);
-            const isHighlighted = selectedIndex === index;
-            const isSelected = selectedFlow === flow.id;
-            const dropdownItemClassName = [
-              styles.dropdownItem,
-              isHighlighted && styles.dropdownItemHighlighted,
-              isSelected && styles.dropdownItemSelected,
-            ]
-              .filter(Boolean)
-              .join(" ");
-            return (
-              <div
-                key={flow.id}
-                data-flow-id={flow.id}
-                className={dropdownItemClassName}
-                onMouseDown={(e) => {
-                  e.preventDefault();
-                  selectFlow(flow.id);
-                  closeDropdown();
-                }}
-              >
-                <StatusIcon
-                  className={`progress-icon ${progressStatus || "pending"}`}
-                />
-                {flow.id}
-              </div>
-            );
-          })}
-          {filteredFlows.length === 0 && searchTerm && (
-            <div className={`${styles.dropdownItem} ${styles.noResults}`}>
-              {t("flowSelector.noFlowsFound")}
-            </div>
-          )}
-          {flowsLoading && (
-            <div className={`${styles.dropdownItem} ${styles.noResults}`}>
-              {t("flowSelector.loadingMore")}
-            </div>
-          )}
-          {!flowsLoading && flowsHasMore && (
-            <div
-              className={`${styles.dropdownItem} ${styles.loadMore}`}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                void loadMoreFlows();
-              }}
-            >
-              {t("flowSelector.loadMore")}
-            </div>
-          )}
-        </div>
-      )}
+      {dropdownMenu && createPortal(dropdownMenu, document.body)}
     </div>
   );
 };

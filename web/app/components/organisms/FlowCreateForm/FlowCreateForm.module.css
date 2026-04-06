@@ -1,17 +1,6 @@
 /* FlowCreateForm CSS Module */
 
 .panel {
-  --panel-bg: color-mix(in srgb, var(--color-surface) 40%, transparent);
-  --panel-bg-secondary: color-mix(
-    in srgb,
-    var(--color-surface-subtle) 88%,
-    transparent
-  );
-  --panel-bg-tertiary: color-mix(
-    in srgb,
-    var(--color-surface-subtle) 84%,
-    transparent
-  );
   --panel-border: var(--color-neutral-border);
   --panel-border-soft: color-mix(
     in srgb,

@@ -22,7 +22,7 @@
 .editorModeToggle {
   height: 28px;
   padding: 0 var(--spacing-md);
-  background-color: var(--panel-bg-secondary);
+  background-color: transparent;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
   color: var(--panel-text);
@@ -99,7 +99,7 @@
   position: sticky;
   top: 0;
   border-bottom: 1px solid var(--panel-border-soft);
-  background-color: var(--panel-bg-tertiary);
+  background-color: transparent;
   color: var(--panel-text);
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);

@@ -32,7 +32,7 @@
   overflow: hidden;
   border-right: 1px solid
     color-mix(in srgb, var(--color-neutral-border) 72%, transparent);
-  background-color: color-mix(in srgb, var(--color-surface) 82%, transparent);
+  background-color: var(--glass-overlay-bg-strong);
   backdrop-filter: blur(18px) saturate(140%);
   -webkit-backdrop-filter: blur(18px) saturate(140%);
   z-index: 10;

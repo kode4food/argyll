@@ -48,7 +48,7 @@
 .buttonGenerate {
   border-radius: var(--spacing-xs);
   border: 1px solid var(--panel-border);
-  background-color: var(--panel-bg-secondary);
+  background-color: transparent;
   color: var(--panel-text);
   padding: 0;
   font-size: var(--text-sm);
@@ -68,6 +68,7 @@
 
 .buttonStart:disabled {
   border-color: var(--panel-border);
+  background-color: transparent;
 }
 
 .startIcon {

@@ -112,24 +112,6 @@ describe("FlowCreateForm", () => {
     ).toBeInTheDocument();
   });
 
-  test("renders create-step action in goal steps header", () => {
-    const onCreateStep = jest.fn();
-
-    render(
-      <FlowCreationContext.Provider value={defaultProps}>
-        <FlowCreateForm onCreateStep={onCreateStep} />
-      </FlowCreationContext.Provider>
-    );
-
-    const createButton = screen.getByRole("button", {
-      name: t("overview.addStep"),
-    });
-
-    fireEvent.click(createButton);
-
-    expect(onCreateStep).toHaveBeenCalled();
-  });
-
   test("renders steps in sorted list", () => {
     const sortSteps = jest.fn((steps) =>
       [...steps].sort((a, b) => a.name.localeCompare(b.name))

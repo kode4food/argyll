@@ -10,6 +10,11 @@
   composes: base;
 }
 
+.overlayStrong {
+  composes: base;
+  background-color: var(--glass-overlay-bg-strong);
+}
+
 .controls {
   composes: hud;
   border-radius: calc(var(--radius-lg) * 1.5);

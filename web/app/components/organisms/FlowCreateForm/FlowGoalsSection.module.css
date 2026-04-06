@@ -37,7 +37,7 @@
   padding: 0;
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-md);
-  background-color: var(--panel-bg-secondary);
+  background-color: transparent;
   color: var(--panel-text);
   cursor: pointer;
   transition:
@@ -68,7 +68,7 @@
   border-radius: var(--radius-md);
   overflow: hidden;
   box-sizing: border-box;
-  background-color: var(--panel-bg);
+  background-color: transparent;
 }
 
 .sidebarList {

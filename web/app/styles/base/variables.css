@@ -72,7 +72,17 @@
   --glass-chrome-shadow:
     0 10px 28px color-mix(in srgb, var(--color-darken) 14%, transparent),
     0 2px 8px color-mix(in srgb, var(--color-darken) 10%, transparent);
-  --glass-chrome-bg: color-mix(in srgb, var(--color-surface) 42%, transparent);
+  --glass-chrome-bg: color-mix(in srgb, var(--color-surface) 23%, transparent);
+  --glass-overlay-bg: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 28%,
+    transparent
+  );
+  --glass-overlay-bg-strong: color-mix(
+    in srgb,
+    var(--color-surface) 32%,
+    transparent
+  );
   --xy-controls-box-shadow: var(--glass-chrome-shadow);
   --xy-controls-button-background-color: var(--glass-chrome-bg);
   --xy-controls-button-background-color-hover: color-mix(
@@ -238,4 +248,15 @@
   --color-tooltip-code-bg: rgba(17, 24, 39, 0.08);
   --overlay-backdrop-dialog: var(--overlay-light-30);
   --overlay-backdrop-preview: var(--overlay-light-10);
+  --glass-chrome-bg: color-mix(in srgb, var(--color-surface) 46%, transparent);
+  --glass-overlay-bg: color-mix(
+    in srgb,
+    var(--color-surface-elevated) 56%,
+    transparent
+  );
+  --glass-overlay-bg-strong: color-mix(
+    in srgb,
+    var(--color-surface) 64%,
+    transparent
+  );
 }

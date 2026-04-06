@@ -154,7 +154,7 @@ const annotateHealthError = (
   return error ? `node ${nodeId}: ${error}` : undefined;
 };
 
-const missingHealthError = (nodeId: string): string => {
+const missingHealthError = (_: string): string => {
   return "health not reported";
 };
 
@@ -755,8 +755,6 @@ if (isDevHost) {
 // State selectors
 export const useSteps = () => useFlowStore((state) => state.steps);
 export const useFlows = () => useFlowStore((state) => state.flows);
-export const useVisibleFlowIDs = () =>
-  useFlowStore((state) => state.visibleFlowIDs);
 export const useFlowsHasMore = () =>
   useFlowStore((state) => state.flowsHasMore);
 export const useFlowsLoading = () =>
