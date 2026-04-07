@@ -7,8 +7,7 @@ import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 import {
   buildInitialStateFromInputValues,
   buildInitialStateInputValues,
-  FlowInputStatus,
-  getFlowInputStatus,
+  isAtDefaultValue,
   validateJsonString,
 } from "./flowFormUtils";
 import { useT } from "@/app/i18n";
@@ -98,8 +97,8 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     previewPlan
   );
   const { flowInputOptions } = React.useMemo(
-    () => getFlowPlanAttributeOptions(previewPlan),
-    [previewPlan]
+    () => getFlowPlanAttributeOptions(previewPlan, steps),
+    [previewPlan, steps]
   );
   const emptyAttributesLabel =
     goalSteps.length === 0
@@ -136,19 +135,12 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
     flowInputOptions.forEach((option) => {
       const rawValue = flowInputValuesRaw[option.name] || "";
-      const status = getFlowInputStatus(option, rawValue);
-      values[option.name] = status === "defaulted" ? "" : rawValue;
+      values[option.name] = isAtDefaultValue(option, rawValue) ? "" : rawValue;
     });
 
     return values;
   }, [flowInputOptions, flowInputValuesRaw]);
 
-  const statusLabelByType: Record<FlowInputStatus, string> = {
-    provided: t("flowCreate.providedBadge"),
-    defaulted: t("flowCreate.defaultBadge"),
-    required: t("flowCreate.requiredBadge"),
-    optional: t("flowStats.optionalLabel"),
-  };
   const handleBasicInputChange = React.useCallback(
     (name: string, value: string) => {
       const option = flowInputOptions.find((item) => item.name === name);
@@ -204,8 +196,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               onEditorModeChange={setEditorMode}
               onFocusedPreviewAttributeChange={setFocusedPreviewAttribute}
               setInitialState={setInitialState}
-              statusLabelByType={statusLabelByType}
-              toFlowInputStatus={getFlowInputStatus}
             />
           </div>
 

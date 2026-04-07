@@ -214,12 +214,20 @@ func (b *builder) includeProviders(name api.Name) (bool, error) {
 		return false, nil
 	}
 
-	providers = b.providers(b, providers)
-	if len(providers) == 0 {
+	selected := b.providers(b, providers)
+
+	// Mark rejected providers as visited so they appear in excluded
+	for _, providerID := range providers {
+		if !slices.Contains(selected, providerID) {
+			b.visited.Add(providerID)
+		}
+	}
+
+	if len(selected) == 0 {
 		return false, nil
 	}
 
-	for _, providerID := range providers {
+	for _, providerID := range selected {
 		if err := b.collectStep(providerID); err != nil {
 			return false, err
 		}

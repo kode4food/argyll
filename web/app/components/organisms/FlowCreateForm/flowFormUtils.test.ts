@@ -5,6 +5,7 @@ import {
   formatInputValue,
   getFlowInputStatus,
   hasScrollOverflow,
+  isAtDefaultValue,
   parseInputValue,
   safeParseState,
   validateJsonString,
@@ -185,38 +186,77 @@ describe("flowFormUtils", () => {
   });
 
   describe("getFlowInputStatus", () => {
-    it("returns required for empty required values", () => {
-      expect(getFlowInputStatus({ required: true }, "")).toBe("required");
-      expect(getFlowInputStatus({ required: true }, "   ")).toBe("required");
+    it("returns requiredMissing for empty required values", () => {
+      expect(getFlowInputStatus({ required: true }, "")).toBe(
+        "requiredMissing"
+      );
+      expect(getFlowInputStatus({ required: true }, "   ")).toBe(
+        "requiredMissing"
+      );
     });
 
-    it("returns optional for empty optional values", () => {
-      expect(getFlowInputStatus({ required: false }, "")).toBe("optional");
+    it("returns optionalMissing for empty optional values", () => {
+      expect(getFlowInputStatus({ required: false }, "")).toBe(
+        "optionalMissing"
+      );
     });
 
-    it("returns defaulted when value equals default", () => {
+    it("returns requiredSatisfied when required value is set", () => {
+      expect(getFlowInputStatus({ required: true }, "hello")).toBe(
+        "requiredSatisfied"
+      );
       expect(
         getFlowInputStatus({ required: true, defaultValue: "0" }, "0")
-      ).toBe("defaulted");
-      expect(
-        getFlowInputStatus({ required: false, defaultValue: "{}" }, "{}")
-      ).toBe("defaulted");
-      expect(
-        getFlowInputStatus(
-          { required: false, defaultValue: '{"a":1}' },
-          '{"a":1}'
-        )
-      ).toBe("defaulted");
-    });
-
-    it("returns provided when non-default value is set", () => {
+      ).toBe("requiredSatisfied");
       expect(
         getFlowInputStatus({ required: true, defaultValue: "0" }, "1")
-      ).toBe("provided");
+      ).toBe("requiredSatisfied");
+    });
+
+    it("returns optionalSatisfied when optional value is set", () => {
+      expect(getFlowInputStatus({ required: false }, "hello")).toBe(
+        "optionalSatisfied"
+      );
       expect(
-        getFlowInputStatus({ required: false, defaultValue: "{}" }, '{"a":1}')
-      ).toBe("provided");
-      expect(getFlowInputStatus({ required: false }, "hello")).toBe("provided");
+        getFlowInputStatus({ required: false, defaultValue: "{}" }, "{}")
+      ).toBe("optionalSatisfied");
+    });
+
+    it("returns outputSatisfied when satisfied by upstream output", () => {
+      expect(
+        getFlowInputStatus({ required: false, satisfiedByOutput: true }, "")
+      ).toBe("outputSatisfied");
+      expect(
+        getFlowInputStatus({ required: true, satisfiedByOutput: true }, "value")
+      ).toBe("outputSatisfied");
+    });
+
+    it("returns unreachable when option is unreachable", () => {
+      expect(
+        getFlowInputStatus({ required: false, unreachable: true }, "")
+      ).toBe("unreachable");
+      expect(
+        getFlowInputStatus({ required: true, unreachable: true }, "value")
+      ).toBe("unreachable");
+    });
+  });
+
+  describe("isAtDefaultValue", () => {
+    it("returns false when no default", () => {
+      expect(isAtDefaultValue({ required: true }, "0")).toBe(false);
+    });
+
+    it("returns true when value equals default", () => {
+      expect(isAtDefaultValue({ defaultValue: "0" }, "0")).toBe(true);
+      expect(isAtDefaultValue({ defaultValue: "{}" }, "{}")).toBe(true);
+      expect(isAtDefaultValue({ defaultValue: '{"a":1}' }, '{"a":1}')).toBe(
+        true
+      );
+    });
+
+    it("returns false when value differs from default", () => {
+      expect(isAtDefaultValue({ defaultValue: "0" }, "1")).toBe(false);
+      expect(isAtDefaultValue({ defaultValue: "{}" }, '{"a":1}')).toBe(false);
     });
   });
 });

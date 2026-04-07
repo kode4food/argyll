@@ -91,7 +91,7 @@
   display: contents;
 }
 
-.requiredBadgeCell {
+.badgeCell {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -100,32 +100,25 @@
   border-bottom: 1px solid var(--panel-border);
 }
 
-.requiredBadge {
+.statusBadge {
   display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 999px;
-  width: 10px;
-  height: 10px;
-  line-height: 1;
   cursor: help;
-  user-select: none;
 }
 
-.requiredBadgeMissing {
-  background-color: var(--color-error);
+.badgeRequired {
+  color: var(--arg-icon-required);
 }
 
-.requiredBadgeSatisfied {
-  background-color: var(--color-success);
+.badgeOptional {
+  color: var(--arg-icon-optional);
 }
 
-.requiredBadgeDefault {
-  background-color: var(--color-purple-light);
+.badgeOutput {
+  color: var(--arg-icon-output);
 }
 
-.requiredBadgeOptional {
-  background-color: var(--color-gray-500);
+.badgeMuted {
+  color: var(--color-pending);
 }
 
 .attributeNameCell {

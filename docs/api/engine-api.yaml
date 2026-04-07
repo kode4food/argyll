@@ -1226,21 +1226,29 @@ components:
             $ref: "#/components/schemas/Dependencies"
         excluded:
           $ref: "#/components/schemas/ExcludedSteps"
-          description: Excluded steps grouped by reason
+          description: Steps encountered during dependency traversal that were not included in the plan, grouped by reason
 
     ExcludedSteps:
       type: object
+      description: |
+        Steps that were considered during dependency resolution but not included in the plan.
+        Only steps reachable from the goal set are represented here — unrelated catalog steps are not included.
       properties:
         missing:
           type: object
-          description: Steps excluded due to missing required inputs
+          description: |
+            Steps that could not be included because one or more required inputs have no provider and
+            were not supplied in init. Map of step ID to the list of unsatisfied required input names.
+            Includes alternative providers that were rejected in favor of a satisfiable provider.
           additionalProperties:
             type: array
             items:
               type: string
         satisfied:
           type: object
-          description: Steps excluded due to init-provided outputs
+          description: |
+            Steps skipped because all their outputs were already available from init state,
+            making their execution unnecessary. Map of step ID to the list of output names that were satisfied.
           additionalProperties:
             type: array
             items:

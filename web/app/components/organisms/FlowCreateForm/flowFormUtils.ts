@@ -107,28 +107,45 @@ function valuesEqual(left: unknown, right: unknown): boolean {
 }
 
 export type FlowInputStatus =
-  | "provided"
-  | "defaulted"
-  | "required"
-  | "optional";
+  | "requiredMissing"
+  | "requiredSatisfied"
+  | "optionalMissing"
+  | "optionalSatisfied"
+  | "outputSatisfied"
+  | "unreachable";
 
 export function getFlowInputStatus(
-  attr: { required: boolean; defaultValue?: string },
+  attr: {
+    required: boolean;
+    defaultValue?: string;
+    unreachable?: boolean;
+    satisfiedByOutput?: boolean;
+  },
   rawValue: string
 ): FlowInputStatus {
-  const parsedValue = parseInputValue(rawValue);
-  if (parsedValue === undefined) {
-    return attr.required ? "required" : "optional";
+  if (attr.unreachable) {
+    return "unreachable";
   }
-  if (attr.defaultValue === undefined) {
-    return "provided";
+  if (attr.satisfiedByOutput) {
+    return "outputSatisfied";
   }
+  if (parseInputValue(rawValue) === undefined) {
+    return attr.required ? "requiredMissing" : "optionalMissing";
+  }
+  return attr.required ? "requiredSatisfied" : "optionalSatisfied";
+}
 
-  const parsedDefault = parseInputValue(attr.defaultValue);
-  if (valuesEqual(parsedValue, parsedDefault)) {
-    return "defaulted";
+export function isAtDefaultValue(
+  attr: { defaultValue?: string },
+  rawValue: string
+): boolean {
+  if (attr.defaultValue === undefined) {
+    return false;
   }
-  return "provided";
+  return valuesEqual(
+    parseInputValue(rawValue),
+    parseInputValue(attr.defaultValue)
+  );
 }
 
 export function buildInitialStateInputValues(

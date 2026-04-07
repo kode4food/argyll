@@ -369,7 +369,7 @@ describe("FlowCreateForm", () => {
       },
     });
 
-    renderWithProvider();
+    renderWithProvider({ steps: [] });
 
     expect(
       screen.getByText(t("flowCreate.noPotentialInputs"))
@@ -782,12 +782,12 @@ describe("FlowCreateForm", () => {
 
     expect(
       within(orderIdRow as HTMLElement).getByLabelText(
-        t("flowCreate.requiredBadge")
+        t("flowCreate.badgeRequiredMissing")
       )
     ).toBeInTheDocument();
     expect(
       within(quantityRow as HTMLElement).queryByLabelText(
-        t("flowCreate.requiredBadge")
+        t("flowCreate.badgeRequiredMissing")
       )
     ).not.toBeInTheDocument();
   });
@@ -846,22 +846,20 @@ describe("FlowCreateForm", () => {
     expect(orderIdRow).toBeInTheDocument();
     expect(quantityRow).toBeInTheDocument();
 
-    const providedDot = within(orderIdRow as HTMLElement).getByLabelText(
-      t("flowCreate.providedBadge")
-    );
-    expect(providedDot.className).toContain(
-      attributeStyles.requiredBadgeSatisfied
+    const requiredSatisfiedDot = within(
+      orderIdRow as HTMLElement
+    ).getByLabelText(t("flowCreate.badgeRequiredSatisfied"));
+    expect(requiredSatisfiedDot.className).toContain(
+      attributeStyles.badgeRequired
     );
 
-    const optionalDot = within(quantityRow as HTMLElement).getByLabelText(
-      t("flowStats.optionalLabel")
-    );
-    expect(optionalDot.className).toContain(
-      attributeStyles.requiredBadgeOptional
-    );
+    const outputSatisfiedDot = within(
+      quantityRow as HTMLElement
+    ).getByLabelText(t("flowCreate.badgeOutputSatisfied"));
+    expect(outputSatisfiedDot.className).toContain(attributeStyles.badgeOutput);
   });
 
-  test("marks required dot as default when provided value equals default", () => {
+  test("marks required dot as satisfied when provided value equals default", () => {
     const previewPlan = {
       goals: ["goal-step"],
       required: ["order_id"],
@@ -896,15 +894,13 @@ describe("FlowCreateForm", () => {
       .closest(`.${attributeStyles.attributeListItem}`);
     expect(orderIdRow).toBeInTheDocument();
 
-    const defaultDot = within(orderIdRow as HTMLElement).getByLabelText(
-      t("flowCreate.defaultBadge")
+    const satisfiedDot = within(orderIdRow as HTMLElement).getByLabelText(
+      t("flowCreate.badgeRequiredSatisfied")
     );
-    expect(defaultDot.className).toContain(
-      attributeStyles.requiredBadgeDefault
-    );
+    expect(satisfiedDot.className).toContain(attributeStyles.badgeRequired);
   });
 
-  test("marks numeric zero value as default instead of provided", () => {
+  test("marks numeric zero value as satisfied when it equals default", () => {
     const previewPlan = {
       goals: ["goal-step"],
       required: ["quantity"],
@@ -938,11 +934,9 @@ describe("FlowCreateForm", () => {
       .closest(`.${attributeStyles.attributeListItem}`);
     expect(quantityRow).toBeInTheDocument();
 
-    const defaultDot = within(quantityRow as HTMLElement).getByLabelText(
-      t("flowCreate.defaultBadge")
+    const satisfiedDot = within(quantityRow as HTMLElement).getByLabelText(
+      t("flowCreate.badgeRequiredSatisfied")
     );
-    expect(defaultDot.className).toContain(
-      attributeStyles.requiredBadgeDefault
-    );
+    expect(satisfiedDot.className).toContain(attributeStyles.badgeRequired);
   });
 });

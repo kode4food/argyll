@@ -28,13 +28,6 @@ describe("FlowAttributesSection", () => {
     onEditorModeChange: jest.fn(),
     onFocusedPreviewAttributeChange: jest.fn(),
     setInitialState: jest.fn(),
-    statusLabelByType: {
-      provided: "Provided",
-      defaulted: "Defaulted",
-      required: "Required",
-      optional: "Optional",
-    },
-    toFlowInputStatus: jest.fn(() => "required" as const),
   };
 
   beforeEach(() => {

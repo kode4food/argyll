@@ -562,7 +562,12 @@ func TestProvidersWithInit(t *testing.T) {
 
 	withoutInitExcluded := withoutInit.Excluded
 	if assert.NotNil(t, withoutInitExcluded) {
-		assert.Empty(t, withoutInitExcluded.Missing)
+		assert.Equal(t,
+			map[api.StepID][]api.Name{
+				"provider-with-input": {"product_id"},
+			},
+			withoutInitExcluded.Missing,
+		)
 		assert.Empty(t, withoutInitExcluded.Satisfied)
 	}
 }

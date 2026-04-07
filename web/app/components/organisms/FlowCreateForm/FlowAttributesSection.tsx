@@ -1,8 +1,15 @@
 import React from "react";
+import {
+  IconError,
+  IconAttributeStatusSatisfied,
+  IconAttributeOptional,
+  IconAttributeStatusSkipped,
+  LucideIcon,
+} from "@/utils/iconRegistry";
 import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
 import { useT } from "@/app/i18n";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
-import { FlowInputStatus } from "./flowFormUtils";
+import { FlowInputStatus, getFlowInputStatus } from "./flowFormUtils";
 import styles from "./FlowAttributesSection.module.css";
 
 interface FlowAttributesSectionProps {
@@ -18,12 +25,25 @@ interface FlowAttributesSectionProps {
   onEditorModeChange: (mode: "basic" | "json") => void;
   onFocusedPreviewAttributeChange: (name: string | null) => void;
   setInitialState: (value: string) => void;
-  statusLabelByType: Record<FlowInputStatus, string>;
-  toFlowInputStatus: (
-    option: FlowInputOption,
-    value: string
-  ) => FlowInputStatus;
 }
+
+const STATUS_ICONS: Record<FlowInputStatus, LucideIcon> = {
+  requiredMissing: IconError,
+  requiredSatisfied: IconAttributeStatusSatisfied,
+  optionalMissing: IconAttributeOptional,
+  optionalSatisfied: IconAttributeStatusSatisfied,
+  outputSatisfied: IconAttributeStatusSatisfied,
+  unreachable: IconAttributeStatusSkipped,
+};
+
+const STATUS_CLASSES: Record<FlowInputStatus, string> = {
+  requiredMissing: styles.badgeRequired,
+  requiredSatisfied: styles.badgeRequired,
+  optionalMissing: styles.badgeOptional,
+  optionalSatisfied: styles.badgeOptional,
+  outputSatisfied: styles.badgeOutput,
+  unreachable: styles.badgeMuted,
+};
 
 const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   editorMode,
@@ -38,15 +58,16 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   onEditorModeChange,
   onFocusedPreviewAttributeChange,
   setInitialState,
-  statusLabelByType,
-  toFlowInputStatus,
 }) => {
   const t = useT();
-  const statusClassByType: Record<FlowInputStatus, string> = {
-    provided: styles.requiredBadgeSatisfied,
-    defaulted: styles.requiredBadgeDefault,
-    required: styles.requiredBadgeMissing,
-    optional: styles.requiredBadgeOptional,
+
+  const statusLabels: Record<FlowInputStatus, string> = {
+    requiredMissing: t("flowCreate.badgeRequiredMissing"),
+    requiredSatisfied: t("flowCreate.badgeRequiredSatisfied"),
+    optionalMissing: t("flowCreate.badgeOptionalMissing"),
+    optionalSatisfied: t("flowCreate.badgeOptionalSatisfied"),
+    outputSatisfied: t("flowCreate.badgeOutputSatisfied"),
+    unreachable: t("flowCreate.badgeUnreachable"),
   };
 
   return (
@@ -89,22 +110,24 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
                   {flowInputOptions.map((option) => {
                     const value = flowInputValues[option.name] || "";
                     const rawValue = flowInputValuesRaw[option.name] || "";
-                    const status = toFlowInputStatus(option, rawValue);
-                    const statusClass = statusClassByType[status];
-                    const statusLabel = statusLabelByType[status];
+                    const status = getFlowInputStatus(option, rawValue);
+                    const Icon = STATUS_ICONS[status];
+                    const label = statusLabels[status];
 
                     return (
                       <div
                         key={option.name}
                         className={styles.attributeListItem}
                       >
-                        <div className={styles.requiredBadgeCell}>
+                        <div className={styles.badgeCell}>
                           <span
-                            className={`${styles.requiredBadge} ${statusClass}`}
+                            className={`${styles.statusBadge} ${STATUS_CLASSES[status]}`}
                             role="img"
-                            aria-label={statusLabel}
-                            title={statusLabel}
-                          />
+                            aria-label={label}
+                            title={label}
+                          >
+                            <Icon size={16} aria-hidden />
+                          </span>
                         </div>
                         <div className={styles.attributeNameCell}>
                           <span className={styles.attributeNameText}>

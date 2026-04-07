@@ -17,9 +17,17 @@ type (
 		Excluded   ExcludedSteps  `json:"excluded"`
 	}
 
+	// ExcludedSteps contains steps encountered during dependency traversal
+	// that were not included in the plan. Only steps reachable from the goal
+	// set appear here — unrelated catalog steps are not represented.
 	ExcludedSteps struct {
+		// Satisfied maps step ID to output names that were already available
+		// from init state, making the step's execution unnecessary
 		Satisfied map[StepID][]Name `json:"satisfied,omitempty"`
-		Missing   map[StepID][]Name `json:"missing,omitempty"`
+		// Missing maps step ID to the required input names that could not be
+		// satisfied, including alternative providers rejected in favor of a
+		// satisfiable one
+		Missing map[StepID][]Name `json:"missing,omitempty"`
 	}
 
 	// AttributeGraph is a dependency graph of attribute producers/consumers

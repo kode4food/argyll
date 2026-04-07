@@ -1,4 +1,4 @@
-import { AttributeRole, AttributeType, ExecutionPlan } from "@/app/api";
+import { AttributeRole, AttributeType, ExecutionPlan, Step } from "@/app/api";
 import { getFlowPlanAttributeOptions } from "./flowPlanAttributeOptions";
 
 describe("flowPlanAttributeOptions", () => {
@@ -63,6 +63,7 @@ describe("flowPlanAttributeOptions", () => {
           required: false,
           type: AttributeType.Number,
           defaultValue: "0",
+          satisfiedByOutput: true,
         },
       ],
       flowOutputOptions: ["quantity", "total_price"],
@@ -208,6 +209,7 @@ describe("flowPlanAttributeOptions", () => {
         required: false,
         type: AttributeType.Number,
         defaultValue: "0",
+        satisfiedByOutput: true,
       },
     ]);
   });
@@ -341,5 +343,166 @@ describe("flowPlanAttributeOptions", () => {
       },
       { name: "alpha", required: false, type: AttributeType.String },
     ]);
+  });
+
+  it("includes unreachable attributes from excluded.missing", () => {
+    const plan: ExecutionPlan = {
+      goals: ["goal-step"],
+      required: ["order_id"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync",
+          attributes: {
+            order_id: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+      excluded: {
+        missing: {
+          "excluded-step": ["age", "income"],
+        },
+      },
+    };
+
+    const catalogSteps: Step[] = [
+      {
+        id: "goal-step",
+        name: "Goal Step",
+        type: "sync",
+        attributes: {
+          order_id: {
+            role: AttributeRole.Required,
+            type: AttributeType.String,
+          },
+        },
+      },
+      {
+        id: "excluded-step",
+        name: "Excluded Step",
+        type: "sync",
+        attributes: {
+          age: {
+            role: AttributeRole.Required,
+            type: AttributeType.Number,
+          },
+          income: {
+            role: AttributeRole.Required,
+            type: AttributeType.Number,
+          },
+          result: {
+            role: AttributeRole.Output,
+            type: AttributeType.Object,
+          },
+        },
+      },
+    ];
+
+    const result = getFlowPlanAttributeOptions(plan, catalogSteps);
+    expect(result.flowInputOptions).toEqual([
+      { name: "order_id", required: true, type: AttributeType.String },
+      {
+        name: "age",
+        required: false,
+        type: AttributeType.Number,
+        unreachable: true,
+      },
+      {
+        name: "income",
+        required: false,
+        type: AttributeType.Number,
+        unreachable: true,
+      },
+    ]);
+  });
+
+  it("skips unreachable attributes already available in plan", () => {
+    const plan: ExecutionPlan = {
+      goals: ["goal-step"],
+      required: ["shared"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync",
+          attributes: {
+            shared: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+      excluded: {
+        missing: {
+          "excluded-step": ["shared", "extra"],
+        },
+      },
+    };
+
+    const catalogSteps: Step[] = [
+      {
+        id: "goal-step",
+        name: "Goal Step",
+        type: "sync",
+        attributes: {
+          shared: {
+            role: AttributeRole.Required,
+            type: AttributeType.String,
+          },
+        },
+      },
+      {
+        id: "excluded-step",
+        name: "Excluded Step",
+        type: "sync",
+        attributes: {
+          shared: {
+            role: AttributeRole.Required,
+            type: AttributeType.String,
+          },
+          extra: {
+            role: AttributeRole.Required,
+            type: AttributeType.Object,
+          },
+        },
+      },
+    ];
+
+    const result = getFlowPlanAttributeOptions(plan, catalogSteps);
+    const names = result.flowInputOptions.map((o) => o.name);
+    expect(names.filter((n) => n === "shared")).toHaveLength(1);
+    expect(names).toContain("extra");
+  });
+
+  it("returns no unreachable attributes without catalog steps", () => {
+    const plan: ExecutionPlan = {
+      goals: ["goal-step"],
+      required: [],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync",
+          attributes: {},
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+      excluded: {
+        missing: { "excluded-step": ["age"] },
+      },
+    };
+
+    const result = getFlowPlanAttributeOptions(plan);
+    expect(result.flowInputOptions).toEqual([]);
   });
 });

@@ -1,10 +1,12 @@
-import { AttributeRole, AttributeType, ExecutionPlan } from "@/app/api";
+import { AttributeRole, AttributeType, ExecutionPlan, Step } from "@/app/api";
 
 export interface FlowInputOption {
   name: string;
   required: boolean;
   type?: AttributeType;
   defaultValue?: string;
+  unreachable?: boolean;
+  satisfiedByOutput?: boolean;
 }
 
 export interface FlowPlanAttributeOptions {
@@ -112,7 +114,8 @@ const mergeExplicitDefault = (
 };
 
 export const getFlowPlanAttributeOptions = (
-  plan: ExecutionPlan | null
+  plan: ExecutionPlan | null,
+  catalogSteps?: Step[]
 ): FlowPlanAttributeOptions => {
   const steps = plan?.steps;
   if (!steps) {
@@ -161,22 +164,26 @@ export const getFlowPlanAttributeOptions = (
     });
   });
 
+  const unreachableInputs = collectUnreachableInputs(
+    plan,
+    catalogSteps,
+    inputMap,
+    outputSet
+  );
+
   return {
     flowInputOptions: Array.from(inputMap.values())
       .map((option) => {
+        if (outputSet.has(option.name)) {
+          return { ...option, satisfiedByOutput: true };
+        }
         const meta = inputMetaMap.get(option.name);
-        if (
-          meta?.hasRequiredSpec &&
-          !outputSet.has(option.name) &&
-          !option.required
-        ) {
-          return {
-            ...option,
-            required: true,
-          };
+        if (meta?.hasRequiredSpec && !option.required) {
+          return { ...option, required: true };
         }
         return option;
       })
+      .concat(unreachableInputs)
       .sort((a, b) => {
         const rankA = getInputPriorityRank(a, outputSet, inputMetaMap);
         const rankB = getInputPriorityRank(b, outputSet, inputMetaMap);
@@ -189,11 +196,55 @@ export const getFlowPlanAttributeOptions = (
   };
 };
 
+const collectUnreachableInputs = (
+  plan: ExecutionPlan,
+  catalogSteps: Step[] | undefined,
+  inputMap: Map<string, FlowInputOption>,
+  outputSet: Set<string>
+): FlowInputOption[] => {
+  const missingMap = plan.excluded?.missing;
+  if (!missingMap || !catalogSteps) {
+    return [];
+  }
+
+  const catalogByID = new Map(catalogSteps.map((s) => [s.id, s]));
+  const seen = new Set<string>();
+  const result: FlowInputOption[] = [];
+
+  for (const [stepID, missingNames] of Object.entries(missingMap)) {
+    const step = catalogByID.get(stepID);
+    if (!step) {
+      continue;
+    }
+    for (const name of missingNames) {
+      if (inputMap.has(name) || outputSet.has(name) || seen.has(name)) {
+        continue;
+      }
+      seen.add(name);
+      const spec = step.attributes[name];
+      const option: FlowInputOption = {
+        name,
+        required: false,
+        unreachable: true,
+      };
+      if (spec?.type) {
+        option.type = spec.type;
+      }
+      result.push(option);
+    }
+  }
+
+  return result;
+};
+
 const getInputPriorityRank = (
   option: FlowInputOption,
   outputSet: Set<string>,
   inputMetaMap: Map<string, FlowInputMeta>
 ): number => {
+  if (option.unreachable) {
+    return 4;
+  }
   const meta = inputMetaMap.get(option.name);
   if (outputSet.has(option.name)) {
     return 3;
