@@ -23,7 +23,9 @@ export const saveNodePositionsMap = (
   positions: NodePositions,
   scope?: NodePositionScope
 ) => {
-  localStorage.setItem(resolveStorageKey(scope), JSON.stringify(positions));
+  const existing = loadNodePositions(scope);
+  const merged = { ...existing, ...positions };
+  localStorage.setItem(resolveStorageKey(scope), JSON.stringify(merged));
 };
 
 export const saveNodePositions = (nodes: Node[], scope?: NodePositionScope) => {

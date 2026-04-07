@@ -49,7 +49,7 @@ describe("nodePositioning", () => {
       expect(stored).toBe("{}");
     });
 
-    test("overwrites existing positions", () => {
+    test("overwrites existing positions for same node", () => {
       const nodes1: Node[] = [
         { id: "node-1", position: { x: 100, y: 200 }, data: {} },
       ];
@@ -63,6 +63,28 @@ describe("nodePositioning", () => {
       const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
       const parsed = JSON.parse(stored!);
       expect(parsed["node-1"]).toEqual({ x: 500, y: 600 });
+    });
+
+    test("preserves positions for nodes not in save set", () => {
+      const nodes1: Node[] = [
+        { id: "node-1", position: { x: 100, y: 200 }, data: {} },
+        { id: "node-2", position: { x: 300, y: 400 }, data: {} },
+      ];
+      const nodes2: Node[] = [
+        { id: "node-2", position: { x: 500, y: 600 }, data: {} },
+        { id: "node-3", position: { x: 700, y: 800 }, data: {} },
+      ];
+
+      saveNodePositions(nodes1);
+      saveNodePositions(nodes2);
+
+      const stored = localStorage.getItem(OVERVIEW_STORAGE_KEY);
+      const parsed = JSON.parse(stored!);
+      expect(parsed).toEqual({
+        "node-1": { x: 100, y: 200 },
+        "node-2": { x: 500, y: 600 },
+        "node-3": { x: 700, y: 800 },
+      });
     });
 
     test("handles nodes with fractional positions", () => {

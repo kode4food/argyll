@@ -86,19 +86,6 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
             ) : (
               <div className={styles.attributeTableScroll}>
                 <div className={styles.attributeList}>
-                  <div className={styles.attributeListHeader}>
-                    <div
-                      className={`${styles.attributeListHeaderCell} ${styles.attributeHeaderCell}`}
-                    >
-                      {t("flowCreate.attributeColumn")}
-                    </div>
-                    <div
-                      className={`${styles.attributeListHeaderCell} ${styles.attributeValueHeaderCell}`}
-                    >
-                      {t("flowCreate.valueColumn")}
-                    </div>
-                  </div>
-
                   {flowInputOptions.map((option) => {
                     const value = flowInputValues[option.name] || "";
                     const rawValue = flowInputValuesRaw[option.name] || "";

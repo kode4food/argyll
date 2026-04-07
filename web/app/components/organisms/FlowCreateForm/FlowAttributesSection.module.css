@@ -87,33 +87,6 @@
   font-size: var(--text-sm);
 }
 
-.attributeListHeader {
-  display: contents;
-}
-
-.attributeListHeaderCell {
-  display: flex;
-  align-items: center;
-  height: 33px;
-  padding: 0 var(--spacing-sm);
-  position: sticky;
-  top: 0;
-  border-bottom: 1px solid var(--panel-border-soft);
-  background-color: transparent;
-  color: var(--panel-text);
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-}
-
-.attributeHeaderCell {
-  grid-column: span 2;
-  padding-left: var(--spacing-sm);
-}
-
-.attributeValueHeaderCell {
-  border-left: 1px solid var(--panel-border);
-}
-
 .attributeListItem {
   display: contents;
 }
