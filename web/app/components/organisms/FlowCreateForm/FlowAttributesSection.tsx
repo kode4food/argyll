@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import {
   IconError,
   IconAttributeStatusSatisfied,
@@ -27,23 +27,11 @@ interface FlowAttributesSectionProps {
   setInitialState: (value: string) => void;
 }
 
-const STATUS_ICONS: Record<FlowInputStatus, LucideIcon> = {
-  requiredMissing: IconError,
-  requiredSatisfied: IconAttributeStatusSatisfied,
-  optionalMissing: IconAttributeOptional,
-  optionalSatisfied: IconAttributeStatusSatisfied,
-  outputSatisfied: IconAttributeStatusSatisfied,
-  unreachable: IconAttributeStatusSkipped,
-};
-
-const STATUS_CLASSES: Record<FlowInputStatus, string> = {
-  requiredMissing: styles.badgeRequired,
-  requiredSatisfied: styles.badgeRequired,
-  optionalMissing: styles.badgeOptional,
-  optionalSatisfied: styles.badgeOptional,
-  outputSatisfied: styles.badgeOutput,
-  unreachable: styles.badgeMuted,
-};
+interface StatusConfig {
+  Icon: LucideIcon;
+  className: string;
+  label: string;
+}
 
 const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   editorMode,
@@ -61,14 +49,41 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
 }) => {
   const t = useT();
 
-  const statusLabels: Record<FlowInputStatus, string> = {
-    requiredMissing: t("flowCreate.badgeRequiredMissing"),
-    requiredSatisfied: t("flowCreate.badgeRequiredSatisfied"),
-    optionalMissing: t("flowCreate.badgeOptionalMissing"),
-    optionalSatisfied: t("flowCreate.badgeOptionalSatisfied"),
-    outputSatisfied: t("flowCreate.badgeOutputSatisfied"),
-    unreachable: t("flowCreate.badgeUnreachable"),
-  };
+  const statusConfig = useMemo(
+    (): Record<FlowInputStatus, StatusConfig> => ({
+      requiredMissing: {
+        Icon: IconError,
+        className: styles.badgeRequired,
+        label: t("flowCreate.badgeRequiredMissing"),
+      },
+      requiredSatisfied: {
+        Icon: IconAttributeStatusSatisfied,
+        className: styles.badgeRequired,
+        label: t("flowCreate.badgeRequiredSatisfied"),
+      },
+      optionalMissing: {
+        Icon: IconAttributeOptional,
+        className: styles.badgeOptional,
+        label: t("flowCreate.badgeOptionalMissing"),
+      },
+      optionalSatisfied: {
+        Icon: IconAttributeStatusSatisfied,
+        className: styles.badgeOptional,
+        label: t("flowCreate.badgeOptionalSatisfied"),
+      },
+      outputSatisfied: {
+        Icon: IconAttributeStatusSatisfied,
+        className: styles.badgeOutput,
+        label: t("flowCreate.badgeOutputSatisfied"),
+      },
+      unreachable: {
+        Icon: IconAttributeStatusSkipped,
+        className: styles.badgeMuted,
+        label: t("flowCreate.badgeUnreachable"),
+      },
+    }),
+    [t]
+  );
 
   return (
     <section className={`${styles.sectionCard} ${styles.attributesSection}`}>
@@ -111,8 +126,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
                     const value = flowInputValues[option.name] || "";
                     const rawValue = flowInputValuesRaw[option.name] || "";
                     const status = getFlowInputStatus(option, rawValue);
-                    const Icon = STATUS_ICONS[status];
-                    const label = statusLabels[status];
+                    const { Icon, className, label } = statusConfig[status];
 
                     return (
                       <div
@@ -121,7 +135,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
                       >
                         <div className={styles.badgeCell}>
                           <span
-                            className={`${styles.statusBadge} ${STATUS_CLASSES[status]}`}
+                            className={`${styles.statusBadge} ${className}`}
                             role="img"
                             aria-label={label}
                             title={label}
