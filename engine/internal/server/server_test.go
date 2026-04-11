@@ -817,7 +817,7 @@ func TestEngineHealthByID(t *testing.T) {
 	})
 }
 
-func TestEngineHealthIncludesShardNodes(t *testing.T) {
+func TestEngineHealthIncludesClusterNodes(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		st := helpers.NewSimpleStep("health-step")
 		assert.NoError(t, testEnv.Engine.RegisterStep(st))
@@ -964,7 +964,7 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 	})
 }
 
-func TestEngineHealthScriptShards(t *testing.T) {
+func TestEngineHealthScriptNodes(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		st := &api.Step{
 			ID:   "script-step",

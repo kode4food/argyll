@@ -53,6 +53,8 @@ The execution plan is **immutable** once created. It's a DAG (directed acyclic g
 - **Predictability**: You know upfront which steps will run
 - **Auditability**: Every execution follows the plan
 
+Flow-step composition is also acyclic at the catalog level. A flow step cannot directly or indirectly include itself through child-flow goals, which guarantees child-plan expansion remains finite.
+
 The plan is immutable by design—it removes the need for runtime orchestration logic that mutates the plan based on intermediate results.
 
 ## Multiple Goals

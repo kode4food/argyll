@@ -129,6 +129,77 @@ func TestUpdateStepCycles(t *testing.T) {
 	})
 }
 
+func TestRegisterStepRejectsFlowGoalCycles(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		stepA := &api.Step{
+			ID:   "flow-a",
+			Name: "Flow A",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"flow-b"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+		stepB := &api.Step{
+			ID:   "flow-b",
+			Name: "Flow B",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"flow-a"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+
+		assert.NoError(t, eng.RegisterStep(stepA))
+
+		err := eng.RegisterStep(stepB)
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, engine.ErrCircularDependency)
+	})
+}
+
+func TestUpdateStepRejectsFlowGoalCycles(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		stepA := &api.Step{
+			ID:   "flow-a",
+			Name: "Flow A",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"flow-b"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+		stepB := &api.Step{
+			ID:   "flow-b",
+			Name: "Flow B",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"leaf"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+		leaf := helpers.NewSimpleStep("leaf")
+
+		assert.NoError(t, eng.RegisterStep(leaf))
+		assert.NoError(t, eng.RegisterStep(stepA))
+		assert.NoError(t, eng.RegisterStep(stepB))
+
+		updatedLeaf := &api.Step{
+			ID:   "leaf",
+			Name: "Leaf",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"flow-a"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+
+		err := eng.UpdateStep(updatedLeaf)
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, engine.ErrCircularDependency)
+	})
+}
+
 func TestRegisterStepValidatesMappings(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewSimpleStep("bad-mapping")

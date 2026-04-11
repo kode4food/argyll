@@ -47,21 +47,31 @@ Register side effects such as network calls, starting work, cross-aggregate oper
 
 **Real patterns from the codebase:**
 
-For partition state mutations (execPartition - no side effects needed):
+For cluster state mutations (`execCluster` with no external side effects needed):
 
 ```go
-// registry.go: UpdateStepHealth
+// health.go: UpdateStepHealth
 func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, errMsg string) error {
-    cmd := func(st *api.PartitionState, ag *PartitionAggregator) error {
-        if stepHealth, ok := st.Health[stepID]; ok {
-            if stepHealth.Status == health && stepHealth.Error == errMsg {
-                return nil  // Idempotent
+    nodeID := e.LocalNodeID()
+    cmd := func(st *api.ClusterState, ag *ClusterAggregator) error {
+        node := st.Nodes[nodeID]
+        if node != nil {
+            if h, ok := node.Health[stepID]; ok {
+                if h.Status == health && h.Error == errMsg {
+                    return nil // Idempotent
+                }
             }
         }
         return events.Raise(ag, api.EventTypeStepHealthChanged,
-            api.StepHealthChangedEvent{StepID: stepID, Status: health, Error: errMsg})
+            api.StepHealthChangedEvent{
+                NodeID: nodeID,
+                StepID: stepID,
+                Status: health,
+                Error:  errMsg,
+            },
+        )
     }
-    _, err := e.execPartition(cmd)
+    _, err := e.execCluster(cmd)
     return err
 }
 ```
@@ -69,19 +79,26 @@ func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, er
 For flow state mutations (flowTx wrapper with OnSuccess for side effects):
 
 ```go
-// engine.go: StartFlow using flowTx
-func (e *Engine) StartFlow(flowID api.FlowID, plan *api.ExecutionPlan, initState api.Args, meta api.Metadata) error {
-    return e.flowTx(flowID, func(tx *flowTx) error {  // flowTx wraps execFlow
+// flow-start.go: StartFlow using flowTx
+func (e *Engine) StartFlow(flowID api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier) error {
+    opts := flow.Defaults(apps...)
+
+    return e.flowTx(flowID, func(tx *flowTx) error {
+        if tx.Value().ID != "" {
+            return ErrFlowExists
+        }
         if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted, ...); err != nil {
             return err
         }
-        tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
-            e.handleFlowActivated(flowID, meta)  // Side effect after commit
-        })
         // Prepare initial steps (may register more OnSuccess)
         for _, stepID := range tx.findInitialSteps(tx.Value()) {
-            tx.prepareStep(stepID)
+            if err := tx.prepareStep(stepID); err != nil {
+                return err
+            }
         }
+        tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+            tx.scheduleTimeouts(flow, tx.Now())
+        })
         return nil
     })
 }
@@ -95,11 +112,11 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
     if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted, ...); err != nil {
         return err
     }
-    started, err := tx.startPendingWork(stepID, step)
+    started, err := tx.startPendingWork(step)
     if len(started) > 0 {
         tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
             // Execute work AFTER commit succeeds
-            tx.handleWorkItemsExecution(stepID, step, inputs, flow.Metadata, started)
+            tx.handleWorkItemsExecution(step, inputs, flow.Metadata, started)
         })
     }
     return nil
@@ -115,9 +132,15 @@ func (tx *flowTx) checkTerminal() error {
         if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted, ...); err != nil {
             return err
         }
-        tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
-            tx.handleFlowCompleted()  // Cleanup: remove from retry queue
+        tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+            if flowHasRetryTasks(flow) {
+                tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
+            }
+            if flowHasTimeouts(flow) {
+                tx.CancelPrefixedTasks(timeoutFlowPrefix(tx.flowID))
+            }
         })
+        return tx.maybeDeactivate()
     }
     return nil
 }
@@ -245,7 +268,7 @@ OnSuccess handlers run:
 Work item execution branch:
   - Script/sync HTTP: perform work, then call CompleteWork() on success
   - Async HTTP: invoke the step and return; webhook later calls CompleteWork()/FailWork()
-  - Flow step: StartChildFlow(); parent work completes later when the child flow deactivates
+  - Flow step: StartChildFlow() with the precomputed child plan from the parent plan; parent work completes later when the child flow deactivates
   ↓
 Completion transaction:
   - Raise WorkSucceededEvent / WorkFailedEvent / WorkNotCompletedEvent

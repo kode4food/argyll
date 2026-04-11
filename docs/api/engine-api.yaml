@@ -1219,6 +1219,14 @@ components:
           description: Map of step ID to step registration snapshots
           additionalProperties:
             $ref: "#/components/schemas/StepRegistration"
+        children:
+          type: object
+          description: |
+            Map of flow step ID to its precomputed child execution plan.
+            Present only for included flow steps. Child plans are compiled when
+            the parent plan is created and do not replan at child start time.
+          additionalProperties:
+            $ref: "#/components/schemas/ExecutionPlan"
         attributes:
           type: object
           description: Map of attribute names to their provider/consumer dependencies

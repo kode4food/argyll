@@ -77,13 +77,19 @@ func create(
 	pb.buildPlan()
 	excluded := pb.buildExcluded()
 
-	return &api.ExecutionPlan{
+	res := &api.ExecutionPlan{
 		Goals:      goals,
 		Required:   pb.getRequiredInputs(),
 		Steps:      pb.steps,
 		Attributes: pb.attributes,
 		Excluded:   excluded,
-	}, nil
+	}
+	children, err := buildChildPlans(res, cat, providers)
+	if err != nil {
+		return nil, err
+	}
+	res.Children = children
+	return res, nil
 }
 
 func newPlanBuilder(
@@ -392,4 +398,51 @@ func previewProviders(b *builder, providers []api.StepID) []api.StepID {
 		return res
 	}
 	return providers
+}
+
+func buildChildPlans(
+	pl *api.ExecutionPlan, cat *api.CatalogState, providers selectProviders,
+) (map[api.StepID]*api.ExecutionPlan, error) {
+	childPlans := map[api.StepID]*api.ExecutionPlan{}
+	for stepID, step := range pl.Steps {
+		if step == nil || step.Type != api.StepTypeFlow || step.Flow == nil {
+			continue
+		}
+		childPlan, err := create(
+			cat, step.Flow.Goals, childPlanInit(step), providers,
+		)
+		if err != nil {
+			return nil, err
+		}
+		childPlans[stepID] = childPlan
+	}
+	if len(childPlans) == 0 {
+		return nil, nil
+	}
+	return childPlans, nil
+}
+
+func childPlanInit(step *api.Step) api.Args {
+	res := api.Args{}
+	for name, attr := range step.Attributes {
+		if !isGuaranteedInput(attr) {
+			continue
+		}
+		key := name
+		if attr.Mapping != nil && attr.Mapping.Name != "" {
+			key = api.Name(attr.Mapping.Name)
+		}
+		res[key] = true
+	}
+	return res
+}
+
+func isGuaranteedInput(attr *api.AttributeSpec) bool {
+	if attr == nil {
+		return false
+	}
+	if attr.IsRequired() || attr.IsConst() {
+		return true
+	}
+	return attr.IsOptional() && attr.Default != ""
 }

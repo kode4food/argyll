@@ -10,11 +10,12 @@ import (
 type (
 	// ExecutionPlan represents the compiled execution plan for a flow
 	ExecutionPlan struct {
-		Goals      []StepID       `json:"goals"`
-		Required   []Name         `json:"required"`
-		Steps      Steps          `json:"steps"`
-		Attributes AttributeGraph `json:"attributes"`
-		Excluded   ExcludedSteps  `json:"excluded"`
+		Goals      []StepID                  `json:"goals"`
+		Required   []Name                    `json:"required"`
+		Steps      Steps                     `json:"steps"`
+		Children   map[StepID]*ExecutionPlan `json:"children,omitempty"`
+		Attributes AttributeGraph            `json:"attributes"`
+		Excluded   ExcludedSteps             `json:"excluded"`
 	}
 
 	// ExcludedSteps contains steps encountered during dependency traversal

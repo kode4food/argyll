@@ -7,7 +7,6 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
-	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
@@ -26,12 +25,12 @@ var (
 
 // StartFlow begins a new flow execution with the given plan and options
 func (e *Engine) StartFlow(
-	flowID api.FlowID, plan *api.ExecutionPlan, apps ...flow.Applier,
+	flowID api.FlowID, pl *api.ExecutionPlan, apps ...flow.Applier,
 ) error {
 	opts := flow.Defaults(apps...)
 	if err := call.Perform(
 		call.WithArg(validateParentMetadata, opts.Metadata),
-		call.WithArg(plan.ValidateInputs, opts.Init),
+		call.WithArg(pl.ValidateInputs, opts.Init),
 	); err != nil {
 		return err
 	}
@@ -43,7 +42,7 @@ func (e *Engine) StartFlow(
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
 				FlowID:   flowID,
-				Plan:     plan,
+				Plan:     pl,
 				Init:     opts.Init,
 				Metadata: opts.Metadata,
 				Labels:   opts.Labels,
@@ -64,42 +63,16 @@ func (e *Engine) StartFlow(
 }
 
 func (e *Engine) StartChildFlow(
-	parent api.FlowStep, tkn api.Token, step *api.Step, initState api.Args,
+	parent api.FlowStep, tkn api.Token, pl *api.ExecutionPlan, init api.Args,
+	meta api.Metadata,
 ) (api.FlowID, error) {
-	if step.Flow == nil || len(step.Flow.Goals) == 0 {
-		return "", api.ErrFlowGoalsRequired
-	}
-
 	childID := childFlowID(parent, tkn)
-
-	cat, err := e.GetCatalogState()
-	if err != nil {
-		return "", err
-	}
-
-	pl, err := plan.Create(cat, step.Flow.Goals, initState)
-	if err != nil {
-		return "", err
-	}
-
-	parentFlow, err := e.GetFlowState(parent.FlowID)
-	if err != nil {
-		return "", err
-	}
-
-	meta := parentFlow.Metadata.Apply(api.Metadata{
-		api.MetaParentFlowID:        parent.FlowID,
-		api.MetaParentStepID:        parent.StepID,
-		api.MetaParentWorkItemToken: tkn,
-	})
-
-	if err := e.StartFlow(childID, pl,
-		flow.WithInit(initState),
+	err := e.StartFlow(childID, pl,
+		flow.WithInit(init),
 		flow.WithMetadata(meta),
-	); err != nil {
-		if errors.Is(err, ErrFlowExists) {
-			return childID, nil
-		}
+		flow.WithParent(parent, tkn),
+	)
+	if err != nil {
 		return "", err
 	}
 

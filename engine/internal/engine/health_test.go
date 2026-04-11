@@ -328,42 +328,6 @@ func TestResolveHealthPreviewFail(t *testing.T) {
 	}
 }
 
-func TestResolveHealthCycle(t *testing.T) {
-	cat := &api.CatalogState{
-		Steps: api.Steps{
-			"flow-a": {
-				ID:   "flow-a",
-				Name: "Flow A",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"flow-b"},
-				},
-				Attributes: api.AttributeSpecs{
-					"out-a": {Role: api.RoleOutput, Type: api.TypeString},
-				},
-			},
-			"flow-b": {
-				ID:   "flow-b",
-				Name: "Flow B",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"flow-a"},
-				},
-				Attributes: api.AttributeSpecs{
-					"out-b": {Role: api.RoleOutput, Type: api.TypeString},
-				},
-			},
-		},
-		Attributes: api.AttributeGraph{},
-	}
-
-	health := engine.ResolveHealth(cat, map[api.StepID]*api.HealthState{})
-	if assert.Contains(t, health, api.StepID("flow-a")) {
-		assert.Equal(t, api.HealthUnknown, health["flow-a"].Status)
-		assert.Contains(t, health["flow-a"].Error, "flow health cycle")
-	}
-}
-
 func TestResolveHealthSimpleUnknown(t *testing.T) {
 	cat := &api.CatalogState{
 		Steps: api.Steps{

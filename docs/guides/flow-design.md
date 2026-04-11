@@ -154,7 +154,7 @@ Use flow steps (sub-flows) to create reusable, self-contained units with their o
 }
 ```
 
-**Why:** Encapsulation and reuse. The sub-flow has its own execution plan and goals.
+**Why:** Encapsulation and reuse. The sub-flow has its own execution plan and goals, and that child plan is fixed when the parent plan is compiled.
 
 **Pattern:** Create sub-flows for domain-specific logic (authentication, payment, validation) that might be reused across multiple parent flows.
 

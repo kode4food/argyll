@@ -40,6 +40,17 @@ func WithMetadata(meta api.Metadata) Applier {
 	}
 }
 
+// WithParent annotates flow metadata with the parent work item context
+func WithParent(parent api.FlowStep, tkn api.Token) Applier {
+	return func(opt *Options) {
+		opt.Metadata = opt.Metadata.Apply(api.Metadata{
+			api.MetaParentFlowID:        parent.FlowID,
+			api.MetaParentStepID:        parent.StepID,
+			api.MetaParentWorkItemToken: tkn,
+		})
+	}
+}
+
 // WithLabels sets the flow labels
 func WithLabels(labels api.Labels) Applier {
 	return func(opt *Options) {

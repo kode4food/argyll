@@ -76,10 +76,11 @@ For predicates specifically, see [Predicates Guide](./predicates.md).
 **Example:** User authentication flow, payment authorization, order validation
 
 **Characteristics:**
-- Child flow has its own execution plan and goals
+- Child flow has its own execution plan and goals, compiled when the parent plan is created
 - Input/output mapping between parent and child via attribute `mapping.name`
 - More events and state overhead
 - Enables composition and reuse
+- Flow-step composition must be acyclic; recursive child-flow definitions are rejected
 
 For details, see [Flows](../concepts/flows.md) and [Flow Steps](../concepts/steps.md#flow-sub-flow).
 

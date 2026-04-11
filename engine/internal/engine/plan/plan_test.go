@@ -258,6 +258,61 @@ func TestMultipleGoals(t *testing.T) {
 	assert.Len(t, pl.Steps, 2)
 }
 
+func TestFlowStepEmbedsChildPlan(t *testing.T) {
+	child := &api.Step{
+		ID:   "child",
+		Name: "Child",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"inner":  {Role: api.RoleRequired, Type: api.TypeString},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+
+	parent := &api.Step{
+		ID:   "parent",
+		Name: "Parent",
+		Type: api.StepTypeFlow,
+		Attributes: api.AttributeSpecs{
+			"outer": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "inner",
+				},
+			},
+			"wrapped_result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "result",
+				},
+			},
+		},
+		Flow: &api.FlowConfig{
+			Goals: []api.StepID{"child"},
+		},
+	}
+
+	cat := makeCatalogState(api.Steps{
+		"child":  child,
+		"parent": parent,
+	})
+	pl, err := plan.Create(cat, []api.StepID{"parent"}, api.Args{})
+	assert.NoError(t, err)
+
+	if assert.Contains(t, pl.Children, api.StepID("parent")) {
+		childPlan := pl.Children["parent"]
+		assert.NotNil(t, childPlan)
+		assert.Empty(t, childPlan.Required)
+		assert.Contains(t, childPlan.Steps, api.StepID("child"))
+	}
+}
+
 func TestExistingOutputs(t *testing.T) {
 
 	step := &api.Step{

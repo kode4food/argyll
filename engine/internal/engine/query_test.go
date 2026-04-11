@@ -14,6 +14,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -501,15 +502,15 @@ func TestSkipChildFlows(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(child))
 		assert.NoError(t, env.Engine.RegisterStep(parent))
 
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{parent.ID},
-			Steps: api.Steps{parent.ID: parent},
-		}
+		cat, err := env.Engine.GetCatalogState()
+		assert.NoError(t, err)
+		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
+		assert.NoError(t, err)
 
 		var childID api.FlowID
 		env.WithConsumer(func(consumer *event.Consumer) {
 			parentState := env.WaitForFlowStatus("parent-list", func() {
-				err := env.Engine.StartFlow("parent-list", pl)
+				err = env.Engine.StartFlow("parent-list", pl)
 				assert.NoError(t, err)
 			})
 			assert.Equal(t, api.FlowCompleted, parentState.Status)

@@ -108,10 +108,13 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 **Use when:** You want reusable sub-flows or shared logic across multiple flows.
 
 **How it works:**
-- Parent flow starts a child flow with its own goals
+- Parent plan compilation builds a child execution plan for the flow step's goals
+- Parent flow starts a child flow from that precomputed child plan
 - Inputs are mapped from parent to child via attribute `mapping.name`
 - Child outputs are mapped back to parent attributes via `mapping.name`
 - Child completion produces the mapped outputs
+
+**Constraint:** Flow-step composition must be acyclic. A flow step cannot directly or indirectly include itself through child-flow goals.
 
 **Example:**
 ```json

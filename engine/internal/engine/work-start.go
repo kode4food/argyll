@@ -17,6 +17,7 @@ type (
 	ExecContext struct {
 		engine *Engine
 		step   *api.Step
+		child  *api.ExecutionPlan
 		inputs api.Args
 		flowID api.FlowID
 		stepID api.StepID
@@ -44,6 +45,7 @@ func (tx *flowTx) handleWorkItemsExecution(
 		flowID: tx.flowID,
 		stepID: step.ID,
 		step:   step,
+		child:  tx.Value().Plan.Children[step.ID],
 		inputs: inputs,
 		meta:   meta,
 	}
@@ -148,7 +150,7 @@ func (e *ExecContext) performAsyncHTTP(inputs api.Args, tkn api.Token) error {
 
 func (e *ExecContext) performFlow(initState api.Args, tkn api.Token) error {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	_, err := e.engine.StartChildFlow(fs, tkn, e.step, initState)
+	_, err := e.engine.StartChildFlow(fs, tkn, e.child, initState, e.meta)
 	if err != nil {
 		return err
 	}

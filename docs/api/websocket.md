@@ -105,7 +105,7 @@ To unsubscribe:
 - `["catalog"]`: step registry events
 - `["nodes"]`: node registry state
 - `["node", "node-id"]`: one node's health and last-seen state
-- `["node"]`: prefix subscription for per-node health events across the shard
+- `["node"]`: prefix subscription for per-node health events across the cluster
 - `["flow", "flow-id"]`: flow execution events for one flow
 
 ## Event Types
@@ -220,7 +220,7 @@ One WebSocket connection can carry multiple subscriptions. The web UI uses one c
 
 Use distinct `sub_id` values so you can replace or unsubscribe individual streams without reconnecting the socket.
 
-Use `include_state: true` for stateful subscriptions such as catalog, `["nodes"]`, `["node", "node-id"]`, or the currently selected flow. Leave it omitted for high-churn prefix subscriptions where you only care about future events, such as `["node"]` for shard-wide health events or a short-lived visible-row list in the flow selector.
+Use `include_state: true` for stateful subscriptions such as catalog, `["nodes"]`, `["node", "node-id"]`, or the currently selected flow. Leave it omitted for high-churn prefix subscriptions where you only care about future events, such as `["node"]` for cluster-wide health events or a short-lived visible-row list in the flow selector.
 
 ## Performance Notes
 

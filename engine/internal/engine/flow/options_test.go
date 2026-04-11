@@ -14,27 +14,45 @@ func TestDefaultOptions(t *testing.T) {
 	init := api.Args{"a": "b"}
 	meta := api.Metadata{"k": "v"}
 	labels := api.Labels{"tier": "test"}
+	parent := api.FlowStep{
+		FlowID: "parent-flow",
+		StepID: "parent-step",
+	}
+	tkn := api.Token("token-1")
 
 	opts := flow.Defaults(
 		flow.WithInit(init),
 		flow.WithMetadata(meta),
+		flow.WithParent(parent, tkn),
 		flow.WithLabels(labels),
 	)
 
 	assert.Equal(t, init, opts.Init)
-	assert.Equal(t, meta, opts.Metadata)
+	assert.Equal(t, meta["k"], opts.Metadata["k"])
+	assert.Equal(t, parent.FlowID, opts.Metadata[api.MetaParentFlowID])
+	assert.Equal(t, parent.StepID, opts.Metadata[api.MetaParentStepID])
+	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkItemToken])
 	assert.Equal(t, labels, opts.Labels)
 }
 
 func TestApply(t *testing.T) {
 	opts := &flow.Options{}
+	parent := api.FlowStep{
+		FlowID: "parent-flow",
+		StepID: "parent-step",
+	}
+	tkn := api.Token("token-1")
 	call.Apply(opts,
 		flow.WithInit(api.Args{"x": "y"}),
 		flow.WithMetadata(api.Metadata{"m": "n"}),
+		flow.WithParent(parent, tkn),
 		flow.WithLabels(api.Labels{"l": "z"}),
 	)
 
 	assert.Equal(t, api.Args{"x": "y"}, opts.Init)
-	assert.Equal(t, api.Metadata{"m": "n"}, opts.Metadata)
+	assert.Equal(t, "n", opts.Metadata["m"])
+	assert.Equal(t, parent.FlowID, opts.Metadata[api.MetaParentFlowID])
+	assert.Equal(t, parent.StepID, opts.Metadata[api.MetaParentStepID])
+	assert.Equal(t, tkn, opts.Metadata[api.MetaParentWorkItemToken])
 	assert.Equal(t, api.Labels{"l": "z"}, opts.Labels)
 }

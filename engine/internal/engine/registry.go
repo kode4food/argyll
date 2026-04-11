@@ -234,6 +234,13 @@ func checkAttributeConflicts(
 }
 
 func detectStepCycles(st *api.CatalogState, newStep *api.Step) error {
+	if err := detectAttributeCycles(st, newStep); err != nil {
+		return err
+	}
+	return detectFlowCycles(st, newStep)
+}
+
+func detectAttributeCycles(st *api.CatalogState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
 	deps := st.Attributes
 	if existing, ok := st.Steps[newStep.ID]; ok {
@@ -241,6 +248,16 @@ func detectStepCycles(st *api.CatalogState, newStep *api.Step) error {
 	}
 	deps = deps.AddStep(newStep)
 	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
+}
+
+func detectFlowCycles(st *api.CatalogState, newStep *api.Step) error {
+	steps := stepsIncluding(st, newStep)
+	for stepID := range steps {
+		if err := checkFlowCycleFromStep(stepID, steps, stepSet{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func checkCycleFromStep(
@@ -266,6 +283,30 @@ func checkCycleFromStep(
 					}
 				}
 			}
+		}
+	}
+
+	return nil
+}
+
+func checkFlowCycleFromStep(
+	currentID api.StepID, steps api.Steps, stack stepSet,
+) error {
+	if stack.Contains(currentID) {
+		return fmt.Errorf("%w: step %s", ErrCircularDependency, currentID)
+	}
+
+	step, ok := steps[currentID]
+	if !ok || step == nil || step.Type != api.StepTypeFlow || step.Flow == nil {
+		return nil
+	}
+
+	stack.Add(currentID)
+	defer stack.Remove(currentID)
+
+	for _, goalID := range step.Flow.Goals {
+		if err := checkFlowCycleFromStep(goalID, steps, stack); err != nil {
+			return err
 		}
 	}
 
