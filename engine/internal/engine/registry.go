@@ -16,15 +16,12 @@ import (
 )
 
 type (
-	stepSet = util.Set[api.StepID]
-
-	upsertRaise func(*api.Step, *CatalogAggregator) error
-	upsertCheck func(oldStep, newStep *api.Step, exists bool) (bool, error)
-
 	CatalogTx struct {
 		e  *Engine
 		ag *CatalogAggregator
 	}
+
+	stepSet = util.Set[api.StepID]
 )
 
 var (
@@ -182,31 +179,40 @@ func (e *Engine) resetStepHealth(step *api.Step) {
 }
 
 func (tx *CatalogTx) Register(step *api.Step) error {
-	return tx.execStepUpsert(step, tx.e.raiseStepRegisteredEvent,
-		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
-			if !exists {
-				return false, nil
-			}
-			if oldStep.Equal(newStep) {
-				return true, nil
-			}
-			return false, fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
-		},
-	)
+	step, err := tx.prepareStep(step)
+	if err != nil {
+		return err
+	}
+	st := tx.ag.Value()
+	if old, ok := st.Steps[step.ID]; ok {
+		if old.Equal(step) {
+			return nil
+		}
+		return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
+	}
+	if err := validateStepUpsert(st, step); err != nil {
+		return err
+	}
+	return tx.e.raiseStepRegisteredEvent(step, tx.ag)
 }
 
 func (tx *CatalogTx) Update(step *api.Step) error {
-	return tx.execStepUpsert(step, tx.e.raiseStepUpdatedEvent,
-		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
-			if !exists {
-				return false, fmt.Errorf("%w: %s", ErrStepNotFound, newStep.ID)
-			}
-			if oldStep.Equal(newStep) {
-				return true, nil
-			}
-			return false, nil
-		},
-	)
+	step, err := tx.prepareStep(step)
+	if err != nil {
+		return err
+	}
+	st := tx.ag.Value()
+	old, ok := st.Steps[step.ID]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrStepNotFound, step.ID)
+	}
+	if old.Equal(step) {
+		return nil
+	}
+	if err := validateStepUpsert(st, step); err != nil {
+		return err
+	}
+	return tx.e.raiseStepUpdatedEvent(step, tx.ag)
 }
 
 func (tx *CatalogTx) Remove(stepID api.StepID) error {
@@ -215,28 +221,22 @@ func (tx *CatalogTx) Remove(stepID api.StepID) error {
 	)
 }
 
-func (tx *CatalogTx) execStepUpsert(
-	step *api.Step, raise upsertRaise, check upsertCheck,
-) error {
+func (tx *CatalogTx) prepareStep(step *api.Step) (*api.Step, error) {
 	step = step.WithWorkDefaults(&tx.e.config.Work)
 	if err := tx.e.validateStep(step); err != nil {
-		return err
+		return nil, err
 	}
+	return step, nil
+}
 
-	st := tx.ag.Value()
-	old, ok := st.Steps[step.ID]
-	if noop, err := check(old, step, ok); noop || err != nil {
-		return err
-	}
-
+func validateStepUpsert(st *api.CatalogState, step *api.Step) error {
 	if err := call.Perform(
 		call.WithArgs(validateAttributeTypes, st, step),
 		call.WithArgs(detectStepCycles, st, step),
 	); err != nil {
 		return errors.Join(ErrInvalidStep, err)
 	}
-
-	return raise(step, tx.ag)
+	return nil
 }
 
 func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {
