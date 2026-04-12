@@ -117,11 +117,7 @@ func (tx *flowTx) handlePredicateFailure(stepID api.StepID, err error) error {
 // checking step completion and propagating failures
 func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 	if flowTransitions.IsTerminal(tx.Value().Status) {
-		_, err := tx.checkStepCompletion(stepID)
-		if err != nil {
-			return err
-		}
-		return tx.maybeDeactivate()
+		return tx.handleTerminalWork(stepID)
 	}
 
 	completed, err := tx.checkStepCompletion(stepID)
@@ -137,4 +133,13 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 		tx.checkTerminal,
 		tx.startReadyPendingSteps,
 	)
+}
+
+// handleTerminalWork handles work completion when the flow is already
+// terminal: checks step completion then deactivates if no work remains
+func (tx *flowTx) handleTerminalWork(stepID api.StepID) error {
+	if _, err := tx.checkStepCompletion(stepID); err != nil {
+		return err
+	}
+	return tx.maybeDeactivate()
 }

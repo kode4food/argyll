@@ -45,6 +45,20 @@ var (
 	ErrInvalidFlowLabelEntry = errors.New("invalid flow label entry")
 )
 
+var (
+	allQueryStatuses = []queryStatus{
+		{indexStatus: events.FlowStatusActive, flowStatus: api.FlowActive},
+		{indexStatus: events.FlowStatusCompleted, flowStatus: api.FlowCompleted},
+		{indexStatus: events.FlowStatusFailed, flowStatus: api.FlowFailed},
+	}
+
+	queryStatusByFlow = map[api.FlowStatus]queryStatus{
+		api.FlowActive:    allQueryStatuses[0],
+		api.FlowCompleted: allQueryStatuses[1],
+		api.FlowFailed:    allQueryStatuses[2],
+	}
+)
+
 // ListFlows returns summary information for flows using the query path
 func (e *Engine) ListFlows() ([]*api.QueryFlowsItem, error) {
 	resp, err := e.QueryFlows(&api.QueryFlowsRequest{
@@ -137,12 +151,10 @@ func (e *Engine) listIndexedEntries(
 
 // flowQueryOrdering returns the grouping and recent timestamp for a flow
 func flowQueryOrdering(status api.FlowStatus, recent int64) (int, int64) {
-	group := 1
 	if status == api.FlowActive {
-		group = 0
-		return group, recent
+		return 0, recent
 	}
-	return group, recent
+	return 1, recent
 }
 
 // buildFlowQueryItems converts indexed flow entries into sortable query items
@@ -248,14 +260,7 @@ func flowItemFromEntry(entry flowStatusEntry) flowItem {
 
 func queryStatuses(statuses []api.FlowStatus) []queryStatus {
 	if len(statuses) == 0 {
-		return []queryStatus{
-			{indexStatus: events.FlowStatusActive, flowStatus: api.FlowActive},
-			{
-				indexStatus: events.FlowStatusCompleted,
-				flowStatus:  api.FlowCompleted,
-			},
-			{indexStatus: events.FlowStatusFailed, flowStatus: api.FlowFailed},
-		}
+		return allQueryStatuses
 	}
 
 	res := make([]queryStatus, 0, len(statuses))
@@ -265,22 +270,8 @@ func queryStatuses(statuses []api.FlowStatus) []queryStatus {
 			continue
 		}
 		seen.Add(status)
-		switch status {
-		case api.FlowActive:
-			res = append(res, queryStatus{
-				indexStatus: events.FlowStatusActive,
-				flowStatus:  api.FlowActive,
-			})
-		case api.FlowCompleted:
-			res = append(res, queryStatus{
-				indexStatus: events.FlowStatusCompleted,
-				flowStatus:  api.FlowCompleted,
-			})
-		case api.FlowFailed:
-			res = append(res, queryStatus{
-				indexStatus: events.FlowStatusFailed,
-				flowStatus:  api.FlowFailed,
-			})
+		if qs, ok := queryStatusByFlow[status]; ok {
+			res = append(res, qs)
 		}
 	}
 	return res
@@ -367,11 +358,9 @@ func paginateFlowItems(
 		end = start + limit
 	}
 
-	page := items
+	page := []flowItem{}
 	if start < len(items) {
 		page = items[start:end]
-	} else {
-		page = []flowItem{}
 	}
 
 	hasMore := end < len(items)

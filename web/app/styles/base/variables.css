@@ -248,15 +248,15 @@
   --color-tooltip-code-bg: rgba(17, 24, 39, 0.08);
   --overlay-backdrop-dialog: var(--overlay-light-30);
   --overlay-backdrop-preview: var(--overlay-light-10);
-  --glass-chrome-bg: color-mix(in srgb, var(--color-surface) 46%, transparent);
+  --glass-chrome-bg: color-mix(in srgb, var(--color-surface) 23%, transparent);
   --glass-overlay-bg: color-mix(
     in srgb,
-    var(--color-surface-elevated) 56%,
+    var(--color-surface-elevated) 28%,
     transparent
   );
   --glass-overlay-bg-strong: color-mix(
     in srgb,
-    var(--color-surface) 64%,
+    var(--color-surface) 91%,
     transparent
   );
 }

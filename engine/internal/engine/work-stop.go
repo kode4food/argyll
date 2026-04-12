@@ -159,10 +159,7 @@ func (tx *flowTx) checkWorkTransition(
 
 func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 	if flowTransitions.IsTerminal(tx.Value().Status) {
-		if _, err := tx.checkStepCompletion(stepID); err != nil {
-			return err
-		}
-		return tx.maybeDeactivate()
+		return tx.handleTerminalWork(stepID)
 	}
 
 	completed, err := tx.checkStepCompletion(stepID)
