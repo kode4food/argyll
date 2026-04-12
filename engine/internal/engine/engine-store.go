@@ -63,15 +63,6 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	return steps, nil
 }
 
-func (e *Engine) raiseCatalogEvent(typ api.EventType, data any) error {
-	_, err := e.execCatalog(
-		func(_ *api.CatalogState, ag *CatalogAggregator) error {
-			return events.Raise(ag, typ, data)
-		},
-	)
-	return err
-}
-
 func (e *Engine) execCatalog(
 	cmd timebox.Command[*api.CatalogState],
 ) (*api.CatalogState, error) {

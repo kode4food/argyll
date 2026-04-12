@@ -158,7 +158,124 @@ func TestRegisterStepRejectsFlowGoalCycles(t *testing.T) {
 	})
 }
 
-func TestUpdateStepRejectsFlowGoalCycles(t *testing.T) {
+func TestCatalogTxRegister(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		stepA := &api.Step{
+			ID:   "step-a",
+			Name: "Step A",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"foo": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test:8080/a",
+			},
+		}
+		stepB := &api.Step{
+			ID:   "step-b",
+			Name: "Step B",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"foo": {Role: api.RoleRequired, Type: api.TypeString},
+				"bar": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test:8080/b",
+			},
+		}
+
+		err := eng.CatalogTx(func(tx *engine.CatalogTx) error {
+			if err := tx.Register(stepA); err != nil {
+				return err
+			}
+			return tx.Register(stepB)
+		})
+		assert.NoError(t, err)
+
+		cat, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+		assert.Contains(t, cat.Steps, stepA.ID)
+		assert.Contains(t, cat.Steps, stepB.ID)
+	})
+}
+
+func TestCatalogTxRollback(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		stepA := &api.Step{
+			ID:   "step-a",
+			Name: "Step A",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"foo": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test:8080/a",
+			},
+		}
+		stepB := &api.Step{
+			ID:   "step-b",
+			Name: "Step B",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"foo": {Role: api.RoleOutput, Type: api.TypeNumber},
+			},
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test:8080/b",
+			},
+		}
+
+		err := eng.CatalogTx(func(tx *engine.CatalogTx) error {
+			if err := tx.Register(stepA); err != nil {
+				return err
+			}
+			return tx.Register(stepB)
+		})
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, engine.ErrTypeConflict)
+
+		cat, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+		assert.Empty(t, cat.Steps)
+	})
+}
+
+func TestCatalogTxRejectsGoalCycle(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		stepA := &api.Step{
+			ID:   "flow-a",
+			Name: "Flow A",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"flow-b"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+		stepB := &api.Step{
+			ID:   "flow-b",
+			Name: "Flow B",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{"flow-a"},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+
+		err := eng.CatalogTx(func(tx *engine.CatalogTx) error {
+			if err := tx.Register(stepA); err != nil {
+				return err
+			}
+			return tx.Register(stepB)
+		})
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, engine.ErrCircularDependency)
+
+		cat, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+		assert.Empty(t, cat.Steps)
+	})
+}
+
+func TestUpdateStepRejectsGoalCycles(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		stepA := &api.Step{
 			ID:   "flow-a",

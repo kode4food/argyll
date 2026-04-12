@@ -20,6 +20,11 @@ type (
 
 	upsertRaise func(*api.Step, *CatalogAggregator) error
 	upsertCheck func(oldStep, newStep *api.Step, exists bool) (bool, error)
+
+	CatalogTx struct {
+		e  *Engine
+		ag *CatalogAggregator
+	}
 )
 
 var (
@@ -33,74 +38,37 @@ var (
 
 // UnregisterStep removes a step from the engine registry
 func (e *Engine) UnregisterStep(stepID api.StepID) error {
-	return e.raiseCatalogEvent(
-		api.EventTypeStepUnregistered,
-		api.StepUnregisteredEvent{StepID: stepID},
-	)
+	return e.CatalogTx(func(tx *CatalogTx) error {
+		return tx.Remove(stepID)
+	})
 }
 
 // RegisterStep registers a new step with the engine after validating its
 // configuration and checking for conflicts
 func (e *Engine) RegisterStep(step *api.Step) error {
-	return e.execStepUpsert(step, e.raiseStepRegisteredEvent,
-		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
-			if !exists {
-				return false, nil
-			}
-			if oldStep.Equal(newStep) {
-				return true, nil
-			}
-			return false, fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
-		},
-	)
+	return e.CatalogTx(func(tx *CatalogTx) error {
+		return tx.Register(step)
+	})
 }
 
 // UpdateStep updates an existing step registration with new configuration
 // after validation
 func (e *Engine) UpdateStep(step *api.Step) error {
-	return e.execStepUpsert(step, e.raiseStepUpdatedEvent,
-		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
-			if !exists {
-				return false, fmt.Errorf("%w: %s", ErrStepNotFound, newStep.ID)
-			}
-			if oldStep.Equal(newStep) {
-				return true, nil
-			}
-			return false, nil
-		},
-	)
+	return e.CatalogTx(func(tx *CatalogTx) error {
+		return tx.Update(step)
+	})
 }
 
-func (e *Engine) execStepUpsert(
-	step *api.Step, raise upsertRaise, check upsertCheck,
-) error {
-	step = step.WithWorkDefaults(&e.config.Work)
-	if err := e.validateStep(step); err != nil {
-		return err
-	}
-
-	cmd := func(st *api.CatalogState, ag *CatalogAggregator) error {
-		old, ok := st.Steps[step.ID]
-		if noop, err := check(old, step, ok); noop || err != nil {
-			return err
-		}
-
-		if err := call.Perform(
-			call.WithArgs(validateAttributeTypes, st, step),
-			call.WithArgs(detectStepCycles, st, step),
-		); err != nil {
-			return errors.Join(ErrInvalidStep, err)
-		}
-		return raise(step, ag)
-	}
-
-	if _, err := e.execCatalog(cmd); err != nil {
-		return err
-	}
-	if step.Type == api.StepTypeScript && step.Script != nil {
-		e.initializeScriptHealth(step)
-	}
-	return nil
+func (e *Engine) CatalogTx(fn func(*CatalogTx) error) error {
+	_, err := e.execCatalog(
+		func(_ *api.CatalogState, ag *CatalogAggregator) error {
+			return fn(&CatalogTx{
+				e:  e,
+				ag: ag,
+			})
+		},
+	)
+	return err
 }
 
 func (e *Engine) initializeScriptHealth(step *api.Step) {
@@ -182,12 +150,7 @@ func (e *Engine) raiseStepRegisteredEvent(
 		return err
 	}
 	ag.OnSuccess(func(*api.CatalogState, []*timebox.Event) {
-		err := e.UpdateStepHealth(step.ID, api.HealthUnknown, "")
-		if err != nil {
-			slog.Error("Failed to raise step health changed event",
-				log.StepID(step.ID),
-				log.Error(err))
-		}
+		e.resetStepHealth(step)
 	})
 	return nil
 }
@@ -195,9 +158,85 @@ func (e *Engine) raiseStepRegisteredEvent(
 func (e *Engine) raiseStepUpdatedEvent(
 	step *api.Step, ag *CatalogAggregator,
 ) error {
-	return events.Raise(ag, api.EventTypeStepUpdated,
+	if err := events.Raise(ag, api.EventTypeStepUpdated,
 		api.StepUpdatedEvent{Step: step},
+	); err != nil {
+		return err
+	}
+	ag.OnSuccess(func(*api.CatalogState, []*timebox.Event) {
+		e.resetStepHealth(step)
+	})
+	return nil
+}
+
+func (e *Engine) resetStepHealth(step *api.Step) {
+	err := e.UpdateStepHealth(step.ID, api.HealthUnknown, "")
+	if err != nil {
+		slog.Error("Failed to update step health",
+			log.StepID(step.ID),
+			log.Error(err))
+	}
+	if step.Type == api.StepTypeScript && step.Script != nil {
+		e.initializeScriptHealth(step)
+	}
+}
+
+func (tx *CatalogTx) Register(step *api.Step) error {
+	return tx.execStepUpsert(step, tx.e.raiseStepRegisteredEvent,
+		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
+			if !exists {
+				return false, nil
+			}
+			if oldStep.Equal(newStep) {
+				return true, nil
+			}
+			return false, fmt.Errorf("%w: %s", ErrStepExists, newStep.ID)
+		},
 	)
+}
+
+func (tx *CatalogTx) Update(step *api.Step) error {
+	return tx.execStepUpsert(step, tx.e.raiseStepUpdatedEvent,
+		func(oldStep, newStep *api.Step, exists bool) (bool, error) {
+			if !exists {
+				return false, fmt.Errorf("%w: %s", ErrStepNotFound, newStep.ID)
+			}
+			if oldStep.Equal(newStep) {
+				return true, nil
+			}
+			return false, nil
+		},
+	)
+}
+
+func (tx *CatalogTx) Remove(stepID api.StepID) error {
+	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
+		api.StepUnregisteredEvent{StepID: stepID},
+	)
+}
+
+func (tx *CatalogTx) execStepUpsert(
+	step *api.Step, raise upsertRaise, check upsertCheck,
+) error {
+	step = step.WithWorkDefaults(&tx.e.config.Work)
+	if err := tx.e.validateStep(step); err != nil {
+		return err
+	}
+
+	st := tx.ag.Value()
+	old, ok := st.Steps[step.ID]
+	if noop, err := check(old, step, ok); noop || err != nil {
+		return err
+	}
+
+	if err := call.Perform(
+		call.WithArgs(validateAttributeTypes, st, step),
+		call.WithArgs(detectStepCycles, st, step),
+	); err != nil {
+		return errors.Join(ErrInvalidStep, err)
+	}
+
+	return raise(step, tx.ag)
 }
 
 func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {
