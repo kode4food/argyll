@@ -143,16 +143,9 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
   const handleBasicInputChange = React.useCallback(
     (name: string, value: string) => {
-      const option = flowInputOptions.find((item) => item.name === name);
-      const normalizedValue =
-        value.trim() === "" &&
-        option?.required &&
-        option.defaultValue !== undefined
-          ? option.defaultValue
-          : value;
       const nextValues = {
         ...flowInputValuesRaw,
-        [name]: normalizedValue,
+        [name]: value,
       };
       const nextState = buildInitialStateFromInputValues(
         nextValues,
@@ -161,7 +154,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
       setInitialState(JSON.stringify(nextState, null, 2));
     },
-    [flowInputNames, flowInputOptions, flowInputValuesRaw, setInitialState]
+    [flowInputNames, flowInputValuesRaw, setInitialState]
   );
 
   return (

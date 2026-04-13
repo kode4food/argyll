@@ -99,6 +99,7 @@ export const IconAttributeConst = Lock;
 export const IconAttributeOutput = ArrowLeft;
 
 export const IconAttributeStatusSatisfied = CheckCircle2;
+export const IconAttributeStatusMissing = AlertCircle;
 export const IconAttributeStatusFailed = XCircle;
 export const IconAttributeStatusNotWinner = XCircle;
 export const IconAttributeStatusWinner = Award;

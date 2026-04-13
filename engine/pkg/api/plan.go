@@ -20,7 +20,7 @@ type (
 
 	// ExcludedSteps contains steps encountered during dependency traversal
 	// that were not included in the plan. Only steps reachable from the goal
-	// set appear here — unrelated catalog steps are not represented.
+	// set appear here — unrelated catalog steps are not represented
 	ExcludedSteps struct {
 		// Satisfied maps step ID to output names that were already available
 		// from init state, making the step's execution unnecessary

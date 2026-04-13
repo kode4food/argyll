@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import {
-  IconError,
+  IconAttributeStatusMissing,
   IconAttributeStatusSatisfied,
   IconAttributeOptional,
   IconAttributeStatusSkipped,
@@ -52,7 +52,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   const statusConfig = useMemo(
     (): Record<FlowInputStatus, StatusConfig> => ({
       requiredMissing: {
-        Icon: IconError,
+        Icon: IconAttributeStatusMissing,
         className: styles.badgeRequired,
         label: t("flowCreate.badgeRequiredMissing"),
       },

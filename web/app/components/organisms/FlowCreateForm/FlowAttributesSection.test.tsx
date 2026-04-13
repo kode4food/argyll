@@ -68,4 +68,46 @@ describe("FlowAttributesSection", () => {
       )
     ).toBeInTheDocument();
   });
+
+  test("uses an exclamation-circle icon for missing required inputs", () => {
+    render(
+      <FlowAttributesSection
+        {...baseProps}
+        flowInputOptions={[
+          {
+            name: "order_id",
+            required: true,
+          },
+        ]}
+      />
+    );
+
+    const badge = screen.getByLabelText(t("flowCreate.badgeRequiredMissing"));
+    const svg = badge.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    expect(svg?.getAttribute("class")).toContain("lucide-circle-alert");
+    expect(svg?.getAttribute("class")).not.toContain("lucide-check-circle-2");
+  });
+
+  test("treats hidden raw values as satisfied in basic mode", () => {
+    render(
+      <FlowAttributesSection
+        {...baseProps}
+        flowInputOptions={[
+          {
+            name: "quantity",
+            required: true,
+            defaultValue: "0",
+          },
+        ]}
+        flowInputValues={{ quantity: "" }}
+        flowInputValuesRaw={{ quantity: "0" }}
+      />
+    );
+
+    const badge = screen.getByLabelText(t("flowCreate.badgeRequiredSatisfied"));
+    const svg = badge.querySelector("svg");
+    expect(svg).toBeInTheDocument();
+    expect(svg?.getAttribute("class")).toContain("lucide-circle-check");
+  });
 });

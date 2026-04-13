@@ -1,3 +1,4 @@
+import React from "react";
 import {
   render,
   screen,
@@ -898,6 +899,68 @@ describe("FlowCreateForm", () => {
       t("flowCreate.badgeRequiredSatisfied")
     );
     expect(satisfiedDot.className).toContain(attributeStyles.badgeRequired);
+  });
+
+  test("clearing a required input with a default removes the satisfied state", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["order_id"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            order_id: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+              default: '"guest"',
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    const StatefulProvider: React.FC = () => {
+      const [initialState, setInitialState] = React.useState(
+        '{"order_id":"guest"}'
+      );
+      const value: FlowCreationContextValue = {
+        ...defaultProps,
+        initialState,
+        setInitialState,
+      };
+
+      return (
+        <FlowCreationContext.Provider value={value}>
+          <FlowCreateForm />
+        </FlowCreationContext.Provider>
+      );
+    };
+
+    render(<StatefulProvider />);
+
+    const input = screen.getByPlaceholderText("guest");
+    fireEvent.change(input, { target: { value: "admin" } });
+    fireEvent.change(input, { target: { value: "" } });
+
+    const orderIdRow = screen
+      .getByText("order_id")
+      .closest(`.${attributeStyles.attributeListItem}`);
+    expect(orderIdRow).toBeInTheDocument();
+    expect(
+      within(orderIdRow as HTMLElement).getByLabelText(
+        t("flowCreate.badgeRequiredMissing")
+      )
+    ).toBeInTheDocument();
   });
 
   test("marks numeric zero value as satisfied when it equals default", () => {
