@@ -17,6 +17,15 @@ type (
 		ID string `json:"id"`
 	}
 
+	queryFlowsArgs struct {
+		IDPrefix *string            `json:"id_prefix,omitempty"`
+		Labels   *map[string]string `json:"labels,omitempty"`
+		Statuses *[]string          `json:"statuses,omitempty"`
+		Limit    *int               `json:"limit,omitempty"`
+		Cursor   *string            `json:"cursor,omitempty"`
+		Sort     *string            `json:"sort,omitempty"`
+	}
+
 	registerStepInput struct {
 		Step map[string]any `json:"step"`
 	}
@@ -173,6 +182,18 @@ func (s *Server) registerTools(srv server.Server) {
 	)
 
 	srv.Tool(
+		"get_flow_status",
+		"Fetch the current status for a single flow",
+		func(_ *server.Context, args getFlowArgs) (any, error) {
+			if args.ID == "" {
+				return nil, errInvalidParams("id is required")
+			}
+			payload, err := s.httpGet("/engine/flow/" + args.ID + "/status")
+			return toolResult(payload, err)
+		},
+	)
+
+	srv.Tool(
 		"start_flow",
 		"Start a new flow execution",
 		func(_ *server.Context, args startFlowInput) (any, error) {
@@ -180,6 +201,15 @@ func (s *Server) registerTools(srv server.Server) {
 				return nil, errInvalidParams("flow body is required")
 			}
 			payload, err := s.httpPost("/engine/flow", args.Flow)
+			return toolResult(payload, err)
+		},
+	)
+
+	srv.Tool(
+		"query_flows",
+		"Query flows by status, ID prefix, labels, and pagination",
+		func(_ *server.Context, args queryFlowsArgs) (any, error) {
+			payload, err := s.httpPost("/engine/flow/query", args)
 			return toolResult(payload, err)
 		},
 	)

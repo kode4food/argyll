@@ -41,9 +41,7 @@ func TestInitializeStoresSuccess(t *testing.T) {
 
 func TestSetupLogging(t *testing.T) {
 	prevLogger := slog.Default()
-	t.Cleanup(func() {
-		slog.SetDefault(prevLogger)
-	})
+	t.Cleanup(func() { slog.SetDefault(prevLogger) })
 
 	tests := []struct {
 		name     string

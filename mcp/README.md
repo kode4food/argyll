@@ -14,7 +14,9 @@ inspection, and engine state.
 - `unregister_step` - remove a step by ID
 - `preview_plan` - preview an execution plan from goal steps and init state
 - `list_flows` - list flows
+- `query_flows` - query flows by status, labels, ID prefix, sort, and pagination
 - `get_flow` - fetch a single flow by ID
+- `get_flow_status` - fetch the lightweight status payload for a single flow
 - `start_flow` - start a new flow
 - `engine_state` - fetch the current engine state
 - `list_step_health` - list health for all steps

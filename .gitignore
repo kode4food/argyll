@@ -39,6 +39,7 @@ examples/user-resolver/user-resolver
 cover.out
 *.coverprofile
 
+.codex
 .serena
 .idea
 .settings
