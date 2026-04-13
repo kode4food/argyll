@@ -28,7 +28,7 @@ var backoffCalculators = map[string]backoffCalculator{
 
 // ShouldRetry determines if a failed work item should be retried based on
 // configured retry limits
-func (e *Engine) ShouldRetry(step *api.Step, work *api.WorkState) bool {
+func (e *Engine) ShouldRetry(step *api.Step, work api.WorkState) bool {
 	workConfig := e.resolveRetryConfig(step.WorkConfig)
 
 	if workConfig.MaxRetries == 0 {
@@ -85,7 +85,7 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
 		if err := tx.raiseRetryScheduled(stepID, tkn, work, nextRetryAt); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
+		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 			tx.handleRetryScheduled(stepID, tkn, nextRetryAt)
 		})
 		return nil
@@ -106,7 +106,7 @@ func (tx *flowTx) continueStepWork(
 		return nil
 	}
 	if clearRetryEntries {
-		tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
+		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 			for token := range started {
 				tx.CancelTask(
 					retryKey(api.FlowStep{
@@ -136,7 +136,7 @@ func (tx *flowTx) handleRetryScheduled(
 func (tx *flowTx) startContinuedWork(
 	stepID api.StepID, step *api.Step, started api.WorkItems,
 ) error {
-	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		exec := flow.Executions[stepID]
 		tx.handleWorkItemsExecution(step, exec.Inputs, flow.Metadata, started)
 	})
@@ -193,7 +193,7 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 			return nil
 		}
 
-		tx.OnSuccess(func(*api.FlowState, []*timebox.Event) {
+		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 			if !retryAt.IsZero() {
 				tx.scheduleRetryTask(fs, tkn, retryAt)
 				return

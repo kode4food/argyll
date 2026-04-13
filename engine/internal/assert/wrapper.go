@@ -69,7 +69,7 @@ func (w *Wrapper) StepInvalid(t *api.Step, expectedErrorContains string) {
 }
 
 // FlowStatus asserts the status of a flow
-func (w *Wrapper) FlowStatus(flow *api.FlowState, expected api.FlowStatus) {
+func (w *Wrapper) FlowStatus(flow api.FlowState, expected api.FlowStatus) {
 	w.Helper()
 	w.Equal(expected, flow.Status)
 }

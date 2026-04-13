@@ -51,11 +51,10 @@ func (e *Engine) NotCompleteWork(
 
 		var retryTkn api.Token
 		if exec, ok := tx.Value().Executions[fs.StepID]; ok {
-			if work := exec.WorkItems[tkn]; work != nil {
-				step := tx.Value().Plan.Steps[fs.StepID]
-				if step != nil && !step.Memoizable && work.RetryCount > 0 {
-					retryTkn = api.Token(uuid.New().String())
-				}
+			work := exec.WorkItems[tkn]
+			step := tx.Value().Plan.Steps[fs.StepID]
+			if step != nil && !step.Memoizable && work.RetryCount > 0 {
+				retryTkn = api.Token(uuid.New().String())
 			}
 		}
 
@@ -96,19 +95,17 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
-	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		step := flow.Plan.Steps[stepID]
 		if step != nil && step.Memoizable {
 			exec := flow.Executions[stepID]
 			work := flow.Executions[stepID].WorkItems[tkn]
-			if exec != nil && work != nil {
-				inputs := exec.Inputs.Apply(work.Inputs)
-				err := tx.memoCache.Put(step, inputs, outputs)
-				if err != nil {
-					slog.Warn("memo cache put failed",
-						log.FlowID(tx.flowID), log.StepID(stepID),
-						log.Error(err))
-				}
+			inputs := exec.Inputs.Apply(work.Inputs)
+			err := tx.memoCache.Put(step, inputs, outputs)
+			if err != nil {
+				slog.Warn("memo cache put failed",
+					log.FlowID(tx.flowID), log.StepID(stepID),
+					log.Error(err))
 			}
 		}
 
@@ -211,7 +208,7 @@ func (tx *flowTx) handleMemoCacheHit(
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		if hasRetryTask(flow, stepID, tkn) {
 			fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
 			tx.handleWorkSucceededCleanup(fs, tkn)
@@ -234,21 +231,21 @@ func (tx *flowTx) raiseWorkFailed(
 }
 
 func hasRetryTask(
-	flow *api.FlowState, stepID api.StepID, tkn api.Token,
+	flow api.FlowState, stepID api.StepID, tkn api.Token,
 ) bool {
 	exec, ok := flow.Executions[stepID]
 	if !ok {
 		return false
 	}
 	work, ok := exec.WorkItems[tkn]
-	if !ok || work == nil {
+	if !ok {
 		return false
 	}
 	return !work.NextRetryAt.IsZero()
 }
 
 func (tx *flowTx) raiseRetryScheduled(
-	stepID api.StepID, tkn api.Token, work *api.WorkState,
+	stepID api.StepID, tkn api.Token, work api.WorkState,
 	nextRetryAt time.Time,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeRetryScheduled,

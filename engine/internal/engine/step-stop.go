@@ -89,7 +89,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		return true, err
 	}
 	if tx.Value().Status == api.FlowActive {
-		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 			tx.scheduleConsumerTimeouts(flow, stepID, tx.Now())
 		})
 	}

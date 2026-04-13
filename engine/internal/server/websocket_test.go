@@ -79,7 +79,7 @@ func subscribedItem(
 
 func TestClientReceivesEvent(t *testing.T) {
 	getState := func(aggID timebox.AggregateID) (any, int64, error) {
-		return &api.FlowState{ID: "wf-123"}, 0, nil
+		return api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)
@@ -122,7 +122,7 @@ func TestClientReceivesEvent(t *testing.T) {
 
 func TestClientFiltersEventsByType(t *testing.T) {
 	getState := func(aggID timebox.AggregateID) (any, int64, error) {
-		return &api.FlowState{ID: "wf-123"}, 0, nil
+		return api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)
@@ -315,7 +315,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 }
 
 func TestSubscribeStateSendsState(t *testing.T) {
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		ID:     "wf-123",
 		Status: api.FlowActive,
 	}
@@ -357,7 +357,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 
 func TestStaleEventsFiltered(t *testing.T) {
 	getState := func(aggID timebox.AggregateID) (any, int64, error) {
-		return &api.FlowState{ID: "wf-123"}, 1, nil
+		return api.FlowState{ID: "wf-123"}, 1, nil
 	}
 
 	env := testWebSocket(t, getState)
@@ -494,7 +494,7 @@ func TestSubscribeNoID(t *testing.T) {
 
 func TestClientPongHandler(t *testing.T) {
 	getState := func(id timebox.AggregateID) (any, int64, error) {
-		return &api.FlowState{ID: "wf-123"}, 0, nil
+		return api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)
@@ -524,7 +524,7 @@ func TestClientPongHandler(t *testing.T) {
 
 func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	getState := func(aggID timebox.AggregateID) (any, int64, error) {
-		return &api.FlowState{ID: "wf-123"}, 0, nil
+		return api.FlowState{ID: "wf-123"}, 0, nil
 	}
 
 	env := testWebSocket(t, getState)

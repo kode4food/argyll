@@ -17,7 +17,7 @@ var (
 func (e *Engine) collectStepOutputs(
 	items api.WorkItems, step *api.Step,
 ) api.Args {
-	completed := make([]*api.WorkState, 0, len(items))
+	completed := make([]api.WorkState, 0, len(items))
 	for _, work := range items {
 		if work.Status == api.WorkSucceeded {
 			completed = append(completed, work)
@@ -125,7 +125,7 @@ func extractMultiArgs(multiArgs MultiArgs) ([]api.Name, [][]any) {
 	return names, arrays
 }
 
-func collectWorkOutputs(completed []*api.WorkState, step *api.Step) api.Args {
+func collectWorkOutputs(completed []api.WorkState, step *api.Step) api.Args {
 	aggregated := map[api.Name][]map[string]any{}
 	var multiArgNames []api.Name
 	if step != nil {

@@ -4,9 +4,9 @@
 
 **Storage:** shared `timebox.Store` backed by Raft + Pebble
 
-- Catalog state: `timebox.Executor[*api.CatalogState]` over the shared store
+- Catalog state: `timebox.Executor[api.CatalogState]` over the shared store
 - Partition state: `timebox.Executor[*api.PartitionState]` over the shared store
-- Flow state: `timebox.Executor[*api.FlowState]` over the shared store
+- Flow state: `timebox.Executor[api.FlowState]` over the shared store
 - Concurrency: Optimistic (sequence-based versioning, automatic retry on conflict)
 
 **WebSocket Notifications (separate from event sourcing):**
@@ -96,7 +96,7 @@ func (e *Engine) StartFlow(flowID api.FlowID, pl *api.ExecutionPlan, apps ...flo
                 return err
             }
         }
-        tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+        tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
             tx.scheduleTimeouts(flow, tx.Now())
         })
         return nil
@@ -114,7 +114,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
     }
     started, err := tx.startPendingWork(step)
     if len(started) > 0 {
-        tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+        tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
             // Execute work AFTER commit succeeds
             tx.handleWorkItemsExecution(step, inputs, flow.Metadata, started)
         })
@@ -132,7 +132,7 @@ func (tx *flowTx) checkTerminal() error {
         if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted, ...); err != nil {
             return err
         }
-        tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+        tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
             if flowHasRetryTasks(flow) {
                 tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
             }
@@ -160,7 +160,7 @@ func (tx *flowTx) checkTerminal() error {
 When you raise an event, the aggregator applies it immediately and your previous state reference becomes stale.
 
 ```go
-cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+cmd := func(st api.FlowState, ag *FlowAggregator) error {
     // st is current state
     flow := ag.Value()
 
@@ -184,7 +184,7 @@ cmd := func(st *api.FlowState, ag *FlowAggregator) error {
 **Pattern when chaining operations:**
 
 ```go
-cmd := func(st *api.FlowState, ag *FlowAggregator) error {
+cmd := func(st api.FlowState, ag *FlowAggregator) error {
     // Raise event 1
     if err := events.Raise(ag, EventType1, data1); err != nil {
         return err

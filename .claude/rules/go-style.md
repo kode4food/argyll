@@ -92,7 +92,7 @@ Use longer names only when the broader scope really needs them, such as struct f
 // Good - clear at API boundaries
 func (e *Engine) StartFlow(
     flowID api.FlowID, goalSteps []api.StepID, initState api.Args,
-) (*api.FlowState, error)
+) (api.FlowState, error)
 
 // Good - descriptive struct fields
 type FlowState struct {

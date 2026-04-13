@@ -62,7 +62,7 @@ func (e *TestEngineEnv) WaitAfterAll(count int, fn func([]*wait.Wait)) {
 
 func (e *TestEngineEnv) WaitForFlowStatus(
 	flowID api.FlowID, fn func(),
-) *api.FlowState {
+) api.FlowState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
@@ -79,12 +79,12 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 // WaitForStepStarted waits for a step to start and returns the execution
 func (e *TestEngineEnv) WaitForStepStarted(
 	fs api.FlowStep, fn func(),
-) *api.ExecutionState {
+) api.ExecutionState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
-		if err == nil && exec != nil && isStepStarted(exec.Status) {
+		if err == nil && isStepStarted(exec.Status) {
 			return
 		}
 		wait.On(e.T, consumer).ForEvent(wait.StepStarted(fs))
@@ -94,7 +94,7 @@ func (e *TestEngineEnv) WaitForStepStarted(
 	if err != nil {
 		e.T.Fatalf("failed to fetch execution %s: %v", fs.StepID, err)
 	}
-	if exec == nil || !isStepStarted(exec.Status) {
+	if !isStepStarted(exec.Status) {
 		e.T.Fatalf("execution %s not started after event", fs.StepID)
 	}
 	return exec
@@ -103,12 +103,12 @@ func (e *TestEngineEnv) WaitForStepStarted(
 // WaitForStepStatus waits for a step to finish and returns the execution
 func (e *TestEngineEnv) WaitForStepStatus(
 	flowID api.FlowID, stepID api.StepID, fn func(),
-) *api.ExecutionState {
+) api.ExecutionState {
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
 		exec, err := e.getExecutionState(flowID, stepID)
-		if err == nil && exec != nil && isStepTerminal(exec.Status) {
+		if err == nil && isStepTerminal(exec.Status) {
 			return
 		}
 		wait.On(e.T, consumer).ForEvent(wait.StepTerminal(
@@ -121,15 +121,15 @@ func (e *TestEngineEnv) WaitForStepStatus(
 
 func (e *TestEngineEnv) getExecutionState(
 	flowID api.FlowID, stepID api.StepID,
-) (*api.ExecutionState, error) {
+) (api.ExecutionState, error) {
 	flow, err := e.Engine.GetFlowState(flowID)
 	if err != nil {
-		return nil, err
+		return api.ExecutionState{}, err
 	}
 	return flow.Executions[stepID], nil
 }
 
-func isFlowTerminal(state *api.FlowState) bool {
+func isFlowTerminal(state api.FlowState) bool {
 	return state.Status == api.FlowCompleted ||
 		state.Status == api.FlowFailed
 }
@@ -144,7 +144,7 @@ func isStepTerminal(status api.StepStatus) bool {
 		status == api.StepSkipped
 }
 
-func (e *TestEngineEnv) waitForTerminalFlow(flowID api.FlowID) *api.FlowState {
+func (e *TestEngineEnv) waitForTerminalFlow(flowID api.FlowID) api.FlowState {
 	e.T.Helper()
 
 	deadline := time.Now().Add(wait.DefaultTimeout)
@@ -165,13 +165,13 @@ func (e *TestEngineEnv) waitForTerminalFlow(flowID api.FlowID) *api.FlowState {
 
 func (e *TestEngineEnv) waitForTerminalStep(
 	flowID api.FlowID, stepID api.StepID,
-) *api.ExecutionState {
+) api.ExecutionState {
 	e.T.Helper()
 
 	deadline := time.Now().Add(wait.DefaultTimeout)
 	for {
 		exec, err := e.getExecutionState(flowID, stepID)
-		if err == nil && exec != nil && isStepTerminal(exec.Status) {
+		if err == nil && isStepTerminal(exec.Status) {
 			return exec
 		}
 		if time.Now().After(deadline) {

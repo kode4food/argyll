@@ -133,8 +133,8 @@ func TestFlowWithEmptyLabels(t *testing.T) {
 	wf := builder.NewClient("http://localhost:8080", 30*time.Second).
 		NewFlow("wf-1")
 
-	assert.Same(t, wf, wf.WithLabels(nil))
-	assert.Same(t, wf, wf.WithLabels(api.Labels{}))
+	assert.Equal(t, wf, wf.WithLabels(nil))
+	assert.Equal(t, wf, wf.WithLabels(api.Labels{}))
 }
 
 func TestFlowStartStatusCreated(t *testing.T) {

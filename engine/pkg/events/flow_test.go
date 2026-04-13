@@ -187,7 +187,7 @@ func TestParseFlowID(t *testing.T) {
 }
 
 func TestFlowCompleted(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
@@ -212,7 +212,7 @@ func TestFlowCompleted(t *testing.T) {
 }
 
 func TestFlowFailed(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
@@ -241,7 +241,7 @@ func TestFlowFailed(t *testing.T) {
 }
 
 func TestFlowDeactivated(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
@@ -266,7 +266,7 @@ func TestFlowDeactivated(t *testing.T) {
 }
 
 func TestStepStarted(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -303,7 +303,7 @@ func TestStepStarted(t *testing.T) {
 }
 
 func TestStepCompleted(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -338,7 +338,7 @@ func TestStepCompleted(t *testing.T) {
 }
 
 func TestStepFailed(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -370,7 +370,7 @@ func TestStepFailed(t *testing.T) {
 }
 
 func TestStepSkipped(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -402,7 +402,7 @@ func TestStepSkipped(t *testing.T) {
 }
 
 func TestAttributeSet(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:         "test-flow",
 		Status:     api.FlowActive,
 		Attributes: api.AttributeValues{},
@@ -434,7 +434,7 @@ func TestAttributeSet(t *testing.T) {
 }
 
 func TestWorkStarted(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -475,7 +475,7 @@ func TestWorkStarted(t *testing.T) {
 }
 
 func TestWorkSucceeded(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -515,7 +515,7 @@ func TestWorkSucceeded(t *testing.T) {
 }
 
 func TestWorkFailed(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -554,7 +554,7 @@ func TestWorkFailed(t *testing.T) {
 }
 
 func TestWorkNotCompleted(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -593,7 +593,7 @@ func TestWorkNotCompleted(t *testing.T) {
 }
 
 func TestRetryScheduled(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
 		Executions: api.Executions{
@@ -640,7 +640,7 @@ func TestRetryScheduled(t *testing.T) {
 }
 
 func TestMissingExecution(t *testing.T) {
-	state := &api.FlowState{
+	state := api.FlowState{
 		ID:         "test-flow",
 		Status:     api.FlowActive,
 		Executions: api.Executions{},
@@ -663,8 +663,12 @@ func TestMissingExecution(t *testing.T) {
 	}
 
 	applier := events.FlowAppliers[event.Type]
-
-	assert.Panics(t, func() {
-		applier(state, event)
-	})
+	result := applier(state, event)
+	exec, ok := result.Executions["nonexistent"]
+	if assert.True(t, ok) {
+		assert.Equal(t, api.StepCompleted, exec.Status)
+		assert.True(t, exec.CompletedAt.Equal(now))
+		assert.EqualValues(t, 1000, exec.Duration)
+		assert.Empty(t, exec.Outputs)
+	}
 }

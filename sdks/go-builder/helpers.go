@@ -27,7 +27,7 @@ var (
 	ErrHandlerPanic     = errors.New("step handler panicked")
 )
 
-func setupStepServer(client *Client, step *Step, handle StepHandler) error {
+func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	port := os.Getenv("STEP_PORT")
 	if port == "" {
 		port = strconv.Itoa(DefaultStepPort)

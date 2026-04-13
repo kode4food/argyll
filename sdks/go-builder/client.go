@@ -128,7 +128,7 @@ func (c *Client) startFlow(
 }
 
 // GetState retrieves the current state of the flow
-func (c *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
+func (c *FlowClient) GetState(ctx context.Context) (api.FlowState, error) {
 	var result api.FlowState
 	err := c.doHTTPRequest(ctx, httpRequest{
 		Method:    "GET",
@@ -138,9 +138,9 @@ func (c *FlowClient) GetState(ctx context.Context) (*api.FlowState, error) {
 		Result:    &result,
 	})
 	if err != nil {
-		return nil, err
+		return api.FlowState{}, err
 	}
-	return &result, nil
+	return result, nil
 }
 
 // GetStatus retrieves the current status of the flow

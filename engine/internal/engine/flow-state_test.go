@@ -14,7 +14,7 @@ import (
 
 func TestNoDeps(t *testing.T) {
 	e := &engine.Engine{}
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{},
 		},
@@ -25,7 +25,7 @@ func TestNoDeps(t *testing.T) {
 
 func TestNoProviders(t *testing.T) {
 	e := &engine.Engine{}
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{
 				"input": {Providers: []api.StepID{}},
@@ -38,7 +38,7 @@ func TestNoProviders(t *testing.T) {
 
 func TestCompletableProvider(t *testing.T) {
 	e := &engine.Engine{}
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{
 				"input": {Providers: []api.StepID{"provider"}},
@@ -64,7 +64,7 @@ func TestCompletableProvider(t *testing.T) {
 
 func TestFailedProvider(t *testing.T) {
 	e := &engine.Engine{}
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Attributes: api.AttributeGraph{
 				"input": {Providers: []api.StepID{"provider"}},
@@ -91,7 +91,7 @@ func TestFailedProvider(t *testing.T) {
 func TestGoalBlocked(t *testing.T) {
 	e := &engine.Engine{}
 
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Goals: []api.StepID{"goal"},
 			Steps: api.Steps{
@@ -135,7 +135,7 @@ func TestGoalBlocked(t *testing.T) {
 func TestGoalCompleted(t *testing.T) {
 	e := &engine.Engine{}
 
-	fl := &api.FlowState{
+	fl := api.FlowState{
 		Plan: &api.ExecutionPlan{
 			Goals: []api.StepID{"goal"},
 			Steps: api.Steps{

@@ -61,7 +61,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 
 // FindRetrySteps identifies all steps in a flow that have work items that
 // might need recovery
-func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
+func (e *Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 
 	for stepID, exec := range state.Executions {
@@ -77,11 +77,11 @@ func (e *Engine) FindRetrySteps(state *api.FlowState) util.Set[api.StepID] {
 	return steps
 }
 
-func (e *Engine) recoverTimeoutScans(flow *api.FlowState) {
+func (e *Engine) recoverTimeoutScans(flow api.FlowState) {
 	e.scheduleTimeouts(flow, e.Now())
 }
 
-func (e *Engine) recoverRetryWork(flow *api.FlowState) {
+func (e *Engine) recoverRetryWork(flow api.FlowState) {
 	steps := e.FindRetrySteps(flow)
 	if steps.IsEmpty() {
 		return
@@ -140,7 +140,7 @@ func (e *Engine) recoverFlows(ids []api.FlowID) {
 	}
 }
 
-func isRecoverable(exec *api.ExecutionState, work *api.WorkState) bool {
+func isRecoverable(exec api.ExecutionState, work api.WorkState) bool {
 	switch work.Status {
 	case api.WorkActive, api.WorkNotCompleted:
 		return true
@@ -157,7 +157,7 @@ func isRecoverable(exec *api.ExecutionState, work *api.WorkState) bool {
 }
 
 func recoverableDeadline(
-	exec *api.ExecutionState, work *api.WorkState, now time.Time,
+	exec api.ExecutionState, work api.WorkState, now time.Time,
 ) (time.Time, bool) {
 	switch work.Status {
 	case api.WorkActive, api.WorkNotCompleted:

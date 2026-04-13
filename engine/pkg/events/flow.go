@@ -18,8 +18,8 @@ var FlowAppliers = makeFlowAppliers()
 
 // NewFlowState creates an empty flow state with initialized maps for
 // attributes, step executions, and timeouts
-func NewFlowState() *api.FlowState {
-	return &api.FlowState{
+func NewFlowState() api.FlowState {
+	return api.FlowState{
 		Attributes: api.AttributeValues{},
 		Executions: api.Executions{},
 	}
@@ -91,8 +91,8 @@ func IsFlowEventID(id timebox.AggregateID) bool {
 	return len(id) == 2 && id[0] == FlowPrefix
 }
 
-func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
-	return MakeAppliers(map[api.EventType]timebox.Applier[*api.FlowState]{
+func makeFlowAppliers() timebox.Appliers[api.FlowState] {
+	return MakeAppliers(map[api.EventType]timebox.Applier[api.FlowState]{
 		api.EventTypeFlowStarted:      timebox.MakeApplier(flowStarted),
 		api.EventTypeFlowCompleted:    timebox.MakeApplier(flowCompleted),
 		api.EventTypeFlowDeactivated:  timebox.MakeApplier(flowDeactivated),
@@ -111,8 +111,8 @@ func makeFlowAppliers() timebox.Appliers[*api.FlowState] {
 }
 
 func flowStarted(
-	_ *api.FlowState, ev *timebox.Event, data api.FlowStartedEvent,
-) *api.FlowState {
+	_ api.FlowState, ev *timebox.Event, data api.FlowStartedEvent,
+) api.FlowState {
 	execs := createExecutions(data.Plan)
 
 	attributes := api.AttributeValues{}
@@ -123,7 +123,7 @@ func flowStarted(
 		}
 	}
 
-	return &api.FlowState{
+	return api.FlowState{
 		ID:          data.FlowID,
 		Status:      api.FlowActive,
 		Plan:        data.Plan,
@@ -137,8 +137,8 @@ func flowStarted(
 }
 
 func flowCompleted(
-	st *api.FlowState, ev *timebox.Event, _ api.FlowCompletedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, _ api.FlowCompletedEvent,
+) api.FlowState {
 	return st.
 		SetStatus(api.FlowCompleted).
 		SetCompletedAt(ev.Timestamp).
@@ -146,8 +146,8 @@ func flowCompleted(
 }
 
 func flowFailed(
-	st *api.FlowState, ev *timebox.Event, data api.FlowFailedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.FlowFailedEvent,
+) api.FlowState {
 	return st.
 		SetStatus(api.FlowFailed).
 		SetError(data.Error).
@@ -156,25 +156,25 @@ func flowFailed(
 }
 
 func flowDeactivated(
-	st *api.FlowState, ev *timebox.Event, _ api.FlowDeactivatedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, _ api.FlowDeactivatedEvent,
+) api.FlowState {
 	return st.
 		SetDeactivatedAt(ev.Timestamp).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepStarted(
-	st *api.FlowState, ev *timebox.Event, data api.StepStartedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.StepStartedEvent,
+) api.FlowState {
 	workItems := api.WorkItems{}
 	for token, inputs := range data.WorkItems {
-		workItems[token] = &api.WorkState{
+		workItems[token] = api.WorkState{
 			Status: api.WorkPending,
 			Inputs: inputs,
 		}
 	}
 
-	exec := &api.ExecutionState{
+	exec := api.ExecutionState{
 		Status:    api.StepPending,
 		WorkItems: workItems,
 	}
@@ -190,8 +190,8 @@ func stepStarted(
 }
 
 func stepCompleted(
-	st *api.FlowState, ev *timebox.Event, data api.StepCompletedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.StepCompletedEvent,
+) api.FlowState {
 	return st.
 		SetExecution(data.StepID,
 			st.Executions[data.StepID].
@@ -204,8 +204,8 @@ func stepCompleted(
 }
 
 func stepFailed(
-	st *api.FlowState, ev *timebox.Event, data api.StepFailedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.StepFailedEvent,
+) api.FlowState {
 	return st.
 		SetExecution(data.StepID,
 			st.Executions[data.StepID].
@@ -217,8 +217,8 @@ func stepFailed(
 }
 
 func stepSkipped(
-	st *api.FlowState, ev *timebox.Event, data api.StepSkippedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.StepSkippedEvent,
+) api.FlowState {
 	return st.
 		SetExecution(data.StepID,
 			st.Executions[data.StepID].
@@ -230,8 +230,8 @@ func stepSkipped(
 }
 
 func attributeSet(
-	st *api.FlowState, ev *timebox.Event, data api.AttributeSetEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.AttributeSetEvent,
+) api.FlowState {
 	return st.
 		SetAttribute(data.Key, &api.AttributeValue{
 			Value: data.Value,
@@ -244,7 +244,7 @@ func attributeSet(
 func createExecutions(p *api.ExecutionPlan) api.Executions {
 	exec := api.Executions{}
 	for stepID := range p.Steps {
-		exec[stepID] = &api.ExecutionState{
+		exec[stepID] = api.ExecutionState{
 			Status:    api.StepPending,
 			WorkItems: api.WorkItems{},
 		}
@@ -253,8 +253,8 @@ func createExecutions(p *api.ExecutionPlan) api.Executions {
 }
 
 func workStarted(
-	st *api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
+) api.FlowState {
 	exec := st.Executions[data.StepID]
 	item := exec.WorkItems[data.Token].SetStatus(api.WorkActive)
 
@@ -268,8 +268,8 @@ func workStarted(
 }
 
 func workSucceeded(
-	st *api.FlowState, ev *timebox.Event, data api.WorkSucceededEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.WorkSucceededEvent,
+) api.FlowState {
 	exec := st.Executions[data.StepID]
 	item, ok := exec.WorkItems[data.Token]
 	if !ok {
@@ -287,8 +287,8 @@ func workSucceeded(
 }
 
 func workFailed(
-	st *api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
+) api.FlowState {
 	exec := st.Executions[data.StepID]
 	item, ok := exec.WorkItems[data.Token]
 	if !ok {
@@ -306,8 +306,8 @@ func workFailed(
 }
 
 func workNotCompleted(
-	st *api.FlowState, ev *timebox.Event, data api.WorkNotCompletedEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.WorkNotCompletedEvent,
+) api.FlowState {
 	exec := st.Executions[data.StepID]
 	item, ok := exec.WorkItems[data.Token]
 	if !ok {
@@ -319,7 +319,7 @@ func workNotCompleted(
 		SetCompletedAt(ev.Timestamp).
 		SetError(data.Error)
 
-	var updatedExec *api.ExecutionState
+	var updatedExec api.ExecutionState
 	if data.RetryToken != "" && data.RetryToken != data.Token {
 		updatedExec = exec.
 			RemoveWorkItem(data.Token).
@@ -334,8 +334,8 @@ func workNotCompleted(
 }
 
 func retryScheduled(
-	st *api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
-) *api.FlowState {
+	st api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
+) api.FlowState {
 	exec := st.Executions[data.StepID]
 	item, ok := exec.WorkItems[data.Token]
 	if !ok {

@@ -344,45 +344,45 @@ func calculateTotal(items any) float64 {
 #### NewStep: Create a step builder
 Creates a new step builder template.
 ```go
-NewStep() *Step
+NewStep() Step
 ```
 
 ### Step Builder Methods
 
 #### Attribute Definition
-- `Required(name api.Name, argType api.AttributeType) *Step` - Add required input
-- `Optional(name api.Name, argType api.AttributeType, defaultValue string) *Step` - Add optional input with default
-- `Output(name api.Name, argType api.AttributeType) *Step` - Add output
+- `Required(name api.Name, argType api.AttributeType) Step` - Add required input
+- `Optional(name api.Name, argType api.AttributeType, defaultValue string) Step` - Add optional input with default
+- `Output(name api.Name, argType api.AttributeType) Step` - Add output
 
 #### Configuration
-- `WithName(name api.Name) *Step` - Set step name (auto-generates ID if unset)
-- `WithID(id string) *Step` - Set custom step ID
-- `WithTimeout(timeout int64) *Step` - Set execution timeout (milliseconds)
-- `WithEndpoint(endpoint string) *Step` - Set HTTP endpoint
-- `WithHealthCheck(endpoint string) *Step` - Set health check endpoint
-- `WithLabel(key, value string) *Step` - Set a single label
-- `WithLabels(labels api.Labels) *Step` - Merge labels with the current set
+- `WithName(name api.Name) Step` - Set step name (auto-generates ID if unset)
+- `WithID(id string) Step` - Set custom step ID
+- `WithTimeout(timeout int64) Step` - Set execution timeout (milliseconds)
+- `WithEndpoint(endpoint string) Step` - Set HTTP endpoint
+- `WithHealthCheck(endpoint string) Step` - Set health check endpoint
+- `WithLabel(key, value string) Step` - Set a single label
+- `WithLabels(labels api.Labels) Step` - Merge labels with the current set
 
 #### Execution Type
-- `WithSyncExecution() *Step` - Mark as synchronous
-- `WithAsyncExecution() *Step` - Mark as asynchronous
-- `WithScriptExecution() *Step` - Mark as script-based
+- `WithSyncExecution() Step` - Mark as synchronous
+- `WithAsyncExecution() Step` - Mark as asynchronous
+- `WithScriptExecution() Step` - Mark as script-based
 
 #### Scripts
-- `WithScript(script string) *Step` - Add Ale script
-- `WithScriptLanguage(lang, script string) *Step` - Add script with custom language
-- `WithAlePredicate(script string) *Step` - Add Ale predicate
-- `WithLuaPredicate(script string) *Step` - Add Lua predicate
-- `WithPredicate(language, script string) *Step` - Add custom predicate
+- `WithScript(script string) Step` - Add Ale script
+- `WithScriptLanguage(lang, script string) Step` - Add script with custom language
+- `WithAlePredicate(script string) Step` - Add Ale predicate
+- `WithLuaPredicate(script string) Step` - Add Lua predicate
+- `WithPredicate(language, script string) Step` - Add custom predicate
 
 #### Advanced
-- `WithForEach(name api.Name) *Step` - Enable parallel array processing
-- `WithFlowGoals(goals ...api.StepID) *Step` - Configure child flow goals
+- `WithForEach(name api.Name) Step` - Enable parallel array processing
+- `WithFlowGoals(goals ...api.StepID) Step` - Configure child flow goals
 
 #### Registration
 - `Build() (*api.Step, error)` - Build step definition
 - `Register(ctx context.Context) error` - Register step with engine
-- `Update() *Step` - Mark step as modified (for updates)
+- `Update() Step` - Mark step as modified (for updates)
 - `Start(handler builder.StepHandler) error` - Register and start HTTP server
 
 ### StepHandler Type

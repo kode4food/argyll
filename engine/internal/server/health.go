@@ -78,7 +78,7 @@ func (h *HealthChecker) checkAllSteps() {
 		return
 	}
 
-	health := make(map[api.StepID]*api.HealthState, len(cat.Steps))
+	health := make(map[api.StepID]api.HealthState, len(cat.Steps))
 
 	var httpSteps []*api.Step
 	for _, step := range cat.Steps {
@@ -108,7 +108,7 @@ func (h *HealthChecker) checkAllSteps() {
 }
 
 func (h *HealthChecker) updateScriptHealth(
-	step *api.Step, health map[api.StepID]*api.HealthState,
+	step *api.Step, health map[api.StepID]api.HealthState,
 ) {
 	status := api.HealthHealthy
 	errMsg := ""
@@ -116,7 +116,7 @@ func (h *HealthChecker) updateScriptHealth(
 		status = api.HealthUnhealthy
 		errMsg = err.Error()
 	}
-	health[step.ID] = &api.HealthState{
+	health[step.ID] = api.HealthState{
 		Status: status,
 		Error:  errMsg,
 	}
@@ -127,7 +127,7 @@ func (h *HealthChecker) updateScriptHealth(
 }
 
 func (h *HealthChecker) updateFlowSteps(
-	cat *api.CatalogState, health map[api.StepID]*api.HealthState,
+	cat api.CatalogState, health map[api.StepID]api.HealthState,
 ) {
 	resolved := engine.ResolveHealth(cat, health)
 	for stepID, step := range cat.Steps {
@@ -149,7 +149,7 @@ func (h *HealthChecker) updateFlowSteps(
 }
 
 func (h *HealthChecker) updateStepHealth(
-	step *api.Step, health map[api.StepID]*api.HealthState,
+	step *api.Step, health map[api.StepID]api.HealthState,
 ) {
 	status := api.HealthHealthy
 	errorMsg := ""
@@ -161,7 +161,7 @@ func (h *HealthChecker) updateStepHealth(
 		slog.Error("Health check failed",
 			log.StepID(step.ID),
 			log.Error(err))
-		health[step.ID] = &api.HealthState{
+		health[step.ID] = api.HealthState{
 			Status: status,
 			Error:  errorMsg,
 		}
@@ -182,7 +182,7 @@ func (h *HealthChecker) updateStepHealth(
 			log.Status(resp.Status))
 	}
 
-	health[step.ID] = &api.HealthState{
+	health[step.ID] = api.HealthState{
 		Status: status,
 		Error:  errorMsg,
 	}

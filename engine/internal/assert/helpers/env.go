@@ -27,7 +27,7 @@ type (
 		Cleanup    func()
 		engStore   *timebox.Store
 		flowStore  *timebox.Store
-		flowExec   *timebox.Executor[*api.FlowState]
+		flowExec   *timebox.Executor[api.FlowState]
 	}
 
 	FlowEvent struct {
@@ -147,7 +147,7 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 ) error {
 	_, err := e.flowExec.Exec(
 		events.FlowKey(flowID),
-		func(_ *api.FlowState, ag *timebox.Aggregator[*api.FlowState]) error {
+		func(_ api.FlowState, ag *timebox.Aggregator[api.FlowState]) error {
 			for _, ev := range evs {
 				if err := raiseFlowEvent(ag, ev); err != nil {
 					return err
@@ -175,7 +175,7 @@ func (e *TestEngineEnv) ListFlowsByLabel(
 }
 
 func raiseFlowEvent(
-	ag *timebox.Aggregator[*api.FlowState], ev FlowEvent,
+	ag *timebox.Aggregator[api.FlowState], ev FlowEvent,
 ) error {
 	return events.Raise(ag, ev.Type, ev.Data)
 }

@@ -62,7 +62,7 @@ func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 	}
 }
 
-func (e *ExecContext) performWorkItem(tkn api.Token, work *api.WorkState) {
+func (e *ExecContext) performWorkItem(tkn api.Token, work api.WorkState) {
 	inputs := e.inputs.Apply(work.Inputs)
 	if err := e.performWork(inputs, tkn); err != nil {
 		e.handleWorkItemFailure(tkn, err)
@@ -309,7 +309,7 @@ func (tx *flowTx) startRetryWorkItem(
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
-	step *api.Step, base api.Args, work *api.WorkState, now time.Time,
+	step *api.Step, base api.Args, work api.WorkState, now time.Time,
 ) (bool, error) {
 	stepID := step.ID
 	if work.Status != api.WorkPending {
@@ -327,7 +327,7 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 }
 
 func (tx *flowTx) shouldStartRetryPending(
-	step *api.Step, base api.Args, work *api.WorkState, items api.WorkItems,
+	step *api.Step, base api.Args, work api.WorkState, items api.WorkItems,
 	now time.Time,
 ) (bool, error) {
 	stepID := step.ID

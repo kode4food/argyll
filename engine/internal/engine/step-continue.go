@@ -8,7 +8,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
+func (e *Engine) scheduleTimeouts(flow api.FlowState, now time.Time) {
 	if !flowHasTimeouts(flow) {
 		return
 	}
@@ -23,7 +23,7 @@ func (e *Engine) scheduleTimeouts(flow *api.FlowState, now time.Time) {
 }
 
 func (e *Engine) scheduleConsumerTimeouts(
-	flow *api.FlowState, producerID api.StepID, now time.Time,
+	flow api.FlowState, producerID api.StepID, now time.Time,
 ) {
 	if flowTransitions.IsTerminal(flow.Status) {
 		if flowHasTimeouts(flow) {
@@ -57,7 +57,7 @@ func (e *Engine) scheduleConsumerTimeouts(
 }
 
 func (e *Engine) scheduleStepTimeouts(
-	flow *api.FlowState, stepID api.StepID, now time.Time, clearExisting bool,
+	flow api.FlowState, stepID api.StepID, now time.Time, clearExisting bool,
 ) {
 	step, ok := flow.Plan.Steps[stepID]
 	if !ok || !stepHasTimeouts(step) {
@@ -95,7 +95,7 @@ func (e *Engine) scheduleStepTimeouts(
 	}
 }
 
-func flowHasTimeouts(flow *api.FlowState) bool {
+func flowHasTimeouts(flow api.FlowState) bool {
 	for _, step := range flow.Plan.Steps {
 		if stepHasTimeouts(step) {
 			return true

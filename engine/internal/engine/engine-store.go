@@ -8,24 +8,24 @@ import (
 )
 
 // GetCatalogState retrieves the current catalog state
-func (e *Engine) GetCatalogState() (*api.CatalogState, error) {
+func (e *Engine) GetCatalogState() (api.CatalogState, error) {
 	return e.catalogExec.Get(events.CatalogKey)
 }
 
 // GetClusterState retrieves the current cluster state
-func (e *Engine) GetClusterState() (*api.ClusterState, error) {
+func (e *Engine) GetClusterState() (api.ClusterState, error) {
 	st, err := e.clusterExec.Get(events.ClusterKey)
 	if err != nil {
-		return nil, err
+		return api.ClusterState{}, err
 	}
 	return e.withConfiguredNodes(st), nil
 }
 
 // GetCatalogStateSeq retrieves catalog state and its next event sequence
-func (e *Engine) GetCatalogStateSeq() (*api.CatalogState, int64, error) {
+func (e *Engine) GetCatalogStateSeq() (api.CatalogState, int64, error) {
 	var seq int64
 	st, err := e.execCatalog(
-		func(_ *api.CatalogState, ag *CatalogAggregator) error {
+		func(_ api.CatalogState, ag *CatalogAggregator) error {
 			seq = ag.NextSequence()
 			return nil
 		},
@@ -34,16 +34,16 @@ func (e *Engine) GetCatalogStateSeq() (*api.CatalogState, int64, error) {
 }
 
 // GetClusterStateSeq retrieves cluster state and its next event sequence
-func (e *Engine) GetClusterStateSeq() (*api.ClusterState, int64, error) {
+func (e *Engine) GetClusterStateSeq() (api.ClusterState, int64, error) {
 	var seq int64
 	st, err := e.execCluster(
-		func(_ *api.ClusterState, ag *ClusterAggregator) error {
+		func(_ api.ClusterState, ag *ClusterAggregator) error {
 			seq = ag.NextSequence()
 			return nil
 		},
 	)
 	if err != nil {
-		return nil, 0, err
+		return api.ClusterState{}, 0, err
 	}
 	return e.withConfiguredNodes(st), seq, nil
 }
@@ -64,18 +64,18 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 }
 
 func (e *Engine) execCatalog(
-	cmd timebox.Command[*api.CatalogState],
-) (*api.CatalogState, error) {
+	cmd timebox.Command[api.CatalogState],
+) (api.CatalogState, error) {
 	return e.catalogExec.Exec(events.CatalogKey, cmd)
 }
 
 func (e *Engine) execCluster(
-	cmd timebox.Command[*api.ClusterState],
-) (*api.ClusterState, error) {
+	cmd timebox.Command[api.ClusterState],
+) (api.ClusterState, error) {
 	return e.clusterExec.Exec(events.ClusterKey, cmd)
 }
 
-func (e *Engine) withConfiguredNodes(st *api.ClusterState) *api.ClusterState {
+func (e *Engine) withConfiguredNodes(st api.ClusterState) api.ClusterState {
 	for _, srv := range e.config.Raft.Servers {
 		st = st.EnsureNode(api.NodeID(srv.ID))
 	}

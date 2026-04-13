@@ -730,12 +730,12 @@ func TestMixedInputs(t *testing.T) {
 	assert.Empty(t, pl.Required)
 }
 
-func makeCatalogState(steps api.Steps) *api.CatalogState {
+func makeCatalogState(steps api.Steps) api.CatalogState {
 	graph := api.AttributeGraph{}
 	for _, step := range steps {
 		graph = graph.AddStep(step)
 	}
-	return &api.CatalogState{
+	return api.CatalogState{
 		Steps:      steps,
 		Attributes: graph,
 	}

@@ -35,9 +35,8 @@ func (tx *flowTx) checkTerminal() error {
 	if tx.isFlowComplete(flow) {
 		result := api.Args{}
 		for _, goalID := range flow.Plan.Goals {
-			if goal := flow.Executions[goalID]; goal != nil {
-				maps.Copy(result, goal.Outputs)
-			}
+			goal := flow.Executions[goalID]
+			maps.Copy(result, goal.Outputs)
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted,
 			api.FlowCompletedEvent{
@@ -47,7 +46,7 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 			if flowHasRetryTasks(flow) {
 				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			}
@@ -67,7 +66,7 @@ func (tx *flowTx) checkTerminal() error {
 		); err != nil {
 			return err
 		}
-		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 			if flowHasRetryTasks(flow) {
 				tx.CancelPrefixedTasks(retryPrefix(tx.flowID))
 			}
@@ -81,7 +80,7 @@ func (tx *flowTx) checkTerminal() error {
 }
 
 // getFailureReason extracts a failure reason from flow state
-func (tx *flowTx) getFailureReason(flow *api.FlowState) string {
+func (tx *flowTx) getFailureReason(flow api.FlowState) string {
 	for stepID, exec := range flow.Executions {
 		if exec.Status == api.StepFailed {
 			return fmt.Sprintf("step %s failed: %s", stepID, exec.Error)
@@ -111,13 +110,13 @@ func (tx *flowTx) maybeDeactivate() error {
 	); err != nil {
 		return err
 	}
-	tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		tx.completeParentWork(flow)
 	})
 	return nil
 }
 
-func (tx *flowTx) completeParentWork(st *api.FlowState) {
+func (tx *flowTx) completeParentWork(st api.FlowState) {
 	target := &parentWork{}
 	ok, err := tx.parentMeta(st, target)
 	if !ok || err != nil {
@@ -140,7 +139,7 @@ func (tx *flowTx) completeParentWork(st *api.FlowState) {
 }
 
 func (tx *flowTx) completeParentFlowWork(
-	child *api.FlowState, target *parentWork,
+	child api.FlowState, target *parentWork,
 ) error {
 	return tx.flowTx(target.fs.FlowID, func(parentTx *flowTx) error {
 		parent := parentTx.Value()
@@ -177,7 +176,7 @@ func (tx *flowTx) completeParentFlowWork(
 }
 
 func (tx *flowTx) parentMeta(
-	st *api.FlowState, target *parentWork,
+	st api.FlowState, target *parentWork,
 ) (bool, error) {
 	if err := validateParentMetadata(st.Metadata); err != nil {
 		return false, fmt.Errorf("%w: %s", err, st.ID)
@@ -200,7 +199,7 @@ func isWorkTerminal(status api.WorkStatus) bool {
 	return status == api.WorkSucceeded || status == api.WorkFailed
 }
 
-func flowHasRetryTasks(flow *api.FlowState) bool {
+func flowHasRetryTasks(flow api.FlowState) bool {
 	for _, exec := range flow.Executions {
 		for _, work := range exec.WorkItems {
 			if !work.NextRetryAt.IsZero() {

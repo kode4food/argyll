@@ -16,7 +16,7 @@ import (
 
 type stepEval struct {
 	e      *Engine
-	flow   *api.FlowState
+	flow   api.FlowState
 	stepID api.StepID
 	step   *api.Step
 	now    time.Time
@@ -85,7 +85,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	}
 
 	if len(started) > 0 {
-		tx.OnSuccess(func(flow *api.FlowState, _ []*timebox.Event) {
+		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 			if stepHasTimeouts(step) {
 				tx.CancelPrefixedTasks(
 					timeoutStepPrefix(api.FlowStep{
@@ -101,18 +101,18 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	return nil
 }
 
-func (tx *flowTx) canStartStep(stepID api.StepID, flow *api.FlowState) bool {
+func (tx *flowTx) canStartStep(stepID api.StepID, flow api.FlowState) bool {
 	ready, _ := tx.canStartStepAt(stepID, flow, tx.Now())
 	return ready
 }
 
 func (tx *flowTx) canStartStepAt(
-	stepID api.StepID, flow *api.FlowState, now time.Time,
+	stepID api.StepID, flow api.FlowState, now time.Time,
 ) (bool, time.Time) {
 	return tx.newStepEval(stepID, flow, now).canStart()
 }
 
-func (tx *flowTx) findInitialSteps(flow *api.FlowState) []api.StepID {
+func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
 	res := make([]api.StepID, 0, len(flow.Executions))
 	for stepID, exec := range flow.Executions {
 		if exec.Status != api.StepPending {
@@ -126,7 +126,7 @@ func (tx *flowTx) findInitialSteps(flow *api.FlowState) []api.StepID {
 }
 
 func (e *Engine) newStepEval(
-	stepID api.StepID, flow *api.FlowState, now time.Time,
+	stepID api.StepID, flow api.FlowState, now time.Time,
 ) *stepEval {
 	return &stepEval{
 		e:      e,
@@ -163,7 +163,7 @@ func (e *Engine) evaluateStepPredicate(
 }
 
 func (tx *flowTx) collectStepInputs(
-	step *api.Step, flow *api.FlowState,
+	step *api.Step, flow api.FlowState,
 ) api.Args {
 	inputs := api.Args{}
 	now := tx.Now()

@@ -58,7 +58,7 @@ func (e *Engine) UpdateStep(step *api.Step) error {
 
 func (e *Engine) CatalogTx(fn func(*CatalogTx) error) error {
 	_, err := e.execCatalog(
-		func(_ *api.CatalogState, ag *CatalogAggregator) error {
+		func(_ api.CatalogState, ag *CatalogAggregator) error {
 			return fn(&CatalogTx{
 				e:  e,
 				ag: ag,
@@ -146,7 +146,7 @@ func (e *Engine) raiseStepRegisteredEvent(
 	); err != nil {
 		return err
 	}
-	ag.OnSuccess(func(*api.CatalogState, []*timebox.Event) {
+	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
 		e.resetStepHealth(step)
 	})
 	return nil
@@ -160,7 +160,7 @@ func (e *Engine) raiseStepUpdatedEvent(
 	); err != nil {
 		return err
 	}
-	ag.OnSuccess(func(*api.CatalogState, []*timebox.Event) {
+	ag.OnSuccess(func(api.CatalogState, []*timebox.Event) {
 		e.resetStepHealth(step)
 	})
 	return nil
@@ -229,7 +229,7 @@ func (tx *CatalogTx) prepareStep(step *api.Step) (*api.Step, error) {
 	return step, nil
 }
 
-func validateStepUpsert(st *api.CatalogState, step *api.Step) error {
+func validateStepUpsert(st api.CatalogState, step *api.Step) error {
 	if err := call.Perform(
 		call.WithArgs(validateAttributeTypes, st, step),
 		call.WithArgs(detectStepCycles, st, step),
@@ -239,13 +239,13 @@ func validateStepUpsert(st *api.CatalogState, step *api.Step) error {
 	return nil
 }
 
-func validateAttributeTypes(st *api.CatalogState, newStep *api.Step) error {
+func validateAttributeTypes(st api.CatalogState, newStep *api.Step) error {
 	attributeTypes := collectAttributeTypes(st, newStep.ID)
 	return checkAttributeConflicts(newStep.Attributes, attributeTypes)
 }
 
 func collectAttributeTypes(
-	st *api.CatalogState, excludeID api.StepID,
+	st api.CatalogState, excludeID api.StepID,
 ) api.AttributeTypes {
 	attributeTypes := make(api.AttributeTypes)
 	for stepID, step := range st.Steps {
@@ -272,14 +272,14 @@ func checkAttributeConflicts(
 	return nil
 }
 
-func detectStepCycles(st *api.CatalogState, newStep *api.Step) error {
+func detectStepCycles(st api.CatalogState, newStep *api.Step) error {
 	if err := detectAttributeCycles(st, newStep); err != nil {
 		return err
 	}
 	return detectFlowCycles(st, newStep)
 }
 
-func detectAttributeCycles(st *api.CatalogState, newStep *api.Step) error {
+func detectAttributeCycles(st api.CatalogState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
 	deps := st.Attributes
 	if existing, ok := st.Steps[newStep.ID]; ok {
@@ -289,7 +289,7 @@ func detectAttributeCycles(st *api.CatalogState, newStep *api.Step) error {
 	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
 }
 
-func detectFlowCycles(st *api.CatalogState, newStep *api.Step) error {
+func detectFlowCycles(st api.CatalogState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
 	for stepID := range steps {
 		if err := checkFlowCycleFromStep(stepID, steps, stepSet{}); err != nil {
@@ -352,7 +352,7 @@ func checkFlowCycleFromStep(
 	return nil
 }
 
-func stepsIncluding(st *api.CatalogState, newStep *api.Step) api.Steps {
+func stepsIncluding(st api.CatalogState, newStep *api.Step) api.Steps {
 	steps := maps.Clone(st.Steps)
 	steps[newStep.ID] = newStep
 	return steps

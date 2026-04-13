@@ -16,7 +16,7 @@ const recoveryTimeout = 10 * time.Second
 func waitForFlowStatusWithTimeoutAfter(
 	env *helpers.TestEngineEnv, flowID api.FlowID, timeout time.Duration,
 	fn func(),
-) *api.FlowState {
+) api.FlowState {
 	env.T.Helper()
 
 	states := waitForFlowsStatusWithTimeoutAfter(
@@ -28,12 +28,12 @@ func waitForFlowStatusWithTimeoutAfter(
 func waitForFlowsStatusWithTimeoutAfter(
 	env *helpers.TestEngineEnv, ids []api.FlowID, timeout time.Duration,
 	fn func(),
-) map[api.FlowID]*api.FlowState {
+) map[api.FlowID]api.FlowState {
 	env.T.Helper()
 
 	fn()
 
-	res := make(map[api.FlowID]*api.FlowState, len(ids))
+	res := make(map[api.FlowID]api.FlowState, len(ids))
 	assert.Eventually(env.T, func() bool {
 		for _, flowID := range ids {
 			st, err := env.Engine.GetFlowState(flowID)

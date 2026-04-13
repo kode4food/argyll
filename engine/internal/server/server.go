@@ -182,24 +182,17 @@ func (s *Server) webSockets() []*Client {
 }
 
 func completeClusterHealth(
-	cat *api.CatalogState, cluster *api.ClusterState,
-) *api.ClusterState {
-	if cat == nil || cluster == nil {
-		return cluster
-	}
-
+	cat api.CatalogState, cluster api.ClusterState,
+) api.ClusterState {
 	res := cluster
 	for nodeID, node := range cluster.Nodes {
-		if node == nil {
-			continue
-		}
 		nextNode := node
 		changed := false
 		for stepID := range cat.Steps {
 			if _, ok := nextNode.Health[stepID]; ok {
 				continue
 			}
-			nextNode = nextNode.SetHealth(stepID, &api.HealthState{
+			nextNode = nextNode.SetHealth(stepID, api.HealthState{
 				Status: api.HealthUnknown,
 			})
 			changed = true

@@ -14,7 +14,7 @@ var (
 )
 
 // GetFlowState retrieves the current state of a flow by its ID
-func (e *Engine) GetFlowState(flowID api.FlowID) (*api.FlowState, error) {
+func (e *Engine) GetFlowState(flowID api.FlowID) (api.FlowState, error) {
 	state, _, err := e.GetFlowStateSeq(flowID)
 	return state, err
 }
@@ -41,20 +41,20 @@ func (e *Engine) GetFlowStatus(flowID api.FlowID) (api.FlowStatus, error) {
 // GetFlowStateSeq retrieves the current state and next sequence for a flow
 func (e *Engine) GetFlowStateSeq(
 	flowID api.FlowID,
-) (*api.FlowState, int64, error) {
+) (api.FlowState, int64, error) {
 	var nextSeq int64
 	st, err := e.execFlow(events.FlowKey(flowID),
-		func(st *api.FlowState, ag *FlowAggregator) error {
+		func(st api.FlowState, ag *FlowAggregator) error {
 			nextSeq = ag.NextSequence()
 			return nil
 		},
 	)
 	if err != nil {
-		return nil, 0, err
+		return api.FlowState{}, 0, err
 	}
 
 	if st.ID == "" {
-		return nil, 0, ErrFlowNotFound
+		return api.FlowState{}, 0, ErrFlowNotFound
 	}
 
 	return st, nextSeq, nil
@@ -78,7 +78,7 @@ func (e *Engine) GetAttribute(
 
 // IsFlowFailed determines if a flow has failed by checking whether any of its
 // goal steps cannot be completed
-func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
+func (e *Engine) IsFlowFailed(flow api.FlowState) bool {
 	for _, goalID := range flow.Plan.Goals {
 		if !e.canStepComplete(goalID, flow) {
 			return true
@@ -89,7 +89,7 @@ func (e *Engine) IsFlowFailed(flow *api.FlowState) bool {
 
 // HasInputProvider checks if a required attribute has at least one step that
 // can provide it in the flow execution plan
-func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
+func (e *Engine) HasInputProvider(name api.Name, flow api.FlowState) bool {
 	deps, ok := flow.Plan.Attributes[name]
 	if !ok {
 		return false
@@ -107,7 +107,7 @@ func (e *Engine) HasInputProvider(name api.Name, flow *api.FlowState) bool {
 	return false
 }
 
-func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
+func (e *Engine) isFlowComplete(flow api.FlowState) bool {
 	for stepID := range flow.Plan.Steps {
 		if !e.isStepComplete(stepID, flow) {
 			return false
@@ -116,7 +116,7 @@ func (e *Engine) isFlowComplete(flow *api.FlowState) bool {
 	return true
 }
 
-func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
+func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
 	plan := flow.Plan
 	if slices.Contains(plan.Goals, stepID) {
 		return true
@@ -124,12 +124,12 @@ func (e *Engine) areOutputsNeeded(stepID api.StepID, flow *api.FlowState) bool {
 	return needsOutputs(plan.Steps[stepID], flow)
 }
 
-func (e *Engine) isStepComplete(stepID api.StepID, flow *api.FlowState) bool {
+func (e *Engine) isStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	exec := flow.Executions[stepID]
 	return exec.Status == api.StepCompleted || exec.Status == api.StepSkipped
 }
 
-func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
+func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	exec := flow.Executions[stepID]
 	if stepTransitions.IsTerminal(exec.Status) {
 		return exec.Status == api.StepCompleted
@@ -150,7 +150,7 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow *api.FlowState) bool {
 	return true
 }
 
-func needsOutputs(step *api.Step, flow *api.FlowState) bool {
+func needsOutputs(step *api.Step, flow api.FlowState) bool {
 	for name, attr := range step.Attributes {
 		if needsOutput(name, attr, flow) {
 			return true
@@ -160,7 +160,7 @@ func needsOutputs(step *api.Step, flow *api.FlowState) bool {
 }
 
 func needsOutput(
-	name api.Name, attr *api.AttributeSpec, flow *api.FlowState,
+	name api.Name, attr *api.AttributeSpec, flow api.FlowState,
 ) bool {
 	if !attr.IsOutput() {
 		return false
@@ -193,7 +193,7 @@ func hasPendingConsumer(
 	return false
 }
 
-func hasActiveWork(flow *api.FlowState) bool {
+func hasActiveWork(flow api.FlowState) bool {
 	for _, exec := range flow.Executions {
 		for _, work := range exec.WorkItems {
 			if work.Status == api.WorkPending || work.Status == api.WorkActive {

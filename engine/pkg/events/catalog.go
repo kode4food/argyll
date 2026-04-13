@@ -15,8 +15,8 @@ var (
 )
 
 // NewCatalogState creates an empty catalog state with initialized maps
-func NewCatalogState() *api.CatalogState {
-	return &api.CatalogState{
+func NewCatalogState() api.CatalogState {
+	return api.CatalogState{
 		Steps:      api.Steps{},
 		Attributes: api.AttributeGraph{},
 	}
@@ -32,8 +32,8 @@ func IsCatalogEventID(id timebox.AggregateID) bool {
 	return len(id) == 1 && id[0] == CatalogPrefix
 }
 
-func makeCatalogAppliers() timebox.Appliers[*api.CatalogState] {
-	return MakeAppliers(map[api.EventType]timebox.Applier[*api.CatalogState]{
+func makeCatalogAppliers() timebox.Appliers[api.CatalogState] {
+	return MakeAppliers(map[api.EventType]timebox.Applier[api.CatalogState]{
 		api.EventTypeStepRegistered:   timebox.MakeApplier(stepRegistered),
 		api.EventTypeStepUnregistered: timebox.MakeApplier(stepUnregistered),
 		api.EventTypeStepUpdated:      timebox.MakeApplier(stepUpdated),
@@ -41,24 +41,24 @@ func makeCatalogAppliers() timebox.Appliers[*api.CatalogState] {
 }
 
 func stepRegistered(
-	st *api.CatalogState, ev *timebox.Event, data api.StepRegisteredEvent,
-) *api.CatalogState {
+	st api.CatalogState, ev *timebox.Event, data api.StepRegisteredEvent,
+) api.CatalogState {
 	return st.
 		SetStep(data.Step.ID, data.Step).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepUnregistered(
-	st *api.CatalogState, ev *timebox.Event, data api.StepUnregisteredEvent,
-) *api.CatalogState {
+	st api.CatalogState, ev *timebox.Event, data api.StepUnregisteredEvent,
+) api.CatalogState {
 	return st.
 		DeleteStep(data.StepID).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepUpdated(
-	st *api.CatalogState, ev *timebox.Event, data api.StepUpdatedEvent,
-) *api.CatalogState {
+	st api.CatalogState, ev *timebox.Event, data api.StepUpdatedEvent,
+) api.CatalogState {
 	return st.
 		SetStep(data.Step.ID, data.Step).
 		SetLastUpdated(ev.Timestamp)

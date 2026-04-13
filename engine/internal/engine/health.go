@@ -10,10 +10,10 @@ import (
 )
 
 type healthResolver struct {
-	cat      *api.CatalogState
+	cat      api.CatalogState
 	steps    api.Steps
-	base     map[api.StepID]*api.HealthState
-	cache    map[api.StepID]*api.HealthState
+	base     map[api.StepID]api.HealthState
+	cache    map[api.StepID]api.HealthState
 	visiting map[api.StepID]bool
 	plans    map[api.StepID]*api.ExecutionPlan
 	planErrs map[api.StepID]error
@@ -25,13 +25,11 @@ func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
 	nodeID := e.LocalNodeID()
-	cmd := func(st *api.ClusterState, ag *ClusterAggregator) error {
+	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
 		node := st.Nodes[nodeID]
-		if node != nil {
-			if h, ok := node.Health[stepID]; ok {
-				if h.Status == health && h.Error == errMsg {
-					return nil
-				}
+		if h, ok := node.Health[stepID]; ok {
+			if h.Status == health && h.Error == errMsg {
+				return nil
 			}
 		}
 
@@ -52,23 +50,19 @@ func (e *Engine) UpdateStepHealth(
 // ResolveHealth returns resolved health for all steps, deriving flow step
 // health from all steps included in the flow's execution preview
 func ResolveHealth(
-	cat *api.CatalogState, base map[api.StepID]*api.HealthState,
-) map[api.StepID]*api.HealthState {
-	if cat == nil {
-		return map[api.StepID]*api.HealthState{}
-	}
-
+	cat api.CatalogState, base map[api.StepID]api.HealthState,
+) map[api.StepID]api.HealthState {
 	resolver := &healthResolver{
 		cat:      cat,
 		steps:    cat.Steps,
 		base:     base,
-		cache:    map[api.StepID]*api.HealthState{},
+		cache:    map[api.StepID]api.HealthState{},
 		visiting: map[api.StepID]bool{},
 		plans:    map[api.StepID]*api.ExecutionPlan{},
 		planErrs: map[api.StepID]error{},
 	}
 
-	resolved := make(map[api.StepID]*api.HealthState, len(cat.Steps))
+	resolved := make(map[api.StepID]api.HealthState, len(cat.Steps))
 	for stepID := range cat.Steps {
 		resolved[stepID] = resolver.resolve(stepID)
 	}
@@ -78,9 +72,9 @@ func ResolveHealth(
 // MergeNodeHealth reduces per-node step health into a cluster-wide worst-case
 // view while preserving stable results
 func MergeNodeHealth(
-	cluster *api.ClusterState,
-) map[api.StepID]*api.HealthState {
-	res := map[api.StepID]*api.HealthState{}
+	cluster api.ClusterState,
+) map[api.StepID]api.HealthState {
+	res := map[api.StepID]api.HealthState{}
 	nodes := make([]string, 0, len(cluster.Nodes))
 	for id := range cluster.Nodes {
 		nodes = append(nodes, string(id))
@@ -90,9 +84,6 @@ func MergeNodeHealth(
 	for _, rawNodeID := range nodes {
 		nodeID := api.NodeID(rawNodeID)
 		node := cluster.Nodes[nodeID]
-		if node == nil {
-			continue
-		}
 		steps := make([]string, 0, len(node.Health))
 		for stepID := range node.Health {
 			steps = append(steps, string(stepID))
@@ -110,12 +101,12 @@ func MergeNodeHealth(
 	return res
 }
 
-func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
+func (r *healthResolver) resolve(stepID api.StepID) api.HealthState {
 	if h, ok := r.cache[stepID]; ok {
 		return h
 	}
 
-	if base, ok := r.base[stepID]; ok && base != nil {
+	if base, ok := r.base[stepID]; ok {
 		if base.Status != api.HealthUnknown {
 			r.cache[stepID] = base
 			return base
@@ -124,7 +115,7 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 
 	step, ok := r.steps[stepID]
 	if !ok {
-		h := &api.HealthState{
+		h := api.HealthState{
 			Status: api.HealthUnknown,
 			Error:  fmt.Sprintf("step not found: %s", stepID),
 		}
@@ -133,7 +124,7 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 	}
 
 	if r.visiting[stepID] {
-		h := &api.HealthState{
+		h := api.HealthState{
 			Status: api.HealthUnknown,
 			Error:  fmt.Sprintf("flow health cycle at step %s", stepID),
 		}
@@ -152,7 +143,7 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 
 	pl, err := r.previewFlowPlan(stepID, step)
 	if err != nil {
-		h := &api.HealthState{
+		h := api.HealthState{
 			Status: api.HealthUnknown,
 			Error:  fmt.Sprintf("flow preview failed for %s: %v", stepID, err),
 		}
@@ -160,7 +151,7 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 		return h
 	}
 
-	var unknown *api.HealthState
+	var unknown api.HealthState
 	for id := range pl.Steps {
 		health := r.resolve(id)
 		if health.Status == api.HealthUnhealthy {
@@ -169,33 +160,33 @@ func (r *healthResolver) resolve(stepID api.StepID) *api.HealthState {
 			return h
 		}
 		if health.Status == api.HealthUnknown &&
-			health.Error != "" && unknown == nil {
+			health.Error != "" && unknown == (api.HealthState{}) {
 			unknown = flowStepHealth(id, health)
 		}
 	}
 
-	if unknown != nil {
+	if unknown != (api.HealthState{}) {
 		r.cache[stepID] = unknown
 		return unknown
 	}
 
-	healthy := &api.HealthState{Status: api.HealthHealthy}
+	healthy := api.HealthState{Status: api.HealthHealthy}
 	r.cache[stepID] = healthy
 	return healthy
 }
 
 func baseHealth(
-	stepID api.StepID, base map[api.StepID]*api.HealthState,
-) *api.HealthState {
-	if h, ok := base[stepID]; ok && h != nil {
+	stepID api.StepID, base map[api.StepID]api.HealthState,
+) api.HealthState {
+	if h, ok := base[stepID]; ok {
 		return h
 	}
-	return &api.HealthState{Status: api.HealthUnknown}
+	return api.HealthState{Status: api.HealthUnknown}
 }
 
 func defaultStepHealth(
-	step *api.Step, stepID api.StepID, base map[api.StepID]*api.HealthState,
-) *api.HealthState {
+	step *api.Step, stepID api.StepID, base map[api.StepID]api.HealthState,
+) api.HealthState {
 	if step != nil && step.Type == api.StepTypeScript {
 		return scriptHealth(stepID, base)
 	}
@@ -203,66 +194,56 @@ func defaultStepHealth(
 }
 
 func scriptHealth(
-	stepID api.StepID, base map[api.StepID]*api.HealthState,
-) *api.HealthState {
-	if h, ok := base[stepID]; ok && h != nil {
+	stepID api.StepID, base map[api.StepID]api.HealthState,
+) api.HealthState {
+	if h, ok := base[stepID]; ok {
 		if h.Status == api.HealthUnknown && h.Error == "" {
-			return &api.HealthState{Status: api.HealthHealthy}
+			return api.HealthState{Status: api.HealthHealthy}
 		}
 		return h
 	}
-	return &api.HealthState{Status: api.HealthHealthy}
+	return api.HealthState{Status: api.HealthHealthy}
 }
 
 func flowStepHealth(
-	stepID api.StepID, health *api.HealthState,
-) *api.HealthState {
-	if health == nil {
-		return &api.HealthState{
-			Status: api.HealthUnknown,
-			Error:  fmt.Sprintf("step %s health unknown", stepID),
-		}
-	}
+	stepID api.StepID, health api.HealthState,
+) api.HealthState {
 	switch health.Status {
 	case api.HealthUnhealthy:
 		if health.Error == "" {
-			return &api.HealthState{
+			return api.HealthState{
 				Status: api.HealthUnhealthy,
 				Error:  fmt.Sprintf("step %s unhealthy", stepID),
 			}
 		}
-		return &api.HealthState{
+		return api.HealthState{
 			Status: api.HealthUnhealthy,
 			Error:  fmt.Sprintf("step %s: %s", stepID, health.Error),
 		}
 	case api.HealthUnknown:
 		if health.Error == "" {
-			return &api.HealthState{
+			return api.HealthState{
 				Status: api.HealthUnknown,
 				Error:  fmt.Sprintf("step %s health unknown", stepID),
 			}
 		}
-		return &api.HealthState{
+		return api.HealthState{
 			Status: api.HealthUnknown,
 			Error:  fmt.Sprintf("step %s: %s", stepID, health.Error),
 		}
 	default:
-		return &api.HealthState{Status: api.HealthHealthy}
+		return api.HealthState{Status: api.HealthHealthy}
 	}
 }
 
 func mergeHealthState(
-	nodeID api.NodeID, curr, next *api.HealthState,
-) *api.HealthState {
-	if next == nil {
-		return curr
-	}
-
-	norm := &api.HealthState{
+	nodeID api.NodeID, curr, next api.HealthState,
+) api.HealthState {
+	norm := api.HealthState{
 		Status: next.Status,
 		Error:  annotateHealthError(string(nodeID), next.Error),
 	}
-	if curr == nil {
+	if curr == (api.HealthState{}) {
 		return norm
 	}
 

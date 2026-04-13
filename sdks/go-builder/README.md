@@ -271,42 +271,42 @@ See the [examples](../../examples) directory for complete working examples:
 ### Client
 
 - `NewClient(engineURL string, timeout time.Duration) *Client` - Create a new client
-- `NewStep() *Step` - Create a step builder template
-- `NewFlow(flowID api.FlowID) *Flow` - Create a flow builder
+- `NewStep() Step` - Create a step builder template
+- `NewFlow(flowID api.FlowID) Flow` - Create a flow builder
 - `Flow(flowID api.FlowID) *FlowClient` - Get flow client
 
 ### StepBuilder
 
-- `WithName(name api.Name) *Step` - Set step name (auto-generates ID if unset)
-- `WithID(id string) *Step` - Set custom step ID
-- `Required(name, type) *Step` - Add required input
-- `Optional(name, type, default) *Step` - Add optional input
-- `Const(name, type, value) *Step` - Add const input
-- `Output(name, type) *Step` - Declare output
-- `WithForEach(name) *Step` - Enable array iteration
-- `WithLabel(key, value) *Step` - Add label
-- `WithLabels(labels) *Step` - Add multiple labels
-- `WithFlowGoals(...stepIDs) *Step` - Configure a flow step with child goals
-- `WithEndpoint(url) *Step` - Set HTTP endpoint
-- `WithHealthCheck(url) *Step` - Set health check endpoint
-- `WithTimeout(ms) *Step` - Set execution timeout
-- `WithScript(script) *Step` - Set Ale script
-- `WithScriptLanguage(lang, script) *Step` - Set script with language
-- `WithPredicate(lang, script) *Step` - Set predicate
-- `WithAsyncExecution() *Step` - Enable async execution
-- `WithSyncExecution() *Step` - Enable sync execution
-- `WithMemoizable() *Step` - Enable result caching
+- `WithName(name api.Name) Step` - Set step name (auto-generates ID if unset)
+- `WithID(id string) Step` - Set custom step ID
+- `Required(name, type) Step` - Add required input
+- `Optional(name, type, default) Step` - Add optional input
+- `Const(name, type, value) Step` - Add const input
+- `Output(name, type) Step` - Declare output
+- `WithForEach(name) Step` - Enable array iteration
+- `WithLabel(key, value) Step` - Add label
+- `WithLabels(labels) Step` - Add multiple labels
+- `WithFlowGoals(...stepIDs) Step` - Configure a flow step with child goals
+- `WithEndpoint(url) Step` - Set HTTP endpoint
+- `WithHealthCheck(url) Step` - Set health check endpoint
+- `WithTimeout(ms) Step` - Set execution timeout
+- `WithScript(script) Step` - Set Ale script
+- `WithScriptLanguage(lang, script) Step` - Set script with language
+- `WithPredicate(lang, script) Step` - Set predicate
+- `WithAsyncExecution() Step` - Enable async execution
+- `WithSyncExecution() Step` - Enable sync execution
+- `WithMemoizable() Step` - Enable result caching
 - `Build() (*api.Step, error)` - Build step
 - `Register(ctx) error` - Register step
 - `Start(handler) error` - Register and start server
 
 ### FlowBuilder
 
-- `WithGoal(stepID) *Flow` - Add single goal
-- `WithGoals(...stepIDs) *Flow` - Set all goals
-- `WithInitialState(args) *Flow` - Set initial state
-- `WithLabel(key, value) *Flow` - Add label
-- `WithLabels(labels) *Flow` - Add multiple labels
+- `WithGoal(stepID) Flow` - Add single goal
+- `WithGoals(...stepIDs) Flow` - Set all goals
+- `WithInitialState(args) Flow` - Set initial state
+- `WithLabel(key, value) Flow` - Add label
+- `WithLabels(labels) Flow` - Add multiple labels
 - `Start(ctx) error` - Execute flow
 
 ### StepContext

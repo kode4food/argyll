@@ -15,9 +15,9 @@ var (
 )
 
 // NewClusterState creates an empty cluster state with initialized maps
-func NewClusterState() *api.ClusterState {
-	return &api.ClusterState{
-		Nodes: map[api.NodeID]*api.NodeState{},
+func NewClusterState() api.ClusterState {
+	return api.ClusterState{
+		Nodes: map[api.NodeID]api.NodeState{},
 	}
 }
 
@@ -31,22 +31,19 @@ func IsClusterEventID(id timebox.AggregateID) bool {
 	return len(id) == 1 && id[0] == ClusterPrefix
 }
 
-func makeClusterAppliers() timebox.Appliers[*api.ClusterState] {
-	return MakeAppliers(map[api.EventType]timebox.Applier[*api.ClusterState]{
+func makeClusterAppliers() timebox.Appliers[api.ClusterState] {
+	return MakeAppliers(map[api.EventType]timebox.Applier[api.ClusterState]{
 		api.EventTypeStepHealthChanged: timebox.MakeApplier(stepHealthChanged),
 	})
 }
 
 func stepHealthChanged(
-	st *api.ClusterState, ev *timebox.Event, data api.StepHealthChangedEvent,
-) *api.ClusterState {
+	st api.ClusterState, ev *timebox.Event, data api.StepHealthChangedEvent,
+) api.ClusterState {
 	node := st.Nodes[data.NodeID]
-	if node == nil {
-		node = &api.NodeState{Health: map[api.StepID]*api.HealthState{}}
-	}
 	node = node.
 		SetLastSeen(ev.Timestamp).
-		SetHealth(data.StepID, &api.HealthState{
+		SetHealth(data.StepID, api.HealthState{
 			Status: data.Status,
 			Error:  data.Error,
 		})

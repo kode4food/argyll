@@ -10,11 +10,11 @@ import (
 
 type (
 	Planner func(
-		*api.CatalogState, []api.StepID, api.Args,
+		api.CatalogState, []api.StepID, api.Args,
 	) (*api.ExecutionPlan, error)
 
 	builder struct {
-		cat         *api.CatalogState
+		cat         api.CatalogState
 		satisfied   util.Set[api.Name]
 		available   util.Set[api.Name]
 		satisfiable util.Set[api.StepID]
@@ -42,7 +42,7 @@ var (
 // Create builds an execution plan for the given goal steps, resolving
 // dependencies and determining required inputs
 func Create(
-	cat *api.CatalogState, goals []api.StepID, init api.Args,
+	cat api.CatalogState, goals []api.StepID, init api.Args,
 ) (*api.ExecutionPlan, error) {
 	return create(cat, goals, init, strictProviders)
 }
@@ -52,13 +52,13 @@ func Create(
 // exists so the UI can show the full dependency path back to missing init
 // inputs
 func Preview(
-	cat *api.CatalogState, goals []api.StepID, init api.Args,
+	cat api.CatalogState, goals []api.StepID, init api.Args,
 ) (*api.ExecutionPlan, error) {
 	return create(cat, goals, init, previewProviders)
 }
 
 func create(
-	cat *api.CatalogState, goals []api.StepID, init api.Args,
+	cat api.CatalogState, goals []api.StepID, init api.Args,
 	providers selectProviders,
 ) (*api.ExecutionPlan, error) {
 	if len(goals) == 0 {
@@ -93,7 +93,7 @@ func create(
 }
 
 func newPlanBuilder(
-	st *api.CatalogState, init api.Args, providers selectProviders,
+	st api.CatalogState, init api.Args, providers selectProviders,
 ) *builder {
 	pb := &builder{
 		cat:         st,
@@ -374,7 +374,7 @@ func (b *builder) getRequiredInputs() []api.Name {
 	return required
 }
 
-func validateGoals(cat *api.CatalogState, goals []api.StepID) error {
+func validateGoals(cat api.CatalogState, goals []api.StepID) error {
 	for _, goalID := range goals {
 		if _, ok := cat.Steps[goalID]; !ok {
 			return ErrStepNotFound
@@ -401,7 +401,7 @@ func previewProviders(b *builder, providers []api.StepID) []api.StepID {
 }
 
 func buildChildPlans(
-	pl *api.ExecutionPlan, cat *api.CatalogState, providers selectProviders,
+	pl *api.ExecutionPlan, cat api.CatalogState, providers selectProviders,
 ) (map[api.StepID]*api.ExecutionPlan, error) {
 	childPlans := map[api.StepID]*api.ExecutionPlan{}
 	for stepID, step := range pl.Steps {

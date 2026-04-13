@@ -95,7 +95,7 @@ func TestShouldRetryStep(t *testing.T) {
 					WorkConfig: sc.config,
 				}
 
-				work := &api.WorkState{
+				work := api.WorkState{
 					RetryCount: sc.retries,
 					Error:      sc.error,
 				}
@@ -250,7 +250,7 @@ func TestRetryExhaustion(t *testing.T) {
 		flow, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		exec := flow.Executions["failing-step"]
-		if assert.NotNil(t, exec) && assert.NotNil(t, exec.WorkItems) {
+		if assert.NotNil(t, exec.WorkItems) {
 			found := false
 			for _, work := range exec.WorkItems {
 				if work.RetryCount >= 1 {
@@ -266,7 +266,7 @@ func TestRetryExhaustion(t *testing.T) {
 func TestFindRetrySteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-		state := &api.FlowState{
+		state := api.FlowState{
 			Executions: api.Executions{
 				"step-1": {
 					Status: api.StepPending,
@@ -329,7 +329,7 @@ func TestFindRetrySteps(t *testing.T) {
 func TestPendingWorkNotRetryable(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-		state := &api.FlowState{
+		state := api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
 			Plan: &api.ExecutionPlan{
@@ -359,7 +359,7 @@ func TestPendingWorkNotRetryable(t *testing.T) {
 
 func TestWorkItemNoNextRetry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state := &api.FlowState{
+		state := api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
 			Plan: &api.ExecutionPlan{
@@ -389,7 +389,7 @@ func TestWorkItemNoNextRetry(t *testing.T) {
 
 func TestFindRetryStepsActivePending(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state := &api.FlowState{
+		state := api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
 			Plan: &api.ExecutionPlan{
@@ -441,7 +441,7 @@ func TestNextRetryParallelismOnlyConfig(t *testing.T) {
 
 func TestFindRetryEmptyWorkItems(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state := &api.FlowState{
+		state := api.FlowState{
 			Executions: api.Executions{
 				"step-1": {
 					WorkItems: nil,

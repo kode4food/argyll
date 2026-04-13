@@ -216,7 +216,7 @@ type StepID string  // Unique identifier for a step
 #### NewFlow: Create a new flow
 Creates a new flow builder with the specified ID. String literals are automatically converted to `FlowID`.
 ```go
-NewFlow(id FlowID) *Flow
+NewFlow(id FlowID) Flow
 ```
 
 #### Flow: Get a flow client
@@ -230,31 +230,31 @@ Flow(id FlowID) *FlowClient
 #### WithGoals: Set goals
 Sets the goal step IDs for the flow. Replaces any previously set goals. String literals are automatically converted to `StepID`.
 ```go
-WithGoals(goals ...StepID) *Flow
+WithGoals(goals ...StepID) Flow
 ```
 
 #### WithGoal: Add a goal
 Adds a single goal step ID to the flow. String literals are automatically converted to `StepID`.
 ```go
-WithGoal(goal StepID) *Flow
+WithGoal(goal StepID) Flow
 ```
 
 #### WithInitialState: Set initial state
 Sets the initial state (arguments) for the flow.
 ```go
-WithInitialState(init api.Args) *Flow
+WithInitialState(init api.Args) Flow
 ```
 
 #### WithLabel: Add a label
 Adds a single flow label.
 ```go
-WithLabel(key, value string) *Flow
+WithLabel(key, value string) Flow
 ```
 
 #### WithLabels: Set labels
 Merges labels into the flow's current label set.
 ```go
-WithLabels(labels api.Labels) *Flow
+WithLabels(labels api.Labels) Flow
 ```
 
 #### Start: Start flow
@@ -274,13 +274,13 @@ GetStatus(ctx context.Context) (*api.FlowStatusResponse, error)
 #### GetState: Get flow state
 Retrieves the current state of the flow.
 ```go
-GetState(ctx context.Context) (*api.FlowState, error)
+GetState(ctx context.Context) (api.FlowState, error)
 ```
 
 #### FlowID: Get flow ID
 Returns the flow ID for this client.
 ```go
-FlowID() builder.FlowID
+FlowID() api.FlowID
 ```
 
 ### Helper Functions
@@ -288,5 +288,5 @@ FlowID() builder.FlowID
 #### NewFlowID: Generate a flow ID
 Generates a unique flow ID with the given prefix and a random suffix.
 ```go
-NewFlowID(prefix string) builder.FlowID
+NewFlowID(prefix string) api.FlowID
 ```

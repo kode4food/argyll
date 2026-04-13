@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/httptest"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -174,11 +176,12 @@ func TestRaftStatusNil(t *testing.T) {
 
 func TestRaftStatus(t *testing.T) {
 	cfg := config.NewDefaultConfig()
-	cfg.Raft.LocalID = "node-1"
-	cfg.Raft.Address = "127.0.0.1:9701"
+	addr := availableAddress(t)
+	cfg.Raft.LocalID = "node-" + strconv.Itoa(availablePort(t))
+	cfg.Raft.Address = addr
 	cfg.Raft.DataDir = t.TempDir()
 	cfg.Raft.Servers = []raft.Server{
-		{ID: "node-1", Address: "127.0.0.1:9701"},
+		{ID: cfg.Raft.LocalID, Address: addr},
 	}
 
 	p, err := raft.NewPersistence(cfg.Raft)
@@ -197,6 +200,28 @@ func TestRaftStatus(t *testing.T) {
 			assert.Contains(t, backend, "leader_id")
 		}
 	}
+}
+
+func availablePort(t *testing.T) int {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer func() { _ = ln.Close() }()
+
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	assert.True(t, ok)
+	return addr.Port
+}
+
+func availableAddress(t *testing.T) string {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer func() { _ = ln.Close() }()
+
+	return ln.Addr().String()
 }
 
 func TestEngineHealth(t *testing.T) {
@@ -1037,7 +1062,7 @@ func TestEngineUnknownSteps(t *testing.T) {
 		assert.Equal(t, http.StatusOK, w.Code)
 
 		var response struct {
-			Health map[api.NodeID]*api.NodeState `json:"health"`
+			Health map[api.NodeID]api.NodeState `json:"health"`
 		}
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)

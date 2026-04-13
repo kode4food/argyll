@@ -48,22 +48,22 @@ type (
 	}
 
 	// CatalogExecutor manages catalog state persistence and event sourcing
-	CatalogExecutor = timebox.Executor[*api.CatalogState]
+	CatalogExecutor = timebox.Executor[api.CatalogState]
 
 	// CatalogAggregator aggregates catalog state from events
-	CatalogAggregator = timebox.Aggregator[*api.CatalogState]
+	CatalogAggregator = timebox.Aggregator[api.CatalogState]
 
 	// ClusterExecutor manages cluster state persistence and event sourcing
-	ClusterExecutor = timebox.Executor[*api.ClusterState]
+	ClusterExecutor = timebox.Executor[api.ClusterState]
 
 	// ClusterAggregator aggregates cluster state from events
-	ClusterAggregator = timebox.Aggregator[*api.ClusterState]
+	ClusterAggregator = timebox.Aggregator[api.ClusterState]
 
 	// FlowExecutor manages flow state persistence and event sourcing
-	FlowExecutor = timebox.Executor[*api.FlowState]
+	FlowExecutor = timebox.Executor[api.FlowState]
 
 	// FlowAggregator aggregates flow state from events
-	FlowAggregator = timebox.Aggregator[*api.FlowState]
+	FlowAggregator = timebox.Aggregator[api.FlowState]
 )
 
 var (

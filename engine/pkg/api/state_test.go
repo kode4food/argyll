@@ -43,10 +43,10 @@ func TestDeleteStep(t *testing.T) {
 
 func TestSetHealth(t *testing.T) {
 	original := &api.NodeState{
-		Health: map[api.StepID]*api.HealthState{},
+		Health: map[api.StepID]api.HealthState{},
 	}
 
-	health := &api.HealthState{Status: api.HealthHealthy}
+	health := api.HealthState{Status: api.HealthHealthy}
 	result := original.SetHealth("test-step", health)
 
 	assert.Equal(t, health, result.Health["test-step"])
@@ -64,9 +64,9 @@ func TestSetLastSeen(t *testing.T) {
 }
 
 func TestSetClusterNode(t *testing.T) {
-	node := &api.NodeState{}
+	node := api.NodeState{}
 	original := &api.ClusterState{
-		Nodes: map[api.NodeID]*api.NodeState{"node-1": node},
+		Nodes: map[api.NodeID]api.NodeState{"node-1": node},
 	}
 
 	result := original.SetNode("node-2", node)
@@ -78,8 +78,8 @@ func TestSetClusterNode(t *testing.T) {
 
 func TestEnsureClusterNode(t *testing.T) {
 	original := &api.ClusterState{
-		Nodes: map[api.NodeID]*api.NodeState{
-			"node-1": {Health: map[api.StepID]*api.HealthState{}},
+		Nodes: map[api.NodeID]api.NodeState{
+			"node-1": {Health: map[api.StepID]api.HealthState{}},
 		},
 	}
 
@@ -94,14 +94,14 @@ func TestEnsureClusterNode(t *testing.T) {
 
 func TestEnsureClusterNodeExisting(t *testing.T) {
 	original := &api.ClusterState{
-		Nodes: map[api.NodeID]*api.NodeState{
-			"node-1": {Health: map[api.StepID]*api.HealthState{}},
+		Nodes: map[api.NodeID]api.NodeState{
+			"node-1": {Health: map[api.StepID]api.HealthState{}},
 		},
 	}
 
 	result := original.EnsureNode("node-1")
 
-	assert.Same(t, original, result)
+	assert.Equal(t, *original, result)
 }
 
 func TestSetClusterLastUpdated(t *testing.T) {
@@ -149,7 +149,7 @@ func TestSetExecution(t *testing.T) {
 		},
 	}
 
-	newExec := &api.ExecutionState{Status: api.StepActive}
+	newExec := api.ExecutionState{Status: api.StepActive}
 	result := original.SetExecution("new", newExec)
 
 	assert.Len(t, result.Executions, 2)
@@ -288,10 +288,10 @@ func TestSetExecError(t *testing.T) {
 
 func TestSetWorkItem(t *testing.T) {
 	original := &api.ExecutionState{
-		WorkItems: map[api.Token]*api.WorkState{},
+		WorkItems: map[api.Token]api.WorkState{},
 	}
 
-	work := &api.WorkState{
+	work := api.WorkState{
 		Status: api.WorkPending,
 	}
 
