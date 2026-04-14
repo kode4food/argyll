@@ -35,12 +35,12 @@ func (e *Engine) GetCompiledScript(fs api.FlowStep) (any, error) {
 }
 
 func (e *Engine) getStepFromPlan(fs api.FlowStep) (*api.Step, error) {
-	flow, err := e.GetFlowState(fs.FlowID)
+	fl, err := e.GetFlowState(fs.FlowID)
 	if err != nil {
 		return nil, err
 	}
 
-	if step, ok := flow.Plan.Steps[fs.StepID]; ok {
+	if step, ok := fl.Plan.Steps[fs.StepID]; ok {
 		return step, nil
 	}
 	return nil, ErrStepNotInPlan

@@ -36,9 +36,9 @@ func TestWaitForFlowCompletedEvent(t *testing.T) {
 			wait.On(t, consumer).ForEvent(wait.FlowCompleted(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 
@@ -66,9 +66,9 @@ func TestWaitForFlowFailedEvent(t *testing.T) {
 			wait.On(t, consumer).ForEvent(wait.FlowFailed(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 	})
 }
 
@@ -128,11 +128,11 @@ func TestWaitForStepTerminalEvent(t *testing.T) {
 			}))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		exec := flow.Executions[st.ID]
-		assert.NotNil(t, exec)
-		assert.Equal(t, api.StepCompleted, exec.Status)
+		ex := fl.Executions[st.ID]
+		assert.NotNil(t, ex)
+		assert.Equal(t, api.StepCompleted, ex.Status)
 	})
 }
 
@@ -263,12 +263,12 @@ func TestWaitFlowCompleted(t *testing.T) {
 		}
 
 		id := api.FlowID("test-flow-completed")
-		finalState := env.WaitForFlowStatus(id, func() {
+		fl := env.WaitForFlowStatus(id, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.NotNil(t, finalState)
-		assert.Equal(t, api.FlowCompleted, finalState.Status)
+		assert.NotNil(t, fl)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 
@@ -289,12 +289,12 @@ func TestWaitFlowFailed(t *testing.T) {
 		}
 
 		id := api.FlowID("test-flow-failed")
-		finalState := env.WaitForFlowStatus(id, func() {
+		fl := env.WaitForFlowStatus(id, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.NotNil(t, finalState)
-		assert.Equal(t, api.FlowFailed, finalState.Status)
+		assert.NotNil(t, fl)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 	})
 }
 
@@ -329,12 +329,12 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 			},
 		)
 
-		finalState := env.WaitForFlowStatus(id, func() {
+		fl := env.WaitForFlowStatus(id, func() {
 			env.MockClient.ClearError(st.ID)
 			env.MockClient.SetResponse(st.ID, api.Args{})
 		})
-		assert.NotNil(t, finalState)
-		assert.Equal(t, api.FlowCompleted, finalState.Status)
+		assert.NotNil(t, fl)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 
@@ -355,12 +355,12 @@ func TestWaitStepCompleted(t *testing.T) {
 		}
 
 		id := api.FlowID("test-step-complete")
-		execState := env.WaitForStepStatus(id, st.ID, func() {
+		ex := env.WaitForStepStatus(id, st.ID, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.NotNil(t, execState)
-		assert.Equal(t, api.StepCompleted, execState.Status)
+		assert.NotNil(t, ex)
+		assert.Equal(t, api.StepCompleted, ex.Status)
 	})
 }
 
@@ -381,12 +381,12 @@ func TestWaitStepFailed(t *testing.T) {
 		}
 
 		id := api.FlowID("test-step-fail")
-		execState := env.WaitForStepStatus(id, st.ID, func() {
+		ex := env.WaitForStepStatus(id, st.ID, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.NotNil(t, execState)
-		assert.Equal(t, api.StepFailed, execState.Status)
+		assert.NotNil(t, ex)
+		assert.Equal(t, api.StepFailed, ex.Status)
 	})
 }
 
@@ -407,12 +407,12 @@ func TestWaitStepSkipped(t *testing.T) {
 		}
 
 		id := api.FlowID("test-step-skipped")
-		execState := env.WaitForStepStatus(id, st.ID, func() {
+		ex := env.WaitForStepStatus(id, st.ID, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
 		})
-		assert.NotNil(t, execState)
-		assert.Equal(t, api.StepSkipped, execState.Status)
+		assert.NotNil(t, ex)
+		assert.Equal(t, api.StepSkipped, ex.Status)
 	})
 }
 
@@ -484,14 +484,14 @@ func TestWaitAfterAllHelper(t *testing.T) {
 
 func TestWaitForInvocation(t *testing.T) {
 	cl := helpers.NewMockClient()
-	stepID := api.StepID("invoked-step")
-	step := &api.Step{ID: stepID}
+	sid := api.StepID("invoked-step")
+	st := &api.Step{ID: sid}
 
 	go func() {
 		time.Sleep(10 * time.Millisecond)
-		_, _ = cl.Invoke(step, api.Args{}, api.Metadata{})
+		_, _ = cl.Invoke(st, api.Args{}, api.Metadata{})
 	}()
 
-	assert.True(t, cl.WaitForInvocation(stepID, time.Second))
+	assert.True(t, cl.WaitForInvocation(sid, time.Second))
 	assert.False(t, cl.WaitForInvocation("never-invoked", 5*time.Millisecond))
 }

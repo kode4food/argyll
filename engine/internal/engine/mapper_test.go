@@ -21,8 +21,8 @@ func TestMapperCompile(t *testing.T) {
 
 	t.Run("compiles ale mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			step := mappingStep("amount")
-			compiled, err := m.Compile(step, aleCfg("(* amount 2)"))
+			st := mappingStep("amount")
+			compiled, err := m.Compile(st, aleCfg("(* amount 2)"))
 			assert.NoError(t, err)
 			assert.NotNil(t, compiled)
 		})
@@ -87,9 +87,9 @@ func TestMapperMappingValue(t *testing.T) {
 
 	t.Run("executes ale mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			step := mappingStep("amount")
+			st := mappingStep("amount")
 			value, ok := m.MapValue(
-				step, "amount", aleCfg("(* amount 2)"), float64(5),
+				st, "amount", aleCfg("(* amount 2)"), float64(5),
 			)
 			assert.True(t, ok)
 			assert.Equal(t, float64(10), value)
@@ -109,7 +109,7 @@ func TestMapperMappingValue(t *testing.T) {
 
 func TestScriptUsesMappedName(t *testing.T) {
 	withMapper(t, func(m *engine.Mapper) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "mapped-input-script",
 			Name: "Mapped Input Script",
 			Type: api.StepTypeSync,
@@ -131,8 +131,8 @@ func TestScriptUsesMappedName(t *testing.T) {
 			},
 		}
 
-		attr := step.Attributes["amount"]
-		mapped := m.MapInput(step, "amount", attr, float64(5))
+		attr := st.Attributes["amount"]
+		mapped := m.MapInput(st, "amount", attr, float64(5))
 		assert.Equal(t, float64(10), mapped)
 	})
 }
@@ -242,7 +242,7 @@ func TestMapInput(t *testing.T) {
 
 	t.Run("returns original on failed mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
-			step := mappingStep("input")
+			st := mappingStep("input")
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
 				Type: api.TypeString,
@@ -251,7 +251,7 @@ func TestMapInput(t *testing.T) {
 				},
 			}
 			input := api.Args{"key": "value"}
-			result := m.MapInput(step, "input", attr, input)
+			result := m.MapInput(st, "input", attr, input)
 			assert.Equal(t, input, result)
 		})
 	})

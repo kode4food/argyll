@@ -52,7 +52,7 @@ func TestHealthCheckHealthy(t *testing.T) {
 	defer healthServer.Close()
 
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "healthy-step",
 			Name: "Healthy Step",
 			Type: api.StepTypeSync,
@@ -61,19 +61,19 @@ func TestHealthCheckHealthy(t *testing.T) {
 				HealthCheck: healthServer.URL + "/health",
 			},
 		}
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
 
-		env.WaitFor(wait.StepHealthChanged(step.ID, api.HealthHealthy), func() {
+		env.WaitFor(wait.StepHealthChanged(st.ID, api.HealthHealthy), func() {
 			checker.Start()
 		})
 
 		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		for _, node := range cluster.Nodes {
-			if h, ok := node.Health[step.ID]; ok {
+			if h, ok := node.Health[st.ID]; ok {
 				assert.Equal(t, api.HealthHealthy, h.Status)
 				return
 			}
@@ -84,7 +84,7 @@ func TestHealthCheckHealthy(t *testing.T) {
 
 func TestHealthCheckNetworkFail(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "network-failure-step",
 			Name: "Network Failure Step",
 			Type: api.StepTypeSync,
@@ -93,12 +93,12 @@ func TestHealthCheckNetworkFail(t *testing.T) {
 				HealthCheck: "http://127.0.0.1:1/health",
 			},
 		}
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
 
-		env.WaitFor(wait.StepHealthChanged(step.ID, api.HealthUnhealthy),
+		env.WaitFor(wait.StepHealthChanged(st.ID, api.HealthUnhealthy),
 			func() {
 				checker.Start()
 			},
@@ -107,7 +107,7 @@ func TestHealthCheckNetworkFail(t *testing.T) {
 		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		for _, node := range cluster.Nodes {
-			if h, ok := node.Health[step.ID]; ok {
+			if h, ok := node.Health[st.ID]; ok {
 				assert.Equal(t, api.HealthUnhealthy, h.Status)
 				assert.NotEmpty(t, h.Error)
 				return
@@ -119,7 +119,7 @@ func TestHealthCheckNetworkFail(t *testing.T) {
 
 func TestHealthCheckScript(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "script-step",
 			Name: "Script Step",
 			Type: api.StepTypeScript,
@@ -131,15 +131,15 @@ func TestHealthCheckScript(t *testing.T) {
 				Script:   "{:result 42}",
 			},
 		}
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 		assert.NoError(t,
-			env.Engine.UpdateStepHealth(step.ID, api.HealthUnknown, ""),
+			env.Engine.UpdateStepHealth(st.ID, api.HealthUnknown, ""),
 		)
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
 
-		env.WaitFor(wait.StepHealthChanged(step.ID, api.HealthHealthy),
+		env.WaitFor(wait.StepHealthChanged(st.ID, api.HealthHealthy),
 			func() {
 				checker.Start()
 			},
@@ -148,7 +148,7 @@ func TestHealthCheckScript(t *testing.T) {
 		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		for _, node := range cluster.Nodes {
-			if h, ok := node.Health[step.ID]; ok {
+			if h, ok := node.Health[st.ID]; ok {
 				assert.Equal(t, api.HealthHealthy, h.Status)
 				assert.Empty(t, h.Error)
 				return
@@ -176,7 +176,7 @@ func TestHealthCheckFlowHealthy(t *testing.T) {
 				HealthCheck: healthServer.URL + "/health",
 			},
 		}
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "flow-step",
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
@@ -188,12 +188,12 @@ func TestHealthCheckFlowHealthy(t *testing.T) {
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(goal))
-		assert.NoError(t, env.Engine.RegisterStep(fl))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
 
-		env.WaitFor(wait.StepHealthChanged(fl.ID, api.HealthHealthy),
+		env.WaitFor(wait.StepHealthChanged(st.ID, api.HealthHealthy),
 			func() {
 				checker.Start()
 			},
@@ -202,7 +202,7 @@ func TestHealthCheckFlowHealthy(t *testing.T) {
 		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		for _, node := range cluster.Nodes {
-			if h, ok := node.Health[fl.ID]; ok {
+			if h, ok := node.Health[st.ID]; ok {
 				assert.Equal(t, api.HealthHealthy, h.Status)
 				return
 			}
@@ -229,7 +229,7 @@ func TestHealthCheckFlowUnhealthy(t *testing.T) {
 				HealthCheck: healthServer.URL + "/health",
 			},
 		}
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "bad-flow-step",
 			Name: "Bad Flow Step",
 			Type: api.StepTypeFlow,
@@ -241,12 +241,12 @@ func TestHealthCheckFlowUnhealthy(t *testing.T) {
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(goal))
-		assert.NoError(t, env.Engine.RegisterStep(fl))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
 
-		env.WaitFor(wait.StepHealthChanged(fl.ID, api.HealthUnhealthy),
+		env.WaitFor(wait.StepHealthChanged(st.ID, api.HealthUnhealthy),
 			func() {
 				checker.Start()
 			},
@@ -255,7 +255,7 @@ func TestHealthCheckFlowUnhealthy(t *testing.T) {
 		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		for _, node := range cluster.Nodes {
-			if h, ok := node.Health[fl.ID]; ok {
+			if h, ok := node.Health[st.ID]; ok {
 				assert.Equal(t, api.HealthUnhealthy, h.Status)
 				assert.Contains(t, h.Error, goal.ID)
 				return
@@ -274,7 +274,7 @@ func TestHealthCheckUnhealthy(t *testing.T) {
 	defer healthServer.Close()
 
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "unhealthy-step",
 			Name: "Unhealthy Step",
 			Type: api.StepTypeSync,
@@ -283,19 +283,19 @@ func TestHealthCheckUnhealthy(t *testing.T) {
 				HealthCheck: healthServer.URL + "/health",
 			},
 		}
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		checker := server.NewHealthChecker(env.Engine)
 		defer checker.Stop()
 
-		env.WaitFor(wait.StepHealthChanged(step.ID, api.HealthUnhealthy), func() {
+		env.WaitFor(wait.StepHealthChanged(st.ID, api.HealthUnhealthy), func() {
 			checker.Start()
 		})
 
 		cluster, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
 		for _, node := range cluster.Nodes {
-			if h, ok := node.Health[step.ID]; ok {
+			if h, ok := node.Health[st.ID]; ok {
 				assert.Equal(t, api.HealthUnhealthy, h.Status)
 				return
 			}
@@ -314,7 +314,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		for _, sfx := range []string{"a", "b", "c"} {
-			step := &api.Step{
+			st := &api.Step{
 				ID:   api.StepID("multi-health-" + sfx),
 				Name: "Multi Health Step",
 				Type: api.StepTypeSync,
@@ -323,7 +323,7 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 					HealthCheck: healthServer.URL + "/health",
 				},
 			}
-			assert.NoError(t, env.Engine.RegisterStep(step))
+			assert.NoError(t, env.Engine.RegisterStep(st))
 		}
 
 		checker := server.NewHealthChecker(env.Engine)

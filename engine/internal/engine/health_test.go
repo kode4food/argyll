@@ -63,7 +63,7 @@ func TestFlowHealth(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		goalA := helpers.NewSimpleStep("goal-a")
 		goalB := helpers.NewSimpleStep("goal-b")
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "flow-step",
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
@@ -77,7 +77,7 @@ func TestFlowHealth(t *testing.T) {
 
 		assert.NoError(t, eng.RegisterStep(goalA))
 		assert.NoError(t, eng.RegisterStep(goalB))
-		assert.NoError(t, eng.RegisterStep(fl))
+		assert.NoError(t, eng.RegisterStep(st))
 
 		assert.NoError(t,
 			eng.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
@@ -87,26 +87,26 @@ func TestFlowHealth(t *testing.T) {
 		)
 
 		healthByStepID := resolveHealth(t, eng)
-		health, ok := healthByStepID[fl.ID]
+		h, ok := healthByStepID[st.ID]
 		assert.True(t, ok)
-		assert.Equal(t, api.HealthHealthy, health.Status)
+		assert.Equal(t, api.HealthHealthy, h.Status)
 
 		assert.NoError(t,
 			eng.UpdateStepHealth(goalB.ID, api.HealthUnhealthy, "boom"),
 		)
 
 		healthByStepID = resolveHealth(t, eng)
-		health, ok = healthByStepID[fl.ID]
+		h, ok = healthByStepID[st.ID]
 		assert.True(t, ok)
-		assert.Equal(t, api.HealthUnhealthy, health.Status)
-		assert.Contains(t, health.Error, "goal-b")
+		assert.Equal(t, api.HealthUnhealthy, h.Status)
+		assert.Contains(t, h.Error, "goal-b")
 	})
 }
 
 func TestFlowHealthUnknownGoalError(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		goal := helpers.NewSimpleStep("goal-unknown")
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "flow-unknown",
 			Name: "Flow Unknown",
 			Type: api.StepTypeFlow,
@@ -119,7 +119,7 @@ func TestFlowHealthUnknownGoalError(t *testing.T) {
 		}
 
 		assert.NoError(t, eng.RegisterStep(goal))
-		assert.NoError(t, eng.RegisterStep(fl))
+		assert.NoError(t, eng.RegisterStep(st))
 		assert.NoError(t,
 			eng.UpdateStepHealth(
 				goal.ID, api.HealthUnknown, "goal check failed",
@@ -127,8 +127,8 @@ func TestFlowHealthUnknownGoalError(t *testing.T) {
 		)
 
 		health := resolveHealth(t, eng)
-		assert.Equal(t, api.HealthUnknown, health[fl.ID].Status)
-		assert.Contains(t, health[fl.ID].Error, "goal-unknown")
+		assert.Equal(t, api.HealthUnknown, health[st.ID].Status)
+		assert.Contains(t, health[st.ID].Error, "goal-unknown")
 	})
 }
 
@@ -136,7 +136,7 @@ func TestGetHealthFlowWorstGoal(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		goalA := helpers.NewSimpleStep("goal-health-a")
 		goalB := helpers.NewSimpleStep("goal-health-b")
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "flow-health-step",
 			Name: "Flow Health Step",
 			Type: api.StepTypeFlow,
@@ -150,7 +150,7 @@ func TestGetHealthFlowWorstGoal(t *testing.T) {
 
 		assert.NoError(t, eng.RegisterStep(goalA))
 		assert.NoError(t, eng.RegisterStep(goalB))
-		assert.NoError(t, eng.RegisterStep(fl))
+		assert.NoError(t, eng.RegisterStep(st))
 		assert.NoError(t,
 			eng.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
 		)
@@ -159,8 +159,8 @@ func TestGetHealthFlowWorstGoal(t *testing.T) {
 		)
 
 		health := resolveHealth(t, eng)
-		assert.Equal(t, api.HealthUnhealthy, health[fl.ID].Status)
-		assert.Contains(t, health[fl.ID].Error, "goal-health-b")
+		assert.Equal(t, api.HealthUnhealthy, health[st.ID].Status)
+		assert.Contains(t, health[st.ID].Error, "goal-health-b")
 	})
 }
 
@@ -175,7 +175,7 @@ func TestFlowHealthIncludesPreviewSteps(t *testing.T) {
 			"mid": {Role: api.RoleRequired, Type: api.TypeString},
 			"out": {Role: api.RoleOutput, Type: api.TypeString},
 		}
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "flow-step",
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
@@ -189,7 +189,7 @@ func TestFlowHealthIncludesPreviewSteps(t *testing.T) {
 
 		assert.NoError(t, eng.RegisterStep(provider))
 		assert.NoError(t, eng.RegisterStep(goal))
-		assert.NoError(t, eng.RegisterStep(fl))
+		assert.NoError(t, eng.RegisterStep(st))
 
 		assert.NoError(t, eng.UpdateStepHealth(goal.ID, api.HealthHealthy, ""))
 		assert.NoError(t,
@@ -199,8 +199,8 @@ func TestFlowHealthIncludesPreviewSteps(t *testing.T) {
 		)
 
 		health := resolveHealth(t, eng)
-		assert.Equal(t, api.HealthUnhealthy, health[fl.ID].Status)
-		assert.Contains(t, health[fl.ID].Error, "provider")
+		assert.Equal(t, api.HealthUnhealthy, health[st.ID].Status)
+		assert.Contains(t, health[st.ID].Error, "provider")
 	})
 }
 
@@ -379,7 +379,7 @@ func TestResolveHealthScriptError(t *testing.T) {
 
 func TestResolveHealthFlowUnknown(t *testing.T) {
 	goal := helpers.NewSimpleStep("goal-a")
-	fl := &api.Step{
+	st := &api.Step{
 		ID:   "flow-step",
 		Name: "Flow Step",
 		Type: api.StepTypeFlow,
@@ -393,7 +393,7 @@ func TestResolveHealthFlowUnknown(t *testing.T) {
 	cat := api.CatalogState{
 		Steps: api.Steps{
 			goal.ID: goal,
-			fl.ID:   fl,
+			st.ID:   st,
 		},
 		Attributes: api.AttributeGraph{},
 	}
@@ -402,9 +402,9 @@ func TestResolveHealthFlowUnknown(t *testing.T) {
 	}
 
 	health := engine.ResolveHealth(cat, base)
-	if assert.Contains(t, health, fl.ID) {
-		assert.Equal(t, api.HealthHealthy, health[fl.ID].Status)
-		assert.Empty(t, health[fl.ID].Error)
+	if assert.Contains(t, health, st.ID) {
+		assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
+		assert.Empty(t, health[st.ID].Error)
 	}
 }
 

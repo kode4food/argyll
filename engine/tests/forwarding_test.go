@@ -43,22 +43,22 @@ func TestFollowerWrite(t *testing.T) {
 	nodes := newRaftCluster(t, 3)
 	leader, follower := findLeaderFollower(t, nodes)
 
-	step := helpers.NewSimpleStep("forwarded-step")
+	st := helpers.NewSimpleStep("forwarded-step")
 	w := postJSON(t,
-		follower.server.SetupRoutes(), "/engine/step", step, http.StatusCreated,
+		follower.server.SetupRoutes(), "/engine/step", st, http.StatusCreated,
 	)
 
 	var resp api.StepRegisteredResponse
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 	assert.NotNil(t, resp.Step)
-	assert.Equal(t, step.ID, resp.Step.ID)
+	assert.Equal(t, st.ID, resp.Step.ID)
 
 	assert.Eventually(t, func() bool {
 		cat, err := leader.engine.GetCatalogState()
 		if err != nil {
 			return false
 		}
-		_, ok := cat.Steps[step.ID]
+		_, ok := cat.Steps[st.ID]
 		return ok
 	}, 15*time.Second, 100*time.Millisecond)
 }
@@ -85,7 +85,7 @@ func TestFollowerWriteStartup(t *testing.T) {
 
 	var nodes []*raftNode
 	var wrote bool
-	step := newScriptStep()
+	st := newScriptStep()
 	for range len(inits) {
 		res := <-started
 		assert.NoError(t, res.err)
@@ -97,14 +97,14 @@ func TestFollowerWriteStartup(t *testing.T) {
 				t,
 				n.server.SetupRoutes(),
 				"/engine/step",
-				step,
+				st,
 				http.StatusCreated,
 			)
 
 			var resp api.StepRegisteredResponse
 			assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
 			assert.NotNil(t, resp.Step)
-			assert.Equal(t, step.ID, resp.Step.ID)
+			assert.Equal(t, st.ID, resp.Step.ID)
 			wrote = true
 		}
 	}
@@ -130,7 +130,7 @@ func TestFollowerWriteStartup(t *testing.T) {
 		if err != nil {
 			return false
 		}
-		_, ok := cat.Steps[step.ID]
+		_, ok := cat.Steps[st.ID]
 		return ok
 	}, 15*time.Second, 100*time.Millisecond)
 }

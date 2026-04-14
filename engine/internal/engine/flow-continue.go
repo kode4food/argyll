@@ -12,20 +12,20 @@ import (
 func (tx *flowTx) checkUnreachable() error {
 	for {
 		failedAny := false
-		flow := tx.Value()
+		fl := tx.Value()
 
-		for stepID, exec := range flow.Executions {
-			if exec.Status != api.StepPending {
+		for sid, ex := range fl.Executions {
+			if ex.Status != api.StepPending {
 				continue
 			}
-			if tx.canStepComplete(stepID, flow) {
+			if tx.canStepComplete(sid, fl) {
 				continue
 			}
 
 			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 				api.StepFailedEvent{
 					FlowID: tx.flowID,
-					StepID: stepID,
+					StepID: sid,
 					Error:  "required input no longer available",
 				},
 			); err != nil {
@@ -44,20 +44,20 @@ func (tx *flowTx) checkUnreachable() error {
 func (tx *flowTx) skipPendingUnused() error {
 	for {
 		skip := false
-		flow := tx.Value()
+		fl := tx.Value()
 
-		for stepID, exec := range flow.Executions {
-			if exec.Status != api.StepPending {
+		for sid, ex := range fl.Executions {
+			if ex.Status != api.StepPending {
 				continue
 			}
-			if tx.areOutputsNeeded(stepID, flow) {
+			if tx.areOutputsNeeded(sid, fl) {
 				continue
 			}
 
 			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
 				api.StepSkippedEvent{
 					FlowID: tx.flowID,
-					StepID: stepID,
+					StepID: sid,
 					Reason: "outputs not needed",
 				},
 			); err != nil {
@@ -79,21 +79,21 @@ func (tx *flowTx) startReadyPendingSteps() error {
 	}
 
 	for {
-		flow := tx.Value()
+		fl := tx.Value()
 		now := tx.Now()
 		startedAny := false
 
-		for stepID, exec := range flow.Executions {
-			if exec.Status != api.StepPending {
+		for sid, ex := range fl.Executions {
+			if ex.Status != api.StepPending {
 				continue
 			}
 
-			ready, _ := tx.canStartStepAt(stepID, flow, now)
+			ready, _ := tx.canStartStepAt(sid, fl, now)
 			if !ready {
 				continue
 			}
 
-			if err := tx.prepareStep(stepID); err != nil {
+			if err := tx.prepareStep(sid); err != nil {
 				if errors.Is(err, ErrStepAlreadyPending) {
 					continue
 				}

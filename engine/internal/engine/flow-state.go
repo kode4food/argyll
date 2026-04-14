@@ -65,12 +65,12 @@ func (e *Engine) GetFlowStateSeq(
 func (e *Engine) GetAttribute(
 	flowID api.FlowID, attr api.Name,
 ) (any, bool, error) {
-	flow, err := e.GetFlowState(flowID)
+	fl, err := e.GetFlowState(flowID)
 	if err != nil {
 		return nil, false, err
 	}
 
-	if av, ok := flow.Attributes[attr]; ok {
+	if av, ok := fl.Attributes[attr]; ok {
 		return av.Value, true, nil
 	}
 	return nil, false, nil
@@ -108,8 +108,8 @@ func (e *Engine) HasInputProvider(name api.Name, flow api.FlowState) bool {
 }
 
 func (e *Engine) isFlowComplete(flow api.FlowState) bool {
-	for stepID := range flow.Plan.Steps {
-		if !e.isStepComplete(stepID, flow) {
+	for sid := range flow.Plan.Steps {
+		if !e.isStepComplete(sid, flow) {
 			return false
 		}
 	}
@@ -125,14 +125,14 @@ func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
 }
 
 func (e *Engine) isStepComplete(stepID api.StepID, flow api.FlowState) bool {
-	exec := flow.Executions[stepID]
-	return exec.Status == api.StepCompleted || exec.Status == api.StepSkipped
+	ex := flow.Executions[stepID]
+	return ex.Status == api.StepCompleted || ex.Status == api.StepSkipped
 }
 
 func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
-	exec := flow.Executions[stepID]
-	if stepTransitions.IsTerminal(exec.Status) {
-		return exec.Status == api.StepCompleted
+	ex := flow.Executions[stepID]
+	if stepTransitions.IsTerminal(ex.Status) {
+		return ex.Status == api.StepCompleted
 	}
 
 	step := flow.Plan.Steps[stepID]
@@ -182,11 +182,11 @@ func hasPendingConsumer(
 	consumers []api.StepID, executions api.Executions,
 ) bool {
 	for _, id := range consumers {
-		exec, ok := executions[id]
+		ex, ok := executions[id]
 		if !ok {
 			continue
 		}
-		if exec.Status == api.StepPending {
+		if ex.Status == api.StepPending {
 			return true
 		}
 	}
@@ -194,8 +194,8 @@ func hasPendingConsumer(
 }
 
 func hasActiveWork(flow api.FlowState) bool {
-	for _, exec := range flow.Executions {
-		for _, work := range exec.WorkItems {
+	for _, ex := range flow.Executions {
+		for _, work := range ex.WorkItems {
 			if work.Status == api.WorkPending || work.Status == api.WorkActive {
 				return true
 			}

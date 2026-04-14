@@ -16,7 +16,7 @@ func TestAleCacheForSameScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		env := script.NewAleEnv()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test-step",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
@@ -30,10 +30,10 @@ func TestAleCacheForSameScript(t *testing.T) {
 			},
 		}
 
-		proc1, err := env.Compile(step, step.Script)
+		proc1, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
-		proc2, err := env.Compile(step, step.Script)
+		proc2, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
 		// Verify scripts are cached by checking same object returned
@@ -139,7 +139,7 @@ func TestAleExecuteScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		env := script.NewAleEnv()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
@@ -153,7 +153,7 @@ func TestAleExecuteScript(t *testing.T) {
 			},
 		}
 
-		proc, err := env.Compile(step, step.Script)
+		proc, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
 		args := api.Args{
@@ -161,7 +161,7 @@ func TestAleExecuteScript(t *testing.T) {
 			"b": 10,
 		}
 
-		result, err := env.ExecuteScript(proc, step, args)
+		result, err := env.ExecuteScript(proc, st, args)
 		assert.NoError(t, err)
 
 		assert.Contains(t, result, api.Name("result"))
@@ -201,7 +201,7 @@ func TestAleEvaluatePredicate(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				step := &api.Step{
+				st := &api.Step{
 					ID:   "test",
 					Type: api.StepTypeSync,
 					Predicate: &api.ScriptConfig{
@@ -218,10 +218,10 @@ func TestAleEvaluatePredicate(t *testing.T) {
 					Script:   tt.predicate,
 					Language: api.ScriptLangAle,
 				}
-				comp, err := env.Compile(step, cfg)
+				comp, err := env.Compile(st, cfg)
 				assert.NoError(t, err)
 
-				result, err := env.EvaluatePredicate(comp, step, tt.args)
+				result, err := env.EvaluatePredicate(comp, st, tt.args)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expected, result)
 			})
@@ -252,8 +252,8 @@ func TestAleValidate(t *testing.T) {
 
 		for _, tt := range tests {
 			t.Run(tt.name, func(t *testing.T) {
-				step := &api.Step{ID: "test", Type: api.StepTypeScript}
-				err := env.Validate(step, tt.script)
+				st := &api.Step{ID: "test", Type: api.StepTypeScript}
+				err := env.Validate(st, tt.script)
 				if tt.expectError {
 					assert.Error(t, err)
 					return
@@ -268,7 +268,7 @@ func TestAleComplexConversion(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		env := script.NewAleEnv()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "complex-types",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
@@ -301,7 +301,7 @@ func TestAleComplexConversion(t *testing.T) {
 			},
 		}
 
-		comp, err := env.Compile(step, step.Script)
+		comp, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
 		args := api.Args{
@@ -317,7 +317,7 @@ func TestAleComplexConversion(t *testing.T) {
 			"optional": nil,
 		}
 
-		result, err := env.ExecuteScript(comp, step, args)
+		result, err := env.ExecuteScript(comp, st, args)
 		assert.NoError(t, err)
 
 		assert.Equal(t, true, result["bool_val"])
@@ -343,7 +343,7 @@ func TestAleListConversion(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		env := script.NewAleEnv()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "list-test",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
@@ -355,10 +355,10 @@ func TestAleListConversion(t *testing.T) {
 			},
 		}
 
-		comp, err := env.Compile(step, step.Script)
+		comp, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
-		result, err := env.ExecuteScript(comp, step, api.Args{})
+		result, err := env.ExecuteScript(comp, st, api.Args{})
 		assert.NoError(t, err)
 
 		listVal, ok := result["list_result"].([]any)

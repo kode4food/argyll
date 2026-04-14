@@ -106,16 +106,16 @@ func TestFlowStepChildSuccess(t *testing.T) {
 		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
 		testify.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus("parent-flow", func() {
+		fl := env.WaitForFlowStatus("parent-flow", func() {
 			err = env.Engine.StartFlow("parent-flow", pl)
 			testify.NoError(t, err)
 		})
-		testify.Equal(t, api.FlowCompleted, parentState.Status)
+		testify.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := parentState.Executions[parent.ID]
-		if testify.NotNil(t, exec) && testify.NotNil(t, exec.WorkItems) {
+		ex := fl.Executions[parent.ID]
+		if testify.NotNil(t, ex) && testify.NotNil(t, ex.WorkItems) {
 			var tkn api.Token
-			for t := range exec.WorkItems {
+			for t := range ex.WorkItems {
 				tkn = t
 				break
 			}
@@ -169,11 +169,11 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
 		testify.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus("parent-fail", func() {
+		fl := env.WaitForFlowStatus("parent-fail", func() {
 			err = env.Engine.StartFlow("parent-fail", pl)
 			testify.NoError(t, err)
 		})
-		testify.Equal(t, api.FlowFailed, parentState.Status)
+		testify.Equal(t, api.FlowFailed, fl.Status)
 	})
 }
 
@@ -249,17 +249,17 @@ func TestFlowStepMapping(t *testing.T) {
 		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
 		testify.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus("parent-mapped", func() {
+		fl := env.WaitForFlowStatus("parent-mapped", func() {
 			err = env.Engine.StartFlow("parent-mapped", pl,
 				flow.WithInit(api.Args{"input": float64(7)}),
 			)
 			testify.NoError(t, err)
 		})
-		testify.Equal(t, api.FlowCompleted, parentState.Status)
+		testify.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := parentState.Executions[parent.ID]
-		if testify.NotNil(t, exec) {
-			testify.Equal(t, float64(7), exec.Outputs["output"])
+		ex := fl.Executions[parent.ID]
+		if testify.NotNil(t, ex) {
+			testify.Equal(t, float64(7), ex.Outputs["output"])
 		}
 	})
 }
@@ -306,11 +306,11 @@ func TestFlowStepMissingOutput(t *testing.T) {
 		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
 		testify.NoError(t, err)
 
-		parentState := env.WaitForFlowStatus("parent-missing-output", func() {
+		fl := env.WaitForFlowStatus("parent-missing-output", func() {
 			err = env.Engine.StartFlow("parent-missing-output", pl)
 			testify.NoError(t, err)
 		})
-		testify.Equal(t, api.FlowFailed, parentState.Status)
+		testify.Equal(t, api.FlowFailed, fl.Status)
 	})
 }
 

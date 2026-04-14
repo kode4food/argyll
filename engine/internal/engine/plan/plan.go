@@ -125,17 +125,17 @@ func (b *builder) computeSatisfiable() {
 	progress := true
 	for progress {
 		progress = false
-		for _, step := range b.cat.Steps {
-			if b.satisfiable.Contains(step.ID) {
+		for _, st := range b.cat.Steps {
+			if b.satisfiable.Contains(st.ID) {
 				continue
 			}
-			if !b.requiredInputsAvailable(step, b.available) {
+			if !b.requiredInputsAvailable(st, b.available) {
 				continue
 			}
 
-			b.satisfiable.Add(step.ID)
+			b.satisfiable.Add(st.ID)
 			progress = true
-			for name, attr := range step.Attributes {
+			for name, attr := range st.Attributes {
 				if attr.IsOutput() && !b.available.Contains(name) {
 					b.available.Add(name)
 				}
@@ -171,9 +171,9 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	}
 	b.visited.Add(stepID)
 
-	step := b.cat.Steps[stepID]
-	allInputs := step.GetAllInputArgs()
-	required := b.buildRequired(step)
+	st := b.cat.Steps[stepID]
+	allInputs := st.GetAllInputArgs()
+	required := b.buildRequired(st)
 	for _, name := range allInputs {
 		if b.satisfied.Contains(name) {
 			b.markSatisfied(name)
@@ -188,7 +188,7 @@ func (b *builder) collectStep(stepID api.StepID) error {
 		}
 	}
 
-	if b.shouldInclude(step) {
+	if b.shouldInclude(st) {
 		b.included.Add(stepID)
 	}
 
@@ -207,8 +207,8 @@ func (b *builder) buildRequired(step *api.Step) util.Set[api.Name] {
 
 func (b *builder) markSatisfied(name api.Name) {
 	for _, providerID := range b.findProviders(name) {
-		step := b.cat.Steps[providerID]
-		if b.outputsAvailable(step) {
+		st := b.cat.Steps[providerID]
+		if b.outputsAvailable(st) {
 			b.visited.Add(providerID)
 		}
 	}
@@ -275,9 +275,9 @@ func (b *builder) outputsAvailable(step *api.Step) bool {
 
 func (b *builder) buildPlan() {
 	for id := range b.included {
-		step := b.cat.Steps[id]
-		b.steps[id] = step
-		for name, attr := range step.Attributes {
+		st := b.cat.Steps[id]
+		b.steps[id] = st
+		for name, attr := range st.Attributes {
 			if attr.IsOutput() {
 				b.addProvider(name, id)
 			}
@@ -285,8 +285,8 @@ func (b *builder) buildPlan() {
 	}
 
 	for id := range b.included {
-		step := b.cat.Steps[id]
-		for name, attr := range step.Attributes {
+		st := b.cat.Steps[id]
+		for name, attr := range st.Attributes {
 			if attr.IsInput() && b.inputSatisfied(name) {
 				b.addConsumer(name, id)
 			}
@@ -331,18 +331,18 @@ func (b *builder) buildExcluded() api.ExcludedSteps {
 		Satisfied: map[api.StepID][]api.Name{},
 		Missing:   map[api.StepID][]api.Name{},
 	}
-	for stepID := range b.visited {
-		step := b.cat.Steps[stepID]
-		if b.included.Contains(stepID) {
+	for sid := range b.visited {
+		st := b.cat.Steps[sid]
+		if b.included.Contains(sid) {
 			continue
 		}
-		if b.outputsAvailable(step) {
-			excluded.Satisfied[stepID] = b.stepOutputNames(step)
+		if b.outputsAvailable(st) {
+			excluded.Satisfied[sid] = b.stepOutputNames(st)
 			continue
 		}
-		missing := b.missingRequired(step)
+		missing := b.missingRequired(st)
 		if len(missing) > 0 {
-			excluded.Missing[stepID] = missing
+			excluded.Missing[sid] = missing
 		}
 	}
 	return excluded
@@ -404,17 +404,17 @@ func buildChildPlans(
 	pl *api.ExecutionPlan, cat api.CatalogState, providers selectProviders,
 ) (map[api.StepID]*api.ExecutionPlan, error) {
 	childPlans := map[api.StepID]*api.ExecutionPlan{}
-	for stepID, step := range pl.Steps {
-		if step == nil || step.Type != api.StepTypeFlow || step.Flow == nil {
+	for sid, st := range pl.Steps {
+		if st == nil || st.Type != api.StepTypeFlow || st.Flow == nil {
 			continue
 		}
 		childPlan, err := create(
-			cat, step.Flow.Goals, childPlanInit(step), providers,
+			cat, st.Flow.Goals, childPlanInit(st), providers,
 		)
 		if err != nil {
 			return nil, err
 		}
-		childPlans[stepID] = childPlan
+		childPlans[sid] = childPlan
 	}
 	if len(childPlans) == 0 {
 		return nil, nil

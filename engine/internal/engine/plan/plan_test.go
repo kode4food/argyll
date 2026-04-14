@@ -314,8 +314,7 @@ func TestFlowStepEmbedsChildPlan(t *testing.T) {
 }
 
 func TestExistingOutputs(t *testing.T) {
-
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "step",
 		Name: "Step",
 		Type: api.StepTypeSync,
@@ -329,7 +328,7 @@ func TestExistingOutputs(t *testing.T) {
 	}
 
 	cat := makeCatalogState(api.Steps{
-		"step": step,
+		"step": st,
 	})
 	init := api.Args{"data": "already-available"}
 	pl, err := plan.Create(cat, []api.StepID{"step"}, init)
@@ -409,16 +408,15 @@ func TestComplexGraph(t *testing.T) {
 	requiredSteps := []api.StepID{
 		"resolver1", "resolver2", "processor1", "processor2",
 	}
-	for _, stepID := range requiredSteps {
-		assert.Contains(t, pl.Steps, stepID)
+	for _, sid := range requiredSteps {
+		assert.Contains(t, pl.Steps, sid)
 	}
 
 	assert.Empty(t, pl.Required)
 }
 
 func TestReceipts(t *testing.T) {
-
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "step",
 		Name: "Step",
 		Type: api.StepTypeSync,
@@ -432,7 +430,7 @@ func TestReceipts(t *testing.T) {
 	}
 
 	cat := makeCatalogState(api.Steps{
-		"step": step,
+		"step": st,
 	})
 	pl, err := plan.Create(cat, []api.StepID{"step"}, api.Args{})
 	assert.NoError(t, err)
@@ -443,8 +441,7 @@ func TestReceipts(t *testing.T) {
 }
 
 func TestMissingDependency(t *testing.T) {
-
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "step",
 		Name: "Step",
 		Type: api.StepTypeSync,
@@ -459,7 +456,7 @@ func TestMissingDependency(t *testing.T) {
 	}
 
 	cat := makeCatalogState(api.Steps{
-		"step": step,
+		"step": st,
 	})
 	pl, err := plan.Create(cat, []api.StepID{"step"}, api.Args{})
 	assert.NoError(t, err)
@@ -732,8 +729,8 @@ func TestMixedInputs(t *testing.T) {
 
 func makeCatalogState(steps api.Steps) api.CatalogState {
 	graph := api.AttributeGraph{}
-	for _, step := range steps {
-		graph = graph.AddStep(step)
+	for _, st := range steps {
+		graph = graph.AddStep(st)
 	}
 	return api.CatalogState{
 		Steps:      steps,

@@ -13,7 +13,7 @@ import (
 
 func TestRegisterStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test-step",
 			Name: "Test Step",
 			Type: api.StepTypeSync,
@@ -26,7 +26,7 @@ func TestRegisterStep(t *testing.T) {
 			},
 		}
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.NoError(t, err)
 
 		steps, err := eng.ListSteps()
@@ -68,10 +68,10 @@ func TestUpdateStep(t *testing.T) {
 		err = eng.UpdateStep(updated)
 		assert.NoError(t, err)
 
-		state, err := eng.GetCatalogState()
+		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		retrievedStep, ok := state.Steps["update-step"]
+		retrievedStep, ok := cat.Steps["update-step"]
 		assert.True(t, ok)
 		assert.Equal(t, api.Name("Updated"), retrievedStep.Name)
 	})
@@ -362,7 +362,7 @@ func TestRegisterStepJPathValid(t *testing.T) {
 
 func TestJPathNotValidForScripts(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "jpath-script-step",
 			Name: "JPath Script",
 			Type: api.StepTypeScript,
@@ -376,7 +376,7 @@ func TestJPathNotValidForScripts(t *testing.T) {
 			},
 		}
 
-		err := eng.RegisterStep(step)
+		err := eng.RegisterStep(st)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
 		assert.ErrorIs(t, err, api.ErrInvalidScriptLanguage)
 	})
@@ -467,10 +467,10 @@ func TestUpdateStepSuccess(t *testing.T) {
 		err = eng.UpdateStep(updatedStep)
 		assert.NoError(t, err)
 
-		state, err := eng.GetCatalogState()
+		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		updated, ok := state.Steps["update-step"]
+		updated, ok := cat.Steps["update-step"]
 		assert.True(t, ok)
 		assert.Equal(t, api.Name("Updated Name"), updated.Name)
 	})

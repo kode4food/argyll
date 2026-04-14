@@ -31,11 +31,11 @@ var (
 
 // checkTerminal checks for flow completion or failure
 func (tx *flowTx) checkTerminal() error {
-	flow := tx.Value()
-	if tx.isFlowComplete(flow) {
+	fl := tx.Value()
+	if tx.isFlowComplete(fl) {
 		result := api.Args{}
-		for _, goalID := range flow.Plan.Goals {
-			goal := flow.Executions[goalID]
+		for _, goalID := range fl.Plan.Goals {
+			goal := fl.Executions[goalID]
 			maps.Copy(result, goal.Outputs)
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowCompleted,
@@ -56,8 +56,8 @@ func (tx *flowTx) checkTerminal() error {
 		})
 		return tx.maybeDeactivate()
 	}
-	if tx.IsFlowFailed(flow) {
-		errMsg := tx.getFailureReason(flow)
+	if tx.IsFlowFailed(fl) {
+		errMsg := tx.getFailureReason(fl)
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: tx.flowID,
@@ -81,9 +81,9 @@ func (tx *flowTx) checkTerminal() error {
 
 // getFailureReason extracts a failure reason from flow state
 func (tx *flowTx) getFailureReason(flow api.FlowState) string {
-	for stepID, exec := range flow.Executions {
-		if exec.Status == api.StepFailed {
-			return fmt.Sprintf("step %s failed: %s", stepID, exec.Error)
+	for sid, ex := range flow.Executions {
+		if ex.Status == api.StepFailed {
+			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
 		}
 	}
 	return "flow failed"
@@ -92,20 +92,20 @@ func (tx *flowTx) getFailureReason(flow api.FlowState) string {
 // maybeDeactivate emits FlowDeactivated if the flow is terminal and has no
 // active work items remaining
 func (tx *flowTx) maybeDeactivate() error {
-	flow := tx.Value()
-	if !flowTransitions.IsTerminal(flow.Status) {
+	fl := tx.Value()
+	if !flowTransitions.IsTerminal(fl.Status) {
 		return nil
 	}
-	if hasActiveWork(flow) {
+	if hasActiveWork(fl) {
 		return nil
 	}
-	if !flow.DeactivatedAt.IsZero() {
+	if !fl.DeactivatedAt.IsZero() {
 		return nil
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowDeactivated,
 		api.FlowDeactivatedEvent{
 			FlowID: tx.flowID,
-			Status: flow.Status,
+			Status: fl.Status,
 		},
 	); err != nil {
 		return err
@@ -147,8 +147,8 @@ func (tx *flowTx) completeParentFlowWork(
 			return errors.Join(ErrGetFlowState, ErrFlowNotFound)
 		}
 
-		exec := parent.Executions[target.fs.StepID]
-		work := exec.WorkItems[target.token]
+		ex := parent.Executions[target.fs.StepID]
+		work := ex.WorkItems[target.token]
 		if isWorkTerminal(work.Status) {
 			return nil
 		}
@@ -182,16 +182,16 @@ func (tx *flowTx) parentMeta(
 		return false, fmt.Errorf("%w: %s", err, st.ID)
 	}
 
-	flowID, hasFlowID := getMetaFlowID(st.Metadata, api.MetaParentFlowID)
-	stepID, hasStepID := getMetaStepID(st.Metadata, api.MetaParentStepID)
-	token, hasToken := getMetaToken(st.Metadata, api.MetaParentWorkItemToken)
+	fid, hasFlowID := getMetaFlowID(st.Metadata, api.MetaParentFlowID)
+	sid, hasStepID := getMetaStepID(st.Metadata, api.MetaParentStepID)
+	tkn, hasToken := getMetaToken(st.Metadata, api.MetaParentWorkItemToken)
 
 	if !hasFlowID && !hasStepID && !hasToken {
 		return false, nil
 	}
 
-	target.fs = api.FlowStep{FlowID: flowID, StepID: stepID}
-	target.token = token
+	target.fs = api.FlowStep{FlowID: fid, StepID: sid}
+	target.token = tkn
 	return true, nil
 }
 
@@ -200,8 +200,8 @@ func isWorkTerminal(status api.WorkStatus) bool {
 }
 
 func flowHasRetryTasks(flow api.FlowState) bool {
-	for _, exec := range flow.Executions {
-		for _, work := range exec.WorkItems {
+	for _, ex := range flow.Executions {
+		for _, work := range ex.WorkItems {
 			if !work.NextRetryAt.IsZero() {
 				return true
 			}

@@ -13,13 +13,13 @@ import (
 )
 
 func TestNewCatalogState(t *testing.T) {
-	state := events.NewCatalogState()
+	cat := events.NewCatalogState()
 
-	assert.NotNil(t, state)
-	assert.NotNil(t, state.Steps)
-	assert.NotNil(t, state.Attributes)
-	assert.Empty(t, state.Steps)
-	assert.Empty(t, state.Attributes)
+	assert.NotNil(t, cat)
+	assert.NotNil(t, cat.Steps)
+	assert.NotNil(t, cat.Attributes)
+	assert.Empty(t, cat.Steps)
+	assert.Empty(t, cat.Attributes)
 }
 
 func TestIsCatalogEvent(t *testing.T) {
@@ -47,10 +47,10 @@ func TestIsCatalogEventID(t *testing.T) {
 }
 
 func TestStepRegistered(t *testing.T) {
-	state := events.NewCatalogState()
+	cat := events.NewCatalogState()
 	now := time.Now()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "test-step",
 		Name: "Test Step",
 		Type: api.StepTypeSync,
@@ -59,7 +59,7 @@ func TestStepRegistered(t *testing.T) {
 		},
 	}
 
-	eventData := api.StepRegisteredEvent{Step: step}
+	eventData := api.StepRegisteredEvent{Step: st}
 	data, err := json.Marshal(eventData)
 	assert.NoError(t, err)
 
@@ -71,15 +71,15 @@ func TestStepRegistered(t *testing.T) {
 	}
 
 	applier := events.CatalogAppliers[event.Type]
-	result := applier(state, event)
+	result := applier(cat, event)
 
 	assert.NotNil(t, result)
-	assert.Equal(t, step, result.Steps["test-step"])
+	assert.Equal(t, st, result.Steps["test-step"])
 	assert.True(t, result.LastUpdated.Equal(now))
 }
 
 func TestStepUnregistered(t *testing.T) {
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "test-step",
 		Name: "Test Step",
 		Type: api.StepTypeSync,
@@ -88,7 +88,7 @@ func TestStepUnregistered(t *testing.T) {
 		},
 	}
 
-	state := events.NewCatalogState().SetStep("test-step", step)
+	cat := events.NewCatalogState().SetStep("test-step", st)
 	now := time.Now()
 
 	eventData := api.StepUnregisteredEvent{StepID: "test-step"}
@@ -103,7 +103,7 @@ func TestStepUnregistered(t *testing.T) {
 	}
 
 	applier := events.CatalogAppliers[event.Type]
-	result := applier(state, event)
+	result := applier(cat, event)
 
 	assert.NotNil(t, result)
 	assert.Nil(t, result.Steps["test-step"])
@@ -129,7 +129,7 @@ func TestStepUpdated(t *testing.T) {
 		},
 	}
 
-	state := events.NewCatalogState().SetStep("test-step", oldStep)
+	cat := events.NewCatalogState().SetStep("test-step", oldStep)
 	now := time.Now()
 
 	eventData := api.StepUpdatedEvent{Step: newStep}
@@ -144,7 +144,7 @@ func TestStepUpdated(t *testing.T) {
 	}
 
 	applier := events.CatalogAppliers[event.Type]
-	result := applier(state, event)
+	result := applier(cat, event)
 
 	assert.NotNil(t, result)
 	assert.Equal(t, newStep, result.Steps["test-step"])

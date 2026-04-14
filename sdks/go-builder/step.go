@@ -256,7 +256,7 @@ func (s Step) Build() (*api.Step, error) {
 		httpConfig = &httpCopy
 	}
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:         s.id,
 		Name:       s.name,
 		Type:       s.stepType,
@@ -269,11 +269,11 @@ func (s Step) Build() (*api.Step, error) {
 		Memoizable: s.memoizable,
 	}
 
-	if err := step.Validate(); err != nil {
+	if err := st.Validate(); err != nil {
 		return nil, err
 	}
 
-	return step, nil
+	return st, nil
 }
 
 // Register builds and registers the step with the engine

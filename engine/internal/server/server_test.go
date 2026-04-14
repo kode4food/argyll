@@ -342,7 +342,7 @@ func TestSuccess(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
@@ -354,7 +354,7 @@ func TestSuccess(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		// Configure mock to return immediately for async steps
@@ -369,23 +369,23 @@ func TestSuccess(t *testing.T) {
 				err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
 					Goals: []api.StepID{"async-step"},
 					Steps: api.Steps{
-						"async-step": step,
+						"async-step": st,
 					},
 				})
 				assert.NoError(t, err)
 			})
 
 		// Get the actual token from the created work item
-		flow, err := testEnv.Engine.GetFlowState("webhook-wf")
+		fl, err := testEnv.Engine.GetFlowState("webhook-wf")
 		assert.NoError(t, err)
 
-		exec := flow.Executions["async-step"]
-		assert.NotNil(t, exec)
-		assert.NotNil(t, exec.WorkItems)
-		assert.Len(t, exec.WorkItems, 1)
+		ex := fl.Executions["async-step"]
+		assert.NotNil(t, ex)
+		assert.NotNil(t, ex.WorkItems)
+		assert.Len(t, ex.WorkItems, 1)
 
 		var tkn api.Token
-		for t := range exec.WorkItems {
+		for t := range ex.WorkItems {
 			tkn = t
 			break
 		}
@@ -436,7 +436,7 @@ func TestHookStepNotFound(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
@@ -445,13 +445,13 @@ func TestHookStepNotFound(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"async-step"},
 			Steps: api.Steps{
-				"async-step": step,
+				"async-step": st,
 			},
 		}
 
@@ -481,7 +481,7 @@ func TestHookInvalidToken(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
@@ -493,7 +493,7 @@ func TestHookInvalidToken(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		// Configure mock to return immediately for async steps
@@ -508,7 +508,7 @@ func TestHookInvalidToken(t *testing.T) {
 				err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
 					Goals: []api.StepID{"async-step"},
 					Steps: api.Steps{
-						"async-step": step,
+						"async-step": st,
 					},
 				})
 				assert.NoError(t, err)
@@ -538,7 +538,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
@@ -547,7 +547,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		// Configure mock to return immediately for async steps
@@ -562,22 +562,22 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 				err = testEnv.Engine.StartFlow("webhook-wf", &api.ExecutionPlan{
 					Goals: []api.StepID{"async-step"},
 					Steps: api.Steps{
-						"async-step": step,
+						"async-step": st,
 					},
 				})
 				assert.NoError(t, err)
 			})
 
 		// Get the real token
-		flow, err := testEnv.Engine.GetFlowState("webhook-wf")
+		fl, err := testEnv.Engine.GetFlowState("webhook-wf")
 		assert.NoError(t, err)
 
-		exec := flow.Executions["async-step"]
-		assert.NotNil(t, exec)
-		assert.NotNil(t, exec.WorkItems)
+		ex := fl.Executions["async-step"]
+		assert.NotNil(t, ex)
+		assert.NotNil(t, ex.WorkItems)
 
 		var tkn api.Token
-		for t := range exec.WorkItems {
+		for t := range ex.WorkItems {
 			tkn = t
 			break
 		}
@@ -601,7 +601,7 @@ func TestHookFailurePath(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "async-step",
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
@@ -613,7 +613,7 @@ func TestHookFailurePath(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		testEnv.MockClient.SetResponse("async-step", api.Args{})
@@ -628,17 +628,17 @@ func TestHookFailurePath(t *testing.T) {
 					"wf-fail-path", &api.ExecutionPlan{
 						Goals: []api.StepID{"async-step"},
 						Steps: api.Steps{
-							"async-step": step,
+							"async-step": st,
 						},
 					})
 				assert.NoError(t, err)
 			})
 
-		flow, err := testEnv.Engine.GetFlowState("wf-fail-path")
+		fl, err := testEnv.Engine.GetFlowState("wf-fail-path")
 		assert.NoError(t, err)
 
 		var tkn api.Token
-		for t := range flow.Executions["async-step"].WorkItems {
+		for t := range fl.Executions["async-step"].WorkItems {
 			tkn = t
 			break
 		}
@@ -835,10 +835,10 @@ func TestEngineHealthByID(t *testing.T) {
 
 		assert.Equal(t, http.StatusOK, w.Code)
 
-		var health api.HealthState
-		err = json.Unmarshal(w.Body.Bytes(), &health)
+		var h api.HealthState
+		err = json.Unmarshal(w.Body.Bytes(), &h)
 		assert.NoError(t, err)
-		assert.Equal(t, api.HealthUnknown, health.Status)
+		assert.Equal(t, api.HealthUnknown, h.Status)
 	})
 }
 
@@ -1051,8 +1051,8 @@ func TestEngineHealthScriptNodes(t *testing.T) {
 
 func TestEngineUnknownSteps(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := helpers.NewSimpleStep("step-1")
-		assert.NoError(t, testEnv.Engine.RegisterStep(step))
+		st := helpers.NewSimpleStep("step-1")
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
 
 		req := httptest.NewRequest("GET", "/engine", nil)
 		w := httptest.NewRecorder()
@@ -1068,12 +1068,12 @@ func TestEngineUnknownSteps(t *testing.T) {
 		err := json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 
-		nodeID := api.NodeID(testEnv.Config.Raft.LocalID)
-		if assert.Contains(t, response.Health, nodeID) {
-			if assert.Contains(t, response.Health[nodeID].Health, step.ID) {
+		nid := api.NodeID(testEnv.Config.Raft.LocalID)
+		if assert.Contains(t, response.Health, nid) {
+			if assert.Contains(t, response.Health[nid].Health, st.ID) {
 				assert.Equal(t,
 					api.HealthUnknown,
-					response.Health[nodeID].Health[step.ID].Status,
+					response.Health[nid].Health[st.ID].Status,
 				)
 			}
 		}
@@ -1084,7 +1084,7 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		goalA := helpers.NewSimpleStep("goal-a")
 		goalB := helpers.NewSimpleStep("goal-b")
-		fl := &api.Step{
+		st := &api.Step{
 			ID:   "flow-step",
 			Name: "Flow Step",
 			Type: api.StepTypeFlow,
@@ -1098,7 +1098,7 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 
 		assert.NoError(t, testEnv.Engine.RegisterStep(goalA))
 		assert.NoError(t, testEnv.Engine.RegisterStep(goalB))
-		assert.NoError(t, testEnv.Engine.RegisterStep(fl))
+		assert.NoError(t, testEnv.Engine.RegisterStep(st))
 		assert.NoError(t,
 			testEnv.Engine.UpdateStepHealth(goalA.ID, api.HealthHealthy, ""),
 		)
@@ -1113,11 +1113,11 @@ func TestEngineHealthByIDFlow(t *testing.T) {
 		router.ServeHTTP(w, req)
 
 		assert.Equal(t, http.StatusOK, w.Code)
-		var health api.HealthState
-		err := json.Unmarshal(w.Body.Bytes(), &health)
+		var h api.HealthState
+		err := json.Unmarshal(w.Body.Bytes(), &h)
 		assert.NoError(t, err)
-		assert.Equal(t, api.HealthUnhealthy, health.Status)
-		assert.Contains(t, health.Error, "goal-b")
+		assert.Equal(t, api.HealthUnhealthy, h.Status)
+		assert.Contains(t, h.Error, "goal-b")
 	})
 }
 
@@ -1186,7 +1186,7 @@ func TestStartFlowNoGoals(t *testing.T) {
 
 func TestStartFlowMissingRequiredInputs(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "required-input-step",
 			Name: "Required Input Step",
 			Type: api.StepTypeSync,
@@ -1199,7 +1199,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		reqBody := api.CreateFlowRequest{
@@ -1681,7 +1681,7 @@ func TestHookSuccessRoute(t *testing.T) {
 		assert.NoError(t, testEnv.Engine.Start())
 		defer func() { _ = testEnv.Engine.Stop() }()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "webhook-step",
 			Name: "Webhook Step",
 			Type: api.StepTypeAsync,
@@ -1693,35 +1693,35 @@ func TestHookSuccessRoute(t *testing.T) {
 			},
 		}
 
-		err := testEnv.Engine.RegisterStep(step)
+		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		testEnv.MockClient.SetResponse(step.ID, api.Args{})
+		testEnv.MockClient.SetResponse(st.ID, api.Args{})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		testEnv.WaitForStepStarted(
 			api.FlowStep{
 				FlowID: "webhook-flow",
-				StepID: step.ID,
+				StepID: st.ID,
 			},
 			func() {
 				err = testEnv.Engine.StartFlow("webhook-flow", pl)
 				assert.NoError(t, err)
 			})
 
-		flow, err := testEnv.Engine.GetFlowState("webhook-flow")
+		fl, err := testEnv.Engine.GetFlowState("webhook-flow")
 		assert.NoError(t, err)
 
-		exec := flow.Executions[step.ID]
-		assert.NotNil(t, exec)
-		assert.NotEmpty(t, exec.WorkItems)
+		ex := fl.Executions[st.ID]
+		assert.NotNil(t, ex)
+		assert.NotEmpty(t, ex.WorkItems)
 
 		var tkn api.Token
-		for t := range exec.WorkItems {
+		for t := range ex.WorkItems {
 			tkn = t
 			break
 		}
@@ -1733,7 +1733,7 @@ func TestHookSuccessRoute(t *testing.T) {
 
 		body, _ := json.Marshal(result)
 		req := httptest.NewRequest("POST",
-			"/webhook/webhook-flow/"+string(step.ID)+"/"+string(tkn),
+			"/webhook/webhook-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
 		req.Header.Set("Content-Type", "application/json")
 		w := httptest.NewRecorder()

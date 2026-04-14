@@ -18,14 +18,14 @@ var (
 )
 
 func (s *Server) handleWebhook(c *gin.Context) {
-	flowID := api.FlowID(c.Param("flowID"))
-	stepID := api.StepID(c.Param("stepID"))
-	token := api.Token(c.Param("token"))
+	fid := api.FlowID(c.Param("flowID"))
+	sid := api.StepID(c.Param("stepID"))
+	tkn := api.Token(c.Param("token"))
 
-	flow, err := s.engine.GetFlowState(flowID)
+	fl, err := s.engine.GetFlowState(fid)
 	if err != nil {
 		slog.Error("Flow not found",
-			log.FlowID(flowID),
+			log.FlowID(fid),
 			log.Error(err))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Flow not found",
@@ -34,11 +34,11 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		return
 	}
 
-	exec, ok := flow.Executions[stepID]
+	ex, ok := fl.Executions[sid]
 	if !ok {
 		slog.Error("Execution not found",
-			log.FlowID(flowID),
-			log.StepID(stepID),
+			log.FlowID(fid),
+			log.StepID(sid),
 			log.Error(ErrExecutionNotFound))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Step execution not found",
@@ -48,11 +48,11 @@ func (s *Server) handleWebhook(c *gin.Context) {
 	}
 
 	// Check if token matches a work item
-	if _, ok := exec.WorkItems[token]; !ok {
+	if _, ok := ex.WorkItems[tkn]; !ok {
 		slog.Error("Work item not found",
-			log.FlowID(flowID),
-			log.StepID(stepID),
-			log.Token(token),
+			log.FlowID(fid),
+			log.StepID(sid),
+			log.Token(tkn),
 			log.Error(ErrWorkItemNotFound))
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Work item not found for token",
@@ -61,8 +61,8 @@ func (s *Server) handleWebhook(c *gin.Context) {
 		return
 	}
 
-	fs := api.FlowStep{FlowID: flowID, StepID: stepID}
-	s.handleWorkWebhook(c, fs, token)
+	fs := api.FlowStep{FlowID: fid, StepID: sid}
+	s.handleWorkWebhook(c, fs, tkn)
 }
 
 func (s *Server) handleWorkWebhook(

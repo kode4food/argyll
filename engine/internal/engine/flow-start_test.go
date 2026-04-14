@@ -52,10 +52,10 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		fl, err := env.Engine.GetFlowState("wf-start")
 		assert.NoError(t, err)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, api.StepActive, exec.Status)
-		assert.Len(t, exec.WorkItems, 1)
-		for _, item := range exec.WorkItems {
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepActive, ex.Status)
+		assert.Len(t, ex.WorkItems, 1)
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkActive, item.Status)
 		}
 	})
@@ -101,7 +101,7 @@ func TestStartFlowSimple(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "goal-step",
 			Name: "Goal",
 			Type: api.StepTypeSync,
@@ -113,7 +113,7 @@ func TestStartFlowSimple(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse("goal-step", api.Args{"result": "success"})
@@ -122,7 +122,7 @@ func TestStartFlowSimple(t *testing.T) {
 			Goals:    []api.StepID{"goal-step"},
 			Required: []api.Name{},
 			Steps: api.Steps{
-				"goal-step": step,
+				"goal-step": st,
 			},
 		}
 

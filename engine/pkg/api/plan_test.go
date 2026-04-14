@@ -332,8 +332,8 @@ func TestRemoveStepNotFound(t *testing.T) {
 
 func buildGraph(steps api.Steps) api.AttributeGraph {
 	graph := api.AttributeGraph{}
-	for _, step := range steps {
-		graph = graph.AddStep(step)
+	for _, st := range steps {
+		graph = graph.AddStep(st)
 	}
 	return graph
 }

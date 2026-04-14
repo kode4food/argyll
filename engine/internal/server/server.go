@@ -185,20 +185,20 @@ func completeClusterHealth(
 	cat api.CatalogState, cluster api.ClusterState,
 ) api.ClusterState {
 	res := cluster
-	for nodeID, node := range cluster.Nodes {
+	for nid, node := range cluster.Nodes {
 		nextNode := node
 		changed := false
-		for stepID := range cat.Steps {
-			if _, ok := nextNode.Health[stepID]; ok {
+		for sid := range cat.Steps {
+			if _, ok := nextNode.Health[sid]; ok {
 				continue
 			}
-			nextNode = nextNode.SetHealth(stepID, api.HealthState{
+			nextNode = nextNode.SetHealth(sid, api.HealthState{
 				Status: api.HealthUnknown,
 			})
 			changed = true
 		}
 		if changed {
-			res = res.SetNode(nodeID, nextNode)
+			res = res.SetNode(nid, nextNode)
 		}
 	}
 	return res

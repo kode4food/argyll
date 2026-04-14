@@ -330,7 +330,7 @@ func TestStepOutputArgs(t *testing.T) {
 	as := assert.New(t)
 
 	t.Run("multiple_outputs", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "multi-output",
 			Name: "Multi-Output Step",
 			Type: api.StepTypeSync,
@@ -343,7 +343,7 @@ func TestStepOutputArgs(t *testing.T) {
 				"metadata": {Role: api.RoleOutput, Type: api.TypeObject},
 			},
 		}
-		outputs := step.GetOutputArgs()
+		outputs := st.GetOutputArgs()
 		as.Len(outputs, 3)
 		as.Contains(outputs, api.Name("result1"))
 		as.Contains(outputs, api.Name("result2"))
@@ -351,7 +351,7 @@ func TestStepOutputArgs(t *testing.T) {
 	})
 
 	t.Run("no_outputs", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "no-output",
 			Name: "Terminal Step",
 			Type: api.StepTypeSync,
@@ -362,14 +362,14 @@ func TestStepOutputArgs(t *testing.T) {
 				"data": {Role: api.RoleRequired, Type: api.TypeString},
 			},
 		}
-		as.Empty(step.GetOutputArgs())
+		as.Empty(st.GetOutputArgs())
 	})
 }
 
 func TestSortedArgNames(t *testing.T) {
 	as := assert.New(t)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "sorted-args",
 		Name: "Sorted Args Step",
 		Type: api.StepTypeSync,
@@ -389,7 +389,7 @@ func TestSortedArgNames(t *testing.T) {
 		},
 	}
 
-	sorted := step.SortedArgNames()
+	sorted := st.SortedArgNames()
 	as.Len(sorted, 5)
 	as.Equal("apple", sorted[0])
 	as.Equal("banana", sorted[1])
@@ -401,7 +401,7 @@ func TestSortedArgNames(t *testing.T) {
 func TestSortedArgNamesUsesMappingNames(t *testing.T) {
 	as := assert.New(t)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "sorted-mapped-args",
 		Name: "Sorted Mapped Args Step",
 		Type: api.StepTypeSync,
@@ -430,14 +430,14 @@ func TestSortedArgNamesUsesMappingNames(t *testing.T) {
 		},
 	}
 
-	sorted := step.SortedArgNames()
+	sorted := st.SortedArgNames()
 	as.Equal([]string{"inner_a", "inner_b", "plain"}, sorted)
 }
 
 func TestMultiArgNames(t *testing.T) {
 	as := assert.New(t)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "multi-args",
 		Name: "Multi Args Step",
 		Type: api.StepTypeSync,
@@ -467,7 +467,7 @@ func TestMultiArgNames(t *testing.T) {
 		},
 	}
 
-	multiArgs := step.MultiArgNames()
+	multiArgs := st.MultiArgNames()
 	as.Len(multiArgs, 3)
 	as.Contains(multiArgs, api.Name("users"))
 	as.Contains(multiArgs, api.Name("items"))
@@ -478,7 +478,7 @@ func TestMultiArgNames(t *testing.T) {
 func TestGetRequiredArgs(t *testing.T) {
 	as := assert.New(t)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "required-args",
 		Name: "Required Args Step",
 		Type: api.StepTypeSync,
@@ -493,7 +493,7 @@ func TestGetRequiredArgs(t *testing.T) {
 		},
 	}
 
-	requiredArgs := step.GetRequiredArgs()
+	requiredArgs := st.GetRequiredArgs()
 	as.Len(requiredArgs, 2)
 	as.Contains(requiredArgs, api.Name("user_id"))
 	as.Contains(requiredArgs, api.Name("email"))
@@ -504,7 +504,7 @@ func TestGetRequiredArgs(t *testing.T) {
 func TestGetOptionalArgs(t *testing.T) {
 	as := assert.New(t)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "optional-args",
 		Name: "Optional Args Step",
 		Type: api.StepTypeSync,
@@ -519,7 +519,7 @@ func TestGetOptionalArgs(t *testing.T) {
 		},
 	}
 
-	optionalArgs := step.GetOptionalArgs()
+	optionalArgs := st.GetOptionalArgs()
 	as.Len(optionalArgs, 2)
 	as.Contains(optionalArgs, api.Name("email"))
 	as.Contains(optionalArgs, api.Name("name"))
@@ -787,7 +787,7 @@ func TestValidateWorkConfig(t *testing.T) {
 	as := assert.New(t)
 
 	t.Run("negative_backoff", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -798,11 +798,11 @@ func TestValidateWorkConfig(t *testing.T) {
 				InitBackoff: -1,
 			},
 		}
-		as.StepInvalid(step, "backoff cannot be negative")
+		as.StepInvalid(st, "backoff cannot be negative")
 	})
 
 	t.Run("max_backoff_too_small", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -814,11 +814,11 @@ func TestValidateWorkConfig(t *testing.T) {
 				MaxBackoff:  500,
 			},
 		}
-		as.StepInvalid(step, "max_backoff")
+		as.StepInvalid(st, "max_backoff")
 	})
 
 	t.Run("missing_backoff_type_uses_default", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -829,11 +829,11 @@ func TestValidateWorkConfig(t *testing.T) {
 				MaxRetries: 3,
 			},
 		}
-		as.StepValid(step)
+		as.StepValid(st)
 	})
 
 	t.Run("invalid_backoff_type", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -845,11 +845,11 @@ func TestValidateWorkConfig(t *testing.T) {
 				BackoffType: "invalid",
 			},
 		}
-		as.StepInvalid(step, "invalid backoff type")
+		as.StepInvalid(st, "invalid backoff type")
 	})
 
 	t.Run("valid_work_config", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -863,7 +863,7 @@ func TestValidateWorkConfig(t *testing.T) {
 				BackoffType: api.BackoffTypeExponential,
 			},
 		}
-		as.StepValid(step)
+		as.StepValid(st)
 	})
 }
 
@@ -878,8 +878,8 @@ func TestStepWithDefaults(t *testing.T) {
 	}
 
 	t.Run("nil_work_config", func(t *testing.T) {
-		step := &api.Step{ID: "step", Name: "Step", Type: api.StepTypeSync}
-		res := step.WithWorkDefaults(defaults)
+		st := &api.Step{ID: "step", Name: "Step", Type: api.StepTypeSync}
+		res := st.WithWorkDefaults(defaults)
 
 		as.NotNil(res.WorkConfig)
 		as.Equal(10, res.WorkConfig.MaxRetries)
@@ -889,7 +889,7 @@ func TestStepWithDefaults(t *testing.T) {
 	})
 
 	t.Run("fills_retry_fields_only", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "step",
 			Name: "Step",
 			Type: api.StepTypeSync,
@@ -897,7 +897,7 @@ func TestStepWithDefaults(t *testing.T) {
 				Parallelism: 4,
 			},
 		}
-		res := step.WithWorkDefaults(defaults)
+		res := st.WithWorkDefaults(defaults)
 
 		as.NotNil(res.WorkConfig)
 		as.Equal(4, res.WorkConfig.Parallelism)
@@ -905,14 +905,14 @@ func TestStepWithDefaults(t *testing.T) {
 		as.Equal(int64(1000), res.WorkConfig.InitBackoff)
 		as.Equal(int64(60000), res.WorkConfig.MaxBackoff)
 		as.Equal(api.BackoffTypeExponential, res.WorkConfig.BackoffType)
-		as.Equal(0, step.WorkConfig.MaxRetries)
-		as.Equal(int64(0), step.WorkConfig.InitBackoff)
-		as.Equal(int64(0), step.WorkConfig.MaxBackoff)
-		as.Equal("", step.WorkConfig.BackoffType)
+		as.Equal(0, st.WorkConfig.MaxRetries)
+		as.Equal(int64(0), st.WorkConfig.InitBackoff)
+		as.Equal(int64(0), st.WorkConfig.MaxBackoff)
+		as.Equal("", st.WorkConfig.BackoffType)
 	})
 
 	t.Run("explicit_retry_values_preserved", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "step",
 			Name: "Step",
 			Type: api.StepTypeSync,
@@ -923,7 +923,7 @@ func TestStepWithDefaults(t *testing.T) {
 				BackoffType: api.BackoffTypeLinear,
 			},
 		}
-		res := step.WithWorkDefaults(defaults)
+		res := st.WithWorkDefaults(defaults)
 
 		as.Equal(2, res.WorkConfig.MaxRetries)
 		as.Equal(int64(250), res.WorkConfig.InitBackoff)
@@ -936,7 +936,7 @@ func TestStepCopy(t *testing.T) {
 	as := assert.New(t)
 
 	t.Run("shallow_copy", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "copy-step",
 			Name: "Copy Step",
 			Type: api.StepTypeFlow,
@@ -976,13 +976,13 @@ func TestStepCopy(t *testing.T) {
 			},
 		}
 
-		cpy := step.Copy()
+		cpy := st.Copy()
 		as.NotNil(cpy)
-		as.NotSame(step, cpy)
-		as.True(step.Equal(cpy))
+		as.NotSame(st, cpy)
+		as.True(st.Equal(cpy))
 
 		cpy.Name = "Changed Name"
-		as.Equal(api.Name("Copy Step"), step.Name)
+		as.Equal(api.Name("Copy Step"), st.Name)
 
 		cpy.HTTP.Endpoint = "http://localhost:8081"
 		cpy.Flow.Goals[0] = "goal-b"
@@ -994,15 +994,15 @@ func TestStepCopy(t *testing.T) {
 		cpy.Attributes["input"].Mapping.Name = "changed"
 		cpy.Attributes["input"].Mapping.Script.Script = "$.changed"
 
-		as.Equal("http://localhost:8081", step.HTTP.Endpoint)
-		as.Equal(api.StepID("goal-b"), step.Flow.Goals[0])
-		as.Equal("(* 2 3)", step.Script.Script)
-		as.Equal("return false", step.Predicate.Script)
-		as.Equal(9, step.WorkConfig.MaxRetries)
-		as.Equal("platform", step.Labels["team"])
-		as.Equal(api.TypeNumber, step.Attributes["input"].Type)
-		as.Equal("changed", step.Attributes["input"].Mapping.Name)
-		as.Equal("$.changed", step.Attributes["input"].Mapping.Script.Script)
+		as.Equal("http://localhost:8081", st.HTTP.Endpoint)
+		as.Equal(api.StepID("goal-b"), st.Flow.Goals[0])
+		as.Equal("(* 2 3)", st.Script.Script)
+		as.Equal("return false", st.Predicate.Script)
+		as.Equal(9, st.WorkConfig.MaxRetries)
+		as.Equal("platform", st.Labels["team"])
+		as.Equal(api.TypeNumber, st.Attributes["input"].Type)
+		as.Equal("changed", st.Attributes["input"].Mapping.Name)
+		as.Equal("$.changed", st.Attributes["input"].Mapping.Script.Script)
 	})
 }
 
@@ -1452,7 +1452,7 @@ func TestStepValidateMappingNames(t *testing.T) {
 	as := assert.New(t)
 
 	t.Run("duplicate_input_inner_names", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -1471,13 +1471,13 @@ func TestStepValidateMappingNames(t *testing.T) {
 				},
 			},
 		}
-		err := step.Validate()
+		err := st.Validate()
 		as.ErrorIs(err, api.ErrDuplicateInnerName)
 		as.ErrorContains(err, "user_email")
 	})
 
 	t.Run("duplicate_output_inner_names", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -1496,13 +1496,13 @@ func TestStepValidateMappingNames(t *testing.T) {
 				},
 			},
 		}
-		err := step.Validate()
+		err := st.Validate()
 		as.ErrorIs(err, api.ErrDuplicateInnerName)
 		as.ErrorContains(err, "status")
 	})
 
 	t.Run("same_inner_name_input_and_output_allowed", func(t *testing.T) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "test",
 			Name: "Test",
 			Type: api.StepTypeSync,
@@ -1521,7 +1521,7 @@ func TestStepValidateMappingNames(t *testing.T) {
 				},
 			},
 		}
-		err := step.Validate()
+		err := st.Validate()
 		as.NoError(err)
 	})
 }

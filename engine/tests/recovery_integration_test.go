@@ -35,28 +35,26 @@ func waitForFlowsStatusWithTimeoutAfter(
 
 	res := make(map[api.FlowID]api.FlowState, len(ids))
 	assert.Eventually(env.T, func() bool {
-		for _, flowID := range ids {
-			st, err := env.Engine.GetFlowState(flowID)
+		for _, fid := range ids {
+			fl, err := env.Engine.GetFlowState(fid)
 			if err != nil {
 				return false
 			}
-			res[flowID] = st
-			if st.Status != api.FlowCompleted &&
-				st.Status != api.FlowFailed {
+			res[fid] = fl
+			if fl.Status != api.FlowCompleted &&
+				fl.Status != api.FlowFailed {
 				return false
 			}
 		}
 		return true
 	}, timeout, 25*time.Millisecond)
 
-	for _, flowID := range ids {
-		state := res[flowID]
-		if state.Status != api.FlowCompleted &&
-			state.Status != api.FlowFailed {
+	for _, fid := range ids {
+		fl := res[fid]
+		if fl.Status != api.FlowCompleted &&
+			fl.Status != api.FlowFailed {
 			env.T.Fatalf(
-				"flow %s not terminal after wait; status=%s",
-				flowID,
-				state.Status,
+				"flow %s not terminal after wait; status=%s", fid, fl.Status,
 			)
 		}
 	}
@@ -100,10 +98,10 @@ func TestBasicFlowRecovery(t *testing.T) {
 			}))
 		})
 
-		// Verify flow is active with pending work
-		flow, err := env.Engine.GetFlowState(id)
+		// Verify fl is active with pending work
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowActive, flow.Status)
+		assert.Equal(t, api.FlowActive, fl.Status)
 
 		// Stop engine (simulating crash)
 		err = env.Engine.Stop()
@@ -486,9 +484,9 @@ func TestRecoveryPreservesState(t *testing.T) {
 		assert.Equal(t, api.FlowActive, beforeRestart.Status)
 
 		// Verify step is active (has been attempted)
-		exec := beforeRestart.Executions[st.ID]
-		assert.Equal(t, api.StepActive, exec.Status)
-		assert.NotEmpty(t, exec.WorkItems)
+		ex := beforeRestart.Executions[st.ID]
+		assert.Equal(t, api.StepActive, ex.Status)
+		assert.NotEmpty(t, ex.WorkItems)
 
 		err = env.Engine.Stop()
 		assert.NoError(t, err)

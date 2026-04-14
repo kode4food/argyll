@@ -110,28 +110,28 @@ func TestPartialFlowFailure(t *testing.T) {
 			waits[2].ForEvent(wait.FlowTerminal(id))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowFailed, flow.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		// Verify step A completed (no dependencies, no errors)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
 
 		// Verify step B failed (configured to fail)
-		assert.Equal(t, api.StepFailed, flow.Executions["step-b"].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions["step-b"].Status)
 
 		// Verify step C completed (independent of B's failure)
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-c"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
 
 		// Verify step D failed (depends on B which failed)
-		assert.Equal(t, api.StepFailed, flow.Executions["step-d"].Status)
+		assert.Equal(t, api.StepFailed, fl.Executions["step-d"].Status)
 
 		// Verify attributes from successful steps were set
-		assert.Equal(t, "b-val", flow.Attributes["valueB"].Value)
-		assert.Equal(t, "c-val", flow.Attributes["valueC"].Value)
-		assert.Equal(t, "C-result", flow.Attributes["outputC"].Value)
-		assert.NotContains(t, flow.Attributes, "outputB")
-		assert.NotContains(t, flow.Attributes, "result")
+		assert.Equal(t, "b-val", fl.Attributes["valueB"].Value)
+		assert.Equal(t, "c-val", fl.Attributes["valueC"].Value)
+		assert.Equal(t, "C-result", fl.Attributes["outputC"].Value)
+		assert.NotContains(t, fl.Attributes, "outputB")
+		assert.NotContains(t, fl.Attributes, "result")
 
 		// Verify correct steps were invoked
 		invocations := env.MockClient.GetInvocations()
@@ -276,15 +276,15 @@ func TestSkippedProviderCascade(t *testing.T) {
 			api.StepSkipped, fl.Executions[orderCreator.ID].Status,
 		)
 
-		for _, stepID := range []api.StepID{
+		for _, sid := range []api.StepID{
 			paymentProcessor.ID,
 			stockReservation.ID,
 			notificationSender.ID,
 		} {
-			assert.Equal(t, api.StepFailed, fl.Executions[stepID].Status)
+			assert.Equal(t, api.StepFailed, fl.Executions[sid].Status)
 			assert.Equal(t,
 				"required input no longer available",
-				fl.Executions[stepID].Error,
+				fl.Executions[sid].Error,
 			)
 		}
 

@@ -55,11 +55,11 @@ func TestMemoStepReusesToken(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify only one work item (token was reused)
-		exec := fl.Executions[st.ID]
-		assert.Len(t, exec.WorkItems, 1)
+		ex := fl.Executions[st.ID]
+		assert.Len(t, ex.WorkItems, 1)
 
 		// Verify the work item has retry count > 0
-		for _, item := range exec.WorkItems {
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkSucceeded, item.Status)
 			assert.GreaterOrEqual(t, item.RetryCount, 1)
 		}
@@ -109,11 +109,11 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify only one work item exists (old token was replaced)
-		exec := fl.Executions[st.ID]
-		assert.Len(t, exec.WorkItems, 1)
+		ex := fl.Executions[st.ID]
+		assert.Len(t, ex.WorkItems, 1)
 
 		// Verify the work item has retry count > 0
-		for _, item := range exec.WorkItems {
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkSucceeded, item.Status)
 			assert.GreaterOrEqual(t, item.RetryCount, 1)
 		}
@@ -163,11 +163,11 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		// Verify only one work item exists (tokens were replaced on retry)
-		exec := fl.Executions[st.ID]
-		assert.Len(t, exec.WorkItems, 1)
+		ex := fl.Executions[st.ID]
+		assert.Len(t, ex.WorkItems, 1)
 
 		// Verify the work item has retry count >= 1
-		for _, item := range exec.WorkItems {
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkSucceeded, item.Status)
 			assert.GreaterOrEqual(t, item.RetryCount, 1)
 		}

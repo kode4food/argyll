@@ -12,7 +12,7 @@ import (
 func TestCacheGetPut(t *testing.T) {
 	cache := memo.NewCache(100)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
@@ -28,10 +28,10 @@ func TestCacheGetPut(t *testing.T) {
 	inputs := api.Args{"input": "value"}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(step, inputs, outputs)
+	err := cache.Put(st, inputs, outputs)
 	assert.NoError(t, err)
 
-	result, ok := cache.Get(step, inputs)
+	result, ok := cache.Get(st, inputs)
 	assert.True(t, ok)
 	assert.Equal(t, outputs, result)
 }
@@ -39,7 +39,7 @@ func TestCacheGetPut(t *testing.T) {
 func TestCacheMiss(t *testing.T) {
 	cache := memo.NewCache(100)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
@@ -53,14 +53,14 @@ func TestCacheMiss(t *testing.T) {
 
 	inputs := api.Args{"input": "value"}
 
-	_, ok := cache.Get(step, inputs)
+	_, ok := cache.Get(st, inputs)
 	assert.False(t, ok)
 }
 
 func TestCacheDifferentInputs(t *testing.T) {
 	cache := memo.NewCache(100)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
@@ -77,16 +77,16 @@ func TestCacheDifferentInputs(t *testing.T) {
 	inputs2 := api.Args{"input": "value2"}
 	outputs2 := api.Args{"output": "result2"}
 
-	err := cache.Put(step, inputs1, outputs1)
+	err := cache.Put(st, inputs1, outputs1)
 	assert.NoError(t, err)
-	err = cache.Put(step, inputs2, outputs2)
+	err = cache.Put(st, inputs2, outputs2)
 	assert.NoError(t, err)
 
-	result, ok := cache.Get(step, inputs1)
+	result, ok := cache.Get(st, inputs1)
 	assert.True(t, ok)
 	assert.Equal(t, outputs1, result)
 
-	result, ok = cache.Get(step, inputs2)
+	result, ok = cache.Get(st, inputs2)
 	assert.True(t, ok)
 	assert.Equal(t, outputs2, result)
 }
@@ -173,7 +173,7 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 func TestCacheEmptyInputs(t *testing.T) {
 	cache := memo.NewCache(100)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
@@ -188,10 +188,10 @@ func TestCacheEmptyInputs(t *testing.T) {
 	inputs := api.Args{}
 	outputs := api.Args{"output": "result"}
 
-	err := cache.Put(step, inputs, outputs)
+	err := cache.Put(st, inputs, outputs)
 	assert.NoError(t, err)
 
-	result, ok := cache.Get(step, inputs)
+	result, ok := cache.Get(st, inputs)
 	assert.True(t, ok)
 	assert.Equal(t, outputs, result)
 }
@@ -280,7 +280,7 @@ func TestCacheHashFlowConfig(t *testing.T) {
 func TestCacheHashInputOrder(t *testing.T) {
 	cache := memo.NewCache(100)
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
@@ -303,9 +303,9 @@ func TestCacheHashInputOrder(t *testing.T) {
 	}
 	outputs := api.Args{"result": "data"}
 
-	err := cache.Put(step, inputs1, outputs)
+	err := cache.Put(st, inputs1, outputs)
 	assert.NoError(t, err)
-	result, ok := cache.Get(step, inputs2)
+	result, ok := cache.Get(st, inputs2)
 
 	assert.True(t, ok)
 	assert.Equal(t, outputs, result)

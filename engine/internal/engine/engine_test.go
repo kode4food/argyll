@@ -114,19 +114,19 @@ func TestStartStop(t *testing.T) {
 
 func TestGetCatalogState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		st, err := eng.GetCatalogState()
+		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
-		assert.NotNil(t, st)
-		assert.NotNil(t, st.Steps)
+		assert.NotNil(t, cat)
+		assert.NotNil(t, cat.Steps)
 	})
 }
 
 func TestGetClusterState(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		st, err := eng.GetClusterState()
+		cl, err := eng.GetClusterState()
 		assert.NoError(t, err)
-		assert.NotNil(t, st)
-		assert.NotNil(t, st.Nodes)
+		assert.NotNil(t, cl)
+		assert.NotNil(t, cl.Nodes)
 	})
 }
 
@@ -173,9 +173,9 @@ func TestStateIncludesConfiguredNodes(t *testing.T) {
 			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
 		)
 
-		st, err := env.Engine.GetClusterState()
+		cl, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		assert.Contains(t, st.Nodes, api.NodeID("node-2"))
+		assert.Contains(t, cl.Nodes, api.NodeID("node-2"))
 
 		seqState, seq, err := env.Engine.GetClusterStateSeq()
 		assert.NoError(t, err)
@@ -205,12 +205,12 @@ func TestClusterTracksMultipleNodes(t *testing.T) {
 			peer.UpdateStepHealth("step-1", api.HealthHealthy, ""),
 		)
 
-		st, err := env.Engine.GetClusterState()
+		cl, err := env.Engine.GetClusterState()
 		assert.NoError(t, err)
-		assert.Contains(t, st.Nodes, api.NodeID("node-2"))
+		assert.Contains(t, cl.Nodes, api.NodeID("node-2"))
 		assert.Equal(t,
 			api.HealthHealthy,
-			st.Nodes["node-2"].Health["step-1"].Status,
+			cl.Nodes["node-2"].Health["step-1"].Status,
 		)
 	})
 }
@@ -224,24 +224,24 @@ func TestEngineStopGraceful(t *testing.T) {
 
 func TestExecPublishesEvents(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := helpers.NewSimpleStep("wrapper-step")
-		env.MockClient.SetResponse(step.ID, api.Args{})
+		st := helpers.NewSimpleStep("wrapper-step")
+		env.MockClient.SetResponse(st.ID, api.Args{})
 
 		consumer := env.EventHub.NewConsumer()
 		defer consumer.Close()
 		w := wait.On(t, consumer)
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 		w.ForEvent(wait.EngineEvent(api.EventTypeStepRegistered))
 
 		assert.NoError(t,
-			env.Engine.UpdateStepHealth(step.ID, api.HealthHealthy, ""),
+			env.Engine.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
 		)
 		w.ForEvent(wait.EngineEvent(api.EventTypeStepHealthChanged))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 		assert.NoError(t, env.Engine.StartFlow("wrapper-flow", pl))
 		w.ForEvent(wait.FlowStarted("wrapper-flow"))

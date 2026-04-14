@@ -204,7 +204,7 @@ func TestNoTimeoutTasks(t *testing.T) {
 	withFakeScheduler(t, func(
 		eng *engine.Engine, timer *fakeTimer, _ time.Time,
 	) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "script-step",
 			Name: "Script Step",
 			Type: api.StepTypeScript,
@@ -223,11 +223,11 @@ func TestNoTimeoutTasks(t *testing.T) {
 				},
 			},
 		}
-		assert.NoError(t, eng.RegisterStep(step))
+		assert.NoError(t, eng.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		id := api.FlowID("wf-no-timeouts")

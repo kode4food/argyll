@@ -14,7 +14,7 @@ import (
 func TestLuaCompile(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -28,7 +28,7 @@ func TestLuaCompile(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 	assert.NotNil(t, comp)
 }
@@ -36,7 +36,7 @@ func TestLuaCompile(t *testing.T) {
 func TestLuaExecuteScript(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -50,7 +50,7 @@ func TestLuaExecuteScript(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
 	args := api.Args{
@@ -58,7 +58,7 @@ func TestLuaExecuteScript(t *testing.T) {
 		"b": 10,
 	}
 
-	result, err := env.ExecuteScript(comp, step, args)
+	result, err := env.ExecuteScript(comp, st, args)
 	assert.NoError(t, err)
 
 	assert.Contains(t, result, api.Name("result"))
@@ -96,7 +96,7 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			step := &api.Step{
+			st := &api.Step{
 				ID:   "test",
 				Type: api.StepTypeSync,
 				Predicate: &api.ScriptConfig{
@@ -109,13 +109,13 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 				},
 			}
 
-			comp, err := env.Compile(step, &api.ScriptConfig{
+			comp, err := env.Compile(st, &api.ScriptConfig{
 				Script:   tt.predicate,
 				Language: api.ScriptLangLua,
 			})
 			assert.NoError(t, err)
 
-			result, err := env.EvaluatePredicate(comp, step, tt.args)
+			result, err := env.EvaluatePredicate(comp, st, tt.args)
 			assert.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -144,8 +144,8 @@ func TestLuaValidate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			step := &api.Step{ID: "test", Type: api.StepTypeScript}
-			err := env.Validate(step, tt.script)
+			st := &api.Step{ID: "test", Type: api.StepTypeScript}
+			err := env.Validate(st, tt.script)
 			if tt.expectError {
 				assert.Error(t, err)
 				return
@@ -158,7 +158,7 @@ func TestLuaValidate(t *testing.T) {
 func TestLuaScriptCache(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -172,10 +172,10 @@ func TestLuaScriptCache(t *testing.T) {
 		},
 	}
 
-	proc1, err := env.Compile(step, step.Script)
+	proc1, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	proc2, err := env.Compile(step, step.Script)
+	proc2, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
 	assert.Equal(t, proc1, proc2)
@@ -222,7 +222,7 @@ func TestLuaCompileViaRegistry(t *testing.T) {
 func TestLuaComplexConversion(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "complex-types",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -248,7 +248,7 @@ func TestLuaComplexConversion(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
 	args := api.Args{
@@ -258,7 +258,7 @@ func TestLuaComplexConversion(t *testing.T) {
 		"price":     99.99,
 	}
 
-	result, err := env.ExecuteScript(comp, step, args)
+	result, err := env.ExecuteScript(comp, st, args)
 	assert.NoError(t, err)
 
 	assert.Equal(t, true, result["bool_val"])
@@ -270,7 +270,7 @@ func TestLuaComplexConversion(t *testing.T) {
 func TestLuaArrayTableConversion(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "array-test",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -283,10 +283,10 @@ func TestLuaArrayTableConversion(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	numbers, ok := result["numbers"].([]any)
@@ -351,7 +351,7 @@ func TestLuaInputTypes(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			step := &api.Step{
+			st := &api.Step{
 				ID:   api.StepID(tt.name),
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
@@ -366,10 +366,10 @@ func TestLuaInputTypes(t *testing.T) {
 				},
 			}
 
-			comp, err := env.Compile(step, step.Script)
+			comp, err := env.Compile(st, st.Script)
 			assert.NoError(t, err)
 
-			result, err := env.ExecuteScript(comp, step, tt.inputs)
+			result, err := env.ExecuteScript(comp, st, tt.inputs)
 			assert.NoError(t, err)
 
 			for key, expected := range tt.expected {
@@ -382,7 +382,7 @@ func TestLuaInputTypes(t *testing.T) {
 func TestLuaEmptyArray(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "empty-array",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -394,10 +394,10 @@ func TestLuaEmptyArray(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	items, ok := result["items"].(map[string]any)
@@ -408,7 +408,7 @@ func TestLuaEmptyArray(t *testing.T) {
 func TestLuaNestedArrays(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "nested-arrays",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -424,10 +424,10 @@ func TestLuaNestedArrays(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	matrix, ok := result["matrix"].([]any)
@@ -443,7 +443,7 @@ func TestLuaNestedArrays(t *testing.T) {
 func TestLuaNilReturn(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "nil-return",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -455,10 +455,10 @@ func TestLuaNilReturn(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 	assert.Nil(t, result["result"])
 }
@@ -466,7 +466,7 @@ func TestLuaNilReturn(t *testing.T) {
 func TestLuaEmptyTable(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "empty-table",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -478,10 +478,10 @@ func TestLuaEmptyTable(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	m, ok := result["result"].(map[string]any)
@@ -492,7 +492,7 @@ func TestLuaEmptyTable(t *testing.T) {
 func TestLuaNestedMap(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "nested-map",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -512,10 +512,10 @@ func TestLuaNestedMap(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	m, ok := result["result"].(map[string]any)
@@ -532,7 +532,7 @@ func TestLuaNestedMap(t *testing.T) {
 func TestLuaLargeArray(t *testing.T) {
 	env := script.NewLuaEnv()
 
-	step := &api.Step{
+	st := &api.Step{
 		ID:   "large-array",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
@@ -550,10 +550,10 @@ func TestLuaLargeArray(t *testing.T) {
 		},
 	}
 
-	comp, err := env.Compile(step, step.Script)
+	comp, err := env.Compile(st, st.Script)
 	assert.NoError(t, err)
 
-	result, err := env.ExecuteScript(comp, step, api.Args{})
+	result, err := env.ExecuteScript(comp, st, api.Args{})
 	assert.NoError(t, err)
 
 	numbers, ok := result["numbers"].([]any)

@@ -67,20 +67,20 @@ func (e *Engine) calculateNextRetryAt(
 }
 
 func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
-	exec, ok := tx.Value().Executions[stepID]
-	if !ok || exec.Status != api.StepActive {
+	ex, ok := tx.Value().Executions[stepID]
+	if !ok || ex.Status != api.StepActive {
 		return nil
 	}
 
-	work, ok := exec.WorkItems[tkn]
+	work, ok := ex.WorkItems[tkn]
 	if !ok || work.Status != api.WorkNotCompleted {
 		return nil
 	}
 
-	step := tx.Value().Plan.Steps[stepID]
-	if tx.ShouldRetry(step, work) {
+	st := tx.Value().Plan.Steps[stepID]
+	if tx.ShouldRetry(st, work) {
 		nextRetryAt := tx.calculateNextRetryAt(
-			tx.Now(), step.WorkConfig, work.RetryCount,
+			tx.Now(), st.WorkConfig, work.RetryCount,
 		)
 		err := tx.raiseRetryScheduled(stepID, tkn, work, nextRetryAt)
 		if err != nil {
@@ -96,8 +96,8 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
 }
 
 func (tx *flowTx) continueStepWork(stepID api.StepID, clearRetry bool) error {
-	step := tx.Value().Plan.Steps[stepID]
-	started, err := tx.startPendingWork(step)
+	st := tx.Value().Plan.Steps[stepID]
+	started, err := tx.startPendingWork(st)
 	if err != nil {
 		return err
 	}
@@ -106,17 +106,17 @@ func (tx *flowTx) continueStepWork(stepID api.StepID, clearRetry bool) error {
 	}
 	if clearRetry {
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-			for token := range started {
+			for tkn := range started {
 				tx.CancelTask(
 					retryKey(api.FlowStep{
 						FlowID: tx.flowID,
 						StepID: stepID,
-					}, token),
+					}, tkn),
 				)
 			}
 		})
 	}
-	return tx.startContinuedWork(stepID, step, started)
+	return tx.startContinuedWork(stepID, st, started)
 }
 
 func (tx *flowTx) handleWorkContinuation(stepID api.StepID) error {
@@ -136,8 +136,8 @@ func (tx *flowTx) startContinuedWork(
 	stepID api.StepID, step *api.Step, started api.WorkItems,
 ) error {
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-		exec := flow.Executions[stepID]
-		tx.handleWorkItemsExecution(step, exec.Inputs, flow.Metadata, started)
+		ex := flow.Executions[stepID]
+		tx.handleWorkItemsExecution(step, ex.Inputs, flow.Metadata, started)
 	})
 	return nil
 }
@@ -162,26 +162,26 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 	var meta api.Metadata
 
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		flow := tx.Value()
-		if flow.ID == "" || flowTransitions.IsTerminal(flow.Status) {
+		fl := tx.Value()
+		if fl.ID == "" || flowTransitions.IsTerminal(fl.Status) {
 			return nil
 		}
 
-		exec, ok := flow.Executions[fs.StepID]
+		ex, ok := fl.Executions[fs.StepID]
 		if !ok {
 			return nil
 		}
-		if _, ok := exec.WorkItems[tkn]; !ok {
+		if _, ok := ex.WorkItems[tkn]; !ok {
 			return nil
 		}
 
-		step, ok = flow.Plan.Steps[fs.StepID]
+		step, ok = fl.Plan.Steps[fs.StepID]
 		if !ok {
 			return nil
 		}
 
-		inputs = exec.Inputs
-		meta = flow.Metadata
+		inputs = ex.Inputs
+		meta = fl.Metadata
 
 		var err error
 		started, retryAt, err := tx.startRetryWorkItem(step, tkn)

@@ -375,13 +375,13 @@ func TestCreateStepInvalidRequest(t *testing.T) {
 
 func TestCreateStepValidBody(t *testing.T) {
 	withTestServerEnv(t, func(env *testServerEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "",
 			Name: "Invalid Step",
 			Type: api.StepTypeSync,
 		}
 
-		body, _ := json.Marshal(step)
+		body, _ := json.Marshal(st)
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)

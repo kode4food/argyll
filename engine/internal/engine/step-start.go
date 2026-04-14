@@ -26,18 +26,18 @@ type stepEval struct {
 // raising the StepStarted event via aggregator and scheduling work execution
 // after commit
 func (tx *flowTx) prepareStep(stepID api.StepID) error {
-	flow := tx.Value()
+	fl := tx.Value()
 
-	exec := flow.Executions[stepID]
-	if exec.Status != api.StepPending {
+	ex := fl.Executions[stepID]
+	if ex.Status != api.StepPending {
 		return fmt.Errorf("%w: %s (status=%s)", ErrStepAlreadyPending,
-			stepID, exec.Status)
+			stepID, ex.Status)
 	}
 
-	step := flow.Plan.Steps[stepID]
-	inputs := tx.collectStepInputs(step, flow)
+	st := fl.Plan.Steps[stepID]
+	inputs := tx.collectStepInputs(st, fl)
 
-	shouldExecute, err := tx.evaluateStepPredicate(step, inputs)
+	shouldExecute, err := tx.evaluateStepPredicate(st, inputs)
 	if err != nil {
 		return tx.handlePredicateFailure(stepID, err)
 	}
@@ -58,14 +58,14 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		)
 	}
 
-	workItemsList, err := computeWorkItems(step, inputs)
+	workItemsList, err := computeWorkItems(st, inputs)
 	if err != nil {
 		return err
 	}
 	workItemsMap := map[api.Token]api.Args{}
 	for _, workInputs := range workItemsList {
-		token := api.Token(uuid.New().String())
-		workItemsMap[token] = workInputs
+		tkn := api.Token(uuid.New().String())
+		workItemsMap[tkn] = workInputs
 	}
 
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepStarted,
@@ -79,22 +79,22 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		return err
 	}
 
-	started, err := tx.startPendingWork(step)
+	started, err := tx.startPendingWork(st)
 	if err != nil {
 		return err
 	}
 
 	if len(started) > 0 {
 		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-			if stepHasTimeouts(step) {
+			if stepHasTimeouts(st) {
 				tx.CancelPrefixedTasks(
 					timeoutStepPrefix(api.FlowStep{
 						FlowID: tx.flowID,
-						StepID: step.ID,
+						StepID: st.ID,
 					}),
 				)
 			}
-			tx.handleWorkItemsExecution(step, inputs, flow.Metadata, started)
+			tx.handleWorkItemsExecution(st, inputs, flow.Metadata, started)
 		})
 	}
 
@@ -114,12 +114,12 @@ func (tx *flowTx) canStartStepAt(
 
 func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
 	res := make([]api.StepID, 0, len(flow.Executions))
-	for stepID, exec := range flow.Executions {
-		if exec.Status != api.StepPending {
+	for sid, ex := range flow.Executions {
+		if ex.Status != api.StepPending {
 			continue
 		}
-		if tx.canStartStep(stepID, flow) {
-			res = append(res, stepID)
+		if tx.canStartStep(sid, flow) {
+			res = append(res, sid)
 		}
 	}
 	return res
@@ -216,8 +216,8 @@ func (tx *flowTx) collectStepInputs(
 }
 
 func (s *stepEval) canStart() (bool, time.Time) {
-	exec := s.flow.Executions[s.stepID]
-	if exec.Status != api.StepPending {
+	ex := s.flow.Executions[s.stepID]
+	if ex.Status != api.StepPending {
 		return false, time.Time{}
 	}
 	if !s.e.areOutputsNeeded(s.stepID, s.flow) {

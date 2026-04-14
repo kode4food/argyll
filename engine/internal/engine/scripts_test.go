@@ -15,7 +15,7 @@ func TestGetCompiledScript(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "script-step",
 			Name: "Script Step",
 			Type: api.StepTypeScript,
@@ -28,12 +28,12 @@ func TestGetCompiledScript(t *testing.T) {
 			},
 		}
 
-		err := env.Engine.RegisterStep(step)
+		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{"script-step"},
-			Steps: api.Steps{step.ID: step},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		env.WaitFor(wait.FlowStarted("wf-script"), func() {

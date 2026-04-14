@@ -34,11 +34,11 @@ func ParseFlowID(id timebox.AggregateID) (api.FlowID, bool) {
 	if len(id) < 2 || id[0] != FlowPrefix {
 		return "", false
 	}
-	flowID := api.FlowID(id[1])
-	if flowID == "" {
+	fid := api.FlowID(id[1])
+	if fid == "" {
 		return "", false
 	}
-	return flowID, true
+	return fid, true
 }
 
 func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
@@ -167,19 +167,19 @@ func stepStarted(
 	st api.FlowState, ev *timebox.Event, data api.StepStartedEvent,
 ) api.FlowState {
 	workItems := api.WorkItems{}
-	for token, inputs := range data.WorkItems {
-		workItems[token] = api.WorkState{
+	for tkn, inputs := range data.WorkItems {
+		workItems[tkn] = api.WorkState{
 			Status: api.WorkPending,
 			Inputs: inputs,
 		}
 	}
 
-	exec := api.ExecutionState{
+	ex := api.ExecutionState{
 		Status:    api.StepPending,
 		WorkItems: workItems,
 	}
 
-	updated := exec.
+	updated := ex.
 		SetStatus(api.StepActive).
 		SetStartedAt(ev.Timestamp).
 		SetInputs(data.Inputs)
@@ -242,36 +242,36 @@ func attributeSet(
 }
 
 func createExecutions(p *api.ExecutionPlan) api.Executions {
-	exec := api.Executions{}
-	for stepID := range p.Steps {
-		exec[stepID] = api.ExecutionState{
+	ex := api.Executions{}
+	for sid := range p.Steps {
+		ex[sid] = api.ExecutionState{
 			Status:    api.StepPending,
 			WorkItems: api.WorkItems{},
 		}
 	}
-	return exec
+	return ex
 }
 
 func workStarted(
 	st api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
 ) api.FlowState {
-	exec := st.Executions[data.StepID]
-	item := exec.WorkItems[data.Token].SetStatus(api.WorkActive)
+	ex := st.Executions[data.StepID]
+	work := ex.WorkItems[data.Token].SetStatus(api.WorkActive)
 
-	if item.StartedAt.IsZero() {
-		item = item.SetStartedAt(ev.Timestamp)
+	if work.StartedAt.IsZero() {
+		work = work.SetStartedAt(ev.Timestamp)
 	}
 
 	return st.
-		SetExecution(data.StepID, exec.SetWorkItem(data.Token, item)).
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, work)).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func workSucceeded(
 	st api.FlowState, ev *timebox.Event, data api.WorkSucceededEvent,
 ) api.FlowState {
-	exec := st.Executions[data.StepID]
-	item, ok := exec.WorkItems[data.Token]
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
 	if !ok {
 		return st
 	}
@@ -282,15 +282,15 @@ func workSucceeded(
 		SetOutputs(data.Outputs)
 
 	return st.
-		SetExecution(data.StepID, exec.SetWorkItem(data.Token, item)).
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func workFailed(
 	st api.FlowState, ev *timebox.Event, data api.WorkFailedEvent,
 ) api.FlowState {
-	exec := st.Executions[data.StepID]
-	item, ok := exec.WorkItems[data.Token]
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
 	if !ok {
 		return st
 	}
@@ -301,15 +301,15 @@ func workFailed(
 		SetError(data.Error)
 
 	return st.
-		SetExecution(data.StepID, exec.SetWorkItem(data.Token, item)).
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func workNotCompleted(
 	st api.FlowState, ev *timebox.Event, data api.WorkNotCompletedEvent,
 ) api.FlowState {
-	exec := st.Executions[data.StepID]
-	item, ok := exec.WorkItems[data.Token]
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
 	if !ok {
 		return st
 	}
@@ -321,11 +321,11 @@ func workNotCompleted(
 
 	var updatedExec api.ExecutionState
 	if data.RetryToken != "" && data.RetryToken != data.Token {
-		updatedExec = exec.
+		updatedExec = ex.
 			RemoveWorkItem(data.Token).
 			SetWorkItem(data.RetryToken, item)
 	} else {
-		updatedExec = exec.SetWorkItem(data.Token, item)
+		updatedExec = ex.SetWorkItem(data.Token, item)
 	}
 
 	return st.
@@ -336,8 +336,8 @@ func workNotCompleted(
 func retryScheduled(
 	st api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
 ) api.FlowState {
-	exec := st.Executions[data.StepID]
-	item, ok := exec.WorkItems[data.Token]
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
 	if !ok {
 		return st
 	}
@@ -349,6 +349,6 @@ func retryScheduled(
 		SetError(data.Error)
 
 	return st.
-		SetExecution(data.StepID, exec.SetWorkItem(data.Token, item)).
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
 		SetLastUpdated(ev.Timestamp)
 }

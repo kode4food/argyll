@@ -36,11 +36,11 @@ func TestRecoveryActivation(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.NotNil(t, flow)
-		assert.Equal(t, id, flow.ID)
-		assert.False(t, flow.CreatedAt.IsZero())
+		assert.NotNil(t, fl)
+		assert.Equal(t, id, fl.ID)
+		assert.False(t, fl.CreatedAt.IsZero())
 	})
 }
 
@@ -65,9 +65,9 @@ func TestRecoveryDeactivation(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.False(t, flow.DeactivatedAt.IsZero())
+		assert.False(t, fl.DeactivatedAt.IsZero())
 	})
 }
 
@@ -198,9 +198,9 @@ func TestConcurrentRecoveryState(t *testing.T) {
 			})
 
 		for _, id := range flowIDs {
-			flow, err := env.Engine.GetFlowState(id)
+			fl, err := env.Engine.GetFlowState(id)
 			assert.NoError(t, err)
-			assert.NotNil(t, flow)
+			assert.NotNil(t, fl)
 		}
 	})
 }
@@ -218,9 +218,9 @@ func TestTerminalFlow(t *testing.T) {
 		err := eng.StartFlow(id, pl)
 		assert.NoError(t, err)
 
-		flow, err := eng.GetFlowState(id)
+		fl, err := eng.GetFlowState(id)
 		assert.NoError(t, err)
-		flow.Status = api.FlowCompleted
+		fl.Status = api.FlowCompleted
 
 		err = eng.RecoverFlow(id)
 		assert.NoError(t, err)
@@ -473,7 +473,7 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 		id := api.FlowID("aggregate-recovery-flow")
 		st := helpers.NewSimpleStep("aggregate-recovery-step")
 		st.Type = api.StepTypeAsync
-		token := api.Token("retry-token")
+		tkn := api.Token("retry-token")
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
@@ -496,7 +496,7 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 					StepID: st.ID,
 					Inputs: api.Args{},
 					WorkItems: map[api.Token]api.Args{
-						token: {},
+						tkn: {},
 					},
 				},
 			},
@@ -505,7 +505,7 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 				Data: api.RetryScheduledEvent{
 					FlowID:      id,
 					StepID:      st.ID,
-					Token:       token,
+					Token:       tkn,
 					RetryCount:  1,
 					NextRetryAt: now.Add(-time.Second),
 					Error:       "retry",
@@ -520,9 +520,9 @@ func TestRecoverFlowsFromAggregateList(t *testing.T) {
 		invoked := env.MockClient.WaitForInvocation(st.ID, 2*time.Second)
 		assert.True(t, invoked)
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.True(t, flow.DeactivatedAt.IsZero())
+		assert.True(t, fl.DeactivatedAt.IsZero())
 	})
 }
 
@@ -532,7 +532,7 @@ func TestRecoverEarlyRetry(t *testing.T) {
 	}, func(env *helpers.TestEngineEnv) {
 		id := api.FlowID("recover-early-retry")
 		st := helpers.NewSimpleStep("recover-early-retry-step")
-		token := api.Token("retry-token")
+		tkn := api.Token("retry-token")
 		nextRetryAt := time.Now().UTC().Add(250 * time.Millisecond)
 
 		pl := &api.ExecutionPlan{
@@ -557,7 +557,7 @@ func TestRecoverEarlyRetry(t *testing.T) {
 					StepID: st.ID,
 					Inputs: api.Args{},
 					WorkItems: map[api.Token]api.Args{
-						token: {},
+						tkn: {},
 					},
 				},
 			},
@@ -566,7 +566,7 @@ func TestRecoverEarlyRetry(t *testing.T) {
 				Data: api.RetryScheduledEvent{
 					FlowID:      id,
 					StepID:      st.ID,
-					Token:       token,
+					Token:       tkn,
 					RetryCount:  1,
 					NextRetryAt: nextRetryAt,
 					Error:       "retry",

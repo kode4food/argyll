@@ -83,21 +83,21 @@ func (e *TestEngineEnv) WaitForStepStarted(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
-		exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
-		if err == nil && isStepStarted(exec.Status) {
+		ex, err := e.getExecutionState(fs.FlowID, fs.StepID)
+		if err == nil && isStepStarted(ex.Status) {
 			return
 		}
 		wait.On(e.T, consumer).ForEvent(wait.StepStarted(fs))
 	})
 
-	exec, err := e.getExecutionState(fs.FlowID, fs.StepID)
+	ex, err := e.getExecutionState(fs.FlowID, fs.StepID)
 	if err != nil {
 		e.T.Fatalf("failed to fetch execution %s: %v", fs.StepID, err)
 	}
-	if !isStepStarted(exec.Status) {
+	if !isStepStarted(ex.Status) {
 		e.T.Fatalf("execution %s not started after event", fs.StepID)
 	}
-	return exec
+	return ex
 }
 
 // WaitForStepStatus waits for a step to finish and returns the execution
@@ -107,8 +107,8 @@ func (e *TestEngineEnv) WaitForStepStatus(
 	e.T.Helper()
 	e.WithConsumer(func(consumer *event.Consumer) {
 		fn()
-		exec, err := e.getExecutionState(flowID, stepID)
-		if err == nil && isStepTerminal(exec.Status) {
+		ex, err := e.getExecutionState(flowID, stepID)
+		if err == nil && isStepTerminal(ex.Status) {
 			return
 		}
 		wait.On(e.T, consumer).ForEvent(wait.StepTerminal(
@@ -122,11 +122,11 @@ func (e *TestEngineEnv) WaitForStepStatus(
 func (e *TestEngineEnv) getExecutionState(
 	flowID api.FlowID, stepID api.StepID,
 ) (api.ExecutionState, error) {
-	flow, err := e.Engine.GetFlowState(flowID)
+	fl, err := e.Engine.GetFlowState(flowID)
 	if err != nil {
 		return api.ExecutionState{}, err
 	}
-	return flow.Executions[stepID], nil
+	return fl.Executions[stepID], nil
 }
 
 func isFlowTerminal(state api.FlowState) bool {
@@ -170,9 +170,9 @@ func (e *TestEngineEnv) waitForTerminalStep(
 
 	deadline := time.Now().Add(wait.DefaultTimeout)
 	for {
-		exec, err := e.getExecutionState(flowID, stepID)
-		if err == nil && isStepTerminal(exec.Status) {
-			return exec
+		ex, err := e.getExecutionState(flowID, stepID)
+		if err == nil && isStepTerminal(ex.Status) {
+			return ex
 		}
 		if time.Now().After(deadline) {
 			if err != nil {

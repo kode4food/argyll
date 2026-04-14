@@ -39,7 +39,7 @@ func TestAleCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "ale-step",
 			Name: "Ale Step",
 			Type: api.StepTypeScript,
@@ -56,12 +56,12 @@ func TestAleCompilation(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangAle)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Script)
+		comp, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 		assert.NotNil(t, comp)
 
 		inputs := api.Args{"x": float64(21)}
-		outputs, err := env.ExecuteScript(comp, step, inputs)
+		outputs, err := env.ExecuteScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, float64(42), outputs["result"])
 	})
@@ -71,7 +71,7 @@ func TestLuaCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "lua-step",
 			Name: "Lua Step",
 			Type: api.StepTypeScript,
@@ -88,12 +88,12 @@ func TestLuaCompilation(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Script)
+		comp, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 		assert.NotNil(t, comp)
 
 		inputs := api.Args{"x": float64(21)}
-		outputs, err := env.ExecuteScript(comp, step, inputs)
+		outputs, err := env.ExecuteScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 42, outputs["result"])
 	})
@@ -103,7 +103,7 @@ func TestAlePredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "pred-step",
 			Name: "Predicate Step",
 			Type: api.StepTypeSync,
@@ -122,11 +122,11 @@ func TestAlePredicateTrue(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangAle)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(15)}
-		result, err := env.EvaluatePredicate(comp, step, inputs)
+		result, err := env.EvaluatePredicate(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.True(t, result)
 	})
@@ -136,7 +136,7 @@ func TestAlePredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "pred-step",
 			Name: "Predicate Step",
 			Type: api.StepTypeSync,
@@ -155,11 +155,11 @@ func TestAlePredicateFalse(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangAle)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(5)}
-		result, err := env.EvaluatePredicate(comp, step, inputs)
+		result, err := env.EvaluatePredicate(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.False(t, result)
 	})
@@ -169,7 +169,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "lua-pred-step",
 			Name: "Lua Predicate Step",
 			Type: api.StepTypeSync,
@@ -188,11 +188,11 @@ func TestLuaPredicateTrue(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(15)}
-		result, err := env.EvaluatePredicate(comp, step, inputs)
+		result, err := env.EvaluatePredicate(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.True(t, result)
 	})
@@ -202,7 +202,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "lua-pred-step",
 			Name: "Lua Predicate Step",
 			Type: api.StepTypeSync,
@@ -221,11 +221,11 @@ func TestLuaPredicateFalse(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Predicate)
+		comp, err := env.Compile(st, st.Predicate)
 		assert.NoError(t, err)
 
 		inputs := api.Args{"x": float64(5)}
-		result, err := env.EvaluatePredicate(comp, step, inputs)
+		result, err := env.EvaluatePredicate(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.False(t, result)
 	})
@@ -359,7 +359,7 @@ func TestAleComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "complex-ale",
 			Name: "Complex Ale",
 			Type: api.StepTypeScript,
@@ -384,7 +384,7 @@ func TestAleComplexScript(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangAle)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Script)
+		comp, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
 		inputs := api.Args{
@@ -393,7 +393,7 @@ func TestAleComplexScript(t *testing.T) {
 			"name": "World",
 		}
 
-		outputs, err := env.ExecuteScript(comp, step, inputs)
+		outputs, err := env.ExecuteScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, float64(15), outputs["sum"])
 		assert.Equal(t, float64(50), outputs["product"])
@@ -405,7 +405,7 @@ func TestLuaComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "complex-lua",
 			Name: "Complex Lua",
 			Type: api.StepTypeScript,
@@ -432,7 +432,7 @@ func TestLuaComplexScript(t *testing.T) {
 		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
-		comp, err := env.Compile(step, step.Script)
+		comp, err := env.Compile(st, st.Script)
 		assert.NoError(t, err)
 
 		inputs := api.Args{
@@ -441,7 +441,7 @@ func TestLuaComplexScript(t *testing.T) {
 			"name": "World",
 		}
 
-		outputs, err := env.ExecuteScript(comp, step, inputs)
+		outputs, err := env.ExecuteScript(comp, st, inputs)
 		assert.NoError(t, err)
 		assert.Equal(t, 15, outputs["sum"])
 		assert.Equal(t, 50, outputs["product"])

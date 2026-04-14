@@ -120,9 +120,45 @@ type FlowState struct {
 | `cfg`                  | Config struct                               |
 | `opts`                 | Options struct                              |
 | `pl`                   | Execution plan                              |
+| `sid`, `fid`, `nid`    | Step, flow, and node IDs                    |
 | `cat`, `part`          | Catalog or partition state in local scope   |
 | `flow`, `step`, `work` | Current flow/step/work value in local scope |
-| `h`                    | Health value in tight scope                 |
+| `h`                    | `api.HealthState` or other health value in tight scope |
+
+Prefer the established short forms already used in this codebase when the type is obvious from context, especially in tests:
+
+| Name   | Usage                                          |
+| ------ | ---------------------------------------------- |
+| `st`   | `*api.Step` and step-like locals               |
+| `fl`   | `api.FlowState` and flow-like locals           |
+| `ex`   | `api.ExecutionState` and execution-like locals |
+| `pl`   | `*api.ExecutionPlan`                           |
+| `sid`  | `api.StepID`                                   |
+| `fid`  | `api.FlowID`                                   |
+| `nid`  | `api.NodeID`                                   |
+| `h`    | `api.HealthState`                              |
+| `cat`  | `api.CatalogState`                             |
+| `part` | partition state                                |
+
+Examples:
+
+```go
+st := helpers.NewSimpleStep("test-step")
+pl := &api.ExecutionPlan{Goals: []api.StepID{st.ID}, Steps: api.Steps{st.ID: st}}
+fl := env.WaitForFlowStatus("wf-test", func() {
+    err := env.Engine.StartFlow("wf-test", pl)
+    assert.NoError(t, err)
+})
+ex := fl.Executions[st.ID]
+sid := api.StepID("step-a")
+fid := api.FlowID("wf-test")
+nid := api.NodeID("node-a")
+h := api.HealthState{Status: api.HealthHealthy}
+```
+
+Use `sid`, `fid`, and `nid` instead of longer local names like `stepID`, `flowID`, and `nodeID` when the scope is local and the meaning is already clear.
+Longer forms such as `stepID`, `flowID`, and `nodeID` are still acceptable, and often preferable, for function parameters and other API boundaries where explicitness matters more than brevity.
+Similarly, prefer `h` for local `api.HealthState` values, but `health` is acceptable, and often preferable, for function parameters and other API boundaries.
 
 ### Function Signature Wrapping
 

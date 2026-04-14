@@ -124,16 +124,16 @@ func makeStepHandler(
 			return
 		}
 
-		var flowID api.FlowID
+		var fid api.FlowID
 		if req.Metadata != nil {
-			if fid, ok := req.Metadata[api.MetaFlowID].(string); ok {
-				flowID = api.FlowID(fid)
+			if str, ok := req.Metadata[api.MetaFlowID].(string); ok {
+				fid = api.FlowID(str)
 			}
 		}
 
 		ctx := &StepContext{
 			Context:  r.Context(),
-			Client:   client.Flow(flowID),
+			Client:   client.Flow(fid),
 			StepID:   id,
 			Metadata: req.Metadata,
 		}

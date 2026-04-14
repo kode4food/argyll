@@ -68,18 +68,18 @@ func TestPredicateSkipping(t *testing.T) {
 			}))
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 
-		execB := flow.Executions["step-b"]
+		execB := fl.Executions["step-b"]
 		assert.Equal(t, api.StepSkipped, execB.Status)
 		assert.Equal(t, "predicate returned false", execB.Error)
 
 		// Verify step A completed
-		assert.Equal(t, api.StepCompleted, flow.Executions["step-a"].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions["step-a"].Status)
 
 		// Verify step B was skipped
-		assert.Equal(t, api.StepSkipped, flow.Executions["step-b"].Status)
+		assert.Equal(t, api.StepSkipped, fl.Executions["step-b"].Status)
 
 		// Verify only step A was invoked (B's predicate prevented execution)
 		invocations := env.MockClient.GetInvocations()
@@ -88,7 +88,7 @@ func TestPredicateSkipping(t *testing.T) {
 		assert.NotContains(t, invocations, api.StepID("step-b"))
 
 		// Verify only step A's output attribute was set
-		assert.Equal(t, "from-A", flow.Attributes["valueA"].Value)
-		assert.NotContains(t, flow.Attributes, "valueB")
+		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
+		assert.NotContains(t, fl.Attributes, "valueB")
 	})
 }

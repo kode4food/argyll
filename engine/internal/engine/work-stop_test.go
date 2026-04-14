@@ -43,10 +43,10 @@ func TestIncompleteWorkFails(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowFailed, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, api.StepFailed, exec.Status)
-		assert.Len(t, exec.WorkItems, 1)
-		for _, item := range exec.WorkItems {
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepFailed, ex.Status)
+		assert.Len(t, ex.WorkItems, 1)
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkFailed, item.Status)
 			assert.Equal(t, api.ErrWorkNotCompleted.Error(), item.Error)
 		}
@@ -77,10 +77,10 @@ func TestWorkFailure(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowFailed, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, api.StepFailed, exec.Status)
-		assert.Len(t, exec.WorkItems, 1)
-		for _, item := range exec.WorkItems {
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepFailed, ex.Status)
+		assert.Len(t, ex.WorkItems, 1)
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkFailed, item.Status)
 			assert.Contains(t, item.Error, "boom")
 		}
@@ -109,11 +109,11 @@ func TestWorkFailed(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		finalState := env.WaitForFlowStatus("wf-fail", func() {
+		fl := env.WaitForFlowStatus("wf-fail", func() {
 			err = env.Engine.StartFlow("wf-fail", pl)
 			assert.NoError(t, err)
 		})
 
-		assert.Equal(t, api.FlowFailed, finalState.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 	})
 }

@@ -509,19 +509,19 @@ func TestSkipChildFlows(t *testing.T) {
 
 		var childID api.FlowID
 		env.WithConsumer(func(consumer *event.Consumer) {
-			parentState := env.WaitForFlowStatus("parent-list", func() {
+			fl := env.WaitForFlowStatus("parent-list", func() {
 				err = env.Engine.StartFlow("parent-list", pl)
 				assert.NoError(t, err)
 			})
-			assert.Equal(t, api.FlowCompleted, parentState.Status)
+			assert.Equal(t, api.FlowCompleted, fl.Status)
 
-			exec := parentState.Executions[parent.ID]
-			if !assert.NotNil(t, exec) {
+			ex := fl.Executions[parent.ID]
+			if !assert.NotNil(t, ex) {
 				return
 			}
 
 			var tkn api.Token
-			for t := range exec.WorkItems {
+			for t := range ex.WorkItems {
 				tkn = t
 				break
 			}

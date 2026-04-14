@@ -56,8 +56,8 @@ func (e *Engine) ListSteps() ([]*api.Step, error) {
 	}
 
 	var steps []*api.Step
-	for _, step := range cat.Steps {
-		steps = append(steps, step)
+	for _, st := range cat.Steps {
+		steps = append(steps, st)
 	}
 
 	return steps, nil

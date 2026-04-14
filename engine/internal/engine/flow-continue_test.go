@@ -169,11 +169,11 @@ func TestSkipStep(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState("wf-skip")
+		fl, err := env.Engine.GetFlowState("wf-skip")
 		assert.NoError(t, err)
-		exec := flow.Executions["step-skip"]
-		assert.NotNil(t, exec)
-		assert.Equal(t, api.StepSkipped, exec.Status)
-		assert.Equal(t, "predicate returned false", exec.Error)
+		ex := fl.Executions["step-skip"]
+		assert.NotNil(t, ex)
+		assert.Equal(t, api.StepSkipped, ex.Status)
+		assert.Equal(t, "predicate returned false", ex.Error)
 	})
 }

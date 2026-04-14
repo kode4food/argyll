@@ -58,10 +58,10 @@ func TestRetryPendingParallelism(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, api.StepCompleted, exec.Status)
-		assert.Len(t, exec.WorkItems, 2)
-		for _, item := range exec.WorkItems {
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		assert.Len(t, ex.WorkItems, 2)
+		for _, item := range ex.WorkItems {
 			assert.Equal(t, api.WorkSucceeded, item.Status)
 			assert.GreaterOrEqual(t, item.RetryCount, 1)
 		}

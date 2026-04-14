@@ -186,14 +186,14 @@ func newRaftTestConfig(t *testing.T) *config.Config {
 	cfg := config.NewDefaultConfig()
 	addr := availableAddress(t)
 	port := availablePort(t)
-	nodeID := "test-node-" + strconv.Itoa(port)
+	nid := "test-node-" + strconv.Itoa(port)
 
 	cfg.APIPort = port
-	cfg.Raft.LocalID = nodeID
+	cfg.Raft.LocalID = nid
 	cfg.Raft.Address = addr
 	cfg.Raft.DataDir = t.TempDir()
 	cfg.Raft.Servers = []raft.Server{{
-		ID:      nodeID,
+		ID:      nid,
 		Address: addr,
 	}}
 	return cfg

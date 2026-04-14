@@ -69,14 +69,6 @@ func TestSocket(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func subscribedItem(
-	t *testing.T, msg api.SubscribedResult,
-) api.SubscribedItem {
-	t.Helper()
-	assert.Len(t, msg.Items, 1)
-	return msg.Items[0]
-}
-
 func TestClientReceivesEvent(t *testing.T) {
 	getState := func(aggID timebox.AggregateID) (any, int64, error) {
 		return api.FlowState{ID: "wf-123"}, 0, nil
@@ -742,9 +734,7 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 	}
 }
 
-func wsFlowStarted(
-	flowID api.FlowID, stepID api.StepID,
-) api.FlowStartedEvent {
+func wsFlowStarted(flowID api.FlowID, stepID api.StepID) api.FlowStartedEvent {
 	return api.FlowStartedEvent{
 		FlowID:   flowID,
 		Plan:     wsPlan(stepID),
@@ -753,9 +743,7 @@ func wsFlowStarted(
 	}
 }
 
-func wsStepStarted(
-	flowID api.FlowID, stepID api.StepID,
-) api.StepStartedEvent {
+func wsStepStarted(flowID api.FlowID, stepID api.StepID) api.StepStartedEvent {
 	return api.StepStartedEvent{
 		FlowID:    flowID,
 		StepID:    stepID,
@@ -765,7 +753,7 @@ func wsStepStarted(
 }
 
 func wsPlan(stepID api.StepID) *api.ExecutionPlan {
-	step := &api.Step{
+	st := &api.Step{
 		ID:   stepID,
 		Name: "ws-step",
 		Type: api.StepTypeAsync,
@@ -775,13 +763,11 @@ func wsPlan(stepID api.StepID) *api.ExecutionPlan {
 	}
 	return &api.ExecutionPlan{
 		Goals: []api.StepID{stepID},
-		Steps: api.Steps{stepID: step},
+		Steps: api.Steps{stepID: st},
 	}
 }
 
-func testServerWebSocket(
-	t *testing.T, srv *server.Server,
-) *serverWebSocketEnv {
+func testServerWebSocket(t *testing.T, srv *server.Server) *serverWebSocketEnv {
 	t.Helper()
 
 	router := srv.SetupRoutes()
@@ -795,4 +781,10 @@ func testServerWebSocket(
 		Server: httpServer,
 		Conn:   conn,
 	}
+}
+
+func subscribedItem(t *testing.T, msg api.SubscribedResult) api.SubscribedItem {
+	t.Helper()
+	assert.Len(t, msg.Items, 1)
+	return msg.Items[0]
 }

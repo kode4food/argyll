@@ -136,7 +136,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "script-work",
 			Name: "Script Work",
 			Type: api.StepTypeScript,
@@ -150,11 +150,11 @@ func TestScriptWorkExecutes(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		fl := env.WaitForFlowStatus("wf-script", func() {
@@ -165,9 +165,9 @@ func TestScriptWorkExecutes(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[step.ID]
-		assert.Equal(t, api.StepCompleted, exec.Status)
-		assert.Equal(t, 6, exec.Outputs["result"])
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		assert.Equal(t, 6, ex.Outputs["result"])
 	})
 }
 
@@ -175,7 +175,7 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "script-mapped-input",
 			Name: "Script Mapped Input",
 			Type: api.StepTypeScript,
@@ -198,11 +198,11 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		fl := env.WaitForFlowStatus("wf-script-mapped", func() {
@@ -213,12 +213,12 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[step.ID]
-		assert.Equal(t, api.StepCompleted, exec.Status)
-		_, hasOuter := exec.Inputs["amount"]
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		_, hasOuter := ex.Inputs["amount"]
 		assert.False(t, hasOuter)
-		assert.Equal(t, float64(2), exec.Inputs["inner_amount"])
-		assert.Equal(t, 6, exec.Outputs["result"])
+		assert.Equal(t, float64(2), ex.Inputs["inner_amount"])
+		assert.Equal(t, 6, ex.Outputs["result"])
 	})
 }
 
@@ -226,15 +226,15 @@ func TestUnsupportedStepTypeFailsFlow(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:         "bad-step-type",
 			Name:       "Bad Step Type",
 			Type:       api.StepType("bad-type"),
 			Attributes: api.AttributeSpecs{},
 		}
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 		id := api.FlowID("wf-bad-step-type")
 
@@ -322,9 +322,9 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, api.StepFailed, exec.Status)
-		assert.Contains(t, exec.Error, "predicate")
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepFailed, ex.Status)
+		assert.Contains(t, ex.Error, "predicate")
 		assert.Equal(t, api.FlowFailed, fl.Status)
 	})
 }

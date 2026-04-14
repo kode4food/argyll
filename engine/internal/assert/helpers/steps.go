@@ -37,24 +37,24 @@ func NewTestStep() *api.Step {
 // NewTestStepWithArgs creates an HTTP step with the specified required and
 // optional input arguments
 func NewTestStepWithArgs(required []api.Name, optional []api.Name) *api.Step {
-	step := NewTestStep()
+	st := NewTestStep()
 
-	step.Attributes = api.AttributeSpecs{}
+	st.Attributes = api.AttributeSpecs{}
 	for _, arg := range required {
-		step.Attributes[arg] = &api.AttributeSpec{
+		st.Attributes[arg] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Type: api.TypeString,
 		}
 	}
 
 	for _, arg := range optional {
-		step.Attributes[arg] = &api.AttributeSpec{
+		st.Attributes[arg] = &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Type: api.TypeString,
 		}
 	}
 
-	return step
+	return st
 }
 
 // NewSimpleStep creates a minimal HTTP step with the specified ID
@@ -73,17 +73,17 @@ func NewSimpleStep(id api.StepID) *api.Step {
 // NewStepWithOutputs creates an HTTP step that produces the specified output
 // attributes
 func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
-	step := NewSimpleStep(id)
-	if step.Attributes == nil {
-		step.Attributes = api.AttributeSpecs{}
+	st := NewSimpleStep(id)
+	if st.Attributes == nil {
+		st.Attributes = api.AttributeSpecs{}
 	}
 	for _, name := range outputs {
-		step.Attributes[name] = &api.AttributeSpec{
+		st.Attributes[name] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 			Type: api.TypeString,
 		}
 	}
-	return step
+	return st
 }
 
 // NewScriptStep creates a script-based step with the specified language, code,
@@ -91,7 +91,7 @@ func NewStepWithOutputs(id api.StepID, outputs ...api.Name) *api.Step {
 func NewScriptStep(
 	id api.StepID, language, script string, outputs ...api.Name,
 ) *api.Step {
-	step := &api.Step{
+	st := &api.Step{
 		ID:   id,
 		Name: "Script Step",
 		Type: api.StepTypeScript,
@@ -102,11 +102,11 @@ func NewScriptStep(
 		Attributes: api.AttributeSpecs{},
 	}
 	for _, name := range outputs {
-		step.Attributes[name] = &api.AttributeSpec{
+		st.Attributes[name] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 		}
 	}
-	return step
+	return st
 }
 
 // NewStepWithPredicate creates an HTTP step with a predicate script that
@@ -114,18 +114,18 @@ func NewScriptStep(
 func NewStepWithPredicate(
 	id api.StepID, lang, script string, outputs ...api.Name,
 ) *api.Step {
-	step := NewSimpleStep(id)
-	step.Predicate = &api.ScriptConfig{
+	st := NewSimpleStep(id)
+	st.Predicate = &api.ScriptConfig{
 		Language: lang,
 		Script:   script,
 	}
-	if step.Attributes == nil {
-		step.Attributes = api.AttributeSpecs{}
+	if st.Attributes == nil {
+		st.Attributes = api.AttributeSpecs{}
 	}
 	for _, name := range outputs {
-		step.Attributes[name] = &api.AttributeSpec{
+		st.Attributes[name] = &api.AttributeSpec{
 			Role: api.RoleOutput,
 		}
 	}
-	return step
+	return st
 }

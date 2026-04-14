@@ -186,8 +186,8 @@ func TestOutputMapping(t *testing.T) {
 		})
 		testify.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		testify.Equal(t, "ok", exec.Outputs["result"])
+		ex := fl.Executions[st.ID]
+		testify.Equal(t, "ok", ex.Outputs["result"])
 		testify.Equal(t, "ok", fl.Attributes["result"].Value)
 	})
 }
@@ -227,8 +227,8 @@ func TestOutputMappingWithRename(t *testing.T) {
 		})
 		testify.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		testify.Equal(t, "ok", exec.Outputs["status"])
+		ex := fl.Executions[st.ID]
+		testify.Equal(t, "ok", ex.Outputs["status"])
 		testify.Equal(t, "ok", fl.Attributes["status"].Value)
 	})
 }

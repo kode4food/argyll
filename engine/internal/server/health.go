@@ -81,14 +81,14 @@ func (h *HealthChecker) checkAllSteps() {
 	health := make(map[api.StepID]api.HealthState, len(cat.Steps))
 
 	var httpSteps []*api.Step
-	for _, step := range cat.Steps {
-		switch step.Type {
+	for _, st := range cat.Steps {
+		switch st.Type {
 		case api.StepTypeScript:
-			h.updateScriptHealth(step, health)
+			h.updateScriptHealth(st, health)
 			h.updateFlowSteps(cat, health)
 		case api.StepTypeSync, api.StepTypeAsync:
-			if step.HTTP != nil && step.HTTP.HealthCheck != "" {
-				httpSteps = append(httpSteps, step)
+			if st.HTTP != nil && st.HTTP.HealthCheck != "" {
+				httpSteps = append(httpSteps, st)
 			}
 		}
 	}
@@ -98,8 +98,8 @@ func (h *HealthChecker) checkAllSteps() {
 	if httpCount > 1 {
 		delay = healthCheckInterval / time.Duration(httpCount)
 	}
-	for _, step := range httpSteps {
-		h.updateStepHealth(step, health)
+	for _, st := range httpSteps {
+		h.updateStepHealth(st, health)
 		h.updateFlowSteps(cat, health)
 		if delay > 0 {
 			time.Sleep(delay)
@@ -130,20 +130,20 @@ func (h *HealthChecker) updateFlowSteps(
 	cat api.CatalogState, health map[api.StepID]api.HealthState,
 ) {
 	resolved := engine.ResolveHealth(cat, health)
-	for stepID, step := range cat.Steps {
-		if step.Type != api.StepTypeFlow {
+	for sid, st := range cat.Steps {
+		if st.Type != api.StepTypeFlow {
 			continue
 		}
-		stepHealth, ok := resolved[stepID]
+		stepHealth, ok := resolved[sid]
 		if !ok {
 			continue
 		}
-		health[stepID] = stepHealth
+		health[sid] = stepHealth
 		if err := h.engine.UpdateStepHealth(
-			stepID, stepHealth.Status, stepHealth.Error,
+			sid, stepHealth.Status, stepHealth.Error,
 		); err != nil {
 			slog.Error("Failed to update flow step health",
-				log.StepID(stepID), log.Error(err))
+				log.StepID(sid), log.Error(err))
 		}
 	}
 }
@@ -228,7 +228,7 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 }
 
 func (s *Server) handleEngineHealthByID(c *gin.Context) {
-	stepID := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("stepID"))
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {
@@ -248,10 +248,10 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	}
 
 	merged := engine.ResolveHealth(cat, engine.MergeNodeHealth(cluster))
-	health, ok := merged[stepID]
+	health, ok := merged[sid]
 	if !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("Health not found for step: %s", stepID),
+			Error:  fmt.Sprintf("Health not found for step: %s", sid),
 			Status: http.StatusNotFound,
 		})
 		return

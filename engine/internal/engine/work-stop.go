@@ -50,10 +50,10 @@ func (e *Engine) NotCompleteWork(
 		}
 
 		var retryTkn api.Token
-		if exec, ok := tx.Value().Executions[fs.StepID]; ok {
-			work := exec.WorkItems[tkn]
-			step := tx.Value().Plan.Steps[fs.StepID]
-			if step != nil && !step.Memoizable && work.RetryCount > 0 {
+		if ex, ok := tx.Value().Executions[fs.StepID]; ok {
+			work := ex.WorkItems[tkn]
+			st := tx.Value().Plan.Steps[fs.StepID]
+			if st != nil && !st.Memoizable && work.RetryCount > 0 {
 				retryTkn = api.Token(uuid.New().String())
 			}
 		}
@@ -96,12 +96,12 @@ func (tx *flowTx) completeWork(
 	}
 
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-		step := flow.Plan.Steps[stepID]
-		if step != nil && step.Memoizable {
-			exec := flow.Executions[stepID]
+		st := flow.Plan.Steps[stepID]
+		if st != nil && st.Memoizable {
+			ex := flow.Executions[stepID]
 			work := flow.Executions[stepID].WorkItems[tkn]
-			inputs := exec.Inputs.Apply(work.Inputs)
-			err := tx.memoCache.Put(step, inputs, outputs)
+			inputs := ex.Inputs.Apply(work.Inputs)
+			err := tx.memoCache.Put(st, inputs, outputs)
 			if err != nil {
 				slog.Warn("memo cache put failed",
 					log.FlowID(tx.flowID), log.StepID(stepID),
@@ -135,13 +135,13 @@ func (tx *flowTx) failWork(
 func (tx *flowTx) checkWorkTransition(
 	stepID api.StepID, tkn api.Token, toStatus api.WorkStatus,
 ) error {
-	flow := tx.Value()
-	exec, ok := flow.Executions[stepID]
+	fl := tx.Value()
+	ex, ok := fl.Executions[stepID]
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrStepNotInPlan, stepID)
 	}
 
-	work, ok := exec.WorkItems[tkn]
+	work, ok := ex.WorkItems[tkn]
 	if !ok {
 		return fmt.Errorf("%w: %s", ErrWorkItemNotFound, tkn)
 	}
@@ -233,11 +233,11 @@ func (tx *flowTx) raiseWorkFailed(
 func hasRetryTask(
 	flow api.FlowState, stepID api.StepID, tkn api.Token,
 ) bool {
-	exec, ok := flow.Executions[stepID]
+	ex, ok := flow.Executions[stepID]
 	if !ok {
 		return false
 	}
-	work, ok := exec.WorkItems[tkn]
+	work, ok := ex.WorkItems[tkn]
 	if !ok {
 		return false
 	}
@@ -245,8 +245,7 @@ func hasRetryTask(
 }
 
 func (tx *flowTx) raiseRetryScheduled(
-	stepID api.StepID, tkn api.Token, work api.WorkState,
-	nextRetryAt time.Time,
+	stepID api.StepID, tkn api.Token, work api.WorkState, nextRetryAt time.Time,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeRetryScheduled,
 		api.RetryScheduledEvent{

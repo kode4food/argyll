@@ -24,9 +24,9 @@ type healthResolver struct {
 func (e *Engine) UpdateStepHealth(
 	stepID api.StepID, health api.HealthStatus, errMsg string,
 ) error {
-	nodeID := e.LocalNodeID()
+	nid := e.LocalNodeID()
 	cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
-		node := st.Nodes[nodeID]
+		node := st.Nodes[nid]
 		if h, ok := node.Health[stepID]; ok {
 			if h.Status == health && h.Error == errMsg {
 				return nil
@@ -35,7 +35,7 @@ func (e *Engine) UpdateStepHealth(
 
 		return events.Raise(ag, api.EventTypeStepHealthChanged,
 			api.StepHealthChangedEvent{
-				NodeID: nodeID,
+				NodeID: nid,
 				StepID: stepID,
 				Status: health,
 				Error:  errMsg,
@@ -63,8 +63,8 @@ func ResolveHealth(
 	}
 
 	resolved := make(map[api.StepID]api.HealthState, len(cat.Steps))
-	for stepID := range cat.Steps {
-		resolved[stepID] = resolver.resolve(stepID)
+	for sid := range cat.Steps {
+		resolved[sid] = resolver.resolve(sid)
 	}
 	return resolved
 }
@@ -82,18 +82,18 @@ func MergeNodeHealth(
 	sort.Strings(nodes)
 
 	for _, rawNodeID := range nodes {
-		nodeID := api.NodeID(rawNodeID)
-		node := cluster.Nodes[nodeID]
+		nid := api.NodeID(rawNodeID)
+		node := cluster.Nodes[nid]
 		steps := make([]string, 0, len(node.Health))
-		for stepID := range node.Health {
-			steps = append(steps, string(stepID))
+		for sid := range node.Health {
+			steps = append(steps, string(sid))
 		}
 		sort.Strings(steps)
 
 		for _, rawStepID := range steps {
-			stepID := api.StepID(rawStepID)
-			res[stepID] = mergeHealthState(
-				nodeID, res[stepID], node.Health[stepID],
+			sid := api.StepID(rawStepID)
+			res[sid] = mergeHealthState(
+				nid, res[sid], node.Health[sid],
 			)
 		}
 	}

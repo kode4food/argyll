@@ -55,9 +55,9 @@ func TestOptionalDefaults(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, "value", exec.Inputs["input"])
-		assert.Equal(t, "fallback", exec.Inputs["optional"])
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, "value", ex.Inputs["input"])
+		assert.Equal(t, "fallback", ex.Inputs["optional"])
 	})
 }
 
@@ -93,8 +93,8 @@ func TestConstObjectDefault(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		cfg, ok := exec.Inputs["config"].(map[string]any)
+		ex := fl.Executions[st.ID]
+		cfg, ok := ex.Inputs["config"].(map[string]any)
 		assert.True(t, ok)
 		assert.Equal(t, map[string]any{
 			"name":  "cfg",
@@ -144,8 +144,8 @@ func TestInputMapping(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, "value", exec.Inputs["input"])
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, "value", ex.Inputs["input"])
 	})
 }
 func TestInputMappingWithRename(t *testing.T) {
@@ -200,12 +200,12 @@ func TestPredicateFailure(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		exec := env.WaitForStepStatus("wf-pred-fail", st.ID, func() {
+		ex := env.WaitForStepStatus("wf-pred-fail", st.ID, func() {
 			err := env.Engine.StartFlow("wf-pred-fail", pl)
 			assert.NoError(t, err)
 		})
-		assert.Equal(t, api.StepFailed, exec.Status)
-		assert.True(t, strings.Contains(exec.Error, "predicate"))
+		assert.Equal(t, api.StepFailed, ex.Status)
+		assert.True(t, strings.Contains(ex.Error, "predicate"))
 	})
 }
 
@@ -280,8 +280,8 @@ func TestInputMappingWithAle(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		exec := fl.Executions[st.ID]
-		assert.Equal(t, float64(10), exec.Inputs["amount"])
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, float64(10), ex.Inputs["amount"])
 	})
 }
 func TestPredicateExecution(t *testing.T) {
@@ -383,12 +383,12 @@ func TestPredicateError(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		finalState := env.WaitForFlowStatus("wf-pred-err", func() {
+		fl := env.WaitForFlowStatus("wf-pred-err", func() {
 			err = env.Engine.StartFlow("wf-pred-err", pl)
 			assert.NoError(t, err)
 		})
 
-		assert.Equal(t, api.FlowFailed, finalState.Status)
+		assert.Equal(t, api.FlowFailed, fl.Status)
 		assert.False(t, env.MockClient.WasInvoked("pred-err-step"))
 	})
 }

@@ -90,7 +90,7 @@ func TestShouldRetryStep(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		for _, sc := range scenarios {
 			t.Run(sc.name, func(t *testing.T) {
-				step := &api.Step{
+				st := &api.Step{
 					ID:         "test-step",
 					WorkConfig: sc.config,
 				}
@@ -100,7 +100,7 @@ func TestShouldRetryStep(t *testing.T) {
 					Error:      sc.error,
 				}
 
-				result := eng.ShouldRetry(step, work)
+				result := eng.ShouldRetry(st, work)
 				assert.Equal(t, sc.expected, result)
 			})
 		}
@@ -247,12 +247,12 @@ func TestRetryExhaustion(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		exec := flow.Executions["failing-step"]
-		if assert.NotNil(t, exec.WorkItems) {
+		ex := fl.Executions["failing-step"]
+		if assert.NotNil(t, ex.WorkItems) {
 			found := false
-			for _, work := range exec.WorkItems {
+			for _, work := range ex.WorkItems {
 				if work.RetryCount >= 1 {
 					found = true
 					break
@@ -266,7 +266,7 @@ func TestRetryExhaustion(t *testing.T) {
 func TestFindRetrySteps(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-		state := api.FlowState{
+		fl := api.FlowState{
 			Executions: api.Executions{
 				"step-1": {
 					Status: api.StepPending,
@@ -318,7 +318,7 @@ func TestFindRetrySteps(t *testing.T) {
 			},
 		}
 
-		retryable := eng.FindRetrySteps(state)
+		retryable := eng.FindRetrySteps(fl)
 		assert.Len(t, retryable, 3)
 		assert.Contains(t, retryable, api.StepID("step-1"))
 		assert.Contains(t, retryable, api.StepID("step-2"))
@@ -329,7 +329,7 @@ func TestFindRetrySteps(t *testing.T) {
 func TestPendingWorkNotRetryable(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-		state := api.FlowState{
+		fl := api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
 			Plan: &api.ExecutionPlan{
@@ -352,14 +352,14 @@ func TestPendingWorkNotRetryable(t *testing.T) {
 			},
 		}
 
-		retryable := eng.FindRetrySteps(state)
+		retryable := eng.FindRetrySteps(fl)
 		assert.Len(t, retryable, 1)
 	})
 }
 
 func TestWorkItemNoNextRetry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state := api.FlowState{
+		fl := api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
 			Plan: &api.ExecutionPlan{
@@ -382,14 +382,14 @@ func TestWorkItemNoNextRetry(t *testing.T) {
 			},
 		}
 
-		retryable := eng.FindRetrySteps(state)
+		retryable := eng.FindRetrySteps(fl)
 		assert.Empty(t, retryable)
 	})
 }
 
 func TestFindRetryStepsActivePending(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state := api.FlowState{
+		fl := api.FlowState{
 			ID:     "test-flow",
 			Status: api.FlowActive,
 			Plan: &api.ExecutionPlan{
@@ -410,7 +410,7 @@ func TestFindRetryStepsActivePending(t *testing.T) {
 			},
 		}
 
-		retryable := eng.FindRetrySteps(state)
+		retryable := eng.FindRetrySteps(fl)
 		assert.Len(t, retryable, 1)
 		assert.Contains(t, retryable, api.StepID("step-1"))
 	})
@@ -441,7 +441,7 @@ func TestNextRetryParallelismOnlyConfig(t *testing.T) {
 
 func TestFindRetryEmptyWorkItems(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
-		state := api.FlowState{
+		fl := api.FlowState{
 			Executions: api.Executions{
 				"step-1": {
 					WorkItems: nil,
@@ -452,7 +452,7 @@ func TestFindRetryEmptyWorkItems(t *testing.T) {
 			},
 		}
 
-		retryable := eng.FindRetrySteps(state)
+		retryable := eng.FindRetrySteps(fl)
 		assert.Empty(t, retryable)
 	})
 }

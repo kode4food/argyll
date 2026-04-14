@@ -213,8 +213,8 @@ func FlowID(id api.FlowID) EventFilter {
 // FlowIDs matches events for the provided flow IDs
 func FlowIDs(ids ...api.FlowID) EventFilter {
 	expected := make(util.Set[api.FlowID], len(ids))
-	for _, flowID := range ids {
-		expected.Add(flowID)
+	for _, fid := range ids {
+		expected.Add(fid)
 	}
 	return PredicateFilter(func(data flowEvent) bool {
 		if expected.Contains(data.FlowID) {
@@ -233,8 +233,8 @@ func FlowStep(step api.FlowStep) EventFilter {
 // FlowSteps matches events for the provided flow steps
 func FlowSteps(steps ...api.FlowStep) EventFilter {
 	expected := make(util.Set[api.FlowStep], len(steps))
-	for _, step := range steps {
-		expected.Add(step)
+	for _, st := range steps {
+		expected.Add(st)
 	}
 	return PredicateFilter(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
@@ -249,8 +249,8 @@ func FlowSteps(steps ...api.FlowStep) EventFilter {
 // FlowStepAny matches events for the provided flow steps
 func FlowStepAny(steps ...api.FlowStep) EventFilter {
 	expected := make(util.Set[api.FlowStep], len(steps))
-	for _, step := range steps {
-		expected.Add(step)
+	for _, st := range steps {
+		expected.Add(st)
 	}
 	return PredicateFilter(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}

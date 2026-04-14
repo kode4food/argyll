@@ -13,18 +13,18 @@ import (
 // checkStepCompletion checks if a specific step can complete (all work items
 // done) and raises appropriate completion or failure events
 func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
-	flow := tx.Value()
-	exec, ok := flow.Executions[stepID]
-	if !ok || exec.Status != api.StepActive {
+	fl := tx.Value()
+	ex, ok := fl.Executions[stepID]
+	if !ok || ex.Status != api.StepActive {
 		return false, fmt.Errorf("%w: expected %s to be active, got %s",
-			ErrInvariantViolated, stepID, exec.Status)
+			ErrInvariantViolated, stepID, ex.Status)
 	}
 
 	allDone := true
 	hasFailed := false
 	var failureError string
 
-	for _, work := range exec.WorkItems {
+	for _, work := range ex.WorkItems {
 		switch work.Status {
 		case api.WorkSucceeded:
 		case api.WorkFailed:
@@ -54,15 +54,15 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		)
 	}
 
-	step := flow.Plan.Steps[stepID]
-	outputs := tx.collectStepOutputs(exec.WorkItems, step)
-	dur := max(tx.Now().Sub(exec.StartedAt).Milliseconds(), int64(0))
+	st := fl.Plan.Steps[stepID]
+	outputs := tx.collectStepOutputs(ex.WorkItems, st)
+	dur := max(tx.Now().Sub(ex.StartedAt).Milliseconds(), int64(0))
 
 	for key, value := range outputs {
-		if !isOutputAttribute(step, key) {
+		if !isOutputAttribute(st, key) {
 			continue
 		}
-		if _, ok := flow.Attributes[key]; ok {
+		if _, ok := fl.Attributes[key]; ok {
 			continue
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeAttributeSet,
@@ -75,7 +75,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		); err != nil {
 			return false, err
 		}
-		flow = tx.Value()
+		fl = tx.Value()
 	}
 
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepCompleted,

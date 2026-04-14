@@ -226,11 +226,11 @@ func (e *Engine) collectLabelFlowIDs(
 			continue
 		}
 
-		for flowID := range res {
-			if curr.Contains(flowID) {
+		for fid := range res {
+			if curr.Contains(fid) {
 				continue
 			}
-			res.Remove(flowID)
+			res.Remove(fid)
 		}
 		if res.IsEmpty() {
 			return res, nil

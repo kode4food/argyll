@@ -81,7 +81,7 @@ func (s *Server) createStep(c *gin.Context) {
 }
 
 func (s *Server) getStep(c *gin.Context) {
-	stepID := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("stepID"))
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {
@@ -92,19 +92,19 @@ func (s *Server) getStep(c *gin.Context) {
 		return
 	}
 
-	if step, ok := cat.Steps[stepID]; ok {
+	if step, ok := cat.Steps[sid]; ok {
 		c.JSON(http.StatusOK, step)
 		return
 	}
 
 	c.JSON(http.StatusNotFound, api.ErrorResponse{
-		Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, stepID),
+		Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, sid),
 		Status: http.StatusNotFound,
 	})
 }
 
 func (s *Server) updateStep(c *gin.Context) {
-	stepID := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("stepID"))
 
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer, c.Request.Body, MaxStepBodyBytes,
@@ -119,9 +119,9 @@ func (s *Server) updateStep(c *gin.Context) {
 	}
 
 	step.ID = api.SanitizeID(step.ID)
-	stepID = api.SanitizeID(stepID)
+	sid = api.SanitizeID(sid)
 
-	if step.ID != stepID {
+	if step.ID != sid {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Step ID in URL does not match step ID in body",
 			Status: http.StatusBadRequest,
@@ -159,7 +159,7 @@ func (s *Server) updateStep(c *gin.Context) {
 }
 
 func (s *Server) deleteStep(c *gin.Context) {
-	stepID := api.StepID(c.Param("stepID"))
+	sid := api.StepID(c.Param("stepID"))
 
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {
@@ -170,15 +170,15 @@ func (s *Server) deleteStep(c *gin.Context) {
 		return
 	}
 
-	if _, ok := cat.Steps[stepID]; !ok {
+	if _, ok := cat.Steps[sid]; !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, stepID),
+			Error:  fmt.Sprintf("%s: %s", engine.ErrStepNotFound, sid),
 			Status: http.StatusNotFound,
 		})
 		return
 	}
 
-	err = s.engine.UnregisterStep(stepID)
+	err = s.engine.UnregisterStep(sid)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  fmt.Sprintf("%s: %v", ErrUnregisterStep, err),

@@ -27,8 +27,8 @@ func TestSetResponse(t *testing.T) {
 	out := api.Args{"result": "success"}
 	cl.SetResponse("step-1", out)
 
-	step := &api.Step{ID: "step-1"}
-	result, err := cl.Invoke(step, api.Args{}, api.Metadata{})
+	st := &api.Step{ID: "step-1"}
+	result, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 
 	assert.NoError(t, err)
 	assert.Equal(t, "success", result["result"])
@@ -40,8 +40,8 @@ func TestSetError(t *testing.T) {
 	expectedErr := assert.AnError
 	cl.SetError("step-error", expectedErr)
 
-	step := &api.Step{ID: "step-error"}
-	_, err := cl.Invoke(step, api.Args{}, api.Metadata{})
+	st := &api.Step{ID: "step-error"}
+	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 
 	assert.Equal(t, expectedErr, err)
 }
@@ -68,8 +68,8 @@ func TestTracksInvocations(t *testing.T) {
 func TestDefaultResponse(t *testing.T) {
 	cl := helpers.NewMockClient()
 
-	step := &api.Step{ID: "unconfigured-step"}
-	result, err := cl.Invoke(step, api.Args{}, api.Metadata{})
+	st := &api.Step{ID: "unconfigured-step"}
+	result, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 
 	assert.NoError(t, err)
 	assert.Empty(t, result)
@@ -82,8 +82,8 @@ func TestThreadSafe(t *testing.T) {
 	done := make(chan bool)
 	for range 10 {
 		go func() {
-			step := &api.Step{ID: "step-1"}
-			_, _ = cl.Invoke(step, api.Args{}, api.Metadata{})
+			st := &api.Step{ID: "step-1"}
+			_, _ = cl.Invoke(st, api.Args{}, api.Metadata{})
 			done <- true
 		}()
 	}
@@ -321,14 +321,14 @@ func TestStepPredicateNoOutput(t *testing.T) {
 func TestLastMetadata(t *testing.T) {
 	cl := helpers.NewMockClient()
 
-	step := &api.Step{ID: "step-with-metadata"}
+	st := &api.Step{ID: "step-with-metadata"}
 	md1 := api.Metadata{"attempt": "1"}
 	md2 := api.Metadata{"attempt": "2"}
 	md3 := api.Metadata{"attempt": "3"}
 
-	_, _ = cl.Invoke(step, api.Args{}, md1)
-	_, _ = cl.Invoke(step, api.Args{}, md2)
-	_, _ = cl.Invoke(step, api.Args{}, md3)
+	_, _ = cl.Invoke(st, api.Args{}, md1)
+	_, _ = cl.Invoke(st, api.Args{}, md2)
+	_, _ = cl.Invoke(st, api.Args{}, md3)
 
 	last := cl.LastMetadata("step-with-metadata")
 	assert.NotNil(t, last)
@@ -379,9 +379,9 @@ func TestRaiseFlowEvents(t *testing.T) {
 		)
 		assert.NoError(t, err)
 
-		flow, err := env.Engine.GetFlowState(id)
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowCompleted, flow.Status)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 

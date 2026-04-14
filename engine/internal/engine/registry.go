@@ -248,11 +248,11 @@ func collectAttributeTypes(
 	st api.CatalogState, excludeID api.StepID,
 ) api.AttributeTypes {
 	attributeTypes := make(api.AttributeTypes)
-	for stepID, step := range st.Steps {
-		if stepID == excludeID {
+	for sid, st := range st.Steps {
+		if sid == excludeID {
 			continue
 		}
-		for name, attr := range step.Attributes {
+		for name, attr := range st.Attributes {
 			attributeTypes[name] = attr.Type
 		}
 	}
@@ -291,8 +291,8 @@ func detectAttributeCycles(st api.CatalogState, newStep *api.Step) error {
 
 func detectFlowCycles(st api.CatalogState, newStep *api.Step) error {
 	steps := stepsIncluding(st, newStep)
-	for stepID := range steps {
-		if err := checkFlowCycleFromStep(stepID, steps, stepSet{}); err != nil {
+	for sid := range steps {
+		if err := checkFlowCycleFromStep(sid, steps, stepSet{}); err != nil {
 			return err
 		}
 	}
@@ -310,8 +310,8 @@ func checkCycleFromStep(
 	stack.Add(currentID)
 	defer stack.Remove(currentID)
 
-	step := steps[currentID]
-	for name, attr := range step.Attributes {
+	st := steps[currentID]
+	for name, attr := range st.Attributes {
 		if attr.IsInput() {
 			if depInfo := deps[name]; depInfo != nil {
 				for _, providerID := range depInfo.Providers {

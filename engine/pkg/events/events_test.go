@@ -19,11 +19,11 @@ func TestRaiseEnqueuesEvent(t *testing.T) {
 	require.NoError(t, err)
 	defer func() { _ = store.Close() }()
 
-	exec := timebox.NewExecutor(store, func() int { return 0 }, nil)
+	ex := timebox.NewExecutor(store, func() int { return 0 }, nil)
 
 	id := timebox.NewAggregateID("flow", "flow-1")
 	called := false
-	_, err = exec.Exec(id,
+	_, err = ex.Exec(id,
 		func(_ int, ag *timebox.Aggregator[int]) error {
 			ag.OnSuccess(func(_ int, evs []*timebox.Event) {
 				called = true

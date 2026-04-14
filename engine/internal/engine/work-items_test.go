@@ -16,7 +16,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "foreach-step",
 			Name: "For Each Step",
 			Type: api.StepTypeSync,
@@ -37,12 +37,12 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{"result": "ok"})
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		fl := env.WaitForFlowStatus("wf-foreach", func() {
@@ -187,7 +187,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "mapped-descendants-step",
 			Name: "Mapped Descendants Step",
 			Type: api.StepTypeSync,
@@ -213,8 +213,8 @@ func TestOutputMappingDescendants(t *testing.T) {
 			},
 		}
 
-		assert.NoError(t, env.Engine.RegisterStep(step))
-		env.MockClient.SetResponse(step.ID, api.Args{
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{
 			"payload": map[string]any{
 				"sections": []any{
 					map[string]any{"book": "A"},
@@ -224,8 +224,8 @@ func TestOutputMappingDescendants(t *testing.T) {
 		})
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 
 		fl := env.WaitForFlowStatus("wf-desc-mapping", func() {
@@ -245,7 +245,7 @@ func TestOutputMappingDescendants(t *testing.T) {
 
 func TestTooManyWorkItems(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		step := &api.Step{
+		st := &api.Step{
 			ID:   "foreach-overload",
 			Name: "ForEach Overload",
 			Type: api.StepTypeSync,
@@ -257,7 +257,7 @@ func TestTooManyWorkItems(t *testing.T) {
 				"y": {Role: api.RoleRequired, Type: api.TypeArray, ForEach: true},
 			},
 		}
-		assert.NoError(t, env.Engine.RegisterStep(step))
+		assert.NoError(t, env.Engine.RegisterStep(st))
 
 		// 101 * 101 = 10,201 items, exceeds MaxWorkItemsPerStep (10,000)
 		xArr := make([]any, 101)
@@ -268,8 +268,8 @@ func TestTooManyWorkItems(t *testing.T) {
 		}
 
 		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{step.ID},
-			Steps: api.Steps{step.ID: step},
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
 		}
 		err := env.Engine.StartFlow("wf-too-many", pl,
 			flow.WithInit(api.Args{"x": xArr, "y": yArr}),

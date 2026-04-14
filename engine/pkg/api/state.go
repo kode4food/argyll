@@ -300,18 +300,16 @@ func (e ExecutionState) SetError(err string) ExecutionState {
 }
 
 // SetWorkItem returns a new ExecutionState with the work item state updated
-func (e ExecutionState) SetWorkItem(
-	token Token, item WorkState,
-) ExecutionState {
+func (e ExecutionState) SetWorkItem(tkn Token, item WorkState) ExecutionState {
 	e.WorkItems = maps.Clone(e.WorkItems)
-	e.WorkItems[token] = item
+	e.WorkItems[tkn] = item
 	return e
 }
 
 // RemoveWorkItem returns a new ExecutionState with the work item removed
-func (e ExecutionState) RemoveWorkItem(token Token) ExecutionState {
+func (e ExecutionState) RemoveWorkItem(tkn Token) ExecutionState {
 	e.WorkItems = maps.Clone(e.WorkItems)
-	delete(e.WorkItems, token)
+	delete(e.WorkItems, tkn)
 	return e
 }
 

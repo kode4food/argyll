@@ -190,9 +190,9 @@ func TestIsFlowFailed(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		flow, err := env.Engine.GetFlowState("wf-failed-test")
+		fl, err := env.Engine.GetFlowState("wf-failed-test")
 		assert.NoError(t, err)
-		assert.True(t, env.Engine.IsFlowFailed(flow))
+		assert.True(t, env.Engine.IsFlowFailed(fl))
 	})
 }
 
@@ -211,9 +211,9 @@ func TestIsFlowNotFailed(t *testing.T) {
 		err = eng.StartFlow("wf-ok-test", pl)
 		assert.NoError(t, err)
 
-		flow, err := eng.GetFlowState("wf-ok-test")
+		fl, err := eng.GetFlowState("wf-ok-test")
 		assert.NoError(t, err)
-		assert.False(t, eng.IsFlowFailed(flow))
+		assert.False(t, eng.IsFlowFailed(fl))
 	})
 }
 
@@ -249,9 +249,9 @@ func TestHasInputProvider(t *testing.T) {
 		err = eng.StartFlow("wf-provider-test", pl)
 		assert.NoError(t, err)
 
-		flow, err := eng.GetFlowState("wf-provider-test")
+		fl, err := eng.GetFlowState("wf-provider-test")
 		assert.NoError(t, err)
-		assert.True(t, eng.HasInputProvider("value", flow))
+		assert.True(t, eng.HasInputProvider("value", fl))
 	})
 }
 
@@ -275,9 +275,9 @@ func TestHasInputProviderNone(t *testing.T) {
 		err = eng.StartFlow("wf-no-provider-test", pl)
 		assert.NoError(t, err)
 
-		flow, err := eng.GetFlowState("wf-no-provider-test")
+		fl, err := eng.GetFlowState("wf-no-provider-test")
 		assert.NoError(t, err)
-		assert.False(t, eng.HasInputProvider("missing", flow))
+		assert.False(t, eng.HasInputProvider("missing", fl))
 	})
 }
 
@@ -303,10 +303,10 @@ func TestGetFlowState(t *testing.T) {
 		err = eng.StartFlow("wf-state", pl)
 		assert.NoError(t, err)
 
-		state, err := eng.GetFlowState("wf-state")
+		fl, err := eng.GetFlowState("wf-state")
 		assert.NoError(t, err)
-		assert.Equal(t, api.FlowID("wf-state"), state.ID)
-		assert.NotNil(t, state.Status)
+		assert.Equal(t, api.FlowID("wf-state"), fl.ID)
+		assert.NotNil(t, fl.Status)
 	})
 }
 

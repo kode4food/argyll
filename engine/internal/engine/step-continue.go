@@ -17,8 +17,8 @@ func (e *Engine) scheduleTimeouts(flow api.FlowState, now time.Time) {
 		return
 	}
 
-	for stepID := range flow.Executions {
-		e.scheduleStepTimeouts(flow, stepID, now, false)
+	for sid := range flow.Executions {
+		e.scheduleStepTimeouts(flow, sid, now, false)
 	}
 }
 
@@ -46,12 +46,12 @@ func (e *Engine) scheduleConsumerTimeouts(
 		if !ok {
 			continue
 		}
-		for _, stepID := range deps.Consumers {
-			if seen.Contains(stepID) {
+		for _, sid := range deps.Consumers {
+			if seen.Contains(sid) {
 				continue
 			}
-			seen.Add(stepID)
-			e.scheduleStepTimeouts(flow, stepID, now, true)
+			seen.Add(sid)
+			e.scheduleStepTimeouts(flow, sid, now, true)
 		}
 	}
 }
@@ -72,8 +72,8 @@ func (e *Engine) scheduleStepTimeouts(
 	if flowTransitions.IsTerminal(flow.Status) {
 		return
 	}
-	exec, ok := flow.Executions[stepID]
-	if !ok || exec.Status != api.StepPending {
+	ex, ok := flow.Executions[stepID]
+	if !ok || ex.Status != api.StepPending {
 		return
 	}
 
@@ -96,8 +96,8 @@ func (e *Engine) scheduleStepTimeouts(
 }
 
 func flowHasTimeouts(flow api.FlowState) bool {
-	for _, step := range flow.Plan.Steps {
-		if stepHasTimeouts(step) {
+	for _, st := range flow.Plan.Steps {
+		if stepHasTimeouts(st) {
 			return true
 		}
 	}
@@ -126,17 +126,17 @@ func (e *Engine) scheduleTimeoutTask(
 
 func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
-		flow := tx.Value()
-		if flowTransitions.IsTerminal(flow.Status) {
+		fl := tx.Value()
+		if flowTransitions.IsTerminal(fl.Status) {
 			return nil
 		}
 
-		exec, ok := flow.Executions[fs.StepID]
-		if !ok || exec.Status != api.StepPending {
+		ex, ok := fl.Executions[fs.StepID]
+		if !ok || ex.Status != api.StepPending {
 			return nil
 		}
 
-		ready, _ := tx.canStartStepAt(fs.StepID, flow, now)
+		ready, _ := tx.canStartStepAt(fs.StepID, fl, now)
 		if !ready {
 			return nil
 		}

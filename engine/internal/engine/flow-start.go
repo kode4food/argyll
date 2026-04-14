@@ -50,8 +50,8 @@ func (e *Engine) StartFlow(
 		); err != nil {
 			return err
 		}
-		for _, stepID := range tx.findInitialSteps(tx.Value()) {
-			if err := tx.prepareStep(stepID); err != nil {
+		for _, sid := range tx.findInitialSteps(tx.Value()) {
+			if err := tx.prepareStep(sid); err != nil {
 				return err
 			}
 		}

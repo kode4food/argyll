@@ -46,10 +46,10 @@ func TestSetHealth(t *testing.T) {
 		Health: map[api.StepID]api.HealthState{},
 	}
 
-	health := api.HealthState{Status: api.HealthHealthy}
-	result := original.SetHealth("test-step", health)
+	h := api.HealthState{Status: api.HealthHealthy}
+	result := original.SetHealth("test-step", h)
 
-	assert.Equal(t, health, result.Health["test-step"])
+	assert.Equal(t, h, result.Health["test-step"])
 	assert.Empty(t, original.Health)
 }
 
