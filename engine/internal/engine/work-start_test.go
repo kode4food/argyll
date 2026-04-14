@@ -34,6 +34,8 @@ func TestMemoizableStepUsesCache(t *testing.T) {
 			))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
+		firstInvocations := env.MockClient.GetInvocations()
+		assert.NotEmpty(t, firstInvocations)
 
 		fl = env.WaitForFlowStatus("wf-memo-2", func() {
 			assert.NoError(t, env.Engine.StartFlow("wf-memo-2", pl,
@@ -43,7 +45,7 @@ func TestMemoizableStepUsesCache(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		invocations := env.MockClient.GetInvocations()
-		assert.Len(t, invocations, 1)
+		assert.Len(t, invocations, len(firstInvocations))
 	})
 }
 
