@@ -84,9 +84,12 @@ func TestClusterStepHealthChangedWithError(t *testing.T) {
 }
 
 func TestClusterMultipleNodes(t *testing.T) {
-	apply := events.ClusterAppliers[timebox.EventType(api.EventTypeStepHealthChanged)]
+	et := timebox.EventType(api.EventTypeStepHealthChanged)
+	apply := events.ClusterAppliers[et]
 
-	makeEv := func(nodeID, stepID string, status api.HealthStatus) *timebox.Event {
+	makeEv := func(
+		nodeID, stepID string, status api.HealthStatus,
+	) *timebox.Event {
 		data, _ := json.Marshal(api.StepHealthChangedEvent{
 			NodeID: api.NodeID(nodeID),
 			StepID: api.StepID(stepID),
@@ -104,6 +107,10 @@ func TestClusterMultipleNodes(t *testing.T) {
 	st = apply(st, makeEv("node-2", "step-a", api.HealthUnhealthy))
 
 	assert.Len(t, st.Nodes, 2)
-	assert.Equal(t, api.HealthHealthy, st.Nodes["node-1"].Health["step-a"].Status)
-	assert.Equal(t, api.HealthUnhealthy, st.Nodes["node-2"].Health["step-a"].Status)
+	assert.Equal(t,
+		api.HealthHealthy, st.Nodes["node-1"].Health["step-a"].Status,
+	)
+	assert.Equal(t,
+		api.HealthUnhealthy, st.Nodes["node-2"].Health["step-a"].Status,
+	)
 }

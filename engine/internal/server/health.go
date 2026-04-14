@@ -165,7 +165,8 @@ func (h *HealthChecker) updateStepHealth(
 			Status: status,
 			Error:  errorMsg,
 		}
-		if err := h.engine.UpdateStepHealth(step.ID, status, errorMsg); err != nil {
+		err := h.engine.UpdateStepHealth(step.ID, status, errorMsg)
+		if err != nil {
 			slog.Error("Failed to update step health",
 				log.StepID(step.ID),
 				log.Error(err))

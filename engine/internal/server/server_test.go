@@ -961,9 +961,10 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 		checker := server.NewHealthChecker(peer)
 		defer checker.Stop()
 
-		testEnv.WaitFor(wait.StepHealthChanged(stepA.ID, api.HealthHealthy), func() {
-			checker.Start()
-		})
+		testEnv.WaitFor(
+			wait.StepHealthChanged(stepA.ID, api.HealthHealthy),
+			func() { checker.Start() },
+		)
 
 		req := httptest.NewRequest("GET", "/engine/health", nil)
 		w := httptest.NewRecorder()

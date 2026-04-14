@@ -299,7 +299,9 @@ func TestScriptHealthOnRegister(t *testing.T) {
 }
 
 func TestResolveHealthNilCat(t *testing.T) {
-	health := engine.ResolveHealth(api.CatalogState{}, map[api.StepID]api.HealthState{})
+	health := engine.ResolveHealth(
+		api.CatalogState{}, map[api.StepID]api.HealthState{},
+	)
 	assert.Empty(t, health)
 }
 

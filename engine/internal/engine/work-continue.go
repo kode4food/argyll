@@ -82,7 +82,8 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
 		nextRetryAt := tx.calculateNextRetryAt(
 			tx.Now(), step.WorkConfig, work.RetryCount,
 		)
-		if err := tx.raiseRetryScheduled(stepID, tkn, work, nextRetryAt); err != nil {
+		err := tx.raiseRetryScheduled(stepID, tkn, work, nextRetryAt)
+		if err != nil {
 			return err
 		}
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
@@ -94,9 +95,7 @@ func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
 	return tx.raiseWorkFailed(stepID, tkn, work.Error)
 }
 
-func (tx *flowTx) continueStepWork(
-	stepID api.StepID, clearRetryEntries bool,
-) error {
+func (tx *flowTx) continueStepWork(stepID api.StepID, clearRetry bool) error {
 	step := tx.Value().Plan.Steps[stepID]
 	started, err := tx.startPendingWork(step)
 	if err != nil {
@@ -105,7 +104,7 @@ func (tx *flowTx) continueStepWork(
 	if len(started) == 0 {
 		return nil
 	}
-	if clearRetryEntries {
+	if clearRetry {
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
 			for token := range started {
 				tx.CancelTask(
