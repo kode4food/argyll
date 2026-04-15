@@ -33,7 +33,7 @@ func (e *Engine) scheduleConsumerTimeouts(
 	}
 
 	producer, ok := flow.Plan.Steps[producerID]
-	if !ok || producer == nil {
+	if !ok {
 		return
 	}
 
@@ -105,9 +105,6 @@ func flowHasTimeouts(flow api.FlowState) bool {
 }
 
 func stepHasTimeouts(step *api.Step) bool {
-	if step == nil {
-		return false
-	}
 	for _, attr := range step.Attributes {
 		if attr.IsOptional() && attr.Timeout > 0 {
 			return true

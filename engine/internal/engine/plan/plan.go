@@ -438,9 +438,6 @@ func childPlanInit(step *api.Step) api.Args {
 }
 
 func isGuaranteedInput(attr *api.AttributeSpec) bool {
-	if attr == nil {
-		return false
-	}
 	if attr.IsRequired() || attr.IsConst() {
 		return true
 	}

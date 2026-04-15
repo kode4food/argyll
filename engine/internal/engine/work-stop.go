@@ -50,12 +50,11 @@ func (e *Engine) NotCompleteWork(
 		}
 
 		var retryTkn api.Token
-		if ex, ok := tx.Value().Executions[fs.StepID]; ok {
-			work := ex.WorkItems[tkn]
-			st := tx.Value().Plan.Steps[fs.StepID]
-			if st != nil && !st.Memoizable && work.RetryCount > 0 {
-				retryTkn = api.Token(uuid.New().String())
-			}
+		ex := tx.Value().Executions[fs.StepID]
+		work := ex.WorkItems[tkn]
+		st := tx.Value().Plan.Steps[fs.StepID]
+		if !st.Memoizable && work.RetryCount > 0 {
+			retryTkn = api.Token(uuid.New().String())
 		}
 
 		if err := tx.raiseWorkNotCompleted(

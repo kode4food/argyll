@@ -336,7 +336,7 @@ func checkFlowCycleFromStep(
 	}
 
 	step, ok := steps[currentID]
-	if !ok || step == nil || step.Type != api.StepTypeFlow || step.Flow == nil {
+	if !ok || step.Type != api.StepTypeFlow || step.Flow == nil {
 		return nil
 	}
 

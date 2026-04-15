@@ -187,7 +187,7 @@ func baseHealth(
 func defaultStepHealth(
 	step *api.Step, stepID api.StepID, base map[api.StepID]api.HealthState,
 ) api.HealthState {
-	if step != nil && step.Type == api.StepTypeScript {
+	if step.Type == api.StepTypeScript {
 		return scriptHealth(stepID, base)
 	}
 	return baseHealth(stepID, base)
