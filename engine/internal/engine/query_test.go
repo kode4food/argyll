@@ -738,8 +738,8 @@ func waitForQueryFlows(
 }
 
 func addStatusEntry(
-	t *testing.T, env *helpers.TestEngineEnv,
-	status, pfx, id string, at time.Time,
+	t *testing.T, env *helpers.TestEngineEnv, status, pfx, id string,
+	at time.Time,
 ) {
 	t.Helper()
 
@@ -756,8 +756,7 @@ func addStatusEntry(
 }
 
 func addLabelEntry(
-	t *testing.T, env *helpers.TestEngineEnv,
-	label, value, pfx, id string,
+	t *testing.T, env *helpers.TestEngineEnv, label, value, pfx, id string,
 ) {
 	t.Helper()
 
@@ -776,9 +775,7 @@ func addLabelEntry(
 	assert.NoError(t, err)
 }
 
-func marshalIndexedFlowEvent(
-	status string, labels api.Labels,
-) ([]byte, error) {
+func marshalIndexedFlowEvent(status string, labels api.Labels) ([]byte, error) {
 	if status == events.FlowStatusActive {
 		return json.Marshal(api.FlowStartedEvent{
 			FlowID: "fixture",

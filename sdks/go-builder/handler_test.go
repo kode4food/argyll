@@ -29,10 +29,7 @@ func getFreePort(t *testing.T) string {
 }
 
 func startStepServer(
-	t *testing.T,
-	engineURL string,
-	stepName api.Name,
-	stepID api.StepID,
+	t *testing.T, engineURL string, stepName api.Name, stepID api.StepID,
 	handle builder.StepHandler,
 ) string {
 	t.Helper()

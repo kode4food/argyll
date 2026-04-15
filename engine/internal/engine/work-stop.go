@@ -237,9 +237,7 @@ func (tx *flowTx) raiseWorkFailed(
 	)
 }
 
-func hasRetryTask(
-	flow api.FlowState, stepID api.StepID, tkn api.Token,
-) bool {
+func hasRetryTask(flow api.FlowState, stepID api.StepID, tkn api.Token) bool {
 	ex, ok := flow.Executions[stepID]
 	if !ok {
 		return false

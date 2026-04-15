@@ -240,9 +240,7 @@ func TestNoTimeoutTasks(t *testing.T) {
 	})
 }
 
-func (c *testTimerConstructor) NewTimer(
-	delay time.Duration,
-) scheduler.Timer {
+func (c *testTimerConstructor) NewTimer(delay time.Duration) scheduler.Timer {
 	timer := newFakeTimer(delay)
 	select {
 	case c.created <- timer:
@@ -349,8 +347,7 @@ func assertNoSchedulerResets(t *testing.T, timer *fakeTimer) {
 }
 
 func assertEventuallyEqual(
-	t *testing.T, expected time.Duration,
-	wait func(*testing.T) time.Duration,
+	t *testing.T, expected time.Duration, wait func(*testing.T) time.Duration,
 ) {
 	t.Helper()
 	assert.Equal(t, expected, wait(t))

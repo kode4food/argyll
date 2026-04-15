@@ -43,9 +43,7 @@ func New(now Clock, makeTimer TimerConstructor) *Scheduler {
 }
 
 // Schedule enqueues a task to run at the requested time
-func (s *Scheduler) Schedule(
-	path []string, at time.Time, fn TaskFunc,
-) {
+func (s *Scheduler) Schedule(path []string, at time.Time, fn TaskFunc) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	prev := s.currentHead()

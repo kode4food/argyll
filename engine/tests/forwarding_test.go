@@ -234,6 +234,9 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 	defer cancel()
+	if err := engStore.WaitReady(ctx); err != nil {
+		return nil, err
+	}
 	if err := flowStore.WaitReady(ctx); err != nil {
 		return nil, err
 	}

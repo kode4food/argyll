@@ -71,9 +71,7 @@ func ResolveHealth(
 
 // MergeNodeHealth reduces per-node step health into a cluster-wide worst-case
 // view while preserving stable results
-func MergeNodeHealth(
-	cluster api.ClusterState,
-) map[api.StepID]api.HealthState {
+func MergeNodeHealth(cluster api.ClusterState) map[api.StepID]api.HealthState {
 	res := map[api.StepID]api.HealthState{}
 	nodes := make([]string, 0, len(cluster.Nodes))
 	for id := range cluster.Nodes {

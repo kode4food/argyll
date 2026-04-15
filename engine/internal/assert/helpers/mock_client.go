@@ -8,18 +8,20 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// MockClient is a simple mock implementation of client.Client for testing
-type MockClient struct {
-	responses map[api.StepID]api.Args
-	errors    map[api.StepID]error
-	handlers  map[api.StepID]func(*api.Step, api.Args, api.Metadata) (
-		api.Args, error,
-	)
-	invoked   []api.StepID
-	metadata  map[api.StepID][]api.Metadata
-	invokedCh map[api.StepID]chan struct{}
-	mu        sync.Mutex
-}
+type (
+	// MockClient is a simple mock implementation of client.Client for testing
+	MockClient struct {
+		responses map[api.StepID]api.Args
+		errors    map[api.StepID]error
+		handlers  map[api.StepID]MockHandler
+		invoked   []api.StepID
+		metadata  map[api.StepID][]api.Metadata
+		invokedCh map[api.StepID]chan struct{}
+		mu        sync.Mutex
+	}
+
+	MockHandler func(*api.Step, api.Args, api.Metadata) (api.Args, error)
+)
 
 // NewMockClient creates a mock HTTP client that allows setting responses and
 // errors for specific step IDs
@@ -27,9 +29,7 @@ func NewMockClient() *MockClient {
 	return &MockClient{
 		responses: map[api.StepID]api.Args{},
 		errors:    map[api.StepID]error{},
-		handlers: map[api.StepID]func(*api.Step, api.Args, api.Metadata) (
-			api.Args, error,
-		){},
+		handlers:  map[api.StepID]MockHandler{},
 		invoked:   []api.StepID{},
 		metadata:  map[api.StepID][]api.Metadata{},
 		invokedCh: map[api.StepID]chan struct{}{},
@@ -81,10 +81,7 @@ func (c *MockClient) SetError(stepID api.StepID, err error) {
 }
 
 // SetHandler configures a custom invocation handler for a step
-func (c *MockClient) SetHandler(
-	stepID api.StepID,
-	handler func(*api.Step, api.Args, api.Metadata) (api.Args, error),
-) {
+func (c *MockClient) SetHandler(stepID api.StepID, handler MockHandler) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.handlers[stepID] = handler
