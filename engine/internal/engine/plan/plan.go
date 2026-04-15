@@ -405,7 +405,7 @@ func buildChildPlans(
 ) (map[api.StepID]*api.ExecutionPlan, error) {
 	childPlans := map[api.StepID]*api.ExecutionPlan{}
 	for sid, st := range pl.Steps {
-		if st == nil || st.Type != api.StepTypeFlow || st.Flow == nil {
+		if st.Type != api.StepTypeFlow || st.Flow == nil {
 			continue
 		}
 		childPlan, err := create(

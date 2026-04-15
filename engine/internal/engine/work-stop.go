@@ -84,6 +84,8 @@ func (tx *flowTx) completeWork(
 		return err
 	}
 
+	tx.memoizeWorkOutput(stepID, tkn, outputs)
+
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeWorkSucceeded,
 		api.WorkSucceededEvent{
 			FlowID:  tx.flowID,
@@ -96,19 +98,6 @@ func (tx *flowTx) completeWork(
 	}
 
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-		st := flow.Plan.Steps[stepID]
-		if st != nil && st.Memoizable {
-			ex := flow.Executions[stepID]
-			work := flow.Executions[stepID].WorkItems[tkn]
-			inputs := ex.Inputs.Apply(work.Inputs)
-			err := tx.memoCache.Put(st, inputs, outputs)
-			if err != nil {
-				slog.Warn("memo cache put failed",
-					log.FlowID(tx.flowID), log.StepID(stepID),
-					log.Error(err))
-			}
-		}
-
 		if hasRetryTask(flow, stepID, tkn) {
 			tx.handleWorkSucceededCleanup(api.FlowStep{
 				FlowID: tx.flowID,
@@ -118,6 +107,25 @@ func (tx *flowTx) completeWork(
 	})
 
 	return tx.handleWorkSucceeded(stepID)
+}
+
+func (tx *flowTx) memoizeWorkOutput(
+	stepID api.StepID, tkn api.Token, outputs api.Args,
+) {
+	fl := tx.Value()
+	st := fl.Plan.Steps[stepID]
+	if !st.Memoizable {
+		return
+	}
+
+	ex := fl.Executions[stepID]
+	work := ex.WorkItems[tkn]
+	inputs := ex.Inputs.Apply(work.Inputs)
+	if err := tx.memoCache.Put(st, inputs, outputs); err != nil {
+		slog.Warn("memo cache put failed",
+			log.FlowID(tx.flowID), log.StepID(stepID),
+			log.Error(err))
+	}
 }
 
 func (tx *flowTx) failWork(
