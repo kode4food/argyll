@@ -3,8 +3,10 @@ import { render, screen } from "@testing-library/react";
 import LiveDiagramView from "./LiveDiagramView";
 import { Step, FlowContext, ExecutionResult } from "@/app/api";
 
+const reactFlowMock = jest.fn(() => <div data-testid="react-flow" />);
+
 jest.mock("@xyflow/react", () => ({
-  ReactFlow: () => <div data-testid="react-flow" />,
+  ReactFlow: (props: any) => reactFlowMock(props),
   Controls: ({ children }: { children?: React.ReactNode }) => (
     <div data-testid="controls">{children}</div>
   ),
@@ -131,6 +133,23 @@ describe("LiveDiagramView", () => {
     );
 
     expect(screen.getByTestId("react-flow")).toBeInTheDocument();
+  });
+
+  test("uses macOS-style trackpad gestures", () => {
+    render(
+      <LiveDiagramView
+        steps={[baseStep]}
+        flowData={makeFlowData()}
+        executions={[]}
+        resolvedAttributes={[]}
+      />
+    );
+
+    expect(reactFlowMock).toHaveBeenCalled();
+    const props = reactFlowMock.mock.calls[0][0];
+    expect(props.panOnScroll).toBe(true);
+    expect(props.zoomOnScroll).toBe(false);
+    expect(props.zoomOnPinch).toBe(true);
   });
 
   test("passes correct props to useNodeCalculation", () => {

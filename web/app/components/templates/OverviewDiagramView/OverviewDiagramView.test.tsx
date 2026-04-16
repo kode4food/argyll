@@ -250,4 +250,26 @@ describe("OverviewDiagramView", () => {
     const props = reactFlowMock.mock.calls[0][0];
     expect(props.edges).toBe(initialEdges);
   });
+
+  it("uses macOS-style trackpad gestures", () => {
+    render(
+      <DiagramSelectionProvider
+        value={{
+          goalSteps: [],
+          toggleGoalStep: jest.fn(),
+          setGoalSteps: jest.fn(),
+        }}
+      >
+        <OverviewDiagramView
+          steps={[{ id: "s1", name: "Step 1", type: "sync", attributes: {} }]}
+        />
+      </DiagramSelectionProvider>
+    );
+
+    expect(reactFlowMock).toHaveBeenCalled();
+    const props = reactFlowMock.mock.calls[0][0];
+    expect(props.panOnScroll).toBe(true);
+    expect(props.zoomOnScroll).toBe(false);
+    expect(props.zoomOnPinch).toBe(true);
+  });
 });
