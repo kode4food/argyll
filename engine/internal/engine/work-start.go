@@ -355,6 +355,7 @@ func (tx *flowTx) raiseWorkStarted(
 			FlowID: tx.flowID,
 			StepID: stepID,
 			Token:  tkn,
+			NodeID: tx.LocalNodeID(),
 			Inputs: inputs,
 		},
 	)

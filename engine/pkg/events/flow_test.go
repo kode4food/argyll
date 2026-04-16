@@ -454,6 +454,7 @@ func TestWorkStarted(t *testing.T) {
 	eventData := api.WorkStartedEvent{
 		StepID: "step1",
 		Token:  "token1",
+		NodeID: "node-a",
 	}
 	data, err := json.Marshal(eventData)
 	assert.NoError(t, err)
@@ -472,6 +473,7 @@ func TestWorkStarted(t *testing.T) {
 	work := ex.WorkItems["token1"]
 	assert.Equal(t, api.WorkActive, work.Status)
 	assert.True(t, work.StartedAt.Equal(now))
+	assert.Equal(t, api.NodeID("node-a"), work.NodeID)
 }
 
 func TestWorkSucceeded(t *testing.T) {
@@ -603,6 +605,7 @@ func TestRetryScheduled(t *testing.T) {
 					"token1": {
 						Status:     api.WorkFailed,
 						Error:      "previous error",
+						NodeID:     "node-a",
 						RetryCount: 0,
 					},
 				},
@@ -636,6 +639,7 @@ func TestRetryScheduled(t *testing.T) {
 	work := ex.WorkItems["token1"]
 	assert.Equal(t, api.WorkPending, work.Status)
 	assert.Equal(t, 1, work.RetryCount)
+	assert.Empty(t, work.NodeID)
 	assert.True(t, work.NextRetryAt.Equal(nextRetry))
 }
 

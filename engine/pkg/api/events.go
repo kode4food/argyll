@@ -90,6 +90,7 @@ type (
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`
 		Token  Token  `json:"token"`
+		NodeID NodeID `json:"node_id"`
 		Inputs Args   `json:"inputs"`
 	}
 

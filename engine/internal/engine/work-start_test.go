@@ -88,6 +88,33 @@ func TestHTTPMetadata(t *testing.T) {
 	})
 }
 
+func TestWorkStartedRecordsNode(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("owner-node-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		fl := env.WaitForFlowStatus("wf-owner-node", func() {
+			err := env.Engine.StartFlow("wf-owner-node", pl)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		ex := fl.Executions[st.ID]
+		assert.Len(t, ex.WorkItems, 1)
+		for _, work := range ex.WorkItems {
+			assert.Equal(t, env.Engine.LocalNodeID(), work.NodeID)
+		}
+	})
+}
+
 func TestAsyncMetadata(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

@@ -289,6 +289,7 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         case "work_started":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
             status: "active",
+            node_id: wsEvent.data?.node_id,
             inputs: wsEvent.data?.inputs,
           });
           break;
