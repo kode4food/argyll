@@ -12,7 +12,7 @@ require (
 	github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04
 	github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9
 	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9
-	github.com/kode4food/timebox v0.0.0-20260405120245-06976aeffa80
+	github.com/kode4food/timebox v0.0.0-20260417061817-90c044627019
 	github.com/stretchr/testify v1.11.1
 	golang.org/x/tools v0.42.0
 )

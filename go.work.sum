@@ -699,6 +699,7 @@ github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 h1:iCEnooe7Ulw
 github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761/go.mod h1:5TJZWKEWniPve33vlWYSoGYefn3gLQRzjfDlhSJ9ZKM=
 github.com/jackc/pgx/v5 v5.8.0 h1:TYPDoleBBme0xGSAX3/+NujXXtpZn9HBONkQC7IEZSo=
 github.com/jackc/pgx/v5 v5.8.0/go.mod h1:QVeDInX2m9VyzvNeiCJVjCkNFqzsNb43204HshNSZKw=
+github.com/jackc/pgx/v5 v5.9.0/go.mod h1:mal1tBGAFfLHvZzaYh77YS/eC6IX9OWbRV1QIIM0Jn4=
 github.com/jackc/puddle/v2 v2.2.2 h1:PR8nw+E/1w0GLuRFSmiioY6UooMp6KJv0/61nB7icHo=
 github.com/jackc/puddle/v2 v2.2.2/go.mod h1:vriiEXHvEE654aYKXXjOvZM39qJ0q+azkZFrfEOc3H4=
 github.com/jmespath/go-jmespath v0.4.0 h1:BEgLn5cpjn8UN1mAw4NjwDrS35OdebyEtFe+9YPoQUg=
@@ -747,6 +748,7 @@ github.com/kode4food/timebox v0.0.0-20260329152242-24f0a0624c5a/go.mod h1:D6GHxo
 github.com/kode4food/timebox v0.0.0-20260331105139-9c592a8d5899/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
 github.com/kode4food/timebox v0.0.0-20260331153400-a5496803cfd1/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
 github.com/kode4food/timebox v0.0.0-20260401174847-a5fbcfbf902c/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
+github.com/kode4food/timebox v0.0.0-20260405120245-06976aeffa80/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
 github.com/kr/pty v1.1.1 h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=

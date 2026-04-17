@@ -32,8 +32,15 @@ NODE_RAFT_ADDRS=("$NODE_1_RAFT_ADDR" "$NODE_2_RAFT_ADDR" "$NODE_3_RAFT_ADDR")
 cluster_pids=()
 cluster_nodes=()
 cluster_temp_dir=""
+cluster_bin=""
+cleanup_started=0
 
 cleanup() {
+	if ((cleanup_started)); then
+		return
+	fi
+	cleanup_started=1
+
 	for pid in "${cluster_pids[@]:-}"; do
 		kill "$pid" 2>/dev/null || true
 	done
@@ -47,7 +54,34 @@ cleanup() {
 	fi
 }
 
+handle_sigint() {
+	cleanup
+	exit 130
+}
+
+handle_sigterm() {
+	cleanup
+	exit 143
+}
+
 trap cleanup EXIT
+trap handle_sigint INT
+trap handle_sigterm TERM
+
+prepare_runtime() {
+	cluster_temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/argyll-cluster.XXXXXX")"
+	cluster_bin="$cluster_temp_dir/argyll"
+
+	go build -o "$cluster_bin" ./cmd/argyll
+
+	if [[ -n "${ARGYLL_RAFT_DATA_DIR:-}" ]]; then
+		mkdir -p "$ARGYLL_RAFT_DATA_DIR"
+		return
+	fi
+
+	ARGYLL_RAFT_DATA_DIR="$cluster_temp_dir/data"
+	mkdir -p "$ARGYLL_RAFT_DATA_DIR"
+}
 
 run_node() {
 	local id="$1"
@@ -73,7 +107,7 @@ run_node() {
 			RAFT_ADDRESS="$raft_addr" \
 			RAFT_DATA_DIR="$data_dir" \
 			RAFT_SERVERS="$RAFT_SERVERS" \
-				exec go run ./cmd/argyll/main.go \
+				exec "$cluster_bin" \
 				>"$log_file" 2>&1
 		) &
 
@@ -91,15 +125,10 @@ run_node() {
 	RAFT_ADDRESS="$raft_addr" \
 	RAFT_DATA_DIR="$data_dir" \
 	RAFT_SERVERS="$RAFT_SERVERS" \
-		go run ./cmd/argyll/main.go
+		"$cluster_bin"
 }
 
-if [[ -n "${ARGYLL_RAFT_DATA_DIR:-}" ]]; then
-	mkdir -p "$ARGYLL_RAFT_DATA_DIR"
-else
-	cluster_temp_dir="$(mktemp -d "${TMPDIR:-/tmp}/argyll-cluster.XXXXXX")"
-	ARGYLL_RAFT_DATA_DIR="$cluster_temp_dir"
-fi
+prepare_runtime
 
 raft_servers_parts=()
 for i in "${!NODE_IDS[@]}"; do
