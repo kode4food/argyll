@@ -30,6 +30,7 @@ type (
 		flowStore  *timebox.Store
 		flowExec   *timebox.Executor[api.FlowState]
 		subscribe  func(Publisher) func()
+		ownsHub    bool
 	}
 
 	Publisher func(...*timebox.Event)
@@ -151,11 +152,15 @@ func NewTestEngineWithDeps(
 		flowStore:  deps.FlowStore,
 		flowExec:   flowExec,
 		subscribe:  subscribe,
+		ownsHub:    overrides.EventHub == nil,
 	}
 
 	testEnv.Cleanup = func() {
 		publishWG.Wait()
 		_ = testEnv.Engine.Stop()
+		if testEnv.ownsHub {
+			testEnv.EventHub.Close()
+		}
 		_ = testEnv.engStore.Close()
 		_ = testEnv.flowStore.Close()
 	}

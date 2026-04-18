@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kode4food/caravan/closer"
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
@@ -145,6 +146,37 @@ func TestHubUnsubscribe(t *testing.T) {
 	}
 }
 
+func TestHubCloseUnblocksFilteredSend(t *testing.T) {
+	h := event.NewHub()
+	consumer := h.NewAggregateConsumer(timebox.NewAggregateID("flow"))
+	ch := consumer.Receive()
+
+	h.Publish(
+		newEvent("incremented", timebox.NewAggregateID("flow", "a"), 0),
+		newEvent("incremented", timebox.NewAggregateID("flow", "b"), 1),
+	)
+
+	select {
+	case <-ch:
+	case <-time.After(eventWait):
+		t.Fatal("timeout waiting for first event")
+	}
+
+	consumer.Close()
+
+	deadline := time.After(eventWait)
+	for {
+		select {
+		case _, ok := <-ch:
+			if !ok {
+				return
+			}
+		case <-deadline:
+			t.Fatal("timeout waiting for consumer close")
+		}
+	}
+}
+
 func TestHubMultiplePrefixes(t *testing.T) {
 	h := event.NewHub()
 	consumer := h.NewAggregatesConsumer([]timebox.AggregateID{
@@ -194,6 +226,16 @@ func TestHubPublishNonBlocking(t *testing.T) {
 	case <-time.After(eventWait):
 		t.Fatal("publish blocked on inactive consumer")
 	}
+}
+
+func TestHubClose(t *testing.T) {
+	h := event.NewHub()
+	h.Close()
+
+	assert.True(t, closer.IsClosed(h))
+
+	h.Close()
+	assert.True(t, closer.IsClosed(h))
 }
 
 func newEvent(

@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/kode4food/caravan"
+	"github.com/kode4food/caravan/closer"
 	"github.com/kode4food/caravan/topic"
 	"github.com/kode4food/timebox"
 )
@@ -12,9 +13,11 @@ import (
 type (
 	// Hub filters events based on active subscriptions
 	Hub struct {
-		inner    topic.Topic[*timebox.Event]
-		producer topic.Producer[*timebox.Event]
-		registry *registry
+		inner     topic.Topic[*timebox.Event]
+		producer  topic.Producer[*timebox.Event]
+		registry  *registry
+		closed    chan struct{}
+		closeOnce sync.Once
 	}
 
 	// Consumer filters events based on interests
@@ -23,6 +26,7 @@ type (
 		interests *interests
 		registry  *registry
 		filtered  <-chan *timebox.Event
+		closed    chan struct{}
 		once      sync.Once
 		closeOnce sync.Once
 	}
@@ -62,7 +66,23 @@ func NewHubWithTopic(inner topic.Topic[*timebox.Event]) *Hub {
 			anyType: &prefixNode{},
 			byType:  make(map[timebox.EventType]*prefixNode),
 		},
+		closed: make(chan struct{}),
 	}
+}
+
+// Close releases the Hub's underlying topic resources when supported
+func (h *Hub) Close() {
+	h.closeOnce.Do(func() {
+		if c, ok := h.inner.(closer.Closer); ok {
+			c.Close()
+		}
+		close(h.closed)
+	})
+}
+
+// IsClosed reports whether the underlying topic has been closed
+func (h *Hub) IsClosed() <-chan struct{} {
+	return h.closed
 }
 
 // Publish sends committed events to matching subscribers
@@ -117,6 +137,7 @@ func (h *Hub) NewAggregatesConsumer(
 		inner:     h.inner.NewConsumer(),
 		interests: i,
 		registry:  h.registry,
+		closed:    make(chan struct{}),
 	}
 }
 
@@ -127,9 +148,22 @@ func (c *Consumer) Receive() <-chan *timebox.Event {
 
 		go func() {
 			defer close(filtered)
-			for ev := range c.inner.Receive() {
-				if c.matches(ev) {
-					filtered <- ev
+			for {
+				select {
+				case <-c.closed:
+					return
+				case ev, ok := <-c.inner.Receive():
+					if !ok {
+						return
+					}
+					if !c.matches(ev) {
+						continue
+					}
+					select {
+					case <-c.closed:
+						return
+					case filtered <- ev:
+					}
 				}
 			}
 		}()
@@ -144,6 +178,7 @@ func (c *Consumer) Receive() <-chan *timebox.Event {
 func (c *Consumer) Close() {
 	c.closeOnce.Do(func() {
 		c.registry.unregister(c.interests)
+		close(c.closed)
 		c.inner.Close()
 	})
 }
