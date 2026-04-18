@@ -67,8 +67,8 @@ func (e *Engine) calculateNextRetryAt(
 }
 
 func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
-	ex, ok := tx.Value().Executions[stepID]
-	if !ok || ex.Status != api.StepActive {
+	ex := tx.Value().Executions[stepID]
+	if ex.Status != api.StepActive {
 		return nil
 	}
 
@@ -100,6 +100,13 @@ func (tx *flowTx) continueStepWork(stepID api.StepID, clearRetry bool) error {
 	started, err := tx.startPendingWork(st)
 	if err != nil {
 		return err
+	}
+	ex := tx.Value().Executions[stepID]
+	if hasReadyPendingDispatch(st, ex, tx.Now()) &&
+		!tx.canDispatchLocally(st.ID) {
+		if err := tx.raiseDispatchDeferred(stepID); err != nil {
+			return err
+		}
 	}
 	if len(started) == 0 {
 		return nil
@@ -137,7 +144,7 @@ func (tx *flowTx) startContinuedWork(
 ) error {
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		ex := flow.Executions[stepID]
-		tx.handleWorkItemsExecution(step, ex.Inputs, flow.Metadata, started)
+		tx.executeStartedWork(step, ex.Inputs, flow.Metadata, started)
 	})
 	return nil
 }
@@ -158,25 +165,26 @@ func (e *Engine) scheduleRetryTask(
 
 func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 	var inputs api.Args
+	var reschedule bool
 	var step *api.Step
 	var meta api.Metadata
 
-	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
+	err := e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
 		if fl.ID == "" || flowTransitions.IsTerminal(fl.Status) {
 			return nil
 		}
 
-		ex, ok := fl.Executions[fs.StepID]
-		if !ok {
-			return nil
-		}
+		ex := fl.Executions[fs.StepID]
 		if _, ok := ex.WorkItems[tkn]; !ok {
 			return nil
 		}
 
-		step, ok = fl.Plan.Steps[fs.StepID]
-		if !ok {
+		step = fl.Plan.Steps[fs.StepID]
+
+		work := ex.WorkItems[tkn]
+		if retryClaimOpen(work) && !tx.canDispatchLocally(step.ID) {
+			reschedule = true
 			return nil
 		}
 
@@ -197,10 +205,21 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 				tx.scheduleRetryTask(fs, tkn, retryAt)
 				return
 			}
-			tx.handleWorkItemsExecution(step, inputs, meta, started)
+			tx.executeStartedWork(step, inputs, meta, started)
 		})
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	if reschedule {
+		e.scheduleRetryTask(fs, tkn, e.Now().Add(retryDispatchBackoff))
+	}
+	return nil
+}
+
+func retryClaimOpen(work api.WorkState) bool {
+	return work.Status == api.WorkPending || work.Status == api.WorkFailed
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {

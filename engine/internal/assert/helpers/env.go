@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"sync"
 	"testing"
 	"time"
 
@@ -28,7 +29,10 @@ type (
 		engStore   *timebox.Store
 		flowStore  *timebox.Store
 		flowExec   *timebox.Executor[api.FlowState]
+		subscribe  func(Publisher) func()
 	}
+
+	Publisher func(...*timebox.Event)
 
 	FlowEvent struct {
 		Type api.EventType
@@ -37,9 +41,11 @@ type (
 
 	publishingBackend struct {
 		timebox.Backend
-		publish func(...*timebox.Event)
+		publish Publisher
 	}
 )
+
+const committedPublishDelay = 1 * time.Millisecond
 
 // NewTestConfig creates a default configuration with debug logging enabled
 func NewTestConfig() *config.Config {
@@ -76,9 +82,41 @@ func NewTestEngineWithDeps(
 
 	mockCli := NewMockClient()
 	hub := event.NewHub()
+	var publishMu sync.Mutex
+	var publishWG sync.WaitGroup
+	committed := map[int]Publisher{}
+	nextCommittedID := 0
+	subscribe := func(fn Publisher) func() {
+		publishMu.Lock()
+		id := nextCommittedID
+		nextCommittedID++
+		committed[id] = fn
+		publishMu.Unlock()
+		return func() {
+			publishMu.Lock()
+			delete(committed, id)
+			publishMu.Unlock()
+		}
+	}
 	backend := publishingBackend{
 		Backend: memory.NewPersistence(),
-		publish: hub.Publish,
+		publish: func(evs ...*timebox.Event) {
+			publishMu.Lock()
+			handlers := make([]Publisher, 0, len(committed))
+			for _, fn := range committed {
+				handlers = append(handlers, fn)
+			}
+			publishMu.Unlock()
+			published := cloneCommittedEvents(evs)
+			publishWG.Add(1)
+			time.AfterFunc(committedPublishDelay, func() {
+				defer publishWG.Done()
+				for _, fn := range handlers {
+					fn(published...)
+				}
+				hub.Publish(published...)
+			})
+		},
 	}
 	engStore, err := backend.NewStore(cfg.EngineStoreConfig())
 	assert.NoError(t, err)
@@ -112,15 +150,36 @@ func NewTestEngineWithDeps(
 		engStore:   deps.EngineStore,
 		flowStore:  deps.FlowStore,
 		flowExec:   flowExec,
+		subscribe:  subscribe,
 	}
 
 	testEnv.Cleanup = func() {
+		publishWG.Wait()
 		_ = testEnv.Engine.Stop()
 		_ = testEnv.engStore.Close()
 		_ = testEnv.flowStore.Close()
 	}
 
 	return testEnv
+}
+
+// SubscribeCommitted registers a publisher against the shared committed-event
+// stream used by test engines. Call the returned function to unregister it
+func (e *TestEngineEnv) SubscribeCommitted(fn Publisher) func() {
+	return e.subscribe(fn)
+}
+
+// NewEngineWithConfig creates a new engine instance with the given
+// configuration and subscribes it to the shared committed-event stream.
+func (e *TestEngineEnv) NewEngineWithConfig(
+	cfg *config.Config, deps engine.Dependencies,
+) (*engine.Engine, func(), error) {
+	eng, err := engine.New(cfg, deps)
+	if err != nil {
+		return nil, nil, err
+	}
+	unsubscribe := e.SubscribeCommitted(eng.HandleCommitted)
+	return eng, unsubscribe, nil
 }
 
 // NewEngineInstance creates a new engine instance sharing the same stores and
@@ -130,6 +189,7 @@ func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	e.SubscribeCommitted(eng.HandleCommitted)
 	e.flowExec = timebox.NewExecutor(
 		e.flowStore, events.NewFlowState, events.FlowAppliers,
 	)
@@ -274,4 +334,24 @@ func (b publishingBackend) NewStore(
 	cfg timebox.Config,
 ) (*timebox.Store, error) {
 	return timebox.NewStore(b, cfg)
+}
+
+func cloneCommittedEvents(src []*timebox.Event) []*timebox.Event {
+	res := make([]*timebox.Event, 0, len(src))
+	for _, ev := range src {
+		if ev == nil {
+			res = append(res, nil)
+			continue
+		}
+		id := append(timebox.AggregateID(nil), ev.AggregateID...)
+		data := append([]byte{}, ev.Data...)
+		res = append(res, &timebox.Event{
+			Timestamp:   ev.Timestamp,
+			Sequence:    ev.Sequence,
+			Type:        ev.Type,
+			AggregateID: id,
+			Data:        data,
+		})
+	}
+	return res
 }

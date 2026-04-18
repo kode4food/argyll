@@ -84,6 +84,14 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		return err
 	}
 
+	ex = tx.Value().Executions[stepID]
+	if hasReadyPendingDispatch(st, ex, tx.Now()) &&
+		!tx.canDispatchLocally(st.ID) {
+		if err := tx.raiseDispatchDeferred(st.ID); err != nil {
+			return err
+		}
+	}
+
 	if len(started) > 0 {
 		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 			if stepHasTimeouts(st) {
@@ -94,7 +102,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 					}),
 				)
 			}
-			tx.handleWorkItemsExecution(st, inputs, flow.Metadata, started)
+			tx.executeStartedWork(st, inputs, flow.Metadata, started)
 		})
 	}
 

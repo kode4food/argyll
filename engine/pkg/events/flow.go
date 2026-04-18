@@ -256,9 +256,7 @@ func workStarted(
 	st api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
 ) api.FlowState {
 	ex := st.Executions[data.StepID]
-	work := ex.WorkItems[data.Token].
-		SetStatus(api.WorkActive).
-		SetNodeID(data.NodeID)
+	work := ex.WorkItems[data.Token].SetStatus(api.WorkActive)
 
 	if work.StartedAt.IsZero() {
 		work = work.SetStartedAt(ev.Timestamp)
@@ -346,7 +344,6 @@ func retryScheduled(
 
 	item = item.
 		SetStatus(api.WorkPending).
-		SetNodeID("").
 		SetRetryCount(data.RetryCount).
 		SetNextRetryAt(data.NextRetryAt).
 		SetError(data.Error)

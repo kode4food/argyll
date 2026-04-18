@@ -71,7 +71,7 @@ func (e *Engine) NotCompleteWork(
 	})
 }
 
-func (tx *flowTx) handleWorkSucceededCleanup(fs api.FlowStep, tkn api.Token) {
+func (tx *flowTx) clearRetryTask(fs api.FlowStep, tkn api.Token) {
 	tx.CancelTask(retryKey(fs, tkn))
 }
 
@@ -98,7 +98,7 @@ func (tx *flowTx) completeWork(
 
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		if hasRetryTask(flow, stepID, tkn) {
-			tx.handleWorkSucceededCleanup(api.FlowStep{
+			tx.clearRetryTask(api.FlowStep{
 				FlowID: tx.flowID,
 				StepID: stepID,
 			}, tkn)
@@ -218,7 +218,7 @@ func (tx *flowTx) handleMemoCacheHit(
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
 		if hasRetryTask(flow, stepID, tkn) {
 			fs := api.FlowStep{FlowID: tx.flowID, StepID: stepID}
-			tx.handleWorkSucceededCleanup(fs, tkn)
+			tx.clearRetryTask(fs, tkn)
 		}
 	})
 	return tx.handleWorkSucceeded(stepID)

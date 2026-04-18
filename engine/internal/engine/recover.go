@@ -54,8 +54,9 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 		return nil
 	}
 
-	e.recoverTimeoutScans(fl)
-	e.recoverRetryWork(fl)
+	e.recoverTimeouts(fl)
+	e.recoverDispatch(fl)
+	e.recoverRetries(fl)
 	return nil
 }
 
@@ -77,11 +78,11 @@ func (e *Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
 	return steps
 }
 
-func (e *Engine) recoverTimeoutScans(flow api.FlowState) {
+func (e *Engine) recoverTimeouts(flow api.FlowState) {
 	e.scheduleTimeouts(flow, e.Now())
 }
 
-func (e *Engine) recoverRetryWork(flow api.FlowState) {
+func (e *Engine) recoverRetries(flow api.FlowState) {
 	steps := e.FindRetrySteps(flow)
 	if steps.IsEmpty() {
 		return

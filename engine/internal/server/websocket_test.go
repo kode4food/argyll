@@ -206,12 +206,17 @@ func TestClientAggregateEvents(t *testing.T) {
 	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{events.FlowPrefix, "wf-123"}, wsEvent.AggregateID)
+	got := [][]string{append([]string{}, wsEvent.AggregateID...)}
 
 	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
-	assert.Equal(t, []string{events.FlowPrefix, "wf-456"}, wsEvent.AggregateID)
+	got = append(got, append([]string{}, wsEvent.AggregateID...))
+
+	assert.ElementsMatch(t, [][]string{
+		{events.FlowPrefix, "wf-123"},
+		{events.FlowPrefix, "wf-456"},
+	}, got)
 }
 
 func TestClientManyAggregates(t *testing.T) {

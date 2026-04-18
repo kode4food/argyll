@@ -2,6 +2,7 @@ package engine
 
 import (
 	"fmt"
+	"maps"
 	"sort"
 
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
@@ -44,7 +45,15 @@ func (e *Engine) UpdateStepHealth(
 	}
 
 	_, err := e.execCluster(cmd)
-	return err
+	if err != nil {
+		return err
+	}
+
+	e.setLocalHealth(stepID, api.HealthState{
+		Status: health,
+		Error:  errMsg,
+	})
+	return nil
 }
 
 // ResolveHealth returns resolved health for all steps, deriving flow step
@@ -97,6 +106,47 @@ func MergeNodeHealth(cluster api.ClusterState) map[api.StepID]api.HealthState {
 	}
 
 	return res
+}
+
+func (e *Engine) canDispatchLocally(stepID api.StepID) bool {
+	h, ok := e.getLocalHealth(stepID)
+	if !ok {
+		return true
+	}
+
+	return h.Status != api.HealthUnhealthy
+}
+
+func (e *Engine) loadLocalHealth() error {
+	st, err := e.clusterExec.Get(events.ClusterKey)
+	if err != nil {
+		return err
+	}
+	st = e.withConfiguredNodes(st)
+
+	node := st.Nodes[e.LocalNodeID()]
+	health := map[api.StepID]api.HealthState{}
+	maps.Copy(health, node.Health)
+
+	e.healthMu.Lock()
+	e.health = health
+	e.healthMu.Unlock()
+	return nil
+}
+
+func (e *Engine) getLocalHealth(stepID api.StepID) (api.HealthState, bool) {
+	e.healthMu.RLock()
+	defer e.healthMu.RUnlock()
+
+	h, ok := e.health[stepID]
+	return h, ok
+}
+
+func (e *Engine) setLocalHealth(stepID api.StepID, h api.HealthState) {
+	e.healthMu.Lock()
+	defer e.healthMu.Unlock()
+
+	e.health[stepID] = h
 }
 
 func (r *healthResolver) resolve(stepID api.StepID) api.HealthState {

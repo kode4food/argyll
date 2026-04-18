@@ -131,7 +131,6 @@ export interface FlowContext {
 export interface WorkState {
   token: string;
   status: WorkStatus;
-  node_id?: string;
   inputs: Record<string, any>;
   outputs?: Record<string, any>;
   error?: string;

@@ -37,7 +37,7 @@ var (
 	ErrPredicateEvalFailed    = errors.New("predicate evaluation failed")
 )
 
-func (tx *flowTx) handleWorkItemsExecution(
+func (tx *flowTx) executeStartedWork(
 	step *api.Step, inputs api.Args, meta api.Metadata, items api.WorkItems,
 ) {
 	execCtx := &ExecContext{
@@ -205,8 +205,8 @@ func (e *ExecContext) updateScriptHealth(st api.HealthStatus, errMsg string) {
 
 func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 	sid := step.ID
-	ex, ok := tx.Value().Executions[sid]
-	if !ok || ex.Status != api.StepActive {
+	ex := tx.Value().Executions[sid]
+	if ex.Status != api.StepActive {
 		return nil, fmt.Errorf("%w: expected %s to be active, got %s",
 			ErrInvariantViolated, sid, ex.Status)
 	}
@@ -220,6 +220,7 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 
 	now := tx.Now()
 	started := api.WorkItems{}
+	canDispatch := tx.canDispatchLocally(step.ID)
 	for tkn, work := range ex.WorkItems {
 		if remaining == 0 {
 			break
@@ -245,6 +246,9 @@ func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 				continue
 			}
 		}
+		if !canDispatch {
+			continue
+		}
 
 		if err := tx.raiseWorkStarted(sid, tkn, inputs); err != nil {
 			return nil, err
@@ -261,8 +265,8 @@ func (tx *flowTx) startRetryWorkItem(
 	step *api.Step, tkn api.Token,
 ) (api.WorkItems, time.Time, error) {
 	sid := step.ID
-	ex, ok := tx.Value().Executions[sid]
-	if !ok || ex.Status != api.StepActive {
+	ex := tx.Value().Executions[sid]
+	if ex.Status != api.StepActive {
 		return nil, time.Time{}, nil
 	}
 
@@ -355,7 +359,6 @@ func (tx *flowTx) raiseWorkStarted(
 			FlowID: tx.flowID,
 			StepID: stepID,
 			Token:  tkn,
-			NodeID: tx.LocalNodeID(),
 			Inputs: inputs,
 		},
 	)

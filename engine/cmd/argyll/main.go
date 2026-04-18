@@ -70,7 +70,10 @@ func main() {
 
 func (a *argyll) run() error {
 	hub := event.NewHub()
-	a.cfg.Raft.Publisher = hub.Publish
+	a.cfg.Raft.Publisher = func(evs ...*timebox.Event) {
+		a.engine.HandleCommitted(evs...)
+		hub.Publish(evs...)
+	}
 
 	if err := a.initializeStores(); err != nil {
 		return err

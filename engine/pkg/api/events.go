@@ -90,7 +90,6 @@ type (
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`
 		Token  Token  `json:"token"`
-		NodeID NodeID `json:"node_id"`
 		Inputs Args   `json:"inputs"`
 	}
 
@@ -129,6 +128,13 @@ type (
 		Error       string    `json:"error"`
 	}
 
+	// DispatchDeferredEvent is emitted when runnable work cannot be started
+	// immediately and must be picked up later
+	DispatchDeferredEvent struct {
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+	}
+
 	// FlowDeactivatedEvent is emitted when a flow becomes inactive
 	FlowDeactivatedEvent struct {
 		FlowID FlowID     `json:"flow_id"`
@@ -157,4 +163,5 @@ const (
 	EventTypeWorkFailed        EventType = "work_failed"
 	EventTypeWorkNotCompleted  EventType = "work_not_completed"
 	EventTypeRetryScheduled    EventType = "retry_scheduled"
+	EventTypeDispatchDeferred  EventType = "dispatch_deferred"
 )

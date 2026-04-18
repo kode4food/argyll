@@ -9,12 +9,17 @@ import (
 )
 
 var (
-	ErrRecoverFlows = errors.New("failed to recover flows")
+	ErrLoadLocalHealth = errors.New("failed to load local health")
+	ErrRecoverFlows    = errors.New("failed to recover flows")
 )
 
 // Start begins processing flows and events
 func (e *Engine) Start() error {
 	slog.Info("Engine starting")
+
+	if err := e.loadLocalHealth(); err != nil {
+		return errors.Join(ErrLoadLocalHealth, err)
+	}
 
 	go e.scheduler.Run(e.ctx)
 

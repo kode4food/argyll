@@ -341,15 +341,6 @@ func TestSetWorkStarted(t *testing.T) {
 	assert.True(t, original.StartedAt.IsZero())
 }
 
-func TestSetWorkNodeID(t *testing.T) {
-	original := &api.WorkState{}
-
-	result := original.SetNodeID("node-a")
-
-	assert.Equal(t, api.NodeID("node-a"), result.NodeID)
-	assert.Empty(t, original.NodeID)
-}
-
 func TestSetWorkCompleted(t *testing.T) {
 	original := &api.WorkState{}
 	completedTime := time.Now()
@@ -462,7 +453,6 @@ func TestWorkChain(t *testing.T) {
 	result := original.
 		SetStatus(api.WorkActive).
 		SetStartedAt(startTime).
-		SetNodeID("node-a").
 		SetStatus(api.WorkSucceeded).
 		SetCompletedAt(completedTime).
 		SetOutputs(outputs)
@@ -470,7 +460,6 @@ func TestWorkChain(t *testing.T) {
 	assert.Equal(t, api.WorkSucceeded, result.Status)
 	assert.True(t, result.StartedAt.Equal(startTime))
 	assert.True(t, result.CompletedAt.Equal(completedTime))
-	assert.Equal(t, api.NodeID("node-a"), result.NodeID)
 	assert.Equal(t, outputs, result.Outputs)
 	assert.Equal(t, api.WorkPending, original.Status)
 }

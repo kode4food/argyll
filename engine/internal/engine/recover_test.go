@@ -5,12 +5,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/kode4food/timebox/raft"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -133,6 +136,67 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 		}), func() {
 			assert.NoError(t, env.Engine.RecoverFlow(id))
 		})
+	})
+}
+
+func TestRecoverDispatchPeer(t *testing.T) {
+	helpers.WithTestEnvDeps(t, engine.Dependencies{
+		TimerConstructor: newEarlyDelayedTimer,
+	}, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("dispatch-recovery-peer")
+		env.MockClient.SetResponse(st.ID, api.Args{})
+		require.NoError(t, env.Engine.RegisterStep(st))
+
+		cfg := *env.Config
+		cfg.Raft.LocalID = "node-2"
+		cfg.Raft.Servers = []raft.Server{
+			{ID: "node-2", Address: "127.0.0.1:9702"},
+		}
+
+		deps := env.Dependencies()
+		deps.EventHub = event.NewHub()
+
+		peer, unsubscribe, err := env.NewEngineWithConfig(&cfg, deps)
+		require.NoError(t, err)
+		defer func() {
+			unsubscribe()
+			_ = peer.Stop()
+		}()
+
+		require.NoError(t,
+			env.Engine.UpdateStepHealth(
+				st.ID, api.HealthUnhealthy, "starter offline",
+			),
+		)
+		require.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
+		require.NoError(t, env.Engine.Start())
+
+		id := api.FlowID("dispatch-recovery-peer-flow")
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		require.NoError(t, env.Engine.StartFlow(id, pl))
+		require.NoError(t, peer.Start())
+
+		assert.Eventually(t, func() bool {
+			fl, err := env.Engine.GetFlowState(id)
+			if err != nil {
+				return false
+			}
+
+			ex, ok := fl.Executions[st.ID]
+			if !ok {
+				return false
+			}
+
+			for _, work := range ex.WorkItems {
+				return work.Status == api.WorkSucceeded &&
+					fl.Status == api.FlowCompleted
+			}
+			return false
+		}, time.Second, 10*time.Millisecond)
 	})
 }
 
@@ -467,7 +531,7 @@ func TestRecoverFlowNilWorkItems(t *testing.T) {
 	})
 }
 
-func TestRecoverFlowsFromAggregateList(t *testing.T) {
+func TestRecoverFlowsFromIndex(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 		id := api.FlowID("aggregate-recovery-flow")

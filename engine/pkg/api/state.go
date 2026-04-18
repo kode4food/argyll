@@ -89,7 +89,6 @@ type (
 		Status      WorkStatus `json:"status"`
 		StartedAt   time.Time  `json:"started_at"`
 		CompletedAt time.Time  `json:"completed_at"`
-		NodeID      NodeID     `json:"node_id,omitempty"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
 		Error       string     `json:"error,omitempty"`
@@ -341,12 +340,6 @@ func (w WorkState) SetStartedAt(t time.Time) WorkState {
 // SetCompletedAt returns a new WorkState with the completed timestamp set
 func (w WorkState) SetCompletedAt(t time.Time) WorkState {
 	w.CompletedAt = t
-	return w
-}
-
-// SetNodeID returns a new WorkState with the claim node set
-func (w WorkState) SetNodeID(id NodeID) WorkState {
-	w.NodeID = id
 	return w
 }
 

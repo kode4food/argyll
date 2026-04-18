@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/kode4food/timebox"
@@ -35,6 +36,8 @@ type (
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
 		eventHub    *event.Hub
+		healthMu    sync.RWMutex
+		health      map[api.StepID]api.HealthState
 	}
 
 	// Dependencies groups the external dependencies required by Engine
@@ -103,6 +106,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
 		clock:      deps.Clock,
 		eventHub:   deps.EventHub,
+		health:     map[api.StepID]api.HealthState{},
 	}
 	e.mapper = NewMapper(e)
 

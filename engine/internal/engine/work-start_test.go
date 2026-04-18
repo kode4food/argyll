@@ -6,6 +6,8 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/timebox/raft"
+
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
@@ -88,30 +90,53 @@ func TestHTTPMetadata(t *testing.T) {
 	})
 }
 
-func TestWorkStartedRecordsNode(t *testing.T) {
+func TestDispatchOnHealthyPeer(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+		cfg := *env.Config
+		cfg.Raft.LocalID = "node-2"
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
+			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
+		)
 
-		st := helpers.NewSimpleStep("owner-node-step")
+		peer, unsubscribe, err := env.NewEngineWithConfig(&cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, peer) {
+			return
+		}
+		defer func() {
+			unsubscribe()
+			assert.NoError(t, peer.Stop())
+		}()
+
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, peer.Start())
+
+		st := helpers.NewSimpleStep("healthy-peer-step")
 		assert.NoError(t, env.Engine.RegisterStep(st))
 		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		assert.NoError(t,
+			env.Engine.UpdateStepHealth(
+				st.ID, api.HealthUnhealthy, "connection refused",
+			),
+		)
+		assert.NoError(t,
+			peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""),
+		)
 
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},
 			Steps: api.Steps{st.ID: st},
 		}
 
-		fl := env.WaitForFlowStatus("wf-owner-node", func() {
-			err := env.Engine.StartFlow("wf-owner-node", pl)
+		fl := env.WaitForFlowStatus("wf-healthy-peer", func() {
+			err := env.Engine.StartFlow("wf-healthy-peer", pl)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		ex := fl.Executions[st.ID]
 		assert.Len(t, ex.WorkItems, 1)
-		for _, work := range ex.WorkItems {
-			assert.Equal(t, env.Engine.LocalNodeID(), work.NodeID)
-		}
 	})
 }
 
