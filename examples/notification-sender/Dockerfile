@@ -3,6 +3,8 @@ FROM golang:1.25-alpine AS builder
 
 WORKDIR /build
 
+RUN apk --no-cache add git
+
 # Copy engine module
 COPY engine/go.mod engine/go.sum ./engine/
 COPY engine/pkg ./engine/pkg

@@ -2,6 +2,8 @@ FROM golang:1.25-alpine
 
 WORKDIR /engine
 
+RUN apk --no-cache add git
+
 # Copy just the engine module
 COPY engine/go.mod engine/go.sum ./
 RUN go mod download
