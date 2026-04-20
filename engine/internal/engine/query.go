@@ -358,7 +358,7 @@ func paginateFlowItems(
 		end = start + limit
 	}
 
-	page := []flowItem{}
+	var page []flowItem
 	if start < len(items) {
 		page = items[start:end]
 	}
