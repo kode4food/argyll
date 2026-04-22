@@ -138,7 +138,7 @@ var (
 	ErrStepNameEmpty         = errors.New("step name empty")
 	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
 	ErrInvalidHTTPMethod     = errors.New("invalid HTTP method")
-	ErrMissingURLParam       = errors.New("GET endpoint missing URL parameter")
+	ErrUnknownURLParam       = errors.New("URL contains unknown parameter")
 	ErrArgNameEmpty          = errors.New("argument name empty")
 	ErrInvalidStepType       = errors.New("invalid step type")
 	ErrHTTPRequired          = errors.New("http required")
@@ -293,11 +293,8 @@ func (s *Step) SortedArgNames() []string {
 	var all []string
 	for name, attr := range s.Attributes {
 		if attr.IsRuntimeInput() {
-			if attr.Mapping != nil && attr.Mapping.Name != "" {
-				all = append(all, attr.Mapping.Name)
-				continue
-			}
-			all = append(all, string(name))
+			mapped, _ := s.MappedName(name)
+			all = append(all, string(mapped))
 		}
 	}
 	slices.Sort(all)
@@ -335,6 +332,15 @@ func (s *Step) GetOptionalArgs() []Name {
 // GetOutputArgs returns all output argument names
 func (s *Step) GetOutputArgs() []Name {
 	return s.filterAttributes((*AttributeSpec).IsOutput)
+}
+
+// MappedName returns the mapped name when present, else the declared name
+func (s *Step) MappedName(name Name) (Name, bool) {
+	attr := s.Attributes[name]
+	if attr != nil && attr.Mapping != nil && attr.Mapping.Name != "" {
+		return Name(attr.Mapping.Name), true
+	}
+	return name, false
 }
 
 // Equal returns true if two steps are equal
@@ -410,28 +416,29 @@ func (s *Step) validateHTTPConfig() error {
 	if !validHTTPMethods.Contains(method) {
 		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
 	}
-	if method == "GET" {
-		if err := s.validateURLParams(); err != nil {
-			return err
-		}
-	}
-	return nil
+	return s.validateEndpointParams()
 }
 
-func (s *Step) validateURLParams() error {
+func (s *Step) validateEndpointParams() error {
 	params := endpointParams(s.HTTP.Endpoint)
+	if params.IsEmpty() {
+		return nil
+	}
+
+	required := util.Set[string]{}
 	for name, attr := range s.Attributes {
 		if !attr.IsRequired() {
 			continue
 		}
-		paramName := string(name)
-		if attr.Mapping != nil && attr.Mapping.Name != "" {
-			paramName = attr.Mapping.Name
-		}
-		if _, ok := params[paramName]; ok {
+		mapped, _ := s.MappedName(name)
+		required.Add(string(mapped))
+	}
+
+	for param := range params {
+		if required.Contains(param) {
 			continue
 		}
-		return fmt.Errorf("%w: %q", ErrMissingURLParam, paramName)
+		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
 	}
 	return nil
 }
@@ -479,24 +486,23 @@ func (s *Step) validateMappingNames() error {
 	outputInnerNames := map[string]Name{}
 
 	for name, attr := range s.Attributes {
-		if attr.Mapping == nil || attr.Mapping.Name == "" {
+		mapped, ok := s.MappedName(name)
+		if !ok {
 			continue
 		}
 
-		innerName := attr.Mapping.Name
-
 		if attr.IsRuntimeInput() {
-			if _, ok := inputInnerNames[innerName]; ok {
-				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, innerName)
+			if _, ok := inputInnerNames[string(mapped)]; ok {
+				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
 			}
-			inputInnerNames[innerName] = name
+			inputInnerNames[string(mapped)] = name
 		}
 
 		if attr.IsOutput() {
-			if _, ok := outputInnerNames[innerName]; ok {
-				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, innerName)
+			if _, ok := outputInnerNames[string(mapped)]; ok {
+				return fmt.Errorf("%w: %q", ErrDuplicateInnerName, mapped)
 			}
-			outputInnerNames[innerName] = name
+			outputInnerNames[string(mapped)] = name
 		}
 	}
 
@@ -653,14 +659,14 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 	})
 }
 
-func endpointParams(endpoint string) map[string]struct{} {
+func endpointParams(endpoint string) util.Set[string] {
 	matches := endpointParamPattern.FindAllStringSubmatch(endpoint, -1)
-	res := make(map[string]struct{}, len(matches))
+	res := make(util.Set[string], len(matches))
 	for _, m := range matches {
 		if len(m) < 2 || m[1] == "" {
 			continue
 		}
-		res[m[1]] = struct{}{}
+		res.Add(m[1])
 	}
 	return res
 }

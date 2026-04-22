@@ -213,20 +213,20 @@ func flowHasRetryTasks(flow api.FlowState) bool {
 func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
 	outputs := maps.Clone(childAttrs)
 
-	for _, attr := range step.Attributes {
+	for name, attr := range step.Attributes {
 		if !attr.IsOutput() {
 			continue
 		}
-		if attr.Mapping == nil || attr.Mapping.Name == "" {
+		mapped, ok := step.MappedName(name)
+		if !ok {
 			continue
 		}
 
-		sourceName := api.Name(attr.Mapping.Name)
-		value, ok := childAttrs[sourceName]
+		value, ok := childAttrs[mapped]
 		if !ok {
-			return nil, fmt.Errorf("%w: %s", ErrFlowOutputMissing, sourceName)
+			return nil, fmt.Errorf("%w: %s", ErrFlowOutputMissing, mapped)
 		}
-		outputs[sourceName] = value
+		outputs[mapped] = value
 	}
 
 	return outputs, nil

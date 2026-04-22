@@ -196,8 +196,8 @@ func (tx *flowTx) collectStepInputs(
 				if attr.Default != "" {
 					value := parseDefaultValue(attr.Default)
 					val := tx.mapper.MapInput(step, name, attr, value)
-					paramName := tx.mapper.InputParamName(name, attr)
-					inputs[paramName] = val
+					mapped, _ := step.MappedName(name)
+					inputs[mapped] = val
 				}
 				continue
 			}
@@ -208,16 +208,16 @@ func (tx *flowTx) collectStepInputs(
 			if !attr.IsRequired() && attr.Default != "" {
 				value := parseDefaultValue(attr.Default)
 				val := tx.mapper.MapInput(step, name, attr, value)
-				paramName := tx.mapper.InputParamName(name, attr)
-				inputs[paramName] = val
+				mapped, _ := step.MappedName(name)
+				inputs[mapped] = val
 				continue
 			}
 			continue
 		}
 
 		val := tx.mapper.MapInput(step, name, attr, attrVal.Value)
-		paramName := tx.mapper.InputParamName(name, attr)
-		inputs[paramName] = val
+		mapped, _ := step.MappedName(name)
+		inputs[mapped] = val
 	}
 
 	return inputs

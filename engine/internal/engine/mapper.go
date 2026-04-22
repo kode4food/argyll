@@ -74,27 +74,18 @@ func (m *Mapper) MapInput(
 		return value
 	}
 
-	argName := m.InputParamName(name, attr)
-	if mapped, ok := m.MapValue(step, argName, attr.Mapping.Script, value); ok {
-		return mapped
+	mapped, _ := step.MappedName(name)
+	if argName, ok := m.MapValue(step, mapped, attr.Mapping.Script, value); ok {
+		return argName
 	}
 
-	slog.Warn("Input mapping failed; using original value",
-		log.StepID(step.ID),
+	args := []any{
 		slog.String("attribute", string(name)),
 		slog.String("language", attr.Mapping.Script.Language),
-	)
-	return value
-}
-
-// InputParamName resolves the outbound parameter name for a mapped input
-func (m *Mapper) InputParamName(
-	attrName api.Name, attr *api.AttributeSpec,
-) api.Name {
-	if attr.Mapping != nil && attr.Mapping.Name != "" {
-		return api.Name(attr.Mapping.Name)
 	}
-	return attrName
+	args = append(args, log.StepID(step.ID))
+	slog.Warn("Input mapping failed; using original value", args...)
+	return value
 }
 
 // MapOutputs maps raw step outputs to declared output attributes
@@ -119,16 +110,13 @@ func (m *Mapper) mapOutput(
 	if attr.Mapping != nil && attr.Mapping.Script != nil {
 		return m.MapValue(step, name, attr.Mapping.Script, outputs)
 	}
-	return m.outputByName(name, attr, outputs)
+	return m.outputByName(step, name, outputs)
 }
 
 func (m *Mapper) outputByName(
-	name api.Name, attr *api.AttributeSpec, outputs api.Args,
+	step *api.Step, name api.Name, outputs api.Args,
 ) (any, bool) {
-	sourceKey := name
-	if attr.Mapping != nil && attr.Mapping.Name != "" {
-		sourceKey = api.Name(attr.Mapping.Name)
-	}
-	value, ok := outputs[sourceKey]
+	mapped, _ := step.MappedName(name)
+	value, ok := outputs[mapped]
 	return value, ok
 }

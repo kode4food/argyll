@@ -428,11 +428,8 @@ func childPlanInit(step *api.Step) api.Args {
 		if !isGuaranteedInput(attr) {
 			continue
 		}
-		key := name
-		if attr.Mapping != nil && attr.Mapping.Name != "" {
-			key = api.Name(attr.Mapping.Name)
-		}
-		res[key] = true
+		mapped, _ := step.MappedName(name)
+		res[mapped] = true
 	}
 	return res
 }
