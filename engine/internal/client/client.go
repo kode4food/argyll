@@ -9,6 +9,8 @@ import (
 	"io"
 	"log/slog"
 	"net/http"
+	"net/url"
+	"regexp"
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -29,10 +31,13 @@ type (
 )
 
 var (
-	ErrStepUnsuccessful = errors.New("step unsuccessful")
-	ErrHTTPError        = errors.New("step returned HTTP error")
-	ErrNoHTTPConfig     = errors.New("step has no HTTP configuration")
+	ErrStepUnsuccessful   = errors.New("step unsuccessful")
+	ErrHTTPError          = errors.New("step returned HTTP error")
+	ErrNoHTTPConfig       = errors.New("step has no HTTP configuration")
+	ErrMissingEndpointArg = errors.New("missing endpoint argument")
 )
+
+var endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 
 var _ Client = (*HTTPClient)(nil)
 
@@ -69,10 +74,16 @@ func (c *HTTPClient) Invoke(
 func (c *HTTPClient) buildRequest(
 	step *api.Step, args api.Args, meta api.Metadata,
 ) (*http.Request, error) {
-	body, err := json.Marshal(api.StepRequest{
-		Arguments: args,
-		Metadata:  meta,
-	})
+	method := step.HTTP.DefaultedMethod()
+	endpoint, err := resolveEndpoint(step.HTTP.Endpoint, args)
+	if err != nil {
+		slog.Error("Failed to resolve HTTP endpoint",
+			log.StepID(step.ID),
+			log.Error(err))
+		return nil, err
+	}
+
+	bodyReader, err := c.requestBody(method, args, meta)
 	if err != nil {
 		slog.Error("Failed to marshal step request",
 			log.StepID(step.ID),
@@ -80,9 +91,7 @@ func (c *HTTPClient) buildRequest(
 		return nil, err
 	}
 
-	httpReq, err := http.NewRequest(
-		"POST", step.HTTP.Endpoint, bytes.NewBuffer(body),
-	)
+	httpReq, err := http.NewRequest(method, endpoint, bodyReader)
 	if err != nil {
 		slog.Error("Failed to create HTTP request",
 			log.StepID(step.ID),
@@ -90,11 +99,30 @@ func (c *HTTPClient) buildRequest(
 		return nil, err
 	}
 
-	httpReq.Header.Set("Content-Type", "application/json")
 	httpReq.Header.Set("Accept", "application/json")
 	httpReq.Header.Set("User-Agent", "Argyll-Engine/1.0")
+	if bodyReader != nil {
+		httpReq.Header.Set("Content-Type", "application/json")
+	}
 
 	return httpReq, nil
+}
+
+func (c *HTTPClient) requestBody(
+	method string, args api.Args, meta api.Metadata,
+) (io.Reader, error) {
+	if method == "GET" {
+		return nil, nil
+	}
+
+	body, err := json.Marshal(api.StepRequest{
+		Arguments: args,
+		Metadata:  meta,
+	})
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(body), nil
 }
 
 func (c *HTTPClient) sendRequest(
@@ -183,4 +211,55 @@ func (c *HTTPClient) parseResponse(
 	}
 
 	return response.Outputs, nil
+}
+
+func resolveEndpoint(endpoint string, args api.Args) (string, error) {
+	matches := endpointParamPattern.FindAllStringSubmatchIndex(endpoint, -1)
+	if len(matches) == 0 {
+		return endpoint, nil
+	}
+
+	var buf bytes.Buffer
+	last := 0
+	for _, match := range matches {
+		if len(match) < 4 {
+			continue
+		}
+		start := match[0]
+		end := match[1]
+		nameStart := match[2]
+		nameEnd := match[3]
+		name := api.Name(endpoint[nameStart:nameEnd])
+		value, ok := args[name]
+		if !ok {
+			return "", fmt.Errorf("%w: %s", ErrMissingEndpointArg, name)
+		}
+		buf.WriteString(endpoint[last:start])
+		buf.WriteString(url.PathEscape(endpointValue(value)))
+		last = end
+	}
+	buf.WriteString(endpoint[last:])
+	return buf.String(), nil
+}
+
+func endpointValue(value any) string {
+	switch v := value.(type) {
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	}
+
+	data, err := json.Marshal(value)
+	if err == nil {
+		if len(data) >= 2 && data[0] == '"' && data[len(data)-1] == '"' {
+			var s string
+			if unmarshalErr := json.Unmarshal(data, &s); unmarshalErr == nil {
+				return s
+			}
+		}
+		return string(data)
+	}
+
+	return fmt.Sprint(value)
 }

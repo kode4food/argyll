@@ -372,6 +372,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -387,6 +388,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -409,6 +411,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -424,6 +427,7 @@ describe("stepEditorUtils", () => {
         stepType: "script",
         script: "  ",
         endpoint: "",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -439,6 +443,7 @@ describe("stepEditorUtils", () => {
         stepType: "flow",
         script: "",
         endpoint: "",
+        httpMethod: "POST",
         httpTimeout: 0,
         flowGoals: "   ",
       });
@@ -454,6 +459,7 @@ describe("stepEditorUtils", () => {
         stepType: "flow",
         script: "",
         endpoint: "",
+        httpMethod: "POST",
         httpTimeout: 0,
         flowGoals: "goal-a, goal-b",
       });
@@ -469,6 +475,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "  ",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -484,6 +491,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 0,
         flowGoals: "",
       });
@@ -497,6 +505,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: -1000,
         flowGoals: "",
       });
@@ -519,6 +528,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -549,6 +559,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -576,6 +587,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });
@@ -603,6 +615,7 @@ describe("stepEditorUtils", () => {
         stepType: "sync",
         script: "",
         endpoint: "https://example.com",
+        httpMethod: "POST",
         httpTimeout: 5000,
         flowGoals: "",
       });

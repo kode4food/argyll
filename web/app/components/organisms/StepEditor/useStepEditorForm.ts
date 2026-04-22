@@ -2,6 +2,7 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import {
   ArgyllApi,
   AttributeType,
+  HTTPMethod,
   SCRIPT_LANGUAGE_LUA,
   Step,
   StepType,
@@ -12,6 +13,7 @@ import {
   buildStepPayload,
   createStepAttributes,
   getValidationError,
+  normalizeHttpMethod,
 } from "./stepEditorUtils";
 import { validateDefaultValue } from "@/utils/stepUtils";
 import { useT } from "@/app/i18n";
@@ -33,6 +35,9 @@ export function useStepEditorForm(
   );
 
   const [endpoint, setEndpoint] = useState(step?.http?.endpoint || "");
+  const [httpMethod, setHttpMethod] = useState<HTTPMethod>(
+    normalizeHttpMethod(step?.http?.method)
+  );
   const [healthCheck, setHealthCheck] = useState(
     step?.http?.health_check || ""
   );
@@ -164,6 +169,7 @@ export function useStepEditorForm(
       script,
       scriptLanguage,
       endpoint,
+      httpMethod,
       healthCheck,
       httpTimeout,
       flowGoals,
@@ -174,6 +180,7 @@ export function useStepEditorForm(
     endpoint,
     flowGoals,
     healthCheck,
+    httpMethod,
     httpTimeout,
     memoizable,
     name,
@@ -195,6 +202,7 @@ export function useStepEditorForm(
         stepType: stepData.type,
         script: stepData.script?.script || "",
         endpoint: stepData.http?.endpoint || "",
+        httpMethod: normalizeHttpMethod(stepData.http?.method),
         httpTimeout: stepData.http?.timeout || 0,
         flowGoals: stepData.flow?.goals?.join(", ") || "",
       });
@@ -273,6 +281,7 @@ export function useStepEditorForm(
     setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
     setFlowGoals(stepData.flow?.goals?.join(", ") || "");
     setEndpoint(stepData.http?.endpoint || "");
+    setHttpMethod(normalizeHttpMethod(stepData.http?.method));
     setHealthCheck(stepData.http?.health_check || "");
     setHttpTimeout(stepData.http?.timeout || 5000);
     setMemoizable(Boolean(stepData.memoizable));
@@ -318,6 +327,8 @@ export function useStepEditorForm(
       cycleAttributeType,
       endpoint,
       setEndpoint,
+      httpMethod,
+      setHttpMethod,
       healthCheck,
       setHealthCheck,
       httpTimeout,
@@ -338,6 +349,7 @@ export function useStepEditorForm(
       removeAttribute,
       cycleAttributeType,
       endpoint,
+      httpMethod,
       healthCheck,
       httpTimeout,
       flowGoals,
@@ -358,6 +370,8 @@ export function useStepEditorForm(
     setPredicateLanguage,
     endpoint,
     setEndpoint,
+    httpMethod,
+    setHttpMethod,
     healthCheck,
     setHealthCheck,
     httpTimeout,

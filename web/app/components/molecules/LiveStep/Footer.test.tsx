@@ -84,7 +84,7 @@ describe("Footer", () => {
     const { container } = render(<Footer step={step} />);
 
     const endpoint = container.querySelector(".step-endpoint");
-    expect(endpoint?.textContent).toBe("http://localhost:8080/process");
+    expect(endpoint?.textContent).toBe("POST http://localhost:8080/process");
   });
 
   test("renders HTTP endpoint for async step with webhook icon", () => {
@@ -95,7 +95,21 @@ describe("Footer", () => {
     const { container } = render(<Footer step={step} />);
 
     const endpoint = container.querySelector(".step-endpoint");
-    expect(endpoint?.textContent).toBe("http://localhost:8080/async");
+    expect(endpoint?.textContent).toBe("POST http://localhost:8080/async");
+  });
+
+  test("renders configured HTTP method for http steps", () => {
+    const step = createStep("sync", {
+      endpoint: "http://localhost:8080/items/{item_id}",
+      method: "GET",
+    });
+
+    const { container } = render(<Footer step={step} />);
+
+    const endpoint = container.querySelector(".step-endpoint");
+    expect(endpoint?.textContent).toBe(
+      "GET http://localhost:8080/items/{item_id}"
+    );
   });
 
   test("renders script preview for script step", () => {

@@ -41,9 +41,10 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
         text: step.flow.goals.join(", "),
       };
     } else if (step.http) {
+      const method = step.http.method || "POST";
       displayInfo = {
         icon: TypeIcon,
-        text: step.http.endpoint,
+        text: `${method} ${step.http.endpoint}`,
       };
     }
 

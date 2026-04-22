@@ -326,6 +326,68 @@ func TestStepHelperMethods(t *testing.T) {
 	})
 }
 
+func TestHTTPMethodValidation(t *testing.T) {
+	as := assert.New(t)
+
+	as.StepValid(&api.Step{
+		ID:   "get-step",
+		Name: "GET Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "https://example.com/items/{item_id}",
+			Method:   "GET",
+		},
+		Attributes: api.AttributeSpecs{
+			"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	})
+
+	as.StepValid(&api.Step{
+		ID:   "mapped-get-step",
+		Name: "Mapped GET Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "https://example.com/items/{external_id}",
+			Method:   "GET",
+		},
+		Attributes: api.AttributeSpecs{
+			"item_id": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Mapping: &api.AttributeMapping{
+					Name: "external_id",
+				},
+			},
+		},
+	})
+
+	as.StepInvalid(&api.Step{
+		ID:   "bad-method-step",
+		Name: "Bad Method Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "https://example.com/items/{item_id}",
+			Method:   "PATCH",
+		},
+		Attributes: api.AttributeSpecs{
+			"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}, "invalid HTTP method")
+
+	as.StepInvalid(&api.Step{
+		ID:   "missing-param-step",
+		Name: "Missing Param Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint: "https://example.com/items",
+			Method:   "GET",
+		},
+		Attributes: api.AttributeSpecs{
+			"item_id": {Role: api.RoleRequired, Type: api.TypeString},
+		},
+	}, "missing URL parameter")
+}
+
 func TestStepOutputArgs(t *testing.T) {
 	as := assert.New(t)
 

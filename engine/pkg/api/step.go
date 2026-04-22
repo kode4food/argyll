@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"regexp"
 	"slices"
 	"sync"
 
@@ -48,6 +49,7 @@ type (
 
 	// HTTPConfig configures HTTP-based step execution
 	HTTPConfig struct {
+		Method      string `json:"method,omitempty"`
 		Endpoint    string `json:"endpoint"`
 		HealthCheck string `json:"health_check,omitempty"`
 		Timeout     int64  `json:"timeout"`
@@ -135,6 +137,8 @@ var (
 	ErrStepIDInvalid         = errors.New("step ID contains invalid characters")
 	ErrStepNameEmpty         = errors.New("step name empty")
 	ErrStepEndpointEmpty     = errors.New("step endpoint empty")
+	ErrInvalidHTTPMethod     = errors.New("invalid HTTP method")
+	ErrMissingURLParam       = errors.New("GET endpoint missing URL parameter")
 	ErrArgNameEmpty          = errors.New("argument name empty")
 	ErrInvalidStepType       = errors.New("invalid step type")
 	ErrHTTPRequired          = errors.New("http required")
@@ -174,7 +178,18 @@ var (
 		ScriptLangAle,
 		ScriptLangLua,
 	)
+
+	validHTTPMethods = util.SetOf(
+		"GET",
+		"POST",
+		"PUT",
+		"DELETE",
+	)
+
+	endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
 )
+
+const DefaultHTTPMethod = "POST"
 
 // NewResult creates a new successful step result with empty outputs
 func NewResult() *StepResult {
@@ -391,6 +406,33 @@ func (s *Step) validateHTTPConfig() error {
 	if s.HTTP.Endpoint == "" {
 		return ErrStepEndpointEmpty
 	}
+	method := s.HTTP.DefaultedMethod()
+	if !validHTTPMethods.Contains(method) {
+		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
+	}
+	if method == "GET" {
+		if err := s.validateURLParams(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Step) validateURLParams() error {
+	params := endpointParams(s.HTTP.Endpoint)
+	for name, attr := range s.Attributes {
+		if !attr.IsRequired() {
+			continue
+		}
+		paramName := string(name)
+		if attr.Mapping != nil && attr.Mapping.Name != "" {
+			paramName = attr.Mapping.Name
+		}
+		if _, ok := params[paramName]; ok {
+			continue
+		}
+		return fmt.Errorf("%w: %q", ErrMissingURLParam, paramName)
+	}
 	return nil
 }
 
@@ -506,11 +548,18 @@ func (s *Step) computeHashKey() (string, error) {
 		}
 	}
 
+	var httpCfg *HTTPConfig
+	if s.HTTP != nil {
+		cfg := *s.HTTP
+		cfg.Method = s.HTTP.DefaultedMethod()
+		httpCfg = &cfg
+	}
+
 	h := stepHash{
 		Type:       s.Type,
 		Memoizable: s.Memoizable,
 		Attributes: attrs,
-		HTTP:       s.HTTP,
+		HTTP:       httpCfg,
 		Script:     s.Script,
 		Flow:       flow,
 		Predicate:  s.Predicate,
@@ -558,9 +607,18 @@ func (r *StepResult) WithError(err error) *StepResult {
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 	return equalWithNilCheck(h, other, func() bool {
 		return h.Endpoint == other.Endpoint &&
+			h.DefaultedMethod() == other.DefaultedMethod() &&
 			h.HealthCheck == other.HealthCheck &&
 			h.Timeout == other.Timeout
 	})
+}
+
+// DefaultedMethod returns the configured HTTP method or the default if unset
+func (h *HTTPConfig) DefaultedMethod() string {
+	if h == nil || h.Method == "" {
+		return DefaultHTTPMethod
+	}
+	return h.Method
 }
 
 // Equal returns true if two script configs are equal
@@ -593,6 +651,18 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 			c.MaxBackoff == other.MaxBackoff &&
 			c.BackoffType == other.BackoffType
 	})
+}
+
+func endpointParams(endpoint string) map[string]struct{} {
+	matches := endpointParamPattern.FindAllStringSubmatch(endpoint, -1)
+	res := make(map[string]struct{}, len(matches))
+	for _, m := range matches {
+		if len(m) < 2 || m[1] == "" {
+			continue
+		}
+		res[m[1]] = struct{}{}
+	}
+	return res
 }
 
 func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {

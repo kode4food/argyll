@@ -16,9 +16,11 @@ jest.mock("@/app/components/molecules/DurationInput", () => ({
 describe("StepEditorHttpConfiguration", () => {
   const baseProps = {
     endpoint: "http://localhost:8080/test",
+    httpMethod: "POST" as const,
     healthCheck: "http://localhost:8080/health",
     httpTimeout: 5000,
     setEndpoint: jest.fn(),
+    setHttpMethod: jest.fn(),
     setHealthCheck: jest.fn(),
     setHttpTimeout: jest.fn(),
   };
@@ -36,15 +38,19 @@ describe("StepEditorHttpConfiguration", () => {
     expect(
       screen.getByDisplayValue("http://localhost:8080/test")
     ).toBeInTheDocument();
+    expect(screen.getByDisplayValue("POST")).toBeInTheDocument();
     expect(
       screen.getByDisplayValue("http://localhost:8080/health")
     ).toBeInTheDocument();
     expect(screen.getByTestId("duration-input")).toHaveValue("5000");
   });
 
-  test("updates endpoint, timeout, and health check", () => {
+  test("updates method, endpoint, timeout, and health check", () => {
     render(<StepEditorHttpConfiguration {...baseProps} />);
 
+    fireEvent.change(screen.getByDisplayValue("POST"), {
+      target: { value: "GET" },
+    });
     fireEvent.change(
       screen.getByPlaceholderText(t("stepEditor.endpointPlaceholder")),
       {
@@ -61,6 +67,7 @@ describe("StepEditorHttpConfiguration", () => {
       }
     );
 
+    expect(baseProps.setHttpMethod).toHaveBeenCalledWith("GET");
     expect(baseProps.setEndpoint).toHaveBeenCalledWith(
       "http://localhost:9090/new"
     );

@@ -66,6 +66,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
       cycleAttributeType,
       endpoint,
       setEndpoint,
+      httpMethod,
+      setHttpMethod,
       healthCheck,
       setHealthCheck,
       httpTimeout,
@@ -242,9 +244,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 ) : formStepType === "flow" ? null : (
                   <StepEditorHttpConfiguration
                     endpoint={endpoint}
+                    httpMethod={httpMethod}
                     healthCheck={healthCheck}
                     httpTimeout={httpTimeout}
                     setEndpoint={setEndpoint}
+                    setHttpMethod={setHttpMethod}
                     setHealthCheck={setHealthCheck}
                     setHttpTimeout={setHttpTimeout}
                   />

@@ -70,7 +70,23 @@ describe("Footer", () => {
     const { container } = render(<Footer step={step} healthStatus="healthy" />);
 
     const endpoint = container.querySelector(".step-endpoint");
-    expect(endpoint?.textContent).toBe("http://localhost:8080/process");
+    expect(endpoint?.textContent).toBe("POST http://localhost:8080/process");
+  });
+
+  test("renders configured HTTP method for sync step", () => {
+    const step = createStep("sync", {
+      endpoint: "http://localhost:8080/items/{item_id}",
+      method: "DELETE",
+    });
+
+    const { container } = render(<Footer step={step} healthStatus="healthy" />);
+
+    const endpoint = container.querySelector(".step-endpoint");
+    expect(endpoint?.textContent).toBe(
+      "DELETE http://localhost:8080/items/{item_id}"
+    );
+    expect(screen.getByText(t("overviewStep.httpMethod"))).toBeInTheDocument();
+    expect(screen.getByText("DELETE")).toBeInTheDocument();
   });
 
   test("shows health dot and tooltip content", () => {

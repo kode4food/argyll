@@ -21,6 +21,7 @@ export type WorkStatus =
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "sync" | "async" | "script" | "flow";
+export type HTTPMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export const SCRIPT_LANGUAGE_ALE = "ale";
 export const SCRIPT_LANGUAGE_JPATH = "jpath";
@@ -59,6 +60,7 @@ export interface AttributeSpec {
 
 export interface HTTPConfig {
   endpoint: string;
+  method?: HTTPMethod;
   health_check?: string;
   timeout: number;
 }

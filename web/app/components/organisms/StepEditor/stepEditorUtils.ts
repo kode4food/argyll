@@ -4,6 +4,7 @@ import {
   AttributeType,
   AttributeRole,
   StepType,
+  HTTPMethod,
 } from "@/app/api";
 import { getSortedAttributes, validateDefaultValue } from "@/utils/stepUtils";
 import { getArgIcon } from "@/utils/iconRegistry";
@@ -28,6 +29,9 @@ export interface ValidationError {
   key: string;
   vars?: Record<string, string>;
 }
+
+const HTTP_METHOD_POST: HTTPMethod = "POST";
+const endpointParamPattern = /\{([^{}]+)\}/g;
 
 export function buildAttributesFromStep(step: Step | null): Attribute[] {
   if (!step) return [];
@@ -184,6 +188,7 @@ export function getValidationError({
   stepType,
   script,
   endpoint,
+  httpMethod,
   httpTimeout,
   flowGoals,
 }: {
@@ -193,6 +198,7 @@ export function getValidationError({
   stepType: StepType;
   script: string;
   endpoint: string;
+  httpMethod: HTTPMethod;
   httpTimeout: number;
   flowGoals: string;
 }): ValidationError | null {
@@ -223,6 +229,12 @@ export function getValidationError({
   } else {
     if (!endpoint.trim()) {
       return { key: "stepEditor.endpointRequired" };
+    }
+    if (httpMethod === "GET") {
+      const endpointError = validateGetEndpointParams(attributes, endpoint);
+      if (endpointError) {
+        return endpointError;
+      }
     }
     if (!httpTimeout || httpTimeout <= 0) {
       return { key: "stepEditor.timeoutPositive" };
@@ -296,6 +308,7 @@ export function buildStepPayload({
   script,
   scriptLanguage,
   endpoint,
+  httpMethod,
   healthCheck,
   httpTimeout,
   flowGoals,
@@ -310,6 +323,7 @@ export function buildStepPayload({
   script: string;
   scriptLanguage: string;
   endpoint: string;
+  httpMethod: HTTPMethod;
   healthCheck: string;
   httpTimeout: number;
   flowGoals: string;
@@ -345,6 +359,7 @@ export function buildStepPayload({
   } else {
     stepData.http = {
       endpoint: endpoint.trim(),
+      method: httpMethod,
       health_check: healthCheck.trim() || undefined,
       timeout: httpTimeout,
     };
@@ -353,4 +368,38 @@ export function buildStepPayload({
   }
 
   return stepData;
+}
+
+export function normalizeHttpMethod(method?: string): HTTPMethod {
+  return method === "GET" || method === "PUT" || method === "DELETE"
+    ? method
+    : HTTP_METHOD_POST;
+}
+
+function validateGetEndpointParams(
+  attributes: Attribute[],
+  endpoint: string
+): ValidationError | null {
+  const params = new Set<string>();
+  for (const match of endpoint.matchAll(endpointParamPattern)) {
+    if (match[1]) {
+      params.add(match[1]);
+    }
+  }
+
+  for (const attr of attributes) {
+    if (attr.attrType !== "input") {
+      continue;
+    }
+    const paramName = attr.mappingName?.trim() || attr.name.trim();
+    if (!paramName || params.has(paramName)) {
+      continue;
+    }
+    return {
+      key: "stepEditor.getEndpointParamRequired",
+      vars: { name: paramName },
+    };
+  }
+
+  return null;
 }

@@ -69,9 +69,10 @@ const Footer: React.FC<FooterProps> = ({
         text: step.flow.goals.join(", "),
       };
     } else if (step.http) {
+      const method = step.http.method || "POST";
       displayInfo = {
         icon: TypeIcon,
-        text: step.http.endpoint,
+        text: `${method} ${step.http.endpoint}`,
       };
     }
 
@@ -107,6 +108,12 @@ const Footer: React.FC<FooterProps> = ({
         </TooltipSection>
       );
     } else if (step.http) {
+      const method = step.http.method || "POST";
+      sections.push(
+        <TooltipSection key="method" title={t("overviewStep.httpMethod")}>
+          {method}
+        </TooltipSection>
+      );
       sections.push(
         <TooltipSection key="endpoint" title={t("overviewStep.endpointUrl")}>
           {step.http.endpoint}

@@ -3,6 +3,7 @@
   "script.language.jpath": "JPath",
   "script.language.lua": "Lua",
   "stepEditor.endpointPlaceholder": "http://localhost:8080/process",
+  "stepEditor.endpointPlaceholderGet": "https://api.example.com/items/{item_id}",
   "stepEditor.healthCheckPlaceholder": "http://localhost:8080/health",
   "stepEditor.mappingScriptPlaceholderAle": "(* value 2)",
   "stepEditor.mappingScriptPlaceholderJPath": "$.value",

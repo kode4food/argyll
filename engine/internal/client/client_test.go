@@ -2,6 +2,7 @@ package client_test
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -307,4 +308,55 @@ func TestHTTP4xxError(t *testing.T) {
 	assert.ErrorIs(t, err, client.ErrHTTPError)
 	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
 	assert.Contains(t, err.Error(), "400")
+}
+
+func TestGETURLParams(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			assert.Equal(t, "GET", r.Method)
+			assert.Equal(t, "/items/abc%20123", r.URL.EscapedPath())
+			assert.Empty(t, r.Header.Get("Content-Type"))
+
+			body, err := io.ReadAll(r.Body)
+			assert.NoError(t, err)
+			assert.Empty(t, body)
+
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(api.StepResult{
+				Success: true,
+				Outputs: api.Args{"result": "ok"},
+			})
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID: "get-step",
+		HTTP: &api.HTTPConfig{
+			Endpoint: server.URL + "/items/{item_id}",
+			Method:   "GET",
+		},
+	}
+
+	outputs, err := cl.Invoke(
+		st, api.Args{"item_id": "abc 123"}, api.Metadata{},
+	)
+	assert.NoError(t, err)
+	assert.Equal(t, "ok", outputs["result"])
+}
+
+func TestMissingURLArg(t *testing.T) {
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID: "missing-arg-step",
+		HTTP: &api.HTTPConfig{
+			Endpoint: "https://example.com/items/{item_id}",
+			Method:   "GET",
+		},
+	}
+
+	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, client.ErrMissingEndpointArg)
 }
