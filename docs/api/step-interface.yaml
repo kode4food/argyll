@@ -46,11 +46,18 @@ info:
 
     ## Request/Response Contract
 
-    All HTTP steps must implement a `POST` endpoint that:
+    HTTP steps are invoked using the configured HTTP method (`GET`, `POST`, `PUT`, or `DELETE`).
+    If omitted in step registration, the engine defaults to `POST`.
 
-    1. **Accepts** a JSON request with:
+    HTTP steps must implement an endpoint that:
+
+    1. **Accepts** the engine request:
        - `arguments`: Input arguments (from flow state)
        - `metadata`: Flow context (flow_id, step_id, receipt_token, etc.)
+
+       For `POST`, `PUT`, and `DELETE`, these are sent as a JSON request body.
+       For `GET`, input arguments must be supplied via endpoint placeholders such as
+       `/resource/{id}` and no JSON request body is sent.
 
     2. **Returns** a JSON response with:
        - `success`: Boolean indicating execution success

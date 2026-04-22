@@ -142,6 +142,7 @@ paths:
                       role: "output"
                       type: "string"
                   http:
+                    method: "POST"
                     endpoint: "http://localhost:8081/process-text"
                     health_check: "http://localhost:8081/health"
                     timeout: 30000
@@ -1025,6 +1026,19 @@ components:
       required:
         - endpoint
       properties:
+        method:
+          type: string
+          description: |
+            Optional HTTP method for invoking the step endpoint.
+            Supported values are `GET`, `POST`, `PUT`, and `DELETE`.
+            Defaults to `POST` when omitted.
+          enum:
+            - GET
+            - POST
+            - PUT
+            - DELETE
+          default: POST
+          example: POST
         endpoint:
           type: string
           format: uri
@@ -1076,7 +1090,7 @@ components:
 
     StepScriptConfig:
       type: object
-      description: Configuration for script step execution (`type: script`)
+      description: "Configuration for script step execution (`type: script`)"
       required:
         - language
         - script
