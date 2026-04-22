@@ -72,8 +72,8 @@ github.com/klauspost/compress v1.18.0 h1:c/Cqfb0r+Yi+JtIEq73FWXVkRonBlf0CRNYc8Zt
 github.com/klauspost/compress v1.18.0/go.mod h1:2Pp+KzxcywXVXMr50+X0Q/Lsb43OQHYWRCY2AiWywWQ=
 github.com/klauspost/cpuid/v2 v2.3.0 h1:S4CRMLnYUhGeDFDqkGriYKdfoFlDnMtqTiI/sFzhA9Y=
 github.com/klauspost/cpuid/v2 v2.3.0/go.mod h1:hqwkgyIinND0mEev00jJYCxPNVRVXFQeu1XKlok6oO0=
-github.com/kode4food/ale v0.3.1-0.20260418090639-45bee753a008 h1:ilV4EkbUJZcasD7vv+t/8PzECak8iqAzoI4Z1WoX2Fs=
-github.com/kode4food/ale v0.3.1-0.20260418090639-45bee753a008/go.mod h1:ieIgf06ATH2J2WZWj8QEIl8IWitXMeUOGLfHYXhKZWE=
+github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d h1:cXpNHEuvD7Uh8vhhlaSdRd2C6bJfwu+YQpZenQ+NE7Q=
+github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d/go.mod h1:ieIgf06ATH2J2WZWj8QEIl8IWitXMeUOGLfHYXhKZWE=
 github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04 h1:O8jM26YJoIOtdr1KFQyYGN2KLI1BhXfcOCg/JV2FnB4=
 github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04/go.mod h1:pGgR7tUFmLBWj3l6kFHTlWlt6DLNwajqUHErH+3Z8Fk=
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=

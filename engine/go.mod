@@ -8,7 +8,7 @@ require (
 	github.com/gin-gonic/gin v1.11.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/kode4food/ale v0.3.1-0.20260418090639-45bee753a008
+	github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d
 	github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04
 	github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9
 	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9

@@ -9,7 +9,7 @@ github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/kode4food/ale v0.3.1-0.20260418090639-45bee753a008 h1:ilV4EkbUJZcasD7vv+t/8PzECak8iqAzoI4Z1WoX2Fs=
+github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d h1:cXpNHEuvD7Uh8vhhlaSdRd2C6bJfwu+YQpZenQ+NE7Q=
 github.com/kode4food/argyll/engine v0.0.0-20260202154946-578cd6fdfe5e h1:9hFTl47vTG6aYOFbqiYDpgl28jCiWhKRppuidKs/C+Q=
 github.com/kode4food/argyll/engine v0.0.0-20260202154946-578cd6fdfe5e/go.mod h1:7npt2GGcvswv3lAnrgHWFrBgkiP0LtjU5mONS14B9Ag=
 github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04 h1:O8jM26YJoIOtdr1KFQyYGN2KLI1BhXfcOCg/JV2FnB4=
