@@ -15,7 +15,6 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
-	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -508,34 +507,29 @@ func TestSkipChildFlows(t *testing.T) {
 		assert.NoError(t, err)
 
 		var childID api.FlowID
-		env.WithConsumer(func(consumer *event.Consumer) {
-			fl := env.WaitForFlowStatus("parent-list", func() {
-				err = env.Engine.StartFlow("parent-list", pl)
-				assert.NoError(t, err)
-			})
-			assert.Equal(t, api.FlowCompleted, fl.Status)
-
-			ex := fl.Executions[parent.ID]
-			if !assert.NotNil(t, ex) {
-				return
-			}
-
-			var tkn api.Token
-			for t := range ex.WorkItems {
-				tkn = t
-				break
-			}
-
-			childID = api.FlowID(fmt.Sprintf(
-				"%s:%s:%s", "parent-list", parent.ID, tkn,
-			))
-
-			w := wait.On(t, consumer)
-			w.ForEvents(2,
-				wait.FlowActivated("parent-list", childID),
-			)
-			w.ForEvent(wait.FlowDeactivated(childID))
+		fl := env.WaitForFlowStatus("parent-list", func() {
+			err = env.Engine.StartFlow("parent-list", pl)
+			assert.NoError(t, err)
 		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+
+		ex := fl.Executions[parent.ID]
+		if !assert.NotNil(t, ex) {
+			return
+		}
+
+		var tkn api.Token
+		for t := range ex.WorkItems {
+			tkn = t
+			break
+		}
+
+		childID = api.FlowID(fmt.Sprintf(
+			"%s:%s:%s", "parent-list", parent.ID, tkn,
+		))
+
+		childFlow := waitForFlowState(t, env.Engine, childID)
+		assert.Equal(t, api.FlowCompleted, childFlow.Status)
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{})
 		assert.NoError(t, err)
@@ -735,6 +729,27 @@ func waitForQueryFlows(
 	}
 	t.Fatalf("expected at least %d flows, got %d", min, len(resp.Flows))
 	return nil
+}
+
+func waitForFlowState(
+	t *testing.T, eng *engine.Engine, fid api.FlowID,
+) api.FlowState {
+	t.Helper()
+
+	deadline := time.Now().Add(wait.DefaultTimeout)
+	for time.Now().Before(deadline) {
+		fl, err := eng.GetFlowState(fid)
+		if err == nil {
+			return fl
+		}
+		time.Sleep(10 * time.Millisecond)
+	}
+
+	fl, err := eng.GetFlowState(fid)
+	if err != nil {
+		t.Fatalf("failed to fetch flow %s: %v", fid, err)
+	}
+	return fl
 }
 
 func addStatusEntry(
