@@ -4,7 +4,10 @@ Async steps let you return immediately and complete later via webhook. Use them 
 
 ## How it works
 
-1) Engine calls your step endpoint with arguments and metadata.
+1) Engine invokes your step endpoint with the configured HTTP method.
+   Endpoint placeholders are resolved from runtime inputs for all HTTP methods.
+   For `POST`, `PUT`, and `DELETE`, arguments and metadata are sent as a JSON body.
+   For `GET`, no JSON body is sent.
 2) Your handler returns HTTP 200 quickly.
 3) Your async worker POSTs a StepResult to the webhook URL.
 
@@ -18,7 +21,7 @@ The engine provides this URL in `metadata.webhook_url` for async steps.
 
 ## Request and response shape
 
-Your step endpoint receives the same inputs as a sync step. The initial response should be a standard StepResult:
+Your step endpoint receives the same logical inputs as a sync step. The initial response should be a standard StepResult:
 
 ```json
 {

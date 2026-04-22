@@ -84,12 +84,15 @@ class HTTPConfig:
     """HTTP configuration for sync/async steps."""
 
     endpoint: str
+    method: str = ""
     health_check: str = ""
     timeout: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
         result: Dict[str, Any] = {"endpoint": self.endpoint}
+        if self.method:
+            result["method"] = self.method
         if self.health_check:
             result["health_check"] = self.health_check
         if self.timeout > 0:

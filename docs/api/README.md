@@ -39,6 +39,7 @@ curl -X POST http://localhost:8080/engine/step \
       "output_text": {"role": "output", "type": "string"}
     },
     "http": {
+      "method": "POST",
       "endpoint": "http://localhost:8081/process",
       "timeout": 30000
     }
@@ -60,6 +61,10 @@ curl http://localhost:8080/engine/flow/wf-001/status
 ### Step Interface
 
 Steps receive requests like:
+
+For all HTTP methods, the engine resolves endpoint placeholders from runtime inputs before dispatch.
+For `POST`, `PUT`, and `DELETE`, the engine sends the payload as JSON.
+For `GET`, no JSON body is sent.
 
 ```json
 {

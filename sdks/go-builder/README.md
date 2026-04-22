@@ -170,6 +170,7 @@ func main() {
 
 - **Type-safe builders** - Immutable builder pattern with method chaining
 - **Sync and async steps** - Support for both synchronous and asynchronous execution
+- **Configurable HTTP methods** - `POST` by default, with explicit `GET`, `PUT`, or `DELETE` when needed
 - **Script steps** - Execute Ale or Lua scripts
 - **Flow orchestration** - Define and execute multi-step flows
 - **Result memoization** - Cache step results for efficiency
@@ -196,7 +197,21 @@ builder2 := builder1.WithID("custom-id")
 client.NewStep().WithName("ConditionalStep").
     Required("value", api.TypeNumber).
     WithAlePredicate("(> value 10)").
+    WithMethod("POST").
     WithEndpoint("http://localhost:8081/step").
+    Register(ctx)
+```
+
+### HTTP Methods
+
+`POST` is the default when no method is specified:
+
+```go
+client.NewStep().WithName("LookupUser").
+    Required("user_id", api.TypeString).
+    Output("user", api.TypeObject).
+    WithMethod("GET").
+    WithEndpoint("http://localhost:8081/users/{user_id}").
     Register(ctx)
 ```
 
@@ -288,6 +303,7 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithLabels(labels) Step` - Add multiple labels
 - `WithFlowGoals(...stepIDs) Step` - Configure a flow step with child goals
 - `WithEndpoint(url) Step` - Set HTTP endpoint
+- `WithMethod(method string) Step` - Set HTTP method (`GET`, `POST`, `PUT`, `DELETE`)
 - `WithHealthCheck(url) Step` - Set health check endpoint
 - `WithTimeout(ms) Step` - Set execution timeout
 - `WithScript(script) Step` - Set Ale script

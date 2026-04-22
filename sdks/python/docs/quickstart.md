@@ -129,6 +129,19 @@ assert builder2._id == "custom-id"
 
 ## Advanced Features
 
+### HTTP Methods
+
+`POST` is the default when not specified:
+
+```python
+client.new_step().with_name("LookupUser") \
+    .required("user_id", AttributeType.STRING) \
+    .output("user", AttributeType.OBJECT) \
+    .with_method("GET") \
+    .with_endpoint("http://localhost:8081/users/{user_id}") \
+    .register()
+```
+
 ### Conditional Execution
 
 Use predicates to control when steps run:

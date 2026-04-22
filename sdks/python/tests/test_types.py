@@ -47,6 +47,18 @@ def test_http_config_to_dict():
     assert result == {"endpoint": "http://localhost:8081/step"}
 
 
+def test_http_config_with_method():
+    config = HTTPConfig(
+        endpoint="http://localhost:8081/step",
+        method="DELETE",
+    )
+    result = config.to_dict()
+    assert result == {
+        "endpoint": "http://localhost:8081/step",
+        "method": "DELETE",
+    }
+
+
 def test_http_config_with_health_check():
     config = HTTPConfig(
         endpoint="http://localhost:8081/step",
@@ -171,6 +183,7 @@ def test_step_with_all_fields():
         labels={"env": "test"},
         http=HTTPConfig(
             endpoint="http://localhost:8081/test",
+            method="POST",
             health_check="http://localhost:8081/health",
             timeout=5000,
         ),
@@ -191,6 +204,7 @@ def test_step_with_all_fields():
     result = step.to_dict()
     assert result["type"] == "async"
     assert result["labels"]["env"] == "test"
+    assert result["http"]["method"] == "POST"
     assert result["http"]["timeout"] == 5000
     assert result["script"]["script"] == "(+ 1 2)"
     assert result["predicate"]["script"] == "return true"

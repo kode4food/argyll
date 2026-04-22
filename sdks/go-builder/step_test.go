@@ -168,6 +168,28 @@ func TestWithEndpoint(t *testing.T) {
 	assert.Equal(t, api.StepTypeSync, st.Type)
 }
 
+func TestWithMethod(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com/step").
+		WithMethod("get").
+		Build()
+
+	assert.NoError(t, err)
+	assert.NotNil(t, st.HTTP)
+	assert.Equal(t, "GET", st.HTTP.Method)
+	assert.Equal(t, api.StepTypeSync, st.Type)
+}
+
+func TestWithMethodInvalid(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com/step").
+		WithMethod("patch").
+		Build()
+
+	assert.Error(t, err)
+	assert.Nil(t, st)
+}
+
 func TestWithScript(t *testing.T) {
 	script := "{:result (+ 1 2)}"
 	st, err := testClient().NewStep().WithName("Test").

@@ -158,6 +158,31 @@ def test_step_builder_with_endpoint():
     assert step.http.endpoint == "http://localhost:8081/test"
 
 
+def test_step_builder_with_method():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .with_method("get")
+    )
+    step = builder.build()
+    assert step.http is not None
+    assert step.http.method == "GET"
+
+
+def test_step_builder_with_invalid_method():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .with_method("patch")
+    )
+    with pytest.raises(StepValidationError):
+        builder.build()
+
+
 def test_step_builder_with_health_check():
     client = Client()
     builder = (
@@ -266,6 +291,7 @@ def test_step_builder_chaining():
         .required("input", AttributeType.STRING)
         .output("output", AttributeType.STRING)
         .with_label("env", "test")
+        .with_method("PUT")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -273,6 +299,7 @@ def test_step_builder_chaining():
     assert "input" in step.attributes
     assert "output" in step.attributes
     assert step.labels["env"] == "test"
+    assert step.http.method == "PUT"
     assert step.http.endpoint == "http://localhost:8081/test"
 
 

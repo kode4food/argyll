@@ -165,6 +165,21 @@ func (s Step) WithEndpoint(endpoint string) Step {
 	return s
 }
 
+// WithMethod sets the HTTP method used to invoke the step endpoint
+func (s Step) WithMethod(method string) Step {
+	if s.http == nil {
+		s.http = &api.HTTPConfig{}
+	} else {
+		var cpy api.HTTPConfig = *s.http
+		s.http = &cpy
+	}
+	s.http.Method = strings.ToUpper(method)
+	if s.stepType == "" {
+		s.stepType = api.StepTypeSync
+	}
+	return s
+}
+
 // WithFlowGoals configures a flow step with child flow goal IDs
 func (s Step) WithFlowGoals(goals ...api.StepID) Step {
 	if s.flow == nil {

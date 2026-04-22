@@ -156,6 +156,17 @@ class StepBuilder:
         """Set HTTP endpoint."""
         new_http = HTTPConfig(
             endpoint=url,
+            method=self._http.method if self._http else "",
+            health_check=self._http.health_check if self._http else "",
+            timeout=self._http.timeout if self._http else 0,
+        )
+        return self._copy(_http=new_http)
+
+    def with_method(self, method: str) -> "StepBuilder":
+        """Set HTTP method."""
+        new_http = HTTPConfig(
+            endpoint=self._http.endpoint if self._http else "",
+            method=method.upper(),
             health_check=self._http.health_check if self._http else "",
             timeout=self._http.timeout if self._http else 0,
         )
@@ -165,6 +176,7 @@ class StepBuilder:
         """Set health check endpoint."""
         new_http = HTTPConfig(
             endpoint=self._http.endpoint if self._http else "",
+            method=self._http.method if self._http else "",
             health_check=url,
             timeout=self._http.timeout if self._http else 0,
         )
@@ -174,6 +186,7 @@ class StepBuilder:
         """Set execution timeout in milliseconds."""
         new_http = HTTPConfig(
             endpoint=self._http.endpoint if self._http else "",
+            method=self._http.method if self._http else "",
             health_check=self._http.health_check if self._http else "",
             timeout=ms,
         )
@@ -329,6 +342,15 @@ def _validate_step(step: Step) -> None:
     if step.type in {StepType.SYNC, StepType.ASYNC}:
         if not step.http or not step.http.endpoint:
             raise StepValidationError("HTTP config with endpoint required")
+        if step.http.method and step.http.method not in {
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+        }:
+            raise StepValidationError(
+                f"Invalid HTTP method: {step.http.method}"
+            )
         if step.flow is not None:
             raise StepValidationError("Flow config not allowed for HTTP steps")
         if step.script is not None:

@@ -37,6 +37,7 @@ func main() {
     err = client.NewStep().WithName("User Resolver").
         Required("user_id", api.TypeString).
         Output("user_name", api.TypeString).
+        WithMethod("POST").
         WithEndpoint("http://localhost:8081/user-resolver").
         Register(context.Background())
 
@@ -232,6 +233,15 @@ In milliseconds:
 s.WithTimeout(60 * api.Second)
 ```
 
+### HTTP Method
+
+`POST` is the default when not specified:
+
+```go
+s.WithMethod("GET").
+  WithEndpoint("http://localhost:8081/users/{user_id}")
+```
+
 ## Advanced
 
 ### ForEach
@@ -359,6 +369,7 @@ NewStep() Step
 - `WithID(id string) Step` - Set custom step ID
 - `WithTimeout(timeout int64) Step` - Set execution timeout (milliseconds)
 - `WithEndpoint(endpoint string) Step` - Set HTTP endpoint
+- `WithMethod(method string) Step` - Set HTTP method (`GET`, `POST`, `PUT`, `DELETE`)
 - `WithHealthCheck(endpoint string) Step` - Set health check endpoint
 - `WithLabel(key, value string) Step` - Set a single label
 - `WithLabels(labels api.Labels) Step` - Merge labels with the current set

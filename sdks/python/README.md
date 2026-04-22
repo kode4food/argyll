@@ -125,6 +125,7 @@ client.new_step().with_name("User Resolver") \
 
 - **Type-safe builders** - Immutable builder pattern with full type hints
 - **Sync and async steps** - Support for both synchronous and asynchronous execution
+- **Configurable HTTP methods** - `POST` by default, with explicit `GET`, `PUT`, or `DELETE` when needed
 - **Script steps** - Execute Ale or Lua scripts
 - **Flow orchestration** - Define and execute multi-step flows
 - **Result memoization** - Cache step results for efficiency
