@@ -1,7 +1,11 @@
 package engine_test
 
 import (
+	"encoding/json"
 	"errors"
+	"net/http"
+	"net/http/httptest"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -9,6 +13,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -260,6 +265,60 @@ func TestRetryExhaustion(t *testing.T) {
 			}
 			assert.True(t, found)
 		}
+	})
+}
+
+func TestHTTPRetryRecovers(t *testing.T) {
+	var calls atomic.Int32
+	stepServer := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			if calls.Add(1) <= 2 {
+				w.Header().Set(
+					"Content-Type", api.ProblemJSONContentType,
+				)
+				w.WriteHeader(http.StatusServiceUnavailable)
+				_ = json.NewEncoder(w).Encode(api.NewProblem(
+					http.StatusServiceUnavailable, "temporary outage",
+				))
+				return
+			}
+
+			w.Header().Set("Content-Type", api.JSONContentType)
+			_ = json.NewEncoder(w).Encode(api.Args{"result": "ok"})
+		},
+	))
+	defer stepServer.Close()
+
+	deps := engine.Dependencies{
+		StepClient: client.NewHTTPClient(5 * time.Second),
+	}
+	helpers.WithTestEnvDeps(t, deps, func(env *helpers.TestEngineEnv) {
+		env.Config.Work = api.WorkConfig{
+			MaxRetries:  3,
+			InitBackoff: 1,
+			MaxBackoff:  1,
+			BackoffType: api.BackoffTypeFixed,
+		}
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewStepWithOutputs("http-retry", "result")
+		st.HTTP.Endpoint = stepServer.URL
+		assert.NoError(t, env.Engine.RegisterStep(st))
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		id := api.FlowID("wf-http-retry")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, int32(3), calls.Load())
+		assert.Equal(t, "ok", fl.Attributes["result"].Value)
 	})
 }
 

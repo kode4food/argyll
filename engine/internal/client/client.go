@@ -155,25 +155,11 @@ func (c *HTTPClient) sendRequest(
 
 	if resp.StatusCode < http.StatusOK ||
 		resp.StatusCode >= http.StatusMultipleChoices {
-		slog.Error("HTTP error",
-			log.StepID(step.ID),
-			log.Error(fmt.Errorf("status %d", resp.StatusCode)),
-			slog.Int("status_code", resp.StatusCode),
-			slog.String("response_body", string(respBody)))
-
-		err := httpError(
+		return nil, httpError(
 			resp.StatusCode,
 			resp.Header.Get("Content-Type"),
 			respBody,
 		)
-
-		// 4xx errors are permanent failures
-		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			return nil, err
-		}
-
-		// 5xx errors are transient
-		return nil, errors.Join(api.ErrWorkNotCompleted, err)
 	}
 
 	return respBody, nil
@@ -257,10 +243,22 @@ func endpointValue(value any) string {
 
 func httpError(status int, contentType string, body []byte) error {
 	problem := problemFromBody(contentType, body)
+	err := httpStatusError(status, problem)
+	if retryableHTTPStatus(status) {
+		return errors.Join(api.ErrWorkNotCompleted, err)
+	}
+	return err
+}
+
+func httpStatusError(status int, problem *api.ProblemDetails) error {
 	if problem != nil && problem.Error() != "" {
 		return fmt.Errorf("%w: status %d: %s", ErrHTTPError, status, problem)
 	}
 	return fmt.Errorf("%w: status %d", ErrHTTPError, status)
+}
+
+func retryableHTTPStatus(status int) bool {
+	return status >= http.StatusInternalServerError
 }
 
 func problemFromBody(contentType string, body []byte) *api.ProblemDetails {
