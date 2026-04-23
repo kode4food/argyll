@@ -262,15 +262,15 @@ def test_create_step_server_registers_and_handles_request(monkeypatch):
     assert resp.status_code == 200
     assert resp.get_json()["service"] == "test-step"
 
-	resp = test_client.post(
-	    "/test-step",
-	    json={"value": 3},
-	    headers={"Argyll-Flow-ID": "flow-1"},
-	)
-	assert resp.status_code == 200
-	data = resp.get_json()
-	assert data["value"] == 3
-	assert client.flow_ids == ["flow-1"]
+    resp = test_client.post(
+        "/test-step",
+        json={"value": 3},
+        headers={"Argyll-Flow-ID": "flow-1"},
+    )
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data["value"] == 3
+    assert client.flow_ids == ["flow-1"]
 
     bad_resp = test_client.post(
         "/test-step", data="null", content_type="application/json"
@@ -296,13 +296,13 @@ def test_create_step_server_http_error(monkeypatch):
 
     app = captured["app"]
     test_client = app.test_client()
-	resp = test_client.post(
-	    "/test-step",
-	    json={},
-	    headers={"Argyll-Flow-ID": "flow-1"},
-	)
-	assert resp.status_code == 409
-	assert resp.get_json()["detail"] == "conflict"
+    resp = test_client.post(
+        "/test-step",
+        json={},
+        headers={"Argyll-Flow-ID": "flow-1"},
+    )
+    assert resp.status_code == 409
+    assert resp.get_json()["detail"] == "conflict"
 
 
 def test_create_step_server_update(monkeypatch):

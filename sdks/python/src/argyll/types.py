@@ -239,6 +239,8 @@ class ProblemDetails:
 
 
 def _status_title(status: int) -> str:
+    if status == 422:
+        return "Unprocessable Entity"
     try:
         return HTTPStatus(status).phrase
     except ValueError:
