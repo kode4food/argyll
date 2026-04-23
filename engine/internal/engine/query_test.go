@@ -528,7 +528,7 @@ func TestSkipChildFlows(t *testing.T) {
 			"%s:%s:%s", "parent-list", parent.ID, tkn,
 		))
 
-		childFlow := waitForFlowState(t, env.Engine, childID)
+		childFlow := helpers.WaitForFlowExists(t, env.Engine, childID)
 		assert.Equal(t, api.FlowCompleted, childFlow.Status)
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{})
@@ -689,20 +689,14 @@ func waitForQueryFlow(
 ) {
 	t.Helper()
 
-	deadline := time.Now().Add(wait.DefaultTimeout)
-	for time.Now().Before(deadline) {
-		resp, err := eng.QueryFlows(req)
-		if err == nil &&
-			len(resp.Flows) == 1 &&
-			resp.Flows[0].ID == expected {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
+	resp := waitForQuery(t, eng, req, func(resp *api.QueryFlowsResponse) bool {
+		return len(resp.Flows) == 1 && resp.Flows[0].ID == expected
+	})
+
+	if len(resp.Flows) == 1 && resp.Flows[0].ID == expected {
+		return
 	}
-	resp, err := eng.QueryFlows(req)
-	if err != nil {
-		t.Fatalf("query failed: %v", err)
-	}
+
 	var ids []api.FlowID
 	for _, fl := range resp.Flows {
 		ids = append(ids, fl.ID)
@@ -715,10 +709,27 @@ func waitForQueryFlows(
 ) *api.QueryFlowsResponse {
 	t.Helper()
 
+	resp := waitForQuery(t, eng, req, func(resp *api.QueryFlowsResponse) bool {
+		return len(resp.Flows) >= min
+	})
+	if len(resp.Flows) >= min {
+		return resp
+	}
+
+	t.Fatalf("expected at least %d flows, got %d", min, len(resp.Flows))
+	return nil
+}
+
+func waitForQuery(
+	t *testing.T, eng *engine.Engine, req *api.QueryFlowsRequest,
+	accept func(*api.QueryFlowsResponse) bool,
+) *api.QueryFlowsResponse {
+	t.Helper()
+
 	deadline := time.Now().Add(wait.DefaultTimeout)
 	for time.Now().Before(deadline) {
 		resp, err := eng.QueryFlows(req)
-		if err == nil && len(resp.Flows) >= min {
+		if err == nil && accept(resp) {
 			return resp
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -727,29 +738,7 @@ func waitForQueryFlows(
 	if err != nil {
 		t.Fatalf("query failed: %v", err)
 	}
-	t.Fatalf("expected at least %d flows, got %d", min, len(resp.Flows))
-	return nil
-}
-
-func waitForFlowState(
-	t *testing.T, eng *engine.Engine, fid api.FlowID,
-) api.FlowState {
-	t.Helper()
-
-	deadline := time.Now().Add(wait.DefaultTimeout)
-	for time.Now().Before(deadline) {
-		fl, err := eng.GetFlowState(fid)
-		if err == nil {
-			return fl
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	fl, err := eng.GetFlowState(fid)
-	if err != nil {
-		t.Fatalf("failed to fetch flow %s: %v", fid, err)
-	}
-	return fl
+	return resp
 }
 
 func addStatusEntry(

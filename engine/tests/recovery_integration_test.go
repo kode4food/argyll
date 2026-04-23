@@ -32,34 +32,7 @@ func waitForFlowsStatusWithTimeoutAfter(
 	env.T.Helper()
 
 	fn()
-
-	res := make(map[api.FlowID]api.FlowState, len(ids))
-	assert.Eventually(env.T, func() bool {
-		for _, fid := range ids {
-			fl, err := env.Engine.GetFlowState(fid)
-			if err != nil {
-				return false
-			}
-			res[fid] = fl
-			if fl.Status != api.FlowCompleted &&
-				fl.Status != api.FlowFailed {
-				return false
-			}
-		}
-		return true
-	}, timeout, 25*time.Millisecond)
-
-	for _, fid := range ids {
-		fl := res[fid]
-		if fl.Status != api.FlowCompleted &&
-			fl.Status != api.FlowFailed {
-			env.T.Fatalf(
-				"flow %s not terminal after wait; status=%s", fid, fl.Status,
-			)
-		}
-	}
-
-	return res
+	return helpers.WaitForTerminalFlows(env.T, env.Engine, ids, timeout)
 }
 
 // TestBasicFlowRecovery tests that a single flow with pending work recovers

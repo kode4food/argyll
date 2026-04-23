@@ -180,23 +180,27 @@ func TestRecoverDispatchPeer(t *testing.T) {
 		require.NoError(t, env.Engine.StartFlow(id, pl))
 		require.NoError(t, peer.Start())
 
-		assert.Eventually(t, func() bool {
-			fl, err := env.Engine.GetFlowState(id)
-			if err != nil {
-				return false
-			}
+		fl := helpers.WaitForFlowState(
+			t, env.Engine, id, time.Second,
+			func(fl api.FlowState) bool {
+				ex, ok := fl.Executions[st.ID]
+				if !ok {
+					return false
+				}
 
-			ex, ok := fl.Executions[st.ID]
-			if !ok {
+				for _, work := range ex.WorkItems {
+					return work.Status == api.WorkSucceeded &&
+						fl.Status == api.FlowCompleted
+				}
 				return false
-			}
+			})
 
-			for _, work := range ex.WorkItems {
-				return work.Status == api.WorkSucceeded &&
-					fl.Status == api.FlowCompleted
-			}
-			return false
-		}, time.Second, 10*time.Millisecond)
+		ex := fl.Executions[st.ID]
+		assert.NotEmpty(t, ex.WorkItems)
+		for _, work := range ex.WorkItems {
+			assert.Equal(t, api.WorkSucceeded, work.Status)
+		}
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
 

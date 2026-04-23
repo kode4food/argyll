@@ -357,17 +357,12 @@ func assertFlowEventuallyCompleted(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID,
 ) {
 	t.Helper()
-
-	deadline := time.Now().Add(schedulerWaitTimeout)
-	for time.Now().Before(deadline) {
-		fl, err := eng.GetFlowState(flowID)
-		if err == nil && fl.Status == api.FlowCompleted {
-			return
-		}
-		time.Sleep(10 * time.Millisecond)
-	}
-
-	t.Fatalf("flow %s did not complete", flowID)
+	helpers.WaitForFlowState(
+		t, eng, flowID, schedulerWaitTimeout,
+		func(st api.FlowState) bool {
+			return st.Status == api.FlowCompleted
+		},
+	)
 }
 
 func withFakeScheduler(

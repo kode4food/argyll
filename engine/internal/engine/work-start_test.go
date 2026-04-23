@@ -323,14 +323,19 @@ func TestParallelWorkItems(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		fl := env.WaitForFlowStatus("wf-parallel", func() {
-			err := env.Engine.StartFlow("wf-parallel", pl,
-				flow.WithInit(api.Args{"items": []any{"a", "b", "c"}}),
-			)
-			assert.NoError(t, err)
-		})
+		err := env.Engine.StartFlow("wf-parallel", pl,
+			flow.WithInit(api.Args{"items": []any{"a", "b", "c"}}),
+		)
+		assert.NoError(t, err)
+
+		fl := env.WaitForTerminalFlow("wf-parallel")
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t, api.StepCompleted, fl.Executions[st.ID].Status)
+		ex := fl.Executions[st.ID]
+		assert.Equal(t, api.StepCompleted, ex.Status)
+		assert.Len(t, ex.WorkItems, 3)
+		for _, work := range ex.WorkItems {
+			assert.Equal(t, api.WorkSucceeded, work.Status)
+		}
 	})
 }
 func TestPredicateFailurePerWorkItem(t *testing.T) {

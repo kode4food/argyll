@@ -1,9 +1,11 @@
 package helpers
 
 import (
+	"testing"
 	"time"
 
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -73,7 +75,90 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 		wait.On(e.T, consumer).ForEvent(wait.FlowTerminal(flowID))
 	})
 
-	return e.waitForTerminalFlow(flowID)
+	return e.WaitForTerminalFlow(flowID)
+}
+
+func (e *TestEngineEnv) WaitForTerminalFlow(flowID api.FlowID) api.FlowState {
+	e.T.Helper()
+	return WaitForTerminalFlowState(e.T, e.Engine, flowID)
+}
+
+// WaitForTerminalFlowState waits for a flow to reach a terminal state.
+func WaitForTerminalFlowState(
+	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+) api.FlowState {
+	t.Helper()
+	return WaitForFlowState(t, eng, flowID, wait.DefaultTimeout, func(st api.FlowState) bool {
+		return isFlowTerminal(st)
+	})
+}
+
+// WaitForTerminalFlows waits for all flows to reach terminal states.
+func WaitForTerminalFlows(
+	t *testing.T, eng *engine.Engine, flowIDs []api.FlowID,
+	timeout time.Duration,
+) map[api.FlowID]api.FlowState {
+	t.Helper()
+
+	res := make(map[api.FlowID]api.FlowState, len(flowIDs))
+	deadline := time.Now().Add(timeout)
+	for {
+		allTerminal := true
+		var lastErr error
+		for _, fid := range flowIDs {
+			st, err := eng.GetFlowState(fid)
+			if err != nil {
+				lastErr = err
+				allTerminal = false
+				break
+			}
+			res[fid] = st
+			if !isFlowTerminal(st) {
+				allTerminal = false
+			}
+		}
+		if allTerminal {
+			return res
+		}
+		if time.Now().After(deadline) {
+			if lastErr != nil {
+				t.Fatalf("failed to fetch terminal flows: %v", lastErr)
+			}
+			t.Fatalf("flows did not reach terminal state: %v", flowIDs)
+		}
+		time.Sleep(waitPollInterval)
+	}
+}
+
+// WaitForFlowExists waits for a flow state to become readable.
+func WaitForFlowExists(
+	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+) api.FlowState {
+	t.Helper()
+	return WaitForFlowState(t, eng, flowID, wait.DefaultTimeout, nil)
+}
+
+// WaitForFlowState waits for a flow state accepted by accept.
+func WaitForFlowState(
+	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+	timeout time.Duration, accept func(api.FlowState) bool,
+) api.FlowState {
+	t.Helper()
+
+	deadline := time.Now().Add(timeout)
+	for {
+		st, err := eng.GetFlowState(flowID)
+		if err == nil && (accept == nil || accept(st)) {
+			return st
+		}
+		if time.Now().After(deadline) {
+			if err != nil {
+				t.Fatalf("failed to fetch flow %s: %v", flowID, err)
+			}
+			t.Fatalf("flow %s did not reach expected state", flowID)
+		}
+		time.Sleep(waitPollInterval)
+	}
 }
 
 // WaitForStepStarted waits for a step to start and returns the execution
@@ -142,25 +227,6 @@ func isStepTerminal(status api.StepStatus) bool {
 	return status == api.StepCompleted ||
 		status == api.StepFailed ||
 		status == api.StepSkipped
-}
-
-func (e *TestEngineEnv) waitForTerminalFlow(flowID api.FlowID) api.FlowState {
-	e.T.Helper()
-
-	deadline := time.Now().Add(wait.DefaultTimeout)
-	for {
-		st, err := e.Engine.GetFlowState(flowID)
-		if err == nil && isFlowTerminal(st) {
-			return st
-		}
-		if time.Now().After(deadline) {
-			if err != nil {
-				e.T.Fatalf("failed to fetch flow %s: %v", flowID, err)
-			}
-			e.T.Fatalf("flow %s not terminal after event", flowID)
-		}
-		time.Sleep(waitPollInterval)
-	}
 }
 
 func (e *TestEngineEnv) waitForTerminalStep(
