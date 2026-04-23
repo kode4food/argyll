@@ -13,14 +13,14 @@ pip install argyll-sdk
 ### Define a Sync Step
 
 ```python
-from argyll import Client, StepContext, AttributeType, StepResult
+from argyll import Client, StepContext, AttributeType
 
 client = Client("http://localhost:8080")
 
-def handle_greeting(ctx: StepContext, args: dict) -> StepResult:
+def handle_greeting(ctx: StepContext, args: dict) -> dict:
     name = args.get("name", "World")
     greeting = f"Hello, {name}!"
-    return StepResult(success=True, outputs={"greeting": greeting})
+    return {"greeting": greeting}
 
 client.new_step().with_name("Greeting") \
     .required("name", AttributeType.STRING) \
@@ -31,16 +31,17 @@ client.new_step().with_name("Greeting") \
 ### Define an Async Step
 
 ```python
-from argyll import Client, StepContext, AsyncContext, AttributeType, StepResult
+from argyll import AsyncContext, AttributeType, Client, StepContext
+from argyll.errors import HTTPError
 import threading
 
 client = Client("http://localhost:8080")
 
-def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
+def handle_async_task(ctx: StepContext, args: dict) -> dict:
     # Extract webhook URL from metadata
     webhook_url = ctx.metadata.get("webhook_url")
     if not webhook_url:
-        return StepResult(success=False, error="No webhook URL")
+        raise HTTPError(400, "No webhook URL")
 
     async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
 
@@ -56,7 +57,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
     threading.Thread(target=process).start()
 
     # Return immediately
-    return StepResult(success=True, outputs={})
+    return {}
 
 client.new_step().with_name("AsyncTask") \
     .with_async_execution() \
@@ -106,12 +107,12 @@ client.new_step().with_name("Child Flow Wrapper") \
 ### Update a Step
 
 ```python
-from argyll import Client, StepContext, AttributeType, StepResult
+from argyll import Client, StepContext, AttributeType
 
 client = Client("http://localhost:8080")
 
-def handle_user(ctx: StepContext, args: dict) -> StepResult:
-    return StepResult(success=True, outputs={"user_name": "Jane"})
+def handle_user(ctx: StepContext, args: dict) -> dict:
+    return {"user_name": "Jane"}
 
 client.new_step().with_name("User Resolver") \
     .required("user_id", AttributeType.STRING) \

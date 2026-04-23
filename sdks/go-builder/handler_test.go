@@ -80,20 +80,15 @@ func TestHTTPError(t *testing.T) {
 
 	handler := func(
 		_ *builder.StepContext, _ api.Args,
-	) (api.StepResult, error) {
-		return api.StepResult{},
-			builder.NewHTTPError(http.StatusTeapot, "teapot")
+	) (api.Args, error) {
+		return nil, builder.NewHTTPError(http.StatusTeapot, "teapot")
 	}
 
 	stepURL := startStepServer(t,
 		engineServer.URL, "test-step", "test-step", handler,
 	)
 
-	req := api.StepRequest{
-		Arguments: api.Args{"foo": "bar"},
-		Metadata:  api.Metadata{api.MetaFlowID: "flow-1"},
-	}
-	body, err := json.Marshal(req)
+	body, err := json.Marshal(api.Args{"foo": "bar"})
 	assert.NoError(t, err)
 
 	resp, err := http.Post(stepURL, "application/json", bytes.NewBuffer(body))
@@ -116,7 +111,7 @@ func TestPanic(t *testing.T) {
 
 	handler := func(
 		_ *builder.StepContext, _ api.Args,
-	) (api.StepResult, error) {
+	) (api.Args, error) {
 		panic("boom")
 	}
 
@@ -124,23 +119,18 @@ func TestPanic(t *testing.T) {
 		engineServer.URL, "panic-step", "panic-step", handler,
 	)
 
-	req := api.StepRequest{
-		Arguments: api.Args{},
-		Metadata:  api.Metadata{api.MetaFlowID: "flow-2"},
-	}
-	body, err := json.Marshal(req)
+	body, err := json.Marshal(api.Args{})
 	assert.NoError(t, err)
 
 	resp, err := http.Post(stepURL, "application/json", bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
-	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Equal(t, http.StatusInternalServerError, resp.StatusCode)
 
-	var result api.StepResult
-	assert.NoError(t, json.NewDecoder(resp.Body).Decode(&result))
-	assert.False(t, result.Success)
-	assert.Contains(t, result.Error, builder.ErrHandlerPanic.Error())
+	var problem api.ProblemDetails
+	assert.NoError(t, json.NewDecoder(resp.Body).Decode(&problem))
+	assert.Contains(t, problem.Detail, builder.ErrHandlerPanic.Error())
 }
 
 func TestStartFallsBackToUpdateOnRegisterConflict(t *testing.T) {
@@ -165,8 +155,8 @@ func TestStartFallsBackToUpdateOnRegisterConflict(t *testing.T) {
 
 	handler := func(
 		_ *builder.StepContext, _ api.Args,
-	) (api.StepResult, error) {
-		return *api.NewResult(), nil
+	) (api.Args, error) {
+		return api.Args{}, nil
 	}
 
 	_ = startStepServer(t, engineServer.URL, "test-step", "test-step", handler)

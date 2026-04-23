@@ -7,6 +7,7 @@ Core model:
 - Sync and async HTTP steps need an HTTP endpoint. The default invocation method is POST.
 - Supported configured HTTP methods are GET, POST, PUT, and DELETE.
 - Endpoint placeholders such as /users/{user_id} must correspond to declared input attributes.
+- Step HTTP endpoints receive input args directly and return output args directly. Error responses should use HTTP status codes and Problem Details.
 
 SDK-hosted HTTP steps:
 - Use Go Start(handler) or Python start(handler) when the SDK should register the step and run the step HTTP server.

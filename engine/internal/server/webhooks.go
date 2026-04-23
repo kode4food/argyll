@@ -68,8 +68,14 @@ func (s *Server) handleWebhook(c *gin.Context) {
 func (s *Server) handleWorkWebhook(
 	c *gin.Context, fs api.FlowStep, tkn api.Token,
 ) {
-	var result api.StepResult
-	if err := c.ShouldBindJSON(&result); err != nil {
+	contentType := c.GetHeader("Content-Type")
+	if api.IsProblemJSON(contentType) {
+		s.handleWorkProblemWebhook(c, fs, tkn)
+		return
+	}
+
+	var outputs api.Args
+	if err := c.ShouldBindJSON(&outputs); err != nil {
 		slog.Error("Invalid JSON",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
@@ -82,36 +88,7 @@ func (s *Server) handleWorkWebhook(
 		return
 	}
 
-	if !result.Success {
-		slog.Error("Work failed",
-			log.FlowID(fs.FlowID),
-			log.StepID(fs.StepID),
-			log.Token(tkn),
-			log.ErrorString(result.Error))
-		if err := s.engine.FailWork(fs, tkn, result.Error); err != nil {
-			slog.Error("Failed to record work failure",
-				log.FlowID(fs.FlowID),
-				log.StepID(fs.StepID),
-				log.Token(tkn),
-				log.Error(err))
-			if errors.Is(err, engine.ErrInvalidWorkTransition) {
-				c.JSON(http.StatusBadRequest, api.ErrorResponse{
-					Error:  "Work item already completed",
-					Status: http.StatusBadRequest,
-				})
-				return
-			}
-			c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-				Error:  "Failed to record work failure",
-				Status: http.StatusInternalServerError,
-			})
-			return
-		}
-		c.Status(http.StatusOK)
-		return
-	}
-
-	if err := s.engine.CompleteWork(fs, tkn, result.Outputs); err != nil {
+	if err := s.engine.CompleteWork(fs, tkn, outputs); err != nil {
 		slog.Error("Failed to complete work",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
@@ -131,5 +108,50 @@ func (s *Server) handleWorkWebhook(
 		return
 	}
 
+	c.Status(http.StatusOK)
+}
+
+func (s *Server) handleWorkProblemWebhook(
+	c *gin.Context, fs api.FlowStep, tkn api.Token,
+) {
+	var problem api.ProblemDetails
+	if err := c.ShouldBindJSON(&problem); err != nil {
+		slog.Error("Invalid problem JSON",
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(tkn),
+			log.Error(err))
+		c.JSON(http.StatusBadRequest, api.ErrorResponse{
+			Error:  "Invalid problem JSON",
+			Status: http.StatusBadRequest,
+		})
+		return
+	}
+
+	errMsg := problem.Error()
+	slog.Error("Work failed",
+		log.FlowID(fs.FlowID),
+		log.StepID(fs.StepID),
+		log.Token(tkn),
+		log.ErrorString(errMsg))
+	if err := s.engine.FailWork(fs, tkn, errMsg); err != nil {
+		slog.Error("Failed to record work failure",
+			log.FlowID(fs.FlowID),
+			log.StepID(fs.StepID),
+			log.Token(tkn),
+			log.Error(err))
+		if errors.Is(err, engine.ErrInvalidWorkTransition) {
+			c.JSON(http.StatusBadRequest, api.ErrorResponse{
+				Error:  "Work item already completed",
+				Status: http.StatusBadRequest,
+			})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+			Error:  "Failed to record work failure",
+			Status: http.StatusInternalServerError,
+		})
+		return
+	}
 	c.Status(http.StatusOK)
 }

@@ -37,6 +37,13 @@ type (
 	}
 )
 
+const (
+	DefaultStepPort = 8081
+
+	routeSteps = "/engine/step"
+	routeFlow  = "/engine/flow"
+)
+
 var (
 	ErrRegisterStep  = errors.New("failed to register step")
 	ErrUpdateStep    = errors.New("failed to update step")
@@ -44,13 +51,6 @@ var (
 	ErrStartFlow     = errors.New("failed to start flow")
 	ErrGetFlow       = errors.New("failed to get flow")
 	ErrGetFlowStatus = errors.New("failed to get flow status")
-)
-
-const (
-	DefaultStepPort = 8081
-
-	routeSteps = "/engine/step"
-	routeFlow  = "/engine/flow"
 )
 
 // NewClient creates a new orchestrator client with the specified base URL and
@@ -88,43 +88,6 @@ func (c *Client) Flow(id api.FlowID) *FlowClient {
 		Client: c,
 		flowID: id,
 	}
-}
-
-func (c *Client) url(format string, args ...any) string {
-	path := fmt.Sprintf(format, args...)
-	return c.baseURL + path
-}
-
-func (c *Client) registerStep(ctx context.Context, step *api.Step) error {
-	return c.doHTTPRequest(ctx, httpRequest{
-		Method:    "POST",
-		URL:       c.url(routeSteps),
-		Body:      step,
-		ErrorType: ErrRegisterStep,
-		Accepted:  []int{http.StatusOK, http.StatusCreated},
-	})
-}
-
-func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
-	return c.doHTTPRequest(ctx, httpRequest{
-		Method:    "PUT",
-		URL:       c.url("%s/%s", routeSteps, step.ID),
-		Body:      step,
-		ErrorType: ErrUpdateStep,
-		Accepted:  []int{http.StatusOK},
-	})
-}
-
-func (c *Client) startFlow(
-	ctx context.Context, req *api.CreateFlowRequest,
-) error {
-	return c.doHTTPRequest(ctx, httpRequest{
-		Method:    "POST",
-		URL:       c.url(routeFlow),
-		Body:      req,
-		ErrorType: ErrStartFlow,
-		Accepted:  []int{http.StatusOK, http.StatusCreated},
-	})
 }
 
 // GetState retrieves the current state of the flow
@@ -166,6 +129,43 @@ func (c *FlowClient) FlowID() api.FlowID {
 	return c.flowID
 }
 
+func (c *Client) url(format string, args ...any) string {
+	path := fmt.Sprintf(format, args...)
+	return c.baseURL + path
+}
+
+func (c *Client) registerStep(ctx context.Context, step *api.Step) error {
+	return c.doHTTPRequest(ctx, httpRequest{
+		Method:    "POST",
+		URL:       c.url(routeSteps),
+		Body:      step,
+		ErrorType: ErrRegisterStep,
+		Accepted:  []int{http.StatusOK, http.StatusCreated},
+	})
+}
+
+func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
+	return c.doHTTPRequest(ctx, httpRequest{
+		Method:    "PUT",
+		URL:       c.url("%s/%s", routeSteps, step.ID),
+		Body:      step,
+		ErrorType: ErrUpdateStep,
+		Accepted:  []int{http.StatusOK},
+	})
+}
+
+func (c *Client) startFlow(
+	ctx context.Context, req *api.CreateFlowRequest,
+) error {
+	return c.doHTTPRequest(ctx, httpRequest{
+		Method:    "POST",
+		URL:       c.url(routeFlow),
+		Body:      req,
+		ErrorType: ErrStartFlow,
+		Accepted:  []int{http.StatusOK, http.StatusCreated},
+	})
+}
+
 func (c *Client) doHTTPRequest(ctx context.Context, req httpRequest) error {
 	var body io.Reader
 	if req.Body != nil {
@@ -182,7 +182,7 @@ func (c *Client) doHTTPRequest(ctx context.Context, req httpRequest) error {
 	}
 
 	if req.Body != nil {
-		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Content-Type", api.JSONContentType)
 	}
 
 	resp, err := c.httpClient.Do(httpReq)

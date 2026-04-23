@@ -93,16 +93,13 @@ Each work item has a unique **token**. The token is used to:
 1. work_item created with token = "work-abc-123"
 2. Engine calls step handler with:
    {
-     "arguments": { "region": "US", "product": "A" },
-     "metadata": {
-       "flow_id": "flow-123",
-       "step_id": "process-item",
-       "receipt_token": "work-abc-123"
-     }
+     "region": "US",
+     "product": "A"
    }
-3. Handler processes and returns outputs
-4. work_succeeded event recorded with token = "work-abc-123"
-5. Engine associates outputs with work item 1
+3. Handler reads Argyll-Flow-ID, Argyll-Step-ID, and Argyll-Receipt-Token headers if it needs execution context
+4. Handler processes and returns outputs
+5. work_succeeded event recorded with token = "work-abc-123"
+6. Engine associates outputs with work item 1
 6. When all work items complete, outputs are merged
 ```
 
@@ -295,23 +292,20 @@ When a step handler receives a work item:
 
 ```json
 {
-  "arguments": {
-    "item": { "id": "item-1", "value": 10 }
-  },
-  "metadata": {
-    "step_id": "process-item",
-    "flow_id": "flow-123",
-    "receipt_token": "work-abc-123"
-  }
+  "item": { "id": "item-1", "value": 10 }
 }
 ```
 
-**Important:** Always return a 200 OK response (sync steps) or accept the request (async steps). The handler must return successfully. If you want to mark a work item as failed, return:
+The engine sends execution context in `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` headers.
+
+If you want to mark a work item as failed, return a non-2xx response with Problem Details:
 
 ```json
 {
-  "success": false,
-  "error": "Item validation failed"
+  "type": "about:blank",
+  "title": "Unprocessable Entity",
+  "status": 422,
+  "detail": "Item validation failed"
 }
 ```
 

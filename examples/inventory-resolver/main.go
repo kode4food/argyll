@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"os"
 	"time"
 
@@ -113,7 +114,7 @@ func main() {
 	}
 }
 
-func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
+func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 
 	productID, hasProductID := args["product_id"].(string)
@@ -129,9 +130,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 	if !ok {
 		slog.Warn("Product not found in inventory",
 			slog.String("product_id", productID))
-		return *api.NewResult().WithError(
-			fmt.Errorf("product not found: %s", productID),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusNotFound,
+			fmt.Sprintf("product not found: %s", productID),
+		)
 	}
 
 	slog.Info("Product inventory resolved",
@@ -140,5 +142,5 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 		slog.Int("available_stock", productInfo.AvailableStock),
 		slog.Float64("price", productInfo.Price))
 
-	return *api.NewResult().WithOutput("product_info", productInfo), nil
+	return api.Args{"product_info": productInfo}, nil
 }

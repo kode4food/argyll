@@ -66,7 +66,7 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.Args, error) {
         userID, _ := args["user_id"].(string)
         // Lookup user...
 
@@ -75,9 +75,10 @@ func main() {
         // ctx.StepID contains the current step ID
         // ctx.Metadata contains flow metadata
 
-        return *api.NewResult().
-            WithOutput("user_name", "John Doe").
-            WithOutput("user_email", "john@example.com"), nil
+        return api.Args{
+            "user_name": "John Doe",
+            "user_email": "john@example.com",
+        }, nil
     }
 
     err := client.NewStep().WithName("User Resolver").
@@ -158,10 +159,10 @@ Use StepContext to create async context:
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.Args, error) {
         async, err := builder.NewAsyncContext(ctx)
         if err != nil {
-            return *api.NewResult().WithError(err), nil
+            return nil, builder.NewHTTPError(400, err.Error())
         }
 
         go func() {
@@ -171,7 +172,7 @@ func main() {
             }
         }()
 
-        return api.StepResult{Success: true}, nil
+        return api.Args{}, nil
     }
 
     err := client.NewStep().WithName("Async Step").
@@ -307,7 +308,7 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.Args, error) {
         orderID, _ := args["order_id"].(string)
         items := args["items"]
 
@@ -322,9 +323,10 @@ func main() {
 
         total := calculateTotal(items)
 
-        return *api.NewResult().
-            WithOutput("total_amount", total).
-            WithOutput("processed_at", time.Now().Unix()), nil
+        return api.Args{
+            "total_amount": total,
+            "processed_at": time.Now().Unix(),
+        }, nil
     }
 
     err := client.NewStep().WithName("Order Processor").
@@ -399,7 +401,7 @@ NewStep() Step
 ### StepHandler Type
 
 ```go
-type StepHandler func(*StepContext, api.Args) (api.StepResult, error)
+type StepHandler func(*StepContext, api.Args) (api.Args, error)
 ```
 
 ### StepContext Type

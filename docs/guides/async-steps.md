@@ -6,10 +6,10 @@ Async steps let you return immediately and complete later via webhook. Use them 
 
 1) Engine invokes your step endpoint with the configured HTTP method.
    Endpoint placeholders are resolved from runtime inputs for all HTTP methods.
-   For `POST`, `PUT`, and `DELETE`, arguments and metadata are sent as a JSON body.
+   For `POST`, `PUT`, and `DELETE`, input arguments are sent as the JSON body and execution metadata is sent in `Argyll-*` headers.
    For `GET`, no JSON body is sent.
-2) Your handler returns HTTP 200 quickly.
-3) Your async worker POSTs a StepResult to the webhook URL.
+2) Your handler returns a 2xx response quickly.
+3) Your async worker POSTs output arguments or Problem Details to the webhook URL.
 
 The webhook URL format is:
 
@@ -17,40 +17,39 @@ The webhook URL format is:
 {WEBHOOK_BASE_URL}/webhook/{flow_id}/{step_id}/{token}
 ```
 
-The engine provides this URL in `metadata.webhook_url` for async steps.
+The engine provides this URL in the `Argyll-Webhook-URL` header for async steps.
 
 ## Request and response shape
 
-Your step endpoint receives the same logical inputs as a sync step. The initial response should be a standard StepResult:
+Your step endpoint receives the same logical inputs as a sync step. The initial response should be a quick 2xx response, usually with an empty output object:
 
 ```json
 {
-  "success": true,
-  "outputs": {}
 }
 ```
 
-The webhook uses the same StepResult payload shape:
+The webhook success payload is the output arguments object:
 
 ```json
 {
-  "success": true,
-  "outputs": {"key": "value"}
+  "key": "value"
 }
 ```
 
-On failure:
+On failure, post RFC 9457 Problem Details with `Content-Type: application/problem+json`:
 
 ```json
 {
-  "success": false,
-  "error": "message"
+  "type": "about:blank",
+  "title": "Unprocessable Entity",
+  "status": 422,
+  "detail": "message"
 }
 ```
 
 ## Idempotency
 
-Each work item has a unique **receipt_token** in the metadata. The engine uses this token to ensure idempotency: duplicate webhook calls with the same token are rejected, making it safe to retry.
+Each work item has a unique **receipt token** in the `Argyll-Receipt-Token` header. The engine uses this token to ensure idempotency: duplicate webhook calls with the same token are rejected, making it safe to retry.
 
 This means **your worker can safely retry the webhook call**—duplicate attempts are automatically rejected without creating duplicate work.
 
@@ -59,14 +58,14 @@ This means **your worker can safely retry the webhook call**—duplicate attempt
 # First attempt (succeeds but response is lost)
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"success":true,"outputs":{"result":"ok"}}' \
+  -d '{"result":"ok"}' \
   https://engine/webhook/wf-123/step-abc/receipt-token-xyz
 # HTTP 200 - work item marked as succeeded
 
 # Worker retries the same request (same token)
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"success":true,"outputs":{"result":"ok"}}' \
+  -d '{"result":"ok"}' \
   https://engine/webhook/wf-123/step-abc/receipt-token-xyz
 # HTTP 400 Bad Request - already processed
 # Your worker can safely give up and move on
@@ -117,8 +116,7 @@ def send_completion(flow_id, step_id, receipt_token, result):
 ## Retries and failures
 
 - Retry behavior is controlled by step work config.
-- Posting webhook payload `{ "success": false, "error": "..." }` records a
-  permanent failure for that work item.
+- Posting `application/problem+json` records a permanent failure for that work item.
 - Retry scheduling is driven by `work_not_completed` transitions (for example,
   transient invocation failures like network errors or HTTP 5xx from a step
   endpoint).
@@ -137,6 +135,6 @@ See [guides/retries.md](./retries.md) for details.
 ```bash
 curl -X POST \
   -H "Content-Type: application/json" \
-  -d '{"success":true,"outputs":{"result":"ok"}}' \
+  -d '{"result":"ok"}' \
   https://your-webhook-base/webhook/wf-123/step-abc/token-xyz
 ```

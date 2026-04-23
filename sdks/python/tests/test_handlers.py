@@ -3,7 +3,7 @@
 import pytest
 import responses
 
-from argyll import Client, StepContext, StepResult, handlers
+from argyll import Client, StepContext, handlers
 from argyll.builder import StepBuilder
 from argyll.errors import ClientError, HTTPError, WebhookError
 from argyll.handlers import AsyncContext, _execute_with_recovery
@@ -77,8 +77,7 @@ def test_async_context_success():
     import json
 
     req_body = json.loads(responses.calls[0].request.body)
-    assert req_body["success"] is True
-    assert req_body["outputs"]["result"] == "done"
+    assert req_body["result"] == "done"
 
 
 @responses.activate
@@ -107,8 +106,11 @@ def test_async_context_fail():
     import json
 
     req_body = json.loads(responses.calls[0].request.body)
-    assert req_body["success"] is False
-    assert req_body["error"] == "Something went wrong"
+    assert responses.calls[0].request.headers["Content-Type"] == (
+        "application/problem+json"
+    )
+    assert req_body["detail"] == "Something went wrong"
+    assert req_body["status"] == 422
 
 
 @responses.activate
@@ -131,15 +133,13 @@ def test_async_context_complete():
         context=step_ctx, webhook_url="http://localhost:8080/webhook"
     )
 
-    result = StepResult(success=True, outputs={"data": "value"})
-    async_ctx.complete(result)
+    async_ctx.complete({"data": "value"})
 
     assert len(responses.calls) == 1
     import json
 
     req_body = json.loads(responses.calls[0].request.body)
-    assert req_body["success"] is True
-    assert req_body["outputs"]["data"] == "value"
+    assert req_body["data"] == "value"
 
 
 @responses.activate
@@ -175,11 +175,10 @@ def test_execute_with_recovery_success():
     )
 
     def handler(step_ctx, args):
-        return StepResult(success=True, outputs={"value": args["value"]})
+        return {"value": args["value"]}
 
     result = _execute_with_recovery(ctx, handler, {"value": 1})
-    assert result.success is True
-    assert result.outputs["value"] == 1
+    assert result["value"] == 1
 
 
 def test_execute_with_recovery_http_error():
@@ -208,9 +207,9 @@ def test_execute_with_recovery_exception_returns_failure():
     def handler(step_ctx, args):
         raise ValueError("boom")
 
-    result = _execute_with_recovery(ctx, handler, {})
-    assert result.success is False
-    assert "panicked" in result.error
+    with pytest.raises(HTTPError) as exc:
+        _execute_with_recovery(ctx, handler, {})
+    assert "panicked" in str(exc.value)
 
 
 class _DummyFlowClient:
@@ -251,7 +250,7 @@ def test_create_step_server_registers_and_handles_request(monkeypatch):
     builder = StepBuilder(client=client, name="Test Step")
 
     def handler(step_ctx, args):
-        return StepResult(success=True, outputs={"value": args["value"]})
+        return {"value": args["value"]}
 
     handlers.create_step_server(client, builder, handler)
 
@@ -263,15 +262,15 @@ def test_create_step_server_registers_and_handles_request(monkeypatch):
     assert resp.status_code == 200
     assert resp.get_json()["service"] == "test-step"
 
-    resp = test_client.post(
-        "/test-step",
-        json={"arguments": {"value": 3}, "metadata": {"flow_id": "flow-1"}},
-    )
-    assert resp.status_code == 200
-    data = resp.get_json()
-    assert data["success"] is True
-    assert data["outputs"]["value"] == 3
-    assert client.flow_ids == ["flow-1"]
+	resp = test_client.post(
+	    "/test-step",
+	    json={"value": 3},
+	    headers={"Argyll-Flow-ID": "flow-1"},
+	)
+	assert resp.status_code == 200
+	data = resp.get_json()
+	assert data["value"] == 3
+	assert client.flow_ids == ["flow-1"]
 
     bad_resp = test_client.post(
         "/test-step", data="null", content_type="application/json"
@@ -297,12 +296,13 @@ def test_create_step_server_http_error(monkeypatch):
 
     app = captured["app"]
     test_client = app.test_client()
-    resp = test_client.post(
-        "/test-step",
-        json={"arguments": {}, "metadata": {"flow_id": "flow-1"}},
-    )
-    assert resp.status_code == 409
-    assert resp.get_json()["error"] == "conflict"
+	resp = test_client.post(
+	    "/test-step",
+	    json={},
+	    headers={"Argyll-Flow-ID": "flow-1"},
+	)
+	assert resp.status_code == 409
+	assert resp.get_json()["detail"] == "conflict"
 
 
 def test_create_step_server_update(monkeypatch):
@@ -317,7 +317,7 @@ def test_create_step_server_update(monkeypatch):
     builder = StepBuilder(client=client, name="Test Step").update()
 
     def handler(step_ctx, args):
-        return StepResult(success=True)
+        return {}
 
     handlers.create_step_server(client, builder, handler)
 
@@ -342,7 +342,7 @@ def test_create_step_server_register_conflict_falls_back_to_update(monkeypatch):
     builder = StepBuilder(client=client, name="Test Step")
 
     def handler(step_ctx, args):
-        return StepResult(success=True)
+        return {}
 
     handlers.create_step_server(client, builder, handler)
 

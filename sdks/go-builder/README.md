@@ -32,9 +32,9 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.Args, error) {
         name := args["name"].(string)
-        return *api.NewResult().WithOutput("greeting", "Hello, "+name), nil
+        return api.Args{"greeting": "Hello, " + name}, nil
     }
 
     if err := client.NewStep().WithName("Greeting").
@@ -63,10 +63,10 @@ import (
 func main() {
     client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
-    handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+    handler := func(ctx *builder.StepContext, args api.Args) (api.Args, error) {
         asyncCtx, err := builder.NewAsyncContext(ctx)
         if err != nil {
-            return api.StepResult{}, err
+            return nil, err
         }
 
         // Start background work
@@ -75,7 +75,7 @@ func main() {
             asyncCtx.Success(api.Args{"result": "done"})
         }()
 
-        return *api.NewResult(), nil
+        return api.Args{}, nil
     }
 
     if err := client.NewStep().WithName("AsyncTask").
@@ -258,9 +258,9 @@ export STEP_HOSTNAME=localhost  # Server hostname (default: localhost)
 ## Error Handling
 
 ```go
-handler := func(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+handler := func(ctx *builder.StepContext, args api.Args) (api.Args, error) {
     if !authorized {
-        return api.StepResult{}, builder.NewHTTPError(401, "Unauthorized")
+        return nil, builder.NewHTTPError(401, "Unauthorized")
     }
     // ... process step
 }

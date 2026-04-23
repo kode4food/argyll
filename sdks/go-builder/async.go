@@ -11,8 +11,8 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// AsyncContext provides functionality to manage asynchronous step execution.
-// It embeds StepContext and adds the webhook URL for result delivery
+// AsyncContext provides functionality to manage asynchronous step execution
+// and embeds StepContext with the webhook URL for result delivery
 type AsyncContext struct {
 	*StepContext
 	webhookURL string
@@ -24,7 +24,7 @@ var (
 	ErrWebhookError       = errors.New("webhook returned error status")
 )
 
-// NewAsyncContext creates a new async context from a StepContext. It extracts
+// NewAsyncContext creates a new async context from a StepContext and extracts
 // webhook_url from the StepContext metadata
 func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 	if ctx.Metadata == nil {
@@ -44,25 +44,18 @@ func NewAsyncContext(ctx *StepContext) (*AsyncContext, error) {
 
 // Success marks an async step as successfully completed with the given outputs
 func (c *AsyncContext) Success(outputs api.Args) error {
-	result := api.StepResult{
-		Success: true,
-		Outputs: outputs,
-	}
-	return c.sendWebhook(result)
+	return c.sendWebhook(api.JSONContentType, outputs)
 }
 
-// Complete sends the full step result to the orchestrator via webhook
-func (c *AsyncContext) Complete(result api.StepResult) error {
-	return c.sendWebhook(result)
+// Complete sends output arguments to the orchestrator via webhook
+func (c *AsyncContext) Complete(outputs api.Args) error {
+	return c.Success(outputs)
 }
 
 // Fail marks the async step as failed with the given error
 func (c *AsyncContext) Fail(err error) error {
-	result := api.StepResult{
-		Success: false,
-		Error:   err.Error(),
-	}
-	return c.sendWebhook(result)
+	problem := api.NewProblem(http.StatusUnprocessableEntity, err.Error())
+	return c.sendWebhook(api.ProblemJSONContentType, problem)
 }
 
 // FlowID returns the flow ID for this async context
@@ -80,14 +73,14 @@ func (c *AsyncContext) WebhookURL() string {
 	return c.webhookURL
 }
 
-func (c *AsyncContext) sendWebhook(result api.StepResult) error {
-	jsonData, err := json.Marshal(result)
+func (c *AsyncContext) sendWebhook(contentType string, body any) error {
+	jsonData, err := json.Marshal(body)
 	if err != nil {
-		return fmt.Errorf("failed to marshal result: %w", err)
+		return fmt.Errorf("failed to marshal webhook body: %w", err)
 	}
 
 	resp, err := http.Post(
-		c.webhookURL, "application/json", bytes.NewBuffer(jsonData),
+		c.webhookURL, contentType, bytes.NewBuffer(jsonData),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to send webhook: %w", err)

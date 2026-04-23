@@ -6,7 +6,8 @@ import threading
 import time
 from datetime import datetime
 
-from argyll import AsyncContext, AttributeType, Client, StepContext, StepResult
+from argyll import AsyncContext, AttributeType, Client, StepContext
+from argyll.errors import HTTPError
 
 # Get engine URL from environment
 ENGINE_URL = os.getenv("ARGYLL_ENGINE_URL", "http://localhost:8080")
@@ -15,11 +16,11 @@ ENGINE_URL = os.getenv("ARGYLL_ENGINE_URL", "http://localhost:8080")
 client = Client(ENGINE_URL)
 
 
-def handle_payment(ctx: StepContext, args: dict) -> StepResult:
+def handle_payment(ctx: StepContext, args: dict) -> dict:
     """Process payment asynchronously."""
     order = args.get("order")
     if not isinstance(order, dict):
-        return StepResult(success=False, error="order must be an object")
+        raise HTTPError(400, "order must be an object")
 
     order_id = order.get("id", "")
     grand_total = order.get("grand_total", 0.0)
@@ -35,7 +36,7 @@ def handle_payment(ctx: StepContext, args: dict) -> StepResult:
     if not webhook_url:
         print(f"ERROR: No webhook_url in metadata. Keys: {list(ctx.metadata.keys())}")
         print(f"Metadata: {ctx.metadata}")
-        return StepResult(success=False, error="webhook_url not found in metadata")
+        raise HTTPError(400, "Argyll-Webhook-URL header not found")
 
     print(f"Webhook URL: {webhook_url}")
     async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
@@ -87,7 +88,7 @@ def handle_payment(ctx: StepContext, args: dict) -> StepResult:
 
     threading.Thread(target=process_payment, daemon=True).start()
 
-    return StepResult(success=True, outputs={})
+    return {}
 
 
 if __name__ == "__main__":

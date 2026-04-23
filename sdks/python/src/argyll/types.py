@@ -2,6 +2,7 @@
 
 from dataclasses import dataclass, field
 from enum import Enum
+from http import HTTPStatus
 from typing import Any, Dict, List, Optional
 
 # Type aliases
@@ -215,18 +216,30 @@ class Step:
 
 
 @dataclass(frozen=True)
-class StepResult:
-    """Result from step execution."""
+class ProblemDetails:
+    """RFC 9457 problem details for failed step execution."""
 
-    success: bool
-    outputs: Args = field(default_factory=dict)
-    error: str = ""
+    status: int
+    detail: str
+    type: str = "about:blank"
+    title: str = ""
+    instance: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
-        result: Dict[str, Any] = {"success": self.success}
-        if self.outputs:
-            result["outputs"] = self.outputs
-        if self.error:
-            result["error"] = self.error
+        result: Dict[str, Any] = {
+            "type": self.type,
+            "title": self.title or _status_title(self.status),
+            "status": self.status,
+            "detail": self.detail,
+        }
+        if self.instance:
+            result["instance"] = self.instance
         return result
+
+
+def _status_title(status: int) -> str:
+    try:
+        return HTTPStatus(status).phrase
+    except ValueError:
+        return ""

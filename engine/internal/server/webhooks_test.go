@@ -37,8 +37,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 		err = env.Engine.StartFlow("invalid-work-flow", pl)
 		assert.NoError(t, err)
 
-		result := api.StepResult{Success: true}
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
 			"/webhook/invalid-work-flow/"+string(st.ID)+"/fake-token",
 			bytes.NewReader(body))
@@ -146,12 +145,7 @@ func TestHookCompleteTwice(t *testing.T) {
 			break
 		}
 
-		result := api.StepResult{
-			Success: true,
-			Outputs: api.Args{"output": "value1"},
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{"output": "value1"})
 		req := httptest.NewRequest("POST",
 			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
@@ -169,12 +163,7 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		// Second webhook call with same token should be rejected (400) due to
 		// invalid work state transition
-		result = api.StepResult{
-			Success: true,
-			Outputs: api.Args{"output": "value2"},
-		}
-
-		body, _ = json.Marshal(result)
+		body, _ = json.Marshal(api.Args{"output": "value2"})
 		req = httptest.NewRequest("POST",
 			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
@@ -235,16 +224,13 @@ func TestHookFailTwice(t *testing.T) {
 		}
 
 		// First FailWork should succeed
-		result := api.StepResult{
-			Success: false,
-			Error:   "error1",
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.NewProblem(
+			http.StatusUnprocessableEntity, "error1",
+		))
 		req := httptest.NewRequest("POST",
 			"/webhook/double-fail-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -253,16 +239,13 @@ func TestHookFailTwice(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 
 		// Second FailWork with same token should be rejected (400)
-		result = api.StepResult{
-			Success: false,
-			Error:   "error2",
-		}
-
-		body, _ = json.Marshal(result)
+		body, _ = json.Marshal(api.NewProblem(
+			http.StatusUnprocessableEntity, "error2",
+		))
 		req = httptest.NewRequest("POST",
 			"/webhook/double-fail-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w = httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -319,12 +302,7 @@ func TestHookSuccess(t *testing.T) {
 			break
 		}
 
-		result := api.StepResult{
-			Success: true,
-			Outputs: api.Args{"result": "success"},
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{"result": "success"})
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-success-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
@@ -379,16 +357,13 @@ func TestHookWorkFailure(t *testing.T) {
 			break
 		}
 
-		result := api.StepResult{
-			Success: false,
-			Error:   "step failed",
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.NewProblem(
+			http.StatusUnprocessableEntity, "step failed",
+		))
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-fail-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()

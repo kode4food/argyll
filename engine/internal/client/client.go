@@ -31,10 +31,10 @@ type (
 )
 
 var (
-	ErrStepUnsuccessful   = errors.New("step unsuccessful")
 	ErrHTTPError          = errors.New("step returned HTTP error")
 	ErrNoHTTPConfig       = errors.New("step has no HTTP configuration")
 	ErrMissingEndpointArg = errors.New("missing endpoint argument")
+	ErrInvalidOutputJSON  = errors.New("invalid output JSON")
 )
 
 var endpointParamPattern = regexp.MustCompile(`\{([^{}]+)\}`)
@@ -83,7 +83,7 @@ func (c *HTTPClient) buildRequest(
 		return nil, err
 	}
 
-	bodyReader, err := c.requestBody(method, args, meta)
+	bodyReader, err := c.requestBody(method, args)
 	if err != nil {
 		slog.Error("Failed to marshal step request",
 			log.StepID(step.ID),
@@ -99,26 +99,24 @@ func (c *HTTPClient) buildRequest(
 		return nil, err
 	}
 
-	httpReq.Header.Set("Accept", "application/json")
+	httpReq.Header.Set("Accept", api.JSONContentType)
 	httpReq.Header.Set("User-Agent", "Argyll-Engine/1.0")
+	api.SetMetadataHeaders(httpReq.Header, meta)
 	if bodyReader != nil {
-		httpReq.Header.Set("Content-Type", "application/json")
+		httpReq.Header.Set("Content-Type", api.JSONContentType)
 	}
 
 	return httpReq, nil
 }
 
 func (c *HTTPClient) requestBody(
-	method string, args api.Args, meta api.Metadata,
+	method string, args api.Args,
 ) (io.Reader, error) {
 	if method == "GET" {
 		return nil, nil
 	}
 
-	body, err := json.Marshal(api.StepRequest{
-		Arguments: args,
-		Metadata:  meta,
-	})
+	body, err := json.Marshal(args)
 	if err != nil {
 		return nil, err
 	}
@@ -155,25 +153,27 @@ func (c *HTTPClient) sendRequest(
 		return nil, err
 	}
 
-	if resp.StatusCode != http.StatusOK {
+	if resp.StatusCode < http.StatusOK ||
+		resp.StatusCode >= http.StatusMultipleChoices {
 		slog.Error("HTTP error",
 			log.StepID(step.ID),
 			log.Error(fmt.Errorf("status %d", resp.StatusCode)),
 			slog.Int("status_code", resp.StatusCode),
 			slog.String("response_body", string(respBody)))
 
+		err := httpError(
+			resp.StatusCode,
+			resp.Header.Get("Content-Type"),
+			respBody,
+		)
+
 		// 4xx errors are permanent failures
 		if resp.StatusCode >= 400 && resp.StatusCode < 500 {
-			return nil, fmt.Errorf("%w: status %d", ErrHTTPError,
-				resp.StatusCode)
+			return nil, err
 		}
 
 		// 5xx errors are transient
-		return nil,
-			errors.Join(
-				api.ErrWorkNotCompleted,
-				fmt.Errorf("%w: status %d", ErrHTTPError, resp.StatusCode),
-			)
+		return nil, errors.Join(api.ErrWorkNotCompleted, err)
 	}
 
 	return respBody, nil
@@ -189,28 +189,19 @@ func (c *HTTPClient) requestTimeout(step *api.Step) time.Duration {
 func (c *HTTPClient) parseResponse(
 	step *api.Step, respBody []byte,
 ) (api.Args, error) {
-	var response api.StepResult
-	if err := json.Unmarshal(respBody, &response); err != nil {
+	if len(bytes.TrimSpace(respBody)) == 0 {
+		return nil, nil
+	}
+
+	var outputs api.Args
+	if err := json.Unmarshal(respBody, &outputs); err != nil {
 		slog.Error("Failed to unmarshal response",
 			log.StepID(step.ID),
 			log.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("%w: %w", ErrInvalidOutputJSON, err)
 	}
 
-	if !response.Success {
-		if response.Error == "" {
-			slog.Error("Step unsuccessful",
-				log.StepID(step.ID),
-				log.Error(ErrStepUnsuccessful))
-			return nil, ErrStepUnsuccessful
-		}
-		slog.Error("Step failed",
-			log.StepID(step.ID),
-			log.ErrorString(response.Error))
-		return nil, fmt.Errorf("%w: %s", ErrStepUnsuccessful, response.Error)
-	}
-
-	return response.Outputs, nil
+	return outputs, nil
 }
 
 func resolveEndpoint(endpoint string, args api.Args) (string, error) {
@@ -262,4 +253,29 @@ func endpointValue(value any) string {
 	}
 
 	return fmt.Sprint(value)
+}
+
+func httpError(status int, contentType string, body []byte) error {
+	problem := problemFromBody(contentType, body)
+	if problem != nil && problem.Error() != "" {
+		return fmt.Errorf("%w: status %d: %s", ErrHTTPError, status, problem)
+	}
+	return fmt.Errorf("%w: status %d", ErrHTTPError, status)
+}
+
+func problemFromBody(contentType string, body []byte) *api.ProblemDetails {
+	if !api.IsProblemJSON(contentType) {
+		return nil
+	}
+	if len(bytes.TrimSpace(body)) == 0 {
+		return nil
+	}
+	var problem api.ProblemDetails
+	if err := json.Unmarshal(body, &problem); err != nil {
+		return nil
+	}
+	if problem.Type == "" && problem.Title == "" && problem.Detail == "" {
+		return nil
+	}
+	return &problem
 }

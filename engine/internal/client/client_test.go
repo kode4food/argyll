@@ -28,17 +28,13 @@ func TestSuccess(t *testing.T) {
 			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
 			assert.Equal(t, "Argyll-Engine/1.0", r.Header.Get("User-Agent"))
 
-			var req api.StepRequest
+			var req api.Args
 			assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))
+			assert.Equal(t, "test-input", req["input"])
+			assert.Equal(t, "test-flow", r.Header.Get(api.HeaderFlowID))
 
-			response := api.StepResult{
-				Success: true,
-				Outputs: api.Args{
-					"result": "test-output",
-				},
-			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(api.Args{"result": "test-output"})
 		},
 	))
 	defer server.Close()
@@ -89,14 +85,14 @@ func TestHTTPError(t *testing.T) {
 	assert.Contains(t, err.Error(), "500")
 }
 
-func TestSuccessFalse(t *testing.T) {
+func TestProblemDetailsPermanentFailure(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			response := api.StepResult{
-				Success: false,
-			}
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(response)
+			w.Header().Set("Content-Type", api.ProblemJSONContentType)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = json.NewEncoder(w).Encode(api.NewProblem(
+				http.StatusUnprocessableEntity, "validation failed",
+			))
 		},
 	))
 	defer server.Close()
@@ -109,18 +105,22 @@ func TestSuccessFalse(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
+	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.NotErrorIs(t, err, api.ErrWorkNotCompleted)
+	assert.Contains(t, err.Error(), "validation failed")
 }
 
-func TestSuccessFalseWithError(t *testing.T) {
+func TestProblemMediaParams(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			response := api.StepResult{
-				Success: false,
-				Error:   "custom error message",
-			}
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(response)
+			w.Header().Set(
+				"Content-Type",
+				api.ProblemJSONContentType+"; charset=utf-8",
+			)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = json.NewEncoder(w).Encode(api.NewProblem(
+				http.StatusUnprocessableEntity, "validation failed",
+			))
 		},
 	))
 	defer server.Close()
@@ -133,7 +133,56 @@ func TestSuccessFalseWithError(t *testing.T) {
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
-	assert.ErrorIs(t, err, client.ErrStepUnsuccessful)
+	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.Contains(t, err.Error(), "validation failed")
+}
+
+func TestProblemMediaRequired(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", api.JSONContentType)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			_ = json.NewEncoder(w).Encode(api.NewProblem(
+				http.StatusUnprocessableEntity, "validation failed",
+			))
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID:   "test-step",
+		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+	}
+
+	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, client.ErrHTTPError)
+	assert.NotContains(t, err.Error(), "validation failed")
+}
+
+func TestProblemDetailsRetryableFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", api.ProblemJSONContentType)
+			w.WriteHeader(http.StatusServiceUnavailable)
+			_ = json.NewEncoder(w).Encode(api.NewProblem(
+				http.StatusServiceUnavailable, "custom error message",
+			))
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID:   "test-step",
+		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+	}
+
+	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, api.ErrWorkNotCompleted)
+	assert.ErrorIs(t, err, client.ErrHTTPError)
 	assert.Contains(t, err.Error(), "custom error message")
 }
 
@@ -183,14 +232,8 @@ func TestStepTimeoutOverride(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			time.Sleep(100 * time.Millisecond)
-			response := api.StepResult{
-				Success: true,
-				Outputs: api.Args{
-					"result": "ok",
-				},
-			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(api.Args{"result": "ok"})
 		},
 	))
 	defer server.Close()
@@ -238,12 +281,8 @@ func TestStepTimeoutShorter(t *testing.T) {
 func TestEmptyOutputs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			response := api.StepResult{
-				Success: true,
-				Outputs: nil,
-			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(response)
+			w.WriteHeader(http.StatusNoContent)
 		},
 	))
 	defer server.Close()
@@ -262,16 +301,12 @@ func TestEmptyOutputs(t *testing.T) {
 func TestMultipleOutputs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			response := api.StepResult{
-				Success: true,
-				Outputs: api.Args{
-					"result1": "value1",
-					"result2": 42,
-					"result3": true,
-				},
-			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(response)
+			_ = json.NewEncoder(w).Encode(api.Args{
+				"result1": "value1",
+				"result2": 42,
+				"result3": true,
+			})
 		},
 	))
 	defer server.Close()
@@ -322,10 +357,7 @@ func TestGETURLParams(t *testing.T) {
 			assert.Empty(t, body)
 
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(api.StepResult{
-				Success: true,
-				Outputs: api.Args{"result": "ok"},
-			})
+			_ = json.NewEncoder(w).Encode(api.Args{"result": "ok"})
 		},
 	))
 	defer server.Close()

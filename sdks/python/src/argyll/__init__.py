@@ -24,11 +24,11 @@ from .types import (
     Labels,
     Metadata,
     PredicateConfig,
+    ProblemDetails,
     ScriptConfig,
     ScriptLanguage,
     Step,
     StepID,
-    StepResult,
     StepType,
     WorkConfig,
 )
@@ -48,7 +48,7 @@ __all__ = [
     "StepHandler",
     # Types
     "Step",
-    "StepResult",
+    "ProblemDetails",
     "StepType",
     "AttributeRole",
     "AttributeType",

@@ -13,16 +13,16 @@ pip install argyll-sdk
 Create a simple synchronous step that processes a greeting:
 
 ```python
-from argyll import Client, StepContext, AttributeType, StepResult
+from argyll import Client, StepContext, AttributeType
 
 # Connect to the Argyll engine
 client = Client("http://localhost:8080")
 
 # Define your step handler
-def handle_greeting(ctx: StepContext, args: dict) -> StepResult:
+def handle_greeting(ctx: StepContext, args: dict) -> dict:
     name = args.get("name", "World")
     greeting = f"Hello, {name}!"
-    return StepResult(success=True, outputs={"greeting": greeting})
+    return {"greeting": greeting}
 
 # Register and start the step server
 client.new_step().with_name("Greeting") \
@@ -42,16 +42,17 @@ The step server automatically:
 For long-running operations, use async steps:
 
 ```python
-from argyll import Client, StepContext, AsyncContext, AttributeType, StepResult
+from argyll import AsyncContext, AttributeType, Client, StepContext
+from argyll.errors import HTTPError
 import threading
 import time
 
 client = Client()
 
-def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
+def handle_async_task(ctx: StepContext, args: dict) -> dict:
     webhook_url = ctx.metadata.get("webhook_url")
     if not webhook_url:
-        return StepResult(success=False, error="No webhook URL")
+        raise HTTPError(400, "No webhook URL")
 
     async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
 
@@ -60,7 +61,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
         async_ctx.success({"result": "done"})
 
     threading.Thread(target=background_work, daemon=True).start()
-    return StepResult(success=True, outputs={"status": "started"})
+    return {"status": "started"}
 
 client.new_step().with_name("AsyncTask") \
     .with_async_execution() \
@@ -187,12 +188,12 @@ client.new_step().with_name("ExpensiveComputation") \
 Mark a step as modified to update the existing registration:
 
 ```python
-from argyll import Client, StepContext, AttributeType, StepResult
+from argyll import Client, StepContext, AttributeType
 
 client = Client()
 
-def handle_user(ctx: StepContext, args: dict) -> StepResult:
-    return StepResult(success=True, outputs={"user_name": "Jane"})
+def handle_user(ctx: StepContext, args: dict) -> dict:
+    return {"user_name": "Jane"}
 
 client.new_step().with_name("User Resolver") \
     .required("user_id", AttributeType.STRING) \
@@ -240,7 +241,7 @@ Custom HTTP status codes:
 ```python
 from argyll import HTTPError
 
-def handle_step(ctx: StepContext, args: dict) -> StepResult:
+def handle_step(ctx: StepContext, args: dict) -> dict:
     if not args.get("token"):
         raise HTTPError(401, "Unauthorized")
     # ... process step

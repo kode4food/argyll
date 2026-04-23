@@ -1,16 +1,16 @@
 """Simple sync step example."""
 
-from argyll import Client, StepContext, AttributeType, StepResult
+from argyll import AttributeType, Client, StepContext
 
 client = Client("http://localhost:8080")
 
 
-def handle_greeting(ctx: StepContext, args: dict) -> StepResult:
+def handle_greeting(ctx: StepContext, args: dict) -> dict:
     """Simple greeting step handler."""
     name = args.get("name", "World")
     greeting = f"Hello, {name}!"
     print(f"Greeting: {greeting}")
-    return StepResult(success=True, outputs={"greeting": greeting})
+    return {"greeting": greeting}
 
 
 if __name__ == "__main__":

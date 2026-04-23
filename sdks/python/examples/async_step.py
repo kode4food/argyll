@@ -3,16 +3,17 @@
 import threading
 import time
 
-from argyll import Client, StepContext, AsyncContext, AttributeType, StepResult
+from argyll import AsyncContext, AttributeType, Client, StepContext
+from argyll.errors import HTTPError
 
 client = Client("http://localhost:8080")
 
 
-def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
+def handle_async_task(ctx: StepContext, args: dict) -> dict:
     """Async task that processes in background."""
     webhook_url = ctx.metadata.get("webhook_url")
     if not webhook_url:
-        return StepResult(success=False, error="No webhook URL")
+        raise HTTPError(400, "No webhook URL")
 
     async_ctx = AsyncContext(context=ctx, webhook_url=webhook_url)
     duration = args.get("duration", 5)
@@ -31,7 +32,7 @@ def handle_async_task(ctx: StepContext, args: dict) -> StepResult:
 
     threading.Thread(target=process, daemon=True).start()
 
-    return StepResult(success=True, outputs={"status": "started"})
+    return {"status": "started"}
 
 
 if __name__ == "__main__":

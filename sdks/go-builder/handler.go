@@ -8,9 +8,9 @@ import (
 )
 
 type (
-	// StepHandler is the function signature for step implementations. It
+	// StepHandler is the function signature for step implementations and
 	// receives a StepContext which includes both context and flow client
-	StepHandler func(*StepContext, api.Args) (api.StepResult, error)
+	StepHandler func(*StepContext, api.Args) (api.Args, error)
 
 	// StepContext provides context and client capabilities to step handlers
 	StepContext struct {

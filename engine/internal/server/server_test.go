@@ -391,12 +391,7 @@ func TestSuccess(t *testing.T) {
 		}
 
 		// Now call webhook with the real token
-		result := api.StepResult{
-			Success: true,
-			Outputs: api.Args{"result": "completed"},
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{"result": "completed"})
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/async-step/"+string(tkn),
 			bytes.NewReader(body))
@@ -412,12 +407,7 @@ func TestSuccess(t *testing.T) {
 
 func TestHookFlowNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		result := api.StepResult{
-			Success: true,
-			Outputs: api.Args{"result": "completed"},
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{"result": "completed"})
 		req := httptest.NewRequest("POST",
 			"/webhook/nonexistent-wf/step-id/token",
 			bytes.NewReader(body))
@@ -458,11 +448,7 @@ func TestHookStepNotFound(t *testing.T) {
 		err = testEnv.Engine.StartFlow("webhook-wf", pl)
 		assert.NoError(t, err)
 
-		result := api.StepResult{
-			Success: true,
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/nonexistent-step/token",
 			bytes.NewReader(body))
@@ -515,11 +501,7 @@ func TestHookInvalidToken(t *testing.T) {
 			})
 
 		// Try with wrong token
-		result := api.StepResult{
-			Success: true,
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{})
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/async-step/wrong-token",
 			bytes.NewReader(body))
@@ -643,16 +625,13 @@ func TestHookFailurePath(t *testing.T) {
 			break
 		}
 
-		result := api.StepResult{
-			Success: false,
-			Error:   "boom",
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.NewProblem(
+			http.StatusUnprocessableEntity, "boom",
+		))
 		req := httptest.NewRequest("POST",
 			"/webhook/wf-fail-path/async-step/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.ProblemJSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1726,12 +1705,7 @@ func TestHookSuccessRoute(t *testing.T) {
 			break
 		}
 
-		result := api.StepResult{
-			Success: true,
-			Outputs: api.Args{"output": "value"},
-		}
-
-		body, _ := json.Marshal(result)
+		body, _ := json.Marshal(api.Args{"output": "value"})
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))

@@ -78,11 +78,10 @@ func TestAsyncContextComplete(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 
-			var result api.StepResult
-			err := json.NewDecoder(r.Body).Decode(&result)
+			var outputs api.Args
+			err := json.NewDecoder(r.Body).Decode(&outputs)
 			assert.NoError(t, err)
-			assert.True(t, result.Success)
-			assert.Equal(t, "result-value", result.Outputs["output_key"])
+			assert.Equal(t, "result-value", outputs["output_key"])
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -112,11 +111,13 @@ func TestAsyncContextComplete(t *testing.T) {
 func TestAsyncContextFail(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			var result api.StepResult
-			err := json.NewDecoder(r.Body).Decode(&result)
+			assert.Equal(t,
+				api.ProblemJSONContentType, r.Header.Get("Content-Type"),
+			)
+			var problem api.ProblemDetails
+			err := json.NewDecoder(r.Body).Decode(&problem)
 			assert.NoError(t, err)
-			assert.False(t, result.Success)
-			assert.Contains(t, result.Error, "general error")
+			assert.Contains(t, problem.Detail, "general error")
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -179,12 +180,11 @@ func TestComplete(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 
-			var result api.StepResult
-			err := json.NewDecoder(r.Body).Decode(&result)
+			var outputs api.Args
+			err := json.NewDecoder(r.Body).Decode(&outputs)
 			assert.NoError(t, err)
-			assert.True(t, result.Success)
-			assert.Equal(t, "value1", result.Outputs["key1"])
-			assert.Equal(t, "value2", result.Outputs["key2"])
+			assert.Equal(t, "value1", outputs["key1"])
+			assert.Equal(t, "value2", outputs["key2"])
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -207,13 +207,9 @@ func TestComplete(t *testing.T) {
 	ac, err := builder.NewAsyncContext(ctx)
 	assert.NoError(t, err)
 
-	result := api.StepResult{
-		Success: true,
-		Outputs: api.Args{
-			"key1": "value1",
-			"key2": "value2",
-		},
-	}
-	err = ac.Complete(result)
+	err = ac.Complete(api.Args{
+		"key1": "value1",
+		"key2": "value2",
+	})
 	assert.NoError(t, err)
 }

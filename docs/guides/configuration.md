@@ -207,7 +207,7 @@ Per-step retry behavior:
 - HTTP 5xx errors (500, 502, 503, etc.)
 
 **Permanent Errors:**
-- 200 OK with `success: false` - counts as handled error, no retry
+- HTTP 4xx with `application/problem+json` - counts as handled error, no retry
 - 4xx errors (typically) - no retry
 
 **Backoff Strategies:**

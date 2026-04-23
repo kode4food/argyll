@@ -619,62 +619,6 @@ func TestGetOptionalArgs(t *testing.T) {
 	as.NotContains(optionalArgs, api.Name("result"))
 }
 
-func TestNewResult(t *testing.T) {
-	as := assert.New(t)
-
-	result := api.NewResult()
-	as.True(result.Success)
-	as.Nil(result.Outputs)
-	as.Empty(result.Error)
-}
-
-func TestWithOutput(t *testing.T) {
-	as := assert.New(t)
-
-	result := &api.StepResult{Success: true}
-	result = result.WithOutput("key", "value")
-
-	as.NotNil(result.Outputs)
-	as.Equal("value", result.Outputs["key"])
-}
-
-func TestWithOutputImmutable(t *testing.T) {
-	as := assert.New(t)
-
-	original := &api.StepResult{
-		Success: true,
-		Outputs: api.Args{"existing": "value"},
-	}
-	updated := original.WithOutput("new", "next")
-
-	as.Equal("value", original.Outputs["existing"])
-	_, ok := original.Outputs["new"]
-	as.False(ok)
-	as.Equal("next", updated.Outputs["new"])
-}
-
-func TestWithError(t *testing.T) {
-	as := assert.New(t)
-
-	result := &api.StepResult{Success: true}
-	result = result.WithError(api.ErrStepIDEmpty)
-
-	as.False(result.Success)
-	as.Contains(result.Error, "ID")
-}
-
-func TestWithErrorImmutable(t *testing.T) {
-	as := assert.New(t)
-
-	original := &api.StepResult{Success: true}
-	updated := original.WithError(api.ErrStepIDEmpty)
-
-	as.True(original.Success)
-	as.Empty(original.Error)
-	as.False(updated.Success)
-	as.Contains(updated.Error, "ID")
-}
-
 func TestEqualHTTP(t *testing.T) {
 	as := assert.New(t)
 
@@ -1305,72 +1249,6 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			},
 		}
 		as.False(step1.Equal(step2))
-	})
-}
-
-func TestResultEdgeCases(t *testing.T) {
-	as := assert.New(t)
-
-	t.Run("multiple_sequential_outputs", func(t *testing.T) {
-		result := &api.StepResult{Success: true}
-		result = result.
-			WithOutput("key1", "value1").
-			WithOutput("key2", 42).
-			WithOutput("key3", true)
-
-		as.NotNil(result.Outputs)
-		as.Len(result.Outputs, 3)
-		as.Equal("value1", result.Outputs["key1"])
-		as.Equal(42, result.Outputs["key2"])
-		as.Equal(true, result.Outputs["key3"])
-	})
-
-	t.Run("overwrite_existing_output", func(t *testing.T) {
-		result := &api.StepResult{Success: true}
-		result = result.
-			WithOutput("key", "original").
-			WithOutput("key", "updated")
-
-		as.Equal("updated", result.Outputs["key"])
-		as.Len(result.Outputs, 1)
-	})
-
-	t.Run("with_output_on_nil_outputs", func(t *testing.T) {
-		result := &api.StepResult{
-			Success: true,
-			Outputs: nil,
-		}
-		result = result.WithOutput("key", "value")
-
-		as.NotNil(result.Outputs)
-		as.Equal("value", result.Outputs["key"])
-	})
-
-	t.Run("with_output_complex_types", func(t *testing.T) {
-		result := &api.StepResult{Success: true}
-		complexData := map[string]any{
-			"nested": map[string]any{
-				"value": 123,
-			},
-		}
-		result = result.WithOutput("complex", complexData)
-
-		as.Equal(complexData, result.Outputs["complex"])
-	})
-
-	t.Run("with_output_array", func(t *testing.T) {
-		result := &api.StepResult{Success: true}
-		arrayData := []any{"a", "b", "c"}
-		result = result.WithOutput("array", arrayData)
-
-		as.Equal(arrayData, result.Outputs["array"])
-	})
-
-	t.Run("with_output_preserves_success_state", func(t *testing.T) {
-		result := &api.StepResult{Success: true}
-		result = result.WithOutput("key", "value")
-
-		as.True(result.Success)
 	})
 }
 

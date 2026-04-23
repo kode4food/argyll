@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"os"
 	"strings"
 	"time"
@@ -44,29 +45,29 @@ func main() {
 	}
 }
 
-func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
+func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	// Extract payment result
 	paymentResult, ok := args["payment_result"].(map[string]any)
 	if !ok {
-		return *api.NewResult().WithError(
-			fmt.Errorf("payment_result must be an object"),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest, "payment_result must be an object",
+		)
 	}
 
 	// Extract reservation
 	reservation, ok := args["reservation"].(map[string]any)
 	if !ok {
-		return *api.NewResult().WithError(
-			fmt.Errorf("reservation must be an object"),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest, "reservation must be an object",
+		)
 	}
 
 	// Extract user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {
-		return *api.NewResult().WithError(
-			fmt.Errorf("user_info must be an object"),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest, "user_info must be an object",
+		)
 	}
 
 	orderID, _ := paymentResult["order_id"].(string)
@@ -91,9 +92,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 	case "email":
 		msgID, err := sendEmail(userEmail, orderID, amount)
 		if err != nil {
-			return *api.NewResult().WithError(
-				fmt.Errorf("failed to send email: %w", err),
-			), nil
+			return nil, builder.NewHTTPError(
+				http.StatusBadGateway,
+				fmt.Sprintf("failed to send email: %v", err),
+			)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "email")
@@ -101,9 +103,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 	case "sms":
 		msgID, err := sendSMS(userID, orderID)
 		if err != nil {
-			return *api.NewResult().WithError(
-				fmt.Errorf("failed to send SMS: %w", err),
-			), nil
+			return nil, builder.NewHTTPError(
+				http.StatusBadGateway,
+				fmt.Sprintf("failed to send SMS: %v", err),
+			)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "sms")
@@ -117,9 +120,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 		}
 		msgID, err := sendWebhook(userID, orderID, payload)
 		if err != nil {
-			return *api.NewResult().WithError(
-				fmt.Errorf("failed to send webhook: %w", err),
-			), nil
+			return nil, builder.NewHTTPError(
+				http.StatusBadGateway,
+				fmt.Sprintf("failed to send webhook: %v", err),
+			)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "webhook")
@@ -128,9 +132,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 		// Fallback to email if unknown method
 		msgID, err := sendEmail(userEmail, orderID, amount)
 		if err != nil {
-			return *api.NewResult().WithError(
-				fmt.Errorf("failed to send fallback email: %w", err),
-			), nil
+			return nil, builder.NewHTTPError(
+				http.StatusBadGateway,
+				fmt.Sprintf("failed to send fallback email: %v", err),
+			)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "email")
@@ -149,7 +154,7 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 		slog.String("channels", strings.Join(channels, ",")),
 		slog.String("message_ids", strings.Join(messageIDs, ",")))
 
-	return *api.NewResult(), nil
+	return api.Args{}, nil
 }
 
 func sendWebhook(userID, _ string, _ map[string]any) (string, error) {

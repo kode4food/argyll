@@ -10,7 +10,7 @@ import requests
 from flask import Flask, jsonify, request
 
 from .errors import ClientError, HTTPError, StepRegistrationError, WebhookError
-from .types import Args, Metadata, StepID, StepResult
+from .types import Args, Metadata, ProblemDetails, StepID
 
 if TYPE_CHECKING:
     from .builder import StepBuilder
@@ -59,25 +59,28 @@ class AsyncContext:
 
     def success(self, outputs: Args) -> None:
         """Mark async step as successful."""
-        result = StepResult(success=True, outputs=outputs)
-        self._send_webhook(result)
+        self._send_webhook(outputs)
 
     def fail(self, error: str) -> None:
         """Mark async step as failed."""
-        result = StepResult(success=False, error=error)
-        self._send_webhook(result)
+        problem = ProblemDetails(status=422, detail=error)
+        self._send_webhook(
+            problem.to_dict(), content_type="application/problem+json"
+        )
 
-    def complete(self, result: StepResult) -> None:
-        """Complete async step with full result."""
-        self._send_webhook(result)
+    def complete(self, outputs: Args) -> None:
+        """Complete async step with output arguments."""
+        self.success(outputs)
 
-    def _send_webhook(self, result: StepResult) -> None:
+    def _send_webhook(
+        self, body: Args, content_type: str = "application/json"
+    ) -> None:
         """Send webhook to engine."""
         try:
             resp = requests.post(
                 self.webhook_url,
-                json=result.to_dict(),
-                headers={"Content-Type": "application/json"},
+                json=body,
+                headers={"Content-Type": content_type},
                 timeout=30,
             )
             resp.raise_for_status()
@@ -87,7 +90,7 @@ class AsyncContext:
             ) from e
 
 
-StepHandler = Callable[[StepContext, Args], StepResult]
+StepHandler = Callable[[StepContext, Args], Args]
 
 
 def create_step_server(
@@ -136,12 +139,11 @@ def create_step_server(
     @app.route(f"/{step_id}", methods=["POST"])
     def handle_step() -> Any:
         try:
-            req_data = request.get_json()
-            if not req_data:
-                return jsonify({"error": "Invalid JSON"}), 400
+            arguments = request.get_json()
+            if arguments is None:
+                return _problem_response(400, "Invalid JSON")
 
-            arguments = req_data.get("arguments", {})
-            metadata = req_data.get("metadata", {})
+            metadata = _metadata_from_headers()
 
             flow_id = metadata.get("flow_id", "")
             flow_client = client.flow(flow_id)
@@ -150,12 +152,12 @@ def create_step_server(
                 client=flow_client, step_id=step_id, metadata=metadata
             )
 
-            result = _execute_with_recovery(ctx, handler, arguments)
+            outputs = _execute_with_recovery(ctx, handler, arguments)
 
-            return jsonify(result.to_dict())
+            return jsonify(outputs)
 
         except HTTPError as e:
-            return jsonify({"error": e.args[0]}), e.status_code
+            return _problem_response(e.status_code, str(e))
         except Exception:
             tb = traceback.format_exc()
             print(f"Unhandled step server error: {tb}")
@@ -170,7 +172,7 @@ def create_step_server(
 
 def _execute_with_recovery(
     ctx: StepContext, handler: StepHandler, args: Args
-) -> StepResult:
+) -> Args:
     """Execute handler with panic recovery."""
     try:
         return handler(ctx, args)
@@ -179,4 +181,29 @@ def _execute_with_recovery(
     except Exception as e:
         tb = traceback.format_exc()
         print(f"Step handler error: {tb}")
-        return StepResult(success=False, error=f"Step handler panicked: {e}")
+        raise HTTPError(500, f"Step handler panicked: {e}") from e
+
+
+def _metadata_from_headers() -> Metadata:
+    """Build Argyll metadata from request headers."""
+    metadata = {}
+    header_map = {
+        "Argyll-Flow-ID": "flow_id",
+        "Argyll-Step-ID": "step_id",
+        "Argyll-Receipt-Token": "receipt_token",
+        "Argyll-Webhook-URL": "webhook_url",
+    }
+    for header, key in header_map.items():
+        value = request.headers.get(header)
+        if value:
+            metadata[key] = value
+    return metadata
+
+
+def _problem_response(status: int, detail: str) -> Any:
+    """Return an RFC 9457 problem response."""
+    problem = ProblemDetails(status=status, detail=detail)
+    resp = jsonify(problem.to_dict())
+    resp.status_code = status
+    resp.content_type = "application/problem+json"
+    return resp

@@ -5,10 +5,10 @@ from argyll.types import (
     AttributeSpec,
     AttributeType,
     HTTPConfig,
+    ProblemDetails,
     ScriptConfig,
     ScriptLanguage,
     Step,
-    StepResult,
     StepType,
 )
 
@@ -97,22 +97,24 @@ def test_step_to_dict():
     assert result["http"]["endpoint"] == "http://localhost:8081/test"
 
 
-def test_step_result_to_dict():
-    result = StepResult(success=True, outputs={"greeting": "Hello, World!"})
-    result_dict = result.to_dict()
+def test_problem_details_to_dict():
+    problem = ProblemDetails(status=422, detail="Something went wrong")
+    result_dict = problem.to_dict()
     assert result_dict == {
-        "success": True,
-        "outputs": {"greeting": "Hello, World!"},
+        "type": "about:blank",
+        "title": "Unprocessable Entity",
+        "status": 422,
+        "detail": "Something went wrong",
     }
 
 
-def test_step_result_with_error():
-    result = StepResult(success=False, error="Something went wrong")
-    result_dict = result.to_dict()
-    assert result_dict == {
-        "success": False,
-        "error": "Something went wrong",
-    }
+def test_problem_details_with_title():
+    problem = ProblemDetails(
+        status=404, title="Not Found", detail="Missing resource"
+    )
+    result_dict = problem.to_dict()
+    assert result_dict["title"] == "Not Found"
+    assert result_dict["detail"] == "Missing resource"
 
 
 def test_step_enums():
@@ -211,14 +213,6 @@ def test_step_with_all_fields():
     assert result["work_config"]["max_retries"] == 3
     assert result["flow"]["goals"] == ["step-1"]
     assert result["memoizable"] is True
-
-
-def test_step_result_success_only():
-    result = StepResult(success=True)
-    result_dict = result.to_dict()
-    assert result_dict["success"] is True
-    assert "outputs" not in result_dict
-    assert "error" not in result_dict
 
 
 def test_attribute_spec_no_optional_fields():

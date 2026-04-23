@@ -64,7 +64,7 @@ func main() {
 	}
 }
 
-func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
+func handle(ctx *builder.StepContext, args api.Args) (api.Args, error) {
 	// Simulate random transient failures (50% chance)
 	if rand.Float64() < 0.5 {
 		errMsg := []string{
@@ -77,7 +77,7 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 		slog.Warn("Simulating transient failure (will retry)",
 			log.Error(errors.New(selectedErr)),
 			log.StepID(ctx.StepID))
-		return api.StepResult{}, builder.NewHTTPError(
+		return nil, builder.NewHTTPError(
 			http.StatusServiceUnavailable, selectedErr,
 		)
 	}
@@ -85,9 +85,9 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 	// Extract and validate user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {
-		return *api.NewResult().WithError(
-			fmt.Errorf("user_info must be an object"),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest, "user_info must be an object",
+		)
 	}
 
 	userID, _ := userInfo["id"].(string)
@@ -98,9 +98,9 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 	// Extract and validate product info
 	productInfo, ok := args["product_info"].(map[string]any)
 	if !ok {
-		return *api.NewResult().WithError(
-			fmt.Errorf("product_info must be an object"),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest, "product_info must be an object",
+		)
 	}
 
 	productID, _ := productInfo["product_id"].(string)
@@ -122,30 +122,34 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 		slog.Warn("Product out of stock",
 			slog.String("product_id", productID),
 			slog.String("product_name", productName))
-		return *api.NewResult().WithError(
-			fmt.Errorf("product %s is out of stock", productName),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusConflict,
+			fmt.Sprintf("product %s is out of stock", productName),
+		)
 	}
 
 	if quantity < int(minOrderQty) {
-		return *api.NewResult().WithError(
-			fmt.Errorf("quantity %d below minimum order quantity %d",
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest,
+			fmt.Sprintf("quantity %d below minimum order quantity %d",
 				quantity, int(minOrderQty)),
-		), nil
+		)
 	}
 
 	if quantity > int(maxOrderQty) {
-		return *api.NewResult().WithError(
-			fmt.Errorf("quantity %d exceeds maximum order quantity %d",
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest,
+			fmt.Sprintf("quantity %d exceeds maximum order quantity %d",
 				quantity, int(maxOrderQty)),
-		), nil
+		)
 	}
 
 	if float64(quantity) > availableStock {
-		return *api.NewResult().WithError(
-			fmt.Errorf("insufficient stock: requested %d, available %d",
+		return nil, builder.NewHTTPError(
+			http.StatusConflict,
+			fmt.Sprintf("insufficient stock: requested %d, available %d",
 				quantity, int(availableStock)),
-		), nil
+		)
 	}
 
 	// Calculate costs
@@ -160,10 +164,11 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 			slog.String("user_id", userID),
 			slog.Float64("grand_total", grandTotal),
 			slog.Float64("credit_limit", creditLimit))
-		return *api.NewResult().WithError(
-			fmt.Errorf("order total $%.2f exceeds credit limit $%.2f",
+		return nil, builder.NewHTTPError(
+			http.StatusConflict,
+			fmt.Sprintf("order total $%.2f exceeds credit limit $%.2f",
 				grandTotal, creditLimit),
-		), nil
+		)
 	}
 
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
@@ -192,7 +197,7 @@ func handle(ctx *builder.StepContext, args api.Args) (api.StepResult, error) {
 		CreatedAt:      time.Now().Format(time.RFC3339),
 	}
 
-	return *api.NewResult().WithOutput("order", order), nil
+	return api.Args{"order": order}, nil
 }
 
 func calculateShipping(weightKg, quantity float64) float64 {

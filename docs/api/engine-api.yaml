@@ -648,20 +648,26 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/StepResponse"
+              type: object
+              additionalProperties: true
             examples:
               success:
                 summary: Successful async completion
                 value:
-                  success: true
-                  outputs:
-                    processed_data: "Result from async processing"
-                    processing_duration_ms: 5000
+                  processed_data: "Result from async processing"
+                  processing_duration_ms: 5000
+          application/problem+json:
+            schema:
+              type: object
+              additionalProperties: true
+            examples:
               failure:
                 summary: Async step failure
                 value:
-                  success: false
-                  error: "Processing failed due to invalid input format"
+                  type: "about:blank"
+                  title: "Unprocessable Entity"
+                  status: 422
+                  detail: "Processing failed due to invalid input format"
       responses:
         "200":
           description: Webhook processed successfully (empty body)
@@ -1611,27 +1617,6 @@ components:
           type: string
           format: date-time
           description: When the next retry is scheduled
-
-    StepResponse:
-      type: object
-      required:
-        - success
-      description: Response from a step execution (used for webhook callbacks)
-      properties:
-        success:
-          type: boolean
-          description: Whether the step executed successfully
-        outputs:
-          type: object
-          description: Output values for declared step output attributes
-          additionalProperties: true
-          example:
-            processed_text: "HELLO WORLD"
-            processing_time_ms: 42
-        error:
-          type: string
-          description: Error message if success is false
-          example: "Invalid input format"
 
     MessageResponse:
       type: object

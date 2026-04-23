@@ -41,8 +41,8 @@ func TestSetupStepWithMockEngine(t *testing.T) {
 
 	handler := func(
 		ctx *builder.StepContext, args api.Args,
-	) (api.StepResult, error) {
-		return api.StepResult{Success: true}, nil
+	) (api.Args, error) {
+		return api.Args{}, nil
 	}
 
 	errChan := make(chan error, 1)

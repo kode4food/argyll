@@ -63,42 +63,43 @@ curl http://localhost:8080/engine/flow/wf-001/status
 Steps receive requests like:
 
 For all HTTP methods, the engine resolves endpoint placeholders from runtime inputs before dispatch.
-For `POST`, `PUT`, and `DELETE`, the engine sends the payload as JSON.
+For `POST`, `PUT`, and `DELETE`, the engine sends input arguments as the JSON body.
 For `GET`, no JSON body is sent.
 
+Execution metadata is sent in headers:
+
+```http
+Argyll-Flow-ID: wf-001
+Argyll-Step-ID: text-processor
+Argyll-Receipt-Token: token_abc
+Argyll-Webhook-URL: http://localhost:8080/webhook/wf-001/text-processor/token_abc
+```
+
 ```json
 {
-  "arguments": {
-    "input_text": "Hello"
-  },
-  "metadata": {
-    "flow_id": "wf-001",
-    "step_id": "text-processor",
-    "receipt_token": "token_abc"
-  }
+  "input_text": "Hello"
 }
 ```
 
-And return:
+Successful steps return output arguments directly:
 
 ```json
 {
-  "success": true,
-  "outputs": {
-    "output_text": "HELLO"
-  }
+  "output_text": "HELLO"
 }
 ```
 
-Or errors:
+Failed steps return a non-2xx status and `application/problem+json`:
 
 ```json
 {
-  "success": false,
-  "error": "Error message"
+  "type": "about:blank",
+  "title": "Unprocessable Entity",
+  "status": 422,
+  "detail": "Error message"
 }
 ```
 
 ## Async Webhooks
 
-For async steps, the engine provides a webhook URL in `metadata.webhook_url`. Post a `StepResult` JSON payload to that URL when work completes. The token in the URL identifies the work item.
+For async steps, the engine provides a webhook URL in `Argyll-Webhook-URL`. Post output arguments to that URL when work completes, or post Problem Details with `Content-Type: application/problem+json` when work fails. The token in the URL identifies the work item.

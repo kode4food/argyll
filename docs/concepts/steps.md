@@ -13,7 +13,7 @@ Argyll supports four step types. Choose the simplest type that fits your needs:
 **How it works:**
 - Engine invokes your HTTP endpoint using the configured method
 - The engine resolves endpoint placeholders from runtime inputs for all HTTP methods
-- For `POST`, `PUT`, and `DELETE`, the engine sends inputs and metadata as a JSON body
+- For `POST`, `PUT`, and `DELETE`, the engine sends inputs as the JSON body and execution metadata in `Argyll-*` headers
 - For `GET`, the engine does not send a JSON body
 - Your handler processes the request and returns outputs
 - Engine records the work completion and continues the flow
@@ -45,11 +45,11 @@ Argyll supports four step types. Choose the simplest type that fits your needs:
 **Use when:** Work is long-running, requires queueing, or is handled by background workers.
 
 **How it works:**
-- Engine invokes your HTTP endpoint using the configured method and includes a webhook URL in metadata
+- Engine invokes your HTTP endpoint using the configured method and includes a webhook URL in the `Argyll-Webhook-URL` header
 - The engine resolves endpoint placeholders from runtime inputs for all HTTP methods
-- For `POST`, `PUT`, and `DELETE`, the engine sends inputs and metadata as a JSON body
+- For `POST`, `PUT`, and `DELETE`, the engine sends inputs as the JSON body and execution metadata in `Argyll-*` headers
 - For `GET`, the engine does not send a JSON body
-- Your handler returns immediately with a valid StepResult payload (HTTP 200)
+- Your handler returns immediately with a 2xx response
 - Your background worker processes the task and POSTs results to the webhook
 
 **Example:**

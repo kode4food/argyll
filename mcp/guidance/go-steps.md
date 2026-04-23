@@ -21,4 +21,4 @@ client.NewStep().WithName("Lookup User").
 Async step:
 - Add WithAsyncExecution().
 - In the handler, create builder.NewAsyncContext(ctx), start background work, and call Success or Fail.
-- Return api.NewResult() immediately from the handler.
+- Return api.Args{} immediately from the handler.

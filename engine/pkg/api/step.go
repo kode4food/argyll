@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"maps"
 	"regexp"
 	"slices"
 	"sync"
@@ -74,19 +73,6 @@ type (
 		MaxBackoff  int64  `json:"max_backoff,omitempty"`
 		BackoffType string `json:"backoff_type,omitempty"`
 		Parallelism int    `json:"parallelism,omitempty"`
-	}
-
-	// StepRequest is the request payload sent to step handlers
-	StepRequest struct {
-		Arguments Args     `json:"arguments"`
-		Metadata  Metadata `json:"metadata"`
-	}
-
-	// StepResult is the response returned by step handlers
-	StepResult struct {
-		Outputs Args   `json:"outputs,omitempty"`
-		Error   string `json:"error,omitempty"`
-		Success bool   `json:"success"`
 	}
 
 	attrPair struct {
@@ -190,13 +176,6 @@ var (
 )
 
 const DefaultHTTPMethod = "POST"
-
-// NewResult creates a new successful step result with empty outputs
-func NewResult() *StepResult {
-	return &StepResult{
-		Success: true,
-	}
-}
 
 // Validate checks if the step configuration is valid
 func (s *Step) Validate() error {
@@ -588,25 +567,6 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 		}
 	}
 	return args
-}
-
-// WithOutput adds an output value to the step result
-func (r *StepResult) WithOutput(name Name, value any) *StepResult {
-	res := *r
-	res.Outputs = maps.Clone(r.Outputs)
-	if res.Outputs == nil {
-		res.Outputs = Args{}
-	}
-	res.Outputs[name] = value
-	return &res
-}
-
-// WithError marks the step result as failed with the given error
-func (r *StepResult) WithError(err error) *StepResult {
-	res := *r
-	res.Success = false
-	res.Error = err.Error()
-	return &res
 }
 
 // Equal returns true if two HTTP configs are equal

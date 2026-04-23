@@ -11,12 +11,11 @@ at the transport/HTTP layer:
 1. **Network/transport failure**: connection error, timeout, etc.
 2. **HTTP 5xx response** from the step endpoint.
 
-`success: false` in a step result is treated as a permanent failure
-(`work_failed`), not a retryable `work_not_completed`.
+HTTP 4xx responses and async webhook Problem Details are treated as permanent failures (`work_failed`), not retryable `work_not_completed`.
 
-If a step returns `success: true`, the work item is considered complete regardless of whether actual work succeeded. This is a design choice: the engine respects your step handler's judgment about whether something should be retried.
+If a step returns 2xx, the work item is considered complete regardless of whether actual business work succeeded. If business logic failed permanently, return a 4xx response with `application/problem+json`.
 
-**Important:** The engine’s HTTP client examines transport errors and HTTP status codes. Network errors and HTTP 5xx responses are treated as retryable (`work_not_completed`). HTTP 4xx responses are treated as permanent failures. If your handler returns `success: false`, that is treated as a permanent failure.
+**Important:** The engine’s HTTP client examines transport errors and HTTP status codes. Network errors and HTTP 5xx responses are treated as retryable (`work_not_completed`). HTTP 4xx responses are treated as permanent failures.
 
 ## Configuration
 

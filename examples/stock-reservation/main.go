@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math/rand"
+	"net/http"
 	"os"
 	"sync"
 	"time"
@@ -66,12 +67,12 @@ func main() {
 	}
 }
 
-func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
+func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	order, ok := args["order"].(map[string]any)
 	if !ok {
-		return *api.NewResult().WithError(
-			fmt.Errorf("order must be an object"),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusBadRequest, "order must be an object",
+		)
 	}
 
 	orderID, _ := order["id"].(string)
@@ -94,10 +95,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 	if !ok {
 		slog.Warn("Product not found in stock system",
 			slog.String("product_id", productID))
-		return *api.NewResult().WithError(
-			fmt.Errorf("product %s not found in stock system",
-				productID),
-		), nil
+		return nil, builder.NewHTTPError(
+			http.StatusNotFound,
+			fmt.Sprintf("product %s not found in stock system", productID),
+		)
 	}
 
 	if currentStock < quantity {
@@ -105,10 +106,11 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 			slog.String("product_id", productID),
 			slog.Int("requested", quantity),
 			slog.Int("available", currentStock))
-		return *api.NewResult().WithError(
-			fmt.Errorf("insufficient stock: requested %d, available %d",
+		return nil, builder.NewHTTPError(
+			http.StatusConflict,
+			fmt.Sprintf("insufficient stock: requested %d, available %d",
 				quantity, currentStock),
-		), nil
+		)
 	}
 
 	// Reserve the stock
@@ -136,5 +138,5 @@ func handle(_ *builder.StepContext, args api.Args) (api.StepResult, error) {
 		slog.Int("quantity", quantity),
 		slog.Int("remaining_stock", stockLevels[productID]))
 
-	return *api.NewResult().WithOutput("reservation", reservation), nil
+	return api.Args{"reservation": reservation}, nil
 }

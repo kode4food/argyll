@@ -82,7 +82,7 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
+		w.Header().Set("Content-Type", api.JSONContentType)
 		w.WriteHeader(http.StatusOK)
 		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`,
 			string(step.id))
@@ -114,64 +114,66 @@ func makeStepHandler(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			writeProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
 			return
 		}
 
-		var req api.StepRequest
-		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-			http.Error(w, "Invalid JSON", http.StatusBadRequest)
+		var args api.Args
+		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
+			writeProblem(w, http.StatusBadRequest, "Invalid JSON")
 			return
 		}
 
-		var fid api.FlowID
-		if req.Metadata != nil {
-			if str, ok := req.Metadata[api.MetaFlowID].(string); ok {
-				fid = api.FlowID(str)
-			}
-		}
+		meta := api.MetadataFromHeaders(r.Header)
+		fid, _ := api.GetMetaString[api.FlowID](meta, api.MetaFlowID)
 
 		ctx := &StepContext{
 			Context:  r.Context(),
 			Client:   client.Flow(fid),
 			StepID:   id,
-			Metadata: req.Metadata,
+			Metadata: meta,
 		}
-		result, err := executeStepWithRecovery(ctx, id, handler, req.Arguments)
+		outputs, err := executeStepWithRecovery(ctx, id, handler, args)
 		if err != nil {
-			http.Error(w, err.Message, err.StatusCode)
+			writeProblem(w, err.StatusCode, err.Message)
 			return
 		}
 
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(result)
+		w.Header().Set("Content-Type", api.JSONContentType)
+		_ = json.NewEncoder(w).Encode(outputs)
 	}
 }
 
 func executeStepWithRecovery(
 	ctx *StepContext, id api.StepID, handler StepHandler, args api.Args,
-) (result api.StepResult, httpErr *HTTPError) {
+) (outputs api.Args, httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Step handler panicked",
 				log.StepID(id),
 				log.Error(ErrHandlerPanic),
 				slog.String("panic", fmt.Sprintf("%v", r)))
-			result = *api.NewResult().WithError(
-				fmt.Errorf("%w: %v", ErrHandlerPanic, r),
+			httpErr = NewHTTPError(
+				http.StatusInternalServerError,
+				fmt.Sprintf("%s: %v", ErrHandlerPanic, r),
 			)
-			httpErr = nil
 		}
 	}()
 
 	var err error
-	result, err = handler(ctx, args)
+	outputs, err = handler(ctx, args)
 	if err != nil {
 		var he *HTTPError
 		if errors.As(err, &he) {
-			return api.StepResult{}, he
+			return nil, he
 		}
-		return *api.NewResult().WithError(err), nil
+		return nil, NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
-	return result, nil
+	return outputs, nil
+}
+
+func writeProblem(w http.ResponseWriter, status int, detail string) {
+	w.Header().Set("Content-Type", api.ProblemJSONContentType)
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(api.NewProblem(status, detail))
 }

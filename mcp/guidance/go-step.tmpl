@@ -14,17 +14,18 @@ func main() {
 {{ if not .IsExternal }}
 	handler := func(
 		ctx *builder.StepContext, args api.Args,
-	) (api.StepResult, error) {
+	) (api.Args, error) {
 {{ if .IsAsync }}		asyncCtx, err := builder.NewAsyncContext(ctx)
 		if err != nil {
-			return api.StepResult{}, err
+			return nil, err
 		}
 		go func() {
 			asyncCtx.Success(api.Args{})
 		}()
-		return *api.NewResult(), nil
-{{ else }}		return *api.NewResult(){{ range .Outputs }}.
-			WithOutput({{ quote . }}, nil){{ end }}, nil
+		return api.Args{}, nil
+{{ else }}		return api.Args{
+{{ range .Outputs }}			{{ quote . }}: nil,
+{{ end }}		}, nil
 {{ end }}	}
 
 {{ end }}	step := client.NewStep().

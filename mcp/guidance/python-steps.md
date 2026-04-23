@@ -1,7 +1,7 @@
 # Argyll Python SDK Step Patterns
 
 Imports:
-- from argyll import Client, StepContext, AttributeType, StepResult
+- from argyll import Client, StepContext, AttributeType
 
 Hosted sync HTTP step:
 client.new_step().with_name("Greeting") \
@@ -19,5 +19,5 @@ client.new_step().with_name("Lookup User") \
 
 Async step:
 - Add with_async_execution().
-- In the handler, create AsyncContext from the webhook URL in ctx.metadata, start background work, and call success or fail.
-- Return StepResult(success=True, outputs={}) immediately from the handler.
+- In the handler, create AsyncContext from the webhook URL in ctx.metadata, which is populated from the Argyll-Webhook-URL header, start background work, and call success or fail.
+- Return {} immediately from the handler.

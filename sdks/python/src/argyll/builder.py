@@ -20,7 +20,6 @@ from .types import (
     ScriptLanguage,
     Step,
     StepID,
-    StepResult,
     StepType,
 )
 
@@ -262,7 +261,7 @@ class StepBuilder:
                 f"Failed to register step {step.id}: {e}"
             ) from e
 
-    def start(self, handler: Callable[[Any, Args], StepResult]) -> None:
+    def start(self, handler: Callable[[Any, Args], Args]) -> None:
         """Build, register, and start Flask server."""
         from .handlers import create_step_server
 
