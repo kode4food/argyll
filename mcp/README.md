@@ -21,6 +21,17 @@ inspection, and engine state.
 - `engine_state` - fetch the current engine state
 - `list_step_health` - list health for all steps
 - `get_step_health` - fetch health for a single step
+- `sdk_step_template` - return a minimal Go or Python SDK step template
+
+## Resources
+
+- `/sdk/steps` - SDK step implementation guidance
+- `/sdk/go/steps` - Go SDK step patterns
+- `/sdk/python/steps` - Python SDK step patterns
+
+## Prompts
+
+- `implement_step` - guide an agent through implementing a step with the Go or Python SDK
 
 ## Run
 

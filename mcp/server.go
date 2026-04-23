@@ -40,5 +40,6 @@ func (s *Server) MCPServer() server.Server {
 		server.WithProtocolVersion("2024-11-05"),
 	)
 	s.registerTools(srv)
+	s.registerGuidance(srv)
 	return srv
 }
