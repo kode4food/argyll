@@ -1,0 +1,46 @@
+openapi: 3.0.3
+info:
+  title: Nested Customer API
+  version: 1.0.0
+servers:
+  - url: https://nested.example.com
+paths:
+  /customers/{customerId}:
+    get:
+      operationId: getCustomer
+      summary: Get Customer
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerEnvelope'
+components:
+  schemas:
+    CustomerEnvelope:
+      type: object
+      properties:
+        data:
+          allOf:
+            - $ref: '#/components/schemas/BaseEntity'
+            - $ref: '#/components/schemas/Customer'
+    BaseEntity:
+      type: object
+      required: [id]
+      properties:
+        id:
+          type: string
+    Customer:
+      type: object
+      properties:
+        email:
+          type: string
+        status:
+          type: string

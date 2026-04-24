@@ -1,0 +1,82 @@
+openapi: 3.0.3
+info:
+  title: Customer Orders API
+  version: 1.0.0
+servers:
+  - url: https://api.example.com
+paths:
+  /customers/by-email:
+    get:
+      operationId: lookupCustomerByEmail
+      summary: Lookup Customer By Email
+      parameters:
+        - in: query
+          name: email
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, email]
+                properties:
+                  id:
+                    type: string
+                  email:
+                    type: string
+                  name:
+                    type: string
+  /orders:
+    post:
+      operationId: createOrder
+      summary: Create Order
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customerId, items]
+              properties:
+                customerId:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    type: object
+      responses:
+        "201":
+          description: created
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [id, status]
+                properties:
+                  id:
+                    type: string
+                  status:
+                    type: string
+  /customers/{customerId}/orders:
+    get:
+      operationId: listCustomerOrders
+      summary: List Customer Orders
+      parameters:
+        - in: path
+          name: customerId
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object

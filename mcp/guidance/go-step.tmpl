@@ -1,7 +1,7 @@
 package main
 
 import (
-{{ if .IsExternal }}	"context"
+{{ if or .IsExternal .IsScript }}	"context"
 {{ end }}	"log"
 	"time"
 
@@ -11,7 +11,7 @@ import (
 
 func main() {
 	client := builder.NewClient("http://localhost:8080", 30*time.Second)
-{{ if not .IsExternal }}
+{{ if and (not .IsExternal) (not .IsScript) }}
 	handler := func(
 		ctx *builder.StepContext, args api.Args,
 	) (api.Args, error) {
@@ -35,8 +35,9 @@ func main() {
 		WithAsyncExecution(){{ end }}{{ if .IsExternal }}.
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
 {{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}
-
-{{ if .IsExternal }}	if err := step.Register(
+{{ if .IsScript }}.
+		WithScriptLanguage({{ quote .ScriptLanguage }}, {{ quote .ScriptBody }}){{ end }}
+{{- if or .IsExternal .IsScript }}	if err := step.Register(
 		context.Background(),
 	); err != nil {
 {{ else }}	if err := step.Start(handler); err != nil {

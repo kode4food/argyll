@@ -1,9 +1,10 @@
 from argyll import Client, StepContext, AttributeType
 {{ if .IsAsync }}from argyll import AsyncContext
 import threading
+{{ end }}{{ if .IsScript }}from argyll import ScriptLanguage
 {{ end }}
 client = Client("http://localhost:8080")
-{{ if not .IsExternal }}
+{{ if and (not .IsExternal) (not .IsScript) }}
 
 def handle_step(ctx: StepContext, args: dict) -> dict:
 {{ if .IsAsync }}    async_ctx = AsyncContext(
@@ -27,7 +28,7 @@ step = (
     .output({{ quote . }}, AttributeType.STRING){{ end }}{{ if .IsAsync }}
     .with_async_execution(){{ end }}{{ if .IsExternal }}
 {{ if .HasNonPostMethod }}    .with_method({{ quote .Method }}){{ end }}
-    .with_endpoint("http://localhost:8081/step"){{ end }}
+    .with_endpoint("http://localhost:8081/step"){{ end }}{{ if .IsScript }}
+    .with_script_language(ScriptLanguage.LUA, {{ quote .ScriptBody }}){{ end }}
 )
-
-{{ if .IsExternal }}step.register(){{ else }}step.start(handle_step){{ end }}
+{{ if or .IsExternal .IsScript }}step.register(){{ else }}step.start(handle_step){{ end }}

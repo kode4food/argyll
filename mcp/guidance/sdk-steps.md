@@ -21,3 +21,5 @@ External HTTP steps:
 Script and flow steps:
 - Use WithScript/with_script plus Register/register for script steps.
 - Use WithFlowGoals/with_flow_goals plus Register/register for sub-flow steps.
+- For bridge work, prefer declarative input/output name mappings first.
+- Use a Lua script step when the mapping layer cannot express the reshape.

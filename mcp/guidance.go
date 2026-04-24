@@ -10,24 +10,31 @@ import (
 	"github.com/localrivet/gomcp/server"
 )
 
-type sdkStepTemplateInput struct {
-	Language string   `json:"language"`
-	StepName string   `json:"step_name"`
-	StepType string   `json:"step_type,omitempty"`
-	Method   string   `json:"method,omitempty"`
-	Inputs   []string `json:"inputs,omitempty"`
-	Outputs  []string `json:"outputs,omitempty"`
-}
+type (
+	sdkStepTemplateInput struct {
+		Language       string   `json:"language"`
+		StepName       string   `json:"step_name"`
+		StepType       string   `json:"step_type,omitempty"`
+		Method         string   `json:"method,omitempty"`
+		ScriptLanguage *string  `json:"script_language,omitempty"`
+		ScriptBody     *string  `json:"script_body,omitempty"`
+		Inputs         []string `json:"inputs,omitempty"`
+		Outputs        []string `json:"outputs,omitempty"`
+	}
 
-type stepTemplateData struct {
-	StepName         string
-	Method           string
-	Inputs           []string
-	Outputs          []string
-	IsAsync          bool
-	IsExternal       bool
-	HasNonPostMethod bool
-}
+	stepTemplateData struct {
+		StepName         string
+		Method           string
+		ScriptLanguage   string
+		ScriptBody       string
+		Inputs           []string
+		Outputs          []string
+		IsAsync          bool
+		IsExternal       bool
+		IsScript         bool
+		HasNonPostMethod bool
+	}
+)
 
 //go:embed guidance/*.md guidance/*.tmpl
 var guidanceFS embed.FS
@@ -108,10 +115,10 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 		stepType = "sync"
 	}
 	switch stepType {
-	case "sync", "async", "external":
+	case "sync", "async", "external", "script":
 	default:
 		return "", errInvalidParams(
-			"step_type must be sync, async, or external",
+			"step_type must be sync, async, external, or script",
 		)
 	}
 	method := strings.ToUpper(strings.TrimSpace(args.Method))
@@ -123,7 +130,10 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 	default:
 		return "", errInvalidParams("method must be GET, POST, PUT, or DELETE")
 	}
-	if stepType != "external" && method != "POST" {
+	if stepType == "script" {
+		method = ""
+	}
+	if stepType != "external" && stepType != "script" && method != "POST" {
 		return "", errInvalidParams(
 			"non-POST methods require step_type external",
 		)
@@ -135,7 +145,14 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 		Outputs:          args.Outputs,
 		IsAsync:          stepType == "async",
 		IsExternal:       stepType == "external",
-		HasNonPostMethod: method != "POST",
+		IsScript:         stepType == "script",
+		HasNonPostMethod: method != "POST" && stepType == "external",
+	}
+	if args.ScriptLanguage != nil {
+		data.ScriptLanguage = *args.ScriptLanguage
+	}
+	if args.ScriptBody != nil {
+		data.ScriptBody = *args.ScriptBody
 	}
 	if lang == "go" {
 		return renderStepTemplate("go-step.tmpl", data)

@@ -3,9 +3,9 @@ module github.com/kode4food/argyll/mcp
 go 1.25.3
 
 require (
+	github.com/getkin/kin-openapi v0.134.0
 	github.com/localrivet/gomcp v1.7.2
 	github.com/stretchr/testify v1.11.1
-	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
