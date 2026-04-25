@@ -66,15 +66,7 @@ func (e *TestEngineEnv) WaitForFlowStatus(
 	flowID api.FlowID, fn func(),
 ) api.FlowState {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *event.Consumer) {
-		fn()
-		st, err := e.Engine.GetFlowState(flowID)
-		if err == nil && isFlowTerminal(st) {
-			return
-		}
-		wait.On(e.T, consumer).ForEvent(wait.FlowTerminal(flowID))
-	})
-
+	fn()
 	return e.WaitForTerminalFlow(flowID)
 }
 
@@ -166,23 +158,8 @@ func (e *TestEngineEnv) WaitForStepStarted(
 	fs api.FlowStep, fn func(),
 ) api.ExecutionState {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *event.Consumer) {
-		fn()
-		ex, err := e.getExecutionState(fs.FlowID, fs.StepID)
-		if err == nil && isStepStarted(ex.Status) {
-			return
-		}
-		wait.On(e.T, consumer).ForEvent(wait.StepStarted(fs))
-	})
-
-	ex, err := e.getExecutionState(fs.FlowID, fs.StepID)
-	if err != nil {
-		e.T.Fatalf("failed to fetch execution %s: %v", fs.StepID, err)
-	}
-	if !isStepStarted(ex.Status) {
-		e.T.Fatalf("execution %s not started after event", fs.StepID)
-	}
-	return ex
+	fn()
+	return e.waitForStartedStep(fs.FlowID, fs.StepID)
 }
 
 // WaitForStepStatus waits for a step to finish and returns the execution
@@ -190,17 +167,7 @@ func (e *TestEngineEnv) WaitForStepStatus(
 	flowID api.FlowID, stepID api.StepID, fn func(),
 ) api.ExecutionState {
 	e.T.Helper()
-	e.WithConsumer(func(consumer *event.Consumer) {
-		fn()
-		ex, err := e.getExecutionState(flowID, stepID)
-		if err == nil && isStepTerminal(ex.Status) {
-			return
-		}
-		wait.On(e.T, consumer).ForEvent(wait.StepTerminal(
-			api.FlowStep{FlowID: flowID, StepID: stepID},
-		))
-	})
-
+	fn()
 	return e.waitForTerminalStep(flowID, stepID)
 }
 
@@ -245,6 +212,27 @@ func (e *TestEngineEnv) waitForTerminalStep(
 				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
 			}
 			e.T.Fatalf("execution %s not terminal after event", stepID)
+		}
+		time.Sleep(waitPollInterval)
+	}
+}
+
+func (e *TestEngineEnv) waitForStartedStep(
+	flowID api.FlowID, stepID api.StepID,
+) api.ExecutionState {
+	e.T.Helper()
+
+	deadline := time.Now().Add(wait.DefaultTimeout)
+	for {
+		ex, err := e.getExecutionState(flowID, stepID)
+		if err == nil && isStepStarted(ex.Status) {
+			return ex
+		}
+		if time.Now().After(deadline) {
+			if err != nil {
+				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
+			}
+			e.T.Fatalf("execution %s not started", stepID)
 		}
 		time.Sleep(waitPollInterval)
 	}
