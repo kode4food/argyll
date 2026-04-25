@@ -3,16 +3,8 @@ module github.com/kode4food/argyll/examples/notification-sender
 go 1.25.7
 
 require (
-	github.com/kode4food/argyll/engine v0.0.0-20260216142321-e1c5d4f8e78a
-	github.com/kode4food/argyll/sdks/go-builder v0.0.0-20260216142321-e1c5d4f8e78a
+	github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734
+	github.com/kode4food/argyll/sdks/go-builder v0.0.0-20260425054836-250dc5c87734
 )
 
-require (
-	github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d // indirect
-	github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04 // indirect
-	github.com/kode4food/timebox v0.0.0-20260417061817-90c044627019 // indirect
-	github.com/tidwall/gjson v1.18.0 // indirect
-	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.0 // indirect
-	golang.org/x/tools v0.44.0 // indirect
-)
+require github.com/kode4food/timebox v0.0.0-20260425055959-c01b35cbd2d0 // indirect
