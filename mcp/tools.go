@@ -7,9 +7,10 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/localrivet/gomcp/server"
+
 	"github.com/kode4food/argyll/engine/pkg/util"
 	"github.com/kode4food/argyll/mcp/openapi"
-	"github.com/localrivet/gomcp/server"
 )
 
 type (

@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -31,6 +32,7 @@ type raftNode struct {
 	persistence *raft.Persistence
 	engine      *engine.Engine
 	server      *server.Server
+	hub         *event.Hub
 }
 
 type raftInit struct {
@@ -84,7 +86,6 @@ func TestFollowerWriteStartup(t *testing.T) {
 	start(inits[2])
 
 	var nodes []*raftNode
-	var wrote bool
 	st := newScriptStep()
 	for range len(inits) {
 		res := <-started
@@ -92,39 +93,23 @@ func TestFollowerWriteStartup(t *testing.T) {
 
 		n := res.node
 		nodes = append(nodes, n)
-		if !wrote && n.persistence.State() == raft.StateFollower {
-			w := postJSON(
-				t,
-				n.server.SetupRoutes(),
-				"/engine/step",
-				st,
-				http.StatusCreated,
-			)
-
-			var resp api.StepRegisteredResponse
-			assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-			assert.NotNil(t, resp.Step)
-			assert.Equal(t, st.ID, resp.Step.ID)
-			wrote = true
-		}
 	}
-	assert.True(t, wrote)
 
 	t.Cleanup(func() {
-		for _, n := range nodes {
-			if n.engine != nil {
-				_ = n.engine.Stop()
-			}
-			if n.flowStore != nil {
-				_ = n.flowStore.Close()
-			}
-			if n.engStore != nil {
-				_ = n.engStore.Close()
-			}
-		}
+		closeRaftNodes(nodes)
 	})
 
-	leader, _ := findLeaderFollower(t, nodes)
+	leader, follower := findLeaderFollower(t, nodes)
+	w := postJSON(t,
+		follower.server.SetupRoutes(), "/engine/step", st, http.StatusCreated,
+	)
+
+	var resp api.StepRegisteredResponse
+	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	if assert.NotNil(t, resp.Step) {
+		assert.Equal(t, st.ID, resp.Step.ID)
+	}
+
 	assert.Eventually(t, func() bool {
 		cat, err := leader.engine.GetCatalogState()
 		if err != nil {
@@ -160,17 +145,7 @@ func newRaftCluster(t *testing.T, n int) []*raftNode {
 	}
 
 	t.Cleanup(func() {
-		for _, n := range nodes {
-			if n.engine != nil {
-				_ = n.engine.Stop()
-			}
-			if n.flowStore != nil {
-				_ = n.flowStore.Close()
-			}
-			if n.engStore != nil {
-				_ = n.engStore.Close()
-			}
-		}
+		closeRaftNodes(nodes)
 	})
 
 	return nodes
@@ -264,6 +239,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 		flowStore:   flowStore,
 		persistence: p,
 		engine:      eng,
+		hub:         init.hub,
 		server: server.NewServer(
 			eng,
 			init.hub,
@@ -295,6 +271,39 @@ func findLeaderFollower(
 	}
 	t.Fatal("no follower found")
 	return nil, nil
+}
+
+func closeRaftNodes(nodes []*raftNode) {
+	var wg sync.WaitGroup
+	for _, n := range nodes {
+		if n == nil || n.engine == nil {
+			continue
+		}
+		wg.Add(1)
+		go func(n *raftNode) {
+			defer wg.Done()
+			_ = n.engine.Stop()
+		}(n)
+	}
+	wg.Wait()
+
+	for _, n := range nodes {
+		if n == nil {
+			continue
+		}
+		if n.hub != nil {
+			n.hub.Close()
+		}
+		if n.flowStore != nil {
+			_ = n.flowStore.Close()
+		}
+		if n.engStore != nil {
+			_ = n.engStore.Close()
+		}
+		if n.persistence != nil {
+			_ = n.persistence.Close()
+		}
+	}
 }
 
 func postJSON(

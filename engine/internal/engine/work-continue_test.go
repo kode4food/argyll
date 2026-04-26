@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 func TestRetryPendingParallelism(t *testing.T) {
@@ -73,21 +74,19 @@ func TestRetryPendingParallelism(t *testing.T) {
 
 func TestRetryOnHealthyPeer(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		cfg := *env.Config
+		cfg := util.MutableCopy(env.Config)
 		cfg.Raft.LocalID = "node-2"
 		cfg.Raft.Servers = append(cfg.Raft.Servers,
 			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
 		)
 
-		peer, unsubscribe, err := env.NewEngineWithConfig(
-			&cfg, env.Dependencies(),
-		)
+		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
 		assert.NoError(t, err)
 		if !assert.NotNil(t, peer) {
 			return
 		}
 		defer func() {
-			unsubscribe()
+			unsub()
 			assert.NoError(t, peer.Stop())
 		}()
 

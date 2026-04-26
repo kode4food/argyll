@@ -15,6 +15,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 type earlyDelayedTimer struct {
@@ -147,7 +148,7 @@ func TestRecoverDispatchPeer(t *testing.T) {
 		env.MockClient.SetResponse(st.ID, api.Args{})
 		require.NoError(t, env.Engine.RegisterStep(st))
 
-		cfg := *env.Config
+		cfg := util.MutableCopy(env.Config)
 		cfg.Raft.LocalID = "node-2"
 		cfg.Raft.Servers = []raft.Server{
 			{ID: "node-2", Address: "127.0.0.1:9702"},
@@ -156,10 +157,10 @@ func TestRecoverDispatchPeer(t *testing.T) {
 		deps := env.Dependencies()
 		deps.EventHub = event.NewHub()
 
-		peer, unsubscribe, err := env.NewEngineWithConfig(&cfg, deps)
+		peer, unsub, err := env.NewEngineWithConfig(cfg, deps)
 		require.NoError(t, err)
 		defer func() {
-			unsubscribe()
+			unsub()
 			_ = peer.Stop()
 		}()
 

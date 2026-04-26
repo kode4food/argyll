@@ -50,9 +50,9 @@ func On(t *testing.T, consumer *event.Consumer) *Wait {
 }
 
 func (w *Wait) WithTimeout(timeout time.Duration) *Wait {
-	res := *w
+	res := util.MutableCopy(w)
 	res.timeout = timeout
-	return &res
+	return res
 }
 
 // ForEvents waits for matching events from the consumer

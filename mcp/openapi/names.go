@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
+
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 

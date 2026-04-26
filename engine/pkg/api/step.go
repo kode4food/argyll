@@ -238,24 +238,20 @@ func (s *Step) Copy() *Step {
 // filled in from defaults
 func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 	res := s.Copy()
-	if res.WorkConfig == nil {
-		res.WorkConfig = &WorkConfig{}
-	} else {
-		cfg := *res.WorkConfig
-		res.WorkConfig = &cfg
+	work := util.MutableCopy(res.WorkConfig)
+	if work.MaxRetries == 0 {
+		work.MaxRetries = defaults.MaxRetries
 	}
-	if res.WorkConfig.MaxRetries == 0 {
-		res.WorkConfig.MaxRetries = defaults.MaxRetries
+	if work.InitBackoff == 0 {
+		work.InitBackoff = defaults.InitBackoff
 	}
-	if res.WorkConfig.InitBackoff == 0 {
-		res.WorkConfig.InitBackoff = defaults.InitBackoff
+	if work.MaxBackoff == 0 {
+		work.MaxBackoff = defaults.MaxBackoff
 	}
-	if res.WorkConfig.MaxBackoff == 0 {
-		res.WorkConfig.MaxBackoff = defaults.MaxBackoff
+	if work.BackoffType == "" {
+		work.BackoffType = defaults.BackoffType
 	}
-	if res.WorkConfig.BackoffType == "" {
-		res.WorkConfig.BackoffType = defaults.BackoffType
-	}
+	res.WorkConfig = work
 	return res
 }
 
@@ -535,9 +531,8 @@ func (s *Step) computeHashKey() (string, error) {
 
 	var httpCfg *HTTPConfig
 	if s.HTTP != nil {
-		cfg := *s.HTTP
-		cfg.Method = s.HTTP.DefaultedMethod()
-		httpCfg = &cfg
+		httpCfg = util.MutableCopy(s.HTTP)
+		httpCfg.Method = s.HTTP.DefaultedMethod()
 	}
 
 	h := stepHash{
@@ -596,9 +591,9 @@ func (c *ScriptConfig) Equal(other *ScriptConfig) bool {
 
 // WithGoals returns a copy of the flow config with the provided goals
 func (c *FlowConfig) WithGoals(goals ...StepID) *FlowConfig {
-	res := *c
+	res := util.MutableCopy(c)
 	res.Goals = goals
-	return &res
+	return res
 }
 
 // Equal returns true if two flow configs are equal

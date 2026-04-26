@@ -14,6 +14,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // Config holds configuration settings for the orchestrator
@@ -234,7 +235,7 @@ func (c *Config) LoadFromEnv() error {
 // WithWorkDefaults returns a copy of the config with zero-valued work fields
 // filled in from defaults
 func (c *Config) WithWorkDefaults() *Config {
-	res := *c
+	res := util.MutableCopy(c)
 	if res.Work.MaxRetries == 0 {
 		res.Work.MaxRetries = DefaultRetryMaxRetries
 	}
@@ -247,7 +248,7 @@ func (c *Config) WithWorkDefaults() *Config {
 	if res.Work.BackoffType == "" {
 		res.Work.BackoffType = DefaultRetryBackoffType
 	}
-	return &res
+	return res
 }
 
 // Validate checks that all configuration values are valid

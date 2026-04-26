@@ -13,6 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 func TestNew(t *testing.T) {
@@ -83,9 +84,10 @@ func TestNewMissingDependency(t *testing.T) {
 
 func TestNewInvalidConfig(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Config.APIPort = 0
+		cfg := util.MutableCopy(env.Config)
+		cfg.APIPort = 0
 
-		eng, err := env.NewEngineInstance()
+		eng, err := engine.New(cfg, env.Dependencies())
 		assert.Nil(t, eng)
 		assert.Error(t, err)
 		assert.True(t, errors.Is(err, engine.ErrInvalidConfig))
@@ -169,15 +171,23 @@ func TestGetStoreStateErrors(t *testing.T) {
 
 func TestStateIncludesConfiguredNodes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		env.Config.Raft.Servers = append(env.Config.Raft.Servers,
+		cfg := util.MutableCopy(env.Config)
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
 			raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
 		)
 
-		cl, err := env.Engine.GetClusterState()
+		eng, err := engine.New(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, eng) {
+			return
+		}
+		defer func() { assert.NoError(t, eng.Stop()) }()
+
+		cl, err := eng.GetClusterState()
 		assert.NoError(t, err)
 		assert.Contains(t, cl.Nodes, api.NodeID("node-2"))
 
-		seqState, seq, err := env.Engine.GetClusterStateSeq()
+		seqState, seq, err := eng.GetClusterStateSeq()
 		assert.NoError(t, err)
 		assert.True(t, seq >= 0)
 		assert.Contains(t, seqState.Nodes, api.NodeID("node-2"))
@@ -186,13 +196,13 @@ func TestStateIncludesConfiguredNodes(t *testing.T) {
 
 func TestClusterTracksMultipleNodes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		cfg := *env.Config
+		cfg := util.MutableCopy(env.Config)
 		cfg.Raft.LocalID = "node-2"
 		cfg.Raft.Servers = []raft.Server{
 			{ID: "node-2", Address: "127.0.0.1:9702"},
 		}
 
-		peer, err := engine.New(&cfg, env.Dependencies())
+		peer, err := engine.New(cfg, env.Dependencies())
 		assert.NoError(t, err)
 		if peer != nil {
 			defer func() { _ = peer.Stop() }()

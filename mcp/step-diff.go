@@ -54,8 +54,8 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 		applyUpdates = *args.ApplyUpdates
 	}
 
-	applied := []map[string]any{}
-	skipped := []map[string]any{}
+	var applied []map[string]any
+	var skipped []map[string]any
 	for _, d := range diffs {
 		switch d.Action {
 		case "create":

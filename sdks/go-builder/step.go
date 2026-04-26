@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // Step is a builder for creating and configuring flow steps. It provides an
@@ -109,9 +110,9 @@ func (s Step) Output(name api.Name, argType api.AttributeType) Step {
 func (s Step) WithForEach(name api.Name) Step {
 	s.attributes = maps.Clone(s.attributes)
 	if attr, ok := s.attributes[name]; ok {
-		newAttr := *attr
-		newAttr.ForEach = true
-		s.attributes[name] = &newAttr
+		cpy := util.MutableCopy(attr)
+		cpy.ForEach = true
+		s.attributes[name] = cpy
 	}
 	return s
 }
@@ -152,12 +153,7 @@ func (s Step) WithLuaPredicate(script string) Step {
 
 // WithEndpoint sets the HTTP endpoint where the step handler is listening
 func (s Step) WithEndpoint(endpoint string) Step {
-	if s.http == nil {
-		s.http = &api.HTTPConfig{}
-	} else {
-		httpCopy := *s.http
-		s.http = &httpCopy
-	}
+	s.http = util.MutableCopy(s.http)
 	s.http.Endpoint = endpoint
 	if s.stepType == "" {
 		s.stepType = api.StepTypeSync
@@ -167,12 +163,7 @@ func (s Step) WithEndpoint(endpoint string) Step {
 
 // WithMethod sets the HTTP method used to invoke the step endpoint
 func (s Step) WithMethod(method string) Step {
-	if s.http == nil {
-		s.http = &api.HTTPConfig{}
-	} else {
-		var cpy api.HTTPConfig = *s.http
-		s.http = &cpy
-	}
+	s.http = util.MutableCopy(s.http)
 	s.http.Method = strings.ToUpper(method)
 	if s.stepType == "" {
 		s.stepType = api.StepTypeSync
@@ -213,12 +204,7 @@ func (s Step) WithScriptLanguage(lang, script string) Step {
 
 // WithHealthCheck sets the HTTP health check endpoint for the step
 func (s Step) WithHealthCheck(endpoint string) Step {
-	if s.http == nil {
-		s.http = &api.HTTPConfig{}
-	} else {
-		httpCopy := *s.http
-		s.http = &httpCopy
-	}
+	s.http = util.MutableCopy(s.http)
 	s.http.HealthCheck = endpoint
 	return s
 }
@@ -264,11 +250,10 @@ func (s Step) Build() (*api.Step, error) {
 	if s.name != "" && s.id == "" {
 		return s.WithName(s.name).Build()
 	}
-	var httpConfig *api.HTTPConfig
+	var http *api.HTTPConfig
 	if s.http != nil {
-		httpCopy := *s.http
-		httpCopy.Timeout = s.timeout
-		httpConfig = &httpCopy
+		http = util.MutableCopy(s.http)
+		http.Timeout = s.timeout
 	}
 
 	st := &api.Step{
@@ -278,7 +263,7 @@ func (s Step) Build() (*api.Step, error) {
 		Attributes: s.attributes,
 		Labels:     s.labels,
 		Predicate:  s.predicate,
-		HTTP:       httpConfig,
+		HTTP:       http,
 		Flow:       s.flow,
 		Script:     s.script,
 		Memoizable: s.memoizable,

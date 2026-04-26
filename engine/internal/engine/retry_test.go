@@ -16,6 +16,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 func TestShouldRetryStep(t *testing.T) {
@@ -293,17 +294,27 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		StepClient: client.NewHTTPClient(5 * time.Second),
 	}
 	helpers.WithTestEnvDeps(t, deps, func(env *helpers.TestEngineEnv) {
-		env.Config.Work = api.WorkConfig{
+		cfg := util.MutableCopy(env.Config)
+		cfg.Work = api.WorkConfig{
 			MaxRetries:  3,
 			InitBackoff: 1,
 			MaxBackoff:  1,
 			BackoffType: api.BackoffTypeFixed,
 		}
-		assert.NoError(t, env.Engine.Start())
+		deps := env.Dependencies()
+		deps.StepClient = client.NewHTTPClient(5 * time.Second)
+		eng, err := engine.New(cfg, deps)
+		assert.NoError(t, err)
+		if !assert.NotNil(t, eng) {
+			return
+		}
+		defer func() { assert.NoError(t, eng.Stop()) }()
+
+		assert.NoError(t, eng.Start())
 
 		st := helpers.NewStepWithOutputs("http-retry", "result")
 		st.HTTP.Endpoint = stepServer.URL
-		assert.NoError(t, env.Engine.RegisterStep(st))
+		assert.NoError(t, eng.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},
@@ -311,10 +322,9 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-http-retry")
-		fl := env.WaitForFlowStatus(id, func() {
-			err := env.Engine.StartFlow(id, pl)
-			assert.NoError(t, err)
-		})
+		err = eng.StartFlow(id, pl)
+		assert.NoError(t, err)
+		fl := helpers.WaitForTerminalFlowState(t, eng, id)
 
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, int32(3), calls.Load())

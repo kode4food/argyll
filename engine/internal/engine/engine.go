@@ -76,7 +76,7 @@ var (
 
 // New creates a new orchestrator instance from configuration and dependencies
 func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
-	*cfg = *cfg.WithWorkDefaults()
+	cfg = cfg.WithWorkDefaults()
 	if err := cfg.Validate(); err != nil {
 		return nil, errors.Join(ErrInvalidConfig, err)
 	}
