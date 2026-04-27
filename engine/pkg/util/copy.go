@@ -1,10 +1,8 @@
 package util
 
-// MutableCopy returns a new pointer to a shallow copy of val.
-//
-// Use MutableCopy when code needs to derive a new mutable value from an
-// existing persistent value before applying changes. If val is nil, MutableCopy
-// returns a pointer to the zero value of T
+// MutableCopy returns a new pointer to a shallow copy of val. Use when code
+// needs to derive a new mutable value from an existing persistent value before
+// applying changes. If val is nil, returns a pointer to a new instance of T
 func MutableCopy[T any](val *T) *T {
 	if val == nil {
 		var zero T
