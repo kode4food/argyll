@@ -41,7 +41,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/invalid-work-flow/"+string(st.ID)+"/fake-token",
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -56,7 +56,7 @@ func TestHookFlowMissing(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/missing-flow/step/token",
 			bytes.NewReader([]byte(`{"success":true}`)))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -91,7 +91,7 @@ func TestHookExecutionMissing(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/missing-exec-flow/unknown-step/token",
 			bytes.NewReader([]byte(`{"success":true}`)))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -149,7 +149,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 
 		router := env.Server.SetupRoutes()
 		var w *httptest.ResponseRecorder
@@ -167,7 +167,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		req = httptest.NewRequest("POST",
 			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w = httptest.NewRecorder()
 
 		router.ServeHTTP(w, req)
@@ -306,7 +306,7 @@ func TestHookSuccess(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-success-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -417,7 +417,7 @@ func TestHookInvalidJSON(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-badjson-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader([]byte("invalid json")))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()

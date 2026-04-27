@@ -337,7 +337,7 @@ func TestStartFlow(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -355,7 +355,7 @@ func TestQueryFlows(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -438,7 +438,7 @@ func TestSuccess(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/async-step/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -454,7 +454,7 @@ func TestHookFlowNotFound(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/nonexistent-wf/step-id/token",
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -495,7 +495,7 @@ func TestHookStepNotFound(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/nonexistent-step/token",
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -548,7 +548,7 @@ func TestHookInvalidToken(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/async-step/wrong-token",
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -611,7 +611,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-wf/async-step/"+string(tkn),
 			bytes.NewReader([]byte("invalid json")))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -832,7 +832,7 @@ func TestStartFlowInvalidJSON(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader([]byte("invalid json")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1152,7 +1152,7 @@ func TestStartFlowEmptyID(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1173,7 +1173,7 @@ func TestStartFlowNoGoals(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1211,7 +1211,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1227,7 +1227,7 @@ func TestQueryFlowsEmpty(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1285,7 +1285,7 @@ func TestQueryFlowsInvalidStatuses(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1364,7 +1364,7 @@ func TestPlanPreview(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/plan", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1390,7 +1390,7 @@ func TestPlanPreviewInvalidJSON(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/plan", bytes.NewReader([]byte("invalid")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1408,7 +1408,7 @@ func TestPlanPreviewNoGoals(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/plan", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1430,7 +1430,7 @@ func TestPlanPreviewStepNotFound(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/plan", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1467,7 +1467,7 @@ func TestStartFlowDuplicate(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1489,7 +1489,7 @@ func TestStartFlowStepNotFound(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1568,7 +1568,7 @@ func TestSanitizeFlowID(t *testing.T) {
 				req := httptest.NewRequest(
 					"POST", "/engine/flow", bytes.NewReader(body),
 				)
-				req.Header.Set("Content-Type", "application/json")
+				req.Header.Set("Content-Type", api.JSONContentType)
 				w := httptest.NewRecorder()
 
 				router := testEnv.Server.SetupRoutes()
@@ -1611,7 +1611,7 @@ func TestQueryFlowsMultiple(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader([]byte("{}")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1730,7 +1730,7 @@ func TestHookSuccessRoute(t *testing.T) {
 		req := httptest.NewRequest("POST",
 			"/webhook/webhook-flow/"+string(st.ID)+"/"+string(tkn),
 			bytes.NewReader(body))
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1757,7 +1757,7 @@ func TestQueryFlowsInvalidJSON(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader([]byte("not json")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1774,7 +1774,7 @@ func TestQueryFlowsLimitTooHigh(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1792,7 +1792,7 @@ func TestQueryFlowsNegativeLimit(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1810,7 +1810,7 @@ func TestQueryFlowsInvalidSort(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1828,7 +1828,7 @@ func TestQueryFlowsInvalidIDPrefix(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1846,7 +1846,7 @@ func TestQueryFlowsInvalidLabelEmptyKey(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow/query", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1872,7 +1872,7 @@ func TestStartFlowIDTooLong(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1897,7 +1897,7 @@ func TestStartFlowTooManyGoals(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1927,7 +1927,7 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -1957,7 +1957,7 @@ func TestStartFlowTooManyLabels(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/flow", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()

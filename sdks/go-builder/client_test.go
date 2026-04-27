@@ -26,7 +26,7 @@ func TestRegisterStepSuccess(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 			assert.Equal(t, "/engine/step", r.URL.Path)
-			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, api.JSONContentType, r.Header.Get("Content-Type"))
 
 			var step api.Step
 			err := json.NewDecoder(r.Body).Decode(&step)

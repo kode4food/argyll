@@ -25,7 +25,7 @@ func TestSuccess(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
-			assert.Equal(t, "application/json", r.Header.Get("Content-Type"))
+			assert.Equal(t, api.JSONContentType, r.Header.Get("Content-Type"))
 			assert.Equal(t, "Argyll-Engine/1.0", r.Header.Get("User-Agent"))
 
 			var req api.Args
@@ -33,7 +33,7 @@ func TestSuccess(t *testing.T) {
 			assert.Equal(t, "test-input", req["input"])
 			assert.Equal(t, "test-flow", r.Header.Get(api.HeaderFlowID))
 
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", api.JSONContentType)
 			_ = json.NewEncoder(w).Encode(api.Args{"result": "test-output"})
 		},
 	))
@@ -189,7 +189,7 @@ func TestProblemDetailsRetryableFailure(t *testing.T) {
 func TestInvalidJSON(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", api.JSONContentType)
 			_, _ = w.Write([]byte("invalid json"))
 		},
 	))
@@ -232,7 +232,7 @@ func TestStepTimeoutOverride(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, _ *http.Request) {
 			time.Sleep(100 * time.Millisecond)
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", api.JSONContentType)
 			_ = json.NewEncoder(w).Encode(api.Args{"result": "ok"})
 		},
 	))
@@ -281,7 +281,7 @@ func TestStepTimeoutShorter(t *testing.T) {
 func TestEmptyOutputs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", api.JSONContentType)
 			w.WriteHeader(http.StatusNoContent)
 		},
 	))
@@ -301,7 +301,7 @@ func TestEmptyOutputs(t *testing.T) {
 func TestMultipleOutputs(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", api.JSONContentType)
 			_ = json.NewEncoder(w).Encode(api.Args{
 				"result1": "value1",
 				"result2": 42,
@@ -356,7 +356,7 @@ func TestGETURLParams(t *testing.T) {
 			assert.NoError(t, err)
 			assert.Empty(t, body)
 
-			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Content-Type", api.JSONContentType)
 			_ = json.NewEncoder(w).Encode(api.Args{"result": "ok"})
 		},
 	))

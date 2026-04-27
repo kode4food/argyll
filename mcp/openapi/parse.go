@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (
@@ -316,7 +317,7 @@ func mediaSchema(content openapi.Content) *openapi.SchemaRef {
 	if len(content) == 0 {
 		return nil
 	}
-	if media, ok := content["application/json"]; ok && media != nil {
+	if media, ok := content[api.JSONContentType]; ok && media != nil {
 		return media.Schema
 	}
 	if media, ok := content["application/*+json"]; ok && media != nil {

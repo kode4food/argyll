@@ -91,7 +91,7 @@ func TestHTTPError(t *testing.T) {
 	body, err := json.Marshal(api.Args{"foo": "bar"})
 	assert.NoError(t, err)
 
-	resp, err := http.Post(stepURL, "application/json", bytes.NewBuffer(body))
+	resp, err := http.Post(stepURL, api.JSONContentType, bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 
@@ -122,7 +122,7 @@ func TestPanic(t *testing.T) {
 	body, err := json.Marshal(api.Args{})
 	assert.NoError(t, err)
 
-	resp, err := http.Post(stepURL, "application/json", bytes.NewBuffer(body))
+	resp, err := http.Post(stepURL, api.JSONContentType, bytes.NewBuffer(body))
 	assert.NoError(t, err)
 	defer func() { _ = resp.Body.Close() }()
 

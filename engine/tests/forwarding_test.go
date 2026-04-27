@@ -315,7 +315,7 @@ func postJSON(
 	assert.NoError(t, err)
 
 	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(data))
-	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Content-Type", api.JSONContentType)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
 	assert.Equal(t, want, w.Code, w.Body.String())

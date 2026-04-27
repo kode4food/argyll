@@ -124,7 +124,7 @@ func TestCreateStepConflict(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -142,7 +142,7 @@ func TestCreateStep(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -162,7 +162,7 @@ func TestCreateStepIdempotent(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -177,7 +177,7 @@ func TestCreateStepInvalidBody(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader([]byte("not-json")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -193,7 +193,7 @@ func TestCreateStepValid(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -296,7 +296,7 @@ func TestUpdateStep(t *testing.T) {
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/update-step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -319,7 +319,7 @@ func TestUpdateStepMismatchStatus(t *testing.T) {
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/update-step-mismatch", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -363,7 +363,7 @@ func TestCreateStepInvalidRequest(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader([]byte("invalid json")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := testEnv.Server.SetupRoutes()
@@ -385,7 +385,7 @@ func TestCreateStepValidBody(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -408,7 +408,7 @@ func TestUpdateStepMismatchMessage(t *testing.T) {
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/original-step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -437,7 +437,7 @@ func TestUpdateValidationError(t *testing.T) {
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/update-step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -455,7 +455,7 @@ func TestUpdateStepNotFound(t *testing.T) {
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/nonexistent", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -473,7 +473,7 @@ func TestUpdateStepInvalidJSON(t *testing.T) {
 			"/engine/step/test-step",
 			bytes.NewReader([]byte("invalid json")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -494,7 +494,7 @@ func TestCreateStepDuplicate(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -515,7 +515,7 @@ func TestCreateStepInvalidScript(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -531,7 +531,7 @@ func TestCreateStepInvalidText(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader([]byte("not json")),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -547,7 +547,7 @@ func TestCreateStepBodyTooLarge(t *testing.T) {
 		req := httptest.NewRequest(
 			"POST", "/engine/step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()
@@ -567,7 +567,7 @@ func TestUpdateStepBodyTooLarge(t *testing.T) {
 		req := httptest.NewRequest(
 			"PUT", "/engine/step/large-update-step", bytes.NewReader(body),
 		)
-		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Content-Type", api.JSONContentType)
 		w := httptest.NewRecorder()
 
 		router := env.Server.SetupRoutes()

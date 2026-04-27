@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-)
 
-const contentTypeJSON = "application/json"
+	"github.com/kode4food/argyll/engine/pkg/api"
+)
 
 var (
 	ErrHTTPStatus        = errors.New("http request failed")
@@ -49,7 +49,7 @@ func (s *Server) httpPost(path string, payload any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", contentTypeJSON)
+	req.Header.Set("Content-Type", api.JSONContentType)
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func (s *Server) httpPut(path string, payload any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Content-Type", contentTypeJSON)
+	req.Header.Set("Content-Type", api.JSONContentType)
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err

@@ -16,6 +16,7 @@ import (
 	"github.com/localrivet/gomcp/transport/embedded"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/mcp"
 )
 
@@ -152,7 +153,7 @@ func jsonResponse(status int, body []byte) *http.Response {
 		StatusCode: status,
 		Header: http.Header{
 			"Content-Type": []string{
-				"application/json",
+				api.JSONContentType,
 			},
 		},
 		Body: io.NopCloser(bytes.NewReader(body)),
