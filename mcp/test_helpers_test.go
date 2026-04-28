@@ -152,9 +152,7 @@ func jsonResponse(status int, body []byte) *http.Response {
 	return &http.Response{
 		StatusCode: status,
 		Header: http.Header{
-			"Content-Type": []string{
-				api.JSONContentType,
-			},
+			"Content-Type": []string{api.JSONContentType},
 		},
 		Body: io.NopCloser(bytes.NewReader(body)),
 	}

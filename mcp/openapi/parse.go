@@ -259,7 +259,7 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 				Confidence: confidence(name, entity),
 			})
 		}
-		out = append(out, nestedOutputsFromObjectProps(props, entity, "$")...)
+		out = append(out, nestedOutputs(props, entity, "$")...)
 	case schemaIs(s, "array"):
 		if entity != "" {
 			out = append(out, argSpec{
@@ -285,7 +285,7 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 	return out
 }
 
-func nestedOutputsFromObjectProps(
+func nestedOutputs(
 	props map[string]*openapi.SchemaRef, entity, base string,
 ) []argSpec {
 	var out []argSpec

@@ -221,9 +221,7 @@ func bridgeOpportunities(
 	return dedupeBridgeOpportunities(res)
 }
 
-func dedupeBridgeOpportunities(
-	items []bridgeOpportunity,
-) []bridgeOpportunity {
+func dedupeBridgeOpportunities(items []bridgeOpportunity) []bridgeOpportunity {
 	seen := util.Set[string]{}
 	var res []bridgeOpportunity
 	for _, item := range items {

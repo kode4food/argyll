@@ -114,8 +114,7 @@ func TestProblemMediaParams(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set(
-				"Content-Type",
-				api.ProblemJSONContentType+"; charset=utf-8",
+				"Content-Type", api.ProblemJSONContentType+"; charset=utf-8",
 			)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			_ = json.NewEncoder(w).Encode(api.NewProblem(

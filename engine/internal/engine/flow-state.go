@@ -196,12 +196,16 @@ func hasPendingConsumer(
 func hasActiveWork(flow api.FlowState) bool {
 	for _, ex := range flow.Executions {
 		for _, work := range ex.WorkItems {
-			if work.Status == api.WorkPending || work.Status == api.WorkActive {
+			if isWorkActive(work.Status) {
 				return true
 			}
 		}
 	}
 	return false
+}
+
+func isWorkActive(status api.WorkStatus) bool {
+	return status == api.WorkPending || status == api.WorkActive
 }
 
 func isOutputAttribute(step *api.Step, name api.Name) bool {

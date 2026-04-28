@@ -274,9 +274,7 @@ func TestHTTPRetryRecovers(t *testing.T) {
 	stepServer := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			if calls.Add(1) <= 2 {
-				w.Header().Set(
-					"Content-Type", api.ProblemJSONContentType,
-				)
+				w.Header().Set("Content-Type", api.ProblemJSONContentType)
 				w.WriteHeader(http.StatusServiceUnavailable)
 				_ = json.NewEncoder(w).Encode(api.NewProblem(
 					http.StatusServiceUnavailable, "temporary outage",

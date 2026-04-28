@@ -43,7 +43,7 @@ type raftInit struct {
 
 func TestFollowerWrite(t *testing.T) {
 	nodes := newRaftCluster(t, 3)
-	leader, follower := findLeaderFollower(t, nodes)
+	leader, follower := findFollower(t, nodes)
 
 	st := helpers.NewSimpleStep("forwarded-step")
 	w := postJSON(t,
@@ -99,7 +99,7 @@ func TestFollowerWriteStartup(t *testing.T) {
 		closeRaftNodes(nodes)
 	})
 
-	leader, follower := findLeaderFollower(t, nodes)
+	leader, follower := findFollower(t, nodes)
 	w := postJSON(t,
 		follower.server.SetupRoutes(), "/engine/step", st, http.StatusCreated,
 	)
@@ -248,9 +248,7 @@ func bootRaftNode(init *raftInit) (*raftNode, error) {
 	}, nil
 }
 
-func findLeaderFollower(
-	t *testing.T, nodes []*raftNode,
-) (*raftNode, *raftNode) {
+func findFollower(t *testing.T, nodes []*raftNode) (*raftNode, *raftNode) {
 	t.Helper()
 
 	var leader *raftNode

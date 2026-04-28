@@ -103,9 +103,7 @@ type (
 	}
 )
 
-func Analyze(
-	args Args, existing []Step, warnings []string,
-) (Result, error) {
+func Analyze(args Args, existing []Step, warnings []string) (Result, error) {
 	doc, err := parseDoc(args)
 	if err != nil {
 		return Result{}, err

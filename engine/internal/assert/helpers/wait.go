@@ -139,8 +139,8 @@ func WaitForFlowExists(
 
 // WaitForFlowState waits for a flow state accepted by accept.
 func WaitForFlowState(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID,
-	timeout time.Duration, accept func(api.FlowState) bool,
+	t *testing.T, eng *engine.Engine, flowID api.FlowID, timeout time.Duration,
+	accept func(api.FlowState) bool,
 ) api.FlowState {
 	t.Helper()
 

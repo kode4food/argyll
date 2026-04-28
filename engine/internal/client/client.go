@@ -153,12 +153,9 @@ func (c *HTTPClient) sendRequest(
 		return nil, err
 	}
 
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode/100 != 2 { // not a 2xx success response
 		return nil, httpError(
-			resp.StatusCode,
-			resp.Header.Get("Content-Type"),
-			respBody,
+			resp.StatusCode, resp.Header.Get("Content-Type"), respBody,
 		)
 	}
 
