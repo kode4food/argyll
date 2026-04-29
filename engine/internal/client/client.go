@@ -13,6 +13,7 @@ import (
 	"regexp"
 	"time"
 
+	argyll "github.com/kode4food/argyll/engine"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -29,6 +30,8 @@ type (
 		timeout    time.Duration
 	}
 )
+
+const UserAgent = "Argyll-Engine/" + argyll.Version
 
 var (
 	ErrHTTPError          = errors.New("step returned HTTP error")
@@ -100,7 +103,7 @@ func (c *HTTPClient) buildRequest(
 	}
 
 	httpReq.Header.Set("Accept", api.JSONContentType)
-	httpReq.Header.Set("User-Agent", "Argyll-Engine/1.0")
+	httpReq.Header.Set("User-Agent", UserAgent)
 	api.SetMetadataHeaders(httpReq.Header, meta)
 	if bodyReader != nil {
 		httpReq.Header.Set("Content-Type", api.JSONContentType)

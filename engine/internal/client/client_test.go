@@ -26,7 +26,7 @@ func TestSuccess(t *testing.T) {
 		func(w http.ResponseWriter, r *http.Request) {
 			assert.Equal(t, "POST", r.Method)
 			assert.Equal(t, api.JSONContentType, r.Header.Get("Content-Type"))
-			assert.Equal(t, "Argyll-Engine/1.0", r.Header.Get("User-Agent"))
+			assert.Equal(t, client.UserAgent, r.Header.Get("User-Agent"))
 
 			var req api.Args
 			assert.NoError(t, json.NewDecoder(r.Body).Decode(&req))

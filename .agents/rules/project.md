@@ -38,29 +38,11 @@ web/             # React UI (atomic design)
 examples/        # Sample step implementations
 ```
 
-## Implementation Status
+## Known Gaps
 
-### Fully Implemented
-
-- Distributed coordination (Raft replication + optimistic concurrency)
-- Event sourcing (Raft + Pebble backend)
-- Lazy evaluation (goal-oriented execution)
-- Step types (sync HTTP, async HTTP, script, flow)
-- Immutable execution plans
-- Real-time UI (React 19 + WebSocket)
-- Health monitoring
-- Shared Timebox store with separate catalog/partition/flow executors
-- Step retry with configurable backoff
-
-### Partial
-
-- Script security: sandboxed but no resource limits
-- Input validation: UI correct, server permissive
-
-### Not Implemented
-
-- Flow pending state (immediate activation)
-- Metrics/observability (no Prometheus/tracing)
+- Script security has sandboxing but no resource limits
+- Flows activate immediately; there is no separate pending flow state
+- Server-side input validation checks required inputs but does not validate input types or semantics
 
 ## API
 
