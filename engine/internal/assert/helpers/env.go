@@ -40,7 +40,7 @@ type (
 		Data any
 	}
 
-	publishingBackend struct {
+	backend struct {
 		timebox.Backend
 		publish Publisher
 	}
@@ -99,7 +99,7 @@ func NewTestEngineWithDeps(
 			publishMu.Unlock()
 		}
 	}
-	backend := publishingBackend{
+	backend := backend{
 		Backend: memory.NewPersistence(),
 		publish: func(evs ...*timebox.Event) {
 			publishMu.Lock()
@@ -326,7 +326,7 @@ func mergeDependencies(
 	return defaults
 }
 
-func (b publishingBackend) Append(req timebox.AppendRequest) error {
+func (b backend) Append(req timebox.AppendRequest) error {
 	err := b.Backend.Append(req)
 	if err != nil || len(req.Events) == 0 {
 		return err
@@ -335,9 +335,7 @@ func (b publishingBackend) Append(req timebox.AppendRequest) error {
 	return nil
 }
 
-func (b publishingBackend) NewStore(
-	cfg timebox.Config,
-) (*timebox.Store, error) {
+func (b backend) NewStore(cfg timebox.Config) (*timebox.Store, error) {
 	return timebox.NewStore(b, cfg)
 }
 

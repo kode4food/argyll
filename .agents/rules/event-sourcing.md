@@ -2,16 +2,16 @@
 
 ## Architecture
 
-**Storage:** shared `timebox.Store` backed by Raft + Pebble
+**Storage:** `timebox.Store` instances backed by Raft + Pebble
 
-- Catalog state: `timebox.Executor[api.CatalogState]` over the shared store
-- Partition state: `timebox.Executor[*api.PartitionState]` over the shared store
-- Flow state: `timebox.Executor[api.FlowState]` over the shared store
+- Catalog state: `timebox.Executor[api.CatalogState]` over the engine store
+- Cluster state: `timebox.Executor[api.ClusterState]` over the engine store
+- Flow state: `timebox.Executor[api.FlowState]` over the flow store
 - Concurrency: Optimistic (sequence-based versioning, automatic retry on conflict)
 
 **WebSocket Notifications (separate from event sourcing):**
 
-- EventHub: `internal/event.Hub`, wired through `cmd/argyll/main.go` and `internal/server/websocket.go`
+- EventHub: `engine/internal/event.Hub`, wired through `engine/cmd/argyll/main.go` and `engine/internal/server/websocket.go`
 - Purpose: Broadcast events to WebSocket subscribers
 - Separate from event sourcing; used for real-time UI updates
 - Produces from timebox events, doesn't drive execution
@@ -52,19 +52,17 @@ For cluster state mutations (`execCluster` with no external side effects needed)
 ```go
 // health.go: UpdateStepHealth
 func (e *Engine) UpdateStepHealth(stepID api.StepID, health api.HealthStatus, errMsg string) error {
-    nodeID := e.LocalNodeID()
-    cmd := func(st *api.ClusterState, ag *ClusterAggregator) error {
-        node := st.Nodes[nodeID]
-        if node != nil {
-            if h, ok := node.Health[stepID]; ok {
-                if h.Status == health && h.Error == errMsg {
-                    return nil // Idempotent
-                }
+    nid := e.LocalNodeID()
+    cmd := func(st api.ClusterState, ag *ClusterAggregator) error {
+        node := st.Nodes[nid]
+        if h, ok := node.Health[stepID]; ok {
+            if h.Status == health && h.Error == errMsg {
+                return nil // Idempotent
             }
         }
         return events.Raise(ag, api.EventTypeStepHealthChanged,
             api.StepHealthChangedEvent{
-                NodeID: nodeID,
+                NodeID: nid,
                 StepID: stepID,
                 Status: health,
                 Error:  errMsg,
@@ -316,12 +314,9 @@ func reconstructState(aggregateID ID) State {
 - `step_unregistered` - Step deleted from registry
 - `step_updated` - Step definition modified
 
-**Partition aggregate events** (health and flow lifecycle tracking):
+**Cluster aggregate events** (node health tracking):
 
 - `step_health_changed` - Step availability changed
-- `flow_activated` - Flow added to active flows list
-- `flow_deactivated` - Flow terminal + no active work
-- `flow_digest_updated` - Flow status digest updated (internal)
 
 **Flow aggregate events** (flow execution state):
 
@@ -337,6 +332,8 @@ func reconstructState(aggregateID ID) State {
 - `work_failed` - Work item failed
 - `work_not_completed` - Work item reports not ready (triggers retry scheduling)
 - `retry_scheduled` - Work item retry scheduled for future time
+- `dispatch_deferred` - Step dispatch deferred until a node can run it
+- `flow_deactivated` - Flow terminal + no active work
 - `attribute_set` - Step outputs added to flow state
 
 ## Key Locations
@@ -345,5 +342,5 @@ func reconstructState(aggregateID ID) State {
 - Executor setup: `engine/internal/engine/engine.go` (NewExecutor calls)
 - Event types: `engine/pkg/events/` (event definitions)
 - Recovery: `engine/internal/engine/recover.go` (RecoverFlows logic)
-- Retry scheduling: `engine/internal/engine/work-continue.go` and `engine/internal/engine/scheduler/`
-- WebSocket broadcast: `cmd/argyll/main.go` and `internal/server/websocket.go`
+- Retry and deferred dispatch scheduling: `engine/internal/engine/work-continue.go`, `engine/internal/engine/step-dispatch.go`, and `engine/internal/engine/scheduler/`
+- WebSocket broadcast: `engine/cmd/argyll/main.go` and `engine/internal/server/websocket.go`
