@@ -54,8 +54,7 @@ func (s *Server) queryFlows(c *gin.Context) {
 		return
 	}
 
-	if req.Sort != "" &&
-		req.Sort != api.FlowSortRecentDesc &&
+	if req.Sort != "" && req.Sort != api.FlowSortRecentDesc &&
 		req.Sort != api.FlowSortRecentAsc {
 		c.JSON(http.StatusBadRequest, api.ErrorResponse{
 			Error:  "Invalid sort",

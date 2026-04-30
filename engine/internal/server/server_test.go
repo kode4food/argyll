@@ -896,7 +896,7 @@ func TestEngineHealthIncludesClusterNodes(t *testing.T) {
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
 		assert.Len(t, response.Nodes, 2)
-		localID := api.NodeID(testEnv.Engine.LocalNodeID())
+		localID := testEnv.Engine.LocalNodeID()
 		if assert.Contains(t, response.Nodes, localID) {
 			assert.Equal(t,
 				api.HealthHealthy,
@@ -1033,7 +1033,7 @@ func TestEngineHealthScriptNodes(t *testing.T) {
 		var response api.ClusterState
 		err = json.Unmarshal(w.Body.Bytes(), &response)
 		assert.NoError(t, err)
-		localID := api.NodeID(testEnv.Engine.LocalNodeID())
+		localID := testEnv.Engine.LocalNodeID()
 		if assert.Contains(t, response.Nodes, localID) {
 			assert.Equal(t,
 				api.HealthHealthy,

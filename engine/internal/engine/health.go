@@ -207,8 +207,8 @@ func (r *healthResolver) resolve(stepID api.StepID) api.HealthState {
 			r.cache[stepID] = h
 			return h
 		}
-		if health.Status == api.HealthUnknown &&
-			health.Error != "" && unknown == (api.HealthState{}) {
+		if health.Status == api.HealthUnknown && health.Error != "" &&
+			unknown == (api.HealthState{}) {
 			unknown = flowStepHealth(id, health)
 		}
 	}

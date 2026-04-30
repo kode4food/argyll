@@ -213,8 +213,7 @@ func (e *TestEngineEnv) getExecutionState(
 }
 
 func isFlowTerminal(state api.FlowState) bool {
-	return state.Status == api.FlowCompleted ||
-		state.Status == api.FlowFailed
+	return state.Status == api.FlowCompleted || state.Status == api.FlowFailed
 }
 
 func isStepStarted(status api.StepStatus) bool {
@@ -222,8 +221,7 @@ func isStepStarted(status api.StepStatus) bool {
 }
 
 func isStepTerminal(status api.StepStatus) bool {
-	return status == api.StepCompleted ||
-		status == api.StepFailed ||
+	return status == api.StepCompleted || status == api.StepFailed ||
 		status == api.StepSkipped
 }
 

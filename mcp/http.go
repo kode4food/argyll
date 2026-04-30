@@ -31,8 +31,7 @@ func (s *Server) httpGet(path string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode/100 != 2 { // not a 2xx success response
 		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
 	}
 	return decodeJSON(body)
@@ -60,8 +59,7 @@ func (s *Server) httpPost(path string, payload any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode/100 != 2 { // not a 2xx success response
 		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
 	}
 	return decodeJSON(body)
@@ -89,8 +87,7 @@ func (s *Server) httpPut(path string, payload any) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode/100 != 2 { // not a 2xx success response
 		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
 	}
 	return decodeJSON(body)
@@ -111,8 +108,7 @@ func (s *Server) httpDelete(path string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode < http.StatusOK ||
-		resp.StatusCode >= http.StatusMultipleChoices {
+	if resp.StatusCode/100 != 2 { // not a 2xx success response
 		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
 	}
 	return decodeJSON(body)
