@@ -103,7 +103,7 @@ func TestStartSuccess(t *testing.T) {
 	ctx := context.Background()
 	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
-		WithInitialState(api.Args{"input": "value"}).
+		WithInitialState(api.InitArgs{"input": {"value"}}).
 		Start(ctx)
 	assert.NoError(t, err)
 }

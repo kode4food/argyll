@@ -366,7 +366,7 @@ func TestRaiseFlowEvents(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: id,
 					Plan:   pl,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{

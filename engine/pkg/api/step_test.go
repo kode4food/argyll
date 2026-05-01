@@ -474,9 +474,9 @@ func TestSortedArgNames(t *testing.T) {
 			"mango":  {Role: api.RoleOptional, Type: api.TypeString},
 			"banana": {Role: api.RoleOptional, Type: api.TypeString},
 			"carrot": {
-				Role:    api.RoleConst,
-				Type:    api.TypeString,
-				Default: `"fixed"`,
+				Role:  api.RoleConst,
+				Type:  api.TypeString,
+				Const: &api.ConstConfig{Value: `"fixed"`},
 			},
 		},
 	}
@@ -538,23 +538,23 @@ func TestMultiArgNames(t *testing.T) {
 		},
 		Attributes: api.AttributeSpecs{
 			"users": {
-				Role:    api.RoleRequired,
-				Type:    api.TypeArray,
-				ForEach: true,
+				Role:  api.RoleRequired,
+				Type:  api.TypeArray,
+				Input: &api.InputConfig{ForEach: true},
 			},
 			"items": {
-				Role:    api.RoleOptional,
-				Type:    api.TypeArray,
-				ForEach: true,
+				Role:  api.RoleOptional,
+				Type:  api.TypeArray,
+				Input: &api.InputConfig{ForEach: true},
 			},
 			"config": {
 				Role: api.RoleRequired,
 				Type: api.TypeObject,
 			},
 			"messages": {
-				Role:    api.RoleOptional,
-				Type:    api.TypeArray,
-				ForEach: true,
+				Role:  api.RoleOptional,
+				Type:  api.TypeArray,
+				Input: &api.InputConfig{ForEach: true},
 			},
 		},
 	}

@@ -10,11 +10,12 @@ import (
 
 type (
 	Planner func(
-		api.CatalogState, []api.StepID, api.Args,
+		api.CatalogState, []api.StepID, api.InitArgs,
 	) (*api.ExecutionPlan, error)
 
 	builder struct {
 		cat         api.CatalogState
+		init        api.InitArgs
 		satisfied   util.Set[api.Name]
 		available   util.Set[api.Name]
 		satisfiable util.Set[api.StepID]
@@ -42,7 +43,7 @@ var (
 // Create builds an execution plan for the given goal steps, resolving
 // dependencies and determining required inputs
 func Create(
-	cat api.CatalogState, goals []api.StepID, init api.Args,
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	return create(cat, goals, init, strictProviders)
 }
@@ -52,13 +53,13 @@ func Create(
 // exists so the UI can show the full dependency path back to missing init
 // inputs
 func Preview(
-	cat api.CatalogState, goals []api.StepID, init api.Args,
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	return create(cat, goals, init, previewProviders)
 }
 
 func create(
-	cat api.CatalogState, goals []api.StepID, init api.Args,
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 	providers selectProviders,
 ) (*api.ExecutionPlan, error) {
 	if len(goals) == 0 {
@@ -93,10 +94,11 @@ func create(
 }
 
 func newPlanBuilder(
-	st api.CatalogState, init api.Args, providers selectProviders,
+	st api.CatalogState, init api.InitArgs, providers selectProviders,
 ) *builder {
 	pb := &builder{
 		cat:         st,
+		init:        init,
 		providers:   providers,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
@@ -108,8 +110,10 @@ func newPlanBuilder(
 		attributes:  api.AttributeGraph{},
 	}
 
-	for key := range init {
-		pb.satisfied.Add(key)
+	for key, values := range init {
+		if len(values) > 0 {
+			pb.satisfied.Add(key)
+		}
 	}
 
 	return pb
@@ -175,15 +179,16 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	allInputs := st.GetAllInputArgs()
 	required := b.buildRequired(st)
 	for _, name := range allInputs {
-		if b.satisfied.Contains(name) {
+		attr := st.Attributes[name]
+		if b.initSatisfies(name, attr) {
 			b.markSatisfied(name)
 			continue
 		}
-		hasProvider, err := b.includeProviders(name)
+		hasProvider, err := b.includeProviders(name, attr)
 		if err != nil {
 			return err
 		}
-		if required.Contains(name) && !hasProvider {
+		if required.Contains(name) && !hasProvider && !b.initHasValues(name) {
 			b.missing.Add(name)
 		}
 	}
@@ -214,13 +219,30 @@ func (b *builder) markSatisfied(name api.Name) {
 	}
 }
 
-func (b *builder) includeProviders(name api.Name) (bool, error) {
+func (b *builder) initSatisfies(name api.Name, attr *api.AttributeSpec) bool {
+	if !b.initHasValues(name) {
+		return false
+	}
+	return attr.InputCollect() == api.InputCollectFirst
+}
+
+func (b *builder) initHasValues(name api.Name) bool {
+	return len(b.init[name]) > 0
+}
+
+func (b *builder) includeProviders(
+	name api.Name, attr *api.AttributeSpec,
+) (bool, error) {
 	providers := b.findProviders(name)
 	if len(providers) == 0 {
 		return false, nil
 	}
 
 	selected := b.providers(b, providers)
+	if attr.InputCollect() == api.InputCollectAll &&
+		len(selected) != len(providers) {
+		return false, nil
+	}
 
 	// Mark rejected providers as visited so they appear in excluded
 	for _, providerID := range providers {
@@ -422,14 +444,14 @@ func buildChildPlans(
 	return childPlans, nil
 }
 
-func childPlanInit(step *api.Step) api.Args {
-	res := api.Args{}
+func childPlanInit(step *api.Step) api.InitArgs {
+	res := api.InitArgs{}
 	for name, attr := range step.Attributes {
 		if !isGuaranteedInput(attr) {
 			continue
 		}
 		mapped, _ := step.MappedName(name)
-		res[mapped] = true
+		res[mapped] = []any{true}
 	}
 	return res
 }
@@ -438,5 +460,5 @@ func isGuaranteedInput(attr *api.AttributeSpec) bool {
 	if attr.IsRequired() || attr.IsConst() {
 		return true
 	}
-	return attr.IsOptional() && attr.Default != ""
+	return attr.IsOptional() && attr.InputDefault() != ""
 }

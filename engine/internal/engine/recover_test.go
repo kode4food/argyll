@@ -555,7 +555,7 @@ func TestRecoverFlowsFromIndex(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: id,
 					Plan:   pl,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{
@@ -616,7 +616,7 @@ func TestRecoverEarlyRetry(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: id,
 					Plan:   pl,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{
@@ -685,7 +685,7 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: id,
 					Plan:   pl,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{
@@ -837,7 +837,7 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 					Data: api.FlowStartedEvent{
 						FlowID: flowID,
 						Plan:   pl,
-						Init:   api.Args{},
+						Init:   api.InitArgs{},
 					},
 				},
 				helpers.FlowEvent{
@@ -889,9 +889,13 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 		defer func() { _ = restarted.Stop() }()
 
 		assert.True(t,
-			env.MockClient.WaitForInvocation(active.ID, 2*time.Second))
+			env.MockClient.WaitForInvocation(active.ID, 2*time.Second),
+		)
 		assert.False(t,
-			env.MockClient.WaitForInvocation(deactivated.ID, 300*time.Millisecond))
+			env.MockClient.WaitForInvocation(
+				deactivated.ID, 300*time.Millisecond,
+			),
+		)
 
 		activeFlow, err := restarted.GetFlowState(activeFlowID)
 		assert.NoError(t, err)

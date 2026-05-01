@@ -335,7 +335,7 @@ func (r *healthResolver) previewFlowPlan(
 		return nil, err
 	}
 
-	pl, err := plan.Create(r.cat, step.Flow.Goals, api.Args{})
+	pl, err := plan.Create(r.cat, step.Flow.Goals, api.InitArgs{})
 	if err != nil {
 		r.planErrs[stepID] = err
 		return nil, err

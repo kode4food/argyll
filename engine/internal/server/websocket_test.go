@@ -743,7 +743,7 @@ func wsFlowStarted(flowID api.FlowID, stepID api.StepID) api.FlowStartedEvent {
 	return api.FlowStartedEvent{
 		FlowID:   flowID,
 		Plan:     wsPlan(stepID),
-		Init:     api.Args{},
+		Init:     api.InitArgs{},
 		Metadata: api.Metadata{},
 	}
 }

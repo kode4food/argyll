@@ -84,7 +84,7 @@ func (e *Engine) scheduleStepTimeouts(
 	}
 
 	for name, attr := range s.step.Attributes {
-		if !attr.IsOptional() || attr.Timeout <= 0 {
+		if !attr.IsOptional() || attr.InputTimeout() <= 0 {
 			continue
 		}
 		ready, at := s.optionalReadyAt(name, attr, anchor)
@@ -106,7 +106,7 @@ func flowHasTimeouts(flow api.FlowState) bool {
 
 func stepHasTimeouts(step *api.Step) bool {
 	for _, attr := range step.Attributes {
-		if attr.IsOptional() && attr.Timeout > 0 {
+		if attr.IsOptional() && attr.InputTimeout() > 0 {
 			return true
 		}
 	}

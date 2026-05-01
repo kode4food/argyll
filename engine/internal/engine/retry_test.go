@@ -326,7 +326,7 @@ func TestHTTPRetryRecovers(t *testing.T) {
 
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, int32(3), calls.Load())
-		assert.Equal(t, "ok", fl.Attributes["result"].Value)
+		assert.Equal(t, "ok", fl.Attributes["result"][0].Value)
 	})
 }
 

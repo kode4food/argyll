@@ -69,9 +69,9 @@ func TestFlowStarted(t *testing.T) {
 	eventData := api.FlowStartedEvent{
 		FlowID: "test-flow",
 		Plan:   pl,
-		Init: api.Args{
-			"input1": "value1",
-			"input2": 42,
+		Init: api.InitArgs{
+			"input1": {"value1"},
+			"input2": {42},
 		},
 	}
 	data, err := json.Marshal(eventData)
@@ -92,8 +92,8 @@ func TestFlowStarted(t *testing.T) {
 	assert.Equal(t, api.FlowActive, result.Status)
 	assert.Equal(t, pl, result.Plan)
 	assert.Len(t, result.Attributes, 2)
-	assert.Equal(t, "value1", result.Attributes["input1"].Value)
-	assert.Equal(t, float64(42), result.Attributes["input2"].Value)
+	assert.Equal(t, "value1", result.Attributes["input1"][0].Value)
+	assert.Equal(t, float64(42), result.Attributes["input2"][0].Value)
 	assert.Len(t, result.Executions, 2)
 	assert.True(t, result.CreatedAt.Equal(now))
 }
@@ -429,8 +429,8 @@ func TestAttributeSet(t *testing.T) {
 
 	assert.Len(t, result.Attributes, 1)
 	assert.NotNil(t, result.Attributes["result"])
-	assert.Equal(t, "test-value", result.Attributes["result"].Value)
-	assert.Equal(t, api.StepID("step1"), result.Attributes["result"].Step)
+	assert.Equal(t, "test-value", result.Attributes["result"][0].Value)
+	assert.Equal(t, api.StepID("step1"), result.Attributes["result"][0].Step)
 }
 
 func TestWorkStarted(t *testing.T) {

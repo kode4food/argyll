@@ -331,6 +331,29 @@
   border-color: var(--color-info);
 }
 
+.collectButtonStyle {
+  background-color: var(--overlay-dark-30);
+  color: var(--color-dark-text);
+}
+
+.collectButtonStyle:hover {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+  color: var(--color-info);
+}
+
+.collectIcon {
+  width: 20px;
+  height: 20px;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
+}
+
 .placeholderControl {
   height: 32px;
   border-radius: var(--radius-md);

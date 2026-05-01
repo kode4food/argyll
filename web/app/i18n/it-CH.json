@@ -156,6 +156,7 @@
   "stepEditor.create": "Crea",
   "stepEditor.creating": "Creazione...",
   "stepEditor.cycleAttributeType": "Clicca per cambiare tipo (attuale: {type})",
+  "stepEditor.cycleInputCollect": "Clicca per cambiare modalità collect (attuale: {collect})",
   "stepEditor.duplicateAttributeName": "Nome Attribute duplicato: {name}",
   "stepEditor.duplicateMappingName": "Nome sorgente mapping duplicato: {name}",
   "stepEditor.endpointLabel": "Endpoint URL",

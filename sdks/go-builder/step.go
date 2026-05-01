@@ -76,22 +76,26 @@ func (s Step) Optional(
 ) Step {
 	s.attributes = maps.Clone(s.attributes)
 	s.attributes[name] = &api.AttributeSpec{
-		Role:    api.RoleOptional,
-		Type:    argType,
-		Default: defaultValue,
+		Role: api.RoleOptional,
+		Type: argType,
+		Input: &api.InputConfig{
+			Default: defaultValue,
+		},
 	}
 	return s
 }
 
-// Const declares a const input attribute with a default value
+// Const declares a const input attribute with a fixed value
 func (s Step) Const(
 	name api.Name, argType api.AttributeType, defaultValue string,
 ) Step {
 	s.attributes = maps.Clone(s.attributes)
 	s.attributes[name] = &api.AttributeSpec{
-		Role:    api.RoleConst,
-		Type:    argType,
-		Default: defaultValue,
+		Role: api.RoleConst,
+		Type: argType,
+		Const: &api.ConstConfig{
+			Value: defaultValue,
+		},
 	}
 	return s
 }
@@ -111,7 +115,8 @@ func (s Step) WithForEach(name api.Name) Step {
 	s.attributes = maps.Clone(s.attributes)
 	if attr, ok := s.attributes[name]; ok {
 		cpy := util.MutableCopy(attr)
-		cpy.ForEach = true
+		cpy.Input = util.MutableCopy(cpy.Input)
+		cpy.Input.ForEach = true
 		s.attributes[name] = cpy
 	}
 	return s

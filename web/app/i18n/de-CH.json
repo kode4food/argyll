@@ -156,6 +156,7 @@
   "stepEditor.create": "Erstellen",
   "stepEditor.creating": "Wird erstellt...",
   "stepEditor.cycleAttributeType": "Klicken Sie zum Wechseln (aktuell: {type})",
+  "stepEditor.cycleInputCollect": "Klicken Sie zum Wechseln des Collect-Modus (aktuell: {collect})",
   "stepEditor.duplicateAttributeName": "Doppelter Attribute-Name: {name}",
   "stepEditor.duplicateMappingName": "Doppelter Mapping-Quellname: {name}",
   "stepEditor.endpointLabel": "Endpoint URL",

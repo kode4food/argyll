@@ -22,9 +22,9 @@ func TestConstAttribute(t *testing.T) {
 			"result",
 		)
 		st.Attributes["const_value"] = &api.AttributeSpec{
-			Role:    api.RoleConst,
-			Type:    api.TypeString,
-			Default: `"fixed"`,
+			Role:  api.RoleConst,
+			Type:  api.TypeString,
+			Const: &api.ConstConfig{Value: `"fixed"`},
 		}
 		st.Attributes["result"].Type = api.TypeString
 
@@ -44,11 +44,11 @@ func TestConstAttribute(t *testing.T) {
 		id := api.FlowID("test-const-attribute")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{"const_value": "override"}),
+				flow.WithInit(api.InitArgs{"const_value": {"override"}}),
 			)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.Equal(t, "fixed", fl.Attributes["result"].Value)
+		assert.Equal(t, "fixed", fl.Attributes["result"][0].Value)
 	})
 }

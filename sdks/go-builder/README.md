@@ -133,7 +133,7 @@ func main() {
 
     if err := client.NewFlow("greeting-flow-123").
         WithGoals("greeting").
-        WithInitialState(api.Args{"name": "Alice"}).
+        WithInitialState(api.InitArgs{"name": {"Alice"}}).
         WithLabel("team", "examples").
         Start(context.Background()); err != nil {
         log.Fatal(err)

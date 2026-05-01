@@ -62,9 +62,9 @@ func TestCreateFlowRequestValidate(t *testing.T) {
 	})
 
 	t.Run("too many init keys", func(t *testing.T) {
-		init := api.Args{}
+		init := api.InitArgs{}
 		for i := range api.MaxInitKeys + 1 {
-			init[api.Name(fmt.Sprintf("key-%d", i))] = "value"
+			init[api.Name(fmt.Sprintf("key-%d", i))] = []any{"value"}
 		}
 		req := &api.CreateFlowRequest{
 			ID:    "my-flow",

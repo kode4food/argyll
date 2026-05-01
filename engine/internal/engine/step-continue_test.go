@@ -34,10 +34,9 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 					Type: api.TypeString,
 				},
 				"opt": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"fallback"`,
-					Timeout: 50,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -80,7 +79,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 
 		id := api.FlowID("wf-opt-timeout-default")
 		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.Args{"seed": "x"}),
+			flow.WithInit(api.InitArgs{"seed": {"x"}}),
 		))
 
 		assert.True(t,
@@ -123,21 +122,22 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 					Type: api.TypeString,
 				},
 				"opt": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"fallback"`,
-					Timeout: 0,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 0},
 				},
 				"opt2": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Timeout: 0,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Timeout: 0},
 				},
 				"opt3": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"fallback3"`,
-					Timeout: 60000,
+					Role: api.RoleOptional,
+					Type: api.TypeString,
+					Input: &api.InputConfig{
+						Default: `"fallback3"`,
+						Timeout: 60000,
+					},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -191,7 +191,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 
 		id := api.FlowID("wf-opt-timeout-zero")
 		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.Args{"seed": "x"}),
+			flow.WithInit(api.InitArgs{"seed": {"x"}}),
 		))
 
 		assert.True(t,
@@ -236,10 +236,9 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 					Type: api.TypeString,
 				},
 				"opt": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"fallback"`,
-					Timeout: 50,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 50},
 				},
 				"fast_done": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -299,7 +298,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 
 		id := api.FlowID("wf-opt-timeout-local")
 		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.Args{"seed": "x"}),
+			flow.WithInit(api.InitArgs{"seed": {"x"}}),
 		))
 
 		assert.True(t,
@@ -355,10 +354,9 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
 				"user_info": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"guest"`,
-					Timeout: 50,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Default: `"guest"`, Timeout: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -478,10 +476,9 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"product_info": {Role: api.RoleRequired, Type: api.TypeString},
 				"user_info": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"guest"`,
-					Timeout: 50,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Default: `"guest"`, Timeout: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -533,7 +530,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 
 		id := api.FlowID("wf-opt-timeout-step-ready")
 		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.Args{"product_info": "real-product"}),
+			flow.WithInit(api.InitArgs{"product_info": {"real-product"}}),
 		))
 
 		assert.True(t, env.MockClient.WaitForInvocation(
@@ -587,10 +584,9 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"req": {Role: api.RoleRequired, Type: api.TypeString},
 				"opt": {
-					Role:    api.RoleOptional,
-					Type:    api.TypeString,
-					Default: `"fallback"`,
-					Timeout: 50,
+					Role:  api.RoleOptional,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},

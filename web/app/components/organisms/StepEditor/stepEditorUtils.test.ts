@@ -29,14 +29,17 @@ describe("stepEditorUtils", () => {
           const_arg: {
             role: AttributeRole.Const,
             type: AttributeType.String,
-            default: '"fixed"',
+            const: { value: '"fixed"' },
             description: "",
           },
           optional_arg: {
             role: AttributeRole.Optional,
             type: AttributeType.Number,
-            default: 42,
-            timeout: 3000,
+            input: {
+              collect: "some",
+              default: "42",
+              timeout: 3000,
+            },
             description: "",
           },
           output_arg: {
@@ -67,6 +70,7 @@ describe("stepEditorUtils", () => {
 
       expect(optionalAttrs).toHaveLength(1);
       expect(optionalAttrs[0].name).toBe("optional_arg");
+      expect(optionalAttrs[0].collect).toBe("some");
       expect(optionalAttrs[0].defaultValue).toBe("42");
       expect(optionalAttrs[0].timeout).toBe(3000);
 
@@ -194,6 +198,7 @@ describe("stepEditorUtils", () => {
           attrType: "input",
           name: "input_param",
           dataType: AttributeType.String,
+          collect: "last",
         },
         {
           id: "attr-2",
@@ -221,12 +226,29 @@ describe("stepEditorUtils", () => {
       const result = createStepAttributes(attributes);
 
       expect(result.input_param.role).toBe(AttributeRole.Required);
+      expect(result.input_param.input?.collect).toBe("last");
       expect(result.optional_param.role).toBe(AttributeRole.Optional);
-      expect(result.optional_param.default).toBe("10");
-      expect(result.optional_param.timeout).toBe(3000);
+      expect(result.optional_param.input?.default).toBe("10");
+      expect(result.optional_param.input?.timeout).toBe(3000);
       expect(result.const_param.role).toBe(AttributeRole.Const);
-      expect(result.const_param.default).toBe('"fixed"');
+      expect(result.const_param.const?.value).toBe('"fixed"');
       expect(result.output_result.role).toBe(AttributeRole.Output);
+    });
+
+    it("omits first collect mode", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "input",
+          name: "param",
+          dataType: AttributeType.String,
+          collect: "first",
+        },
+      ];
+
+      const result = createStepAttributes(attributes);
+
+      expect(result.param.input?.collect).toBeUndefined();
     });
 
     it("includes for_each when forEach is true", () => {
@@ -242,7 +264,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.item.for_each).toBe(true);
+      expect(result.item.input?.for_each).toBe(true);
     });
 
     it("omits for_each when forEach is false or undefined", () => {
@@ -258,7 +280,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.param.for_each).toBeUndefined();
+      expect(result.param.input?.for_each).toBeUndefined();
     });
 
     it("trims default values", () => {
@@ -274,7 +296,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.value.default).toBe("trimmed");
+      expect(result.value.input?.default).toBe("trimmed");
     });
 
     it("omits default when it's only whitespace", () => {
@@ -290,7 +312,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.value.default).toBeUndefined();
+      expect(result.value.input?.default).toBeUndefined();
     });
 
     it("adds mapping name and script when provided", () => {

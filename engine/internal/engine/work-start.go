@@ -150,7 +150,11 @@ func (e *ExecContext) performAsyncHTTP(inputs api.Args, tkn api.Token) error {
 
 func (e *ExecContext) performFlow(initState api.Args, tkn api.Token) error {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	_, err := e.engine.StartChildFlow(fs, tkn, e.child, initState, e.meta)
+	init := api.InitArgs{}
+	for name, value := range initState {
+		init[name] = []any{value}
+	}
+	_, err := e.engine.StartChildFlow(fs, tkn, e.child, init, e.meta)
 	if err != nil {
 		return err
 	}

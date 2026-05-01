@@ -4,7 +4,10 @@ from argyll.types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
+    ConstConfig,
     HTTPConfig,
+    InputCollect,
+    InputConfig,
     ProblemDetails,
     ScriptConfig,
     ScriptLanguage,
@@ -23,21 +26,55 @@ def test_attribute_spec_with_default():
     spec = AttributeSpec(
         role=AttributeRole.OPTIONAL,
         type=AttributeType.NUMBER,
-        default="42",
+        input=InputConfig(default="42"),
     )
     result = spec.to_dict()
-    assert result == {"role": "optional", "type": "number", "default": "42"}
+    assert result == {
+        "role": "optional",
+        "type": "number",
+        "input": {"default": "42"},
+    }
 
 
 def test_attribute_spec_with_for_each():
     spec = AttributeSpec(
-        role=AttributeRole.REQUIRED, type=AttributeType.ARRAY, for_each=True
+        role=AttributeRole.REQUIRED,
+        type=AttributeType.ARRAY,
+        input=InputConfig(for_each=True),
     )
     result = spec.to_dict()
     assert result == {
         "role": "required",
         "type": "array",
-        "for_each": True,
+        "input": {"for_each": True},
+    }
+
+
+def test_attribute_spec_with_collect():
+    spec = AttributeSpec(
+        role=AttributeRole.REQUIRED,
+        type=AttributeType.ARRAY,
+        input=InputConfig(collect=InputCollect.SOME),
+    )
+    result = spec.to_dict()
+    assert result == {
+        "role": "required",
+        "type": "array",
+        "input": {"collect": "some"},
+    }
+
+
+def test_attribute_spec_with_const():
+    spec = AttributeSpec(
+        role=AttributeRole.CONST,
+        type=AttributeType.STRING,
+        const=ConstConfig(value='"fixed"'),
+    )
+    result = spec.to_dict()
+    assert result == {
+        "role": "const",
+        "type": "string",
+        "const": {"value": '"fixed"'},
     }
 
 
@@ -219,5 +256,5 @@ def test_attribute_spec_no_optional_fields():
     spec = AttributeSpec(role=AttributeRole.OUTPUT, type=AttributeType.NUMBER)
     result = spec.to_dict()
     assert result == {"role": "output", "type": "number"}
-    assert "default" not in result
-    assert "for_each" not in result
+    assert "input" not in result
+    assert "const" not in result

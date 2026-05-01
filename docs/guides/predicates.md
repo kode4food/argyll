@@ -30,11 +30,11 @@ A predicate script evaluates to true/false:
 
 **Execution:**
 ```
-Flow input: { "amount": 50 }
+Flow input: { "amount": [50] }
 Predicate evaluates: (> 50 100) → false
 Step is skipped, no outputs produced, no HTTP call made
 
-Flow input: { "amount": 150 }
+Flow input: { "amount": [150] }
 Predicate evaluates: (> 150 100) → true
 Step executes, HTTP call made, outputs produced
 ```
@@ -63,7 +63,7 @@ Example:
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "for_each": true },
+    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "processed_count": { "role": "output", "type": "number" }
   }
 }
@@ -156,7 +156,7 @@ $.items[?(@.status=="ready")]
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "for_each": true },
+    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "batch_result": { "role": "output", "type": "string" }
   }
 }
@@ -305,7 +305,7 @@ A step can have both:
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "for_each": true },
+    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "processed_count": { "role": "output", "type": "number" }
   }
 }

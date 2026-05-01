@@ -127,9 +127,9 @@ func TestPartialFlowFailure(t *testing.T) {
 		assert.Equal(t, api.StepFailed, fl.Executions["step-d"].Status)
 
 		// Verify attributes from successful steps were set
-		assert.Equal(t, "b-val", fl.Attributes["valueB"].Value)
-		assert.Equal(t, "c-val", fl.Attributes["valueC"].Value)
-		assert.Equal(t, "C-result", fl.Attributes["outputC"].Value)
+		assert.Equal(t, "b-val", fl.Attributes["valueB"][0].Value)
+		assert.Equal(t, "c-val", fl.Attributes["valueC"][0].Value)
+		assert.Equal(t, "C-result", fl.Attributes["outputC"][0].Value)
 		assert.NotContains(t, fl.Attributes, "outputB")
 		assert.NotContains(t, fl.Attributes, "result")
 

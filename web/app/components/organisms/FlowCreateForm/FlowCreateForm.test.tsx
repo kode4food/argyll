@@ -414,7 +414,7 @@ describe("FlowCreateForm", () => {
             retry_count: {
               role: AttributeRole.Optional,
               type: AttributeType.Number,
-              default: "5",
+              input: { default: "5" },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -874,7 +874,7 @@ describe("FlowCreateForm", () => {
             order_id: {
               role: AttributeRole.Required,
               type: AttributeType.String,
-              default: '"guest"',
+              input: { default: '"guest"' },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -915,7 +915,7 @@ describe("FlowCreateForm", () => {
             order_id: {
               role: AttributeRole.Required,
               type: AttributeType.String,
-              default: '"guest"',
+              input: { default: '"guest"' },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },

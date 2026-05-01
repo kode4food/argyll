@@ -76,9 +76,9 @@ func TestDependencyChain(t *testing.T) {
 		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
 
 		// Verify attribute propagation
-		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
-		assert.Equal(t, "from-B", fl.Attributes["valueB"].Value)
-		assert.Equal(t, "done", fl.Attributes["result"].Value)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"][0].Value)
+		assert.Equal(t, "from-B", fl.Attributes["valueB"][0].Value)
+		assert.Equal(t, "done", fl.Attributes["result"][0].Value)
 
 		// Verify invocation order (all should be invoked)
 		invocations := env.MockClient.GetInvocations()
@@ -181,11 +181,11 @@ func TestDiamondDependencies(t *testing.T) {
 		assert.Equal(t, api.StepCompleted, fl.Executions["step-d"].Status)
 
 		// Verify attribute propagation
-		assert.Equal(t, "b-val", fl.Attributes["valueB"].Value)
-		assert.Equal(t, "c-val", fl.Attributes["valueC"].Value)
-		assert.Equal(t, "B-result", fl.Attributes["outputB"].Value)
-		assert.Equal(t, "C-result", fl.Attributes["outputC"].Value)
-		assert.Equal(t, "done", fl.Attributes["final"].Value)
+		assert.Equal(t, "b-val", fl.Attributes["valueB"][0].Value)
+		assert.Equal(t, "c-val", fl.Attributes["valueC"][0].Value)
+		assert.Equal(t, "B-result", fl.Attributes["outputB"][0].Value)
+		assert.Equal(t, "C-result", fl.Attributes["outputC"][0].Value)
+		assert.Equal(t, "done", fl.Attributes["final"][0].Value)
 
 		// Verify all steps were invoked
 		invocations := env.MockClient.GetInvocations()

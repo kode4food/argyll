@@ -236,19 +236,19 @@ func (s *Server) getFlowStatus(c *gin.Context) {
 }
 
 func (s *Server) createExecutionPlan(
-	c *gin.Context, goals []api.StepID, init api.Args,
+	c *gin.Context, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, bool) {
 	return s.createPlan(c, goals, init, plan.Create)
 }
 
 func (s *Server) createPreviewPlan(
-	c *gin.Context, goals []api.StepID, init api.Args,
+	c *gin.Context, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, bool) {
 	return s.createPlan(c, goals, init, plan.Preview)
 }
 
 func (s *Server) createPlan(
-	c *gin.Context, goals []api.StepID, init api.Args, planner plan.Planner,
+	c *gin.Context, goals []api.StepID, init api.InitArgs, planner plan.Planner,
 ) (*api.ExecutionPlan, bool) {
 	cat, err := s.engine.GetCatalogState()
 	if err != nil {

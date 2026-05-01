@@ -4,6 +4,7 @@ export type {
   HealthStatus,
   StepType,
   HTTPMethod,
+  InputCollect,
   AttributeSpec,
   HTTPConfig,
   ScriptConfig,

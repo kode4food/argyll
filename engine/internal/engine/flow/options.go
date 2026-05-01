@@ -8,7 +8,7 @@ import (
 type (
 	// Options contains optional parameters for starting a flow
 	Options struct {
-		Init     api.Args
+		Init     api.InitArgs
 		Metadata api.Metadata
 		Labels   api.Labels
 	}
@@ -20,14 +20,14 @@ type (
 // Defaults returns an Options instance with defaults applied
 var Defaults = call.Defaults(func() *Options {
 	return &Options{
-		Init:     api.Args{},
+		Init:     api.InitArgs{},
 		Metadata: api.Metadata{},
 		Labels:   api.Labels{},
 	}
 })
 
 // WithInit sets the initial flow inputs
-func WithInit(initState api.Args) Applier {
+func WithInit(initState api.InitArgs) Applier {
 	return func(opt *Options) {
 		opt.Init = initState
 	}

@@ -382,7 +382,7 @@ paths:
             example:
               goals: ["text-processor"]
               init:
-                user_id: "john.doe"
+                user_id: ["john.doe"]
       responses:
         "200":
           description: Execution plan generated successfully
@@ -457,7 +457,7 @@ paths:
               id: "wf-text-processing-001"
               goals: ["text-processor"]
               init:
-                input_text: "Hello, Argyll!"
+                input_text: ["Hello, Argyll!"]
       responses:
         "201":
           description: Flow started successfully
@@ -892,11 +892,14 @@ components:
             optional_field:
               role: "optional"
               type: "string"
-              default: '"default_value"'
+              input:
+                default: '"default_value"'
+                collect: "first"
             const_field:
               role: "const"
               type: "string"
-              default: '"fixed_value"'
+              const:
+                value: '"fixed_value"'
             processed_text:
               role: "output"
               type: "string"
@@ -946,7 +949,7 @@ components:
             Attribute role:
             - `required`: Input that must be available before execution
             - `optional`: Input that may be omitted
-            - `const`: Input fixed to a default value
+            - `const`: Input fixed to a constant value
             - `output`: Value produced by step execution
           enum:
             - required
@@ -968,36 +971,59 @@ components:
             - null
             - any
           example: "string"
-        default:
+        input:
+          $ref: "#/components/schemas/InputConfig"
+        const:
+          $ref: "#/components/schemas/ConstConfig"
+        mapping:
+          $ref: "#/components/schemas/AttributeMapping"
+
+    InputConfig:
+      type: object
+      description: Input-only configuration for required and optional attributes
+      properties:
+        collect:
           type: string
           description: |
-            Default value as JSON string (for optional and const attributes).
-            Must be valid JSON matching the specified type.
+            How upstream provider outputs are resolved:
+            - `first`: first available value
+            - `last`: last value after all potential providers finish
+            - `all`: array of values after every provider completes successfully
+            - `some`: array of values after at least one provider succeeds and all potential providers finish
+            - `none`: satisfied only when no provider produces the attribute
+          enum:
+            - first
+            - last
+            - all
+            - some
+            - none
+          default: first
+          example: "first"
+        default:
+          type: string
+          description: Default value as JSON string for optional attributes
           example: '"default_value"'
         timeout:
           type: integer
           format: int64
-          description: |
-            Optional timeout in milliseconds for optional attributes.
-            Timeout starts when the step's required inputs are satisfied (or at
-            flow start if the step has no required inputs).
-            `0` means there is no wait window for that optional input.
-            If no upstream provider exists for the optional attribute, the
-            consuming step may fall back immediately.
-            If the timeout expires before the attribute is set, the consuming
-            step may proceed using its optional default, or omit the input if
-            no default is declared (step-local only).
+          description: Optional wait timeout in milliseconds for optional attributes
           minimum: 0
           example: 2000
         for_each:
           type: boolean
-          description: |
-            If true, this step will execute once for each element in an array input.
-            Only allowed for input attributes (required/optional) with array type.
+          description: Execute once per element for this input
           default: false
           example: false
-        mapping:
-          $ref: "#/components/schemas/AttributeMapping"
+
+    ConstConfig:
+      type: object
+      required:
+        - value
+      properties:
+        value:
+          type: string
+          description: Constant value as a JSON string
+          example: '"fixed_value"'
 
     AttributeMapping:
       type: object
@@ -1209,10 +1235,12 @@ components:
           example: ["text-processor"]
         init:
           type: object
-          description: Initial flow state (arguments/attributes)
-          additionalProperties: true
+          description: Initial flow attribute values
+          additionalProperties:
+            type: array
+            items: {}
           example:
-            user_id: "john.doe"
+            user_id: ["john.doe"]
 
     ExecutionPlan:
       type: object
@@ -1322,10 +1350,12 @@ components:
           example: ["text-processor"]
         init:
           type: object
-          description: Initial flow state providing required inputs
-          additionalProperties: true
+          description: Initial flow attribute values providing required inputs
+          additionalProperties:
+            type: array
+            items: {}
           example:
-            input_text: "Hello, Argyll!"
+            input_text: ["Hello, Argyll!"]
         labels:
           type: object
           description: Optional labels for the flow

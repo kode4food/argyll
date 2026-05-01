@@ -11,9 +11,12 @@ from .types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
+    ConstConfig,
     FlowConfig,
     FlowID,
     HTTPConfig,
+    InitArgs,
+    InputConfig,
     Labels,
     PredicateConfig,
     ScriptConfig,
@@ -102,7 +105,9 @@ class StepBuilder:
         """Add optional input attribute with default value."""
         new_attrs = dict(self._attributes)
         new_attrs[name] = AttributeSpec(
-            role=AttributeRole.OPTIONAL, type=attr_type, default=default
+            role=AttributeRole.OPTIONAL,
+            type=attr_type,
+            input=InputConfig(default=default),
         )
         return self._copy(_attributes=new_attrs)
 
@@ -112,7 +117,9 @@ class StepBuilder:
         """Add const input attribute with fixed value."""
         new_attrs = dict(self._attributes)
         new_attrs[name] = AttributeSpec(
-            role=AttributeRole.CONST, type=attr_type, default=value
+            role=AttributeRole.CONST,
+            type=attr_type,
+            const=ConstConfig(value=value),
         )
         return self._copy(_attributes=new_attrs)
 
@@ -131,11 +138,17 @@ class StepBuilder:
 
         new_attrs = dict(self._attributes)
         existing = new_attrs[name]
+        input_config = existing.input or InputConfig()
         new_attrs[name] = AttributeSpec(
             role=existing.role,
             type=existing.type,
-            default=existing.default,
-            for_each=True,
+            input=InputConfig(
+                collect=input_config.collect,
+                default=input_config.default,
+                for_each=True,
+                timeout=input_config.timeout,
+            ),
+            const=existing.const,
         )
         return self._copy(_attributes=new_attrs)
 
@@ -276,7 +289,7 @@ class FlowBuilder:
         client: "Client",
         flow_id: FlowID,
         goals: Optional[List[StepID]] = None,
-        initial_state: Optional[Args] = None,
+        initial_state: Optional[InitArgs] = None,
     ) -> None:
         self._client = client
         self._flow_id = flow_id
@@ -300,7 +313,7 @@ class FlowBuilder:
         """Set all goal steps."""
         return self._copy(_goals=list(step_ids))
 
-    def with_initial_state(self, args: Args) -> "FlowBuilder":
+    def with_initial_state(self, args: InitArgs) -> "FlowBuilder":
         """Set initial state."""
         return self._copy(_initial_state=args)
 
@@ -383,22 +396,36 @@ def _validate_step(step: Step) -> None:
         if not name:
             raise StepValidationError("Attribute name cannot be empty")
 
-        if spec.role == AttributeRole.CONST and not spec.default:
+        default = spec.input.default if spec.input else ""
+        const_value = spec.const.value if spec.const else ""
+
+        if spec.input is not None and spec.role not in {
+            AttributeRole.REQUIRED,
+            AttributeRole.OPTIONAL,
+        }:
             raise StepValidationError(
-                f"Const attribute {name} requires default value"
+                f"Input config not allowed for attribute {name}"
             )
 
-        if spec.default and spec.role not in {
-            AttributeRole.OPTIONAL,
-            AttributeRole.CONST,
-        }:
+        if spec.const is not None and spec.role != AttributeRole.CONST:
+            raise StepValidationError(
+                f"Const config not allowed for attribute {name}"
+            )
+
+        if spec.role == AttributeRole.CONST and not const_value:
+            raise StepValidationError(
+                f"Const attribute {name} requires const value"
+            )
+
+        if default and spec.role != AttributeRole.OPTIONAL:
             raise StepValidationError(
                 f"Default value not allowed for attribute {name}"
             )
 
-        if spec.default:
+        fallback = const_value if spec.role == AttributeRole.CONST else default
+        if fallback:
             try:
-                parsed = json.loads(spec.default)
+                parsed = json.loads(fallback)
             except json.JSONDecodeError as e:
                 raise StepValidationError(
                     f"Invalid default JSON for {name}: {e}"
@@ -439,11 +466,7 @@ def _validate_step(step: Step) -> None:
                     f"Default for {name} must be JSON null"
                 )
 
-        if spec.for_each:
-            if spec.role == AttributeRole.OUTPUT:
-                raise StepValidationError(
-                    f"ForEach not allowed for output attribute {name}"
-                )
+        if spec.input and spec.input.for_each:
             if spec.type not in {AttributeType.ARRAY, AttributeType.ANY}:
                 raise StepValidationError(
                     f"ForEach requires array/any type for {name}"

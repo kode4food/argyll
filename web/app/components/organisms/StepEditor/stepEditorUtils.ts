@@ -3,6 +3,7 @@ import {
   AttributeSpec,
   AttributeType,
   AttributeRole,
+  InputCollect,
   StepType,
   HTTPMethod,
 } from "@/app/api";
@@ -16,6 +17,7 @@ export interface Attribute {
   attrType: AttributeRoleType;
   name: string;
   dataType: AttributeType;
+  collect?: InputCollect;
   defaultValue?: string;
   timeout?: number;
   forEach?: boolean;
@@ -61,17 +63,21 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
         name,
         dataType: spec.type || AttributeType.String,
         defaultValue:
-          spec.role === AttributeRole.Optional ||
-          spec.role === AttributeRole.Const
-            ? spec.default !== undefined
-              ? String(spec.default)
+          spec.role === AttributeRole.Optional
+            ? spec.input?.default !== undefined
+              ? String(spec.input.default)
               : undefined
-            : undefined,
+            : spec.role === AttributeRole.Const
+              ? spec.const?.value !== undefined
+                ? String(spec.const.value)
+                : undefined
+              : undefined,
         timeout:
-          spec.role === AttributeRole.Optional && spec.timeout
-            ? spec.timeout
+          spec.role === AttributeRole.Optional && spec.input?.timeout
+            ? spec.input.timeout
             : undefined,
-        forEach: spec.for_each || false,
+        collect: spec.input?.collect || "first",
+        forEach: spec.input?.for_each || false,
         mappingName: spec.mapping?.name,
         mappingLanguage: spec.mapping?.script?.language,
         mappingScript: spec.mapping?.script?.script,
@@ -146,19 +152,27 @@ export function createStepAttributes(
       type: a.dataType,
     };
 
-    if (
-      (a.attrType === "optional" || a.attrType === "const") &&
-      a.defaultValue?.trim()
-    ) {
-      spec.default = a.defaultValue.trim();
+    if (a.attrType === "optional") {
+      const input = ensureInputConfig(spec);
+      setInputCollect(input, a);
+      if (a.defaultValue?.trim()) {
+        input.default = a.defaultValue.trim();
+      }
+      if (a.timeout) {
+        input.timeout = a.timeout;
+      }
     }
 
-    if (a.attrType === "optional" && a.timeout) {
-      spec.timeout = a.timeout;
+    if (a.attrType === "input") {
+      setInputCollect(ensureInputConfig(spec), a);
     }
 
-    if (a.forEach) {
-      spec.for_each = true;
+    if (a.attrType === "const" && a.defaultValue?.trim()) {
+      spec.const = { value: a.defaultValue.trim() };
+    }
+
+    if (a.forEach && a.attrType !== "const" && a.attrType !== "output") {
+      ensureInputConfig(spec).for_each = true;
     }
 
     const mappingName = a.mappingName?.trim();
@@ -179,6 +193,22 @@ export function createStepAttributes(
     stepAttributes[a.name] = spec;
   });
   return stepAttributes;
+}
+
+function ensureInputConfig(
+  spec: AttributeSpec
+): NonNullable<AttributeSpec["input"]> {
+  spec.input ??= {};
+  return spec.input;
+}
+
+function setInputCollect(
+  input: NonNullable<AttributeSpec["input"]>,
+  attr: Attribute
+) {
+  if (attr.collect && attr.collect !== "first") {
+    input.collect = attr.collect;
+  }
 }
 
 export function getValidationError({

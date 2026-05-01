@@ -35,7 +35,7 @@ func TestMemoizationHit(t *testing.T) {
 		assert.NoError(t, err)
 		f1 := env.WaitForTerminalFlow(id1)
 		assert.Equal(t, api.FlowCompleted, f1.Status)
-		assert.Equal(t, "v1", f1.Attributes["out"].Value)
+		assert.Equal(t, "v1", f1.Attributes["out"][0].Value)
 		assert.True(t, env.MockClient.WasInvoked("memo"))
 
 		id2 := api.FlowID("f2")
@@ -43,7 +43,7 @@ func TestMemoizationHit(t *testing.T) {
 		assert.NoError(t, err)
 		f2 := env.WaitForTerminalFlow(id2)
 		assert.Equal(t, api.FlowCompleted, f2.Status)
-		assert.Equal(t, "v1", f2.Attributes["out"].Value)
+		assert.Equal(t, "v1", f2.Attributes["out"][0].Value)
 
 		invocations := env.MockClient.GetInvocations()
 		assert.Len(t, invocations, 1, "step should only be invoked once")
@@ -72,21 +72,21 @@ func TestMemoizationMiss(t *testing.T) {
 		env.MockClient.SetResponse("memo", api.Args{"out": "a"})
 		id1 := api.FlowID("f1")
 		err := env.Engine.StartFlow(id1, pl,
-			flow.WithInit(api.Args{"in": "a"}),
+			flow.WithInit(api.InitArgs{"in": {"a"}}),
 		)
 		assert.NoError(t, err)
 		f1 := env.WaitForTerminalFlow(id1)
 		assert.Equal(t, api.FlowCompleted, f1.Status)
-		assert.Equal(t, "a", f1.Attributes["out"].Value)
+		assert.Equal(t, "a", f1.Attributes["out"][0].Value)
 
 		env.MockClient.SetResponse("memo", api.Args{"out": "b"})
 		id2 := api.FlowID("f2")
 		err = env.Engine.StartFlow(id2, pl,
-			flow.WithInit(api.Args{"in": "b"}),
+			flow.WithInit(api.InitArgs{"in": {"b"}}),
 		)
 		assert.NoError(t, err)
 		f2 := env.WaitForTerminalFlow(id2)
 		assert.Equal(t, api.FlowCompleted, f2.Status)
-		assert.Equal(t, "b", f2.Attributes["out"].Value)
+		assert.Equal(t, "b", f2.Attributes["out"][0].Value)
 	})
 }

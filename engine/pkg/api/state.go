@@ -60,7 +60,7 @@ type (
 	Executions map[StepID]ExecutionState
 
 	// AttributeValues contains fulfilled attribute values and their sources
-	AttributeValues map[Name]*AttributeValue
+	AttributeValues map[Name][]*AttributeValue
 
 	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
@@ -208,8 +208,10 @@ func (n NodeState) SetLastSeen(t time.Time) NodeState {
 // GetAttributes returns all attribute values as Args
 func (f FlowState) GetAttributes() Args {
 	result := make(Args, len(f.Attributes))
-	for key, attr := range f.Attributes {
-		result[key] = attr.Value
+	for key, values := range f.Attributes {
+		if len(values) > 0 {
+			result[key] = values[0].Value
+		}
 	}
 	return result
 }
@@ -220,11 +222,31 @@ func (f FlowState) SetStatus(s FlowStatus) FlowState {
 	return f
 }
 
-// SetAttribute returns a new FlowState with the specified attribute set
+// SetAttribute returns a new FlowState with the specified attribute appended
 func (f FlowState) SetAttribute(name Name, attr *AttributeValue) FlowState {
 	f.Attributes = maps.Clone(f.Attributes)
-	f.Attributes[name] = attr
+	f.Attributes[name] = append(f.Attributes[name], attr)
 	return f
+}
+
+func (f FlowState) FirstAttribute(name Name) (*AttributeValue, bool) {
+	values, ok := f.Attributes[name]
+	if !ok || len(values) == 0 {
+		return nil, false
+	}
+	return values[0], true
+}
+
+func (f FlowState) LastAttribute(name Name) (*AttributeValue, bool) {
+	values, ok := f.Attributes[name]
+	if !ok || len(values) == 0 {
+		return nil, false
+	}
+	return values[len(values)-1], true
+}
+
+func (f FlowState) AttributeValues(name Name) []*AttributeValue {
+	return f.Attributes[name]
 }
 
 func (f FlowState) SetExecution(id StepID, ex ExecutionState) FlowState {

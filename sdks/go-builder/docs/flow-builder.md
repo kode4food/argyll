@@ -17,9 +17,9 @@ client := builder.NewClient("http://localhost:8080", 30*time.Second)
 
 err := client.NewFlow("data-pipeline-123").
     WithGoals("extract", "transform", "load").
-    WithInitialState(api.Args{
-        "source": "s3://bucket/data.csv",
-        "target": "postgres://db/table",
+    WithInitialState(api.InitArgs{
+        "source": {"s3://bucket/data.csv"},
+        "target": {"postgres://db/table"},
     }).
     Start(context.Background())
 ```
@@ -43,10 +43,10 @@ Provide initial arguments that steps can use:
 ```go
 err := client.NewFlow("user-signup").
     WithGoals("send-welcome-email").
-    WithInitialState(api.Args{
-        "user_id": "12345",
-        "email": "user@example.com",
-        "name": "John Doe",
+    WithInitialState(api.InitArgs{
+        "user_id": {"12345"},
+        "email": {"user@example.com"},
+        "name": {"John Doe"},
     }).
     Start(context.Background())
 ```
@@ -146,12 +146,12 @@ Methods can be chained:
 ```go
 err := client.NewFlow("complex-flow").
     WithGoals("final-step").
-    WithInitialState(api.Args{
-        "config": map[string]any{
+    WithInitialState(api.InitArgs{
+        "config": {map[string]any{
             "retry": true,
             "timeout": 30,
-        },
-        "user_id": "123",
+        }},
+        "user_id": {"123"},
     }).
     WithLabel("team", "core").
     Start(context.Background())
@@ -177,10 +177,10 @@ func main() {
     // Start a new flow
     err := client.NewFlow("data-pipeline-001").
         WithGoals("extract-data", "transform-data", "load-data").
-        WithInitialState(api.Args{
-            "source": "s3://bucket/data.csv",
-            "target": "postgres://db/table",
-            "batch_size": 1000,
+        WithInitialState(api.InitArgs{
+            "source": {"s3://bucket/data.csv"},
+            "target": {"postgres://db/table"},
+            "batch_size": {1000},
         }).
         Start(context.Background())
 
@@ -242,7 +242,7 @@ WithGoal(goal StepID) Flow
 #### WithInitialState: Set initial state
 Sets the initial state (arguments) for the flow.
 ```go
-WithInitialState(init api.Args) Flow
+WithInitialState(init api.InitArgs) Flow
 ```
 
 #### WithLabel: Add a label

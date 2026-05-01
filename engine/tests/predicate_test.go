@@ -88,7 +88,7 @@ func TestPredicateSkipping(t *testing.T) {
 		assert.NotContains(t, invocations, api.StepID("step-b"))
 
 		// Verify only step A's output attribute was set
-		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"][0].Value)
 		assert.NotContains(t, fl.Attributes, "valueB")
 	})
 }

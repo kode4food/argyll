@@ -7,6 +7,7 @@ from typing import Any, Dict, List, Optional
 
 # Type aliases
 Args = Dict[str, Any]
+InitArgs = Dict[str, List[Any]]
 StepID = str
 FlowID = str
 Labels = Dict[str, str]
@@ -29,6 +30,16 @@ class AttributeRole(str, Enum):
     OPTIONAL = "optional"
     CONST = "const"
     OUTPUT = "output"
+
+
+class InputCollect(str, Enum):
+    """Input collection mode."""
+
+    FIRST = "first"
+    LAST = "last"
+    ALL = "all"
+    SOME = "some"
+    NONE = "none"
 
 
 class AttributeType(str, Enum):
@@ -59,13 +70,47 @@ class BackoffType(str, Enum):
 
 
 @dataclass(frozen=True)
+class InputConfig:
+    """Input collection configuration."""
+
+    collect: InputCollect = InputCollect.FIRST
+    default: str = ""
+    for_each: bool = False
+    timeout: int = 0
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        result: Dict[str, Any] = {}
+        if self.collect != InputCollect.FIRST:
+            result["collect"] = self.collect.value
+        if self.default:
+            result["default"] = self.default
+        if self.for_each:
+            result["for_each"] = True
+        if self.timeout > 0:
+            result["timeout"] = self.timeout
+        return result
+
+
+@dataclass(frozen=True)
+class ConstConfig:
+    """Const input configuration."""
+
+    value: str
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        return {"value": self.value}
+
+
+@dataclass(frozen=True)
 class AttributeSpec:
     """Specification for a step attribute."""
 
     role: AttributeRole
     type: AttributeType
-    default: str = ""
-    for_each: bool = False
+    input: Optional[InputConfig] = None
+    const: Optional[ConstConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -73,10 +118,10 @@ class AttributeSpec:
             "role": self.role.value,
             "type": self.type.value,
         }
-        if self.default:
-            result["default"] = self.default
-        if self.for_each:
-            result["for_each"] = True
+        if self.input is not None:
+            result["input"] = self.input.to_dict()
+        if self.const is not None:
+            result["const"] = self.const.to_dict()
         return result
 
 

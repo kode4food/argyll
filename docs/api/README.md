@@ -51,7 +51,7 @@ curl -X POST http://localhost:8080/engine/flow \
   -d '{
     "id": "wf-001",
     "goals": ["text-processor"],
-    "init": {"input_text": "Hello"}
+    "init": {"input_text": ["Hello"]}
   }'
 
 # Check status

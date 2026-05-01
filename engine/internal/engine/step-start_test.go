@@ -3,6 +3,7 @@ package engine_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -23,9 +24,9 @@ func TestOptionalDefaults(t *testing.T) {
 				Type: api.TypeString,
 			},
 			"optional": {
-				Role:    api.RoleOptional,
-				Type:    api.TypeString,
-				Default: `"fallback"`,
+				Role:  api.RoleOptional,
+				Type:  api.TypeString,
+				Input: &api.InputConfig{Default: `"fallback"`},
 			},
 			"result": {
 				Role: api.RoleOutput,
@@ -48,7 +49,7 @@ func TestOptionalDefaults(t *testing.T) {
 				StepID: st.ID,
 			}), func() {
 				err := env.Engine.StartFlow(id, pl,
-					flow.WithInit(api.Args{"input": "value"}),
+					flow.WithInit(api.InitArgs{"input": {"value"}}),
 				)
 				assert.NoError(t, err)
 			})
@@ -61,6 +62,256 @@ func TestOptionalDefaults(t *testing.T) {
 	})
 }
 
+func TestCollectFirst(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("collect-first")
+		st.Attributes = api.AttributeSpecs{
+			"input": {
+				Role: api.RoleRequired,
+				Type: api.TypeAny,
+			},
+			"result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetHandler(st.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, "a", args["input"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		id := api.FlowID("wf-collect-first")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"input": {"a", "b"}}),
+			)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func TestCollectLast(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA, providerB, consumer, pl := collectPlan(
+			"last", api.InputCollectLast,
+		)
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		releaseA := make(chan struct{})
+		releaseB := make(chan struct{})
+		env.MockClient.SetHandler(providerA.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseA
+				return api.Args{"data": "a"}, nil
+			},
+		)
+		env.MockClient.SetHandler(providerB.ID,
+			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
+				<-releaseB
+				return api.Args{"data": "b"}, nil
+			},
+		)
+		env.MockClient.SetHandler(consumer.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, "b", args["data"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		id := api.FlowID("wf-collect-last")
+		assert.NoError(t, env.Engine.StartFlow(id, pl))
+		assert.True(t,
+			env.MockClient.WaitForInvocation(
+				providerA.ID, 500*time.Millisecond,
+			),
+		)
+		assert.True(t,
+			env.MockClient.WaitForInvocation(
+				providerB.ID, 500*time.Millisecond,
+			),
+		)
+
+		close(releaseA)
+		assert.False(t,
+			env.MockClient.WaitForInvocation(consumer.ID, 100*time.Millisecond),
+		)
+
+		close(releaseB)
+		fl := env.WaitForFlowStatus(id, func() {})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func TestCollectLists(t *testing.T) {
+	tests := []struct {
+		name    string
+		collect api.InputCollect
+	}{
+		{name: "some", collect: api.InputCollectSome},
+		{name: "all", collect: api.InputCollectAll},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				assert.NoError(t, env.Engine.Start())
+
+				providerA, providerB, consumer, pl := collectPlan(
+					tt.name, tt.collect,
+				)
+				assert.NoError(t, env.Engine.RegisterStep(providerA))
+				assert.NoError(t, env.Engine.RegisterStep(providerB))
+				assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+				env.MockClient.SetResponse(providerA.ID, api.Args{"data": "a"})
+				env.MockClient.SetResponse(providerB.ID, api.Args{"data": "b"})
+				env.MockClient.SetHandler(consumer.ID,
+					func(
+						_ *api.Step, args api.Args, _ api.Metadata,
+					) (api.Args, error) {
+						assert.ElementsMatch(t, []any{"a", "b"}, args["data"])
+						return api.Args{"result": "ok"}, nil
+					},
+				)
+
+				id := api.FlowID("wf-collect-" + tt.name)
+				fl := env.WaitForFlowStatus(id, func() {
+					err := env.Engine.StartFlow(id, pl)
+					assert.NoError(t, err)
+				})
+				assert.Equal(t, api.FlowCompleted, fl.Status)
+			})
+		})
+	}
+}
+
+func TestCollectNone(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := collectProvider("provider-none")
+		consumer := &api.Step{
+			ID:   "consumer-none",
+			Name: "Consumer",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"data": {
+					Role: api.RoleOptional,
+					Type: api.TypeAny,
+					Input: &api.InputConfig{
+						Collect: api.InputCollectNone,
+						Default: `"fallback"`,
+					},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				provider.ID: provider,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"data": {
+					Providers: []api.StepID{provider.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"result": {
+					Providers: []api.StepID{consumer.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+		env.MockClient.SetResponse(provider.ID, api.Args{})
+		env.MockClient.SetHandler(consumer.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, "fallback", args["data"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		id := api.FlowID("wf-collect-none")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func collectPlan(
+	sfx string, collect api.InputCollect,
+) (*api.Step, *api.Step, *api.Step, *api.ExecutionPlan) {
+	providerA := collectProvider(api.StepID("provider-a-" + sfx))
+	providerB := collectProvider(api.StepID("provider-b-" + sfx))
+	consumer := &api.Step{
+		ID:   api.StepID("consumer-" + sfx),
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"data": {
+				Role:  api.RoleRequired,
+				Type:  api.TypeAny,
+				Input: &api.InputConfig{Collect: collect},
+			},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	pl := &api.ExecutionPlan{
+		Goals: []api.StepID{consumer.ID},
+		Steps: api.Steps{
+			providerA.ID: providerA,
+			providerB.ID: providerB,
+			consumer.ID:  consumer,
+		},
+		Attributes: api.AttributeGraph{
+			"data": {
+				Providers: []api.StepID{providerA.ID, providerB.ID},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"result": {
+				Providers: []api.StepID{consumer.ID},
+				Consumers: []api.StepID{},
+			},
+		},
+	}
+	return providerA, providerB, consumer, pl
+}
+
+func collectProvider(id api.StepID) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: "Provider",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"data": {Role: api.RoleOutput, Type: api.TypeAny},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+}
+
 func TestConstObjectDefault(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -68,9 +319,9 @@ func TestConstObjectDefault(t *testing.T) {
 		st := helpers.NewSimpleStep("const-object")
 		st.Attributes = api.AttributeSpecs{
 			"config": {
-				Role:    api.RoleConst,
-				Type:    api.TypeObject,
-				Default: `{"name":"cfg","count":2}`,
+				Role:  api.RoleConst,
+				Type:  api.TypeObject,
+				Const: &api.ConstConfig{Value: `{"name":"cfg","count":2}`},
 			},
 			"result": {
 				Role: api.RoleOutput,
@@ -136,8 +387,8 @@ func TestInputMapping(t *testing.T) {
 		id := api.FlowID("wf-input-mapping")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{
-					"input": map[string]any{"foo": "value"},
+				flow.WithInit(api.InitArgs{
+					"input": {map[string]any{"foo": "value"}},
 				}),
 			)
 			assert.NoError(t, err)
@@ -178,7 +429,7 @@ func TestInputMappingWithRename(t *testing.T) {
 		id := api.FlowID("wf-input-rename")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{"user_email": "test@example.com"}),
+				flow.WithInit(api.InitArgs{"user_email": {"test@example.com"}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -231,7 +482,7 @@ func TestJPathPredicateMatchOnNull(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-jpath-null", func() {
 			err := env.Engine.StartFlow("wf-jpath-null", pl,
-				flow.WithInit(api.Args{"flag": nil}),
+				flow.WithInit(api.InitArgs{"flag": {nil}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -274,7 +525,7 @@ func TestInputMappingWithAle(t *testing.T) {
 		id := api.FlowID("wf-ale-input")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{"amount": float64(5)}),
+				flow.WithInit(api.InitArgs{"amount": {float64(5)}}),
 			)
 			assert.NoError(t, err)
 		})

@@ -79,9 +79,9 @@ func TestMixedStepTypes(t *testing.T) {
 		assert.Equal(t, api.StepCompleted, fl.Executions["step-c"].Status)
 
 		// Verify attribute propagation and transformation
-		assert.Equal(t, "data", fl.Attributes["valueA"].Value)
-		assert.Equal(t, "transformed-data", fl.Attributes["valueB"].Value)
-		assert.Equal(t, "done", fl.Attributes["result"].Value)
+		assert.Equal(t, "data", fl.Attributes["valueA"][0].Value)
+		assert.Equal(t, "transformed-data", fl.Attributes["valueB"][0].Value)
+		assert.Equal(t, "done", fl.Attributes["result"][0].Value)
 
 		// Verify HTTP steps invoked (script step executes inline, not via HTTP)
 		invocations := env.MockClient.GetInvocations()

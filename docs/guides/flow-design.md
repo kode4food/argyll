@@ -27,13 +27,47 @@ Use optional attributes with defaults to keep steps reusable across different fl
 {
   "attributes": {
     "customer_id": { "role": "required", "type": "string" },
-    "notify_user": { "role": "optional", "type": "boolean", "default": "true" },
-    "timeout_seconds": { "role": "optional", "type": "number", "default": "30" }
+    "notify_user": { "role": "optional", "type": "boolean", "input": { "default": "true" } },
+    "timeout_seconds": { "role": "optional", "type": "number", "input": { "default": "30" } }
   }
 }
 ```
 
 **Why:** Enables the same step to work in multiple flows without duplication.
+
+## Input Collection
+
+Inputs can choose how to collect matching upstream outputs with `input.collect`. If omitted, `first` is used, which preserves the existing behavior.
+
+| Collect | Starts when | Runtime value |
+| ------- | ----------- | ------------- |
+| `first` | The first provider value is available | The first value |
+| `last` | All potential providers are terminal and at least one value exists | The last produced value |
+| `some` | All potential providers are terminal and at least one value exists | An array of produced values |
+| `all` | All potential providers complete successfully with values | An array of produced values |
+| `none` | All potential providers are terminal and no value exists | No value, or the optional default if set |
+
+`first` and `last` are singleton modes. `some` and `all` are list modes. For `input.for_each`, singleton modes treat the selected value as the array to iterate, while list modes iterate the collected array itself.
+
+```json
+{
+  "attributes": {
+    "quotes": { "role": "required", "type": "array", "input": { "collect": "some", "for_each": true } },
+    "best_quote": { "role": "output", "type": "object" }
+  }
+}
+```
+
+Initial flow values use an array per attribute name. This makes a scalar array value unambiguous:
+
+```json
+{
+  "init": {
+    "customer_id": ["cust-123"],
+    "quotes": [[{ "id": "quote-1" }, { "id": "quote-2" }]]
+  }
+}
+```
 
 ### Optional Timeouts (Step-Local Fallback)
 
@@ -46,8 +80,10 @@ Optional inputs can define a `timeout` (milliseconds) to let a step continue wit
     "preferences": {
       "role": "optional",
       "type": "object",
-      "default": "{}",
-      "timeout": 2000
+      "input": {
+        "default": "{}",
+        "timeout": 2000
+      }
     },
     "rendered_email": { "role": "output", "type": "string" }
   }
@@ -55,8 +91,8 @@ Optional inputs can define a `timeout` (milliseconds) to let a step continue wit
 ```
 
 **Behavior:**
-- `timeout: 0` means there is no wait window for that optional input (use the upstream value only if it is already present when the step is ready; otherwise use the default or omit the input)
-- If `timeout` is greater than 0, the step waits up to that long for the optional value
+- `input.timeout: 0` means there is no wait window for that optional input (use the upstream value only if it is already present when the step is ready; otherwise use the default or omit the input)
+- If `input.timeout` is greater than 0, the step waits up to that long for the optional value
 - The timeout clock starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
 - If the timeout expires first, this step can proceed with its default
 - That default choice is step-local and sticky for this step execution, even if the real attribute still arrives before the step starts
@@ -71,7 +107,7 @@ Use `for_each` on array inputs to process multiple items in parallel. Outputs ar
 ```json
 {
   "attributes": {
-    "order_items": { "role": "required", "type": "array", "for_each": true },
+    "order_items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "stock_reserved": { "role": "output" }
   },
   "work_config": {

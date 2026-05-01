@@ -503,7 +503,7 @@ func TestSkipChildFlows(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
+		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
 		assert.NoError(t, err)
 
 		var childID api.FlowID
@@ -643,7 +643,9 @@ func TestSortTieBreak(t *testing.T) {
 		if assert.Len(t, resp.Flows, 2) {
 			assert.Equal(t, api.FlowID("flow-a"), resp.Flows[0].ID)
 			assert.Equal(t, api.FlowID("flow-b"), resp.Flows[1].ID)
-			assert.True(t, resp.Flows[0].Timestamp.Equal(resp.Flows[1].Timestamp))
+			assert.True(t,
+				resp.Flows[0].Timestamp.Equal(resp.Flows[1].Timestamp),
+			)
 		}
 	})
 }

@@ -180,7 +180,7 @@ func TestOutputMapping(t *testing.T) {
 		id := api.FlowID("wf-output-mapping")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{"input": "value"}),
+				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			)
 			testify.NoError(t, err)
 		})
@@ -188,7 +188,7 @@ func TestOutputMapping(t *testing.T) {
 
 		ex := fl.Executions[st.ID]
 		testify.Equal(t, "ok", ex.Outputs["result"])
-		testify.Equal(t, "ok", fl.Attributes["result"].Value)
+		testify.Equal(t, "ok", fl.Attributes["result"][0].Value)
 	})
 }
 func TestOutputMappingWithRename(t *testing.T) {
@@ -221,7 +221,7 @@ func TestOutputMappingWithRename(t *testing.T) {
 		id := api.FlowID("wf-output-rename")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{"input": "test"}),
+				flow.WithInit(api.InitArgs{"input": {"test"}}),
 			)
 			testify.NoError(t, err)
 		})
@@ -229,6 +229,6 @@ func TestOutputMappingWithRename(t *testing.T) {
 
 		ex := fl.Executions[st.ID]
 		testify.Equal(t, "ok", ex.Outputs["status"])
-		testify.Equal(t, "ok", fl.Attributes["status"].Value)
+		testify.Equal(t, "ok", fl.Attributes["status"][0].Value)
 	})
 }

@@ -13,10 +13,10 @@ func TestValidateSuccess(t *testing.T) {
 		Required: []api.Name{"input1", "input2", "input3"},
 	}
 
-	args := api.Args{
-		"input1": "value1",
-		"input2": "value2",
-		"input3": "value3",
+	args := api.InitArgs{
+		"input1": {"value1"},
+		"input2": {"value2"},
+		"input3": {"value3"},
 	}
 
 	err := pl.ValidateInputs(args)
@@ -28,10 +28,10 @@ func TestValidateExtraArgs(t *testing.T) {
 		Required: []api.Name{"input1"},
 	}
 
-	args := api.Args{
-		"input1": "value1",
-		"extra1": "extra_value",
-		"extra2": "another_value",
+	args := api.InitArgs{
+		"input1": {"value1"},
+		"extra1": {"extra_value"},
+		"extra2": {"another_value"},
 	}
 
 	err := pl.ValidateInputs(args)
@@ -43,8 +43,8 @@ func TestValidateMissing(t *testing.T) {
 		Required: []api.Name{"required_input"},
 	}
 
-	args := api.Args{
-		"other_input": "value",
+	args := api.InitArgs{
+		"other_input": {"value"},
 	}
 
 	err := pl.ValidateInputs(args)
@@ -59,8 +59,8 @@ func TestValidateMissingMulti(t *testing.T) {
 		Required: []api.Name{"input1", "input2", "input3"},
 	}
 
-	args := api.Args{
-		"input1": "value1",
+	args := api.InitArgs{
+		"input1": {"value1"},
 	}
 
 	err := pl.ValidateInputs(args)
@@ -77,7 +77,7 @@ func TestValidateNoRequired(t *testing.T) {
 		Required: []api.Name{},
 	}
 
-	args := api.Args{}
+	args := api.InitArgs{}
 
 	err := pl.ValidateInputs(args)
 	assert.NoError(t, err)
@@ -97,7 +97,7 @@ func TestValidateEmptyArgs(t *testing.T) {
 		Required: []api.Name{"input1", "input2"},
 	}
 
-	args := api.Args{}
+	args := api.InitArgs{}
 
 	err := pl.ValidateInputs(args)
 	assert.Error(t, err)

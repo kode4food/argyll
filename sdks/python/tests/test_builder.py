@@ -10,8 +10,10 @@ from argyll.types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
+    ConstConfig,
     FlowConfig,
     HTTPConfig,
+    InputConfig,
     ScriptConfig,
     ScriptLanguage,
     Step,
@@ -82,7 +84,8 @@ def test_step_builder_optional():
     step = builder.build()
     assert "count" in step.attributes
     assert step.attributes["count"].role == AttributeRole.OPTIONAL
-    assert step.attributes["count"].default == "0"
+    assert step.attributes["count"].input is not None
+    assert step.attributes["count"].input.default == "0"
 
 
 def test_step_builder_output():
@@ -108,7 +111,8 @@ def test_step_builder_with_for_each():
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.attributes["items"].for_each is True
+    assert step.attributes["items"].input is not None
+    assert step.attributes["items"].input.for_each is True
 
 
 def test_step_builder_with_for_each_missing_attribute():
@@ -364,8 +368,8 @@ def test_flow_builder_with_goals():
 
 def test_flow_builder_with_initial_state():
     client = Client()
-    builder = client.new_flow("flow-123").with_initial_state({"name": "Alice"})
-    assert builder._initial_state == {"name": "Alice"}
+    builder = client.new_flow("flow-123").with_initial_state({"name": ["Alice"]})
+    assert builder._initial_state == {"name": ["Alice"]}
 
 
 @responses.activate
@@ -381,7 +385,7 @@ def test_flow_builder_start():
     builder = (
         client.new_flow("flow-123")
         .with_goals("step-1")
-        .with_initial_state({"name": "Alice"})
+        .with_initial_state({"name": ["Alice"]})
     )
     builder.start()
 
@@ -439,7 +443,8 @@ def test_step_builder_const():
     step = builder.build()
     assert "api_key" in step.attributes
     assert step.attributes["api_key"].role == AttributeRole.CONST
-    assert step.attributes["api_key"].default == '"secret"'
+    assert step.attributes["api_key"].const is not None
+    assert step.attributes["api_key"].const.value == '"secret"'
 
 
 def test_flow_builder_chaining():
@@ -448,10 +453,10 @@ def test_flow_builder_chaining():
         client.new_flow("flow-123")
         .with_goal("step-1")
         .with_goal("step-2")
-        .with_initial_state({"name": "Alice"})
+        .with_initial_state({"name": ["Alice"]})
     )
     assert builder._goals == ["step-1", "step-2"]
-    assert builder._initial_state == {"name": "Alice"}
+    assert builder._initial_state == {"name": ["Alice"]}
 
 
 def test_step_builder_with_flow_goals():
@@ -557,7 +562,7 @@ def _make_step(**overrides):
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
                     type=AttributeType.STRING,
-                    default="",
+                    const=ConstConfig(value=""),
                 )
             }
         ),
@@ -566,7 +571,7 @@ def _make_step(**overrides):
                 "baddefault": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    default="1",
+                    input=InputConfig(default="1"),
                 )
             }
         ),
@@ -575,7 +580,7 @@ def _make_step(**overrides):
                 "badjson": AttributeSpec(
                     role=AttributeRole.OPTIONAL,
                     type=AttributeType.STRING,
-                    default="{",
+                    input=InputConfig(default="{"),
                 )
             }
         ),
@@ -584,7 +589,7 @@ def _make_step(**overrides):
                 "badtype": AttributeSpec(
                     role=AttributeRole.OPTIONAL,
                     type=AttributeType.STRING,
-                    default="1",
+                    input=InputConfig(default="1"),
                 )
             }
         ),
@@ -593,7 +598,7 @@ def _make_step(**overrides):
                 "output": AttributeSpec(
                     role=AttributeRole.OUTPUT,
                     type=AttributeType.STRING,
-                    for_each=True,
+                    input=InputConfig(for_each=True),
                 )
             }
         ),
@@ -602,7 +607,26 @@ def _make_step(**overrides):
                 "items": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    for_each=True,
+                    input=InputConfig(for_each=True),
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "const": AttributeSpec(
+                    role=AttributeRole.CONST,
+                    type=AttributeType.STRING,
+                    input=InputConfig(default='"bad"'),
+                    const=ConstConfig(value='"fixed"'),
+                )
+            }
+        ),
+        _make_step(
+            attributes={
+                "required": AttributeSpec(
+                    role=AttributeRole.REQUIRED,
+                    type=AttributeType.STRING,
+                    const=ConstConfig(value='"bad"'),
                 )
             }
         ),

@@ -1,5 +1,6 @@
 import {
   AttributeType,
+  InputCollect,
   SCRIPT_LANGUAGE_ALE,
   SCRIPT_LANGUAGE_JPATH,
   SCRIPT_LANGUAGE_LUA,
@@ -12,6 +13,14 @@ export const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.Object,
   AttributeType.Array,
   AttributeType.Any,
+];
+
+export const INPUT_COLLECT_TYPES: InputCollect[] = [
+  "first",
+  "last",
+  "some",
+  "all",
+  "none",
 ];
 
 export const PREDICATE_LANGUAGE_OPTIONS = [

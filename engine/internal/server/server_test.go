@@ -1914,9 +1914,9 @@ func TestStartFlowTooManyInitKeys(t *testing.T) {
 		err := testEnv.Engine.RegisterStep(st)
 		assert.NoError(t, err)
 
-		init := api.Args{}
+		init := api.InitArgs{}
 		for i := range api.MaxInitKeys + 1 {
-			init[api.Name(fmt.Sprintf("key-%d", i))] = "value"
+			init[api.Name(fmt.Sprintf("key-%d", i))] = []any{"value"}
 		}
 		reqBody := api.CreateFlowRequest{
 			ID:    "too-many-init-keys",

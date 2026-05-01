@@ -25,7 +25,7 @@ func TestForEachWorkItems(t *testing.T) {
 			nil,
 		)
 		stepB.ID = "step-b"
-		stepB.Attributes["items"].ForEach = true
+		stepB.Attributes["items"].Input = &api.InputConfig{ForEach: true}
 		stepB.Attributes["items"].Type = api.TypeArray
 		stepB.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -87,7 +87,7 @@ func TestForEachWorkItems(t *testing.T) {
 		assert.Equal(t, 3, stepBInvocations)
 
 		// Verify aggregated output contains results
-		result := fl.Attributes["result"].Value
+		result := fl.Attributes["result"][0].Value
 		assert.NotNil(t, result)
 	})
 }

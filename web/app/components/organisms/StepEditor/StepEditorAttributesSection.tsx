@@ -1,5 +1,10 @@
 import React from "react";
-import { AttributeType, SCRIPT_LANGUAGE_LUA, StepType } from "@/app/api";
+import {
+  AttributeType,
+  InputCollect,
+  SCRIPT_LANGUAGE_LUA,
+  StepType,
+} from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import { useT } from "@/app/i18n";
 import {
@@ -18,6 +23,7 @@ import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
 import {
   ATTRIBUTE_TYPES,
   getMappingScriptPlaceholderKey,
+  INPUT_COLLECT_TYPES,
   MAPPING_LANGUAGE_OPTIONS,
 } from "./stepEditorConstants";
 
@@ -28,6 +34,7 @@ interface StepEditorAttributesSectionProps {
     id: string,
     currentType: "input" | "optional" | "const" | "output"
   ) => void;
+  cycleInputCollect: (id: string, currentCollect?: InputCollect) => void;
   flowInputOptions: FlowInputOption[];
   flowOutputOptions: string[];
   removeAttribute: (id: string) => void;
@@ -41,6 +48,7 @@ const StepEditorAttributesSection: React.FC<
   addAttribute,
   attributes,
   cycleAttributeType,
+  cycleInputCollect,
   flowInputOptions,
   flowOutputOptions,
   removeAttribute,
@@ -109,6 +117,12 @@ const StepEditorAttributesSection: React.FC<
           </div>
         )}
         {attributes.map((attr) => {
+          const collect =
+            attr.collect && INPUT_COLLECT_TYPES.includes(attr.collect)
+              ? attr.collect
+              : "first";
+          const canCollect =
+            attr.attrType === "input" || attr.attrType === "optional";
           const isMappingExpanded =
             expandedMappingAttributeID === attr.id && attr.attrType !== "const";
           const hasMappingConfigured = Boolean(
@@ -162,6 +176,26 @@ const StepEditorAttributesSection: React.FC<
                   placeholder={t("stepEditor.attributeNamePlaceholder")}
                   className={`${formStyles.argInput} ${formStyles.argNameInput}`}
                 />
+                {canCollect && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      cycleInputCollect(attr.id, collect);
+                      e.currentTarget.blur();
+                    }}
+                    className={`${formStyles.iconButton} ${formStyles.collectButtonStyle}`}
+                    title={t("stepEditor.cycleInputCollect", { collect })}
+                    aria-label={t("stepEditor.cycleInputCollect", { collect })}
+                  >
+                    <span
+                      className={formStyles.collectIcon}
+                      style={{
+                        maskImage: `url(/icons/collect-${collect}.svg)`,
+                        WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
+                      }}
+                    />
+                  </button>
+                )}
                 {(attr.attrType === "optional" ||
                   attr.attrType === "const") && (
                   <input

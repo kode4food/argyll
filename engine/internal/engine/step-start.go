@@ -14,13 +14,21 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
-type stepEval struct {
-	e      *Engine
-	flow   api.FlowState
-	stepID api.StepID
-	step   *api.Step
-	now    time.Time
-}
+type (
+	stepEval struct {
+		e      *Engine
+		flow   api.FlowState
+		stepID api.StepID
+		step   *api.Step
+		now    time.Time
+	}
+
+	providerSummary struct {
+		terminal     bool
+		allSucceeded bool
+		completedAt  time.Time
+	}
+)
 
 // prepareStep validates and prepares a step to execute within a transaction,
 // raising the StepStarted event via aggregator and scheduling work execution
@@ -183,7 +191,7 @@ func (tx *flowTx) collectStepInputs(
 		}
 
 		if attr.IsConst() {
-			inputs[name] = parseDefaultValue(attr.Default)
+			inputs[name] = parseDefaultValue(attr.ConstValue())
 			continue
 		}
 
@@ -193,34 +201,37 @@ func (tx *flowTx) collectStepInputs(
 				continue
 			}
 			if fallback {
-				if attr.Default != "" {
-					value := parseDefaultValue(attr.Default)
-					val := tx.mapper.MapInput(step, name, attr, value)
-					mapped, _ := step.MappedName(name)
-					inputs[mapped] = val
+				if attr.InputDefault() != "" {
+					value := parseDefaultValue(attr.InputDefault())
+					tx.setStepInput(inputs, step, name, attr, value)
 				}
 				continue
 			}
 		}
 
-		attrVal, ok := flow.Attributes[name]
+		val, ok := resolveInputValue(flow, name, attr)
 		if !ok {
-			if !attr.IsRequired() && attr.Default != "" {
-				value := parseDefaultValue(attr.Default)
-				val := tx.mapper.MapInput(step, name, attr, value)
-				mapped, _ := step.MappedName(name)
-				inputs[mapped] = val
+			if !attr.IsRequired() && attr.InputDefault() != "" {
+				value := parseDefaultValue(attr.InputDefault())
+				tx.setStepInput(inputs, step, name, attr, value)
 				continue
 			}
 			continue
 		}
 
-		val := tx.mapper.MapInput(step, name, attr, attrVal.Value)
-		mapped, _ := step.MappedName(name)
-		inputs[mapped] = val
+		tx.setStepInput(inputs, step, name, attr, val)
 	}
 
 	return inputs
+}
+
+func (tx *flowTx) setStepInput(
+	inputs api.Args, step *api.Step, name api.Name,
+	attr *api.AttributeSpec, value any,
+) {
+	val := tx.mapper.MapInput(step, name, attr, value)
+	mapped, _ := step.MappedName(name)
+	inputs[mapped] = val
 }
 
 func (s *stepEval) canStart() (bool, time.Time) {
@@ -282,21 +293,16 @@ func (s *stepEval) optionalFallback(
 func (s *stepEval) optionalDecisionAt(
 	name api.Name, attr *api.AttributeSpec, anchor time.Time,
 ) (bool, bool, time.Time) {
-	attrVal, hasAttr := s.flow.Attributes[name]
 	deps, ok := s.flow.Plan.Attributes[name]
+	fulfilled, fulfilledAt := s.inputFulfilledAt(name, attr)
 
-	if hasAttr {
-		if attrVal.Step == "" {
-			return true, false, time.Time{}
-		}
-
-		at := s.optionalAt(anchor, attr.Timeout)
+	if fulfilled {
+		at := s.optionalAt(anchor, attr.InputTimeout())
 		if at.IsZero() {
 			return true, false, time.Time{}
 		}
 
-		setAt := attrVal.SetAt
-		if !setAt.IsZero() && setAt.After(at) {
+		if !fulfilledAt.IsZero() && fulfilledAt.After(at) {
 			return true, true, time.Time{}
 		}
 		return true, false, time.Time{}
@@ -306,11 +312,11 @@ func (s *stepEval) optionalDecisionAt(
 		return true, true, time.Time{}
 	}
 
-	if attr.Timeout <= 0 {
+	if attr.InputTimeout() <= 0 {
 		return true, true, time.Time{}
 	}
 
-	at := s.optionalAt(anchor, attr.Timeout)
+	at := s.optionalAt(anchor, attr.InputTimeout())
 	if at.IsZero() {
 		return false, false, time.Time{}
 	}
@@ -334,12 +340,8 @@ func (s *stepEval) requiredReadyAt() time.Time {
 			continue
 		}
 
-		attrVal, ok := s.flow.Attributes[name]
-		if !ok {
-			return time.Time{}
-		}
-		setAt := attrVal.SetAt
-		if setAt.IsZero() {
+		ok, setAt := s.inputFulfilledAt(name, attr)
+		if !ok || setAt.IsZero() {
 			return time.Time{}
 		}
 		if anchor.IsZero() || setAt.After(anchor) {
@@ -347,6 +349,141 @@ func (s *stepEval) requiredReadyAt() time.Time {
 		}
 	}
 	return anchor
+}
+
+func (s *stepEval) inputFulfilledAt(
+	name api.Name, attr *api.AttributeSpec,
+) (bool, time.Time) {
+	values := s.flow.AttributeValues(name)
+
+	switch attr.InputCollect() {
+	case api.InputCollectNone:
+		providers := s.providerSummary(name)
+		if !providers.terminal || len(values) > 0 {
+			return false, time.Time{}
+		}
+		return true, providers.completedAt
+	case api.InputCollectFirst:
+		if len(values) == 0 {
+			return false, time.Time{}
+		}
+		return true, values[0].SetAt
+	case api.InputCollectLast:
+		providers := s.providerSummary(name)
+		if len(values) == 0 {
+			return false, time.Time{}
+		}
+		if !providers.terminal {
+			return false, time.Time{}
+		}
+		return true, values[len(values)-1].SetAt
+	case api.InputCollectAll:
+		providers := s.providerSummary(name)
+		if len(values) == 0 {
+			return false, time.Time{}
+		}
+		if !providers.terminal || !providers.allSucceeded {
+			return false, time.Time{}
+		}
+		return true, lastSetAt(values)
+	case api.InputCollectSome:
+		providers := s.providerSummary(name)
+		if len(values) == 0 {
+			return false, time.Time{}
+		}
+		if !providers.terminal {
+			return false, time.Time{}
+		}
+		return true, lastSetAt(values)
+	default:
+		if len(values) == 0 {
+			return false, time.Time{}
+		}
+		return true, values[0].SetAt
+	}
+}
+
+func (s *stepEval) providerSummary(name api.Name) providerSummary {
+	deps, ok := s.flow.Plan.Attributes[name]
+	if !ok || len(deps.Providers) == 0 {
+		return providerSummary{}
+	}
+
+	res := providerSummary{
+		terminal:     true,
+		allSucceeded: true,
+	}
+	missingCompletedAt := false
+	for _, sid := range deps.Providers {
+		ex, ok := s.flow.Executions[sid]
+		if !ok {
+			res.terminal = false
+			res.allSucceeded = false
+			missingCompletedAt = true
+			continue
+		}
+		if !stepTransitions.IsTerminal(ex.Status) {
+			res.terminal = false
+		}
+		if ex.Status != api.StepCompleted || !hasValueFrom(s.flow, name, sid) {
+			res.allSucceeded = false
+		}
+		if ex.CompletedAt.IsZero() {
+			missingCompletedAt = true
+			continue
+		}
+		if res.completedAt.IsZero() || ex.CompletedAt.After(res.completedAt) {
+			res.completedAt = ex.CompletedAt
+		}
+	}
+	if missingCompletedAt {
+		res.completedAt = time.Time{}
+	}
+	return res
+}
+
+func resolveInputValue(
+	flow api.FlowState, name api.Name, attr *api.AttributeSpec,
+) (any, bool) {
+	values := flow.AttributeValues(name)
+	if len(values) == 0 {
+		return nil, false
+	}
+	switch attr.InputCollect() {
+	case api.InputCollectLast:
+		return values[len(values)-1].Value, true
+	case api.InputCollectAll, api.InputCollectSome:
+		res := make([]any, 0, len(values))
+		for _, v := range values {
+			res = append(res, v.Value)
+		}
+		return res, true
+	case api.InputCollectNone:
+		return nil, false
+	default:
+		return values[0].Value, true
+	}
+}
+
+func lastSetAt(values []*api.AttributeValue) time.Time {
+	var at time.Time
+	for _, v := range values {
+		if !v.SetAt.IsZero() && (at.IsZero() || v.SetAt.After(at)) {
+			at = v.SetAt
+		}
+	}
+	return at
+}
+
+func hasValueFrom(
+	flow api.FlowState, name api.Name, sid api.StepID,
+) bool {
+	for _, v := range flow.AttributeValues(name) {
+		if v.Step == sid {
+			return true
+		}
+	}
+	return false
 }
 
 func parseDefaultValue(value string) any {

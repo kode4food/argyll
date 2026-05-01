@@ -35,7 +35,7 @@ curl -X POST http://localhost:8080/engine/flow \
   -d '{
     "id": "hello-flow",
     "goals": ["hello-script"],
-    "init": {"name": "Argyll"}
+    "init": {"name": ["Argyll"]}
   }'
 ```
 

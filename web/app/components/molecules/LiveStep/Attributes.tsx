@@ -76,7 +76,10 @@ const Attributes: React.FC<AttributesProps> = ({
         const optionalUsedDefault =
           arg.argType === "optional" &&
           hasExecutionInput(execution, arg.name) &&
-          defaultMatchesExecutionInput(arg.spec.default, executionInputValue);
+          defaultMatchesExecutionInput(
+            arg.spec.input?.default,
+            executionInputValue
+          );
 
         const { Icon, className } = getArgIcon(arg.argType);
 

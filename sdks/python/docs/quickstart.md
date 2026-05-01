@@ -97,7 +97,7 @@ client = Client()
 # Start a flow that uses the greeting step
 client.new_flow("greeting-flow-123") \
     .with_goals("greeting") \
-    .with_initial_state({"name": "Alice"}) \
+    .with_initial_state({"name": ["Alice"]}) \
     .start()
 ```
 

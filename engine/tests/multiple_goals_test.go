@@ -113,11 +113,11 @@ func TestMultipleGoals(t *testing.T) {
 		assert.NotContains(t, fl.Executions, api.StepID("step-e"))
 
 		// Verify all attributes from both paths are set
-		assert.Equal(t, "from-A-B", fl.Attributes["valueB"].Value)
-		assert.Equal(t, "from-B", fl.Attributes["valueC"].Value)
-		assert.Equal(t, "from-A-D", fl.Attributes["valueD"].Value)
-		assert.Equal(t, "done-C", fl.Attributes["resultC"].Value)
-		assert.Equal(t, "done-D", fl.Attributes["resultD"].Value)
+		assert.Equal(t, "from-A-B", fl.Attributes["valueB"][0].Value)
+		assert.Equal(t, "from-B", fl.Attributes["valueC"][0].Value)
+		assert.Equal(t, "from-A-D", fl.Attributes["valueD"][0].Value)
+		assert.Equal(t, "done-C", fl.Attributes["resultC"][0].Value)
+		assert.Equal(t, "done-D", fl.Attributes["resultD"][0].Value)
 
 		// Verify step E was not invoked
 		invocations := env.MockClient.GetInvocations()

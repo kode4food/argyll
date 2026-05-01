@@ -63,8 +63,8 @@ func (e *Engine) StartFlow(
 }
 
 func (e *Engine) StartChildFlow(
-	parent api.FlowStep, tkn api.Token, pl *api.ExecutionPlan, init api.Args,
-	meta api.Metadata,
+	parent api.FlowStep, tkn api.Token, pl *api.ExecutionPlan,
+	init api.InitArgs, meta api.Metadata,
 ) (api.FlowID, error) {
 	childID := childFlowID(parent, tkn)
 	err := e.StartFlow(childID, pl,

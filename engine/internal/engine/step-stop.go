@@ -62,9 +62,6 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 		if !isOutputAttribute(st, key) {
 			continue
 		}
-		if _, ok := fl.Attributes[key]; ok {
-			continue
-		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeAttributeSet,
 			api.AttributeSetEvent{
 				FlowID: tx.flowID,

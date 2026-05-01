@@ -60,9 +60,9 @@ func TestInitialFlowInputs(t *testing.T) {
 		})
 
 		// Start flow with initial inputs
-		initialInputs := api.Args{
-			"initialValue": "user-provided",
-			"configValue":  42,
+		initialInputs := api.InitArgs{
+			"initialValue": {"user-provided"},
+			"configValue":  {42},
 		}
 
 		id := api.FlowID("test-initial-inputs")
@@ -87,18 +87,18 @@ func TestInitialFlowInputs(t *testing.T) {
 		assert.Contains(t, invocations, api.StepID("step-a"))
 
 		// Verify final attributes contain initial values plus step A's output
-		assert.Equal(t, "user-provided", fl.Attributes["initialValue"].Value)
-		assert.Equal(t, 42, fl.Attributes["configValue"].Value)
+		assert.Equal(t, "user-provided", fl.Attributes["initialValue"][0].Value)
+		assert.Equal(t, 42, fl.Attributes["configValue"][0].Value)
 		assert.Equal(t,
-			"computed from initial inputs", fl.Attributes["result"].Value,
+			"computed from initial inputs", fl.Attributes["result"][0].Value,
 		)
 
 		// Verify initial attributes have no producing step (provenance = empty)
-		assert.Equal(t, api.StepID(""), fl.Attributes["initialValue"].Step)
-		assert.Equal(t, api.StepID(""), fl.Attributes["configValue"].Step)
+		assert.Equal(t, api.StepID(""), fl.Attributes["initialValue"][0].Step)
+		assert.Equal(t, api.StepID(""), fl.Attributes["configValue"][0].Step)
 
 		// Verify step A's output has correct provenance
-		assert.Equal(t, api.StepID("step-a"), fl.Attributes["result"].Step)
+		assert.Equal(t, api.StepID("step-a"), fl.Attributes["result"][0].Step)
 	})
 }
 

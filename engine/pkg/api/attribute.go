@@ -16,10 +16,22 @@ type (
 		Type    AttributeType     `json:"type"`
 		Mapping *AttributeMapping `json:"mapping,omitempty"`
 
-		// Role and Type specific
-		ForEach bool   `json:"for_each,omitempty"`
-		Default string `json:"default,omitempty"`
-		Timeout int64  `json:"timeout,omitempty"`
+		// Role specific
+		Input *InputConfig `json:"input,omitempty"`
+		Const *ConstConfig `json:"const,omitempty"`
+	}
+
+	// InputConfig configures runtime input collection and fallback behavior
+	InputConfig struct {
+		Collect InputCollect `json:"collect,omitempty"`
+		ForEach bool         `json:"for_each,omitempty"`
+		Default string       `json:"default,omitempty"`
+		Timeout int64        `json:"timeout,omitempty"`
+	}
+
+	// ConstConfig configures a constant runtime input value
+	ConstConfig struct {
+		Value string `json:"value"`
 	}
 
 	// AttributeMapping defines parameter name mapping and value transformation
@@ -38,6 +50,9 @@ type (
 	// or an output
 	AttributeRole string
 
+	// InputCollect defines how an input collects upstream provider outputs
+	InputCollect string
+
 	// AttributeType defines the data type of an attribute
 	AttributeType string
 )
@@ -47,6 +62,14 @@ const (
 	RoleOptional AttributeRole = "optional"
 	RoleConst    AttributeRole = "const"
 	RoleOutput   AttributeRole = "output"
+)
+
+const (
+	InputCollectFirst InputCollect = "first"
+	InputCollectLast  InputCollect = "last"
+	InputCollectAll   InputCollect = "all"
+	InputCollectSome  InputCollect = "some"
+	InputCollectNone  InputCollect = "none"
 )
 
 const (
@@ -63,16 +86,17 @@ var (
 	ErrInvalidAttributeRole = errors.New("invalid attribute role")
 	ErrInvalidAttributeType = errors.New("invalid attribute type")
 	ErrDefaultNotAllowed    = errors.New(
-		"default value requires an optional attribute",
+		"default value requires an input attribute",
 	)
-	ErrDefaultRequired = errors.New(
-		"default value required for const attribute",
+	ErrDefaultRequired = errors.New("const value required for const attribute")
+	ErrInputNotAllowed = errors.New(
+		"input config is only allowed for input attributes",
+	)
+	ErrConstNotAllowed = errors.New(
+		"const config is only allowed for const attributes",
 	)
 	ErrForEachRequiresArray = errors.New(
 		"for_each processing requires an array attribute type",
-	)
-	ErrForEachNotAllowedOutput = errors.New(
-		"for_each processing requires an input attribute type",
 	)
 	ErrInvalidDefaultValue = errors.New("invalid default value for type")
 	ErrMappingNotAllowed   = errors.New(
@@ -81,11 +105,12 @@ var (
 	ErrInvalidAttributeMapping = errors.New("invalid attribute mapping")
 	ErrDuplicateInnerName      = errors.New("duplicate mapped parameter name")
 	ErrTimeoutNotAllowed       = errors.New(
-		"timeout is only allowed on optional attributes",
+		"timeout is only allowed on optional input attributes",
 	)
 	ErrInvalidAttributeTimeout = errors.New(
 		"timeout must be between 0 and 1 year in milliseconds",
 	)
+	ErrInvalidInputCollect = errors.New("invalid input collect")
 
 	ErrDefaultJSON    = errors.New("must be valid JSON")
 	ErrDefaultString  = errors.New("must be a valid JSON string")
@@ -118,6 +143,14 @@ var (
 		TypeNull,
 		TypeAny,
 	)
+
+	validInputCollect = util.SetOf(
+		InputCollectFirst,
+		InputCollectLast,
+		InputCollectAll,
+		InputCollectSome,
+		InputCollectNone,
+	)
 )
 
 // Validate checks if the attribute specification is valid
@@ -127,23 +160,28 @@ func (s *AttributeSpec) Validate(name Name) error {
 			s.Role, name)
 	}
 
-	if s.IsConst() && s.Default == "" {
+	if s.Input != nil && !s.IsInput() {
+		return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
+	}
+
+	if s.Const != nil && !s.IsConst() {
+		return fmt.Errorf("%w: %q", ErrConstNotAllowed, name)
+	}
+
+	if s.IsConst() && (s.Const == nil || s.Const.Value == "") {
 		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultRequired,
 			s.Role, name)
 	}
 
-	if s.Default != "" && !s.IsOptional() && !s.IsConst() {
+	if s.InputDefault() != "" && !s.IsOptional() {
 		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultNotAllowed,
 			s.Role, name)
 	}
 
-	if s.ForEach {
+	if s.InputForEach() {
 		if s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
 			return fmt.Errorf("%w: type %s for attribute %q",
 				ErrForEachRequiresArray, s.Type, name)
-		}
-		if s.IsOutput() {
-			return fmt.Errorf("%w: %q", ErrForEachNotAllowedOutput, name)
 		}
 	}
 
@@ -163,23 +201,155 @@ func (s *AttributeSpec) Validate(name Name) error {
 		}
 	}
 
-	if s.Default != "" && s.Type != "" {
-		if err := validateDefaultValue(s.Default, s.Type); err != nil {
+	if def := s.defaultValue(); def != "" && s.Type != "" {
+		if err := validateDefaultValue(def, s.Type); err != nil {
 			return fmt.Errorf("%w for attribute %q: %w",
 				ErrInvalidDefaultValue, name, err)
 		}
 	}
 
-	if s.Timeout < MinAttributeTimeout || s.Timeout > MaxAttributeTimeout {
-		return fmt.Errorf("%w: timeout %d for attribute %q",
-			ErrInvalidAttributeTimeout, s.Timeout, name)
+	if s.Input != nil && s.Input.Collect != "" &&
+		!validInputCollect.Contains(s.Input.Collect) {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrInvalidInputCollect, s.Input.Collect, name)
 	}
 
-	if s.Timeout > 0 && !s.IsOptional() {
+	timeout := s.InputTimeout()
+	if timeout < MinAttributeTimeout || timeout > MaxAttributeTimeout {
+		return fmt.Errorf("%w: timeout %d for attribute %q",
+			ErrInvalidAttributeTimeout, timeout, name)
+	}
+
+	if timeout > 0 && !s.IsOptional() {
 		return fmt.Errorf("%w: %q", ErrTimeoutNotAllowed, name)
 	}
 
 	return nil
+}
+
+// IsInput returns true if the attribute is an input (required or optional)
+func (s *AttributeSpec) IsInput() bool {
+	return s.Role == RoleRequired || s.Role == RoleOptional
+}
+
+// IsRuntimeInput returns true if the attribute is passed into a step
+func (s *AttributeSpec) IsRuntimeInput() bool {
+	return s.IsInput() || s.IsConst()
+}
+
+// IsOutput returns true if the attribute is an output
+func (s *AttributeSpec) IsOutput() bool {
+	return s.Role == RoleOutput
+}
+
+// IsRequired returns true if the attribute is required
+func (s *AttributeSpec) IsRequired() bool {
+	return s.Role == RoleRequired
+}
+
+// IsOptional returns true if the attribute is optional
+func (s *AttributeSpec) IsOptional() bool {
+	return s.Role == RoleOptional
+}
+
+// IsConst returns true if the attribute is a constant input
+func (s *AttributeSpec) IsConst() bool {
+	return s.Role == RoleConst
+}
+
+func (s *AttributeSpec) InputForEach() bool {
+	return s.Input != nil && s.Input.ForEach
+}
+
+func (s *AttributeSpec) InputDefault() string {
+	if s.Input == nil {
+		return ""
+	}
+	return s.Input.Default
+}
+
+func (s *AttributeSpec) ConstValue() string {
+	if s.Const == nil {
+		return ""
+	}
+	return s.Const.Value
+}
+
+func (s *AttributeSpec) InputTimeout() int64 {
+	if s.Input == nil {
+		return 0
+	}
+	return s.Input.Timeout
+}
+
+func (s *AttributeSpec) InputCollect() InputCollect {
+	if s.Input == nil || s.Input.Collect == "" {
+		return InputCollectFirst
+	}
+	return s.Input.Collect
+}
+
+// Equal returns true if two attribute specs are equal
+func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
+	return s.Role == other.Role &&
+		s.Type == other.Type &&
+		inputsEqual(s.Input, other.Input) &&
+		constsEqual(s.Const, other.Const) &&
+		mappingsEqual(s.Mapping, other.Mapping)
+}
+
+// Equal returns true if two attribute spec maps are equal
+func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
+	if len(a) != len(other) {
+		return false
+	}
+	for name, spec := range a {
+		otherSpec, ok := other[name]
+		if !ok || !spec.Equal(otherSpec) {
+			return false
+		}
+	}
+	return true
+}
+
+func mappingsEqual(a, b *AttributeMapping) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Name == b.Name && scriptsEqual(a.Script, b.Script)
+}
+
+func inputsEqual(a, b *InputConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Collect == b.Collect &&
+		a.ForEach == b.ForEach &&
+		a.Default == b.Default &&
+		a.Timeout == b.Timeout
+}
+
+func constsEqual(a, b *ConstConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Value == b.Value
+}
+
+func (s *AttributeSpec) defaultValue() string {
+	if s.IsConst() {
+		return s.ConstValue()
+	}
+	return s.InputDefault()
 }
 
 func validateDefaultValue(data string, attrType AttributeType) error {
@@ -232,70 +402,6 @@ func validateDefaultValue(data string, attrType AttributeType) error {
 	default:
 		return nil
 	}
-}
-
-// IsInput returns true if the attribute is an input (required or optional)
-func (s *AttributeSpec) IsInput() bool {
-	return s.Role == RoleRequired || s.Role == RoleOptional
-}
-
-// IsRuntimeInput returns true if the attribute is passed into a step
-func (s *AttributeSpec) IsRuntimeInput() bool {
-	return s.IsInput() || s.IsConst()
-}
-
-// IsOutput returns true if the attribute is an output
-func (s *AttributeSpec) IsOutput() bool {
-	return s.Role == RoleOutput
-}
-
-// IsRequired returns true if the attribute is required
-func (s *AttributeSpec) IsRequired() bool {
-	return s.Role == RoleRequired
-}
-
-// IsOptional returns true if the attribute is optional
-func (s *AttributeSpec) IsOptional() bool {
-	return s.Role == RoleOptional
-}
-
-// IsConst returns true if the attribute is a constant input
-func (s *AttributeSpec) IsConst() bool {
-	return s.Role == RoleConst
-}
-
-// Equal returns true if two attribute specs are equal
-func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
-	return s.Role == other.Role &&
-		s.Type == other.Type &&
-		s.ForEach == other.ForEach &&
-		s.Default == other.Default &&
-		s.Timeout == other.Timeout &&
-		mappingsEqual(s.Mapping, other.Mapping)
-}
-
-// Equal returns true if two attribute spec maps are equal
-func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
-	if len(a) != len(other) {
-		return false
-	}
-	for name, spec := range a {
-		otherSpec, ok := other[name]
-		if !ok || !spec.Equal(otherSpec) {
-			return false
-		}
-	}
-	return true
-}
-
-func mappingsEqual(a, b *AttributeMapping) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return a.Name == b.Name && scriptsEqual(a.Script, b.Script)
 }
 
 func scriptsEqual(a, b *ScriptConfig) bool {

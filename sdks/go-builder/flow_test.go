@@ -81,8 +81,8 @@ func TestFlowWithInitialState(t *testing.T) {
 			assert.NoError(t, err)
 
 			assert.Equal(t, api.FlowID("wf-1"), req.ID)
-			assert.Equal(t, "value1", req.Init["key1"])
-			assert.Equal(t, float64(42), req.Init["key2"])
+			assert.Equal(t, []any{"value1"}, req.Init["key1"])
+			assert.Equal(t, []any{float64(42)}, req.Init["key2"])
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -92,9 +92,9 @@ func TestFlowWithInitialState(t *testing.T) {
 	client := builder.NewClient(server.URL, 5*time.Second)
 	err := client.NewFlow("wf-1").
 		WithGoals("goal-step").
-		WithInitialState(api.Args{
-			"key1": "value1",
-			"key2": 42,
+		WithInitialState(api.InitArgs{
+			"key1": {"value1"},
+			"key2": {42},
 		}).
 		Start(context.Background())
 
@@ -181,8 +181,8 @@ func TestFlowChaining(t *testing.T) {
 			assert.Len(t, req.Goals, 2)
 			assert.Equal(t, api.StepID("goal-1"), req.Goals[0])
 			assert.Equal(t, api.StepID("goal-2"), req.Goals[1])
-			assert.Equal(t, "value1", req.Init["arg1"])
-			assert.Equal(t, float64(100), req.Init["arg2"])
+			assert.Equal(t, []any{"value1"}, req.Init["arg1"])
+			assert.Equal(t, []any{float64(100)}, req.Init["arg2"])
 
 			w.WriteHeader(http.StatusOK)
 		},
@@ -192,9 +192,9 @@ func TestFlowChaining(t *testing.T) {
 	client := builder.NewClient(server.URL, 5*time.Second)
 	err := client.NewFlow("complex-flow").
 		WithGoals("goal-1", "goal-2").
-		WithInitialState(api.Args{
-			"arg1": "value1",
-			"arg2": 100,
+		WithInitialState(api.InitArgs{
+			"arg1": {"value1"},
+			"arg2": {100},
 		}).
 		Start(context.Background())
 
@@ -240,15 +240,15 @@ func TestFlowImmutability(t *testing.T) {
 }
 
 func TestImmutabilityInitState(t *testing.T) {
-	initState1 := api.Args{"key": "value1"}
-	initState2 := api.Args{"key": "value2"}
+	initState1 := api.InitArgs{"key": {"value1"}}
+	initState2 := api.InitArgs{"key": {"value2"}}
 
 	server1 := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			assert.NoError(t, err)
-			assert.Equal(t, "value1", req.Init["key"])
+			assert.Equal(t, []any{"value1"}, req.Init["key"])
 			w.WriteHeader(http.StatusOK)
 		},
 	))
@@ -259,7 +259,7 @@ func TestImmutabilityInitState(t *testing.T) {
 			var req api.CreateFlowRequest
 			err := json.NewDecoder(r.Body).Decode(&req)
 			assert.NoError(t, err)
-			assert.Equal(t, "value2", req.Init["key"])
+			assert.Equal(t, []any{"value2"}, req.Init["key"])
 			w.WriteHeader(http.StatusOK)
 		},
 	))

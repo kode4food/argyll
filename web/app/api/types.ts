@@ -49,13 +49,25 @@ export interface AttributeMapping {
   script?: ScriptConfig;
 }
 
+export type InputCollect = "first" | "last" | "some" | "all" | "none";
+
+export interface InputConfig {
+  collect?: InputCollect;
+  for_each?: boolean;
+  default?: string;
+  timeout?: number;
+}
+
+export interface ConstConfig {
+  value: string;
+}
+
 export interface AttributeSpec {
   role: AttributeRole;
   type?: AttributeType;
-  default?: string;
   mapping?: AttributeMapping;
-  for_each?: boolean;
-  timeout?: number;
+  input?: InputConfig;
+  const?: ConstConfig;
 }
 
 export interface HTTPConfig {

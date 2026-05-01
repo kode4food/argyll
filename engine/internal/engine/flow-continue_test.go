@@ -66,7 +66,7 @@ func TestLinearFlowCompletes(t *testing.T) {
 
 		assert.Equal(t, api.StepCompleted, fl.Executions[producer.ID].Status)
 		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
-		assert.Equal(t, "ok", fl.Attributes["result"].Value)
+		assert.Equal(t, "ok", fl.Attributes["result"][0].Value)
 	})
 }
 func TestPendingUnusedSkip(t *testing.T) {
@@ -140,6 +140,88 @@ func TestPendingUnusedSkip(t *testing.T) {
 			"outputs not needed", fl.Executions[providerB.ID].Error,
 		)
 		assert.Equal(t, api.StepCompleted, fl.Executions[consumer.ID].Status)
+	})
+}
+
+func TestSkipFailedAllProvider(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA := &api.Step{
+			ID:   "provider-a",
+			Name: "Provider A",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"seed": {Role: api.RoleRequired, Type: api.TypeString},
+				"data": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		providerB := &api.Step{
+			ID:   "provider-b",
+			Name: "Provider B",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"data": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		consumer := &api.Step{
+			ID:   "consumer",
+			Name: "Consumer",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"data": {
+					Role:  api.RoleRequired,
+					Type:  api.TypeString,
+					Input: &api.InputConfig{Collect: api.InputCollectAll},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerB.ID, api.Args{})
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				providerA.ID: providerA,
+				providerB.ID: providerB,
+				consumer.ID:  consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"seed": {
+					Providers: []api.StepID{},
+					Consumers: []api.StepID{providerA.ID},
+				},
+				"data": {
+					Providers: []api.StepID{providerA.ID, providerB.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+				"result": {
+					Providers: []api.StepID{consumer.ID},
+					Consumers: []api.StepID{},
+				},
+			},
+		}
+
+		id := api.FlowID("wf-skip-all")
+		env.WaitFor(wait.StepTerminal(api.FlowStep{
+			FlowID: id,
+			StepID: providerA.ID,
+		}), func() {
+			err := env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t, api.StepSkipped, fl.Executions[providerA.ID].Status)
+		assert.Equal(t, api.StepCompleted, fl.Executions[providerB.ID].Status)
 	})
 }
 

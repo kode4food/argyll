@@ -19,7 +19,9 @@ When a step input is marked `for_each` and provided as an array, the engine crea
     "items": {
       "role": "required",
       "type": "array",
-      "for_each": true
+      "input": {
+        "for_each": true
+      }
     },
     "processed": {
       "role": "output",
@@ -32,11 +34,11 @@ When a step input is marked `for_each` and provided as an array, the engine crea
 **Flow input:**
 ```json
 {
-  "items": [
+  "items": [[
     { "id": "item-1", "value": 10 },
     { "id": "item-2", "value": 20 },
     { "id": "item-3", "value": 15 }
-  ]
+  ]]
 }
 ```
 
@@ -55,8 +57,8 @@ A step can have multiple `for_each` attributes. The engine computes the **Cartes
 ```json
 {
   "attributes": {
-    "regions": { "role": "required", "type": "array", "for_each": true },
-    "products": { "role": "required", "type": "array", "for_each": true }
+    "regions": { "role": "required", "type": "array", "input": { "for_each": true } },
+    "products": { "role": "required", "type": "array", "input": { "for_each": true } }
   }
 }
 ```
@@ -64,8 +66,8 @@ A step can have multiple `for_each` attributes. The engine computes the **Cartes
 **Flow input:**
 ```json
 {
-  "regions": ["US", "EU", "APAC"],
-  "products": ["A", "B"]
+  "regions": [["US", "EU", "APAC"]],
+  "products": [["A", "B"]]
 }
 ```
 
@@ -174,7 +176,7 @@ By default, work items are processed sequentially. Use **WorkConfig** to control
     "parallelism": 5
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "for_each": true },
+    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "processed": { "role": "output", "type": "number" }
   }
 }
@@ -278,7 +280,7 @@ If a step has both a `predicate` and `for_each`:
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "for_each": true },
+    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "batch_result": { "role": "output", "type": "string" }
   }
 }

@@ -232,7 +232,7 @@ func TestNoTimeoutTasks(t *testing.T) {
 
 		id := api.FlowID("wf-no-timeouts")
 		assert.NoError(t, eng.StartFlow(id, pl,
-			flow.WithInit(api.Args{"input": "ok"}),
+			flow.WithInit(api.InitArgs{"input": {"ok"}}),
 		))
 
 		assertFlowEventuallyCompleted(t, eng, id)

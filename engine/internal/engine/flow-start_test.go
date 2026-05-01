@@ -166,7 +166,9 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		parentPlan, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
+		parentPlan, err := plan.Create(
+			cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		assert.NoError(t, err)
 		assert.NoError(t, env.Engine.StartFlow("wf-parent", parentPlan))
 
@@ -191,7 +193,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 			},
 			"token-1",
 			parentPlan.Children[parent.ID],
-			api.Args{},
+			api.InitArgs{},
 			api.Metadata{},
 		)
 		assert.NoError(t, err)
@@ -236,7 +238,9 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		parentPlan, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
+		parentPlan, err := plan.Create(
+			cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		assert.NoError(t, err)
 
 		parentFS := api.FlowStep{
@@ -248,7 +252,7 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 			parentFS,
 			"token-1",
 			parentPlan.Children[parent.ID],
-			api.Args{},
+			api.InitArgs{},
 			meta,
 		)
 		assert.NoError(t, err)
@@ -256,8 +260,12 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 		childFlow, err := env.Engine.GetFlowState(childID)
 		assert.NoError(t, err)
 		assert.Equal(t, meta["source"], childFlow.Metadata["source"])
-		assert.Equal(t, parentFS.FlowID, childFlow.Metadata[api.MetaParentFlowID])
-		assert.Equal(t, parentFS.StepID, childFlow.Metadata[api.MetaParentStepID])
+		assert.Equal(t,
+			parentFS.FlowID, childFlow.Metadata[api.MetaParentFlowID],
+		)
+		assert.Equal(t,
+			parentFS.StepID, childFlow.Metadata[api.MetaParentStepID],
+		)
 		assert.Equal(t, api.Token("token-1"),
 			childFlow.Metadata[api.MetaParentWorkItemToken])
 	})
@@ -293,7 +301,9 @@ func TestStartChildFlowRejectsDuplicateID(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		parentPlan, err := plan.Create(cat, []api.StepID{parent.ID}, api.Args{})
+		parentPlan, err := plan.Create(
+			cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		assert.NoError(t, err)
 
 		parentFS := api.FlowStep{
@@ -304,7 +314,7 @@ func TestStartChildFlowRejectsDuplicateID(t *testing.T) {
 			parentFS,
 			"token-1",
 			parentPlan.Children[parent.ID],
-			api.Args{},
+			api.InitArgs{},
 			api.Metadata{},
 		)
 		assert.NoError(t, err)
@@ -313,7 +323,7 @@ func TestStartChildFlowRejectsDuplicateID(t *testing.T) {
 			parentFS,
 			"token-1",
 			parentPlan.Children[parent.ID],
-			api.Args{},
+			api.InitArgs{},
 			api.Metadata{},
 		)
 		assert.ErrorIs(t, err, engine.ErrFlowExists)

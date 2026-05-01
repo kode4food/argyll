@@ -69,13 +69,13 @@ describe("ArgyllApi", () => {
       mockClient.post.mockResolvedValue({ data: mockResponse });
 
       const result = await api.startFlow("wf-1", ["step-1"], {
-        input: "value",
+        input: ["value"],
       });
 
       expect(mockClient.post).toHaveBeenCalledWith("/engine/flow", {
         id: "wf-1",
         goals: ["step-1"],
-        init: { input: "value" },
+        init: { input: ["value"] },
       });
       expect(result).toEqual(mockResponse);
     });
@@ -135,13 +135,15 @@ describe("ArgyllApi", () => {
 
       mockClient.post.mockResolvedValue({ data: mockPlan });
 
-      const result = await api.getExecutionPlan(["step-2"], { input: "value" });
+      const result = await api.getExecutionPlan(["step-2"], {
+        input: ["value"],
+      });
 
       expect(mockClient.post).toHaveBeenCalledWith(
         "/engine/plan",
         {
           goals: ["step-2"],
-          init: { input: "value" },
+          init: { input: ["value"] },
         },
         {
           signal: undefined,

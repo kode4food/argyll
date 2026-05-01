@@ -122,8 +122,11 @@ class Client:
             AttributeSpec,
             AttributeType,
             BackoffType,
+            ConstConfig,
             FlowConfig,
             HTTPConfig,
+            InputCollect,
+            InputConfig,
             PredicateConfig,
             ScriptConfig,
             ScriptLanguage,
@@ -134,11 +137,22 @@ class Client:
         # Parse attributes
         attributes = {}
         for name, spec_data in data.get("attributes", {}).items():
+            input_data = spec_data.get("input")
+            const_data = spec_data.get("const")
             attributes[name] = AttributeSpec(
                 role=AttributeRole(spec_data["role"]),
                 type=AttributeType(spec_data["type"]),
-                default=spec_data.get("default", ""),
-                for_each=spec_data.get("for_each", False),
+                input=InputConfig(
+                    collect=InputCollect(input_data.get("collect", "first")),
+                    default=input_data.get("default", ""),
+                    for_each=input_data.get("for_each", False),
+                    timeout=input_data.get("timeout", 0),
+                )
+                if input_data is not None
+                else None,
+                const=ConstConfig(value=const_data.get("value", ""))
+                if const_data is not None
+                else None,
             )
 
         # Parse HTTP config

@@ -33,7 +33,7 @@ func TestMemoizableStepUsesCache(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-memo-1", func() {
 			assert.NoError(t, env.Engine.StartFlow("wf-memo-1", pl,
-				flow.WithInit(api.Args{"input": "value"}),
+				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -42,7 +42,7 @@ func TestMemoizableStepUsesCache(t *testing.T) {
 
 		fl = env.WaitForFlowStatus("wf-memo-2", func() {
 			assert.NoError(t, env.Engine.StartFlow("wf-memo-2", pl,
-				flow.WithInit(api.Args{"input": "value"}),
+				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
@@ -212,7 +212,7 @@ func TestScriptWorkExecutes(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-script", func() {
 			err := env.Engine.StartFlow("wf-script", pl,
-				flow.WithInit(api.Args{"x": float64(2)}),
+				flow.WithInit(api.InitArgs{"x": {float64(2)}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -260,7 +260,7 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-script-mapped", func() {
 			err := env.Engine.StartFlow("wf-script-mapped", pl,
-				flow.WithInit(api.Args{"amount": float64(2)}),
+				flow.WithInit(api.InitArgs{"amount": {float64(2)}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -309,7 +309,7 @@ func TestParallelWorkItems(t *testing.T) {
 		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		st.ID = "parallel-items"
 		st.WorkConfig = &api.WorkConfig{Parallelism: 2}
-		st.Attributes["items"].ForEach = true
+		st.Attributes["items"].Input = &api.InputConfig{ForEach: true}
 		st.Attributes["items"].Type = api.TypeArray
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -325,7 +325,7 @@ func TestParallelWorkItems(t *testing.T) {
 		}
 
 		err := env.Engine.StartFlow("wf-parallel", pl,
-			flow.WithInit(api.Args{"items": []any{"a", "b", "c"}}),
+			flow.WithInit(api.InitArgs{"items": {[]any{"a", "b", "c"}}}),
 		)
 		assert.NoError(t, err)
 
@@ -350,7 +350,7 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 			Script: "if type(items) ~= 'table' then error('boom') end; " +
 				"return true",
 		}
-		st.Attributes["items"].ForEach = true
+		st.Attributes["items"].Input = &api.InputConfig{ForEach: true}
 		st.Attributes["items"].Type = api.TypeArray
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -368,7 +368,7 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 		id := api.FlowID("wf-pred-work-item")
 		env.WaitAfterAll(2, func(waits []*wait.Wait) {
 			err := env.Engine.StartFlow(id, pl,
-				flow.WithInit(api.Args{"items": []any{"a", "b"}}),
+				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
 			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
@@ -463,7 +463,7 @@ func TestAleScriptWithInputs(t *testing.T) {
 		}
 
 		err = eng.StartFlow("wf-ale-input", pl,
-			flow.WithInit(api.Args{"x": float64(21)}),
+			flow.WithInit(api.InitArgs{"x": {float64(21)}}),
 		)
 		assert.NoError(t, err)
 	})

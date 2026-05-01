@@ -419,7 +419,7 @@ describe("Attributes", () => {
         opt1: {
           role: AttributeRole.Optional,
           type: AttributeType.String,
-          default: "default-value",
+          input: { default: "default-value" },
         },
       },
       http: {
@@ -463,7 +463,7 @@ describe("Attributes", () => {
         opt1: {
           role: AttributeRole.Optional,
           type: AttributeType.String,
-          default: "default-value",
+          input: { default: "default-value" },
         },
       },
       http: {
@@ -592,7 +592,7 @@ describe("Attributes", () => {
         opt1: {
           role: AttributeRole.Optional,
           type: AttributeType.String,
-          default: "default-value",
+          input: { default: "default-value" },
         },
       },
       http: {

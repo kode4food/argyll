@@ -3,6 +3,7 @@ import {
   ArgyllApi,
   AttributeType,
   HTTPMethod,
+  InputCollect,
   SCRIPT_LANGUAGE_LUA,
   Step,
   StepType,
@@ -17,6 +18,7 @@ import {
 } from "./stepEditorUtils";
 import { validateDefaultValue } from "@/utils/stepUtils";
 import { useT } from "@/app/i18n";
+import { INPUT_COLLECT_TYPES } from "./stepEditorConstants";
 
 export function useStepEditorForm(
   step: Step | null,
@@ -129,6 +131,12 @@ export function useStepEditorForm(
 
           if (field === "attrType" && value === "const") {
             updated.forEach = false;
+            updated.collect = "first";
+          }
+
+          if (field === "attrType" && value === "output") {
+            updated.forEach = false;
+            updated.collect = "first";
           }
 
           return updated;
@@ -153,6 +161,16 @@ export function useStepEditorForm(
       const currentIndex = types.indexOf(currentType);
       const nextIndex = (currentIndex + 1) % types.length;
       updateAttribute(id, "attrType", types[nextIndex]);
+    },
+    [updateAttribute]
+  );
+
+  const cycleInputCollect = useCallback(
+    (id: string, currentCollect: InputCollect = "first") => {
+      const currentIndex = INPUT_COLLECT_TYPES.indexOf(currentCollect);
+      const nextIndex =
+        currentIndex >= 0 ? (currentIndex + 1) % INPUT_COLLECT_TYPES.length : 0;
+      updateAttribute(id, "collect", INPUT_COLLECT_TYPES[nextIndex]);
     },
     [updateAttribute]
   );
@@ -325,6 +343,7 @@ export function useStepEditorForm(
       updateAttribute,
       removeAttribute,
       cycleAttributeType,
+      cycleInputCollect,
       endpoint,
       setEndpoint,
       httpMethod,
@@ -348,6 +367,7 @@ export function useStepEditorForm(
       updateAttribute,
       removeAttribute,
       cycleAttributeType,
+      cycleInputCollect,
       endpoint,
       httpMethod,
       healthCheck,
@@ -389,6 +409,7 @@ export function useStepEditorForm(
     updateAttribute,
     removeAttribute,
     cycleAttributeType,
+    cycleInputCollect,
     saving,
     error,
     setError,

@@ -28,7 +28,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 			Parallelism: 1,
 		}
-		st.Attributes["items"].ForEach = true
+		st.Attributes["items"].Input = &api.InputConfig{ForEach: true}
 		st.Attributes["items"].Type = api.TypeArray
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -50,9 +50,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 				StepID: st.ID,
 			}), func() {
 				err := env.Engine.StartFlow(id, pl,
-					flow.WithInit(api.Args{
-						"items": []any{"a", "b"},
-					}),
+					flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 				)
 				assert.NoError(t, err)
 			})
@@ -122,7 +120,7 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 						Data: api.FlowStartedEvent{
 							FlowID: id,
 							Plan:   pl,
-							Init:   api.Args{},
+							Init:   api.InitArgs{},
 						},
 					},
 					helpers.FlowEvent{

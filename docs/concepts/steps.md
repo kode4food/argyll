@@ -164,12 +164,12 @@ Each step declares what it needs and what it produces.
 
 **Required attributes** must be available before the step executes.
 
-**Optional attributes** use their declared `default` value if provided. If no default is declared and the value is missing, the input is omitted.
+**Optional attributes** use their declared `input.default` value if provided. If no default is declared and the value is missing, the input is omitted.
 
-Optional attributes may also declare a `timeout` (milliseconds):
-- `timeout: 0` means there is no wait window (the step uses the upstream value only if it is already present; otherwise it uses the default or omits the input)
+Optional attributes may also declare `input.timeout` (milliseconds):
+- `input.timeout: 0` means there is no wait window (the step uses the upstream value only if it is already present; otherwise it uses the default or omits the input)
 - Timeout starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
-- If the timeout expires before the attribute is produced, the consuming step may proceed with its optional `default`
+- If the timeout expires before the attribute is produced, the consuming step may proceed with its optional `input.default`
 - Once the timeout is exceeded for that consuming step, the default choice is step-local and remains in effect even if the real attribute still arrives before the step starts
 - This fallback default is step-local only and does not become a flow attribute
 
@@ -210,12 +210,12 @@ The predicate evaluates to true/false. If false, the step is skipped and produce
 
 ## Work Items and For Each
 
-Any step can expand into multiple work items using the `for_each` attribute. When an input is marked `for_each` and provided as an array, the engine creates one work item per array element.
+Any step can expand into multiple work items using `input.for_each`. When an input is marked `for_each` and provided as an array, the engine creates one work item per array element.
 
 ```json
 {
   "attributes": {
-    "items": { "role": "required", "type": "array", "for_each": true },
+    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
     "item_total": { "role": "output" }
   }
 }

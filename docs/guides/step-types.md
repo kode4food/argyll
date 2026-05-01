@@ -86,7 +86,7 @@ For details, see [Flows](../concepts/flows.md) and [Flow Steps](../concepts/step
 
 ## Multiple Work Items (For Each)
 
-Any step type can process multiple items using `for_each`. The engine creates one work item per array element and aggregates results.
+Any step type can process multiple items using `input.for_each`. The engine creates one work item per array element and aggregates results.
 
 **Example:**
 ```
@@ -135,7 +135,7 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
   },
   "work_config": { "parallelism": 10 },
   "attributes": {
-    "orders": { "role": "required", "type": "array", "for_each": true },
+    "orders": { "role": "required", "type": "array", "input": { "for_each": true } },
     "processed_order": { "role": "output", "type": "object" }
   }
 }

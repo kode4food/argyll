@@ -26,9 +26,9 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:    api.RoleRequired,
-					Type:    api.TypeArray,
-					ForEach: true,
+					Role:  api.RoleRequired,
+					Type:  api.TypeArray,
+					Input: &api.InputConfig{ForEach: true},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -47,7 +47,7 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-foreach", func() {
 			err := env.Engine.StartFlow("wf-foreach", pl,
-				flow.WithInit(api.Args{"item": []any{"a", "b"}}),
+				flow.WithInit(api.InitArgs{"item": {[]any{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -83,9 +83,9 @@ func TestForEachTypedSlice(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:    api.RoleRequired,
-					Type:    api.TypeArray,
-					ForEach: true,
+					Role:  api.RoleRequired,
+					Type:  api.TypeArray,
+					Input: &api.InputConfig{ForEach: true},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -104,7 +104,7 @@ func TestForEachTypedSlice(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-foreach-typed", func() {
 			err := env.Engine.StartFlow("wf-foreach-typed", pl,
-				flow.WithInit(api.Args{"item": []string{"a", "b"}}),
+				flow.WithInit(api.InitArgs{"item": {[]string{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -140,9 +140,9 @@ func TestForEachTypedNumbers(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:    api.RoleRequired,
-					Type:    api.TypeArray,
-					ForEach: true,
+					Role:  api.RoleRequired,
+					Type:  api.TypeArray,
+					Input: &api.InputConfig{ForEach: true},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -161,7 +161,7 @@ func TestForEachTypedNumbers(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-foreach-nums", func() {
 			err := env.Engine.StartFlow("wf-foreach-nums", pl,
-				flow.WithInit(api.Args{"item": []int{2, 3}}),
+				flow.WithInit(api.InitArgs{"item": {[]int{2, 3}}}),
 			)
 			assert.NoError(t, err)
 		})
@@ -230,13 +230,13 @@ func TestOutputMappingDescendants(t *testing.T) {
 
 		fl := env.WaitForFlowStatus("wf-desc-mapping", func() {
 			err := env.Engine.StartFlow("wf-desc-mapping", pl,
-				flow.WithInit(api.Args{"input": "value"}),
+				flow.WithInit(api.InitArgs{"input": {"value"}}),
 			)
 			assert.NoError(t, err)
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		raw := fl.Attributes["books"].Value
+		raw := fl.Attributes["books"][0].Value
 		books, ok := raw.([]any)
 		assert.True(t, ok)
 		assert.Equal(t, []any{"A", "B"}, books)
@@ -253,8 +253,16 @@ func TestTooManyWorkItems(t *testing.T) {
 				Endpoint: "http://example.com",
 			},
 			Attributes: api.AttributeSpecs{
-				"x": {Role: api.RoleRequired, Type: api.TypeArray, ForEach: true},
-				"y": {Role: api.RoleRequired, Type: api.TypeArray, ForEach: true},
+				"x": {
+					Role:  api.RoleRequired,
+					Type:  api.TypeArray,
+					Input: &api.InputConfig{ForEach: true},
+				},
+				"y": {
+					Role:  api.RoleRequired,
+					Type:  api.TypeArray,
+					Input: &api.InputConfig{ForEach: true},
+				},
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -272,7 +280,7 @@ func TestTooManyWorkItems(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 		err := env.Engine.StartFlow("wf-too-many", pl,
-			flow.WithInit(api.Args{"x": xArr, "y": yArr}),
+			flow.WithInit(api.InitArgs{"x": {xArr}, "y": {yArr}}),
 		)
 		assert.True(t, errors.Is(err, engine.ErrTooManyWorkItems))
 	})

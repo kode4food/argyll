@@ -13,6 +13,9 @@ type (
 	// Args represents a map of named arguments passed to or from steps
 	Args map[Name]any
 
+	// InitArgs represents initial flow attribute values
+	InitArgs map[Name][]any
+
 	// Name is a string identifier for arguments and attributes
 	Name string
 

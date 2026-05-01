@@ -126,7 +126,7 @@ func TestOptionalArg(t *testing.T) {
 	assert.Len(t, st.Attributes, 2)
 	assert.Contains(t, st.Attributes, api.Name("optional1"))
 	assert.EqualValues(t, api.RoleOptional, st.Attributes["optional1"].Role)
-	assert.EqualValues(t, "42", st.Attributes["optional2"].Default)
+	assert.EqualValues(t, "42", st.Attributes["optional2"].Input.Default)
 }
 
 func TestConstArg(t *testing.T) {
@@ -139,7 +139,7 @@ func TestConstArg(t *testing.T) {
 	assert.Len(t, st.Attributes, 1)
 	assert.Contains(t, st.Attributes, api.Name("const1"))
 	assert.EqualValues(t, api.RoleConst, st.Attributes["const1"].Role)
-	assert.EqualValues(t, `"fixed"`, st.Attributes["const1"].Default)
+	assert.EqualValues(t, `"fixed"`, st.Attributes["const1"].Const.Value)
 }
 
 func TestOutputArg(t *testing.T) {
@@ -575,7 +575,7 @@ func TestStepBuilderWithForEach(t *testing.T) {
 
 		assert.NoError(t, err)
 		assert.Equal(t, api.TypeArray, st.Attributes["users"].Type)
-		assert.True(t, st.Attributes["users"].ForEach)
+		assert.True(t, st.Attributes["users"].Input.ForEach)
 	})
 }
 

@@ -46,11 +46,11 @@ var (
 )
 
 // ValidateInputs checks that all required inputs are provided
-func (p *ExecutionPlan) ValidateInputs(args Args) error {
+func (p *ExecutionPlan) ValidateInputs(args InitArgs) error {
 	var missing []Name
 
 	for _, required := range p.Required {
-		if _, ok := args[required]; !ok {
+		if len(args[required]) == 0 {
 			missing = append(missing, required)
 		}
 	}

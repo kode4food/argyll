@@ -71,7 +71,9 @@ func (e *Engine) GetAttribute(
 	}
 
 	if av, ok := fl.Attributes[attr]; ok {
-		return av.Value, true, nil
+		if len(av) > 0 {
+			return av[0].Value, true, nil
+		}
 	}
 	return nil, false, nil
 }
@@ -138,7 +140,7 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	step := flow.Plan.Steps[stepID]
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
-			if _, ok := flow.Attributes[name]; ok {
+			if _, ok := flow.FirstAttribute(name); ok {
 				continue
 			}
 			if !e.HasInputProvider(name, flow) {
@@ -166,31 +168,48 @@ func needsOutput(
 		return false
 	}
 
-	if _, ok := flow.Attributes[name]; ok {
-		return false
-	}
-
 	deps, ok := flow.Plan.Attributes[name]
 	if !ok || len(deps.Consumers) == 0 {
 		return false
 	}
 
-	return hasPendingConsumer(deps.Consumers, flow.Executions)
-}
-
-func hasPendingConsumer(
-	consumers []api.StepID, executions api.Executions,
-) bool {
-	for _, id := range consumers {
-		ex, ok := executions[id]
-		if !ok {
+	hasValue := len(flow.AttributeValues(name)) > 0
+	for _, sid := range deps.Consumers {
+		ex, ok := flow.Executions[sid]
+		if !ok || ex.Status != api.StepPending {
 			continue
 		}
-		if ex.Status == api.StepPending {
+		consumer := flow.Plan.Steps[sid]
+		input := consumer.Attributes[name]
+		if input == nil {
+			continue
+		}
+		if input.InputCollect() == api.InputCollectAll &&
+			!canCollectAll(name, flow) {
+			continue
+		}
+		if !hasValue || input.InputCollect() != api.InputCollectFirst {
 			return true
 		}
 	}
 	return false
+}
+
+func canCollectAll(name api.Name, flow api.FlowState) bool {
+	deps, ok := flow.Plan.Attributes[name]
+	if !ok {
+		return false
+	}
+	for _, sid := range deps.Providers {
+		ex, ok := flow.Executions[sid]
+		if !ok || !stepTransitions.IsTerminal(ex.Status) {
+			continue
+		}
+		if ex.Status != api.StepCompleted || !hasValueFrom(flow, name, sid) {
+			return false
+		}
+	}
+	return true
 }
 
 func hasActiveWork(flow api.FlowState) bool {

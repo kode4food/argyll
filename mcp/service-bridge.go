@@ -175,7 +175,7 @@ func bridgeScriptBody(inputs, outputs []string) string {
 				src = inputs[i]
 			}
 		}
-		fmt.Fprintf(&b, "  %s = %s,\n", out, src)
+		_, _ = fmt.Fprintf(&b, "  %s = %s,\n", out, src)
 	}
 	b.WriteString("}")
 	return b.String()

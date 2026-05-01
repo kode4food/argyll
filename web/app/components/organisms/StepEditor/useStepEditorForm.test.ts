@@ -344,6 +344,51 @@ describe("useStepEditorForm", () => {
     });
   });
 
+  describe("input collect cycling", () => {
+    it("cycles input collect mode", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.cycleInputCollect(attrId, "first");
+      });
+
+      expect(result.current.attributes[0].collect).toBe("last");
+
+      act(() => {
+        result.current.cycleInputCollect(attrId, "last");
+      });
+
+      expect(result.current.attributes[0].collect).toBe("some");
+    });
+
+    it("clears collect mode when changing to output", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "collect", "some");
+        result.current.updateAttribute(attrId, "attrType", "output");
+      });
+
+      expect(result.current.attributes[0].collect).toBe("first");
+    });
+  });
+
   describe("validation error clearing", () => {
     it("clears validation error when changing to non-optional type", () => {
       const { result } = renderHook(() =>

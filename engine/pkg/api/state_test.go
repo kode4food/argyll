@@ -126,7 +126,7 @@ func TestSetFlowStatus(t *testing.T) {
 func TestSetAttribute(t *testing.T) {
 	original := &api.FlowState{
 		Attributes: api.AttributeValues{
-			"existing": {Value: "value"},
+			"existing": {{Value: "value"}},
 		},
 	}
 
@@ -135,9 +135,11 @@ func TestSetAttribute(t *testing.T) {
 		Step:  "test-step",
 	})
 
-	assert.Equal(t, "new_value", result.Attributes["new_attr"].Value)
-	assert.Equal(t, api.StepID("test-step"), result.Attributes["new_attr"].Step)
-	assert.Equal(t, "value", result.Attributes["existing"].Value)
+	assert.Equal(t, "new_value", result.Attributes["new_attr"][0].Value)
+	assert.Equal(t,
+		api.StepID("test-step"), result.Attributes["new_attr"][0].Step,
+	)
+	assert.Equal(t, "value", result.Attributes["existing"][0].Value)
 	_, ok := original.Attributes["new_attr"]
 	assert.False(t, ok)
 }
@@ -199,9 +201,9 @@ func TestSetFlowDeactivated(t *testing.T) {
 func TestGetAttributes(t *testing.T) {
 	fl := &api.FlowState{
 		Attributes: api.AttributeValues{
-			"attr1": {Value: "value1", Step: "step-1"},
-			"attr2": {Value: 42, Step: "step-2"},
-			"attr3": {Value: true, Step: "step-3"},
+			"attr1": {{Value: "value1", Step: "step-1"}},
+			"attr2": {{Value: 42, Step: "step-2"}},
+			"attr3": {{Value: true, Step: "step-3"}},
 		},
 	}
 
@@ -413,10 +415,10 @@ func TestFlowChain(t *testing.T) {
 		SetAttribute("attr2", &api.AttributeValue{Value: 42, Step: "step2"})
 
 	assert.Equal(t, api.FlowCompleted, result.Status)
-	assert.Equal(t, "value1", result.Attributes["attr1"].Value)
-	assert.Equal(t, api.StepID("step1"), result.Attributes["attr1"].Step)
-	assert.Equal(t, 42, result.Attributes["attr2"].Value)
-	assert.Equal(t, api.StepID("step2"), result.Attributes["attr2"].Step)
+	assert.Equal(t, "value1", result.Attributes["attr1"][0].Value)
+	assert.Equal(t, api.StepID("step1"), result.Attributes["attr1"][0].Step)
+	assert.Equal(t, 42, result.Attributes["attr2"][0].Value)
+	assert.Equal(t, api.StepID("step2"), result.Attributes["attr2"][0].Step)
 	assert.Equal(t, api.FlowActive, original.Status)
 }
 

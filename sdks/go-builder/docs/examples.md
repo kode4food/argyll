@@ -55,7 +55,7 @@ flowID := builder.NewFlowID("hello-flow")
 
 err := client.NewFlow(flowID).
     WithGoal("hello-script").
-    WithInitialState(api.Args{"name": "Argyll"}).
+    WithInitialState(api.InitArgs{"name": {"Argyll"}}).
     Start(context.Background())
 if err != nil {
     log.Fatal(err)

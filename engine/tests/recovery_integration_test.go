@@ -287,7 +287,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: pendingFlowID,
 					Plan:   plan1,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{
@@ -310,7 +310,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: notCompletedFlowID,
 					Plan:   plan2,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{
@@ -342,7 +342,7 @@ func TestRecoveryWorkStates(t *testing.T) {
 				Data: api.FlowStartedEvent{
 					FlowID: failedFlowID,
 					Plan:   plan3,
-					Init:   api.Args{},
+					Init:   api.InitArgs{},
 				},
 			},
 			helpers.FlowEvent{

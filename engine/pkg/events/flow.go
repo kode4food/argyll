@@ -116,11 +116,15 @@ func flowStarted(
 	execs := createExecutions(data.Plan)
 
 	attributes := api.AttributeValues{}
-	for key, value := range data.Init {
-		attributes[key] = &api.AttributeValue{
-			Value: value,
-			SetAt: ev.Timestamp,
+	for key, values := range data.Init {
+		attrs := make([]*api.AttributeValue, 0, len(values))
+		for _, value := range values {
+			attrs = append(attrs, &api.AttributeValue{
+				Value: value,
+				SetAt: ev.Timestamp,
+			})
 		}
+		attributes[key] = attrs
 	}
 
 	return api.FlowState{

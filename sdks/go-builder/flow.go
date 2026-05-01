@@ -11,7 +11,7 @@ type Flow struct {
 	client *Client
 	id     api.FlowID
 	goals  []api.StepID
-	init   api.Args
+	init   api.InitArgs
 	labels api.Labels
 }
 
@@ -41,7 +41,7 @@ func (f Flow) WithGoal(goal api.StepID) Flow {
 }
 
 // WithInitialState sets the initial state for the flow
-func (f Flow) WithInitialState(init api.Args) Flow {
+func (f Flow) WithInitialState(init api.InitArgs) Flow {
 	f.init = init
 	return f
 }

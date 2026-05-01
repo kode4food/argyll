@@ -114,9 +114,9 @@ func TestLazyEvaluation(t *testing.T) {
 
 		// Verify only required attributes were set
 		assert.Len(t, fl.Attributes, 3)
-		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
-		assert.Equal(t, "from-B", fl.Attributes["valueB"].Value)
-		assert.Equal(t, "done", fl.Attributes["result"].Value)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"][0].Value)
+		assert.Equal(t, "from-B", fl.Attributes["valueB"][0].Value)
+		assert.Equal(t, "done", fl.Attributes["result"][0].Value)
 
 		// CRITICAL: Verify only 3 steps were actually invoked (lazy evaluation)
 		invocations := env.MockClient.GetInvocations()

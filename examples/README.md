@@ -39,7 +39,7 @@ curl -X POST http://localhost:8080/engine/flow \
   -d '{
     "id": "user-lookup-test",
     "goals": ["user-resolver"],
-    "init": {"user_id": "user-456"}
+    "init": {"user_id": ["user-456"]}
   }'
 ```
 
@@ -70,7 +70,7 @@ curl -X POST http://localhost:8080/engine/flow \
   -d '{
     "id": "inventory-check",
     "goals": ["inventory-resolver"],
-    "init": {"product_id": "prod-headphones"}
+    "init": {"product_id": ["prod-headphones"]}
   }'
 ```
 
@@ -114,9 +114,9 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "create-order-success",
     "goals": ["order-creator"],
     "init": {
-      "user_id": "user-123",
-      "product_id": "prod-mouse",
-      "quantity": 2
+      "user_id": ["user-123"],
+      "product_id": ["prod-mouse"],
+      "quantity": [2]
     }
   }'
 ```
@@ -129,9 +129,9 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "create-order-credit-fail",
     "goals": ["order-creator"],
     "init": {
-      "user_id": "user-456",
-      "product_id": "prod-laptop",
-      "quantity": 2
+      "user_id": ["user-456"],
+      "product_id": ["prod-laptop"],
+      "quantity": [2]
     }
   }'
 ```
@@ -146,8 +146,8 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "create-order-oos",
     "goals": ["order-creator"],
     "init": {
-      "user_id": "user-123",
-      "product_id": "prod-headphones"
+      "user_id": ["user-123"],
+      "product_id": ["prod-headphones"]
     }
   }'
 ```
@@ -177,9 +177,9 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "reserve-stock",
     "goals": ["stock-reservation"],
     "init": {
-      "user_id": "user-123",
-      "product_id": "prod-mouse",
-      "quantity": 3
+      "user_id": ["user-123"],
+      "product_id": ["prod-mouse"],
+      "quantity": [3]
     }
   }'
 ```
@@ -216,8 +216,8 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "notify-user",
     "goals": ["notification-sender"],
     "init": {
-      "user_id": "user-456",
-      "product_id": "prod-keyboard"
+      "user_id": ["user-456"],
+      "product_id": ["prod-keyboard"]
     }
   }'
 ```
@@ -253,8 +253,8 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "process-payment",
     "goals": ["payment-processor"],
     "init": {
-      "user_id": "user-123",
-      "product_id": "prod-laptop"
+      "user_id": ["user-123"],
+      "product_id": ["prod-laptop"]
     }
   }'
 ```
@@ -286,8 +286,8 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "format-text",
     "goals": ["text-formatter"],
     "init": {
-      "text": "Welcome to Argyll!",
-      "name": "Alice Johnson"
+      "text": ["Welcome to Argyll!"],
+      "name": ["Alice Johnson"]
     }
   }'
 ```
@@ -308,8 +308,8 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "calc-price",
     "goals": ["price-calculator"],
     "init": {
-      "quantity": 3,
-      "unit_price": 29.99
+      "quantity": [3],
+      "unit_price": [29.99]
     }
   }'
 ```
@@ -330,9 +330,9 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "check-eligible-pass",
     "goals": ["eligibility-checker"],
     "init": {
-      "age": 35,
-      "income": 75000,
-      "credit_score": 720
+      "age": [35],
+      "income": [75000],
+      "credit_score": [720]
     }
   }'
 ```
@@ -347,9 +347,9 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "check-eligible-fail",
     "goals": ["eligibility-checker"],
     "init": {
-      "age": 17,
-      "income": 50000,
-      "credit_score": 700
+      "age": [17],
+      "income": [50000],
+      "credit_score": [700]
     }
   }'
 ```
@@ -369,9 +369,9 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "complete-order-flow",
     "goals": ["notification-sender"],
     "init": {
-      "user_id": "user-123",
-      "product_id": "prod-laptop",
-      "quantity": 1
+      "user_id": ["user-123"],
+      "product_id": ["prod-laptop"],
+      "quantity": [1]
     }
   }'
 ```
@@ -397,7 +397,7 @@ Run the complete flow multiple times. ~10% will fail at payment processing:
 for i in {1..10}; do
   curl -X POST http://localhost:8080/engine/flow \
     -H "Content-Type: application/json" \
-    -d "{\"id\": \"order-$i\", \"goals\": [\"payment-processor\"], \"init\": {\"user_id\": \"user-123\", \"product_id\": \"prod-mouse\"}}"
+    -d "{\"id\": \"order-$i\", \"goals\": [\"payment-processor\"], \"init\": {\"user_id\": [\"user-123\"], \"product_id\": [\"prod-mouse\"]}}"
 done
 ```
 
@@ -411,7 +411,7 @@ Reserve all available stock of a product:
 for i in {1..35}; do
   curl -X POST http://localhost:8080/engine/flow \
     -H "Content-Type: application/json" \
-    -d "{\"id\": \"reserve-$i\", \"goals\": [\"stock-reservation\"], \"init\": {\"user_id\": \"user-123\", \"product_id\": \"prod-monitor\", \"quantity\": 1}}"
+    -d "{\"id\": \"reserve-$i\", \"goals\": [\"stock-reservation\"], \"init\": {\"user_id\": [\"user-123\"], \"product_id\": [\"prod-monitor\"], \"quantity\": [1]}}"
   echo "Reservation $i"
 done
 ```
@@ -430,8 +430,8 @@ curl -X POST http://localhost:8080/engine/flow \
     "id": "credit-fail",
     "goals": ["order-creator"],
     "init": {
-      "user_id": "user-456",
-      "product_id": "prod-laptop"
+      "user_id": ["user-456"],
+      "product_id": ["prod-laptop"]
     }
   }'
 ```

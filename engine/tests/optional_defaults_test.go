@@ -25,7 +25,9 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 			[]api.Name{"config"},
 		)
 		stepB.ID = "step-b"
-		stepB.Attributes["config"].Default = `{"key": "default"}`
+		stepB.Attributes["config"].Input = &api.InputConfig{
+			Default: `{"key": "default"}`,
+		}
 		stepB.Attributes["config"].Type = api.TypeObject
 		stepB.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -76,10 +78,10 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 		assert.Equal(t, api.StepCompleted, fl.Executions["step-b"].Status)
 
 		// Verify step A produced valueA
-		assert.Equal(t, "from-A", fl.Attributes["valueA"].Value)
+		assert.Equal(t, "from-A", fl.Attributes["valueA"][0].Value)
 
 		// Verify step B produced result
-		assert.Equal(t, "done", fl.Attributes["result"].Value)
+		assert.Equal(t, "done", fl.Attributes["result"][0].Value)
 
 		// Verify both steps were invoked
 		invocations := env.MockClient.GetInvocations()
