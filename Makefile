@@ -6,9 +6,11 @@ SUBPROJECTS = engine web mcp sdks/go-builder sdks/python \
 .PHONY: all install build format check test pre-commit clean
 
 define run_target
-	@for dir in $(SUBPROJECTS); do \
-		if $(MAKE) -C $$dir -n $(1) >/dev/null 2>&1; then \
-			$(MAKE) -C $$dir $(1) || exit $$?; \
+	@set -e; \
+	for dir in $(SUBPROJECTS); do \
+		if [ -f $$dir/Makefile ] && \
+			grep -Eq '(^|[[:space:]])$(1)([[:space:]].*)?:' $$dir/Makefile; then \
+			$(MAKE) -C $$dir $(1); \
 		else \
 			echo "Skipping $$dir (no $(1) target)"; \
 		fi; \

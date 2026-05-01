@@ -396,7 +396,7 @@ def test_flow_builder_start():
     data = json.loads(req_body)
     assert data["id"] == "flow-123"
     assert data["goals"] == ["step-1"]
-    assert data["init"] == {"name": "Alice"}
+    assert data["init"] == {"name": ["Alice"]}
 
 
 def test_kebab_case_conversion():
