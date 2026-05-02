@@ -1,5 +1,5 @@
-import React from "react";
-import { Step, ExecutionResult } from "@/app/api";
+import React, { useEffect, useMemo, useState } from "react";
+import { Step, ExecutionResult, WorkState } from "@/app/api";
 import { getProgressIcon } from "@/utils/progressUtils";
 import { useStepProgress } from "@/app/hooks/useStepProgress";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
@@ -7,7 +7,6 @@ import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
 import { formatScriptPreview } from "@/utils/stepFooterUtils";
 import { getStepTypeIcon, IconMemoizable } from "@/utils/iconRegistry";
-import { useMemo } from "react";
 import { useT } from "@/app/i18n";
 
 interface FooterProps {
@@ -15,6 +14,76 @@ interface FooterProps {
   flowId?: string;
   execution?: ExecutionResult;
 }
+
+const MS_PER_SECOND = 1000;
+const SECONDS_PER_MINUTE = 60;
+const COMPLETE_PERCENT = 100;
+
+const formatRemaining = (ms: number): string => {
+  const totalSeconds = Math.max(0, Math.ceil(ms / MS_PER_SECOND));
+  const minutes = Math.floor(totalSeconds / SECONDS_PER_MINUTE);
+  const seconds = totalSeconds % SECONDS_PER_MINUTE;
+  if (minutes === 0) return `${seconds}s`;
+  return `${minutes}m ${seconds.toString().padStart(2, "0")}s`;
+};
+
+const parseTime = (value?: string): number | undefined => {
+  if (!value) return undefined;
+  const parsed = Date.parse(value);
+  return Number.isNaN(parsed) ? undefined : parsed;
+};
+
+interface WorkTimerProps {
+  start: number;
+  end: number;
+}
+
+const WorkTimer: React.FC<WorkTimerProps> = ({ start, end }) => {
+  const [now, setNow] = useState(() => Date.now());
+
+  useEffect(() => {
+    const interval = window.setInterval(
+      () => setNow(Date.now()),
+      MS_PER_SECOND
+    );
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const duration = Math.max(1, end - start);
+  const elapsed = Math.max(0, Math.min(duration, now - start));
+  const remaining = Math.max(0, end - now);
+  const value = Math.round((elapsed / duration) * COMPLETE_PERCENT);
+
+  return (
+    <div className={styles.workTimer}>
+      <progress className={styles.workTimerProgress} max={100} value={value} />
+      <span className={styles.workTimerRemaining}>
+        {formatRemaining(remaining)}
+      </span>
+    </div>
+  );
+};
+
+const workTimerTiming = (work: WorkState, step: Step) => {
+  if (work.status === "active" && step.http?.timeout && work.started_at) {
+    const start = parseTime(work.started_at);
+    if (!start) return undefined;
+    return {
+      titleKey: "liveStep.activeTimeoutTitle",
+      start,
+      end: start + step.http.timeout,
+    };
+  }
+
+  if (work.status === "pending" && work.next_retry_at) {
+    const end = parseTime(work.next_retry_at);
+    const start = parseTime(work.completed_at) ?? parseTime(work.started_at);
+    if (!start || !end) return undefined;
+    return { titleKey: "liveStep.retryCountdownTitle", start, end };
+  }
+
+  return undefined;
+};
 
 const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
   const t = useT();
@@ -120,6 +189,16 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
         </TooltipSection>
       );
     }
+
+    Object.entries(execution.work_items ?? {}).forEach(([token, work]) => {
+      const timing = workTimerTiming(work, step);
+      if (!timing) return;
+      sections.push(
+        <TooltipSection key={`work-timer-${token}`} title={t(timing.titleKey)}>
+          <WorkTimer start={timing.start} end={timing.end} />
+        </TooltipSection>
+      );
+    });
 
     return { displayInfo, tooltipSections: sections };
   }, [execution, flowId, progressState, step, t]);

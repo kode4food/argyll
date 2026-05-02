@@ -466,6 +466,7 @@ describe("WebSocketProvider", () => {
     const flowHandler = client.subscribe.mock.calls[2][1];
     flowHandler({
       type: "work_started",
+      timestamp: Date.parse("2024-01-01T00:00:00Z"),
       data: {
         flow_id: "flow-1",
         step_id: "step-1",
@@ -475,6 +476,7 @@ describe("WebSocketProvider", () => {
     });
     flowHandler({
       type: "work_succeeded",
+      timestamp: Date.parse("2024-01-01T00:00:01Z"),
       data: {
         flow_id: "flow-1",
         step_id: "step-1",
@@ -484,6 +486,7 @@ describe("WebSocketProvider", () => {
     });
     flowHandler({
       type: "work_failed",
+      timestamp: Date.parse("2024-01-01T00:00:02Z"),
       data: {
         flow_id: "flow-1",
         step_id: "step-1",
@@ -507,17 +510,31 @@ describe("WebSocketProvider", () => {
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
       "step-1",
       "token-1",
-      { status: "active", inputs: { key: "value" } }
+      {
+        status: "active",
+        started_at: "2024-01-01T00:00:00.000Z",
+        completed_at: undefined,
+        inputs: { key: "value" },
+        next_retry_at: undefined,
+      }
     );
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
       "step-1",
       "token-2",
-      { status: "succeeded", outputs: { result: "done" } }
+      {
+        status: "succeeded",
+        completed_at: "2024-01-01T00:00:01.000Z",
+        outputs: { result: "done" },
+      }
     );
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
       "step-1",
       "token-3",
-      { status: "failed", error: "something went wrong" }
+      {
+        status: "failed",
+        completed_at: "2024-01-01T00:00:02.000Z",
+        error: "something went wrong",
+      }
     );
     expect(flowStore.__storeState.updateWorkItem).toHaveBeenCalledWith(
       "step-1",

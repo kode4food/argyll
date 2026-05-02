@@ -73,6 +73,7 @@ describe("Footer", () => {
   });
 
   afterEach(() => {
+    jest.useRealTimers();
     jest.clearAllMocks();
   });
 
@@ -185,6 +186,80 @@ describe("Footer", () => {
 
     expect(screen.getByText(t("liveStep.executionStatus"))).toBeInTheDocument();
     expect(screen.getByText("COMPLETED")).toBeInTheDocument();
+  });
+
+  test("shows active work timeout progress in tooltip", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2024-01-01T00:00:02Z"));
+
+    const step = createStep("sync", { timeout: 5000 });
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "active",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
+      work_items: {
+        "token-1": {
+          token: "token-1",
+          status: "active",
+          started_at: "2024-01-01T00:00:00Z",
+          inputs: {},
+          retry_count: 0,
+        },
+      },
+    };
+
+    mockUseStepProgress.mockReturnValue({
+      status: "active",
+      flowId: "wf-1",
+    });
+
+    render(<Footer step={step} flowId="wf-1" execution={execution} />);
+
+    expect(
+      screen.getByText(t("liveStep.activeTimeoutTitle"))
+    ).toBeInTheDocument();
+    expect(screen.getByText("3s")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "40");
+  });
+
+  test("shows pending retry countdown in tooltip", () => {
+    jest.useFakeTimers();
+    jest.setSystemTime(new Date("2024-01-01T00:00:02Z"));
+
+    const step = createStep("sync");
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "active",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
+      work_items: {
+        "token-1": {
+          token: "token-1",
+          status: "pending",
+          started_at: "2024-01-01T00:00:00Z",
+          completed_at: "2024-01-01T00:00:00Z",
+          inputs: {},
+          retry_count: 1,
+          next_retry_at: "2024-01-01T00:00:05Z",
+        },
+      },
+    };
+
+    mockUseStepProgress.mockReturnValue({
+      status: "active",
+      flowId: "wf-1",
+    });
+
+    render(<Footer step={step} flowId="wf-1" execution={execution} />);
+
+    expect(
+      screen.getByText(t("liveStep.retryCountdownTitle"))
+    ).toBeInTheDocument();
+    expect(screen.getByText("3s")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "40");
   });
 
   test("shows error message for failed execution", () => {

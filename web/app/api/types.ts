@@ -140,6 +140,8 @@ export interface FlowContext {
 export interface WorkState {
   token: string;
   status: WorkStatus;
+  started_at?: string;
+  completed_at?: string;
   inputs: Record<string, any>;
   outputs?: Record<string, any>;
   error?: string;

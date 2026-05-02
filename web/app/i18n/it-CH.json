@@ -106,6 +106,8 @@
   "liveStep.reasonTitle": "Motivo",
   "liveStep.skipMissingInputs": "Step saltato perché gli inputs richiesti non sono disponibili a causa di Steps a monte falliti o saltati",
   "liveStep.skipPredicate": "Step saltato perché il Predicate è risultato false",
+  "liveStep.activeTimeoutTitle": "Timeout attivo",
+  "liveStep.retryCountdownTitle": "Retry tra",
   "liveStep.workItemsSummary": "{done} di {total}",
   "liveStep.workItemsSummaryFailed": "{done} di {total}, {failed} falliti",
   "notFound.description": "La pagina che cerchi non esiste. Controlla l'URL o torna alla panoramica",

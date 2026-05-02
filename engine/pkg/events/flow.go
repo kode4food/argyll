@@ -1,6 +1,8 @@
 package events
 
 import (
+	"time"
+
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -260,11 +262,11 @@ func workStarted(
 	st api.FlowState, ev *timebox.Event, data api.WorkStartedEvent,
 ) api.FlowState {
 	ex := st.Executions[data.StepID]
-	work := ex.WorkItems[data.Token].SetStatus(api.WorkActive)
-
-	if work.StartedAt.IsZero() {
-		work = work.SetStartedAt(ev.Timestamp)
-	}
+	work := ex.WorkItems[data.Token].
+		SetStatus(api.WorkActive).
+		SetStartedAt(ev.Timestamp).
+		SetCompletedAt(time.Time{}).
+		SetNextRetryAt(time.Time{})
 
 	return st.
 		SetExecution(data.StepID, ex.SetWorkItem(data.Token, work)).

@@ -106,6 +106,8 @@
   "liveStep.reasonTitle": "Reason",
   "liveStep.skipMissingInputs": "Step skipped because required inputs are unavailable due to failed or skipped upstream steps",
   "liveStep.skipPredicate": "Step skipped because predicate evaluated to false",
+  "liveStep.activeTimeoutTitle": "Active timeout",
+  "liveStep.retryCountdownTitle": "Retry in",
   "liveStep.workItemsSummary": "{done} of {total}",
   "liveStep.workItemsSummaryFailed": "{done} of {total}, {failed} failed",
   "notFound.description": "The page you're looking for doesn't exist. Check the URL or return to the overview",

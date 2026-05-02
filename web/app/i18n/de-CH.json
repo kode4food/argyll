@@ -106,6 +106,8 @@
   "liveStep.reasonTitle": "Grund",
   "liveStep.skipMissingInputs": "Step wurde übersprungen, weil erforderliche Inputs aufgrund fehlgeschlagener oder übersprungener Upstream-Steps nicht verfügbar sind",
   "liveStep.skipPredicate": "Step wurde übersprungen, weil Predicate false war",
+  "liveStep.activeTimeoutTitle": "Aktives Timeout",
+  "liveStep.retryCountdownTitle": "Retry in",
   "liveStep.workItemsSummary": "{done} von {total}",
   "liveStep.workItemsSummaryFailed": "{done} von {total}, {failed} fehlgeschlagen",
   "notFound.description": "Die gesuchte Seite existiert nicht. Prüfen Sie die URL oder kehren Sie zur Übersicht zurück",

@@ -106,6 +106,8 @@
   "liveStep.reasonTitle": "Raison",
   "liveStep.skipMissingInputs": "Step ignoré car les inputs requis ne sont pas disponibles suite à des Steps en amont échoués ou ignorés",
   "liveStep.skipPredicate": "Step ignoré car le Predicate a évalué à false",
+  "liveStep.activeTimeoutTitle": "Timeout actif",
+  "liveStep.retryCountdownTitle": "Retry dans",
   "liveStep.workItemsSummary": "{done} sur {total}",
   "liveStep.workItemsSummaryFailed": "{done} sur {total}, {failed} échoués",
   "notFound.description": "La page que vous cherchez n'existe pas. Vérifiez l'URL ou retournez à la vue d'ensemble",

@@ -289,24 +289,30 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
         case "work_started":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
             status: "active",
+            started_at: eventTimestamp(wsEvent.timestamp),
+            completed_at: undefined,
             inputs: wsEvent.data?.inputs,
+            next_retry_at: undefined,
           });
           break;
         case "work_succeeded":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
             status: "succeeded",
+            completed_at: eventTimestamp(wsEvent.timestamp),
             outputs: wsEvent.data?.outputs,
           });
           break;
         case "work_failed":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
             status: "failed",
+            completed_at: eventTimestamp(wsEvent.timestamp),
             error: wsEvent.data?.error,
           });
           break;
         case "work_not_completed":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
             status: "not_completed",
+            completed_at: eventTimestamp(wsEvent.timestamp),
             error: wsEvent.data?.error,
           });
           break;

@@ -434,6 +434,7 @@ func TestAttributeSet(t *testing.T) {
 }
 
 func TestWorkStarted(t *testing.T) {
+	now := time.Now()
 	fl := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
@@ -442,14 +443,16 @@ func TestWorkStarted(t *testing.T) {
 				Status: api.StepActive,
 				WorkItems: api.WorkItems{
 					"token1": {
-						Status: api.WorkPending,
-						Inputs: api.Args{"input": "value"},
+						Status:      api.WorkPending,
+						StartedAt:   now.Add(-time.Minute),
+						CompletedAt: now.Add(-30 * time.Second),
+						Inputs:      api.Args{"input": "value"},
+						NextRetryAt: now.Add(time.Minute),
 					},
 				},
 			},
 		},
 	}
-	now := time.Now()
 
 	eventData := api.WorkStartedEvent{
 		StepID: "step1",
@@ -472,6 +475,8 @@ func TestWorkStarted(t *testing.T) {
 	work := ex.WorkItems["token1"]
 	assert.Equal(t, api.WorkActive, work.Status)
 	assert.True(t, work.StartedAt.Equal(now))
+	assert.True(t, work.CompletedAt.IsZero())
+	assert.True(t, work.NextRetryAt.IsZero())
 }
 
 func TestWorkSucceeded(t *testing.T) {
