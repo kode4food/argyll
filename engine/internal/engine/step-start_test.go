@@ -321,7 +321,7 @@ func TestConstObjectDefault(t *testing.T) {
 			"config": {
 				Role:  api.RoleConst,
 				Type:  api.TypeObject,
-				Const: &api.ConstConfig{Value: `{"name":"cfg","count":2}`},
+				Input: &api.InputConfig{Default: `{"name":"cfg","count":2}`},
 			},
 			"result": {
 				Role: api.RoleOutput,

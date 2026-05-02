@@ -476,7 +476,7 @@ func TestSortedArgNames(t *testing.T) {
 			"carrot": {
 				Role:  api.RoleConst,
 				Type:  api.TypeString,
-				Const: &api.ConstConfig{Value: `"fixed"`},
+				Input: &api.InputConfig{Default: `"fixed"`},
 			},
 		},
 	}

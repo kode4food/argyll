@@ -20,7 +20,7 @@ func TestValidateDefault(t *testing.T) {
 			spec: &api.AttributeSpec{
 				Role:  api.RoleConst,
 				Type:  api.TypeString,
-				Const: &api.ConstConfig{Value: `"fixed"`},
+				Input: &api.InputConfig{Default: `"fixed"`},
 			},
 			attrName:  "mode",
 			expectErr: false,
@@ -30,7 +30,7 @@ func TestValidateDefault(t *testing.T) {
 			spec: &api.AttributeSpec{
 				Role:  api.RoleConst,
 				Type:  api.TypeString,
-				Const: &api.ConstConfig{Value: "fixed"},
+				Input: &api.InputConfig{Default: "fixed"},
 			},
 			attrName:  "mode",
 			expectErr: true,
@@ -259,7 +259,7 @@ func TestValidateDefault(t *testing.T) {
 			spec: &api.AttributeSpec{
 				Role:  api.RoleConst,
 				Type:  api.TypeObject,
-				Const: &api.ConstConfig{Value: "{}"},
+				Input: &api.InputConfig{Default: "{}"},
 				Mapping: &api.AttributeMapping{
 					Script: &api.ScriptConfig{
 						Language: api.ScriptLangJPath,
@@ -515,36 +515,6 @@ func TestValidateEdgeCases(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInvalidInputCollect)
 	})
 
-	t.Run("const_config_with_required_role", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role:  api.RoleRequired,
-			Type:  api.TypeString,
-			Const: &api.ConstConfig{Value: `"value"`},
-		}
-		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrConstNotAllowed)
-	})
-
-	t.Run("const_config_with_optional_role", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role:  api.RoleOptional,
-			Type:  api.TypeString,
-			Const: &api.ConstConfig{Value: `"value"`},
-		}
-		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrConstNotAllowed)
-	})
-
-	t.Run("const_config_with_output_role", func(t *testing.T) {
-		spec := &api.AttributeSpec{
-			Role:  api.RoleOutput,
-			Type:  api.TypeString,
-			Const: &api.ConstConfig{Value: `"value"`},
-		}
-		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrConstNotAllowed)
-	})
-
 	t.Run("for_each_with_type_any", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleRequired,
@@ -585,15 +555,30 @@ func TestValidateEdgeCases(t *testing.T) {
 		assert.ErrorIs(t, err, api.ErrInputNotAllowed)
 	})
 
-	t.Run("for_each_with_const_role", func(t *testing.T) {
+	t.Run("for_each_with_const_non_array_type", func(t *testing.T) {
 		spec := &api.AttributeSpec{
-			Role:  api.RoleConst,
-			Type:  api.TypeArray,
-			Const: &api.ConstConfig{Value: `["a", "b"]`},
-			Input: &api.InputConfig{ForEach: true},
+			Role: api.RoleConst,
+			Type: api.TypeString,
+			Input: &api.InputConfig{
+				Default: `"a"`,
+				ForEach: true,
+			},
 		}
 		err := spec.Validate("test_arg")
-		assert.ErrorIs(t, err, api.ErrInputNotAllowed)
+		assert.ErrorIs(t, err, api.ErrForEachRequiresArray)
+	})
+
+	t.Run("for_each_with_const_role", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleConst,
+			Type: api.TypeArray,
+			Input: &api.InputConfig{
+				Default: `["a", "b"]`,
+				ForEach: true,
+			},
+		}
+		err := spec.Validate("test_arg")
+		assert.NoError(t, err)
 	})
 
 	t.Run("invalid_role", func(t *testing.T) {
@@ -676,7 +661,7 @@ func TestValidateEdgeCases(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleConst,
 			Type:  api.TypeObject,
-			Const: &api.ConstConfig{Value: "{}"},
+			Input: &api.InputConfig{Default: "{}"},
 			Mapping: &api.AttributeMapping{
 				Script: &api.ScriptConfig{
 					Language: api.ScriptLangJPath,
@@ -825,13 +810,15 @@ func TestTimeoutValidation(t *testing.T) {
 
 	t.Run("const_with_timeout_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
-			Role:  api.RoleConst,
-			Type:  api.TypeString,
-			Const: &api.ConstConfig{Value: `"const"`},
-			Input: &api.InputConfig{Timeout: 5000},
+			Role: api.RoleConst,
+			Type: api.TypeString,
+			Input: &api.InputConfig{
+				Default: `"const"`,
+				Timeout: 5000,
+			},
 		}
 		err := spec.Validate("test_attr")
-		assert.ErrorIs(t, err, api.ErrInputNotAllowed)
+		assert.ErrorIs(t, err, api.ErrTimeoutNotAllowed)
 	})
 
 	t.Run("output_with_timeout_not_allowed", func(t *testing.T) {

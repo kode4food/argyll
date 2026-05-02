@@ -58,16 +58,11 @@ export interface InputConfig {
   timeout?: number;
 }
 
-export interface ConstConfig {
-  value: string;
-}
-
 export interface AttributeSpec {
   role: AttributeRole;
   type?: AttributeType;
   mapping?: AttributeMapping;
   input?: InputConfig;
-  const?: ConstConfig;
 }
 
 export interface HTTPConfig {

@@ -898,8 +898,8 @@ components:
             const_field:
               role: "const"
               type: "string"
-              const:
-                value: '"fixed_value"'
+              input:
+                default: '"fixed_value"'
             processed_text:
               role: "output"
               type: "string"
@@ -973,14 +973,12 @@ components:
           example: "string"
         input:
           $ref: "#/components/schemas/InputConfig"
-        const:
-          $ref: "#/components/schemas/ConstConfig"
         mapping:
           $ref: "#/components/schemas/AttributeMapping"
 
     InputConfig:
       type: object
-      description: Input-only configuration for required and optional attributes
+      description: Runtime input configuration for required, optional, and const attributes
       properties:
         collect:
           type: string
@@ -991,6 +989,7 @@ components:
             - `all`: array of values after every provider completes successfully
             - `some`: array of values after at least one provider succeeds and all potential providers finish
             - `none`: satisfied only when no provider produces the attribute
+            Applies only to required and optional attributes. Const attributes always use their configured default value.
           enum:
             - first
             - last
@@ -1001,29 +1000,19 @@ components:
           example: "first"
         default:
           type: string
-          description: Default value as JSON string for optional attributes
+          description: Default value as JSON string for optional attributes and const values
           example: '"default_value"'
         timeout:
           type: integer
           format: int64
-          description: Optional wait timeout in milliseconds for optional attributes
+          description: Optional wait timeout in milliseconds for optional attributes only
           minimum: 0
           example: 2000
         for_each:
           type: boolean
-          description: Execute once per element for this input
+          description: Execute once per element for this input or const value
           default: false
           example: false
-
-    ConstConfig:
-      type: object
-      required:
-        - value
-      properties:
-        value:
-          type: string
-          description: Constant value as a JSON string
-          example: '"fixed_value"'
 
     AttributeMapping:
       type: object

@@ -191,7 +191,7 @@ func (tx *flowTx) collectStepInputs(
 		}
 
 		if attr.IsConst() {
-			inputs[name] = parseDefaultValue(attr.ConstValue())
+			inputs[name] = parseDefaultValue(attr.InputDefault())
 			continue
 		}
 

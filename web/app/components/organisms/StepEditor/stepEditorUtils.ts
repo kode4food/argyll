@@ -56,6 +56,9 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
           : spec.role === AttributeRole.Const
             ? "const"
             : "input";
+      const hasDefault =
+        spec.role === AttributeRole.Optional ||
+        spec.role === AttributeRole.Const;
 
       return {
         id: `${prefix}-${index}-${timestamp}`,
@@ -63,15 +66,9 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
         name,
         dataType: spec.type || AttributeType.String,
         defaultValue:
-          spec.role === AttributeRole.Optional
-            ? spec.input?.default !== undefined
-              ? String(spec.input.default)
-              : undefined
-            : spec.role === AttributeRole.Const
-              ? spec.const?.value !== undefined
-                ? String(spec.const.value)
-                : undefined
-              : undefined,
+          hasDefault && spec.input?.default !== undefined
+            ? String(spec.input.default)
+            : undefined,
         timeout:
           spec.role === AttributeRole.Optional && spec.input?.timeout
             ? spec.input.timeout
@@ -152,26 +149,22 @@ export function createStepAttributes(
       type: a.dataType,
     };
 
-    if (a.attrType === "optional") {
-      const input = ensureInputConfig(spec);
-      setInputCollect(input, a);
-      if (a.defaultValue?.trim()) {
-        input.default = a.defaultValue.trim();
-      }
-      if (a.timeout) {
-        input.timeout = a.timeout;
-      }
-    }
-
-    if (a.attrType === "input") {
+    if (a.attrType === "input" || a.attrType === "optional") {
       setInputCollect(ensureInputConfig(spec), a);
     }
 
-    if (a.attrType === "const" && a.defaultValue?.trim()) {
-      spec.const = { value: a.defaultValue.trim() };
+    if (
+      (a.attrType === "optional" || a.attrType === "const") &&
+      a.defaultValue?.trim()
+    ) {
+      ensureInputConfig(spec).default = a.defaultValue.trim();
     }
 
-    if (a.forEach && a.attrType !== "const" && a.attrType !== "output") {
+    if (a.attrType === "optional" && a.timeout) {
+      ensureInputConfig(spec).timeout = a.timeout;
+    }
+
+    if (a.forEach && a.attrType !== "output") {
       ensureInputConfig(spec).for_each = true;
     }
 

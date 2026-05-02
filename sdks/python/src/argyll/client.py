@@ -122,7 +122,6 @@ class Client:
             AttributeSpec,
             AttributeType,
             BackoffType,
-            ConstConfig,
             FlowConfig,
             HTTPConfig,
             InputCollect,
@@ -138,7 +137,6 @@ class Client:
         attributes = {}
         for name, spec_data in data.get("attributes", {}).items():
             input_data = spec_data.get("input")
-            const_data = spec_data.get("const")
             attributes[name] = AttributeSpec(
                 role=AttributeRole(spec_data["role"]),
                 type=AttributeType(spec_data["type"]),
@@ -149,9 +147,6 @@ class Client:
                     timeout=input_data.get("timeout", 0),
                 )
                 if input_data is not None
-                else None,
-                const=ConstConfig(value=const_data.get("value", ""))
-                if const_data is not None
                 else None,
             )
 

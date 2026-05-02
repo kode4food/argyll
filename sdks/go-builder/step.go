@@ -93,8 +93,8 @@ func (s Step) Const(
 	s.attributes[name] = &api.AttributeSpec{
 		Role: api.RoleConst,
 		Type: argType,
-		Const: &api.ConstConfig{
-			Value: defaultValue,
+		Input: &api.InputConfig{
+			Default: defaultValue,
 		},
 	}
 	return s

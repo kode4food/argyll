@@ -18,7 +18,6 @@ type (
 
 		// Role specific
 		Input *InputConfig `json:"input,omitempty"`
-		Const *ConstConfig `json:"const,omitempty"`
 	}
 
 	// InputConfig configures runtime input collection and fallback behavior
@@ -27,11 +26,6 @@ type (
 		ForEach bool         `json:"for_each,omitempty"`
 		Default string       `json:"default,omitempty"`
 		Timeout int64        `json:"timeout,omitempty"`
-	}
-
-	// ConstConfig configures a constant runtime input value
-	ConstConfig struct {
-		Value string `json:"value"`
 	}
 
 	// AttributeMapping defines parameter name mapping and value transformation
@@ -86,14 +80,11 @@ var (
 	ErrInvalidAttributeRole = errors.New("invalid attribute role")
 	ErrInvalidAttributeType = errors.New("invalid attribute type")
 	ErrDefaultNotAllowed    = errors.New(
-		"default value requires an input attribute",
+		"default value requires optional or const attribute",
 	)
 	ErrDefaultRequired = errors.New("const value required for const attribute")
 	ErrInputNotAllowed = errors.New(
-		"input config is only allowed for input attributes",
-	)
-	ErrConstNotAllowed = errors.New(
-		"const config is only allowed for const attributes",
+		"input config is only allowed for runtime input attributes",
 	)
 	ErrForEachRequiresArray = errors.New(
 		"for_each processing requires an array attribute type",
@@ -155,30 +146,32 @@ var (
 
 // Validate checks if the attribute specification is valid
 func (s *AttributeSpec) Validate(name Name) error {
+	input := s.Input
+	def := s.InputDefault()
+
 	if !validAttributeRoles.Contains(s.Role) {
 		return fmt.Errorf("%w: %s for attribute %q", ErrInvalidAttributeRole,
 			s.Role, name)
 	}
 
-	if s.Input != nil && !s.IsInput() {
+	if input != nil && !s.IsRuntimeInput() {
 		return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
 	}
 
-	if s.Const != nil && !s.IsConst() {
-		return fmt.Errorf("%w: %q", ErrConstNotAllowed, name)
-	}
-
-	if s.IsConst() && (s.Const == nil || s.Const.Value == "") {
+	if s.IsConst() && def == "" {
 		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultRequired,
 			s.Role, name)
 	}
 
-	if s.InputDefault() != "" && !s.IsOptional() {
+	if def != "" && !s.IsOptional() && !s.IsConst() {
 		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultNotAllowed,
 			s.Role, name)
 	}
 
-	if s.InputForEach() {
+	if input != nil && input.ForEach {
+		if !s.IsInput() && !s.IsConst() {
+			return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
+		}
 		if s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
 			return fmt.Errorf("%w: type %s for attribute %q",
 				ErrForEachRequiresArray, s.Type, name)
@@ -201,17 +194,21 @@ func (s *AttributeSpec) Validate(name Name) error {
 		}
 	}
 
-	if def := s.defaultValue(); def != "" && s.Type != "" {
+	if def != "" && s.Type != "" {
 		if err := validateDefaultValue(def, s.Type); err != nil {
 			return fmt.Errorf("%w for attribute %q: %w",
 				ErrInvalidDefaultValue, name, err)
 		}
 	}
 
-	if s.Input != nil && s.Input.Collect != "" &&
-		!validInputCollect.Contains(s.Input.Collect) {
-		return fmt.Errorf("%w: %s for attribute %q",
-			ErrInvalidInputCollect, s.Input.Collect, name)
+	if input != nil && input.Collect != "" {
+		if !validInputCollect.Contains(input.Collect) {
+			return fmt.Errorf("%w: %s for attribute %q",
+				ErrInvalidInputCollect, input.Collect, name)
+		}
+		if !s.IsInput() && input.Collect != InputCollectFirst {
+			return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
+		}
 	}
 
 	timeout := s.InputTimeout()
@@ -268,13 +265,6 @@ func (s *AttributeSpec) InputDefault() string {
 	return s.Input.Default
 }
 
-func (s *AttributeSpec) ConstValue() string {
-	if s.Const == nil {
-		return ""
-	}
-	return s.Const.Value
-}
-
 func (s *AttributeSpec) InputTimeout() int64 {
 	if s.Input == nil {
 		return 0
@@ -294,7 +284,6 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 	return s.Role == other.Role &&
 		s.Type == other.Type &&
 		inputsEqual(s.Input, other.Input) &&
-		constsEqual(s.Const, other.Const) &&
 		mappingsEqual(s.Mapping, other.Mapping)
 }
 
@@ -333,23 +322,6 @@ func inputsEqual(a, b *InputConfig) bool {
 		a.ForEach == b.ForEach &&
 		a.Default == b.Default &&
 		a.Timeout == b.Timeout
-}
-
-func constsEqual(a, b *ConstConfig) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return a.Value == b.Value
-}
-
-func (s *AttributeSpec) defaultValue() string {
-	if s.IsConst() {
-		return s.ConstValue()
-	}
-	return s.InputDefault()
 }
 
 func validateDefaultValue(data string, attrType AttributeType) error {

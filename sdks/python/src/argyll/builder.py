@@ -11,11 +11,11 @@ from .types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
-    ConstConfig,
     FlowConfig,
     FlowID,
     HTTPConfig,
     InitArgs,
+    InputCollect,
     InputConfig,
     Labels,
     PredicateConfig,
@@ -119,7 +119,7 @@ class StepBuilder:
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.CONST,
             type=attr_type,
-            const=ConstConfig(value=value),
+            input=InputConfig(default=value),
         )
         return self._copy(_attributes=new_attrs)
 
@@ -148,7 +148,6 @@ class StepBuilder:
                 for_each=True,
                 timeout=input_config.timeout,
             ),
-            const=existing.const,
         )
         return self._copy(_attributes=new_attrs)
 
@@ -396,36 +395,34 @@ def _validate_step(step: Step) -> None:
         if not name:
             raise StepValidationError("Attribute name cannot be empty")
 
-        default = spec.input.default if spec.input else ""
-        const_value = spec.const.value if spec.const else ""
+        input_config = spec.input
+        default = input_config.default if input_config else ""
 
-        if spec.input is not None and spec.role not in {
+        if input_config is not None and spec.role not in {
             AttributeRole.REQUIRED,
             AttributeRole.OPTIONAL,
+            AttributeRole.CONST,
         }:
             raise StepValidationError(
                 f"Input config not allowed for attribute {name}"
             )
 
-        if spec.const is not None and spec.role != AttributeRole.CONST:
-            raise StepValidationError(
-                f"Const config not allowed for attribute {name}"
-            )
-
-        if spec.role == AttributeRole.CONST and not const_value:
+        if spec.role == AttributeRole.CONST and not default:
             raise StepValidationError(
                 f"Const attribute {name} requires const value"
             )
 
-        if default and spec.role != AttributeRole.OPTIONAL:
+        if default and spec.role not in {
+            AttributeRole.OPTIONAL,
+            AttributeRole.CONST,
+        }:
             raise StepValidationError(
                 f"Default value not allowed for attribute {name}"
             )
 
-        fallback = const_value if spec.role == AttributeRole.CONST else default
-        if fallback:
+        if default:
             try:
-                parsed = json.loads(fallback)
+                parsed = json.loads(default)
             except json.JSONDecodeError as e:
                 raise StepValidationError(
                     f"Invalid default JSON for {name}: {e}"
@@ -466,8 +463,29 @@ def _validate_step(step: Step) -> None:
                     f"Default for {name} must be JSON null"
                 )
 
-        if spec.input and spec.input.for_each:
-            if spec.type not in {AttributeType.ARRAY, AttributeType.ANY}:
+        if input_config and input_config.for_each:
+            if spec.type not in {
+                AttributeType.ARRAY,
+                AttributeType.ANY,
+            }:
                 raise StepValidationError(
                     f"ForEach requires array/any type for {name}"
                 )
+
+        if (
+            input_config
+            and input_config.collect != InputCollect.FIRST
+            and spec.role == AttributeRole.CONST
+        ):
+            raise StepValidationError(
+                f"Collect not allowed for const attribute {name}"
+            )
+
+        if (
+            input_config
+            and input_config.timeout > 0
+            and spec.role != AttributeRole.OPTIONAL
+        ):
+            raise StepValidationError(
+                f"Timeout not allowed for attribute {name}"
+            )

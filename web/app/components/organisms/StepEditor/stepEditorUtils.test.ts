@@ -29,7 +29,7 @@ describe("stepEditorUtils", () => {
           const_arg: {
             role: AttributeRole.Const,
             type: AttributeType.String,
-            const: { value: '"fixed"' },
+            input: { default: '"fixed"' },
             description: "",
           },
           optional_arg: {
@@ -231,7 +231,7 @@ describe("stepEditorUtils", () => {
       expect(result.optional_param.input?.default).toBe("10");
       expect(result.optional_param.input?.timeout).toBe(3000);
       expect(result.const_param.role).toBe(AttributeRole.Const);
-      expect(result.const_param.const?.value).toBe('"fixed"');
+      expect(result.const_param.input?.default).toBe('"fixed"');
       expect(result.output_result.role).toBe(AttributeRole.Output);
     });
 

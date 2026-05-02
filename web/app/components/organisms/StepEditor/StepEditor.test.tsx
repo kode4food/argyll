@@ -147,7 +147,7 @@ describe("StepEditor", () => {
       color: {
         role: AttributeRole.Const,
         type: AttributeType.String,
-        const: { value: "blue" },
+        input: { default: "blue" },
       },
     },
     http: {

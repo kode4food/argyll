@@ -130,7 +130,6 @@ export function useStepEditorForm(
           }
 
           if (field === "attrType" && value === "const") {
-            updated.forEach = false;
             updated.collect = "first";
           }
 

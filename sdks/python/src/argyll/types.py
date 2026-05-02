@@ -93,24 +93,12 @@ class InputConfig:
 
 
 @dataclass(frozen=True)
-class ConstConfig:
-    """Const input configuration."""
-
-    value: str
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to API dictionary format."""
-        return {"value": self.value}
-
-
-@dataclass(frozen=True)
 class AttributeSpec:
     """Specification for a step attribute."""
 
     role: AttributeRole
     type: AttributeType
     input: Optional[InputConfig] = None
-    const: Optional[ConstConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -120,8 +108,6 @@ class AttributeSpec:
         }
         if self.input is not None:
             result["input"] = self.input.to_dict()
-        if self.const is not None:
-            result["const"] = self.const.to_dict()
         return result
 
 

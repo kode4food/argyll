@@ -10,9 +10,9 @@ from argyll.types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
-    ConstConfig,
     FlowConfig,
     HTTPConfig,
+    InputCollect,
     InputConfig,
     ScriptConfig,
     ScriptLanguage,
@@ -443,8 +443,8 @@ def test_step_builder_const():
     step = builder.build()
     assert "api_key" in step.attributes
     assert step.attributes["api_key"].role == AttributeRole.CONST
-    assert step.attributes["api_key"].const is not None
-    assert step.attributes["api_key"].const.value == '"secret"'
+    assert step.attributes["api_key"].input is not None
+    assert step.attributes["api_key"].input.default == '"secret"'
 
 
 def test_flow_builder_chaining():
@@ -562,7 +562,7 @@ def _make_step(**overrides):
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
                     type=AttributeType.STRING,
-                    const=ConstConfig(value=""),
+                    input=InputConfig(default=""),
                 )
             }
         ),
@@ -616,8 +616,10 @@ def _make_step(**overrides):
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
                     type=AttributeType.STRING,
-                    input=InputConfig(default='"bad"'),
-                    const=ConstConfig(value='"fixed"'),
+                    input=InputConfig(
+                        default='"fixed"',
+                        collect=InputCollect.SOME,
+                    ),
                 )
             }
         ),
@@ -626,7 +628,7 @@ def _make_step(**overrides):
                 "required": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    const=ConstConfig(value='"bad"'),
+                    input=InputConfig(timeout=1000),
                 )
             }
         ),
@@ -635,3 +637,16 @@ def _make_step(**overrides):
 def test_validate_step_errors(step):
     with pytest.raises(StepValidationError):
         _validate_step(step)
+
+
+def test_validate_step_const_for_each():
+    step = _make_step(
+        attributes={
+            "const": AttributeSpec(
+                role=AttributeRole.CONST,
+                type=AttributeType.ARRAY,
+                input=InputConfig(default='["fixed"]', for_each=True),
+            )
+        }
+    )
+    _validate_step(step)

@@ -139,7 +139,7 @@ func TestConstArg(t *testing.T) {
 	assert.Len(t, st.Attributes, 1)
 	assert.Contains(t, st.Attributes, api.Name("const1"))
 	assert.EqualValues(t, api.RoleConst, st.Attributes["const1"].Role)
-	assert.EqualValues(t, `"fixed"`, st.Attributes["const1"].Const.Value)
+	assert.EqualValues(t, `"fixed"`, st.Attributes["const1"].Input.Default)
 }
 
 func TestOutputArg(t *testing.T) {

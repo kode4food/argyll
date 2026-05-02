@@ -24,7 +24,7 @@ func TestConstAttribute(t *testing.T) {
 		st.Attributes["const_value"] = &api.AttributeSpec{
 			Role:  api.RoleConst,
 			Type:  api.TypeString,
-			Const: &api.ConstConfig{Value: `"fixed"`},
+			Input: &api.InputConfig{Default: `"fixed"`},
 		}
 		st.Attributes["result"].Type = api.TypeString
 

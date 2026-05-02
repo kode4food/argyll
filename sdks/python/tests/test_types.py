@@ -4,7 +4,6 @@ from argyll.types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
-    ConstConfig,
     HTTPConfig,
     InputCollect,
     InputConfig,
@@ -68,13 +67,13 @@ def test_attribute_spec_with_const():
     spec = AttributeSpec(
         role=AttributeRole.CONST,
         type=AttributeType.STRING,
-        const=ConstConfig(value='"fixed"'),
+        input=InputConfig(default='"fixed"'),
     )
     result = spec.to_dict()
     assert result == {
         "role": "const",
         "type": "string",
-        "const": {"value": '"fixed"'},
+        "input": {"default": '"fixed"'},
     }
 
 
