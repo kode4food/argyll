@@ -323,17 +323,8 @@ func workNotCompleted(
 		SetCompletedAt(ev.Timestamp).
 		SetError(data.Error)
 
-	var updatedExec api.ExecutionState
-	if data.RetryToken != "" && data.RetryToken != data.Token {
-		updatedExec = ex.
-			RemoveWorkItem(data.Token).
-			SetWorkItem(data.RetryToken, item)
-	} else {
-		updatedExec = ex.SetWorkItem(data.Token, item)
-	}
-
 	return st.
-		SetExecution(data.StepID, updatedExec).
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
 		SetLastUpdated(ev.Timestamp)
 }
 

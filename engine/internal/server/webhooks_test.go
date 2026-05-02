@@ -161,8 +161,7 @@ func TestHookCompleteTwice(t *testing.T) {
 		assert.Equal(t, 200, w.Code)
 		assert.Equal(t, api.StepCompleted, ex.Status)
 
-		// Second webhook call with same token should be rejected (400) due to
-		// invalid work state transition
+		// Second webhook call with same token is a duplicate terminal callback
 		body, _ = json.Marshal(api.Args{"output": "value2"})
 		req = httptest.NewRequest("POST",
 			"/webhook/double-complete-flow/"+string(st.ID)+"/"+string(tkn),
@@ -172,13 +171,8 @@ func TestHookCompleteTwice(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		// Verify duplicate call is rejected
-		assert.Equal(t, 400, w.Code, "duplicate webhook call should return 400")
-
-		var respErr api.ErrorResponse
-		err = json.NewDecoder(w.Body).Decode(&respErr)
-		assert.NoError(t, err)
-		assert.Equal(t, "Work item already completed", respErr.Error)
+		assert.Equal(t, 200, w.Code, "duplicate webhook call should be ignored")
+		assert.Empty(t, w.Body.String())
 	})
 }
 
@@ -250,11 +244,8 @@ func TestHookFailTwice(t *testing.T) {
 
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, 400, w.Code, "duplicate fail webhook should return 400")
-
-		var respErr api.ErrorResponse
-		_ = json.NewDecoder(w.Body).Decode(&respErr)
-		assert.Equal(t, "Work item already completed", respErr.Error)
+		assert.Equal(t, 200, w.Code, "duplicate fail webhook should be ignored")
+		assert.Empty(t, w.Body.String())
 	})
 }
 

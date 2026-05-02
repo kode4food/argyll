@@ -175,7 +175,7 @@ func (e *TestEngineEnv) SubscribeCommitted(fn Publisher) func() {
 }
 
 // NewEngineWithConfig creates a new engine instance with the given
-// configuration and subscribes it to the shared committed-event stream.
+// configuration and subscribes it to the shared committed-event stream
 func (e *TestEngineEnv) NewEngineWithConfig(
 	cfg *config.Config, deps engine.Dependencies,
 ) (*engine.Engine, func(), error) {

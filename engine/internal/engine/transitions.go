@@ -39,6 +39,8 @@ var (
 	workTransitions = StateTransitions[api.WorkStatus]{
 		api.WorkPending: util.SetOf(
 			api.WorkActive,
+			api.WorkSucceeded,
+			api.WorkFailed,
 		),
 		api.WorkActive: util.SetOf(
 			api.WorkSucceeded,

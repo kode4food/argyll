@@ -6,7 +6,6 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -49,25 +48,11 @@ func (e *Engine) NotCompleteWork(
 			return err
 		}
 
-		var retryTkn api.Token
-		ex := tx.Value().Executions[fs.StepID]
-		work := ex.WorkItems[tkn]
-		st := tx.Value().Plan.Steps[fs.StepID]
-		if !st.Memoizable && work.RetryCount > 0 {
-			retryTkn = api.Token(uuid.New().String())
-		}
-
-		if err := tx.raiseWorkNotCompleted(
-			fs.StepID, tkn, retryTkn, errMsg,
-		); err != nil {
+		if err := tx.raiseWorkNotCompleted(fs.StepID, tkn, errMsg); err != nil {
 			return err
 		}
 
-		actualToken := tkn
-		if retryTkn != "" {
-			actualToken = retryTkn
-		}
-		return tx.handleWorkNotCompleted(fs.StepID, actualToken)
+		return tx.handleWorkNotCompleted(fs.StepID, tkn)
 	})
 }
 
@@ -265,15 +250,14 @@ func (tx *flowTx) raiseRetryScheduled(
 }
 
 func (tx *flowTx) raiseWorkNotCompleted(
-	stepID api.StepID, tkn, retryTkn api.Token, errMsg string,
+	stepID api.StepID, tkn api.Token, errMsg string,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeWorkNotCompleted,
 		api.WorkNotCompletedEvent{
-			FlowID:     tx.flowID,
-			StepID:     stepID,
-			Token:      tkn,
-			RetryToken: retryTkn,
-			Error:      errMsg,
+			FlowID: tx.flowID,
+			StepID: stepID,
+			Token:  tkn,
+			Error:  errMsg,
 		},
 	)
 }

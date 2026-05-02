@@ -89,18 +89,19 @@ func (s *Server) handleWorkWebhook(
 	}
 
 	if err := s.engine.CompleteWork(fs, tkn, outputs); err != nil {
+		if errors.Is(err, engine.ErrInvalidWorkTransition) {
+			slog.Info("Ignoring duplicate work completion",
+				log.FlowID(fs.FlowID),
+				log.StepID(fs.StepID),
+				log.Token(tkn))
+			c.Status(http.StatusOK)
+			return
+		}
 		slog.Error("Failed to complete work",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
 			log.Token(tkn),
 			log.Error(err))
-		if errors.Is(err, engine.ErrInvalidWorkTransition) {
-			c.JSON(http.StatusBadRequest, api.ErrorResponse{
-				Error:  "Work item already completed",
-				Status: http.StatusBadRequest,
-			})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  "Failed to complete work",
 			Status: http.StatusInternalServerError,
@@ -135,18 +136,19 @@ func (s *Server) handleWorkProblemWebhook(
 		log.Token(tkn),
 		log.ErrorString(errMsg))
 	if err := s.engine.FailWork(fs, tkn, errMsg); err != nil {
+		if errors.Is(err, engine.ErrInvalidWorkTransition) {
+			slog.Info("Ignoring duplicate work failure",
+				log.FlowID(fs.FlowID),
+				log.StepID(fs.StepID),
+				log.Token(tkn))
+			c.Status(http.StatusOK)
+			return
+		}
 		slog.Error("Failed to record work failure",
 			log.FlowID(fs.FlowID),
 			log.StepID(fs.StepID),
 			log.Token(tkn),
 			log.Error(err))
-		if errors.Is(err, engine.ErrInvalidWorkTransition) {
-			c.JSON(http.StatusBadRequest, api.ErrorResponse{
-				Error:  "Work item already completed",
-				Status: http.StatusBadRequest,
-			})
-			return
-		}
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
 			Error:  "Failed to record work failure",
 			Status: http.StatusInternalServerError,

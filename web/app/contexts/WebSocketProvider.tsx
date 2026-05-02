@@ -305,15 +305,10 @@ const WebSocketProvider = ({ children }: { children: React.ReactNode }) => {
           });
           break;
         case "work_not_completed":
-          updateWorkItem(
-            wsEvent.data?.step_id,
-            wsEvent.data?.token,
-            {
-              status: "not_completed",
-              error: wsEvent.data?.error,
-            },
-            wsEvent.data?.retry_token
-          );
+          updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+            status: "not_completed",
+            error: wsEvent.data?.error,
+          });
           break;
         case "retry_scheduled":
           updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {

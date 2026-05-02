@@ -72,6 +72,10 @@ func (e *ExecContext) performWorkItem(tkn api.Token, work api.WorkState) {
 func (e *ExecContext) handleWorkItemFailure(tkn api.Token, err error) {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 
+	if errors.Is(err, ErrInvalidWorkTransition) {
+		return
+	}
+
 	if errors.Is(err, api.ErrWorkNotCompleted) {
 		recErr := e.engine.NotCompleteWork(fs, tkn, err.Error())
 		if recErr != nil {

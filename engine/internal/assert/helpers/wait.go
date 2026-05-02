@@ -82,7 +82,7 @@ func (e *TestEngineEnv) WaitForTerminalFlow(flowID api.FlowID) api.FlowState {
 	return WaitForTerminalFlowState(e.T, e.Engine, flowID)
 }
 
-// WaitForTerminalFlowState waits for a flow to reach a terminal state.
+// WaitForTerminalFlowState waits for a flow to reach a terminal state
 func WaitForTerminalFlowState(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID,
 ) api.FlowState {
@@ -92,7 +92,7 @@ func WaitForTerminalFlowState(
 	})
 }
 
-// WaitForTerminalFlows waits for all flows to reach terminal states.
+// WaitForTerminalFlows waits for all flows to reach terminal states
 func WaitForTerminalFlows(
 	t *testing.T, eng *engine.Engine, flowIDs []api.FlowID,
 	timeout time.Duration,
@@ -129,7 +129,7 @@ func WaitForTerminalFlows(
 	}
 }
 
-// WaitForFlowExists waits for a flow state to become readable.
+// WaitForFlowExists waits for a flow state to become readable
 func WaitForFlowExists(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID,
 ) api.FlowState {
@@ -137,7 +137,7 @@ func WaitForFlowExists(
 	return WaitForFlowState(t, eng, flowID, wait.DefaultTimeout, nil)
 }
 
-// WaitForFlowState waits for a flow state accepted by accept.
+// WaitForFlowState waits for a flow state accepted by accept
 func WaitForFlowState(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID, timeout time.Duration,
 	accept func(api.FlowState) bool,

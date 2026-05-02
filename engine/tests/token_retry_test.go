@@ -54,21 +54,14 @@ func TestMemoStepReusesToken(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		// Verify only one work item (token was reused)
 		ex := fl.Executions[st.ID]
-		assert.Len(t, ex.WorkItems, 1)
-
-		// Verify the work item has retry count > 0
-		for _, item := range ex.WorkItems {
-			assert.Equal(t, api.WorkSucceeded, item.Status)
-			assert.GreaterOrEqual(t, item.RetryCount, 1)
-		}
+		assertRetrySucceeded(t, ex.WorkItems)
 	})
 }
 
-// TestNonMemoStepRegeneratesToken verifies that non-memoizable steps generate
-// a new token on retry
-func TestNonMemoStepRegeneratesToken(t *testing.T) {
+// TestNonMemoStepReusesToken verifies that non-memoizable steps reuse the same
+// token across retries
+func TestNonMemoStepReusesToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -91,7 +84,7 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		id := api.FlowID("test-non-memo-token-regen")
+		id := api.FlowID("test-non-memo-token-reuse")
 		// Wait for retry to be scheduled
 		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: id,
@@ -108,21 +101,13 @@ func TestNonMemoStepRegeneratesToken(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		// Verify only one work item exists (old token was replaced)
 		ex := fl.Executions[st.ID]
-		assert.Len(t, ex.WorkItems, 1)
-
-		// Verify the work item has retry count > 0
-		for _, item := range ex.WorkItems {
-			assert.Equal(t, api.WorkSucceeded, item.Status)
-			assert.GreaterOrEqual(t, item.RetryCount, 1)
-		}
+		assertRetrySucceeded(t, ex.WorkItems)
 	})
 }
 
-// TestRetriesRegenerateTokens verifies that each retry generates a new token
-// for non-memoizable steps
-func TestRetriesRegenerateTokens(t *testing.T) {
+// TestRetriesReuseToken verifies that retries preserve the work item token
+func TestRetriesReuseToken(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -145,7 +130,7 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		id := api.FlowID("test-multi-retry-tokens")
+		id := api.FlowID("test-multi-retry-token-reuse")
 		// Wait for first retry
 		env.WaitFor(wait.WorkRetryScheduled(api.FlowStep{
 			FlowID: id,
@@ -162,14 +147,17 @@ func TestRetriesRegenerateTokens(t *testing.T) {
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
-		// Verify only one work item exists (tokens were replaced on retry)
 		ex := fl.Executions[st.ID]
-		assert.Len(t, ex.WorkItems, 1)
-
-		// Verify the work item has retry count >= 1
-		for _, item := range ex.WorkItems {
-			assert.Equal(t, api.WorkSucceeded, item.Status)
-			assert.GreaterOrEqual(t, item.RetryCount, 1)
-		}
+		assertRetrySucceeded(t, ex.WorkItems)
 	})
+}
+
+func assertRetrySucceeded(t *testing.T, items api.WorkItems) {
+	t.Helper()
+
+	assert.Len(t, items, 1)
+	for _, item := range items {
+		assert.Equal(t, api.WorkSucceeded, item.Status)
+		assert.GreaterOrEqual(t, item.RetryCount, 1)
+	}
 }
