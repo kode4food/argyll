@@ -49,6 +49,8 @@ Inputs can choose how to collect matching upstream outputs with `input.collect`.
 
 `first` and `last` are singleton modes. `some` and `all` are list modes. For `input.for_each`, singleton modes treat the selected value as the array to iterate, while list modes iterate the collected array itself.
 
+`first` and `all` also affect lazy execution. With `first`, once a value exists, remaining providers for that output can be skipped unless another pending consumer still needs them. With `all`, once any terminal provider fails to produce the output, the `all` input can no longer be satisfied, so remaining providers can be skipped unless another pending consumer still needs their outputs.
+
 ```json
 {
   "attributes": {
