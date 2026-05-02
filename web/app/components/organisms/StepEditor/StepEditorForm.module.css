@@ -339,7 +339,6 @@
 .collectButtonStyle:hover {
   background-color: var(--overlay-dark-40);
   border-color: var(--color-info);
-  color: var(--color-info);
 }
 
 .collectIcon {
