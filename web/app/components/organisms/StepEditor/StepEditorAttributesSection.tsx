@@ -176,26 +176,6 @@ const StepEditorAttributesSection: React.FC<
                   placeholder={t("stepEditor.attributeNamePlaceholder")}
                   className={`${formStyles.argInput} ${formStyles.argNameInput}`}
                 />
-                {canCollect && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      cycleInputCollect(attr.id, collect);
-                      e.currentTarget.blur();
-                    }}
-                    className={`${formStyles.iconButton} ${formStyles.collectButtonStyle}`}
-                    title={t("stepEditor.cycleInputCollect", { collect })}
-                    aria-label={t("stepEditor.cycleInputCollect", { collect })}
-                  >
-                    <span
-                      className={formStyles.collectIcon}
-                      style={{
-                        maskImage: `url(/icons/collect-${collect}.svg)`,
-                        WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-                      }}
-                    />
-                  </button>
-                )}
                 {(attr.attrType === "optional" ||
                   attr.attrType === "const") && (
                   <input
@@ -247,6 +227,26 @@ const StepEditorAttributesSection: React.FC<
                       </button>
                     </div>
                   )}
+                {canCollect && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      cycleInputCollect(attr.id, collect);
+                      e.currentTarget.blur();
+                    }}
+                    className={`${formStyles.iconButton} ${formStyles.collectButtonStyle}`}
+                    title={t("stepEditor.cycleInputCollect", { collect })}
+                    aria-label={t("stepEditor.cycleInputCollect", { collect })}
+                  >
+                    <span
+                      className={formStyles.collectIcon}
+                      style={{
+                        maskImage: `url(/icons/collect-${collect}.svg)`,
+                        WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
+                      }}
+                    />
+                  </button>
+                )}
                 {attr.attrType !== "const" && (
                   <button
                     type="button"
