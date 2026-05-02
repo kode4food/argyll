@@ -65,23 +65,6 @@ func main() {
 }
 
 func handle(ctx *builder.StepContext, args api.Args) (api.Args, error) {
-	// Simulate random transient failures (50% chance)
-	if rand.Float64() < 0.5 {
-		errMsg := []string{
-			"database connection timeout",
-			"inventory service unavailable",
-			"rate limit exceeded",
-			"network timeout",
-		}
-		selectedErr := errMsg[rand.Intn(len(errMsg))]
-		slog.Warn("Simulating transient failure (will retry)",
-			log.Error(errors.New(selectedErr)),
-			log.StepID(ctx.StepID))
-		return nil, builder.NewHTTPError(
-			http.StatusServiceUnavailable, selectedErr,
-		)
-	}
-
 	// Extract and validate user info
 	userInfo, ok := args["user_info"].(map[string]any)
 	if !ok {
@@ -172,6 +155,23 @@ func handle(ctx *builder.StepContext, args api.Args) (api.Args, error) {
 	}
 
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
+
+	// Simulate random transient failures (50% chance)
+	if rand.Float64() < 0.5 {
+		errMsg := []string{
+			"database connection timeout",
+			"inventory service unavailable",
+			"rate limit exceeded",
+			"network timeout",
+		}
+		selectedErr := errMsg[rand.Intn(len(errMsg))]
+		slog.Warn("Simulating transient failure (will retry)",
+			log.Error(errors.New(selectedErr)),
+			log.StepID(ctx.StepID))
+		return nil, builder.NewHTTPError(
+			http.StatusServiceUnavailable, selectedErr,
+		)
+	}
 
 	orderID := fmt.Sprintf("ORDER-%d", time.Now().Unix())
 	slog.Info("Order created successfully",
