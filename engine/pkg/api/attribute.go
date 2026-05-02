@@ -22,10 +22,10 @@ type (
 
 	// InputConfig configures runtime input collection and fallback behavior
 	InputConfig struct {
-		Collect InputCollect `json:"collect,omitempty"`
-		ForEach bool         `json:"for_each,omitempty"`
-		Default string       `json:"default,omitempty"`
-		Timeout int64        `json:"timeout,omitempty"`
+		Collect  InputCollect `json:"collect,omitempty"`
+		ForEach  bool         `json:"for_each,omitempty"`
+		Default  string       `json:"default,omitempty"`
+		Deadline int64        `json:"deadline,omitempty"`
 	}
 
 	// AttributeMapping defines parameter name mapping and value transformation
@@ -95,11 +95,11 @@ var (
 	)
 	ErrInvalidAttributeMapping = errors.New("invalid attribute mapping")
 	ErrDuplicateInnerName      = errors.New("duplicate mapped parameter name")
-	ErrTimeoutNotAllowed       = errors.New(
-		"timeout is only allowed on optional input attributes",
+	ErrDeadlineNotAllowed      = errors.New(
+		"deadline is only allowed on optional input attributes",
 	)
-	ErrInvalidAttributeTimeout = errors.New(
-		"timeout must be between 0 and 1 year in milliseconds",
+	ErrInvalidAttributeDeadline = errors.New(
+		"deadline must be between 0 and 1 year in milliseconds",
 	)
 	ErrInvalidInputCollect = errors.New("invalid input collect")
 
@@ -113,8 +113,8 @@ var (
 )
 
 const (
-	MinAttributeTimeout = 0
-	MaxAttributeTimeout = 365 * 24 * 60 * 60 * 1000
+	MinAttributeDeadline = 0
+	MaxAttributeDeadline = 365 * 24 * 60 * 60 * 1000
 )
 
 var (
@@ -211,14 +211,14 @@ func (s *AttributeSpec) Validate(name Name) error {
 		}
 	}
 
-	timeout := s.InputTimeout()
-	if timeout < MinAttributeTimeout || timeout > MaxAttributeTimeout {
-		return fmt.Errorf("%w: timeout %d for attribute %q",
-			ErrInvalidAttributeTimeout, timeout, name)
+	deadline := s.InputDeadline()
+	if deadline < MinAttributeDeadline || deadline > MaxAttributeDeadline {
+		return fmt.Errorf("%w: deadline %d for attribute %q",
+			ErrInvalidAttributeDeadline, deadline, name)
 	}
 
-	if timeout > 0 && !s.IsOptional() {
-		return fmt.Errorf("%w: %q", ErrTimeoutNotAllowed, name)
+	if deadline > 0 && !s.IsOptional() {
+		return fmt.Errorf("%w: %q", ErrDeadlineNotAllowed, name)
 	}
 
 	return nil
@@ -265,11 +265,11 @@ func (s *AttributeSpec) InputDefault() string {
 	return s.Input.Default
 }
 
-func (s *AttributeSpec) InputTimeout() int64 {
+func (s *AttributeSpec) InputDeadline() int64 {
 	if s.Input == nil {
 		return 0
 	}
-	return s.Input.Timeout
+	return s.Input.Deadline
 }
 
 func (s *AttributeSpec) InputCollect() InputCollect {
@@ -321,7 +321,7 @@ func inputsEqual(a, b *InputConfig) bool {
 	return a.Collect == b.Collect &&
 		a.ForEach == b.ForEach &&
 		a.Default == b.Default &&
-		a.Timeout == b.Timeout
+		a.Deadline == b.Deadline
 }
 
 func validateDefaultValue(data string, attrType AttributeType) error {

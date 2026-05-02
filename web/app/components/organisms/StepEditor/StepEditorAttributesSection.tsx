@@ -191,9 +191,9 @@ const StepEditorAttributesSection: React.FC<
                 )}
                 {attr.attrType === "optional" && (
                   <DurationInput
-                    value={attr.timeout || 0}
+                    value={attr.deadline || 0}
                     onChange={(ms) =>
-                      updateAttribute(attr.id, "timeout", ms || undefined)
+                      updateAttribute(attr.id, "deadline", ms || undefined)
                     }
                     className={formStyles.argInput}
                   />

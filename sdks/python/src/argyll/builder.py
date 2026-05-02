@@ -146,7 +146,7 @@ class StepBuilder:
                 collect=input_config.collect,
                 default=input_config.default,
                 for_each=True,
-                timeout=input_config.timeout,
+                deadline=input_config.deadline,
             ),
         )
         return self._copy(_attributes=new_attrs)
@@ -483,9 +483,9 @@ def _validate_step(step: Step) -> None:
 
         if (
             input_config
-            and input_config.timeout > 0
+            and input_config.deadline > 0
             and spec.role != AttributeRole.OPTIONAL
         ):
             raise StepValidationError(
-                f"Timeout not allowed for attribute {name}"
+                f"Deadline not allowed for attribute {name}"
             )

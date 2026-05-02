@@ -55,7 +55,7 @@ export interface InputConfig {
   collect?: InputCollect;
   for_each?: boolean;
   default?: string;
-  timeout?: number;
+  deadline?: number;
 }
 
 export interface AttributeSpec {

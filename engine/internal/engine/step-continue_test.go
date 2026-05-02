@@ -36,7 +36,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 				"opt": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 50},
+					Input: &api.InputConfig{Default: `"fallback"`, Deadline: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -124,19 +124,19 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 				"opt": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 0},
+					Input: &api.InputConfig{Default: `"fallback"`, Deadline: 0},
 				},
 				"opt2": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Timeout: 0},
+					Input: &api.InputConfig{Deadline: 0},
 				},
 				"opt3": {
 					Role: api.RoleOptional,
 					Type: api.TypeString,
 					Input: &api.InputConfig{
-						Default: `"fallback3"`,
-						Timeout: 60000,
+						Default:  `"fallback3"`,
+						Deadline: 60000,
 					},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
@@ -238,7 +238,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 				"opt": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 50},
+					Input: &api.InputConfig{Default: `"fallback"`, Deadline: 50},
 				},
 				"fast_done": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -356,7 +356,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 				"user_info": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Default: `"guest"`, Timeout: 50},
+					Input: &api.InputConfig{Default: `"guest"`, Deadline: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -478,7 +478,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 				"user_info": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Default: `"guest"`, Timeout: 50},
+					Input: &api.InputConfig{Default: `"guest"`, Deadline: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -586,7 +586,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 				"opt": {
 					Role:  api.RoleOptional,
 					Type:  api.TypeString,
-					Input: &api.InputConfig{Default: `"fallback"`, Timeout: 50},
+					Input: &api.InputConfig{Default: `"fallback"`, Deadline: 50},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
@@ -755,9 +755,9 @@ func collectTimeoutPlan(
 				Role: api.RoleOptional,
 				Type: api.TypeAny,
 				Input: &api.InputConfig{
-					Collect: collect,
-					Default: `"fallback"`,
-					Timeout: 50,
+					Collect:  collect,
+					Default:  `"fallback"`,
+					Deadline: 50,
 				},
 			},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},

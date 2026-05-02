@@ -628,7 +628,7 @@ def _make_step(**overrides):
                 "required": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    input=InputConfig(timeout=1000),
+                    input=InputConfig(deadline=1000),
                 )
             }
         ),

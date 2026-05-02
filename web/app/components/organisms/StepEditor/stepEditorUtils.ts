@@ -19,7 +19,7 @@ export interface Attribute {
   dataType: AttributeType;
   collect?: InputCollect;
   defaultValue?: string;
-  timeout?: number;
+  deadline?: number;
   forEach?: boolean;
   mappingName?: string;
   mappingLanguage?: string;
@@ -69,9 +69,9 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
           hasDefault && spec.input?.default !== undefined
             ? String(spec.input.default)
             : undefined,
-        timeout:
-          spec.role === AttributeRole.Optional && spec.input?.timeout
-            ? spec.input.timeout
+        deadline:
+          spec.role === AttributeRole.Optional && spec.input?.deadline
+            ? spec.input.deadline
             : undefined,
         collect: spec.input?.collect || "first",
         forEach: spec.input?.for_each || false,
@@ -160,8 +160,8 @@ export function createStepAttributes(
       ensureInputConfig(spec).default = a.defaultValue.trim();
     }
 
-    if (a.attrType === "optional" && a.timeout) {
-      ensureInputConfig(spec).timeout = a.timeout;
+    if (a.attrType === "optional" && a.deadline) {
+      ensureInputConfig(spec).deadline = a.deadline;
     }
 
     if (a.forEach && a.attrType !== "output") {

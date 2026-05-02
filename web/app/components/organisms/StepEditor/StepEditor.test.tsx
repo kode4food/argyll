@@ -209,7 +209,7 @@ describe("StepEditor", () => {
     });
   });
 
-  test("renders optional args with timeout", async () => {
+  test("renders optional args with deadline", async () => {
     const step = createHttpStep();
 
     render(
@@ -887,7 +887,7 @@ describe("StepEditor", () => {
     });
   });
 
-  test("updates optional arg timeout", async () => {
+  test("updates optional arg deadline", async () => {
     const step = createHttpStep();
 
     render(

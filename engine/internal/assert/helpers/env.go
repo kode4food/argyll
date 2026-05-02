@@ -156,8 +156,8 @@ func NewTestEngineWithDeps(
 	}
 
 	testEnv.Cleanup = func() {
-		publishWG.Wait()
 		_ = testEnv.Engine.Stop()
+		publishWG.Wait()
 		if testEnv.ownsHub {
 			testEnv.EventHub.Close()
 		}

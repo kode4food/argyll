@@ -76,7 +76,7 @@ class InputConfig:
     collect: InputCollect = InputCollect.FIRST
     default: str = ""
     for_each: bool = False
-    timeout: int = 0
+    deadline: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -87,8 +87,8 @@ class InputConfig:
             result["default"] = self.default
         if self.for_each:
             result["for_each"] = True
-        if self.timeout > 0:
-            result["timeout"] = self.timeout
+        if self.deadline > 0:
+            result["deadline"] = self.deadline
         return result
 
 

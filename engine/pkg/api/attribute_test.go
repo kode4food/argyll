@@ -741,113 +741,113 @@ func TestAttributeMappingValidation(t *testing.T) {
 	})
 }
 
-func TestTimeoutValidation(t *testing.T) {
-	t.Run("optional_with_valid_timeout", func(t *testing.T) {
+func TestDeadlineValidation(t *testing.T) {
+	t.Run("optional_with_valid_deadline", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"default"`, Timeout: 5000},
+			Input: &api.InputConfig{Default: `"default"`, Deadline: 5000},
 		}
 		err := spec.Validate("test_attr")
 		assert.NoError(t, err)
 	})
 
-	t.Run("optional_with_zero_timeout_allowed", func(t *testing.T) {
+	t.Run("optional_with_zero_deadline_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"default"`, Timeout: 0},
+			Input: &api.InputConfig{Default: `"default"`, Deadline: 0},
 		}
 		err := spec.Validate("test_attr")
 		assert.NoError(t, err)
 	})
 
-	t.Run("optional_with_max_timeout", func(t *testing.T) {
+	t.Run("optional_with_max_deadline", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Type: api.TypeString,
 			Input: &api.InputConfig{
-				Default: `"default"`,
-				Timeout: api.MaxAttributeTimeout,
+				Default:  `"default"`,
+				Deadline: api.MaxAttributeDeadline,
 			},
 		}
 		err := spec.Validate("test_attr")
 		assert.NoError(t, err)
 	})
 
-	t.Run("optional_with_timeout_below_min", func(t *testing.T) {
+	t.Run("optional_with_deadline_below_min", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"default"`, Timeout: -1},
+			Input: &api.InputConfig{Default: `"default"`, Deadline: -1},
 		}
 		err := spec.Validate("test_attr")
-		assert.ErrorIs(t, err, api.ErrInvalidAttributeTimeout)
+		assert.ErrorIs(t, err, api.ErrInvalidAttributeDeadline)
 	})
 
-	t.Run("optional_with_timeout_above_max", func(t *testing.T) {
+	t.Run("optional_with_deadline_above_max", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Type: api.TypeString,
 			Input: &api.InputConfig{
-				Default: `"default"`,
-				Timeout: api.MaxAttributeTimeout + 1,
+				Default:  `"default"`,
+				Deadline: api.MaxAttributeDeadline + 1,
 			},
 		}
 		err := spec.Validate("test_attr")
-		assert.ErrorIs(t, err, api.ErrInvalidAttributeTimeout)
+		assert.ErrorIs(t, err, api.ErrInvalidAttributeDeadline)
 	})
 
-	t.Run("required_with_timeout_not_allowed", func(t *testing.T) {
+	t.Run("required_with_deadline_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleRequired,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Timeout: 5000},
+			Input: &api.InputConfig{Deadline: 5000},
 		}
 		err := spec.Validate("test_attr")
-		assert.ErrorIs(t, err, api.ErrTimeoutNotAllowed)
+		assert.ErrorIs(t, err, api.ErrDeadlineNotAllowed)
 	})
 
-	t.Run("const_with_timeout_not_allowed", func(t *testing.T) {
+	t.Run("const_with_deadline_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleConst,
 			Type: api.TypeString,
 			Input: &api.InputConfig{
-				Default: `"const"`,
-				Timeout: 5000,
+				Default:  `"const"`,
+				Deadline: 5000,
 			},
 		}
 		err := spec.Validate("test_attr")
-		assert.ErrorIs(t, err, api.ErrTimeoutNotAllowed)
+		assert.ErrorIs(t, err, api.ErrDeadlineNotAllowed)
 	})
 
-	t.Run("output_with_timeout_not_allowed", func(t *testing.T) {
+	t.Run("output_with_deadline_not_allowed", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleOutput,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Timeout: 5000},
+			Input: &api.InputConfig{Deadline: 5000},
 		}
 		err := spec.Validate("test_attr")
 		assert.ErrorIs(t, err, api.ErrInputNotAllowed)
 	})
 
-	t.Run("optional_without_timeout", func(t *testing.T) {
+	t.Run("optional_without_deadline", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"default"`, Timeout: 0},
+			Input: &api.InputConfig{Default: `"default"`, Deadline: 0},
 		}
 		err := spec.Validate("test_attr")
 		assert.NoError(t, err)
 	})
 
-	t.Run("timeout_one_year_max", func(t *testing.T) {
+	t.Run("deadline_one_year_max", func(t *testing.T) {
 		spec := &api.AttributeSpec{
 			Role: api.RoleOptional,
 			Type: api.TypeString,
 			Input: &api.InputConfig{
-				Default: `"default"`,
-				Timeout: 365 * 24 * 60 * 60 * 1000,
+				Default:  `"default"`,
+				Deadline: 365 * 24 * 60 * 60 * 1000,
 			},
 		}
 		err := spec.Validate("test")
@@ -855,59 +855,59 @@ func TestTimeoutValidation(t *testing.T) {
 	})
 }
 
-func TestTimeoutInEqual(t *testing.T) {
-	t.Run("same_timeout_equal", func(t *testing.T) {
+func TestDeadlineInEqual(t *testing.T) {
+	t.Run("same_deadline_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 5000},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 5000},
 		}
 		spec2 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 5000},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 5000},
 		}
 		assert.True(t, spec1.Equal(spec2))
 	})
 
-	t.Run("different_timeout_not_equal", func(t *testing.T) {
+	t.Run("different_deadline_not_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 5000},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 5000},
 		}
 		spec2 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 10000},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 10000},
 		}
 		assert.False(t, spec1.Equal(spec2))
 	})
 
-	t.Run("one_with_timeout_not_equal", func(t *testing.T) {
+	t.Run("one_with_deadline_not_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 5000},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 5000},
 		}
 		spec2 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 0},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 0},
 		}
 		assert.False(t, spec1.Equal(spec2))
 	})
 
-	t.Run("both_without_timeout_equal", func(t *testing.T) {
+	t.Run("both_without_deadline_equal", func(t *testing.T) {
 		spec1 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 0},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 0},
 		}
 		spec2 := &api.AttributeSpec{
 			Role:  api.RoleOptional,
 			Type:  api.TypeString,
-			Input: &api.InputConfig{Default: `"hello"`, Timeout: 0},
+			Input: &api.InputConfig{Default: `"hello"`, Deadline: 0},
 		}
 		assert.True(t, spec1.Equal(spec2))
 	})

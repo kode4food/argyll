@@ -144,7 +144,7 @@ class Client:
                     collect=InputCollect(input_data.get("collect", "first")),
                     default=input_data.get("default", ""),
                     for_each=input_data.get("for_each", False),
-                    timeout=input_data.get("timeout", 0),
+                    deadline=input_data.get("deadline", 0),
                 )
                 if input_data is not None
                 else None,

@@ -38,7 +38,7 @@ describe("stepEditorUtils", () => {
             input: {
               collect: "some",
               default: "42",
-              timeout: 3000,
+              deadline: 3000,
             },
             description: "",
           },
@@ -72,7 +72,7 @@ describe("stepEditorUtils", () => {
       expect(optionalAttrs[0].name).toBe("optional_arg");
       expect(optionalAttrs[0].collect).toBe("some");
       expect(optionalAttrs[0].defaultValue).toBe("42");
-      expect(optionalAttrs[0].timeout).toBe(3000);
+      expect(optionalAttrs[0].deadline).toBe(3000);
 
       expect(outputAttrs).toHaveLength(1);
       expect(outputAttrs[0].name).toBe("output_arg");
@@ -206,7 +206,7 @@ describe("stepEditorUtils", () => {
           name: "optional_param",
           dataType: AttributeType.Number,
           defaultValue: "10",
-          timeout: 3000,
+          deadline: 3000,
         },
         {
           id: "attr-3",
@@ -229,7 +229,7 @@ describe("stepEditorUtils", () => {
       expect(result.input_param.input?.collect).toBe("last");
       expect(result.optional_param.role).toBe(AttributeRole.Optional);
       expect(result.optional_param.input?.default).toBe("10");
-      expect(result.optional_param.input?.timeout).toBe(3000);
+      expect(result.optional_param.input?.deadline).toBe(3000);
       expect(result.const_param.role).toBe(AttributeRole.Const);
       expect(result.const_param.input?.default).toBe('"fixed"');
       expect(result.output_result.role).toBe(AttributeRole.Output);

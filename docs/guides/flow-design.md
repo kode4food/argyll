@@ -49,7 +49,7 @@ Inputs can choose how to collect matching upstream outputs with `input.collect`.
 
 `first` and `last` are singleton modes. `some` and `all` are list modes. For `input.for_each`, singleton modes treat the selected value as the array to iterate, while list modes iterate the collected array itself.
 
-Collection policies also affect lazy execution. Once a consumer no longer needs more values, providers that only fed that consumer can be skipped. This happens naturally for `first` after the first value, for failed `all` collections that can no longer succeed, and for optional inputs after their timeout window closes.
+Collection policies also affect lazy execution. Once a consumer no longer needs more values, providers that only fed that consumer can be skipped. This happens naturally for `first` after the first value, for failed `all` collections that can no longer succeed, and for optional inputs after their Collection Deadline closes.
 
 ```json
 {
@@ -71,9 +71,9 @@ Initial flow values use an array per attribute name. This makes a scalar array v
 }
 ```
 
-### Optional Timeouts
+### Collection Deadlines
 
-Optional inputs can define `input.timeout` in milliseconds. The timeout starts when the step's required inputs are ready. If the optional input is still not resolved when the timeout expires, the step closes that input's collection window and starts with the best value available for its collection policy.
+Optional inputs can define a **Collection Deadline** with `input.deadline` in milliseconds. The deadline starts when the step's required inputs are ready. If the optional input is still unresolved when the deadline expires, the step closes that input's collection window and starts with the best value available for its input collection policy.
 
 ```json
 {
@@ -84,7 +84,7 @@ Optional inputs can define `input.timeout` in milliseconds. The timeout starts w
       "type": "object",
       "input": {
         "default": "{}",
-        "timeout": 2000
+        "deadline": 2000
       }
     },
     "rendered_email": { "role": "output", "type": "string" }
@@ -92,7 +92,7 @@ Optional inputs can define `input.timeout` in milliseconds. The timeout starts w
 }
 ```
 
-| Collect | At timeout |
+| Collect | At deadline |
 | ------- | ---------- |
 | `first` | Uses the first value if one arrived; otherwise uses the default or omits the input |
 | `last` | Uses the latest value that arrived; otherwise uses the default or omits the input |
@@ -100,7 +100,7 @@ Optional inputs can define `input.timeout` in milliseconds. The timeout starts w
 | `all` | Uses the collected values only if every provider completed successfully; otherwise uses the default or omits the input |
 | `none` | Uses the default or omits the input if no value arrived |
 
-The timeout decision is local to that step execution. Later values can still enter the flow and satisfy other consumers, but this step will not restart to use them.
+The deadline decision is local to that step execution. Later values can still enter the flow and satisfy other consumers, but this step will not restart to use them.
 
 ## For Each and Parallelism
 

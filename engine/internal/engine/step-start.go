@@ -293,7 +293,7 @@ func (s *stepEval) optionalDecisionAt(
 	fulfilled, fulfilledAt := s.inputFulfilledAt(name, attr)
 
 	if fulfilled {
-		at := s.optionalAt(anchor, attr.InputTimeout())
+		at := s.optionalAt(anchor, attr.InputDeadline())
 		if at.IsZero() {
 			return optionalDecision{ready: true}
 		}
@@ -308,11 +308,11 @@ func (s *stepEval) optionalDecisionAt(
 		return optionalDecision{ready: true, fallback: true}
 	}
 
-	if attr.InputTimeout() <= 0 {
+	if attr.InputDeadline() <= 0 {
 		return s.timeoutDecision(name, attr, s.now)
 	}
 
-	at := s.optionalAt(anchor, attr.InputTimeout())
+	at := s.optionalAt(anchor, attr.InputDeadline())
 	if at.IsZero() {
 		return optionalDecision{}
 	}
@@ -339,11 +339,11 @@ func (s *stepEval) timeoutDecision(
 	return optionalDecision{ready: true, fallback: true}
 }
 
-func (s *stepEval) optionalAt(anchor time.Time, timeoutMS int64) time.Time {
+func (s *stepEval) optionalAt(anchor time.Time, deadlineMS int64) time.Time {
 	if anchor.IsZero() {
 		return time.Time{}
 	}
-	return anchor.Add(time.Duration(timeoutMS) * time.Millisecond)
+	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
 }
 
 func (s *stepEval) requiredReadyAt() time.Time {
