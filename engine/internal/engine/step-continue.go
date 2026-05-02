@@ -87,11 +87,11 @@ func (e *Engine) scheduleStepTimeouts(
 		if !attr.IsOptional() || attr.InputTimeout() <= 0 {
 			continue
 		}
-		ready, at := s.optionalReadyAt(name, attr, anchor)
-		if ready || at.IsZero() {
+		dec := s.optionalDecisionAt(name, attr, anchor)
+		if dec.ready || dec.nextAt.IsZero() {
 			continue
 		}
-		e.scheduleTimeoutTask(fs, name, at)
+		e.scheduleTimeoutTask(fs, name, dec.nextAt)
 	}
 }
 
@@ -139,10 +139,13 @@ func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
 		}
 
 		err := tx.prepareStep(fs.StepID)
-		if err != nil && errors.Is(err, ErrStepAlreadyPending) {
-			return nil
+		if err != nil {
+			if errors.Is(err, ErrStepAlreadyPending) {
+				return nil
+			}
+			return err
 		}
-		return err
+		return tx.skipPendingUnused()
 	})
 }
 

@@ -989,7 +989,7 @@ components:
             - `all`: array of values after every provider completes successfully
             - `some`: array of values after at least one provider succeeds and all potential providers finish
             - `none`: satisfied only when no provider produces the attribute
-            `first` can skip remaining providers after a value exists unless another pending consumer still needs them. `all` can skip remaining providers after any terminal provider fails to produce the output unless another pending consumer still needs their outputs.
+            Optional timeouts close the consumer's wait window. At timeout, `last` uses the latest available value, `some` uses available values if at least one exists, and unresolved inputs use their default or are omitted. Providers that are no longer needed by any pending consumer can be skipped.
             Applies only to required and optional attributes. Const attributes always use their configured default value.
           enum:
             - first

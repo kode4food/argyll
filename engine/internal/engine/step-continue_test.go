@@ -661,3 +661,134 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
+
+func TestOptionalLastTimeout(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA, providerB, consumer, pl := collectTimeoutPlan(
+			api.InputCollectLast,
+		)
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"opt": "real"})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		id := api.FlowID("wf-opt-last-timeout")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"seed": {"x"}}),
+			)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, "real", fl.Executions[consumer.ID].Inputs["opt"])
+		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
+		assert.Equal(t,
+			"outputs not needed", fl.Executions[providerB.ID].Error,
+		)
+	})
+}
+
+func TestOptionalSomeTimeout(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA, providerB, consumer, pl := collectTimeoutPlan(
+			api.InputCollectSome,
+		)
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"opt": "real"})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		id := api.FlowID("wf-opt-some-timeout")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"seed": {"x"}}),
+			)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.Equal(t, []any{"real"}, fl.Executions[consumer.ID].Inputs["opt"])
+		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
+	})
+}
+
+func collectTimeoutPlan(
+	collect api.InputCollect,
+) (*api.Step, *api.Step, *api.Step, *api.ExecutionPlan) {
+	providerA := &api.Step{
+		ID:   "provider-a",
+		Name: "Provider A",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"opt": {Role: api.RoleOutput, Type: api.TypeAny},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	providerB := &api.Step{
+		ID:   "provider-b",
+		Name: "Provider B",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"missing": {Role: api.RoleRequired, Type: api.TypeString},
+			"opt":     {Role: api.RoleOutput, Type: api.TypeAny},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	consumer := &api.Step{
+		ID:   "consumer",
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"seed": {Role: api.RoleRequired, Type: api.TypeString},
+			"opt": {
+				Role: api.RoleOptional,
+				Type: api.TypeAny,
+				Input: &api.InputConfig{
+					Collect: collect,
+					Default: `"fallback"`,
+					Timeout: 50,
+				},
+			},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	pl := &api.ExecutionPlan{
+		Goals: []api.StepID{consumer.ID},
+		Steps: api.Steps{
+			providerA.ID: providerA,
+			providerB.ID: providerB,
+			consumer.ID:  consumer,
+		},
+		Attributes: api.AttributeGraph{
+			"missing": {
+				Providers: []api.StepID{},
+				Consumers: []api.StepID{providerB.ID},
+			},
+			"opt": {
+				Providers: []api.StepID{providerA.ID, providerB.ID},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"seed": {
+				Providers: []api.StepID{},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"result": {
+				Providers: []api.StepID{consumer.ID},
+				Consumers: []api.StepID{},
+			},
+		},
+	}
+	return providerA, providerB, consumer, pl
+}

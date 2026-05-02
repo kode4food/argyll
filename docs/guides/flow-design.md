@@ -49,7 +49,7 @@ Inputs can choose how to collect matching upstream outputs with `input.collect`.
 
 `first` and `last` are singleton modes. `some` and `all` are list modes. For `input.for_each`, singleton modes treat the selected value as the array to iterate, while list modes iterate the collected array itself.
 
-`first` and `all` also affect lazy execution. With `first`, once a value exists, remaining providers for that output can be skipped unless another pending consumer still needs them. With `all`, once any terminal provider fails to produce the output, the `all` input can no longer be satisfied, so remaining providers can be skipped unless another pending consumer still needs their outputs.
+Collection policies also affect lazy execution. Once a consumer no longer needs more values, providers that only fed that consumer can be skipped. This happens naturally for `first` after the first value, for failed `all` collections that can no longer succeed, and for optional inputs after their timeout window closes.
 
 ```json
 {
@@ -71,9 +71,9 @@ Initial flow values use an array per attribute name. This makes a scalar array v
 }
 ```
 
-### Optional Timeouts (Step-Local Fallback)
+### Optional Timeouts
 
-Optional inputs can define a `timeout` (milliseconds) to let a step continue with its own default value when an upstream provider is slow.
+Optional inputs can define `input.timeout` in milliseconds. The timeout starts when the step's required inputs are ready. If the optional input is still not resolved when the timeout expires, the step closes that input's collection window and starts with the best value available for its collection policy.
 
 ```json
 {
@@ -92,15 +92,15 @@ Optional inputs can define a `timeout` (milliseconds) to let a step continue wit
 }
 ```
 
-**Behavior:**
-- `input.timeout: 0` means there is no wait window for that optional input (use the upstream value only if it is already present when the step is ready; otherwise use the default or omit the input)
-- If `input.timeout` is greater than 0, the step waits up to that long for the optional value
-- The timeout clock starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
-- If the timeout expires first, this step can proceed with its default
-- That default choice is step-local and sticky for this step execution, even if the real attribute still arrives before the step starts
-- Other steps that require the real attribute still wait for it
+| Collect | At timeout |
+| ------- | ---------- |
+| `first` | Uses the first value if one arrived; otherwise uses the default or omits the input |
+| `last` | Uses the latest value that arrived; otherwise uses the default or omits the input |
+| `some` | Uses the values that arrived if at least one exists; otherwise uses the default or omits the input |
+| `all` | Uses the collected values only if every provider completed successfully; otherwise uses the default or omits the input |
+| `none` | Uses the default or omits the input if no value arrived |
 
-**Why:** Improves latency for downstream steps that can tolerate a fallback while preserving correctness for strict consumers.
+The timeout decision is local to that step execution. Later values can still enter the flow and satisfy other consumers, but this step will not restart to use them.
 
 ## For Each and Parallelism
 

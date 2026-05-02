@@ -169,9 +169,9 @@ Each step declares what it needs and what it produces.
 Optional attributes may also declare `input.timeout` (milliseconds):
 - `input.timeout: 0` means there is no wait window (the step uses the upstream value only if it is already present; otherwise it uses the default or omits the input)
 - Timeout starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
-- If the timeout expires before the attribute is produced, the consuming step may proceed with its optional `input.default`
-- Once the timeout is exceeded for that consuming step, the default choice is step-local and remains in effect even if the real attribute still arrives before the step starts
-- This fallback default is step-local only and does not become a flow attribute
+- At timeout, the step uses the best value available for its `input.collect` policy; for example, `last` uses the latest value so far, and `some` uses the values so far if at least one exists
+- If no usable value exists, the step uses `input.default` or omits the input
+- The timeout decision is step-local. Later values can still enter the flow for other consumers, but this step will not restart to use them
 
 **Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps.
 

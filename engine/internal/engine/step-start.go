@@ -28,6 +28,13 @@ type (
 		allSucceeded bool
 		completedAt  time.Time
 	}
+
+	optionalDecision struct {
+		ready    bool
+		fallback bool
+		nextAt   time.Time
+		cutoff   time.Time
+	}
 )
 
 // prepareStep validates and prepares a step to execute within a transaction,
@@ -184,6 +191,7 @@ func (tx *flowTx) collectStepInputs(
 	inputs := api.Args{}
 	now := tx.Now()
 	ev := tx.newStepEval(step.ID, flow, now)
+	anchor := ev.requiredReadyAt()
 
 	for name, attr := range step.Attributes {
 		if !attr.IsRuntimeInput() {
@@ -195,12 +203,14 @@ func (tx *flowTx) collectStepInputs(
 			continue
 		}
 
+		var cutoff time.Time
 		if attr.IsOptional() {
-			ready, fallback := ev.optionalFallback(name, attr)
-			if !ready {
+			dec := ev.optionalDecisionAt(name, attr, anchor)
+			if !dec.ready {
 				continue
 			}
-			if fallback {
+			cutoff = dec.cutoff
+			if dec.fallback {
 				if attr.InputDefault() != "" {
 					value := parseDefaultValue(attr.InputDefault())
 					tx.setStepInput(inputs, step, name, attr, value)
@@ -209,7 +219,7 @@ func (tx *flowTx) collectStepInputs(
 			}
 		}
 
-		val, ok := resolveInputValue(flow, name, attr)
+		val, ok := resolveInputValue(flow, name, attr, cutoff)
 		if !ok {
 			if !attr.IsRequired() && attr.InputDefault() != "" {
 				value := parseDefaultValue(attr.InputDefault())
@@ -263,67 +273,70 @@ func (s *stepEval) hasOptionalReady(anchor time.Time) (bool, time.Time) {
 		if !attr.IsOptional() {
 			continue
 		}
-		ok, _, at := s.optionalDecisionAt(name, attr, anchor)
-		if !ok {
+		dec := s.optionalDecisionAt(name, attr, anchor)
+		if !dec.ready {
 			blocked = true
 		}
-		if !at.IsZero() && (nextAt.IsZero() || at.Before(nextAt)) {
-			nextAt = at
+		if !dec.nextAt.IsZero() &&
+			(nextAt.IsZero() || dec.nextAt.Before(nextAt)) {
+			nextAt = dec.nextAt
 		}
 	}
 
 	return !blocked, nextAt
 }
 
-func (s *stepEval) optionalReadyAt(
-	name api.Name, attr *api.AttributeSpec, anchor time.Time,
-) (bool, time.Time) {
-	ready, _, at := s.optionalDecisionAt(name, attr, anchor)
-	return ready, at
-}
-
-func (s *stepEval) optionalFallback(
-	name api.Name, attr *api.AttributeSpec,
-) (bool, bool) {
-	anchor := s.requiredReadyAt()
-	ready, fallback, _ := s.optionalDecisionAt(name, attr, anchor)
-	return ready, fallback
-}
-
 func (s *stepEval) optionalDecisionAt(
 	name api.Name, attr *api.AttributeSpec, anchor time.Time,
-) (bool, bool, time.Time) {
+) optionalDecision {
 	deps, ok := s.flow.Plan.Attributes[name]
 	fulfilled, fulfilledAt := s.inputFulfilledAt(name, attr)
 
 	if fulfilled {
 		at := s.optionalAt(anchor, attr.InputTimeout())
 		if at.IsZero() {
-			return true, false, time.Time{}
+			return optionalDecision{ready: true}
 		}
 
 		if !fulfilledAt.IsZero() && fulfilledAt.After(at) {
-			return true, true, time.Time{}
+			return s.timeoutDecision(name, attr, at)
 		}
-		return true, false, time.Time{}
+		return optionalDecision{ready: true}
 	}
 
 	if !ok || len(deps.Providers) == 0 {
-		return true, true, time.Time{}
+		return optionalDecision{ready: true, fallback: true}
 	}
 
 	if attr.InputTimeout() <= 0 {
-		return true, true, time.Time{}
+		return s.timeoutDecision(name, attr, s.now)
 	}
 
 	at := s.optionalAt(anchor, attr.InputTimeout())
 	if at.IsZero() {
-		return false, false, time.Time{}
+		return optionalDecision{}
 	}
 	if !at.After(s.now) {
-		return true, true, time.Time{}
+		return s.timeoutDecision(name, attr, at)
 	}
-	return false, false, at
+	return optionalDecision{nextAt: at}
+}
+
+func (s *stepEval) timeoutDecision(
+	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
+) optionalDecision {
+	switch attr.InputCollect() {
+	case api.InputCollectLast, api.InputCollectSome:
+		if len(valuesUntil(s.flow.AttributeValues(name), cutoff)) > 0 {
+			return optionalDecision{ready: true, cutoff: cutoff}
+		}
+	case api.InputCollectNone:
+		if len(valuesUntil(s.flow.AttributeValues(name), cutoff)) > 0 {
+			return optionalDecision{ready: true, cutoff: cutoff}
+		}
+	default:
+	}
+	return optionalDecision{ready: true, fallback: true}
 }
 
 func (s *stepEval) optionalAt(anchor time.Time, timeoutMS int64) time.Time {
@@ -444,8 +457,9 @@ func (s *stepEval) providerSummary(name api.Name) providerSummary {
 
 func resolveInputValue(
 	flow api.FlowState, name api.Name, attr *api.AttributeSpec,
+	cutoff time.Time,
 ) (any, bool) {
-	values := flow.AttributeValues(name)
+	values := valuesUntil(flow.AttributeValues(name), cutoff)
 	if len(values) == 0 {
 		return nil, false
 	}
@@ -463,6 +477,22 @@ func resolveInputValue(
 	default:
 		return values[0].Value, true
 	}
+}
+
+func valuesUntil(
+	values []*api.AttributeValue, cutoff time.Time,
+) []*api.AttributeValue {
+	if cutoff.IsZero() {
+		return values
+	}
+	res := make([]*api.AttributeValue, 0, len(values))
+	for _, v := range values {
+		if v.SetAt.IsZero() || v.SetAt.After(cutoff) {
+			continue
+		}
+		res = append(res, v)
+	}
+	return res
 }
 
 func lastSetAt(values []*api.AttributeValue) time.Time {
