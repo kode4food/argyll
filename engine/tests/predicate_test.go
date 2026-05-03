@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
-	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -55,21 +54,10 @@ func TestPredicateSkipping(t *testing.T) {
 		err = env.Engine.RegisterStep(stepB)
 		assert.NoError(t, err)
 
-		env.WaitAfterAll(2, func(waits []*wait.Wait) {
+		fl := env.WaitForFlowStatus(id, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
-			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: id,
-				StepID: "step-a",
-			}))
-			waits[1].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: id,
-				StepID: "step-b",
-			}))
 		})
-
-		fl, err := env.Engine.GetFlowState(id)
-		assert.NoError(t, err)
 
 		execB := fl.Executions["step-b"]
 		assert.Equal(t, api.StepSkipped, execB.Status)

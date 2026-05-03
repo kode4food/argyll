@@ -366,20 +366,13 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-pred-work-item")
-		env.WaitAfterAll(2, func(waits []*wait.Wait) {
+		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
 				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
 			)
 			assert.NoError(t, err)
-			waits[0].ForEvent(wait.StepTerminal(api.FlowStep{
-				FlowID: id,
-				StepID: st.ID,
-			}))
-			waits[1].ForEvent(wait.FlowTerminal(id))
 		})
 
-		fl, err := env.Engine.GetFlowState(id)
-		assert.NoError(t, err)
 		ex := fl.Executions[st.ID]
 		assert.Equal(t, api.StepFailed, ex.Status)
 		assert.Contains(t, ex.Error, "predicate")

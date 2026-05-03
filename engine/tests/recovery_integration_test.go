@@ -61,14 +61,12 @@ func TestBasicFlowRecovery(t *testing.T) {
 		}
 
 		id := api.FlowID("test-recovery")
-		env.WaitAfterAll(2, func(waits []*wait.Wait) {
+		env.WaitForStepStarted(api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}, func() {
 			err = env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
-			waits[0].ForEvent(wait.FlowActivated(id))
-			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: id,
-				StepID: st.ID,
-			}))
 		})
 
 		// Verify fl is active with pending work
@@ -159,23 +157,14 @@ func TestMultipleFlowRecovery(t *testing.T) {
 		flowID2 := api.FlowID("flow-2")
 		flowID3 := api.FlowID("flow-3")
 
-		env.WaitAfterAll(4, func(waits []*wait.Wait) {
+		env.WaitForCount(3, wait.StepStarted(
+			api.FlowStep{FlowID: flowID1, StepID: step1.ID},
+			api.FlowStep{FlowID: flowID2, StepID: step2.ID},
+			api.FlowStep{FlowID: flowID3, StepID: step3.ID},
+		), func() {
 			assert.NoError(t, env.Engine.StartFlow(flowID1, plan1))
 			assert.NoError(t, env.Engine.StartFlow(flowID2, plan2))
 			assert.NoError(t, env.Engine.StartFlow(flowID3, plan3))
-			waits[0].ForEvents(3, wait.FlowActivated(flowID1, flowID2, flowID3))
-			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: flowID1,
-				StepID: step1.ID,
-			}))
-			waits[2].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: flowID2,
-				StepID: step2.ID,
-			}))
-			waits[3].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: flowID3,
-				StepID: step3.ID,
-			}))
 		})
 
 		// Verify all flows are active with work in progress
@@ -441,14 +430,12 @@ func TestRecoveryPreservesState(t *testing.T) {
 		}
 
 		id := api.FlowID("state-preservation-flow")
-		env.WaitAfterAll(2, func(waits []*wait.Wait) {
+		env.WaitForStepStarted(api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}, func() {
 			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)
-			waits[0].ForEvent(wait.FlowActivated(id))
-			waits[1].ForEvent(wait.StepStarted(api.FlowStep{
-				FlowID: id,
-				StepID: st.ID,
-			}))
 		})
 
 		// Get state before restart
