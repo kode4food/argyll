@@ -772,6 +772,42 @@ describe("flowStore", () => {
       expect(state.loading).toBe(false);
     });
 
+    test("setFlowState normalizes loaded attribute arrays", () => {
+      useFlowStore.setState({ selectedFlow: "wf-1" });
+
+      useFlowStore.getState().setFlowState({
+        id: "wf-1",
+        status: "completed",
+        attributes: {
+          result: [
+            {
+              value: "old",
+              step: "step-1",
+              set_at: "2024-01-01T00:00:00Z",
+            },
+            {
+              value: "new",
+              step: "step-2",
+              set_at: "2024-01-01T00:00:01Z",
+            },
+          ],
+        },
+        plan: { steps: { "step-1": {} } },
+        executions: {},
+        created_at: "2024-01-01T00:00:00Z",
+      });
+
+      const state = useFlowStore.getState();
+      expect(state.flowData?.state).toEqual({
+        result: {
+          value: "new",
+          step: "step-2",
+          set_at: "2024-01-01T00:00:01Z",
+        },
+      });
+      expect(state.resolvedAttributes).toContain("result");
+    });
+
     test("setFlowState updates the flow list entry", () => {
       useFlowStore.setState({
         selectedFlow: "wf-1",

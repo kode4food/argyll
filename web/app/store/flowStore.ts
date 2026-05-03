@@ -9,6 +9,7 @@ import {
   QueryFlowsItem,
   Step,
   WorkState,
+  AttributeValue,
 } from "../api";
 import { ConnectionStatus } from "../types/websocket";
 
@@ -101,6 +102,23 @@ const mergeResolvedAttributes = (
   const resolved = new Set(current);
   outputKeys.forEach((key) => resolved.add(key));
   return Array.from(resolved);
+};
+
+const normalizeFlowAttributes = (
+  attrs?: Record<string, any>
+): Record<string, AttributeValue> => {
+  if (!attrs) {
+    return {};
+  }
+
+  return Object.fromEntries(
+    Object.entries(attrs).map(([name, value]) => {
+      if (Array.isArray(value)) {
+        return [name, value[value.length - 1]];
+      }
+      return [name, value];
+    })
+  );
 };
 
 const toFlowSummary = (item: QueryFlowsItem): FlowSummary => {
@@ -662,10 +680,12 @@ export const useFlowStore = create<FlowState>()(
           executionPlan = state.plan;
         }
 
+        const stateAttrs = normalizeFlowAttributes(state.attributes);
+
         const flowData: FlowContext = {
           id: state.id,
           status: state.status,
-          state: state.attributes || {},
+          state: stateAttrs,
           error_state: errorState,
           plan: executionPlan,
           started_at: state.created_at || new Date().toISOString(),
@@ -692,8 +712,8 @@ export const useFlowStore = create<FlowState>()(
         }));
 
         const resolved = new Set<string>();
-        if (state.attributes) {
-          Object.keys(state.attributes).forEach((attr) => resolved.add(attr));
+        if (stateAttrs) {
+          Object.keys(stateAttrs).forEach((attr) => resolved.add(attr));
         }
         executions.forEach((exec) => {
           if (exec.status === "completed" && exec.outputs) {
