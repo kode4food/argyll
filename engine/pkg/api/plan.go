@@ -25,6 +25,9 @@ type (
 		// Satisfied maps step ID to output names that were already available
 		// from init state, making the step's execution unnecessary
 		Satisfied map[StepID][]Name `json:"satisfied,omitempty"`
+		// Blocked maps step ID to input names whose init values prevent the
+		// step from ever satisfying its collection policy
+		Blocked map[StepID][]Name `json:"blocked,omitempty"`
 		// Missing maps step ID to the required input names that could not be
 		// satisfied, including alternative providers rejected in favor of a
 		// satisfiable one

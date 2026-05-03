@@ -260,56 +260,89 @@ func TestCollectNone(t *testing.T) {
 	})
 }
 
-func collectPlan(
-	sfx string, collect api.InputCollect,
-) (*api.Step, *api.Step, *api.Step, *api.ExecutionPlan) {
-	providerA := collectProvider(api.StepID("provider-a-" + sfx))
-	providerB := collectProvider(api.StepID("provider-b-" + sfx))
-	consumer := &api.Step{
-		ID:   api.StepID("consumer-" + sfx),
-		Name: "Consumer",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"data": {
-				Role:  api.RoleRequired,
-				Type:  api.TypeAny,
-				Input: &api.InputConfig{Collect: collect},
+func TestCollectNoneNoProvider(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := &api.Step{
+			ID:   "consumer-none-no-provider",
+			Name: "Consumer",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"data": {
+					Role: api.RoleRequired,
+					Type: api.TypeAny,
+					Input: &api.InputConfig{
+						Collect: api.InputCollectNone,
+					},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
-		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
-	}
-	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{consumer.ID},
-		Steps: api.Steps{
-			providerA.ID: providerA,
-			providerB.ID: providerB,
-			consumer.ID:  consumer,
-		},
-		Attributes: api.AttributeGraph{
-			"data": {
-				Providers: []api.StepID{providerA.ID, providerB.ID},
-				Consumers: []api.StepID{consumer.ID},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetHandler(st.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.NotContains(t, args, "data")
+				return api.Args{"result": "ok"}, nil
 			},
-			"result": {
-				Providers: []api.StepID{consumer.ID},
-				Consumers: []api.StepID{},
-			},
-		},
-	}
-	return providerA, providerB, consumer, pl
+		)
+
+		id := api.FlowID("wf-collect-none-no-provider")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
 }
 
-func collectProvider(id api.StepID) *api.Step {
-	return &api.Step{
-		ID:   id,
-		Name: "Provider",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"data": {Role: api.RoleOutput, Type: api.TypeAny},
-		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
-	}
+func TestCollectSomeInitNoProvider(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := &api.Step{
+			ID:   "consumer-some-init-no-provider",
+			Name: "Consumer",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"data": {
+					Role: api.RoleRequired,
+					Type: api.TypeAny,
+					Input: &api.InputConfig{
+						Collect: api.InputCollectSome,
+					},
+				},
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		}
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetHandler(st.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, []any{"ready"}, args["data"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		id := api.FlowID("wf-collect-some-init-no-provider")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"data": {"ready"}}))
+			assert.NoError(t, err)
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
 }
 
 func TestConstObjectDefault(t *testing.T) {
@@ -642,4 +675,56 @@ func TestPredicateError(t *testing.T) {
 		assert.Equal(t, api.FlowFailed, fl.Status)
 		assert.False(t, env.MockClient.WasInvoked("pred-err-step"))
 	})
+}
+
+func collectPlan(
+	sfx string, collect api.InputCollect,
+) (*api.Step, *api.Step, *api.Step, *api.ExecutionPlan) {
+	providerA := collectProvider(api.StepID("provider-a-" + sfx))
+	providerB := collectProvider(api.StepID("provider-b-" + sfx))
+	consumer := &api.Step{
+		ID:   api.StepID("consumer-" + sfx),
+		Name: "Consumer",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"data": {
+				Role:  api.RoleRequired,
+				Type:  api.TypeAny,
+				Input: &api.InputConfig{Collect: collect},
+			},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	pl := &api.ExecutionPlan{
+		Goals: []api.StepID{consumer.ID},
+		Steps: api.Steps{
+			providerA.ID: providerA,
+			providerB.ID: providerB,
+			consumer.ID:  consumer,
+		},
+		Attributes: api.AttributeGraph{
+			"data": {
+				Providers: []api.StepID{providerA.ID, providerB.ID},
+				Consumers: []api.StepID{consumer.ID},
+			},
+			"result": {
+				Providers: []api.StepID{consumer.ID},
+				Consumers: []api.StepID{},
+			},
+		},
+	}
+	return providerA, providerB, consumer, pl
+}
+
+func collectProvider(id api.StepID) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: "Provider",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"data": {Role: api.RoleOutput, Type: api.TypeAny},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
 }

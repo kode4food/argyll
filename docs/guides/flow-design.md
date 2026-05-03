@@ -71,6 +71,8 @@ Initial flow values use an array per attribute name. This makes a scalar array v
 }
 ```
 
+Initial values are considered during planning with the same collection semantics used at runtime. `first` can be satisfied entirely by init and upstream providers can be pruned. `last`, `some`, and `all` keep reachable providers in the plan because their final value depends on provider completion. `none` is the inverse: if init supplies a value for that input, the step is blocked because the required absence can never be true, and the plan reports it under `excluded.blocked`.
+
 ### Collection Deadlines
 
 Optional inputs can define a **Collection Deadline** with `input.deadline` in milliseconds. The deadline starts when the step's required inputs are ready. If the optional input is still unresolved when the deadline expires, the step closes that input's collection window and starts with the best value available for its input collection policy.

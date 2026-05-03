@@ -24,7 +24,6 @@ func TestGoalStepNotFound(t *testing.T) {
 }
 
 func TestSimpleResolver(t *testing.T) {
-
 	resolverStep := &api.Step{
 		ID:   "resolver",
 		Name: "Resolver",
@@ -54,7 +53,6 @@ func TestSimpleResolver(t *testing.T) {
 }
 
 func TestProcessorWithInit(t *testing.T) {
-
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
@@ -81,7 +79,6 @@ func TestProcessorWithInit(t *testing.T) {
 }
 
 func TestInitSatisfiedExcluded(t *testing.T) {
-
 	providerStep := &api.Step{
 		ID:   "provider",
 		Name: "Provider",
@@ -132,8 +129,150 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 	}
 }
 
-func TestProcessorNoInit(t *testing.T) {
+func TestCollectNoneInitBlocked(t *testing.T) {
+	provider := planProvider("provider", "data")
+	consumer := planConsumer("consumer", "data", api.InputCollectNone)
+	cat := makeCatalogState(api.Steps{
+		provider.ID: provider,
+		consumer.ID: consumer,
+	})
 
+	pl, err := plan.Create(
+		cat, []api.StepID{consumer.ID}, api.InitArgs{"data": {"ready"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Empty(t, pl.Steps)
+	assert.Empty(t, pl.Required)
+	assert.Equal(t,
+		map[api.StepID][]api.Name{
+			consumer.ID: {"data"},
+		},
+		pl.Excluded.Blocked,
+	)
+}
+
+func TestBlockedProviderNoDownstream(t *testing.T) {
+	blocked := &api.Step{
+		ID:   "blocked",
+		Name: "Blocked",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"flag": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Input: &api.InputConfig{
+					Collect: api.InputCollectNone,
+				},
+			},
+			"data": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+	consumer := planConsumer("consumer", "data", api.InputCollectFirst)
+	cat := makeCatalogState(api.Steps{
+		blocked.ID:  blocked,
+		consumer.ID: consumer,
+	})
+
+	pl, err := plan.Create(
+		cat, []api.StepID{consumer.ID}, api.InitArgs{"flag": {"ready"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, consumer.ID)
+	assert.NotContains(t, pl.Steps, blocked.ID)
+	assert.Equal(t, []api.Name{"data"}, pl.Required)
+}
+
+func TestCollectFirstPrunesProvider(t *testing.T) {
+	provider := planProvider("provider", "data")
+	consumer := planConsumer("consumer", "data", api.InputCollectFirst)
+	cat := makeCatalogState(api.Steps{
+		provider.ID: provider,
+		consumer.ID: consumer,
+	})
+
+	pl, err := plan.Create(
+		cat, []api.StepID{consumer.ID}, api.InitArgs{"data": {"ready"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, consumer.ID)
+	assert.NotContains(t, pl.Steps, provider.ID)
+	assert.Equal(t,
+		map[api.StepID][]api.Name{
+			provider.ID: {"data"},
+		},
+		pl.Excluded.Satisfied,
+	)
+}
+
+func TestCollectModesKeepProviders(t *testing.T) {
+	tests := []struct {
+		name    string
+		collect api.InputCollect
+	}{
+		{name: "last", collect: api.InputCollectLast},
+		{name: "some", collect: api.InputCollectSome},
+		{name: "all", collect: api.InputCollectAll},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := planProvider(api.StepID("provider-"+tt.name), "data")
+			consumer := planConsumer(api.StepID("consumer-"+tt.name),
+				"data", tt.collect)
+			cat := makeCatalogState(api.Steps{
+				provider.ID: provider,
+				consumer.ID: consumer,
+			})
+
+			pl, err := plan.Create(
+				cat, []api.StepID{consumer.ID},
+				api.InitArgs{"data": {"ready"}},
+			)
+			assert.NoError(t, err)
+
+			assert.Contains(t, pl.Steps, provider.ID)
+			assert.Contains(t, pl.Steps, consumer.ID)
+			assert.Empty(t, pl.Required)
+		})
+	}
+}
+
+func TestCollectNoneSatisfied(t *testing.T) {
+	consumer := planConsumer("consumer", "data", api.InputCollectNone)
+	cat := makeCatalogState(api.Steps{
+		consumer.ID: consumer,
+	})
+
+	pl, err := plan.Create(cat, []api.StepID{consumer.ID}, api.InitArgs{})
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, consumer.ID)
+	assert.Empty(t, pl.Required)
+}
+
+func TestCollectSomeInitNoProviders(t *testing.T) {
+	consumer := planConsumer("consumer", "data", api.InputCollectSome)
+	cat := makeCatalogState(api.Steps{
+		consumer.ID: consumer,
+	})
+
+	pl, err := plan.Create(
+		cat, []api.StepID{consumer.ID}, api.InitArgs{"data": {"ready"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, consumer.ID)
+	assert.Empty(t, pl.Required)
+}
+
+func TestProcessorNoInit(t *testing.T) {
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
@@ -159,7 +298,6 @@ func TestProcessorNoInit(t *testing.T) {
 }
 
 func TestChained(t *testing.T) {
-
 	resolverStep := &api.Step{
 		ID:   "resolver",
 		Name: "Resolver",
@@ -218,7 +356,6 @@ func TestChained(t *testing.T) {
 }
 
 func TestMultipleGoals(t *testing.T) {
-
 	step1 := &api.Step{
 		ID:   "step1",
 		Name: "Step 1",
@@ -338,7 +475,6 @@ func TestExistingOutputs(t *testing.T) {
 }
 
 func TestComplexGraph(t *testing.T) {
-
 	resolver1 := &api.Step{
 		ID:   "resolver1",
 		Name: "Resolver 1",
@@ -466,7 +602,6 @@ func TestMissingDependency(t *testing.T) {
 }
 
 func TestOptionalInput(t *testing.T) {
-
 	resolverStep := &api.Step{
 		ID:   "resolver",
 		Name: "Resolver",
@@ -510,7 +645,6 @@ func TestOptionalInput(t *testing.T) {
 }
 
 func TestOptionalMissing(t *testing.T) {
-
 	processorStep := &api.Step{
 		ID:   "processor",
 		Name: "Processor",
@@ -538,7 +672,6 @@ func TestOptionalMissing(t *testing.T) {
 }
 
 func TestProvidersWithInit(t *testing.T) {
-
 	providerWithInput := &api.Step{
 		ID:   "provider-with-input",
 		Name: "Provider With Input",
@@ -668,7 +801,6 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 }
 
 func TestMixedInputs(t *testing.T) {
-
 	resolver1 := &api.Step{
 		ID:   "resolver1",
 		Name: "Resolver 1",
@@ -735,5 +867,44 @@ func makeCatalogState(steps api.Steps) api.CatalogState {
 	return api.CatalogState{
 		Steps:      steps,
 		Attributes: graph,
+	}
+}
+
+func planProvider(id api.StepID, output api.Name) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: api.Name(id),
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			output: {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+}
+
+func planConsumer(
+	id api.StepID, input api.Name, collect api.InputCollect,
+) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: api.Name(id),
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			input: {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Input: &api.InputConfig{
+					Collect: collect,
+				},
+			},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
 	}
 }

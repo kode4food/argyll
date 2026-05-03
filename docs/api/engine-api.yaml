@@ -1299,6 +1299,16 @@ components:
             type: array
             items:
               type: string
+        blocked:
+          type: object
+          description: |
+            Steps skipped because one or more inputs can never satisfy their collection policy with
+            the supplied init state. For example, an init value for a `collect: none` input blocks
+            that step because absence can no longer be proven. Map of step ID to blocked input names.
+          additionalProperties:
+            type: array
+            items:
+              type: string
 
     Dependencies:
       type: object

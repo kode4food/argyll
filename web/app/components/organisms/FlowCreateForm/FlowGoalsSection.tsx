@@ -8,6 +8,7 @@ import styles from "./FlowGoalsSection.module.css";
 
 interface FlowGoalsSectionProps {
   goalSteps: string[];
+  blockedByStep: Map<string, string[]>;
   included: Set<string>;
   missingByStep: Map<string, string[]>;
   onCreateStep?: () => void;
@@ -22,6 +23,7 @@ interface FlowGoalsSectionProps {
 
 const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   goalSteps,
+  blockedByStep,
   included,
   missingByStep,
   onCreateStep,
@@ -71,19 +73,26 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
             const isSelected = goalSteps.includes(step.id);
             const isIncludedByOthers = included.has(step.id) && !isSelected;
             const isSatisfiedByState = satisfied.has(step.id) && !isSelected;
+            const blockedInputs = blockedByStep.get(step.id) || [];
+            const isBlocked = blockedInputs.length > 0;
             const missingRequired = missingByStep.get(step.id) || [];
             const isMissing = missingRequired.length > 0;
-            const isDisabled = isIncludedByOthers || isSatisfiedByState;
+            const isDisabled =
+              isIncludedByOthers || isSatisfiedByState || isBlocked;
 
             const tooltipText = isIncludedByOthers
               ? t("flowCreate.tooltipAlreadyIncluded")
               : isSatisfiedByState
                 ? t("flowCreate.tooltipSatisfiedByState")
-                : isMissing
-                  ? t("flowCreate.tooltipMissingRequired", {
-                      attrs: missingRequired.join(", "),
+                : isBlocked
+                  ? t("flowCreate.tooltipBlockedByState", {
+                      attrs: blockedInputs.join(", "),
                     })
-                  : undefined;
+                  : isMissing
+                    ? t("flowCreate.tooltipMissingRequired", {
+                        attrs: missingRequired.join(", "),
+                      })
+                    : undefined;
             const itemClassName = buildItemClassName(
               isSelected,
               isDisabled,

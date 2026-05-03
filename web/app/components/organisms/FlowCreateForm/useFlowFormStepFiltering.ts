@@ -18,7 +18,8 @@ export function useFlowFormStepFiltering(
     [initialState]
   );
 
-  const { satisfied, missingByStep } = useMemo(() => {
+  const { satisfied, blockedByStep, missingByStep } = useMemo(() => {
+    const blocked = new Map<string, string[]>();
     const missing = new Map<string, string[]>();
     if (excluded) {
       const satisfiedSteps = new Set<string>();
@@ -26,11 +27,19 @@ export function useFlowFormStepFiltering(
       Object.keys(satisfiedMap).forEach((stepId) => {
         satisfiedSteps.add(stepId);
       });
+      const blockedMap = excluded.blocked || {};
+      Object.entries(blockedMap).forEach(([stepId, names]) => {
+        blocked.set(stepId, names);
+      });
       const missingMap = excluded.missing || {};
       Object.entries(missingMap).forEach(([stepId, names]) => {
         missing.set(stepId, names);
       });
-      return { satisfied: satisfiedSteps, missingByStep: missing };
+      return {
+        satisfied: satisfiedSteps,
+        blockedByStep: blocked,
+        missingByStep: missing,
+      };
     }
 
     const fallbackSatisfied = new Set<string>();
@@ -51,8 +60,12 @@ export function useFlowFormStepFiltering(
       }
     });
 
-    return { satisfied: fallbackSatisfied, missingByStep: missing };
+    return {
+      satisfied: fallbackSatisfied,
+      blockedByStep: blocked,
+      missingByStep: missing,
+    };
   }, [parsedState, excluded, steps]);
 
-  return { included, satisfied, missingByStep, parsedState };
+  return { included, satisfied, blockedByStep, missingByStep, parsedState };
 }

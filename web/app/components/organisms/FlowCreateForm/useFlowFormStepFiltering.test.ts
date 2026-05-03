@@ -65,6 +65,9 @@ describe("useFlowFormStepFiltering", () => {
         satisfied: {
           "step-2": ["outputB"],
         },
+        blocked: {
+          "step-1": ["input"],
+        },
         missing: {
           "step-3": ["optional"],
         },
@@ -75,6 +78,7 @@ describe("useFlowFormStepFiltering", () => {
       useFlowFormStepFiltering(steps, "{}", resolvedPlan)
     );
 
+    expect(result.current.blockedByStep.get("step-1")).toEqual(["input"]);
     expect(result.current.satisfied.has("step-2")).toBe(true);
     expect(result.current.missingByStep.get("step-3")).toEqual(["optional"]);
   });
@@ -86,6 +90,7 @@ describe("useFlowFormStepFiltering", () => {
 
     expect(result.current.included.size).toBe(0);
     expect(result.current.satisfied.size).toBe(0);
+    expect(result.current.blockedByStep.size).toBe(0);
     expect(result.current.missingByStep.size).toBe(0);
   });
 
@@ -96,6 +101,7 @@ describe("useFlowFormStepFiltering", () => {
 
     expect(result.current.parsedState).toEqual({});
     expect(result.current.satisfied.size).toBe(0);
+    expect(result.current.blockedByStep.size).toBe(0);
     expect(result.current.missingByStep.size).toBe(0);
   });
 });

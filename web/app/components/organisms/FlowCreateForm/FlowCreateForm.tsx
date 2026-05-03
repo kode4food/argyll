@@ -91,11 +91,8 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   const { sidebarListRef, showTopFade, showBottomFade } =
     useFlowFormScrollFade(true);
 
-  const { included, satisfied, missingByStep } = useFlowFormStepFiltering(
-    steps,
-    initialState,
-    previewPlan
-  );
+  const { included, satisfied, blockedByStep, missingByStep } =
+    useFlowFormStepFiltering(steps, initialState, previewPlan);
   const { flowInputOptions } = React.useMemo(
     () => getFlowPlanAttributeOptions(previewPlan, steps),
     [previewPlan, steps]
@@ -164,6 +161,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
           <div className={styles.panelBody}>
             <FlowGoalsSection
               goalSteps={goalSteps}
+              blockedByStep={blockedByStep}
               included={included}
               missingByStep={missingByStep}
               onCreateStep={onCreateStep}

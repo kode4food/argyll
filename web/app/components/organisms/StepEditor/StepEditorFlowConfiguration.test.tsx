@@ -68,6 +68,7 @@ describe("StepEditorFlowConfiguration", () => {
     mockUseFlowFormStepFiltering.mockReturnValue({
       included: new Set(),
       satisfied: new Set(),
+      blockedByStep: new Map(),
       missingByStep: new Map(),
     });
   });
@@ -103,6 +104,7 @@ describe("StepEditorFlowConfiguration", () => {
     mockUseFlowFormStepFiltering.mockReturnValue({
       included: new Set(["alpha"]),
       satisfied: new Set(),
+      blockedByStep: new Map(),
       missingByStep: new Map(),
     });
 

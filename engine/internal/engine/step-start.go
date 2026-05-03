@@ -419,7 +419,11 @@ func (s *stepEval) inputFulfilledAt(
 func (s *stepEval) providerSummary(name api.Name) providerSummary {
 	deps, ok := s.flow.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
-		return providerSummary{}
+		return providerSummary{
+			terminal:     true,
+			allSucceeded: true,
+			completedAt:  s.flow.CreatedAt,
+		}
 	}
 
 	res := providerSummary{

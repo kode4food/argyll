@@ -108,11 +108,8 @@ const StepEditorFlowConfiguration: React.FC<
     updatePreviewPlan,
   ]);
 
-  const { included, satisfied, missingByStep } = useFlowFormStepFiltering(
-    displaySteps,
-    flowInitialState,
-    previewPlan
-  );
+  const { included, satisfied, blockedByStep, missingByStep } =
+    useFlowFormStepFiltering(displaySteps, flowInitialState, previewPlan);
 
   const handleGoalToggle = React.useCallback(
     async (goalId: string) => {
@@ -156,18 +153,25 @@ const StepEditorFlowConfiguration: React.FC<
           const isSelected = goalList.includes(step.id);
           const isIncludedByOthers = included.has(step.id) && !isSelected;
           const isSatisfiedByState = satisfied.has(step.id) && !isSelected;
+          const blockedInputs = blockedByStep.get(step.id) || [];
+          const isBlocked = blockedInputs.length > 0;
           const missingRequired = missingByStep.get(step.id) || [];
           const isMissing = missingRequired.length > 0;
-          const isDisabled = isIncludedByOthers || isSatisfiedByState;
+          const isDisabled =
+            isIncludedByOthers || isSatisfiedByState || isBlocked;
           const tooltipText = isIncludedByOthers
             ? t("flowCreate.tooltipAlreadyIncluded")
             : isSatisfiedByState
               ? t("flowCreate.tooltipSatisfiedByState")
-              : isMissing
-                ? t("flowCreate.tooltipMissingRequired", {
-                    attrs: missingRequired.join(", "),
+              : isBlocked
+                ? t("flowCreate.tooltipBlockedByState", {
+                    attrs: blockedInputs.join(", "),
                   })
-                : undefined;
+                : isMissing
+                  ? t("flowCreate.tooltipMissingRequired", {
+                      attrs: missingRequired.join(", "),
+                    })
+                  : undefined;
 
           return (
             <button

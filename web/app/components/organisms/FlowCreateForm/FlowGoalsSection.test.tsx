@@ -22,6 +22,7 @@ describe("FlowGoalsSection", () => {
     render(
       <FlowGoalsSection
         goalSteps={[]}
+        blockedByStep={new Map()}
         included={new Set()}
         missingByStep={new Map()}
         onCreateStep={onCreateStep}
@@ -51,6 +52,7 @@ describe("FlowGoalsSection", () => {
     render(
       <FlowGoalsSection
         goalSteps={[]}
+        blockedByStep={new Map()}
         included={new Set()}
         missingByStep={new Map()}
         onGoalStepsChange={onGoalStepsChange}
@@ -65,5 +67,33 @@ describe("FlowGoalsSection", () => {
 
     fireEvent.click(screen.getByText("Step One"));
     expect(onGoalStepsChange).toHaveBeenCalledWith(["step-1"]);
+  });
+
+  test("disables a step blocked by initial state", () => {
+    const onGoalStepsChange = jest.fn();
+
+    render(
+      <FlowGoalsSection
+        goalSteps={[]}
+        blockedByStep={new Map([["step-1", ["input1"]]])}
+        included={new Set()}
+        missingByStep={new Map()}
+        onGoalStepsChange={onGoalStepsChange}
+        satisfied={new Set()}
+        showBottomFade={false}
+        showTopFade={false}
+        sidebarListRef={{ current: null }}
+        sortedSteps={steps}
+        stepsCount={1}
+      />
+    );
+
+    const item = screen
+      .getByText("Step One")
+      .closest('div[title="Blocked by initial state: input1"]');
+    expect(item).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText("Step One"));
+    expect(onGoalStepsChange).not.toHaveBeenCalled();
   });
 });

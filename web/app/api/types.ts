@@ -112,6 +112,7 @@ export interface Dependencies {
 
 export interface ExcludedSteps {
   satisfied?: Record<string, string[]>;
+  blocked?: Record<string, string[]>;
   missing?: Record<string, string[]>;
 }
 

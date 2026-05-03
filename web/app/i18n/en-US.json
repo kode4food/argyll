@@ -50,6 +50,7 @@
   "flowCreate.requiredAttributesLabel": "Attributes",
   "flowCreate.selectGoalSteps": "Select Goal Steps",
   "flowCreate.tooltipAlreadyIncluded": "Already included in execution plan",
+  "flowCreate.tooltipBlockedByState": "Blocked by initial state: {attrs}",
   "flowCreate.tooltipMissingRequired": "Missing required: {attrs}",
   "flowCreate.tooltipSatisfiedByState": "Outputs satisfied by initial state",
   "flowCreate.unknownError": "Unknown error",

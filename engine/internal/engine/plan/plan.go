@@ -21,7 +21,9 @@ type (
 		satisfiable util.Set[api.StepID]
 		visited     util.Set[api.StepID]
 		included    util.Set[api.StepID]
+		needed      util.Set[api.StepID]
 		missing     util.Set[api.Name]
+		blocked     map[api.StepID][]api.Name
 		steps       api.Steps
 		attributes  api.AttributeGraph
 		providers   selectProviders
@@ -105,7 +107,9 @@ func newPlanBuilder(
 		satisfiable: util.Set[api.StepID]{},
 		visited:     util.Set[api.StepID]{},
 		included:    util.Set[api.StepID]{},
+		needed:      util.Set[api.StepID]{},
 		missing:     util.Set[api.Name]{},
+		blocked:     map[api.StepID][]api.Name{},
 		steps:       api.Steps{},
 		attributes:  api.AttributeGraph{},
 	}
@@ -131,6 +135,9 @@ func (b *builder) computeSatisfiable() {
 		progress = false
 		for _, st := range b.cat.Steps {
 			if b.satisfiable.Contains(st.ID) {
+				continue
+			}
+			if len(b.blockedInputs(st)) > 0 {
 				continue
 			}
 			if !b.requiredInputsAvailable(st, b.available) {
@@ -176,6 +183,11 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	b.visited.Add(stepID)
 
 	st := b.cat.Steps[stepID]
+	if blocked := b.blockedInputs(st); len(blocked) > 0 {
+		b.blocked[stepID] = blocked
+		return nil
+	}
+
 	allInputs := st.GetAllInputArgs()
 	required := b.buildRequired(st)
 	for _, name := range allInputs {
@@ -188,7 +200,8 @@ func (b *builder) collectStep(stepID api.StepID) error {
 		if err != nil {
 			return err
 		}
-		if required.Contains(name) && !hasProvider && !b.initHasValues(name) {
+		if required.Contains(name) &&
+			b.inputMissing(name, attr, hasProvider) {
 			b.missing.Add(name)
 		}
 	}
@@ -198,6 +211,20 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	}
 
 	return nil
+}
+
+func (b *builder) blockedInputs(step *api.Step) []api.Name {
+	var blocked []api.Name
+	for name, attr := range step.Attributes {
+		if !attr.IsRuntimeInput() {
+			continue
+		}
+		if attr.InputCollect() == api.InputCollectNone &&
+			b.initHasValues(name) {
+			blocked = append(blocked, name)
+		}
+	}
+	return blocked
 }
 
 func (b *builder) buildRequired(step *api.Step) util.Set[api.Name] {
@@ -230,6 +257,18 @@ func (b *builder) initHasValues(name api.Name) bool {
 	return len(b.init[name]) > 0
 }
 
+func (b *builder) inputMissing(
+	name api.Name, attr *api.AttributeSpec, hasProvider bool,
+) bool {
+	if hasProvider {
+		return false
+	}
+	if attr.InputCollect() == api.InputCollectNone {
+		return false
+	}
+	return !b.initHasValues(name)
+}
+
 func (b *builder) includeProviders(
 	name api.Name, attr *api.AttributeSpec,
 ) (bool, error) {
@@ -256,6 +295,7 @@ func (b *builder) includeProviders(
 	}
 
 	for _, providerID := range selected {
+		b.needed.Add(providerID)
 		if err := b.collectStep(providerID); err != nil {
 			return false, err
 		}
@@ -272,6 +312,9 @@ func (b *builder) findProviders(name api.Name) []api.StepID {
 }
 
 func (b *builder) shouldInclude(step *api.Step) bool {
+	if b.needed.Contains(step.ID) {
+		return true
+	}
 	return !b.outputsAvailable(step)
 }
 
@@ -351,11 +394,16 @@ func (b *builder) stepOutputNames(step *api.Step) []api.Name {
 func (b *builder) buildExcluded() api.ExcludedSteps {
 	excluded := api.ExcludedSteps{
 		Satisfied: map[api.StepID][]api.Name{},
+		Blocked:   map[api.StepID][]api.Name{},
 		Missing:   map[api.StepID][]api.Name{},
 	}
 	for sid := range b.visited {
 		st := b.cat.Steps[sid]
 		if b.included.Contains(sid) {
+			continue
+		}
+		if blocked := b.blocked[sid]; len(blocked) > 0 {
+			excluded.Blocked[sid] = blocked
 			continue
 		}
 		if b.outputsAvailable(st) {
