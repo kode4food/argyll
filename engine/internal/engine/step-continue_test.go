@@ -94,7 +94,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 
 		close(releaseProvider)
-		fl = env.WaitForFlowStatus(id, func() {})
+		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
@@ -202,7 +202,7 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		)
 
 		close(releaseProvider)
-		fl := env.WaitForFlowStatus(id, func() {})
+		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t,
@@ -319,7 +319,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		}
 
 		close(releaseProvider)
-		fl = env.WaitForFlowStatus(id, func() {})
+		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, "real", fl.Executions[strict.ID].Inputs["opt"])
 	})
@@ -435,7 +435,7 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		))
 
 		close(releaseProduct)
-		fl := env.WaitForFlowStatus(id, func() {})
+		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t,
 			"real-user", fl.Executions[orderCreator.ID].Inputs["user_info"],
@@ -550,7 +550,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		)
 
 		close(releaseGate)
-		fl = env.WaitForFlowStatus(id, func() {})
+		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }
@@ -657,7 +657,7 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		assert.Equal(t, "real-req", fl.Executions[consumer.ID].Inputs["req"])
 
 		close(releaseOpt)
-		fl = env.WaitForFlowStatus(id, func() {})
+		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }

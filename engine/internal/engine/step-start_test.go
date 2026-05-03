@@ -153,7 +153,7 @@ func TestCollectLast(t *testing.T) {
 		)
 
 		close(releaseB)
-		fl := env.WaitForFlowStatus(id, func() {})
+		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
 }

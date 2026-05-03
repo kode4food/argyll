@@ -30,6 +30,7 @@ type (
 		flowStore  *timebox.Store
 		flowExec   *timebox.Executor[api.FlowState]
 		subscribe  func(Publisher) func()
+		unsubs     *unsubscribeTracker
 		ownsHub    bool
 	}
 
@@ -44,206 +45,12 @@ type (
 		timebox.Backend
 		publish Publisher
 	}
+
+	unsubscribeTracker struct {
+		mu    sync.Mutex
+		funcs []func()
+	}
 )
-
-const committedPublishDelay = 1 * time.Millisecond
-
-// NewTestConfig creates a default configuration with debug logging enabled
-func NewTestConfig() *config.Config {
-	cfg := config.NewDefaultConfig()
-	cfg.LogLevel = "debug"
-	return cfg
-}
-
-// NewTestEngine creates a fully configured test engine environment with an
-// in-memory Timebox backend and mock HTTP client
-func NewTestEngine(t *testing.T) *TestEngineEnv {
-	return NewTestEngineWithDeps(t, engine.Dependencies{})
-}
-
-// NewTestEngineWithDeps creates a test engine with dependency overrides
-func NewTestEngineWithDeps(
-	t *testing.T, overrides engine.Dependencies,
-) *TestEngineEnv {
-	t.Helper()
-
-	cfg := NewTestConfig()
-	cfg.APIPort = 8080
-	cfg.APIHost = "localhost"
-	cfg.WebhookBaseURL = "http://localhost:8080"
-	cfg.StepTimeout = 5 * api.Second
-	cfg.MemoCacheSize = 100
-	cfg.ShutdownTimeout = 2 * time.Second
-	cfg.Work = api.WorkConfig{
-		MaxRetries:  3,
-		InitBackoff: 1000,
-		MaxBackoff:  60000,
-		BackoffType: api.BackoffTypeExponential,
-	}
-
-	mockCli := NewMockClient()
-	hub := event.NewHub()
-	var publishMu sync.Mutex
-	var publishWG sync.WaitGroup
-	committed := map[int]Publisher{}
-	nextCommittedID := 0
-	subscribe := func(fn Publisher) func() {
-		publishMu.Lock()
-		id := nextCommittedID
-		nextCommittedID++
-		committed[id] = fn
-		publishMu.Unlock()
-		return func() {
-			publishMu.Lock()
-			delete(committed, id)
-			publishMu.Unlock()
-		}
-	}
-	backend := backend{
-		Backend: memory.NewPersistence(),
-		publish: func(evs ...*timebox.Event) {
-			publishMu.Lock()
-			handlers := make([]Publisher, 0, len(committed))
-			for _, fn := range committed {
-				handlers = append(handlers, fn)
-			}
-			publishMu.Unlock()
-			published := cloneCommittedEvents(evs)
-			publishWG.Add(1)
-			time.AfterFunc(committedPublishDelay, func() {
-				defer publishWG.Done()
-				for _, fn := range handlers {
-					fn(published...)
-				}
-				hub.Publish(published...)
-			})
-		},
-	}
-	engStore, err := backend.NewStore(cfg.EngineStoreConfig())
-	assert.NoError(t, err)
-	flowStore, err := backend.NewStore(cfg.FlowStoreConfig())
-	assert.NoError(t, err)
-
-	defaultDeps := engine.Dependencies{
-		EngineStore:      engStore,
-		FlowStore:        flowStore,
-		StepClient:       mockCli,
-		Clock:            time.Now,
-		TimerConstructor: scheduler.NewTimer,
-		EventHub:         hub,
-	}
-	deps := mergeDependencies(defaultDeps, overrides)
-	eng, err := engine.New(cfg, deps)
-	assert.NoError(t, err)
-	if cl, ok := deps.StepClient.(*MockClient); ok {
-		mockCli = cl
-	}
-	flowExec := timebox.NewExecutor(
-		deps.FlowStore, events.NewFlowState, events.FlowAppliers,
-	)
-
-	testEnv := &TestEngineEnv{
-		T:          t,
-		Engine:     eng,
-		MockClient: mockCli,
-		Config:     cfg,
-		EventHub:   deps.EventHub,
-		engStore:   deps.EngineStore,
-		flowStore:  deps.FlowStore,
-		flowExec:   flowExec,
-		subscribe:  subscribe,
-		ownsHub:    overrides.EventHub == nil,
-	}
-
-	testEnv.Cleanup = func() {
-		_ = testEnv.Engine.Stop()
-		publishWG.Wait()
-		if testEnv.ownsHub {
-			testEnv.EventHub.Close()
-		}
-		_ = testEnv.engStore.Close()
-		_ = testEnv.flowStore.Close()
-	}
-
-	return testEnv
-}
-
-// SubscribeCommitted registers a publisher against the shared committed-event
-// stream used by test engines. Call the returned function to unregister it
-func (e *TestEngineEnv) SubscribeCommitted(fn Publisher) func() {
-	return e.subscribe(fn)
-}
-
-// NewEngineWithConfig creates a new engine instance with the given
-// configuration and subscribes it to the shared committed-event stream
-func (e *TestEngineEnv) NewEngineWithConfig(
-	cfg *config.Config, deps engine.Dependencies,
-) (*engine.Engine, func(), error) {
-	eng, err := engine.New(cfg, deps)
-	if err != nil {
-		return nil, nil, err
-	}
-	unsubscribe := e.SubscribeCommitted(eng.HandleCommitted)
-	return eng, unsubscribe, nil
-}
-
-// NewEngineInstance creates a new engine instance sharing the same stores and
-// mock client. Used to simulate process restart after crash
-func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
-	eng, err := engine.New(e.Config, e.Dependencies())
-	if err != nil {
-		return nil, err
-	}
-	e.SubscribeCommitted(eng.HandleCommitted)
-	e.flowExec = timebox.NewExecutor(
-		e.flowStore, events.NewFlowState, events.FlowAppliers,
-	)
-	return eng, nil
-}
-
-// Dependencies returns a valid dependency bundle for constructing an engine
-func (e *TestEngineEnv) Dependencies() engine.Dependencies {
-	return e.engineDeps(time.Now, scheduler.NewTimer)
-}
-
-// RaiseFlowEvents appends flow events via the executor
-func (e *TestEngineEnv) RaiseFlowEvents(
-	flowID api.FlowID, evs ...FlowEvent,
-) error {
-	_, err := e.flowExec.Exec(
-		events.FlowKey(flowID),
-		func(_ api.FlowState, ag *timebox.Aggregator[api.FlowState]) error {
-			for _, ev := range evs {
-				if err := raiseFlowEvent(ag, ev); err != nil {
-					return err
-				}
-			}
-			return nil
-		},
-	)
-	return err
-}
-
-// AppendEvents appends raw events to the shared test store
-func (e *TestEngineEnv) AppendEvents(
-	id timebox.AggregateID, atSeq int64, evs ...*timebox.Event,
-) error {
-	return e.flowStore.AppendEvents(id, atSeq, evs)
-}
-
-// ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
-// given label/value pair
-func (e *TestEngineEnv) ListFlowsByLabel(
-	label, value string,
-) ([]timebox.AggregateID, error) {
-	return e.flowStore.ListAggregatesByLabel(label, value)
-}
-
-func raiseFlowEvent(
-	ag *timebox.Aggregator[api.FlowState], ev FlowEvent,
-) error {
-	return events.Raise(ag, ev.Type, ev.Data)
-}
 
 // WithTestEnv creates a test engine environment, executes the provided
 // function with it, and ensures cleanup happens automatically
@@ -289,6 +96,219 @@ func WithStartedEngine(t *testing.T, fn func(*engine.Engine)) {
 	})
 }
 
+// NewTestConfig creates a default configuration with debug logging enabled
+func NewTestConfig() *config.Config {
+	cfg := config.NewDefaultConfig()
+	cfg.LogLevel = "debug"
+	return cfg
+}
+
+// NewTestEngine creates a fully configured test engine environment with an
+// in-memory Timebox backend and mock HTTP client
+func NewTestEngine(t *testing.T) *TestEngineEnv {
+	return NewTestEngineWithDeps(t, engine.Dependencies{})
+}
+
+// NewTestEngineWithDeps creates a test engine with dependency overrides
+func NewTestEngineWithDeps(
+	t *testing.T, overrides engine.Dependencies,
+) *TestEngineEnv {
+	t.Helper()
+
+	cfg := NewTestConfig()
+	cfg.APIPort = 8080
+	cfg.APIHost = "localhost"
+	cfg.WebhookBaseURL = "http://localhost:8080"
+	cfg.StepTimeout = 5 * api.Second
+	cfg.MemoCacheSize = 100
+	cfg.ShutdownTimeout = 2 * time.Second
+	cfg.Work = api.WorkConfig{
+		MaxRetries:  3,
+		InitBackoff: 1000,
+		MaxBackoff:  60000,
+		BackoffType: api.BackoffTypeExponential,
+	}
+
+	mockCli := NewMockClient()
+	hub := overrides.EventHub
+	ownsHub := false
+	if hub == nil {
+		hub = event.NewHub()
+		ownsHub = true
+	}
+	var publishMu sync.Mutex
+	committed := map[int]Publisher{}
+	nextCommittedID := 0
+	subscribe := func(fn Publisher) func() {
+		publishMu.Lock()
+		id := nextCommittedID
+		nextCommittedID++
+		committed[id] = fn
+		publishMu.Unlock()
+		var once sync.Once
+		return func() {
+			once.Do(func() {
+				publishMu.Lock()
+				delete(committed, id)
+				publishMu.Unlock()
+			})
+		}
+	}
+	backend := backend{
+		Backend: memory.NewPersistence(),
+		publish: func(evs ...*timebox.Event) {
+			published := cloneCommittedEvents(evs)
+			publishMu.Lock()
+			handlers := make([]Publisher, 0, len(committed))
+			for _, fn := range committed {
+				handlers = append(handlers, fn)
+			}
+			publishMu.Unlock()
+			for _, fn := range handlers {
+				fn(published...)
+			}
+			hub.Publish(published...)
+		},
+	}
+	engStore, err := backend.NewStore(cfg.EngineStoreConfig())
+	assert.NoError(t, err)
+	flowStore, err := backend.NewStore(cfg.FlowStoreConfig())
+	assert.NoError(t, err)
+
+	defaultDeps := engine.Dependencies{
+		EngineStore:      engStore,
+		FlowStore:        flowStore,
+		StepClient:       mockCli,
+		Clock:            time.Now,
+		TimerConstructor: scheduler.NewTimer,
+		EventHub:         hub,
+	}
+	deps := mergeDependencies(defaultDeps, overrides)
+	eng, err := engine.New(cfg, deps)
+	assert.NoError(t, err)
+	if cl, ok := deps.StepClient.(*MockClient); ok {
+		mockCli = cl
+	}
+	flowExec := timebox.NewExecutor(
+		deps.FlowStore, events.NewFlowState, events.FlowAppliers,
+	)
+
+	testEnv := &TestEngineEnv{
+		T:          t,
+		Engine:     eng,
+		MockClient: mockCli,
+		Config:     cfg,
+		EventHub:   deps.EventHub,
+		engStore:   deps.EngineStore,
+		flowStore:  deps.FlowStore,
+		flowExec:   flowExec,
+		subscribe:  subscribe,
+		unsubs:     &unsubscribeTracker{},
+		ownsHub:    ownsHub,
+	}
+
+	testEnv.Cleanup = func() {
+		_ = testEnv.Engine.Stop()
+		testEnv.unsubscribeAll()
+		if testEnv.ownsHub {
+			testEnv.EventHub.Close()
+		}
+		_ = testEnv.engStore.Close()
+		_ = testEnv.flowStore.Close()
+	}
+
+	return testEnv
+}
+
+// SubscribeCommitted registers a publisher against the shared committed-event
+// stream used by test engines. Call the returned function to unregister it
+func (e *TestEngineEnv) SubscribeCommitted(fn Publisher) func() {
+	return e.subscribe(fn)
+}
+
+// NewEngineWithConfig creates a new engine instance with the given
+// configuration and subscribes it to the shared committed-event stream
+func (e *TestEngineEnv) NewEngineWithConfig(
+	cfg *config.Config, deps engine.Dependencies,
+) (*engine.Engine, func(), error) {
+	eng, err := engine.New(cfg, deps)
+	if err != nil {
+		return nil, nil, err
+	}
+	unsubscribe := e.SubscribeCommitted(eng.HandleCommitted)
+	e.trackUnsubscribe(unsubscribe)
+	return eng, unsubscribe, nil
+}
+
+// NewEngineInstance creates a new engine instance sharing the same stores and
+// mock client. Used to simulate process restart after crash
+func (e *TestEngineEnv) NewEngineInstance() (*engine.Engine, error) {
+	eng, err := engine.New(e.Config, e.Dependencies())
+	if err != nil {
+		return nil, err
+	}
+	e.trackUnsubscribe(e.SubscribeCommitted(eng.HandleCommitted))
+	e.flowExec = timebox.NewExecutor(
+		e.flowStore, events.NewFlowState, events.FlowAppliers,
+	)
+	return eng, nil
+}
+
+// Dependencies returns a valid dependency bundle for constructing an engine
+func (e *TestEngineEnv) Dependencies() engine.Dependencies {
+	return e.engineDeps(time.Now, scheduler.NewTimer)
+}
+
+// RaiseFlowEvents appends flow events via the executor
+func (e *TestEngineEnv) RaiseFlowEvents(
+	flowID api.FlowID, evs ...FlowEvent,
+) error {
+	_, err := e.flowExec.Exec(
+		events.FlowKey(flowID),
+		func(_ api.FlowState, ag *timebox.Aggregator[api.FlowState]) error {
+			for _, ev := range evs {
+				if err := raiseFlowEvent(ag, ev); err != nil {
+					return err
+				}
+			}
+			return nil
+		},
+	)
+	return err
+}
+
+// AppendEvents appends raw events to the shared test store
+func (e *TestEngineEnv) AppendEvents(
+	id timebox.AggregateID, atSeq int64, evs ...*timebox.Event,
+) error {
+	return e.flowStore.AppendEvents(id, atSeq, evs)
+}
+
+// ListFlowsByLabel returns the flow aggregate IDs currently indexed for the
+// given label/value pair
+func (e *TestEngineEnv) ListFlowsByLabel(
+	label, value string,
+) ([]timebox.AggregateID, error) {
+	return e.flowStore.ListAggregatesByLabel(label, value)
+}
+
+func (e *TestEngineEnv) trackUnsubscribe(fn func()) {
+	e.unsubs.mu.Lock()
+	defer e.unsubs.mu.Unlock()
+	e.unsubs.funcs = append(e.unsubs.funcs, fn)
+}
+
+func (e *TestEngineEnv) unsubscribeAll() {
+	e.unsubs.mu.Lock()
+	unsubs := e.unsubs.funcs
+	e.unsubs.funcs = nil
+	e.unsubs.mu.Unlock()
+
+	for _, fn := range unsubs {
+		fn()
+	}
+}
+
 func (e *TestEngineEnv) engineDeps(
 	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
@@ -300,6 +320,25 @@ func (e *TestEngineEnv) engineDeps(
 		TimerConstructor: makeTimer,
 		EventHub:         e.EventHub,
 	}
+}
+
+func (b backend) Append(req timebox.AppendRequest) error {
+	err := b.Backend.Append(req)
+	if err != nil || len(req.Events) == 0 {
+		return err
+	}
+	b.publish(req.Events...)
+	return nil
+}
+
+func (b backend) NewStore(cfg timebox.Config) (*timebox.Store, error) {
+	return timebox.NewStore(b, cfg)
+}
+
+func raiseFlowEvent(
+	ag *timebox.Aggregator[api.FlowState], ev FlowEvent,
+) error {
+	return events.Raise(ag, ev.Type, ev.Data)
 }
 
 func mergeDependencies(
@@ -324,19 +363,6 @@ func mergeDependencies(
 		defaults.EventHub = overrides.EventHub
 	}
 	return defaults
-}
-
-func (b backend) Append(req timebox.AppendRequest) error {
-	err := b.Backend.Append(req)
-	if err != nil || len(req.Events) == 0 {
-		return err
-	}
-	b.publish(req.Events...)
-	return nil
-}
-
-func (b backend) NewStore(cfg timebox.Config) (*timebox.Store, error) {
-	return timebox.NewStore(b, cfg)
 }
 
 func cloneCommittedEvents(src []*timebox.Event) []*timebox.Event {
