@@ -517,6 +517,305 @@ describe("FlowCreateForm", () => {
     expect(editor.value).toContain('"quantity":0');
   });
 
+  test("serializes basic editor values as init arg arrays", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["quantity", "note"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+            note: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    const StatefulProvider: React.FC = () => {
+      const [initialState, setInitialState] = React.useState(
+        '{"quantity":[],"note":[]}'
+      );
+      const value: FlowCreationContextValue = {
+        ...defaultProps,
+        initialState,
+        setInitialState,
+      };
+
+      return (
+        <FlowCreationContext.Provider value={value}>
+          <FlowCreateForm />
+        </FlowCreationContext.Provider>
+      );
+    };
+
+    render(<StatefulProvider />);
+
+    const quantityRow = screen
+      .getByText("quantity")
+      .closest(`.${attributeStyles.attributeListItem}`);
+    const noteRow = screen
+      .getByText("note")
+      .closest(`.${attributeStyles.attributeListItem}`);
+
+    fireEvent.change(within(quantityRow as HTMLElement).getByRole("textbox"), {
+      target: { value: "1, 2" },
+    });
+    fireEvent.change(within(noteRow as HTMLElement).getByRole("textbox"), {
+      target: { value: '"hello, world", plain' },
+    });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
+    expect(JSON.parse(editor.value)).toEqual({
+      quantity: [1, 2],
+      note: ["hello, world", "plain"],
+    });
+  });
+
+  test("preserves comma while typing a multi-value basic editor input", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["unit_price"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            unit_price: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    const StatefulProvider: React.FC = () => {
+      const [initialState, setInitialState] =
+        React.useState('{"unit_price":[]}');
+      const value: FlowCreationContextValue = {
+        ...defaultProps,
+        initialState,
+        setInitialState,
+      };
+
+      return (
+        <FlowCreationContext.Provider value={value}>
+          <FlowCreateForm />
+        </FlowCreationContext.Provider>
+      );
+    };
+
+    render(<StatefulProvider />);
+
+    const input = screen.getByPlaceholderText("0") as HTMLInputElement;
+    fireEvent.change(input, { target: { value: "90," } });
+    expect(input.value).toBe("90,");
+
+    fireEvent.change(input, { target: { value: "90, 120" } });
+    expect(input.value).toBe("90, 120");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
+    expect(JSON.parse(editor.value)).toEqual({ unit_price: [90, 120] });
+  });
+
+  test("parses single-quoted basic editor strings without preserving delimiters", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["note"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            note: {
+              role: AttributeRole.Required,
+              type: AttributeType.String,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    const StatefulProvider: React.FC = () => {
+      const [initialState, setInitialState] = React.useState('{"note":[]}');
+      const value: FlowCreationContextValue = {
+        ...defaultProps,
+        initialState,
+        setInitialState,
+      };
+
+      return (
+        <FlowCreationContext.Provider value={value}>
+          <FlowCreateForm />
+        </FlowCreationContext.Provider>
+      );
+    };
+
+    render(<StatefulProvider />);
+
+    fireEvent.change(screen.getByPlaceholderText('""'), {
+      target: { value: "'hello, world'" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
+    expect(JSON.parse(editor.value)).toEqual({ note: ["hello, world"] });
+  });
+
+  test("serializes cleared basic editor values as empty init arg arrays", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["quantity"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    const StatefulProvider: React.FC = () => {
+      const [initialState, setInitialState] =
+        React.useState('{"quantity":[1]}');
+      const value: FlowCreationContextValue = {
+        ...defaultProps,
+        initialState,
+        setInitialState,
+      };
+
+      return (
+        <FlowCreationContext.Provider value={value}>
+          <FlowCreateForm />
+        </FlowCreationContext.Provider>
+      );
+    };
+
+    render(<StatefulProvider />);
+
+    fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "" } });
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
+    expect(JSON.parse(editor.value)).toEqual({ quantity: [] });
+  });
+
+  test("formats init args with normal JSON stringify output", () => {
+    const previewPlan = {
+      goals: ["goal-step"],
+      required: ["quantity"],
+      attributes: {},
+      steps: {
+        "goal-step": {
+          id: "goal-step",
+          name: "Goal Step",
+          type: "sync" as const,
+          attributes: {
+            quantity: {
+              role: AttributeRole.Required,
+              type: AttributeType.Number,
+            },
+          },
+          http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
+        },
+      },
+    };
+
+    mockUseUI.mockReturnValue({
+      ...defaultUIContext,
+      previewPlan,
+      goalSteps: ["goal-step"],
+    });
+
+    const StatefulProvider: React.FC = () => {
+      const [initialState, setInitialState] = React.useState('{"quantity":[]}');
+      const value: FlowCreationContextValue = {
+        ...defaultProps,
+        initialState,
+        setInitialState,
+      };
+
+      return (
+        <FlowCreationContext.Provider value={value}>
+          <FlowCreateForm />
+        </FlowCreationContext.Provider>
+      );
+    };
+
+    render(<StatefulProvider />);
+
+    fireEvent.change(screen.getByPlaceholderText("0"), {
+      target: { value: "1" },
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowCreate.modeJson") })
+    );
+
+    const editor = screen.getByTestId("code-editor") as HTMLTextAreaElement;
+    expect(editor.value).toBe('{\n  "quantity": [\n    1\n  ]\n}');
+  });
+
   test("tracks focused input attribute for preview highlighting", () => {
     const previewPlan = {
       goals: ["goal-step"],
@@ -951,6 +1250,7 @@ describe("FlowCreateForm", () => {
     const input = screen.getByPlaceholderText("guest");
     fireEvent.change(input, { target: { value: "admin" } });
     fireEvent.change(input, { target: { value: "" } });
+    fireEvent.blur(input);
 
     const orderIdRow = screen
       .getByText("order_id")

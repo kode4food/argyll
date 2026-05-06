@@ -241,7 +241,7 @@ describe("stateUtils", () => {
   });
 
   describe("addRequiredDefaults", () => {
-    it("adds typed defaults for required attributes", () => {
+    it("adds array defaults for required attributes", () => {
       const state = {};
 
       const executionPlan: ExecutionPlan = {
@@ -274,9 +274,9 @@ describe("stateUtils", () => {
       const result = addRequiredDefaults(state, executionPlan);
 
       expect(result).toEqual({
-        boolProp: false,
-        numberProp: 0,
-        stringProp: "",
+        boolProp: [],
+        numberProp: [],
+        stringProp: [],
       });
     });
 
@@ -318,7 +318,7 @@ describe("stateUtils", () => {
       expect(result).toEqual({
         boolProp: true,
         numberProp: 42,
-        stringProp: "",
+        stringProp: [],
       });
     });
   });

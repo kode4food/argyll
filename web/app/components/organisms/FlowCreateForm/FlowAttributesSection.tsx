@@ -19,6 +19,7 @@ interface FlowAttributesSectionProps {
   flowInputValues: Record<string, string>;
   flowInputValuesRaw: Record<string, string>;
   getFlowInputPlaceholder: (option: FlowInputOption) => string;
+  handleBasicInputBlur: () => void;
   handleBasicInputChange: (name: string, value: string) => void;
   initialState: string;
   jsonError: string | null;
@@ -40,6 +41,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   flowInputValues,
   flowInputValuesRaw,
   getFlowInputPlaceholder,
+  handleBasicInputBlur,
   handleBasicInputChange,
   initialState,
   jsonError,
@@ -158,6 +160,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
                                 e.target.value
                               )
                             }
+                            onBlur={handleBasicInputBlur}
                             onFocus={() =>
                               onFocusedPreviewAttributeChange(option.name)
                             }

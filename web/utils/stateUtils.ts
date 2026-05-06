@@ -29,6 +29,10 @@ export const isDefaultValue = (value: any, type?: AttributeType): boolean => {
 
   const defaultForType = getDefaultValueForType(type);
 
+  if (Array.isArray(value)) {
+    return value.length === 0;
+  }
+
   // Handle null explicitly (typeof null === "object" in JS)
   if (defaultForType === null) {
     return value === null;
@@ -112,15 +116,7 @@ export const addRequiredDefaults = (
 
   requiredNames.forEach((name) => {
     if (!(name in result)) {
-      // Find the attribute type from any step that declares it
-      let attributeType: AttributeType | undefined;
-      for (const step of Object.values(executionPlan.steps || {})) {
-        if (step.attributes?.[name]) {
-          attributeType = step.attributes[name].type;
-          break;
-        }
-      }
-      result[name] = getDefaultValueForType(attributeType);
+      result[name] = [];
     }
   });
 

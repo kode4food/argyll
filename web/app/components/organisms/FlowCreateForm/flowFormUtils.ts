@@ -44,15 +44,139 @@ export function formatInputValue(value: any): string {
   }
 }
 
+function shouldQuoteDelimitedString(value: string): boolean {
+  return (
+    value === "" ||
+    value.trim() !== value ||
+    value.includes(",") ||
+    value.includes('"') ||
+    value.includes("\\")
+  );
+}
+
+export function formatInputValues(values: any): string {
+  if (Array.isArray(values)) {
+    return values
+      .map((value) => {
+        if (typeof value === "string" && shouldQuoteDelimitedString(value)) {
+          return JSON.stringify(value);
+        }
+        return formatInputValue(value);
+      })
+      .join(", ");
+  }
+
+  return formatInputValue(values);
+}
+
 export function parseInputValue(rawValue: string): any {
-  if (rawValue.trim() === "") {
+  const trimmed = rawValue.trim();
+
+  if (trimmed === "") {
     return undefined;
   }
 
   try {
-    return JSON.parse(rawValue);
+    return JSON.parse(trimmed);
   } catch {
-    return rawValue;
+    const singleQuotedString = parseSingleQuotedString(trimmed);
+    return singleQuotedString ?? rawValue;
+  }
+}
+
+function parseSingleQuotedString(rawValue: string): string | undefined {
+  if (
+    rawValue.length < 2 ||
+    !rawValue.startsWith("'") ||
+    !rawValue.endsWith("'")
+  ) {
+    return undefined;
+  }
+
+  const inner = rawValue.slice(1, -1);
+  let jsonString = '"';
+
+  for (let i = 0; i < inner.length; i += 1) {
+    const char = inner[i];
+    const next = inner[i + 1];
+
+    if (char === "\\" && next === "'") {
+      jsonString += "'";
+      i += 1;
+      continue;
+    }
+
+    if (char === "\\" && next !== undefined) {
+      jsonString += char + next;
+      i += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      jsonString += '\\"';
+      continue;
+    }
+
+    jsonString += char;
+  }
+
+  jsonString += '"';
+
+  try {
+    return JSON.parse(jsonString);
+  } catch {
+    return undefined;
+  }
+}
+
+function splitDelimitedInputValues(rawValue: string): string[] {
+  const parts: string[] = [];
+  let current = "";
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+  let depth = 0;
+
+  for (const char of rawValue) {
+    if (quote) {
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === quote) {
+        quote = null;
+      }
+    } else if (char === '"' || char === "'") {
+      quote = char;
+    } else if (char === "{" || char === "[") {
+      depth += 1;
+    } else if (char === "}" || char === "]") {
+      depth = Math.max(0, depth - 1);
+    } else if (char === "," && depth === 0) {
+      parts.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  parts.push(current.trim());
+  return parts;
+}
+
+export function parseInputValues(rawValue: string): any[] {
+  const trimmed = rawValue.trim();
+
+  if (trimmed === "") {
+    return [];
+  }
+
+  try {
+    return JSON.parse(`[${trimmed}]`);
+  } catch {
+    return splitDelimitedInputValues(rawValue)
+      .filter((part) => part !== "")
+      .map((part) => parseInputValue(part));
   }
 }
 
@@ -129,7 +253,7 @@ export function getFlowInputStatus(
   if (attr.satisfiedByOutput) {
     return "outputSatisfied";
   }
-  if (parseInputValue(rawValue) === undefined) {
+  if (parseInputValues(rawValue).length === 0) {
     return attr.required ? "requiredMissing" : "optionalMissing";
   }
   return attr.required ? "requiredSatisfied" : "optionalSatisfied";
@@ -142,10 +266,9 @@ export function isAtDefaultValue(
   if (attr.defaultValue === undefined) {
     return false;
   }
-  return valuesEqual(
-    parseInputValue(rawValue),
-    parseInputValue(attr.defaultValue)
-  );
+  return valuesEqual(parseInputValues(rawValue), [
+    parseInputValue(attr.defaultValue),
+  ]);
 }
 
 export function buildInitialStateInputValues(
@@ -156,7 +279,7 @@ export function buildInitialStateInputValues(
   const values: Record<string, string> = {};
 
   inputNames.forEach((name) => {
-    values[name] = formatInputValue(parsed[name]);
+    values[name] = formatInputValues(parsed[name]);
   });
 
   return values;
@@ -169,10 +292,7 @@ export function buildInitialStateFromInputValues(
   const nextState: Record<string, any> = {};
 
   inputNames.forEach((name) => {
-    const parsedValue = parseInputValue(inputValues[name] || "");
-    if (parsedValue !== undefined) {
-      nextState[name] = parsedValue;
-    }
+    nextState[name] = parseInputValues(inputValues[name] || "");
   });
 
   return nextState;

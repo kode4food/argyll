@@ -2,10 +2,12 @@ import {
   buildItemClassName,
   buildInitialStateFromInputValues,
   buildInitialStateInputValues,
+  formatInputValues,
   formatInputValue,
   getFlowInputStatus,
   hasScrollOverflow,
   isAtDefaultValue,
+  parseInputValues,
   parseInputValue,
   safeParseState,
   validateJsonString,
@@ -150,11 +152,82 @@ describe("flowFormUtils", () => {
     it("falls back to raw string for non-JSON text", () => {
       expect(parseInputValue("hello")).toBe("hello");
     });
+
+    it("parses single-quoted string literals", () => {
+      expect(parseInputValue("'hello'")).toBe("hello");
+      expect(parseInputValue("'it\\'s ok'")).toBe("it's ok");
+    });
+
+    it("respects JSON-style escapes in single-quoted strings", () => {
+      expect(parseInputValue("'line\\nbreak'")).toBe("line\nbreak");
+      expect(parseInputValue("'tab\\tindent'")).toBe("tab\tindent");
+      expect(parseInputValue("'quote: \\\"'")).toBe('quote: "');
+      expect(parseInputValue("'snowman: \\u2603'")).toBe("snowman: ☃");
+    });
+  });
+
+  describe("parseInputValues", () => {
+    it("parses the whole line as a JSON array before applying fallback rules", () => {
+      expect(parseInputValues('90, 120, {"a":[1,2]}, [3,4]')).toEqual([
+        90,
+        120,
+        { a: [1, 2] },
+        [3, 4],
+      ]);
+    });
+
+    it("parses comma-delimited values using individual value rules", () => {
+      expect(parseInputValues("1, true, hello")).toEqual([1, true, "hello"]);
+    });
+
+    it("allows quoted strings to contain commas", () => {
+      expect(parseInputValues('"hello, world", plain')).toEqual([
+        "hello, world",
+        "plain",
+      ]);
+    });
+
+    it("allows single-quoted strings to contain commas", () => {
+      expect(parseInputValues("'hello, world', plain")).toEqual([
+        "hello, world",
+        "plain",
+      ]);
+    });
+
+    it("respects escapes when falling back to single-quoted strings", () => {
+      expect(parseInputValues("'line\\nbreak', 'it\\'s ok'")).toEqual([
+        "line\nbreak",
+        "it's ok",
+      ]);
+    });
+
+    it("does not split commas inside JSON values", () => {
+      expect(parseInputValues('{"a":[1,2]}, [3,4]')).toEqual([
+        { a: [1, 2] },
+        [3, 4],
+      ]);
+    });
+
+    it("returns an empty array for empty input", () => {
+      expect(parseInputValues("   ")).toEqual([]);
+    });
+  });
+
+  describe("formatInputValues", () => {
+    it("formats arrays as comma-delimited editor values", () => {
+      expect(formatInputValues([1, true, "hello"])).toBe("1, true, hello");
+    });
+
+    it("quotes strings that contain delimiters", () => {
+      expect(formatInputValues(["hello, world", "plain"])).toBe(
+        '"hello, world", plain'
+      );
+    });
   });
 
   describe("initial state input value helpers", () => {
     it("builds table values from initial state", () => {
-      const values = buildInitialStateInputValues('{"a":1,"b":"text"}', [
+      const values = buildInitialStateInputValues('{"a":[1],"b":["text"]}', [
         "a",
         "b",
         "c",
@@ -178,9 +251,10 @@ describe("flowFormUtils", () => {
       );
 
       expect(state).toEqual({
-        a: 1,
-        b: "hello",
-        d: { x: true },
+        a: [1],
+        b: ["hello"],
+        c: [],
+        d: [{ x: true }],
       });
     });
   });

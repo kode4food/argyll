@@ -75,6 +75,9 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
   const [jsonError, setJsonError] = React.useState<string | null>(null);
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
+  const [flowInputDraftValues, setFlowInputDraftValues] = React.useState<
+    Record<string, string>
+  >({});
 
   React.useEffect(() => {
     setJsonError(validateJsonString(initialState));
@@ -83,6 +86,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
   React.useEffect(() => {
     if (editorMode !== "basic") {
       setFocusedPreviewAttribute(null);
+      setFlowInputDraftValues({});
     }
   }, [editorMode, setFocusedPreviewAttribute]);
 
@@ -111,6 +115,16 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
       return;
     }
 
+    setFlowInputDraftValues((current) => {
+      const nextValues: Record<string, string> = {};
+      flowInputNames.forEach((name) => {
+        if (current[name] !== undefined) {
+          nextValues[name] = current[name];
+        }
+      });
+      return nextValues;
+    });
+
     if (
       focusedPreviewAttribute &&
       !flowInputNames.includes(focusedPreviewAttribute)
@@ -132,26 +146,51 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
     flowInputOptions.forEach((option) => {
       const rawValue = flowInputValuesRaw[option.name] || "";
-      values[option.name] = isAtDefaultValue(option, rawValue) ? "" : rawValue;
+      const draftValue = flowInputDraftValues[option.name];
+      values[option.name] =
+        draftValue ?? (isAtDefaultValue(option, rawValue) ? "" : rawValue);
     });
 
     return values;
-  }, [flowInputOptions, flowInputValuesRaw]);
+  }, [flowInputDraftValues, flowInputOptions, flowInputValuesRaw]);
+
+  const commitBasicInputValues = React.useCallback(() => {
+    const nextValues = {
+      ...flowInputValuesRaw,
+      ...flowInputDraftValues,
+    };
+    const nextState = buildInitialStateFromInputValues(
+      nextValues,
+      flowInputNames
+    );
+
+    setInitialState(JSON.stringify(nextState, null, 2));
+    setFlowInputDraftValues({});
+  }, [
+    flowInputDraftValues,
+    flowInputNames,
+    flowInputValuesRaw,
+    setInitialState,
+  ]);
 
   const handleBasicInputChange = React.useCallback(
     (name: string, value: string) => {
-      const nextValues = {
-        ...flowInputValuesRaw,
+      setFlowInputDraftValues((current) => ({
+        ...current,
         [name]: value,
-      };
-      const nextState = buildInitialStateFromInputValues(
-        nextValues,
-        flowInputNames
-      );
-
-      setInitialState(JSON.stringify(nextState, null, 2));
+      }));
     },
-    [flowInputNames, flowInputValuesRaw, setInitialState]
+    []
+  );
+
+  const handleEditorModeChange = React.useCallback(
+    (mode: "basic" | "json") => {
+      if (editorMode === "basic" && mode === "json") {
+        commitBasicInputValues();
+      }
+      setEditorMode(mode);
+    },
+    [commitBasicInputValues, editorMode]
   );
 
   return (
@@ -181,10 +220,11 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
               flowInputValues={flowInputValues}
               flowInputValuesRaw={flowInputValuesRaw}
               getFlowInputPlaceholder={getFlowInputPlaceholder}
+              handleBasicInputBlur={commitBasicInputValues}
               handleBasicInputChange={handleBasicInputChange}
               initialState={initialState}
               jsonError={jsonError}
-              onEditorModeChange={setEditorMode}
+              onEditorModeChange={handleEditorModeChange}
               onFocusedPreviewAttributeChange={setFocusedPreviewAttribute}
               setInitialState={setInitialState}
             />
