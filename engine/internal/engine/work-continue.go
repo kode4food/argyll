@@ -6,6 +6,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -68,12 +69,12 @@ func (e *Engine) calculateNextRetryAt(
 
 func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {
 	ex := tx.Value().Executions[stepID]
-	if ex.Status != api.StepActive {
+	if !policy.StepActive(ex.Status) {
 		return nil
 	}
 
 	work, ok := ex.WorkItems[tkn]
-	if !ok || work.Status != api.WorkNotCompleted {
+	if !ok || !policy.WorkNotCompleted(work.Status) {
 		return nil
 	}
 
@@ -171,7 +172,7 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 
 	err := e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
-		if fl.ID == "" || flowTransitions.IsTerminal(fl.Status) {
+		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
 			return nil
 		}
 
@@ -183,7 +184,7 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 		step = fl.Plan.Steps[fs.StepID]
 
 		work := ex.WorkItems[tkn]
-		if retryClaimOpen(work) && !tx.canDispatchLocally(step.ID) {
+		if policy.WorkClaimableForRetry(work.Status) && !tx.canDispatchLocally(step.ID) {
 			reschedule = true
 			return nil
 		}
@@ -216,10 +217,6 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 		e.scheduleRetryTask(fs, tkn, e.Now().Add(retryDispatchBackoff))
 	}
 	return nil
-}
-
-func retryClaimOpen(work api.WorkState) bool {
-	return work.Status == api.WorkPending || work.Status == api.WorkFailed
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {

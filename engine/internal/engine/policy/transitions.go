@@ -1,18 +1,19 @@
-package engine
+package policy
 
 import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// StateTransitions maps states to their set of valid next states
-//
-// Generic state transition tables are used to validate flow, step, and work
-// status changes
+// StateTransitions maps states to their valid next states. The engine uses
+// these tables to validate event-driven status changes and to define terminal
+// states consistently
 type StateTransitions[T comparable] map[T]util.Set[T]
 
 var (
-	flowTransitions = StateTransitions[api.FlowStatus]{
+	// FlowTransitions defines the valid flow lifecycle. Active flows may
+	// become completed or failed; completed and failed flows are terminal
+	FlowTransitions = StateTransitions[api.FlowStatus]{
 		api.FlowActive: util.SetOf(
 			api.FlowCompleted,
 			api.FlowFailed,
@@ -21,7 +22,9 @@ var (
 		api.FlowFailed:    {},
 	}
 
-	stepTransitions = StateTransitions[api.StepStatus]{
+	// StepTransitions defines the valid step lifecycle. Pending steps may
+	// start, skip, or fail; active steps may complete or fail
+	StepTransitions = StateTransitions[api.StepStatus]{
 		api.StepPending: util.SetOf(
 			api.StepActive,
 			api.StepSkipped,
@@ -36,7 +39,10 @@ var (
 		api.StepSkipped:   {},
 	}
 
-	workTransitions = StateTransitions[api.WorkStatus]{
+	// WorkTransitions defines the valid work item lifecycle. Not-completed
+	// work may be restarted or resolved, while succeeded and failed work are
+	// terminal outcomes
+	WorkTransitions = StateTransitions[api.WorkStatus]{
 		api.WorkPending: util.SetOf(
 			api.WorkActive,
 			api.WorkSucceeded,
@@ -57,7 +63,8 @@ var (
 	}
 )
 
-// CanTransition returns whether transition from one state to another is valid
+// CanTransition reports whether a status change is valid according to the
+// transition table
 func (t StateTransitions[T]) CanTransition(from, to T) bool {
 	allowed, ok := t[from]
 	if !ok {
@@ -66,7 +73,7 @@ func (t StateTransitions[T]) CanTransition(from, to T) bool {
 	return allowed.Contains(to)
 }
 
-// IsTerminal returns true if the state has no valid transitions
+// IsTerminal reports whether a status has no valid outgoing transitions
 func (t StateTransitions[T]) IsTerminal(state T) bool {
 	allowed, ok := t[state]
 	return ok && allowed.IsEmpty()

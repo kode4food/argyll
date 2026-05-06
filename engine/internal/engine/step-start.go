@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
@@ -24,9 +25,8 @@ type (
 	}
 
 	providerSummary struct {
-		terminal     bool
-		allSucceeded bool
-		completedAt  time.Time
+		policy.ProviderSummary
+		completedAt time.Time
 	}
 
 	optionalDecision struct {
@@ -44,7 +44,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	fl := tx.Value()
 
 	ex := fl.Executions[stepID]
-	if ex.Status != api.StepPending {
+	if !policy.StepPending(ex.Status) {
 		return fmt.Errorf("%w: %s (status=%s)", ErrStepAlreadyPending,
 			stepID, ex.Status)
 	}
@@ -138,7 +138,7 @@ func (tx *flowTx) canStartStepAt(
 func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
 	res := make([]api.StepID, 0, len(flow.Executions))
 	for sid, ex := range flow.Executions {
-		if ex.Status != api.StepPending {
+		if !policy.StepPending(ex.Status) {
 			continue
 		}
 		if tx.canStartStep(sid, flow) {
@@ -219,7 +219,8 @@ func (tx *flowTx) collectStepInputs(
 			}
 		}
 
-		val, ok := resolveInputValue(flow, name, attr, cutoff)
+		values := valuesUntil(flow.AttributeValues(name), cutoff)
+		val, ok := policy.ResolveInputValue(attr.InputCollect(), values)
 		if !ok {
 			if !attr.IsRequired() && attr.InputDefault() != "" {
 				value := parseDefaultValue(attr.InputDefault())
@@ -246,7 +247,7 @@ func (tx *flowTx) setStepInput(
 
 func (s *stepEval) canStart() (bool, time.Time) {
 	ex := s.flow.Executions[s.stepID]
-	if ex.Status != api.StepPending {
+	if !policy.StepPending(ex.Status) {
 		return false, time.Time{}
 	}
 	if !s.e.areOutputsNeeded(s.stepID, s.flow) {
@@ -325,16 +326,10 @@ func (s *stepEval) optionalDecisionAt(
 func (s *stepEval) timeoutDecision(
 	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
 ) optionalDecision {
-	switch attr.InputCollect() {
-	case api.InputCollectLast, api.InputCollectSome:
+	if policy.TimeoutCanUseValues(attr.InputCollect()) {
 		if len(valuesUntil(s.flow.AttributeValues(name), cutoff)) > 0 {
 			return optionalDecision{ready: true, cutoff: cutoff}
 		}
-	case api.InputCollectNone:
-		if len(valuesUntil(s.flow.AttributeValues(name), cutoff)) > 0 {
-			return optionalDecision{ready: true, cutoff: cutoff}
-		}
-	default:
 	}
 	return optionalDecision{ready: true, fallback: true}
 }
@@ -368,50 +363,25 @@ func (s *stepEval) inputFulfilledAt(
 	name api.Name, attr *api.AttributeSpec,
 ) (bool, time.Time) {
 	values := s.flow.AttributeValues(name)
+	providers := s.providerSummary(name)
+	if !policy.InputFulfilled(
+		attr.InputCollect(), len(values), providers.ProviderSummary,
+	) {
+		return false, time.Time{}
+	}
 
 	switch attr.InputCollect() {
 	case api.InputCollectNone:
-		providers := s.providerSummary(name)
-		if !providers.terminal || len(values) > 0 {
-			return false, time.Time{}
-		}
 		return true, providers.completedAt
 	case api.InputCollectFirst:
-		if len(values) == 0 {
-			return false, time.Time{}
-		}
 		return true, values[0].SetAt
 	case api.InputCollectLast:
-		providers := s.providerSummary(name)
-		if len(values) == 0 {
-			return false, time.Time{}
-		}
-		if !providers.terminal {
-			return false, time.Time{}
-		}
 		return true, values[len(values)-1].SetAt
 	case api.InputCollectAll:
-		providers := s.providerSummary(name)
-		if len(values) == 0 {
-			return false, time.Time{}
-		}
-		if !providers.terminal || !providers.allSucceeded {
-			return false, time.Time{}
-		}
 		return true, lastSetAt(values)
 	case api.InputCollectSome:
-		providers := s.providerSummary(name)
-		if len(values) == 0 {
-			return false, time.Time{}
-		}
-		if !providers.terminal {
-			return false, time.Time{}
-		}
 		return true, lastSetAt(values)
 	default:
-		if len(values) == 0 {
-			return false, time.Time{}
-		}
 		return true, values[0].SetAt
 	}
 }
@@ -420,30 +390,34 @@ func (s *stepEval) providerSummary(name api.Name) providerSummary {
 	deps, ok := s.flow.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
 		return providerSummary{
-			terminal:     true,
-			allSucceeded: true,
-			completedAt:  s.flow.CreatedAt,
+			ProviderSummary: policy.ProviderSummary{
+				Terminal:     true,
+				AllSucceeded: true,
+			},
+			completedAt: s.flow.CreatedAt,
 		}
 	}
 
 	res := providerSummary{
-		terminal:     true,
-		allSucceeded: true,
+		ProviderSummary: policy.ProviderSummary{
+			Terminal:     true,
+			AllSucceeded: true,
+		},
 	}
 	missingCompletedAt := false
 	for _, sid := range deps.Providers {
 		ex, ok := s.flow.Executions[sid]
 		if !ok {
-			res.terminal = false
-			res.allSucceeded = false
+			res.Terminal = false
+			res.AllSucceeded = false
 			missingCompletedAt = true
 			continue
 		}
-		if !stepTransitions.IsTerminal(ex.Status) {
-			res.terminal = false
+		if !policy.StepTerminal(ex.Status) {
+			res.Terminal = false
 		}
-		if ex.Status != api.StepCompleted || !hasValueFrom(s.flow, name, sid) {
-			res.allSucceeded = false
+		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(s.flow, name, sid) {
+			res.AllSucceeded = false
 		}
 		if ex.CompletedAt.IsZero() {
 			missingCompletedAt = true
@@ -457,30 +431,6 @@ func (s *stepEval) providerSummary(name api.Name) providerSummary {
 		res.completedAt = time.Time{}
 	}
 	return res
-}
-
-func resolveInputValue(
-	flow api.FlowState, name api.Name, attr *api.AttributeSpec,
-	cutoff time.Time,
-) (any, bool) {
-	values := valuesUntil(flow.AttributeValues(name), cutoff)
-	if len(values) == 0 {
-		return nil, false
-	}
-	switch attr.InputCollect() {
-	case api.InputCollectLast:
-		return values[len(values)-1].Value, true
-	case api.InputCollectAll, api.InputCollectSome:
-		res := make([]any, 0, len(values))
-		for _, v := range values {
-			res = append(res, v.Value)
-		}
-		return res, true
-	case api.InputCollectNone:
-		return nil, false
-	default:
-		return values[0].Value, true
-	}
 }
 
 func valuesUntil(

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -192,7 +193,9 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	required := b.buildRequired(st)
 	for _, name := range allInputs {
 		attr := st.Attributes[name]
-		if b.initSatisfies(name, attr) {
+		if policy.InitSatisfiesInput(
+			attr.InputCollect(), b.initHasValues(name),
+		) {
 			b.markSatisfied(name)
 			continue
 		}
@@ -200,8 +203,9 @@ func (b *builder) collectStep(stepID api.StepID) error {
 		if err != nil {
 			return err
 		}
-		if required.Contains(name) &&
-			b.inputMissing(name, attr, hasProvider) {
+		if required.Contains(name) && policy.RequiredInputMissing(
+			attr.InputCollect(), hasProvider, b.initHasValues(name),
+		) {
 			b.missing.Add(name)
 		}
 	}
@@ -219,8 +223,7 @@ func (b *builder) blockedInputs(step *api.Step) []api.Name {
 		if !attr.IsRuntimeInput() {
 			continue
 		}
-		if attr.InputCollect() == api.InputCollectNone &&
-			b.initHasValues(name) {
+		if policy.InitBlocksInput(attr.InputCollect(), b.initHasValues(name)) {
 			blocked = append(blocked, name)
 		}
 	}
@@ -246,27 +249,8 @@ func (b *builder) markSatisfied(name api.Name) {
 	}
 }
 
-func (b *builder) initSatisfies(name api.Name, attr *api.AttributeSpec) bool {
-	if !b.initHasValues(name) {
-		return false
-	}
-	return attr.InputCollect() == api.InputCollectFirst
-}
-
 func (b *builder) initHasValues(name api.Name) bool {
 	return len(b.init[name]) > 0
-}
-
-func (b *builder) inputMissing(
-	name api.Name, attr *api.AttributeSpec, hasProvider bool,
-) bool {
-	if hasProvider {
-		return false
-	}
-	if attr.InputCollect() == api.InputCollectNone {
-		return false
-	}
-	return !b.initHasValues(name)
 }
 
 func (b *builder) includeProviders(
@@ -278,7 +262,7 @@ func (b *builder) includeProviders(
 	}
 
 	selected := b.providers(b, providers)
-	if attr.InputCollect() == api.InputCollectAll &&
+	if policy.RequiresAllProviders(attr.InputCollect()) &&
 		len(selected) != len(providers) {
 		return false, nil
 	}

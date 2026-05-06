@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -82,7 +83,7 @@ func (tx *flowTx) checkTerminal() error {
 // getFailureReason extracts a failure reason from flow state
 func (tx *flowTx) getFailureReason(flow api.FlowState) string {
 	for sid, ex := range flow.Executions {
-		if ex.Status == api.StepFailed {
+		if policy.StepFailed(ex.Status) {
 			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
 		}
 	}
@@ -93,7 +94,7 @@ func (tx *flowTx) getFailureReason(flow api.FlowState) string {
 // active work items remaining
 func (tx *flowTx) maybeDeactivate() error {
 	fl := tx.Value()
-	if !flowTransitions.IsTerminal(fl.Status) {
+	if !policy.FlowTerminal(fl.Status) {
 		return nil
 	}
 	if hasActiveWork(fl) {
@@ -149,7 +150,7 @@ func (tx *flowTx) completeParentFlowWork(
 
 		ex := parent.Executions[target.fs.StepID]
 		work := ex.WorkItems[target.token]
-		if isWorkTerminal(work.Status) {
+		if policy.WorkTerminal(work.Status) {
 			return nil
 		}
 
@@ -193,10 +194,6 @@ func (tx *flowTx) parentMeta(
 	target.fs = api.FlowStep{FlowID: fid, StepID: sid}
 	target.token = tkn
 	return true, nil
-}
-
-func isWorkTerminal(status api.WorkStatus) bool {
-	return status == api.WorkSucceeded || status == api.WorkFailed
 }
 
 func flowHasRetryTasks(flow api.FlowState) bool {

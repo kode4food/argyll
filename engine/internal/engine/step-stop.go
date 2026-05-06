@@ -5,6 +5,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
@@ -15,41 +16,22 @@ import (
 func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	fl := tx.Value()
 	ex, ok := fl.Executions[stepID]
-	if !ok || ex.Status != api.StepActive {
+	if !ok || !policy.StepActive(ex.Status) {
 		return false, fmt.Errorf("%w: expected %s to be active, got %s",
 			ErrInvariantViolated, stepID, ex.Status)
 	}
 
-	allDone := true
-	hasFailed := false
-	var failureError string
-
-	for _, work := range ex.WorkItems {
-		switch work.Status {
-		case api.WorkSucceeded:
-		case api.WorkFailed:
-			hasFailed = true
-			if failureError == "" {
-				failureError = work.Error
-			}
-		case api.WorkNotCompleted, api.WorkPending, api.WorkActive:
-			allDone = false
-		}
-	}
-
-	if !allDone {
+	completion := policy.StepWorkCompletion(ex.WorkItems)
+	if !completion.Done {
 		return false, nil
 	}
 
-	if hasFailed {
-		if failureError == "" {
-			failureError = "work item failed"
-		}
+	if completion.Failed {
 		return true, events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 			api.StepFailedEvent{
 				FlowID: tx.flowID,
 				StepID: stepID,
-				Error:  failureError,
+				Error:  completion.FailureError,
 			},
 		)
 	}
@@ -113,7 +95,7 @@ func (tx *flowTx) handlePredicateFailure(stepID api.StepID, err error) error {
 // handleStepFailure handles common failure logic for work failure paths,
 // checking step completion and propagating failures
 func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
-	if flowTransitions.IsTerminal(tx.Value().Status) {
+	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.handleTerminalWork(stepID)
 	}
 

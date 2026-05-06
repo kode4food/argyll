@@ -3,6 +3,7 @@ package engine
 import (
 	"errors"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -15,7 +16,7 @@ func (tx *flowTx) checkUnreachable() error {
 		fl := tx.Value()
 
 		for sid, ex := range fl.Executions {
-			if ex.Status != api.StepPending {
+			if !policy.StepPending(ex.Status) {
 				continue
 			}
 			if tx.canStepComplete(sid, fl) {
@@ -47,7 +48,7 @@ func (tx *flowTx) skipPendingUnused() error {
 		fl := tx.Value()
 
 		for sid, ex := range fl.Executions {
-			if ex.Status != api.StepPending {
+			if !policy.StepPending(ex.Status) {
 				continue
 			}
 			if tx.areOutputsNeeded(sid, fl) {
@@ -74,7 +75,7 @@ func (tx *flowTx) skipPendingUnused() error {
 }
 
 func (tx *flowTx) startReadyPendingSteps() error {
-	if flowTransitions.IsTerminal(tx.Value().Status) {
+	if policy.FlowTerminal(tx.Value().Status) {
 		return nil
 	}
 
@@ -84,7 +85,7 @@ func (tx *flowTx) startReadyPendingSteps() error {
 		startedAny := false
 
 		for sid, ex := range fl.Executions {
-			if ex.Status != api.StepPending {
+			if !policy.StepPending(ex.Status) {
 				continue
 			}
 
@@ -103,7 +104,7 @@ func (tx *flowTx) startReadyPendingSteps() error {
 			break
 		}
 
-		if !startedAny || flowTransitions.IsTerminal(tx.Value().Status) {
+		if !startedAny || policy.FlowTerminal(tx.Value().Status) {
 			return nil
 		}
 	}

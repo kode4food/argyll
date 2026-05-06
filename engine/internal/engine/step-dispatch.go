@@ -6,6 +6,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -81,7 +82,7 @@ func (e *Engine) findDispatchSteps(state api.FlowState) util.Set[api.StepID] {
 	now := e.Now()
 
 	for sid, ex := range state.Executions {
-		if ex.Status != api.StepActive {
+		if !policy.StepActive(ex.Status) {
 			continue
 		}
 		step, ok := state.Plan.Steps[sid]
@@ -99,13 +100,13 @@ func (e *Engine) findDispatchSteps(state api.FlowState) util.Set[api.StepID] {
 func hasReadyPendingDispatch(
 	step *api.Step, ex api.ExecutionState, now time.Time,
 ) bool {
-	limit := stepParallelism(step)
-	if countActiveWorkItems(ex.WorkItems) >= limit {
+	limit := policy.StepParallelism(step)
+	if policy.CountActiveWorkItems(ex.WorkItems) >= limit {
 		return false
 	}
 
 	for _, work := range ex.WorkItems {
-		if work.Status != api.WorkPending {
+		if !policy.WorkPending(work.Status) {
 			continue
 		}
 		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
@@ -134,7 +135,7 @@ func (e *Engine) dispatch(fs api.FlowStep) error {
 
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
-		if fl.ID == "" || flowTransitions.IsTerminal(fl.Status) {
+		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
 			return nil
 		}
 		if !fl.DeactivatedAt.IsZero() {
@@ -142,7 +143,7 @@ func (e *Engine) dispatch(fs api.FlowStep) error {
 		}
 
 		ex := fl.Executions[fs.StepID]
-		if ex.Status != api.StepActive {
+		if !policy.StepActive(ex.Status) {
 			return nil
 		}
 

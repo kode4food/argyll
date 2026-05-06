@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -19,7 +20,7 @@ func (e *Engine) collectStepOutputs(
 ) api.Args {
 	completed := make([]api.WorkState, 0, len(items))
 	for _, work := range items {
-		if work.Status == api.WorkSucceeded {
+		if policy.WorkSucceeded(work.Status) {
 			completed = append(completed, work)
 		}
 	}

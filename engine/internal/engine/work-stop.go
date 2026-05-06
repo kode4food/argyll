@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -138,7 +139,7 @@ func (tx *flowTx) checkWorkTransition(
 		return fmt.Errorf("%w: %s", ErrWorkItemNotFound, tkn)
 	}
 
-	if !workTransitions.CanTransition(work.Status, toStatus) {
+	if !policy.WorkCanTransition(work.Status, toStatus) {
 		return fmt.Errorf("%w: %s -> %s", ErrInvalidWorkTransition,
 			work.Status, toStatus)
 	}
@@ -147,7 +148,7 @@ func (tx *flowTx) checkWorkTransition(
 }
 
 func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
-	if flowTransitions.IsTerminal(tx.Value().Status) {
+	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.handleTerminalWork(stepID)
 	}
 
@@ -176,7 +177,7 @@ func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
 func (tx *flowTx) handleWorkNotCompleted(
 	stepID api.StepID, tkn api.Token,
 ) error {
-	if flowTransitions.IsTerminal(tx.Value().Status) {
+	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.maybeDeactivate()
 	}
 	return call.Perform(

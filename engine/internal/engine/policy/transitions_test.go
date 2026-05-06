@@ -1,11 +1,11 @@
-package engine_test
+package policy_test
 
 import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -19,7 +19,7 @@ const (
 )
 
 func TestCanTransition(t *testing.T) {
-	transitions := engine.StateTransitions[TestState]{
+	transitions := policy.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
 		StateRunning:  util.SetOf(StateComplete, StateFailed),
 		StateComplete: {},
@@ -39,7 +39,7 @@ func TestCanTransition(t *testing.T) {
 }
 
 func TestIsTerminal(t *testing.T) {
-	transitions := engine.StateTransitions[TestState]{
+	transitions := policy.StateTransitions[TestState]{
 		StateInit:     util.SetOf(StateRunning, StateFailed),
 		StateRunning:  util.SetOf(StateComplete, StateFailed),
 		StateComplete: {},

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -111,7 +112,8 @@ func (e *Engine) HasInputProvider(name api.Name, flow api.FlowState) bool {
 
 func (e *Engine) isFlowComplete(flow api.FlowState) bool {
 	for sid := range flow.Plan.Steps {
-		if !e.isStepComplete(sid, flow) {
+		ex := flow.Executions[sid]
+		if !policy.StepComplete(ex.Status) {
 			return false
 		}
 	}
@@ -126,15 +128,10 @@ func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
 	return needsOutputs(plan.Steps[stepID], flow)
 }
 
-func (e *Engine) isStepComplete(stepID api.StepID, flow api.FlowState) bool {
-	ex := flow.Executions[stepID]
-	return ex.Status == api.StepCompleted || ex.Status == api.StepSkipped
-}
-
 func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	ex := flow.Executions[stepID]
-	if stepTransitions.IsTerminal(ex.Status) {
-		return ex.Status == api.StepCompleted
+	if policy.StepTerminal(ex.Status) {
+		return policy.StepSucceeded(ex.Status)
 	}
 
 	step := flow.Plan.Steps[stepID]
@@ -176,7 +173,7 @@ func needsOutput(
 	hasValue := len(flow.AttributeValues(name)) > 0
 	for _, sid := range deps.Consumers {
 		ex, ok := flow.Executions[sid]
-		if !ok || ex.Status != api.StepPending {
+		if !ok || !policy.StepPending(ex.Status) {
 			continue
 		}
 		consumer := flow.Plan.Steps[sid]
@@ -184,11 +181,9 @@ func needsOutput(
 		if input == nil {
 			continue
 		}
-		if input.InputCollect() == api.InputCollectAll &&
-			!canCollectAll(name, flow) {
-			continue
-		}
-		if !hasValue || input.InputCollect() != api.InputCollectFirst {
+		if policy.ProviderOutputNeeded(
+			input.InputCollect(), hasValue, canCollectAll(name, flow),
+		) {
 			return true
 		}
 	}
@@ -202,10 +197,10 @@ func canCollectAll(name api.Name, flow api.FlowState) bool {
 	}
 	for _, sid := range deps.Providers {
 		ex, ok := flow.Executions[sid]
-		if !ok || !stepTransitions.IsTerminal(ex.Status) {
+		if !ok || !policy.StepTerminal(ex.Status) {
 			continue
 		}
-		if ex.Status != api.StepCompleted || !hasValueFrom(flow, name, sid) {
+		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(flow, name, sid) {
 			return false
 		}
 	}
@@ -215,16 +210,12 @@ func canCollectAll(name api.Name, flow api.FlowState) bool {
 func hasActiveWork(flow api.FlowState) bool {
 	for _, ex := range flow.Executions {
 		for _, work := range ex.WorkItems {
-			if isWorkActive(work.Status) {
+			if policy.WorkBlocksFlowDeactivation(work.Status) {
 				return true
 			}
 		}
 	}
 	return false
-}
-
-func isWorkActive(status api.WorkStatus) bool {
-	return status == api.WorkPending || status == api.WorkActive
 }
 
 func isOutputAttribute(step *api.Step, name api.Name) bool {

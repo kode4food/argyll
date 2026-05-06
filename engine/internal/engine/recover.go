@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"time"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -50,7 +50,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 		return err
 	}
 
-	if flowTransitions.IsTerminal(fl.Status) {
+	if policy.FlowTerminal(fl.Status) {
 		return nil
 	}
 
@@ -67,7 +67,7 @@ func (e *Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
 
 	for sid, ex := range state.Executions {
 		for _, work := range ex.WorkItems {
-			if !isRecoverable(ex, work) {
+			if !policy.Recoverable(ex, work) {
 				continue
 			}
 			steps.Add(sid)
@@ -92,7 +92,7 @@ func (e *Engine) recoverRetries(flow api.FlowState) {
 	for sid := range steps {
 		ex := flow.Executions[sid]
 		for tkn, work := range ex.WorkItems {
-			retryAt, ok := recoverableDeadline(ex, work, now)
+			retryAt, ok := policy.RecoverableDeadline(ex, work, now)
 			if !ok {
 				continue
 			}
@@ -138,45 +138,5 @@ func (e *Engine) recoverFlows(ids []api.FlowID) {
 				log.FlowID(id),
 				log.Error(err))
 		}
-	}
-}
-
-func isRecoverable(exec api.ExecutionState, work api.WorkState) bool {
-	switch work.Status {
-	case api.WorkActive, api.WorkNotCompleted:
-		return true
-	case api.WorkPending:
-		if exec.Status == api.StepActive {
-			return true
-		}
-		return !work.NextRetryAt.IsZero()
-	case api.WorkFailed:
-		return !work.NextRetryAt.IsZero()
-	default:
-		return false
-	}
-}
-
-func recoverableDeadline(
-	exec api.ExecutionState, work api.WorkState, now time.Time,
-) (time.Time, bool) {
-	switch work.Status {
-	case api.WorkActive, api.WorkNotCompleted:
-		return now, true
-	case api.WorkPending:
-		if !work.NextRetryAt.IsZero() {
-			return work.NextRetryAt, true
-		}
-		if exec.Status == api.StepActive {
-			return now, true
-		}
-		return time.Time{}, false
-	case api.WorkFailed:
-		if !work.NextRetryAt.IsZero() {
-			return work.NextRetryAt, true
-		}
-		return time.Time{}, false
-	default:
-		return time.Time{}, false
 	}
 }

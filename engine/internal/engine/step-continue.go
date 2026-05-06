@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -13,7 +14,7 @@ func (e *Engine) scheduleTimeouts(flow api.FlowState, now time.Time) {
 		return
 	}
 	e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
-	if flowTransitions.IsTerminal(flow.Status) {
+	if policy.FlowTerminal(flow.Status) {
 		return
 	}
 
@@ -25,7 +26,7 @@ func (e *Engine) scheduleTimeouts(flow api.FlowState, now time.Time) {
 func (e *Engine) scheduleConsumerTimeouts(
 	flow api.FlowState, producerID api.StepID, now time.Time,
 ) {
-	if flowTransitions.IsTerminal(flow.Status) {
+	if policy.FlowTerminal(flow.Status) {
 		if flowHasTimeouts(flow) {
 			e.CancelPrefixedTasks(timeoutFlowPrefix(flow.ID))
 		}
@@ -69,11 +70,11 @@ func (e *Engine) scheduleStepTimeouts(
 		e.CancelPrefixedTasks(timeoutStepPrefix(fs))
 	}
 
-	if flowTransitions.IsTerminal(flow.Status) {
+	if policy.FlowTerminal(flow.Status) {
 		return
 	}
 	ex, ok := flow.Executions[stepID]
-	if !ok || ex.Status != api.StepPending {
+	if !ok || !policy.StepPending(ex.Status) {
 		return
 	}
 
@@ -124,12 +125,12 @@ func (e *Engine) scheduleTimeoutTask(
 func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
-		if flowTransitions.IsTerminal(fl.Status) {
+		if policy.FlowTerminal(fl.Status) {
 			return nil
 		}
 
 		ex, ok := fl.Executions[fs.StepID]
-		if !ok || ex.Status != api.StepPending {
+		if !ok || !policy.StepPending(ex.Status) {
 			return nil
 		}
 

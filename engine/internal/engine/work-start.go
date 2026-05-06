@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"time"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -54,7 +55,7 @@ func (tx *flowTx) executeStartedWork(
 
 func (e *ExecContext) executeWorkItems(items api.WorkItems) {
 	for tkn, work := range items {
-		if work.Status != api.WorkActive {
+		if !policy.WorkActive(work.Status) {
 			continue
 		}
 
@@ -214,13 +215,13 @@ func (e *ExecContext) updateScriptHealth(st api.HealthStatus, errMsg string) {
 func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {
 	sid := step.ID
 	ex := tx.Value().Executions[sid]
-	if ex.Status != api.StepActive {
+	if !policy.StepActive(ex.Status) {
 		return nil, fmt.Errorf("%w: expected %s to be active, got %s",
 			ErrInvariantViolated, sid, ex.Status)
 	}
 
-	limit := stepParallelism(step)
-	active := countActiveWorkItems(ex.WorkItems)
+	limit := policy.StepParallelism(step)
+	active := policy.CountActiveWorkItems(ex.WorkItems)
 	remaining := limit - active
 	if remaining <= 0 {
 		return nil, nil
@@ -274,7 +275,7 @@ func (tx *flowTx) startRetryWorkItem(
 ) (api.WorkItems, time.Time, error) {
 	sid := step.ID
 	ex := tx.Value().Executions[sid]
-	if ex.Status != api.StepActive {
+	if !policy.StepActive(ex.Status) {
 		return nil, time.Time{}, nil
 	}
 
@@ -285,23 +286,18 @@ func (tx *flowTx) startRetryWorkItem(
 
 	now := tx.Now()
 	shouldStart := false
-	switch work.Status {
-	case api.WorkPending:
-		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
-			return nil, work.NextRetryAt, nil
-		}
+	action, nextAt := policy.RetryStartDecision(work, now)
+	switch action {
+	case policy.RetryStartWait:
+		return nil, nextAt, nil
+	case policy.RetryStartCheckPending:
 		var err error
 		if shouldStart, err = tx.shouldStartRetryPending(
 			step, ex.Inputs, work, ex.WorkItems, now,
 		); err != nil {
 			return nil, time.Time{}, err
 		}
-	case api.WorkFailed:
-		if work.NextRetryAt.IsZero() || work.NextRetryAt.After(now) {
-			return nil, work.NextRetryAt, nil
-		}
-		shouldStart = true
-	case api.WorkActive, api.WorkNotCompleted:
+	case policy.RetryStartNow:
 		shouldStart = true
 	default:
 		return nil, time.Time{}, nil
@@ -324,7 +320,7 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 	step *api.Step, base api.Args, work api.WorkState, now time.Time,
 ) (bool, error) {
 	sid := step.ID
-	if work.Status != api.WorkPending {
+	if !policy.WorkPending(work.Status) {
 		return false, nil
 	}
 	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
@@ -346,8 +342,8 @@ func (tx *flowTx) shouldStartRetryPending(
 	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
 		return false, nil
 	}
-	limit := stepParallelism(step)
-	active := countActiveWorkItems(items)
+	limit := policy.StepParallelism(step)
+	active := policy.CountActiveWorkItems(items)
 	if active >= limit {
 		return false, nil
 	}
@@ -370,21 +366,4 @@ func (tx *flowTx) raiseWorkStarted(
 			Inputs: inputs,
 		},
 	)
-}
-
-func stepParallelism(step *api.Step) int {
-	if step.WorkConfig == nil || step.WorkConfig.Parallelism <= 0 {
-		return 1
-	}
-	return step.WorkConfig.Parallelism
-}
-
-func countActiveWorkItems(items api.WorkItems) int {
-	active := 0
-	for _, work := range items {
-		if work.Status == api.WorkActive {
-			active++
-		}
-	}
-	return active
 }
