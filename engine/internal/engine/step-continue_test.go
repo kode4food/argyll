@@ -1,7 +1,6 @@
 package engine_test
 
 import (
-	"sync"
 	"testing"
 	"time"
 
@@ -49,12 +48,6 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
 
 		releaseProvider := make(chan struct{})
-		var releaseOnce sync.Once
-		t.Cleanup(func() {
-			releaseOnce.Do(func() {
-				close(releaseProvider)
-			})
-		})
 		env.MockClient.SetHandler(provider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseProvider
@@ -103,9 +96,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, "fallback", fl.Executions[consumer.ID].Inputs["opt"])
 
-		releaseOnce.Do(func() {
-			close(releaseProvider)
-		})
+		close(releaseProvider)
 		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
@@ -272,12 +263,6 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(strict))
 
 		releaseProvider := make(chan struct{})
-		var releaseOnce sync.Once
-		t.Cleanup(func() {
-			releaseOnce.Do(func() {
-				close(releaseProvider)
-			})
-		})
 		env.MockClient.SetHandler(provider.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseProvider
@@ -339,9 +324,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			t.Fatalf("timed optional default leaked into flow attributes")
 		}
 
-		releaseOnce.Do(func() {
-			close(releaseProvider)
-		})
+		close(releaseProvider)
 		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, "real", fl.Executions[strict.ID].Inputs["opt"])
@@ -513,12 +496,6 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		assert.NoError(t, env.Engine.RegisterStep(orderCreator))
 
 		releaseGate := make(chan struct{})
-		var releaseOnce sync.Once
-		t.Cleanup(func() {
-			releaseOnce.Do(func() {
-				close(releaseGate)
-			})
-		})
 		env.MockClient.SetHandler(gate.ID,
 			func(*api.Step, api.Args, api.Metadata) (api.Args, error) {
 				<-releaseGate
@@ -579,9 +556,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			"guest", fl.Executions[orderCreator.ID].Inputs["user_info"],
 		)
 
-		releaseOnce.Do(func() {
-			close(releaseGate)
-		})
+		close(releaseGate)
 		fl = env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 	})
