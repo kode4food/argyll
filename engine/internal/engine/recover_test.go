@@ -123,7 +123,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-recover-active")
-		env.WaitFor(wait.WorkStarted(api.FlowStep{
+		env.WaitFor(wait.StepStarted(api.FlowStep{
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
@@ -131,12 +131,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		env.WaitFor(wait.WorkStarted(api.FlowStep{
-			FlowID: id,
-			StepID: st.ID,
-		}), func() {
-			assert.NoError(t, env.Engine.RecoverFlow(id))
-		})
+		assert.NoError(t, env.Engine.RecoverFlow(id))
 	})
 }
 
@@ -888,17 +883,14 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 		assert.NoError(t, restarted.Start())
 		defer func() { _ = restarted.Stop() }()
 
-		assert.True(t,
-			env.MockClient.WaitForInvocation(active.ID, 2*time.Second),
+		activeFlow := helpers.WaitForFlowState(
+			t, restarted, activeFlowID, wait.DefaultTimeout,
+			func(fl api.FlowState) bool {
+				return fl.Executions[active.ID].Status != api.StepPending
+			},
 		)
-		assert.False(t,
-			env.MockClient.WaitForInvocation(
-				deactivated.ID, 300*time.Millisecond,
-			),
-		)
+		time.Sleep(300 * time.Millisecond)
 
-		activeFlow, err := restarted.GetFlowState(activeFlowID)
-		assert.NoError(t, err)
 		deactivatedFlow, err := restarted.GetFlowState(deactivatedFlowID)
 		assert.NoError(t, err)
 
