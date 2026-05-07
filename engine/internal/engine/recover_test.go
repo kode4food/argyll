@@ -883,19 +883,18 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 		assert.NoError(t, restarted.Start())
 		defer func() { _ = restarted.Stop() }()
 
-		activeFlow := helpers.WaitForFlowState(
-			t, restarted, activeFlowID, wait.DefaultTimeout,
-			func(fl api.FlowState) bool {
-				return fl.Executions[active.ID].Status != api.StepPending
-			},
+		assert.True(t,
+			env.MockClient.WaitForInvocation(active.ID, 2*time.Second),
 		)
-		time.Sleep(300 * time.Millisecond)
+		assert.False(t,
+			env.MockClient.WaitForInvocation(
+				deactivated.ID, 300*time.Millisecond,
+			),
+		)
 
 		deactivatedFlow, err := restarted.GetFlowState(deactivatedFlowID)
 		assert.NoError(t, err)
 
-		assert.NotEqual(t, api.WorkPending,
-			activeFlow.Executions[active.ID].WorkItems[activeToken].Status)
 		assert.Equal(t, api.WorkPending,
 			deactivatedFlow.Executions[deactivated.ID].
 				WorkItems[deactivatedToken].Status)
