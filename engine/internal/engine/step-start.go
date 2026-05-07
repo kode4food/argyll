@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -92,33 +91,6 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		},
 	); err != nil {
 		return err
-	}
-
-	started, err := tx.startPendingWork(st)
-	if err != nil {
-		return err
-	}
-
-	ex = tx.Value().Executions[stepID]
-	if hasReadyPendingDispatch(st, ex, tx.Now()) &&
-		!tx.canDispatchLocally(st.ID) {
-		if err := tx.raiseDispatchDeferred(st.ID); err != nil {
-			return err
-		}
-	}
-
-	if len(started) > 0 {
-		tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-			if stepHasTimeouts(st) {
-				tx.CancelPrefixedTasks(
-					timeoutStepPrefix(api.FlowStep{
-						FlowID: tx.flowID,
-						StepID: st.ID,
-					}),
-				)
-			}
-			tx.executeStartedWork(st, inputs, flow.Metadata, started)
-		})
 	}
 
 	return nil

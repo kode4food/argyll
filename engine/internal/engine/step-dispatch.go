@@ -17,15 +17,24 @@ const stepDispatchBackoff = 1 * time.Second
 
 func (e *Engine) HandleCommitted(evs ...*timebox.Event) {
 	for _, ev := range evs {
-		if ev.Raised {
-			continue
-		}
 		e.handleCommitted(ev)
 	}
 }
 
 func (e *Engine) handleCommitted(ev *timebox.Event) {
 	switch api.EventType(ev.Type) {
+	case api.EventTypeStepStarted:
+		data, err := timebox.GetEventValue[api.StepStartedEvent](ev)
+		if err != nil {
+			slog.Error("Failed to decode step started event",
+				log.Error(err))
+			return
+		}
+		fs := api.FlowStep{
+			FlowID: data.FlowID,
+			StepID: data.StepID,
+		}
+		e.scheduleDispatchNow(fs)
 	case api.EventTypeDispatchDeferred:
 		data, err := timebox.GetEventValue[api.DispatchDeferredEvent](ev)
 		if err != nil {
@@ -38,10 +47,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 			FlowID: data.FlowID,
 			StepID: data.StepID,
 		}
-		if !e.canDispatchLocally(fs.StepID) {
-			return
-		}
-		e.scheduleDispatch(fs, e.Now())
+		e.scheduleDispatchNow(fs)
 	case api.EventTypeRetryScheduled:
 		data, err := timebox.GetEventValue[api.RetryScheduledEvent](ev)
 		if err != nil {
@@ -116,6 +122,13 @@ func hasReadyPendingDispatch(
 	}
 
 	return false
+}
+
+func (e *Engine) scheduleDispatchNow(fs api.FlowStep) {
+	if !e.canDispatchLocally(fs.StepID) {
+		return
+	}
+	e.scheduleDispatch(fs, e.Now())
 }
 
 func (e *Engine) scheduleDispatch(fs api.FlowStep, at time.Time) {

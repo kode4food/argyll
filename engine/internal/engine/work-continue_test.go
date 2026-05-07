@@ -111,7 +111,7 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 		}
 
 		env.WaitFor(
-			wait.WorkStarted(api.FlowStep{FlowID: id, StepID: st.ID}),
+			wait.WorkSucceeded(api.FlowStep{FlowID: id, StepID: st.ID}),
 			func() {
 				assert.NoError(t, env.RaiseFlowEvents(
 					id,

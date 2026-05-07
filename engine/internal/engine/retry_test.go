@@ -301,11 +301,12 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		}
 		deps := env.Dependencies()
 		deps.StepClient = client.NewHTTPClient(5 * time.Second)
-		eng, err := engine.New(cfg, deps)
+		eng, unsubscribe, err := env.NewEngineWithConfig(cfg, deps)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, eng) {
 			return
 		}
+		defer unsubscribe()
 		defer func() { assert.NoError(t, eng.Stop()) }()
 
 		assert.NoError(t, eng.Start())

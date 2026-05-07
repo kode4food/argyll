@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -78,15 +79,17 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-default")
-		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.InitArgs{"seed": {"x"}}),
-		))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: provider.ID},
+			api.FlowStep{FlowID: id, StepID: consumer.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"seed": {"x"}}),
+			))
+		})
 
 		assert.True(t,
 			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
-		)
-		assert.True(t,
-			env.MockClient.WaitForInvocation(consumer.ID, 500*time.Millisecond),
 		)
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -297,15 +300,17 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-local")
-		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.InitArgs{"seed": {"x"}}),
-		))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: provider.ID},
+			api.FlowStep{FlowID: id, StepID: fast.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"seed": {"x"}}),
+			))
+		})
 
 		assert.True(t,
 			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
-		)
-		assert.True(t,
-			env.MockClient.WaitForInvocation(fast.ID, 500*time.Millisecond),
 		)
 		assert.False(t,
 			env.MockClient.WaitForInvocation(strict.ID, 120*time.Millisecond),
@@ -529,9 +534,14 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-step-ready")
-		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.InitArgs{"product_info": {"real-product"}}),
-		))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: gate.ID},
+			api.FlowStep{FlowID: id, StepID: orderCreator.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"product_info": {"real-product"}}),
+			))
+		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
 			gate.ID, 500*time.Millisecond,
@@ -539,10 +549,6 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		assert.False(t, env.MockClient.WaitForInvocation(
 			userProvider.ID, 120*time.Millisecond,
 		))
-		assert.True(t, env.MockClient.WaitForInvocation(
-			orderCreator.ID, 500*time.Millisecond,
-		))
-
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t,

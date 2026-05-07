@@ -235,6 +235,7 @@ func TestNoTimeoutTasks(t *testing.T) {
 			flow.WithInit(api.InitArgs{"input": {"ok"}}),
 		))
 
+		assert.Equal(t, time.Duration(0), timer.WaitReset(t))
 		assertFlowEventuallyCompleted(t, eng, id)
 		assertNoSchedulerResets(t, timer)
 	})

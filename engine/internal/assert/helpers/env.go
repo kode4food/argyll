@@ -206,6 +206,7 @@ func NewTestEngineWithDeps(
 		unsubs:     &unsubscribeTracker{},
 		ownsHub:    ownsHub,
 	}
+	testEnv.trackUnsubscribe(testEnv.SubscribeCommitted(eng.HandleCommitted))
 
 	testEnv.Cleanup = func() {
 		_ = testEnv.Engine.Stop()

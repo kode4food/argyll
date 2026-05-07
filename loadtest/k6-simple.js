@@ -51,7 +51,7 @@ export default function (data) {
     JSON.stringify({
       id: flowId,
       goals: [data.stepId],
-      init: { input: 'test' },
+      init: { input: ['test'] },
     }),
     {
       headers: { 'Content-Type': 'application/json' },

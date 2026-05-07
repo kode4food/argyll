@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
+	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
@@ -34,6 +35,8 @@ func TestStartDuplicate(t *testing.T) {
 
 func TestStartFlowSchedulesWork(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
 		st := helpers.NewSimpleStep("step-start")
 		st.Type = api.StepTypeAsync
 		st.HTTP.Timeout = 30 * api.Second
@@ -46,10 +49,16 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err = env.Engine.StartFlow("wf-start", pl)
-		assert.NoError(t, err)
+		id := api.FlowID("wf-start")
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}), func() {
+			err = env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
 
-		fl, err := env.Engine.GetFlowState("wf-start")
+		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 
 		ex := fl.Executions[st.ID]
