@@ -579,9 +579,14 @@ func TestRecoverFlowsFromIndex(t *testing.T) {
 		assert.NoError(t, err)
 
 		env.MockClient.SetResponse(st.ID, api.Args{})
-		assert.NoError(t, env.Engine.Start())
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}), func() {
+			assert.NoError(t, env.Engine.Start())
+		})
 
-		invoked := env.MockClient.WaitForInvocation(st.ID, 2*time.Second)
+		invoked := env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout)
 		assert.True(t, invoked)
 
 		fl, err := env.Engine.GetFlowState(id)
@@ -641,9 +646,14 @@ func TestRecoverEarlyRetry(t *testing.T) {
 
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		assert.NoError(t, env.Engine.Start())
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}), func() {
+			assert.NoError(t, env.Engine.Start())
+		})
 
-		invoked := env.MockClient.WaitForInvocation(st.ID, 2*time.Second)
+		invoked := env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout)
 		assert.True(t, invoked)
 
 		fl := env.WaitForTerminalFlow(id)
@@ -808,7 +818,6 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 
 func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
 		now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 
 		activeFlowID := api.FlowID("recover-active")
@@ -880,11 +889,16 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 
 		restarted, err := env.NewEngineInstance()
 		assert.NoError(t, err)
-		assert.NoError(t, restarted.Start())
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
+			FlowID: activeFlowID,
+			StepID: active.ID,
+		}), func() {
+			assert.NoError(t, restarted.Start())
+		})
 		defer func() { _ = restarted.Stop() }()
 
 		assert.True(t,
-			env.MockClient.WaitForInvocation(active.ID, 2*time.Second),
+			env.MockClient.WaitForInvocation(active.ID, wait.DefaultTimeout),
 		)
 		assert.False(t,
 			env.MockClient.WaitForInvocation(

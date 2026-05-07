@@ -50,7 +50,7 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-start")
-		env.WaitFor(wait.StepStarted(api.FlowStep{
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
@@ -64,6 +64,9 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 		ex := fl.Executions[st.ID]
 		assert.Equal(t, api.StepActive, ex.Status)
 		assert.Len(t, ex.WorkItems, 1)
+		for _, item := range ex.WorkItems {
+			assert.Equal(t, api.WorkActive, item.Status)
+		}
 	})
 }
 

@@ -79,7 +79,7 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-default")
-		env.WaitForCount(2, wait.StepStarted(
+		env.WaitForCount(2, wait.WorkStarted(
 			api.FlowStep{FlowID: id, StepID: provider.ID},
 			api.FlowStep{FlowID: id, StepID: consumer.ID},
 		), func() {
@@ -300,7 +300,7 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-local")
-		env.WaitForCount(2, wait.StepStarted(
+		env.WaitForCount(2, wait.WorkStarted(
 			api.FlowStep{FlowID: id, StepID: provider.ID},
 			api.FlowStep{FlowID: id, StepID: fast.ID},
 		), func() {
@@ -535,7 +535,7 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-step-ready")
-		env.WaitForCount(2, wait.StepStarted(
+		env.WaitForCount(2, wait.WorkStarted(
 			api.FlowStep{FlowID: id, StepID: gate.ID},
 			api.FlowStep{FlowID: id, StepID: orderCreator.ID},
 		), func() {

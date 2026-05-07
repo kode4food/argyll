@@ -160,10 +160,15 @@ func TestAsyncMetadata(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		err := env.Engine.StartFlow("wf-async-meta", pl,
-			flow.WithMetadata(flowMetadata),
-		)
-		assert.NoError(t, err)
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
+			FlowID: "wf-async-meta",
+			StepID: st.ID,
+		}), func() {
+			err := env.Engine.StartFlow("wf-async-meta", pl,
+				flow.WithMetadata(flowMetadata),
+			)
+			assert.NoError(t, err)
+		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
 			st.ID, wait.DefaultTimeout,
