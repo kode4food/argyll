@@ -193,9 +193,14 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-zero")
-		assert.NoError(t, env.Engine.StartFlow(id, pl,
-			flow.WithInit(api.InitArgs{"seed": {"x"}}),
-		))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: provider.ID},
+			api.FlowStep{FlowID: id, StepID: consumer.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"seed": {"x"}}),
+			))
+		})
 
 		assert.True(t,
 			env.MockClient.WaitForInvocation(provider.ID, 500*time.Millisecond),
@@ -416,7 +421,12 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-waits-required")
-		assert.NoError(t, env.Engine.StartFlow(id, pl))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: userProvider.ID},
+			api.FlowStep{FlowID: id, StepID: productProvider.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
 			userProvider.ID, 500*time.Millisecond,
@@ -644,7 +654,12 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-after-requireds")
-		assert.NoError(t, env.Engine.StartFlow(id, pl))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: reqProvider.ID},
+			api.FlowStep{FlowID: id, StepID: optProvider.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
 
 		assert.True(t, env.MockClient.WaitForInvocation(
 			reqProvider.ID, 500*time.Millisecond,

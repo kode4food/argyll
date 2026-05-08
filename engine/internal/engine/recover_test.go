@@ -123,7 +123,7 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-recover-active")
-		env.WaitFor(wait.StepStarted(api.FlowStep{
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
 			FlowID: id,
 			StepID: st.ID,
 		}), func() {
@@ -131,7 +131,12 @@ func TestRecoverActiveWorkStartsRetry(t *testing.T) {
 			assert.NoError(t, err)
 		})
 
-		assert.NoError(t, env.Engine.RecoverFlow(id))
+		env.WaitFor(wait.WorkStarted(api.FlowStep{
+			FlowID: id,
+			StepID: st.ID,
+		}), func() {
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+		})
 	})
 }
 
@@ -905,6 +910,11 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 				deactivated.ID, 300*time.Millisecond,
 			),
 		)
+
+		activeFlow, err := restarted.GetFlowState(activeFlowID)
+		assert.NoError(t, err)
+		assert.NotEqual(t, api.WorkPending,
+			activeFlow.Executions[active.ID].WorkItems[activeToken].Status)
 
 		deactivatedFlow, err := restarted.GetFlowState(deactivatedFlowID)
 		assert.NoError(t, err)
