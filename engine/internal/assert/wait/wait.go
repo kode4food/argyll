@@ -176,33 +176,35 @@ func StepTerminal(steps ...api.FlowStep) EventFilter {
 
 // WorkStarted matches work started events for the provided flow steps
 func WorkStarted(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkStarted), FlowSteps(steps...))
+	return And(Type(api.EventTypeWorkStarted), FlowStepAny(steps...))
+}
+
+// WorkStartedAny matches repeated work started events for flow steps
+func WorkStartedAny(steps ...api.FlowStep) EventFilter {
+	return WorkStarted(steps...)
 }
 
 // WorkSucceeded matches work succeeded events for the provided flow steps
 func WorkSucceeded(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkSucceeded), FlowSteps(steps...))
+	return And(Type(api.EventTypeWorkSucceeded), FlowStepAny(steps...))
 }
 
 // WorkFailed matches work failed events for the provided flow steps
 func WorkFailed(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkFailed), FlowSteps(steps...))
+	return And(Type(api.EventTypeWorkFailed), FlowStepAny(steps...))
 }
 
 // WorkRetryScheduled matches retry scheduled events for flow steps
 func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(
 		Type(api.EventTypeRetryScheduled),
-		FlowSteps(steps...),
+		FlowStepAny(steps...),
 	)
 }
 
 // WorkRetryScheduledAny matches retry scheduled events for flow steps
 func WorkRetryScheduledAny(steps ...api.FlowStep) EventFilter {
-	return And(
-		Type(api.EventTypeRetryScheduled),
-		FlowStepAny(steps...),
-	)
+	return WorkRetryScheduled(steps...)
 }
 
 // FlowID matches events for the provided flow ID

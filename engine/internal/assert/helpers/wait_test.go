@@ -321,13 +321,11 @@ func TestWaitFlowStatusTerminal(t *testing.T) {
 		}
 
 		id := api.FlowID("test-flow-polling")
-		env.WaitForStepStarted(
-			api.FlowStep{FlowID: id, StepID: st.ID},
-			func() {
-				err = env.Engine.StartFlow(id, pl)
-				assert.NoError(t, err)
-			},
-		)
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		env.WaitFor(wait.WorkRetryScheduledAny(fs), func() {
+			err = env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
 
 		fl := env.WaitForFlowStatus(id, func() {
 			env.MockClient.ClearError(st.ID)

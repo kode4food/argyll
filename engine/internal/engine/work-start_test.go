@@ -3,6 +3,7 @@ package engine_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -138,6 +139,42 @@ func TestDispatchOnHealthyPeer(t *testing.T) {
 
 		ex := fl.Executions[st.ID]
 		assert.Len(t, ex.WorkItems, 1)
+	})
+}
+
+func TestDispatchAfterHealthRecovery(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("recovering-health-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		assert.NoError(t, env.Engine.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "service down",
+		))
+
+		id := api.FlowID("wf-health-recovers")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		env.WaitFor(wait.StepStarted(fs), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+		assert.False(t,
+			env.MockClient.WaitForInvocation(st.ID, 120*time.Millisecond),
+		)
+
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.UpdateStepHealth(
+				st.ID, api.HealthHealthy, "",
+			))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+		assert.True(t, env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout))
 	})
 }
 

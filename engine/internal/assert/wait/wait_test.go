@@ -220,6 +220,8 @@ func TestWrapperFilters(t *testing.T) {
 	assert.True(t, wait.StepStarted(fs)(stepEv(api.EventTypeStepStarted)))
 	assert.True(t, wait.StepTerminal(fs)(stepEv(api.EventTypeStepCompleted)))
 	assert.True(t, wait.WorkStarted(fs)(stepEv(api.EventTypeWorkStarted)))
+	assert.True(t, wait.WorkStartedAny(fs)(stepEv(api.EventTypeWorkStarted)))
+	assert.True(t, wait.WorkStartedAny(fs)(stepEv(api.EventTypeWorkStarted)))
 	assert.True(t, wait.WorkSucceeded(fs)(stepEv(api.EventTypeWorkSucceeded)))
 	assert.True(t, wait.WorkFailed(fs)(stepEv(api.EventTypeWorkFailed)))
 	assert.True(t, wait.WorkRetryScheduled(fs)(

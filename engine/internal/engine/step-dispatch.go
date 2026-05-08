@@ -34,7 +34,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 			FlowID: data.FlowID,
 			StepID: data.StepID,
 		}
-		e.scheduleDispatchNow(fs)
+		e.scheduleDispatch(fs, e.Now())
 	case api.EventTypeDispatchDeferred:
 		data, err := timebox.GetEventValue[api.DispatchDeferredEvent](ev)
 		if err != nil {
@@ -47,7 +47,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 			FlowID: data.FlowID,
 			StepID: data.StepID,
 		}
-		e.scheduleDispatchNow(fs)
+		e.scheduleDispatch(fs, e.Now())
 	case api.EventTypeRetryScheduled:
 		data, err := timebox.GetEventValue[api.RetryScheduledEvent](ev)
 		if err != nil {
@@ -124,13 +124,6 @@ func hasReadyPendingDispatch(
 	return false
 }
 
-func (e *Engine) scheduleDispatchNow(fs api.FlowStep) {
-	if !e.canDispatchLocally(fs.StepID) {
-		return
-	}
-	e.scheduleDispatch(fs, e.Now())
-}
-
 func (e *Engine) scheduleDispatch(fs api.FlowStep, at time.Time) {
 	e.ScheduleTask(dispatchKey(fs), at, func() error {
 		err := e.dispatch(fs)
@@ -142,10 +135,6 @@ func (e *Engine) scheduleDispatch(fs api.FlowStep, at time.Time) {
 }
 
 func (e *Engine) dispatch(fs api.FlowStep) error {
-	var inputs api.Args
-	var step *api.Step
-	var meta api.Metadata
-
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
 		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
@@ -160,12 +149,15 @@ func (e *Engine) dispatch(fs api.FlowStep) error {
 			return nil
 		}
 
-		step = fl.Plan.Steps[fs.StepID]
+		step := fl.Plan.Steps[fs.StepID]
+		inputs := ex.Inputs
+		meta := fl.Metadata
 
-		inputs = ex.Inputs
-		meta = fl.Metadata
 		if hasReadyPendingDispatch(step, ex, tx.Now()) &&
 			!tx.canDispatchLocally(step.ID) {
+			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
+				tx.scheduleDispatch(fs, tx.Now().Add(stepDispatchBackoff))
+			})
 			return nil
 		}
 
