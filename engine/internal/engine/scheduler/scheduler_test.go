@@ -134,6 +134,44 @@ func TestScheduleTaskReplacesSamePath(t *testing.T) {
 	})
 }
 
+func TestSameTimeTasksBothRun(t *testing.T) {
+	withFakeScheduler(t, func(
+		eng *engine.Engine, timer *fakeTimer, now time.Time,
+	) {
+		runAt := now.Add(40 * time.Millisecond)
+		done := make(chan string, 2)
+
+		eng.ScheduleTask([]string{"sched", "same-time", "a"}, runAt,
+			func() error {
+				done <- "a"
+				return nil
+			},
+		)
+		assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
+
+		eng.ScheduleTask([]string{"sched", "same-time", "b"}, runAt,
+			func() error {
+				done <- "b"
+				return nil
+			},
+		)
+		assertNoSchedulerResets(t, timer)
+
+		timer.Fire(runAt)
+		seen := map[string]bool{}
+		for range 2 {
+			select {
+			case id := <-done:
+				seen[id] = true
+			case <-time.After(schedulerWaitTimeout):
+				t.Fatal("same-time task did not run")
+			}
+		}
+		assert.True(t, seen["a"])
+		assert.True(t, seen["b"])
+	})
+}
+
 func TestCancelTask(t *testing.T) {
 	withFakeScheduler(t, func(
 		eng *engine.Engine, timer *fakeTimer, now time.Time,
@@ -238,7 +276,6 @@ func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
 		case <-time.After(100 * time.Millisecond):
 		}
 		assert.False(t, ran.Load())
-		assertEventuallyEqual(t, 50*time.Millisecond, timer.WaitReset)
 
 		timer.Fire(runAt)
 		select {

@@ -12,12 +12,12 @@ import (
 type (
 	// Scheduler runs delayed tasks and supports replacement and prefix cancel
 	Scheduler struct {
-		mu         sync.Mutex
-		cond       *sync.Cond
-		now        Clock
-		timer      Timer
-		timerFired bool
-		tasks      *TaskHeap
+		mu      sync.Mutex
+		cond    *sync.Cond
+		now     Clock
+		timer   Timer
+		timerAt time.Time
+		tasks   *TaskHeap
 	}
 
 	// TaskFunc is called when its run time arrives
@@ -90,7 +90,7 @@ func (s *Scheduler) Run(ctx context.Context) {
 			}
 			task := s.tasks.Peek()
 			if task.At.After(s.now()) {
-				if s.timerFired {
+				if !s.timerAt.Equal(task.At) {
 					s.resetTimer()
 				}
 				s.cond.Wait()
@@ -111,13 +111,13 @@ func (s *Scheduler) Run(ctx context.Context) {
 func (s *Scheduler) resetTimer() {
 	next := s.nextRunAt()
 	if next.IsZero() {
-		s.timerFired = false
+		s.timerAt = time.Time{}
 		s.timer.Stop()
 		return
 	}
 
+	s.timerAt = next
 	delay := max(next.Sub(s.now()), 0)
-	s.timerFired = delay == 0
 	s.timer.Reset(delay)
 }
 
@@ -159,7 +159,7 @@ func (s *Scheduler) signalTimer(ctx context.Context) {
 			return
 		case <-ch:
 			s.mu.Lock()
-			s.timerFired = true
+			s.timerAt = time.Time{}
 			s.cond.Signal()
 			s.mu.Unlock()
 		}
