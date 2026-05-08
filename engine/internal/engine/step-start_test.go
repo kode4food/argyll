@@ -135,7 +135,12 @@ func TestCollectLast(t *testing.T) {
 		)
 
 		id := api.FlowID("wf-collect-last")
-		assert.NoError(t, env.Engine.StartFlow(id, pl))
+		env.WaitForCount(2, wait.WorkStarted(
+			api.FlowStep{FlowID: id, StepID: providerA.ID},
+			api.FlowStep{FlowID: id, StepID: providerB.ID},
+		), func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
 		assert.True(t,
 			env.MockClient.WaitForInvocation(
 				providerA.ID, 500*time.Millisecond,
