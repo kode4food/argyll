@@ -11,6 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -44,20 +45,21 @@ func TestRetryPendingParallelism(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-retry-parallel")
-		fl := env.WaitForFlowStatus(id, func() {
-			env.WaitForCount(2, wait.WorkRetryScheduledDistinct(api.FlowStep{
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			err := env.Engine.StartFlow(id, pl,
+				flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
+			)
+			assert.NoError(t, err)
+			w.ForEvents(2, wait.WorkRetryScheduledDistinct(api.FlowStep{
 				FlowID: id,
 				StepID: st.ID,
-			}), func() {
-				err := env.Engine.StartFlow(id, pl,
-					flow.WithInit(api.InitArgs{"items": {[]any{"a", "b"}}}),
-				)
-				assert.NoError(t, err)
-			})
-
+			}))
 			env.MockClient.ClearError(st.ID)
 			env.MockClient.SetResponse(st.ID, api.Args{"result": "ok"})
+			w.ForEvent(wait.FlowTerminal(id))
 		})
+		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		ex := fl.Executions[st.ID]

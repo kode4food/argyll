@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -33,15 +34,19 @@ func TestIncompleteWorkFails(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-not-complete")
-		fl := env.WaitForFlowStatus(id, func() {
-			env.WaitFor(wait.WorkFailed(api.FlowStep{
-				FlowID: id,
-				StepID: st.ID,
-			}), func() {
-				err := env.Engine.StartFlow(id, pl)
-				assert.NoError(t, err)
-			})
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			err := env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+			w.ForAll(
+				wait.WorkFailed(api.FlowStep{
+					FlowID: id,
+					StepID: st.ID,
+				}),
+				wait.FlowTerminal(id),
+			)
 		})
+		fl := env.WaitForTerminalFlow(id)
 		assert.Equal(t, api.FlowFailed, fl.Status)
 
 		ex := fl.Executions[st.ID]
