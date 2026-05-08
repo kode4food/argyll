@@ -1,6 +1,7 @@
 package scheduler_test
 
 import (
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -17,12 +18,14 @@ import (
 type (
 	testTimerConstructor struct {
 		created chan *fakeTimer
+		advance func(time.Time)
 	}
 
 	fakeTimer struct {
 		ch      chan time.Time
 		resets  chan time.Duration
 		stops   chan struct{}
+		advance func(time.Time)
 		stopped atomic.Bool
 	}
 )
@@ -45,7 +48,7 @@ func TestScheduleTask(t *testing.T) {
 		)
 		delay := timer.WaitReset(t)
 		assert.Equal(t, 40*time.Millisecond, delay)
-		timer.Fire(now)
+		timer.Fire(now.Add(40 * time.Millisecond))
 
 		select {
 		case <-done:
@@ -57,21 +60,32 @@ func TestScheduleTask(t *testing.T) {
 
 func TestRunAfterSchedule(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	tc := newTestTimerConstructor()
-	s := scheduler.New(func() time.Time { return now }, tc.NewTimer)
+	var nowMu sync.Mutex
+	tc := newTestTimerConstructor(func(at time.Time) {
+		nowMu.Lock()
+		defer nowMu.Unlock()
+		now = at
+	})
+	clock := func() time.Time {
+		nowMu.Lock()
+		defer nowMu.Unlock()
+		return now
+	}
+	s := scheduler.New(clock, tc.NewTimer)
 	timer := tc.WaitTimer(t)
 	timer.DrainResets()
 	timer.DrainStops()
 
 	done := make(chan struct{}, 1)
-	s.Schedule([]string{"sched", "late-run"}, now.Add(40*time.Millisecond),
+	runAt := now.Add(40 * time.Millisecond)
+	s.Schedule([]string{"sched", "late-run"}, runAt,
 		func() error {
 			done <- struct{}{}
 			return nil
 		},
 	)
 	assert.Equal(t, 40*time.Millisecond, timer.WaitReset(t))
-	timer.Fire(now)
+	timer.Fire(runAt)
 
 	ctx := t.Context()
 	go s.Run(ctx)
@@ -108,7 +122,7 @@ func TestScheduleTaskReplacesSamePath(t *testing.T) {
 			},
 		)
 		assertEventuallyEqual(t, 40*time.Millisecond, timer.WaitReset)
-		timer.Fire(now)
+		timer.Fire(now.Add(40 * time.Millisecond))
 
 		select {
 		case <-secondDone:
@@ -138,7 +152,7 @@ func TestCancelTask(t *testing.T) {
 		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
 		eng.CancelTask(path)
 		timer.WaitStop(t)
-		timer.Fire(now)
+		timer.Fire(now.Add(100 * time.Millisecond))
 
 		select {
 		case <-done:
@@ -188,7 +202,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 
 		eng.CancelPrefixedTasks(cancelledPrefix)
 		assertEventuallyEqual(t, 100*time.Millisecond, timer.WaitReset)
-		timer.Fire(now)
+		timer.Fire(now.Add(100 * time.Millisecond))
 
 		select {
 		case <-activeDone:
@@ -197,6 +211,42 @@ func TestCancelPrefixedTasks(t *testing.T) {
 		}
 		assert.Equal(t, int32(0), cancelledRuns.Load())
 		assert.Equal(t, int32(1), activeRuns.Load())
+	})
+}
+
+func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
+	withFakeScheduler(t, func(
+		eng *engine.Engine, timer *fakeTimer, now time.Time,
+	) {
+		var ran atomic.Bool
+		done := make(chan struct{}, 1)
+		runAt := now.Add(100 * time.Millisecond)
+
+		eng.ScheduleTask([]string{"sched", "future"}, runAt,
+			func() error {
+				ran.Store(true)
+				done <- struct{}{}
+				return nil
+			},
+		)
+		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
+
+		timer.Fire(now.Add(50 * time.Millisecond))
+		select {
+		case <-done:
+			t.Fatal("future task ran before its scheduled time")
+		case <-time.After(100 * time.Millisecond):
+		}
+		assert.False(t, ran.Load())
+		assertEventuallyEqual(t, 50*time.Millisecond, timer.WaitReset)
+
+		timer.Fire(runAt)
+		select {
+		case <-done:
+		case <-time.After(schedulerWaitTimeout):
+			t.Fatal("future task did not run at its scheduled time")
+		}
+		assert.True(t, ran.Load())
 	})
 }
 
@@ -243,6 +293,7 @@ func TestNoTimeoutTasks(t *testing.T) {
 
 func (c *testTimerConstructor) NewTimer(delay time.Duration) scheduler.Timer {
 	timer := newFakeTimer(delay)
+	timer.advance = c.advance
 	select {
 	case c.created <- timer:
 	default:
@@ -283,6 +334,9 @@ func (t *fakeTimer) Stop() bool {
 func (t *fakeTimer) Fire(at time.Time) {
 	if t.stopped.Load() {
 		return
+	}
+	if t.advance != nil {
+		t.advance(at)
 	}
 	select {
 	case t.ch <- at:
@@ -371,9 +425,18 @@ func withFakeScheduler(
 ) {
 	t.Helper()
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
-	tc := newTestTimerConstructor()
+	var nowMu sync.Mutex
+	tc := newTestTimerConstructor(func(at time.Time) {
+		nowMu.Lock()
+		defer nowMu.Unlock()
+		now = at
+	})
 	helpers.WithEngineDeps(t, engine.Dependencies{
-		Clock:            func() time.Time { return now },
+		Clock: func() time.Time {
+			nowMu.Lock()
+			defer nowMu.Unlock()
+			return now
+		},
 		TimerConstructor: tc.NewTimer,
 	}, func(eng *engine.Engine) {
 		assert.NoError(t, eng.Start())
@@ -384,9 +447,14 @@ func withFakeScheduler(
 	})
 }
 
-func newTestTimerConstructor() *testTimerConstructor {
+func newTestTimerConstructor(advance ...func(time.Time)) *testTimerConstructor {
+	var fn func(time.Time)
+	if len(advance) > 0 {
+		fn = advance[0]
+	}
 	return &testTimerConstructor{
 		created: make(chan *fakeTimer, 1),
+		advance: fn,
 	}
 }
 

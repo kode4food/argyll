@@ -45,7 +45,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 
 		id := api.FlowID("wf-retry-parallel")
 		fl := env.WaitForFlowStatus(id, func() {
-			env.WaitForCount(2, wait.WorkRetryScheduledAny(api.FlowStep{
+			env.WaitForCount(2, wait.WorkRetryScheduledDistinct(api.FlowStep{
 				FlowID: id,
 				StepID: st.ID,
 			}), func() {

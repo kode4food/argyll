@@ -89,7 +89,10 @@ func (s *Scheduler) Run(ctx context.Context) {
 				continue
 			}
 			task := s.tasks.Peek()
-			if !s.timerFired && task.At.After(s.now()) {
+			if task.At.After(s.now()) {
+				if s.timerFired {
+					s.resetTimer()
+				}
 				s.cond.Wait()
 				continue
 			}

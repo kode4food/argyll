@@ -168,6 +168,15 @@ func TestWrapperFilters(t *testing.T) {
 			stepEvent{FlowID: fs.FlowID, StepID: fs.StepID},
 		)
 	}
+	workEv := func(typ api.EventType, tkn api.Token) *timebox.Event {
+		return newEvent(typ, events.FlowKey(id),
+			api.RetryScheduledEvent{
+				FlowID: fs.FlowID,
+				StepID: fs.StepID,
+				Token:  tkn,
+			},
+		)
+	}
 
 	assert.True(t, wait.EngineEvent(api.EventTypeStepHealthChanged)(
 		newEvent(api.EventTypeStepHealthChanged, events.ClusterKey,
@@ -233,6 +242,10 @@ func TestWrapperFilters(t *testing.T) {
 	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(
 		api.EventTypeRetryScheduled,
 	)))
+	distinct := wait.WorkRetryScheduledDistinct(fs)
+	assert.True(t, distinct(workEv(api.EventTypeRetryScheduled, "one")))
+	assert.False(t, distinct(workEv(api.EventTypeRetryScheduled, "one")))
+	assert.True(t, distinct(workEv(api.EventTypeRetryScheduled, "two")))
 }
 
 func TestWaitForEventFlowTerminal(t *testing.T) {

@@ -9,8 +9,26 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
+	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
+
+func waitForWorkStarted(
+	env *helpers.TestEngineEnv, flowID api.FlowID, steps []api.StepID, fn func(),
+) {
+	filters := make([]wait.EventFilter, len(steps))
+	for idx, stepID := range steps {
+		filters[idx] = wait.WorkStarted(api.FlowStep{
+			FlowID: flowID,
+			StepID: stepID,
+		})
+	}
+	env.WithConsumer(func(consumer *event.Consumer) {
+		w := wait.On(env.T, consumer)
+		fn()
+		w.ForAll(filters...)
+	})
+}
 
 func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -79,10 +97,10 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-default")
-		env.WaitForCount(2, wait.WorkStarted(
-			api.FlowStep{FlowID: id, StepID: provider.ID},
-			api.FlowStep{FlowID: id, StepID: consumer.ID},
-		), func() {
+		waitForWorkStarted(env, id, []api.StepID{
+			provider.ID,
+			consumer.ID,
+		}, func() {
 			assert.NoError(t, env.Engine.StartFlow(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
@@ -193,10 +211,10 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-zero")
-		env.WaitForCount(2, wait.WorkStarted(
-			api.FlowStep{FlowID: id, StepID: provider.ID},
-			api.FlowStep{FlowID: id, StepID: consumer.ID},
-		), func() {
+		waitForWorkStarted(env, id, []api.StepID{
+			provider.ID,
+			consumer.ID,
+		}, func() {
 			assert.NoError(t, env.Engine.StartFlow(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
@@ -305,10 +323,10 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-local")
-		env.WaitForCount(2, wait.WorkStarted(
-			api.FlowStep{FlowID: id, StepID: provider.ID},
-			api.FlowStep{FlowID: id, StepID: fast.ID},
-		), func() {
+		waitForWorkStarted(env, id, []api.StepID{
+			provider.ID,
+			fast.ID,
+		}, func() {
 			assert.NoError(t, env.Engine.StartFlow(id, pl,
 				flow.WithInit(api.InitArgs{"seed": {"x"}}),
 			))
@@ -421,10 +439,10 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-waits-required")
-		env.WaitForCount(2, wait.WorkStarted(
-			api.FlowStep{FlowID: id, StepID: userProvider.ID},
-			api.FlowStep{FlowID: id, StepID: productProvider.ID},
-		), func() {
+		waitForWorkStarted(env, id, []api.StepID{
+			userProvider.ID,
+			productProvider.ID,
+		}, func() {
 			assert.NoError(t, env.Engine.StartFlow(id, pl))
 		})
 
@@ -545,10 +563,10 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-step-ready")
-		env.WaitForCount(2, wait.WorkStarted(
-			api.FlowStep{FlowID: id, StepID: gate.ID},
-			api.FlowStep{FlowID: id, StepID: orderCreator.ID},
-		), func() {
+		waitForWorkStarted(env, id, []api.StepID{
+			gate.ID,
+			orderCreator.ID,
+		}, func() {
 			assert.NoError(t, env.Engine.StartFlow(id, pl,
 				flow.WithInit(api.InitArgs{"product_info": {"real-product"}}),
 			))
@@ -654,10 +672,10 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 		}
 
 		id := api.FlowID("wf-opt-timeout-after-requireds")
-		env.WaitForCount(2, wait.WorkStarted(
-			api.FlowStep{FlowID: id, StepID: reqProvider.ID},
-			api.FlowStep{FlowID: id, StepID: optProvider.ID},
-		), func() {
+		waitForWorkStarted(env, id, []api.StepID{
+			reqProvider.ID,
+			optProvider.ID,
+		}, func() {
 			assert.NoError(t, env.Engine.StartFlow(id, pl))
 		})
 

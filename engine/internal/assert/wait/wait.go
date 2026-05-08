@@ -31,6 +31,12 @@ type (
 		FlowID api.FlowID `json:"flow_id"`
 		StepID api.StepID `json:"step_id"`
 	}
+
+	workEvent struct {
+		FlowID api.FlowID `json:"flow_id"`
+		StepID api.StepID `json:"step_id"`
+		Token  api.Token  `json:"token"`
+	}
 )
 
 const DefaultTimeout = time.Second * 5
@@ -76,6 +82,36 @@ func (w *Wait) ForEvents(count int, filter EventFilter) {
 			seen++
 		case <-deadline.C:
 			w.t.Fatalf("timeout waiting for %d events", count)
+		}
+	}
+}
+
+// ForAll waits until each filter has matched at least one event
+func (w *Wait) ForAll(filters ...EventFilter) {
+	w.t.Helper()
+
+	deadline := time.NewTimer(w.timeout)
+	defer deadline.Stop()
+
+	matched := make([]bool, len(filters))
+	for seen := 0; seen < len(filters); {
+		select {
+		case ev, ok := <-w.consumer.Receive():
+			if !ok {
+				w.t.Fatalf(
+					"event consumer closed before receiving %d events",
+					len(filters),
+				)
+			}
+			for idx, filter := range filters {
+				if matched[idx] || !filter(ev) {
+					continue
+				}
+				matched[idx] = true
+				seen++
+			}
+		case <-deadline.C:
+			w.t.Fatalf("timeout waiting for %d event filters", len(filters))
 		}
 	}
 }
@@ -176,35 +212,46 @@ func StepTerminal(steps ...api.FlowStep) EventFilter {
 
 // WorkStarted matches work started events for the provided flow steps
 func WorkStarted(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkStarted), FlowStepAny(steps...))
+	return And(Type(api.EventTypeWorkStarted), FlowSteps(steps...))
 }
 
 // WorkStartedAny matches repeated work started events for flow steps
 func WorkStartedAny(steps ...api.FlowStep) EventFilter {
-	return WorkStarted(steps...)
+	return And(Type(api.EventTypeWorkStarted), FlowStepAny(steps...))
 }
 
 // WorkSucceeded matches work succeeded events for the provided flow steps
 func WorkSucceeded(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkSucceeded), FlowStepAny(steps...))
+	return And(Type(api.EventTypeWorkSucceeded), FlowSteps(steps...))
 }
 
 // WorkFailed matches work failed events for the provided flow steps
 func WorkFailed(steps ...api.FlowStep) EventFilter {
-	return And(Type(api.EventTypeWorkFailed), FlowStepAny(steps...))
+	return And(Type(api.EventTypeWorkFailed), FlowSteps(steps...))
 }
 
 // WorkRetryScheduled matches retry scheduled events for flow steps
 func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(
 		Type(api.EventTypeRetryScheduled),
-		FlowStepAny(steps...),
+		FlowSteps(steps...),
 	)
 }
 
 // WorkRetryScheduledAny matches retry scheduled events for flow steps
 func WorkRetryScheduledAny(steps ...api.FlowStep) EventFilter {
-	return WorkRetryScheduled(steps...)
+	return And(
+		Type(api.EventTypeRetryScheduled),
+		FlowStepAny(steps...),
+	)
+}
+
+// WorkRetryScheduledDistinct matches one retry scheduled event per work token
+func WorkRetryScheduledDistinct(step api.FlowStep) EventFilter {
+	return And(
+		Type(api.EventTypeRetryScheduled),
+		FlowStepDistinctTokens(step),
+	)
 }
 
 // FlowID matches events for the provided flow ID
@@ -257,6 +304,19 @@ func FlowStepAny(steps ...api.FlowStep) EventFilter {
 	return PredicateFilter(func(data stepEvent) bool {
 		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
 		return expected.Contains(key)
+	})
+}
+
+// FlowStepDistinctTokens matches each work token for the flow step once
+func FlowStepDistinctTokens(step api.FlowStep) EventFilter {
+	seen := util.Set[api.Token]{}
+	return PredicateFilter(func(data workEvent) bool {
+		key := api.FlowStep{FlowID: data.FlowID, StepID: data.StepID}
+		if key != step || seen.Contains(data.Token) {
+			return false
+		}
+		seen.Add(data.Token)
+		return true
 	})
 }
 

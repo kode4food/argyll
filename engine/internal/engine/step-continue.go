@@ -4,6 +4,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -118,11 +120,13 @@ func (e *Engine) scheduleTimeoutTask(
 	fs api.FlowStep, name api.Name, at time.Time,
 ) {
 	e.ScheduleTask(timeoutKey(fs, name), at, func() error {
-		return e.runTimeoutTaskAt(fs, e.Now())
+		return e.runTimeoutTaskAt(fs, name, e.Now())
 	})
 }
 
-func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
+func (e *Engine) runTimeoutTaskAt(
+	fs api.FlowStep, name api.Name, now time.Time,
+) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
 		if policy.FlowTerminal(fl.Status) {
@@ -134,8 +138,13 @@ func (e *Engine) runTimeoutTaskAt(fs api.FlowStep, now time.Time) error {
 			return nil
 		}
 
-		ready, _ := tx.canStartStepAt(fs.StepID, fl, now)
+		ready, nextAt := tx.canStartStepAt(fs.StepID, fl, now)
 		if !ready {
+			if !nextAt.IsZero() {
+				tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
+					tx.scheduleTimeoutTask(fs, name, nextAt)
+				})
+			}
 			return nil
 		}
 
