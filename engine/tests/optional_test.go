@@ -25,7 +25,7 @@ func TestOptionalInputsWithDefaults(t *testing.T) {
 			[]api.Name{"config"},
 		)
 		stepB.ID = "step-b"
-		stepB.Attributes["config"].Input = &api.InputConfig{
+		stepB.Attributes["config"].Optional = &api.OptionalConfig{
 			Default: `{"key": "default"}`,
 		}
 		stepB.Attributes["config"].Type = api.TypeObject

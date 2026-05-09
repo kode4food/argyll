@@ -228,14 +228,14 @@ func TestFlowStepMapping(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"input": {
 					Role: api.RoleRequired,
-					Mapping: &api.AttributeMapping{
-						Name: "child_in",
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{Name: "child_in"},
 					},
 				},
 				"output": {
 					Role: api.RoleOutput,
-					Mapping: &api.AttributeMapping{
-						Name: "child_out",
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{Name: "child_out"},
 					},
 				},
 			},
@@ -291,8 +291,8 @@ func TestFlowStepMissingOutput(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"output": {
 					Role: api.RoleOutput,
-					Mapping: &api.AttributeMapping{
-						Name: "child_out",
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{Name: "child_out"},
 					},
 				},
 			},

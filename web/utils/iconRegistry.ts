@@ -5,10 +5,10 @@ import {
   ArrowLeft,
   ArrowRightLeft,
   ArrowRight,
+  Ban,
   ChevronDown,
   ChevronUp,
   Award,
-  Ban,
   CheckCircle,
   CheckCircle2,
   CircleDashed,
@@ -19,6 +19,7 @@ import {
   Command,
   Database,
   FileCode2,
+  Filter,
   Globe,
   Info,
   Layers,
@@ -84,6 +85,7 @@ export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
 export const IconMemoizable = Database;
 export const IconMapping = ArrowRightLeft;
+export const IconAttributeMatch = Filter;
 export const IconExpandDown = ChevronDown;
 export const IconExpandUp = ChevronUp;
 

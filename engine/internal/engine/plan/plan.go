@@ -5,6 +5,7 @@ import (
 	"slices"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -28,6 +29,7 @@ type (
 		steps       api.Steps
 		attributes  api.AttributeGraph
 		providers   selectProviders
+		scripts     *script.Registry
 	}
 
 	selectProviders func(*builder, []api.StepID) []api.StepID
@@ -113,6 +115,7 @@ func newPlanBuilder(
 		blocked:     map[api.StepID][]api.Name{},
 		steps:       api.Steps{},
 		attributes:  api.AttributeGraph{},
+		scripts:     script.NewRegistry(),
 	}
 
 	for key, values := range init {
@@ -189,13 +192,17 @@ func (b *builder) collectStep(stepID api.StepID) error {
 		return nil
 	}
 
+	gate := b.stepGateStatus(st)
+	gateClosed := gate == policy.MatchUnmatched
+	gateUnknown := gate == policy.MatchUnknown
 	allInputs := st.GetAllInputArgs()
 	required := b.buildRequired(st)
 	for _, name := range allInputs {
 		attr := st.Attributes[name]
-		if policy.InitSatisfiesInput(
-			attr.InputCollect(), b.initHasValues(name),
-		) {
+		if gateClosed && !policy.RequiredInputHasMatch(attr) {
+			continue
+		}
+		if b.initSatisfiesInput(name, attr) {
 			b.markSatisfied(name)
 			continue
 		}
@@ -204,8 +211,14 @@ func (b *builder) collectStep(stepID api.StepID) error {
 			return err
 		}
 		if required.Contains(name) && policy.RequiredInputMissing(
-			attr.InputCollect(), hasProvider, b.initHasValues(name),
+			attr.Collect(), hasProvider, b.initHasValues(name),
 		) {
+			if gateClosed {
+				continue
+			}
+			if gateUnknown && !policy.RequiredInputHasMatch(attr) {
+				continue
+			}
 			b.missing.Add(name)
 		}
 	}
@@ -217,13 +230,96 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	return nil
 }
 
+func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
+	status, err := policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
+		Step: step,
+		Values: func(name api.Name) []*api.AttributeValue {
+			return initAttributeValues(b.init[name])
+		},
+		Providers: b.matchProviderSummary,
+		Evaluate:  b.evaluateRequiredMatch,
+	})
+	if err != nil {
+		return policy.MatchUnknown
+	}
+	return status
+}
+
+func (b *builder) initSatisfiesInput(
+	name api.Name, attr *api.AttributeSpec,
+) bool {
+	if !policy.InitSatisfiesInput(attr.Collect(), b.initHasValues(name)) {
+		return false
+	}
+	if !policy.RequiredInputHasMatch(attr) {
+		return true
+	}
+	decision, err := policy.RequiredMatchStatus(policy.RequiredMatchSpec{
+		Attr:     attr,
+		Values:   initAttributeValues(b.init[name]),
+		Provider: b.matchProviderSummary(name),
+		Evaluate: b.evaluateRequiredMatch,
+	})
+	return err == nil && decision == policy.MatchMatched
+}
+
+func (b *builder) matchProviderSummary(name api.Name) policy.ProviderSummary {
+	return initProviderSummary(
+		b.initHasValues(name), len(b.findProviders(name)) > 0,
+	)
+}
+
+func initProviderSummary(
+	initValues bool, providerFound bool,
+) policy.ProviderSummary {
+	return policy.ProviderSummary{
+		Terminal:     initValues && !providerFound,
+		AllSucceeded: initValues && !providerFound,
+	}
+}
+
+func initAttributeValues(values []any) []*api.AttributeValue {
+	res := make([]*api.AttributeValue, 0, len(values))
+	for _, value := range values {
+		res = append(res, &api.AttributeValue{Value: value})
+	}
+	return res
+}
+
+func (b *builder) evaluateRequiredMatch(
+	cfg *api.ScriptConfig, value any,
+) (bool, error) {
+	st := policy.MatchStep(cfg)
+	comp, err := b.scripts.Compile(st, cfg)
+	if err != nil {
+		return false, err
+	}
+
+	env, err := b.scripts.Get(cfg.Language)
+	if err != nil {
+		return false, err
+	}
+
+	inputs := api.Args{policy.MatchInputName: value}
+	if cfg.Language == api.ScriptLangJPath {
+		if _, err := env.ExecuteScript(comp, st, inputs); err != nil {
+			if errors.Is(err, script.ErrJPathNoMatch) {
+				return false, nil
+			}
+			return false, err
+		}
+		return true, nil
+	}
+	return env.EvaluatePredicate(comp, st, inputs)
+}
+
 func (b *builder) blockedInputs(step *api.Step) []api.Name {
 	var blocked []api.Name
 	for name, attr := range step.Attributes {
 		if !attr.IsRuntimeInput() {
 			continue
 		}
-		if policy.InitBlocksInput(attr.InputCollect(), b.initHasValues(name)) {
+		if policy.InitBlocksInput(attr.Collect(), b.initHasValues(name)) {
 			blocked = append(blocked, name)
 		}
 	}
@@ -262,7 +358,7 @@ func (b *builder) includeProviders(
 	}
 
 	selected := b.providers(b, providers)
-	if policy.RequiresAllProviders(attr.InputCollect()) &&
+	if policy.RequiresAllProviders(attr.Collect()) &&
 		len(selected) != len(providers) {
 		return false, nil
 	}
@@ -492,5 +588,5 @@ func isGuaranteedInput(attr *api.AttributeSpec) bool {
 	if attr.IsRequired() || attr.IsConst() {
 		return true
 	}
-	return attr.IsOptional() && attr.InputDefault() != ""
+	return attr.IsOptional() && attr.OptionalDefault() != ""
 }

@@ -281,7 +281,7 @@ func (s *Step) SortedArgNames() []string {
 func (s *Step) MultiArgNames() []Name {
 	var names []Name
 	for name, attr := range s.Attributes {
-		if attr.InputForEach() {
+		if attr.ForEach() {
 			names = append(names, name)
 		}
 	}
@@ -312,8 +312,8 @@ func (s *Step) GetOutputArgs() []Name {
 // MappedName returns the mapped name when present, else the declared name
 func (s *Step) MappedName(name Name) (Name, bool) {
 	attr := s.Attributes[name]
-	if attr != nil && attr.Mapping != nil && attr.Mapping.Name != "" {
-		return Name(attr.Mapping.Name), true
+	if m := attr.Mapping(); m != nil && m.Name != "" {
+		return Name(m.Name), true
 	}
 	return name, false
 }

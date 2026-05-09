@@ -277,8 +277,8 @@ func TestScriptWorkUsesMappedInputName(t *testing.T) {
 				"amount": {
 					Role: api.RoleRequired,
 					Type: api.TypeNumber,
-					Mapping: &api.AttributeMapping{
-						Name: "inner_amount",
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{Name: "inner_amount"},
 					},
 				},
 				"result": {
@@ -346,7 +346,7 @@ func TestParallelWorkItems(t *testing.T) {
 		st := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		st.ID = "parallel-items"
 		st.WorkConfig = &api.WorkConfig{Parallelism: 2}
-		st.Attributes["items"].Input = &api.InputConfig{ForEach: true}
+		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
 		st.Attributes["items"].Type = api.TypeArray
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,
@@ -387,7 +387,7 @@ func TestPredicateFailurePerWorkItem(t *testing.T) {
 			Script: "if type(items) ~= 'table' then error('boom') end; " +
 				"return true",
 		}
-		st.Attributes["items"].Input = &api.InputConfig{ForEach: true}
+		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
 		st.Attributes["items"].Type = api.TypeArray
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,

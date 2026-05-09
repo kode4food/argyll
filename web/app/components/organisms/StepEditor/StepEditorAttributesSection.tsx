@@ -2,10 +2,12 @@ import React from "react";
 import {
   AttributeType,
   InputCollect,
+  SCRIPT_LANGUAGE_JPATH,
   SCRIPT_LANGUAGE_LUA,
   StepType,
 } from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
+import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
 import { useT } from "@/app/i18n";
 import {
   IconAdd,
@@ -23,8 +25,8 @@ import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
 import {
   ATTRIBUTE_TYPES,
   getMappingScriptPlaceholderKey,
+  getMatchScriptPlaceholderKey,
   INPUT_COLLECT_TYPES,
-  MAPPING_LANGUAGE_OPTIONS,
 } from "./stepEditorConstants";
 
 interface StepEditorAttributesSectionProps {
@@ -176,6 +178,24 @@ const StepEditorAttributesSection: React.FC<
                   placeholder={t("stepEditor.attributeNamePlaceholder")}
                   className={`${formStyles.argInput} ${formStyles.argNameInput}`}
                 />
+                {attr.attrType === "input" && (
+                  <ScriptLanguageInlineInput
+                    ariaLabel={t("stepEditor.matchLanguageLabel")}
+                    className={formStyles.argValueInput}
+                    language={attr.matchLanguage || SCRIPT_LANGUAGE_JPATH}
+                    onLanguageChange={(language) =>
+                      updateAttribute(attr.id, "matchLanguage", language)
+                    }
+                    onScriptChange={(script) =>
+                      updateAttribute(attr.id, "matchScript", script)
+                    }
+                    placeholder={t(
+                      getMatchScriptPlaceholderKey(attr.matchLanguage)
+                    )}
+                    script={attr.matchScript || ""}
+                    title={t("stepEditor.attributeMatchTitle")}
+                  />
+                )}
                 {(attr.attrType === "optional" ||
                   attr.attrType === "const") && (
                   <input
@@ -339,44 +359,20 @@ const StepEditorAttributesSection: React.FC<
                       className={`${formStyles.formControl} ${formStyles.mappingInlineInput}`}
                     />
                   )}
-                  <div
-                    className={formStyles.languageSelectorGroup}
-                    aria-label={t("stepEditor.mappingLanguageLabel")}
-                  >
-                    {MAPPING_LANGUAGE_OPTIONS.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={(e) => {
-                          updateAttribute(
-                            attr.id,
-                            "mappingLanguage",
-                            option.value
-                          );
-                          e.currentTarget.blur();
-                        }}
-                        className={`${formStyles.languageButton} ${
-                          (attr.mappingLanguage || SCRIPT_LANGUAGE_LUA) ===
-                          option.value
-                            ? formStyles.languageButtonActive
-                            : ""
-                        }`}
-                        title={t(option.labelKey)}
-                      >
-                        {t(option.labelKey)}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    value={attr.mappingScript || ""}
-                    onChange={(e) =>
-                      updateAttribute(attr.id, "mappingScript", e.target.value)
+                  <ScriptLanguageInlineInput
+                    ariaLabel={t("stepEditor.mappingLanguageLabel")}
+                    className={formStyles.mappingScriptInlineInput}
+                    language={attr.mappingLanguage || SCRIPT_LANGUAGE_LUA}
+                    onLanguageChange={(language) =>
+                      updateAttribute(attr.id, "mappingLanguage", language)
                     }
-                    className={`${formStyles.formControl} ${formStyles.mappingScriptInlineInput}`}
+                    onScriptChange={(script) =>
+                      updateAttribute(attr.id, "mappingScript", script)
+                    }
                     placeholder={t(
                       getMappingScriptPlaceholderKey(attr.mappingLanguage)
                     )}
+                    script={attr.mappingScript || ""}
                   />
                 </div>
               )}

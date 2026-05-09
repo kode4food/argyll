@@ -136,10 +136,10 @@ export const getFlowPlanAttributeOptions = (
         const mergedType = mergeInputType(existing?.type, spec.type);
         meta.hasRequiredSpec =
           meta.hasRequiredSpec || spec.role === AttributeRole.Required;
-        if (spec.input?.default !== undefined) {
+        if (spec.optional?.default !== undefined) {
           meta.hasSpecDefault = true;
           const normalizedSpecDefault =
-            normalizeDefaultValue(spec.input.default) ?? "";
+            normalizeDefaultValue(spec.optional.default) ?? "";
           mergeExplicitDefault(meta, normalizedSpecDefault);
         }
         const fallbackTypeDefault = getTypeDefaultValue(mergedType);

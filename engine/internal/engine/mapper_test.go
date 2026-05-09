@@ -120,11 +120,13 @@ func TestScriptUsesMappedName(t *testing.T) {
 				"amount": {
 					Role: api.RoleRequired,
 					Type: api.TypeNumber,
-					Mapping: &api.AttributeMapping{
-						Name: "value",
-						Script: &api.ScriptConfig{
-							Language: api.ScriptLangAle,
-							Script:   "(* value 2)",
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{
+							Name: "value",
+							Script: &api.ScriptConfig{
+								Language: api.ScriptLangAle,
+								Script:   "(* value 2)",
+							},
 						},
 					},
 				},
@@ -218,9 +220,11 @@ func TestMapInput(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			st := mappingStep("input")
 			attr := &api.AttributeSpec{
-				Role:    api.RoleRequired,
-				Type:    api.TypeString,
-				Mapping: &api.AttributeMapping{Name: "renamed"},
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{Name: "renamed"},
+				},
 			}
 			result := m.MapInput(st, "input", attr, "hello")
 			assert.Equal(t, "hello", result)
@@ -233,8 +237,10 @@ func TestMapInput(t *testing.T) {
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Script: jpathCfg("$.key"),
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{
+						Script: jpathCfg("$.key"),
+					},
 				},
 			}
 			input := api.Args{"key": "mapped"}
@@ -249,8 +255,10 @@ func TestMapInput(t *testing.T) {
 			attr := &api.AttributeSpec{
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Script: jpathCfg("$.missing"),
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{
+						Script: jpathCfg("$.missing"),
+					},
 				},
 			}
 			input := api.Args{"key": "value"}

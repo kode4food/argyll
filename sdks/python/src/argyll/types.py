@@ -59,6 +59,7 @@ class ScriptLanguage(str, Enum):
 
     ALE = "ale"
     LUA = "lua"
+    JPATH = "jpath"
 
 
 class BackoffType(str, Enum):
@@ -70,25 +71,93 @@ class BackoffType(str, Enum):
 
 
 @dataclass(frozen=True)
-class InputConfig:
-    """Input collection configuration."""
+class MappingConfig:
+    """Mapping configuration for attribute transformation."""
+
+    name: str = ""
+    script: Optional["ScriptConfig"] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        result: Dict[str, Any] = {}
+        if self.name:
+            result["name"] = self.name
+        if self.script:
+            result["script"] = self.script.to_dict()
+        return result
+
+
+@dataclass(frozen=True)
+class RequiredConfig:
+    """Configuration for required attributes."""
 
     collect: InputCollect = InputCollect.FIRST
-    default: str = ""
     for_each: bool = False
-    deadline: int = 0
+    match: Optional["ScriptConfig"] = None
+    mapping: Optional[MappingConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
         result: Dict[str, Any] = {}
         if self.collect != InputCollect.FIRST:
             result["collect"] = self.collect.value
-        if self.default:
-            result["default"] = self.default
         if self.for_each:
             result["for_each"] = True
+        if self.match:
+            result["match"] = self.match.to_dict()
+        if self.mapping:
+            result["mapping"] = self.mapping.to_dict()
+        return result
+
+
+@dataclass(frozen=True)
+class OptionalConfig:
+    """Configuration for optional attributes."""
+
+    collect: InputCollect = InputCollect.FIRST
+    for_each: bool = False
+    default: str = ""
+    deadline: int = 0
+    mapping: Optional[MappingConfig] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        result: Dict[str, Any] = {}
+        if self.collect != InputCollect.FIRST:
+            result["collect"] = self.collect.value
+        if self.for_each:
+            result["for_each"] = True
+        if self.default:
+            result["default"] = self.default
         if self.deadline > 0:
             result["deadline"] = self.deadline
+        if self.mapping:
+            result["mapping"] = self.mapping.to_dict()
+        return result
+
+
+@dataclass(frozen=True)
+class ConstConfig:
+    """Configuration for const attributes."""
+
+    value: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        return {"value": self.value}
+
+
+@dataclass(frozen=True)
+class OutputConfig:
+    """Configuration for output attributes."""
+
+    mapping: Optional[MappingConfig] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        result: Dict[str, Any] = {}
+        if self.mapping:
+            result["mapping"] = self.mapping.to_dict()
         return result
 
 
@@ -98,7 +167,10 @@ class AttributeSpec:
 
     role: AttributeRole
     type: AttributeType
-    input: Optional[InputConfig] = None
+    required: Optional[RequiredConfig] = None
+    optional: Optional[OptionalConfig] = None
+    const: Optional[ConstConfig] = None
+    output: Optional[OutputConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert to API dictionary format."""
@@ -106,8 +178,14 @@ class AttributeSpec:
             "role": self.role.value,
             "type": self.type.value,
         }
-        if self.input is not None:
-            result["input"] = self.input.to_dict()
+        if self.required is not None:
+            result["required"] = self.required.to_dict()
+        if self.optional is not None:
+            result["optional"] = self.optional.to_dict()
+        if self.const is not None:
+            result["const"] = self.const.to_dict()
+        if self.output is not None:
+            result["output"] = self.output.to_dict()
         return result
 
 

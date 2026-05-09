@@ -44,7 +44,7 @@ This separation is intentional. The flow's logical outcome (success/failure) is 
 
 ### 3. Deactivated
 
-The flow is deactivated once it is **terminal AND no active work remains**.
+The flow is deactivated once it is **terminal AND no pending or active work remains**.
 
 At this point:
 - The flow is truly complete
@@ -61,7 +61,7 @@ This distinction is critical:
 |-------|---------|------------------|-----------------|
 | Active | Flow is running | Yes | Maybe |
 | Terminal (Completed/Failed) | Goal step finished or failed | No | Possibly |
-| Deactivated | Terminal + no active work | No | No |
+| Deactivated | Terminal + no pending or active work | No | No |
 
 ## Flow Attributes
 

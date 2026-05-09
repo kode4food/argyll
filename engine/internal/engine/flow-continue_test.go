@@ -172,9 +172,9 @@ func TestSkipFailedAllProvider(t *testing.T) {
 			Type: api.StepTypeSync,
 			Attributes: api.AttributeSpecs{
 				"data": {
-					Role:  api.RoleRequired,
-					Type:  api.TypeString,
-					Input: &api.InputConfig{Collect: api.InputCollectAll},
+					Role:     api.RoleRequired,
+					Type:     api.TypeString,
+					Required: &api.RequiredConfig{Collect: api.InputCollectAll},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},

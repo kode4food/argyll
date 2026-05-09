@@ -2,13 +2,7 @@ import React from "react";
 import StepEditor from "./StepEditor";
 import { t } from "@/app/testUtils/i18n";
 import { ArgyllApi, AttributeRole, AttributeType } from "@/app/api";
-import {
-  render,
-  screen,
-  fireEvent,
-  waitFor,
-  within,
-} from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import type { Step } from "@/app/api";
 
 jest.requireActual("@/app/api");
@@ -147,7 +141,7 @@ describe("StepEditor", () => {
       color: {
         role: AttributeRole.Const,
         type: AttributeType.String,
-        input: { default: "blue" },
+        const: { value: "blue" },
       },
     },
     http: {
@@ -206,6 +200,86 @@ describe("StepEditor", () => {
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("input1")).toBeInTheDocument();
+    });
+  });
+
+  test("edits required match", async () => {
+    const step = createHttpStep();
+    step.attributes.input1.required = {
+      match: {
+        language: "jpath",
+        script: "$.kind",
+      },
+    };
+    mockUpdateStep.mockResolvedValue(undefined);
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    const matchInput = await screen.findByDisplayValue("$.kind");
+    fireEvent.change(
+      screen.getByLabelText(t("stepEditor.matchLanguageLabel")),
+      {
+        target: { value: "ale" },
+      }
+    );
+    fireEvent.change(matchInput, { target: { value: "$.product_type" } });
+
+    fireEvent.click(screen.getByText(t("stepEditor.save")));
+
+    await waitFor(() => {
+      expect(mockUpdateStep).toHaveBeenCalledWith(
+        "step-1",
+        expect.objectContaining({
+          attributes: expect.objectContaining({
+            input1: expect.objectContaining({
+              required: expect.objectContaining({
+                match: {
+                  language: "ale",
+                  script: "$.product_type",
+                },
+              }),
+            }),
+          }),
+        })
+      );
+    });
+  });
+
+  test("uses language-specific match script placeholders", async () => {
+    const step = createHttpStep();
+
+    render(
+      <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
+    );
+
+    expect(
+      await screen.findByPlaceholderText(
+        t("stepEditor.matchScriptPlaceholderJPath")
+      )
+    ).toBeInTheDocument();
+
+    const matchLanguageSelect = screen.getByLabelText(
+      t("stepEditor.matchLanguageLabel")
+    );
+
+    fireEvent.change(matchLanguageSelect, {
+      target: { value: "ale" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(t("stepEditor.matchScriptPlaceholderAle"))
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.change(matchLanguageSelect, {
+      target: { value: "lua" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(t("stepEditor.matchScriptPlaceholderLua"))
+      ).toBeInTheDocument();
     });
   });
 
@@ -527,11 +601,13 @@ describe("StepEditor", () => {
         expect.objectContaining({
           attributes: expect.objectContaining({
             input1: expect.objectContaining({
-              mapping: {
-                name: "request_payload",
-                script: {
-                  language: "lua",
-                  script: "$.payload.input",
+              required: {
+                mapping: {
+                  name: "request_payload",
+                  script: {
+                    language: "lua",
+                    script: "$.payload.input",
+                  },
                 },
               },
             }),
@@ -559,42 +635,36 @@ describe("StepEditor", () => {
       )
     ).toBeInTheDocument();
 
-    const languageGroup = screen.getByLabelText(
+    const mappingLanguageSelect = screen.getByLabelText(
       t("stepEditor.mappingLanguageLabel")
     );
 
-    fireEvent.click(
-      within(languageGroup).getByRole("button", {
-        name: t("script.language.ale"),
-      })
-    );
+    fireEvent.change(mappingLanguageSelect, {
+      target: { value: "jpath" },
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByPlaceholderText(
+          t("stepEditor.mappingScriptPlaceholderJPath")
+        )
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.change(mappingLanguageSelect, {
+      target: { value: "ale" },
+    });
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderAle"))
       ).toBeInTheDocument();
     });
 
-    fireEvent.click(
-      within(languageGroup).getByRole("button", {
-        name: t("script.language.lua"),
-      })
-    );
+    fireEvent.change(mappingLanguageSelect, {
+      target: { value: "lua" },
+    });
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderLua"))
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(
-      within(languageGroup).getByRole("button", {
-        name: t("script.language.jpath"),
-      })
-    );
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(
-          t("stepEditor.mappingScriptPlaceholderJPath")
-        )
       ).toBeInTheDocument();
     });
   });

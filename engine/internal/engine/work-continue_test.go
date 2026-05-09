@@ -29,7 +29,7 @@ func TestRetryPendingParallelism(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 			Parallelism: 1,
 		}
-		st.Attributes["items"].Input = &api.InputConfig{ForEach: true}
+		st.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
 		st.Attributes["items"].Type = api.TypeArray
 		st.Attributes["result"] = &api.AttributeSpec{
 			Role: api.RoleOutput,

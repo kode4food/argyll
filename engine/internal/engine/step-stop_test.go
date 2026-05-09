@@ -158,10 +158,12 @@ func TestOutputMapping(t *testing.T) {
 			"result": {
 				Role: api.RoleOutput,
 				Type: api.TypeAny,
-				Mapping: &api.AttributeMapping{
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.payload.value",
+				Output: &api.OutputConfig{
+					Mapping: &api.MappingConfig{
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangJPath,
+							Script:   "$.payload.value",
+						},
 					},
 				},
 			},
@@ -204,8 +206,8 @@ func TestOutputMappingWithRename(t *testing.T) {
 			"status": {
 				Role: api.RoleOutput,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Name: "success",
+				Output: &api.OutputConfig{
+					Mapping: &api.MappingConfig{Name: "success"},
 				},
 			},
 		}

@@ -1,5 +1,18 @@
-import { Step, AttributeRole, AttributeSpec, AttributeType } from "@/app/api";
+import {
+  Step,
+  AttributeRole,
+  AttributeSpec,
+  AttributeType,
+  InputCollect,
+} from "@/app/api";
 import { STEP_TYPE_ORDER } from "@/app/constants";
+import {
+  IconArrayMultiple,
+  IconAttributeMatch,
+  IconDuration,
+  IconMapping,
+  type LucideIcon,
+} from "@/utils/iconRegistry";
 
 export type StepType = "resolver" | "processor" | "collector" | "standalone";
 
@@ -111,6 +124,53 @@ export const getStepType = (step: Step): StepType => {
   if (!hasOutputs && hasRequiredInputs) return "collector";
   if (hasOutputs && hasRequiredInputs) return "processor";
   return "standalone";
+};
+
+export type AttributeModifier =
+  | { kind: "icon"; Icon: LucideIcon }
+  | { kind: "collect"; collect: InputCollect };
+
+export const getAttributeModifiers = (
+  spec: AttributeSpec
+): AttributeModifier[] => {
+  const modifiers: AttributeModifier[] = [];
+  if (spec.optional?.deadline) {
+    modifiers.push({ kind: "icon", Icon: IconDuration });
+  }
+  if (spec.required?.match) {
+    modifiers.push({ kind: "icon", Icon: IconAttributeMatch });
+  }
+  const config = spec.required ?? spec.optional ?? spec.output;
+  if (config?.mapping) {
+    modifiers.push({ kind: "icon", Icon: IconMapping });
+  }
+  const collect = spec.required?.collect ?? spec.optional?.collect;
+  if (collect && collect !== "first") {
+    modifiers.push({ kind: "collect", collect });
+  }
+  if (spec.required?.for_each || spec.optional?.for_each) {
+    modifiers.push({ kind: "icon", Icon: IconArrayMultiple });
+  }
+  return modifiers;
+};
+
+const collectTitleKeyMap: Record<InputCollect, string> = {
+  first: "",
+  last: "attribute.modifierCollectLast",
+  all: "attribute.modifierCollectAll",
+  some: "attribute.modifierCollectSome",
+  none: "attribute.modifierCollectNone",
+};
+
+export const getModifierTitleKey = (modifier: AttributeModifier): string => {
+  if (modifier.kind === "collect") {
+    return collectTitleKeyMap[modifier.collect];
+  }
+  if (modifier.Icon === IconDuration) return "attribute.modifierDeadline";
+  if (modifier.Icon === IconAttributeMatch) return "attribute.modifierMatch";
+  if (modifier.Icon === IconMapping) return "attribute.modifierMapping";
+  if (modifier.Icon === IconArrayMultiple) return "attribute.modifierForEach";
+  return "";
 };
 
 export const sortStepsByType = (steps: Step[]): Step[] => {

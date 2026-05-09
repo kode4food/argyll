@@ -8,6 +8,7 @@ import (
 
 	"github.com/kode4food/timebox"
 
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -95,13 +96,14 @@ func (e *Engine) validateStep(step *api.Step) error {
 
 func (e *Engine) validateStepMappings(step *api.Step) error {
 	for name, attr := range step.Attributes {
-		if attr.Mapping == nil || attr.Mapping.Script == nil {
+		mapping := attr.Mapping()
+		if mapping == nil || mapping.Script == nil {
 			continue
 		}
 
-		if _, err := e.mapper.Compile(step, attr.Mapping.Script); err != nil {
+		if _, err := e.mapper.Compile(step, mapping.Script); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
-				api.ErrInvalidAttributeMapping, name, err,
+				api.ErrInvalidMappingConfig, name, err,
 			)
 		}
 	}
@@ -132,6 +134,23 @@ func (e *Engine) validateStepScripts(step *api.Step) error {
 
 		if err := env.Validate(step, step.Predicate.Script); err != nil {
 			return err
+		}
+	}
+
+	for name, attr := range step.Attributes {
+		if !policy.RequiredInputHasMatch(attr) {
+			continue
+		}
+		cfg := attr.Required.Match
+		env, err := e.scripts.Get(cfg.Language)
+		if err != nil {
+			return fmt.Errorf("%w for attribute %q: %v",
+				api.ErrInvalidScriptLanguage, name, err)
+		}
+
+		if err := env.Validate(policy.MatchStep(cfg), cfg.Script); err != nil {
+			return fmt.Errorf("%w for attribute %q: %v",
+				api.ErrInvalidScriptLanguage, name, err)
 		}
 	}
 

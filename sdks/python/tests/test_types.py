@@ -4,10 +4,13 @@ from argyll.types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
+    ConstConfig,
     HTTPConfig,
     InputCollect,
-    InputConfig,
+    MappingConfig,
+    OptionalConfig,
     ProblemDetails,
+    RequiredConfig,
     ScriptConfig,
     ScriptLanguage,
     Step,
@@ -25,13 +28,13 @@ def test_attribute_spec_with_default():
     spec = AttributeSpec(
         role=AttributeRole.OPTIONAL,
         type=AttributeType.NUMBER,
-        input=InputConfig(default="42"),
+        optional=OptionalConfig(default="42"),
     )
     result = spec.to_dict()
     assert result == {
         "role": "optional",
         "type": "number",
-        "input": {"default": "42"},
+        "optional": {"default": "42"},
     }
 
 
@@ -39,13 +42,13 @@ def test_attribute_spec_with_for_each():
     spec = AttributeSpec(
         role=AttributeRole.REQUIRED,
         type=AttributeType.ARRAY,
-        input=InputConfig(for_each=True),
+        required=RequiredConfig(for_each=True),
     )
     result = spec.to_dict()
     assert result == {
         "role": "required",
         "type": "array",
-        "input": {"for_each": True},
+        "required": {"for_each": True},
     }
 
 
@@ -53,13 +56,13 @@ def test_attribute_spec_with_collect():
     spec = AttributeSpec(
         role=AttributeRole.REQUIRED,
         type=AttributeType.ARRAY,
-        input=InputConfig(collect=InputCollect.SOME),
+        required=RequiredConfig(collect=InputCollect.SOME),
     )
     result = spec.to_dict()
     assert result == {
         "role": "required",
         "type": "array",
-        "input": {"collect": "some"},
+        "required": {"collect": "some"},
     }
 
 
@@ -67,13 +70,50 @@ def test_attribute_spec_with_const():
     spec = AttributeSpec(
         role=AttributeRole.CONST,
         type=AttributeType.STRING,
-        input=InputConfig(default='"fixed"'),
+        const=ConstConfig(value='"fixed"'),
     )
     result = spec.to_dict()
     assert result == {
         "role": "const",
         "type": "string",
-        "input": {"default": '"fixed"'},
+        "const": {"value": '"fixed"'},
+    }
+
+
+def test_attribute_spec_with_mapping():
+    spec = AttributeSpec(
+        role=AttributeRole.REQUIRED,
+        type=AttributeType.STRING,
+        required=RequiredConfig(mapping=MappingConfig(name="email")),
+    )
+    result = spec.to_dict()
+    assert result == {
+        "role": "required",
+        "type": "string",
+        "required": {"mapping": {"name": "email"}},
+    }
+
+
+def test_attribute_spec_with_match():
+    spec = AttributeSpec(
+        role=AttributeRole.REQUIRED,
+        type=AttributeType.OBJECT,
+        required=RequiredConfig(
+            match=ScriptConfig(
+                language=ScriptLanguage.JPATH, script="$.product_type"
+            )
+        ),
+    )
+    result = spec.to_dict()
+    assert result == {
+        "role": "required",
+        "type": "object",
+        "required": {
+            "match": {
+                "language": "jpath",
+                "script": "$.product_type",
+            }
+        },
     }
 
 
@@ -160,6 +200,7 @@ def test_step_enums():
     assert AttributeRole.REQUIRED.value == "required"
     assert AttributeType.STRING.value == "string"
     assert ScriptLanguage.ALE.value == "ale"
+    assert ScriptLanguage.JPATH.value == "jpath"
 
 
 def test_http_config_with_timeout():
@@ -255,5 +296,7 @@ def test_attribute_spec_no_optional_fields():
     spec = AttributeSpec(role=AttributeRole.OUTPUT, type=AttributeType.NUMBER)
     result = spec.to_dict()
     assert result == {"role": "output", "type": "number"}
-    assert "input" not in result
+    assert "required" not in result
+    assert "optional" not in result
     assert "const" not in result
+    assert "output" not in result

@@ -1,7 +1,12 @@
 import React from "react";
 import { Step, AttributeRole } from "@/app/api";
+import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
-import { getSortedAttributes } from "@/utils/stepUtils";
+import {
+  getAttributeModifiers,
+  getModifierTitleKey,
+  getSortedAttributes,
+} from "@/utils/stepUtils";
 import styles from "../StepShared/StepAttributesSection.module.css";
 
 interface AttributesProps {
@@ -9,10 +14,18 @@ interface AttributesProps {
   focusedAttributeName?: string | null;
 }
 
+const argTypeTitleKey: Record<string, string> = {
+  required: "attribute.roleRequired",
+  optional: "attribute.roleOptional",
+  const: "attribute.roleConst",
+  output: "attribute.roleOutput",
+};
+
 const Attributes: React.FC<AttributesProps> = ({
   step,
   focusedAttributeName = null,
 }) => {
+  const t = useT();
   const unifiedArgs = getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }) => ({
       name,
@@ -25,6 +38,7 @@ const Attributes: React.FC<AttributesProps> = ({
             : spec.role === AttributeRole.Const
               ? ("const" as const)
               : ("output" as const),
+      modifiers: getAttributeModifiers(spec),
     })
   );
 
@@ -57,8 +71,27 @@ const Attributes: React.FC<AttributesProps> = ({
             data-arg-name={arg.name}
           >
             <span className={styles.argName}>
-              <Icon className={className} />
+              <span title={t(argTypeTitleKey[arg.argType])}>
+                <Icon className={className} />
+              </span>
               {arg.name}
+              {arg.modifiers.map((mod, i) =>
+                mod.kind === "icon" ? (
+                  <span key={i} title={t(getModifierTitleKey(mod))}>
+                    <mod.Icon className={styles.argModifierIcon} />
+                  </span>
+                ) : (
+                  <span
+                    key={i}
+                    className={styles.argModifierCollect}
+                    title={t(getModifierTitleKey(mod))}
+                    style={{
+                      maskImage: `url(/icons/collect-${mod.collect}.svg)`,
+                      WebkitMaskImage: `url(/icons/collect-${mod.collect}.svg)`,
+                    }}
+                  />
+                )
+              )}
             </span>
             <div className={styles.argTypeContainer}>
               <span className={styles.argType}>{arg.type}</span>

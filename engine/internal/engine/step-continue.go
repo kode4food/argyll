@@ -81,13 +81,16 @@ func (e *Engine) scheduleStepTimeouts(
 	}
 
 	s := e.newStepEval(stepID, flow, now)
-	anchor := s.requiredReadyAt()
+	anchor, err := s.requiredReadyAt()
+	if err != nil {
+		return
+	}
 	if anchor.IsZero() {
 		return
 	}
 
 	for name, attr := range s.step.Attributes {
-		if !attr.IsOptional() || attr.InputDeadline() <= 0 {
+		if !attr.IsOptional() || attr.OptionalDeadline() <= 0 {
 			continue
 		}
 		dec := s.optionalDecisionAt(name, attr, anchor)
@@ -109,7 +112,7 @@ func flowHasTimeouts(flow api.FlowState) bool {
 
 func stepHasTimeouts(step *api.Step) bool {
 	for _, attr := range step.Attributes {
-		if attr.IsOptional() && attr.InputDeadline() > 0 {
+		if attr.IsOptional() && attr.OptionalDeadline() > 0 {
 			return true
 		}
 	}

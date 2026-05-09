@@ -26,9 +26,9 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:  api.RoleRequired,
-					Type:  api.TypeArray,
-					Input: &api.InputConfig{ForEach: true},
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -83,9 +83,9 @@ func TestForEachTypedSlice(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:  api.RoleRequired,
-					Type:  api.TypeArray,
-					Input: &api.InputConfig{ForEach: true},
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -140,9 +140,9 @@ func TestForEachTypedNumbers(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
-					Role:  api.RoleRequired,
-					Type:  api.TypeArray,
-					Input: &api.InputConfig{ForEach: true},
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
 				},
 				"result": {
 					Role: api.RoleOutput,
@@ -203,10 +203,12 @@ func TestOutputMappingDescendants(t *testing.T) {
 				"books": {
 					Role: api.RoleOutput,
 					Type: api.TypeAny,
-					Mapping: &api.AttributeMapping{
-						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$..book",
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{
+							Script: &api.ScriptConfig{
+								Language: api.ScriptLangJPath,
+								Script:   "$..book",
+							},
 						},
 					},
 				},
@@ -254,14 +256,14 @@ func TestTooManyWorkItems(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {
-					Role:  api.RoleRequired,
-					Type:  api.TypeArray,
-					Input: &api.InputConfig{ForEach: true},
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
 				},
 				"y": {
-					Role:  api.RoleRequired,
-					Type:  api.TypeArray,
-					Input: &api.InputConfig{ForEach: true},
+					Role:     api.RoleRequired,
+					Type:     api.TypeArray,
+					Required: &api.RequiredConfig{ForEach: true},
 				},
 			},
 		}

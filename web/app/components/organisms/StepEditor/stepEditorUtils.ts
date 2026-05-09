@@ -4,8 +4,13 @@ import {
   AttributeType,
   AttributeRole,
   InputCollect,
+  MappingConfig,
+  RequiredConfig,
+  OptionalConfig,
   StepType,
   HTTPMethod,
+  SCRIPT_LANGUAGE_JPATH,
+  ScriptConfig,
 } from "@/app/api";
 import { getSortedAttributes, validateDefaultValue } from "@/utils/stepUtils";
 import { getArgIcon } from "@/utils/iconRegistry";
@@ -21,6 +26,8 @@ export interface Attribute {
   defaultValue?: string;
   deadline?: number;
   forEach?: boolean;
+  matchLanguage?: string;
+  matchScript?: string;
   mappingName?: string;
   mappingLanguage?: string;
   mappingScript?: string;
@@ -56,9 +63,17 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
           : spec.role === AttributeRole.Const
             ? "const"
             : "input";
-      const hasDefault =
-        spec.role === AttributeRole.Optional ||
-        spec.role === AttributeRole.Const;
+
+      const inputConfig =
+        spec.role === AttributeRole.Required
+          ? spec.required
+          : spec.role === AttributeRole.Optional
+            ? spec.optional
+            : undefined;
+      const mappingConfig =
+        spec.role === AttributeRole.Output
+          ? spec.output?.mapping
+          : inputConfig?.mapping;
 
       return {
         id: `${prefix}-${index}-${timestamp}`,
@@ -66,18 +81,28 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
         name,
         dataType: spec.type || AttributeType.String,
         defaultValue:
-          hasDefault && spec.input?.default !== undefined
-            ? String(spec.input.default)
-            : undefined,
+          spec.role === AttributeRole.Optional && spec.optional?.default
+            ? spec.optional.default
+            : spec.role === AttributeRole.Const && spec.const?.value
+              ? spec.const.value
+              : undefined,
         deadline:
-          spec.role === AttributeRole.Optional && spec.input?.deadline
-            ? spec.input.deadline
+          spec.role === AttributeRole.Optional && spec.optional?.deadline
+            ? spec.optional.deadline
             : undefined,
-        collect: spec.input?.collect || "first",
-        forEach: spec.input?.for_each || false,
-        mappingName: spec.mapping?.name,
-        mappingLanguage: spec.mapping?.script?.language,
-        mappingScript: spec.mapping?.script?.script,
+        collect: inputConfig?.collect || "first",
+        forEach: inputConfig?.for_each || false,
+        matchLanguage:
+          spec.role === AttributeRole.Required
+            ? spec.required?.match?.language
+            : undefined,
+        matchScript:
+          spec.role === AttributeRole.Required
+            ? spec.required?.match?.script
+            : undefined,
+        mappingName: mappingConfig?.name,
+        mappingLanguage: mappingConfig?.script?.language,
+        mappingScript: mappingConfig?.script?.script,
       };
     }
   );
@@ -98,6 +123,16 @@ export function validateAttributesList(
       };
     }
     names.add(attr.name);
+
+    if (attr.attrType === "input" && attr.matchScript?.trim()) {
+      const matchLanguage = attr.matchLanguage?.trim();
+      if (!matchLanguage) {
+        return {
+          key: "stepEditor.matchLanguageRequired",
+          vars: { name: attr.name },
+        };
+      }
+    }
 
     if (
       (attr.attrType === "optional" || attr.attrType === "const") &&
@@ -144,43 +179,28 @@ export function createStepAttributes(
             ? AttributeRole.Const
             : AttributeRole.Output;
 
-    const spec: AttributeSpec = {
-      role,
-      type: a.dataType,
-    };
+    const spec: AttributeSpec = { role, type: a.dataType };
+    const mapping = buildMappingConfig(a);
 
-    if (a.attrType === "input" || a.attrType === "optional") {
-      setInputCollect(ensureInputConfig(spec), a);
-    }
-
-    if (
-      (a.attrType === "optional" || a.attrType === "const") &&
-      a.defaultValue?.trim()
-    ) {
-      ensureInputConfig(spec).default = a.defaultValue.trim();
-    }
-
-    if (a.attrType === "optional" && a.deadline) {
-      ensureInputConfig(spec).deadline = a.deadline;
-    }
-
-    if (a.forEach && a.attrType !== "output") {
-      ensureInputConfig(spec).for_each = true;
-    }
-
-    const mappingName = a.mappingName?.trim();
-    const mappingScript = a.mappingScript?.trim();
-    if (mappingName || mappingScript) {
-      spec.mapping = {};
-      if (mappingName) {
-        spec.mapping.name = mappingName;
-      }
-      if (mappingScript) {
-        spec.mapping.script = {
-          language: a.mappingLanguage?.trim() || "lua",
-          script: mappingScript,
-        };
-      }
+    if (a.attrType === "input") {
+      const required: RequiredConfig = {};
+      if (a.collect && a.collect !== "first") required.collect = a.collect;
+      if (a.forEach) required.for_each = true;
+      if (a.matchScript?.trim()) required.match = buildMatchConfig(a);
+      if (mapping) required.mapping = mapping;
+      if (Object.keys(required).length > 0) spec.required = required;
+    } else if (a.attrType === "optional") {
+      const optional: OptionalConfig = {};
+      if (a.collect && a.collect !== "first") optional.collect = a.collect;
+      if (a.forEach) optional.for_each = true;
+      if (a.defaultValue?.trim()) optional.default = a.defaultValue.trim();
+      if (a.deadline) optional.deadline = a.deadline;
+      if (mapping) optional.mapping = mapping;
+      if (Object.keys(optional).length > 0) spec.optional = optional;
+    } else if (a.attrType === "const") {
+      if (a.defaultValue?.trim()) spec.const = { value: a.defaultValue.trim() };
+    } else if (a.attrType === "output") {
+      if (mapping) spec.output = { mapping };
     }
 
     stepAttributes[a.name] = spec;
@@ -188,20 +208,26 @@ export function createStepAttributes(
   return stepAttributes;
 }
 
-function ensureInputConfig(
-  spec: AttributeSpec
-): NonNullable<AttributeSpec["input"]> {
-  spec.input ??= {};
-  return spec.input;
+function buildMatchConfig(a: Attribute): ScriptConfig {
+  return {
+    language: a.matchLanguage?.trim() || SCRIPT_LANGUAGE_JPATH,
+    script: a.matchScript?.trim() || "",
+  };
 }
 
-function setInputCollect(
-  input: NonNullable<AttributeSpec["input"]>,
-  attr: Attribute
-) {
-  if (attr.collect && attr.collect !== "first") {
-    input.collect = attr.collect;
+function buildMappingConfig(a: Attribute): MappingConfig | undefined {
+  const mappingName = a.mappingName?.trim();
+  const mappingScript = a.mappingScript?.trim();
+  if (!mappingName && !mappingScript) return undefined;
+  const config: MappingConfig = {};
+  if (mappingName) config.name = mappingName;
+  if (mappingScript) {
+    config.script = {
+      language: a.mappingLanguage?.trim() || "lua",
+      script: mappingScript,
+    };
   }
+  return config;
 }
 
 export function getValidationError({
@@ -233,7 +259,7 @@ export function getValidationError({
   if (attrError) {
     return attrError;
   }
-  const mappingError = validateAttributeMappings(attributes);
+  const mappingError = validateMappings(attributes);
   if (mappingError) {
     return mappingError;
   }
@@ -267,9 +293,7 @@ export function getValidationError({
   return null;
 }
 
-function validateAttributeMappings(
-  attributes: Attribute[]
-): ValidationError | null {
+function validateMappings(attributes: Attribute[]): ValidationError | null {
   const inputMappingNames = new Set<string>();
   const outputMappingNames = new Set<string>();
 

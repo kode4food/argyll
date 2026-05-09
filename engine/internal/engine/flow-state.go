@@ -82,12 +82,21 @@ func (e *Engine) GetAttribute(
 // IsFlowFailed determines if a flow has failed by checking whether any of its
 // goal steps cannot be completed
 func (e *Engine) IsFlowFailed(flow api.FlowState) bool {
+	viableGoal := false
 	for _, goalID := range flow.Plan.Goals {
+		ex := flow.Executions[goalID]
+		if policy.StepFailed(ex.Status) {
+			return true
+		}
+		if policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
+			continue
+		}
 		if !e.canStepComplete(goalID, flow) {
 			return true
 		}
+		viableGoal = true
 	}
-	return false
+	return !viableGoal
 }
 
 // HasInputProvider checks if a required attribute has at least one step that
@@ -117,7 +126,7 @@ func (e *Engine) isFlowComplete(flow api.FlowState) bool {
 			return false
 		}
 	}
-	return true
+	return !allGoalsPruned(flow)
 }
 
 func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
@@ -125,7 +134,7 @@ func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
 	if slices.Contains(plan.Goals, stepID) {
 		return true
 	}
-	return needsOutputs(plan.Steps[stepID], flow)
+	return e.needsOutputs(plan.Steps[stepID], flow)
 }
 
 func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
@@ -135,6 +144,13 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	}
 
 	step := flow.Plan.Steps[stepID]
+	gate, err := e.stepGateStatus(step, flow)
+	if err != nil {
+		return false
+	}
+	if gate == policy.MatchUnknown || gate == policy.MatchUnmatched {
+		return true
+	}
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
 			if _, ok := flow.FirstAttribute(name); ok {
@@ -149,16 +165,16 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	return true
 }
 
-func needsOutputs(step *api.Step, flow api.FlowState) bool {
+func (e *Engine) needsOutputs(step *api.Step, flow api.FlowState) bool {
 	for name, attr := range step.Attributes {
-		if needsOutput(name, attr, flow) {
+		if e.needsOutput(name, attr, flow) {
 			return true
 		}
 	}
 	return false
 }
 
-func needsOutput(
+func (e *Engine) needsOutput(
 	name api.Name, attr *api.AttributeSpec, flow api.FlowState,
 ) bool {
 	if !attr.IsOutput() {
@@ -181,13 +197,43 @@ func needsOutput(
 		if input == nil {
 			continue
 		}
+		if !e.consumerCanDemandInput(consumer, name, input, flow) {
+			continue
+		}
+		consumerValue := hasValue
+		if policy.RequiredInputHasMatch(input) {
+			consumerValue = e.inputHasMatchedValue(input, name, flow)
+		}
 		if policy.ProviderOutputNeeded(
-			input.InputCollect(), hasValue, canCollectAll(name, flow),
+			input.Collect(), consumerValue, canCollectAll(name, flow),
 		) {
 			return true
 		}
 	}
 	return false
+}
+
+func (e *Engine) consumerCanDemandInput(
+	consumer *api.Step, name api.Name, input *api.AttributeSpec,
+	flow api.FlowState,
+) bool {
+	status, err := e.stepGateStatus(consumer, flow)
+	if err != nil {
+		return false
+	}
+	if policy.RequiredInputHasMatch(input) {
+		return status != policy.MatchUnmatched
+	}
+	return policy.MatchAllowsNormalDemand(status)
+}
+
+func (e *Engine) inputHasMatchedValue(
+	input *api.AttributeSpec, name api.Name, flow api.FlowState,
+) bool {
+	values, _, err := policy.MatchCandidateValues(
+		input, flow.AttributeValues(name), e.evaluateRequiredMatch,
+	)
+	return err == nil && len(values) > 0
 }
 
 func canCollectAll(name api.Name, flow api.FlowState) bool {
@@ -216,6 +262,19 @@ func hasActiveWork(flow api.FlowState) bool {
 		}
 	}
 	return false
+}
+
+func allGoalsPruned(flow api.FlowState) bool {
+	if len(flow.Plan.Goals) == 0 {
+		return false
+	}
+	for _, sid := range flow.Plan.Goals {
+		ex := flow.Executions[sid]
+		if !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
+			return false
+		}
+	}
+	return true
 }
 
 func isOutputAttribute(step *api.Step, name api.Name) bool {

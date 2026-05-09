@@ -63,7 +63,7 @@ Example:
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
+    "items": { "role": "required", "type": "array", "required": { "for_each": true } },
     "processed_count": { "role": "output", "type": "number" }
   }
 }
@@ -156,7 +156,7 @@ $.items[?(@.status=="ready")]
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
+    "items": { "role": "required", "type": "array", "required": { "for_each": true } },
     "batch_result": { "role": "output", "type": "string" }
   }
 }
@@ -305,7 +305,7 @@ A step can have both:
     "script": "(> (length items) 0)"
   },
   "attributes": {
-    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
+    "items": { "role": "required", "type": "array", "required": { "for_each": true } },
     "processed_count": { "role": "output", "type": "number" }
   }
 }

@@ -70,18 +70,19 @@ func (m *Mapper) MapValue(
 func (m *Mapper) MapInput(
 	step *api.Step, name api.Name, attr *api.AttributeSpec, value any,
 ) any {
-	if attr.Mapping == nil || attr.Mapping.Script == nil {
+	mapping := attr.Mapping()
+	if mapping == nil || mapping.Script == nil {
 		return value
 	}
 
 	mapped, _ := step.MappedName(name)
-	if argName, ok := m.MapValue(step, mapped, attr.Mapping.Script, value); ok {
+	if argName, ok := m.MapValue(step, mapped, mapping.Script, value); ok {
 		return argName
 	}
 
 	args := []any{
 		slog.String("attribute", string(name)),
-		slog.String("language", attr.Mapping.Script.Language),
+		slog.String("language", mapping.Script.Language),
 	}
 	args = append(args, log.StepID(step.ID))
 	slog.Warn("Input mapping failed; using original value", args...)
@@ -107,8 +108,8 @@ func (m *Mapper) MapOutputs(step *api.Step, outputs api.Args) api.Args {
 func (m *Mapper) mapOutput(
 	step *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
 ) (any, bool) {
-	if attr.Mapping != nil && attr.Mapping.Script != nil {
-		return m.MapValue(step, name, attr.Mapping.Script, outputs)
+	if mapping := attr.Mapping(); mapping != nil && mapping.Script != nil {
+		return m.MapValue(step, name, mapping.Script, outputs)
 	}
 	return m.outputByName(step, name, outputs)
 }

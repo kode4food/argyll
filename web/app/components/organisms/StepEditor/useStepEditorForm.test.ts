@@ -163,10 +163,14 @@ describe("useStepEditorForm", () => {
         },
         attributes: expect.objectContaining({
           input: expect.objectContaining({
-            mapping: expect.objectContaining({ name: "child_input" }),
+            required: expect.objectContaining({
+              mapping: expect.objectContaining({ name: "child_input" }),
+            }),
           }),
           output: expect.objectContaining({
-            mapping: expect.objectContaining({ name: "child_output" }),
+            output: expect.objectContaining({
+              mapping: expect.objectContaining({ name: "child_output" }),
+            }),
           }),
         }),
         http: undefined,

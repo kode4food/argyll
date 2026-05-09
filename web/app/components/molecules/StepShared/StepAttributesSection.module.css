@@ -18,6 +18,7 @@
 
 .argItem {
   font-size: var(--text-xs);
+  line-height: 1;
   padding: 2px 0;
   display: flex;
   justify-content: space-between;
@@ -77,8 +78,30 @@
 .argName {
   display: flex;
   align-items: center;
+  gap: 2px;
   font-size: var(--text-xs);
   color: inherit;
+}
+
+.argModifierIcon {
+  width: 0.625rem;
+  height: 0.625rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+}
+
+.argModifierCollect {
+  width: 0.75rem;
+  height: 0.75rem;
+  opacity: 0.5;
+  flex-shrink: 0;
+  background-color: currentColor;
+  mask-repeat: no-repeat;
+  mask-position: center;
+  mask-size: contain;
+  -webkit-mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  -webkit-mask-size: contain;
 }
 
 .argIcon {

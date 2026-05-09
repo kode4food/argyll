@@ -11,14 +11,16 @@ from .types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
+    ConstConfig,
     FlowConfig,
     FlowID,
     HTTPConfig,
     InitArgs,
     InputCollect,
-    InputConfig,
     Labels,
+    OptionalConfig,
     PredicateConfig,
+    RequiredConfig,
     ScriptConfig,
     ScriptLanguage,
     Step,
@@ -107,7 +109,7 @@ class StepBuilder:
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.OPTIONAL,
             type=attr_type,
-            input=InputConfig(default=default),
+            optional=OptionalConfig(default=default),
         )
         return self._copy(_attributes=new_attrs)
 
@@ -119,7 +121,7 @@ class StepBuilder:
         new_attrs[name] = AttributeSpec(
             role=AttributeRole.CONST,
             type=attr_type,
-            input=InputConfig(default=value),
+            const=ConstConfig(value=value),
         )
         return self._copy(_attributes=new_attrs)
 
@@ -138,17 +140,31 @@ class StepBuilder:
 
         new_attrs = dict(self._attributes)
         existing = new_attrs[name]
-        input_config = existing.input or InputConfig()
-        new_attrs[name] = AttributeSpec(
-            role=existing.role,
-            type=existing.type,
-            input=InputConfig(
-                collect=input_config.collect,
-                default=input_config.default,
-                for_each=True,
-                deadline=input_config.deadline,
-            ),
-        )
+        if existing.role == AttributeRole.REQUIRED:
+            rc = existing.required or RequiredConfig()
+            new_attrs[name] = AttributeSpec(
+                role=existing.role,
+                type=existing.type,
+                required=RequiredConfig(
+                    collect=rc.collect,
+                    for_each=True,
+                    match=rc.match,
+                    mapping=rc.mapping,
+                ),
+            )
+        elif existing.role == AttributeRole.OPTIONAL:
+            oc = existing.optional or OptionalConfig()
+            new_attrs[name] = AttributeSpec(
+                role=existing.role,
+                type=existing.type,
+                optional=OptionalConfig(
+                    collect=oc.collect,
+                    for_each=True,
+                    default=oc.default,
+                    deadline=oc.deadline,
+                    mapping=oc.mapping,
+                ),
+            )
         return self._copy(_attributes=new_attrs)
 
     def with_label(self, key: str, value: str) -> "StepBuilder":
@@ -395,30 +411,36 @@ def _validate_step(step: Step) -> None:
         if not name:
             raise StepValidationError("Attribute name cannot be empty")
 
-        input_config = spec.input
-        default = input_config.default if input_config else ""
+        if spec.role == AttributeRole.REQUIRED:
+            if spec.optional is not None or spec.const is not None or spec.output is not None:
+                raise StepValidationError(
+                    f"Wrong config type for required attribute {name}"
+                )
+        elif spec.role == AttributeRole.OPTIONAL:
+            if spec.required is not None or spec.const is not None or spec.output is not None:
+                raise StepValidationError(
+                    f"Wrong config type for optional attribute {name}"
+                )
+        elif spec.role == AttributeRole.CONST:
+            if spec.required is not None or spec.optional is not None or spec.output is not None:
+                raise StepValidationError(
+                    f"Wrong config type for const attribute {name}"
+                )
+            if not spec.const or not spec.const.value:
+                raise StepValidationError(
+                    f"Const attribute {name} requires const value"
+                )
+        elif spec.role == AttributeRole.OUTPUT:
+            if spec.required is not None or spec.optional is not None or spec.const is not None:
+                raise StepValidationError(
+                    f"Wrong config type for output attribute {name}"
+                )
 
-        if input_config is not None and spec.role not in {
-            AttributeRole.REQUIRED,
-            AttributeRole.OPTIONAL,
-            AttributeRole.CONST,
-        }:
-            raise StepValidationError(
-                f"Input config not allowed for attribute {name}"
-            )
-
-        if spec.role == AttributeRole.CONST and not default:
-            raise StepValidationError(
-                f"Const attribute {name} requires const value"
-            )
-
-        if default and spec.role not in {
-            AttributeRole.OPTIONAL,
-            AttributeRole.CONST,
-        }:
-            raise StepValidationError(
-                f"Default value not allowed for attribute {name}"
-            )
+        default = ""
+        if spec.role == AttributeRole.OPTIONAL and spec.optional:
+            default = spec.optional.default
+        elif spec.role == AttributeRole.CONST and spec.const:
+            default = spec.const.value
 
         if default:
             try:
@@ -463,29 +485,13 @@ def _validate_step(step: Step) -> None:
                     f"Default for {name} must be JSON null"
                 )
 
-        if input_config and input_config.for_each:
-            if spec.type not in {
-                AttributeType.ARRAY,
-                AttributeType.ANY,
-            }:
-                raise StepValidationError(
-                    f"ForEach requires array/any type for {name}"
-                )
+        for_each = False
+        if spec.role == AttributeRole.REQUIRED and spec.required:
+            for_each = spec.required.for_each
+        elif spec.role == AttributeRole.OPTIONAL and spec.optional:
+            for_each = spec.optional.for_each
 
-        if (
-            input_config
-            and input_config.collect != InputCollect.FIRST
-            and spec.role == AttributeRole.CONST
-        ):
+        if for_each and spec.type not in {AttributeType.ARRAY, AttributeType.ANY}:
             raise StepValidationError(
-                f"Collect not allowed for const attribute {name}"
-            )
-
-        if (
-            input_config
-            and input_config.deadline > 0
-            and spec.role != AttributeRole.OPTIONAL
-        ):
-            raise StepValidationError(
-                f"Deadline not allowed for attribute {name}"
+                f"ForEach requires array/any type for {name}"
             )

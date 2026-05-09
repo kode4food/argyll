@@ -118,8 +118,8 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 **How it works:**
 - Parent plan compilation builds a child execution plan for the flow step's goals
 - Parent flow starts a child flow from that precomputed child plan
-- Inputs are mapped from parent to child via attribute `mapping.name`
-- Child outputs are mapped back to parent attributes via `mapping.name`
+- Inputs are mapped from parent to child via the input role config (`required.mapping.name` or `optional.mapping.name`)
+- Child outputs are mapped back to parent attributes via `output.mapping.name`
 - Child completion produces the mapped outputs
 
 **Constraint:** Flow-step composition must be acyclic. A flow step cannot directly or indirectly include itself through child-flow goals.
@@ -134,9 +134,9 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
     "goals": ["fetch-user"]
   },
   "attributes": {
-    "uid": { "role": "required", "mapping": { "name": "user_id" } },
-    "name": { "role": "output", "mapping": { "name": "user_name" } },
-    "admin": { "role": "output", "mapping": { "name": "is_admin" } }
+    "uid": { "role": "required", "required": { "mapping": { "name": "user_id" } } },
+    "name": { "role": "output", "output": { "mapping": { "name": "user_name" } } },
+    "admin": { "role": "output", "output": { "mapping": { "name": "is_admin" } } }
   }
 }
 ```
@@ -164,13 +164,17 @@ Each step declares what it needs and what it produces.
 
 **Required attributes** must be available before the step executes.
 
-**Optional attributes** use their declared `input.default` value if provided. If no default is declared and the value is missing, the input is omitted.
+Required attributes may also declare `required.match`, a script predicate that gates the step using only that attribute. The predicate is evaluated against each candidate upstream value before the input's `required.collect` policy is resolved. For Ale and Lua, the candidate is available as `value`; for JPath, the candidate is the document.
 
-Optional attributes may also declare a Collection Deadline with `input.deadline` (milliseconds):
-- `input.deadline: 0` means there is no wait window (the step uses the upstream value only if it is already present; otherwise it uses the default or omits the input)
+Match uses the input's collection semantics: `some` means at least one upstream candidate must match, `all` means every upstream candidate must match, and `none` means no upstream candidate may match. If the match cannot be satisfied, the step is skipped and does not demand its other required inputs.
+
+**Optional attributes** use their declared `optional.default` value if provided. If no default is declared and the value is missing, the input is omitted.
+
+Optional attributes may also declare a Collection Deadline with `optional.deadline` (milliseconds):
+- `optional.deadline: 0` means there is no wait window (the step uses the upstream value only if it is already present; otherwise it uses the default or omits the input)
 - The deadline starts when the step's required inputs are satisfied (or at flow start if the step has no required inputs)
-- At the deadline, the step uses the best value available for its `input.collect` policy; for example, `last` uses the latest value so far, and `some` uses the values so far if at least one exists
-- If no usable value exists, the step uses `input.default` or omits the input
+- At the deadline, the step uses the best value available for its `optional.collect` policy; for example, `last` uses the latest value so far, and `some` uses the values so far if at least one exists
+- If no usable value exists, the step uses `optional.default` or omits the input
 - The deadline decision is step-local. Later values can still enter the flow for other consumers, but this step will not restart to use them
 
 **Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps.
@@ -210,12 +214,12 @@ The predicate evaluates to true/false. If false, the step is skipped and produce
 
 ## Work Items and For Each
 
-Any step can expand into multiple work items using `input.for_each`. When an input is marked `for_each` and provided as an array, the engine creates one work item per array element.
+Any step can expand into multiple work items using `required.for_each` or `optional.for_each`. When an input is marked `for_each` and provided as an array, the engine creates one work item per array element.
 
 ```json
 {
   "attributes": {
-    "items": { "role": "required", "type": "array", "input": { "for_each": true } },
+    "items": { "role": "required", "type": "array", "required": { "for_each": true } },
     "item_total": { "role": "output" }
   }
 }
@@ -242,7 +246,7 @@ Attributes can include optional **mappings** that rename parameters or transform
 
 ### Parameter Renaming
 
-Use `mapping.name` to map between flow state attribute names (outer names) and service parameter names (inner names):
+Use the role-specific `mapping.name` field to map between flow state attribute names (outer names) and service parameter names (inner names). Input mappings live under `required.mapping` or `optional.mapping`; output mappings live under `output.mapping`:
 
 ```json
 {
@@ -250,15 +254,17 @@ Use `mapping.name` to map between flow state attribute names (outer names) and s
     "user_email": {
       "role": "required",
       "type": "string",
-      "mapping": {
-        "name": "email"
+      "required": {
+        "mapping": {
+          "name": "email"
+        }
       }
     }
   }
 }
 ```
 
-**For inputs:** The flow state has `user_email`, but the service receives it as `email`.
+**For inputs:** The flow state has `user_email`, but the service receives it as `email`. Optional inputs use the same shape under `optional.mapping`.
 
 **For outputs:** The service returns `email`, but it's stored in flow state as `user_email`.
 
@@ -272,10 +278,12 @@ Use `mapping.script` to transform values using JSONPath, Ale, or Lua:
     "order_total": {
       "role": "required",
       "type": "number",
-      "mapping": {
-        "script": {
-          "language": "jpath",
-          "script": "$.data.order.total"
+      "required": {
+        "mapping": {
+          "script": {
+            "language": "jpath",
+            "script": "$.data.order.total"
+          }
         }
       }
     }
@@ -297,11 +305,13 @@ You can use both `name` and `script` together:
     "customer_id": {
       "role": "required",
       "type": "string",
-      "mapping": {
-        "name": "customerId",
-        "script": {
-          "language": "jpath",
-          "script": "$.user.id"
+      "required": {
+        "mapping": {
+          "name": "customerId",
+          "script": {
+            "language": "jpath",
+            "script": "$.user.id"
+          }
         }
       }
     }
@@ -314,7 +324,7 @@ This extracts `$.user.id` from the value, then passes it to the service as `cust
 **Mapping rules:**
 - At least one of `name` or `script` must be present
 - Mappings not allowed on const attributes
-- Inner names (mapping.name) must be unique within inputs, unique within outputs
+- Inner names (`mapping.name`) must be unique within inputs (required and optional together) and unique within outputs
 
 ## Attributes vs Arguments vs Outputs
 

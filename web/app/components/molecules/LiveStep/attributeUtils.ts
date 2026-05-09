@@ -1,4 +1,5 @@
 import { ExecutionResult, AttributeSpec, AttributeValue } from "@/app/api";
+import { type AttributeModifier } from "@/utils/stepUtils";
 
 export interface ArgValueResult {
   hasValue: boolean;
@@ -12,6 +13,7 @@ export interface UnifiedArg {
   type: string;
   argType: "required" | "optional" | "const" | "output";
   spec: AttributeSpec;
+  modifiers: AttributeModifier[];
 }
 
 export interface StatusBadgeContext {

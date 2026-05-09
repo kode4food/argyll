@@ -129,6 +129,11 @@ export function useStepEditorForm(
             updated.validationError = undefined;
           }
 
+          if (field === "attrType" && value !== "input") {
+            updated.matchLanguage = undefined;
+            updated.matchScript = undefined;
+          }
+
           if (field === "attrType" && value === "const") {
             updated.collect = "first";
           }

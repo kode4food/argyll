@@ -122,12 +122,11 @@ describe("flowPlanAttributeOptions", () => {
             required_with_default: {
               role: AttributeRole.Required,
               type: AttributeType.String,
-              input: { default: '"same-value"' },
             },
             optional_with_default: {
               role: AttributeRole.Optional,
               type: AttributeType.Number,
-              input: { default: "42" },
+              optional: { default: "42" },
             },
             optional_without_default: {
               role: AttributeRole.Optional,
@@ -144,7 +143,6 @@ describe("flowPlanAttributeOptions", () => {
         name: "required_with_default",
         required: true,
         type: AttributeType.String,
-        defaultValue: "same-value",
       },
       {
         name: "optional_without_default",
@@ -232,7 +230,7 @@ describe("flowPlanAttributeOptions", () => {
             beta_with_default: {
               role: AttributeRole.Optional,
               type: AttributeType.String,
-              input: { default: '"fallback"' },
+              optional: { default: '"fallback"' },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -282,7 +280,7 @@ describe("flowPlanAttributeOptions", () => {
             quantity: {
               role: AttributeRole.Optional,
               type: AttributeType.Number,
-              input: { default: "1" },
+              optional: { default: "1" },
             },
           },
           http: { endpoint: "http://localhost:8080/order", timeout: 5000 },

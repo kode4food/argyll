@@ -76,11 +76,9 @@ func (s Step) Optional(
 ) Step {
 	s.attributes = maps.Clone(s.attributes)
 	s.attributes[name] = &api.AttributeSpec{
-		Role: api.RoleOptional,
-		Type: argType,
-		Input: &api.InputConfig{
-			Default: defaultValue,
-		},
+		Role:     api.RoleOptional,
+		Type:     argType,
+		Optional: &api.OptionalConfig{Default: defaultValue},
 	}
 	return s
 }
@@ -91,11 +89,9 @@ func (s Step) Const(
 ) Step {
 	s.attributes = maps.Clone(s.attributes)
 	s.attributes[name] = &api.AttributeSpec{
-		Role: api.RoleConst,
-		Type: argType,
-		Input: &api.InputConfig{
-			Default: defaultValue,
-		},
+		Role:  api.RoleConst,
+		Type:  argType,
+		Const: &api.ConstConfig{Value: defaultValue},
 	}
 	return s
 }
@@ -115,8 +111,20 @@ func (s Step) WithForEach(name api.Name) Step {
 	s.attributes = maps.Clone(s.attributes)
 	if attr, ok := s.attributes[name]; ok {
 		cpy := util.MutableCopy(attr)
-		cpy.Input = util.MutableCopy(cpy.Input)
-		cpy.Input.ForEach = true
+		switch cpy.Role {
+		case api.RoleRequired:
+			cpy.Required = util.MutableCopy(cpy.Required)
+			if cpy.Required == nil {
+				cpy.Required = &api.RequiredConfig{}
+			}
+			cpy.Required.ForEach = true
+		case api.RoleOptional:
+			cpy.Optional = util.MutableCopy(cpy.Optional)
+			if cpy.Optional == nil {
+				cpy.Optional = &api.OptionalConfig{}
+			}
+			cpy.Optional.ForEach = true
+		}
 		s.attributes[name] = cpy
 	}
 	return s
@@ -154,6 +162,28 @@ func (s Step) WithAlePredicate(script string) Step {
 // WithLuaPredicate sets a Lua language predicate script
 func (s Step) WithLuaPredicate(script string) Step {
 	return s.WithPredicate(api.ScriptLangLua, script)
+}
+
+// WithRequiredMatch sets a match predicate for a required attribute. The
+// predicate receives each candidate attribute value as "value" before collect
+// semantics are applied
+func (s Step) WithRequiredMatch(
+	name api.Name, language, script string,
+) Step {
+	s.attributes = maps.Clone(s.attributes)
+	if attr, ok := s.attributes[name]; ok && attr.IsRequired() {
+		cpy := util.MutableCopy(attr)
+		cpy.Required = util.MutableCopy(cpy.Required)
+		if cpy.Required == nil {
+			cpy.Required = &api.RequiredConfig{}
+		}
+		cpy.Required.Match = &api.ScriptConfig{
+			Language: language,
+			Script:   script,
+		}
+		s.attributes[name] = cpy
+	}
+	return s
 }
 
 // WithEndpoint sets the HTTP endpoint where the step handler is listening

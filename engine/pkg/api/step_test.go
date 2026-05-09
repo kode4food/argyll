@@ -369,8 +369,8 @@ func TestHTTPMethodValidation(t *testing.T) {
 					"item_id": {
 						Role: api.RoleRequired,
 						Type: api.TypeString,
-						Mapping: &api.AttributeMapping{
-							Name: "external_id",
+						Required: &api.RequiredConfig{
+							Mapping: &api.MappingConfig{Name: "external_id"},
 						},
 					},
 				},
@@ -476,7 +476,7 @@ func TestSortedArgNames(t *testing.T) {
 			"carrot": {
 				Role:  api.RoleConst,
 				Type:  api.TypeString,
-				Input: &api.InputConfig{Default: `"fixed"`},
+				Const: &api.ConstConfig{Value: `"fixed"`},
 			},
 		},
 	}
@@ -504,15 +504,15 @@ func TestSortedArgNamesUsesMappingNames(t *testing.T) {
 			"outer_b": {
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Name: "inner_b",
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{Name: "inner_b"},
 				},
 			},
 			"outer_a": {
 				Role: api.RoleOptional,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Name: "inner_a",
+				Optional: &api.OptionalConfig{
+					Mapping: &api.MappingConfig{Name: "inner_a"},
 				},
 			},
 			"plain": {
@@ -538,23 +538,23 @@ func TestMultiArgNames(t *testing.T) {
 		},
 		Attributes: api.AttributeSpecs{
 			"users": {
-				Role:  api.RoleRequired,
-				Type:  api.TypeArray,
-				Input: &api.InputConfig{ForEach: true},
+				Role:     api.RoleRequired,
+				Type:     api.TypeArray,
+				Required: &api.RequiredConfig{ForEach: true},
 			},
 			"items": {
-				Role:  api.RoleOptional,
-				Type:  api.TypeArray,
-				Input: &api.InputConfig{ForEach: true},
+				Role:     api.RoleOptional,
+				Type:     api.TypeArray,
+				Optional: &api.OptionalConfig{ForEach: true},
 			},
 			"config": {
 				Role: api.RoleRequired,
 				Type: api.TypeObject,
 			},
 			"messages": {
-				Role:  api.RoleOptional,
-				Type:  api.TypeArray,
-				Input: &api.InputConfig{ForEach: true},
+				Role:     api.RoleOptional,
+				Type:     api.TypeArray,
+				Optional: &api.OptionalConfig{ForEach: true},
 			},
 		},
 	}
@@ -1001,11 +1001,13 @@ func TestStepCopy(t *testing.T) {
 				"input": {
 					Role: api.RoleRequired,
 					Type: api.TypeString,
-					Mapping: &api.AttributeMapping{
-						Name: "arg_input",
-						Script: &api.ScriptConfig{
-							Language: api.ScriptLangJPath,
-							Script:   "$.input",
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{
+							Name: "arg_input",
+							Script: &api.ScriptConfig{
+								Language: api.ScriptLangJPath,
+								Script:   "$.input",
+							},
 						},
 					},
 				},
@@ -1027,8 +1029,8 @@ func TestStepCopy(t *testing.T) {
 		cpy.WorkConfig.MaxRetries = 9
 		cpy.Labels["team"] = "platform"
 		cpy.Attributes["input"].Type = api.TypeNumber
-		cpy.Attributes["input"].Mapping.Name = "changed"
-		cpy.Attributes["input"].Mapping.Script.Script = "$.changed"
+		cpy.Attributes["input"].Required.Mapping.Name = "changed"
+		cpy.Attributes["input"].Required.Mapping.Script.Script = "$.changed"
 
 		as.Equal("http://localhost:8081", st.HTTP.Endpoint)
 		as.Equal(api.StepID("goal-b"), st.Flow.Goals[0])
@@ -1037,8 +1039,8 @@ func TestStepCopy(t *testing.T) {
 		as.Equal(9, st.WorkConfig.MaxRetries)
 		as.Equal("platform", st.Labels["team"])
 		as.Equal(api.TypeNumber, st.Attributes["input"].Type)
-		as.Equal("changed", st.Attributes["input"].Mapping.Name)
-		as.Equal("$.changed", st.Attributes["input"].Mapping.Script.Script)
+		as.Equal("changed", st.Attributes["input"].Required.Mapping.Name)
+		as.Equal("$.changed", st.Attributes["input"].Required.Mapping.Script.Script)
 	})
 }
 
@@ -1432,12 +1434,16 @@ func TestStepValidateMappingNames(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"email": {
-					Role:    api.RoleRequired,
-					Mapping: &api.AttributeMapping{Name: "user_email"},
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{Name: "user_email"},
+					},
 				},
 				"contact": {
-					Role:    api.RoleRequired,
-					Mapping: &api.AttributeMapping{Name: "user_email"},
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{Name: "user_email"},
+					},
 				},
 			},
 		}
@@ -1457,12 +1463,12 @@ func TestStepValidateMappingNames(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"sent": {
-					Role:    api.RoleOutput,
-					Mapping: &api.AttributeMapping{Name: "status"},
+					Role:   api.RoleOutput,
+					Output: &api.OutputConfig{Mapping: &api.MappingConfig{Name: "status"}},
 				},
 				"delivered": {
-					Role:    api.RoleOutput,
-					Mapping: &api.AttributeMapping{Name: "status"},
+					Role:   api.RoleOutput,
+					Output: &api.OutputConfig{Mapping: &api.MappingConfig{Name: "status"}},
 				},
 			},
 		}
@@ -1482,12 +1488,12 @@ func TestStepValidateMappingNames(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"user_data": {
-					Role:    api.RoleRequired,
-					Mapping: &api.AttributeMapping{Name: "data"},
+					Role:     api.RoleRequired,
+					Required: &api.RequiredConfig{Mapping: &api.MappingConfig{Name: "data"}},
 				},
 				"result_data": {
-					Role:    api.RoleOutput,
-					Mapping: &api.AttributeMapping{Name: "data"},
+					Role:   api.RoleOutput,
+					Output: &api.OutputConfig{Mapping: &api.MappingConfig{Name: "data"}},
 				},
 			},
 		}

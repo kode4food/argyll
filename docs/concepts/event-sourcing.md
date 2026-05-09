@@ -105,7 +105,7 @@ Work items may still be in-flight...
          ↓
 work_succeeded/work_failed events recorded
          ↓
-When no active work remains:
+When no pending or active work remains:
 flow_deactivated event
          ↓
 Flow index updated to completed/failed
@@ -119,7 +119,7 @@ This distinction is crucial:
   - No new steps will start
   - In-flight work may still complete and be recorded
 
-- **Deactivated**: The flow is terminal AND no active work remains
+- **Deactivated**: The flow is terminal AND no pending or active work remains
   - All work is accounted for
   - Event log is complete
 

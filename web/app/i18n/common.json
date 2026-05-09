@@ -8,10 +8,22 @@
   "stepEditor.mappingScriptPlaceholderAle": "(* value 2)",
   "stepEditor.mappingScriptPlaceholderJPath": "$.value",
   "stepEditor.mappingScriptPlaceholderLua": "return (value or 0) * 2",
+  "stepEditor.matchScriptPlaceholderAle": "(eq value \"email\")",
+  "stepEditor.matchScriptPlaceholderJPath": "$.kind == \"email\"",
+  "stepEditor.matchScriptPlaceholderLua": "return value == \"email\"",
   "stepEditor.stepIdPlaceholder": "my-step",
   "stepEditor.stepNamePlaceholder": "My Step",
   "stepEditor.typeAsyncLabel": "Async",
   "stepEditor.typeFlowLabel": "Flow",
   "stepEditor.typeScriptLabel": "Script",
-  "stepEditor.typeSyncLabel": "Sync"
+  "stepEditor.typeSyncLabel": "Sync",
+  "attribute.roleRequired": "Required Input",
+  "attribute.roleOptional": "Optional Input",
+  "attribute.roleConst": "Const",
+  "attribute.roleOutput": "Output",
+  "attribute.modifierCollectLast": "Collect: Last",
+  "attribute.modifierCollectAll": "Collect: All",
+  "attribute.modifierCollectSome": "Collect: Some",
+  "attribute.modifierCollectNone": "Collect: None",
+  "attribute.modifierForEach": "For Each"
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
@@ -49,7 +50,31 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	}
 
 	st := fl.Plan.Steps[stepID]
-	inputs := tx.collectStepInputs(st, fl)
+	gate, err := tx.stepGateStatus(st, fl)
+	if err != nil {
+		return err
+	}
+	if policy.MatchAllowsStepSkip(gate) {
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
+			api.StepSkippedEvent{
+				FlowID: tx.flowID,
+				StepID: stepID,
+				Reason: policy.RequiredMatchSkipReason,
+			},
+		); err != nil {
+			return err
+		}
+		return call.Perform(
+			tx.checkUnreachable,
+			tx.checkTerminal,
+			tx.startReadyPendingSteps,
+		)
+	}
+
+	inputs, err := tx.collectStepInputs(st, fl)
+	if err != nil {
+		return err
+	}
 
 	shouldExecute, err := tx.evaluateStepPredicate(st, inputs)
 	if err != nil {
@@ -159,11 +184,14 @@ func (e *Engine) evaluateStepPredicate(
 
 func (tx *flowTx) collectStepInputs(
 	step *api.Step, flow api.FlowState,
-) api.Args {
+) (api.Args, error) {
 	inputs := api.Args{}
 	now := tx.Now()
 	ev := tx.newStepEval(step.ID, flow, now)
-	anchor := ev.requiredReadyAt()
+	anchor, err := ev.requiredReadyAt()
+	if err != nil {
+		return nil, err
+	}
 
 	for name, attr := range step.Attributes {
 		if !attr.IsRuntimeInput() {
@@ -171,7 +199,7 @@ func (tx *flowTx) collectStepInputs(
 		}
 
 		if attr.IsConst() {
-			inputs[name] = parseDefaultValue(attr.InputDefault())
+			inputs[name] = parseDefaultValue(attr.ConstValue())
 			continue
 		}
 
@@ -183,19 +211,22 @@ func (tx *flowTx) collectStepInputs(
 			}
 			cutoff = dec.cutoff
 			if dec.fallback {
-				if attr.InputDefault() != "" {
-					value := parseDefaultValue(attr.InputDefault())
+				if attr.OptionalDefault() != "" {
+					value := parseDefaultValue(attr.OptionalDefault())
 					tx.setStepInput(inputs, step, name, attr, value)
 				}
 				continue
 			}
 		}
 
-		values := valuesUntil(flow.AttributeValues(name), cutoff)
-		val, ok := policy.ResolveInputValue(attr.InputCollect(), values)
+		values, err := ev.inputValues(name, attr, cutoff)
+		if err != nil {
+			return nil, err
+		}
+		val, ok := policy.ResolveInputValue(attr.Collect(), values)
 		if !ok {
-			if !attr.IsRequired() && attr.InputDefault() != "" {
-				value := parseDefaultValue(attr.InputDefault())
+			if !attr.IsRequired() && attr.OptionalDefault() != "" {
+				value := parseDefaultValue(attr.OptionalDefault())
 				tx.setStepInput(inputs, step, name, attr, value)
 				continue
 			}
@@ -205,7 +236,7 @@ func (tx *flowTx) collectStepInputs(
 		tx.setStepInput(inputs, step, name, attr, val)
 	}
 
-	return inputs
+	return inputs, nil
 }
 
 func (tx *flowTx) setStepInput(
@@ -222,11 +253,24 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	if !policy.StepPending(ex.Status) {
 		return false, time.Time{}
 	}
+	gate, err := s.e.stepGateStatus(s.step, s.flow)
+	if err != nil {
+		return false, time.Time{}
+	}
+	if policy.MatchAllowsStepSkip(gate) {
+		return true, time.Time{}
+	}
+	if gate == policy.MatchUnknown {
+		return false, time.Time{}
+	}
 	if !s.e.areOutputsNeeded(s.stepID, s.flow) {
 		return false, time.Time{}
 	}
 
-	anchor := s.requiredReadyAt()
+	anchor, err := s.requiredReadyAt()
+	if err != nil {
+		return false, time.Time{}
+	}
 	if anchor.IsZero() {
 		return false, time.Time{}
 	}
@@ -263,10 +307,13 @@ func (s *stepEval) optionalDecisionAt(
 	name api.Name, attr *api.AttributeSpec, anchor time.Time,
 ) optionalDecision {
 	deps, ok := s.flow.Plan.Attributes[name]
-	fulfilled, fulfilledAt := s.inputFulfilledAt(name, attr)
+	fulfilled, fulfilledAt, err := s.inputFulfilledAt(name, attr)
+	if err != nil {
+		return optionalDecision{}
+	}
 
 	if fulfilled {
-		at := s.optionalAt(anchor, attr.InputDeadline())
+		at := s.optionalAt(anchor, attr.OptionalDeadline())
 		if at.IsZero() {
 			return optionalDecision{ready: true}
 		}
@@ -281,11 +328,11 @@ func (s *stepEval) optionalDecisionAt(
 		return optionalDecision{ready: true, fallback: true}
 	}
 
-	if attr.InputDeadline() <= 0 {
+	if attr.OptionalDeadline() <= 0 {
 		return s.timeoutDecision(name, attr, s.now)
 	}
 
-	at := s.optionalAt(anchor, attr.InputDeadline())
+	at := s.optionalAt(anchor, attr.OptionalDeadline())
 	if at.IsZero() {
 		return optionalDecision{}
 	}
@@ -298,7 +345,7 @@ func (s *stepEval) optionalDecisionAt(
 func (s *stepEval) timeoutDecision(
 	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
 ) optionalDecision {
-	if policy.TimeoutCanUseValues(attr.InputCollect()) {
+	if policy.TimeoutCanUseValues(attr.Collect()) {
 		if len(valuesUntil(s.flow.AttributeValues(name), cutoff)) > 0 {
 			return optionalDecision{ready: true, cutoff: cutoff}
 		}
@@ -313,60 +360,126 @@ func (s *stepEval) optionalAt(anchor time.Time, deadlineMS int64) time.Time {
 	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
 }
 
-func (s *stepEval) requiredReadyAt() time.Time {
+func (s *stepEval) requiredReadyAt() (time.Time, error) {
 	anchor := s.flow.CreatedAt
 	for name, attr := range s.step.Attributes {
 		if !attr.IsRequired() {
 			continue
 		}
 
-		ok, setAt := s.inputFulfilledAt(name, attr)
+		ok, setAt, err := s.inputFulfilledAt(name, attr)
+		if err != nil {
+			return time.Time{}, err
+		}
 		if !ok || setAt.IsZero() {
-			return time.Time{}
+			return time.Time{}, nil
 		}
 		if anchor.IsZero() || setAt.After(anchor) {
 			anchor = setAt
 		}
 	}
-	return anchor
+	return anchor, nil
+}
+
+func (e *Engine) stepGateStatus(
+	step *api.Step, flow api.FlowState,
+) (policy.MatchStatus, error) {
+	return policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
+		Step:   step,
+		Values: flow.AttributeValues,
+		Providers: func(name api.Name) policy.ProviderSummary {
+			return providerSummaryFor(flow, name).ProviderSummary
+		},
+		Evaluate: e.evaluateRequiredMatch,
+	})
+}
+
+func (e *Engine) evaluateRequiredMatch(
+	cfg *api.ScriptConfig, value any,
+) (bool, error) {
+	st := policy.MatchStep(cfg)
+	comp, err := e.scripts.Compile(st, cfg)
+	if err != nil {
+		return false, errors.Join(ErrPredicateCompileFailed, err)
+	}
+
+	env, err := e.scripts.Get(cfg.Language)
+	if err != nil {
+		return false, errors.Join(ErrPredicateEnvFailed, err)
+	}
+
+	inputs := api.Args{policy.MatchInputName: value}
+	if cfg.Language == api.ScriptLangJPath {
+		_, err := env.ExecuteScript(comp, st, inputs)
+		if errors.Is(err, script.ErrJPathNoMatch) {
+			return false, nil
+		}
+		if err != nil {
+			return false, errors.Join(ErrPredicateEvalFailed, err)
+		}
+		return true, nil
+	}
+
+	matched, err := env.EvaluatePredicate(comp, st, inputs)
+	if err != nil {
+		return false, errors.Join(ErrPredicateEvalFailed, err)
+	}
+	return matched, nil
 }
 
 func (s *stepEval) inputFulfilledAt(
 	name api.Name, attr *api.AttributeSpec,
-) (bool, time.Time) {
-	values := s.flow.AttributeValues(name)
+) (bool, time.Time, error) {
+	values, err := s.inputValues(name, attr, time.Time{})
+	if err != nil {
+		return false, time.Time{}, err
+	}
 	providers := s.providerSummary(name)
 	if !policy.InputFulfilled(
-		attr.InputCollect(), len(values), providers.ProviderSummary,
+		attr.Collect(), len(values), providers.ProviderSummary,
 	) {
-		return false, time.Time{}
+		return false, time.Time{}, nil
 	}
 
-	switch attr.InputCollect() {
+	switch attr.Collect() {
 	case api.InputCollectNone:
-		return true, providers.completedAt
+		return true, providers.completedAt, nil
 	case api.InputCollectFirst:
-		return true, values[0].SetAt
+		return true, values[0].SetAt, nil
 	case api.InputCollectLast:
-		return true, values[len(values)-1].SetAt
+		return true, values[len(values)-1].SetAt, nil
 	case api.InputCollectAll:
-		return true, lastSetAt(values)
+		return true, lastSetAt(values), nil
 	case api.InputCollectSome:
-		return true, lastSetAt(values)
+		return true, lastSetAt(values), nil
 	default:
-		return true, values[0].SetAt
+		return true, values[0].SetAt, nil
 	}
 }
 
+func (s *stepEval) inputValues(
+	name api.Name, attr *api.AttributeSpec, cutoff time.Time,
+) ([]*api.AttributeValue, error) {
+	values := valuesUntil(s.flow.AttributeValues(name), cutoff)
+	matched, _, err := policy.MatchCandidateValues(
+		attr, values, s.e.evaluateRequiredMatch,
+	)
+	return matched, err
+}
+
 func (s *stepEval) providerSummary(name api.Name) providerSummary {
-	deps, ok := s.flow.Plan.Attributes[name]
+	return providerSummaryFor(s.flow, name)
+}
+
+func providerSummaryFor(flow api.FlowState, name api.Name) providerSummary {
+	deps, ok := flow.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
 		return providerSummary{
 			ProviderSummary: policy.ProviderSummary{
 				Terminal:     true,
 				AllSucceeded: true,
 			},
-			completedAt: s.flow.CreatedAt,
+			completedAt: flow.CreatedAt,
 		}
 	}
 
@@ -378,7 +491,7 @@ func (s *stepEval) providerSummary(name api.Name) providerSummary {
 	}
 	missingCompletedAt := false
 	for _, sid := range deps.Providers {
-		ex, ok := s.flow.Executions[sid]
+		ex, ok := flow.Executions[sid]
 		if !ok {
 			res.Terminal = false
 			res.AllSucceeded = false
@@ -388,7 +501,7 @@ func (s *stepEval) providerSummary(name api.Name) providerSummary {
 		if !policy.StepTerminal(ex.Status) {
 			res.Terminal = false
 		}
-		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(s.flow, name, sid) {
+		if !policy.StepSucceeded(ex.Status) || !hasValueFrom(flow, name, sid) {
 			res.AllSucceeded = false
 		}
 		if ex.CompletedAt.IsZero() {

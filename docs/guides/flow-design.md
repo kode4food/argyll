@@ -27,8 +27,8 @@ Use optional attributes with defaults to keep steps reusable across different fl
 {
   "attributes": {
     "customer_id": { "role": "required", "type": "string" },
-    "notify_user": { "role": "optional", "type": "boolean", "input": { "default": "true" } },
-    "timeout_seconds": { "role": "optional", "type": "number", "input": { "default": "30" } }
+    "notify_user": { "role": "optional", "type": "boolean", "optional": { "default": "true" } },
+    "timeout_seconds": { "role": "optional", "type": "number", "optional": { "default": "30" } }
   }
 }
 ```
@@ -37,7 +37,7 @@ Use optional attributes with defaults to keep steps reusable across different fl
 
 ## Input Collection
 
-Inputs can choose how to collect matching upstream outputs with `input.collect`. If omitted, `first` is used, which preserves the existing behavior.
+Inputs can choose how to collect matching upstream outputs with `required.collect` or `optional.collect`. If omitted, `first` is used, which preserves the existing behavior.
 
 | Collect | Starts when | Runtime value |
 | ------- | ----------- | ------------- |
@@ -47,14 +47,26 @@ Inputs can choose how to collect matching upstream outputs with `input.collect`.
 | `all` | All potential providers complete successfully with values | An array of produced values |
 | `none` | All potential providers are terminal and no value exists | No value, or the optional default if set |
 
-`first` and `last` are singleton modes. `some` and `all` are list modes. For `input.for_each`, singleton modes treat the selected value as the array to iterate, while list modes iterate the collected array itself.
+`first` and `last` are singleton modes. `some` and `all` are list modes. For `required.for_each` or `optional.for_each`, singleton modes treat the selected value as the array to iterate, while list modes iterate the collected array itself.
 
 Collection policies also affect lazy execution. Once a consumer no longer needs more values, providers that only fed that consumer can be skipped. This happens naturally for `first` after the first value, for failed `all` collections that can no longer succeed, and for optional inputs after their Collection Deadline closes.
+
+Required inputs can also declare `required.match`, a script predicate applied to each candidate value before collection. The match script receives only one candidate value: Ale and Lua expose it as `value`, while JPath evaluates the candidate as the document. Collection semantics are then applied over the match results:
+
+| Collect | Match behavior |
+| ------- | -------------- |
+| `first` | The first matching candidate satisfies the input |
+| `last` | The latest matching candidate is used after all providers are terminal |
+| `some` | At least one upstream candidate must match |
+| `all` | Every upstream candidate must match |
+| `none` | No upstream candidate may match |
+
+When a required match cannot be satisfied, the step is skipped and it does not demand its other required inputs. This lets match act as a lazy routing gate.
 
 ```json
 {
   "attributes": {
-    "quotes": { "role": "required", "type": "array", "input": { "collect": "some", "for_each": true } },
+    "quotes": { "role": "required", "type": "array", "required": { "collect": "some", "for_each": true } },
     "best_quote": { "role": "output", "type": "object" }
   }
 }
@@ -75,7 +87,7 @@ Initial values are considered during planning with the same collection semantics
 
 ### Collection Deadlines
 
-Optional inputs can define a **Collection Deadline** with `input.deadline` in milliseconds. The deadline starts when the step's required inputs are ready. If the optional input is still unresolved when the deadline expires, the step closes that input's collection window and starts with the best value available for its input collection policy.
+Optional inputs can define a **Collection Deadline** with `optional.deadline` in milliseconds. The deadline starts when the step's required inputs are ready. If the optional input is still unresolved when the deadline expires, the step closes that input's collection window and starts with the best value available for its input collection policy.
 
 ```json
 {
@@ -84,7 +96,7 @@ Optional inputs can define a **Collection Deadline** with `input.deadline` in mi
     "preferences": {
       "role": "optional",
       "type": "object",
-      "input": {
+      "optional": {
         "default": "{}",
         "deadline": 2000
       }
@@ -111,7 +123,7 @@ Use `for_each` on array inputs to process multiple items in parallel. Outputs ar
 ```json
 {
   "attributes": {
-    "order_items": { "role": "required", "type": "array", "input": { "for_each": true } },
+    "order_items": { "role": "required", "type": "array", "required": { "for_each": true } },
     "stock_reserved": { "role": "output" }
   },
   "work_config": {
@@ -184,11 +196,11 @@ Use flow steps (sub-flows) to create reusable, self-contained units with their o
     "goals": ["validate_payment_method"]
   },
   "attributes": {
-    "cardnum": { "role": "required", "mapping": { "name": "card_number" } },
-    "security_code": { "role": "required", "mapping": { "name": "cvv" } },
+    "cardnum": { "role": "required", "required": { "mapping": { "name": "card_number" } } },
+    "security_code": { "role": "required", "required": { "mapping": { "name": "cvv" } } },
     "authorization_result": {
       "role": "output",
-      "mapping": { "name": "is_valid" }
+      "output": { "mapping": { "name": "is_valid" } }
     }
   }
 }

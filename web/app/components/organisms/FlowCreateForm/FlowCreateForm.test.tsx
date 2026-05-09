@@ -414,7 +414,7 @@ describe("FlowCreateForm", () => {
             retry_count: {
               role: AttributeRole.Optional,
               type: AttributeType.Number,
-              input: { default: "5" },
+              optional: { default: "5" },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -1171,9 +1171,9 @@ describe("FlowCreateForm", () => {
           type: "sync" as const,
           attributes: {
             order_id: {
-              role: AttributeRole.Required,
+              role: AttributeRole.Optional,
               type: AttributeType.String,
-              input: { default: '"guest"' },
+              optional: { default: '"guest"' },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },
@@ -1212,9 +1212,9 @@ describe("FlowCreateForm", () => {
           type: "sync" as const,
           attributes: {
             order_id: {
-              role: AttributeRole.Required,
+              role: AttributeRole.Optional,
               type: AttributeType.String,
-              input: { default: '"guest"' },
+              optional: { default: '"guest"' },
             },
           },
           http: { endpoint: "http://localhost:8080/goal", timeout: 5000 },

@@ -887,29 +887,31 @@ components:
             user_email:
               role: "required"
               type: "string"
-              mapping:
-                name: "email"
+              required:
+                mapping:
+                  name: "email"
             optional_field:
               role: "optional"
               type: "string"
-              input:
+              optional:
                 default: '"default_value"'
                 collect: "first"
             const_field:
               role: "const"
               type: "string"
-              input:
-                default: '"fixed_value"'
+              const:
+                value: '"fixed_value"'
             processed_text:
               role: "output"
               type: "string"
             user_data:
               role: "output"
               type: "object"
-              mapping:
-                script:
-                  language: "jpath"
-                  script: "$.response.data"
+              output:
+                mapping:
+                  script:
+                    language: "jpath"
+                    script: "$.response.data"
         labels:
           type: object
           description: Optional labels for categorization and discovery
@@ -971,26 +973,28 @@ components:
             - null
             - any
           example: "string"
-        input:
-          $ref: "#/components/schemas/InputConfig"
-        mapping:
-          $ref: "#/components/schemas/AttributeMapping"
+        required:
+          $ref: "#/components/schemas/RequiredConfig"
+        optional:
+          $ref: "#/components/schemas/OptionalConfig"
+        const:
+          $ref: "#/components/schemas/ConstConfig"
+        output:
+          $ref: "#/components/schemas/OutputConfig"
 
-    InputConfig:
+    RequiredConfig:
       type: object
-      description: Runtime input configuration for required, optional, and const attributes
+      description: Configuration for a required input attribute
       properties:
         collect:
           type: string
           description: |
             How upstream provider outputs are resolved:
-            - `first`: first available value
+            - `first`: first available value (default)
             - `last`: last value after all potential providers finish
             - `all`: array of values after every provider completes successfully
-            - `some`: array of values after at least one provider succeeds and all potential providers finish
+            - `some`: array of values after at least one provider succeeds
             - `none`: satisfied only when no provider produces the attribute
-            Optional `input.deadline` values act as Collection Deadlines. At the deadline, `last` uses the latest available value, `some` uses available values if at least one exists, and unresolved inputs use their default or are omitted. Providers that are no longer needed by any pending consumer can be skipped.
-            Applies only to required and optional attributes. Const attributes always use their configured default value.
           enum:
             - first
             - last
@@ -999,23 +1003,70 @@ components:
             - none
           default: first
           example: "first"
+        for_each:
+          type: boolean
+          description: Execute once per element of this array input
+          default: false
+          example: false
+        match:
+          $ref: "#/components/schemas/ScriptConfig"
+          description: Optional predicate evaluated against each candidate value before collection. ALE and Lua receive one candidate as `value`; JPath evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+        mapping:
+          $ref: "#/components/schemas/MappingConfig"
+
+    OptionalConfig:
+      type: object
+      description: Configuration for an optional input attribute
+      properties:
+        collect:
+          type: string
+          description: |
+            How upstream provider outputs are resolved (same values as RequiredConfig)
+          enum:
+            - first
+            - last
+            - all
+            - some
+            - none
+          default: first
+          example: "first"
+        for_each:
+          type: boolean
+          description: Execute once per element of this array input
+          default: false
+          example: false
         default:
           type: string
-          description: Default value as JSON string for optional attributes and const values
+          description: Default value as a JSON string, used when no provider supplies a value
           example: '"default_value"'
         deadline:
           type: integer
           format: int64
-          description: Optional input Collection Deadline in milliseconds
+          description: Collection deadline in milliseconds
           minimum: 0
           example: 2000
-        for_each:
-          type: boolean
-          description: Execute once per element for this input or const value
-          default: false
-          example: false
+        mapping:
+          $ref: "#/components/schemas/MappingConfig"
 
-    AttributeMapping:
+    ConstConfig:
+      type: object
+      description: Configuration for a const attribute — a fixed value injected at execution time
+      required:
+        - value
+      properties:
+        value:
+          type: string
+          description: The constant value as a JSON string
+          example: '"fixed_value"'
+
+    OutputConfig:
+      type: object
+      description: Configuration for an output attribute
+      properties:
+        mapping:
+          $ref: "#/components/schemas/MappingConfig"
+
+    MappingConfig:
       type: object
       description: |
         Defines parameter name mapping and value transformation for attributes.

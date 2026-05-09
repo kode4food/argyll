@@ -90,7 +90,7 @@ Creates an order with comprehensive business logic validation.
 **Optional Inputs**:
 - `quantity` (number) - Order quantity (defaults to 1)
 - Optional inputs can also define a Collection Deadline in milliseconds for default fallback behavior
-- `input.deadline: 0` means there is no wait window for that optional input (use the upstream value only if it is already present; otherwise use the default or omit the input)
+- `optional.deadline: 0` means there is no wait window for that optional input (use the upstream value only if it is already present; otherwise use the default or omit the input)
 - The Collection Deadline starts when required inputs are satisfied (or at flow start if none exist)
 - If the deadline expires, the step can continue using its optional default value
 - That default choice is sticky for that step execution, even if the real value still arrives before the step starts

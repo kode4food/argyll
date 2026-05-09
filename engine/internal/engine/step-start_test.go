@@ -10,6 +10,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -25,9 +26,9 @@ func TestOptionalDefaults(t *testing.T) {
 				Type: api.TypeString,
 			},
 			"optional": {
-				Role:  api.RoleOptional,
-				Type:  api.TypeString,
-				Input: &api.InputConfig{Default: `"fallback"`},
+				Role:     api.RoleOptional,
+				Type:     api.TypeString,
+				Optional: &api.OptionalConfig{Default: `"fallback"`},
 			},
 			"result": {
 				Role: api.RoleOutput,
@@ -224,7 +225,7 @@ func TestCollectNone(t *testing.T) {
 				"data": {
 					Role: api.RoleOptional,
 					Type: api.TypeAny,
-					Input: &api.InputConfig{
+					Optional: &api.OptionalConfig{
 						Collect: api.InputCollectNone,
 						Default: `"fallback"`,
 					},
@@ -282,7 +283,7 @@ func TestCollectNoneNoProvider(t *testing.T) {
 				"data": {
 					Role: api.RoleRequired,
 					Type: api.TypeAny,
-					Input: &api.InputConfig{
+					Required: &api.RequiredConfig{
 						Collect: api.InputCollectNone,
 					},
 				},
@@ -324,7 +325,7 @@ func TestCollectSomeInitNoProvider(t *testing.T) {
 				"data": {
 					Role: api.RoleRequired,
 					Type: api.TypeAny,
-					Input: &api.InputConfig{
+					Required: &api.RequiredConfig{
 						Collect: api.InputCollectSome,
 					},
 				},
@@ -364,7 +365,7 @@ func TestConstObjectDefault(t *testing.T) {
 			"config": {
 				Role:  api.RoleConst,
 				Type:  api.TypeObject,
-				Input: &api.InputConfig{Default: `{"name":"cfg","count":2}`},
+				Const: &api.ConstConfig{Value: `{"name":"cfg","count":2}`},
 			},
 			"result": {
 				Role: api.RoleOutput,
@@ -406,10 +407,12 @@ func TestInputMapping(t *testing.T) {
 			"input": {
 				Role: api.RoleRequired,
 				Type: api.TypeObject,
-				Mapping: &api.AttributeMapping{
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangJPath,
-						Script:   "$.foo",
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangJPath,
+							Script:   "$.foo",
+						},
 					},
 				},
 			},
@@ -451,8 +454,8 @@ func TestInputMappingWithRename(t *testing.T) {
 			"user_email": {
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Name: "email",
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{Name: "email"},
 				},
 			},
 			"result": {
@@ -535,6 +538,195 @@ func TestJPathPredicateMatchOnNull(t *testing.T) {
 		assert.True(t, env.MockClient.WasInvoked(st.ID))
 	})
 }
+
+func TestRequiredMatchRoutesDemand(t *testing.T) {
+	tests := []struct {
+		name           string
+		route          string
+		init           api.InitArgs
+		wantEmail      bool
+		wantCustomer   bool
+		wantPostal     bool
+		wantFlowStatus api.FlowStatus
+	}{
+		{
+			name:  "email",
+			route: "email",
+			init: api.InitArgs{
+				"email_address": {"user@example.com"},
+			},
+			wantEmail:      true,
+			wantFlowStatus: api.FlowCompleted,
+		},
+		{
+			name:  "postal",
+			route: "postal",
+			init: api.InitArgs{
+				"customer_id": {"cust-1"},
+			},
+			wantCustomer:   true,
+			wantPostal:     true,
+			wantFlowStatus: api.FlowCompleted,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				assert.NoError(t, env.Engine.Start())
+
+				route, customer, email, postal := routingSteps()
+				for _, st := range []*api.Step{route, customer, email, postal} {
+					assert.NoError(t, env.Engine.RegisterStep(st))
+				}
+				env.MockClient.SetResponse(route.ID,
+					api.Args{"notification_type": tt.route},
+				)
+				env.MockClient.SetResponse(customer.ID,
+					api.Args{"customer": map[string]any{"id": "cust-1"}},
+				)
+				env.MockClient.SetResponse(email.ID,
+					api.Args{"email_result": "sent"},
+				)
+				env.MockClient.SetResponse(postal.ID,
+					api.Args{"postal_result": "sent"},
+				)
+
+				cat := api.CatalogState{
+					Steps: api.Steps{
+						route.ID:    route,
+						customer.ID: customer,
+						email.ID:    email,
+						postal.ID:   postal,
+					},
+					Attributes: api.AttributeGraph{}.
+						AddStep(route).
+						AddStep(customer).
+						AddStep(email).
+						AddStep(postal),
+				}
+				pl, err := plan.Create(cat, []api.StepID{
+					email.ID, postal.ID,
+				}, tt.init)
+				assert.NoError(t, err)
+
+				id := api.FlowID("wf-match-" + tt.name)
+				fl := env.WaitForFlowStatus(id, func() {
+					err := env.Engine.StartFlow(id, pl,
+						flow.WithInit(tt.init),
+					)
+					assert.NoError(t, err)
+				})
+				assert.Equal(t, tt.wantFlowStatus, fl.Status)
+				assert.Equal(t, tt.wantEmail,
+					env.MockClient.WasInvoked(email.ID),
+				)
+				assert.Equal(t, tt.wantCustomer,
+					env.MockClient.WasInvoked(customer.ID),
+				)
+				assert.Equal(t, tt.wantPostal,
+					env.MockClient.WasInvoked(postal.ID),
+				)
+			})
+		})
+	}
+}
+
+func TestRequiredMatchFiltersCollectedValues(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA, providerB, consumer, pl := collectPlan(
+			"match-some", api.InputCollectSome,
+		)
+		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return value == "a"`,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"data": "a"})
+		env.MockClient.SetResponse(providerB.ID, api.Args{"data": "b"})
+		env.MockClient.SetHandler(consumer.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, []any{"a"}, args["data"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		id := api.FlowID("wf-match-some")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func TestRequiredMatchFirstKeepsDemandAfterUnmatchedValue(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA, providerB, consumer, pl := collectPlan(
+			"match-first", api.InputCollectFirst,
+		)
+		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return value == "a"`,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"data": "b"})
+		env.MockClient.SetResponse(providerB.ID, api.Args{"data": "a"})
+		env.MockClient.SetHandler(consumer.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Equal(t, "a", args["data"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		id := api.FlowID("wf-match-first")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func TestRequiredMatchAllPrunesOnUnmatchedProvider(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		providerA, providerB, consumer, pl := collectPlan(
+			"match-all", api.InputCollectAll,
+		)
+		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   `return value == "a"`,
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(providerA))
+		assert.NoError(t, env.Engine.RegisterStep(providerB))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(providerA.ID, api.Args{"data": "a"})
+		env.MockClient.SetResponse(providerB.ID, api.Args{"data": "b"})
+		env.MockClient.SetResponse(consumer.ID, api.Args{"result": "ok"})
+
+		id := api.FlowID("wf-match-all")
+		err := env.Engine.StartFlow(id, pl)
+		assert.NoError(t, err)
+		fl := env.WaitForTerminalFlow(id)
+		assert.False(t, env.MockClient.WasInvoked(consumer.ID))
+		assert.Equal(t, api.FlowFailed, fl.Status)
+	})
+}
+
 func TestInputMappingWithAle(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -544,10 +736,12 @@ func TestInputMappingWithAle(t *testing.T) {
 			"amount": {
 				Role: api.RoleRequired,
 				Type: api.TypeNumber,
-				Mapping: &api.AttributeMapping{
-					Script: &api.ScriptConfig{
-						Language: api.ScriptLangAle,
-						Script:   "(* amount 2)",
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{
+						Script: &api.ScriptConfig{
+							Language: api.ScriptLangAle,
+							Script:   "(* amount 2)",
+						},
 					},
 				},
 			},
@@ -577,6 +771,90 @@ func TestInputMappingWithAle(t *testing.T) {
 		ex := fl.Executions[st.ID]
 		assert.Equal(t, float64(10), ex.Inputs["amount"])
 	})
+}
+
+func routingSteps() (*api.Step, *api.Step, *api.Step, *api.Step) {
+	route := &api.Step{
+		ID:   "route",
+		Name: "Route",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	customer := &api.Step{
+		ID:   "customer-lookup",
+		Name: "Customer Lookup",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"customer_id": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"customer": {
+				Role: api.RoleOutput,
+				Type: api.TypeObject,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	email := &api.Step{
+		ID:   "send-email",
+		Name: "Send Email",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "email"`,
+					},
+				},
+			},
+			"email_address": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"email_result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	postal := &api.Step{
+		ID:   "send-postal",
+		Name: "Send Postal",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "postal"`,
+					},
+				},
+			},
+			"customer": {
+				Role: api.RoleRequired,
+				Type: api.TypeObject,
+			},
+			"postal_result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	return route, customer, email, postal
 }
 func TestPredicateExecution(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -698,9 +976,9 @@ func collectPlan(
 		Type: api.StepTypeSync,
 		Attributes: api.AttributeSpecs{
 			"data": {
-				Role:  api.RoleRequired,
-				Type:  api.TypeAny,
-				Input: &api.InputConfig{Collect: collect},
+				Role:     api.RoleRequired,
+				Type:     api.TypeAny,
+				Required: &api.RequiredConfig{Collect: collect},
 			},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},

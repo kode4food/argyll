@@ -44,25 +44,43 @@ export enum AttributeType {
   Any = "any",
 }
 
-export interface AttributeMapping {
+export interface MappingConfig {
   name?: string;
   script?: ScriptConfig;
 }
 
 export type InputCollect = "first" | "last" | "some" | "all" | "none";
 
-export interface InputConfig {
+export interface RequiredConfig {
+  collect?: InputCollect;
+  for_each?: boolean;
+  match?: ScriptConfig;
+  mapping?: MappingConfig;
+}
+
+export interface OptionalConfig {
   collect?: InputCollect;
   for_each?: boolean;
   default?: string;
   deadline?: number;
+  mapping?: MappingConfig;
+}
+
+export interface ConstConfig {
+  value: string;
+}
+
+export interface OutputConfig {
+  mapping?: MappingConfig;
 }
 
 export interface AttributeSpec {
   role: AttributeRole;
   type?: AttributeType;
-  mapping?: AttributeMapping;
-  input?: InputConfig;
+  required?: RequiredConfig;
+  optional?: OptionalConfig;
+  const?: ConstConfig;
+  output?: OutputConfig;
 }
 
 export interface HTTPConfig {

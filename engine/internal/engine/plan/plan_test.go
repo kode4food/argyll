@@ -161,7 +161,7 @@ func TestBlockedProviderNoDownstream(t *testing.T) {
 			"flag": {
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Input: &api.InputConfig{
+				Required: &api.RequiredConfig{
 					Collect: api.InputCollectNone,
 				},
 			},
@@ -418,15 +418,15 @@ func TestFlowStepEmbedsChildPlan(t *testing.T) {
 			"outer": {
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Name: "inner",
+				Required: &api.RequiredConfig{
+					Mapping: &api.MappingConfig{Name: "inner"},
 				},
 			},
 			"wrapped_result": {
 				Role: api.RoleOutput,
 				Type: api.TypeString,
-				Mapping: &api.AttributeMapping{
-					Name: "result",
+				Output: &api.OutputConfig{
+					Mapping: &api.MappingConfig{Name: "result"},
 				},
 			},
 		},
@@ -859,6 +859,135 @@ func TestMixedInputs(t *testing.T) {
 	assert.Empty(t, pl.Required)
 }
 
+func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
+	route := planProvider("route", "notification_type")
+	sendPostal := &api.Step{
+		ID:   "send-postal",
+		Name: "Send Postal",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "postal"`,
+					},
+				},
+			},
+			"customer": {Role: api.RoleRequired, Type: api.TypeObject},
+			"result":   {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+	cat := makeCatalogState(api.Steps{
+		route.ID:      route,
+		sendPostal.ID: sendPostal,
+	})
+
+	pl, err := plan.Create(cat, []api.StepID{sendPostal.ID}, api.InitArgs{})
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, route.ID)
+	assert.Contains(t, pl.Steps, sendPostal.ID)
+	assert.Empty(t, pl.Required)
+}
+
+func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
+	customerLookup := &api.Step{
+		ID:   "customer-lookup",
+		Name: "Customer Lookup",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"customer_id": {Role: api.RoleRequired, Type: api.TypeString},
+			"customer":    {Role: api.RoleOutput, Type: api.TypeObject},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+	sendPostal := &api.Step{
+		ID:   "send-postal",
+		Name: "Send Postal",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "postal"`,
+					},
+				},
+			},
+			"customer": {Role: api.RoleRequired, Type: api.TypeObject},
+			"result":   {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+	cat := makeCatalogState(api.Steps{
+		customerLookup.ID: customerLookup,
+		sendPostal.ID:     sendPostal,
+	})
+
+	pl, err := plan.Create(cat, []api.StepID{sendPostal.ID},
+		api.InitArgs{"notification_type": {"email"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, sendPostal.ID)
+	assert.NotContains(t, pl.Steps, customerLookup.ID)
+	assert.Empty(t, pl.Required)
+}
+
+func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
+	route := planProvider("route", "notification_type")
+	sendPostal := &api.Step{
+		ID:   "send-postal",
+		Name: "Send Postal",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "postal"`,
+					},
+				},
+			},
+			"result": {Role: api.RoleOutput, Type: api.TypeString},
+		},
+		HTTP: &api.HTTPConfig{
+			Endpoint: "http://test",
+			Timeout:  30 * api.Second,
+		},
+	}
+	cat := makeCatalogState(api.Steps{
+		route.ID:      route,
+		sendPostal.ID: sendPostal,
+	})
+
+	pl, err := plan.Create(cat, []api.StepID{sendPostal.ID},
+		api.InitArgs{"notification_type": {"email"}},
+	)
+	assert.NoError(t, err)
+
+	assert.Contains(t, pl.Steps, route.ID)
+	assert.Contains(t, pl.Steps, sendPostal.ID)
+	assert.Empty(t, pl.Required)
+}
+
 func makeCatalogState(steps api.Steps) api.CatalogState {
 	graph := api.AttributeGraph{}
 	for _, st := range steps {
@@ -896,7 +1025,7 @@ func planConsumer(
 			input: {
 				Role: api.RoleRequired,
 				Type: api.TypeString,
-				Input: &api.InputConfig{
+				Required: &api.RequiredConfig{
 					Collect: collect,
 				},
 			},

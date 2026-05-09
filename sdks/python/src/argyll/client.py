@@ -122,32 +122,82 @@ class Client:
             AttributeSpec,
             AttributeType,
             BackoffType,
+            ConstConfig,
             FlowConfig,
             HTTPConfig,
             InputCollect,
-            InputConfig,
+            MappingConfig,
+            OptionalConfig,
+            OutputConfig,
             PredicateConfig,
+            RequiredConfig,
             ScriptConfig,
             ScriptLanguage,
             StepType,
             WorkConfig,
         )
 
+        def _parse_mapping(m: Any) -> Optional[MappingConfig]:
+            if not m:
+                return None
+            script = None
+            if "script" in m:
+                s = m["script"]
+                script = ScriptConfig(
+                    language=ScriptLanguage(s["language"]),
+                    script=s["script"],
+                )
+            return MappingConfig(name=m.get("name", ""), script=script)
+
+        def _parse_script(s: Any) -> Optional[ScriptConfig]:
+            if not s:
+                return None
+            return ScriptConfig(
+                language=ScriptLanguage(s["language"]),
+                script=s["script"],
+            )
+
         # Parse attributes
         attributes = {}
         for name, spec_data in data.get("attributes", {}).items():
-            input_data = spec_data.get("input")
-            attributes[name] = AttributeSpec(
-                role=AttributeRole(spec_data["role"]),
-                type=AttributeType(spec_data["type"]),
-                input=InputConfig(
-                    collect=InputCollect(input_data.get("collect", "first")),
-                    default=input_data.get("default", ""),
-                    for_each=input_data.get("for_each", False),
-                    deadline=input_data.get("deadline", 0),
+            role = AttributeRole(spec_data["role"])
+            attr_type = AttributeType(spec_data["type"])
+            required = None
+            optional = None
+            const = None
+            output = None
+            if role == AttributeRole.REQUIRED and "required" in spec_data:
+                rd = spec_data["required"]
+                required = RequiredConfig(
+                    collect=InputCollect(rd.get("collect", "first")),
+                    for_each=rd.get("for_each", False),
+                    match=_parse_script(rd.get("match")),
+                    mapping=_parse_mapping(rd.get("mapping")),
                 )
-                if input_data is not None
-                else None,
+            elif role == AttributeRole.OPTIONAL and "optional" in spec_data:
+                od = spec_data["optional"]
+                optional = OptionalConfig(
+                    collect=InputCollect(od.get("collect", "first")),
+                    for_each=od.get("for_each", False),
+                    default=od.get("default", ""),
+                    deadline=od.get("deadline", 0),
+                    mapping=_parse_mapping(od.get("mapping")),
+                )
+            elif role == AttributeRole.CONST and "const" in spec_data:
+                cd = spec_data["const"]
+                const = ConstConfig(value=cd.get("value", ""))
+            elif role == AttributeRole.OUTPUT and "output" in spec_data:
+                outd = spec_data["output"]
+                output = OutputConfig(
+                    mapping=_parse_mapping(outd.get("mapping"))
+                )
+            attributes[name] = AttributeSpec(
+                role=role,
+                type=attr_type,
+                required=required,
+                optional=optional,
+                const=const,
+                output=output,
             )
 
         # Parse HTTP config
@@ -164,10 +214,7 @@ class Client:
         script = None
         if "script" in data:
             script_data = data["script"]
-            script = ScriptConfig(
-                language=ScriptLanguage(script_data["language"]),
-                script=script_data["script"],
-            )
+            script = _parse_script(script_data)
 
         # Parse predicate config
         predicate = None

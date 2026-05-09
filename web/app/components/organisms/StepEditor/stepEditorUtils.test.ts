@@ -23,30 +23,32 @@ describe("stepEditorUtils", () => {
           required_arg: {
             role: AttributeRole.Required,
             type: AttributeType.String,
-            mapping: { name: "child_in" },
-            description: "",
+            required: {
+              match: {
+                language: "jpath",
+                script: "$.kind",
+              },
+              mapping: { name: "child_in" },
+            },
           },
           const_arg: {
             role: AttributeRole.Const,
             type: AttributeType.String,
-            input: { default: '"fixed"' },
-            description: "",
+            const: { value: '"fixed"' },
           },
           optional_arg: {
             role: AttributeRole.Optional,
             type: AttributeType.Number,
-            input: {
+            optional: {
               collect: "some",
               default: "42",
               deadline: 3000,
             },
-            description: "",
           },
           output_arg: {
             role: AttributeRole.Output,
             type: AttributeType.String,
-            mapping: { name: "child_out" },
-            description: "",
+            output: { mapping: { name: "child_out" } },
           },
         },
         flow: { goals: ["goal-1"] },
@@ -63,6 +65,8 @@ describe("stepEditorUtils", () => {
 
       expect(inputAttrs).toHaveLength(1);
       expect(inputAttrs[0].name).toBe("required_arg");
+      expect(inputAttrs[0].matchLanguage).toBe("jpath");
+      expect(inputAttrs[0].matchScript).toBe("$.kind");
 
       expect(constAttrs).toHaveLength(1);
       expect(constAttrs[0].name).toBe("const_arg");
@@ -159,6 +163,25 @@ describe("stepEditorUtils", () => {
       });
     });
 
+    it("requires match language for required match scripts", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "input",
+          name: "route",
+          dataType: AttributeType.String,
+          matchScript: "$.kind",
+          matchLanguage: " ",
+        },
+      ];
+
+      const error = validateAttributesList(attributes);
+      expect(error).toEqual({
+        key: "stepEditor.matchLanguageRequired",
+        vars: { name: "route" },
+      });
+    });
+
     it("requires default values for const attributes", () => {
       const attributes: Attribute[] = [
         {
@@ -199,6 +222,8 @@ describe("stepEditorUtils", () => {
           name: "input_param",
           dataType: AttributeType.String,
           collect: "last",
+          matchLanguage: "lua",
+          matchScript: 'return value == "email"',
         },
         {
           id: "attr-2",
@@ -226,12 +251,16 @@ describe("stepEditorUtils", () => {
       const result = createStepAttributes(attributes);
 
       expect(result.input_param.role).toBe(AttributeRole.Required);
-      expect(result.input_param.input?.collect).toBe("last");
+      expect(result.input_param.required?.collect).toBe("last");
+      expect(result.input_param.required?.match).toEqual({
+        language: "lua",
+        script: 'return value == "email"',
+      });
       expect(result.optional_param.role).toBe(AttributeRole.Optional);
-      expect(result.optional_param.input?.default).toBe("10");
-      expect(result.optional_param.input?.deadline).toBe(3000);
+      expect(result.optional_param.optional?.default).toBe("10");
+      expect(result.optional_param.optional?.deadline).toBe(3000);
       expect(result.const_param.role).toBe(AttributeRole.Const);
-      expect(result.const_param.input?.default).toBe('"fixed"');
+      expect(result.const_param.const?.value).toBe('"fixed"');
       expect(result.output_result.role).toBe(AttributeRole.Output);
     });
 
@@ -248,7 +277,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.param.input?.collect).toBeUndefined();
+      expect(result.param.required).toBeUndefined();
     });
 
     it("includes for_each when forEach is true", () => {
@@ -264,7 +293,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.item.input?.for_each).toBe(true);
+      expect(result.item.required?.for_each).toBe(true);
     });
 
     it("omits for_each when forEach is false or undefined", () => {
@@ -280,7 +309,23 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.param.input?.for_each).toBeUndefined();
+      expect(result.param.required?.for_each).toBeUndefined();
+    });
+
+    it("omits match when it is only whitespace", () => {
+      const attributes: Attribute[] = [
+        {
+          id: "attr-1",
+          attrType: "input",
+          name: "param",
+          dataType: AttributeType.String,
+          matchScript: "   ",
+        },
+      ];
+
+      const result = createStepAttributes(attributes);
+
+      expect(result.param.required?.match).toBeUndefined();
     });
 
     it("trims default values", () => {
@@ -296,7 +341,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.value.input?.default).toBe("trimmed");
+      expect(result.value.optional?.default).toBe("trimmed");
     });
 
     it("omits default when it's only whitespace", () => {
@@ -312,7 +357,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.value.input?.default).toBeUndefined();
+      expect(result.value.optional?.default).toBeUndefined();
     });
 
     it("adds mapping name and script when provided", () => {
@@ -330,7 +375,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.payload.mapping).toEqual({
+      expect(result.payload.required?.mapping).toEqual({
         name: "request",
         script: {
           language: "jpath",
@@ -352,7 +397,7 @@ describe("stepEditorUtils", () => {
 
       const result = createStepAttributes(attributes);
 
-      expect(result.result.mapping?.script).toEqual({
+      expect(result.result.output?.mapping?.script).toEqual({
         language: "lua",
         script: "$.result",
       });

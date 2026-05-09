@@ -69,8 +69,10 @@ func TestAleCacheIncludesArgNames(t *testing.T) {
 				"amount": {
 					Role: api.RoleRequired,
 					Type: api.TypeNumber,
-					Mapping: &api.AttributeMapping{
-						Name: "inner_amount",
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{
+							Name: "inner_amount",
+						},
 					},
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeNumber},

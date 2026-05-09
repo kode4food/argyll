@@ -323,17 +323,19 @@ func TestRegisterStepValidatesMappings(t *testing.T) {
 		st.Attributes["in"] = &api.AttributeSpec{
 			Role: api.RoleRequired,
 			Type: api.TypeString,
-			Mapping: &api.AttributeMapping{
-				Script: &api.ScriptConfig{
-					Language: api.ScriptLangJPath,
-					Script:   "$..[",
+			Required: &api.RequiredConfig{
+				Mapping: &api.MappingConfig{
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangJPath,
+						Script:   "$..[",
+					},
 				},
 			},
 		}
 
 		err := eng.RegisterStep(st)
 		assert.ErrorIs(t, err, engine.ErrInvalidStep)
-		assert.ErrorContains(t, err, api.ErrInvalidAttributeMapping.Error())
+		assert.ErrorContains(t, err, api.ErrInvalidMappingConfig.Error())
 	})
 }
 

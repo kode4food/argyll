@@ -11,25 +11,43 @@ import (
 type (
 	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
-		// Common
-		Role    AttributeRole     `json:"role"`
-		Type    AttributeType     `json:"type"`
-		Mapping *AttributeMapping `json:"mapping,omitempty"`
-
-		// Role specific
-		Input *InputConfig `json:"input,omitempty"`
+		Role     AttributeRole   `json:"role"`
+		Type     AttributeType   `json:"type,omitempty"`
+		Required *RequiredConfig `json:"required,omitempty"`
+		Optional *OptionalConfig `json:"optional,omitempty"`
+		Const    *ConstConfig    `json:"const,omitempty"`
+		Output   *OutputConfig   `json:"output,omitempty"`
 	}
 
-	// InputConfig configures runtime input collection and fallback behavior
-	InputConfig struct {
-		Collect  InputCollect `json:"collect,omitempty"`
-		ForEach  bool         `json:"for_each,omitempty"`
-		Default  string       `json:"default,omitempty"`
-		Deadline int64        `json:"deadline,omitempty"`
+	// RequiredConfig configures a required input attribute
+	RequiredConfig struct {
+		Collect InputCollect   `json:"collect,omitempty"`
+		ForEach bool           `json:"for_each,omitempty"`
+		Match   *ScriptConfig  `json:"match,omitempty"`
+		Mapping *MappingConfig `json:"mapping,omitempty"`
 	}
 
-	// AttributeMapping defines parameter name mapping and value transformation
-	AttributeMapping struct {
+	// OptionalConfig configures an optional input attribute
+	OptionalConfig struct {
+		Collect  InputCollect   `json:"collect,omitempty"`
+		ForEach  bool           `json:"for_each,omitempty"`
+		Default  string         `json:"default,omitempty"`
+		Deadline int64          `json:"deadline,omitempty"`
+		Mapping  *MappingConfig `json:"mapping,omitempty"`
+	}
+
+	// ConstConfig carries the fixed value for a const attribute
+	ConstConfig struct {
+		Value string `json:"value"`
+	}
+
+	// OutputConfig configures an output attribute
+	OutputConfig struct {
+		Mapping *MappingConfig `json:"mapping,omitempty"`
+	}
+
+	// MappingConfig defines parameter name mapping and value transformation
+	MappingConfig struct {
 		Name   string        `json:"name,omitempty"`
 		Script *ScriptConfig `json:"script,omitempty"`
 	}
@@ -79,25 +97,18 @@ const (
 var (
 	ErrInvalidAttributeRole = errors.New("invalid attribute role")
 	ErrInvalidAttributeType = errors.New("invalid attribute type")
-	ErrDefaultNotAllowed    = errors.New(
-		"default value requires optional or const attribute",
+	ErrWrongRoleConfig      = errors.New(
+		"config type does not match attribute role",
 	)
-	ErrDefaultRequired = errors.New("const value required for const attribute")
-	ErrInputNotAllowed = errors.New(
-		"input config is only allowed for runtime input attributes",
+	ErrConstValueRequired = errors.New(
+		"const value required for const attribute",
 	)
 	ErrForEachRequiresArray = errors.New(
 		"for_each processing requires an array attribute type",
 	)
-	ErrInvalidDefaultValue = errors.New("invalid default value for type")
-	ErrMappingNotAllowed   = errors.New(
-		"mapping is not allowed for const attributes",
-	)
-	ErrInvalidAttributeMapping = errors.New("invalid attribute mapping")
-	ErrDuplicateInnerName      = errors.New("duplicate mapped parameter name")
-	ErrDeadlineNotAllowed      = errors.New(
-		"deadline is only allowed on optional input attributes",
-	)
+	ErrInvalidDefaultValue      = errors.New("invalid default value for type")
+	ErrInvalidMappingConfig     = errors.New("invalid attribute mapping")
+	ErrDuplicateInnerName       = errors.New("duplicate mapped parameter name")
 	ErrInvalidAttributeDeadline = errors.New(
 		"deadline must be between 0 and 1 year in milliseconds",
 	)
@@ -146,82 +157,116 @@ var (
 
 // Validate checks if the attribute specification is valid
 func (s *AttributeSpec) Validate(name Name) error {
-	input := s.Input
-	def := s.InputDefault()
-
 	if !validAttributeRoles.Contains(s.Role) {
-		return fmt.Errorf("%w: %s for attribute %q", ErrInvalidAttributeRole,
-			s.Role, name)
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrInvalidAttributeRole, s.Role, name)
 	}
 
-	if input != nil && !s.IsRuntimeInput() {
-		return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
+	if s.Type != "" && !validAttributeTypes.Contains(s.Type) {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrInvalidAttributeType, s.Type, name)
 	}
 
-	if s.IsConst() && def == "" {
-		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultRequired,
-			s.Role, name)
+	if err := s.validateRoleConfig(name); err != nil {
+		return err
 	}
 
-	if def != "" && !s.IsOptional() && !s.IsConst() {
-		return fmt.Errorf("%w: %s for attribute %q", ErrDefaultNotAllowed,
-			s.Role, name)
+	switch s.Role {
+	case RoleRequired:
+		return s.validateRequired(name)
+	case RoleOptional:
+		return s.validateOptional(name)
+	case RoleConst:
+		return s.validateConst(name)
+	case RoleOutput:
+		return s.validateOutput(name)
 	}
+	return nil
+}
 
-	if input != nil && input.ForEach {
-		if !s.IsInput() && !s.IsConst() {
-			return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
+func (s *AttributeSpec) validateRoleConfig(name Name) error {
+	switch s.Role {
+	case RoleRequired:
+		if s.Optional != nil || s.Const != nil || s.Output != nil {
+			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
 		}
-		if s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
-			return fmt.Errorf("%w: type %s for attribute %q",
-				ErrForEachRequiresArray, s.Type, name)
+	case RoleOptional:
+		if s.Required != nil || s.Const != nil || s.Output != nil {
+			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
+		}
+	case RoleConst:
+		if s.Required != nil || s.Optional != nil || s.Output != nil {
+			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
+		}
+	case RoleOutput:
+		if s.Required != nil || s.Optional != nil || s.Const != nil {
+			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
 		}
 	}
+	return nil
+}
 
-	if s.Mapping != nil {
-		if s.IsConst() {
-			return fmt.Errorf("%w: %q", ErrMappingNotAllowed, name)
-		}
-		if s.Mapping.Name == "" && s.Mapping.Script == nil {
-			return fmt.Errorf("%w: %q", ErrInvalidAttributeMapping, name)
-		}
+func (s *AttributeSpec) validateRequired(name Name) error {
+	cfg := s.Required
+	if cfg == nil {
+		return nil
 	}
-
-	if s.Type != "" {
-		if !validAttributeTypes.Contains(s.Type) {
-			return fmt.Errorf("%w: %s for attribute %q",
-				ErrInvalidAttributeType, s.Type, name)
-		}
+	if cfg.ForEach && s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
+		return fmt.Errorf("%w: type %s for attribute %q",
+			ErrForEachRequiresArray, s.Type, name)
 	}
+	if cfg.Collect != "" && !validInputCollect.Contains(cfg.Collect) {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrInvalidInputCollect, cfg.Collect, name)
+	}
+	return validateMapping(cfg.Mapping, name)
+}
 
-	if def != "" && s.Type != "" {
-		if err := validateDefaultValue(def, s.Type); err != nil {
+func (s *AttributeSpec) validateOptional(name Name) error {
+	cfg := s.Optional
+	if cfg == nil {
+		return nil
+	}
+	if cfg.ForEach && s.Type != TypeArray && s.Type != TypeAny && s.Type != "" {
+		return fmt.Errorf("%w: type %s for attribute %q",
+			ErrForEachRequiresArray, s.Type, name)
+	}
+	if cfg.Default != "" && s.Type != "" {
+		if err := validateDefaultValue(cfg.Default, s.Type); err != nil {
 			return fmt.Errorf("%w for attribute %q: %w",
 				ErrInvalidDefaultValue, name, err)
 		}
 	}
-
-	if input != nil && input.Collect != "" {
-		if !validInputCollect.Contains(input.Collect) {
-			return fmt.Errorf("%w: %s for attribute %q",
-				ErrInvalidInputCollect, input.Collect, name)
-		}
-		if !s.IsInput() && input.Collect != InputCollectFirst {
-			return fmt.Errorf("%w: %q", ErrInputNotAllowed, name)
-		}
-	}
-
-	deadline := s.InputDeadline()
-	if deadline < MinAttributeDeadline || deadline > MaxAttributeDeadline {
+	if cfg.Deadline < MinAttributeDeadline || cfg.Deadline > MaxAttributeDeadline {
 		return fmt.Errorf("%w: deadline %d for attribute %q",
-			ErrInvalidAttributeDeadline, deadline, name)
+			ErrInvalidAttributeDeadline, cfg.Deadline, name)
 	}
-
-	if deadline > 0 && !s.IsOptional() {
-		return fmt.Errorf("%w: %q", ErrDeadlineNotAllowed, name)
+	if cfg.Collect != "" && !validInputCollect.Contains(cfg.Collect) {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrInvalidInputCollect, cfg.Collect, name)
 	}
+	return validateMapping(cfg.Mapping, name)
+}
 
+func (s *AttributeSpec) validateConst(name Name) error {
+	if s.Const == nil || s.Const.Value == "" {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrConstValueRequired, s.Role, name)
+	}
+	if s.Type != "" {
+		if err := validateDefaultValue(s.Const.Value, s.Type); err != nil {
+			return fmt.Errorf("%w for attribute %q: %w",
+				ErrInvalidDefaultValue, name, err)
+		}
+	}
 	return nil
+}
+
+func (s *AttributeSpec) validateOutput(name Name) error {
+	if s.Output == nil {
+		return nil
+	}
+	return validateMapping(s.Output.Mapping, name)
 }
 
 // IsInput returns true if the attribute is an input (required or optional)
@@ -254,37 +299,78 @@ func (s *AttributeSpec) IsConst() bool {
 	return s.Role == RoleConst
 }
 
-func (s *AttributeSpec) InputForEach() bool {
-	return s.Input != nil && s.Input.ForEach
+// Mapping returns the mapping for the attribute, if any
+func (s *AttributeSpec) Mapping() *MappingConfig {
+	switch s.Role {
+	case RoleRequired:
+		if s.Required != nil {
+			return s.Required.Mapping
+		}
+	case RoleOptional:
+		if s.Optional != nil {
+			return s.Optional.Mapping
+		}
+	case RoleOutput:
+		if s.Output != nil {
+			return s.Output.Mapping
+		}
+	}
+	return nil
 }
 
-func (s *AttributeSpec) InputDefault() string {
-	if s.Input == nil {
+func (s *AttributeSpec) ForEach() bool {
+	switch s.Role {
+	case RoleRequired:
+		return s.Required != nil && s.Required.ForEach
+	case RoleOptional:
+		return s.Optional != nil && s.Optional.ForEach
+	}
+	return false
+}
+
+func (s *AttributeSpec) ConstValue() string {
+	if s.Const == nil {
 		return ""
 	}
-	return s.Input.Default
+	return s.Const.Value
 }
 
-func (s *AttributeSpec) InputDeadline() int64 {
-	if s.Input == nil {
+func (s *AttributeSpec) OptionalDefault() string {
+	if s.Optional == nil {
+		return ""
+	}
+	return s.Optional.Default
+}
+
+func (s *AttributeSpec) OptionalDeadline() int64 {
+	if s.Optional == nil {
 		return 0
 	}
-	return s.Input.Deadline
+	return s.Optional.Deadline
 }
 
-func (s *AttributeSpec) InputCollect() InputCollect {
-	if s.Input == nil || s.Input.Collect == "" {
-		return InputCollectFirst
+func (s *AttributeSpec) Collect() InputCollect {
+	switch s.Role {
+	case RoleRequired:
+		if s.Required != nil && s.Required.Collect != "" {
+			return s.Required.Collect
+		}
+	case RoleOptional:
+		if s.Optional != nil && s.Optional.Collect != "" {
+			return s.Optional.Collect
+		}
 	}
-	return s.Input.Collect
+	return InputCollectFirst
 }
 
 // Equal returns true if two attribute specs are equal
 func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 	return s.Role == other.Role &&
 		s.Type == other.Type &&
-		inputsEqual(s.Input, other.Input) &&
-		mappingsEqual(s.Mapping, other.Mapping)
+		requiredConfigsEqual(s.Required, other.Required) &&
+		optionalConfigsEqual(s.Optional, other.Optional) &&
+		constConfigsEqual(s.Const, other.Const) &&
+		outputConfigsEqual(s.Output, other.Output)
 }
 
 // Equal returns true if two attribute spec maps are equal
@@ -301,17 +387,20 @@ func (a AttributeSpecs) Equal(other AttributeSpecs) bool {
 	return true
 }
 
-func mappingsEqual(a, b *AttributeMapping) bool {
+func requiredConfigsEqual(a, b *RequiredConfig) bool {
 	if a == nil && b == nil {
 		return true
 	}
 	if a == nil || b == nil {
 		return false
 	}
-	return a.Name == b.Name && scriptsEqual(a.Script, b.Script)
+	return a.Collect == b.Collect &&
+		a.ForEach == b.ForEach &&
+		scriptsEqual(a.Match, b.Match) &&
+		mappingsEqual(a.Mapping, b.Mapping)
 }
 
-func inputsEqual(a, b *InputConfig) bool {
+func optionalConfigsEqual(a, b *OptionalConfig) bool {
 	if a == nil && b == nil {
 		return true
 	}
@@ -321,7 +410,48 @@ func inputsEqual(a, b *InputConfig) bool {
 	return a.Collect == b.Collect &&
 		a.ForEach == b.ForEach &&
 		a.Default == b.Default &&
-		a.Deadline == b.Deadline
+		a.Deadline == b.Deadline &&
+		mappingsEqual(a.Mapping, b.Mapping)
+}
+
+func constConfigsEqual(a, b *ConstConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Value == b.Value
+}
+
+func outputConfigsEqual(a, b *OutputConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return mappingsEqual(a.Mapping, b.Mapping)
+}
+
+func mappingsEqual(a, b *MappingConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Name == b.Name && scriptsEqual(a.Script, b.Script)
+}
+
+func validateMapping(m *MappingConfig, name Name) error {
+	if m == nil {
+		return nil
+	}
+	if m.Name == "" && m.Script == nil {
+		return fmt.Errorf("%w: %q", ErrInvalidMappingConfig, name)
+	}
+	return nil
 }
 
 func validateDefaultValue(data string, attrType AttributeType) error {

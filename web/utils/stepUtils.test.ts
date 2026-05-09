@@ -3,8 +3,15 @@ import {
   sortStepsByType,
   validateDefaultValue,
   getSortedAttributes,
+  getAttributeModifiers,
 } from "./stepUtils";
 import { Step, AttributeRole, AttributeType } from "@/app/api";
+import {
+  IconDuration,
+  IconAttributeMatch,
+  IconMapping,
+  IconArrayMultiple,
+} from "@/utils/iconRegistry";
 
 describe("stepUtils", () => {
   describe("getSortedAttributes", () => {
@@ -347,6 +354,145 @@ describe("stepUtils", () => {
       const sorted = sortStepsByType(steps);
       expect(sorted).toHaveLength(1);
       expect(sorted[0].id).toBe("1");
+    });
+  });
+
+  describe("getAttributeModifiers", () => {
+    test("returns empty array for spec with no modifier fields", () => {
+      expect(getAttributeModifiers({ role: AttributeRole.Required })).toEqual(
+        []
+      );
+    });
+
+    test("returns deadline icon for optional with deadline", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Optional,
+        optional: { deadline: 2000 },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconDuration });
+    });
+
+    test("does not return deadline icon when deadline is 0", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Optional,
+        optional: { deadline: 0 },
+      });
+      expect(modifiers).toHaveLength(0);
+    });
+
+    test("returns match icon for required with match script", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Required,
+        required: { match: { language: "ale", script: "true" } },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconAttributeMatch });
+    });
+
+    test("returns mapping icon for required with mapping", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Required,
+        required: { mapping: { name: "inner_name" } },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconMapping });
+    });
+
+    test("returns mapping icon for optional with mapping", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Optional,
+        optional: { mapping: { name: "inner_name" } },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconMapping });
+    });
+
+    test("returns mapping icon for output with mapping", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Output,
+        output: { mapping: { name: "inner_name" } },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconMapping });
+    });
+
+    test("returns collect modifier for required with non-first collect", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Required,
+        required: { collect: "all" },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "collect", collect: "all" });
+    });
+
+    test("returns collect modifier for optional with non-first collect", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Optional,
+        optional: { collect: "last" },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "collect", collect: "last" });
+    });
+
+    test("does not return collect modifier when collect is 'first'", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Required,
+        required: { collect: "first" },
+      });
+      expect(modifiers).toHaveLength(0);
+    });
+
+    test("returns for_each icon for required with for_each", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Required,
+        required: { for_each: true },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
+    });
+
+    test("returns for_each icon for optional with for_each", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Optional,
+        optional: { for_each: true },
+      });
+      expect(modifiers).toHaveLength(1);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
+    });
+
+    test("returns modifiers in pipeline order: match, mapping, collect, for_each", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Required,
+        required: {
+          match: { language: "ale", script: "true" },
+          mapping: { name: "inner" },
+          collect: "some",
+          for_each: true,
+        },
+      });
+      expect(modifiers).toHaveLength(4);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconAttributeMatch });
+      expect(modifiers[1]).toEqual({ kind: "icon", Icon: IconMapping });
+      expect(modifiers[2]).toEqual({ kind: "collect", collect: "some" });
+      expect(modifiers[3]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
+    });
+
+    test("returns all modifiers for optional with deadline, mapping, collect, for_each", () => {
+      const modifiers = getAttributeModifiers({
+        role: AttributeRole.Optional,
+        optional: {
+          deadline: 2000,
+          mapping: { name: "inner" },
+          collect: "none",
+          for_each: true,
+        },
+      });
+      expect(modifiers).toHaveLength(4);
+      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconDuration });
+      expect(modifiers[1]).toEqual({ kind: "icon", Icon: IconMapping });
+      expect(modifiers[2]).toEqual({ kind: "collect", collect: "none" });
+      expect(modifiers[3]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
     });
   });
 

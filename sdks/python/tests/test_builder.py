@@ -10,10 +10,12 @@ from argyll.types import (
     AttributeRole,
     AttributeSpec,
     AttributeType,
+    ConstConfig,
     FlowConfig,
     HTTPConfig,
     InputCollect,
-    InputConfig,
+    OptionalConfig,
+    RequiredConfig,
     ScriptConfig,
     ScriptLanguage,
     Step,
@@ -84,8 +86,8 @@ def test_step_builder_optional():
     step = builder.build()
     assert "count" in step.attributes
     assert step.attributes["count"].role == AttributeRole.OPTIONAL
-    assert step.attributes["count"].input is not None
-    assert step.attributes["count"].input.default == "0"
+    assert step.attributes["count"].optional is not None
+    assert step.attributes["count"].optional.default == "0"
 
 
 def test_step_builder_output():
@@ -111,8 +113,8 @@ def test_step_builder_with_for_each():
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
-    assert step.attributes["items"].input is not None
-    assert step.attributes["items"].input.for_each is True
+    assert step.attributes["items"].required is not None
+    assert step.attributes["items"].required.for_each is True
 
 
 def test_step_builder_with_for_each_missing_attribute():
@@ -443,8 +445,8 @@ def test_step_builder_const():
     step = builder.build()
     assert "api_key" in step.attributes
     assert step.attributes["api_key"].role == AttributeRole.CONST
-    assert step.attributes["api_key"].input is not None
-    assert step.attributes["api_key"].input.default == '"secret"'
+    assert step.attributes["api_key"].const is not None
+    assert step.attributes["api_key"].const.value == '"secret"'
 
 
 def test_flow_builder_chaining():
@@ -549,6 +551,7 @@ def _make_step(**overrides):
             flow=FlowConfig(goals=["g1"]),
             script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
         ),
+        # empty attribute name
         _make_step(
             attributes={
                 "": AttributeSpec(
@@ -557,78 +560,83 @@ def _make_step(**overrides):
                 )
             }
         ),
+        # const with no value
         _make_step(
             attributes={
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
                     type=AttributeType.STRING,
-                    input=InputConfig(default=""),
                 )
             }
         ),
+        # required with wrong-role config (optional config)
         _make_step(
             attributes={
                 "baddefault": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    input=InputConfig(default="1"),
+                    optional=OptionalConfig(default="1"),
                 )
             }
         ),
+        # optional with bad JSON default
         _make_step(
             attributes={
                 "badjson": AttributeSpec(
                     role=AttributeRole.OPTIONAL,
                     type=AttributeType.STRING,
-                    input=InputConfig(default="{"),
+                    optional=OptionalConfig(default="{"),
                 )
             }
         ),
+        # optional with type mismatch default
         _make_step(
             attributes={
                 "badtype": AttributeSpec(
                     role=AttributeRole.OPTIONAL,
                     type=AttributeType.STRING,
-                    input=InputConfig(default="1"),
+                    optional=OptionalConfig(default="1"),
                 )
             }
         ),
+        # output with wrong-role config (required config)
         _make_step(
             attributes={
                 "output": AttributeSpec(
                     role=AttributeRole.OUTPUT,
                     type=AttributeType.STRING,
-                    input=InputConfig(for_each=True),
+                    required=RequiredConfig(for_each=True),
                 )
             }
         ),
+        # required STRING with for_each (wrong type)
         _make_step(
             attributes={
                 "items": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    input=InputConfig(for_each=True),
+                    required=RequiredConfig(for_each=True),
                 )
             }
         ),
+        # const with wrong-role config (required config with collect)
         _make_step(
             attributes={
                 "const": AttributeSpec(
                     role=AttributeRole.CONST,
                     type=AttributeType.STRING,
-                    input=InputConfig(
-                        default='"fixed"',
-                        collect=InputCollect.SOME,
-                    ),
+                    const=ConstConfig(value='"fixed"'),
+                    required=RequiredConfig(collect=InputCollect.SOME),
                 )
             }
         ),
+        # required with wrong-role config (optional with deadline)
         _make_step(
             attributes={
                 "required": AttributeSpec(
                     role=AttributeRole.REQUIRED,
                     type=AttributeType.STRING,
-                    input=InputConfig(deadline=1000),
+                    optional=OptionalConfig(deadline=1000),
                 )
             }
         ),
@@ -645,7 +653,7 @@ def test_validate_step_const_for_each():
             "const": AttributeSpec(
                 role=AttributeRole.CONST,
                 type=AttributeType.ARRAY,
-                input=InputConfig(default='["fixed"]', for_each=True),
+                const=ConstConfig(value='["fixed"]'),
             )
         }
     )
