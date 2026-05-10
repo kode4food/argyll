@@ -49,9 +49,7 @@ On failure, post RFC 9457 Problem Details with `Content-Type: application/proble
 
 ## Idempotency
 
-Each work item has a unique **receipt token** in the `Argyll-Receipt-Token` header. The engine uses this token to ensure idempotency: duplicate webhook calls with the same token are rejected, making it safe to retry.
-
-This means **your worker can safely retry the webhook call**—duplicate attempts are automatically rejected without creating duplicate work.
+Each work item has a unique **receipt token** in the `Argyll-Receipt-Token` header. The engine uses this token to ensure idempotency: duplicate webhook calls with the same token are silently ignored. The engine returns 200 for both the first successful completion and any duplicate attempts, so retrying a webhook call is always safe.
 
 **Example:**
 ```bash
@@ -67,20 +65,20 @@ curl -X POST \
   -H "Content-Type: application/json" \
   -d '{"result":"ok"}' \
   https://engine/webhook/wf-123/step-abc/receipt-token-xyz
-# HTTP 400 Bad Request - already processed
-# Your worker can safely give up and move on
+# HTTP 200 - duplicate ignored, original result preserved
 ```
 
 **What you SHOULD do:**
 - Store the receipt_token for logging and debugging
 - Implement retry logic with exponential backoff in your worker
-- Treat 400 responses as terminal and inspect the error body
+- Treat 200 responses as success (whether the original or a duplicate)
+- Treat 4xx responses as permanent (invalid flow/step/token, or malformed body)
 - Treat 5xx responses and network errors as retryable
 
 **What you DON'T need to do:**
-- Implement your own deduplication—the engine handles it
-- Track which tokens were processed—the engine rejects duplicates
-- Return the same result on retry—the engine enforces it
+- Implement your own deduplication, the engine handles it
+- Track which tokens were processed, the engine ignores duplicates
+- Worry about overwriting results, the engine preserves the first one
 
 **Safe webhook call pattern:**
 ```python
@@ -94,10 +92,10 @@ def send_completion(flow_id, step_id, receipt_token, result):
             response = requests.post(url, json=result, timeout=10)
 
             if response.status_code == 200:
-                return True  # Success
-            elif response.status_code == 400:
-                # Terminal request error (invalid flow/step/token/work state)
-                # Do not retry blindly; inspect response and alert/log.
+                return True  # Success (original or duplicate)
+            elif 400 <= response.status_code < 500:
+                # Terminal request error (invalid flow/step/token, malformed body)
+                # Do not retry; inspect response and alert/log.
                 log.error(f"Webhook rejected for {receipt_token}: "
                           f"{response.text}")
                 return False

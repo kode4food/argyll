@@ -1,6 +1,6 @@
 # WebSocket API
 
-The engine provides a real-time event stream via WebSocket for live monitoring of steps, node health, cluster membership, and flow execution.
+The engine provides a real-time event stream via WebSocket for live monitoring of the step catalog, cluster-wide step health, and flow execution.
 
 ## Connection
 
@@ -103,9 +103,7 @@ To unsubscribe:
 ## Aggregate IDs
 
 - `["catalog"]`: step registry events
-- `["nodes"]`: node registry state
-- `["node", "node-id"]`: one node's health and last-seen state
-- `["node"]`: prefix subscription for per-node health events across the cluster
+- `["cluster"]`: per-step health across the cluster
 - `["flow", "flow-id"]`: flow execution events for one flow
 
 ## Event Types
@@ -116,9 +114,8 @@ To unsubscribe:
 - `step_unregistered`
 - `step_updated`
 
-### Nodes
+### Cluster
 
-- `node_seen`
 - `step_health_changed`
 
 ### Flow
@@ -137,6 +134,7 @@ To unsubscribe:
 - `work_failed`
 - `work_not_completed`
 - `retry_scheduled`
+- `dispatch_deferred`
 
 ## Examples
 
@@ -152,29 +150,16 @@ To unsubscribe:
 }
 ```
 
-### Subscribe to Node Health
+### Subscribe to Cluster Health
 
 ```json
 {
   "type": "subscribe",
   "data": {
     "sub_id": "health",
-    "aggregate_ids": [["node"]],
-    "event_types": ["step_health_changed"]
-  }
-}
-```
-
-### Subscribe to Node Registry State
-
-```json
-{
-  "type": "subscribe",
-  "data": {
-    "sub_id": "nodes",
-    "aggregate_ids": [["nodes"]],
+    "aggregate_ids": [["cluster"]],
     "include_state": true,
-    "event_types": ["node_seen"]
+    "event_types": ["step_health_changed"]
   }
 }
 ```
@@ -214,13 +199,13 @@ To unsubscribe:
 One WebSocket connection can carry multiple subscriptions. The web UI uses one connection and adds or removes subscriptions as needed:
 
 - catalog events
-- node health
+- cluster health
 - the currently selected flow
 - the currently visible flow rows in the selector list
 
 Use distinct `sub_id` values so you can replace or unsubscribe individual streams without reconnecting the socket.
 
-Use `include_state: true` for stateful subscriptions such as catalog, `["nodes"]`, `["node", "node-id"]`, or the currently selected flow. Leave it omitted for high-churn prefix subscriptions where you only care about future events, such as `["node"]` for cluster-wide health events or a short-lived visible-row list in the flow selector.
+Use `include_state: true` for stateful subscriptions such as `["catalog"]`, `["cluster"]`, or the currently selected flow. Leave it omitted for short-lived visible-row subscriptions in the flow selector where you only care about future events.
 
 ## Performance Notes
 

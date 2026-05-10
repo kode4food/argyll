@@ -25,7 +25,7 @@ WEBHOOK_BASE_URL=http://localhost:8080  # Async callback base URL
 LOG_LEVEL=info                          # Log level: debug, info, warn, error
 STEP_TIMEOUT=30000                      # Global HTTP step timeout fallback (ms)
 TIMEBOX_CACHE_SIZE=4096                 # Shared Timebox projection cache entries
-MEMO_CACHE_SIZE=10240                   # Memoization cache entries
+MEMO_CACHE_SIZE=65536                   # Memoization cache entries
 ```
 
 HTTP step timeout is set per step via `step.http.timeout` (milliseconds). If omitted/<=0, the engine uses `STEP_TIMEOUT` (default: `30000` ms).
