@@ -13,12 +13,12 @@ import {
 } from "../api";
 import { ConnectionStatus } from "../types/websocket";
 
-interface NodeHealth {
+export interface NodeHealth {
   status: string;
   error?: string;
 }
 
-interface StepHealthInfo extends NodeHealth {
+export interface StepHealthInfo extends NodeHealth {
   nodes?: Record<string, NodeHealth>;
 }
 

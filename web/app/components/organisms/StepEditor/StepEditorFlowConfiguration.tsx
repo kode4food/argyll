@@ -3,10 +3,55 @@ import { ExecutionPlan, Step } from "@/app/api";
 import { api } from "@/app/api";
 import { useT } from "@/app/i18n";
 import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
+import { deriveStepGoalState, StepGoalState } from "@/utils/flowGoalStepState";
 import { parseFlowGoals } from "./stepEditorUtils";
 import { useFlowFormStepFiltering } from "../FlowCreateForm/useFlowFormStepFiltering";
 import formStyles from "./StepEditorForm.module.css";
 import localStyles from "./StepEditorFlowConfiguration.module.css";
+
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
+
+interface GoalChipProps {
+  step: Step;
+  state: StepGoalState;
+  onToggle: (id: string) => void;
+  t: TFn;
+}
+
+const getGoalChipTooltip = (
+  state: StepGoalState,
+  t: TFn
+): string | undefined => {
+  if (state.isIncludedByOthers) return t("flowCreate.tooltipAlreadyIncluded");
+  if (state.isSatisfiedByState) return t("flowCreate.tooltipSatisfiedByState");
+  if (state.blockedInputs.length > 0)
+    return t("flowCreate.tooltipBlockedByState", {
+      attrs: state.blockedInputs.join(", "),
+    });
+  if (state.isMissing)
+    return t("flowCreate.tooltipMissingRequired", {
+      attrs: state.missingRequired.join(", "),
+    });
+  return undefined;
+};
+
+const GoalChip: React.FC<GoalChipProps> = ({ step, state, onToggle, t }) => (
+  <button
+    type="button"
+    title={getGoalChipTooltip(state, t)}
+    onClick={() => {
+      if (!state.isDisabled) onToggle(step.id);
+    }}
+    disabled={state.isDisabled}
+    className={`${localStyles.flowGoalChip} ${
+      state.isSelected ? localStyles.flowGoalChipSelected : ""
+    } ${state.isIncludedByOthers ? localStyles.flowGoalChipIncluded : ""} ${
+      state.isDisabled ? localStyles.flowGoalChipDisabled : ""
+    }`}
+  >
+    {step.id}
+  </button>
+);
 
 interface StepEditorFlowConfigurationProps {
   clearPreviewPlan: () => void;
@@ -149,51 +194,22 @@ const StepEditorFlowConfiguration: React.FC<
         </label>
       </div>
       <div className={localStyles.flowGoalList}>
-        {displaySteps.map((step) => {
-          const isSelected = goalList.includes(step.id);
-          const isIncludedByOthers = included.has(step.id) && !isSelected;
-          const isSatisfiedByState = satisfied.has(step.id) && !isSelected;
-          const blockedInputs = blockedByStep.get(step.id) || [];
-          const isBlocked = blockedInputs.length > 0;
-          const missingRequired = missingByStep.get(step.id) || [];
-          const isMissing = missingRequired.length > 0;
-          const isDisabled =
-            isIncludedByOthers || isSatisfiedByState || isBlocked;
-          const tooltipText = isIncludedByOthers
-            ? t("flowCreate.tooltipAlreadyIncluded")
-            : isSatisfiedByState
-              ? t("flowCreate.tooltipSatisfiedByState")
-              : isBlocked
-                ? t("flowCreate.tooltipBlockedByState", {
-                    attrs: blockedInputs.join(", "),
-                  })
-                : isMissing
-                  ? t("flowCreate.tooltipMissingRequired", {
-                      attrs: missingRequired.join(", "),
-                    })
-                  : undefined;
-
-          return (
-            <button
-              key={step.id}
-              type="button"
-              title={tooltipText}
-              onClick={() => {
-                if (!isDisabled) {
-                  void handleGoalToggle(step.id);
-                }
-              }}
-              disabled={isDisabled}
-              className={`${localStyles.flowGoalChip} ${
-                isSelected ? localStyles.flowGoalChipSelected : ""
-              } ${isIncludedByOthers ? localStyles.flowGoalChipIncluded : ""} ${
-                isDisabled ? localStyles.flowGoalChipDisabled : ""
-              }`}
-            >
-              {step.id}
-            </button>
-          );
-        })}
+        {displaySteps.map((step) => (
+          <GoalChip
+            key={step.id}
+            step={step}
+            state={deriveStepGoalState(
+              step.id,
+              goalList,
+              included,
+              satisfied,
+              blockedByStep,
+              missingByStep
+            )}
+            onToggle={handleGoalToggle}
+            t={t}
+          />
+        ))}
       </div>
     </div>
   );

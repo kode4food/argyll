@@ -9,6 +9,41 @@ export interface KeyboardShortcut {
   handler: () => void;
 }
 
+const modifiersMatch = (
+  event: KeyboardEvent,
+  shortcut: KeyboardShortcut
+): boolean => {
+  if (event.key !== shortcut.key) return false;
+  if (shortcut.ctrl !== undefined && event.ctrlKey !== shortcut.ctrl)
+    return false;
+  if (shortcut.meta !== undefined && event.metaKey !== shortcut.meta)
+    return false;
+  if (shortcut.shift !== undefined && event.shiftKey !== shortcut.shift)
+    return false;
+  return true;
+};
+
+const handleMatchedShortcut = (
+  shortcut: KeyboardShortcut,
+  event: KeyboardEvent,
+  isInputFocused: boolean,
+  shortcutsBlocked: boolean
+): boolean => {
+  const isHelpKey = shortcut.key === "/" || shortcut.key === "?";
+  if (shortcutsBlocked && isHelpKey) return true;
+  if (isHelpKey && !isInputFocused) {
+    event.preventDefault();
+    shortcut.handler();
+    return true;
+  }
+  if (!isInputFocused || shortcut.key === "Escape") {
+    event.preventDefault();
+    shortcut.handler();
+    return true;
+  }
+  return false;
+};
+
 export const useKeyboardShortcuts = (
   shortcuts: KeyboardShortcut[],
   enabled: boolean = true
@@ -18,7 +53,6 @@ export const useKeyboardShortcuts = (
       if (!enabled) return;
       const shortcutsBlocked =
         document.querySelector("[data-ui-overlay]") !== null;
-
       const activeElement = document.activeElement;
       const isInputFocused =
         activeElement?.tagName === "INPUT" ||
@@ -26,37 +60,15 @@ export const useKeyboardShortcuts = (
         activeElement?.getAttribute("contenteditable") === "true";
 
       for (const shortcut of shortcuts) {
-        const keyMatches = event.key === shortcut.key;
-
-        const ctrlMatches =
-          shortcut.ctrl === undefined ? true : event.ctrlKey === shortcut.ctrl;
-        const metaMatches =
-          shortcut.meta === undefined ? true : event.metaKey === shortcut.meta;
-        const shiftMatches =
-          shortcut.shift === undefined
-            ? true
-            : event.shiftKey === shortcut.shift;
-
-        if (keyMatches && ctrlMatches && metaMatches && shiftMatches) {
+        if (modifiersMatch(event, shortcut)) {
           if (
-            shortcutsBlocked &&
-            (shortcut.key === "/" || shortcut.key === "?")
+            handleMatchedShortcut(
+              shortcut,
+              event,
+              isInputFocused,
+              shortcutsBlocked
+            )
           ) {
-            return;
-          }
-
-          if (
-            (shortcut.key === "/" || shortcut.key === "?") &&
-            !isInputFocused
-          ) {
-            event.preventDefault();
-            shortcut.handler();
-            return;
-          }
-
-          if (!isInputFocused || shortcut.key === "Escape") {
-            event.preventDefault();
-            shortcut.handler();
             return;
           }
         }

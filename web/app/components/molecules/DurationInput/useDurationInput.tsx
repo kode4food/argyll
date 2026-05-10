@@ -53,6 +53,35 @@ const hasNumberAndUnit = (value: string, matcherRegex: RegExp) => {
   return hasUnitToken(value, matcherRegex);
 };
 
+type ParseResult = { valid: true; ms: number } | { valid: false };
+
+const parseUserDuration = (
+  input: string,
+  language: ReturnType<typeof getLanguage>,
+  ms: ReturnType<typeof createMs>
+): ParseResult => {
+  const trimmed = input.trim();
+  if (!trimmed) return { valid: true, ms: 0 };
+  if (trimmed.startsWith("-")) return { valid: false };
+
+  if (isNumericOnly(trimmed, language.decimalSeparator)) {
+    return {
+      valid: true,
+      ms: tryParseNumber(trimmed, language.decimalSeparator),
+    };
+  }
+
+  if (!hasNumberAndUnit(trimmed.toLowerCase(), language.matcherRegex)) {
+    return { valid: false };
+  }
+
+  try {
+    return { valid: true, ms: ms(trimmed) };
+  } catch {
+    return { valid: false };
+  }
+};
+
 /**
  * Hook that manages all state and logic for duration input
  * Handles parsing, validation, and formatting using the `ms` library
@@ -100,41 +129,10 @@ export const useDurationInput = (
       setInputValue(input);
       hasLocalEditRef.current = true;
 
-      if (!input.trim()) {
-        setIsValid(true);
-        onChange(0);
-        return;
-      }
-
-      try {
-        const trimmed = input.trim();
-        if (trimmed.startsWith("-")) {
-          setIsValid(false);
-          return;
-        }
-
-        if (isNumericOnly(trimmed, language.decimalSeparator)) {
-          const numeric = tryParseNumber(trimmed, language.decimalSeparator);
-          setIsValid(true);
-          onChange(numeric);
-          return;
-        }
-
-        const hasUnitMatch = hasNumberAndUnit(
-          trimmed.toLowerCase(),
-          language.matcherRegex
-        );
-        if (!hasUnitMatch) {
-          setIsValid(false);
-          return;
-        }
-
-        const parsed = ms(trimmed);
-        setIsValid(true);
-        onChange(parsed);
-        return;
-      } catch (err) {
-        setIsValid(false);
+      const result = parseUserDuration(input, language, ms);
+      setIsValid(result.valid);
+      if (result.valid) {
+        onChange(result.ms);
       }
     },
     [language, ms, onChange]

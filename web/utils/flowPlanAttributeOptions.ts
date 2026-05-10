@@ -113,6 +113,44 @@ const mergeExplicitDefault = (
   }
 };
 
+const processInputAttribute = (
+  name: string,
+  spec: {
+    role: AttributeRole;
+    type?: AttributeType;
+    optional?: { default?: string };
+  },
+  requiredInputs: Set<string>,
+  inputMap: Map<string, FlowInputOption>,
+  inputMetaMap: Map<string, FlowInputMeta>
+): void => {
+  const existing = inputMap.get(name);
+  const meta = getOrCreateFlowInputMeta(inputMetaMap, name);
+  const isRequired = requiredInputs.has(name);
+  const mergedType = mergeInputType(existing?.type, spec.type);
+  meta.hasRequiredSpec =
+    meta.hasRequiredSpec || spec.role === AttributeRole.Required;
+  if (spec.optional?.default !== undefined) {
+    meta.hasSpecDefault = true;
+    const normalizedSpecDefault =
+      normalizeDefaultValue(spec.optional.default) ?? "";
+    mergeExplicitDefault(meta, normalizedSpecDefault);
+  }
+  const fallbackTypeDefault = getTypeDefaultValue(mergedType);
+  const resolvedDefault = meta.hasConflictingDefaults
+    ? fallbackTypeDefault
+    : (meta.explicitDefault ?? fallbackTypeDefault);
+  const nextInput: FlowInputOption = {
+    name,
+    required: existing?.required === true || isRequired,
+    type: mergedType,
+  };
+  if (resolvedDefault !== undefined) {
+    nextInput.defaultValue = resolvedDefault;
+  }
+  inputMap.set(name, nextInput);
+};
+
 export const getFlowPlanAttributeOptions = (
   plan: ExecutionPlan | null,
   catalogSteps?: Step[]
@@ -130,34 +168,15 @@ export const getFlowPlanAttributeOptions = (
   Object.values(steps).forEach((planStep) => {
     Object.entries(planStep.attributes || {}).forEach(([name, spec]) => {
       if (isInputRole(spec.role)) {
-        const existing = inputMap.get(name);
-        const meta = getOrCreateFlowInputMeta(inputMetaMap, name);
-        const isRequired = requiredInputs.has(name);
-        const mergedType = mergeInputType(existing?.type, spec.type);
-        meta.hasRequiredSpec =
-          meta.hasRequiredSpec || spec.role === AttributeRole.Required;
-        if (spec.optional?.default !== undefined) {
-          meta.hasSpecDefault = true;
-          const normalizedSpecDefault =
-            normalizeDefaultValue(spec.optional.default) ?? "";
-          mergeExplicitDefault(meta, normalizedSpecDefault);
-        }
-        const fallbackTypeDefault = getTypeDefaultValue(mergedType);
-        const resolvedDefault = meta.hasConflictingDefaults
-          ? fallbackTypeDefault
-          : (meta.explicitDefault ?? fallbackTypeDefault);
-        const nextInput: FlowInputOption = {
+        processInputAttribute(
           name,
-          required: existing?.required === true || isRequired,
-          type: mergedType,
-        };
-        if (resolvedDefault !== undefined) {
-          nextInput.defaultValue = resolvedDefault;
-        }
-        inputMap.set(name, nextInput);
+          spec,
+          requiredInputs,
+          inputMap,
+          inputMetaMap
+        );
         return;
       }
-
       if (spec.role === AttributeRole.Output) {
         outputSet.add(name);
       }

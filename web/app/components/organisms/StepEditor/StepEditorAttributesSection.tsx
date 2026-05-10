@@ -1,33 +1,12 @@
 import React from "react";
-import {
-  AttributeType,
-  InputCollect,
-  SCRIPT_LANGUAGE_JPATH,
-  SCRIPT_LANGUAGE_LUA,
-  StepType,
-} from "@/app/api";
-import DurationInput from "@/app/components/molecules/DurationInput";
-import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
+import { InputCollect, StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
-import {
-  IconAdd,
-  IconArrayMultiple,
-  IconArraySingle,
-  IconExpandDown,
-  IconExpandUp,
-  IconMapping,
-  IconRemove,
-} from "@/utils/iconRegistry";
+import { IconAdd } from "@/utils/iconRegistry";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
-import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
-import {
-  ATTRIBUTE_TYPES,
-  getMappingScriptPlaceholderKey,
-  getMatchScriptPlaceholderKey,
-  INPUT_COLLECT_TYPES,
-} from "./stepEditorConstants";
+import { Attribute } from "./stepEditorUtils";
+import AttributeRow from "./AttributeRow";
 
 interface StepEditorAttributesSectionProps {
   addAttribute: () => void;
@@ -58,22 +37,17 @@ const StepEditorAttributesSection: React.FC<
   updateAttribute,
 }) => {
   const t = useT();
-  const [expandedMappingAttributeID, setExpandedMappingAttributeID] =
-    React.useState<string | null>(null);
 
   const usedInputMappings = new Map<string, string>();
   const usedOutputMappings = new Map<string, string>();
-
   attributes.forEach((attr) => {
     const mappingName = attr.mappingName?.trim();
-    if (!mappingName) {
-      return;
-    }
+    if (!mappingName) return;
     if (attr.attrType === "output") {
       usedOutputMappings.set(mappingName, attr.id);
-      return;
+    } else {
+      usedInputMappings.set(mappingName, attr.id);
     }
-    usedInputMappings.set(mappingName, attr.id);
   });
 
   return (
@@ -118,272 +92,21 @@ const StepEditorAttributesSection: React.FC<
             </div>
           </div>
         )}
-        {attributes.map((attr) => {
-          const collect =
-            attr.collect && INPUT_COLLECT_TYPES.includes(attr.collect)
-              ? attr.collect
-              : "first";
-          const canCollect =
-            attr.attrType === "input" || attr.attrType === "optional";
-          const isMappingExpanded =
-            expandedMappingAttributeID === attr.id && attr.attrType !== "const";
-          const hasMappingConfigured = Boolean(
-            attr.mappingName?.trim() || attr.mappingScript?.trim()
-          );
-          const mappingNameHint = attr.name?.trim() || attr.id;
-          const filteredFlowOutputList = flowOutputOptions.filter(
-            (option) => option !== mappingNameHint
-          );
-          const filteredFlowInputList = flowInputOptions.filter(
-            (option) => option.name !== mappingNameHint
-          );
-
-          return (
-            <div key={attr.id} className={formStyles.attrRow}>
-              <div className={formStyles.attrRowInputs}>
-                <button
-                  type="button"
-                  onClick={() => cycleAttributeType(attr.id, attr.attrType)}
-                  className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
-                  title={t("stepEditor.cycleAttributeType", {
-                    type: attr.attrType,
-                  })}
-                >
-                  {(() => {
-                    const { Icon, className } = getAttributeIconProps(
-                      attr.attrType
-                    );
-                    return <Icon className={`${styles.iconMd} ${className}`} />;
-                  })()}
-                </button>
-                <select
-                  value={attr.dataType}
-                  onChange={(e) =>
-                    updateAttribute(attr.id, "dataType", e.target.value)
-                  }
-                  className={formStyles.argType}
-                >
-                  {ATTRIBUTE_TYPES.map((type) => (
-                    <option key={type} value={type}>
-                      {type}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="text"
-                  value={attr.name}
-                  onChange={(e) =>
-                    updateAttribute(attr.id, "name", e.target.value)
-                  }
-                  placeholder={t("stepEditor.attributeNamePlaceholder")}
-                  className={`${formStyles.argInput} ${formStyles.argNameInput}`}
-                />
-                {attr.attrType === "input" && (
-                  <ScriptLanguageInlineInput
-                    ariaLabel={t("stepEditor.matchLanguageLabel")}
-                    className={formStyles.argValueInput}
-                    language={attr.matchLanguage || SCRIPT_LANGUAGE_JPATH}
-                    onLanguageChange={(language) =>
-                      updateAttribute(attr.id, "matchLanguage", language)
-                    }
-                    onScriptChange={(script) =>
-                      updateAttribute(attr.id, "matchScript", script)
-                    }
-                    placeholder={t(
-                      getMatchScriptPlaceholderKey(attr.matchLanguage)
-                    )}
-                    script={attr.matchScript || ""}
-                    title={t("stepEditor.attributeMatchTitle")}
-                  />
-                )}
-                {(attr.attrType === "optional" ||
-                  attr.attrType === "const") && (
-                  <input
-                    type="text"
-                    value={attr.defaultValue || ""}
-                    onChange={(e) =>
-                      updateAttribute(attr.id, "defaultValue", e.target.value)
-                    }
-                    placeholder={t("stepEditor.attributeDefaultPlaceholder")}
-                    className={`${formStyles.argInput} ${formStyles.argValueInput}`}
-                    title={t("stepEditor.attributeDefaultTitle")}
-                  />
-                )}
-                {attr.attrType === "optional" && (
-                  <DurationInput
-                    value={attr.deadline || 0}
-                    onChange={(ms) =>
-                      updateAttribute(attr.id, "deadline", ms || undefined)
-                    }
-                    className={formStyles.argInput}
-                  />
-                )}
-                {attr.attrType !== "output" &&
-                  attr.dataType === AttributeType.Array && (
-                    <div className={formStyles.forEachToggleGroup}>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          updateAttribute(attr.id, "forEach", false);
-                          e.currentTarget.blur();
-                        }}
-                        className={`${formStyles.forEachToggle} ${!attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                        title={t("stepEditor.arraySingleTitle")}
-                      >
-                        <IconArraySingle className={styles.iconSm} />
-                        <span>{t("stepEditor.arraySingleLabel")}</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          updateAttribute(attr.id, "forEach", true);
-                          e.currentTarget.blur();
-                        }}
-                        className={`${formStyles.forEachToggle} ${attr.forEach ? formStyles.forEachToggleActive : ""}`}
-                        title={t("stepEditor.arrayMultiTitle")}
-                      >
-                        <IconArrayMultiple className={styles.iconSm} />
-                        <span>{t("stepEditor.arrayMultiLabel")}</span>
-                      </button>
-                    </div>
-                  )}
-                {canCollect && (
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      cycleInputCollect(attr.id, collect);
-                      e.currentTarget.blur();
-                    }}
-                    className={`${formStyles.iconButton} ${formStyles.collectButtonStyle}`}
-                    title={t("stepEditor.cycleInputCollect", { collect })}
-                    aria-label={t("stepEditor.cycleInputCollect", { collect })}
-                  >
-                    <span
-                      className={formStyles.collectIcon}
-                      style={{
-                        maskImage: `url(/icons/collect-${collect}.svg)`,
-                        WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-                      }}
-                    />
-                  </button>
-                )}
-                {attr.attrType !== "const" && (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setExpandedMappingAttributeID((current) =>
-                        current === attr.id ? null : attr.id
-                      )
-                    }
-                    className={`${formStyles.iconButton} ${formStyles.mappingExpandButton} ${
-                      hasMappingConfigured
-                        ? formStyles.mappingExpandButtonActive
-                        : ""
-                    }`}
-                    title={t("stepEditor.mappingLabel")}
-                    aria-label={`${t("stepEditor.mappingLabel")} ${attr.name || attr.id}`}
-                  >
-                    {isMappingExpanded ? (
-                      <IconExpandUp className={styles.iconSm} />
-                    ) : (
-                      <IconExpandDown className={styles.iconSm} />
-                    )}
-                  </button>
-                )}
-                <button
-                  onClick={() => removeAttribute(attr.id)}
-                  className={`${formStyles.iconButton} ${formStyles.removeButtonStyle}`}
-                  title={t("stepEditor.removeAttribute")}
-                >
-                  <IconRemove className={styles.iconSm} />
-                </button>
-              </div>
-              {isMappingExpanded && (
-                <div className={formStyles.attrMappingPanel}>
-                  <span className={formStyles.mappingIndicator} aria-hidden>
-                    <IconMapping className={styles.iconSm} />
-                  </span>
-                  {stepType === "flow" ? (
-                    <select
-                      value={attr.mappingName || ""}
-                      onChange={(e) =>
-                        updateAttribute(attr.id, "mappingName", e.target.value)
-                      }
-                      className={`${formStyles.flowMapSelect} ${formStyles.mappingInlineInput} ${formStyles.mappingInlineSelect}`}
-                      disabled={
-                        attr.attrType === "output"
-                          ? flowOutputOptions.length === 0
-                          : flowInputOptions.length === 0
-                      }
-                    >
-                      <option value="">{mappingNameHint}</option>
-                      {attr.attrType === "output"
-                        ? filteredFlowOutputList.map((option) => (
-                            <option
-                              key={option}
-                              value={option}
-                              disabled={
-                                usedOutputMappings.has(option) &&
-                                usedOutputMappings.get(option) !== attr.id
-                              }
-                            >
-                              {option}
-                            </option>
-                          ))
-                        : filteredFlowInputList.map((option) => (
-                            <option
-                              key={option.name}
-                              value={option.name}
-                              disabled={
-                                usedInputMappings.has(option.name) &&
-                                usedInputMappings.get(option.name) !== attr.id
-                              }
-                              className={
-                                option.required
-                                  ? formStyles.flowMapOptionRequired
-                                  : undefined
-                              }
-                            >
-                              {option.name}
-                            </option>
-                          ))}
-                    </select>
-                  ) : (
-                    <input
-                      type="text"
-                      value={attr.mappingName || ""}
-                      onChange={(e) =>
-                        updateAttribute(attr.id, "mappingName", e.target.value)
-                      }
-                      placeholder={mappingNameHint}
-                      className={`${formStyles.formControl} ${formStyles.mappingInlineInput}`}
-                    />
-                  )}
-                  <ScriptLanguageInlineInput
-                    ariaLabel={t("stepEditor.mappingLanguageLabel")}
-                    className={formStyles.mappingScriptInlineInput}
-                    language={attr.mappingLanguage || SCRIPT_LANGUAGE_LUA}
-                    onLanguageChange={(language) =>
-                      updateAttribute(attr.id, "mappingLanguage", language)
-                    }
-                    onScriptChange={(script) =>
-                      updateAttribute(attr.id, "mappingScript", script)
-                    }
-                    placeholder={t(
-                      getMappingScriptPlaceholderKey(attr.mappingLanguage)
-                    )}
-                    script={attr.mappingScript || ""}
-                  />
-                </div>
-              )}
-              {attr.validationError && (
-                <div className={formStyles.attrValidationError}>
-                  {attr.validationError}
-                </div>
-              )}
-            </div>
-          );
-        })}
+        {attributes.map((attr) => (
+          <AttributeRow
+            key={attr.id}
+            attr={attr}
+            stepType={stepType}
+            flowInputOptions={flowInputOptions}
+            flowOutputOptions={flowOutputOptions}
+            usedInputMappings={usedInputMappings}
+            usedOutputMappings={usedOutputMappings}
+            cycleAttributeType={cycleAttributeType}
+            cycleInputCollect={cycleInputCollect}
+            updateAttribute={updateAttribute}
+            removeAttribute={removeAttribute}
+          />
+        ))}
       </div>
     </div>
   );

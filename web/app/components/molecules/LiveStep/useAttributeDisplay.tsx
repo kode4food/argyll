@@ -13,162 +13,103 @@ import {
 import { ArgType, StatusBadgeContext } from "./attributeUtils";
 import styles from "../StepShared/StepAttributesSection.module.css";
 
-/**
- * Hook that returns a function to render status badges for attributes
- * Encapsulates conditional logic for different attribute types and statuses
- */
-export const useAttributeStatusBadge = () => {
-  return useMemo(() => {
+const badge = (
+  statusClass: string,
+  Icon: React.ComponentType<{ className?: string }>
+): React.ReactElement => (
+  <div
+    className={`${styles.argStatusBadge} ${styles[statusClass]} arg-status-badge ${statusClass}`}
+  >
+    <Icon className={styles.statusIcon} />
+  </div>
+);
+
+const pendingBadge = (): React.ReactElement =>
+  badge("pending", IconAttributeStatusPending);
+
+const skippedBadge = (): React.ReactElement =>
+  badge("skipped", IconAttributeStatusSkipped);
+
+const optionalStatusBadge = (
+  context: StatusBadgeContext
+): React.ReactElement | null => {
+  if (!context.executionStatus) return null;
+  if (context.executionStatus === "skipped") return skippedBadge();
+  if (context.isProvidedByUpstream)
+    return badge("satisfied", IconAttributeStatusProvided);
+  if (context.wasDefaulted)
+    return badge("defaulted", IconAttributeStatusDefaulted);
+  return pendingBadge();
+};
+
+const constStatusBadge = (
+  context: StatusBadgeContext
+): React.ReactElement | null => {
+  if (!context.executionStatus) return null;
+  if (context.executionStatus === "skipped") return skippedBadge();
+  if (context.wasDefaulted || context.isSatisfied)
+    return badge("defaulted", IconAttributeStatusDefaulted);
+  return pendingBadge();
+};
+
+const requiredStatusBadge = (
+  context: StatusBadgeContext
+): React.ReactElement | null => {
+  if (context.isSatisfied)
+    return badge("satisfied", IconAttributeStatusSatisfied);
+  if (
+    context.executionStatus === "failed" ||
+    context.executionStatus === "skipped"
+  )
+    return badge("failed", IconAttributeStatusFailed);
+  return pendingBadge();
+};
+
+const outputStatusBadge = (
+  context: StatusBadgeContext
+): React.ReactElement | null => {
+  if (
+    context.executionStatus === "skipped" ||
+    context.executionStatus === "failed"
+  )
+    return badge("skipped", IconAttributeStatusBlocked);
+  if (context.executionStatus === "active") return pendingBadge();
+  if (context.isWinner) return badge("satisfied", IconAttributeStatusWinner);
+  if (context.executionStatus === "completed")
     return (
-      argType: ArgType,
-      context: StatusBadgeContext
-    ): React.ReactElement | null => {
-      const {
-        isSatisfied,
-        executionStatus,
-        isWinner,
-        isProvidedByUpstream,
-        wasDefaulted,
-      } = context;
+      <div
+        className={`${styles.argStatusBadge} ${styles.notWinner} arg-status-badge not-winner`}
+      >
+        <IconAttributeStatusNotWinner className={styles.statusIcon} />
+      </div>
+    );
+  return (
+    <div
+      className={`${styles.argStatusBadge} ${styles.placeholder} arg-status-badge placeholder`}
+    />
+  );
+};
 
-      if (argType === "optional" && executionStatus) {
-        if (executionStatus === "skipped") {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
-            >
-              <IconAttributeStatusSkipped className={styles.statusIcon} />
-            </div>
-          );
+export const useAttributeStatusBadge = () => {
+  return useMemo(
+    () =>
+      (
+        argType: ArgType,
+        context: StatusBadgeContext
+      ): React.ReactElement | null => {
+        switch (argType) {
+          case "optional":
+            return optionalStatusBadge(context);
+          case "const":
+            return constStatusBadge(context);
+          case "required":
+            return requiredStatusBadge(context);
+          case "output":
+            return outputStatusBadge(context);
+          default:
+            return null;
         }
-        if (isProvidedByUpstream) {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
-            >
-              <IconAttributeStatusProvided className={styles.statusIcon} />
-            </div>
-          );
-        }
-        if (wasDefaulted) {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
-            >
-              <IconAttributeStatusDefaulted className={styles.statusIcon} />
-            </div>
-          );
-        }
-        return (
-          <div
-            className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
-          >
-            <IconAttributeStatusPending className={styles.statusIcon} />
-          </div>
-        );
-      }
-
-      if (argType === "const" && executionStatus) {
-        if (executionStatus === "skipped") {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
-            >
-              <IconAttributeStatusSkipped className={styles.statusIcon} />
-            </div>
-          );
-        }
-        if (wasDefaulted || isSatisfied) {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.defaulted} arg-status-badge defaulted`}
-            >
-              <IconAttributeStatusDefaulted className={styles.statusIcon} />
-            </div>
-          );
-        }
-        return (
-          <div
-            className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
-          >
-            <IconAttributeStatusPending className={styles.statusIcon} />
-          </div>
-        );
-      }
-
-      if (argType === "required") {
-        if (isSatisfied) {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
-            >
-              <IconAttributeStatusSatisfied className={styles.statusIcon} />
-            </div>
-          );
-        }
-        if (executionStatus === "failed" || executionStatus === "skipped") {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.failed} arg-status-badge failed`}
-            >
-              <IconAttributeStatusFailed className={styles.statusIcon} />
-            </div>
-          );
-        }
-        return (
-          <div
-            className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
-          >
-            <IconAttributeStatusPending className={styles.statusIcon} />
-          </div>
-        );
-      }
-
-      if (argType === "output") {
-        if (executionStatus === "skipped" || executionStatus === "failed") {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.skipped} arg-status-badge skipped`}
-            >
-              <IconAttributeStatusBlocked className={styles.statusIcon} />
-            </div>
-          );
-        }
-        if (executionStatus === "active") {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.pending} arg-status-badge pending`}
-            >
-              <IconAttributeStatusPending className={styles.statusIcon} />
-            </div>
-          );
-        }
-        if (isWinner) {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.satisfied} arg-status-badge satisfied`}
-            >
-              <IconAttributeStatusWinner className={styles.statusIcon} />
-            </div>
-          );
-        }
-        if (executionStatus === "completed") {
-          return (
-            <div
-              className={`${styles.argStatusBadge} ${styles.notWinner} arg-status-badge not-winner`}
-            >
-              <IconAttributeStatusNotWinner className={styles.statusIcon} />
-            </div>
-          );
-        }
-        return (
-          <div
-            className={`${styles.argStatusBadge} ${styles.placeholder} arg-status-badge placeholder`}
-          />
-        );
-      }
-
-      return null;
-    };
-  }, []);
+      },
+    []
+  );
 };

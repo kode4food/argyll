@@ -4,6 +4,7 @@ import { IconAddStep } from "@/utils/iconRegistry";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import { useT } from "@/app/i18n";
 import { buildItemClassName } from "./flowFormUtils";
+import { deriveStepGoalState } from "@/utils/flowGoalStepState";
 import styles from "./FlowGoalsSection.module.css";
 
 interface FlowGoalsSectionProps {
@@ -70,21 +71,27 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           } ${showBottomFade ? styles.fadeBottom : ""}`}
         >
           {sortedSteps.map((step) => {
-            const isSelected = goalSteps.includes(step.id);
-            const isIncludedByOthers = included.has(step.id) && !isSelected;
-            const isSatisfiedByState = satisfied.has(step.id) && !isSelected;
-            const blockedInputs = blockedByStep.get(step.id) || [];
-            const isBlocked = blockedInputs.length > 0;
-            const missingRequired = missingByStep.get(step.id) || [];
-            const isMissing = missingRequired.length > 0;
-            const isDisabled =
-              isIncludedByOthers || isSatisfiedByState || isBlocked;
-
+            const {
+              isSelected,
+              isIncludedByOthers,
+              isSatisfiedByState,
+              blockedInputs,
+              isMissing,
+              missingRequired,
+              isDisabled,
+            } = deriveStepGoalState(
+              step.id,
+              goalSteps,
+              included,
+              satisfied,
+              blockedByStep,
+              missingByStep
+            );
             const tooltipText = isIncludedByOthers
               ? t("flowCreate.tooltipAlreadyIncluded")
               : isSatisfiedByState
                 ? t("flowCreate.tooltipSatisfiedByState")
-                : isBlocked
+                : blockedInputs.length > 0
                   ? t("flowCreate.tooltipBlockedByState", {
                       attrs: blockedInputs.join(", "),
                     })

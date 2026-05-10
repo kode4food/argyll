@@ -42,69 +42,74 @@ export interface ValidationError {
 const HTTP_METHOD_POST: HTTPMethod = "POST";
 const endpointParamPattern = /\{([^{}]+)\}/g;
 
+function buildSingleAttribute(
+  name: string,
+  spec: AttributeSpec,
+  index: number,
+  timestamp: number
+): Attribute {
+  const attrType =
+    spec.role === AttributeRole.Required
+      ? "input"
+      : spec.role === AttributeRole.Optional
+        ? "optional"
+        : spec.role === AttributeRole.Const
+          ? "const"
+          : ("output" as AttributeRoleType);
+  const prefix =
+    spec.role === AttributeRole.Output
+      ? "output"
+      : spec.role === AttributeRole.Const
+        ? "const"
+        : "input";
+  const inputConfig =
+    spec.role === AttributeRole.Required
+      ? spec.required
+      : spec.role === AttributeRole.Optional
+        ? spec.optional
+        : undefined;
+  const mappingConfig =
+    spec.role === AttributeRole.Output
+      ? spec.output?.mapping
+      : inputConfig?.mapping;
+
+  return {
+    id: `${prefix}-${index}-${timestamp}`,
+    attrType,
+    name,
+    dataType: spec.type || AttributeType.String,
+    defaultValue:
+      spec.role === AttributeRole.Optional && spec.optional?.default
+        ? spec.optional.default
+        : spec.role === AttributeRole.Const && spec.const?.value
+          ? spec.const.value
+          : undefined,
+    deadline:
+      spec.role === AttributeRole.Optional && spec.optional?.deadline
+        ? spec.optional.deadline
+        : undefined,
+    collect: inputConfig?.collect || "first",
+    forEach: inputConfig?.for_each || false,
+    matchLanguage:
+      spec.role === AttributeRole.Required
+        ? spec.required?.match?.language
+        : undefined,
+    matchScript:
+      spec.role === AttributeRole.Required
+        ? spec.required?.match?.script
+        : undefined,
+    mappingName: mappingConfig?.name,
+    mappingLanguage: mappingConfig?.script?.language,
+    mappingScript: mappingConfig?.script?.script,
+  };
+}
+
 export function buildAttributesFromStep(step: Step | null): Attribute[] {
   if (!step) return [];
-
   const timestamp = Date.now();
-
   return getSortedAttributes(step.attributes || {}).map(
-    ({ name, spec }, index) => {
-      const attrType =
-        spec.role === AttributeRole.Required
-          ? "input"
-          : spec.role === AttributeRole.Optional
-            ? "optional"
-            : spec.role === AttributeRole.Const
-              ? "const"
-              : ("output" as AttributeRoleType);
-      const prefix =
-        spec.role === AttributeRole.Output
-          ? "output"
-          : spec.role === AttributeRole.Const
-            ? "const"
-            : "input";
-
-      const inputConfig =
-        spec.role === AttributeRole.Required
-          ? spec.required
-          : spec.role === AttributeRole.Optional
-            ? spec.optional
-            : undefined;
-      const mappingConfig =
-        spec.role === AttributeRole.Output
-          ? spec.output?.mapping
-          : inputConfig?.mapping;
-
-      return {
-        id: `${prefix}-${index}-${timestamp}`,
-        attrType,
-        name,
-        dataType: spec.type || AttributeType.String,
-        defaultValue:
-          spec.role === AttributeRole.Optional && spec.optional?.default
-            ? spec.optional.default
-            : spec.role === AttributeRole.Const && spec.const?.value
-              ? spec.const.value
-              : undefined,
-        deadline:
-          spec.role === AttributeRole.Optional && spec.optional?.deadline
-            ? spec.optional.deadline
-            : undefined,
-        collect: inputConfig?.collect || "first",
-        forEach: inputConfig?.for_each || false,
-        matchLanguage:
-          spec.role === AttributeRole.Required
-            ? spec.required?.match?.language
-            : undefined,
-        matchScript:
-          spec.role === AttributeRole.Required
-            ? spec.required?.match?.script
-            : undefined,
-        mappingName: mappingConfig?.name,
-        mappingLanguage: mappingConfig?.script?.language,
-        mappingScript: mappingConfig?.script?.script,
-      };
-    }
+    ({ name, spec }, index) =>
+      buildSingleAttribute(name, spec, index, timestamp)
   );
 }
 
@@ -165,6 +170,31 @@ export function getAttributeIconProps(attrType: AttributeRoleType) {
   return getArgIcon(argType);
 }
 
+function buildInputAttrSpec(
+  a: Attribute,
+  mapping: MappingConfig | undefined
+): RequiredConfig | undefined {
+  const required: RequiredConfig = {};
+  if (a.collect && a.collect !== "first") required.collect = a.collect;
+  if (a.forEach) required.for_each = true;
+  if (a.matchScript?.trim()) required.match = buildMatchConfig(a);
+  if (mapping) required.mapping = mapping;
+  return Object.keys(required).length > 0 ? required : undefined;
+}
+
+function buildOptionalAttrSpec(
+  a: Attribute,
+  mapping: MappingConfig | undefined
+): OptionalConfig | undefined {
+  const optional: OptionalConfig = {};
+  if (a.collect && a.collect !== "first") optional.collect = a.collect;
+  if (a.forEach) optional.for_each = true;
+  if (a.defaultValue?.trim()) optional.default = a.defaultValue.trim();
+  if (a.deadline) optional.deadline = a.deadline;
+  if (mapping) optional.mapping = mapping;
+  return Object.keys(optional).length > 0 ? optional : undefined;
+}
+
 export function createStepAttributes(
   attributes: Attribute[]
 ): Record<string, AttributeSpec> {
@@ -183,20 +213,11 @@ export function createStepAttributes(
     const mapping = buildMappingConfig(a);
 
     if (a.attrType === "input") {
-      const required: RequiredConfig = {};
-      if (a.collect && a.collect !== "first") required.collect = a.collect;
-      if (a.forEach) required.for_each = true;
-      if (a.matchScript?.trim()) required.match = buildMatchConfig(a);
-      if (mapping) required.mapping = mapping;
-      if (Object.keys(required).length > 0) spec.required = required;
+      const required = buildInputAttrSpec(a, mapping);
+      if (required) spec.required = required;
     } else if (a.attrType === "optional") {
-      const optional: OptionalConfig = {};
-      if (a.collect && a.collect !== "first") optional.collect = a.collect;
-      if (a.forEach) optional.for_each = true;
-      if (a.defaultValue?.trim()) optional.default = a.defaultValue.trim();
-      if (a.deadline) optional.deadline = a.deadline;
-      if (mapping) optional.mapping = mapping;
-      if (Object.keys(optional).length > 0) spec.optional = optional;
+      const optional = buildOptionalAttrSpec(a, mapping);
+      if (optional) spec.optional = optional;
     } else if (a.attrType === "const") {
       if (a.defaultValue?.trim()) spec.const = { value: a.defaultValue.trim() };
     } else if (a.attrType === "output") {

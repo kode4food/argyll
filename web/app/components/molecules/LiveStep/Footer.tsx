@@ -85,123 +85,132 @@ const workTimerTiming = (work: WorkState, step: Step) => {
   return undefined;
 };
 
+type DisplayInfo = {
+  icon: React.ComponentType<any>;
+  text: string;
+  className?: string;
+} | null;
+
+const computeDisplayInfo = (step: Step): DisplayInfo => {
+  const TypeIcon = getStepTypeIcon(step.type);
+
+  if (step.type === "script" && step.script) {
+    return {
+      icon: TypeIcon,
+      text: formatScriptPreview(step.script.script),
+      className: "endpoint-script",
+    };
+  }
+  if (step.type === "flow" && step.flow?.goals?.length) {
+    return { icon: TypeIcon, text: step.flow.goals.join(", ") };
+  }
+  if (step.http) {
+    const method = step.http.method || "POST";
+    return { icon: TypeIcon, text: `${method} ${step.http.endpoint}` };
+  }
+  return null;
+};
+
+const buildTooltipSections = (
+  step: Step,
+  execution: ExecutionResult | undefined,
+  flowId: string | undefined,
+  progressState: ReturnType<typeof useStepProgress>,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): React.ReactElement[] => {
+  const sections: React.ReactElement[] = [];
+
+  if (step.type === "flow" && step.flow?.goals?.length) {
+    sections.push(
+      <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
+        {step.flow.goals.join(", ")}
+      </TooltipSection>
+    );
+  }
+
+  if (!execution || !flowId) {
+    return sections;
+  }
+
+  const StatusIcon = getProgressIcon(execution.status);
+  const workItemSuffix = progressState.workItems
+    ? (() => {
+        const done = progressState.workItems.completed;
+        const failed = progressState.workItems.failed;
+        const total = progressState.workItems.total;
+        const base =
+          failed > 0
+            ? t("liveStep.workItemsSummaryFailed", { done, total, failed })
+            : t("liveStep.workItemsSummary", { done, total });
+        return ` (${base})`;
+      })()
+    : "";
+
+  sections.push(
+    <TooltipSection
+      key="execution-status"
+      title={t("liveStep.executionStatus")}
+      icon={
+        <StatusIcon
+          className={`progress-icon ${execution.status || "pending"}`}
+        />
+      }
+      bold
+    >
+      {execution.status.toUpperCase()}
+      {workItemSuffix}
+    </TooltipSection>
+  );
+
+  if (execution.status === "failed" && execution.error_message) {
+    sections.push(
+      <TooltipSection key="error" title={t("liveStep.errorTitle")} monospace>
+        {execution.error_message}
+      </TooltipSection>
+    );
+  }
+
+  if (execution.status === "skipped") {
+    const skipReason = step.predicate
+      ? t("liveStep.skipPredicate")
+      : t("liveStep.skipMissingInputs");
+    sections.push(
+      <TooltipSection key="reason" title={t("liveStep.reasonTitle")}>
+        {skipReason}
+      </TooltipSection>
+    );
+  }
+
+  if (execution.status === "completed" && execution.duration_ms) {
+    sections.push(
+      <TooltipSection key="duration" title={t("liveStep.durationTitle")}>
+        {t("common.durationMs", { duration: execution.duration_ms })}
+      </TooltipSection>
+    );
+  }
+
+  Object.entries(execution.work_items ?? {}).forEach(([token, work]) => {
+    const timing = workTimerTiming(work, step);
+    if (!timing) return;
+    sections.push(
+      <TooltipSection key={`work-timer-${token}`} title={t(timing.titleKey)}>
+        <WorkTimer start={timing.start} end={timing.end} />
+      </TooltipSection>
+    );
+  });
+
+  return sections;
+};
+
 const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
   const t = useT();
   const progressState = useStepProgress(step.id, flowId, execution);
-  const { displayInfo, tooltipSections } = useMemo(() => {
-    let displayInfo: {
-      icon: React.ComponentType<any>;
-      text: string;
-      className?: string;
-    } | null = null;
 
-    const TypeIcon = getStepTypeIcon(step.type);
-
-    if (step.type === "script" && step.script) {
-      const scriptPreview = formatScriptPreview(step.script.script);
-      displayInfo = {
-        icon: TypeIcon,
-        text: scriptPreview,
-        className: "endpoint-script",
-      };
-    } else if (step.type === "flow" && step.flow?.goals?.length) {
-      displayInfo = {
-        icon: TypeIcon,
-        text: step.flow.goals.join(", "),
-      };
-    } else if (step.http) {
-      const method = step.http.method || "POST";
-      displayInfo = {
-        icon: TypeIcon,
-        text: `${method} ${step.http.endpoint}`,
-      };
-    }
-
-    const sections: React.ReactElement[] = [];
-    if (step.type === "flow" && step.flow?.goals?.length) {
-      sections.push(
-        <TooltipSection key="goals" title={t("stepFooter.flowGoals")}>
-          {step.flow.goals.join(", ")}
-        </TooltipSection>
-      );
-    }
-    if (!execution || !flowId) {
-      return { displayInfo, tooltipSections: sections };
-    }
-
-    const StatusIcon = getProgressIcon(execution.status);
-    const workItemSuffix = progressState.workItems
-      ? (() => {
-          const done = progressState.workItems.completed;
-          const failed = progressState.workItems.failed;
-          const total = progressState.workItems.total;
-          const base =
-            failed > 0
-              ? t("liveStep.workItemsSummaryFailed", {
-                  done,
-                  total,
-                  failed,
-                })
-              : t("liveStep.workItemsSummary", { done, total });
-          return ` (${base})`;
-        })()
-      : "";
-
-    sections.push(
-      <TooltipSection
-        key="execution-status"
-        title={t("liveStep.executionStatus")}
-        icon={
-          <StatusIcon
-            className={`progress-icon ${execution.status || "pending"}`}
-          />
-        }
-        bold
-      >
-        {execution.status.toUpperCase()}
-        {workItemSuffix}
-      </TooltipSection>
-    );
-
-    if (execution.status === "failed" && execution.error_message) {
-      sections.push(
-        <TooltipSection key="error" title={t("liveStep.errorTitle")} monospace>
-          {execution.error_message}
-        </TooltipSection>
-      );
-    }
-
-    if (execution.status === "skipped") {
-      const skipReason = step.predicate
-        ? t("liveStep.skipPredicate")
-        : t("liveStep.skipMissingInputs");
-      sections.push(
-        <TooltipSection key="reason" title={t("liveStep.reasonTitle")}>
-          {skipReason}
-        </TooltipSection>
-      );
-    }
-
-    if (execution.status === "completed" && execution.duration_ms) {
-      sections.push(
-        <TooltipSection key="duration" title={t("liveStep.durationTitle")}>
-          {t("common.durationMs", { duration: execution.duration_ms })}
-        </TooltipSection>
-      );
-    }
-
-    Object.entries(execution.work_items ?? {}).forEach(([token, work]) => {
-      const timing = workTimerTiming(work, step);
-      if (!timing) return;
-      sections.push(
-        <TooltipSection key={`work-timer-${token}`} title={t(timing.titleKey)}>
-          <WorkTimer start={timing.start} end={timing.end} />
-        </TooltipSection>
-      );
-    });
-
-    return { displayInfo, tooltipSections: sections };
-  }, [execution, flowId, progressState, step, t]);
+  const displayInfo = useMemo(() => computeDisplayInfo(step), [step]);
+  const tooltipSections = useMemo(
+    () => buildTooltipSections(step, execution, flowId, progressState, t),
+    [execution, flowId, progressState, step, t]
+  );
 
   const useProgress = flowId && progressState.flowId === flowId;
   const ProgressIcon = getProgressIcon(progressState.status);

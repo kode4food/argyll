@@ -15,6 +15,8 @@ import StepEditorBasicFields from "./StepEditorBasicFields";
 import StepEditorAttributesSection from "./StepEditorAttributesSection";
 import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
+import StepEditorHeader from "./StepEditorHeader";
+import StepEditorFooter from "./StepEditorFooter";
 import { PREDICATE_LANGUAGE_OPTIONS } from "./stepEditorConstants";
 
 interface StepEditorProps {
@@ -52,34 +54,32 @@ const StepEditor: React.FC<StepEditorProps> = ({
     getSerializedStepData,
     applyStepDataToForm,
     isCreateMode,
-    contextValue: {
-      stepId,
-      name,
-      stepType: formStepType,
-      setStepId,
-      setName,
-      setStepType,
-      attributes,
-      addAttribute,
-      updateAttribute,
-      removeAttribute,
-      cycleAttributeType,
-      cycleInputCollect,
-      endpoint,
-      setEndpoint,
-      httpMethod,
-      setHttpMethod,
-      healthCheck,
-      setHealthCheck,
-      httpTimeout,
-      setHttpTimeout,
-      flowGoals,
-      setFlowGoals,
-    },
+    stepId,
+    name,
+    stepType: formStepType,
+    setStepId,
+    setName,
+    setStepType,
+    attributes,
+    addAttribute,
+    updateAttribute,
+    removeAttribute,
+    cycleAttributeType,
+    cycleInputCollect,
+    endpoint,
+    setEndpoint,
+    httpMethod,
+    setHttpMethod,
+    healthCheck,
+    setHealthCheck,
+    httpTimeout,
+    setHttpTimeout,
+    flowGoals,
+    setFlowGoals,
   } = useStepEditorForm(step, onUpdate, onClose);
+
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
   const [jsonDraft, setJsonDraft] = React.useState("");
-
   const [flowPreviewPlan, setFlowPreviewPlan] =
     React.useState<ExecutionPlan | null>(null);
   const [flowInitialState, setFlowInitialState] = React.useState("{}");
@@ -105,11 +105,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
+      if (e.key === "Escape") onClose();
     };
-
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
@@ -120,9 +117,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   }, [getSerializedStepData, step]);
 
   const handleEditorModeChange = (mode: "basic" | "json") => {
-    if (mode === editorMode) {
-      return;
-    }
+    if (mode === editorMode) return;
 
     if (mode === "json") {
       setJsonDraft(getSerializedStepData());
@@ -142,9 +137,15 @@ const StepEditor: React.FC<StepEditorProps> = ({
   };
 
   const handleBackdropClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
+    if (e.target === e.currentTarget) onClose();
+  };
+
+  const handleSaveClick = () => {
+    if (editorMode === "json") {
+      void handleJsonSave(jsonDraft);
+      return;
     }
+    void handleSave();
   };
 
   if (!mounted) return null;
@@ -160,31 +161,18 @@ const StepEditor: React.FC<StepEditorProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className={styles.header}>
-          <h2 className={styles.title}>
-            {isCreateMode
-              ? t("stepEditor.modalCreateTitle")
-              : t("stepEditor.modalEditTitle", { id: stepId })}
-          </h2>
-          <div className={styles.headerControls}>
-            <label
-              className={styles.headerCheckboxLabel}
-              title={t("stepEditor.memoizableTitle")}
-            >
-              <span>{t("stepEditor.memoizableLabel")}</span>
-              <input
-                type="checkbox"
-                checked={memoizable}
-                onChange={(e) => setMemoizable(e.target.checked)}
-                className={styles.headerCheckbox}
-              />
-            </label>
-          </div>
-        </div>
+        <StepEditorHeader
+          isCreateMode={isCreateMode}
+          stepId={stepId}
+          memoizable={memoizable}
+          onMemoizableChange={setMemoizable}
+        />
 
         <div className={styles.body}>
           <div
-            className={`${formStyles.formContainer} ${editorMode === "json" ? formStyles.formContainerJsonMode : ""}`}
+            className={`${formStyles.formContainer} ${
+              editorMode === "json" ? formStyles.formContainerJsonMode : ""
+            }`}
           >
             {editorMode === "basic" ? (
               <>
@@ -269,60 +257,21 @@ const StepEditor: React.FC<StepEditorProps> = ({
             )}
           </div>
         </div>
+
         {error && (
           <div className={`${formStyles.errorMessage} ${styles.errorBanner}`}>
             {error}
           </div>
         )}
 
-        <div className={styles.footer}>
-          <div className={styles.footerControls}>
-            <div className={formStyles.editorModeToggleGroup}>
-              <button
-                type="button"
-                className={`${formStyles.editorModeToggle} ${editorMode === "basic" ? formStyles.editorModeToggleActive : ""}`}
-                onClick={() => handleEditorModeChange("basic")}
-              >
-                {t("stepEditor.modeBasic")}
-              </button>
-              <button
-                type="button"
-                className={`${formStyles.editorModeToggle} ${editorMode === "json" ? formStyles.editorModeToggleActive : ""}`}
-                onClick={() => handleEditorModeChange("json")}
-              >
-                {t("stepEditor.modeJson")}
-              </button>
-            </div>
-          </div>
-          <div className={styles.footerButtons}>
-            <button
-              onClick={onClose}
-              disabled={saving}
-              className={styles.buttonCancel}
-            >
-              {t("stepEditor.cancel")}
-            </button>
-            <button
-              onClick={() => {
-                if (editorMode === "json") {
-                  void handleJsonSave(jsonDraft);
-                  return;
-                }
-                void handleSave();
-              }}
-              disabled={saving}
-              className={styles.buttonSave}
-            >
-              {saving
-                ? isCreateMode
-                  ? t("stepEditor.creating")
-                  : t("stepEditor.saving")
-                : isCreateMode
-                  ? t("stepEditor.create")
-                  : t("stepEditor.save")}
-            </button>
-          </div>
-        </div>
+        <StepEditorFooter
+          editorMode={editorMode}
+          onEditorModeChange={handleEditorModeChange}
+          onCancel={onClose}
+          onSave={handleSaveClick}
+          saving={saving}
+          isCreateMode={isCreateMode}
+        />
       </div>
     </div>
   );
