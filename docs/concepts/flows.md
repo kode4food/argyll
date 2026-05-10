@@ -67,7 +67,7 @@ This distinction is critical:
 
 **Attributes** are the data accumulated in a flow. When a step completes, its outputs become attributes.
 
-Each attribute has **provenance**—it tracks which step produced it. This gives you a complete audit trail:
+Each attribute has **provenance**, tracking which step produced it. This gives you a complete audit trail:
 
 ```json
 {

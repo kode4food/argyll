@@ -328,7 +328,8 @@ func (s *stepEval) optionalDecisionAt(
 		return optionalDecision{ready: true, fallback: true}
 	}
 
-	if attr.OptionalDeadline() <= 0 {
+	providers := s.providerSummary(name)
+	if providers.Terminal || attr.OptionalDeadline() <= 0 {
 		return s.timeoutDecision(name, attr, s.now)
 	}
 

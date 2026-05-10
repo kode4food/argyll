@@ -116,6 +116,8 @@ Optional inputs can define a **Collection Deadline** with `optional.deadline` in
 
 The deadline decision is local to that step execution. Later values can still enter the flow and satisfy other consumers, but this step will not restart to use them.
 
+If all upstream providers complete before the deadline without satisfying the input, the step resolves immediately rather than waiting. There is nothing left to wait for.
+
 ## For Each and Parallelism
 
 Use `for_each` on array inputs to process multiple items in parallel. Outputs are aggregated.

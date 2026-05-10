@@ -1050,7 +1050,7 @@ components:
 
     ConstConfig:
       type: object
-      description: Configuration for a const attribute — a fixed value injected at execution time
+      description: Configuration for a const attribute, a fixed value injected at execution time
       required:
         - value
       properties:
@@ -1329,7 +1329,7 @@ components:
       type: object
       description: |
         Steps that were considered during dependency resolution but not included in the plan.
-        Only steps reachable from the goal set are represented here — unrelated catalog steps are not included.
+        Only steps reachable from the goal set are represented here. Unrelated catalog steps are not included.
       properties:
         missing:
           type: object

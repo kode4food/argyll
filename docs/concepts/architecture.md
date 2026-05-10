@@ -1,6 +1,6 @@
 # Architecture Constraints
 
-Argyll is built around core constraints that preserve correctness, predictability, and operational simplicity. These constraints are **intentional and load-bearing**—they define what Argyll is.
+Argyll is built around core constraints that preserve correctness, predictability, and operational simplicity. These constraints are **intentional and load-bearing**. They define what Argyll is.
 
 ## Core Design Principles
 

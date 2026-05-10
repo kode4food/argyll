@@ -176,6 +176,7 @@ Optional attributes may also declare a Collection Deadline with `optional.deadli
 - At the deadline, the step uses the best value available for its `optional.collect` policy; for example, `last` uses the latest value so far, and `some` uses the values so far if at least one exists
 - If no usable value exists, the step uses `optional.default` or omits the input
 - The deadline decision is step-local. Later values can still enter the flow for other consumers, but this step will not restart to use them
+- If all upstream providers complete before the deadline without satisfying the input, the step resolves immediately rather than waiting. There is nothing left to wait for
 
 **Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps.
 

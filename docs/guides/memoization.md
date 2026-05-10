@@ -241,7 +241,7 @@ This prevents caching failures and accidentally skipping retries.
 
 1. Look at flow execution times
 2. Compare to baseline (without cache)
-3. Check step handler logs—if handler is called fewer times than expected, cache is working
+3. Check step handler logs: if handler is called fewer times than expected, cache is working
 
 **Shared store impact:**
 
