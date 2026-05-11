@@ -197,7 +197,7 @@ func (e *Engine) needsOutput(
 		if input == nil {
 			continue
 		}
-		if !e.consumerCanDemandInput(consumer, name, input, flow) {
+		if !e.consumerCanDemandInput(consumer, input, flow) {
 			continue
 		}
 		consumerValue := hasValue
@@ -214,8 +214,7 @@ func (e *Engine) needsOutput(
 }
 
 func (e *Engine) consumerCanDemandInput(
-	consumer *api.Step, name api.Name, input *api.AttributeSpec,
-	flow api.FlowState,
+	consumer *api.Step, input *api.AttributeSpec, flow api.FlowState,
 ) bool {
 	status, err := e.stepGateStatus(consumer, flow)
 	if err != nil {
