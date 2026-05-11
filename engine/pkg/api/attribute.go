@@ -237,7 +237,8 @@ func (s *AttributeSpec) validateOptional(name Name) error {
 				ErrInvalidDefaultValue, name, err)
 		}
 	}
-	if cfg.Deadline < MinAttributeDeadline || cfg.Deadline > MaxAttributeDeadline {
+	if cfg.Deadline < MinAttributeDeadline ||
+		cfg.Deadline > MaxAttributeDeadline {
 		return fmt.Errorf("%w: deadline %d for attribute %q",
 			ErrInvalidAttributeDeadline, cfg.Deadline, name)
 	}

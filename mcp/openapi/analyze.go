@@ -153,9 +153,10 @@ func Analyze(args Args, existing []Step, warnings []string) (Result, error) {
 		CandidateSteps:   candidatePayload,
 		RecommendedSteps: recommendedPayload,
 		Plans:            plans,
-		LLMHandoff: llmHandoffPrompt(
-			info, candidatePayload, existingPayload, plans,
-		),
+		LLMHandoff: llmHandoffPrompt(handoffInput{
+			Info: info, CandidateSteps: candidatePayload,
+			ExistingSteps: existingPayload, Plans: plans,
+		}),
 	}
 	if mode == "propose_registrations" {
 		res = Result{
@@ -164,9 +165,10 @@ func Analyze(args Args, existing []Step, warnings []string) (Result, error) {
 			Ambiguities:  uniqueStrings(ambiguities),
 			Proposed:     recommendedPayload,
 			ExamplePlans: plans,
-			LLMHandoff: llmHandoffPrompt(
-				info, candidatePayload, existingPayload, plans,
-			),
+			LLMHandoff: llmHandoffPrompt(handoffInput{
+				Info: info, CandidateSteps: candidatePayload,
+				ExistingSteps: existingPayload, Plans: plans,
+			}),
 		}
 	}
 	return res, nil

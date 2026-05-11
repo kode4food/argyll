@@ -174,7 +174,9 @@ func TestDispatchAfterHealthRecovery(t *testing.T) {
 			))
 		})
 		assert.Equal(t, api.FlowCompleted, fl.Status)
-		assert.True(t, env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout))
+		assert.True(t,
+			env.MockClient.WaitForInvocation(st.ID, wait.DefaultTimeout),
+		)
 	})
 }
 

@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_CONFIG, WEBSOCKET } from "@/constants/common";
+import { API_CONFIG } from "@/constants/common";
 import {
   ConnectionStatus,
   WebSocketEvent,
-  WebSocketSubscribe,
   WebSocketSubscribed,
 } from "@/app/types/websocket";
 import { useHeartbeat } from "./useHeartbeat";
-import { useSubscriptions, sendSubscribeMessage } from "./useSubscriptions";
+import { useReconnect } from "./useReconnect";
+import { useSubscriptions } from "./useSubscriptions";
+import { useWebSocketHandlers } from "./useWebSocketHandlers";
 
 interface UseWebSocketClientOptions {
   enabled?: boolean;
@@ -20,10 +21,7 @@ export const useWebSocketClient = ({
 }: UseWebSocketClientOptions) => {
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("connecting");
-  const [reconnectAttempt, setReconnectAttempt] = useState(0);
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const reconnectDelayRef = useRef<number>(WEBSOCKET.INITIAL_RECONNECT_DELAY);
   const connectRef = useRef<(() => void) | undefined>(undefined);
   const enabledRef = useRef(enabled);
   const onEventRef = useRef(onEvent);
@@ -38,108 +36,40 @@ export const useWebSocketClient = ({
   const { startHeartbeat, stopHeartbeat } = useHeartbeat(wsRef);
   const { subscribe, unsubscribe, subscriptionsRef } = useSubscriptions(wsRef);
 
+  const {
+    reconnectAttempt,
+    reconnectTimeoutRef,
+    scheduleReconnect,
+    cancelPendingReconnect,
+    resetReconnect,
+  } = useReconnect({
+    enabledRef,
+    connectRef,
+    onStatusChange: setConnectionStatus,
+  });
+
   const teardown = useCallback(() => {
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
+    cancelPendingReconnect();
     stopHeartbeat();
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
     }
-  }, [stopHeartbeat]);
+  }, [cancelPendingReconnect, stopHeartbeat]);
 
-  const applyReconnectAttempt = useCallback((prev: number): number => {
-    const nextAttempt = prev + 1;
-    if (nextAttempt >= WEBSOCKET.MAX_RECONNECT_ATTEMPTS) {
-      setConnectionStatus("failed");
-      return nextAttempt;
-    }
-    setConnectionStatus("reconnecting");
-    const delay = Math.min(
-      reconnectDelayRef.current,
-      WEBSOCKET.MAX_RECONNECT_DELAY
-    );
-    reconnectTimeoutRef.current = setTimeout(() => {
-      reconnectTimeoutRef.current = null;
-      reconnectDelayRef.current = Math.min(
-        reconnectDelayRef.current * WEBSOCKET.RECONNECT_MULTIPLIER,
-        WEBSOCKET.MAX_RECONNECT_DELAY
-      );
-      connectRef.current?.();
-    }, delay);
-    return nextAttempt;
-  }, []);
-
-  const scheduleReconnect = useCallback(() => {
-    if (!enabledRef.current) return;
-    setReconnectAttempt(applyReconnectAttempt);
-  }, [applyReconnectAttempt]);
-
-  const handleOpen = useCallback(() => {
-    setConnectionStatus("connected");
-    setReconnectAttempt(0);
-    reconnectDelayRef.current = WEBSOCKET.INITIAL_RECONNECT_DELAY;
-    startHeartbeat();
-    if (wsRef.current) {
-      for (const { subscription } of subscriptionsRef.current.values()) {
-        sendSubscribeMessage(wsRef.current, subscription);
-      }
-    }
-  }, [startHeartbeat, subscriptionsRef]);
-
-  const handleClose = useCallback(
-    (event: CloseEvent) => {
-      stopHeartbeat();
-      wsRef.current = null;
-      if (
-        !enabledRef.current ||
-        event.code === 1000 ||
-        reconnectTimeoutRef.current
-      ) {
-        setConnectionStatus("disconnected");
-      } else {
-        scheduleReconnect();
-      }
-    },
-    [scheduleReconnect, stopHeartbeat]
-  );
-
-  const handleError = useCallback(() => {
-    setConnectionStatus("disconnected");
-  }, []);
-
-  const routeWebSocketMessage = useCallback(
-    (data: WebSocketEvent | WebSocketSubscribed) => {
-      const sub = data.sub_id
-        ? subscriptionsRef.current.get(data.sub_id)
-        : undefined;
-      if (sub?.onEvent) {
-        sub.onEvent(data);
-      } else {
-        onEventRef.current?.(data);
-      }
-    },
-    [subscriptionsRef]
-  );
-
-  const handleMessage = useCallback(
-    (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data) as
-          | WebSocketEvent
-          | WebSocketSubscribed
-          | { type: "pong" };
-        if (data.type !== "pong") {
-          routeWebSocketMessage(data as WebSocketEvent | WebSocketSubscribed);
-        }
-      } catch (error) {
-        console.error("Error parsing WebSocket message:", error);
-      }
-    },
-    [routeWebSocketMessage]
-  );
+  const { handleOpen, handleClose, handleError, handleMessage } =
+    useWebSocketHandlers({
+      wsRef,
+      enabledRef,
+      onEventRef,
+      subscriptionsRef,
+      reconnectTimeoutRef,
+      startHeartbeat,
+      stopHeartbeat,
+      scheduleReconnect,
+      resetReconnect,
+      setConnectionStatus,
+    });
 
   const openWebSocket = useCallback(
     (handlers: {
@@ -162,16 +92,13 @@ export const useWebSocketClient = ({
         }
       }
     },
-    [scheduleReconnect]
+    [reconnectTimeoutRef, scheduleReconnect]
   );
 
   const connect = useCallback(() => {
     if (!enabledRef.current) return;
 
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-      reconnectTimeoutRef.current = null;
-    }
+    cancelPendingReconnect();
 
     const ws = wsRef.current;
     if (
@@ -192,6 +119,7 @@ export const useWebSocketClient = ({
       onmessage: handleMessage,
     });
   }, [
+    cancelPendingReconnect,
     handleClose,
     handleError,
     handleMessage,
@@ -203,11 +131,10 @@ export const useWebSocketClient = ({
   connectRef.current = connect;
 
   const reconnect = useCallback(() => {
-    setReconnectAttempt(0);
-    reconnectDelayRef.current = WEBSOCKET.INITIAL_RECONNECT_DELAY;
+    resetReconnect();
     teardown();
     connect();
-  }, [connect, teardown]);
+  }, [connect, resetReconnect, teardown]);
 
   useEffect(() => {
     if (!enabled) {

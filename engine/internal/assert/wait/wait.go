@@ -103,17 +103,25 @@ func (w *Wait) ForAll(filters ...EventFilter) {
 					len(filters),
 				)
 			}
-			for idx, filter := range filters {
-				if matched[idx] || !filter(ev) {
-					continue
-				}
-				matched[idx] = true
-				seen++
-			}
+			seen += matchFilters(ev, filters, matched)
 		case <-deadline.C:
 			w.t.Fatalf("timeout waiting for %d event filters", len(filters))
 		}
 	}
+}
+
+func matchFilters(
+	ev *timebox.Event, filters []EventFilter, matched []bool,
+) int {
+	count := 0
+	for idx, filter := range filters {
+		if matched[idx] || !filter(ev) {
+			continue
+		}
+		matched[idx] = true
+		count++
+	}
+	return count
 }
 
 // ForEvent waits for a single matching event

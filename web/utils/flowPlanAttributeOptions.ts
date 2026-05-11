@@ -1,4 +1,13 @@
 import { AttributeRole, AttributeType, ExecutionPlan, Step } from "@/app/api";
+import {
+  FlowInputMeta,
+  getInputPriorityRank,
+  getOrCreateFlowInputMeta,
+  getTypeDefaultValue,
+  mergeExplicitDefault,
+  mergeInputType,
+  normalizeDefaultValue,
+} from "./flowPlanInputHelpers";
 
 export interface FlowInputOption {
   name: string;
@@ -14,110 +23,20 @@ export interface FlowPlanAttributeOptions {
   flowOutputOptions: string[];
 }
 
-interface FlowInputMeta {
-  hasRequiredSpec: boolean;
-  hasSpecDefault: boolean;
-  explicitDefault?: string;
-  hasConflictingDefaults: boolean;
-}
-
-const isInputRole = (role: AttributeRole): boolean => {
-  return role === AttributeRole.Required || role === AttributeRole.Optional;
-};
-
-const mergeInputType = (
-  existingType: AttributeType | undefined,
-  nextType: AttributeType | undefined
-): AttributeType | undefined => {
-  if (!existingType) {
-    return nextType;
-  }
-  if (!nextType || existingType === nextType) {
-    return existingType;
-  }
-  return AttributeType.Any;
-};
-
-const getTypeDefaultValue = (attrType?: AttributeType): string | undefined => {
-  switch (attrType) {
-    case AttributeType.Number:
-      return "0";
-    case AttributeType.Boolean:
-      return "false";
-    case AttributeType.Object:
-      return "{}";
-    case AttributeType.Array:
-      return "[]";
-    case AttributeType.Null:
-      return "null";
-    default:
-      return undefined;
-  }
-};
-
-const normalizeDefaultValue = (defaultValue?: string): string | undefined => {
-  if (defaultValue === undefined) {
-    return undefined;
-  }
-  const trimmed = defaultValue.trim();
-  if (!trimmed) {
-    return "";
-  }
-
-  try {
-    const parsed = JSON.parse(trimmed);
-    if (parsed === null || parsed === undefined) {
-      return "";
-    }
-    if (typeof parsed === "string") {
-      return parsed;
-    }
-    return JSON.stringify(parsed);
-  } catch {
-    return trimmed;
-  }
-};
-
-const getOrCreateFlowInputMeta = (
-  inputMetaMap: Map<string, FlowInputMeta>,
-  name: string
-): FlowInputMeta => {
-  const existing = inputMetaMap.get(name);
-  if (existing) {
-    return existing;
-  }
-
-  const created: FlowInputMeta = {
-    hasRequiredSpec: false,
-    hasSpecDefault: false,
-    hasConflictingDefaults: false,
-  };
-  inputMetaMap.set(name, created);
-  return created;
-};
-
-const mergeExplicitDefault = (
-  meta: FlowInputMeta,
-  normalizedDefault: string
-): void => {
-  if (meta.hasConflictingDefaults) {
-    return;
-  }
-  if (meta.explicitDefault === undefined) {
-    meta.explicitDefault = normalizedDefault;
-    return;
-  }
-  if (meta.explicitDefault !== normalizedDefault) {
-    meta.hasConflictingDefaults = true;
-    meta.explicitDefault = undefined;
-  }
-};
-
 interface AttributeCollectionContext {
   requiredInputs: Set<string>;
   inputMap: Map<string, FlowInputOption>;
   inputMetaMap: Map<string, FlowInputMeta>;
 }
+
+interface FlowAttributeSets {
+  inputMap: Map<string, FlowInputOption>;
+  outputSet: Set<string>;
+}
+
+const isInputRole = (role: AttributeRole): boolean => {
+  return role === AttributeRole.Required || role === AttributeRole.Optional;
+};
 
 const processInputAttribute = (
   name: string,
@@ -216,11 +135,6 @@ export const getFlowPlanAttributeOptions = (
   };
 };
 
-interface FlowAttributeSets {
-  inputMap: Map<string, FlowInputOption>;
-  outputSet: Set<string>;
-}
-
 const collectUnreachableInputs = (
   plan: ExecutionPlan,
   catalogSteps: Step[] | undefined,
@@ -260,25 +174,4 @@ const collectUnreachableInputs = (
   }
 
   return result;
-};
-
-const getInputPriorityRank = (
-  option: FlowInputOption,
-  outputSet: Set<string>,
-  inputMetaMap: Map<string, FlowInputMeta>
-): number => {
-  if (option.unreachable) {
-    return 4;
-  }
-  const meta = inputMetaMap.get(option.name);
-  if (outputSet.has(option.name)) {
-    return 3;
-  }
-  if (option.required || meta?.hasRequiredSpec) {
-    return 0;
-  }
-  if (meta?.hasSpecDefault) {
-    return 2;
-  }
-  return 1;
 };

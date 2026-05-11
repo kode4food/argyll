@@ -288,7 +288,10 @@ func TestFlowHasState(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			w.FlowHasState(tt.getter, tt.flowID, tt.keys...)
+			w.FlowHasState(assert.FlowRef{
+				Getter: tt.getter,
+				FlowID: tt.flowID,
+			}, tt.keys...)
 		})
 	}
 }
@@ -345,7 +348,10 @@ func TestFlowStateEquals(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			w := assert.New(t)
-			w.FlowStateEquals(tt.getter, tt.flowID, tt.key, tt.expected)
+			w.FlowStateEquals(assert.FlowRef{
+				Getter: tt.getter,
+				FlowID: tt.flowID,
+			}, tt.key, tt.expected)
 		})
 	}
 }

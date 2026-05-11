@@ -8,25 +8,14 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-type (
-	coverageDetail struct {
-		Status    string
-		CoveredBy []string
-		Rationale []string
-		Missing   []string
-		Overlap   []string
-		Redundant bool
-	}
-
-	planSpec struct {
-		GoalStepID    string           `json:"goal_step_id"`
-		GoalStepName  string           `json:"goal_step_name"`
-		GoalSource    string           `json:"goal_source"`
-		Steps         []map[string]any `json:"steps"`
-		MissingInputs []string         `json:"missing_inputs"`
-		SuggestedInit map[string]any   `json:"suggested_init"`
-	}
-)
+type planSpec struct {
+	GoalStepID    string           `json:"goal_step_id"`
+	GoalStepName  string           `json:"goal_step_name"`
+	GoalSource    string           `json:"goal_source"`
+	Steps         []map[string]any `json:"steps"`
+	MissingInputs []string         `json:"missing_inputs"`
+	SuggestedInit map[string]any   `json:"suggested_init"`
+}
 
 func buildAttributes(inputs, outputs []argSpec) map[string]any {
 	res := map[string]any{}
@@ -59,82 +48,6 @@ func buildAttributes(inputs, outputs []argSpec) map[string]any {
 		res[out.Name] = attr
 	}
 	return res
-}
-
-func coverage(existing, candidates []Step) map[string]coverageDetail {
-	res := map[string]coverageDetail{}
-	for _, cand := range candidates {
-		best := coverageDetail{Status: "recommended"}
-		for _, ex := range existing {
-			d := compareCoverage(cand, ex)
-			if coverageRank(d.Status) > coverageRank(best.Status) {
-				best = d
-			}
-		}
-		if len(best.CoveredBy) != 0 {
-			slices.Sort(best.CoveredBy)
-		}
-		res[cand.ID] = best
-	}
-	return res
-}
-
-func compareCoverage(cand, ex Step) coverageDetail {
-	crit := criticalOutputs(cand)
-	overlap := intersect(cand.Outputs, ex.Outputs)
-	missingReq := diff(cand.Required, ex.Required)
-	missingCrit := diff(crit, ex.Outputs)
-	switch {
-	case len(missingReq) == 0 && len(missingCrit) == 0:
-		if slices.Equal(cand.Required, ex.Required) &&
-			slices.Equal(cand.Outputs, ex.Outputs) {
-			return coverageDetail{
-				Status:    "covered_exact",
-				CoveredBy: []string{ex.ID},
-				Rationale: []string{
-					"existing step already matches required inputs and " +
-						"critical outputs",
-				},
-				Redundant: true,
-			}
-		}
-		return coverageDetail{
-			Status:    "covered_superset",
-			CoveredBy: []string{ex.ID},
-			Rationale: []string{
-				"existing step already satisfies required inputs and " +
-					"planner-critical outputs",
-			},
-			Overlap:   overlap,
-			Redundant: true,
-		}
-	case len(overlap) > 0:
-		return coverageDetail{
-			Status:    "partial_overlap",
-			CoveredBy: []string{ex.ID},
-			Rationale: []string{
-				"existing step overlaps with this candidate but does not " +
-					"fully cover the same planning edge",
-			},
-			Missing: unionStrings(missingReq, missingCrit),
-			Overlap: overlap,
-		}
-	default:
-		return coverageDetail{Status: "recommended"}
-	}
-}
-
-func coverageRank(status string) int {
-	switch status {
-	case "covered_exact":
-		return 4
-	case "covered_superset":
-		return 3
-	case "partial_overlap":
-		return 2
-	default:
-		return 1
-	}
 }
 
 func inferPlans(nodes []Step) []planSpec {
@@ -282,58 +195,5 @@ func criticalOutputs(st Step) []string {
 	if len(res) == 0 {
 		return slices.Clone(st.Outputs)
 	}
-	return res
-}
-
-func intersect(a, b []string) []string {
-	set := util.Set[string]{}
-	for _, v := range b {
-		set.Add(v)
-	}
-	var res []string
-	for _, v := range a {
-		if set.Contains(v) {
-			res = append(res, v)
-		}
-	}
-	return uniqueStrings(res)
-}
-
-func diff(a, b []string) []string {
-	set := util.Set[string]{}
-	for _, v := range b {
-		set.Add(v)
-	}
-	var res []string
-	for _, v := range a {
-		if !set.Contains(v) {
-			res = append(res, v)
-		}
-	}
-	return uniqueStrings(res)
-}
-
-func unionStrings(parts ...[]string) []string {
-	var all []string
-	for _, part := range parts {
-		all = append(all, part...)
-	}
-	return uniqueStrings(all)
-}
-
-func uniqueStrings(in []string) []string {
-	seen := util.Set[string]{}
-	var res []string
-	for _, v := range in {
-		if v == "" {
-			continue
-		}
-		if seen.Contains(v) {
-			continue
-		}
-		seen.Add(v)
-		res = append(res, v)
-	}
-	slices.Sort(res)
 	return res
 }

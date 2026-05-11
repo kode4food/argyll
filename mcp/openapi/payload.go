@@ -9,6 +9,13 @@ import (
 	openapi "github.com/getkin/kin-openapi/openapi3"
 )
 
+type handoffInput struct {
+	Info           Info
+	CandidateSteps []CandidateStep
+	ExistingSteps  []RegisteredStep
+	Plans          []planSpec
+}
+
 func operationsPayload(ops []opSpec) []Operation {
 	res := make([]Operation, 0, len(ops))
 	for _, op := range ops {
@@ -26,46 +33,6 @@ func operationsPayload(ops []opSpec) []Operation {
 		})
 	}
 	return res
-}
-
-func existingStepsPayload(steps []Step) []RegisteredStep {
-	res := make([]RegisteredStep, 0, len(steps))
-	for _, st := range steps {
-		res = append(res, RegisteredStep{
-			ID:       st.ID,
-			Name:     st.Name,
-			Source:   st.Source,
-			Path:     st.Path,
-			Required: st.Required,
-			Optional: st.Optional,
-			Outputs:  st.Outputs,
-		})
-	}
-	return res
-}
-
-func recommendedStepsPayload(steps []Step) []CandidateStep {
-	res := make([]CandidateStep, 0, len(steps))
-	for _, st := range steps {
-		res = append(res, candidateStepPayload(st))
-	}
-	return res
-}
-
-func candidateStepPayload(st Step) CandidateStep {
-	return CandidateStep{
-		ID:          st.ID,
-		Name:        st.Name,
-		Source:      st.Source,
-		Path:        st.Path,
-		Entity:      st.Entity,
-		Required:    st.Required,
-		Optional:    st.Optional,
-		Outputs:     st.Outputs,
-		Rationale:   st.Rationale,
-		Ambiguities: st.Ambiguities,
-		Step:        st.Step,
-	}
 }
 
 func payloadArgs(args []argSpec) []Arg {
@@ -138,6 +105,46 @@ func opAmbiguities(op opSpec) []string {
 	return uniqueStrings(res)
 }
 
+func recommendedStepsPayload(steps []Step) []CandidateStep {
+	res := make([]CandidateStep, 0, len(steps))
+	for _, st := range steps {
+		res = append(res, candidateStepPayload(st))
+	}
+	return res
+}
+
+func candidateStepPayload(st Step) CandidateStep {
+	return CandidateStep{
+		ID:          st.ID,
+		Name:        st.Name,
+		Source:      st.Source,
+		Path:        st.Path,
+		Entity:      st.Entity,
+		Required:    st.Required,
+		Optional:    st.Optional,
+		Outputs:     st.Outputs,
+		Rationale:   st.Rationale,
+		Ambiguities: st.Ambiguities,
+		Step:        st.Step,
+	}
+}
+
+func existingStepsPayload(steps []Step) []RegisteredStep {
+	res := make([]RegisteredStep, 0, len(steps))
+	for _, st := range steps {
+		res = append(res, RegisteredStep{
+			ID:       st.ID,
+			Name:     st.Name,
+			Source:   st.Source,
+			Path:     st.Path,
+			Required: st.Required,
+			Optional: st.Optional,
+			Outputs:  st.Outputs,
+		})
+	}
+	return res
+}
+
 func resolveBaseURL(doc *openapi.T) string {
 	if len(doc.Servers) == 0 || doc.Servers[0] == nil {
 		return ""
@@ -203,20 +210,17 @@ func humanizeID(id string) string {
 	return strings.Join(parts, " ")
 }
 
-func llmHandoffPrompt(
-	info Info, candidateSteps []CandidateStep, existingSteps []RegisteredStep,
-	plans []planSpec,
-) string {
+func llmHandoffPrompt(h handoffInput) string {
 	data, _ := json.Marshal(struct {
 		Info           Info             `json:"info"`
 		CandidateSteps []CandidateStep  `json:"candidate_steps"`
 		ExistingSteps  []RegisteredStep `json:"existing_steps"`
 		Plans          []planSpec       `json:"plans"`
 	}{
-		Info:           info,
-		CandidateSteps: candidateSteps,
-		ExistingSteps:  existingSteps,
-		Plans:          plans,
+		Info:           h.Info,
+		CandidateSteps: h.CandidateSteps,
+		ExistingSteps:  h.ExistingSteps,
+		Plans:          h.Plans,
 	})
 	return "Review this normalized OpenAPI-to-Argyll graph. Refine canonical " +
 		"attribute names, mark ambiguous planning edges, and suggest which " +

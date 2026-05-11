@@ -21,76 +21,23 @@ func (s *Server) httpGet(path string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode/100 != 2 { // not a 2xx success response
-		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
-	}
-	return decodeJSON(body)
+	return s.httpDo(req)
 }
 
 func (s *Server) httpPost(path string, payload any) (any, error) {
-	data, err := json.Marshal(payload)
+	req, err := s.httpJSONRequest(http.MethodPost, path, payload)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(
-		http.MethodPost, s.baseURL+path, bytes.NewReader(data),
-	)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", api.JSONContentType)
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode/100 != 2 { // not a 2xx success response
-		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
-	}
-	return decodeJSON(body)
+	return s.httpDo(req)
 }
 
 func (s *Server) httpPut(path string, payload any) (any, error) {
-	data, err := json.Marshal(payload)
+	req, err := s.httpJSONRequest(http.MethodPut, path, payload)
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest(
-		http.MethodPut, s.baseURL+path, bytes.NewReader(data),
-	)
-	if err != nil {
-		return nil, err
-	}
-	req.Header.Set("Content-Type", api.JSONContentType)
-	resp, err := s.client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = resp.Body.Close() }()
-
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-	if resp.StatusCode/100 != 2 { // not a 2xx success response
-		return nil, fmt.Errorf("%w: %s", ErrHTTPStatus, string(body))
-	}
-	return decodeJSON(body)
+	return s.httpDo(req)
 }
 
 func (s *Server) httpDelete(path string) (any, error) {
@@ -98,12 +45,32 @@ func (s *Server) httpDelete(path string) (any, error) {
 	if err != nil {
 		return nil, err
 	}
+	return s.httpDo(req)
+}
+
+func (s *Server) httpJSONRequest(
+	method, path string, payload any,
+) (*http.Request, error) {
+	data, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest(
+		method, s.baseURL+path, bytes.NewReader(data),
+	)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", api.JSONContentType)
+	return req, nil
+}
+
+func (s *Server) httpDo(req *http.Request) (any, error) {
 	resp, err := s.client.Do(req)
 	if err != nil {
 		return nil, err
 	}
 	defer func() { _ = resp.Body.Close() }()
-
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err

@@ -184,7 +184,8 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 		step = fl.Plan.Steps[fs.StepID]
 
 		work := ex.WorkItems[tkn]
-		if policy.WorkClaimableForRetry(work.Status) && !tx.canDispatchLocally(step.ID) {
+		if policy.WorkClaimableForRetry(work.Status) &&
+			!tx.canDispatchLocally(step.ID) {
 			reschedule = true
 			return nil
 		}

@@ -14,7 +14,8 @@ import (
 )
 
 func waitForWorkStarted(
-	env *helpers.TestEngineEnv, flowID api.FlowID, steps []api.StepID, fn func(),
+	env *helpers.TestEngineEnv, flowID api.FlowID, steps []api.StepID,
+	fn func(),
 ) {
 	filters := make([]wait.EventFilter, len(steps))
 	for idx, stepID := range steps {

@@ -10,6 +10,13 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+// FlowStateQuery groups the parameters for WaitForFlowState
+type FlowStateQuery struct {
+	FlowID  api.FlowID
+	Timeout time.Duration
+	Accept  func(api.FlowState) bool
+}
+
 const waitPollInterval = 10 * time.Millisecond
 
 // WaitFor runs fn and waits for a matching event
@@ -84,17 +91,18 @@ func WaitForTerminalFlowState(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID,
 ) api.FlowState {
 	t.Helper()
-	return WaitForFlowState(t, eng, flowID, wait.DefaultTimeout, func(st api.FlowState) bool {
-		return isFlowTerminal(st)
+	return WaitForFlowState(t, eng, FlowStateQuery{
+		FlowID:  flowID,
+		Timeout: wait.DefaultTimeout,
+		Accept:  isFlowTerminal,
 	})
 }
 
 // WaitForTerminalFlows waits for all flows to reach terminal states
-func WaitForTerminalFlows(
-	t *testing.T, eng *engine.Engine, flowIDs []api.FlowID,
-	timeout time.Duration,
+func (e *TestEngineEnv) WaitForTerminalFlows(
+	flowIDs []api.FlowID, timeout time.Duration,
 ) map[api.FlowID]api.FlowState {
-	t.Helper()
+	e.T.Helper()
 
 	res := make(map[api.FlowID]api.FlowState, len(flowIDs))
 	deadline := time.Now().Add(timeout)
@@ -102,7 +110,7 @@ func WaitForTerminalFlows(
 		allTerminal := true
 		var lastErr error
 		for _, fid := range flowIDs {
-			st, err := eng.GetFlowState(fid)
+			st, err := e.Engine.GetFlowState(fid)
 			if err != nil {
 				lastErr = err
 				allTerminal = false
@@ -118,9 +126,9 @@ func WaitForTerminalFlows(
 		}
 		if time.Now().After(deadline) {
 			if lastErr != nil {
-				t.Fatalf("failed to fetch terminal flows: %v", lastErr)
+				e.T.Fatalf("failed to fetch terminal flows: %v", lastErr)
 			}
-			t.Fatalf("flows did not reach terminal state: %v", flowIDs)
+			e.T.Fatalf("flows did not reach terminal state: %v", flowIDs)
 		}
 		time.Sleep(waitPollInterval)
 	}
@@ -131,27 +139,29 @@ func WaitForFlowExists(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID,
 ) api.FlowState {
 	t.Helper()
-	return WaitForFlowState(t, eng, flowID, wait.DefaultTimeout, nil)
+	return WaitForFlowState(t, eng, FlowStateQuery{
+		FlowID:  flowID,
+		Timeout: wait.DefaultTimeout,
+	})
 }
 
-// WaitForFlowState waits for a flow state accepted by accept
+// WaitForFlowState waits for a flow state accepted by query.Accept
 func WaitForFlowState(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID, timeout time.Duration,
-	accept func(api.FlowState) bool,
+	t *testing.T, eng *engine.Engine, q FlowStateQuery,
 ) api.FlowState {
 	t.Helper()
 
-	deadline := time.Now().Add(timeout)
+	deadline := time.Now().Add(q.Timeout)
 	for {
-		st, err := eng.GetFlowState(flowID)
-		if err == nil && (accept == nil || accept(st)) {
+		st, err := eng.GetFlowState(q.FlowID)
+		if err == nil && (q.Accept == nil || q.Accept(st)) {
 			return st
 		}
 		if time.Now().After(deadline) {
 			if err != nil {
-				t.Fatalf("failed to fetch flow %s: %v", flowID, err)
+				t.Fatalf("failed to fetch flow %s: %v", q.FlowID, err)
 			}
-			t.Fatalf("flow %s did not reach expected state", flowID)
+			t.Fatalf("flow %s did not reach expected state", q.FlowID)
 		}
 		time.Sleep(waitPollInterval)
 	}

@@ -32,7 +32,7 @@ func waitForFlowsStatusWithTimeoutAfter(
 	env.T.Helper()
 
 	fn()
-	return helpers.WaitForTerminalFlows(env.T, env.Engine, ids, timeout)
+	return env.WaitForTerminalFlows(ids, timeout)
 }
 
 // TestBasicFlowRecovery tests that a single flow with pending work recovers

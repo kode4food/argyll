@@ -15,6 +15,12 @@ type (
 		GetAttribute(flowID api.FlowID, attr api.Name) (any, bool, error)
 	}
 
+	// FlowRef groups a Getter and FlowID for assertion helpers
+	FlowRef struct {
+		Getter Getter
+		FlowID api.FlowID
+	}
+
 	// Wrapper wraps testify assertions with Argyll-specific helpers
 	Wrapper struct {
 		*testing.T
@@ -75,23 +81,19 @@ func (w *Wrapper) FlowStatus(flow api.FlowState, expected api.FlowStatus) {
 }
 
 // FlowHasState asserts that a flow has specific state keys
-func (w *Wrapper) FlowHasState(
-	get Getter, flowID api.FlowID, keys ...api.Name,
-) {
+func (w *Wrapper) FlowHasState(ref FlowRef, keys ...api.Name) {
 	w.Helper()
 	for _, key := range keys {
-		_, ok, err := get.GetAttribute(flowID, key)
+		_, ok, err := ref.Getter.GetAttribute(ref.FlowID, key)
 		w.NoError(err, "failed to check state key: %s", key)
 		w.True(ok, "flow should have state key: %s", key)
 	}
 }
 
 // FlowStateEquals asserts that a state key has the expected value
-func (w *Wrapper) FlowStateEquals(
-	get Getter, flowID api.FlowID, key api.Name, expected any,
-) {
+func (w *Wrapper) FlowStateEquals(ref FlowRef, key api.Name, expected any) {
 	w.Helper()
-	val, ok, err := get.GetAttribute(flowID, key)
+	val, ok, err := ref.Getter.GetAttribute(ref.FlowID, key)
 	w.NoError(err, "failed to get state key: %s", key)
 	w.True(ok, "flow should have state key: %s", key)
 	w.Equal(expected, val)
@@ -117,7 +119,7 @@ func (w *Wrapper) ConfigInvalid(cfg *config.Config, contains string) {
 
 // Eventually runs a condition repeatedly until it passes or times out
 func (w *Wrapper) Eventually(
-	condition func() bool, timeout time.Duration, msg string, args ...any,
+	condition func() bool, timeout time.Duration, msg string,
 ) {
 	w.Helper()
 	deadline := time.Now().Add(timeout)
@@ -127,13 +129,13 @@ func (w *Wrapper) Eventually(
 		}
 		time.Sleep(DefaultRetryInterval)
 	}
-	w.Fail(msg, args...)
+	w.Fail(msg)
 }
 
 // EventuallyWithError runs a condition that returns an error until it succeeds
 // or times out
 func (w *Wrapper) EventuallyWithError(
-	condition func() error, timeout time.Duration, msg string, args ...any,
+	condition func() error, timeout time.Duration, msg string,
 ) {
 	w.Helper()
 	deadline := time.Now().Add(timeout)
@@ -147,8 +149,8 @@ func (w *Wrapper) EventuallyWithError(
 		time.Sleep(DefaultRetryInterval)
 	}
 	if lastErr != nil {
-		w.Fail(msg+": last error: "+lastErr.Error(), args...)
+		w.Fail(msg + ": last error: " + lastErr.Error())
 		return
 	}
-	w.Fail(msg, args...)
+	w.Fail(msg)
 }

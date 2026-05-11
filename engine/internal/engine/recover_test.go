@@ -181,20 +181,21 @@ func TestRecoverDispatchPeer(t *testing.T) {
 		require.NoError(t, env.Engine.StartFlow(id, pl))
 		require.NoError(t, peer.Start())
 
-		fl := helpers.WaitForFlowState(
-			t, env.Engine, id, time.Second,
-			func(fl api.FlowState) bool {
+		fl := helpers.WaitForFlowState(t, env.Engine, helpers.FlowStateQuery{
+			FlowID:  id,
+			Timeout: time.Second,
+			Accept: func(fl api.FlowState) bool {
 				ex, ok := fl.Executions[st.ID]
 				if !ok {
 					return false
 				}
-
 				for _, work := range ex.WorkItems {
 					return work.Status == api.WorkSucceeded &&
 						fl.Status == api.FlowCompleted
 				}
 				return false
-			})
+			},
+		})
 
 		ex := fl.Executions[st.ID]
 		assert.NotEmpty(t, ex.WorkItems)

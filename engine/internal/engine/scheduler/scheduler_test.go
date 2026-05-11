@@ -449,12 +449,13 @@ func assertFlowEventuallyCompleted(
 	t *testing.T, eng *engine.Engine, flowID api.FlowID,
 ) {
 	t.Helper()
-	helpers.WaitForFlowState(
-		t, eng, flowID, schedulerWaitTimeout,
-		func(st api.FlowState) bool {
+	helpers.WaitForFlowState(t, eng, helpers.FlowStateQuery{
+		FlowID:  flowID,
+		Timeout: schedulerWaitTimeout,
+		Accept: func(st api.FlowState) bool {
 			return st.Status == api.FlowCompleted
 		},
-	)
+	})
 }
 
 func withFakeScheduler(

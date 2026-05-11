@@ -1040,7 +1040,9 @@ func TestStepCopy(t *testing.T) {
 		as.Equal("platform", st.Labels["team"])
 		as.Equal(api.TypeNumber, st.Attributes["input"].Type)
 		as.Equal("changed", st.Attributes["input"].Required.Mapping.Name)
-		as.Equal("$.changed", st.Attributes["input"].Required.Mapping.Script.Script)
+		as.Equal(
+			"$.changed", st.Attributes["input"].Required.Mapping.Script.Script,
+		)
 	})
 }
 
@@ -1488,12 +1490,16 @@ func TestStepValidateMappingNames(t *testing.T) {
 			},
 			Attributes: api.AttributeSpecs{
 				"user_data": {
-					Role:     api.RoleRequired,
-					Required: &api.RequiredConfig{Mapping: &api.MappingConfig{Name: "data"}},
+					Role: api.RoleRequired,
+					Required: &api.RequiredConfig{
+						Mapping: &api.MappingConfig{Name: "data"},
+					},
 				},
 				"result_data": {
-					Role:   api.RoleOutput,
-					Output: &api.OutputConfig{Mapping: &api.MappingConfig{Name: "data"}},
+					Role: api.RoleOutput,
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{Name: "data"},
+					},
 				},
 			},
 		}

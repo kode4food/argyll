@@ -38,7 +38,10 @@ func TestSetAttribute(t *testing.T) {
 		})
 
 		a := assert.New(t)
-		a.FlowStateEquals(env.Engine, "wf-attr", "test_key", "test_value")
+		a.FlowStateEquals(assert.FlowRef{
+			Getter: env.Engine,
+			FlowID: "wf-attr",
+		}, "test_key", "test_value")
 	})
 }
 func TestDuplicateFirstWins(t *testing.T) {
