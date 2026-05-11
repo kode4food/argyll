@@ -4,7 +4,7 @@ import { IconAddStep } from "@/utils/iconRegistry";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
 import { useT } from "@/app/i18n";
 import { buildItemClassName } from "./flowFormUtils";
-import { deriveStepGoalState } from "@/utils/flowGoalStepState";
+import { deriveStepGoalState, getGoalTooltip } from "@/utils/flowGoalStepState";
 import styles from "./FlowGoalsSection.module.css";
 
 interface FlowGoalsSectionProps {
@@ -71,43 +71,23 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
           } ${showBottomFade ? styles.fadeBottom : ""}`}
         >
           {sortedSteps.map((step) => {
-            const {
-              isSelected,
-              isIncludedByOthers,
-              isSatisfiedByState,
-              blockedInputs,
-              isMissing,
-              missingRequired,
-              isDisabled,
-            } = deriveStepGoalState(
-              step.id,
-              goalSteps,
+            const state = deriveStepGoalState(step.id, goalSteps, {
               included,
               satisfied,
               blockedByStep,
-              missingByStep
-            );
-            const tooltipText = isIncludedByOthers
-              ? t("flowCreate.tooltipAlreadyIncluded")
-              : isSatisfiedByState
-                ? t("flowCreate.tooltipSatisfiedByState")
-                : blockedInputs.length > 0
-                  ? t("flowCreate.tooltipBlockedByState", {
-                      attrs: blockedInputs.join(", "),
-                    })
-                  : isMissing
-                    ? t("flowCreate.tooltipMissingRequired", {
-                        attrs: missingRequired.join(", "),
-                      })
-                    : undefined;
+              missingByStep,
+            });
+            const tooltipText = getGoalTooltip(state, t);
             const itemClassName = buildItemClassName(
-              isSelected,
-              isDisabled,
-              styles.dropdownItem,
-              styles.dropdownItemSelected,
-              styles.dropdownItemDisabled
+              state.isSelected,
+              state.isDisabled,
+              {
+                base: styles.dropdownItem,
+                selected: styles.dropdownItemSelected,
+                disabled: styles.dropdownItemDisabled,
+              }
             );
-            const includedClassName = isIncludedByOthers
+            const includedClassName = state.isIncludedByOthers
               ? styles.dropdownItemIncluded
               : "";
 
@@ -117,14 +97,10 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
                 className={`${itemClassName} ${includedClassName}`}
                 title={tooltipText}
                 onClick={() => {
-                  if (isDisabled) {
-                    return;
-                  }
-
-                  const nextGoalStepIds = isSelected
+                  if (state.isDisabled) return;
+                  const nextGoalStepIds = state.isSelected
                     ? goalSteps.filter((id) => id !== step.id)
                     : [...goalSteps, step.id];
-
                   void onGoalStepsChange(nextGoalStepIds);
                 }}
               >

@@ -541,7 +541,9 @@ describe("flowStore", () => {
     test("updateStepHealth updates step health", () => {
       useFlowStore.setState({ stepHealth: {} });
 
-      useFlowStore.getState().updateStepHealth("node-1", "step-1", "healthy");
+      useFlowStore
+        .getState()
+        .updateStepHealth({ nodeId: "node-1", stepId: "step-1" }, "healthy");
       const state = useFlowStore.getState();
 
       expect(state.stepHealth["step-1"]).toEqual({
@@ -555,7 +557,11 @@ describe("flowStore", () => {
     test("updateStepHealth updates with error", () => {
       useFlowStore
         .getState()
-        .updateStepHealth("node-1", "step-1", "unhealthy", "Connection failed");
+        .updateStepHealth(
+          { nodeId: "node-1", stepId: "step-1" },
+          "unhealthy",
+          "Connection failed"
+        );
       const state = useFlowStore.getState();
 
       expect(state.stepHealth["step-1"]).toEqual({

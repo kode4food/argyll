@@ -1,8 +1,6 @@
 import { AttributeType, ExecutionPlan, Step } from "@/app/api";
 
-export const getDefaultValueForType = (type?: AttributeType): any => {
-  if (!type) return "";
-
+export const getDefaultValueForType = (type?: AttributeType): unknown => {
   switch (type) {
     case AttributeType.Boolean:
       return false;
@@ -16,7 +14,6 @@ export const getDefaultValueForType = (type?: AttributeType): any => {
       return [];
     case AttributeType.Null:
       return null;
-    case AttributeType.Any:
     default:
       return "";
   }

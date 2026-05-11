@@ -9,13 +9,23 @@ import {
 
 type StepInput = ReturnType<typeof listStepInputs>[number];
 
+interface EdgeConnection {
+  fromStepID: string;
+  toStep: Step;
+  input: StepInput;
+}
+
+interface EdgeViewState {
+  previewStepIds: Set<string> | null | undefined;
+  focusedAttributeName: string | null | undefined;
+}
+
 const buildEdge = (
-  fromStepID: string,
-  toStep: Step,
-  input: StepInput,
-  previewStepIds: Set<string> | null | undefined,
-  focusedAttributeName: string | null | undefined
+  connection: EdgeConnection,
+  viewState: EdgeViewState
 ): Edge => {
+  const { fromStepID, toStep, input } = connection;
+  const { previewStepIds, focusedAttributeName } = viewState;
   const isInPlan = previewStepIds
     ? previewStepIds.has(fromStepID) && previewStepIds.has(toStep.id)
     : false;
@@ -73,11 +83,8 @@ export const useEdgeCalculation = (
           if (fromStepID !== toStep.id) {
             edges.push(
               buildEdge(
-                fromStepID,
-                toStep,
-                input,
-                previewStepIds,
-                focusedAttributeName
+                { fromStepID, toStep, input },
+                { previewStepIds, focusedAttributeName }
               )
             );
           }

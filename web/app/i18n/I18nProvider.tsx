@@ -1,16 +1,15 @@
 import React, { createContext, useCallback, useContext, useMemo } from "react";
 import commonMessages from "./common.json";
 import defaultMessages from "./en-US.json";
+import {
+  interpolate,
+  isPluralForms,
+  selectPluralForm,
+  type MessageValue,
+  type Vars,
+} from "./i18nUtils";
 
-type PluralForms = {
-  zero?: string;
-  one?: string;
-  other: string;
-};
-
-type MessageValue = string | PluralForms;
 type Messages = Record<string, MessageValue>;
-type Vars = Record<string, string | number>;
 
 interface I18nContextValue {
   t: (key: string, vars?: Vars) => string;
@@ -25,37 +24,6 @@ interface I18nProviderProps {
   locale?: string;
   messages?: Messages;
 }
-
-const interpolate = (template: string, vars?: Vars) => {
-  if (!vars) {
-    return template;
-  }
-  return template.replace(/\{(\w+)\}/g, (_, key: string) => {
-    if (Object.prototype.hasOwnProperty.call(vars, key)) {
-      return String(vars[key]);
-    }
-    return `{${key}}`;
-  });
-};
-
-const isPluralForms = (value: MessageValue): value is PluralForms => {
-  return (
-    typeof value === "object" &&
-    value !== null &&
-    "other" in value &&
-    typeof value.other === "string"
-  );
-};
-
-const selectPluralForm = (forms: PluralForms, count: number): string => {
-  if (count === 0 && forms.zero !== undefined) {
-    return forms.zero;
-  }
-  if (count === 1 && forms.one !== undefined) {
-    return forms.one;
-  }
-  return forms.other;
-};
 
 const I18nProvider: React.FC<I18nProviderProps> = ({
   children,

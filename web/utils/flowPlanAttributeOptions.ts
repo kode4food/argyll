@@ -113,6 +113,12 @@ const mergeExplicitDefault = (
   }
 };
 
+interface AttributeCollectionContext {
+  requiredInputs: Set<string>;
+  inputMap: Map<string, FlowInputOption>;
+  inputMetaMap: Map<string, FlowInputMeta>;
+}
+
 const processInputAttribute = (
   name: string,
   spec: {
@@ -120,10 +126,9 @@ const processInputAttribute = (
     type?: AttributeType;
     optional?: { default?: string };
   },
-  requiredInputs: Set<string>,
-  inputMap: Map<string, FlowInputOption>,
-  inputMetaMap: Map<string, FlowInputMeta>
+  ctx: AttributeCollectionContext
 ): void => {
+  const { requiredInputs, inputMap, inputMetaMap } = ctx;
   const existing = inputMap.get(name);
   const meta = getOrCreateFlowInputMeta(inputMetaMap, name);
   const isRequired = requiredInputs.has(name);
@@ -168,13 +173,11 @@ export const getFlowPlanAttributeOptions = (
   Object.values(steps).forEach((planStep) => {
     Object.entries(planStep.attributes || {}).forEach(([name, spec]) => {
       if (isInputRole(spec.role)) {
-        processInputAttribute(
-          name,
-          spec,
+        processInputAttribute(name, spec, {
           requiredInputs,
           inputMap,
-          inputMetaMap
-        );
+          inputMetaMap,
+        });
         return;
       }
       if (spec.role === AttributeRole.Output) {
@@ -183,12 +186,10 @@ export const getFlowPlanAttributeOptions = (
     });
   });
 
-  const unreachableInputs = collectUnreachableInputs(
-    plan,
-    catalogSteps,
+  const unreachableInputs = collectUnreachableInputs(plan, catalogSteps, {
     inputMap,
-    outputSet
-  );
+    outputSet,
+  });
 
   return {
     flowInputOptions: Array.from(inputMap.values())
@@ -215,12 +216,17 @@ export const getFlowPlanAttributeOptions = (
   };
 };
 
+interface FlowAttributeSets {
+  inputMap: Map<string, FlowInputOption>;
+  outputSet: Set<string>;
+}
+
 const collectUnreachableInputs = (
   plan: ExecutionPlan,
   catalogSteps: Step[] | undefined,
-  inputMap: Map<string, FlowInputOption>,
-  outputSet: Set<string>
+  sets: FlowAttributeSets
 ): FlowInputOption[] => {
+  const { inputMap, outputSet } = sets;
   const missingMap = plan.excluded?.missing;
   if (!missingMap || !catalogSteps) {
     return [];

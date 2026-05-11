@@ -39,7 +39,7 @@ export function useClusterSubscription(socketClient: SocketClient) {
           const health = wsEvent.data?.status;
           const error = wsEvent.data?.error;
           if (nodeId && stepId && health) {
-            updateStepHealth(nodeId, stepId, health, error);
+            updateStepHealth({ nodeId, stepId }, health, error);
           }
           break;
         }

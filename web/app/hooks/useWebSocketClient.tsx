@@ -50,31 +50,32 @@ export const useWebSocketClient = ({
     }
   }, [stopHeartbeat]);
 
-  const scheduleReconnect = useCallback(() => {
-    if (!enabledRef.current) return;
-
-    setReconnectAttempt((prev) => {
-      const nextAttempt = prev + 1;
-      if (nextAttempt >= WEBSOCKET.MAX_RECONNECT_ATTEMPTS) {
-        setConnectionStatus("failed");
-        return nextAttempt;
-      }
-      setConnectionStatus("reconnecting");
-      const delay = Math.min(
-        reconnectDelayRef.current,
+  const applyReconnectAttempt = useCallback((prev: number): number => {
+    const nextAttempt = prev + 1;
+    if (nextAttempt >= WEBSOCKET.MAX_RECONNECT_ATTEMPTS) {
+      setConnectionStatus("failed");
+      return nextAttempt;
+    }
+    setConnectionStatus("reconnecting");
+    const delay = Math.min(
+      reconnectDelayRef.current,
+      WEBSOCKET.MAX_RECONNECT_DELAY
+    );
+    reconnectTimeoutRef.current = setTimeout(() => {
+      reconnectTimeoutRef.current = null;
+      reconnectDelayRef.current = Math.min(
+        reconnectDelayRef.current * WEBSOCKET.RECONNECT_MULTIPLIER,
         WEBSOCKET.MAX_RECONNECT_DELAY
       );
-      reconnectTimeoutRef.current = setTimeout(() => {
-        reconnectTimeoutRef.current = null;
-        reconnectDelayRef.current = Math.min(
-          reconnectDelayRef.current * WEBSOCKET.RECONNECT_MULTIPLIER,
-          WEBSOCKET.MAX_RECONNECT_DELAY
-        );
-        connectRef.current?.();
-      }, delay);
-      return nextAttempt;
-    });
+      connectRef.current?.();
+    }, delay);
+    return nextAttempt;
   }, []);
+
+  const scheduleReconnect = useCallback(() => {
+    if (!enabledRef.current) return;
+    setReconnectAttempt(applyReconnectAttempt);
+  }, [applyReconnectAttempt]);
 
   const handleOpen = useCallback(() => {
     setConnectionStatus("connected");
@@ -92,14 +93,14 @@ export const useWebSocketClient = ({
     (event: CloseEvent) => {
       stopHeartbeat();
       wsRef.current = null;
-      if (!enabledRef.current) {
+      if (
+        !enabledRef.current ||
+        event.code === 1000 ||
+        reconnectTimeoutRef.current
+      ) {
         setConnectionStatus("disconnected");
-        return;
-      }
-      if (event.code !== 1000 && !reconnectTimeoutRef.current) {
-        scheduleReconnect();
       } else {
-        setConnectionStatus("disconnected");
+        scheduleReconnect();
       }
     },
     [scheduleReconnect, stopHeartbeat]
@@ -109,6 +110,20 @@ export const useWebSocketClient = ({
     setConnectionStatus("disconnected");
   }, []);
 
+  const routeWebSocketMessage = useCallback(
+    (data: WebSocketEvent | WebSocketSubscribed) => {
+      const sub = data.sub_id
+        ? subscriptionsRef.current.get(data.sub_id)
+        : undefined;
+      if (sub?.onEvent) {
+        sub.onEvent(data);
+      } else {
+        onEventRef.current?.(data);
+      }
+    },
+    [subscriptionsRef]
+  );
+
   const handleMessage = useCallback(
     (event: MessageEvent) => {
       try {
@@ -116,23 +131,38 @@ export const useWebSocketClient = ({
           | WebSocketEvent
           | WebSocketSubscribed
           | { type: "pong" };
-        if (data.type === "pong") return;
-
-        const routedEvent = data as WebSocketEvent | WebSocketSubscribed;
-        const subscriptionId = routedEvent.sub_id;
-        if (subscriptionId) {
-          const sub = subscriptionsRef.current.get(subscriptionId);
-          if (sub?.onEvent) {
-            sub.onEvent(routedEvent);
-            return;
-          }
+        if (data.type !== "pong") {
+          routeWebSocketMessage(data as WebSocketEvent | WebSocketSubscribed);
         }
-        onEventRef.current?.(routedEvent);
       } catch (error) {
         console.error("Error parsing WebSocket message:", error);
       }
     },
-    [subscriptionsRef]
+    [routeWebSocketMessage]
+  );
+
+  const openWebSocket = useCallback(
+    (handlers: {
+      onopen: () => void;
+      onclose: (e: CloseEvent) => void;
+      onerror: () => void;
+      onmessage: (e: MessageEvent) => void;
+    }) => {
+      try {
+        const ws = new WebSocket(API_CONFIG.WS_URL);
+        wsRef.current = ws;
+        ws.onopen = handlers.onopen;
+        ws.onclose = handlers.onclose;
+        ws.onerror = handlers.onerror;
+        ws.onmessage = handlers.onmessage;
+      } catch (error) {
+        console.error("Failed to create WebSocket:", error);
+        if (!reconnectTimeoutRef.current) {
+          scheduleReconnect();
+        }
+      }
+    },
+    [scheduleReconnect]
   );
 
   const connect = useCallback(() => {
@@ -143,41 +173,30 @@ export const useWebSocketClient = ({
       reconnectTimeoutRef.current = null;
     }
 
+    const ws = wsRef.current;
     if (
-      wsRef.current &&
-      (wsRef.current.readyState === WebSocket.CONNECTING ||
-        wsRef.current.readyState === WebSocket.OPEN)
+      ws?.readyState === WebSocket.CONNECTING ||
+      ws?.readyState === WebSocket.OPEN
     ) {
       return;
     }
-
-    if (wsRef.current) {
-      wsRef.current.close();
-      wsRef.current = null;
-    }
+    ws?.close();
+    wsRef.current = null;
 
     stopHeartbeat();
     setConnectionStatus("connecting");
-
-    try {
-      const ws = new WebSocket(API_CONFIG.WS_URL);
-      wsRef.current = ws;
-      ws.onopen = handleOpen;
-      ws.onclose = handleClose;
-      ws.onerror = handleError;
-      ws.onmessage = handleMessage;
-    } catch (error) {
-      console.error("Failed to create WebSocket:", error);
-      if (!reconnectTimeoutRef.current) {
-        scheduleReconnect();
-      }
-    }
+    openWebSocket({
+      onopen: handleOpen,
+      onclose: handleClose,
+      onerror: handleError,
+      onmessage: handleMessage,
+    });
   }, [
     handleClose,
     handleError,
     handleMessage,
     handleOpen,
-    scheduleReconnect,
+    openWebSocket,
     stopHeartbeat,
   ]);
 
@@ -194,9 +213,9 @@ export const useWebSocketClient = ({
     if (!enabled) {
       teardown();
       setConnectionStatus("disconnected");
-      return;
+    } else {
+      connect();
     }
-    connect();
     return () => {
       teardown();
     };

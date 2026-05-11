@@ -3,7 +3,11 @@ import { ExecutionPlan, Step } from "@/app/api";
 import { api } from "@/app/api";
 import { useT } from "@/app/i18n";
 import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
-import { deriveStepGoalState, StepGoalState } from "@/utils/flowGoalStepState";
+import {
+  deriveStepGoalState,
+  getGoalTooltip,
+  StepGoalState,
+} from "@/utils/flowGoalStepState";
 import { parseFlowGoals } from "./stepEditorUtils";
 import { useFlowFormStepFiltering } from "../FlowCreateForm/useFlowFormStepFiltering";
 import formStyles from "./StepEditorForm.module.css";
@@ -18,27 +22,10 @@ interface GoalChipProps {
   t: TFn;
 }
 
-const getGoalChipTooltip = (
-  state: StepGoalState,
-  t: TFn
-): string | undefined => {
-  if (state.isIncludedByOthers) return t("flowCreate.tooltipAlreadyIncluded");
-  if (state.isSatisfiedByState) return t("flowCreate.tooltipSatisfiedByState");
-  if (state.blockedInputs.length > 0)
-    return t("flowCreate.tooltipBlockedByState", {
-      attrs: state.blockedInputs.join(", "),
-    });
-  if (state.isMissing)
-    return t("flowCreate.tooltipMissingRequired", {
-      attrs: state.missingRequired.join(", "),
-    });
-  return undefined;
-};
-
 const GoalChip: React.FC<GoalChipProps> = ({ step, state, onToggle, t }) => (
   <button
     type="button"
-    title={getGoalChipTooltip(state, t)}
+    title={getGoalTooltip(state, t)}
     onClick={() => {
       if (!state.isDisabled) onToggle(step.id);
     }}
@@ -198,14 +185,12 @@ const StepEditorFlowConfiguration: React.FC<
           <GoalChip
             key={step.id}
             step={step}
-            state={deriveStepGoalState(
-              step.id,
-              goalList,
+            state={deriveStepGoalState(step.id, goalList, {
               included,
               satisfied,
               blockedByStep,
-              missingByStep
-            )}
+              missingByStep,
+            })}
             onToggle={handleGoalToggle}
             t={t}
           />

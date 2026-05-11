@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { createMs, getLanguage, languages } from "enhanced-ms";
 import { defaultLanguage, useLocale } from "@/app/store/i18nStore";
+import { parseUserDuration } from "@/utils/durationUtils";
 
 export interface DurationInputState {
   inputValue: string;
@@ -25,61 +26,6 @@ const getLanguageKey = (locale: string): keyof typeof languages => {
     ? defaultLanguage
     : "en";
   return fallback as keyof typeof languages;
-};
-
-const isNumericOnly = (value: string, decimalSeparator: "." | ",") => {
-  const escaped = decimalSeparator === "," ? "," : "\\.";
-  const regex = new RegExp(`^\\d+(?:[${escaped}]\\d+)?$`);
-  return regex.test(value);
-};
-
-const tryParseNumber = (value: string, decimalSeparator: "." | ",") => {
-  const normalized = decimalSeparator === "," ? value.replace(",", ".") : value;
-  return Number(normalized);
-};
-
-const hasUnitToken = (value: string, matcherRegex: RegExp) => {
-  if (matcherRegex.global) {
-    matcherRegex.lastIndex = 0;
-  }
-  const matches = value.match(matcherRegex) ?? [];
-  return matches.some((match) => !/[0-9]/.test(match));
-};
-
-const hasNumberAndUnit = (value: string, matcherRegex: RegExp) => {
-  if (!/[0-9]/.test(value)) {
-    return false;
-  }
-  return hasUnitToken(value, matcherRegex);
-};
-
-type ParseResult = { valid: true; ms: number } | { valid: false };
-
-const parseUserDuration = (
-  input: string,
-  language: ReturnType<typeof getLanguage>,
-  ms: ReturnType<typeof createMs>
-): ParseResult => {
-  const trimmed = input.trim();
-  if (!trimmed) return { valid: true, ms: 0 };
-  if (trimmed.startsWith("-")) return { valid: false };
-
-  if (isNumericOnly(trimmed, language.decimalSeparator)) {
-    return {
-      valid: true,
-      ms: tryParseNumber(trimmed, language.decimalSeparator),
-    };
-  }
-
-  if (!hasNumberAndUnit(trimmed.toLowerCase(), language.matcherRegex)) {
-    return { valid: false };
-  }
-
-  try {
-    return { valid: true, ms: ms(trimmed) };
-  } catch {
-    return { valid: false };
-  }
 };
 
 /**

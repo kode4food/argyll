@@ -1,5 +1,6 @@
 import React, { useMemo } from "react";
 import CodeMirror from "@uiw/react-codemirror";
+import { CODEMIRROR_BASIC_SETUP } from "@/utils/codemirrorSetup";
 import { StreamLanguage } from "@codemirror/language";
 import { json as jsonLanguage } from "@codemirror/lang-json";
 import { lua } from "@codemirror/legacy-modes/mode/lua";
@@ -38,28 +39,7 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
         onChange={onChange}
         readOnly={readOnly}
         theme="dark"
-        basicSetup={{
-          lineNumbers: true,
-          highlightActiveLineGutter: true,
-          highlightSpecialChars: true,
-          foldGutter: true,
-          drawSelection: true,
-          dropCursor: true,
-          allowMultipleSelections: true,
-          indentOnInput: true,
-          bracketMatching: true,
-          closeBrackets: true,
-          autocompletion: true,
-          rectangularSelection: true,
-          crosshairCursor: true,
-          highlightActiveLine: true,
-          highlightSelectionMatches: true,
-          closeBracketsKeymap: true,
-          searchKeymap: true,
-          foldKeymap: true,
-          completionKeymap: true,
-          lintKeymap: true,
-        }}
+        basicSetup={CODEMIRROR_BASIC_SETUP}
       />
     </div>
   );

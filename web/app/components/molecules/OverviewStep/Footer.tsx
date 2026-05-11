@@ -10,6 +10,9 @@ import {
   formatScriptForTooltip,
 } from "@/utils/stepFooterUtils";
 import { getStepTypeIcon, IconMemoizable } from "@/utils/iconRegistry";
+import StepInfoDisplay, {
+  type DisplayInfo,
+} from "../StepShared/StepInfoDisplay";
 import tooltipStyles from "@/app/components/atoms/TooltipSection/TooltipSection.module.css";
 import { useT } from "@/app/i18n";
 
@@ -48,11 +51,7 @@ const Footer: React.FC<FooterProps> = ({
   );
 
   const { displayInfo, tooltipSections } = useMemo(() => {
-    let displayInfo: {
-      icon: React.ComponentType<any>;
-      text: string;
-      className?: string;
-    } | null = null;
+    let displayInfo: DisplayInfo = null;
 
     const TypeIcon = getStepTypeIcon(step.type);
 
@@ -169,22 +168,7 @@ const Footer: React.FC<FooterProps> = ({
     <Tooltip
       trigger={
         <div className={`${styles.footer} step-footer`}>
-          {displayInfo && (
-            <div className={styles.infoDisplay}>
-              {React.createElement(displayInfo.icon, {
-                className: `step-type-icon ${styles.icon}`,
-              })}
-              <span
-                className={`${styles.endpoint} ${
-                  displayInfo.className === "endpoint-script"
-                    ? styles.endpointScript
-                    : ""
-                } step-endpoint`}
-              >
-                {displayInfo.text}
-              </span>
-            </div>
-          )}
+          <StepInfoDisplay displayInfo={displayInfo} />
           <div className={styles.actions}>
             {step.memoizable && (
               <div className={styles.memoIcon}>

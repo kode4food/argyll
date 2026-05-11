@@ -133,7 +133,7 @@ func makeStepHandler(
 			StepID:   id,
 			Metadata: meta,
 		}
-		outputs, err := executeStepWithRecovery(ctx, id, handler, args)
+		outputs, err := executeStepWithRecovery(ctx, handler, args)
 		if err != nil {
 			writeProblem(w, err.StatusCode, err.Message)
 			return
@@ -145,12 +145,12 @@ func makeStepHandler(
 }
 
 func executeStepWithRecovery(
-	ctx *StepContext, id api.StepID, handler StepHandler, args api.Args,
+	ctx *StepContext, handler StepHandler, args api.Args,
 ) (outputs api.Args, httpErr *HTTPError) {
 	defer func() {
 		if r := recover(); r != nil {
 			slog.Error("Step handler panicked",
-				log.StepID(id),
+				log.StepID(ctx.StepID),
 				log.Error(ErrHandlerPanic),
 				slog.String("panic", fmt.Sprintf("%v", r)))
 			httpErr = NewHTTPError(

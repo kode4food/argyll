@@ -4,7 +4,8 @@ import pytest
 import responses
 
 from argyll import Client
-from argyll.builder import StepBuilder, _validate_step
+from argyll._validation import validate_step as _validate_step
+from argyll.builder import StepBuilder
 from argyll.errors import StepRegistrationError, StepValidationError
 from argyll.types import (
     AttributeRole,
@@ -370,7 +371,9 @@ def test_flow_builder_with_goals():
 
 def test_flow_builder_with_initial_state():
     client = Client()
-    builder = client.new_flow("flow-123").with_initial_state({"name": ["Alice"]})
+    builder = client.new_flow("flow-123").with_initial_state(
+        {"name": ["Alice"]}
+    )
     assert builder._initial_state == {"name": ["Alice"]}
 
 

@@ -37,7 +37,7 @@ describe("useNodeData", () => {
     ];
 
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, null, executions as any, [])
+      useNodeData(mockStep as any, { executions: executions as any })
     );
 
     expect(result.current.execution?.id).toBe("exec-1");
@@ -47,7 +47,7 @@ describe("useNodeData", () => {
     const executions = [{ ...mockExecution, id: "exec-1", step_id: "step-2" }];
 
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, null, executions as any, [])
+      useNodeData(mockStep as any, { executions: executions as any })
     );
 
     expect(result.current.execution).toBeUndefined();
@@ -57,7 +57,7 @@ describe("useNodeData", () => {
     const resolved = ["input1", "input2"];
 
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, null, [], resolved)
+      useNodeData(mockStep as any, { resolvedAttributes: resolved })
     );
 
     expect(result.current.resolved).toBeInstanceOf(Set);
@@ -75,7 +75,7 @@ describe("useNodeData", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, flowData as any, [], [])
+      useNodeData(mockStep as any, { flowData: flowData as any })
     );
 
     expect(result.current.provenance).toBeInstanceOf(Map);
@@ -85,7 +85,7 @@ describe("useNodeData", () => {
 
   it("handles undefined flow data", () => {
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, undefined, [], [])
+      useNodeData(mockStep as any, { flowData: undefined })
     );
 
     expect(result.current.provenance).toBeInstanceOf(Map);
@@ -94,7 +94,7 @@ describe("useNodeData", () => {
 
   it("calculates satisfied arguments", () => {
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, null, [], ["input1"])
+      useNodeData(mockStep as any, { resolvedAttributes: ["input1"] })
     );
 
     expect(result.current.satisfied).toBeInstanceOf(Set);
@@ -103,9 +103,7 @@ describe("useNodeData", () => {
   });
 
   it("returns all required data structures", () => {
-    const { result } = renderHook(() =>
-      useNodeData(mockStep as any, null, [], [])
-    );
+    const { result } = renderHook(() => useNodeData(mockStep as any, {}));
 
     expect(result.current).toHaveProperty("execution");
     expect(result.current).toHaveProperty("resolved");
@@ -116,7 +114,8 @@ describe("useNodeData", () => {
   it("memoizes resolved set", () => {
     const resolved = ["input1"];
     const { result, rerender } = renderHook(
-      ({ resolved: r }) => useNodeData(mockStep as any, null, [], r),
+      ({ resolved: r }) =>
+        useNodeData(mockStep as any, { resolvedAttributes: r }),
       { initialProps: { resolved } }
     );
 
@@ -124,13 +123,13 @@ describe("useNodeData", () => {
 
     rerender({ resolved });
 
-    // Should be the same object due to memoization
     expect(result.current.resolved).toBe(firstResolved);
   });
 
   it("updates resolved set when it changes", () => {
     const { result, rerender } = renderHook(
-      ({ resolved }) => useNodeData(mockStep as any, null, [], resolved),
+      ({ resolved }) =>
+        useNodeData(mockStep as any, { resolvedAttributes: resolved }),
       { initialProps: { resolved: ["input1"] } }
     );
 
@@ -149,7 +148,7 @@ describe("useNodeData", () => {
     };
 
     const { result, rerender } = renderHook(() =>
-      useNodeData(mockStep as any, flowData as any, [], [])
+      useNodeData(mockStep as any, { flowData: flowData as any })
     );
 
     const firstProvenance = result.current.provenance;
@@ -161,7 +160,8 @@ describe("useNodeData", () => {
 
   it("updates provenance when flow state changes", () => {
     const { result, rerender } = renderHook(
-      ({ flowData }) => useNodeData(mockStep as any, flowData as any, [], []),
+      ({ flowData }) =>
+        useNodeData(mockStep as any, { flowData: flowData as any }),
       {
         initialProps: {
           flowData: {
@@ -185,7 +185,7 @@ describe("useNodeData", () => {
   });
 
   it("handles default parameters for executions and resolvedAttributes", () => {
-    const { result } = renderHook(() => useNodeData(mockStep as any, null));
+    const { result } = renderHook(() => useNodeData(mockStep as any));
 
     expect(result.current.execution).toBeUndefined();
     expect(result.current.resolved).toBeInstanceOf(Set);
@@ -194,7 +194,7 @@ describe("useNodeData", () => {
   });
 
   it("handles null flow data with attributes", () => {
-    const { result } = renderHook(() => useNodeData(mockStep as any, null));
+    const { result } = renderHook(() => useNodeData(mockStep as any));
 
     expect(result.current.provenance).toBeInstanceOf(Map);
     expect(result.current.satisfied.size).toBeGreaterThanOrEqual(0);
@@ -223,12 +223,9 @@ describe("useNodeData", () => {
     };
 
     const { result } = renderHook(() =>
-      useNodeData(
-        stepWithMultipleAttrs as any,
-        null,
-        [],
-        ["input1", "optional1"]
-      )
+      useNodeData(stepWithMultipleAttrs as any, {
+        resolvedAttributes: ["input1", "optional1"],
+      })
     );
 
     expect(result.current.satisfied.has("input1")).toBe(true);

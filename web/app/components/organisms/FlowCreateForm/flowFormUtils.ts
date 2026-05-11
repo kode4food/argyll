@@ -44,13 +44,13 @@ export function formatInputValue(value: any): string {
   }
 }
 
+const DELIMITED_SPECIAL_CHARS = /[,"\\]/;
+
 function shouldQuoteDelimitedString(value: string): boolean {
   return (
     value === "" ||
     value.trim() !== value ||
-    value.includes(",") ||
-    value.includes('"') ||
-    value.includes("\\")
+    DELIMITED_SPECIAL_CHARS.test(value)
   );
 }
 
@@ -190,41 +190,32 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 }
 
 function valuesEqual(left: unknown, right: unknown): boolean {
-  if (left === right) {
-    return true;
-  }
-
+  if (left === right) return true;
   if (
     typeof left === "number" &&
     typeof right === "number" &&
     Number.isNaN(left) &&
     Number.isNaN(right)
-  ) {
+  )
     return true;
-  }
 
   if (Array.isArray(left) && Array.isArray(right)) {
-    if (left.length !== right.length) {
-      return false;
-    }
-    return left.every((value, index) => valuesEqual(value, right[index]));
+    return (
+      left.length === right.length &&
+      left.every((value, index) => valuesEqual(value, right[index]))
+    );
   }
 
   if (isPlainObject(left) && isPlainObject(right)) {
     const leftKeys = Object.keys(left).sort();
     const rightKeys = Object.keys(right).sort();
-    if (leftKeys.length !== rightKeys.length) {
-      return false;
-    }
-    for (let i = 0; i < leftKeys.length; i += 1) {
-      if (leftKeys[i] !== rightKeys[i]) {
-        return false;
-      }
-      if (!valuesEqual(left[leftKeys[i]], right[rightKeys[i]])) {
-        return false;
-      }
-    }
-    return true;
+    return (
+      leftKeys.length === rightKeys.length &&
+      leftKeys.every(
+        (key, i) =>
+          key === rightKeys[i] && valuesEqual(left[key], right[rightKeys[i]])
+      )
+    );
   }
 
   return false;
@@ -307,14 +298,22 @@ export function validateJsonString(jsonString: string): string | null {
   }
 }
 
+export interface ItemClassNames {
+  base: string;
+  selected: string;
+  disabled: string;
+}
+
 export function buildItemClassName(
   isSelected: boolean,
   isDisabled: boolean,
-  baseClass: string,
-  selectedClass: string,
-  disabledClass: string
+  classNames: ItemClassNames
 ): string {
-  return [baseClass, isSelected && selectedClass, isDisabled && disabledClass]
+  return [
+    classNames.base,
+    isSelected && classNames.selected,
+    isDisabled && classNames.disabled,
+  ]
     .filter(Boolean)
     .join(" ");
 }

@@ -1,5 +1,6 @@
 import React from "react";
 import { useT } from "@/app/i18n";
+import EditorModeToggle from "@/app/components/atoms/EditorModeToggle";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 
@@ -24,26 +25,15 @@ const StepEditorFooter: React.FC<StepEditorFooterProps> = ({
   return (
     <div className={styles.footer}>
       <div className={styles.footerControls}>
-        <div className={formStyles.editorModeToggleGroup}>
-          <button
-            type="button"
-            className={`${formStyles.editorModeToggle} ${
-              editorMode === "basic" ? formStyles.editorModeToggleActive : ""
-            }`}
-            onClick={() => onEditorModeChange("basic")}
-          >
-            {t("stepEditor.modeBasic")}
-          </button>
-          <button
-            type="button"
-            className={`${formStyles.editorModeToggle} ${
-              editorMode === "json" ? formStyles.editorModeToggleActive : ""
-            }`}
-            onClick={() => onEditorModeChange("json")}
-          >
-            {t("stepEditor.modeJson")}
-          </button>
-        </div>
+        <EditorModeToggle
+          editorMode={editorMode}
+          onChange={onEditorModeChange}
+          basicLabel={t("stepEditor.modeBasic")}
+          jsonLabel={t("stepEditor.modeJson")}
+          groupClassName={formStyles.editorModeToggleGroup}
+          buttonClassName={formStyles.editorModeToggle}
+          activeClassName={formStyles.editorModeToggleActive}
+        />
       </div>
       <div className={styles.footerButtons}>
         <button

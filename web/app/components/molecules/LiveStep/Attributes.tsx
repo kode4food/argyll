@@ -8,11 +8,7 @@ import {
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import { getArgIcon } from "@/utils/iconRegistry";
-import {
-  getAttributeModifiers,
-  getModifierTitleKey,
-  getSortedAttributes,
-} from "@/utils/stepUtils";
+import { getAttributeModifiers, getSortedAttributes } from "@/utils/stepUtils";
 import {
   formatAttributeValue,
   getAttributeTooltipTitle,
@@ -20,6 +16,7 @@ import {
   UnifiedArg,
 } from "./attributeUtils";
 import { useAttributeStatusBadge } from "./useAttributeDisplay";
+import ArgModifiers, { argTypeTitleKey } from "../StepShared/ArgModifiers";
 import styles from "../StepShared/StepAttributesSection.module.css";
 import { useT } from "@/app/i18n";
 
@@ -40,13 +37,6 @@ interface AttributeItemProps {
   satisfiedArgs: Set<string>;
   attributeValues?: Record<string, AttributeValue>;
 }
-
-const argTypeTitleKey: Record<string, string> = {
-  required: "attribute.roleRequired",
-  optional: "attribute.roleOptional",
-  const: "attribute.roleConst",
-  output: "attribute.roleOutput",
-};
 
 const hasExecutionInput = (
   execution: ExecutionResult | undefined,
@@ -150,23 +140,7 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
           <Icon className={className} />
         </span>
         {arg.name}
-        {arg.modifiers.map((mod, i) =>
-          mod.kind === "icon" ? (
-            <span key={i} title={t(getModifierTitleKey(mod))}>
-              <mod.Icon className={styles.argModifierIcon} />
-            </span>
-          ) : (
-            <span
-              key={i}
-              className={styles.argModifierCollect}
-              title={t(getModifierTitleKey(mod))}
-              style={{
-                maskImage: `url(/icons/collect-${mod.collect}.svg)`,
-                WebkitMaskImage: `url(/icons/collect-${mod.collect}.svg)`,
-              }}
-            />
-          )
-        )}
+        <ArgModifiers modifiers={arg.modifiers} t={t} />
       </span>
       <div className={styles.argTypeContainer}>
         <span className={styles.argType}>{arg.type}</span>

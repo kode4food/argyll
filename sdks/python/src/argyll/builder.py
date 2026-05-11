@@ -1,10 +1,10 @@
 """Builder pattern for creating steps and flows."""
 
 import copy
-import json
 import re
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional
 
+from ._validation import validate_step
 from .errors import StepRegistrationError, StepValidationError
 from .types import (
     Args,
@@ -16,7 +16,6 @@ from .types import (
     FlowID,
     HTTPConfig,
     InitArgs,
-    InputCollect,
     Labels,
     OptionalConfig,
     PredicateConfig,
@@ -42,38 +41,19 @@ def _to_kebab_case(s: str) -> str:
 class StepBuilder:
     """Immutable builder for creating step definitions."""
 
-    def __init__(
-        self,
-        client: "Client",
-        name: str = "",
-        step_id: Optional[StepID] = None,
-        step_type: StepType = StepType.SYNC,
-        attributes: Optional[Dict[str, AttributeSpec]] = None,
-        labels: Optional[Labels] = None,
-        http: Optional[HTTPConfig] = None,
-        script: Optional[ScriptConfig] = None,
-        predicate: Optional[PredicateConfig] = None,
-        flow: Optional[FlowConfig] = None,
-        memoizable: bool = False,
-        dirty: bool = False,
-    ) -> None:
+    def __init__(self, client: "Client", name: str = "") -> None:
         self._client = client
         self._name = name
-        if step_id:
-            self._id = step_id
-        elif name:
-            self._id = _to_kebab_case(name)
-        else:
-            self._id = ""
-        self._type = step_type
-        self._attributes = attributes or {}
-        self._labels = labels or {}
-        self._http = http
-        self._script = script
-        self._predicate = predicate
-        self._flow = flow
-        self._memoizable = memoizable
-        self._dirty = dirty
+        self._id = _to_kebab_case(name) if name else ""
+        self._type: StepType = StepType.SYNC
+        self._attributes: Dict[str, AttributeSpec] = {}
+        self._labels: Labels = {}
+        self._http: Optional[HTTPConfig] = None
+        self._script: Optional[ScriptConfig] = None
+        self._predicate: Optional[PredicateConfig] = None
+        self._flow: Optional[FlowConfig] = None
+        self._memoizable: bool = False
+        self._dirty: bool = False
 
     def _copy(self, **kwargs: Any) -> "StepBuilder":
         """Create a copy with updated attributes."""
@@ -276,7 +256,7 @@ class StepBuilder:
             flow=self._flow,
             memoizable=self._memoizable,
         )
-        _validate_step(step)
+        validate_step(step)
         return step
 
     def register(self) -> None:
@@ -299,17 +279,11 @@ class StepBuilder:
 class FlowBuilder:
     """Immutable builder for creating and starting flows."""
 
-    def __init__(
-        self,
-        client: "Client",
-        flow_id: FlowID,
-        goals: Optional[List[StepID]] = None,
-        initial_state: Optional[InitArgs] = None,
-    ) -> None:
+    def __init__(self, client: "Client", flow_id: FlowID) -> None:
         self._client = client
         self._flow_id = flow_id
-        self._goals = goals or []
-        self._initial_state = initial_state or {}
+        self._goals: List[StepID] = []
+        self._initial_state: InitArgs = {}
 
     def _copy(self, **kwargs: Any) -> "FlowBuilder":
         """Create a copy with updated attributes."""
@@ -350,148 +324,3 @@ class FlowBuilder:
             resp.raise_for_status()
         except Exception as e:
             raise FlowError(f"Failed to start flow {self._flow_id}: {e}") from e
-
-
-def _validate_step(step: Step) -> None:
-    if not step.id:
-        raise StepValidationError("Step ID cannot be empty")
-    if not step.name:
-        raise StepValidationError("Step name cannot be empty")
-
-    if step.type not in {
-        StepType.SYNC,
-        StepType.ASYNC,
-        StepType.SCRIPT,
-        StepType.FLOW,
-    }:
-        raise StepValidationError(f"Invalid step type: {step.type}")
-
-    if step.type in {StepType.SYNC, StepType.ASYNC}:
-        if not step.http or not step.http.endpoint:
-            raise StepValidationError("HTTP config with endpoint required")
-        if step.http.method and step.http.method not in {
-            "GET",
-            "POST",
-            "PUT",
-            "DELETE",
-        }:
-            raise StepValidationError(
-                f"Invalid HTTP method: {step.http.method}"
-            )
-        if step.flow is not None:
-            raise StepValidationError("Flow config not allowed for HTTP steps")
-        if step.script is not None:
-            raise StepValidationError(
-                "Script config not allowed for HTTP steps"
-            )
-
-    if step.type == StepType.SCRIPT:
-        if not step.script or not step.script.script:
-            raise StepValidationError("Script config required for script step")
-        if step.http is not None:
-            raise StepValidationError(
-                "HTTP config not allowed for script steps"
-            )
-        if step.flow is not None:
-            raise StepValidationError(
-                "Flow config not allowed for script steps"
-            )
-
-    if step.type == StepType.FLOW:
-        if not step.flow or not step.flow.goals:
-            raise StepValidationError("Flow goals required for flow step")
-        if step.http is not None:
-            raise StepValidationError("HTTP config not allowed for flow steps")
-        if step.script is not None:
-            raise StepValidationError(
-                "Script config not allowed for flow steps"
-            )
-
-    for name, spec in step.attributes.items():
-        if not name:
-            raise StepValidationError("Attribute name cannot be empty")
-
-        if spec.role == AttributeRole.REQUIRED:
-            if spec.optional is not None or spec.const is not None or spec.output is not None:
-                raise StepValidationError(
-                    f"Wrong config type for required attribute {name}"
-                )
-        elif spec.role == AttributeRole.OPTIONAL:
-            if spec.required is not None or spec.const is not None or spec.output is not None:
-                raise StepValidationError(
-                    f"Wrong config type for optional attribute {name}"
-                )
-        elif spec.role == AttributeRole.CONST:
-            if spec.required is not None or spec.optional is not None or spec.output is not None:
-                raise StepValidationError(
-                    f"Wrong config type for const attribute {name}"
-                )
-            if not spec.const or not spec.const.value:
-                raise StepValidationError(
-                    f"Const attribute {name} requires const value"
-                )
-        elif spec.role == AttributeRole.OUTPUT:
-            if spec.required is not None or spec.optional is not None or spec.const is not None:
-                raise StepValidationError(
-                    f"Wrong config type for output attribute {name}"
-                )
-
-        default = ""
-        if spec.role == AttributeRole.OPTIONAL and spec.optional:
-            default = spec.optional.default
-        elif spec.role == AttributeRole.CONST and spec.const:
-            default = spec.const.value
-
-        if default:
-            try:
-                parsed = json.loads(default)
-            except json.JSONDecodeError as e:
-                raise StepValidationError(
-                    f"Invalid default JSON for {name}: {e}"
-                ) from e
-
-            if spec.type == AttributeType.STRING and not isinstance(
-                parsed, str
-            ):
-                raise StepValidationError(
-                    f"Default for {name} must be JSON string"
-                )
-            if spec.type == AttributeType.NUMBER and not isinstance(
-                parsed, (int, float)
-            ):
-                raise StepValidationError(
-                    f"Default for {name} must be JSON number"
-                )
-            if spec.type == AttributeType.BOOLEAN and not isinstance(
-                parsed, bool
-            ):
-                raise StepValidationError(
-                    f"Default for {name} must be JSON boolean"
-                )
-            if spec.type == AttributeType.OBJECT and not isinstance(
-                parsed, dict
-            ):
-                raise StepValidationError(
-                    f"Default for {name} must be JSON object"
-                )
-            if spec.type == AttributeType.ARRAY and not isinstance(
-                parsed, list
-            ):
-                raise StepValidationError(
-                    f"Default for {name} must be JSON array"
-                )
-            if spec.type == AttributeType.NULL and parsed is not None:
-                raise StepValidationError(
-                    f"Default for {name} must be JSON null"
-                )
-
-        for_each = False
-        if spec.role == AttributeRole.REQUIRED and spec.required:
-            for_each = spec.required.for_each
-        elif spec.role == AttributeRole.OPTIONAL and spec.optional:
-            for_each = spec.optional.for_each
-
-        if for_each and spec.type not in {AttributeType.ARRAY, AttributeType.ANY}:
-            raise StepValidationError(
-                f"ForEach requires array/any type for {name}"
-            )

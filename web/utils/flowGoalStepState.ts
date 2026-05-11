@@ -9,14 +9,38 @@ export interface StepGoalState {
   isDisabled: boolean;
 }
 
+export interface GoalStepContext {
+  included: Set<string>;
+  satisfied: Set<string>;
+  blockedByStep: Map<string, string[]>;
+  missingByStep: Map<string, string[]>;
+}
+
+type TFn = (key: string, vars?: Record<string, string | number>) => string;
+
+export function getGoalTooltip(
+  state: StepGoalState,
+  t: TFn
+): string | undefined {
+  if (state.isIncludedByOthers) return t("flowCreate.tooltipAlreadyIncluded");
+  if (state.isSatisfiedByState) return t("flowCreate.tooltipSatisfiedByState");
+  if (state.blockedInputs.length > 0)
+    return t("flowCreate.tooltipBlockedByState", {
+      attrs: state.blockedInputs.join(", "),
+    });
+  if (state.isMissing)
+    return t("flowCreate.tooltipMissingRequired", {
+      attrs: state.missingRequired.join(", "),
+    });
+  return undefined;
+}
+
 export function deriveStepGoalState(
   stepId: string,
   goalIds: string[],
-  included: Set<string>,
-  satisfied: Set<string>,
-  blockedByStep: Map<string, string[]>,
-  missingByStep: Map<string, string[]>
+  context: GoalStepContext
 ): StepGoalState {
+  const { included, satisfied, blockedByStep, missingByStep } = context;
   const isSelected = goalIds.includes(stepId);
   const isIncludedByOthers = included.has(stepId) && !isSelected;
   const isSatisfiedByState = satisfied.has(stepId) && !isSelected;

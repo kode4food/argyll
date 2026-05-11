@@ -1,6 +1,7 @@
 import React, { Suspense, lazy } from "react";
 import styles from "./LazyCodeEditor.module.css";
 import { useTheme } from "@/app/store/themeStore";
+import { CODEMIRROR_BASIC_SETUP } from "@/utils/codemirrorSetup";
 
 const CodeMirror = lazy(() => import("@uiw/react-codemirror"));
 
@@ -53,28 +54,7 @@ const CodeMirrorEditor: React.FC<LazyCodeEditorProps> = ({
       extensions={[json(), EditorView.lineWrapping]}
       onChange={onChange}
       theme={theme}
-      basicSetup={{
-        lineNumbers: true,
-        highlightActiveLineGutter: true,
-        highlightSpecialChars: true,
-        foldGutter: true,
-        drawSelection: true,
-        dropCursor: true,
-        allowMultipleSelections: true,
-        indentOnInput: true,
-        bracketMatching: true,
-        closeBrackets: true,
-        autocompletion: true,
-        rectangularSelection: true,
-        crosshairCursor: true,
-        highlightActiveLine: true,
-        highlightSelectionMatches: true,
-        closeBracketsKeymap: true,
-        searchKeymap: true,
-        foldKeymap: true,
-        completionKeymap: true,
-        lintKeymap: true,
-      }}
+      basicSetup={CODEMIRROR_BASIC_SETUP}
     />
   );
 };

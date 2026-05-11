@@ -22,12 +22,11 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
   const widgetRef = useRef<HTMLDivElement | null>(null);
   const updateNodeInternals = useUpdateNodeInternals();
 
-  const { execution, provenance, satisfied } = useNodeData(
-    step,
-    flowData || null,
+  const { execution, provenance, satisfied } = useNodeData(step, {
+    flowData,
     executions,
-    resolvedAttributes
-  );
+    resolvedAttributes,
+  });
 
   const { allHandles } = useHandlePositions(step, widgetRef);
 

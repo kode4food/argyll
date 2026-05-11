@@ -18,6 +18,11 @@ export interface NodeHealth {
   error?: string;
 }
 
+export interface StepRef {
+  nodeId: string;
+  stepId: string;
+}
+
 export interface StepHealthInfo extends NodeHealth {
   nodes?: Record<string, NodeHealth>;
 }
@@ -303,12 +308,7 @@ interface FlowState {
   selectFlow: (flowId: string | null) => void;
   setFlowNotFound: (flowId: string) => void;
   updateFlowData: (update: Partial<FlowContext>) => void;
-  updateStepHealth: (
-    nodeId: string,
-    stepId: string,
-    health: string,
-    error?: string
-  ) => void;
+  updateStepHealth: (ref: StepRef, health: string, error?: string) => void;
   initializeExecutions: (flowId: string, plan: ExecutionPlan) => void;
   updateExecution: (stepId: string, updates: Partial<ExecutionResult>) => void;
   updateWorkItem: (
@@ -530,12 +530,8 @@ export const useFlowStore = create<FlowState>()(
         });
       },
 
-      updateStepHealth: (
-        nodeId: string,
-        stepId: string,
-        health: string,
-        error?: string
-      ) => {
+      updateStepHealth: (ref: StepRef, health: string, error?: string) => {
+        const { nodeId, stepId } = ref;
         const { healthByNode, healthNodeIds, steps } = get();
         const stepsById = toStepMap(steps);
         const nextNodeIds = healthNodeIds.includes(nodeId)

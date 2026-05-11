@@ -7,6 +7,9 @@ import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
 import { formatScriptPreview } from "@/utils/stepFooterUtils";
 import { getStepTypeIcon, IconMemoizable } from "@/utils/iconRegistry";
+import StepInfoDisplay, {
+  type DisplayInfo,
+} from "../StepShared/StepInfoDisplay";
 import { useT } from "@/app/i18n";
 
 interface FooterProps {
@@ -85,12 +88,6 @@ const workTimerTiming = (work: WorkState, step: Step) => {
   return undefined;
 };
 
-type DisplayInfo = {
-  icon: React.ComponentType<any>;
-  text: string;
-  className?: string;
-} | null;
-
 const computeDisplayInfo = (step: Step): DisplayInfo => {
   const TypeIcon = getStepTypeIcon(step.type);
 
@@ -111,13 +108,18 @@ const computeDisplayInfo = (step: Step): DisplayInfo => {
   return null;
 };
 
+interface ExecutionContext {
+  execution: ExecutionResult | undefined;
+  flowId: string | undefined;
+  progressState: ReturnType<typeof useStepProgress>;
+}
+
 const buildTooltipSections = (
   step: Step,
-  execution: ExecutionResult | undefined,
-  flowId: string | undefined,
-  progressState: ReturnType<typeof useStepProgress>,
+  ctx: ExecutionContext,
   t: (key: string, vars?: Record<string, string | number>) => string
 ): React.ReactElement[] => {
+  const { execution, flowId, progressState } = ctx;
   const sections: React.ReactElement[] = [];
 
   if (step.type === "flow" && step.flow?.goals?.length) {
@@ -208,7 +210,7 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
 
   const displayInfo = useMemo(() => computeDisplayInfo(step), [step]);
   const tooltipSections = useMemo(
-    () => buildTooltipSections(step, execution, flowId, progressState, t),
+    () => buildTooltipSections(step, { execution, flowId, progressState }, t),
     [execution, flowId, progressState, step, t]
   );
 
@@ -219,22 +221,7 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
     <Tooltip
       trigger={
         <div className={`${styles.footer} step-footer`}>
-          {displayInfo && (
-            <div className={styles.infoDisplay}>
-              {React.createElement(displayInfo.icon, {
-                className: `step-type-icon ${styles.icon}`,
-              })}
-              <span
-                className={`${styles.endpoint} ${
-                  displayInfo.className === "endpoint-script"
-                    ? styles.endpointScript
-                    : ""
-                } step-endpoint`}
-              >
-                {displayInfo.text}
-              </span>
-            </div>
-          )}
+          <StepInfoDisplay displayInfo={displayInfo} />
           <div className={styles.actions}>
             {step.memoizable && (
               <div className={styles.memoIcon}>

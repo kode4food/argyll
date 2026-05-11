@@ -111,15 +111,7 @@ def create_step_server(
     registered = False
     for attempt in range(1, MAX_REGISTRATION_ATTEMPTS + 1):
         try:
-            if builder._dirty:
-                client.update_step(step)
-            else:
-                try:
-                    client.register_step(step)
-                except ClientError as e:
-                    if e.status_code != 409:
-                        raise
-                    client.update_step(step)
+            _register_or_update(client, step, builder._dirty)
             registered = True
             break
         except Exception:
@@ -168,6 +160,19 @@ def create_step_server(
     print(f"  Health: {health_endpoint}")
 
     app.run(host="0.0.0.0", port=port)
+
+
+def _register_or_update(client: "Client", step: Any, dirty: bool) -> None:
+    """Register or update a step, falling back to update on 409 conflict."""
+    if dirty:
+        client.update_step(step)
+        return
+    try:
+        client.register_step(step)
+    except ClientError as e:
+        if e.status_code != 409:
+            raise
+        client.update_step(step)
 
 
 def _execute_with_recovery(

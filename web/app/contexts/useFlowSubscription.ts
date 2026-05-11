@@ -138,14 +138,19 @@ const applyWorkItemEvent = (
   }
 };
 
+interface FlowUpdateContext {
+  activeFlowId: string;
+  flowData: FlowContext;
+  addFlow: AddFlow;
+  initializeExecutions: InitializeExecutions;
+  t: TFn;
+}
+
 const applyFlowUpdate = (
   wsEvent: WebSocketEvent,
-  activeFlowId: string,
-  flowData: FlowContext,
-  addFlow: AddFlow,
-  initializeExecutions: InitializeExecutions,
-  t: TFn
+  ctx: FlowUpdateContext
 ): Partial<FlowContext> => {
+  const { activeFlowId, flowData, addFlow, initializeExecutions, t } = ctx;
   const flowUpdate: Partial<FlowContext> = {};
   const ts = eventTimestamp(wsEvent.timestamp);
 
@@ -242,14 +247,13 @@ export function useFlowSubscription(
       if (applyStepEvent(wsEvent, updateExecution)) return;
       if (applyWorkItemEvent(wsEvent, updateWorkItem)) return;
 
-      const flowUpdate = applyFlowUpdate(
-        wsEvent,
+      const flowUpdate = applyFlowUpdate(wsEvent, {
         activeFlowId,
         flowData,
         addFlow,
         initializeExecutions,
-        t
-      );
+        t,
+      });
       if (Object.keys(flowUpdate).length > 0) {
         updateFlowData(flowUpdate);
       }

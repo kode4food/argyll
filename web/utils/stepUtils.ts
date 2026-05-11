@@ -42,71 +42,56 @@ const getJsonType = (parsed: any): string => {
   return typeof parsed;
 };
 
-export const validateDefaultValue = (
-  value: string,
-  type: AttributeType
-): {
+type ValidationResult = {
   valid: boolean;
   errorKey?: string;
   errorVars?: Record<string, string>;
-} => {
+};
+
+export const validateDefaultValue = (
+  value: string,
+  type: AttributeType
+): ValidationResult => {
   if (!value.trim()) {
     return { valid: true };
   }
 
-  const trimmed = value.trim();
-
   let parsed: any;
   try {
-    parsed = JSON.parse(trimmed);
+    parsed = JSON.parse(value.trim());
   } catch {
     return { valid: false, errorKey: "validation.jsonInvalid" };
   }
 
-  if (type === AttributeType.Any) {
-    return { valid: true };
+  const constraints: Partial<
+    Record<AttributeType, { jsonType: string; errorKey: string }>
+  > = {
+    [AttributeType.String]: {
+      jsonType: "string",
+      errorKey: "validation.jsonString",
+    },
+    [AttributeType.Number]: {
+      jsonType: "number",
+      errorKey: "validation.jsonNumber",
+    },
+    [AttributeType.Boolean]: {
+      jsonType: "boolean",
+      errorKey: "validation.jsonBoolean",
+    },
+    [AttributeType.Object]: {
+      jsonType: "object",
+      errorKey: "validation.jsonObject",
+    },
+    [AttributeType.Array]: {
+      jsonType: "array",
+      errorKey: "validation.jsonArray",
+    },
+    [AttributeType.Null]: { jsonType: "null", errorKey: "validation.jsonNull" },
+  };
+  const constraint = constraints[type];
+  if (constraint && getJsonType(parsed) !== constraint.jsonType) {
+    return { valid: false, errorKey: constraint.errorKey };
   }
-
-  const jsonType = getJsonType(parsed);
-
-  switch (type) {
-    case AttributeType.String:
-      if (jsonType !== "string") {
-        return { valid: false, errorKey: "validation.jsonString" };
-      }
-      break;
-
-    case AttributeType.Number:
-      if (jsonType !== "number") {
-        return { valid: false, errorKey: "validation.jsonNumber" };
-      }
-      break;
-
-    case AttributeType.Boolean:
-      if (jsonType !== "boolean") {
-        return { valid: false, errorKey: "validation.jsonBoolean" };
-      }
-      break;
-
-    case AttributeType.Object:
-      if (jsonType !== "object") {
-        return { valid: false, errorKey: "validation.jsonObject" };
-      }
-      break;
-
-    case AttributeType.Array:
-      if (jsonType !== "array") {
-        return { valid: false, errorKey: "validation.jsonArray" };
-      }
-      break;
-
-    case AttributeType.Null:
-      if (jsonType !== "null") {
-        return { valid: false, errorKey: "validation.jsonNull" };
-      }
-      break;
-  }
-
   return { valid: true };
 };
 

@@ -276,8 +276,7 @@ describe("WebSocketProvider", () => {
 
     const flowStore = require("@/app/store/flowStore");
     expect(flowStore.__storeState.updateStepHealth).toHaveBeenCalledWith(
-      "node-1",
-      "step-3",
+      { nodeId: "node-1", stepId: "step-3" },
       "healthy",
       undefined
     );

@@ -2,7 +2,7 @@ VENV = venv
 PYTHON = $(VENV)/bin/python
 PIP = $(VENV)/bin/pip
 
-.PHONY: install test test-cov lint format type-check check build publish clean clean-venv
+.PHONY: install test test-cov lint format type-check check pre-commit build publish clean clean-venv
 
 $(VENV)/bin/activate:
 	python3 -m venv $(VENV)
@@ -26,6 +26,8 @@ format: install
 
 type-check: install
 	$(PYTHON) -m mypy src/argyll
+
+pre-commit: format lint type-check test
 
 check: format lint type-check test-cov
 

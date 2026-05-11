@@ -42,12 +42,17 @@ export interface ValidationError {
 const HTTP_METHOD_POST: HTTPMethod = "POST";
 const endpointParamPattern = /\{([^{}]+)\}/g;
 
+interface AttributeIndex {
+  index: number;
+  timestamp: number;
+}
+
 function buildSingleAttribute(
   name: string,
   spec: AttributeSpec,
-  index: number,
-  timestamp: number
+  idx: AttributeIndex
 ): Attribute {
+  const { index, timestamp } = idx;
   const attrType =
     spec.role === AttributeRole.Required
       ? "input"
@@ -109,7 +114,7 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
   const timestamp = Date.now();
   return getSortedAttributes(step.attributes || {}).map(
     ({ name, spec }, index) =>
-      buildSingleAttribute(name, spec, index, timestamp)
+      buildSingleAttribute(name, spec, { index, timestamp })
   );
 }
 
@@ -251,6 +256,36 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
   return config;
 }
 
+function validateFlowStepConfig(flowGoals: string): ValidationError | null {
+  if (parseFlowGoals(flowGoals).length === 0) {
+    return { key: "stepEditor.flowGoalsRequired" };
+  }
+  return null;
+}
+
+interface HttpStepConfig {
+  endpoint: string;
+  httpMethod: HTTPMethod;
+  httpTimeout: number;
+}
+
+function validateHttpStepConfig(
+  attributes: Attribute[],
+  http: HttpStepConfig
+): ValidationError | null {
+  if (!http.endpoint.trim()) {
+    return { key: "stepEditor.endpointRequired" };
+  }
+  if (http.httpMethod === "GET") {
+    const endpointError = validateGetEndpointParams(attributes, http.endpoint);
+    if (endpointError) return endpointError;
+  }
+  if (!http.httpTimeout || http.httpTimeout <= 0) {
+    return { key: "stepEditor.timeoutPositive" };
+  }
+  return null;
+}
+
 export function getValidationError({
   isCreateMode,
   stepId,
@@ -275,43 +310,22 @@ export function getValidationError({
   if (isCreateMode && !stepId.trim()) {
     return { key: "stepEditor.stepIdRequired" };
   }
-
   const attrError = validateAttributesList(attributes);
-  if (attrError) {
-    return attrError;
-  }
+  if (attrError) return attrError;
   const mappingError = validateMappings(attributes);
-  if (mappingError) {
-    return mappingError;
-  }
+  if (mappingError) return mappingError;
 
   if (stepType === "flow") {
-    if (parseFlowGoals(flowGoals).length === 0) {
-      return { key: "stepEditor.flowGoalsRequired" };
-    }
-    return null;
+    return validateFlowStepConfig(flowGoals);
   }
-
   if (stepType === "script") {
-    if (!script.trim()) {
-      return { key: "stepEditor.scriptRequired" };
-    }
-  } else {
-    if (!endpoint.trim()) {
-      return { key: "stepEditor.endpointRequired" };
-    }
-    if (httpMethod === "GET") {
-      const endpointError = validateGetEndpointParams(attributes, endpoint);
-      if (endpointError) {
-        return endpointError;
-      }
-    }
-    if (!httpTimeout || httpTimeout <= 0) {
-      return { key: "stepEditor.timeoutPositive" };
-    }
+    return script.trim() ? null : { key: "stepEditor.scriptRequired" };
   }
-
-  return null;
+  return validateHttpStepConfig(attributes, {
+    endpoint,
+    httpMethod,
+    httpTimeout,
+  });
 }
 
 function validateMappings(attributes: Attribute[]): ValidationError | null {

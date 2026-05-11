@@ -9,6 +9,41 @@ import {
 
 type TFn = (key: string, vars?: Record<string, string | number>) => string;
 
+const applyValidationVars = (
+  vars: Record<string, string>,
+  t: TFn
+): Record<string, string> => {
+  if (!vars.reason) return vars;
+  return { ...vars, reason: t(vars.reason) };
+};
+
+const formatValidationError = (
+  validationError: ValidationError | null,
+  t: TFn
+): string | null => {
+  if (!validationError) return null;
+  const vars = validationError.vars
+    ? applyValidationVars({ ...validationError.vars }, t)
+    : undefined;
+  return t(validationError.key, vars);
+};
+
+const parseJsonStep = (
+  rawValue: string,
+  t: TFn
+): { step: Step } | { error: string } => {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(rawValue);
+  } catch {
+    return { error: t("stepEditor.invalidJson") };
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return { error: t("stepEditor.invalidJsonObject") };
+  }
+  return { step: parsed as Step };
+};
+
 interface UseStepPersistenceArgs {
   isCreateMode: boolean;
   stepId: string;
@@ -30,20 +65,6 @@ export function useStepPersistence({
 }: UseStepPersistenceArgs) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const formatValidationError = useCallback(
-    (validationError: ValidationError | null) => {
-      if (!validationError) return null;
-      const vars = validationError.vars
-        ? { ...validationError.vars }
-        : undefined;
-      if (vars?.reason) {
-        vars.reason = t(vars.reason);
-      }
-      return t(validationError.key, vars);
-    },
-    [t]
-  );
 
   const getStepValidationError = useCallback(
     (stepData: Step): ValidationError | null => {
@@ -67,7 +88,7 @@ export function useStepPersistence({
     async (stepData: Step) => {
       const validationError = getStepValidationError(stepData);
       if (validationError) {
-        setError(formatValidationError(validationError));
+        setError(formatValidationError(validationError, t));
         return;
       }
 
@@ -92,15 +113,7 @@ export function useStepPersistence({
         setSaving(false);
       }
     },
-    [
-      formatValidationError,
-      getStepValidationError,
-      isCreateMode,
-      onClose,
-      onUpdate,
-      stepId,
-      t,
-    ]
+    [getStepValidationError, isCreateMode, onClose, onUpdate, stepId, t]
   );
 
   const handleSave = useCallback(async () => {
@@ -109,39 +122,24 @@ export function useStepPersistence({
 
   const handleJsonSave = useCallback(
     async (rawValue: string) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(rawValue);
-      } catch {
-        setError(t("stepEditor.invalidJson"));
+      const result = parseJsonStep(rawValue, t);
+      if ("error" in result) {
+        setError(result.error);
         return;
       }
-
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        setError(t("stepEditor.invalidJsonObject"));
-        return;
-      }
-
-      await persistStepData(parsed as Step);
+      await persistStepData(result.step);
     },
     [persistStepData, t]
   );
 
   const validateJsonDraft = useCallback(
     (rawValue: string) => {
-      let parsed: unknown;
-      try {
-        parsed = JSON.parse(rawValue);
-      } catch {
-        return t("stepEditor.invalidJson");
-      }
-      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-        return t("stepEditor.invalidJsonObject");
-      }
-      const validationError = getStepValidationError(parsed as Step);
-      return formatValidationError(validationError);
+      const result = parseJsonStep(rawValue, t);
+      if ("error" in result) return result.error;
+      const validationError = getStepValidationError(result.step);
+      return formatValidationError(validationError, t);
     },
-    [formatValidationError, getStepValidationError, t]
+    [getStepValidationError, t]
   );
 
   const getSerializedStepData = useCallback(

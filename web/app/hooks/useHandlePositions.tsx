@@ -36,23 +36,24 @@ export const useHandlePositions = (
       step.attributes || {}
     );
 
-    /**
-     * Gets the position for a single handle element
-     */
+    interface HandleDescriptor {
+      type: string;
+      name: string;
+      handleType: "input" | "output";
+    }
+
     const getHandlePosition = (
       element: Element,
-      type: string,
-      name: string,
-      handleType: "input" | "output"
+      desc: HandleDescriptor
     ): HandlePosition => {
       const relativeTop =
         (element as HTMLElement).offsetTop +
         (element as HTMLElement).offsetHeight / 2;
       return {
-        id: generateHandleId(type, name),
+        id: generateHandleId(desc.type, desc.name),
         top: relativeTop,
-        argName: name,
-        handleType,
+        argName: desc.name,
+        handleType: desc.handleType,
       };
     };
 
@@ -70,7 +71,7 @@ export const useHandlePositions = (
             `[data-arg-type="${argType}"][data-arg-name="${name}"]`
           );
           return element
-            ? getHandlePosition(element, argType, name, handleType)
+            ? getHandlePosition(element, { type: argType, name, handleType })
             : null;
         })
         .filter((handle): handle is HandlePosition => handle !== null);

@@ -5,6 +5,20 @@ import Attributes from "@/app/components/molecules/OverviewStep/Attributes";
 import StepPredicate from "@/app/components/molecules/StepPredicate";
 import Footer from "@/app/components/molecules/OverviewStep/Footer";
 import { getStepType } from "@/utils/stepUtils";
+
+const isStepEditable = (step: Step): boolean => {
+  switch (step.type) {
+    case "script":
+      return !!step.script;
+    case "sync":
+    case "async":
+      return !!step.http;
+    case "flow":
+      return !!step.flow;
+    default:
+      return false;
+  }
+};
 import { useStepHealth } from "@/app/hooks/useStepHealth";
 import { useStepEditorContext } from "@/app/contexts/StepEditorContext";
 import { useUI } from "@/app/contexts/UIContext";
@@ -70,10 +84,7 @@ const Widget: React.FC<WidgetProps> = ({
   }, [step, step.id, openEditor, handleStepUpdate, diagramContainerRef]);
 
   const isGrayedOut = isPreviewMode && !isInPreviewPlan;
-  const isEditable =
-    (step.type === "script" && step.script) ||
-    ((step.type === "sync" || step.type === "async") && step.http) ||
-    (step.type === "flow" && step.flow);
+  const isEditable = isStepEditable(step);
   const focusedAttributeName = isInPreviewPlan ? focusedPreviewAttribute : null;
 
   const handleDoubleClick = (e: React.MouseEvent) => {

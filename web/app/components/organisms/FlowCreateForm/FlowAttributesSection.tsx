@@ -7,6 +7,7 @@ import {
   LucideIcon,
 } from "@/utils/iconRegistry";
 import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
+import EditorModeToggle from "@/app/components/atoms/EditorModeToggle";
 import { useT } from "@/app/i18n";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import { FlowInputStatus, getFlowInputStatus } from "./flowFormUtils";
@@ -93,26 +94,15 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
         <div className={styles.sectionTitle}>
           {t("flowCreate.requiredAttributesLabel")}
         </div>
-        <div className={styles.editorModeToggleGroup}>
-          <button
-            type="button"
-            className={`${styles.editorModeToggle} ${
-              editorMode === "basic" ? styles.editorModeToggleActive : ""
-            }`}
-            onClick={() => onEditorModeChange("basic")}
-          >
-            {t("flowCreate.modeBasic")}
-          </button>
-          <button
-            type="button"
-            className={`${styles.editorModeToggle} ${
-              editorMode === "json" ? styles.editorModeToggleActive : ""
-            }`}
-            onClick={() => onEditorModeChange("json")}
-          >
-            {t("flowCreate.modeJson")}
-          </button>
-        </div>
+        <EditorModeToggle
+          editorMode={editorMode}
+          onChange={onEditorModeChange}
+          basicLabel={t("flowCreate.modeBasic")}
+          jsonLabel={t("flowCreate.modeJson")}
+          groupClassName={styles.editorModeToggleGroup}
+          buttonClassName={styles.editorModeToggle}
+          activeClassName={styles.editorModeToggleActive}
+        />
       </div>
       <div className={styles.editorContainer}>
         {editorMode === "basic" ? (

@@ -12,22 +12,17 @@ export interface NodeDataResult {
   satisfied: Set<string>;
 }
 
-/**
- * Hook that computes derived data for a step node
- * Handles memoization of expensive calculations to prevent unnecessary re-renders
- *
- * @param step - The step data
- * @param flowData - Flow context with state information
- * @param executions - List of execution results
- * @param resolvedAttributes - List of resolved attribute names
- * @returns Object containing execution, resolved, provenance, and satisfied data
- */
+export interface FlowExecutionData {
+  flowData?: FlowContext | null;
+  executions?: ExecutionResult[];
+  resolvedAttributes?: string[];
+}
+
 export const useNodeData = (
   step: Step,
-  flowData: FlowContext | null | undefined,
-  executions: ExecutionResult[] = [],
-  resolvedAttributes: string[] = []
+  flowExecution: FlowExecutionData = {}
 ): NodeDataResult => {
+  const { flowData, executions = [], resolvedAttributes = [] } = flowExecution;
   const execution = useMemo(
     () => executions.find((exec) => exec.step_id === step.id),
     [executions, step.id]

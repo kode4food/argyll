@@ -106,18 +106,11 @@ describe("flowFormUtils", () => {
   });
 
   describe("buildItemClassName", () => {
+    const cn = { base: "base", selected: "selected", disabled: "disabled" };
     it("combines only truthy class names", () => {
-      expect(
-        buildItemClassName(true, false, "base", "selected", "disabled")
-      ).toBe("base selected");
-
-      expect(
-        buildItemClassName(false, true, "base", "selected", "disabled")
-      ).toBe("base disabled");
-
-      expect(
-        buildItemClassName(false, false, "base", "selected", "disabled")
-      ).toBe("base");
+      expect(buildItemClassName(true, false, cn)).toBe("base selected");
+      expect(buildItemClassName(false, true, cn)).toBe("base disabled");
+      expect(buildItemClassName(false, false, cn)).toBe("base");
     });
   });
 

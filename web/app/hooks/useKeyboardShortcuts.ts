@@ -23,12 +23,17 @@ const modifiersMatch = (
   return true;
 };
 
+interface KeyboardContext {
+  isInputFocused: boolean;
+  shortcutsBlocked: boolean;
+}
+
 const handleMatchedShortcut = (
   shortcut: KeyboardShortcut,
   event: KeyboardEvent,
-  isInputFocused: boolean,
-  shortcutsBlocked: boolean
+  context: KeyboardContext
 ): boolean => {
+  const { isInputFocused, shortcutsBlocked } = context;
   const isHelpKey = shortcut.key === "/" || shortcut.key === "?";
   if (shortcutsBlocked && isHelpKey) return true;
   if (isHelpKey && !isInputFocused) {
@@ -62,12 +67,10 @@ export const useKeyboardShortcuts = (
       for (const shortcut of shortcuts) {
         if (modifiersMatch(event, shortcut)) {
           if (
-            handleMatchedShortcut(
-              shortcut,
-              event,
+            handleMatchedShortcut(shortcut, event, {
               isInputFocused,
-              shortcutsBlocked
-            )
+              shortcutsBlocked,
+            })
           ) {
             return;
           }

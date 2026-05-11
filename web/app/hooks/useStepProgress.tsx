@@ -17,6 +17,49 @@ interface StepProgressState {
   workItems?: WorkItemProgress;
 }
 
+const computeWorkItemProgress = (
+  executions: ExecutionResult[],
+  stepId: string,
+  flowId: string
+): WorkItemProgress | undefined => {
+  const exec = executions.find(
+    (e: any) => e.step_id === stepId && e.flow_id === flowId
+  );
+  if (!exec || !exec.work_items) return undefined;
+  const items = Object.values(exec.work_items);
+  if (items.length === 0) return undefined;
+  return {
+    total: items.length,
+    completed: items.filter((item: any) => item.status === "succeeded").length,
+    failed: items.filter((item: any) => item.status === "failed").length,
+    active: items.filter((item: any) => item.status === "active").length,
+  };
+};
+
+interface FlowStep {
+  stepId: string;
+  flowId: string | undefined;
+}
+
+const findEffectiveExecution = (
+  executions: ExecutionResult[],
+  key: FlowStep,
+  execution: ExecutionResult | undefined
+): ExecutionResult | undefined => {
+  const { stepId, flowId } = key;
+  if (
+    execution &&
+    execution.flow_id === flowId &&
+    execution.step_id === stepId
+  ) {
+    return execution;
+  }
+  if (!flowId) return undefined;
+  return executions.find(
+    (e: any) => e.step_id === stepId && e.flow_id === flowId
+  );
+};
+
 export const useStepProgress = (
   stepId: string,
   flowId?: string,
@@ -24,44 +67,16 @@ export const useStepProgress = (
 ) => {
   const executions = useExecutions();
 
-  // Calculate work item progress from executions
-  const workItemProgress = useMemo(() => {
-    if (!flowId || !executions) return undefined;
+  const workItemProgress = useMemo(
+    () =>
+      flowId ? computeWorkItemProgress(executions, stepId, flowId) : undefined,
+    [executions, stepId, flowId]
+  );
 
-    // Find the execution for this step
-    const exec = executions.find(
-      (e: any) => e.step_id === stepId && e.flow_id === flowId
-    );
-
-    if (!exec || !exec.work_items) return undefined;
-
-    const items = Object.values(exec.work_items);
-    if (items.length === 0) return undefined;
-
-    const progress: WorkItemProgress = {
-      total: items.length,
-      completed: items.filter((item: any) => item.status === "succeeded")
-        .length,
-      failed: items.filter((item: any) => item.status === "failed").length,
-      active: items.filter((item: any) => item.status === "active").length,
-    };
-
-    return progress;
-  }, [executions, stepId, flowId]);
-
-  const effectiveExecution = useMemo(() => {
-    if (
-      execution &&
-      execution.flow_id === flowId &&
-      execution.step_id === stepId
-    ) {
-      return execution;
-    }
-    if (!flowId) return undefined;
-    return executions.find(
-      (e: any) => e.step_id === stepId && e.flow_id === flowId
-    );
-  }, [execution, executions, flowId, stepId]);
+  const effectiveExecution = useMemo(
+    () => findEffectiveExecution(executions, { stepId, flowId }, execution),
+    [execution, executions, flowId, stepId]
+  );
 
   const status = effectiveExecution?.status
     ? (effectiveExecution.status as StepProgressStatus)

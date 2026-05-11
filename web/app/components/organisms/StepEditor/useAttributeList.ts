@@ -8,12 +8,17 @@ import {
 import { validateDefaultValue } from "@/utils/stepUtils";
 import { INPUT_COLLECT_TYPES } from "./stepEditorConstants";
 
+interface FieldUpdate {
+  field: keyof Attribute;
+  value: any;
+}
+
 const applyAttributeFieldSideEffects = (
   updated: Attribute,
-  field: keyof Attribute,
-  value: any,
+  update: FieldUpdate,
   t: (key: string) => string
 ): Attribute => {
+  const { field, value } = update;
   if (
     (field === "defaultValue" || field === "dataType") &&
     (updated.attrType === "optional" || updated.attrType === "const") &&
@@ -76,8 +81,7 @@ export function useAttributeList(
           if (attr.id !== id) return attr;
           return applyAttributeFieldSideEffects(
             { ...attr, [field]: value },
-            field,
-            value,
+            { field, value },
             t
           );
         })
