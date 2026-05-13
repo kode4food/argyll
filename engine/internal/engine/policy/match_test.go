@@ -27,7 +27,7 @@ func TestRequiredMatchStatus(t *testing.T) {
 		attr     *api.AttributeSpec
 		values   []*api.AttributeValue
 		provider policy.ProviderSummary
-		evaluate func(*api.ScriptConfig, any) (bool, error)
+		match    func(*api.ScriptConfig, any) (bool, error)
 		expected policy.MatchStatus
 		err      bool
 	}{
@@ -40,14 +40,14 @@ func TestRequiredMatchStatus(t *testing.T) {
 			name:     "unknown without values",
 			attr:     requiredMatch(cfg, api.InputCollectFirst),
 			provider: policy.ProviderSummary{},
-			evaluate: matched,
+			match:    matched,
 			expected: policy.MatchUnknown,
 		},
 		{
 			name:     "matched",
 			attr:     requiredMatch(cfg, api.InputCollectFirst),
 			values:   matchValues(map[string]any{"kind": "email"}),
-			evaluate: matched,
+			match:    matched,
 			expected: policy.MatchMatched,
 		},
 		{
@@ -55,7 +55,7 @@ func TestRequiredMatchStatus(t *testing.T) {
 			attr:     requiredMatch(cfg, api.InputCollectFirst),
 			values:   matchValues(map[string]any{"kind": "postal"}),
 			provider: terminalProvider(),
-			evaluate: unmatched,
+			match:    unmatched,
 			expected: policy.MatchUnmatched,
 		},
 		{
@@ -65,7 +65,7 @@ func TestRequiredMatchStatus(t *testing.T) {
 				map[string]any{"kind": "email"},
 				map[string]any{"kind": "postal"},
 			),
-			evaluate: matched,
+			match:    matched,
 			expected: policy.MatchUnknown,
 		},
 		{
@@ -76,21 +76,21 @@ func TestRequiredMatchStatus(t *testing.T) {
 				map[string]any{"kind": "postal"},
 			),
 			provider: terminalProvider(),
-			evaluate: matched,
+			match:    matched,
 			expected: policy.MatchMatched,
 		},
 		{
 			name:     "some collect evaluates individual candidates",
 			attr:     requiredMatch(cfg, api.InputCollectSome),
 			values:   matchValues("email", "postal"),
-			evaluate: matchString("email"),
+			match:    matchString("email"),
 			expected: policy.MatchMatched,
 		},
 		{
 			name:     "all collect fails on any unmatched candidate",
 			attr:     requiredMatch(cfg, api.InputCollectAll),
 			values:   matchValues("email", "postal"),
-			evaluate: matchString("email"),
+			match:    matchString("email"),
 			expected: policy.MatchUnmatched,
 		},
 		{
@@ -98,14 +98,14 @@ func TestRequiredMatchStatus(t *testing.T) {
 			attr:     requiredMatch(cfg, api.InputCollectAll),
 			values:   matchValues("email", "email"),
 			provider: terminalProvider(),
-			evaluate: matchString("email"),
+			match:    matchString("email"),
 			expected: policy.MatchMatched,
 		},
 		{
 			name:     "none collect fails on matched candidate",
 			attr:     requiredMatch(cfg, api.InputCollectNone),
 			values:   matchValues("email"),
-			evaluate: matchString("email"),
+			match:    matchString("email"),
 			expected: policy.MatchUnmatched,
 		},
 		{
@@ -113,14 +113,14 @@ func TestRequiredMatchStatus(t *testing.T) {
 			attr:     requiredMatch(cfg, api.InputCollectNone),
 			values:   matchValues("postal"),
 			provider: terminalProvider(),
-			evaluate: matchString("email"),
+			match:    matchString("email"),
 			expected: policy.MatchMatched,
 		},
 		{
 			name:     "eval error",
 			attr:     requiredMatch(cfg, api.InputCollectFirst),
 			values:   matchValues("email"),
-			evaluate: failed,
+			match:    failed,
 			expected: policy.MatchUnknown,
 			err:      true,
 		},
@@ -132,7 +132,7 @@ func TestRequiredMatchStatus(t *testing.T) {
 				Attr:     tt.attr,
 				Values:   tt.values,
 				Provider: tt.provider,
-				Evaluate: tt.evaluate,
+				Match:    tt.match,
 			})
 			assert.Equal(t, tt.err, err != nil)
 			assert.Equal(t, tt.expected, status)
@@ -164,7 +164,7 @@ func TestRequiredMatchStepStatus(t *testing.T) {
 		Step:      step,
 		Values:    valuesFor,
 		Providers: providers,
-		Evaluate: func(_ *api.ScriptConfig, value any) (bool, error) {
+		Match: func(_ *api.ScriptConfig, value any) (bool, error) {
 			return value == "email" || value == "us", nil
 		},
 	})
@@ -175,7 +175,7 @@ func TestRequiredMatchStepStatus(t *testing.T) {
 		Step:      step,
 		Values:    valuesFor,
 		Providers: providers,
-		Evaluate: func(_ *api.ScriptConfig, value any) (bool, error) {
+		Match: func(_ *api.ScriptConfig, value any) (bool, error) {
 			return value == "email", nil
 		},
 	})
@@ -196,7 +196,7 @@ func TestRequiredMatchStepStatus(t *testing.T) {
 			}
 			return terminalProvider()
 		},
-		Evaluate: func(_ *api.ScriptConfig, value any) (bool, error) {
+		Match: func(_ *api.ScriptConfig, value any) (bool, error) {
 			return value == "email", nil
 		},
 	})

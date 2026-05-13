@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
+	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -18,6 +19,7 @@ type healthResolver struct {
 	visiting map[api.StepID]bool
 	plans    map[api.StepID]*api.ExecutionPlan
 	planErrs map[api.StepID]error
+	match    policy.Matcher
 }
 
 // UpdateStepHealth updates the health status of a registered step, used
@@ -59,7 +61,8 @@ func (e *Engine) UpdateStepHealth(
 // ResolveHealth returns resolved health for all steps, deriving flow step
 // health from all steps included in the flow's execution preview
 func ResolveHealth(
-	cat api.CatalogState, base map[api.StepID]api.HealthState,
+	match policy.Matcher, cat api.CatalogState,
+	base map[api.StepID]api.HealthState,
 ) map[api.StepID]api.HealthState {
 	resolver := &healthResolver{
 		cat:      cat,
@@ -69,6 +72,7 @@ func ResolveHealth(
 		visiting: map[api.StepID]bool{},
 		plans:    map[api.StepID]*api.ExecutionPlan{},
 		planErrs: map[api.StepID]error{},
+		match:    match,
 	}
 
 	resolved := make(map[api.StepID]api.HealthState, len(cat.Steps))
@@ -335,7 +339,7 @@ func (r *healthResolver) previewFlowPlan(
 		return nil, err
 	}
 
-	pl, err := plan.Create(r.cat, step.Flow.Goals, api.InitArgs{})
+	pl, err := plan.Create(r.match, r.cat, step.Flow.Goals, api.InitArgs{})
 	if err != nil {
 		r.planErrs[stepID] = err
 		return nil, err

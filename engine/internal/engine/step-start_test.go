@@ -605,9 +605,10 @@ func TestRequiredMatchRoutesDemand(t *testing.T) {
 						AddStep(email).
 						AddStep(postal),
 				}
-				pl, err := plan.Create(cat, []api.StepID{
-					email.ID, postal.ID,
-				}, tt.init)
+				pl, err := plan.Create(
+					helpers.Matcher(), cat, []api.StepID{email.ID, postal.ID},
+					tt.init,
+				)
 				assert.NoError(t, err)
 
 				id := api.FlowID("wf-match-" + tt.name)

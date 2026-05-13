@@ -103,7 +103,9 @@ func TestFlowStepChildSuccess(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		testify.NoError(t, err)
-		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
+		pl, err := plan.Create(
+			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		testify.NoError(t, err)
 
 		fl := env.WaitForFlowStatus("parent-flow", func() {
@@ -166,7 +168,9 @@ func TestFlowStepChildFailureParentFails(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		testify.NoError(t, err)
-		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
+		pl, err := plan.Create(
+			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		testify.NoError(t, err)
 
 		fl := env.WaitForFlowStatus("parent-fail", func() {
@@ -195,7 +199,9 @@ func TestFlowStepMissingGoalParentFails(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		testify.NoError(t, err)
-		_, err = plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
+		_, err = plan.Create(
+			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		testify.Error(t, err)
 	})
 }
@@ -246,7 +252,9 @@ func TestFlowStepMapping(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		testify.NoError(t, err)
-		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
+		pl, err := plan.Create(
+			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		testify.NoError(t, err)
 
 		fl := env.WaitForFlowStatus("parent-mapped", func() {
@@ -303,7 +311,9 @@ func TestFlowStepMissingOutput(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		testify.NoError(t, err)
-		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
+		pl, err := plan.Create(
+			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		testify.NoError(t, err)
 
 		fl := env.WaitForFlowStatus("parent-missing-output", func() {

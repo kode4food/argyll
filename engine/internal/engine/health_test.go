@@ -257,7 +257,9 @@ func TestScriptHealthDefaults(t *testing.T) {
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		health := engine.ResolveHealth(cat, map[api.StepID]api.HealthState{})
+		health := engine.ResolveHealth(
+			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+		)
 		if assert.Contains(t, health, st.ID) {
 			assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
 		}
@@ -300,7 +302,7 @@ func TestScriptHealthOnRegister(t *testing.T) {
 
 func TestResolveHealthNilCat(t *testing.T) {
 	health := engine.ResolveHealth(
-		api.CatalogState{}, map[api.StepID]api.HealthState{},
+		helpers.Matcher(), api.CatalogState{}, map[api.StepID]api.HealthState{},
 	)
 	assert.Empty(t, health)
 }
@@ -323,7 +325,9 @@ func TestResolveHealthPreviewFail(t *testing.T) {
 		Attributes: api.AttributeGraph{},
 	}
 
-	health := engine.ResolveHealth(cat, map[api.StepID]api.HealthState{})
+	health := engine.ResolveHealth(
+		helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+	)
 	if assert.Contains(t, health, api.StepID("flow-step")) {
 		assert.Equal(t, api.HealthUnknown, health["flow-step"].Status)
 		assert.Contains(t, health["flow-step"].Error, "preview failed")
@@ -338,7 +342,9 @@ func TestResolveHealthSimpleUnknown(t *testing.T) {
 		Attributes: api.AttributeGraph{},
 	}
 
-	health := engine.ResolveHealth(cat, map[api.StepID]api.HealthState{})
+	health := engine.ResolveHealth(
+		helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+	)
 	if assert.Contains(t, health, api.StepID("step-a")) {
 		assert.Equal(t, api.HealthUnknown, health["step-a"].Status)
 		assert.Empty(t, health["step-a"].Error)
@@ -370,7 +376,7 @@ func TestResolveHealthScriptError(t *testing.T) {
 		},
 	}
 
-	health := engine.ResolveHealth(cat, base)
+	health := engine.ResolveHealth(helpers.Matcher(), cat, base)
 	if assert.Contains(t, health, api.StepID("script-step")) {
 		assert.Equal(t, api.HealthUnknown, health["script-step"].Status)
 		assert.Equal(t, "compile failed", health["script-step"].Error)
@@ -401,7 +407,7 @@ func TestResolveHealthFlowUnknown(t *testing.T) {
 		goal.ID: {Status: api.HealthUnknown},
 	}
 
-	health := engine.ResolveHealth(cat, base)
+	health := engine.ResolveHealth(helpers.Matcher(), cat, base)
 	if assert.Contains(t, health, st.ID) {
 		assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
 		assert.Empty(t, health[st.ID].Error)
@@ -442,5 +448,5 @@ func resolveHealth(
 	assert.NoError(t, err)
 
 	merged := engine.MergeNodeHealth(cluster)
-	return engine.ResolveHealth(cat, merged)
+	return engine.ResolveHealth(eng.Matcher, cat, merged)
 }

@@ -503,7 +503,9 @@ func TestSkipChildFlows(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		pl, err := plan.Create(cat, []api.StepID{parent.ID}, api.InitArgs{})
+		pl, err := plan.Create(
+			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+		)
 		assert.NoError(t, err)
 
 		var childID api.FlowID

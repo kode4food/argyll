@@ -5,21 +5,36 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+var testEval = helpers.Matcher()
+
+func createPlan(
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+) (*api.ExecutionPlan, error) {
+	return plan.Create(testEval, cat, goals, init)
+}
+
+func previewPlan(
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+) (*api.ExecutionPlan, error) {
+	return plan.Preview(testEval, cat, goals, init)
+}
+
 func TestNoGoals(t *testing.T) {
 	cat := makeCatalogState(api.Steps{})
 
-	_, err := plan.Create(cat, []api.StepID{}, api.InitArgs{})
+	_, err := createPlan(cat, []api.StepID{}, api.InitArgs{})
 	assert.Error(t, err)
 }
 
 func TestGoalStepNotFound(t *testing.T) {
 	cat := makeCatalogState(api.Steps{})
 
-	_, err := plan.Create(cat, []api.StepID{"nonexistent"}, api.InitArgs{})
+	_, err := createPlan(cat, []api.StepID{"nonexistent"}, api.InitArgs{})
 	assert.Error(t, err)
 }
 
@@ -40,7 +55,7 @@ func TestSimpleResolver(t *testing.T) {
 	cat := makeCatalogState(api.Steps{
 		"resolver": resolverStep,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"resolver"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"resolver"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Goals, 1)
@@ -71,7 +86,7 @@ func TestProcessorWithInit(t *testing.T) {
 		"processor": processorStep,
 	})
 	init := api.InitArgs{"input": {"test-value"}}
-	pl, err := plan.Create(cat, []api.StepID{"processor"}, init)
+	pl, err := createPlan(cat, []api.StepID{"processor"}, init)
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 1)
@@ -112,7 +127,7 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 		"consumer": consumerStep,
 	})
 
-	pl, err := plan.Create(
+	pl, err := createPlan(
 		cat, []api.StepID{"consumer"}, api.InitArgs{"data": {"ready"}},
 	)
 	assert.NoError(t, err)
@@ -137,7 +152,7 @@ func TestCollectNoneInitBlocked(t *testing.T) {
 		consumer.ID: consumer,
 	})
 
-	pl, err := plan.Create(
+	pl, err := createPlan(
 		cat, []api.StepID{consumer.ID}, api.InitArgs{"data": {"ready"}},
 	)
 	assert.NoError(t, err)
@@ -178,7 +193,7 @@ func TestBlockedProviderNoDownstream(t *testing.T) {
 		consumer.ID: consumer,
 	})
 
-	pl, err := plan.Create(
+	pl, err := createPlan(
 		cat, []api.StepID{consumer.ID}, api.InitArgs{"flag": {"ready"}},
 	)
 	assert.NoError(t, err)
@@ -196,7 +211,7 @@ func TestCollectFirstPrunesProvider(t *testing.T) {
 		consumer.ID: consumer,
 	})
 
-	pl, err := plan.Create(
+	pl, err := createPlan(
 		cat, []api.StepID{consumer.ID}, api.InitArgs{"data": {"ready"}},
 	)
 	assert.NoError(t, err)
@@ -231,7 +246,7 @@ func TestCollectModesKeepProviders(t *testing.T) {
 				consumer.ID: consumer,
 			})
 
-			pl, err := plan.Create(
+			pl, err := createPlan(
 				cat, []api.StepID{consumer.ID},
 				api.InitArgs{"data": {"ready"}},
 			)
@@ -250,7 +265,7 @@ func TestCollectNoneSatisfied(t *testing.T) {
 		consumer.ID: consumer,
 	})
 
-	pl, err := plan.Create(cat, []api.StepID{consumer.ID}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{consumer.ID}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Contains(t, pl.Steps, consumer.ID)
@@ -263,7 +278,7 @@ func TestCollectSomeInitNoProviders(t *testing.T) {
 		consumer.ID: consumer,
 	})
 
-	pl, err := plan.Create(
+	pl, err := createPlan(
 		cat, []api.StepID{consumer.ID}, api.InitArgs{"data": {"ready"}},
 	)
 	assert.NoError(t, err)
@@ -290,7 +305,7 @@ func TestProcessorNoInit(t *testing.T) {
 	cat := makeCatalogState(api.Steps{
 		"processor": processorStep,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"processor"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"processor"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Required, 1)
@@ -343,7 +358,7 @@ func TestChained(t *testing.T) {
 		"processor": processorStep,
 		"collector": collectorStep,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"collector"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"collector"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 3)
@@ -386,7 +401,7 @@ func TestMultipleGoals(t *testing.T) {
 		"step1": step1,
 		"step2": step2,
 	})
-	pl, err := plan.Create(
+	pl, err := createPlan(
 		cat, []api.StepID{"step1", "step2"}, api.InitArgs{},
 	)
 	assert.NoError(t, err)
@@ -439,7 +454,7 @@ func TestFlowStepEmbedsChildPlan(t *testing.T) {
 		"child":  child,
 		"parent": parent,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"parent"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"parent"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	if assert.Contains(t, pl.Children, api.StepID("parent")) {
@@ -468,7 +483,7 @@ func TestExistingOutputs(t *testing.T) {
 		"step": st,
 	})
 	init := api.InitArgs{"data": {"already-available"}}
-	pl, err := plan.Create(cat, []api.StepID{"step"}, init)
+	pl, err := createPlan(cat, []api.StepID{"step"}, init)
 	assert.NoError(t, err)
 
 	assert.Empty(t, pl.Steps)
@@ -536,7 +551,7 @@ func TestComplexGraph(t *testing.T) {
 		"processor1": processor1,
 		"processor2": processor2,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"processor2"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"processor2"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 4)
@@ -568,7 +583,7 @@ func TestReceipts(t *testing.T) {
 	cat := makeCatalogState(api.Steps{
 		"step": st,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"step"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"step"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	// Verify plan was created successfully
@@ -594,7 +609,7 @@ func TestMissingDependency(t *testing.T) {
 	cat := makeCatalogState(api.Steps{
 		"step": st,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"step"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"step"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Required, 1)
@@ -633,7 +648,7 @@ func TestOptionalInput(t *testing.T) {
 		"resolver":  resolverStep,
 		"processor": processorStep,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"processor"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"processor"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 2)
@@ -662,7 +677,7 @@ func TestOptionalMissing(t *testing.T) {
 	cat := makeCatalogState(api.Steps{
 		"processor": processorStep,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"processor"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"processor"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 1)
@@ -719,7 +734,7 @@ func TestProvidersWithInit(t *testing.T) {
 		"consumer":               consumer,
 	})
 
-	withInit, err := plan.Create(
+	withInit, err := createPlan(
 		cat, []api.StepID{"consumer"}, api.InitArgs{"product_id": {"123"}},
 	)
 	assert.NoError(t, err)
@@ -735,7 +750,7 @@ func TestProvidersWithInit(t *testing.T) {
 		assert.Empty(t, withInitExcluded.Satisfied)
 	}
 
-	withoutInit, err := plan.Create(
+	withoutInit, err := createPlan(
 		cat, []api.StepID{"consumer"}, api.InitArgs{},
 	)
 	assert.NoError(t, err)
@@ -791,7 +806,7 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 		"processor": processor,
 	})
 
-	pl, err := plan.Preview(cat, []api.StepID{"processor"}, api.InitArgs{})
+	pl, err := previewPlan(cat, []api.StepID{"processor"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 2)
@@ -847,7 +862,7 @@ func TestMixedInputs(t *testing.T) {
 		"resolver2": resolver2,
 		"processor": processorStep,
 	})
-	pl, err := plan.Create(cat, []api.StepID{"processor"}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{"processor"}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Len(t, pl.Steps, 3)
@@ -889,7 +904,7 @@ func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
 		sendPostal.ID: sendPostal,
 	})
 
-	pl, err := plan.Create(cat, []api.StepID{sendPostal.ID}, api.InitArgs{})
+	pl, err := createPlan(cat, []api.StepID{sendPostal.ID}, api.InitArgs{})
 	assert.NoError(t, err)
 
 	assert.Contains(t, pl.Steps, route.ID)
@@ -939,7 +954,7 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 		sendPostal.ID:     sendPostal,
 	})
 
-	pl, err := plan.Create(cat, []api.StepID{sendPostal.ID},
+	pl, err := createPlan(cat, []api.StepID{sendPostal.ID},
 		api.InitArgs{"notification_type": {"email"}},
 	)
 	assert.NoError(t, err)
@@ -978,7 +993,7 @@ func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
 		sendPostal.ID: sendPostal,
 	})
 
-	pl, err := plan.Create(cat, []api.StepID{sendPostal.ID},
+	pl, err := createPlan(cat, []api.StepID{sendPostal.ID},
 		api.InitArgs{"notification_type": {"email"}},
 	)
 	assert.NoError(t, err)

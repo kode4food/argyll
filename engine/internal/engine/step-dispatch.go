@@ -104,7 +104,7 @@ func (e *Engine) findDispatchSteps(state api.FlowState) util.Set[api.StepID] {
 }
 
 func hasReadyPendingDispatch(
-	step *api.Step, ex api.ExecutionState, now time.Time,
+	step *api.Step, ex api.ExecutionState, when time.Time,
 ) bool {
 	limit := policy.StepParallelism(step)
 	if policy.CountActiveWorkItems(ex.WorkItems) >= limit {
@@ -115,7 +115,7 @@ func hasReadyPendingDispatch(
 		if !policy.WorkPending(work.Status) {
 			continue
 		}
-		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
 			continue
 		}
 		return true

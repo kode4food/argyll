@@ -144,13 +144,14 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	}
 
 	step := flow.Plan.Steps[stepID]
-	gate, err := e.stepGateStatus(step, flow)
-	if err != nil {
-		return false
-	}
-	if gate == policy.MatchUnknown || gate == policy.MatchUnmatched {
+	willSkip, _ := e.matchGateWillSkip(step, flow)
+	if willSkip {
 		return true
 	}
+	if e.hasPendingMatchGate(step, flow) {
+		return true
+	}
+
 	for name, attr := range step.Attributes {
 		if attr.IsRequired() {
 			if _, ok := flow.FirstAttribute(name); ok {
@@ -163,6 +164,46 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	}
 
 	return true
+}
+
+func (e *Engine) matchGateWillSkip(
+	step *api.Step, flow api.FlowState,
+) (bool, error) {
+	for name, attr := range step.Attributes {
+		if !policy.RequiredInputHasMatch(attr) {
+			continue
+		}
+		providers, _ := providerSummaryFor(flow, name)
+		if !providers.Terminal {
+			continue
+		}
+		status, err := policy.RequiredMatchStatus(policy.RequiredMatchSpec{
+			Attr:     attr,
+			Values:   flow.AttributeValues(name),
+			Provider: providers,
+			Match:    e.Matcher,
+		})
+		if err != nil {
+			return false, err
+		}
+		if policy.MatchAllowsStepSkip(status) {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (e *Engine) hasPendingMatchGate(step *api.Step, flow api.FlowState) bool {
+	for name, attr := range step.Attributes {
+		if !policy.RequiredInputHasMatch(attr) {
+			continue
+		}
+		providers, _ := providerSummaryFor(flow, name)
+		if !providers.Terminal {
+			return true
+		}
+	}
+	return false
 }
 
 func (e *Engine) needsOutputs(step *api.Step, flow api.FlowState) bool {
@@ -186,7 +227,6 @@ func (e *Engine) needsOutput(
 		return false
 	}
 
-	hasValue := len(flow.AttributeValues(name)) > 0
 	for _, sid := range deps.Consumers {
 		ex, ok := flow.Executions[sid]
 		if !ok || !policy.StepPending(ex.Status) {
@@ -197,15 +237,12 @@ func (e *Engine) needsOutput(
 		if input == nil {
 			continue
 		}
-		if !e.consumerCanDemandInput(consumer, input, flow) {
+		if willSkip, _ := e.matchGateWillSkip(consumer, flow); willSkip {
 			continue
 		}
-		consumerValue := hasValue
-		if policy.RequiredInputHasMatch(input) {
-			consumerValue = e.inputHasMatchedValue(input, name, flow)
-		}
+		hasValue := e.inputHasValue(name, input, flow)
 		if policy.ProviderOutputNeeded(
-			input.Collect(), consumerValue, canCollectAll(name, flow),
+			input.Collect(), hasValue, canCollectAll(name, flow),
 		) {
 			return true
 		}
@@ -213,26 +250,28 @@ func (e *Engine) needsOutput(
 	return false
 }
 
-func (e *Engine) consumerCanDemandInput(
-	consumer *api.Step, input *api.AttributeSpec, flow api.FlowState,
+func (e *Engine) inputHasValue(
+	name api.Name, attr *api.AttributeSpec, flow api.FlowState,
 ) bool {
-	status, err := e.stepGateStatus(consumer, flow)
-	if err != nil {
-		return false
+	values := flow.AttributeValues(name)
+	if !policy.RequiredInputHasMatch(attr) {
+		return len(values) > 0
 	}
-	if policy.RequiredInputHasMatch(input) {
-		return status != policy.MatchUnmatched
-	}
-	return policy.MatchAllowsNormalDemand(status)
+	matched, _, _ := policy.MatchCandidateValues(attr, values, e.Matcher)
+	return len(matched) > 0
 }
 
-func (e *Engine) inputHasMatchedValue(
-	input *api.AttributeSpec, name api.Name, flow api.FlowState,
-) bool {
-	values, _, err := policy.MatchCandidateValues(
-		input, flow.AttributeValues(name), e.evaluateRequiredMatch,
-	)
-	return err == nil && len(values) > 0
+func allGoalsPruned(flow api.FlowState) bool {
+	if len(flow.Plan.Goals) == 0 {
+		return false
+	}
+	for _, sid := range flow.Plan.Goals {
+		ex := flow.Executions[sid]
+		if !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
+			return false
+		}
+	}
+	return true
 }
 
 func canCollectAll(name api.Name, flow api.FlowState) bool {
@@ -261,19 +300,6 @@ func hasActiveWork(flow api.FlowState) bool {
 		}
 	}
 	return false
-}
-
-func allGoalsPruned(flow api.FlowState) bool {
-	if len(flow.Plan.Goals) == 0 {
-		return false
-	}
-	for _, sid := range flow.Plan.Goals {
-		ex := flow.Executions[sid]
-		if !policy.StepPrunedByRequiredMatch(ex.Status, ex.Error) {
-			return false
-		}
-	}
-	return true
 }
 
 func isOutputAttribute(step *api.Step, name api.Name) bool {

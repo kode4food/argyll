@@ -3,12 +3,27 @@ package engine
 import (
 	"errors"
 
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 var (
 	ErrStepNotInPlan = errors.New("step not in execution plan")
 )
+
+// CreatePlan builds an execution plan using the engine's shared script registry
+func (e *Engine) CreatePlan(
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+) (*api.ExecutionPlan, error) {
+	return plan.Create(e.Matcher, cat, goals, init)
+}
+
+// PreviewPlan builds a preview plan using the engine's shared script registry
+func (e *Engine) PreviewPlan(
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+) (*api.ExecutionPlan, error) {
+	return plan.Preview(e.Matcher, cat, goals, init)
+}
 
 // VerifyScript compiles a step's script to check it is valid on this node
 func (e *Engine) VerifyScript(step *api.Step) error {

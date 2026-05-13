@@ -9,7 +9,6 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
-	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
@@ -21,12 +20,7 @@ type (
 		flow   api.FlowState
 		stepID api.StepID
 		step   *api.Step
-		now    time.Time
-	}
-
-	providerSummary struct {
-		policy.ProviderSummary
-		completedAt time.Time
+		when   time.Time
 	}
 
 	optionalDecision struct {
@@ -50,25 +44,12 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	}
 
 	st := fl.Plan.Steps[stepID]
-	gate, err := tx.stepGateStatus(st, fl)
+	willSkip, err := tx.matchGateWillSkip(st, fl)
 	if err != nil {
 		return err
 	}
-	if policy.MatchAllowsStepSkip(gate) {
-		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
-			api.StepSkippedEvent{
-				FlowID: tx.flowID,
-				StepID: stepID,
-				Reason: policy.RequiredMatchSkipReason,
-			},
-		); err != nil {
-			return err
-		}
-		return call.Perform(
-			tx.checkUnreachable,
-			tx.checkTerminal,
-			tx.startReadyPendingSteps,
-		)
+	if willSkip {
+		return tx.performSkip(stepID, policy.RequiredMatchSkipReason)
 	}
 
 	inputs, err := tx.collectStepInputs(st, fl)
@@ -81,20 +62,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		return tx.handlePredicateFailure(stepID, err)
 	}
 	if !shouldExecute {
-		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
-			api.StepSkippedEvent{
-				FlowID: tx.flowID,
-				StepID: stepID,
-				Reason: "predicate returned false",
-			},
-		); err != nil {
-			return err
-		}
-		return call.Perform(
-			tx.checkUnreachable,
-			tx.checkTerminal,
-			tx.startReadyPendingSteps,
-		)
+		return tx.performSkip(stepID, "predicate returned false")
 	}
 
 	workItemsList, err := computeWorkItems(st, inputs)
@@ -121,15 +89,32 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	return nil
 }
 
+func (tx *flowTx) performSkip(stepID api.StepID, reason string) error {
+	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
+		api.StepSkippedEvent{
+			FlowID: tx.flowID,
+			StepID: stepID,
+			Reason: reason,
+		},
+	); err != nil {
+		return err
+	}
+	return call.Perform(
+		tx.checkUnreachable,
+		tx.checkTerminal,
+		tx.startReadyPendingSteps,
+	)
+}
+
 func (tx *flowTx) canStartStep(stepID api.StepID, flow api.FlowState) bool {
-	ready, _ := tx.canStartStepAt(stepID, flow, tx.Now())
+	ready, _ := tx.newStepEval(stepID, flow, tx.Now()).canStart()
 	return ready
 }
 
 func (tx *flowTx) canStartStepAt(
-	stepID api.StepID, flow api.FlowState, now time.Time,
+	stepID api.StepID, flow api.FlowState, when time.Time,
 ) (bool, time.Time) {
-	return tx.newStepEval(stepID, flow, now).canStart()
+	return tx.newStepEval(stepID, flow, when).canStart()
 }
 
 func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
@@ -146,14 +131,14 @@ func (tx *flowTx) findInitialSteps(flow api.FlowState) []api.StepID {
 }
 
 func (e *Engine) newStepEval(
-	stepID api.StepID, flow api.FlowState, now time.Time,
+	stepID api.StepID, flow api.FlowState, when time.Time,
 ) *stepEval {
 	return &stepEval{
 		e:      e,
 		flow:   flow,
 		stepID: stepID,
 		step:   flow.Plan.Steps[stepID],
-		now:    now,
+		when:   when,
 	}
 }
 
@@ -240,8 +225,8 @@ func (tx *flowTx) collectStepInputs(
 }
 
 func (tx *flowTx) setStepInput(
-	inputs api.Args, step *api.Step, name api.Name,
-	attr *api.AttributeSpec, value any,
+	inputs api.Args, step *api.Step, name api.Name, attr *api.AttributeSpec,
+	value any,
 ) {
 	val := tx.mapper.MapInput(step, name, attr, value)
 	mapped, _ := step.MappedName(name)
@@ -253,18 +238,13 @@ func (s *stepEval) canStart() (bool, time.Time) {
 	if !policy.StepPending(ex.Status) {
 		return false, time.Time{}
 	}
-	gate, err := s.e.stepGateStatus(s.step, s.flow)
-	if err != nil {
-		return false, time.Time{}
-	}
-	if policy.MatchAllowsStepSkip(gate) {
-		return true, time.Time{}
-	}
-	if gate == policy.MatchUnknown {
-		return false, time.Time{}
-	}
 	if !s.e.areOutputsNeeded(s.stepID, s.flow) {
 		return false, time.Time{}
+	}
+
+	// If the match gate is closed, allow start so prepareStep can skip it
+	if willSkip, _ := s.e.matchGateWillSkip(s.step, s.flow); willSkip {
+		return true, time.Time{}
 	}
 
 	anchor, err := s.requiredReadyAt()
@@ -328,16 +308,16 @@ func (s *stepEval) optionalDecisionAt(
 		return optionalDecision{ready: true, fallback: true}
 	}
 
-	providers := s.providerSummary(name)
+	providers, _ := providerSummaryFor(s.flow, name)
 	if providers.Terminal || attr.OptionalDeadline() <= 0 {
-		return s.timeoutDecision(name, attr, s.now)
+		return s.timeoutDecision(name, attr, s.when)
 	}
 
 	at := s.optionalAt(anchor, attr.OptionalDeadline())
 	if at.IsZero() {
 		return optionalDecision{}
 	}
-	if !at.After(s.now) {
+	if !at.After(s.when) {
 		return s.timeoutDecision(name, attr, at)
 	}
 	return optionalDecision{nextAt: at}
@@ -382,24 +362,9 @@ func (s *stepEval) requiredReadyAt() (time.Time, error) {
 	return anchor, nil
 }
 
-func (e *Engine) stepGateStatus(
-	step *api.Step, flow api.FlowState,
-) (policy.MatchStatus, error) {
-	return policy.RequiredMatchStepStatus(policy.RequiredMatchStep{
-		Step:   step,
-		Values: flow.AttributeValues,
-		Providers: func(name api.Name) policy.ProviderSummary {
-			return providerSummaryFor(flow, name).ProviderSummary
-		},
-		Evaluate: e.evaluateRequiredMatch,
-	})
-}
-
-func (e *Engine) evaluateRequiredMatch(
-	cfg *api.ScriptConfig, value any,
-) (bool, error) {
-	st := policy.MatchStep(cfg)
-	comp, err := e.scripts.Compile(st, cfg)
+// Matcher returns the engine's shared match predicate evaluator
+func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
+	comp, err := e.scripts.Compile(policy.MatchStep, cfg)
 	if err != nil {
 		return false, errors.Join(ErrPredicateCompileFailed, err)
 	}
@@ -409,19 +374,7 @@ func (e *Engine) evaluateRequiredMatch(
 		return false, errors.Join(ErrPredicateEnvFailed, err)
 	}
 
-	inputs := api.Args{policy.MatchInputName: value}
-	if cfg.Language == api.ScriptLangJPath {
-		_, err := env.ExecuteScript(comp, st, inputs)
-		if errors.Is(err, script.ErrJPathNoMatch) {
-			return false, nil
-		}
-		if err != nil {
-			return false, errors.Join(ErrPredicateEvalFailed, err)
-		}
-		return true, nil
-	}
-
-	matched, err := env.EvaluatePredicate(comp, st, inputs)
+	matched, err := env.EvaluatePredicate(comp, policy.MatchStep, api.Args{policy.MatchInputName: value})
 	if err != nil {
 		return false, errors.Join(ErrPredicateEvalFailed, err)
 	}
@@ -435,25 +388,21 @@ func (s *stepEval) inputFulfilledAt(
 	if err != nil {
 		return false, time.Time{}, err
 	}
-	providers := s.providerSummary(name)
-	if !policy.InputFulfilled(
-		attr.Collect(), len(values), providers.ProviderSummary,
-	) {
+	providers, completedAt := providerSummaryFor(s.flow, name)
+	if !policy.InputFulfilled(attr.Collect(), len(values), providers) {
 		return false, time.Time{}, nil
 	}
 
 	switch attr.Collect() {
 	case api.InputCollectNone:
-		return true, providers.completedAt, nil
-	case api.InputCollectFirst:
-		return true, values[0].SetAt, nil
+		return true, completedAt, nil
 	case api.InputCollectLast:
 		return true, values[len(values)-1].SetAt, nil
 	case api.InputCollectAll:
 		return true, lastSetAt(values), nil
 	case api.InputCollectSome:
 		return true, lastSetAt(values), nil
-	default:
+	default: // api.InputCollectFirst
 		return true, values[0].SetAt, nil
 	}
 }
@@ -463,40 +412,32 @@ func (s *stepEval) inputValues(
 ) ([]*api.AttributeValue, error) {
 	values := valuesUntil(s.flow.AttributeValues(name), cutoff)
 	matched, _, err := policy.MatchCandidateValues(
-		attr, values, s.e.evaluateRequiredMatch,
+		attr, values, s.e.Matcher,
 	)
 	return matched, err
 }
 
-func (s *stepEval) providerSummary(name api.Name) providerSummary {
-	return providerSummaryFor(s.flow, name)
-}
-
-func providerSummaryFor(flow api.FlowState, name api.Name) providerSummary {
+func providerSummaryFor(
+	flow api.FlowState, name api.Name,
+) (policy.ProviderSummary, time.Time) {
 	deps, ok := flow.Plan.Attributes[name]
 	if !ok || len(deps.Providers) == 0 {
-		return providerSummary{
-			ProviderSummary: policy.ProviderSummary{
-				Terminal:     true,
-				AllSucceeded: true,
-			},
-			completedAt: flow.CreatedAt,
-		}
-	}
-
-	res := providerSummary{
-		ProviderSummary: policy.ProviderSummary{
+		return policy.ProviderSummary{
 			Terminal:     true,
 			AllSucceeded: true,
-		},
+		}, flow.CreatedAt
 	}
-	missingCompletedAt := false
+
+	res := policy.ProviderSummary{
+		Terminal:     true,
+		AllSucceeded: true,
+	}
+	var completedAt time.Time
 	for _, sid := range deps.Providers {
 		ex, ok := flow.Executions[sid]
 		if !ok {
 			res.Terminal = false
 			res.AllSucceeded = false
-			missingCompletedAt = true
 			continue
 		}
 		if !policy.StepTerminal(ex.Status) {
@@ -506,17 +447,13 @@ func providerSummaryFor(flow api.FlowState, name api.Name) providerSummary {
 			res.AllSucceeded = false
 		}
 		if ex.CompletedAt.IsZero() {
-			missingCompletedAt = true
 			continue
 		}
-		if res.completedAt.IsZero() || ex.CompletedAt.After(res.completedAt) {
-			res.completedAt = ex.CompletedAt
+		if completedAt.IsZero() || ex.CompletedAt.After(completedAt) {
+			completedAt = ex.CompletedAt
 		}
 	}
-	if missingCompletedAt {
-		res.completedAt = time.Time{}
-	}
-	return res
+	return res, completedAt
 }
 
 func valuesUntil(
@@ -545,9 +482,7 @@ func lastSetAt(values []*api.AttributeValue) time.Time {
 	return at
 }
 
-func hasValueFrom(
-	flow api.FlowState, name api.Name, sid api.StepID,
-) bool {
+func hasValueFrom(flow api.FlowState, name api.Name, sid api.StepID) bool {
 	for _, v := range flow.AttributeValues(name) {
 		if v.Step == sid {
 			return true

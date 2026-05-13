@@ -34,13 +34,13 @@ const schedulerWaitTimeout = time.Second
 
 func TestScheduleTask(t *testing.T) {
 	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, now time.Time,
+		eng *engine.Engine, timer *fakeTimer, when time.Time,
 	) {
 		done := make(chan struct{}, 1)
 
 		eng.ScheduleTask(
 			[]string{"sched", "run"},
-			now.Add(40*time.Millisecond),
+			when.Add(40*time.Millisecond),
 			func() error {
 				done <- struct{}{}
 				return nil
@@ -48,7 +48,7 @@ func TestScheduleTask(t *testing.T) {
 		)
 		delay := timer.WaitReset(t)
 		assert.Equal(t, 40*time.Millisecond, delay)
-		timer.Fire(now.Add(40 * time.Millisecond))
+		timer.Fire(when.Add(40 * time.Millisecond))
 
 		select {
 		case <-done:
@@ -99,14 +99,14 @@ func TestRunAfterSchedule(t *testing.T) {
 
 func TestScheduleTaskReplacesSamePath(t *testing.T) {
 	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, now time.Time,
+		eng *engine.Engine, timer *fakeTimer, when time.Time,
 	) {
 		var firstRuns atomic.Int32
 		var secondRuns atomic.Int32
 		secondDone := make(chan struct{}, 1)
 		path := []string{"sched", "replace"}
 
-		eng.ScheduleTask(path, now.Add(300*time.Millisecond),
+		eng.ScheduleTask(path, when.Add(300*time.Millisecond),
 			func() error {
 				firstRuns.Add(1)
 				return nil
@@ -114,7 +114,7 @@ func TestScheduleTaskReplacesSamePath(t *testing.T) {
 		)
 		assert.Equal(t, 300*time.Millisecond, timer.WaitReset(t))
 
-		eng.ScheduleTask(path, now.Add(40*time.Millisecond),
+		eng.ScheduleTask(path, when.Add(40*time.Millisecond),
 			func() error {
 				secondRuns.Add(1)
 				secondDone <- struct{}{}
@@ -122,7 +122,7 @@ func TestScheduleTaskReplacesSamePath(t *testing.T) {
 			},
 		)
 		assertEventuallyEqual(t, 40*time.Millisecond, timer.WaitReset)
-		timer.Fire(now.Add(40 * time.Millisecond))
+		timer.Fire(when.Add(40 * time.Millisecond))
 
 		select {
 		case <-secondDone:
@@ -136,9 +136,9 @@ func TestScheduleTaskReplacesSamePath(t *testing.T) {
 
 func TestSameTimeTasksBothRun(t *testing.T) {
 	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, now time.Time,
+		eng *engine.Engine, timer *fakeTimer, when time.Time,
 	) {
-		runAt := now.Add(40 * time.Millisecond)
+		runAt := when.Add(40 * time.Millisecond)
 		done := make(chan string, 2)
 
 		eng.ScheduleTask([]string{"sched", "same-time", "a"}, runAt,
@@ -174,13 +174,13 @@ func TestSameTimeTasksBothRun(t *testing.T) {
 
 func TestCancelTask(t *testing.T) {
 	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, now time.Time,
+		eng *engine.Engine, timer *fakeTimer, when time.Time,
 	) {
 		var ran atomic.Bool
 		done := make(chan struct{}, 1)
 
 		path := []string{"sched", "cancel", "one"}
-		eng.ScheduleTask(path, now.Add(100*time.Millisecond),
+		eng.ScheduleTask(path, when.Add(100*time.Millisecond),
 			func() error {
 				ran.Store(true)
 				done <- struct{}{}
@@ -190,7 +190,7 @@ func TestCancelTask(t *testing.T) {
 		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
 		eng.CancelTask(path)
 		timer.WaitStop(t)
-		timer.Fire(now.Add(100 * time.Millisecond))
+		timer.Fire(when.Add(100 * time.Millisecond))
 
 		select {
 		case <-done:
@@ -203,7 +203,7 @@ func TestCancelTask(t *testing.T) {
 
 func TestCancelPrefixedTasks(t *testing.T) {
 	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, now time.Time,
+		eng *engine.Engine, timer *fakeTimer, when time.Time,
 	) {
 		var cancelledRuns atomic.Int32
 		var activeRuns atomic.Int32
@@ -212,7 +212,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 		cancelledPrefix := []string{"sched", "prefix", "cancelled"}
 		eng.ScheduleTask(
 			[]string{"sched", "prefix", "cancelled", "a"},
-			now.Add(100*time.Millisecond),
+			when.Add(100*time.Millisecond),
 			func() error {
 				cancelledRuns.Add(1)
 				return nil
@@ -220,7 +220,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 		)
 		eng.ScheduleTask(
 			[]string{"sched", "prefix", "cancelled", "b"},
-			now.Add(100*time.Millisecond),
+			when.Add(100*time.Millisecond),
 			func() error {
 				cancelledRuns.Add(1)
 				return nil
@@ -228,7 +228,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 		)
 		eng.ScheduleTask(
 			[]string{"sched", "prefix", "active", "c"},
-			now.Add(100*time.Millisecond),
+			when.Add(100*time.Millisecond),
 			func() error {
 				activeRuns.Add(1)
 				activeDone <- struct{}{}
@@ -240,7 +240,7 @@ func TestCancelPrefixedTasks(t *testing.T) {
 
 		eng.CancelPrefixedTasks(cancelledPrefix)
 		assertEventuallyEqual(t, 100*time.Millisecond, timer.WaitReset)
-		timer.Fire(now.Add(100 * time.Millisecond))
+		timer.Fire(when.Add(100 * time.Millisecond))
 
 		select {
 		case <-activeDone:
@@ -254,11 +254,11 @@ func TestCancelPrefixedTasks(t *testing.T) {
 
 func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
 	withFakeScheduler(t, func(
-		eng *engine.Engine, timer *fakeTimer, now time.Time,
+		eng *engine.Engine, timer *fakeTimer, when time.Time,
 	) {
 		var ran atomic.Bool
 		done := make(chan struct{}, 1)
-		runAt := now.Add(100 * time.Millisecond)
+		runAt := when.Add(100 * time.Millisecond)
 
 		eng.ScheduleTask([]string{"sched", "future"}, runAt,
 			func() error {
@@ -269,7 +269,7 @@ func TestTimerSignalDoesNotRunFutureTask(t *testing.T) {
 		)
 		assert.Equal(t, 100*time.Millisecond, timer.WaitReset(t))
 
-		timer.Fire(now.Add(50 * time.Millisecond))
+		timer.Fire(when.Add(50 * time.Millisecond))
 		select {
 		case <-done:
 			t.Fatal("future task ran before its scheduled time")

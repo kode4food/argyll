@@ -9,7 +9,7 @@ type (
 		Step      *api.Step
 		Values    func(api.Name) []*api.AttributeValue
 		Providers func(api.Name) ProviderSummary
-		Evaluate  MatchEvaluator
+		Match     Matcher
 	}
 
 	// RequiredMatchSpec carries layer facts needed to evaluate required match
@@ -18,12 +18,12 @@ type (
 		Attr     *api.AttributeSpec
 		Values   []*api.AttributeValue
 		Provider ProviderSummary
-		Evaluate MatchEvaluator
+		Match    Matcher
 	}
 
-	// MatchEvaluator evaluates a required match script against one candidate
+	// Matcher evaluates a required match script against one candidate
 	// attribute value
-	MatchEvaluator func(*api.ScriptConfig, any) (bool, error)
+	Matcher func(*api.ScriptConfig, any) (bool, error)
 
 	// MatchStatus classifies whether a step's required match gates are open,
 	// closed, still waiting for more candidate values, or absent
@@ -42,13 +42,18 @@ const (
 	MatchInputName          = api.Name("value")
 )
 
+// MatchStep returns the minimal synthetic step used as the compilation context
+// for a required match predicate, exposing only the candidate value
+var MatchStep = &api.Step{
+	Attributes: api.AttributeSpecs{
+		MatchInputName: {Role: api.RoleRequired, Type: api.TypeAny},
+	},
+}
+
 // RequiredInputHasMatch reports whether a required input has a non-empty match
 // predicate that should gate demand and candidate collection
 func RequiredInputHasMatch(attr *api.AttributeSpec) bool {
-	return attr.IsRequired() &&
-		attr.Required != nil &&
-		attr.Required.Match != nil &&
-		attr.Required.Match.Script != ""
+	return attr.IsRequired() && attr.RequiredMatch() != ""
 }
 
 // RequiredMatchStepStatus combines all required match gates on a step. Any
@@ -64,7 +69,7 @@ func RequiredMatchStepStatus(facts RequiredMatchStep) (MatchStatus, error) {
 			Attr:     attr,
 			Values:   facts.Values(name),
 			Provider: facts.Providers(name),
-			Evaluate: facts.Evaluate,
+			Match:    facts.Match,
 		})
 		if err != nil {
 			return MatchUnknown, err
@@ -90,7 +95,7 @@ func RequiredMatchStatus(facts RequiredMatchSpec) (MatchStatus, error) {
 	}
 
 	matched, unmatched, err := MatchCandidateValues(
-		facts.Attr, facts.Values, facts.Evaluate,
+		facts.Attr, facts.Values, facts.Match,
 	)
 	if err != nil {
 		return MatchUnknown, err
@@ -154,28 +159,10 @@ func StepPrunedByRequiredMatch(status api.StepStatus, reason string) bool {
 	return status == api.StepSkipped && reason == RequiredMatchSkipReason
 }
 
-// MatchStep builds the narrow synthetic step used to compile and evaluate a
-// required match predicate with only the candidate value in scope
-func MatchStep(cfg *api.ScriptConfig) *api.Step {
-	return &api.Step{
-		ID:   "required-match",
-		Name: "Required Match",
-		Type: api.StepTypeScript,
-		Attributes: api.AttributeSpecs{
-			MatchInputName: {
-				Role: api.RoleRequired,
-				Type: api.TypeAny,
-			},
-		},
-		Script: cfg,
-	}
-}
-
 // MatchCandidateValues returns only candidate values that satisfy a required
 // match predicate, plus the count of candidates that were evaluated and failed
 func MatchCandidateValues(
-	attr *api.AttributeSpec, values []*api.AttributeValue,
-	evaluate MatchEvaluator,
+	attr *api.AttributeSpec, values []*api.AttributeValue, match Matcher,
 ) ([]*api.AttributeValue, int, error) {
 	if !RequiredInputHasMatch(attr) {
 		return values, 0, nil
@@ -184,7 +171,7 @@ func MatchCandidateValues(
 	matched := make([]*api.AttributeValue, 0, len(values))
 	unmatched := 0
 	for _, val := range values {
-		ok, err := evaluate(attr.Required.Match, val.Value)
+		ok, err := match(attr.Required.Match, val.Value)
 		if err != nil {
 			return nil, 0, err
 		}

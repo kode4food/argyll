@@ -148,7 +148,7 @@ func (e *Engine) validateStepScripts(step *api.Step) error {
 				api.ErrInvalidScriptLanguage, name, err)
 		}
 
-		if err := env.Validate(policy.MatchStep(cfg), cfg.Script); err != nil {
+		if err := env.Validate(policy.MatchStep, cfg.Script); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
 				api.ErrInvalidScriptLanguage, name, err)
 		}

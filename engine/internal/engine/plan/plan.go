@@ -5,7 +5,6 @@ import (
 	"slices"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
-	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -29,7 +28,7 @@ type (
 		steps       api.Steps
 		attributes  api.AttributeGraph
 		providers   selectProviders
-		scripts     *script.Registry
+		match       policy.Matcher
 	}
 
 	selectProviders func(*builder, []api.StepID) []api.StepID
@@ -40,17 +39,13 @@ var (
 	ErrStepNotFound = errors.New("step not found")
 )
 
-var (
-	_ Planner = Create
-	_ Planner = Preview
-)
-
 // Create builds an execution plan for the given goal steps, resolving
 // dependencies and determining required inputs
 func Create(
-	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
+	init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return create(cat, goals, init, strictProviders)
+	return create(match, cat, goals, strictProviders, init)
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
@@ -58,14 +53,15 @@ func Create(
 // exists so the UI can show the full dependency path back to missing init
 // inputs
 func Preview(
-	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
+	init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return create(cat, goals, init, previewProviders)
+	return create(match, cat, goals, previewProviders, init)
 }
 
 func create(
-	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
-	providers selectProviders,
+	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
+	providers selectProviders, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	if len(goals) == 0 {
 		return nil, ErrNoGoals
@@ -75,7 +71,7 @@ func create(
 		return nil, err
 	}
 
-	pb := newPlanBuilder(cat, init, providers)
+	pb := newPlanBuilder(match, cat, providers, init)
 	pb.computeSatisfiable()
 	if err := pb.collectSteps(goals); err != nil {
 		return nil, err
@@ -90,7 +86,7 @@ func create(
 		Attributes: pb.attributes,
 		Excluded:   excluded,
 	}
-	children, err := buildChildPlans(res, cat, providers)
+	children, err := buildChildPlans(match, res, cat, providers)
 	if err != nil {
 		return nil, err
 	}
@@ -99,12 +95,14 @@ func create(
 }
 
 func newPlanBuilder(
-	st api.CatalogState, init api.InitArgs, providers selectProviders,
+	match policy.Matcher, st api.CatalogState, providers selectProviders,
+	init api.InitArgs,
 ) *builder {
 	pb := &builder{
 		cat:         st,
 		init:        init,
 		providers:   providers,
+		match:       match,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
 		satisfiable: util.Set[api.StepID]{},
@@ -115,7 +113,6 @@ func newPlanBuilder(
 		blocked:     map[api.StepID][]api.Name{},
 		steps:       api.Steps{},
 		attributes:  api.AttributeGraph{},
-		scripts:     script.NewRegistry(),
 	}
 
 	for key, values := range init {
@@ -193,13 +190,14 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	}
 
 	gate := b.stepGateStatus(st)
-	gateClosed := gate == policy.MatchUnmatched
-	gateUnknown := gate == policy.MatchUnknown
+	gateClosed := policy.MatchAllowsStepSkip(gate)
+	gateOpen := policy.MatchAllowsNormalDemand(gate)
 	allInputs := st.GetAllInputArgs()
 	required := b.buildRequired(st)
 	for _, name := range allInputs {
 		attr := st.Attributes[name]
-		if gateClosed && !policy.RequiredInputHasMatch(attr) {
+		isGateAttr := policy.RequiredInputHasMatch(attr)
+		if gateClosed && !isGateAttr {
 			continue
 		}
 		if b.initSatisfiesInput(name, attr) {
@@ -213,10 +211,7 @@ func (b *builder) collectStep(stepID api.StepID) error {
 		if required.Contains(name) && policy.RequiredInputMissing(
 			attr.Collect(), hasProvider, b.initHasValues(name),
 		) {
-			if gateClosed {
-				continue
-			}
-			if gateUnknown && !policy.RequiredInputHasMatch(attr) {
+			if !gateOpen && (gateClosed || !isGateAttr) {
 				continue
 			}
 			b.missing.Add(name)
@@ -237,7 +232,7 @@ func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
 			return initAttributeValues(b.init[name])
 		},
 		Providers: b.matchProviderSummary,
-		Evaluate:  b.evaluateRequiredMatch,
+		Match:     b.match,
 	})
 	if err != nil {
 		return policy.MatchUnknown
@@ -258,7 +253,7 @@ func (b *builder) initSatisfiesInput(
 		Attr:     attr,
 		Values:   initAttributeValues(b.init[name]),
 		Provider: b.matchProviderSummary(name),
-		Evaluate: b.evaluateRequiredMatch,
+		Match:    b.match,
 	})
 	return err == nil && decision == policy.MatchMatched
 }
@@ -284,33 +279,6 @@ func initAttributeValues(values []any) []*api.AttributeValue {
 		res = append(res, &api.AttributeValue{Value: value})
 	}
 	return res
-}
-
-func (b *builder) evaluateRequiredMatch(
-	cfg *api.ScriptConfig, value any,
-) (bool, error) {
-	st := policy.MatchStep(cfg)
-	comp, err := b.scripts.Compile(st, cfg)
-	if err != nil {
-		return false, err
-	}
-
-	env, err := b.scripts.Get(cfg.Language)
-	if err != nil {
-		return false, err
-	}
-
-	inputs := api.Args{policy.MatchInputName: value}
-	if cfg.Language == api.ScriptLangJPath {
-		if _, err := env.ExecuteScript(comp, st, inputs); err != nil {
-			if errors.Is(err, script.ErrJPathNoMatch) {
-				return false, nil
-			}
-			return false, err
-		}
-		return true, nil
-	}
-	return env.EvaluatePredicate(comp, st, inputs)
 }
 
 func (b *builder) blockedInputs(step *api.Step) []api.Name {
@@ -551,7 +519,8 @@ func previewProviders(b *builder, providers []api.StepID) []api.StepID {
 }
 
 func buildChildPlans(
-	pl *api.ExecutionPlan, cat api.CatalogState, providers selectProviders,
+	match policy.Matcher, pl *api.ExecutionPlan, cat api.CatalogState,
+	providers selectProviders,
 ) (map[api.StepID]*api.ExecutionPlan, error) {
 	childPlans := map[api.StepID]*api.ExecutionPlan{}
 	for sid, st := range pl.Steps {
@@ -559,7 +528,7 @@ func buildChildPlans(
 			continue
 		}
 		childPlan, err := create(
-			cat, st.Flow.Goals, childPlanInit(st), providers,
+			match, cat, st.Flow.Goals, providers, childPlanInit(st),
 		)
 		if err != nil {
 			return nil, err

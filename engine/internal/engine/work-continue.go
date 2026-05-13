@@ -51,7 +51,7 @@ func (e *Engine) CalculateNextRetry(
 }
 
 func (e *Engine) calculateNextRetryAt(
-	now time.Time, config *api.WorkConfig, retryCount int,
+	when time.Time, config *api.WorkConfig, retryCount int,
 ) time.Time {
 	config = e.resolveRetryConfig(config)
 
@@ -64,7 +64,7 @@ func (e *Engine) calculateNextRetryAt(
 		calculator(config.InitBackoff, retryCount), config.MaxBackoff,
 	)
 
-	return now.Add(time.Duration(delay) * time.Millisecond)
+	return when.Add(time.Duration(delay) * time.Millisecond)
 }
 
 func (tx *flowTx) scheduleRetry(stepID api.StepID, tkn api.Token) error {

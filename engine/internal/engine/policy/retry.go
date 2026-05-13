@@ -33,16 +33,16 @@ const (
 // supplied time. It keeps the state/timestamp policy separate from executor
 // concerns such as predicates, dispatch locality, and event raising
 func RetryStartDecision(
-	work api.WorkState, now time.Time,
+	work api.WorkState, when time.Time,
 ) (RetryStartAction, time.Time) {
 	switch work.Status {
 	case api.WorkPending:
-		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
 			return RetryStartWait, work.NextRetryAt
 		}
 		return RetryStartCheckPending, time.Time{}
 	case api.WorkFailed:
-		if work.NextRetryAt.IsZero() || work.NextRetryAt.After(now) {
+		if work.NextRetryAt.IsZero() || work.NextRetryAt.After(when) {
 			return RetryStartWait, work.NextRetryAt
 		}
 		return RetryStartNow, time.Time{}
@@ -58,17 +58,17 @@ func RetryStartDecision(
 // pending or failed work are recovered at NextRetryAt when one exists, with
 // active-step pending work also recoverable immediately
 func RecoverableDeadline(
-	exec api.ExecutionState, work api.WorkState, now time.Time,
+	exec api.ExecutionState, work api.WorkState, when time.Time,
 ) (time.Time, bool) {
 	switch work.Status {
 	case api.WorkActive, api.WorkNotCompleted:
-		return now, true
+		return when, true
 	case api.WorkPending:
 		if !work.NextRetryAt.IsZero() {
 			return work.NextRetryAt, true
 		}
 		if exec.Status == api.StepActive {
-			return now, true
+			return when, true
 		}
 		return time.Time{}, false
 	case api.WorkFailed:

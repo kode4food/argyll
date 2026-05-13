@@ -329,6 +329,13 @@ func (s *AttributeSpec) ForEach() bool {
 	return false
 }
 
+func (s *AttributeSpec) RequiredMatch() string {
+	if s.Required == nil || s.Required.Match == nil {
+		return ""
+	}
+	return s.Required.Match.Script
+}
+
 func (s *AttributeSpec) ConstValue() string {
 	if s.Const == nil {
 		return ""

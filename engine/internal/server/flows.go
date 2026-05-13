@@ -148,7 +148,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	pl, ok := s.createExecutionPlan(c, req.Goals, req.Init)
+	pl, ok := s.createPlan(c, req.Goals, req.Init, s.engine.CreatePlan)
 	if !ok {
 		return
 	}
@@ -235,18 +235,6 @@ func (s *Server) getFlowStatus(c *gin.Context) {
 	})
 }
 
-func (s *Server) createExecutionPlan(
-	c *gin.Context, goals []api.StepID, init api.InitArgs,
-) (*api.ExecutionPlan, bool) {
-	return s.createPlan(c, goals, init, plan.Create)
-}
-
-func (s *Server) createPreviewPlan(
-	c *gin.Context, goals []api.StepID, init api.InitArgs,
-) (*api.ExecutionPlan, bool) {
-	return s.createPlan(c, goals, init, plan.Preview)
-}
-
 func (s *Server) createPlan(
 	c *gin.Context, goals []api.StepID, init api.InitArgs, planner plan.Planner,
 ) (*api.ExecutionPlan, bool) {
@@ -296,7 +284,8 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	if pl, ok := s.createPreviewPlan(c, req.Goals, req.Init); ok {
+	pl, ok := s.createPlan(c, req.Goals, req.Init, s.engine.PreviewPlan)
+	if ok {
 		c.JSON(http.StatusOK, pl)
 	}
 }

@@ -317,13 +317,13 @@ func (tx *flowTx) startRetryWorkItem(
 }
 
 func (tx *flowTx) shouldStartPendingWorkItem(
-	step *api.Step, base api.Args, work api.WorkState, now time.Time,
+	step *api.Step, base api.Args, work api.WorkState, when time.Time,
 ) (bool, error) {
 	sid := step.ID
 	if !policy.WorkPending(work.Status) {
 		return false, nil
 	}
-	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
 		return false, nil
 	}
 	inputs := base.Apply(work.Inputs)
@@ -336,10 +336,10 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 
 func (tx *flowTx) shouldStartRetryPending(
 	step *api.Step, base api.Args, work api.WorkState, items api.WorkItems,
-	now time.Time,
+	when time.Time,
 ) (bool, error) {
 	sid := step.ID
-	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(now) {
+	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
 		return false, nil
 	}
 	limit := policy.StepParallelism(step)

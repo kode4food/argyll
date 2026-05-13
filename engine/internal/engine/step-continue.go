@@ -11,7 +11,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func (e *Engine) scheduleTimeouts(flow api.FlowState, now time.Time) {
+func (e *Engine) scheduleTimeouts(flow api.FlowState, when time.Time) {
 	if !flowHasTimeouts(flow) {
 		return
 	}
@@ -21,12 +21,12 @@ func (e *Engine) scheduleTimeouts(flow api.FlowState, now time.Time) {
 	}
 
 	for sid := range flow.Executions {
-		e.scheduleStepTimeouts(flow, sid, now, false)
+		e.scheduleStepTimeouts(flow, sid, when, false)
 	}
 }
 
 func (e *Engine) scheduleConsumerTimeouts(
-	flow api.FlowState, producerID api.StepID, now time.Time,
+	flow api.FlowState, producerID api.StepID, when time.Time,
 ) {
 	if policy.FlowTerminal(flow.Status) {
 		if flowHasTimeouts(flow) {
@@ -54,13 +54,13 @@ func (e *Engine) scheduleConsumerTimeouts(
 				continue
 			}
 			seen.Add(sid)
-			e.scheduleStepTimeouts(flow, sid, now, true)
+			e.scheduleStepTimeouts(flow, sid, when, true)
 		}
 	}
 }
 
 func (e *Engine) scheduleStepTimeouts(
-	flow api.FlowState, stepID api.StepID, now time.Time, clearExisting bool,
+	flow api.FlowState, stepID api.StepID, when time.Time, clearExisting bool,
 ) {
 	step, ok := flow.Plan.Steps[stepID]
 	if !ok || !stepHasTimeouts(step) {
@@ -80,7 +80,7 @@ func (e *Engine) scheduleStepTimeouts(
 		return
 	}
 
-	s := e.newStepEval(stepID, flow, now)
+	s := e.newStepEval(stepID, flow, when)
 	anchor, err := s.requiredReadyAt()
 	if err != nil {
 		return
@@ -128,7 +128,7 @@ func (e *Engine) scheduleTimeoutTask(
 }
 
 func (e *Engine) runTimeoutTaskAt(
-	fs api.FlowStep, name api.Name, now time.Time,
+	fs api.FlowStep, name api.Name, when time.Time,
 ) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
@@ -141,7 +141,7 @@ func (e *Engine) runTimeoutTaskAt(
 			return nil
 		}
 
-		ready, nextAt := tx.canStartStepAt(fs.StepID, fl, now)
+		ready, nextAt := tx.canStartStepAt(fs.StepID, fl, when)
 		if !ready {
 			if !nextAt.IsZero() {
 				tx.OnSuccess(func(api.FlowState, []*timebox.Event) {

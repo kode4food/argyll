@@ -73,13 +73,11 @@ func InputFulfilled(
 	switch collect {
 	case api.InputCollectNone:
 		return providers.Terminal && valueCount == 0
-	case api.InputCollectFirst:
-		return valueCount > 0
 	case api.InputCollectLast, api.InputCollectSome:
 		return valueCount > 0 && providers.Terminal
 	case api.InputCollectAll:
 		return valueCount > 0 && providers.Terminal && providers.AllSucceeded
-	default:
+	default: // api.InputCollectFirst
 		return valueCount > 0
 	}
 }

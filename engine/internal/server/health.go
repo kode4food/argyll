@@ -129,7 +129,7 @@ func (h *HealthChecker) updateScriptHealth(
 func (h *HealthChecker) updateFlowSteps(
 	cat api.CatalogState, health map[api.StepID]api.HealthState,
 ) {
-	resolved := engine.ResolveHealth(cat, health)
+	resolved := engine.ResolveHealth(h.engine.Matcher, cat, health)
 	for sid, st := range cat.Steps {
 		if st.Type != api.StepTypeFlow {
 			continue
@@ -247,7 +247,7 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 		return
 	}
 
-	merged := engine.ResolveHealth(cat, engine.MergeNodeHealth(cluster))
+	merged := engine.ResolveHealth(s.engine.Matcher, cat, engine.MergeNodeHealth(cluster))
 	health, ok := merged[sid]
 	if !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{
