@@ -108,6 +108,28 @@ const computeDisplayInfo = (step: Step): DisplayInfo => {
   return null;
 };
 
+const skippedReason = (
+  execution: ExecutionResult,
+  step: Step,
+  t: (key: string, vars?: Record<string, string | number>) => string
+): string => {
+  switch (execution.error_message) {
+    case "predicate returned false":
+      return t("liveStep.skipPredicate");
+    case "required match did not match":
+      return t("liveStep.skipUnsatisfied");
+    case "outputs not needed":
+      return t("liveStep.skipOutputsNotNeeded");
+    case undefined:
+    case "":
+      return step.predicate
+        ? t("liveStep.skipPredicate")
+        : t("liveStep.skipMissingInputs");
+    default:
+      return execution.error_message;
+  }
+};
+
 interface ExecutionContext {
   execution: ExecutionResult | undefined;
   flowId: string | undefined;
@@ -173,12 +195,9 @@ const buildTooltipSections = (
   }
 
   if (execution.status === "skipped") {
-    const skipReason = step.predicate
-      ? t("liveStep.skipPredicate")
-      : t("liveStep.skipMissingInputs");
     sections.push(
       <TooltipSection key="reason" title={t("liveStep.reasonTitle")}>
-        {skipReason}
+        {skippedReason(execution, step, t)}
       </TooltipSection>
     );
   }

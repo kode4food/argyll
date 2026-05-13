@@ -383,6 +383,7 @@ describe("WebSocketProvider", () => {
         flow_id: "flow-1",
         step_id: "step-3",
         unsatisfied: ["input"],
+        reason: "required match did not match",
       },
       timestamp: Date.now(),
     });
@@ -442,6 +443,7 @@ describe("WebSocketProvider", () => {
       expect.objectContaining({
         status: "skipped",
         unsatisfied: ["input"],
+        error_message: "required match did not match",
       })
     );
     expect(flowStore.__storeState.updateFlowData).toHaveBeenCalledWith(

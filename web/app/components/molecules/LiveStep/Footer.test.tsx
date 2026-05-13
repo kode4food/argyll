@@ -307,6 +307,27 @@ describe("Footer", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows match or collection reason for unsatisfied skip", () => {
+    const step = createStep("sync");
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "skipped",
+      inputs: {},
+      started_at: "2024-01-01T00:00:00Z",
+      error_message: "required match did not match",
+    };
+
+    mockUseStepProgress.mockReturnValue({
+      status: "skipped",
+      flowId: "wf-1",
+    });
+
+    render(<Footer step={step} flowId="wf-1" execution={execution} />);
+
+    expect(screen.getByText(t("liveStep.skipUnsatisfied"))).toBeInTheDocument();
+  });
+
   test("shows duration for completed execution", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {

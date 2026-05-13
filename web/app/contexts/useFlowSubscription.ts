@@ -82,6 +82,7 @@ const applyStepEvent = (
       updateExecution(wsEvent.data?.step_id, {
         status: "skipped",
         unsatisfied: wsEvent.data?.unsatisfied,
+        error_message: wsEvent.data?.reason,
         completed_at: ts,
       });
       return true;
