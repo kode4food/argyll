@@ -33,6 +33,9 @@ type (
 		EvaluatePredicate(
 			c Compiled, step *api.Step, inputs api.Args,
 		) (bool, error)
+
+		// EvaluateMatch evaluates a compiled matcher with a single input
+		EvaluateMatch(c Compiled, input any) (bool, error)
 	}
 
 	// Compiled represents a compiled script for any supported language
@@ -45,6 +48,16 @@ type (
 		build compileFunc[T]
 	}
 )
+
+const MatchValue = api.Name("value")
+
+// MatchStep returns the minimal synthetic step used as the compilation context
+// for a required match predicate, exposing only the candidate value
+var MatchStep = &api.Step{
+	Attributes: api.AttributeSpecs{
+		MatchValue: {Role: api.RoleRequired, Type: api.TypeAny},
+	},
+}
 
 // NewRegistry creates a new registry with Ale, JPath and Lua environments
 func NewRegistry() *Registry {

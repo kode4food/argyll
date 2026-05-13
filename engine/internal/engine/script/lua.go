@@ -98,6 +98,20 @@ func (e *LuaEnv) EvaluatePredicate(
 	return result, err
 }
 
+// EvaluateMatch executes a compiled Lua matcher with a single input and returns
+// the boolean result
+func (e *LuaEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
+	proc := c.(*CompiledLua)
+	result := false
+	err := e.withCompiledResult(proc, api.Args{MatchValue: input},
+		func(L *lua.State) {
+			result = L.ToBoolean(-1)
+			L.Pop(1)
+		},
+	)
+	return result, err
+}
+
 func (e *LuaEnv) wrapSource(script string, argNames []string) string {
 	argLocals := make([]string, len(argNames))
 	for i, name := range argNames {

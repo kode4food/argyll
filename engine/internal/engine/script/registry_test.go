@@ -35,6 +35,10 @@ func (r registryTestEnv) EvaluatePredicate(
 	return true, nil
 }
 
+func (r registryTestEnv) EvaluateMatch(script.Compiled, any) (bool, error) {
+	return true, nil
+}
+
 func TestAleCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()

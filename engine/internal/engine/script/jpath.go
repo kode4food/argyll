@@ -55,7 +55,16 @@ func (e *JPathEnv) ExecuteScript(
 func (e *JPathEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {
-	matches := c.(jpath.Path)(marshalJPathValue(inputs))
+	doc := marshalJPathValue(inputs)
+	matches := c.(jpath.Path)(doc)
+	return len(matches) > 0, nil
+}
+
+// EvaluateMatch applies the compiled JPath expression to a single input and
+// treats any match as success, including explicit null matches
+func (e *JPathEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
+	doc := marshalJPathValue(input)
+	matches := c.(jpath.Path)(doc)
 	return len(matches) > 0, nil
 }
 

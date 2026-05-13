@@ -82,6 +82,18 @@ func (e *AleEnv) EvaluatePredicate(
 	return result != data.False, nil
 }
 
+// EvaluateMatch executes a compiled Ale matcher with the provided input and
+// returns the boolean result
+func (e *AleEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
+	result, err := executeScript(c.(data.Procedure), MatchStep, api.Args{
+		MatchValue: input,
+	})
+	if err != nil {
+		return false, err
+	}
+	return result != data.False, nil
+}
+
 func (e *AleEnv) wrapSource(step *api.Step, script string) string {
 	return fmt.Sprintf(
 		aleLambdaTemplate, strings.Join(step.SortedArgNames(), " "), script,

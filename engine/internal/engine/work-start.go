@@ -36,6 +36,8 @@ var (
 	ErrPredicateCompileFailed = errors.New("predicate compilation failed")
 	ErrPredicateEnvFailed     = errors.New("failed to get script environment")
 	ErrPredicateEvalFailed    = errors.New("predicate evaluation failed")
+	ErrMatchEnvFailed         = errors.New("failed to get script environment")
+	ErrMatchEvalFailed        = errors.New("match evaluation failed")
 )
 
 func (tx *flowTx) executeStartedWork(

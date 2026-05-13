@@ -9,6 +9,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -148,7 +149,7 @@ func (e *Engine) validateStepScripts(step *api.Step) error {
 				api.ErrInvalidScriptLanguage, name, err)
 		}
 
-		if err := env.Validate(policy.MatchStep, cfg.Script); err != nil {
+		if err := env.Validate(script.MatchStep, cfg.Script); err != nil {
 			return fmt.Errorf("%w for attribute %q: %v",
 				api.ErrInvalidScriptLanguage, name, err)
 		}

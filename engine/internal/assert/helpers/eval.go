@@ -11,7 +11,7 @@ import (
 func Matcher() policy.Matcher {
 	scripts := script.NewRegistry()
 	return func(cfg *api.ScriptConfig, value any) (bool, error) {
-		comp, err := scripts.Compile(policy.MatchStep, cfg)
+		comp, err := scripts.Compile(script.MatchStep, cfg)
 		if err != nil {
 			return false, err
 		}
@@ -19,8 +19,6 @@ func Matcher() policy.Matcher {
 		if err != nil {
 			return false, err
 		}
-		return env.EvaluatePredicate(comp, policy.MatchStep, api.Args{
-			policy.MatchInputName: value,
-		})
+		return env.EvaluateMatch(comp, value)
 	}
 }

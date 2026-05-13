@@ -39,16 +39,7 @@ const (
 
 const (
 	RequiredMatchSkipReason = "required match did not match"
-	MatchInputName          = api.Name("value")
 )
-
-// MatchStep returns the minimal synthetic step used as the compilation context
-// for a required match predicate, exposing only the candidate value
-var MatchStep = &api.Step{
-	Attributes: api.AttributeSpecs{
-		MatchInputName: {Role: api.RoleRequired, Type: api.TypeAny},
-	},
-}
 
 // RequiredInputHasMatch reports whether a required input has a non-empty match
 // predicate that should gate demand and candidate collection

@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/util/call"
@@ -101,6 +102,7 @@ func (tx *flowTx) performSkip(stepID api.StepID, reason string) error {
 	}
 	return call.Perform(
 		tx.checkUnreachable,
+		tx.skipPendingUnused,
 		tx.checkTerminal,
 		tx.startReadyPendingSteps,
 	)
@@ -364,19 +366,19 @@ func (s *stepEval) requiredReadyAt() (time.Time, error) {
 
 // Matcher returns the engine's shared match predicate evaluator
 func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
-	comp, err := e.scripts.Compile(policy.MatchStep, cfg)
+	comp, err := e.scripts.Compile(script.MatchStep, cfg)
 	if err != nil {
 		return false, errors.Join(ErrPredicateCompileFailed, err)
 	}
 
 	env, err := e.scripts.Get(cfg.Language)
 	if err != nil {
-		return false, errors.Join(ErrPredicateEnvFailed, err)
+		return false, errors.Join(ErrMatchEnvFailed, err)
 	}
 
-	matched, err := env.EvaluatePredicate(comp, policy.MatchStep, api.Args{policy.MatchInputName: value})
+	matched, err := env.EvaluateMatch(comp, value)
 	if err != nil {
-		return false, errors.Join(ErrPredicateEvalFailed, err)
+		return false, errors.Join(ErrMatchEvalFailed, err)
 	}
 	return matched, nil
 }
