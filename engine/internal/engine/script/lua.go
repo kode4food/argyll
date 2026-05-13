@@ -103,7 +103,7 @@ func (e *LuaEnv) EvaluatePredicate(
 func (e *LuaEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	proc := c.(*CompiledLua)
 	result := false
-	err := e.withCompiledResult(proc, api.Args{MatchValue: input},
+	err := e.withCompiledResult(proc, api.Args{matchValue: input},
 		func(L *lua.State) {
 			result = L.ToBoolean(-1)
 			L.Pop(1)

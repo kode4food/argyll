@@ -22,7 +22,7 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
   const widgetRef = useRef<HTMLDivElement | null>(null);
   const updateNodeInternals = useUpdateNodeInternals();
 
-  const { execution, provenance, satisfied } = useNodeData(step, {
+  const { execution, resolved, provenance, satisfied } = useNodeData(step, {
     flowData,
     executions,
     resolvedAttributes,
@@ -62,6 +62,7 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
             .join(" ")}
           execution={execution}
           satisfiedArgs={satisfied}
+          availableArgs={resolved}
           attributeProvenance={provenance}
           attributeValues={flowData?.state}
           flowId={flowData?.id}

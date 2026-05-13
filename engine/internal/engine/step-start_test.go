@@ -725,6 +725,8 @@ func TestRequiredMatchAllPrunesOnUnmatchedProvider(t *testing.T) {
 		fl := env.WaitForTerminalFlow(id)
 		assert.False(t, env.MockClient.WasInvoked(consumer.ID))
 		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.Equal(t, api.StepSkipped, fl.Executions[consumer.ID].Status)
+		assert.Equal(t, []api.Name{"data"}, fl.Executions[consumer.ID].Unsatisfied)
 	})
 }
 

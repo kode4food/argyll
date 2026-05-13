@@ -75,6 +75,7 @@ type (
 		CompletedAt time.Time  `json:"completed_at"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
+		Unsatisfied []Name     `json:"unsatisfied,omitempty"`
 		Status      StepStatus `json:"status"`
 		Error       string     `json:"error,omitempty"`
 		Duration    int64      `json:"duration,omitempty"`
@@ -300,6 +301,12 @@ func (e ExecutionState) SetCompletedAt(t time.Time) ExecutionState {
 // SetInputs returns a new ExecutionState with the input arguments set
 func (e ExecutionState) SetInputs(inputs Args) ExecutionState {
 	e.Inputs = inputs
+	return e
+}
+
+// SetUnsatisfied returns a new ExecutionState with unsatisfied input names set
+func (e ExecutionState) SetUnsatisfied(inputs []Name) ExecutionState {
+	e.Unsatisfied = append([]Name(nil), inputs...)
 	return e
 }
 

@@ -230,6 +230,7 @@ func stepSkipped(
 			st.Executions[data.StepID].
 				SetStatus(api.StepSkipped).
 				SetError(data.Reason).
+				SetUnsatisfied(data.Unsatisfied).
 				SetCompletedAt(ev.Timestamp),
 		).
 		SetLastUpdated(ev.Timestamp)

@@ -1,7 +1,6 @@
 import { useCallback, useMemo, useState } from "react";
 import { HTTPMethod, SCRIPT_LANGUAGE_LUA, Step, StepType } from "@/app/api";
 import {
-  Attribute,
   buildStepPayload,
   createStepAttributes,
   normalizeHttpMethod,
@@ -93,7 +92,7 @@ export function useStepEditorForm(
     stepType,
   ]);
 
-  const applyStepDataToForm = useCallback(
+  const applyStepData = useCallback(
     (stepData: Step) => {
       setStepId(stepData.id || "");
       setName(stepData.name || "");
@@ -125,7 +124,7 @@ export function useStepEditorForm(
     isCreateMode,
     stepId,
     buildStepData,
-    applyStepDataToForm,
+    applyStepData,
     onUpdate,
     onClose,
     t,
@@ -219,7 +218,7 @@ export function useStepEditorForm(
     handleJsonSave,
     validateJsonDraft,
     getSerializedStepData,
-    applyStepDataToForm,
+    applyStepData,
     isCreateMode,
     contextValue,
   };

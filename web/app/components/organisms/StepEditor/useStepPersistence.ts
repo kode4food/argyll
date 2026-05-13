@@ -48,7 +48,7 @@ interface UseStepPersistenceArgs {
   isCreateMode: boolean;
   stepId: string;
   buildStepData: () => Step;
-  applyStepDataToForm: (step: Step) => void;
+  applyStepData: (step: Step) => void;
   onUpdate: (step: Step) => void;
   onClose: () => void;
   t: TFn;
@@ -58,7 +58,6 @@ export function useStepPersistence({
   isCreateMode,
   stepId,
   buildStepData,
-  applyStepDataToForm,
   onUpdate,
   onClose,
   t,

@@ -1,9 +1,6 @@
 import { useMemo } from "react";
-import { Step, FlowContext, ExecutionResult } from "@/app/api";
-import {
-  buildProvenanceMap,
-  calculateSatisfiedArgs,
-} from "@/utils/stepNodeUtils";
+import { AttributeRole, Step, FlowContext, ExecutionResult } from "@/app/api";
+import { buildProvenanceMap } from "@/utils/stepNodeUtils";
 
 export interface NodeDataResult {
   execution: ExecutionResult | undefined;
@@ -38,8 +35,22 @@ export const useNodeData = (
   }, [flowData?.state]);
 
   const satisfied = useMemo(() => {
-    return calculateSatisfiedArgs(step.attributes || {}, resolved);
-  }, [step.attributes, resolved]);
+    if (!execution || execution.status === "pending") {
+      return new Set<string>();
+    }
+
+    const unsatisfied = new Set(execution.unsatisfied || []);
+    return new Set(
+      Object.entries(step.attributes)
+        .filter(
+          ([name, spec]) =>
+            (spec.role === AttributeRole.Required ||
+              spec.role === AttributeRole.Optional) &&
+            !unsatisfied.has(name)
+        )
+        .map(([name]) => name)
+    );
+  }, [execution?.status, execution?.unsatisfied, step.attributes]);
 
   return {
     execution,

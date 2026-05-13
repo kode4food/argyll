@@ -169,6 +169,17 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 func (e *Engine) matchGateWillSkip(
 	step *api.Step, flow api.FlowState,
 ) (bool, error) {
+	unsatisfied, err := e.matchGateUnsatisfiedInputs(step, flow)
+	if err != nil {
+		return false, err
+	}
+	return len(unsatisfied) > 0, nil
+}
+
+func (e *Engine) matchGateUnsatisfiedInputs(
+	step *api.Step, flow api.FlowState,
+) ([]api.Name, error) {
+	var unsatisfied []api.Name
 	for name, attr := range step.Attributes {
 		if !policy.RequiredInputHasMatch(attr) {
 			continue
@@ -184,13 +195,14 @@ func (e *Engine) matchGateWillSkip(
 			Match:    e.Matcher,
 		})
 		if err != nil {
-			return false, err
+			return nil, err
 		}
 		if policy.MatchAllowsStepSkip(status) {
-			return true, nil
+			unsatisfied = append(unsatisfied, name)
 		}
 	}
-	return false, nil
+	slices.Sort(unsatisfied)
+	return unsatisfied, nil
 }
 
 func (e *Engine) hasPendingMatchGate(step *api.Step, flow api.FlowState) bool {

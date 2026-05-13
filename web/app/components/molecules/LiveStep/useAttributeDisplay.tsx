@@ -27,18 +27,28 @@ const badge = (
 const pendingBadge = (): React.ReactElement =>
   badge("pending", IconAttributeStatusPending);
 
+const progressBadge = (): React.ReactElement =>
+  badge("progress", IconAttributeStatusPending);
+
 const skippedBadge = (): React.ReactElement =>
   badge("skipped", IconAttributeStatusSkipped);
+
+const failedBadge = (): React.ReactElement =>
+  badge("failed", IconAttributeStatusFailed);
 
 const optionalStatusBadge = (
   context: StatusBadgeContext
 ): React.ReactElement | null => {
   if (!context.executionStatus) return null;
-  if (context.executionStatus === "skipped") return skippedBadge();
+  if (context.executionStatus === "skipped" && !context.isSatisfied)
+    return skippedBadge();
   if (context.isProvidedByUpstream)
     return badge("satisfied", IconAttributeStatusProvided);
   if (context.wasDefaulted)
     return badge("defaulted", IconAttributeStatusDefaulted);
+  if (context.isSatisfied)
+    return badge("satisfied", IconAttributeStatusSatisfied);
+  if (context.isAvailable) return progressBadge();
   return pendingBadge();
 };
 
@@ -55,13 +65,15 @@ const constStatusBadge = (
 const requiredStatusBadge = (
   context: StatusBadgeContext
 ): React.ReactElement | null => {
+  if (context.isUnsatisfied) return failedBadge();
   if (context.isSatisfied)
     return badge("satisfied", IconAttributeStatusSatisfied);
   if (
     context.executionStatus === "failed" ||
     context.executionStatus === "skipped"
   )
-    return badge("failed", IconAttributeStatusFailed);
+    return failedBadge();
+  if (context.isAvailable) return progressBadge();
   return pendingBadge();
 };
 
@@ -97,6 +109,7 @@ export const useAttributeStatusBadge = () => {
         argType: ArgType,
         context: StatusBadgeContext
       ): React.ReactElement | null => {
+        if (context.isUnsatisfied) return failedBadge();
         switch (argType) {
           case "optional":
             return optionalStatusBadge(context);

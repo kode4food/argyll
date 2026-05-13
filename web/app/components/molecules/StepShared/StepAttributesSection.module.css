@@ -148,6 +148,14 @@
   background-color: var(--color-warning);
 }
 
+.argStatusBadge.progress {
+  background-color: var(--color-warning);
+}
+
+.argStatusBadge.progress :global(svg) {
+  animation: spin 1.6s linear infinite;
+}
+
 .argStatusBadge.waiting {
   background-color: var(--color-warning);
 }

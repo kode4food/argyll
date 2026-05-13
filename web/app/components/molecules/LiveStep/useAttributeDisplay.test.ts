@@ -23,6 +23,28 @@ describe("useAttributeStatusBadge", () => {
     expect(badge?.props.className).toContain("pending");
   });
 
+  it("renders required progress status when a candidate value is available", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("required", {
+      isSatisfied: false,
+      isAvailable: true,
+    });
+
+    expect(badge).not.toBeNull();
+    expect(badge?.props.className).toContain("progress");
+  });
+
+  it("renders required failed status when unsatisfied", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("required", {
+      isSatisfied: false,
+      isUnsatisfied: true,
+    });
+
+    expect(badge).not.toBeNull();
+    expect(badge?.props.className).toContain("failed");
+  });
+
   it("renders required failed status", () => {
     const { result } = renderHook(() => useAttributeStatusBadge());
     const badge = result.current("required", {

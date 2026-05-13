@@ -72,9 +72,10 @@ type (
 
 	// StepSkippedEvent is emitted when a step is skipped due to predicate
 	StepSkippedEvent struct {
-		FlowID FlowID `json:"flow_id"`
-		StepID StepID `json:"step_id"`
-		Reason string `json:"reason"`
+		FlowID      FlowID `json:"flow_id"`
+		StepID      StepID `json:"step_id"`
+		Reason      string `json:"reason"`
+		Unsatisfied []Name `json:"unsatisfied,omitempty"`
 	}
 
 	// AttributeSetEvent is emitted when a flow attribute value is set

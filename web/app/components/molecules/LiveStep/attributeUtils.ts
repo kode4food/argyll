@@ -18,11 +18,23 @@ export interface UnifiedArg {
 
 export interface StatusBadgeContext {
   isSatisfied: boolean;
+  isAvailable?: boolean;
   executionStatus?: string;
+  isUnsatisfied?: boolean;
   isWinner?: boolean;
   isProvidedByUpstream?: boolean;
   wasDefaulted?: boolean;
 }
+
+export const getExecutionInputName = (arg: UnifiedArg): string => {
+  if (arg.argType === "required") {
+    return arg.spec.required?.mapping?.name || arg.name;
+  }
+  if (arg.argType === "optional") {
+    return arg.spec.optional?.mapping?.name || arg.name;
+  }
+  return arg.name;
+};
 
 /**
  * Formats a value for display in tooltips
@@ -78,10 +90,11 @@ export const getAttributeValue = (
     };
   }
 
-  if (hasAttribute(execution?.inputs, arg.name)) {
+  const inputName = getExecutionInputName(arg);
+  if (hasAttribute(execution?.inputs, inputName)) {
     return {
       hasValue: true,
-      value: execution?.inputs?.[arg.name],
+      value: execution?.inputs?.[inputName],
     };
   }
 

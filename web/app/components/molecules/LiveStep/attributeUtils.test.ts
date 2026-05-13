@@ -146,6 +146,28 @@ describe("attributeUtils", () => {
       expect(result.value).toBeUndefined();
     });
 
+    it("extracts input values by mapped input name", () => {
+      const arg = {
+        name: "input1",
+        type: "string",
+        argType: "required" as const,
+        spec: {
+          type: AttributeType.String,
+          role: AttributeRole.Required,
+          required: { mapping: { name: "mapped_input" } },
+          description: "",
+        },
+      };
+      const execution = {
+        ...mockExecution,
+        inputs: { mapped_input: "mapped value" },
+      };
+
+      const result = getAttributeValue(arg, execution);
+      expect(result.hasValue).toBe(true);
+      expect(result.value).toBe("mapped value");
+    });
+
     it("returns no value when execution is undefined", () => {
       const arg = {
         name: "input1",

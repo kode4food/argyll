@@ -52,7 +52,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
     handleJsonSave,
     validateJsonDraft,
     getSerializedStepData,
-    applyStepDataToForm,
+    applyStepData,
     isCreateMode,
     stepId,
     name,
@@ -132,7 +132,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
       return;
     }
 
-    applyStepDataToForm(JSON.parse(jsonDraft) as Step);
+    applyStepData(JSON.parse(jsonDraft) as Step);
     setEditorMode("basic");
   };
 

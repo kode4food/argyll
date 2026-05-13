@@ -86,7 +86,7 @@ func (e *AleEnv) EvaluatePredicate(
 // returns the boolean result
 func (e *AleEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	result, err := executeScript(c.(data.Procedure), MatchStep, api.Args{
-		MatchValue: input,
+		matchValue: input,
 	})
 	if err != nil {
 		return false, err

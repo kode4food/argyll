@@ -11,6 +11,7 @@ import { getArgIcon } from "@/utils/iconRegistry";
 import { getAttributeModifiers, getSortedAttributes } from "@/utils/stepUtils";
 import {
   formatAttributeValue,
+  getExecutionInputName,
   getAttributeTooltipTitle,
   getAttributeValue,
   UnifiedArg,
@@ -23,6 +24,7 @@ import { useT } from "@/app/i18n";
 interface AttributesProps {
   step: Step;
   satisfiedArgs: Set<string>;
+  availableArgs?: Set<string>;
   execution?: ExecutionResult;
   // attribute name -> step ID that produced it
   attributeProvenance?: Map<string, string>;
@@ -35,6 +37,7 @@ interface AttributeItemProps {
   execution?: ExecutionResult;
   attributeProvenance: Map<string, string>;
   satisfiedArgs: Set<string>;
+  availableArgs: Set<string>;
   attributeValues?: Record<string, AttributeValue>;
 }
 
@@ -84,6 +87,7 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
   execution,
   attributeProvenance,
   satisfiedArgs,
+  availableArgs,
   attributeValues,
 }) => {
   const t = useT();
@@ -96,11 +100,14 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
   );
   const isWinner = attributeProvenance.get(arg.name) === stepId;
   const isConst = arg.argType === "const";
+  const isUnsatisfied = execution?.unsatisfied?.includes(arg.name) ?? false;
   const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
-  const executionInputValue = execution?.inputs?.[arg.name];
+  const isAvailable = !isSatisfied && availableArgs.has(arg.name);
+  const executionInputName = getExecutionInputName(arg);
+  const executionInputValue = execution?.inputs?.[executionInputName];
   const optionalUsedDefault =
     arg.argType === "optional" &&
-    hasExecutionInput(execution, arg.name) &&
+    hasExecutionInput(execution, executionInputName) &&
     defaultMatchesExecutionInput(
       arg.spec.optional?.default,
       executionInputValue
@@ -110,7 +117,7 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
 
   const isProvidedByUpstream =
     arg.argType === "optional"
-      ? hasExecutionInput(execution, arg.name)
+      ? hasExecutionInput(execution, executionInputName)
         ? !optionalUsedDefault
         : attributeProvenance.has(arg.name)
       : undefined;
@@ -123,7 +130,9 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
 
   const statusBadge = renderStatusBadge(arg.argType, {
     isSatisfied,
+    isAvailable,
     executionStatus: execution?.status,
+    isUnsatisfied,
     isWinner,
     isProvidedByUpstream,
     wasDefaulted,
@@ -177,6 +186,7 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
 const Attributes: React.FC<AttributesProps> = ({
   step,
   satisfiedArgs,
+  availableArgs = new Set(),
   execution,
   attributeProvenance = new Map(),
   attributeValues,
@@ -215,6 +225,7 @@ const Attributes: React.FC<AttributesProps> = ({
           execution={execution}
           attributeProvenance={attributeProvenance}
           satisfiedArgs={satisfiedArgs}
+          availableArgs={availableArgs}
           attributeValues={attributeValues}
         />
       ))}

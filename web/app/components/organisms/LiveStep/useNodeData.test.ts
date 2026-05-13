@@ -92,14 +92,56 @@ describe("useNodeData", () => {
     expect(result.current.provenance.size).toBe(0);
   });
 
-  it("calculates satisfied arguments", () => {
+  it("treats inputs as satisfied after the step starts", () => {
     const { result } = renderHook(() =>
-      useNodeData(mockStep as any, { resolvedAttributes: ["input1"] })
+      useNodeData(mockStep as any, {
+        executions: [mockExecution],
+      })
     );
 
     expect(result.current.satisfied).toBeInstanceOf(Set);
     expect(result.current.satisfied.has("input1")).toBe(true);
     expect(result.current.satisfied.has("output1")).toBe(false);
+  });
+
+  it("does not satisfy inputs from resolved attributes alone", () => {
+    const { result } = renderHook(() =>
+      useNodeData(mockStep as any, { resolvedAttributes: ["input1"] })
+    );
+
+    expect(result.current.resolved.has("input1")).toBe(true);
+    expect(result.current.satisfied.has("input1")).toBe(false);
+  });
+
+  it("excludes unsatisfied attributes for skipped steps", () => {
+    const { result } = renderHook(() =>
+      useNodeData(mockStep as any, {
+        executions: [
+          {
+            ...mockExecution,
+            status: "skipped",
+            unsatisfied: ["input1"],
+          },
+        ],
+      })
+    );
+
+    expect(result.current.satisfied.has("input1")).toBe(false);
+  });
+
+  it("treats skipped inputs not listed as unsatisfied as satisfied", () => {
+    const { result } = renderHook(() =>
+      useNodeData(mockStep as any, {
+        executions: [
+          {
+            ...mockExecution,
+            status: "skipped",
+          },
+        ],
+      })
+    );
+
+    expect(result.current.satisfied.has("input1")).toBe(true);
   });
 
   it("returns all required data structures", () => {
@@ -200,7 +242,7 @@ describe("useNodeData", () => {
     expect(result.current.satisfied.size).toBeGreaterThanOrEqual(0);
   });
 
-  it("handles satisfied args with multiple attributes", () => {
+  it("marks every input attribute satisfied for a started step", () => {
     const stepWithMultipleAttrs = {
       ...mockStep,
       attributes: {
@@ -224,12 +266,12 @@ describe("useNodeData", () => {
 
     const { result } = renderHook(() =>
       useNodeData(stepWithMultipleAttrs as any, {
-        resolvedAttributes: ["input1", "optional1"],
+        executions: [mockExecution],
       })
     );
 
     expect(result.current.satisfied.has("input1")).toBe(true);
-    expect(result.current.satisfied.has("input2")).toBe(false);
+    expect(result.current.satisfied.has("input2")).toBe(true);
     expect(result.current.satisfied.has("optional1")).toBe(true);
   });
 });

@@ -49,13 +49,13 @@ type (
 	}
 )
 
-const MatchValue = api.Name("value")
+const matchValue = api.Name("value")
 
 // MatchStep returns the minimal synthetic step used as the compilation context
 // for a required match predicate, exposing only the candidate value
 var MatchStep = &api.Step{
 	Attributes: api.AttributeSpecs{
-		MatchValue: {Role: api.RoleRequired, Type: api.TypeAny},
+		matchValue: {Role: api.RoleRequired, Type: api.TypeAny},
 	},
 }
 

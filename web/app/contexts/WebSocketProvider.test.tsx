@@ -360,7 +360,11 @@ describe("WebSocketProvider", () => {
     });
     flowHandler({
       type: "step_started",
-      data: { flow_id: "flow-1", step_id: "step-1", inputs: {} },
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-1",
+        inputs: {},
+      },
       timestamp: Date.now(),
     });
     flowHandler({
@@ -375,7 +379,11 @@ describe("WebSocketProvider", () => {
     });
     flowHandler({
       type: "step_skipped",
-      data: { flow_id: "flow-1", step_id: "step-3" },
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-3",
+        unsatisfied: ["input"],
+      },
       timestamp: Date.now(),
     });
     flowHandler({
@@ -421,7 +429,9 @@ describe("WebSocketProvider", () => {
     });
     expect(flowStore.__storeState.updateExecution).toHaveBeenCalledWith(
       "step-1",
-      expect.objectContaining({ status: "active" })
+      expect.objectContaining({
+        status: "active",
+      })
     );
     expect(flowStore.__storeState.updateExecution).toHaveBeenCalledWith(
       "step-2",
@@ -429,7 +439,10 @@ describe("WebSocketProvider", () => {
     );
     expect(flowStore.__storeState.updateExecution).toHaveBeenCalledWith(
       "step-3",
-      expect.objectContaining({ status: "skipped" })
+      expect.objectContaining({
+        status: "skipped",
+        unsatisfied: ["input"],
+      })
     );
     expect(flowStore.__storeState.updateFlowData).toHaveBeenCalledWith(
       expect.objectContaining({

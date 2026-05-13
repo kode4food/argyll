@@ -45,12 +45,15 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	}
 
 	st := fl.Plan.Steps[stepID]
-	willSkip, err := tx.matchGateWillSkip(st, fl)
+	unsatisfied, err := tx.matchGateUnsatisfiedInputs(st, fl)
 	if err != nil {
 		return err
 	}
-	if willSkip {
-		return tx.performSkip(stepID, policy.RequiredMatchSkipReason)
+	if len(unsatisfied) > 0 {
+		return tx.performSkip(
+			stepID, policy.RequiredMatchSkipReason,
+			unsatisfied,
+		)
 	}
 
 	inputs, err := tx.collectStepInputs(st, fl)
@@ -63,7 +66,7 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		return tx.handlePredicateFailure(stepID, err)
 	}
 	if !shouldExecute {
-		return tx.performSkip(stepID, "predicate returned false")
+		return tx.performSkip(stepID, "predicate returned false", nil)
 	}
 
 	workItemsList, err := computeWorkItems(st, inputs)
@@ -90,12 +93,15 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 	return nil
 }
 
-func (tx *flowTx) performSkip(stepID api.StepID, reason string) error {
+func (tx *flowTx) performSkip(
+	stepID api.StepID, reason string, unsatisfied []api.Name,
+) error {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
 		api.StepSkippedEvent{
-			FlowID: tx.flowID,
-			StepID: stepID,
-			Reason: reason,
+			FlowID:      tx.flowID,
+			StepID:      stepID,
+			Reason:      reason,
+			Unsatisfied: unsatisfied,
 		},
 	); err != nil {
 		return err
@@ -212,6 +218,9 @@ func (tx *flowTx) collectStepInputs(
 		}
 		val, ok := policy.ResolveInputValue(attr.Collect(), values)
 		if !ok {
+			if attr.IsRequired() && attr.Collect() == api.InputCollectNone {
+				continue
+			}
 			if !attr.IsRequired() && attr.OptionalDefault() != "" {
 				value := parseDefaultValue(attr.OptionalDefault())
 				tx.setStepInput(inputs, step, name, attr, value)

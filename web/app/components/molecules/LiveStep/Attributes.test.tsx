@@ -305,6 +305,47 @@ describe("Attributes", () => {
     ).toBeInTheDocument();
   });
 
+  test("shows progress badge when a global attribute is available", () => {
+    const step = createStep(["input1"], [], []);
+
+    const { container } = render(
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        availableArgs={new Set(["input1"])}
+      />
+    );
+
+    expect(
+      container.querySelector(".arg-status-badge.progress")
+    ).toBeInTheDocument();
+  });
+
+  test("shows failed badge when an input is unsatisfied", () => {
+    const step = createStep(["input1"], [], []);
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "skipped",
+      inputs: {},
+      unsatisfied: ["input1"],
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    const { container } = render(
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set()}
+        availableArgs={new Set(["input1"])}
+        execution={execution}
+      />
+    );
+
+    expect(
+      container.querySelector(".arg-status-badge.failed")
+    ).toBeInTheDocument();
+  });
+
   test("formats complex objects in tooltips", () => {
     const step = createStep(["config"], [], []);
     const satisfiedArgs = new Set<string>();
@@ -452,6 +493,47 @@ describe("Attributes", () => {
     const badge = container.querySelector(".arg-status-badge.defaulted");
     expect(badge).toBeInTheDocument();
     expect(badge?.querySelector(".lucide-circle-dot")).toBeInTheDocument();
+  });
+
+  test("shows optional default value from mapped execution input", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          optional: {
+            default: `"default-value"`,
+            mapping: { name: "mapped_opt" },
+          },
+        },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "completed",
+      inputs: { mapped_opt: "default-value" },
+      started_at: "2024-01-01T00:00:00Z",
+    };
+
+    render(
+      <Attributes
+        step={step}
+        satisfiedArgs={new Set(["opt1"])}
+        execution={execution}
+      />
+    );
+
+    expect(screen.getByText(t("liveStep.defaultValue"))).toBeInTheDocument();
+    expect(screen.getByText('"default-value"')).toBeInTheDocument();
+    expect(screen.queryByText("undefined")).not.toBeInTheDocument();
   });
 
   test("keeps optional arg labeled defaulted after upstream provenance appears", () => {

@@ -380,8 +380,9 @@ func TestStepSkipped(t *testing.T) {
 	now := time.Now()
 
 	eventData := api.StepSkippedEvent{
-		StepID: "step1",
-		Reason: "predicate evaluated to false",
+		StepID:      "step1",
+		Reason:      "predicate evaluated to false",
+		Unsatisfied: []api.Name{"input"},
 	}
 	data, err := json.Marshal(eventData)
 	assert.NoError(t, err)
@@ -399,6 +400,7 @@ func TestStepSkipped(t *testing.T) {
 	ex := result.Executions["step1"]
 	assert.Equal(t, api.StepSkipped, ex.Status)
 	assert.Equal(t, "predicate evaluated to false", ex.Error)
+	assert.Equal(t, []api.Name{"input"}, ex.Unsatisfied)
 }
 
 func TestAttributeSet(t *testing.T) {

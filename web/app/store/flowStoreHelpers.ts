@@ -182,6 +182,7 @@ export function buildExecutionList(state: FlowStateUpdate): ExecutionResult[] {
       status: exec.status || "pending",
       inputs: exec.inputs || {},
       outputs: exec.outputs,
+      unsatisfied: exec.unsatisfied,
       error_message: exec.error,
       started_at: exec.started_at || "",
       completed_at: exec.completed_at,

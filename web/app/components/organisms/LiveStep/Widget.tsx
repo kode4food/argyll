@@ -15,6 +15,7 @@ interface WidgetProps {
   className?: string;
   execution?: ExecutionResult;
   satisfiedArgs?: Set<string>;
+  availableArgs?: Set<string>;
   attributeProvenance?: Map<string, string>;
   attributeValues?: Record<string, AttributeValue>;
   flowId?: string;
@@ -29,6 +30,7 @@ const Widget: React.FC<WidgetProps> = ({
   className = "",
   execution,
   satisfiedArgs = new Set(),
+  availableArgs = new Set(),
   attributeProvenance = new Map(),
   attributeValues,
   flowId,
@@ -52,6 +54,7 @@ const Widget: React.FC<WidgetProps> = ({
       <Attributes
         step={step}
         satisfiedArgs={satisfiedArgs}
+        availableArgs={availableArgs}
         execution={execution}
         attributeProvenance={attributeProvenance}
         attributeValues={attributeValues}

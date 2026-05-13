@@ -174,6 +174,7 @@ export interface ExecutionResult {
   status: StepStatus;
   inputs: Record<string, any>;
   outputs?: Record<string, any>;
+  unsatisfied?: string[];
   error_message?: string;
   started_at: string;
   completed_at?: string;
