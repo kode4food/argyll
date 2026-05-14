@@ -284,7 +284,7 @@ describe("Footer", () => {
     expect(screen.getByText("Connection timeout")).toBeInTheDocument();
   });
 
-  test("shows skip reason for skipped execution", () => {
+  test("shows generic skip reason when skipped execution has no reason", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
@@ -302,12 +302,10 @@ describe("Footer", () => {
     render(<Footer step={step} flowId="wf-1" execution={execution} />);
 
     expect(screen.getByText(t("liveStep.reasonTitle"))).toBeInTheDocument();
-    expect(
-      screen.getByText(t("liveStep.skipMissingInputs"))
-    ).toBeInTheDocument();
+    expect(screen.getByText(t("liveStep.skipUnknown"))).toBeInTheDocument();
   });
 
-  test("shows match or collection reason for unsatisfied skip", () => {
+  test("shows required match reason for required match skip", () => {
     const step = createStep("sync");
     const execution: ExecutionResult = {
       step_id: "step-1",
@@ -325,7 +323,9 @@ describe("Footer", () => {
 
     render(<Footer step={step} flowId="wf-1" execution={execution} />);
 
-    expect(screen.getByText(t("liveStep.skipUnsatisfied"))).toBeInTheDocument();
+    expect(
+      screen.getByText(t("liveStep.skipRequiredMatch"))
+    ).toBeInTheDocument();
   });
 
   test("shows duration for completed execution", () => {

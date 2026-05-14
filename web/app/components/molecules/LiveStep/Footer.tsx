@@ -117,14 +117,12 @@ const skippedReason = (
     case "predicate returned false":
       return t("liveStep.skipPredicate");
     case "required match did not match":
-      return t("liveStep.skipUnsatisfied");
+      return t("liveStep.skipRequiredMatch");
     case "outputs not needed":
       return t("liveStep.skipOutputsNotNeeded");
     case undefined:
     case "":
-      return step.predicate
-        ? t("liveStep.skipPredicate")
-        : t("liveStep.skipMissingInputs");
+      return t("liveStep.skipUnknown");
     default:
       return execution.error_message;
   }
