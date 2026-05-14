@@ -100,6 +100,44 @@ func TestJPathEvaluatePredicateNullMatch(t *testing.T) {
 	assert.True(t, passed)
 }
 
+func TestJPathEvaluateMatch(t *testing.T) {
+	env := script.NewJPathEnv()
+
+	compiled, err := env.Compile(script.MatchStep, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   `$.kind == "email"`,
+	})
+	assert.NoError(t, err)
+
+	matched, err := env.EvaluateMatch(compiled, map[string]any{
+		"kind": "email",
+	})
+	assert.NoError(t, err)
+	assert.True(t, matched)
+
+	matched, err = env.EvaluateMatch(compiled, map[string]any{
+		"kind": "postal",
+	})
+	assert.NoError(t, err)
+	assert.False(t, matched)
+}
+
+func TestJPathEvaluateMatchNullMatch(t *testing.T) {
+	env := script.NewJPathEnv()
+
+	compiled, err := env.Compile(script.MatchStep, &api.ScriptConfig{
+		Language: api.ScriptLangJPath,
+		Script:   "$.optional",
+	})
+	assert.NoError(t, err)
+
+	matched, err := env.EvaluateMatch(compiled, map[string]any{
+		"optional": nil,
+	})
+	assert.NoError(t, err)
+	assert.True(t, matched)
+}
+
 func TestJPathExecuteScriptSingleMatch(t *testing.T) {
 	env := script.NewJPathEnv()
 

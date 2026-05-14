@@ -231,6 +231,30 @@ func TestAleEvaluatePredicate(t *testing.T) {
 	})
 }
 
+func TestAleEvaluateMatch(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		env := script.NewAleEnv()
+		cfg := &api.ScriptConfig{
+			Script:   `(eq (:kind value) "email")`,
+			Language: api.ScriptLangAle,
+		}
+		comp, err := env.Compile(script.MatchStep, cfg)
+		assert.NoError(t, err)
+
+		matched, err := env.EvaluateMatch(comp, map[string]any{
+			"kind": "email",
+		})
+		assert.NoError(t, err)
+		assert.True(t, matched)
+
+		matched, err = env.EvaluateMatch(comp, map[string]any{
+			"kind": "postal",
+		})
+		assert.NoError(t, err)
+		assert.False(t, matched)
+	})
+}
+
 func TestAleValidate(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		env := script.NewAleEnv()

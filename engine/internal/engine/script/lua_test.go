@@ -122,6 +122,30 @@ func TestLuaEvaluatePredicate(t *testing.T) {
 	}
 }
 
+func TestLuaEvaluateMatch(t *testing.T) {
+	env := script.NewLuaEnv()
+	cfg := &api.ScriptConfig{
+		Script:   `return value.kind == "email" and value.region == "us"`,
+		Language: api.ScriptLangLua,
+	}
+	comp, err := env.Compile(script.MatchStep, cfg)
+	assert.NoError(t, err)
+
+	matched, err := env.EvaluateMatch(comp, map[string]any{
+		"kind":   "email",
+		"region": "us",
+	})
+	assert.NoError(t, err)
+	assert.True(t, matched)
+
+	matched, err = env.EvaluateMatch(comp, map[string]any{
+		"kind":   "email",
+		"region": "eu",
+	})
+	assert.NoError(t, err)
+	assert.False(t, matched)
+}
+
 func TestLuaValidate(t *testing.T) {
 	env := script.NewLuaEnv()
 
