@@ -29,6 +29,45 @@ func InitBlocksInput(collect api.InputCollect, hasInit bool) bool {
 	return hasInit && collect == api.InputCollectNone
 }
 
+// InitProviderComplete reports whether init data lets match policy treat
+// provider state as complete. Init data is complete only when it exists and no
+// planned provider can produce the same attribute later
+func InitProviderComplete(hasInit, hasProvider bool) bool {
+	return hasInit && !hasProvider
+}
+
+// InitSatisfiesRequired reports whether init data can satisfy an input during
+// planning. Inputs without match follow collect-mode init policy; inputs with
+// match must also have an init value that satisfies the match predicate
+func InitSatisfiesRequired(
+	attr *api.AttributeSpec, hasInit, hasProvider bool,
+	values []*api.AttributeValue, match Matcher,
+) bool {
+	if !InitSatisfiesInput(attr.Collect(), hasInit) {
+		return false
+	}
+	if !RequiredInputHasMatch(attr) {
+		return true
+	}
+	complete := InitProviderComplete(hasInit, hasProvider)
+	status, err := RequiredMatchStatus(RequiredMatchSpec{
+		Attr:   attr,
+		Values: values,
+		Provider: ProviderSummary{
+			Terminal:     complete,
+			AllSucceeded: complete,
+		},
+		Match: match,
+	})
+	return err == nil && status == MatchMatched
+}
+
+// InitBlocksRuntime reports whether init data blocks a runtime input from
+// being satisfied. Non-runtime inputs are not blocked by init data
+func InitBlocksRuntime(attr *api.AttributeSpec, hasInit bool) bool {
+	return attr.IsRuntimeInput() && InitBlocksInput(attr.Collect(), hasInit)
+}
+
 // RequiredInputMissing reports whether a required input should be surfaced as
 // missing to the caller building a plan. Providers satisfy the requirement
 // speculatively, collect:none never requires a supplied value, and otherwise
@@ -50,6 +89,45 @@ func RequiredInputMissing(
 // providers, unlike first, last, or some
 func RequiresAllProviders(collect api.InputCollect) bool {
 	return collect == api.InputCollectAll
+}
+
+// RequiredInputsAvailable reports whether every required input on a step is
+// available. The caller supplies availability facts from its planning layer
+func RequiredInputsAvailable(
+	step *api.Step, available func(api.Name) bool,
+) bool {
+	for name, attr := range step.Attributes {
+		if attr.IsRequired() && !available(name) {
+			return false
+		}
+	}
+	return true
+}
+
+// StepOutputsSatisfied reports whether a step's declared outputs are already
+// satisfied. A step with no declared outputs is not satisfied by output state
+func StepOutputsSatisfied(step *api.Step, satisfied func(api.Name) bool) bool {
+	hasOutputs := false
+	for name, attr := range step.Attributes {
+		if !attr.IsOutput() {
+			continue
+		}
+		hasOutputs = true
+		if !satisfied(name) {
+			return false
+		}
+	}
+	return hasOutputs
+}
+
+// StepInputGuaranteed reports whether an input is guaranteed to have a value
+// when planning a child flow. Required inputs, const inputs, and optional
+// inputs with defaults are guaranteed
+func StepInputGuaranteed(attr *api.AttributeSpec) bool {
+	if attr.IsRequired() || attr.IsConst() {
+		return true
+	}
+	return attr.IsOptional() && attr.OptionalDefault() != ""
 }
 
 // ProviderOutputNeeded reports whether a provider should still run for a
@@ -93,9 +171,9 @@ func TimeoutCanUseValues(collect api.InputCollect) bool {
 	}
 }
 
-// ResolveInputValue returns the runtime argument value implied by a collect
-// mode from already-filtered attribute values. Callers are responsible for
-// applying any deadline cutoff before calling this helper
+// ResolveInputValue returns the runtime argument value selected by a collect
+// mode from already-filtered attribute values. Callers are responsible for any
+// deadline cutoff or match filtering before calling it
 func ResolveInputValue(
 	collect api.InputCollect, values []*api.AttributeValue,
 ) (any, bool) {

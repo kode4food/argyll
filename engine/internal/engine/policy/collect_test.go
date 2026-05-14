@@ -17,6 +17,56 @@ func TestInitPolicy(t *testing.T) {
 	assert.True(t, policy.InitBlocksInput(api.InputCollectNone, true))
 	assert.False(t, policy.InitBlocksInput(api.InputCollectFirst, true))
 	assert.False(t, policy.InitBlocksInput(api.InputCollectNone, false))
+
+	assert.True(t, policy.InitProviderComplete(true, false))
+	assert.False(t, policy.InitProviderComplete(true, true))
+	assert.False(t, policy.InitProviderComplete(false, false))
+}
+
+func TestInitSatisfiesRequired(t *testing.T) {
+	cfg := &api.ScriptConfig{Language: "test", Script: "match"}
+	matcher := func(_ *api.ScriptConfig, value any) (bool, error) {
+		return value == "ok", nil
+	}
+	values := []*api.AttributeValue{{Value: "ok"}}
+
+	assert.True(t, policy.InitSatisfiesRequired(
+		&api.AttributeSpec{Role: api.RoleRequired},
+		true, false, nil, matcher,
+	))
+	assert.False(t, policy.InitSatisfiesRequired(
+		&api.AttributeSpec{Role: api.RoleRequired},
+		false, false, nil, matcher,
+	))
+	assert.True(t, policy.InitSatisfiesRequired(
+		requiredMatch(cfg, api.InputCollectFirst),
+		true, false, values, matcher,
+	))
+	assert.False(t, policy.InitSatisfiesRequired(
+		requiredMatch(cfg, api.InputCollectFirst),
+		true, false, []*api.AttributeValue{{Value: "bad"}}, matcher,
+	))
+}
+
+func TestInitBlocksRuntime(t *testing.T) {
+	assert.True(t, policy.InitBlocksRuntime(
+		&api.AttributeSpec{
+			Role: api.RoleRequired,
+			Required: &api.RequiredConfig{
+				Collect: api.InputCollectNone,
+			},
+		},
+		true,
+	))
+	assert.False(t, policy.InitBlocksRuntime(
+		&api.AttributeSpec{
+			Role: api.RoleConst,
+			Const: &api.ConstConfig{
+				Value: "fixed",
+			},
+		},
+		true,
+	))
 }
 
 func TestRequiredInputMissing(t *testing.T) {
@@ -53,6 +103,69 @@ func TestProviderOutputNeeded(t *testing.T) {
 	assert.False(t,
 		policy.ProviderOutputNeeded(api.InputCollectAll, true, false),
 	)
+}
+
+func TestRequiredInputsAvailable(t *testing.T) {
+	st := &api.Step{
+		Attributes: api.AttributeSpecs{
+			"input": {Role: api.RoleRequired},
+			"out":   {Role: api.RoleOutput},
+		},
+	}
+
+	assert.True(t, policy.RequiredInputsAvailable(st,
+		func(name api.Name) bool {
+			return name == "input"
+		},
+	))
+	assert.False(t, policy.RequiredInputsAvailable(st,
+		func(api.Name) bool {
+			return false
+		},
+	))
+}
+
+func TestStepOutputsSatisfied(t *testing.T) {
+	st := &api.Step{
+		Attributes: api.AttributeSpecs{
+			"in":  {Role: api.RoleRequired},
+			"out": {Role: api.RoleOutput},
+		},
+	}
+
+	assert.True(t, policy.StepOutputsSatisfied(st,
+		func(name api.Name) bool {
+			return name == "out"
+		},
+	))
+	assert.False(t, policy.StepOutputsSatisfied(st,
+		func(api.Name) bool {
+			return false
+		},
+	))
+	assert.False(t, policy.StepOutputsSatisfied(&api.Step{},
+		func(api.Name) bool {
+			return true
+		},
+	))
+}
+
+func TestStepInputGuaranteed(t *testing.T) {
+	assert.True(t, policy.StepInputGuaranteed(&api.AttributeSpec{
+		Role: api.RoleRequired,
+	}))
+	assert.True(t, policy.StepInputGuaranteed(&api.AttributeSpec{
+		Role: api.RoleConst,
+	}))
+	assert.True(t, policy.StepInputGuaranteed(&api.AttributeSpec{
+		Role: api.RoleOptional,
+		Optional: &api.OptionalConfig{
+			Default: "true",
+		},
+	}))
+	assert.False(t, policy.StepInputGuaranteed(&api.AttributeSpec{
+		Role: api.RoleOptional,
+	}))
 }
 
 func TestInputFulfilled(t *testing.T) {

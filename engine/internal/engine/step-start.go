@@ -421,6 +421,21 @@ func (s *stepEval) inputValues(
 	return matched, err
 }
 
+func parseDefaultValue(value string) any {
+	var result any
+	if err := json.Unmarshal([]byte(value), &result); err != nil {
+		return nil
+	}
+	return result
+}
+
+func optionalAt(anchor time.Time, deadlineMS int64) time.Time {
+	if anchor.IsZero() {
+		return time.Time{}
+	}
+	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
+}
+
 func providerSummaryFor(
 	flow api.FlowState, name api.Name,
 ) (policy.ProviderSummary, time.Time) {
@@ -460,11 +475,13 @@ func providerSummaryFor(
 	return res, completedAt
 }
 
-func optionalAt(anchor time.Time, deadlineMS int64) time.Time {
-	if anchor.IsZero() {
-		return time.Time{}
+func hasValueFrom(flow api.FlowState, name api.Name, sid api.StepID) bool {
+	for _, v := range flow.AttributeValues(name) {
+		if v.Step == sid {
+			return true
+		}
 	}
-	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
+	return false
 }
 
 func valuesUntil(
@@ -491,21 +508,4 @@ func lastSetAt(values []*api.AttributeValue) time.Time {
 		}
 	}
 	return at
-}
-
-func hasValueFrom(flow api.FlowState, name api.Name, sid api.StepID) bool {
-	for _, v := range flow.AttributeValues(name) {
-		if v.Step == sid {
-			return true
-		}
-	}
-	return false
-}
-
-func parseDefaultValue(value string) any {
-	var result any
-	if err := json.Unmarshal([]byte(value), &result); err != nil {
-		return nil
-	}
-	return result
 }

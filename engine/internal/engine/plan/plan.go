@@ -149,7 +149,7 @@ func (b *builder) computeSatisfiable() {
 			if len(b.blockedInputs(st)) > 0 {
 				continue
 			}
-			if !requiredInputsAvailable(st, b.available) {
+			if !policy.RequiredInputsAvailable(st, b.available.Contains) {
 				continue
 			}
 
@@ -231,9 +231,10 @@ func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
 		Providers: func(name api.Name) policy.ProviderSummary {
 			hasInit := b.initHasValues(name)
 			hasProvider := len(b.findProviders(name)) > 0
+			complete := policy.InitProviderComplete(hasInit, hasProvider)
 			return policy.ProviderSummary{
-				Terminal:     hasInit && !hasProvider,
-				AllSucceeded: hasInit && !hasProvider,
+				Terminal:     complete,
+				AllSucceeded: complete,
 			}
 		},
 		Match: b.match,
@@ -247,33 +248,16 @@ func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
 func (b *builder) initSatisfiesInput(
 	name api.Name, attr *api.AttributeSpec,
 ) bool {
-	if !policy.InitSatisfiesInput(attr.Collect(), b.initHasValues(name)) {
-		return false
-	}
-	if !policy.RequiredInputHasMatch(attr) {
-		return true
-	}
-	hasInit := b.initHasValues(name)
-	hasProvider := len(b.findProviders(name)) > 0
-	decision, err := policy.RequiredMatchStatus(policy.RequiredMatchSpec{
-		Attr:   attr,
-		Values: initAttributeValues(b.init[name]),
-		Provider: policy.ProviderSummary{
-			Terminal:     hasInit && !hasProvider,
-			AllSucceeded: hasInit && !hasProvider,
-		},
-		Match: b.match,
-	})
-	return err == nil && decision == policy.MatchMatched
+	return policy.InitSatisfiesRequired(
+		attr, b.initHasValues(name), len(b.findProviders(name)) > 0,
+		initAttributeValues(b.init[name]), b.match,
+	)
 }
 
 func (b *builder) blockedInputs(step *api.Step) []api.Name {
 	var blocked []api.Name
 	for name, attr := range step.Attributes {
-		if !attr.IsRuntimeInput() {
-			continue
-		}
-		if policy.InitBlocksInput(attr.Collect(), b.initHasValues(name)) {
+		if policy.InitBlocksRuntime(attr, b.initHasValues(name)) {
 			blocked = append(blocked, name)
 		}
 	}
@@ -343,23 +327,7 @@ func (b *builder) shouldInclude(step *api.Step) bool {
 }
 
 func (b *builder) outputsAvailable(step *api.Step) bool {
-	hasOutputs := false
-	for _, attr := range step.Attributes {
-		if attr.IsOutput() {
-			hasOutputs = true
-			break
-		}
-	}
-	if !hasOutputs {
-		return false
-	}
-
-	for name, attr := range step.Attributes {
-		if attr.IsOutput() && !b.satisfied.Contains(name) {
-			return false
-		}
-	}
-	return true
+	return policy.StepOutputsSatisfied(step, b.satisfied.Contains)
 }
 
 func (b *builder) buildPlan() {
@@ -475,17 +443,6 @@ func initAttributeValues(values []any) []*api.AttributeValue {
 	return res
 }
 
-func requiredInputsAvailable(
-	step *api.Step, available util.Set[api.Name],
-) bool {
-	for name, attr := range step.Attributes {
-		if attr.IsRequired() && !available.Contains(name) {
-			return false
-		}
-	}
-	return true
-}
-
 func buildRequired(step *api.Step) util.Set[api.Name] {
 	required := util.Set[api.Name]{}
 	for name, attr := range step.Attributes {
@@ -552,18 +509,11 @@ func buildChildPlans(
 func childPlanInit(step *api.Step) api.InitArgs {
 	res := api.InitArgs{}
 	for name, attr := range step.Attributes {
-		if !isGuaranteedInput(attr) {
+		if !policy.StepInputGuaranteed(attr) {
 			continue
 		}
 		mapped, _ := step.MappedName(name)
 		res[mapped] = []any{true}
 	}
 	return res
-}
-
-func isGuaranteedInput(attr *api.AttributeSpec) bool {
-	if attr.IsRequired() || attr.IsConst() {
-		return true
-	}
-	return attr.IsOptional() && attr.OptionalDefault() != ""
 }
