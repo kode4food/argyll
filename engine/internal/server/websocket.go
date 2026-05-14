@@ -347,7 +347,7 @@ func (c *Client) writeSubscriptionEvent(
 		return true
 	}
 
-	wsEvent := c.transformEvent(event)
+	wsEvent := transformEvent(event)
 	wsEvent.SubscriptionID = sub.id
 
 	c.writeMu.Lock()
@@ -359,16 +359,6 @@ func (c *Client) writeSubscriptionEvent(
 		return false
 	}
 	return true
-}
-
-func (c *Client) transformEvent(ev *timebox.Event) *api.WebSocketEvent {
-	return &api.WebSocketEvent{
-		Type:        api.EventType(ev.Type),
-		Data:        ev.Data,
-		Timestamp:   ev.Timestamp.UnixMilli(),
-		AggregateID: idToStrings(ev.AggregateID),
-		Sequence:    ev.Sequence,
-	}
 }
 
 func (c *Client) sendUnsubscribeAck(subscriptionID string) bool {
@@ -397,15 +387,9 @@ func (c *Client) sendPing() bool {
 	return err == nil
 }
 
-func subscriptionEventTypes(sub *api.ClientSubscription) []timebox.EventType {
-	if len(sub.EventTypes) == 0 {
-		return nil
-	}
-	eventTypes := make([]timebox.EventType, len(sub.EventTypes))
-	for i, eventType := range sub.EventTypes {
-		eventTypes[i] = timebox.EventType(eventType)
-	}
-	return eventTypes
+func (s *clientSubscription) close() {
+	s.active.Store(false)
+	s.consumer.Close()
 }
 
 func newClientSubscription(
@@ -427,19 +411,6 @@ func newClientSubscription(
 	return res, nil
 }
 
-func (s *clientSubscription) close() {
-	s.active.Store(false)
-	s.consumer.Close()
-}
-
-func idToStrings(id timebox.AggregateID) []string {
-	res := make([]string, len(id))
-	for i, p := range id {
-		res[i] = string(p)
-	}
-	return res
-}
-
 func stringsToIDs(parts [][]string) []timebox.AggregateID {
 	if len(parts) == 0 {
 		return nil
@@ -451,14 +422,43 @@ func stringsToIDs(parts [][]string) []timebox.AggregateID {
 	return res
 }
 
-func aggregateIDKey(id timebox.AggregateID) string {
-	return strings.Join(idToStrings(id), "\x00")
-}
-
 func stringsToID(parts []string) timebox.AggregateID {
 	res := make(timebox.AggregateID, 0, len(parts))
 	for _, part := range parts {
 		res = append(res, timebox.ID(part))
 	}
 	return res
+}
+
+func subscriptionEventTypes(sub *api.ClientSubscription) []timebox.EventType {
+	if len(sub.EventTypes) == 0 {
+		return nil
+	}
+	eventTypes := make([]timebox.EventType, len(sub.EventTypes))
+	for i, eventType := range sub.EventTypes {
+		eventTypes[i] = timebox.EventType(eventType)
+	}
+	return eventTypes
+}
+
+func idToStrings(id timebox.AggregateID) []string {
+	res := make([]string, len(id))
+	for i, p := range id {
+		res[i] = string(p)
+	}
+	return res
+}
+
+func aggregateIDKey(id timebox.AggregateID) string {
+	return strings.Join(idToStrings(id), "\x00")
+}
+
+func transformEvent(ev *timebox.Event) *api.WebSocketEvent {
+	return &api.WebSocketEvent{
+		Type:        api.EventType(ev.Type),
+		Data:        ev.Data,
+		Timestamp:   ev.Timestamp.UnixMilli(),
+		AggregateID: idToStrings(ev.AggregateID),
+		Sequence:    ev.Sequence,
+	}
 }

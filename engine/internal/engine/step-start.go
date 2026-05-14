@@ -304,7 +304,7 @@ func (s *stepEval) optionalDecisionAt(
 	}
 
 	if fulfilled {
-		at := s.optionalAt(anchor, attr.OptionalDeadline())
+		at := optionalAt(anchor, attr.OptionalDeadline())
 		if at.IsZero() {
 			return optionalDecision{ready: true}
 		}
@@ -324,7 +324,7 @@ func (s *stepEval) optionalDecisionAt(
 		return s.timeoutDecision(name, attr, s.when)
 	}
 
-	at := s.optionalAt(anchor, attr.OptionalDeadline())
+	at := optionalAt(anchor, attr.OptionalDeadline())
 	if at.IsZero() {
 		return optionalDecision{}
 	}
@@ -343,13 +343,6 @@ func (s *stepEval) timeoutDecision(
 		}
 	}
 	return optionalDecision{ready: true, fallback: true}
-}
-
-func (s *stepEval) optionalAt(anchor time.Time, deadlineMS int64) time.Time {
-	if anchor.IsZero() {
-		return time.Time{}
-	}
-	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
 }
 
 func (s *stepEval) requiredReadyAt() (time.Time, error) {
@@ -465,6 +458,13 @@ func providerSummaryFor(
 		}
 	}
 	return res, completedAt
+}
+
+func optionalAt(anchor time.Time, deadlineMS int64) time.Time {
+	if anchor.IsZero() {
+		return time.Time{}
+	}
+	return anchor.Add(time.Duration(deadlineMS) * time.Millisecond)
 }
 
 func valuesUntil(

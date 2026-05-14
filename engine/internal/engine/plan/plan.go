@@ -15,8 +15,7 @@ type (
 	) (*api.ExecutionPlan, error)
 
 	builder struct {
-		cat         api.CatalogState
-		init        api.InitArgs
+		planArgs
 		satisfied   util.Set[api.Name]
 		available   util.Set[api.Name]
 		satisfiable util.Set[api.StepID]
@@ -27,8 +26,14 @@ type (
 		blocked     map[api.StepID][]api.Name
 		steps       api.Steps
 		attributes  api.AttributeGraph
-		providers   selectProviders
-		match       policy.Matcher
+	}
+
+	planArgs struct {
+		match     policy.Matcher
+		goals     []api.StepID
+		cat       api.CatalogState
+		providers selectProviders
+		init      api.InitArgs
 	}
 
 	selectProviders func(*builder, []api.StepID) []api.StepID
@@ -45,7 +50,13 @@ func Create(
 	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
 	init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return create(match, cat, goals, strictProviders, init)
+	return create(planArgs{
+		match:     match,
+		cat:       cat,
+		goals:     goals,
+		providers: strictProviders,
+		init:      init,
+	})
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
@@ -56,37 +67,40 @@ func Preview(
 	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
 	init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return create(match, cat, goals, previewProviders, init)
+	return create(planArgs{
+		match:     match,
+		cat:       cat,
+		goals:     goals,
+		providers: previewProviders,
+		init:      init,
+	})
 }
 
-func create(
-	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
-	providers selectProviders, init api.InitArgs,
-) (*api.ExecutionPlan, error) {
-	if len(goals) == 0 {
+func create(args planArgs) (*api.ExecutionPlan, error) {
+	if len(args.goals) == 0 {
 		return nil, ErrNoGoals
 	}
 
-	if err := validateGoals(cat, goals); err != nil {
+	if err := validateGoals(args.cat, args.goals); err != nil {
 		return nil, err
 	}
 
-	pb := newPlanBuilder(match, cat, providers, init)
+	pb := newPlanBuilder(args)
 	pb.computeSatisfiable()
-	if err := pb.collectSteps(goals); err != nil {
+	if err := pb.collectSteps(args.goals); err != nil {
 		return nil, err
 	}
 	pb.buildPlan()
 	excluded := pb.buildExcluded()
 
 	res := &api.ExecutionPlan{
-		Goals:      goals,
+		Goals:      args.goals,
 		Required:   pb.getRequiredInputs(),
 		Steps:      pb.steps,
 		Attributes: pb.attributes,
 		Excluded:   excluded,
 	}
-	children, err := buildChildPlans(match, res, cat, providers)
+	children, err := buildChildPlans(res, args)
 	if err != nil {
 		return nil, err
 	}
@@ -94,15 +108,9 @@ func create(
 	return res, nil
 }
 
-func newPlanBuilder(
-	match policy.Matcher, st api.CatalogState, providers selectProviders,
-	init api.InitArgs,
-) *builder {
+func newPlanBuilder(args planArgs) *builder {
 	pb := &builder{
-		cat:         st,
-		init:        init,
-		providers:   providers,
-		match:       match,
+		planArgs:    args,
 		satisfied:   util.Set[api.Name]{},
 		available:   util.Set[api.Name]{},
 		satisfiable: util.Set[api.StepID]{},
@@ -115,7 +123,7 @@ func newPlanBuilder(
 		attributes:  api.AttributeGraph{},
 	}
 
-	for key, values := range init {
+	for key, values := range args.init {
 		if len(values) > 0 {
 			pb.satisfied.Add(key)
 		}
@@ -141,7 +149,7 @@ func (b *builder) computeSatisfiable() {
 			if len(b.blockedInputs(st)) > 0 {
 				continue
 			}
-			if !b.requiredInputsAvailable(st, b.available) {
+			if !requiredInputsAvailable(st, b.available) {
 				continue
 			}
 
@@ -154,17 +162,6 @@ func (b *builder) computeSatisfiable() {
 			}
 		}
 	}
-}
-
-func (b *builder) requiredInputsAvailable(
-	step *api.Step, available util.Set[api.Name],
-) bool {
-	for name, attr := range step.Attributes {
-		if attr.IsRequired() && !available.Contains(name) {
-			return false
-		}
-	}
-	return true
 }
 
 // Pass 2: collect steps and build plan from goal traversal
@@ -193,7 +190,7 @@ func (b *builder) collectStep(stepID api.StepID) error {
 	gateClosed := policy.MatchAllowsStepSkip(gate)
 	gateOpen := policy.MatchAllowsNormalDemand(gate)
 	allInputs := st.GetAllInputArgs()
-	required := b.buildRequired(st)
+	required := buildRequired(st)
 	for _, name := range allInputs {
 		attr := st.Attributes[name]
 		isGateAttr := policy.RequiredInputHasMatch(attr)
@@ -231,8 +228,15 @@ func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
 		Values: func(name api.Name) []*api.AttributeValue {
 			return initAttributeValues(b.init[name])
 		},
-		Providers: b.matchProviderSummary,
-		Match:     b.match,
+		Providers: func(name api.Name) policy.ProviderSummary {
+			hasInit := b.initHasValues(name)
+			hasProvider := len(b.findProviders(name)) > 0
+			return policy.ProviderSummary{
+				Terminal:     hasInit && !hasProvider,
+				AllSucceeded: hasInit && !hasProvider,
+			}
+		},
+		Match: b.match,
 	})
 	if err != nil {
 		return policy.MatchUnknown
@@ -249,36 +253,18 @@ func (b *builder) initSatisfiesInput(
 	if !policy.RequiredInputHasMatch(attr) {
 		return true
 	}
+	hasInit := b.initHasValues(name)
+	hasProvider := len(b.findProviders(name)) > 0
 	decision, err := policy.RequiredMatchStatus(policy.RequiredMatchSpec{
-		Attr:     attr,
-		Values:   initAttributeValues(b.init[name]),
-		Provider: b.matchProviderSummary(name),
-		Match:    b.match,
+		Attr:   attr,
+		Values: initAttributeValues(b.init[name]),
+		Provider: policy.ProviderSummary{
+			Terminal:     hasInit && !hasProvider,
+			AllSucceeded: hasInit && !hasProvider,
+		},
+		Match: b.match,
 	})
 	return err == nil && decision == policy.MatchMatched
-}
-
-func (b *builder) matchProviderSummary(name api.Name) policy.ProviderSummary {
-	return initProviderSummary(
-		b.initHasValues(name), len(b.findProviders(name)) > 0,
-	)
-}
-
-func initProviderSummary(
-	initValues bool, providerFound bool,
-) policy.ProviderSummary {
-	return policy.ProviderSummary{
-		Terminal:     initValues && !providerFound,
-		AllSucceeded: initValues && !providerFound,
-	}
-}
-
-func initAttributeValues(values []any) []*api.AttributeValue {
-	res := make([]*api.AttributeValue, 0, len(values))
-	for _, value := range values {
-		res = append(res, &api.AttributeValue{Value: value})
-	}
-	return res
 }
 
 func (b *builder) blockedInputs(step *api.Step) []api.Name {
@@ -292,16 +278,6 @@ func (b *builder) blockedInputs(step *api.Step) []api.Name {
 		}
 	}
 	return blocked
-}
-
-func (b *builder) buildRequired(step *api.Step) util.Set[api.Name] {
-	required := util.Set[api.Name]{}
-	for name, attr := range step.Attributes {
-		if attr.IsRequired() {
-			required.Add(name)
-		}
-	}
-	return required
 }
 
 func (b *builder) markSatisfied(name api.Name) {
@@ -429,16 +405,6 @@ func (b *builder) missingRequired(step *api.Step) []api.Name {
 	return missing
 }
 
-func (b *builder) stepOutputNames(step *api.Step) []api.Name {
-	var outputs []api.Name
-	for name, attr := range step.Attributes {
-		if attr.IsOutput() {
-			outputs = append(outputs, name)
-		}
-	}
-	return outputs
-}
-
 func (b *builder) buildExcluded() api.ExcludedSteps {
 	excluded := api.ExcludedSteps{
 		Satisfied: map[api.StepID][]api.Name{},
@@ -455,7 +421,7 @@ func (b *builder) buildExcluded() api.ExcludedSteps {
 			continue
 		}
 		if b.outputsAvailable(st) {
-			excluded.Satisfied[sid] = b.stepOutputNames(st)
+			excluded.Satisfied[sid] = stepOutputNames(st)
 			continue
 		}
 		missing := b.missingRequired(st)
@@ -501,6 +467,45 @@ func validateGoals(cat api.CatalogState, goals []api.StepID) error {
 	return nil
 }
 
+func initAttributeValues(values []any) []*api.AttributeValue {
+	res := make([]*api.AttributeValue, 0, len(values))
+	for _, value := range values {
+		res = append(res, &api.AttributeValue{Value: value})
+	}
+	return res
+}
+
+func requiredInputsAvailable(
+	step *api.Step, available util.Set[api.Name],
+) bool {
+	for name, attr := range step.Attributes {
+		if attr.IsRequired() && !available.Contains(name) {
+			return false
+		}
+	}
+	return true
+}
+
+func buildRequired(step *api.Step) util.Set[api.Name] {
+	required := util.Set[api.Name]{}
+	for name, attr := range step.Attributes {
+		if attr.IsRequired() {
+			required.Add(name)
+		}
+	}
+	return required
+}
+
+func stepOutputNames(step *api.Step) []api.Name {
+	var outputs []api.Name
+	for name, attr := range step.Attributes {
+		if attr.IsOutput() {
+			outputs = append(outputs, name)
+		}
+	}
+	return outputs
+}
+
 func strictProviders(b *builder, providers []api.StepID) []api.StepID {
 	var res []api.StepID
 	for _, id := range providers {
@@ -519,17 +524,20 @@ func previewProviders(b *builder, providers []api.StepID) []api.StepID {
 }
 
 func buildChildPlans(
-	match policy.Matcher, pl *api.ExecutionPlan, cat api.CatalogState,
-	providers selectProviders,
+	pl *api.ExecutionPlan, parentArgs planArgs,
 ) (map[api.StepID]*api.ExecutionPlan, error) {
 	childPlans := map[api.StepID]*api.ExecutionPlan{}
 	for sid, st := range pl.Steps {
 		if st.Type != api.StepTypeFlow || st.Flow == nil {
 			continue
 		}
-		childPlan, err := create(
-			match, cat, st.Flow.Goals, providers, childPlanInit(st),
-		)
+		childPlan, err := create(planArgs{
+			match:     parentArgs.match,
+			cat:       parentArgs.cat,
+			goals:     st.Flow.Goals,
+			providers: parentArgs.providers,
+			init:      childPlanInit(st),
+		})
 		if err != nil {
 			return nil, err
 		}

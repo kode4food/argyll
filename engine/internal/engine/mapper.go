@@ -111,12 +111,10 @@ func (m *Mapper) mapOutput(
 	if mapping := attr.Mapping(); mapping != nil && mapping.Script != nil {
 		return m.MapValue(step, name, mapping.Script, outputs)
 	}
-	return m.outputByName(step, name, outputs)
+	return outputByName(step, name, outputs)
 }
 
-func (m *Mapper) outputByName(
-	step *api.Step, name api.Name, outputs api.Args,
-) (any, bool) {
+func outputByName(step *api.Step, name api.Name, outputs api.Args) (any, bool) {
 	mapped, _ := step.MappedName(name)
 	value, ok := outputs[mapped]
 	return value, ok

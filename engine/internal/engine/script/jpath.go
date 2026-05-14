@@ -33,7 +33,7 @@ func NewJPathEnv() *JPathEnv {
 }
 
 // ExecuteScript evaluates a compiled JPath expression against mapping inputs
-func (e *JPathEnv) ExecuteScript(
+func (*JPathEnv) ExecuteScript(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (api.Args, error) {
 	doc := marshalJPathValue(inputs)
@@ -52,7 +52,7 @@ func (e *JPathEnv) ExecuteScript(
 
 // EvaluatePredicate applies the compiled JPath expression and treats any
 // match as predicate success, including explicit null matches
-func (e *JPathEnv) EvaluatePredicate(
+func (*JPathEnv) EvaluatePredicate(
 	c Compiled, _ *api.Step, inputs api.Args,
 ) (bool, error) {
 	doc := marshalJPathValue(inputs)
@@ -62,13 +62,13 @@ func (e *JPathEnv) EvaluatePredicate(
 
 // EvaluateMatch applies the compiled JPath expression to a single input and
 // treats any match as success, including explicit null matches
-func (e *JPathEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
+func (*JPathEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	doc := marshalJPathValue(input)
 	matches := c.(jpath.Path)(doc)
 	return len(matches) > 0, nil
 }
 
-func (e *JPathEnv) compile(source string) (jpath.Path, error) {
+func (*JPathEnv) compile(source string) (jpath.Path, error) {
 	parsed, err := jpath.Parse(source)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", ErrJPathCompile, source)

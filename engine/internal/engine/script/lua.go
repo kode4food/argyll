@@ -112,7 +112,7 @@ func (e *LuaEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	return result, err
 }
 
-func (e *LuaEnv) wrapSource(script string, argNames []string) string {
+func (*LuaEnv) wrapSource(script string, argNames []string) string {
 	argLocals := make([]string, len(argNames))
 	for i, name := range argNames {
 		argLocals[i] = fmt.Sprintf(luaArgLocalTemplate, name, i+1)
@@ -142,7 +142,7 @@ func (e *LuaEnv) compile(src string, argNames []string) (*CompiledLua, error) {
 	}, nil
 }
 
-func (e *LuaEnv) setupSandbox(L *lua.State) {
+func (*LuaEnv) setupSandbox(L *lua.State) {
 	lua.OpenLibraries(L)
 	L.Global(luaGlobalTableName)
 	for _, name := range luaExclude {

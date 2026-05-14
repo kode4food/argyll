@@ -61,7 +61,7 @@ func (c *HTTPClient) Invoke(
 		return nil, fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
 	}
 
-	httpReq, err := c.buildRequest(step, args, meta)
+	httpReq, err := buildRequest(step, args, meta)
 	if err != nil {
 		return nil, err
 	}
@@ -71,59 +71,7 @@ func (c *HTTPClient) Invoke(
 		return nil, err
 	}
 
-	return c.parseResponse(step, respBody)
-}
-
-func (c *HTTPClient) buildRequest(
-	step *api.Step, args api.Args, meta api.Metadata,
-) (*http.Request, error) {
-	method := step.HTTP.DefaultedMethod()
-	endpoint, err := resolveEndpoint(step.HTTP.Endpoint, args)
-	if err != nil {
-		slog.Error("Failed to resolve HTTP endpoint",
-			log.StepID(step.ID),
-			log.Error(err))
-		return nil, err
-	}
-
-	bodyReader, err := c.requestBody(method, args)
-	if err != nil {
-		slog.Error("Failed to marshal step request",
-			log.StepID(step.ID),
-			log.Error(err))
-		return nil, err
-	}
-
-	httpReq, err := http.NewRequest(method, endpoint, bodyReader)
-	if err != nil {
-		slog.Error("Failed to create HTTP request",
-			log.StepID(step.ID),
-			log.Error(err))
-		return nil, err
-	}
-
-	httpReq.Header.Set("Accept", api.JSONContentType)
-	httpReq.Header.Set("User-Agent", UserAgent)
-	api.SetMetadataHeaders(httpReq.Header, meta)
-	if bodyReader != nil {
-		httpReq.Header.Set("Content-Type", api.JSONContentType)
-	}
-
-	return httpReq, nil
-}
-
-func (c *HTTPClient) requestBody(
-	method string, args api.Args,
-) (io.Reader, error) {
-	if method == "GET" {
-		return nil, nil
-	}
-
-	body, err := json.Marshal(args)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewBuffer(body), nil
+	return parseResponse(step, respBody)
 }
 
 func (c *HTTPClient) sendRequest(
@@ -172,22 +120,42 @@ func (c *HTTPClient) requestTimeout(step *api.Step) time.Duration {
 	return c.timeout
 }
 
-func (c *HTTPClient) parseResponse(
-	step *api.Step, respBody []byte,
-) (api.Args, error) {
-	if len(bytes.TrimSpace(respBody)) == 0 {
-		return nil, nil
-	}
-
-	var outputs api.Args
-	if err := json.Unmarshal(respBody, &outputs); err != nil {
-		slog.Error("Failed to unmarshal response",
+func buildRequest(
+	step *api.Step, args api.Args, meta api.Metadata,
+) (*http.Request, error) {
+	method := step.HTTP.DefaultedMethod()
+	endpoint, err := resolveEndpoint(step.HTTP.Endpoint, args)
+	if err != nil {
+		slog.Error("Failed to resolve HTTP endpoint",
 			log.StepID(step.ID),
 			log.Error(err))
-		return nil, fmt.Errorf("%w: %w", ErrInvalidOutputJSON, err)
+		return nil, err
 	}
 
-	return outputs, nil
+	bodyReader, err := requestBody(method, args)
+	if err != nil {
+		slog.Error("Failed to marshal step request",
+			log.StepID(step.ID),
+			log.Error(err))
+		return nil, err
+	}
+
+	httpReq, err := http.NewRequest(method, endpoint, bodyReader)
+	if err != nil {
+		slog.Error("Failed to create HTTP request",
+			log.StepID(step.ID),
+			log.Error(err))
+		return nil, err
+	}
+
+	httpReq.Header.Set("Accept", api.JSONContentType)
+	httpReq.Header.Set("User-Agent", UserAgent)
+	api.SetMetadataHeaders(httpReq.Header, meta)
+	if bodyReader != nil {
+		httpReq.Header.Set("Content-Type", api.JSONContentType)
+	}
+
+	return httpReq, nil
 }
 
 func resolveEndpoint(endpoint string, args api.Args) (string, error) {
@@ -239,6 +207,34 @@ func endpointValue(value any) string {
 	}
 
 	return fmt.Sprint(value)
+}
+
+func requestBody(method string, args api.Args) (io.Reader, error) {
+	if method == "GET" {
+		return nil, nil
+	}
+
+	body, err := json.Marshal(args)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(body), nil
+}
+
+func parseResponse(step *api.Step, respBody []byte) (api.Args, error) {
+	if len(bytes.TrimSpace(respBody)) == 0 {
+		return nil, nil
+	}
+
+	var outputs api.Args
+	if err := json.Unmarshal(respBody, &outputs); err != nil {
+		slog.Error("Failed to unmarshal response",
+			log.StepID(step.ID),
+			log.Error(err))
+		return nil, fmt.Errorf("%w: %w", ErrInvalidOutputJSON, err)
+	}
+
+	return outputs, nil
 }
 
 func httpError(status int, contentType string, body []byte) error {

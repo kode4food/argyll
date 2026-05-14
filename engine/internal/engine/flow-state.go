@@ -119,16 +119,6 @@ func (e *Engine) HasInputProvider(name api.Name, flow api.FlowState) bool {
 	return false
 }
 
-func (e *Engine) isFlowComplete(flow api.FlowState) bool {
-	for sid := range flow.Plan.Steps {
-		ex := flow.Executions[sid]
-		if !policy.StepComplete(ex.Status) {
-			return false
-		}
-	}
-	return !allGoalsPruned(flow)
-}
-
 func (e *Engine) areOutputsNeeded(stepID api.StepID, flow api.FlowState) bool {
 	plan := flow.Plan
 	if slices.Contains(plan.Goals, stepID) {
@@ -148,7 +138,7 @@ func (e *Engine) canStepComplete(stepID api.StepID, flow api.FlowState) bool {
 	if willSkip {
 		return true
 	}
-	if e.hasPendingMatchGate(step, flow) {
+	if hasPendingMatchGate(step, flow) {
 		return true
 	}
 
@@ -205,19 +195,6 @@ func (e *Engine) matchGateUnsatisfiedInputs(
 	return unsatisfied, nil
 }
 
-func (e *Engine) hasPendingMatchGate(step *api.Step, flow api.FlowState) bool {
-	for name, attr := range step.Attributes {
-		if !policy.RequiredInputHasMatch(attr) {
-			continue
-		}
-		providers, _ := providerSummaryFor(flow, name)
-		if !providers.Terminal {
-			return true
-		}
-	}
-	return false
-}
-
 func (e *Engine) needsOutputs(step *api.Step, flow api.FlowState) bool {
 	for name, attr := range step.Attributes {
 		if e.needsOutput(name, attr, flow) {
@@ -271,6 +248,29 @@ func (e *Engine) inputHasValue(
 	}
 	matched, _, _ := policy.MatchCandidateValues(attr, values, e.Matcher)
 	return len(matched) > 0
+}
+
+func isFlowComplete(flow api.FlowState) bool {
+	for sid := range flow.Plan.Steps {
+		ex := flow.Executions[sid]
+		if !policy.StepComplete(ex.Status) {
+			return false
+		}
+	}
+	return !allGoalsPruned(flow)
+}
+
+func hasPendingMatchGate(step *api.Step, flow api.FlowState) bool {
+	for name, attr := range step.Attributes {
+		if !policy.RequiredInputHasMatch(attr) {
+			continue
+		}
+		providers, _ := providerSummaryFor(flow, name)
+		if !providers.Terminal {
+			return true
+		}
+	}
+	return false
 }
 
 func allGoalsPruned(flow api.FlowState) bool {

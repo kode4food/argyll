@@ -48,7 +48,7 @@ func NewAleEnv() *AleEnv {
 
 // ExecuteScript runs a compiled Ale procedure with the provided inputs and
 // returns the output arguments
-func (e *AleEnv) ExecuteScript(
+func (*AleEnv) ExecuteScript(
 	c Compiled, step *api.Step, inputs api.Args,
 ) (api.Args, error) {
 	result, err := executeScript(c.(data.Procedure), step, inputs)
@@ -72,7 +72,7 @@ func (e *AleEnv) ExecuteScript(
 
 // EvaluatePredicate executes a compiled Ale predicate with the provided inputs
 // and returns the boolean result
-func (e *AleEnv) EvaluatePredicate(
+func (*AleEnv) EvaluatePredicate(
 	c Compiled, step *api.Step, inputs api.Args,
 ) (bool, error) {
 	result, err := executeScript(c.(data.Procedure), step, inputs)
@@ -84,7 +84,7 @@ func (e *AleEnv) EvaluatePredicate(
 
 // EvaluateMatch executes a compiled Ale matcher with the provided input and
 // returns the boolean result
-func (e *AleEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
+func (*AleEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	result, err := executeScript(c.(data.Procedure), MatchStep, api.Args{
 		matchValue: input,
 	})
@@ -94,7 +94,7 @@ func (e *AleEnv) EvaluateMatch(c Compiled, input any) (bool, error) {
 	return result != data.False, nil
 }
 
-func (e *AleEnv) wrapSource(step *api.Step, script string) string {
+func (*AleEnv) wrapSource(step *api.Step, script string) string {
 	return fmt.Sprintf(
 		aleLambdaTemplate, strings.Join(step.SortedArgNames(), " "), script,
 	)

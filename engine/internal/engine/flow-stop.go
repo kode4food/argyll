@@ -33,7 +33,7 @@ var (
 // checkTerminal checks for flow completion or failure
 func (tx *flowTx) checkTerminal() error {
 	fl := tx.Value()
-	if tx.isFlowComplete(fl) {
+	if isFlowComplete(fl) {
 		result := api.Args{}
 		for _, goalID := range fl.Plan.Goals {
 			goal := fl.Executions[goalID]
@@ -58,7 +58,7 @@ func (tx *flowTx) checkTerminal() error {
 		return tx.maybeDeactivate()
 	}
 	if tx.IsFlowFailed(fl) {
-		errMsg := tx.getFailureReason(fl)
+		errMsg := getFailureReason(fl)
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowFailed,
 			api.FlowFailedEvent{
 				FlowID: tx.flowID,
@@ -78,16 +78,6 @@ func (tx *flowTx) checkTerminal() error {
 		return tx.maybeDeactivate()
 	}
 	return nil
-}
-
-// getFailureReason extracts a failure reason from flow state
-func (tx *flowTx) getFailureReason(flow api.FlowState) string {
-	for sid, ex := range flow.Executions {
-		if policy.StepFailed(ex.Status) {
-			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
-		}
-	}
-	return "flow failed"
 }
 
 // maybeDeactivate emits FlowDeactivated if the flow is terminal and has no
@@ -119,7 +109,7 @@ func (tx *flowTx) maybeDeactivate() error {
 
 func (tx *flowTx) completeParentWork(st api.FlowState) {
 	target := &parentWork{}
-	ok, err := tx.parentMeta(st, target)
+	ok, err := parentMeta(st, target)
 	if !ok || err != nil {
 		if err != nil {
 			slog.Error("Failed to resolve parent work item",
@@ -176,9 +166,28 @@ func (tx *flowTx) completeParentFlowWork(
 	})
 }
 
-func (tx *flowTx) parentMeta(
-	st api.FlowState, target *parentWork,
-) (bool, error) {
+// getFailureReason extracts a failure reason from flow state
+func getFailureReason(flow api.FlowState) string {
+	for sid, ex := range flow.Executions {
+		if policy.StepFailed(ex.Status) {
+			return fmt.Sprintf("step %s failed: %s", sid, ex.Error)
+		}
+	}
+	return "flow failed"
+}
+
+func flowHasRetryTasks(flow api.FlowState) bool {
+	for _, ex := range flow.Executions {
+		for _, work := range ex.WorkItems {
+			if !work.NextRetryAt.IsZero() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+func parentMeta(st api.FlowState, target *parentWork) (bool, error) {
 	if err := validateParentMetadata(st.Metadata); err != nil {
 		return false, fmt.Errorf("%w: %s", err, st.ID)
 	}
@@ -194,17 +203,6 @@ func (tx *flowTx) parentMeta(
 	target.fs = api.FlowStep{FlowID: fid, StepID: sid}
 	target.token = tkn
 	return true, nil
-}
-
-func flowHasRetryTasks(flow api.FlowState) bool {
-	for _, ex := range flow.Executions {
-		for _, work := range ex.WorkItems {
-			if !work.NextRetryAt.IsZero() {
-				return true
-			}
-		}
-	}
-	return false
 }
 
 func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {

@@ -62,7 +62,7 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 
 // FindRetrySteps identifies all steps in a flow that have work items that
 // might need recovery
-func (e *Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
+func (*Engine) FindRetrySteps(state api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 
 	for sid, ex := range state.Executions {
