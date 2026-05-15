@@ -23,8 +23,7 @@ github.com/google/flatbuffers v25.12.19+incompatible h1:haMV2JRRJCe1998HeW/p0X9U
 github.com/google/uuid v1.6.0 h1:NIvaJDMOsjHA8n1jAhLSgzrAzy1Hgr+hNrb57e+94F0=
 github.com/google/uuid v1.6.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
 github.com/klauspost/compress v1.18.5 h1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=
-github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d h1:cXpNHEuvD7Uh8vhhlaSdRd2C6bJfwu+YQpZenQ+NE7Q=
-github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d/go.mod h1:ieIgf06ATH2J2WZWj8QEIl8IWitXMeUOGLfHYXhKZWE=
+github.com/kode4food/ale v0.3.1-0.20260422154921-690461c92586 h1:B6+ObbFOAVLkyrJ4C7J6b4/Wj0YMOUACeRRr+CCCnR8=
 github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734 h1:vyfsahYw9Uv2ZnIVwQKt7BSrSQP5rSYz5ZMbptMUraY=
 github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734/go.mod h1:TWF43/SnNy66+tw7h5i8mfBmFBSEOHGWgv164/4nwGc=
 github.com/kode4food/argyll/sdks/go-builder v0.0.0-20260425054836-250dc5c87734 h1:zVQBIQi2MXi59FNJaoe+ga1ibVayos5mKXLLsZAvQ/Y=

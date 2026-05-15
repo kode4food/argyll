@@ -43,7 +43,7 @@ github.com/josharian/intern v1.0.0 h1:vlS4z54oSdjm0bgjRigI+G1HpF+tI+9rE5LLzOg8Hm
 github.com/josharian/intern v1.0.0/go.mod h1:5DoeVV0s6jJacbCEi61lwdGj/aVlrQvzHFFd8Hwg//Y=
 github.com/klauspost/compress v1.18.5 h1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=
 github.com/klauspost/compress v1.18.5/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
-github.com/kode4food/ale v0.3.1-0.20260422075528-278f398ed55d h1:cXpNHEuvD7Uh8vhhlaSdRd2C6bJfwu+YQpZenQ+NE7Q=
+github.com/kode4food/ale v0.3.1-0.20260422154921-690461c92586 h1:B6+ObbFOAVLkyrJ4C7J6b4/Wj0YMOUACeRRr+CCCnR8=
 github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734 h1:vyfsahYw9Uv2ZnIVwQKt7BSrSQP5rSYz5ZMbptMUraY=
 github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734/go.mod h1:TWF43/SnNy66+tw7h5i8mfBmFBSEOHGWgv164/4nwGc=
 github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04 h1:O8jM26YJoIOtdr1KFQyYGN2KLI1BhXfcOCg/JV2FnB4=

@@ -20,6 +20,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/kode4food/ale v0.3.1-0.20260422154921-690461c92586 // indirect
 	github.com/kode4food/timebox v0.0.0-20260515060403-23ace93d23c0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
