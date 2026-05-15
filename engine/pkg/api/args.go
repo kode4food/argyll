@@ -20,8 +20,8 @@ type (
 	Name string
 
 	argPair struct {
-		K string `json:"k"`
 		V any    `json:"v"`
+		K string `json:"k"`
 	}
 )
 

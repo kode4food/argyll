@@ -24,26 +24,20 @@ type (
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
-		// Registration
-		ID     StepID `json:"id"`
-		Name   Name   `json:"name"`
-		Labels Labels `json:"labels,omitempty"`
-
-		// Common
-		Type       StepType       `json:"type"`
+		hashErr    error
+		Script     *ScriptConfig  `json:"script,omitempty"`
+		Labels     Labels         `json:"labels,omitempty"`
 		Attributes AttributeSpecs `json:"attributes"`
 		Predicate  *ScriptConfig  `json:"predicate,omitempty"`
 		WorkConfig *WorkConfig    `json:"work_config,omitempty"`
-		Memoizable bool           `json:"memoizable,omitempty"`
-
-		// Type specific
-		HTTP   *HTTPConfig   `json:"http,omitempty"`
-		Script *ScriptConfig `json:"script,omitempty"`
-		Flow   *FlowConfig   `json:"flow,omitempty"`
-
-		hashOnce sync.Once
-		hashVal  string
-		hashErr  error
+		HTTP       *HTTPConfig    `json:"http,omitempty"`
+		Flow       *FlowConfig    `json:"flow,omitempty"`
+		Type       StepType       `json:"type"`
+		ID         StepID         `json:"id"`
+		hashVal    string
+		Name       Name `json:"name"`
+		hashOnce   sync.Once
+		Memoizable bool `json:"memoizable,omitempty"`
 	}
 
 	// HTTPConfig configures HTTP-based step execution
@@ -68,16 +62,16 @@ type (
 	// WorkConfig configures retry and parallelism behavior for steps with
 	// multiple work items
 	WorkConfig struct {
+		BackoffType string `json:"backoff_type,omitempty"`
 		MaxRetries  int    `json:"max_retries,omitempty"`
 		InitBackoff int64  `json:"init_backoff,omitempty"`
 		MaxBackoff  int64  `json:"max_backoff,omitempty"`
-		BackoffType string `json:"backoff_type,omitempty"`
 		Parallelism int    `json:"parallelism,omitempty"`
 	}
 
 	attrPair struct {
-		K Name           `json:"k"`
 		V *AttributeSpec `json:"v"`
+		K Name           `json:"k"`
 	}
 
 	flowCfg struct {
@@ -85,14 +79,14 @@ type (
 	}
 
 	stepHash struct {
-		Type       StepType      `json:"type"`
-		Memoizable bool          `json:"memoizable,omitempty"`
-		Attributes []attrPair    `json:"attributes"`
+		Flow       any           `json:"flow,omitempty"`
 		HTTP       *HTTPConfig   `json:"http,omitempty"`
 		Script     *ScriptConfig `json:"script,omitempty"`
-		Flow       any           `json:"flow,omitempty"`
 		Predicate  *ScriptConfig `json:"predicate,omitempty"`
 		WorkConfig *WorkConfig   `json:"work_config,omitempty"`
+		Type       StepType      `json:"type"`
+		Attributes []attrPair    `json:"attributes"`
+		Memoizable bool          `json:"memoizable,omitempty"`
 	}
 )
 

@@ -10,18 +10,18 @@ import (
 type (
 	// Task describes a scheduled function and its execution metadata
 	Task struct {
-		Func  TaskFunc
 		At    time.Time
-		Path  taskPath
+		Func  TaskFunc
 		id    string
+		Path  taskPath
 		index int
 	}
 
 	// TaskHeap stores scheduled tasks ordered by execution time
 	TaskHeap struct {
-		items  []*Task
 		byID   map[string]*Task
 		byPath *util.PathTree[*Task]
+		items  []*Task
 	}
 
 	taskPath []string

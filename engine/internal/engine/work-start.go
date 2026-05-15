@@ -20,9 +20,9 @@ type (
 		step   *api.Step
 		child  *api.ExecutionPlan
 		inputs api.Args
+		meta   api.Metadata
 		flowID api.FlowID
 		stepID api.StepID
-		meta   api.Metadata
 	}
 
 	// MultiArgs maps attribute names to value arrays for parallel execution

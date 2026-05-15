@@ -33,9 +33,9 @@ type (
 	}
 
 	flowQueryCursor struct {
+		ID     api.FlowID `json:"id"`
 		Group  int        `json:"group"`
 		Recent int64      `json:"recent"`
-		ID     api.FlowID `json:"id"`
 	}
 )
 

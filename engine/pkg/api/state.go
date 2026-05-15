@@ -64,9 +64,9 @@ type (
 
 	// AttributeValue stores an attribute value and which step produced it
 	AttributeValue struct {
+		SetAt time.Time `json:"set_at"`
 		Value any       `json:"value"`
 		Step  StepID    `json:"step,omitempty"`
-		SetAt time.Time `json:"set_at"`
 	}
 
 	// ExecutionState contains the state of a step execution
@@ -75,11 +75,11 @@ type (
 		CompletedAt time.Time  `json:"completed_at"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
-		Unsatisfied []Name     `json:"unsatisfied,omitempty"`
+		WorkItems   WorkItems  `json:"work_items,omitempty"`
 		Status      StepStatus `json:"status"`
 		Error       string     `json:"error,omitempty"`
+		Unsatisfied []Name     `json:"unsatisfied,omitempty"`
 		Duration    int64      `json:"duration,omitempty"`
-		WorkItems   WorkItems  `json:"work_items,omitempty"`
 	}
 
 	// WorkItems contains the state of multiple work items
@@ -87,14 +87,14 @@ type (
 
 	// WorkState contains the state of a single work item
 	WorkState struct {
-		Status      WorkStatus `json:"status"`
 		StartedAt   time.Time  `json:"started_at"`
 		CompletedAt time.Time  `json:"completed_at"`
+		NextRetryAt time.Time  `json:"next_retry_at"`
 		Inputs      Args       `json:"inputs"`
 		Outputs     Args       `json:"outputs,omitempty"`
+		Status      WorkStatus `json:"status"`
 		Error       string     `json:"error,omitempty"`
 		RetryCount  int        `json:"retry_count,omitempty"`
-		NextRetryAt time.Time  `json:"next_retry_at"`
 	}
 
 	// HealthState contains the health status of a step service

@@ -33,10 +33,10 @@ type (
 
 	// registry tracks active subscriptions and counts references
 	registry struct {
-		mu             sync.RWMutex
 		anyType        *prefixNode
 		byType         map[timebox.EventType]*prefixNode
 		allEventsCount int64
+		mu             sync.RWMutex
 	}
 
 	// interests describes what events a consumer is interested in
@@ -46,8 +46,8 @@ type (
 	}
 
 	prefixNode struct {
-		count    int64
 		children map[timebox.ID]*prefixNode
+		count    int64
 	}
 )
 

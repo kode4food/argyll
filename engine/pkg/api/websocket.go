@@ -6,9 +6,9 @@ type (
 	// WebSocketEvent is an event sent to WebSocket clients
 	WebSocketEvent struct {
 		Type           EventType       `json:"type"`
+		SubscriptionID string          `json:"sub_id,omitempty"`
 		Data           json.RawMessage `json:"data"`
 		AggregateID    []string        `json:"id"`
-		SubscriptionID string          `json:"sub_id,omitempty"`
 		Timestamp      int64           `json:"timestamp"`
 		Sequence       int64           `json:"sequence"`
 	}
@@ -23,8 +23,8 @@ type (
 	ClientSubscription struct {
 		SubscriptionID string      `json:"sub_id,omitempty"`
 		AggregateIDs   [][]string  `json:"aggregate_ids,omitempty"`
-		IncludeState   bool        `json:"include_state,omitempty"`
 		EventTypes     []EventType `json:"event_types,omitempty"`
+		IncludeState   bool        `json:"include_state,omitempty"`
 	}
 
 	// UnsubscribeRequest is sent by clients to remove an active subscription

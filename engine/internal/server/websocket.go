@@ -28,11 +28,11 @@ type (
 		conn          *websocket.Conn
 		getState      StateFunc
 		subscriptions map[string]*clientSubscription
+		onClose       func(*Client)
+		done          chan struct{}
+		closeOnce     sync.Once
 		subMu         sync.Mutex
 		writeMu       sync.Mutex
-		onClose       func(*Client)
-		closeOnce     sync.Once
-		done          chan struct{}
 	}
 
 	// StateFunc retrieves the current projected state and next sequence for an
@@ -48,13 +48,13 @@ type (
 	}
 
 	clientSubscription struct {
-		id           string
-		aggregateIDs []timebox.AggregateID
-		includeState bool
-		eventTypes   []timebox.EventType
 		minSeqs      map[string]int64
 		consumer     *event.Consumer
+		id           string
+		aggregateIDs []timebox.AggregateID
+		eventTypes   []timebox.EventType
 		active       atomic.Bool
+		includeState bool
 	}
 )
 

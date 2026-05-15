@@ -12,9 +12,9 @@ import (
 
 // FlowStateQuery groups the parameters for WaitForFlowState
 type FlowStateQuery struct {
+	Accept  func(api.FlowState) bool
 	FlowID  api.FlowID
 	Timeout time.Duration
-	Accept  func(api.FlowState) bool
 }
 
 const waitPollInterval = 10 * time.Millisecond

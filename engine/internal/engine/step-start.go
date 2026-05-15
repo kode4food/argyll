@@ -17,18 +17,18 @@ import (
 
 type (
 	stepEval struct {
+		when   time.Time
 		e      *Engine
+		step   *api.Step
 		flow   api.FlowState
 		stepID api.StepID
-		step   *api.Step
-		when   time.Time
 	}
 
 	optionalDecision struct {
-		ready    bool
-		fallback bool
 		nextAt   time.Time
 		cutoff   time.Time
+		ready    bool
+		fallback bool
 	}
 )
 

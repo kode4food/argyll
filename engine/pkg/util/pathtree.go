@@ -8,8 +8,8 @@ type (
 
 	pathTreeNode[T any] struct {
 		value    T
-		hasValue bool
 		children map[string]*pathTreeNode[T]
+		hasValue bool
 	}
 )
 

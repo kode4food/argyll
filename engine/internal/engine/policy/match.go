@@ -16,9 +16,9 @@ type (
 	// gates for an attribute specification
 	RequiredMatchSpec struct {
 		Attr     *api.AttributeSpec
+		Match    Matcher
 		Values   []*api.AttributeValue
 		Provider ProviderSummary
-		Match    Matcher
 	}
 
 	// Matcher evaluates a required match script against one candidate

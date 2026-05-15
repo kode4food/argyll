@@ -24,20 +24,20 @@ type (
 	Engine struct {
 		stepClient  client.Client
 		ctx         context.Context
-		catalogExec *CatalogExecutor
-		clusterExec *ClusterExecutor
+		scripts     *script.Registry
+		mapper      *Mapper
 		flowExec    *FlowExecutor
 		engStore    *timebox.Store
 		config      *config.Config
 		cancel      context.CancelFunc
-		scripts     *script.Registry
-		mapper      *Mapper
+		catalogExec *CatalogExecutor
+		clusterExec *ClusterExecutor
 		memoCache   *memo.Cache
 		scheduler   *scheduler.Scheduler
 		clock       scheduler.Clock
 		eventHub    *event.Hub
-		healthMu    sync.RWMutex
 		health      map[api.StepID]api.HealthState
+		healthMu    sync.RWMutex
 	}
 
 	// Dependencies groups the external dependencies required by Engine

@@ -12,20 +12,20 @@ import (
 type (
 	// Scheduler runs delayed tasks and supports replacement and prefix cancel
 	Scheduler struct {
-		mu      sync.Mutex
+		timerAt time.Time
+		timer   Timer
 		cond    *sync.Cond
 		now     Clock
-		timer   Timer
-		timerAt time.Time
 		tasks   *TaskHeap
+		mu      sync.Mutex
 	}
 
 	// TaskFunc is called when its run time arrives
 	TaskFunc func() error
 
 	taskHead struct {
-		id string
 		at time.Time
+		id string
 		ok bool
 	}
 )

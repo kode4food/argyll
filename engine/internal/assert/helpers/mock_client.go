@@ -14,9 +14,9 @@ type (
 		responses map[api.StepID]api.Args
 		errors    map[api.StepID]error
 		handlers  map[api.StepID]MockHandler
-		invoked   []api.StepID
 		metadata  map[api.StepID][]api.Metadata
 		invokedCh map[api.StepID]chan struct{}
+		invoked   []api.StepID
 		mu        sync.Mutex
 	}
 

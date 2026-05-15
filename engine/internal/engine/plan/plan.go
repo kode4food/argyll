@@ -15,7 +15,6 @@ type (
 	) (*api.ExecutionPlan, error)
 
 	builder struct {
-		planArgs
 		satisfied   util.Set[api.Name]
 		available   util.Set[api.Name]
 		satisfiable util.Set[api.StepID]
@@ -26,14 +25,15 @@ type (
 		blocked     map[api.StepID][]api.Name
 		steps       api.Steps
 		attributes  api.AttributeGraph
+		planArgs
 	}
 
 	planArgs struct {
-		match     policy.Matcher
-		goals     []api.StepID
 		cat       api.CatalogState
+		match     policy.Matcher
 		providers selectProviders
 		init      api.InitArgs
+		goals     []api.StepID
 	}
 
 	selectProviders func(*builder, []api.StepID) []api.StepID

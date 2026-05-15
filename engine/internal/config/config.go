@@ -19,22 +19,13 @@ import (
 
 // Config holds configuration settings for the orchestrator
 type Config struct {
-	// API Server
-	APIHost        string
-	APIPort        int
-	WebhookBaseURL string
-	LogLevel       string
-
-	// Raft-backed persistence
-	Raft raft.Config
-
-	// Shared Timebox store defaults
-	Timebox timebox.Config
-
-	// Work & Retry
-	Work api.WorkConfig
-
-	// Engine
+	Raft            raft.Config
+	Timebox         timebox.Config
+	APIHost         string
+	WebhookBaseURL  string
+	LogLevel        string
+	Work            api.WorkConfig
+	APIPort         int
 	StepTimeout     int64
 	MemoCacheSize   int
 	ShutdownTimeout time.Duration

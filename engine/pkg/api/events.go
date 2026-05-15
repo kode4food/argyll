@@ -50,9 +50,9 @@ type (
 	// StepStartedEvent is emitted when a step begins execution
 	StepStartedEvent struct {
 		Inputs    Args           `json:"inputs"`
+		WorkItems map[Token]Args `json:"work_items"`
 		FlowID    FlowID         `json:"flow_id"`
 		StepID    StepID         `json:"step_id"`
-		WorkItems map[Token]Args `json:"work_items"`
 	}
 
 	// StepCompletedEvent is emitted when a step completes successfully
@@ -88,18 +88,18 @@ type (
 
 	// WorkStartedEvent is emitted when a work item begins execution
 	WorkStartedEvent struct {
+		Inputs Args   `json:"inputs"`
 		FlowID FlowID `json:"flow_id"`
 		StepID StepID `json:"step_id"`
 		Token  Token  `json:"token"`
-		Inputs Args   `json:"inputs"`
 	}
 
 	// WorkSucceededEvent is emitted when a work item succeeds
 	WorkSucceededEvent struct {
+		Outputs Args   `json:"outputs"`
 		FlowID  FlowID `json:"flow_id"`
 		StepID  StepID `json:"step_id"`
 		Token   Token  `json:"token"`
-		Outputs Args   `json:"outputs"`
 	}
 
 	// WorkFailedEvent is emitted when a work item fails permanently
@@ -120,12 +120,12 @@ type (
 
 	// RetryScheduledEvent is emitted when a failed work item is to be retried
 	RetryScheduledEvent struct {
+		NextRetryAt time.Time `json:"next_retry_at"`
 		FlowID      FlowID    `json:"flow_id"`
 		StepID      StepID    `json:"step_id"`
 		Token       Token     `json:"token"`
-		RetryCount  int       `json:"retry_count"`
-		NextRetryAt time.Time `json:"next_retry_at"`
 		Error       string    `json:"error"`
+		RetryCount  int       `json:"retry_count"`
 	}
 
 	// DispatchDeferredEvent is emitted when runnable work cannot be started

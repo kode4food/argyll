@@ -46,21 +46,21 @@ type (
 
 	// QueryFlowsRequest contains filter criteria and pagination options
 	QueryFlowsRequest struct {
-		IDPrefix string       `json:"id_prefix,omitempty"`
 		Labels   Labels       `json:"labels,omitempty"`
-		Statuses []FlowStatus `json:"statuses,omitempty"`
-		Limit    int          `json:"limit,omitempty"`
+		IDPrefix string       `json:"id_prefix,omitempty"`
 		Cursor   string       `json:"cursor,omitempty"`
 		Sort     FlowSort     `json:"sort,omitempty"`
+		Statuses []FlowStatus `json:"statuses,omitempty"`
+		Limit    int          `json:"limit,omitempty"`
 	}
 
 	// QueryFlowsResponse contains a list of flow summaries
 	QueryFlowsResponse struct {
+		NextCursor string            `json:"next_cursor,omitempty"`
 		Flows      []*QueryFlowsItem `json:"flows"`
 		Count      int               `json:"count"`
 		Total      int               `json:"total,omitempty"`
 		HasMore    bool              `json:"has_more,omitempty"`
-		NextCursor string            `json:"next_cursor,omitempty"`
 	}
 
 	// QueryFlowsItem provides summary information about a flow

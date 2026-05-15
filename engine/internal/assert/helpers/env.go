@@ -37,8 +37,8 @@ type (
 	Publisher func(...*timebox.Event)
 
 	FlowEvent struct {
-		Type api.EventType
 		Data any
+		Type api.EventType
 	}
 
 	backend struct {
@@ -47,8 +47,8 @@ type (
 	}
 
 	unsubscribeTracker struct {
-		mu    sync.Mutex
 		funcs []func()
+		mu    sync.Mutex
 	}
 )
 

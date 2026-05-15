@@ -11,29 +11,29 @@ import (
 type (
 	// AttributeSpec defines the specification for a step attribute
 	AttributeSpec struct {
-		Role     AttributeRole   `json:"role"`
-		Type     AttributeType   `json:"type,omitempty"`
 		Required *RequiredConfig `json:"required,omitempty"`
 		Optional *OptionalConfig `json:"optional,omitempty"`
 		Const    *ConstConfig    `json:"const,omitempty"`
 		Output   *OutputConfig   `json:"output,omitempty"`
+		Role     AttributeRole   `json:"role"`
+		Type     AttributeType   `json:"type,omitempty"`
 	}
 
 	// RequiredConfig configures a required input attribute
 	RequiredConfig struct {
-		Collect InputCollect   `json:"collect,omitempty"`
-		ForEach bool           `json:"for_each,omitempty"`
 		Match   *ScriptConfig  `json:"match,omitempty"`
 		Mapping *MappingConfig `json:"mapping,omitempty"`
+		Collect InputCollect   `json:"collect,omitempty"`
+		ForEach bool           `json:"for_each,omitempty"`
 	}
 
 	// OptionalConfig configures an optional input attribute
 	OptionalConfig struct {
+		Mapping  *MappingConfig `json:"mapping,omitempty"`
 		Collect  InputCollect   `json:"collect,omitempty"`
-		ForEach  bool           `json:"for_each,omitempty"`
 		Default  string         `json:"default,omitempty"`
 		Deadline int64          `json:"deadline,omitempty"`
-		Mapping  *MappingConfig `json:"mapping,omitempty"`
+		ForEach  bool           `json:"for_each,omitempty"`
 	}
 
 	// ConstConfig carries the fixed value for a const attribute
@@ -48,8 +48,8 @@ type (
 
 	// MappingConfig defines parameter name mapping and value transformation
 	MappingConfig struct {
-		Name   string        `json:"name,omitempty"`
 		Script *ScriptConfig `json:"script,omitempty"`
+		Name   string        `json:"name,omitempty"`
 	}
 
 	// AttributeSpecs is a map of attribute names to their specifications

@@ -6,16 +6,9 @@ import "github.com/kode4food/argyll/engine/pkg/api"
 // step-level outcome. It is used to decide whether to raise StepCompleted or
 // StepFailed after individual work items finish
 type WorkCompletion struct {
-	// Done is true when no work item remains pending, active, or waiting for a
-	// not-completed retry decision
-	Done bool
-
-	// Failed is true when at least one work item reached WorkFailed
-	Failed bool
-
-	// FailureError is the first failed work item's error, or a default message
-	// when a failure did not provide one
 	FailureError string
+	Done         bool
+	Failed       bool
 }
 
 // StepParallelism returns the effective dispatch parallelism for a step. A
