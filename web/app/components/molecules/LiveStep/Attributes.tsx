@@ -1,13 +1,10 @@
 import React from "react";
-import {
-  Step,
-  ExecutionResult,
-  AttributeRole,
-  AttributeValue,
-} from "@/app/api";
+import { Step, ExecutionResult, AttributeRole } from "@/app/api";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
+import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
+import { parseInputValue } from "@/utils/inputParseUtils";
 import { getAttributeModifiers, getSortedAttributes } from "@/utils/stepUtils";
 import {
   formatAttributeValue,
@@ -19,7 +16,6 @@ import {
 import { useAttributeStatusBadge } from "./useAttributeDisplay";
 import ArgModifiers, { argTypeTitleKey } from "../StepShared/ArgModifiers";
 import styles from "../StepShared/StepAttributesSection.module.css";
-import { useT } from "@/app/i18n";
 
 interface AttributesProps {
   step: Step;
@@ -28,7 +24,6 @@ interface AttributesProps {
   execution?: ExecutionResult;
   // attribute name -> step ID that produced it
   attributeProvenance?: Map<string, string>;
-  attributeValues?: Record<string, AttributeValue>;
 }
 
 interface AttributeItemProps {
@@ -38,47 +33,22 @@ interface AttributeItemProps {
   attributeProvenance: Map<string, string>;
   satisfiedArgs: Set<string>;
   availableArgs: Set<string>;
-  attributeValues?: Record<string, AttributeValue>;
 }
-
-const hasExecutionInput = (
-  execution: ExecutionResult | undefined,
-  name: string
-): boolean =>
-  !!execution?.inputs &&
-  Object.prototype.hasOwnProperty.call(execution.inputs, name);
 
 const defaultMatchesExecutionInput = (
   rawDefault: unknown,
   executionValue: unknown
 ): boolean => {
-  if (rawDefault === undefined) return false;
+  if (typeof rawDefault !== "string") return false;
 
-  let parsedDefault: unknown = rawDefault;
-  if (typeof rawDefault === "string") {
-    try {
-      parsedDefault = JSON.parse(rawDefault);
-    } catch {
-      parsedDefault = rawDefault;
-    }
+  const defaultValue = parseInputValue(rawDefault);
+  if (Object.is(defaultValue, executionValue)) return true;
+
+  try {
+    return JSON.stringify(defaultValue) === JSON.stringify(executionValue);
+  } catch {
+    return false;
   }
-
-  if (Object.is(parsedDefault, executionValue)) return true;
-
-  if (
-    parsedDefault !== null &&
-    executionValue !== null &&
-    typeof parsedDefault === "object" &&
-    typeof executionValue === "object"
-  ) {
-    try {
-      return JSON.stringify(parsedDefault) === JSON.stringify(executionValue);
-    } catch {
-      return false;
-    }
-  }
-
-  return false;
 };
 
 const AttributeItem: React.FC<AttributeItemProps> = ({
@@ -88,42 +58,44 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
   attributeProvenance,
   satisfiedArgs,
   availableArgs,
-  attributeValues,
 }) => {
   const t = useT();
   const renderStatusBadge = useAttributeStatusBadge();
 
-  const { hasValue, value } = getAttributeValue(
-    arg,
-    execution,
-    attributeValues
-  );
+  const { hasValue, value } = getAttributeValue(arg, execution);
   const isWinner = attributeProvenance.get(arg.name) === stepId;
   const isConst = arg.argType === "const";
   const isUnsatisfied = execution?.unsatisfied?.includes(arg.name) ?? false;
-  const isSatisfied = isConst ? hasValue : satisfiedArgs.has(arg.name);
-  const isAvailable = !isSatisfied && availableArgs.has(arg.name);
+  const hasExecutionDecision = !!execution && execution.status !== "pending";
   const executionInputName = getExecutionInputName(arg);
   const executionInputValue = execution?.inputs?.[executionInputName];
   const optionalUsedDefault =
+    hasExecutionDecision &&
     arg.argType === "optional" &&
-    hasExecutionInput(execution, executionInputName) &&
+    !!execution?.inputs &&
+    executionInputName in execution.inputs &&
     defaultMatchesExecutionInput(
       arg.spec.optional?.default,
       executionInputValue
     );
+  const isSatisfied =
+    hasExecutionDecision &&
+    (isConst || optionalUsedDefault ? hasValue : satisfiedArgs.has(arg.name));
+  const isAvailable =
+    !hasExecutionDecision && !isSatisfied && availableArgs.has(arg.name);
 
   const { Icon, className } = getArgIcon(arg.argType);
 
   const isProvidedByUpstream =
     arg.argType === "optional"
-      ? hasExecutionInput(execution, executionInputName)
-        ? !optionalUsedDefault
-        : attributeProvenance.has(arg.name)
+      ? hasExecutionDecision &&
+        !!execution?.inputs &&
+        executionInputName in execution.inputs &&
+        !optionalUsedDefault
       : undefined;
   const wasDefaulted =
     arg.argType === "optional"
-      ? optionalUsedDefault || (hasValue && !attributeProvenance.has(arg.name))
+      ? optionalUsedDefault
       : isConst
         ? hasValue
         : undefined;
@@ -189,7 +161,6 @@ const Attributes: React.FC<AttributesProps> = ({
   availableArgs = new Set(),
   execution,
   attributeProvenance = new Map(),
-  attributeValues,
 }) => {
   const unifiedArgs: UnifiedArg[] = getSortedAttributes(
     step.attributes || {}
@@ -226,7 +197,6 @@ const Attributes: React.FC<AttributesProps> = ({
           attributeProvenance={attributeProvenance}
           satisfiedArgs={satisfiedArgs}
           availableArgs={availableArgs}
-          attributeValues={attributeValues}
         />
       ))}
     </div>

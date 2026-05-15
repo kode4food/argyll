@@ -92,7 +92,7 @@ describe("attributeUtils", () => {
       error_message: null,
     };
 
-    it("extracts input values from flow state values", () => {
+    it("does not use flow state arrays as input values", () => {
       const arg = {
         name: "input1",
         type: "string",
@@ -104,12 +104,13 @@ describe("attributeUtils", () => {
         },
       };
 
-      const attributeValues = {
-        input1: { value: "value1", step: "step-0" },
+      const execution = {
+        ...mockExecution,
+        inputs: {},
       };
-      const result = getAttributeValue(arg, mockExecution, attributeValues);
-      expect(result.hasValue).toBe(true);
-      expect(result.value).toBe("value1");
+      const result = getAttributeValue(arg, execution);
+      expect(result.hasValue).toBe(false);
+      expect(result.value).toBeUndefined();
     });
 
     it("extracts output values from execution outputs", () => {
@@ -142,6 +143,48 @@ describe("attributeUtils", () => {
       };
 
       const result = getAttributeValue(arg, mockExecution);
+      expect(result.hasValue).toBe(false);
+      expect(result.value).toBeUndefined();
+    });
+
+    it("treats empty flow state arrays as absent", () => {
+      const arg = {
+        name: "input1",
+        type: "string",
+        argType: "required" as const,
+        spec: {
+          type: AttributeType.String,
+          role: AttributeRole.Required,
+          description: "",
+        },
+      };
+      const execution = {
+        ...mockExecution,
+        inputs: {},
+      };
+      const result = getAttributeValue(arg, execution);
+      expect(result.hasValue).toBe(false);
+      expect(result.value).toBeUndefined();
+    });
+
+    it("does not use optional default when execution inputs are missing", () => {
+      const arg = {
+        name: "opt1",
+        type: "string",
+        argType: "optional" as const,
+        spec: {
+          type: AttributeType.String,
+          role: AttributeRole.Optional,
+          optional: { default: "fallback value" },
+          description: "",
+        },
+      };
+      const execution: ExecutionResult = {
+        ...mockExecution,
+        status: "skipped",
+        inputs: {},
+      };
+      const result = getAttributeValue(arg, execution);
       expect(result.hasValue).toBe(false);
       expect(result.value).toBeUndefined();
     });
@@ -185,7 +228,7 @@ describe("attributeUtils", () => {
       expect(result.value).toBeUndefined();
     });
 
-    it("uses flow state values when execution inputs are missing", () => {
+    it("does not use flow state values when execution inputs are missing", () => {
       const arg = {
         name: "input1",
         type: "string",
@@ -207,13 +250,9 @@ describe("attributeUtils", () => {
         error_message: null,
       };
 
-      const attributeValues = {
-        input1: { value: "state-value", step: "step-0" },
-      };
-
-      const result = getAttributeValue(arg, emptyExecution, attributeValues);
-      expect(result.hasValue).toBe(true);
-      expect(result.value).toBe("state-value");
+      const result = getAttributeValue(arg, emptyExecution);
+      expect(result.hasValue).toBe(false);
+      expect(result.value).toBeUndefined();
     });
 
     it("returns no value when execution has no inputs/outputs", () => {

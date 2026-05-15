@@ -162,10 +162,7 @@ func (e *ExecContext) performFlow(initState api.Args, tkn api.Token) error {
 		init[name] = []any{value}
 	}
 	_, err := e.engine.StartChildFlow(fs, tkn, e.child, init, e.meta)
-	if err != nil {
-		return err
-	}
-	return nil
+	return err
 }
 
 func (e *ExecContext) httpMetaForToken(tkn api.Token) api.Metadata {
@@ -331,7 +328,7 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 	inputs := base.Apply(work.Inputs)
 	shouldStart, err := tx.evaluateStepPredicate(step, inputs)
 	if err != nil {
-		return false, tx.handlePredicateFailure(sid, err)
+		return false, tx.handlePredicateFailure(sid, base, err)
 	}
 	return shouldStart, nil
 }
@@ -352,7 +349,7 @@ func (tx *flowTx) shouldStartRetryPending(
 	inputs := base.Apply(work.Inputs)
 	shouldStart, err := tx.evaluateStepPredicate(step, inputs)
 	if err != nil {
-		return false, tx.handlePredicateFailure(sid, err)
+		return false, tx.handlePredicateFailure(sid, base, err)
 	}
 	return shouldStart, nil
 }

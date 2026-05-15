@@ -313,7 +313,7 @@ func TestCollectNoneNoProvider(t *testing.T) {
 	})
 }
 
-func TestCollectSomeInitNoProvider(t *testing.T) {
+func TestCollectSomeInit(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -356,7 +356,7 @@ func TestCollectSomeInitNoProvider(t *testing.T) {
 	})
 }
 
-func TestConstObjectDefault(t *testing.T) {
+func TestConstObject(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -445,7 +445,7 @@ func TestInputMapping(t *testing.T) {
 		assert.Equal(t, "value", ex.Inputs["input"])
 	})
 }
-func TestInputMappingWithRename(t *testing.T) {
+func TestInputRename(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -506,7 +506,7 @@ func TestPredicateFailure(t *testing.T) {
 	})
 }
 
-func TestJPathPredicateMatchOnNull(t *testing.T) {
+func TestJPathNullMatch(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -539,7 +539,7 @@ func TestJPathPredicateMatchOnNull(t *testing.T) {
 	})
 }
 
-func TestRequiredMatchRoutesDemand(t *testing.T) {
+func TestMatchRoutes(t *testing.T) {
 	tests := []struct {
 		name           string
 		route          string
@@ -633,7 +633,7 @@ func TestRequiredMatchRoutesDemand(t *testing.T) {
 	}
 }
 
-func TestRequiredMatchFiltersCollectedValues(t *testing.T) {
+func TestMatchFilters(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -666,7 +666,7 @@ func TestRequiredMatchFiltersCollectedValues(t *testing.T) {
 	})
 }
 
-func TestRequiredMatchFirstKeepsDemandAfterUnmatchedValue(t *testing.T) {
+func TestMatchFirstPending(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -699,7 +699,7 @@ func TestRequiredMatchFirstKeepsDemandAfterUnmatchedValue(t *testing.T) {
 	})
 }
 
-func TestRequiredMatchAllPrunesOnUnmatchedProvider(t *testing.T) {
+func TestMatchAllPrunes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -726,11 +726,61 @@ func TestRequiredMatchAllPrunesOnUnmatchedProvider(t *testing.T) {
 		assert.False(t, env.MockClient.WasInvoked(consumer.ID))
 		assert.Equal(t, api.FlowFailed, fl.Status)
 		assert.Equal(t, api.StepSkipped, fl.Executions[consumer.ID].Status)
-		assert.Equal(t, []api.Name{"data"}, fl.Executions[consumer.ID].Unsatisfied)
+		assert.Equal(t,
+			[]api.Name{"data"}, fl.Executions[consumer.ID].Unsatisfied,
+		)
 	})
 }
 
-func TestInputMappingWithAle(t *testing.T) {
+func TestMatchSkipInputs(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		consumer := helpers.NewSimpleStep("notification")
+		consumer.Attributes = api.AttributeSpecs{
+			"user_info": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"payment_result": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "paid"`,
+					},
+				},
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{consumer.ID: consumer},
+		}
+
+		id := api.FlowID("wf-required-match-skip-inputs")
+		err := env.Engine.StartFlow(id, pl,
+			flow.WithInit(api.InitArgs{
+				"user_info":      {"resolved-user"},
+				"payment_result": {"declined"},
+			}),
+		)
+		assert.NoError(t, err)
+
+		fl := env.WaitForTerminalFlow(id)
+		ex := fl.Executions[consumer.ID]
+		assert.Equal(t, api.StepSkipped, ex.Status)
+		assert.Equal(t, "resolved-user", ex.Inputs["user_info"])
+		_, hasPaymentResult := ex.Inputs["payment_result"]
+		assert.False(t, hasPaymentResult)
+		assert.Equal(t, []api.Name{"payment_result"}, ex.Unsatisfied)
+	})
+}
+
+func TestInputAle(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { AttributeValue, ExecutionResult, Step } from "@/app/api";
+import { ExecutionResult, Step } from "@/app/api";
 import StepHeader from "@/app/components/molecules/StepHeader";
 import Attributes from "@/app/components/molecules/LiveStep/Attributes";
 import StepPredicate from "@/app/components/molecules/StepPredicate";
@@ -17,7 +17,6 @@ interface WidgetProps {
   satisfiedArgs?: Set<string>;
   availableArgs?: Set<string>;
   attributeProvenance?: Map<string, string>;
-  attributeValues?: Record<string, AttributeValue>;
   flowId?: string;
 }
 
@@ -32,7 +31,6 @@ const Widget: React.FC<WidgetProps> = ({
   satisfiedArgs = new Set(),
   availableArgs = new Set(),
   attributeProvenance = new Map(),
-  attributeValues,
   flowId,
 }) => {
   const stepType = getStepType(step);
@@ -57,7 +55,6 @@ const Widget: React.FC<WidgetProps> = ({
         availableArgs={availableArgs}
         execution={execution}
         attributeProvenance={attributeProvenance}
-        attributeValues={attributeValues}
       />
       <StepPredicate step={step} />
       <Footer step={step} flowId={flowId} execution={execution} />

@@ -69,8 +69,8 @@ describe("useNodeData", () => {
     const flowData = {
       id: "flow-1",
       state: {
-        input1: { step: "step-1" },
-        input2: { step: "step-2" },
+        input1: [{ step: "step-1" }],
+        input2: [{ step: "step-2" }],
       },
     };
 
@@ -95,7 +95,7 @@ describe("useNodeData", () => {
   it("treats inputs as satisfied after the step starts", () => {
     const { result } = renderHook(() =>
       useNodeData(mockStep as any, {
-        executions: [mockExecution],
+        executions: [{ ...mockExecution, inputs: { input1: "value" } }],
       })
     );
 
@@ -129,7 +129,7 @@ describe("useNodeData", () => {
     expect(result.current.satisfied.has("input1")).toBe(false);
   });
 
-  it("treats skipped inputs not listed as unsatisfied as satisfied", () => {
+  it("does not satisfy skipped inputs unless they are present in execution inputs", () => {
     const { result } = renderHook(() =>
       useNodeData(mockStep as any, {
         executions: [
@@ -141,7 +141,7 @@ describe("useNodeData", () => {
       })
     );
 
-    expect(result.current.satisfied.has("input1")).toBe(true);
+    expect(result.current.satisfied.has("input1")).toBe(false);
   });
 
   it("returns all required data structures", () => {
@@ -186,7 +186,7 @@ describe("useNodeData", () => {
   it("memoizes provenance map", () => {
     const flowData = {
       id: "flow-1",
-      state: { input1: { step: "step-1" } },
+      state: { input1: [{ step: "step-1" }] },
     };
 
     const { result, rerender } = renderHook(() =>
@@ -208,7 +208,7 @@ describe("useNodeData", () => {
         initialProps: {
           flowData: {
             id: "flow-1",
-            state: { input1: { step: "step-1" } },
+            state: { input1: [{ step: "step-1" }] },
           },
         },
       }
@@ -219,7 +219,7 @@ describe("useNodeData", () => {
     rerender({
       flowData: {
         id: "flow-1",
-        state: { input1: { step: "step-2" } },
+        state: { input1: [{ step: "step-2" }] },
       },
     });
 
@@ -266,7 +266,16 @@ describe("useNodeData", () => {
 
     const { result } = renderHook(() =>
       useNodeData(stepWithMultipleAttrs as any, {
-        executions: [mockExecution],
+        executions: [
+          {
+            ...mockExecution,
+            inputs: {
+              input1: "value1",
+              input2: "value2",
+              optional1: "optional",
+            },
+          },
+        ],
       })
     );
 

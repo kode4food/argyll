@@ -374,7 +374,13 @@ describe("WebSocketProvider", () => {
     });
     flowHandler({
       type: "step_failed",
-      data: { flow_id: "flow-1", step_id: "step-2", error: "boom" },
+      data: {
+        flow_id: "flow-1",
+        step_id: "step-2",
+        error: "boom",
+        inputs: { order: "123" },
+        unsatisfied: ["payment"],
+      },
       timestamp: Date.now(),
     });
     flowHandler({
@@ -382,6 +388,7 @@ describe("WebSocketProvider", () => {
       data: {
         flow_id: "flow-1",
         step_id: "step-3",
+        inputs: { order: "123" },
         unsatisfied: ["input"],
         reason: "required match did not match",
       },
@@ -436,12 +443,17 @@ describe("WebSocketProvider", () => {
     );
     expect(flowStore.__storeState.updateExecution).toHaveBeenCalledWith(
       "step-2",
-      expect.objectContaining({ status: "failed" })
+      expect.objectContaining({
+        status: "failed",
+        inputs: { order: "123" },
+        unsatisfied: ["payment"],
+      })
     );
     expect(flowStore.__storeState.updateExecution).toHaveBeenCalledWith(
       "step-3",
       expect.objectContaining({
         status: "skipped",
+        inputs: { order: "123" },
         unsatisfied: ["input"],
         error_message: "required match did not match",
       })
@@ -449,7 +461,7 @@ describe("WebSocketProvider", () => {
     expect(flowStore.__storeState.updateFlowData).toHaveBeenCalledWith(
       expect.objectContaining({
         state: expect.objectContaining({
-          result: { value: { ok: true }, step: "step-1" },
+          result: [{ value: { ok: true }, step: "step-1" }],
         }),
       })
     );

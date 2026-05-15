@@ -653,7 +653,7 @@ describe("flowStore", () => {
 
       const update: Partial<FlowContext> = {
         status: "completed",
-        state: { result: { value: "final", step: "final-step" } },
+        state: { result: [{ value: "final", step: "final-step" }] },
       };
 
       useFlowStore.getState().updateFlowData(update);
@@ -662,7 +662,7 @@ describe("flowStore", () => {
 
       expect(state.flowData?.status).toBe("completed");
       expect(state.flowData?.state).toEqual({
-        result: { value: "final", step: "final-step" },
+        result: [{ value: "final", step: "final-step" }],
       });
       expect(state.resolvedAttributes).toContain("result");
     });
@@ -755,7 +755,7 @@ describe("flowStore", () => {
       useFlowStore.getState().setFlowState({
         id: "wf-1",
         status: "active",
-        attributes: { result: "value" },
+        attributes: { result: [{ value: "value", step: "step-1" }] },
         plan: { steps: { "step-1": {} } },
         executions: {
           "step-1": {
@@ -770,7 +770,9 @@ describe("flowStore", () => {
       const state = useFlowStore.getState();
       expect(state.flowData?.id).toBe("wf-1");
       expect(state.flowData?.status).toBe("active");
-      expect(state.flowData?.state).toEqual({ result: "value" });
+      expect(state.flowData?.state).toEqual({
+        result: [{ value: "value", step: "step-1" }],
+      });
       expect(state.executions).toHaveLength(1);
       expect(state.executions[0].status).toBe("completed");
       expect(state.resolvedAttributes).toContain("result");
@@ -805,11 +807,18 @@ describe("flowStore", () => {
 
       const state = useFlowStore.getState();
       expect(state.flowData?.state).toEqual({
-        result: {
-          value: "new",
-          step: "step-2",
-          set_at: "2024-01-01T00:00:01Z",
-        },
+        result: [
+          {
+            value: "old",
+            step: "step-1",
+            set_at: "2024-01-01T00:00:00Z",
+          },
+          {
+            value: "new",
+            step: "step-2",
+            set_at: "2024-01-01T00:00:01Z",
+          },
+        ],
       });
       expect(state.resolvedAttributes).toContain("result");
     });

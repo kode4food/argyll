@@ -60,31 +60,10 @@ export const buildProvenanceMap = (
   const map = new Map<string, string>();
   if (flowState) {
     Object.entries(flowState).forEach(([attrName, attrValue]) => {
-      if (attrValue?.step) {
-        map.set(attrName, attrValue.step);
+      if (Array.isArray(attrValue) && attrValue[0]?.step) {
+        map.set(attrName, attrValue[0].step);
       }
     });
   }
   return map;
-};
-
-/**
- * Calculates which arguments are satisfied based on resolved attributes
- * Only considers required and optional arguments
- */
-export const calculateSatisfiedArgs = (
-  attributes: Record<string, AttributeSpec>,
-  resolved: Set<string>
-): Set<string> => {
-  const set = new Set<string>();
-  Object.entries(attributes || {}).forEach(([argName, spec]) => {
-    if (
-      (spec.role === AttributeRole.Required ||
-        spec.role === AttributeRole.Optional) &&
-      resolved.has(argName)
-    ) {
-      set.add(argName);
-    }
-  });
-  return set;
 };

@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { AttributeRole, Step, FlowContext, ExecutionResult } from "@/app/api";
 import { buildProvenanceMap } from "@/utils/stepNodeUtils";
+import { getInputName } from "@/app/components/molecules/LiveStep/attributeUtils";
 
 export interface NodeDataResult {
   execution: ExecutionResult | undefined;
@@ -39,18 +40,18 @@ export const useNodeData = (
       return new Set<string>();
     }
 
-    const unsatisfied = new Set(execution.unsatisfied || []);
+    const inputs = new Set(Object.keys(execution.inputs || {}));
     return new Set(
       Object.entries(step.attributes)
         .filter(
           ([name, spec]) =>
             (spec.role === AttributeRole.Required ||
               spec.role === AttributeRole.Optional) &&
-            !unsatisfied.has(name)
+            inputs.has(getInputName(name, spec))
         )
         .map(([name]) => name)
     );
-  }, [execution?.status, execution?.unsatisfied, step.attributes]);
+  }, [execution?.status, execution?.inputs, step.attributes]);
 
   return {
     execution,

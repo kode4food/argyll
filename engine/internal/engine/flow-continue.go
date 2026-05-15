@@ -23,11 +23,18 @@ func (tx *flowTx) checkUnreachable() error {
 				continue
 			}
 
+			st := fl.Plan.Steps[sid]
+			inputs, err := tx.collectStepInputs(st, fl)
+			if err != nil {
+				inputs = ex.Inputs
+			}
+
 			if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 				api.StepFailedEvent{
 					FlowID: tx.flowID,
 					StepID: sid,
 					Error:  "required input no longer available",
+					Inputs: inputs,
 				},
 			); err != nil {
 				return err

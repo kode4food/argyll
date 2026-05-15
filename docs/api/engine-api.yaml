@@ -1584,9 +1584,11 @@ components:
             type: string
         attributes:
           type: object
-          description: Map of attribute name to attribute value with provenance
+          description: Map of attribute name to ordered list of attribute values with provenance
           additionalProperties:
-            $ref: "#/components/schemas/AttributeValue"
+            type: array
+            items:
+              $ref: "#/components/schemas/AttributeValue"
         executions:
           type: object
           description: Map of step ID to execution state
@@ -1645,6 +1647,11 @@ components:
           type: object
           description: Output values produced by the step
           additionalProperties: true
+        unsatisfied:
+          type: array
+          items:
+            type: string
+          description: Input names that could not be satisfied (present on skipped or failed steps)
         error:
           type: string
           description: Error message if status is failed

@@ -171,7 +171,7 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      input1: { value: "test value" },
+      input1: [{ value: "test value" }],
     };
 
     render(
@@ -179,7 +179,6 @@ describe("Attributes", () => {
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
-        attributeValues={attributeValues}
       />
     );
 
@@ -225,10 +224,10 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      str: { value: "string" },
-      num: { value: 42 },
-      obj: { value: { key: "value" } },
-      nullVal: { value: null },
+      str: [{ value: "string" }],
+      num: [{ value: 42 }],
+      obj: [{ value: { key: "value" } }],
+      nullVal: [{ value: null }],
     };
 
     render(
@@ -236,7 +235,6 @@ describe("Attributes", () => {
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
-        attributeValues={attributeValues}
       />
     );
 
@@ -287,7 +285,7 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      input1: { value: "value1" },
+      input1: [{ value: "value1" }],
     };
 
     const { container } = render(
@@ -295,7 +293,6 @@ describe("Attributes", () => {
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
-        attributeValues={attributeValues}
       />
     );
 
@@ -359,7 +356,7 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      config: { value: { nested: { key: "value" }, array: [1, 2, 3] } },
+      config: [{ value: { nested: { key: "value" }, array: [1, 2, 3] } }],
     };
 
     render(
@@ -367,7 +364,6 @@ describe("Attributes", () => {
         step={step}
         satisfiedArgs={satisfiedArgs}
         execution={execution}
-        attributeValues={attributeValues}
       />
     );
 
@@ -476,7 +472,7 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      opt1: { value: "default-value" },
+      opt1: [{ value: "default-value" }],
     };
     const attributeProvenance = new Map<string, string>();
 
@@ -485,7 +481,6 @@ describe("Attributes", () => {
         step={step}
         satisfiedArgs={new Set()}
         execution={execution}
-        attributeValues={attributeValues}
         attributeProvenance={attributeProvenance}
       />
     );
@@ -493,6 +488,50 @@ describe("Attributes", () => {
     const badge = container.querySelector(".arg-status-badge.defaulted");
     expect(badge).toBeInTheDocument();
     expect(badge?.querySelector(".lucide-circle-dot")).toBeInTheDocument();
+  });
+
+  test("does not show flow state or spec default values for skipped required-match executions", () => {
+    const step: Step = {
+      id: "step-1",
+      name: "Test",
+      type: "sync",
+      attributes: {
+        gate: {
+          role: AttributeRole.Required,
+          type: AttributeType.String,
+          required: { match: { language: "ale", script: "value == 'match'" } },
+        },
+        opt1: {
+          role: AttributeRole.Optional,
+          type: AttributeType.String,
+          optional: { default: "fallback value" },
+        },
+      },
+      http: {
+        endpoint: "http://test",
+        timeout: 5000,
+      },
+    };
+    const execution: ExecutionResult = {
+      step_id: "step-1",
+      flow_id: "wf-1",
+      status: "skipped",
+      inputs: {},
+      unsatisfied: ["gate"],
+      started_at: "2024-01-01T00:00:00Z",
+    };
+    const { container } = render(
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
+    );
+
+    const opt = container.querySelector('[data-arg-name="opt1"]');
+    expect(opt?.querySelector(".arg-status-badge.skipped")).toBeInTheDocument();
+    expect(
+      screen.queryByText(t("liveStep.defaultValue"))
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('"fallback value"')).not.toBeInTheDocument();
+    expect(screen.queryByText(/upstream value/)).not.toBeInTheDocument();
+    expect(screen.queryByText("undefined")).not.toBeInTheDocument();
   });
 
   test("shows optional default value from mapped execution input", () => {
@@ -561,7 +600,7 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      opt1: { value: "real-upstream-value", step: "step-2" },
+      opt1: [{ value: "real-upstream-value", step: "step-2" }],
     };
     const attributeProvenance = new Map<string, string>([["opt1", "step-2"]]);
 
@@ -570,7 +609,6 @@ describe("Attributes", () => {
         step={step}
         satisfiedArgs={new Set(["opt1"])}
         execution={execution}
-        attributeValues={attributeValues}
         attributeProvenance={attributeProvenance}
       />
     );
@@ -649,16 +687,11 @@ describe("Attributes", () => {
       started_at: "2024-01-01T00:00:00Z",
     };
     const attributeValues = {
-      circular: { value: circularObj },
+      circular: [{ value: circularObj }],
     };
 
     render(
-      <Attributes
-        step={step}
-        satisfiedArgs={new Set()}
-        execution={execution}
-        attributeValues={attributeValues}
-      />
+      <Attributes step={step} satisfiedArgs={new Set()} execution={execution} />
     );
 
     // Should render without crashing, even though JSON.stringify would throw

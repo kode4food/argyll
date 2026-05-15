@@ -39,7 +39,10 @@ const failedBadge = (): React.ReactElement =>
 const optionalStatusBadge = (
   context: StatusBadgeContext
 ): React.ReactElement | null => {
-  if (!context.executionStatus) return null;
+  if (!context.executionStatus || context.executionStatus === "pending") {
+    return context.isAvailable ? progressBadge() : pendingBadge();
+  }
+  if (context.isUnsatisfied) return failedBadge();
   if (context.executionStatus === "skipped" && !context.isSatisfied)
     return skippedBadge();
   if (context.isProvidedByUpstream)
@@ -55,7 +58,9 @@ const optionalStatusBadge = (
 const constStatusBadge = (
   context: StatusBadgeContext
 ): React.ReactElement | null => {
-  if (!context.executionStatus) return null;
+  if (!context.executionStatus || context.executionStatus === "pending") {
+    return context.isAvailable ? progressBadge() : pendingBadge();
+  }
   if (context.executionStatus === "skipped") return skippedBadge();
   if (context.wasDefaulted || context.isSatisfied)
     return badge("defaulted", IconAttributeStatusDefaulted);
@@ -65,6 +70,9 @@ const constStatusBadge = (
 const requiredStatusBadge = (
   context: StatusBadgeContext
 ): React.ReactElement | null => {
+  if (!context.executionStatus || context.executionStatus === "pending") {
+    return context.isAvailable ? progressBadge() : pendingBadge();
+  }
   if (context.isUnsatisfied) return failedBadge();
   if (context.isSatisfied)
     return badge("satisfied", IconAttributeStatusSatisfied);
@@ -109,7 +117,6 @@ export const useAttributeStatusBadge = () => {
         argType: ArgType,
         context: StatusBadgeContext
       ): React.ReactElement | null => {
-        if (context.isUnsatisfied) return failedBadge();
         switch (argType) {
           case "optional":
             return optionalStatusBadge(context);

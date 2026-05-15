@@ -212,27 +212,28 @@ func stepCompleted(
 func stepFailed(
 	st api.FlowState, ev *timebox.Event, data api.StepFailedEvent,
 ) api.FlowState {
+	ex := st.Executions[data.StepID].
+		SetStatus(api.StepFailed).
+		SetError(data.Error).
+		SetUnsatisfied(data.Unsatisfied).
+		SetInputs(data.Inputs).
+		SetCompletedAt(ev.Timestamp)
 	return st.
-		SetExecution(data.StepID,
-			st.Executions[data.StepID].
-				SetStatus(api.StepFailed).
-				SetError(data.Error).
-				SetCompletedAt(ev.Timestamp),
-		).
+		SetExecution(data.StepID, ex).
 		SetLastUpdated(ev.Timestamp)
 }
 
 func stepSkipped(
 	st api.FlowState, ev *timebox.Event, data api.StepSkippedEvent,
 ) api.FlowState {
+	ex := st.Executions[data.StepID].
+		SetStatus(api.StepSkipped).
+		SetError(data.Reason).
+		SetUnsatisfied(data.Unsatisfied).
+		SetInputs(data.Inputs).
+		SetCompletedAt(ev.Timestamp)
 	return st.
-		SetExecution(data.StepID,
-			st.Executions[data.StepID].
-				SetStatus(api.StepSkipped).
-				SetError(data.Reason).
-				SetUnsatisfied(data.Unsatisfied).
-				SetCompletedAt(ev.Timestamp),
-		).
+		SetExecution(data.StepID, ex).
 		SetLastUpdated(ev.Timestamp)
 }
 

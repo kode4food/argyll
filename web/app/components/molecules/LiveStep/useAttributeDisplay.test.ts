@@ -9,7 +9,10 @@ describe("useAttributeStatusBadge", () => {
 
   it("renders required satisfied status", () => {
     const { result } = renderHook(() => useAttributeStatusBadge());
-    const badge = result.current("required", { isSatisfied: true });
+    const badge = result.current("required", {
+      isSatisfied: true,
+      executionStatus: "active",
+    });
 
     expect(badge).not.toBeNull();
     expect(badge?.props.className).toContain("satisfied");
@@ -39,6 +42,7 @@ describe("useAttributeStatusBadge", () => {
     const badge = result.current("required", {
       isSatisfied: false,
       isUnsatisfied: true,
+      executionStatus: "skipped",
     });
 
     expect(badge).not.toBeNull();
@@ -77,6 +81,29 @@ describe("useAttributeStatusBadge", () => {
 
     expect(badge).not.toBeNull();
     expect(badge?.props.className).toContain("satisfied");
+  });
+
+  it("renders optional progress before execution decision when a candidate value is available", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("optional", {
+      isSatisfied: false,
+      isAvailable: true,
+      isProvidedByUpstream: true,
+    });
+
+    expect(badge).not.toBeNull();
+    expect(badge?.props.className).toContain("progress");
+  });
+
+  it("renders optional pending before execution decision even when defaulted", () => {
+    const { result } = renderHook(() => useAttributeStatusBadge());
+    const badge = result.current("optional", {
+      isSatisfied: true,
+      wasDefaulted: true,
+    });
+
+    expect(badge).not.toBeNull();
+    expect(badge?.props.className).toContain("pending");
   });
 
   it("renders optional defaulted status", () => {

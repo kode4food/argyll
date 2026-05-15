@@ -348,8 +348,10 @@ func TestStepFailed(t *testing.T) {
 	now := time.Now()
 
 	eventData := api.StepFailedEvent{
-		StepID: "step1",
-		Error:  "step execution failed",
+		StepID:      "step1",
+		Error:       "step execution failed",
+		Inputs:      api.Args{"input": "value"},
+		Unsatisfied: []api.Name{"missing"},
 	}
 	data, err := json.Marshal(eventData)
 	assert.NoError(t, err)
@@ -367,6 +369,8 @@ func TestStepFailed(t *testing.T) {
 	ex := result.Executions["step1"]
 	assert.Equal(t, api.StepFailed, ex.Status)
 	assert.Equal(t, "step execution failed", ex.Error)
+	assert.Equal(t, "value", ex.Inputs["input"])
+	assert.Equal(t, []api.Name{"missing"}, ex.Unsatisfied)
 }
 
 func TestStepSkipped(t *testing.T) {
@@ -382,6 +386,7 @@ func TestStepSkipped(t *testing.T) {
 	eventData := api.StepSkippedEvent{
 		StepID:      "step1",
 		Reason:      "predicate evaluated to false",
+		Inputs:      api.Args{"input": "value"},
 		Unsatisfied: []api.Name{"input"},
 	}
 	data, err := json.Marshal(eventData)
@@ -400,6 +405,7 @@ func TestStepSkipped(t *testing.T) {
 	ex := result.Executions["step1"]
 	assert.Equal(t, api.StepSkipped, ex.Status)
 	assert.Equal(t, "predicate evaluated to false", ex.Error)
+	assert.Equal(t, "value", ex.Inputs["input"])
 	assert.Equal(t, []api.Name{"input"}, ex.Unsatisfied)
 }
 

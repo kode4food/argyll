@@ -74,8 +74,8 @@ These affect the flow's execution state:
 - **flow_failed**: Goal step failed or became unreachable
 - **step_started**: Step preparing to execute
 - **step_completed**: Step finished successfully
-- **step_failed**: Step encountered an error
-- **step_skipped**: Predicate evaluated to false
+- **step_failed**: Step encountered an error or required input became unreachable; carries collected inputs and unsatisfied input names
+- **step_skipped**: Step predicate returned false, or match gate could not be satisfied; carries collected inputs and unsatisfied input names
 - **work_started**: Individual work item begins execution
 - **work_succeeded**: Work item completed successfully (part of a for_each expansion)
 - **work_failed**: Work item failed

@@ -50,9 +50,12 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 		return err
 	}
 	if len(unsatisfied) > 0 {
+		inputs, err := tx.collectStepInputs(st, fl)
+		if err != nil {
+			return err
+		}
 		return tx.performSkip(
-			stepID, policy.RequiredMatchSkipReason,
-			unsatisfied,
+			stepID, policy.RequiredMatchSkipReason, inputs, unsatisfied,
 		)
 	}
 
@@ -63,10 +66,10 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 
 	shouldExecute, err := tx.evaluateStepPredicate(st, inputs)
 	if err != nil {
-		return tx.handlePredicateFailure(stepID, err)
+		return tx.handlePredicateFailure(stepID, inputs, err)
 	}
 	if !shouldExecute {
-		return tx.performSkip(stepID, "predicate returned false", nil)
+		return tx.performSkip(stepID, "predicate returned false", inputs, nil)
 	}
 
 	workItemsList, err := computeWorkItems(st, inputs)
@@ -94,13 +97,14 @@ func (tx *flowTx) prepareStep(stepID api.StepID) error {
 }
 
 func (tx *flowTx) performSkip(
-	stepID api.StepID, reason string, unsatisfied []api.Name,
+	stepID api.StepID, reason string, inputs api.Args, unsatisfied []api.Name,
 ) error {
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeStepSkipped,
 		api.StepSkippedEvent{
 			FlowID:      tx.flowID,
 			StepID:      stepID,
 			Reason:      reason,
+			Inputs:      inputs,
 			Unsatisfied: unsatisfied,
 		},
 	); err != nil {

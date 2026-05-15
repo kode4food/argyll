@@ -145,7 +145,7 @@ export interface ExecutionPlan {
 export interface FlowContext {
   id: string;
   status: FlowStatus;
-  state: Record<string, AttributeValue>;
+  state: Record<string, AttributeValue[]>;
   error_state?: {
     message: string;
     step_id: string;

@@ -64,7 +64,6 @@ const Node: React.FC<NodeProps> = ({ id, data }) => {
           satisfiedArgs={satisfied}
           availableArgs={resolved}
           attributeProvenance={provenance}
-          attributeValues={flowData?.state}
           flowId={flowData?.id}
         />
       </div>

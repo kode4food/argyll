@@ -2,7 +2,6 @@ import {
   groupAttributesByRole,
   generateHandleId,
   buildProvenanceMap,
-  calculateSatisfiedArgs,
 } from "./stepNodeUtils";
 import { AttributeRole, AttributeType } from "@/app/api";
 
@@ -108,9 +107,9 @@ describe("stepNodeUtils", () => {
   describe("buildProvenanceMap", () => {
     it("builds map from flow state", () => {
       const flowState = {
-        attr1: { step: "step-1" },
-        attr2: { step: "step-2" },
-        attr3: { step: "step-1" },
+        attr1: [{ step: "step-1" }],
+        attr2: [{ step: "step-2" }],
+        attr3: [{ step: "step-1" }],
       };
 
       const map = buildProvenanceMap(flowState);
@@ -122,9 +121,9 @@ describe("stepNodeUtils", () => {
 
     it("ignores attributes without step", () => {
       const flowState = {
-        attr1: { step: "step-1" },
-        attr2: { other: "value" },
-        attr3: {},
+        attr1: [{ step: "step-1" }],
+        attr2: [{ other: "value" }],
+        attr3: [],
       };
 
       const map = buildProvenanceMap(flowState);
@@ -132,6 +131,16 @@ describe("stepNodeUtils", () => {
       expect(map.has("attr1")).toBe(true);
       expect(map.has("attr2")).toBe(false);
       expect(map.has("attr3")).toBe(false);
+    });
+
+    it("uses the first value when multiple values are present", () => {
+      const flowState = {
+        attr1: [{ step: "step-1" }, { step: "step-2" }],
+      };
+
+      const map = buildProvenanceMap(flowState);
+
+      expect(map.get("attr1")).toBe("step-1");
     });
 
     it("handles empty flow state", () => {
@@ -145,90 +154,8 @@ describe("stepNodeUtils", () => {
     });
 
     it("returns a Map object", () => {
-      const map = buildProvenanceMap({ attr1: { step: "step-1" } });
+      const map = buildProvenanceMap({ attr1: [{ step: "step-1" }] });
       expect(map).toBeInstanceOf(Map);
-    });
-  });
-
-  describe("calculateSatisfiedArgs", () => {
-    it("calculates satisfied required arguments", () => {
-      const attributes = {
-        input1: {
-          role: AttributeRole.Required,
-          type: AttributeType.String,
-          description: "",
-        },
-        input2: {
-          role: AttributeRole.Required,
-          type: AttributeType.String,
-          description: "",
-        },
-      };
-      const resolved = new Set(["input1"]);
-
-      const satisfied = calculateSatisfiedArgs(attributes, resolved);
-
-      expect(satisfied.has("input1")).toBe(true);
-      expect(satisfied.has("input2")).toBe(false);
-    });
-
-    it("includes optional satisfied arguments", () => {
-      const attributes = {
-        optional1: {
-          role: AttributeRole.Optional,
-          type: AttributeType.String,
-          description: "",
-        },
-        optional2: {
-          role: AttributeRole.Optional,
-          type: AttributeType.String,
-          description: "",
-        },
-      };
-      const resolved = new Set(["optional1", "optional2"]);
-
-      const satisfied = calculateSatisfiedArgs(attributes, resolved);
-
-      expect(satisfied.has("optional1")).toBe(true);
-      expect(satisfied.has("optional2")).toBe(true);
-    });
-
-    it("ignores output attributes", () => {
-      const attributes = {
-        output1: {
-          role: AttributeRole.Output,
-          type: AttributeType.String,
-          description: "",
-        },
-      };
-      const resolved = new Set(["output1"]);
-
-      const satisfied = calculateSatisfiedArgs(attributes, resolved);
-
-      expect(satisfied.has("output1")).toBe(false);
-    });
-
-    it("handles empty attributes", () => {
-      const satisfied = calculateSatisfiedArgs({}, new Set(["input1"]));
-      expect(satisfied.size).toBe(0);
-    });
-
-    it("handles empty resolved set", () => {
-      const attributes = {
-        input1: {
-          role: AttributeRole.Required,
-          type: AttributeType.String,
-          description: "",
-        },
-      };
-      const satisfied = calculateSatisfiedArgs(attributes, new Set());
-
-      expect(satisfied.has("input1")).toBe(false);
-    });
-
-    it("returns a Set object", () => {
-      const result = calculateSatisfiedArgs({}, new Set());
-      expect(result).toBeInstanceOf(Set);
     });
   });
 });

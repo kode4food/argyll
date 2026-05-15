@@ -42,22 +42,4 @@ export const t = (
   return interpolate(value[form], vars);
 };
 
-export const tPlural = (
-  key: keyof Messages,
-  count: number,
-  vars: Record<string, string | number> = {}
-): string => {
-  const value = mergedMessages[key as string] as MessageValue;
-  if (!value || typeof value !== "object") {
-    throw new Error(`i18n key "${String(key)}" is not a plural object`);
-  }
-  const form =
-    count === 0 && "zero" in value
-      ? "zero"
-      : count === 1 && "one" in value
-        ? "one"
-        : "other";
-  return interpolate(value[form], { ...vars, count });
-};
-
 export { enUS, commonMessages };

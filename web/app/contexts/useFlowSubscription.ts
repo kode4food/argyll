@@ -74,6 +74,8 @@ const applyStepEvent = (
     case "step_failed":
       updateExecution(wsEvent.data?.step_id, {
         status: "failed",
+        inputs: wsEvent.data?.inputs,
+        unsatisfied: wsEvent.data?.unsatisfied,
         error_message: wsEvent.data?.error,
         completed_at: ts,
       });
@@ -81,6 +83,7 @@ const applyStepEvent = (
     case "step_skipped":
       updateExecution(wsEvent.data?.step_id, {
         status: "skipped",
+        inputs: wsEvent.data?.inputs,
         unsatisfied: wsEvent.data?.unsatisfied,
         error_message: wsEvent.data?.reason,
         completed_at: ts,
@@ -164,15 +167,29 @@ const applyFlowUpdate = (
       if (wsEvent.data?.plan) {
         initializeExecutions(activeFlowId, wsEvent.data.plan);
       }
+      if (wsEvent.data?.init) {
+        const initState: Record<string, Array<{ value: unknown }>> = {};
+        Object.entries(wsEvent.data.init as Record<string, unknown[]>).forEach(
+          ([key, values]) => {
+            if (Array.isArray(values) && values.length > 0) {
+              initState[key] = values.map((value) => ({ value }));
+            }
+          }
+        );
+        if (Object.keys(initState).length > 0) {
+          flowUpdate.state = { ...(flowData.state || {}), ...initState };
+        }
+      }
       break;
     case "attribute_set": {
       const key = wsEvent.data?.key;
       const value = wsEvent.data?.value;
       const stepId = wsEvent.data?.step_id;
       if (key && value !== undefined) {
+        const existing = flowData.state?.[key] || [];
         flowUpdate.state = {
           ...(flowData.state || {}),
-          [key]: { value, step: stepId },
+          [key]: [...existing, { value, step: stepId }],
         };
       }
       break;

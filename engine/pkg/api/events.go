@@ -65,9 +65,11 @@ type (
 
 	// StepFailedEvent is emitted when a step fails
 	StepFailedEvent struct {
-		FlowID FlowID `json:"flow_id"`
-		StepID StepID `json:"step_id"`
-		Error  string `json:"error"`
+		FlowID      FlowID `json:"flow_id"`
+		StepID      StepID `json:"step_id"`
+		Error       string `json:"error"`
+		Inputs      Args   `json:"inputs,omitempty"`
+		Unsatisfied []Name `json:"unsatisfied,omitempty"`
 	}
 
 	// StepSkippedEvent is emitted when a step is skipped due to predicate
@@ -75,6 +77,7 @@ type (
 		FlowID      FlowID `json:"flow_id"`
 		StepID      StepID `json:"step_id"`
 		Reason      string `json:"reason"`
+		Inputs      Args   `json:"inputs,omitempty"`
 		Unsatisfied []Name `json:"unsatisfied,omitempty"`
 	}
 

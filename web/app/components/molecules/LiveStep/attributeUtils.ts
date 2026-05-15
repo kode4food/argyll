@@ -1,4 +1,4 @@
-import { ExecutionResult, AttributeSpec, AttributeValue } from "@/app/api";
+import { ExecutionResult, AttributeSpec, AttributeRole } from "@/app/api";
 import { type AttributeModifier } from "@/utils/stepUtils";
 
 export interface ArgValueResult {
@@ -26,20 +26,19 @@ export interface StatusBadgeContext {
   wasDefaulted?: boolean;
 }
 
-export const getExecutionInputName = (arg: UnifiedArg): string => {
-  if (arg.argType === "required") {
-    return arg.spec.required?.mapping?.name || arg.name;
+export const getInputName = (name: string, spec: AttributeSpec): string => {
+  if (spec.role === AttributeRole.Required) {
+    return spec.required?.mapping?.name || name;
   }
-  if (arg.argType === "optional") {
-    return arg.spec.optional?.mapping?.name || arg.name;
+  if (spec.role === AttributeRole.Optional) {
+    return spec.optional?.mapping?.name || name;
   }
-  return arg.name;
+  return name;
 };
 
-/**
- * Formats a value for display in tooltips
- * Handles null, undefined, strings, objects, and other types
- */
+export const getExecutionInputName = (arg: UnifiedArg): string =>
+  getInputName(arg.name, arg.spec);
+
 export const formatAttributeValue = (val: any): string => {
   if (val === null) return "null";
   if (val === undefined) return "undefined";
@@ -54,9 +53,6 @@ export const formatAttributeValue = (val: any): string => {
   return String(val);
 };
 
-/**
- * Gets the tooltip title based on attribute type and whether it was defaulted
- */
 export const getAttributeTooltipTitle = (
   argType: ArgType,
   wasDefaulted?: boolean
@@ -73,45 +69,20 @@ export const getAttributeTooltipTitle = (
   }
 };
 
-/**
- * Extracts the value for an attribute from execution results
- * Handles both inputs and outputs
- */
 export const getAttributeValue = (
   arg: UnifiedArg,
-  execution?: ExecutionResult,
-  attributeValues?: Record<string, AttributeValue>
+  execution?: ExecutionResult
 ): ArgValueResult => {
   if (arg.argType === "output") {
-    const hasValue = !!execution?.outputs && arg.name in execution.outputs;
-    return {
-      hasValue,
-      value: hasValue ? execution?.outputs?.[arg.name] : undefined,
-    };
+    if (execution?.outputs && arg.name in execution.outputs) {
+      return { hasValue: true, value: execution.outputs[arg.name] };
+    }
+    return { hasValue: false, value: undefined };
   }
 
   const inputName = getExecutionInputName(arg);
-  if (hasAttribute(execution?.inputs, inputName)) {
-    return {
-      hasValue: true,
-      value: execution?.inputs?.[inputName],
-    };
+  if (execution?.inputs && inputName in execution.inputs) {
+    return { hasValue: true, value: execution.inputs[inputName] };
   }
-
-  const hasStateValue = hasAttribute(attributeValues, arg.name);
-
-  return {
-    hasValue: hasStateValue,
-    value: hasStateValue ? attributeValues?.[arg.name]?.value : undefined,
-  };
-};
-
-const hasAttribute = <T extends object>(
-  obj: T | null | undefined,
-  key: PropertyKey
-): boolean => {
-  if (!obj) {
-    return false;
-  }
-  return Object.prototype.hasOwnProperty.call(obj, key);
+  return { hasValue: false, value: undefined };
 };

@@ -84,7 +84,9 @@ export const mergeResolvedAttributes = (
 ): string[] => {
   if (!newAttrs) return current;
 
-  const outputKeys = Object.keys(newAttrs);
+  const outputKeys = Object.entries(newAttrs)
+    .filter(([, value]) => !Array.isArray(value) || value.length > 0)
+    .map(([key]) => key);
   const hasNewAttrs = outputKeys.some((key) => !current.includes(key));
   if (!hasNewAttrs) return current;
 
@@ -93,20 +95,17 @@ export const mergeResolvedAttributes = (
   return Array.from(resolved);
 };
 
-export const normalizeFlowAttributes = (
+const normalizeFlowAttributes = (
   attrs?: Record<string, any>
-): Record<string, AttributeValue> => {
+): Record<string, AttributeValue[]> => {
   if (!attrs) {
     return {};
   }
 
   return Object.fromEntries(
-    Object.entries(attrs).map(([name, value]) => {
-      if (Array.isArray(value)) {
-        return [name, value[value.length - 1]];
-      }
-      return [name, value];
-    })
+    Object.entries(attrs).filter(
+      ([, value]) => Array.isArray(value) && value.length > 0
+    )
   );
 };
 
@@ -196,7 +195,11 @@ export function computeResolvedAttributes(
   stateAttrs: Record<string, any>,
   executions: ExecutionResult[]
 ): string[] {
-  const resolved = new Set<string>(Object.keys(stateAttrs));
+  const resolved = new Set<string>(
+    Object.entries(stateAttrs)
+      .filter(([, value]) => !Array.isArray(value) || value.length > 0)
+      .map(([name]) => name)
+  );
   executions.forEach((exec) => {
     if (exec.status === "completed" && exec.outputs) {
       Object.keys(exec.outputs).forEach((attr) => resolved.add(attr));

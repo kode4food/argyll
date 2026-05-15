@@ -32,6 +32,7 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 				FlowID: tx.flowID,
 				StepID: stepID,
 				Error:  completion.FailureError,
+				Inputs: ex.Inputs,
 			},
 		)
 	}
@@ -75,12 +76,15 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	return true, nil
 }
 
-func (tx *flowTx) handlePredicateFailure(stepID api.StepID, err error) error {
+func (tx *flowTx) handlePredicateFailure(
+	stepID api.StepID, inputs api.Args, err error,
+) error {
 	if raiseErr := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 		api.StepFailedEvent{
 			FlowID: tx.flowID,
 			StepID: stepID,
 			Error:  err.Error(),
+			Inputs: inputs,
 		},
 	); raiseErr != nil {
 		return raiseErr
