@@ -7,4 +7,4 @@ require (
 	github.com/kode4food/argyll/sdks/go-builder v0.0.0-20260425054836-250dc5c87734
 )
 
-require github.com/kode4food/timebox v0.0.0-20260425055959-c01b35cbd2d0 // indirect
+require github.com/kode4food/timebox v0.0.0-20260515060403-23ace93d23c0 // indirect

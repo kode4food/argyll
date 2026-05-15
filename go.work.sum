@@ -767,6 +767,7 @@ github.com/kode4food/timebox v0.0.0-20260331105139-9c592a8d5899/go.mod h1:nQLGOJ
 github.com/kode4food/timebox v0.0.0-20260331153400-a5496803cfd1/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
 github.com/kode4food/timebox v0.0.0-20260401174847-a5fbcfbf902c/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
 github.com/kode4food/timebox v0.0.0-20260405120245-06976aeffa80/go.mod h1:nQLGOJCq2aE6zJr8PuptfODW5HjsAsjEvCCjlgowvJA=
+github.com/kode4food/timebox v0.0.0-20260425055959-c01b35cbd2d0/go.mod h1:/LD0+rRWePIjx2bZUhOm9O8cWf+KR7EpEZaTgtZsGRo=
 github.com/kr/pty v1.1.1 h1:VkoXIwSboBpnk99O/KFauAEILuNHv5DVFKZMBN/gUgw=
 github.com/kylelemons/godebug v1.1.0 h1:RPNrshWIDI6G2gRW9EHilWtl7Z6Sb1BR0xunSBf0SNc=
 github.com/kylelemons/godebug v1.1.0/go.mod h1:9/0rRGxNHcop5bhtWyNeEfOS8JIWk580+fNqagV/RAw=
@@ -892,6 +893,8 @@ github.com/yuin/gopher-lua v1.1.1 h1:kYKnWBjvbNP4XLT3+bPEwAXJx262OhaHDWDVOPjL46M
 github.com/yuin/gopher-lua v1.1.1/go.mod h1:GBR0iDaNXjAgGg9zfCvksxSRnQx76gclCIb7kdAd1Pw=
 github.com/zeebo/errs v1.4.0 h1:XNdoD/RRMKP7HD0UhJnIzUy74ISdGGxURlYG8HSWSfM=
 github.com/zeebo/errs v1.4.0/go.mod h1:sgbWHsvVuTPHcqJJGQ1WhI5KbWlHYz+2+2C/LSEtCw4=
+github.com/zeebo/xxh3 v1.0.2 h1:xZmwmqxHZA8AI603jOQ0tMqmBr9lPeFwGg6d+xy9DC0=
+github.com/zeebo/xxh3 v1.0.2/go.mod h1:5NWz9Sef7zIDm2JHfFlcQvNekmcEl9ekUZQQKCYaDcA=
 go.etcd.io/bbolt v1.4.3 h1:dEadXpI6G79deX5prL3QRNP6JB8UxVkqo4UPnHaNXJo=
 go.etcd.io/bbolt v1.4.3/go.mod h1:tKQlpPaYCVFctUIgFKFnAlvbmB3tpy1vkTnDWohtc0E=
 go.etcd.io/etcd/api/v3 v3.6.8 h1:gqb1VN92TAI6G2FiBvWcqKtHiIjr4SU2GdXxTwyexbM=
