@@ -100,12 +100,19 @@ func TestFollowerWriteStartup(t *testing.T) {
 	})
 
 	leader, follower := findFollower(t, nodes)
-	w := postJSON(t,
-		follower.server.SetupRoutes(), "/engine/step", st, http.StatusCreated,
-	)
 
+	// The follower's write-forwarding path may not be ready immediately
+	// after leader election, so retry until the write succeeds.
 	var resp api.StepRegisteredResponse
-	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
+	routes := follower.server.SetupRoutes()
+	assert.Eventually(t, func() bool {
+		w := tryPostJSON(routes, "/engine/step", st)
+		if w.Code != http.StatusCreated {
+			return false
+		}
+		return json.Unmarshal(w.Body.Bytes(), &resp) == nil
+	}, 15*time.Second, 200*time.Millisecond)
+
 	if assert.NotNil(t, resp.Step) {
 		assert.Equal(t, st.ID, resp.Step.ID)
 	}
@@ -309,14 +316,20 @@ func postJSON(
 ) *httptest.ResponseRecorder {
 	t.Helper()
 
-	data, err := json.Marshal(body)
-	assert.NoError(t, err)
+	w := tryPostJSON(h, path, body)
+	assert.Equal(t, want, w.Code, w.Body.String())
+	return w
+}
 
+func tryPostJSON(h http.Handler, path string, body any) *httptest.ResponseRecorder {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return &httptest.ResponseRecorder{Code: http.StatusInternalServerError}
+	}
 	req := httptest.NewRequest(http.MethodPost, path, bytes.NewReader(data))
 	req.Header.Set("Content-Type", api.JSONContentType)
 	w := httptest.NewRecorder()
 	h.ServeHTTP(w, req)
-	assert.Equal(t, want, w.Code, w.Body.String())
 	return w
 }
 
