@@ -31,29 +31,27 @@ type (
 	}
 
 	updateStepArgs struct {
-		ID   string         `json:"id"`
 		Step map[string]any `json:"step"`
+		ID   string         `json:"id"`
 	}
 
 	diffProposedStepsArgs struct {
-		Steps    *[]map[string]any `json:"steps,omitempty"`
-		Proposal *map[string]any   `json:"proposal,omitempty"`
+		Steps *[]map[string]any `json:"steps,omitempty"`
 	}
 
 	applyProposedStepsArgs struct {
 		Steps        *[]map[string]any `json:"steps,omitempty"`
-		Proposal     *map[string]any   `json:"proposal,omitempty"`
 		ApplyUpdates *bool             `json:"apply_updates,omitempty"`
 	}
 
 	previewPlanArgs struct {
-		Goals []string       `json:"goals"`
 		Init  map[string]any `json:"init,omitempty"`
+		Goals []string       `json:"goals"`
 	}
 
 	previewPlanInput struct {
-		Goals []string        `json:"goals"`
 		Init  *map[string]any `json:"init,omitempty"`
+		Goals []string        `json:"goals"`
 	}
 
 	startFlowInput struct {
@@ -66,6 +64,7 @@ var (
 )
 
 func (s *Server) registerTools(srv server.Server) {
+	s.registerEngineTools(srv)
 	s.registerAnalysisTools(srv)
 	s.registerStepReadTools(srv)
 	s.registerStepWriteTools(srv)
@@ -74,12 +73,23 @@ func (s *Server) registerTools(srv server.Server) {
 	s.registerHealthTools(srv)
 }
 
+func (s *Server) registerEngineTools(srv server.Server) {
+	srv.Tool(
+		"engine_state",
+		"Fetch the current engine state",
+		func(*server.Context, any) (any, error) {
+			payload, err := s.httpGet("/engine")
+			return toolResult(payload, err)
+		},
+	)
+}
+
 func (s *Server) registerAnalysisTools(srv server.Server) {
 	srv.Tool(
-		"infer_openapi_steps",
-		"Infer planner-oriented Argyll step drafts from an OpenAPI spec",
+		"analyze_openapi_contract",
+		"Extract neutral REST contract facts from an OpenAPI spec",
 		func(_ *server.Context, args openapi.Args) (any, error) {
-			return s.inferOpenAPI(args)
+			return s.analyzeOpenAPIContract(args)
 		},
 	)
 	srv.Tool(
@@ -91,23 +101,14 @@ func (s *Server) registerAnalysisTools(srv server.Server) {
 	)
 	srv.Tool(
 		"analyze_service_landscape",
-		"Analyze multiple service specs and infer cross-service planning links",
+		"Analyze multiple service specs and describe cross-service links",
 		func(_ *server.Context, args analyzeServiceLandscapeArgs) (any, error) {
 			return s.analyzeServiceLandscape(args)
 		},
 	)
 	srv.Tool(
-		"propose_bridge_steps",
-		"Propose Lua bridge step drafts for missing cross-service planning "+
-			"edges when declarative name mapping is not enough",
-		func(_ *server.Context, args proposeBridgeStepsArgs) (any, error) {
-			return s.proposeBridgeSteps(args)
-		},
-	)
-	srv.Tool(
 		"generate_step_impl",
-		"Generate an SDK implementation draft for a proposed step, including "+
-			"Lua script steps",
+		"Generate an SDK implementation draft for a proposed step",
 		func(_ *server.Context, args generateStepImplArgs) (any, error) {
 			return s.generateStepImpl(args)
 		},
@@ -134,6 +135,9 @@ func (s *Server) registerStepReadTools(srv server.Server) {
 			return toolResult(payload, err)
 		},
 	)
+}
+
+func (s *Server) registerStepWriteTools(srv server.Server) {
 	srv.Tool(
 		"unregister_step",
 		"Remove a step from the engine",
@@ -145,9 +149,6 @@ func (s *Server) registerStepReadTools(srv server.Server) {
 			return toolResult(payload, err)
 		},
 	)
-}
-
-func (s *Server) registerStepWriteTools(srv server.Server) {
 	srv.Tool(
 		"register_step",
 		"Register a new step with the engine",
@@ -226,14 +227,6 @@ func (s *Server) registerFlowReadTools(srv server.Server) {
 		"Query flows by status, ID prefix, labels, and pagination",
 		func(_ *server.Context, args queryFlowsArgs) (any, error) {
 			payload, err := s.httpPost("/engine/flow/query", args)
-			return toolResult(payload, err)
-		},
-	)
-	srv.Tool(
-		"engine_state",
-		"Fetch the current engine state",
-		func(*server.Context, any) (any, error) {
-			payload, err := s.httpGet("/engine")
 			return toolResult(payload, err)
 		},
 	)

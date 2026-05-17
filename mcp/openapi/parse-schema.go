@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"maps"
+	"slices"
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
 
@@ -26,7 +27,8 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 	var out []argSpec
 	switch {
 	case schemaIs(s, "object"):
-		if entity != "" {
+		props, _ := schemaProps(s)
+		if len(props) == 0 && entity != "" {
 			out = append(out, argSpec{
 				Name:       entity,
 				Type:       "object",
@@ -35,20 +37,15 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 				Confidence: "medium",
 			})
 		}
-		props, _ := schemaProps(s)
 		for name, prop := range props {
-			if !shouldExposeOutputProp(name, entity) {
-				continue
-			}
 			out = append(out, argSpec{
-				Name:       canonicalName(name, entity),
+				Name:       canonicalName(name, ""),
 				Service:    name,
 				Type:       schemaRefType(prop),
 				Location:   "response",
-				Confidence: confidence(name, entity),
+				Confidence: confidence(name, ""),
 			})
 		}
-		out = append(out, nestedOutputs(props, entity, "$")...)
 	case schemaIs(s, "array"):
 		if entity != "" {
 			out = append(out, argSpec{
@@ -68,34 +65,6 @@ func outputsFromSchema(ref *openapi.SchemaRef, entity string) []argSpec {
 				Type:       schemaRefType(prop),
 				Location:   "response",
 				Confidence: confidence(name, entity),
-			})
-		}
-	}
-	return out
-}
-
-func nestedOutputs(
-	props map[string]*openapi.SchemaRef, entity, base string,
-) []argSpec {
-	var out []argSpec
-	for name, prop := range props {
-		if prop == nil || prop.Value == nil {
-			continue
-		}
-		if !isWrapperProp(name) || !isObjectLike(prop.Value) {
-			continue
-		}
-		nestedProps, _ := schemaProps(prop.Value)
-		for childName, childProp := range nestedProps {
-			if !shouldExposeOutputProp(childName, entity) {
-				continue
-			}
-			out = append(out, argSpec{
-				Name:       canonicalName(childName, entity),
-				Type:       schemaRefType(childProp),
-				Location:   "response",
-				Path:       base + "." + name + "." + childName,
-				Confidence: "medium",
 			})
 		}
 	}
@@ -145,16 +114,66 @@ func schemaProps(
 	return props, required
 }
 
-func isObjectLike(schema *openapi.Schema) bool {
-	return schemaIs(schema, "object") || len(schema.AllOf) > 0 ||
-		len(schema.Properties) > 0
-}
-
 func schemaRefType(ref *openapi.SchemaRef) string {
 	if ref == nil || ref.Value == nil {
 		return "any"
 	}
 	return schemaType(ref.Value)
+}
+
+func schemaEnum(ref *openapi.SchemaRef) []any {
+	if ref == nil || ref.Value == nil || len(ref.Value.Enum) == 0 {
+		return nil
+	}
+	return append([]any{}, ref.Value.Enum...)
+}
+
+func schemaFacts(ref *openapi.SchemaRef) *SchemaFacts {
+	return schemaFactsDepth(ref, 0)
+}
+
+func schemaFactsDepth(ref *openapi.SchemaRef, depth int) *SchemaFacts {
+	if ref == nil || ref.Value == nil {
+		return nil
+	}
+	schema := ref.Value
+	facts := &SchemaFacts{
+		Type: schemaType(schema),
+		Enum: schemaEnum(ref),
+	}
+	props, required := schemaProps(schema)
+	if depth < 2 && len(props) != 0 {
+		facts.Properties = make(map[string]SchemaFacts, len(props))
+		for name, prop := range props {
+			if child := schemaFactsDepth(prop, depth+1); child != nil {
+				facts.Properties[name] = *child
+			}
+		}
+		for name := range required {
+			facts.Required = append(facts.Required, name)
+		}
+		slices.Sort(facts.Required)
+	}
+	if facts.Type == "any" && facts.Enum == nil &&
+		len(facts.Properties) == 0 && len(facts.Required) == 0 {
+		return nil
+	}
+	return facts
+}
+
+func schemaHasEnum(facts *SchemaFacts) bool {
+	if facts == nil {
+		return false
+	}
+	if len(facts.Enum) != 0 {
+		return true
+	}
+	for _, prop := range facts.Properties {
+		if schemaHasEnum(&prop) {
+			return true
+		}
+	}
+	return false
 }
 
 func schemaIs(schema *openapi.Schema, typ string) bool {

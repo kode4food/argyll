@@ -1,1 +1,3 @@
-specs/
+dist/
+internal/guidance/files/engine-api.yaml
+internal/guidance/files/step-interface.yaml

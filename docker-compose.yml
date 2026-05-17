@@ -41,6 +41,8 @@ services:
       RAFT_DATA_DIR: /data/argyll-raft
     volumes:
       - argyll-data-1:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -67,6 +69,8 @@ services:
       RAFT_DATA_DIR: /data/argyll-raft
     volumes:
       - argyll-data-2:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     dns:
       - 8.8.8.8
@@ -93,6 +97,8 @@ services:
       RAFT_DATA_DIR: /data/argyll-raft
     volumes:
       - argyll-data-3:/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     dns:
       - 8.8.8.8

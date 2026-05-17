@@ -8,8 +8,8 @@ import (
 )
 
 type Server struct {
-	baseURL string
 	client  *http.Client
+	baseURL string
 }
 
 // DefaultBaseURL is used when no engine URL is provided

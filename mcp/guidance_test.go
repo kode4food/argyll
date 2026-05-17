@@ -20,6 +20,10 @@ func TestSDKGuidance(t *testing.T) {
 
 	pyText := getResourceText(t, c, "/sdk/python/steps")
 	assert.Contains(t, pyText, ".with_method(\"GET\")")
+
+	openAPIText := getResourceText(t, c, "/openapi/ingestion")
+	assert.Contains(t, openAPIText, "schema facts")
+	assert.Contains(t, openAPIText, "required.match")
 }
 
 func TestStepPrompt(t *testing.T) {
@@ -38,6 +42,21 @@ func TestStepPrompt(t *testing.T) {
 	assert.Contains(t, text, "Lookup User")
 	assert.Contains(t, text, "Fetch a user by id.")
 	assert.Contains(t, text, "WithMethod/with_method")
+}
+
+func TestOpenAPIIngestionPrompt(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+
+	prompt, err := c.GetPrompt("ingest_openapi_services", map[string]any{
+		"payload": "{}",
+	})
+	assert.NoError(t, err)
+	if !assert.Len(t, prompt.Messages, 1) {
+		return
+	}
+	text := prompt.Messages[0].Content.Text
+	assert.Contains(t, text, "schema facts")
+	assert.Contains(t, text, "{}")
 }
 
 func TestStepTemplate(t *testing.T) {

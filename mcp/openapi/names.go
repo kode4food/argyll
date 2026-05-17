@@ -20,14 +20,14 @@ var (
 	nonWord        = regexp.MustCompile(`[^a-zA-Z0-9]+`)
 )
 
-func inferOperationID(op *openapi.Operation, method, path string) string {
+func operationID(op *openapi.Operation, method, path string) string {
 	if op.OperationID != "" {
 		return slug(op.OperationID)
 	}
 	return slug(strings.ToLower(method) + "-" + strings.Trim(path, "/"))
 }
 
-func inferEntity(path string) string {
+func pathEntity(path string) string {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
 	for i := len(parts) - 1; i >= 0; i-- {
 		part := parts[i]
@@ -47,7 +47,7 @@ func inferEntity(path string) string {
 	return ""
 }
 
-func inferParamEntity(path, name string) string {
+func parameterEntity(path, name string) string {
 	if name != "id" {
 		return ""
 	}
@@ -80,8 +80,6 @@ func canonicalName(name, entity string) string {
 	case strings.HasSuffix(n, "id") && len(n) > 2:
 		n = strings.TrimSuffix(n, "id") + "_id"
 		n = strings.Trim(n, "_")
-	case entity != "" && n == "email":
-		return entity + "_email"
 	}
 	return n
 }
@@ -109,13 +107,6 @@ func pluralName(s string) string {
 	return s + "s"
 }
 
-func requiredRole(required bool) string {
-	if required {
-		return "required"
-	}
-	return "optional"
-}
-
 func confidence(name, entity string) string {
 	if name == "id" && entity != "" {
 		return "high"
@@ -127,23 +118,6 @@ func confidence(name, entity string) string {
 		return "medium"
 	}
 	return "low"
-}
-
-func shouldExposeOutputProp(name, entity string) bool {
-	canon := canonicalName(name, entity)
-	if strings.HasSuffix(canon, "_id") {
-		return true
-	}
-	return canon == "status"
-}
-
-func isWrapperProp(name string) bool {
-	switch slugWord(name) {
-	case "data", "result", "payload", "item":
-		return true
-	default:
-		return false
-	}
 }
 
 func slug(s string) string {

@@ -1,13 +1,11 @@
 package mcp
 
 import (
-	"bytes"
-	"embed"
-	"strconv"
 	"strings"
-	"text/template"
 
 	"github.com/localrivet/gomcp/server"
+
+	guide "github.com/kode4food/argyll/mcp/internal/guidance"
 )
 
 type (
@@ -36,15 +34,12 @@ type (
 	}
 )
 
-//go:embed guidance/*.md guidance/*.tmpl
-var guidanceFS embed.FS
-
 func (s *Server) registerGuidance(srv server.Server) {
 	srv.Resource(
 		"/sdk/steps",
 		"Guidance for implementing Argyll steps with the Go and Python SDKs",
 		func(*server.Context, any) (any, error) {
-			return readGuidance("sdk-steps.md")
+			return guide.Read("sdk-steps.md")
 		},
 	)
 
@@ -52,7 +47,7 @@ func (s *Server) registerGuidance(srv server.Server) {
 		"/sdk/go/steps",
 		"Go SDK patterns for implementing Argyll steps",
 		func(*server.Context, any) (any, error) {
-			return readGuidance("go-steps.md")
+			return guide.Read("go-steps.md")
 		},
 	)
 
@@ -60,14 +55,28 @@ func (s *Server) registerGuidance(srv server.Server) {
 		"/sdk/python/steps",
 		"Python SDK patterns for implementing Argyll steps",
 		func(*server.Context, any) (any, error) {
-			return readGuidance("python-steps.md")
+			return guide.Read("python-steps.md")
+		},
+	)
+
+	srv.Resource(
+		"/openapi/ingestion",
+		"Guidance for ingesting OpenAPI services into Argyll",
+		func(*server.Context, any) (any, error) {
+			return guide.Read("openapi-ingestion.md")
 		},
 	)
 
 	srv.Prompt(
 		"implement_step",
 		"Guide an agent through implementing an Argyll step with the SDKs",
-		server.User(mustReadGuidance("implement-step-prompt.md")),
+		server.User(guide.MustRead("implement-step-prompt.md")),
+	)
+
+	srv.Prompt(
+		"ingest_openapi_services",
+		"Guide an agent through ingesting bespoke OpenAPI services",
+		server.User(guide.MustRead("openapi-ingestion.md")),
 	)
 
 	srv.Tool(
@@ -84,22 +93,6 @@ func (s *Server) registerGuidance(srv server.Server) {
 			}, nil)
 		},
 	)
-}
-
-func readGuidance(name string) (string, error) {
-	raw, err := guidanceFS.ReadFile("guidance/" + name)
-	if err != nil {
-		return "", err
-	}
-	return string(raw), nil
-}
-
-func mustReadGuidance(name string) string {
-	text, err := readGuidance(name)
-	if err != nil {
-		panic(err)
-	}
-	return text
 }
 
 func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
@@ -155,25 +148,7 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 		data.ScriptBody = *args.ScriptBody
 	}
 	if lang == "go" {
-		return renderStepTemplate("go-step.tmpl", data)
+		return guide.RenderTemplate("go-step.tmpl", data)
 	}
-	return renderStepTemplate("python-step.tmpl", data)
-}
-
-func renderStepTemplate(name string, data stepTemplateData) (string, error) {
-	raw, err := guidanceFS.ReadFile("guidance/" + name)
-	if err != nil {
-		return "", err
-	}
-	tpl, err := template.New(name).Funcs(template.FuncMap{
-		"quote": strconv.Quote,
-	}).Parse(string(raw))
-	if err != nil {
-		return "", err
-	}
-	var b bytes.Buffer
-	if err := tpl.Execute(&b, data); err != nil {
-		return "", err
-	}
-	return b.String(), nil
+	return guide.RenderTemplate("python-step.tmpl", data)
 }

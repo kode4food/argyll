@@ -1,33 +1,56 @@
 package mcp
 
-import "github.com/kode4food/argyll/mcp/openapi"
+import (
+	"strings"
+
+	"github.com/kode4food/argyll/mcp/openapi"
+)
 
 type (
+	serviceSummary struct {
+		Name       string `json:"name"`
+		Operations int    `json:"operations"`
+	}
+
+	serviceAnalysis struct {
+		Analysis openapi.Result `json:"analysis"`
+		Name     string         `json:"name"`
+		Summary  serviceSummary `json:"summary"`
+	}
+
+	landscapeResult struct {
+		Services        []serviceAnalysis `json:"services"`
+		RegisteredSteps []catalogStep     `json:"registered_steps"`
+		Relationships   []relationship    `json:"relationships"`
+		MissingAttrs    []missingAttr     `json:"missing_attributes"`
+		Warnings        []string          `json:"warnings"`
+		Ambiguities     []string          `json:"ambiguities"`
+	}
+
+	specResult struct {
+		Analysis    openapi.Result `json:"analysis"`
+		ServiceName string         `json:"service_name"`
+		Summary     serviceSummary `json:"summary"`
+	}
+
 	serviceSpecInput struct {
 		Name     *string         `json:"name,omitempty"`
-		SpecText string          `json:"spec_text,omitempty"`
 		Spec     *map[string]any `json:"spec,omitempty"`
+		SpecText string          `json:"spec_text,omitempty"`
 	}
 
 	analyzeServiceSpecArgs struct {
 		Name          *string         `json:"name,omitempty"`
-		SpecText      string          `json:"spec_text,omitempty"`
 		Spec          *map[string]any `json:"spec,omitempty"`
 		ExistingSteps *map[string]any `json:"existing_steps,omitempty"`
 		IncludeReg    *bool           `json:"include_registered,omitempty"`
+		SpecText      string          `json:"spec_text,omitempty"`
 	}
 
 	analyzeServiceLandscapeArgs struct {
-		Services      []serviceSpecInput `json:"services"`
 		ExistingSteps *map[string]any    `json:"existing_steps,omitempty"`
 		IncludeReg    *bool              `json:"include_registered,omitempty"`
-	}
-
-	proposeBridgeStepsArgs struct {
-		Landscape     *map[string]any     `json:"landscape,omitempty"`
-		Services      *[]serviceSpecInput `json:"services,omitempty"`
-		ExistingSteps *map[string]any     `json:"existing_steps,omitempty"`
-		IncludeReg    *bool               `json:"include_registered,omitempty"`
+		Services      []serviceSpecInput `json:"services"`
 	}
 
 	generateStepImplArgs struct {
@@ -35,6 +58,24 @@ type (
 		Language string         `json:"language"`
 	}
 )
+
+func serviceName(name *string, spec openapi.Result) string {
+	if name != nil && strings.TrimSpace(*name) != "" {
+		return strings.TrimSpace(*name)
+	}
+	title := strings.TrimSpace(spec.Info.Title)
+	if title == "" {
+		return "service"
+	}
+	return title
+}
+
+func summaryPayload(name string, spec openapi.Result) serviceSummary {
+	return serviceSummary{
+		Name:       name,
+		Operations: len(spec.Operations),
+	}
+}
 
 func (s *Server) analyzeServiceSpec(args analyzeServiceSpecArgs) (any, error) {
 	specArgs := openapi.Args{
@@ -44,7 +85,7 @@ func (s *Server) analyzeServiceSpec(args analyzeServiceSpecArgs) (any, error) {
 		IncludeRegistered: args.IncludeReg,
 	}
 	existing, warnings := s.collectExistingSteps(specArgs)
-	spec, err := analyzeSpecPayload(specArgs, existing, warnings)
+	spec, err := openapi.AnalyzeContract(specArgs, existing, warnings)
 	if err != nil {
 		return nil, err
 	}
@@ -75,7 +116,7 @@ func (s *Server) analyzeServiceLandscape(
 	allWarnings := append([]string{}, warnings...)
 
 	for _, svc := range args.Services {
-		spec, err := analyzeSpecPayload(openapi.Args{
+		spec, err := openapi.AnalyzeContract(openapi.Args{
 			SpecText:          svc.SpecText,
 			Spec:              svc.Spec,
 			IncludeRegistered: boolPtr(false),
@@ -98,33 +139,11 @@ func (s *Server) analyzeServiceLandscape(
 	return toolResult(landscapeResult{
 		Services:        services,
 		RegisteredSteps: existingCatalogPayload(existing),
-		Relationships:   inferRelationships(nodes),
+		Relationships:   relationships(nodes),
 		MissingAttrs:    missing,
-		BridgeOpps:      bridgeOpportunities(nodes, missing),
 		Warnings:        uniqueStrings(allWarnings),
 		Ambiguities:     uniqueStrings(ambiguities),
 	}, nil)
-}
-
-func (s *Server) landscapePayload(
-	args proposeBridgeStepsArgs,
-) (*landscapeResult, error) {
-	if args.Landscape != nil {
-		return decodeLandscape(*args.Landscape)
-	}
-	if args.Services == nil || len(*args.Services) == 0 {
-		return nil, errInvalidParams("landscape or services is required")
-	}
-
-	payload, err := s.analyzeServiceLandscape(analyzeServiceLandscapeArgs{
-		Services:      *args.Services,
-		ExistingSteps: args.ExistingSteps,
-		IncludeReg:    args.IncludeReg,
-	})
-	if err != nil {
-		return nil, err
-	}
-	return decodeLandscapeToolResult(payload)
 }
 
 func boolPtr(v bool) *bool {

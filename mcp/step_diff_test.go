@@ -119,58 +119,6 @@ func TestDiffProposedStepsTool(t *testing.T) {
 	assert.Len(t, items, 3)
 }
 
-func TestDiffProposedStepsFromProposalPayload(t *testing.T) {
-	hc := &http.Client{
-		Transport: roundTripperFunc(
-			func(r *http.Request) (*http.Response, error) {
-				if r.URL.Path != "/engine/step" || r.Method != http.MethodGet {
-					return jsonResponse(
-						http.StatusNotFound, []byte(`{"error":"not found"}`),
-					), nil
-				}
-				return jsonResponse(
-					http.StatusOK,
-					[]byte(`{"steps":[],"count":0}`),
-				), nil
-			},
-		),
-	}
-
-	c := newClient(t, mcp.NewServer("http://example", hc))
-	text := callToolText(t, c, "diff_proposed_steps", map[string]any{
-		"proposal": map[string]any{
-			"proposed_registrations": []map[string]any{
-				{
-					"id":   "new-step",
-					"name": "New Step",
-					"step": map[string]any{
-						"id":   "new-step",
-						"name": "New Step",
-						"type": "sync",
-						"attributes": map[string]any{
-							"customer_id": map[string]any{
-								"role": "required",
-								"type": "string",
-							},
-							"order_id": map[string]any{
-								"role": "output",
-								"type": "string",
-							},
-						},
-					},
-				},
-			},
-		},
-	})
-
-	var payload map[string]any
-	err := json.Unmarshal([]byte(text), &payload)
-	assert.NoError(t, err)
-
-	summary := payload["summary"].(map[string]any)
-	assert.Equal(t, float64(1), summary["create"])
-}
-
 func TestApplyProposedStepsTool(t *testing.T) {
 	var posts []map[string]any
 	var puts []map[string]any
@@ -310,26 +258,38 @@ func TestApplyProposedStepsTool(t *testing.T) {
 	assert.Equal(t, float64(1), summary["skipped"])
 }
 
-func TestApplyProposedStepsFromProposalPayload(t *testing.T) {
-	var posts []map[string]any
-
+func TestApplyProposedStepsVerifiesSemanticReadback(t *testing.T) {
+	gets := 0
 	hc := &http.Client{
 		Transport: roundTripperFunc(
 			func(r *http.Request) (*http.Response, error) {
 				switch {
 				case r.URL.Path == "/engine/step" && r.Method == http.MethodGet:
-					return jsonResponse(
-						http.StatusOK,
-						[]byte(`{"steps":[],"count":0}`),
-					), nil
+					gets++
+					if gets == 1 {
+						return jsonResponse(
+							http.StatusOK,
+							[]byte(`{"steps":[],"count":0}`),
+						), nil
+					}
+					return jsonResponse(http.StatusOK, []byte(`{
+						"steps": [
+							{
+								"id": "send-sms",
+								"name": "Send SMS",
+								"type": "async",
+								"attributes": {
+									"body": {
+										"role": "required",
+										"type": "string"
+									}
+								}
+							}
+						],
+						"count": 1
+					}`)), nil
 				case r.URL.Path == "/engine/step" &&
 					r.Method == http.MethodPost:
-					var body map[string]any
-					data, err := io.ReadAll(r.Body)
-					assert.NoError(t, err)
-					err = json.Unmarshal(data, &body)
-					assert.NoError(t, err)
-					posts = append(posts, body)
 					return jsonResponse(
 						http.StatusCreated,
 						[]byte(`{"message":"created"}`),
@@ -345,23 +305,18 @@ func TestApplyProposedStepsFromProposalPayload(t *testing.T) {
 
 	c := newClient(t, mcp.NewServer("http://example", hc))
 	text := callToolText(t, c, "apply_proposed_steps", map[string]any{
-		"proposal": map[string]any{
-			"proposed_registrations": []map[string]any{
-				{
-					"id":   "new-step",
-					"name": "New Step",
-					"step": map[string]any{
-						"id":   "new-step",
-						"name": "New Step",
-						"type": "sync",
-						"attributes": map[string]any{
-							"customer_id": map[string]any{
-								"role": "required",
-								"type": "string",
-							},
-							"order_id": map[string]any{
-								"role": "output",
-								"type": "string",
+		"steps": []map[string]any{
+			{
+				"id":   "send-sms",
+				"name": "Send SMS",
+				"type": "async",
+				"attributes": map[string]any{
+					"body": map[string]any{
+						"role": "required",
+						"type": "string",
+						"required": map[string]any{
+							"mapping": map[string]any{
+								"name": "message_text",
 							},
 						},
 					},
@@ -373,8 +328,14 @@ func TestApplyProposedStepsFromProposalPayload(t *testing.T) {
 	var payload map[string]any
 	err := json.Unmarshal([]byte(text), &payload)
 	assert.NoError(t, err)
-	assert.Len(t, posts, 1)
 
 	summary := payload["summary"].(map[string]any)
-	assert.Equal(t, float64(1), summary["applied"])
+	assert.Equal(t, "failed", summary["verification_status"])
+	assert.Equal(t, float64(1), summary["verification_issues"])
+
+	verification := payload["verification"].(map[string]any)
+	issues := verification["issues"].([]any)
+	issue := issues[0].(map[string]any)
+	assert.Equal(t, "send-sms", issue["step_id"])
+	assert.Equal(t, "attributes.body.required.mapping", issue["path"])
 }

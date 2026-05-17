@@ -1,17 +1,18 @@
 package openapi
 
-import "slices"
+import argyllfacts "github.com/kode4food/argyll/mcp/openapi/argyll"
 
 type (
 	Args struct {
-		Mode              *string         `json:"mode,omitempty"`
-		SpecText          string          `json:"spec_text,omitempty"`
 		Spec              *map[string]any `json:"spec,omitempty"`
 		ExistingSteps     *map[string]any `json:"existing_steps,omitempty"`
 		IncludeRegistered *bool           `json:"include_registered,omitempty"`
+		SpecText          string          `json:"spec_text,omitempty"`
 	}
 
 	Step struct {
+		InputsByType  map[string]string
+		OutputsByType map[string]string
 		ID            string
 		Name          string
 		Source        string
@@ -20,12 +21,6 @@ type (
 		Required      []string
 		Optional      []string
 		Outputs       []string
-		Step          map[string]any
-		InputsByType  map[string]string
-		OutputsByType map[string]string
-		Rationale     []string
-		Ambiguities   []string
-		Entity        string
 	}
 
 	Info struct {
@@ -35,19 +30,33 @@ type (
 	}
 
 	Arg struct {
-		Name       string `json:"name"`
-		Type       string `json:"type,omitempty"`
-		Required   bool   `json:"required,omitempty"`
-		Location   string `json:"location,omitempty"`
-		Confidence string `json:"confidence,omitempty"`
-		Service    string `json:"service_name,omitempty"`
-		Path       string `json:"path,omitempty"`
+		Schema     *SchemaFacts `json:"schema,omitempty"`
+		Name       string       `json:"name"`
+		Type       string       `json:"type,omitempty"`
+		Location   string       `json:"location,omitempty"`
+		Confidence string       `json:"confidence,omitempty"`
+		Service    string       `json:"service_name,omitempty"`
+		Path       string       `json:"path,omitempty"`
+		Required   bool         `json:"required,omitempty"`
 	}
+
+	SchemaFacts struct {
+		Properties map[string]SchemaFacts `json:"properties,omitempty"`
+		Type       string                 `json:"type,omitempty"`
+		Required   []string               `json:"required,omitempty"`
+		Enum       []any                  `json:"enum,omitempty"`
+	}
+
+	Capabilities       = argyllfacts.Capabilities
+	MappingCapability  = argyllfacts.MappingCapability
+	MatchCapability    = argyllfacts.MatchCapability
+	EndpointCapability = argyllfacts.EndpointCapability
 
 	Operation struct {
 		ID          string   `json:"id"`
 		Method      string   `json:"method,omitempty"`
 		Path        string   `json:"path,omitempty"`
+		Endpoint    string   `json:"endpoint,omitempty"`
 		Summary     string   `json:"summary,omitempty"`
 		Description string   `json:"description,omitempty"`
 		Entity      string   `json:"entity,omitempty"`
@@ -55,25 +64,6 @@ type (
 		Outputs     []Arg    `json:"outputs"`
 		Rationale   []string `json:"rationale"`
 		Ambiguities []string `json:"ambiguities"`
-	}
-
-	CandidateStep struct {
-		ID                string         `json:"id"`
-		Name              string         `json:"name,omitempty"`
-		Source            string         `json:"source,omitempty"`
-		Path              string         `json:"path,omitempty"`
-		Entity            string         `json:"entity,omitempty"`
-		Required          []string       `json:"required"`
-		Optional          []string       `json:"optional"`
-		Outputs           []string       `json:"outputs"`
-		Rationale         []string       `json:"rationale"`
-		Ambiguities       []string       `json:"ambiguities"`
-		Step              map[string]any `json:"step,omitempty"`
-		CoverageStatus    string         `json:"coverage_status,omitempty"`
-		CoveredBy         []string       `json:"covered_by,omitempty"`
-		CoverageRationale []string       `json:"coverage_rationale,omitempty"`
-		CoverageMissing   []string       `json:"coverage_missing,omitempty"`
-		CoverageOverlap   []string       `json:"coverage_overlap,omitempty"`
 	}
 
 	RegisteredStep struct {
@@ -87,140 +77,52 @@ type (
 	}
 
 	Result struct {
-		Mode             string           `json:"mode,omitempty"`
-		Info             Info             `json:"info"`
-		BaseURL          string           `json:"base_url,omitempty"`
-		Warnings         []string         `json:"warnings"`
-		Ambiguities      []string         `json:"ambiguities"`
-		Operations       []Operation      `json:"operations"`
-		ExistingSteps    []RegisteredStep `json:"existing_steps"`
-		CandidateSteps   []CandidateStep  `json:"candidate_steps"`
-		RecommendedSteps []CandidateStep  `json:"recommended_steps"`
-		Plans            []planSpec       `json:"plans"`
-		Proposed         []CandidateStep  `json:"proposed_registrations"`
-		ExamplePlans     []planSpec       `json:"example_plans"`
-		LLMHandoff       string           `json:"llm_handoff_prompt,omitempty"`
+		Info          Info             `json:"info"`
+		Mode          string           `json:"mode,omitempty"`
+		BaseURL       string           `json:"base_url,omitempty"`
+		LLMHandoff    string           `json:"llm_handoff_prompt,omitempty"`
+		ExistingSteps []RegisteredStep `json:"existing_steps,omitempty"`
+		Operations    []Operation      `json:"operations,omitempty"`
+		Ambiguities   []string         `json:"ambiguities,omitempty"`
+		Warnings      []string         `json:"warnings,omitempty"`
+		Capabilities  Capabilities     `json:"argyll_capabilities"`
 	}
 )
 
-func Analyze(args Args, existing []Step, warnings []string) (Result, error) {
+func AnalyzeContract(
+	args Args, existing []Step, warnings []string,
+) (Result, error) {
 	doc, err := parseDoc(args)
 	if err != nil {
 		return Result{}, err
 	}
 
-	mode := normalizeMode(args.Mode)
 	ops := collectOperations(doc)
-	candidates := make([]Step, 0, len(ops))
 	var ambiguities []string
 	for _, op := range ops {
-		node := buildCandidate(op)
-		candidates = append(candidates, node)
-		ambiguities = append(ambiguities, node.Ambiguities...)
+		ambiguities = append(ambiguities, opAmbiguities(op)...)
 	}
-
-	covered := coverage(existing, candidates)
-	recommended := make([]Step, 0, len(candidates))
-	candidatePayload := make([]CandidateStep, 0, len(candidates))
-	for _, c := range candidates {
-		item := candidateStepPayload(c)
-		cov := covered[c.ID]
-		item.CoverageStatus = cov.Status
-		item.CoveredBy = cov.CoveredBy
-		item.CoverageRationale = cov.Rationale
-		item.CoverageMissing = cov.Missing
-		item.CoverageOverlap = cov.Overlap
-		if !cov.Redundant {
-			recommended = append(recommended, c)
-		}
-		candidatePayload = append(candidatePayload, item)
-	}
-
-	graph := append(slices.Clone(existing), recommended...)
-	plans := inferPlans(graph)
 	info := infoPayload(doc)
 	existingPayload := existingStepsPayload(existing)
-	recommendedPayload := recommendedStepsPayload(recommended)
+	operations := operationsPayload(ops)
+	capabilities := argyllfacts.Defaults()
 
-	res := Result{
-		Mode:             mode,
-		Info:             info,
-		BaseURL:          resolveBaseURL(doc),
-		Warnings:         warnings,
-		Ambiguities:      uniqueStrings(ambiguities),
-		Operations:       operationsPayload(ops),
-		ExistingSteps:    existingPayload,
-		CandidateSteps:   candidatePayload,
-		RecommendedSteps: recommendedPayload,
-		Plans:            plans,
+	return Result{
+		Capabilities:  capabilities,
+		Mode:          "contract",
+		Info:          info,
+		BaseURL:       resolveBaseURL(doc),
+		Warnings:      warnings,
+		Ambiguities:   uniqueStrings(ambiguities),
+		Operations:    operations,
+		ExistingSteps: existingPayload,
 		LLMHandoff: llmHandoffPrompt(handoffInput{
-			Info: info, CandidateSteps: candidatePayload,
-			ExistingSteps: existingPayload, Plans: plans,
+			Info:          info,
+			Capabilities:  capabilities,
+			Operations:    operations,
+			ExistingSteps: existingPayload,
 		}),
-	}
-	if mode == "propose_registrations" {
-		res = Result{
-			Mode:         mode,
-			Warnings:     warnings,
-			Ambiguities:  uniqueStrings(ambiguities),
-			Proposed:     recommendedPayload,
-			ExamplePlans: plans,
-			LLMHandoff: llmHandoffPrompt(handoffInput{
-				Info: info, CandidateSteps: candidatePayload,
-				ExistingSteps: existingPayload, Plans: plans,
-			}),
-		}
-	}
-	return res, nil
-}
-
-func normalizeMode(mode *string) string {
-	if mode == nil {
-		return "analyze"
-	}
-	switch *mode {
-	case "", "analyze":
-		return "analyze"
-	case "propose_registrations":
-		return "propose_registrations"
-	default:
-		return "analyze"
-	}
-}
-
-func buildCandidate(op opSpec) Step {
-	node := Step{
-		ID:            op.ID,
-		Name:          op.Summary,
-		Source:        "spec",
-		Method:        op.Method,
-		Path:          op.Path,
-		Required:      []string{},
-		Optional:      []string{},
-		Outputs:       []string{},
-		Step:          op.Step,
-		InputsByType:  map[string]string{},
-		OutputsByType: map[string]string{},
-		Rationale:     opRationale(op),
-		Ambiguities:   opAmbiguities(op),
-		Entity:        op.Entity,
-	}
-	for _, in := range op.Inputs {
-		if in.Required {
-			node.Required = append(node.Required, in.Name)
-		} else {
-			node.Optional = append(node.Optional, in.Name)
-		}
-		node.InputsByType[in.Name] = coalesceType(in.Type)
-	}
-	for _, out := range op.Outputs {
-		node.Outputs = append(node.Outputs, out.Name)
-		node.OutputsByType[out.Name] = coalesceType(out.Type)
-	}
-	slices.Sort(node.Required)
-	slices.Sort(node.Optional)
-	slices.Sort(node.Outputs)
-	return node
+	}, nil
 }
 
 func coalesceType(s string) string {

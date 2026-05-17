@@ -1,19 +1,20 @@
 package openapi
 
 import (
-	"encoding/json"
 	"fmt"
 	"slices"
 	"strings"
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
+
+	"github.com/kode4food/argyll/mcp/openapi/handoff"
 )
 
 type handoffInput struct {
-	Info           Info
-	CandidateSteps []CandidateStep
-	ExistingSteps  []RegisteredStep
-	Plans          []planSpec
+	Info          Info
+	ExistingSteps []RegisteredStep
+	Operations    []Operation
+	Capabilities  Capabilities
 }
 
 func operationsPayload(ops []opSpec) []Operation {
@@ -23,6 +24,7 @@ func operationsPayload(ops []opSpec) []Operation {
 			ID:          op.ID,
 			Method:      op.Method,
 			Path:        op.Path,
+			Endpoint:    op.Endpoint,
 			Summary:     op.Summary,
 			Description: op.Description,
 			Entity:      op.Entity,
@@ -51,6 +53,9 @@ func payloadArgs(args []argSpec) []Arg {
 		if arg.Path != "" {
 			item.Path = arg.Path
 		}
+		if arg.Schema != nil {
+			item.Schema = arg.Schema
+		}
 		res = append(res, item)
 	}
 	return res
@@ -64,22 +69,16 @@ func opRationale(op opSpec) []string {
 	if len(op.Inputs) != 0 {
 		res = append(
 			res,
-			fmt.Sprintf("declares %d inferred inputs", len(op.Inputs)),
+			fmt.Sprintf("declares %d extracted inputs", len(op.Inputs)),
 		)
 	}
 	if len(op.Outputs) != 0 {
 		res = append(
 			res,
 			fmt.Sprintf(
-				"exposes %d inferred outputs for planning",
+				"exposes %d extracted outputs for planning",
 				len(op.Outputs),
 			),
-		)
-	}
-	if op.Method == "POST" || op.Method == "PUT" || op.Method == "DELETE" {
-		res = append(
-			res,
-			"treated as goal-like because it mutates remote state",
 		)
 	}
 	return res
@@ -90,7 +89,8 @@ func opAmbiguities(op opSpec) []string {
 	if op.Entity == "" {
 		res = append(
 			res,
-			"could not confidently infer a canonical entity from path "+op.Path,
+			"could not confidently identify a canonical entity from path "+
+				op.Path,
 		)
 	}
 	for _, in := range op.Inputs {
@@ -103,30 +103,6 @@ func opAmbiguities(op opSpec) []string {
 		}
 	}
 	return uniqueStrings(res)
-}
-
-func recommendedStepsPayload(steps []Step) []CandidateStep {
-	res := make([]CandidateStep, 0, len(steps))
-	for _, st := range steps {
-		res = append(res, candidateStepPayload(st))
-	}
-	return res
-}
-
-func candidateStepPayload(st Step) CandidateStep {
-	return CandidateStep{
-		ID:          st.ID,
-		Name:        st.Name,
-		Source:      st.Source,
-		Path:        st.Path,
-		Entity:      st.Entity,
-		Required:    st.Required,
-		Optional:    st.Optional,
-		Outputs:     st.Outputs,
-		Rationale:   st.Rationale,
-		Ambiguities: st.Ambiguities,
-		Step:        st.Step,
-	}
 }
 
 func existingStepsPayload(steps []Step) []RegisteredStep {
@@ -182,7 +158,7 @@ func dedupeArgs(args []argSpec) []argSpec {
 	for _, arg := range args {
 		key := arg.Name + "|" + arg.Location
 		prev, ok := seen[key]
-		if !ok || (!prev.Required && arg.Required) {
+		if !ok || preferArg(prev, arg) {
 			seen[key] = arg
 		}
 	}
@@ -199,6 +175,13 @@ func dedupeArgs(args []argSpec) []argSpec {
 	return res
 }
 
+func preferArg(prev, next argSpec) bool {
+	if !prev.Required && next.Required {
+		return true
+	}
+	return !schemaHasEnum(prev.Schema) && schemaHasEnum(next.Schema)
+}
+
 func humanizeID(id string) string {
 	parts := strings.Split(id, "-")
 	for i, part := range parts {
@@ -211,19 +194,15 @@ func humanizeID(id string) string {
 }
 
 func llmHandoffPrompt(h handoffInput) string {
-	data, _ := json.Marshal(struct {
-		Info           Info             `json:"info"`
-		CandidateSteps []CandidateStep  `json:"candidate_steps"`
-		ExistingSteps  []RegisteredStep `json:"existing_steps"`
-		Plans          []planSpec       `json:"plans"`
+	return handoff.Prompt(struct {
+		Info          Info             `json:"info"`
+		ExistingSteps []RegisteredStep `json:"existing_steps,omitempty"`
+		Operations    []Operation      `json:"operations,omitempty"`
+		Capabilities  Capabilities     `json:"argyll_capabilities"`
 	}{
-		Info:           h.Info,
-		CandidateSteps: h.CandidateSteps,
-		ExistingSteps:  h.ExistingSteps,
-		Plans:          h.Plans,
+		Info:          h.Info,
+		Capabilities:  h.Capabilities,
+		ExistingSteps: h.ExistingSteps,
+		Operations:    h.Operations,
 	})
-	return "Review this normalized OpenAPI-to-Argyll graph. Refine canonical " +
-		"attribute names, mark ambiguous planning edges, and suggest which " +
-		"candidate registrations should be kept, merged, or dropped:\n" +
-		string(data)
 }

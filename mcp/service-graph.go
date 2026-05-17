@@ -11,14 +11,13 @@ import (
 
 type (
 	serviceNode struct {
+		Types   map[string]string
 		Service string
 		ID      string
 		Name    string
 		Source  string
 		Inputs  []string
 		Outputs []string
-		Types   map[string]string
-		Step    map[string]any
 	}
 
 	catalogStep struct {
@@ -36,8 +35,8 @@ type (
 		SourceStepID  string   `json:"source_step_id"`
 		TargetService string   `json:"target_service"`
 		TargetStepID  string   `json:"target_step_id"`
-		Attributes    []string `json:"attributes"`
 		Kind          string   `json:"kind"`
+		Attributes    []string `json:"attributes"`
 	}
 
 	missingAttr struct {
@@ -48,23 +47,6 @@ type (
 		Type       string `json:"type,omitempty"`
 		Kind       string `json:"kind"`
 		Confidence string `json:"confidence"`
-	}
-
-	bridgeOpportunity struct {
-		Kind           string   `json:"kind"`
-		SourceService  string   `json:"source_service"`
-		SourceStepID   string   `json:"source_step_id"`
-		SourceStepName string   `json:"source_step_name,omitempty"`
-		SourceAttr     string   `json:"source_attribute"`
-		SourceType     string   `json:"source_type,omitempty"`
-		TargetService  string   `json:"target_service"`
-		TargetStepID   string   `json:"target_step_id"`
-		TargetStepName string   `json:"target_step_name,omitempty"`
-		TargetAttr     string   `json:"target_attribute"`
-		TargetType     string   `json:"target_type,omitempty"`
-		SharedKeys     []string `json:"shared_keys,omitempty"`
-		Confidence     string   `json:"confidence"`
-		Rationale      string   `json:"rationale"`
 	}
 )
 
@@ -104,23 +86,43 @@ func landscapeNodes(existing []openapi.Step) []serviceNode {
 }
 
 func serviceNodes(name string, spec openapi.Result) []serviceNode {
-	nodes := make([]serviceNode, 0, len(spec.RecommendedSteps))
-	for _, st := range spec.RecommendedSteps {
+	nodes := make([]serviceNode, 0, len(spec.Operations))
+	for _, op := range spec.Operations {
+		inputs, outputs, types := operationIO(op)
 		nodes = append(nodes, serviceNode{
 			Service: name,
-			ID:      st.ID,
-			Name:    st.Name,
-			Source:  st.Source,
-			Inputs:  slices.Clone(st.Required),
-			Outputs: slices.Clone(st.Outputs),
-			Types:   stepTypes(st.Step),
-			Step:    cloneMap(st.Step),
+			ID:      op.ID,
+			Name:    op.Summary,
+			Source:  "contract",
+			Inputs:  inputs,
+			Outputs: outputs,
+			Types:   types,
 		})
 	}
 	return nodes
 }
 
-func inferRelationships(nodes []serviceNode) []relationship {
+func operationIO(op openapi.Operation) ([]string, []string, map[string]string) {
+	res := map[string]string{}
+	var inputs []string
+	var outputs []string
+	for _, arg := range op.Inputs {
+		if !arg.Required {
+			continue
+		}
+		inputs = append(inputs, arg.Name)
+		res[arg.Name] = coalesceType(arg.Type)
+	}
+	for _, arg := range op.Outputs {
+		outputs = append(outputs, arg.Name)
+		res[arg.Name] = coalesceType(arg.Type)
+	}
+	slices.Sort(inputs)
+	slices.Sort(outputs)
+	return inputs, outputs, res
+}
+
+func relationships(nodes []serviceNode) []relationship {
 	var res []relationship
 	for _, src := range nodes {
 		for _, dst := range nodes {
@@ -179,94 +181,4 @@ func missingAttributes(nodes []serviceNode) []missingAttr {
 		}
 	}
 	return res
-}
-
-func bridgeOpportunities(
-	nodes []serviceNode, missing []missingAttr,
-) []bridgeOpportunity {
-	var res []bridgeOpportunity
-	for _, miss := range missing {
-		for _, node := range nodes {
-			if node.Service == miss.Service {
-				continue
-			}
-			res = append(res, bridgesFromNode(node, miss)...)
-		}
-	}
-	return dedupeBridgeOpportunities(res)
-}
-
-func bridgesFromNode(node serviceNode, miss missingAttr) []bridgeOpportunity {
-	var res []bridgeOpportunity
-	for _, out := range node.Outputs {
-		if !scriptBridgeMatch(node, out, miss) {
-			continue
-		}
-		res = append(res, bridgeOpportunity{
-			Kind:           "script_bridge",
-			SourceService:  node.Service,
-			SourceStepID:   node.ID,
-			SourceStepName: node.Name,
-			SourceAttr:     out,
-			SourceType:     node.Types[out],
-			TargetService:  miss.Service,
-			TargetStepID:   miss.StepID,
-			TargetStepName: miss.StepName,
-			TargetAttr:     miss.Attribute,
-			TargetType:     miss.Type,
-			SharedKeys:     sharedKeys(node.Inputs, []string{miss.Attribute}),
-			Confidence:     scriptBridgeConfidence(node.Types[out], miss.Type),
-			Rationale:      scriptBridgeRationale(node, out, miss),
-		})
-	}
-	return res
-}
-
-func dedupeBridgeOpportunities(items []bridgeOpportunity) []bridgeOpportunity {
-	seen := util.Set[string]{}
-	var res []bridgeOpportunity
-	for _, item := range items {
-		key := item.Kind + "|" + item.SourceStepID + "|" + item.SourceAttr +
-			"|" + item.TargetStepID + "|" + item.TargetAttr
-		if seen.Contains(key) {
-			continue
-		}
-		seen.Add(key)
-		res = append(res, item)
-	}
-	return res
-}
-
-func scriptBridgeMatch(
-	node serviceNode, source string, target missingAttr,
-) bool {
-	if sameType(node.Types[source], target.Type) {
-		return false
-	}
-	if source == target.Attribute {
-		return true
-	}
-	return tokenOverlap(source, target.Attribute) > 0
-}
-
-func scriptBridgeConfidence(sourceType, targetType string) string {
-	if sourceType == "" || targetType == "" {
-		return "medium"
-	}
-	return "high"
-}
-
-func scriptBridgeRationale(
-	node serviceNode, source string, target missingAttr,
-) string {
-	if source == target.Attribute {
-		return "source output matches the missing input name but needs a " +
-			"Lua transform because the types differ"
-	}
-	if len(sharedKeys(node.Inputs, []string{target.Attribute})) != 0 {
-		return "source output and missing input share a planning key but " +
-			"need a Lua transform to bridge the type gap"
-	}
-	return "source output and missing input share planner tokens but " +
-		"need a Lua transform to bridge the shape gap"
 }

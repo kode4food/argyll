@@ -2,7 +2,6 @@ package mcp_test
 
 import (
 	"encoding/json"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,209 +9,313 @@ import (
 	"github.com/kode4food/argyll/mcp"
 )
 
-func TestInferOpenAPIStepsUsesExistingGraph(t *testing.T) {
+func TestAnalyzeOpenAPIReturnsFacts(t *testing.T) {
 	sample := fixtureText(t, "customer-orders-openapi.yaml")
-	hc := &http.Client{
-		Transport: roundTripperFunc(
-			func(r *http.Request) (*http.Response, error) {
-				if r.URL.Path != "/engine/step" || r.Method != http.MethodGet {
-					return jsonResponse(
-						http.StatusNotFound, []byte(`{"error":"not found"}`),
-					), nil
-				}
-				return jsonResponse(http.StatusOK, []byte(`{
-					"steps": {
-						"lookup-customer-by-email": {
-							"id": "lookup-customer-by-email",
-							"name": "Lookup Customer By Email",
-							"type": "sync",
-							"http": {
-								"method": "GET",
-								"endpoint": "http://example/customers/by-email"
-							},
-							"attributes": {
-								"customer_email": {
-									"role": "required",
-									"type": "string"
-								},
-								"customer_id": {
-									"role": "output",
-									"type": "string"
-								},
-								"customer": {
-									"role": "output",
-									"type": "object"
-								}
-							}
-						}
-					},
-					"count": 1
-				}`)), nil
-			},
-		),
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+		"spec_text":          sample,
+		"include_registered": false,
+	})
+
+	var payload map[string]any
+	err := json.Unmarshal([]byte(text), &payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "contract", payload["mode"])
+	assert.NotContains(t, payload, "proposed_registrations")
+	assert.NotContains(t, payload, "candidate_steps")
+	assert.NotContains(t, payload, "recommended_steps")
+
+	ops := payload["operations"].([]any)
+	assert.NotEmpty(t, ops)
+	for _, rawOp := range ops {
+		op := rawOp.(map[string]any)
+		inputs := op["inputs"].([]any)
+		for _, rawArg := range inputs {
+			arg := rawArg.(map[string]any)
+			assert.NotContains(t, arg, "mapping")
+		}
 	}
-	c := newClient(t, mcp.NewServer("http://example", hc))
-	text := callToolText(t, c, "infer_openapi_steps", map[string]any{
-		"spec_text": sample,
+
+	handoff := payload["llm_handoff_prompt"].(string)
+	assert.Contains(t, handoff, "analyze_openapi_contract")
+	assert.NotContains(t, handoff, "infer_openapi_steps")
+}
+
+func TestAnalyzeOpenAPIObjectResponse(t *testing.T) {
+	spec := `
+openapi: 3.0.3
+info:
+  title: Customer Service
+  version: 1.0.0
+paths:
+  /get-customer-info:
+    post:
+      operationId: getCustomerInfo
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [customer_id]
+              properties:
+                customer_id:
+                  type: string
+      responses:
+        "200":
+          description: customer found
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [customer_id, email_address, channel_preference]
+                properties:
+                  customer_id:
+                    type: string
+                  email_address:
+                    type: string
+                  channel_preference:
+                    type: string
+`
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+		"spec_text":          spec,
+		"include_registered": false,
 	})
 
 	var payload map[string]any
 	err := json.Unmarshal([]byte(text), &payload)
 	assert.NoError(t, err)
 
-	recommended, ok := payload["recommended_steps"].([]any)
-	if !assert.True(t, ok) {
-		return
-	}
-	assert.Len(t, recommended, 2)
+	ops := payload["operations"].([]any)
+	outputs := ops[0].(map[string]any)["outputs"].([]any)
+	names := argNames(outputs)
+	assert.Contains(t, names, "customer_id")
+	assert.Contains(t, names, "email_address")
+	assert.Contains(t, names, "channel_preference")
+	assert.NotContains(t, names, "customer")
+	assert.NotContains(t, names, "get_customer_info")
+}
 
-	plans, ok := payload["plans"].([]any)
-	if !assert.True(t, ok) || !assert.NotEmpty(t, plans) {
-		return
-	}
+func TestAnalyzeOpenAPIHealth(t *testing.T) {
+	spec := `
+openapi: 3.0.3
+info:
+  title: Customer Service
+  version: 1.0.0
+servers:
+  - url: http://example.com
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: healthy
+  /get-template:
+    post:
+      operationId: getTemplate
+      responses:
+        "200":
+          description: template found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  template_id:
+                    type: string
+`
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+		"spec_text":          spec,
+		"include_registered": false,
+	})
+
+	var payload map[string]any
+	err := json.Unmarshal([]byte(text), &payload)
+	assert.NoError(t, err)
+
+	ops := payload["operations"].([]any)
+	assert.Len(t, ops, 1)
+	assert.Equal(t, "get-template", ops[0].(map[string]any)["id"])
+}
+
+func TestAnalyzeOpenAPIEndpointArgs(t *testing.T) {
+	spec := `
+openapi: 3.0.3
+info:
+  title: Message Service
+  version: 1.0.0
+servers:
+  - url: http://example.com
+paths:
+  /customers/{customerId}/messages:
+    get:
+      operationId: listMessages
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: messageType
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: messages
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  messages:
+                    type: array
+                    items:
+                      type: object
+`
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+		"spec_text":          spec,
+		"include_registered": false,
+	})
+
+	var payload map[string]any
+	err := json.Unmarshal([]byte(text), &payload)
+	assert.NoError(t, err)
+
+	ops := payload["operations"].([]any)
+	op := ops[0].(map[string]any)
+	assert.Equal(t,
+		"http://example.com/customers/{customerId}/messages"+
+			"?messageType={messageType}",
+		op["endpoint"],
+	)
+	inputs := op["inputs"].([]any)
+	assert.Contains(t, argNames(inputs), "customer_id")
+	assert.Contains(t, argNames(inputs), "message_type")
+}
+
+func TestAnalyzeOpenAPIEnumFactsDoNotCreateMatches(t *testing.T) {
+	spec := `
+openapi: 3.0.3
+info:
+  title: Sender Service
+  version: 1.0.0
+paths:
+  /send-sms:
+    post:
+      operationId: sendSMS
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [channelPreference, phoneNumber]
+              properties:
+                channelPreference:
+                  type: string
+                  enum: [sms]
+                phoneNumber:
+                  type: string
+      responses:
+        "202":
+          description: accepted
+`
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+		"spec_text":          spec,
+		"include_registered": false,
+	})
+
+	var payload map[string]any
+	err := json.Unmarshal([]byte(text), &payload)
+	assert.NoError(t, err)
+
+	ops := payload["operations"].([]any)
+	inputs := ops[0].(map[string]any)["inputs"].([]any)
 	found := false
-	for _, item := range plans {
-		plan, ok := item.(map[string]any)
-		if !ok {
+	for _, raw := range inputs {
+		arg := raw.(map[string]any)
+		if arg["name"] != "channel_preference" {
 			continue
 		}
-		if plan["goal_step_id"] != "create-order" {
-			continue
-		}
-		steps, ok := plan["steps"].([]any)
-		if !assert.True(t, ok) {
-			return
-		}
-		assert.Len(t, steps, 2)
-		first := steps[0].(map[string]any)
-		second := steps[1].(map[string]any)
-		assert.Equal(t, "lookup-customer-by-email", first["id"])
-		assert.Equal(t, "existing", first["source"])
-		assert.Equal(t, "create-order", second["id"])
-
-		missing := plan["missing_inputs"].([]any)
-		assert.Equal(t, []any{"customer_email", "items"}, missing)
+		assert.NotContains(t, arg, "match")
+		assert.NotContains(t, arg, "mapping")
+		schema := arg["schema"].(map[string]any)
+		assert.Equal(t, []any{"sms"}, schema["enum"])
 		found = true
 	}
 	assert.True(t, found)
 }
 
-func TestInferOpenAPIProposeRegistrationsMode(t *testing.T) {
-	sample := fixtureText(t, "customer-orders-openapi.yaml")
+func TestAnalyzeOpenAPIAsyncCallbackOutputs(t *testing.T) {
+	spec := `
+openapi: 3.0.3
+info:
+  title: Sender Service
+  version: 1.0.0
+paths:
+  /send-sms:
+    post:
+      operationId: sendSMS
+      parameters:
+        - name: Argyll-Webhook-URL
+          in: header
+          required: true
+          schema:
+            type: string
+      responses:
+        "202":
+          description: accepted
+      callbacks:
+        deliveryReceipt:
+          '{$request.header.Argyll-Webhook-URL}':
+            post:
+              requestBody:
+                required: true
+                content:
+                  application/json:
+                    schema:
+                      type: object
+                      required: [receipt_id, channel]
+                      properties:
+                        receipt_id:
+                          type: string
+                        channel:
+                          type: string
+              responses:
+                "200":
+                  description: accepted
+`
 	c := newClient(t, mcp.NewServer("http://example", nil))
-	text := callToolText(t, c, "infer_openapi_steps", map[string]any{
-		"mode":               "propose_registrations",
-		"spec_text":          sample,
+	text := callToolText(t, c, "analyze_openapi_contract", map[string]any{
+		"spec_text":          spec,
 		"include_registered": false,
-		"existing_steps": map[string]any{
-			"steps": map[string]any{
-				"create-order-lite": map[string]any{
-					"id":   "create-order-lite",
-					"name": "Create Order Lite",
-					"attributes": map[string]any{
-						"customer_id": map[string]any{
-							"role": "required",
-							"type": "string",
-						},
-						"items": map[string]any{
-							"role": "required",
-							"type": "array",
-						},
-						"order_id": map[string]any{
-							"role": "output",
-							"type": "string",
-						},
-					},
-				},
-			},
-		},
 	})
 
 	var payload map[string]any
 	err := json.Unmarshal([]byte(text), &payload)
 	assert.NoError(t, err)
-	assert.Equal(t, "propose_registrations", payload["mode"])
 
-	props, ok := payload["proposed_registrations"].([]any)
-	if !assert.True(t, ok) {
-		return
-	}
-	assert.Len(t, props, 2)
-	assert.NotNil(t, payload["llm_handoff_prompt"])
+	ops := payload["operations"].([]any)
+	op := ops[0].(map[string]any)
+	assert.NotContains(t, argNames(op["inputs"].([]any)), "argyll_webhook_url")
+	outputs := argNames(op["outputs"].([]any))
+	assert.Contains(t, outputs, "receipt_id")
+	assert.Contains(t, outputs, "channel")
 }
 
-func TestInferOpenAPIStepsNestedSharedSchema(t *testing.T) {
-	nested := fixtureText(t, "nested-customer-openapi.yaml")
-	c := newClient(t, mcp.NewServer("http://example", nil))
-	text := callToolText(t, c, "infer_openapi_steps", map[string]any{
-		"spec_text":          nested,
-		"include_registered": false,
-	})
-
-	var payload map[string]any
-	err := json.Unmarshal([]byte(text), &payload)
-	assert.NoError(t, err)
-
-	candidates, ok := payload["candidate_steps"].([]any)
-	if !assert.True(t, ok) {
-		return
+func argNames(args []any) []string {
+	res := make([]string, 0, len(args))
+	for _, raw := range args {
+		arg := raw.(map[string]any)
+		name, _ := arg["name"].(string)
+		res = append(res, name)
 	}
-	if !assert.NotEmpty(t, candidates) {
-		return
-	}
-	first := candidates[0].(map[string]any)
-	step := first["step"].(map[string]any)
-	attrs := step["attributes"].(map[string]any)
-
-	customerID := attrs["customer_id"].(map[string]any)
-	assert.Equal(t, "output", customerID["role"])
-	mapping := customerID["mapping"].(map[string]any)
-	script := mapping["script"].(map[string]any)
-	assert.Equal(t, "$.data.id", script["script"])
-
-	rationale := first["rationale"].([]any)
-	assert.NotEmpty(t, rationale)
-}
-
-func TestInferOpenAPICoveragePartialOverlap(t *testing.T) {
-	sample := fixtureText(t, "customer-orders-openapi.yaml")
-	c := newClient(t, mcp.NewServer("http://example", nil))
-	text := callToolText(t, c, "infer_openapi_steps", map[string]any{
-		"spec_text":          sample,
-		"include_registered": false,
-		"existing_steps": map[string]any{
-			"steps": map[string]any{
-				"list-orders-alt": map[string]any{
-					"id":   "list-orders-alt",
-					"name": "List Orders Alt",
-					"attributes": map[string]any{
-						"customer_id": map[string]any{
-							"role": "required",
-							"type": "string",
-						},
-						"order_summary": map[string]any{
-							"role": "output",
-							"type": "array",
-						},
-					},
-				},
-			},
-		},
-	})
-
-	var payload map[string]any
-	err := json.Unmarshal([]byte(text), &payload)
-	assert.NoError(t, err)
-
-	candidates := payload["candidate_steps"].([]any)
-	found := false
-	for _, raw := range candidates {
-		item := raw.(map[string]any)
-		if item["id"] != "list-customer-orders" {
-			continue
-		}
-		assert.Equal(t, "recommended", item["coverage_status"])
-		found = true
-	}
-	assert.True(t, found)
+	return res
 }

@@ -1,17 +1,17 @@
 package mcp
 
 type stepDiff struct {
+	Current  map[string]any `json:"current,omitempty"`
+	Proposed map[string]any `json:"proposed,omitempty"`
+	Diff     map[string]any `json:"diff,omitempty"`
 	ID       string         `json:"id"`
 	Action   string         `json:"action"`
 	Reason   string         `json:"reason"`
 	Fields   []string       `json:"fields,omitempty"`
-	Current  map[string]any `json:"current,omitempty"`
-	Proposed map[string]any `json:"proposed,omitempty"`
-	Diff     map[string]any `json:"diff,omitempty"`
 }
 
 func (s *Server) diffProposedSteps(args diffProposedStepsArgs) (any, error) {
-	steps, err := proposedSteps(args.Steps, args.Proposal)
+	steps, err := proposedSteps(args.Steps)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +33,7 @@ func (s *Server) diffProposedSteps(args diffProposedStepsArgs) (any, error) {
 }
 
 func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
-	steps, err := proposedSteps(args.Steps, args.Proposal)
+	steps, err := proposedSteps(args.Steps)
 	if err != nil {
 		return nil, err
 	}
@@ -50,6 +50,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 
 	var applied []map[string]any
 	var skipped []map[string]any
+	var appliedProposed []map[string]any
 	for _, d := range diffs {
 		switch d.Action {
 		case "create":
@@ -62,6 +63,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 				"action":   "create",
 				"response": res,
 			})
+			appliedProposed = append(appliedProposed, d.Proposed)
 		case "update":
 			if !applyUpdates {
 				skipped = append(skipped, map[string]any{
@@ -82,6 +84,7 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 				"fields":   d.Fields,
 				"response": res,
 			})
+			appliedProposed = append(appliedProposed, d.Proposed)
 		default:
 			skipped = append(skipped, map[string]any{
 				"id":     d.ID,
@@ -91,61 +94,52 @@ func (s *Server) applyProposedSteps(args applyProposedStepsArgs) (any, error) {
 		}
 	}
 
+	verification, err := s.verifyAppliedSteps(appliedProposed)
+	if err != nil {
+		return nil, err
+	}
+
 	return toolResult(map[string]any{
 		"summary": map[string]any{
-			"requested": len(steps),
-			"create":    counts["create"],
-			"update":    counts["update"],
-			"skip":      counts["skip"],
-			"applied":   len(applied),
-			"skipped":   len(skipped),
+			"requested":           len(steps),
+			"create":              counts["create"],
+			"update":              counts["update"],
+			"skip":                counts["skip"],
+			"applied":             len(applied),
+			"skipped":             len(skipped),
+			"verification_status": verification.Status,
+			"verification_issues": len(verification.Issues),
 		},
 		"applied_steps": applied,
 		"skipped_steps": skipped,
+		"verification":  verification,
 	}, nil)
 }
 
-func proposedSteps(
-	steps *[]map[string]any, proposal *map[string]any,
-) ([]map[string]any, error) {
+func (s *Server) verifyAppliedSteps(
+	proposed []map[string]any,
+) (semanticVerification, error) {
+	var semantic []map[string]any
+	for _, step := range proposed {
+		if len(semanticConfigs(step)) != 0 {
+			semantic = append(semantic, step)
+		}
+	}
+	if len(semantic) == 0 {
+		return semanticVerification{Status: "skipped"}, nil
+	}
+	current, err := s.currentSteps()
+	if err != nil {
+		return semanticVerification{}, err
+	}
+	return verifyAppliedSemantics(semantic, current), nil
+}
+
+func proposedSteps(steps *[]map[string]any) ([]map[string]any, error) {
 	if steps != nil && len(*steps) != 0 {
 		return *steps, nil
 	}
-	if proposal == nil {
-		return nil, errInvalidParams("steps or proposal is required")
-	}
-
-	raw, ok := (*proposal)["proposed_registrations"]
-	if !ok {
-		return nil, errInvalidParams(
-			"proposal.proposed_registrations is required",
-		)
-	}
-	items, ok := raw.([]any)
-	if !ok {
-		return nil, errInvalidParams(
-			"proposal.proposed_registrations must be an array",
-		)
-	}
-
-	res := make([]map[string]any, 0, len(items))
-	for _, item := range items {
-		st, ok := asMap(item)
-		if !ok {
-			continue
-		}
-		step, ok := asMap(st["step"])
-		if !ok || len(step) == 0 {
-			continue
-		}
-		res = append(res, step)
-	}
-	if len(res) == 0 {
-		return nil, errInvalidParams(
-			"proposal.proposed_registrations did not contain step drafts",
-		)
-	}
-	return res, nil
+	return nil, errInvalidParams("steps is required")
 }
 
 func (s *Server) currentSteps() (map[string]map[string]any, error) {

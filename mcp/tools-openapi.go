@@ -8,9 +8,9 @@ import (
 	"github.com/kode4food/argyll/mcp/openapi"
 )
 
-func (s *Server) inferOpenAPI(args openapi.Args) (any, error) {
+func (s *Server) analyzeOpenAPIContract(args openapi.Args) (any, error) {
 	existing, warnings := s.collectExistingSteps(args)
-	payload, err := openapi.Analyze(args, existing, warnings)
+	payload, err := openapi.AnalyzeContract(args, existing, warnings)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +37,7 @@ func (s *Server) collectExistingSteps(
 	if err != nil {
 		warnings = append(
 			warnings,
-			"could not load registered steps from engine; inferred graph uses "+
+			"could not load registered steps from engine; analysis uses "+
 				"provided steps only",
 		)
 		return res, warnings
