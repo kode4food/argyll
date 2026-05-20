@@ -39,12 +39,8 @@ def check_attribute_role_config(name: str, spec: AttributeSpec) -> None:
         raise StepValidationError(
             f"Const attribute {name} requires const value"
         )
-    if spec.role == AttributeRole.META and (
-        not spec.meta or not spec.meta.key
-    ):
-        raise StepValidationError(
-            f"Meta attribute {name} requires meta key"
-        )
+    if spec.role == AttributeRole.META and (not spec.meta or not spec.meta.key):
+        raise StepValidationError(f"Meta attribute {name} requires meta key")
 
 
 def check_attribute_default(name: str, spec: AttributeSpec) -> None:
