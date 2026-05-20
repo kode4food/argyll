@@ -22,6 +22,7 @@ _cgo_export.*
 _testmain.go
 
 dist
+mcp/specs/
 
 *.exe
 *.test

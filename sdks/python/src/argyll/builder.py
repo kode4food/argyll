@@ -12,6 +12,7 @@ from .types import (
     AttributeSpec,
     AttributeType,
     ConstConfig,
+    MetaConfig,
     FlowConfig,
     FlowID,
     HTTPConfig,
@@ -102,6 +103,16 @@ class StepBuilder:
             role=AttributeRole.CONST,
             type=attr_type,
             const=ConstConfig(value=value),
+        )
+        return self._copy(_attributes=new_attrs)
+
+    def meta(self, name: str, meta_key: str) -> "StepBuilder":
+        """Add meta input attribute drawn from execution metadata."""
+        new_attrs = dict(self._attributes)
+        new_attrs[name] = AttributeSpec(
+            role=AttributeRole.META,
+            type=AttributeType.ANY,
+            meta=MetaConfig(key=meta_key),
         )
         return self._copy(_attributes=new_attrs)
 

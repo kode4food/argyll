@@ -5,6 +5,7 @@ import {
   SCRIPT_LANGUAGE_JPATH,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
+import { AttributeRoleType } from "./stepEditorTypes";
 
 export const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.String,
@@ -13,6 +14,14 @@ export const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.Object,
   AttributeType.Array,
   AttributeType.Any,
+];
+
+export const ATTRIBUTE_ROLE_TYPES: AttributeRoleType[] = [
+  "input",
+  "optional",
+  "const",
+  "meta",
+  "output",
 ];
 
 export const INPUT_COLLECT_TYPES: InputCollect[] = [

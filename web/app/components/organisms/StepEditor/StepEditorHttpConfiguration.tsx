@@ -4,6 +4,7 @@ import { HTTPMethod } from "@/app/api";
 import { useT } from "@/app/i18n";
 import formStyles from "./StepEditorForm.module.css";
 import localStyles from "./StepEditorHttpConfiguration.module.css";
+import InlineSelectDropdown from "./InlineSelectDropdown";
 
 interface StepEditorHttpConfigurationProps {
   endpoint: string;
@@ -43,16 +44,17 @@ const StepEditorHttpConfiguration: React.FC<
             <label className={formStyles.label}>
               {t("stepEditor.httpMethodLabel")}
             </label>
-            <select
+            <InlineSelectDropdown
               value={httpMethod}
-              onChange={(e) => setHttpMethod(e.target.value as HTTPMethod)}
-              className={`${formStyles.formControl} ${localStyles.methodSelect}`}
-            >
-              <option value="POST">POST</option>
-              <option value="GET">GET</option>
-              <option value="PUT">PUT</option>
-              <option value="DELETE">DELETE</option>
-            </select>
+              options={[
+                { value: "POST", label: "POST" },
+                { value: "GET", label: "GET" },
+                { value: "PUT", label: "PUT" },
+                { value: "DELETE", label: "DELETE" },
+              ]}
+              onChange={(v) => setHttpMethod(v as HTTPMethod)}
+              className={localStyles.methodSelect}
+            />
           </div>
           <div className={`${formStyles.field} ${formStyles.flex1}`}>
             <label className={formStyles.label}>

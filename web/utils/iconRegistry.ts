@@ -36,6 +36,7 @@ import {
   Server,
   Square,
   Sun,
+  Tag,
   Trash2,
   Webhook,
   Wifi,
@@ -47,7 +48,7 @@ import {
 } from "lucide-react";
 import { StepType } from "@/app/api";
 
-export type ArgType = "required" | "optional" | "const" | "output";
+export type ArgType = "required" | "optional" | "const" | "meta" | "output";
 
 export interface ArgIconConfig {
   Icon: LucideIcon;
@@ -98,6 +99,7 @@ export const IconProgressSkipped = MinusCircle;
 export const IconAttributeRequired = ArrowRight;
 export const IconAttributeOptional = CircleHelp;
 export const IconAttributeConst = Lock;
+export const IconAttributeMeta = Tag;
 export const IconAttributeOutput = ArrowLeft;
 
 export const IconAttributeStatusSatisfied = CheckCircle2;
@@ -120,6 +122,7 @@ const argIconMap: Record<ArgType, ArgIconConfig> = {
   required: { Icon: IconAttributeRequired, className: "arg-icon input" },
   optional: { Icon: IconAttributeOptional, className: "arg-icon optional" },
   const: { Icon: IconAttributeConst, className: "arg-icon const" },
+  meta: { Icon: IconAttributeMeta, className: "arg-icon meta" },
   output: { Icon: IconAttributeOutput, className: "arg-icon output" },
 };
 

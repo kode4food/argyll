@@ -29,6 +29,7 @@ class AttributeRole(str, Enum):
     REQUIRED = "required"
     OPTIONAL = "optional"
     CONST = "const"
+    META = "meta"
     OUTPUT = "output"
 
 
@@ -148,6 +149,17 @@ class ConstConfig:
 
 
 @dataclass(frozen=True)
+class MetaConfig:
+    """Configuration for meta attributes."""
+
+    key: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        return {"key": self.key}
+
+
+@dataclass(frozen=True)
 class OutputConfig:
     """Configuration for output attributes."""
 
@@ -170,6 +182,7 @@ class AttributeSpec:
     required: Optional[RequiredConfig] = None
     optional: Optional[OptionalConfig] = None
     const: Optional[ConstConfig] = None
+    meta: Optional[MetaConfig] = None
     output: Optional[OutputConfig] = None
 
     def to_dict(self) -> Dict[str, Any]:
@@ -184,6 +197,8 @@ class AttributeSpec:
             result["optional"] = self.optional.to_dict()
         if self.const is not None:
             result["const"] = self.const.to_dict()
+        if self.meta is not None:
+            result["meta"] = self.meta.to_dict()
         if self.output is not None:
             result["output"] = self.output.to_dict()
         return result

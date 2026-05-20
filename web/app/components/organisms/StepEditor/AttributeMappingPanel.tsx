@@ -8,6 +8,9 @@ import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import { Attribute } from "./stepEditorUtils";
 import { getMappingScriptPlaceholderKey } from "./stepEditorConstants";
+import InlineSelectDropdown, {
+  InlineSelectOption,
+} from "./InlineSelectDropdown";
 
 interface AttributeMappingPanelProps {
   attr: Attribute;
@@ -43,50 +46,44 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
         <IconMapping className={styles.iconSm} />
       </span>
       {stepType === "flow" ? (
-        <select
-          value={attr.mappingName || ""}
-          onChange={(e) =>
-            updateAttribute(attr.id, "mappingName", e.target.value)
-          }
-          className={`${formStyles.flowMapSelect} ${formStyles.mappingInlineInput} ${formStyles.mappingInlineSelect}`}
-          disabled={
-            attr.attrType === "output"
-              ? flowOutputOptions.length === 0
-              : flowInputOptions.length === 0
-          }
-        >
-          <option value="">{mappingNameHint}</option>
-          {attr.attrType === "output"
-            ? filteredFlowOutputList.map((option) => (
-                <option
-                  key={option}
-                  value={option}
-                  disabled={
-                    usedOutputMappings.has(option) &&
-                    usedOutputMappings.get(option) !== attr.id
-                  }
-                >
-                  {option}
-                </option>
-              ))
-            : filteredFlowInputList.map((option) => (
-                <option
-                  key={option.name}
-                  value={option.name}
-                  disabled={
-                    usedInputMappings.has(option.name) &&
-                    usedInputMappings.get(option.name) !== attr.id
-                  }
-                  className={
-                    option.required
-                      ? formStyles.flowMapOptionRequired
-                      : undefined
-                  }
-                >
-                  {option.name}
-                </option>
-              ))}
-        </select>
+        (() => {
+          const isOutput = attr.attrType === "output";
+          const flowOptions: InlineSelectOption[] = isOutput
+            ? [
+                { value: "", label: mappingNameHint },
+                ...filteredFlowOutputList.map((opt) => ({
+                  value: opt,
+                  label: opt,
+                  disabled:
+                    usedOutputMappings.has(opt) &&
+                    usedOutputMappings.get(opt) !== attr.id,
+                })),
+              ]
+            : [
+                { value: "", label: mappingNameHint },
+                ...filteredFlowInputList.map((opt) => ({
+                  value: opt.name,
+                  label: opt.name,
+                  highlight: opt.required,
+                  disabled:
+                    usedInputMappings.has(opt.name) &&
+                    usedInputMappings.get(opt.name) !== attr.id,
+                })),
+              ];
+          return (
+            <InlineSelectDropdown
+              value={attr.mappingName || ""}
+              options={flowOptions}
+              onChange={(v) => updateAttribute(attr.id, "mappingName", v)}
+              className={formStyles.mappingInlineInput}
+              disabled={
+                isOutput
+                  ? flowOutputOptions.length === 0
+                  : flowInputOptions.length === 0
+              }
+            />
+          );
+        })()
       ) : (
         <input
           type="text"

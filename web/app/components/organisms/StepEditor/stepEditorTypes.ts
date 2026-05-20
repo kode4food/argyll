@@ -1,6 +1,11 @@
 import { AttributeType, InputCollect } from "@/app/api";
 
-export type AttributeRoleType = "input" | "optional" | "const" | "output";
+export type AttributeRoleType =
+  | "input"
+  | "optional"
+  | "const"
+  | "meta"
+  | "output";
 
 export interface Attribute {
   id: string;
@@ -13,6 +18,7 @@ export interface Attribute {
   forEach?: boolean;
   matchLanguage?: string;
   matchScript?: string;
+  metaKey?: string;
   mappingName?: string;
   mappingLanguage?: string;
   mappingScript?: string;

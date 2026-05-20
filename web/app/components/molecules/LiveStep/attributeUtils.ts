@@ -1,17 +1,18 @@
 import { ExecutionResult, AttributeSpec, AttributeRole } from "@/app/api";
+import { type ArgType } from "@/utils/iconRegistry";
 import { type AttributeModifier } from "@/utils/stepUtils";
+
+export type { ArgType };
 
 export interface ArgValueResult {
   hasValue: boolean;
   value: any;
 }
 
-export type ArgType = "required" | "optional" | "const" | "output";
-
 export interface UnifiedArg {
   name: string;
   type: string;
-  argType: "required" | "optional" | "const" | "output";
+  argType: ArgType;
   spec: AttributeSpec;
   modifiers: AttributeModifier[];
 }
@@ -64,6 +65,8 @@ export const getAttributeTooltipTitle = (
       return wasDefaulted ? "liveStep.defaultValue" : "liveStep.inputValue";
     case "const":
       return "liveStep.defaultValue";
+    case "meta":
+      return "liveStep.inputValue";
     case "output":
       return "liveStep.outputValue";
   }

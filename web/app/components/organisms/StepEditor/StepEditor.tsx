@@ -64,8 +64,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
     addAttribute,
     updateAttribute,
     removeAttribute,
-    cycleAttributeType,
-    cycleInputCollect,
     endpoint,
     setEndpoint,
     httpMethod,
@@ -203,8 +201,6 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 <StepEditorAttributesSection
                   addAttribute={addAttribute}
                   attributes={attributes}
-                  cycleAttributeType={cycleAttributeType}
-                  cycleInputCollect={cycleInputCollect}
                   flowInputOptions={flowInputOptions}
                   flowOutputOptions={flowOutputOptions}
                   removeAttribute={removeAttribute}

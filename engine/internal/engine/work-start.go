@@ -121,6 +121,7 @@ func (e *ExecContext) performScript(inputs api.Args, tkn api.Token) error {
 		return errors.Join(ErrScriptCompileFailed, err)
 	}
 
+	inputs = e.applyMetaInputs(inputs, e.httpMetaForToken(tkn))
 	outputs, err := e.executeScript(c, inputs)
 	if err != nil {
 		e.updateScriptHealth(api.HealthUnhealthy, err.Error())
@@ -137,6 +138,7 @@ func (e *ExecContext) performScript(inputs api.Args, tkn api.Token) error {
 
 func (e *ExecContext) performSyncHTTP(inputs api.Args, tkn api.Token) error {
 	metadata := e.httpMetaForToken(tkn)
+	inputs = e.applyMetaInputs(inputs, metadata)
 	outputs, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
 	if err != nil {
 		return err
@@ -151,8 +153,25 @@ func (e *ExecContext) performAsyncHTTP(inputs api.Args, tkn api.Token) error {
 	metadata[api.MetaWebhookURL] = fmt.Sprintf("%s/webhook/%s/%s/%s",
 		e.engine.config.WebhookBaseURL, e.flowID, e.stepID, tkn,
 	)
+	inputs = e.applyMetaInputs(inputs, metadata)
 	_, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
 	return err
+}
+
+func (e *ExecContext) applyMetaInputs(
+	inputs api.Args, meta api.Metadata,
+) api.Args {
+	metaArgs := api.Args{}
+	for name, attr := range e.step.Attributes {
+		if !attr.IsMeta() {
+			continue
+		}
+		if val, ok := meta[attr.MetaKey()]; ok {
+			mapped, _ := e.step.MappedName(name)
+			metaArgs[mapped] = val
+		}
+	}
+	return inputs.Apply(metaArgs)
 }
 
 func (e *ExecContext) performFlow(initState api.Args, tkn api.Token) error {

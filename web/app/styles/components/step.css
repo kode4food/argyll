@@ -384,6 +384,10 @@
   color: var(--arg-icon-const);
 }
 
+.arg-icon.meta {
+  color: var(--arg-icon-meta);
+}
+
 .arg-icon.output {
   color: var(--arg-icon-output);
 }

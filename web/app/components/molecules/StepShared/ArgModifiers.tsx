@@ -1,4 +1,5 @@
 import React from "react";
+import { type ArgType } from "@/utils/iconRegistry";
 import { type AttributeModifier, getModifierTitleKey } from "@/utils/stepUtils";
 import styles from "./StepAttributesSection.module.css";
 
@@ -7,10 +8,11 @@ interface ArgModifiersProps {
   t: (key: string) => string;
 }
 
-export const argTypeTitleKey: Record<string, string> = {
+export const argTypeTitleKey: Record<ArgType, string> = {
   required: "attribute.roleRequired",
   optional: "attribute.roleOptional",
   const: "attribute.roleConst",
+  meta: "attribute.roleMeta",
   output: "attribute.roleOutput",
 };
 

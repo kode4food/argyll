@@ -218,12 +218,11 @@ describe("StepEditor", () => {
     );
 
     const matchInput = await screen.findByDisplayValue("$.kind");
-    fireEvent.change(
-      screen.getByLabelText(t("stepEditor.matchLanguageLabel")),
-      {
-        target: { value: "ale" },
-      }
+    const matchLangBtn = screen.getByLabelText(
+      t("stepEditor.matchLanguageLabel")
     );
+    fireEvent.click(matchLangBtn);
+    fireEvent.click(screen.getByRole("option", { name: "Ale" }));
     fireEvent.change(matchInput, { target: { value: "$.product_type" } });
 
     fireEvent.click(screen.getByText(t("stepEditor.save")));
@@ -264,18 +263,16 @@ describe("StepEditor", () => {
       t("stepEditor.matchLanguageLabel")
     );
 
-    fireEvent.change(matchLanguageSelect, {
-      target: { value: "ale" },
-    });
+    fireEvent.click(matchLanguageSelect);
+    fireEvent.click(screen.getByRole("option", { name: "Ale" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(t("stepEditor.matchScriptPlaceholderAle"))
       ).toBeInTheDocument();
     });
 
-    fireEvent.change(matchLanguageSelect, {
-      target: { value: "lua" },
-    });
+    fireEvent.click(matchLanguageSelect);
+    fireEvent.click(screen.getByRole("option", { name: "Lua" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(t("stepEditor.matchScriptPlaceholderLua"))
@@ -292,8 +289,9 @@ describe("StepEditor", () => {
 
     await waitFor(() => {
       expect(screen.getByDisplayValue("input2")).toBeInTheDocument();
-      const selects = screen.getAllByRole("combobox");
-      expect(selects.length).toBeGreaterThanOrEqual(2);
+      expect(
+        screen.getAllByTestId("duration-input").length
+      ).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -399,6 +397,7 @@ describe("StepEditor", () => {
     });
     fireEvent.click(expandInputMappingButton);
 
+    fireEvent.click(await screen.findByRole("button", { name: "input1" }));
     expect(
       await screen.findByRole("option", { name: "in1" })
     ).toBeInTheDocument();
@@ -408,6 +407,7 @@ describe("StepEditor", () => {
     });
     fireEvent.click(expandOutputMappingButton);
 
+    fireEvent.click(await screen.findByRole("button", { name: "output1" }));
     expect(
       await screen.findByRole("option", { name: "out1" })
     ).toBeInTheDocument();
@@ -469,6 +469,7 @@ describe("StepEditor", () => {
     });
     fireEvent.click(expandInputMappingButton);
 
+    fireEvent.click(screen.getByRole("button", { name: "input1" }));
     expect(screen.getAllByRole("option", { name: "input1" })).toHaveLength(1);
 
     const expandOutputMappingButton = await screen.findByRole("button", {
@@ -476,6 +477,7 @@ describe("StepEditor", () => {
     });
     fireEvent.click(expandOutputMappingButton);
 
+    fireEvent.click(screen.getByRole("button", { name: "output1" }));
     expect(screen.getAllByRole("option", { name: "output1" })).toHaveLength(1);
   });
 
@@ -639,9 +641,8 @@ describe("StepEditor", () => {
       t("stepEditor.mappingLanguageLabel")
     );
 
-    fireEvent.change(mappingLanguageSelect, {
-      target: { value: "jpath" },
-    });
+    fireEvent.click(mappingLanguageSelect);
+    fireEvent.click(screen.getByRole("option", { name: "JPath" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(
@@ -650,18 +651,16 @@ describe("StepEditor", () => {
       ).toBeInTheDocument();
     });
 
-    fireEvent.change(mappingLanguageSelect, {
-      target: { value: "ale" },
-    });
+    fireEvent.click(mappingLanguageSelect);
+    fireEvent.click(screen.getByRole("option", { name: "Ale" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderAle"))
       ).toBeInTheDocument();
     });
 
-    fireEvent.change(mappingLanguageSelect, {
-      target: { value: "lua" },
-    });
+    fireEvent.click(mappingLanguageSelect);
+    fireEvent.click(screen.getByRole("option", { name: "Lua" }));
     await waitFor(() => {
       expect(
         screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderLua"))
@@ -968,17 +967,9 @@ describe("StepEditor", () => {
       expect(screen.getByDisplayValue("input2")).toBeInTheDocument();
     });
 
-    const selects = screen.getAllByRole("combobox");
-    const optionalTimeoutSelect = selects.find(
-      (s) => (s as HTMLSelectElement).value === "3000"
-    );
-
-    if (optionalTimeoutSelect) {
-      fireEvent.change(optionalTimeoutSelect, { target: { value: "5000" } });
-      expect((optionalTimeoutSelect as HTMLSelectElement).value).toBe("5000");
-    } else {
-      expect(selects.length).toBeGreaterThanOrEqual(2);
-    }
+    expect(
+      screen.getAllByTestId("duration-input").length
+    ).toBeGreaterThanOrEqual(1);
   });
 
   test("renders modal using portal", async () => {

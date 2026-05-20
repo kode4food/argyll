@@ -19,10 +19,11 @@ _TYPE_CHECKS: dict[AttributeType, tuple[Union[type, tuple[type, ...]], str]] = {
 }
 
 _ROLE_EXCLUSIVE = {
-    AttributeRole.REQUIRED: ("optional", "const", "output"),
-    AttributeRole.OPTIONAL: ("required", "const", "output"),
-    AttributeRole.CONST: ("required", "optional", "output"),
-    AttributeRole.OUTPUT: ("required", "optional", "const"),
+    AttributeRole.REQUIRED: ("optional", "const", "meta", "output"),
+    AttributeRole.OPTIONAL: ("required", "const", "meta", "output"),
+    AttributeRole.CONST: ("required", "optional", "meta", "output"),
+    AttributeRole.META: ("required", "optional", "const", "output"),
+    AttributeRole.OUTPUT: ("required", "optional", "const", "meta"),
 }
 
 
@@ -37,6 +38,12 @@ def check_attribute_role_config(name: str, spec: AttributeSpec) -> None:
     ):
         raise StepValidationError(
             f"Const attribute {name} requires const value"
+        )
+    if spec.role == AttributeRole.META and (
+        not spec.meta or not spec.meta.key
+    ):
+        raise StepValidationError(
+            f"Meta attribute {name} requires meta key"
         )
 
 

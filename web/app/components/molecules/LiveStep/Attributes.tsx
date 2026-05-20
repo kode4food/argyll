@@ -5,7 +5,11 @@ import TooltipSection from "@/app/components/atoms/TooltipSection";
 import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
 import { parseInputValue } from "@/utils/inputParseUtils";
-import { getAttributeModifiers, getSortedAttributes } from "@/utils/stepUtils";
+import {
+  getAttributeModifiers,
+  getSortedAttributes,
+  ROLE_ARG_TYPE,
+} from "@/utils/stepUtils";
 import {
   formatAttributeValue,
   getExecutionInputName,
@@ -167,14 +171,7 @@ const Attributes: React.FC<AttributesProps> = ({
   ).map(({ name, spec }) => ({
     name,
     type: spec.type || "any",
-    argType:
-      spec.role === AttributeRole.Required
-        ? ("required" as const)
-        : spec.role === AttributeRole.Optional
-          ? ("optional" as const)
-          : spec.role === AttributeRole.Const
-            ? ("const" as const)
-            : ("output" as const),
+    argType: ROLE_ARG_TYPE[spec.role],
     spec,
     modifiers: getAttributeModifiers(spec),
   }));

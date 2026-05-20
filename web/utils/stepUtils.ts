@@ -11,6 +11,7 @@ import {
   IconAttributeMatch,
   IconDuration,
   IconMapping,
+  type ArgType,
   type LucideIcon,
 } from "@/utils/iconRegistry";
 
@@ -20,6 +21,14 @@ export interface OrderedAttribute {
   name: string;
   spec: AttributeSpec;
 }
+
+export const ROLE_ARG_TYPE: Record<AttributeRole, ArgType> = {
+  required: "required",
+  optional: "optional",
+  const: "const",
+  meta: "meta",
+  output: "output",
+};
 
 export const getSortedAttributes = (
   attributes: Record<string, AttributeSpec>
@@ -32,6 +41,7 @@ export const getSortedAttributes = (
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Required),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Const),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Optional),
+    ...sortedByName.filter((a) => a.spec.role === AttributeRole.Meta),
     ...sortedByName.filter((a) => a.spec.role === AttributeRole.Output),
   ];
 };

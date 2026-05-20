@@ -96,6 +96,18 @@ func (s Step) Const(
 	return s
 }
 
+// Meta declares a metadata input attribute, injecting the named metadata key
+// as a step input at execution time
+func (s Step) Meta(name api.Name, metaKey string) Step {
+	s.attributes = maps.Clone(s.attributes)
+	s.attributes[name] = &api.AttributeSpec{
+		Role: api.RoleMeta,
+		Type: api.TypeAny,
+		Meta: &api.MetaConfig{Key: metaKey},
+	}
+	return s
+}
+
 // Output declares an output attribute that the step will produce
 func (s Step) Output(name api.Name, argType api.AttributeType) Step {
 	s.attributes = maps.Clone(s.attributes)

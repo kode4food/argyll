@@ -123,6 +123,7 @@ class Client:
             AttributeType,
             BackoffType,
             ConstConfig,
+            MetaConfig,
             FlowConfig,
             HTTPConfig,
             InputCollect,
@@ -165,6 +166,7 @@ class Client:
             required = None
             optional = None
             const = None
+            meta = None
             output = None
             if role == AttributeRole.REQUIRED and "required" in spec_data:
                 rd = spec_data["required"]
@@ -186,6 +188,9 @@ class Client:
             elif role == AttributeRole.CONST and "const" in spec_data:
                 cd = spec_data["const"]
                 const = ConstConfig(value=cd.get("value", ""))
+            elif role == AttributeRole.META and "meta" in spec_data:
+                md = spec_data["meta"]
+                meta = MetaConfig(key=md.get("key", ""))
             elif role == AttributeRole.OUTPUT and "output" in spec_data:
                 outd = spec_data["output"]
                 output = OutputConfig(
@@ -197,6 +202,7 @@ class Client:
                 required=required,
                 optional=optional,
                 const=const,
+                meta=meta,
                 output=output,
             )
 

@@ -64,7 +64,10 @@ export function validateMappings(
     const mappingScript = attr.mappingScript?.trim() || "";
     const mappingLanguage = attr.mappingLanguage?.trim() || "";
 
-    if (attr.attrType === "const" && (mappingName || mappingScript)) {
+    if (
+      (attr.attrType === "const" || attr.attrType === "meta") &&
+      (mappingName || mappingScript)
+    ) {
       return {
         key: "stepEditor.constMappingNotAllowed",
         vars: { name: attr.name },

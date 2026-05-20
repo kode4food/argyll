@@ -31,6 +31,7 @@ export enum AttributeRole {
   Required = "required",
   Optional = "optional",
   Const = "const",
+  Meta = "meta",
   Output = "output",
 }
 
@@ -70,6 +71,24 @@ export interface ConstConfig {
   value: string;
 }
 
+export const META_KEY_FLOW_ID = "flow_id";
+export const META_KEY_STEP_ID = "step_id";
+export const META_KEY_RECEIPT_TOKEN = "receipt_token";
+export const META_KEY_WEBHOOK_URL = "webhook_url";
+
+export const META_KEYS = [
+  META_KEY_FLOW_ID,
+  META_KEY_STEP_ID,
+  META_KEY_RECEIPT_TOKEN,
+  META_KEY_WEBHOOK_URL,
+] as const;
+
+export type MetaKey = (typeof META_KEYS)[number];
+
+export interface MetaConfig {
+  key: string;
+}
+
 export interface OutputConfig {
   mapping?: MappingConfig;
 }
@@ -80,6 +99,7 @@ export interface AttributeSpec {
   required?: RequiredConfig;
   optional?: OptionalConfig;
   const?: ConstConfig;
+  meta?: MetaConfig;
   output?: OutputConfig;
 }
 

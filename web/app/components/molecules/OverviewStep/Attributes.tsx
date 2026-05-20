@@ -2,7 +2,11 @@ import React from "react";
 import { Step, AttributeRole } from "@/app/api";
 import { useT } from "@/app/i18n";
 import { getArgIcon } from "@/utils/iconRegistry";
-import { getAttributeModifiers, getSortedAttributes } from "@/utils/stepUtils";
+import {
+  getAttributeModifiers,
+  getSortedAttributes,
+  ROLE_ARG_TYPE,
+} from "@/utils/stepUtils";
 import ArgModifiers, { argTypeTitleKey } from "../StepShared/ArgModifiers";
 import styles from "../StepShared/StepAttributesSection.module.css";
 
@@ -20,14 +24,7 @@ const Attributes: React.FC<AttributesProps> = ({
     ({ name, spec }) => ({
       name,
       type: spec.type || "any",
-      argType:
-        spec.role === AttributeRole.Required
-          ? ("required" as const)
-          : spec.role === AttributeRole.Optional
-            ? ("optional" as const)
-            : spec.role === AttributeRole.Const
-              ? ("const" as const)
-              : ("output" as const),
+      argType: ROLE_ARG_TYPE[spec.role],
       modifiers: getAttributeModifiers(spec),
     })
   );

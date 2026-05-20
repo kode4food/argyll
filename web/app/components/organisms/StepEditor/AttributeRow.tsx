@@ -1,7 +1,7 @@
 import React from "react";
 import {
   AttributeType,
-  InputCollect,
+  META_KEYS,
   SCRIPT_LANGUAGE_JPATH,
   StepType,
 } from "@/app/api";
@@ -20,11 +20,17 @@ import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
 import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
 import {
+  ATTRIBUTE_ROLE_TYPES,
   ATTRIBUTE_TYPES,
   getMatchScriptPlaceholderKey,
   INPUT_COLLECT_TYPES,
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
+import ComboInput from "./ComboInput";
+import IconDropdown, { IconDropdownOption } from "./IconDropdown";
+import InlineSelectDropdown, {
+  InlineSelectOption,
+} from "./InlineSelectDropdown";
 
 interface AttributeRowProps {
   attr: Attribute;
@@ -33,11 +39,6 @@ interface AttributeRowProps {
   flowOutputOptions: string[];
   usedInputMappings: Map<string, string>;
   usedOutputMappings: Map<string, string>;
-  cycleAttributeType: (
-    id: string,
-    currentType: "input" | "optional" | "const" | "output"
-  ) => void;
-  cycleInputCollect: (id: string, currentCollect?: InputCollect) => void;
   updateAttribute: (id: string, field: keyof Attribute, value: any) => void;
   removeAttribute: (id: string) => void;
 }
@@ -49,8 +50,6 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   flowOutputOptions,
   usedInputMappings,
   usedOutputMappings,
-  cycleAttributeType,
-  cycleInputCollect,
   updateAttribute,
   removeAttribute,
 }) => {
@@ -66,31 +65,56 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     attr.mappingName?.trim() || attr.mappingScript?.trim()
   );
 
+  const roleOptions: IconDropdownOption[] = ATTRIBUTE_ROLE_TYPES.map((type) => {
+    const { Icon, className } = getAttributeIconProps(type);
+    return {
+      value: type,
+      label: t(`stepEditor.attrRole.${type}`),
+      icon: <Icon className={`${styles.iconSm} ${className}`} />,
+    };
+  });
+
+  const collectOptions: IconDropdownOption[] = INPUT_COLLECT_TYPES.map((c) => ({
+    value: c,
+    label: t(`stepEditor.collect.${c}`),
+    icon: (
+      <span
+        className={formStyles.collectIcon}
+        style={{
+          maskImage: `url(/icons/collect-${c}.svg)`,
+          WebkitMaskImage: `url(/icons/collect-${c}.svg)`,
+        }}
+      />
+    ),
+  }));
+
+  const dataTypeOptions: InlineSelectOption[] = ATTRIBUTE_TYPES.map((type) => ({
+    value: type,
+    label: type,
+  }));
+
+  const { Icon: RoleIcon, className: roleClassName } = getAttributeIconProps(
+    attr.attrType
+  );
+
   return (
     <div className={formStyles.attrRow}>
       <div className={formStyles.attrRowInputs}>
-        <button
-          type="button"
-          onClick={() => cycleAttributeType(attr.id, attr.attrType)}
-          className={`${formStyles.iconButton} ${formStyles.attrIconButtonStyle}`}
-          title={t("stepEditor.cycleAttributeType", { type: attr.attrType })}
-        >
-          {(() => {
-            const { Icon, className } = getAttributeIconProps(attr.attrType);
-            return <Icon className={`${styles.iconMd} ${className}`} />;
-          })()}
-        </button>
-        <select
+        <IconDropdown
+          ariaLabel={t("stepEditor.attrTypeSelect")}
+          faceIcon={
+            <RoleIcon className={`${styles.iconMd} ${roleClassName}`} />
+          }
+          onChange={(v) => updateAttribute(attr.id, "attrType", v)}
+          options={roleOptions}
+          value={attr.attrType}
+        />
+        <InlineSelectDropdown
           value={attr.dataType}
-          onChange={(e) => updateAttribute(attr.id, "dataType", e.target.value)}
+          options={dataTypeOptions}
+          onChange={(v) => updateAttribute(attr.id, "dataType", v)}
           className={formStyles.argType}
-        >
-          {ATTRIBUTE_TYPES.map((type) => (
-            <option key={type} value={type}>
-              {type}
-            </option>
-          ))}
-        </select>
+        />
         <input
           type="text"
           value={attr.name}
@@ -98,6 +122,15 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           placeholder={t("stepEditor.attributeNamePlaceholder")}
           className={`${formStyles.argInput} ${formStyles.argNameInput}`}
         />
+        {attr.attrType === "meta" && (
+          <ComboInput
+            value={attr.metaKey || ""}
+            suggestions={META_KEYS}
+            onChange={(v) => updateAttribute(attr.id, "metaKey", v)}
+            placeholder={t("stepEditor.metaKeyPlaceholder")}
+            className={formStyles.argValueInput}
+          />
+        )}
         {attr.attrType === "input" && (
           <ScriptLanguageInlineInput
             ariaLabel={t("stepEditor.matchLanguageLabel")}
@@ -136,6 +169,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           />
         )}
         {attr.attrType !== "output" &&
+          attr.attrType !== "meta" &&
           attr.dataType === AttributeType.Array && (
             <div className={formStyles.forEachToggleGroup}>
               <button
@@ -169,26 +203,23 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             </div>
           )}
         {canCollect && (
-          <button
-            type="button"
-            onClick={(e) => {
-              cycleInputCollect(attr.id, collect);
-              e.currentTarget.blur();
-            }}
-            className={`${formStyles.iconButton} ${formStyles.collectButtonStyle}`}
-            title={t("stepEditor.cycleInputCollect", { collect })}
-            aria-label={t("stepEditor.cycleInputCollect", { collect })}
-          >
-            <span
-              className={formStyles.collectIcon}
-              style={{
-                maskImage: `url(/icons/collect-${collect}.svg)`,
-                WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-              }}
-            />
-          </button>
+          <IconDropdown
+            ariaLabel={t("stepEditor.collectSelect")}
+            faceIcon={
+              <span
+                className={formStyles.collectIcon}
+                style={{
+                  maskImage: `url(/icons/collect-${collect}.svg)`,
+                  WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
+                }}
+              />
+            }
+            onChange={(v) => updateAttribute(attr.id, "collect", v)}
+            options={collectOptions}
+            value={collect}
+          />
         )}
-        {attr.attrType !== "const" && (
+        {attr.attrType !== "const" && attr.attrType !== "meta" && (
           <button
             type="button"
             onClick={() => setIsMappingExpanded((current) => !current)}
@@ -215,17 +246,19 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           <IconRemove className={styles.iconSm} />
         </button>
       </div>
-      {isMappingExpanded && attr.attrType !== "const" && (
-        <AttributeMappingPanel
-          attr={attr}
-          stepType={stepType}
-          flowInputOptions={flowInputOptions}
-          flowOutputOptions={flowOutputOptions}
-          usedInputMappings={usedInputMappings}
-          usedOutputMappings={usedOutputMappings}
-          updateAttribute={updateAttribute}
-        />
-      )}
+      {isMappingExpanded &&
+        attr.attrType !== "const" &&
+        attr.attrType !== "meta" && (
+          <AttributeMappingPanel
+            attr={attr}
+            stepType={stepType}
+            flowInputOptions={flowInputOptions}
+            flowOutputOptions={flowOutputOptions}
+            usedInputMappings={usedInputMappings}
+            usedOutputMappings={usedOutputMappings}
+            updateAttribute={updateAttribute}
+          />
+        )}
       {attr.validationError && (
         <div className={formStyles.attrValidationError}>
           {attr.validationError}

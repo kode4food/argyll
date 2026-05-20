@@ -244,8 +244,8 @@ describe("useStepEditorForm", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  describe("attribute type cycling", () => {
-    it("cycles attribute type from input to optional", () => {
+  describe("attribute type side effects", () => {
+    it("clears match script when changing from input to another type", () => {
       const { result } = renderHook(() =>
         useStepEditorForm(null, onUpdate, onClose)
       );
@@ -259,121 +259,18 @@ describe("useStepEditorForm", () => {
       const attrId = result.current.attributes[0].id;
 
       act(() => {
-        result.current.updateAttribute(attrId, "name", "test");
         result.current.updateAttribute(attrId, "attrType", "input");
+        result.current.updateAttribute(attrId, "matchScript", "$.foo");
       });
 
-      expect(result.current.attributes[0].attrType).toBe("input");
-
       act(() => {
-        result.current.cycleAttributeType(attrId, "input");
-      });
-
-      expect(result.current.attributes[0].attrType).toBe("optional");
-    });
-
-    it("cycles attribute type from optional to const", () => {
-      const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
-      );
-
-      act(() => {
-        result.current.setStepId("step-1");
-        result.current.setEndpoint("https://api.example.com");
-        result.current.addAttribute();
-      });
-
-      const attrId = result.current.attributes[0].id;
-
-      act(() => {
-        result.current.updateAttribute(attrId, "name", "test");
         result.current.updateAttribute(attrId, "attrType", "optional");
       });
 
-      act(() => {
-        result.current.cycleAttributeType(attrId, "optional");
-      });
-
-      expect(result.current.attributes[0].attrType).toBe("const");
+      expect(result.current.attributes[0].matchScript).toBeUndefined();
     });
 
-    it("cycles attribute type from const to output", () => {
-      const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
-      );
-
-      act(() => {
-        result.current.setStepId("step-1");
-        result.current.setEndpoint("https://api.example.com");
-        result.current.addAttribute();
-      });
-
-      const attrId = result.current.attributes[0].id;
-
-      act(() => {
-        result.current.updateAttribute(attrId, "name", "test");
-        result.current.updateAttribute(attrId, "attrType", "const");
-      });
-
-      act(() => {
-        result.current.cycleAttributeType(attrId, "const");
-      });
-
-      expect(result.current.attributes[0].attrType).toBe("output");
-    });
-
-    it("cycles attribute type from output back to input", () => {
-      const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
-      );
-
-      act(() => {
-        result.current.setStepId("step-1");
-        result.current.setEndpoint("https://api.example.com");
-        result.current.addAttribute();
-      });
-
-      const attrId = result.current.attributes[0].id;
-
-      act(() => {
-        result.current.updateAttribute(attrId, "name", "test");
-        result.current.updateAttribute(attrId, "attrType", "output");
-      });
-
-      act(() => {
-        result.current.cycleAttributeType(attrId, "output");
-      });
-
-      expect(result.current.attributes[0].attrType).toBe("input");
-    });
-  });
-
-  describe("input collect cycling", () => {
-    it("cycles input collect mode", () => {
-      const { result } = renderHook(() =>
-        useStepEditorForm(null, onUpdate, onClose)
-      );
-
-      act(() => {
-        result.current.addAttribute();
-      });
-
-      const attrId = result.current.attributes[0].id;
-
-      act(() => {
-        result.current.cycleInputCollect(attrId, "first");
-      });
-
-      expect(result.current.attributes[0].collect).toBe("last");
-
-      act(() => {
-        result.current.cycleInputCollect(attrId, "last");
-      });
-
-      expect(result.current.attributes[0].collect).toBe("some");
-    });
-
-    it("clears collect mode when changing to output", () => {
+    it("clears collect and forEach when changing to output", () => {
       const { result } = renderHook(() =>
         useStepEditorForm(null, onUpdate, onClose)
       );
@@ -386,10 +283,33 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "collect", "some");
+        result.current.updateAttribute(attrId, "forEach", true);
         result.current.updateAttribute(attrId, "attrType", "output");
       });
 
       expect(result.current.attributes[0].collect).toBe("first");
+      expect(result.current.attributes[0].forEach).toBe(false);
+    });
+
+    it("clears collect and forEach when changing to meta", () => {
+      const { result } = renderHook(() =>
+        useStepEditorForm(null, onUpdate, onClose)
+      );
+
+      act(() => {
+        result.current.addAttribute();
+      });
+
+      const attrId = result.current.attributes[0].id;
+
+      act(() => {
+        result.current.updateAttribute(attrId, "collect", "all");
+        result.current.updateAttribute(attrId, "forEach", true);
+        result.current.updateAttribute(attrId, "attrType", "meta");
+      });
+
+      expect(result.current.attributes[0].collect).toBe("first");
+      expect(result.current.attributes[0].forEach).toBe(false);
     });
   });
 

@@ -14,6 +14,7 @@ type (
 		Required *RequiredConfig `json:"required,omitempty"`
 		Optional *OptionalConfig `json:"optional,omitempty"`
 		Const    *ConstConfig    `json:"const,omitempty"`
+		Meta     *MetaConfig     `json:"meta,omitempty"`
 		Output   *OutputConfig   `json:"output,omitempty"`
 		Role     AttributeRole   `json:"role"`
 		Type     AttributeType   `json:"type,omitempty"`
@@ -39,6 +40,11 @@ type (
 	// ConstConfig carries the fixed value for a const attribute
 	ConstConfig struct {
 		Value string `json:"value"`
+	}
+
+	// MetaConfig carries the metadata key for a meta attribute
+	MetaConfig struct {
+		Key string `json:"key"`
 	}
 
 	// OutputConfig configures an output attribute
@@ -73,6 +79,7 @@ const (
 	RoleRequired AttributeRole = "required"
 	RoleOptional AttributeRole = "optional"
 	RoleConst    AttributeRole = "const"
+	RoleMeta     AttributeRole = "meta"
 	RoleOutput   AttributeRole = "output"
 )
 
@@ -102,6 +109,9 @@ var (
 	)
 	ErrConstValueRequired = errors.New(
 		"const value required for const attribute",
+	)
+	ErrMetaKeyRequired = errors.New(
+		"meta key required for meta attribute",
 	)
 	ErrForEachRequiresArray = errors.New(
 		"for_each processing requires an array attribute type",
@@ -133,6 +143,7 @@ var (
 		RoleRequired,
 		RoleOptional,
 		RoleConst,
+		RoleMeta,
 		RoleOutput,
 	)
 
@@ -178,6 +189,8 @@ func (s *AttributeSpec) Validate(name Name) error {
 		return s.validateOptional(name)
 	case RoleConst:
 		return s.validateConst(name)
+	case RoleMeta:
+		return s.validateMeta(name)
 	case RoleOutput:
 		return s.validateOutput(name)
 	}
@@ -185,21 +198,15 @@ func (s *AttributeSpec) Validate(name Name) error {
 }
 
 func (s *AttributeSpec) validateRoleConfig(name Name) error {
-	switch s.Role {
-	case RoleRequired:
-		if s.Optional != nil || s.Const != nil || s.Output != nil {
-			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
-		}
-	case RoleOptional:
-		if s.Required != nil || s.Const != nil || s.Output != nil {
-			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
-		}
-	case RoleConst:
-		if s.Required != nil || s.Optional != nil || s.Output != nil {
-			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
-		}
-	case RoleOutput:
-		if s.Required != nil || s.Optional != nil || s.Const != nil {
+	hasConfig := map[AttributeRole]bool{
+		RoleRequired: s.Required != nil,
+		RoleOptional: s.Optional != nil,
+		RoleConst:    s.Const != nil,
+		RoleMeta:     s.Meta != nil,
+		RoleOutput:   s.Output != nil,
+	}
+	for role, set := range hasConfig {
+		if role != s.Role && set {
 			return fmt.Errorf("%w: %q", ErrWrongRoleConfig, name)
 		}
 	}
@@ -263,6 +270,14 @@ func (s *AttributeSpec) validateConst(name Name) error {
 	return nil
 }
 
+func (s *AttributeSpec) validateMeta(name Name) error {
+	if s.Meta == nil || s.Meta.Key == "" {
+		return fmt.Errorf("%w: %s for attribute %q",
+			ErrMetaKeyRequired, s.Role, name)
+	}
+	return nil
+}
+
 func (s *AttributeSpec) validateOutput(name Name) error {
 	if s.Output == nil {
 		return nil
@@ -277,7 +292,7 @@ func (s *AttributeSpec) IsInput() bool {
 
 // IsRuntimeInput returns true if the attribute is passed into a step
 func (s *AttributeSpec) IsRuntimeInput() bool {
-	return s.IsInput() || s.IsConst()
+	return s.IsInput() || s.IsConst() || s.IsMeta()
 }
 
 // IsOutput returns true if the attribute is an output
@@ -298,6 +313,11 @@ func (s *AttributeSpec) IsOptional() bool {
 // IsConst returns true if the attribute is a constant input
 func (s *AttributeSpec) IsConst() bool {
 	return s.Role == RoleConst
+}
+
+// IsMeta returns true if the attribute is a metadata input
+func (s *AttributeSpec) IsMeta() bool {
+	return s.Role == RoleMeta
 }
 
 // Mapping returns the mapping for the attribute, if any
@@ -343,6 +363,13 @@ func (s *AttributeSpec) ConstValue() string {
 	return s.Const.Value
 }
 
+func (s *AttributeSpec) MetaKey() string {
+	if s.Meta == nil {
+		return ""
+	}
+	return s.Meta.Key
+}
+
 func (s *AttributeSpec) OptionalDefault() string {
 	if s.Optional == nil {
 		return ""
@@ -378,6 +405,7 @@ func (s *AttributeSpec) Equal(other *AttributeSpec) bool {
 		requiredConfigsEqual(s.Required, other.Required) &&
 		optionalConfigsEqual(s.Optional, other.Optional) &&
 		constConfigsEqual(s.Const, other.Const) &&
+		metaConfigsEqual(s.Meta, other.Meta) &&
 		outputConfigsEqual(s.Output, other.Output)
 }
 
@@ -430,6 +458,16 @@ func constConfigsEqual(a, b *ConstConfig) bool {
 		return false
 	}
 	return a.Value == b.Value
+}
+
+func metaConfigsEqual(a, b *MetaConfig) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.Key == b.Key
 }
 
 func outputConfigsEqual(a, b *OutputConfig) bool {

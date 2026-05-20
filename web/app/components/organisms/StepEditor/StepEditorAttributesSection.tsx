@@ -1,5 +1,5 @@
 import React from "react";
-import { InputCollect, StepType } from "@/app/api";
+import { StepType } from "@/app/api";
 import { useT } from "@/app/i18n";
 import { IconAdd } from "@/utils/iconRegistry";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
@@ -11,11 +11,6 @@ import AttributeRow from "./AttributeRow";
 interface StepEditorAttributesSectionProps {
   addAttribute: () => void;
   attributes: Attribute[];
-  cycleAttributeType: (
-    id: string,
-    currentType: "input" | "optional" | "const" | "output"
-  ) => void;
-  cycleInputCollect: (id: string, currentCollect?: InputCollect) => void;
   flowInputOptions: FlowInputOption[];
   flowOutputOptions: string[];
   removeAttribute: (id: string) => void;
@@ -28,8 +23,6 @@ const StepEditorAttributesSection: React.FC<
 > = ({
   addAttribute,
   attributes,
-  cycleAttributeType,
-  cycleInputCollect,
   flowInputOptions,
   flowOutputOptions,
   removeAttribute,
@@ -101,8 +94,6 @@ const StepEditorAttributesSection: React.FC<
             flowOutputOptions={flowOutputOptions}
             usedInputMappings={usedInputMappings}
             usedOutputMappings={usedOutputMappings}
-            cycleAttributeType={cycleAttributeType}
-            cycleInputCollect={cycleInputCollect}
             updateAttribute={updateAttribute}
             removeAttribute={removeAttribute}
           />

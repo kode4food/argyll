@@ -16,7 +16,7 @@ build: sync-specs
 run: sync-specs
 	$(GO) run ./cmd/argyll-mcp
 
-format:
+format: sync-specs
 	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
 	$(GO) fix ./...
 

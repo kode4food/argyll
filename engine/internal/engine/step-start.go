@@ -191,12 +191,12 @@ func (tx *flowTx) collectStepInputs(
 	}
 
 	for name, attr := range step.Attributes {
-		if !attr.IsRuntimeInput() {
+		if attr.IsConst() {
+			inputs[name] = parseDefaultValue(attr.ConstValue())
 			continue
 		}
 
-		if attr.IsConst() {
-			inputs[name] = parseDefaultValue(attr.ConstValue())
+		if !attr.IsInput() {
 			continue
 		}
 

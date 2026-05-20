@@ -21,6 +21,7 @@ const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
   [AttributeRole.Required]: "input",
   [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
+  [AttributeRole.Meta]: "meta",
   [AttributeRole.Output]: "output",
 };
 
@@ -28,6 +29,7 @@ const ATTR_ID_PREFIX: Record<AttributeRole, string> = {
   [AttributeRole.Required]: "input",
   [AttributeRole.Optional]: "input",
   [AttributeRole.Const]: "const",
+  [AttributeRole.Meta]: "meta",
   [AttributeRole.Output]: "output",
 };
 
@@ -75,6 +77,7 @@ function buildSingleAttribute(
       spec.role === AttributeRole.Required
         ? spec.required?.match?.script
         : undefined,
+    metaKey: spec.role === AttributeRole.Meta ? spec.meta?.key : undefined,
     mappingName: mappingConfig?.name,
     mappingLanguage: mappingConfig?.script?.language,
     mappingScript: mappingConfig?.script?.script,
@@ -146,6 +149,7 @@ const ROLE_MAP: Record<AttributeRoleType, AttributeRole> = {
   input: AttributeRole.Required,
   optional: AttributeRole.Optional,
   const: AttributeRole.Const,
+  meta: AttributeRole.Meta,
   output: AttributeRole.Output,
 };
 
@@ -166,6 +170,8 @@ export function createStepAttributes(
       if (optional) spec.optional = optional;
     } else if (a.attrType === "const") {
       if (a.defaultValue?.trim()) spec.const = { value: a.defaultValue.trim() };
+    } else if (a.attrType === "meta") {
+      if (a.metaKey?.trim()) spec.meta = { key: a.metaKey.trim() };
     } else if (a.attrType === "output") {
       if (mapping) spec.output = { mapping };
     }

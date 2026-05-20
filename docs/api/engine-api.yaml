@@ -952,11 +952,13 @@ components:
             - `required`: Input that must be available before execution
             - `optional`: Input that may be omitted
             - `const`: Input fixed to a constant value
+            - `meta`: Input drawn from step/flow execution metadata at invocation time
             - `output`: Value produced by step execution
           enum:
             - required
             - optional
             - const
+            - meta
             - output
           example: "required"
         type:
@@ -979,6 +981,8 @@ components:
           $ref: "#/components/schemas/OptionalConfig"
         const:
           $ref: "#/components/schemas/ConstConfig"
+        meta:
+          $ref: "#/components/schemas/MetaConfig"
         output:
           $ref: "#/components/schemas/OutputConfig"
 
@@ -1059,6 +1063,17 @@ components:
           description: The constant value as a JSON string
           example: '"fixed_value"'
 
+    MetaConfig:
+      type: object
+      description: Configuration for a meta attribute, a value drawn from step/flow execution metadata at invocation time
+      required:
+        - key
+      properties:
+        key:
+          type: string
+          description: The metadata key to inject (e.g. flow_id, step_id, receipt_token, webhook_url)
+          example: "webhook_url"
+
     OutputConfig:
       type: object
       description: Configuration for an output attribute
@@ -1074,7 +1089,7 @@ components:
         and transforming values using scripts (JSONPath for queries, Lua/Ale for logic).
 
         At least one of `name` or `script` must be provided.
-        Not allowed on const attributes.
+        Not allowed on const or meta attributes.
       properties:
         name:
           type: string

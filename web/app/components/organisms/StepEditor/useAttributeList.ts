@@ -1,12 +1,11 @@
 import { useCallback, useRef, useState } from "react";
-import { AttributeType, InputCollect, Step } from "@/app/api";
+import { AttributeType, Step } from "@/app/api";
 import {
   Attribute,
   AttributeRoleType,
   buildAttributesFromStep,
 } from "./stepEditorUtils";
 import { validateDefaultValue } from "@/utils/stepUtils";
-import { INPUT_COLLECT_TYPES } from "./stepEditorConstants";
 
 interface FieldUpdate {
   field: keyof Attribute;
@@ -44,7 +43,7 @@ const applyAttributeFieldSideEffects = (
     if (value === "const") {
       updated.collect = "first";
     }
-    if (value === "output") {
+    if (value === "output" || value === "meta") {
       updated.forEach = false;
       updated.collect = "first";
     }
@@ -94,31 +93,6 @@ export function useAttributeList(
     setAttributes((current) => current.filter((attr) => attr.id !== id));
   }, []);
 
-  const cycleAttributeType = useCallback(
-    (id: string, currentType: AttributeRoleType) => {
-      const types: AttributeRoleType[] = [
-        "input",
-        "optional",
-        "const",
-        "output",
-      ];
-      const currentIndex = types.indexOf(currentType);
-      const nextIndex = (currentIndex + 1) % types.length;
-      updateAttribute(id, "attrType", types[nextIndex]);
-    },
-    [updateAttribute]
-  );
-
-  const cycleInputCollect = useCallback(
-    (id: string, currentCollect: InputCollect = "first") => {
-      const currentIndex = INPUT_COLLECT_TYPES.indexOf(currentCollect);
-      const nextIndex =
-        currentIndex >= 0 ? (currentIndex + 1) % INPUT_COLLECT_TYPES.length : 0;
-      updateAttribute(id, "collect", INPUT_COLLECT_TYPES[nextIndex]);
-    },
-    [updateAttribute]
-  );
-
   const resetAttributes = useCallback((nextStep: Step | null) => {
     setAttributes(buildAttributesFromStep(nextStep));
   }, []);
@@ -128,8 +102,6 @@ export function useAttributeList(
     addAttribute,
     updateAttribute,
     removeAttribute,
-    cycleAttributeType,
-    cycleInputCollect,
     resetAttributes,
   };
 }

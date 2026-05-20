@@ -174,102 +174,16 @@
   flex: 3 1 220px;
 }
 
-.argInput:focus,
-.argType:focus {
+.argInput:focus {
   outline: none;
   border-color: var(--color-info);
   background-color: var(--overlay-dark-40);
-}
-
-.flowMapSelect {
-  height: 32px;
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  color: var(--color-dark-text);
-  font-size: var(--text-xs);
-  box-sizing: border-box;
-  flex: 0 0 160px;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding: 0 var(--spacing-2xl) 0 10px;
-}
-
-.flowMapSelect:focus {
-  outline: none;
-  border-color: var(--color-info);
-  background-color: var(--overlay-dark-40);
-}
-
-.flowMapSelect option {
-  background-color: var(--overlay-dark-90);
-  color: var(--color-dark-text);
-}
-
-.flowMapSelect:disabled {
-  background-color: var(--overlay-dark-20);
-  border-color: var(--color-dark-border);
-  color: var(--overlay-light-40);
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.flowMapSelect:disabled:focus,
-.flowMapSelect:disabled:hover {
-  background-color: var(--overlay-dark-20);
-  border-color: var(--color-dark-border);
-}
-
-.flowMapOptionRequired {
-  font-weight: var(--font-semibold);
 }
 
 .argType {
-  height: 32px;
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  color: var(--color-dark-text);
-  font-size: var(--text-xs);
-  box-sizing: border-box;
   flex: 0 0 auto;
-  appearance: none;
-  -webkit-appearance: none;
-  -moz-appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  padding: 0 var(--spacing-2xl) 0 10px;
   width: max-content;
   min-width: 110px;
-}
-
-.argType option {
-  background-color: var(--overlay-dark-90);
-  color: var(--color-dark-text);
-  padding: var(--spacing-xs);
-}
-
-.argType::-webkit-scrollbar {
-  width: 8px;
-}
-
-.argType::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.2);
-  border-radius: var(--radius-md);
-}
-
-.argType::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: var(--radius-md);
-}
-
-.argType::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.3);
 }
 
 .iconButton:focus-visible {
@@ -318,27 +232,135 @@
   margin-left: 40px;
 }
 
-.attrIconButtonStyle {
+.iconDropdownWrapper {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.iconDropdownFace {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: var(--overlay-dark-30);
-}
-
-.attrIconButtonStyle :global(.arg-icon) {
-  margin-right: 0;
-}
-
-.attrIconButtonStyle:hover {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-}
-
-.collectButtonStyle {
-  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
   color: var(--color-dark-text);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-sizing: border-box;
 }
 
-.collectButtonStyle:hover {
+.iconDropdownFace:hover,
+.iconDropdownFaceOpen {
   background-color: var(--overlay-dark-40);
   border-color: var(--color-info);
+}
+
+/* InlineSelectDropdown */
+
+.inlineSelect {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.inlineSelectButton {
+  height: 32px;
+  padding: 0 var(--spacing-2xl) 0 10px;
+  background-color: var(--overlay-dark-30);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  cursor: pointer;
+  transition: var(--transition-fast);
+  box-sizing: border-box;
+  white-space: nowrap;
+  text-align: left;
+  width: 100%;
+}
+
+.inlineSelectButton:hover,
+.inlineSelectButtonOpen {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.inlineSelectButton:focus {
+  outline: none;
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+}
+
+.inlineSelectDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ComboInput */
+
+.comboWrapper {
+  position: relative;
+  display: flex;
+  height: 32px;
+  background-color: var(--overlay-dark-30);
+  border: 1px solid var(--color-dark-border);
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  transition: var(--transition-fast);
+}
+
+.comboWrapper:focus-within {
+  border-color: var(--color-info);
+  background-color: var(--overlay-dark-40);
+}
+
+.comboInput {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.comboInput:focus {
+  outline: none;
+}
+
+.comboTrigger {
+  width: 28px;
+  flex-shrink: 0;
+  height: 100%;
+  padding: 0;
+  border: none;
+  border-left: 1px solid var(--color-dark-border);
+  background-color: transparent;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  cursor: pointer;
+  transition: var(--transition-fast);
+}
+
+.comboTrigger:hover,
+.comboTriggerOpen {
+  background-color: var(--overlay-dark-40);
+  border-left-color: var(--color-info);
+}
+
+.comboTrigger:focus {
+  outline: none;
 }
 
 .collectIcon {
@@ -582,11 +604,6 @@
 
 .mappingInlineInput {
   flex: 1 1 180px;
-}
-
-.mappingInlineSelect {
-  background-position: right 12px center;
-  padding-right: calc(var(--spacing-2xl) + 2px);
 }
 
 .mappingToggleLabel {

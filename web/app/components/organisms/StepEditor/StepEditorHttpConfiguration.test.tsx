@@ -38,7 +38,7 @@ describe("StepEditorHttpConfiguration", () => {
     expect(
       screen.getByDisplayValue("http://localhost:8080/test")
     ).toBeInTheDocument();
-    expect(screen.getByDisplayValue("POST")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "POST" })).toBeInTheDocument();
     expect(
       screen.getByDisplayValue("http://localhost:8080/health")
     ).toBeInTheDocument();
@@ -48,9 +48,8 @@ describe("StepEditorHttpConfiguration", () => {
   test("updates method, endpoint, timeout, and health check", () => {
     render(<StepEditorHttpConfiguration {...baseProps} />);
 
-    fireEvent.change(screen.getByDisplayValue("POST"), {
-      target: { value: "GET" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "POST" }));
+    fireEvent.click(screen.getByRole("option", { name: "GET" }));
     fireEvent.change(
       screen.getByPlaceholderText(t("stepEditor.endpointPlaceholder")),
       {
