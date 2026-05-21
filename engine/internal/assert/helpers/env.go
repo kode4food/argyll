@@ -179,7 +179,7 @@ func NewTestEngineWithDeps(
 		EngineStore:      engStore,
 		FlowStore:        flowStore,
 		StepClient:       mockCli,
-		Clock:            time.Now,
+		Clock:            scheduler.Now,
 		TimerConstructor: scheduler.NewTimer,
 		EventHub:         hub,
 	}

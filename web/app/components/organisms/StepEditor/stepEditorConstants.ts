@@ -17,7 +17,7 @@ export const ATTRIBUTE_TYPES: AttributeType[] = [
 ];
 
 export const ATTRIBUTE_ROLE_TYPES: AttributeRoleType[] = [
-  "input",
+  "required",
   "optional",
   "const",
   "meta",

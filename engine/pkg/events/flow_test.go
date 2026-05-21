@@ -8,6 +8,7 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -57,7 +58,7 @@ func TestIsFlowEventID(t *testing.T) {
 
 func TestFlowStarted(t *testing.T) {
 	fl := events.NewFlowState()
-	now := time.Now()
+	now := scheduler.Now()
 
 	pl := &api.ExecutionPlan{
 		Steps: api.Steps{
@@ -191,7 +192,7 @@ func TestFlowCompleted(t *testing.T) {
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.FlowCompletedEvent{FlowID: "test-flow"}
 	data, err := json.Marshal(eventData)
@@ -216,7 +217,7 @@ func TestFlowFailed(t *testing.T) {
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.FlowFailedEvent{
 		FlowID: "test-flow",
@@ -245,7 +246,7 @@ func TestFlowDeactivated(t *testing.T) {
 		ID:     "test-flow",
 		Status: api.FlowActive,
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.FlowDeactivatedEvent{Status: api.FlowCompleted}
 	data, err := json.Marshal(eventData)
@@ -273,7 +274,7 @@ func TestStepStarted(t *testing.T) {
 			"step1": {Status: api.StepPending},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepStartedEvent{
 		StepID: "step1",
@@ -310,7 +311,7 @@ func TestStepCompleted(t *testing.T) {
 			"step1": {Status: api.StepActive},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepCompletedEvent{
 		StepID:   "step1",
@@ -345,7 +346,7 @@ func TestStepFailed(t *testing.T) {
 			"step1": {Status: api.StepActive},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepFailedEvent{
 		StepID:      "step1",
@@ -381,7 +382,7 @@ func TestStepSkipped(t *testing.T) {
 			"step1": {Status: api.StepPending},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepSkippedEvent{
 		StepID:      "step1",
@@ -415,7 +416,7 @@ func TestAttributeSet(t *testing.T) {
 		Status:     api.FlowActive,
 		Attributes: api.AttributeValues{},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.AttributeSetEvent{
 		StepID: "step1",
@@ -442,7 +443,7 @@ func TestAttributeSet(t *testing.T) {
 }
 
 func TestWorkStarted(t *testing.T) {
-	now := time.Now()
+	now := scheduler.Now()
 	fl := api.FlowState{
 		ID:     "test-flow",
 		Status: api.FlowActive,
@@ -500,7 +501,7 @@ func TestWorkSucceeded(t *testing.T) {
 			},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.WorkSucceededEvent{
 		StepID:  "step1",
@@ -540,7 +541,7 @@ func TestWorkFailed(t *testing.T) {
 			},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.WorkFailedEvent{
 		StepID: "step1",
@@ -579,7 +580,7 @@ func TestWorkNotCompleted(t *testing.T) {
 			},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.WorkNotCompletedEvent{
 		StepID: "step1",
@@ -622,7 +623,7 @@ func TestRetryScheduled(t *testing.T) {
 			},
 		},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 	nextRetry := now.Add(5 * time.Second)
 
 	eventData := api.RetryScheduledEvent{
@@ -658,7 +659,7 @@ func TestMissingExecution(t *testing.T) {
 		Status:     api.FlowActive,
 		Executions: api.Executions{},
 	}
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepCompletedEvent{
 		StepID:   "nonexistent",

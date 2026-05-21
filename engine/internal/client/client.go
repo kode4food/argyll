@@ -14,6 +14,7 @@ import (
 	"time"
 
 	argyll "github.com/kode4food/argyll/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
@@ -83,7 +84,7 @@ func (c *HTTPClient) sendRequest(
 
 	req := httpReq.Clone(ctx)
 
-	start := time.Now()
+	start := scheduler.Now()
 	resp, err := c.httpClient.Do(req)
 	dur := time.Since(start)
 

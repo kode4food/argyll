@@ -17,7 +17,7 @@ export function validateAttributesList(
     }
     names.add(attr.name);
 
-    if (attr.attrType === "input" && attr.matchScript?.trim()) {
+    if (attr.role === "required" && attr.matchScript?.trim()) {
       const matchLanguage = attr.matchLanguage?.trim();
       if (!matchLanguage) {
         return {
@@ -28,7 +28,7 @@ export function validateAttributesList(
     }
 
     if (
-      (attr.attrType === "optional" || attr.attrType === "const") &&
+      (attr.role === "optional" || attr.role === "const") &&
       attr.defaultValue
     ) {
       const validation = validateDefaultValue(attr.defaultValue, attr.dataType);
@@ -43,7 +43,7 @@ export function validateAttributesList(
       }
     }
 
-    if (attr.attrType === "const" && !attr.defaultValue?.trim()) {
+    if (attr.role === "const" && !attr.defaultValue?.trim()) {
       return {
         key: "stepEditor.constDefaultRequired",
         vars: { name: attr.name },
@@ -65,7 +65,7 @@ export function validateMappings(
     const mappingLanguage = attr.mappingLanguage?.trim() || "";
 
     if (
-      (attr.attrType === "const" || attr.attrType === "meta") &&
+      (attr.role === "const" || attr.role === "meta") &&
       (mappingName || mappingScript)
     ) {
       return {
@@ -90,7 +90,7 @@ export function validateMappings(
     }
 
     const bucket =
-      attr.attrType === "output" ? outputMappingNames : inputMappingNames;
+      attr.role === "output" ? outputMappingNames : inputMappingNames;
     if (bucket.has(mappingName)) {
       return {
         key: "stepEditor.duplicateMappingName",

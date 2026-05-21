@@ -2,7 +2,6 @@ package engine_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -143,7 +143,7 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 							StepID:      st.ID,
 							Token:       tkn,
 							RetryCount:  1,
-							NextRetryAt: time.Now(),
+							NextRetryAt: scheduler.Now(),
 							Error:       "retry",
 						},
 					},

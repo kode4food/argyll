@@ -18,7 +18,7 @@ import {
 } from "./stepEditorTypes";
 
 const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
-  [AttributeRole.Required]: "input",
+  [AttributeRole.Required]: "required",
   [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
   [AttributeRole.Meta]: "meta",
@@ -26,8 +26,8 @@ const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
 };
 
 const ATTR_ID_PREFIX: Record<AttributeRole, string> = {
-  [AttributeRole.Required]: "input",
-  [AttributeRole.Optional]: "input",
+  [AttributeRole.Required]: "required",
+  [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
   [AttributeRole.Meta]: "meta",
   [AttributeRole.Output]: "output",
@@ -54,7 +54,7 @@ function buildSingleAttribute(
 
   return {
     id: `${prefix}-${index}-${timestamp}`,
-    attrType,
+    role: attrType,
     name,
     dataType: spec.type || AttributeType.String,
     defaultValue:
@@ -94,7 +94,7 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
 }
 
 export function getAttributeIconProps(attrType: AttributeRoleType) {
-  const argType = attrType === "input" ? "required" : attrType;
+  const argType = attrType;
   return getArgIcon(argType);
 }
 
@@ -146,7 +146,7 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
 }
 
 const ROLE_MAP: Record<AttributeRoleType, AttributeRole> = {
-  input: AttributeRole.Required,
+  required: AttributeRole.Required,
   optional: AttributeRole.Optional,
   const: AttributeRole.Const,
   meta: AttributeRole.Meta,
@@ -158,21 +158,21 @@ export function createStepAttributes(
 ): Record<string, AttributeSpec> {
   const stepAttributes: Record<string, AttributeSpec> = {};
   attributes.forEach((a) => {
-    const role = ROLE_MAP[a.attrType];
+    const role = ROLE_MAP[a.role];
     const spec: AttributeSpec = { role, type: a.dataType };
     const mapping = buildMappingConfig(a);
 
-    if (a.attrType === "input") {
+    if (a.role === "required") {
       const required = buildInputAttrSpec(a, mapping);
       if (required) spec.required = required;
-    } else if (a.attrType === "optional") {
+    } else if (a.role === "optional") {
       const optional = buildOptionalAttrSpec(a, mapping);
       if (optional) spec.optional = optional;
-    } else if (a.attrType === "const") {
+    } else if (a.role === "const") {
       if (a.defaultValue?.trim()) spec.const = { value: a.defaultValue.trim() };
-    } else if (a.attrType === "meta") {
+    } else if (a.role === "meta") {
       if (a.metaKey?.trim()) spec.meta = { key: a.metaKey.trim() };
-    } else if (a.attrType === "output") {
+    } else if (a.role === "output") {
       if (mapping) spec.output = { mapping };
     }
 

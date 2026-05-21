@@ -3,11 +3,11 @@ package events_test
 import (
 	"encoding/json"
 	"testing"
-	"time"
 
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -48,7 +48,7 @@ func TestIsCatalogEventID(t *testing.T) {
 
 func TestStepRegistered(t *testing.T) {
 	cat := events.NewCatalogState()
-	now := time.Now()
+	now := scheduler.Now()
 
 	st := &api.Step{
 		ID:   "test-step",
@@ -89,7 +89,7 @@ func TestStepUnregistered(t *testing.T) {
 	}
 
 	cat := events.NewCatalogState().SetStep("test-step", st)
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepUnregisteredEvent{StepID: "test-step"}
 	data, err := json.Marshal(eventData)
@@ -130,7 +130,7 @@ func TestStepUpdated(t *testing.T) {
 	}
 
 	cat := events.NewCatalogState().SetStep("test-step", oldStep)
-	now := time.Now()
+	now := scheduler.Now()
 
 	eventData := api.StepUpdatedEvent{Step: newStep}
 	data, err := json.Marshal(eventData)

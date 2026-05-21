@@ -58,10 +58,10 @@ describe("stepEditorUtils", () => {
 
       expect(result).toHaveLength(4);
 
-      const inputAttrs = result.filter((a) => a.attrType === "input");
-      const constAttrs = result.filter((a) => a.attrType === "const");
-      const optionalAttrs = result.filter((a) => a.attrType === "optional");
-      const outputAttrs = result.filter((a) => a.attrType === "output");
+      const inputAttrs = result.filter((a) => a.role === "required");
+      const constAttrs = result.filter((a) => a.role === "const");
+      const optionalAttrs = result.filter((a) => a.role === "optional");
+      const outputAttrs = result.filter((a) => a.role === "output");
 
       expect(inputAttrs).toHaveLength(1);
       expect(inputAttrs[0].name).toBe("required_arg");
@@ -90,13 +90,13 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "param1",
           dataType: AttributeType.String,
         },
         {
           id: "attr-2",
-          attrType: "output",
+          role: "output",
           name: "result",
           dataType: AttributeType.String,
         },
@@ -109,7 +109,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "   ",
           dataType: AttributeType.String,
         },
@@ -124,13 +124,13 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "param",
           dataType: AttributeType.String,
         },
         {
           id: "attr-2",
-          attrType: "output",
+          role: "output",
           name: "param",
           dataType: AttributeType.String,
         },
@@ -146,7 +146,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "optional",
+          role: "optional",
           name: "count",
           dataType: AttributeType.Number,
           defaultValue: "not-a-number",
@@ -167,7 +167,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "route",
           dataType: AttributeType.String,
           matchScript: "$.kind",
@@ -186,7 +186,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "const",
+          role: "const",
           name: "flag",
           dataType: AttributeType.Boolean,
         },
@@ -203,7 +203,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "optional",
+          role: "optional",
           name: "maybe",
           dataType: AttributeType.String,
         },
@@ -218,7 +218,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "input_param",
           dataType: AttributeType.String,
           collect: "last",
@@ -227,7 +227,7 @@ describe("stepEditorUtils", () => {
         },
         {
           id: "attr-2",
-          attrType: "optional",
+          role: "optional",
           name: "optional_param",
           dataType: AttributeType.Number,
           defaultValue: "10",
@@ -235,14 +235,14 @@ describe("stepEditorUtils", () => {
         },
         {
           id: "attr-3",
-          attrType: "const",
+          role: "const",
           name: "const_param",
           dataType: AttributeType.String,
           defaultValue: '"fixed"',
         },
         {
           id: "attr-4",
-          attrType: "output",
+          role: "output",
           name: "output_result",
           dataType: AttributeType.String,
         },
@@ -268,7 +268,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "param",
           dataType: AttributeType.String,
           collect: "first",
@@ -284,7 +284,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "item",
           dataType: AttributeType.String,
           forEach: true,
@@ -300,7 +300,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "param",
           dataType: AttributeType.String,
           forEach: false,
@@ -316,7 +316,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "param",
           dataType: AttributeType.String,
           matchScript: "   ",
@@ -332,7 +332,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "optional",
+          role: "optional",
           name: "value",
           dataType: AttributeType.String,
           defaultValue: "  trimmed  ",
@@ -348,7 +348,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "optional",
+          role: "optional",
           name: "value",
           dataType: AttributeType.String,
           defaultValue: "   ",
@@ -364,7 +364,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "input",
+          role: "required",
           name: "payload",
           dataType: AttributeType.Object,
           mappingName: "request",
@@ -388,7 +388,7 @@ describe("stepEditorUtils", () => {
       const attributes: Attribute[] = [
         {
           id: "attr-1",
-          attrType: "output",
+          role: "output",
           name: "result",
           dataType: AttributeType.Object,
           mappingScript: "$.result",
@@ -406,7 +406,7 @@ describe("stepEditorUtils", () => {
 
   describe("getAttributeIconProps", () => {
     it("returns icon props for input attribute", () => {
-      const props = getAttributeIconProps("input");
+      const props = getAttributeIconProps("required");
       expect(props).toBeDefined();
       expect(props.Icon).toBeDefined();
     });
@@ -470,7 +470,7 @@ describe("stepEditorUtils", () => {
         attributes: [
           {
             id: "attr-1",
-            attrType: "input",
+            role: "required",
             name: "  ",
             dataType: AttributeType.String,
           },
@@ -587,7 +587,7 @@ describe("stepEditorUtils", () => {
         attributes: [
           {
             id: "attr-1",
-            attrType: "input",
+            role: "required",
             name: "param",
             dataType: AttributeType.String,
           },
@@ -610,14 +610,14 @@ describe("stepEditorUtils", () => {
         attributes: [
           {
             id: "attr-1",
-            attrType: "input",
+            role: "required",
             name: "a",
             dataType: AttributeType.String,
             mappingName: "shared",
           },
           {
             id: "attr-2",
-            attrType: "optional",
+            role: "optional",
             name: "b",
             dataType: AttributeType.String,
             mappingName: "shared",
@@ -644,7 +644,7 @@ describe("stepEditorUtils", () => {
         attributes: [
           {
             id: "attr-1",
-            attrType: "const",
+            role: "const",
             name: "const_value",
             dataType: AttributeType.String,
             defaultValue: '"x"',
@@ -672,7 +672,7 @@ describe("stepEditorUtils", () => {
         attributes: [
           {
             id: "attr-1",
-            attrType: "output",
+            role: "output",
             name: "result",
             dataType: AttributeType.String,
             mappingScript: "$.result",

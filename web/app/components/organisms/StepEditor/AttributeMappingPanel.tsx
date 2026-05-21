@@ -47,7 +47,7 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
       </span>
       {stepType === "flow" ? (
         (() => {
-          const isOutput = attr.attrType === "output";
+          const isOutput = attr.role === "output";
           const flowOptions: InlineSelectOption[] = isOutput
             ? [
                 { value: "", label: mappingNameHint },

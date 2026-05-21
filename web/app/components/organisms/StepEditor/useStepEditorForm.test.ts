@@ -140,10 +140,10 @@ describe("useStepEditorForm", () => {
 
     act(() => {
       result.current.updateAttribute(inputAttrId, "name", "input");
-      result.current.updateAttribute(inputAttrId, "attrType", "input");
+      result.current.updateAttribute(inputAttrId, "role", "required");
       result.current.updateAttribute(inputAttrId, "mappingName", "child_input");
       result.current.updateAttribute(outputAttrId, "name", "output");
-      result.current.updateAttribute(outputAttrId, "attrType", "output");
+      result.current.updateAttribute(outputAttrId, "role", "output");
       result.current.updateAttribute(
         outputAttrId,
         "mappingName",
@@ -197,7 +197,7 @@ describe("useStepEditorForm", () => {
 
     act(() => {
       result.current.updateAttribute(attrId, "name", "value");
-      result.current.updateAttribute(attrId, "attrType", "optional");
+      result.current.updateAttribute(attrId, "role", "optional");
       result.current.updateAttribute(attrId, "dataType", AttributeType.Number);
       result.current.updateAttribute(attrId, "defaultValue", '"abc"');
     });
@@ -259,12 +259,12 @@ describe("useStepEditorForm", () => {
       const attrId = result.current.attributes[0].id;
 
       act(() => {
-        result.current.updateAttribute(attrId, "attrType", "input");
+        result.current.updateAttribute(attrId, "role", "required");
         result.current.updateAttribute(attrId, "matchScript", "$.foo");
       });
 
       act(() => {
-        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(attrId, "role", "optional");
       });
 
       expect(result.current.attributes[0].matchScript).toBeUndefined();
@@ -284,7 +284,7 @@ describe("useStepEditorForm", () => {
       act(() => {
         result.current.updateAttribute(attrId, "collect", "some");
         result.current.updateAttribute(attrId, "forEach", true);
-        result.current.updateAttribute(attrId, "attrType", "output");
+        result.current.updateAttribute(attrId, "role", "output");
       });
 
       expect(result.current.attributes[0].collect).toBe("first");
@@ -305,7 +305,7 @@ describe("useStepEditorForm", () => {
       act(() => {
         result.current.updateAttribute(attrId, "collect", "all");
         result.current.updateAttribute(attrId, "forEach", true);
-        result.current.updateAttribute(attrId, "attrType", "meta");
+        result.current.updateAttribute(attrId, "role", "meta");
       });
 
       expect(result.current.attributes[0].collect).toBe("first");
@@ -329,7 +329,7 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "name", "test");
-        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(attrId, "role", "optional");
         result.current.updateAttribute(
           attrId,
           "dataType",
@@ -341,7 +341,7 @@ describe("useStepEditorForm", () => {
       expect(result.current.attributes[0].validationError).toBeDefined();
 
       act(() => {
-        result.current.updateAttribute(attrId, "attrType", "input");
+        result.current.updateAttribute(attrId, "role", "required");
       });
 
       expect(result.current.attributes[0].validationError).toBeUndefined();
@@ -362,7 +362,7 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "name", "count");
-        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(attrId, "role", "optional");
         result.current.updateAttribute(
           attrId,
           "dataType",
@@ -393,7 +393,7 @@ describe("useStepEditorForm", () => {
 
       act(() => {
         result.current.updateAttribute(attrId, "name", "count");
-        result.current.updateAttribute(attrId, "attrType", "optional");
+        result.current.updateAttribute(attrId, "role", "optional");
         result.current.updateAttribute(
           attrId,
           "dataType",

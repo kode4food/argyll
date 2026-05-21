@@ -15,6 +15,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/engine/plan"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
@@ -77,7 +78,7 @@ func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		addStatusEntry(t,
-			env, events.FlowStatusActive, "bad", "flow-id", time.Now(),
+			env, events.FlowStatusActive, "bad", "flow-id", scheduler.Now(),
 		)
 
 		flows, err := env.Engine.ListFlows()
@@ -352,7 +353,7 @@ func TestQueryFlowsIgnoresBadStatusEntry(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		addStatusEntry(t,
-			env, events.FlowStatusActive, "bad", "flow-id", time.Now(),
+			env, events.FlowStatusActive, "bad", "flow-id", scheduler.Now(),
 		)
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -370,7 +371,8 @@ func TestQueryFlowsStaleLabels(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "missing-labels", time.Now(),
+			events.FlowStatusCompleted, "flow", "missing-labels",
+			scheduler.Now(),
 		)
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
@@ -730,8 +732,8 @@ func waitForQuery(
 ) *api.QueryFlowsResponse {
 	t.Helper()
 
-	deadline := time.Now().Add(wait.DefaultTimeout)
-	for time.Now().Before(deadline) {
+	deadline := scheduler.Now().Add(wait.DefaultTimeout)
+	for scheduler.Now().Before(deadline) {
 		resp, err := eng.QueryFlows(req)
 		if err == nil && accept(resp) {
 			return resp
@@ -776,7 +778,7 @@ func addLabelEntry(
 	assert.NoError(t, err)
 	err = env.AppendEvents(aggID, 0, &timebox.Event{
 		AggregateID: aggID,
-		Timestamp:   time.Now().UTC(),
+		Timestamp:   scheduler.Now().UTC(),
 		Type:        timebox.EventType(api.EventTypeFlowStarted),
 		Data:        raw,
 	})

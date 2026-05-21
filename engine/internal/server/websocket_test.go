@@ -15,6 +15,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -64,7 +65,7 @@ func TestSocket(t *testing.T) {
 	env := testWebSocket(t, nil)
 	defer env.Cleanup()
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	_, _, err := env.Conn.ReadMessage()
 	assert.Error(t, err)
 }
@@ -89,7 +90,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(500 * time.Millisecond))
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
@@ -100,7 +101,7 @@ func TestClientReceivesEvent(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(500 * time.Millisecond))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
@@ -133,7 +134,7 @@ func TestClientFiltersEventsByType(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
@@ -150,13 +151,13 @@ func TestClientFiltersEventsByType(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
 	assert.Equal(t, api.EventTypeFlowStarted, wsEvent.Type)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
 	assert.Error(t, err)
 }
@@ -185,7 +186,7 @@ func TestClientAggregateEvents(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	var ack api.SubscribedResult
 	err = env.Conn.ReadJSON(&ack)
 	assert.NoError(t, err)
@@ -203,12 +204,12 @@ func TestClientAggregateEvents(t *testing.T) {
 	assert.NoError(t, err)
 
 	var wsEvent api.WebSocketEvent
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
 	got := [][]string{append([]string{}, wsEvent.AggregateID...)}
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
 	got = append(got, append([]string{}, wsEvent.AggregateID...))
@@ -246,7 +247,7 @@ func TestClientManyAggregates(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	var ack api.SubscribedResult
 	err = env.Conn.ReadJSON(&ack)
 	assert.NoError(t, err)
@@ -258,7 +259,7 @@ func TestClientManyAggregates(t *testing.T) {
 	assert.NoError(t, err)
 
 	var wsEvent api.WebSocketEvent
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.NoError(t, err)
 	assert.Equal(t, []string{events.FlowPrefix, "wf-199"}, wsEvent.AggregateID)
@@ -278,7 +279,7 @@ func TestMessageInvalid(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.Error(t, err)
@@ -305,7 +306,7 @@ func TestMessageNonSubscribe(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	var wsEvent api.WebSocketEvent
 	err = env.Conn.ReadJSON(&wsEvent)
 	assert.Error(t, err)
@@ -336,7 +337,7 @@ func TestSubscribeStateSendsState(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(500 * time.Millisecond))
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
@@ -372,7 +373,7 @@ func TestStaleEventsFiltered(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(500 * time.Millisecond))
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
@@ -423,7 +424,7 @@ func TestSubscribeStateWithError(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
 	assert.Error(t, err)
 }
@@ -447,7 +448,7 @@ func TestSubscribeStateMissingFlow(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(500 * time.Millisecond))
 	var msg api.SubscribedResult
 	err = env.Conn.ReadJSON(&msg)
 	assert.NoError(t, err)
@@ -511,7 +512,7 @@ func TestClientPongHandler(t *testing.T) {
 	err = env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
@@ -539,7 +540,7 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	err := env.Conn.WriteJSON(sub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
 	var stateMsg api.SubscribedResult
 	err = env.Conn.ReadJSON(&stateMsg)
 	assert.NoError(t, err)
@@ -553,7 +554,7 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	err = env.Conn.WriteJSON(unsub)
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsReadTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsReadTimeout))
 	var unsubAck api.UnsubscribedResult
 	err = env.Conn.ReadJSON(&unsubAck)
 	assert.NoError(t, err)
@@ -565,7 +566,7 @@ func TestClientUnsubscribeStopsEvents(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(100 * time.Millisecond))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(100 * time.Millisecond))
 	_, _, err = env.Conn.ReadMessage()
 	assert.Error(t, err)
 }
@@ -576,7 +577,7 @@ func TestClientConsumerClosed(t *testing.T) {
 
 	_ = env.Conn.Close()
 
-	_ = env.Conn.SetReadDeadline(time.Now().Add(wsCloseTimeout))
+	_ = env.Conn.SetReadDeadline(scheduler.Now().Add(wsCloseTimeout))
 	_, _, err := env.Conn.ReadMessage()
 	assert.Error(t, err)
 }
@@ -588,7 +589,7 @@ func TestServerCloseWebSockets(t *testing.T) {
 
 		env.Server.CloseWebSockets()
 
-		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsCloseTimeout))
+		_ = ws.Conn.SetReadDeadline(scheduler.Now().Add(wsCloseTimeout))
 		_, _, err := ws.Conn.ReadMessage()
 		assert.Error(t, err)
 	})
@@ -610,7 +611,7 @@ func TestSocketCallbackEngine(t *testing.T) {
 		err := ws.Conn.WriteJSON(sub)
 		assert.NoError(t, err)
 
-		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+		_ = ws.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
@@ -639,7 +640,7 @@ func TestSocketCallbackCluster(t *testing.T) {
 		err := ws.Conn.WriteJSON(sub)
 		assert.NoError(t, err)
 
-		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+		_ = ws.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
@@ -673,7 +674,7 @@ func TestSocketCallbackFlow(t *testing.T) {
 		err = ws.Conn.WriteJSON(sub)
 		assert.NoError(t, err)
 
-		_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+		_ = ws.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
 		var stateMsg api.SubscribedResult
 		err = ws.Conn.ReadJSON(&stateMsg)
 		assert.NoError(t, err)
@@ -707,7 +708,7 @@ func TestSocketBadCallbackTarget(t *testing.T) {
 			err := ws.Conn.WriteJSON(sub)
 			assert.NoError(t, err)
 
-			_ = ws.Conn.SetReadDeadline(time.Now().Add(wsStateTimeout))
+			_ = ws.Conn.SetReadDeadline(scheduler.Now().Add(wsStateTimeout))
 			var stateMsg api.SubscribedResult
 			err = ws.Conn.ReadJSON(&stateMsg)
 			assert.NoError(t, err)

@@ -9,6 +9,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -131,7 +132,7 @@ func TestPendingRetryCanComplete(t *testing.T) {
 					StepID:      st.ID,
 					Token:       tkn,
 					RetryCount:  1,
-					NextRetryAt: time.Now().Add(time.Minute),
+					NextRetryAt: scheduler.Now().Add(time.Minute),
 					Error:       "retry",
 				},
 			},
@@ -190,7 +191,7 @@ func TestPendingRetryCanFail(t *testing.T) {
 					StepID:      st.ID,
 					Token:       tkn,
 					RetryCount:  1,
-					NextRetryAt: time.Now().Add(time.Minute),
+					NextRetryAt: scheduler.Now().Add(time.Minute),
 					Error:       "retry",
 				},
 			},

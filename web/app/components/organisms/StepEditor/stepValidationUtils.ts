@@ -28,7 +28,7 @@ function validateGetEndpointParams(
   }
 
   for (const attr of attributes) {
-    if (attr.attrType !== "input") {
+    if (attr.role !== "required") {
       continue;
     }
     const paramName = attr.mappingName?.trim() || attr.name.trim();

@@ -5,17 +5,15 @@ import (
 	"strings"
 )
 
-type (
-	stepImplResult struct {
-		StepName            string   `json:"step_name"`
-		StepType            string   `json:"step_type"`
-		Method              string   `json:"method"`
-		Code                string   `json:"code"`
-		Inputs              []string `json:"inputs"`
-		Outputs             []string `json:"outputs"`
-		ImplementationNotes []string `json:"implementation_notes"`
-	}
-)
+type stepImplResult struct {
+	StepName            string   `json:"step_name"`
+	StepType            string   `json:"step_type"`
+	Method              string   `json:"method"`
+	Code                string   `json:"code"`
+	Inputs              []string `json:"inputs"`
+	Outputs             []string `json:"outputs"`
+	ImplementationNotes []string `json:"implementation_notes"`
+}
 
 func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	if len(args.Step) == 0 {

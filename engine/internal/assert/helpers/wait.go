@@ -6,6 +6,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -105,7 +106,7 @@ func (e *TestEngineEnv) WaitForTerminalFlows(
 	e.T.Helper()
 
 	res := make(map[api.FlowID]api.FlowState, len(flowIDs))
-	deadline := time.Now().Add(timeout)
+	deadline := scheduler.Now().Add(timeout)
 	for {
 		allTerminal := true
 		var lastErr error
@@ -124,7 +125,7 @@ func (e *TestEngineEnv) WaitForTerminalFlows(
 		if allTerminal {
 			return res
 		}
-		if time.Now().After(deadline) {
+		if scheduler.Now().After(deadline) {
 			if lastErr != nil {
 				e.T.Fatalf("failed to fetch terminal flows: %v", lastErr)
 			}
@@ -151,13 +152,13 @@ func WaitForFlowState(
 ) api.FlowState {
 	t.Helper()
 
-	deadline := time.Now().Add(q.Timeout)
+	deadline := scheduler.Now().Add(q.Timeout)
 	for {
 		st, err := eng.GetFlowState(q.FlowID)
 		if err == nil && (q.Accept == nil || q.Accept(st)) {
 			return st
 		}
-		if time.Now().After(deadline) {
+		if scheduler.Now().After(deadline) {
 			if err != nil {
 				t.Fatalf("failed to fetch flow %s: %v", q.FlowID, err)
 			}
@@ -231,13 +232,13 @@ func (e *TestEngineEnv) waitForTerminalStep(
 ) api.ExecutionState {
 	e.T.Helper()
 
-	deadline := time.Now().Add(wait.DefaultTimeout)
+	deadline := scheduler.Now().Add(wait.DefaultTimeout)
 	for {
 		ex, err := e.getExecutionState(flowID, stepID)
 		if err == nil && isStepTerminal(ex.Status) {
 			return ex
 		}
-		if time.Now().After(deadline) {
+		if scheduler.Now().After(deadline) {
 			if err != nil {
 				e.T.Fatalf("failed to fetch execution %s: %v", stepID, err)
 			}

@@ -15,6 +15,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -141,9 +142,9 @@ func (c *Client) run() {
 	}()
 
 	c.conn.SetReadLimit(maxMessageSize)
-	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+	_ = c.conn.SetReadDeadline(scheduler.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error {
-		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		_ = c.conn.SetReadDeadline(scheduler.Now().Add(pongWait))
 		return nil
 	})
 
@@ -324,7 +325,7 @@ func (c *Client) sendSubscribeState(sub *clientSubscription) bool {
 
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
-	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	_ = c.conn.SetWriteDeadline(scheduler.Now().Add(writeWait))
 	err := c.conn.WriteJSON(msg)
 	if err != nil {
 		slog.Error("WebSocket write failed",
@@ -352,7 +353,7 @@ func (c *Client) writeSubscriptionEvent(
 
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
-	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	_ = c.conn.SetWriteDeadline(scheduler.Now().Add(writeWait))
 	err := c.conn.WriteJSON(wsEvent)
 	if err != nil {
 		slog.Error("WebSocket write failed", log.Error(err))
@@ -368,7 +369,7 @@ func (c *Client) sendUnsubscribeAck(subscriptionID string) bool {
 	}
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
-	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	_ = c.conn.SetWriteDeadline(scheduler.Now().Add(writeWait))
 	err := c.conn.WriteJSON(msg)
 	if err != nil {
 		slog.Error("WebSocket write failed",
@@ -382,7 +383,7 @@ func (c *Client) sendUnsubscribeAck(subscriptionID string) bool {
 func (c *Client) sendPing() bool {
 	c.writeMu.Lock()
 	defer c.writeMu.Unlock()
-	_ = c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+	_ = c.conn.SetWriteDeadline(scheduler.Now().Add(writeWait))
 	err := c.conn.WriteMessage(websocket.PingMessage, nil)
 	return err == nil
 }

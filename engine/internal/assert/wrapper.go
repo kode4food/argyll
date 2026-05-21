@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/kode4food/argyll/engine/internal/config"
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -122,8 +123,8 @@ func (w *Wrapper) Eventually(
 	condition func() bool, timeout time.Duration, msg string,
 ) {
 	w.Helper()
-	deadline := time.Now().Add(timeout)
-	for time.Now().Before(deadline) {
+	deadline := scheduler.Now().Add(timeout)
+	for scheduler.Now().Before(deadline) {
 		if condition() {
 			return
 		}
@@ -138,9 +139,9 @@ func (w *Wrapper) EventuallyWithError(
 	condition func() error, timeout time.Duration, msg string,
 ) {
 	w.Helper()
-	deadline := time.Now().Add(timeout)
+	deadline := scheduler.Now().Add(timeout)
 	var lastErr error
-	for time.Now().Before(deadline) {
+	for scheduler.Now().Before(deadline) {
 		err := condition()
 		if err == nil {
 			return

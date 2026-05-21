@@ -60,7 +60,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     attr.collect && INPUT_COLLECT_TYPES.includes(attr.collect)
       ? attr.collect
       : "first";
-  const canCollect = attr.attrType === "input" || attr.attrType === "optional";
+  const canCollect = attr.role === "required" || attr.role === "optional";
   const hasMappingConfigured = Boolean(
     attr.mappingName?.trim() || attr.mappingScript?.trim()
   );
@@ -94,7 +94,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   }));
 
   const { Icon: RoleIcon, className: roleClassName } = getAttributeIconProps(
-    attr.attrType
+    attr.role
   );
 
   return (
@@ -105,9 +105,9 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           faceIcon={
             <RoleIcon className={`${styles.iconMd} ${roleClassName}`} />
           }
-          onChange={(v) => updateAttribute(attr.id, "attrType", v)}
+          onChange={(v) => updateAttribute(attr.id, "role", v)}
           options={roleOptions}
-          value={attr.attrType}
+          value={attr.role}
         />
         <InlineSelectDropdown
           value={attr.dataType}
@@ -122,7 +122,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           placeholder={t("stepEditor.attributeNamePlaceholder")}
           className={`${formStyles.argInput} ${formStyles.argNameInput}`}
         />
-        {attr.attrType === "meta" && (
+        {attr.role === "meta" && (
           <ComboInput
             value={attr.metaKey || ""}
             suggestions={META_KEYS}
@@ -131,7 +131,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             className={formStyles.argValueInput}
           />
         )}
-        {attr.attrType === "input" && (
+        {attr.role === "required" && (
           <ScriptLanguageInlineInput
             ariaLabel={t("stepEditor.matchLanguageLabel")}
             className={formStyles.argValueInput}
@@ -147,7 +147,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             title={t("stepEditor.attributeMatchTitle")}
           />
         )}
-        {(attr.attrType === "optional" || attr.attrType === "const") && (
+        {(attr.role === "optional" || attr.role === "const") && (
           <input
             type="text"
             value={attr.defaultValue || ""}
@@ -159,7 +159,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             title={t("stepEditor.attributeDefaultTitle")}
           />
         )}
-        {attr.attrType === "optional" && (
+        {attr.role === "optional" && (
           <DurationInput
             value={attr.deadline || 0}
             onChange={(ms) =>
@@ -168,8 +168,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             className={formStyles.argInput}
           />
         )}
-        {attr.attrType !== "output" &&
-          attr.attrType !== "meta" &&
+        {attr.role !== "output" &&
+          attr.role !== "meta" &&
           attr.dataType === AttributeType.Array && (
             <div className={formStyles.forEachToggleGroup}>
               <button
@@ -219,7 +219,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             value={collect}
           />
         )}
-        {attr.attrType !== "const" && attr.attrType !== "meta" && (
+        {attr.role !== "const" && attr.role !== "meta" && (
           <button
             type="button"
             onClick={() => setIsMappingExpanded((current) => !current)}
@@ -246,19 +246,17 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
           <IconRemove className={styles.iconSm} />
         </button>
       </div>
-      {isMappingExpanded &&
-        attr.attrType !== "const" &&
-        attr.attrType !== "meta" && (
-          <AttributeMappingPanel
-            attr={attr}
-            stepType={stepType}
-            flowInputOptions={flowInputOptions}
-            flowOutputOptions={flowOutputOptions}
-            usedInputMappings={usedInputMappings}
-            usedOutputMappings={usedOutputMappings}
-            updateAttribute={updateAttribute}
-          />
-        )}
+      {isMappingExpanded && attr.role !== "const" && attr.role !== "meta" && (
+        <AttributeMappingPanel
+          attr={attr}
+          stepType={stepType}
+          flowInputOptions={flowInputOptions}
+          flowOutputOptions={flowOutputOptions}
+          usedInputMappings={usedInputMappings}
+          usedOutputMappings={usedOutputMappings}
+          updateAttribute={updateAttribute}
+        />
+      )}
       {attr.validationError && (
         <div className={formStyles.attrValidationError}>
           {attr.validationError}

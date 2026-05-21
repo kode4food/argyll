@@ -6,6 +6,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
@@ -161,7 +162,7 @@ func TestSetExecution(t *testing.T) {
 
 func TestSetFlowCompleted(t *testing.T) {
 	original := &api.FlowState{}
-	completedTime := time.Now()
+	completedTime := scheduler.Now()
 
 	result := original.SetCompletedAt(completedTime)
 
@@ -190,7 +191,7 @@ func TestSetFlowUpdated(t *testing.T) {
 
 func TestSetFlowDeactivated(t *testing.T) {
 	original := &api.FlowState{}
-	deactivatedAt := time.Now()
+	deactivatedAt := scheduler.Now()
 
 	result := original.SetDeactivatedAt(deactivatedAt)
 
@@ -226,7 +227,7 @@ func TestSetExecStatus(t *testing.T) {
 
 func TestSetStarted(t *testing.T) {
 	original := &api.ExecutionState{}
-	startTime := time.Now()
+	startTime := scheduler.Now()
 
 	result := original.SetStartedAt(startTime)
 
@@ -236,7 +237,7 @@ func TestSetStarted(t *testing.T) {
 
 func TestSetExecCompleted(t *testing.T) {
 	original := &api.ExecutionState{}
-	completedTime := time.Now()
+	completedTime := scheduler.Now()
 
 	result := original.SetCompletedAt(completedTime)
 
@@ -335,7 +336,7 @@ func TestSetWorkStatus(t *testing.T) {
 
 func TestSetWorkStarted(t *testing.T) {
 	original := &api.WorkState{}
-	startTime := time.Now()
+	startTime := scheduler.Now()
 
 	result := original.SetStartedAt(startTime)
 
@@ -345,7 +346,7 @@ func TestSetWorkStarted(t *testing.T) {
 
 func TestSetWorkCompleted(t *testing.T) {
 	original := &api.WorkState{}
-	completedTime := time.Now()
+	completedTime := scheduler.Now()
 
 	result := original.SetCompletedAt(completedTime)
 
@@ -366,7 +367,7 @@ func TestSetRetryCount(t *testing.T) {
 
 func TestSetNextRetry(t *testing.T) {
 	original := &api.WorkState{}
-	nextRetry := time.Now().Add(time.Minute)
+	nextRetry := scheduler.Now().Add(time.Minute)
 
 	result := original.SetNextRetryAt(nextRetry)
 
@@ -425,7 +426,7 @@ func TestFlowChain(t *testing.T) {
 func TestExecChain(t *testing.T) {
 	original := &api.ExecutionState{Status: api.StepPending}
 
-	startTime := time.Now()
+	startTime := scheduler.Now()
 	completedTime := startTime.Add(time.Second)
 
 	result := original.
@@ -448,7 +449,7 @@ func TestWorkChain(t *testing.T) {
 		Status: api.WorkPending,
 	}
 
-	startTime := time.Now()
+	startTime := scheduler.Now()
 	completedTime := startTime.Add(time.Second)
 	outputs := api.Args{"result": "success"}
 

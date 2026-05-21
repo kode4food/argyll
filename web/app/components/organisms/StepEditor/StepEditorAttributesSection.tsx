@@ -36,7 +36,7 @@ const StepEditorAttributesSection: React.FC<
   attributes.forEach((attr) => {
     const mappingName = attr.mappingName?.trim();
     if (!mappingName) return;
-    if (attr.attrType === "output") {
+    if (attr.role === "output") {
       usedOutputMappings.set(mappingName, attr.id);
     } else {
       usedInputMappings.set(mappingName, attr.id);

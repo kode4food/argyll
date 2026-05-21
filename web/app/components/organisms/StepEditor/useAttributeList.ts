@@ -20,7 +20,7 @@ const applyAttributeFieldSideEffects = (
   const { field, value } = update;
   if (
     (field === "defaultValue" || field === "dataType") &&
-    (updated.attrType === "optional" || updated.attrType === "const") &&
+    (updated.role === "optional" || updated.role === "const") &&
     updated.defaultValue
   ) {
     const validation = validateDefaultValue(
@@ -32,11 +32,11 @@ const applyAttributeFieldSideEffects = (
       : t(validation.errorKey ?? "");
   }
 
-  if (field === "attrType") {
+  if (field === "role") {
     if (value !== "optional" && value !== "const") {
       updated.validationError = undefined;
     }
-    if (value !== "input") {
+    if (value !== "required") {
       updated.matchLanguage = undefined;
       updated.matchScript = undefined;
     }
@@ -66,7 +66,7 @@ export function useAttributeList(
       ...current,
       {
         id: `attr-${++attributeCounterRef.current}`,
-        attrType: "input" as AttributeRoleType,
+        role: "required" as AttributeRoleType,
         name: "",
         dataType: AttributeType.String,
       },

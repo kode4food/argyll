@@ -8,12 +8,13 @@ import (
 	"github.com/kode4food/timebox"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 )
 
 func TestEventJSONMarshaling(t *testing.T) {
-	now := time.Now().Truncate(time.Second)
+	now := scheduler.Now().Truncate(time.Second)
 	data := json.RawMessage(`{"step": {"id": "test-step"}}`)
 
 	in := &timebox.Event{

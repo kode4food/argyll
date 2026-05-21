@@ -608,7 +608,7 @@ func TestRecoverEarlyRetry(t *testing.T) {
 		id := api.FlowID("recover-early-retry")
 		st := helpers.NewSimpleStep("recover-early-retry-step")
 		tkn := api.Token("retry-token")
-		nextRetryAt := time.Now().UTC().Add(250 * time.Millisecond)
+		nextRetryAt := scheduler.Now().UTC().Add(250 * time.Millisecond)
 
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},
