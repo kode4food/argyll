@@ -130,6 +130,62 @@ func TestPartialFlowFailure(t *testing.T) {
 	})
 }
 
+// TestWorkItemFailFast verifies that when any work item permanently fails,
+// the step fails immediately and remaining pending items are never started
+func TestWorkItemFailFast(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		provider := helpers.NewStepWithOutputs("ff-provider", "items")
+		provider.Attributes["items"].Type = api.TypeArray
+
+		consumer := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
+		consumer.ID = "ff-consumer"
+		consumer.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
+		consumer.Attributes["items"].Type = api.TypeArray
+		consumer.WorkConfig = &api.WorkConfig{Parallelism: 1}
+
+		assert.NoError(t, env.Engine.RegisterStep(provider))
+		assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+		env.MockClient.SetResponse(provider.ID, api.Args{
+			"items": []any{"a", "b", "c"},
+		})
+		env.MockClient.SetError(consumer.ID, errors.New("boom"))
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				provider.ID: provider,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"items": &api.AttributeEdges{
+					Providers: []api.StepID{provider.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+			},
+		}
+
+		id := api.FlowID("test-workitem-failfast")
+		fl := env.WaitForFlowStatus(id, func() {
+			err := env.Engine.StartFlow(id, pl)
+			assert.NoError(t, err)
+		})
+
+		assert.Equal(t, api.FlowFailed, fl.Status)
+		assert.Equal(t, api.StepFailed, fl.Executions[consumer.ID].Status)
+
+		count := 0
+		for _, sid := range env.MockClient.GetInvocations() {
+			if sid == consumer.ID {
+				count++
+			}
+		}
+		assert.Equal(t, 1, count)
+	})
+}
+
 func TestUnreachableStep(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

@@ -4,10 +4,7 @@ Async steps let you return immediately and complete later via webhook. Use them 
 
 ## How it works
 
-1) Engine invokes your step endpoint with the configured HTTP method.
-   Endpoint placeholders are resolved from runtime inputs for all HTTP methods.
-   For `POST`, `PUT`, and `DELETE`, input arguments are sent as the JSON body and execution metadata is sent in `Argyll-*` headers.
-   For `GET`, no JSON body is sent.
+1) Engine invokes your step endpoint with the configured HTTP method. Endpoint placeholders are resolved from runtime inputs for all HTTP methods. For `POST`, `PUT`, and `DELETE`, input arguments are sent as the JSON body and execution metadata is sent in `Argyll-*` headers. For `GET`, no JSON body is sent.
 2) Your handler returns a 2xx response quickly.
 3) Your async worker POSTs output arguments or Problem Details to the webhook URL.
 
@@ -115,9 +112,7 @@ def send_completion(flow_id, step_id, receipt_token, result):
 
 - Retry behavior is controlled by step work config.
 - Posting `application/problem+json` records a permanent failure for that work item.
-- Retry scheduling is driven by `work_not_completed` transitions (for example,
-  transient invocation failures like network errors or HTTP 5xx from a step
-  endpoint).
+- Retry scheduling is driven by `work_not_completed` transitions (for example, transient invocation failures like network errors or HTTP 5xx from a step endpoint).
 
 See [guides/retries.md](./retries.md) for details.
 

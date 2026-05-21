@@ -4,9 +4,7 @@ Retries are per-work-item and configured per step. They apply when a work item r
 
 ## When retries are scheduled
 
-Retries are scheduled when a work item is marked `work_not_completed`.
-In the current engine behavior, this happens when the step invocation fails
-at the transport/HTTP layer:
+Retries are scheduled when a work item is marked `work_not_completed`. In the current engine behavior, this happens when the step invocation fails at the transport/HTTP layer:
 
 1. **Network/transport failure**: connection error, timeout, etc.
 2. **HTTP 5xx response** from the step endpoint.

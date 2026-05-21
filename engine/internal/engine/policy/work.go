@@ -33,8 +33,11 @@ func CountActiveWorkItems(items api.WorkItems) int {
 }
 
 // StepWorkCompletion classifies a step's work items for step completion. Any
-// pending, active, or not-completed work keeps the step open; any failed work
-// makes the step fail once all work is otherwise done
+// permanently failed work item makes the step fail immediately: Done is true
+// as soon as a failure is present, regardless of pending or active items.
+// Pending items that have not yet started are abandoned; in-flight active
+// items may still report results but the step is already terminal. Without any
+// failure, the step completes only when all items have succeeded
 func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 	res := WorkCompletion{Done: true}
 	for _, work := range items {
@@ -49,8 +52,11 @@ func StepWorkCompletion(items api.WorkItems) WorkCompletion {
 			res.Done = false
 		}
 	}
-	if res.Failed && res.FailureError == "" {
-		res.FailureError = "work item failed"
+	if res.Failed {
+		res.Done = true
+		if res.FailureError == "" {
+			res.FailureError = "work item failed"
+		}
 	}
 	return res
 }

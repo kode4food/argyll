@@ -44,6 +44,17 @@ func TestStepWorkCompletion(t *testing.T) {
 	assert.True(t, failed.Failed)
 	assert.Equal(t, "bad", failed.FailureError)
 
+	// Fail-fast: a single failure marks Done immediately,
+	// even with active or pending siblings
+	failFast := policy.StepWorkCompletion(api.WorkItems{
+		"a": {Status: api.WorkActive},
+		"b": {Status: api.WorkFailed, Error: "boom"},
+		"c": {Status: api.WorkPending},
+	})
+	assert.True(t, failFast.Done)
+	assert.True(t, failFast.Failed)
+	assert.Equal(t, "boom", failFast.FailureError)
+
 	succeeded := policy.StepWorkCompletion(api.WorkItems{
 		"a": {Status: api.WorkSucceeded},
 	})

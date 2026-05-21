@@ -220,16 +220,14 @@ Inventory API supports 10 concurrent requests
 
 ## Partial Failure
 
-If any work item fails permanently, the step ends in `failed` once all work
-items reach terminal states.
+If any work item fails permanently, the step fails immediately. Pending work items that have not yet started are abandoned; in-flight work items may still complete but their results are discarded.
 
 ```
 5 work items
-4 succeed
+4 pending
 1 fails
 
-Step status: "failed"
-Successful work outputs remain recorded on their work items
+Step status: "failed" (immediately, without waiting for the 4 pending items)
 Failure reason is stored on the step execution
 ```
 
@@ -266,8 +264,7 @@ If a step has both a `predicate` and `for_each`:
 
 - Predicate is evaluated before initial work-item scheduling
 - Predicate is also checked when pending/retry work items are about to start
-- If predicate is false, affected work does not start (or is skipped at step
-  level before any work items are started)
+- If predicate is false, affected work does not start (or is skipped at step level before any work items are started)
 
 ```json
 {
@@ -355,6 +352,4 @@ A: Each aggregated output includes the `for_each` input values. In the code abov
 A: No, it's set in the step definition. Create a new step version if you need to change it.
 
 **Q: What happens if a work item never completes?**
-A: Completion behavior is controlled by retry settings and result reporting.
-Transient failures (`work_not_completed`) retry until retry budget is exhausted;
-permanent failures (`work_failed`) fail that work item immediately.
+A: Completion behavior is controlled by retry settings and result reporting. Transient failures (`work_not_completed`) retry until retry budget is exhausted; permanent failures (`work_failed`) fail that work item immediately.

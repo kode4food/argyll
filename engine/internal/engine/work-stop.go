@@ -151,6 +151,9 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.handleTerminalWork(stepID)
 	}
+	if !policy.StepActive(tx.Value().Executions[stepID].Status) {
+		return nil
+	}
 
 	completed, err := tx.checkStepCompletion(stepID)
 	if err != nil {
@@ -168,10 +171,7 @@ func (tx *flowTx) handleWorkSucceeded(stepID api.StepID) error {
 }
 
 func (tx *flowTx) handleWorkFailed(stepID api.StepID) error {
-	return call.Perform(
-		call.WithArgs(tx.continueStepWork, stepID, true),
-		call.WithArg(tx.handleStepFailure, stepID),
-	)
+	return tx.handleStepFailure(stepID)
 }
 
 func (tx *flowTx) handleWorkNotCompleted(
@@ -179,6 +179,9 @@ func (tx *flowTx) handleWorkNotCompleted(
 ) error {
 	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.maybeDeactivate()
+	}
+	if !policy.StepActive(tx.Value().Executions[stepID].Status) {
+		return nil
 	}
 	return call.Perform(
 		call.WithArgs(tx.scheduleRetry, stepID, tkn),

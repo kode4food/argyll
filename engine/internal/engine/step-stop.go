@@ -102,6 +102,9 @@ func (tx *flowTx) handleStepFailure(stepID api.StepID) error {
 	if policy.FlowTerminal(tx.Value().Status) {
 		return tx.handleTerminalWork(stepID)
 	}
+	if !policy.StepActive(tx.Value().Executions[stepID].Status) {
+		return nil
+	}
 
 	completed, err := tx.checkStepCompletion(stepID)
 	if err != nil || !completed {
