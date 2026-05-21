@@ -444,6 +444,100 @@ func TestExecChain(t *testing.T) {
 	assert.Equal(t, api.StepPending, original.Status)
 }
 
+func TestSetCatalogLastUpdated(t *testing.T) {
+	original := &api.CatalogState{}
+	newTime := time.Unix(3000, 0)
+
+	result := original.SetLastUpdated(newTime)
+
+	assert.True(t, result.LastUpdated.Equal(newTime))
+	assert.True(t, original.LastUpdated.IsZero())
+}
+
+func TestFirstAttribute(t *testing.T) {
+	fl := &api.FlowState{
+		Attributes: api.AttributeValues{
+			"attr1": {
+				{Value: "first", Step: "step-1"},
+				{Value: "second", Step: "step-2"},
+			},
+		},
+	}
+
+	v, ok := fl.FirstAttribute("attr1")
+	assert.True(t, ok)
+	assert.Equal(t, "first", v.Value)
+
+	_, ok = fl.FirstAttribute("missing")
+	assert.False(t, ok)
+
+	fl2 := &api.FlowState{Attributes: api.AttributeValues{"empty": {}}}
+	_, ok = fl2.FirstAttribute("empty")
+	assert.False(t, ok)
+}
+
+func TestLastAttribute(t *testing.T) {
+	fl := &api.FlowState{
+		Attributes: api.AttributeValues{
+			"attr1": {
+				{Value: "first", Step: "step-1"},
+				{Value: "last", Step: "step-2"},
+			},
+		},
+	}
+
+	v, ok := fl.LastAttribute("attr1")
+	assert.True(t, ok)
+	assert.Equal(t, "last", v.Value)
+
+	_, ok = fl.LastAttribute("missing")
+	assert.False(t, ok)
+}
+
+func TestAttributeValues(t *testing.T) {
+	expected := []*api.AttributeValue{
+		{Value: "a", Step: "step-1"},
+		{Value: "b", Step: "step-2"},
+	}
+	fl := &api.FlowState{
+		Attributes: api.AttributeValues{"attr1": expected},
+	}
+
+	vals := fl.AttributeValues("attr1")
+	assert.Equal(t, expected, vals)
+
+	assert.Nil(t, fl.AttributeValues("missing"))
+}
+
+func TestSetUnsatisfied(t *testing.T) {
+	original := &api.ExecutionState{}
+
+	names := []api.Name{"input1", "input2"}
+	result := original.SetUnsatisfied(names)
+
+	assert.Equal(t, names, result.Unsatisfied)
+	assert.Nil(t, original.Unsatisfied)
+
+	names[0] = "mutated"
+	assert.Equal(t, api.Name("input1"), result.Unsatisfied[0])
+}
+
+func TestRemoveWorkItem(t *testing.T) {
+	original := &api.ExecutionState{
+		WorkItems: map[api.Token]api.WorkState{
+			"work-1": {Status: api.WorkPending},
+			"work-2": {Status: api.WorkActive},
+		},
+	}
+
+	result := original.RemoveWorkItem("work-1")
+
+	assert.Len(t, result.WorkItems, 1)
+	assert.NotContains(t, result.WorkItems, api.Token("work-1"))
+	assert.Contains(t, result.WorkItems, api.Token("work-2"))
+	assert.Len(t, original.WorkItems, 2)
+}
+
 func TestWorkChain(t *testing.T) {
 	original := &api.WorkState{
 		Status: api.WorkPending,

@@ -266,3 +266,29 @@ func TestHashKey(t *testing.T) {
 		assert.NotEmpty(t, h)
 	})
 }
+
+func TestArgsApply(t *testing.T) {
+	t.Run("merges_other_into_base", func(t *testing.T) {
+		base := api.Args{"a": "1", "b": "2"}
+		other := api.Args{"b": "overwritten", "c": "3"}
+		result := base.Apply(other)
+		assert.Equal(t, "1", result["a"])
+		assert.Equal(t, "overwritten", result["b"])
+		assert.Equal(t, "3", result["c"])
+		assert.Equal(t, "2", base["b"], "original must not be mutated")
+	})
+
+	t.Run("apply_onto_nil_base", func(t *testing.T) {
+		var base api.Args
+		other := api.Args{"x": "1"}
+		result := base.Apply(other)
+		assert.Equal(t, "1", result["x"])
+	})
+
+	t.Run("apply_empty_other", func(t *testing.T) {
+		base := api.Args{"a": "1"}
+		result := base.Apply(api.Args{})
+		assert.Equal(t, "1", result["a"])
+		assert.Len(t, result, 1)
+	})
+}

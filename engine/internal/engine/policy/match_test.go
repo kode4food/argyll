@@ -140,6 +140,30 @@ func TestRequiredMatchStatus(t *testing.T) {
 	}
 }
 
+func TestMatchAllowsNormalDemand(t *testing.T) {
+	assert.True(t, policy.MatchAllowsNormalDemand(policy.MatchNotGated))
+	assert.True(t, policy.MatchAllowsNormalDemand(policy.MatchMatched))
+	assert.False(t, policy.MatchAllowsNormalDemand(policy.MatchUnmatched))
+}
+
+func TestMatchAllowsStepSkip(t *testing.T) {
+	assert.True(t, policy.MatchAllowsStepSkip(policy.MatchUnmatched))
+	assert.False(t, policy.MatchAllowsStepSkip(policy.MatchMatched))
+	assert.False(t, policy.MatchAllowsStepSkip(policy.MatchNotGated))
+}
+
+func TestStepPrunedByRequiredMatch(t *testing.T) {
+	assert.True(t, policy.StepPrunedByRequiredMatch(
+		api.StepSkipped, policy.RequiredMatchSkipReason,
+	))
+	assert.False(t, policy.StepPrunedByRequiredMatch(
+		api.StepCompleted, policy.RequiredMatchSkipReason,
+	))
+	assert.False(t, policy.StepPrunedByRequiredMatch(
+		api.StepSkipped, "other reason",
+	))
+}
+
 func TestRequiredMatchStepStatus(t *testing.T) {
 	cfg := &api.ScriptConfig{Language: api.ScriptLangJPath, Script: "$.kind"}
 	step := &api.Step{

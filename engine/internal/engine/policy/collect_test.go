@@ -9,6 +9,22 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
+func TestRequiresAllProviders(t *testing.T) {
+	assert.True(t, policy.RequiresAllProviders(api.InputCollectAll))
+	assert.False(t, policy.RequiresAllProviders(api.InputCollectFirst))
+	assert.False(t, policy.RequiresAllProviders(api.InputCollectLast))
+	assert.False(t, policy.RequiresAllProviders(api.InputCollectSome))
+	assert.False(t, policy.RequiresAllProviders(api.InputCollectNone))
+}
+
+func TestTimeoutCanUseValues(t *testing.T) {
+	assert.True(t, policy.TimeoutCanUseValues(api.InputCollectLast))
+	assert.True(t, policy.TimeoutCanUseValues(api.InputCollectSome))
+	assert.True(t, policy.TimeoutCanUseValues(api.InputCollectNone))
+	assert.False(t, policy.TimeoutCanUseValues(api.InputCollectFirst))
+	assert.False(t, policy.TimeoutCanUseValues(api.InputCollectAll))
+}
+
 func TestInitPolicy(t *testing.T) {
 	assert.True(t, policy.InitSatisfiesInput(api.InputCollectFirst, true))
 	assert.False(t, policy.InitSatisfiesInput(api.InputCollectLast, true))

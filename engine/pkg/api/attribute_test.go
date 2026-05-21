@@ -360,6 +360,254 @@ func TestIsConst(t *testing.T) {
 	assert.False(t, spec.IsOutput())
 }
 
+func TestIsMeta(t *testing.T) {
+	spec := &api.AttributeSpec{
+		Role: api.RoleMeta,
+		Meta: &api.MetaConfig{Key: "flow_id"},
+	}
+	assert.True(t, spec.IsMeta())
+	assert.False(t, spec.IsConst())
+	assert.False(t, spec.IsOptional())
+	assert.False(t, spec.IsRequired())
+	assert.False(t, spec.IsOutput())
+}
+
+func TestIsRuntimeInput(t *testing.T) {
+	required := &api.AttributeSpec{Role: api.RoleRequired}
+	assert.True(t, required.IsRuntimeInput())
+
+	optional := &api.AttributeSpec{Role: api.RoleOptional}
+	assert.True(t, optional.IsRuntimeInput())
+
+	constSpec := &api.AttributeSpec{Role: api.RoleConst}
+	assert.True(t, constSpec.IsRuntimeInput())
+
+	meta := &api.AttributeSpec{Role: api.RoleMeta}
+	assert.True(t, meta.IsRuntimeInput())
+
+	output := &api.AttributeSpec{Role: api.RoleOutput}
+	assert.False(t, output.IsRuntimeInput())
+}
+
+func TestValidateMetaRole(t *testing.T) {
+	t.Run("meta_with_key", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "flow_id"},
+		}
+		assert.NoError(t, spec.Validate("meta_attr"))
+	})
+
+	t.Run("meta_without_config", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleMeta,
+		}
+		err := spec.Validate("meta_attr")
+		assert.ErrorIs(t, err, api.ErrMetaKeyRequired)
+	})
+
+	t.Run("meta_with_empty_key", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: ""},
+		}
+		err := spec.Validate("meta_attr")
+		assert.ErrorIs(t, err, api.ErrMetaKeyRequired)
+	})
+
+	t.Run("meta_with_wrong_role_config", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleMeta,
+			Meta:     &api.MetaConfig{Key: "flow_id"},
+			Optional: &api.OptionalConfig{Default: `"value"`},
+		}
+		err := spec.Validate("meta_attr")
+		assert.ErrorIs(t, err, api.ErrWrongRoleConfig)
+	})
+}
+
+func TestAccessors(t *testing.T) {
+	t.Run("RequiredMatch_with_match", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleRequired,
+			Required: &api.RequiredConfig{
+				Match: &api.ScriptConfig{Script: "$.foo"},
+			},
+		}
+		assert.Equal(t, "$.foo", spec.RequiredMatch())
+	})
+
+	t.Run("RequiredMatch_no_match", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Required: &api.RequiredConfig{},
+		}
+		assert.Empty(t, spec.RequiredMatch())
+	})
+
+	t.Run("RequiredMatch_no_required", func(t *testing.T) {
+		spec := &api.AttributeSpec{Role: api.RoleRequired}
+		assert.Empty(t, spec.RequiredMatch())
+	})
+
+	t.Run("ConstValue_with_value", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:  api.RoleConst,
+			Const: &api.ConstConfig{Value: `"fixed"`},
+		}
+		assert.Equal(t, `"fixed"`, spec.ConstValue())
+	})
+
+	t.Run("ConstValue_no_const", func(t *testing.T) {
+		spec := &api.AttributeSpec{Role: api.RoleConst}
+		assert.Empty(t, spec.ConstValue())
+	})
+
+	t.Run("MetaKey_with_key", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "flow_id"},
+		}
+		assert.Equal(t, "flow_id", spec.MetaKey())
+	})
+
+	t.Run("MetaKey_no_meta", func(t *testing.T) {
+		spec := &api.AttributeSpec{Role: api.RoleMeta}
+		assert.Empty(t, spec.MetaKey())
+	})
+
+	t.Run("OptionalDefault_with_default", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleOptional,
+			Optional: &api.OptionalConfig{Default: `"hello"`},
+		}
+		assert.Equal(t, `"hello"`, spec.OptionalDefault())
+	})
+
+	t.Run("OptionalDefault_no_optional", func(t *testing.T) {
+		spec := &api.AttributeSpec{Role: api.RoleOptional}
+		assert.Empty(t, spec.OptionalDefault())
+	})
+
+	t.Run("OptionalDeadline_with_deadline", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleOptional,
+			Optional: &api.OptionalConfig{Deadline: 5000},
+		}
+		assert.EqualValues(t, 5000, spec.OptionalDeadline())
+	})
+
+	t.Run("OptionalDeadline_no_optional", func(t *testing.T) {
+		spec := &api.AttributeSpec{Role: api.RoleOptional}
+		assert.EqualValues(t, 0, spec.OptionalDeadline())
+	})
+
+	t.Run("Collect_required_explicit", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Required: &api.RequiredConfig{Collect: api.InputCollectAll},
+		}
+		assert.Equal(t, api.InputCollectAll, spec.Collect())
+	})
+
+	t.Run("Collect_required_default", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleRequired,
+			Required: &api.RequiredConfig{},
+		}
+		assert.Equal(t, api.InputCollectFirst, spec.Collect())
+	})
+
+	t.Run("Collect_optional_explicit", func(t *testing.T) {
+		spec := &api.AttributeSpec{
+			Role:     api.RoleOptional,
+			Optional: &api.OptionalConfig{Collect: api.InputCollectLast},
+		}
+		assert.Equal(t, api.InputCollectLast, spec.Collect())
+	})
+
+	t.Run("Collect_other_role_defaults_to_first", func(t *testing.T) {
+		spec := &api.AttributeSpec{Role: api.RoleOutput}
+		assert.Equal(t, api.InputCollectFirst, spec.Collect())
+	})
+}
+
+func TestMetaConfigEqual(t *testing.T) {
+	t.Run("both_nil", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{Role: api.RoleMeta}
+		spec2 := &api.AttributeSpec{Role: api.RoleMeta}
+		assert.True(t, spec1.Equal(spec2))
+	})
+
+	t.Run("one_nil", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "flow_id"},
+		}
+		spec2 := &api.AttributeSpec{Role: api.RoleMeta}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("same_key", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "flow_id"},
+		}
+		spec2 := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "flow_id"},
+		}
+		assert.True(t, spec1.Equal(spec2))
+	})
+
+	t.Run("different_key", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "flow_id"},
+		}
+		spec2 := &api.AttributeSpec{
+			Role: api.RoleMeta,
+			Meta: &api.MetaConfig{Key: "step_id"},
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+}
+
+func TestConstConfigEqual(t *testing.T) {
+	t.Run("one_nil", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:  api.RoleConst,
+			Const: &api.ConstConfig{Value: `"x"`},
+		}
+		spec2 := &api.AttributeSpec{Role: api.RoleConst}
+		assert.False(t, spec1.Equal(spec2))
+	})
+
+	t.Run("same_value", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:  api.RoleConst,
+			Const: &api.ConstConfig{Value: `"x"`},
+		}
+		spec2 := &api.AttributeSpec{
+			Role:  api.RoleConst,
+			Const: &api.ConstConfig{Value: `"x"`},
+		}
+		assert.True(t, spec1.Equal(spec2))
+	})
+
+	t.Run("different_value", func(t *testing.T) {
+		spec1 := &api.AttributeSpec{
+			Role:  api.RoleConst,
+			Const: &api.ConstConfig{Value: `"x"`},
+		}
+		spec2 := &api.AttributeSpec{
+			Role:  api.RoleConst,
+			Const: &api.ConstConfig{Value: `"y"`},
+		}
+		assert.False(t, spec1.Equal(spec2))
+	})
+}
+
 func TestEqual(t *testing.T) {
 	spec1 := &api.AttributeSpec{
 		Role: api.RoleRequired,

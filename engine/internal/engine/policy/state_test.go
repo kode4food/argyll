@@ -36,6 +36,15 @@ func TestWorkStatusPolicy(t *testing.T) {
 	assert.True(t, policy.WorkTerminal(api.WorkFailed))
 	assert.False(t, policy.WorkTerminal(api.WorkNotCompleted))
 
+	assert.True(t, policy.WorkSucceeded(api.WorkSucceeded))
+	assert.False(t, policy.WorkSucceeded(api.WorkFailed))
+
+	assert.True(t, policy.WorkPending(api.WorkPending))
+	assert.False(t, policy.WorkPending(api.WorkActive))
+
+	assert.True(t, policy.WorkNotCompleted(api.WorkNotCompleted))
+	assert.False(t, policy.WorkNotCompleted(api.WorkSucceeded))
+
 	assert.True(t, policy.WorkClaimableForRetry(api.WorkPending))
 	assert.True(t, policy.WorkClaimableForRetry(api.WorkFailed))
 	assert.False(t, policy.WorkClaimableForRetry(api.WorkActive))
