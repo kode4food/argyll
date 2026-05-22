@@ -28,3 +28,16 @@
   min-width: 0;
   flex-shrink: 1;
 }
+
+.memoIcon {
+  display: flex;
+  align-items: center;
+  height: 0.875rem;
+  width: 0.875rem;
+  flex-shrink: 0;
+}
+
+.memoIcon svg {
+  height: 100%;
+  width: 100%;
+}

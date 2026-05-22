@@ -6,7 +6,7 @@ import TooltipSection from "@/app/components/atoms/TooltipSection";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import styles from "../StepShared/StepFooter.module.css";
 import { formatScriptPreview } from "@/utils/stepFooterUtils";
-import { getStepTypeIcon, IconMemoizable } from "@/utils/iconRegistry";
+import { getStepTypeIcon } from "@/utils/iconRegistry";
 import StepInfoDisplay, {
   type DisplayInfo,
 } from "../StepShared/StepInfoDisplay";
@@ -240,11 +240,6 @@ const Footer: React.FC<FooterProps> = ({ step, flowId, execution }) => {
         <div className={`${styles.footer} step-footer`}>
           <StepInfoDisplay displayInfo={displayInfo} />
           <div className={styles.actions}>
-            {step.memoizable && (
-              <div className={styles.memoIcon}>
-                <IconMemoizable className={styles.icon} />
-              </div>
-            )}
             <div className={styles.healthStatus}>
               {useProgress ? (
                 <div className={styles.progressContainer}>

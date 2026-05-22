@@ -4,6 +4,7 @@ import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import styles from "./StepHeader.module.css";
 import { useT } from "@/app/i18n";
+import { IconMemoizable } from "@/utils/iconRegistry";
 
 interface StepHeaderProps {
   step: Step;
@@ -26,6 +27,15 @@ const StepHeader: React.FC<StepHeaderProps> = ({ step }) => {
         </TooltipSection>
         <TooltipSection title={t("tooltip.stepId")}>{step.id}</TooltipSection>
       </Tooltip>
+      {step.memoizable && (
+        <span
+          className={`step-type-icon ${styles.memoIcon}`}
+          aria-label={t("stepEditor.memoizableLabel")}
+          title={t("stepEditor.memoizableTitle")}
+        >
+          <IconMemoizable aria-hidden="true" />
+        </span>
+      )}
     </div>
   );
 };

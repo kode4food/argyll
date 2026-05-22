@@ -2,6 +2,7 @@ import { render, screen } from "@testing-library/react";
 import StepHeader from "./StepHeader";
 import type { Step } from "@/app/api";
 import { AttributeRole, AttributeType } from "@/app/api";
+import { t } from "@/app/testUtils/i18n";
 
 describe("StepHeader", () => {
   const createStep = (
@@ -55,5 +56,13 @@ describe("StepHeader", () => {
     const { container } = render(<StepHeader step={step} />);
     const header = container.querySelector(".step-header");
     expect(header).toBeInTheDocument();
+  });
+
+  test("renders memoizable icon in header", () => {
+    const step = { ...createStep("Test", false, false), memoizable: true };
+    render(<StepHeader step={step} />);
+    expect(
+      screen.getByLabelText(t("stepEditor.memoizableLabel"))
+    ).toHaveAttribute("title", t("stepEditor.memoizableTitle"));
   });
 });

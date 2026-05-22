@@ -9,7 +9,7 @@ import {
   formatScriptPreview,
   formatScriptForTooltip,
 } from "@/utils/stepFooterUtils";
-import { getStepTypeIcon, IconMemoizable } from "@/utils/iconRegistry";
+import { getStepTypeIcon } from "@/utils/iconRegistry";
 import StepInfoDisplay, {
   type DisplayInfo,
 } from "../StepShared/StepInfoDisplay";
@@ -170,11 +170,6 @@ const Footer: React.FC<FooterProps> = ({
         <div className={`${styles.footer} step-footer`}>
           <StepInfoDisplay displayInfo={displayInfo} />
           <div className={styles.actions}>
-            {step.memoizable && (
-              <div className={styles.memoIcon}>
-                <IconMemoizable className={styles.icon} />
-              </div>
-            )}
             <div className={styles.healthStatus}>
               <HealthDot status={healthIconClass as HealthStatus} />
             </div>
