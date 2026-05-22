@@ -1,6 +1,7 @@
 import React from "react";
-import { IconStartFlow } from "@/utils/iconRegistry";
+import { IconRetry, IconStartFlow } from "@/utils/iconRegistry";
 import Spinner from "@/app/components/atoms/Spinner";
+import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
 import styles from "./FlowStartSection.module.css";
 
@@ -27,24 +28,24 @@ const FlowStartSection: React.FC<FlowStartSectionProps> = ({
     <div className={styles.section}>
       <label className={styles.label}>{t("flowCreate.startFlowLabel")}</label>
       <div className={styles.footerRow}>
-        <div className={styles.idControls}>
+        <SegmentedGroup className={styles.idGroup}>
           <input
             type="text"
             value={flowId}
             onChange={(e) => onFlowIdChange(e.target.value)}
             placeholder={t("flowCreate.flowIdPlaceholder")}
-            className={`${styles.input} ${styles.idInputFlex}`}
+            className={styles.idInputInline}
           />
           <button
             type="button"
             onClick={onGenerateId}
-            className={`${styles.buttonGenerate} ${styles.footerIconButton}`}
+            className={styles.buttonGenerateSegment}
             title={t("flowCreate.generateIdTitle")}
             aria-label={t("flowCreate.generateIdAria")}
           >
-            ↻
+            <IconRetry className={styles.startIcon} />
           </button>
-        </div>
+        </SegmentedGroup>
         <button
           onClick={onCreateFlow}
           disabled={disableStart}

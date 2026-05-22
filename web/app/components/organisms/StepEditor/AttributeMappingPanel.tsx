@@ -1,6 +1,7 @@
 import React from "react";
 import { SCRIPT_LANGUAGE_LUA, StepType } from "@/app/api";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
+import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
 import { IconMapping } from "@/utils/iconRegistry";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
@@ -71,17 +72,18 @@ const AttributeMappingPanel: React.FC<AttributeMappingPanelProps> = ({
                 })),
               ];
           return (
-            <InlineSelectDropdown
-              value={attr.mappingName || ""}
-              options={flowOptions}
-              onChange={(v) => updateAttribute(attr.id, "mappingName", v)}
-              className={formStyles.mappingInlineInput}
-              disabled={
-                isOutput
-                  ? flowOutputOptions.length === 0
-                  : flowInputOptions.length === 0
-              }
-            />
+            <SegmentedGroup className={formStyles.mappingInlineInput}>
+              <InlineSelectDropdown
+                value={attr.mappingName || ""}
+                options={flowOptions}
+                onChange={(v) => updateAttribute(attr.id, "mappingName", v)}
+                disabled={
+                  isOutput
+                    ? flowOutputOptions.length === 0
+                    : flowInputOptions.length === 0
+                }
+              />
+            </SegmentedGroup>
           );
         })()
       ) : (

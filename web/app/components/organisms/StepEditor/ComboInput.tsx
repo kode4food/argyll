@@ -1,4 +1,5 @@
 import React from "react";
+import useClickOutside from "@/app/hooks/useClickOutside";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import formStyles from "./StepEditorForm.module.css";
 
@@ -22,19 +23,7 @@ const ComboInput: React.FC<ComboInputProps> = ({
   const [open, setOpen] = React.useState(false);
   const wrapperRef = React.useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  useClickOutside(wrapperRef, () => setOpen(false), open);
 
   return (
     <div
@@ -59,16 +48,18 @@ const ComboInput: React.FC<ComboInputProps> = ({
         aria-label="Show suggestions"
       />
       {open && (
-        <div className={dropdownStyles.list} role="listbox">
+        <div
+          className={dropdownStyles.list}
+          role="listbox"
+          data-ui-overlay="dropdown"
+        >
           {suggestions.map((s) => (
             <button
               key={s}
               type="button"
               role="option"
               aria-selected={s === value}
-              className={`${dropdownStyles.item} ${
-                s === value ? dropdownStyles.itemActive : ""
-              }`}
+              className={`${dropdownStyles.item} ${s === value ? dropdownStyles.itemActive : ""}`}
               onClick={() => {
                 onChange(s);
                 setOpen(false);

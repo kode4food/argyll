@@ -1,0 +1,37 @@
+.group {
+  --segment-bg: var(--overlay-dark-30);
+  --segment-border: var(--color-dark-border);
+  --segment-radius: var(--radius-md);
+  --segment-divider: var(--color-dark-border);
+  --segment-height: 32px;
+  --segment-focus-bg: var(--segment-bg);
+  --segment-focus-border: var(--color-info);
+  --segment-focus-shadow: 0 0 0 1px
+    color-mix(in srgb, var(--color-info) 40%, transparent);
+  --segment-item-focus-bg: var(--color-info-bg);
+
+  display: flex;
+  align-items: stretch;
+  height: var(--segment-height);
+  background-color: var(--segment-bg);
+  border: 1px solid var(--segment-border);
+  border-radius: var(--segment-radius);
+  box-sizing: border-box;
+}
+
+.group:focus-within {
+  border-color: var(--segment-focus-border);
+  background-color: var(--segment-focus-bg);
+  box-shadow: var(--segment-focus-shadow);
+}
+
+.separator {
+  width: 1px;
+  background-color: var(--segment-divider);
+  flex-shrink: 0;
+  align-self: stretch;
+}
+
+.group > div:focus-within {
+  background-color: var(--segment-item-focus-bg);
+}

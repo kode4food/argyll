@@ -1,4 +1,5 @@
 import React from "react";
+import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import formStyles from "./StepEditorForm.module.css";
 
@@ -28,30 +29,25 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
   placeholder,
   value,
 }) => {
-  const [open, setOpen] = React.useState(false);
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const {
+    open,
+    setOpen,
+    highlightedIndex,
+    setHighlightedIndex,
+    wrapperRef,
+    handleKeyDown,
+  } = useDropdown(options, value, onChange);
 
   const selected = options.find((o) => o.value === value);
   const label = selected?.label ?? placeholder ?? value;
 
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
   return (
     <div
       ref={wrapperRef}
-      className={[formStyles.inlineSelect, className].filter(Boolean).join(" ")}
+      className={[formStyles.inlineSelectWrapper, className]
+        .filter(Boolean)
+        .join(" ")}
+      onKeyDown={disabled ? undefined : handleKeyDown}
     >
       <button
         type="button"
@@ -65,19 +61,20 @@ const InlineSelectDropdown: React.FC<InlineSelectDropdownProps> = ({
         {label}
       </button>
       {open && !disabled && (
-        <div className={dropdownStyles.list} role="listbox">
-          {options.map((opt) => (
+        <div
+          className={dropdownStyles.list}
+          role="listbox"
+          data-ui-overlay="dropdown"
+        >
+          {options.map((opt, index) => (
             <button
               key={opt.value}
               type="button"
               role="option"
               aria-selected={opt.value === value}
               disabled={opt.disabled}
-              className={`${dropdownStyles.item} ${
-                opt.value === value ? dropdownStyles.itemActive : ""
-              } ${opt.highlight ? dropdownStyles.itemHighlight : ""} ${
-                opt.disabled ? dropdownStyles.itemDisabled : ""
-              }`}
+              className={`${dropdownStyles.item} ${opt.value === value ? dropdownStyles.itemActive : ""} ${opt.highlight ? dropdownStyles.itemHighlight : ""} ${opt.disabled ? dropdownStyles.itemDisabled : ""} ${index === highlightedIndex ? dropdownStyles.itemHighlighted : ""}`}
+              onMouseEnter={() => setHighlightedIndex(index)}
               onClick={() => {
                 if (!opt.disabled) {
                   onChange(opt.value);

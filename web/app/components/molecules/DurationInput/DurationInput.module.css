@@ -15,9 +15,7 @@
 }
 
 .durationInput:focus-within {
-  outline: none;
   border-color: var(--color-info);
-  background-color: var(--overlay-dark-40);
 }
 
 .icon {
@@ -34,7 +32,6 @@
   color: var(--color-dark-text);
   font-size: var(--text-xs);
   font-weight: var(--font-normal);
-  outline: none;
   padding: 0;
 }
 

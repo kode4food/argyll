@@ -30,6 +30,6 @@
 }
 
 .input:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-info);
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }

@@ -83,10 +83,10 @@
   transition: var(--transition-fast);
 }
 
-.typeButton:focus {
-  outline: none;
+.typeButton:focus-visible {
   background-color: var(--overlay-dark-40);
   border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 .typeButton:hover {
@@ -105,7 +105,8 @@
   border-color: var(--color-info-light);
 }
 
-.typeButtonActive:focus {
+.typeButtonActive:focus-visible {
   background-color: var(--color-info);
   border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }

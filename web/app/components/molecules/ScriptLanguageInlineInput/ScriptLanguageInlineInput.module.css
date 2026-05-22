@@ -1,30 +1,13 @@
-.wrap {
-  display: flex;
-  align-items: center;
-  height: 32px;
-  padding: 0 10px 0 0;
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  box-sizing: border-box;
-  min-width: 0;
-}
-
-.wrap:focus-within {
-  border-color: var(--color-info);
-  background-color: var(--overlay-dark-40);
-}
-
 .languageWrapper {
   position: relative;
   flex-shrink: 0;
+  height: 100%;
 }
 
 .languageButton {
-  height: 32px;
+  height: 100%;
   padding: 0 var(--spacing-2xl) 0 10px;
   border: 0;
-  border-right: 1px solid var(--color-dark-border);
   background-color: transparent;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
@@ -42,16 +25,12 @@
   color: var(--color-info-light);
 }
 
-.languageButton:focus {
-  outline: none;
-}
-
 .input {
   flex: 1 1 0;
   min-width: 0;
   width: 100%;
   height: 100%;
-  padding: 0 0 0 10px;
+  padding: 0 var(--spacing-sm) 0 10px;
   border: 0;
   background-color: transparent;
   box-sizing: border-box;
@@ -60,6 +39,7 @@
   font-family: var(--font-mono);
 }
 
-.input:focus {
-  outline: none;
+.input::placeholder {
+  color: var(--color-dark-text);
+  opacity: 0.5;
 }

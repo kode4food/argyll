@@ -169,11 +169,6 @@
   font-size: var(--text-sm);
 }
 
-.attributeValueInput:focus {
-  outline: none;
-  box-shadow: none;
-}
-
 .jsonError {
   margin-top: var(--spacing-sm);
   padding: var(--spacing-sm);

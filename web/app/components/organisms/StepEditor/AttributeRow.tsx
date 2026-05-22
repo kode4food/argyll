@@ -7,6 +7,7 @@ import {
 } from "@/app/api";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import ScriptLanguageInlineInput from "@/app/components/molecules/ScriptLanguageInlineInput";
+import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
 import {
   IconArrayMultiple,
@@ -97,31 +98,103 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     attr.role
   );
 
+  const showForEach =
+    attr.role !== "output" &&
+    attr.role !== "meta" &&
+    attr.dataType === AttributeType.Array;
+
+  const hasValueControl = attr.role !== "output";
+  const nameClass = hasValueControl
+    ? formStyles.argNameInputFixed
+    : formStyles.argNameInput;
+
+  const typeControl = (
+    <SegmentedGroup className={formStyles.argType}>
+      <InlineSelectDropdown
+        value={attr.dataType}
+        options={dataTypeOptions}
+        onChange={(v) => updateAttribute(attr.id, "dataType", v)}
+      />
+      {showForEach && (
+        <IconDropdown
+          ariaLabel={t("stepEditor.forEachSelect")}
+          faceIcon={
+            attr.forEach ? (
+              <IconArrayMultiple className={styles.iconSm} />
+            ) : (
+              <IconArraySingle className={styles.iconSm} />
+            )
+          }
+          onChange={(v) => updateAttribute(attr.id, "forEach", v === "multi")}
+          options={[
+            {
+              value: "single",
+              label: t("stepEditor.arraySingleLabel"),
+              icon: <IconArraySingle className={styles.iconSm} />,
+            },
+            {
+              value: "multi",
+              label: t("stepEditor.arrayMultiLabel"),
+              icon: <IconArrayMultiple className={styles.iconSm} />,
+            },
+          ]}
+          value={attr.forEach ? "multi" : "single"}
+        />
+      )}
+    </SegmentedGroup>
+  );
+
+  const nameControl = canCollect ? (
+    <SegmentedGroup className={nameClass}>
+      <input
+        type="text"
+        value={attr.name}
+        onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
+        placeholder={t("stepEditor.attributeNamePlaceholder")}
+        className={formStyles.argNameInputInline}
+      />
+      <IconDropdown
+        ariaLabel={t("stepEditor.collectSelect")}
+        faceIcon={
+          <span
+            className={formStyles.collectIcon}
+            style={{
+              maskImage: `url(/icons/collect-${collect}.svg)`,
+              WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
+            }}
+          />
+        }
+        onChange={(v) => updateAttribute(attr.id, "collect", v)}
+        options={collectOptions}
+        value={collect}
+      />
+    </SegmentedGroup>
+  ) : (
+    <input
+      type="text"
+      value={attr.name}
+      onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
+      placeholder={t("stepEditor.attributeNamePlaceholder")}
+      className={`${formStyles.argInput} ${nameClass}`}
+    />
+  );
+
   return (
     <div className={formStyles.attrRow}>
       <div className={formStyles.attrRowInputs}>
-        <IconDropdown
-          ariaLabel={t("stepEditor.attrTypeSelect")}
-          faceIcon={
-            <RoleIcon className={`${styles.iconMd} ${roleClassName}`} />
-          }
-          onChange={(v) => updateAttribute(attr.id, "role", v)}
-          options={roleOptions}
-          value={attr.role}
-        />
-        <InlineSelectDropdown
-          value={attr.dataType}
-          options={dataTypeOptions}
-          onChange={(v) => updateAttribute(attr.id, "dataType", v)}
-          className={formStyles.argType}
-        />
-        <input
-          type="text"
-          value={attr.name}
-          onChange={(e) => updateAttribute(attr.id, "name", e.target.value)}
-          placeholder={t("stepEditor.attributeNamePlaceholder")}
-          className={`${formStyles.argInput} ${formStyles.argNameInput}`}
-        />
+        <SegmentedGroup className={formStyles.iconDropdownGroup}>
+          <IconDropdown
+            ariaLabel={t("stepEditor.attrTypeSelect")}
+            faceIcon={
+              <RoleIcon className={`${styles.iconMd} ${roleClassName}`} />
+            }
+            onChange={(v) => updateAttribute(attr.id, "role", v)}
+            options={roleOptions}
+            value={attr.role}
+          />
+        </SegmentedGroup>
+        {typeControl}
+        {nameControl}
         {attr.role === "meta" && (
           <ComboInput
             value={attr.metaKey || ""}
@@ -165,58 +238,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
             onChange={(ms) =>
               updateAttribute(attr.id, "deadline", ms || undefined)
             }
-            className={formStyles.argInput}
-          />
-        )}
-        {attr.role !== "output" &&
-          attr.role !== "meta" &&
-          attr.dataType === AttributeType.Array && (
-            <div className={formStyles.forEachToggleGroup}>
-              <button
-                type="button"
-                onClick={(e) => {
-                  updateAttribute(attr.id, "forEach", false);
-                  e.currentTarget.blur();
-                }}
-                className={`${formStyles.forEachToggle} ${
-                  !attr.forEach ? formStyles.forEachToggleActive : ""
-                }`}
-                title={t("stepEditor.arraySingleTitle")}
-              >
-                <IconArraySingle className={styles.iconSm} />
-                <span>{t("stepEditor.arraySingleLabel")}</span>
-              </button>
-              <button
-                type="button"
-                onClick={(e) => {
-                  updateAttribute(attr.id, "forEach", true);
-                  e.currentTarget.blur();
-                }}
-                className={`${formStyles.forEachToggle} ${
-                  attr.forEach ? formStyles.forEachToggleActive : ""
-                }`}
-                title={t("stepEditor.arrayMultiTitle")}
-              >
-                <IconArrayMultiple className={styles.iconSm} />
-                <span>{t("stepEditor.arrayMultiLabel")}</span>
-              </button>
-            </div>
-          )}
-        {canCollect && (
-          <IconDropdown
-            ariaLabel={t("stepEditor.collectSelect")}
-            faceIcon={
-              <span
-                className={formStyles.collectIcon}
-                style={{
-                  maskImage: `url(/icons/collect-${collect}.svg)`,
-                  WebkitMaskImage: `url(/icons/collect-${collect}.svg)`,
-                }}
-              />
-            }
-            onChange={(v) => updateAttribute(attr.id, "collect", v)}
-            options={collectOptions}
-            value={collect}
+            className={`${formStyles.argInput} ${formStyles.argValueInput}`}
           />
         )}
         {attr.role !== "const" && attr.role !== "meta" && (

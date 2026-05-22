@@ -1,4 +1,5 @@
 import React from "react";
+import useDropdown from "@/app/hooks/useDropdown";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import formStyles from "./StepEditorForm.module.css";
 
@@ -23,25 +24,23 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
   options,
   value,
 }) => {
-  const [open, setOpen] = React.useState(false);
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
+  const {
+    open,
+    setOpen,
+    highlightedIndex,
+    setHighlightedIndex,
+    wrapperRef,
+    handleKeyDown,
+  } = useDropdown(options, value, onChange);
 
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
+  const selected = options.find((o) => o.value === value);
 
   return (
-    <div ref={wrapperRef} className={formStyles.iconDropdownWrapper}>
+    <div
+      ref={wrapperRef}
+      className={formStyles.iconDropdownWrapper}
+      onKeyDown={handleKeyDown}
+    >
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
@@ -49,6 +48,7 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
         aria-label={ariaLabel}
         aria-expanded={open}
         aria-haspopup="listbox"
+        title={selected?.label}
       >
         {faceIcon}
       </button>
@@ -57,16 +57,16 @@ const IconDropdown: React.FC<IconDropdownProps> = ({
           className={dropdownStyles.list}
           role="listbox"
           aria-label={ariaLabel}
+          data-ui-overlay="dropdown"
         >
-          {options.map((opt) => (
+          {options.map((opt, index) => (
             <button
               key={opt.value}
               type="button"
               role="option"
               aria-selected={opt.value === value}
-              className={`${dropdownStyles.item} ${
-                opt.value === value ? dropdownStyles.itemActive : ""
-              }`}
+              className={`${dropdownStyles.item} ${opt.value === value ? dropdownStyles.itemActive : ""} ${index === highlightedIndex ? dropdownStyles.itemHighlighted : ""}`}
+              onMouseEnter={() => setHighlightedIndex(index)}
               onClick={() => {
                 onChange(opt.value);
                 setOpen(false);

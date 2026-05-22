@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
 import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
 import { useT } from "@/app/i18n";
+import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 
 const KeyboardShortcutsModal = lazy(
   () => import("@/app/components/molecules/KeyboardShortcutsModal")
@@ -47,13 +48,7 @@ const visibleFlowIDs = (menu: HTMLDivElement): string[] => {
     .filter((flowID): flowID is string => !!flowID);
 };
 
-interface FlowSelectorDropdownProps {
-  hasOverlayAction?: boolean;
-}
-
-const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
-  hasOverlayAction = false,
-}) => {
+const FlowSelectorDropdown: React.FC = () => {
   const t = useT();
   const {
     showDropdown,
@@ -210,9 +205,7 @@ const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
     <div className={styles.dropdown} ref={triggerRef}>
       <button
         onClick={() => setShowDropdown(!showDropdown)}
-        className={`${styles.select} ${
-          hasOverlayAction ? styles.selectWithOverlayAction : ""
-        }`}
+        className={styles.select}
       >
         {selectedFlow ? (
           <>
@@ -373,12 +366,12 @@ const FlowSelectorContent: React.FC = () => {
 
           <div className={styles.right}>
             <div className={styles.controls}>
-              <div className={styles.selectorControlShell}>
-                <FlowSelectorDropdown hasOverlayAction={!!selectedFlow} />
-                {selectedFlow ? (
+              <SegmentedGroup className={styles.selectorGroup}>
+                <FlowSelectorDropdown />
+                {selectedFlow && (
                   <button
                     onClick={() => navigate("/")}
-                    className={`${styles.navButton} ${styles.navButtonOverlay}`}
+                    className={styles.navButtonSegment}
                     title={t("flowSelector.backToOverview")}
                     aria-label={t("flowSelector.backToOverview")}
                   >
@@ -387,8 +380,8 @@ const FlowSelectorContent: React.FC = () => {
                       aria-hidden="true"
                     />
                   </button>
-                ) : null}
-              </div>
+                )}
+              </SegmentedGroup>
             </div>
           </div>
         </div>

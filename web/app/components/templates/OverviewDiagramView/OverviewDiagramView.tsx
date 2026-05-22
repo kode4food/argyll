@@ -38,6 +38,7 @@ import { useDiagramSelection } from "@/app/contexts/DiagramSelectionContext";
 import { useKeyboardNavigation } from "./useKeyboardNavigation";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
+import useFocusWithin from "@/app/hooks/useFocusWithin";
 import { useLayoutPlan } from "./useLayoutPlan";
 import { useTheme, useToggleTheme } from "@/app/store/themeStore";
 import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
@@ -148,38 +149,43 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     handleEscape,
   } = useKeyboardNavigation(nodes, activeGoalStepId, handleStepClick);
 
-  useKeyboardShortcuts([
-    {
-      key: "ArrowUp",
-      description: t("keyboardShortcuts.navigateUp"),
-      handler: handleArrowUp,
-    },
-    {
-      key: "ArrowDown",
-      description: t("keyboardShortcuts.navigateDown"),
-      handler: handleArrowDown,
-    },
-    {
-      key: "ArrowLeft",
-      description: t("keyboardShortcuts.navigateLeft"),
-      handler: handleArrowLeft,
-    },
-    {
-      key: "ArrowRight",
-      description: t("keyboardShortcuts.navigateRight"),
-      handler: handleArrowRight,
-    },
-    {
-      key: "Enter",
-      description: t("keyboardShortcuts.openEditor"),
-      handler: handleEnter,
-    },
-    {
-      key: "Escape",
-      description: t("keyboardShortcuts.deselectStep"),
-      handler: handleEscape,
-    },
-  ]);
+  const hasDiagramFocus = useFocusWithin(diagramContainerRef);
+
+  useKeyboardShortcuts(
+    [
+      {
+        key: "ArrowUp",
+        description: t("keyboardShortcuts.navigateUp"),
+        handler: handleArrowUp,
+      },
+      {
+        key: "ArrowDown",
+        description: t("keyboardShortcuts.navigateDown"),
+        handler: handleArrowDown,
+      },
+      {
+        key: "ArrowLeft",
+        description: t("keyboardShortcuts.navigateLeft"),
+        handler: handleArrowLeft,
+      },
+      {
+        key: "ArrowRight",
+        description: t("keyboardShortcuts.navigateRight"),
+        handler: handleArrowRight,
+      },
+      {
+        key: "Enter",
+        description: t("keyboardShortcuts.openEditor"),
+        handler: handleEnter,
+      },
+      {
+        key: "Escape",
+        description: t("keyboardShortcuts.deselectStep"),
+        handler: handleEscape,
+      },
+    ],
+    hasDiagramFocus
+  );
 
   useEffect(() => {
     if (savedViewport && reactFlowInstance) {

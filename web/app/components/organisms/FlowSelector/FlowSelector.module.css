@@ -6,39 +6,26 @@
   height: 1rem;
 }
 
-.navButton {
+.navButtonSegment {
+  flex-shrink: 0;
+  width: 2.25rem;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0 var(--spacing-xs) var(--spacing-xs) 0;
+  background-color: transparent;
+  color: var(--color-neutral-text);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-md);
-  background-color: var(--color-neutral-bg-dark);
-  color: var(--color-neutral-text);
-  border: 1px solid var(--color-neutral-border);
-  border-radius: var(--spacing-xs);
-  font-size: var(--text-sm);
-  cursor: pointer;
   transition: var(--transition-all);
-  aspect-ratio: 1;
+  box-sizing: border-box;
 }
 
-.navButtonOverlay {
-  position: absolute;
-  top: 50%;
-  right: calc(var(--selector-control-padding-x) / 2);
-  z-index: 1;
-  width: var(--selector-overlay-button-size);
-  height: var(--selector-overlay-button-size);
-  padding: 0;
-  transform: translateY(-50%);
-}
-
-.navButton:hover {
+.navButtonSegment:hover {
   background-color: var(--color-neutral-border);
-}
-
-.navButton:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-neutral-border);
+  color: var(--color-neutral-text);
 }
 
 /* Dropdown Search */
@@ -72,9 +59,8 @@
 }
 
 .dropdownSearchInput:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-info);
   border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 .dropdownSearchInput::placeholder {
@@ -218,27 +204,41 @@
   align-items: center;
 }
 
-.selectorControlShell {
-  --selector-control-padding-x: var(--spacing-md);
-  --selector-overlay-button-size: 1.75rem;
-  position: relative;
+.selectorGroup {
+  --segment-bg: transparent;
+  --segment-border: var(--color-neutral-border);
+  --segment-radius: var(--spacing-xs);
+  --segment-divider: var(--color-neutral-border);
+  --segment-height: 2.25rem;
+  --segment-focus-bg: transparent;
+  --segment-focus-border: var(--color-info);
+  --segment-focus-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--color-info) 40%, transparent);
   width: 300px;
+}
+
+.dropdown {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
 }
 
 .select {
   background: transparent;
   display: flex;
   align-items: center;
-  border: 1px solid var(--color-neutral-border);
-  border-radius: var(--spacing-xs);
-  padding: var(--spacing-md) var(--selector-control-padding-x);
+  border: 0;
+  padding: 0 var(--spacing-md);
   font-size: var(--text-sm);
   color: var(--color-neutral-text);
   cursor: pointer;
   width: 100%;
+  height: 100%;
   min-width: 0;
   text-align: left;
   appearance: none;
+  box-sizing: border-box;
 }
 
 @media (max-width: 70rem) {
@@ -258,27 +258,10 @@
   }
 }
 
-.selectWithOverlayAction {
-  padding-right: calc(
-    var(--selector-control-padding-x) + var(--selector-overlay-button-size) +
-      var(--spacing-xs)
-  );
-}
-
 .select .progress-icon {
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
   margin-right: var(--spacing-sm);
   filter: brightness(0.8);
-}
-
-.select:focus {
-  outline: none;
-  box-shadow: 0 0 0 2px var(--color-info);
-}
-
-.dropdown {
-  position: relative;
-  width: 100%;
 }

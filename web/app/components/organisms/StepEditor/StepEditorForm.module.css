@@ -100,9 +100,7 @@
 }
 
 .formControl:focus {
-  outline: none;
   border-color: var(--color-info);
-  background-color: var(--overlay-dark-40);
 }
 
 .section {
@@ -162,7 +160,6 @@
   color: var(--color-dark-text);
   font-size: var(--text-xs);
   box-sizing: border-box;
-  flex: 2;
 }
 
 .argNameInput {
@@ -170,14 +167,30 @@
   min-width: 120px;
 }
 
+.argNameInputFixed {
+  flex: 0 0 160px;
+}
+
+.argNameInputInline {
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 0 0 10px;
+  border: 0;
+  background-color: transparent;
+  color: var(--color-dark-text);
+  font-size: var(--text-xs);
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
 .argValueInput {
-  flex: 3 1 220px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .argInput:focus {
-  outline: none;
   border-color: var(--color-info);
-  background-color: var(--overlay-dark-40);
 }
 
 .argType {
@@ -187,7 +200,7 @@
 }
 
 .iconButton:focus-visible {
-  outline: none;
+  background-color: var(--color-info-bg);
   border-color: var(--color-info);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
@@ -232,21 +245,25 @@
   margin-left: 40px;
 }
 
+.iconDropdownGroup {
+  flex: 0 0 34px;
+}
+
 .iconDropdownWrapper {
   position: relative;
+  height: 100%;
   flex-shrink: 0;
 }
 
 .iconDropdownFace {
   width: 32px;
-  height: 32px;
+  height: 100%;
   padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
+  background-color: transparent;
+  border: 0;
   color: var(--color-dark-text);
   cursor: pointer;
   transition: var(--transition-fast);
@@ -255,26 +272,27 @@
 
 .iconDropdownFace:hover,
 .iconDropdownFaceOpen {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
+  color: var(--color-info-light);
 }
 
 /* InlineSelectDropdown */
 
-.inlineSelect {
+.inlineSelectWrapper {
   position: relative;
-  flex-shrink: 0;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
 }
 
 .inlineSelectButton {
-  height: 32px;
+  height: 100%;
+  width: 100%;
   padding: 0 var(--spacing-2xl) 0 10px;
-  background-color: var(--overlay-dark-30);
+  background-color: transparent;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
+  border: 0;
   color: var(--color-dark-text);
   font-size: var(--text-xs);
   font-family: inherit;
@@ -283,19 +301,11 @@
   box-sizing: border-box;
   white-space: nowrap;
   text-align: left;
-  width: 100%;
 }
 
 .inlineSelectButton:hover,
 .inlineSelectButtonOpen {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-}
-
-.inlineSelectButton:focus {
-  outline: none;
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
+  color: var(--color-info-light);
 }
 
 .inlineSelectDisabled {
@@ -318,7 +328,7 @@
 
 .comboWrapper:focus-within {
   border-color: var(--color-info);
-  background-color: var(--overlay-dark-40);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 .comboInput {
@@ -332,10 +342,6 @@
   font-size: var(--text-xs);
   font-family: inherit;
   box-sizing: border-box;
-}
-
-.comboInput:focus {
-  outline: none;
 }
 
 .comboTrigger {
@@ -357,10 +363,6 @@
 .comboTriggerOpen {
   background-color: var(--overlay-dark-40);
   border-left-color: var(--color-info);
-}
-
-.comboTrigger:focus {
-  outline: none;
 }
 
 .collectIcon {
@@ -489,8 +491,10 @@
   border-color: var(--color-info);
 }
 
-.languageButton:focus {
-  outline: none;
+.languageButton:focus-visible {
+  background-color: var(--overlay-dark-40);
+  border-color: var(--color-info);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
 .languageButtonActive {
@@ -502,58 +506,6 @@
 .languageButtonActive:hover {
   background-color: var(--color-info-light);
   border-color: var(--color-info-light);
-}
-
-.forEachToggleGroup {
-  display: flex;
-  gap: var(--spacing-xs);
-  flex-shrink: 0;
-}
-
-.forEachToggle {
-  height: 32px;
-  padding: 0 var(--spacing-sm);
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  color: var(--color-dark-text);
-  font-size: var(--text-xs);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 70px;
-  gap: var(--spacing-xs);
-  cursor: pointer;
-  transition: var(--transition-fast);
-  white-space: nowrap;
-}
-
-.forEachToggle:focus {
-  outline: none;
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-}
-
-.forEachToggle:hover {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-}
-
-.forEachToggleActive {
-  background-color: var(--color-info);
-  border-color: var(--color-info);
-  color: var(--color-white);
-}
-
-.forEachToggleActive:hover {
-  background-color: var(--color-info-light);
-  border-color: var(--color-info-light);
-}
-
-.forEachToggleActive:focus {
-  background-color: var(--color-info);
-  border-color: var(--color-info);
 }
 
 .fieldNoFlex {

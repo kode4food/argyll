@@ -2,6 +2,7 @@ import React from "react";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import { HTTPMethod } from "@/app/api";
 import { useT } from "@/app/i18n";
+import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import formStyles from "./StepEditorForm.module.css";
 import localStyles from "./StepEditorHttpConfiguration.module.css";
 import InlineSelectDropdown from "./InlineSelectDropdown";
@@ -44,17 +45,18 @@ const StepEditorHttpConfiguration: React.FC<
             <label className={formStyles.label}>
               {t("stepEditor.httpMethodLabel")}
             </label>
-            <InlineSelectDropdown
-              value={httpMethod}
-              options={[
-                { value: "POST", label: "POST" },
-                { value: "GET", label: "GET" },
-                { value: "PUT", label: "PUT" },
-                { value: "DELETE", label: "DELETE" },
-              ]}
-              onChange={(v) => setHttpMethod(v as HTTPMethod)}
-              className={localStyles.methodSelect}
-            />
+            <SegmentedGroup className={localStyles.methodSelect}>
+              <InlineSelectDropdown
+                value={httpMethod}
+                options={[
+                  { value: "POST", label: "POST" },
+                  { value: "GET", label: "GET" },
+                  { value: "PUT", label: "PUT" },
+                  { value: "DELETE", label: "DELETE" },
+                ]}
+                onChange={(v) => setHttpMethod(v as HTTPMethod)}
+              />
+            </SegmentedGroup>
           </div>
           <div className={`${formStyles.field} ${formStyles.flex1}`}>
             <label className={formStyles.label}>

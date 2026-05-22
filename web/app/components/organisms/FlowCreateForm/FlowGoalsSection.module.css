@@ -51,10 +51,6 @@
   border-color: var(--color-info);
 }
 
-.sectionActionButton:focus-visible {
-  outline: none;
-}
-
 .sectionActionIcon {
   width: 0.875rem;
   height: 0.875rem;

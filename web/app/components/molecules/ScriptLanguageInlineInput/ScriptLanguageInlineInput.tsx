@@ -4,8 +4,10 @@ import {
   SCRIPT_LANGUAGE_JPATH,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
+import useDropdown from "@/app/hooks/useDropdown";
 import { useT } from "@/app/i18n";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
+import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import styles from "./ScriptLanguageInlineInput.module.css";
 
 const SCRIPT_LANGUAGE_OPTIONS = [
@@ -36,30 +38,27 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
   title,
 }) => {
   const t = useT();
-  const [open, setOpen] = React.useState(false);
-  const wrapperRef = React.useRef<HTMLDivElement>(null);
   const activeLanguage = language || SCRIPT_LANGUAGE_JPATH;
+  const {
+    open,
+    setOpen,
+    highlightedIndex,
+    setHighlightedIndex,
+    wrapperRef,
+    handleKeyDown,
+  } = useDropdown(SCRIPT_LANGUAGE_OPTIONS, activeLanguage, onLanguageChange);
+
   const activeOption = SCRIPT_LANGUAGE_OPTIONS.find(
     (o) => o.value === activeLanguage
   );
 
-  React.useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (
-        wrapperRef.current &&
-        !wrapperRef.current.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
   return (
-    <div className={[styles.wrap, className].filter(Boolean).join(" ")}>
-      <div ref={wrapperRef} className={styles.languageWrapper}>
+    <SegmentedGroup className={className}>
+      <div
+        ref={wrapperRef}
+        className={styles.languageWrapper}
+        onKeyDown={handleKeyDown}
+      >
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -71,16 +70,19 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
           {activeOption ? t(activeOption.labelKey) : activeLanguage}
         </button>
         {open && (
-          <div className={dropdownStyles.list} role="listbox">
-            {SCRIPT_LANGUAGE_OPTIONS.map((opt) => (
+          <div
+            className={dropdownStyles.list}
+            role="listbox"
+            data-ui-overlay="dropdown"
+          >
+            {SCRIPT_LANGUAGE_OPTIONS.map((opt, index) => (
               <button
                 key={opt.value}
                 type="button"
                 role="option"
                 aria-selected={opt.value === activeLanguage}
-                className={`${dropdownStyles.item} ${
-                  opt.value === activeLanguage ? dropdownStyles.itemActive : ""
-                }`}
+                className={`${dropdownStyles.item} ${opt.value === activeLanguage ? dropdownStyles.itemActive : ""} ${index === highlightedIndex ? dropdownStyles.itemHighlighted : ""}`}
+                onMouseEnter={() => setHighlightedIndex(index)}
                 onClick={() => {
                   onLanguageChange(opt.value);
                   setOpen(false);
@@ -102,7 +104,7 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
         className={styles.input}
         title={title}
       />
-    </div>
+    </SegmentedGroup>
   );
 };
 

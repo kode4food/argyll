@@ -20,18 +20,58 @@
   gap: var(--spacing-md);
 }
 
-.idControls {
-  display: flex;
-  align-items: center;
+.idGroup {
+  --segment-bg: transparent;
+  --segment-border: var(--panel-border);
+  --segment-radius: var(--spacing-xs);
+  --segment-divider: var(--panel-border);
+  --segment-height: 2rem;
+  --segment-focus-bg: transparent;
+  --segment-focus-border: var(--color-info);
+  --segment-focus-shadow: 0 0 0 2px
+    color-mix(in srgb, var(--color-info) 40%, transparent);
   flex: 1 1 auto;
-  gap: var(--spacing-xs);
   min-width: 0;
 }
 
-.idInputFlex {
+.idInputInline {
   flex: 1;
-  height: 2rem;
+  min-width: 0;
+  height: 100%;
+  padding: 0 var(--spacing-sm);
+  border: 0;
+  background-color: transparent;
+  color: var(--panel-text);
+  font-size: var(--text-sm);
   box-sizing: border-box;
+}
+
+.idInputInline::placeholder {
+  color: var(--panel-text-muted, var(--panel-text));
+  opacity: 0.5;
+}
+
+.buttonGenerateSegment {
+  flex-shrink: 0;
+  width: 2rem;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: 0 var(--spacing-xs) var(--spacing-xs) 0;
+  background-color: transparent;
+  color: var(--panel-text);
+  font-size: var(--text-sm);
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition-all);
+  box-sizing: border-box;
+}
+
+.buttonGenerateSegment:hover {
+  background-color: var(--panel-hover);
 }
 
 .footerIconButton {
@@ -43,22 +83,6 @@
   height: 2rem;
   padding: 0;
   box-sizing: border-box;
-}
-
-.buttonGenerate {
-  border-radius: var(--spacing-xs);
-  border: 1px solid var(--panel-border);
-  background-color: transparent;
-  color: var(--panel-text);
-  padding: 0;
-  font-size: var(--text-sm);
-  line-height: 1;
-  cursor: pointer;
-  transition: var(--transition-all);
-}
-
-.buttonGenerate:hover {
-  background-color: var(--panel-hover);
 }
 
 .buttonStart {
