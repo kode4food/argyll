@@ -15,6 +15,7 @@ from argyll.types import (
     FlowConfig,
     HTTPConfig,
     InputCollect,
+    MetaConfig,
     OptionalConfig,
     RequiredConfig,
     ScriptConfig,
@@ -319,6 +320,21 @@ def test_step_builder_compensate_preserved_across_http_mutations():
     assert step.http.compensate == compensate_url
     assert step.http.method == "PUT"
     assert step.http.timeout == 5000
+
+
+def test_step_builder_with_compensate_handler():
+    client = Client()
+
+    def my_handler(ctx, inputs, outputs):
+        pass
+
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .with_compensate_handler(my_handler)
+    )
+    assert builder._compensate_handler is my_handler
 
 
 def test_step_builder_chaining():
@@ -678,6 +694,62 @@ def _make_step(**overrides):
     ],
 )
 def test_validate_step_errors(step):
+    with pytest.raises(StepValidationError):
+        _validate_step(step)
+
+
+def test_step_builder_meta():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .meta("tenant", "tenantId")
+    )
+    step = builder.build()
+    assert step.attributes["tenant"].role == AttributeRole.META
+    assert step.attributes["tenant"].meta is not None
+    assert step.attributes["tenant"].meta.key == "tenantId"
+
+
+def test_step_builder_with_for_each_optional():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .optional("tags", AttributeType.ARRAY, "[]")
+        .with_for_each("tags")
+    )
+    step = builder.build()
+    assert step.attributes["tags"].optional is not None
+    assert step.attributes["tags"].optional.for_each is True
+
+
+def test_validate_step_null_default_not_null():
+    step = _make_step(
+        attributes={
+            "flag": AttributeSpec(
+                role=AttributeRole.OPTIONAL,
+                type=AttributeType.NULL,
+                optional=OptionalConfig(default='"not-null"'),
+            )
+        }
+    )
+    with pytest.raises(StepValidationError):
+        _validate_step(step)
+
+
+def test_validate_step_meta_missing_key():
+    step = _make_step(
+        attributes={
+            "meta": AttributeSpec(
+                role=AttributeRole.META,
+                type=AttributeType.ANY,
+                meta=MetaConfig(key=""),
+            )
+        }
+    )
     with pytest.raises(StepValidationError):
         _validate_step(step)
 
