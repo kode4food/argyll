@@ -81,6 +81,11 @@ These affect the flow's execution state:
 - **work_failed**: Work item failed
 - **work_not_completed**: Work item reports not yet complete (triggers retry scheduling)
 - **retry_scheduled**: Work item retry scheduled for future time
+- **dispatch_deferred**: A node could not dispatch work, retry, or compensation locally; propagates to all nodes so one with a healthy path to the step can pick it up
+- **comp_started**: Compensation dispatched for a succeeded work item
+- **comp_succeeded**: Compensation completed successfully
+- **comp_failed**: Compensation permanently failed
+- **comp_retry_scheduled**: Compensation retry scheduled for future time
 - **attribute_set**: Step outputs added to flow state
 
 ## Event Flow Diagram

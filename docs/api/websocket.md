@@ -135,6 +135,10 @@ To unsubscribe:
 - `work_not_completed`
 - `retry_scheduled`
 - `dispatch_deferred`
+- `comp_started`
+- `comp_succeeded`
+- `comp_failed`
+- `comp_retry_scheduled`
 
 ## Examples
 
