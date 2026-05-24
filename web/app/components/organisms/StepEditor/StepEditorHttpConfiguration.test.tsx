@@ -18,10 +18,13 @@ describe("StepEditorHttpConfiguration", () => {
     endpoint: "http://localhost:8080/test",
     httpMethod: "POST" as const,
     healthCheck: "http://localhost:8080/health",
+    compensate: "",
     httpTimeout: 5000,
+    memoizable: false,
     setEndpoint: jest.fn(),
     setHttpMethod: jest.fn(),
     setHealthCheck: jest.fn(),
+    setCompensate: jest.fn(),
     setHttpTimeout: jest.fn(),
   };
 
@@ -74,5 +77,31 @@ describe("StepEditorHttpConfiguration", () => {
     expect(baseProps.setHealthCheck).toHaveBeenCalledWith(
       "http://localhost:9090/health"
     );
+  });
+
+  test("renders compensate field and calls setCompensate on change", () => {
+    render(<StepEditorHttpConfiguration {...baseProps} />);
+
+    const compensateInput = screen.getByPlaceholderText(
+      t("stepEditor.compensatePlaceholder")
+    );
+    expect(compensateInput).toBeInTheDocument();
+
+    fireEvent.change(compensateInput, {
+      target: { value: "http://localhost:8080/compensate" },
+    });
+
+    expect(baseProps.setCompensate).toHaveBeenCalledWith(
+      "http://localhost:8080/compensate"
+    );
+  });
+
+  test("disables compensate field when memoizable is true", () => {
+    render(<StepEditorHttpConfiguration {...baseProps} memoizable={true} />);
+
+    const compensateInput = screen.getByPlaceholderText(
+      t("stepEditor.compensatePlaceholder")
+    );
+    expect(compensateInput).toBeDisabled();
   });
 });

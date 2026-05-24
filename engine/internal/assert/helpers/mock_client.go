@@ -11,28 +11,33 @@ import (
 type (
 	// MockClient is a simple mock implementation of client.Client for testing
 	MockClient struct {
-		responses map[api.StepID]api.Args
-		errors    map[api.StepID]error
-		handlers  map[api.StepID]MockHandler
-		metadata  map[api.StepID][]api.Metadata
-		invokedCh map[api.StepID]chan struct{}
-		invoked   []api.StepID
-		mu        sync.Mutex
+		responses    map[api.StepID]api.Args
+		errors       map[api.StepID]error
+		handlers     map[api.StepID]MockHandler
+		compHandlers map[api.StepID]MockCompHandler
+		compErrors   map[api.StepID]error
+		metadata     map[api.StepID][]api.Metadata
+		invokedCh    map[api.StepID]chan struct{}
+		invoked      []api.StepID
+		mu           sync.Mutex
 	}
 
-	MockHandler func(*api.Step, api.Args, api.Metadata) (api.Args, error)
+	MockHandler     func(*api.Step, api.Args, api.Metadata) (api.Args, error)
+	MockCompHandler func(*api.Step, api.Args, api.Args, api.Metadata) error
 )
 
 // NewMockClient creates a mock HTTP client that allows setting responses and
 // errors for specific step IDs
 func NewMockClient() *MockClient {
 	return &MockClient{
-		responses: map[api.StepID]api.Args{},
-		errors:    map[api.StepID]error{},
-		handlers:  map[api.StepID]MockHandler{},
-		invoked:   []api.StepID{},
-		metadata:  map[api.StepID][]api.Metadata{},
-		invokedCh: map[api.StepID]chan struct{}{},
+		responses:    map[api.StepID]api.Args{},
+		errors:       map[api.StepID]error{},
+		handlers:     map[api.StepID]MockHandler{},
+		compHandlers: map[api.StepID]MockCompHandler{},
+		compErrors:   map[api.StepID]error{},
+		invoked:      []api.StepID{},
+		metadata:     map[api.StepID][]api.Metadata{},
+		invokedCh:    map[api.StepID]chan struct{}{},
 	}
 }
 
@@ -64,6 +69,38 @@ func (c *MockClient) Invoke(
 		return out, nil
 	}
 	return nil, nil
+}
+
+// InvokeCompensate records the compensate invocation and returns any
+// configured error
+func (c *MockClient) InvokeCompensate(
+	step *api.Step, inputs api.Args, outputs api.Args, md api.Metadata,
+) error {
+	c.mu.Lock()
+	h := c.compHandlers[step.ID]
+	err := c.compErrors[step.ID]
+	c.mu.Unlock()
+
+	if h != nil {
+		return h(step, inputs, outputs, md)
+	}
+	return err
+}
+
+// SetCompHandler configures a custom compensation handler for a step
+func (c *MockClient) SetCompHandler(
+	stepID api.StepID, handler MockCompHandler,
+) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.compHandlers[stepID] = handler
+}
+
+// SetCompError configures the mock to return an error on compensation
+func (c *MockClient) SetCompError(stepID api.StepID, err error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.compErrors[stepID] = err
 }
 
 // SetResponse configures the mock to return specific outputs for a step

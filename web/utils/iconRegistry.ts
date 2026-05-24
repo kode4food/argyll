@@ -17,7 +17,7 @@ import {
   CircleSlash,
   Clock,
   Command,
-  Database,
+  NotebookPen,
   FileCode2,
   Filter,
   Globe,
@@ -26,7 +26,6 @@ import {
   Loader2,
   Lock,
   Maximize,
-  Minus,
   MinusCircle,
   Moon,
   Play,
@@ -57,8 +56,6 @@ export interface ArgIconConfig {
 
 export const IconAdd = Plus;
 export const IconAddStep = Plus;
-export const IconZoomIn = Plus;
-export const IconZoomOut = Minus;
 export const IconFitView = Maximize;
 export const IconRemove = Trash2;
 export const IconSearch = Search;
@@ -84,7 +81,7 @@ export const IconConnectionReconnecting = RefreshCw;
 export const IconConnectionError = AlertCircle;
 export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
-export const IconMemoizable = Database;
+export const IconMemoizable = NotebookPen;
 export const IconMapping = ArrowRightLeft;
 export const IconAttributeMatch = Filter;
 export const IconExpandDown = ChevronDown;

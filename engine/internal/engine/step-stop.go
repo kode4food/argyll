@@ -27,14 +27,18 @@ func (tx *flowTx) checkStepCompletion(stepID api.StepID) (bool, error) {
 	}
 
 	if completion.Failed {
-		return true, events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
+		if err := events.Raise(tx.FlowAggregator, api.EventTypeStepFailed,
 			api.StepFailedEvent{
 				FlowID: tx.flowID,
 				StepID: stepID,
 				Error:  completion.FailureError,
 				Inputs: ex.Inputs,
 			},
-		)
+		); err != nil {
+			return true, err
+		}
+		step := fl.Plan.Steps[stepID]
+		return true, tx.startPendingCompensations(step, ex)
 	}
 
 	st := fl.Plan.Steps[stepID]

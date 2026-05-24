@@ -626,7 +626,7 @@ func TestRetryScheduled(t *testing.T) {
 	now := scheduler.Now()
 	nextRetry := now.Add(5 * time.Second)
 
-	eventData := api.RetryScheduledEvent{
+	eventData := api.WorkRetryScheduledEvent{
 		StepID:      "step1",
 		Token:       "token1",
 		RetryCount:  1,
@@ -639,7 +639,7 @@ func TestRetryScheduled(t *testing.T) {
 	event := &timebox.Event{
 		Timestamp:   now,
 		AggregateID: events.FlowKey("test-flow"),
-		Type:        timebox.EventType(api.EventTypeRetryScheduled),
+		Type:        timebox.EventType(api.EventTypeWorkRetryScheduled),
 		Data:        data,
 	}
 

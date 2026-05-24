@@ -211,6 +211,7 @@ class HTTPConfig:
     endpoint: str
     method: str = ""
     health_check: str = ""
+    compensate: str = ""
     timeout: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
@@ -220,6 +221,8 @@ class HTTPConfig:
             result["method"] = self.method
         if self.health_check:
             result["health_check"] = self.health_check
+        if self.compensate:
+            result["compensate"] = self.compensate
         if self.timeout > 0:
             result["timeout"] = self.timeout
         return result

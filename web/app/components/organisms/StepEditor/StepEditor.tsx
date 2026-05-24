@@ -70,6 +70,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setHttpMethod,
     healthCheck,
     setHealthCheck,
+    compensate,
+    setCompensate,
     httpTimeout,
     setHttpTimeout,
     flowGoals,
@@ -232,10 +234,13 @@ const StepEditor: React.FC<StepEditorProps> = ({
                     endpoint={endpoint}
                     httpMethod={httpMethod}
                     healthCheck={healthCheck}
+                    compensate={compensate}
                     httpTimeout={httpTimeout}
+                    memoizable={memoizable}
                     setEndpoint={setEndpoint}
                     setHttpMethod={setHttpMethod}
                     setHealthCheck={setHealthCheck}
+                    setCompensate={setCompensate}
                     setHttpTimeout={setHttpTimeout}
                   />
                 )}

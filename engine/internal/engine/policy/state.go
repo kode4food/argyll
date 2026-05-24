@@ -54,9 +54,12 @@ func WorkActive(status api.WorkStatus) bool {
 
 // WorkBlocksFlowDeactivation reports whether a work item still prevents a
 // terminal flow from being deactivated. Pending work can still be claimed or
-// cancelled, and active work may still report back
+// cancelled, active work may still report back, and compensating work must
+// finish before the flow is considered fully settled
 func WorkBlocksFlowDeactivation(status api.WorkStatus) bool {
-	return status == api.WorkPending || status == api.WorkActive
+	return status == api.WorkPending ||
+		status == api.WorkActive ||
+		status == api.WorkCompensating
 }
 
 // WorkTerminal reports whether a work item has a final success or failure
@@ -85,4 +88,14 @@ func WorkNotCompleted(status api.WorkStatus) bool {
 // the work item for dispatch ownership
 func WorkClaimableForRetry(status api.WorkStatus) bool {
 	return status == api.WorkPending || status == api.WorkFailed
+}
+
+// WorkCompActive reports whether a work item is in the compensation phase
+func WorkCompActive(status api.WorkStatus) bool {
+	return status == api.WorkCompensating
+}
+
+// WorkCompTerminal reports whether a work item's compensation has settled
+func WorkCompTerminal(status api.WorkStatus) bool {
+	return status == api.WorkCompensated || status == api.WorkCompFailed
 }

@@ -241,7 +241,7 @@ func WorkFailed(steps ...api.FlowStep) EventFilter {
 // WorkRetryScheduled matches retry scheduled events for flow steps
 func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(
-		Type(api.EventTypeRetryScheduled),
+		Type(api.EventTypeWorkRetryScheduled),
 		FlowSteps(steps...),
 	)
 }
@@ -249,15 +249,35 @@ func WorkRetryScheduled(steps ...api.FlowStep) EventFilter {
 // WorkRetryScheduledAny matches retry scheduled events for flow steps
 func WorkRetryScheduledAny(steps ...api.FlowStep) EventFilter {
 	return And(
-		Type(api.EventTypeRetryScheduled),
+		Type(api.EventTypeWorkRetryScheduled),
 		FlowStepAny(steps...),
 	)
+}
+
+// CompStarted matches comp started events for the provided flow steps
+func CompStarted(steps ...api.FlowStep) EventFilter {
+	return And(Type(api.EventTypeCompStarted), FlowSteps(steps...))
+}
+
+// CompSucceeded matches comp succeeded events for the provided flow steps
+func CompSucceeded(steps ...api.FlowStep) EventFilter {
+	return And(Type(api.EventTypeCompSucceeded), FlowSteps(steps...))
+}
+
+// CompFailed matches comp failed events for the provided flow steps
+func CompFailed(steps ...api.FlowStep) EventFilter {
+	return And(Type(api.EventTypeCompFailed), FlowSteps(steps...))
+}
+
+// CompRetryScheduled matches comp retry scheduled events for flow steps
+func CompRetryScheduled(steps ...api.FlowStep) EventFilter {
+	return And(Type(api.EventTypeCompRetryScheduled), FlowSteps(steps...))
 }
 
 // WorkRetryScheduledDistinct matches one retry scheduled event per work token
 func WorkRetryScheduledDistinct(step api.FlowStep) EventFilter {
 	return And(
-		Type(api.EventTypeRetryScheduled),
+		Type(api.EventTypeWorkRetryScheduled),
 		FlowStepDistinctTokens(step),
 	)
 }

@@ -170,7 +170,7 @@ func TestWrapperFilters(t *testing.T) {
 	}
 	workEv := func(typ api.EventType, tkn api.Token) *timebox.Event {
 		return newEvent(typ, events.FlowKey(id),
-			api.RetryScheduledEvent{
+			api.WorkRetryScheduledEvent{
 				FlowID: fs.FlowID,
 				StepID: fs.StepID,
 				Token:  tkn,
@@ -234,18 +234,18 @@ func TestWrapperFilters(t *testing.T) {
 	assert.True(t, wait.WorkSucceeded(fs)(stepEv(api.EventTypeWorkSucceeded)))
 	assert.True(t, wait.WorkFailed(fs)(stepEv(api.EventTypeWorkFailed)))
 	assert.True(t, wait.WorkRetryScheduled(fs)(
-		stepEv(api.EventTypeRetryScheduled),
+		stepEv(api.EventTypeWorkRetryScheduled),
 	))
 	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(
-		api.EventTypeRetryScheduled,
+		api.EventTypeWorkRetryScheduled,
 	)))
 	assert.True(t, wait.WorkRetryScheduledAny(fs)(stepEv(
-		api.EventTypeRetryScheduled,
+		api.EventTypeWorkRetryScheduled,
 	)))
 	distinct := wait.WorkRetryScheduledDistinct(fs)
-	assert.True(t, distinct(workEv(api.EventTypeRetryScheduled, "one")))
-	assert.False(t, distinct(workEv(api.EventTypeRetryScheduled, "one")))
-	assert.True(t, distinct(workEv(api.EventTypeRetryScheduled, "two")))
+	assert.True(t, distinct(workEv(api.EventTypeWorkRetryScheduled, "one")))
+	assert.False(t, distinct(workEv(api.EventTypeWorkRetryScheduled, "one")))
+	assert.True(t, distinct(workEv(api.EventTypeWorkRetryScheduled, "two")))
 }
 
 func TestWaitForEventFlowTerminal(t *testing.T) {

@@ -129,6 +129,17 @@ const Footer: React.FC<FooterProps> = ({
           </TooltipSection>
         );
       }
+
+      if (step.http.compensate) {
+        sections.push(
+          <TooltipSection
+            key="compensate"
+            title={t("overviewStep.compensateUrl")}
+          >
+            {step.http.compensate}
+          </TooltipSection>
+        );
+      }
     }
 
     sections.push(

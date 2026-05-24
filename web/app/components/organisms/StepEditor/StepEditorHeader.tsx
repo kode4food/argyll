@@ -1,5 +1,6 @@
 import React from "react";
 import { useT } from "@/app/i18n";
+import { IconMemoizable } from "@/utils/iconRegistry";
 import styles from "./StepEditor.module.css";
 
 interface StepEditorHeaderProps {
@@ -28,6 +29,9 @@ const StepEditorHeader: React.FC<StepEditorHeaderProps> = ({
           className={styles.headerCheckboxLabel}
           title={t("stepEditor.memoizableTitle")}
         >
+          <span className={styles.iconMd}>
+            <IconMemoizable aria-hidden="true" />
+          </span>
           <span>{t("stepEditor.memoizableLabel")}</span>
           <input
             type="checkbox"

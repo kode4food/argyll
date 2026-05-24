@@ -66,11 +66,22 @@ This keeps startup recovery broad enough to catch persisted in-flight flows afte
 
 If a work item fails permanently, the step fails. If a goal step fails, the flow fails. Non-goal step failure can still cause other steps to become unreachable, which may fail the flow depending on the execution plan.
 
+## Compensation retries
+
+When a step has a `compensate` endpoint configured, compensation attempts use
+the same `work_config` retry settings as normal work execution. The engine
+treats compensation `5xx` responses as transient (`work_not_completed`) and
+retries with the configured backoff. When `max_retries` is exhausted, the
+compensation is marked permanently failed (`comp_failed`).
+
+See [Compensation](./compensation.md) for full details.
+
 ## Design tips
 
 - Use small fixed backoff for quick retry of flaky dependencies.
 - Use exponential backoff when dealing with rate limits or unstable services.
-- Keep `max_retries` low unless your step is idempotent (typically by honoring `receipt_token`) and you can tolerate long recovery times.
+- Keep `max_retries` low unless your step is idempotent (typically by honoring
+  `receipt_token`) and you can tolerate long recovery times.
 - Prefer HTTP 5xx (or transient transport errors) when work should be retried.
 
 ## Observability

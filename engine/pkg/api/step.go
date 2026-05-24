@@ -44,6 +44,7 @@ type (
 	HTTPConfig struct {
 		Method      string `json:"method,omitempty"`
 		Endpoint    string `json:"endpoint"`
+		Compensate  string `json:"compensate,omitempty"`
 		HealthCheck string `json:"health_check,omitempty"`
 		Timeout     int64  `json:"timeout"`
 	}
@@ -138,6 +139,12 @@ var (
 	ErrMaxBackoffTooSmall    = errors.New("max_backoff must be >= backoff")
 	ErrWorkNotCompleted      = errors.New("work not completed")
 	ErrMarshalStep           = errors.New("failed to marshal step definition")
+	ErrCompensateMemoizable  = errors.New(
+		"compensate not allowed for memoizable steps",
+	)
+	ErrUnknownCompensateURLParam = errors.New(
+		"compensate URL contains unknown parameter",
+	)
 )
 
 var (
@@ -385,7 +392,13 @@ func (s *Step) validateHTTPConfig() error {
 	if !validHTTPMethods.Contains(method) {
 		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
 	}
-	return s.validateEndpointParams()
+	if s.HTTP.Compensate != "" && s.Memoizable {
+		return ErrCompensateMemoizable
+	}
+	if err := s.validateEndpointParams(); err != nil {
+		return err
+	}
+	return s.validateCompensateParams()
 }
 
 func (s *Step) validateEndpointParams() error {
@@ -408,6 +421,33 @@ func (s *Step) validateEndpointParams() error {
 			continue
 		}
 		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
+	}
+	return nil
+}
+
+func (s *Step) validateCompensateParams() error {
+	if s.HTTP.Compensate == "" {
+		return nil
+	}
+	params := endpointParams(s.HTTP.Compensate)
+	if params.IsEmpty() {
+		return nil
+	}
+
+	known := util.Set[string]{}
+	for name, attr := range s.Attributes {
+		if !attr.IsInput() && !attr.IsOutput() {
+			continue
+		}
+		mapped, _ := s.MappedName(name)
+		known.Add(string(mapped))
+	}
+
+	for param := range params {
+		if known.Contains(param) {
+			continue
+		}
+		return fmt.Errorf("%w: %q", ErrUnknownCompensateURLParam, param)
 	}
 	return nil
 }
@@ -562,6 +602,7 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 	return equalWithNilCheck(h, other, func() bool {
 		return h.Endpoint == other.Endpoint &&
+			h.Compensate == other.Compensate &&
 			h.DefaultedMethod() == other.DefaultedMethod() &&
 			h.HealthCheck == other.HealthCheck &&
 			h.Timeout == other.Timeout

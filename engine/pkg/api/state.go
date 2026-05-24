@@ -124,6 +124,9 @@ const (
 	WorkSucceeded    WorkStatus = "succeeded"
 	WorkFailed       WorkStatus = "failed"
 	WorkNotCompleted WorkStatus = "not_completed"
+	WorkCompensating WorkStatus = "compensating"
+	WorkCompensated  WorkStatus = "compensated"
+	WorkCompFailed   WorkStatus = "comp_failed"
 )
 
 const (

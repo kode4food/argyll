@@ -50,14 +50,20 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 		return err
 	}
 
+	e.recoverCompensations(fl)
+
 	if policy.FlowTerminal(fl.Status) {
 		return nil
 	}
 
-	e.recoverTimeouts(fl)
-	e.recoverDispatch(fl)
-	e.recoverRetries(fl)
+	e.recoverWork(fl)
 	return nil
+}
+
+func (e *Engine) recoverWork(flow api.FlowState) {
+	e.recoverTimeouts(flow)
+	e.recoverWorkDispatch(flow)
+	e.recoverRetries(flow)
 }
 
 // FindRetrySteps identifies all steps in a flow that have work items that
@@ -92,14 +98,12 @@ func (e *Engine) recoverRetries(flow api.FlowState) {
 	for sid := range steps {
 		ex := flow.Executions[sid]
 		for tkn, work := range ex.WorkItems {
-			retryAt, ok := policy.RecoverableDeadline(ex, work, now)
-			if !ok {
-				continue
+			if retryAt, ok := policy.RecoverableDeadline(ex, work, now); ok {
+				e.scheduleRetryTask(api.FlowStep{
+					FlowID: flow.ID,
+					StepID: sid,
+				}, tkn, retryAt)
 			}
-			e.scheduleRetryTask(api.FlowStep{
-				FlowID: flow.ID,
-				StepID: sid,
-			}, tkn, retryAt)
 		}
 	}
 }

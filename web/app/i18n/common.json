@@ -5,6 +5,7 @@
   "stepEditor.endpointPlaceholder": "http://localhost:8080/process",
   "stepEditor.endpointPlaceholderGet": "https://api.example.com/items/{item_id}",
   "stepEditor.healthCheckPlaceholder": "http://localhost:8080/health",
+  "stepEditor.compensatePlaceholder": "http://localhost:8080/compensate",
   "stepEditor.mappingScriptPlaceholderAle": "(* value 2)",
   "stepEditor.mappingScriptPlaceholderJPath": "$.value",
   "stepEditor.mappingScriptPlaceholderLua": "return (value or 0) * 2",

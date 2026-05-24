@@ -19,6 +19,69 @@ servers:
         default: "8081"
 
 paths:
+  /{compensateEndpoint}:
+    post:
+      summary: Compensate Work Item
+      description: |
+        Called by the engine when a step fails after one or more work items
+        have already succeeded. The engine sends the original inputs and outputs
+        for the work item so the handler can undo the completed work.
+
+        The engine sends this request only when `http.compensate` is configured
+        on the step. URL placeholders (`{param}`) are resolved from a merged
+        view of outputs and inputs, with outputs taking priority.
+
+        Use `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` as
+        the idempotency key for the compensation side effect.
+
+        - 2xx: compensation succeeded.
+        - 5xx or transport error: transient failure; engine retries using the
+          step's `work_config` backoff settings.
+        - 4xx: permanent compensation failure; engine marks the work item
+          `comp_failed`.
+      operationId: compensateWorkItem
+      tags:
+        - Step Execution
+      parameters:
+        - name: compensateEndpoint
+          in: path
+          required: true
+          schema:
+            type: string
+          example: refund
+        - $ref: "#/components/parameters/ArgyllFlowID"
+        - $ref: "#/components/parameters/ArgyllStepID"
+        - $ref: "#/components/parameters/ArgyllReceiptToken"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CompensateArgs"
+            examples:
+              refund:
+                summary: Refund a payment
+                value:
+                  input:
+                    amount: 49.99
+                  output:
+                    charge_id: "ch_abc123"
+      responses:
+        "200":
+          description: Compensation completed successfully.
+        "204":
+          description: Compensation completed successfully with no body.
+        "400":
+          $ref: "#/components/responses/Problem"
+        "404":
+          $ref: "#/components/responses/Problem"
+        "422":
+          $ref: "#/components/responses/Problem"
+        "500":
+          $ref: "#/components/responses/Problem"
+        "503":
+          $ref: "#/components/responses/Problem"
+
   /{stepEndpoint}:
     post:
       summary: Execute Step
@@ -131,6 +194,24 @@ components:
       example:
         input_text: "Hello World"
         format: "uppercase"
+    CompensateArgs:
+      type: object
+      description: |
+        Request body sent to the compensate endpoint. Contains the original
+        inputs and outputs for the work item being compensated.
+      properties:
+        input:
+          $ref: "#/components/schemas/Args"
+        output:
+          $ref: "#/components/schemas/Args"
+      required:
+        - input
+        - output
+      example:
+        input:
+          amount: 49.99
+        output:
+          charge_id: "ch_abc123"
     ProblemDetails:
       type: object
       description: RFC 9457 Problem Details response.
@@ -178,3 +259,4 @@ x-implementation-notes: |
   Permanent failure: return 4xx with `Content-Type: application/problem+json`.
   Retryable failure: return 5xx, timeout, or close the connection; Argyll records the work item as not completed and applies retry policy.
   Async completion: POST the same success output object or problem details object to `Argyll-Webhook-URL`.
+  Compensation: when `http.compensate` is configured, the engine POSTs {"input": ..., "output": ...} to the resolved compensate URL for each succeeded work item when the step fails. Use the receipt token as the idempotency key. Return 2xx on success, 5xx for transient failures (retried), 4xx for permanent failures.

@@ -11,10 +11,13 @@ interface StepEditorHttpConfigurationProps {
   endpoint: string;
   httpMethod: HTTPMethod;
   healthCheck: string;
+  compensate: string;
   httpTimeout: number;
+  memoizable: boolean;
   setEndpoint: (value: string) => void;
   setHttpMethod: (value: HTTPMethod) => void;
   setHealthCheck: (value: string) => void;
+  setCompensate: (value: string) => void;
   setHttpTimeout: (value: number) => void;
 }
 
@@ -24,10 +27,13 @@ const StepEditorHttpConfiguration: React.FC<
   endpoint,
   httpMethod,
   healthCheck,
+  compensate,
   httpTimeout,
+  memoizable,
   setEndpoint,
   setHttpMethod,
   setHealthCheck,
+  setCompensate,
   setHttpTimeout,
 }) => {
   const t = useT();
@@ -87,6 +93,24 @@ const StepEditorHttpConfiguration: React.FC<
             onChange={(e) => setHealthCheck(e.target.value)}
             placeholder={t("stepEditor.healthCheckPlaceholder")}
             className={formStyles.formControl}
+          />
+        </div>
+        <div className={formStyles.field}>
+          <label className={formStyles.label}>
+            {t("stepEditor.compensateLabel")}
+          </label>
+          <input
+            type="text"
+            value={compensate}
+            onChange={(e) => setCompensate(e.target.value)}
+            placeholder={t("stepEditor.compensatePlaceholder")}
+            className={formStyles.formControl}
+            disabled={memoizable}
+            title={
+              memoizable
+                ? t("stepEditor.compensateDisabledMemoizable")
+                : undefined
+            }
           />
         </div>
       </div>

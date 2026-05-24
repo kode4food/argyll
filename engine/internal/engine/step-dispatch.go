@@ -13,7 +13,7 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-const stepDispatchBackoff = 1 * time.Second
+const localDispatchBackoff = 1 * time.Second
 
 func (e *Engine) HandleCommitted(evs ...*timebox.Event) {
 	for _, ev := range evs {
@@ -34,7 +34,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 			FlowID: data.FlowID,
 			StepID: data.StepID,
 		}
-		e.scheduleDispatch(fs, e.Now())
+		e.scheduleWorkDispatch(fs, e.Now())
 	case api.EventTypeDispatchDeferred:
 		data, err := timebox.GetEventValue[api.DispatchDeferredEvent](ev)
 		if err != nil {
@@ -47,9 +47,11 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 			FlowID: data.FlowID,
 			StepID: data.StepID,
 		}
-		e.scheduleDispatch(fs, e.Now())
-	case api.EventTypeRetryScheduled:
-		data, err := timebox.GetEventValue[api.RetryScheduledEvent](ev)
+		now := e.Now()
+		e.scheduleWorkDispatch(fs, now)
+		e.scheduleDispatchRecovery(fs, now)
+	case api.EventTypeWorkRetryScheduled:
+		data, err := timebox.GetEventValue[api.WorkRetryScheduledEvent](ev)
 		if err != nil {
 			slog.Error("Failed to decode retry scheduled event",
 				log.Error(err))
@@ -63,27 +65,42 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 			return
 		}
 		e.scheduleRetryTask(fs, data.Token, data.NextRetryAt)
+	case api.EventTypeCompRetryScheduled:
+		data, err := timebox.GetEventValue[api.CompRetryScheduledEvent](ev)
+		if err != nil {
+			slog.Error("Failed to decode comp retry scheduled event",
+				log.Error(err))
+			return
+		}
+		fs := api.FlowStep{
+			FlowID: data.FlowID,
+			StepID: data.StepID,
+		}
+		if !e.canDispatchLocally(fs.StepID) {
+			return
+		}
+		e.scheduleCompensationTask(fs, data.Token, data.NextRetryAt)
 	default:
 		return
 	}
 }
 
-func (e *Engine) recoverDispatch(flow api.FlowState) {
-	steps := e.findDispatchSteps(flow)
+func (e *Engine) recoverWorkDispatch(flow api.FlowState) {
+	steps := e.findWorkDispatchSteps(flow)
 	if steps.IsEmpty() {
 		return
 	}
 
 	now := e.Now()
 	for sid := range steps {
-		e.scheduleDispatch(api.FlowStep{
+		e.scheduleWorkDispatch(api.FlowStep{
 			FlowID: flow.ID,
 			StepID: sid,
 		}, now)
 	}
 }
 
-func (e *Engine) findDispatchSteps(state api.FlowState) util.Set[api.StepID] {
+func (e *Engine) findWorkDispatchSteps(state api.FlowState) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 	now := e.Now()
 
@@ -95,7 +112,7 @@ func (e *Engine) findDispatchSteps(state api.FlowState) util.Set[api.StepID] {
 		if !ok {
 			continue
 		}
-		if hasReadyPendingDispatch(step, ex, now) {
+		if hasReadyPendingWork(step, ex, now) {
 			steps.Add(sid)
 		}
 	}
@@ -103,7 +120,7 @@ func (e *Engine) findDispatchSteps(state api.FlowState) util.Set[api.StepID] {
 	return steps
 }
 
-func hasReadyPendingDispatch(
+func hasReadyPendingWork(
 	step *api.Step, ex api.ExecutionState, when time.Time,
 ) bool {
 	limit := policy.StepParallelism(step)
@@ -124,17 +141,17 @@ func hasReadyPendingDispatch(
 	return false
 }
 
-func (e *Engine) scheduleDispatch(fs api.FlowStep, at time.Time) {
-	e.ScheduleTask(dispatchKey(fs), at, func() error {
-		err := e.dispatch(fs)
+func (e *Engine) scheduleWorkDispatch(fs api.FlowStep, at time.Time) {
+	e.ScheduleTask(workDispatchKey(fs), at, func() error {
+		err := e.dispatchWork(fs)
 		if err != nil {
-			e.scheduleDispatch(fs, e.Now().Add(stepDispatchBackoff))
+			e.scheduleWorkDispatch(fs, e.Now().Add(localDispatchBackoff))
 		}
 		return err
 	})
 }
 
-func (e *Engine) dispatch(fs api.FlowStep) error {
+func (e *Engine) dispatchWork(fs api.FlowStep) error {
 	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
 		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
@@ -153,10 +170,10 @@ func (e *Engine) dispatch(fs api.FlowStep) error {
 		inputs := ex.Inputs
 		meta := fl.Metadata
 
-		if hasReadyPendingDispatch(step, ex, tx.Now()) &&
+		if hasReadyPendingWork(step, ex, tx.Now()) &&
 			!tx.canDispatchLocally(step.ID) {
 			tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-				tx.scheduleDispatch(fs, tx.Now().Add(stepDispatchBackoff))
+				tx.scheduleWorkDispatch(fs, tx.Now().Add(localDispatchBackoff))
 			})
 			return nil
 		}
@@ -176,7 +193,44 @@ func (e *Engine) dispatch(fs api.FlowStep) error {
 	})
 }
 
-func dispatchKey(fs api.FlowStep) []string {
+func (e *Engine) scheduleDispatchRecovery(fs api.FlowStep, at time.Time) {
+	key := []string{"dispatch-recovery", string(fs.FlowID), string(fs.StepID)}
+	e.ScheduleTask(key, at, func() error {
+		return e.runDispatchRecovery(fs)
+	})
+}
+
+func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
+	fl, err := e.GetFlowState(fs.FlowID)
+	if err != nil || fl.ID == "" || policy.FlowTerminal(fl.Status) {
+		return err
+	}
+
+	now := e.Now()
+	ex := fl.Executions[fs.StepID]
+	step, ok := fl.Plan.Steps[fs.StepID]
+	if !ok {
+		return nil
+	}
+
+	canCompensate := policy.StepCanCompensate(step)
+	for tkn, work := range ex.WorkItems {
+		if canCompensate && policy.WorkCompActive(work.Status) {
+			retryAt := work.NextRetryAt
+			if retryAt.IsZero() || retryAt.Before(now) {
+				retryAt = now
+			}
+			e.scheduleCompensationTask(fs, tkn, retryAt)
+		}
+		if retryAt, ok := policy.RecoverableDeadline(ex, work, now); ok {
+			e.scheduleRetryTask(fs, tkn, retryAt)
+		}
+	}
+
+	return nil
+}
+
+func workDispatchKey(fs api.FlowStep) []string {
 	return []string{"dispatch", string(fs.FlowID), string(fs.StepID)}
 }
 

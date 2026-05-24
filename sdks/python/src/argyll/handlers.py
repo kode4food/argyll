@@ -4,7 +4,7 @@ import os
 import time
 import traceback
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Callable
+from typing import TYPE_CHECKING, Any, Callable, Optional
 
 import requests
 from flask import Flask, jsonify, request
@@ -91,10 +91,14 @@ class AsyncContext:
 
 
 StepHandler = Callable[[StepContext, Args], Args]
+CompensateHandler = Callable[[StepContext, Args, Args], None]
 
 
 def create_step_server(
-    client: "Client", builder: "StepBuilder", handler: StepHandler
+    client: "Client",
+    builder: "StepBuilder",
+    handler: StepHandler,
+    compensate_handler: Optional[CompensateHandler] = None,
 ) -> None:
     """Create and start Flask server for step execution."""
     port_str = os.getenv("STEP_PORT", "8081")
@@ -106,6 +110,12 @@ def create_step_server(
     health_endpoint = f"http://{hostname}:{port}/health"
 
     builder = builder.with_endpoint(endpoint).with_health_check(health_endpoint)
+
+    if compensate_handler is not None and not (
+        builder._http and builder._http.compensate
+    ):
+        compensate_url = f"http://{hostname}:{port}/{step_id}/compensate"
+        builder = builder.with_compensate(compensate_url)
 
     step = builder.build()
     registered = False
@@ -154,6 +164,36 @@ def create_step_server(
             tb = traceback.format_exc()
             print(f"Unhandled step server error: {tb}")
             return jsonify({"error": "Internal server error"}), 500
+
+    if compensate_handler is not None:
+        _ch = compensate_handler
+
+        @app.route(f"/{step_id}/compensate", methods=["POST"])
+        def handle_compensate() -> Any:
+            try:
+                body = request.get_json()
+                if body is None:
+                    return _problem_response(400, "Invalid JSON")
+
+                metadata = _metadata_from_headers()
+                flow_id = metadata.get("flow_id", "")
+                flow_client = client.flow(flow_id)
+
+                ctx = StepContext(
+                    client=flow_client,
+                    step_id=step_id,
+                    metadata=metadata,
+                )
+
+                _ch(ctx, body.get("input", {}), body.get("output", {}))
+                return "", 204
+
+            except HTTPError as e:
+                return _problem_response(e.status_code, str(e))
+            except Exception:
+                tb = traceback.format_exc()
+                print(f"Unhandled compensate handler error: {tb}")
+                return _problem_response(500, "Internal server error")
 
     print(f"Starting step server: {step_id}")
     print(f"  Endpoint: {endpoint}")

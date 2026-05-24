@@ -45,6 +45,14 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 
 	step = step.WithEndpoint(endpoint).WithHealthCheck(healthEndpoint)
 
+	if step.compensate != nil &&
+		(step.http == nil || step.http.Compensate == "") {
+		compensateURL := fmt.Sprintf(
+			"http://%s:%d/%s/compensate", hostname, portInt, step.id,
+		)
+		step = step.WithCompensate(compensateURL)
+	}
+
 	stepReq, err := step.Build()
 	if err != nil {
 		return err
@@ -91,6 +99,13 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	handler := makeStepHandler(client, step.id, handle)
 	mux.HandleFunc("/"+string(step.id), handler)
 
+	if step.compensate != nil {
+		compHandler := makeCompensateHandler(
+			client, step.id, step.compensate,
+		)
+		mux.HandleFunc("/"+string(step.id)+"/compensate", compHandler)
+	}
+
 	slog.Info("Step server starting",
 		slog.String("step_name", string(step.name)),
 		log.StepID(step.id),
@@ -107,6 +122,46 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 func isRegisterConflict(err error) bool {
 	return errors.Is(err, ErrRegisterStep) &&
 		strings.Contains(err.Error(), "status 409")
+}
+
+type compensateBody struct {
+	Input  api.Args `json:"input"`
+	Output api.Args `json:"output"`
+}
+
+func makeCompensateHandler(
+	client *Client, id api.StepID, handler CompensateHandler,
+) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			writeProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
+			return
+		}
+
+		var body compensateBody
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			writeProblem(w, http.StatusBadRequest, "Invalid JSON")
+			return
+		}
+
+		meta := api.MetadataFromHeaders(r.Header)
+		fid, _ := api.GetMetaString[api.FlowID](meta, api.MetaFlowID)
+
+		ctx := &StepContext{
+			Context:  r.Context(),
+			Client:   client.Flow(fid),
+			StepID:   id,
+			Metadata: meta,
+		}
+
+		httpErr := executeCompensateWithRecovery(ctx, handler, body)
+		if httpErr != nil {
+			writeProblem(w, httpErr.StatusCode, httpErr.Message)
+			return
+		}
+
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func makeStepHandler(
@@ -142,6 +197,31 @@ func makeStepHandler(
 		w.Header().Set("Content-Type", api.JSONContentType)
 		_ = json.NewEncoder(w).Encode(outputs)
 	}
+}
+
+func executeCompensateWithRecovery(
+	ctx *StepContext, handler CompensateHandler, body compensateBody,
+) (httpErr *HTTPError) {
+	defer func() {
+		if r := recover(); r != nil {
+			slog.Error("Compensate handler panicked",
+				log.StepID(ctx.StepID),
+				log.Error(ErrHandlerPanic),
+				slog.String("panic", fmt.Sprintf("%v", r)))
+			httpErr = NewHTTPError(
+				http.StatusInternalServerError,
+				fmt.Sprintf("%s: %v", ErrHandlerPanic, r),
+			)
+		}
+	}()
+	if err := handler(ctx, body.Input, body.Output); err != nil {
+		var he *HTTPError
+		if errors.As(err, &he) {
+			return he
+		}
+		return NewHTTPError(http.StatusInternalServerError, err.Error())
+	}
+	return nil
 }
 
 func executeStepWithRecovery(

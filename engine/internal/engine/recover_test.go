@@ -571,8 +571,8 @@ func TestRecoverFlowsFromIndex(t *testing.T) {
 				},
 			},
 			helpers.FlowEvent{
-				Type: api.EventTypeRetryScheduled,
-				Data: api.RetryScheduledEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
 					FlowID:      id,
 					StepID:      st.ID,
 					Token:       tkn,
@@ -637,8 +637,8 @@ func TestRecoverEarlyRetry(t *testing.T) {
 				},
 			},
 			helpers.FlowEvent{
-				Type: api.EventTypeRetryScheduled,
-				Data: api.RetryScheduledEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
 					FlowID:      id,
 					StepID:      st.ID,
 					Token:       tkn,
@@ -735,8 +735,8 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 				},
 			},
 			helpers.FlowEvent{
-				Type: api.EventTypeRetryScheduled,
-				Data: api.RetryScheduledEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
 					FlowID:      id,
 					StepID:      stepA.ID,
 					Token:       tokenPendingRetry,
@@ -746,8 +746,8 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 				},
 			},
 			helpers.FlowEvent{
-				Type: api.EventTypeRetryScheduled,
-				Data: api.RetryScheduledEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
 					FlowID:      id,
 					StepID:      stepA.ID,
 					Token:       tokenFailedRetry,
@@ -796,8 +796,8 @@ func TestRecoverFlowMixedStatuses(t *testing.T) {
 				},
 			},
 			helpers.FlowEvent{
-				Type: api.EventTypeRetryScheduled,
-				Data: api.RetryScheduledEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
 					FlowID:      id,
 					StepID:      stepB.ID,
 					Token:       tokenBranchReady,
@@ -862,8 +862,8 @@ func TestRecoverFlowsSkipsDeactivated(t *testing.T) {
 					},
 				},
 				helpers.FlowEvent{
-					Type: api.EventTypeRetryScheduled,
-					Data: api.RetryScheduledEvent{
+					Type: api.EventTypeWorkRetryScheduled,
+					Data: api.WorkRetryScheduledEvent{
 						FlowID:      flowID,
 						StepID:      step.ID,
 						Token:       tkn,

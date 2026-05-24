@@ -53,6 +53,7 @@ class StepBuilder:
         self._script: Optional[ScriptConfig] = None
         self._predicate: Optional[PredicateConfig] = None
         self._flow: Optional[FlowConfig] = None
+        self._compensate_handler: Optional[Callable[..., Any]] = None
         self._memoizable: bool = False
         self._dirty: bool = False
 
@@ -170,45 +171,40 @@ class StepBuilder:
         new_labels.update(labels)
         return self._copy(_labels=new_labels)
 
+    def _http_with(self, **overrides: Any) -> "HTTPConfig":
+        """Return a copy of the current HTTPConfig with the given overrides."""
+        base = self._http
+        return HTTPConfig(
+            endpoint=overrides.get("endpoint", base.endpoint if base else ""),
+            method=overrides.get("method", base.method if base else ""),
+            health_check=overrides.get(
+                "health_check", base.health_check if base else ""
+            ),
+            compensate=overrides.get(
+                "compensate", base.compensate if base else ""
+            ),
+            timeout=overrides.get("timeout", base.timeout if base else 0),
+        )
+
     def with_endpoint(self, url: str) -> "StepBuilder":
         """Set HTTP endpoint."""
-        new_http = HTTPConfig(
-            endpoint=url,
-            method=self._http.method if self._http else "",
-            health_check=self._http.health_check if self._http else "",
-            timeout=self._http.timeout if self._http else 0,
-        )
-        return self._copy(_http=new_http)
+        return self._copy(_http=self._http_with(endpoint=url))
 
     def with_method(self, method: str) -> "StepBuilder":
         """Set HTTP method."""
-        new_http = HTTPConfig(
-            endpoint=self._http.endpoint if self._http else "",
-            method=method.upper(),
-            health_check=self._http.health_check if self._http else "",
-            timeout=self._http.timeout if self._http else 0,
-        )
-        return self._copy(_http=new_http)
+        return self._copy(_http=self._http_with(method=method.upper()))
 
     def with_health_check(self, url: str) -> "StepBuilder":
         """Set health check endpoint."""
-        new_http = HTTPConfig(
-            endpoint=self._http.endpoint if self._http else "",
-            method=self._http.method if self._http else "",
-            health_check=url,
-            timeout=self._http.timeout if self._http else 0,
-        )
-        return self._copy(_http=new_http)
+        return self._copy(_http=self._http_with(health_check=url))
+
+    def with_compensate(self, url: str) -> "StepBuilder":
+        """Set the compensate endpoint for the step."""
+        return self._copy(_http=self._http_with(compensate=url))
 
     def with_timeout(self, ms: int) -> "StepBuilder":
         """Set execution timeout in milliseconds."""
-        new_http = HTTPConfig(
-            endpoint=self._http.endpoint if self._http else "",
-            method=self._http.method if self._http else "",
-            health_check=self._http.health_check if self._http else "",
-            timeout=ms,
-        )
-        return self._copy(_http=new_http)
+        return self._copy(_http=self._http_with(timeout=ms))
 
     def with_script(self, script: str) -> "StepBuilder":
         """Set Ale script."""
@@ -247,6 +243,12 @@ class StepBuilder:
         """Enable result memoization."""
         return self._copy(_memoizable=True)
 
+    def with_compensate_handler(
+        self, handler: Callable[..., Any]
+    ) -> "StepBuilder":
+        """Register a compensate handler: (ctx, inputs, outputs) -> None."""
+        return self._copy(_compensate_handler=handler)
+
     def update(self) -> "StepBuilder":
         """Mark step as updated (uses update instead of register on start)."""
         return self._copy(_dirty=True)
@@ -284,7 +286,12 @@ class StepBuilder:
         """Build, register, and start Flask server."""
         from .handlers import create_step_server
 
-        create_step_server(self._client, self, handler)
+        create_step_server(
+            self._client,
+            self,
+            handler,
+            compensate_handler=self._compensate_handler,
+        )
 
 
 class FlowBuilder:

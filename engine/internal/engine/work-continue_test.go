@@ -137,8 +137,8 @@ func TestRetryOnHealthyPeer(t *testing.T) {
 						},
 					},
 					helpers.FlowEvent{
-						Type: api.EventTypeRetryScheduled,
-						Data: api.RetryScheduledEvent{
+						Type: api.EventTypeWorkRetryScheduled,
+						Data: api.WorkRetryScheduledEvent{
 							FlowID:      id,
 							StepID:      st.ID,
 							Token:       tkn,

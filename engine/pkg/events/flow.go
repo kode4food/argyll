@@ -95,20 +95,24 @@ func IsFlowEventID(id timebox.AggregateID) bool {
 
 func makeFlowAppliers() timebox.Appliers[api.FlowState] {
 	return MakeAppliers(map[api.EventType]timebox.Applier[api.FlowState]{
-		api.EventTypeFlowStarted:      timebox.MakeApplier(flowStarted),
-		api.EventTypeFlowCompleted:    timebox.MakeApplier(flowCompleted),
-		api.EventTypeFlowDeactivated:  timebox.MakeApplier(flowDeactivated),
-		api.EventTypeFlowFailed:       timebox.MakeApplier(flowFailed),
-		api.EventTypeStepStarted:      timebox.MakeApplier(stepStarted),
-		api.EventTypeStepCompleted:    timebox.MakeApplier(stepCompleted),
-		api.EventTypeStepFailed:       timebox.MakeApplier(stepFailed),
-		api.EventTypeStepSkipped:      timebox.MakeApplier(stepSkipped),
-		api.EventTypeAttributeSet:     timebox.MakeApplier(attributeSet),
-		api.EventTypeWorkStarted:      timebox.MakeApplier(workStarted),
-		api.EventTypeWorkSucceeded:    timebox.MakeApplier(workSucceeded),
-		api.EventTypeWorkFailed:       timebox.MakeApplier(workFailed),
-		api.EventTypeWorkNotCompleted: timebox.MakeApplier(workNotCompleted),
-		api.EventTypeRetryScheduled:   timebox.MakeApplier(retryScheduled),
+		api.EventTypeFlowStarted:        timebox.MakeApplier(flowStarted),
+		api.EventTypeFlowCompleted:      timebox.MakeApplier(flowCompleted),
+		api.EventTypeFlowDeactivated:    timebox.MakeApplier(flowDeactivated),
+		api.EventTypeFlowFailed:         timebox.MakeApplier(flowFailed),
+		api.EventTypeStepStarted:        timebox.MakeApplier(stepStarted),
+		api.EventTypeStepCompleted:      timebox.MakeApplier(stepCompleted),
+		api.EventTypeStepFailed:         timebox.MakeApplier(stepFailed),
+		api.EventTypeStepSkipped:        timebox.MakeApplier(stepSkipped),
+		api.EventTypeAttributeSet:       timebox.MakeApplier(attributeSet),
+		api.EventTypeWorkStarted:        timebox.MakeApplier(workStarted),
+		api.EventTypeWorkSucceeded:      timebox.MakeApplier(workSucceeded),
+		api.EventTypeWorkFailed:         timebox.MakeApplier(workFailed),
+		api.EventTypeWorkNotCompleted:   timebox.MakeApplier(workNotCompleted),
+		api.EventTypeWorkRetryScheduled: timebox.MakeApplier(workScheduled),
+		api.EventTypeCompStarted:        timebox.MakeApplier(compStarted),
+		api.EventTypeCompRetryScheduled: timebox.MakeApplier(compScheduled),
+		api.EventTypeCompSucceeded:      timebox.MakeApplier(compSucceeded),
+		api.EventTypeCompFailed:         timebox.MakeApplier(compFailed),
 	})
 }
 
@@ -332,8 +336,8 @@ func workNotCompleted(
 		SetLastUpdated(ev.Timestamp)
 }
 
-func retryScheduled(
-	st api.FlowState, ev *timebox.Event, data api.RetryScheduledEvent,
+func workScheduled(
+	st api.FlowState, ev *timebox.Event, data api.WorkRetryScheduledEvent,
 ) api.FlowState {
 	ex := st.Executions[data.StepID]
 	item, ok := ex.WorkItems[data.Token]
@@ -347,6 +351,71 @@ func retryScheduled(
 		SetNextRetryAt(data.NextRetryAt).
 		SetError(data.Error)
 
+	return st.
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func compStarted(
+	st api.FlowState, _ *timebox.Event, data api.CompStartedEvent,
+) api.FlowState {
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
+	if !ok {
+		return st
+	}
+	item = item.
+		SetStatus(api.WorkCompensating).
+		SetNextRetryAt(time.Time{})
+	return st.SetExecution(data.StepID, ex.SetWorkItem(data.Token, item))
+}
+
+func compScheduled(
+	st api.FlowState, ev *timebox.Event, data api.CompRetryScheduledEvent,
+) api.FlowState {
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
+	if !ok {
+		return st
+	}
+	item = item.
+		SetStatus(api.WorkCompensating).
+		SetRetryCount(data.RetryCount).
+		SetNextRetryAt(data.NextRetryAt).
+		SetError(data.Error)
+	return st.
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func compSucceeded(
+	st api.FlowState, ev *timebox.Event, data api.CompSucceededEvent,
+) api.FlowState {
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
+	if !ok {
+		return st
+	}
+	item = item.
+		SetStatus(api.WorkCompensated).
+		SetCompletedAt(ev.Timestamp)
+	return st.
+		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
+		SetLastUpdated(ev.Timestamp)
+}
+
+func compFailed(
+	st api.FlowState, ev *timebox.Event, data api.CompFailedEvent,
+) api.FlowState {
+	ex := st.Executions[data.StepID]
+	item, ok := ex.WorkItems[data.Token]
+	if !ok {
+		return st
+	}
+	item = item.
+		SetStatus(api.WorkCompFailed).
+		SetCompletedAt(ev.Timestamp).
+		SetError(data.Error)
 	return st.
 		SetExecution(data.StepID, ex.SetWorkItem(data.Token, item)).
 		SetLastUpdated(ev.Timestamp)

@@ -644,6 +644,28 @@ func TestStepBuilderWithMemoizable(t *testing.T) {
 	})
 }
 
+func TestWithCompensate(t *testing.T) {
+	compensate := "http://example.com/compensate"
+	st, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com/work").
+		WithCompensate(compensate).
+		Build()
+
+	assert.NoError(t, err)
+	assert.NotNil(t, st.HTTP)
+	assert.Equal(t, compensate, st.HTTP.Compensate)
+}
+
+func TestWithCompensateMemoizableReturnsError(t *testing.T) {
+	_, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com/work").
+		WithCompensate("http://example.com/compensate").
+		WithMemoizable().
+		Build()
+
+	assert.Error(t, err)
+}
+
 func TestUpdate(t *testing.T) {
 	st := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com")

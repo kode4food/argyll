@@ -289,6 +289,38 @@ def test_step_builder_with_memoizable():
     assert step.memoizable is True
 
 
+def test_step_builder_with_compensate():
+    client = Client()
+    compensate_url = "http://localhost:8081/test/compensate"
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .with_compensate(compensate_url)
+    )
+    step = builder.build()
+    assert step.http is not None
+    assert step.http.compensate == compensate_url
+
+
+def test_step_builder_compensate_preserved_across_http_mutations():
+    client = Client()
+    compensate_url = "http://localhost:8081/test/compensate"
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .with_compensate(compensate_url)
+        .with_method("PUT")
+        .with_timeout(5000)
+    )
+    step = builder.build()
+    assert step.http is not None
+    assert step.http.compensate == compensate_url
+    assert step.http.method == "PUT"
+    assert step.http.timeout == 5000
+
+
 def test_step_builder_chaining():
     client = Client()
     builder = (

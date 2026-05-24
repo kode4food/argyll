@@ -4,11 +4,27 @@
 .iconSm {
   width: 0.875rem;
   height: 0.875rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.iconSm svg {
+  width: 100%;
+  height: 100%;
 }
 
 .iconMd {
   width: 1rem;
   height: 1rem;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.iconMd svg {
+  width: 100%;
+  height: 100%;
 }
 
 .backdrop {

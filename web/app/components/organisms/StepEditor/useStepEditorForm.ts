@@ -31,6 +31,7 @@ export function useStepEditorForm(
   const [healthCheck, setHealthCheck] = useState(
     step?.http?.health_check || ""
   );
+  const [compensate, setCompensate] = useState(step?.http?.compensate || "");
   const [httpTimeout, setHttpTimeout] = useState(
     step &&
       (step.type === "sync" || step.type === "async") &&
@@ -69,12 +70,14 @@ export function useStepEditorForm(
       endpoint,
       httpMethod,
       healthCheck,
+      compensate,
       httpTimeout,
       flowGoals,
       memoizable,
     });
   }, [
     attributes,
+    compensate,
     endpoint,
     flowGoals,
     healthCheck,
@@ -103,6 +106,7 @@ export function useStepEditorForm(
       setEndpoint(stepData.http?.endpoint || "");
       setHttpMethod(normalizeHttpMethod(stepData.http?.method));
       setHealthCheck(stepData.http?.health_check || "");
+      setCompensate(stepData.http?.compensate || "");
       setHttpTimeout(stepData.http?.timeout || 5000);
       setMemoizable(Boolean(stepData.memoizable));
       resetAttributes(stepData);
@@ -147,6 +151,8 @@ export function useStepEditorForm(
       setHttpMethod,
       healthCheck,
       setHealthCheck,
+      compensate,
+      setCompensate,
       httpTimeout,
       setHttpTimeout,
       flowGoals,
@@ -166,6 +172,7 @@ export function useStepEditorForm(
       endpoint,
       httpMethod,
       healthCheck,
+      compensate,
       httpTimeout,
       flowGoals,
       memoizable,
@@ -189,6 +196,8 @@ export function useStepEditorForm(
     setHttpMethod,
     healthCheck,
     setHealthCheck,
+    compensate,
+    setCompensate,
     httpTimeout,
     setHttpTimeout,
     script,

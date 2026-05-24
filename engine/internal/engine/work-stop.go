@@ -241,8 +241,8 @@ func hasRetryTask(flow api.FlowState, stepID api.StepID, tkn api.Token) bool {
 func (tx *flowTx) raiseRetryScheduled(
 	stepID api.StepID, tkn api.Token, work api.WorkState, nextRetryAt time.Time,
 ) error {
-	return events.Raise(tx.FlowAggregator, api.EventTypeRetryScheduled,
-		api.RetryScheduledEvent{
+	return events.Raise(tx.FlowAggregator, api.EventTypeWorkRetryScheduled,
+		api.WorkRetryScheduledEvent{
 			FlowID:      tx.flowID,
 			StepID:      stepID,
 			Token:       tkn,

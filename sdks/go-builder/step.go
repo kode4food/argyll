@@ -19,6 +19,7 @@ type Step struct {
 	http       *api.HTTPConfig
 	flow       *api.FlowConfig
 	script     *api.ScriptConfig
+	compensate CompensateHandler
 	id         api.StepID
 	name       api.Name
 	stepType   api.StepType
@@ -253,6 +254,19 @@ func (s Step) WithScriptLanguage(lang, script string) Step {
 func (s Step) WithHealthCheck(endpoint string) Step {
 	s.http = util.MutableCopy(s.http)
 	s.http.HealthCheck = endpoint
+	return s
+}
+
+// WithCompensate sets the compensate endpoint for the step
+func (s Step) WithCompensate(endpoint string) Step {
+	s.http = util.MutableCopy(s.http)
+	s.http.Compensate = endpoint
+	return s
+}
+
+// WithCompensateHandler registers a handler for compensation requests
+func (s Step) WithCompensateHandler(handler CompensateHandler) Step {
+	s.compensate = handler
 	return s
 }
 

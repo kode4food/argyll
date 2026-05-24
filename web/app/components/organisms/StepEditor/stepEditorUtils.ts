@@ -37,6 +37,7 @@ export function buildStepPayload({
   endpoint,
   httpMethod,
   healthCheck,
+  compensate,
   httpTimeout,
   flowGoals,
   memoizable,
@@ -52,6 +53,7 @@ export function buildStepPayload({
   endpoint: string;
   httpMethod: HTTPMethod;
   healthCheck: string;
+  compensate: string;
   httpTimeout: number;
   flowGoals: string;
   memoizable: boolean;
@@ -87,6 +89,7 @@ export function buildStepPayload({
     stepData.http = {
       endpoint: endpoint.trim(),
       method: httpMethod,
+      compensate: compensate.trim() || undefined,
       health_check: healthCheck.trim() || undefined,
       timeout: httpTimeout,
     };

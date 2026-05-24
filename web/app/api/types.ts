@@ -17,7 +17,10 @@ export type WorkStatus =
   | "active"
   | "succeeded"
   | "failed"
-  | "not_completed";
+  | "not_completed"
+  | "compensating"
+  | "compensated"
+  | "comp_failed";
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "sync" | "async" | "script" | "flow";
@@ -106,6 +109,7 @@ export interface AttributeSpec {
 export interface HTTPConfig {
   endpoint: string;
   method?: HTTPMethod;
+  compensate?: string;
   health_check?: string;
   timeout: number;
 }

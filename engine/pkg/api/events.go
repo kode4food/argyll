@@ -121,8 +121,9 @@ type (
 		Error  string `json:"error"`
 	}
 
-	// RetryScheduledEvent is emitted when a failed work item is to be retried
-	RetryScheduledEvent struct {
+	// WorkRetryScheduledEvent is emitted when a failed work item is to be
+	// retried
+	WorkRetryScheduledEvent struct {
 		NextRetryAt time.Time `json:"next_retry_at"`
 		FlowID      FlowID    `json:"flow_id"`
 		StepID      StepID    `json:"step_id"`
@@ -144,27 +145,63 @@ type (
 		Status FlowStatus `json:"status"`
 	}
 
+	// CompStartedEvent is emitted when compensation begins for a work item
+	CompStartedEvent struct {
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+		Token  Token  `json:"token"`
+	}
+
+	// CompRetryScheduledEvent is emitted when a compensation is to be retried
+	CompRetryScheduledEvent struct {
+		NextRetryAt time.Time `json:"next_retry_at"`
+		FlowID      FlowID    `json:"flow_id"`
+		StepID      StepID    `json:"step_id"`
+		Token       Token     `json:"token"`
+		Error       string    `json:"error"`
+		RetryCount  int       `json:"retry_count"`
+	}
+
+	// CompSucceededEvent is emitted when compensation succeeds
+	CompSucceededEvent struct {
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+		Token  Token  `json:"token"`
+	}
+
+	// CompFailedEvent is emitted when compensation fails permanently
+	CompFailedEvent struct {
+		FlowID FlowID `json:"flow_id"`
+		StepID StepID `json:"step_id"`
+		Token  Token  `json:"token"`
+		Error  string `json:"error"`
+	}
+
 	EventType string
 )
 
 const (
-	EventTypeStepRegistered    EventType = "step_registered"
-	EventTypeStepUnregistered  EventType = "step_unregistered"
-	EventTypeStepUpdated       EventType = "step_updated"
-	EventTypeStepHealthChanged EventType = "step_health_changed"
-	EventTypeFlowDeactivated   EventType = "flow_deactivated"
-	EventTypeFlowStarted       EventType = "flow_started"
-	EventTypeFlowCompleted     EventType = "flow_completed"
-	EventTypeFlowFailed        EventType = "flow_failed"
-	EventTypeAttributeSet      EventType = "attribute_set"
-	EventTypeStepStarted       EventType = "step_started"
-	EventTypeStepCompleted     EventType = "step_completed"
-	EventTypeStepFailed        EventType = "step_failed"
-	EventTypeStepSkipped       EventType = "step_skipped"
-	EventTypeWorkStarted       EventType = "work_started"
-	EventTypeWorkSucceeded     EventType = "work_succeeded"
-	EventTypeWorkFailed        EventType = "work_failed"
-	EventTypeWorkNotCompleted  EventType = "work_not_completed"
-	EventTypeRetryScheduled    EventType = "retry_scheduled"
-	EventTypeDispatchDeferred  EventType = "dispatch_deferred"
+	EventTypeStepRegistered     EventType = "step_registered"
+	EventTypeStepUnregistered   EventType = "step_unregistered"
+	EventTypeStepUpdated        EventType = "step_updated"
+	EventTypeStepHealthChanged  EventType = "step_health_changed"
+	EventTypeFlowDeactivated    EventType = "flow_deactivated"
+	EventTypeFlowStarted        EventType = "flow_started"
+	EventTypeFlowCompleted      EventType = "flow_completed"
+	EventTypeFlowFailed         EventType = "flow_failed"
+	EventTypeAttributeSet       EventType = "attribute_set"
+	EventTypeStepStarted        EventType = "step_started"
+	EventTypeStepCompleted      EventType = "step_completed"
+	EventTypeStepFailed         EventType = "step_failed"
+	EventTypeStepSkipped        EventType = "step_skipped"
+	EventTypeWorkStarted        EventType = "work_started"
+	EventTypeWorkSucceeded      EventType = "work_succeeded"
+	EventTypeWorkFailed         EventType = "work_failed"
+	EventTypeWorkNotCompleted   EventType = "work_not_completed"
+	EventTypeWorkRetryScheduled EventType = "work_retry_scheduled"
+	EventTypeDispatchDeferred   EventType = "dispatch_deferred"
+	EventTypeCompStarted        EventType = "comp_started"
+	EventTypeCompRetryScheduled EventType = "comp_retry_scheduled"
+	EventTypeCompSucceeded      EventType = "comp_succeeded"
+	EventTypeCompFailed         EventType = "comp_failed"
 )

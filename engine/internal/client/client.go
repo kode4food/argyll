@@ -23,12 +23,18 @@ type (
 	// Client defines the interface for invoking step handlers
 	Client interface {
 		Invoke(*api.Step, api.Args, api.Metadata) (api.Args, error)
+		InvokeCompensate(*api.Step, api.Args, api.Args, api.Metadata) error
 	}
 
 	// HTTPClient implements Client using HTTP requests
 	HTTPClient struct {
 		httpClient *http.Client
 		timeout    time.Duration
+	}
+
+	compensateBody struct {
+		Input  api.Args `json:"input"`
+		Output api.Args `json:"output"`
 	}
 )
 
@@ -73,6 +79,50 @@ func (c *HTTPClient) Invoke(
 	}
 
 	return parseResponse(step, respBody)
+}
+
+// InvokeCompensate sends a compensation request to the step's compensate
+// endpoint with the original inputs and the successful outputs
+func (c *HTTPClient) InvokeCompensate(
+	step *api.Step, inputs api.Args, outputs api.Args, meta api.Metadata,
+) error {
+	if step.HTTP == nil {
+		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
+	}
+
+	merged := inputs.Apply(outputs)
+	endpoint, err := resolveEndpoint(step.HTTP.Compensate, merged)
+	if err != nil {
+		slog.Error("Failed to resolve compensate endpoint",
+			log.StepID(step.ID),
+			log.Error(err))
+		return err
+	}
+
+	body, err := json.Marshal(compensateBody{Input: inputs, Output: outputs})
+	if err != nil {
+		slog.Error("Failed to marshal compensate request",
+			log.StepID(step.ID),
+			log.Error(err))
+		return err
+	}
+
+	httpReq, err := http.NewRequest(http.MethodPost, endpoint,
+		bytes.NewBuffer(body))
+	if err != nil {
+		slog.Error("Failed to create compensate request",
+			log.StepID(step.ID),
+			log.Error(err))
+		return err
+	}
+
+	httpReq.Header.Set("Accept", api.JSONContentType)
+	httpReq.Header.Set("Content-Type", api.JSONContentType)
+	httpReq.Header.Set("User-Agent", UserAgent)
+	api.SetMetadataHeaders(httpReq.Header, meta)
+
+	_, err = c.sendRequest(step, httpReq)
+	return err
 }
 
 func (c *HTTPClient) sendRequest(

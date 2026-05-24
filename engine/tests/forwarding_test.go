@@ -102,7 +102,7 @@ func TestFollowerWriteStartup(t *testing.T) {
 	leader, follower := findFollower(t, nodes)
 
 	// The follower's write-forwarding path may not be ready immediately
-	// after leader election, so retry until the write succeeds.
+	// after leader election, so retry until the write succeeds
 	var resp api.StepRegisteredResponse
 	routes := follower.server.SetupRoutes()
 	assert.Eventually(t, func() bool {

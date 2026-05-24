@@ -40,8 +40,8 @@ var (
 	}
 
 	// WorkTransitions defines the valid work item lifecycle. Not-completed
-	// work may be restarted or resolved, while succeeded and failed work are
-	// terminal outcomes
+	// work may be restarted or resolved. Succeeded work may begin compensation
+	// if the step ultimately fails
 	WorkTransitions = StateTransitions[api.WorkStatus]{
 		api.WorkPending: util.SetOf(
 			api.WorkActive,
@@ -53,13 +53,22 @@ var (
 			api.WorkFailed,
 			api.WorkNotCompleted,
 		),
-		api.WorkSucceeded: {},
-		api.WorkFailed:    {},
+		api.WorkSucceeded: util.SetOf(
+			api.WorkCompensating,
+		),
+		api.WorkFailed: {},
 		api.WorkNotCompleted: util.SetOf(
 			api.WorkActive,
 			api.WorkSucceeded,
 			api.WorkFailed,
 		),
+		api.WorkCompensating: util.SetOf(
+			api.WorkCompensating,
+			api.WorkCompensated,
+			api.WorkCompFailed,
+		),
+		api.WorkCompensated: {},
+		api.WorkCompFailed:  {},
 	}
 )
 

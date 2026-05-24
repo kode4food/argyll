@@ -11,6 +11,15 @@ type WorkCompletion struct {
 	Failed       bool
 }
 
+// StepCanCompensate reports whether a step is configured to compensate
+// successful work items on failure. Memoizable steps declare no side effects
+// and are therefore excluded
+func StepCanCompensate(step *api.Step) bool {
+	return step.HTTP != nil &&
+		step.HTTP.Compensate != "" &&
+		!step.Memoizable
+}
+
 // StepParallelism returns the effective dispatch parallelism for a step. A
 // missing, zero, or negative setting means one work item at a time
 func StepParallelism(step *api.Step) int {

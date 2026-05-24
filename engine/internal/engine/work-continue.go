@@ -12,8 +12,6 @@ import (
 
 type backoffCalculator func(baseDelay int64, retryCount int) int64
 
-const retryDispatchBackoff = 1 * time.Second
-
 var backoffCalculators = map[string]backoffCalculator{
 	api.BackoffTypeFixed: func(base int64, _ int) int64 {
 		return base
@@ -103,7 +101,7 @@ func (tx *flowTx) continueStepWork(stepID api.StepID, clearRetry bool) error {
 		return err
 	}
 	ex := tx.Value().Executions[stepID]
-	if hasReadyPendingDispatch(st, ex, tx.Now()) &&
+	if hasReadyPendingWork(st, ex, tx.Now()) &&
 		!tx.canDispatchLocally(st.ID) {
 		if err := tx.raiseDispatchDeferred(stepID); err != nil {
 			return err
@@ -157,7 +155,7 @@ func (e *Engine) scheduleRetryTask(
 		err := e.runRetryTask(fs, tkn)
 		if err != nil {
 			e.scheduleRetryTask(fs, tkn,
-				e.Now().Add(retryDispatchBackoff),
+				e.Now().Add(localDispatchBackoff),
 			)
 		}
 		return err
@@ -166,11 +164,10 @@ func (e *Engine) scheduleRetryTask(
 
 func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 	var inputs api.Args
-	var reschedule bool
 	var step *api.Step
 	var meta api.Metadata
 
-	err := e.flowTx(fs.FlowID, func(tx *flowTx) error {
+	return e.flowTx(fs.FlowID, func(tx *flowTx) error {
 		fl := tx.Value()
 		if fl.ID == "" || policy.FlowTerminal(fl.Status) {
 			return nil
@@ -186,14 +183,12 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 		work := ex.WorkItems[tkn]
 		if policy.WorkClaimableForRetry(work.Status) &&
 			!tx.canDispatchLocally(step.ID) {
-			reschedule = true
-			return nil
+			return tx.raiseDispatchDeferred(fs.StepID)
 		}
 
 		inputs = ex.Inputs
 		meta = fl.Metadata
 
-		var err error
 		started, retryAt, err := tx.startRetryWorkItem(step, tkn)
 		if err != nil {
 			return err
@@ -211,13 +206,6 @@ func (e *Engine) runRetryTask(fs api.FlowStep, tkn api.Token) error {
 		})
 		return nil
 	})
-	if err != nil {
-		return err
-	}
-	if reschedule {
-		e.scheduleRetryTask(fs, tkn, e.Now().Add(retryDispatchBackoff))
-	}
-	return nil
 }
 
 func (e *Engine) resolveRetryConfig(config *api.WorkConfig) *api.WorkConfig {
