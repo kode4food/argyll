@@ -202,7 +202,7 @@ func (e *Engine) scheduleDispatchRecovery(fs api.FlowStep, at time.Time) {
 
 func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
 	fl, err := e.GetFlowState(fs.FlowID)
-	if err != nil || fl.ID == "" || policy.FlowTerminal(fl.Status) {
+	if err != nil || fl.ID == "" {
 		return err
 	}
 

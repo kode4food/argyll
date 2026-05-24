@@ -274,6 +274,11 @@ func CompRetryScheduled(steps ...api.FlowStep) EventFilter {
 	return And(Type(api.EventTypeCompRetryScheduled), FlowSteps(steps...))
 }
 
+// DispatchDeferred matches dispatch deferred events for the provided flow steps
+func DispatchDeferred(steps ...api.FlowStep) EventFilter {
+	return And(Type(api.EventTypeDispatchDeferred), FlowSteps(steps...))
+}
+
 // WorkRetryScheduledDistinct matches one retry scheduled event per work token
 func WorkRetryScheduledDistinct(step api.FlowStep) EventFilter {
 	return And(

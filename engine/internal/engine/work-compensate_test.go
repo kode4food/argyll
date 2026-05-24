@@ -6,10 +6,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/timebox/raft"
+
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
+	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
 // newCompensatingStep returns a sync step with a compensate endpoint
@@ -105,7 +108,7 @@ func setupCompensatingFlow(
 	assert.NoError(env.T, env.RaiseFlowEvents(id, evs...))
 }
 
-func TestMemoizableStepCannotCompensate(t *testing.T) {
+func TestMemoizableNoCompensate(t *testing.T) {
 	st := &api.Step{
 		ID:         "memo-comp-step",
 		Name:       "Memoizable Compensating Step",
@@ -152,7 +155,7 @@ func TestCompensationSucceeds(t *testing.T) {
 	})
 }
 
-func TestCompensationNotFiredForFailedWork(t *testing.T) {
+func TestNoCompForFailedWork(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -181,7 +184,7 @@ func TestCompensationNotFiredForFailedWork(t *testing.T) {
 	})
 }
 
-func TestCompensationRetryOnTransientFailure(t *testing.T) {
+func TestCompRetryOnTransient(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -231,7 +234,7 @@ func TestCompensationRetryOnTransientFailure(t *testing.T) {
 	})
 }
 
-func TestCompensationMaxRetriesExhausted(t *testing.T) {
+func TestCompRetriesExhausted(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
@@ -300,7 +303,7 @@ func TestCompensationRecovery(t *testing.T) {
 	})
 }
 
-func TestCompleteCompensationDirectly(t *testing.T) {
+func TestCompCompleteDirectly(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-direct-step")
 		id := api.FlowID("wf-comp-direct")
@@ -320,7 +323,7 @@ func TestCompleteCompensationDirectly(t *testing.T) {
 	})
 }
 
-func TestFailCompensationDirectly(t *testing.T) {
+func TestCompFailDirectly(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		st := newCompensatingStep("comp-direct-fail-step")
 		id := api.FlowID("wf-comp-direct-fail")
@@ -337,5 +340,109 @@ func TestFailCompensationDirectly(t *testing.T) {
 		work := fl.Executions[st.ID].WorkItems[tkn]
 		assert.Equal(t, api.WorkCompFailed, work.Status)
 		assert.Equal(t, "comp boom", work.Error)
+	})
+}
+
+func TestCompDeferredToHealthyPeer(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		cfg := util.MutableCopy(env.Config)
+		cfg.Raft.LocalID = "node-comp-peer"
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
+			raft.Server{ID: "node-comp-peer", Address: "127.0.0.1:9710"},
+		)
+
+		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, peer) {
+			return
+		}
+		defer func() {
+			unsub()
+			assert.NoError(t, peer.Stop())
+		}()
+
+		st := newCompensatingStep("comp-deferred-step")
+		env.MockClient.SetCompHandler(st.ID,
+			func(_ *api.Step, _, _ api.Args, _ api.Metadata) error {
+				return nil
+			},
+		)
+
+		// Primary node is unhealthy for this step; peer is healthy.
+		assert.NoError(t, env.Engine.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "offline",
+		))
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
+
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, peer.Start())
+
+		id := api.FlowID("wf-comp-deferred")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-deferred")
+
+		// Inject flow state: step failed with one succeeded work item and
+		// comp already started (WorkCompensating).
+		setupCompensatingFlow(env, id, st, tkn, true)
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+			w.ForAll(
+				wait.DispatchDeferred(fs),
+				wait.CompSucceeded(fs),
+				wait.FlowDeactivated(id),
+			)
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkCompensated, work.Status)
+	})
+}
+
+func TestCompDispatchRecovery(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := newCompensatingStep("dispatch-recovery-step")
+		st.WorkConfig = &api.WorkConfig{
+			MaxRetries:  2,
+			InitBackoff: 1,
+			MaxBackoff:  1,
+			BackoffType: api.BackoffTypeFixed,
+		}
+		assert.NoError(t, env.Engine.RegisterStep(st))
+
+		compCount := 0
+		env.MockClient.SetCompHandler(st.ID,
+			func(_ *api.Step, _, _ api.Args, _ api.Metadata) error {
+				compCount++
+				return nil
+			},
+		)
+
+		id := api.FlowID("wf-dispatch-recovery")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-recovery")
+
+		// State: failed flow with comp in progress (WorkCompensating).
+		setupCompensatingFlow(env, id, st, tkn, true)
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+			w.ForAll(
+				wait.CompSucceeded(fs),
+				wait.FlowDeactivated(id),
+			)
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkCompensated, work.Status)
+		assert.Equal(t, 1, compCount)
 	})
 }
