@@ -72,6 +72,95 @@ func TestRetryPendingParallelism(t *testing.T) {
 	})
 }
 
+func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("retry-unhealthy")
+		env.MockClient.SetResponse(st.ID, api.Args{})
+
+		// Mark env unhealthy before raising events so that env's
+		// HandleCommitted ignores WorkRetryScheduled and schedules nothing.
+		assert.NoError(t, env.Engine.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "offline",
+		))
+
+		id := api.FlowID("wf-retry-unhealthy")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-retry-unhealthy")
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		// Raise events before creating the peer so only env's HandleCommitted
+		// fires.  env is unhealthy, so it returns early on WorkRetryScheduled
+		// without scheduling a local retry task.
+		assert.NoError(t, env.RaiseFlowEvents(id,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: id, Plan: pl, Init: api.InitArgs{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeStepStarted,
+				Data: api.StepStartedEvent{
+					FlowID:    id,
+					StepID:    st.ID,
+					Inputs:    api.Args{},
+					WorkItems: map[api.Token]api.Args{tkn: {}},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkRetryScheduled,
+				Data: api.WorkRetryScheduledEvent{
+					FlowID:      id,
+					StepID:      st.ID,
+					Token:       tkn,
+					RetryCount:  1,
+					NextRetryAt: scheduler.Now(),
+					Error:       "transient",
+				},
+			},
+		))
+
+		cfg := util.MutableCopy(env.Config)
+		cfg.Raft.LocalID = "node-retry-unhealthy"
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
+			raft.Server{ID: "node-retry-unhealthy", Address: "127.0.0.1:9720"},
+		)
+
+		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, peer) {
+			return
+		}
+		defer func() {
+			unsub()
+			assert.NoError(t, peer.Stop())
+		}()
+
+		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
+
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, peer.Start())
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+			w.ForAll(
+				wait.DispatchDeferred(fs),
+				wait.WorkSucceeded(fs),
+				wait.FlowTerminal(id),
+			)
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkSucceeded, work.Status)
+	})
+}
+
 func TestRetryOnHealthyPeer(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)

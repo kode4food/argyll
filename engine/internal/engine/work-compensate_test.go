@@ -402,6 +402,93 @@ func TestCompDeferredToHealthyPeer(t *testing.T) {
 	})
 }
 
+func TestCompFailOnPermanentError(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := newCompensatingStep("comp-hard-fail-step")
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetCompError(st.ID, errors.New("hard failure"))
+
+		id := api.FlowID("wf-comp-hard-fail")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-hard")
+
+		setupCompensatingFlow(env, id, st, tkn, false)
+
+		env.WithConsumer(func(consumer *event.Consumer) {
+			w := wait.On(t, consumer)
+			assert.NoError(t, env.Engine.RecoverFlow(id))
+			w.ForAll(
+				wait.CompFailed(fs),
+				wait.FlowDeactivated(id),
+			)
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkCompFailed, work.Status)
+		assert.NotEmpty(t, work.Error)
+	})
+}
+
+func TestCompCompleteIdempotent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := newCompensatingStep("comp-idem-ok-step")
+		id := api.FlowID("wf-comp-idem-ok")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-idem-ok")
+
+		setupCompensatingFlow(env, id, st, tkn, true)
+
+		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+
+		// Second call is a no-op — work is no longer comp-active.
+		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
+
+		fl, err = env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+	})
+}
+
+func TestCompFailIdempotent(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := newCompensatingStep("comp-idem-fail-step")
+		id := api.FlowID("wf-comp-idem-fail")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-idem-fail")
+
+		setupCompensatingFlow(env, id, st, tkn, true)
+
+		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "boom"))
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+
+		// Second call is a no-op — work is no longer comp-active.
+		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "boom again"))
+
+		fl, err = env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		assert.Equal(t,
+			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
+		)
+	})
+}
+
 func TestCompDispatchRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
