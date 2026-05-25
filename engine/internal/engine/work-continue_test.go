@@ -74,14 +74,36 @@ func TestRetryPendingParallelism(t *testing.T) {
 
 func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		cfg := util.MutableCopy(env.Config)
+		cfg.Raft.LocalID = "node-retry-unhealthy"
+		cfg.Raft.Servers = append(cfg.Raft.Servers,
+			raft.Server{
+				ID: "node-retry-unhealthy", Address: "127.0.0.1:9720",
+			},
+		)
+
+		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if !assert.NotNil(t, peer) {
+			return
+		}
+		defer func() {
+			unsub()
+			assert.NoError(t, peer.Stop())
+		}()
+
 		st := helpers.NewSimpleStep("retry-unhealthy")
 		env.MockClient.SetResponse(st.ID, api.Args{})
 
-		// Mark env unhealthy before raising events so that env's
-		// HandleCommitted ignores WorkRetryScheduled and schedules nothing.
 		assert.NoError(t, env.Engine.UpdateStepHealth(
 			st.ID, api.HealthUnhealthy, "offline",
 		))
+		assert.NoError(t, peer.UpdateStepHealth(
+			st.ID, api.HealthUnhealthy, "offline",
+		))
+
+		assert.NoError(t, env.Engine.Start())
+		assert.NoError(t, peer.Start())
 
 		id := api.FlowID("wf-retry-unhealthy")
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
@@ -91,9 +113,8 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		// Raise events before creating the peer so only env's HandleCommitted
-		// fires.  env is unhealthy, so it returns early on WorkRetryScheduled
-		// without scheduling a local retry task.
+		// Failed retry work is recovered by retry handling, but cannot be
+		// claimed by normal pending-work dispatch scheduled by StepStarted
 		assert.NoError(t, env.RaiseFlowEvents(id,
 			helpers.FlowEvent{
 				Type: api.EventTypeFlowStarted,
@@ -121,41 +142,27 @@ func TestRetryDeferredOnUnhealthyNode(t *testing.T) {
 					Error:       "transient",
 				},
 			},
+			helpers.FlowEvent{
+				Type: api.EventTypeWorkFailed,
+				Data: api.WorkFailedEvent{
+					FlowID: id,
+					StepID: st.ID,
+					Token:  tkn,
+					Error:  "transient",
+				},
+			},
 		))
 
-		cfg := util.MutableCopy(env.Config)
-		cfg.Raft.LocalID = "node-retry-unhealthy"
-		cfg.Raft.Servers = append(cfg.Raft.Servers,
-			raft.Server{ID: "node-retry-unhealthy", Address: "127.0.0.1:9720"},
-		)
-
-		peer, unsub, err := env.NewEngineWithConfig(cfg, env.Dependencies())
-		assert.NoError(t, err)
-		if !assert.NotNil(t, peer) {
-			return
-		}
-		defer func() {
-			unsub()
-			assert.NoError(t, peer.Stop())
-		}()
-
 		assert.NoError(t, peer.UpdateStepHealth(st.ID, api.HealthHealthy, ""))
-
-		assert.NoError(t, env.Engine.Start())
-		assert.NoError(t, peer.Start())
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
 			assert.NoError(t, env.Engine.RecoverFlow(id))
-			w.ForAll(
-				wait.DispatchDeferred(fs),
-				wait.WorkSucceeded(fs),
-				wait.FlowTerminal(id),
-			)
+			w.ForEvent(wait.DispatchDeferred(fs))
 		})
 
-		fl, err := env.Engine.GetFlowState(id)
-		assert.NoError(t, err)
+		fl := env.WaitForTerminalFlow(id)
+		assert.Equal(t, api.FlowCompleted, fl.Status)
 		work := fl.Executions[st.ID].WorkItems[tkn]
 		assert.Equal(t, api.WorkSucceeded, work.Status)
 	})

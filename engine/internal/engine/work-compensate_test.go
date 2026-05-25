@@ -368,7 +368,7 @@ func TestCompDeferredToHealthyPeer(t *testing.T) {
 			},
 		)
 
-		// Primary node is unhealthy for this step; peer is healthy.
+		// Primary node is unhealthy for this step; peer is healthy
 		assert.NoError(t, env.Engine.UpdateStepHealth(
 			st.ID, api.HealthUnhealthy, "offline",
 		))
@@ -382,7 +382,7 @@ func TestCompDeferredToHealthyPeer(t *testing.T) {
 		tkn := api.Token("work-deferred")
 
 		// Inject flow state: step failed with one succeeded work item and
-		// comp already started (WorkCompensating).
+		// comp already started (WorkCompensating)
 		setupCompensatingFlow(env, id, st, tkn, true)
 
 		env.WithConsumer(func(consumer *event.Consumer) {
@@ -450,7 +450,7 @@ func TestCompCompleteIdempotent(t *testing.T) {
 			api.WorkCompensated, fl.Executions[st.ID].WorkItems[tkn].Status,
 		)
 
-		// Second call is a no-op — work is no longer comp-active.
+		// Second call is a no-op — work is no longer comp-active
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
 		fl, err = env.Engine.GetFlowState(id)
@@ -478,7 +478,7 @@ func TestCompFailIdempotent(t *testing.T) {
 			api.WorkCompFailed, fl.Executions[st.ID].WorkItems[tkn].Status,
 		)
 
-		// Second call is a no-op — work is no longer comp-active.
+		// Second call is a no-op — work is no longer comp-active
 		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "boom again"))
 
 		fl, err = env.Engine.GetFlowState(id)
@@ -514,7 +514,7 @@ func TestCompDispatchRecovery(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-recovery")
 
-		// State: failed flow with comp in progress (WorkCompensating).
+		// State: failed flow with comp in progress (WorkCompensating)
 		setupCompensatingFlow(env, id, st, tkn, true)
 
 		env.WithConsumer(func(consumer *event.Consumer) {
