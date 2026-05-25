@@ -20,7 +20,7 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
-	github.com/kode4food/ale v0.3.1-0.20260422154921-690461c92586 // indirect
+	github.com/kode4food/ale v0.3.1-0.20260525064642-5a3c602e1b33 // indirect
 	github.com/kode4food/timebox v0.0.0-20260515060403-23ace93d23c0 // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
@@ -38,11 +38,12 @@ require (
 	github.com/woodsbury/decimal128 v1.4.0 // indirect
 	go.opentelemetry.io/otel v1.43.0 // indirect
 	go.opentelemetry.io/otel/sdk/metric v1.40.0 // indirect
-	golang.org/x/crypto v0.50.0 // indirect
-	golang.org/x/net v0.53.0 // indirect
+	golang.org/x/crypto v0.51.0 // indirect
+	golang.org/x/net v0.54.0 // indirect
 	golang.org/x/sync v0.20.0 // indirect
-	golang.org/x/sys v0.43.0 // indirect
-	golang.org/x/text v0.36.0 // indirect
+	golang.org/x/sys v0.44.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
+	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
 	google.golang.org/grpc v1.80.0 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
