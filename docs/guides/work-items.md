@@ -352,4 +352,4 @@ A: Each aggregated output includes the `for_each` input values. In the code abov
 A: No, it's set in the step definition. Create a new step version if you need to change it.
 
 **Q: What happens if a work item never completes?**
-A: Completion behavior is controlled by retry settings and result reporting. Transient failures (`work_not_completed`) retry until retry budget is exhausted; permanent failures (`work_failed`) fail that work item immediately.
+A: Completion behavior is controlled by retry settings and result reporting. Transient failures enter `not_completed` status and retry until the retry budget is exhausted; permanent failures enter `failed` status immediately.

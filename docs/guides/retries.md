@@ -4,16 +4,16 @@ Retries are per-work-item and configured per step. They apply when a work item r
 
 ## When retries are scheduled
 
-Retries are scheduled when a work item is marked `work_not_completed`. In the current engine behavior, this happens when the step invocation fails at the transport/HTTP layer:
+Retries are scheduled when a work item enters `not_completed` status, recorded by a `work_not_completed` event. In the current engine behavior, this happens when the step invocation fails at the transport/HTTP layer:
 
 1. **Network/transport failure**: connection error, timeout, etc.
 2. **HTTP 5xx response** from the step endpoint.
 
-HTTP 4xx responses and async webhook Problem Details are treated as permanent failures (`work_failed`), not retryable `work_not_completed`.
+HTTP 4xx responses and async webhook Problem Details are treated as permanent failures (`failed`, recorded by `work_failed`), not retryable `not_completed`.
 
 If a step returns 2xx, the work item is considered complete regardless of whether actual business work succeeded. If business logic failed permanently, return a 4xx response with `application/problem+json`.
 
-**Important:** The engine’s HTTP client examines transport errors and HTTP status codes. Network errors and HTTP 5xx responses are treated as retryable (`work_not_completed`). HTTP 4xx responses are treated as permanent failures.
+**Important:** The engine’s HTTP client examines transport errors and HTTP status codes. Network errors and HTTP 5xx responses are treated as retryable (`not_completed`). HTTP 4xx responses are treated as permanent failures.
 
 ## Configuration
 
@@ -68,11 +68,7 @@ If a work item fails permanently, the step fails. If a goal step fails, the flow
 
 ## Compensation retries
 
-When a step has a `compensate` endpoint configured, compensation attempts use
-the same `work_config` retry settings as normal work execution. The engine
-treats compensation `5xx` responses as transient (`work_not_completed`) and
-retries with the configured backoff. When `max_retries` is exhausted, the
-compensation is marked permanently failed (`comp_failed`).
+When a step has a `compensate` endpoint configured, compensation attempts use the same `work_config` retry settings as normal work execution. The engine treats compensation `5xx` responses as transient and raises `comp_retry_scheduled` while retrying with the configured backoff. When `max_retries` is exhausted, the compensation is marked permanently failed (`compensation_failed`).
 
 See [Compensation](./compensation.md) for full details.
 

@@ -133,7 +133,7 @@ To unsubscribe:
 - `work_succeeded`
 - `work_failed`
 - `work_not_completed`
-- `retry_scheduled`
+- `work_retry_scheduled`
 - `dispatch_deferred`
 - `comp_started`
 - `comp_succeeded`

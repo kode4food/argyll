@@ -133,7 +133,7 @@ describe("WebSocketProvider", () => {
           "work_succeeded",
           "work_failed",
           "work_not_completed",
-          "retry_scheduled",
+          "work_retry_scheduled",
         ],
       },
       expect.any(Function)
@@ -521,7 +521,7 @@ describe("WebSocketProvider", () => {
       },
     });
     flowHandler({
-      type: "retry_scheduled",
+      type: "work_retry_scheduled",
       data: {
         flow_id: "flow-1",
         step_id: "step-1",

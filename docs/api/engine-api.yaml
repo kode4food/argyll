@@ -719,8 +719,7 @@ paths:
         ## Aggregate IDs
 
         - **Catalog events**: `["catalog"]` - step registration and updates
-        - **Node registry events**: `["nodes"]` - cluster membership state
-        - **Node events**: `["node", "node-id"]` or `["node"]` prefix subscriptions - per-node health and last-seen state
+        - **Cluster events**: `["cluster"]` - per-step health across nodes
         - **Flow events**: `["flow", "flow-id"]` - flow and step execution events
 
         ## Event Filtering
@@ -755,11 +754,12 @@ paths:
 
         **Event Types:**
         - Catalog events: step_registered, step_unregistered, step_updated
-        - Node events: node_seen, step_health_changed
+        - Cluster events: step_health_changed
         - Flow events: flow_started, flow_completed, flow_failed, flow_deactivated,
           step_started, step_completed, step_failed, step_skipped, attribute_set,
           work_started, work_succeeded, work_failed, work_not_completed,
-          retry_scheduled
+          work_retry_scheduled, dispatch_deferred, comp_started,
+          comp_retry_scheduled, comp_succeeded, comp_failed
       operationId: connectWebSocket
       tags:
         - WebSocket
@@ -1690,7 +1690,15 @@ components:
       properties:
         status:
           type: string
-          enum: [pending, active, succeeded, failed, not_completed]
+          enum:
+            - pending
+            - active
+            - succeeded
+            - failed
+            - not_completed
+            - compensating
+            - compensated
+            - compensation_failed
           description: Current work item status
           example: "succeeded"
         started_at:
@@ -1711,7 +1719,7 @@ components:
           additionalProperties: true
         error:
           type: string
-          description: Error message if status is failed
+          description: Error message if work or compensation failed
         retry_count:
           type: integer
           description: Number of retry attempts made

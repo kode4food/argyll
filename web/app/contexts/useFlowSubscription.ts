@@ -31,7 +31,7 @@ const FLOW_EVENT_TYPES = [
   "work_succeeded",
   "work_failed",
   "work_not_completed",
-  "retry_scheduled",
+  "work_retry_scheduled",
 ];
 
 type TFn = (key: string) => string;
@@ -130,7 +130,7 @@ const applyWorkItemEvent = (
         error: wsEvent.data?.error,
       });
       return true;
-    case "retry_scheduled":
+    case "work_retry_scheduled":
       updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
         status: "pending",
         retry_count: wsEvent.data?.retry_count ?? 0,

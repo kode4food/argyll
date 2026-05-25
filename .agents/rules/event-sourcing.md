@@ -331,8 +331,12 @@ func reconstructState(aggregateID ID) State {
 - `work_succeeded` - Work item completed successfully
 - `work_failed` - Work item failed
 - `work_not_completed` - Work item reports not ready (triggers retry scheduling)
-- `retry_scheduled` - Work item retry scheduled for future time
+- `work_retry_scheduled` - Work item retry scheduled for future time
 - `dispatch_deferred` - Step dispatch deferred until a node can run it
+- `comp_started` - Compensation dispatched for a succeeded work item
+- `comp_retry_scheduled` - Compensation retry scheduled for future time
+- `comp_succeeded` - Compensation completed successfully
+- `comp_failed` - Compensation permanently failed
 - `flow_deactivated` - Flow terminal + no active work
 - `attribute_set` - Step outputs added to flow state
 

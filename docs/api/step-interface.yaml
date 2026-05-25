@@ -38,7 +38,7 @@ paths:
         - 5xx or transport error: transient failure; engine retries using the
           step's `work_config` backoff settings.
         - 4xx: permanent compensation failure; engine marks the work item
-          `comp_failed`.
+          `compensation_failed`.
       operationId: compensateWorkItem
       tags:
         - Step Execution

@@ -12,7 +12,7 @@ cannot be compensated.
 
 Compensation is triggered at **step failure**, not flow failure. When a step
 fails (permanently, after retries are exhausted for all failing work items), the
-engine raises a `StepFailed` event and immediately schedules compensation for
+engine raises a `step_failed` event and immediately schedules compensation for
 every work item whose status is `succeeded`.
 
 Compensation continues even after the flow has reached a terminal state
@@ -62,13 +62,9 @@ receipt token as the idempotency key for compensation side effects.
 
 ## Retry behavior
 
-Compensation uses the same `work_config` retry settings as the step's normal
-work execution. The engine treats compensation `5xx` responses (and transport
-errors) as transient (`work_not_completed`) and schedules a retry using the
-configured backoff strategy. `4xx` responses are treated as permanent
-compensation failures.
+Compensation uses the same `work_config` retry settings as the step's normal work execution. The engine treats compensation `5xx` responses (and transport errors) as transient and schedules a `comp_retry_scheduled` event using the configured backoff strategy. `4xx` responses are treated as permanent compensation failures.
 
-When `max_retries` is exhausted, the compensation is marked `comp_failed`.
+When `max_retries` is exhausted, the compensation is marked `compensation_failed`.
 
 ```json
 {
@@ -108,10 +104,9 @@ Compensation adds three work item states to the normal lifecycle:
 |--------|---------|
 | `compensating` | Compensation dispatched, waiting for result |
 | `compensated` | Compensation completed successfully |
-| `comp_failed` | Compensation permanently failed |
+| `compensation_failed` | Compensation permanently failed |
 
-The flow is not deactivated until all compensation work items reach a terminal
-state (`compensated` or `comp_failed`).
+The flow is not deactivated until all compensation work items reach a terminal state (`compensated` or `compensation_failed`).
 
 ## Startup recovery
 

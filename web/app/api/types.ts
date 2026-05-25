@@ -20,7 +20,7 @@ export type WorkStatus =
   | "not_completed"
   | "compensating"
   | "compensated"
-  | "comp_failed";
+  | "compensation_failed";
 
 export type HealthStatus = "healthy" | "unhealthy" | "unconfigured" | "unknown";
 export type StepType = "sync" | "async" | "script" | "flow";
