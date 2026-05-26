@@ -1,6 +1,7 @@
 package helpers_test
 
 import (
+	"errors"
 	"testing"
 	"time"
 
@@ -382,6 +383,30 @@ func TestRaiseFlowEvents(t *testing.T) {
 		fl, err := env.Engine.GetFlowState(id)
 		assert.NoError(t, err)
 		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func TestSeedFlow(t *testing.T) {
+	for _, status := range []api.FlowStatus{
+		api.FlowActive, api.FlowCompleted, api.FlowFailed,
+	} {
+		t.Run(string(status), func(t *testing.T) {
+			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+				labels := api.Labels{"tier": "test"}
+				err := env.SeedFlow("seeded-flow", status, labels)
+				assert.NoError(t, err)
+
+				fl, err := env.Engine.GetFlowState("seeded-flow")
+				assert.NoError(t, err)
+				assert.Equal(t, status, fl.Status)
+				assert.Equal(t, labels, fl.Labels)
+			})
+		})
+	}
+
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		err := env.SeedFlow("invalid-flow", "invalid", nil)
+		assert.True(t, errors.Is(err, helpers.ErrInvalidSeedFlowStatus))
 	})
 }
 

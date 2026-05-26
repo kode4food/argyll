@@ -1,6 +1,7 @@
 package helpers
 
 import (
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -51,6 +52,8 @@ type (
 		mu    sync.Mutex
 	}
 )
+
+var ErrInvalidSeedFlowStatus = errors.New("invalid seeded flow status")
 
 // WithTestEnv creates a test engine environment, executes the provided
 // function with it, and ensures cleanup happens automatically
@@ -276,6 +279,41 @@ func (e *TestEngineEnv) RaiseFlowEvents(
 		},
 	)
 	return err
+}
+
+// SeedFlow stores a minimal valid flow history for state/query fixtures
+func (e *TestEngineEnv) SeedFlow(
+	flowID api.FlowID, status api.FlowStatus, labels api.Labels,
+) error {
+	evs := []FlowEvent{{
+		Type: api.EventTypeFlowStarted,
+		Data: api.FlowStartedEvent{
+			FlowID: flowID,
+			Plan:   &api.ExecutionPlan{Steps: api.Steps{}},
+			Labels: labels,
+		},
+	}}
+	switch status {
+	case api.FlowActive:
+		return e.RaiseFlowEvents(flowID, evs...)
+	case api.FlowCompleted:
+		evs = append(evs, FlowEvent{
+			Type: api.EventTypeFlowCompleted,
+			Data: api.FlowCompletedEvent{FlowID: flowID},
+		})
+	case api.FlowFailed:
+		evs = append(evs, FlowEvent{
+			Type: api.EventTypeFlowFailed,
+			Data: api.FlowFailedEvent{FlowID: flowID},
+		})
+	default:
+		return ErrInvalidSeedFlowStatus
+	}
+	evs = append(evs, FlowEvent{
+		Type: api.EventTypeFlowDeactivated,
+		Data: api.FlowDeactivatedEvent{FlowID: flowID, Status: status},
+	})
+	return e.RaiseFlowEvents(flowID, evs...)
 }
 
 // AppendEvents appends raw events to the shared test store

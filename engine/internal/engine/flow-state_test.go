@@ -312,18 +312,7 @@ func TestGetFlowState(t *testing.T) {
 
 func TestGetStatusActive(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		pl := &api.ExecutionPlan{
-			Steps:      api.Steps{},
-			Attributes: api.AttributeGraph{},
-		}
-
-		err := env.RaiseFlowEvents("wf-active", helpers.FlowEvent{
-			Type: api.EventTypeFlowStarted,
-			Data: api.FlowStartedEvent{
-				FlowID: "wf-active",
-				Plan:   pl,
-			},
-		})
+		err := env.SeedFlow("wf-active", api.FlowActive, nil)
 		assert.NoError(t, err)
 
 		status, err := env.Engine.GetFlowStatus("wf-active")
@@ -334,28 +323,7 @@ func TestGetStatusActive(t *testing.T) {
 
 func TestGetStatusCompleted(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		pl := &api.ExecutionPlan{
-			Steps:      api.Steps{},
-			Attributes: api.AttributeGraph{},
-		}
-
-		err := env.RaiseFlowEvents(
-			"wf-completed",
-			helpers.FlowEvent{
-				Type: api.EventTypeFlowStarted,
-				Data: api.FlowStartedEvent{
-					FlowID: "wf-completed",
-					Plan:   pl,
-				},
-			},
-			helpers.FlowEvent{
-				Type: api.EventTypeFlowDeactivated,
-				Data: api.FlowDeactivatedEvent{
-					FlowID: "wf-completed",
-					Status: api.FlowCompleted,
-				},
-			},
-		)
+		err := env.SeedFlow("wf-completed", api.FlowCompleted, nil)
 		assert.NoError(t, err)
 
 		status, err := env.Engine.GetFlowStatus("wf-completed")
@@ -366,28 +334,7 @@ func TestGetStatusCompleted(t *testing.T) {
 
 func TestGetStatusFailed(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		pl := &api.ExecutionPlan{
-			Steps:      api.Steps{},
-			Attributes: api.AttributeGraph{},
-		}
-
-		err := env.RaiseFlowEvents(
-			"wf-failed",
-			helpers.FlowEvent{
-				Type: api.EventTypeFlowStarted,
-				Data: api.FlowStartedEvent{
-					FlowID: "wf-failed",
-					Plan:   pl,
-				},
-			},
-			helpers.FlowEvent{
-				Type: api.EventTypeFlowDeactivated,
-				Data: api.FlowDeactivatedEvent{
-					FlowID: "wf-failed",
-					Status: api.FlowFailed,
-				},
-			},
-		)
+		err := env.SeedFlow("wf-failed", api.FlowFailed, nil)
 		assert.NoError(t, err)
 
 		status, err := env.Engine.GetFlowStatus("wf-failed")
