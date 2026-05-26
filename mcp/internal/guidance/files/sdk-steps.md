@@ -14,9 +14,10 @@ SDK-hosted HTTP steps:
 - The SDK-hosted server currently handles POST step invocations. Do not generate SDK-hosted GET/PUT/DELETE handlers unless the SDK handler layer is extended first.
 - Use WithAsyncExecution or with_async_execution for async steps; the handler returns immediately and completes through the webhook/AsyncContext.
 
-External HTTP steps:
+Sync and async steps backed by existing HTTP endpoints:
 - Use Register/register with WithEndpoint/with_endpoint when another service already implements the HTTP endpoint.
-- Use WithMethod/with_method for GET, PUT, or DELETE external endpoints. POST can be omitted because it is the default.
+- Use WithMethod/with_method for existing GET, PUT, or DELETE endpoints. POST can be omitted because it is the default.
+- For `sdk_step_template`, keep `step_type` as `sync` or `async` and set `external: true` to generate this registration form.
 
 Script and flow steps:
 - Use WithScript/with_script plus Register/register for script steps.

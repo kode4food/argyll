@@ -42,8 +42,8 @@ Local defaults are defined in `docker-compose.yml`. The most important settings 
 - `API_HOST` and `API_PORT` (engine HTTP server)
 - `WEBHOOK_BASE_URL` (used for async step callbacks)
 - `RAFT_NODE_ID`, `RAFT_ADDRESS`, and `RAFT_DATA_DIR` (single-node or cluster identity)
-- `RAFT_LOG_TAIL_SIZE` (retained hot log tail cache entries, default `20480`)
-- `RAFT_SERVERS` (multi-node bootstrap voter set)
+- `RAFT_LOG_TAIL_SIZE` (number of recent write-ahead log entries retained in memory, default `20480`)
+- `RAFT_SERVERS` (initial voting members of a multi-node cluster)
 
 If you run the engine outside Docker, make sure these are set appropriately for your host and network.
 

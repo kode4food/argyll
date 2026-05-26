@@ -68,7 +68,7 @@ docs/
 │   └── architecture.md              # Design principles and boundaries
 ├── guides/
 │   ├── step-types.md                # Choosing step types
-│   ├── work-items.md                # Parallelism and fan-out
+│   ├── work-items.md                # Fan-out and fan-in for parallel input items
 │   ├── predicates.md                # Conditional execution
 │   ├── async-steps.md               # Background processing
 │   ├── memoization.md               # Result caching

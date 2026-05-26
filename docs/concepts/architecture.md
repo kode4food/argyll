@@ -14,7 +14,7 @@ Argyll is built around core constraints that preserve correctness, predictabilit
 
 ## Load-Bearing Constraints
 
-### Acyclic Execution Only
+### Execution Plans Cannot Contain Cycles
 
 Execution plans form a **DAG** (directed acyclic graph). No cycles or loops.
 

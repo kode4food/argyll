@@ -1,12 +1,12 @@
-Use the Argyll MCP output below to ingest bespoke REST services into Argyll.
+Use the Argyll MCP output below to ingest custom REST services into Argyll. Ingestion means turning external service operations into Argyll step registrations that the planner can use.
 
 Your responsibility is to infer the business flow represented by the operations, existing steps, names, descriptions, schemas, examples, enum values, and request/response shapes.
 
-Start with `analyze_openapi_contract` to extract neutral OpenAPI facts. The MCP does not generate authoritative step registrations from OpenAPI; you author those registrations from the contract facts.
+Start with `analyze_openapi_contract` to extract neutral OpenAPI facts. The MCP does not generate final step registrations from OpenAPI; you author those registrations from the contract facts.
 
 ## Step JSON schema
 
-The authoritative schema is in `engine-api.yaml` (embedded alongside this file). The definitions that matter most for ingestion are `StepRegistration`, `AttributeSpec`, `RequiredConfig`, `OptionalConfig`, `OutputConfig`, `MappingConfig`, `ScriptConfig`, and `HttpConfig`.
+The schema used to validate registrations is in `engine-api.yaml` (embedded alongside this file). The definitions that matter most for ingestion are `StepRegistration`, `AttributeSpec`, `RequiredConfig`, `OptionalConfig`, `OutputConfig`, `MappingConfig`, `ScriptConfig`, and `HttpConfig`.
 
 Key structural rules — get these wrong and the engine either rejects the step or silently drops the field:
 
@@ -36,7 +36,8 @@ Key structural rules — get these wrong and the engine either rejects the step 
 Mapping and match configuration nest **inside a sub-object keyed by the role name** on the attribute — not at the top level of the attribute. Both `mapping` and `match` are objects, not strings:
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
-- `match` → `{ "language": "ale", "script": "..." }` — a `ScriptConfig` object, never a bare string
+- `match` → `{ "language": "ale", "script": "..." }` - a `ScriptConfig` object, never a bare string
+- `jpath` is Argyll's language identifier for JSONPath-style query expressions; it has Argyll-specific behavior and is intended for mappings and predicates, not executable Script Steps
 
 The spec's own example (from `StepRegistration.attributes`):
 
@@ -104,10 +105,10 @@ Treat missing inputs as graph diagnostics. Do not invent bridge steps or synthet
 
 Before applying registrations, inspect the contract operations and existing steps, author refined Argyll step definitions, then use diff/apply tools and preview a plan.
 
-Do not apply the raw OpenAPI extraction when service field names leak into planner-facing required attributes. First produce refined Argyll step definitions with canonical planner attributes, role-specific `mapping`, and any inferred `required.match` discriminators.
+Do not apply the raw OpenAPI extraction when service field names appear in required attributes used by the planner. First produce refined Argyll step definitions with consistent planner attributes, role-specific `mapping`, and any inferred `required.match` discriminators.
 
 After applying registrations, inspect the `verification` block returned by `apply_proposed_steps`. If it reports missing or changed `mapping` or `match` paths, treat the registration as semantically failed even if the engine accepted the request.
 
-After readback verification passes, use `preview_plan` with representative goal step IDs (not attribute names). The `goals` field takes step IDs. If service-specific request fields appear as missing initial inputs, refine the step attributes and mappings before running the flow.
+After verification of the saved registration passes, use `preview_plan` with representative goal step IDs (not attribute names). The `goals` field takes step IDs. If service-specific request fields appear as missing initial inputs, refine the step attributes and mappings before running the flow.
 
 {{payload}}

@@ -51,7 +51,7 @@ Inputs can choose how to collect matching upstream outputs with `required.collec
 
 Collection policies also affect lazy execution. Once a consumer no longer needs more values, providers that only fed that consumer can be skipped. This happens naturally for `first` after the first value, for failed `all` collections that can no longer succeed, and for optional inputs after their Collection Deadline closes.
 
-Required inputs can also declare `required.match`, a script predicate applied to each candidate value before collection. The match script receives only one candidate value: Ale and Lua expose it as `value`, while JPath evaluates the candidate as the document. Collection semantics are then applied over the match results:
+Required inputs can also declare `required.match`, a script predicate applied to each candidate value before collection. The match script receives only one candidate value: Ale and Lua expose it as `value`, while Argyll JSONPath (`jpath`) evaluates the candidate as the document. Collection semantics are then applied over the match results:
 
 | Collect | Match behavior |
 | ------- | -------------- |
@@ -83,7 +83,7 @@ Initial flow values use an array per attribute name. This makes a scalar array v
 }
 ```
 
-Initial values are considered during planning with the same collection semantics used at runtime. `first` can be satisfied entirely by init and upstream providers can be pruned. `last`, `some`, and `all` keep reachable providers in the plan because their final value depends on provider completion. `none` is the inverse: if init supplies a value for that input, the step is blocked because the required absence can never be true, and the plan reports it under `excluded.blocked`.
+Initial values are considered during planning with the same collection rules used at runtime. `first` can be satisfied entirely by init and earlier providers can be removed because they are no longer needed. `last`, `some`, and `all` keep reachable providers in the plan because their final value depends on provider completion. `none` is the inverse: if init supplies a value for that input, the step is blocked because the required absence can never be true, and the plan reports it under `excluded.blocked`.
 
 ### Collection Deadlines
 
@@ -134,13 +134,13 @@ Use `for_each` on array inputs to process multiple items in parallel. Outputs ar
 }
 ```
 
-**Why:** Enables scalable fan-out without custom orchestration code.
+**Why:** Enables one step to process many input items in parallel without custom orchestration code.
 
 **Anti-pattern:** Don't use for_each if you need results back per-item before the step completes. Outputs are only available after ALL work items finish.
 
 ## Predicates for Business Logic
 
-Use predicates to conditionally skip steps based on flow state.
+Use predicates, which are condition scripts, to skip steps based on flow state.
 
 ```json
 {
@@ -214,7 +214,7 @@ Use flow steps (sub-flows) to create reusable, self-contained units with their o
 
 ## Idempotency
 
-Idempotency for async completion is handled by the engine.
+Idempotency means processing the same request more than once does not create duplicate external changes. The engine handles this for async completion callbacks by receipt token.
 
 Use the engine-provided metadata and webhook token path:
 - `flow_id`

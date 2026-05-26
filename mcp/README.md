@@ -8,7 +8,7 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `analyze_service_spec` - analyze one external REST/JSON service spec and summarize the operations it exposes.
 - `analyze_service_landscape` - analyze multiple service specs together and describe cross-service planning links and missing attributes.
 - `generate_step_impl` - generate a Go or Python SDK implementation draft for a proposed step.
-- `diff_proposed_steps` - dry-run proposed step registrations against the live catalog and classify each as create, update, or skip.
+- `diff_proposed_steps` - compare proposed step registrations with the live catalog without applying them, and classify each as create, update, or skip.
 - `apply_proposed_steps` - apply only the required creates and updates for a proposed step set using the existing registration endpoints.
 - `list_steps` - list all registered steps.
 - `register_step` - register a new step.
@@ -24,25 +24,25 @@ This MCP server exposes both the Argyll runtime surface and an OpenAPI-driven de
 - `engine_state` - fetch the current engine state.
 - `list_step_health` - list health for all steps.
 - `get_step_health` - fetch health for a single step.
-- `sdk_step_template` - return a minimal Go or Python SDK step template.
+- `sdk_step_template` - return a minimal Go or Python SDK step template; set `external: true` with `step_type: "sync"` or `"async"` when an existing HTTP endpoint implements the step.
 
 ## Resources
 
 - `/sdk/steps` - SDK step implementation guidance.
 - `/sdk/go/steps` - Go SDK step patterns.
 - `/sdk/python/steps` - Python SDK step patterns.
-- `/openapi/ingestion` - OpenAPI ingestion guidance for LLM-authored Argyll registrations.
+- `/openapi/ingestion` - OpenAPI ingestion guidance. Ingestion means turning operations from external OpenAPI services into Argyll step registrations.
 
 ## Prompts
 
 - `implement_step` - guide an agent through implementing a step with the Go or Python SDK.
-- `ingest_openapi_services` - guide an agent through OpenAPI contract analysis, registration authoring, readback verification, and plan preview.
+- `ingest_openapi_services` - guide an agent through ingesting OpenAPI services: analyzing contracts, authoring registrations, verifying saved registrations, and previewing a plan.
 
 ## LLM Workflow Example
 
 An LLM can use this MCP to analyze external service specs, author planner-oriented Argyll step registrations, preview the resulting plans, and surface any remaining mapping gaps for the user to resolve.
 
-`analyze_openapi_contract` includes an `argyll_capabilities` block describing declarative step features the LLM can rely on. This includes `required.mapping`, `optional.mapping`, `output.mapping`, and `required.match`. The tool reports neutral contract facts; the LLM authors planner-facing Argyll step definitions and uses role-specific mapping config instead of creating a synthetic bridge step.
+`analyze_openapi_contract` includes an `argyll_capabilities` block describing declarative step features the LLM can rely on. This includes `required.mapping`, `optional.mapping`, `output.mapping`, and `required.match`. The tool reports neutral contract facts; the LLM authors Argyll step definitions used by the planner and uses role-specific mapping config instead of creating an unnecessary intermediate step.
 
 The same capability block also advertises endpoint arguments. Argyll replaces `{name}` placeholders in HTTP step endpoints with runtime args, so OpenAPI path and query parameters are represented as endpoint placeholders such as `/customers/{customerId}?type={type}`.
 
@@ -54,16 +54,16 @@ One reasonable tool sequence is:
 
 1. `analyze_service_landscape` Input: both service specs plus any existing registered steps. Output: discovered relationships and missing attributes.
 2. `analyze_openapi_contract` Input: each OpenAPI spec. Output: neutral service facts and Argyll capability guidance.
-3. LLM-authored step definitions: canonical planner attributes, role-specific mappings, and required matches where the service contract and business flow justify them.
+3. LLM-authored step definitions: consistent attributes used by the planner, role-specific mappings, and required matches where the service contract and business flow justify them.
 4. `diff_proposed_steps` Input: the authored steps. Output: create/update/skip decisions against the live catalog.
-5. `apply_proposed_steps` Input: the authored steps. Output: applied registrations plus readback verification.
+5. `apply_proposed_steps` Input: the authored steps. Output: applied registrations plus verification after reading them back.
 6. `preview_plan` Input: likely goal steps and initial attrs. Output: whether Argyll can now build the expected plan.
 7. `generate_step_impl` Input: a proposed SDK-hosted step. Output: a Go or Python SDK implementation draft.
 
 Example LLM instruction:
 
 ```text
-Use the Argyll MCP to analyze these two OpenAPI specs. First run analyze_service_landscape to understand the cross-service graph. Then use analyze_openapi_contract for each spec, author planner-facing Argyll step definitions from the contract facts, diff and apply the non-redundant steps, and preview a plan for creating an order from customer_email + items. Explain which steps came directly from the OpenAPI docs and call out any remaining missing attributes.
+Use the Argyll MCP to analyze these two OpenAPI specs. First run analyze_service_landscape to understand the cross-service graph. Then use analyze_openapi_contract for each spec, author Argyll step definitions used by the planner from the contract facts, compare and apply the required steps, and preview a plan for creating an order from customer_email + items. Explain which steps came directly from the OpenAPI docs and identify any remaining missing attributes.
 ```
 
 This is the intended pattern: the LLM should use the MCP to discover the planner graph, register useful steps, and verify the resulting plan. If the graph still has gaps, the MCP reports them instead of fabricating mapping steps.

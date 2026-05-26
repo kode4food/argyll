@@ -20,7 +20,7 @@ Does your work finish within ~10 seconds?
 |------|---------|-------------|------------|
 | **Sync HTTP** | Fast (~100ms-10s) | Fast lookups, transformations | Low |
 | **Async HTTP** | Decoupled (background) | Long-running, queued work | Medium |
-| **Script** | In-engine (fast) | Transformations, predicates, glue logic | Low |
+| **Script** | In-engine (fast) | Transformations, conditions, routing logic | Low |
 | **Flow** | Variable | Reusable logic, composition | High |
 
 ## Sync HTTP
@@ -66,7 +66,7 @@ See [Async Steps Guide](./async-steps.md) for webhook setup and best practices.
 **Characteristics:**
 - No external service needed
 - Runs inside the engine
-- Great for glue logic
+- Great for small transformation and routing logic
 - No I/O or external calls
 
 For predicates specifically, see [Predicates Guide](./predicates.md).
@@ -82,7 +82,7 @@ For predicates specifically, see [Predicates Guide](./predicates.md).
 - Input/output mapping between parent and child via input role mappings (`required.mapping.name` or `optional.mapping.name`) and `output.mapping.name`
 - More events and state overhead
 - Enables composition and reuse
-- Flow-step composition must be acyclic; recursive child-flow definitions are rejected
+- Flow-step composition must not contain a cycle; recursive child-flow definitions are rejected
 
 For details, see [Flows](../concepts/flows.md) and [Flow Steps](../concepts/steps.md#flow-sub-flow).
 
@@ -206,7 +206,7 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 
 ## Related Guides
 
-- [Work Items](./work-items.md) - Scaling fan-out without custom code
+- [Work Items](./work-items.md) - Running one step for many input items without custom code
 - [Async Steps](./async-steps.md) - Webhook setup and background processing
 - [Predicates](./predicates.md) - Conditional execution with scripts
 - [Memoization](./memoization.md) - Result caching for expensive operations
@@ -219,4 +219,4 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 3. **Use Async HTTP** only when work is genuinely long-running
 4. **Use Script** for lightweight transformations and predicates
 5. **Use Flow** when you need composition and reuse
-6. **Use For Each + Parallelism** for scalable fan-out without custom orchestration
+6. **Use For Each + Parallelism** to run one step across many input items without custom orchestration

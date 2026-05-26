@@ -73,7 +73,7 @@ If `items` is empty, predicate is false and no work items run. If non-empty, wor
 
 ## Languages
 
-Predicates support Ale, Lua, and JSONPath.
+Predicates support Ale, Lua, and Argyll JSONPath (`jpath`).
 
 ### Ale
 
@@ -109,9 +109,9 @@ end
 return #items > 0 and items[1].status == "approved"
 ```
 
-### JSONPath
+### JSONPath (`jpath`)
 
-Declarative JSON path/filter expressions. Predicate is true when the query matches at least one value (including explicit `null` matches).
+`jpath` is Argyll's language identifier for JSONPath-style query expressions. It has Argyll-specific behavior rather than claiming full compatibility with every JSONPath implementation. A predicate is true when the query matches at least one value (including explicit `null` matches).
 
 ```text
 $.customer.active

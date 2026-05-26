@@ -43,7 +43,8 @@ request body contains the original inputs and outputs for that work item. See
 [Compensation](../guides/compensation.md) for details.
 
 **Memoizable steps cannot be compensated.** Steps with `memoizable: true`
-declare no side effects, so `compensate` is not allowed alongside `memoizable`.
+declare no side effects, such as database writes or payment requests, so
+`compensate` is not allowed alongside `memoizable`.
 
 **Pros:** Simplest to implement, easy to debug, good for fast lookups
 
@@ -87,7 +88,7 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 
 ### Script
 
-**Use for:** Small transformations, predicates, routing logic, and in-engine data processing.
+**Use for:** Small transformations, condition checks, routing logic, and in-engine data processing.
 
 **How it works:**
 - Ale or Lua code runs inside the engine
@@ -116,7 +117,7 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 }
 ```
 
-**Pros:** No separate runtime, great for glue logic, keeps simple logic close to the flow
+**Pros:** No separate runtime, useful for small transformations and routing, keeps simple logic close to the flow
 
 **Cons:** No external I/O, use sparingly for complex logic
 
@@ -131,7 +132,7 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 - Child outputs are mapped back to parent attributes via `output.mapping.name`
 - Child completion produces the mapped outputs
 
-**Constraint:** Flow-step composition must be acyclic. A flow step cannot directly or indirectly include itself through child-flow goals.
+**Constraint:** Flow-step composition must not contain a cycle. A flow step cannot directly or indirectly include itself through child-flow goals.
 
 **Example:**
 ```json
@@ -173,7 +174,7 @@ Each step declares what it needs and what it produces.
 
 **Required attributes** must be available before the step executes.
 
-Required attributes may also declare `required.match`, a script predicate that gates the step using only that attribute. The predicate is evaluated against each candidate upstream value before the input's `required.collect` policy is resolved. For Ale and Lua, the candidate is available as `value`; for JPath, the candidate is the document.
+Required attributes may also declare `required.match`, a condition script that decides whether the step can run using only that attribute. The condition is evaluated against each candidate value from an earlier step before the input's `required.collect` policy is resolved. For Ale and Lua, the candidate is available as `value`; for Argyll JSONPath (`jpath`), the candidate is the document.
 
 Match uses the input's collection semantics: `some` means at least one upstream candidate must match, `all` means every upstream candidate must match, and `none` means no upstream candidate may match. If the match cannot be satisfied, the step is skipped and does not demand its other required inputs.
 
@@ -187,11 +188,11 @@ Optional attributes may also declare a Collection Deadline with `optional.deadli
 - The deadline decision is step-local. Later values can still enter the flow for other consumers, but this step will not restart to use them
 - If all upstream providers complete before the deadline without satisfying the input, the step resolves immediately rather than waiting. There is nothing left to wait for
 
-**Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps.
+**Produced outputs** are the attributes this step creates. When the step completes, its outputs become flow attributes available to downstream steps, meaning later steps that use them.
 
 ## Predicates
 
-A step can include an optional **predicate** script that decides whether the step should execute given its inputs.
+A step can include an optional **predicate**, a condition script that decides whether the step should execute given its inputs.
 
 ```json
 {
@@ -280,7 +281,7 @@ Use the role-specific `mapping.name` field to map between flow state attribute n
 
 ### Value Transformation
 
-Use `mapping.script` to transform values using JSONPath, Ale, or Lua:
+Use `mapping.script` to transform values using Argyll JSONPath (`jpath`), Ale, or Lua. `jpath` supports JSONPath-style expressions with Argyll-specific behavior:
 
 ```json
 {
@@ -342,7 +343,7 @@ These terms describe different levels of a flow's data:
 
 | Term | Definition | Scope |
 |------|-----------|-------|
-| **Attribute** | Data in the flow state, with provenance tracking | Flow lifecycle |
+| **Attribute** | Data in the flow state, tracking which step produced it | Flow lifecycle |
 | **Argument** | Input values passed to a step execution | Single step execution |
 | **Output** | Values returned by a step and added to flow attributes | Step result |
 
@@ -351,4 +352,4 @@ These terms describe different levels of a flow's data:
 Flow attributes → Step arguments → Step logic → Step outputs → Flow attributes
 ```
 
-Each attribute tracks which step produced it (provenance). This gives you a complete audit trail of how data moved through the flow.
+Each attribute tracks which step produced it. This gives you a complete audit trail of how data moved through the flow.

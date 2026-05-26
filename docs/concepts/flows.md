@@ -22,9 +22,9 @@ The flow reaches a terminal state when:
 - **Completed**: All goal steps have produced their outputs
 - **Failed**: A goal step failed or became unreachable (a required dependency failed)
 
-At this point, **no new steps will start**. The flow is logically "done."
+At this point, **no new steps will start** and callers can use the outcome immediately.
 
-However, **work may still be in-flight**: steps started before the flow became terminal may continue executing and reporting results.
+However, **work that has already started may still be running**: steps started before the flow became terminal may still produce **side effects** (changes to external systems) and report results. Compensation may also run after a failed outcome.
 
 ```
 Example: Order processing
@@ -37,19 +37,21 @@ Example: Order processing
 7. work_succeeded event recorded (complete audit trail maintained)
 ```
 
-This separation is intentional. The flow's logical outcome (success/failure) is separate from the physical completion of all work. This enables:
+This separation is intentional. Callers may use the flow's success or failure outcome before remaining work has finished. A deactivated flow is one where no further work or compensation can produce side effects. This enables:
 
 - **Complete audit trail**: All step executions are recorded
-- **Idempotency**: No wasted work if a step arrives late
+- **Complete state recording**: Results from work that finishes late are still retained
+
+Use full flow state or `flow_completed`/`flow_failed` events to act on the outcome. Deactivation indicates that no remaining work can produce side effects; it does not indicate when callers could first use the outcome.
 
 ### 3. Deactivated
 
-The flow is deactivated once it is **terminal AND no pending or active work remains**.
+The flow is deactivated once it is **terminal AND no work remains that can still produce side effects**: no pending, active, or compensating work items remain.
 
 At this point:
-- The flow is truly complete
+- No remaining work can produce side effects
 - All step executions are recorded
-- No further state changes will occur
+- No further work or compensation can produce side effects
 
 **Important:** A deactivated flow can still be read and replayed. Its event log is complete.
 
@@ -57,17 +59,17 @@ At this point:
 
 This distinction is critical:
 
-| State | Meaning | New Steps Start? | Work In-Flight? |
+| State | Meaning | New Steps Start? | Work Already Running? |
 |-------|---------|------------------|-----------------|
 | Active | Flow is running | Yes | Maybe |
-| Terminal (Completed/Failed) | Goal step finished or failed | No | Possibly |
-| Deactivated | Terminal + no pending or active work | No | No |
+| Terminal (Completed/Failed) | Outcome callers can use immediately; goal step finished or failed | No | Possibly |
+| Deactivated | Terminal + no pending, active, or compensating work | No | No |
 
 ## Flow Attributes
 
 **Attributes** are the data accumulated in a flow. When a step completes, its outputs become attributes.
 
-Each attribute has **provenance**, tracking which step produced it. This gives you a complete audit trail:
+Each attribute has **provenance**, meaning it records which step produced it. This gives you a complete audit trail:
 
 ```json
 {
@@ -96,5 +98,4 @@ This enables:
 
 - **Debugging**: Understand exactly what happened
 - **Recovery**: No external coordination needed
-- **Compliance**: Complete audit trail, tamper-evident
-
+- **Compliance**: Complete audit trail that exposes later changes

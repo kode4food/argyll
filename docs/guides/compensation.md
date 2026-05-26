@@ -15,9 +15,7 @@ fails (permanently, after retries are exhausted for all failing work items), the
 engine raises a `step_failed` event and immediately schedules compensation for
 every work item whose status is `succeeded`.
 
-Compensation continues even after the flow has reached a terminal state
-(`failed`). The flow is held in a deactivated-pending state until all
-compensation work items settle.
+Compensation continues even after the flow has reached terminal state (`failed`). A caller may act on the failure immediately while compensation is still producing side effects (changes to external systems). The flow is not deactivated until all compensation work items finish.
 
 ## Configuring a compensate endpoint
 
@@ -62,7 +60,7 @@ receipt token as the idempotency key for compensation side effects.
 
 ## Retry behavior
 
-Compensation uses the same `work_config` retry settings as the step's normal work execution. The engine treats compensation `5xx` responses (and transport errors) as transient and schedules a `comp_retry_scheduled` event using the configured backoff strategy. `4xx` responses are treated as permanent compensation failures.
+Compensation uses the same `work_config` retry settings as the step's normal work execution. The engine treats compensation `5xx` responses (and transport errors) as temporary failures and schedules a `comp_retry_scheduled` event using the configured retry delay strategy. `4xx` responses are treated as permanent compensation failures.
 
 When `max_retries` is exhausted, the compensation is marked `compensation_failed`.
 
@@ -105,6 +103,8 @@ Compensation adds three work item states to the normal lifecycle:
 | `compensating` | Compensation dispatched, waiting for result |
 | `compensated` | Compensation completed successfully |
 | `compensation_failed` | Compensation permanently failed |
+
+These are work-item status values. Compensation events use the shorter `comp_*` names: `comp_started`, `comp_succeeded`, `comp_retry_scheduled`, and `comp_failed`. In particular, a `comp_failed` event sets the work-item status to `compensation_failed`.
 
 The flow is not deactivated until all compensation work items reach a terminal state (`compensated` or `compensation_failed`).
 

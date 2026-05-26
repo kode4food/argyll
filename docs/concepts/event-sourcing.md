@@ -19,14 +19,16 @@ Current state: Reconstructed by replaying these events in order
 
 Any flow state can be exactly reconstructed by replaying its event log. This is the guarantee: **the complete history IS the complete truth**.
 
+Events for one resource form an **aggregate**, such as one flow or the cluster health record. The current state reconstructed from an aggregate's events is its **projection**.
+
 ## Event Recording is Unconditional
 
 A critical design decision: **All events are recorded, regardless of flow state.**
 
-Even after a flow fails, work items started before failure are still recorded. This matters because:
+Even after a flow fails, work items started before failure can still produce **side effects** (changes to external systems) and are still recorded. This matters because:
 
 1. **Audit trail**: The complete history includes all execution attempts
-2. **Idempotency**: Late-arriving work completions are still recorded for the record
+2. **Idempotency**: Services can use receipt tokens to make repeated requests safe while late work completions are still recorded
 
 ```
 Example: Order processing fails
@@ -34,7 +36,7 @@ Example: Order processing fails
 Timeline:
 1. reserve_inventory started
 2. process_payment fails → flow_failed
-3. Flow is terminal, no new steps start
+3. Flow is terminal and callers can use its failure outcome immediately; no new steps start
 4. reserve_inventory still processing...
 5. reserve_inventory completes → work_succeeded event recorded
 6. Outputs available in the event log for audit purposes
@@ -60,9 +62,11 @@ These affect per-node operational state in the `["cluster"]` aggregate:
 
 Flow lifecycle membership is maintained as flow-store indexes derived from flow events, not as node events:
 
-- **active**: Flow has started and is currently active
-- **completed**: Flow is terminal, deactivated, and completed successfully
-- **failed**: Flow is terminal, deactivated, and failed
+- **active**: Flow has started and has not deactivated yet; its state may already be terminal while work can still produce side effects
+- **completed**: Flow deactivated after completing successfully
+- **failed**: Flow deactivated after failing
+
+The status used by flow list/query and lightweight status lookup changes only at deactivation. Full flow state records `completed` or `failed` as soon as the terminal event is applied; the indexed status changes from `active` only when `flow_deactivated` is recorded.
 
 ### Flow-Level Events
 
@@ -87,6 +91,8 @@ These affect the flow's execution state:
 - **comp_retry_scheduled**: Compensation retry scheduled for future time
 - **attribute_set**: Step outputs added to flow state
 
+Compensation event names use the short `comp_*` prefix. The work-item status set by `comp_failed` is `compensation_failed`; it is a state value, not an event name.
+
 ## Event Flow Diagram
 
 ```
@@ -105,11 +111,11 @@ Engine checks: are all goals satisfied?
 No: loop to execute next ready steps
 Yes: flow_completed event
          ↓
-Work items may still be in-flight...
+Work items that have already started or compensation may still be running...
          ↓
 work_succeeded/work_failed events recorded
          ↓
-When no pending or active work remains:
+When no pending, active, or compensating work remains:
 flow_deactivated event
          ↓
 Flow index updated to completed/failed
@@ -120,11 +126,12 @@ Flow index updated to completed/failed
 This distinction is crucial:
 
 - **Terminal**: The flow's goal is achieved or impossible (flow_completed or flow_failed)
+  - Callers can use the outcome immediately
   - No new steps will start
-  - In-flight work may still complete and be recorded
+  - Work that has already started may still produce side effects and be recorded; compensation may still run
 
-- **Deactivated**: The flow is terminal AND no pending or active work remains
-  - All work is accounted for
+- **Deactivated**: The flow is terminal AND no pending, active, or compensating work remains
+  - No further work or compensation can produce side effects
   - Event log is complete
 
 ## Benefits
@@ -179,7 +186,7 @@ inside the replicated store
 This means:
 
 - One leader orders writes through the replicated log
-- Followers stay hot with the same event history and derived indexes
+- Followers retain the same event history and derived indexes so they are ready to serve reads
 - Writes must target the leader; clients are responsible for leader discovery
 
 ## How Recovery Works

@@ -35,7 +35,7 @@ paths:
         the idempotency key for the compensation side effect.
 
         - 2xx: compensation succeeded.
-        - 5xx or transport error: transient failure; engine retries using the
+        - 5xx or transport error: temporary failure; engine retries using the
           step's `work_config` backoff settings.
         - 4xx: permanent compensation failure; engine marks the work item
           `compensation_failed`.
@@ -259,4 +259,4 @@ x-implementation-notes: |
   Permanent failure: return 4xx with `Content-Type: application/problem+json`.
   Retryable failure: return 5xx, timeout, or close the connection; Argyll records the work item as not completed and applies retry policy.
   Async completion: POST the same success output object or problem details object to `Argyll-Webhook-URL`.
-  Compensation: when `http.compensate` is configured, the engine POSTs {"input": ..., "output": ...} to the resolved compensate URL for each succeeded work item when the step fails. Use the receipt token as the idempotency key. Return 2xx on success, 5xx for transient failures (retried), 4xx for permanent failures.
+  Compensation: when `http.compensate` is configured, the engine POSTs {"input": ..., "output": ...} to the resolved compensate URL for each succeeded work item when the step fails. Use the receipt token as the idempotency key. Return 2xx on success, 5xx for temporary failures (retried), 4xx for permanent failures.

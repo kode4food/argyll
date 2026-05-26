@@ -112,7 +112,7 @@ def send_completion(flow_id, step_id, receipt_token, result):
 
 - Retry behavior is controlled by step work config.
 - Posting `application/problem+json` records a permanent failure for that work item.
-- Retry scheduling is driven by `not_completed` status transitions, recorded by `work_not_completed` events (for example, transient invocation failures like network errors or HTTP 5xx from a step endpoint).
+- Retry scheduling is driven by `not_completed` status transitions, recorded by `work_not_completed` events (for example, temporary invocation failures like network errors or HTTP 5xx from a step endpoint).
 
 See [guides/retries.md](./retries.md) for details.
 

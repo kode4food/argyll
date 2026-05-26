@@ -13,6 +13,7 @@ type (
 		Language       string   `json:"language"`
 		StepName       string   `json:"step_name"`
 		StepType       string   `json:"step_type,omitempty"`
+		External       *bool    `json:"external,omitempty"`
 		Method         string   `json:"method,omitempty"`
 		ScriptLanguage *string  `json:"script_language,omitempty"`
 		ScriptBody     *string  `json:"script_body,omitempty"`
@@ -96,6 +97,13 @@ func (s *Server) registerGuidance(srv server.Server) {
 }
 
 func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
+	isExternal := args.External != nil && *args.External
+	return renderStepTemplate(args, isExternal)
+}
+
+func renderStepTemplate(
+	args sdkStepTemplateInput, isExternal bool,
+) (string, error) {
 	lang := strings.ToLower(strings.TrimSpace(args.Language))
 	if lang != "go" && lang != "python" {
 		return "", errInvalidParams("language must be go or python")
@@ -108,10 +116,15 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 		stepType = "sync"
 	}
 	switch stepType {
-	case "sync", "async", "external", "script":
+	case "sync", "async", "script":
+	case "flow":
+		return "", errInvalidParams(
+			"flow steps do not have SDK handler implementations",
+		)
 	default:
 		return "", errInvalidParams(
-			"step_type must be sync, async, external, or script",
+			"step_type must identify an SDK-implemented sync, async, or " +
+				"script step",
 		)
 	}
 	method := strings.ToUpper(strings.TrimSpace(args.Method))
@@ -124,11 +137,16 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 		return "", errInvalidParams("method must be GET, POST, PUT, or DELETE")
 	}
 	if stepType == "script" {
+		if isExternal {
+			return "", errInvalidParams(
+				"external is only valid for sync or async HTTP steps",
+			)
+		}
 		method = ""
 	}
-	if stepType != "external" && stepType != "script" && method != "POST" {
+	if !isExternal && stepType != "script" && method != "POST" {
 		return "", errInvalidParams(
-			"non-POST methods require step_type external",
+			"SDK-hosted sync and async templates require method POST",
 		)
 	}
 	data := stepTemplateData{
@@ -137,9 +155,9 @@ func sdkStepTemplate(args sdkStepTemplateInput) (string, error) {
 		Inputs:           args.Inputs,
 		Outputs:          args.Outputs,
 		IsAsync:          stepType == "async",
-		IsExternal:       stepType == "external",
+		IsExternal:       isExternal,
 		IsScript:         stepType == "script",
-		HasNonPostMethod: method != "POST" && stepType == "external",
+		HasNonPostMethod: method != "POST" && isExternal,
 	}
 	if args.ScriptLanguage != nil {
 		data.ScriptLanguage = *args.ScriptLanguage

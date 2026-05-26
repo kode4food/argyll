@@ -415,7 +415,7 @@ paths:
       description: |
         Retrieve non-child flows in the system (`active`, `completed`, and `failed`), sorted by most-recent activity within each status group.
 
-        This endpoint uses the same query engine as `/engine/flow/query`. Status, ID-prefix, and label filtering are resolved from flow-store indexes without loading full flow state.
+        This endpoint uses the same query engine as `/engine/flow/query`. Status, ID-prefix, and label filtering are resolved from flow-store indexes without loading full flow state. A terminal flow remains indexed as `active` until `flow_deactivated` records that no remaining work can produce external side effects (changes outside flow state).
       operationId: listFlows
       tags:
         - Flows
@@ -494,9 +494,9 @@ paths:
     post:
       summary: Query Flows
       description: |
-        Query non-child flows using ID prefix, labels, status filters, and pagination.
+        Query non-child flows using ID prefix, labels, deactivation-based status filters, and pagination.
 
-        The engine resolves status, ID-prefix, and label filtering directly from flow-store indexes.
+        The engine resolves status, ID-prefix, and label filtering directly from flow-store indexes. A terminal flow remains indexed as `active` until `flow_deactivated` records that no remaining work can produce external side effects (changes outside flow state).
       operationId: queryFlows
       tags:
         - Flows
@@ -570,13 +570,19 @@ paths:
     get:
       summary: Get Flow Status
       description: |
-        Retrieve the minimal status payload for a specific flow.
+        Retrieve the minimal deactivation-based status payload for a specific flow.
 
-        This endpoint is intended for lightweight polling when callers only need
-        to know whether a flow is `active`, `completed`, or `failed`.
+        This endpoint is intended for lightweight polling when callers do not
+        need the full reconstructed flow state.
 
         The engine resolves this directly from the flow status index without
-        loading the full flow state.
+        loading the full flow state. The index remains `active` after a flow
+        enters terminal state while work that has already started or
+        compensation can still produce external side effects; it
+        changes to `completed` or `failed` when `flow_deactivated` is recorded.
+        Use `GET /engine/flow/{flowId}` or terminal flow events to observe and
+        act on an outcome before deactivation. This indexed endpoint reports
+        final status only after remaining work can no longer produce external side effects.
       operationId: getFlowStatus
       tags:
         - Flows
@@ -760,6 +766,11 @@ paths:
           work_started, work_succeeded, work_failed, work_not_completed,
           work_retry_scheduled, dispatch_deferred, comp_started,
           comp_retry_scheduled, comp_succeeded, comp_failed
+
+        For flow lifecycle consumers, `flow_completed` and `flow_failed`
+        establish an outcome that callers can use immediately. `flow_deactivated` is emitted
+        later, once no pending, active, or compensating work can still produce
+        external side effects.
       operationId: connectWebSocket
       tags:
         - WebSocket
@@ -1014,7 +1025,7 @@ components:
           example: false
         match:
           $ref: "#/components/schemas/ScriptConfig"
-          description: Optional predicate evaluated against each candidate value before collection. ALE and Lua receive one candidate as `value`; JPath evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+          description: Optional predicate evaluated against each candidate value before collection. ALE and Lua receive one candidate as `value`; Argyll JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1086,7 +1097,7 @@ components:
       description: |
         Defines parameter name mapping and value transformation for attributes.
         Allows renaming parameters between flow state and service interfaces,
-        and transforming values using scripts (JSONPath for queries, Lua/Ale for logic).
+        and transforming values using scripts (Argyll JSONPath (`jpath`) for queries, Lua/Ale for logic).
 
         At least one of `name` or `script` must be provided.
         Not allowed on const or meta attributes.
@@ -1165,14 +1176,14 @@ components:
             Script language:
             - `ale`: Ale expressions
             - `lua`: Lua scripts
-            - `jpath`: JSONPath query expressions
+            - `jpath`: Argyll's JSONPath query language identifier; it supports JSONPath-style expressions with Argyll-specific behavior
           example: "ale"
         script:
           type: string
           description: |
             The script code to execute.
 
-            For JSONPath: A query string like `$.user.email` or `$.data[0].value`
+            For Argyll JSONPath (`jpath`): A query string like `$.user.email` or `$.data[0].value`
             For Ale/Lua: The complete script code
           example: '{:greeting (str "Hello, " name)}'
 
@@ -1483,17 +1494,19 @@ components:
           type: string
           enum: [active, completed, failed]
           description: |
-            - `active`: Flow is currently executing
-            - `completed`: Flow completed successfully
-            - `failed`: Flow failed with an error
+            Status indexed at deactivation:
+            - `active`: Flow has not deactivated yet; it may already be terminal
+              while work can still produce external side effects
+            - `completed`: Flow deactivated after completing successfully
+            - `failed`: Flow deactivated after failing
           example: "active"
         timestamp:
           type: string
           format: date-time
           description: |
-            Indexed status timestamp used by flow list/query responses.
+            Status timestamp used by flow list/query responses.
             For active flows, this is when the flow entered active status.
-            For completed or failed flows, this is when the flow entered its terminal status.
+            For completed or failed flows, this is when the flow deactivated.
         labels:
           type: object
           description: Flow labels when available in the summary
@@ -1519,7 +1532,7 @@ components:
             env: "prod"
         statuses:
           type: array
-          description: Flow statuses to include
+          description: Deactivation-based statuses to include
           items:
             type: string
             enum: [active, completed, failed]
@@ -1550,7 +1563,10 @@ components:
         status:
           type: string
           enum: [active, completed, failed]
-          description: Current flow status
+          description: |
+            Status indexed at deactivation. `active` includes a flow that has
+            reached terminal state but still has work capable of producing
+            external side effects.
           example: "completed"
 
     FlowState:
@@ -1571,7 +1587,11 @@ components:
         status:
           type: string
           enum: [active, completed, failed]
-          description: Current flow status
+          description: |
+            Current reconstructed flow outcome. `completed` or `failed` is
+            terminal and callers can use the outcome immediately, but
+            `deactivated_at` may remain unset while work that has already
+            started can still produce external side effects or compensation runs.
           example: "active"
         created_at:
           type: string
@@ -1580,7 +1600,11 @@ components:
         completed_at:
           type: string
           format: date-time
-          description: Flow completion timestamp (if completed or failed)
+          description: Timestamp when the flow entered terminal state (if completed or failed)
+        deactivated_at:
+          type: string
+          format: date-time
+          description: Timestamp after a terminal outcome when no remaining work could produce external side effects, if deactivated
         last_updated:
           type: string
           format: date-time
@@ -1599,7 +1623,7 @@ components:
             type: string
         attributes:
           type: object
-          description: Map of attribute name to ordered list of attribute values with provenance
+          description: Map of attribute name to ordered list of values, including which step produced each value
           additionalProperties:
             type: array
             items:
@@ -1699,7 +1723,10 @@ components:
             - compensating
             - compensated
             - compensation_failed
-          description: Current work item status
+          description: |
+            Current work item status. Compensation event names use the shorter
+            `comp_*` prefix; for example, `comp_failed` sets this status to
+            `compensation_failed`.
           example: "succeeded"
         started_at:
           type: string

@@ -220,7 +220,7 @@ Inventory API supports 10 concurrent requests
 
 ## Partial Failure
 
-If any work item fails permanently, the step fails immediately. Pending work items that have not yet started are abandoned; in-flight work items may still complete but their results are discarded.
+If any work item fails permanently, the step fails immediately. Pending work items that have not yet started are abandoned; work items that have already started may still produce side effects (changes to external systems) and report completion, although their results do not make the failed step succeed. Use compensation for a side effect that must be undone after partial failure.
 
 ```
 5 work items
@@ -250,6 +250,8 @@ customer_ids = ["cust-1", "cust-2", "cust-3", ...]
 ```
 
 ### Fan-Out / Fan-In
+
+**Fan-out** creates parallel work items from input values. **Fan-in** combines their results for a later step.
 
 ```
 inventory_items = [item1, item2, item3, ...]
@@ -352,4 +354,4 @@ A: Each aggregated output includes the `for_each` input values. In the code abov
 A: No, it's set in the step definition. Create a new step version if you need to change it.
 
 **Q: What happens if a work item never completes?**
-A: Completion behavior is controlled by retry settings and result reporting. Transient failures enter `not_completed` status and retry until the retry budget is exhausted; permanent failures enter `failed` status immediately.
+A: Completion behavior is controlled by retry settings and result reporting. Temporary failures enter `not_completed` status and retry until the retry budget is exhausted; permanent failures enter `failed` status immediately.

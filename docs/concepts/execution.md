@@ -22,7 +22,7 @@ No speculative work. No wasted steps.
 
 ## Lazy Evaluation
 
-The engine builds an execution plan by walking **backward** from the goal steps through their declared dependencies.
+The engine builds an execution plan by starting from the goal steps and following their declared dependencies.
 
 ```
 Step dependency graph:
@@ -47,13 +47,13 @@ Only steps in the execution plan execute. This matters because it:
 
 ## Execution Plan
 
-The execution plan is **immutable** once created. It's a DAG (directed acyclic graph) of steps computed at flow start time. This guarantees:
+The execution plan is **immutable** once created: it cannot change while the flow runs. It is a DAG (directed acyclic graph), meaning its steps do not form cycles, computed at flow start time. This guarantees:
 
 - **Determinism**: The plan cannot change mid-flow
 - **Predictability**: You know upfront which steps will run
 - **Auditability**: Every execution follows the plan
 
-Flow-step composition is also acyclic at the catalog level. A flow step cannot directly or indirectly include itself through child-flow goals, which guarantees child-plan expansion remains finite.
+Flow-step composition must also contain no cycles at the catalog level. A flow step cannot directly or indirectly include itself through child-flow goals, which guarantees child-plan expansion finishes.
 
 The plan is immutable by design. This removes the need for runtime orchestration logic that mutates the plan based on intermediate results.
 

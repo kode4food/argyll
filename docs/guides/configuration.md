@@ -12,8 +12,8 @@ Configure the Raft-backed stores used by engine metadata/state and flow executor
 RAFT_NODE_ID=argyll-1                         # Local Raft server ID
 RAFT_ADDRESS=127.0.0.1:9701                  # Local Raft address
 RAFT_DATA_DIR=/tmp/argyll-raft/argyll-1      # Durable local state
-RAFT_LOG_TAIL_SIZE=20480                     # Hot retained WAL tail cache entries
-RAFT_SERVERS=argyll-1=127.0.0.1:9701         # Bootstrap cluster members
+RAFT_LOG_TAIL_SIZE=20480                     # Recent write-ahead log entries retained in memory
+RAFT_SERVERS=argyll-1=127.0.0.1:9701         # Initial cluster members
 ```
 
 ### Engine: Runtime + Caching
@@ -51,7 +51,7 @@ These defaults must be valid at startup:
 
 Argyll now uses two Raft-backed Timebox stores:
 
-- `EngineStore` for engine metadata/state aggregates such as `catalog`, `nodes`, and `node:<node-id>`
+- `EngineStore` for engine metadata/state aggregates such as `catalog` and `cluster`
 - `FlowStore` for flow state and flow indexes
 
 ### Single Node
@@ -72,7 +72,7 @@ RAFT_SERVERS=argyll-1=argyll-1:9701,argyll-2=argyll-2:9702,argyll-3=argyll-3:970
 ```
 
 **Store behaviors:**
-- `catalog`, `nodes`, and `node:<node-id>` commit through the engine store's Raft log
+- `catalog` and `cluster` commit through the engine store's Raft log
 - Flow state and flow indexes commit through the flow store
 - Timebox indexes live alongside their store and are updated atomically with event appends
 - Writes must target the leader node; followers serve reads from their local state
@@ -104,9 +104,9 @@ cd engine
 
 1. **High Availability**: Run 3+ Raft nodes
    - Each node needs a stable `RAFT_NODE_ID`, `RAFT_DATA_DIR`, and `RAFT_ADDRESS`
-   - Tune `RAFT_LOG_TAIL_SIZE` only when you need a larger or smaller retained hot log tail; the default is `20480`
-   - Keep `RAFT_SERVERS` consistent across the initial voter set
-   - Writes commit on quorum, so capacity planning must account for replicated disk I/O
+   - Tune `RAFT_LOG_TAIL_SIZE` only when you need to retain more or fewer recent write-ahead log entries in memory; the default is `20480`
+   - Keep `RAFT_SERVERS` consistent across the initial voting members
+   - A write is committed only after enough voting members accept it, so capacity planning must account for replicated disk I/O
 
 2. **Authentication & Reverse Proxy**:
    - Place engine behind a reverse proxy (nginx, envoy, etc.)
@@ -129,7 +129,7 @@ cd engine
 - **Concurrency**: Parallelism is per-step via `work_config` (`parallelism <= 0` means sequential execution with concurrency `1`). No global concurrency limit.
 - **Timeout**: `step.http.timeout` overrides per step; otherwise the engine uses `STEP_TIMEOUT` (default `30000` ms)
 
-Write throughput is leader-bound and pays quorum replication plus disk durability cost. Add nodes for availability and operational headroom, not for linear scaling of one write-heavy workload.
+All writes go through the Raft leader and must be replicated to enough voting members before they are committed. Adding nodes improves availability and gives the cluster more spare operating capacity, but it does not make a single write-heavy workload scale linearly.
 
 ### HAProxy Leader-Aware Routing
 
@@ -342,4 +342,4 @@ Argyll uses event sourcing, so upgrades are generally safe:
 2. Monitor for issues
 3. Update remaining instances
 
-In-flight flows will complete on whichever instance processes them next.
+Flows with work already running will complete on whichever instance processes them next.

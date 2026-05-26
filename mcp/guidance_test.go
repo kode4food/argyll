@@ -64,7 +64,8 @@ func TestStepTemplate(t *testing.T) {
 	text := callToolText(t, c, "sdk_step_template", map[string]any{
 		"language":  "go",
 		"step_name": "Lookup User",
-		"step_type": "external",
+		"step_type": "sync",
+		"external":  true,
 		"method":    "GET",
 		"inputs":    []string{"user_id"},
 		"outputs":   []string{"user"},
@@ -73,6 +74,35 @@ func TestStepTemplate(t *testing.T) {
 	assert.Contains(t, text, "WithMethod(\\\"GET\\\")")
 	assert.Contains(t, text, "Required(\\\"user_id\\\", api.TypeString)")
 	assert.Contains(t, text, "Register(\\n\\t\\tcontext.Background(),")
+}
+
+func TestStepTemplateRejectsExternalStepType(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "sdk_step_template", map[string]any{
+		"language":  "go",
+		"step_name": "Lookup User",
+		"step_type": "external",
+		"method":    "GET",
+		"inputs":    []string{"user_id"},
+		"outputs":   []string{"user"},
+	})
+
+	assert.Contains(t, text, "step_type must identify an SDK-implemented")
+}
+
+func TestStepTemplateRejectsExternalScript(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "sdk_step_template", map[string]any{
+		"language":  "go",
+		"step_name": "Calculate",
+		"step_type": "script",
+		"external":  true,
+		"method":    "POST",
+		"inputs":    []string{},
+		"outputs":   []string{},
+	})
+
+	assert.Contains(t, text, "external is only valid for sync or async")
 }
 
 func TestStepTemplateFormat(t *testing.T) {
@@ -104,11 +134,12 @@ func TestStepTemplateFormat(t *testing.T) {
 			},
 		},
 		{
-			name: "go_external_get",
+			name: "go_external_endpoint",
 			args: map[string]any{
 				"language":  "go",
 				"step_name": "Lookup User",
-				"step_type": "external",
+				"step_type": "sync",
+				"external":  true,
 				"method":    "GET",
 				"inputs":    []string{"user_id"},
 				"outputs":   []string{"user"},
@@ -126,11 +157,12 @@ func TestStepTemplateFormat(t *testing.T) {
 			},
 		},
 		{
-			name: "python_external_get",
+			name: "python_external_endpoint",
 			args: map[string]any{
 				"language":  "python",
 				"step_name": "Lookup User",
-				"step_type": "external",
+				"step_type": "sync",
+				"external":  true,
 				"method":    "GET",
 				"inputs":    []string{"user_id"},
 				"outputs":   []string{"user"},

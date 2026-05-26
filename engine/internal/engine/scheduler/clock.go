@@ -24,7 +24,7 @@ type (
 	}
 )
 
-var Now Clock = func() Clock {
+var Now = func() Clock {
 	var mu sync.Mutex
 	var last time.Time
 

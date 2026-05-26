@@ -10,7 +10,7 @@ client.NewStep().WithName("Greeting").
     Output("greeting", api.TypeString).
     Start(handler)
 
-External GET step:
+Sync step backed by an existing HTTP GET endpoint:
 client.NewStep().WithName("Lookup User").
     Required("user_id", api.TypeString).
     Output("user", api.TypeObject).

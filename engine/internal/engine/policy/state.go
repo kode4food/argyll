@@ -94,8 +94,3 @@ func WorkClaimableForRetry(status api.WorkStatus) bool {
 func WorkCompActive(status api.WorkStatus) bool {
 	return status == api.WorkCompensating
 }
-
-// WorkCompTerminal reports whether a work item's compensation has settled
-func WorkCompTerminal(status api.WorkStatus) bool {
-	return status == api.WorkCompensated || status == api.WorkCompFailed
-}

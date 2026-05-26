@@ -81,7 +81,7 @@ func (tx *flowTx) checkTerminal() error {
 }
 
 // maybeDeactivate emits FlowDeactivated if the flow is terminal and has no
-// active work items remaining
+// work items remaining that can still produce side effects
 func (tx *flowTx) maybeDeactivate() error {
 	fl := tx.Value()
 	if !policy.FlowTerminal(fl.Status) {

@@ -1,6 +1,6 @@
 # Retries and Backoff
 
-Retries are per-work-item and configured per step. They apply when a work item reports not completed or fails with a retryable error. In Argyll, retries are part of the orchestrator’s control loop, not application code.
+Retries are per-work-item and configured per step. They apply when a work item reports not completed or fails with a retryable error. Backoff is the delay before another retry attempt. In Argyll, retries are managed by the engine, not application code.
 
 ## When retries are scheduled
 
@@ -60,7 +60,7 @@ At startup, the engine builds recovery candidates from the flow store's `active`
 
 For each indexed active flow, the engine loads the flow state, validates it, and queues only recoverable work items and timeout scans.
 
-This keeps startup recovery broad enough to catch persisted in-flight flows after a crash without requiring separate partition-level flow bookkeeping repair.
+This allows startup recovery to find stored flows whose work was already running when a process crashed, without a separate repair step for flow indexes.
 
 ## Terminal failures
 
@@ -68,7 +68,7 @@ If a work item fails permanently, the step fails. If a goal step fails, the flow
 
 ## Compensation retries
 
-When a step has a `compensate` endpoint configured, compensation attempts use the same `work_config` retry settings as normal work execution. The engine treats compensation `5xx` responses as transient and raises `comp_retry_scheduled` while retrying with the configured backoff. When `max_retries` is exhausted, the compensation is marked permanently failed (`compensation_failed`).
+When a step has a `compensate` endpoint configured, compensation attempts use the same `work_config` retry settings as normal work execution. The engine treats compensation `5xx` responses as temporary failures and raises `comp_retry_scheduled` while retrying after the configured delay. When `max_retries` is exhausted, the compensation is marked permanently failed (`compensation_failed`).
 
 See [Compensation](./compensation.md) for full details.
 
@@ -78,7 +78,7 @@ See [Compensation](./compensation.md) for full details.
 - Use exponential backoff when dealing with rate limits or unstable services.
 - Keep `max_retries` low unless your step is idempotent (typically by honoring
   `receipt_token`) and you can tolerate long recovery times.
-- Prefer HTTP 5xx (or transient transport errors) when work should be retried.
+- Prefer HTTP 5xx (or temporary transport errors) when work should be retried.
 
 ## Observability
 

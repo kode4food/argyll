@@ -156,6 +156,32 @@ func TestGenerateStepImplScript(t *testing.T) {
 	assert.Contains(t, code, "Register")
 }
 
+func TestGenerateStepImplHTTPConfiguredStepPreservesType(t *testing.T) {
+	c := newClient(t, mcp.NewServer("http://example", nil))
+	text := callToolText(t, c, "generate_step_impl", map[string]any{
+		"language": "go",
+		"step": map[string]any{
+			"id":   "lookup-user",
+			"name": "Lookup User",
+			"type": "async",
+			"http": map[string]any{
+				"endpoint": "http://users/{user_id}",
+				"method":   "GET",
+			},
+		},
+	})
+
+	var payload map[string]any
+	err := json.Unmarshal([]byte(text), &payload)
+	assert.NoError(t, err)
+	assert.Equal(t, "async", payload["step_type"])
+
+	code := payload["code"].(string)
+	assert.Contains(t, code, "WithMethod(\"GET\")")
+	assert.Contains(t, code, "WithAsyncExecution")
+	assert.Contains(t, code, "Register")
+}
+
 func TestAnalyzeServiceLandscapeWithRegisteredSteps(t *testing.T) {
 	hc := &http.Client{
 		Transport: roundTripperFunc(

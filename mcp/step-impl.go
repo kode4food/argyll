@@ -21,10 +21,14 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	}
 
 	inputs, outputs := stepIO(args.Step)
-	stepType := "sync"
+	stepType := strings.ToLower(stringValue(args.Step["type"]))
+	if stepType == "" {
+		stepType = "sync"
+	}
 	method := "POST"
 	var scriptLang *string
 	var scriptBody *string
+	isExternal := false
 	if scriptCfg, ok := asMap(args.Step["script"]); ok {
 		stepType = "script"
 		method = ""
@@ -37,7 +41,7 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 		scriptBody = &body
 	}
 	if httpCfg, ok := asMap(args.Step["http"]); ok {
-		stepType = "external"
+		isExternal = true
 		if m := strings.ToUpper(stringValue(httpCfg["method"])); m != "" {
 			method = m
 		}
@@ -47,7 +51,7 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	if name == "" {
 		name = stringValue(args.Step["id"])
 	}
-	code, err := sdkStepTemplate(sdkStepTemplateInput{
+	code, err := renderStepTemplate(sdkStepTemplateInput{
 		Language:       args.Language,
 		StepName:       name,
 		StepType:       stepType,
@@ -56,19 +60,21 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 		ScriptBody:     scriptBody,
 		Inputs:         inputs,
 		Outputs:        outputs,
-	})
+	}, isExternal)
 	if err != nil {
 		return nil, err
 	}
 
 	return toolResult(stepImplResult{
-		StepName:            name,
-		StepType:            stepType,
-		Method:              method,
-		Inputs:              inputs,
-		Outputs:             outputs,
-		ImplementationNotes: stepImplNotes(stepType, method, inputs, outputs),
-		Code:                code,
+		StepName: name,
+		StepType: stepType,
+		Method:   method,
+		Inputs:   inputs,
+		Outputs:  outputs,
+		ImplementationNotes: stepImplNotes(
+			isExternal, method, inputs, outputs,
+		),
+		Code: code,
 	}, nil)
 }
 
@@ -96,15 +102,17 @@ func stepIO(step map[string]any) ([]string, []string) {
 	return inputs, outputs
 }
 
-func stepImplNotes(stepType, method string, inputs, outputs []string) []string {
+func stepImplNotes(
+	isExternal bool, method string, inputs, outputs []string,
+) []string {
 	var res []string
-	if stepType == "external" {
+	if isExternal {
 		res = append(res,
-			"Use the external service contract already embedded in the "+
-				"proposed step instead of inventing a new transport.",
+			"Use the service contract already embedded in the proposed step "+
+				"instead of inventing a new transport.",
 		)
 	}
-	if method != "POST" {
+	if method != "" && method != "POST" {
 		res = append(res,
 			"This step uses a non-POST HTTP method; map arguments to path "+
 				"or query fields carefully.",

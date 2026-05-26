@@ -9,7 +9,7 @@ client.new_step().with_name("Greeting") \
     .output("greeting", AttributeType.STRING) \
     .start(handle_greeting)
 
-External GET step:
+Sync step backed by an existing HTTP GET endpoint:
 client.new_step().with_name("Lookup User") \
     .required("user_id", AttributeType.STRING) \
     .output("user", AttributeType.OBJECT) \
