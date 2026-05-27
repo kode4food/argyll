@@ -8,71 +8,9 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/plan"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
-
-func TestGetCompiledScript(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
-		st := &api.Step{
-			ID:   "script-step",
-			Name: "Script Step",
-			Type: api.StepTypeScript,
-			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   `{:result "success"}`,
-			},
-			Attributes: api.AttributeSpecs{
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
-			},
-		}
-
-		err := env.Engine.RegisterStep(st)
-		assert.NoError(t, err)
-
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"script-step"},
-			Steps: api.Steps{st.ID: st},
-		}
-
-		env.WaitFor(wait.FlowStarted("wf-script"), func() {
-			err = env.Engine.StartFlow("wf-script", pl)
-			assert.NoError(t, err)
-		})
-
-		fs := api.FlowStep{FlowID: "wf-script", StepID: "script-step"}
-		comp, err := env.Engine.GetCompiledScript(fs)
-		assert.NoError(t, err)
-		assert.NotNil(t, comp)
-	})
-}
-
-func TestGetCompiledScriptMissing(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
-
-		st := helpers.NewSimpleStep("no-script")
-
-		err := env.Engine.RegisterStep(st)
-		assert.NoError(t, err)
-
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"no-script"},
-			Steps: api.Steps{st.ID: st},
-		}
-
-		env.WaitFor(wait.FlowStarted("wf-no-script"), func() {
-			err = env.Engine.StartFlow("wf-no-script", pl)
-			assert.NoError(t, err)
-		})
-
-		fs := api.FlowStep{FlowID: "wf-no-script", StepID: "no-script"}
-		comp, err := env.Engine.GetCompiledScript(fs)
-		assert.NoError(t, err)
-		assert.Nil(t, comp)
-	})
-}
 
 func TestGetCompiledPredicate(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
@@ -104,10 +42,62 @@ func TestGetCompiledPredicate(t *testing.T) {
 	})
 }
 
-func TestGetCompiledScriptFlowNotFound(t *testing.T) {
+func TestGetCompiledPredicateFlowNotFound(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		fs := api.FlowStep{FlowID: "nonexistent-flow", StepID: "step-id"}
-		_, err := eng.GetCompiledScript(fs)
+		_, err := eng.GetCompiledPredicate(fs)
 		assert.ErrorIs(t, err, engine.ErrFlowNotFound)
+	})
+}
+
+func TestCreatePlanEmbedsChildPlans(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		child := &api.Step{
+			ID:   "child",
+			Name: "Child",
+			Type: api.StepTypeSync,
+			Attributes: api.AttributeSpecs{
+				"result": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+			HTTP: &api.HTTPConfig{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
+		}
+		assert.NoError(t, eng.RegisterStep(child))
+
+		parent := &api.Step{
+			ID:   "parent",
+			Name: "Parent",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{child.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"wrapped": {
+					Role: api.RoleOutput,
+					Type: api.TypeString,
+					Output: &api.OutputConfig{
+						Mapping: &api.MappingConfig{Name: "result"},
+					},
+				},
+			},
+		}
+		assert.NoError(t, eng.RegisterStep(parent))
+
+		cat, err := eng.GetCatalogState()
+		assert.NoError(t, err)
+
+		pl, err := plan.Create(
+			eng.Matcher, eng.Children, cat,
+			[]api.StepID{parent.ID}, api.InitArgs{},
+		)
+		assert.NoError(t, err)
+
+		if assert.Contains(t, pl.Children, parent.ID) {
+			childPlan := pl.Children[parent.ID]
+			assert.NotNil(t, childPlan)
+			assert.Contains(t, childPlan.Steps, child.ID)
+		}
 	})
 }

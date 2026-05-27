@@ -8,6 +8,7 @@ import (
 	"github.com/kode4food/timebox"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -41,10 +42,36 @@ func (e *Engine) NotCompleteCompensation(
 	})
 }
 
+func (e *Engine) compensator(st *api.Step) (step.CompensateFunc, error) {
+	comp, err := e.steps.Compensator(st)
+	if err != nil {
+		return nil, err
+	}
+	if st.Memoizable {
+		return nil, nil
+	}
+	return comp, nil
+}
+
 func (tx *flowTx) startPendingCompensations(
 	step *api.Step, ex api.ExecutionState,
 ) error {
-	if !policy.StepCanCompensate(step) {
+	hasSucceeded := false
+	for _, work := range ex.WorkItems {
+		if policy.WorkSucceeded(work.Status) {
+			hasSucceeded = true
+			break
+		}
+	}
+	if !hasSucceeded {
+		return nil
+	}
+
+	comp, err := tx.Engine.compensator(step)
+	if err != nil {
+		return err
+	}
+	if comp == nil {
 		return nil
 	}
 
@@ -117,12 +144,14 @@ func (tx *flowTx) scheduleCompensationRetry(
 		return nil
 	}
 
-	step := tx.Value().Plan.Steps[stepID]
-	if tx.ShouldRetry(step, work) {
+	st := tx.Value().Plan.Steps[stepID]
+	if tx.ShouldRetry(st, work) {
 		nextRetryAt := tx.calculateNextRetryAt(
-			tx.Now(), step.WorkConfig, work.RetryCount,
+			tx.Now(), st.WorkConfig, work.RetryCount,
 		)
-		err := tx.raiseCompRetryScheduled(stepID, tkn, work, errMsg, nextRetryAt)
+		err := tx.raiseCompRetryScheduled(
+			stepID, tkn, work, errMsg, nextRetryAt,
+		)
 		if err != nil {
 			return err
 		}
@@ -141,7 +170,17 @@ func (tx *flowTx) performCompensation(
 	tkn api.Token, meta api.Metadata,
 ) {
 	fs := api.FlowStep{FlowID: tx.flowID, StepID: step.ID}
-	err := tx.Engine.stepClient.InvokeCompensate(step, inputs, outputs, meta)
+	comp, err := tx.Engine.compensator(step)
+	if err != nil {
+		slog.Error("Failed to resolve step compensator",
+			log.StepID(step.ID),
+			log.Error(err))
+		return
+	}
+	if comp == nil {
+		return
+	}
+	err = comp(step, inputs, outputs, meta)
 	if err == nil {
 		if recErr := tx.Engine.CompleteCompensation(fs, tkn); recErr != nil {
 			slog.Error("Failed to record compensation success",
@@ -187,10 +226,8 @@ func (e *Engine) scheduleCompensationTask(
 	})
 }
 
-func (e *Engine) runCompensationTask(
-	fs api.FlowStep, tkn api.Token,
-) error {
-	var step *api.Step
+func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
+	var st *api.Step
 	var inputs api.Args
 	var outputs api.Args
 	var meta api.Metadata
@@ -213,8 +250,8 @@ func (e *Engine) runCompensationTask(
 			return nil
 		}
 
-		step = fl.Plan.Steps[fs.StepID]
-		if !e.canDispatchLocally(step.ID) {
+		st = fl.Plan.Steps[fs.StepID]
+		if !e.canDispatchLocally(st.ID) {
 			return tx.raiseDispatchDeferred(fs.StepID)
 		}
 
@@ -227,7 +264,7 @@ func (e *Engine) runCompensationTask(
 		meta = fl.Metadata
 
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-			go tx.performCompensation(step, inputs, outputs, tkn, meta)
+			go tx.performCompensation(st, inputs, outputs, tkn, meta)
 		})
 		return nil
 	})
@@ -237,8 +274,18 @@ func (e *Engine) runCompensationTask(
 func (e *Engine) recoverCompensations(flow api.FlowState) {
 	now := e.Now()
 	for sid, ex := range flow.Executions {
-		step, ok := flow.Plan.Steps[sid]
-		if !ok || !policy.StepCanCompensate(step) {
+		st, ok := flow.Plan.Steps[sid]
+		if !ok {
+			continue
+		}
+		comp, err := e.compensator(st)
+		if err != nil {
+			slog.Error("Failed to resolve step compensator",
+				log.StepID(sid),
+				log.Error(err))
+			continue
+		}
+		if comp == nil {
 			continue
 		}
 		for tkn, work := range ex.WorkItems {
@@ -276,8 +323,8 @@ func (e *Engine) scheduleCompensationStart(
 			if !policy.StepFailed(ex.Status) {
 				return nil
 			}
-			step := fl.Plan.Steps[stepID]
-			return tx.startPendingCompensations(step, ex)
+			st := fl.Plan.Steps[stepID]
+			return tx.startPendingCompensations(st, ex)
 		})
 	})
 }

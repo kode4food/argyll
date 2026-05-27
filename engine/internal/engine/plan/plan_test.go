@@ -15,13 +15,13 @@ var testEval = helpers.Matcher()
 func createPlan(
 	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return plan.Create(testEval, cat, goals, init)
+	return plan.Create(testEval, nil, cat, goals, init)
 }
 
 func previewPlan(
 	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return plan.Preview(testEval, cat, goals, init)
+	return plan.Preview(testEval, nil, cat, goals, init)
 }
 
 func TestNoGoals(t *testing.T) {
@@ -408,61 +408,6 @@ func TestMultipleGoals(t *testing.T) {
 
 	assert.Len(t, pl.Goals, 2)
 	assert.Len(t, pl.Steps, 2)
-}
-
-func TestFlowStepEmbedsChildPlan(t *testing.T) {
-	child := &api.Step{
-		ID:   "child",
-		Name: "Child",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"inner":  {Role: api.RoleRequired, Type: api.TypeString},
-			"result": {Role: api.RoleOutput, Type: api.TypeString},
-		},
-		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
-		},
-	}
-
-	parent := &api.Step{
-		ID:   "parent",
-		Name: "Parent",
-		Type: api.StepTypeFlow,
-		Attributes: api.AttributeSpecs{
-			"outer": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-				Required: &api.RequiredConfig{
-					Mapping: &api.MappingConfig{Name: "inner"},
-				},
-			},
-			"wrapped_result": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-				Output: &api.OutputConfig{
-					Mapping: &api.MappingConfig{Name: "result"},
-				},
-			},
-		},
-		Flow: &api.FlowConfig{
-			Goals: []api.StepID{"child"},
-		},
-	}
-
-	cat := makeCatalogState(api.Steps{
-		"child":  child,
-		"parent": parent,
-	})
-	pl, err := createPlan(cat, []api.StepID{"parent"}, api.InitArgs{})
-	assert.NoError(t, err)
-
-	if assert.Contains(t, pl.Children, api.StepID("parent")) {
-		childPlan := pl.Children["parent"]
-		assert.NotNil(t, childPlan)
-		assert.Empty(t, childPlan.Required)
-		assert.Contains(t, childPlan.Steps, api.StepID("child"))
-	}
 }
 
 func TestExistingOutputs(t *testing.T) {

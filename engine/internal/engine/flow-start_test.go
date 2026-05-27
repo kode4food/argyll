@@ -176,7 +176,8 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
 		parentPlan, err := plan.Create(
-			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+			env.Engine.Matcher, env.Engine.Children, cat,
+			[]api.StepID{parent.ID}, api.InitArgs{},
 		)
 		assert.NoError(t, err)
 		assert.NoError(t, env.Engine.StartFlow("wf-parent", parentPlan))
@@ -248,7 +249,8 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
 		parentPlan, err := plan.Create(
-			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+			env.Engine.Matcher, env.Engine.Children, cat,
+			[]api.StepID{parent.ID}, api.InitArgs{},
 		)
 		assert.NoError(t, err)
 
@@ -311,7 +313,8 @@ func TestStartChildFlowRejectsDuplicateID(t *testing.T) {
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
 		parentPlan, err := plan.Create(
-			helpers.Matcher(), cat, []api.StepID{parent.ID}, api.InitArgs{},
+			env.Engine.Matcher, env.Engine.Children, cat,
+			[]api.StepID{parent.ID}, api.InitArgs{},
 		)
 		assert.NoError(t, err)
 

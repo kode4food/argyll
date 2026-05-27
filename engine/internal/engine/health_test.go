@@ -257,7 +257,7 @@ func TestScriptHealthDefaults(t *testing.T) {
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		health := engine.ResolveHealth(
+		health := eng.ResolveHealth(
 			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
 		)
 		if assert.Contains(t, health, st.ID) {
@@ -301,117 +301,128 @@ func TestScriptHealthOnRegister(t *testing.T) {
 }
 
 func TestResolveHealthNilCat(t *testing.T) {
-	health := engine.ResolveHealth(
-		helpers.Matcher(), api.CatalogState{}, map[api.StepID]api.HealthState{},
-	)
-	assert.Empty(t, health)
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		health := eng.ResolveHealth(
+			helpers.Matcher(), api.CatalogState{},
+			map[api.StepID]api.HealthState{},
+		)
+		assert.Empty(t, health)
+	})
 }
 
 func TestResolveHealthPreviewFail(t *testing.T) {
-	cat := api.CatalogState{
-		Steps: api.Steps{
-			"flow-step": {
-				ID:   "flow-step",
-				Name: "Flow Step",
-				Type: api.StepTypeFlow,
-				Flow: &api.FlowConfig{
-					Goals: []api.StepID{"missing-goal"},
-				},
-				Attributes: api.AttributeSpecs{
-					"out": {Role: api.RoleOutput, Type: api.TypeString},
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		cat := api.CatalogState{
+			Steps: api.Steps{
+				"flow-step": {
+					ID:   "flow-step",
+					Name: "Flow Step",
+					Type: api.StepTypeFlow,
+					Flow: &api.FlowConfig{
+						Goals: []api.StepID{"missing-goal"},
+					},
+					Attributes: api.AttributeSpecs{
+						"out": {Role: api.RoleOutput, Type: api.TypeString},
+					},
 				},
 			},
-		},
-		Attributes: api.AttributeGraph{},
-	}
+			Attributes: api.AttributeGraph{},
+		}
 
-	health := engine.ResolveHealth(
-		helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
-	)
-	if assert.Contains(t, health, api.StepID("flow-step")) {
-		assert.Equal(t, api.HealthUnknown, health["flow-step"].Status)
-		assert.Contains(t, health["flow-step"].Error, "preview failed")
-	}
+		health := eng.ResolveHealth(
+			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+		)
+		if assert.Contains(t, health, api.StepID("flow-step")) {
+			assert.Equal(t, api.HealthUnknown, health["flow-step"].Status)
+			assert.Contains(t, health["flow-step"].Error, "preview failed")
+		}
+	})
 }
 
 func TestResolveHealthSimpleUnknown(t *testing.T) {
-	cat := api.CatalogState{
-		Steps: api.Steps{
-			"step-a": helpers.NewSimpleStep("step-a"),
-		},
-		Attributes: api.AttributeGraph{},
-	}
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		cat := api.CatalogState{
+			Steps: api.Steps{
+				"step-a": helpers.NewSimpleStep("step-a"),
+			},
+			Attributes: api.AttributeGraph{},
+		}
 
-	health := engine.ResolveHealth(
-		helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
-	)
-	if assert.Contains(t, health, api.StepID("step-a")) {
-		assert.Equal(t, api.HealthUnknown, health["step-a"].Status)
-		assert.Empty(t, health["step-a"].Error)
-	}
+		health := eng.ResolveHealth(
+			helpers.Matcher(), cat, map[api.StepID]api.HealthState{},
+		)
+		if assert.Contains(t, health, api.StepID("step-a")) {
+			assert.Equal(t, api.HealthUnknown, health["step-a"].Status)
+			assert.Empty(t, health["step-a"].Error)
+		}
+	})
 }
 
 func TestResolveHealthScriptError(t *testing.T) {
-	cat := api.CatalogState{
-		Steps: api.Steps{
-			"script-step": {
-				ID:   "script-step",
-				Name: "Script Step",
-				Type: api.StepTypeScript,
-				Attributes: api.AttributeSpecs{
-					"result": {Role: api.RoleOutput},
-				},
-				Script: &api.ScriptConfig{
-					Language: api.ScriptLangAle,
-					Script:   "{:result 42}",
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		cat := api.CatalogState{
+			Steps: api.Steps{
+				"script-step": {
+					ID:   "script-step",
+					Name: "Script Step",
+					Type: api.StepTypeScript,
+					Attributes: api.AttributeSpecs{
+						"result": {Role: api.RoleOutput},
+					},
+					Script: &api.ScriptConfig{
+						Language: api.ScriptLangAle,
+						Script:   "{:result 42}",
+					},
 				},
 			},
-		},
-		Attributes: api.AttributeGraph{},
-	}
-	base := map[api.StepID]api.HealthState{
-		"script-step": {
-			Status: api.HealthUnknown,
-			Error:  "compile failed",
-		},
-	}
+			Attributes: api.AttributeGraph{},
+		}
+		base := map[api.StepID]api.HealthState{
+			"script-step": {
+				Status: api.HealthUnknown,
+				Error:  "compile failed",
+			},
+		}
 
-	health := engine.ResolveHealth(helpers.Matcher(), cat, base)
-	if assert.Contains(t, health, api.StepID("script-step")) {
-		assert.Equal(t, api.HealthUnknown, health["script-step"].Status)
-		assert.Equal(t, "compile failed", health["script-step"].Error)
-	}
+		health := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, health, api.StepID("script-step")) {
+			assert.Equal(t, api.HealthUnknown, health["script-step"].Status)
+			assert.Equal(t, "compile failed", health["script-step"].Error)
+		}
+	})
 }
 
 func TestResolveHealthFlowUnknown(t *testing.T) {
-	goal := helpers.NewSimpleStep("goal-a")
-	st := &api.Step{
-		ID:   "flow-step",
-		Name: "Flow Step",
-		Type: api.StepTypeFlow,
-		Flow: &api.FlowConfig{
-			Goals: []api.StepID{goal.ID},
-		},
-		Attributes: api.AttributeSpecs{
-			"out": {Role: api.RoleOutput, Type: api.TypeString},
-		},
-	}
-	cat := api.CatalogState{
-		Steps: api.Steps{
-			goal.ID: goal,
-			st.ID:   st,
-		},
-		Attributes: api.AttributeGraph{},
-	}
-	base := map[api.StepID]api.HealthState{
-		goal.ID: {Status: api.HealthUnknown},
-	}
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		goal := helpers.NewSimpleStep("goal-a")
+		st := &api.Step{
+			ID:   "flow-step",
+			Name: "Flow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{goal.ID},
+			},
+			Attributes: api.AttributeSpecs{
+				"out": {Role: api.RoleOutput, Type: api.TypeString},
+			},
+		}
+		cat := api.CatalogState{
+			Steps: api.Steps{
+				goal.ID: goal,
+				st.ID:   st,
+			},
+			Attributes: api.AttributeGraph{},
+		}
+		base := map[api.StepID]api.HealthState{
+			goal.ID: {Status: api.HealthUnknown},
+		}
 
-	health := engine.ResolveHealth(helpers.Matcher(), cat, base)
-	if assert.Contains(t, health, st.ID) {
-		assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
-		assert.Empty(t, health[st.ID].Error)
-	}
+		health := eng.ResolveHealth(helpers.Matcher(), cat, base)
+		if assert.Contains(t, health, st.ID) {
+			assert.Equal(t, api.HealthHealthy, health[st.ID].Status)
+			assert.Empty(t, health[st.ID].Error)
+		}
+	})
 }
 
 func TestMergeNodeHealthUnknown(t *testing.T) {
@@ -448,5 +459,5 @@ func resolveHealth(
 	assert.NoError(t, err)
 
 	merged := engine.MergeNodeHealth(cluster)
-	return engine.ResolveHealth(eng.Matcher, cat, merged)
+	return eng.ResolveHealth(eng.Matcher, cat, merged)
 }

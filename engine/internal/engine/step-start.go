@@ -168,7 +168,7 @@ func (e *Engine) evaluateStepPredicate(
 
 	env, err := e.scripts.Get(step.Predicate.Language)
 	if err != nil {
-		return false, errors.Join(ErrPredicateEnvFailed, err)
+		return false, errors.Join(ErrScriptEnvFailed, err)
 	}
 
 	shouldExecute, err := env.EvaluatePredicate(comp, step, inputs)
@@ -379,7 +379,7 @@ func (e *Engine) Matcher(cfg *api.ScriptConfig, value any) (bool, error) {
 
 	env, err := e.scripts.Get(cfg.Language)
 	if err != nil {
-		return false, errors.Join(ErrMatchEnvFailed, err)
+		return false, errors.Join(ErrScriptEnvFailed, err)
 	}
 
 	matched, err := env.EvaluateMatch(comp, value)

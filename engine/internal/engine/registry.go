@@ -8,8 +8,6 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/engine/policy"
-	"github.com/kode4food/argyll/engine/internal/engine/script"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -32,7 +30,6 @@ var (
 	ErrStepNotFound       = errors.New("step not found")
 	ErrTypeConflict       = errors.New("attribute type conflict")
 	ErrCircularDependency = errors.New("circular dependency detected")
-	ErrLangNotValid       = errors.New("language not valid in this context")
 )
 
 // UnregisterStep removes a step from the engine registry
@@ -70,91 +67,58 @@ func (e *Engine) CatalogTx(fn func(*CatalogTx) error) error {
 	return err
 }
 
-func (e *Engine) initializeScriptHealth(step *api.Step) {
-	status := api.HealthHealthy
-	errMsg := ""
-	if err := e.VerifyScript(step); err != nil {
-		status = api.HealthUnhealthy
-		errMsg = err.Error()
+func (tx *CatalogTx) Register(step *api.Step) error {
+	step, err := tx.prepareStep(step)
+	if err != nil {
+		return err
 	}
-	if err := e.UpdateStepHealth(step.ID, status, errMsg); err != nil {
-		slog.Error("Failed to update script health",
-			log.StepID(step.ID),
-			log.Error(err))
+	st := tx.ag.Value()
+	if old, ok := st.Steps[step.ID]; ok {
+		if old.Equal(step) {
+			return nil
+		}
+		return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
 	}
+	if err := validateStepUpsert(st, step, tx.e.steps.Children); err != nil {
+		return err
+	}
+	return tx.e.raiseStepRegisteredEvent(step, tx.ag)
 }
 
-func (e *Engine) validateStep(step *api.Step) error {
+func (tx *CatalogTx) Update(step *api.Step) error {
+	step, err := tx.prepareStep(step)
+	if err != nil {
+		return err
+	}
+	st := tx.ag.Value()
+	old, ok := st.Steps[step.ID]
+	if !ok {
+		return fmt.Errorf("%w: %s", ErrStepNotFound, step.ID)
+	}
+	if old.Equal(step) {
+		return nil
+	}
+	if err := validateStepUpsert(st, step, tx.e.steps.Children); err != nil {
+		return err
+	}
+	return tx.e.raiseStepUpdatedEvent(step, tx.ag)
+}
+
+func (tx *CatalogTx) Remove(stepID api.StepID) error {
+	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
+		api.StepUnregisteredEvent{StepID: stepID},
+	)
+}
+
+func (e *Engine) validateStep(st *api.Step) error {
 	if err := call.Perform(
-		step.Validate,
-		call.WithArg(e.validateStepMappings, step),
-		call.WithArg(e.validateStepScripts, step),
+		st.Validate,
+		call.WithArg(e.mapper.validateStep, st),
+		call.WithArg(e.scripts.ValidateStep, st),
+		call.WithArg(e.steps.Validate, st),
 	); err != nil {
 		return errors.Join(ErrInvalidStep, err)
 	}
-	return nil
-}
-
-func (e *Engine) validateStepMappings(step *api.Step) error {
-	for name, attr := range step.Attributes {
-		mapping := attr.Mapping()
-		if mapping == nil || mapping.Script == nil {
-			continue
-		}
-
-		if _, err := e.mapper.Compile(step, mapping.Script); err != nil {
-			return fmt.Errorf("%w for attribute %q: %v",
-				api.ErrInvalidMappingConfig, name, err,
-			)
-		}
-	}
-	return nil
-}
-
-func (e *Engine) validateStepScripts(step *api.Step) error {
-	if step.Type == api.StepTypeScript && step.Script != nil {
-		if step.Script.Language == api.ScriptLangJPath {
-			return fmt.Errorf("%w: %s", ErrLangNotValid, step.Script.Language)
-		}
-
-		env, err := e.scripts.Get(step.Script.Language)
-		if err != nil {
-			return err
-		}
-
-		if err := env.Validate(step, step.Script.Script); err != nil {
-			return err
-		}
-	}
-
-	if step.Predicate != nil {
-		env, err := e.scripts.Get(step.Predicate.Language)
-		if err != nil {
-			return err
-		}
-
-		if err := env.Validate(step, step.Predicate.Script); err != nil {
-			return err
-		}
-	}
-
-	for name, attr := range step.Attributes {
-		if !policy.RequiredInputHasMatch(attr) {
-			continue
-		}
-		cfg := attr.Required.Match
-		env, err := e.scripts.Get(cfg.Language)
-		if err != nil {
-			return fmt.Errorf("%w for attribute %q: %v",
-				api.ErrInvalidScriptLanguage, name, err)
-		}
-
-		if err := env.Validate(script.MatchStep, cfg.Script); err != nil {
-			return fmt.Errorf("%w for attribute %q: %v",
-				api.ErrInvalidScriptLanguage, name, err)
-		}
-	}
-
 	return nil
 }
 
@@ -187,58 +151,18 @@ func (e *Engine) raiseStepUpdatedEvent(
 }
 
 func (e *Engine) resetStepHealth(step *api.Step) {
-	err := e.UpdateStepHealth(step.ID, api.HealthUnknown, "")
+	h, err := e.steps.Health(step)
 	if err != nil {
+		slog.Error("Failed to evaluate step health",
+			log.StepID(step.ID),
+			log.Error(err))
+		return
+	}
+	if err := e.UpdateStepHealth(step.ID, h.Status, h.Error); err != nil {
 		slog.Error("Failed to update step health",
 			log.StepID(step.ID),
 			log.Error(err))
 	}
-	if step.Type == api.StepTypeScript && step.Script != nil {
-		e.initializeScriptHealth(step)
-	}
-}
-
-func (tx *CatalogTx) Register(step *api.Step) error {
-	step, err := tx.prepareStep(step)
-	if err != nil {
-		return err
-	}
-	st := tx.ag.Value()
-	if old, ok := st.Steps[step.ID]; ok {
-		if old.Equal(step) {
-			return nil
-		}
-		return fmt.Errorf("%w: %s", ErrStepExists, step.ID)
-	}
-	if err := validateStepUpsert(st, step); err != nil {
-		return err
-	}
-	return tx.e.raiseStepRegisteredEvent(step, tx.ag)
-}
-
-func (tx *CatalogTx) Update(step *api.Step) error {
-	step, err := tx.prepareStep(step)
-	if err != nil {
-		return err
-	}
-	st := tx.ag.Value()
-	old, ok := st.Steps[step.ID]
-	if !ok {
-		return fmt.Errorf("%w: %s", ErrStepNotFound, step.ID)
-	}
-	if old.Equal(step) {
-		return nil
-	}
-	if err := validateStepUpsert(st, step); err != nil {
-		return err
-	}
-	return tx.e.raiseStepUpdatedEvent(step, tx.ag)
-}
-
-func (tx *CatalogTx) Remove(stepID api.StepID) error {
-	return events.Raise(tx.ag, api.EventTypeStepUnregistered,
-		api.StepUnregisteredEvent{StepID: stepID},
-	)
 }
 
 func (tx *CatalogTx) prepareStep(step *api.Step) (*api.Step, error) {
@@ -249,10 +173,13 @@ func (tx *CatalogTx) prepareStep(step *api.Step) (*api.Step, error) {
 	return step, nil
 }
 
-func validateStepUpsert(st api.CatalogState, step *api.Step) error {
+func validateStepUpsert(
+	st api.CatalogState, newStep *api.Step,
+	children func(*api.Step) ([]api.StepID, error),
+) error {
 	if err := call.Perform(
-		call.WithArgs(validateAttributeTypes, st, step),
-		call.WithArgs(detectStepCycles, st, step),
+		call.WithArgs(validateAttributeTypes, st, newStep),
+		func() error { return detectStepCycles(st, newStep, children) },
 	); err != nil {
 		return errors.Join(ErrInvalidStep, err)
 	}
@@ -292,11 +219,14 @@ func checkAttributeConflicts(
 	return nil
 }
 
-func detectStepCycles(st api.CatalogState, newStep *api.Step) error {
+func detectStepCycles(
+	st api.CatalogState, newStep *api.Step,
+	children func(*api.Step) ([]api.StepID, error),
+) error {
 	if err := detectAttributeCycles(st, newStep); err != nil {
 		return err
 	}
-	return detectFlowCycles(st, newStep)
+	return detectFlowCycles(st, newStep, children)
 }
 
 func detectAttributeCycles(st api.CatalogState, newStep *api.Step) error {
@@ -309,10 +239,15 @@ func detectAttributeCycles(st api.CatalogState, newStep *api.Step) error {
 	return checkCycleFromStep(newStep.ID, deps, steps, stepSet{})
 }
 
-func detectFlowCycles(st api.CatalogState, newStep *api.Step) error {
+func detectFlowCycles(
+	st api.CatalogState, newStep *api.Step,
+	children func(*api.Step) ([]api.StepID, error),
+) error {
 	steps := stepsIncluding(st, newStep)
 	for sid := range steps {
-		if err := checkFlowCycleFromStep(sid, steps, stepSet{}); err != nil {
+		if err := checkFlowCycleFromStep(
+			sid, steps, children, stepSet{},
+		); err != nil {
 			return err
 		}
 	}
@@ -349,22 +284,32 @@ func checkCycleFromStep(
 }
 
 func checkFlowCycleFromStep(
-	currentID api.StepID, steps api.Steps, stack stepSet,
+	currentID api.StepID, steps api.Steps,
+	children func(*api.Step) ([]api.StepID, error), stack stepSet,
 ) error {
 	if stack.Contains(currentID) {
 		return fmt.Errorf("%w: step %s", ErrCircularDependency, currentID)
 	}
 
-	step, ok := steps[currentID]
-	if !ok || step.Type != api.StepTypeFlow || step.Flow == nil {
+	st, ok := steps[currentID]
+	if !ok {
+		return nil
+	}
+	childIDs, err := children(st)
+	if err != nil {
+		return err
+	}
+	if len(childIDs) == 0 {
 		return nil
 	}
 
 	stack.Add(currentID)
 	defer stack.Remove(currentID)
 
-	for _, goalID := range step.Flow.Goals {
-		if err := checkFlowCycleFromStep(goalID, steps, stack); err != nil {
+	for _, goalID := range childIDs {
+		if err := checkFlowCycleFromStep(
+			goalID, steps, children, stack,
+		); err != nil {
 			return err
 		}
 	}

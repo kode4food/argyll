@@ -606,8 +606,8 @@ func TestMatchRoutes(t *testing.T) {
 						AddStep(postal),
 				}
 				pl, err := plan.Create(
-					helpers.Matcher(), cat, []api.StepID{email.ID, postal.ID},
-					tt.init,
+					env.Engine.Matcher, env.Engine.Children, cat,
+					[]api.StepID{email.ID, postal.ID}, tt.init,
 				)
 				assert.NoError(t, err)
 

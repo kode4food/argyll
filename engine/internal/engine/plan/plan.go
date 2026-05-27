@@ -2,6 +2,7 @@ package plan
 
 import (
 	"errors"
+	"fmt"
 	"slices"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
@@ -10,9 +11,15 @@ import (
 )
 
 type (
+	// Planner builds an execution plan for the given matcher, children func,
+	// catalog state, goals, and init args
 	Planner func(
-		api.CatalogState, []api.StepID, api.InitArgs,
+		policy.Matcher, ChildrenFunc, api.CatalogState, []api.StepID,
+		api.InitArgs,
 	) (*api.ExecutionPlan, error)
+
+	// ChildrenFunc returns the child step IDs a step expands into
+	ChildrenFunc func(*api.Step) ([]api.StepID, error)
 
 	builder struct {
 		satisfied   util.Set[api.Name]
@@ -40,15 +47,18 @@ type (
 )
 
 var (
-	ErrNoGoals      = errors.New("at least one goal step is required")
-	ErrStepNotFound = errors.New("step not found")
+	ErrNoGoals            = errors.New("at least one goal step is required")
+	ErrStepNotFound       = errors.New("step not found")
+	ErrCircularDependency = errors.New("circular dependency detected")
 )
 
 // Create builds an execution plan for the given goal steps, resolving
-// dependencies and determining required inputs
+// dependencies and determining required inputs. If children is non-nil it is
+// called for each step in the plan to discover child goals, and the result is
+// built recursively and attached to ExecutionPlan.Children
 func Create(
-	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
-	init api.InitArgs,
+	match policy.Matcher, children ChildrenFunc, cat api.CatalogState,
+	goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	return create(planArgs{
 		match:     match,
@@ -56,7 +66,7 @@ func Create(
 		goals:     goals,
 		providers: strictProviders,
 		init:      init,
-	})
+	}, children, util.Set[api.StepID]{})
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
@@ -64,8 +74,8 @@ func Create(
 // exists so the UI can show the full dependency path back to missing init
 // inputs
 func Preview(
-	match policy.Matcher, cat api.CatalogState, goals []api.StepID,
-	init api.InitArgs,
+	match policy.Matcher, children ChildrenFunc, cat api.CatalogState,
+	goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
 	return create(planArgs{
 		match:     match,
@@ -73,10 +83,61 @@ func Preview(
 		goals:     goals,
 		providers: previewProviders,
 		init:      init,
-	})
+	}, children, util.Set[api.StepID]{})
 }
 
-func create(args planArgs) (*api.ExecutionPlan, error) {
+// ChildPlanInit derives init args for a child plan from a parent step
+func ChildPlanInit(step *api.Step) api.InitArgs {
+	res := api.InitArgs{}
+	for name, attr := range step.Attributes {
+		if !policy.StepInputGuaranteed(attr) {
+			continue
+		}
+		mapped, _ := step.MappedName(name)
+		res[mapped] = []any{true}
+	}
+	return res
+}
+
+func create(
+	args planArgs, children ChildrenFunc, ancestors util.Set[api.StepID],
+) (*api.ExecutionPlan, error) {
+	pl, err := build(args)
+	if err != nil || children == nil {
+		return pl, err
+	}
+	for sid, st := range pl.Steps {
+		childGoals, err := children(st)
+		if err != nil {
+			return nil, err
+		}
+		if len(childGoals) == 0 {
+			continue
+		}
+		if ancestors.Contains(sid) {
+			return nil, fmt.Errorf("%w: step %s", ErrCircularDependency, sid)
+		}
+		ancestors.Add(sid)
+		childPlan, err := create(planArgs{
+			match:     args.match,
+			cat:       args.cat,
+			goals:     childGoals,
+			providers: args.providers,
+			init:      ChildPlanInit(st),
+		}, children, ancestors)
+		ancestors.Remove(sid)
+		if err != nil {
+			return nil, err
+		}
+		if pl.Children == nil {
+			pl.Children = map[api.StepID]*api.ExecutionPlan{}
+		}
+		pl.Children[sid] = childPlan
+	}
+	return pl, nil
+}
+
+func build(args planArgs) (*api.ExecutionPlan, error) {
 	if len(args.goals) == 0 {
 		return nil, ErrNoGoals
 	}
@@ -93,19 +154,13 @@ func create(args planArgs) (*api.ExecutionPlan, error) {
 	pb.buildPlan()
 	excluded := pb.buildExcluded()
 
-	res := &api.ExecutionPlan{
+	return &api.ExecutionPlan{
 		Goals:      args.goals,
 		Required:   pb.getRequiredInputs(),
 		Steps:      pb.steps,
 		Attributes: pb.attributes,
 		Excluded:   excluded,
-	}
-	children, err := buildChildPlans(res, args)
-	if err != nil {
-		return nil, err
-	}
-	res.Children = children
-	return res, nil
+	}, nil
 }
 
 func newPlanBuilder(args planArgs) *builder {
@@ -478,42 +533,4 @@ func previewProviders(b *builder, providers []api.StepID) []api.StepID {
 		return res
 	}
 	return providers
-}
-
-func buildChildPlans(
-	pl *api.ExecutionPlan, parentArgs planArgs,
-) (map[api.StepID]*api.ExecutionPlan, error) {
-	childPlans := map[api.StepID]*api.ExecutionPlan{}
-	for sid, st := range pl.Steps {
-		if st.Type != api.StepTypeFlow || st.Flow == nil {
-			continue
-		}
-		childPlan, err := create(planArgs{
-			match:     parentArgs.match,
-			cat:       parentArgs.cat,
-			goals:     st.Flow.Goals,
-			providers: parentArgs.providers,
-			init:      childPlanInit(st),
-		})
-		if err != nil {
-			return nil, err
-		}
-		childPlans[sid] = childPlan
-	}
-	if len(childPlans) == 0 {
-		return nil, nil
-	}
-	return childPlans, nil
-}
-
-func childPlanInit(step *api.Step) api.InitArgs {
-	res := api.InitArgs{}
-	for name, attr := range step.Attributes {
-		if !policy.StepInputGuaranteed(attr) {
-			continue
-		}
-		mapped, _ := step.MappedName(name)
-		res[mapped] = []any{true}
-	}
-	return res
 }

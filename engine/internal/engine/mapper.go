@@ -105,6 +105,22 @@ func (m *Mapper) MapOutputs(step *api.Step, outputs api.Args) api.Args {
 	return res
 }
 
+func (m *Mapper) validateStep(step *api.Step) error {
+	for name, attr := range step.Attributes {
+		mapping := attr.Mapping()
+		if mapping == nil || mapping.Script == nil {
+			continue
+		}
+
+		if _, err := m.Compile(step, mapping.Script); err != nil {
+			return fmt.Errorf("%w for attribute %q: %v",
+				api.ErrInvalidMappingConfig, name, err,
+			)
+		}
+	}
+	return nil
+}
+
 func (m *Mapper) mapOutput(
 	step *api.Step, name api.Name, attr *api.AttributeSpec, outputs api.Args,
 ) (any, bool) {
@@ -118,4 +134,19 @@ func outputByName(step *api.Step, name api.Name, outputs api.Args) (any, bool) {
 	mapped, _ := step.MappedName(name)
 	value, ok := outputs[mapped]
 	return value, ok
+}
+
+func extractScriptResult(result api.Args) any {
+	if len(result) == 0 {
+		return nil
+	}
+	if val, ok := result["value"]; ok {
+		return val
+	}
+	if len(result) == 1 {
+		for _, value := range result {
+			return value
+		}
+	}
+	return result
 }

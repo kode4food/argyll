@@ -110,17 +110,16 @@ func (h *HealthChecker) checkAllSteps() {
 func (h *HealthChecker) updateScriptHealth(
 	step *api.Step, health map[api.StepID]api.HealthState,
 ) {
-	status := api.HealthHealthy
-	errMsg := ""
-	if err := h.engine.VerifyScript(step); err != nil {
-		status = api.HealthUnhealthy
-		errMsg = err.Error()
+	hs, err := h.engine.StepHealth(step)
+	if err != nil {
+		slog.Error("Failed to resolve initial step health",
+			log.StepID(step.ID), log.Error(err))
+		return
 	}
-	health[step.ID] = api.HealthState{
-		Status: status,
-		Error:  errMsg,
-	}
-	if err := h.engine.UpdateStepHealth(step.ID, status, errMsg); err != nil {
+	health[step.ID] = hs
+	if err := h.engine.UpdateStepHealth(
+		step.ID, hs.Status, hs.Error,
+	); err != nil {
 		slog.Error("Failed to update script health",
 			log.StepID(step.ID), log.Error(err))
 	}
@@ -129,7 +128,7 @@ func (h *HealthChecker) updateScriptHealth(
 func (h *HealthChecker) updateFlowSteps(
 	cat api.CatalogState, health map[api.StepID]api.HealthState,
 ) {
-	resolved := engine.ResolveHealth(h.engine.Matcher, cat, health)
+	resolved := h.engine.ResolveHealth(h.engine.Matcher, cat, health)
 	for sid, st := range cat.Steps {
 		if st.Type != api.StepTypeFlow {
 			continue
@@ -247,7 +246,9 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 		return
 	}
 
-	merged := engine.ResolveHealth(s.engine.Matcher, cat, engine.MergeNodeHealth(cluster))
+	merged := s.engine.ResolveHealth(
+		s.engine.Matcher, cat, engine.MergeNodeHealth(cluster),
+	)
 	health, ok := merged[sid]
 	if !ok {
 		c.JSON(http.StatusNotFound, api.ErrorResponse{

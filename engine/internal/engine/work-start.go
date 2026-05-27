@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
-	"github.com/kode4food/argyll/engine/internal/engine/script"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -29,16 +29,49 @@ type (
 	MultiArgs map[api.Name][]any
 )
 
+var _ step.Runtime = (*ExecContext)(nil)
+
 var (
 	ErrStepAlreadyPending     = errors.New("step not pending")
-	ErrScriptCompileFailed    = errors.New("failed to compile scripts for plan")
 	ErrUnsupportedStepType    = errors.New("unsupported step type")
 	ErrPredicateCompileFailed = errors.New("predicate compilation failed")
-	ErrPredicateEnvFailed     = errors.New("failed to get script environment")
+	ErrScriptEnvFailed        = errors.New("failed to get script environment")
 	ErrPredicateEvalFailed    = errors.New("predicate evaluation failed")
-	ErrMatchEnvFailed         = errors.New("failed to get script environment")
 	ErrMatchEvalFailed        = errors.New("match evaluation failed")
 )
+
+func (e *ExecContext) FlowID() api.FlowID {
+	return e.flowID
+}
+
+func (e *ExecContext) StepID() api.StepID {
+	return e.stepID
+}
+
+func (e *ExecContext) Metadata() api.Metadata {
+	return e.meta
+}
+
+func (e *ExecContext) WebhookURL(tkn api.Token) string {
+	return e.engine.config.WebhookBaseURL + "/webhook/" +
+		string(e.flowID) + "/" + string(e.stepID) + "/" + string(tkn)
+}
+
+func (e *ExecContext) CompleteWork(tkn api.Token, outputs api.Args) error {
+	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	return e.engine.CompleteWork(fs, tkn, outputs)
+}
+
+func (e *ExecContext) StartChildFlow(
+	tkn api.Token, init api.InitArgs,
+) (api.FlowID, error) {
+	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
+	return e.engine.StartChildFlow(fs, tkn, e.child, init, e.meta)
+}
+
+func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
+	return e.engine.UpdateStepHealth(e.stepID, s, msg)
+}
 
 func (tx *flowTx) executeStartedWork(
 	step *api.Step, inputs api.Args, meta api.Metadata, items api.WorkItems,
@@ -100,134 +133,11 @@ func (e *ExecContext) handleWorkItemFailure(tkn api.Token, err error) {
 }
 
 func (e *ExecContext) performWork(inputs api.Args, tkn api.Token) error {
-	switch e.step.Type {
-	case api.StepTypeScript:
-		return e.performScript(inputs, tkn)
-	case api.StepTypeSync:
-		return e.performSyncHTTP(inputs, tkn)
-	case api.StepTypeAsync:
-		return e.performAsyncHTTP(inputs, tkn)
-	case api.StepTypeFlow:
-		return e.performFlow(inputs, tkn)
-	default:
-		return fmt.Errorf("%w: %s", ErrUnsupportedStepType, e.step.Type)
-	}
-}
-
-func (e *ExecContext) performScript(inputs api.Args, tkn api.Token) error {
-	c, err := e.engine.scripts.Compile(e.step, e.step.Script)
+	handler, err := e.engine.steps.Lookup(e.step.Type)
 	if err != nil {
-		e.updateScriptHealth(api.HealthUnhealthy, err.Error())
-		return errors.Join(ErrScriptCompileFailed, err)
+		return errors.Join(ErrUnsupportedStepType, err)
 	}
-
-	inputs = e.applyMetaInputs(inputs, e.httpMetaForToken(tkn))
-	outputs, err := e.executeScript(c, inputs)
-	if err != nil {
-		e.updateScriptHealth(api.HealthUnhealthy, err.Error())
-		return err
-	}
-
-	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	if err := e.engine.CompleteWork(fs, tkn, outputs); err != nil {
-		return err
-	}
-	e.updateScriptHealth(api.HealthHealthy, "")
-	return nil
-}
-
-func (e *ExecContext) performSyncHTTP(inputs api.Args, tkn api.Token) error {
-	metadata := e.httpMetaForToken(tkn)
-	inputs = e.applyMetaInputs(inputs, metadata)
-	outputs, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
-	if err != nil {
-		return err
-	}
-
-	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.CompleteWork(fs, tkn, outputs)
-}
-
-func (e *ExecContext) performAsyncHTTP(inputs api.Args, tkn api.Token) error {
-	metadata := e.httpMetaForToken(tkn)
-	metadata[api.MetaWebhookURL] = fmt.Sprintf("%s/webhook/%s/%s/%s",
-		e.engine.config.WebhookBaseURL, e.flowID, e.stepID, tkn,
-	)
-	inputs = e.applyMetaInputs(inputs, metadata)
-	_, err := e.engine.stepClient.Invoke(e.step, inputs, metadata)
-	return err
-}
-
-func (e *ExecContext) applyMetaInputs(
-	inputs api.Args, meta api.Metadata,
-) api.Args {
-	metaArgs := api.Args{}
-	for name, attr := range e.step.Attributes {
-		if !attr.IsMeta() {
-			continue
-		}
-		if val, ok := meta[attr.MetaKey()]; ok {
-			mapped, _ := e.step.MappedName(name)
-			metaArgs[mapped] = val
-		}
-	}
-	return inputs.Apply(metaArgs)
-}
-
-func (e *ExecContext) performFlow(initState api.Args, tkn api.Token) error {
-	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	init := api.InitArgs{}
-	for name, value := range initState {
-		init[name] = []any{value}
-	}
-	_, err := e.engine.StartChildFlow(fs, tkn, e.child, init, e.meta)
-	return err
-}
-
-func (e *ExecContext) httpMetaForToken(tkn api.Token) api.Metadata {
-	return e.meta.Apply(api.Metadata{
-		api.MetaFlowID:       e.flowID,
-		api.MetaStepID:       e.stepID,
-		api.MetaReceiptToken: tkn,
-	})
-}
-
-func (e *ExecContext) executeScript(
-	c script.Compiled, inputs api.Args,
-) (api.Args, error) {
-	language := api.ScriptLangAle
-	if e.step.Script != nil {
-		language = e.step.Script.Language
-	}
-	env, err := e.engine.scripts.Get(language)
-	if err != nil {
-		return nil, err
-	}
-	return env.ExecuteScript(c, e.step, inputs)
-}
-
-func extractScriptResult(result api.Args) any {
-	if len(result) == 0 {
-		return nil
-	}
-	if val, ok := result["value"]; ok {
-		return val
-	}
-	if len(result) == 1 {
-		for _, value := range result {
-			return value
-		}
-	}
-	return result
-}
-
-func (e *ExecContext) updateScriptHealth(st api.HealthStatus, errMsg string) {
-	if err := e.engine.UpdateStepHealth(e.stepID, st, errMsg); err != nil {
-		slog.Error("Failed to update script step health",
-			log.FlowID(e.flowID),
-			log.StepID(e.stepID),
-			log.Error(err))
-	}
+	return handler.Execute(e, e.step, inputs, tkn)
 }
 
 func (tx *flowTx) startPendingWork(step *api.Step) (api.WorkItems, error) {

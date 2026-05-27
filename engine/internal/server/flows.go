@@ -148,7 +148,7 @@ func (s *Server) startFlow(c *gin.Context) {
 		return
 	}
 
-	pl, ok := s.createPlan(c, req.Goals, req.Init, s.engine.CreatePlan)
+	pl, ok := s.createPlan(c, req.Goals, req.Init, plan.Create)
 	if !ok {
 		return
 	}
@@ -247,7 +247,7 @@ func (s *Server) createPlan(
 		return nil, false
 	}
 
-	pl, err := planner(cat, goals, init)
+	pl, err := planner(s.engine.Matcher, s.engine.Children, cat, goals, init)
 	if err == nil {
 		return pl, true
 	}
@@ -284,7 +284,7 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 		return
 	}
 
-	pl, ok := s.createPlan(c, req.Goals, req.Init, s.engine.PreviewPlan)
+	pl, ok := s.createPlan(c, req.Goals, req.Init, plan.Preview)
 	if ok {
 		c.JSON(http.StatusOK, pl)
 	}

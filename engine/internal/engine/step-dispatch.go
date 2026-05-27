@@ -100,7 +100,9 @@ func (e *Engine) recoverWorkDispatch(flow api.FlowState) {
 	}
 }
 
-func (e *Engine) findWorkDispatchSteps(state api.FlowState) util.Set[api.StepID] {
+func (e *Engine) findWorkDispatchSteps(
+	state api.FlowState,
+) util.Set[api.StepID] {
 	steps := util.Set[api.StepID]{}
 	now := e.Now()
 
@@ -118,27 +120,6 @@ func (e *Engine) findWorkDispatchSteps(state api.FlowState) util.Set[api.StepID]
 	}
 
 	return steps
-}
-
-func hasReadyPendingWork(
-	step *api.Step, ex api.ExecutionState, when time.Time,
-) bool {
-	limit := policy.StepParallelism(step)
-	if policy.CountActiveWorkItems(ex.WorkItems) >= limit {
-		return false
-	}
-
-	for _, work := range ex.WorkItems {
-		if !policy.WorkPending(work.Status) {
-			continue
-		}
-		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
-			continue
-		}
-		return true
-	}
-
-	return false
 }
 
 func (e *Engine) scheduleWorkDispatch(fs api.FlowStep, at time.Time) {
@@ -213,9 +194,12 @@ func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
 		return nil
 	}
 
-	canCompensate := policy.StepCanCompensate(step)
+	comp, err := e.compensator(step)
+	if err != nil {
+		return err
+	}
 	for tkn, work := range ex.WorkItems {
-		if canCompensate && policy.WorkCompActive(work.Status) {
+		if comp != nil && policy.WorkCompActive(work.Status) {
 			retryAt := work.NextRetryAt
 			if retryAt.IsZero() || retryAt.Before(now) {
 				retryAt = now
@@ -230,10 +214,6 @@ func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
 	return nil
 }
 
-func workDispatchKey(fs api.FlowStep) []string {
-	return []string{"dispatch", string(fs.FlowID), string(fs.StepID)}
-}
-
 func (tx *flowTx) raiseDispatchDeferred(stepID api.StepID) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeDispatchDeferred,
 		api.DispatchDeferredEvent{
@@ -241,4 +221,29 @@ func (tx *flowTx) raiseDispatchDeferred(stepID api.StepID) error {
 			StepID: stepID,
 		},
 	)
+}
+
+func hasReadyPendingWork(
+	step *api.Step, ex api.ExecutionState, when time.Time,
+) bool {
+	limit := policy.StepParallelism(step)
+	if policy.CountActiveWorkItems(ex.WorkItems) >= limit {
+		return false
+	}
+
+	for _, work := range ex.WorkItems {
+		if !policy.WorkPending(work.Status) {
+			continue
+		}
+		if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
+			continue
+		}
+		return true
+	}
+
+	return false
+}
+
+func workDispatchKey(fs api.FlowStep) []string {
+	return []string{"dispatch", string(fs.FlowID), string(fs.StepID)}
 }

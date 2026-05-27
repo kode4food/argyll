@@ -24,7 +24,6 @@ type (
 	// Step defines a flow step with its configuration, attributes, and
 	// execution details
 	Step struct {
-		hashErr    error
 		Script     *ScriptConfig  `json:"script,omitempty"`
 		Labels     Labels         `json:"labels,omitempty"`
 		Attributes AttributeSpecs `json:"attributes"`
@@ -34,10 +33,12 @@ type (
 		Flow       *FlowConfig    `json:"flow,omitempty"`
 		Type       StepType       `json:"type"`
 		ID         StepID         `json:"id"`
-		hashVal    string
-		Name       Name `json:"name"`
-		hashOnce   sync.Once
-		Memoizable bool `json:"memoizable,omitempty"`
+		Name       Name           `json:"name"`
+		Memoizable bool           `json:"memoizable,omitempty"`
+
+		hashErr  error
+		hashVal  string
+		hashOnce sync.Once
 	}
 
 	// HTTPConfig configures HTTP-based step execution

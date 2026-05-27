@@ -83,6 +83,26 @@ func (r *Registry) Get(language string) (Environment, error) {
 	return env, nil
 }
 
+// ValidateStep checks that a step's predicate and attribute match scripts
+// compile successfully against the registry
+func (r *Registry) ValidateStep(step *api.Step) error {
+	if step.Predicate != nil {
+		if _, err := r.Compile(step, step.Predicate); err != nil {
+			return err
+		}
+	}
+	for name, attr := range step.Attributes {
+		if attr.Required == nil || attr.Required.Match == nil {
+			continue
+		}
+		if _, err := r.Compile(MatchStep, attr.Required.Match); err != nil {
+			return fmt.Errorf("%w for attribute %q: %v",
+				api.ErrInvalidScriptLanguage, name, err)
+		}
+	}
+	return nil
+}
+
 // Compile compiles a script config
 func (r *Registry) Compile(
 	step *api.Step, cfg *api.ScriptConfig,

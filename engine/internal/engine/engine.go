@@ -14,6 +14,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -22,9 +23,9 @@ import (
 type (
 	// Engine is the core flow execution engine
 	Engine struct {
-		stepClient  client.Client
 		ctx         context.Context
 		scripts     *script.Registry
+		steps       *step.Registry
 		mapper      *Mapper
 		flowExec    *FlowExecutor
 		engStore    *timebox.Store
@@ -86,6 +87,7 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
+	scripts := script.NewRegistry()
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
 			deps.EngineStore, events.NewCatalogState, events.CatalogAppliers,
@@ -96,17 +98,17 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		flowExec: timebox.NewExecutor(
 			deps.FlowStore, events.NewFlowState, events.FlowAppliers,
 		),
-		scripts:    script.NewRegistry(),
-		stepClient: deps.StepClient,
-		engStore:   deps.EngineStore,
-		config:     cfg,
-		ctx:        ctx,
-		cancel:     cancel,
-		memoCache:  memo.NewCache(cfg.MemoCacheSize),
-		scheduler:  scheduler.New(deps.Clock, deps.TimerConstructor),
-		clock:      deps.Clock,
-		eventHub:   deps.EventHub,
-		health:     map[api.StepID]api.HealthState{},
+		scripts:   scripts,
+		steps:     step.NewRegistry(scripts, deps.StepClient),
+		engStore:  deps.EngineStore,
+		config:    cfg,
+		ctx:       ctx,
+		cancel:    cancel,
+		memoCache: memo.NewCache(cfg.MemoCacheSize),
+		scheduler: scheduler.New(deps.Clock, deps.TimerConstructor),
+		clock:     deps.Clock,
+		eventHub:  deps.EventHub,
+		health:    map[api.StepID]api.HealthState{},
 	}
 	e.mapper = NewMapper(e)
 
