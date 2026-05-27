@@ -117,7 +117,7 @@ func (r *testRuntime) UpdateHealth(
 }
 
 func TestRegistryRegistersBuiltIns(t *testing.T) {
-	reg := step.NewRegistry(script.NewRegistry(), &testClient{})
+	reg := newRegistry(&testClient{})
 
 	for _, typ := range []api.StepType{
 		api.StepTypeFlow, api.StepTypeSync, api.StepTypeAsync,
@@ -129,7 +129,7 @@ func TestRegistryRegistersBuiltIns(t *testing.T) {
 }
 
 func TestRegistryRejectsUnknownStepType(t *testing.T) {
-	reg := step.NewRegistry(script.NewRegistry(), &testClient{})
+	reg := newRegistry(&testClient{})
 
 	err := reg.Validate(&api.Step{Type: "unknown"})
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)
@@ -137,7 +137,7 @@ func TestRegistryRejectsUnknownStepType(t *testing.T) {
 
 func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 	cl := &testClient{outputs: api.Args{"result": "ok"}}
-	reg := step.NewRegistry(script.NewRegistry(), cl)
+	reg := newRegistry(cl)
 	handler, err := reg.Lookup(api.StepTypeSync)
 	assert.NoError(t, err)
 
@@ -166,7 +166,7 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 
 func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	cl := &testClient{}
-	reg := step.NewRegistry(script.NewRegistry(), cl)
+	reg := newRegistry(cl)
 	handler, err := reg.Lookup(api.StepTypeAsync)
 	assert.NoError(t, err)
 
@@ -190,7 +190,7 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 }
 
 func TestFlowHandlerStartsChildFlow(t *testing.T) {
-	reg := step.NewRegistry(script.NewRegistry(), &testClient{})
+	reg := newRegistry(&testClient{})
 	handler, err := reg.Lookup(api.StepTypeFlow)
 	assert.NoError(t, err)
 
@@ -210,8 +210,21 @@ func TestFlowHandlerStartsChildFlow(t *testing.T) {
 }
 
 func TestRegistryLookupMissing(t *testing.T) {
-	reg := step.NewRegistry(script.NewRegistry(), &testClient{})
+	reg := newRegistry(&testClient{})
 
 	_, err := reg.Lookup("missing")
 	assert.ErrorIs(t, err, api.ErrInvalidStepType)
+}
+
+func TestRegistryIncludesBootstrappedHandler(t *testing.T) {
+	handler := &step.Handler{}
+	reg := step.NewRegistry(step.Handlers{"custom": handler})
+
+	got, err := reg.Lookup("custom")
+	assert.NoError(t, err)
+	assert.NotSame(t, handler, got)
+}
+
+func newRegistry(c client.Client) *step.Registry {
+	return step.NewRegistry(step.DefaultHandlers(script.NewRegistry(), c))
 }

@@ -5,17 +5,11 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// RegisterHTTPHandler registers the built-in handler for sync and async HTTP
-// steps
-func RegisterHTTPHandler(r *Registry, c client.Client) {
-	r.Register(api.StepTypeSync, Handler{
-		Execute:    httpExecutor(c, false),
+func httpHandler(c client.Client, async bool) *Handler {
+	return &Handler{
+		Execute:    httpExecutor(c, async),
 		Compensate: httpCompensator(c),
-	})
-	r.Register(api.StepTypeAsync, Handler{
-		Execute:    httpExecutor(c, true),
-		Compensate: httpCompensator(c),
-	})
+	}
 }
 
 func httpCompensator(c client.Client) CompensateFunc {

@@ -15,6 +15,8 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -288,8 +290,12 @@ func TestHTTPRetryRecovers(t *testing.T) {
 	))
 	defer stepServer.Close()
 
+	scripts := script.NewRegistry()
 	deps := engine.Dependencies{
-		StepClient: client.NewHTTPClient(5 * time.Second),
+		Scripts: scripts,
+		Steps: step.NewRegistry(step.DefaultHandlers(
+			scripts, client.NewHTTPClient(5*time.Second),
+		)),
 	}
 	helpers.WithTestEnvDeps(t, deps, func(env *helpers.TestEngineEnv) {
 		cfg := util.MutableCopy(env.Config)
@@ -300,7 +306,11 @@ func TestHTTPRetryRecovers(t *testing.T) {
 			BackoffType: api.BackoffTypeFixed,
 		}
 		deps := env.Dependencies()
-		deps.StepClient = client.NewHTTPClient(5 * time.Second)
+		scripts := script.NewRegistry()
+		deps.Scripts = scripts
+		deps.Steps = step.NewRegistry(step.DefaultHandlers(
+			scripts, client.NewHTTPClient(5*time.Second),
+		))
 		eng, unsubscribe, err := env.NewEngineWithConfig(cfg, deps)
 		assert.NoError(t, err)
 		if !assert.NotNil(t, eng) {

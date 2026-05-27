@@ -13,6 +13,8 @@ import (
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -177,11 +179,14 @@ func NewTestEngineWithDeps(
 	assert.NoError(t, err)
 	flowStore, err := backend.NewStore(cfg.FlowStoreConfig())
 	assert.NoError(t, err)
+	scripts := script.NewRegistry()
+	steps := step.NewRegistry(step.DefaultHandlers(scripts, mockCli))
 
 	defaultDeps := engine.Dependencies{
 		EngineStore:      engStore,
 		FlowStore:        flowStore,
-		StepClient:       mockCli,
+		Scripts:          scripts,
+		Steps:            steps,
 		Clock:            scheduler.Now,
 		TimerConstructor: scheduler.NewTimer,
 		EventHub:         hub,
@@ -189,9 +194,6 @@ func NewTestEngineWithDeps(
 	deps := mergeDependencies(defaultDeps, overrides)
 	eng, err := engine.New(cfg, deps)
 	assert.NoError(t, err)
-	if cl, ok := deps.StepClient.(*MockClient); ok {
-		mockCli = cl
-	}
 	flowExec := timebox.NewExecutor(
 		deps.FlowStore, events.NewFlowState, events.FlowAppliers,
 	)
@@ -351,10 +353,14 @@ func (e *TestEngineEnv) unsubscribeAll() {
 func (e *TestEngineEnv) engineDeps(
 	clock scheduler.Clock, makeTimer scheduler.TimerConstructor,
 ) engine.Dependencies {
+	scripts := script.NewRegistry()
+	steps := step.NewRegistry(step.DefaultHandlers(scripts, e.MockClient))
+
 	return engine.Dependencies{
 		EngineStore:      e.engStore,
 		FlowStore:        e.flowStore,
-		StepClient:       e.MockClient,
+		Scripts:          scripts,
+		Steps:            steps,
 		Clock:            clock,
 		TimerConstructor: makeTimer,
 		EventHub:         e.EventHub,
@@ -389,8 +395,11 @@ func mergeDependencies(
 	if overrides.FlowStore != nil {
 		defaults.FlowStore = overrides.FlowStore
 	}
-	if overrides.StepClient != nil {
-		defaults.StepClient = overrides.StepClient
+	if overrides.Scripts != nil {
+		defaults.Scripts = overrides.Scripts
+	}
+	if overrides.Steps != nil {
+		defaults.Steps = overrides.Steps
 	}
 	if overrides.Clock != nil {
 		defaults.Clock = overrides.Clock

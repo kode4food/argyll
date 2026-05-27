@@ -19,6 +19,8 @@ import (
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/script"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/internal/server"
 	"github.com/kode4food/argyll/engine/pkg/log"
@@ -150,11 +152,14 @@ func (a *argyll) initializeEngine(hub *event.Hub) error {
 	stepClient := client.NewHTTPClient(
 		time.Duration(a.cfg.StepTimeout) * time.Millisecond,
 	)
+	scripts := script.NewRegistry()
+	steps := step.NewRegistry(step.DefaultHandlers(scripts, stepClient))
 
 	eng, err := engine.New(a.cfg, engine.Dependencies{
 		EngineStore: a.engStore,
 		FlowStore:   a.flowStore,
-		StepClient:  stepClient,
+		Scripts:     scripts,
+		Steps:       steps,
 		EventHub:    hub,
 	})
 	if err != nil {

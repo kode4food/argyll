@@ -13,13 +13,12 @@ var (
 	ErrScriptCompileFailed = errors.New("failed to compile scripts for step")
 )
 
-// RegisterScriptHandler registers the built-in handler for script steps
-func RegisterScriptHandler(r *Registry, scripts *script.Registry) {
-	r.Register(api.StepTypeScript, Handler{
+func scriptHandler(scripts *script.Registry) *Handler {
+	return &Handler{
 		Validate: scriptConfigValidator(scripts),
 		Execute:  scriptExecutor(scripts),
 		Health:   scriptHealth(scripts),
-	})
+	}
 }
 
 func scriptConfigValidator(scripts *script.Registry) ValidateFunc {

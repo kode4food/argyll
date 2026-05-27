@@ -149,13 +149,6 @@ var (
 )
 
 var (
-	validStepTypes = util.SetOf(
-		StepTypeSync,
-		StepTypeAsync,
-		StepTypeScript,
-		StepTypeFlow,
-	)
-
 	validBackoffTypes = util.SetOf(
 		BackoffTypeFixed,
 		BackoffTypeLinear,
@@ -189,10 +182,6 @@ func (s *Step) Validate() error {
 	}
 	if s.Name == "" {
 		return ErrStepNameEmpty
-	}
-
-	if !validStepTypes.Contains(s.Type) {
-		return fmt.Errorf("%w: %s", ErrInvalidStepType, s.Type)
 	}
 
 	switch s.Type {

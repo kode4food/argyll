@@ -182,15 +182,6 @@ func TestStepInvalid(t *testing.T) {
 			},
 			expectedErrorContain: "script",
 		},
-		{
-			name: "invalid step type",
-			step: &api.Step{
-				ID:   "test-id",
-				Name: "Test",
-				Type: "invalid",
-			},
-			expectedErrorContain: "invalid",
-		},
 	}
 
 	for _, tt := range tests {

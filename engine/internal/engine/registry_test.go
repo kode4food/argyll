@@ -36,6 +36,16 @@ func TestRegisterStep(t *testing.T) {
 	})
 }
 
+func TestRegisterStepRejectsUnconfiguredType(t *testing.T) {
+	helpers.WithEngine(t, func(eng *engine.Engine) {
+		err := eng.RegisterStep(&api.Step{
+			ID: "custom-step", Name: "Custom Step", Type: "custom",
+		})
+		assert.ErrorIs(t, err, engine.ErrInvalidStep)
+		assert.ErrorIs(t, err, api.ErrInvalidStepType)
+	})
+}
+
 func TestRegisterStepIdempotent(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewSimpleStep("dup-step")

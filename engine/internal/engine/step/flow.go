@@ -2,12 +2,11 @@ package step
 
 import "github.com/kode4food/argyll/engine/pkg/api"
 
-// RegisterFlowHandler registers the built-in handler for flow steps
-func RegisterFlowHandler(r *Registry) {
-	r.Register(api.StepTypeFlow, Handler{
+func flowHandler() *Handler {
+	return &Handler{
 		Execute:  executeFlow,
 		Children: flowChildren,
-	})
+	}
 }
 
 func executeFlow(

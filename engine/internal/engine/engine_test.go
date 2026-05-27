@@ -12,6 +12,7 @@ import (
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine"
+	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
@@ -55,9 +56,15 @@ func TestNewMissingDependency(t *testing.T) {
 				},
 			},
 			{
-				name: "step client",
+				name: "script registry",
 				edit: func(deps *engine.Dependencies) {
-					deps.StepClient = nil
+					deps.Scripts = nil
+				},
+			},
+			{
+				name: "step registry",
+				edit: func(deps *engine.Dependencies) {
+					deps.Steps = nil
 				},
 			},
 			{
@@ -104,6 +111,45 @@ func TestNewDefaultsTimeDeps(t *testing.T) {
 		eng, err := engine.New(env.Config, deps)
 		assert.NoError(t, err)
 		assert.NotNil(t, eng)
+	})
+}
+
+func TestNewCustomStep(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		deps := env.Dependencies()
+		handlers := step.DefaultHandlers(deps.Scripts, env.MockClient)
+		handlers["custom"] = &step.Handler{Execute: func(
+			step.Runtime, *api.Step, api.Args, api.Token,
+		) error {
+			return nil
+		}}
+		deps.Steps = step.NewRegistry(handlers)
+		eng, err := engine.New(env.Config, deps)
+		assert.NoError(t, err)
+		assert.NotNil(t, eng)
+
+		err = eng.RegisterStep(&api.Step{
+			ID: "custom-step", Name: "Custom Step", Type: "custom",
+		})
+		assert.NoError(t, err)
+	})
+}
+
+func TestNewMockStep(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		expected := errors.New("mock validation")
+		deps := env.Dependencies()
+		handlers := step.DefaultHandlers(deps.Scripts, env.MockClient)
+		handlers[api.StepTypeSync] = &step.Handler{
+			Validate: func(*api.Step) error { return expected },
+		}
+		deps.Steps = step.NewRegistry(handlers)
+		eng, err := engine.New(env.Config, deps)
+		assert.NoError(t, err)
+		assert.NotNil(t, eng)
+
+		err = eng.RegisterStep(helpers.NewSimpleStep("mocked-step"))
+		assert.ErrorIs(t, err, expected)
 	})
 }
 

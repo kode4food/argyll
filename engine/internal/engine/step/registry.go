@@ -2,7 +2,6 @@ package step
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
@@ -50,38 +49,43 @@ type (
 	// types without compensation semantics leave this nil
 	CompensateFunc func(*api.Step, api.Args, api.Args, api.Metadata) error
 
+	// Handlers maps bootstrapped step types to their implementations
+	Handlers map[api.StepType]*Handler
+
 	// Registry stores step handlers keyed by step type
 	Registry struct {
-		mu       sync.RWMutex
-		handlers map[api.StepType]Handler
+		handlers Handlers
 	}
 )
 
-// NewRegistry creates a step handler registry with the built-in handlers
-func NewRegistry(scripts *script.Registry, c client.Client) *Registry {
-	r := &Registry{handlers: map[api.StepType]Handler{}}
-	RegisterScriptHandler(r, scripts)
-	RegisterHTTPHandler(r, c)
-	RegisterFlowHandler(r)
-	return r
+// DefaultHandlers constructs the built-in step handler set
+func DefaultHandlers(scripts *script.Registry, c client.Client) Handlers {
+	return Handlers{
+		api.StepTypeScript: scriptHandler(scripts),
+		api.StepTypeSync:   httpHandler(c, false),
+		api.StepTypeAsync:  httpHandler(c, true),
+		api.StepTypeFlow:   flowHandler(),
+	}
 }
 
-// Register registers a handler for a step type
-func (r *Registry) Register(stepType api.StepType, handler Handler) {
-	r.mu.Lock()
-	defer r.mu.Unlock()
-
-	r.handlers[stepType] = handler
+// NewRegistry freezes a bootstrapped handler set for lock-free lookup
+func NewRegistry(handlers Handlers) *Registry {
+	res := make(Handlers, len(handlers))
+	for typ, handler := range handlers {
+		if handler == nil {
+			continue
+		}
+		cpy := *handler
+		res[typ] = &cpy
+	}
+	return &Registry{handlers: res}
 }
 
 // Lookup returns the handler for a step type
-func (r *Registry) Lookup(stepType api.StepType) (Handler, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
+func (r *Registry) Lookup(stepType api.StepType) (*Handler, error) {
 	handler, ok := r.handlers[stepType]
 	if !ok {
-		return Handler{}, fmt.Errorf("%w: %s", api.ErrInvalidStepType, stepType)
+		return nil, fmt.Errorf("%w: %s", api.ErrInvalidStepType, stepType)
 	}
 	return handler, nil
 }

@@ -9,7 +9,6 @@ import (
 
 	"github.com/kode4food/timebox"
 
-	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/config"
 	"github.com/kode4food/argyll/engine/internal/engine/memo"
 	"github.com/kode4food/argyll/engine/internal/engine/scheduler"
@@ -45,7 +44,8 @@ type (
 	Dependencies struct {
 		EngineStore      *timebox.Store
 		FlowStore        *timebox.Store
-		StepClient       client.Client
+		Scripts          *script.Registry
+		Steps            *step.Registry
 		Clock            scheduler.Clock
 		TimerConstructor scheduler.TimerConstructor
 		EventHub         *event.Hub
@@ -87,7 +87,6 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
-	scripts := script.NewRegistry()
 	e := &Engine{
 		catalogExec: timebox.NewExecutor(
 			deps.EngineStore, events.NewCatalogState, events.CatalogAppliers,
@@ -98,8 +97,8 @@ func New(cfg *config.Config, deps Dependencies) (*Engine, error) {
 		flowExec: timebox.NewExecutor(
 			deps.FlowStore, events.NewFlowState, events.FlowAppliers,
 		),
-		scripts:   scripts,
-		steps:     step.NewRegistry(scripts, deps.StepClient),
+		scripts:   deps.Scripts,
+		steps:     deps.Steps,
 		engStore:  deps.EngineStore,
 		config:    cfg,
 		ctx:       ctx,
@@ -132,8 +131,11 @@ func normalizeDependencies(deps *Dependencies) error {
 	if deps.FlowStore == nil {
 		return fmt.Errorf("%w: flow store", ErrMissingDependency)
 	}
-	if deps.StepClient == nil {
-		return fmt.Errorf("%w: step client", ErrMissingDependency)
+	if deps.Scripts == nil {
+		return fmt.Errorf("%w: script registry", ErrMissingDependency)
+	}
+	if deps.Steps == nil {
+		return fmt.Errorf("%w: step registry", ErrMissingDependency)
 	}
 	if deps.EventHub == nil {
 		return fmt.Errorf("%w: event hub", ErrMissingDependency)
