@@ -222,7 +222,7 @@ func TestRegistryIncludesBootstrappedHandler(t *testing.T) {
 
 	got, err := reg.Lookup("custom")
 	assert.NoError(t, err)
-	assert.NotSame(t, handler, got)
+	assert.Same(t, handler, got)
 }
 
 func newRegistry(c client.Client) *step.Registry {

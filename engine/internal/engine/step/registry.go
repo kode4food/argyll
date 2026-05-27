@@ -2,6 +2,7 @@ package step
 
 import (
 	"fmt"
+	"maps"
 
 	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine/script"
@@ -70,15 +71,9 @@ func DefaultHandlers(scripts *script.Registry, c client.Client) Handlers {
 
 // NewRegistry freezes a bootstrapped handler set for lock-free lookup
 func NewRegistry(handlers Handlers) *Registry {
-	res := make(Handlers, len(handlers))
-	for typ, handler := range handlers {
-		if handler == nil {
-			continue
-		}
-		cpy := *handler
-		res[typ] = &cpy
+	return &Registry{
+		handlers: maps.Clone(handlers),
 	}
-	return &Registry{handlers: res}
 }
 
 // Lookup returns the handler for a step type
