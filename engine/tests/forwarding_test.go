@@ -43,6 +43,8 @@ type raftInit struct {
 	hub *event.Hub
 }
 
+const followerWriteStartupTimeout = 45 * time.Second
+
 func TestFollowerWrite(t *testing.T) {
 	nodes := newRaftCluster(t, 3)
 	leader, follower := findFollower(t, nodes)
@@ -101,31 +103,32 @@ func TestFollowerWriteStartup(t *testing.T) {
 		closeRaftNodes(nodes)
 	})
 
-	leader, follower := findFollower(t, nodes)
-
-	// The follower's write-forwarding path may not be ready immediately
-	// after leader election, so retry until the write succeeds
+	// The follower's write-forwarding path may not be ready immediately after
+	// leader election. Try current followers in turn because a node can be up
+	// but still unable to propose during staggered startup
 	var resp api.StepRegisteredResponse
-	routes := follower.server.SetupRoutes()
+	attempt := 0
 	assert.Eventually(t, func() bool {
-		w := tryPostJSON(routes, "/engine/step", st)
+		followers := currentFollowers(nodes)
+		if len(followers) == 0 {
+			return false
+		}
+		follower := followers[attempt%len(followers)]
+		attempt++
+
+		w := tryPostJSON(follower.server.SetupRoutes(), "/engine/step", st)
 		if w.Code != http.StatusCreated {
 			return false
 		}
 		return json.Unmarshal(w.Body.Bytes(), &resp) == nil
-	}, 15*time.Second, 200*time.Millisecond)
+	}, followerWriteStartupTimeout, 200*time.Millisecond)
 
 	if assert.NotNil(t, resp.Step) {
 		assert.Equal(t, st.ID, resp.Step.ID)
 	}
 
 	assert.Eventually(t, func() bool {
-		cat, err := leader.engine.GetCatalogState()
-		if err != nil {
-			return false
-		}
-		_, ok := cat.Steps[st.ID]
-		return ok
+		return clusterHasStep(nodes, st.ID)
 	}, 15*time.Second, 100*time.Millisecond)
 }
 
@@ -283,6 +286,40 @@ func findFollower(t *testing.T, nodes []*raftNode) (*raftNode, *raftNode) {
 	}
 	t.Fatal("no follower found")
 	return nil, nil
+}
+
+func currentFollowers(nodes []*raftNode) []*raftNode {
+	var leader *raftNode
+	for _, n := range nodes {
+		if n.persistence.State() == raft.StateLeader {
+			leader = n
+			break
+		}
+	}
+	if leader == nil {
+		return nil
+	}
+
+	followers := make([]*raftNode, 0, len(nodes)-1)
+	for _, n := range nodes {
+		if n.id != leader.id {
+			followers = append(followers, n)
+		}
+	}
+	return followers
+}
+
+func clusterHasStep(nodes []*raftNode, id api.StepID) bool {
+	for _, n := range nodes {
+		cat, err := n.engine.GetCatalogState()
+		if err != nil {
+			continue
+		}
+		if _, ok := cat.Steps[id]; ok {
+			return true
+		}
+	}
+	return false
 }
 
 func closeRaftNodes(nodes []*raftNode) {
