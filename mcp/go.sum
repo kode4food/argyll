@@ -50,7 +50,7 @@ github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04 h1:O8jM26YJoIOtd
 github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
 github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9 h1:cp+VeR7jZf2PMgZh5EipZx/SqcjHhNcAfE+mxbyP/EM=
 github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 h1:sR7BMpyWzMmwOGwZw+evTvdvbZSAsX53WLtGNvVtwi0=
-github.com/kode4food/timebox v0.0.0-20260515060403-23ace93d23c0 h1:SO1lN3ahzYw/vYxydyPXkzsjfrlOKVAqVHG36fPRkkI=
+github.com/kode4food/timebox v0.0.0-20260528050313-9473fa27bf0f h1:voeUvUxPMPbWwFCNcVCNB0bP5cUIGc20dffLWRFnNOY=
 github.com/kr/pretty v0.3.1 h1:flRD4NNwYAUpkphVc1HcthR4KEIFJ65n8Mw5qdRn3LE=
 github.com/kr/text v0.2.0 h1:5Nx0Ya0ZqY2ygV366QzturHI13Jq95ApcVaJBhpS+AY=
 github.com/localrivet/gomcp v1.7.2 h1:dJtKCvbI8Gr/L0N7cZlo3XOMyCc7GCahdtbI/Y/K9Ig=

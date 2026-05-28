@@ -9,6 +9,6 @@ require (
 
 require (
 	github.com/kode4food/ale v0.3.1-0.20260525064642-5a3c602e1b33 // indirect
-	github.com/kode4food/timebox v0.0.0-20260515060403-23ace93d23c0 // indirect
+	github.com/kode4food/timebox v0.0.0-20260528050313-9473fa27bf0f // indirect
 	golang.org/x/tools v0.45.0 // indirect
 )
