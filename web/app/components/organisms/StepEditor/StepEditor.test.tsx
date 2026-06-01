@@ -382,6 +382,9 @@ describe("StepEditor", () => {
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
+    fireEvent.click(
+      await screen.findByRole("button", { name: t("stepEditor.typeFlowLabel") })
+    );
     await waitFor(() => {
       const flowButton = screen.getByTitle(t("stepEditor.typeFlowTitle"));
       fireEvent.click(flowButton);
@@ -454,6 +457,9 @@ describe("StepEditor", () => {
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
+    fireEvent.click(
+      await screen.findByRole("button", { name: t("stepEditor.typeFlowLabel") })
+    );
     await waitFor(() => {
       const flowButton = screen.getByTitle(t("stepEditor.typeFlowTitle"));
       fireEvent.click(flowButton);
@@ -1102,6 +1108,9 @@ describe("StepEditor", () => {
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
+    fireEvent.click(
+      await screen.findByRole("button", { name: t("stepEditor.typeSyncLabel") })
+    );
     await waitFor(() => {
       const scriptButton = screen.getByTitle(t("stepEditor.typeScriptTitle"));
       fireEvent.click(scriptButton);
@@ -1122,6 +1131,11 @@ describe("StepEditor", () => {
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />
     );
 
+    fireEvent.click(
+      await screen.findByRole("button", {
+        name: t("stepEditor.typeScriptLabel"),
+      })
+    );
     await waitFor(() => {
       const syncButton = screen.getByTitle(t("stepEditor.typeSyncTitle"));
       fireEvent.click(syncButton);

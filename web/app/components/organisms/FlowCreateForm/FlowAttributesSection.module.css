@@ -14,39 +14,6 @@
   composes: sectionTitle from "./FlowCreateFormControls.module.css";
 }
 
-.editorModeToggleGroup {
-  display: inline-flex;
-  gap: var(--spacing-xs);
-}
-
-.editorModeToggle {
-  height: 28px;
-  padding: 0 var(--spacing-md);
-  background-color: transparent;
-  border: 1px solid var(--panel-border);
-  border-radius: var(--radius-md);
-  color: var(--panel-text);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.editorModeToggle:hover {
-  background-color: var(--panel-hover-strong);
-  border-color: var(--color-info);
-}
-
-.editorModeToggleActive {
-  background-color: color-mix(in srgb, var(--color-info) 70%, transparent);
-  border-color: var(--color-info);
-  color: var(--color-white);
-}
-
-.editorModeToggleActive:hover {
-  background-color: color-mix(in srgb, var(--color-info) 80%, transparent);
-  border-color: var(--color-info-light);
-}
-
 .editorContainer {
   display: flex;
   flex: 1 1 auto;

@@ -12,39 +12,6 @@
   overflow: hidden;
 }
 
-.editorModeToggleGroup {
-  display: inline-flex;
-  gap: var(--spacing-xs);
-}
-
-.editorModeToggle {
-  height: 28px;
-  padding: 0 var(--spacing-md);
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  color: var(--color-dark-text);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  transition: var(--transition-fast);
-}
-
-.editorModeToggle:hover {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-}
-
-.editorModeToggleActive {
-  background-color: var(--color-info);
-  border-color: var(--color-info);
-  color: var(--color-white);
-}
-
-.editorModeToggleActive:hover {
-  background-color: var(--color-info-light);
-  border-color: var(--color-info-light);
-}
-
 .jsonEditorContainer {
   flex: 1;
   min-height: 0;
@@ -463,49 +430,6 @@
   border-radius: var(--radius-md);
   color: var(--color-error-light);
   font-size: var(--text-xs);
-}
-
-.languageSelectorGroup {
-  display: flex;
-  gap: var(--spacing-xs);
-}
-
-.languageButton {
-  height: 24px;
-  padding: 0 var(--spacing-md);
-  background-color: var(--overlay-dark-30);
-  border: 1px solid var(--color-dark-border);
-  border-radius: var(--radius-md);
-  color: var(--color-dark-text);
-  font-size: var(--text-xs);
-  cursor: pointer;
-  transition: var(--transition-fast);
-  font-weight: var(--font-medium);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.languageButton:hover {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-}
-
-.languageButton:focus-visible {
-  background-color: var(--overlay-dark-40);
-  border-color: var(--color-info);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
-}
-
-.languageButtonActive {
-  background-color: var(--color-info);
-  border-color: var(--color-info);
-  color: var(--color-white);
-}
-
-.languageButtonActive:hover {
-  background-color: var(--color-info-light);
-  border-color: var(--color-info-light);
 }
 
 .fieldNoFlex {

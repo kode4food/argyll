@@ -99,9 +99,6 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
           onChange={onEditorModeChange}
           basicLabel={t("flowCreate.modeBasic")}
           jsonLabel={t("flowCreate.modeJson")}
-          groupClassName={styles.editorModeToggleGroup}
-          buttonClassName={styles.editorModeToggle}
-          activeClassName={styles.editorModeToggleActive}
         />
       </div>
       <div className={styles.editorContainer}>

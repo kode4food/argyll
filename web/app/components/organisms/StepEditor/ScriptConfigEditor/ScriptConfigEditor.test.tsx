@@ -123,7 +123,7 @@ describe("ScriptConfigEditor", () => {
       <ScriptConfigEditor {...defaultProps} language={SCRIPT_LANGUAGE_ALE} />
     );
     const aleButton = screen.getByText(t("script.language.ale"));
-    expect(aleButton.className).toContain("languageButtonActive");
+    expect(aleButton).toHaveAttribute("aria-pressed", "true");
   });
 
   test("marks Lua button as active when language is Lua", () => {
@@ -131,7 +131,7 @@ describe("ScriptConfigEditor", () => {
       <ScriptConfigEditor {...defaultProps} language={SCRIPT_LANGUAGE_LUA} />
     );
     const luaButton = screen.getByText(t("script.language.lua"));
-    expect(luaButton.className).toContain("languageButtonActive");
+    expect(luaButton).toHaveAttribute("aria-pressed", "true");
   });
 
   test("passes value to ScriptEditor", () => {
@@ -173,27 +173,5 @@ describe("ScriptConfigEditor", () => {
       <ScriptConfigEditor {...defaultProps} containerClassName="customClass" />
     );
     expect(container.querySelector(".customClass")).toBeInTheDocument();
-  });
-
-  test("blurs button after Ale click", () => {
-    render(<ScriptConfigEditor {...defaultProps} />);
-    const aleButton = screen.getByText("Ale") as HTMLButtonElement;
-    const blurSpy = jest.spyOn(aleButton, "blur");
-
-    fireEvent.click(aleButton);
-
-    expect(blurSpy).toHaveBeenCalled();
-    blurSpy.mockRestore();
-  });
-
-  test("blurs button after Lua click", () => {
-    render(<ScriptConfigEditor {...defaultProps} />);
-    const luaButton = screen.getByText("Lua") as HTMLButtonElement;
-    const blurSpy = jest.spyOn(luaButton, "blur");
-
-    fireEvent.click(luaButton);
-
-    expect(blurSpy).toHaveBeenCalled();
-    blurSpy.mockRestore();
   });
 });

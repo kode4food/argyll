@@ -56,6 +56,11 @@ describe("StepEditorBasicFields", () => {
         target: { value: "Changed Step" },
       }
     );
+
+    // open the type dropdown, then select a type
+    fireEvent.click(
+      screen.getByRole("button", { name: t("stepEditor.typeSyncLabel") })
+    );
     fireEvent.click(screen.getByTitle(t("stepEditor.typeFlowTitle")));
 
     expect(props.setStepId).toHaveBeenCalledWith("step-2");
@@ -63,11 +68,15 @@ describe("StepEditorBasicFields", () => {
     expect(props.setStepType).toHaveBeenCalledWith("flow");
   });
 
-  test("marks the current type button as active", () => {
+  test("marks the current type as selected in the dropdown", () => {
     renderComponent("async");
 
-    expect(
-      screen.getByTitle(t("stepEditor.typeAsyncTitle")).className
-    ).toContain("typeButtonActive");
+    fireEvent.click(
+      screen.getByRole("button", { name: t("stepEditor.typeAsyncLabel") })
+    );
+    expect(screen.getByTitle(t("stepEditor.typeAsyncTitle"))).toHaveAttribute(
+      "aria-selected",
+      "true"
+    );
   });
 });

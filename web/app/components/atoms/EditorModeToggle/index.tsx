@@ -1,13 +1,11 @@
 import React from "react";
+import SegmentedControl from "@/app/components/atoms/SegmentedControl";
 
 interface EditorModeToggleProps {
   editorMode: "basic" | "json";
   onChange: (mode: "basic" | "json") => void;
   basicLabel: string;
   jsonLabel: string;
-  groupClassName: string;
-  buttonClassName: string;
-  activeClassName: string;
 }
 
 const EditorModeToggle: React.FC<EditorModeToggleProps> = ({
@@ -15,26 +13,15 @@ const EditorModeToggle: React.FC<EditorModeToggleProps> = ({
   onChange,
   basicLabel,
   jsonLabel,
-  groupClassName,
-  buttonClassName,
-  activeClassName,
 }) => (
-  <div className={groupClassName}>
-    <button
-      type="button"
-      className={`${buttonClassName} ${editorMode === "basic" ? activeClassName : ""}`}
-      onClick={() => onChange("basic")}
-    >
-      {basicLabel}
-    </button>
-    <button
-      type="button"
-      className={`${buttonClassName} ${editorMode === "json" ? activeClassName : ""}`}
-      onClick={() => onChange("json")}
-    >
-      {jsonLabel}
-    </button>
-  </div>
+  <SegmentedControl
+    options={[
+      { value: "basic", label: basicLabel },
+      { value: "json", label: jsonLabel },
+    ]}
+    value={editorMode}
+    onChange={(v) => onChange(v as "basic" | "json")}
+  />
 );
 
 export default EditorModeToggle;
