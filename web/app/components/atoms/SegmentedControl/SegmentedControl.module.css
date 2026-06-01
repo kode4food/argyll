@@ -2,7 +2,7 @@
   display: inline-flex;
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-round);
-  background-color: var(--overlay-dark-30);
+  background-color: transparent;
 }
 
 .segment {
@@ -15,7 +15,9 @@
   font-family: inherit;
   font-weight: var(--font-medium);
   cursor: pointer;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
   white-space: nowrap;
 }
 
@@ -34,7 +36,7 @@
 }
 
 .segment:not(.segmentActive):hover {
-  color: var(--color-info-light);
+  background-color: var(--color-dark-hover);
 }
 
 .segmentActive {
@@ -43,7 +45,7 @@
 }
 
 .segmentActive:hover {
-  background-color: var(--color-info-light);
+  background-color: var(--color-primary-dark);
 }
 
 .segment:focus-visible {
