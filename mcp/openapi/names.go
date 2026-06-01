@@ -2,6 +2,7 @@ package openapi
 
 import (
 	"regexp"
+	"slices"
 	"strings"
 
 	openapi "github.com/getkin/kin-openapi/openapi3"
@@ -29,8 +30,7 @@ func operationID(op *openapi.Operation, method, path string) string {
 
 func pathEntity(path string) string {
 	parts := strings.Split(strings.Trim(path, "/"), "/")
-	for i := len(parts) - 1; i >= 0; i-- {
-		part := parts[i]
+	for _, part := range slices.Backward(parts) {
 		if part == "" || isParamSegment(part) ||
 			versionSegment.MatchString(part) {
 			continue

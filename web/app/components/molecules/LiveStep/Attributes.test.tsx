@@ -170,9 +170,6 @@ describe("Attributes", () => {
       inputs: { input1: "test value" },
       started_at: "2024-01-01T00:00:00Z",
     };
-    const attributeValues = {
-      input1: [{ value: "test value" }],
-    };
 
     render(
       <Attributes
@@ -222,12 +219,6 @@ describe("Attributes", () => {
         nullVal: null,
       },
       started_at: "2024-01-01T00:00:00Z",
-    };
-    const attributeValues = {
-      str: [{ value: "string" }],
-      num: [{ value: 42 }],
-      obj: [{ value: { key: "value" } }],
-      nullVal: [{ value: null }],
     };
 
     render(
@@ -283,9 +274,6 @@ describe("Attributes", () => {
       status: "active",
       inputs: { input1: "value1" },
       started_at: "2024-01-01T00:00:00Z",
-    };
-    const attributeValues = {
-      input1: [{ value: "value1" }],
     };
 
     const { container } = render(
@@ -354,9 +342,6 @@ describe("Attributes", () => {
         config: { nested: { key: "value" }, array: [1, 2, 3] },
       },
       started_at: "2024-01-01T00:00:00Z",
-    };
-    const attributeValues = {
-      config: [{ value: { nested: { key: "value" }, array: [1, 2, 3] } }],
     };
 
     render(
@@ -471,9 +456,7 @@ describe("Attributes", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
-    const attributeValues = {
-      opt1: [{ value: "default-value" }],
-    };
+
     const attributeProvenance = new Map<string, string>();
 
     const { container } = render(
@@ -599,9 +582,7 @@ describe("Attributes", () => {
       inputs: { opt1: "default-value" },
       started_at: "2024-01-01T00:00:00Z",
     };
-    const attributeValues = {
-      opt1: [{ value: "real-upstream-value", step: "step-2" }],
-    };
+
     const attributeProvenance = new Map<string, string>([["opt1", "step-2"]]);
 
     const { container } = render(
@@ -685,9 +666,6 @@ describe("Attributes", () => {
       status: "completed",
       inputs: { circular: circularObj },
       started_at: "2024-01-01T00:00:00Z",
-    };
-    const attributeValues = {
-      circular: [{ value: circularObj }],
     };
 
     render(

@@ -351,9 +351,9 @@ func (p *prefixNode) remove(prefix timebox.AggregateID) {
 		return
 	}
 
-	for i := len(path) - 1; i >= 0; i-- {
-		parent := path[i].node
-		delete(parent.children, path[i].key)
+	for _, entry := range slices.Backward(path) {
+		parent := entry.node
+		delete(parent.children, entry.key)
 		if parent.count > 0 || len(parent.children) > 0 {
 			return
 		}
