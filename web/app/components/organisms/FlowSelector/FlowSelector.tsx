@@ -156,7 +156,7 @@ const FlowSelectorDropdown: React.FC = () => {
           const dropdownItemClassName = [
             dropdownStyles.item,
             styles.dropdownItem,
-            isHighlighted && dropdownStyles.itemHighlighted,
+            isHighlighted && styles.dropdownItemHighlighted,
             isSelected && dropdownStyles.itemActive,
             isSelected && styles.dropdownItemSelected,
           ]

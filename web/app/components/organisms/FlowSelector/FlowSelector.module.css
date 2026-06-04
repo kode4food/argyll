@@ -8,8 +8,16 @@
 
 .navButtonSegment {
   composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
-  --control-hover-bg: var(--color-neutral-border);
-  --control-focus-bg: var(--color-neutral-border);
+  --control-hover-bg: color-mix(
+    in srgb,
+    var(--color-neutral-text) 8%,
+    transparent
+  );
+  --control-focus-bg: color-mix(
+    in srgb,
+    var(--color-neutral-text) 8%,
+    transparent
+  );
   --control-focus-border: var(--color-info);
   flex-shrink: 0;
   width: 2.25rem;
@@ -26,10 +34,6 @@
   box-sizing: border-box;
 }
 
-.navButtonSegment:hover,
-.navButtonSegment:focus-visible {
-  color: var(--color-neutral-text);
-}
 
 /* Dropdown Search */
 .dropdownSearch {
@@ -93,6 +97,15 @@
   padding-left: var(--spacing-md);
   padding-right: var(--spacing-md);
   font-size: var(--text-sm);
+  color: var(--color-neutral-text);
+}
+
+.dropdownItemHighlighted {
+  background-color: color-mix(
+    in srgb,
+    var(--color-neutral-text) 10%,
+    transparent
+  );
 }
 
 .dropdownItem .progress-icon {
@@ -194,7 +207,11 @@
   --segment-focus-border: var(--color-info);
   --segment-focus-shadow: 0 0 0 2px
     color-mix(in srgb, var(--color-info) 40%, transparent);
-  --segment-item-hover-bg: var(--color-neutral-border);
+  --segment-item-hover-bg: color-mix(
+    in srgb,
+    var(--color-neutral-text) 8%,
+    transparent
+  );
   --segment-item-focus-bg: var(--color-info-bg);
   width: 300px;
 }

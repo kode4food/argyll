@@ -184,7 +184,7 @@ describe("FlowSelector", () => {
     const second = screen.getByText("wf-2");
     fireEvent.mouseEnter(second);
 
-    expect(second.className).toContain("itemHighlighted");
-    expect(first.className).not.toContain("itemHighlighted");
+    expect(second.className).toContain("dropdownItemHighlighted");
+    expect(first.className).not.toContain("dropdownItemHighlighted");
   });
 });

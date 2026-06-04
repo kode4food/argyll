@@ -96,6 +96,7 @@
 .buttonStart:disabled {
   border-color: var(--panel-border);
   background-color: transparent;
+  color: var(--panel-text-muted, var(--panel-text));
 }
 
 .startIcon {
