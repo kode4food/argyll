@@ -46,10 +46,13 @@
 }
 
 .closeButton {
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--color-dark-hover);
+  --control-focus-bg: var(--color-dark-hover);
   background: none;
-  border: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
   color: var(--color-dark-text);
-  cursor: pointer;
   padding: var(--spacing-xs);
   display: flex;
   align-items: center;

@@ -79,4 +79,21 @@ describe("StepEditorBasicFields", () => {
       "true"
     );
   });
+
+  test("highlights the current type and lets mouse hover take over", () => {
+    renderComponent("async");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: t("stepEditor.typeAsyncLabel") })
+    );
+
+    const asyncType = screen.getByTitle(t("stepEditor.typeAsyncTitle"));
+    const flowType = screen.getByTitle(t("stepEditor.typeFlowTitle"));
+    expect(asyncType.className).toContain("itemHighlighted");
+
+    fireEvent.mouseEnter(flowType);
+
+    expect(flowType.className).toContain("itemHighlighted");
+    expect(asyncType.className).not.toContain("itemHighlighted");
+  });
 });

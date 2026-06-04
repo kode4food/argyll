@@ -30,6 +30,8 @@
   --segment-focus-border: var(--color-info);
   --segment-focus-shadow: 0 0 0 2px
     color-mix(in srgb, var(--color-info) 40%, transparent);
+  --segment-item-hover-bg: var(--panel-hover);
+  --segment-item-focus-bg: var(--panel-hover);
   flex: 1 1 auto;
   min-width: 0;
 }
@@ -70,10 +72,6 @@
   box-sizing: border-box;
 }
 
-.buttonGenerateSegment:hover {
-  background-color: var(--panel-hover);
-}
-
 .footerIconButton {
   display: inline-flex;
   align-items: center;
@@ -87,6 +85,10 @@
 
 .buttonStart {
   composes: buttonPrimary from "../Shared/Button.module.css";
+  --control-hover-bg: color-mix(in srgb, var(--color-info) 82%, transparent);
+  --control-hover-border: var(--color-info-light);
+  --control-focus-bg: color-mix(in srgb, var(--color-info) 82%, transparent);
+  --control-focus-border: var(--color-info-light);
   border: 1px solid var(--color-info);
   background-color: color-mix(in srgb, var(--color-info) 70%, transparent);
 }

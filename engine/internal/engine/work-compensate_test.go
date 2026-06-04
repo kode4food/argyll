@@ -489,6 +489,31 @@ func TestCompFailIdempotent(t *testing.T) {
 	})
 }
 
+func TestCompRetryNoopForMissingOrTerminalWork(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := newCompensatingStep("comp-retry-noop-step")
+		id := api.FlowID("wf-comp-retry-noop")
+		fs := api.FlowStep{FlowID: id, StepID: st.ID}
+		tkn := api.Token("work-retry-noop")
+
+		setupCompensatingFlow(env, id, st, tkn, true)
+		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
+
+		assert.NoError(t, env.Engine.NotCompleteCompensation(
+			fs, api.Token("missing"), "missing",
+		))
+		assert.NoError(t, env.Engine.NotCompleteCompensation(
+			fs, tkn, "already terminal",
+		))
+
+		fl, err := env.Engine.GetFlowState(id)
+		assert.NoError(t, err)
+		work := fl.Executions[st.ID].WorkItems[tkn]
+		assert.Equal(t, api.WorkCompensated, work.Status)
+		assert.Equal(t, 0, work.RetryCount)
+	})
+}
+
 func TestCompDispatchRecovery(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

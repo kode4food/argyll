@@ -65,6 +65,23 @@ describe("ComboInput", () => {
     );
   });
 
+  test("highlights the current value and lets mouse hover take over", () => {
+    render(
+      <ComboInput value="beta" suggestions={suggestions} onChange={onChange} />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Show suggestions" }));
+
+    const beta = screen.getByRole("option", { name: "beta" });
+    const gamma = screen.getByRole("option", { name: "gamma" });
+    expect(beta.className).toContain("itemHighlighted");
+
+    fireEvent.mouseEnter(gamma);
+
+    expect(gamma.className).toContain("itemHighlighted");
+    expect(beta.className).not.toContain("itemHighlighted");
+  });
+
   test("closes list on outside mousedown", () => {
     render(
       <div>

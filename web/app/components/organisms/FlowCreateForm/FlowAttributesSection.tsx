@@ -8,6 +8,7 @@ import {
 } from "@/utils/iconRegistry";
 import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
 import EditorModeToggle from "@/app/components/atoms/EditorModeToggle";
+import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import { FlowInputStatus, getFlowInputStatus } from "./flowFormUtils";
@@ -51,6 +52,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   setInitialState,
 }) => {
   const t = useT();
+  const handleArrowFocus = useArrowFocus();
 
   const statusConfig = useMemo(
     (): Record<FlowInputStatus, StatusConfig> => ({
@@ -110,7 +112,10 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
               </div>
             ) : (
               <div className={styles.attributeTableScroll}>
-                <div className={styles.attributeList}>
+                <div
+                  className={styles.attributeList}
+                  onKeyDown={handleArrowFocus}
+                >
                   {flowInputOptions.map((option) => {
                     const value = flowInputValues[option.name] || "";
                     const rawValue = flowInputValuesRaw[option.name] || "";
@@ -140,6 +145,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
                         <div className={styles.attributeValueCell}>
                           <input
                             type="text"
+                            data-arrow-focus-item="true"
                             value={value}
                             onChange={(e) =>
                               handleBasicInputChange(

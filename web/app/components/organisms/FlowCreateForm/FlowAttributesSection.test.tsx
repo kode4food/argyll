@@ -110,4 +110,34 @@ describe("FlowAttributesSection", () => {
     expect(svg).toBeInTheDocument();
     expect(svg?.getAttribute("class")).toContain("lucide-circle-check");
   });
+
+  test("moves focus between init arg inputs with arrow keys", () => {
+    render(
+      <FlowAttributesSection
+        {...baseProps}
+        flowInputOptions={[
+          {
+            name: "order_id",
+            required: true,
+          },
+          {
+            name: "quantity",
+            required: false,
+          },
+        ]}
+        flowInputValues={{ order_id: "", quantity: "" }}
+        getFlowInputPlaceholder={(option) => option.name}
+      />
+    );
+
+    const orderInput = screen.getByPlaceholderText("order_id");
+    const quantityInput = screen.getByPlaceholderText("quantity");
+
+    orderInput.focus();
+    fireEvent.keyDown(orderInput, { key: "ArrowDown" });
+    expect(quantityInput).toHaveFocus();
+
+    fireEvent.keyDown(quantityInput, { key: "ArrowUp" });
+    expect(orderInput).toHaveFocus();
+  });
 });

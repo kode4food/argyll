@@ -21,6 +21,7 @@
 }
 
 .languageButton:hover,
+.languageButton:focus-visible,
 .languageButtonOpen {
   color: var(--color-info-light);
 }

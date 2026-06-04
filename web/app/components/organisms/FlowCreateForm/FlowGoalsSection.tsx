@@ -2,6 +2,7 @@ import React from "react";
 import { Step } from "@/app/api";
 import { IconAddStep } from "@/utils/iconRegistry";
 import StepTypeLabel from "@/app/components/atoms/StepTypeLabel";
+import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
 import { buildItemClassName } from "./flowFormUtils";
 import { deriveStepGoalState, getGoalTooltip } from "@/utils/flowGoalStepState";
@@ -37,6 +38,7 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
   stepsCount,
 }) => {
   const t = useT();
+  const handleArrowFocus = useArrowFocus();
 
   return (
     <section className={`${styles.sectionCard} ${styles.stepSection}`}>
@@ -66,6 +68,7 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
       <div className={styles.goalListShell}>
         <div
           ref={sidebarListRef}
+          onKeyDown={handleArrowFocus}
           className={`${styles.sidebarList} ${
             showTopFade ? styles.fadeTop : ""
           } ${showBottomFade ? styles.fadeBottom : ""}`}
@@ -90,18 +93,28 @@ const FlowGoalsSection: React.FC<FlowGoalsSectionProps> = ({
             const includedClassName = state.isIncludedByOthers
               ? styles.dropdownItemIncluded
               : "";
+            const handleSelect = () => {
+              if (state.isDisabled) return;
+              const nextGoalStepIds = state.isSelected
+                ? goalSteps.filter((id) => id !== step.id)
+                : [...goalSteps, step.id];
+              void onGoalStepsChange(nextGoalStepIds);
+            };
 
             return (
               <div
                 key={step.id}
                 className={`${itemClassName} ${includedClassName}`}
                 title={tooltipText}
-                onClick={() => {
-                  if (state.isDisabled) return;
-                  const nextGoalStepIds = state.isSelected
-                    ? goalSteps.filter((id) => id !== step.id)
-                    : [...goalSteps, step.id];
-                  void onGoalStepsChange(nextGoalStepIds);
+                role="button"
+                aria-disabled={state.isDisabled}
+                data-arrow-focus-item="true"
+                tabIndex={state.isDisabled ? -1 : 0}
+                onClick={handleSelect}
+                onKeyDown={(e) => {
+                  if (e.key !== "Enter" && e.key !== " ") return;
+                  e.preventDefault();
+                  handleSelect();
                 }}
               >
                 <table className={styles.stepTable}>

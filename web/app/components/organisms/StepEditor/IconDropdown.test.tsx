@@ -67,6 +67,29 @@ describe("IconDropdown", () => {
     );
   });
 
+  test("highlights the current value and lets mouse hover take over", () => {
+    render(
+      <IconDropdown
+        ariaLabel="choose role"
+        faceIcon={faceIcon}
+        value="b"
+        options={options}
+        onChange={onChange}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "choose role" }));
+
+    const beta = screen.getByRole("option", { name: /Beta/ });
+    const gamma = screen.getByRole("option", { name: /Gamma/ });
+    expect(beta.className).toContain("itemHighlighted");
+
+    fireEvent.mouseEnter(gamma);
+
+    expect(gamma.className).toContain("itemHighlighted");
+    expect(beta.className).not.toContain("itemHighlighted");
+  });
+
   test("calls onChange and closes on option click", () => {
     render(
       <IconDropdown

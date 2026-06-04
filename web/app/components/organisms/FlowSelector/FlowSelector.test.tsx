@@ -108,6 +108,7 @@ describe("FlowSelector", () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    HTMLElement.prototype.scrollIntoView = jest.fn();
     flowSessionMock.selectedFlow = null;
     flowSessionMock.flows = [];
     Object.assign(uiState, {
@@ -165,5 +166,25 @@ describe("FlowSelector", () => {
     fireEvent.mouseDown(screen.getByText("wf-1"));
 
     expect(pushMock).toHaveBeenCalledWith("/flow/wf-1");
+  });
+
+  it("lets mouse hover set the highlighted flow", async () => {
+    flowSessionMock.flows = [
+      { id: "wf-1", status: "pending" },
+      { id: "wf-2", status: "completed" },
+    ];
+    flowSessionMock.selectedFlow = null;
+
+    await renderSelector();
+    fireEvent.click(
+      screen.getByRole("button", { name: t("flowSelector.selectFlow") })
+    );
+
+    const first = screen.getByText("wf-1");
+    const second = screen.getByText("wf-2");
+    fireEvent.mouseEnter(second);
+
+    expect(second.className).toContain("itemHighlighted");
+    expect(first.className).not.toContain("itemHighlighted");
   });
 });

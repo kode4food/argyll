@@ -29,6 +29,11 @@
 }
 
 .sectionActionButton {
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--panel-hover-strong);
+  --control-hover-border: var(--color-info);
+  --control-focus-bg: var(--panel-hover-strong);
+  --control-focus-border: var(--color-info);
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -39,16 +44,6 @@
   border-radius: var(--radius-md);
   background-color: transparent;
   color: var(--panel-text);
-  cursor: pointer;
-  transition:
-    background-color var(--transition-fast),
-    border-color var(--transition-fast);
-}
-
-.sectionActionButton:hover,
-.sectionActionButton:focus-visible {
-  background-color: var(--panel-hover-strong);
-  border-color: var(--color-info);
 }
 
 .sectionActionIcon {
@@ -118,33 +113,28 @@
 }
 
 .dropdownItem {
-  cursor: pointer;
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--panel-hover);
+  --control-focus-bg: var(--panel-hover);
+  --control-focus-border: var(--color-info);
   padding: var(--spacing-2xs) var(--spacing-xs);
-  transition: var(--transition-all);
   color: var(--panel-text);
   background-color: transparent;
-}
-
-.dropdownItem:hover:not(.dropdownItemDisabled) {
-  background-color: var(--panel-hover);
+  --control-transition: var(--transition-all);
 }
 
 .dropdownItemSelected {
+  --control-hover-bg: color-mix(in srgb, var(--color-info) 80%, transparent);
+  --control-focus-bg: color-mix(in srgb, var(--color-info) 80%, transparent);
   background-color: color-mix(in srgb, var(--color-info) 70%, transparent);
   color: var(--color-white);
 }
 
-.dropdownItemSelected:hover:not(.dropdownItemDisabled) {
-  background-color: color-mix(in srgb, var(--color-info) 80%, transparent);
-}
-
 .dropdownItemIncluded {
+  --control-hover-bg: color-mix(in srgb, var(--color-info) 18%, transparent);
+  --control-focus-bg: color-mix(in srgb, var(--color-info) 18%, transparent);
   background-color: color-mix(in srgb, var(--color-info) 18%, transparent);
   color: var(--panel-text);
-}
-
-.dropdownItemIncluded:hover:not(.dropdownItemDisabled) {
-  background-color: color-mix(in srgb, var(--color-info) 18%, transparent);
 }
 
 .dropdownItemDisabled {

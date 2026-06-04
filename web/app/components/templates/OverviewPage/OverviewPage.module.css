@@ -37,16 +37,14 @@
 }
 
 .retryButton {
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--color-primary-dark);
+  --control-focus-bg: var(--color-primary-dark);
   background-color: var(--color-info);
   color: var(--color-white);
   border: none;
   border-radius: var(--radius-md);
   padding: var(--spacing-sm) var(--spacing-lg);
-  cursor: pointer;
   font-size: var(--text-base);
-  transition: var(--transition-all);
-}
-
-.retryButton:hover {
-  background-color: var(--color-primary-dark);
+  --control-transition: var(--transition-all);
 }

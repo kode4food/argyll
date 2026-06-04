@@ -12,6 +12,7 @@
 }
 
 .item {
+  composes: interactive focusRing from "./interaction.module.css";
   width: 100%;
   height: 32px;
   padding: 0 10px;
@@ -23,15 +24,9 @@
   color: var(--color-dark-text);
   font-size: var(--text-xs);
   font-family: inherit;
-  cursor: pointer;
-  transition: var(--transition-fast);
   text-align: left;
   box-sizing: border-box;
   white-space: nowrap;
-}
-
-.item:hover {
-  background-color: var(--overlay-dark-40);
 }
 
 .itemActive {
@@ -41,10 +36,6 @@
 
 .itemHighlighted {
   background-color: var(--overlay-dark-40);
-}
-
-.itemActive:hover {
-  background-color: color-mix(in srgb, var(--color-info) 30%, transparent);
 }
 
 .itemHighlight {

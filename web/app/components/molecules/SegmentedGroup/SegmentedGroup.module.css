@@ -8,6 +8,7 @@
   --segment-focus-border: var(--color-info);
   --segment-focus-shadow: 0 0 0 1px
     color-mix(in srgb, var(--color-info) 40%, transparent);
+  --segment-item-hover-bg: var(--segment-item-focus-bg);
   --segment-item-focus-bg: var(--color-info-bg);
 
   display: flex;
@@ -32,6 +33,26 @@
   align-self: stretch;
 }
 
-.group > div:focus-within {
+.group > :is(button, div):not(.separator) {
+  transition: var(--transition-fast);
+}
+
+.group > :is(button, div):not(.separator):first-child {
+  border-radius: var(--segment-radius) 0 0 var(--segment-radius);
+}
+
+.group > :is(button, div):not(.separator):last-child {
+  border-radius: 0 var(--segment-radius) var(--segment-radius) 0;
+}
+
+.group > :is(button, div):not(.separator):first-child:last-child {
+  border-radius: var(--segment-radius);
+}
+
+.group > :is(button, div):not(.separator):hover {
+  background-color: var(--segment-item-hover-bg);
+}
+
+.group > :is(button, div):not(.separator):focus-within {
   background-color: var(--segment-item-focus-bg);
 }

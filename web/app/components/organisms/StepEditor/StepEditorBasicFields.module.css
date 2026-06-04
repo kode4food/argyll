@@ -3,6 +3,11 @@
 }
 
 .typeSelectFace {
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--color-info-bg);
+  --control-hover-border: var(--color-info);
+  --control-focus-bg: var(--color-info-bg);
+  --control-focus-border: var(--color-info);
   height: 32px;
   width: 100%;
   padding: 0 var(--spacing-2xl) 0 10px;
@@ -19,8 +24,6 @@
   display: flex;
   align-items: center;
   gap: 5px;
-  cursor: pointer;
-  transition: var(--transition-fast);
   text-align: left;
 }
 
@@ -28,13 +31,7 @@
   min-width: 100%;
 }
 
-.typeSelectFace:hover,
 .typeSelectFaceOpen {
+  background-color: var(--control-focus-bg);
   border-color: var(--color-info);
-}
-
-.typeSelectFace:focus-visible {
-  outline: none;
-  border-color: var(--color-info);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }

@@ -79,6 +79,26 @@ describe("useFlowDropdownManagement", () => {
     expect(pushMock).toHaveBeenCalledWith("/flow/flow-1");
   });
 
+  it("selects the only filtered flow on Enter", () => {
+    const { result } = renderHook(() => useFlowDropdownManagement(flows, null));
+
+    act(() => {
+      result.current.setShowDropdown(true);
+      result.current.handleSearchChange({
+        target: { value: "flow-1" },
+      } as React.ChangeEvent<HTMLInputElement>);
+    });
+
+    act(() => {
+      result.current.handleKeyDown({
+        key: "Enter",
+        preventDefault: jest.fn(),
+      } as any);
+    });
+
+    expect(pushMock).toHaveBeenCalledWith("/flow/flow-1");
+  });
+
   it("tabs to overview when none selected", () => {
     const { result } = renderHook(() => useFlowDropdownManagement(flows, null));
 

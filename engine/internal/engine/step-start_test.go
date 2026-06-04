@@ -398,6 +398,84 @@ func TestConstObject(t *testing.T) {
 	})
 }
 
+func TestConstNullDefault(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("const-invalid")
+		st.Attributes = api.AttributeSpecs{
+			"config": {
+				Role:  api.RoleConst,
+				Type:  api.TypeAny,
+				Const: &api.ConstConfig{Value: "null"},
+			},
+			"result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetHandler(st.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Nil(t, args["config"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		id := api.FlowID("wf-const-null-default")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
+func TestOptionalNullDefault(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		assert.NoError(t, env.Engine.Start())
+
+		st := helpers.NewSimpleStep("optional-invalid")
+		st.Attributes = api.AttributeSpecs{
+			"opt": {
+				Role: api.RoleOptional,
+				Type: api.TypeAny,
+				Optional: &api.OptionalConfig{
+					Default: "null",
+				},
+			},
+			"result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		}
+
+		assert.NoError(t, env.Engine.RegisterStep(st))
+		env.MockClient.SetHandler(st.ID,
+			func(_ *api.Step, args api.Args, _ api.Metadata) (api.Args, error) {
+				assert.Nil(t, args["opt"])
+				return api.Args{"result": "ok"}, nil
+			},
+		)
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		id := api.FlowID("wf-optional-null-default")
+		fl := env.WaitForFlowStatus(id, func() {
+			assert.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+		assert.Equal(t, api.FlowCompleted, fl.Status)
+	})
+}
+
 func TestInputMapping(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())

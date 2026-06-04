@@ -60,6 +60,8 @@
 }
 
 .button {
+  composes: interactive focusRing from "@/app/styles/components/interaction.module.css";
+  --control-transition: var(--transition-opacity);
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -70,11 +72,10 @@
   background-color: var(--color-info);
   border: none;
   border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: var(--transition-opacity);
 }
 
-.button:hover {
+.button:hover,
+.button:focus-visible {
   opacity: var(--opacity-high);
 }
 

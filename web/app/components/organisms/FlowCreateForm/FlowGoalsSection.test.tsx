@@ -14,6 +14,13 @@ describe("FlowGoalsSection", () => {
       },
       http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
     },
+    {
+      id: "step-2",
+      name: "Step Two",
+      type: "sync",
+      attributes: {},
+      http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
+    },
   ];
 
   test("renders step count and create action", () => {
@@ -95,5 +102,33 @@ describe("FlowGoalsSection", () => {
 
     fireEvent.click(screen.getByText("Step One"));
     expect(onGoalStepsChange).not.toHaveBeenCalled();
+  });
+
+  test("moves focus between goal steps with arrow keys", () => {
+    render(
+      <FlowGoalsSection
+        goalSteps={[]}
+        blockedByStep={new Map()}
+        included={new Set()}
+        missingByStep={new Map()}
+        onGoalStepsChange={jest.fn()}
+        satisfied={new Set()}
+        showBottomFade={false}
+        showTopFade={false}
+        sidebarListRef={{ current: null }}
+        sortedSteps={steps}
+        stepsCount={2}
+      />
+    );
+
+    const first = screen.getByRole("button", { name: /Step One/ });
+    const second = screen.getByRole("button", { name: /Step Two/ });
+
+    first.focus();
+    fireEvent.keyDown(first, { key: "ArrowDown" });
+    expect(second).toHaveFocus();
+
+    fireEvent.keyDown(second, { key: "ArrowUp" });
+    expect(first).toHaveFocus();
   });
 });

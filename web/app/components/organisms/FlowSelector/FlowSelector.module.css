@@ -7,6 +7,10 @@
 }
 
 .navButtonSegment {
+  composes: interactive hoverFill focusFill focusRing from "@/app/styles/components/interaction.module.css";
+  --control-hover-bg: var(--color-neutral-border);
+  --control-focus-bg: var(--color-neutral-border);
+  --control-focus-border: var(--color-info);
   flex-shrink: 0;
   width: 2.25rem;
   height: 100%;
@@ -15,16 +19,15 @@
   border-radius: 0 var(--spacing-xs) var(--spacing-xs) 0;
   background-color: transparent;
   color: var(--color-neutral-text);
-  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition-all);
+  --control-transition: var(--transition-all);
   box-sizing: border-box;
 }
 
-.navButtonSegment:hover {
-  background-color: var(--color-neutral-border);
+.navButtonSegment:hover,
+.navButtonSegment:focus-visible {
   color: var(--color-neutral-text);
 }
 
@@ -83,13 +86,13 @@
 }
 
 .dropdownItem {
-  display: flex;
-  align-items: center;
-  padding: var(--spacing-md) var(--spacing-md);
-  font-size: var(--text-sm);
-  cursor: pointer;
-  transition: var(--transition-all);
+  --control-hover-border: transparent;
+  --control-focus-border: transparent;
+  height: 36px;
   border-left: 3px solid transparent;
+  padding-left: var(--spacing-md);
+  padding-right: var(--spacing-md);
+  font-size: var(--text-sm);
 }
 
 .dropdownItem .progress-icon {
@@ -100,31 +103,8 @@
   filter: brightness(0.8);
 }
 
-.dropdownItem:hover {
-  background-color: var(--overlay-dark-10);
-}
-
-.dropdownItemHighlighted {
-  background-color: var(--color-neutral-bg-dark);
-}
-
-.dropdownItem:first-child {
-  border-top-left-radius: var(--spacing-xs);
-  border-top-right-radius: var(--spacing-xs);
-}
-
-.dropdownItem:last-child {
-  border-bottom-left-radius: var(--spacing-xs);
-  border-bottom-right-radius: var(--spacing-xs);
-}
-
 .dropdownItemSelected {
-  border-left-color: var(--color-info) !important;
-  background-color: color-mix(in srgb, var(--color-info) 10%, transparent);
-}
-
-.dropdownItemSelected:hover {
-  background-color: color-mix(in srgb, var(--color-info) 15%, transparent);
+  border-left-color: var(--color-primary-dark) !important;
 }
 
 .noResults {
@@ -214,6 +194,8 @@
   --segment-focus-border: var(--color-info);
   --segment-focus-shadow: 0 0 0 2px
     color-mix(in srgb, var(--color-info) 40%, transparent);
+  --segment-item-hover-bg: var(--color-neutral-border);
+  --segment-item-focus-bg: var(--color-info-bg);
   width: 300px;
 }
 

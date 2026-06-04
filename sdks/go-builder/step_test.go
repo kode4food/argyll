@@ -142,6 +142,19 @@ func TestConstArg(t *testing.T) {
 	assert.EqualValues(t, `"fixed"`, st.Attributes["const1"].Const.Value)
 }
 
+func TestMetaArg(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com").
+		Meta("flow_id", api.MetaFlowID).
+		Build()
+
+	assert.NoError(t, err)
+	assert.Len(t, st.Attributes, 1)
+	assert.EqualValues(t, api.RoleMeta, st.Attributes["flow_id"].Role)
+	assert.EqualValues(t, api.TypeAny, st.Attributes["flow_id"].Type)
+	assert.Equal(t, api.MetaFlowID, st.Attributes["flow_id"].Meta.Key)
+}
+
 func TestOutputArg(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").

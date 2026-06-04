@@ -32,6 +32,8 @@
 }
 
 .retryButton {
+  composes: interactive focusRing from "@/app/styles/components/interaction.module.css";
+  --control-transition: var(--transition-opacity);
   margin-left: var(--spacing-sm);
   padding: var(--spacing-xs) var(--spacing-md);
   font-size: var(--text-sm);
@@ -40,11 +42,10 @@
   background-color: var(--color-info);
   border: none;
   border-radius: var(--radius-lg);
-  cursor: pointer;
-  transition: var(--transition-opacity);
 }
 
-.retryButton:hover {
+.retryButton:hover,
+.retryButton:focus-visible {
   opacity: var(--opacity-high);
 }
 

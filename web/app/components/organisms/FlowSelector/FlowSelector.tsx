@@ -6,6 +6,7 @@ import { mapFlowStatusToProgressStatus } from "./flowSelectorUtils";
 import { useFlowDropdownManagement } from "./useFlowDropdownManagement";
 import { useT } from "@/app/i18n";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
+import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 
 const KeyboardShortcutsModal = lazy(
   () => import("@/app/components/molecules/KeyboardShortcutsModal")
@@ -55,6 +56,7 @@ const FlowSelectorDropdown: React.FC = () => {
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    setSelectedIndex,
     searchInputRef,
     dropdownRef,
     filteredFlows,
@@ -152,17 +154,21 @@ const FlowSelectorDropdown: React.FC = () => {
           const isHighlighted = selectedIndex === index;
           const isSelected = selectedFlow === flow.id;
           const dropdownItemClassName = [
+            dropdownStyles.item,
             styles.dropdownItem,
-            isHighlighted && styles.dropdownItemHighlighted,
+            isHighlighted && dropdownStyles.itemHighlighted,
+            isSelected && dropdownStyles.itemActive,
             isSelected && styles.dropdownItemSelected,
           ]
             .filter(Boolean)
             .join(" ");
           return (
-            <div
+            <button
+              type="button"
               key={flow.id}
               data-flow-id={flow.id}
               className={dropdownItemClassName}
+              onMouseEnter={() => setSelectedIndex(index)}
               onMouseDown={(e) => {
                 e.preventDefault();
                 selectFlow(flow.id);
@@ -173,29 +179,34 @@ const FlowSelectorDropdown: React.FC = () => {
                 className={`progress-icon ${progressStatus || "pending"}`}
               />
               {flow.id}
-            </div>
+            </button>
           );
         })}
         {filteredFlows.length === 0 && searchTerm && (
-          <div className={`${styles.dropdownItem} ${styles.noResults}`}>
+          <div
+            className={`${dropdownStyles.item} ${styles.dropdownItem} ${styles.noResults}`}
+          >
             {t("flowSelector.noFlowsFound")}
           </div>
         )}
         {flowsLoading && (
-          <div className={`${styles.dropdownItem} ${styles.noResults}`}>
+          <div
+            className={`${dropdownStyles.item} ${styles.dropdownItem} ${styles.noResults}`}
+          >
             {t("flowSelector.loadingMore")}
           </div>
         )}
         {!flowsLoading && flowsHasMore && (
-          <div
-            className={`${styles.dropdownItem} ${styles.loadMore}`}
+          <button
+            type="button"
+            className={`${dropdownStyles.item} ${styles.dropdownItem} ${styles.loadMore}`}
             onMouseDown={(e) => {
               e.preventDefault();
               void loadMoreFlows();
             }}
           >
             {t("flowSelector.loadMore")}
-          </div>
+          </button>
         )}
       </div>
     </div>
@@ -252,6 +263,7 @@ const FlowSelectorContent: React.FC = () => {
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    setSelectedIndex,
     scrollTop,
     searchInputRef,
     dropdownRef,
@@ -325,6 +337,7 @@ const FlowSelectorContent: React.FC = () => {
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    setSelectedIndex,
     scrollTop,
     searchInputRef,
     dropdownRef,

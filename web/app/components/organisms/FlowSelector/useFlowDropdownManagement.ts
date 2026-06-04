@@ -68,6 +68,8 @@ export function useFlowDropdownManagement(
         e.preventDefault();
         if (selectedIndex >= 0 && selectedIndex < selectableItems.length) {
           navigateToFlow(selectableItems[selectedIndex]);
+        } else if (selectableItems.length === 1) {
+          navigateToFlow(selectableItems[0]);
         }
         break;
       case "Tab":
@@ -102,6 +104,7 @@ export function useFlowDropdownManagement(
     setShowDropdown,
     searchTerm,
     selectedIndex,
+    setSelectedIndex,
     scrollTop,
     searchInputRef,
     dropdownRef,

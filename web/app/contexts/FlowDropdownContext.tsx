@@ -6,6 +6,7 @@ export interface FlowDropdownContextValue {
   setShowDropdown: React.Dispatch<React.SetStateAction<boolean>>;
   searchTerm: string;
   selectedIndex: number;
+  setSelectedIndex: React.Dispatch<React.SetStateAction<number>>;
   scrollTop: number;
   searchInputRef: React.RefObject<HTMLInputElement | null>;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
