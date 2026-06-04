@@ -2,6 +2,7 @@ package engine
 
 import (
 	"math"
+	"math/rand"
 	"time"
 
 	"github.com/kode4food/timebox"
@@ -58,9 +59,10 @@ func (e *Engine) calculateNextRetryAt(
 		calculator = backoffCalculators[api.BackoffTypeFixed]
 	}
 
-	delay := min(
+	ceiling := min(
 		calculator(config.InitBackoff, retryCount), config.MaxBackoff,
 	)
+	delay := rand.Int63n(ceiling + 1)
 
 	return when.Add(time.Duration(delay) * time.Millisecond)
 }
