@@ -122,7 +122,7 @@ func TestCalculateNextRetry(t *testing.T) {
 		backoff     int64
 		maxBackoff  int64
 		retryCount  int
-		ceiling     int64 // max delay after jitter
+		expected    int64
 	}{
 		{
 			name:        "fixed backoff",
@@ -130,7 +130,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  0,
-			ceiling:     1000,
+			expected:    1000,
 		},
 		{
 			name:        "fixed backoff retry 5",
@@ -138,7 +138,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  5,
-			ceiling:     1000,
+			expected:    1000,
 		},
 		{
 			name:        "linear backoff retry 0",
@@ -146,7 +146,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  0,
-			ceiling:     1000,
+			expected:    1000,
 		},
 		{
 			name:        "linear backoff retry 3",
@@ -154,7 +154,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  3,
-			ceiling:     4000,
+			expected:    4000,
 		},
 		{
 			name:        "exponential backoff retry 0",
@@ -162,7 +162,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  0,
-			ceiling:     1000,
+			expected:    1000,
 		},
 		{
 			name:        "exponential backoff retry 3",
@@ -170,7 +170,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  3,
-			ceiling:     8000,
+			expected:    8000,
 		},
 		{
 			name:        "exponential backoff capped",
@@ -178,7 +178,7 @@ func TestCalculateNextRetry(t *testing.T) {
 			backoff:     1000,
 			maxBackoff:  10000,
 			retryCount:  10,
-			ceiling:     10000,
+			expected:    10000,
 		},
 	}
 
@@ -195,11 +195,10 @@ func TestCalculateNextRetry(t *testing.T) {
 				}
 
 				nextRetry := eng.CalculateNextRetry(config, sc.retryCount)
-				hi := base.Add(time.Duration(sc.ceiling) * time.Millisecond)
-				assert.False(t, nextRetry.Before(base),
-					"retry time must not be before base")
-				assert.False(t, nextRetry.After(hi),
-					"retry time must not exceed ceiling")
+				expected := base.Add(
+					time.Duration(sc.expected) * time.Millisecond,
+				)
+				assert.Equal(t, expected, nextRetry)
 			})
 		}
 	})
@@ -217,12 +216,10 @@ func TestRetryDefaults(t *testing.T) {
 		}
 
 		nextRetry := eng.CalculateNextRetry(config, 5)
-		// unknown backoff type falls back to fixed; ceiling = min(750, 1200)
-		hi := base.Add(750 * time.Millisecond)
-		assert.False(t, nextRetry.Before(base),
-			"retry time must not be before base")
-		assert.False(t, nextRetry.After(hi),
-			"retry time must not exceed ceiling")
+		assert.Equal(t,
+			base.Add(750*time.Millisecond),
+			nextRetry,
+		)
 	})
 }
 
@@ -502,12 +499,8 @@ func TestNextRetryNilConfig(t *testing.T) {
 	helpers.WithEngineDeps(t, engine.Dependencies{
 		Clock: func() time.Time { return base },
 	}, func(eng *engine.Engine) {
-		// nil config uses defaults: exponential, InitBackoff=1s, retry 0 -> ceiling=1s
 		nextRetry := eng.CalculateNextRetry(nil, 0)
-		assert.False(t, nextRetry.Before(base),
-			"retry time must not be before base")
-		assert.False(t, nextRetry.After(base.Add(time.Second)),
-			"retry time must not exceed ceiling")
+		assert.Equal(t, base.Add(time.Second), nextRetry)
 	})
 }
 
@@ -519,12 +512,8 @@ func TestNextRetryParallelismOnlyConfig(t *testing.T) {
 		cfg := &api.WorkConfig{
 			Parallelism: 2,
 		}
-		// parallelism-only config uses defaults: exponential, InitBackoff=1s, retry 0 -> ceiling=1s
 		nextRetry := eng.CalculateNextRetry(cfg, 0)
-		assert.False(t, nextRetry.Before(base),
-			"retry time must not be before base")
-		assert.False(t, nextRetry.After(base.Add(time.Second)),
-			"retry time must not exceed ceiling")
+		assert.Equal(t, base.Add(time.Second), nextRetry)
 	})
 }
 
