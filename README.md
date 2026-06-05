@@ -69,17 +69,22 @@ PUT    /engine/step/:stepID        # Update step
 DELETE /engine/step/:stepID        # Delete step
 
 # Flows
-POST   /engine/flow                # Start flow
-GET    /engine/flow                # List flows
-POST   /engine/flow/query          # Query flows
-GET    /engine/flow/:flowID        # Get flow state
-GET    /engine/flow/:flowID/status # Get flow status
-POST   /engine/plan                # Preview execution plan
+POST   /engine/flow                      # Start flow
+GET    /engine/flow                      # List flows
+POST   /engine/flow/query                # Query flows
+GET    /engine/flow/:flowID              # Get flow state
+GET    /engine/flow/:flowID/status       # Get flow status
+GET    /engine/flow/:flowID/events       # Get flow events
+POST   /engine/plan                      # Preview execution plan
 
 # Engine & Health
-GET    /engine                     # Get complete engine state
-GET    /engine/health              #  Get step health status
-GET    /engine/ws                  # WebSocket event stream
+GET    /engine                           # Get complete engine state
+GET    /engine/catalog                   # Get catalog state
+GET    /engine/catalog/events            # Get catalog events
+GET    /engine/cluster                   # Get cluster state
+GET    /engine/cluster/events            # Get cluster events
+GET    /engine/health                    # Get step health status
+GET    /engine/ws                        # WebSocket event stream
 ```
 
 ## Documentation
