@@ -4,6 +4,8 @@ import (
 	"errors"
 	"slices"
 
+	"github.com/kode4food/timebox"
+
 	"github.com/kode4food/argyll/engine/internal/engine/policy"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/events"
@@ -37,6 +39,11 @@ func (e *Engine) GetFlowStatus(flowID api.FlowID) (api.FlowStatus, error) {
 	default:
 		return "", ErrInvalidFlowStatus
 	}
+}
+
+// GetFlowEvents retrieves all events for a flow aggregate
+func (e *Engine) GetFlowEvents(flowID api.FlowID) ([]*timebox.Event, error) {
+	return e.flowExec.GetStore().GetEvents(events.FlowKey(flowID), 0)
 }
 
 // GetFlowStateSeq retrieves the current state and next sequence for a flow

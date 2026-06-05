@@ -24,6 +24,7 @@ var (
 	ErrQueryFlows          = errors.New("failed to query flows")
 	ErrGetFlow             = errors.New("failed to get flow")
 	ErrGetFlowStatus       = errors.New("failed to get flow status")
+	ErrGetFlowEvents       = errors.New("failed to get flow events")
 	ErrCreateExecutionPlan = errors.New("failed to create execution plan")
 	ErrStartFlow           = errors.New("failed to start flow")
 )
@@ -208,6 +209,12 @@ func (s *Server) getFlow(c *gin.Context) {
 		Error:  fmt.Sprintf("%s: %v", ErrGetFlow, err),
 		Status: http.StatusInternalServerError,
 	})
+}
+
+func (s *Server) getFlowEvents(c *gin.Context) {
+	id := api.FlowID(c.Param("flowID"))
+	evs, err := s.engine.GetFlowEvents(id)
+	writeEvents(c, evs, len(evs), ErrGetFlowEvents, err)
 }
 
 func (s *Server) getFlowStatus(c *gin.Context) {

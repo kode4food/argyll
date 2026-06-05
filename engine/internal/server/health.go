@@ -217,7 +217,7 @@ func (s *Server) handleEngineHealth(c *gin.Context) {
 	cluster, err := s.engine.GetClusterState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
+			Error:  fmt.Sprintf("%s: %v", ErrGetClusterState, err),
 			Status: http.StatusInternalServerError,
 		})
 		return
@@ -240,7 +240,7 @@ func (s *Server) handleEngineHealthByID(c *gin.Context) {
 	cluster, err := s.engine.GetClusterState()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
+			Error:  fmt.Sprintf("%s: %v", ErrGetClusterState, err),
 			Status: http.StatusInternalServerError,
 		})
 		return

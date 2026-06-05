@@ -1,8 +1,6 @@
 package server
 
 import (
-	"errors"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
@@ -12,7 +10,6 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/engine"
 	"github.com/kode4food/argyll/engine/internal/event"
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
@@ -24,11 +21,6 @@ type Server struct {
 	status   []StatusProvider
 	mu       sync.Mutex
 }
-
-var (
-	ErrGetCatalogState = errors.New("failed to get catalog state")
-	ErrGetNodeState    = errors.New("failed to get node state")
-)
 
 // NewServer creates a new HTTP API server
 func NewServer(
@@ -101,11 +93,20 @@ func (s *Server) SetupRoutes() *gin.Engine {
 		// Plan preview
 		eng.POST("/plan", s.handlePlanPreview)
 
+		// Catalog endpoints
+		eng.GET("/catalog", s.getCatalog)
+		eng.GET("/catalog/events", s.getCatalogEvents)
+
+		// Cluster endpoints
+		eng.GET("/cluster", s.getCluster)
+		eng.GET("/cluster/events", s.getClusterEvents)
+
 		// Flow endpoints
 		eng.GET("/flow", s.listFlows)
 		eng.POST("/flow", s.startFlow)
 		eng.POST("/flow/query", s.queryFlows)
 		eng.GET("/flow/:flowID/status", s.getFlowStatus)
+		eng.GET("/flow/:flowID/events", s.getFlowEvents)
 		eng.GET("/flow/:flowID", s.getFlow)
 
 		// WebSocket
@@ -113,36 +114,6 @@ func (s *Server) SetupRoutes() *gin.Engine {
 	}
 
 	return router
-}
-
-func (s *Server) handleEngine(c *gin.Context) {
-	cat, err := s.engine.GetCatalogState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-	cluster, err := s.engine.GetClusterState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetNodeState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-
-	last := cat.LastUpdated
-	if cluster.LastUpdated.After(last) {
-		last = cluster.LastUpdated
-	}
-	c.JSON(http.StatusOK, gin.H{
-		"last_updated": last,
-		"steps":        cat.Steps,
-		"attributes":   cat.Attributes,
-		"health":       completeClusterHealth(cat, cluster).Nodes,
-	})
 }
 
 func (s *Server) registerWebSocket(c *Client) {
@@ -177,29 +148,6 @@ func (s *Server) webSockets() []*Client {
 	res := make([]*Client, 0, len(s.sockets))
 	for c := range s.sockets {
 		res = append(res, c)
-	}
-	return res
-}
-
-func completeClusterHealth(
-	cat api.CatalogState, cluster api.ClusterState,
-) api.ClusterState {
-	res := cluster
-	for nid, node := range cluster.Nodes {
-		nextNode := node
-		changed := false
-		for sid := range cat.Steps {
-			if _, ok := nextNode.Health[sid]; ok {
-				continue
-			}
-			nextNode = nextNode.SetHealth(sid, api.HealthState{
-				Status: api.HealthUnknown,
-			})
-			changed = true
-		}
-		if changed {
-			res = res.SetNode(nid, nextNode)
-		}
 	}
 	return res
 }
