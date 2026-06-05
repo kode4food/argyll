@@ -103,14 +103,7 @@ func (s *Server) queryFlows(c *gin.Context) {
 
 func (s *Server) listFlows(c *gin.Context) {
 	resp, err := s.engine.ListFlows()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrQueryFlows, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-	c.JSON(http.StatusOK, resp)
+	writeValue(c, ErrQueryFlows, resp, err)
 }
 
 func validFlowStatuses(statuses []api.FlowStatus) bool {
@@ -214,7 +207,17 @@ func (s *Server) getFlow(c *gin.Context) {
 func (s *Server) getFlowEvents(c *gin.Context) {
 	id := api.FlowID(c.Param("flowID"))
 	evs, err := s.engine.GetFlowEvents(id)
-	writeEvents(c, evs, len(evs), ErrGetFlowEvents, err)
+	if writeError(c, ErrGetFlowEvents, err) {
+		return
+	}
+	if len(evs) == 0 {
+		c.JSON(http.StatusNotFound, api.ErrorResponse{
+			Error:  fmt.Sprintf("%s: %s", engine.ErrFlowNotFound, id),
+			Status: http.StatusNotFound,
+		})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"events": evs, "count": len(evs)})
 }
 
 func (s *Server) getFlowStatus(c *gin.Context) {

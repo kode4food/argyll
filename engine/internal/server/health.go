@@ -207,22 +207,13 @@ func (s *Server) handleHealth(c *gin.Context) {
 
 func (s *Server) handleEngineHealth(c *gin.Context) {
 	cat, err := s.engine.GetCatalogState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
+	if writeError(c, ErrGetCatalogState, err) {
 		return
 	}
 	cluster, err := s.engine.GetClusterState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetClusterState, err),
-			Status: http.StatusInternalServerError,
-		})
+	if writeError(c, ErrGetClusterState, err) {
 		return
 	}
-
 	c.JSON(http.StatusOK, completeClusterHealth(cat, cluster))
 }
 

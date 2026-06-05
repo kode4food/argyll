@@ -701,7 +701,7 @@ paths:
   /engine/flow/{flowId}/events:
     get:
       summary: Flow Events
-      description: Get all raw events for a flow aggregate, from sequence zero to the present. Returns an empty list if no events exist for the given flow ID
+      description: Get all raw events for a flow aggregate, from sequence zero to the present. Returns 404 if no events exist for the given flow ID
       operationId: getFlowEvents
       tags:
         - Flows
@@ -720,6 +720,12 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/EventsResponse"
+        "404":
+          description: Flow not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
         "500":
           description: Failed to load flow events
           content:

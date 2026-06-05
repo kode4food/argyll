@@ -19,19 +19,11 @@ var (
 
 func (s *Server) handleEngine(c *gin.Context) {
 	cat, err := s.engine.GetCatalogState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
+	if writeError(c, ErrGetCatalogState, err) {
 		return
 	}
 	cluster, err := s.engine.GetClusterState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetClusterState, err),
-			Status: http.StatusInternalServerError,
-		})
+	if writeError(c, ErrGetClusterState, err) {
 		return
 	}
 
@@ -49,36 +41,22 @@ func (s *Server) handleEngine(c *gin.Context) {
 
 func (s *Server) getCatalog(c *gin.Context) {
 	cat, err := s.engine.GetCatalogState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetCatalogState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-	c.JSON(http.StatusOK, cat)
+	writeValue(c, ErrGetCatalogState, cat, err)
 }
 
 func (s *Server) getCluster(c *gin.Context) {
 	cluster, err := s.engine.GetClusterState()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrGetClusterState, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-	c.JSON(http.StatusOK, cluster)
+	writeValue(c, ErrGetClusterState, cluster, err)
 }
 
 func (s *Server) getCatalogEvents(c *gin.Context) {
 	evs, err := s.engine.GetCatalogEvents()
-	writeEvents(c, evs, len(evs), ErrGetCatalogEvents, err)
+	writeEvents(c, ErrGetCatalogEvents, evs, err)
 }
 
 func (s *Server) getClusterEvents(c *gin.Context) {
 	evs, err := s.engine.GetClusterEvents()
-	writeEvents(c, evs, len(evs), ErrGetClusterEvents, err)
+	writeEvents(c, ErrGetClusterEvents, evs, err)
 }
 
 func completeClusterHealth(
@@ -104,13 +82,25 @@ func completeClusterHealth(
 	return res
 }
 
-func writeEvents(c *gin.Context, evs any, n int, sentinel, err error) {
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", sentinel, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
+func writeValue[T any](c *gin.Context, sentinel error, val T, err error) {
+	if !writeError(c, sentinel, err) {
+		c.JSON(http.StatusOK, val)
 	}
-	c.JSON(http.StatusOK, gin.H{"events": evs, "count": n})
+}
+
+func writeEvents[E any](c *gin.Context, sentinel error, evs []E, err error) {
+	if !writeError(c, sentinel, err) {
+		c.JSON(http.StatusOK, gin.H{"events": evs, "count": len(evs)})
+	}
+}
+
+func writeError(c *gin.Context, sentinel, err error) bool {
+	if err == nil {
+		return false
+	}
+	c.JSON(http.StatusInternalServerError, api.ErrorResponse{
+		Error:  fmt.Sprintf("%s: %v", sentinel, err),
+		Status: http.StatusInternalServerError,
+	})
+	return true
 }

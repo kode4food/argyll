@@ -231,7 +231,7 @@ func TestGetFlowEvents(t *testing.T) {
 	})
 }
 
-func TestGetFlowEventsEmpty(t *testing.T) {
+func TestGetFlowEventsNotFound(t *testing.T) {
 	withTestServerEnv(t, func(testEnv *testServerEnv) {
 		req := httptest.NewRequest(
 			"GET", "/engine/flow/nonexistent-flow/events", nil,
@@ -241,11 +241,6 @@ func TestGetFlowEventsEmpty(t *testing.T) {
 		router := testEnv.Server.SetupRoutes()
 		router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusOK, w.Code)
-
-		var resp eventsResponse
-		assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
-		assert.Equal(t, 0, resp.Count)
-		assert.Empty(t, resp.Events)
+		assert.Equal(t, http.StatusNotFound, w.Code)
 	})
 }

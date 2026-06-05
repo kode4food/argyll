@@ -22,18 +22,10 @@ var (
 
 func (s *Server) listSteps(c *gin.Context) {
 	steps, err := s.engine.ListSteps()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, api.ErrorResponse{
-			Error:  fmt.Sprintf("%s: %v", ErrListSteps, err),
-			Status: http.StatusInternalServerError,
-		})
-		return
-	}
-
-	c.JSON(http.StatusOK, api.StepsListResponse{
+	writeValue(c, ErrListSteps, api.StepsListResponse{
 		Steps: steps,
 		Count: len(steps),
-	})
+	}, err)
 }
 
 func (s *Server) createStep(c *gin.Context) {
