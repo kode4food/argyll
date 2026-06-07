@@ -5,7 +5,46 @@
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding-right: var(--spacing-sm);
+  scrollbar-width: none;
+}
+
+.formContainer::-webkit-scrollbar {
+  display: none;
+}
+
+.formContainer.fadeTop:not(.fadeBottom) {
+  mask-image: linear-gradient(to bottom, transparent 0, black 60px);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0, black 60px);
+}
+
+.formContainer.fadeBottom:not(.fadeTop) {
+  mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+}
+
+.formContainer.fadeTop.fadeBottom {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 60px,
+    black calc(100% - 60px),
+    transparent 100%
+  );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 60px,
+    black calc(100% - 60px),
+    transparent 100%
+  );
 }
 
 .formContainerJsonMode {

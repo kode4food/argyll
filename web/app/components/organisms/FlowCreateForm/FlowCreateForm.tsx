@@ -2,7 +2,7 @@ import React from "react";
 import { useUI } from "@/app/contexts/UIContext";
 import { AttributeType } from "@/app/api";
 import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
-import { useFlowFormScrollFade } from "./useFlowFormScrollFade";
+import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 import {
   buildInitialStateFromInputValues,
@@ -92,8 +92,11 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
   const sortedSteps = React.useMemo(() => sortSteps(steps), [steps, sortSteps]);
 
-  const { sidebarListRef, showTopFade, showBottomFade } =
-    useFlowFormScrollFade(true);
+  const {
+    scrollRef: sidebarListRef,
+    showTopFade,
+    showBottomFade,
+  } = useScrollFade();
 
   const { included, satisfied, blockedByStep, missingByStep } =
     useFlowFormStepFiltering(steps, initialState, previewPlan);

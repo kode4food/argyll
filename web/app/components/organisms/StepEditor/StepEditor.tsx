@@ -18,6 +18,7 @@ import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorHeader from "./StepEditorHeader";
 import StepEditorFooter from "./StepEditorFooter";
 import { PREDICATE_LANGUAGE_OPTIONS } from "./stepEditorConstants";
+import { useScrollFade } from "@/app/hooks/useScrollFade";
 
 interface StepEditorProps {
   step: Step | null;
@@ -102,6 +103,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
   );
 
   const { dimensions, mounted } = useModalDimensions(diagramContainerRef);
+  const { scrollRef, showTopFade, showBottomFade } = useScrollFade(mounted);
 
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -170,8 +172,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
 
         <div className={styles.body}>
           <div
+            ref={scrollRef}
             className={`${formStyles.formContainer} ${
               editorMode === "json" ? formStyles.formContainerJsonMode : ""
+            } ${showTopFade ? formStyles.fadeTop : ""} ${
+              showBottomFade ? formStyles.fadeBottom : ""
             }`}
           >
             {editorMode === "basic" ? (
