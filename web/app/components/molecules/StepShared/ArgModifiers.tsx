@@ -24,7 +24,9 @@ const ArgModifiers: React.FC<ArgModifiersProps> = ({ modifiers, t }) => (
   <>
     {modifiers.map((mod, i) => {
       if (mod.kind === "match") {
-        const { preview, lineCount } = formatScriptForTooltip(mod.script.script);
+        const { preview, lineCount } = formatScriptForTooltip(
+          mod.script.script
+        );
         return (
           <Tooltip
             key={i}

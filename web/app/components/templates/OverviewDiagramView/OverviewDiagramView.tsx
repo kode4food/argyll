@@ -63,7 +63,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
   const reactFlowInstance = useReactFlow();
   const viewportKey = "overview";
-  const { diagramContainerRef, focusedPreviewAttribute, updatePreviewPlan } = useUI();
+  const { diagramContainerRef, focusedPreviewAttribute, updatePreviewPlan } =
+    useUI();
   const fitView = useFitView();
   const { previewPlan, handleStepClick, clearPreview } =
     useExecutionPlanPreview(goalSteps, setGoalSteps);
