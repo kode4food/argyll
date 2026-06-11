@@ -387,7 +387,11 @@ describe("stepUtils", () => {
         required: { match: { language: "ale", script: "true" } },
       });
       expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconAttributeMatch });
+      expect(modifiers[0]).toEqual({
+        kind: "match",
+        Icon: IconAttributeMatch,
+        script: { language: "ale", script: "true" },
+      });
     });
 
     test("returns mapping icon for required with mapping", () => {
@@ -472,7 +476,11 @@ describe("stepUtils", () => {
         },
       });
       expect(modifiers).toHaveLength(4);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconAttributeMatch });
+      expect(modifiers[0]).toEqual({
+        kind: "match",
+        Icon: IconAttributeMatch,
+        script: { language: "ale", script: "true" },
+      });
       expect(modifiers[1]).toEqual({ kind: "icon", Icon: IconMapping });
       expect(modifiers[2]).toEqual({ kind: "collect", collect: "some" });
       expect(modifiers[3]).toEqual({ kind: "icon", Icon: IconArrayMultiple });

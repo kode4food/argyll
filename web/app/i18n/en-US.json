@@ -115,6 +115,7 @@
   "liveStep.workItemsSummaryFailed": "{done} of {total}, {failed} failed",
   "attribute.modifierDeadline": "Collection Deadline",
   "attribute.modifierMatch": "Match Filter",
+  "attribute.modifierMatchTitle": "Match Filter ({language})",
   "attribute.modifierMapping": "Value Mapping",
   "notFound.description": "The page you're looking for doesn't exist. Check the URL or return to the overview",
   "notFound.title": "404 - Page Not Found",

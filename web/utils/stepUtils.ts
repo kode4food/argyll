@@ -4,6 +4,7 @@ import {
   AttributeSpec,
   AttributeType,
   InputCollect,
+  ScriptConfig,
 } from "@/app/api";
 import { STEP_TYPE_ORDER } from "@/app/constants";
 import {
@@ -123,6 +124,7 @@ export const getStepType = (step: Step): StepType => {
 
 export type AttributeModifier =
   | { kind: "icon"; Icon: LucideIcon }
+  | { kind: "match"; Icon: LucideIcon; script: ScriptConfig }
   | { kind: "collect"; collect: InputCollect };
 
 export const getAttributeModifiers = (
@@ -133,7 +135,7 @@ export const getAttributeModifiers = (
     modifiers.push({ kind: "icon", Icon: IconDuration });
   }
   if (spec.required?.match) {
-    modifiers.push({ kind: "icon", Icon: IconAttributeMatch });
+    modifiers.push({ kind: "match", Icon: IconAttributeMatch, script: spec.required.match });
   }
   const config = spec.required ?? spec.optional ?? spec.output;
   if (config?.mapping) {
@@ -158,11 +160,9 @@ const collectTitleKeyMap: Record<InputCollect, string> = {
 };
 
 export const getModifierTitleKey = (modifier: AttributeModifier): string => {
-  if (modifier.kind === "collect") {
-    return collectTitleKeyMap[modifier.collect];
-  }
+  if (modifier.kind === "collect") return collectTitleKeyMap[modifier.collect];
+  if (modifier.kind === "match") return "attribute.modifierMatch";
   if (modifier.Icon === IconDuration) return "attribute.modifierDeadline";
-  if (modifier.Icon === IconAttributeMatch) return "attribute.modifierMatch";
   if (modifier.Icon === IconMapping) return "attribute.modifierMapping";
   if (modifier.Icon === IconArrayMultiple) return "attribute.modifierForEach";
   return "";
