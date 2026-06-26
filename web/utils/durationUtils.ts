@@ -1,4 +1,4 @@
-import { createMs, getLanguage } from "enhanced-ms";
+import { compileLanguage, createMs } from "enhanced-ms";
 
 export type ParseResult = { valid: true; ms: number } | { valid: false };
 
@@ -29,7 +29,7 @@ const hasNumberAndUnit = (value: string, matcherRegex: RegExp): boolean => {
 
 export const parseUserDuration = (
   input: string,
-  language: ReturnType<typeof getLanguage>,
+  language: ReturnType<typeof compileLanguage>,
   ms: ReturnType<typeof createMs>
 ): ParseResult => {
   const trimmed = input.trim();
@@ -48,7 +48,9 @@ export const parseUserDuration = (
   }
 
   try {
-    return { valid: true, ms: ms(trimmed) };
+    const parsed = ms(trimmed);
+    if (parsed === null) return { valid: false };
+    return { valid: true, ms: parsed };
   } catch {
     return { valid: false };
   }

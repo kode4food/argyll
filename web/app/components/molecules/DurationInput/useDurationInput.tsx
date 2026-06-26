@@ -1,5 +1,9 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { createMs, getLanguage, languages } from "enhanced-ms";
+import { compileLanguage, createMs } from "enhanced-ms";
+import de from "enhanced-ms/locales/de";
+import en from "enhanced-ms/locales/en";
+import fr from "enhanced-ms/locales/fr";
+import it from "enhanced-ms/locales/it";
 import { defaultLanguage, useLocale } from "@/app/store/i18nStore";
 import { parseUserDuration } from "@/utils/durationUtils";
 
@@ -14,18 +18,21 @@ export interface DurationInputState {
   };
 }
 
-const getLanguageKey = (locale: string): keyof typeof languages => {
+const durationLanguages = { de, en, fr, it } as const;
+type DurationLanguage = keyof typeof durationLanguages;
+
+const getLanguageKey = (locale: string): DurationLanguage => {
   const base = locale.split("-")[0]?.toLowerCase();
-  if (base && Object.prototype.hasOwnProperty.call(languages, base)) {
-    return base as keyof typeof languages;
+  if (base && Object.prototype.hasOwnProperty.call(durationLanguages, base)) {
+    return base as DurationLanguage;
   }
   const fallback = Object.prototype.hasOwnProperty.call(
-    languages,
+    durationLanguages,
     defaultLanguage
   )
     ? defaultLanguage
     : "en";
-  return fallback as keyof typeof languages;
+  return fallback as DurationLanguage;
 };
 
 /**
@@ -42,14 +49,18 @@ export const useDurationInput = (
 ): DurationInputState => {
   const locale = useLocale();
   const languageKey = useMemo(() => getLanguageKey(locale), [locale]);
-  const language = useMemo(() => getLanguage(languageKey), [languageKey]);
+  const languageDefinition = durationLanguages[languageKey];
+  const language = useMemo(
+    () => compileLanguage(languageDefinition),
+    [languageDefinition]
+  );
   const ms = useMemo(
     () =>
       createMs({
-        language: languageKey,
+        language: languageDefinition,
         formatOptions: { unitLimit: 1, includeMs: true },
       }),
-    [languageKey]
+    [languageDefinition]
   );
   const [inputValue, setInputValue] = useState("");
   const [isValid, setIsValid] = useState(true);
@@ -94,7 +105,7 @@ export const useDurationInput = (
     if (isValid && inputValue.trim()) {
       try {
         const parsed = ms(inputValue.trim());
-        if (parsed >= 0) {
+        if (parsed !== null && parsed >= 0) {
           const formatted = ms(parsed);
           if (formatted) {
             setInputValue(formatted);
