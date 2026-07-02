@@ -60,6 +60,10 @@ type testRuntime struct {
 
 var _ step.Runtime = (*testRuntime)(nil)
 
+func newRegistry(c client.Client) *step.Registry {
+	return step.NewRegistry(step.DefaultHandlers(script.NewRegistry(), c))
+}
+
 func newRuntime(
 	flowID api.FlowID, stepID api.StepID, meta api.Metadata, webhookURL string,
 ) (*testRuntime, *testRuntime) {
@@ -223,8 +227,4 @@ func TestRegistryIncludesBootstrappedHandler(t *testing.T) {
 	got, err := reg.Lookup("custom")
 	assert.NoError(t, err)
 	assert.Same(t, handler, got)
-}
-
-func newRegistry(c client.Client) *step.Registry {
-	return step.NewRegistry(step.DefaultHandlers(script.NewRegistry(), c))
 }

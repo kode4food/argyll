@@ -91,13 +91,6 @@ func (e *Engine) QueryFlows(
 	return buildFlowQueryResponse(page, len(items), hasMore, nextCursor), nil
 }
 
-func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
-	if req.Sort == "" {
-		return api.FlowSortRecentAsc
-	}
-	return req.Sort
-}
-
 // collectRootFlowEntries returns indexed root flow entries
 func (e *Engine) collectRootFlowEntries(
 	statuses []api.FlowStatus,
@@ -149,14 +142,6 @@ func (e *Engine) listIndexedEntries(
 	return res, nil
 }
 
-// flowQueryOrdering returns the grouping and recent timestamp for a flow
-func flowQueryOrdering(status api.FlowStatus, recent int64) (int, int64) {
-	if status == api.FlowActive {
-		return 0, recent
-	}
-	return 1, recent
-}
-
 // buildFlowQueryItems converts indexed flow entries into sortable query items
 func (e *Engine) buildFlowQueryItems(
 	req *api.QueryFlowsRequest,
@@ -183,10 +168,6 @@ func (e *Engine) buildFlowQueryItems(
 		items = append(items, flowItemFromEntry(entry))
 	}
 	return items, nil
-}
-
-func isChildFlowID(id api.FlowID) bool {
-	return strings.ContainsRune(string(id), ':')
 }
 
 func (e *Engine) collectLabelFlowIDs(
@@ -238,6 +219,25 @@ func (e *Engine) collectLabelFlowIDs(
 	}
 
 	return res, nil
+}
+
+func querySortOrder(req *api.QueryFlowsRequest) api.FlowSort {
+	if req.Sort == "" {
+		return api.FlowSortRecentAsc
+	}
+	return req.Sort
+}
+
+// flowQueryOrdering returns the grouping and recent timestamp for a flow
+func flowQueryOrdering(status api.FlowStatus, recent int64) (int, int64) {
+	if status == api.FlowActive {
+		return 0, recent
+	}
+	return 1, recent
+}
+
+func isChildFlowID(id api.FlowID) bool {
+	return strings.ContainsRune(string(id), ':')
 }
 
 func flowSummaryFromEntry(entry flowStatusEntry) api.QueryFlowsItem {

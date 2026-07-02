@@ -28,58 +28,6 @@ type testServerEnv struct {
 	*helpers.TestEngineEnv
 }
 
-func withTestServerEnv(t *testing.T, fn func(*testServerEnv)) {
-	t.Helper()
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		fn(&testServerEnv{
-			Server:        server.NewServer(env.Engine, env.EventHub),
-			TestEngineEnv: env,
-		})
-	})
-}
-
-func withServerEnvConfig(
-	t *testing.T, makeConfig func(*config.Config) *config.Config,
-	fn func(*testServerEnv),
-) {
-	t.Helper()
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		cfg := makeConfig(env.Config)
-		eng, err := engine.New(cfg, env.Dependencies())
-		assert.NoError(t, err)
-		if eng == nil {
-			return
-		}
-		defer func() { _ = eng.Stop() }()
-
-		next := *env
-		next.Engine = eng
-		next.Config = cfg
-		fn(&testServerEnv{
-			Server:        server.NewServer(eng, env.EventHub),
-			TestEngineEnv: &next,
-		})
-	})
-}
-
-func clusterConfigWithPeer(base *config.Config) *config.Config {
-	cfg := util.MutableCopy(base)
-	cfg.Raft.Servers = append([]raft.Server{}, base.Raft.Servers...)
-	cfg.Raft.Servers = append(cfg.Raft.Servers,
-		raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
-	)
-	return cfg
-}
-
-func peerOnlyConfig(base *config.Config) *config.Config {
-	cfg := util.MutableCopy(base)
-	cfg.Raft.LocalID = "node-2"
-	cfg.Raft.Servers = []raft.Server{
-		{ID: "node-2", Address: "127.0.0.1:9702"},
-	}
-	return cfg
-}
-
 func TestHealthIncludesCustomStatus(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		srv := server.NewServer(
@@ -243,28 +191,6 @@ func TestRaftStatus(t *testing.T) {
 			assert.Contains(t, backend, "leader_id")
 		}
 	}
-}
-
-func availablePort(t *testing.T) int {
-	t.Helper()
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer func() { _ = ln.Close() }()
-
-	addr, ok := ln.Addr().(*net.TCPAddr)
-	assert.True(t, ok)
-	return addr.Port
-}
-
-func availableAddress(t *testing.T) string {
-	t.Helper()
-
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
-	assert.NoError(t, err)
-	defer func() { _ = ln.Close() }()
-
-	return ln.Addr().String()
 }
 
 func TestEngineHealth(t *testing.T) {
@@ -1966,4 +1892,78 @@ func TestStartFlowTooManyLabels(t *testing.T) {
 		assert.Equal(t, http.StatusBadRequest, w.Code)
 		assert.Contains(t, w.Body.String(), "too many labels")
 	})
+}
+
+func availablePort(t *testing.T) int {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer func() { _ = ln.Close() }()
+
+	addr, ok := ln.Addr().(*net.TCPAddr)
+	assert.True(t, ok)
+	return addr.Port
+}
+
+func availableAddress(t *testing.T) string {
+	t.Helper()
+
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	assert.NoError(t, err)
+	defer func() { _ = ln.Close() }()
+
+	return ln.Addr().String()
+}
+
+func withTestServerEnv(t *testing.T, fn func(*testServerEnv)) {
+	t.Helper()
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		fn(&testServerEnv{
+			Server:        server.NewServer(env.Engine, env.EventHub),
+			TestEngineEnv: env,
+		})
+	})
+}
+
+func withServerEnvConfig(
+	t *testing.T, makeConfig func(*config.Config) *config.Config,
+	fn func(*testServerEnv),
+) {
+	t.Helper()
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		cfg := makeConfig(env.Config)
+		eng, err := engine.New(cfg, env.Dependencies())
+		assert.NoError(t, err)
+		if eng == nil {
+			return
+		}
+		defer func() { _ = eng.Stop() }()
+
+		next := *env
+		next.Engine = eng
+		next.Config = cfg
+		fn(&testServerEnv{
+			Server:        server.NewServer(eng, env.EventHub),
+			TestEngineEnv: &next,
+		})
+	})
+}
+
+func clusterConfigWithPeer(base *config.Config) *config.Config {
+	cfg := util.MutableCopy(base)
+	cfg.Raft.Servers = append([]raft.Server{}, base.Raft.Servers...)
+	cfg.Raft.Servers = append(cfg.Raft.Servers,
+		raft.Server{ID: "node-2", Address: "127.0.0.1:9702"},
+	)
+	return cfg
+}
+
+func peerOnlyConfig(base *config.Config) *config.Config {
+	cfg := util.MutableCopy(base)
+	cfg.Raft.LocalID = "node-2"
+	cfg.Raft.Servers = []raft.Server{
+		{ID: "node-2", Address: "127.0.0.1:9702"},
+	}
+	return cfg
 }

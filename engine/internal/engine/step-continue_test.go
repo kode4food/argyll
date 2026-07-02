@@ -13,24 +13,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-func waitForWorkStarted(
-	env *helpers.TestEngineEnv, flowID api.FlowID, steps []api.StepID,
-	fn func(),
-) {
-	filters := make([]wait.EventFilter, len(steps))
-	for idx, stepID := range steps {
-		filters[idx] = wait.WorkStarted(api.FlowStep{
-			FlowID: flowID,
-			StepID: stepID,
-		})
-	}
-	env.WithConsumer(func(consumer *event.Consumer) {
-		w := wait.On(env.T, consumer)
-		fn()
-		w.ForAll(filters...)
-	})
-}
-
 func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -905,6 +887,24 @@ func TestOptionalSomeTimeout(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 		assert.Equal(t, []any{"real"}, fl.Executions[consumer.ID].Inputs["opt"])
 		assert.Equal(t, api.StepSkipped, fl.Executions[providerB.ID].Status)
+	})
+}
+
+func waitForWorkStarted(
+	env *helpers.TestEngineEnv, flowID api.FlowID, steps []api.StepID,
+	fn func(),
+) {
+	filters := make([]wait.EventFilter, len(steps))
+	for idx, stepID := range steps {
+		filters[idx] = wait.WorkStarted(api.FlowStep{
+			FlowID: flowID,
+			StepID: stepID,
+		})
+	}
+	env.WithConsumer(func(consumer *event.Consumer) {
+		w := wait.On(env.T, consumer)
+		fn()
+		w.ForAll(filters...)
 	})
 }
 

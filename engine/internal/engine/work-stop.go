@@ -226,18 +226,6 @@ func (tx *flowTx) raiseWorkFailed(
 	)
 }
 
-func hasRetryTask(flow api.FlowState, stepID api.StepID, tkn api.Token) bool {
-	ex, ok := flow.Executions[stepID]
-	if !ok {
-		return false
-	}
-	work, ok := ex.WorkItems[tkn]
-	if !ok {
-		return false
-	}
-	return !work.NextRetryAt.IsZero()
-}
-
 func (tx *flowTx) raiseRetryScheduled(
 	stepID api.StepID, tkn api.Token, work api.WorkState, nextRetryAt time.Time,
 ) error {
@@ -264,4 +252,16 @@ func (tx *flowTx) raiseWorkNotCompleted(
 			Error:  errMsg,
 		},
 	)
+}
+
+func hasRetryTask(flow api.FlowState, stepID api.StepID, tkn api.Token) bool {
+	ex, ok := flow.Executions[stepID]
+	if !ok {
+		return false
+	}
+	work, ok := ex.WorkItems[tkn]
+	if !ok {
+		return false
+	}
+	return !work.NextRetryAt.IsZero()
 }

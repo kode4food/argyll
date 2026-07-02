@@ -15,99 +15,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// newCompensatingStep returns a sync step with a compensate endpoint
-func newCompensatingStep(id api.StepID) *api.Step {
-	return &api.Step{
-		ID:   id,
-		Name: "Compensating Step",
-		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{
-			Endpoint:   "http://test:8080/work",
-			Compensate: "http://test:8080/compensate",
-		},
-		Attributes: api.AttributeSpecs{},
-	}
-}
-
-// setupCompensatingFlow injects events for a flow whose step has one succeeded
-// work item followed by step and flow failure, with comp started
-func setupCompensatingFlow(
-	env *helpers.TestEngineEnv,
-	id api.FlowID, st *api.Step, tkn api.Token,
-	withCompStarted bool,
-) {
-	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{st.ID},
-		Steps: api.Steps{st.ID: st},
-	}
-
-	evs := []helpers.FlowEvent{
-		{
-			Type: api.EventTypeFlowStarted,
-			Data: api.FlowStartedEvent{
-				FlowID: id,
-				Plan:   pl,
-				Init:   api.InitArgs{},
-			},
-		},
-		{
-			Type: api.EventTypeStepStarted,
-			Data: api.StepStartedEvent{
-				FlowID:    id,
-				StepID:    st.ID,
-				Inputs:    api.Args{},
-				WorkItems: map[api.Token]api.Args{tkn: {}},
-			},
-		},
-		{
-			Type: api.EventTypeWorkStarted,
-			Data: api.WorkStartedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Token:  tkn,
-				Inputs: api.Args{},
-			},
-		},
-		{
-			Type: api.EventTypeWorkSucceeded,
-			Data: api.WorkSucceededEvent{
-				FlowID:  id,
-				StepID:  st.ID,
-				Token:   tkn,
-				Outputs: api.Args{"result": "ok"},
-			},
-		},
-		{
-			Type: api.EventTypeStepFailed,
-			Data: api.StepFailedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Error:  "forced failure",
-			},
-		},
-		{
-			Type: api.EventTypeFlowFailed,
-			Data: api.FlowFailedEvent{
-				FlowID: id,
-				Error:  "forced failure",
-			},
-		},
-	}
-
-	if withCompStarted {
-		evs = append(evs, helpers.FlowEvent{
-			Type: api.EventTypeCompStarted,
-			Data: api.CompStartedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Token:  tkn,
-			},
-		})
-	}
-
-	assert.NoError(env.T, env.RaiseFlowEvents(id, evs...))
-}
-
 func TestMemoizableNoCompensate(t *testing.T) {
 	st := &api.Step{
 		ID:         "memo-comp-step",
@@ -557,4 +464,96 @@ func TestCompDispatchRecovery(t *testing.T) {
 		assert.Equal(t, api.WorkCompensated, work.Status)
 		assert.Equal(t, 1, compCount)
 	})
+}
+
+// newCompensatingStep returns a sync step with a compensate endpoint
+func newCompensatingStep(id api.StepID) *api.Step {
+	return &api.Step{
+		ID:   id,
+		Name: "Compensating Step",
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{
+			Endpoint:   "http://test:8080/work",
+			Compensate: "http://test:8080/compensate",
+		},
+		Attributes: api.AttributeSpecs{},
+	}
+}
+
+// setupCompensatingFlow injects events for a flow whose step has one succeeded
+// work item followed by step and flow failure, with comp started
+func setupCompensatingFlow(
+	env *helpers.TestEngineEnv, id api.FlowID, st *api.Step, tkn api.Token,
+	withCompStarted bool,
+) {
+	pl := &api.ExecutionPlan{
+		Goals: []api.StepID{st.ID},
+		Steps: api.Steps{st.ID: st},
+	}
+
+	evs := []helpers.FlowEvent{
+		{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID: id,
+				Plan:   pl,
+				Init:   api.InitArgs{},
+			},
+		},
+		{
+			Type: api.EventTypeStepStarted,
+			Data: api.StepStartedEvent{
+				FlowID:    id,
+				StepID:    st.ID,
+				Inputs:    api.Args{},
+				WorkItems: map[api.Token]api.Args{tkn: {}},
+			},
+		},
+		{
+			Type: api.EventTypeWorkStarted,
+			Data: api.WorkStartedEvent{
+				FlowID: id,
+				StepID: st.ID,
+				Token:  tkn,
+				Inputs: api.Args{},
+			},
+		},
+		{
+			Type: api.EventTypeWorkSucceeded,
+			Data: api.WorkSucceededEvent{
+				FlowID:  id,
+				StepID:  st.ID,
+				Token:   tkn,
+				Outputs: api.Args{"result": "ok"},
+			},
+		},
+		{
+			Type: api.EventTypeStepFailed,
+			Data: api.StepFailedEvent{
+				FlowID: id,
+				StepID: st.ID,
+				Error:  "forced failure",
+			},
+		},
+		{
+			Type: api.EventTypeFlowFailed,
+			Data: api.FlowFailedEvent{
+				FlowID: id,
+				Error:  "forced failure",
+			},
+		},
+	}
+
+	if withCompStarted {
+		evs = append(evs, helpers.FlowEvent{
+			Type: api.EventTypeCompStarted,
+			Data: api.CompStartedEvent{
+				FlowID: id,
+				StepID: st.ID,
+				Token:  tkn,
+			},
+		})
+	}
+
+	assert.NoError(env.T, env.RaiseFlowEvents(id, evs...))
 }

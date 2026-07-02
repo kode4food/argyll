@@ -13,28 +13,6 @@ import (
 
 const recoveryTimeout = 10 * time.Second
 
-func waitForFlowStatusWithTimeoutAfter(
-	env *helpers.TestEngineEnv, flowID api.FlowID, timeout time.Duration,
-	fn func(),
-) api.FlowState {
-	env.T.Helper()
-
-	states := waitForFlowsStatusWithTimeoutAfter(
-		env, []api.FlowID{flowID}, timeout, fn,
-	)
-	return states[flowID]
-}
-
-func waitForFlowsStatusWithTimeoutAfter(
-	env *helpers.TestEngineEnv, ids []api.FlowID, timeout time.Duration,
-	fn func(),
-) map[api.FlowID]api.FlowState {
-	env.T.Helper()
-
-	fn()
-	return env.WaitForTerminalFlows(ids, timeout)
-}
-
 // TestBasicFlowRecovery tests that a single flow with pending work recovers
 // and completes after engine crash (new engine instance)
 func TestBasicFlowRecovery(t *testing.T) {
@@ -475,4 +453,26 @@ func TestRecoveryPreservesState(t *testing.T) {
 			api.StepCompleted, afterRestart.Executions[st.ID].Status,
 		)
 	})
+}
+
+func waitForFlowStatusWithTimeoutAfter(
+	env *helpers.TestEngineEnv, flowID api.FlowID, timeout time.Duration,
+	fn func(),
+) api.FlowState {
+	env.T.Helper()
+
+	states := waitForFlowsStatusWithTimeoutAfter(
+		env, []api.FlowID{flowID}, timeout, fn,
+	)
+	return states[flowID]
+}
+
+func waitForFlowsStatusWithTimeoutAfter(
+	env *helpers.TestEngineEnv, ids []api.FlowID, timeout time.Duration,
+	fn func(),
+) map[api.FlowID]api.FlowState {
+	env.T.Helper()
+
+	fn()
+	return env.WaitForTerminalFlows(ids, timeout)
 }

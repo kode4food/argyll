@@ -8,14 +8,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-func collectDetach[T any](tree *util.PathTree[T], prefix []string) []T {
-	var vals []T
-	tree.DetachWith(prefix, func(v T) {
-		vals = append(vals, v)
-	})
-	return vals
-}
-
 func TestPathTreeRemovePrunes(t *testing.T) {
 	tree := util.NewPathTree[int]()
 	tree.Insert([]string{"a", "b", "c"}, 1)
@@ -121,4 +113,12 @@ func TestDetachNoCallback(t *testing.T) {
 	tree.Detach([]string{"a"})
 
 	assert.Nil(t, collectDetach(tree, []string{"a"}))
+}
+
+func collectDetach[T any](tree *util.PathTree[T], prefix []string) []T {
+	var vals []T
+	tree.DetachWith(prefix, func(v T) {
+		vals = append(vals, v)
+	})
+	return vals
 }

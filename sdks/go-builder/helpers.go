@@ -16,6 +16,11 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
+type compensateBody struct {
+	Input  api.Args `json:"input"`
+	Output api.Args `json:"output"`
+}
+
 const (
 	MaxRegistrationAttempts = 5
 	BackoffMultiplier       = 2 * time.Second
@@ -122,11 +127,6 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 func isRegisterConflict(err error) bool {
 	return errors.Is(err, ErrRegisterStep) &&
 		strings.Contains(err.Error(), "status 409")
-}
-
-type compensateBody struct {
-	Input  api.Args `json:"input"`
-	Output api.Args `json:"output"`
 }
 
 func makeCompensateHandler(

@@ -904,89 +904,6 @@ func TestInputAle(t *testing.T) {
 	})
 }
 
-func routingSteps() (*api.Step, *api.Step, *api.Step, *api.Step) {
-	route := &api.Step{
-		ID:   "route",
-		Name: "Route",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"notification_type": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-			},
-		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
-	}
-	customer := &api.Step{
-		ID:   "customer-lookup",
-		Name: "Customer Lookup",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"customer_id": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-			},
-			"customer": {
-				Role: api.RoleOutput,
-				Type: api.TypeObject,
-			},
-		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
-	}
-	email := &api.Step{
-		ID:   "send-email",
-		Name: "Send Email",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"notification_type": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-				Required: &api.RequiredConfig{
-					Match: &api.ScriptConfig{
-						Language: api.ScriptLangLua,
-						Script:   `return value == "email"`,
-					},
-				},
-			},
-			"email_address": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-			},
-			"email_result": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-			},
-		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
-	}
-	postal := &api.Step{
-		ID:   "send-postal",
-		Name: "Send Postal",
-		Type: api.StepTypeSync,
-		Attributes: api.AttributeSpecs{
-			"notification_type": {
-				Role: api.RoleRequired,
-				Type: api.TypeString,
-				Required: &api.RequiredConfig{
-					Match: &api.ScriptConfig{
-						Language: api.ScriptLangLua,
-						Script:   `return value == "postal"`,
-					},
-				},
-			},
-			"customer": {
-				Role: api.RoleRequired,
-				Type: api.TypeObject,
-			},
-			"postal_result": {
-				Role: api.RoleOutput,
-				Type: api.TypeString,
-			},
-		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
-	}
-	return route, customer, email, postal
-}
 func TestPredicateExecution(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
@@ -1094,6 +1011,90 @@ func TestPredicateError(t *testing.T) {
 		assert.Equal(t, api.FlowFailed, fl.Status)
 		assert.False(t, env.MockClient.WasInvoked("pred-err-step"))
 	})
+}
+
+func routingSteps() (*api.Step, *api.Step, *api.Step, *api.Step) {
+	route := &api.Step{
+		ID:   "route",
+		Name: "Route",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	customer := &api.Step{
+		ID:   "customer-lookup",
+		Name: "Customer Lookup",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"customer_id": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"customer": {
+				Role: api.RoleOutput,
+				Type: api.TypeObject,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	email := &api.Step{
+		ID:   "send-email",
+		Name: "Send Email",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "email"`,
+					},
+				},
+			},
+			"email_address": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+			},
+			"email_result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	postal := &api.Step{
+		ID:   "send-postal",
+		Name: "Send Postal",
+		Type: api.StepTypeSync,
+		Attributes: api.AttributeSpecs{
+			"notification_type": {
+				Role: api.RoleRequired,
+				Type: api.TypeString,
+				Required: &api.RequiredConfig{
+					Match: &api.ScriptConfig{
+						Language: api.ScriptLangLua,
+						Script:   `return value == "postal"`,
+					},
+				},
+			},
+			"customer": {
+				Role: api.RoleRequired,
+				Type: api.TypeObject,
+			},
+			"postal_result": {
+				Role: api.RoleOutput,
+				Type: api.TypeString,
+			},
+		},
+		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+	}
+	return route, customer, email, postal
 }
 
 func collectPlan(

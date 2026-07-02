@@ -12,18 +12,6 @@ import (
 
 var testEval = helpers.Matcher()
 
-func createPlan(
-	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
-) (*api.ExecutionPlan, error) {
-	return plan.Create(testEval, nil, cat, goals, init)
-}
-
-func previewPlan(
-	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
-) (*api.ExecutionPlan, error) {
-	return plan.Preview(testEval, nil, cat, goals, init)
-}
-
 func TestNoGoals(t *testing.T) {
 	cat := makeCatalogState(api.Steps{})
 
@@ -946,6 +934,18 @@ func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
 	assert.Contains(t, pl.Steps, route.ID)
 	assert.Contains(t, pl.Steps, sendPostal.ID)
 	assert.Empty(t, pl.Required)
+}
+
+func createPlan(
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+) (*api.ExecutionPlan, error) {
+	return plan.Create(testEval, nil, cat, goals, init)
+}
+
+func previewPlan(
+	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
+) (*api.ExecutionPlan, error) {
+	return plan.Preview(testEval, nil, cat, goals, init)
 }
 
 func makeCatalogState(steps api.Steps) api.CatalogState {

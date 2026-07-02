@@ -110,20 +110,6 @@ func (w *Wait) ForAll(filters ...EventFilter) {
 	}
 }
 
-func matchFilters(
-	ev *timebox.Event, filters []EventFilter, matched []bool,
-) int {
-	count := 0
-	for idx, filter := range filters {
-		if matched[idx] || !filter(ev) {
-			continue
-		}
-		matched[idx] = true
-		count++
-	}
-	return count
-}
-
 // ForEvent waits for a single matching event
 func (w *Wait) ForEvent(filter EventFilter) {
 	w.ForEvents(1, filter)
@@ -372,4 +358,18 @@ func PredicateFilter[T any](pred Predicate[T]) EventFilter {
 		}
 		return pred(data)
 	}
+}
+
+func matchFilters(
+	ev *timebox.Event, filters []EventFilter, matched []bool,
+) int {
+	count := 0
+	for idx, filter := range filters {
+		if matched[idx] || !filter(ev) {
+			continue
+		}
+		matched[idx] = true
+		count++
+	}
+	return count
 }

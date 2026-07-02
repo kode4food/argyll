@@ -87,18 +87,6 @@ func (e *TestEngineEnv) WaitForTerminalFlow(flowID api.FlowID) api.FlowState {
 	return WaitForTerminalFlowState(e.T, e.Engine, flowID)
 }
 
-// WaitForTerminalFlowState waits for a flow to reach a terminal state
-func WaitForTerminalFlowState(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID,
-) api.FlowState {
-	t.Helper()
-	return WaitForFlowState(t, eng, FlowStateQuery{
-		FlowID:  flowID,
-		Timeout: wait.DefaultTimeout,
-		Accept:  isFlowTerminal,
-	})
-}
-
 // WaitForTerminalFlows waits for all flows to reach terminal states
 func (e *TestEngineEnv) WaitForTerminalFlows(
 	flowIDs []api.FlowID, timeout time.Duration,
@@ -130,39 +118,6 @@ func (e *TestEngineEnv) WaitForTerminalFlows(
 				e.T.Fatalf("failed to fetch terminal flows: %v", lastErr)
 			}
 			e.T.Fatalf("flows did not reach terminal state: %v", flowIDs)
-		}
-		time.Sleep(waitPollInterval)
-	}
-}
-
-// WaitForFlowExists waits for a flow state to become readable
-func WaitForFlowExists(
-	t *testing.T, eng *engine.Engine, flowID api.FlowID,
-) api.FlowState {
-	t.Helper()
-	return WaitForFlowState(t, eng, FlowStateQuery{
-		FlowID:  flowID,
-		Timeout: wait.DefaultTimeout,
-	})
-}
-
-// WaitForFlowState waits for a flow state accepted by query.Accept
-func WaitForFlowState(
-	t *testing.T, eng *engine.Engine, q FlowStateQuery,
-) api.FlowState {
-	t.Helper()
-
-	deadline := scheduler.Now().Add(q.Timeout)
-	for {
-		st, err := eng.GetFlowState(q.FlowID)
-		if err == nil && (q.Accept == nil || q.Accept(st)) {
-			return st
-		}
-		if scheduler.Now().After(deadline) {
-			if err != nil {
-				t.Fatalf("failed to fetch flow %s: %v", q.FlowID, err)
-			}
-			t.Fatalf("flow %s did not reach expected state", q.FlowID)
 		}
 		time.Sleep(waitPollInterval)
 	}
@@ -214,19 +169,6 @@ func (e *TestEngineEnv) getExecutionState(
 	return fl.Executions[stepID], nil
 }
 
-func isFlowTerminal(state api.FlowState) bool {
-	return state.Status == api.FlowCompleted || state.Status == api.FlowFailed
-}
-
-func isStepStarted(status api.StepStatus) bool {
-	return status != api.StepPending
-}
-
-func isStepTerminal(status api.StepStatus) bool {
-	return status == api.StepCompleted || status == api.StepFailed ||
-		status == api.StepSkipped
-}
-
 func (e *TestEngineEnv) waitForTerminalStep(
 	flowID api.FlowID, stepID api.StepID,
 ) api.ExecutionState {
@@ -246,4 +188,62 @@ func (e *TestEngineEnv) waitForTerminalStep(
 		}
 		time.Sleep(waitPollInterval)
 	}
+}
+
+// WaitForTerminalFlowState waits for a flow to reach a terminal state
+func WaitForTerminalFlowState(
+	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+) api.FlowState {
+	t.Helper()
+	return WaitForFlowState(t, eng, FlowStateQuery{
+		FlowID:  flowID,
+		Timeout: wait.DefaultTimeout,
+		Accept:  isFlowTerminal,
+	})
+}
+
+// WaitForFlowExists waits for a flow state to become readable
+func WaitForFlowExists(
+	t *testing.T, eng *engine.Engine, flowID api.FlowID,
+) api.FlowState {
+	t.Helper()
+	return WaitForFlowState(t, eng, FlowStateQuery{
+		FlowID:  flowID,
+		Timeout: wait.DefaultTimeout,
+	})
+}
+
+// WaitForFlowState waits for a flow state accepted by query.Accept
+func WaitForFlowState(
+	t *testing.T, eng *engine.Engine, q FlowStateQuery,
+) api.FlowState {
+	t.Helper()
+
+	deadline := scheduler.Now().Add(q.Timeout)
+	for {
+		st, err := eng.GetFlowState(q.FlowID)
+		if err == nil && (q.Accept == nil || q.Accept(st)) {
+			return st
+		}
+		if scheduler.Now().After(deadline) {
+			if err != nil {
+				t.Fatalf("failed to fetch flow %s: %v", q.FlowID, err)
+			}
+			t.Fatalf("flow %s did not reach expected state", q.FlowID)
+		}
+		time.Sleep(waitPollInterval)
+	}
+}
+
+func isFlowTerminal(state api.FlowState) bool {
+	return state.Status == api.FlowCompleted || state.Status == api.FlowFailed
+}
+
+func isStepStarted(status api.StepStatus) bool {
+	return status != api.StepPending
+}
+
+func isStepTerminal(status api.StepStatus) bool {
+	return status == api.StepCompleted || status == api.StepFailed ||
+		status == api.StepSkipped
 }

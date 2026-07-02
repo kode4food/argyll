@@ -79,12 +79,6 @@ func (e *Engine) StartChildFlow(
 	return childID, nil
 }
 
-func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
-	return api.FlowID(
-		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, tkn),
-	)
-}
-
 func (e *Engine) execFlow(
 	flowID timebox.AggregateID, cmd timebox.Command[api.FlowState],
 ) (api.FlowState, error) {
@@ -103,4 +97,10 @@ func (e *Engine) flowTx(flowID api.FlowID, fn func(*flowTx) error) error {
 		},
 	)
 	return err
+}
+
+func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
+	return api.FlowID(
+		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, tkn),
+	)
 }

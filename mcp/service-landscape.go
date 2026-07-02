@@ -59,24 +59,6 @@ type (
 	}
 )
 
-func serviceName(name *string, spec openapi.Result) string {
-	if name != nil && strings.TrimSpace(*name) != "" {
-		return strings.TrimSpace(*name)
-	}
-	title := strings.TrimSpace(spec.Info.Title)
-	if title == "" {
-		return "service"
-	}
-	return title
-}
-
-func summaryPayload(name string, spec openapi.Result) serviceSummary {
-	return serviceSummary{
-		Name:       name,
-		Operations: len(spec.Operations),
-	}
-}
-
 func (s *Server) analyzeServiceSpec(args analyzeServiceSpecArgs) (any, error) {
 	specArgs := openapi.Args{
 		SpecText:          args.SpecText,
@@ -144,6 +126,24 @@ func (s *Server) analyzeServiceLandscape(
 		Warnings:        uniqueStrings(allWarnings),
 		Ambiguities:     uniqueStrings(ambiguities),
 	}, nil)
+}
+
+func serviceName(name *string, spec openapi.Result) string {
+	if name != nil && strings.TrimSpace(*name) != "" {
+		return strings.TrimSpace(*name)
+	}
+	title := strings.TrimSpace(spec.Info.Title)
+	if title == "" {
+		return "service"
+	}
+	return title
+}
+
+func summaryPayload(name string, spec openapi.Result) serviceSummary {
+	return serviceSummary{
+		Name:       name,
+		Operations: len(spec.Operations),
+	}
 }
 
 func boolPtr(v bool) *bool {

@@ -106,20 +106,6 @@ func (s *Server) listFlows(c *gin.Context) {
 	writeValue(c, ErrQueryFlows, resp, err)
 }
 
-func validFlowStatuses(statuses []api.FlowStatus) bool {
-	if len(statuses) == 0 {
-		return true
-	}
-	for _, status := range statuses {
-		if status != api.FlowActive &&
-			status != api.FlowCompleted &&
-			status != api.FlowFailed {
-			return false
-		}
-	}
-	return true
-}
-
 func (s *Server) startFlow(c *gin.Context) {
 	c.Request.Body = http.MaxBytesReader(
 		c.Writer, c.Request.Body, MaxFlowBodyBytes,
@@ -298,4 +284,18 @@ func (s *Server) handlePlanPreview(c *gin.Context) {
 	if ok {
 		c.JSON(http.StatusOK, pl)
 	}
+}
+
+func validFlowStatuses(statuses []api.FlowStatus) bool {
+	if len(statuses) == 0 {
+		return true
+	}
+	for _, status := range statuses {
+		if status != api.FlowActive &&
+			status != api.FlowCompleted &&
+			status != api.FlowFailed {
+			return false
+		}
+	}
+	return true
 }

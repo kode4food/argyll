@@ -144,10 +144,6 @@ func (s *Scheduler) nextRunAt() time.Time {
 	return time.Time{}
 }
 
-func headChanged(prev, next taskHead) bool {
-	return prev.ok != next.ok || prev.id != next.id || !prev.at.Equal(next.at)
-}
-
 func (s *Scheduler) signalTimer(ctx context.Context) {
 	ch := s.timer.Channel()
 	for {
@@ -164,4 +160,8 @@ func (s *Scheduler) signalTimer(ctx context.Context) {
 			s.mu.Unlock()
 		}
 	}
+}
+
+func headChanged(prev, next taskHead) bool {
+	return prev.ok != next.ok || prev.id != next.id || !prev.at.Equal(next.at)
 }

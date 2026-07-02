@@ -101,24 +101,6 @@ func (e *Engine) scheduleStepTimeouts(
 	}
 }
 
-func flowHasTimeouts(flow api.FlowState) bool {
-	for _, st := range flow.Plan.Steps {
-		if stepHasTimeouts(st) {
-			return true
-		}
-	}
-	return false
-}
-
-func stepHasTimeouts(step *api.Step) bool {
-	for _, attr := range step.Attributes {
-		if attr.IsOptional() && attr.OptionalDeadline() > 0 {
-			return true
-		}
-	}
-	return false
-}
-
 func (e *Engine) scheduleTimeoutTask(
 	fs api.FlowStep, name api.Name, at time.Time,
 ) {
@@ -160,6 +142,24 @@ func (e *Engine) runTimeoutTaskAt(
 		}
 		return tx.skipPendingUnused()
 	})
+}
+
+func flowHasTimeouts(flow api.FlowState) bool {
+	for _, st := range flow.Plan.Steps {
+		if stepHasTimeouts(st) {
+			return true
+		}
+	}
+	return false
+}
+
+func stepHasTimeouts(step *api.Step) bool {
+	for _, attr := range step.Attributes {
+		if attr.IsOptional() && attr.OptionalDeadline() > 0 {
+			return true
+		}
+	}
+	return false
 }
 
 func timeoutKey(fs api.FlowStep, name api.Name) []string {

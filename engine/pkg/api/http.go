@@ -44,6 +44,20 @@ func NewProblem(status int, detail string) *ProblemDetails {
 	}
 }
 
+// Error returns the most useful human-readable problem details message
+func (p *ProblemDetails) Error() string {
+	if p == nil {
+		return ""
+	}
+	if p.Detail != "" {
+		return p.Detail
+	}
+	if p.Title != "" {
+		return p.Title
+	}
+	return http.StatusText(p.Status)
+}
+
 // IsProblemJSON reports whether the content type is Problem Details JSON
 func IsProblemJSON(contentType string) bool {
 	mediaType, _, err := mime.ParseMediaType(contentType)
@@ -66,20 +80,6 @@ func MetadataFromHeaders(header http.Header) Metadata {
 	addHeaderMeta(meta, MetaReceiptToken, header.Get(HeaderReceiptToken))
 	addHeaderMeta(meta, MetaWebhookURL, header.Get(HeaderWebhookURL))
 	return meta
-}
-
-// Error returns the most useful human-readable problem details message
-func (p *ProblemDetails) Error() string {
-	if p == nil {
-		return ""
-	}
-	if p.Detail != "" {
-		return p.Detail
-	}
-	if p.Title != "" {
-		return p.Title
-	}
-	return http.StatusText(p.Status)
 }
 
 func setMetaHeader(header http.Header, name string, meta Metadata, key string) {

@@ -135,13 +135,6 @@ func (s *Server) verifyAppliedSteps(
 	return verifyAppliedSemantics(semantic, current), nil
 }
 
-func proposedSteps(steps *[]map[string]any) ([]map[string]any, error) {
-	if steps != nil && len(*steps) != 0 {
-		return *steps, nil
-	}
-	return nil, errInvalidParams("steps is required")
-}
-
 func (s *Server) currentSteps() (map[string]map[string]any, error) {
 	payload, err := s.httpGet("/engine/step")
 	if err != nil {
@@ -167,4 +160,11 @@ func (s *Server) currentSteps() (map[string]map[string]any, error) {
 		}
 	}
 	return current, nil
+}
+
+func proposedSteps(steps *[]map[string]any) ([]map[string]any, error) {
+	if steps != nil && len(*steps) != 0 {
+		return *steps, nil
+	}
+	return nil, errInvalidParams("steps is required")
 }

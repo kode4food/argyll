@@ -639,6 +639,25 @@ func (c *WorkConfig) Equal(other *WorkConfig) bool {
 	})
 }
 
+// Apply will merge the keys/values of the other label set into this one
+func (l Labels) Apply(other Labels) Labels {
+	return applyMap(l, other)
+}
+
+// Equal returns true if two label sets are equal
+func (l Labels) Equal(other Labels) bool {
+	if len(l) != len(other) {
+		return false
+	}
+	for key, val := range l {
+		otherVal, ok := other[key]
+		if !ok || otherVal != val {
+			return false
+		}
+	}
+	return true
+}
+
 func endpointParams(endpoint string) util.Set[string] {
 	matches := endpointParamPattern.FindAllStringSubmatch(endpoint, -1)
 	res := make(util.Set[string], len(matches))
@@ -659,23 +678,4 @@ func equalWithNilCheck[T any](a, b *T, compare func() bool) bool {
 		return false
 	}
 	return compare()
-}
-
-// Apply will merge the keys/values of the other label set into this one
-func (l Labels) Apply(other Labels) Labels {
-	return applyMap(l, other)
-}
-
-// Equal returns true if two label sets are equal
-func (l Labels) Equal(other Labels) bool {
-	if len(l) != len(other) {
-		return false
-	}
-	for key, val := range l {
-		otherVal, ok := other[key]
-		if !ok || otherVal != val {
-			return false
-		}
-	}
-	return true
 }
