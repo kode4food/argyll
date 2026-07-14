@@ -14,22 +14,49 @@ import (
 )
 
 func TestStartDuplicate(t *testing.T) {
-	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
-		st := helpers.NewSimpleStep("step-1")
+	t.Run("same goals is idempotent", func(t *testing.T) {
+		helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+			st := helpers.NewSimpleStep("step-1")
 
-		err := eng.RegisterStep(st)
-		assert.NoError(t, err)
+			err := eng.RegisterStep(st)
+			assert.NoError(t, err)
 
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"step-1"},
-			Steps: api.Steps{st.ID: st},
-		}
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{"step-1"},
+				Steps: api.Steps{st.ID: st},
+			}
 
-		err = eng.StartFlow("wf-dup", pl)
-		assert.NoError(t, err)
+			err = eng.StartFlow("wf-dup", pl)
+			assert.NoError(t, err)
 
-		err = eng.StartFlow("wf-dup", pl)
-		assert.ErrorIs(t, err, engine.ErrFlowExists)
+			err = eng.StartFlow("wf-dup", pl)
+			assert.NoError(t, err)
+		})
+	})
+
+	t.Run("different goals conflicts", func(t *testing.T) {
+		helpers.WithStartedEngine(t, func(eng *engine.Engine) {
+			st1 := helpers.NewSimpleStep("step-1")
+			st2 := helpers.NewSimpleStep("step-2")
+
+			assert.NoError(t, eng.RegisterStep(st1))
+			assert.NoError(t, eng.RegisterStep(st2))
+
+			pl1 := &api.ExecutionPlan{
+				Goals: []api.StepID{"step-1"},
+				Steps: api.Steps{st1.ID: st1},
+			}
+			pl2 := &api.ExecutionPlan{
+				Goals: []api.StepID{"step-2"},
+				Steps: api.Steps{st2.ID: st2},
+			}
+
+			err := eng.StartFlow("wf-conflict", pl1)
+			assert.NoError(t, err)
+
+			err = eng.StartFlow("wf-conflict", pl2)
+			assert.ErrorIs(t, err, engine.ErrFlowExists)
+		})
 	})
 }
 
@@ -282,62 +309,125 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 	})
 }
 
-func TestStartChildFlowRejectsDuplicateID(t *testing.T) {
-	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		assert.NoError(t, env.Engine.Start())
+func TestStartChildFlowDuplicateID(t *testing.T) {
+	t.Run("same init is idempotent", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
 
-		child := &api.Step{
-			ID:   "child-step",
-			Name: "Child Step",
-			Type: api.StepTypeAsync,
-			Attributes: api.AttributeSpecs{
-				"result": {Role: api.RoleOutput, Type: api.TypeString},
-			},
-			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
-			},
-		}
-		assert.NoError(t, env.Engine.RegisterStep(child))
+			child := &api.Step{
+				ID:   "child-step",
+				Name: "Child Step",
+				Type: api.StepTypeAsync,
+				Attributes: api.AttributeSpecs{
+					"result": {Role: api.RoleOutput, Type: api.TypeString},
+				},
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://test:8080",
+				},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(child))
 
-		parent := &api.Step{
-			ID:   "subflow-step",
-			Name: "Subflow Step",
-			Type: api.StepTypeFlow,
-			Flow: &api.FlowConfig{
-				Goals: []api.StepID{child.ID},
-			},
-			Attributes: api.AttributeSpecs{},
-		}
-		assert.NoError(t, env.Engine.RegisterStep(parent))
+			parent := &api.Step{
+				ID:   "subflow-step",
+				Name: "Subflow Step",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{child.ID},
+				},
+				Attributes: api.AttributeSpecs{},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(parent))
 
-		cat, err := env.Engine.GetCatalogState()
-		assert.NoError(t, err)
-		parentPlan, err := plan.Create(
-			env.Engine.Matcher, env.Engine.Children, cat,
-			[]api.StepID{parent.ID}, api.InitArgs{},
-		)
-		assert.NoError(t, err)
+			cat, err := env.Engine.GetCatalogState()
+			assert.NoError(t, err)
+			parentPlan, err := plan.Create(
+				env.Engine.Matcher, env.Engine.Children, cat,
+				[]api.StepID{parent.ID}, api.InitArgs{},
+			)
+			assert.NoError(t, err)
 
-		parentFS := api.FlowStep{
-			FlowID: "wf-parent",
-			StepID: parent.ID,
-		}
-		_, err = env.Engine.StartChildFlow(
-			parentFS,
-			"token-1",
-			parentPlan.Children[parent.ID],
-			api.InitArgs{},
-			api.Metadata{},
-		)
-		assert.NoError(t, err)
+			parentFS := api.FlowStep{
+				FlowID: "wf-parent",
+				StepID: parent.ID,
+			}
+			_, err = env.Engine.StartChildFlow(
+				parentFS,
+				"token-1",
+				parentPlan.Children[parent.ID],
+				api.InitArgs{},
+				api.Metadata{},
+			)
+			assert.NoError(t, err)
 
-		_, err = env.Engine.StartChildFlow(
-			parentFS,
-			"token-1",
-			parentPlan.Children[parent.ID],
-			api.InitArgs{},
-			api.Metadata{},
-		)
-		assert.ErrorIs(t, err, engine.ErrFlowExists)
+			_, err = env.Engine.StartChildFlow(
+				parentFS,
+				"token-1",
+				parentPlan.Children[parent.ID],
+				api.InitArgs{},
+				api.Metadata{},
+			)
+			assert.NoError(t, err)
+		})
+	})
+
+	t.Run("different init conflicts", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			child := &api.Step{
+				ID:   "child-step",
+				Name: "Child Step",
+				Type: api.StepTypeAsync,
+				Attributes: api.AttributeSpecs{
+					"result": {Role: api.RoleOutput, Type: api.TypeString},
+					"input":  {Role: api.RoleRequired, Type: api.TypeString},
+				},
+				HTTP: &api.HTTPConfig{
+					Endpoint: "http://test:8080",
+				},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(child))
+
+			parent := &api.Step{
+				ID:   "subflow-step",
+				Name: "Subflow Step",
+				Type: api.StepTypeFlow,
+				Flow: &api.FlowConfig{
+					Goals: []api.StepID{child.ID},
+				},
+				Attributes: api.AttributeSpecs{},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(parent))
+
+			cat, err := env.Engine.GetCatalogState()
+			assert.NoError(t, err)
+			parentPlan, err := plan.Create(
+				env.Engine.Matcher, env.Engine.Children, cat,
+				[]api.StepID{parent.ID}, api.InitArgs{},
+			)
+			assert.NoError(t, err)
+
+			parentFS := api.FlowStep{
+				FlowID: "wf-parent-2",
+				StepID: parent.ID,
+			}
+			_, err = env.Engine.StartChildFlow(
+				parentFS,
+				"token-1",
+				parentPlan.Children[parent.ID],
+				api.InitArgs{"input": {"a"}},
+				api.Metadata{},
+			)
+			assert.NoError(t, err)
+
+			_, err = env.Engine.StartChildFlow(
+				parentFS,
+				"token-1",
+				parentPlan.Children[parent.ID],
+				api.InitArgs{"input": {"b"}},
+				api.Metadata{},
+			)
+			assert.ErrorIs(t, err, engine.ErrFlowExists)
+		})
 	})
 }

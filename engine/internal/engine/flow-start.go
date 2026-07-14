@@ -1,8 +1,10 @@
 package engine
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"slices"
 
 	"github.com/kode4food/timebox"
 
@@ -19,7 +21,7 @@ type flowTx struct {
 }
 
 var (
-	ErrFlowExists        = errors.New("flow exists")
+	ErrFlowExists        = errors.New("flow exists with different plan or init")
 	ErrInvariantViolated = errors.New("engine invariant violated")
 )
 
@@ -37,6 +39,13 @@ func (e *Engine) StartFlow(
 
 	return e.flowTx(flowID, func(tx *flowTx) error {
 		if tx.Value().ID != "" {
+			match, err := e.matchesStartedFlow(flowID, pl, opts.Init)
+			if err != nil {
+				return err
+			}
+			if match {
+				return nil
+			}
 			return ErrFlowExists
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
@@ -79,6 +88,28 @@ func (e *Engine) StartChildFlow(
 	return childID, nil
 }
 
+func (e *Engine) matchesStartedFlow(
+	flowID api.FlowID, pl *api.ExecutionPlan, init api.InitArgs,
+) (bool, error) {
+	evs, err := e.GetFlowEvents(flowID)
+	if err != nil {
+		return false, err
+	}
+	for _, ev := range evs {
+		if api.EventType(ev.Type) != api.EventTypeFlowStarted {
+			continue
+		}
+		data, err := timebox.GetEventValue[api.FlowStartedEvent](ev)
+		if err != nil {
+			return false, err
+		}
+		return data.FlowID == flowID &&
+			slices.Equal(data.Plan.Goals, pl.Goals) &&
+			initArgsEqual(data.Init, init), nil
+	}
+	return false, nil
+}
+
 func (e *Engine) execFlow(
 	flowID timebox.AggregateID, cmd timebox.Command[api.FlowState],
 ) (api.FlowState, error) {
@@ -103,4 +134,16 @@ func childFlowID(parent api.FlowStep, tkn api.Token) api.FlowID {
 	return api.FlowID(
 		fmt.Sprintf("%s:%s:%s", parent.FlowID, parent.StepID, tkn),
 	)
+}
+
+func initArgsEqual(a, b api.InitArgs) bool {
+	aj, err := json.Marshal(a)
+	if err != nil {
+		return false
+	}
+	bj, err := json.Marshal(b)
+	if err != nil {
+		return false
+	}
+	return string(aj) == string(bj)
 }
