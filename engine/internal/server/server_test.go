@@ -1368,39 +1368,79 @@ func TestPlanPreviewStepNotFound(t *testing.T) {
 }
 
 func TestStartFlowDuplicate(t *testing.T) {
-	withTestServerEnv(t, func(testEnv *testServerEnv) {
-		st := helpers.NewSimpleStep("dup-wf-step")
+	t.Run("same request is idempotent", func(t *testing.T) {
+		withTestServerEnv(t, func(testEnv *testServerEnv) {
+			st := helpers.NewSimpleStep("dup-wf-step")
 
-		err := testEnv.Engine.RegisterStep(st)
-		assert.NoError(t, err)
+			err := testEnv.Engine.RegisterStep(st)
+			assert.NoError(t, err)
 
-		pl := &api.ExecutionPlan{
-			Goals: []api.StepID{"dup-wf-step"},
-			Steps: api.Steps{
-				"dup-wf-step": st,
-			},
-		}
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{"dup-wf-step"},
+				Steps: api.Steps{
+					"dup-wf-step": st,
+				},
+			}
 
-		err = testEnv.Engine.StartFlow("duplicate-flow", pl)
-		assert.NoError(t, err)
+			err = testEnv.Engine.StartFlow("duplicate-flow", pl)
+			assert.NoError(t, err)
 
-		reqBody := api.CreateFlowRequest{
-			ID:    "duplicate-flow",
-			Goals: []api.StepID{"dup-wf-step"},
-		}
+			reqBody := api.CreateFlowRequest{
+				ID:    "duplicate-flow",
+				Goals: []api.StepID{"dup-wf-step"},
+			}
 
-		body, _ := json.Marshal(reqBody)
-		req := httptest.NewRequest(
-			"POST", "/engine/flow", bytes.NewReader(body),
-		)
-		req.Header.Set("Content-Type", api.JSONContentType)
-		w := httptest.NewRecorder()
+			body, _ := json.Marshal(reqBody)
+			req := httptest.NewRequest(
+				"POST", "/engine/flow", bytes.NewReader(body),
+			)
+			req.Header.Set("Content-Type", api.JSONContentType)
+			w := httptest.NewRecorder()
 
-		router := testEnv.Server.SetupRoutes()
-		router.ServeHTTP(w, req)
+			router := testEnv.Server.SetupRoutes()
+			router.ServeHTTP(w, req)
 
-		assert.Equal(t, http.StatusConflict, w.Code)
-		assert.Contains(t, w.Body.String(), "duplicate-flow")
+			assert.Equal(t, http.StatusCreated, w.Code)
+			assert.Contains(t, w.Body.String(), "duplicate-flow")
+		})
+	})
+
+	t.Run("different goals conflicts", func(t *testing.T) {
+		withTestServerEnv(t, func(testEnv *testServerEnv) {
+			st1 := helpers.NewSimpleStep("dup-wf-step")
+			st2 := helpers.NewSimpleStep("other-wf-step")
+
+			assert.NoError(t, testEnv.Engine.RegisterStep(st1))
+			assert.NoError(t, testEnv.Engine.RegisterStep(st2))
+
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{"dup-wf-step"},
+				Steps: api.Steps{
+					"dup-wf-step": st1,
+				},
+			}
+
+			err := testEnv.Engine.StartFlow("duplicate-flow", pl)
+			assert.NoError(t, err)
+
+			reqBody := api.CreateFlowRequest{
+				ID:    "duplicate-flow",
+				Goals: []api.StepID{"other-wf-step"},
+			}
+
+			body, _ := json.Marshal(reqBody)
+			req := httptest.NewRequest(
+				"POST", "/engine/flow", bytes.NewReader(body),
+			)
+			req.Header.Set("Content-Type", api.JSONContentType)
+			w := httptest.NewRecorder()
+
+			router := testEnv.Server.SetupRoutes()
+			router.ServeHTTP(w, req)
+
+			assert.Equal(t, http.StatusConflict, w.Code)
+			assert.Contains(t, w.Body.String(), "duplicate-flow")
+		})
 	})
 }
 
