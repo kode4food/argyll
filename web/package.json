@@ -52,7 +52,7 @@
     "jest": "^30.4.2",
     "jest-environment-jsdom": "^30.4.1",
     "jsdom": "^29.1.1",
-    "postcss": "^8.5.10",
+    "postcss": "^8.5.24",
     "prettier": "^3.6.2",
     "ts-jest": "^29.4.11",
     "typescript": "^6.0.3"
