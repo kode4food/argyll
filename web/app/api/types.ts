@@ -1,16 +1,8 @@
 export type FlowStatus =
-  | "pending"
-  | "active"
-  | "completed"
-  | "failed"
-  | "stopped";
+  "pending" | "active" | "completed" | "failed" | "stopped";
 
 export type StepStatus =
-  | "pending"
-  | "active"
-  | "completed"
-  | "skipped"
-  | "failed";
+  "pending" | "active" | "completed" | "skipped" | "failed";
 
 export type WorkStatus =
   | "pending"

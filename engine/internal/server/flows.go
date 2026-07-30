@@ -243,7 +243,13 @@ func (s *Server) createPlan(
 		return nil
 	}
 
-	pl, err := planner(s.engine.Matcher, s.engine.Children, cat, goals, init)
+	pl, err := planner(&plan.Request{
+		Match:    s.engine.Matcher,
+		Children: s.engine.Children,
+		Catalog:  cat,
+		Goals:    goals,
+		Init:     init,
+	})
 	if err == nil {
 		return pl
 	}

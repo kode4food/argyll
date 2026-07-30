@@ -50,9 +50,12 @@ func TestFollowerWrite(t *testing.T) {
 	leader, follower := findFollower(t, nodes)
 
 	st := helpers.NewSimpleStep("forwarded-step")
-	w := postJSON(t,
-		follower.server.SetupRoutes(), "/engine/step", st, http.StatusCreated,
-	)
+	w := postJSON(t, postJSONArgs{
+		handler: follower.server.SetupRoutes(),
+		path:    "/engine/step",
+		body:    st,
+		want:    http.StatusCreated,
+	})
 
 	var resp api.StepRegisteredResponse
 	assert.NoError(t, json.Unmarshal(w.Body.Bytes(), &resp))
@@ -355,13 +358,18 @@ func closeRaftNodes(nodes []*raftNode) {
 	}
 }
 
-func postJSON(
-	t *testing.T, h http.Handler, path string, body any, want int,
-) *httptest.ResponseRecorder {
+type postJSONArgs struct {
+	handler http.Handler
+	path    string
+	body    any
+	want    int
+}
+
+func postJSON(t *testing.T, args postJSONArgs) *httptest.ResponseRecorder {
 	t.Helper()
 
-	w := tryPostJSON(h, path, body)
-	assert.Equal(t, want, w.Code, w.Body.String())
+	w := tryPostJSON(args.handler, args.path, args.body)
+	assert.Equal(t, args.want, w.Code, w.Body.String())
 	return w
 }
 

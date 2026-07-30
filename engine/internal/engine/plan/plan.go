@@ -11,12 +11,17 @@ import (
 )
 
 type (
-	// Planner builds an execution plan for the given matcher, children func,
-	// catalog state, goals, and init args
-	Planner func(
-		policy.Matcher, ChildrenFunc, api.CatalogState, []api.StepID,
-		api.InitArgs,
-	) (*api.ExecutionPlan, error)
+	// Request contains the inputs needed to build an execution plan
+	Request struct {
+		Match    policy.Matcher
+		Children ChildrenFunc
+		Catalog  api.CatalogState
+		Goals    []api.StepID
+		Init     api.InitArgs
+	}
+
+	// Planner builds an execution plan from a request
+	Planner func(*Request) (*api.ExecutionPlan, error)
 
 	// ChildrenFunc returns the child step IDs a step expands into
 	ChildrenFunc func(*api.Step) ([]api.StepID, error)
@@ -56,34 +61,27 @@ var (
 // dependencies and determining required inputs. If children is non-nil it is
 // called for each step in the plan to discover child goals, and the result is
 // built recursively and attached to ExecutionPlan.Children
-func Create(
-	match policy.Matcher, children ChildrenFunc, cat api.CatalogState,
-	goals []api.StepID, init api.InitArgs,
-) (*api.ExecutionPlan, error) {
+func Create(req *Request) (*api.ExecutionPlan, error) {
 	return create(planArgs{
-		match:     match,
-		cat:       cat,
-		goals:     goals,
+		match:     req.Match,
+		cat:       req.Catalog,
+		goals:     req.Goals,
 		providers: strictProviders,
-		init:      init,
-	}, children, util.Set[api.StepID]{})
+		init:      req.Init,
+	}, req.Children, util.Set[api.StepID]{})
 }
 
 // Preview builds an execution plan for preview purposes. Unlike Create, it
-// falls back to unsatisfied provider chains when no satisfiable provider
-// exists so the UI can show the full dependency path back to missing init
-// inputs
-func Preview(
-	match policy.Matcher, children ChildrenFunc, cat api.CatalogState,
-	goals []api.StepID, init api.InitArgs,
-) (*api.ExecutionPlan, error) {
+// falls back to unsatisfied provider chains when no satisfiable provider exists
+// so the UI can show the full dependency path back to missing init inputs
+func Preview(req *Request) (*api.ExecutionPlan, error) {
 	return create(planArgs{
-		match:     match,
-		cat:       cat,
-		goals:     goals,
+		match:     req.Match,
+		cat:       req.Catalog,
+		goals:     req.Goals,
 		providers: previewProviders,
-		init:      init,
-	}, children, util.Set[api.StepID]{})
+		init:      req.Init,
+	}, req.Children, util.Set[api.StepID]{})
 }
 
 // ChildPlanInit derives init args for a child plan from a parent step
@@ -303,10 +301,13 @@ func (b *builder) stepGateStatus(step *api.Step) policy.MatchStatus {
 func (b *builder) initSatisfiesInput(
 	name api.Name, attr *api.AttributeSpec,
 ) bool {
-	return policy.InitSatisfiesRequired(
-		attr, b.initHasValues(name), len(b.findProviders(name)) > 0,
-		initAttributeValues(b.init[name]), b.match,
-	)
+	return policy.InitSatisfiesRequired(&policy.RequiredInputState{
+		Attr:        attr,
+		HasInit:     b.initHasValues(name),
+		HasProvider: len(b.findProviders(name)) > 0,
+		Values:      initAttributeValues(b.init[name]),
+		Match:       b.match,
+	})
 }
 
 func (b *builder) blockedInputs(step *api.Step) []api.Name {

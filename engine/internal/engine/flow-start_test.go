@@ -202,10 +202,13 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		parentPlan, err := plan.Create(
-			env.Engine.Matcher, env.Engine.Children, cat,
-			[]api.StepID{parent.ID}, api.InitArgs{},
-		)
+		parentPlan, err := plan.Create(&plan.Request{
+			Match:    env.Engine.Matcher,
+			Children: env.Engine.Children,
+			Catalog:  cat,
+			Goals:    []api.StepID{parent.ID},
+			Init:     api.InitArgs{},
+		})
 		assert.NoError(t, err)
 		assert.NoError(t, env.Engine.StartFlow("wf-parent", parentPlan))
 
@@ -223,16 +226,16 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 		}
 		assert.NoError(t, env.Engine.UpdateStep(updatedChild))
 
-		childID, err := env.Engine.StartChildFlow(
-			api.FlowStep{
+		childID, err := env.Engine.StartChildFlow(&engine.ChildFlowRequest{
+			Parent: api.FlowStep{
 				FlowID: "wf-parent",
 				StepID: parent.ID,
 			},
-			"token-1",
-			parentPlan.Children[parent.ID],
-			api.InitArgs{},
-			api.Metadata{},
-		)
+			Token:    "token-1",
+			Plan:     parentPlan.Children[parent.ID],
+			Init:     api.InitArgs{},
+			Metadata: api.Metadata{},
+		})
 		assert.NoError(t, err)
 
 		childFlow, err := env.Engine.GetFlowState(childID)
@@ -275,10 +278,13 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		parentPlan, err := plan.Create(
-			env.Engine.Matcher, env.Engine.Children, cat,
-			[]api.StepID{parent.ID}, api.InitArgs{},
-		)
+		parentPlan, err := plan.Create(&plan.Request{
+			Match:    env.Engine.Matcher,
+			Children: env.Engine.Children,
+			Catalog:  cat,
+			Goals:    []api.StepID{parent.ID},
+			Init:     api.InitArgs{},
+		})
 		assert.NoError(t, err)
 
 		parentFS := api.FlowStep{
@@ -286,13 +292,13 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 			StepID: parent.ID,
 		}
 		meta := api.Metadata{"source": "test"}
-		childID, err := env.Engine.StartChildFlow(
-			parentFS,
-			"token-1",
-			parentPlan.Children[parent.ID],
-			api.InitArgs{},
-			meta,
-		)
+		childID, err := env.Engine.StartChildFlow(&engine.ChildFlowRequest{
+			Parent:   parentFS,
+			Token:    "token-1",
+			Plan:     parentPlan.Children[parent.ID],
+			Init:     api.InitArgs{},
+			Metadata: meta,
+		})
 		assert.NoError(t, err)
 
 		childFlow, err := env.Engine.GetFlowState(childID)
@@ -340,32 +346,35 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 
 			cat, err := env.Engine.GetCatalogState()
 			assert.NoError(t, err)
-			parentPlan, err := plan.Create(
-				env.Engine.Matcher, env.Engine.Children, cat,
-				[]api.StepID{parent.ID}, api.InitArgs{},
-			)
+			parentPlan, err := plan.Create(&plan.Request{
+				Match:    env.Engine.Matcher,
+				Children: env.Engine.Children,
+				Catalog:  cat,
+				Goals:    []api.StepID{parent.ID},
+				Init:     api.InitArgs{},
+			})
 			assert.NoError(t, err)
 
 			parentFS := api.FlowStep{
 				FlowID: "wf-parent",
 				StepID: parent.ID,
 			}
-			_, err = env.Engine.StartChildFlow(
-				parentFS,
-				"token-1",
-				parentPlan.Children[parent.ID],
-				api.InitArgs{},
-				api.Metadata{},
-			)
+			_, err = env.Engine.StartChildFlow(&engine.ChildFlowRequest{
+				Parent:   parentFS,
+				Token:    "token-1",
+				Plan:     parentPlan.Children[parent.ID],
+				Init:     api.InitArgs{},
+				Metadata: api.Metadata{},
+			})
 			assert.NoError(t, err)
 
-			_, err = env.Engine.StartChildFlow(
-				parentFS,
-				"token-1",
-				parentPlan.Children[parent.ID],
-				api.InitArgs{},
-				api.Metadata{},
-			)
+			_, err = env.Engine.StartChildFlow(&engine.ChildFlowRequest{
+				Parent:   parentFS,
+				Token:    "token-1",
+				Plan:     parentPlan.Children[parent.ID],
+				Init:     api.InitArgs{},
+				Metadata: api.Metadata{},
+			})
 			assert.NoError(t, err)
 		})
 	})
@@ -401,32 +410,35 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 
 			cat, err := env.Engine.GetCatalogState()
 			assert.NoError(t, err)
-			parentPlan, err := plan.Create(
-				env.Engine.Matcher, env.Engine.Children, cat,
-				[]api.StepID{parent.ID}, api.InitArgs{},
-			)
+			parentPlan, err := plan.Create(&plan.Request{
+				Match:    env.Engine.Matcher,
+				Children: env.Engine.Children,
+				Catalog:  cat,
+				Goals:    []api.StepID{parent.ID},
+				Init:     api.InitArgs{},
+			})
 			assert.NoError(t, err)
 
 			parentFS := api.FlowStep{
 				FlowID: "wf-parent-2",
 				StepID: parent.ID,
 			}
-			_, err = env.Engine.StartChildFlow(
-				parentFS,
-				"token-1",
-				parentPlan.Children[parent.ID],
-				api.InitArgs{"input": {"a"}},
-				api.Metadata{},
-			)
+			_, err = env.Engine.StartChildFlow(&engine.ChildFlowRequest{
+				Parent:   parentFS,
+				Token:    "token-1",
+				Plan:     parentPlan.Children[parent.ID],
+				Init:     api.InitArgs{"input": {"a"}},
+				Metadata: api.Metadata{},
+			})
 			assert.NoError(t, err)
 
-			_, err = env.Engine.StartChildFlow(
-				parentFS,
-				"token-1",
-				parentPlan.Children[parent.ID],
-				api.InitArgs{"input": {"b"}},
-				api.Metadata{},
-			)
+			_, err = env.Engine.StartChildFlow(&engine.ChildFlowRequest{
+				Parent:   parentFS,
+				Token:    "token-1",
+				Plan:     parentPlan.Children[parent.ID],
+				Init:     api.InitArgs{"input": {"b"}},
+				Metadata: api.Metadata{},
+			})
 			assert.ErrorIs(t, err, engine.ErrFlowExists)
 		})
 	})

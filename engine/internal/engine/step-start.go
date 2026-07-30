@@ -210,7 +210,13 @@ func (tx *flowTx) collectStepInputs(
 			if dec.fallback {
 				if attr.OptionalDefault() != "" {
 					value := parseDefaultValue(attr.OptionalDefault())
-					tx.setStepInput(inputs, step, name, attr, value)
+					tx.setStepInput(setStepInputArgs{
+						inputs: inputs,
+						step:   step,
+						name:   name,
+						attr:   attr,
+						value:  value,
+					})
 				}
 				continue
 			}
@@ -227,25 +233,44 @@ func (tx *flowTx) collectStepInputs(
 			}
 			if !attr.IsRequired() && attr.OptionalDefault() != "" {
 				value := parseDefaultValue(attr.OptionalDefault())
-				tx.setStepInput(inputs, step, name, attr, value)
+				tx.setStepInput(setStepInputArgs{
+					inputs: inputs,
+					step:   step,
+					name:   name,
+					attr:   attr,
+					value:  value,
+				})
 				continue
 			}
 			continue
 		}
 
-		tx.setStepInput(inputs, step, name, attr, val)
+		tx.setStepInput(setStepInputArgs{
+			inputs: inputs,
+			step:   step,
+			name:   name,
+			attr:   attr,
+			value:  val,
+		})
 	}
 
 	return inputs, nil
 }
 
-func (tx *flowTx) setStepInput(
-	inputs api.Args, step *api.Step, name api.Name, attr *api.AttributeSpec,
-	value any,
-) {
-	val := tx.mapper.MapInput(step, name, attr, value)
-	mapped, _ := step.MappedName(name)
-	inputs[mapped] = val
+type setStepInputArgs struct {
+	inputs api.Args
+	step   *api.Step
+	name   api.Name
+	attr   *api.AttributeSpec
+	value  any
+}
+
+func (tx *flowTx) setStepInput(args setStepInputArgs) {
+	val := tx.mapper.MapInput(
+		args.step, args.name, args.attr, args.value,
+	)
+	mapped, _ := args.step.MappedName(args.name)
+	args.inputs[mapped] = val
 }
 
 func (s *stepEval) canStart() (bool, time.Time) {

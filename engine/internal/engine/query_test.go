@@ -40,9 +40,13 @@ func TestListFlows(t *testing.T) {
 
 func TestListFlowsIgnoresBadStatusEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t,
-			env, events.FlowStatusActive, "bad", "flow-id", scheduler.Now(),
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusActive,
+			prefix: "bad",
+			id:     "flow-id",
+			at:     scheduler.Now(),
+		})
 
 		flows, err := env.Engine.ListFlows()
 		assert.Error(t, err)
@@ -139,13 +143,20 @@ func TestLabelIndex(t *testing.T) {
 func TestQueryFlowsSortAsc(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "flow-a", now,
-		)
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "flow-b",
-			now.Add(10*time.Millisecond),
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "flow-a",
+			at:     now,
+		})
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "flow-b",
+			at:     now.Add(10 * time.Millisecond),
+		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -162,13 +173,20 @@ func TestQueryFlowsSortAsc(t *testing.T) {
 func TestQueryFlowsPaginationAsc(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "page-a", now,
-		)
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "page-b",
-			now.Add(10*time.Millisecond),
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "page-a",
+			at:     now,
+		})
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "page-b",
+			at:     now.Add(10 * time.Millisecond),
+		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -222,9 +240,13 @@ func TestQueryFlowsBadCursorJSON(t *testing.T) {
 
 func TestQueryFlowsIgnoresBadStatusEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t,
-			env, events.FlowStatusActive, "bad", "flow-id", scheduler.Now(),
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusActive,
+			prefix: "bad",
+			id:     "flow-id",
+			at:     scheduler.Now(),
+		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowActive},
@@ -237,10 +259,13 @@ func TestQueryFlowsIgnoresBadStatusEntry(t *testing.T) {
 
 func TestQueryFlowsStaleLabels(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "missing-labels",
-			scheduler.Now(),
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "missing-labels",
+			at:     scheduler.Now(),
+		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -289,7 +314,13 @@ func TestLabelIntersection(t *testing.T) {
 
 func TestBadIndexedFlowEntry(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addLabelEntry(t, env, "tier", "gold", "bad", "flow-id")
+		addLabelEntry(t, addLabelEntryArgs{
+			env:    env,
+			label:  "tier",
+			value:  "gold",
+			prefix: "bad",
+			id:     "flow-id",
+		})
 
 		_, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Labels: api.Labels{"tier": "gold"},
@@ -332,10 +363,13 @@ func TestSkipChildFlows(t *testing.T) {
 
 		cat, err := env.Engine.GetCatalogState()
 		assert.NoError(t, err)
-		pl, err := plan.Create(
-			env.Engine.Matcher, env.Engine.Children, cat,
-			[]api.StepID{parent.ID}, api.InitArgs{},
-		)
+		pl, err := plan.Create(&plan.Request{
+			Match:    env.Engine.Matcher,
+			Children: env.Engine.Children,
+			Catalog:  cat,
+			Goals:    []api.StepID{parent.ID},
+			Init:     api.InitArgs{},
+		})
 		assert.NoError(t, err)
 
 		var childID api.FlowID
@@ -396,13 +430,20 @@ func TestQueryFlowsBadStatuses(t *testing.T) {
 func TestQueryFlowsPageDesc(t *testing.T) {
 	now := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "page-desc-a", now,
-		)
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "page-desc-b",
-			now.Add(10*time.Millisecond),
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "page-desc-a",
+			at:     now,
+		})
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "page-desc-b",
+			at:     now.Add(10 * time.Millisecond),
+		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -437,8 +478,20 @@ func TestQueryFlowsPageDesc(t *testing.T) {
 func TestSortTieBreak(t *testing.T) {
 	at := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, env, events.FlowStatusCompleted, "flow", "flow-b", at)
-		addStatusEntry(t, env, events.FlowStatusCompleted, "flow", "flow-a", at)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "flow-b",
+			at:     at,
+		})
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "flow-a",
+			at:     at,
+		})
 
 		resp, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -459,12 +512,20 @@ func TestSortTieBreak(t *testing.T) {
 func TestPageTieBreak(t *testing.T) {
 	at := time.Date(2026, 2, 27, 12, 0, 0, 0, time.UTC)
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "page-tie-b", at,
-		)
-		addStatusEntry(t, env,
-			events.FlowStatusCompleted, "flow", "page-tie-a", at,
-		)
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "page-tie-b",
+			at:     at,
+		})
+		addStatusEntry(t, addStatusEntryArgs{
+			env:    env,
+			status: events.FlowStatusCompleted,
+			prefix: "flow",
+			id:     "page-tie-a",
+			at:     at,
+		})
 
 		first, err := env.Engine.QueryFlows(&api.QueryFlowsRequest{
 			Statuses: []api.FlowStatus{api.FlowCompleted},
@@ -488,36 +549,51 @@ func TestPageTieBreak(t *testing.T) {
 	})
 }
 
-func addStatusEntry(
-	t *testing.T, env *helpers.TestEngineEnv, status, pfx, id string,
-	at time.Time,
-) {
+type addStatusEntryArgs struct {
+	env    *helpers.TestEngineEnv
+	status string
+	prefix string
+	id     string
+	at     time.Time
+}
+
+func addStatusEntry(t *testing.T, args addStatusEntryArgs) {
 	t.Helper()
 
-	aggID := timebox.NewAggregateID(timebox.ID(pfx), timebox.ID(id))
-	raw, err := marshalIndexedFlowEvent(status, nil)
+	aggID := timebox.NewAggregateID(
+		timebox.ID(args.prefix), timebox.ID(args.id),
+	)
+	raw, err := marshalIndexedFlowEvent(args.status, nil)
 	assert.NoError(t, err)
-	err = env.AppendEvents(aggID, 0, &timebox.Event{
+	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
 		AggregateID: aggID,
-		Timestamp:   at,
-		Type:        indexEventType(status),
+		Timestamp:   args.at,
+		Type:        indexEventType(args.status),
 		Data:        raw,
 	})
 	assert.NoError(t, err)
 }
 
-func addLabelEntry(
-	t *testing.T, env *helpers.TestEngineEnv, label, value, pfx, id string,
-) {
+type addLabelEntryArgs struct {
+	env    *helpers.TestEngineEnv
+	label  string
+	value  string
+	prefix string
+	id     string
+}
+
+func addLabelEntry(t *testing.T, args addLabelEntryArgs) {
 	t.Helper()
 
-	aggID := timebox.NewAggregateID(timebox.ID(pfx), timebox.ID(id))
+	aggID := timebox.NewAggregateID(
+		timebox.ID(args.prefix), timebox.ID(args.id),
+	)
 	raw, err := marshalIndexedFlowEvent(
 		events.FlowStatusActive,
-		api.Labels{label: value},
+		api.Labels{args.label: args.value},
 	)
 	assert.NoError(t, err)
-	err = env.AppendEvents(aggID, 0, &timebox.Event{
+	err = args.env.AppendEvents(aggID, 0, &timebox.Event{
 		AggregateID: aggID,
 		Timestamp:   scheduler.Now().UTC(),
 		Type:        timebox.EventType(api.EventTypeFlowStarted),

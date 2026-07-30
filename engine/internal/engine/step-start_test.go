@@ -112,9 +112,11 @@ func TestCollectLast(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		providerA, providerB, consumer, pl := collectPlan(
-			"last", api.InputCollectLast,
-		)
+		fixture := collectPlan("last", api.InputCollectLast)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
 		assert.NoError(t, env.Engine.RegisterStep(providerB))
 		assert.NoError(t, env.Engine.RegisterStep(consumer))
@@ -183,9 +185,11 @@ func TestCollectLists(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				assert.NoError(t, env.Engine.Start())
 
-				providerA, providerB, consumer, pl := collectPlan(
-					tt.name, tt.collect,
-				)
+				fixture := collectPlan(tt.name, tt.collect)
+				providerA := fixture.providerA
+				providerB := fixture.providerB
+				consumer := fixture.consumer
+				pl := fixture.plan
 				assert.NoError(t, env.Engine.RegisterStep(providerA))
 				assert.NoError(t, env.Engine.RegisterStep(providerB))
 				assert.NoError(t, env.Engine.RegisterStep(consumer))
@@ -653,7 +657,11 @@ func TestMatchRoutes(t *testing.T) {
 			helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 				assert.NoError(t, env.Engine.Start())
 
-				route, customer, email, postal := routingSteps()
+				steps := routingSteps()
+				route := steps.route
+				customer := steps.customer
+				email := steps.email
+				postal := steps.postal
 				for _, st := range []*api.Step{route, customer, email, postal} {
 					assert.NoError(t, env.Engine.RegisterStep(st))
 				}
@@ -683,10 +691,13 @@ func TestMatchRoutes(t *testing.T) {
 						AddStep(email).
 						AddStep(postal),
 				}
-				pl, err := plan.Create(
-					env.Engine.Matcher, env.Engine.Children, cat,
-					[]api.StepID{email.ID, postal.ID}, tt.init,
-				)
+				pl, err := plan.Create(&plan.Request{
+					Match:    env.Engine.Matcher,
+					Children: env.Engine.Children,
+					Catalog:  cat,
+					Goals:    []api.StepID{email.ID, postal.ID},
+					Init:     tt.init,
+				})
 				assert.NoError(t, err)
 
 				id := api.FlowID("wf-match-" + tt.name)
@@ -715,9 +726,11 @@ func TestMatchFilters(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		providerA, providerB, consumer, pl := collectPlan(
-			"match-some", api.InputCollectSome,
-		)
+		fixture := collectPlan("match-some", api.InputCollectSome)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   `return value == "a"`,
@@ -748,9 +761,11 @@ func TestMatchFirstPending(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		providerA, providerB, consumer, pl := collectPlan(
-			"match-first", api.InputCollectFirst,
-		)
+		fixture := collectPlan("match-first", api.InputCollectFirst)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   `return value == "a"`,
@@ -781,9 +796,11 @@ func TestMatchAllPrunes(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		providerA, providerB, consumer, pl := collectPlan(
-			"match-all", api.InputCollectAll,
-		)
+		fixture := collectPlan("match-all", api.InputCollectAll)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
 		consumer.Attributes["data"].Required.Match = &api.ScriptConfig{
 			Language: api.ScriptLangLua,
 			Script:   `return value == "a"`,
@@ -1013,7 +1030,14 @@ func TestPredicateError(t *testing.T) {
 	})
 }
 
-func routingSteps() (*api.Step, *api.Step, *api.Step, *api.Step) {
+type routingStepsRes struct {
+	route    *api.Step
+	customer *api.Step
+	email    *api.Step
+	postal   *api.Step
+}
+
+func routingSteps() routingStepsRes {
 	route := &api.Step{
 		ID:   "route",
 		Name: "Route",
@@ -1094,12 +1118,24 @@ func routingSteps() (*api.Step, *api.Step, *api.Step, *api.Step) {
 		},
 		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
 	}
-	return route, customer, email, postal
+	return routingStepsRes{
+		route:    route,
+		customer: customer,
+		email:    email,
+		postal:   postal,
+	}
+}
+
+type collectPlanRes struct {
+	providerA *api.Step
+	providerB *api.Step
+	consumer  *api.Step
+	plan      *api.ExecutionPlan
 }
 
 func collectPlan(
 	sfx string, collect api.InputCollect,
-) (*api.Step, *api.Step, *api.Step, *api.ExecutionPlan) {
+) collectPlanRes {
 	providerA := collectProvider(api.StepID("provider-a-" + sfx))
 	providerB := collectProvider(api.StepID("provider-b-" + sfx))
 	consumer := &api.Step{
@@ -1134,7 +1170,12 @@ func collectPlan(
 			},
 		},
 	}
-	return providerA, providerB, consumer, pl
+	return collectPlanRes{
+		providerA: providerA,
+		providerB: providerB,
+		consumer:  consumer,
+		plan:      pl,
+	}
 }
 
 func collectProvider(id api.StepID) *api.Step {

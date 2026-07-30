@@ -88,21 +88,27 @@ func landscapeNodes(existing []openapi.Step) []serviceNode {
 func serviceNodes(name string, spec openapi.Result) []serviceNode {
 	nodes := make([]serviceNode, 0, len(spec.Operations))
 	for _, op := range spec.Operations {
-		inputs, outputs, types := operationIO(op)
+		io := operationIO(op)
 		nodes = append(nodes, serviceNode{
 			Service: name,
 			ID:      op.ID,
 			Name:    op.Summary,
 			Source:  "contract",
-			Inputs:  inputs,
-			Outputs: outputs,
-			Types:   types,
+			Inputs:  io.inputs,
+			Outputs: io.outputs,
+			Types:   io.types,
 		})
 	}
 	return nodes
 }
 
-func operationIO(op openapi.Operation) ([]string, []string, map[string]string) {
+type operationIORes struct {
+	inputs  []string
+	outputs []string
+	types   map[string]string
+}
+
+func operationIO(op openapi.Operation) operationIORes {
 	res := map[string]string{}
 	var inputs []string
 	var outputs []string
@@ -119,7 +125,11 @@ func operationIO(op openapi.Operation) ([]string, []string, map[string]string) {
 	}
 	slices.Sort(inputs)
 	slices.Sort(outputs)
-	return inputs, outputs, res
+	return operationIORes{
+		inputs:  inputs,
+		outputs: outputs,
+		types:   res,
+	}
 }
 
 func relationships(nodes []serviceNode) []relationship {

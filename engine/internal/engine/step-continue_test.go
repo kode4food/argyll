@@ -833,9 +833,11 @@ func TestOptionalLastTimeout(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		providerA, providerB, consumer, pl := collectTimeoutPlan(
-			api.InputCollectLast,
-		)
+		fixture := collectTimeoutPlan(api.InputCollectLast)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
 		assert.NoError(t, env.Engine.RegisterStep(providerB))
@@ -865,9 +867,11 @@ func TestOptionalSomeTimeout(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		providerA, providerB, consumer, pl := collectTimeoutPlan(
-			api.InputCollectSome,
-		)
+		fixture := collectTimeoutPlan(api.InputCollectSome)
+		providerA := fixture.providerA
+		providerB := fixture.providerB
+		consumer := fixture.consumer
+		pl := fixture.plan
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
 		assert.NoError(t, env.Engine.RegisterStep(providerB))
@@ -908,9 +912,14 @@ func waitForWorkStarted(
 	})
 }
 
-func collectTimeoutPlan(
-	collect api.InputCollect,
-) (*api.Step, *api.Step, *api.Step, *api.ExecutionPlan) {
+type collectTimeoutPlanRes struct {
+	providerA *api.Step
+	providerB *api.Step
+	consumer  *api.Step
+	plan      *api.ExecutionPlan
+}
+
+func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 	providerA := &api.Step{
 		ID:   "provider-a",
 		Name: "Provider A",
@@ -975,5 +984,10 @@ func collectTimeoutPlan(
 			},
 		},
 	}
-	return providerA, providerB, consumer, pl
+	return collectTimeoutPlanRes{
+		providerA: providerA,
+		providerB: providerB,
+		consumer:  consumer,
+		plan:      pl,
+	}
 }

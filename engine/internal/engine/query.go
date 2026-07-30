@@ -86,9 +86,11 @@ func (e *Engine) QueryFlows(
 		return nil, err
 	}
 
-	page, hasMore, nextCursor := paginateFlowItems(items, start, req.Limit)
+	page := paginateFlowItems(items, start, req.Limit)
 
-	return buildFlowQueryResponse(page, len(items), hasMore, nextCursor), nil
+	return buildFlowQueryResponse(
+		page.items, len(items), page.hasMore, page.nextCursor,
+	), nil
 }
 
 // collectRootFlowEntries returns indexed root flow entries
@@ -350,9 +352,15 @@ func encodeFlowQueryCursor(cursor flowQueryCursor) string {
 	return base64.RawURLEncoding.EncodeToString(b)
 }
 
+type paginateFlowItemsRes struct {
+	items      []flowItem
+	hasMore    bool
+	nextCursor string
+}
+
 func paginateFlowItems(
 	items []flowItem, start, limit int,
-) ([]flowItem, bool, string) {
+) paginateFlowItemsRes {
 	end := len(items)
 	if limit > 0 && start+limit < end {
 		end = start + limit
@@ -365,7 +373,7 @@ func paginateFlowItems(
 
 	hasMore := end < len(items)
 	if !hasMore || len(page) == 0 {
-		return page, hasMore, ""
+		return paginateFlowItemsRes{items: page, hasMore: hasMore}
 	}
 
 	last := page[len(page)-1]
@@ -374,7 +382,11 @@ func paginateFlowItems(
 		Recent: last.recent,
 		ID:     last.summary.ID,
 	})
-	return page, hasMore, nextCursor
+	return paginateFlowItemsRes{
+		items:      page,
+		hasMore:    hasMore,
+		nextCursor: nextCursor,
+	}
 }
 
 // buildFlowQueryResponse converts items into the response payload

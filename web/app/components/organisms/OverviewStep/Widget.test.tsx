@@ -352,8 +352,7 @@ describe("Widget", () => {
 
     const { __openEditor } = require("@/app/contexts/StepEditorContext");
     const onUpdate = __openEditor.mock.calls[0]?.[0]?.onUpdate as
-      | ((updated: Step) => void)
-      | undefined;
+      ((updated: Step) => void) | undefined;
 
     expect(onUpdate).toBeDefined();
 

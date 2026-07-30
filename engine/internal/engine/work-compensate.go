@@ -75,12 +75,8 @@ func (tx *flowTx) startPendingCompensations(
 		return nil
 	}
 
-	type pending struct {
-		tkn     api.Token
-		inputs  api.Args
-		outputs api.Args
-	}
-	var toCompensate []pending
+	meta := tx.Value().Metadata
+	var toCompensate []performCompensationArgs
 
 	for tkn, work := range ex.WorkItems {
 		if !policy.WorkSucceeded(work.Status) {
@@ -89,10 +85,12 @@ func (tx *flowTx) startPendingCompensations(
 		if err := tx.raiseCompStarted(step.ID, tkn); err != nil {
 			return err
 		}
-		toCompensate = append(toCompensate, pending{
-			tkn:     tkn,
-			inputs:  ex.Inputs.Apply(work.Inputs),
-			outputs: work.Outputs,
+		toCompensate = append(toCompensate, performCompensationArgs{
+			step:     step,
+			inputs:   ex.Inputs.Apply(work.Inputs),
+			outputs:  work.Outputs,
+			token:    tkn,
+			metadata: meta,
 		})
 	}
 
@@ -100,10 +98,9 @@ func (tx *flowTx) startPendingCompensations(
 		return nil
 	}
 
-	meta := tx.Value().Metadata
 	tx.OnSuccess(func(_ api.FlowState, _ []*timebox.Event) {
-		for _, p := range toCompensate {
-			go tx.performCompensation(step, p.inputs, p.outputs, p.tkn, meta)
+		for _, comp := range toCompensate {
+			go tx.performCompensation(comp)
 		}
 	})
 	return nil
@@ -149,9 +146,13 @@ func (tx *flowTx) scheduleCompensationRetry(
 		nextRetryAt := tx.calculateNextRetryAt(
 			tx.Now(), st.WorkConfig, work.RetryCount,
 		)
-		err := tx.raiseCompRetryScheduled(
-			stepID, tkn, work, errMsg, nextRetryAt,
-		)
+		err := tx.raiseCompRetryScheduled(raiseCompRetryScheduledArgs{
+			stepID:      stepID,
+			token:       tkn,
+			work:        work,
+			errMsg:      errMsg,
+			nextRetryAt: nextRetryAt,
+		})
 		if err != nil {
 			return err
 		}
@@ -165,27 +166,34 @@ func (tx *flowTx) scheduleCompensationRetry(
 	return tx.failCompensation(stepID, tkn, errMsg)
 }
 
-func (tx *flowTx) performCompensation(
-	step *api.Step, inputs api.Args, outputs api.Args,
-	tkn api.Token, meta api.Metadata,
-) {
-	fs := api.FlowStep{FlowID: tx.flowID, StepID: step.ID}
-	comp, err := tx.Engine.compensator(step)
+type performCompensationArgs struct {
+	step     *api.Step
+	inputs   api.Args
+	outputs  api.Args
+	token    api.Token
+	metadata api.Metadata
+}
+
+func (tx *flowTx) performCompensation(args performCompensationArgs) {
+	fs := api.FlowStep{FlowID: tx.flowID, StepID: args.step.ID}
+	comp, err := tx.Engine.compensator(args.step)
 	if err != nil {
 		slog.Error("Failed to resolve step compensator",
-			log.StepID(step.ID),
+			log.StepID(args.step.ID),
 			log.Error(err))
 		return
 	}
 	if comp == nil {
 		return
 	}
-	err = comp(step, inputs, outputs, meta)
+	err = comp(args.step, args.inputs, args.outputs, args.metadata)
 	if err == nil {
-		if recErr := tx.Engine.CompleteCompensation(fs, tkn); recErr != nil {
+		if recErr := tx.Engine.CompleteCompensation(
+			fs, args.token,
+		); recErr != nil {
 			slog.Error("Failed to record compensation success",
 				log.FlowID(tx.flowID),
-				log.StepID(step.ID),
+				log.StepID(args.step.ID),
 				log.Error(recErr))
 		}
 		return
@@ -193,22 +201,22 @@ func (tx *flowTx) performCompensation(
 
 	if errors.Is(err, api.ErrWorkNotCompleted) {
 		if recErr := tx.Engine.NotCompleteCompensation(
-			fs, tkn, err.Error(),
+			fs, args.token, err.Error(),
 		); recErr != nil {
 			slog.Error("Failed to record compensation not completed",
 				log.FlowID(tx.flowID),
-				log.StepID(step.ID),
+				log.StepID(args.step.ID),
 				log.Error(recErr))
 		}
 		return
 	}
 
 	if recErr := tx.Engine.FailCompensation(
-		fs, tkn, err.Error(),
+		fs, args.token, err.Error(),
 	); recErr != nil {
 		slog.Error("Failed to record compensation failure",
 			log.FlowID(tx.flowID),
-			log.StepID(step.ID),
+			log.StepID(args.step.ID),
 			log.Error(recErr))
 	}
 }
@@ -264,7 +272,13 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 		meta = fl.Metadata
 
 		tx.OnSuccess(func(api.FlowState, []*timebox.Event) {
-			go tx.performCompensation(st, inputs, outputs, tkn, meta)
+			go tx.performCompensation(performCompensationArgs{
+				step:     st,
+				inputs:   inputs,
+				outputs:  outputs,
+				token:    tkn,
+				metadata: meta,
+			})
 		})
 		return nil
 	})
@@ -362,18 +376,25 @@ func (tx *flowTx) raiseCompFailed(
 	)
 }
 
+type raiseCompRetryScheduledArgs struct {
+	stepID      api.StepID
+	token       api.Token
+	work        api.WorkState
+	errMsg      string
+	nextRetryAt time.Time
+}
+
 func (tx *flowTx) raiseCompRetryScheduled(
-	stepID api.StepID, tkn api.Token, work api.WorkState,
-	errMsg string, nextRetryAt time.Time,
+	args raiseCompRetryScheduledArgs,
 ) error {
 	return events.Raise(tx.FlowAggregator, api.EventTypeCompRetryScheduled,
 		api.CompRetryScheduledEvent{
 			FlowID:      tx.flowID,
-			StepID:      stepID,
-			Token:       tkn,
-			RetryCount:  work.RetryCount + 1,
-			NextRetryAt: nextRetryAt,
-			Error:       errMsg,
+			StepID:      args.stepID,
+			Token:       args.token,
+			RetryCount:  args.work.RetryCount + 1,
+			NextRetryAt: args.nextRetryAt,
+			Error:       args.errMsg,
 		},
 	)
 }

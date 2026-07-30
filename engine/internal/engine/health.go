@@ -266,7 +266,12 @@ func (r *healthResolver) previewFlowPlan(
 		return nil, err
 	}
 
-	pl, err := plan.Create(r.match, nil, r.cat, children, api.InitArgs{})
+	pl, err := plan.Create(&plan.Request{
+		Match:   r.match,
+		Catalog: r.cat,
+		Goals:   children,
+		Init:    api.InitArgs{},
+	})
 	if err != nil {
 		r.planErrs[stepID] = err
 		return nil, err

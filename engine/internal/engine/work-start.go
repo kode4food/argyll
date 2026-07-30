@@ -66,7 +66,13 @@ func (e *ExecContext) StartChildFlow(
 	tkn api.Token, init api.InitArgs,
 ) (api.FlowID, error) {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
-	return e.engine.StartChildFlow(fs, tkn, e.child, init, e.meta)
+	return e.engine.StartChildFlow(&ChildFlowRequest{
+		Parent:   fs,
+		Token:    tkn,
+		Plan:     e.child,
+		Init:     init,
+		Metadata: e.meta,
+	})
 }
 
 func (e *ExecContext) UpdateHealth(s api.HealthStatus, msg string) error {
@@ -221,7 +227,13 @@ func (tx *flowTx) startRetryWorkItem(
 	case policy.RetryStartCheckPending:
 		var err error
 		if shouldStart, err = tx.shouldStartRetryPending(
-			step, ex.Inputs, work, ex.WorkItems, now,
+			shouldStartRetryPendingArgs{
+				step:  step,
+				base:  ex.Inputs,
+				work:  work,
+				items: ex.WorkItems,
+				when:  now,
+			},
 		); err != nil {
 			return nil, time.Time{}, err
 		}
@@ -262,23 +274,31 @@ func (tx *flowTx) shouldStartPendingWorkItem(
 	return shouldStart, nil
 }
 
+type shouldStartRetryPendingArgs struct {
+	step  *api.Step
+	base  api.Args
+	work  api.WorkState
+	items api.WorkItems
+	when  time.Time
+}
+
 func (tx *flowTx) shouldStartRetryPending(
-	step *api.Step, base api.Args, work api.WorkState, items api.WorkItems,
-	when time.Time,
+	args shouldStartRetryPendingArgs,
 ) (bool, error) {
-	sid := step.ID
-	if !work.NextRetryAt.IsZero() && work.NextRetryAt.After(when) {
+	sid := args.step.ID
+	if !args.work.NextRetryAt.IsZero() &&
+		args.work.NextRetryAt.After(args.when) {
 		return false, nil
 	}
-	limit := policy.StepParallelism(step)
-	active := policy.CountActiveWorkItems(items)
+	limit := policy.StepParallelism(args.step)
+	active := policy.CountActiveWorkItems(args.items)
 	if active >= limit {
 		return false, nil
 	}
-	inputs := base.Apply(work.Inputs)
-	shouldStart, err := tx.evaluateStepPredicate(step, inputs)
+	inputs := args.base.Apply(args.work.Inputs)
+	shouldStart, err := tx.evaluateStepPredicate(args.step, inputs)
 	if err != nil {
-		return false, tx.handlePredicateFailure(sid, base, err)
+		return false, tx.handlePredicateFailure(sid, args.base, err)
 	}
 	return shouldStart, nil
 }

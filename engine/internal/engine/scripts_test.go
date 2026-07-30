@@ -88,10 +88,13 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 		cat, err := eng.GetCatalogState()
 		assert.NoError(t, err)
 
-		pl, err := plan.Create(
-			eng.Matcher, eng.Children, cat,
-			[]api.StepID{parent.ID}, api.InitArgs{},
-		)
+		pl, err := plan.Create(&plan.Request{
+			Match:    eng.Matcher,
+			Children: eng.Children,
+			Catalog:  cat,
+			Goals:    []api.StepID{parent.ID},
+			Init:     api.InitArgs{},
+		})
 		assert.NoError(t, err)
 
 		if assert.Contains(t, pl.Children, parent.ID) {

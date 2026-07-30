@@ -33,9 +33,12 @@ func TestHTTPError(t *testing.T) {
 		return nil, builder.NewHTTPError(http.StatusTeapot, "teapot")
 	}
 
-	stepURL := startStepServer(t,
-		engineServer.URL, "test-step", "test-step", handler,
-	)
+	stepURL := startStepServer(t, startStepServerArgs{
+		engineURL: engineServer.URL,
+		stepName:  "test-step",
+		stepID:    "test-step",
+		handle:    handler,
+	})
 
 	body, err := json.Marshal(api.Args{"foo": "bar"})
 	assert.NoError(t, err)
@@ -64,9 +67,12 @@ func TestStepHandlerRejectsBadRequests(t *testing.T) {
 		return api.Args{}, nil
 	}
 
-	stepURL := startStepServer(t,
-		engineServer.URL, "bad-step", "bad-step", handler,
-	)
+	stepURL := startStepServer(t, startStepServerArgs{
+		engineURL: engineServer.URL,
+		stepName:  "bad-step",
+		stepID:    "bad-step",
+		handle:    handler,
+	})
 
 	resp, err := http.Get(stepURL)
 	assert.NoError(t, err)
@@ -98,9 +104,12 @@ func TestStepHandlerPlainError(t *testing.T) {
 		return nil, assert.AnError
 	}
 
-	stepURL := startStepServer(t,
-		engineServer.URL, "error-step", "error-step", handler,
-	)
+	stepURL := startStepServer(t, startStepServerArgs{
+		engineURL: engineServer.URL,
+		stepName:  "error-step",
+		stepID:    "error-step",
+		handle:    handler,
+	})
 
 	body, err := json.Marshal(api.Args{})
 	assert.NoError(t, err)
@@ -129,9 +138,12 @@ func TestPanic(t *testing.T) {
 		panic("boom")
 	}
 
-	stepURL := startStepServer(t,
-		engineServer.URL, "panic-step", "panic-step", handler,
-	)
+	stepURL := startStepServer(t, startStepServerArgs{
+		engineURL: engineServer.URL,
+		stepName:  "panic-step",
+		stepID:    "panic-step",
+		handle:    handler,
+	})
 
 	body, err := json.Marshal(api.Args{})
 	assert.NoError(t, err)
@@ -173,7 +185,12 @@ func TestStartFallsBackToUpdateOnRegisterConflict(t *testing.T) {
 		return api.Args{}, nil
 	}
 
-	_ = startStepServer(t, engineServer.URL, "test-step", "test-step", handler)
+	_ = startStepServer(t, startStepServerArgs{
+		engineURL: engineServer.URL,
+		stepName:  "test-step",
+		stepID:    "test-step",
+		handle:    handler,
+	})
 
 	assert.Equal(t, 1, postCount)
 	assert.Equal(t, 1, putCount)
@@ -210,9 +227,13 @@ func TestCompensateHandlerSuccess(t *testing.T) {
 		return nil
 	}
 
-	stepURL := startCompensatingStepServer(t,
-		engineServer.URL, "comp-step", "comp-step", handler, compensate,
-	)
+	stepURL := startCompensatingServer(t, startCompensatingServerArgs{
+		engineURL:  engineServer.URL,
+		stepName:   "comp-step",
+		stepID:     "comp-step",
+		handle:     handler,
+		compensate: compensate,
+	})
 
 	body, err := json.Marshal(map[string]api.Args{
 		"input":  {"request": "in"},
@@ -253,9 +274,13 @@ func TestCompensateHandlerRejectsBadRequests(t *testing.T) {
 		return nil
 	}
 
-	stepURL := startCompensatingStepServer(t,
-		engineServer.URL, "comp-bad", "comp-bad", handler, compensate,
-	)
+	stepURL := startCompensatingServer(t, startCompensatingServerArgs{
+		engineURL:  engineServer.URL,
+		stepName:   "comp-bad",
+		stepID:     "comp-bad",
+		handle:     handler,
+		compensate: compensate,
+	})
 
 	resp, err := http.Get(stepURL + "/compensate")
 	assert.NoError(t, err)
@@ -314,9 +339,14 @@ func TestCompensateHandlerErrors(t *testing.T) {
 			}
 
 			id := "comp-" + tc.name
-			stepURL := startCompensatingStepServer(t,
-				engineServer.URL, api.Name(id), api.StepID(id),
-				handler, compensate,
+			stepURL := startCompensatingServer(t,
+				startCompensatingServerArgs{
+					engineURL:  engineServer.URL,
+					stepName:   api.Name(id),
+					stepID:     api.StepID(id),
+					handle:     handler,
+					compensate: compensate,
+				},
 			)
 
 			body, err := json.Marshal(map[string]api.Args{
@@ -358,9 +388,13 @@ func TestCompensateHandlerPanic(t *testing.T) {
 		panic("comp boom")
 	}
 
-	stepURL := startCompensatingStepServer(t,
-		engineServer.URL, "comp-panic", "comp-panic", handler, compensate,
-	)
+	stepURL := startCompensatingServer(t, startCompensatingServerArgs{
+		engineURL:  engineServer.URL,
+		stepName:   "comp-panic",
+		stepID:     "comp-panic",
+		handle:     handler,
+		compensate: compensate,
+	})
 
 	body, err := json.Marshal(map[string]api.Args{
 		"input":  {},
@@ -393,48 +427,59 @@ func getFreePort(t *testing.T) string {
 	return port
 }
 
-func startStepServer(
-	t *testing.T, engineURL string, stepName api.Name, stepID api.StepID,
-	handle builder.StepHandler,
-) string {
-	t.Helper()
-
-	http.DefaultServeMux = http.NewServeMux()
-
-	port := getFreePort(t)
-	host := "127.0.0.1"
-
-	_ = os.Setenv("STEP_PORT", port)
-	_ = os.Setenv("STEP_HOSTNAME", host)
-	t.Cleanup(func() {
-		_ = os.Unsetenv("STEP_PORT")
-		_ = os.Unsetenv("STEP_HOSTNAME")
-	})
-
-	client := builder.NewClient(engineURL, time.Second)
-	go func() {
-		_ = client.NewStep().WithName(stepName).
-			WithID(string(stepID)).
-			WithSyncExecution().
-			Start(handle)
-	}()
-
-	healthURL := fmt.Sprintf("http://%s:%s/health", host, port)
-	assert.Eventually(t, func() bool {
-		resp, err := http.Get(healthURL)
-		if err != nil {
-			return false
-		}
-		defer func() { _ = resp.Body.Close() }()
-		return resp.StatusCode == http.StatusOK
-	}, time.Second, 20*time.Millisecond)
-
-	return fmt.Sprintf("http://%s:%s/%s", host, port, stepID)
+type startStepServerArgs struct {
+	engineURL string
+	stepName  api.Name
+	stepID    api.StepID
+	handle    builder.StepHandler
 }
 
-func startCompensatingStepServer(
-	t *testing.T, engineURL string, stepName api.Name, stepID api.StepID,
-	handle builder.StepHandler, compensate builder.CompensateHandler,
+func startStepServer(t *testing.T, args startStepServerArgs) string {
+	t.Helper()
+
+	http.DefaultServeMux = http.NewServeMux()
+
+	port := getFreePort(t)
+	host := "127.0.0.1"
+
+	_ = os.Setenv("STEP_PORT", port)
+	_ = os.Setenv("STEP_HOSTNAME", host)
+	t.Cleanup(func() {
+		_ = os.Unsetenv("STEP_PORT")
+		_ = os.Unsetenv("STEP_HOSTNAME")
+	})
+
+	client := builder.NewClient(args.engineURL, time.Second)
+	go func() {
+		_ = client.NewStep().WithName(args.stepName).
+			WithID(string(args.stepID)).
+			WithSyncExecution().
+			Start(args.handle)
+	}()
+
+	healthURL := fmt.Sprintf("http://%s:%s/health", host, port)
+	assert.Eventually(t, func() bool {
+		resp, err := http.Get(healthURL)
+		if err != nil {
+			return false
+		}
+		defer func() { _ = resp.Body.Close() }()
+		return resp.StatusCode == http.StatusOK
+	}, time.Second, 20*time.Millisecond)
+
+	return fmt.Sprintf("http://%s:%s/%s", host, port, args.stepID)
+}
+
+type startCompensatingServerArgs struct {
+	engineURL  string
+	stepName   api.Name
+	stepID     api.StepID
+	handle     builder.StepHandler
+	compensate builder.CompensateHandler
+}
+
+func startCompensatingServer(
+	t *testing.T, args startCompensatingServerArgs,
 ) string {
 	t.Helper()
 
@@ -450,13 +495,13 @@ func startCompensatingStepServer(
 		_ = os.Unsetenv("STEP_HOSTNAME")
 	})
 
-	client := builder.NewClient(engineURL, time.Second)
+	client := builder.NewClient(args.engineURL, time.Second)
 	go func() {
-		_ = client.NewStep().WithName(stepName).
-			WithID(string(stepID)).
+		_ = client.NewStep().WithName(args.stepName).
+			WithID(string(args.stepID)).
 			WithSyncExecution().
-			WithCompensateHandler(compensate).
-			Start(handle)
+			WithCompensateHandler(args.compensate).
+			Start(args.handle)
 	}()
 
 	healthURL := fmt.Sprintf("http://%s:%s/health", host, port)
@@ -469,5 +514,5 @@ func startCompensatingStepServer(
 		return resp.StatusCode == http.StatusOK
 	}, time.Second, 20*time.Millisecond)
 
-	return fmt.Sprintf("http://%s:%s/%s", host, port, stepID)
+	return fmt.Sprintf("http://%s:%s/%s", host, port, args.stepID)
 }

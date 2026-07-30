@@ -41,7 +41,12 @@ func TestCompensationSucceeds(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-a")
 
-		setupCompensatingFlow(env, id, st, tkn, false)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:   env,
+			id:    id,
+			step:  st,
+			token: tkn,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -119,7 +124,12 @@ func TestCompRetryOnTransient(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-b")
 
-		setupCompensatingFlow(env, id, st, tkn, false)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:   env,
+			id:    id,
+			step:  st,
+			token: tkn,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -159,7 +169,12 @@ func TestCompRetriesExhausted(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-c")
 
-		setupCompensatingFlow(env, id, st, tkn, false)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:   env,
+			id:    id,
+			step:  st,
+			token: tkn,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -192,7 +207,13 @@ func TestCompensationRecovery(t *testing.T) {
 		tkn := api.Token("work-d")
 
 		// State: failed flow with WorkCompensating already started
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -217,7 +238,13 @@ func TestCompCompleteDirectly(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-e")
 
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		err := env.Engine.CompleteCompensation(fs, tkn)
 		assert.NoError(t, err)
@@ -237,7 +264,13 @@ func TestCompFailDirectly(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-f")
 
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		err := env.Engine.FailCompensation(fs, tkn, "comp boom")
 		assert.NoError(t, err)
@@ -290,7 +323,13 @@ func TestCompDeferredToHealthyPeer(t *testing.T) {
 
 		// Inject flow state: step failed with one succeeded work item and
 		// comp already started (WorkCompensating)
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -321,7 +360,12 @@ func TestCompFailOnPermanentError(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-hard")
 
-		setupCompensatingFlow(env, id, st, tkn, false)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:   env,
+			id:    id,
+			step:  st,
+			token: tkn,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -347,7 +391,13 @@ func TestCompCompleteIdempotent(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-idem-ok")
 
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
@@ -375,7 +425,13 @@ func TestCompFailIdempotent(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-idem-fail")
 
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		assert.NoError(t, env.Engine.FailCompensation(fs, tkn, "boom"))
 
@@ -403,7 +459,13 @@ func TestCompRetryNoopForMissingOrTerminalWork(t *testing.T) {
 		fs := api.FlowStep{FlowID: id, StepID: st.ID}
 		tkn := api.Token("work-retry-noop")
 
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
 		assert.NoError(t, env.Engine.NotCompleteCompensation(
@@ -447,7 +509,13 @@ func TestCompDispatchRecovery(t *testing.T) {
 		tkn := api.Token("work-recovery")
 
 		// State: failed flow with comp in progress (WorkCompensating)
-		setupCompensatingFlow(env, id, st, tkn, true)
+		setupCompensatingFlow(setupCompensatingFlowArgs{
+			env:     env,
+			id:      id,
+			step:    st,
+			token:   tkn,
+			started: true,
+		})
 
 		env.WithConsumer(func(consumer *event.Consumer) {
 			w := wait.On(t, consumer)
@@ -482,20 +550,25 @@ func newCompensatingStep(id api.StepID) *api.Step {
 
 // setupCompensatingFlow injects events for a flow whose step has one succeeded
 // work item followed by step and flow failure, with comp started
-func setupCompensatingFlow(
-	env *helpers.TestEngineEnv, id api.FlowID, st *api.Step, tkn api.Token,
-	withCompStarted bool,
-) {
+type setupCompensatingFlowArgs struct {
+	env     *helpers.TestEngineEnv
+	id      api.FlowID
+	step    *api.Step
+	token   api.Token
+	started bool
+}
+
+func setupCompensatingFlow(args setupCompensatingFlowArgs) {
 	pl := &api.ExecutionPlan{
-		Goals: []api.StepID{st.ID},
-		Steps: api.Steps{st.ID: st},
+		Goals: []api.StepID{args.step.ID},
+		Steps: api.Steps{args.step.ID: args.step},
 	}
 
 	evs := []helpers.FlowEvent{
 		{
 			Type: api.EventTypeFlowStarted,
 			Data: api.FlowStartedEvent{
-				FlowID: id,
+				FlowID: args.id,
 				Plan:   pl,
 				Init:   api.InitArgs{},
 			},
@@ -503,57 +576,59 @@ func setupCompensatingFlow(
 		{
 			Type: api.EventTypeStepStarted,
 			Data: api.StepStartedEvent{
-				FlowID:    id,
-				StepID:    st.ID,
+				FlowID:    args.id,
+				StepID:    args.step.ID,
 				Inputs:    api.Args{},
-				WorkItems: map[api.Token]api.Args{tkn: {}},
+				WorkItems: map[api.Token]api.Args{args.token: {}},
 			},
 		},
 		{
 			Type: api.EventTypeWorkStarted,
 			Data: api.WorkStartedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Token:  tkn,
+				FlowID: args.id,
+				StepID: args.step.ID,
+				Token:  args.token,
 				Inputs: api.Args{},
 			},
 		},
 		{
 			Type: api.EventTypeWorkSucceeded,
 			Data: api.WorkSucceededEvent{
-				FlowID:  id,
-				StepID:  st.ID,
-				Token:   tkn,
+				FlowID:  args.id,
+				StepID:  args.step.ID,
+				Token:   args.token,
 				Outputs: api.Args{"result": "ok"},
 			},
 		},
 		{
 			Type: api.EventTypeStepFailed,
 			Data: api.StepFailedEvent{
-				FlowID: id,
-				StepID: st.ID,
+				FlowID: args.id,
+				StepID: args.step.ID,
 				Error:  "forced failure",
 			},
 		},
 		{
 			Type: api.EventTypeFlowFailed,
 			Data: api.FlowFailedEvent{
-				FlowID: id,
+				FlowID: args.id,
 				Error:  "forced failure",
 			},
 		},
 	}
 
-	if withCompStarted {
+	if args.started {
 		evs = append(evs, helpers.FlowEvent{
 			Type: api.EventTypeCompStarted,
 			Data: api.CompStartedEvent{
-				FlowID: id,
-				StepID: st.ID,
-				Token:  tkn,
+				FlowID: args.id,
+				StepID: args.step.ID,
+				Token:  args.token,
 			},
 		})
 	}
 
-	assert.NoError(env.T, env.RaiseFlowEvents(id, evs...))
+	assert.NoError(
+		args.env.T, args.env.RaiseFlowEvents(args.id, evs...),
+	)
 }

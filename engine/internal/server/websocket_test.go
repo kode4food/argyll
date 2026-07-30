@@ -725,7 +725,12 @@ func testWebSocket(t *testing.T, getState server.StateFunc) *testWebSocketEnv {
 
 	srv := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
-			server.HandleWebSocket(env.EventHub, w, r, getState, nil)
+			server.HandleWebSocket(&server.WebSocketRequest{
+				Hub:     env.EventHub,
+				Writer:  w,
+				Request: r,
+				State:   getState,
+			})
 		},
 	))
 

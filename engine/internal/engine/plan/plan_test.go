@@ -939,13 +939,23 @@ func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
 func createPlan(
 	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return plan.Create(testEval, nil, cat, goals, init)
+	return plan.Create(&plan.Request{
+		Match:   testEval,
+		Catalog: cat,
+		Goals:   goals,
+		Init:    init,
+	})
 }
 
 func previewPlan(
 	cat api.CatalogState, goals []api.StepID, init api.InitArgs,
 ) (*api.ExecutionPlan, error) {
-	return plan.Preview(testEval, nil, cat, goals, init)
+	return plan.Preview(&plan.Request{
+		Match:   testEval,
+		Catalog: cat,
+		Goals:   goals,
+		Init:    init,
+	})
 }
 
 func makeCatalogState(steps api.Steps) api.CatalogState {

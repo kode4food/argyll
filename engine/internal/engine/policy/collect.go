@@ -5,15 +5,26 @@ import "github.com/kode4food/argyll/engine/pkg/api"
 // ProviderSummary is the executor's concrete view of all providers for an
 // attribute. It lets collect-mode policy reason about provider completion
 // without depending on FlowState directly
-type ProviderSummary struct {
-	// Terminal is true when every planned provider has reached a terminal step
-	// state, whether successful, failed, or skipped
-	Terminal bool
+type (
+	// RequiredInputState describes available values and providers for an input
+	RequiredInputState struct {
+		Attr        *api.AttributeSpec
+		HasInit     bool
+		HasProvider bool
+		Values      []*api.AttributeValue
+		Match       Matcher
+	}
 
-	// AllSucceeded is true when every planned provider completed successfully
-	// and produced a value for the collected attribute
-	AllSucceeded bool
-}
+	ProviderSummary struct {
+		// Terminal is true when every planned provider has reached a terminal
+		// step state, whether successful, failed, or skipped
+		Terminal bool
+
+		// AllSucceeded is true when every planned provider completed
+		// successfully and produced a value for the collected attribute
+		AllSucceeded bool
+	}
+)
 
 // InitSatisfiesInput reports whether an initial flow value is enough to
 // satisfy an input during planning. Only collect:first treats an init value as
@@ -39,25 +50,22 @@ func InitProviderComplete(hasInit, hasProvider bool) bool {
 // InitSatisfiesRequired reports whether init data can satisfy an input during
 // planning. Inputs without match follow collect-mode init policy; inputs with
 // match must also have an init value that satisfies the match predicate
-func InitSatisfiesRequired(
-	attr *api.AttributeSpec, hasInit, hasProvider bool,
-	values []*api.AttributeValue, match Matcher,
-) bool {
-	if !InitSatisfiesInput(attr.Collect(), hasInit) {
+func InitSatisfiesRequired(st *RequiredInputState) bool {
+	if !InitSatisfiesInput(st.Attr.Collect(), st.HasInit) {
 		return false
 	}
-	if !RequiredInputHasMatch(attr) {
+	if !RequiredInputHasMatch(st.Attr) {
 		return true
 	}
-	complete := InitProviderComplete(hasInit, hasProvider)
+	complete := InitProviderComplete(st.HasInit, st.HasProvider)
 	status, err := RequiredMatchStatus(RequiredMatchSpec{
-		Attr:   attr,
-		Values: values,
+		Attr:   st.Attr,
+		Values: st.Values,
 		Provider: ProviderSummary{
 			Terminal:     complete,
 			AllSucceeded: complete,
 		},
-		Match: match,
+		Match: st.Match,
 	})
 	return err == nil && status == MatchMatched
 }

@@ -14,11 +14,22 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util/call"
 )
 
-type flowTx struct {
-	*Engine
-	*FlowAggregator
-	flowID api.FlowID
-}
+type (
+	// ChildFlowRequest contains the state needed to start a child flow
+	ChildFlowRequest struct {
+		Parent   api.FlowStep
+		Token    api.Token
+		Plan     *api.ExecutionPlan
+		Init     api.InitArgs
+		Metadata api.Metadata
+	}
+
+	flowTx struct {
+		*Engine
+		*FlowAggregator
+		flowID api.FlowID
+	}
+)
 
 var (
 	ErrFlowExists        = errors.New("flow exists with different plan or init")
@@ -71,15 +82,12 @@ func (e *Engine) StartFlow(
 	})
 }
 
-func (e *Engine) StartChildFlow(
-	parent api.FlowStep, tkn api.Token, pl *api.ExecutionPlan,
-	init api.InitArgs, meta api.Metadata,
-) (api.FlowID, error) {
-	childID := childFlowID(parent, tkn)
-	err := e.StartFlow(childID, pl,
-		flow.WithInit(init),
-		flow.WithMetadata(meta),
-		flow.WithParent(parent, tkn),
+func (e *Engine) StartChildFlow(req *ChildFlowRequest) (api.FlowID, error) {
+	childID := childFlowID(req.Parent, req.Token)
+	err := e.StartFlow(childID, req.Plan,
+		flow.WithInit(req.Init),
+		flow.WithMetadata(req.Metadata),
+		flow.WithParent(req.Parent, req.Token),
 	)
 	if err != nil {
 		return "", err

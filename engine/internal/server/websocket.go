@@ -23,6 +23,15 @@ import (
 )
 
 type (
+	// WebSocketRequest contains the dependencies for a WebSocket connection
+	WebSocketRequest struct {
+		Hub      *event.Hub
+		Writer   http.ResponseWriter
+		Request  *http.Request
+		State    StateFunc
+		Register RegisterFunc
+	}
+
 	// Client represents a WebSocket client connection for event streaming
 	Client struct {
 		hub           *event.Hub
@@ -84,39 +93,39 @@ var (
 
 // HandleWebSocket upgrades an HTTP connection to WebSocket and starts
 // streaming events based on client subscriptions
-func HandleWebSocket(
-	hub *event.Hub, w http.ResponseWriter, r *http.Request, st StateFunc,
-	register RegisterFunc,
-) {
-	conn, err := upgrader.Upgrade(w, r, nil)
+func HandleWebSocket(req *WebSocketRequest) {
+	conn, err := upgrader.Upgrade(req.Writer, req.Request, nil)
 	if err != nil {
 		slog.Error("WebSocket upgrade failed", log.Error(err))
 		return
 	}
 
 	client := &Client{
-		hub:           hub,
+		hub:           req.Hub,
 		conn:          conn,
-		getState:      st,
+		getState:      req.State,
 		subscriptions: map[string]*clientSubscription{},
 		done:          make(chan struct{}),
 	}
 
-	if register != nil {
-		register(client)
+	if req.Register != nil {
+		req.Register(client)
 	}
 
 	go client.run()
 }
 
 func (s *Server) handleWebSocket(c *gin.Context) {
-	HandleWebSocket(s.eventHub, c.Writer, c.Request,
-		s.lookupSubscriptionState,
-		func(c *Client) {
+	HandleWebSocket(&WebSocketRequest{
+		Hub:     s.eventHub,
+		Writer:  c.Writer,
+		Request: c.Request,
+		State:   s.lookupSubscriptionState,
+		Register: func(c *Client) {
 			c.onClose = s.unregisterWebSocket
 			s.registerWebSocket(c)
 		},
-	)
+	})
 }
 
 func (s *Server) lookupSubscriptionState(

@@ -160,6 +160,32 @@ Use `sid`, `fid`, and `nid` instead of longer local names like `stepID`, `flowID
 Longer forms such as `stepID`, `flowID`, and `nodeID` are still acceptable, and often preferable, for function parameters and other API boundaries where explicitness matters more than brevity.
 Similarly, prefer `h` for local `api.HealthState` values, but `health` is acceptable, and often preferable, for function parameters and other API boundaries.
 
+### Argument and Result Structs
+
+Functions with five or more explicit arguments must bundle their data arguments into a struct. Functions returning three or more data values must return a struct. A trailing `bool` or `error` that reports success does not count as a data value.
+
+For unexported functions, name these types after the function with an `Args` or `Res` suffix, declare them immediately before the function, and pass or return them by value:
+
+```go
+type startCompensatingServerArgs struct {
+    engineURL  string
+    stepName   api.Name
+    stepID     api.StepID
+    handle     builder.StepHandler
+    compensate builder.CompensateHandler
+}
+
+func startCompensatingServer(
+    t *testing.T, args startCompensatingServerArgs,
+) string {
+```
+
+Keep `*testing.T` as the first positional parameter of test helpers. It counts toward the argument threshold but never belongs in an argument struct, so test-related functions remain identifiable.
+
+Exported APIs may instead use descriptive request, response, or state type names without `Args` or `Res`. Declare those exported types at the top of the file with the other exported types; pointers are acceptable when appropriate.
+
+Adjacent arguments or results of the same type must be disambiguated with named struct fields or distinct named types. Struct field names must be clear without relying on their position. Keep struct literals on one line when they fit; when they wrap, use exactly one field per line.
+
 ### Function Signature Wrapping
 
 When a function signature is too long for one line, keep as many parameters as fit on the first line and wrap the remainder on the next line(s). Do not put one parameter per line unless the line would still exceed the limit.

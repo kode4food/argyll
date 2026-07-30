@@ -1,8 +1,7 @@
 import { Node } from "@xyflow/react";
 
 export type NodePositionScope =
-  | { type: "overview" }
-  | { type: "flow"; flowId: string };
+  { type: "overview" } | { type: "flow"; flowId: string };
 
 export type NodePositions = Record<string, { x: number; y: number }>;
 
