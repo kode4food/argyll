@@ -49,12 +49,10 @@ github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aN
 github.com/gorilla/websocket v1.5.3/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
 github.com/klauspost/compress v1.18.5 h1:/h1gH5Ce+VWNLSWqPzOVn6XBO+vJbCNGvjoaGBFW2IE=
 github.com/klauspost/compress v1.18.5/go.mod h1:cwPg85FWrGar70rWktvGQj8/hthj3wpl0PGDogxkrSQ=
-github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734 h1:vyfsahYw9Uv2ZnIVwQKt7BSrSQP5rSYz5ZMbptMUraY=
-github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734/go.mod h1:TWF43/SnNy66+tw7h5i8mfBmFBSEOHGWgv164/4nwGc=
+github.com/kode4food/argyll/engine v0.0.0-20260803115711-93c29a472a98 h1:nyw2ErZDA2/7FVZMUmU7tAgQfuxMUuDN+dw/ZzIbq0k=
+github.com/kode4food/argyll/engine v0.0.0-20260803115711-93c29a472a98/go.mod h1:149D8C+hzfL/y0Ec2raQ0t1HHfipDTiPJ4Ra/Y6VGmw=
 github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04 h1:O8jM26YJoIOtdr1KFQyYGN2KLI1BhXfcOCg/JV2FnB4=
 github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04/go.mod h1:pGgR7tUFmLBWj3l6kFHTlWlt6DLNwajqUHErH+3Z8Fk=
-github.com/kode4food/gen-maxkind v0.1.2 h1:nPf0AV+rExLgXSZqqoP15i08UDVmijFU5JJfhZJ5s0w=
-github.com/kode4food/gen-maxkind v0.1.2/go.mod h1:4vJTMFzmvbdvbf488Ae76vHrgms5LGDr3ryx9bnPVoM=
 github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9 h1:cp+VeR7jZf2PMgZh5EipZx/SqcjHhNcAfE+mxbyP/EM=
 github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9/go.mod h1:tluthR8KBbfjN0nMhkIUJi9FUZbNpR1x7eZQm0eydJo=
 github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9 h1:sR7BMpyWzMmwOGwZw+evTvdvbZSAsX53WLtGNvVtwi0=

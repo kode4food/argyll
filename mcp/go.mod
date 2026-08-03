@@ -4,7 +4,7 @@ go 1.25.7
 
 require (
 	github.com/getkin/kin-openapi v0.144.0
-	github.com/kode4food/argyll/engine v0.0.0-20260425054836-250dc5c87734
+	github.com/kode4food/argyll/engine v0.0.0-20260803115711-93c29a472a98
 	github.com/localrivet/gomcp v1.7.2
 	github.com/stretchr/testify v1.11.1
 )
@@ -19,7 +19,6 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
-	github.com/kode4food/timebox v0.0.0-20260528050313-9473fa27bf0f // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
@@ -36,7 +35,6 @@ require (
 	golang.org/x/sync v0.20.0 // indirect
 	golang.org/x/sys v0.45.0 // indirect
 	golang.org/x/text v0.37.0 // indirect
-	golang.org/x/tools v0.45.0 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20260420184626-e10c466a9529 // indirect
 	google.golang.org/grpc v1.82.1 // indirect
 	google.golang.org/protobuf v1.36.11 // indirect
