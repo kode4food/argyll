@@ -264,15 +264,15 @@ func TestStepWithOutput(t *testing.T) {
 
 func TestScriptStep(t *testing.T) {
 	st := helpers.NewScriptStep(
-		"script-id", api.ScriptLangAle, "{:result 42}", "result",
+		"script-id", api.ScriptLangLua, "return {result = 42}", "result",
 	)
 
 	assert.NotNil(t, st)
 	assert.Equal(t, api.StepID("script-id"), st.ID)
 	assert.Equal(t, api.StepTypeScript, st.Type)
 	assert.NotNil(t, st.Script)
-	assert.Equal(t, api.ScriptLangAle, st.Script.Language)
-	assert.Equal(t, "{:result 42}", st.Script.Script)
+	assert.Equal(t, api.ScriptLangLua, st.Script.Language)
+	assert.Equal(t, "return {result = 42}", st.Script.Script)
 	assert.Len(t, st.GetOutputArgs(), 1)
 	assert.Contains(t, st.GetOutputArgs(), api.Name("result"))
 
@@ -292,7 +292,7 @@ func TestScriptNoOutput(t *testing.T) {
 
 func TestStepPredicate(t *testing.T) {
 	st := helpers.NewStepWithPredicate(
-		"pred-step", api.ScriptLangAle, "true", "output",
+		"pred-step", api.ScriptLangLua, "return true", "output",
 	)
 
 	assert.NotNil(t, st)
@@ -300,8 +300,8 @@ func TestStepPredicate(t *testing.T) {
 	assert.Equal(t, api.StepTypeSync, st.Type)
 	assert.NotNil(t, st.HTTP)
 	assert.NotNil(t, st.Predicate)
-	assert.Equal(t, api.ScriptLangAle, st.Predicate.Language)
-	assert.Equal(t, "true", st.Predicate.Script)
+	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
+	assert.Equal(t, "return true", st.Predicate.Script)
 	assert.Len(t, st.GetOutputArgs(), 1)
 	assert.Contains(t, st.GetOutputArgs(), api.Name("output"))
 

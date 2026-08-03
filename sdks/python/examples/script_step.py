@@ -5,11 +5,11 @@ from argyll import Client, AttributeType
 client = Client("http://localhost:8080")
 
 if __name__ == "__main__":
-    # Ale script that doubles a number
+    # Lua script that doubles a number
     client.new_step().with_name("Double") \
         .required("value", AttributeType.NUMBER) \
         .output("result", AttributeType.NUMBER) \
-        .with_script("(* value 2)") \
+        .with_script("return {result = value * 2}") \
         .with_label("category", "math") \
         .register()
 

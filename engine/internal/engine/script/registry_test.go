@@ -39,17 +39,17 @@ func (r registryTestEnv) EvaluateMatch(script.Compiled, any) (bool, error) {
 	return true, nil
 }
 
-func TestAleCompilation(t *testing.T) {
+func TestRegistryCompilation(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
 		st := &api.Step{
-			ID:   "ale-step",
-			Name: "Ale Step",
+			ID:   "registry-step",
+			Name: "Registry Step",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "{:result (* x 2)}",
+				Language: api.ScriptLangLua,
+				Script:   "return {result = x * 2}",
 			},
 			Attributes: api.AttributeSpecs{
 				"x":      {Role: api.RoleRequired, Type: api.TypeNumber},
@@ -57,7 +57,7 @@ func TestAleCompilation(t *testing.T) {
 			},
 		}
 
-		env, err := registry.Get(api.ScriptLangAle)
+		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
 		comp, err := env.Compile(st, st.Script)
@@ -67,7 +67,7 @@ func TestAleCompilation(t *testing.T) {
 		inputs := api.Args{"x": float64(21)}
 		outputs, err := env.ExecuteScript(comp, st, inputs)
 		assert.NoError(t, err)
-		assert.Equal(t, float64(42), outputs["result"])
+		assert.Equal(t, 42, outputs["result"])
 	})
 }
 
@@ -103,7 +103,7 @@ func TestLuaCompilation(t *testing.T) {
 	})
 }
 
-func TestAlePredicateTrue(t *testing.T) {
+func TestRegistryPredicateTrue(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
@@ -115,15 +115,15 @@ func TestAlePredicateTrue(t *testing.T) {
 				Endpoint: "http://test:8080",
 			},
 			Predicate: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "(> x 10)",
+				Language: api.ScriptLangLua,
+				Script:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
 			},
 		}
 
-		env, err := registry.Get(api.ScriptLangAle)
+		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
 		comp, err := env.Compile(st, st.Predicate)
@@ -136,7 +136,7 @@ func TestAlePredicateTrue(t *testing.T) {
 	})
 }
 
-func TestAlePredicateFalse(t *testing.T) {
+func TestRegistryPredicateFalse(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
@@ -148,15 +148,15 @@ func TestAlePredicateFalse(t *testing.T) {
 				Endpoint: "http://test:8080",
 			},
 			Predicate: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "(> x 10)",
+				Language: api.ScriptLangLua,
+				Script:   "return x > 10",
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {Role: api.RoleRequired, Type: api.TypeNumber},
 			},
 		}
 
-		env, err := registry.Get(api.ScriptLangAle)
+		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
 		comp, err := env.Compile(st, st.Predicate)
@@ -333,8 +333,8 @@ func TestCompileViaRegistry(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
-		aleStep := helpers.NewScriptStep(
-			"ale-step", api.ScriptLangAle, "{:result 42}", "result",
+		firstStep := helpers.NewScriptStep(
+			"first-step", api.ScriptLangLua, "return {result = 42}", "result",
 		)
 
 		luaStep := helpers.NewScriptStep(
@@ -342,12 +342,12 @@ func TestCompileViaRegistry(t *testing.T) {
 		)
 
 		httpStepPred := helpers.NewStepWithPredicate(
-			"http-step", api.ScriptLangAle, "true",
+			"http-step", api.ScriptLangLua, "return true",
 		)
 
-		aleComp, err := registry.Compile(aleStep, aleStep.Script)
+		firstComp, err := registry.Compile(firstStep, firstStep.Script)
 		assert.NoError(t, err)
-		assert.NotNil(t, aleComp)
+		assert.NotNil(t, firstComp)
 
 		luaComp, err := registry.Compile(luaStep, luaStep.Script)
 		assert.NoError(t, err)
@@ -359,20 +359,20 @@ func TestCompileViaRegistry(t *testing.T) {
 	})
 }
 
-func TestAleComplexScript(t *testing.T) {
+func TestRegistryComplexScript(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
 		st := &api.Step{
-			ID:   "complex-ale",
-			Name: "Complex Ale",
+			ID:   "complex-registry",
+			Name: "Complex Registry Script",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script: `{
-				:sum (+ a b)
-				:product (* a b)
-				:greeting (str "Hello " name)
+				Language: api.ScriptLangLua,
+				Script: `return {
+				sum = a + b,
+				product = a * b,
+				greeting = "Hello " .. name
 			}`,
 			},
 			Attributes: api.AttributeSpecs{
@@ -385,7 +385,7 @@ func TestAleComplexScript(t *testing.T) {
 			},
 		}
 
-		env, err := registry.Get(api.ScriptLangAle)
+		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
 		comp, err := env.Compile(st, st.Script)
@@ -399,8 +399,8 @@ func TestAleComplexScript(t *testing.T) {
 
 		outputs, err := env.ExecuteScript(comp, st, inputs)
 		assert.NoError(t, err)
-		assert.Equal(t, float64(15), outputs["sum"])
-		assert.Equal(t, float64(50), outputs["product"])
+		assert.Equal(t, 15, outputs["sum"])
+		assert.Equal(t, 50, outputs["product"])
 		assert.Equal(t, "Hello World", outputs["greeting"])
 	})
 }
@@ -453,15 +453,15 @@ func TestLuaComplexScript(t *testing.T) {
 	})
 }
 
-func TestAleInvalidSyntax(t *testing.T) {
+func TestRegistryInvalidSyntax(t *testing.T) {
 	helpers.WithEngine(t, func(eng *engine.Engine) {
 		registry := script.NewRegistry()
 
 		st := helpers.NewScriptStep(
-			"invalid-ale", api.ScriptLangAle, "{:result (+ 1 2",
+			"invalid-registry", api.ScriptLangLua, "return {result = ",
 		)
 
-		env, err := registry.Get(api.ScriptLangAle)
+		env, err := registry.Get(api.ScriptLangLua)
 		assert.NoError(t, err)
 
 		_, err = env.Compile(st, st.Script)

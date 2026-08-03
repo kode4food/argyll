@@ -167,11 +167,6 @@ func (s Step) WithPredicate(language, script string) Step {
 	return s
 }
 
-// WithAlePredicate sets an Ale language predicate script
-func (s Step) WithAlePredicate(script string) Step {
-	return s.WithPredicate(api.ScriptLangAle, script)
-}
-
 // WithLuaPredicate sets a Lua language predicate script
 func (s Step) WithLuaPredicate(script string) Step {
 	return s.WithPredicate(api.ScriptLangLua, script)
@@ -229,10 +224,10 @@ func (s Step) WithFlowGoals(goals ...api.StepID) Step {
 	return s
 }
 
-// WithScript sets an Ale script to execute for this step
+// WithScript sets a Lua script to execute for this step
 func (s Step) WithScript(script string) Step {
 	s.script = &api.ScriptConfig{
-		Language: api.ScriptLangAle,
+		Language: api.ScriptLangLua,
 		Script:   script,
 	}
 	s.stepType = api.StepTypeScript

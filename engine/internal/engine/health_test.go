@@ -247,8 +247,8 @@ func TestScriptHealthDefaults(t *testing.T) {
 				"result": {Role: api.RoleOutput},
 			},
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "{:result 42}",
+				Language: api.ScriptLangLua,
+				Script:   "return {result = 42}",
 			},
 		}
 
@@ -276,8 +276,8 @@ func TestScriptHealthOnRegister(t *testing.T) {
 				"result": {Role: api.RoleOutput},
 			},
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "{:result 42}",
+				Language: api.ScriptLangLua,
+				Script:   "return {result = 42}",
 			},
 		}
 
@@ -370,8 +370,8 @@ func TestResolveHealthScriptError(t *testing.T) {
 						"result": {Role: api.RoleOutput},
 					},
 					Script: &api.ScriptConfig{
-						Language: api.ScriptLangAle,
-						Script:   "{:result 42}",
+						Language: api.ScriptLangLua,
+						Script:   "return {result = 42}",
 					},
 				},
 			},

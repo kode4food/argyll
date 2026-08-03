@@ -1,9 +1,5 @@
 import React from "react";
-import {
-  SCRIPT_LANGUAGE_ALE,
-  SCRIPT_LANGUAGE_JPATH,
-  SCRIPT_LANGUAGE_LUA,
-} from "@/app/api";
+import { SCRIPT_LANGUAGE_JPATH, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import useDropdown from "@/app/hooks/useDropdown";
 import { useT } from "@/app/i18n";
 import dropdownStyles from "@/app/styles/components/dropdown.module.css";
@@ -12,7 +8,6 @@ import styles from "./ScriptLanguageInlineInput.module.css";
 
 const SCRIPT_LANGUAGE_OPTIONS = [
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
-  { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 

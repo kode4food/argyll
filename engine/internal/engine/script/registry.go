@@ -59,11 +59,10 @@ var MatchStep = &api.Step{
 	},
 }
 
-// NewRegistry creates a new registry with Ale, JPath and Lua environments
+// NewRegistry creates a new registry with JPath and Lua environments
 func NewRegistry() *Registry {
 	return &Registry{
 		envs: map[string]Environment{
-			api.ScriptLangAle:   NewAleEnv(),
 			api.ScriptLangJPath: NewJPathEnv(),
 			api.ScriptLangLua:   NewLuaEnv(),
 		},

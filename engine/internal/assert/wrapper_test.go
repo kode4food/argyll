@@ -69,14 +69,14 @@ func TestStepValid(t *testing.T) {
 			},
 		},
 		{
-			name: "valid script step with Ale",
+			name: "valid script step with Lua",
 			step: &api.Step{
 				ID:   "test-script",
 				Name: "Test Script",
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
-					Language: api.ScriptLangAle,
-					Script:   "(+ 1 2)",
+					Language: api.ScriptLangLua,
+					Script:   "return {result = 3}",
 				},
 			},
 		},
@@ -165,7 +165,7 @@ func TestStepInvalid(t *testing.T) {
 				Name: "Test",
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
-					Script: "(+ 1 2)",
+					Script: "return 1 + 2",
 				},
 			},
 			expectedErrorContain: "language",
@@ -177,7 +177,7 @@ func TestStepInvalid(t *testing.T) {
 				Name: "Test",
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
-					Language: api.ScriptLangAle,
+					Language: api.ScriptLangLua,
 				},
 			},
 			expectedErrorContain: "script",

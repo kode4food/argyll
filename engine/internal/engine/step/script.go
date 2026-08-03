@@ -79,7 +79,7 @@ func markScriptUnhealthy(rt Runtime, err error) error {
 func executeScript(
 	scripts *script.Registry, st *api.Step, c script.Compiled, inputs api.Args,
 ) (api.Args, error) {
-	language := api.ScriptLangAle
+	language := api.ScriptLangLua
 	if st.Script != nil {
 		language = st.Script.Language
 	}

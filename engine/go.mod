@@ -8,7 +8,6 @@ require (
 	github.com/gin-gonic/gin v1.12.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/kode4food/ale v0.3.1-0.20260525064642-5a3c602e1b33
 	github.com/kode4food/caravan v0.0.0-20260309173540-732d8b80fb04
 	github.com/kode4food/jpath v0.0.0-20260309190847-87e9598818b9
 	github.com/kode4food/lru v0.0.0-20260217084209-144fda8850c9
@@ -44,7 +43,6 @@ require (
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
 	github.com/klauspost/cpuid/v2 v2.3.0 // indirect
-	github.com/kode4food/gen-maxkind v0.1.2 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.21 // indirect
 	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect

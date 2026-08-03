@@ -168,15 +168,9 @@ Keep the default path on `argyll_read`, and only opt known Raft-command routes i
 
 ### Script Execution
 
-Scripts (Ale and Lua) run inside the engine with restricted capabilities:
+Lua scripts run inside the engine with restricted capabilities:
 
-**Ale:**
-- Purely functional, no I/O
-- No resource limits
-- Safe for untrusted scripts
-
-**Lua:**
-- Partial sandboxing (io, os, debug modules excluded)
+- `io`, `os`, and `debug` modules excluded
 - No resource limits
 - Use only for trusted scripts
 

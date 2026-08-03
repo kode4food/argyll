@@ -54,7 +54,7 @@ k6 run --vus 250 --duration 30s --env ENGINE_URL=http://localhost:8081 k6-simple
 ## What It Tests
 
 The test:
-1. Registers a simple step that returns `{:result "hello"}`
+1. Registers a simple step that returns `return {result = "hello"}`
 2. Each VU creates flows with unique IDs
 3. Polls for flow completion (max 5 seconds per flow)
 4. Tracks success/failure rates and throughput

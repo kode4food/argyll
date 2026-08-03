@@ -36,7 +36,7 @@ docker compose up
 - **Lazy Evaluation**: Execute only what's needed to reach goals
 - **Clustered Engine**: Shared Timebox store over Raft
 - **Real-Time UI**: WebSocket updates, live flow monitoring
-- **Four Step Types**: Sync/Async HTTP, Scripts (Ale/Lua), Sub-flows
+- **Four Step Types**: Sync/Async HTTP, Lua scripts, Sub-flows
 - **Built-In Retry**: Configurable backoff strategies
 
 ## Installation

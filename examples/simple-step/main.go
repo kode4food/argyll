@@ -22,9 +22,9 @@ func main() {
 	logger := log.New("simple-step-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
 
-	// Example 1: Simple text transformation (Ale script)
-	textFormatterScript := `{
-  :formatted_text (str "[" name "] " text)
+	// Example 1: Simple text transformation (Lua script)
+	textFormatterScript := `return {
+	formatted_text = "[" .. name .. "] " .. text
 }`
 
 	client := builder.NewClient(engineURL, 30*time.Second)
@@ -35,7 +35,7 @@ func main() {
 			"description": "format text with a label",
 			"domain":      "text",
 			"capability":  "transform",
-			"language":    "ale",
+			"language":    "lua",
 			"example":     "true",
 		}).
 		Required("text", api.TypeString).
@@ -49,14 +49,16 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Example 2: Data transformation (Ale script)
-	priceCalculatorScript := `(let* ([subtotal (* quantity unit_price)]
-       [tax      (* subtotal 0.08)]
-       [shipping (if (> quantity 5) 0.0 9.99)])
-  {:subtotal subtotal
-   :tax      tax
-   :shipping shipping
-   :total    (+ subtotal tax shipping)})`
+	// Example 2: Data transformation (Lua script)
+	priceCalculatorScript := `local subtotal = quantity * unit_price
+local tax = subtotal * 0.08
+local shipping = quantity > 5 and 0.0 or 9.99
+return {
+	subtotal = subtotal,
+	tax = tax,
+	shipping = shipping,
+	total = subtotal + tax + shipping
+}`
 
 	err = client.NewStep().WithName("Price Calculator").
 		WithID("price-calculator").
@@ -64,7 +66,7 @@ func main() {
 			"description": "calculate pricing totals",
 			"domain":      "pricing",
 			"capability":  "calculate",
-			"language":    "ale",
+			"language":    "lua",
 			"example":     "true",
 		}).
 		Required("quantity", api.TypeNumber).

@@ -51,7 +51,7 @@ Inputs can choose how to collect matching upstream outputs with `required.collec
 
 Collection policies also affect lazy execution. Once a consumer no longer needs more values, providers that only fed that consumer can be skipped. This happens naturally for `first` after the first value, for failed `all` collections that can no longer succeed, and for optional inputs after their Collection Deadline closes.
 
-Required inputs can also declare `required.match`, a script predicate applied to each candidate value before collection. The match script receives only one candidate value: Ale and Lua expose it as `value`, while Argyll JSONPath (`jpath`) evaluates the candidate as the document. Collection semantics are then applied over the match results:
+Required inputs can also declare `required.match`, a script predicate applied to each candidate value before collection. The match script receives only one candidate value: Lua exposes it as `value`, while Argyll JSONPath (`jpath`) evaluates the candidate as the document. Collection semantics are then applied over the match results:
 
 | Collect | Match behavior |
 | ------- | -------------- |
@@ -154,8 +154,8 @@ Use predicates, which are condition scripts, to skip steps based on flow state.
     "discount_applied": { "role": "output", "type": "boolean" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(and (> order_total 1000) (eq customer_tier \"gold\"))"
+    "language": "lua",
+    "script": "return order_total > 1000 and customer_tier == \"gold\""
   }
 }
 ```

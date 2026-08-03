@@ -1,7 +1,6 @@
 import {
   AttributeType,
   InputCollect,
-  SCRIPT_LANGUAGE_ALE,
   SCRIPT_LANGUAGE_JPATH,
   SCRIPT_LANGUAGE_LUA,
 } from "@/app/api";
@@ -33,19 +32,16 @@ export const INPUT_COLLECT_TYPES: InputCollect[] = [
 ];
 
 export const PREDICATE_LANGUAGE_OPTIONS = [
-  { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 
 const MAPPING_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
-  [SCRIPT_LANGUAGE_ALE]: "stepEditor.mappingScriptPlaceholderAle",
   [SCRIPT_LANGUAGE_JPATH]: "stepEditor.mappingScriptPlaceholderJPath",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.mappingScriptPlaceholderLua",
 };
 
 const MATCH_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
-  [SCRIPT_LANGUAGE_ALE]: "stepEditor.matchScriptPlaceholderAle",
   [SCRIPT_LANGUAGE_JPATH]: "stepEditor.matchScriptPlaceholderJPath",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.matchScriptPlaceholderLua",
 };

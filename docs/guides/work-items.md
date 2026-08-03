@@ -275,8 +275,8 @@ If a step has both a `predicate` and `for_each`:
   "type": "sync",
   "http": { "endpoint": "https://api.example.com/batch/process", "timeout": 5000 },
   "predicate": {
-    "language": "ale",
-    "script": "(> (length items) 0)"
+    "language": "lua",
+    "script": "return #items > 0"
   },
   "attributes": {
     "items": { "role": "required", "type": "array", "required": { "for_each": true } },

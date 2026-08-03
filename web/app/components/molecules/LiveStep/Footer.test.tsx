@@ -47,8 +47,8 @@ describe("Footer", () => {
     ...(type === "script"
       ? {
           script: config || {
-            language: "ale",
-            script: "{:result (+ 1 2)}",
+            language: "lua",
+            script: "return {result = 1 + 2}",
           },
         }
       : type === "flow"
@@ -115,15 +115,15 @@ describe("Footer", () => {
 
   test("renders script preview for script step", () => {
     const step = createStep("script", {
-      language: "ale",
-      script: '{:greeting (str "Hello" name)}',
+      language: "lua",
+      script: 'return {greeting = "Hello" .. name}',
     });
 
     const { container } = render(<Footer step={step} />);
 
     const preview = container.querySelector(".step-endpoint");
     expect(preview).toBeInTheDocument();
-    expect(preview?.textContent).toBe('{:greeting (str "Hello" name)}');
+    expect(preview?.textContent).toBe('return {greeting = "Hello" .. name}');
   });
 
   test("renders flow goals for flow step", () => {
@@ -143,14 +143,14 @@ describe("Footer", () => {
 
   test("replaces newlines in script preview", () => {
     const step = createStep("script", {
-      language: "ale",
-      script: "{\n  :result\n  (+ 1 2)\n}",
+      language: "lua",
+      script: "return {\n  result = 1 + 2\n}",
     });
 
     const { container } = render(<Footer step={step} />);
 
     const preview = container.querySelector(".step-endpoint");
-    expect(preview?.textContent).toBe("{   :result   (+ 1 2) }");
+    expect(preview?.textContent).toBe("return {   result = 1 + 2 }");
   });
 
   test("shows progress icon when flow is active", () => {

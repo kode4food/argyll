@@ -49,7 +49,7 @@ describe("useStepHealth", () => {
     name: "Script Step",
     type: "script",
     attributes: {},
-    script: { language: "ale", script: "{}" },
+    script: { language: "lua", script: "return {}" },
   };
 
   const flowStep = (goals: string[]): Step => ({

@@ -17,8 +17,8 @@ func TestConstAttribute(t *testing.T) {
 
 		st := helpers.NewScriptStep(
 			"step-const",
-			api.ScriptLangAle,
-			`{:result const_value}`,
+			api.ScriptLangLua,
+			`return {result = const_value}`,
 			"result",
 		)
 		st.Attributes["const_value"] = &api.AttributeSpec{

@@ -122,7 +122,7 @@ If your use case requires runtime plan mutation, arbitrary cross-flow synchroniz
 
 ## Operational Constraints
 
-- **Scripts**: Ale (no I/O, purely functional) and Lua (partial sandbox, no resource limits)
+- **Scripts**: Lua with `io`, `os`, and `debug` modules excluded; no resource limits
 - **No built-in monitoring**: Integrate with external APM tools
 - **Input validation**: UI validates, server is permissive
 - **Authentication**: Use reverse proxy for auth/authz

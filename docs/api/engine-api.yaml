@@ -22,7 +22,7 @@ info:
     - **Event Sourcing**: Complete audit trail with durable storage for recovery and debugging
     - **Multi-Instance Support**: Horizontal scaling with optimistic concurrency control
     - **Real-Time Updates**: WebSocket streaming for live flow monitoring
-    - **Four Step Types**: Sync HTTP, Async HTTP (with webhooks), Script (Ale and Lua), and Flow (sub-flow execution)
+    - **Four Step Types**: Sync HTTP, Async HTTP (with webhooks), Script (Lua), and Flow (sub-flow execution)
 
     ## Step Implementation
 
@@ -200,7 +200,7 @@ paths:
         Register a new flow step with the engine. Steps can be:
         - **Sync**: HTTP endpoints that return results immediately
         - **Async**: HTTP endpoints that return immediately and complete via webhook
-        - **Script**: Ale and Lua scripts executed in-engine
+        - **Script**: Lua scripts executed in-engine
         - **Flow**: Sub-flow execution using child flow goals and attribute mappings
       operationId: registerStep
       tags:
@@ -231,7 +231,7 @@ paths:
                     health_check: "http://localhost:8081/health"
                     timeout: 30000
               scriptStep:
-                summary: Script Step (Ale)
+                summary: Script Step (Lua)
                 value:
                   id: "greeter"
                   name: "Greeter"
@@ -244,8 +244,8 @@ paths:
                       role: "output"
                       type: "string"
                   script:
-                    language: "ale"
-                    script: '{:greeting (str "Hello, " name)}'
+                    language: "lua"
+                    script: 'return {greeting = "Hello, " .. name}'
       responses:
         "201":
           description: Step registered successfully
@@ -1102,7 +1102,7 @@ components:
           description: |
             - `sync`: HTTP endpoint that returns results immediately
             - `async`: HTTP endpoint that returns immediately and completes via webhook
-            - `script`: Ale or Lua script executed in-engine
+            - `script`: Lua script executed in-engine
             - `flow`: Sub-flow executed by the engine using child flow goals
           example: "sync"
         attributes:
@@ -1244,7 +1244,7 @@ components:
           example: false
         match:
           $ref: "#/components/schemas/ScriptConfig"
-          description: Optional predicate evaluated against each candidate value before collection. ALE and Lua receive one candidate as `value`; Argyll JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+          description: Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`; Argyll JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1316,7 +1316,7 @@ components:
       description: |
         Defines parameter name mapping and value transformation for attributes.
         Allows renaming parameters between flow state and service interfaces,
-        and transforming values using scripts (Argyll JSONPath (`jpath`) for queries, Lua/Ale for logic).
+        and transforming values using scripts (Argyll JSONPath (`jpath`) for queries, Lua for logic).
 
         At least one of `name` or `script` must be provided.
         Not allowed on const or meta attributes.
@@ -1381,30 +1381,29 @@ components:
       description: |
         Configuration for script-based steps, predicates, and attribute mappings.
 
-        For step execution (`type: script`), `ale` and `lua` are supported.
+        For step execution (`type: script`), `lua` is supported.
         For predicates and attribute mappings, all registered languages are valid
-        (`ale`, `lua`, `jpath` in the default engine).
+        (`lua`, `jpath` in the default engine).
       required:
         - language
         - script
       properties:
         language:
           type: string
-          enum: ["ale", "lua", "jpath"]
+          enum: ["lua", "jpath"]
           description: |
             Script language:
-            - `ale`: Ale expressions
             - `lua`: Lua scripts
             - `jpath`: Argyll's JSONPath query language identifier; it supports JSONPath-style expressions with Argyll-specific behavior
-          example: "ale"
+          example: "lua"
         script:
           type: string
           description: |
             The script code to execute.
 
             For Argyll JSONPath (`jpath`): A query string like `$.user.email` or `$.data[0].value`
-            For Ale/Lua: The complete script code
-          example: '{:greeting (str "Hello, " name)}'
+            For Lua: The complete script code
+          example: 'return {greeting = "Hello, " .. name}'
 
     StepScriptConfig:
       type: object
@@ -1415,13 +1414,13 @@ components:
       properties:
         language:
           type: string
-          enum: ["ale", "lua"]
+          enum: ["lua"]
           description: Script language for step execution
-          example: "ale"
+          example: "lua"
         script:
           type: string
           description: The script code to execute
-          example: '{:greeting (str "Hello, " name)}'
+          example: 'return {greeting = "Hello, " .. name}'
 
     FlowConfig:
       type: object

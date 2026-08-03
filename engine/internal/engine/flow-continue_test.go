@@ -232,7 +232,7 @@ func TestSkipStep(t *testing.T) {
 
 		// Create a step with a predicate that returns false, causing a  skip
 		st := helpers.NewStepWithPredicate(
-			"step-skip", api.ScriptLangAle, "false",
+			"step-skip", api.ScriptLangLua, "return false",
 		)
 
 		err := env.Engine.RegisterStep(st)

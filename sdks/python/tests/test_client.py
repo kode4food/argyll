@@ -288,7 +288,7 @@ def test_parse_step_with_all_fields():
                         "health_check": "http://localhost:8081/health",
                         "timeout": 5000,
                     },
-                    "script": {"language": "ale", "script": "(+ 1 2)"},
+                    "script": {"language": "lua", "script": "return 1 + 2"},
                     "predicate": {"language": "lua", "script": "return true"},
                     "work_config": {
                         "max_retries": 3,

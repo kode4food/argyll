@@ -91,12 +91,11 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
 **Use for:** Small transformations, condition checks, routing logic, and in-engine data processing.
 
 **How it works:**
-- Ale or Lua code runs inside the engine
+- Lua code runs inside the engine
 - The script receives inputs and returns outputs
 - No external service required
 
 **Languages:**
-- **Ale**: Purely functional, no I/O, no resource limits. Simple and fast.
 - **Lua**: Limited sandboxing (io/os/debug excluded), no resource limits. More flexible.
 
 **Example:**
@@ -106,8 +105,8 @@ See [Async Steps](../guides/async-steps.md) for webhook details.
   "name": "Calculate Discount",
   "type": "script",
   "script": {
-    "language": "ale",
-    "script": "{:discounted_amount (* amount (- 1 discount_percent))}"
+    "language": "lua",
+    "script": "return {discounted_amount = amount * (1 - discount_percent)}"
   },
   "attributes": {
     "amount": { "role": "required" },
@@ -174,7 +173,7 @@ Each step declares what it needs and what it produces.
 
 **Required attributes** must be available before the step executes.
 
-Required attributes may also declare `required.match`, a condition script that decides whether the step can run using only that attribute. The condition is evaluated against each candidate value from an earlier step before the input's `required.collect` policy is resolved. For Ale and Lua, the candidate is available as `value`; for Argyll JSONPath (`jpath`), the candidate is the document.
+Required attributes may also declare `required.match`, a condition script that decides whether the step can run using only that attribute. The condition is evaluated against each candidate value from an earlier step before the input's `required.collect` policy is resolved. Lua exposes the candidate as `value`; Argyll JSONPath (`jpath`) evaluates the candidate as the document.
 
 Match uses the input's collection semantics: `some` means at least one upstream candidate must match, `all` means every upstream candidate must match, and `none` means no upstream candidate may match. If the match cannot be satisfied, the step is skipped and does not demand its other required inputs.
 
@@ -208,8 +207,8 @@ A step can include an optional **predicate**, a condition script that decides wh
     "notification_sent": { "role": "output" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(> amount 100)"
+    "language": "lua",
+    "script": "return amount > 100"
   }
 }
 ```
@@ -281,7 +280,7 @@ Use the role-specific `mapping.name` field to map between flow state attribute n
 
 ### Value Transformation
 
-Use `mapping.script` to transform values using Argyll JSONPath (`jpath`), Ale, or Lua. `jpath` supports JSONPath-style expressions with Argyll-specific behavior:
+Use `mapping.script` to transform values using Argyll JSONPath (`jpath`) or Lua. `jpath` supports JSONPath-style expressions with Argyll-specific behavior:
 
 ```json
 {

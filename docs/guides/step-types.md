@@ -61,7 +61,7 @@ See [Async Steps Guide](./async-steps.md) for webhook setup and best practices.
 
 **Example:** Calculate discount, validate email, format data
 
-**Languages:** Ale (simple, safe) or Lua (flexible, partial sandbox)
+**Language:** Lua (`io`, `os`, and `debug` modules excluded)
 
 **Characteristics:**
 - No external service needed
@@ -179,8 +179,8 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
     "discounted_amount": { "role": "output", "type": "number" }
   },
   "script": {
-    "language": "ale",
-    "script": "{:discounted_amount (* original_amount (- 1 discount_rate))}"
+    "language": "lua",
+    "script": "return {discounted_amount = original_amount * (1 - discount_rate)}"
   }
 }
 ```

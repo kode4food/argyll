@@ -266,13 +266,13 @@ curl -X POST http://localhost:8080/engine/flow \
 ### Script-Based Steps
 
 #### 7. **simple-step** (Script Examples)
-Registers three script-based steps demonstrating Ale and Lua.
+Registers three Lua script-based steps.
 
 **Type**: Script (no HTTP service required)
 
 **Included Steps**:
 
-##### a. **text-formatter** (Ale)
+##### a. **text-formatter** (Lua)
 Formats text with user name prefix.
 
 **Inputs**: `text` (string), `name` (string)
@@ -294,7 +294,7 @@ curl -X POST http://localhost:8080/engine/flow \
 
 **Expected Output**: `"[ALICE] Welcome to Argyll!"`
 
-##### b. **price-calculator** (Ale)
+##### b. **price-calculator** (Lua)
 Calculates pricing with tax and shipping.
 
 **Inputs**: `quantity` (number), `unit_price` (number)
@@ -484,4 +484,4 @@ This registers all three script steps (text-formatter, price-calculator, eligibi
 5. **Async Flows** - Payment processor shows webhook-based async execution
 6. **Error Handling** - Multiple failure scenarios (out of stock, credit limits, payment failures)
 7. **Shared State** - Stock reservation maintains inventory across flows
-8. **Script Steps** - Ale and Lua for lightweight logic without HTTP services
+8. **Script Steps** - Lua for lightweight logic without HTTP services

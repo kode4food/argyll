@@ -134,13 +134,13 @@ func TestScriptValidatorRejectsJPath(t *testing.T) {
 	assert.ErrorIs(t, err, step.ErrLangNotValid)
 }
 
-func TestScriptValidatorAcceptsValidAle(t *testing.T) {
+func TestScriptValidatorAcceptsValidLua(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	err := reg.Validate(&api.Step{
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: api.ScriptLangAle,
-			Script:   "{:result 42}",
+			Language: api.ScriptLangLua,
+			Script:   "return {result = 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -154,8 +154,8 @@ func TestScriptHealthHealthy(t *testing.T) {
 	st := &api.Step{
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: api.ScriptLangAle,
-			Script:   "{:result 42}",
+			Language: api.ScriptLangLua,
+			Script:   "return {result = 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -171,7 +171,7 @@ func TestScriptHealthUnhealthyOnBadScript(t *testing.T) {
 	st := &api.Step{
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: api.ScriptLangAle,
+			Language: api.ScriptLangLua,
 			Script:   "!!!bad",
 		},
 	}
@@ -191,8 +191,8 @@ func TestScriptExecutorProducesOutput(t *testing.T) {
 		ID:   "step-1",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: api.ScriptLangAle,
-			Script:   "{:result 42}",
+			Language: api.ScriptLangLua,
+			Script:   "return {result = 42}",
 		},
 		Attributes: api.AttributeSpecs{
 			"result": {Role: api.RoleOutput},
@@ -216,7 +216,7 @@ func TestScriptExecutorMarksUnhealthyOnBadScript(t *testing.T) {
 		ID:   "step-1",
 		Type: api.StepTypeScript,
 		Script: &api.ScriptConfig{
-			Language: api.ScriptLangAle,
+			Language: api.ScriptLangLua,
 			Script:   "!!!bad",
 		},
 	}

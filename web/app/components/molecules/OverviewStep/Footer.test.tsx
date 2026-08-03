@@ -43,8 +43,8 @@ describe("Footer", () => {
     ...(type === "script"
       ? {
           script: config || {
-            language: "ale",
-            script: "{:result (+ 1 2)}",
+            language: "lua",
+            script: "return {result = 1 + 2}",
           },
         }
       : type === "flow"

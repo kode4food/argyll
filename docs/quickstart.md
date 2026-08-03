@@ -23,7 +23,7 @@ curl -X POST http://localhost:8080/engine/step \
       "name": {"role": "required", "type": "string"},
       "greeting": {"role": "output", "type": "string"}
     },
-    "script": {"language": "ale", "script": "{:greeting name}"}
+    "script": {"language": "lua", "script": "return {greeting = name}"}
   }'
 ```
 

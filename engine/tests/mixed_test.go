@@ -20,8 +20,8 @@ func TestMixedStepTypes(t *testing.T) {
 
 		// Step B (Script): Require "valueA", produce "valueB" by mapping input
 		stepB := helpers.NewScriptStep(
-			"step-b", api.ScriptLangAle,
-			`{:valueB (str "transformed-" valueA)}`,
+			"step-b", api.ScriptLangLua,
+			`return {valueB = "transformed-" .. valueA}`,
 			"valueB",
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{

@@ -171,8 +171,8 @@ describe("stepUtils", () => {
         type: "script",
         attributes: {},
         script: {
-          language: "ale",
-          script: "{:result 1}",
+          language: "lua",
+          script: "return {result = 1}",
         },
       };
 
@@ -243,8 +243,8 @@ describe("stepUtils", () => {
         type: "script",
         attributes: {},
         script: {
-          language: "ale",
-          script: "{:result 1}",
+          language: "lua",
+          script: "return {result = 1}",
         },
       };
 
@@ -384,13 +384,13 @@ describe("stepUtils", () => {
     test("returns match icon for required with match script", () => {
       const modifiers = getAttributeModifiers({
         role: AttributeRole.Required,
-        required: { match: { language: "ale", script: "true" } },
+        required: { match: { language: "lua", script: "return true" } },
       });
       expect(modifiers).toHaveLength(1);
       expect(modifiers[0]).toEqual({
         kind: "match",
         Icon: IconAttributeMatch,
-        script: { language: "ale", script: "true" },
+        script: { language: "lua", script: "return true" },
       });
     });
 
@@ -469,7 +469,7 @@ describe("stepUtils", () => {
       const modifiers = getAttributeModifiers({
         role: AttributeRole.Required,
         required: {
-          match: { language: "ale", script: "true" },
+          match: { language: "lua", script: "return true" },
           mapping: { name: "inner" },
           collect: "some",
           for_each: true,
@@ -479,7 +479,7 @@ describe("stepUtils", () => {
       expect(modifiers[0]).toEqual({
         kind: "match",
         Icon: IconAttributeMatch,
-        script: { language: "ale", script: "true" },
+        script: { language: "lua", script: "return true" },
       });
       expect(modifiers[1]).toEqual({ kind: "icon", Icon: IconMapping });
       expect(modifiers[2]).toEqual({ kind: "collect", collect: "some" });

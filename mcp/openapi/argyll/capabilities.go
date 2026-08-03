@@ -37,12 +37,12 @@ func Defaults() Capabilities {
 			OutputLocation:  "output.mapping",
 			RenameField:     "name",
 			TransformField:  "script",
-			ScriptLanguages: []string{"jpath", "ale", "lua"},
+			ScriptLanguages: []string{"jpath", "lua"},
 		},
 		RequiredMatch: MatchCapability{
 			Supported:       true,
 			Location:        "required.match",
-			ScriptLanguages: []string{"ale", "lua", "jpath"},
+			ScriptLanguages: []string{"lua", "jpath"},
 		},
 		EndpointArgs: EndpointCapability{
 			Supported:         true,

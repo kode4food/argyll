@@ -482,7 +482,9 @@ describe("Attributes", () => {
         gate: {
           role: AttributeRole.Required,
           type: AttributeType.String,
-          required: { match: { language: "ale", script: "value == 'match'" } },
+          required: {
+            match: { language: "lua", script: "return value == 'match'" },
+          },
         },
         opt1: {
           role: AttributeRole.Optional,

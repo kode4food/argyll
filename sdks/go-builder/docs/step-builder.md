@@ -26,7 +26,7 @@ func main() {
     err := client.NewStep().WithName("Text Formatter").
         Required("text", api.TypeString).
         Output("formatted_text", api.TypeString).
-        WithScript(`{:formatted_text (str "Hello, " text)}`).
+        WithScript(`return {formatted_text = "Hello, " .. text}`).
         Register(context.Background())
 
     if err != nil {
@@ -262,14 +262,11 @@ Engine splits arrays into work items, executes in parallel, and aggregates resul
 Execute conditionally based on flow state:
 
 ```go
-// Ale
-s.WithAlePredicate(`(> amount 100)`)
-
 // Lua
 s.WithLuaPredicate(`return status == "active"`)
 
 // Custom
-s.WithPredicate("ale", `(> amount 100)`)
+s.WithPredicate("lua", `return amount > 100`)
 ```
 
 ### Updating Steps
@@ -336,7 +333,7 @@ func main() {
         Optional("priority", api.TypeString, `"normal"`).
         Output("total_amount", api.TypeNumber).
         Output("processed_at", api.TypeNumber).
-        WithAlePredicate(`(> (length items) 0)`).
+        WithLuaPredicate(`return #items > 0`).
         Start(handler)
 
     if err != nil {
@@ -382,9 +379,8 @@ NewStep() Step
 - `WithScriptExecution() Step` - Mark as script-based
 
 #### Scripts
-- `WithScript(script string) Step` - Add Ale script
+- `WithScript(script string) Step` - Add Lua script
 - `WithScriptLanguage(lang, script string) Step` - Add script with custom language
-- `WithAlePredicate(script string) Step` - Add Ale predicate
 - `WithLuaPredicate(script string) Step` - Add Lua predicate
 - `WithPredicate(language, script string) Step` - Add custom predicate
 

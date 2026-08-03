@@ -243,7 +243,7 @@ func TestSkippedProviderCascade(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		orderCreator := helpers.NewStepWithPredicate(
-			"order-creator", api.ScriptLangAle, "false", "order",
+			"order-creator", api.ScriptLangLua, "return false", "order",
 		)
 		orderCreator.Attributes["order"].Type = api.TypeString
 

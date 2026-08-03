@@ -71,7 +71,7 @@ client.new_step().with_name("AsyncTask") \
 
 ## Script Steps
 
-Execute Ale or Lua scripts directly:
+Execute Lua scripts directly:
 
 ```python
 from argyll import Client, AttributeType
@@ -152,7 +152,7 @@ from argyll import ScriptLanguage
 
 client.new_step().with_name("ConditionalStep") \
     .required("value", AttributeType.NUMBER) \
-    .with_predicate(ScriptLanguage.ALE, "(> value 10)") \
+    .with_predicate(ScriptLanguage.LUA, "return value > 10") \
     .with_endpoint("http://localhost:8081/step") \
     .register()
 ```

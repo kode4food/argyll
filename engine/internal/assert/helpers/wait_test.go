@@ -394,7 +394,7 @@ func TestWaitStepSkipped(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		st := helpers.NewStepWithPredicate(
-			"skip-step", api.ScriptLangAle, "false",
+			"skip-step", api.ScriptLangLua, "return false",
 		)
 		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)

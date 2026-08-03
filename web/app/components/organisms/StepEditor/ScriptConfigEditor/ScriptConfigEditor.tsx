@@ -1,6 +1,6 @@
 import React from "react";
 import SegmentedControl from "@/app/components/atoms/SegmentedControl";
-import { SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import formStyles from "../StepEditorForm.module.css";
 import { useT } from "@/app/i18n";
@@ -22,7 +22,6 @@ interface ScriptConfigEditorProps {
 }
 
 const defaultLanguageOptions: ScriptLanguageOption[] = [
-  { value: SCRIPT_LANGUAGE_ALE, labelKey: "script.language.ale" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 

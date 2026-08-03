@@ -56,7 +56,7 @@ describe("ScriptEditor", () => {
 
   test("passes value to CodeMirror", () => {
     const onChange = jest.fn();
-    const value = "{:result 42}";
+    const value = "return {result = 42}";
 
     const { getByTestId } = render(
       <ScriptEditor value={value} onChange={onChange} />

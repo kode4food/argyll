@@ -36,7 +36,7 @@ Key structural rules — get these wrong and the engine either rejects the step 
 Mapping and match configuration nest **inside a sub-object keyed by the role name** on the attribute — not at the top level of the attribute. Both `mapping` and `match` are objects, not strings:
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
-- `match` → `{ "language": "ale", "script": "..." }` - a `ScriptConfig` object, never a bare string
+- `match` → `{ "language": "lua", "script": "..." }` - a `ScriptConfig` object, never a bare string
 - `jpath` is Argyll's language identifier for JSONPath-style query expressions; it has Argyll-specific behavior and is intended for mappings and predicates, not executable Script Steps
 
 The spec's own example (from `StepRegistration.attributes`):
@@ -68,7 +68,7 @@ In JSON, an attribute with both a match discriminator and a field rename looks l
   "type": "string",
   "role": "required",
   "required": {
-    "match":   { "language": "ale", "script": "(eq value \"email\")" },
+    "match":   { "language": "lua", "script": "return value == \"email\"" },
     "mapping": { "name": "service_channel_field" }
   }
 }
@@ -86,14 +86,14 @@ Use `required.mapping` or `optional.mapping` for service input renames. Use `out
 
 The MCP may report enum values as schema facts. Do not treat every narrowed enum as a required match. Use the operation names, descriptions, shapes, enum values, and surrounding business flow to decide whether an attribute is a true discriminator.
 
-When a true discriminator exists, use `required.match` to make otherwise similar operations mutually exclusive. For Ale `required.match`, Argyll evaluates the candidate attribute value as `value`.
+When a true discriminator exists, use `required.match` to make otherwise similar operations mutually exclusive. For Lua `required.match`, Argyll evaluates the candidate attribute value as `value`.
 
-Use these generic Ale patterns:
+Use these generic Lua patterns:
 
-- Scalar value equals a discriminator: `(eq value "some-value")`
-- Object field equals a discriminator: `(eq (:field_name value) "some-value")`
-- Multiple acceptable scalar values: `(or (eq value "a") (eq value "b"))`
-- Multiple required object conditions: `(and (eq (:kind value) "a") (eq (:region value) "b"))`
+- Scalar value equals a discriminator: `return value == "some-value"`
+- Object field equals a discriminator: `return value.field_name == "some-value"`
+- Multiple acceptable scalar values: `return value == "a" or value == "b"`
+- Multiple required object conditions: `return value.kind == "a" and value.region == "b"`
 
 Only create the match on the attribute that carries the discriminator. Do not add required matches to every enum-bearing input.
 

@@ -442,7 +442,7 @@ func TestHTTPExecution(t *testing.T) {
 func TestScriptExecution(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewScriptStep(
-			"script-step", api.ScriptLangAle, "{:result 42}", "result",
+			"script-step", api.ScriptLangLua, "return {result = 42}", "result",
 		)
 
 		err := eng.RegisterStep(st)
@@ -477,10 +477,10 @@ func TestLuaScriptExecution(t *testing.T) {
 	})
 }
 
-func TestAleScriptWithInputs(t *testing.T) {
+func TestLuaScriptWithInputs(t *testing.T) {
 	helpers.WithStartedEngine(t, func(eng *engine.Engine) {
 		st := helpers.NewScriptStep(
-			"ale-input-step", api.ScriptLangAle, "{:doubled (* x 2)}",
+			"lua-input-step", api.ScriptLangLua, "return {doubled = x * 2}",
 			"doubled",
 		)
 		st.Attributes["x"] = &api.AttributeSpec{Role: api.RoleRequired}
@@ -489,12 +489,12 @@ func TestAleScriptWithInputs(t *testing.T) {
 		assert.NoError(t, err)
 
 		pl := &api.ExecutionPlan{
-			Goals:    []api.StepID{"ale-input-step"},
+			Goals:    []api.StepID{"lua-input-step"},
 			Steps:    api.Steps{st.ID: st},
 			Required: []api.Name{"x"},
 		}
 
-		err = eng.StartFlow("wf-ale-input", pl,
+		err = eng.StartFlow("wf-lua-input", pl,
 			flow.WithInit(api.InitArgs{"x": {float64(21)}}),
 		)
 		assert.NoError(t, err)

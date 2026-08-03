@@ -204,7 +204,7 @@ func TestWithMethodInvalid(t *testing.T) {
 }
 
 func TestWithScript(t *testing.T) {
-	script := "{:result (+ 1 2)}"
+	script := "return {result = 1 + 2}"
 	st, err := testClient().NewStep().WithName("Test").
 		WithScript(script).
 		Build()
@@ -212,7 +212,7 @@ func TestWithScript(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, st.Script)
 	assert.Equal(t, script, st.Script.Script)
-	assert.Equal(t, api.ScriptLangAle, st.Script.Language)
+	assert.Equal(t, api.ScriptLangLua, st.Script.Language)
 	assert.Equal(t, api.StepTypeScript, st.Type)
 }
 
@@ -295,7 +295,7 @@ func TestWithSyncExecution(t *testing.T) {
 
 func TestWithScriptExecution(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
-		WithScript("{:result 42}").
+		WithScript("return {result = 42}").
 		WithScriptExecution().
 		Build()
 
@@ -314,28 +314,15 @@ func TestWithFlowGoals(t *testing.T) {
 }
 
 func TestWithPredicate(t *testing.T) {
-	predicate := "(> x 10)"
+	predicate := "return x > 10"
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		WithPredicate(api.ScriptLangAle, predicate).
+		WithPredicate(api.ScriptLangLua, predicate).
 		Build()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.Predicate)
-	assert.Equal(t, api.ScriptLangAle, st.Predicate.Language)
-	assert.Equal(t, predicate, st.Predicate.Script)
-}
-
-func TestWithAlePredicate(t *testing.T) {
-	predicate := "(> x 10)"
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
-		WithAlePredicate(predicate).
-		Build()
-
-	assert.NoError(t, err)
-	assert.NotNil(t, st.Predicate)
-	assert.Equal(t, api.ScriptLangAle, st.Predicate.Language)
+	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
 	assert.Equal(t, predicate, st.Predicate.Script)
 }
 
@@ -382,7 +369,7 @@ func TestBuildValidHTTPStep(t *testing.T) {
 
 func TestBuildValidScriptStep(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Script Step").
-		WithScript("{:result 42}").
+		WithScript("return {result = 42}").
 		Required("input", api.TypeString).
 		Output("result", api.TypeNumber).
 		Build()
@@ -508,21 +495,11 @@ func TestBuildValidationErrors(t *testing.T) {
 
 	t.Run("valid_script_step", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
-			WithScript("(+ 1 2)").
+			WithScript("return {result = 1 + 2}").
 			Build()
 		assert.NoError(t, err)
 		assert.NotNil(t, st.Script)
 		assert.Equal(t, api.StepTypeScript, st.Type)
-	})
-
-	t.Run("ale_predicate", func(t *testing.T) {
-		st, err := testClient().NewStep().WithName("Test").
-			WithEndpoint("http://example.com").
-			WithAlePredicate("(> count 10)").
-			Build()
-		assert.NoError(t, err)
-		assert.NotNil(t, st.Predicate)
-		assert.Equal(t, api.ScriptLangAle, st.Predicate.Language)
 	})
 
 	t.Run("lua_predicate", func(t *testing.T) {
@@ -579,7 +556,7 @@ func TestStepBuilderChaining(t *testing.T) {
 		assert.Equal(t, api.StepTypeAsync, asyncStep.Type)
 
 		scriptStep, err := build.
-			WithScript("(+ 1 2)").
+			WithScript("return {result = 1 + 2}").
 			WithScriptExecution().
 			Build()
 		assert.NoError(t, err)

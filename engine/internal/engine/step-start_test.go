@@ -875,11 +875,11 @@ func TestMatchSkipInputs(t *testing.T) {
 	})
 }
 
-func TestInputAle(t *testing.T) {
+func TestInputLua(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
-		st := helpers.NewSimpleStep("ale-input-map")
+		st := helpers.NewSimpleStep("lua-input-map")
 		st.Attributes = api.AttributeSpecs{
 			"amount": {
 				Role: api.RoleRequired,
@@ -887,8 +887,8 @@ func TestInputAle(t *testing.T) {
 				Required: &api.RequiredConfig{
 					Mapping: &api.MappingConfig{
 						Script: &api.ScriptConfig{
-							Language: api.ScriptLangAle,
-							Script:   "(* amount 2)",
+							Language: api.ScriptLangLua,
+							Script:   "return amount * 2",
 						},
 					},
 				},
@@ -907,7 +907,7 @@ func TestInputAle(t *testing.T) {
 			Steps: api.Steps{st.ID: st},
 		}
 
-		id := api.FlowID("wf-ale-input")
+		id := api.FlowID("wf-lua-input")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl,
 				flow.WithInit(api.InitArgs{"amount": {float64(5)}}),
@@ -917,7 +917,7 @@ func TestInputAle(t *testing.T) {
 		assert.Equal(t, api.FlowCompleted, fl.Status)
 
 		ex := fl.Executions[st.ID]
-		assert.Equal(t, float64(10), ex.Inputs["amount"])
+		assert.Equal(t, 10, ex.Inputs["amount"])
 	})
 }
 
@@ -926,7 +926,7 @@ func TestPredicateExecution(t *testing.T) {
 		assert.NoError(t, env.Engine.Start())
 
 		st := helpers.NewStepWithPredicate(
-			"predicate-step", api.ScriptLangAle, "true", "output",
+			"predicate-step", api.ScriptLangLua, "return true", "output",
 		)
 
 		err := env.Engine.RegisterStep(st)
@@ -952,7 +952,7 @@ func TestPredicateFalse(t *testing.T) {
 		defer func() { _ = env.Engine.Stop() }()
 
 		st := helpers.NewStepWithPredicate(
-			"predicate-false-step", api.ScriptLangAle, "false", "output",
+			"predicate-false-step", api.ScriptLangLua, "return false", "output",
 		)
 
 		err := env.Engine.RegisterStep(st)

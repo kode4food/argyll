@@ -209,7 +209,7 @@
   "stepEditor.typeAsyncTitle": "Asynchronous HTTP",
   "stepEditor.typeFlowTitle": "Flow",
   "stepEditor.typeLabel": "Type",
-  "stepEditor.typeScriptTitle": "Script (Ale)",
+  "stepEditor.typeScriptTitle": "Script (Lua)",
   "stepEditor.typeSyncTitle": "Synchronous HTTP",
   "stepFooter.flowGoals": "Goal Steps",
   "stepPredicate.moreLines": "... ({count} more lines)",

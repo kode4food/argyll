@@ -410,8 +410,8 @@ func newScriptStep() *api.Step {
 			},
 		},
 		Script: &api.ScriptConfig{
-			Language: "ale",
-			Script:   `{:result "hello"}`,
+			Language: "lua",
+			Script:   `return {result = "hello"}`,
 		},
 	}
 }

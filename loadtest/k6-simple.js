@@ -25,8 +25,8 @@ export function setup() {
       result: { role: 'output', type: 'string' },
     },
     script: {
-      language: 'ale',
-      script: '{:result "hello"}',
+      language: 'lua',
+      script: 'return {result = "hello"}',
     },
   };
 

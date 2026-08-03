@@ -9,20 +9,20 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-// TestScriptStepErrorAle verifies that Ale script steps that throw errors fail
+// TestScriptStepError verifies that script steps that throw errors fail
 // gracefully and cause the flow to fail
-func TestScriptStepErrorAle(t *testing.T) {
+func TestScriptStepError(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		assert.NoError(t, env.Engine.Start())
 
 		// Step A: Produces "valueA"
 		stepA := helpers.NewStepWithOutputs("step-a", "valueA")
 
-		// Step B (Script - Ale): Consumes "valueA", causes runtime error
+		// Step B consumes "valueA" and causes a runtime error
 		stepB := helpers.NewScriptStep(
 			"step-b",
-			api.ScriptLangAle,
-			`(/ 1 0)`,
+			api.ScriptLangLua,
+			`error("Lua error message")`,
 			"valueB",
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
@@ -72,7 +72,7 @@ func TestScriptStepErrorAle(t *testing.T) {
 			},
 		}
 
-		id := api.FlowID("test-script-error-ale")
+		id := api.FlowID("test-script-error")
 		fl := env.WaitForFlowStatus(id, func() {
 			err := env.Engine.StartFlow(id, pl)
 			assert.NoError(t, err)

@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import StepPredicate from "./StepPredicate";
-import { Step, SCRIPT_LANGUAGE_ALE, SCRIPT_LANGUAGE_LUA } from "@/app/api";
+import { Step, SCRIPT_LANGUAGE_LUA } from "@/app/api";
 import { t } from "@/app/testUtils/i18n";
 
 describe("StepPredicate", () => {
@@ -26,20 +26,6 @@ describe("StepPredicate", () => {
         : undefined,
   });
 
-  test("renders predicate with Ale language", () => {
-    const step = createStep("(> temperature 100)", SCRIPT_LANGUAGE_ALE);
-    const { container } = render(<StepPredicate step={step} />);
-
-    expect(
-      screen.getByText((content) =>
-        content.startsWith(t("stepPredicate.title", { language: "ale" }))
-      )
-    ).toBeInTheDocument();
-    expect(container.querySelector(".predicate-code")?.textContent).toBe(
-      "(> temperature 100)"
-    );
-  });
-
   test("renders predicate with Lua language", () => {
     const step = createStep("return temperature > 100", SCRIPT_LANGUAGE_LUA);
     const { container } = render(<StepPredicate step={step} />);
@@ -63,13 +49,13 @@ describe("StepPredicate", () => {
 
   test("renders complex predicate expression", () => {
     const step = createStep(
-      "(and (> temperature 50) (< humidity 80))",
-      SCRIPT_LANGUAGE_ALE
+      "return temperature > 50 and humidity < 80",
+      SCRIPT_LANGUAGE_LUA
     );
     const { container } = render(<StepPredicate step={step} />);
 
     expect(container.querySelector(".predicate-code")?.textContent).toBe(
-      "(and (> temperature 50) (< humidity 80))"
+      "return temperature > 50 and humidity < 80"
     );
   });
 });

@@ -21,7 +21,7 @@ func TestPredicateSkipping(t *testing.T) {
 
 		// Step B: Has predicate that returns false, produces "valueB"
 		stepB := helpers.NewStepWithPredicate(
-			"step-b", api.ScriptLangAle, "false", "valueB",
+			"step-b", api.ScriptLangLua, "return false", "valueB",
 		)
 		stepB.Attributes["valueA"] = &api.AttributeSpec{
 			Role: api.RoleRequired,

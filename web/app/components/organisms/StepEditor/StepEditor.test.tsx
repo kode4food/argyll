@@ -77,8 +77,8 @@ describe("StepEditor", () => {
       timeout: 5000,
     },
     predicate: {
-      language: "ale",
-      script: "(> temperature 100)",
+      language: "lua",
+      script: "return temperature > 100",
     },
   });
 
@@ -91,12 +91,12 @@ describe("StepEditor", () => {
       result: { role: AttributeRole.Output, type: AttributeType.String },
     },
     script: {
-      language: "ale",
-      script: "{:result 42}",
+      language: "lua",
+      script: "return {result = 42}",
     },
     predicate: {
-      language: "ale",
-      script: "(> value 10)",
+      language: "lua",
+      script: "return value > 10",
     },
   });
 
@@ -169,7 +169,7 @@ describe("StepEditor", () => {
         screen.getByDisplayValue("http://localhost:8080/health")
       ).toBeInTheDocument();
       expect(
-        screen.getByDisplayValue("(> temperature 100)")
+        screen.getByDisplayValue("return temperature > 100")
       ).toBeInTheDocument();
     });
   });
@@ -186,8 +186,10 @@ describe("StepEditor", () => {
         screen.getByText(t("stepEditor.modalEditTitle", { id: "step-2" }))
       ).toBeInTheDocument();
       expect(screen.getByDisplayValue("Test Script Step")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("{:result 42}")).toBeInTheDocument();
-      expect(screen.getByDisplayValue("(> value 10)")).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue("return {result = 42}")
+      ).toBeInTheDocument();
+      expect(screen.getByDisplayValue("return value > 10")).toBeInTheDocument();
     });
   });
 
@@ -222,7 +224,7 @@ describe("StepEditor", () => {
       t("stepEditor.matchLanguageLabel")
     );
     fireEvent.click(matchLangBtn);
-    fireEvent.click(screen.getByRole("option", { name: "Ale" }));
+    fireEvent.click(screen.getByRole("option", { name: "Lua" }));
     fireEvent.change(matchInput, { target: { value: "$.product_type" } });
 
     fireEvent.click(screen.getByText(t("stepEditor.save")));
@@ -235,7 +237,7 @@ describe("StepEditor", () => {
             input1: expect.objectContaining({
               required: expect.objectContaining({
                 match: {
-                  language: "ale",
+                  language: "lua",
                   script: "$.product_type",
                 },
               }),
@@ -262,14 +264,6 @@ describe("StepEditor", () => {
     const matchLanguageSelect = screen.getByLabelText(
       t("stepEditor.matchLanguageLabel")
     );
-
-    fireEvent.click(matchLanguageSelect);
-    fireEvent.click(screen.getByRole("option", { name: "Ale" }));
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(t("stepEditor.matchScriptPlaceholderAle"))
-      ).toBeInTheDocument();
-    });
 
     fireEvent.click(matchLanguageSelect);
     fireEvent.click(screen.getByRole("option", { name: "Lua" }));
@@ -495,7 +489,9 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const predicateInput = screen.getByDisplayValue("(> temperature 100)");
+      const predicateInput = screen.getByDisplayValue(
+        "return temperature > 100"
+      );
       fireEvent.change(predicateInput, {
         target: { value: "(< temperature 50)" },
       });
@@ -567,8 +563,8 @@ describe("StepEditor", () => {
             timeout: expect.any(Number),
           }),
           predicate: expect.objectContaining({
-            language: "ale",
-            script: "(> temperature 100)",
+            language: "lua",
+            script: "return temperature > 100",
           }),
         })
       );
@@ -654,14 +650,6 @@ describe("StepEditor", () => {
         screen.getByPlaceholderText(
           t("stepEditor.mappingScriptPlaceholderJPath")
         )
-      ).toBeInTheDocument();
-    });
-
-    fireEvent.click(mappingLanguageSelect);
-    fireEvent.click(screen.getByRole("option", { name: "Ale" }));
-    await waitFor(() => {
-      expect(
-        screen.getByPlaceholderText(t("stepEditor.mappingScriptPlaceholderAle"))
       ).toBeInTheDocument();
     });
 
@@ -913,7 +901,9 @@ describe("StepEditor", () => {
     );
 
     await waitFor(() => {
-      const predicateInput = screen.getByDisplayValue("(> temperature 100)");
+      const predicateInput = screen.getByDisplayValue(
+        "return temperature > 100"
+      );
       fireEvent.change(predicateInput, { target: { value: "" } });
 
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -1037,12 +1027,14 @@ describe("StepEditor", () => {
     await waitFor(() => {
       const scriptEditors = screen.getAllByTestId("script-editor");
       const scriptCodeEditor = scriptEditors.find(
-        (e) => (e as HTMLTextAreaElement).value === "{:result 42}"
+        (e) => (e as HTMLTextAreaElement).value === "return {result = 42}"
       ) as HTMLTextAreaElement;
       fireEvent.change(scriptCodeEditor, {
-        target: { value: "{:result 100}" },
+        target: { value: "return {result = 100}" },
       });
-      expect(screen.getByDisplayValue("{:result 100}")).toBeInTheDocument();
+      expect(
+        screen.getByDisplayValue("return {result = 100}")
+      ).toBeInTheDocument();
     });
   });
 
@@ -1065,8 +1057,8 @@ describe("StepEditor", () => {
         expect.objectContaining({
           type: "script",
           script: {
-            language: "ale",
-            script: "{:result 42}",
+            language: "lua",
+            script: "return {result = 42}",
           },
         })
       );
@@ -1085,7 +1077,7 @@ describe("StepEditor", () => {
     await waitFor(() => {
       const scriptEditors = screen.getAllByTestId("script-editor");
       const scriptCodeEditor = scriptEditors.find(
-        (e) => (e as HTMLTextAreaElement).value === "{:result 42}"
+        (e) => (e as HTMLTextAreaElement).value === "return {result = 42}"
       ) as HTMLTextAreaElement;
       fireEvent.change(scriptCodeEditor, { target: { value: "" } });
 

@@ -219,11 +219,11 @@ def test_step_builder_with_timeout():
 
 def test_step_builder_with_script():
     client = Client()
-    builder = client.new_step().with_name("Test").with_script("(+ 1 2)")
+    builder = client.new_step().with_name("Test").with_script("return 1 + 2")
     step = builder.build()
     assert step.script is not None
-    assert step.script.language == ScriptLanguage.ALE
-    assert step.script.script == "(+ 1 2)"
+    assert step.script.language == ScriptLanguage.LUA
+    assert step.script.script == "return 1 + 2"
     assert step.type == StepType.SCRIPT
 
 
@@ -245,12 +245,12 @@ def test_step_builder_with_predicate():
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_predicate(ScriptLanguage.ALE, "(> value 10)")
+        .with_predicate(ScriptLanguage.LUA, "return value > 10")
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
     assert step.predicate is not None
-    assert step.predicate.script == "(> value 10)"
+    assert step.predicate.script == "return value > 10"
 
 
 def test_step_builder_with_async_execution():
@@ -477,12 +477,14 @@ def test_step_builder_build():
     assert step.type == StepType.SYNC
 
 
-def test_step_builder_with_script_defaults_to_ale():
+def test_step_builder_with_script_defaults_to_lua():
     client = Client()
-    builder = client.new_step().with_name("ScriptStep").with_script("(+ 1 2)")
+    builder = (
+        client.new_step().with_name("ScriptStep").with_script("return 1 + 2")
+    )
     step = builder.build()
     assert step.script is not None
-    assert step.script.language == ScriptLanguage.ALE
+    assert step.script.language == ScriptLanguage.LUA
 
 
 def test_step_builder_const():
@@ -573,7 +575,7 @@ def _make_step(**overrides):
         _make_step(http=None),
         _make_step(flow=FlowConfig(goals=["g1"])),
         _make_step(
-            script=ScriptConfig(language=ScriptLanguage.ALE, script="x")
+            script=ScriptConfig(language=ScriptLanguage.LUA, script="x")
         ),
         _make_step(
             type=StepType.SCRIPT,
@@ -582,12 +584,12 @@ def _make_step(**overrides):
         ),
         _make_step(
             type=StepType.SCRIPT,
-            script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
+            script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
             http=HTTPConfig(endpoint="http://localhost:8081/test"),
         ),
         _make_step(
             type=StepType.SCRIPT,
-            script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
+            script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
             flow=FlowConfig(goals=["g1"]),
             http=None,
         ),
@@ -600,7 +602,7 @@ def _make_step(**overrides):
         _make_step(
             type=StepType.FLOW,
             flow=FlowConfig(goals=["g1"]),
-            script=ScriptConfig(language=ScriptLanguage.ALE, script="x"),
+            script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
         ),
         # empty attribute name
         _make_step(

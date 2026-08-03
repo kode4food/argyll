@@ -171,7 +171,7 @@ func main() {
 - **Type-safe builders** - Immutable builder pattern with method chaining
 - **Sync and async steps** - Support for both synchronous and asynchronous execution
 - **Configurable HTTP methods** - `POST` by default, with explicit `GET`, `PUT`, or `DELETE` when needed
-- **Script steps** - Execute Ale or Lua scripts
+- **Script steps** - Execute Lua scripts
 - **Flow orchestration** - Define and execute multi-step flows
 - **Result memoization** - Cache step results for efficiency
 - **Conditional execution** - Use predicates to control step execution
@@ -196,7 +196,7 @@ builder2 := builder1.WithID("custom-id")
 ```go
 client.NewStep().WithName("ConditionalStep").
     Required("value", api.TypeNumber).
-    WithAlePredicate("(> value 10)").
+    WithLuaPredicate("return value > 10").
     WithMethod("POST").
     WithEndpoint("http://localhost:8081/step").
     Register(ctx)
@@ -306,7 +306,7 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithMethod(method string) Step` - Set HTTP method (`GET`, `POST`, `PUT`, `DELETE`)
 - `WithHealthCheck(url) Step` - Set health check endpoint
 - `WithTimeout(ms) Step` - Set execution timeout
-- `WithScript(script) Step` - Set Ale script
+- `WithScript(script) Step` - Set Lua script
 - `WithScriptLanguage(lang, script) Step` - Set script with language
 - `WithPredicate(lang, script) Step` - Set predicate
 - `WithAsyncExecution() Step` - Enable async execution

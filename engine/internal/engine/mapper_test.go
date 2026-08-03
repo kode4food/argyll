@@ -19,10 +19,10 @@ func TestMapperCompile(t *testing.T) {
 		})
 	})
 
-	t.Run("compiles ale mapping", func(t *testing.T) {
+	t.Run("compiles lua mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			st := mappingStep("amount")
-			compiled, err := m.Compile(st, aleCfg("(* amount 2)"))
+			compiled, err := m.Compile(st, luaCfg("return amount * 2"))
 			assert.NoError(t, err)
 			assert.NotNil(t, compiled)
 		})
@@ -85,14 +85,14 @@ func TestMapperMappingValue(t *testing.T) {
 		})
 	})
 
-	t.Run("executes ale mapping", func(t *testing.T) {
+	t.Run("executes lua mapping", func(t *testing.T) {
 		withMapper(t, func(m *engine.Mapper) {
 			st := mappingStep("amount")
 			value, ok := m.MapValue(
-				st, "amount", aleCfg("(* amount 2)"), float64(5),
+				st, "amount", luaCfg("return amount * 2"), float64(5),
 			)
 			assert.True(t, ok)
-			assert.Equal(t, float64(10), value)
+			assert.Equal(t, 10, value)
 		})
 	})
 
@@ -124,8 +124,8 @@ func TestScriptUsesMappedName(t *testing.T) {
 						Mapping: &api.MappingConfig{
 							Name: "value",
 							Script: &api.ScriptConfig{
-								Language: api.ScriptLangAle,
-								Script:   "(* value 2)",
+								Language: api.ScriptLangLua,
+								Script:   "return value * 2",
 							},
 						},
 					},
@@ -135,7 +135,7 @@ func TestScriptUsesMappedName(t *testing.T) {
 
 		attr := st.Attributes["amount"]
 		mapped := m.MapInput(st, "amount", attr, float64(5))
-		assert.Equal(t, float64(10), mapped)
+		assert.Equal(t, 10, mapped)
 	})
 }
 
@@ -293,9 +293,9 @@ func jpathCfg(script string) *api.ScriptConfig {
 	}
 }
 
-func aleCfg(script string) *api.ScriptConfig {
+func luaCfg(script string) *api.ScriptConfig {
 	return &api.ScriptConfig{
-		Language: api.ScriptLangAle,
+		Language: api.ScriptLangLua,
 		Script:   script,
 	}
 }

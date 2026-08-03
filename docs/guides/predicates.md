@@ -22,8 +22,8 @@ A predicate script evaluates to true/false:
     "notification_sent": { "role": "output", "type": "boolean" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(> amount 100)"
+    "language": "lua",
+    "script": "return amount > 100"
   }
 }
 ```
@@ -31,11 +31,11 @@ A predicate script evaluates to true/false:
 **Execution:**
 ```
 Flow input: { "amount": [50] }
-Predicate evaluates: (> 50 100) → false
+Predicate evaluates: 50 > 100 → false
 Step is skipped, no outputs produced, no HTTP call made
 
 Flow input: { "amount": [150] }
-Predicate evaluates: (> 150 100) → true
+Predicate evaluates: 150 > 100 → true
 Step executes, HTTP call made, outputs produced
 ```
 
@@ -59,8 +59,8 @@ Example:
   "type": "sync",
   "http": { "endpoint": "https://api.example.com/items/process", "timeout": 5000 },
   "predicate": {
-    "language": "ale",
-    "script": "(> (length items) 0)"
+    "language": "lua",
+    "script": "return #items > 0"
   },
   "attributes": {
     "items": { "role": "required", "type": "array", "required": { "for_each": true } },
@@ -73,29 +73,11 @@ If `items` is empty, predicate is false and no work items run. If non-empty, wor
 
 ## Languages
 
-Predicates support Ale, Lua, and Argyll JSONPath (`jpath`).
-
-### Ale
-
-Simple, purely functional language. Ideal for predicates.
-
-```javascript
-// Simple comparisons
-(> amount 100)
-(eq status "active")
-
-// Logical operators
-(and (> amount 100) (eq status "active"))
-(or (eq region "US") (eq region "EU"))
-
-// List operations
-(> (length items) 0)
-(eq (first statuses) "paid")
-```
+Predicates support Lua and Argyll JSONPath (`jpath`).
 
 ### Lua
 
-More expressive, partial sandboxing (no I/O, os, debug).
+Use Lua for predicates that combine multiple attributes or require conditional logic. The `io`, `os`, and `debug` modules are excluded.
 
 ```lua
 -- Conditional expression
@@ -105,7 +87,7 @@ else
   return false
 end
 
--- More complex logic
+-- Multiple conditions
 return #items > 0 and items[1].status == "approved"
 ```
 
@@ -135,8 +117,8 @@ $.items[?(@.status=="ready")]
     "notification_sent": { "role": "output", "type": "boolean" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(>= amount 1000)"
+    "language": "lua",
+    "script": "return amount >= 1000"
   }
 }
 ```
@@ -152,8 +134,8 @@ $.items[?(@.status=="ready")]
   "type": "sync",
   "http": { "endpoint": "https://api.example.com/batch/process", "timeout": 5000 },
   "predicate": {
-    "language": "ale",
-    "script": "(> (length items) 0)"
+    "language": "lua",
+    "script": "return #items > 0"
   },
   "attributes": {
     "items": { "role": "required", "type": "array", "required": { "for_each": true } },
@@ -178,8 +160,8 @@ $.items[?(@.status=="ready")]
     "discount_applied": { "role": "output", "type": "boolean" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(and (>= years_member 2) (eq account_status \"active\"))"
+    "language": "lua",
+    "script": "return years_member >= 2 and account_status == \"active\""
   }
 }
 ```
@@ -214,12 +196,12 @@ Result: Error → Step fails → Flow fails (if goal step)
 
 Write predicates carefully. Use simple logic:
 
-```javascript
-// Good: simple and clear
-(> amount 100)
+```lua
+-- Good: simple and clear
+return amount > 100
 
-// Avoid: complex logic that can error
-(first expensive_lookup)  -- If expensive_lookup is null
+-- Avoid: complex logic that can error
+return expensive_lookup[1] -- If expensive_lookup is nil
 ```
 
 ## Interaction with Execution Plan
@@ -301,8 +283,8 @@ A step can have both:
   "type": "sync",
   "http": { "endpoint": "https://api.example.com/items/process", "timeout": 5000 },
   "predicate": {
-    "language": "ale",
-    "script": "(> (length items) 0)"
+    "language": "lua",
+    "script": "return #items > 0"
   },
   "attributes": {
     "items": { "role": "required", "type": "array", "required": { "for_each": true } },
@@ -328,8 +310,8 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
     "processed": { "role": "output", "type": "boolean" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(eq customer_tier \"premium\")"
+    "language": "lua",
+    "script": "return customer_tier == \"premium\""
   }
 }
 ```
@@ -367,8 +349,8 @@ Predicate evaluates first (is there anything to process?), then for_each expansi
     "executed": { "role": "output", "type": "boolean" }
   },
   "predicate": {
-    "language": "ale",
-    "script": "(eq feature_enabled true)"
+    "language": "lua",
+    "script": "return feature_enabled == true"
   }
 }
 ```

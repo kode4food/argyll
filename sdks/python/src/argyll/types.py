@@ -58,7 +58,6 @@ class AttributeType(str, Enum):
 class ScriptLanguage(str, Enum):
     """Script language for script steps."""
 
-    ALE = "ale"
     LUA = "lua"
     JPATH = "jpath"
 

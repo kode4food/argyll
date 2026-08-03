@@ -73,8 +73,8 @@ describe("Widget", () => {
     ...(type === "script"
       ? {
           script: {
-            language: "ale",
-            script: "{:result 42}",
+            language: "lua",
+            script: "return {result = 42}",
           },
         }
       : type === "flow"

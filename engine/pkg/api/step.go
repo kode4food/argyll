@@ -98,7 +98,6 @@ const (
 	StepTypeScript StepType = "script"
 	StepTypeFlow   StepType = "flow"
 
-	ScriptLangAle   = "ale"
 	ScriptLangJPath = "jpath"
 	ScriptLangLua   = "lua"
 
@@ -156,7 +155,6 @@ var (
 	)
 
 	validScriptLanguages = util.SetOf(
-		ScriptLangAle,
 		ScriptLangLua,
 	)
 

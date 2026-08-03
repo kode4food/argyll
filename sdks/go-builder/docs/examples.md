@@ -41,7 +41,7 @@ if err != nil {
 err := client.NewStep().WithName("Hello Script").
     Required("name", api.TypeString).
     Output("greeting", api.TypeString).
-    WithScript("{:greeting name}").
+    WithScript("return {greeting = name}").
     Register(context.Background())
 if err != nil {
     log.Fatal(err)

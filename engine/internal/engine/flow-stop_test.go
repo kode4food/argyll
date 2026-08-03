@@ -227,8 +227,8 @@ func TestFlowStepMapping(t *testing.T) {
 			Name: "Child Mapped",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "{:child_out child_in}",
+				Language: api.ScriptLangLua,
+				Script:   "return {child_out = child_in}",
 			},
 			Attributes: api.AttributeSpecs{
 				"child_in":  {Role: api.RoleRequired},
@@ -283,7 +283,7 @@ func TestFlowStepMapping(t *testing.T) {
 
 		ex := fl.Executions[parent.ID]
 		if testify.NotNil(t, ex) {
-			testify.Equal(t, float64(7), ex.Outputs["output"])
+			testify.Equal(t, 7, ex.Outputs["output"])
 		}
 	})
 }

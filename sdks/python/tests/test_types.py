@@ -148,9 +148,9 @@ def test_http_config_with_health_check():
 
 
 def test_script_config_to_dict():
-    config = ScriptConfig(language=ScriptLanguage.ALE, script="(+ 1 2)")
+    config = ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2")
     result = config.to_dict()
-    assert result == {"language": "ale", "script": "(+ 1 2)"}
+    assert result == {"language": "lua", "script": "return 1 + 2"}
 
 
 def test_step_to_dict():
@@ -199,7 +199,7 @@ def test_step_enums():
     assert StepType.SCRIPT.value == "script"
     assert AttributeRole.REQUIRED.value == "required"
     assert AttributeType.STRING.value == "string"
-    assert ScriptLanguage.ALE.value == "ale"
+    assert ScriptLanguage.LUA.value == "lua"
     assert ScriptLanguage.JPATH.value == "jpath"
 
 
@@ -266,7 +266,7 @@ def test_step_with_all_fields():
             health_check="http://localhost:8081/health",
             timeout=5000,
         ),
-        script=ScriptConfig(language=ScriptLanguage.ALE, script="(+ 1 2)"),
+        script=ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2"),
         predicate=PredicateConfig(
             language=ScriptLanguage.LUA, script="return true"
         ),
@@ -285,7 +285,7 @@ def test_step_with_all_fields():
     assert result["labels"]["env"] == "test"
     assert result["http"]["method"] == "POST"
     assert result["http"]["timeout"] == 5000
-    assert result["script"]["script"] == "(+ 1 2)"
+    assert result["script"]["script"] == "return 1 + 2"
     assert result["predicate"]["script"] == "return true"
     assert result["work_config"]["max_retries"] == 3
     assert result["flow"]["goals"] == ["step-1"]

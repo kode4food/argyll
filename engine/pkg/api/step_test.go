@@ -252,7 +252,7 @@ func TestStepValidation(t *testing.T) {
 				Name: "Test Script",
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
-					Language: api.ScriptLangAle,
+					Language: api.ScriptLangLua,
 					Script:   "",
 				},
 			},
@@ -267,7 +267,7 @@ func TestStepValidation(t *testing.T) {
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: "",
-					Script:   "(+ 1 2)",
+					Script:   "return 1 + 2",
 				},
 			},
 			expectError:   true,
@@ -281,7 +281,7 @@ func TestStepValidation(t *testing.T) {
 				Type: api.StepTypeScript,
 				Script: &api.ScriptConfig{
 					Language: "internal",
-					Script:   "(+ 1 2)",
+					Script:   "return 1 + 2",
 				},
 			},
 			expectError:   true,
@@ -651,18 +651,18 @@ func TestEqualScript(t *testing.T) {
 	as := assert.New(t)
 
 	config1 := &api.ScriptConfig{
-		Language: api.ScriptLangAle,
-		Script:   "(+ 1 2)",
+		Language: api.ScriptLangLua,
+		Script:   "return 1 + 2",
 	}
 
 	config2 := &api.ScriptConfig{
-		Language: api.ScriptLangAle,
-		Script:   "(+ 1 2)",
+		Language: api.ScriptLangLua,
+		Script:   "return 1 + 2",
 	}
 
 	config3 := &api.ScriptConfig{
 		Language: api.ScriptLangLua,
-		Script:   "return 1 + 2",
+		Script:   "return 2 + 2",
 	}
 
 	as.True(config1.Equal(config2))
@@ -983,8 +983,8 @@ func TestStepCopy(t *testing.T) {
 				Goals: []api.StepID{"goal-a"},
 			},
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "(+ 1 2)",
+				Language: api.ScriptLangLua,
+				Script:   "return 1 + 2",
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -1067,8 +1067,8 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			Name: "Test",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "(+ 1 2)",
+				Language: api.ScriptLangLua,
+				Script:   "return 1 + 2",
 			},
 		}
 		step2 := &api.Step{
@@ -1076,8 +1076,8 @@ func TestStepEqualEdgeCases(t *testing.T) {
 			Name: "Test",
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   "(+ 1 2)",
+				Language: api.ScriptLangLua,
+				Script:   "return 1 + 2",
 			},
 		}
 		as.True(step1.Equal(step2))
@@ -1188,8 +1188,8 @@ func TestStepEqualEdgeCases(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			Predicate: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   `(eq status "ready")`,
+				Language: api.ScriptLangLua,
+				Script:   `return status == "ready"`,
 			},
 		}
 		step2 := &api.Step{
@@ -1200,8 +1200,8 @@ func TestStepEqualEdgeCases(t *testing.T) {
 				Endpoint: "http://localhost:8080",
 			},
 			Predicate: &api.ScriptConfig{
-				Language: api.ScriptLangAle,
-				Script:   `(eq status "pending")`,
+				Language: api.ScriptLangLua,
+				Script:   `return status == "pending"`,
 			},
 		}
 		as.False(step1.Equal(step2))
@@ -1400,7 +1400,7 @@ func TestStepHashKey(t *testing.T) {
 		s := &api.Step{
 			Type: api.StepTypeScript,
 			Script: &api.ScriptConfig{
-				Language: "ale",
+				Language: "lua",
 				Script:   "return 42",
 			},
 		}

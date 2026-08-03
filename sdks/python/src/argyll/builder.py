@@ -207,8 +207,8 @@ class StepBuilder:
         return self._copy(_http=self._http_with(timeout=ms))
 
     def with_script(self, script: str) -> "StepBuilder":
-        """Set Ale script."""
-        return self.with_script_language(ScriptLanguage.ALE, script)
+        """Set Lua script."""
+        return self.with_script_language(ScriptLanguage.LUA, script)
 
     def with_script_language(
         self, language: ScriptLanguage, script: str
