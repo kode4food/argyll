@@ -52,6 +52,13 @@
   --color-neutral-text: #374151;
   --color-neutral-label: #f3f4f6;
 
+  /* Panel text (semantic hook): theme-aware default.
+     Fixed-dark surfaces (StepEditor, modals/editors) override this
+     locally to --color-dark-text so their text stays constant
+     regardless of app theme. */
+  --panel-text: var(--color-neutral-text);
+  --panel-text-muted: color-mix(in srgb, var(--color-neutral-text) 68%, transparent);
+
   /* Status Colors */
   --color-success: #10b981;
   --color-error: #ef4444;

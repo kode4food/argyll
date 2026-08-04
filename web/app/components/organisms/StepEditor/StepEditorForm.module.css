@@ -90,7 +90,7 @@
 .label {
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   opacity: var(--opacity-high);
 }
 
@@ -116,7 +116,7 @@
   background-color: var(--overlay-dark-30);
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   font-size: var(--text-xs);
   box-sizing: border-box;
 }
@@ -180,7 +180,7 @@
   background-color: var(--overlay-dark-30);
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   font-size: var(--text-xs);
   box-sizing: border-box;
 }
@@ -201,7 +201,7 @@
   padding: 0 0 0 10px;
   border: 0;
   background-color: transparent;
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   font-size: var(--text-xs);
   font-family: inherit;
   box-sizing: border-box;
@@ -281,7 +281,7 @@
   justify-content: center;
   background-color: transparent;
   border: 0;
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   cursor: pointer;
   transition: var(--transition-fast);
   box-sizing: border-box;
@@ -311,7 +311,7 @@
   background-repeat: no-repeat;
   background-position: right 10px center;
   border: 0;
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   font-size: var(--text-xs);
   font-family: inherit;
   cursor: pointer;
@@ -357,7 +357,7 @@
   padding: 0 0 0 10px;
   border: none;
   background: transparent;
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   font-size: var(--text-xs);
   font-family: inherit;
   box-sizing: border-box;

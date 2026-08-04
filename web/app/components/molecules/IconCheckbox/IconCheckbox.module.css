@@ -4,7 +4,7 @@
   gap: var(--spacing-xs);
   cursor: pointer;
   font-size: var(--text-xs);
-  color: var(--color-dark-text);
+  color: var(--panel-text, var(--color-neutral-text));
   user-select: none;
 }
 

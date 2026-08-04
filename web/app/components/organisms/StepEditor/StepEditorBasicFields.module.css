@@ -17,7 +17,7 @@
   background-position: right 10px center;
   border: 1px solid var(--color-dark-border);
   border-radius: var(--radius-md);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   font-size: var(--text-xs);
   font-family: inherit;
   box-sizing: border-box;

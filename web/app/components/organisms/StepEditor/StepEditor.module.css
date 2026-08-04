@@ -37,6 +37,8 @@
 .content {
   position: relative;
   z-index: 50;
+  --panel-text: var(--color-dark-text);
+  --panel-text-muted: color-mix(in srgb, var(--color-dark-text) 68%, transparent);
   background-color: var(--color-dark-bg);
   border-radius: var(--radius-xl);
   display: flex;
@@ -66,13 +68,13 @@
   margin: 0;
   font-size: var(--text-xl);
   font-weight: var(--font-semibold);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
 }
 
 .language {
   margin: 0;
   font-size: var(--text-sm);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   opacity: var(--opacity-muted);
 }
 
@@ -129,7 +131,7 @@
   gap: var(--spacing-xs);
   cursor: pointer;
   font-size: var(--text-xs);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   user-select: none;
 }
 

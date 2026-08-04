@@ -18,8 +18,10 @@
   border-radius: var(--spacing-sm);
   overflow: hidden;
   border: 1px solid var(--color-dark-border);
+  --panel-text: var(--color-dark-text);
+  --panel-text-muted: color-mix(in srgb, var(--color-dark-text) 68%, transparent);
   background-color: var(--color-dark-bg);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   box-shadow:
     0 20px 25px -5px rgb(0 0 0 / 0.1),
     0 8px 10px -6px rgb(0 0 0 / 0.1);
@@ -52,7 +54,7 @@
   background: none;
   border: 1px solid transparent;
   border-radius: var(--radius-md);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   padding: var(--spacing-xs);
   display: flex;
   align-items: center;
@@ -72,7 +74,7 @@
   font-size: var(--text-sm);
   font-weight: var(--font-semibold);
   margin-bottom: var(--spacing-sm);
-  color: var(--color-neutral-text);
+  color: var(--panel-text-muted, var(--panel-text));
   text-transform: uppercase;
 }
 
@@ -92,7 +94,7 @@
 }
 
 .shortcutDescription {
-  color: var(--color-dark-text);
+  color: var(--panel-text);
 }
 
 .shortcutKeys {
@@ -105,7 +107,7 @@
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   background-color: var(--color-dark-border);
-  color: var(--color-dark-text);
+  color: var(--panel-text);
   border-radius: var(--radius-md);
   border: 1px solid var(--color-dark-border-light);
   min-width: 1.5rem;
