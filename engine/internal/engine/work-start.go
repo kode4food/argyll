@@ -67,11 +67,12 @@ func (e *ExecContext) StartChildFlow(
 ) (api.FlowID, error) {
 	fs := api.FlowStep{FlowID: e.flowID, StepID: e.stepID}
 	return e.engine.StartChildFlow(&ChildFlowRequest{
-		Parent:   fs,
-		Token:    tkn,
-		Plan:     e.child,
-		Init:     init,
-		Metadata: e.meta,
+		Parent:     fs,
+		Token:      tkn,
+		Plan:       e.child,
+		Init:       init,
+		Metadata:   e.meta,
+		Compensate: e.step.Flow != nil && e.step.Flow.Compensate,
 	})
 }
 

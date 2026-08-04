@@ -141,6 +141,7 @@ func flowStarted(
 		Labels:      data.Labels,
 		Attributes:  attributes,
 		Executions:  execs,
+		Compensate:  data.Compensate,
 		CreatedAt:   ev.Timestamp,
 		LastUpdated: ev.Timestamp,
 	}

@@ -22,7 +22,9 @@ import {
   Filter,
   Globe,
   Info,
+  HeartPulse,
   Layers,
+  Link2,
   Loader2,
   Lock,
   Maximize,
@@ -37,6 +39,7 @@ import {
   Sun,
   Tag,
   Trash2,
+  Undo2,
   Webhook,
   Wifi,
   WifiOff,
@@ -82,6 +85,9 @@ export const IconConnectionError = AlertCircle;
 export const IconArraySingle = Square;
 export const IconArrayMultiple = Layers;
 export const IconMemoizable = NotebookPen;
+export const IconCompensate = Undo2;
+export const IconEndpoint = Link2;
+export const IconHealthCheck = HeartPulse;
 export const IconMapping = ArrowRightLeft;
 export const IconAttributeMatch = Filter;
 export const IconExpandDown = ChevronDown;

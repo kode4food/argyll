@@ -9,7 +9,12 @@ import {
   formatScriptPreview,
   formatScriptForTooltip,
 } from "@/utils/stepFooterUtils";
-import { getStepTypeIcon } from "@/utils/iconRegistry";
+import {
+  getStepTypeIcon,
+  IconCompensate,
+  IconEndpoint,
+  IconHealthCheck,
+} from "@/utils/iconRegistry";
 import StepInfoDisplay, {
   type DisplayInfo,
 } from "../StepShared/StepInfoDisplay";
@@ -114,7 +119,12 @@ const Footer: React.FC<FooterProps> = ({
         </TooltipSection>
       );
       sections.push(
-        <TooltipSection key="endpoint" title={t("overviewStep.endpointUrl")}>
+        <TooltipSection
+          key="endpoint"
+          title={t("overviewStep.endpointUrl")}
+          icon={<IconEndpoint />}
+          truncate
+        >
           {step.http.endpoint}
         </TooltipSection>
       );
@@ -124,6 +134,8 @@ const Footer: React.FC<FooterProps> = ({
           <TooltipSection
             key="health-check"
             title={t("overviewStep.healthCheckUrl")}
+            icon={<IconHealthCheck />}
+            truncate
           >
             {step.http.health_check}
           </TooltipSection>
@@ -135,6 +147,8 @@ const Footer: React.FC<FooterProps> = ({
           <TooltipSection
             key="compensate"
             title={t("overviewStep.compensateUrl")}
+            icon={<IconCompensate />}
+            truncate
           >
             {step.http.compensate}
           </TooltipSection>

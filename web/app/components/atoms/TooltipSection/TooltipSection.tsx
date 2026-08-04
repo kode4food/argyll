@@ -7,6 +7,8 @@ interface TooltipSectionProps {
   icon?: React.ReactNode;
   monospace?: boolean;
   bold?: boolean;
+  // Ellipsizes the value; only applies alongside an icon
+  truncate?: boolean;
 }
 
 const TooltipSection: React.FC<TooltipSectionProps> = ({
@@ -15,10 +17,15 @@ const TooltipSection: React.FC<TooltipSectionProps> = ({
   icon,
   monospace = false,
   bold = false,
+  truncate = false,
 }) => {
   let valueClass = styles.value;
   if (monospace) valueClass += ` ${styles.valueMonospace}`;
   if (bold) valueClass += ` ${styles.valueBold}`;
+
+  const textClass = [styles.textContent, truncate && styles.truncate]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <div className={styles.section}>
@@ -26,7 +33,7 @@ const TooltipSection: React.FC<TooltipSectionProps> = ({
       {icon ? (
         <div className={`${valueClass} ${styles.valueWithIcon}`}>
           <div className={styles.iconWrapper}>{icon}</div>
-          <span className={styles.textContent}>{children}</span>
+          <span className={textClass}>{children}</span>
         </div>
       ) : (
         <div className={valueClass}>{children}</div>

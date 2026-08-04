@@ -2,6 +2,11 @@ import React from "react";
 import DurationInput from "@/app/components/molecules/DurationInput";
 import { HTTPMethod } from "@/app/api";
 import { useT } from "@/app/i18n";
+import {
+  IconCompensate,
+  IconEndpoint,
+  IconHealthCheck,
+} from "@/utils/iconRegistry";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import formStyles from "./StepEditorForm.module.css";
 import localStyles from "./StepEditorHttpConfiguration.module.css";
@@ -65,7 +70,10 @@ const StepEditorHttpConfiguration: React.FC<
             </SegmentedGroup>
           </div>
           <div className={`${formStyles.field} ${formStyles.flex1}`}>
-            <label className={formStyles.label}>
+            <label className={formStyles.labelWithIcon}>
+              <span className={formStyles.labelIcon}>
+                <IconEndpoint aria-hidden="true" />
+              </span>
               {t("stepEditor.endpointLabel")}
             </label>
             <input
@@ -84,7 +92,10 @@ const StepEditorHttpConfiguration: React.FC<
           </div>
         </div>
         <div className={formStyles.field}>
-          <label className={formStyles.label}>
+          <label className={formStyles.labelWithIcon}>
+            <span className={formStyles.labelIcon}>
+              <IconHealthCheck aria-hidden="true" />
+            </span>
             {t("stepEditor.healthCheckLabel")}
           </label>
           <input
@@ -96,7 +107,10 @@ const StepEditorHttpConfiguration: React.FC<
           />
         </div>
         <div className={formStyles.field}>
-          <label className={formStyles.label}>
+          <label className={formStyles.labelWithIcon}>
+            <span className={formStyles.labelIcon}>
+              <IconCompensate aria-hidden="true" />
+            </span>
             {t("stepEditor.compensateLabel")}
           </label>
           <input

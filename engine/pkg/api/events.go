@@ -28,11 +28,12 @@ type (
 
 	// FlowStartedEvent is emitted when a flow execution begins
 	FlowStartedEvent struct {
-		Plan     *ExecutionPlan `json:"plan"`
-		Init     InitArgs       `json:"init"`
-		Metadata Metadata       `json:"metadata,omitempty"`
-		Labels   Labels         `json:"labels,omitempty"`
-		FlowID   FlowID         `json:"flow_id"`
+		Plan       *ExecutionPlan `json:"plan"`
+		Init       InitArgs       `json:"init"`
+		Metadata   Metadata       `json:"metadata,omitempty"`
+		Labels     Labels         `json:"labels,omitempty"`
+		FlowID     FlowID         `json:"flow_id"`
+		Compensate bool           `json:"compensate,omitempty"`
 	}
 
 	// FlowCompletedEvent is emitted when a flow completes successfully

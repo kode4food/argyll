@@ -46,6 +46,9 @@ export function useStepEditorForm(
   const [flowGoals, setFlowGoals] = useState(
     step?.flow?.goals?.join(", ") || ""
   );
+  const [flowCompensate, setFlowCompensate] = useState(
+    step?.flow?.compensate || false
+  );
   const [memoizable, setMemoizable] = useState(step?.memoizable || false);
 
   const {
@@ -73,12 +76,14 @@ export function useStepEditorForm(
       compensate,
       httpTimeout,
       flowGoals,
+      flowCompensate,
       memoizable,
     });
   }, [
     attributes,
     compensate,
     endpoint,
+    flowCompensate,
     flowGoals,
     healthCheck,
     httpMethod,
@@ -103,6 +108,7 @@ export function useStepEditorForm(
       setScript(stepData.script?.script || "");
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
       setFlowGoals(stepData.flow?.goals?.join(", ") || "");
+      setFlowCompensate(Boolean(stepData.flow?.compensate));
       setEndpoint(stepData.http?.endpoint || "");
       setHttpMethod(normalizeHttpMethod(stepData.http?.method));
       setHealthCheck(stepData.http?.health_check || "");
@@ -157,6 +163,8 @@ export function useStepEditorForm(
       setHttpTimeout,
       flowGoals,
       setFlowGoals,
+      flowCompensate,
+      setFlowCompensate,
       memoizable,
       setMemoizable,
     }),
@@ -175,6 +183,7 @@ export function useStepEditorForm(
       compensate,
       httpTimeout,
       flowGoals,
+      flowCompensate,
       memoizable,
     ]
   );
@@ -206,6 +215,8 @@ export function useStepEditorForm(
     setScriptLanguage,
     flowGoals,
     setFlowGoals,
+    flowCompensate,
+    setFlowCompensate,
     memoizable,
     setMemoizable,
     attributes,

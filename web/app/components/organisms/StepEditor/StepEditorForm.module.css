@@ -94,6 +94,22 @@
   opacity: var(--opacity-high);
 }
 
+.labelWithIcon {
+  composes: label;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+/* Dim a field's label alongside its own disabled control */
+.field:has(.formControl:disabled) .label {
+  opacity: var(--opacity-disabled);
+}
+
+.labelIcon {
+  composes: iconBox from "@/app/styles/components/icon.module.css";
+}
+
 .formControl {
   height: 32px;
   padding: 0 10px;

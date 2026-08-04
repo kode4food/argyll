@@ -10,6 +10,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/util"
@@ -531,6 +532,94 @@ func TestCompDispatchRecovery(t *testing.T) {
 		work := fl.Executions[st.ID].WorkItems[tkn]
 		assert.Equal(t, api.WorkCompensated, work.Status)
 		assert.Equal(t, 1, compCount)
+	})
+}
+
+func TestFlowCompensation(t *testing.T) {
+	newFlowCompStep := func(id api.StepID) (*api.Step, *api.Step) {
+		producer := newCompensatingStep(id + "-producer")
+		producer.Attributes = api.AttributeSpecs{
+			"value": {Role: api.RoleOutput, Type: api.TypeString},
+		}
+		consumer := helpers.NewSimpleStep(id + "-consumer")
+		consumer.Attributes = api.AttributeSpecs{
+			"value": {Role: api.RoleRequired, Type: api.TypeString},
+		}
+		return producer, consumer
+	}
+
+	newFlowCompPlan := func(
+		producer, consumer *api.Step,
+	) *api.ExecutionPlan {
+		return &api.ExecutionPlan{
+			Goals: []api.StepID{consumer.ID},
+			Steps: api.Steps{
+				producer.ID: producer,
+				consumer.ID: consumer,
+			},
+			Attributes: api.AttributeGraph{
+				"value": {
+					Providers: []api.StepID{producer.ID},
+					Consumers: []api.StepID{consumer.ID},
+				},
+			},
+		}
+	}
+
+	t.Run("compensates succeeded steps", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			producer, consumer := newFlowCompStep("flow-comp")
+			assert.NoError(t, env.Engine.RegisterStep(producer))
+			assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+			env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
+			env.MockClient.SetError(consumer.ID, errors.New("permanent"))
+
+			id := api.FlowID("wf-flow-comp")
+			pl := newFlowCompPlan(producer, consumer)
+
+			env.WaitFor(wait.FlowDeactivated(id), func() {
+				assert.NoError(t, env.Engine.StartFlow(id, pl,
+					flow.WithCompensate(true),
+				))
+			})
+
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			assert.Equal(t, api.FlowFailed, fl.Status)
+			for _, work := range fl.Executions[producer.ID].WorkItems {
+				assert.Equal(t, api.WorkCompensated, work.Status)
+			}
+		})
+	})
+
+	t.Run("leaves succeeded steps alone when unset", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			producer, consumer := newFlowCompStep("no-flow-comp")
+			assert.NoError(t, env.Engine.RegisterStep(producer))
+			assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+			env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
+			env.MockClient.SetError(consumer.ID, errors.New("permanent"))
+
+			id := api.FlowID("wf-no-flow-comp")
+			pl := newFlowCompPlan(producer, consumer)
+
+			env.WaitFor(wait.FlowDeactivated(id), func() {
+				assert.NoError(t, env.Engine.StartFlow(id, pl))
+			})
+
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			assert.Equal(t, api.FlowFailed, fl.Status)
+			for _, work := range fl.Executions[producer.ID].WorkItems {
+				assert.Equal(t, api.WorkSucceeded, work.Status)
+			}
+		})
 	})
 }
 

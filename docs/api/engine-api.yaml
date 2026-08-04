@@ -1435,6 +1435,12 @@ components:
             type: string
           minItems: 1
           example: ["child-goal"]
+        compensate:
+          type: boolean
+          description: |
+            Compensate every completed work item in the child flow if the
+            child flow fails. Not inherited from the parent flow.
+          example: true
 
     WorkConfig:
       type: object
@@ -1656,6 +1662,12 @@ components:
           description: Optional labels for the flow
           additionalProperties:
             type: string
+        compensate:
+          type: boolean
+          description: |
+            Compensate every completed work item in the flow if the flow fails,
+            rather than only those of the step that failed
+          example: true
 
     FlowStartedResponse:
       type: object

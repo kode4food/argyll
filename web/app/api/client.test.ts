@@ -76,8 +76,22 @@ describe("ArgyllApi", () => {
         id: "wf-1",
         goals: ["step-1"],
         init: { input: ["value"] },
+        compensate: false,
       });
       expect(result).toEqual(mockResponse);
+    });
+
+    test("sends compensate when requested", async () => {
+      mockClient.post.mockResolvedValue({ data: { flow_id: "wf-2" } });
+
+      await api.startFlow("wf-2", ["step-1"], {}, true);
+
+      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow", {
+        id: "wf-2",
+        goals: ["step-1"],
+        init: {},
+        compensate: true,
+      });
     });
   });
 

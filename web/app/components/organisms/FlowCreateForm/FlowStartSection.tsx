@@ -1,23 +1,28 @@
 import React from "react";
-import { IconRetry, IconStartFlow } from "@/utils/iconRegistry";
+import { IconCompensate, IconRetry, IconStartFlow } from "@/utils/iconRegistry";
 import Spinner from "@/app/components/atoms/Spinner";
+import IconCheckbox from "@/app/components/molecules/IconCheckbox";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import { useT } from "@/app/i18n";
 import styles from "./FlowStartSection.module.css";
 
 interface FlowStartSectionProps {
+  compensate: boolean;
   creating: boolean;
-  disableStart: boolean;
+  disabled: boolean;
   flowId: string;
+  onCompensateChange: (value: boolean) => void;
   onCreateFlow: () => void | Promise<void>;
   onFlowIdChange: (value: string) => void;
   onGenerateId: () => void;
 }
 
 const FlowStartSection: React.FC<FlowStartSectionProps> = ({
+  compensate,
   creating,
-  disableStart,
+  disabled,
   flowId,
+  onCompensateChange,
   onCreateFlow,
   onFlowIdChange,
   onGenerateId,
@@ -25,8 +30,17 @@ const FlowStartSection: React.FC<FlowStartSectionProps> = ({
   const t = useT();
 
   return (
-    <div className={styles.section}>
-      <label className={styles.label}>{t("flowCreate.startFlowLabel")}</label>
+    <fieldset className={styles.section} disabled={disabled}>
+      <div className={styles.labelRow}>
+        <label className={styles.label}>{t("flowCreate.startFlowLabel")}</label>
+        <IconCheckbox
+          checked={compensate}
+          Icon={IconCompensate}
+          label={t("flowCreate.compensateLabel")}
+          onChange={onCompensateChange}
+          title={t("flowCreate.compensateTitle")}
+        />
+      </div>
       <div className={styles.footerRow}>
         <SegmentedGroup className={styles.idGroup}>
           <input
@@ -48,7 +62,7 @@ const FlowStartSection: React.FC<FlowStartSectionProps> = ({
         </SegmentedGroup>
         <button
           onClick={onCreateFlow}
-          disabled={disableStart}
+          disabled={!flowId.trim()}
           className={`${styles.buttonStart} ${styles.footerIconButton}`}
           title={t("common.start")}
           aria-label={t("common.start")}
@@ -60,7 +74,7 @@ const FlowStartSection: React.FC<FlowStartSectionProps> = ({
           )}
         </button>
       </div>
-    </div>
+    </fieldset>
   );
 };
 

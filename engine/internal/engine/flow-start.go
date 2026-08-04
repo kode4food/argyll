@@ -17,11 +17,12 @@ import (
 type (
 	// ChildFlowRequest contains the state needed to start a child flow
 	ChildFlowRequest struct {
-		Parent   api.FlowStep
-		Token    api.Token
-		Plan     *api.ExecutionPlan
-		Init     api.InitArgs
-		Metadata api.Metadata
+		Parent     api.FlowStep
+		Token      api.Token
+		Plan       *api.ExecutionPlan
+		Init       api.InitArgs
+		Metadata   api.Metadata
+		Compensate bool
 	}
 
 	flowTx struct {
@@ -61,11 +62,12 @@ func (e *Engine) StartFlow(
 		}
 		if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowStarted,
 			api.FlowStartedEvent{
-				FlowID:   flowID,
-				Plan:     pl,
-				Init:     opts.Init,
-				Metadata: opts.Metadata,
-				Labels:   opts.Labels,
+				FlowID:     flowID,
+				Plan:       pl,
+				Init:       opts.Init,
+				Metadata:   opts.Metadata,
+				Labels:     opts.Labels,
+				Compensate: opts.Compensate,
 			},
 		); err != nil {
 			return err
@@ -88,6 +90,7 @@ func (e *Engine) StartChildFlow(req *ChildFlowRequest) (api.FlowID, error) {
 		flow.WithInit(req.Init),
 		flow.WithMetadata(req.Metadata),
 		flow.WithParent(req.Parent, req.Token),
+		flow.WithCompensate(req.Compensate),
 	)
 	if err != nil {
 		return "", err

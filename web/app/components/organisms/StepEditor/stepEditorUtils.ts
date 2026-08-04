@@ -40,6 +40,7 @@ export function buildStepPayload({
   compensate,
   httpTimeout,
   flowGoals,
+  flowCompensate,
   memoizable,
 }: {
   stepId: string;
@@ -56,6 +57,7 @@ export function buildStepPayload({
   compensate: string;
   httpTimeout: number;
   flowGoals: string;
+  flowCompensate: boolean;
   memoizable: boolean;
 }): Step {
   const stepData: Step = {
@@ -75,6 +77,7 @@ export function buildStepPayload({
   if (stepType === "flow") {
     stepData.flow = {
       goals: parseFlowGoals(flowGoals),
+      compensate: flowCompensate,
     };
     stepData.http = undefined;
     stepData.script = undefined;

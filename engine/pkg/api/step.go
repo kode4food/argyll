@@ -58,7 +58,8 @@ type (
 
 	// FlowConfig configures flow-based step execution
 	FlowConfig struct {
-		Goals []StepID `json:"goals"`
+		Goals      []StepID `json:"goals"`
+		Compensate bool     `json:"compensate,omitempty"`
 	}
 
 	// WorkConfig configures retry and parallelism behavior for steps with
@@ -77,7 +78,8 @@ type (
 	}
 
 	flowCfg struct {
-		Goals []StepID `json:"goals"`
+		Goals      []StepID `json:"goals"`
+		Compensate bool     `json:"compensate,omitempty"`
 	}
 
 	stepHash struct {
@@ -547,7 +549,8 @@ func (s *Step) computeHashKey() (string, error) {
 	var flow any
 	if s.Flow != nil {
 		flow = flowCfg{
-			Goals: s.Flow.Goals,
+			Goals:      s.Flow.Goals,
+			Compensate: s.Flow.Compensate,
 		}
 	}
 
@@ -622,7 +625,8 @@ func (c *FlowConfig) WithGoals(goals ...StepID) *FlowConfig {
 // Equal returns true if two flow configs are equal
 func (c *FlowConfig) Equal(other *FlowConfig) bool {
 	return equalWithNilCheck(c, other, func() bool {
-		return slices.Equal(c.Goals, other.Goals)
+		return slices.Equal(c.Goals, other.Goals) &&
+			c.Compensate == other.Compensate
 	})
 }
 

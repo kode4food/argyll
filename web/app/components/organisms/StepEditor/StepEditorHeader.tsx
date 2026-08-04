@@ -1,12 +1,14 @@
 import React from "react";
 import { useT } from "@/app/i18n";
 import { IconMemoizable } from "@/utils/iconRegistry";
+import IconCheckbox from "@/app/components/molecules/IconCheckbox";
 import styles from "./StepEditor.module.css";
 
 interface StepEditorHeaderProps {
   isCreateMode: boolean;
   stepId: string;
   memoizable: boolean;
+  memoizableDisabled: boolean;
   onMemoizableChange: (value: boolean) => void;
 }
 
@@ -14,6 +16,7 @@ const StepEditorHeader: React.FC<StepEditorHeaderProps> = ({
   isCreateMode,
   stepId,
   memoizable,
+  memoizableDisabled,
   onMemoizableChange,
 }) => {
   const t = useT();
@@ -25,21 +28,18 @@ const StepEditorHeader: React.FC<StepEditorHeaderProps> = ({
           : t("stepEditor.modalEditTitle", { id: stepId })}
       </h2>
       <div className={styles.headerControls}>
-        <label
-          className={styles.headerCheckboxLabel}
-          title={t("stepEditor.memoizableTitle")}
-        >
-          <span className={styles.iconMd}>
-            <IconMemoizable aria-hidden="true" />
-          </span>
-          <span>{t("stepEditor.memoizableLabel")}</span>
-          <input
-            type="checkbox"
-            checked={memoizable}
-            onChange={(e) => onMemoizableChange(e.target.checked)}
-            className={styles.headerCheckbox}
-          />
-        </label>
+        <IconCheckbox
+          checked={memoizable}
+          Icon={IconMemoizable}
+          label={t("stepEditor.memoizableLabel")}
+          onChange={onMemoizableChange}
+          disabled={memoizableDisabled}
+          title={
+            memoizableDisabled
+              ? t("stepEditor.memoizableDisabled")
+              : t("stepEditor.memoizableTitle")
+          }
+        />
       </div>
     </div>
   );

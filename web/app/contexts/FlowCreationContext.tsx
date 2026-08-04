@@ -33,6 +33,8 @@ export interface FlowCreationContextValue {
   handleStepChange: (stepIds: string[]) => void;
   initialState: string;
   setInitialState: (state: string) => void;
+  compensate: boolean;
+  setCompensate: (value: boolean) => void;
   creating: boolean;
   handleCreateFlow: () => void;
   steps: Step[];
@@ -74,6 +76,7 @@ export const FlowCreationStateProvider = ({
 
   const [newID, setNewID] = useState("");
   const [initialState, setInitialState] = useState("{}");
+  const [compensate, setCompensate] = useState(false);
   const [creating, setCreating] = useState(false);
   const [idManuallyEdited, setIDManuallyEdited] = useState(false);
   const initializedGoalsRef = useRef(false);
@@ -82,6 +85,7 @@ export const FlowCreationStateProvider = ({
     setNewID("");
     setGoalSteps([]);
     setInitialState("{}");
+    setCompensate(false);
     setIDManuallyEdited(false);
     clearPreviewPlan();
     initializedGoalsRef.current = false;
@@ -163,7 +167,7 @@ export const FlowCreationStateProvider = ({
     setCreating(true);
 
     try {
-      await api.startFlow(flowId, goalSteps, parsedState);
+      await api.startFlow(flowId, goalSteps, parsedState, compensate);
       await loadFlows();
       resetForm();
       navigate(`/flow/${flowId}`);
@@ -190,6 +194,7 @@ export const FlowCreationStateProvider = ({
     loadFlows,
     removeFlow,
     initialState,
+    compensate,
     resetForm,
     t,
   ]);
@@ -202,6 +207,8 @@ export const FlowCreationStateProvider = ({
       handleStepChange,
       initialState,
       setInitialState,
+      compensate,
+      setCompensate,
       creating,
       handleCreateFlow,
       steps,
@@ -213,6 +220,7 @@ export const FlowCreationStateProvider = ({
       setIDManuallyEdited,
       handleStepChange,
       initialState,
+      compensate,
       creating,
       handleCreateFlow,
       steps,

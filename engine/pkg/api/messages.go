@@ -26,10 +26,11 @@ const (
 type (
 	// CreateFlowRequest contains parameters for starting a new flow
 	CreateFlowRequest struct {
-		Init   InitArgs `json:"init"`
-		ID     FlowID   `json:"id"`
-		Labels Labels   `json:"labels,omitempty"`
-		Goals  []StepID `json:"goals"`
+		Init       InitArgs `json:"init"`
+		ID         FlowID   `json:"id"`
+		Labels     Labels   `json:"labels,omitempty"`
+		Goals      []StepID `json:"goals"`
+		Compensate bool     `json:"compensate,omitempty"`
 	}
 
 	// ExecutionPlanRequest contains parameters for creating an execution plan

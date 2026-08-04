@@ -55,12 +55,27 @@
   flex-shrink: 0;
 }
 
+.iconWrapper svg {
+  width: 0.75rem;
+  height: 0.75rem;
+}
+
 .iconWrapper :global(.progress-icon) {
   width: 0.75rem;
   height: 0.75rem;
   margin-right: 0;
 }
 
+/* min-width lets a long value shrink instead of widening the row */
 .textContent {
   flex: 1;
+  min-width: 0;
+  overflow-wrap: break-word;
+}
+
+.truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  overflow-wrap: normal;
 }

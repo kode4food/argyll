@@ -10,12 +10,51 @@ cannot be compensated.
 
 ## When compensation fires
 
-Compensation is triggered at **step failure**, not flow failure. When a step
-fails (permanently, after retries are exhausted for all failing work items), the
-engine raises a `step_failed` event and immediately schedules compensation for
-every work item whose status is `succeeded`.
+By default compensation is triggered at **step failure**, not flow failure. When a step fails (permanently, after retries are exhausted for all failing work items), the engine raises a `step_failed` event and immediately schedules compensation for every work item whose status is `succeeded`. Steps that already completed successfully are left alone; see [Flow-level compensation](#flow-level-compensation) to roll those back too.
 
 Compensation continues even after the flow has reached terminal state (`failed`). A caller may act on the failure immediately while compensation is still producing side effects (changes to external systems). The flow is not deactivated until all compensation work items finish.
+
+## Flow-level compensation
+
+Step-level compensation undoes only the failing step's own work. A flow that fails at its fifth step leaves the side effects of steps one through four in place. Set `compensate` on the flow to get saga-style rollback instead: once the flow reaches `failed`, every succeeded work item in the flow is compensated, not just those of the step that failed.
+
+```json
+{
+  "id": "wf-checkout-123",
+  "goals": ["ship-order"],
+  "compensate": true,
+  "init": {
+    "order_id": ["ord-abc"]
+  }
+}
+```
+
+Steps without a `compensate` endpoint, and memoizable steps, are skipped as usual.
+
+Work items that complete *after* the flow has failed are compensated as they land. This matters when a slow step is still in flight at the moment another step fails: its side effect is recorded, then immediately undone. The flow is not deactivated until all of it settles.
+
+Compensations run in parallel, not in reverse dependency order. If one step's compensate endpoint depends on a resource that an earlier step's compensate endpoint destroys, order the teardown inside your own services rather than relying on the engine.
+
+### Child flows are sealed
+
+A flow step's child flow does **not** inherit the parent's setting. Whether a child flow compensates is decided by its own step definition:
+
+```json
+{
+  "id": "reserve-and-charge",
+  "name": "Reserve and Charge",
+  "type": "flow",
+  "flow": {
+    "goals": ["charge-card"],
+    "compensate": true
+  },
+  "attributes": {
+    "order_id": { "role": "required", "type": "string" }
+  }
+}
+```
+
+A parent that fails will not roll back a child flow that completed successfully, and a child flow that fails rolls back according to its own `compensate` setting only.
 
 ## Configuring a compensate endpoint
 

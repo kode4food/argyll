@@ -59,6 +59,8 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     handleStepChange,
     initialState,
     setInitialState,
+    compensate,
+    setCompensate,
     creating,
     handleCreateFlow,
     steps,
@@ -186,6 +188,13 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     []
   );
 
+  // Excludes the flow ID: disabling its input on an empty ID would make the
+  // ID impossible to type
+  const isStartSectionDisabled =
+    creating ||
+    goalSteps.length === 0 ||
+    (editorMode === "json" && jsonError !== null);
+
   const handleEditorModeChange = React.useCallback(
     (mode: "basic" | "json") => {
       if (editorMode === "basic" && mode === "json") {
@@ -235,14 +244,11 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
 
           <div className={styles.panelFooter}>
             <FlowStartSection
+              compensate={compensate}
               creating={creating}
-              disableStart={
-                creating ||
-                !newID.trim() ||
-                goalSteps.length === 0 ||
-                (editorMode === "json" && jsonError !== null)
-              }
+              disabled={isStartSectionDisabled}
               flowId={newID}
+              onCompensateChange={setCompensate}
               onCreateFlow={handleCreateFlow}
               onFlowIdChange={(value) => {
                 setNewID(value);

@@ -77,6 +77,8 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setHttpTimeout,
     flowGoals,
     setFlowGoals,
+    flowCompensate,
+    setFlowCompensate,
   } = useStepEditorForm(step, onUpdate, onClose);
 
   const [editorMode, setEditorMode] = React.useState<"basic" | "json">("basic");
@@ -152,6 +154,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
 
   if (!mounted) return null;
 
+  // Compensate only reaches the payload for HTTP steps, so a leftover value
+  // from an earlier step type must not lock memoizable
+  const isHttpStep = formStepType === "sync" || formStepType === "async";
+  const isMemoizableDisabled = isHttpStep && compensate.trim() !== "";
+
   const modalContent = (
     <div className={styles.backdrop} onClick={handleBackdropClick}>
       <div
@@ -167,6 +174,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
           isCreateMode={isCreateMode}
           stepId={stepId}
           memoizable={memoizable}
+          memoizableDisabled={isMemoizableDisabled}
           onMemoizableChange={setMemoizable}
         />
 
@@ -194,9 +202,11 @@ const StepEditor: React.FC<StepEditorProps> = ({
                 {formStepType === "flow" && (
                   <StepEditorFlowConfiguration
                     clearPreviewPlan={clearFlowPreviewPlan}
+                    flowCompensate={flowCompensate}
                     flowGoals={flowGoals}
                     flowInitialState={flowInitialState}
                     previewPlan={flowPreviewPlan}
+                    setFlowCompensate={setFlowCompensate}
                     setFlowGoals={setFlowGoals}
                     setFlowInitialState={setFlowInitialState}
                     stepId={stepId}

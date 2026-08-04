@@ -53,6 +53,26 @@ func (e *Engine) compensator(st *api.Step) (step.CompensateFunc, error) {
 	return comp, nil
 }
 
+// compensateFlow starts compensation for every succeeded work item in the
+// flow, not just those of the step that failed. Only takes effect once the
+// flow has failed and it was started with compensation requested
+func (tx *flowTx) compensateFlow() error {
+	fl := tx.Value()
+	if !flowCompensating(fl) {
+		return nil
+	}
+	for sid, ex := range fl.Executions {
+		st, ok := fl.Plan.Steps[sid]
+		if !ok {
+			continue
+		}
+		if err := tx.startPendingCompensations(st, ex); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (tx *flowTx) startPendingCompensations(
 	step *api.Step, ex api.ExecutionState,
 ) error {
@@ -312,8 +332,8 @@ func (e *Engine) recoverCompensations(flow api.FlowState) {
 					FlowID: flow.ID,
 					StepID: sid,
 				}, tkn, retryAt)
-			} else if policy.StepFailed(ex.Status) &&
-				policy.WorkSucceeded(work.Status) {
+			} else if policy.WorkSucceeded(work.Status) &&
+				(policy.StepFailed(ex.Status) || flowCompensating(flow)) {
 				// Compensation was never started (e.g., engine crashed after
 				// step failed but before startPendingCompensations ran)
 				e.scheduleCompensationStart(flow.ID, sid, now)
@@ -334,7 +354,7 @@ func (e *Engine) scheduleCompensationStart(
 				return nil
 			}
 			ex := fl.Executions[stepID]
-			if !policy.StepFailed(ex.Status) {
+			if !policy.StepFailed(ex.Status) && !flowCompensating(fl) {
 				return nil
 			}
 			st := fl.Plan.Steps[stepID]
@@ -397,6 +417,10 @@ func (tx *flowTx) raiseCompRetryScheduled(
 			Error:       args.errMsg,
 		},
 	)
+}
+
+func flowCompensating(flow api.FlowState) bool {
+	return flow.Status == api.FlowFailed && flow.Compensate
 }
 
 func compensateKey(fs api.FlowStep, tkn api.Token) []string {

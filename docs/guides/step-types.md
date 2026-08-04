@@ -210,7 +210,7 @@ See [Work Items Guide](./work-items.md) for configuration and aggregation detail
 - [Async Steps](./async-steps.md) - Webhook setup and background processing
 - [Predicates](./predicates.md) - Conditional execution with scripts
 - [Memoization](./memoization.md) - Result caching for expensive operations
-- [Compensation](./compensation.md) - Undoing succeeded work on step failure
+- [Compensation](./compensation.md) - Undoing succeeded work on step or flow failure
 
 ## Key Principles
 

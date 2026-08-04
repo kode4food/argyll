@@ -52,9 +52,11 @@ describe("StepEditorFlowConfiguration", () => {
 
   const baseProps = {
     clearPreviewPlan: jest.fn(),
+    flowCompensate: false,
     flowGoals: "",
     flowInitialState: "{}",
     previewPlan: null,
+    setFlowCompensate: jest.fn(),
     setFlowGoals: jest.fn(),
     setFlowInitialState: jest.fn(),
     stepId: "current-step",
@@ -98,6 +100,14 @@ describe("StepEditorFlowConfiguration", () => {
         })
       );
     });
+  });
+
+  test("toggles compensate on failure", () => {
+    render(<StepEditorFlowConfiguration {...baseProps} />);
+
+    fireEvent.click(screen.getByRole("checkbox"));
+
+    expect(baseProps.setFlowCompensate).toHaveBeenCalledWith(true);
   });
 
   test("disables chips already included by the preview plan", () => {

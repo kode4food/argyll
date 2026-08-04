@@ -112,6 +112,7 @@ export interface ScriptConfig {
 
 export interface FlowConfig {
   goals: string[];
+  compensate?: boolean;
 }
 
 export interface WorkConfig {

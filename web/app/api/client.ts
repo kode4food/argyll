@@ -34,12 +34,14 @@ export class ArgyllApi {
   async startFlow(
     id: string,
     goalSteps: string[],
-    initialState: Record<string, any[]>
+    initialState: Record<string, any[]>,
+    compensate = false
   ): Promise<any> {
     const response = await this.client.post("/engine/flow", {
       id,
       goals: goalSteps,
       init: initialState,
+      compensate,
     });
     return response.data;
   }

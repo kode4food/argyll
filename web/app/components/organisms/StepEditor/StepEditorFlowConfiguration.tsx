@@ -2,6 +2,8 @@ import React from "react";
 import { ExecutionPlan, Step } from "@/app/api";
 import { api } from "@/app/api";
 import { useT } from "@/app/i18n";
+import { IconCompensate } from "@/utils/iconRegistry";
+import IconCheckbox from "@/app/components/molecules/IconCheckbox";
 import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
 import {
   deriveStepGoalState,
@@ -42,9 +44,11 @@ const GoalChip: React.FC<GoalChipProps> = ({ step, state, onToggle, t }) => (
 
 interface StepEditorFlowConfigurationProps {
   clearPreviewPlan: () => void;
+  flowCompensate: boolean;
   flowGoals: string;
   flowInitialState: string;
   previewPlan: ExecutionPlan | null;
+  setFlowCompensate: (value: boolean) => void;
   setFlowGoals: (value: string) => void;
   setFlowInitialState: (value: string) => void;
   stepId: string;
@@ -59,9 +63,11 @@ const StepEditorFlowConfiguration: React.FC<
   StepEditorFlowConfigurationProps
 > = ({
   clearPreviewPlan,
+  flowCompensate,
   flowGoals,
   flowInitialState,
   previewPlan,
+  setFlowCompensate,
   setFlowGoals,
   setFlowInitialState,
   stepId,
@@ -179,6 +185,13 @@ const StepEditorFlowConfiguration: React.FC<
         <label className={formStyles.label}>
           {t("stepEditor.flowGoalsLabel")}
         </label>
+        <IconCheckbox
+          checked={flowCompensate}
+          Icon={IconCompensate}
+          label={t("stepEditor.flowCompensateLabel")}
+          onChange={setFlowCompensate}
+          title={t("stepEditor.flowCompensateTitle")}
+        />
       </div>
       <div className={localStyles.flowGoalList}>
         {displaySteps.map((step) => (
