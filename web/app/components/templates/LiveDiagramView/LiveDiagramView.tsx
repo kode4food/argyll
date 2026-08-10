@@ -2,24 +2,15 @@ import React, { useCallback, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
-  Background,
-  BackgroundVariant,
-  ControlButton,
-  Controls,
   useReactFlow,
   NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { FlowContext, ExecutionResult, Step } from "@/app/api";
 import Node from "@/app/components/organisms/LiveStep/Node";
-import {
-  IconDiagramLoading,
-  IconFitView,
-  IconThemeDark,
-  IconThemeLight,
-} from "@/utils/iconRegistry";
+import { IconDiagramLoading } from "@/utils/iconRegistry";
+import DiagramChrome from "@/app/components/molecules/DiagramChrome";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
-import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
@@ -27,8 +18,6 @@ import { useUI } from "@/app/contexts/UIContext";
 import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
 import { useStepVisibility } from "./useStepVisibility";
-import { useTheme, useToggleTheme } from "@/app/store/themeStore";
-import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
 
 interface LiveDiagramViewProps {
   steps: Step[];
@@ -48,8 +37,6 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   resolvedAttributes = [],
 }) => {
   const t = useT();
-  const theme = useTheme();
-  const toggleTheme = useToggleTheme();
   const reactFlowInstance = useReactFlow();
   const viewportKey = flowData?.id || "flow";
   const { diagramContainerRef } = useUI();
@@ -75,12 +62,6 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
     const event = new CustomEvent("hideTooltips");
     document.dispatchEvent(event);
   }, []);
-  const handleZoomIn = useCallback(() => {
-    void reactFlowInstance.zoomIn();
-  }, [reactFlowInstance]);
-  const handleZoomOut = useCallback(() => {
-    void reactFlowInstance.zoomOut();
-  }, [reactFlowInstance]);
   const {
     handleViewportChange,
     shouldFitView,
@@ -132,67 +113,25 @@ const LiveDiagramViewInner: React.FC<LiveDiagramViewProps> = ({
   }
 
   return (
-    <DiagramView ref={diagramContainerRef}>
-      <ReactFlow
-        nodes={nodes}
-        edges={edges}
-        nodeTypes={nodeTypes}
-        onNodeDragStart={handleNodeDragStart}
-        nodesConnectable={false}
-        nodesDraggable={false}
-        elementsSelectable={false}
-        nodesFocusable={false}
-        panOnScroll={true}
-        zoomOnScroll={false}
-        zoomOnPinch={true}
-        onViewportChange={handleViewportChange}
-        className="flow-mode-bg"
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          className="diagram-background"
-        />
-        <Controls
-          className={glassChromeStyles.controls}
-          orientation="horizontal"
-          position="bottom-right"
-          showInteractive={false}
-          showFitView={false}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          style={{
-            right: "1rem",
-            bottom: "1rem",
-          }}
-        >
-          <ControlButton
-            onClick={fitView}
-            title={t("controls.fitView")}
-            aria-label={t("controls.fitView")}
-          >
-            <IconFitView />
-          </ControlButton>
-          <ControlButton
-            onClick={toggleTheme}
-            title={
-              theme === "dark"
-                ? t("controls.switchToLightMode")
-                : t("controls.switchToDarkMode")
-            }
-            aria-label={
-              theme === "dark"
-                ? t("controls.switchToLightMode")
-                : t("controls.switchToDarkMode")
-            }
-          >
-            {theme === "dark" ? <IconThemeLight /> : <IconThemeDark />}
-          </ControlButton>
-        </Controls>
-      </ReactFlow>
-    </DiagramView>
+    <ReactFlow
+      ref={diagramContainerRef}
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      onNodeDragStart={handleNodeDragStart}
+      nodesConnectable={false}
+      nodesDraggable={false}
+      elementsSelectable={false}
+      nodesFocusable={false}
+      panOnScroll={true}
+      zoomOnScroll={false}
+      zoomOnPinch={true}
+      onViewportChange={handleViewportChange}
+      className="flow-mode-bg"
+      proOptions={{ hideAttribution: true }}
+    >
+      <DiagramChrome />
+    </ReactFlow>
   );
 };
 

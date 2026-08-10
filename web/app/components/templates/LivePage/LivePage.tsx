@@ -3,10 +3,7 @@ import LiveDiagram from "@/app/components/templates/LiveDiagram";
 import FlowSelector from "@/app/components/organisms/FlowSelector";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { UIProvider } from "@/app/contexts/UIContext";
-import {
-  FlowSessionProvider,
-  useFlowSession,
-} from "@/app/contexts/FlowSessionContext";
+import { useFlowError } from "@/app/store/flowStore";
 import styles from "@/app/components/templates/OverviewPage/OverviewPage.module.css";
 import { useT } from "@/app/i18n";
 
@@ -34,7 +31,7 @@ function LivePageContent() {
 }
 
 function LivePageWithSession() {
-  const { flowError } = useFlowSession();
+  const flowError = useFlowError();
   const t = useT();
 
   if (flowError) {
@@ -61,9 +58,7 @@ function LivePageWithSession() {
 export default function LivePage() {
   return (
     <UIProvider>
-      <FlowSessionProvider>
-        <LivePageWithSession />
-      </FlowSessionProvider>
+      <LivePageWithSession />
     </UIProvider>
   );
 }

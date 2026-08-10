@@ -1,698 +1,252 @@
 import {
+  getAttributeModifiers,
+  getSortedAttributes,
   getStepType,
   sortStepsByType,
   validateDefaultValue,
-  getSortedAttributes,
-  getAttributeModifiers,
 } from "./stepUtils";
-import { Step, AttributeRole, AttributeType } from "@/app/api";
+import { AttributeRole, AttributeSpec, AttributeType, Step } from "@/app/api";
 import {
-  IconDuration,
-  IconAttributeMatch,
-  IconMapping,
   IconArrayMultiple,
+  IconAttributeMatch,
+  IconDuration,
+  IconMapping,
 } from "@/utils/iconRegistry";
 
+const attr = (
+  role: AttributeRole,
+  config: Partial<AttributeSpec> = {}
+): AttributeSpec => ({ role, type: AttributeType.String, ...config });
+
+const step = (
+  id: string,
+  name: string,
+  attributes: Record<string, AttributeSpec> = {}
+): Step => ({ id, name, type: "sync", attributes });
+
 describe("stepUtils", () => {
-  describe("getSortedAttributes", () => {
-    test("returns attributes sorted by name within each role", () => {
-      const attributes = {
-        zebra: { role: AttributeRole.Required, type: AttributeType.String },
-        alpha: { role: AttributeRole.Required, type: AttributeType.String },
-        const1: { role: AttributeRole.Const, type: AttributeType.String },
-        beta: { role: AttributeRole.Optional, type: AttributeType.Number },
-        gamma: { role: AttributeRole.Output, type: AttributeType.String },
-        delta: { role: AttributeRole.Output, type: AttributeType.Boolean },
-      };
+  test("sorts attributes by role then name without replacing specs", () => {
+    const alpha = attr(AttributeRole.Required);
+    const attributes = {
+      zebra: attr(AttributeRole.Required),
+      alpha,
+      const1: attr(AttributeRole.Const),
+      optional1: attr(AttributeRole.Optional),
+      meta1: attr(AttributeRole.Meta),
+      zOutput: attr(AttributeRole.Output),
+      aOutput: attr(AttributeRole.Output),
+    };
 
-      const result = getSortedAttributes(attributes);
+    const result = getSortedAttributes(attributes);
 
-      expect(result).toHaveLength(6);
-      // Required first
-      expect(result[0].name).toBe("alpha");
-      expect(result[1].name).toBe("zebra");
-      // Const next
-      expect(result[2].name).toBe("const1");
-      // Optional after const
-      expect(result[3].name).toBe("beta");
-      // Outputs last
-      expect(result[4].name).toBe("delta");
-      expect(result[5].name).toBe("gamma");
-    });
-
-    test("handles empty attributes object", () => {
-      const result = getSortedAttributes({});
-      expect(result).toEqual([]);
-    });
-
-    test("handles only required attributes", () => {
-      const attributes = {
-        input2: { role: AttributeRole.Required, type: AttributeType.String },
-        input1: { role: AttributeRole.Required, type: AttributeType.Number },
-      };
-
-      const result = getSortedAttributes(attributes);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("input1");
-      expect(result[1].name).toBe("input2");
-    });
-
-    test("handles only optional attributes", () => {
-      const attributes = {
-        opt2: { role: AttributeRole.Optional, type: AttributeType.String },
-        opt1: { role: AttributeRole.Optional, type: AttributeType.Number },
-      };
-
-      const result = getSortedAttributes(attributes);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("opt1");
-      expect(result[1].name).toBe("opt2");
-    });
-
-    test("handles only output attributes", () => {
-      const attributes = {
-        result2: { role: AttributeRole.Output, type: AttributeType.String },
-        result1: { role: AttributeRole.Output, type: AttributeType.Number },
-      };
-
-      const result = getSortedAttributes(attributes);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("result1");
-      expect(result[1].name).toBe("result2");
-    });
-
-    test("handles const attributes", () => {
-      const attributes = {
-        const2: { role: AttributeRole.Const, type: AttributeType.String },
-        const1: { role: AttributeRole.Const, type: AttributeType.Number },
-      };
-
-      const result = getSortedAttributes(attributes);
-
-      expect(result).toHaveLength(2);
-      expect(result[0].name).toBe("const1");
-      expect(result[1].name).toBe("const2");
-    });
-
-    test("preserves attribute spec objects", () => {
-      const attributes = {
-        input: { role: AttributeRole.Required, type: AttributeType.String },
-      };
-
-      const result = getSortedAttributes(attributes);
-
-      expect(result[0]).toEqual({
-        name: "input",
-        spec: { role: AttributeRole.Required, type: AttributeType.String },
-      });
-    });
+    expect(result.map(({ name }) => name)).toEqual([
+      "alpha",
+      "zebra",
+      "const1",
+      "optional1",
+      "meta1",
+      "aOutput",
+      "zOutput",
+    ]);
+    expect(result[0].spec).toBe(alpha);
+    expect(getSortedAttributes({})).toEqual([]);
   });
 
-  describe("getStepType", () => {
-    test("returns resolver when step has outputs but no inputs", () => {
-      const step: Step = {
-        id: "step-1",
-        name: "Test Step",
-        type: "sync",
-        attributes: {
-          result: { role: AttributeRole.Output, type: AttributeType.String },
-        },
-        http: {
-          endpoint: "http://test",
-          timeout: 1000,
-        },
-      };
-
-      expect(getStepType(step)).toBe("resolver");
-    });
-
-    test("returns collector when step has inputs but no outputs", () => {
-      const step: Step = {
-        id: "step-2",
-        name: "Test Step",
-        type: "async",
-        attributes: {
-          input1: { role: AttributeRole.Required, type: AttributeType.String },
-        },
-        http: {
-          endpoint: "http://test",
-          timeout: 1000,
-        },
-      };
-
-      expect(getStepType(step)).toBe("collector");
-    });
-
-    test("returns processor when step has both inputs and outputs", () => {
-      const step: Step = {
-        id: "step-3",
-        name: "Test Step",
-        type: "sync",
-        attributes: {
-          input1: { role: AttributeRole.Required, type: AttributeType.String },
-          result: { role: AttributeRole.Output, type: AttributeType.String },
-        },
-        http: {
-          endpoint: "http://test",
-          timeout: 1000,
-        },
-      };
-
-      expect(getStepType(step)).toBe("processor");
-    });
-
-    test("returns standalone when step has no inputs and no outputs", () => {
-      const step: Step = {
-        id: "step-4",
-        name: "Test Step",
-        type: "script",
-        attributes: {},
-        script: {
-          language: "lua",
-          script: "return {result = 1}",
-        },
-      };
-
-      expect(getStepType(step)).toBe("standalone");
-    });
-
-    test("optional args alone do not affect step type (resolver remains resolver)", () => {
-      const step: Step = {
-        id: "step-5",
-        name: "Test Step",
-        type: "sync",
-        attributes: {
-          opt1: { role: AttributeRole.Optional, type: AttributeType.String },
-          result: { role: AttributeRole.Output, type: AttributeType.String },
-        },
-        http: {
-          endpoint: "http://test",
-          timeout: 1000,
-        },
-      };
-
-      expect(getStepType(step)).toBe("resolver");
-    });
-
-    test("optional args alone do not affect step type (standalone remains standalone)", () => {
-      const step: Step = {
-        id: "step-6",
-        name: "Test Step",
-        type: "async",
-        attributes: {
-          opt1: { role: AttributeRole.Optional, type: AttributeType.String },
-        },
-        http: {
-          endpoint: "http://test",
-          timeout: 1000,
-        },
-      };
-
-      expect(getStepType(step)).toBe("standalone");
-    });
-
-    test("handles step with multiple required and optional args", () => {
-      const step: Step = {
-        id: "step-7",
-        name: "Test Step",
-        type: "sync",
-        attributes: {
-          req1: { role: AttributeRole.Required, type: AttributeType.String },
-          req2: { role: AttributeRole.Required, type: AttributeType.Number },
-          opt1: { role: AttributeRole.Optional, type: AttributeType.String },
-          opt2: { role: AttributeRole.Optional, type: AttributeType.Boolean },
-          result1: { role: AttributeRole.Output, type: AttributeType.String },
-          result2: { role: AttributeRole.Output, type: AttributeType.String },
-        },
-        http: {
-          endpoint: "http://test",
-          timeout: 1000,
-        },
-      };
-
-      expect(getStepType(step)).toBe("processor");
-    });
-
-    test("returns standalone when step has empty attributes", () => {
-      const step: Step = {
-        id: "step-8",
-        name: "Test Step",
-        type: "script",
-        attributes: {},
-        script: {
-          language: "lua",
-          script: "return {result = 1}",
-        },
-      };
-
-      expect(getStepType(step)).toBe("standalone");
-    });
-  });
-
-  describe("sortStepsByType", () => {
-    const createStep = (
-      id: string,
-      name: string,
-      hasInputs: boolean,
-      hasOutputs: boolean
-    ): Step => ({
-      id,
-      name,
-      type: "sync",
-      attributes: {
-        ...(hasInputs
-          ? {
-              input: {
-                role: AttributeRole.Required,
-                type: AttributeType.String,
-              },
-            }
-          : {}),
-        ...(hasOutputs
-          ? {
-              output: {
-                role: AttributeRole.Output,
-                type: AttributeType.String,
-              },
-            }
-          : {}),
+  test.each([
+    ["resolver", { output: attr(AttributeRole.Output) }],
+    ["collector", { input: attr(AttributeRole.Required) }],
+    [
+      "processor",
+      {
+        input: attr(AttributeRole.Required),
+        output: attr(AttributeRole.Output),
+        optional: attr(AttributeRole.Optional),
       },
-      http: {
-        endpoint: "http://test",
-        timeout: 1000,
+    ],
+    [
+      "resolver",
+      {
+        optional: attr(AttributeRole.Optional),
+        output: attr(AttributeRole.Output),
       },
-    });
-
-    test("sorts steps by type priority", () => {
-      const steps: Step[] = [
-        createStep("1", "Neutral Step", false, false),
-        createStep("2", "Resolver Step", false, true),
-        createStep("3", "Collector Step", true, false),
-        createStep("4", "Processor Step", true, true),
-      ];
-
-      const sorted = sortStepsByType(steps);
-
-      expect(sorted[0].id).toBe("3");
-      expect(sorted[1].id).toBe("4");
-      expect(sorted[2].id).toBe("2");
-      expect(sorted[3].id).toBe("1");
-    });
-
-    test("sorts steps alphabetically within same type", () => {
-      const steps: Step[] = [
-        createStep("1", "Zebra Processor", true, true),
-        createStep("2", "Alpha Processor", true, true),
-        createStep("3", "Beta Processor", true, true),
-      ];
-
-      const sorted = sortStepsByType(steps);
-
-      expect(sorted[0].name).toBe("Alpha Processor");
-      expect(sorted[1].name).toBe("Beta Processor");
-      expect(sorted[2].name).toBe("Zebra Processor");
-    });
-
-    test("handles mixed types with alphabetical sorting", () => {
-      const steps: Step[] = [
-        createStep("1", "Z Resolver", false, true),
-        createStep("2", "A Collector", true, false),
-        createStep("3", "B Collector", true, false),
-        createStep("4", "A Resolver", false, true),
-      ];
-
-      const sorted = sortStepsByType(steps);
-
-      expect(sorted[0].name).toBe("A Collector");
-      expect(sorted[1].name).toBe("B Collector");
-      expect(sorted[2].name).toBe("A Resolver");
-      expect(sorted[3].name).toBe("Z Resolver");
-    });
-
-    test("does not mutate original array", () => {
-      const steps: Step[] = [
-        createStep("1", "B Step", false, true),
-        createStep("2", "A Step", false, true),
-      ];
-      const originalOrder = steps.map((s) => s.id);
-
-      sortStepsByType(steps);
-
-      expect(steps.map((s) => s.id)).toEqual(originalOrder);
-    });
-
-    test("handles empty array", () => {
-      const sorted = sortStepsByType([]);
-      expect(sorted).toEqual([]);
-    });
-
-    test("handles single step", () => {
-      const steps: Step[] = [createStep("1", "Single Step", true, true)];
-      const sorted = sortStepsByType(steps);
-      expect(sorted).toHaveLength(1);
-      expect(sorted[0].id).toBe("1");
-    });
+    ],
+    ["standalone", { optional: attr(AttributeRole.Optional) }],
+    ["standalone", {}],
+  ])("classifies a step as %s", (expected, attributes) => {
+    expect(getStepType(step("id", "Step", attributes))).toBe(expected);
   });
 
-  describe("getAttributeModifiers", () => {
-    test("returns empty array for spec with no modifier fields", () => {
-      expect(getAttributeModifiers({ role: AttributeRole.Required })).toEqual(
-        []
-      );
-    });
-
-    test("returns deadline icon for optional with deadline", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Optional,
-        optional: { deadline: 2000 },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconDuration });
-    });
-
-    test("does not return deadline icon when deadline is 0", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Optional,
-        optional: { deadline: 0 },
-      });
-      expect(modifiers).toHaveLength(0);
-    });
-
-    test("returns match icon for required with match script", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Required,
-        required: { match: { language: "lua", script: "return true" } },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({
-        kind: "match",
-        Icon: IconAttributeMatch,
-        script: { language: "lua", script: "return true" },
-      });
-    });
-
-    test("returns mapping icon for required with mapping", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Required,
-        required: { mapping: { name: "inner_name" } },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconMapping });
-    });
-
-    test("returns mapping icon for optional with mapping", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Optional,
-        optional: { mapping: { name: "inner_name" } },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconMapping });
-    });
-
-    test("returns mapping icon for output with mapping", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Output,
-        output: { mapping: { name: "inner_name" } },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconMapping });
-    });
-
-    test("returns collect modifier for required with non-first collect", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Required,
-        required: { collect: "all" },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "collect", collect: "all" });
-    });
-
-    test("returns collect modifier for optional with non-first collect", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Optional,
-        optional: { collect: "last" },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "collect", collect: "last" });
-    });
-
-    test("does not return collect modifier when collect is 'first'", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Required,
-        required: { collect: "first" },
-      });
-      expect(modifiers).toHaveLength(0);
-    });
-
-    test("returns for_each icon for required with for_each", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Required,
-        required: { for_each: true },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
-    });
-
-    test("returns for_each icon for optional with for_each", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Optional,
-        optional: { for_each: true },
-      });
-      expect(modifiers).toHaveLength(1);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
-    });
-
-    test("returns modifiers in pipeline order: match, mapping, collect, for_each", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Required,
-        required: {
-          match: { language: "lua", script: "return true" },
-          mapping: { name: "inner" },
-          collect: "some",
-          for_each: true,
-        },
-      });
-      expect(modifiers).toHaveLength(4);
-      expect(modifiers[0]).toEqual({
-        kind: "match",
-        Icon: IconAttributeMatch,
-        script: { language: "lua", script: "return true" },
-      });
-      expect(modifiers[1]).toEqual({ kind: "icon", Icon: IconMapping });
-      expect(modifiers[2]).toEqual({ kind: "collect", collect: "some" });
-      expect(modifiers[3]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
-    });
-
-    test("returns all modifiers for optional with deadline, mapping, collect, for_each", () => {
-      const modifiers = getAttributeModifiers({
-        role: AttributeRole.Optional,
-        optional: {
-          deadline: 2000,
-          mapping: { name: "inner" },
-          collect: "none",
-          for_each: true,
-        },
-      });
-      expect(modifiers).toHaveLength(4);
-      expect(modifiers[0]).toEqual({ kind: "icon", Icon: IconDuration });
-      expect(modifiers[1]).toEqual({ kind: "icon", Icon: IconMapping });
-      expect(modifiers[2]).toEqual({ kind: "collect", collect: "none" });
-      expect(modifiers[3]).toEqual({ kind: "icon", Icon: IconArrayMultiple });
-    });
+  test("classifies a step without attributes as standalone", () => {
+    expect(getStepType({ id: "id", name: "Step", type: "sync" } as Step)).toBe(
+      "standalone"
+    );
   });
 
-  describe("validateDefaultValue", () => {
-    describe("String type", () => {
-      test("accepts valid JSON string", () => {
-        const result = validateDefaultValue(
-          '"hello world"',
-          AttributeType.String
-        );
-        expect(result.valid).toBe(true);
-      });
+  test("sorts steps by type and name without mutation", () => {
+    const steps = [
+      step("standalone", "Neutral"),
+      step("resolver-z", "Z Resolver", {
+        output: attr(AttributeRole.Output),
+      }),
+      step("collector-b", "B Collector", {
+        input: attr(AttributeRole.Required),
+      }),
+      step("processor", "Processor", {
+        input: attr(AttributeRole.Required),
+        output: attr(AttributeRole.Output),
+      }),
+      step("collector-a", "A Collector", {
+        input: attr(AttributeRole.Required),
+      }),
+      step("resolver-a", "A Resolver", {
+        output: attr(AttributeRole.Output),
+      }),
+    ];
+    const original = [...steps];
 
-      test("rejects unquoted string", () => {
-        const result = validateDefaultValue("hello", AttributeType.String);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonInvalid");
-      });
+    expect(sortStepsByType(steps).map(({ id }) => id)).toEqual([
+      "collector-a",
+      "collector-b",
+      "processor",
+      "resolver-a",
+      "resolver-z",
+      "standalone",
+    ]);
+    expect(steps).toEqual(original);
+    expect(sortStepsByType([])).toEqual([]);
+    expect(sortStepsByType([steps[0]])).toEqual([steps[0]]);
+  });
 
-      test("rejects number as string", () => {
-        const result = validateDefaultValue("42", AttributeType.String);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonString");
-      });
-    });
+  test.each([
+    ["none", attr(AttributeRole.Required), []],
+    [
+      "deadline",
+      attr(AttributeRole.Optional, { optional: { deadline: 1000 } }),
+      [{ kind: "icon", Icon: IconDuration }],
+    ],
+    [
+      "zero deadline",
+      attr(AttributeRole.Optional, { optional: { deadline: 0 } }),
+      [],
+    ],
+    [
+      "match",
+      attr(AttributeRole.Required, {
+        required: { match: { language: "jpath", script: "$.kind" } },
+      }),
+      [
+        {
+          kind: "match",
+          Icon: IconAttributeMatch,
+          script: { language: "jpath", script: "$.kind" },
+        },
+      ],
+    ],
+    [
+      "required mapping",
+      attr(AttributeRole.Required, { required: { mapping: { name: "in" } } }),
+      [{ kind: "icon", Icon: IconMapping }],
+    ],
+    [
+      "optional mapping",
+      attr(AttributeRole.Optional, { optional: { mapping: { name: "in" } } }),
+      [{ kind: "icon", Icon: IconMapping }],
+    ],
+    [
+      "output mapping",
+      attr(AttributeRole.Output, { output: { mapping: { name: "out" } } }),
+      [{ kind: "icon", Icon: IconMapping }],
+    ],
+    [
+      "required collect",
+      attr(AttributeRole.Required, { required: { collect: "all" } }),
+      [{ kind: "collect", collect: "all" }],
+    ],
+    [
+      "optional collect",
+      attr(AttributeRole.Optional, { optional: { collect: "some" } }),
+      [{ kind: "collect", collect: "some" }],
+    ],
+    [
+      "first collect",
+      attr(AttributeRole.Required, { required: { collect: "first" } }),
+      [],
+    ],
+    [
+      "required for-each",
+      attr(AttributeRole.Required, { required: { for_each: true } }),
+      [{ kind: "icon", Icon: IconArrayMultiple }],
+    ],
+    [
+      "optional for-each",
+      attr(AttributeRole.Optional, { optional: { for_each: true } }),
+      [{ kind: "icon", Icon: IconArrayMultiple }],
+    ],
+  ])("returns %s modifiers", (_, spec, expected) => {
+    expect(getAttributeModifiers(spec)).toEqual(expected);
+  });
 
-    describe("Number type", () => {
-      test("accepts valid integer", () => {
-        const result = validateDefaultValue("42", AttributeType.Number);
-        expect(result.valid).toBe(true);
-      });
+  test("returns modifiers in pipeline order", () => {
+    expect(
+      getAttributeModifiers(
+        attr(AttributeRole.Required, {
+          required: {
+            match: { language: "jpath", script: "$" },
+            mapping: { name: "mapped" },
+            collect: "all",
+            for_each: true,
+          },
+        })
+      ).map(({ kind }) => kind)
+    ).toEqual(["match", "icon", "collect", "icon"]);
 
-      test("accepts valid float", () => {
-        const result = validateDefaultValue("3.14", AttributeType.Number);
-        expect(result.valid).toBe(true);
-      });
+    expect(
+      getAttributeModifiers(
+        attr(AttributeRole.Optional, {
+          optional: {
+            deadline: 100,
+            mapping: { name: "mapped" },
+            collect: "last",
+            for_each: true,
+          },
+        })
+      ).map(({ kind }) => kind)
+    ).toEqual(["icon", "icon", "collect", "icon"]);
+  });
 
-      test("rejects non-number", () => {
-        const result = validateDefaultValue(
-          '"not a number"',
-          AttributeType.Number
-        );
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonNumber");
-      });
+  test.each([
+    [AttributeType.String, '"hello"', true, undefined],
+    [AttributeType.String, "hello", false, "validation.jsonInvalid"],
+    [AttributeType.String, "42", false, "validation.jsonString"],
+    [AttributeType.Number, "42", true, undefined],
+    [AttributeType.Number, "3.14", true, undefined],
+    [AttributeType.Number, '"42"', false, "validation.jsonNumber"],
+    [AttributeType.Number, "abc", false, "validation.jsonInvalid"],
+    [AttributeType.Boolean, "true", true, undefined],
+    [AttributeType.Boolean, "false", true, undefined],
+    [AttributeType.Boolean, '"yes"', false, "validation.jsonBoolean"],
+    [AttributeType.Object, '{"a":1}', true, undefined],
+    [AttributeType.Object, "[]", false, "validation.jsonObject"],
+    [AttributeType.Object, "{bad", false, "validation.jsonInvalid"],
+    [AttributeType.Array, "[]", true, undefined],
+    [AttributeType.Array, "{}", false, "validation.jsonArray"],
+    [AttributeType.Array, "[bad", false, "validation.jsonInvalid"],
+    [AttributeType.Null, "null", true, undefined],
+    [AttributeType.Null, "nil", false, "validation.jsonInvalid"],
+    [AttributeType.Null, '"null"', false, "validation.jsonNull"],
+    [AttributeType.Any, '"value"', true, undefined],
+    [AttributeType.Any, "42", true, undefined],
+    [AttributeType.Any, "{}", true, undefined],
+    [AttributeType.Any, "[]", true, undefined],
+    [AttributeType.Any, "invalid", false, "validation.jsonInvalid"],
+  ])("validates %s value %s", (type, value, valid, errorKey) => {
+    expect(validateDefaultValue(value, type)).toEqual(
+      errorKey ? { valid, errorKey } : { valid }
+    );
+  });
 
-      test("rejects invalid JSON", () => {
-        const result = validateDefaultValue("abc", AttributeType.Number);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonInvalid");
-      });
-    });
-
-    describe("Boolean type", () => {
-      test("accepts true", () => {
-        const result = validateDefaultValue("true", AttributeType.Boolean);
-        expect(result.valid).toBe(true);
-      });
-
-      test("accepts false", () => {
-        const result = validateDefaultValue("false", AttributeType.Boolean);
-        expect(result.valid).toBe(true);
-      });
-
-      test("rejects string 'yes'", () => {
-        const result = validateDefaultValue('"yes"', AttributeType.Boolean);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonBoolean");
-      });
-    });
-
-    describe("Object type", () => {
-      test("accepts valid JSON object", () => {
-        const result = validateDefaultValue(
-          '{"key": "value"}',
-          AttributeType.Object
-        );
-        expect(result.valid).toBe(true);
-      });
-
-      test("rejects array", () => {
-        const result = validateDefaultValue("[1, 2, 3]", AttributeType.Object);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonObject");
-      });
-
-      test("rejects malformed JSON", () => {
-        const result = validateDefaultValue(
-          "{key: value}",
-          AttributeType.Object
-        );
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonInvalid");
-      });
-    });
-
-    describe("Array type", () => {
-      test("accepts valid JSON array", () => {
-        const result = validateDefaultValue("[1, 2, 3]", AttributeType.Array);
-        expect(result.valid).toBe(true);
-      });
-
-      test("rejects object", () => {
-        const result = validateDefaultValue(
-          '{"key": "value"}',
-          AttributeType.Array
-        );
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonArray");
-      });
-
-      test("rejects malformed JSON", () => {
-        const result = validateDefaultValue("[1, 2, 3", AttributeType.Array);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonInvalid");
-      });
-    });
-
-    describe("Null type", () => {
-      test("accepts null", () => {
-        const result = validateDefaultValue("null", AttributeType.Null);
-        expect(result.valid).toBe(true);
-      });
-
-      test("rejects 'nil'", () => {
-        const result = validateDefaultValue("nil", AttributeType.Null);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonInvalid");
-      });
-
-      test("rejects string 'null'", () => {
-        const result = validateDefaultValue('"null"', AttributeType.Null);
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonNull");
-      });
-    });
-
-    describe("Any type", () => {
-      test("accepts valid JSON string", () => {
-        const result = validateDefaultValue('"whatever"', AttributeType.Any);
-        expect(result.valid).toBe(true);
-      });
-
-      test("accepts valid JSON number", () => {
-        const result = validateDefaultValue("42", AttributeType.Any);
-        expect(result.valid).toBe(true);
-      });
-
-      test("accepts valid JSON object", () => {
-        const result = validateDefaultValue(
-          '{"key":"value"}',
-          AttributeType.Any
-        );
-        expect(result.valid).toBe(true);
-      });
-
-      test("accepts valid JSON array", () => {
-        const result = validateDefaultValue("[1,2,3]", AttributeType.Any);
-        expect(result.valid).toBe(true);
-      });
-
-      test("rejects invalid JSON", () => {
-        const result = validateDefaultValue(
-          "not valid json",
-          AttributeType.Any
-        );
-        expect(result.valid).toBe(false);
-        expect(result.errorKey).toBe("validation.jsonInvalid");
-      });
-    });
-
-    describe("Empty values", () => {
-      test("accepts empty string for all types", () => {
-        expect(validateDefaultValue("", AttributeType.String).valid).toBe(true);
-        expect(validateDefaultValue("", AttributeType.Number).valid).toBe(true);
-        expect(validateDefaultValue("", AttributeType.Boolean).valid).toBe(
-          true
-        );
-        expect(validateDefaultValue("", AttributeType.Object).valid).toBe(true);
-        expect(validateDefaultValue("", AttributeType.Array).valid).toBe(true);
-        expect(validateDefaultValue("", AttributeType.Null).valid).toBe(true);
-        expect(validateDefaultValue("", AttributeType.Any).valid).toBe(true);
-      });
-
-      test("accepts whitespace-only string for all types", () => {
-        expect(validateDefaultValue("   ", AttributeType.String).valid).toBe(
-          true
-        );
-        expect(validateDefaultValue("   ", AttributeType.Number).valid).toBe(
-          true
-        );
-      });
-    });
+  test.each(Object.values(AttributeType))("allows empty %s values", (type) => {
+    expect(validateDefaultValue("", type)).toEqual({ valid: true });
+    expect(validateDefaultValue("   ", type)).toEqual({ valid: true });
   });
 });

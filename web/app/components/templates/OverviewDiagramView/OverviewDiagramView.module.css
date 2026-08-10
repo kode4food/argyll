@@ -1,7 +1,15 @@
 .previewHud {
   position: absolute;
-  top: calc((2 * var(--spacing-md)) + 2rem + var(--spacing-xl));
+  bottom: var(--spacing-xl);
   left: 50%;
   z-index: 30;
   transform: translateX(-50%);
+}
+
+@media (max-width: 70rem) {
+  .previewHud {
+    max-width: calc(
+      100% - (2 * (var(--spacing-xl) + 2rem + var(--spacing-md)))
+    );
+  }
 }

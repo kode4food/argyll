@@ -15,33 +15,11 @@ jest.mock("@/app/components/templates/LiveDiagram", () => {
   return Mock;
 });
 
-jest.mock("@/app/contexts/FlowSessionContext", () => {
-  const session = {
-    selectedFlow: null,
-    selectFlow: jest.fn(),
-    loadFlows: jest.fn(),
-    loadSteps: jest.fn(),
-    steps: [],
-    flows: [],
-    flowData: null,
-    loading: false,
-    flowNotFound: false,
-    executions: [],
-    resolvedAttributes: [],
-    flowError: null as string | null,
-  };
-  return {
-    __esModule: true,
-    FlowSessionProvider: ({ children }: { children: React.ReactNode }) =>
-      children,
-    useFlowSession: () => session,
-    __sessionMock: session,
-  };
-});
+let mockFlowError: string | null = null;
 
-const {
-  __sessionMock: flowSession,
-} = require("@/app/contexts/FlowSessionContext");
+jest.mock("@/app/store/flowStore", () => ({
+  useFlowError: () => mockFlowError,
+}));
 
 describe("LivePage", () => {
   beforeEach(() => {
@@ -49,7 +27,7 @@ describe("LivePage", () => {
   });
 
   it("renders error state", () => {
-    flowSession.flowError = "boom";
+    mockFlowError = "boom";
     render(<LivePage />);
     expect(
       screen.getByText(t("common.errorMessage", { message: "boom" }))
@@ -57,7 +35,7 @@ describe("LivePage", () => {
   });
 
   it("renders selector and diagram", () => {
-    flowSession.flowError = null;
+    mockFlowError = null;
     render(<LivePage />);
     expect(screen.getByTestId("flow-selector")).toBeInTheDocument();
     expect(screen.getByTestId("live-diagram")).toBeInTheDocument();

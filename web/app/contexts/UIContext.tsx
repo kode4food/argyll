@@ -10,7 +10,6 @@ import { api, ExecutionPlan } from "../api";
 
 interface UIContextType {
   diagramContainerRef: React.RefObject<HTMLDivElement | null>;
-  headerRef: React.RefObject<HTMLDivElement | null>;
   panelRef: React.RefObject<HTMLDivElement | null>;
   focusedPreviewAttribute: string | null;
   setFocusedPreviewAttribute: (attribute: string | null) => void;
@@ -39,7 +38,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   >(null);
   const [goalSteps, setGoalStepsState] = useState<string[]>([]);
   const diagramContainerRef = useRef<HTMLDivElement>(null);
-  const headerRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -127,7 +125,6 @@ export const UIProvider: React.FC<{ children: React.ReactNode }> = ({
   const value = useMemo(
     () => ({
       diagramContainerRef,
-      headerRef,
       panelRef,
       focusedPreviewAttribute,
       setFocusedPreviewAttribute,

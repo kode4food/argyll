@@ -49,11 +49,11 @@ const sessionMock = {
   flowError: null as string | null,
 };
 
-jest.mock("@/app/contexts/FlowSessionContext", () => ({
-  __esModule: true,
-  FlowSessionProvider: ({ children }: { children: React.ReactNode }) =>
-    children,
-  useFlowSession: jest.fn(() => sessionMock),
+jest.mock("@/app/store/flowStore", () => ({
+  useSteps: () => sessionMock.steps,
+  useLoadSteps: () => sessionMock.loadSteps,
+  useFlowStore: (selector: (state: { upsertStep: jest.Mock }) => unknown) =>
+    selector({ upsertStep: jest.fn() }),
 }));
 
 jest.mock("@/app/contexts/UIContext", () => {

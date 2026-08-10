@@ -2,7 +2,6 @@ import React from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import FlowSelector from "./FlowSelector";
 import { t } from "@/app/testUtils/i18n";
-import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 import { FlowContext, Step } from "@/app/api";
 
 type UIStateMock = {
@@ -14,7 +13,6 @@ type UIStateMock = {
   goalSteps: string[];
   setGoalSteps: jest.Mock;
   diagramContainerRef: { current: null };
-  headerRef: { current: null };
 };
 
 const pushMock = jest.fn();
@@ -28,7 +26,6 @@ const uiState: UIStateMock = {
   goalSteps: [],
   setGoalSteps: jest.fn(),
   diagramContainerRef: { current: null },
-  headerRef: { current: null },
 };
 
 jest.mock("react-router-dom", () => ({
@@ -57,36 +54,36 @@ jest.mock("react-hot-toast", () => ({
   success: jest.fn(),
 }));
 
-jest.mock("@/app/contexts/FlowSessionContext", () => {
-  const session = {
-    selectedFlow: null as string | null,
-    selectFlow: jest.fn(),
-    loadFlows: jest.fn(),
-    loadSteps: jest.fn(),
-    steps: [] as Step[],
-    flows: [] as FlowContext[],
-    flowsHasMore: false,
-    flowsLoading: false,
-    loadMoreFlows: jest.fn(),
-    flowData: null,
-    loading: false,
-    flowNotFound: false,
-    executions: [],
-    resolvedAttributes: [],
-    flowError: null as string | null,
-  };
+const flowSessionMock = {
+  selectedFlow: null as string | null,
+  selectFlow: jest.fn(),
+  loadFlows: jest.fn(),
+  loadSteps: jest.fn(),
+  steps: [] as Step[],
+  flows: [] as FlowContext[],
+  flowsHasMore: false,
+  flowsLoading: false,
+  loadMoreFlows: jest.fn(),
+  flowData: null,
+  loading: false,
+  flowNotFound: false,
+  executions: [],
+  resolvedAttributes: [],
+  flowError: null as string | null,
+};
+
+jest.mock("@/app/store/flowStore", () => {
+  const setVisibleFlowIDs = jest.fn();
   return {
-    __esModule: true,
-    FlowSessionProvider: ({ children }: { children: React.ReactNode }) =>
-      children,
-    useFlowSession: () => session,
-    __sessionMock: session,
+    useFlows: () => flowSessionMock.flows,
+    useSelectedFlow: () => flowSessionMock.selectedFlow,
+    useFlowsHasMore: () => flowSessionMock.flowsHasMore,
+    useFlowsLoading: () => flowSessionMock.flowsLoading,
+    useLoadFlows: () => flowSessionMock.loadFlows,
+    useLoadMoreFlows: () => flowSessionMock.loadMoreFlows,
+    useSetVisibleFlowIDs: () => setVisibleFlowIDs,
   };
 });
-
-const {
-  __sessionMock: flowSessionMock,
-} = require("@/app/contexts/FlowSessionContext");
 
 const MockKeyboardShortcutsModal = () => <div>Shortcuts</div>;
 MockKeyboardShortcutsModal.displayName = "MockKeyboardShortcutsModal";
@@ -98,11 +95,7 @@ jest.mock("@/app/components/molecules/KeyboardShortcutsModal", () => ({
 describe("FlowSelector", () => {
   const renderSelector = async () => {
     await act(async () => {
-      render(
-        <FlowSessionProvider>
-          <FlowSelector />
-        </FlowSessionProvider>
-      );
+      render(<FlowSelector />);
     });
   };
 

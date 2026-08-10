@@ -19,7 +19,11 @@
   overflow: hidden;
   border: 1px solid var(--color-dark-border);
   --panel-text: var(--color-dark-text);
-  --panel-text-muted: color-mix(in srgb, var(--color-dark-text) 68%, transparent);
+  --panel-text-muted: color-mix(
+    in srgb,
+    var(--color-dark-text) 68%,
+    transparent
+  );
   background-color: var(--color-dark-bg);
   color: var(--panel-text);
   box-shadow:

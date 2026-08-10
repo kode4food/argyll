@@ -1,6 +1,5 @@
 import React from "react";
 import { ExecutionPlan, Step } from "@/app/api";
-import { api } from "@/app/api";
 import { useT } from "@/app/i18n";
 import { IconCompensate } from "@/utils/iconRegistry";
 import IconCheckbox from "@/app/components/molecules/IconCheckbox";
@@ -105,8 +104,6 @@ const StepEditorFlowConfiguration: React.FC<
       setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
       updatePreviewPlan,
       clearPreviewPlan,
-      getExecutionPlan: (goalStepIds, init) =>
-        api.getExecutionPlan(goalStepIds, init),
     });
   }, [
     clearPreviewPlan,
@@ -132,8 +129,6 @@ const StepEditorFlowConfiguration: React.FC<
       setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
       updatePreviewPlan,
       clearPreviewPlan,
-      getExecutionPlan: (goalStepIds, init) =>
-        api.getExecutionPlan(goalStepIds, init),
     });
   }, [
     clearPreviewPlan,
@@ -164,8 +159,6 @@ const StepEditorFlowConfiguration: React.FC<
         setGoalSteps: (ids) => setFlowGoals(ids.join(", ")),
         updatePreviewPlan,
         clearPreviewPlan,
-        getExecutionPlan: (goalStepIds, init) =>
-          api.getExecutionPlan(goalStepIds, init),
       });
     },
     [

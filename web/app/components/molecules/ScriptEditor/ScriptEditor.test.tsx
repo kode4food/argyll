@@ -3,16 +3,18 @@ import ScriptEditor from "./ScriptEditor";
 import { StreamLanguage } from "@codemirror/language";
 import { json as jsonLanguage } from "@codemirror/lang-json";
 
-const codeMirrorMock = jest.fn(({ value, onChange, readOnly, theme }: any) => (
-  <div data-testid="codemirror">
-    <textarea
-      value={value}
-      onChange={(e) => onChange(e.target.value)}
-      readOnly={readOnly}
-      data-theme={theme}
-    />
-  </div>
-));
+const codeMirrorMock = jest.fn(
+  ({ value, onChange, readOnly, theme, height }: any) => (
+    <div data-testid="codemirror" data-height={height}>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        readOnly={readOnly}
+        data-theme={theme}
+      />
+    </div>
+  )
+);
 
 jest.mock("@uiw/react-codemirror", () => ({
   __esModule: true,
@@ -114,5 +116,20 @@ describe("ScriptEditor", () => {
     expect(jsonLanguage).toHaveBeenCalled();
     expect(StreamLanguage.define).not.toHaveBeenCalled();
     expect(codeMirrorMock).toHaveBeenCalled();
+  });
+
+  test("passes custom height and theme", () => {
+    render(
+      <ScriptEditor
+        value="{}"
+        onChange={jest.fn()}
+        height="500px"
+        theme="light"
+      />
+    );
+
+    expect(codeMirrorMock).toHaveBeenCalledWith(
+      expect.objectContaining({ height: "500px", theme: "light" })
+    );
   });
 });

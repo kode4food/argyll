@@ -37,6 +37,7 @@
 .text {
   font-size: var(--text-xs);
   font-weight: var(--font-medium);
+  line-height: 1.5rem;
   color: var(--color-neutral-text);
 }
 

@@ -3,17 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { FlowSummary } from "@/app/api";
 import { filterFlowsBySearch } from "./flowSelectorUtils";
 import { useEscapeKey } from "@/app/hooks/useEscapeKey";
-import { FlowDropdownContextValue } from "@/app/contexts/FlowDropdownContext";
-
-type FlowDropdownState = Omit<
-  FlowDropdownContextValue,
-  "flowsHasMore" | "flowsLoading" | "loadMoreFlows"
->;
 
 export function useFlowDropdownManagement(
   flows: FlowSummary[],
   selectedFlow: string | null
-): FlowDropdownState {
+) {
   const navigate = useNavigate();
   const [showDropdown, setShowDropdown] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");

@@ -16,33 +16,11 @@ jest.mock("@/app/components/templates/OverviewDiagram", () => {
   return MockOverviewDiagram;
 });
 
-jest.mock("@/app/contexts/FlowSessionContext", () => {
-  const session = {
-    selectedFlow: null,
-    selectFlow: jest.fn(),
-    loadFlows: jest.fn(),
-    loadSteps: jest.fn(),
-    steps: [],
-    flows: [],
-    flowData: null,
-    loading: false,
-    flowNotFound: false,
-    executions: [],
-    resolvedAttributes: [],
-    flowError: null as string | null,
-  };
-  return {
-    __esModule: true,
-    FlowSessionProvider: ({ children }: { children: React.ReactNode }) =>
-      children,
-    useFlowSession: () => session,
-    __sessionMock: session,
-  };
-});
+let mockFlowError: string | null = null;
 
-const {
-  __sessionMock: flowSession,
-} = require("@/app/contexts/FlowSessionContext");
+jest.mock("@/app/store/flowStore", () => ({
+  useFlowError: () => mockFlowError,
+}));
 
 describe("OverviewPage", () => {
   beforeEach(() => {
@@ -50,7 +28,7 @@ describe("OverviewPage", () => {
   });
 
   it("renders error state", () => {
-    flowSession.flowError = "boom";
+    mockFlowError = "boom";
     render(
       <MemoryRouter>
         <OverviewPage />
@@ -62,7 +40,7 @@ describe("OverviewPage", () => {
   });
 
   it("renders selector and diagram", () => {
-    flowSession.flowError = null;
+    mockFlowError = null;
     render(
       <MemoryRouter>
         <OverviewPage />

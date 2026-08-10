@@ -2,11 +2,6 @@
 
 .panel {
   --panel-border: var(--color-neutral-border);
-  --panel-border-soft: color-mix(
-    in srgb,
-    var(--color-neutral-border) 52%,
-    transparent
-  );
   --panel-text: var(--color-neutral-text);
   --panel-text-muted: color-mix(
     in srgb,
@@ -21,7 +16,7 @@
   );
   --panel-error-bg: color-mix(in srgb, var(--color-error) 14%, transparent);
   --segment-control-text: var(--color-neutral-text);
-  --segment-control-border: var(--color-neutral-border);
+  --segment-control-border: var(--panel-border);
   --segment-control-hover: color-mix(
     in srgb,
     var(--color-neutral-text) 8%,

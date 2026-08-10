@@ -25,7 +25,7 @@
 
 .panelPane {
   position: absolute;
-  top: calc((2 * var(--spacing-md)) + 2rem + 1px);
+  top: 0;
   left: 0;
   bottom: 0;
   width: clamp(20rem, 26vw, 26rem);

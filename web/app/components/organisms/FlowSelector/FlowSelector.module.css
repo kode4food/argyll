@@ -138,34 +138,33 @@
 .selector {
   composes: overlayStrong from "@/app/styles/modules/GlassChrome.module.css";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  border-bottom: 1px solid
-    color-mix(in srgb, var(--color-neutral-border) 72%, transparent);
-  padding: var(--spacing-md) var(--spacing-lg);
+  top: var(--spacing-xl);
+  right: var(--spacing-xl);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-xs);
+  padding-left: var(--spacing-lg);
+  border-radius: var(--radius-round);
   z-index: 20;
-  box-shadow: none;
 }
 
-.header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.left {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-lg);
-}
-
-.title {
-  display: flex;
-  align-items: center;
+/* Page heading, exposed to assistive tech only */
+.titleText {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .titleLink {
+  display: flex;
+  flex-shrink: 0;
   text-decoration: none;
   color: inherit;
 }
@@ -175,32 +174,15 @@
 }
 
 .icon {
-  height: 2rem;
+  height: 1.75rem;
   width: auto;
-}
-
-.titleText {
-  margin-left: var(--spacing-sm);
-  font-size: var(--text-base);
-  font-weight: var(--font-bold);
-  color: var(--color-neutral-text);
-}
-
-.right {
-  display: flex;
-  align-items: center;
-}
-
-.controls {
-  display: flex;
-  align-items: center;
 }
 
 .selectorGroup {
   --segment-bg: transparent;
-  --segment-border: var(--color-neutral-border);
-  --segment-radius: var(--spacing-xs);
-  --segment-divider: var(--color-neutral-border);
+  --segment-border: transparent;
+  --segment-radius: var(--radius-round);
+  --segment-divider: transparent;
   --segment-height: 2.25rem;
   --segment-focus-bg: transparent;
   --segment-focus-border: var(--color-info);
@@ -212,7 +194,7 @@
     transparent
   );
   --segment-item-focus-bg: var(--color-info-bg);
-  width: 300px;
+  width: min(300px, calc(100vw - 7rem));
 }
 
 .dropdown {
@@ -237,23 +219,6 @@
   text-align: left;
   appearance: none;
   box-sizing: border-box;
-}
-
-@media (max-width: 70rem) {
-  .selector {
-    position: relative;
-    top: auto;
-    left: auto;
-    right: auto;
-    background-color: var(--color-surface-elevated);
-    border-bottom: 1px solid var(--color-neutral-border);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-  }
-
-  .header {
-    padding: 0;
-  }
 }
 
 .select .progress-icon {

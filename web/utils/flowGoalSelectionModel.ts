@@ -1,16 +1,12 @@
-import { ExecutionPlan, Step } from "@/app/api";
+import { api, ExecutionPlan, Step } from "@/app/api";
 import {
   addRequiredDefaults,
   filterDefaultValues,
   parseState,
 } from "@/utils/stateUtils";
+import { generatePadded } from "@/utils/flowUtils";
 
 const JSON_INDENT_SPACES = 2;
-
-export type GetExecutionPlan = (
-  stepIds: string[],
-  initialState: Record<string, any>
-) => Promise<ExecutionPlan>;
 
 export interface ApplyFlowGoalSelectionChangeParams {
   stepIds: string[];
@@ -18,7 +14,6 @@ export interface ApplyFlowGoalSelectionChangeParams {
   steps: Step[];
   idManuallyEdited?: boolean;
   setNewID?: (id: string) => void;
-  generatePadded?: () => string;
   setInitialState: (state: string) => void;
   setGoalSteps: (stepIds: string[]) => void;
   updatePreviewPlan: (
@@ -27,7 +22,6 @@ export interface ApplyFlowGoalSelectionChangeParams {
   ) => Promise<void>;
   setPreviewPlan?: (plan: ExecutionPlan | null) => void;
   clearPreviewPlan: () => void;
-  getExecutionPlan: GetExecutionPlan;
 }
 
 export async function applyFlowGoalSelectionChange({
@@ -36,13 +30,11 @@ export async function applyFlowGoalSelectionChange({
   steps,
   idManuallyEdited,
   setNewID,
-  generatePadded,
   setInitialState,
   setGoalSteps,
   updatePreviewPlan,
   setPreviewPlan,
   clearPreviewPlan,
-  getExecutionPlan,
 }: ApplyFlowGoalSelectionChangeParams): Promise<void> {
   const currentState = parseState(initialState);
   const nonDefaultState = filterDefaultValues(currentState, steps);
@@ -56,7 +48,7 @@ export async function applyFlowGoalSelectionChange({
   }
 
   try {
-    const executionPlan = await getExecutionPlan(stepIds, nonDefaultState);
+    const executionPlan = await api.getExecutionPlan(stepIds, nonDefaultState);
     setPreviewPlan?.(executionPlan);
 
     const stateWithDefaults = addRequiredDefaults(
@@ -68,7 +60,7 @@ export async function applyFlowGoalSelectionChange({
       JSON.stringify(stateWithDefaults, null, JSON_INDENT_SPACES)
     );
 
-    if (!idManuallyEdited && setNewID && generatePadded) {
+    if (!idManuallyEdited && setNewID) {
       const lastGoalId = stepIds[stepIds.length - 1];
       const goalStep = steps.find((s) => s.id === lastGoalId);
       const goalName = goalStep?.name || lastGoalId;
@@ -84,7 +76,7 @@ export async function applyFlowGoalSelectionChange({
       const previousGoals = stepIds.slice(0, -1);
 
       try {
-        const lastGoalPlan = await getExecutionPlan([lastGoal], {});
+        const lastGoalPlan = await api.getExecutionPlan([lastGoal], {});
         const lastGoalStepIds = new Set(Object.keys(lastGoalPlan.steps || {}));
 
         const remainingGoals = previousGoals.filter(

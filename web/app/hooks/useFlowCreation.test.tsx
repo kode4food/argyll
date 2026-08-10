@@ -1,10 +1,6 @@
-import React from "react";
-import { act, render } from "@testing-library/react";
-import {
-  FlowCreationStateProvider,
-  useFlowCreation,
-} from "./FlowCreationContext";
-import { ExecutionPlan, Step } from "../api";
+import { act, renderHook } from "@testing-library/react";
+import { useFlowCreation } from "./useFlowCreation";
+import { api, Step } from "../api";
 import { snapshotFlowPositions } from "@/utils/nodePositioning";
 
 const mockNavigate = jest.fn();
@@ -36,13 +32,10 @@ jest.mock("../store/flowStore", () => ({
 }));
 
 let goalIds: string[] = [];
-let previewPlan: ExecutionPlan | null = null;
 const uiState = {
-  previewPlan,
   setPreviewPlan: jest.fn(),
   updatePreviewPlan: jest.fn().mockResolvedValue(undefined),
   clearPreviewPlan: jest.fn(),
-  toggleGoalStep: jest.fn(),
   get goalSteps() {
     return goalIds;
   },
@@ -70,72 +63,48 @@ jest.mock("@/utils/nodePositioning", () => ({
   snapshotFlowPositions: jest.fn(),
 }));
 
-const apiMock = require("../api").api;
-
-let flowCtx: ReturnType<typeof useFlowCreation> | null = null;
-
-const Consumer = () => {
-  flowCtx = useFlowCreation();
-  return null;
-};
-
-const renderProvider = () =>
-  render(
-    <FlowCreationStateProvider>
-      <Consumer />
-    </FlowCreationStateProvider>
-  );
-
-describe("FlowCreationContext", () => {
+describe("useFlowCreation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    previewPlan = null;
-    uiState.previewPlan = previewPlan;
     goalIds = [];
-    flowCtx = null;
   });
 
-  it("handles step change and sets derived flow id", async () => {
-    renderProvider();
-    const ctx = flowCtx!;
+  test("handles step change and sets derived flow id", async () => {
+    const { result } = renderHook(() => useFlowCreation());
 
     await act(async () => {
-      ctx.handleStepChange(["goal"]);
+      result.current.handleStepChange(["goal"]);
     });
 
     expect(uiState.setGoalSteps).toHaveBeenCalledWith(["goal"]);
     expect(uiState.updatePreviewPlan).toHaveBeenCalled();
     await act(async () => {});
-    expect(flowCtx?.newID).toMatch(/goal-step-/);
+    expect(result.current.newID).toMatch(/goal-step-/);
   });
 
-  it("handles empty step change and clears preview", async () => {
-    renderProvider();
-    const ctx = flowCtx!;
+  test("handles empty step change and clears preview", async () => {
+    const { result } = renderHook(() => useFlowCreation());
 
     await act(async () => {
-      ctx.handleStepChange([]);
+      result.current.handleStepChange([]);
     });
 
     expect(uiState.clearPreviewPlan).toHaveBeenCalled();
     expect(uiState.setGoalSteps).toHaveBeenCalledWith([]);
   });
 
-  it("creates flow successfully and reloads flows", async () => {
-    renderProvider();
-    let ctx = flowCtx!;
+  test("creates flow successfully and reloads flows", async () => {
+    const { result } = renderHook(() => useFlowCreation());
     await act(async () => {
-      await ctx.handleStepChange(["goal"]);
+      await result.current.handleStepChange(["goal"]);
     });
-    ctx = flowCtx!;
     await act(async () => {
-      ctx.setIDManuallyEdited(true);
-      ctx.setNewID("flow-1");
+      result.current.setIDManuallyEdited(true);
+      result.current.setNewID("flow-1");
     });
-    ctx = flowCtx!;
 
     await act(async () => {
-      ctx.handleCreateFlow();
+      result.current.handleCreateFlow();
     });
 
     expect(snapshotFlowPositions).toHaveBeenCalledWith("flow-1");
@@ -145,22 +114,19 @@ describe("FlowCreationContext", () => {
     expect(uiState.clearPreviewPlan).toHaveBeenCalled();
   });
 
-  it("removes optimistic flow on create error", async () => {
-    apiMock.startFlow.mockRejectedValueOnce(new Error("boom"));
-    renderProvider();
-    let ctx = flowCtx!;
+  test("removes optimistic flow on create error", async () => {
+    (api.startFlow as jest.Mock).mockRejectedValueOnce(new Error("boom"));
+    const { result } = renderHook(() => useFlowCreation());
     await act(async () => {
-      await ctx.handleStepChange(["goal"]);
+      await result.current.handleStepChange(["goal"]);
     });
-    ctx = flowCtx!;
     await act(async () => {
-      ctx.setIDManuallyEdited(true);
-      ctx.setNewID("flow-err");
+      result.current.setIDManuallyEdited(true);
+      result.current.setNewID("flow-err");
     });
-    ctx = flowCtx!;
 
     await act(async () => {
-      ctx.handleCreateFlow();
+      result.current.handleCreateFlow();
     });
 
     expect(removeFlow).toHaveBeenCalledWith("flow-err");

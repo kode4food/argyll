@@ -3,11 +3,7 @@ import OverviewDiagram from "@/app/components/templates/OverviewDiagram";
 import FlowSelector from "@/app/components/organisms/FlowSelector";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { UIProvider } from "@/app/contexts/UIContext";
-import { FlowCreationStateProvider } from "@/app/contexts/FlowCreationContext";
-import {
-  FlowSessionProvider,
-  useFlowSession,
-} from "@/app/contexts/FlowSessionContext";
+import { useFlowError } from "@/app/store/flowStore";
 import styles from "./OverviewPage.module.css";
 import { useT } from "@/app/i18n";
 
@@ -35,7 +31,7 @@ function OverviewPageContent() {
 }
 
 function OverviewPageWithSession() {
-  const { flowError } = useFlowSession();
+  const flowError = useFlowError();
   const t = useT();
 
   if (flowError) {
@@ -62,11 +58,7 @@ function OverviewPageWithSession() {
 export default function OverviewPage() {
   return (
     <UIProvider>
-      <FlowSessionProvider>
-        <FlowCreationStateProvider>
-          <OverviewPageWithSession />
-        </FlowCreationStateProvider>
-      </FlowSessionProvider>
+      <OverviewPageWithSession />
     </UIProvider>
   );
 }

@@ -38,7 +38,11 @@
   position: relative;
   z-index: 50;
   --panel-text: var(--color-dark-text);
-  --panel-text-muted: color-mix(in srgb, var(--color-dark-text) 68%, transparent);
+  --panel-text-muted: color-mix(
+    in srgb,
+    var(--color-dark-text) 68%,
+    transparent
+  );
   background-color: var(--color-dark-bg);
   border-radius: var(--radius-xl);
   display: flex;

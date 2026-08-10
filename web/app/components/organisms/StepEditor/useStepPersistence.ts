@@ -105,9 +105,7 @@ export function useStepPersistence({
         onUpdate(resultStep);
         onClose();
       } catch (err: any) {
-        setError(
-          err.response?.data?.error || err.message || t("stepEditor.saveFailed")
-        );
+        setError(err.message || t("stepEditor.saveFailed"));
       } finally {
         setSaving(false);
       }

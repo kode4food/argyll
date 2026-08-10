@@ -2,7 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import WebSocketProvider from "./contexts/WebSocketProvider";
-import ConnectionStatusWrapper from "./components/atoms/ConnectionStatusWrapper";
+import ConnectionStatusIndicator from "./components/atoms/ConnectionStatusIndicator";
 import OverviewPage from "./components/templates/OverviewPage";
 import LivePage from "./components/templates/LivePage";
 import NotFoundPage from "./components/organisms/NotFoundPage";
@@ -13,6 +13,11 @@ import frCH from "./i18n/fr-CH.json";
 import itCH from "./i18n/it-CH.json";
 import { useLocale } from "./store/i18nStore";
 import { useTheme } from "./store/themeStore";
+import {
+  useEngineConnectionStatus,
+  useEngineReconnectAttempt,
+  useRequestEngineReconnect,
+} from "./store/flowStore";
 
 const AUTOFILL_TARGET_SELECTOR =
   "input:not([type='password']), textarea, select";
@@ -60,6 +65,9 @@ const LocaleProvider: React.FC<{ children: React.ReactNode }> = ({
 
 const App: React.FC = () => {
   const theme = useTheme();
+  const connectionStatus = useEngineConnectionStatus();
+  const reconnectAttempt = useEngineReconnectAttempt();
+  const reconnect = useRequestEngineReconnect();
 
   React.useEffect(() => {
     const handleInputInteraction = (event: Event): void => {
@@ -96,7 +104,11 @@ const App: React.FC = () => {
             <Route path="/flow/:flowId" element={<LivePage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Routes>
-          <ConnectionStatusWrapper />
+          <ConnectionStatusIndicator
+            status={connectionStatus}
+            reconnectAttempt={reconnectAttempt}
+            onReconnect={reconnect}
+          />
         </WebSocketProvider>
       </LocaleProvider>
       <Toaster position="top-right" />

@@ -1,7 +1,7 @@
 import React from "react";
 import { useUI } from "@/app/contexts/UIContext";
 import { AttributeType } from "@/app/api";
-import { useFlowCreation } from "@/app/contexts/FlowCreationContext";
+import { useFlowCreation } from "@/app/hooks/useFlowCreation";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 import { useFlowFormStepFiltering } from "./useFlowFormStepFiltering";
 import {
@@ -15,6 +15,8 @@ import {
   FlowInputOption,
   getFlowPlanAttributeOptions,
 } from "@/utils/flowPlanAttributeOptions";
+import { generateFlowId } from "@/utils/flowUtils";
+import { sortStepsByType } from "@/utils/stepUtils";
 import FlowGoalsSection from "./FlowGoalsSection";
 import FlowAttributesSection from "./FlowAttributesSection";
 import FlowStartSection from "./FlowStartSection";
@@ -64,8 +66,6 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     creating,
     handleCreateFlow,
     steps,
-    generateID,
-    sortSteps,
   } = useFlowCreation();
   const {
     previewPlan,
@@ -92,7 +92,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
     }
   }, [editorMode, setFocusedPreviewAttribute]);
 
-  const sortedSteps = React.useMemo(() => sortSteps(steps), [steps, sortSteps]);
+  const sortedSteps = React.useMemo(() => sortStepsByType(steps), [steps]);
 
   const {
     scrollRef: sidebarListRef,
@@ -255,7 +255,7 @@ const FlowCreateForm: React.FC<FlowCreateFormProps> = ({ onCreateStep }) => {
                 setIDManuallyEdited(true);
               }}
               onGenerateId={() => {
-                setNewID(generateID());
+                setNewID(generateFlowId());
                 setIDManuallyEdited(false);
               }}
             />

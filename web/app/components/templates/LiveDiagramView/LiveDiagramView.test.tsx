@@ -37,7 +37,6 @@ jest.mock("@xyflow/react", () => ({
 jest.mock("@/app/contexts/UIContext", () => ({
   useUI: () => ({
     diagramContainerRef: { current: null },
-    headerRef: { current: null },
     panelRef: { current: null },
   }),
 }));

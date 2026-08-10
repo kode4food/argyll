@@ -1,10 +1,23 @@
-import {
-  applyFlowGoalSelectionChange,
-  GetExecutionPlan,
-} from "./flowGoalSelectionModel";
-import { ExecutionPlan, Step } from "@/app/api";
+import { applyFlowGoalSelectionChange } from "./flowGoalSelectionModel";
+import { api, ExecutionPlan, Step } from "@/app/api";
+
+jest.mock("@/app/api", () => ({
+  ...jest.requireActual("@/app/api"),
+  api: { getExecutionPlan: jest.fn() },
+}));
+
+jest.mock("@/utils/flowUtils", () => ({
+  ...jest.requireActual("@/utils/flowUtils"),
+  generatePadded: () => "0001",
+}));
+
+const getExecutionPlan = api.getExecutionPlan as jest.Mock;
 
 describe("flowGoalSelectionModel", () => {
+  beforeEach(() => {
+    getExecutionPlan.mockReset();
+  });
+
   test("prunes upstream goals when included by last goal", async () => {
     const orderCreator: Step = {
       id: "order-creator",
@@ -39,14 +52,12 @@ describe("flowGoalSelectionModel", () => {
       attributes: {},
     };
 
-    const getExecutionPlan: jest.MockedFunction<GetExecutionPlan> = jest.fn(
-      async (stepIds: string[]) => {
-        if (stepIds.length === 1 && stepIds[0] === "notification-sender") {
-          return lastGoalPlan;
-        }
-        return combinedPlan;
+    getExecutionPlan.mockImplementation(async (stepIds: string[]) => {
+      if (stepIds.length === 1 && stepIds[0] === "notification-sender") {
+        return lastGoalPlan;
       }
-    );
+      return combinedPlan;
+    });
 
     const setInitialState = jest.fn();
     const setGoalSteps = jest.fn();
@@ -54,7 +65,6 @@ describe("flowGoalSelectionModel", () => {
     const updatePreviewPlan = jest.fn().mockResolvedValue(undefined);
     const clearPreviewPlan = jest.fn();
     const setNewID = jest.fn();
-    const generatePadded = jest.fn(() => "0001");
 
     await applyFlowGoalSelectionChange({
       stepIds: ["order-creator", "notification-sender"],
@@ -62,13 +72,11 @@ describe("flowGoalSelectionModel", () => {
       steps: [orderCreator, notificationSender],
       idManuallyEdited: false,
       setNewID,
-      generatePadded,
       setInitialState,
       setGoalSteps,
       setPreviewPlan,
       updatePreviewPlan,
       clearPreviewPlan,
-      getExecutionPlan,
     });
 
     expect(setGoalSteps).toHaveBeenCalledWith(["notification-sender"]);
@@ -79,7 +87,6 @@ describe("flowGoalSelectionModel", () => {
   });
 
   test("clears selection and preview when stepIds is empty", async () => {
-    const getExecutionPlan: jest.MockedFunction<GetExecutionPlan> = jest.fn();
     const setInitialState = jest.fn();
     const setGoalSteps = jest.fn();
     const setPreviewPlan = jest.fn();
@@ -95,7 +102,6 @@ describe("flowGoalSelectionModel", () => {
       setPreviewPlan,
       updatePreviewPlan,
       clearPreviewPlan,
-      getExecutionPlan,
     });
 
     expect(clearPreviewPlan).toHaveBeenCalled();

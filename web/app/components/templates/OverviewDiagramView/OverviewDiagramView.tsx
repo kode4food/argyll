@@ -2,10 +2,6 @@ import React, { useCallback, useEffect } from "react";
 import {
   ReactFlow,
   ReactFlowProvider,
-  Background,
-  BackgroundVariant,
-  ControlButton,
-  Controls,
   useNodesState,
   useReactFlow,
   NodeChange,
@@ -13,18 +9,13 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Step } from "@/app/api";
-import {
-  IconDiagramEmptyState,
-  IconFitView,
-  IconThemeDark,
-  IconThemeLight,
-} from "@/utils/iconRegistry";
+import { IconDiagramEmptyState } from "@/utils/iconRegistry";
 import Node from "@/app/components/organisms/OverviewStep/Node";
+import DiagramChrome from "@/app/components/molecules/DiagramChrome";
 import DiagramHud, {
   DiagramHudText,
 } from "@/app/components/molecules/DiagramHud";
 import DiagramEmptyState from "@/app/components/molecules/DiagramEmptyState";
-import DiagramView from "@/app/components/molecules/DiagramView";
 import { useT } from "@/app/i18n";
 import { useExecutionPlanPreview } from "./useExecutionPlanPreview";
 import { useStepVisibility } from "./useStepVisibility";
@@ -40,8 +31,6 @@ import { useDiagramViewport } from "@/app/hooks/useDiagramViewport";
 import { useFitView } from "@/app/hooks/useFitView";
 import useFocusWithin from "@/app/hooks/useFocusWithin";
 import { useLayoutPlan } from "./useLayoutPlan";
-import { useTheme, useToggleTheme } from "@/app/store/themeStore";
-import glassChromeStyles from "@/app/styles/modules/GlassChrome.module.css";
 import styles from "./OverviewDiagramView.module.css";
 
 interface OverviewDiagramViewProps {
@@ -56,8 +45,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   steps = [],
 }) => {
   const t = useT();
-  const theme = useTheme();
-  const toggleTheme = useToggleTheme();
   const { goalSteps, setGoalSteps } = useDiagramSelection();
   const activeGoalStepId =
     goalSteps.length > 0 ? goalSteps[goalSteps.length - 1] : null;
@@ -140,12 +127,6 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
     const event = new CustomEvent("hideTooltips");
     document.dispatchEvent(event);
   }, []);
-  const handleZoomIn = useCallback(() => {
-    void reactFlowInstance.zoomIn();
-  }, [reactFlowInstance]);
-  const handleZoomOut = useCallback(() => {
-    void reactFlowInstance.zoomOut();
-  }, [reactFlowInstance]);
   const {
     handleViewportChange,
     shouldFitView,
@@ -274,7 +255,25 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
   }
 
   return (
-    <DiagramView ref={diagramContainerRef}>
+    <ReactFlow
+      ref={diagramContainerRef}
+      nodes={nodes}
+      edges={initialEdges}
+      nodeTypes={nodeTypes}
+      onNodesChange={handleNodesChange}
+      onPaneClick={handlePaneClick}
+      onNodeDragStart={handleNodeDragStart}
+      nodesConnectable={false}
+      nodesDraggable={true}
+      elementsSelectable={false}
+      nodesFocusable={false}
+      panOnScroll={true}
+      zoomOnScroll={false}
+      zoomOnPinch={true}
+      onViewportChange={handleViewportChange}
+      className="overview-mode-bg"
+      proOptions={{ hideAttribution: true }}
+    >
       {showPreviewHud && (
         <DiagramHud
           className={styles.previewHud}
@@ -295,68 +294,8 @@ const OverviewDiagramViewInner: React.FC<OverviewDiagramViewProps> = ({
           ]}
         />
       )}
-      <ReactFlow
-        nodes={nodes}
-        edges={initialEdges}
-        nodeTypes={nodeTypes}
-        onNodesChange={handleNodesChange}
-        onPaneClick={handlePaneClick}
-        onNodeDragStart={handleNodeDragStart}
-        nodesConnectable={false}
-        nodesDraggable={true}
-        elementsSelectable={false}
-        nodesFocusable={false}
-        panOnScroll={true}
-        zoomOnScroll={false}
-        zoomOnPinch={true}
-        onViewportChange={handleViewportChange}
-        className="overview-mode-bg"
-        proOptions={{ hideAttribution: true }}
-      >
-        <Background
-          variant={BackgroundVariant.Dots}
-          gap={20}
-          size={1}
-          className="diagram-background"
-        />
-        <Controls
-          className={glassChromeStyles.controls}
-          orientation="horizontal"
-          position="bottom-right"
-          showInteractive={false}
-          showFitView={false}
-          onZoomIn={handleZoomIn}
-          onZoomOut={handleZoomOut}
-          style={{
-            right: "1rem",
-            bottom: "1rem",
-          }}
-        >
-          <ControlButton
-            onClick={fitView}
-            title={t("controls.fitView")}
-            aria-label={t("controls.fitView")}
-          >
-            <IconFitView />
-          </ControlButton>
-          <ControlButton
-            onClick={toggleTheme}
-            title={
-              theme === "dark"
-                ? t("controls.switchToLightMode")
-                : t("controls.switchToDarkMode")
-            }
-            aria-label={
-              theme === "dark"
-                ? t("controls.switchToLightMode")
-                : t("controls.switchToDarkMode")
-            }
-          >
-            {theme === "dark" ? <IconThemeLight /> : <IconThemeDark />}
-          </ControlButton>
-        </Controls>
-      </ReactFlow>
-    </DiagramView>
+      <DiagramChrome />
+    </ReactFlow>
   );
 };
 

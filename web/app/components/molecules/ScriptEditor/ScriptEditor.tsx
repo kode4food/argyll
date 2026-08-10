@@ -13,6 +13,8 @@ interface ScriptEditorProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   language?: string;
+  height?: string;
+  theme?: "light" | "dark";
 }
 
 const ScriptEditor: React.FC<ScriptEditorProps> = ({
@@ -20,6 +22,8 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
   onChange,
   readOnly = false,
   language = "lua",
+  height = "100%",
+  theme = "dark",
 }) => {
   const extensions = useMemo(() => {
     if (language === "json") {
@@ -34,11 +38,12 @@ const ScriptEditor: React.FC<ScriptEditorProps> = ({
     <div className={styles.editor}>
       <CodeMirror
         value={value}
+        height={height}
         className={styles.codemirror}
         extensions={extensions}
         onChange={onChange}
         readOnly={readOnly}
-        theme="dark"
+        theme={theme}
         basicSetup={CODEMIRROR_BASIC_SETUP}
       />
     </div>

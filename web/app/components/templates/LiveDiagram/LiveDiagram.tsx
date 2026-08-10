@@ -11,20 +11,26 @@ import { IconFlowNotFound } from "@/utils/iconRegistry";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { isValidTimestamp } from "@/utils/dates";
 import { useUI } from "@/app/contexts/UIContext";
-import { useFlowSession } from "@/app/contexts/FlowSessionContext";
 import { StepEditorProvider } from "@/app/contexts/StepEditorContext";
 import { useT } from "@/app/i18n";
+import {
+  useExecutions,
+  useFlowData,
+  useFlowLoading,
+  useFlowNotFound,
+  useResolvedAttributes,
+  useSelectedFlow,
+  useSteps,
+} from "@/app/store/flowStore";
 
 const LiveDiagramContent: React.FC = () => {
-  const {
-    selectedFlow,
-    flowData,
-    executions,
-    resolvedAttributes: resolved,
-    loading,
-    flowNotFound,
-    steps,
-  } = useFlowSession();
+  const selectedFlow = useSelectedFlow();
+  const flowData = useFlowData();
+  const executions = useExecutions();
+  const resolved = useResolvedAttributes();
+  const loading = useFlowLoading();
+  const flowNotFound = useFlowNotFound();
+  const steps = useSteps();
   const { clearPreviewPlan, setGoalSteps } = useUI();
   const t = useT();
 

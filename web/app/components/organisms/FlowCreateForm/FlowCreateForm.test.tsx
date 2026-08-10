@@ -13,14 +13,13 @@ import styles from "./FlowCreateForm.module.css";
 import { t } from "@/app/testUtils/i18n";
 import { useUI } from "@/app/contexts/UIContext";
 import { Step, AttributeRole, AttributeType } from "@/app/api";
-import {
-  FlowCreationContext,
-  FlowCreationContextValue,
-} from "@/app/contexts/FlowCreationContext";
+import { useFlowCreation } from "@/app/hooks/useFlowCreation";
+import { sortStepsByType } from "@/utils/stepUtils";
 
 jest.mock("@/app/contexts/UIContext");
-jest.mock("@/app/components/molecules/LazyCodeEditor", () => {
-  return function MockLazyCodeEditor({ value, onChange }: any) {
+jest.mock("@/app/hooks/useFlowCreation");
+jest.mock("@/app/components/molecules/ScriptEditor", () => {
+  return function MockScriptEditor({ value, onChange }: any) {
     return (
       <textarea
         data-testid="code-editor"
@@ -32,6 +31,10 @@ jest.mock("@/app/components/molecules/LazyCodeEditor", () => {
 });
 
 const mockUseUI = useUI as jest.MockedFunction<typeof useUI>;
+const mockUseFlowCreation = useFlowCreation as jest.MockedFunction<
+  typeof useFlowCreation
+>;
+type FlowCreationState = ReturnType<typeof useFlowCreation>;
 
 describe("FlowCreateForm", () => {
   const mockStep: Step = {
@@ -55,11 +58,11 @@ describe("FlowCreateForm", () => {
     handleStepChange: jest.fn(),
     initialState: "{}",
     setInitialState: jest.fn(),
+    compensate: false,
+    setCompensate: jest.fn(),
     creating: false,
     handleCreateFlow: jest.fn(),
     steps: [mockStep],
-    generateID: jest.fn(() => "generated-id"),
-    sortSteps: jest.fn((steps: Step[]) => steps),
   };
 
   const defaultUIContext = {
@@ -78,20 +81,27 @@ describe("FlowCreateForm", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseUI.mockReturnValue(defaultUIContext);
+    mockUseFlowCreation.mockReturnValue(defaultProps);
   });
 
-  const renderWithProvider = (
-    overrides: Partial<FlowCreationContextValue> = {}
-  ) => {
-    const value: FlowCreationContextValue = {
+  const renderWithProvider = (overrides: Partial<FlowCreationState> = {}) => {
+    mockUseFlowCreation.mockReturnValue({
       ...defaultProps,
       ...overrides,
-    };
-    return render(
-      <FlowCreationContext.Provider value={value}>
-        <FlowCreateForm />
-      </FlowCreationContext.Provider>
-    );
+    });
+    return render(<FlowCreateForm />);
+  };
+
+  const StatefulForm: React.FC<{ initialState: string }> = ({
+    initialState: initialValue,
+  }) => {
+    const [initialState, setInitialState] = React.useState(initialValue);
+    mockUseFlowCreation.mockReturnValue({
+      ...defaultProps,
+      initialState,
+      setInitialState,
+    });
+    return <FlowCreateForm />;
   };
 
   test("renders form in the overview panel", () => {
@@ -114,18 +124,16 @@ describe("FlowCreateForm", () => {
   });
 
   test("renders steps in sorted list", () => {
-    const sortSteps = jest.fn((steps) =>
-      [...steps].sort((a, b) => a.name.localeCompare(b.name))
-    );
-
     const steps = [
-      { ...mockStep, id: "step-1", name: "Zebra" },
-      { ...mockStep, id: "step-2", name: "Alpha" },
+      { ...mockStep, id: "step-1", name: "Zebra", type: "async" },
+      { ...mockStep, id: "step-2", name: "Alpha", type: "sync" },
     ];
 
-    renderWithProvider({ steps, sortSteps });
+    const { container } = renderWithProvider({ steps });
 
-    expect(sortSteps).toHaveBeenCalledWith(steps);
+    const text = container.textContent ?? "";
+    const [first, second] = sortStepsByType(steps);
+    expect(text.indexOf(first.name)).toBeLessThan(text.indexOf(second.name));
   });
 
   test("displays flow ID input with current value", () => {
@@ -153,8 +161,9 @@ describe("FlowCreateForm", () => {
     const button = screen.getByLabelText("Generate new flow ID");
     fireEvent.click(button);
 
-    expect(defaultProps.generateID).toHaveBeenCalled();
-    expect(defaultProps.setNewID).toHaveBeenCalledWith("generated-id");
+    expect(defaultProps.setNewID).toHaveBeenCalledWith(
+      expect.stringMatching(/^flow-\d+$/)
+    );
     expect(defaultProps.setIDManuallyEdited).toHaveBeenCalledWith(false);
   });
 
@@ -548,24 +557,7 @@ describe("FlowCreateForm", () => {
       goalSteps: ["goal-step"],
     });
 
-    const StatefulProvider: React.FC = () => {
-      const [initialState, setInitialState] = React.useState(
-        '{"quantity":[],"note":[]}'
-      );
-      const value: FlowCreationContextValue = {
-        ...defaultProps,
-        initialState,
-        setInitialState,
-      };
-
-      return (
-        <FlowCreationContext.Provider value={value}>
-          <FlowCreateForm />
-        </FlowCreationContext.Provider>
-      );
-    };
-
-    render(<StatefulProvider />);
+    render(<StatefulForm initialState='{"quantity":[],"note":[]}' />);
 
     const quantityRow = screen
       .getByText("quantity")
@@ -619,23 +611,7 @@ describe("FlowCreateForm", () => {
       goalSteps: ["goal-step"],
     });
 
-    const StatefulProvider: React.FC = () => {
-      const [initialState, setInitialState] =
-        React.useState('{"unit_price":[]}');
-      const value: FlowCreationContextValue = {
-        ...defaultProps,
-        initialState,
-        setInitialState,
-      };
-
-      return (
-        <FlowCreationContext.Provider value={value}>
-          <FlowCreateForm />
-        </FlowCreationContext.Provider>
-      );
-    };
-
-    render(<StatefulProvider />);
+    render(<StatefulForm initialState='{"unit_price":[]}' />);
 
     const input = screen.getByPlaceholderText("0") as HTMLInputElement;
     fireEvent.change(input, { target: { value: "90," } });
@@ -679,22 +655,7 @@ describe("FlowCreateForm", () => {
       goalSteps: ["goal-step"],
     });
 
-    const StatefulProvider: React.FC = () => {
-      const [initialState, setInitialState] = React.useState('{"note":[]}');
-      const value: FlowCreationContextValue = {
-        ...defaultProps,
-        initialState,
-        setInitialState,
-      };
-
-      return (
-        <FlowCreationContext.Provider value={value}>
-          <FlowCreateForm />
-        </FlowCreationContext.Provider>
-      );
-    };
-
-    render(<StatefulProvider />);
+    render(<StatefulForm initialState='{"note":[]}' />);
 
     fireEvent.change(screen.getByPlaceholderText('""'), {
       target: { value: "'hello, world'" },
@@ -734,23 +695,7 @@ describe("FlowCreateForm", () => {
       goalSteps: ["goal-step"],
     });
 
-    const StatefulProvider: React.FC = () => {
-      const [initialState, setInitialState] =
-        React.useState('{"quantity":[1]}');
-      const value: FlowCreationContextValue = {
-        ...defaultProps,
-        initialState,
-        setInitialState,
-      };
-
-      return (
-        <FlowCreationContext.Provider value={value}>
-          <FlowCreateForm />
-        </FlowCreationContext.Provider>
-      );
-    };
-
-    render(<StatefulProvider />);
+    render(<StatefulForm initialState='{"quantity":[1]}' />);
 
     fireEvent.change(screen.getByDisplayValue("1"), { target: { value: "" } });
     fireEvent.click(
@@ -788,22 +733,7 @@ describe("FlowCreateForm", () => {
       goalSteps: ["goal-step"],
     });
 
-    const StatefulProvider: React.FC = () => {
-      const [initialState, setInitialState] = React.useState('{"quantity":[]}');
-      const value: FlowCreationContextValue = {
-        ...defaultProps,
-        initialState,
-        setInitialState,
-      };
-
-      return (
-        <FlowCreationContext.Provider value={value}>
-          <FlowCreateForm />
-        </FlowCreationContext.Provider>
-      );
-    };
-
-    render(<StatefulProvider />);
+    render(<StatefulForm initialState='{"quantity":[]}' />);
 
     fireEvent.change(screen.getByPlaceholderText("0"), {
       target: { value: "1" },
@@ -894,20 +824,12 @@ describe("FlowCreateForm", () => {
 
     mockUseUI.mockImplementation(() => uiContext);
 
-    const { rerender } = render(
-      <FlowCreationContext.Provider value={defaultProps}>
-        <FlowCreateForm />
-      </FlowCreationContext.Provider>
-    );
+    const { rerender } = renderWithProvider();
 
     uiContext.goalSteps = [];
     uiContext.previewPlan = null;
 
-    rerender(
-      <FlowCreationContext.Provider value={defaultProps}>
-        <FlowCreateForm />
-      </FlowCreationContext.Provider>
-    );
+    rerender(<FlowCreateForm />);
 
     expect(setFocusedPreviewAttribute).toHaveBeenCalledWith(null);
   });
@@ -1228,24 +1150,7 @@ describe("FlowCreateForm", () => {
       goalSteps: ["goal-step"],
     });
 
-    const StatefulProvider: React.FC = () => {
-      const [initialState, setInitialState] = React.useState(
-        '{"order_id":"guest"}'
-      );
-      const value: FlowCreationContextValue = {
-        ...defaultProps,
-        initialState,
-        setInitialState,
-      };
-
-      return (
-        <FlowCreationContext.Provider value={value}>
-          <FlowCreateForm />
-        </FlowCreationContext.Provider>
-      );
-    };
-
-    render(<StatefulProvider />);
+    render(<StatefulForm initialState='{"order_id":"guest"}' />);
 
     const input = screen.getByPlaceholderText("guest");
     fireEvent.change(input, { target: { value: "admin" } });

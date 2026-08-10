@@ -8,26 +8,9 @@
   overflow: hidden;
 }
 
-.header {
-  flex: 0 0 auto;
-  min-height: 2.5rem;
-  width: 100%;
-}
-
-.header > * {
-  width: 100%;
-}
-
 .diagramContainer {
   position: relative;
   flex: 1;
-  min-height: 0;
-  overflow: hidden;
-}
-
-.diagramContent {
-  height: 100%;
-  width: 100%;
   min-height: 0;
   overflow: hidden;
 }

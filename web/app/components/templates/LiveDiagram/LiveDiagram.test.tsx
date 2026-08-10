@@ -13,9 +13,14 @@ const sessionMock = {
   steps: [],
 };
 
-jest.mock("@/app/contexts/FlowSessionContext", () => ({
-  __esModule: true,
-  useFlowSession: () => sessionMock,
+jest.mock("@/app/store/flowStore", () => ({
+  useSelectedFlow: () => sessionMock.selectedFlow,
+  useFlowData: () => sessionMock.flowData,
+  useExecutions: () => sessionMock.executions,
+  useResolvedAttributes: () => sessionMock.resolvedAttributes,
+  useFlowLoading: () => sessionMock.loading,
+  useFlowNotFound: () => sessionMock.flowNotFound,
+  useSteps: () => sessionMock.steps,
 }));
 
 jest.mock("@/app/contexts/UIContext", () => ({

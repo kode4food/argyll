@@ -1,4 +1,3 @@
-import axios, { AxiosInstance } from "axios";
 import { API_CONFIG } from "@/constants/common";
 import {
   EngineState,
@@ -8,27 +7,58 @@ import {
   Step,
 } from "./types";
 
+const REQUEST_TIMEOUT_MS = 30000;
+
 export class ArgyllApi {
-  private client: AxiosInstance;
+  private baseURL: string;
 
   constructor(baseURL: string = API_CONFIG.BASE_URL) {
-    this.client = axios.create({
-      baseURL,
-      timeout: 30000,
+    this.baseURL = baseURL;
+  }
+
+  private async request<T>(path: string, init: RequestInit = {}): Promise<T> {
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const signal = init.signal
+      ? AbortSignal.any([init.signal, timeout])
+      : timeout;
+    const response = await fetch(this.baseURL + path, {
+      ...init,
+      signal,
       headers: {
         "Content-Type": "application/json",
+        ...init.headers,
       },
     });
+    const data = await response.json().catch(() => null);
+
+    if (!response.ok) {
+      const message =
+        data && typeof data === "object" && "error" in data
+          ? String(data.error)
+          : `${response.status} ${response.statusText}`;
+      throw new Error(message);
+    }
+
+    return data as T;
   }
 
   async registerStep(step: Step): Promise<Step> {
-    const response = await this.client.post("/engine/step", step);
-    return response.data.step;
+    const response = await this.request<{ step: Step }>("/engine/step", {
+      method: "POST",
+      body: JSON.stringify(step),
+    });
+    return response.step;
   }
 
   async updateStep(stepId: string, step: Step): Promise<Step> {
-    const response = await this.client.put(`/engine/step/${stepId}`, step);
-    return response.data.step;
+    const response = await this.request<{ step: Step }>(
+      `/engine/step/${stepId}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(step),
+      }
+    );
+    return response.step;
   }
 
   async startFlow(
@@ -37,18 +67,22 @@ export class ArgyllApi {
     initialState: Record<string, any[]>,
     compensate = false
   ): Promise<any> {
-    const response = await this.client.post("/engine/flow", {
-      id,
-      goals: goalSteps,
-      init: initialState,
-      compensate,
+    return this.request("/engine/flow", {
+      method: "POST",
+      body: JSON.stringify({
+        id,
+        goals: goalSteps,
+        init: initialState,
+        compensate,
+      }),
     });
-    return response.data;
   }
 
   async queryFlows(request: QueryFlowsRequest): Promise<QueryFlowsResponse> {
-    const response = await this.client.post("/engine/flow/query", request);
-    return response.data;
+    return this.request("/engine/flow/query", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
   }
 
   async listFlowsPage(opts?: {
@@ -67,21 +101,17 @@ export class ArgyllApi {
     initialState: Record<string, any[]> = {},
     signal?: AbortSignal
   ): Promise<ExecutionPlan> {
-    const response = await this.client.post(
-      "/engine/plan",
-      {
+    return this.request("/engine/plan", {
+      method: "POST",
+      body: JSON.stringify({
         goals: goalSteps,
         init: initialState,
-      },
-      {
-        signal,
-      }
-    );
-    return response.data;
+      }),
+      signal,
+    });
   }
 
   async getEngine(): Promise<EngineState> {
-    const response = await this.client.get("/engine");
-    return response.data;
+    return this.request("/engine");
   }
 }

@@ -1,414 +1,159 @@
 import { render, screen } from "@testing-library/react";
 import { I18nProvider, useT } from "./I18nProvider";
+import type { MessageValue, Vars } from "./i18nUtils";
 
-const TestComponent = ({
+const Translation = ({
   messageKey,
   vars,
 }: {
   messageKey: string;
-  vars?: Record<string, string | number>;
+  vars?: Vars;
 }) => {
   const t = useT();
   return <div>{t(messageKey, vars)}</div>;
 };
 
+const renderTranslation = (
+  messages: Record<string, MessageValue>,
+  messageKey: string,
+  vars?: Vars
+) =>
+  render(
+    <I18nProvider messages={messages}>
+      <Translation messageKey={messageKey} vars={vars} />
+    </I18nProvider>
+  );
+
 describe("I18nProvider", () => {
-  describe("simple string messages", () => {
-    it("renders simple message without variables", () => {
-      const messages = {
-        "test.simple": "Hello World",
-      };
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent messageKey="test.simple" />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("Hello World")).toBeInTheDocument();
-    });
-
-    it("interpolates single variable", () => {
-      const messages = {
-        "test.greeting": "Hello {name}",
-      };
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent messageKey="test.greeting" vars={{ name: "Alice" }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("Hello Alice")).toBeInTheDocument();
-    });
-
-    it("interpolates multiple variables", () => {
-      const messages = {
-        "test.multiple": "{greeting} {name}, you have {count} messages",
-      };
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent
-            messageKey="test.multiple"
-            vars={{ greeting: "Hello", name: "Bob", count: 5 }}
-          />
-        </I18nProvider>
-      );
-
-      expect(
-        screen.getByText("Hello Bob, you have 5 messages")
-      ).toBeInTheDocument();
-    });
-
-    it("preserves unknown placeholders", () => {
-      const messages = {
-        "test.unknown": "Value: {known}, Unknown: {unknown}",
-      };
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent messageKey="test.unknown" vars={{ known: "123" }} />
-        </I18nProvider>
-      );
-
-      expect(
-        screen.getByText("Value: 123, Unknown: {unknown}")
-      ).toBeInTheDocument();
-    });
-
-    it("returns key when message not found", () => {
-      const messages = {};
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent messageKey="missing.key" />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("missing.key")).toBeInTheDocument();
-    });
+  test.each([
+    ["plain text", "Hello World", undefined, "Hello World"],
+    ["one variable", "Hello {name}", { name: "Alice" }, "Hello Alice"],
+    [
+      "several variables",
+      "{greeting} {name}, {count} messages",
+      { greeting: "Hello", name: "Bob", count: 5 },
+      "Hello Bob, 5 messages",
+    ],
+    [
+      "unknown placeholders",
+      "Value: {known}, Unknown: {unknown}",
+      { known: 123 },
+      "Value: 123, Unknown: {unknown}",
+    ],
+  ])("translates %s", (_, message, vars, expected) => {
+    renderTranslation({ key: message }, "key", vars);
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
-  describe("plural forms", () => {
-    describe("zero form", () => {
-      it("uses zero form when count is 0 and zero is defined", () => {
-        const messages = {
-          "items.count": {
-            zero: "No items",
-            one: "One item",
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent messageKey="items.count" vars={{ count: 0 }} />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("No items")).toBeInTheDocument();
-      });
-
-      it("falls back to other form when count is 0 and zero is undefined", () => {
-        const messages = {
-          "items.count": {
-            one: "One item",
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent messageKey="items.count" vars={{ count: 0 }} />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("0 items")).toBeInTheDocument();
-      });
-    });
-
-    describe("one form", () => {
-      it("uses one form when count is 1 and one is defined", () => {
-        const messages = {
-          "items.count": {
-            zero: "No items",
-            one: "One item",
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent messageKey="items.count" vars={{ count: 1 }} />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("One item")).toBeInTheDocument();
-      });
-
-      it("falls back to other form when count is 1 and one is undefined", () => {
-        const messages = {
-          "items.count": {
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent messageKey="items.count" vars={{ count: 1 }} />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("1 items")).toBeInTheDocument();
-      });
-    });
-
-    describe("other form", () => {
-      it("uses other form for count > 1", () => {
-        const messages = {
-          "items.count": {
-            zero: "No items",
-            one: "One item",
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent messageKey="items.count" vars={{ count: 5 }} />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("5 items")).toBeInTheDocument();
-      });
-
-      it("interpolates variables in plural forms", () => {
-        const messages = {
-          "user.files": {
-            zero: "No files for {name}",
-            one: "{name} has 1 file",
-            other: "{name} has {count} files",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent
-              messageKey="user.files"
-              vars={{ count: 3, name: "Alice" }}
-            />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("Alice has 3 files")).toBeInTheDocument();
-      });
-    });
-
-    describe("error handling", () => {
-      it("warns and returns key when plural message lacks count variable", () => {
-        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
-
-        const messages = {
-          "items.count": {
-            zero: "No items",
-            one: "One item",
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent messageKey="items.count" vars={{}} />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("items.count")).toBeInTheDocument();
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          "Plural message \"items.count\" requires a numeric 'count' variable"
-        );
-
-        consoleWarnSpy.mockRestore();
-      });
-
-      it("warns and returns key when count is not a number", () => {
-        const consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation();
-
-        const messages = {
-          "items.count": {
-            zero: "No items",
-            one: "One item",
-            other: "{count} items",
-          },
-        };
-
-        render(
-          <I18nProvider locale="en-US" messages={messages}>
-            <TestComponent
-              messageKey="items.count"
-              vars={{ count: "invalid" as any }}
-            />
-          </I18nProvider>
-        );
-
-        expect(screen.getByText("items.count")).toBeInTheDocument();
-        expect(consoleWarnSpy).toHaveBeenCalledWith(
-          "Plural message \"items.count\" requires a numeric 'count' variable"
-        );
-
-        consoleWarnSpy.mockRestore();
-      });
-    });
+  test("returns an unknown key", () => {
+    renderTranslation({}, "missing.key");
+    expect(screen.getByText("missing.key")).toBeInTheDocument();
   });
 
-  describe("real-world examples", () => {
-    it("handles German zero/one/other distinction", () => {
-      const messages = {
-        "steps.registered": {
-          zero: "Kein Step registriert",
-          one: "1 Step registriert",
-          other: "{count} Steps registriert",
-        },
-      };
-
-      const { rerender } = render(
-        <I18nProvider locale="de-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 0 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("Kein Step registriert")).toBeInTheDocument();
-
-      rerender(
-        <I18nProvider locale="de-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 1 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("1 Step registriert")).toBeInTheDocument();
-
-      rerender(
-        <I18nProvider locale="de-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 5 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("5 Steps registriert")).toBeInTheDocument();
-    });
-
-    it("handles Italian singular/plural agreement", () => {
-      const messages = {
-        "steps.registered": {
-          zero: "Nessun Step registrato",
-          one: "1 Step registrato",
-          other: "{count} Steps registrati",
-        },
-      };
-
-      const { rerender } = render(
-        <I18nProvider locale="it-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 0 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("Nessun Step registrato")).toBeInTheDocument();
-
-      rerender(
-        <I18nProvider locale="it-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 1 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("1 Step registrato")).toBeInTheDocument();
-
-      rerender(
-        <I18nProvider locale="it-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 10 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("10 Steps registrati")).toBeInTheDocument();
-    });
-
-    it("handles French singular/plural agreement", () => {
-      const messages = {
-        "steps.registered": {
-          zero: "Aucun Step enregistré",
-          one: "1 Step enregistré",
-          other: "{count} Steps enregistrés",
-        },
-      };
-
-      const { rerender } = render(
-        <I18nProvider locale="fr-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 0 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("Aucun Step enregistré")).toBeInTheDocument();
-
-      rerender(
-        <I18nProvider locale="fr-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 1 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("1 Step enregistré")).toBeInTheDocument();
-
-      rerender(
-        <I18nProvider locale="fr-CH" messages={messages}>
-          <TestComponent messageKey="steps.registered" vars={{ count: 3 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("3 Steps enregistrés")).toBeInTheDocument();
-    });
-
-    it("handles edge cases with large numbers", () => {
-      const messages = {
-        "items.count": {
-          zero: "No items",
-          one: "One item",
-          other: "{count} items",
-        },
-      };
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent messageKey="items.count" vars={{ count: 1000000 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("1000000 items")).toBeInTheDocument();
-    });
-
-    it("handles negative numbers", () => {
-      const messages = {
-        balance: {
-          one: "1 credit",
-          other: "{count} credits",
-        },
-      };
-
-      render(
-        <I18nProvider locale="en-US" messages={messages}>
-          <TestComponent messageKey="balance" vars={{ count: -5 }} />
-        </I18nProvider>
-      );
-
-      expect(screen.getByText("-5 credits")).toBeInTheDocument();
-    });
+  test.each([
+    [
+      "zero",
+      { zero: "No items", one: "One item", other: "{count} items" },
+      0,
+      "No items",
+    ],
+    [
+      "zero fallback",
+      { one: "One item", other: "{count} items" },
+      0,
+      "0 items",
+    ],
+    [
+      "one",
+      { zero: "No items", one: "One item", other: "{count} items" },
+      1,
+      "One item",
+    ],
+    ["one fallback", { other: "{count} items" }, 1, "1 items"],
+    [
+      "other",
+      { zero: "No items", one: "One item", other: "{count} items" },
+      5,
+      "5 items",
+    ],
+    ["large", { other: "{count} items" }, 1_000_000, "1000000 items"],
+    [
+      "negative",
+      { one: "1 credit", other: "{count} credits" },
+      -5,
+      "-5 credits",
+    ],
+  ])("selects the %s plural form", (_, message, count, expected) => {
+    renderTranslation({ count: message }, "count", { count });
+    expect(screen.getByText(expected)).toBeInTheDocument();
   });
 
-  describe("useT hook", () => {
-    it("throws error when used outside I18nProvider", () => {
-      const consoleErrorSpy = jest.spyOn(console, "error").mockImplementation();
+  test("interpolates plural variables", () => {
+    renderTranslation(
+      {
+        files: {
+          zero: "No files for {name}",
+          one: "{name} has 1 file",
+          other: "{name} has {count} files",
+        },
+      },
+      "files",
+      { count: 3, name: "Alice" }
+    );
+    expect(screen.getByText("Alice has 3 files")).toBeInTheDocument();
+  });
 
-      expect(() => {
-        render(<TestComponent messageKey="test.key" />);
-      }).toThrow("useT must be used within an I18nProvider");
+  test.each([[undefined], ["invalid"]])(
+    "rejects nonnumeric plural count %p",
+    (count) => {
+      const warn = jest.spyOn(console, "warn").mockImplementation();
+      renderTranslation({ count: { other: "{count} items" } }, "count", {
+        ...(count === undefined ? {} : { count }),
+      });
 
-      consoleErrorSpy.mockRestore();
-    });
+      expect(screen.getByText("count")).toBeInTheDocument();
+      expect(warn).toHaveBeenCalledWith(
+        "Plural message \"count\" requires a numeric 'count' variable"
+      );
+      warn.mockRestore();
+    }
+  );
+
+  test.each([
+    ["de-CH", ["Kein Step", "1 Step", "5 Steps"]],
+    ["it-CH", ["Nessun Step", "1 Step", "5 Steps"]],
+    ["fr-CH", ["Aucun Step", "1 Step", "5 Steps"]],
+  ])("handles %s zero/one/other forms", (locale, forms) => {
+    const messages = {
+      steps: { zero: forms[0], one: forms[1], other: "{count} Steps" },
+    };
+    const { rerender } = render(
+      <I18nProvider locale={locale} messages={messages}>
+        <Translation messageKey="steps" vars={{ count: 0 }} />
+      </I18nProvider>
+    );
+    expect(screen.getByText(forms[0])).toBeInTheDocument();
+
+    rerender(
+      <I18nProvider locale={locale} messages={messages}>
+        <Translation messageKey="steps" vars={{ count: 1 }} />
+      </I18nProvider>
+    );
+    expect(screen.getByText(forms[1])).toBeInTheDocument();
+
+    rerender(
+      <I18nProvider locale={locale} messages={messages}>
+        <Translation messageKey="steps" vars={{ count: 5 }} />
+      </I18nProvider>
+    );
+    expect(screen.getByText("5 Steps")).toBeInTheDocument();
+  });
+
+  test("requires the provider", () => {
+    const error = jest.spyOn(console, "error").mockImplementation();
+    expect(() => render(<Translation messageKey="key" />)).toThrow(
+      "useT must be used within an I18nProvider"
+    );
+    error.mockRestore();
   });
 });

@@ -9,9 +9,15 @@ jest.mock("./contexts/WebSocketProvider", () => ({
   ),
 }));
 
-jest.mock("./components/atoms/ConnectionStatusWrapper", () => ({
+jest.mock("./components/atoms/ConnectionStatusIndicator", () => ({
   __esModule: true,
-  default: () => <div data-testid="connection-status-wrapper" />,
+  default: () => <div data-testid="connection-status-indicator" />,
+}));
+
+jest.mock("./store/flowStore", () => ({
+  useEngineConnectionStatus: () => "connected",
+  useEngineReconnectAttempt: () => 0,
+  useRequestEngineReconnect: () => jest.fn(),
 }));
 
 jest.mock("./components/templates/OverviewPage", () => ({
@@ -50,7 +56,9 @@ describe("App", () => {
   test("renders OverviewPage for root route", () => {
     renderAt("/");
     expect(screen.getByTestId("overview-page")).toBeInTheDocument();
-    expect(screen.getByTestId("connection-status-wrapper")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("connection-status-indicator")
+    ).toBeInTheDocument();
     expect(screen.getByTestId("toaster")).toBeInTheDocument();
   });
 

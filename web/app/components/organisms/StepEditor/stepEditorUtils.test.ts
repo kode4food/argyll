@@ -1,696 +1,358 @@
 import {
   Attribute,
   buildAttributesFromStep,
-  validateAttributesList,
   createStepAttributes,
   getAttributeIconProps,
   getValidationError,
+  validateAttributesList,
 } from "./stepEditorUtils";
 import { AttributeRole, AttributeType, Step } from "@/app/api";
 
-describe("stepEditorUtils", () => {
-  describe("buildAttributesFromStep", () => {
-    it("returns empty array for null step", () => {
-      expect(buildAttributesFromStep(null)).toEqual([]);
-    });
+const attribute = (overrides: Partial<Attribute> = {}): Attribute => ({
+  id: "attr-1",
+  role: "required",
+  name: "param",
+  dataType: AttributeType.String,
+  ...overrides,
+});
 
-    it("converts step attributes to Attribute objects", () => {
-      const step: Step = {
-        id: "test-step",
-        name: "Test",
-        type: "sync",
-        attributes: {
-          required_arg: {
-            role: AttributeRole.Required,
-            type: AttributeType.String,
-            required: {
-              match: {
-                language: "jpath",
-                script: "$.kind",
-              },
-              mapping: { name: "child_in" },
+describe("stepEditorUtils", () => {
+  test("builds editor attributes from every attribute role", () => {
+    const step: Step = {
+      id: "test-step",
+      name: "Test",
+      type: "flow",
+      attributes: {
+        required_arg: {
+          role: AttributeRole.Required,
+          type: AttributeType.String,
+          required: {
+            collect: "all",
+            for_each: true,
+            match: { language: "jpath", script: "$.kind" },
+            mapping: {
+              name: "child_in",
+              script: { language: "lua", script: "return value" },
             },
-          },
-          const_arg: {
-            role: AttributeRole.Const,
-            type: AttributeType.String,
-            const: { value: '"fixed"' },
-          },
-          optional_arg: {
-            role: AttributeRole.Optional,
-            type: AttributeType.Number,
-            optional: {
-              collect: "some",
-              default: "42",
-              deadline: 3000,
-            },
-          },
-          output_arg: {
-            role: AttributeRole.Output,
-            type: AttributeType.String,
-            output: { mapping: { name: "child_out" } },
           },
         },
-        flow: { goals: ["goal-1"] },
-      };
+        const_arg: {
+          role: AttributeRole.Const,
+          type: AttributeType.String,
+          const: { value: '"fixed"' },
+        },
+        optional_arg: {
+          role: AttributeRole.Optional,
+          type: AttributeType.Number,
+          optional: { collect: "some", default: "42", deadline: 3000 },
+        },
+        meta_arg: {
+          role: AttributeRole.Meta,
+          type: AttributeType.String,
+          meta: { key: "request_id" },
+        },
+        output_arg: {
+          role: AttributeRole.Output,
+          type: AttributeType.String,
+          output: { mapping: { name: "child_out" } },
+        },
+      },
+      flow: { goals: ["goal-1"] },
+    };
 
-      const result = buildAttributesFromStep(step);
+    const result = Object.fromEntries(
+      buildAttributesFromStep(step).map((item) => [item.name, item])
+    );
 
-      expect(result).toHaveLength(4);
-
-      const inputAttrs = result.filter((a) => a.role === "required");
-      const constAttrs = result.filter((a) => a.role === "const");
-      const optionalAttrs = result.filter((a) => a.role === "optional");
-      const outputAttrs = result.filter((a) => a.role === "output");
-
-      expect(inputAttrs).toHaveLength(1);
-      expect(inputAttrs[0].name).toBe("required_arg");
-      expect(inputAttrs[0].matchLanguage).toBe("jpath");
-      expect(inputAttrs[0].matchScript).toBe("$.kind");
-
-      expect(constAttrs).toHaveLength(1);
-      expect(constAttrs[0].name).toBe("const_arg");
-      expect(constAttrs[0].defaultValue).toBe('"fixed"');
-
-      expect(optionalAttrs).toHaveLength(1);
-      expect(optionalAttrs[0].name).toBe("optional_arg");
-      expect(optionalAttrs[0].collect).toBe("some");
-      expect(optionalAttrs[0].defaultValue).toBe("42");
-      expect(optionalAttrs[0].deadline).toBe(3000);
-
-      expect(outputAttrs).toHaveLength(1);
-      expect(outputAttrs[0].name).toBe("output_arg");
-      expect(inputAttrs[0].mappingName).toBe("child_in");
-      expect(outputAttrs[0].mappingName).toBe("child_out");
-    });
+    expect(result.required_arg).toEqual(
+      expect.objectContaining({
+        role: "required",
+        collect: "all",
+        forEach: true,
+        matchLanguage: "jpath",
+        matchScript: "$.kind",
+        mappingName: "child_in",
+        mappingLanguage: "lua",
+        mappingScript: "return value",
+      })
+    );
+    expect(result.const_arg.defaultValue).toBe('"fixed"');
+    expect(result.optional_arg).toEqual(
+      expect.objectContaining({
+        role: "optional",
+        collect: "some",
+        defaultValue: "42",
+        deadline: 3000,
+      })
+    );
+    expect(result.meta_arg.metaKey).toBe("request_id");
+    expect(result.output_arg.mappingName).toBe("child_out");
+    expect(buildAttributesFromStep(null)).toEqual([]);
   });
 
-  describe("validateAttributesList", () => {
-    it("returns null for valid attributes", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "param1",
-          dataType: AttributeType.String,
-        },
-        {
-          id: "attr-2",
-          role: "output",
-          name: "result",
-          dataType: AttributeType.String,
-        },
-      ];
-
-      expect(validateAttributesList(attributes)).toBeNull();
-    });
-
-    it("detects empty attribute names", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "   ",
-          dataType: AttributeType.String,
-        },
-      ];
-
-      expect(validateAttributesList(attributes)).toEqual({
-        key: "stepEditor.attributeNameRequired",
-      });
-    });
-
-    it("detects duplicate attribute names", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "param",
-          dataType: AttributeType.String,
-        },
-        {
-          id: "attr-2",
-          role: "output",
-          name: "param",
-          dataType: AttributeType.String,
-        },
-      ];
-
-      expect(validateAttributesList(attributes)).toEqual({
-        key: "stepEditor.duplicateAttributeName",
-        vars: { name: "param" },
-      });
-    });
-
-    it("validates default values for optional attributes", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
+  const attributeValidationCases: Array<
+    [string, Attribute[], ReturnType<typeof validateAttributesList>]
+  > = [
+    [
+      "valid attributes",
+      [
+        attribute(),
+        attribute({ id: "attr-2", role: "output", name: "result" }),
+      ],
+      null,
+    ],
+    [
+      "empty names",
+      [attribute({ name: "   " })],
+      { key: "stepEditor.attributeNameRequired" },
+    ],
+    [
+      "duplicate names",
+      [attribute(), attribute({ id: "attr-2", role: "output" })],
+      { key: "stepEditor.duplicateAttributeName", vars: { name: "param" } },
+    ],
+    [
+      "invalid optional defaults",
+      [
+        attribute({
           role: "optional",
           name: "count",
           dataType: AttributeType.Number,
           defaultValue: "not-a-number",
-        },
-      ];
-
-      const error = validateAttributesList(attributes);
-      expect(error).toEqual({
+        }),
+      ],
+      {
         key: "stepEditor.invalidDefaultValue",
-        vars: {
-          name: "count",
-          reason: "validation.jsonInvalid",
-        },
-      });
-    });
-
-    it("requires match language for required match scripts", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
+        vars: { name: "count", reason: "validation.jsonInvalid" },
+      },
+    ],
+    [
+      "missing match languages",
+      [
+        attribute({
           name: "route",
-          dataType: AttributeType.String,
           matchScript: "$.kind",
           matchLanguage: " ",
-        },
-      ];
-
-      const error = validateAttributesList(attributes);
-      expect(error).toEqual({
-        key: "stepEditor.matchLanguageRequired",
-        vars: { name: "route" },
-      });
-    });
-
-    it("requires default values for const attributes", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
+        }),
+      ],
+      { key: "stepEditor.matchLanguageRequired", vars: { name: "route" } },
+    ],
+    [
+      "missing const defaults",
+      [
+        attribute({
           role: "const",
           name: "flag",
           dataType: AttributeType.Boolean,
-        },
-      ];
+        }),
+      ],
+      { key: "stepEditor.constDefaultRequired", vars: { name: "flag" } },
+    ],
+    [
+      "optional attributes without defaults",
+      [attribute({ role: "optional", name: "maybe" })],
+      null,
+    ],
+  ];
 
-      const error = validateAttributesList(attributes);
-      expect(error).toEqual({
-        key: "stepEditor.constDefaultRequired",
-        vars: { name: "flag" },
-      });
+  test.each(attributeValidationCases)(
+    "validates %s",
+    (_, attributes, expected) => {
+      expect(validateAttributesList(attributes)).toEqual(expected);
+    }
+  );
+
+  test("creates API attributes from editor attributes", () => {
+    const result = createStepAttributes([
+      attribute({
+        name: "input",
+        collect: "last",
+        forEach: true,
+        matchLanguage: " lua ",
+        matchScript: ' return value == "email" ',
+        mappingName: " request ",
+        mappingLanguage: " jpath ",
+        mappingScript: " $.payload ",
+      }),
+      attribute({
+        id: "attr-2",
+        role: "optional",
+        name: "optional",
+        dataType: AttributeType.Number,
+        defaultValue: " 10 ",
+        deadline: 3000,
+      }),
+      attribute({
+        id: "attr-3",
+        role: "const",
+        name: "constant",
+        defaultValue: ' "fixed" ',
+      }),
+      attribute({
+        id: "attr-4",
+        role: "meta",
+        name: "metadata",
+        metaKey: " request_id ",
+      }),
+      attribute({
+        id: "attr-5",
+        role: "output",
+        name: "output",
+        dataType: AttributeType.Object,
+        mappingScript: " $.result ",
+      }),
+    ]);
+
+    expect(result.input).toEqual({
+      role: AttributeRole.Required,
+      type: AttributeType.String,
+      required: {
+        collect: "last",
+        for_each: true,
+        match: { language: "lua", script: 'return value == "email"' },
+        mapping: {
+          name: "request",
+          script: { language: "jpath", script: "$.payload" },
+        },
+      },
     });
-
-    it("allows optional attributes without default values", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "optional",
-          name: "maybe",
-          dataType: AttributeType.String,
-        },
-      ];
-
-      expect(validateAttributesList(attributes)).toBeNull();
+    expect(result.optional.optional).toEqual({ default: "10", deadline: 3000 });
+    expect(result.constant.const).toEqual({ value: '"fixed"' });
+    expect(result.metadata.meta).toEqual({ key: "request_id" });
+    expect(result.output.output?.mapping?.script).toEqual({
+      language: "lua",
+      script: "$.result",
     });
   });
 
-  describe("createStepAttributes", () => {
-    it("converts Attribute objects back to AttributeSpec", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "input_param",
-          dataType: AttributeType.String,
-          collect: "last",
-          matchLanguage: "lua",
-          matchScript: 'return value == "email"',
-        },
-        {
-          id: "attr-2",
-          role: "optional",
-          name: "optional_param",
-          dataType: AttributeType.Number,
-          defaultValue: "10",
-          deadline: 3000,
-        },
-        {
-          id: "attr-3",
-          role: "const",
-          name: "const_param",
-          dataType: AttributeType.String,
-          defaultValue: '"fixed"',
-        },
-        {
-          id: "attr-4",
-          role: "output",
-          name: "output_result",
-          dataType: AttributeType.String,
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.input_param.role).toBe(AttributeRole.Required);
-      expect(result.input_param.required?.collect).toBe("last");
-      expect(result.input_param.required?.match).toEqual({
-        language: "lua",
-        script: 'return value == "email"',
-      });
-      expect(result.optional_param.role).toBe(AttributeRole.Optional);
-      expect(result.optional_param.optional?.default).toBe("10");
-      expect(result.optional_param.optional?.deadline).toBe(3000);
-      expect(result.const_param.role).toBe(AttributeRole.Const);
-      expect(result.const_param.const?.value).toBe('"fixed"');
-      expect(result.output_result.role).toBe(AttributeRole.Output);
-    });
-
-    it("omits first collect mode", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "param",
-          dataType: AttributeType.String,
-          collect: "first",
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.param.required).toBeUndefined();
-    });
-
-    it("includes for_each when forEach is true", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "item",
-          dataType: AttributeType.String,
-          forEach: true,
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.item.required?.for_each).toBe(true);
-    });
-
-    it("omits for_each when forEach is false or undefined", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "param",
-          dataType: AttributeType.String,
-          forEach: false,
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.param.required?.for_each).toBeUndefined();
-    });
-
-    it("omits match when it is only whitespace", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "param",
-          dataType: AttributeType.String,
-          matchScript: "   ",
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.param.required?.match).toBeUndefined();
-    });
-
-    it("trims default values", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "optional",
-          name: "value",
-          dataType: AttributeType.String,
-          defaultValue: "  trimmed  ",
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.value.optional?.default).toBe("trimmed");
-    });
-
-    it("omits default when it's only whitespace", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "optional",
-          name: "value",
-          dataType: AttributeType.String,
-          defaultValue: "   ",
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.value.optional?.default).toBeUndefined();
-    });
-
-    it("adds mapping name and script when provided", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "required",
-          name: "payload",
-          dataType: AttributeType.Object,
-          mappingName: "request",
-          mappingLanguage: "jpath",
-          mappingScript: "$.payload",
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.payload.required?.mapping).toEqual({
-        name: "request",
-        script: {
-          language: "jpath",
-          script: "$.payload",
-        },
-      });
-    });
-
-    it("defaults mapping script language to lua", () => {
-      const attributes: Attribute[] = [
-        {
-          id: "attr-1",
-          role: "output",
-          name: "result",
-          dataType: AttributeType.Object,
-          mappingScript: "$.result",
-        },
-      ];
-
-      const result = createStepAttributes(attributes);
-
-      expect(result.result.output?.mapping?.script).toEqual({
-        language: "lua",
-        script: "$.result",
-      });
-    });
+  test.each([
+    ["first collect", attribute({ collect: "first" }), "required", "collect"],
+    ["false for-each", attribute({ forEach: false }), "required", "for_each"],
+    ["blank match", attribute({ matchScript: "   " }), "required", "match"],
+    [
+      "blank optional default",
+      attribute({ role: "optional", defaultValue: "   " }),
+      "optional",
+      "default",
+    ],
+  ])("omits %s", (_, item, configKey, valueKey) => {
+    const spec = createStepAttributes([item])[item.name] as Record<string, any>;
+    expect(spec[configKey]?.[valueKey]).toBeUndefined();
   });
 
-  describe("getAttributeIconProps", () => {
-    it("returns icon props for input attribute", () => {
-      const props = getAttributeIconProps("required");
-      expect(props).toBeDefined();
-      expect(props.Icon).toBeDefined();
-    });
+  test.each(["required", "optional", "output", "const", "meta"] as const)(
+    "returns icon props for %s attributes",
+    (role) => {
+      expect(getAttributeIconProps(role).Icon).toBeDefined();
+    }
+  );
 
-    it("returns icon props for optional attribute", () => {
-      const props = getAttributeIconProps("optional");
-      expect(props).toBeDefined();
-      expect(props.Icon).toBeDefined();
-    });
-
-    it("returns icon props for output attribute", () => {
-      const props = getAttributeIconProps("output");
-      expect(props).toBeDefined();
-      expect(props.Icon).toBeDefined();
-    });
-
-    it("returns icon props for const attribute", () => {
-      const props = getAttributeIconProps("const");
-      expect(props).toBeDefined();
-      expect(props.Icon).toBeDefined();
-    });
-  });
-
-  describe("getValidationError", () => {
-    it("returns error for missing step ID in create mode", () => {
-      const error = getValidationError({
-        isCreateMode: true,
-        stepId: "  ",
-        attributes: [],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.stepIdRequired" });
-    });
-
-    it("does not require step ID in edit mode", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "  ",
-        attributes: [],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).not.toEqual({ key: "stepEditor.stepIdRequired" });
-    });
-
-    it("validates attributes using validateAttributesList", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [
-          {
-            id: "attr-1",
-            role: "required",
-            name: "  ",
-            dataType: AttributeType.String,
-          },
-        ],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.attributeNameRequired" });
-    });
-
-    it("requires script content for script type", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [],
-        stepType: "script",
-        script: "  ",
-        endpoint: "",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.scriptRequired" });
-    });
-
-    it("requires flow goals for flow type", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [],
+  type ValidationArgs = Parameters<typeof getValidationError>[0];
+  const baseValidationArgs: ValidationArgs = {
+    isCreateMode: false,
+    stepId: "step-1",
+    attributes: [],
+    stepType: "sync",
+    script: "",
+    endpoint: "https://example.com",
+    httpMethod: "POST",
+    httpTimeout: 5000,
+    flowGoals: "",
+  };
+  const validationCases: Array<
+    [string, Partial<ValidationArgs>, ReturnType<typeof getValidationError>]
+  > = [
+    [
+      "missing create ID",
+      { isCreateMode: true, stepId: " " },
+      { key: "stepEditor.stepIdRequired" },
+    ],
+    ["blank edit ID", { stepId: " " }, null],
+    [
+      "invalid attributes",
+      { attributes: [attribute({ name: " " })] },
+      { key: "stepEditor.attributeNameRequired" },
+    ],
+    [
+      "missing script",
+      { stepType: "script", script: " " },
+      { key: "stepEditor.scriptRequired" },
+    ],
+    [
+      "missing flow goals",
+      { stepType: "flow", flowGoals: " ", endpoint: "", httpTimeout: 0 },
+      { key: "stepEditor.flowGoalsRequired" },
+    ],
+    [
+      "valid flow",
+      {
         stepType: "flow",
-        script: "",
-        endpoint: "",
-        httpMethod: "POST",
-        httpTimeout: 0,
-        flowGoals: "   ",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.flowGoalsRequired" });
-    });
-
-    it("allows flow type without http or script config", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [],
-        stepType: "flow",
-        script: "",
-        endpoint: "",
-        httpMethod: "POST",
-        httpTimeout: 0,
         flowGoals: "goal-a, goal-b",
-      });
-
-      expect(error).toBeNull();
-    });
-
-    it("requires endpoint for http type", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [],
-        stepType: "sync",
-        script: "",
-        endpoint: "  ",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.endpointRequired" });
-    });
-
-    it("validates timeout is positive for http type", () => {
-      let error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
+        endpoint: "",
         httpTimeout: 0,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.timeoutPositive" });
-
-      error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: -1000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({ key: "stepEditor.timeoutPositive" });
-    });
-
-    it("returns null for valid configuration", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
+      },
+      null,
+    ],
+    [
+      "missing endpoint",
+      { endpoint: " " },
+      { key: "stepEditor.endpointRequired" },
+    ],
+    ["zero timeout", { httpTimeout: 0 }, { key: "stepEditor.timeoutPositive" }],
+    [
+      "negative timeout",
+      { httpTimeout: -1000 },
+      { key: "stepEditor.timeoutPositive" },
+    ],
+    ["valid HTTP configuration", { attributes: [attribute()] }, null],
+    [
+      "duplicate mapping names",
+      {
         attributes: [
-          {
-            id: "attr-1",
-            role: "required",
-            name: "param",
-            dataType: AttributeType.String,
-          },
-        ],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toBeNull();
-    });
-
-    it("rejects duplicate mapping names for input attributes", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
-        attributes: [
-          {
-            id: "attr-1",
-            role: "required",
-            name: "a",
-            dataType: AttributeType.String,
-            mappingName: "shared",
-          },
-          {
+          attribute({ name: "a", mappingName: "shared" }),
+          attribute({
             id: "attr-2",
             role: "optional",
             name: "b",
-            dataType: AttributeType.String,
             mappingName: "shared",
-          },
+          }),
         ],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({
-        key: "stepEditor.duplicateMappingName",
-        vars: { name: "shared" },
-      });
-    });
-
-    it("rejects const attribute mappings", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
+      },
+      { key: "stepEditor.duplicateMappingName", vars: { name: "shared" } },
+    ],
+    [
+      "const mappings",
+      {
         attributes: [
-          {
-            id: "attr-1",
+          attribute({
             role: "const",
-            name: "const_value",
-            dataType: AttributeType.String,
+            name: "constant",
             defaultValue: '"x"',
             mappingName: "illegal",
-          },
+          }),
         ],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
-
-      expect(error).toEqual({
-        key: "stepEditor.constMappingNotAllowed",
-        vars: { name: "const_value" },
-      });
-    });
-
-    it("requires mapping language when mapping script is set", () => {
-      const error = getValidationError({
-        isCreateMode: false,
-        stepId: "step-1",
+      },
+      { key: "stepEditor.constMappingNotAllowed", vars: { name: "constant" } },
+    ],
+    [
+      "missing mapping language",
+      {
         attributes: [
-          {
-            id: "attr-1",
+          attribute({
             role: "output",
             name: "result",
-            dataType: AttributeType.String,
             mappingScript: "$.result",
             mappingLanguage: " ",
-          },
+          }),
         ],
-        stepType: "sync",
-        script: "",
-        endpoint: "https://example.com",
-        httpMethod: "POST",
-        httpTimeout: 5000,
-        flowGoals: "",
-      });
+      },
+      { key: "stepEditor.mappingLanguageRequired", vars: { name: "result" } },
+    ],
+  ];
 
-      expect(error).toEqual({
-        key: "stepEditor.mappingLanguageRequired",
-        vars: { name: "result" },
-      });
-    });
+  test.each(validationCases)("reports %s", (_, overrides, expected) => {
+    expect(getValidationError({ ...baseValidationArgs, ...overrides })).toEqual(
+      expected
+    );
   });
 });

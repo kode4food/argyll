@@ -28,7 +28,7 @@
 
 .flowHud {
   position: absolute;
-  top: calc((2 * var(--spacing-md)) + 2rem + var(--spacing-xl));
+  bottom: var(--spacing-xl);
   left: 50%;
   z-index: 5;
   transform: translateX(-50%);
@@ -137,6 +137,14 @@
   );
 }
 
+@media (max-width: 70rem) {
+  .flowHud {
+    max-width: calc(
+      100% - (2 * (var(--spacing-xl) + 2rem + var(--spacing-md)))
+    );
+  }
+}
+
 :global(html[data-theme="dark"]) .flowStatusBadge.pending {
   background-color: color-mix(in srgb, var(--color-warning-light) 35%, black);
   color: #fef3c7;
@@ -177,11 +185,5 @@
   }
   100% {
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-info) 0%, transparent);
-  }
-}
-
-@media (max-width: 70rem) {
-  .flowHud {
-    top: var(--spacing-lg);
   }
 }

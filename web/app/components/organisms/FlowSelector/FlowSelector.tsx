@@ -16,14 +16,15 @@ import { useFlowFromUrl } from "./useFlowFromUrl";
 import { getProgressIcon } from "@/utils/progressUtils";
 import { useKeyboardShortcuts } from "@/app/hooks/useKeyboardShortcuts";
 import styles from "./FlowSelector.module.css";
-import { useSetVisibleFlowIDs } from "@/app/store/flowStore";
 import {
-  FlowDropdownProvider,
-  useFlowDropdownContext,
-  FlowDropdownContextValue,
-} from "@/app/contexts/FlowDropdownContext";
-import { useFlowSession } from "@/app/contexts/FlowSessionContext";
-import { useUI } from "@/app/contexts/UIContext";
+  useFlows,
+  useFlowsHasMore,
+  useFlowsLoading,
+  useLoadFlows,
+  useLoadMoreFlows,
+  useSelectedFlow,
+  useSetVisibleFlowIDs,
+} from "@/app/store/flowStore";
 
 const visibleFlowIDsDelayMS = 150;
 const visibleFlowIDSelector = "[data-flow-id]";
@@ -49,28 +50,35 @@ const visibleFlowIDs = (menu: HTMLDivElement): string[] => {
     .filter((flowID): flowID is string => !!flowID);
 };
 
-const FlowSelectorDropdown: React.FC = () => {
+type FlowSelectorDropdownProps = ReturnType<
+  typeof useFlowDropdownManagement
+> & {
+  flowsHasMore: boolean;
+  flowsLoading: boolean;
+  loadMoreFlows: () => Promise<void>;
+};
+
+const FlowSelectorDropdown: React.FC<FlowSelectorDropdownProps> = ({
+  showDropdown,
+  setShowDropdown,
+  searchTerm,
+  selectedIndex,
+  setSelectedIndex,
+  searchInputRef,
+  dropdownRef,
+  filteredFlows,
+  handleSearchChange,
+  handleKeyDown,
+  setScrollTop,
+  selectedFlow,
+  selectFlow,
+  flows,
+  closeDropdown,
+  flowsHasMore,
+  flowsLoading,
+  loadMoreFlows,
+}) => {
   const t = useT();
-  const {
-    showDropdown,
-    setShowDropdown,
-    searchTerm,
-    selectedIndex,
-    setSelectedIndex,
-    searchInputRef,
-    dropdownRef,
-    filteredFlows,
-    handleSearchChange,
-    handleKeyDown,
-    setScrollTop,
-    selectedFlow,
-    selectFlow,
-    flows,
-    closeDropdown,
-    flowsHasMore,
-    flowsLoading,
-    loadMoreFlows,
-  } = useFlowDropdownContext();
 
   const handleDropdownScroll = (e: React.UIEvent<HTMLDivElement>) => {
     setScrollTop(e.currentTarget.scrollTop);
@@ -246,36 +254,24 @@ const FlowSelectorDropdown: React.FC = () => {
 const FlowSelectorContent: React.FC = () => {
   const t = useT();
   const navigate = useNavigate();
-  const { headerRef } = useUI();
   useFlowFromUrl();
-  const {
-    flows,
-    selectedFlow,
-    flowsHasMore,
-    flowsLoading,
-    loadFlows,
-    loadMoreFlows,
-  } = useFlowSession();
+  const flows = useFlows();
+  const selectedFlow = useSelectedFlow();
+  const flowsHasMore = useFlowsHasMore();
+  const flowsLoading = useFlowsLoading();
+  const loadFlows = useLoadFlows();
+  const loadMoreFlows = useLoadMoreFlows();
   const setVisibleFlowIDs = useSetVisibleFlowIDs();
 
+  const dropdown = useFlowDropdownManagement(flows, selectedFlow);
   const {
     showDropdown,
     setShowDropdown,
-    searchTerm,
-    selectedIndex,
-    setSelectedIndex,
     scrollTop,
     searchInputRef,
     dropdownRef,
     filteredFlows,
-    handleSearchChange,
-    handleKeyDown,
-    setScrollTop,
-    selectFlow,
-    closeDropdown,
-    selectedFlow: dropdownSelectedFlow,
-    flows: dropdownFlows,
-  } = useFlowDropdownManagement(flows, selectedFlow);
+  } = dropdown;
 
   const [showShortcutsModal, setShowShortcutsModal] = useState(false);
 
@@ -332,84 +328,56 @@ const FlowSelectorContent: React.FC = () => {
     !showShortcutsModal
   );
 
-  const dropdownValue: FlowDropdownContextValue = {
-    showDropdown,
-    setShowDropdown,
-    searchTerm,
-    selectedIndex,
-    setSelectedIndex,
-    scrollTop,
-    searchInputRef,
-    dropdownRef,
-    filteredFlows,
-    handleSearchChange,
-    handleKeyDown,
-    setScrollTop,
-    selectFlow,
-    closeDropdown,
-    selectedFlow: dropdownSelectedFlow,
-    flows: dropdownFlows,
-    flowsHasMore,
-    flowsLoading,
-    loadMoreFlows,
-  };
-
   return (
-    <FlowDropdownProvider value={dropdownValue}>
-      <div className={styles.selector} ref={headerRef}>
-        <div className={styles.header}>
-          <div className={styles.left}>
-            <a
-              href="https://www.argyll.app/"
-              target="_blank"
-              rel="noreferrer"
-              className={`${styles.title} ${styles.titleLink}`}
-              aria-label={t("flowSelector.siteLabel")}
-            >
-              <img
-                src="/argyll-logo.png"
-                alt={t("flowSelector.logoAlt")}
-                className={styles.icon}
-                width={123}
-                height={77}
-              />
-              <h1 className={styles.titleText}>{t("flowSelector.title")}</h1>
-            </a>
-          </div>
-
-          <div className={styles.right}>
-            <div className={styles.controls}>
-              <SegmentedGroup className={styles.selectorGroup}>
-                <FlowSelectorDropdown />
-                {selectedFlow && (
-                  <button
-                    onClick={() => navigate("/")}
-                    className={styles.navButtonSegment}
-                    title={t("flowSelector.backToOverview")}
-                    aria-label={t("flowSelector.backToOverview")}
-                  >
-                    <IconNavigateOverview
-                      className={styles.buttonIcon}
-                      aria-hidden="true"
-                    />
-                  </button>
-                )}
-              </SegmentedGroup>
-            </div>
-          </div>
-        </div>
-        <Suspense fallback={null}>
-          {showShortcutsModal &&
-            createPortal(
-              <KeyboardShortcutsModal
-                isOpen={showShortcutsModal}
-                onClose={() => setShowShortcutsModal(false)}
-              />,
-              document.body
-            )}
-        </Suspense>
-      </div>
-    </FlowDropdownProvider>
+    <div className={styles.selector}>
+      <h1 className={styles.titleText}>{t("flowSelector.title")}</h1>
+      <a
+        href="https://www.argyll.app/"
+        target="_blank"
+        rel="noreferrer"
+        className={styles.titleLink}
+        aria-label={t("flowSelector.siteLabel")}
+      >
+        <img
+          src="/argyll-logo.png"
+          alt={t("flowSelector.logoAlt")}
+          className={styles.icon}
+          width={123}
+          height={77}
+        />
+      </a>
+      <SegmentedGroup className={styles.selectorGroup}>
+        <FlowSelectorDropdown
+          {...dropdown}
+          flowsHasMore={flowsHasMore}
+          flowsLoading={flowsLoading}
+          loadMoreFlows={loadMoreFlows}
+        />
+        {selectedFlow && (
+          <button
+            onClick={() => navigate("/")}
+            className={styles.navButtonSegment}
+            title={t("flowSelector.backToOverview")}
+            aria-label={t("flowSelector.backToOverview")}
+          >
+            <IconNavigateOverview
+              className={styles.buttonIcon}
+              aria-hidden="true"
+            />
+          </button>
+        )}
+      </SegmentedGroup>
+      <Suspense fallback={null}>
+        {showShortcutsModal &&
+          createPortal(
+            <KeyboardShortcutsModal
+              isOpen={showShortcutsModal}
+              onClose={() => setShowShortcutsModal(false)}
+            />,
+            document.body
+          )}
+      </Suspense>
+    </div>
   );
 };
 

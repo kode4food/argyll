@@ -1,227 +1,136 @@
-import axios from "axios";
 import { ArgyllApi } from "./client";
-import { AttributeRole, AttributeType } from "./types";
+import { AttributeRole, AttributeType, Step } from "./types";
 
-jest.mock("axios");
-const mockedAxios = axios as jest.Mocked<typeof axios>;
+const fetchMock = jest.fn() as jest.MockedFunction<typeof fetch>;
+global.fetch = fetchMock;
+
+const respond = (data: unknown, init: Partial<Response> = {}) => {
+  fetchMock.mockResolvedValueOnce({
+    ok: true,
+    status: 200,
+    statusText: "OK",
+    json: jest.fn().mockResolvedValue(data),
+    ...init,
+  } as Response);
+};
+
+const step: Step = {
+  id: "step-1",
+  name: "Test Step",
+  type: "sync",
+  attributes: {},
+  http: { endpoint: "http://localhost:8080/test", timeout: 5000 },
+};
 
 describe("ArgyllApi", () => {
-  let api: ArgyllApi;
-  let mockClient: any;
+  const api = new ArgyllApi("http://localhost:8080");
 
   beforeEach(() => {
-    mockClient = {
-      get: jest.fn(),
-      post: jest.fn(),
-      put: jest.fn(),
-      delete: jest.fn(),
-    };
-    mockedAxios.create.mockReturnValue(mockClient);
-    api = new ArgyllApi("http://localhost:8080");
+    fetchMock.mockReset();
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  test.each([
+    ["registers", () => api.registerStep(step), "POST", "/engine/step"],
+    [
+      "updates",
+      () => api.updateStep(step.id, step),
+      "PUT",
+      `/engine/step/${step.id}`,
+    ],
+  ])("%s a step", async (_, request, method, path) => {
+    respond({ step });
+
+    await expect(request()).resolves.toEqual(step);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:8080${path}`,
+      expect.objectContaining({ method, body: JSON.stringify(step) })
+    );
   });
 
-  describe("constructor", () => {
-    test("creates axios client with default config", () => {
-      expect(mockedAxios.create).toHaveBeenCalledWith({
-        baseURL: "http://localhost:8080",
-        timeout: 30000,
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
-    });
-  });
+  test("starts a flow", async () => {
+    const response = { flow_id: "wf-1" };
+    respond(response);
 
-  describe("updateStep", () => {
-    test("updates step and returns updated step", async () => {
-      const mockStep = {
-        id: "step-1",
-        name: "Test Step",
-        type: "sync" as const,
-        attributes: {},
-        http: {
-          endpoint: "http://localhost:8080/test",
-          timeout: 5000,
-        },
-      };
-
-      mockClient.put.mockResolvedValue({
-        data: { step: mockStep },
-      });
-
-      const result = await api.updateStep("step-1", mockStep);
-
-      expect(mockClient.put).toHaveBeenCalledWith(
-        "/engine/step/step-1",
-        mockStep
-      );
-      expect(result).toEqual(mockStep);
-    });
-  });
-
-  describe("startFlow", () => {
-    test("starts flow with correct parameters", async () => {
-      const mockResponse = { flow_id: "wf-1" };
-      mockClient.post.mockResolvedValue({ data: mockResponse });
-
-      const result = await api.startFlow("wf-1", ["step-1"], {
-        input: ["value"],
-      });
-
-      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow", {
-        id: "wf-1",
-        goals: ["step-1"],
-        init: { input: ["value"] },
-        compensate: false,
-      });
-      expect(result).toEqual(mockResponse);
-    });
-
-    test("sends compensate when requested", async () => {
-      mockClient.post.mockResolvedValue({ data: { flow_id: "wf-2" } });
-
-      await api.startFlow("wf-2", ["step-1"], {}, true);
-
-      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow", {
-        id: "wf-2",
-        goals: ["step-1"],
-        init: {},
-        compensate: true,
-      });
-    });
-  });
-
-  describe("listFlowsPage", () => {
-    test("uses the default recent-desc query", async () => {
-      mockClient.post.mockResolvedValue({ data: { flows: [] } });
-
-      const result = await api.listFlowsPage();
-
-      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow/query", {
-        sort: "recent_desc",
-      });
-      expect(result).toEqual({ flows: [] });
-    });
-  });
-
-  describe("queryFlows", () => {
-    test("posts query request", async () => {
-      mockClient.post.mockResolvedValue({ data: { flows: [] } });
-
-      await api.queryFlows({ id_prefix: "wf-" });
-
-      expect(mockClient.post).toHaveBeenCalledWith("/engine/flow/query", {
-        id_prefix: "wf-",
-      });
-    });
-  });
-
-  describe("getExecutionPlan", () => {
-    test("fetches execution plan with goal steps", async () => {
-      const step1 = {
-        id: "step-1",
-        name: "Step 1",
-        type: "sync" as const,
-        attributes: {
-          input1: {
-            role: AttributeRole.Output,
-            type: AttributeType.String,
-          },
-        },
-        http: {
-          endpoint: "http://localhost:8080/test",
-          timeout: 5000,
-        },
-      };
-
-      const mockPlan = {
-        goals: ["step-2"],
-        required: ["input1"],
-        steps: {
-          "step-1": { step: step1 },
-        },
-        attributes: {},
-      };
-
-      mockClient.post.mockResolvedValue({ data: mockPlan });
-
-      const result = await api.getExecutionPlan(["step-2"], {
-        input: ["value"],
-      });
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        "/engine/plan",
-        {
-          goals: ["step-2"],
-          init: { input: ["value"] },
-        },
-        {
-          signal: undefined,
-        }
-      );
-      expect(result).toEqual(mockPlan);
-    });
-
-    test("fetches execution plan with empty initial state", async () => {
-      const mockPlan = {
-        goals: ["step-1"],
-        required: [],
-        steps: {},
-      };
-
-      mockClient.post.mockResolvedValue({ data: mockPlan });
-
-      const result = await api.getExecutionPlan(["step-1"]);
-
-      expect(mockClient.post).toHaveBeenCalledWith(
-        "/engine/plan",
-        {
+    await expect(
+      api.startFlow("wf-1", ["step-1"], { input: ["value"] }, true)
+    ).resolves.toEqual(response);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/flow",
+      expect.objectContaining({
+        method: "POST",
+        body: JSON.stringify({
+          id: "wf-1",
           goals: ["step-1"],
-          init: {},
-        },
-        {
-          signal: undefined,
-        }
-      );
-      expect(result).toEqual(mockPlan);
-    });
+          init: { input: ["value"] },
+          compensate: true,
+        }),
+      })
+    );
   });
 
-  describe("getEngine", () => {
-    test("fetches engine state with steps and health", async () => {
-      const mockState = {
-        steps: {
-          "step-1": {
-            id: "step-1",
-            name: "Step 1",
-            type: "sync",
-            required: {},
-            optional: {},
-            output: {},
-            http: {
-              endpoint: "http://localhost:8080/test",
-              timeout: 5000,
+  test("queries recent flows", async () => {
+    respond({ flows: [] });
+
+    await expect(api.listFlowsPage()).resolves.toEqual({ flows: [] });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine/flow/query",
+      expect.objectContaining({
+        body: JSON.stringify({ sort: "recent_desc" }),
+      })
+    );
+  });
+
+  test("fetches an execution plan with the caller signal", async () => {
+    const plan = {
+      goals: ["step-2"],
+      required: ["input1"],
+      steps: {
+        "step-1": {
+          step: {
+            ...step,
+            attributes: {
+              input1: {
+                role: AttributeRole.Output,
+                type: AttributeType.String,
+              },
             },
           },
         },
-        health: {
-          "node-1": {
-            "step-1": { status: "healthy" },
-          },
-        },
-      };
+      },
+      attributes: {},
+    };
+    const controller = new AbortController();
+    respond(plan);
 
-      mockClient.get.mockResolvedValue({ data: mockState });
+    await expect(
+      api.getExecutionPlan(["step-2"], { input: ["value"] }, controller.signal)
+    ).resolves.toEqual(plan);
+    const init = fetchMock.mock.calls[0][1] as RequestInit;
+    expect(init.body).toBe(
+      JSON.stringify({ goals: ["step-2"], init: { input: ["value"] } })
+    );
+    expect(init.signal).toBeInstanceOf(AbortSignal);
+  });
 
-      const result = await api.getEngine();
+  test("fetches engine state", async () => {
+    const state = { steps: { "step-1": step }, health: {} };
+    respond(state);
 
-      expect(mockClient.get).toHaveBeenCalledWith("/engine");
-      expect(result.steps).toEqual(mockState.steps);
-      expect(result.health).toEqual(mockState.health);
-    });
+    await expect(api.getEngine()).resolves.toEqual(state);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:8080/engine",
+      expect.objectContaining({
+        headers: { "Content-Type": "application/json" },
+      })
+    );
+  });
+
+  test("throws the API error message", async () => {
+    respond(
+      { error: "Server error" },
+      { ok: false, status: 400, statusText: "Bad Request" }
+    );
+
+    await expect(api.getEngine()).rejects.toThrow("Server error");
   });
 });

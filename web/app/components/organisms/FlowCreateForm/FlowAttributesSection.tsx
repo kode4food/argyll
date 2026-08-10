@@ -6,10 +6,11 @@ import {
   IconAttributeStatusSkipped,
   LucideIcon,
 } from "@/utils/iconRegistry";
-import LazyCodeEditor from "@/app/components/molecules/LazyCodeEditor";
+import ScriptEditor from "@/app/components/molecules/ScriptEditor";
 import EditorModeToggle from "@/app/components/atoms/EditorModeToggle";
 import useArrowFocus from "@/app/hooks/useArrowFocus";
 import { useT } from "@/app/i18n";
+import { useTheme } from "@/app/store/themeStore";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import { FlowInputStatus, getFlowInputStatus } from "./flowFormUtils";
 import styles from "./FlowAttributesSection.module.css";
@@ -52,6 +53,7 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
   setInitialState,
 }) => {
   const t = useT();
+  const theme = useTheme();
   const handleArrowFocus = useArrowFocus();
 
   const statusConfig = useMemo(
@@ -171,10 +173,12 @@ const FlowAttributesSection: React.FC<FlowAttributesSectionProps> = ({
         ) : (
           <>
             <div className={styles.editorWrapper}>
-              <LazyCodeEditor
+              <ScriptEditor
                 value={initialState}
                 onChange={setInitialState}
                 height="100%"
+                language="json"
+                theme={theme}
               />
             </div>
             {jsonError && (

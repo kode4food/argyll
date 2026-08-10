@@ -1,12 +1,4 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useRef,
-  useCallback,
-  useEffect,
-  useMemo,
-} from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Step } from "../api";
 import {
@@ -16,50 +8,15 @@ import {
   useRemoveFlow,
 } from "../store/flowStore";
 import { useUI } from "../contexts/UIContext";
-import { useThrottledValue } from "./useThrottledValue";
+import { useThrottledValue } from "@/app/contexts/useThrottledValue";
 import { api } from "../api";
 import { parseState, filterDefaultValues } from "@/utils/stateUtils";
-import { generateFlowId, generatePadded } from "@/utils/flowUtils";
-import { sortStepsByType } from "@/utils/stepUtils";
 import { snapshotFlowPositions } from "@/utils/nodePositioning";
 import toast from "react-hot-toast";
 import { useT } from "@/app/i18n";
 import { applyFlowGoalSelectionChange } from "@/utils/flowGoalSelectionModel";
 
-export interface FlowCreationContextValue {
-  newID: string;
-  setNewID: (id: string) => void;
-  setIDManuallyEdited: (edited: boolean) => void;
-  handleStepChange: (stepIds: string[]) => void;
-  initialState: string;
-  setInitialState: (state: string) => void;
-  compensate: boolean;
-  setCompensate: (value: boolean) => void;
-  creating: boolean;
-  handleCreateFlow: () => void;
-  steps: Step[];
-  generateID: () => string;
-  sortSteps: (steps: Step[]) => Step[];
-}
-
-export const FlowCreationContext =
-  createContext<FlowCreationContextValue | null>(null);
-
-export const useFlowCreation = (): FlowCreationContextValue => {
-  const ctx = useContext(FlowCreationContext);
-  if (!ctx) {
-    throw new Error(
-      "useFlowCreation must be used within FlowCreationContext.Provider"
-    );
-  }
-  return ctx;
-};
-
-export const FlowCreationStateProvider = ({
-  children,
-}: {
-  children: React.ReactNode;
-}) => {
+export const useFlowCreation = () => {
   const t = useT();
   const navigate = useNavigate();
   const steps = useSteps();
@@ -100,14 +57,11 @@ export const FlowCreationStateProvider = ({
         steps,
         idManuallyEdited,
         setNewID,
-        generatePadded,
         setInitialState,
         setGoalSteps,
         updatePreviewPlan,
         setPreviewPlan,
         clearPreviewPlan,
-        getExecutionPlan: (goalStepIds, init) =>
-          api.getExecutionPlan(goalStepIds, init),
       });
     },
     [
@@ -172,13 +126,7 @@ export const FlowCreationStateProvider = ({
       resetForm();
       navigate(`/flow/${flowId}`);
     } catch (error: any) {
-      let errorMessage = t("flowCreate.unknownError");
-
-      if (error?.response?.data?.error) {
-        errorMessage = error.response.data.error;
-      } else if (error?.message) {
-        errorMessage = error.message;
-      }
+      const errorMessage = error?.message || t("flowCreate.unknownError");
 
       removeFlow(flowId);
       toast.error(t("flowCreate.createFailed", { error: errorMessage }));
@@ -199,37 +147,17 @@ export const FlowCreationStateProvider = ({
     t,
   ]);
 
-  const value = useMemo<FlowCreationContextValue>(
-    () => ({
-      newID,
-      setNewID,
-      setIDManuallyEdited,
-      handleStepChange,
-      initialState,
-      setInitialState,
-      compensate,
-      setCompensate,
-      creating,
-      handleCreateFlow,
-      steps,
-      generateID: generateFlowId,
-      sortSteps: sortStepsByType,
-    }),
-    [
-      newID,
-      setIDManuallyEdited,
-      handleStepChange,
-      initialState,
-      compensate,
-      creating,
-      handleCreateFlow,
-      steps,
-    ]
-  );
-
-  return (
-    <FlowCreationContext.Provider value={value}>
-      {children}
-    </FlowCreationContext.Provider>
-  );
+  return {
+    newID,
+    setNewID,
+    setIDManuallyEdited,
+    handleStepChange,
+    initialState,
+    setInitialState,
+    compensate,
+    setCompensate,
+    creating,
+    handleCreateFlow,
+    steps,
+  };
 };

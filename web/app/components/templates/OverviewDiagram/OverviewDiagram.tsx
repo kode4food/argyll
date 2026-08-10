@@ -7,14 +7,13 @@ import styles from "./OverviewDiagram.module.css";
 import ErrorBoundary from "@/app/components/organisms/ErrorBoundary";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useUI } from "@/app/contexts/UIContext";
-import { useFlowSession } from "@/app/contexts/FlowSessionContext";
 import {
   StepEditorProvider,
   useStepEditorContext,
 } from "@/app/contexts/StepEditorContext";
 import { useStepEditorIntegration } from "./useStepEditorIntegration";
 import { useT } from "@/app/i18n";
-import { useFlowStore } from "@/app/store/flowStore";
+import { useFlowStore, useLoadSteps, useSteps } from "@/app/store/flowStore";
 import { Step } from "@/app/api";
 
 interface OverviewDiagramContentProps {
@@ -24,7 +23,8 @@ interface OverviewDiagramContentProps {
 const OverviewDiagramContent: React.FC<OverviewDiagramContentProps> = ({
   openEditor,
 }) => {
-  const { steps, loadSteps } = useFlowSession();
+  const steps = useSteps();
+  const loadSteps = useLoadSteps();
   const upsertStep = useFlowStore((state) => state.upsertStep);
   const diagramContainerRef = React.useRef<HTMLDivElement>(null);
   const { goalSteps, toggleGoalStep, setGoalSteps, panelRef } = useUI();

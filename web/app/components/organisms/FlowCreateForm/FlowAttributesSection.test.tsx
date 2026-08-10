@@ -2,8 +2,8 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { t } from "@/app/testUtils/i18n";
 import FlowAttributesSection from "./FlowAttributesSection";
 
-jest.mock("@/app/components/molecules/LazyCodeEditor", () => {
-  return function MockLazyCodeEditor({ value, onChange }: any) {
+jest.mock("@/app/components/molecules/ScriptEditor", () => {
+  return function MockScriptEditor({ value, onChange }: any) {
     return (
       <textarea
         data-testid="code-editor"

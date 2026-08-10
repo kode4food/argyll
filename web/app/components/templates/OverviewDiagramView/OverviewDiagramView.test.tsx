@@ -1,11 +1,13 @@
 import React from "react";
 import { render, screen } from "@testing-library/react";
-import OverviewDiagramView from ".";
+import OverviewDiagramView from "./OverviewDiagramView";
 import { t } from "@/app/testUtils/i18n";
 import { DiagramSelectionProvider } from "@/app/contexts/DiagramSelectionContext";
 import { useEdgeCalculation } from "@/app/hooks/useEdgeCalculation";
 
-const reactFlowMock = jest.fn(() => <div data-testid="react-flow" />);
+const reactFlowMock = jest.fn(({ children }: any) => (
+  <div data-testid="react-flow">{children}</div>
+));
 const previewHookState = {
   previewPlan: null as any,
 };
@@ -63,7 +65,6 @@ jest.mock("@/app/contexts/UIContext", () => ({
     clearPreviewPlan: jest.fn(),
     previewPlan: null,
     diagramContainerRef: { current: null },
-    headerRef: { current: null },
     panelRef: { current: null },
   }),
 }));

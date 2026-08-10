@@ -8,7 +8,6 @@ import {
 } from "@testing-library/react";
 import OverviewDiagram from "./OverviewDiagram";
 import { UIProvider } from "@/app/contexts/UIContext";
-import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 
 jest.mock("@/app/components/organisms/FlowCreateForm", () => {
   const MockFlowCreateForm = ({
@@ -86,9 +85,7 @@ describe("OverviewDiagram integration", () => {
   it("opens editor and applies step updates", async () => {
     render(
       <UIProvider>
-        <FlowSessionProvider>
-          <OverviewDiagram />
-        </FlowSessionProvider>
+        <OverviewDiagram />
       </UIProvider>
     );
 

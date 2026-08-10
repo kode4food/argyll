@@ -57,7 +57,11 @@
      locally to --color-dark-text so their text stays constant
      regardless of app theme. */
   --panel-text: var(--color-neutral-text);
-  --panel-text-muted: color-mix(in srgb, var(--color-neutral-text) 68%, transparent);
+  --panel-text-muted: color-mix(
+    in srgb,
+    var(--color-neutral-text) 68%,
+    transparent
+  );
 
   /* Status Colors */
   --color-success: #10b981;
@@ -98,7 +102,7 @@
     var(--color-surface) 92%,
     var(--color-neutral-bg-dark)
   );
-  --xy-controls-button-border-color: var(--color-neutral-border);
+  --xy-controls-button-border-color: var(--glass-chrome-border-color);
   --xy-controls-button-color: var(--color-neutral-text);
   --xy-controls-button-color-hover: var(--color-neutral-text);
 

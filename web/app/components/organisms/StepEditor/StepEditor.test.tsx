@@ -777,9 +777,7 @@ describe("StepEditor", () => {
 
   test("handles API error on save", async () => {
     const step = createHttpStep();
-    mockUpdateStep.mockRejectedValue({
-      response: { data: { error: "Server error" } },
-    });
+    mockUpdateStep.mockRejectedValue(new Error("Server error"));
 
     render(
       <StepEditor step={step} onClose={mockOnClose} onUpdate={mockOnUpdate} />

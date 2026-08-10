@@ -17,6 +17,7 @@
 
 .controls {
   composes: hud;
+  margin: 0;
   border-radius: calc(var(--radius-lg) * 1.5);
   overflow: hidden;
 }

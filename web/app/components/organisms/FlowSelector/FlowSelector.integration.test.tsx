@@ -7,7 +7,6 @@ import {
 } from "@testing-library/react";
 import FlowSelector from "./FlowSelector";
 import { UIProvider } from "@/app/contexts/UIContext";
-import { FlowSessionProvider } from "@/app/contexts/FlowSessionContext";
 import { t } from "@/app/testUtils/i18n";
 
 jest.mock("./useFlowFromUrl", () => ({
@@ -85,9 +84,7 @@ describe("FlowSelector integration", () => {
     const flowStore = require("@/app/store/flowStore");
     render(
       <UIProvider>
-        <FlowSessionProvider>
-          <FlowSelector />
-        </FlowSessionProvider>
+        <FlowSelector />
       </UIProvider>
     );
 
