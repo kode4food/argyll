@@ -94,3 +94,17 @@ func WorkClaimableForRetry(status api.WorkStatus) bool {
 func WorkCompActive(status api.WorkStatus) bool {
 	return status == api.WorkCompensating
 }
+
+// WorkAcceptsResult reports whether a work item can still take an outcome
+func WorkAcceptsResult(status api.WorkStatus) bool {
+	return status == api.WorkPending ||
+		status == api.WorkActive ||
+		status == api.WorkNotCompleted
+}
+
+// WorkRollbackSettled reports whether a rollback can no longer be requested
+func WorkRollbackSettled(status api.WorkStatus) bool {
+	return status == api.WorkFailed ||
+		status == api.WorkCompensated ||
+		status == api.WorkCompFailed
+}

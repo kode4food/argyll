@@ -34,9 +34,7 @@ func (c *testClient) Invoke(
 	return c.outputs, nil
 }
 
-func (c *testClient) InvokeCompensate(
-	_ *api.Step, _, _ api.Args, _ api.Metadata,
-) error {
+func (c *testClient) InvokeCompensate(client.CompensateRequest) error {
 	c.compens++
 	return nil
 }

@@ -8,15 +8,7 @@ import (
 func httpHandler(c client.Client, async bool) *Handler {
 	return &Handler{
 		Execute:    httpExecutor(c, async),
-		Compensate: httpCompensator(c),
-	}
-}
-
-func httpCompensator(c client.Client) CompensateFunc {
-	return func(
-		st *api.Step, inputs, outputs api.Args, meta api.Metadata,
-	) error {
-		return c.InvokeCompensate(st, inputs, outputs, meta)
+		Compensate: c.InvokeCompensate,
 	}
 }
 

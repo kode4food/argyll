@@ -154,7 +154,7 @@ const buildTooltipSections = (
     return sections;
   }
 
-  const StatusIcon = getProgressIcon(execution.status);
+  const StatusIcon = getProgressIcon(progressState.status);
   const workItemSuffix = progressState.workItems
     ? (() => {
         const done = progressState.workItems.completed;
@@ -174,12 +174,12 @@ const buildTooltipSections = (
       title={t("liveStep.executionStatus")}
       icon={
         <StatusIcon
-          className={`progress-icon ${execution.status || "pending"}`}
+          className={`progress-icon ${progressState.status || "pending"}`}
         />
       }
       bold
     >
-      {execution.status.toUpperCase()}
+      {progressState.status.toUpperCase()}
       {workItemSuffix}
     </TooltipSection>
   );

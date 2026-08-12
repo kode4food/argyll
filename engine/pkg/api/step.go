@@ -246,6 +246,11 @@ func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 	return res
 }
 
+// CanCompensate returns true if the step has compensation configured
+func (s *Step) CanCompensate() bool {
+	return s.HTTP != nil && s.HTTP.Compensate != ""
+}
+
 // IsOptionalArg returns true if the argument is optional
 func (s *Step) IsOptionalArg(argName Name) bool {
 	if attr, ok := s.Attributes[argName]; ok {

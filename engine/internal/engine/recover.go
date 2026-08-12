@@ -53,7 +53,10 @@ func (e *Engine) RecoverFlow(flowID api.FlowID) error {
 	e.recoverCompensations(fl)
 
 	if policy.FlowTerminal(fl.Status) {
-		return nil
+		// The parent's release may have been missed while this engine was down
+		return e.flowTx(flowID, func(tx *flowTx) error {
+			return tx.maybeDeactivate()
+		})
 	}
 
 	e.recoverWork(fl)

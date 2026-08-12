@@ -2,6 +2,7 @@ package engine_test
 
 import (
 	"errors"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/internal/assert/helpers"
 	"github.com/kode4food/argyll/engine/internal/assert/wait"
+	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine/flow"
 	"github.com/kode4food/argyll/engine/internal/event"
 	"github.com/kode4food/argyll/engine/pkg/api"
@@ -112,7 +114,7 @@ func TestCompRetryOnTransient(t *testing.T) {
 
 		compCount := 0
 		env.MockClient.SetCompHandler(st.ID,
-			func(_ *api.Step, _, _ api.Args, _ api.Metadata) error {
+			func(client.CompensateRequest) error {
 				compCount++
 				if compCount < 2 {
 					return api.ErrWorkNotCompleted
@@ -304,7 +306,7 @@ func TestCompDeferredToHealthyPeer(t *testing.T) {
 
 		st := newCompensatingStep("comp-deferred-step")
 		env.MockClient.SetCompHandler(st.ID,
-			func(_ *api.Step, _, _ api.Args, _ api.Metadata) error {
+			func(client.CompensateRequest) error {
 				return nil
 			},
 		)
@@ -499,7 +501,7 @@ func TestCompDispatchRecovery(t *testing.T) {
 
 		compCount := 0
 		env.MockClient.SetCompHandler(st.ID,
-			func(_ *api.Step, _, _ api.Args, _ api.Metadata) error {
+			func(client.CompensateRequest) error {
 				compCount++
 				return nil
 			},
@@ -595,6 +597,237 @@ func TestFlowCompensation(t *testing.T) {
 		})
 	})
 
+	t.Run("unwinds steps in reverse dependency order", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			first := newCompensatingStep("saga-first")
+			first.Attributes = api.AttributeSpecs{
+				"one": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			second := newCompensatingStep("saga-second")
+			second.Attributes = api.AttributeSpecs{
+				"one": {Role: api.RoleRequired, Type: api.TypeString},
+				"two": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			last := helpers.NewSimpleStep("saga-last")
+			last.Attributes = api.AttributeSpecs{
+				"two": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+
+			for _, st := range []*api.Step{first, second, last} {
+				assert.NoError(t, env.Engine.RegisterStep(st))
+			}
+			env.MockClient.SetResponse(first.ID, api.Args{"one": "a"})
+			env.MockClient.SetResponse(second.ID, api.Args{"two": "b"})
+			env.MockClient.SetError(last.ID, errors.New("permanent"))
+
+			var mu sync.Mutex
+			var order []api.StepID
+			record := func(req client.CompensateRequest) error {
+				mu.Lock()
+				defer mu.Unlock()
+				order = append(order, req.Step.ID)
+				return nil
+			}
+			env.MockClient.SetCompHandler(first.ID, record)
+			env.MockClient.SetCompHandler(second.ID, record)
+
+			id := api.FlowID("wf-saga-order")
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{last.ID},
+				Steps: api.Steps{
+					first.ID:  first,
+					second.ID: second,
+					last.ID:   last,
+				},
+				Attributes: api.AttributeGraph{
+					"one": {
+						Providers: []api.StepID{first.ID},
+						Consumers: []api.StepID{second.ID},
+					},
+					"two": {
+						Providers: []api.StepID{second.ID},
+						Consumers: []api.StepID{last.ID},
+					},
+				},
+			}
+
+			env.WaitFor(wait.FlowDeactivated(id), func() {
+				assert.NoError(t, env.Engine.StartFlow(id, pl,
+					flow.WithCompensate(true),
+				))
+			})
+
+			mu.Lock()
+			defer mu.Unlock()
+			assert.Equal(t, []api.StepID{second.ID, first.ID}, order)
+		})
+	})
+
+	t.Run("unwinds independent steps together", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			left := newCompensatingStep("saga-left")
+			left.Attributes = api.AttributeSpecs{
+				"one": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			right := newCompensatingStep("saga-right")
+			right.Attributes = api.AttributeSpecs{
+				"two": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			last := helpers.NewSimpleStep("saga-join")
+			last.Attributes = api.AttributeSpecs{
+				"one": {Role: api.RoleRequired, Type: api.TypeString},
+				"two": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+
+			for _, st := range []*api.Step{left, right, last} {
+				assert.NoError(t, env.Engine.RegisterStep(st))
+			}
+			env.MockClient.SetResponse(left.ID, api.Args{"one": "a"})
+			env.MockClient.SetResponse(right.ID, api.Args{"two": "b"})
+			env.MockClient.SetError(last.ID, errors.New("permanent"))
+
+			// Each blocks until the other arrives; serialized never settles
+			var wg sync.WaitGroup
+			wg.Add(2)
+			together := func(client.CompensateRequest) error {
+				wg.Done()
+				wg.Wait()
+				return nil
+			}
+			env.MockClient.SetCompHandler(left.ID, together)
+			env.MockClient.SetCompHandler(right.ID, together)
+
+			id := api.FlowID("wf-saga-parallel")
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{last.ID},
+				Steps: api.Steps{
+					left.ID:  left,
+					right.ID: right,
+					last.ID:  last,
+				},
+				Attributes: api.AttributeGraph{
+					"one": {
+						Providers: []api.StepID{left.ID},
+						Consumers: []api.StepID{last.ID},
+					},
+					"two": {
+						Providers: []api.StepID{right.ID},
+						Consumers: []api.StepID{last.ID},
+					},
+				},
+			}
+
+			env.WaitFor(wait.FlowDeactivated(id), func() {
+				assert.NoError(t, env.Engine.StartFlow(id, pl,
+					flow.WithCompensate(true),
+				))
+			})
+
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			for _, sid := range []api.StepID{left.ID, right.ID} {
+				for _, work := range fl.Executions[sid].WorkItems {
+					assert.Equal(t, api.WorkCompensated, work.Status)
+				}
+			}
+		})
+	})
+
+	t.Run("resumes a partly unwound flow after restart", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			first := newCompensatingStep("saga-resume-first")
+			first.Attributes = api.AttributeSpecs{
+				"one": {Role: api.RoleOutput, Type: api.TypeString},
+			}
+			second := newCompensatingStep("saga-resume-second")
+			second.Attributes = api.AttributeSpecs{
+				"one": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(first))
+			assert.NoError(t, env.Engine.RegisterStep(second))
+
+			id := api.FlowID("wf-saga-resume")
+			fs := api.FlowStep{FlowID: id, StepID: first.ID}
+			tkn := api.Token("work-first")
+
+			// State as left by a crash mid-unwind
+			setupPartlyUnwoundFlow(setupPartlyUnwoundFlowArgs{
+				env:    env,
+				id:     id,
+				first:  first,
+				second: second,
+				token:  tkn,
+			})
+
+			env.WithConsumer(func(consumer *event.Consumer) {
+				w := wait.On(t, consumer)
+				assert.NoError(t, env.Engine.RecoverFlow(id))
+				w.ForAll(
+					wait.CompStarted(fs),
+					wait.CompSucceeded(fs),
+					wait.FlowDeactivated(id),
+				)
+			})
+
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			assert.Equal(t,
+				api.WorkCompensated,
+				fl.Executions[first.ID].WorkItems[tkn].Status,
+			)
+		})
+	})
+
+	t.Run("skips steps with no compensate endpoint", func(t *testing.T) {
+		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+			assert.NoError(t, env.Engine.Start())
+
+			producer := helpers.NewStepWithOutputs("plain-producer", "value")
+			consumer := helpers.NewSimpleStep("plain-consumer")
+			consumer.Attributes = api.AttributeSpecs{
+				"value": {Role: api.RoleRequired, Type: api.TypeString},
+			}
+			assert.NoError(t, env.Engine.RegisterStep(producer))
+			assert.NoError(t, env.Engine.RegisterStep(consumer))
+
+			env.MockClient.SetResponse(producer.ID, api.Args{"value": "abc"})
+			env.MockClient.SetError(consumer.ID, errors.New("permanent"))
+
+			id := api.FlowID("wf-no-comp-endpoint")
+			pl := &api.ExecutionPlan{
+				Goals: []api.StepID{consumer.ID},
+				Steps: api.Steps{
+					producer.ID: producer,
+					consumer.ID: consumer,
+				},
+				Attributes: api.AttributeGraph{
+					"value": {
+						Providers: []api.StepID{producer.ID},
+						Consumers: []api.StepID{consumer.ID},
+					},
+				},
+			}
+
+			env.WaitFor(wait.FlowDeactivated(id), func() {
+				assert.NoError(t, env.Engine.StartFlow(id, pl,
+					flow.WithCompensate(true),
+				))
+			})
+
+			fl, err := env.Engine.GetFlowState(id)
+			assert.NoError(t, err)
+			for _, work := range fl.Executions[producer.ID].WorkItems {
+				assert.Equal(t, api.WorkSucceeded, work.Status)
+			}
+		})
+	})
+
 	t.Run("leaves succeeded steps alone when unset", func(t *testing.T) {
 		helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 			assert.NoError(t, env.Engine.Start())
@@ -621,6 +854,108 @@ func TestFlowCompensation(t *testing.T) {
 			}
 		})
 	})
+}
+
+// setupPartlyUnwoundFlow compensates the downstream step, not the upstream
+type setupPartlyUnwoundFlowArgs struct {
+	env    *helpers.TestEngineEnv
+	id     api.FlowID
+	first  *api.Step
+	second *api.Step
+	token  api.Token
+}
+
+func setupPartlyUnwoundFlow(args setupPartlyUnwoundFlowArgs) {
+	first, second, id := args.first, args.second, args.id
+	downstream := api.Token("work-second")
+
+	pl := &api.ExecutionPlan{
+		Goals: []api.StepID{second.ID},
+		Steps: api.Steps{first.ID: first, second.ID: second},
+		Attributes: api.AttributeGraph{
+			"one": {
+				Providers: []api.StepID{first.ID},
+				Consumers: []api.StepID{second.ID},
+			},
+		},
+	}
+
+	evs := []helpers.FlowEvent{
+		{
+			Type: api.EventTypeFlowStarted,
+			Data: api.FlowStartedEvent{
+				FlowID:     id,
+				Plan:       pl,
+				Init:       api.InitArgs{},
+				Compensate: true,
+			},
+		},
+	}
+	evs = append(evs, succeededWorkEvents(id, first.ID, args.token)...)
+	evs = append(evs, completedStepEvent(id, first.ID))
+	evs = append(evs, succeededWorkEvents(id, second.ID, downstream)...)
+	evs = append(evs, completedStepEvent(id, second.ID))
+	evs = append(evs,
+		helpers.FlowEvent{
+			Type: api.EventTypeFlowFailed,
+			Data: api.FlowFailedEvent{FlowID: id, Error: "forced failure"},
+		},
+		helpers.FlowEvent{
+			Type: api.EventTypeCompStarted,
+			Data: api.CompStartedEvent{
+				FlowID: id, StepID: second.ID, Token: downstream,
+			},
+		},
+		helpers.FlowEvent{
+			Type: api.EventTypeCompSucceeded,
+			Data: api.CompSucceededEvent{
+				FlowID: id, StepID: second.ID, Token: downstream,
+			},
+		},
+	)
+
+	assert.NoError(args.env.T, args.env.RaiseFlowEvents(id, evs...))
+}
+
+func completedStepEvent(id api.FlowID, sid api.StepID) helpers.FlowEvent {
+	return helpers.FlowEvent{
+		Type: api.EventTypeStepCompleted,
+		Data: api.StepCompletedEvent{
+			FlowID: id, StepID: sid, Outputs: api.Args{},
+		},
+	}
+}
+
+// succeededWorkEvents leaves the step active for the caller to finish
+func succeededWorkEvents(
+	id api.FlowID, sid api.StepID, tkn api.Token,
+) []helpers.FlowEvent {
+	return []helpers.FlowEvent{
+		{
+			Type: api.EventTypeStepStarted,
+			Data: api.StepStartedEvent{
+				FlowID:    id,
+				StepID:    sid,
+				Inputs:    api.Args{},
+				WorkItems: map[api.Token]api.Args{tkn: {}},
+			},
+		},
+		{
+			Type: api.EventTypeWorkStarted,
+			Data: api.WorkStartedEvent{
+				FlowID: id, StepID: sid, Token: tkn, Inputs: api.Args{},
+			},
+		},
+		{
+			Type: api.EventTypeWorkSucceeded,
+			Data: api.WorkSucceededEvent{
+				FlowID:  id,
+				StepID:  sid,
+				Token:   tkn,
+				Outputs: api.Args{"result": "ok"},
+			},
+		},
+	}
 }
 
 // newCompensatingStep returns a sync step with a compensate endpoint
@@ -662,33 +997,9 @@ func setupCompensatingFlow(args setupCompensatingFlowArgs) {
 				Init:   api.InitArgs{},
 			},
 		},
-		{
-			Type: api.EventTypeStepStarted,
-			Data: api.StepStartedEvent{
-				FlowID:    args.id,
-				StepID:    args.step.ID,
-				Inputs:    api.Args{},
-				WorkItems: map[api.Token]api.Args{args.token: {}},
-			},
-		},
-		{
-			Type: api.EventTypeWorkStarted,
-			Data: api.WorkStartedEvent{
-				FlowID: args.id,
-				StepID: args.step.ID,
-				Token:  args.token,
-				Inputs: api.Args{},
-			},
-		},
-		{
-			Type: api.EventTypeWorkSucceeded,
-			Data: api.WorkSucceededEvent{
-				FlowID:  args.id,
-				StepID:  args.step.ID,
-				Token:   args.token,
-				Outputs: api.Args{"result": "ok"},
-			},
-		},
+	}
+	evs = append(evs, succeededWorkEvents(args.id, args.step.ID, args.token)...)
+	evs = append(evs, []helpers.FlowEvent{
 		{
 			Type: api.EventTypeStepFailed,
 			Data: api.StepFailedEvent{
@@ -704,7 +1015,7 @@ func setupCompensatingFlow(args setupCompensatingFlowArgs) {
 				Error:  "forced failure",
 			},
 		},
-	}
+	}...)
 
 	if args.started {
 		evs = append(evs, helpers.FlowEvent{

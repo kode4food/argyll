@@ -142,7 +142,7 @@ To unsubscribe:
 
 Compensation events use the short `comp_*` prefix. A `comp_failed` event records the work-item status `compensation_failed`.
 
-For flow lifecycle consumers, `flow_completed` and `flow_failed` establish an outcome that callers can use immediately. `flow_deactivated` is emitted later, once no pending, active, or compensating work can still produce external side effects.
+For flow lifecycle consumers, `flow_completed` and `flow_failed` establish an outcome that callers can use immediately. `flow_deactivated` is emitted later, once no pending, active, or compensating work can still produce external side effects and no parent flow can still order a rollback.
 
 ## Examples
 

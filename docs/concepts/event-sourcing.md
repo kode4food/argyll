@@ -75,6 +75,7 @@ These affect the flow's execution state:
 - **flow_started**: Flow begins, execution plan created
 - **flow_completed**: All goal steps satisfied
 - **flow_failed**: Goal step failed or became unreachable
+- **flow_deactivated**: No work can still produce side effects and no parent can still order a rollback
 - **step_started**: Step preparing to execute
 - **step_completed**: Step finished successfully
 - **step_failed**: Step encountered an error or required input became unreachable; carries collected inputs and unsatisfied input names
@@ -115,7 +116,10 @@ Work items that have already started or compensation may still be running...
          ↓
 work_succeeded/work_failed events recorded
          ↓
-When no pending, active, or compensating work remains:
+When no pending, active, or compensating work remains,
+the result is reported to any parent flow
+         ↓
+When no parent can still order a rollback:
 flow_deactivated event
          ↓
 Flow index updated to completed/failed
@@ -130,9 +134,11 @@ This distinction is crucial:
   - No new steps will start
   - Work that has already started may still produce side effects and be recorded; compensation may still run
 
-- **Deactivated**: The flow is terminal AND no pending, active, or compensating work remains
-  - No further work or compensation can produce side effects
+- **Deactivated**: The flow is terminal, no pending, active, or compensating work remains, and no parent can still order a rollback
+  - No further work or compensation can produce side effects, by any route
   - Event log is complete
+  - A child reports its result to its parent before this point, since a parent that fails later may order it to roll back
+  - A flow with no parent is deactivated as soon as its own work is finished
 
 ## Benefits
 

@@ -134,6 +134,10 @@ describe("WebSocketProvider", () => {
           "work_failed",
           "work_not_completed",
           "work_retry_scheduled",
+          "comp_started",
+          "comp_succeeded",
+          "comp_failed",
+          "comp_retry_scheduled",
         ],
       },
       expect.any(Function)

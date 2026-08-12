@@ -46,24 +46,36 @@ Use full flow state or `flow_completed`/`flow_failed` events to act on the outco
 
 ### 3. Deactivated
 
-The flow is deactivated once it is **terminal AND no work remains that can still produce side effects**: no pending, active, or compensating work items remain.
+The flow is deactivated once it is **terminal, no work remains that can still produce side effects, and no parent can still order it to roll back**: no pending, active, or compensating work items remain, and any parent flow has released it.
 
 At this point:
 - No remaining work can produce side effects
 - All step executions are recorded
-- No further work or compensation can produce side effects
+- No further work or compensation can produce side effects, by any route
 
 **Important:** A deactivated flow can still be read and replayed. Its event log is complete.
+
+A child flow reports its result to its parent as soon as its own work is finished, but stays undeactivated until the parent releases it, because a parent that fails later may order the child to roll back. A flow with no parent is deactivated as soon as its own work is finished, and a deeply nested flow is not deactivated until its root is.
+
+```
+child                          parent
+  │ own work finished
+  │ ──────── result ─────────→ │
+  │ terminal, not deactivated  │ continues, may still fail
+  │                            │ deactivates
+  │ ←─────── release ───────── │
+  │ deactivated
+```
 
 ## Terminal State vs Deactivation
 
 This distinction is critical:
 
-| State | Meaning | New Steps Start? | Work Already Running? |
-|-------|---------|------------------|-----------------|
-| Active | Flow is running | Yes | Maybe |
-| Terminal (Completed/Failed) | Outcome callers can use immediately; goal step finished or failed | No | Possibly |
-| Deactivated | Terminal + no pending, active, or compensating work | No | No |
+| State | Meaning | New Steps Start? | Work Already Running? | Rollback Possible? |
+|-------|---------|------------------|-----------------|-----------------|
+| Active | Flow is running | Yes | Maybe | Yes |
+| Terminal (Completed/Failed) | Outcome callers can use immediately; goal step finished or failed | No | Possibly | Yes |
+| Deactivated | Terminal + no pending, active, or compensating work + released by any parent | No | No | No |
 
 ## Flow Attributes
 

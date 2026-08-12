@@ -6,6 +6,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"slices"
 	"sync"
 	"time"
 
@@ -59,6 +60,7 @@ func main() {
 		}).
 		Required("order", api.TypeObject).
 		Output("reservation", api.TypeObject).
+		WithCompensateHandler(compensate).
 		Start(handle)
 
 	if err != nil {
@@ -85,7 +87,7 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 		slog.String("product_id", productID),
 		slog.Int("quantity", quantity))
 
-	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
+	simulateLatency()
 
 	// Thread-safe stock reservation
 	stockMutex.Lock()
@@ -132,11 +134,76 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 		reservations[productID], reservation,
 	)
 
-	slog.Info("Stock reserved successfully",
+	slog.Info("Stock reserved",
 		slog.String("reservation_id", reservation.ReservationID),
 		slog.String("product_id", productID),
 		slog.Int("quantity", quantity),
-		slog.Int("remaining_stock", stockLevels[productID]))
+		slog.Int("stock_before", currentStock),
+		slog.Int("stock_after", stockLevels[productID]))
 
 	return api.Args{"reservation": reservation}, nil
+}
+
+func compensate(_ *builder.StepContext, _ api.Args, outputs api.Args) error {
+	reservation, ok := outputs["reservation"].(map[string]any)
+	if !ok {
+		return builder.NewHTTPError(
+			http.StatusBadRequest, "reservation must be an object",
+		)
+	}
+
+	reservationID, _ := reservation["reservation_id"].(string)
+	productID, _ := reservation["product_id"].(string)
+
+	slog.Info("Attempting stock release",
+		slog.String("reservation_id", reservationID),
+		slog.String("product_id", productID))
+
+	simulateLatency()
+
+	stockMutex.Lock()
+	defer stockMutex.Unlock()
+
+	// Releasing an unknown reservation is a no-op, so a repeated
+	// compensation cannot return the same stock twice
+	held, ok := findReservation(productID, reservationID)
+	if !ok {
+		slog.Info("Reservation already released",
+			slog.String("reservation_id", reservationID),
+			slog.String("product_id", productID))
+		return nil
+	}
+
+	before := stockLevels[productID]
+	stockLevels[productID] = before + held.Quantity
+	reservations[productID] = slices.DeleteFunc(
+		reservations[productID],
+		func(r StockReservation) bool {
+			return r.ReservationID == reservationID
+		},
+	)
+
+	slog.Info("Stock released",
+		slog.String("reservation_id", reservationID),
+		slog.String("product_id", productID),
+		slog.Int("quantity", held.Quantity),
+		slog.Int("stock_before", before),
+		slog.Int("stock_after", stockLevels[productID]))
+
+	return nil
+}
+
+func simulateLatency() {
+	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
+}
+
+func findReservation(
+	productID, reservationID string,
+) (StockReservation, bool) {
+	for _, r := range reservations[productID] {
+		if r.ReservationID == reservationID {
+			return r, true
+		}
+	}
+	return StockReservation{}, false
 }

@@ -104,6 +104,30 @@ describe("useStepProgress", () => {
       completed: 1,
       failed: 1,
       active: 1,
+      compensating: 0,
+      compensated: 0,
+      compensationFailed: 0,
     });
+  });
+
+  test("reports compensating while work is being undone", () => {
+    mockUseExecutions.mockReturnValue([
+      {
+        step_id: "step-1",
+        flow_id: "flow-1",
+        status: "completed",
+        inputs: {},
+        started_at: "2024-01-01T00:00:00Z",
+        work_items: {
+          a: { status: "compensating" },
+        },
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useStepProgress("step-1", "flow-1", undefined)
+    );
+
+    expect(result.current.status).toBe("compensating");
   });
 });

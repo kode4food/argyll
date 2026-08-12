@@ -23,7 +23,16 @@ type (
 	// Client defines the interface for invoking step handlers
 	Client interface {
 		Invoke(*api.Step, api.Args, api.Metadata) (api.Args, error)
-		InvokeCompensate(*api.Step, api.Args, api.Args, api.Metadata) error
+		InvokeCompensate(CompensateRequest) error
+	}
+
+	// CompensateRequest carries the work item being reversed, holding the
+	// inputs it ran with and the outputs it produced
+	CompensateRequest struct {
+		Step     *api.Step
+		Inputs   api.Args
+		Outputs  api.Args
+		Metadata api.Metadata
 	}
 
 	// HTTPClient implements Client using HTTP requests
@@ -83,9 +92,8 @@ func (c *HTTPClient) Invoke(
 
 // InvokeCompensate sends a compensation request to the step's compensate
 // endpoint with the original inputs and the successful outputs
-func (c *HTTPClient) InvokeCompensate(
-	step *api.Step, inputs api.Args, outputs api.Args, meta api.Metadata,
-) error {
+func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
+	step, inputs, outputs := req.Step, req.Inputs, req.Outputs
 	if step.HTTP == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
 	}
@@ -119,7 +127,7 @@ func (c *HTTPClient) InvokeCompensate(
 	httpReq.Header.Set("Accept", api.JSONContentType)
 	httpReq.Header.Set("Content-Type", api.JSONContentType)
 	httpReq.Header.Set("User-Agent", UserAgent)
-	api.SetMetadataHeaders(httpReq.Header, meta)
+	api.SetMetadataHeaders(httpReq.Header, req.Metadata)
 
 	_, err = c.sendRequest(step, httpReq)
 	return err

@@ -32,6 +32,10 @@ const FLOW_EVENT_TYPES = [
   "work_failed",
   "work_not_completed",
   "work_retry_scheduled",
+  "comp_started",
+  "comp_succeeded",
+  "comp_failed",
+  "comp_retry_scheduled",
 ];
 
 type TFn = (key: string) => string;
@@ -133,6 +137,33 @@ const applyWorkItemEvent = (
     case "work_retry_scheduled":
       updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
         status: "pending",
+        retry_count: wsEvent.data?.retry_count ?? 0,
+        next_retry_at: wsEvent.data?.next_retry_at,
+        error: wsEvent.data?.error,
+      });
+      return true;
+    case "comp_started":
+      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+        status: "compensating",
+        next_retry_at: undefined,
+      });
+      return true;
+    case "comp_succeeded":
+      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+        status: "compensated",
+        completed_at: ts,
+      });
+      return true;
+    case "comp_failed":
+      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+        status: "compensation_failed",
+        completed_at: ts,
+        error: wsEvent.data?.error,
+      });
+      return true;
+    case "comp_retry_scheduled":
+      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
+        status: "compensating",
         retry_count: wsEvent.data?.retry_count ?? 0,
         next_retry_at: wsEvent.data?.next_retry_at,
         error: wsEvent.data?.error,

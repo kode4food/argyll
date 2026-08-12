@@ -48,7 +48,7 @@ type (
 
 	// CompensateFunc reverses a step's effects after it has completed. Step
 	// types without compensation semantics leave this nil
-	CompensateFunc func(*api.Step, api.Args, api.Args, api.Metadata) error
+	CompensateFunc func(client.CompensateRequest) error
 
 	// Handlers maps bootstrapped step types to their implementations
 	Handlers map[api.StepType]*Handler
@@ -121,11 +121,15 @@ func (r *Registry) Children(st *api.Step) ([]api.StepID, error) {
 	return handler.Children(st), nil
 }
 
-// Compensator returns the step's compensation function
+// Compensator returns the step's compensation function, or nil when the step
+// has no compensation configured
 func (r *Registry) Compensator(st *api.Step) (CompensateFunc, error) {
 	handler, err := r.Lookup(st.Type)
 	if err != nil {
 		return nil, err
+	}
+	if !st.CanCompensate() {
+		return nil, nil
 	}
 	return handler.Compensate, nil
 }

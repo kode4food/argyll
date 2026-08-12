@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/kode4food/argyll/engine/internal/client"
 	"github.com/kode4food/argyll/engine/internal/engine/step"
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
@@ -81,15 +82,31 @@ func TestFlowChildrenReturnsGoals(t *testing.T) {
 func TestHTTPCompensatorInvokes(t *testing.T) {
 	cl := &testClient{}
 	reg := newRegistry(cl)
-	comp, err := reg.Compensator(&api.Step{Type: api.StepTypeSync})
+	st := &api.Step{
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{Compensate: "http://test/undo"},
+	}
+	comp, err := reg.Compensator(st)
 	assert.NoError(t, err)
 	assert.NotNil(t, comp)
-	err = comp(
-		&api.Step{Type: api.StepTypeSync},
-		api.Args{"in": "v"}, api.Args{"out": "v"}, api.Metadata{},
-	)
+	err = comp(client.CompensateRequest{
+		Step:     st,
+		Inputs:   api.Args{"in": "v"},
+		Outputs:  api.Args{"out": "v"},
+		Metadata: api.Metadata{},
+	})
 	assert.NoError(t, err)
 	assert.Equal(t, 1, cl.compens)
+}
+
+func TestCompensatorNilWithoutEndpoint(t *testing.T) {
+	reg := newRegistry(&testClient{})
+	comp, err := reg.Compensator(&api.Step{
+		Type: api.StepTypeSync,
+		HTTP: &api.HTTPConfig{Endpoint: "http://test/work"},
+	})
+	assert.NoError(t, err)
+	assert.Nil(t, comp)
 }
 
 func TestApplyMetaInputsMapsAttribute(t *testing.T) {

@@ -80,8 +80,8 @@ func (tx *flowTx) checkTerminal() error {
 	return nil
 }
 
-// maybeDeactivate emits FlowDeactivated if the flow is terminal and has no
-// work items remaining that can still produce side effects
+// maybeDeactivate reports the outcome to the parent, then deactivates once
+// the parent can no longer order a rollback
 func (tx *flowTx) maybeDeactivate() error {
 	if !policy.FlowTerminal(tx.Value().Status) {
 		return nil
@@ -91,12 +91,24 @@ func (tx *flowTx) maybeDeactivate() error {
 	if err := tx.compensateFlow(); err != nil {
 		return err
 	}
-	fl := tx.Value()
-	if hasActiveWork(fl) {
+	if hasActiveWork(tx.Value()) {
 		return nil
 	}
+	// Told before deactivating, since the parent decides the rollback
+	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
+		tx.completeParentWork(flow)
+	})
+	return tx.deactivate()
+}
+
+func (tx *flowTx) deactivate() error {
+	fl := tx.Value()
 	if !fl.DeactivatedAt.IsZero() {
 		return nil
+	}
+	released, err := tx.parentReleased(fl)
+	if err != nil || !released {
+		return err
 	}
 	if err := events.Raise(tx.FlowAggregator, api.EventTypeFlowDeactivated,
 		api.FlowDeactivatedEvent{
@@ -107,9 +119,54 @@ func (tx *flowTx) maybeDeactivate() error {
 		return err
 	}
 	tx.OnSuccess(func(flow api.FlowState, _ []*timebox.Event) {
-		tx.completeParentWork(flow)
+		tx.releaseChildFlows(flow)
 	})
 	return nil
+}
+
+// parentReleased reports whether the parent can still order a rollback
+func (tx *flowTx) parentReleased(fl api.FlowState) (bool, error) {
+	target := &parentWork{}
+	ok, err := parentMeta(fl, target)
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		return true, nil
+	}
+	parent, err := tx.Engine.GetFlowState(target.fs.FlowID)
+	if err != nil {
+		return false, err
+	}
+	if parent.ID == "" || !parent.DeactivatedAt.IsZero() {
+		return true, nil
+	}
+	work := parent.Executions[target.fs.StepID].WorkItems[target.token]
+	return policy.WorkRollbackSettled(work.Status), nil
+}
+
+// releaseChildFlows lets child flows held open by this one deactivate
+func (tx *flowTx) releaseChildFlows(flow api.FlowState) {
+	for sid, ex := range flow.Executions {
+		st, ok := flow.Plan.Steps[sid]
+		if !ok || st.Type != api.StepTypeFlow {
+			continue
+		}
+		fs := api.FlowStep{FlowID: flow.ID, StepID: sid}
+		for tkn := range ex.WorkItems {
+			childID := childFlowID(fs, tkn)
+			if err := tx.flowTx(childID, func(child *flowTx) error {
+				if child.Value().ID == "" {
+					return nil
+				}
+				return child.maybeDeactivate()
+			}); err != nil {
+				slog.Error("Failed to release child flow",
+					log.FlowID(childID),
+					log.Error(err))
+			}
+		}
+	}
 }
 
 func (tx *flowTx) completeParentWork(st api.FlowState) {
@@ -145,7 +202,7 @@ func (tx *flowTx) completeParentFlowWork(
 
 		ex := parent.Executions[target.fs.StepID]
 		work := ex.WorkItems[target.token]
-		if policy.WorkTerminal(work.Status) {
+		if !policy.WorkAcceptsResult(work.Status) {
 			return nil
 		}
 

@@ -29,11 +29,30 @@ Step-level compensation undoes only the failing step's own work. A flow that fai
 }
 ```
 
-Steps without a `compensate` endpoint, and memoizable steps, are skipped as usual.
+Steps without a `compensate` endpoint, and memoizable steps, are skipped as usual. Setting `compensate` on a flow whose steps all lack a `compensate` endpoint does nothing, and is not reported as an error.
 
-Work items that complete *after* the flow has failed are compensated as they land. This matters when a slow step is still in flight at the moment another step fails: its side effect is recorded, then immediately undone. The flow is not deactivated until all of it settles.
+Work items that complete *after* the flow has failed are still compensated. This matters when a slow step is still in flight at the moment another step fails: its side effect is recorded, then undone when its step's wave comes up. The flow is not deactivated until all of it settles.
 
-Compensations run in parallel, not in reverse dependency order. If one step's compensate endpoint depends on a resource that an earlier step's compensate endpoint destroys, order the teardown inside your own services rather than relying on the engine.
+Steps are unwound in reverse dependency order, running the execution plan's own parallelism backwards. The engine releases one wave at a time: a step compensates once nothing that consumed its outputs is still waiting to compensate. Steps that could have run in parallel unwind in parallel, and the next wave does not start until every compensation in the current one reaches a terminal state.
+
+Arrows show execution order. Unwinding runs in reverse, one wave at a time:
+
+```
+reserve-inventory ─┐
+                   ├─→ charge-card ─→ ship-order
+validate-address  ─┘
+
+unwind:  ship-order          (wave 1)
+         charge-card         (wave 2)
+         reserve-inventory,
+         validate-address    (wave 3, together)
+```
+
+Work items within a single step are independent and compensate in parallel with each other.
+
+A step with no `compensate` endpoint is skipped rather than treated as a wave of its own, so it never delays the steps behind it.
+
+Ordering applies to flow-level rollback only. A failing step's cleanup of its own succeeded work items starts as soon as the step fails, without waiting for a wave, because nothing downstream of it can have run.
 
 ### Child flows are sealed
 
@@ -55,6 +74,8 @@ A flow step's child flow does **not** inherit the parent's setting. Whether a ch
 ```
 
 A parent that fails will not roll back a child flow that completed successfully, and a child flow that fails rolls back according to its own `compensate` setting only.
+
+A child flow reports its result to its parent as soon as its own work finishes, but is not deactivated until the parent releases it. A child that shows as terminal-but-active is waiting on its parent, not stuck.
 
 ## Configuring a compensate endpoint
 
@@ -163,7 +184,8 @@ automatically:
 - Compensation is not a substitute for idempotency. Implement idempotent
   compensate endpoints by keying on the receipt token.
 - Use `max_retries: -1` with care for compensation: unlimited retries on a
-  permanently unavailable service will block flow deactivation indefinitely.
+  permanently unavailable service will block flow deactivation indefinitely,
+  and hold back the unwind of every step that ran before it.
 - If compensation is not meaningful for a step (no side effects), omit the
   `compensate` field rather than implementing a no-op endpoint.
 - For multi-step flows where partial success is common, consider sequencing

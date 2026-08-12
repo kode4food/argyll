@@ -142,6 +142,130 @@ func TestFlowStepChildSuccess(t *testing.T) {
 	})
 }
 
+func TestChildFlowLease(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		testify.NoError(t, env.Engine.Start())
+
+		child := &api.Step{
+			ID:   "held-child-step",
+			Name: "Held Child Step",
+			Type: api.StepTypeScript,
+			Script: &api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return {}",
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+
+		parent := &api.Step{
+			ID:   "held-subflow-step",
+			Name: "Held Subflow Step",
+			Type: api.StepTypeFlow,
+			Flow: &api.FlowConfig{
+				Goals: []api.StepID{child.ID},
+			},
+			Attributes: api.AttributeSpecs{},
+		}
+
+		testify.NoError(t, env.Engine.RegisterStep(child))
+		testify.NoError(t, env.Engine.RegisterStep(parent))
+
+		cat, err := env.Engine.GetCatalogState()
+		testify.NoError(t, err)
+		pl, err := plan.Create(&plan.Request{
+			Match:    env.Engine.Matcher,
+			Children: env.Engine.Children,
+			Catalog:  cat,
+			Goals:    []api.StepID{parent.ID},
+			Init:     api.InitArgs{},
+		})
+		testify.NoError(t, err)
+
+		id := api.FlowID("held-parent-flow")
+		env.WaitFor(wait.FlowDeactivated(id), func() {
+			testify.NoError(t, env.Engine.StartFlow(id, pl))
+		})
+
+		fl, err := env.Engine.GetFlowState(id)
+		testify.NoError(t, err)
+
+		var tkn api.Token
+		for t := range fl.Executions[parent.ID].WorkItems {
+			tkn = t
+			break
+		}
+		childID := api.FlowID(fmt.Sprintf("%s:%s:%s", id, parent.ID, tkn))
+
+		childFl, err := env.Engine.GetFlowState(childID)
+		testify.NoError(t, err)
+		testify.False(t, childFl.DeactivatedAt.IsZero())
+		testify.False(t, childFl.DeactivatedAt.Before(fl.DeactivatedAt))
+	})
+}
+
+func TestChildFlowReleaseRecovery(t *testing.T) {
+	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
+		st := helpers.NewSimpleStep("orphan-child-step")
+		parentID := api.FlowID("orphan-parent")
+		childID := api.FlowID("orphan-parent:sub:work-a")
+
+		pl := &api.ExecutionPlan{
+			Goals: []api.StepID{st.ID},
+			Steps: api.Steps{st.ID: st},
+		}
+
+		// Parent already deactivated; the child never got its release
+		testify.NoError(t, env.RaiseFlowEvents(parentID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: parentID, Plan: pl, Init: api.InitArgs{},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowCompleted,
+				Data: api.FlowCompletedEvent{FlowID: parentID},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowDeactivated,
+				Data: api.FlowDeactivatedEvent{
+					FlowID: parentID, Status: api.FlowCompleted,
+				},
+			},
+		))
+
+		testify.NoError(t, env.RaiseFlowEvents(childID,
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowStarted,
+				Data: api.FlowStartedEvent{
+					FlowID: childID,
+					Plan:   pl,
+					Init:   api.InitArgs{},
+					Metadata: api.Metadata{
+						api.MetaParentFlowID:        string(parentID),
+						api.MetaParentStepID:        "sub",
+						api.MetaParentWorkItemToken: "work-a",
+					},
+				},
+			},
+			helpers.FlowEvent{
+				Type: api.EventTypeFlowCompleted,
+				Data: api.FlowCompletedEvent{FlowID: childID},
+			},
+		))
+
+		fl, err := env.Engine.GetFlowState(childID)
+		testify.NoError(t, err)
+		testify.True(t, fl.DeactivatedAt.IsZero())
+
+		testify.NoError(t, env.Engine.RecoverFlow(childID))
+
+		fl, err = env.Engine.GetFlowState(childID)
+		testify.NoError(t, err)
+		testify.False(t, fl.DeactivatedAt.IsZero())
+	})
+}
+
 func TestFlowStepChildFailureParentFails(t *testing.T) {
 	helpers.WithTestEnv(t, func(env *helpers.TestEngineEnv) {
 		testify.NoError(t, env.Engine.Start())

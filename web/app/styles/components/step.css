@@ -353,6 +353,19 @@
   animation: spin 1s linear infinite;
 }
 
+.progress-icon.compensating {
+  color: var(--color-warning);
+  animation: spin 1s linear infinite reverse;
+}
+
+.progress-icon.compensated {
+  color: var(--color-warning);
+}
+
+.progress-icon.compensation_failed {
+  color: var(--color-error);
+}
+
 .progress-icon.completed {
   color: var(--color-success);
 }

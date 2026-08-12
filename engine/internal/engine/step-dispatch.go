@@ -194,7 +194,7 @@ func (e *Engine) runDispatchRecovery(fs api.FlowStep) error {
 		return nil
 	}
 
-	comp, err := e.compensator(step)
+	comp, err := e.steps.Compensator(step)
 	if err != nil {
 		return err
 	}
