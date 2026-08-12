@@ -1,5 +1,6 @@
 import {
   IconCompensate,
+  IconCompensateFailed,
   IconProgressActive,
   IconProgressCompleted,
   IconProgressFailed,
@@ -24,7 +25,7 @@ export const getProgressIcon = (status: StepProgressStatus) => {
     case "compensated":
       return IconCompensate;
     case "compensation_failed":
-      return IconProgressFailed;
+      return IconCompensateFailed;
     default:
       return IconProgressPending;
   }

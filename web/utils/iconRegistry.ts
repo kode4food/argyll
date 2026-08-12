@@ -98,6 +98,7 @@ export const IconProgressActive = Loader2;
 export const IconProgressCompleted = CheckCircle;
 export const IconProgressFailed = XCircle;
 export const IconProgressSkipped = MinusCircle;
+export const IconCompensateFailed = AlertTriangle;
 
 export const IconAttributeRequired = ArrowRight;
 export const IconAttributeOptional = CircleHelp;
