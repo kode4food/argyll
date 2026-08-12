@@ -9,6 +9,13 @@ import {
 
 const REQUEST_TIMEOUT_MS = 30000;
 
+export interface StartFlowRequest {
+  id: string;
+  goalSteps: string[];
+  initialState: Record<string, unknown[]>;
+  compensate?: boolean;
+}
+
 export class ArgyllApi {
   private baseURL: string;
 
@@ -61,12 +68,8 @@ export class ArgyllApi {
     return response.step;
   }
 
-  async startFlow(
-    id: string,
-    goalSteps: string[],
-    initialState: Record<string, any[]>,
-    compensate = false
-  ): Promise<any> {
+  async startFlow(request: StartFlowRequest): Promise<unknown> {
+    const { id, goalSteps, initialState, compensate = false } = request;
     return this.request("/engine/flow", {
       method: "POST",
       body: JSON.stringify({

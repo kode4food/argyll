@@ -93,12 +93,12 @@ func (c *HTTPClient) Invoke(
 // InvokeCompensate sends a compensation request to the step's compensate
 // endpoint with the original inputs and the successful outputs
 func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
-	step, inputs, outputs := req.Step, req.Inputs, req.Outputs
+	step := req.Step
 	if step.HTTP == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
 	}
 
-	merged := inputs.Apply(outputs)
+	merged := req.Inputs.Apply(req.Outputs)
 	endpoint, err := resolveEndpoint(step.HTTP.Compensate, merged)
 	if err != nil {
 		slog.Error("Failed to resolve compensate endpoint",
@@ -107,7 +107,9 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 		return err
 	}
 
-	body, err := json.Marshal(compensateBody{Input: inputs, Output: outputs})
+	body, err := json.Marshal(
+		compensateBody{Input: req.Inputs, Output: req.Outputs},
+	)
 	if err != nil {
 		slog.Error("Failed to marshal compensate request",
 			log.StepID(step.ID),

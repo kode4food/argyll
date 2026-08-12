@@ -6,27 +6,21 @@ import {
   IconProgressFailed,
   IconProgressPending,
   IconProgressSkipped,
+  type LucideIcon,
 } from "./iconRegistry";
 import { StepProgressStatus } from "@/app/hooks/useStepProgress";
 
-export const getProgressIcon = (status: StepProgressStatus) => {
-  switch (status) {
-    case "pending":
-      return IconProgressPending;
-    case "active":
-    case "compensating":
-      return IconProgressActive;
-    case "completed":
-      return IconProgressCompleted;
-    case "failed":
-      return IconProgressFailed;
-    case "skipped":
-      return IconProgressSkipped;
-    case "compensated":
-      return IconCompensate;
-    case "compensation_failed":
-      return IconCompensateFailed;
-    default:
-      return IconProgressPending;
-  }
+const progressIconMap: Record<StepProgressStatus, LucideIcon> = {
+  pending: IconProgressPending,
+  active: IconProgressActive,
+  compensating: IconProgressActive,
+  completed: IconProgressCompleted,
+  failed: IconProgressFailed,
+  skipped: IconProgressSkipped,
+  compensated: IconCompensate,
+  compensation_failed: IconCompensateFailed,
+};
+
+export const getProgressIcon = (status: StepProgressStatus): LucideIcon => {
+  return progressIconMap[status] ?? IconProgressPending;
 };

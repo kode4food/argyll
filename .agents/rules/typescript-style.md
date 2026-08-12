@@ -192,6 +192,119 @@ const configuration = load();  // Just use config
 | `prev` | previous |
 | `curr` | current |
 
+## Function Signatures
+
+### Parameter Objects
+
+qlty flags a function at **4 or more parameters** as a smell. Bundle them
+into a single request/options object instead — this also self-documents the
+call site, since positional args of the same type (two `string`s, two
+`boolean`s) are otherwise easy to swap silently.
+
+```typescript
+// Good
+export interface StartFlowRequest {
+  id: string;
+  goalSteps: string[];
+  initialState: Record<string, unknown[]>;
+  compensate?: boolean;
+}
+
+async startFlow(request: StartFlowRequest): Promise<unknown> {
+  const { id, goalSteps, initialState, compensate = false } = request;
+  ...
+}
+
+// Bad — four positional params, two of them booleans/strings a caller
+// can transpose without a type error
+async startFlow(
+  id: string,
+  goalSteps: string[],
+  initialState: Record<string, any[]>,
+  compensate = false
+): Promise<any> { ... }
+```
+
+Name the type after the function with a `Request`/`Options`/`Params` suffix
+(not `Args`, which is a Go convention — see `go-style.md`). Export it if
+callers need to construct or reference the shape; otherwise keep it local
+to the file.
+
+### Avoid Long Return Chains
+
+qlty flags a function with **8 or more `return` statements** (a `switch`
+with a `return` in every case is the usual cause). Replace the switch with
+a lookup table plus a single dispatch/return:
+
+```typescript
+// Good — one table, one return
+const PROGRESS_ICONS: Record<StepProgressStatus, IconType> = {
+  pending: IconProgressPending,
+  active: IconProgressActive,
+  completed: IconProgressCompleted,
+  failed: IconProgressFailed,
+};
+
+export const getProgressIcon = (status: StepProgressStatus) =>
+  PROGRESS_ICONS[status] ?? IconProgressPending;
+
+// Bad — one return per case
+export const getProgressIcon = (status: StepProgressStatus) => {
+  switch (status) {
+    case "pending": return IconProgressPending;
+    case "active": return IconProgressActive;
+    case "completed": return IconProgressCompleted;
+    case "failed": return IconProgressFailed;
+    default: return IconProgressPending;
+  }
+};
+```
+
+When each case needs to call something (not just look up a value), map
+event/status keys to small per-case functions instead, then invoke the one
+that matched:
+
+```typescript
+const PATCHERS: Partial<Record<EventType, (data: Data, ts: string) => Patch>> = {
+  work_started: (data, ts) => ({ status: "active", started_at: ts }),
+  work_failed: (data, ts) => ({ status: "failed", error: data?.error }),
+  // ...
+};
+
+const apply = (event: Event): boolean => {
+  const patcher = PATCHERS[event.type];
+  if (!patcher) return false;
+  update(patcher(event.data, eventTimestamp(event.timestamp)));
+  return true;
+};
+```
+
+### Complex Boolean Expressions
+
+Extract a multi-clause `&&`/`||` expression into a named `const` when it
+mixes more than two distinct conditions, so the reader gets a label instead
+of re-deriving intent from the clauses:
+
+```typescript
+// Good
+const isOptionalArg = arg.argType === "optional";
+const executionProvidedInput =
+  !!execution?.inputs && executionInputName in execution.inputs;
+const optionalUsedDefault =
+  hasExecutionDecision &&
+  isOptionalArg &&
+  executionProvidedInput &&
+  defaultMatchesExecutionInput(arg.spec.optional?.default, executionInputValue);
+
+// Bad — four unrelated-looking clauses inlined at the use site
+const optionalUsedDefault =
+  hasExecutionDecision &&
+  arg.argType === "optional" &&
+  !!execution?.inputs &&
+  executionInputName in execution.inputs &&
+  defaultMatchesExecutionInput(arg.spec.optional?.default, executionInputValue);
+```
+
 ## Pre-Commit Checklist
 
 Run before every commit:

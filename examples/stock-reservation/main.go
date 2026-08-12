@@ -15,27 +15,24 @@ import (
 	"github.com/kode4food/argyll/sdks/go-builder"
 )
 
-type StockReservation struct {
-	ReservationID string `json:"reservation_id"`
-	OrderID       string `json:"order_id"`
-	ProductID     string `json:"product_id"`
-	Quantity      int    `json:"quantity"`
-	Status        string `json:"status"`
-	ReservedAt    string `json:"reserved_at"`
-	ExpiresAt     string `json:"expires_at"`
-}
-
-// Shared inventory tracker (simulates database)
-var (
-	stockLevels = map[string]int{
-		"prod-laptop":     50,
-		"prod-mouse":      200,
-		"prod-keyboard":   75,
-		"prod-monitor":    30,
-		"prod-headphones": 0,
+type (
+	// StockReservation records a quantity of a product held for an order
+	StockReservation struct {
+		ReservationID string `json:"reservation_id"`
+		OrderID       string `json:"order_id"`
+		ProductID     string `json:"product_id"`
+		Quantity      int    `json:"quantity"`
+		Status        string `json:"status"`
+		ReservedAt    string `json:"reserved_at"`
+		ExpiresAt     string `json:"expires_at"`
 	}
-	reservations = map[string][]StockReservation{}
-	stockMutex   sync.Mutex
+
+	// inventory simulates a database of stock levels and active reservations
+	inventory struct {
+		mu           sync.Mutex
+		stockLevels  map[string]int
+		reservations map[string][]StockReservation
+	}
 )
 
 const version = "dev"
@@ -50,6 +47,7 @@ func main() {
 	slog.SetDefault(logger)
 
 	client := builder.NewClient(engineURL, 30*time.Second)
+	inv := newInventory()
 
 	err := client.NewStep().WithName("Stock Reservation").
 		WithLabels(api.Labels{
@@ -60,8 +58,8 @@ func main() {
 		}).
 		Required("order", api.TypeObject).
 		Output("reservation", api.TypeObject).
-		WithCompensateHandler(compensate).
-		Start(handle)
+		WithCompensateHandler(inv.compensate).
+		Start(inv.handle)
 
 	if err != nil {
 		slog.Error("Failed to setup stock reservation", log.Error(err))
@@ -69,7 +67,22 @@ func main() {
 	}
 }
 
-func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
+func newInventory() *inventory {
+	return &inventory{
+		stockLevels: map[string]int{
+			"prod-laptop":     50,
+			"prod-mouse":      200,
+			"prod-keyboard":   75,
+			"prod-monitor":    30,
+			"prod-headphones": 0,
+		},
+		reservations: map[string][]StockReservation{},
+	}
+}
+
+func (inv *inventory) handle(
+	_ *builder.StepContext, args api.Args,
+) (api.Args, error) {
 	order, ok := args["order"].(map[string]any)
 	if !ok {
 		return nil, builder.NewHTTPError(
@@ -90,10 +103,10 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	simulateLatency()
 
 	// Thread-safe stock reservation
-	stockMutex.Lock()
-	defer stockMutex.Unlock()
+	inv.mu.Lock()
+	defer inv.mu.Unlock()
 
-	currentStock, ok := stockLevels[productID]
+	currentStock, ok := inv.stockLevels[productID]
 	if !ok {
 		slog.Warn("Product not found in stock system",
 			slog.String("product_id", productID))
@@ -116,7 +129,7 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	}
 
 	// Reserve the stock
-	stockLevels[productID] = currentStock - quantity
+	inv.stockLevels[productID] = currentStock - quantity
 
 	reservation := StockReservation{
 		ReservationID: fmt.Sprintf("RES-%d", time.Now().UnixNano()),
@@ -130,8 +143,8 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	}
 
 	// Track reservation
-	reservations[productID] = append(
-		reservations[productID], reservation,
+	inv.reservations[productID] = append(
+		inv.reservations[productID], reservation,
 	)
 
 	slog.Info("Stock reserved",
@@ -139,12 +152,14 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 		slog.String("product_id", productID),
 		slog.Int("quantity", quantity),
 		slog.Int("stock_before", currentStock),
-		slog.Int("stock_after", stockLevels[productID]))
+		slog.Int("stock_after", inv.stockLevels[productID]))
 
 	return api.Args{"reservation": reservation}, nil
 }
 
-func compensate(_ *builder.StepContext, _ api.Args, outputs api.Args) error {
+func (inv *inventory) compensate(
+	_ *builder.StepContext, _ api.Args, outputs api.Args,
+) error {
 	reservation, ok := outputs["reservation"].(map[string]any)
 	if !ok {
 		return builder.NewHTTPError(
@@ -161,12 +176,12 @@ func compensate(_ *builder.StepContext, _ api.Args, outputs api.Args) error {
 
 	simulateLatency()
 
-	stockMutex.Lock()
-	defer stockMutex.Unlock()
+	inv.mu.Lock()
+	defer inv.mu.Unlock()
 
 	// Releasing an unknown reservation is a no-op, so a repeated
 	// compensation cannot return the same stock twice
-	held := reservations[productID]
+	held := inv.reservations[productID]
 	idx := slices.IndexFunc(held, func(r StockReservation) bool {
 		return r.ReservationID == reservationID
 	})
@@ -178,16 +193,16 @@ func compensate(_ *builder.StepContext, _ api.Args, outputs api.Args) error {
 	}
 
 	quantity := held[idx].Quantity
-	before := stockLevels[productID]
-	stockLevels[productID] = before + quantity
-	reservations[productID] = slices.Delete(held, idx, idx+1)
+	before := inv.stockLevels[productID]
+	inv.stockLevels[productID] = before + quantity
+	inv.reservations[productID] = slices.Delete(held, idx, idx+1)
 
 	slog.Info("Stock released",
 		slog.String("reservation_id", reservationID),
 		slog.String("product_id", productID),
 		slog.Int("quantity", quantity),
 		slog.Int("stock_before", before),
-		slog.Int("stock_after", stockLevels[productID]))
+		slog.Int("stock_after", inv.stockLevels[productID]))
 
 	return nil
 }

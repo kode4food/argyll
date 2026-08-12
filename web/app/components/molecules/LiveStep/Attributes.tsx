@@ -73,11 +73,13 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
   const hasExecutionDecision = !!execution && execution.status !== "pending";
   const executionInputName = getExecutionInputName(arg);
   const executionInputValue = execution?.inputs?.[executionInputName];
+  const isOptionalArg = arg.argType === "optional";
+  const hasExecutionInput =
+    !!execution?.inputs && executionInputName in execution.inputs;
   const optionalUsedDefault =
     hasExecutionDecision &&
-    arg.argType === "optional" &&
-    !!execution?.inputs &&
-    executionInputName in execution.inputs &&
+    isOptionalArg &&
+    hasExecutionInput &&
     defaultMatchesExecutionInput(
       arg.spec.optional?.default,
       executionInputValue
@@ -90,19 +92,14 @@ const AttributeItem: React.FC<AttributeItemProps> = ({
 
   const { Icon, className } = getArgIcon(arg.argType);
 
-  const isProvidedByUpstream =
-    arg.argType === "optional"
-      ? hasExecutionDecision &&
-        !!execution?.inputs &&
-        executionInputName in execution.inputs &&
-        !optionalUsedDefault
+  const isProvidedByUpstream = isOptionalArg
+    ? hasExecutionDecision && hasExecutionInput && !optionalUsedDefault
+    : undefined;
+  const wasDefaulted = isOptionalArg
+    ? optionalUsedDefault
+    : isConst
+      ? hasValue
       : undefined;
-  const wasDefaulted =
-    arg.argType === "optional"
-      ? optionalUsedDefault
-      : isConst
-        ? hasValue
-        : undefined;
 
   const statusBadge = renderStatusBadge(arg.argType, {
     isSatisfied,

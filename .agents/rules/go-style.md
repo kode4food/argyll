@@ -162,11 +162,21 @@ Similarly, prefer `h` for local `api.HealthState` values, but `health` is accept
 
 ### Argument and Result Structs
 
-Functions with five or more explicit arguments must bundle their data arguments into a struct. Functions returning three or more data values must return a struct. A trailing `bool` or `error` that reports success does not count as a data value.
+Structs with an `Args` suffix are parameter bundles for a single function. Structs with a `Res` suffix are result bundles returned by a single function. Both have strict rules:
 
-For unexported functions, name these types after the function with an `Args` or `Res` suffix, declare them immediately before the function, and pass or return them by value:
+- **Threshold (hard rule)**: a function taking **5 or more arguments** must bundle them into an `Args` struct; a function returning **3 or more results** must bundle them into a `Res` struct. Below those counts, pass/return values directly.
+- **Success indicators are exempt from the result count**: a trailing `bool` (the `ok` idiom) or `error` signals success/failure, not data, so it never counts toward the 3-result threshold. `(resolveStepRes, bool)` and `(api.FlowState, api.CatalogState, error)` are fine — count only the data values. The correct shape is a `Res` struct **plus** the bool: `func resolveStep(...) (resolveStepRes, bool)`, not an `ok` field stuffed inside the struct.
+- **Same-type adjacency**: the hazard is exactly *two values of the same type next to each other* — nothing else. Distinct types self-disambiguate: `(int, bool)` is fine, `(*api.Step, int)` is fine, because the type tells you which value is which. Two of the same type do not: `(bool, bool)` — which bool is which? `(api.StepID, api.StepID)` — source then target, or target then source? That order is a convention, not a fact the types enforce, so a swap compiles silently — the same hazard as positional struct literals. When two adjacent params or results share a type, give them names: an `Args`/`Res` struct with named fields, or distinct named types (`type FlowID string`), so the meaning lives in the code, not in an assumed convention.
+- **Lifetime**: an `Args` struct must not outlive the call site where it is passed; a `Res` struct must not outlive the call site where it is received. Neither may be stored, forwarded to another function, or returned further up the call chain.
+- **If a struct crosses more than one call site** it is not an Args/Res struct — rename it to a plain descriptive name (no suffix) and use pointer currency (`*T`) when passing it.
+- **Placement**: each Args/Res struct must be declared immediately before the function that accepts or returns it. If one function has both, declare them together in a single `type (...)` block immediately before that function. Never group them with unrelated types at the top of the file.
+- **Value passing**: at their single call site, Args/Res structs are passed and returned by value (no `*`), whatever their size. They are short-lived and stack-allocated by design.
+- **Pointer threshold (plain-named structs)**: a struct that crosses call sites is passed by value or by pointer according to its size, not by habit. Up to **32 bytes** (4 machine words) always by value. **33–64 bytes**: by value, unless it is read by three or more functions in a chain. Over **64 bytes** (one cache line): by pointer. Regardless of size, use a pointer when the callee mutates the struct or its identity matters. A `&x` that never escapes stays on the stack: the cost of a pointer there is the indirection, not an allocation.
+- **Field names must stand alone**: a name that worked as a positional parameter (short, disambiguated by position and the surrounding call) does not automatically work as a named struct field read on its own at a call site. Spell out abbreviations that aren't immediately decodable without reading the function body: `st` → `step`, `pl` → `plan`, `h` → `health`, `e` → `engine`. Two fields of the same type still need names that disambiguate them beyond position — `parent api.FlowID` next to `id api.FlowID` is the same-type-adjacency hazard above; use `parentFlowID` / `childFlowID`.
+- **Literal formatting**: if a struct literal fits on one line, leave it on one line. If it wraps, use exactly one field per line — never pack two or more fields onto a wrapped line.
 
 ```go
+// Good — declared immediately before its function, used at one call site
 type startCompensatingServerArgs struct {
     engineURL  string
     stepName   api.Name
@@ -177,14 +187,42 @@ type startCompensatingServerArgs struct {
 
 func startCompensatingServer(
     t *testing.T, args startCompensatingServerArgs,
-) string {
+) string { ... }
+
+// Good — fits on one line, stays on one line
+startFlow(startFlowArgs{fid: fid, plan: pl, state: st})
+
+// Good — wraps, so one field per line
+startFlow(startFlowArgs{
+    fid:      fid,
+    plan:     pl,
+    state:    st,
+    deadline: time.Now().Add(DefaultTimeout),
+    parent:   parentFlowID,
+})
+
+// Bad — wrapped but multiple fields share a line
+startFlow(startFlowArgs{
+    fid: fid, plan: pl,
+    state: st, deadline: time.Now().Add(DefaultTimeout),
+})
+
+// Bad — declared in a top-level type block far from its function
+type (
+    startFlowArgs struct { ... }  // ← wrong place
+    someOtherType struct { ... }
+)
+
+// Bad — forwarded to a second function (no longer a single call site)
+func outer(args startFlowArgs) {
+    args.fid = ""      // mutates
+    inner(args)        // forwarded — rename and use *startFlowParams
+}
 ```
 
 Keep `*testing.T` as the first positional parameter of test helpers. It counts toward the argument threshold but never belongs in an argument struct, so test-related functions remain identifiable.
 
 Exported APIs may instead use descriptive request, response, or state type names without `Args` or `Res`. Declare those exported types at the top of the file with the other exported types; pointers are acceptable when appropriate.
-
-Adjacent arguments or results of the same type must be disambiguated with named struct fields or distinct named types. Struct field names must be clear without relying on their position. Keep struct literals on one line when they fit; when they wrap, use exactly one field per line.
 
 ### Function Signature Wrapping
 
@@ -354,9 +392,30 @@ assert.Equal(t,
 
 Run `goimports` on all files. It handles grouping and sorting automatically.
 
+### No Function-Scoped Type or Const Declarations
+
+**Never declare `type` or `const` inside a function body.** All type and constant declarations must be at package level, in the appropriate block with the rest of the package's types and constants.
+
+```go
+// Bad — type declared inside a function
+func process() {
+    type work struct{ id api.StepID }  // FORBIDDEN
+    const limit = 100                  // FORBIDDEN
+}
+
+// Good — all at package level
+type work struct{ id api.StepID }
+
+const limit = 100
+
+func process() { ... }
+```
+
+This applies to test files as well.
+
 ### Top-Level Declaration Order
 
-1. `type` declarations (use a block only when declaring multiple types). Ordering rule: if a type uses another type, the using type goes first.
+1. `type` declarations (use a block only when declaring multiple types). Ordering rule: exported types come before unexported types; within the same visibility, if a type uses another type, the using type goes first.
 2. `const` declarations (use a block only when declaring multiple constants)
 3. `var` declarations (use a block only when declaring multiple vars; exception: errors always use a `var` block)
 4. Exported functions (including constructors like `New...`)
@@ -397,6 +456,11 @@ func helperFunc(...) { ... }               // unexported helper
 
 Related methods stay together. Within each group, order by call chain or first use. Unexported helpers appear after the exported methods that use them.
 
+`func main()` is the exception to all ordering rules above: it is the
+package's entry point, so it always comes first among functions, immediately
+after the top-level `type`/`const`/`var` declarations — before constructors
+and any other helper it calls.
+
 ### Concern Grouping
 
 Within a package, organize files around real concerns, not arbitrary helper categories. For the engine runtime, prefer lifecycle or stage-oriented grouping when that matches the code's behavior:
@@ -408,11 +472,25 @@ Within a package, organize files around real concerns, not arbitrary helper cate
 
 Do not introduce wrapper files that just forward calls to another package or rename errors.
 
+## Struct Literals
+
+**NEVER construct a struct using positional field order.** Always use named fields. Positional literals are fragile: a field reorder or insertion silently compiles and corrupts data.
+
+```go
+// Good
+api.HealthState{Status: api.HealthHealthy, Since: now, Reason: reason}
+
+// Bad — positional, breaks silently on field reorder
+api.HealthState{api.HealthHealthy, now, reason}
+```
+
+The only exception is single-field structs where the field name adds no information.
+
 ## Control Flow
 
 ### Early Returns
 
-Use guard clauses to minimize nesting. No else when early return works:
+Use guard clauses to reject invalid preconditions before substantial main logic. No else when early return works:
 
 ```go
 // Good
@@ -441,6 +519,45 @@ func processStep(step *StepInfo) error {
 	}
 }
 ```
+
+Do not mechanically use guard clauses in simple or linear functions. When a value and success indicator are used only by a short success path, declare them in the `if` initializer, keep the value scoped to that branch, and put the fallback afterward. Use this form when the condition is only the success indicator, or the success indicator plus one simple boolean, nil, equality, or predicate check. If the condition needs more than two checks, becomes multi-line, or the success branch contains substantial logic, use guard clauses instead.
+
+```go
+// Good
+func lookupWork(token api.Token) (api.WorkItem, bool) {
+	if work, ok := exec.WorkItems[token]; ok && work.Active() {
+		return work, true
+	}
+	return api.WorkItem{}, false
+}
+
+// Bad — value and ok escape the only branch that uses them
+func lookupWork(token api.Token) (api.WorkItem, bool) {
+	work, ok := exec.WorkItems[token]
+	if !ok || !work.Active() {
+		return api.WorkItem{}, false
+	}
+	return work, true
+}
+```
+
+### Multi-Assignment
+
+Never assign multiple variables in one statement from independent sources — `a, b := x, y` where `x` and `y` are separate expressions. The reader must visually pair each name on the left with its value on the right instead of reading top to bottom. The only exception is routing a single call's multiple return values, where the pairing is fixed by the function's signature.
+
+```go
+// Good — routing one call's multi-return
+flow, err := eng.GetFlowState(fid)
+
+// Good — independent sources, one per line
+cat := st.Catalog
+part := st.Partition
+
+// Bad — independent sources crammed into one statement
+cat, part := st.Catalog, st.Partition
+```
+
+This applies to plain assignment (`=`) as well as `:=`.
 
 ### Nesting Limit
 
@@ -540,7 +657,7 @@ Do not keep broad mixed test files once the source has been split cleanly.
 
 ### Godoc
 
-Exported symbols need godoc that adds value beyond the name:
+**Exported** symbols need godoc that adds value beyond the name — but no more than 3 lines. Describe what it does, not how. If it takes more than 3 lines to say what something does, it isn't coded well:
 
 ```go
 // Scheduler manages periodic work execution using timebox.Store,
@@ -553,6 +670,14 @@ Skip godoc when the name is self-documenting:
 ```go
 func NewScheduler(...) (*Scheduler, error) {
 ```
+
+Sentinel error vars are always exempt: the message is the documentation.
+
+**Unexported** funcs and methods get no godoc by default. Only add one — capped at 2 lines — when the behavior is genuinely non-trivial and needs explanation.
+
+### Comment Density
+
+Match the surrounding code. Do not add a doc comment to a field whose siblings have none.
 
 Godoc rule: the last sentence of a comment should not end with a period.
 
@@ -571,6 +696,40 @@ if gcerrors.Code(err) == gcerrors.NotFound {
 	return nil
 }
 ```
+
+## Global State
+
+**Mutable package-level variables are absolutely forbidden.** This includes counters, caches, registries, or any other state that can be mutated after initialization.
+
+```go
+// Bad — mutable global state
+var idCounter atomic.Int64
+
+// Good — state lives on the owning struct
+type Engine struct {
+    nextID int
+}
+```
+
+Package-level `var` declarations are permitted only for:
+
+- Sentinel error values (`var ErrNotFound = errors.New(...)`)
+- Compile-time interface assertions (`var _ Foo = (*Bar)(nil)`)
+- Truly immutable lookup tables that are never reassigned (treat them as constants; document if a slice element could be mutated)
+
+## No Cross-Package Var Aliasing
+
+**Never declare `var Foo = otherpkg.Foo` to re-export another package's identifier under a local name.** If a package needs a value another package already owns, import that package and reference the value directly.
+
+```go
+// Bad — re-exports api's sentinel under a local name
+var ErrStepNotFound = api.ErrStepNotFound
+
+// Good — call sites use the owning package's identifier
+return api.ErrStepNotFound
+```
+
+This applies to sentinel errors, constants, and any other exported value.
 
 ## Interface Compliance
 

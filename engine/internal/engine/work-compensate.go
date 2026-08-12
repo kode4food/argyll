@@ -15,6 +15,13 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
+// compensationWaveWalk tracks the steps still awaiting compensation against
+// those already visited while walking transitive dependents
+type compensationWaveWalk struct {
+	pending util.Set[api.StepID]
+	seen    util.Set[api.StepID]
+}
+
 // CompleteCompensation marks a compensation as successfully completed
 func (e *Engine) CompleteCompensation(
 	fs api.FlowStep, tkn api.Token,
@@ -87,8 +94,8 @@ func (tx *flowTx) nextCompensationWave(fl api.FlowState) ([]api.StepID, error) {
 
 	var wave []api.StepID
 	for sid := range pending {
-		seen := util.SetOf(sid)
-		if !dependentPending(fl.Plan, sid, pending, seen) {
+		walk := &compensationWaveWalk{pending: pending, seen: util.SetOf(sid)}
+		if !walk.dependentPending(fl.Plan, sid) {
 			wave = append(wave, sid)
 		}
 	}
@@ -306,7 +313,7 @@ func (e *Engine) runCompensationTask(fs api.FlowStep, tkn api.Token) error {
 
 func (e *Engine) recoverCompensations(flow api.FlowState) {
 	now := e.Now()
-	for sid, ex := range flow.Executions {
+	for sid := range flow.Executions {
 		st, ok := flow.Plan.Steps[sid]
 		if !ok {
 			continue
@@ -321,23 +328,32 @@ func (e *Engine) recoverCompensations(flow api.FlowState) {
 		if comp == nil {
 			continue
 		}
-		for tkn, work := range ex.WorkItems {
-			if policy.WorkCompActive(work.Status) {
-				retryAt := work.NextRetryAt
-				if retryAt.IsZero() || retryAt.Before(now) {
-					retryAt = now
-				}
-				e.scheduleCompensationTask(api.FlowStep{
-					FlowID: flow.ID,
-					StepID: sid,
-				}, tkn, retryAt)
-			} else if policy.WorkSucceeded(work.Status) &&
-				(policy.StepFailed(ex.Status) || flowCompensating(flow)) {
-				// Compensation was never started (e.g., engine crashed after
-				// step failed but before startPendingCompensations ran)
-				e.scheduleCompensationStart(flow.ID, sid, now)
-				break // one task per step covers all succeeded items
+		e.recoverStepCompensations(flow, sid, now)
+	}
+}
+
+func (e *Engine) recoverStepCompensations(
+	flow api.FlowState, sid api.StepID, now time.Time,
+) {
+	ex := flow.Executions[sid]
+	for tkn, work := range ex.WorkItems {
+		if policy.WorkCompActive(work.Status) {
+			retryAt := work.NextRetryAt
+			if retryAt.IsZero() || retryAt.Before(now) {
+				retryAt = now
 			}
+			e.scheduleCompensationTask(api.FlowStep{
+				FlowID: flow.ID,
+				StepID: sid,
+			}, tkn, retryAt)
+			continue
+		}
+		if policy.WorkSucceeded(work.Status) &&
+			(policy.StepFailed(ex.Status) || flowCompensating(flow)) {
+			// Compensation was never started (e.g., engine crashed after
+			// step failed but before startPendingCompensations ran)
+			e.scheduleCompensationStart(flow.ID, sid, now)
+			return // one task per step covers all succeeded items
 		}
 	}
 }
@@ -448,17 +464,15 @@ func hasSucceededWork(ex api.ExecutionState) bool {
 
 // dependentPending walks consumers transitively, since a direct dependent
 // with no compensator can still sit upstream of one that has
-func dependentPending(
+func (w *compensationWaveWalk) dependentPending(
 	pl *api.ExecutionPlan, sid api.StepID,
-	pending, seen util.Set[api.StepID],
 ) bool {
 	for _, dep := range dependents(pl, sid) {
-		if seen.Contains(dep) {
+		if w.seen.Contains(dep) {
 			continue
 		}
-		seen.Add(dep)
-		if pending.Contains(dep) ||
-			dependentPending(pl, dep, pending, seen) {
+		w.seen.Add(dep)
+		if w.pending.Contains(dep) || w.dependentPending(pl, dep) {
 			return true
 		}
 	}

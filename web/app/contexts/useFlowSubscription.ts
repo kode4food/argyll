@@ -1,5 +1,5 @@
 import { useCallback, useEffect } from "react";
-import { ExecutionPlan, FlowContext } from "@/app/api";
+import { ExecutionPlan, FlowContext, WorkState } from "@/app/api";
 import { useFlowStore } from "@/app/store/flowStore";
 import { WebSocketEvent, WebSocketSubscribed } from "@/app/types/websocket";
 import { useT } from "@/app/i18n";
@@ -98,80 +98,76 @@ const applyStepEvent = (
   }
 };
 
+type WorkItemEventType = WebSocketEvent["type"];
+type WorkItemPatcher = (
+  data: WebSocketEvent["data"],
+  ts: string
+) => Partial<WorkState>;
+
+const WORK_ITEM_PATCHERS: Partial<Record<WorkItemEventType, WorkItemPatcher>> =
+  {
+    work_started: (data, ts) => ({
+      status: "active",
+      started_at: ts,
+      completed_at: undefined,
+      inputs: data?.inputs,
+      next_retry_at: undefined,
+    }),
+    work_succeeded: (data, ts) => ({
+      status: "succeeded",
+      completed_at: ts,
+      outputs: data?.outputs,
+    }),
+    work_failed: (data, ts) => ({
+      status: "failed",
+      completed_at: ts,
+      error: data?.error,
+    }),
+    work_not_completed: (data, ts) => ({
+      status: "not_completed",
+      completed_at: ts,
+      error: data?.error,
+    }),
+    work_retry_scheduled: (data, ts) => ({
+      status: "pending",
+      retry_count: data?.retry_count ?? 0,
+      next_retry_at: data?.next_retry_at,
+      error: data?.error,
+    }),
+    comp_started: () => ({
+      status: "compensating",
+      next_retry_at: undefined,
+    }),
+    comp_succeeded: (_data, ts) => ({
+      status: "compensated",
+      completed_at: ts,
+    }),
+    comp_failed: (data, ts) => ({
+      status: "compensation_failed",
+      completed_at: ts,
+      error: data?.error,
+    }),
+    comp_retry_scheduled: (data, ts) => ({
+      status: "compensating",
+      retry_count: data?.retry_count ?? 0,
+      next_retry_at: data?.next_retry_at,
+      error: data?.error,
+    }),
+  };
+
 const applyWorkItemEvent = (
   wsEvent: WebSocketEvent,
   updateWorkItem: UpdateWorkItem
 ): boolean => {
+  const patcher = WORK_ITEM_PATCHERS[wsEvent.type];
+  if (!patcher) return false;
   const ts = eventTimestamp(wsEvent.timestamp);
-  switch (wsEvent.type) {
-    case "work_started":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "active",
-        started_at: ts,
-        completed_at: undefined,
-        inputs: wsEvent.data?.inputs,
-        next_retry_at: undefined,
-      });
-      return true;
-    case "work_succeeded":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "succeeded",
-        completed_at: ts,
-        outputs: wsEvent.data?.outputs,
-      });
-      return true;
-    case "work_failed":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "failed",
-        completed_at: ts,
-        error: wsEvent.data?.error,
-      });
-      return true;
-    case "work_not_completed":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "not_completed",
-        completed_at: ts,
-        error: wsEvent.data?.error,
-      });
-      return true;
-    case "work_retry_scheduled":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "pending",
-        retry_count: wsEvent.data?.retry_count ?? 0,
-        next_retry_at: wsEvent.data?.next_retry_at,
-        error: wsEvent.data?.error,
-      });
-      return true;
-    case "comp_started":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "compensating",
-        next_retry_at: undefined,
-      });
-      return true;
-    case "comp_succeeded":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "compensated",
-        completed_at: ts,
-      });
-      return true;
-    case "comp_failed":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "compensation_failed",
-        completed_at: ts,
-        error: wsEvent.data?.error,
-      });
-      return true;
-    case "comp_retry_scheduled":
-      updateWorkItem(wsEvent.data?.step_id, wsEvent.data?.token, {
-        status: "compensating",
-        retry_count: wsEvent.data?.retry_count ?? 0,
-        next_retry_at: wsEvent.data?.next_retry_at,
-        error: wsEvent.data?.error,
-      });
-      return true;
-    default:
-      return false;
-  }
+  updateWorkItem(
+    wsEvent.data?.step_id,
+    wsEvent.data?.token,
+    patcher(wsEvent.data, ts)
+  );
+  return true;
 };
 
 interface FlowUpdateContext {

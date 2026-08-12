@@ -52,7 +52,12 @@ describe("ArgyllApi", () => {
     respond(response);
 
     await expect(
-      api.startFlow("wf-1", ["step-1"], { input: ["value"] }, true)
+      api.startFlow({
+        id: "wf-1",
+        goalSteps: ["step-1"],
+        initialState: { input: ["value"] },
+        compensate: true,
+      })
     ).resolves.toEqual(response);
     expect(fetchMock).toHaveBeenCalledWith(
       "http://localhost:8080/engine/flow",

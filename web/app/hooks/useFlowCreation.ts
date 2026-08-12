@@ -121,7 +121,12 @@ export const useFlowCreation = () => {
     setCreating(true);
 
     try {
-      await api.startFlow(flowId, goalSteps, parsedState, compensate);
+      await api.startFlow({
+        id: flowId,
+        goalSteps,
+        initialState: parsedState,
+        compensate,
+      });
       await loadFlows();
       resetForm();
       navigate(`/flow/${flowId}`);

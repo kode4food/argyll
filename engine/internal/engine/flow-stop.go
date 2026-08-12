@@ -154,18 +154,23 @@ func (tx *flowTx) releaseChildFlows(flow api.FlowState) {
 		}
 		fs := api.FlowStep{FlowID: flow.ID, StepID: sid}
 		for tkn := range ex.WorkItems {
-			childID := childFlowID(fs, tkn)
-			if err := tx.flowTx(childID, func(child *flowTx) error {
-				if child.Value().ID == "" {
-					return nil
-				}
-				return child.maybeDeactivate()
-			}); err != nil {
-				slog.Error("Failed to release child flow",
-					log.FlowID(childID),
-					log.Error(err))
-			}
+			tx.releaseChildFlow(fs, tkn)
 		}
+	}
+}
+
+func (tx *flowTx) releaseChildFlow(fs api.FlowStep, tkn api.Token) {
+	childID := childFlowID(fs, tkn)
+	err := tx.flowTx(childID, func(child *flowTx) error {
+		if child.Value().ID == "" {
+			return nil
+		}
+		return child.maybeDeactivate()
+	})
+	if err != nil {
+		slog.Error("Failed to release child flow",
+			log.FlowID(childID),
+			log.Error(err))
 	}
 }
 
