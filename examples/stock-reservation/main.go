@@ -166,27 +166,26 @@ func compensate(_ *builder.StepContext, _ api.Args, outputs api.Args) error {
 
 	// Releasing an unknown reservation is a no-op, so a repeated
 	// compensation cannot return the same stock twice
-	held, ok := findReservation(productID, reservationID)
-	if !ok {
+	held := reservations[productID]
+	idx := slices.IndexFunc(held, func(r StockReservation) bool {
+		return r.ReservationID == reservationID
+	})
+	if idx < 0 {
 		slog.Info("Reservation already released",
 			slog.String("reservation_id", reservationID),
 			slog.String("product_id", productID))
 		return nil
 	}
 
+	quantity := held[idx].Quantity
 	before := stockLevels[productID]
-	stockLevels[productID] = before + held.Quantity
-	reservations[productID] = slices.DeleteFunc(
-		reservations[productID],
-		func(r StockReservation) bool {
-			return r.ReservationID == reservationID
-		},
-	)
+	stockLevels[productID] = before + quantity
+	reservations[productID] = slices.Delete(held, idx, idx+1)
 
 	slog.Info("Stock released",
 		slog.String("reservation_id", reservationID),
 		slog.String("product_id", productID),
-		slog.Int("quantity", held.Quantity),
+		slog.Int("quantity", quantity),
 		slog.Int("stock_before", before),
 		slog.Int("stock_after", stockLevels[productID]))
 
@@ -195,15 +194,4 @@ func compensate(_ *builder.StepContext, _ api.Args, outputs api.Args) error {
 
 func simulateLatency() {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
-}
-
-func findReservation(
-	productID, reservationID string,
-) (StockReservation, bool) {
-	for _, r := range reservations[productID] {
-		if r.ReservationID == reservationID {
-			return r, true
-		}
-	}
-	return StockReservation{}, false
 }
