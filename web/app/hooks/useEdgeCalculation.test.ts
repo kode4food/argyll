@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useEdgeCalculation } from "./useEdgeCalculation";
 import type { Step } from "@/app/api";
 import { AttributeRole, AttributeType } from "@/app/api";
-import { STEP_LAYOUT } from "@/constants/layout";
+import { stepLayout } from "@/constants/layout";
 
 describe("useEdgeCalculation", () => {
   const createStep = (
@@ -169,7 +169,7 @@ describe("useEdgeCalculation", () => {
       useEdgeCalculation([step1, step2], previewStepIds)
     );
 
-    expect(result.current[0].zIndex).toBe(STEP_LAYOUT.EDGE_FOCUSED_Z_INDEX + 1);
+    expect(result.current[0].zIndex).toBe(stepLayout.EDGE_FOCUSED_Z_INDEX + 1);
   });
 
   test("sets default zIndex for edges not in preview plan", () => {
@@ -182,7 +182,7 @@ describe("useEdgeCalculation", () => {
       useEdgeCalculation([step1, step2], previewStepIds)
     );
 
-    expect(result.current[0].zIndex).toBe(STEP_LAYOUT.EDGE_Z_INDEX + 1);
+    expect(result.current[0].zIndex).toBe(stepLayout.EDGE_Z_INDEX + 1);
   });
 
   test("does not animate focused edges that are outside the preview plan", () => {

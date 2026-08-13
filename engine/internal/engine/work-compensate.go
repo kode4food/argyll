@@ -15,8 +15,6 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/util"
 )
 
-// compensationWaveWalk tracks the steps still awaiting compensation against
-// those already visited while walking transitive dependents
 type compensationWaveWalk struct {
 	pending util.Set[api.StepID]
 	seen    util.Set[api.StepID]

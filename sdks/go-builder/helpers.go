@@ -51,7 +51,7 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	step = step.WithEndpoint(endpoint).WithHealthCheck(healthEndpoint)
 
 	if step.compensate != nil &&
-		(step.http == nil || step.http.Compensate == "") {
+		(step.http == nil || step.http.Compensate == nil) {
 		compensateURL := fmt.Sprintf(
 			"http://%s:%d/%s/compensate", hostname, portInt, step.id,
 		)

@@ -35,17 +35,19 @@ def _check_identity(step: Step) -> None:
 
 def _check_type_config(step: Step) -> None:
     if step.type in {StepType.SYNC, StepType.ASYNC}:
-        if not step.http or not step.http.endpoint:
+        if not step.http or not step.http.invoke.endpoint:
             raise StepValidationError("HTTP config with endpoint required")
-        if step.http.method and step.http.method not in {
-            "GET",
-            "POST",
-            "PUT",
-            "DELETE",
-        }:
-            raise StepValidationError(
-                f"Invalid HTTP method: {step.http.method}"
-            )
+        for action in (step.http.invoke, step.http.compensate):
+            if action is None or not action.method:
+                continue
+            if action.method not in {"GET", "POST", "PUT", "DELETE"}:
+                raise StepValidationError(
+                    f"Invalid HTTP method: {action.method}"
+                )
+        if step.http.compensate is not None and not (
+            step.http.compensate.endpoint
+        ):
+            raise StepValidationError("Compensate endpoint required")
         if step.flow is not None:
             raise StepValidationError("Flow config not allowed for HTTP steps")
         if step.script is not None:

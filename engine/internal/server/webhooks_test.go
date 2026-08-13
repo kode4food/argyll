@@ -22,7 +22,7 @@ func TestHookInvalidWorkItem(t *testing.T) {
 			Name: "Invalid Work Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -73,7 +73,7 @@ func TestHookExecutionMissing(t *testing.T) {
 			Name: "Known Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -111,7 +111,7 @@ func TestHookCompleteTwice(t *testing.T) {
 			Name: "Double Complete",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"output": {Role: api.RoleOutput},
@@ -186,7 +186,7 @@ func TestHookFailTwice(t *testing.T) {
 			Name: "Double Fail",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -259,7 +259,7 @@ func TestHookSuccess(t *testing.T) {
 			Name: "Webhook Success",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -317,7 +317,7 @@ func TestHookWorkFailure(t *testing.T) {
 			Name: "Webhook Fail",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -374,7 +374,7 @@ func TestHookInvalidJSON(t *testing.T) {
 			Name: "Webhook Bad JSON",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 

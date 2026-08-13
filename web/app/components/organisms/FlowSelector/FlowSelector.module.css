@@ -69,10 +69,6 @@
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-info) 40%, transparent);
 }
 
-.dropdownSearchInput::placeholder {
-  color: var(--color-pending);
-}
-
 /* Dropdown Menu */
 .dropdownMenu {
   composes: overlayStrong from "@/app/styles/modules/GlassChrome.module.css";

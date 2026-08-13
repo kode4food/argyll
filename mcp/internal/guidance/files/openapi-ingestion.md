@@ -12,8 +12,9 @@ Key structural rules — get these wrong and the engine either rejects the step 
 
 - Every step **must** have `id`. Steps missing `id` are silently skipped by `diff_proposed_steps` and `apply_proposed_steps` with no error.
 - Valid `type` values: `sync`, `async`, `script`, `flow`.
-- The `http` object uses the key `endpoint` (not `url`).
-- If the service exposes a health check endpoint, set `http.health_check` to that URL. The engine uses it to track step availability.
+- The `http` object nests the call under `invoke`, which uses the key `endpoint` (not `url`).
+- If the service exposes a health check endpoint, set `http.health` to that URL. The engine uses it to track step availability, and always polls it with `GET`.
+- If the service can undo the call, add `http.compensate` with its own `endpoint` and optional `method`. Its presence is what makes the step compensatable.
 
 ```json
 {
@@ -21,9 +22,15 @@ Key structural rules — get these wrong and the engine either rejects the step 
   "name": "My Step",
   "type": "sync",
   "http": {
-    "endpoint": "http://host/path",
-    "method": "POST",
-    "health_check": "http://host/health"
+    "invoke": {
+      "endpoint": "http://host/path",
+      "method": "POST"
+    },
+    "compensate": {
+      "endpoint": "http://host/path/{id}",
+      "method": "DELETE"
+    },
+    "health": "http://host/health"
   },
   "attributes": { }
 }

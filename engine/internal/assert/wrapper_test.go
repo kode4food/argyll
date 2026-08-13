@@ -51,8 +51,10 @@ func TestStepValid(t *testing.T) {
 				Name: "Test Sync",
 				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
-					Endpoint: "http://localhost/test",
-					Timeout:  1000,
+					Invoke: api.HTTPAction{
+						Endpoint: "http://localhost/test",
+						Timeout:  1000,
+					},
 				},
 			},
 		},
@@ -63,8 +65,10 @@ func TestStepValid(t *testing.T) {
 				Name: "Test Async",
 				Type: api.StepTypeAsync,
 				HTTP: &api.HTTPConfig{
-					Endpoint: "http://localhost/test",
-					Timeout:  1000,
+					Invoke: api.HTTPAction{
+						Endpoint: "http://localhost/test",
+						Timeout:  1000,
+					},
 				},
 			},
 		},
@@ -114,7 +118,7 @@ func TestStepInvalid(t *testing.T) {
 				Name: "Test",
 				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
-					Endpoint: "http://localhost/test",
+					Invoke: api.HTTPAction{Endpoint: "http://localhost/test"},
 				},
 			},
 			expectedErrorContain: "ID",
@@ -125,7 +129,7 @@ func TestStepInvalid(t *testing.T) {
 				ID:   "test-id",
 				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
-					Endpoint: "http://localhost/test",
+					Invoke: api.HTTPAction{Endpoint: "http://localhost/test"},
 				},
 			},
 			expectedErrorContain: "name",

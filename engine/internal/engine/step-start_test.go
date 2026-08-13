@@ -236,7 +236,9 @@ func TestCollectNone(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{consumer.ID},
@@ -293,7 +295,9 @@ func TestCollectNoneNoProvider(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},
@@ -335,7 +339,9 @@ func TestCollectSomeInit(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		pl := &api.ExecutionPlan{
 			Goals: []api.StepID{st.ID},
@@ -1048,7 +1054,9 @@ func routingSteps() routingStepsRes {
 				Type: api.TypeString,
 			},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	customer := &api.Step{
 		ID:   "customer-lookup",
@@ -1064,7 +1072,9 @@ func routingSteps() routingStepsRes {
 				Type: api.TypeObject,
 			},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	email := &api.Step{
 		ID:   "send-email",
@@ -1090,7 +1100,9 @@ func routingSteps() routingStepsRes {
 				Type: api.TypeString,
 			},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	postal := &api.Step{
 		ID:   "send-postal",
@@ -1116,7 +1128,9 @@ func routingSteps() routingStepsRes {
 				Type: api.TypeString,
 			},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	return routingStepsRes{
 		route:    route,
@@ -1150,7 +1164,9 @@ func collectPlan(
 			},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	pl := &api.ExecutionPlan{
 		Goals: []api.StepID{consumer.ID},
@@ -1186,6 +1202,8 @@ func collectProvider(id api.StepID) *api.Step {
 		Attributes: api.AttributeSpecs{
 			"data": {Role: api.RoleOutput, Type: api.TypeAny},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 }

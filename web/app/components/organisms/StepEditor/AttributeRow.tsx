@@ -1,7 +1,7 @@
 import React from "react";
 import {
   AttributeType,
-  META_KEYS,
+  metaKeys,
   SCRIPT_LANGUAGE_JPATH,
   StepType,
 } from "@/app/api";
@@ -15,16 +15,17 @@ import {
   IconExpandDown,
   IconExpandUp,
   IconRemove,
+  getArgIcon,
 } from "@/utils/iconRegistry";
 import { FlowInputOption } from "@/utils/flowPlanAttributeOptions";
 import styles from "./StepEditor.module.css";
 import formStyles from "./StepEditorForm.module.css";
-import { Attribute, getAttributeIconProps } from "./stepEditorUtils";
+import { Attribute } from "./stepEditorUtils";
 import {
-  ATTRIBUTE_ROLE_TYPES,
-  ATTRIBUTE_TYPES,
+  attributeRoleTypes,
+  attributeTypes,
   getMatchScriptPlaceholderKey,
-  INPUT_COLLECT_TYPES,
+  inputCollectTypes,
 } from "./stepEditorConstants";
 import AttributeMappingPanel from "./AttributeMappingPanel";
 import ComboInput from "./ComboInput";
@@ -58,7 +59,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
   const [isMappingExpanded, setIsMappingExpanded] = React.useState(false);
 
   const collect =
-    attr.collect && INPUT_COLLECT_TYPES.includes(attr.collect)
+    attr.collect && inputCollectTypes.includes(attr.collect)
       ? attr.collect
       : "first";
   const canCollect = attr.role === "required" || attr.role === "optional";
@@ -66,8 +67,8 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     attr.mappingName?.trim() || attr.mappingScript?.trim()
   );
 
-  const roleOptions: IconDropdownOption[] = ATTRIBUTE_ROLE_TYPES.map((type) => {
-    const { Icon, className } = getAttributeIconProps(type);
+  const roleOptions: IconDropdownOption[] = attributeRoleTypes.map((type) => {
+    const { Icon, className } = getArgIcon(type);
     return {
       value: type,
       label: t(`stepEditor.attrRole.${type}`),
@@ -75,7 +76,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     };
   });
 
-  const collectOptions: IconDropdownOption[] = INPUT_COLLECT_TYPES.map((c) => ({
+  const collectOptions: IconDropdownOption[] = inputCollectTypes.map((c) => ({
     value: c,
     label: t(`stepEditor.collect.${c}`),
     icon: (
@@ -89,14 +90,12 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
     ),
   }));
 
-  const dataTypeOptions: InlineSelectOption[] = ATTRIBUTE_TYPES.map((type) => ({
+  const dataTypeOptions: InlineSelectOption[] = attributeTypes.map((type) => ({
     value: type,
     label: type,
   }));
 
-  const { Icon: RoleIcon, className: roleClassName } = getAttributeIconProps(
-    attr.role
-  );
+  const { Icon: RoleIcon, className: roleClassName } = getArgIcon(attr.role);
 
   const showForEach =
     attr.role !== "output" &&
@@ -198,7 +197,7 @@ const AttributeRow: React.FC<AttributeRowProps> = ({
         {attr.role === "meta" && (
           <ComboInput
             value={attr.metaKey || ""}
-            suggestions={META_KEYS}
+            suggestions={metaKeys}
             onChange={(v) => updateAttribute(attr.id, "metaKey", v)}
             placeholder={t("stepEditor.metaKeyPlaceholder")}
             className={formStyles.argValueInput}

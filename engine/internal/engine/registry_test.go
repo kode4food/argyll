@@ -22,7 +22,7 @@ func TestRegisterStep(t *testing.T) {
 				"output": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080/execute",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080/execute"},
 			},
 		}
 
@@ -178,7 +178,7 @@ func TestCatalogTxRegister(t *testing.T) {
 				"foo": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080/a",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080/a"},
 			},
 		}
 		stepB := &api.Step{
@@ -190,7 +190,7 @@ func TestCatalogTxRegister(t *testing.T) {
 				"bar": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080/b",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080/b"},
 			},
 		}
 
@@ -219,7 +219,7 @@ func TestCatalogTxRollback(t *testing.T) {
 				"foo": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080/a",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080/a"},
 			},
 		}
 		stepB := &api.Step{
@@ -230,7 +230,7 @@ func TestCatalogTxRollback(t *testing.T) {
 				"foo": {Role: api.RoleOutput, Type: api.TypeNumber},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080/b",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080/b"},
 			},
 		}
 
@@ -474,7 +474,7 @@ func TestUpdateStepSuccess(t *testing.T) {
 
 		updatedStep := helpers.NewSimpleStep("update-step")
 		updatedStep.Name = "Updated Name"
-		updatedStep.HTTP.Endpoint = "http://test:8080/v2"
+		updatedStep.HTTP.Invoke.Endpoint = "http://test:8080/v2"
 
 		err = eng.UpdateStep(updatedStep)
 		assert.NoError(t, err)

@@ -1,6 +1,5 @@
 import React, { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Step } from "../api";
 import {
   useSteps,
   useLoadFlows,

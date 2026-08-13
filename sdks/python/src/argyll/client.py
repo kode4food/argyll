@@ -124,6 +124,7 @@ class Client:
             BackoffType,
             ConstConfig,
             FlowConfig,
+            HTTPAction,
             HTTPConfig,
             InputCollect,
             MappingConfig,
@@ -210,10 +211,24 @@ class Client:
         http = None
         if "http" in data:
             http_data = data["http"]
+            invoke_data = http_data.get("invoke", {})
+            compensate_data = http_data.get("compensate")
             http = HTTPConfig(
-                endpoint=http_data["endpoint"],
-                health_check=http_data.get("health_check", ""),
-                timeout=http_data.get("timeout", 0),
+                invoke=HTTPAction(
+                    endpoint=invoke_data.get("endpoint", ""),
+                    method=invoke_data.get("method", ""),
+                    timeout=invoke_data.get("timeout", 0),
+                ),
+                compensate=(
+                    HTTPAction(
+                        endpoint=compensate_data.get("endpoint", ""),
+                        method=compensate_data.get("method", ""),
+                        timeout=compensate_data.get("timeout", 0),
+                    )
+                    if compensate_data
+                    else None
+                ),
+                health=http_data.get("health", ""),
             )
 
         # Parse script config

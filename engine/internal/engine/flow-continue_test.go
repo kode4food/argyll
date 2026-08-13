@@ -21,7 +21,9 @@ func TestLinearFlowCompletes(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -31,7 +33,9 @@ func TestLinearFlowCompletes(t *testing.T) {
 				"value":  {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(producer))
@@ -80,7 +84,9 @@ func TestPendingUnusedSkip(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		providerB := &api.Step{
 			ID:   "provider-b",
@@ -90,7 +96,9 @@ func TestPendingUnusedSkip(t *testing.T) {
 				"seed": {Role: api.RoleRequired, Type: api.TypeString},
 				"opt":  {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -100,7 +108,9 @@ func TestPendingUnusedSkip(t *testing.T) {
 				"opt":    {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
@@ -156,7 +166,9 @@ func TestSkipFailedAllProvider(t *testing.T) {
 				"seed": {Role: api.RoleRequired, Type: api.TypeString},
 				"data": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		providerB := &api.Step{
 			ID:   "provider-b",
@@ -165,7 +177,9 @@ func TestSkipFailedAllProvider(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"data": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -179,7 +193,9 @@ func TestSkipFailedAllProvider(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))

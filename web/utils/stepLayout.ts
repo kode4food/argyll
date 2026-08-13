@@ -1,5 +1,5 @@
 import { AttributeRole } from "@/app/api";
-import { STEP_LAYOUT } from "@/constants/layout";
+import { stepLayout } from "@/constants/layout";
 
 export interface RoleCounts {
   required: number;
@@ -16,7 +16,7 @@ export const calculateSectionHeight = (argCount: number): number => {
     return 0;
   }
 
-  return STEP_LAYOUT.SECTION_HEIGHT + argCount * STEP_LAYOUT.ARG_LINE_HEIGHT;
+  return stepLayout.SECTION_HEIGHT + argCount * stepLayout.ARG_LINE_HEIGHT;
 };
 
 export const countRoleAttributes = (
@@ -50,7 +50,7 @@ export const calculateWidgetHeightFromAttributes = (
 ): number => {
   const counts = countRoleAttributes(attributes);
   return (
-    STEP_LAYOUT.WIDGET_BASE_HEIGHT +
+    stepLayout.WIDGET_BASE_HEIGHT +
     calculateSectionHeight(counts.required) +
     calculateSectionHeight(counts.optional) +
     calculateSectionHeight(counts.output)

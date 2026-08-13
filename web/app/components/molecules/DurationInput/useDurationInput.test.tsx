@@ -468,5 +468,19 @@ describe("useDurationInput", () => {
 
       expect(result.current.isValid).toBe(true);
     });
+
+    it("formats placeholderMs as the placeholder", () => {
+      const { result } = renderHook(() =>
+        useDurationInput(0, jest.fn(), 30000)
+      );
+
+      expect(result.current.placeholder).toBe("30 seconds");
+    });
+
+    it("has no placeholder without placeholderMs", () => {
+      const { result } = renderHook(() => useDurationInput(0, jest.fn()));
+
+      expect(result.current.placeholder).toBeNull();
+    });
   });
 });

@@ -60,8 +60,10 @@ func TestCreatePlanEmbedsChildPlans(t *testing.T) {
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test",
-				Timeout:  30 * api.Second,
+				Invoke: api.HTTPAction{
+					Endpoint: "http://test",
+					Timeout:  30 * api.Second,
+				},
 			},
 		}
 		assert.NoError(t, eng.RegisterStep(child))

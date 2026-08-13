@@ -18,7 +18,7 @@ type FlowStatePayload = {
   error?: string;
 };
 
-const FLOW_EVENT_TYPES = [
+const flowEventTypes = [
   "flow_started",
   "step_started",
   "step_completed",
@@ -104,62 +104,61 @@ type WorkItemPatcher = (
   ts: string
 ) => Partial<WorkState>;
 
-const WORK_ITEM_PATCHERS: Partial<Record<WorkItemEventType, WorkItemPatcher>> =
-  {
-    work_started: (data, ts) => ({
-      status: "active",
-      started_at: ts,
-      completed_at: undefined,
-      inputs: data?.inputs,
-      next_retry_at: undefined,
-    }),
-    work_succeeded: (data, ts) => ({
-      status: "succeeded",
-      completed_at: ts,
-      outputs: data?.outputs,
-    }),
-    work_failed: (data, ts) => ({
-      status: "failed",
-      completed_at: ts,
-      error: data?.error,
-    }),
-    work_not_completed: (data, ts) => ({
-      status: "not_completed",
-      completed_at: ts,
-      error: data?.error,
-    }),
-    work_retry_scheduled: (data, ts) => ({
-      status: "pending",
-      retry_count: data?.retry_count ?? 0,
-      next_retry_at: data?.next_retry_at,
-      error: data?.error,
-    }),
-    comp_started: () => ({
-      status: "compensating",
-      next_retry_at: undefined,
-    }),
-    comp_succeeded: (_data, ts) => ({
-      status: "compensated",
-      completed_at: ts,
-    }),
-    comp_failed: (data, ts) => ({
-      status: "compensation_failed",
-      completed_at: ts,
-      error: data?.error,
-    }),
-    comp_retry_scheduled: (data, ts) => ({
-      status: "compensating",
-      retry_count: data?.retry_count ?? 0,
-      next_retry_at: data?.next_retry_at,
-      error: data?.error,
-    }),
-  };
+const workItemPatchers: Partial<Record<WorkItemEventType, WorkItemPatcher>> = {
+  work_started: (data, ts) => ({
+    status: "active",
+    started_at: ts,
+    completed_at: undefined,
+    inputs: data?.inputs,
+    next_retry_at: undefined,
+  }),
+  work_succeeded: (data, ts) => ({
+    status: "succeeded",
+    completed_at: ts,
+    outputs: data?.outputs,
+  }),
+  work_failed: (data, ts) => ({
+    status: "failed",
+    completed_at: ts,
+    error: data?.error,
+  }),
+  work_not_completed: (data, ts) => ({
+    status: "not_completed",
+    completed_at: ts,
+    error: data?.error,
+  }),
+  work_retry_scheduled: (data, ts) => ({
+    status: "pending",
+    retry_count: data?.retry_count ?? 0,
+    next_retry_at: data?.next_retry_at,
+    error: data?.error,
+  }),
+  comp_started: () => ({
+    status: "compensating",
+    next_retry_at: undefined,
+  }),
+  comp_succeeded: (_data, ts) => ({
+    status: "compensated",
+    completed_at: ts,
+  }),
+  comp_failed: (data, ts) => ({
+    status: "compensation_failed",
+    completed_at: ts,
+    error: data?.error,
+  }),
+  comp_retry_scheduled: (data, ts) => ({
+    status: "compensating",
+    retry_count: data?.retry_count ?? 0,
+    next_retry_at: data?.next_retry_at,
+    error: data?.error,
+  }),
+};
 
 const applyWorkItemEvent = (
   wsEvent: WebSocketEvent,
   updateWorkItem: UpdateWorkItem
 ): boolean => {
-  const patcher = WORK_ITEM_PATCHERS[wsEvent.type];
+  const patcher = workItemPatchers[wsEvent.type];
   if (!patcher) return false;
   const ts = eventTimestamp(wsEvent.timestamp);
   updateWorkItem(
@@ -315,7 +314,7 @@ export function useFlowSubscription(
       {
         aggregate_ids: [["flow", selectedFlow]],
         include_state: true,
-        event_types: FLOW_EVENT_TYPES,
+        event_types: flowEventTypes,
       },
       handleFlowEvent
     );

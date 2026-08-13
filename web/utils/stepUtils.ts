@@ -6,7 +6,7 @@ import {
   InputCollect,
   ScriptConfig,
 } from "@/app/api";
-import { STEP_TYPE_ORDER } from "@/app/constants";
+import { stepTypeOrder } from "@/app/constants";
 import {
   IconArrayMultiple,
   IconAttributeMatch,
@@ -23,7 +23,7 @@ export interface OrderedAttribute {
   spec: AttributeSpec;
 }
 
-export const ROLE_ARG_TYPE: Record<AttributeRole, ArgType> = {
+export const roleArgType: Record<AttributeRole, ArgType> = {
   required: "required",
   optional: "optional",
   const: "const",
@@ -176,7 +176,7 @@ export const sortStepsByType = (steps: Step[]): Step[] => {
   return [...steps].sort((a, b) => {
     const aType = getStepType(a);
     const bType = getStepType(b);
-    const orderDiff = STEP_TYPE_ORDER[aType] - STEP_TYPE_ORDER[bType];
+    const orderDiff = stepTypeOrder[aType] - stepTypeOrder[bType];
     if (orderDiff !== 0) return orderDiff;
     return a.name.localeCompare(b.name);
   });

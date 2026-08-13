@@ -25,8 +25,10 @@ func TestMemoizableNoCompensate(t *testing.T) {
 		Type:       api.StepTypeSync,
 		Memoizable: true,
 		HTTP: &api.HTTPConfig{
-			Endpoint:   "http://test:8080/work",
-			Compensate: "http://test:8080/compensate",
+			Invoke: api.HTTPAction{Endpoint: "http://test:8080/work"},
+			Compensate: &api.HTTPAction{
+				Endpoint: "http://test:8080/compensate",
+			},
 		},
 		Attributes: api.AttributeSpecs{},
 	}
@@ -472,7 +474,7 @@ func TestCompRetryNoopForMissingOrTerminalWork(t *testing.T) {
 		assert.NoError(t, env.Engine.CompleteCompensation(fs, tkn))
 
 		assert.NoError(t, env.Engine.NotCompleteCompensation(
-			fs, api.Token("missing"), "missing",
+			fs, "missing", "missing",
 		))
 		assert.NoError(t, env.Engine.NotCompleteCompensation(
 			fs, tkn, "already terminal",
@@ -965,8 +967,10 @@ func newCompensatingStep(id api.StepID) *api.Step {
 		Name: "Compensating Step",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint:   "http://test:8080/work",
-			Compensate: "http://test:8080/compensate",
+			Invoke: api.HTTPAction{Endpoint: "http://test:8080/work"},
+			Compensate: &api.HTTPAction{
+				Endpoint: "http://test:8080/compensate",
+			},
 		},
 		Attributes: api.AttributeSpecs{},
 	}

@@ -9,7 +9,6 @@ export type {
 export {
   buildAttributesFromStep,
   createStepAttributes,
-  getAttributeIconProps,
 } from "./stepAttributeUtils";
 export {
   getValidationError,
@@ -38,6 +37,8 @@ export function buildStepPayload({
   httpMethod,
   healthCheck,
   compensate,
+  compensateMethod,
+  compensateTimeout,
   httpTimeout,
   flowGoals,
   flowCompensate,
@@ -55,6 +56,8 @@ export function buildStepPayload({
   httpMethod: HTTPMethod;
   healthCheck: string;
   compensate: string;
+  compensateMethod: HTTPMethod;
+  compensateTimeout: number;
   httpTimeout: number;
   flowGoals: string;
   flowCompensate: boolean;
@@ -89,12 +92,22 @@ export function buildStepPayload({
     stepData.http = undefined;
     stepData.flow = undefined;
   } else {
+    const compensateEndpoint = compensate.trim();
     stepData.http = {
-      endpoint: endpoint.trim(),
-      method: httpMethod,
-      compensate: compensate.trim() || undefined,
-      health_check: healthCheck.trim() || undefined,
-      timeout: httpTimeout,
+      invoke: {
+        endpoint: endpoint.trim(),
+        method: httpMethod,
+        timeout: httpTimeout,
+      },
+      compensate: compensateEndpoint
+        ? {
+            endpoint: compensateEndpoint,
+            method: compensateMethod,
+            // omitted means "inherit the invoke timeout"
+            ...(compensateTimeout > 0 && { timeout: compensateTimeout }),
+          }
+        : undefined,
+      health: healthCheck.trim() || undefined,
     };
     stepData.script = undefined;
     stepData.flow = undefined;

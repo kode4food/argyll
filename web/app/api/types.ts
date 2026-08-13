@@ -70,14 +70,14 @@ export const META_KEY_STEP_ID = "step_id";
 export const META_KEY_RECEIPT_TOKEN = "receipt_token";
 export const META_KEY_WEBHOOK_URL = "webhook_url";
 
-export const META_KEYS = [
+export const metaKeys = [
   META_KEY_FLOW_ID,
   META_KEY_STEP_ID,
   META_KEY_RECEIPT_TOKEN,
   META_KEY_WEBHOOK_URL,
 ] as const;
 
-export type MetaKey = (typeof META_KEYS)[number];
+export type MetaKey = (typeof metaKeys)[number];
 
 export interface MetaConfig {
   key: string;
@@ -97,12 +97,16 @@ export interface AttributeSpec {
   output?: OutputConfig;
 }
 
-export interface HTTPConfig {
+export interface HTTPAction {
   endpoint: string;
   method?: HTTPMethod;
-  compensate?: string;
-  health_check?: string;
-  timeout: number;
+  timeout?: number;
+}
+
+export interface HTTPConfig {
+  invoke: HTTPAction;
+  compensate?: HTTPAction;
+  health?: string;
 }
 
 export interface ScriptConfig {

@@ -73,10 +73,10 @@ const Footer: React.FC<FooterProps> = ({
         text: step.flow.goals.join(", "),
       };
     } else if (step.http) {
-      const method = step.http.method || "POST";
+      const method = step.http.invoke?.method || "POST";
       displayInfo = {
         icon: TypeIcon,
-        text: `${method} ${step.http.endpoint}`,
+        text: `${method} ${step.http.invoke?.endpoint}`,
       };
     }
 
@@ -112,7 +112,7 @@ const Footer: React.FC<FooterProps> = ({
         </TooltipSection>
       );
     } else if (step.http) {
-      const method = step.http.method || "POST";
+      const method = step.http.invoke?.method || "POST";
       sections.push(
         <TooltipSection key="method" title={t("overviewStep.httpMethod")}>
           {method}
@@ -125,24 +125,12 @@ const Footer: React.FC<FooterProps> = ({
           icon={<IconEndpoint />}
           truncate
         >
-          {step.http.endpoint}
+          {step.http.invoke?.endpoint}
         </TooltipSection>
       );
 
-      if (step.http.health_check) {
-        sections.push(
-          <TooltipSection
-            key="health-check"
-            title={t("overviewStep.healthCheckUrl")}
-            icon={<IconHealthCheck />}
-            truncate
-          >
-            {step.http.health_check}
-          </TooltipSection>
-        );
-      }
-
       if (step.http.compensate) {
+        const compensateMethod = step.http.compensate.method || "POST";
         sections.push(
           <TooltipSection
             key="compensate"
@@ -150,7 +138,20 @@ const Footer: React.FC<FooterProps> = ({
             icon={<IconCompensate />}
             truncate
           >
-            {step.http.compensate}
+            {`${compensateMethod} ${step.http.compensate.endpoint}`}
+          </TooltipSection>
+        );
+      }
+
+      if (step.http.health) {
+        sections.push(
+          <TooltipSection
+            key="health-check"
+            title={t("overviewStep.healthCheckUrl")}
+            icon={<IconHealthCheck />}
+            truncate
+          >
+            {`GET ${step.http.health}`}
           </TooltipSection>
         );
       }

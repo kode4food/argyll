@@ -197,7 +197,7 @@ func (s Step) WithRequiredMatch(
 // WithEndpoint sets the HTTP endpoint where the step handler is listening
 func (s Step) WithEndpoint(endpoint string) Step {
 	s.http = util.MutableCopy(s.http)
-	s.http.Endpoint = endpoint
+	s.http.Invoke.Endpoint = endpoint
 	if s.stepType == "" {
 		s.stepType = api.StepTypeSync
 	}
@@ -207,7 +207,7 @@ func (s Step) WithEndpoint(endpoint string) Step {
 // WithMethod sets the HTTP method used to invoke the step endpoint
 func (s Step) WithMethod(method string) Step {
 	s.http = util.MutableCopy(s.http)
-	s.http.Method = strings.ToUpper(method)
+	s.http.Invoke.Method = strings.ToUpper(method)
 	if s.stepType == "" {
 		s.stepType = api.StepTypeSync
 	}
@@ -248,14 +248,35 @@ func (s Step) WithScriptLanguage(lang, script string) Step {
 // WithHealthCheck sets the HTTP health check endpoint for the step
 func (s Step) WithHealthCheck(endpoint string) Step {
 	s.http = util.MutableCopy(s.http)
-	s.http.HealthCheck = endpoint
+	s.http.Health = endpoint
 	return s
 }
 
 // WithCompensate sets the compensate endpoint for the step
 func (s Step) WithCompensate(endpoint string) Step {
 	s.http = util.MutableCopy(s.http)
-	s.http.Compensate = endpoint
+	comp := util.MutableCopy(s.http.Compensate)
+	comp.Endpoint = endpoint
+	s.http.Compensate = comp
+	return s
+}
+
+// WithCompensateMethod sets the HTTP method used to compensate the step
+func (s Step) WithCompensateMethod(method string) Step {
+	s.http = util.MutableCopy(s.http)
+	comp := util.MutableCopy(s.http.Compensate)
+	comp.Method = strings.ToUpper(method)
+	s.http.Compensate = comp
+	return s
+}
+
+// WithCompensateTimeout sets the compensate timeout in milliseconds,
+// overriding the step's execution timeout for compensation requests
+func (s Step) WithCompensateTimeout(timeout int64) Step {
+	s.http = util.MutableCopy(s.http)
+	comp := util.MutableCopy(s.http.Compensate)
+	comp.Timeout = timeout
+	s.http.Compensate = comp
 	return s
 }
 
@@ -309,7 +330,7 @@ func (s Step) Build() (*api.Step, error) {
 	var http *api.HTTPConfig
 	if s.http != nil {
 		http = util.MutableCopy(s.http)
-		http.Timeout = s.timeout
+		http.Invoke.Timeout = s.timeout
 	}
 
 	st := &api.Step{

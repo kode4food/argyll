@@ -6,7 +6,7 @@ import dropdownStyles from "@/app/styles/components/dropdown.module.css";
 import SegmentedGroup from "@/app/components/molecules/SegmentedGroup";
 import styles from "./ScriptLanguageInlineInput.module.css";
 
-const SCRIPT_LANGUAGE_OPTIONS = [
+const scriptLanguageOptions = [
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
@@ -41,9 +41,9 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
     setHighlightedIndex,
     wrapperRef,
     handleKeyDown,
-  } = useDropdown(SCRIPT_LANGUAGE_OPTIONS, activeLanguage, onLanguageChange);
+  } = useDropdown(scriptLanguageOptions, activeLanguage, onLanguageChange);
 
-  const activeOption = SCRIPT_LANGUAGE_OPTIONS.find(
+  const activeOption = scriptLanguageOptions.find(
     (o) => o.value === activeLanguage
   );
 
@@ -70,7 +70,7 @@ const ScriptLanguageInlineInput: React.FC<ScriptLanguageInlineInputProps> = ({
             role="listbox"
             data-ui-overlay="dropdown"
           >
-            {SCRIPT_LANGUAGE_OPTIONS.map((opt, index) => (
+            {scriptLanguageOptions.map((opt, index) => (
               <button
                 key={opt.value}
                 type="button"

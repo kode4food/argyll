@@ -67,11 +67,6 @@
   box-sizing: border-box;
 }
 
-.idInputInline::placeholder {
-  color: var(--panel-text-muted, var(--panel-text));
-  opacity: 0.5;
-}
-
 .buttonGenerateSegment {
   flex-shrink: 0;
   width: 2rem;

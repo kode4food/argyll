@@ -42,8 +42,10 @@ func (s *Server) generateStepImpl(args generateStepImplArgs) (any, error) {
 	}
 	if httpCfg, ok := asMap(args.Step["http"]); ok {
 		isExternal = true
-		if m := strings.ToUpper(stringValue(httpCfg["method"])); m != "" {
-			method = m
+		if invoke, ok := asMap(httpCfg["invoke"]); ok {
+			if m := strings.ToUpper(stringValue(invoke["method"])); m != "" {
+				method = m
+			}
 		}
 	}
 

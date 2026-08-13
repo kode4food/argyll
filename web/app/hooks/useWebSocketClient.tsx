@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { API_CONFIG } from "@/constants/common";
+import { apiConfig } from "@/constants/common";
 import {
   ConnectionStatus,
   WebSocketEvent,
@@ -79,7 +79,7 @@ export const useWebSocketClient = ({
       onmessage: (e: MessageEvent) => void;
     }) => {
       try {
-        const ws = new WebSocket(API_CONFIG.WS_URL);
+        const ws = new WebSocket(apiConfig.WS_URL);
         wsRef.current = ws;
         ws.onopen = handlers.onopen;
         ws.onclose = handlers.onclose;

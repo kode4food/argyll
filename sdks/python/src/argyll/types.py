@@ -204,13 +204,11 @@ class AttributeSpec:
 
 
 @dataclass(frozen=True)
-class HTTPConfig:
-    """HTTP configuration for sync/async steps."""
+class HTTPAction:
+    """A single callable endpoint on a step's service."""
 
     endpoint: str
     method: str = ""
-    health_check: str = ""
-    compensate: str = ""
     timeout: int = 0
 
     def to_dict(self) -> Dict[str, Any]:
@@ -218,12 +216,26 @@ class HTTPConfig:
         result: Dict[str, Any] = {"endpoint": self.endpoint}
         if self.method:
             result["method"] = self.method
-        if self.health_check:
-            result["health_check"] = self.health_check
-        if self.compensate:
-            result["compensate"] = self.compensate
         if self.timeout > 0:
             result["timeout"] = self.timeout
+        return result
+
+
+@dataclass(frozen=True)
+class HTTPConfig:
+    """HTTP configuration for sync/async steps."""
+
+    invoke: HTTPAction
+    compensate: Optional[HTTPAction] = None
+    health: str = ""
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Convert to API dictionary format."""
+        result: Dict[str, Any] = {"invoke": self.invoke.to_dict()}
+        if self.compensate is not None:
+            result["compensate"] = self.compensate.to_dict()
+        if self.health:
+            result["health"] = self.health
         return result
 
 

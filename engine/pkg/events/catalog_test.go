@@ -55,7 +55,7 @@ func TestStepRegistered(t *testing.T) {
 		Name: "Test Step",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080",
+			Invoke: api.HTTPAction{Endpoint: "http://localhost:8080"},
 		},
 	}
 
@@ -84,7 +84,7 @@ func TestStepUnregistered(t *testing.T) {
 		Name: "Test Step",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080",
+			Invoke: api.HTTPAction{Endpoint: "http://localhost:8080"},
 		},
 	}
 
@@ -116,7 +116,7 @@ func TestStepUpdated(t *testing.T) {
 		Name: "Old Name",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080",
+			Invoke: api.HTTPAction{Endpoint: "http://localhost:8080"},
 		},
 	}
 
@@ -125,7 +125,7 @@ func TestStepUpdated(t *testing.T) {
 		Name: "New Name",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:9090",
+			Invoke: api.HTTPAction{Endpoint: "http://localhost:9090"},
 		},
 	}
 

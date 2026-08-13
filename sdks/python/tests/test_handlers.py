@@ -403,7 +403,11 @@ def test_step_server_compensate_handler(monkeypatch):
 
     step = client.registered[0]
     assert step.http is not None
-    assert step.http.compensate == "http://localhost:9020/test-step/compensate"
+    assert step.http.compensate is not None
+    assert (
+        step.http.compensate.endpoint
+        == "http://localhost:9020/test-step/compensate"
+    )
 
     app = captured["app"]
     test_client = app.test_client()

@@ -11,6 +11,7 @@ export interface DurationInputState {
   inputValue: string;
   isValid: boolean;
   isFocused: boolean;
+  placeholder: string | null;
   handlers: {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
     onFocus: () => void;
@@ -45,7 +46,8 @@ const getLanguageKey = (locale: string): DurationLanguage => {
  */
 export const useDurationInput = (
   value: number,
-  onChange: (milliseconds: number) => void
+  onChange: (milliseconds: number) => void,
+  placeholderMs?: number
 ): DurationInputState => {
   const locale = useLocale();
   const languageKey = useMemo(() => getLanguageKey(locale), [locale]);
@@ -127,6 +129,7 @@ export const useDurationInput = (
     inputValue,
     isValid,
     isFocused,
+    placeholder: placeholderMs ? (ms(placeholderMs) ?? null) : null,
     handlers: {
       onChange: handleChange,
       onFocus: handleFocus,

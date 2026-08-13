@@ -115,7 +115,7 @@ func TestCreateStepConflict(t *testing.T) {
 			Name: "Different Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://different:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://different:8080"},
 			},
 			Attributes: api.AttributeSpecs{},
 		}

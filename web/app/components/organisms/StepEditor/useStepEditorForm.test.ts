@@ -22,7 +22,7 @@ const buildStep = (overrides: Partial<Step> = {}): Step => ({
   name: "Step 1",
   type: "sync",
   attributes: {},
-  http: { endpoint: "https://example.com", timeout: 1000 },
+  http: { invoke: { endpoint: "https://example.com", timeout: 1000 } },
   ...overrides,
 });
 
@@ -218,7 +218,7 @@ describe("useStepEditorForm", () => {
   it("updates an existing step", async () => {
     const existingStep = buildStep({
       id: "existing-step",
-      http: { endpoint: "https://example.com", timeout: 1500 },
+      http: { invoke: { endpoint: "https://example.com", timeout: 1500 } },
     });
     const updatedStep = buildStep({
       id: "existing-step",

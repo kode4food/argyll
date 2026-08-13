@@ -16,8 +16,10 @@ func TestCacheGetPut(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"input":  &api.AttributeSpec{Role: api.RoleRequired},
@@ -43,8 +45,10 @@ func TestCacheMiss(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"input": &api.AttributeSpec{Role: api.RoleRequired},
@@ -64,8 +68,10 @@ func TestCacheDifferentInputs(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"input": &api.AttributeSpec{Role: api.RoleRequired},
@@ -98,8 +104,10 @@ func TestCacheInvalidatesOnStepChange(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"input": &api.AttributeSpec{Role: api.RoleRequired},
@@ -116,8 +124,10 @@ func TestCacheInvalidatesOnStepChange(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://different.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://different.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"input": &api.AttributeSpec{Role: api.RoleRequired},
@@ -136,8 +146,10 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 		Name: "Original Name",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Labels: api.Labels{"env": "test"},
 		Attributes: api.AttributeSpecs{
@@ -156,8 +168,10 @@ func TestCacheKeepsOnMetadataChange(t *testing.T) {
 		Name: "Different Name",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Labels: api.Labels{"env": "prod"},
 		Attributes: api.AttributeSpecs{
@@ -177,8 +191,10 @@ func TestCacheEmptyInputs(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"output": &api.AttributeSpec{Role: api.RoleOutput},
@@ -203,8 +219,10 @@ func TestCacheHashAttributeOrder(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"z": &api.AttributeSpec{Role: api.RoleRequired},
@@ -217,8 +235,10 @@ func TestCacheHashAttributeOrder(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"a": &api.AttributeSpec{Role: api.RoleRequired},
@@ -284,8 +304,10 @@ func TestCacheHashInputOrder(t *testing.T) {
 		ID:   api.StepID("test"),
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://example.com",
-			Timeout:  30000,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://example.com",
+				Timeout:  30000,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"x": &api.AttributeSpec{Role: api.RoleRequired},

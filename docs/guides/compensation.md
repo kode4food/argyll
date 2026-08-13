@@ -87,9 +87,13 @@ Add `compensate` to the step's `http` configuration:
   "name": "Charge Card",
   "type": "async",
   "http": {
-    "endpoint": "https://payment-service.example.com/charge",
-    "timeout": 1000,
-    "compensate": "https://payment-service.example.com/refund/{charge_id}"
+    "invoke": {
+      "endpoint": "https://payment-service.example.com/charge",
+      "timeout": 1000
+    },
+    "compensate": {
+      "endpoint": "https://payment-service.example.com/refund/{charge_id}"
+    }
   },
   "attributes": {
     "amount": { "role": "required", "type": "number" },
@@ -98,14 +102,24 @@ Add `compensate` to the step's `http` configuration:
 }
 ```
 
-The `compensate` URL supports `{param}` placeholders. Placeholders are resolved
-from a merged view of the work item's inputs and outputs, with **outputs taking
-priority** over inputs when names collide. This lets you reference output values
-like `{charge_id}` directly in the URL.
+The `compensate` endpoint supports `{param}` placeholders. Placeholders are
+resolved from a merged view of the work item's inputs and outputs, with
+**outputs taking priority** over inputs when names collide. This lets you
+reference output values like `{charge_id}` directly in the URL.
+
+`compensate` takes the same shape as `invoke`, so it accepts its own `method`
+and `timeout`. The method defaults to `POST`; set `"method": "DELETE"` when the
+service models the undo as a resource deletion.
+
+Timeouts resolve in three steps: the compensate `timeout` if set, otherwise the
+`invoke` timeout, otherwise the global engine timeout (`STEP_TIMEOUT`). Set a
+compensate timeout only when undoing takes materially longer or shorter than
+doing — leaving it unset keeps the step's single timeout governing both.
 
 ## What the engine sends
 
-The engine sends a `POST` request to the resolved compensate URL with:
+The engine sends a request to the resolved compensate URL using the configured
+method (`POST` by default) with:
 
 ```json
 {
@@ -113,6 +127,9 @@ The engine sends a `POST` request to the resolved compensate URL with:
   "output": { "charge_id": "ch_abc123" }
 }
 ```
+
+A `GET` compensate endpoint is sent without a body; every other method,
+including `DELETE`, carries the payload above.
 
 The same `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` headers
 sent to the work endpoint are also sent to the compensate endpoint. Use the
@@ -130,9 +147,14 @@ When `max_retries` is exhausted, the compensation is marked `compensation_failed
   "name": "Reserve Inventory",
   "type": "sync",
   "http": {
-    "endpoint": "https://inventory.example.com/reserve",
-    "timeout": 3000,
-    "compensate": "https://inventory.example.com/release/{reservation_id}"
+    "invoke": {
+      "endpoint": "https://inventory.example.com/reserve",
+      "timeout": 3000
+    },
+    "compensate": {
+      "endpoint": "https://inventory.example.com/release/{reservation_id}",
+      "method": "DELETE"
+    }
   },
   "work_config": {
     "max_retries": 5,

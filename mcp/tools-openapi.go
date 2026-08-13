@@ -116,8 +116,10 @@ func normalizeExistingStep(id string, st map[string]any) openapi.Step {
 		res.ID = id
 	}
 	if httpCfg, ok := asMap(st["http"]); ok {
-		res.Method = strings.ToUpper(stringValue(httpCfg["method"]))
-		res.Path = stringValue(httpCfg["endpoint"])
+		if invoke, ok := asMap(httpCfg["invoke"]); ok {
+			res.Method = strings.ToUpper(stringValue(invoke["method"]))
+			res.Path = stringValue(invoke["endpoint"])
+		}
 	}
 
 	for name, rawAttr := range attrs {

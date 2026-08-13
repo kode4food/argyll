@@ -8,7 +8,7 @@ type ClusterPayload = { nodes?: Record<string, ClusterNode> };
 
 type SocketClient = ReturnType<typeof useWebSocketClient>;
 
-const CLUSTER_EVENT_TYPES = ["step_health_changed"];
+const clusterEventTypes = ["step_health_changed"];
 
 export function useClusterSubscription(socketClient: SocketClient) {
   const updateStepHealth = useFlowStore((state) => state.updateStepHealth);
@@ -54,7 +54,7 @@ export function useClusterSubscription(socketClient: SocketClient) {
       {
         aggregate_ids: [["cluster"]],
         include_state: true,
-        event_types: CLUSTER_EVENT_TYPES,
+        event_types: clusterEventTypes,
       },
       handleClusterEvent
     );

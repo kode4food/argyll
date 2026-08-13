@@ -7,7 +7,7 @@ export interface FlowInputMeta {
   hasConflictingDefaults: boolean;
 }
 
-const TYPE_DEFAULT_MAP: Partial<Record<AttributeType, string>> = {
+const typeDefaultMap: Partial<Record<AttributeType, string>> = {
   [AttributeType.Number]: "0",
   [AttributeType.Boolean]: "false",
   [AttributeType.Object]: "{}",
@@ -19,7 +19,7 @@ export function getTypeDefaultValue(
   attrType?: AttributeType
 ): string | undefined {
   if (!attrType) return undefined;
-  return TYPE_DEFAULT_MAP[attrType];
+  return typeDefaultMap[attrType];
 }
 
 export function mergeInputType(

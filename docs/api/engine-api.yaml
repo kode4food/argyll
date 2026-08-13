@@ -226,10 +226,11 @@ paths:
                       role: "output"
                       type: "string"
                   http:
-                    method: "POST"
-                    endpoint: "http://localhost:8081/process-text"
-                    health_check: "http://localhost:8081/health"
-                    timeout: 30000
+                    invoke:
+                      method: "POST"
+                      endpoint: "http://localhost:8081/process-text"
+                      timeout: 30000
+                    health: "http://localhost:8081/health"
               scriptStep:
                 summary: Script Step (Lua)
                 value:
@@ -1338,18 +1339,21 @@ components:
           language: "jpath"
           script: "$.user.email"
 
-    HttpConfig:
+    HttpAction:
       type: object
-      description: Configuration for HTTP-based steps (sync/async)
+      description: A single callable endpoint on a step's service
       required:
         - endpoint
       properties:
         method:
           type: string
           description: |
-            Optional HTTP method for invoking the step endpoint.
+            Optional HTTP method used to call this endpoint.
             Supported values are `GET`, `POST`, `PUT`, and `DELETE`.
             Defaults to `POST` when omitted.
+
+            A `GET` request is sent without a body; every other method
+            carries the JSON payload.
           enum:
             - GET
             - POST
@@ -1360,21 +1364,43 @@ components:
         endpoint:
           type: string
           format: uri
-          description: HTTP endpoint URL
+          description: |
+            HTTP endpoint URL. May contain `{name}` parameters that are
+            substituted from the step's attributes.
           example: "http://localhost:8081/process-text"
-        health_check:
-          type: string
-          format: uri
-          description: Optional health check endpoint
-          example: "http://localhost:8081/health"
         timeout:
           type: integer
           format: int64
           description: |
-            Optional per-step timeout in milliseconds.
-            If omitted or <= 0, the engine uses the global engine timeout
+            Optional per-action timeout in milliseconds.
+            If omitted or <= 0, `compensate` falls back to the `invoke`
+            timeout, and `invoke` falls back to the global engine timeout
             (`STEP_TIMEOUT`, default `30000` ms).
           example: 30000
+
+    HttpConfig:
+      type: object
+      description: Configuration for HTTP-based steps (sync/async)
+      required:
+        - invoke
+      properties:
+        invoke:
+          allOf:
+            - $ref: "#/components/schemas/HttpAction"
+          description: The endpoint that executes the step
+        compensate:
+          allOf:
+            - $ref: "#/components/schemas/HttpAction"
+          description: |
+            Optional endpoint that reverses a completed step. Its presence
+            is what makes a step compensatable; omit it entirely for steps
+            with no compensation semantics.
+        health:
+          type: string
+          format: uri
+          description: |
+            Optional health check endpoint. Always polled with `GET`.
+          example: "http://localhost:8081/health"
 
     ScriptConfig:
       type: object

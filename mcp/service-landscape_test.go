@@ -165,8 +165,10 @@ func TestGenerateStepImplHTTPConfiguredStepPreservesType(t *testing.T) {
 			"name": "Lookup User",
 			"type": "async",
 			"http": map[string]any{
-				"endpoint": "http://users/{user_id}",
-				"method":   "GET",
+				"invoke": map[string]any{
+					"endpoint": "http://users/{user_id}",
+					"method":   "GET",
+				},
 			},
 		},
 	})

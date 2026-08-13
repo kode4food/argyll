@@ -82,7 +82,9 @@ func (c *HTTPClient) Invoke(
 		return nil, err
 	}
 
-	respBody, err := c.sendRequest(step, httpReq)
+	respBody, err := c.sendRequest(
+		step, c.requestTimeout(step.HTTP.Invoke.Timeout), httpReq,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -94,12 +96,13 @@ func (c *HTTPClient) Invoke(
 // endpoint with the original inputs and the successful outputs
 func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	step := req.Step
-	if step.HTTP == nil {
+	if step.HTTP == nil || step.HTTP.Compensate == nil {
 		return fmt.Errorf("%w: %s", ErrNoHTTPConfig, step.ID)
 	}
+	action := step.HTTP.Compensate
 
 	merged := req.Inputs.Apply(req.Outputs)
-	endpoint, err := resolveEndpoint(step.HTTP.Compensate, merged)
+	endpoint, err := resolveEndpoint(action.Endpoint, merged)
 	if err != nil {
 		slog.Error("Failed to resolve compensate endpoint",
 			log.StepID(step.ID),
@@ -107,9 +110,8 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 		return err
 	}
 
-	body, err := json.Marshal(
-		compensateBody{Input: req.Inputs, Output: req.Outputs},
-	)
+	method := action.DefaultedMethod()
+	bodyReader, err := compensateRequestBody(method, req)
 	if err != nil {
 		slog.Error("Failed to marshal compensate request",
 			log.StepID(step.ID),
@@ -117,8 +119,7 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 		return err
 	}
 
-	httpReq, err := http.NewRequest(http.MethodPost, endpoint,
-		bytes.NewBuffer(body))
+	httpReq, err := http.NewRequest(method, endpoint, bodyReader)
 	if err != nil {
 		slog.Error("Failed to create compensate request",
 			log.StepID(step.ID),
@@ -131,14 +132,15 @@ func (c *HTTPClient) InvokeCompensate(req CompensateRequest) error {
 	httpReq.Header.Set("User-Agent", UserAgent)
 	api.SetMetadataHeaders(httpReq.Header, req.Metadata)
 
-	_, err = c.sendRequest(step, httpReq)
+	_, err = c.sendRequest(
+		step, c.requestTimeout(step.HTTP.CompensateTimeout()), httpReq,
+	)
 	return err
 }
 
 func (c *HTTPClient) sendRequest(
-	step *api.Step, httpReq *http.Request,
+	step *api.Step, timeout time.Duration, httpReq *http.Request,
 ) ([]byte, error) {
-	timeout := c.requestTimeout(step)
 	ctx, cancel := context.WithTimeout(httpReq.Context(), timeout)
 	defer cancel()
 
@@ -174,9 +176,9 @@ func (c *HTTPClient) sendRequest(
 	return respBody, nil
 }
 
-func (c *HTTPClient) requestTimeout(step *api.Step) time.Duration {
-	if step != nil && step.HTTP != nil && step.HTTP.Timeout > 0 {
-		return time.Duration(step.HTTP.Timeout) * time.Millisecond
+func (c *HTTPClient) requestTimeout(timeoutMS int64) time.Duration {
+	if timeoutMS > 0 {
+		return time.Duration(timeoutMS) * time.Millisecond
 	}
 	return c.timeout
 }
@@ -184,8 +186,8 @@ func (c *HTTPClient) requestTimeout(step *api.Step) time.Duration {
 func buildRequest(
 	step *api.Step, args api.Args, meta api.Metadata,
 ) (*http.Request, error) {
-	method := step.HTTP.DefaultedMethod()
-	endpoint, err := resolveEndpoint(step.HTTP.Endpoint, args)
+	method := step.HTTP.Invoke.DefaultedMethod()
+	endpoint, err := resolveEndpoint(step.HTTP.Invoke.Endpoint, args)
 	if err != nil {
 		slog.Error("Failed to resolve HTTP endpoint",
 			log.StepID(step.ID),
@@ -276,6 +278,22 @@ func requestBody(method string, args api.Args) (io.Reader, error) {
 	}
 
 	body, err := json.Marshal(args)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewBuffer(body), nil
+}
+
+func compensateRequestBody(
+	method string, req CompensateRequest,
+) (io.Reader, error) {
+	if method == "GET" {
+		return nil, nil
+	}
+
+	body, err := json.Marshal(
+		compensateBody{Input: req.Inputs, Output: req.Outputs},
+	)
 	if err != nil {
 		return nil, err
 	}

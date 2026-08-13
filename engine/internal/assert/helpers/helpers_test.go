@@ -188,7 +188,7 @@ func TestStep(t *testing.T) {
 	assert.Equal(t, api.Name("Test Step"), st.Name)
 	assert.Equal(t, api.StepTypeSync, st.Type)
 	assert.NotNil(t, st.HTTP)
-	assert.NotEmpty(t, st.HTTP.Endpoint)
+	assert.NotEmpty(t, st.HTTP.Invoke.Endpoint)
 
 	err := st.Validate()
 	assert.NoError(t, err)

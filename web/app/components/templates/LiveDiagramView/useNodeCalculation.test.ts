@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { useNodeCalculation } from "./useNodeCalculation";
 import { AttributeRole, FlowContext, Step } from "@/app/api";
-import { STEP_LAYOUT } from "@/constants/layout";
+import { stepLayout } from "@/constants/layout";
 import { loadNodePositions } from "@/utils/nodePositioning";
 
 jest.mock("@/utils/nodePositioning", () => ({
@@ -30,7 +30,7 @@ describe("useNodeCalculation", () => {
 
   const sectionHeightFor = (count: number) => {
     if (count === 0) return 0;
-    return STEP_LAYOUT.SECTION_HEIGHT + count * STEP_LAYOUT.ARG_LINE_HEIGHT;
+    return stepLayout.SECTION_HEIGHT + count * stepLayout.ARG_LINE_HEIGHT;
   };
 
   beforeEach(() => {
@@ -97,11 +97,11 @@ describe("useNodeCalculation", () => {
 
     expect(first.position).toEqual({
       x: 0,
-      y: STEP_LAYOUT.VERTICAL_OFFSET,
+      y: stepLayout.VERTICAL_OFFSET,
     });
     expect(second.position).toEqual({
-      x: STEP_LAYOUT.HORIZONTAL_SPACING,
-      y: STEP_LAYOUT.VERTICAL_OFFSET,
+      x: stepLayout.HORIZONTAL_SPACING,
+      y: stepLayout.VERTICAL_OFFSET,
     });
   });
 
@@ -130,20 +130,19 @@ describe("useNodeCalculation", () => {
     const { result } = renderHook(() => useNodeCalculation(steps));
 
     const firstHeight =
-      STEP_LAYOUT.WIDGET_BASE_HEIGHT + sectionHeightFor(requiredCount);
+      stepLayout.WIDGET_BASE_HEIGHT + sectionHeightFor(requiredCount);
     const secondHeight =
-      STEP_LAYOUT.WIDGET_BASE_HEIGHT + sectionHeightFor(outputCount);
-    const rowOffset = (STEP_LAYOUT.VERTICAL_SPACING + firstHeight) * half;
-    const rowOffsetSecond =
-      (STEP_LAYOUT.VERTICAL_SPACING + secondHeight) * half;
+      stepLayout.WIDGET_BASE_HEIGHT + sectionHeightFor(outputCount);
+    const rowOffset = (stepLayout.VERTICAL_SPACING + firstHeight) * half;
+    const rowOffsetSecond = (stepLayout.VERTICAL_SPACING + secondHeight) * half;
 
     expect(result.current[0].position).toEqual({
       x: 0,
-      y: STEP_LAYOUT.VERTICAL_OFFSET - rowOffset,
+      y: stepLayout.VERTICAL_OFFSET - rowOffset,
     });
     expect(result.current[1].position).toEqual({
       x: 0,
-      y: STEP_LAYOUT.VERTICAL_OFFSET + rowOffsetSecond,
+      y: stepLayout.VERTICAL_OFFSET + rowOffsetSecond,
     });
   });
 });

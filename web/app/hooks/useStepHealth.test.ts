@@ -26,9 +26,8 @@ describe("useStepHealth", () => {
     type: "sync",
     attributes: {},
     http: {
-      endpoint: "http://test.com",
-      timeout: 5000,
-      ...(hasHealthCheck && { health_check: "http://test.com/health" }),
+      invoke: { endpoint: "http://test.com", timeout: 5000 },
+      ...(hasHealthCheck && { health: "http://test.com/health" }),
     },
   });
 
@@ -38,9 +37,8 @@ describe("useStepHealth", () => {
     type: "async",
     attributes: {},
     http: {
-      endpoint: "http://test.com",
-      timeout: 5000,
-      ...(hasHealthCheck && { health_check: "http://test.com/health" }),
+      invoke: { endpoint: "http://test.com", timeout: 5000 },
+      ...(hasHealthCheck && { health: "http://test.com/health" }),
     },
   });
 

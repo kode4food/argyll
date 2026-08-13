@@ -19,12 +19,16 @@ describe("StepEditorHttpConfiguration", () => {
     httpMethod: "POST" as const,
     healthCheck: "http://localhost:8080/health",
     compensate: "",
+    compensateMethod: "POST" as const,
+    compensateTimeout: 0,
     httpTimeout: 5000,
     memoizable: false,
     setEndpoint: jest.fn(),
     setHttpMethod: jest.fn(),
     setHealthCheck: jest.fn(),
     setCompensate: jest.fn(),
+    setCompensateMethod: jest.fn(),
+    setCompensateTimeout: jest.fn(),
     setHttpTimeout: jest.fn(),
   };
 
@@ -41,17 +45,19 @@ describe("StepEditorHttpConfiguration", () => {
     expect(
       screen.getByDisplayValue("http://localhost:8080/test")
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "POST" })).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "POST" })).toHaveLength(2);
     expect(
       screen.getByDisplayValue("http://localhost:8080/health")
     ).toBeInTheDocument();
-    expect(screen.getByTestId("duration-input")).toHaveValue("5000");
+    const getButton = screen.getByRole("button", { name: "GET" });
+    expect(getButton).toBeDisabled();
+    expect(screen.getAllByTestId("duration-input")[0]).toHaveValue("5000");
   });
 
   test("updates method, endpoint, timeout, and health check", () => {
     render(<StepEditorHttpConfiguration {...baseProps} />);
 
-    fireEvent.click(screen.getByRole("button", { name: "POST" }));
+    fireEvent.click(screen.getAllByRole("button", { name: "POST" })[0]);
     fireEvent.click(screen.getByRole("option", { name: "GET" }));
     fireEvent.change(
       screen.getByPlaceholderText(t("stepEditor.endpointPlaceholder")),
@@ -59,7 +65,7 @@ describe("StepEditorHttpConfiguration", () => {
         target: { value: "http://localhost:9090/new" },
       }
     );
-    fireEvent.change(screen.getByTestId("duration-input"), {
+    fireEvent.change(screen.getAllByTestId("duration-input")[0], {
       target: { value: "10000" },
     });
     fireEvent.change(
@@ -94,6 +100,19 @@ describe("StepEditorHttpConfiguration", () => {
     expect(baseProps.setCompensate).toHaveBeenCalledWith(
       "http://localhost:8080/compensate"
     );
+  });
+
+  test("updates compensate method and timeout", () => {
+    render(<StepEditorHttpConfiguration {...baseProps} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: "POST" })[1]);
+    fireEvent.click(screen.getByRole("option", { name: "DELETE" }));
+    fireEvent.change(screen.getAllByTestId("duration-input")[1], {
+      target: { value: "2000" },
+    });
+
+    expect(baseProps.setCompensateMethod).toHaveBeenCalledWith("DELETE");
+    expect(baseProps.setCompensateTimeout).toHaveBeenCalledWith(2000);
   });
 
   test("disables compensate field when memoizable is true", () => {

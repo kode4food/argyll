@@ -2,7 +2,6 @@ import {
   Attribute,
   buildAttributesFromStep,
   createStepAttributes,
-  getAttributeIconProps,
   getValidationError,
   validateAttributesList,
 } from "./stepEditorUtils";
@@ -239,13 +238,6 @@ describe("stepEditorUtils", () => {
     const spec = createStepAttributes([item])[item.name] as Record<string, any>;
     expect(spec[configKey]?.[valueKey]).toBeUndefined();
   });
-
-  test.each(["required", "optional", "output", "const", "meta"] as const)(
-    "returns icon props for %s attributes",
-    (role) => {
-      expect(getAttributeIconProps(role).Icon).toBeDefined();
-    }
-  );
 
   type ValidationArgs = Parameters<typeof getValidationError>[0];
   const baseValidationArgs: ValidationArgs = {

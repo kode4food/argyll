@@ -68,13 +68,17 @@ const WorkTimer: React.FC<WorkTimerProps> = ({ start, end }) => {
 };
 
 const workTimerTiming = (work: WorkState, step: Step) => {
-  if (work.status === "active" && step.http?.timeout && work.started_at) {
+  if (
+    work.status === "active" &&
+    step.http?.invoke?.timeout &&
+    work.started_at
+  ) {
     const start = parseTime(work.started_at);
     if (!start) return undefined;
     return {
       titleKey: "liveStep.activeTimeoutTitle",
       start,
-      end: start + step.http.timeout,
+      end: start + step.http.invoke.timeout,
     };
   }
 
@@ -102,8 +106,8 @@ const computeDisplayInfo = (step: Step): DisplayInfo => {
     return { icon: TypeIcon, text: step.flow.goals.join(", ") };
   }
   if (step.http) {
-    const method = step.http.method || "POST";
-    return { icon: TypeIcon, text: `${method} ${step.http.endpoint}` };
+    const method = step.http.invoke?.method || "POST";
+    return { icon: TypeIcon, text: `${method} ${step.http.invoke?.endpoint}` };
   }
   return null;
 };

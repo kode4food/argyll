@@ -17,7 +17,7 @@ import StepEditorFlowConfiguration from "./StepEditorFlowConfiguration";
 import StepEditorHttpConfiguration from "./StepEditorHttpConfiguration";
 import StepEditorHeader from "./StepEditorHeader";
 import StepEditorFooter from "./StepEditorFooter";
-import { PREDICATE_LANGUAGE_OPTIONS } from "./stepEditorConstants";
+import { predicateLanguageOptions } from "./stepEditorConstants";
 import { useScrollFade } from "@/app/hooks/useScrollFade";
 
 interface StepEditorProps {
@@ -73,6 +73,10 @@ const StepEditor: React.FC<StepEditorProps> = ({
     setHealthCheck,
     compensate,
     setCompensate,
+    compensateMethod,
+    setCompensateMethod,
+    compensateTimeout,
+    setCompensateTimeout,
     httpTimeout,
     setHttpTimeout,
     flowGoals,
@@ -231,7 +235,7 @@ const StepEditor: React.FC<StepEditorProps> = ({
                   onChange={setPredicate}
                   language={predicateLanguage}
                   onLanguageChange={setPredicateLanguage}
-                  languageOptions={PREDICATE_LANGUAGE_OPTIONS}
+                  languageOptions={predicateLanguageOptions}
                   containerClassName={formStyles.predicateEditorContainer}
                 />
 
@@ -250,12 +254,16 @@ const StepEditor: React.FC<StepEditorProps> = ({
                     httpMethod={httpMethod}
                     healthCheck={healthCheck}
                     compensate={compensate}
+                    compensateMethod={compensateMethod}
+                    compensateTimeout={compensateTimeout}
                     httpTimeout={httpTimeout}
                     memoizable={memoizable}
                     setEndpoint={setEndpoint}
                     setHttpMethod={setHttpMethod}
                     setHealthCheck={setHealthCheck}
                     setCompensate={setCompensate}
+                    setCompensateMethod={setCompensateMethod}
+                    setCompensateTimeout={setCompensateTimeout}
                     setHttpTimeout={setHttpTimeout}
                   />
                 )}

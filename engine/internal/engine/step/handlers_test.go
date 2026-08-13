@@ -15,7 +15,9 @@ func TestRegistryValidateNilHandler(t *testing.T) {
 	// sync handler has no Validate func -- should return nil
 	err := reg.Validate(&api.Step{
 		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.test"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.test"},
+		},
 	})
 	assert.NoError(t, err)
 }
@@ -84,7 +86,9 @@ func TestHTTPCompensatorInvokes(t *testing.T) {
 	reg := newRegistry(cl)
 	st := &api.Step{
 		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{Compensate: "http://test/undo"},
+		HTTP: &api.HTTPConfig{
+			Compensate: &api.HTTPAction{Endpoint: "http://test/undo"},
+		},
 	}
 	comp, err := reg.Compensator(st)
 	assert.NoError(t, err)
@@ -103,7 +107,9 @@ func TestCompensatorNilWithoutEndpoint(t *testing.T) {
 	reg := newRegistry(&testClient{})
 	comp, err := reg.Compensator(&api.Step{
 		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{Endpoint: "http://test/work"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://test/work"},
+		},
 	})
 	assert.NoError(t, err)
 	assert.Nil(t, comp)
@@ -119,7 +125,9 @@ func TestApplyMetaInputsMapsAttribute(t *testing.T) {
 	st := &api.Step{
 		ID:   "step-1",
 		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.test"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.test"},
+		},
 		Attributes: api.AttributeSpecs{
 			"token": {
 				Role: api.RoleMeta,

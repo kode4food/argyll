@@ -18,7 +18,7 @@ interface StepEditorBasicFieldsProps {
   stepType: StepType;
 }
 
-const STEP_TYPE_OPTIONS = [
+const stepTypeOptions = [
   {
     type: "sync" as StepType,
     value: "sync",
@@ -63,11 +63,11 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
     setHighlightedIndex,
     wrapperRef,
     handleKeyDown,
-  } = useDropdown(STEP_TYPE_OPTIONS, stepType, (value) =>
+  } = useDropdown(stepTypeOptions, stepType, (value) =>
     setStepType(value as StepType)
   );
 
-  const selectedOption = STEP_TYPE_OPTIONS.find((o) => o.type === stepType);
+  const selectedOption = stepTypeOptions.find((o) => o.type === stepType);
   const SelectedIcon = getStepTypeIcon(stepType);
 
   return (
@@ -122,7 +122,7 @@ const StepEditorBasicFields: React.FC<StepEditorBasicFieldsProps> = ({
               role="listbox"
               data-ui-overlay="dropdown"
             >
-              {STEP_TYPE_OPTIONS.map(({ type, labelKey, titleKey }, index) => {
+              {stepTypeOptions.map(({ type, labelKey, titleKey }, index) => {
                 const Icon = getStepTypeIcon(type);
                 return (
                   <button

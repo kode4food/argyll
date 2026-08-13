@@ -150,7 +150,9 @@ func TestHTTPHandlerPropagatesMetadata(t *testing.T) {
 	st := &api.Step{
 		ID:   "step-1",
 		Type: api.StepTypeSync,
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.test/execute"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.test/execute"},
+		},
 	}
 
 	err = handler.Execute(rt, st, api.Args{"input": "value"}, "token-1")
@@ -179,7 +181,9 @@ func TestHTTPHandlerAsyncAddsWebhookURL(t *testing.T) {
 	st := &api.Step{
 		ID:   "step-1",
 		Type: api.StepTypeAsync,
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.test/execute"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.test/execute"},
+		},
 	}
 
 	err = handler.Execute(rt, st, api.Args{"input": "value"}, "token-1")

@@ -35,8 +35,10 @@ func TestSimpleResolver(t *testing.T) {
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -65,8 +67,10 @@ func TestProcessorWithInit(t *testing.T) {
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -91,8 +95,10 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -105,8 +111,10 @@ func TestInitSatisfiedExcluded(t *testing.T) {
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -171,8 +179,10 @@ func TestBlockedProviderNoDownstream(t *testing.T) {
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 	consumer := planConsumer("consumer", "data", api.InputCollectFirst)
@@ -285,8 +295,10 @@ func TestProcessorNoInit(t *testing.T) {
 			"output": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -309,8 +321,10 @@ func TestChained(t *testing.T) {
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -323,8 +337,10 @@ func TestChained(t *testing.T) {
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -336,8 +352,10 @@ func TestChained(t *testing.T) {
 			"result": {Role: api.RoleRequired, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -367,8 +385,10 @@ func TestMultipleGoals(t *testing.T) {
 			"output1": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -380,8 +400,10 @@ func TestMultipleGoals(t *testing.T) {
 			"output2": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -407,8 +429,10 @@ func TestExistingOutputs(t *testing.T) {
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -431,8 +455,10 @@ func TestComplexGraph(t *testing.T) {
 			"a": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -444,8 +470,10 @@ func TestComplexGraph(t *testing.T) {
 			"b": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -459,8 +487,10 @@ func TestComplexGraph(t *testing.T) {
 			"c": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -473,8 +503,10 @@ func TestComplexGraph(t *testing.T) {
 			"d": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -508,8 +540,10 @@ func TestReceipts(t *testing.T) {
 			"data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -534,8 +568,10 @@ func TestMissingDependency(t *testing.T) {
 			"output":      {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -558,8 +594,10 @@ func TestOptionalInput(t *testing.T) {
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -572,8 +610,10 @@ func TestOptionalInput(t *testing.T) {
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -602,8 +642,10 @@ func TestOptionalMissing(t *testing.T) {
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -629,8 +671,10 @@ func TestProvidersWithInit(t *testing.T) {
 			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -642,8 +686,10 @@ func TestProvidersWithInit(t *testing.T) {
 			"product_info": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -656,8 +702,10 @@ func TestProvidersWithInit(t *testing.T) {
 			"result":       {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -715,8 +763,10 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 			"input": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -729,8 +779,10 @@ func TestPreviewShowsUnsatisfiedPath(t *testing.T) {
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -757,8 +809,10 @@ func TestMixedInputs(t *testing.T) {
 			"required_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -770,8 +824,10 @@ func TestMixedInputs(t *testing.T) {
 			"optional_data": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -785,8 +841,10 @@ func TestMixedInputs(t *testing.T) {
 			"result":        {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 
@@ -828,8 +886,10 @@ func TestRequiredMatchUnknownOnlyRequiresGate(t *testing.T) {
 			"result":   {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 	cat := makeCatalogState(api.Steps{
@@ -855,8 +915,10 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 			"customer":    {Role: api.RoleOutput, Type: api.TypeObject},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 	sendPostal := &api.Step{
@@ -878,8 +940,10 @@ func TestRequiredMatchInitMismatchPrunesNormalInputs(t *testing.T) {
 			"result":   {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 	cat := makeCatalogState(api.Steps{
@@ -917,8 +981,10 @@ func TestRequiredMatchInitMismatchKeepsGateProviders(t *testing.T) {
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 	cat := makeCatalogState(api.Steps{
@@ -978,8 +1044,10 @@ func planProvider(id api.StepID, output api.Name) *api.Step {
 			output: {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 }
@@ -1002,8 +1070,10 @@ func planConsumer(
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://test",
+				Timeout:  30 * api.Second,
+			},
 		},
 	}
 }

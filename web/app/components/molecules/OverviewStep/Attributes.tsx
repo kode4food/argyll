@@ -5,7 +5,7 @@ import { getArgIcon } from "@/utils/iconRegistry";
 import {
   getAttributeModifiers,
   getSortedAttributes,
-  ROLE_ARG_TYPE,
+  roleArgType,
 } from "@/utils/stepUtils";
 import ArgModifiers, { argTypeTitleKey } from "../StepShared/ArgModifiers";
 import styles from "../StepShared/StepAttributesSection.module.css";
@@ -24,7 +24,7 @@ const Attributes: React.FC<AttributesProps> = ({
     ({ name, spec }) => ({
       name,
       type: spec.type || "any",
-      argType: ROLE_ARG_TYPE[spec.role],
+      argType: roleArgType[spec.role],
       modifiers: getAttributeModifiers(spec),
     })
   );

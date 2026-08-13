@@ -322,7 +322,7 @@ func TestHTTPRetryRecovers(t *testing.T) {
 		assert.NoError(t, eng.Start())
 
 		st := helpers.NewStepWithOutputs("http-retry", "result")
-		st.HTTP.Endpoint = stepServer.URL
+		st.HTTP.Invoke.Endpoint = stepServer.URL
 		assert.NoError(t, eng.RegisterStep(st))
 
 		pl := &api.ExecutionPlan{

@@ -105,14 +105,16 @@ def test_register_step():
         status=200,
     )
 
-    from argyll.types import HTTPConfig, Step
+    from argyll.types import HTTPAction, HTTPConfig, Step
 
     client = Client()
     step = Step(
         id="test-step",
         name="Test",
         type=StepType.SYNC,
-        http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        http=HTTPConfig(
+            invoke=HTTPAction(endpoint="http://localhost:8081/test")
+        ),
     )
     client.register_step(step)
 
@@ -131,14 +133,16 @@ def test_register_step_error():
         status=400,
     )
 
-    from argyll.types import HTTPConfig, Step
+    from argyll.types import HTTPAction, HTTPConfig, Step
 
     client = Client()
     step = Step(
         id="test-step",
         name="Test",
         type=StepType.SYNC,
-        http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        http=HTTPConfig(
+            invoke=HTTPAction(endpoint="http://localhost:8081/test")
+        ),
     )
 
     try:
@@ -157,14 +161,16 @@ def test_update_step():
         status=200,
     )
 
-    from argyll.types import HTTPConfig, Step
+    from argyll.types import HTTPAction, HTTPConfig, Step
 
     client = Client()
     step = Step(
         id="test-step",
         name="Test",
         type=StepType.SYNC,
-        http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        http=HTTPConfig(
+            invoke=HTTPAction(endpoint="http://localhost:8081/test")
+        ),
     )
     client.update_step(step)
 
@@ -180,14 +186,16 @@ def test_update_step_error():
         status=500,
     )
 
-    from argyll.types import HTTPConfig, Step
+    from argyll.types import HTTPAction, HTTPConfig, Step
 
     client = Client()
     step = Step(
         id="test-step",
         name="Test",
         type=StepType.SYNC,
-        http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        http=HTTPConfig(
+            invoke=HTTPAction(endpoint="http://localhost:8081/test")
+        ),
     )
 
     try:
@@ -284,9 +292,11 @@ def test_parse_step_with_all_fields():
                     },
                     "labels": {"env": "prod"},
                     "http": {
-                        "endpoint": "http://localhost:8081/complex",
-                        "health_check": "http://localhost:8081/health",
-                        "timeout": 5000,
+                        "invoke": {
+                            "endpoint": "http://localhost:8081/complex",
+                            "timeout": 5000,
+                        },
+                        "health": "http://localhost:8081/health",
                     },
                     "script": {"language": "lua", "script": "return 1 + 2"},
                     "predicate": {"language": "lua", "script": "return true"},
@@ -314,7 +324,7 @@ def test_parse_step_with_all_fields():
     step = steps[0]
     assert step.id == "complex-step"
     assert step.http is not None
-    assert step.http.timeout == 5000
+    assert step.http.invoke.timeout == 5000
     assert step.script is not None
     assert step.predicate is not None
     assert step.work_config is not None

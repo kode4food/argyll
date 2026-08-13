@@ -14,8 +14,10 @@ func NewTestStep() *api.Step {
 		Name: "Test Step",
 		Type: api.StepTypeSync,
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://localhost:8080/transform",
-			Timeout:  30 * api.Second,
+			Invoke: api.HTTPAction{
+				Endpoint: "http://localhost:8080/transform",
+				Timeout:  30 * api.Second,
+			},
 		},
 		Attributes: api.AttributeSpecs{
 			"input": {
@@ -65,7 +67,7 @@ func NewSimpleStep(id api.StepID) *api.Step {
 		Type:       api.StepTypeSync,
 		Attributes: api.AttributeSpecs{},
 		HTTP: &api.HTTPConfig{
-			Endpoint: "http://test:8080",
+			Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 		},
 	}
 }

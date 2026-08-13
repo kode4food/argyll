@@ -21,8 +21,10 @@ func TestForEachAggregatesOutputs(t *testing.T) {
 			Name: "For Each Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://example.com",
-				Timeout:  30 * api.Second,
+				Invoke: api.HTTPAction{
+					Endpoint: "http://example.com",
+					Timeout:  30 * api.Second,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
@@ -78,8 +80,10 @@ func TestForEachTypedSlice(t *testing.T) {
 			Name: "For Each Typed",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://example.com",
-				Timeout:  30 * api.Second,
+				Invoke: api.HTTPAction{
+					Endpoint: "http://example.com",
+					Timeout:  30 * api.Second,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
@@ -135,8 +139,10 @@ func TestForEachTypedNumbers(t *testing.T) {
 			Name: "For Each Numbers",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://example.com",
-				Timeout:  30 * api.Second,
+				Invoke: api.HTTPAction{
+					Endpoint: "http://example.com",
+					Timeout:  30 * api.Second,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"item": {
@@ -192,8 +198,10 @@ func TestOutputMappingDescendants(t *testing.T) {
 			Name: "Mapped Descendants Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://example.com",
-				Timeout:  30 * api.Second,
+				Invoke: api.HTTPAction{
+					Endpoint: "http://example.com",
+					Timeout:  30 * api.Second,
+				},
 			},
 			Attributes: api.AttributeSpecs{
 				"input": {
@@ -252,7 +260,7 @@ func TestTooManyWorkItems(t *testing.T) {
 			Name: "ForEach Overload",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://example.com",
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
 			},
 			Attributes: api.AttributeSpecs{
 				"x": {

@@ -24,7 +24,9 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -45,7 +47,9 @@ func TestDefaultTimeoutBeforeProvider(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(provider))
@@ -117,7 +121,9 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -151,7 +157,9 @@ func TestTimeoutZeroFallsBackImmediately(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(provider))
@@ -239,7 +247,9 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		fast := &api.Step{
 			ID:   "fast",
@@ -260,7 +270,9 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 				},
 				"fast_done": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		strict := &api.Step{
 			ID:   "strict",
@@ -270,7 +282,9 @@ func TestTimeoutDefaultIsStepLocal(t *testing.T) {
 				"opt":         {Role: api.RoleRequired, Type: api.TypeString},
 				"strict_done": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(provider))
@@ -357,7 +371,9 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		productProvider := &api.Step{
 			ID:   "product-provider",
@@ -366,7 +382,9 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"product_info": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		orderCreator := &api.Step{
 			ID:   "order-creator",
@@ -384,7 +402,9 @@ func TestTimeoutRequiredsGateFallback(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(userProvider))
@@ -486,7 +506,9 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt_a": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		providerB := &api.Step{
 			ID:   "provider-b",
@@ -495,7 +517,9 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt_b": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -521,7 +545,9 @@ func TestTimeoutWaitsForLaterOptional(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(providerA))
@@ -612,7 +638,9 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"kickoff": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		userProvider := &api.Step{
 			ID:   "user-provider",
@@ -622,7 +650,9 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 				"kickoff":   {Role: api.RoleRequired, Type: api.TypeString},
 				"user_info": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		orderCreator := &api.Step{
 			ID:   "order-creator",
@@ -640,7 +670,9 @@ func TestTimeoutStepReadyAnchor(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(gate))
@@ -725,7 +757,9 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"req": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		optProvider := &api.Step{
 			ID:   "opt-provider",
@@ -734,7 +768,9 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"opt": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -752,7 +788,9 @@ func TestTimeoutAfterRequireds(t *testing.T) {
 				},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		assert.NoError(t, env.Engine.RegisterStep(reqProvider))
@@ -927,7 +965,9 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 		Attributes: api.AttributeSpecs{
 			"opt": {Role: api.RoleOutput, Type: api.TypeAny},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	providerB := &api.Step{
 		ID:   "provider-b",
@@ -937,7 +977,9 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 			"missing": {Role: api.RoleRequired, Type: api.TypeString},
 			"opt":     {Role: api.RoleOutput, Type: api.TypeAny},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	consumer := &api.Step{
 		ID:   "consumer",
@@ -956,7 +998,9 @@ func collectTimeoutPlan(collect api.InputCollect) collectTimeoutPlanRes {
 			},
 			"result": {Role: api.RoleOutput, Type: api.TypeString},
 		},
-		HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+		},
 	}
 	pl := &api.ExecutionPlan{
 		Goals: []api.StepID{consumer.ID},

@@ -8,7 +8,7 @@ type CatalogPayload = { steps?: Record<string, Step> };
 
 type SocketClient = ReturnType<typeof useWebSocketClient>;
 
-const CATALOG_EVENT_TYPES = [
+const catalogEventTypes = [
   "step_registered",
   "step_unregistered",
   "step_updated",
@@ -58,7 +58,7 @@ export function useCatalogSubscription(socketClient: SocketClient) {
       {
         aggregate_ids: [["catalog"]],
         include_state: true,
-        event_types: CATALOG_EVENT_TYPES,
+        event_types: catalogEventTypes,
       },
       handleCatalogEvent
     );

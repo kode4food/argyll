@@ -1,5 +1,5 @@
 import React from "react";
-import { Step, ExecutionResult, AttributeRole } from "@/app/api";
+import { Step, ExecutionResult } from "@/app/api";
 import Tooltip from "@/app/components/atoms/Tooltip";
 import TooltipSection from "@/app/components/atoms/TooltipSection";
 import { useT } from "@/app/i18n";
@@ -8,7 +8,7 @@ import { parseInputValue } from "@/utils/inputParseUtils";
 import {
   getAttributeModifiers,
   getSortedAttributes,
-  ROLE_ARG_TYPE,
+  roleArgType,
 } from "@/utils/stepUtils";
 import {
   formatAttributeValue,
@@ -168,7 +168,7 @@ const Attributes: React.FC<AttributesProps> = ({
   ).map(({ name, spec }) => ({
     name,
     type: spec.type || "any",
-    argType: ROLE_ARG_TYPE[spec.role],
+    argType: roleArgType[spec.role],
     spec,
     modifiers: getAttributeModifiers(spec),
   }));

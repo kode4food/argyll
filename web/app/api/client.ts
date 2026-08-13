@@ -1,4 +1,4 @@
-import { API_CONFIG } from "@/constants/common";
+import { apiConfig } from "@/constants/common";
 import {
   EngineState,
   ExecutionPlan,
@@ -17,9 +17,9 @@ export interface StartFlowRequest {
 }
 
 export class ArgyllApi {
-  private baseURL: string;
+  private readonly baseURL: string;
 
-  constructor(baseURL: string = API_CONFIG.BASE_URL) {
+  constructor(baseURL: string = apiConfig.BASE_URL) {
     this.baseURL = baseURL;
   }
 

@@ -14,6 +14,7 @@ from .types import (
     ConstConfig,
     FlowConfig,
     FlowID,
+    HTTPAction,
     HTTPConfig,
     InitArgs,
     Labels,
@@ -174,15 +175,25 @@ class StepBuilder:
     def _http_with(self, **overrides: Any) -> "HTTPConfig":
         """Return a copy of the current HTTPConfig with the given overrides."""
         base = self._http
+        invoke = base.invoke if base else HTTPAction(endpoint="")
         return HTTPConfig(
-            endpoint=overrides.get("endpoint", base.endpoint if base else ""),
-            method=overrides.get("method", base.method if base else ""),
-            health_check=overrides.get(
-                "health_check", base.health_check if base else ""
+            invoke=HTTPAction(
+                endpoint=overrides.get("endpoint", invoke.endpoint),
+                method=overrides.get("method", invoke.method),
+                timeout=overrides.get("timeout", invoke.timeout),
             ),
             compensate=overrides.get(
-                "compensate", base.compensate if base else ""
+                "compensate", base.compensate if base else None
             ),
+            health=overrides.get("health", base.health if base else ""),
+        )
+
+    def _compensate_with(self, **overrides: Any) -> "HTTPAction":
+        """Return a copy of the compensate action with the given overrides."""
+        base = self._http.compensate if self._http else None
+        return HTTPAction(
+            endpoint=overrides.get("endpoint", base.endpoint if base else ""),
+            method=overrides.get("method", base.method if base else ""),
             timeout=overrides.get("timeout", base.timeout if base else 0),
         )
 
@@ -196,11 +207,29 @@ class StepBuilder:
 
     def with_health_check(self, url: str) -> "StepBuilder":
         """Set health check endpoint."""
-        return self._copy(_http=self._http_with(health_check=url))
+        return self._copy(_http=self._http_with(health=url))
 
     def with_compensate(self, url: str) -> "StepBuilder":
         """Set the compensate endpoint for the step."""
-        return self._copy(_http=self._http_with(compensate=url))
+        return self._copy(
+            _http=self._http_with(
+                compensate=self._compensate_with(endpoint=url)
+            )
+        )
+
+    def with_compensate_method(self, method: str) -> "StepBuilder":
+        """Set the HTTP method used to compensate the step."""
+        return self._copy(
+            _http=self._http_with(
+                compensate=self._compensate_with(method=method.upper())
+            )
+        )
+
+    def with_compensate_timeout(self, ms: int) -> "StepBuilder":
+        """Set the compensate timeout in milliseconds."""
+        return self._copy(
+            _http=self._http_with(compensate=self._compensate_with(timeout=ms))
+        )
 
     def with_timeout(self, ms: int) -> "StepBuilder":
         """Set execution timeout in milliseconds."""

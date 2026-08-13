@@ -18,9 +18,7 @@ const modifiersMatch = (
     return false;
   if (shortcut.meta !== undefined && event.metaKey !== shortcut.meta)
     return false;
-  if (shortcut.shift !== undefined && event.shiftKey !== shortcut.shift)
-    return false;
-  return true;
+  return !(shortcut.shift !== undefined && event.shiftKey !== shortcut.shift);
 };
 
 interface KeyboardContext {

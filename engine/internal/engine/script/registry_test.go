@@ -112,7 +112,7 @@ func TestRegistryPredicateTrue(t *testing.T) {
 			Name: "Predicate Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -145,7 +145,7 @@ func TestRegistryPredicateFalse(t *testing.T) {
 			Name: "Predicate Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -178,7 +178,7 @@ func TestLuaPredicateTrue(t *testing.T) {
 			Name: "Lua Predicate Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,
@@ -211,7 +211,7 @@ func TestLuaPredicateFalse(t *testing.T) {
 			Name: "Lua Predicate Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Predicate: &api.ScriptConfig{
 				Language: api.ScriptLangLua,

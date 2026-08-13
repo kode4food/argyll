@@ -22,7 +22,7 @@ func TestNewStep(t *testing.T) {
 	assert.Equal(t, api.StepID("test-step"), st.ID)
 	assert.Equal(t, name, st.Name)
 	assert.Equal(t, api.StepTypeSync, st.Type)
-	assert.Equal(t, int64(30000), st.HTTP.Timeout)
+	assert.Equal(t, int64(30000), st.HTTP.Invoke.Timeout)
 }
 
 func TestNewStepIDGeneration(t *testing.T) {
@@ -177,7 +177,7 @@ func TestWithEndpoint(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
-	assert.Equal(t, endpoint, st.HTTP.Endpoint)
+	assert.Equal(t, endpoint, st.HTTP.Invoke.Endpoint)
 	assert.Equal(t, api.StepTypeSync, st.Type)
 }
 
@@ -189,7 +189,7 @@ func TestWithMethod(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
-	assert.Equal(t, "GET", st.HTTP.Method)
+	assert.Equal(t, "GET", st.HTTP.Invoke.Method)
 	assert.Equal(t, api.StepTypeSync, st.Type)
 }
 
@@ -249,7 +249,7 @@ func TestWithHealthCheck(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
-	assert.Equal(t, healthCheck, st.HTTP.HealthCheck)
+	assert.Equal(t, healthCheck, st.HTTP.Health)
 }
 
 func TestWithTimeout(t *testing.T) {
@@ -260,7 +260,7 @@ func TestWithTimeout(t *testing.T) {
 		Build()
 
 	assert.NoError(t, err)
-	assert.Equal(t, timeout, st.HTTP.Timeout)
+	assert.Equal(t, timeout, st.HTTP.Invoke.Timeout)
 }
 
 func TestWithType(t *testing.T) {
@@ -406,7 +406,7 @@ func TestChaining(t *testing.T) {
 	assert.Len(t, requiredArgs, 2)
 	assert.Len(t, optionalArgs, 1)
 	assert.Len(t, outputArgs, 2)
-	assert.Equal(t, 45*api.Second, st.HTTP.Timeout)
+	assert.Equal(t, 45*api.Second, st.HTTP.Invoke.Timeout)
 }
 
 func TestImmutability(t *testing.T) {
@@ -462,13 +462,13 @@ func TestImmutabilityHTTPConfig(t *testing.T) {
 
 	step1, err1 := base.Build()
 	assert.NoError(t, err1)
-	assert.Equal(t, "http://example.com", step1.HTTP.Endpoint)
-	assert.Equal(t, "http://example.com/health", step1.HTTP.HealthCheck)
+	assert.Equal(t, "http://example.com", step1.HTTP.Invoke.Endpoint)
+	assert.Equal(t, "http://example.com/health", step1.HTTP.Health)
 
 	step2, err2 := modified.Build()
 	assert.NoError(t, err2)
-	assert.Equal(t, "http://different.com", step2.HTTP.Endpoint)
-	assert.Equal(t, "http://example.com/health", step2.HTTP.HealthCheck)
+	assert.Equal(t, "http://different.com", step2.HTTP.Invoke.Endpoint)
+	assert.Equal(t, "http://example.com/health", step2.HTTP.Health)
 }
 
 func TestBuildValidationErrors(t *testing.T) {
@@ -531,7 +531,7 @@ func TestStepBuilderChaining(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, api.StepID("complex"), st.ID)
 		assert.Equal(t, api.StepTypeAsync, st.Type)
-		assert.Equal(t, int64(60000), st.HTTP.Timeout)
+		assert.Equal(t, int64(60000), st.HTTP.Invoke.Timeout)
 		assert.Len(t, st.Attributes, 5)
 		assert.Equal(t, api.RoleRequired, st.Attributes["user_id"].Role)
 		assert.Equal(t, api.RoleOptional, st.Attributes["metadata"].Role)
@@ -643,7 +643,36 @@ func TestWithCompensate(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.HTTP)
-	assert.Equal(t, compensate, st.HTTP.Compensate)
+	assert.NotNil(t, st.HTTP.Compensate)
+	assert.Equal(t, compensate, st.HTTP.Compensate.Endpoint)
+}
+
+func TestWithCompensateMethodAndTimeout(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com/work").
+		WithTimeout(30 * api.Second).
+		WithCompensate("http://example.com/undo").
+		WithCompensateMethod("delete").
+		WithCompensateTimeout(5 * api.Second).
+		Build()
+
+	assert.NoError(t, err)
+	assert.NotNil(t, st.HTTP.Compensate)
+	assert.Equal(t, "DELETE", st.HTTP.Compensate.Method)
+	assert.Equal(t, 5*api.Second, st.HTTP.Compensate.Timeout)
+	assert.Equal(t, 5*api.Second, st.HTTP.CompensateTimeout())
+}
+
+func TestCompensateTimeoutFallsBackToInvoke(t *testing.T) {
+	st, err := testClient().NewStep().WithName("Test").
+		WithEndpoint("http://example.com/work").
+		WithTimeout(30 * api.Second).
+		WithCompensate("http://example.com/undo").
+		Build()
+
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), st.HTTP.Compensate.Timeout)
+	assert.Equal(t, 30*api.Second, st.HTTP.CompensateTimeout())
 }
 
 func TestWithCompensateMemoizableReturnsError(t *testing.T) {

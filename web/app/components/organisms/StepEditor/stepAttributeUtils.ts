@@ -9,7 +9,6 @@ import {
   ScriptConfig,
   Step,
 } from "@/app/api";
-import { getArgIcon } from "@/utils/iconRegistry";
 import { getSortedAttributes } from "@/utils/stepUtils";
 import {
   Attribute,
@@ -17,7 +16,7 @@ import {
   AttributeRoleType,
 } from "./stepEditorTypes";
 
-const ATTR_ROLE_TYPE: Record<AttributeRole, AttributeRoleType> = {
+const attrRoleType: Record<AttributeRole, AttributeRoleType> = {
   [AttributeRole.Required]: "required",
   [AttributeRole.Optional]: "optional",
   [AttributeRole.Const]: "const",
@@ -39,7 +38,7 @@ function buildSingleAttribute(
   idx: AttributeIndex
 ): Attribute {
   const { index, timestamp } = idx;
-  const attrType = ATTR_ROLE_TYPE[spec.role];
+  const attrType = attrRoleType[spec.role];
   const prefix = ATTR_ID_PREFIX[spec.role];
   const inputConfig =
     spec.role === AttributeRole.Required
@@ -93,11 +92,6 @@ export function buildAttributesFromStep(step: Step | null): Attribute[] {
   );
 }
 
-export function getAttributeIconProps(attrType: AttributeRoleType) {
-  const argType = attrType;
-  return getArgIcon(argType);
-}
-
 function buildInputAttrSpec(
   a: Attribute,
   mapping: MappingConfig | undefined
@@ -145,7 +139,7 @@ function buildMappingConfig(a: Attribute): MappingConfig | undefined {
   return config;
 }
 
-const ROLE_MAP: Record<AttributeRoleType, AttributeRole> = {
+const roleMap: Record<AttributeRoleType, AttributeRole> = {
   required: AttributeRole.Required,
   optional: AttributeRole.Optional,
   const: AttributeRole.Const,
@@ -158,7 +152,7 @@ export function createStepAttributes(
 ): Record<string, AttributeSpec> {
   const stepAttributes: Record<string, AttributeSpec> = {};
   attributes.forEach((a) => {
-    const role = ROLE_MAP[a.role];
+    const role = roleMap[a.role];
     const spec: AttributeSpec = { role, type: a.dataType };
     const mapping = buildMappingConfig(a);
 

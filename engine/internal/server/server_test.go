@@ -316,7 +316,7 @@ func TestSuccess(t *testing.T) {
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -400,7 +400,7 @@ func TestHookStepNotFound(t *testing.T) {
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -441,7 +441,7 @@ func TestHookInvalidToken(t *testing.T) {
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -494,7 +494,7 @@ func TestHookInvalidJSONRoute(t *testing.T) {
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -557,7 +557,7 @@ func TestHookFailurePath(t *testing.T) {
 			Name: "Async Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"result": {Role: api.RoleOutput},
@@ -875,8 +875,10 @@ func TestEngineHealthUnknownSteps(t *testing.T) {
 			Name: "Step A",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint:    healthServer.URL + "/execute",
-				HealthCheck: healthServer.URL + "/health",
+				Invoke: api.HTTPAction{
+					Endpoint: healthServer.URL + "/execute",
+				},
+				Health: healthServer.URL + "/health",
 			},
 		}
 		stepB := helpers.NewSimpleStep("step-b")
@@ -1117,7 +1119,7 @@ func TestStartFlowMissingRequiredInputs(t *testing.T) {
 			Name: "Required Input Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"customer_id": {Role: api.RoleRequired, Type: api.TypeString},
@@ -1259,7 +1261,7 @@ func TestPlanPreview(t *testing.T) {
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -1272,7 +1274,7 @@ func TestPlanPreview(t *testing.T) {
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -1652,7 +1654,7 @@ func TestHookSuccessRoute(t *testing.T) {
 			Name: "Webhook Step",
 			Type: api.StepTypeAsync,
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 			Attributes: api.AttributeSpecs{
 				"output": {Role: api.RoleOutput},

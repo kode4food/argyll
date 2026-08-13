@@ -57,8 +57,10 @@ func TestHealthCheckHealthy(t *testing.T) {
 			Name: "Healthy Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint:    healthServer.URL + "/execute",
-				HealthCheck: healthServer.URL + "/health",
+				Invoke: api.HTTPAction{
+					Endpoint: healthServer.URL + "/execute",
+				},
+				Health: healthServer.URL + "/health",
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -89,8 +91,10 @@ func TestHealthCheckNetworkFail(t *testing.T) {
 			Name: "Network Failure Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint:    "http://127.0.0.1:1/execute",
-				HealthCheck: "http://127.0.0.1:1/health",
+				Invoke: api.HTTPAction{
+					Endpoint: "http://127.0.0.1:1/execute",
+				},
+				Health: "http://127.0.0.1:1/health",
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -172,8 +176,10 @@ func TestHealthCheckFlowHealthy(t *testing.T) {
 			Name: "Goal Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint:    healthServer.URL + "/execute",
-				HealthCheck: healthServer.URL + "/health",
+				Invoke: api.HTTPAction{
+					Endpoint: healthServer.URL + "/execute",
+				},
+				Health: healthServer.URL + "/health",
 			},
 		}
 		st := &api.Step{
@@ -225,8 +231,10 @@ func TestHealthCheckFlowUnhealthy(t *testing.T) {
 			Name: "Bad Goal Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint:    healthServer.URL + "/execute",
-				HealthCheck: healthServer.URL + "/health",
+				Invoke: api.HTTPAction{
+					Endpoint: healthServer.URL + "/execute",
+				},
+				Health: healthServer.URL + "/health",
 			},
 		}
 		st := &api.Step{
@@ -279,8 +287,10 @@ func TestHealthCheckUnhealthy(t *testing.T) {
 			Name: "Unhealthy Step",
 			Type: api.StepTypeSync,
 			HTTP: &api.HTTPConfig{
-				Endpoint:    healthServer.URL + "/execute",
-				HealthCheck: healthServer.URL + "/health",
+				Invoke: api.HTTPAction{
+					Endpoint: healthServer.URL + "/execute",
+				},
+				Health: healthServer.URL + "/health",
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(st))
@@ -319,8 +329,10 @@ func TestCheckMultipleHTTPSteps(t *testing.T) {
 				Name: "Multi Health Step",
 				Type: api.StepTypeSync,
 				HTTP: &api.HTTPConfig{
-					Endpoint:    healthServer.URL + "/execute",
-					HealthCheck: healthServer.URL + "/health",
+					Invoke: api.HTTPAction{
+						Endpoint: healthServer.URL + "/execute",
+					},
+					Health: healthServer.URL + "/health",
 				},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(st))

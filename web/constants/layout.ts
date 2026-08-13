@@ -1,4 +1,4 @@
-export const STEP_LAYOUT = {
+export const stepLayout = {
   WIDGET_BASE_HEIGHT: 120,
   SECTION_HEIGHT: 25,
   ARG_LINE_HEIGHT: 20,
@@ -14,7 +14,7 @@ export const STEP_LAYOUT = {
   FIT_VIEW_PADDING: 0.1,
 } as const;
 
-export const EDGE_COLORS = {
+export const edgeColors = {
   REQUIRED: "var(--color-edge-required)" as const,
   OPTIONAL: "var(--color-edge-optional)" as const,
   GRAYED: "var(--color-edge-grayed)" as const,

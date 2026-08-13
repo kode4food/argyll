@@ -72,9 +72,8 @@ describe("StepEditor", () => {
       result: { role: AttributeRole.Output, type: AttributeType.String },
     },
     http: {
-      endpoint: "http://localhost:8080/test",
-      health_check: "http://localhost:8080/health",
-      timeout: 5000,
+      invoke: { endpoint: "http://localhost:8080/test", timeout: 5000 },
+      health: "http://localhost:8080/health",
     },
     predicate: {
       language: "lua",
@@ -145,8 +144,7 @@ describe("StepEditor", () => {
       },
     },
     http: {
-      endpoint: "http://localhost:8080/test",
-      timeout: 5000,
+      invoke: { endpoint: "http://localhost:8080/test", timeout: 5000 },
     },
   });
 
@@ -349,7 +347,9 @@ describe("StepEditor", () => {
         name: "Child Step",
         type: "sync",
         attributes: {},
-        http: { endpoint: "http://localhost:8080/child", timeout: 5000 },
+        http: {
+          invoke: { endpoint: "http://localhost:8080/child", timeout: 5000 },
+        },
       },
     ];
 
@@ -418,7 +418,9 @@ describe("StepEditor", () => {
         name: "Child Step",
         type: "sync",
         attributes: {},
-        http: { endpoint: "http://localhost:8080/child", timeout: 5000 },
+        http: {
+          invoke: { endpoint: "http://localhost:8080/child", timeout: 5000 },
+        },
       },
     ];
 
@@ -558,9 +560,11 @@ describe("StepEditor", () => {
           name: "Test HTTP Step",
           type: "sync",
           http: expect.objectContaining({
-            endpoint: "http://localhost:8080/test",
-            health_check: "http://localhost:8080/health",
-            timeout: expect.any(Number),
+            invoke: expect.objectContaining({
+              endpoint: "http://localhost:8080/test",
+              timeout: expect.any(Number),
+            }),
+            health: "http://localhost:8080/health",
           }),
           predicate: expect.objectContaining({
             language: "lua",
@@ -736,7 +740,7 @@ describe("StepEditor", () => {
 
     await waitFor(() => {
       const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 1];
+      const httpTimeoutInput = durationInputs[durationInputs.length - 2];
       fireEvent.change(httpTimeoutInput, { target: { value: "0" } });
 
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -760,7 +764,7 @@ describe("StepEditor", () => {
 
     await waitFor(() => {
       const durationInputs = screen.getAllByTestId("duration-input");
-      const httpTimeoutInput = durationInputs[durationInputs.length - 1];
+      const httpTimeoutInput = durationInputs[durationInputs.length - 2];
       fireEvent.change(httpTimeoutInput, { target: { value: "" } });
 
       const saveButton = screen.getByText(t("stepEditor.save"));
@@ -941,9 +945,11 @@ describe("StepEditor", () => {
         "step-1",
         expect.objectContaining({
           http: expect.objectContaining({
-            endpoint: "http://localhost:8080/test",
-            health_check: undefined,
-            timeout: expect.any(Number),
+            invoke: expect.objectContaining({
+              endpoint: "http://localhost:8080/test",
+              timeout: expect.any(Number),
+            }),
+            health: undefined,
           }),
         })
       );

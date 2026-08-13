@@ -54,7 +54,7 @@ func (w *Wrapper) StepValid(t *api.Step) {
 	case api.StepTypeSync, api.StepTypeAsync:
 		w.NotNil(t.HTTP, "HTTP steps should have HTTPConfig")
 		if t.HTTP != nil {
-			w.NotEmpty(t.HTTP.Endpoint)
+			w.NotEmpty(t.HTTP.Invoke.Endpoint)
 		}
 	case api.StepTypeScript:
 		w.NotNil(t.Script, "Script steps should have ScriptConfig")

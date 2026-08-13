@@ -41,8 +41,10 @@ func TestSuccess(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 	args := api.Args{"input": "test-input"}
 	meta := api.Metadata{api.MetaFlowID: "test-flow"}
@@ -74,8 +76,10 @@ func TestHTTPError(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -99,8 +103,10 @@ func TestProblemDetailsPermanentFailure(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -126,8 +132,10 @@ func TestProblemMediaParams(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -150,8 +158,10 @@ func TestProblemMediaRequired(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -174,8 +184,10 @@ func TestProblemDetailsRetryableFailure(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -196,8 +208,10 @@ func TestInvalidJSON(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -219,8 +233,10 @@ func TestTimeout(t *testing.T) {
 
 	cl := client.NewHTTPClient(50 * time.Millisecond)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -241,8 +257,10 @@ func TestStepTimeoutOverride(t *testing.T) {
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
-			Endpoint: server.URL,
-			Timeout:  250,
+			Invoke: api.HTTPAction{
+				Endpoint: server.URL,
+				Timeout:  250,
+			},
 		},
 	}
 
@@ -268,8 +286,10 @@ func TestStepTimeoutShorter(t *testing.T) {
 	st := &api.Step{
 		ID: "test-step",
 		HTTP: &api.HTTPConfig{
-			Endpoint: server.URL,
-			Timeout:  10,
+			Invoke: api.HTTPAction{
+				Endpoint: server.URL,
+				Timeout:  10,
+			},
 		},
 	}
 
@@ -288,8 +308,10 @@ func TestEmptyOutputs(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	outputs, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -312,8 +334,10 @@ func TestMultipleOutputs(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	outputs, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -333,8 +357,10 @@ func TestHTTP4xxError(t *testing.T) {
 
 	cl := client.NewHTTPClient(5 * time.Second)
 	st := &api.Step{
-		ID:   "test-step",
-		HTTP: &api.HTTPConfig{Endpoint: server.URL},
+		ID: "test-step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
@@ -365,8 +391,10 @@ func TestGETURLParams(t *testing.T) {
 	st := &api.Step{
 		ID: "get-step",
 		HTTP: &api.HTTPConfig{
-			Endpoint: server.URL + "/items/{item_id}",
-			Method:   "GET",
+			Invoke: api.HTTPAction{
+				Endpoint: server.URL + "/items/{item_id}",
+				Method:   "GET",
+			},
 		},
 	}
 
@@ -382,12 +410,123 @@ func TestMissingURLArg(t *testing.T) {
 	st := &api.Step{
 		ID: "missing-arg-step",
 		HTTP: &api.HTTPConfig{
-			Endpoint: "https://example.com/items/{item_id}",
-			Method:   "GET",
+			Invoke: api.HTTPAction{
+				Endpoint: "https://example.com/items/{item_id}",
+				Method:   "GET",
+			},
 		},
 	}
 
 	_, err := cl.Invoke(st, api.Args{}, api.Metadata{})
 	assert.Error(t, err)
 	assert.ErrorIs(t, err, client.ErrMissingEndpointArg)
+}
+
+func TestCompensateUsesConfiguredMethod(t *testing.T) {
+	var gotMethod, gotPath string
+	var gotBody []byte
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			gotMethod = r.Method
+			gotPath = r.URL.Path
+			gotBody, _ = io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusNoContent)
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID: "charge",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+			Compensate: &api.HTTPAction{
+				Endpoint: server.URL + "/refund/{charge_id}",
+				Method:   "DELETE",
+			},
+		},
+	}
+
+	err := cl.InvokeCompensate(client.CompensateRequest{
+		Step:     st,
+		Inputs:   api.Args{"amount": 10},
+		Outputs:  api.Args{"charge_id": "ch_1"},
+		Metadata: api.Metadata{},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "DELETE", gotMethod)
+	assert.Equal(t, "/refund/ch_1", gotPath)
+
+	var body map[string]api.Args
+	assert.NoError(t, json.Unmarshal(gotBody, &body))
+	assert.Equal(t, "ch_1", body["output"]["charge_id"])
+}
+
+func TestCompensateGetSendsNoBody(t *testing.T) {
+	var gotMethod string
+	var gotBody []byte
+	server := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, r *http.Request) {
+			gotMethod = r.Method
+			gotBody, _ = io.ReadAll(r.Body)
+			w.WriteHeader(http.StatusNoContent)
+		},
+	))
+	defer server.Close()
+
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID: "step",
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: server.URL},
+			Compensate: &api.HTTPAction{
+				Endpoint: server.URL + "/undo",
+				Method:   "GET",
+			},
+		},
+	}
+
+	err := cl.InvokeCompensate(client.CompensateRequest{
+		Step: st, Inputs: api.Args{}, Outputs: api.Args{},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "GET", gotMethod)
+	assert.Empty(t, gotBody)
+}
+
+func TestCompensateTimeoutFallsBackToInvoke(t *testing.T) {
+	serverDone := make(chan struct{})
+	server := httptest.NewServer(http.HandlerFunc(
+		func(_ http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+			case <-serverDone:
+			}
+		},
+	))
+	defer server.Close()
+	defer close(serverDone)
+
+	cl := client.NewHTTPClient(1 * time.Second)
+	st := &api.Step{
+		ID: "step",
+		HTTP: &api.HTTPConfig{
+			Invoke:     api.HTTPAction{Endpoint: server.URL, Timeout: 10},
+			Compensate: &api.HTTPAction{Endpoint: server.URL + "/undo"},
+		},
+	}
+
+	err := cl.InvokeCompensate(client.CompensateRequest{Step: st})
+	assert.Error(t, err)
+}
+
+func TestCompensateWithoutConfig(t *testing.T) {
+	cl := client.NewHTTPClient(5 * time.Second)
+	st := &api.Step{
+		ID:   "step",
+		HTTP: &api.HTTPConfig{Invoke: api.HTTPAction{Endpoint: "http://x"}},
+	}
+
+	err := cl.InvokeCompensate(client.CompensateRequest{Step: st})
+	assert.ErrorIs(t, err, client.ErrNoHTTPConfig)
 }

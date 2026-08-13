@@ -1,13 +1,13 @@
-import { FLOW_ID_GENERATION } from "@/constants/common";
+import { flowIdGeneration } from "@/constants/common";
 
 export const generatePadded = (): string => {
-  return Math.floor(Math.random() * FLOW_ID_GENERATION.RANDOM_RANGE)
+  return Math.floor(Math.random() * flowIdGeneration.RANDOM_RANGE)
     .toString()
-    .padStart(FLOW_ID_GENERATION.PADDING_LENGTH, "0");
+    .padStart(flowIdGeneration.PADDING_LENGTH, "0");
 };
 
 export const generateFlowId = (): string => {
-  return `${FLOW_ID_GENERATION.PREFIX}-${generatePadded()}`;
+  return `${flowIdGeneration.PREFIX}-${generatePadded()}`;
 };
 
 export const sanitizeFlowID = (id: string): string => {

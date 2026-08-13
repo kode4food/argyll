@@ -74,9 +74,9 @@ export function useStepPersistence({
         attributes: mappedAttributes,
         stepType: stepData.type,
         script: stepData.script?.script || "",
-        endpoint: stepData.http?.endpoint || "",
-        httpMethod: normalizeHttpMethod(stepData.http?.method),
-        httpTimeout: stepData.http?.timeout || 0,
+        endpoint: stepData.http?.invoke?.endpoint || "",
+        httpMethod: normalizeHttpMethod(stepData.http?.invoke?.method),
+        httpTimeout: stepData.http?.invoke?.timeout || 0,
         flowGoals: stepData.flow?.goals?.join(", ") || "",
       });
     },

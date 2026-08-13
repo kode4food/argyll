@@ -6,7 +6,7 @@ import {
 } from "@/app/api";
 import { AttributeRoleType } from "./stepEditorTypes";
 
-export const ATTRIBUTE_TYPES: AttributeType[] = [
+export const attributeTypes: AttributeType[] = [
   AttributeType.String,
   AttributeType.Number,
   AttributeType.Boolean,
@@ -15,7 +15,7 @@ export const ATTRIBUTE_TYPES: AttributeType[] = [
   AttributeType.Any,
 ];
 
-export const ATTRIBUTE_ROLE_TYPES: AttributeRoleType[] = [
+export const attributeRoleTypes: AttributeRoleType[] = [
   "required",
   "optional",
   "const",
@@ -23,7 +23,7 @@ export const ATTRIBUTE_ROLE_TYPES: AttributeRoleType[] = [
   "output",
 ];
 
-export const INPUT_COLLECT_TYPES: InputCollect[] = [
+export const inputCollectTypes: InputCollect[] = [
   "first",
   "last",
   "some",
@@ -31,39 +31,39 @@ export const INPUT_COLLECT_TYPES: InputCollect[] = [
   "none",
 ];
 
-export const PREDICATE_LANGUAGE_OPTIONS = [
+export const predicateLanguageOptions = [
   { value: SCRIPT_LANGUAGE_JPATH, labelKey: "script.language.jpath" },
   { value: SCRIPT_LANGUAGE_LUA, labelKey: "script.language.lua" },
 ];
 
-const MAPPING_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
+const mappingScriptPlaceholderKeys: Record<string, string> = {
   [SCRIPT_LANGUAGE_JPATH]: "stepEditor.mappingScriptPlaceholderJPath",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.mappingScriptPlaceholderLua",
 };
 
-const MATCH_SCRIPT_PLACEHOLDER_KEYS: Record<string, string> = {
+const matchScriptPlaceholderKeys: Record<string, string> = {
   [SCRIPT_LANGUAGE_JPATH]: "stepEditor.matchScriptPlaceholderJPath",
   [SCRIPT_LANGUAGE_LUA]: "stepEditor.matchScriptPlaceholderLua",
 };
 
 export const getMappingScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_LUA];
+    return mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_LUA];
   }
 
   return (
-    MAPPING_SCRIPT_PLACEHOLDER_KEYS[language] ||
-    MAPPING_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_LUA]
+    mappingScriptPlaceholderKeys[language] ||
+    mappingScriptPlaceholderKeys[SCRIPT_LANGUAGE_LUA]
   );
 };
 
 export const getMatchScriptPlaceholderKey = (language?: string): string => {
   if (!language) {
-    return MATCH_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_JPATH];
+    return matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_JPATH];
   }
 
   return (
-    MATCH_SCRIPT_PLACEHOLDER_KEYS[language] ||
-    MATCH_SCRIPT_PLACEHOLDER_KEYS[SCRIPT_LANGUAGE_JPATH]
+    matchScriptPlaceholderKeys[language] ||
+    matchScriptPlaceholderKeys[SCRIPT_LANGUAGE_JPATH]
   );
 };

@@ -2,7 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { useAutoLayout } from "./useAutoLayout";
 import { Node, Edge } from "@xyflow/react";
 import { ExecutionPlan, AttributeRole, AttributeType } from "@/app/api";
-import { STEP_LAYOUT } from "@/constants/layout";
+import { stepLayout } from "@/constants/layout";
 
 // Mock dagre
 let mockGraphNode: jest.Mock;
@@ -152,7 +152,7 @@ describe("useAutoLayout", () => {
 
     expect(mockSetNode).toHaveBeenCalledWith("step-1", {
       width: 320,
-      height: STEP_LAYOUT.WIDGET_BASE_HEIGHT,
+      height: stepLayout.WIDGET_BASE_HEIGHT,
     });
   });
 
@@ -171,9 +171,9 @@ describe("useAutoLayout", () => {
     renderHook(() => useAutoLayout([node], [], plan));
 
     const expectedHeight =
-      STEP_LAYOUT.WIDGET_BASE_HEIGHT +
-      STEP_LAYOUT.SECTION_HEIGHT +
-      2 * STEP_LAYOUT.ARG_LINE_HEIGHT;
+      stepLayout.WIDGET_BASE_HEIGHT +
+      stepLayout.SECTION_HEIGHT +
+      2 * stepLayout.ARG_LINE_HEIGHT;
 
     expect(mockSetNode).toHaveBeenCalledWith("step-1", {
       width: 320,
@@ -195,9 +195,9 @@ describe("useAutoLayout", () => {
     renderHook(() => useAutoLayout([node], [], plan));
 
     const expectedHeight =
-      STEP_LAYOUT.WIDGET_BASE_HEIGHT +
-      STEP_LAYOUT.SECTION_HEIGHT +
-      STEP_LAYOUT.ARG_LINE_HEIGHT;
+      stepLayout.WIDGET_BASE_HEIGHT +
+      stepLayout.SECTION_HEIGHT +
+      stepLayout.ARG_LINE_HEIGHT;
 
     expect(mockSetNode).toHaveBeenCalledWith("step-1", {
       width: 320,
@@ -221,9 +221,9 @@ describe("useAutoLayout", () => {
     renderHook(() => useAutoLayout([node], [], plan));
 
     const expectedHeight =
-      STEP_LAYOUT.WIDGET_BASE_HEIGHT +
-      STEP_LAYOUT.SECTION_HEIGHT +
-      3 * STEP_LAYOUT.ARG_LINE_HEIGHT;
+      stepLayout.WIDGET_BASE_HEIGHT +
+      stepLayout.SECTION_HEIGHT +
+      3 * stepLayout.ARG_LINE_HEIGHT;
 
     expect(mockSetNode).toHaveBeenCalledWith("step-1", {
       width: 320,
@@ -247,9 +247,9 @@ describe("useAutoLayout", () => {
     renderHook(() => useAutoLayout([node], [], plan));
 
     const expectedHeight =
-      STEP_LAYOUT.WIDGET_BASE_HEIGHT +
-      3 * STEP_LAYOUT.SECTION_HEIGHT +
-      3 * STEP_LAYOUT.ARG_LINE_HEIGHT;
+      stepLayout.WIDGET_BASE_HEIGHT +
+      3 * stepLayout.SECTION_HEIGHT +
+      3 * stepLayout.ARG_LINE_HEIGHT;
 
     expect(mockSetNode).toHaveBeenCalledWith("step-1", {
       width: 320,
@@ -445,7 +445,7 @@ describe("useAutoLayout", () => {
 
     expect(result.current[0].position).toEqual({
       x: 400 - 320 / 2,
-      y: 300 - STEP_LAYOUT.WIDGET_BASE_HEIGHT / 2,
+      y: 300 - stepLayout.WIDGET_BASE_HEIGHT / 2,
     });
   });
 
@@ -479,7 +479,7 @@ describe("useAutoLayout", () => {
 
     expect(mockSetNode).toHaveBeenCalledWith("step-1", {
       width: 400,
-      height: STEP_LAYOUT.WIDGET_BASE_HEIGHT,
+      height: stepLayout.WIDGET_BASE_HEIGHT,
     });
   });
 

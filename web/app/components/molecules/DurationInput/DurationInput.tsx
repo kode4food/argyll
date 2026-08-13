@@ -8,15 +8,21 @@ interface DurationInputProps {
   value: number; // milliseconds
   onChange: (milliseconds: number) => void;
   className?: string;
+  placeholderMs?: number;
 }
 
 const DurationInput: React.FC<DurationInputProps> = ({
   value,
   onChange,
   className,
+  placeholderMs,
 }) => {
   const t = useT();
-  const { inputValue, isValid, handlers } = useDurationInput(value, onChange);
+  const { inputValue, isValid, placeholder, handlers } = useDurationInput(
+    value,
+    onChange,
+    placeholderMs
+  );
 
   return (
     <div className={`${styles.durationInput} ${className || ""}`}>
@@ -28,7 +34,7 @@ const DurationInput: React.FC<DurationInputProps> = ({
         onFocus={handlers.onFocus}
         onBlur={handlers.onBlur}
         className={`${styles.input} ${!isValid ? styles.invalid : ""}`}
-        placeholder={t("durationInput.placeholder")}
+        placeholder={placeholder ?? t("durationInput.placeholder")}
         title={t("durationInput.title")}
       />
     </div>

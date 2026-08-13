@@ -37,7 +37,7 @@ export {
   SCRIPT_LANGUAGE_LUA,
   AttributeType,
   AttributeRole,
-  META_KEYS,
+  metaKeys,
   META_KEY_FLOW_ID,
   META_KEY_STEP_ID,
   META_KEY_RECEIPT_TOKEN,

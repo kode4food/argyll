@@ -92,7 +92,9 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 			Attributes: api.AttributeSpecs{
 				"value": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 		consumer := &api.Step{
 			ID:   "consumer",
@@ -102,7 +104,9 @@ func TestUndeclaredOutputsIgnored(t *testing.T) {
 				"value":  {Role: api.RoleRequired, Type: api.TypeString},
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
-			HTTP: &api.HTTPConfig{Endpoint: "http://example.com"},
+			HTTP: &api.HTTPConfig{
+				Invoke: api.HTTPAction{Endpoint: "http://example.com"},
+			},
 		}
 
 		testify.NoError(t, env.Engine.RegisterStep(producer))

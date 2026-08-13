@@ -5,6 +5,7 @@ from argyll.types import (
     AttributeSpec,
     AttributeType,
     ConstConfig,
+    HTTPAction,
     HTTPConfig,
     InputCollect,
     MappingConfig,
@@ -118,32 +119,56 @@ def test_attribute_spec_with_match():
 
 
 def test_http_config_to_dict():
-    config = HTTPConfig(endpoint="http://localhost:8081/step")
+    config = HTTPConfig(
+        invoke=HTTPAction(endpoint="http://localhost:8081/step")
+    )
     result = config.to_dict()
-    assert result == {"endpoint": "http://localhost:8081/step"}
+    assert result == {"invoke": {"endpoint": "http://localhost:8081/step"}}
 
 
 def test_http_config_with_method():
     config = HTTPConfig(
-        endpoint="http://localhost:8081/step",
-        method="DELETE",
+        invoke=HTTPAction(
+            endpoint="http://localhost:8081/step",
+            method="DELETE",
+        ),
     )
     result = config.to_dict()
     assert result == {
-        "endpoint": "http://localhost:8081/step",
-        "method": "DELETE",
+        "invoke": {
+            "endpoint": "http://localhost:8081/step",
+            "method": "DELETE",
+        },
+    }
+
+
+def test_http_config_with_compensate():
+    config = HTTPConfig(
+        invoke=HTTPAction(endpoint="http://localhost:8081/step"),
+        compensate=HTTPAction(
+            endpoint="http://localhost:8081/step/undo",
+            method="DELETE",
+        ),
+    )
+    result = config.to_dict()
+    assert result == {
+        "invoke": {"endpoint": "http://localhost:8081/step"},
+        "compensate": {
+            "endpoint": "http://localhost:8081/step/undo",
+            "method": "DELETE",
+        },
     }
 
 
 def test_http_config_with_health_check():
     config = HTTPConfig(
-        endpoint="http://localhost:8081/step",
-        health_check="http://localhost:8081/health",
+        invoke=HTTPAction(endpoint="http://localhost:8081/step"),
+        health="http://localhost:8081/health",
     )
     result = config.to_dict()
     assert result == {
-        "endpoint": "http://localhost:8081/step",
-        "health_check": "http://localhost:8081/health",
+        "invoke": {"endpoint": "http://localhost:8081/step"},
+        "health": "http://localhost:8081/health",
     }
 
 
@@ -163,14 +188,16 @@ def test_step_to_dict():
                 role=AttributeRole.REQUIRED, type=AttributeType.STRING
             )
         },
-        http=HTTPConfig(endpoint="http://localhost:8081/test"),
+        http=HTTPConfig(
+            invoke=HTTPAction(endpoint="http://localhost:8081/test")
+        ),
     )
     result = step.to_dict()
     assert result["id"] == "test-step"
     assert result["name"] == "Test Step"
     assert result["type"] == "sync"
     assert "input" in result["attributes"]
-    assert result["http"]["endpoint"] == "http://localhost:8081/test"
+    assert result["http"]["invoke"]["endpoint"] == "http://localhost:8081/test"
 
 
 def test_problem_details_to_dict():
@@ -204,9 +231,11 @@ def test_step_enums():
 
 
 def test_http_config_with_timeout():
-    config = HTTPConfig(endpoint="http://localhost:8081/test", timeout=3000)
+    config = HTTPConfig(
+        invoke=HTTPAction(endpoint="http://localhost:8081/test", timeout=3000),
+    )
     result = config.to_dict()
-    assert result["timeout"] == 3000
+    assert result["invoke"]["timeout"] == 3000
 
 
 def test_work_config_to_dict():
@@ -261,10 +290,12 @@ def test_step_with_all_fields():
         },
         labels={"env": "test"},
         http=HTTPConfig(
-            endpoint="http://localhost:8081/test",
-            method="POST",
-            health_check="http://localhost:8081/health",
-            timeout=5000,
+            invoke=HTTPAction(
+                endpoint="http://localhost:8081/test",
+                method="POST",
+                timeout=5000,
+            ),
+            health="http://localhost:8081/health",
         ),
         script=ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2"),
         predicate=PredicateConfig(
@@ -283,8 +314,8 @@ def test_step_with_all_fields():
     result = step.to_dict()
     assert result["type"] == "async"
     assert result["labels"]["env"] == "test"
-    assert result["http"]["method"] == "POST"
-    assert result["http"]["timeout"] == 5000
+    assert result["http"]["invoke"]["method"] == "POST"
+    assert result["http"]["invoke"]["timeout"] == 5000
     assert result["script"]["script"] == "return 1 + 2"
     assert result["predicate"]["script"] == "return true"
     assert result["work_config"]["max_retries"] == 3

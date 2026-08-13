@@ -24,19 +24,25 @@ export function useStepEditorForm(
   const [predicateLanguage, setPredicateLanguage] = useState(
     step?.predicate?.language || SCRIPT_LANGUAGE_LUA
   );
-  const [endpoint, setEndpoint] = useState(step?.http?.endpoint || "");
+  const [endpoint, setEndpoint] = useState(step?.http?.invoke?.endpoint || "");
   const [httpMethod, setHttpMethod] = useState<HTTPMethod>(
-    normalizeHttpMethod(step?.http?.method)
+    normalizeHttpMethod(step?.http?.invoke?.method)
   );
-  const [healthCheck, setHealthCheck] = useState(
-    step?.http?.health_check || ""
+  const [healthCheck, setHealthCheck] = useState(step?.http?.health || "");
+  const [compensate, setCompensate] = useState(
+    step?.http?.compensate?.endpoint || ""
   );
-  const [compensate, setCompensate] = useState(step?.http?.compensate || "");
+  const [compensateMethod, setCompensateMethod] = useState<HTTPMethod>(
+    normalizeHttpMethod(step?.http?.compensate?.method)
+  );
+  const [compensateTimeout, setCompensateTimeout] = useState(
+    step?.http?.compensate?.timeout || 0
+  );
   const [httpTimeout, setHttpTimeout] = useState(
     step &&
       (step.type === "sync" || step.type === "async") &&
-      step.http?.timeout
-      ? step.http.timeout
+      step.http?.invoke?.timeout
+      ? step.http.invoke.timeout
       : 5000
   );
   const [script, setScript] = useState(step?.script?.script || "");
@@ -74,6 +80,8 @@ export function useStepEditorForm(
       httpMethod,
       healthCheck,
       compensate,
+      compensateMethod,
+      compensateTimeout,
       httpTimeout,
       flowGoals,
       flowCompensate,
@@ -82,6 +90,8 @@ export function useStepEditorForm(
   }, [
     attributes,
     compensate,
+    compensateMethod,
+    compensateTimeout,
     endpoint,
     flowCompensate,
     flowGoals,
@@ -109,11 +119,15 @@ export function useStepEditorForm(
       setScriptLanguage(stepData.script?.language || SCRIPT_LANGUAGE_LUA);
       setFlowGoals(stepData.flow?.goals?.join(", ") || "");
       setFlowCompensate(Boolean(stepData.flow?.compensate));
-      setEndpoint(stepData.http?.endpoint || "");
-      setHttpMethod(normalizeHttpMethod(stepData.http?.method));
-      setHealthCheck(stepData.http?.health_check || "");
-      setCompensate(stepData.http?.compensate || "");
-      setHttpTimeout(stepData.http?.timeout || 5000);
+      setEndpoint(stepData.http?.invoke?.endpoint || "");
+      setHttpMethod(normalizeHttpMethod(stepData.http?.invoke?.method));
+      setHealthCheck(stepData.http?.health || "");
+      setCompensate(stepData.http?.compensate?.endpoint || "");
+      setCompensateMethod(
+        normalizeHttpMethod(stepData.http?.compensate?.method)
+      );
+      setCompensateTimeout(stepData.http?.compensate?.timeout || 0);
+      setHttpTimeout(stepData.http?.invoke?.timeout || 5000);
       setMemoizable(Boolean(stepData.memoizable));
       resetAttributes(stepData);
     },
@@ -159,6 +173,10 @@ export function useStepEditorForm(
       setHealthCheck,
       compensate,
       setCompensate,
+      compensateMethod,
+      setCompensateMethod,
+      compensateTimeout,
+      setCompensateTimeout,
       httpTimeout,
       setHttpTimeout,
       flowGoals,
@@ -181,6 +199,8 @@ export function useStepEditorForm(
       httpMethod,
       healthCheck,
       compensate,
+      compensateMethod,
+      compensateTimeout,
       httpTimeout,
       flowGoals,
       flowCompensate,
@@ -207,6 +227,10 @@ export function useStepEditorForm(
     setHealthCheck,
     compensate,
     setCompensate,
+    compensateMethod,
+    setCompensateMethod,
+    compensateTimeout,
+    setCompensateTimeout,
     httpTimeout,
     setHttpTimeout,
     script,

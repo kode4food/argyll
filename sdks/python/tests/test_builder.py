@@ -13,6 +13,7 @@ from argyll.types import (
     AttributeType,
     ConstConfig,
     FlowConfig,
+    HTTPAction,
     HTTPConfig,
     InputCollect,
     MetaConfig,
@@ -163,7 +164,7 @@ def test_step_builder_with_endpoint():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.endpoint == "http://localhost:8081/test"
+    assert step.http.invoke.endpoint == "http://localhost:8081/test"
 
 
 def test_step_builder_with_method():
@@ -176,7 +177,7 @@ def test_step_builder_with_method():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.method == "GET"
+    assert step.http.invoke.method == "GET"
 
 
 def test_step_builder_with_invalid_method():
@@ -201,7 +202,7 @@ def test_step_builder_with_health_check():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.health_check == "http://localhost:8081/health"
+    assert step.http.health == "http://localhost:8081/health"
 
 
 def test_step_builder_with_timeout():
@@ -214,7 +215,7 @@ def test_step_builder_with_timeout():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.timeout == 5000
+    assert step.http.invoke.timeout == 5000
 
 
 def test_step_builder_with_script():
@@ -301,7 +302,27 @@ def test_step_builder_with_compensate():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.compensate == compensate_url
+    assert step.http.compensate is not None
+    assert step.http.compensate.endpoint == compensate_url
+
+
+def test_step_builder_compensate_method_and_timeout():
+    client = Client()
+    builder = (
+        client.new_step()
+        .with_name("Test")
+        .with_endpoint("http://localhost:8081/test")
+        .with_timeout(30000)
+        .with_compensate("http://localhost:8081/test/undo")
+        .with_compensate_method("delete")
+        .with_compensate_timeout(5000)
+    )
+    step = builder.build()
+    assert step.http is not None
+    assert step.http.compensate is not None
+    assert step.http.compensate.method == "DELETE"
+    assert step.http.compensate.timeout == 5000
+    assert step.http.invoke.timeout == 30000
 
 
 def test_step_builder_compensate_preserved_across_http_mutations():
@@ -317,9 +338,10 @@ def test_step_builder_compensate_preserved_across_http_mutations():
     )
     step = builder.build()
     assert step.http is not None
-    assert step.http.compensate == compensate_url
-    assert step.http.method == "PUT"
-    assert step.http.timeout == 5000
+    assert step.http.compensate is not None
+    assert step.http.compensate.endpoint == compensate_url
+    assert step.http.invoke.method == "PUT"
+    assert step.http.invoke.timeout == 5000
 
 
 def test_step_builder_with_compensate_handler():
@@ -354,8 +376,8 @@ def test_step_builder_chaining():
     assert "input" in step.attributes
     assert "output" in step.attributes
     assert step.labels["env"] == "test"
-    assert step.http.method == "PUT"
-    assert step.http.endpoint == "http://localhost:8081/test"
+    assert step.http.invoke.method == "PUT"
+    assert step.http.invoke.endpoint == "http://localhost:8081/test"
 
 
 @responses.activate
@@ -555,7 +577,9 @@ def _make_step(**overrides):
         "type": StepType.SYNC,
         "attributes": {},
         "labels": {},
-        "http": HTTPConfig(endpoint="http://localhost:8081/test"),
+        "http": HTTPConfig(
+            invoke=HTTPAction(endpoint="http://localhost:8081/test")
+        ),
         "script": None,
         "predicate": None,
         "work_config": None,
@@ -585,7 +609,9 @@ def _make_step(**overrides):
         _make_step(
             type=StepType.SCRIPT,
             script=ScriptConfig(language=ScriptLanguage.LUA, script="x"),
-            http=HTTPConfig(endpoint="http://localhost:8081/test"),
+            http=HTTPConfig(
+                invoke=HTTPAction(endpoint="http://localhost:8081/test")
+            ),
         ),
         _make_step(
             type=StepType.SCRIPT,
@@ -597,7 +623,9 @@ def _make_step(**overrides):
         _make_step(
             type=StepType.FLOW,
             flow=FlowConfig(goals=["g1"]),
-            http=HTTPConfig(endpoint="http://localhost:8081/test"),
+            http=HTTPConfig(
+                invoke=HTTPAction(endpoint="http://localhost:8081/test")
+            ),
         ),
         _make_step(
             type=StepType.FLOW,

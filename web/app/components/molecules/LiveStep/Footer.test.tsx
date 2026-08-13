@@ -59,9 +59,11 @@ describe("Footer", () => {
           }
         : {
             http: {
-              endpoint: "http://localhost:8080/test",
-              timeout: 5000,
-              ...config,
+              invoke: {
+                endpoint: "http://localhost:8080/test",
+                timeout: 5000,
+                ...config,
+              },
             },
           }),
   });

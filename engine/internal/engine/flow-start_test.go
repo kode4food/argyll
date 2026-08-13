@@ -66,7 +66,7 @@ func TestStartFlowSchedulesWork(t *testing.T) {
 
 		st := helpers.NewSimpleStep("step-start")
 		st.Type = api.StepTypeAsync
-		st.HTTP.Timeout = 30 * api.Second
+		st.HTTP.Invoke.Timeout = 30 * api.Second
 
 		err := env.Engine.RegisterStep(st)
 		assert.NoError(t, err)
@@ -145,7 +145,7 @@ func TestStartFlowSimple(t *testing.T) {
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 
@@ -184,7 +184,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(child))
@@ -221,7 +221,7 @@ func TestStartChildFlowUsesPlan(t *testing.T) {
 				"result":    {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 		assert.NoError(t, env.Engine.UpdateStep(updatedChild))
@@ -260,7 +260,7 @@ func TestStartChildFlowSetsParentMetadata(t *testing.T) {
 				"result": {Role: api.RoleOutput, Type: api.TypeString},
 			},
 			HTTP: &api.HTTPConfig{
-				Endpoint: "http://test:8080",
+				Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 			},
 		}
 		assert.NoError(t, env.Engine.RegisterStep(child))
@@ -328,7 +328,7 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 					"result": {Role: api.RoleOutput, Type: api.TypeString},
 				},
 				HTTP: &api.HTTPConfig{
-					Endpoint: "http://test:8080",
+					Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 				},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(child))
@@ -392,7 +392,7 @@ func TestStartChildFlowDuplicateID(t *testing.T) {
 					"input":  {Role: api.RoleRequired, Type: api.TypeString},
 				},
 				HTTP: &api.HTTPConfig{
-					Endpoint: "http://test:8080",
+					Invoke: api.HTTPAction{Endpoint: "http://test:8080"},
 				},
 			}
 			assert.NoError(t, env.Engine.RegisterStep(child))

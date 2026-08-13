@@ -1,4 +1,4 @@
-export const STEP_TYPE_ORDER = {
+export const stepTypeOrder = {
   collector: 1,
   processor: 2,
   resolver: 3,

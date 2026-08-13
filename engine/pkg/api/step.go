@@ -43,11 +43,16 @@ type (
 
 	// HTTPConfig configures HTTP-based step execution
 	HTTPConfig struct {
-		Method      string `json:"method,omitempty"`
-		Endpoint    string `json:"endpoint"`
-		Compensate  string `json:"compensate,omitempty"`
-		HealthCheck string `json:"health_check,omitempty"`
-		Timeout     int64  `json:"timeout"`
+		Invoke     HTTPAction  `json:"invoke"`
+		Compensate *HTTPAction `json:"compensate,omitempty"`
+		Health     string      `json:"health,omitempty"`
+	}
+
+	// HTTPAction configures a single callable endpoint on a step's service
+	HTTPAction struct {
+		Method   string `json:"method,omitempty"`
+		Endpoint string `json:"endpoint"`
+		Timeout  int64  `json:"timeout,omitempty"`
 	}
 
 	// ScriptConfig configures script-based step execution
@@ -143,9 +148,6 @@ var (
 	ErrMarshalStep           = errors.New("failed to marshal step definition")
 	ErrCompensateMemoizable  = errors.New(
 		"compensate not allowed for memoizable steps",
-	)
-	ErrUnknownCompensateURLParam = errors.New(
-		"compensate URL contains unknown parameter",
 	)
 )
 
@@ -248,7 +250,7 @@ func (s *Step) WithWorkDefaults(defaults *WorkConfig) *Step {
 
 // CanCompensate returns true if the step has compensation configured
 func (s *Step) CanCompensate() bool {
-	return s.HTTP != nil && s.HTTP.Compensate != ""
+	return s.HTTP != nil && s.HTTP.Compensate != nil
 }
 
 // IsOptionalArg returns true if the argument is optional
@@ -380,15 +382,25 @@ func (s *Step) validateHTTPConfig() error {
 	if s.Script != nil {
 		return ErrScriptNotAllowed
 	}
-	if s.HTTP.Endpoint == "" {
+	if s.HTTP.Invoke.Endpoint == "" {
 		return ErrStepEndpointEmpty
 	}
-	method := s.HTTP.DefaultedMethod()
+	method := s.HTTP.Invoke.DefaultedMethod()
 	if !validHTTPMethods.Contains(method) {
 		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, method)
 	}
-	if s.HTTP.Compensate != "" && s.Memoizable {
+	if s.HTTP.Compensate == nil {
+		return s.validateEndpointParams()
+	}
+	if s.Memoizable {
 		return ErrCompensateMemoizable
+	}
+	if s.HTTP.Compensate.Endpoint == "" {
+		return ErrStepEndpointEmpty
+	}
+	compMethod := s.HTTP.Compensate.DefaultedMethod()
+	if !validHTTPMethods.Contains(compMethod) {
+		return fmt.Errorf("%w: %s", ErrInvalidHTTPMethod, compMethod)
 	}
 	if err := s.validateEndpointParams(); err != nil {
 		return err
@@ -397,7 +409,7 @@ func (s *Step) validateHTTPConfig() error {
 }
 
 func (s *Step) validateEndpointParams() error {
-	params := endpointParams(s.HTTP.Endpoint)
+	params := endpointParams(s.HTTP.Invoke.Endpoint)
 	if params.IsEmpty() {
 		return nil
 	}
@@ -421,10 +433,7 @@ func (s *Step) validateEndpointParams() error {
 }
 
 func (s *Step) validateCompensateParams() error {
-	if s.HTTP.Compensate == "" {
-		return nil
-	}
-	params := endpointParams(s.HTTP.Compensate)
+	params := endpointParams(s.HTTP.Compensate.Endpoint)
 	if params.IsEmpty() {
 		return nil
 	}
@@ -442,7 +451,7 @@ func (s *Step) validateCompensateParams() error {
 		if known.Contains(param) {
 			continue
 		}
-		return fmt.Errorf("%w: %q", ErrUnknownCompensateURLParam, param)
+		return fmt.Errorf("%w: %q", ErrUnknownURLParam, param)
 	}
 	return nil
 }
@@ -562,7 +571,12 @@ func (s *Step) computeHashKey() (string, error) {
 	var httpCfg *HTTPConfig
 	if s.HTTP != nil {
 		httpCfg = util.MutableCopy(s.HTTP)
-		httpCfg.Method = s.HTTP.DefaultedMethod()
+		httpCfg.Invoke.Method = s.HTTP.Invoke.DefaultedMethod()
+		if s.HTTP.Compensate != nil {
+			comp := util.MutableCopy(s.HTTP.Compensate)
+			comp.Method = s.HTTP.Compensate.DefaultedMethod()
+			httpCfg.Compensate = comp
+		}
 	}
 
 	h := stepHash{
@@ -597,20 +611,36 @@ func (s *Step) filterAttributes(predicate func(*AttributeSpec) bool) []Name {
 // Equal returns true if two HTTP configs are equal
 func (h *HTTPConfig) Equal(other *HTTPConfig) bool {
 	return equalWithNilCheck(h, other, func() bool {
-		return h.Endpoint == other.Endpoint &&
-			h.Compensate == other.Compensate &&
-			h.DefaultedMethod() == other.DefaultedMethod() &&
-			h.HealthCheck == other.HealthCheck &&
-			h.Timeout == other.Timeout
+		return h.Invoke.Equal(&other.Invoke) &&
+			h.Compensate.Equal(other.Compensate) &&
+			h.Health == other.Health
+	})
+}
+
+// CompensateTimeout returns the compensate timeout, falling back to the invoke
+// timeout when the action does not set its own
+func (h *HTTPConfig) CompensateTimeout() int64 {
+	if h.Compensate != nil && h.Compensate.Timeout > 0 {
+		return h.Compensate.Timeout
+	}
+	return h.Invoke.Timeout
+}
+
+// Equal returns true if two HTTP actions are equal
+func (a *HTTPAction) Equal(other *HTTPAction) bool {
+	return equalWithNilCheck(a, other, func() bool {
+		return a.Endpoint == other.Endpoint &&
+			a.DefaultedMethod() == other.DefaultedMethod() &&
+			a.Timeout == other.Timeout
 	})
 }
 
 // DefaultedMethod returns the configured HTTP method or the default if unset
-func (h *HTTPConfig) DefaultedMethod() string {
-	if h == nil || h.Method == "" {
+func (a *HTTPAction) DefaultedMethod() string {
+	if a == nil || a.Method == "" {
 		return DefaultHTTPMethod
 	}
-	return h.Method
+	return a.Method
 }
 
 // Equal returns true if two script configs are equal

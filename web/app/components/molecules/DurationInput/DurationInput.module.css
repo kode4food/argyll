@@ -36,7 +36,6 @@
 }
 
 .input::placeholder {
-  color: var(--overlay-light-30);
   font-size: var(--text-xs);
 }
 
