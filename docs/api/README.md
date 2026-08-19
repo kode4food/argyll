@@ -62,9 +62,7 @@ curl http://localhost:8080/engine/flow/wf-001/status
 
 Steps receive requests like:
 
-For all HTTP methods, the engine resolves endpoint placeholders from runtime inputs before dispatch.
-For `POST`, `PUT`, and `DELETE`, the engine sends input arguments as the JSON body.
-For `GET`, no JSON body is sent.
+For all HTTP methods, the engine resolves endpoint placeholders from runtime inputs before dispatch. For `POST`, `PUT`, and `DELETE`, the engine sends input arguments as the JSON body. For `GET`, no JSON body is sent.
 
 Execution metadata is sent in headers:
 

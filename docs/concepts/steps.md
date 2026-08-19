@@ -36,14 +36,9 @@ Argyll supports four step types. Choose the simplest type that fits your needs:
 }
 ```
 
-**Compensate endpoint:** Sync and async steps may optionally declare a
-`compensate` URL. When a step fails after some work items have already succeeded,
-the engine calls the compensate endpoint for each succeeded work item. The
-request body contains the original inputs and outputs for that work item. A flow started with `compensate` extends this to every succeeded work item in the flow. See [Compensation](../guides/compensation.md) for details.
+**Compensate endpoint:** Sync and async steps may optionally declare a `compensate` URL. When a step fails after some work items have already succeeded, the engine calls the compensate endpoint for each succeeded work item. The request body contains the original inputs and outputs for that work item. A flow started with `compensate` extends this to every succeeded work item in the flow. See [Compensation](../guides/compensation.md) for details.
 
-**Memoizable steps cannot be compensated.** Steps with `memoizable: true`
-declare no side effects, such as database writes or payment requests, so
-`compensate` is not allowed alongside `memoizable`.
+**Memoizable steps cannot be compensated.** Steps with `memoizable: true` declare no side effects, such as database writes or payment requests, so `compensate` is not allowed alongside `memoizable`.
 
 **Pros:** Simplest to implement, easy to debug, good for fast lookups
 

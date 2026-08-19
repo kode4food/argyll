@@ -1,12 +1,8 @@
 # Compensation
 
-Compensation is the mechanism Argyll uses to undo previously completed work when
-a step ultimately fails. If a step processes multiple work items and some succeed
-before others fail, the engine calls a configured `compensate` endpoint for every
-work item that succeeded.
+Compensation is the mechanism Argyll uses to undo previously completed work when a step ultimately fails. If a step processes multiple work items and some succeed before others fail, the engine calls a configured `compensate` endpoint for every work item that succeeded.
 
-Compensation is available for sync and async HTTP steps. Script and flow steps
-cannot be compensated.
+Compensation is available for sync and async HTTP steps. Script and flow steps cannot be compensated.
 
 ## When compensation fires
 
@@ -102,24 +98,15 @@ Add `compensate` to the step's `http` configuration:
 }
 ```
 
-The `compensate` endpoint supports `{param}` placeholders. Placeholders are
-resolved from a merged view of the work item's inputs and outputs, with
-**outputs taking priority** over inputs when names collide. This lets you
-reference output values like `{charge_id}` directly in the URL.
+The `compensate` endpoint supports `{param}` placeholders. Placeholders are resolved from a merged view of the work item's inputs and outputs, with **outputs taking priority** over inputs when names collide. This lets you reference output values like `{charge_id}` directly in the URL.
 
-`compensate` takes the same shape as `invoke`, so it accepts its own `method`
-and `timeout`. The method defaults to `POST`; set `"method": "DELETE"` when the
-service models the undo as a resource deletion.
+`compensate` takes the same shape as `invoke`, so it accepts its own `method` and `timeout`. The method defaults to `POST`; set `"method": "DELETE"` when the service models the undo as a resource deletion.
 
-Timeouts resolve in three steps: the compensate `timeout` if set, otherwise the
-`invoke` timeout, otherwise the global engine timeout (`STEP_TIMEOUT`). Set a
-compensate timeout only when undoing takes materially longer or shorter than
-doing — leaving it unset keeps the step's single timeout governing both.
+Timeouts resolve in three steps: the compensate `timeout` if set, otherwise the `invoke` timeout, otherwise the global engine timeout (`STEP_TIMEOUT`). Set a compensate timeout only when undoing takes materially longer or shorter than doing. Leaving it unset keeps the step's single timeout governing both.
 
 ## What the engine sends
 
-The engine sends a request to the resolved compensate URL using the configured
-method (`POST` by default) with:
+The engine sends a request to the resolved compensate URL using the configured method (`POST` by default) with:
 
 ```json
 {
@@ -128,12 +115,9 @@ method (`POST` by default) with:
 }
 ```
 
-A `GET` compensate endpoint is sent without a body; every other method,
-including `DELETE`, carries the payload above.
+A `GET` compensate endpoint is sent without a body; every other method, including `DELETE`, carries the payload above.
 
-The same `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` headers
-sent to the work endpoint are also sent to the compensate endpoint. Use the
-receipt token as the idempotency key for compensation side effects.
+The same `Argyll-Flow-ID`, `Argyll-Step-ID`, and `Argyll-Receipt-Token` headers sent to the work endpoint are also sent to the compensate endpoint. Use the receipt token as the idempotency key for compensation side effects.
 
 ## Retry behavior
 
@@ -172,9 +156,7 @@ When `max_retries` is exhausted, the compensation is marked `compensation_failed
 
 ## Memoizable steps cannot be compensated
 
-Steps with `memoizable: true` assume their work has no observable side effects,
-so compensation is not allowed. Configuring both `memoizable: true` and a
-`compensate` URL is a validation error.
+Steps with `memoizable: true` assume their work has no observable side effects, so compensation is not allowed. Configuring both `memoizable: true` and a `compensate` URL is a validation error.
 
 ## Work item states
 
@@ -192,26 +174,17 @@ The flow is not deactivated until all compensation work items reach a terminal s
 
 ## Startup recovery
 
-If the engine restarts while compensations are in flight, they are recovered
-automatically:
+If the engine restarts while compensations are in flight, they are recovered automatically:
 
-- Work items already in `compensating` state are rescheduled using their stored
-  `NextRetryAt`.
-- Work items still in `succeeded` state on a failed step (e.g., the engine
-  crashed before compensation could start) are detected and compensation is
-  started from the beginning.
+- Work items already in `compensating` state are rescheduled using their stored `NextRetryAt`.
+- Work items still in `succeeded` state on a failed step (e.g., the engine crashed before compensation could start) are detected and compensation is started from the beginning.
 
 ## Design tips
 
-- Compensation is not a substitute for idempotency. Implement idempotent
-  compensate endpoints by keying on the receipt token.
-- Use `max_retries: -1` with care for compensation: unlimited retries on a
-  permanently unavailable service will block flow deactivation indefinitely,
-  and hold back the unwind of every step that ran before it.
-- If compensation is not meaningful for a step (no side effects), omit the
-  `compensate` field rather than implementing a no-op endpoint.
-- For multi-step flows where partial success is common, consider sequencing
-  steps so that compensatable steps run last.
+- Compensation is not a substitute for idempotency. Implement idempotent compensate endpoints by keying on the receipt token.
+- Use `max_retries: -1` with care for compensation: unlimited retries on a permanently unavailable service will block flow deactivation indefinitely, and hold back the unwind of every step that ran before it.
+- If compensation is not meaningful for a step (no side effects), omit the `compensate` field rather than implementing a no-op endpoint.
+- For multi-step flows where partial success is common, consider sequencing steps so that compensatable steps run last.
 
 ## Related
 

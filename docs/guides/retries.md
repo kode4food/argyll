@@ -76,8 +76,7 @@ See [Compensation](./compensation.md) for full details.
 
 - Use small fixed backoff for quick retry of flaky dependencies.
 - Use exponential backoff when dealing with rate limits or unstable services.
-- Keep `max_retries` low unless your step is idempotent (typically by honoring
-  `receipt_token`) and you can tolerate long recovery times.
+- Keep `max_retries` low unless your step is idempotent (typically by honoring `receipt_token`) and you can tolerate long recovery times.
 - Prefer HTTP 5xx (or temporary transport errors) when work should be retried.
 
 ## Observability
