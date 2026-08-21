@@ -106,14 +106,15 @@ The generator emits synchronous Steps.
 
 ## The step contract
 
-Go field names map to Argyll attribute names as `snake_case`, function names to step IDs as `kebab-case`:
+Go field names map to Argyll attribute names as `snake_case`:
 
-| Go               | Argyll           |
+| Go field         | Attribute        |
 | ---------------- | ---------------- |
 | `CustomerID`     | `customer_id`    |
 | `HTTPServer`     | `http_server`    |
 | ``Currency string `argyll:"iso_currency"` `` | `iso_currency` |
-| `func CalculateRisk` | `calculate-risk` step ID, `Calculate Risk` name |
+
+The function name becomes the step identity, as `kebab-case`: `func CalculateRisk` registers as ID `calculate-risk`, name `Calculate Risk`.
 
 ### Field tags
 
