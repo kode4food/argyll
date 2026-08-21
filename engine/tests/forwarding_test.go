@@ -373,7 +373,9 @@ func postJSON(t *testing.T, args postJSONArgs) *httptest.ResponseRecorder {
 	return w
 }
 
-func tryPostJSON(h http.Handler, path string, body any) *httptest.ResponseRecorder {
+func tryPostJSON(
+	h http.Handler, path string, body any,
+) *httptest.ResponseRecorder {
 	data, err := json.Marshal(body)
 	if err != nil {
 		return &httptest.ResponseRecorder{Code: http.StatusInternalServerError}

@@ -12,7 +12,7 @@ type (
 	// receives a StepContext which includes both context and flow client
 	StepHandler func(*StepContext, api.Args) (api.Args, error)
 
-	// CompensateHandler undoes a completed work item given its inputs and outputs
+	// CompensateHandler undoes a completed work item
 	CompensateHandler func(*StepContext, api.Args, api.Args) error
 
 	// StepContext provides context and client capabilities to step handlers

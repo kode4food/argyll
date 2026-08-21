@@ -62,14 +62,32 @@ Fields of the argument struct become step inputs, fields of the result struct be
 
 ### `//argyll:wrap`
 
-An ordinary positional function, adapted without changing it:
+An ordinary positional function, adapted without changing it. Named parameters and named results supply the attribute names, in `snake_case` like everywhere else:
+
+```go
+//argyll:wrap
+func CalculateRisk(
+	customerID string, amount int64,
+) (score int, approved bool, err error)
+```
+
+That yields inputs `customer_id` and `amount`, outputs `score` and `approved`.
+
+Either side of the `->` names attributes positionally, overriding what the signature supplies. Go names results only when the function declares them, so naming just the outputs is the common case:
+
+```go
+//argyll:wrap -> score, approved
+func CalculateRisk(customerID string, amount int64) (int, bool, error)
+```
+
+Names in the directive are used verbatim, which makes them an override of the `snake_case` default rather than an input to it. `customer-id` below reaches the flow as `customer-id`:
 
 ```go
 //argyll:wrap customer-id, amount -> score, approved
 func CalculateRisk(customerID string, amount int64) (int, bool, error)
 ```
 
-The directive names the inputs and outputs positionally. The generator checks the arity against the signature at build time, and reports the file and line when they disagree. The wrapped function knows nothing about Argyll.
+The generator checks the arity against the signature at build time, and reports the file and line when they disagree. An omitted side whose parameters or results are unnamed reports the position and asks for the names. The wrapped function knows nothing about Argyll.
 
 ### `//argyll:label`
 
@@ -112,7 +130,7 @@ A tag of `-` keeps the field out of the contract and off the wire entirely, so i
 
 The tag applies wherever the struct appears, in inputs, in outputs, and at any nesting depth. Its value is `name` followed by comma separated options, the same shape as `json` tags, so field level options can join it later. The generator rejects an option it does not know, reporting the file, line and field.
 
-`//argyll:wrap` names are used verbatim, since the directive supplies them.
+Names supplied by a `//argyll:wrap` directive are used verbatim, overriding the `snake_case` default the same way a field tag does.
 
 ### Attribute types
 

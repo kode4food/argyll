@@ -69,6 +69,23 @@ func TestWrapContract(t *testing.T) {
 		"return argyllScoreCustomerOut{Score: r0, Approved: r1}, nil")
 }
 
+func TestWrapInference(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	// inputs inferred from parameter names, outputs named by the directive
+	assert.Contains(t, text, `ID:   "rate-customer"`)
+	assert.Contains(t, text, "type argyllRateCustomerIn struct {\n\tCustomerId")
+
+	// both sides inferred, from named parameters and named results
+	assert.Contains(t, text, `ID:   "grade-customer"`)
+	assert.Contains(t, text,
+		"type argyllGradeCustomerIn struct {\n\tCustomerId")
+	assert.Contains(t, text,
+		"type argyllGradeCustomerOut struct {\n\tScore")
+}
+
 func TestZeroOutputStep(t *testing.T) {
 	src, err := render(t, "../../../example")
 	assert.NoError(t, err)
@@ -163,6 +180,14 @@ func TestDiagnostics(t *testing.T) {
 		"tag name": {
 			pattern: "./testdata/badtagname",
 			wants:   []string{`bad attribute name "order amount"`},
+		},
+		"unnamed result": {
+			pattern: "./testdata/badinfer",
+			wants:   []string{"Add result 1 is unnamed"},
+		},
+		"unnamed parameter": {
+			pattern: "./testdata/badinferin",
+			wants:   []string{"Add parameter 1 is unnamed"},
 		},
 	}
 

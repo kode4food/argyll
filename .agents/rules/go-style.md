@@ -372,17 +372,28 @@ c, err := client.NewClient("embedded://", client.WithEmbedded(tr))
 
 ### Multi-line Calls with \*testing.T
 
-When a function call wraps and the first argument is the test instance (`t`), keep `t` on the first line and break immediately after it.
+When a call wraps and the test instance (`t`) is its receiver or its first argument, keep `t` on the first line, break immediately after it, and close on the last argument:
 
 ```go
 WaitForFlowEvents(t,
-	consumer, flowIDs, timeout, api.EventTypeFlowStarted,
-)
+	consumer, flowIDs, timeout, api.EventTypeFlowStarted)
 ```
 
 ```go
 assert.Equal(t,
-	api.FlowID("parent-flow"), metaFlowID(childState.Metadata),
+	api.FlowID("parent-flow"), metaFlowID(childState.Metadata))
+```
+
+```go
+t.Fatalf("unexpected required match location: %s",
+	got.RequiredMatch.Location)
+```
+
+Every other wrapped call breaks after the opening paren, with a trailing comma and the closing paren on its own line:
+
+```go
+err := env.Engine.RegisterStep(
+	helpers.NewSimpleStep("count-step-1"),
 )
 ```
 

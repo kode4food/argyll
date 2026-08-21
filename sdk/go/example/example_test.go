@@ -127,6 +127,21 @@ func TestWrappedStep(t *testing.T) {
 	assert.Equal(t, gen.FailureStatus, res.StatusCode)
 }
 
+func TestInferredWrappedStep(t *testing.T) {
+	srv := stepServer(t)
+
+	body := `{"customer_id":"c-1","amount":5000}`
+	want := `{"score":50,"approved":true}`
+
+	for _, id := range []string{"rate-customer", "grade-customer"} {
+		t.Run(id, func(t *testing.T) {
+			res := invoke(t, srv, id, body)
+			assert.Equal(t, http.StatusOK, res.StatusCode)
+			assert.JSONEq(t, want, bodyOf(t, res))
+		})
+	}
+}
+
 func TestRegistration(t *testing.T) {
 	registered := make(chan *api.Step, len(example.ArgyllSteps()))
 	engine := httptest.NewServer(http.HandlerFunc(

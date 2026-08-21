@@ -526,7 +526,10 @@ func TestLuaNestedMap(t *testing.T) {
 					result = {
 						overall = "medium",
 						score = 6,
-						reasons = {"missing extracted fields", "document inconsistencies"}
+						reasons = {
+							"missing extracted fields",
+							"document inconsistencies"
+						}
 					}
 				}
 			`,

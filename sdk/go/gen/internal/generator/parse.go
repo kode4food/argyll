@@ -110,6 +110,26 @@ func (g *pkgGen) wrapFor(
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w: %s", err, fn.Name.Name)
 	}
+	if inNames == nil {
+		n := sig.Params().Len()
+		if inNames, err = g.inferNames(
+			fn, sig.Params(), n, "parameter",
+		); err != nil {
+			return stepModel{}, err
+		}
+	}
+	if outNames == nil {
+		res := sig.Results()
+		n := res.Len()
+		if n > 0 && isError(res.At(n-1).Type()) {
+			n--
+		}
+		if outNames, err = g.inferNames(
+			fn, res, n, "result",
+		); err != nil {
+			return stepModel{}, err
+		}
+	}
 	if sig.Params().Len() != len(inNames) {
 		return stepModel{}, g.errorAt(fn,
 			"%w: %s declares %d inputs but takes %d",
@@ -191,6 +211,23 @@ func (g *pkgGen) results(
 			"%w: %s returns more than an outputs struct and an error",
 			ErrBadSignature, fn.Name.Name)
 	}
+}
+
+func (g *pkgGen) inferNames(
+	fn *ast.FuncDecl, vars *types.Tuple, n int, kind string,
+) ([]string, error) {
+	names := make([]string, n)
+	for i := range n {
+		switch name := vars.At(i).Name(); name {
+		case "", "_":
+			return nil, g.errorAt(fn,
+				"%w: %s %s %d is unnamed, so name the %ss in the directive",
+				ErrBadDirective, fn.Name.Name, kind, i+1, kind)
+		default:
+			names[i] = SnakeCase(name)
+		}
+	}
+	return names, nil
 }
 
 func (g *pkgGen) wrapResults(

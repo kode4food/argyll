@@ -48,7 +48,10 @@ var (
 var (
 	allQueryStatuses = []queryStatus{
 		{indexStatus: events.FlowStatusActive, flowStatus: api.FlowActive},
-		{indexStatus: events.FlowStatusCompleted, flowStatus: api.FlowCompleted},
+		{
+			indexStatus: events.FlowStatusCompleted,
+			flowStatus:  api.FlowCompleted,
+		},
 		{indexStatus: events.FlowStatusFailed, flowStatus: api.FlowFailed},
 	}
 

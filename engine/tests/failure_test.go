@@ -141,7 +141,9 @@ func TestWorkItemFailFast(t *testing.T) {
 
 		consumer := helpers.NewTestStepWithArgs([]api.Name{"items"}, nil)
 		consumer.ID = "ff-consumer"
-		consumer.Attributes["items"].Required = &api.RequiredConfig{ForEach: true}
+		consumer.Attributes["items"].Required = &api.RequiredConfig{
+			ForEach: true,
+		}
 		consumer.Attributes["items"].Type = api.TypeArray
 		consumer.WorkConfig = &api.WorkConfig{Parallelism: 1}
 

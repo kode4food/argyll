@@ -112,6 +112,24 @@ func ScoreCustomer(customerID string, amount int64) (int, bool, error) {
 	return int(amount / 100), amount < 10_000, nil
 }
 
+//argyll:wrap -> score, approved
+func RateCustomer(customerID string, amount int64) (int, bool, error) {
+	if customerID == "" {
+		return 0, false, errors.New("customer id required")
+	}
+	return int(amount / 100), amount < 10_000, nil
+}
+
+//argyll:wrap
+func GradeCustomer(
+	customerID string, amount int64,
+) (score int, approved bool, err error) {
+	if customerID == "" {
+		return 0, false, errors.New("customer id required")
+	}
+	return int(amount / 100), amount < 10_000, nil
+}
+
 //argyll:step
 //argyll:label domain=risk
 func Reject(args struct{ Reason string }) error {

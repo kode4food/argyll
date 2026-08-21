@@ -32,7 +32,8 @@ func TestRaiseEnqueuesEvent(t *testing.T) {
 				}
 
 				ev := evs[0]
-				assert.Equal(t, timebox.EventType(api.EventTypeFlowStarted), ev.Type)
+				assert.Equal(t,
+					timebox.EventType(api.EventTypeFlowStarted), ev.Type)
 				assert.Equal(t, int64(0), ev.Sequence)
 				assert.Equal(t, id, ev.AggregateID)
 

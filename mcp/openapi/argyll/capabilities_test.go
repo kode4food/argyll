@@ -8,7 +8,8 @@ func TestDefaultsDescribePlannerCapabilities(t *testing.T) {
 		t.Fatalf("expected attribute mapping support")
 	}
 	if got.RequiredMatch.Location != "required.match" {
-		t.Fatalf("unexpected required match location: %s", got.RequiredMatch.Location)
+		t.Fatalf("unexpected required match location: %s",
+			got.RequiredMatch.Location)
 	}
 	if got.EndpointArgs.PlaceholderSyntax != "{attribute_name}" {
 		t.Fatalf(
