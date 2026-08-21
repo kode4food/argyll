@@ -19,9 +19,11 @@ func (m Metadata) Apply(other Metadata) Metadata {
 	return applyMap(m, other)
 }
 
-func GetMetaString[T ~string](meta Metadata, key string) (T, bool) {
+// GetString retrieves a string value from the metadata as the requested string
+// type, returning false if it is missing, empty, or not a string
+func (m Metadata) GetString[T ~string](key string) (T, bool) {
 	var zero T
-	val, ok := meta[key]
+	val, ok := m[key]
 	if !ok {
 		return zero, false
 	}

@@ -24,12 +24,6 @@ var (
 	ErrPartialParentMetadata = errors.New("partial parent metadata")
 )
 
-var (
-	getMetaFlowID = api.GetMetaString[api.FlowID]
-	getMetaStepID = api.GetMetaString[api.StepID]
-	getMetaToken  = api.GetMetaString[api.Token]
-)
-
 // checkTerminal checks for flow completion or failure
 func (tx *flowTx) checkTerminal() error {
 	fl := tx.Value()
@@ -259,9 +253,10 @@ func parentMeta(st api.FlowState, target *parentWork) (bool, error) {
 		return false, fmt.Errorf("%w: %s", err, st.ID)
 	}
 
-	fid, hasFlowID := getMetaFlowID(st.Metadata, api.MetaParentFlowID)
-	sid, hasStepID := getMetaStepID(st.Metadata, api.MetaParentStepID)
-	tkn, hasToken := getMetaToken(st.Metadata, api.MetaParentWorkItemToken)
+	meta := st.Metadata
+	fid, hasFlowID := meta.GetString[api.FlowID](api.MetaParentFlowID)
+	sid, hasStepID := meta.GetString[api.StepID](api.MetaParentStepID)
+	tkn, hasToken := meta.GetString[api.Token](api.MetaParentWorkItemToken)
 
 	if !hasFlowID && !hasStepID && !hasToken {
 		return false, nil
@@ -295,9 +290,9 @@ func mapFlowOutputs(step *api.Step, childAttrs api.Args) (api.Args, error) {
 }
 
 func validateParentMetadata(meta api.Metadata) error {
-	_, hasFlowID := getMetaFlowID(meta, api.MetaParentFlowID)
-	_, hasStepID := getMetaStepID(meta, api.MetaParentStepID)
-	_, hasToken := getMetaToken(meta, api.MetaParentWorkItemToken)
+	_, hasFlowID := meta.GetString[api.FlowID](api.MetaParentFlowID)
+	_, hasStepID := meta.GetString[api.StepID](api.MetaParentStepID)
+	_, hasToken := meta.GetString[api.Token](api.MetaParentWorkItemToken)
 	if !hasFlowID && !hasStepID && !hasToken {
 		return nil
 	}

@@ -110,7 +110,7 @@ func (e *Engine) matchesStartedFlow(
 		if api.EventType(ev.Type) != api.EventTypeFlowStarted {
 			continue
 		}
-		data, err := timebox.GetEventValue[api.FlowStartedEvent](ev)
+		data, err := ev.GetValue[api.FlowStartedEvent]()
 		if err != nil {
 			return false, err
 		}

@@ -64,7 +64,7 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 	for _, ev := range evs {
 		switch api.EventType(ev.Type) {
 		case api.EventTypeFlowStarted:
-			data, err := timebox.GetEventValue[api.FlowStartedEvent](ev)
+			data, err := ev.GetValue[api.FlowStartedEvent]()
 			if err == nil {
 				handleStarted(data)
 				continue
@@ -72,7 +72,7 @@ func FlowIndexer(evs []*timebox.Event) []*timebox.Index {
 			// slog this. very bad
 
 		case api.EventTypeFlowDeactivated:
-			data, err := timebox.GetEventValue[api.FlowDeactivatedEvent](ev)
+			data, err := ev.GetValue[api.FlowDeactivatedEvent]()
 			if err == nil {
 				handleDeactivated(data)
 				continue

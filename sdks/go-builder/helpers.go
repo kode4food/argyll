@@ -145,7 +145,7 @@ func makeCompensateHandler(
 		}
 
 		meta := api.MetadataFromHeaders(r.Header)
-		fid, _ := api.GetMetaString[api.FlowID](meta, api.MetaFlowID)
+		fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
 
 		ctx := &StepContext{
 			Context:  r.Context(),
@@ -180,7 +180,7 @@ func makeStepHandler(
 		}
 
 		meta := api.MetadataFromHeaders(r.Header)
-		fid, _ := api.GetMetaString[api.FlowID](meta, api.MetaFlowID)
+		fid, _ := meta.GetString[api.FlowID](api.MetaFlowID)
 
 		ctx := &StepContext{
 			Context:  r.Context(),
@@ -215,8 +215,7 @@ func executeCompensateWithRecovery(
 		}
 	}()
 	if err := handler(ctx, body.Input, body.Output); err != nil {
-		var he *HTTPError
-		if errors.As(err, &he) {
+		if he, ok := errors.AsType[*HTTPError](err); ok {
 			return he
 		}
 		return NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -243,8 +242,7 @@ func executeStepWithRecovery(
 	var err error
 	outputs, err = handler(ctx, args)
 	if err != nil {
-		var he *HTTPError
-		if errors.As(err, &he) {
+		if he, ok := errors.AsType[*HTTPError](err); ok {
 			return nil, he
 		}
 		return nil, NewHTTPError(http.StatusInternalServerError, err.Error())

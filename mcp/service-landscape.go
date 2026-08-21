@@ -101,7 +101,7 @@ func (s *Server) analyzeServiceLandscape(
 		spec, err := openapi.AnalyzeContract(openapi.Args{
 			SpecText:          svc.SpecText,
 			Spec:              svc.Spec,
-			IncludeRegistered: boolPtr(false),
+			IncludeRegistered: new(false),
 		}, nil, nil)
 		if err != nil {
 			return nil, err
@@ -144,8 +144,4 @@ func summaryPayload(name string, spec openapi.Result) serviceSummary {
 		Name:       name,
 		Operations: len(spec.Operations),
 	}
-}
-
-func boolPtr(v bool) *bool {
-	return &v
 }

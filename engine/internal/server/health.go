@@ -199,9 +199,7 @@ func (s *Server) handleHealth(c *gin.Context) {
 	c.JSON(http.StatusOK, api.HealthResponse{
 		Service: "argyll-engine",
 		Details: s.statusDetails(),
-		HealthState: api.HealthState{
-			Status: api.HealthHealthy,
-		},
+		Status:  api.HealthHealthy,
 	})
 }
 

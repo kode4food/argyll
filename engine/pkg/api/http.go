@@ -83,7 +83,7 @@ func MetadataFromHeaders(header http.Header) Metadata {
 }
 
 func setMetaHeader(header http.Header, name string, meta Metadata, key string) {
-	if value, ok := GetMetaString[string](meta, key); ok {
+	if value, ok := meta.GetString[string](key); ok {
 		header.Set(name, value)
 	}
 }

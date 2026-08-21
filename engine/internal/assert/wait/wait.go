@@ -352,7 +352,7 @@ func StepHealthChanged(stepID api.StepID, st api.HealthStatus) EventFilter {
 // PredicateFilter creates a filter that unmarshals event data and applies pred
 func PredicateFilter[T any](pred Predicate[T]) EventFilter {
 	return func(ev *timebox.Event) bool {
-		data, err := timebox.GetEventValue[T](ev)
+		data, err := ev.GetValue[T]()
 		if err != nil {
 			return false
 		}

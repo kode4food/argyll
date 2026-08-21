@@ -24,7 +24,7 @@ func (e *Engine) HandleCommitted(evs ...*timebox.Event) {
 func (e *Engine) handleCommitted(ev *timebox.Event) {
 	switch api.EventType(ev.Type) {
 	case api.EventTypeStepStarted:
-		data, err := timebox.GetEventValue[api.StepStartedEvent](ev)
+		data, err := ev.GetValue[api.StepStartedEvent]()
 		if err != nil {
 			slog.Error("Failed to decode step started event",
 				log.Error(err))
@@ -36,7 +36,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 		}
 		e.scheduleWorkDispatch(fs, e.Now())
 	case api.EventTypeDispatchDeferred:
-		data, err := timebox.GetEventValue[api.DispatchDeferredEvent](ev)
+		data, err := ev.GetValue[api.DispatchDeferredEvent]()
 		if err != nil {
 			slog.Error("Failed to decode dispatch deferred event",
 				log.Error(err))
@@ -51,7 +51,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 		e.scheduleWorkDispatch(fs, now)
 		e.scheduleDispatchRecovery(fs, now)
 	case api.EventTypeWorkRetryScheduled:
-		data, err := timebox.GetEventValue[api.WorkRetryScheduledEvent](ev)
+		data, err := ev.GetValue[api.WorkRetryScheduledEvent]()
 		if err != nil {
 			slog.Error("Failed to decode retry scheduled event",
 				log.Error(err))
@@ -66,7 +66,7 @@ func (e *Engine) handleCommitted(ev *timebox.Event) {
 		}
 		e.scheduleRetryTask(fs, data.Token, data.NextRetryAt)
 	case api.EventTypeCompRetryScheduled:
-		data, err := timebox.GetEventValue[api.CompRetryScheduledEvent](ev)
+		data, err := ev.GetValue[api.CompRetryScheduledEvent]()
 		if err != nil {
 			slog.Error("Failed to decode comp retry scheduled event",
 				log.Error(err))

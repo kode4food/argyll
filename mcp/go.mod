@@ -1,6 +1,6 @@
 module github.com/kode4food/argyll/mcp
 
-go 1.25.7
+go 1.27.0
 
 require (
 	github.com/getkin/kin-openapi v0.144.0
@@ -19,6 +19,7 @@ require (
 	github.com/gobwas/ws v1.4.0 // indirect
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/klauspost/compress v1.18.5 // indirect
+	github.com/kode4food/timebox v0.0.0-20260820183140-712e7716425b // indirect
 	github.com/kr/pretty v0.3.1 // indirect
 	github.com/localrivet/wilduri v0.0.0-20250504021349-6ce732e97cca // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect

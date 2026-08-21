@@ -21,5 +21,5 @@ func MakeAppliers[T any](
 func Raise[T, V any](
 	ag *timebox.Aggregator[T], typ api.EventType, value V,
 ) error {
-	return timebox.Raise(ag, timebox.EventType(typ), value)
+	return ag.Raise(timebox.EventType(typ), value)
 }
