@@ -52,7 +52,7 @@ for index, currentStep := range steps {
 }
 ```
 
-Avoid local names that merely restate the type. Prefer the semantic subject, not the full noun phrase:
+Name a local for its semantic subject rather than its type, and use the subject alone rather than the full noun phrase:
 
 ```go
 // Good
@@ -220,13 +220,13 @@ func outer(args startFlowArgs) {
 }
 ```
 
-Keep `*testing.T` as the first positional parameter of test helpers. It counts toward the argument threshold but never belongs in an argument struct, so test-related functions remain identifiable.
+Keep `*testing.T` as the first positional parameter of test helpers, outside the argument struct even though it counts toward the threshold, so test-related functions stay identifiable at a glance.
 
 Exported APIs may instead use descriptive request, response, or state type names without `Args` or `Res`. Declare those exported types at the top of the file with the other exported types; pointers are acceptable when appropriate.
 
 ### Function Signature Wrapping
 
-When a function signature is too long for one line, keep as many parameters as fit on the first line and wrap the remainder on the next line(s). Do not put one parameter per line unless the line would still exceed the limit.
+When a function signature is too long for one line, keep as many parameters as fit on the first line and wrap the remainder on the next line(s). Go one parameter per line only when a line would still exceed the limit.
 
 Example with more parameters:
 
@@ -318,7 +318,7 @@ var (
 
 ### Boolean Names
 
-Avoid `is`/`has` prefix (redundant in Go):
+Name a boolean for the state it holds; Go reads it as a predicate already:
 
 ```go
 // Good
@@ -372,7 +372,7 @@ c, err := client.NewClient("embedded://", client.WithEmbedded(tr))
 
 ### Multi-line Calls with \*testing.T
 
-When a function call wraps and the first argument is the test instance (`t`), keep `t` on the first line and break immediately after it. Do not place `t` alone on the next line.
+When a function call wraps and the first argument is the test instance (`t`), keep `t` on the first line and break immediately after it.
 
 ```go
 WaitForFlowEvents(t,
@@ -394,7 +394,7 @@ Run `goimports` on all files. It handles grouping and sorting automatically.
 
 ### No Function-Scoped Type or Const Declarations
 
-**Never declare `type` or `const` inside a function body.** All type and constant declarations must be at package level, in the appropriate block with the rest of the package's types and constants.
+All `type` and `const` declarations live at package level, in the appropriate block alongside the rest of the package's types and constants.
 
 ```go
 // Bad — type declared inside a function
@@ -470,7 +470,7 @@ Within a package, organize files around real concerns, not arbitrary helper cate
 - `step-start.go`, `step-continue.go`, `step-stop.go`
 - `work-start.go`, `work-continue.go`, `work-stop.go`
 
-Do not introduce wrapper files that just forward calls to another package or rename errors.
+Let callers import the owning package and use its calls and errors directly.
 
 ## Struct Literals
 
@@ -520,7 +520,7 @@ func processStep(step *StepInfo) error {
 }
 ```
 
-Do not mechanically use guard clauses in simple or linear functions. When a value and success indicator are used only by a short success path, declare them in the `if` initializer, keep the value scoped to that branch, and put the fallback afterward. Use this form when the condition is only the success indicator, or the success indicator plus one simple boolean, nil, equality, or predicate check. If the condition needs more than two checks, becomes multi-line, or the success branch contains substantial logic, use guard clauses instead.
+Guard clauses earn their place in branching functions. When a value and success indicator are used only by a short success path, declare them in the `if` initializer, keep the value scoped to that branch, and put the fallback afterward. Use this form when the condition is only the success indicator, or the success indicator plus one simple boolean, nil, equality, or predicate check. Once the condition needs more than two checks, becomes multi-line, or the success branch grows substantial logic, switch to guard clauses.
 
 ```go
 // Good
@@ -543,7 +543,7 @@ func lookupWork(token api.Token) (api.WorkItem, bool) {
 
 ### Multi-Assignment
 
-Never assign multiple variables in one statement from independent sources — `a, b := x, y` where `x` and `y` are separate expressions. The reader must visually pair each name on the left with its value on the right instead of reading top to bottom. The only exception is routing a single call's multiple return values, where the pairing is fixed by the function's signature.
+Give each independent value its own statement, so the code reads top to bottom instead of pairing names on the left with values on the right. One statement carries multiple variables when it routes a single call's return values, where the signature fixes the pairing.
 
 ```go
 // Good — routing one call's multi-return
@@ -616,7 +616,7 @@ func TestEngineShouldStartCorrectlyWhenConfigIsValid(t *testing.T) { ... }
 
 ### Assertions
 
-Use `testify/assert` only. Never `testify/require`. Never include message args:
+Use `testify/assert`, with the assertion alone and no message args:
 
 ```go
 // Good
@@ -651,13 +651,15 @@ If the runtime code is grouped by stage or lifecycle, the tests should mirror th
 - `work-continue_test.go`
 - `work-stop_test.go`
 
-Do not keep broad mixed test files once the source has been split cleanly.
+Once the source splits cleanly, split its tests to match.
 
 ## Comments
 
+Every comment earns its place. Code that needs prose to be understood is code that needs rewriting.
+
 ### Godoc
 
-**Exported** symbols need godoc that adds value beyond the name — but no more than 3 lines. Describe what it does, not how. If it takes more than 3 lines to say what something does, it isn't coded well:
+**Exported** funcs, methods, types, consts, and vars carry godoc, capped at 3 lines. Say what it does. Needing more than 3 lines means the thing itself wants simplifying:
 
 ```go
 // Scheduler manages periodic work execution using timebox.Store,
@@ -665,37 +667,42 @@ Do not keep broad mixed test files once the source has been split cleanly.
 type Scheduler struct {
 ```
 
-Skip godoc when the name is self-documenting:
+Sentinel error vars are the exception: the message is the documentation.
+
+**Unexported** funcs and methods stand on their own name and signature. Add a godoc, capped at 2 lines, when the behavior is genuinely non-trivial:
 
 ```go
-func NewScheduler(...) (*Scheduler, error) {
+// unexported and self-evident, no comment
+func clampRetry(d time.Duration, max int) time.Duration {
+
+// the "why" is invisible from the signature, 2 lines max
+// diffDebounce: single async debounce; the gutter trails a keystroke
+const diffDebounce = 50 * time.Millisecond
 ```
 
-Sentinel error vars are always exempt: the message is the documentation.
-
-**Unexported** funcs and methods get no godoc by default. Only add one — capped at 2 lines — when the behavior is genuinely non-trivial and needs explanation.
+End the last sentence of a godoc without a period.
 
 ### Comment Density
 
-Match the surrounding code. Do not add a doc comment to a field whose siblings have none.
-
-Godoc rule: the last sentence of a comment should not end with a period.
+Match the surrounding code. A field whose siblings carry no doc comment gets none either.
 
 ### Inline Comments
 
-Avoid comments that restate the code. Comment non-obvious logic:
+An inline comment explains WHY, capped at 2 lines. Code says what it does on its own:
 
 ```go
-// Bad
+// Bad, restates the code
 bucket, err := blob.OpenBucket(ctx, url)  // Open the bucket
 return err                                 // Return the error
 
-// Good - explains WHY
+// Good, explains WHY, 2 lines max
 // Missing key is not an error; deletion is idempotent by design
 if gcerrors.Code(err) == gcerrors.NotFound {
 	return nil
 }
 ```
+
+Explaining the mechanism the reader can already see, restating a name, or justifying a decision belongs in the commit message, not the source.
 
 ## Global State
 

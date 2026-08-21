@@ -54,6 +54,30 @@ func TestSyncStep(t *testing.T) {
 	assert.JSONEq(t, `{"score":50,"approved":true}`, bodyOf(t, res))
 }
 
+func TestNestedAndMapStep(t *testing.T) {
+	srv := stepServer(t)
+
+	res := invoke(t, srv, "enroll",
+		`{"address":{"city":"Dublin","zip":"D02"},"limits":{"daily":10},`+
+			`"iso_currency":"EUR","scratch":"ignored"}`)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.JSONEq(t,
+		`{"city":"Dublin","limits":{"daily":10},"iso_currency":"EUR"}`,
+		bodyOf(t, res))
+}
+
+func TestRecursiveStep(t *testing.T) {
+	srv := stepServer(t)
+
+	tree := `{"root":{"name":"a","children":[` +
+		`{"name":"b","children":[{"name":"c","children":[],"next":null}],` +
+		`"next":null}],"next":{"name":"z","children":[],"next":null}}}`
+
+	res := invoke(t, srv, "walk", tree)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.JSONEq(t, tree, bodyOf(t, res))
+}
+
 func TestSyncStepError(t *testing.T) {
 	srv := stepServer(t)
 

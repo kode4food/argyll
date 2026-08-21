@@ -2,4 +2,4 @@
 
 ## Line Wrapping
 
-Do not hard-wrap Markdown text. Let lines run long in `.md` files.
+Let lines run long in `.md` files: one line per paragraph.

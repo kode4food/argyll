@@ -79,6 +79,48 @@ func TestZeroOutputStep(t *testing.T) {
 	assert.Contains(t, text, "return struct{}{}, Audit(in)")
 }
 
+func TestCompositeCodecs(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	assert.Contains(t, text, "codec.Map(codec.Number[int]())")
+	assert.Contains(t, text, "codec.Slice(codec.Text[string]())")
+	assert.Contains(t, text, "codec.Optional(codec.Text[string]())")
+	assert.Contains(t, text, `{Name: "address", Type: api.TypeObject}`)
+	assert.Contains(t, text, `{Name: "limits", Type: api.TypeObject}`)
+}
+
+func TestFieldTags(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	assert.Contains(t, text, `{Name: "iso_currency", Type: api.TypeString}`)
+	assert.Contains(t, text, `codec.Field("iso_currency"`)
+
+	// a tag of "-" keeps the field off the wire entirely
+	assert.NotContains(t, text, "scratch")
+	assert.NotContains(t, text, "Scratch")
+}
+
+func TestRecursiveCodec(t *testing.T) {
+	src, err := render(t, "../../../example")
+	assert.NoError(t, err)
+	text := string(src)
+
+	// a self-referential codec cannot be a plain var initializer
+	assert.Contains(t, text, "var argyllCodecNodeImpl codec.Codec[Node]")
+	assert.Contains(t, text,
+		"var argyllCodecNode = codec.Ref(&argyllCodecNodeImpl)")
+	assert.Contains(t, text, "argyllCodecNodeImpl = codec.Struct(")
+	assert.Contains(t, text, "codec.Slice(argyllCodecNode)")
+	assert.Contains(t, text, "codec.Optional(argyllCodecNode)")
+
+	// non-recursive codecs stay plain
+	assert.Contains(t, text, "var argyllCodecRiskArgs = codec.Struct(")
+}
+
 func TestNoDirectives(t *testing.T) {
 	src, err := render(t, "./testdata/nodirectives")
 	assert.NoError(t, err)
@@ -105,6 +147,22 @@ func TestDiagnostics(t *testing.T) {
 		"attribute type": {
 			pattern: "./testdata/badtype",
 			wants:   []string{"chan int"},
+		},
+		"named composite": {
+			pattern: "./testdata/badnamed",
+			wants:   []string{"unsupported attribute type: Tags"},
+		},
+		"map key type": {
+			pattern: "./testdata/badmapkey",
+			wants:   []string{"int keys"},
+		},
+		"tag option": {
+			pattern: "./testdata/badtag",
+			wants:   []string{`unknown option "omitempty" on Amount`},
+		},
+		"tag name": {
+			pattern: "./testdata/badtagname",
+			wants:   []string{`bad attribute name "order amount"`},
 		},
 	}
 

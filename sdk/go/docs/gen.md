@@ -58,7 +58,7 @@ func Greet(args struct{ Name string }) struct{ Greeting string }
 func Audit(args AuditArgs) error
 ```
 
-Fields of the argument struct become step inputs, fields of the result struct become step outputs. No JSON tags are needed or consulted.
+Fields of the argument struct become step inputs, fields of the result struct become step outputs. Names default to the Go identifier in `snake_case`, and an [`argyll` field tag](#field-tags) sets the attribute name explicitly.
 
 ### `//argyll:wrap`
 
@@ -94,11 +94,39 @@ Go field names map to Argyll attribute names as `snake_case`, function names to 
 | ---------------- | ---------------- |
 | `CustomerID`     | `customer_id`    |
 | `HTTPServer`     | `http_server`    |
+| ``Currency string `argyll:"iso_currency"` `` | `iso_currency` |
 | `func CalculateRisk` | `calculate-risk` step ID, `Calculate Risk` name |
 
-Attribute types follow the Go types: strings are `string`, all numeric types are `number`, bools are `boolean`, slices are `array`, structs and maps are `object`. A pointer field is an optional attribute.
+### Field tags
+
+An `argyll` struct tag overrides that default and names the attribute explicitly:
+
+```go
+type EnrollArgs struct {
+	Currency string `argyll:"iso_currency"`
+	Scratch  string `argyll:"-"`
+}
+```
+
+A tag of `-` keeps the field out of the contract and off the wire entirely, so it stays available as ordinary Go state. Unexported fields are skipped the same way.
+
+The tag applies wherever the struct appears, in inputs, in outputs, and at any nesting depth. Its value is `name` followed by comma separated options, the same shape as `json` tags, so field level options can join it later. The generator rejects an option it does not know, reporting the file, line and field.
 
 `//argyll:wrap` names are used verbatim, since the directive supplies them.
+
+### Attribute types
+
+Attribute types follow the Go types: strings are `string`, all numeric types are `number`, bools are `boolean`, slices are `array`, structs and maps are `object`. A pointer field is an optional attribute. Structs and string-keyed maps nest to any depth, including recursively:
+
+```go
+type Node struct {
+	Name     string
+	Children []Node
+	Next     *Node
+}
+```
+
+A type that reaches itself, through a slice, a pointer, a map, or a chain of other structs, gets its codec built during package initialization and handed to its users through an indirection, since a self-referential variable initializer is an initialization cycle in Go.
 
 ## Failures
 
@@ -121,10 +149,10 @@ codec.Struct(
 	codec.Field("customer_id", codec.Text[string](), func(v *RiskArgs) *string {
 		return &v.CustomerID
 	}),
-	codec.Field("tags", codec.Slice(codec.String), func(v *RiskArgs) *[]string {
+	codec.Field("tags", codec.Slice(codec.Text[string]()), func(v *RiskArgs) *[]string {
 		return &v.Tags
 	}),
 )
 ```
 
-There is no reflection at runtime, and no bespoke parser per function. `Text`, `Number`, `Boolean`, `Slice`, `Optional`, `Map` and `Struct` compose to cover the supported types. Unsupported field types, such as channels or named slice types, fail generation with the position and the offending type.
+There is no reflection at runtime, and no bespoke parser per function. `Text`, `Number`, `Boolean`, `Slice`, `Optional`, `Map` and `Struct` compose to cover the supported types. A field type outside that set fails generation with its position and the offending type.

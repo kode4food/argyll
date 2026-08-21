@@ -22,6 +22,27 @@ type (
 		Score    int
 		Approved bool
 	}
+
+	// Address is a nested struct input
+	Address struct {
+		City string
+		Zip  string
+	}
+
+	// Node is a recursive type, through both a slice and a pointer
+	Node struct {
+		Name     string
+		Children []Node
+		Next     *Node
+	}
+
+	// EnrollArgs are the inputs of the Enroll step
+	EnrollArgs struct {
+		Address  Address
+		Limits   map[string]int
+		Currency string `argyll:"iso_currency"`
+		Scratch  string `argyll:"-"`
+	}
 )
 
 //go:generate go run ../gen/cmd/argyll-gen .
@@ -46,6 +67,28 @@ func Greet(args struct{ Name string }) struct{ Greeting string } {
 	return struct{ Greeting string }{
 		Greeting: "hello " + args.Name,
 	}
+}
+
+//argyll:step
+func Enroll(args EnrollArgs) struct {
+	City     string
+	Limits   map[string]int
+	Currency string `argyll:"iso_currency"`
+} {
+	return struct {
+		City     string
+		Limits   map[string]int
+		Currency string `argyll:"iso_currency"`
+	}{
+		City:     args.Address.City,
+		Limits:   args.Limits,
+		Currency: args.Currency,
+	}
+}
+
+//argyll:step
+func Walk(args struct{ Root Node }) struct{ Root Node } {
+	return struct{ Root Node }{Root: args.Root}
 }
 
 //argyll:step

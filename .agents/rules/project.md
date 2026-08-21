@@ -103,4 +103,4 @@ cd web && npm run format && npm test && npm run lint && npm run type-check
 
 ## Backward Compatibility
 
-This project is in active development with no established user base. Do not preserve backward compatibility, avoid deprecation paths, and prefer breaking changes when they simplify the system.
+This project is in active development with no established user base. Change the code freely, and take the breaking change whenever it leaves the system simpler.

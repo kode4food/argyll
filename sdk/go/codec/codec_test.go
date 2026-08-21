@@ -8,13 +8,37 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type person struct {
-	Name    string
-	Age     int
-	Tags    []string
-	Nick    *string
-	Ratings map[string]float64
-	Active  bool
+type (
+	person struct {
+		Name    string
+		Age     int
+		Tags    []string
+		Nick    *string
+		Ratings map[string]float64
+		Active  bool
+	}
+
+	node struct {
+		Name     string
+		Children []node
+	}
+)
+
+var (
+	nodeImpl  codec.Codec[node]
+	nodeCodec = codec.Ref(&nodeImpl)
+)
+
+func init() {
+	nodeImpl = codec.Struct(
+		codec.Field("name", codec.String, func(v *node) *string {
+			return &v.Name
+		}),
+		codec.Field("children", codec.Slice(nodeCodec),
+			func(v *node) *[]node {
+				return &v.Children
+			}),
+	)
 }
 
 func personCodec() codec.Codec[person] {
@@ -192,4 +216,17 @@ func TestFloatEncoding(t *testing.T) {
 	var ints strings.Builder
 	assert.NoError(t, codec.EncodeTo(codec.Int, &ints, 7))
 	assert.Equal(t, "7", strings.TrimSpace(ints.String()))
+}
+
+func TestRefRecursion(t *testing.T) {
+	const src = `{"name":"a","children":[` +
+		`{"name":"b","children":[{"name":"c","children":[]}]}]}`
+
+	v, err := codec.DecodeFrom(nodeCodec, strings.NewReader(src))
+	assert.NoError(t, err)
+	assert.Equal(t, "c", v.Children[0].Children[0].Name)
+
+	var out strings.Builder
+	assert.NoError(t, codec.EncodeTo(nodeCodec, &out, v))
+	assert.JSONEq(t, src, out.String())
 }

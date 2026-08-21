@@ -35,6 +35,7 @@ type (
 	sliceCodec[T any]      struct{ elem Codec[T] }
 	optionalCodec[T any]   struct{ elem Codec[T] }
 	mapCodec[T any]        struct{ elem Codec[T] }
+	refCodec[T any]        struct{ target *Codec[T] }
 
 	structCodec[S any] struct {
 		byName map[string]StructField[S]
@@ -87,6 +88,12 @@ func Optional[T any](elem Codec[T]) Codec[*T] {
 // Map returns a codec for a JSON object with uniformly typed members
 func Map[T any](elem Codec[T]) Codec[map[string]T] {
 	return mapCodec[T]{elem: elem}
+}
+
+// Ref returns a codec that reads target when used rather than when
+// built, which lets a recursive type refer to its own codec
+func Ref[T any](target *Codec[T]) Codec[T] {
+	return refCodec[T]{target: target}
 }
 
 // Struct returns a codec for a JSON object with statically known members
@@ -256,6 +263,14 @@ func (c mapCodec[T]) Encode(e *jsontext.Encoder, v map[string]T) error {
 		}
 	}
 	return e.WriteToken(jsontext.EndObject)
+}
+
+func (c refCodec[T]) Decode(d *jsontext.Decoder) (T, error) {
+	return (*c.target).Decode(d)
+}
+
+func (c refCodec[T]) Encode(e *jsontext.Encoder, v T) error {
+	return (*c.target).Encode(e, v)
 }
 
 func (c *structCodec[S]) Decode(d *jsontext.Decoder) (S, error) {

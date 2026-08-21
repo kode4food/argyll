@@ -146,10 +146,10 @@ func (tx *flowTx) checkTerminal() error {
 
 **Rules:**
 
-- Do not mutate the state parameter directly
+- Treat the state parameter as read-only
 - OnSuccess signature: `func(state, committedEvents)`
 - Mutations: use `events.Raise(ag, type, data)`
-- Idempotency: Check state before raising event (avoid duplicate events)
+- Idempotency: check state before raising an event, so each event is raised once
 - Executor: Handles conflict retries automatically (no manual retry needed)
 - Atomicity: Events and projections commit together
 

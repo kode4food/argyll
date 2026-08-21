@@ -230,7 +230,7 @@ Name the type after the function with a `Request`/`Options`/`Params` suffix
 callers need to construct or reference the shape; otherwise keep it local
 to the file.
 
-### Avoid Long Return Chains
+### Keep Return Chains Short
 
 qlty flags a function with **8 or more `return` statements** (a `switch`
 with a `return` in every case is the usual cause). Replace the switch with
@@ -351,8 +351,8 @@ const HealthDot: React.FC<{ step: Step }> = ({ step }) => {
 
 ### Component Return Style
 
-For arrow-function components that only render JSX, use implicit returns.
-Do not wrap the JSX in a block with an immediate `return`.
+For arrow-function components that only render JSX, use implicit returns:
+the JSX is the body.
 
 ```typescript
 // Good
@@ -580,7 +580,7 @@ describe("FlowSelector", () => {
 
 ### Assertions
 
-Never include message arguments in expect matchers:
+Let the matcher stand alone; the assertion is the message:
 
 ```typescript
 // Good

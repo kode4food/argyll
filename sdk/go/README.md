@@ -13,7 +13,7 @@ go get github.com/kode4food/argyll/sdk/go
 - [Step Builder](docs/step-builder.md) - Building and configuring steps
 - [Flow Builder](docs/flow-builder.md) - Creating and executing flows
 - [Examples](docs/examples.md) - Common patterns and use cases
-- [Code Generation](docs/codegen.md) - Exposing ordinary Go functions as steps with `argyll-gen`
+- [Step Generator](docs/gen.md) - Exposing ordinary Go functions as steps with `argyll-gen`
 
 ## Quick Start
 

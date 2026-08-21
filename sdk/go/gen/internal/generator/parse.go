@@ -158,10 +158,14 @@ func (g *pkgGen) contract(
 	if err != nil {
 		return "", nil, g.errorAt(fn, "%w", err)
 	}
+	specs, err := structFields(st)
+	if err != nil {
+		return "", nil, g.errorAt(fn, "%w", err)
+	}
 	var attrs []attrModel
-	for f := range structFields(st) {
+	for _, f := range specs {
 		attrs = append(attrs, attrModel{
-			name:     SnakeCase(f.Name()),
+			name:     f.attr,
 			attrType: attributeType(f.Type()),
 			optional: isPointer(f.Type()),
 		})
