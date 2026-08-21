@@ -15,7 +15,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.25"
+          go-version: "1.27"
       - name: Build and Test Engine
         run: cd engine && make
 
@@ -27,7 +27,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.25"
+          go-version: "1.27"
       - name: Build and Test Go SDK
         run: cd sdks/go-builder && make
 
@@ -73,7 +73,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version: "1.25"
+          go-version: "1.27"
 
       - name: Set up Python
         uses: actions/setup-python@v6
