@@ -1,9 +1,9 @@
-SUBPROJECTS = engine web mcp sdks/go-builder sdks/python \
+SUBPROJECTS = engine web mcp sdk/go sdk/python \
 	examples/inventory-resolver examples/notification-sender \
 	examples/order-creator examples/simple-step \
 	examples/stock-reservation examples/user-resolver
 
-.PHONY: all install build format check test pre-commit clean
+.PHONY: all install build format generate check test pre-commit clean
 
 define run_target
 	@set -e; \
@@ -28,6 +28,9 @@ build:
 
 format:
 	$(call run_target,format)
+
+generate:
+	$(call run_target,generate)
 
 check:
 	$(call run_target,check)

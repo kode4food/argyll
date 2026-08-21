@@ -1,1 +1,1 @@
-../../sdks/python
+../../sdk/python

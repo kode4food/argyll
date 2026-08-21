@@ -9,5 +9,5 @@ use (
 	./examples/stock-reservation
 	./examples/user-resolver
 	./mcp
-	./sdks/go-builder
+	./sdk/go
 )

@@ -1,0 +1,130 @@
+# Argyll Go Step Generator
+
+`argyll-gen` turns ordinary Go functions into Argyll Steps. You write a function; the generator writes the step descriptor, the JSON codecs, the invocation adapter, the panic recovery and the HTTP handlers that speak Argyll's existing synchronous step protocol. The engine cannot tell a generated step from a hand written one.
+
+## Usage
+
+Add a directive to a function and a `go:generate` line to the package:
+
+```go
+//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen ./...
+
+type RiskArgs struct {
+	CustomerID string
+	Amount     int64
+}
+
+type RiskResult struct {
+	Score    int
+	Approved bool
+}
+
+//argyll:step
+func CalculateRisk(args RiskArgs) (RiskResult, error) {
+	return RiskResult{Score: int(args.Amount / 100)}, nil
+}
+```
+
+Run `go generate ./...` and serve the result:
+
+```go
+func main() {
+	if err := gen.Serve(context.Background(), ArgyllSteps()...); err != nil {
+		log.Fatal(err)
+	}
+}
+```
+
+`Serve` registers every step with the engine and serves its handlers, reading `ARGYLL_ENGINE_URL`, `STEP_HOSTNAME` and `STEP_PORT` from the environment. Use `gen.Register` and `gen.Mux` directly if you want to own the HTTP server.
+
+Generated code lands in `zz_argyll_gen.go` next to the source, and the generated `ArgyllSteps()` returns every `gen.StepDef` in the package.
+
+`zz_argyll_gen.go` is a build artifact rather than source: it is gitignored and rebuilt by `make generate`, which `make check` and `make test` depend on, so it always matches the directives and the generator. Docker builds run `go generate ./...` ahead of `go build` for the same reason.
+
+## Directives
+
+### `//argyll:step`
+
+A function written to be a step. It takes one arguments struct, named or anonymous, and returns an outputs struct, an error, both, or neither:
+
+```go
+//argyll:step
+func CalculateRisk(args RiskArgs) (RiskResult, error)
+
+//argyll:step
+func Greet(args struct{ Name string }) struct{ Greeting string }
+
+//argyll:step
+func Audit(args AuditArgs) error
+```
+
+Fields of the argument struct become step inputs, fields of the result struct become step outputs. No JSON tags are needed or consulted.
+
+### `//argyll:wrap`
+
+An ordinary positional function, adapted without changing it:
+
+```go
+//argyll:wrap customer-id, amount -> score, approved
+func CalculateRisk(customerID string, amount int64) (int, bool, error)
+```
+
+The directive names the inputs and outputs positionally. The generator checks the arity against the signature at build time, and reports the file and line when they disagree. The wrapped function knows nothing about Argyll.
+
+### `//argyll:label`
+
+Step labels, one directive per label, in any order alongside a `//argyll:step` or `//argyll:wrap` directive:
+
+```go
+//argyll:step
+//argyll:label description=send order confirmation notifications
+//argyll:label domain=notifications
+func NotificationSender(args NotificationArgs) error
+```
+
+Everything after the first `=` is the value, spaces included. The generator validates each directive as `key=value`, reporting the file and line otherwise.
+
+The generator emits synchronous Steps.
+
+## The step contract
+
+Go field names map to Argyll attribute names as `snake_case`, function names to step IDs as `kebab-case`:
+
+| Go               | Argyll           |
+| ---------------- | ---------------- |
+| `CustomerID`     | `customer_id`    |
+| `HTTPServer`     | `http_server`    |
+| `func CalculateRisk` | `calculate-risk` step ID, `Calculate Risk` name |
+
+Attribute types follow the Go types: strings are `string`, all numeric types are `number`, bools are `boolean`, slices are `array`, structs and maps are `object`. A pointer field is an optional attribute.
+
+`//argyll:wrap` names are used verbatim, since the directive supplies them.
+
+## Failures
+
+An `error` is control plane information, never an output attribute. Returned errors and recovered panics both become step failures over the existing protocol, and stay distinguishable: an error responds `422` with problem details, a panic responds `500` and logs the panic value with its stack. Neither ever appears as step output.
+
+To choose the status yourself, return a `*argyll.HTTPError`, the same type hand written handlers use:
+
+```go
+return argyll.NewHTTPError(http.StatusNotFound, "no such customer")
+```
+
+Argyll treats every non-2xx response as a failure regardless, so the status is for your own operators and traces.
+
+## Codecs
+
+Argyll's wire format is JSON, but the step contract is not. The generator resolves each Go type into a composition of codecs from the `codec` package, which read and write through `encoding/json/jsontext`:
+
+```go
+codec.Struct(
+	codec.Field("customer_id", codec.Text[string](), func(v *RiskArgs) *string {
+		return &v.CustomerID
+	}),
+	codec.Field("tags", codec.Slice(codec.String), func(v *RiskArgs) *[]string {
+		return &v.Tags
+	}),
+)
+```
+
+There is no reflection at runtime, and no bespoke parser per function. `Text`, `Number`, `Boolean`, `Slice`, `Optional`, `Map` and `Struct` compose to cover the supported types. Unsupported field types, such as channels or named slice types, fail generation with the position and the offending type.

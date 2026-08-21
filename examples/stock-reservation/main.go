@@ -12,7 +12,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/sdks/go-builder"
+	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
 type (
@@ -46,7 +46,7 @@ func main() {
 	logger := log.New("stock-reservation-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
 
-	client := builder.NewClient(engineURL, 30*time.Second)
+	client := argyll.NewClient(engineURL, 30*time.Second)
 	inv := newInventory()
 
 	err := client.NewStep().WithName("Stock Reservation").
@@ -81,11 +81,11 @@ func newInventory() *inventory {
 }
 
 func (inv *inventory) handle(
-	_ *builder.StepContext, args api.Args,
+	_ *argyll.StepContext, args api.Args,
 ) (api.Args, error) {
 	order, ok := args["order"].(map[string]any)
 	if !ok {
-		return nil, builder.NewHTTPError(
+		return nil, argyll.NewHTTPError(
 			http.StatusBadRequest, "order must be an object",
 		)
 	}
@@ -110,7 +110,7 @@ func (inv *inventory) handle(
 	if !ok {
 		slog.Warn("Product not found in stock system",
 			slog.String("product_id", productID))
-		return nil, builder.NewHTTPError(
+		return nil, argyll.NewHTTPError(
 			http.StatusNotFound,
 			fmt.Sprintf("product %s not found in stock system", productID),
 		)
@@ -121,7 +121,7 @@ func (inv *inventory) handle(
 			slog.String("product_id", productID),
 			slog.Int("requested", quantity),
 			slog.Int("available", currentStock))
-		return nil, builder.NewHTTPError(
+		return nil, argyll.NewHTTPError(
 			http.StatusConflict,
 			fmt.Sprintf("insufficient stock: requested %d, available %d",
 				quantity, currentStock),
@@ -158,11 +158,11 @@ func (inv *inventory) handle(
 }
 
 func (inv *inventory) compensate(
-	_ *builder.StepContext, _ api.Args, outputs api.Args,
+	_ *argyll.StepContext, _ api.Args, outputs api.Args,
 ) error {
 	reservation, ok := outputs["reservation"].(map[string]any)
 	if !ok {
-		return builder.NewHTTPError(
+		return argyll.NewHTTPError(
 			http.StatusBadRequest, "reservation must be an object",
 		)
 	}

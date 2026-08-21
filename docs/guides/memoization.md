@@ -158,7 +158,7 @@ Step: process-payment
 
 **Via Go SDK:**
 ```go
-step := builder.
+step := argyll.
   NewStep().WithName("lookup-exchange-rate").
   WithMemoizable().
   WithSync("https://api.example.com/rates")

@@ -10,7 +10,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/sdks/go-builder"
+	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
 type ProductInfo struct {
@@ -95,7 +95,7 @@ func main() {
 	logger := log.New("inventory-resolver-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
 
-	client := builder.NewClient(engineURL, 30*time.Second)
+	client := argyll.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep().WithName("Inventory Resolver").
 		WithLabels(api.Labels{
@@ -114,7 +114,7 @@ func main() {
 	}
 }
 
-func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
+func handle(_ *argyll.StepContext, args api.Args) (api.Args, error) {
 	time.Sleep(time.Duration(5+rand.Intn(5)) * time.Second)
 
 	productID, hasProductID := args["product_id"].(string)
@@ -130,7 +130,7 @@ func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
 	if !ok {
 		slog.Warn("Product not found in inventory",
 			slog.String("product_id", productID))
-		return nil, builder.NewHTTPError(
+		return nil, argyll.NewHTTPError(
 			http.StatusNotFound,
 			fmt.Sprintf("product not found: %s", productID),
 		)

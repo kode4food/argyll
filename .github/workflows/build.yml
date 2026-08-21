@@ -27,9 +27,9 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v4
         with:
-          go-version-file: sdks/go-builder/go.mod
+          go-version-file: sdk/go/go.mod
       - name: Build and Test Go SDK
-        run: cd sdks/go-builder && make
+        run: cd sdk/go && make
 
   build-python-sdk:
     runs-on: ubuntu-latest
@@ -41,9 +41,9 @@ jobs:
         with:
           python-version: "3.9"
       - name: Install dependencies
-        run: cd sdks/python && make install
+        run: cd sdk/python && make install
       - name: Build and Test Python SDK
-        run: cd sdks/python && make test
+        run: cd sdk/python && make test
 
   build-web:
     runs-on: ubuntu-latest
@@ -86,7 +86,7 @@ jobs:
           node-version: "20"
 
       - name: Install Python SDK dependencies
-        run: cd sdks/python && make install
+        run: cd sdk/python && make install
 
       - name: Install web dependencies
         run: cd web && npm ci
@@ -95,10 +95,12 @@ jobs:
         run: cd engine && go test ./... -coverpkg=./... -coverprofile=cover.out
 
       - name: Run Go SDK tests with coverage
-        run: cd sdks/go-builder && go test ./... -coverpkg=./... -coverprofile=cover.out
+        run: |
+          cd sdk/go && go generate ./... &&
+          go test ./... -coverpkg=./... -coverprofile=cover.out
 
       - name: Run Python SDK tests with coverage
-        run: cd sdks/python && make test-cov
+        run: cd sdk/python && make test-cov
 
       - name: Run web tests with coverage
         run: cd web && npm run test:coverage
@@ -114,6 +116,6 @@ jobs:
             github.com/kode4food/argyll/
           files: |
             engine/cover.out
-            sdks/go-builder/cover.out
-            sdks/python/coverage.lcov
+            sdk/go/cover.out
+            sdk/python/coverage.lcov
             web/coverage/lcov.info

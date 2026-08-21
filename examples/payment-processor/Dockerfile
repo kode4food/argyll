@@ -4,10 +4,10 @@ FROM python:3.11-slim AS builder
 WORKDIR /build
 
 # Copy SDK
-COPY sdks/python /build/sdks/python
+COPY sdk/python /build/sdk/python
 
 # Install SDK
-RUN pip install --no-cache-dir /build/sdks/python
+RUN pip install --no-cache-dir /build/sdk/python
 
 # Runtime stage
 FROM python:3.11-slim

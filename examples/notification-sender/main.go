@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"math/rand"
@@ -9,152 +10,132 @@ import (
 	"strings"
 	"time"
 
-	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/sdks/go-builder"
+	argyll "github.com/kode4food/argyll/sdk/go"
+	"github.com/kode4food/argyll/sdk/go/gen"
 )
+
+type (
+	// NotificationArgs are the inputs of the notification sender step
+	NotificationArgs struct {
+		PaymentResult PaymentResult
+		Reservation   Reservation
+		UserInfo      UserInfo
+	}
+
+	// PaymentResult is the outcome of the upstream payment step
+	PaymentResult struct {
+		OrderID   string
+		PaymentID string
+		Amount    float64
+	}
+
+	// Reservation is the stock held for the order
+	Reservation struct {
+		ReservationID string
+	}
+
+	// UserInfo identifies the recipient and how they want to be reached
+	UserInfo struct {
+		ID              string
+		Name            string
+		Email           string
+		PreferredMethod string
+	}
+)
+
+//go:generate go run github.com/kode4food/argyll/sdk/go/gen/cmd/argyll-gen .
 
 const version = "dev"
 
 func main() {
-	engineURL := os.Getenv("ARGYLL_ENGINE_URL")
-	if engineURL == "" {
-		engineURL = "http://localhost:8080"
-	}
-
 	logger := log.New("notification-sender-example", os.Getenv("ENV"), version)
 	slog.SetDefault(logger)
 
-	client := builder.NewClient(engineURL, 30*time.Second)
-
-	err := client.NewStep().WithName("Notification Sender").
-		WithLabels(api.Labels{
-			"description": "send order confirmation notifications",
-			"domain":      "notifications",
-			"capability":  "send",
-			"example":     "true",
-		}).
-		Required("payment_result", api.TypeObject).
-		Required("reservation", api.TypeObject).
-		Required("user_info", api.TypeObject).
-		Start(handle)
-
-	if err != nil {
+	if err := gen.Serve(context.Background(), ArgyllSteps()...); err != nil {
 		slog.Error("Failed to setup notification sender", log.Error(err))
 		os.Exit(1)
 	}
 }
 
-func handle(_ *builder.StepContext, args api.Args) (api.Args, error) {
-	// Extract payment result
-	paymentResult, ok := args["payment_result"].(map[string]any)
-	if !ok {
-		return nil, builder.NewHTTPError(
-			http.StatusBadRequest, "payment_result must be an object",
-		)
-	}
-
-	// Extract reservation
-	reservation, ok := args["reservation"].(map[string]any)
-	if !ok {
-		return nil, builder.NewHTTPError(
-			http.StatusBadRequest, "reservation must be an object",
-		)
-	}
-
-	// Extract user info
-	userInfo, ok := args["user_info"].(map[string]any)
-	if !ok {
-		return nil, builder.NewHTTPError(
-			http.StatusBadRequest, "user_info must be an object",
-		)
-	}
-
-	orderID, _ := paymentResult["order_id"].(string)
-	amount, _ := paymentResult["amount"].(float64)
-	paymentID, _ := paymentResult["payment_id"].(string)
-	reservationID, _ := reservation["reservation_id"].(string)
-	userID, _ := userInfo["id"].(string)
-	userName, _ := userInfo["name"].(string)
-	userEmail, _ := userInfo["email"].(string)
-	preferredMethod, _ := userInfo["preferred_method"].(string)
+//argyll:step
+//argyll:label description=send order confirmation notifications
+//argyll:label domain=notifications
+//argyll:label capability=send
+//argyll:label example=true
+func NotificationSender(args NotificationArgs) error {
+	payment := args.PaymentResult
+	user := args.UserInfo
 
 	slog.Info("Sending order confirmation notifications",
-		slog.String("order_id", orderID),
-		slog.String("user_name", userName),
-		slog.String("preferred_method", preferredMethod))
+		slog.String("order_id", payment.OrderID),
+		slog.String("user_name", user.Name),
+		slog.String("preferred_method", user.PreferredMethod))
 
 	var messageIDs []string
 	var channels []string
 
 	// Send via preferred method
-	switch preferredMethod {
+	switch user.PreferredMethod {
 	case "email":
-		msgID, err := sendEmail(userEmail, orderID, amount)
+		msgID, err := sendEmail(user.Email, payment.OrderID, payment.Amount)
 		if err != nil {
-			return nil, builder.NewHTTPError(
-				http.StatusBadGateway,
-				fmt.Sprintf("failed to send email: %v", err),
-			)
+			return sendFailed("email", err)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "email")
 
 	case "sms":
-		msgID, err := sendSMS(userID, orderID)
+		msgID, err := sendSMS(user.ID, payment.OrderID)
 		if err != nil {
-			return nil, builder.NewHTTPError(
-				http.StatusBadGateway,
-				fmt.Sprintf("failed to send SMS: %v", err),
-			)
+			return sendFailed("SMS", err)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "sms")
 
 	case "webhook":
 		payload := map[string]any{
-			"order_id":       orderID,
-			"payment_id":     paymentID,
-			"reservation_id": reservationID,
-			"amount":         amount,
+			"order_id":       payment.OrderID,
+			"payment_id":     payment.PaymentID,
+			"reservation_id": args.Reservation.ReservationID,
+			"amount":         payment.Amount,
 		}
-		msgID, err := sendWebhook(userID, orderID, payload)
+		msgID, err := sendWebhook(user.ID, payment.OrderID, payload)
 		if err != nil {
-			return nil, builder.NewHTTPError(
-				http.StatusBadGateway,
-				fmt.Sprintf("failed to send webhook: %v", err),
-			)
+			return sendFailed("webhook", err)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "webhook")
 
 	default:
 		// Fallback to email if unknown method
-		msgID, err := sendEmail(userEmail, orderID, amount)
+		msgID, err := sendEmail(user.Email, payment.OrderID, payment.Amount)
 		if err != nil {
-			return nil, builder.NewHTTPError(
-				http.StatusBadGateway,
-				fmt.Sprintf("failed to send fallback email: %v", err),
-			)
+			return sendFailed("fallback email", err)
 		}
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "email")
 	}
 
 	// Always send a secondary confirmation email for audit trail
-	if preferredMethod != "email" {
-		msgID, _ := sendEmail(userEmail, orderID, amount)
+	if user.PreferredMethod != "email" {
+		msgID, _ := sendEmail(user.Email, payment.OrderID, payment.Amount)
 		messageIDs = append(messageIDs, msgID)
 		channels = append(channels, "email_backup")
 	}
 
 	slog.Info("All notifications sent successfully",
-		slog.String("order_id", orderID),
+		slog.String("order_id", payment.OrderID),
 		slog.Int("notification_count", len(messageIDs)),
 		slog.String("channels", strings.Join(channels, ",")),
 		slog.String("message_ids", strings.Join(messageIDs, ",")))
 
-	return api.Args{}, nil
+	return nil
+}
+
+func sendFailed(channel string, err error) error {
+	return argyll.NewHTTPError(http.StatusBadGateway,
+		fmt.Sprintf("failed to send %s: %v", channel, err))
 }
 
 func sendWebhook(userID, _ string, _ map[string]any) (string, error) {

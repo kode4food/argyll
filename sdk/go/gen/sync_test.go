@@ -1,0 +1,207 @@
+package gen_test
+
+import (
+	"context"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+	"time"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
+	argyll "github.com/kode4food/argyll/sdk/go"
+	"github.com/kode4food/argyll/sdk/go/codec"
+	"github.com/kode4food/argyll/sdk/go/gen"
+	"github.com/stretchr/testify/assert"
+)
+
+type (
+	sumArgs struct {
+		Left  int
+		Right int
+	}
+
+	sumResult struct {
+		Total   int
+		Doubled int
+	}
+)
+
+var errRefused = errors.New("refused")
+
+func sumArgsCodec() codec.Codec[sumArgs] {
+	return codec.Struct(
+		codec.Field("left", codec.Int, func(v *sumArgs) *int {
+			return &v.Left
+		}),
+		codec.Field("right", codec.Int, func(v *sumArgs) *int {
+			return &v.Right
+		}),
+	)
+}
+
+func sumResultCodec() codec.Codec[sumResult] {
+	return codec.Struct(
+		codec.Field("total", codec.Int, func(v *sumResult) *int {
+			return &v.Total
+		}),
+		codec.Field("doubled", codec.Int, func(v *sumResult) *int {
+			return &v.Doubled
+		}),
+	)
+}
+
+func invoke(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(http.MethodPost, "/sum",
+		strings.NewReader(body))
+	w := httptest.NewRecorder()
+	h(w, r)
+	return w
+}
+
+func TestSyncOutputs(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+		func(in sumArgs) (sumResult, error) {
+			total := in.Left + in.Right
+			return sumResult{Total: total, Doubled: total * 2}, nil
+		})
+
+	w := invoke(h, `{"left":2,"right":3}`)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, api.JSONContentType, w.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"total":5,"doubled":10}`, w.Body.String())
+}
+
+func TestSyncNoOutputs(t *testing.T) {
+	called := false
+	h := gen.Sync(sumArgsCodec(), codec.Struct[struct{}](),
+		func(sumArgs) (struct{}, error) {
+			called = true
+			return struct{}{}, nil
+		})
+
+	w := invoke(h, `{"left":1,"right":1}`)
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.True(t, called)
+	assert.JSONEq(t, `{}`, w.Body.String())
+}
+
+func TestSyncError(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+		func(sumArgs) (sumResult, error) {
+			return sumResult{}, errRefused
+		})
+
+	w := invoke(h, `{"left":1,"right":1}`)
+	assert.Equal(t, gen.FailureStatus, w.Code)
+	assert.Equal(t, api.ProblemJSONContentType,
+		w.Header().Get("Content-Type"))
+	assert.Contains(t, w.Body.String(), errRefused.Error())
+}
+
+func TestSyncPanic(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+		func(sumArgs) (sumResult, error) {
+			panic("kaboom")
+		})
+
+	w := invoke(h, `{"left":1,"right":1}`)
+	assert.Equal(t, gen.PanicStatus, w.Code)
+	assert.Contains(t, w.Body.String(), "kaboom")
+	assert.Contains(t, w.Body.String(), argyll.ErrHandlerPanic.Error())
+}
+
+func TestSyncBadInputs(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+		func(sumArgs) (sumResult, error) {
+			return sumResult{}, nil
+		})
+
+	w := invoke(h, `{"left":"two"}`)
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+	assert.Contains(t, w.Body.String(), gen.ErrInvalidInputs.Error())
+}
+
+func TestSyncMethodNotAllowed(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+		func(sumArgs) (sumResult, error) {
+			return sumResult{}, nil
+		})
+
+	r := httptest.NewRequest(http.MethodGet, "/sum", nil)
+	w := httptest.NewRecorder()
+	h(w, r)
+	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
+}
+
+func TestRegisterFailure(t *testing.T) {
+	engine := httptest.NewServer(http.HandlerFunc(
+		func(w http.ResponseWriter, _ *http.Request) {
+			w.WriteHeader(http.StatusInternalServerError)
+		}))
+	defer engine.Close()
+
+	step := gen.StepDef{
+		ID:      "sum",
+		Name:    "Sum",
+		Type:    api.StepTypeSync,
+		Inputs:  []gen.Attr{{Name: "left", Type: api.TypeNumber}},
+		Outputs: []gen.Attr{{Name: "total", Type: api.TypeNumber}},
+	}
+	client := argyll.NewClient(engine.URL, time.Second)
+	err := gen.Register(context.Background(), client, "http://host:1",
+		step)
+	assert.Error(t, err)
+}
+
+func TestServeRegistrationFailure(t *testing.T) {
+	t.Setenv("ARGYLL_ENGINE_URL", "http://127.0.0.1:1")
+	t.Setenv("STEP_PORT", "0")
+
+	step := gen.StepDef{
+		ID:   "sum",
+		Name: "Sum",
+		Type: api.StepTypeSync,
+	}
+	assert.Error(t, gen.Serve(context.Background(), step))
+}
+
+func TestMux(t *testing.T) {
+	step := gen.StepDef{
+		ID:   "sum",
+		Name: "Sum",
+		Type: api.StepTypeSync,
+		Handler: gen.Sync(sumArgsCodec(), sumResultCodec(),
+			func(in sumArgs) (sumResult, error) {
+				return sumResult{Total: in.Left + in.Right}, nil
+			}),
+	}
+	srv := httptest.NewServer(gen.Mux(step))
+	defer srv.Close()
+
+	res, err := http.Get(srv.URL + "/health")
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.NoError(t, res.Body.Close())
+
+	res, err = http.Post(srv.URL+"/sum", api.JSONContentType,
+		strings.NewReader(`{"left":1,"right":2}`))
+	assert.NoError(t, err)
+	defer func() { _ = res.Body.Close() }()
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+}
+
+func TestPanicErrorUnwraps(t *testing.T) {
+	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
+		func(sumArgs) (sumResult, error) {
+			panic(errRefused)
+		})
+
+	w := invoke(h, `{"left":1,"right":1}`)
+	assert.Equal(t, gen.PanicStatus, w.Code)
+
+	pe := &gen.PanicError{Value: errRefused}
+	assert.ErrorIs(t, pe, argyll.ErrHandlerPanic)
+	assert.Contains(t, pe.Error(), errRefused.Error())
+}

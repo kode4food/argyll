@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /build
 
@@ -10,8 +10,8 @@ COPY engine/go.mod engine/go.sum ./engine/
 COPY engine/pkg ./engine/pkg
 
 # Copy SDK module
-COPY sdks/go-builder/go.mod sdks/go-builder/go.sum ./sdks/go-builder/
-COPY sdks/go-builder ./sdks/go-builder
+COPY sdk/go/go.mod sdk/go/go.sum ./sdk/go/
+COPY sdk/go ./sdk/go
 
 # Copy example
 COPY examples/simple-step/go.mod examples/simple-step/go.sum* ./examples/simple-step/
@@ -20,7 +20,7 @@ COPY examples/simple-step/main.go ./examples/simple-step/
 # Download dependencies
 WORKDIR /build/examples/simple-step
 RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
-RUN go mod edit -replace github.com/kode4food/argyll/sdks/go-builder=../../sdks/go-builder
+RUN go mod edit -replace github.com/kode4food/argyll/sdk/go=../../sdk/go
 RUN go mod download
 
 # Build the executable

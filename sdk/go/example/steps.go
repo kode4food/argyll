@@ -1,0 +1,76 @@
+// Package example contains the step functions used to exercise argyll-gen
+package example
+
+import (
+	"errors"
+	"net/http"
+
+	argyll "github.com/kode4food/argyll/sdk/go"
+)
+
+type (
+	// RiskArgs are the inputs of the CalculateRisk step
+	RiskArgs struct {
+		CustomerID string
+		Amount     int64
+		Tags       []string
+		Note       *string
+	}
+
+	// RiskResult are the outputs of the CalculateRisk step
+	RiskResult struct {
+		Score    int
+		Approved bool
+	}
+)
+
+//go:generate go run ../gen/cmd/argyll-gen .
+
+var ErrAmountNegative = errors.New("amount must not be negative")
+
+//argyll:step
+//argyll:label description=score a customer for risk
+//argyll:label domain=risk
+func CalculateRisk(args RiskArgs) (RiskResult, error) {
+	if args.Amount < 0 {
+		return RiskResult{}, ErrAmountNegative
+	}
+	return RiskResult{
+		Score:    int(args.Amount / 100),
+		Approved: args.Amount < 10_000,
+	}, nil
+}
+
+//argyll:step
+func Greet(args struct{ Name string }) struct{ Greeting string } {
+	return struct{ Greeting string }{
+		Greeting: "hello " + args.Name,
+	}
+}
+
+//argyll:step
+func Explode(args RiskArgs) RiskResult {
+	panic("boom: " + args.CustomerID)
+}
+
+//argyll:step
+func Audit(args struct{ Event string }) error {
+	if args.Event == "" {
+		return errors.New("empty event")
+	}
+	return nil
+}
+
+//argyll:wrap customer-id, amount -> score, approved
+func ScoreCustomer(customerID string, amount int64) (int, bool, error) {
+	if customerID == "" {
+		return 0, false, errors.New("customer id required")
+	}
+	return int(amount / 100), amount < 10_000, nil
+}
+
+//argyll:step
+//argyll:label domain=risk
+func Reject(args struct{ Reason string }) error {
+	return argyll.NewHTTPError(http.StatusNotFound, args.Reason)
+}

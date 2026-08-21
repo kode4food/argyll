@@ -59,3 +59,6 @@ cover.out
 .#*
 
 .toe
+
+# argyll-gen output, rebuilt by `make generate`
+zz_argyll_gen.go

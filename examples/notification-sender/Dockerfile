@@ -1,5 +1,5 @@
 # Build stage
-FROM golang:1.25-alpine AS builder
+FROM golang:1.27-alpine AS builder
 
 WORKDIR /build
 
@@ -10,21 +10,24 @@ COPY engine/go.mod engine/go.sum ./engine/
 COPY engine/pkg ./engine/pkg
 
 # Copy SDK module
-COPY sdks/go-builder/go.mod sdks/go-builder/go.sum ./sdks/go-builder/
-COPY sdks/go-builder ./sdks/go-builder
+COPY sdk/go/go.mod sdk/go/go.sum ./sdk/go/
+COPY sdk/go ./sdk/go
 
 # Copy example
 COPY examples/notification-sender/go.mod examples/notification-sender/go.sum* ./examples/notification-sender/
-COPY examples/notification-sender/main.go ./examples/notification-sender/
+COPY examples/notification-sender/*.go ./examples/notification-sender/
 
 # Download dependencies
 WORKDIR /build/examples/notification-sender
 RUN go mod edit -replace github.com/kode4food/argyll/engine=../../engine
-RUN go mod edit -replace github.com/kode4food/argyll/sdks/go-builder=../../sdks/go-builder
+RUN go mod edit -replace github.com/kode4food/argyll/sdk/go=../../sdk/go
 RUN go mod download
 
+# Generate the step adapters
+RUN go generate ./...
+
 # Build the executable
-RUN CGO_ENABLED=0 GOOS=linux go build -o notification-sender main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o notification-sender .
 
 # Runtime stage
 FROM alpine:latest

@@ -2,7 +2,7 @@
 
 Imports:
 - github.com/kode4food/argyll/engine/pkg/api
-- github.com/kode4food/argyll/sdks/go-builder
+- github.com/kode4food/argyll/sdk/go
 
 Hosted sync HTTP step:
 client.NewStep().WithName("Greeting").
@@ -20,5 +20,5 @@ client.NewStep().WithName("Lookup User").
 
 Async step:
 - Add WithAsyncExecution().
-- In the handler, create builder.NewAsyncContext(ctx), start background work, and call Success or Fail.
+- In the handler, create argyll.NewAsyncContext(ctx), start background work, and call Success or Fail.
 - Return api.Args{} immediately from the handler.

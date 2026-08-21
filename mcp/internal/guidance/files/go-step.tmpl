@@ -6,16 +6,16 @@ import (
 	"time"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
-	"github.com/kode4food/argyll/sdks/go-builder"
+	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
 func main() {
-	client := builder.NewClient("http://localhost:8080", 30*time.Second)
+	client := argyll.NewClient("http://localhost:8080", 30*time.Second)
 {{ if and (not .IsExternal) (not .IsScript) }}
 	handler := func(
-		ctx *builder.StepContext, args api.Args,
+		ctx *argyll.StepContext, args api.Args,
 	) (api.Args, error) {
-{{ if .IsAsync }}		asyncCtx, err := builder.NewAsyncContext(ctx)
+{{ if .IsAsync }}		asyncCtx, err := argyll.NewAsyncContext(ctx)
 		if err != nil {
 			return nil, err
 		}

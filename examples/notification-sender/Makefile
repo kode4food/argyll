@@ -1,16 +1,22 @@
 GO ?= go
 
-.PHONY: format check test pre-commit
+.PHONY: format generate check test clean pre-commit
 
-format:
+generate:
+	$(GO) generate ./...
+
+format: generate
 	$(GO) run golang.org/x/tools/cmd/goimports@latest -w .
 	$(GO) fix ./...
 
-check:
+check: generate
 	$(GO) vet ./...
 	$(GO) run honnef.co/go/tools/cmd/staticcheck ./...
 
 test: check
 	$(GO) test ./...
+
+clean:
+	rm -f zz_argyll_gen.go
 
 pre-commit: format test

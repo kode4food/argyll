@@ -8,7 +8,7 @@ import (
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/engine/pkg/log"
-	"github.com/kode4food/argyll/sdks/go-builder"
+	argyll "github.com/kode4food/argyll/sdk/go"
 )
 
 const version = "dev"
@@ -27,7 +27,7 @@ func main() {
 	formatted_text = "[" .. name .. "] " .. text
 }`
 
-	client := builder.NewClient(engineURL, 30*time.Second)
+	client := argyll.NewClient(engineURL, 30*time.Second)
 
 	err := client.NewStep().WithName("Text Formatter").
 		WithID("text-formatter").
