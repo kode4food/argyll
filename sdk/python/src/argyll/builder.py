@@ -20,10 +20,8 @@ from .types import (
     Labels,
     MetaConfig,
     OptionalConfig,
-    PredicateConfig,
     RequiredConfig,
     ScriptConfig,
-    ScriptLanguage,
     Step,
     StepID,
     StepType,
@@ -52,7 +50,7 @@ class StepBuilder:
         self._labels: Labels = {}
         self._http: Optional[HTTPConfig] = None
         self._script: Optional[ScriptConfig] = None
-        self._predicate: Optional[PredicateConfig] = None
+        self._predicate: Optional[ScriptConfig] = None
         self._flow: Optional[FlowConfig] = None
         self._compensate_handler: Optional[Callable[..., Any]] = None
         self._memoizable: bool = False
@@ -235,23 +233,13 @@ class StepBuilder:
         """Set execution timeout in milliseconds."""
         return self._copy(_http=self._http_with(timeout=ms))
 
-    def with_script(self, script: str) -> "StepBuilder":
-        """Set Lua script."""
-        return self.with_script_language(ScriptLanguage.LUA, script)
+    def with_script(self, script: ScriptConfig) -> "StepBuilder":
+        """Set the script to execute."""
+        return self._copy(_script=script, _type=StepType.SCRIPT)
 
-    def with_script_language(
-        self, language: ScriptLanguage, script: str
-    ) -> "StepBuilder":
-        """Set script with specific language."""
-        new_script = ScriptConfig(language=language, script=script)
-        return self._copy(_script=new_script, _type=StepType.SCRIPT)
-
-    def with_predicate(
-        self, language: ScriptLanguage, script: str
-    ) -> "StepBuilder":
-        """Set predicate for conditional execution."""
-        new_predicate = PredicateConfig(language=language, script=script)
-        return self._copy(_predicate=new_predicate)
+    def with_predicate(self, predicate: ScriptConfig) -> "StepBuilder":
+        """Set the predicate gating the step."""
+        return self._copy(_predicate=predicate)
 
     def with_flow_goals(self, *goal_ids: StepID) -> "StepBuilder":
         """Configure flow step with goal IDs."""

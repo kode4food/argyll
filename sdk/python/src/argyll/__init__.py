@@ -31,7 +31,6 @@ from .types import (
     Metadata,
     OptionalConfig,
     OutputConfig,
-    PredicateConfig,
     ProblemDetails,
     RequiredConfig,
     ScriptConfig,
@@ -74,7 +73,6 @@ __all__ = [
     "HTTPAction",
     "HTTPConfig",
     "ScriptConfig",
-    "PredicateConfig",
     "FlowConfig",
     "WorkConfig",
     # Type aliases

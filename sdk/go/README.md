@@ -108,7 +108,10 @@ func main() {
     if err := client.NewStep().WithName("Double").
         Required("value", api.TypeNumber).
         Output("result", api.TypeNumber).
-        WithScript("(* value 2)").
+        WithScript(api.ScriptConfig{
+            Language: api.ScriptLangLua,
+            Script:   "return {result = value * 2}",
+        }).
         Register(context.Background()); err != nil {
         log.Fatal(err)
     }
@@ -197,7 +200,10 @@ builder2 := builder1.WithID("custom-id")
 ```go
 client.NewStep().WithName("ConditionalStep").
     Required("value", api.TypeNumber).
-    WithLuaPredicate("return value > 10").
+    WithPredicate(api.ScriptConfig{
+        Language: api.ScriptLangLua,
+        Script:   "return value > 10",
+    }).
     WithMethod("POST").
     WithEndpoint("http://localhost:8081/step").
     Register(ctx)
@@ -307,9 +313,8 @@ See the [examples](../../examples) directory for complete working examples:
 - `WithMethod(method string) Step` - Set HTTP method (`GET`, `POST`, `PUT`, `DELETE`)
 - `WithHealthCheck(url) Step` - Set health check endpoint
 - `WithTimeout(ms) Step` - Set execution timeout
-- `WithScript(script) Step` - Set Lua script
-- `WithScriptLanguage(lang, script) Step` - Set script with language
-- `WithPredicate(lang, script) Step` - Set predicate
+- `WithScript(api.ScriptConfig) Step` - Set the script to execute
+- `WithPredicate(api.ScriptConfig) Step` - Set the predicate gating the step
 - `WithAsyncExecution() Step` - Enable async execution
 - `WithSyncExecution() Step` - Enable sync execution
 - `WithMemoizable() Step` - Enable result caching

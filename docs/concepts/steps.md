@@ -167,7 +167,7 @@ Each step declares what it needs and what it produces.
 
 **Required attributes** must be available before the step executes.
 
-Required attributes may also declare `required.match`, a condition script that decides whether the step can run using only that attribute. The condition is evaluated against each candidate value from an earlier step before the input's `required.collect` policy is resolved. Lua exposes the candidate as `value`; Argyll JSONPath (`jpath`) evaluates the candidate as the document.
+Required attributes may also declare `required.match`, a condition script that decides whether the step can run using only that attribute. The condition is evaluated against each candidate value from an earlier step before the input's `required.collect` policy is resolved. Lua exposes the candidate as `value`; JSONPath (`jpath`) evaluates the candidate as the document.
 
 Match uses the input's collection semantics: `some` means at least one upstream candidate must match, `all` means every upstream candidate must match, and `none` means no upstream candidate may match. If the match cannot be satisfied, the step is skipped and does not demand its other required inputs.
 
@@ -274,7 +274,7 @@ Use the role-specific `mapping.name` field to map between flow state attribute n
 
 ### Value Transformation
 
-Use `mapping.script` to transform values using Argyll JSONPath (`jpath`) or Lua. `jpath` supports JSONPath-style expressions with Argyll-specific behavior:
+Use `mapping.script` to transform values using JSONPath (`jpath`) or Lua. `jpath` supports JSONPath expressions:
 
 ```json
 {

@@ -1,6 +1,6 @@
 """Script step example."""
 
-from argyll import Client, AttributeType
+from argyll import Client, AttributeType, ScriptConfig, ScriptLanguage
 
 client = Client("http://localhost:8080")
 
@@ -9,7 +9,10 @@ if __name__ == "__main__":
     client.new_step().with_name("Double") \
         .required("value", AttributeType.NUMBER) \
         .output("result", AttributeType.NUMBER) \
-        .with_script("return {result = value * 2}") \
+        .with_script(ScriptConfig(
+            language=ScriptLanguage.LUA,
+            script="return {result = value * 2}",
+        )) \
         .with_label("category", "math") \
         .register()
 

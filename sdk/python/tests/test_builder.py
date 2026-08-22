@@ -220,24 +220,17 @@ def test_step_builder_with_timeout():
 
 def test_step_builder_with_script():
     client = Client()
-    builder = client.new_step().with_name("Test").with_script("return 1 + 2")
-    step = builder.build()
-    assert step.script is not None
-    assert step.script.language == ScriptLanguage.LUA
-    assert step.script.script == "return 1 + 2"
-    assert step.type == StepType.SCRIPT
-
-
-def test_step_builder_with_script_language():
-    client = Client()
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_script_language(ScriptLanguage.LUA, "return 1 + 2")
+        .with_script(
+            ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2")
+        )
     )
     step = builder.build()
     assert step.script is not None
     assert step.script.language == ScriptLanguage.LUA
+    assert step.script.script == "return 1 + 2"
     assert step.type == StepType.SCRIPT
 
 
@@ -246,7 +239,11 @@ def test_step_builder_with_predicate():
     builder = (
         client.new_step()
         .with_name("Test")
-        .with_predicate(ScriptLanguage.LUA, "return value > 10")
+        .with_predicate(
+            ScriptConfig(
+                language=ScriptLanguage.LUA, script="return value > 10"
+            )
+        )
         .with_endpoint("http://localhost:8081/test")
     )
     step = builder.build()
@@ -499,10 +496,14 @@ def test_step_builder_build():
     assert step.type == StepType.SYNC
 
 
-def test_step_builder_with_script_defaults_to_lua():
+def test_step_builder_with_script_sets_script_type():
     client = Client()
     builder = (
-        client.new_step().with_name("ScriptStep").with_script("return 1 + 2")
+        client.new_step()
+        .with_name("ScriptStep")
+        .with_script(
+            ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2")
+        )
     )
     step = builder.build()
     assert step.script is not None

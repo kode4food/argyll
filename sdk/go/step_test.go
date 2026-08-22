@@ -204,36 +204,27 @@ func TestWithMethodInvalid(t *testing.T) {
 }
 
 func TestWithScript(t *testing.T) {
-	script := "return {result = 1 + 2}"
+	script := api.ScriptConfig{
+		Language: api.ScriptLangLua,
+		Script:   "return {result = 1 + 2}",
+	}
 	st, err := testClient().NewStep().WithName("Test").
 		WithScript(script).
 		Build()
 
 	assert.NoError(t, err)
 	assert.NotNil(t, st.Script)
-	assert.Equal(t, script, st.Script.Script)
-	assert.Equal(t, api.ScriptLangLua, st.Script.Language)
+	assert.Equal(t, script.Script, st.Script.Script)
+	assert.Equal(t, script.Language, st.Script.Language)
 	assert.Equal(t, api.StepTypeScript, st.Type)
 }
 
-func TestWithScriptLanguage(t *testing.T) {
-	script := "custom script"
-	lang := api.ScriptLangLua
+func TestWithScriptInvalid(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
-		WithScriptLanguage(lang, script).
-		Build()
-
-	assert.NoError(t, err)
-	assert.NotNil(t, st.Script)
-	assert.Equal(t, script, st.Script.Script)
-	assert.Equal(t, lang, st.Script.Language)
-	assert.Equal(t, api.StepTypeScript, st.Type)
-}
-
-func TestWithScriptLanguageInvalid(t *testing.T) {
-	script := "custom script"
-	st, err := testClient().NewStep().WithName("Test").
-		WithScriptLanguage("custom-lang", script).
+		WithScript(api.ScriptConfig{
+			Language: "custom-lang",
+			Script:   "custom script",
+		}).
 		Build()
 
 	assert.Error(t, err)
@@ -295,7 +286,10 @@ func TestWithSyncExecution(t *testing.T) {
 
 func TestWithScriptExecution(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
-		WithScript("return {result = 42}").
+		WithScript(api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   "return {result = 42}",
+		}).
 		WithScriptExecution().
 		Build()
 
@@ -317,20 +311,10 @@ func TestWithPredicate(t *testing.T) {
 	predicate := "return x > 10"
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
-		WithPredicate(api.ScriptLangLua, predicate).
-		Build()
-
-	assert.NoError(t, err)
-	assert.NotNil(t, st.Predicate)
-	assert.Equal(t, api.ScriptLangLua, st.Predicate.Language)
-	assert.Equal(t, predicate, st.Predicate.Script)
-}
-
-func TestWithLuaPredicate(t *testing.T) {
-	predicate := "return x > 10"
-	st, err := testClient().NewStep().WithName("Test").
-		WithEndpoint("http://example.com").
-		WithLuaPredicate(predicate).
+		WithPredicate(api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   predicate,
+		}).
 		Build()
 
 	assert.NoError(t, err)
@@ -344,7 +328,10 @@ func TestWithRequiredMatch(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Test").
 		WithEndpoint("http://example.com").
 		Required("kind", api.TypeString).
-		WithRequiredMatch("kind", api.ScriptLangLua, script).
+		WithRequiredMatch("kind", api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   script,
+		}).
 		Build()
 
 	assert.NoError(t, err)
@@ -369,7 +356,10 @@ func TestBuildValidHTTPStep(t *testing.T) {
 
 func TestBuildValidScriptStep(t *testing.T) {
 	st, err := testClient().NewStep().WithName("Script Step").
-		WithScript("return {result = 42}").
+		WithScript(api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   "return {result = 42}",
+		}).
 		Required("input", api.TypeString).
 		Output("result", api.TypeNumber).
 		Build()
@@ -495,7 +485,10 @@ func TestBuildValidationErrors(t *testing.T) {
 
 	t.Run("valid_script_step", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
-			WithScript("return {result = 1 + 2}").
+			WithScript(api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return {result = 1 + 2}",
+			}).
 			Build()
 		assert.NoError(t, err)
 		assert.NotNil(t, st.Script)
@@ -505,7 +498,10 @@ func TestBuildValidationErrors(t *testing.T) {
 	t.Run("lua_predicate", func(t *testing.T) {
 		st, err := testClient().NewStep().WithName("Test").
 			WithEndpoint("http://example.com").
-			WithLuaPredicate("return count > 10").
+			WithPredicate(api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return count > 10",
+			}).
 			Build()
 		assert.NoError(t, err)
 		assert.NotNil(t, st.Predicate)
@@ -556,7 +552,10 @@ func TestStepBuilderChaining(t *testing.T) {
 		assert.Equal(t, api.StepTypeAsync, asyncStep.Type)
 
 		scriptStep, err := build.
-			WithScript("return {result = 1 + 2}").
+			WithScript(api.ScriptConfig{
+				Language: api.ScriptLangLua,
+				Script:   "return {result = 1 + 2}",
+			}).
 			WithScriptExecution().
 			Build()
 		assert.NoError(t, err)

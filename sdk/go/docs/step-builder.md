@@ -263,10 +263,16 @@ Execute conditionally based on flow state:
 
 ```go
 // Lua
-s.WithLuaPredicate(`return status == "active"`)
+s.WithPredicate(api.ScriptConfig{
+    Language: api.ScriptLangLua,
+    Script:   `return status == "active"`,
+})
 
-// Custom
-s.WithPredicate("lua", `return amount > 100`)
+// JSONPath
+s.WithPredicate(api.ScriptConfig{
+    Language: api.ScriptLangJPath,
+    Script:   `$.amount > 100`,
+})
 ```
 
 ### Updating Steps
@@ -333,7 +339,10 @@ func main() {
         Optional("priority", api.TypeString, `"normal"`).
         Output("total_amount", api.TypeNumber).
         Output("processed_at", api.TypeNumber).
-        WithLuaPredicate(`return #items > 0`).
+        WithPredicate(api.ScriptConfig{
+            Language: api.ScriptLangLua,
+            Script:   `return #items > 0`,
+        }).
         Start(handler)
 
     if err != nil {
@@ -379,10 +388,8 @@ NewStep() Step
 - `WithScriptExecution() Step` - Mark as script-based
 
 #### Scripts
-- `WithScript(script string) Step` - Add Lua script
-- `WithScriptLanguage(lang, script string) Step` - Add script with custom language
-- `WithLuaPredicate(script string) Step` - Add Lua predicate
-- `WithPredicate(language, script string) Step` - Add custom predicate
+- `WithScript(script api.ScriptConfig) Step` - Set the script to execute
+- `WithPredicate(predicate api.ScriptConfig) Step` - Set the predicate gating the step
 
 #### Advanced
 - `WithForEach(name api.Name) Step` - Enable parallel array processing

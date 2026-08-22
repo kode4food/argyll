@@ -41,7 +41,10 @@ func main() {
 		Required("text", api.TypeString).
 		Required("name", api.TypeString).
 		Output("formatted_text", api.TypeString).
-		WithScript(textFormatterScript).
+		WithScript(api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   textFormatterScript,
+		}).
 		Register(context.Background())
 
 	if err != nil {
@@ -75,7 +78,10 @@ return {
 		Output("tax", api.TypeNumber).
 		Output("shipping", api.TypeNumber).
 		Output("total", api.TypeNumber).
-		WithScript(priceCalculatorScript).
+		WithScript(api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   priceCalculatorScript,
+		}).
 		Register(context.Background())
 
 	if err != nil {
@@ -122,7 +128,10 @@ return {
 		Output("eligible", api.TypeBoolean).
 		Output("reason", api.TypeString).
 		Output("risk_level", api.TypeString).
-		WithScriptLanguage("lua", eligibilityCheckerScript).
+		WithScript(api.ScriptConfig{
+			Language: api.ScriptLangLua,
+			Script:   eligibilityCheckerScript,
+		}).
 		Register(context.Background())
 
 	if err != nil {

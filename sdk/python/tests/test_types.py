@@ -262,20 +262,10 @@ def test_flow_config_to_dict():
     assert result["goals"] == ["step-1", "step-2"]
 
 
-def test_predicate_config_to_dict():
-    from argyll.types import PredicateConfig
-
-    config = PredicateConfig(language=ScriptLanguage.LUA, script="return true")
-    result = config.to_dict()
-    assert result["language"] == "lua"
-    assert result["script"] == "return true"
-
-
 def test_step_with_all_fields():
     from argyll.types import (
         BackoffType,
         FlowConfig,
-        PredicateConfig,
         WorkConfig,
     )
 
@@ -298,7 +288,7 @@ def test_step_with_all_fields():
             health="http://localhost:8081/health",
         ),
         script=ScriptConfig(language=ScriptLanguage.LUA, script="return 1 + 2"),
-        predicate=PredicateConfig(
+        predicate=ScriptConfig(
             language=ScriptLanguage.LUA, script="return true"
         ),
         work_config=WorkConfig(

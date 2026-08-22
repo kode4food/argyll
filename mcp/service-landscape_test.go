@@ -152,7 +152,7 @@ func TestGenerateStepImplScript(t *testing.T) {
 	assert.Equal(t, "script", payload["step_type"])
 
 	code := payload["code"].(string)
-	assert.Contains(t, code, "WithScriptLanguage")
+	assert.Contains(t, code, "WithScript(api.ScriptConfig{")
 	assert.Contains(t, code, "Register")
 }
 

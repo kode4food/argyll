@@ -36,7 +36,10 @@ func main() {
 {{ if .HasNonPostMethod }}		WithMethod({{ quote .Method }}).
 {{ end }}		WithEndpoint("http://localhost:8081/step"){{ end }}
 {{ if .IsScript }}.
-		WithScriptLanguage({{ quote .ScriptLanguage }}, {{ quote .ScriptBody }}){{ end }}
+		WithScript(api.ScriptConfig{
+			Language: {{ quote .ScriptLanguage }},
+			Script:   {{ quote .ScriptBody }},
+		}){{ end }}
 {{- if or .IsExternal .IsScript }}	if err := step.Register(
 		context.Background(),
 	); err != nil {

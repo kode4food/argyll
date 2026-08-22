@@ -68,14 +68,17 @@ client.new_step().with_name("AsyncTask") \
 ### Define a Script Step
 
 ```python
-from argyll import Client, AttributeType
+from argyll import Client, AttributeType, ScriptConfig, ScriptLanguage
 
 client = Client("http://localhost:8080")
 
 client.new_step().with_name("Double") \
     .required("value", AttributeType.NUMBER) \
     .output("result", AttributeType.NUMBER) \
-    .with_script("(* value 2)") \
+    .with_script(ScriptConfig(
+        language=ScriptLanguage.LUA,
+        script="return {result = value * 2}",
+    )) \
     .register()
 ```
 

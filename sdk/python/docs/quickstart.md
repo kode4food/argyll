@@ -74,14 +74,17 @@ client.new_step().with_name("AsyncTask") \
 Execute Lua scripts directly:
 
 ```python
-from argyll import Client, AttributeType
+from argyll import Client, AttributeType, ScriptConfig, ScriptLanguage
 
 client = Client()
 
 client.new_step().with_name("Double") \
     .required("value", AttributeType.NUMBER) \
     .output("result", AttributeType.NUMBER) \
-    .with_script("(* value 2)") \
+    .with_script(ScriptConfig(
+        language=ScriptLanguage.LUA,
+        script="return {result = value * 2}",
+    )) \
     .register()
 ```
 
@@ -148,11 +151,14 @@ client.new_step().with_name("LookupUser") \
 Use predicates to control when steps run:
 
 ```python
-from argyll import ScriptLanguage
+from argyll import ScriptConfig, ScriptLanguage
 
 client.new_step().with_name("ConditionalStep") \
     .required("value", AttributeType.NUMBER) \
-    .with_predicate(ScriptLanguage.LUA, "return value > 10") \
+    .with_predicate(ScriptConfig(
+        language=ScriptLanguage.LUA,
+        script="return value > 10",
+    )) \
     .with_endpoint("http://localhost:8081/step") \
     .register()
 ```

@@ -131,7 +131,6 @@ class Client:
             MetaConfig,
             OptionalConfig,
             OutputConfig,
-            PredicateConfig,
             RequiredConfig,
             ScriptConfig,
             ScriptLanguage,
@@ -241,7 +240,7 @@ class Client:
         predicate = None
         if "predicate" in data:
             pred_data = data["predicate"]
-            predicate = PredicateConfig(
+            predicate = ScriptConfig(
                 language=ScriptLanguage(pred_data["language"]),
                 script=pred_data["script"],
             )

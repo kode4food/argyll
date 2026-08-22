@@ -1245,7 +1245,7 @@ components:
           example: false
         match:
           $ref: "#/components/schemas/ScriptConfig"
-          description: Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`; Argyll JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
+          description: Optional predicate evaluated against each candidate value before collection. Lua receives one candidate as `value`; JSONPath (`jpath`) evaluates one candidate as its document. Collect semantics are then applied over matching candidates: `some` requires at least one match, `all` requires every upstream candidate to match, and `none` requires no candidate to match.
         mapping:
           $ref: "#/components/schemas/MappingConfig"
 
@@ -1317,7 +1317,7 @@ components:
       description: |
         Defines parameter name mapping and value transformation for attributes.
         Allows renaming parameters between flow state and service interfaces,
-        and transforming values using scripts (Argyll JSONPath (`jpath`) for queries, Lua for logic).
+        and transforming values using scripts (JSONPath (`jpath`) for queries, Lua for logic).
 
         At least one of `name` or `script` must be provided.
         Not allowed on const or meta attributes.
@@ -1420,14 +1420,14 @@ components:
           description: |
             Script language:
             - `lua`: Lua scripts
-            - `jpath`: Argyll's JSONPath query language identifier; it supports JSONPath-style expressions with Argyll-specific behavior
+            - `jpath`: the JSONPath query language identifier
           example: "lua"
         script:
           type: string
           description: |
             The script code to execute.
 
-            For Argyll JSONPath (`jpath`): A query string like `$.user.email` or `$.data[0].value`
+            For JSONPath (`jpath`): A query string like `$.user.email` or `$.data[0].value`
             For Lua: The complete script code
           example: 'return {greeting = "Hello, " .. name}'
 

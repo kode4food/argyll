@@ -44,7 +44,7 @@ Mapping and match configuration nest **inside a sub-object keyed by the role nam
 
 - `mapping` → `{ "name": "service_field_name" }` (or add `"script"` for a transform)
 - `match` → `{ "language": "lua", "script": "..." }` - a `ScriptConfig` object, never a bare string
-- `jpath` is Argyll's language identifier for JSONPath-style query expressions; it has Argyll-specific behavior and is intended for mappings and predicates, not executable Script Steps
+- `jpath` is the language identifier for JSONPath query expressions; it is intended for mappings and predicates, not executable Script Steps
 
 The spec's own example (from `StepRegistration.attributes`):
 

@@ -241,19 +241,7 @@ class HTTPConfig:
 
 @dataclass(frozen=True)
 class ScriptConfig:
-    """Script configuration for script steps."""
-
-    language: ScriptLanguage
-    script: str
-
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert to API dictionary format."""
-        return {"language": self.language.value, "script": self.script}
-
-
-@dataclass(frozen=True)
-class PredicateConfig:
-    """Predicate configuration for conditional execution."""
+    """Script and the language it is written in."""
 
     language: ScriptLanguage
     script: str
@@ -311,7 +299,7 @@ class Step:
     labels: Labels = field(default_factory=dict)
     http: Optional[HTTPConfig] = None
     script: Optional[ScriptConfig] = None
-    predicate: Optional[PredicateConfig] = None
+    predicate: Optional[ScriptConfig] = None
     work_config: Optional[WorkConfig] = None
     flow: Optional[FlowConfig] = None
     memoizable: bool = False

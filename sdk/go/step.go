@@ -139,36 +139,23 @@ func (s Step) WithLabels(labels api.Labels) Step {
 
 // WithPredicate sets a predicate script that determines if the step should
 // execute
-func (s Step) WithPredicate(language, script string) Step {
+func (s Step) WithPredicate(predicate api.ScriptConfig) Step {
 	s.step = s.step.Copy()
-	s.step.Predicate = &api.ScriptConfig{
-		Language: language,
-		Script:   script,
-	}
+	s.step.Predicate = &predicate
 	return s
-}
-
-// WithLuaPredicate sets a Lua language predicate script
-func (s Step) WithLuaPredicate(script string) Step {
-	return s.WithPredicate(api.ScriptLangLua, script)
 }
 
 // WithRequiredMatch sets a match predicate for a required attribute. The
 // predicate receives each candidate attribute value as "value" before collect
 // semantics are applied
-func (s Step) WithRequiredMatch(
-	name api.Name, language, script string,
-) Step {
+func (s Step) WithRequiredMatch(name api.Name, match api.ScriptConfig) Step {
 	attr, ok := s.step.Attributes[name]
 	if !ok || !attr.IsRequired() {
 		return s
 	}
 	cpy := util.MutableCopy(attr)
 	cpy.Required = util.MutableCopy(cpy.Required)
-	cpy.Required.Match = &api.ScriptConfig{
-		Language: language,
-		Script:   script,
-	}
+	cpy.Required.Match = &match
 	return s.withAttribute(name, cpy)
 }
 
@@ -197,15 +184,12 @@ func (s Step) WithFlowGoals(goals ...api.StepID) Step {
 	return s
 }
 
-// WithScript sets a Lua script to execute for this step
-func (s Step) WithScript(script string) Step {
-	return s.WithScriptLanguage(api.ScriptLangLua, script)
-}
-
-// WithScriptLanguage sets a script with a specific language to execute for
-// this step
-func (s Step) WithScriptLanguage(lang, script string) Step {
-	return s.withScript(&api.ScriptConfig{Language: lang, Script: script})
+// WithScript sets the script to execute for this step
+func (s Step) WithScript(script api.ScriptConfig) Step {
+	s.step = s.step.Copy()
+	s.step.Script = &script
+	s.step.Type = api.StepTypeScript
+	return s
 }
 
 // WithHealthCheck sets the HTTP health check endpoint for the step
@@ -348,13 +332,6 @@ func (s Step) withCompensate(mutate func(*api.HTTPAction)) Step {
 		mutate(comp)
 		http.Compensate = comp
 	})
-}
-
-func (s Step) withScript(script *api.ScriptConfig) Step {
-	s.step = s.step.Copy()
-	s.step.Script = script
-	s.step.Type = api.StepTypeScript
-	return s
 }
 
 func toSnakeCase(s string) string {
