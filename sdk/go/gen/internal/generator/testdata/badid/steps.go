@@ -1,7 +1,6 @@
-package badlabel
+package badid
 
-//argyll:step
-//argyll:labels domain
+//argyll:step Charge_Card
 func Take(args struct{ Name string }) error {
 	return nil
 }

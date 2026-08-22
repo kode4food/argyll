@@ -17,34 +17,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func stepServer(t *testing.T) *httptest.Server {
-	t.Helper()
-	srv := httptest.NewServer(gen.Mux(example.ArgyllSteps()...))
-	t.Cleanup(srv.Close)
-	return srv
-}
-
-func invoke(
-	t *testing.T, srv *httptest.Server, id, body string,
-) *http.Response {
-	t.Helper()
-	req, err := http.NewRequest(http.MethodPost, srv.URL+"/"+id,
-		strings.NewReader(body))
-	assert.NoError(t, err)
-	req.Header.Set("Content-Type", api.JSONContentType)
-	res, err := http.DefaultClient.Do(req)
-	assert.NoError(t, err)
-	t.Cleanup(func() { _ = res.Body.Close() })
-	return res
-}
-
-func bodyOf(t *testing.T, res *http.Response) string {
-	t.Helper()
-	body, err := io.ReadAll(res.Body)
-	assert.NoError(t, err)
-	return string(body)
-}
-
 func TestSyncStep(t *testing.T) {
 	srv := stepServer(t)
 
@@ -133,7 +105,7 @@ func TestInferredWrappedStep(t *testing.T) {
 	body := `{"customer_id":"c-1","amount":5000}`
 	want := `{"score":50,"approved":true}`
 
-	for _, id := range []string{"rate-customer", "grade-customer"} {
+	for _, id := range []string{"rate-customer-v2", "grade-customer"} {
 		t.Run(id, func(t *testing.T) {
 			res := invoke(t, srv, id, body)
 			assert.Equal(t, http.StatusOK, res.StatusCode)
@@ -143,27 +115,7 @@ func TestInferredWrappedStep(t *testing.T) {
 }
 
 func TestRegistration(t *testing.T) {
-	registered := make(chan *api.Step, len(example.ArgyllSteps()))
-	engine := httptest.NewServer(http.HandlerFunc(
-		func(w http.ResponseWriter, r *http.Request) {
-			var step api.Step
-			assert.NoError(t, json.NewDecoder(r.Body).Decode(&step))
-			registered <- &step
-			w.WriteHeader(http.StatusCreated)
-		}))
-	defer engine.Close()
-
-	client := argyll.NewClient(engine.URL, time.Second)
-	err := gen.Register(context.Background(), client,
-		"http://step-host:9000", example.ArgyllSteps()...)
-	assert.NoError(t, err)
-	close(registered)
-
-	byID := map[api.StepID]*api.Step{}
-	for step := range registered {
-		byID[step.ID] = step
-		assert.NoError(t, step.Validate())
-	}
+	byID := registerSteps(t, example.ArgyllSteps()...)
 
 	risk := byID["calculate-risk"]
 	assert.Equal(t, api.StepTypeSync, risk.Type)
@@ -184,7 +136,65 @@ func TestHTTPErrorStatus(t *testing.T) {
 }
 
 func TestRegisteredLabels(t *testing.T) {
-	registered := make(chan *api.Step, len(example.ArgyllSteps()))
+	byID := registerSteps(t, example.CalculateRiskStep)
+
+	assert.Equal(t, api.Labels{
+		"description": "score a customer for risk",
+		"domain":      "risk",
+	}, byID["calculate-risk"].Labels)
+}
+
+func TestRegisteredAttributeOptions(t *testing.T) {
+	byID := registerSteps(t, example.ChargeCardV2Step)
+
+	step := byID["charge-card-v2"]
+	assert.Equal(t, api.Name("Charge Card (v2)"), step.Name)
+
+	attrs := step.Attributes
+	assert.Equal(t, api.TypeArray, attrs["order_id"].Type)
+	assert.True(t, attrs["order_id"].Required.ForEach)
+	assert.True(t, attrs["note"].IsOptional())
+	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
+	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
+	assert.Equal(t, "flow_id", attrs["flow"].Meta.Key)
+}
+
+func TestForEachStep(t *testing.T) {
+	srv := stepServer(t)
+
+	res := invoke(t, srv, "charge-card-v2",
+		`{"order_id":"ord-1","note":"","currency":"EUR",`+
+			`"gateway":"stripe","flow":"wf-1"}`)
+	assert.Equal(t, http.StatusOK, res.StatusCode)
+	assert.JSONEq(t, `{"charge_id":"stripe:ord-1:EUR"}`, bodyOf(t, res))
+}
+
+func stepServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	srv := httptest.NewServer(gen.Mux(example.ArgyllSteps()...))
+	t.Cleanup(srv.Close)
+	return srv
+}
+
+func invoke(
+	t *testing.T, srv *httptest.Server, id, body string,
+) *http.Response {
+	t.Helper()
+	req, err := http.NewRequest(http.MethodPost, srv.URL+"/"+id,
+		strings.NewReader(body))
+	assert.NoError(t, err)
+	req.Header.Set("Content-Type", api.JSONContentType)
+	res, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+	t.Cleanup(func() { _ = res.Body.Close() })
+	return res
+}
+
+func registerSteps(
+	t *testing.T, steps ...gen.StepDef,
+) map[api.StepID]*api.Step {
+	t.Helper()
+	registered := make(chan *api.Step, len(steps))
 	engine := httptest.NewServer(http.HandlerFunc(
 		func(w http.ResponseWriter, r *http.Request) {
 			var step api.Step
@@ -196,14 +206,21 @@ func TestRegisteredLabels(t *testing.T) {
 
 	client := argyll.NewClient(engine.URL, time.Second)
 	err := gen.Register(context.Background(), client,
-		"http://step-host:9000", example.CalculateRiskStep)
+		"http://step-host:9000", steps...)
 	assert.NoError(t, err)
 	close(registered)
 
+	byID := map[api.StepID]*api.Step{}
 	for step := range registered {
-		assert.Equal(t, api.Labels{
-			"description": "score a customer for risk",
-			"domain":      "risk",
-		}, step.Labels)
+		assert.NoError(t, step.Validate())
+		byID[step.ID] = step
 	}
+	return byID
+}
+
+func bodyOf(t *testing.T, res *http.Response) string {
+	t.Helper()
+	body, err := io.ReadAll(res.Body)
+	assert.NoError(t, err)
+	return string(body)
 }

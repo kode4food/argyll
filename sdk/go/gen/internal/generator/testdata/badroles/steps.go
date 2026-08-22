@@ -1,7 +1,7 @@
-package badtag
+package badroles
 
 type Args struct {
-	Amount int `argyll:"amount;omitempty:true"`
+	Amount int `argyll:"amount;role:const;default:1"`
 }
 
 //argyll:step

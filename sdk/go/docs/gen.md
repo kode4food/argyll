@@ -45,6 +45,23 @@ One `go:generate` line is enough for a whole tree. The generator scans every fil
 
 ## Directives
 
+Directives and field tags read the same way: a leading value names the thing, and semicolon separated `key:value` properties configure it. Whitespace anywhere in that is ignored.
+
+```go
+//argyll:step   charge-card-v2;name:Charge Card (v2)
+//argyll:wrap   score-v2(customer-id, amount) -> (score, approved)
+//argyll:props  timeout: 2500; predicate: return args.amount > 0
+//argyll:labels domain: risk; tier: gold
+```
+
+```go
+Currency string `argyll:"iso_currency;role:optional;default:USD"`
+```
+
+`props` and `labels` take properties only, and both repeat, so a long set spreads across lines. Only `//argyll:wrap` takes an attribute spec: a `//argyll:step` or a field tag carrying one is an error rather than a silent no-op.
+
+An omitted ID is the function name in `kebab-case`. The ID also names the generated `StepDef` var, so it stays `kebab-case`: lowercase letters and digits, hyphen separated.
+
 ### `//argyll:step`
 
 A function written to be a step. It takes one arguments struct, named or anonymous, and returns an outputs struct, an error, both, or neither:
@@ -78,33 +95,57 @@ That yields inputs `customer_id` and `amount`, outputs `score` and `approved`.
 Either side of the `->` names attributes positionally, overriding what the signature supplies. Go names results only when the function declares them, so naming just the outputs is the common case:
 
 ```go
-//argyll:wrap -> score, approved
+//argyll:wrap -> (score, approved)
 func CalculateRisk(customerID string, amount int64) (int, bool, error)
 ```
 
-Names in the directive are used verbatim, which makes them an override of the `snake_case` default rather than an input to it. `customer-id` below reaches the flow as `customer-id`:
+Names in the directive are used verbatim, which makes them an override of the `snake_case` default rather than an input to it. `customer-id` below reaches the flow as `customer-id`, and `score-v2` is the step ID:
 
 ```go
-//argyll:wrap customer-id, amount -> score, approved
+//argyll:wrap score-v2(customer-id, amount) -> (score, approved)
 func CalculateRisk(customerID string, amount int64) (int, bool, error)
 ```
+
+An empty list is empty rather than inferred, so `() -> (score)` declares a step with no inputs.
 
 The generator checks the arity against the signature at build time, and reports the file and line when they disagree. An omitted side whose parameters or results are unnamed reports the position and asks for the names. The wrapped function knows nothing about Argyll.
 
-### `//argyll:label`
+### `//argyll:props`
 
-Step labels, one directive per label, in any order alongside a `//argyll:step` or `//argyll:wrap` directive:
+Step properties, continuing the ones on the `//argyll:step` or `//argyll:wrap` line:
+
+```go
+//argyll:step charge-card
+//argyll:props name: Charge Card; timeout: 2500
+//argyll:props predicate: return args.amount > 0
+func ChargeCard(args ChargeArgs) (ChargeResult, error)
+```
+
+| Property    | Effect                                                       |
+| ----------- | ------------------------------------------------------------ |
+| `name`      | Display name, defaulting to the function name in `Title Case` |
+| `memoize`   | `true` to memoize the step                                    |
+| `timeout`   | Invocation timeout in milliseconds                            |
+| `predicate` | Lua predicate gating the step                                 |
+
+Everything after the first `:` is the value, spaces and further colons included, so a Lua predicate needs no quoting. A value ends at the next `;`.
+
+Every property here is engine side: the engine memoizes, times out and evaluates predicates on its own, and the handler never learns it happened. Generated steps are synchronous and answer `POST`, so there is nothing to configure on either.
+
+### `//argyll:labels`
+
+Step labels, in the same repeatable form:
 
 ```go
 //argyll:step
-//argyll:label description=send order confirmation notifications
-//argyll:label domain=notifications
+//argyll:labels description: send order confirmation notifications
+//argyll:labels domain: notifications; tier: gold
 func NotificationSender(args NotificationArgs) error
 ```
 
-Everything after the first `=` is the value, spaces included. The generator validates each directive as `key=value`, reporting the file and line otherwise.
+### Validation
 
-The generator emits synchronous Steps.
+The generator assembles an `api.Step` and runs the engine's own `Validate` on it before writing anything, so a step the engine would reject fails `go generate` with the file and line that declared it. The generated file carries that validated step in the wire form the engine receives, and registration adds only the host the step server is reachable on.
 
 ## The step contract
 
@@ -116,7 +157,7 @@ Go field names map to Argyll attribute names as `snake_case`:
 | `HTTPServer`     | `http_server`    |
 | ``Currency string `argyll:"iso_currency"` `` | `iso_currency` |
 
-The function name becomes the step identity, as `kebab-case`: `func CalculateRisk` registers as ID `calculate-risk`, name `Calculate Risk`.
+The function name becomes the step identity, as `kebab-case`: `func CalculateRisk` registers as ID `calculate-risk`, name `Calculate Risk`. The [directive](#directives) sets either of those explicitly.
 
 ### Field tags
 
@@ -131,9 +172,42 @@ type EnrollArgs struct {
 
 A tag of `-` keeps the field out of the contract and off the wire entirely, so it stays available as ordinary Go state. Unexported fields are skipped the same way.
 
-The tag applies wherever the struct appears, in inputs, in outputs, and at any nesting depth. Its value is `name` followed by comma separated options, the same shape as `json` tags, so field level options can join it later. The generator rejects an option it does not know, reporting the file, line and field.
+The tag applies wherever the struct appears, in inputs, in outputs, and at any nesting depth. The generator rejects a property it does not know, reporting the file, line and field.
 
-Names supplied by a `//argyll:wrap` directive are used verbatim, overriding the `snake_case` default the same way a field tag does.
+### Attribute properties
+
+Properties after the name configure the attribute. Leave the name off to keep the `snake_case` default and still set properties:
+
+```go
+type ChargeArgs struct {
+	OrderID  string `argyll:"for_each:true;collect:all"`
+	Note     string `argyll:"role:optional"`
+	Currency string `argyll:"role:optional;default:USD;deadline:5000"`
+	Gateway  string `argyll:"role:const;value:stripe"`
+	FlowID   string `argyll:"flow;role:meta;key:flow_id"`
+	Amount   int64  `argyll:"match:return args.amount > 0"`
+}
+```
+
+| Property   | Effect                                                        |
+| ---------- | ------------------------------------------------------------- |
+| `role`     | `required`, `optional`, `const` or `meta`, defaulting to `required` for a value field and `optional` for a pointer |
+| `default`  | Default value of an optional input                             |
+| `value`    | Fixed value of a const input                                   |
+| `key`      | Execution metadata key filling a meta input                    |
+| `collect`  | `first`, `last`, `all`, `some` or `none`                       |
+| `deadline` | Collection deadline of an optional input, in milliseconds      |
+| `for_each` | `true` to expand the attribute into one work item per element  |
+| `match`    | Lua match gate on a required input                             |
+| `mapping`  | Name the attribute is mapped to                                |
+
+Each property belongs to a role, and using one against the wrong role is an error naming both: `default` needs `optional`, `value` needs `const`, `key` needs `meta`, `match` needs `required`.
+
+`default` and `value` reach the engine as JSON, and the generator quotes the value of a string attribute for you, so `default:USD` is written plainly.
+
+A `for_each` attribute is declared as an array and arrives one element at a time, so the Go field carries the element type: `OrderID string` above declares `order_id` as an array and receives a single order ID per work item.
+
+Properties belong to the attributes of a step, which are the fields of its arguments and outputs structs. An output takes a name and a `mapping`, nothing else. Fields nested inside those structs are values within an attribute rather than attributes themselves, so only their name applies. A `//argyll:wrap` step names its attributes in the directive rather than in a struct, and those names are used verbatim, overriding the `snake_case` default the same way a field tag does.
 
 ### Attribute types
 

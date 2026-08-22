@@ -5,31 +5,50 @@ import (
 	"fmt"
 	"go/ast"
 	"go/types"
+	"maps"
+	"regexp"
 	"strings"
+
+	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
 type (
 	stepModel struct {
-		labels   map[string]string
-		id       string
-		name     string
-		stepType string
-		handler  string
-		inputs   []attrModel
-		outputs  []attrModel
+		spec    *api.Step
+		handler string
 	}
 
-	attrModel struct {
-		name     string
-		attrType string
-		optional bool
+	// directiveRef is a step or wrap directive and the text following it
+	directiveRef struct {
+		kind string
+		args string
+	}
+
+	// wrapNames are the attribute names a wrap directive declares, nil on a
+	// side it leaves to the signature
+	wrapNames struct {
+		inputs  []string
+		outputs []string
+	}
+
+	// stepDecl is what a directive declares, gathered from its own line and
+	// from any props and labels directives
+	stepDecl struct {
+		labels api.Labels
+		id     string
+		attrs  string
+		props  Options
 	}
 )
 
 const (
-	stepDirective  = "//argyll:step"
-	wrapDirective  = "//argyll:wrap"
-	labelDirective = "//argyll:label"
+	stepDirective   = "//argyll:step"
+	wrapDirective   = "//argyll:wrap"
+	propsDirective  = "//argyll:props"
+	labelsDirective = "//argyll:labels"
+
+	// registration prepends the host the step server is reachable on
+	healthPath = "/health"
 )
 
 var (
@@ -37,8 +56,11 @@ var (
 	ErrBadDirective = errors.New("invalid argyll directive")
 )
 
+// a step ID also names the generated var, so it stays kebab-case
+var validStepID = regexp.MustCompile(`^[a-z][a-z0-9]*(-[a-z0-9]+)*$`)
+
 func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
-	directive, args, ok := directiveOf(fn)
+	directive, ok := directiveOf(fn)
 	if !ok {
 		return nil
 	}
@@ -46,28 +68,126 @@ func (g *pkgGen) addFunc(fn *ast.FuncDecl) error {
 	if err != nil {
 		return err
 	}
-	labels, err := labelsOf(fn)
+	wrap := directive.kind == wrapDirective
+	decl, err := g.declOf(fn, directive.args, wrap)
 	if err != nil {
-		return g.errorAt(fn, "%w", err)
+		return err
 	}
 
 	var step stepModel
-	if directive == stepDirective {
-		step, err = g.stepFor(fn, sig)
+	if wrap {
+		step, err = g.wrapFor(fn, sig, decl)
 	} else {
-		step, err = g.wrapFor(fn, sig, args)
+		step, err = g.stepFor(fn, sig, decl)
 	}
 	if err != nil {
 		return err
 	}
 
-	step.labels = labels
 	g.steps = append(g.steps, step)
 	return nil
 }
 
+func (g *pkgGen) declOf(
+	fn *ast.FuncDecl, args string, wrap bool,
+) (stepDecl, error) {
+	head, options, err := ParseOptions(args)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
+	decl := SplitHead(head)
+	if decl.Attrs != "" && !wrap {
+		return stepDecl{}, g.errorAt(fn,
+			"%w: %s takes no attribute spec, so name them in the struct",
+			ErrBadDirective, stepDirective)
+	}
+	id := decl.Name
+	if id == "" {
+		id = KebabCase(fn.Name.Name)
+	}
+	if !validStepID.MatchString(id) {
+		return stepDecl{}, g.errorAt(fn, "%w: bad step ID %q",
+			ErrBadDirective, id)
+	}
+
+	props, err := optionsIn(fn, propsDirective)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
+	declared, err := optionsIn(fn, labelsDirective)
+	if err != nil {
+		return stepDecl{}, g.errorAt(fn, "%w", err)
+	}
+	var labels api.Labels
+	for _, o := range declared {
+		if labels == nil {
+			labels = api.Labels{}
+		}
+		labels[o.Key] = o.Value
+	}
+	return stepDecl{
+		labels: labels,
+		id:     id,
+		attrs:  decl.Attrs,
+		props:  append(options, props...),
+	}, nil
+}
+
+func (g *pkgGen) model(
+	fn *ast.FuncDecl, decl stepDecl, attrs api.AttributeSpecs, handler string,
+) (stepModel, error) {
+	spec := &api.Step{
+		Attributes: attrs,
+		Labels:     decl.labels,
+		Type:       api.StepTypeSync,
+		ID:         api.StepID(decl.id),
+		Name:       api.Name(TitleCase(fn.Name.Name)),
+		HTTP: &api.HTTPConfig{
+			Invoke: api.HTTPAction{Endpoint: "/" + decl.id},
+			Health: healthPath,
+		},
+	}
+	for _, o := range decl.props {
+		set, ok := stepSetters[o.Key]
+		if !ok {
+			return stepModel{}, g.errorAt(fn, "%w: unknown property %q",
+				ErrBadProp, o.Key)
+		}
+		if err := set(spec, o.Value); err != nil {
+			return stepModel{}, g.errorAt(fn, "%w", err)
+		}
+	}
+	if err := spec.Validate(); err != nil {
+		return stepModel{}, g.errorAt(fn, "%w", err)
+	}
+	return stepModel{spec: spec, handler: handler}, nil
+}
+
+// props and labels are their own directives, repeatable and options only,
+// so a long set can spread across lines
+func optionsIn(fn *ast.FuncDecl, directive string) (Options, error) {
+	var res Options
+	for _, c := range fn.Doc.List {
+		text := strings.TrimSpace(c.Text)
+		rest, ok := directiveArgs(text, directive)
+		if !ok {
+			continue
+		}
+		head, options, err := ParseOptions(rest)
+		if err != nil {
+			return nil, err
+		}
+		if head != "" || len(options) == 0 {
+			return nil, fmt.Errorf("%w: %s takes key%svalue options, got %q",
+				ErrBadDirective, directive, optionAssign, rest)
+		}
+		res = append(res, options...)
+	}
+	return res, nil
+}
+
 func (g *pkgGen) stepFor(
-	fn *ast.FuncDecl, sig *types.Signature,
+	fn *ast.FuncDecl, sig *types.Signature, decl stepDecl,
 ) (stepModel, error) {
 	if sig.Params().Len() != 1 {
 		return stepModel{}, g.errorAt(fn,
@@ -75,7 +195,7 @@ func (g *pkgGen) stepFor(
 			ErrBadSignature, fn.Name.Name)
 	}
 	in := sig.Params().At(0).Type()
-	inCodec, inAttrs, err := g.contract(fn, in)
+	inCodec, inAttrs, err := g.contract(fn, in, false)
 	if err != nil {
 		return stepModel{}, err
 	}
@@ -84,88 +204,95 @@ func (g *pkgGen) stepFor(
 	if err != nil {
 		return stepModel{}, err
 	}
-	outCodec, outAttrs, err := g.contract(fn, res)
+	outCodec, outAttrs, err := g.contract(fn, res, true)
 	if err != nil {
 		return stepModel{}, err
 	}
 
 	call := fn.Name.Name + "(in)"
 	body := syncBody(call, res != nil, hasErr, g.typeOf(res))
-	return stepModel{
-		id:       KebabCase(fn.Name.Name),
-		name:     TitleCase(fn.Name.Name),
-		stepType: "api.StepTypeSync",
-		inputs:   inAttrs,
-		outputs:  outAttrs,
-		handler: syncHandler(
-			inCodec, outCodec, g.typeOf(in), g.typeOf(res), body,
-		),
-	}, nil
+	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
+		syncHandlerArgs{
+			inCodec:  inCodec,
+			outCodec: outCodec,
+			inType:   g.typeOf(in),
+			outType:  g.typeOf(res),
+			body:     body,
+		},
+	))
 }
 
 func (g *pkgGen) wrapFor(
-	fn *ast.FuncDecl, sig *types.Signature, args string,
+	fn *ast.FuncDecl, sig *types.Signature, decl stepDecl,
 ) (stepModel, error) {
-	inNames, outNames, err := parseWrap(args)
+	names, err := parseWrap(decl.attrs)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w: %s", err, fn.Name.Name)
 	}
-	if inNames == nil {
+	if names.inputs == nil {
 		n := sig.Params().Len()
-		if inNames, err = g.inferNames(
+		if names.inputs, err = g.inferNames(
 			fn, sig.Params(), n, "parameter",
 		); err != nil {
 			return stepModel{}, err
 		}
 	}
-	if outNames == nil {
+	if names.outputs == nil {
 		res := sig.Results()
 		n := res.Len()
 		if n > 0 && isError(res.At(n-1).Type()) {
 			n--
 		}
-		if outNames, err = g.inferNames(
+		if names.outputs, err = g.inferNames(
 			fn, res, n, "result",
 		); err != nil {
 			return stepModel{}, err
 		}
 	}
-	if sig.Params().Len() != len(inNames) {
+	if sig.Params().Len() != len(names.inputs) {
 		return stepModel{}, g.errorAt(fn,
-			"%w: %s declares %d inputs but takes %d",
-			ErrBadDirective, fn.Name.Name, len(inNames), sig.Params().Len())
+			"%w: %s declares %d inputs but takes %d", ErrBadDirective,
+			fn.Name.Name, len(names.inputs), sig.Params().Len())
 	}
-	res, hasErr, err := g.wrapResults(fn, sig, len(outNames))
+	res, hasErr, err := g.wrapResults(fn, sig, len(names.outputs))
 	if err != nil {
 		return stepModel{}, err
 	}
 
 	inType := "argyll" + fn.Name.Name + "In"
 	outType := "argyll" + fn.Name.Name + "Out"
-	inCodec, inAttrs, err := g.wrapStruct(inType, inNames, paramTypes(sig))
+	inCodec, inAttrs, err := g.wrapStruct(
+		inType, names.inputs, paramTypes(sig), false,
+	)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
-	outCodec, outAttrs, err := g.wrapStruct(outType, outNames, res)
+	outCodec, outAttrs, err := g.wrapStruct(outType, names.outputs, res, true)
 	if err != nil {
 		return stepModel{}, g.errorAt(fn, "%w", err)
 	}
 
-	return stepModel{
-		id:       KebabCase(fn.Name.Name),
-		name:     TitleCase(fn.Name.Name),
-		stepType: "api.StepTypeSync",
-		inputs:   inAttrs,
-		outputs:  outAttrs,
-		handler: syncHandler(inCodec, outCodec, inType, outType,
-			wrapBody(fn.Name.Name, inNames, outNames, outType, hasErr),
-		),
-	}, nil
+	return g.model(fn, decl, merge(inAttrs, outAttrs), syncHandler(
+		syncHandlerArgs{
+			inCodec:  inCodec,
+			outCodec: outCodec,
+			inType:   inType,
+			outType:  outType,
+			body:     wrapBody(fn.Name.Name, names, outType, hasErr),
+		},
+	))
+}
+
+func merge(in, out api.AttributeSpecs) api.AttributeSpecs {
+	res := make(api.AttributeSpecs, len(in)+len(out))
+	maps.Copy(res, in)
+	maps.Copy(res, out)
+	return res
 }
 
 func (g *pkgGen) contract(
-	fn *ast.FuncDecl, t types.Type,
-) (string, []attrModel, error) {
+	fn *ast.FuncDecl, t types.Type, output bool,
+) (string, api.AttributeSpecs, error) {
 	if t == nil {
 		return "codec.Struct[struct{}]()", nil, nil
 	}
@@ -178,17 +305,17 @@ func (g *pkgGen) contract(
 	if err != nil {
 		return "", nil, g.errorAt(fn, "%w", err)
 	}
-	specs, err := structFields(st)
+	fields, err := structFields(st)
 	if err != nil {
 		return "", nil, g.errorAt(fn, "%w", err)
 	}
-	var attrs []attrModel
-	for _, f := range specs {
-		attrs = append(attrs, attrModel{
-			name:     f.attr,
-			attrType: attributeType(f.Type()),
-			optional: isPointer(f.Type()),
-		})
+	attrs := api.AttributeSpecs{}
+	for _, f := range fields {
+		spec, err := newAttr(f.Type(), f.options, output)
+		if err != nil {
+			return "", nil, g.errorAt(fn, "%w on %s", err, f.Name())
+		}
+		attrs[api.Name(f.attr)] = spec
 	}
 	return expr, attrs, nil
 }
@@ -271,68 +398,67 @@ func (g *pkgGen) errorAt(fn *ast.FuncDecl, format string, a ...any) error {
 	return fmt.Errorf("%s: %w", pos, fmt.Errorf(format, a...))
 }
 
-func directiveOf(fn *ast.FuncDecl) (string, string, bool) {
+func directiveOf(fn *ast.FuncDecl) (directiveRef, bool) {
 	if fn.Doc == nil {
-		return "", "", false
+		return directiveRef{}, false
 	}
 	for _, c := range fn.Doc.List {
 		text := strings.TrimSpace(c.Text)
 		for _, d := range []string{stepDirective, wrapDirective} {
-			if text == d {
-				return d, "", true
-			}
-			if rest, ok := strings.CutPrefix(text, d+" "); ok {
-				return d, strings.TrimSpace(rest), true
+			if args, ok := directiveArgs(text, d); ok {
+				return directiveRef{kind: d, args: args}, true
 			}
 		}
 	}
-	return "", "", false
+	return directiveRef{}, false
 }
 
-func labelsOf(fn *ast.FuncDecl) (map[string]string, error) {
-	if fn.Doc == nil {
-		return nil, nil
+// the head may follow the directive on a space, or its options directly on a
+// separator
+func directiveArgs(comment, directive string) (string, bool) {
+	rest, ok := strings.CutPrefix(comment, directive)
+	if !ok {
+		return "", false
 	}
-	labels := map[string]string{}
-	for _, c := range fn.Doc.List {
-		text := strings.TrimSpace(c.Text)
-		rest, ok := strings.CutPrefix(text, labelDirective+" ")
-		if !ok {
-			continue
-		}
-		key, value, ok := strings.Cut(rest, "=")
-		key = strings.TrimSpace(key)
-		if !ok || key == "" {
-			return nil, fmt.Errorf("%w: label %q is not key=value",
-				ErrBadDirective, strings.TrimSpace(rest))
-		}
-		labels[key] = strings.TrimSpace(value)
+	if rest != "" && !strings.ContainsAny(rest[:1], " \t"+optionSeparator) {
+		return "", false
 	}
-	if len(labels) == 0 {
-		return nil, nil
-	}
-	return labels, nil
+	return strings.TrimSpace(rest), true
 }
 
-func parseWrap(args string) ([]string, []string, error) {
-	ins, outs, _ := strings.Cut(args, "->")
-	inNames, err := attrNames(ins)
+func parseWrap(attrs string) (wrapNames, error) {
+	ins, outs, _ := strings.Cut(attrs, arrow)
+	inputs, err := attrNames(ins)
 	if err != nil {
-		return nil, nil, err
+		return wrapNames{}, err
 	}
-	outNames, err := attrNames(outs)
+	outputs, err := attrNames(outs)
 	if err != nil {
-		return nil, nil, err
+		return wrapNames{}, err
 	}
-	return inNames, outNames, nil
+	return wrapNames{inputs: inputs, outputs: outputs}, nil
 }
 
+// an omitted list is inferred from the signature, an empty one is empty
 func attrNames(s string) ([]string, error) {
 	s = strings.TrimSpace(s)
 	if s == "" {
 		return nil, nil
 	}
-	names := strings.Split(s, ",")
+	body, ok := strings.CutPrefix(s, "(")
+	if !ok {
+		return nil, fmt.Errorf("%w: attributes %q are not parenthesized",
+			ErrBadDirective, s)
+	}
+	body, ok = strings.CutSuffix(strings.TrimSpace(body), ")")
+	if !ok {
+		return nil, fmt.Errorf("%w: attributes %q are not parenthesized",
+			ErrBadDirective, s)
+	}
+	if strings.TrimSpace(body) == "" {
+		return []string{}, nil
+	}
+	names := strings.Split(body, ",")
 	for i, n := range names {
 		n = strings.TrimSpace(n)
 		if n == "" || strings.ContainsAny(n, " \t") {
@@ -344,10 +470,19 @@ func attrNames(s string) ([]string, error) {
 	return names, nil
 }
 
-func syncHandler(inCodec, outCodec, inType, outType, body string) string {
+// syncHandlerArgs are the pieces of a generated synchronous handler
+type syncHandlerArgs struct {
+	inCodec  string
+	outCodec string
+	inType   string
+	outType  string
+	body     string
+}
+
+func syncHandler(args syncHandlerArgs) string {
 	return fmt.Sprintf(
 		"gen.Sync(\n%s, %s,\nfunc(in %s) (%s, error) {\n%s\n})",
-		inCodec, outCodec, inType, outType, body,
+		args.inCodec, args.outCodec, args.inType, args.outType, args.body,
 	)
 }
 
@@ -365,15 +500,15 @@ func syncBody(call string, hasOut, hasErr bool, outType string) string {
 }
 
 func wrapBody(
-	fn string, inNames, outNames []string, outType string, hasErr bool,
+	fn string, names wrapNames, outType string, hasErr bool,
 ) string {
-	call := make([]string, len(inNames))
-	for i, n := range inNames {
+	call := make([]string, len(names.inputs))
+	for i, n := range names.inputs {
 		call[i] = "in." + ExportedName(n)
 	}
-	lhs := make([]string, 0, len(outNames)+1)
-	assign := make([]string, len(outNames))
-	for i, n := range outNames {
+	lhs := make([]string, 0, len(names.outputs)+1)
+	assign := make([]string, len(names.outputs))
+	for i, n := range names.outputs {
 		lhs = append(lhs, fmt.Sprintf("r%d", i))
 		assign[i] = fmt.Sprintf("%s: r%d", ExportedName(n), i)
 	}
@@ -407,9 +542,4 @@ func paramTypes(sig *types.Signature) []types.Type {
 func isError(t types.Type) bool {
 	named, ok := t.(*types.Named)
 	return ok && named.Obj().Pkg() == nil && named.Obj().Name() == "error"
-}
-
-func isPointer(t types.Type) bool {
-	_, ok := t.(*types.Pointer)
-	return ok
 }

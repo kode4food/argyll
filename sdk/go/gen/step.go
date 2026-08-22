@@ -1,28 +1,26 @@
 package gen
 
 import (
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/kode4food/argyll/engine/pkg/api"
 )
 
-type (
-	// StepDef is the logical contract of a generated step along with the
-	// HTTP handlers that expose it over the existing step protocol
-	StepDef struct {
-		Handler http.HandlerFunc
-		ID      api.StepID
-		Name    api.Name
-		Type    api.StepType
-		Inputs  []Attr
-		Outputs []Attr
-		Labels  api.Labels
-	}
+// StepDef is a generated step: its specification in the wire form the engine
+// accepts, and the handler serving it
+type StepDef struct {
+	Handler http.HandlerFunc
+	ID      api.StepID
+	Spec    string
+}
 
-	// Attr is a named step input or output and its logical type
-	Attr struct {
-		Name     api.Name
-		Type     api.AttributeType
-		Optional bool
+// Step decodes the step specification
+func (s StepDef) Step() (*api.Step, error) {
+	var step api.Step
+	if err := json.Unmarshal([]byte(s.Spec), &step); err != nil {
+		return nil, fmt.Errorf("%w: %s", err, s.ID)
 	}
-)
+	return &step, nil
+}

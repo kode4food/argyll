@@ -1,6 +1,7 @@
 package generator
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"go/ast"
@@ -9,8 +10,10 @@ import (
 	"maps"
 	"reflect"
 	"slices"
+	"strconv"
 	"strings"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"golang.org/x/tools/go/packages"
 )
 
@@ -35,7 +38,8 @@ type (
 
 	fieldSpec struct {
 		*types.Var
-		attr string
+		options Options
+		attr    string
 	}
 )
 
@@ -46,7 +50,6 @@ const (
 	fieldTag  = "argyll"
 	skipField = "-"
 
-	apiPackage     = "github.com/kode4food/argyll/engine/pkg/api"
 	codecPackage   = "github.com/kode4food/argyll/sdk/go/codec"
 	runtimePackage = "github.com/kode4food/argyll/sdk/go/gen"
 
@@ -97,9 +100,13 @@ func (g *pkgGen) source() ([]byte, error) {
 
 	names := make([]string, 0, len(g.steps))
 	for _, s := range g.steps {
-		name := ExportedName(s.id) + "Step"
+		name := ExportedName(string(s.spec.ID)) + "Step"
 		names = append(names, name)
-		sb.WriteString(g.stepVar(name, s))
+		decl, err := g.stepVar(name, s)
+		if err != nil {
+			return nil, err
+		}
+		sb.WriteString(decl)
 		sb.WriteString("\n\n")
 	}
 
@@ -120,7 +127,7 @@ func (g *pkgGen) source() ([]byte, error) {
 
 func (g *pkgGen) importBlock() string {
 	paths := maps.Clone(g.imports)
-	for _, p := range []string{apiPackage, runtimePackage, codecPackage} {
+	for _, p := range []string{runtimePackage, codecPackage} {
 		paths[p] = ""
 	}
 
@@ -133,25 +140,24 @@ func (g *pkgGen) importBlock() string {
 	return sb.String()
 }
 
-func (g *pkgGen) stepVar(name string, s stepModel) string {
+func (g *pkgGen) stepVar(name string, s stepModel) (string, error) {
+	spec, err := json.Marshal(s.spec)
+	if err != nil {
+		return "", err
+	}
 	var sb strings.Builder
 	fmt.Fprintf(&sb, "// %s exposes %s as an Argyll step\n"+
-		"var %s = gen.StepDef{\n", name, s.id, name)
-	fmt.Fprintf(&sb, "ID: %q,\nName: %q,\nType: %s,\n", s.id, s.name,
-		s.stepType)
-	sb.WriteString(labelList(s.labels))
-	sb.WriteString(attrList("Inputs", s.inputs))
-	sb.WriteString(attrList("Outputs", s.outputs))
-	fmt.Fprintf(&sb, "Handler: %s,\n", s.handler)
-	sb.WriteString("}\n")
-	return sb.String()
+		"var %s = gen.StepDef{\n", name, s.spec.ID, name)
+	fmt.Fprintf(&sb, "ID: %q,\nSpec: %s,\nHandler: %s,\n}\n",
+		s.spec.ID, strconv.Quote(string(spec)), s.handler)
+	return sb.String(), nil
 }
 
 func (g *pkgGen) wrapStruct(
-	name string, names []string, types []types.Type,
-) (string, []attrModel, error) {
+	name string, names []string, types []types.Type, output bool,
+) (string, api.AttributeSpecs, error) {
 	fields := make([]codecField, len(names))
-	attrs := make([]attrModel, len(names))
+	attrs := api.AttributeSpecs{}
 	var decl strings.Builder
 	fmt.Fprintf(&decl, "type %s struct {\n", name)
 	for i, n := range names {
@@ -168,11 +174,11 @@ func (g *pkgGen) wrapStruct(
 			owner: name,
 			typ:   typ,
 		}
-		attrs[i] = attrModel{
-			name:     n,
-			attrType: attributeType(types[i]),
-			optional: isPointer(types[i]),
+		spec, err := newAttr(types[i], nil, output)
+		if err != nil {
+			return "", nil, err
 		}
+		attrs[api.Name(n)] = spec
 	}
 	decl.WriteString("}")
 	g.decls = append(g.decls, decl.String())
@@ -317,37 +323,53 @@ func structDecl(name, owner string, fields []codecField, lazy bool) string {
 		sb.String())
 }
 
-func labelList(labels map[string]string) string {
-	if len(labels) == 0 {
-		return ""
+func newAttr(
+	t types.Type, options Options, output bool,
+) (*api.AttributeSpec, error) {
+	role := declaredRole(t, options, output)
+	if output && role != api.RoleOutput {
+		return nil, fmt.Errorf("%w: an output takes no role %q",
+			ErrBadProp, role)
 	}
-	var sb strings.Builder
-	sb.WriteString("Labels: api.Labels{\n")
-	for _, k := range slices.Sorted(maps.Keys(labels)) {
-		fmt.Fprintf(&sb, "%q: %q,\n", k, labels[k])
+	spec := &api.AttributeSpec{Type: attributeType(t)}
+	if err := setRole(spec, role); err != nil {
+		return nil, err
 	}
-	sb.WriteString("},\n")
-	return sb.String()
-}
-
-func attrList(name string, attrs []attrModel) string {
-	if len(attrs) == 0 {
-		return ""
-	}
-	var sb strings.Builder
-	fmt.Fprintf(&sb, "%s: []gen.Attr{\n", name)
-	for _, a := range attrs {
-		fmt.Fprintf(&sb, "{Name: %q, Type: %s", a.name, a.attrType)
-		if a.optional {
-			sb.WriteString(", Optional: true")
+	for _, o := range options {
+		if o.Key == roleProp {
+			continue
 		}
-		sb.WriteString("},\n")
+		set, ok := attrSetters[o.Key]
+		if !ok {
+			return nil, fmt.Errorf("%w: unknown property %q",
+				ErrBadProp, o.Key)
+		}
+		if err := set(spec, o.Value); err != nil {
+			return nil, err
+		}
 	}
-	sb.WriteString("},\n")
-	return sb.String()
+	return spec, nil
 }
 
-func attributeType(t types.Type) string {
+func declaredRole(
+	t types.Type, options Options, output bool,
+) api.AttributeRole {
+	for _, o := range options {
+		if o.Key == roleProp {
+			return api.AttributeRole(o.Value)
+		}
+	}
+	switch {
+	case output:
+		return api.RoleOutput
+	case isPointer(t):
+		return api.RoleOptional
+	default:
+		return api.RoleRequired
+	}
+}
+
+func attributeType(t types.Type) api.AttributeType {
 	if p, ok := t.(*types.Pointer); ok {
 		return attributeType(p.Elem())
 	}
@@ -356,18 +378,23 @@ func attributeType(t types.Type) string {
 		info := u.Info()
 		switch {
 		case info&types.IsString != 0:
-			return "api.TypeString"
+			return api.TypeString
 		case info&types.IsBoolean != 0:
-			return "api.TypeBoolean"
+			return api.TypeBoolean
 		case info&(types.IsInteger|types.IsFloat) != 0:
-			return "api.TypeNumber"
+			return api.TypeNumber
 		}
 	case *types.Slice:
-		return "api.TypeArray"
+		return api.TypeArray
 	case *types.Struct, *types.Map:
-		return "api.TypeObject"
+		return api.TypeObject
 	}
-	return "api.TypeAny"
+	return api.TypeAny
+}
+
+func isPointer(t types.Type) bool {
+	_, ok := t.(*types.Pointer)
+	return ok
 }
 
 func structFields(s *types.Struct) ([]fieldSpec, error) {
@@ -377,31 +404,39 @@ func structFields(s *types.Struct) ([]fieldSpec, error) {
 		if !f.Exported() {
 			continue
 		}
-		attr, ok, err := attrOf(f, s.Tag(i))
+		spec, ok, err := attrOf(f, s.Tag(i))
 		if err != nil {
 			return nil, err
 		}
 		if ok {
-			out = append(out, fieldSpec{Var: f, attr: attr})
+			out = append(out, spec)
 		}
 	}
 	return out, nil
 }
 
-func attrOf(f *types.Var, tag string) (string, bool, error) {
-	name, opts, _ := strings.Cut(reflect.StructTag(tag).Get(fieldTag), ",")
-	switch {
-	case name == skipField:
-		return "", false, nil
-	case opts != "":
-		return "", false, fmt.Errorf("%w: unknown option %q on %s",
-			ErrBadTag, opts, f.Name())
-	case name == "":
-		return SnakeCase(f.Name()), true, nil
-	case strings.ContainsAny(name, " \t"):
-		return "", false, fmt.Errorf("%w: bad attribute name %q on %s",
-			ErrBadTag, name, f.Name())
-	default:
-		return name, true, nil
+func attrOf(f *types.Var, tag string) (fieldSpec, bool, error) {
+	text := strings.TrimSpace(reflect.StructTag(tag).Get(fieldTag))
+	if text == skipField {
+		return fieldSpec{}, false, nil
 	}
+	head, options, err := ParseOptions(text)
+	if err != nil {
+		return fieldSpec{}, false, fmt.Errorf("%w: %s", err, f.Name())
+	}
+	decl := SplitHead(head)
+	if decl.Attrs != "" {
+		return fieldSpec{}, false, fmt.Errorf(
+			"%w: %s is a field, so it names one attribute", ErrBadTag,
+			f.Name())
+	}
+	name := decl.Name
+	if strings.ContainsAny(name, " \t") {
+		return fieldSpec{}, false, fmt.Errorf(
+			"%w: bad attribute name %q on %s", ErrBadTag, name, f.Name())
+	}
+	if name == "" {
+		name = SnakeCase(f.Name())
+	}
+	return fieldSpec{Var: f, attr: name, options: options}, true, nil
 }

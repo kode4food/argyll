@@ -1,21 +1,20 @@
 package generator_test
 
 import (
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
+	"regexp"
+	"strconv"
 	"testing"
 
+	"github.com/kode4food/argyll/engine/pkg/api"
 	"github.com/kode4food/argyll/sdk/go/gen/internal/generator"
 	"github.com/stretchr/testify/assert"
 )
 
-func render(t *testing.T, pattern string) ([]byte, error) {
-	t.Helper()
-	pkgs, err := generator.Load(".", pattern)
-	assert.NoError(t, err)
-	assert.Len(t, pkgs, 1)
-	return generator.Render(pkgs[0])
-}
+var specPattern = regexp.MustCompile(`(?m)^\tSpec:\s+(".*"),$`)
 
 func TestNames(t *testing.T) {
 	assert.Equal(t, "customer_id", generator.SnakeCase("CustomerID"))
@@ -25,6 +24,63 @@ func TestNames(t *testing.T) {
 	assert.Equal(t, "Calculate Risk", generator.TitleCase("CalculateRisk"))
 	assert.Equal(t, "CustomerId", generator.ExportedName("customer-id"))
 	assert.Equal(t, "Score", generator.ExportedName("score"))
+}
+
+func TestParseOptions(t *testing.T) {
+	t.Run("head only", func(t *testing.T) {
+		head, opts, err := generator.ParseOptions("  iso_currency  ")
+		assert.NoError(t, err)
+		assert.Equal(t, "iso_currency", head)
+		assert.Empty(t, opts)
+	})
+
+	t.Run("options only", func(t *testing.T) {
+		head, opts, err := generator.ParseOptions(" optional:true ")
+		assert.NoError(t, err)
+		assert.Empty(t, head)
+		assert.Equal(t, generator.Options{
+			{Key: "optional", Value: "true"},
+		}, opts)
+	})
+
+	t.Run("head and options, loosely spaced", func(t *testing.T) {
+		head, opts, err := generator.ParseOptions(
+			" flow ; meta : flow_id ; label : domain = risk ")
+		assert.NoError(t, err)
+		assert.Equal(t, "flow", head)
+		assert.Equal(t, generator.Options{
+			{Key: "meta", Value: "flow_id"},
+			{Key: "label", Value: "domain = risk"},
+		}, opts)
+	})
+
+	t.Run("empty segments are skipped", func(t *testing.T) {
+		head, opts, err := generator.ParseOptions("charge-card;;name:Charge;")
+		assert.NoError(t, err)
+		assert.Equal(t, "charge-card", head)
+		assert.Len(t, opts, 1)
+	})
+
+	t.Run("an option needs a value", func(t *testing.T) {
+		_, _, err := generator.ParseOptions("charge-card;name")
+		assert.True(t, errors.Is(err, generator.ErrBadOption))
+	})
+}
+
+func TestSplitHead(t *testing.T) {
+	tests := map[string]generator.Head{
+		"score-customer":         {Name: "score-customer"},
+		" (a, b) -> (c) ":        {Attrs: "(a, b) -> (c)"},
+		"score-v2 (a, b) -> (c)": {Name: "score-v2", Attrs: "(a, b) -> (c)"},
+		"score-v2 -> (c)":        {Name: "score-v2", Attrs: "-> (c)"},
+		"multi-word-id":          {Name: "multi-word-id"},
+	}
+
+	for text, want := range tests {
+		t.Run(text, func(t *testing.T) {
+			assert.Equal(t, want, generator.SplitHead(text))
+		})
+	}
 }
 
 func TestGeneratedFileMatchesRender(t *testing.T) {
@@ -39,21 +95,23 @@ func TestGeneratedFileMatchesRender(t *testing.T) {
 }
 
 func TestContractInference(t *testing.T) {
-	src, err := render(t, "../../../example")
-	assert.NoError(t, err)
-	text := string(src)
+	step := steps(t, "../../../example")["calculate-risk"]
+	assert.Equal(t, api.Name("Calculate Risk"), step.Name)
+	assert.Equal(t, api.StepTypeSync, step.Type)
 
-	assert.Contains(t, text, `ID:   "calculate-risk"`)
-	assert.Contains(t, text, `Name: "Calculate Risk"`)
-	assert.Contains(t, text, `{Name: "customer_id", Type: api.TypeString}`)
-	assert.Contains(t, text, `{Name: "amount", Type: api.TypeNumber}`)
-	assert.Contains(t, text, `{Name: "tags", Type: api.TypeArray}`)
-	assert.Contains(t, text,
-		`{Name: "note", Type: api.TypeString, Optional: true}`)
-	assert.Contains(t, text, `{Name: "approved", Type: api.TypeBoolean}`)
+	attrs := step.Attributes
+	assert.Equal(t, api.TypeString, attrs["customer_id"].Type)
+	assert.Equal(t, api.TypeNumber, attrs["amount"].Type)
+	assert.Equal(t, api.TypeArray, attrs["tags"].Type)
+	assert.Equal(t, api.TypeBoolean, attrs["approved"].Type)
+	assert.True(t, attrs["customer_id"].IsRequired())
+	assert.True(t, attrs["approved"].IsOutput())
+
+	// a pointer field is an optional attribute
+	assert.True(t, attrs["note"].IsOptional())
 
 	// an error is control-plane information, never a step output
-	assert.NotContains(t, text, `Name: "err`)
+	assert.NotContains(t, attrs, api.Name("err"))
 }
 
 func TestWrapContract(t *testing.T) {
@@ -61,8 +119,8 @@ func TestWrapContract(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(src)
 
-	assert.Contains(t, text, `ID:   "score-customer"`)
-	assert.Contains(t, text, `{Name: "customer-id", Type: api.TypeString}`)
+	step := steps(t, "../../../example")["score-customer"]
+	assert.Equal(t, api.TypeString, step.Attributes["customer-id"].Type)
 	assert.Contains(t, text,
 		"r0, r1, err := ScoreCustomer(in.CustomerId, in.Amount)")
 	assert.Contains(t, text,
@@ -73,13 +131,14 @@ func TestWrapInference(t *testing.T) {
 	src, err := render(t, "../../../example")
 	assert.NoError(t, err)
 	text := string(src)
+	byID := steps(t, "../../../example")
 
-	// inputs inferred from parameter names, outputs named by the directive
-	assert.Contains(t, text, `ID:   "rate-customer"`)
+	// an ID beside the attribute spec, inputs inferred from the parameters
+	assert.Contains(t, byID, api.StepID("rate-customer-v2"))
 	assert.Contains(t, text, "type argyllRateCustomerIn struct {\n\tCustomerId")
 
 	// both sides inferred, from named parameters and named results
-	assert.Contains(t, text, `ID:   "grade-customer"`)
+	assert.Contains(t, byID, api.StepID("grade-customer"))
 	assert.Contains(t, text,
 		"type argyllGradeCustomerIn struct {\n\tCustomerId")
 	assert.Contains(t, text,
@@ -91,7 +150,7 @@ func TestZeroOutputStep(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(src)
 
-	assert.Contains(t, text, `ID:   "audit"`)
+	assert.Contains(t, steps(t, "../../../example"), api.StepID("audit"))
 	assert.Contains(t, text, "codec.Struct[struct{}]()")
 	assert.Contains(t, text, "return struct{}{}, Audit(in)")
 }
@@ -104,8 +163,10 @@ func TestCompositeCodecs(t *testing.T) {
 	assert.Contains(t, text, "codec.Map(codec.Number[int]())")
 	assert.Contains(t, text, "codec.Slice(codec.Text[string]())")
 	assert.Contains(t, text, "codec.Optional(codec.Text[string]())")
-	assert.Contains(t, text, `{Name: "address", Type: api.TypeObject}`)
-	assert.Contains(t, text, `{Name: "limits", Type: api.TypeObject}`)
+
+	attrs := steps(t, "../../../example")["enroll"].Attributes
+	assert.Equal(t, api.TypeObject, attrs["address"].Type)
+	assert.Equal(t, api.TypeObject, attrs["limits"].Type)
 }
 
 func TestFieldTags(t *testing.T) {
@@ -113,12 +174,47 @@ func TestFieldTags(t *testing.T) {
 	assert.NoError(t, err)
 	text := string(src)
 
-	assert.Contains(t, text, `{Name: "iso_currency", Type: api.TypeString}`)
+	attrs := steps(t, "../../../example")["enroll"].Attributes
+	assert.Equal(t, api.TypeString, attrs["iso_currency"].Type)
 	assert.Contains(t, text, `codec.Field("iso_currency"`)
 
 	// a tag of "-" keeps the field off the wire entirely
 	assert.NotContains(t, text, "scratch")
 	assert.NotContains(t, text, "Scratch")
+}
+
+func TestAttributeProps(t *testing.T) {
+	attrs := steps(t, "../../../example")["charge-card-v2"].Attributes
+
+	// a for_each attribute is declared as an array, whatever the Go type
+	assert.Equal(t, api.TypeArray, attrs["order_id"].Type)
+	assert.True(t, attrs["order_id"].Required.ForEach)
+	assert.Equal(t, api.InputCollectAll, attrs["order_id"].Required.Collect)
+
+	assert.True(t, attrs["note"].IsOptional())
+	assert.Equal(t, int64(5000), attrs["currency"].Optional.Deadline)
+	assert.Equal(t, "flow_id", attrs["flow"].Meta.Key)
+	assert.Equal(t, "lua", attrs["amount"].Required.Match.Language)
+
+	// a default or const value reaches the engine as JSON
+	assert.Equal(t, `"USD"`, attrs["currency"].Optional.Default)
+	assert.Equal(t, `"stripe"`, attrs["gateway"].Const.Value)
+}
+
+func TestStepProps(t *testing.T) {
+	byID := steps(t, "../../../example")
+	step := byID["charge-card-v2"]
+
+	assert.Equal(t, api.Name("Charge Card (v2)"), step.Name)
+	assert.Equal(t, int64(2500), step.HTTP.Invoke.Timeout)
+	assert.Equal(t, "lua", step.Predicate.Language)
+
+	// the endpoints are paths until the step server knows its own host
+	assert.Equal(t, "/charge-card-v2", step.HTTP.Invoke.Endpoint)
+	assert.Equal(t, "/health", step.HTTP.Health)
+
+	// the conventional ID and name are gone entirely
+	assert.NotContains(t, byID, api.StepID("charge-card"))
 }
 
 func TestRecursiveCodec(t *testing.T) {
@@ -159,7 +255,9 @@ func TestDiagnostics(t *testing.T) {
 		},
 		"label syntax": {
 			pattern: "./testdata/badlabel",
-			wants:   []string{`label "domain" is not key=value`},
+			wants: []string{
+				`//argyll:labels takes key:value options, got "domain"`,
+			},
 		},
 		"attribute type": {
 			pattern: "./testdata/badtype",
@@ -175,11 +273,43 @@ func TestDiagnostics(t *testing.T) {
 		},
 		"tag option": {
 			pattern: "./testdata/badtag",
-			wants:   []string{`unknown option "omitempty" on Amount`},
+			wants:   []string{`unknown property "omitempty" on Amount`},
 		},
 		"tag name": {
 			pattern: "./testdata/badtagname",
 			wants:   []string{`bad attribute name "order amount"`},
+		},
+		"step ID": {
+			pattern: "./testdata/badid",
+			wants:   []string{`bad step ID "Charge_Card"`},
+		},
+		"step attributes": {
+			pattern: "./testdata/badstepattrs",
+			wants:   []string{"//argyll:step takes no attribute spec"},
+		},
+		"step option": {
+			pattern: "./testdata/badstepopt",
+			wants:   []string{`unknown property "domain"`},
+		},
+		"field attributes": {
+			pattern: "./testdata/badfieldattrs",
+			wants:   []string{"Amount is a field, so it names one attribute"},
+		},
+		"role mismatch": {
+			pattern: "./testdata/badroles",
+			wants:   []string{`"default" needs role "optional" on Amount`},
+		},
+		"output role": {
+			pattern: "./testdata/badoutopt",
+			wants:   []string{`an output takes no role "optional" on Score`},
+		},
+		"option value": {
+			pattern: "./testdata/badoptvalue",
+			wants:   []string{`"default" is not key:value`},
+		},
+		"for each role": {
+			pattern: "./testdata/badforeach",
+			wants:   []string{`"for_each" needs role "required" on Amount`},
 		},
 		"unnamed result": {
 			pattern: "./testdata/badinfer",
@@ -226,14 +356,41 @@ func TestGenerateRemovesStaleFile(t *testing.T) {
 }
 
 func TestLabels(t *testing.T) {
-	src, err := render(t, "../../../example")
+	byID := steps(t, "../../../example")
+
+	assert.Equal(t, api.Labels{
+		"description": "score a customer for risk",
+		"domain":      "risk",
+	}, byID["calculate-risk"].Labels)
+
+	// a step without labels directives declares none
+	assert.Empty(t, byID["greet"].Labels)
+}
+
+func render(t *testing.T, pattern string) ([]byte, error) {
+	t.Helper()
+	pkgs, err := generator.Load(".", pattern)
 	assert.NoError(t, err)
-	text := string(src)
+	assert.Len(t, pkgs, 1)
+	return generator.Render(pkgs[0])
+}
 
-	assert.Contains(t, text, "Labels: api.Labels{")
-	assert.Contains(t, text, `"description": "score a customer for risk"`)
-	assert.Contains(t, text, `"domain":      "risk"`)
+// steps decodes the specifications the generator emitted, which are the same
+// bytes it validated and the same bytes the engine will receive
+func steps(t *testing.T, pattern string) map[api.StepID]*api.Step {
+	t.Helper()
+	src, err := render(t, pattern)
+	assert.NoError(t, err)
 
-	// a step without label directives declares no labels
-	assert.NotContains(t, text, "Labels: api.Labels{}")
+	res := map[api.StepID]*api.Step{}
+	for _, m := range specPattern.FindAllStringSubmatch(string(src), -1) {
+		spec, err := strconv.Unquote(m[1])
+		assert.NoError(t, err)
+
+		var step api.Step
+		assert.NoError(t, json.Unmarshal([]byte(spec), &step))
+		assert.NoError(t, step.Validate())
+		res[step.ID] = &step
+	}
+	return res
 }

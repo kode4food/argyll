@@ -16,10 +16,19 @@ import (
 	"github.com/kode4food/argyll/engine/pkg/log"
 )
 
-type compensateBody struct {
-	Input  api.Args `json:"input"`
-	Output api.Args `json:"output"`
-}
+type (
+	// StepAddr is the port a step server listens on and the base URL it
+	// advertises to the engine
+	StepAddr struct {
+		BaseURL string
+		Port    string
+	}
+
+	compensateBody struct {
+		Input  api.Args `json:"input"`
+		Output api.Args `json:"output"`
+	}
+)
 
 const (
 	MaxRegistrationAttempts = 5
@@ -32,30 +41,56 @@ var (
 	ErrHandlerPanic     = errors.New("step handler panicked")
 )
 
+// LocalStepAddr reads the step server address from the STEP_HOSTNAME and
+// STEP_PORT environment variables
+func LocalStepAddr() StepAddr {
+	port := EnvOr("STEP_PORT", strconv.Itoa(DefaultStepPort))
+	host := EnvOr("STEP_HOSTNAME", "localhost")
+	return StepAddr{
+		BaseURL: fmt.Sprintf("http://%s:%s", host, port),
+		Port:    port,
+	}
+}
+
+// EnvOr returns the named environment variable, or the given default when it is
+// unset or empty
+func EnvOr(name, defaultValue string) string {
+	if v := os.Getenv(name); v != "" {
+		return v
+	}
+	return defaultValue
+}
+
+// HealthHandler serves the health endpoint the engine polls. An empty service
+// name is reported as a bare status
+func HealthHandler(service api.Name) http.HandlerFunc {
+	body := `{"status": "healthy"}`
+	if service != "" {
+		body = fmt.Sprintf(`{"status": "healthy", "service": "%s"}`, service)
+	}
+	return func(w http.ResponseWriter, _ *http.Request) {
+		w.Header().Set("Content-Type", api.JSONContentType)
+		w.WriteHeader(http.StatusOK)
+		_, _ = fmt.Fprint(w, body)
+	}
+}
+
+// WriteProblem writes an RFC 7807 problem response
+func WriteProblem(w http.ResponseWriter, status int, detail string) {
+	w.Header().Set("Content-Type", api.ProblemJSONContentType)
+	w.WriteHeader(status)
+	_ = json.NewEncoder(w).Encode(api.NewProblem(status, detail))
+}
+
 func setupStepServer(client *Client, step Step, handle StepHandler) error {
-	port := os.Getenv("STEP_PORT")
-	if port == "" {
-		port = strconv.Itoa(DefaultStepPort)
-	}
+	addr := LocalStepAddr()
+	id := step.step.ID
+	endpoint := fmt.Sprintf("%s/%s", addr.BaseURL, id)
+	step = step.WithEndpoint(endpoint).
+		WithHealthCheck(addr.BaseURL + "/health")
 
-	portInt, _ := strconv.Atoi(port)
-
-	hostname := os.Getenv("STEP_HOSTNAME")
-	if hostname == "" {
-		hostname = "localhost"
-	}
-
-	endpoint := fmt.Sprintf("http://%s:%d/%s", hostname, portInt, step.id)
-	healthEndpoint := fmt.Sprintf("http://%s:%d/health", hostname, portInt)
-
-	step = step.WithEndpoint(endpoint).WithHealthCheck(healthEndpoint)
-
-	if step.compensate != nil &&
-		(step.http == nil || step.http.Compensate == nil) {
-		compensateURL := fmt.Sprintf(
-			"http://%s:%d/%s/compensate", hostname, portInt, step.id,
-		)
-		step = step.WithCompensate(compensateURL)
+	if step.compensate != nil && step.step.HTTP.Compensate == nil {
+		step = step.WithCompensate(endpoint + "/compensate")
 	}
 
 	stepReq, err := step.Build()
@@ -67,11 +102,11 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	for attempt := 1; attempt <= MaxRegistrationAttempts; attempt++ {
 		var err error
 		if step.dirty {
-			err = client.updateStep(context.Background(), stepReq)
+			err = client.UpdateStep(context.Background(), stepReq)
 		} else {
-			err = client.registerStep(context.Background(), stepReq)
+			err = client.RegisterStep(context.Background(), stepReq)
 			if err != nil && isRegisterConflict(err) {
-				err = client.updateStep(context.Background(), stepReq)
+				err = client.UpdateStep(context.Background(), stepReq)
 			}
 		}
 
@@ -93,31 +128,23 @@ func setupStepServer(client *Client, step Step, handle StepHandler) error {
 	}
 
 	mux := http.NewServeMux()
+	mux.HandleFunc("/health", HealthHandler(api.Name(id)))
 
-	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", api.JSONContentType)
-		w.WriteHeader(http.StatusOK)
-		_, _ = fmt.Fprintf(w, `{"status": "healthy", "service": "%s"}`,
-			string(step.id))
-	})
-
-	handler := makeStepHandler(client, step.id, handle)
-	mux.HandleFunc("/"+string(step.id), handler)
+	handler := makeStepHandler(client, id, handle)
+	mux.HandleFunc("/"+string(id), handler)
 
 	if step.compensate != nil {
-		compHandler := makeCompensateHandler(
-			client, step.id, step.compensate,
-		)
-		mux.HandleFunc("/"+string(step.id)+"/compensate", compHandler)
+		compHandler := makeCompensateHandler(client, id, step.compensate)
+		mux.HandleFunc("/"+string(id)+"/compensate", compHandler)
 	}
 
 	slog.Info("Step server starting",
-		slog.String("step_name", string(step.name)),
-		log.StepID(step.id),
-		slog.String("port", port),
+		slog.String("step_name", string(step.step.Name)),
+		log.StepID(id),
+		slog.String("port", addr.Port),
 		slog.String("endpoint", endpoint))
 	server := &http.Server{
-		Addr:    ":" + port,
+		Addr:    ":" + addr.Port,
 		Handler: mux,
 	}
 
@@ -134,13 +161,13 @@ func makeCompensateHandler(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			writeProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
+			WriteProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
 			return
 		}
 
 		var body compensateBody
 		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-			writeProblem(w, http.StatusBadRequest, "Invalid JSON")
+			WriteProblem(w, http.StatusBadRequest, "Invalid JSON")
 			return
 		}
 
@@ -156,7 +183,7 @@ func makeCompensateHandler(
 
 		httpErr := executeCompensateWithRecovery(ctx, handler, body)
 		if httpErr != nil {
-			writeProblem(w, httpErr.StatusCode, httpErr.Message)
+			WriteProblem(w, httpErr.StatusCode, httpErr.Message)
 			return
 		}
 
@@ -169,13 +196,13 @@ func makeStepHandler(
 ) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			writeProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
+			WriteProblem(w, http.StatusMethodNotAllowed, "Method not allowed")
 			return
 		}
 
 		var args api.Args
 		if err := json.NewDecoder(r.Body).Decode(&args); err != nil {
-			writeProblem(w, http.StatusBadRequest, "Invalid JSON")
+			WriteProblem(w, http.StatusBadRequest, "Invalid JSON")
 			return
 		}
 
@@ -190,7 +217,7 @@ func makeStepHandler(
 		}
 		outputs, err := executeStepWithRecovery(ctx, handler, args)
 		if err != nil {
-			writeProblem(w, err.StatusCode, err.Message)
+			WriteProblem(w, err.StatusCode, err.Message)
 			return
 		}
 
@@ -248,10 +275,4 @@ func executeCompensateWithRecovery(
 		return NewHTTPError(http.StatusInternalServerError, err.Error())
 	}
 	return nil
-}
-
-func writeProblem(w http.ResponseWriter, status int, detail string) {
-	w.Header().Set("Content-Type", api.ProblemJSONContentType)
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(api.NewProblem(status, detail))
 }

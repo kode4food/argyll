@@ -43,6 +43,16 @@ type (
 		Currency string `argyll:"iso_currency"`
 		Scratch  string `argyll:"-"`
 	}
+
+	// ChargeArgs are the inputs of the ChargeCard step
+	ChargeArgs struct {
+		OrderID  string `argyll:"for_each:true;collect:all"`
+		Note     string `argyll:"role:optional"`
+		Currency string `argyll:"role:optional;default:USD;deadline:5000"`
+		Gateway  string `argyll:"role:const;value:stripe"`
+		FlowID   string `argyll:"flow;role:meta;key:flow_id"`
+		Amount   int64  `argyll:"match:return args.amount > 0"`
+	}
 )
 
 //go:generate go run ../gen/cmd/argyll-gen .
@@ -50,8 +60,7 @@ type (
 var ErrAmountNegative = errors.New("amount must not be negative")
 
 //argyll:step
-//argyll:label description=score a customer for risk
-//argyll:label domain=risk
+//argyll:labels description: score a customer for risk; domain: risk
 func CalculateRisk(args RiskArgs) (RiskResult, error) {
 	if args.Amount < 0 {
 		return RiskResult{}, ErrAmountNegative
@@ -104,7 +113,7 @@ func Audit(args struct{ Event string }) error {
 	return nil
 }
 
-//argyll:wrap customer-id, amount -> score, approved
+//argyll:wrap (customer-id, amount) -> (score, approved)
 func ScoreCustomer(customerID string, amount int64) (int, bool, error) {
 	if customerID == "" {
 		return 0, false, errors.New("customer id required")
@@ -112,7 +121,7 @@ func ScoreCustomer(customerID string, amount int64) (int, bool, error) {
 	return int(amount / 100), amount < 10_000, nil
 }
 
-//argyll:wrap -> score, approved
+//argyll:wrap rate-customer-v2 -> (score, approved)
 func RateCustomer(customerID string, amount int64) (int, bool, error) {
 	if customerID == "" {
 		return 0, false, errors.New("customer id required")
@@ -130,8 +139,17 @@ func GradeCustomer(
 	return int(amount / 100), amount < 10_000, nil
 }
 
+//argyll:step charge-card-v2;name:Charge Card (v2)
+//argyll:props timeout: 2500; memoize: false
+//argyll:props predicate: return args.amount > 0
+func ChargeCard(args ChargeArgs) struct{ ChargeID string } {
+	return struct{ ChargeID string }{
+		ChargeID: args.Gateway + ":" + args.OrderID + ":" + args.Currency,
+	}
+}
+
 //argyll:step
-//argyll:label domain=risk
+//argyll:labels domain: risk
 func Reject(args struct{ Reason string }) error {
 	return argyll.NewHTTPError(http.StatusNotFound, args.Reason)
 }

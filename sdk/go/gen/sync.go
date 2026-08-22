@@ -2,7 +2,6 @@ package gen
 
 import (
 	"bytes"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -75,12 +74,12 @@ func decodeBody[T any](
 ) (T, bool) {
 	var zero T
 	if r.Method != http.MethodPost {
-		writeProblem(w, http.StatusMethodNotAllowed, ErrMethod.Error())
+		argyll.WriteProblem(w, http.StatusMethodNotAllowed, ErrMethod.Error())
 		return zero, false
 	}
 	v, err := codec.DecodeFrom(c, r.Body)
 	if err != nil {
-		writeProblem(w, http.StatusBadRequest,
+		argyll.WriteProblem(w, http.StatusBadRequest,
 			fmt.Sprintf("%s: %s", ErrInvalidInputs, err))
 		return zero, false
 	}
@@ -92,14 +91,14 @@ func writeFailure(w http.ResponseWriter, err error) {
 		slog.Error("Step function panicked",
 			slog.Any("panic", pe.Value),
 			slog.String("stack", string(pe.Stack)))
-		writeProblem(w, PanicStatus, pe.Error())
+		argyll.WriteProblem(w, PanicStatus, pe.Error())
 		return
 	}
 	if he, ok := errors.AsType[*argyll.HTTPError](err); ok {
-		writeProblem(w, he.StatusCode, he.Message)
+		argyll.WriteProblem(w, he.StatusCode, he.Message)
 		return
 	}
-	writeProblem(w, FailureStatus, err.Error())
+	argyll.WriteProblem(w, FailureStatus, err.Error())
 }
 
 func writeValue[T any](
@@ -107,7 +106,7 @@ func writeValue[T any](
 ) {
 	body, err := encodeValue(c, v)
 	if err != nil {
-		writeProblem(w, http.StatusInternalServerError, err.Error())
+		argyll.WriteProblem(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	w.Header().Set("Content-Type", api.JSONContentType)
@@ -121,10 +120,4 @@ func encodeValue[T any](c codec.Codec[T], v T) ([]byte, error) {
 		return nil, err
 	}
 	return buf.Bytes(), nil
-}
-
-func writeProblem(w http.ResponseWriter, status int, detail string) {
-	w.Header().Set("Content-Type", api.ProblemJSONContentType)
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(api.NewProblem(status, detail))
 }

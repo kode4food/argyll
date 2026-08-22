@@ -30,36 +30,6 @@ type (
 
 var errRefused = errors.New("refused")
 
-func sumArgsCodec() codec.Codec[sumArgs] {
-	return codec.Struct(
-		codec.Field("left", codec.Int, func(v *sumArgs) *int {
-			return &v.Left
-		}),
-		codec.Field("right", codec.Int, func(v *sumArgs) *int {
-			return &v.Right
-		}),
-	)
-}
-
-func sumResultCodec() codec.Codec[sumResult] {
-	return codec.Struct(
-		codec.Field("total", codec.Int, func(v *sumResult) *int {
-			return &v.Total
-		}),
-		codec.Field("doubled", codec.Int, func(v *sumResult) *int {
-			return &v.Doubled
-		}),
-	)
-}
-
-func invoke(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
-	r := httptest.NewRequest(http.MethodPost, "/sum",
-		strings.NewReader(body))
-	w := httptest.NewRecorder()
-	h(w, r)
-	return w
-}
-
 func TestSyncOutputs(t *testing.T) {
 	h := gen.Sync(sumArgsCodec(), sumResultCodec(),
 		func(in sumArgs) (sumResult, error) {
@@ -142,16 +112,16 @@ func TestRegisterFailure(t *testing.T) {
 		}))
 	defer engine.Close()
 
-	step := gen.StepDef{
-		ID:      "sum",
-		Name:    "Sum",
-		Type:    api.StepTypeSync,
-		Inputs:  []gen.Attr{{Name: "left", Type: api.TypeNumber}},
-		Outputs: []gen.Attr{{Name: "total", Type: api.TypeNumber}},
-	}
 	client := argyll.NewClient(engine.URL, time.Second)
 	err := gen.Register(context.Background(), client, "http://host:1",
-		step)
+		sumStep())
+	assert.Error(t, err)
+}
+
+func TestRegisterBadSpec(t *testing.T) {
+	client := argyll.NewClient("http://127.0.0.1:1", time.Second)
+	err := gen.Register(context.Background(), client, "http://host:1",
+		gen.StepDef{ID: "sum", Spec: "{"})
 	assert.Error(t, err)
 }
 
@@ -159,25 +129,11 @@ func TestServeRegistrationFailure(t *testing.T) {
 	t.Setenv("ARGYLL_ENGINE_URL", "http://127.0.0.1:1")
 	t.Setenv("STEP_PORT", "0")
 
-	step := gen.StepDef{
-		ID:   "sum",
-		Name: "Sum",
-		Type: api.StepTypeSync,
-	}
-	assert.Error(t, gen.Serve(context.Background(), step))
+	assert.Error(t, gen.Serve(context.Background(), sumStep()))
 }
 
 func TestMux(t *testing.T) {
-	step := gen.StepDef{
-		ID:   "sum",
-		Name: "Sum",
-		Type: api.StepTypeSync,
-		Handler: gen.Sync(sumArgsCodec(), sumResultCodec(),
-			func(in sumArgs) (sumResult, error) {
-				return sumResult{Total: in.Left + in.Right}, nil
-			}),
-	}
-	srv := httptest.NewServer(gen.Mux(step))
+	srv := httptest.NewServer(gen.Mux(sumStep()))
 	defer srv.Close()
 
 	res, err := http.Get(srv.URL + "/health")
@@ -204,4 +160,51 @@ func TestPanicErrorUnwraps(t *testing.T) {
 	pe := &gen.PanicError{Value: errRefused}
 	assert.ErrorIs(t, pe, argyll.ErrHandlerPanic)
 	assert.Contains(t, pe.Error(), errRefused.Error())
+}
+
+// sumStep stands in for what argyll-gen writes, the specification in the wire
+// form the engine accepts
+func sumStep() gen.StepDef {
+	return gen.StepDef{
+		ID: "sum",
+		Spec: `{"id":"sum","name":"Sum","type":"sync",` +
+			`"http":{"invoke":{"endpoint":"/sum"},"health":"/health"},` +
+			`"attributes":{` +
+			`"left":{"role":"required","type":"number"},` +
+			`"total":{"role":"output","type":"number"}}}`,
+		Handler: gen.Sync(sumArgsCodec(), sumResultCodec(),
+			func(in sumArgs) (sumResult, error) {
+				return sumResult{Total: in.Left + in.Right}, nil
+			}),
+	}
+}
+
+func sumArgsCodec() codec.Codec[sumArgs] {
+	return codec.Struct(
+		codec.Field("left", codec.Int, func(v *sumArgs) *int {
+			return &v.Left
+		}),
+		codec.Field("right", codec.Int, func(v *sumArgs) *int {
+			return &v.Right
+		}),
+	)
+}
+
+func sumResultCodec() codec.Codec[sumResult] {
+	return codec.Struct(
+		codec.Field("total", codec.Int, func(v *sumResult) *int {
+			return &v.Total
+		}),
+		codec.Field("doubled", codec.Int, func(v *sumResult) *int {
+			return &v.Doubled
+		}),
+	)
+}
+
+func invoke(h http.HandlerFunc, body string) *httptest.ResponseRecorder {
+	r := httptest.NewRequest(http.MethodPost, "/sum",
+		strings.NewReader(body))
+	w := httptest.NewRecorder()
+	h(w, r)
+	return w
 }

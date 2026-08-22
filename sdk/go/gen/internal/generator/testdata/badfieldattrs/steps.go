@@ -1,7 +1,7 @@
-package badtag
+package badfieldattrs
 
 type Args struct {
-	Amount int `argyll:"amount;omitempty:true"`
+	Amount int `argyll:"amount -> (total)"`
 }
 
 //argyll:step

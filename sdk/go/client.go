@@ -134,7 +134,11 @@ func (c *Client) url(format string, args ...any) string {
 	return c.baseURL + path
 }
 
-func (c *Client) registerStep(ctx context.Context, step *api.Step) error {
+// RegisterStep validates a step and registers it with the engine
+func (c *Client) RegisterStep(ctx context.Context, step *api.Step) error {
+	if err := step.Validate(); err != nil {
+		return err
+	}
 	return c.doHTTPRequest(ctx, httpRequest{
 		Method:    "POST",
 		URL:       c.url(routeSteps),
@@ -144,7 +148,11 @@ func (c *Client) registerStep(ctx context.Context, step *api.Step) error {
 	})
 }
 
-func (c *Client) updateStep(ctx context.Context, step *api.Step) error {
+// UpdateStep validates a step and replaces its registration
+func (c *Client) UpdateStep(ctx context.Context, step *api.Step) error {
+	if err := step.Validate(); err != nil {
+		return err
+	}
 	return c.doHTTPRequest(ctx, httpRequest{
 		Method:    "PUT",
 		URL:       c.url("%s/%s", routeSteps, step.ID),
